@@ -1,0 +1,7 @@
+- Additional cores. ARM9E(J)-S, ARM7TDMI-S, TI925, ...
+- Testing.
+- Additional jtag interfaces. Currently, only Wiggler style interfaces and
+  USBJTAG-1 are supported.
+- Testing.
+- Handle endianess. The configuration variable is there, but that's about it.
+  Currently, only little-endian targets and little-endian hosts are supported.

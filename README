@@ -1,0 +1,49 @@
+                                    openocd
+
+	     Free and Open On-Chip Debugging, In-System Programming 
+			   and Boundary-Scan Testing
+                     Copyright (c) 2004, 2005 Dominic Rath
+
+The debugger uses an IEEE 1149-1 compliant JTAG TAP bus master to access on-chip
+debug functionality available on ARM7 and ARM9 based microcontrollers /
+system-on-chip solutions.
+
+User interaction is realized through a telnet command line interface and a gdb
+(The GNU Debugger) remote protocol server.
+
+Initially, support for two JTAG TAP bus master interfaces with public hardware
+schematics will be included, but support of additional hardware is an expressed
+goal.
+
+1. JTAG hardware
+
+Currently, openocd contains support for Wiggler-compatible paralell port
+dongles and a USB interface based on the FTDI FT2232, called USBJTAG-1.
+A new version of the USB interface, USB-JTAG v1.2, is available with complete
+schematics (http://www.fh-augsburg.de/~hhoegl/proj/volksmikro/usb-jtag/050910/).
+
+It was tested using Amontec's (www.amontec.com) Chameleon POD in it's
+Wiggler configuration, but homemade wigglers should work just as well.
+In order to use the reset functionality (warm-reset, debug from reset, reset
+and init), the choosen Wiggler has to connect the nSRST line.
+
+USBJTAG-1 is based on a FTDI DLP2232M module and a few additional parts.
+Schematics are freely available. USB-JTAG v1.2 doesn't use the DLP2232M, but
+has the FTDI chip soldered directly on the PCB. There are two drivers for these
+modules implemented, one using the open source libftdi, the other using FTDI's
+proprietary FTD2XX library.
+
+2. Supported cores
+
+This version of openocd supports the following cores:
+
+- ARM7TDMI
+- ARM9TDMI
+
+Support for cores with MMUs (ARM720t, ARM920t) is currently being merged.
+
+3. Licensing
+
+openocd is licensed under the terms of the GNU General Public License, see the
+file COPYING for details.
+

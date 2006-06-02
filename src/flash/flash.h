@@ -1,0 +1,76 @@
+/***************************************************************************
+ *   Copyright (C) 2005 by Dominic Rath                                    *
+ *   Dominic.Rath@gmx.de                                                   *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+#ifndef FLASH_H
+#define FLASH_H
+
+#include "target.h"
+
+typedef struct flash_sector_s
+{
+	u32 offset;
+	u32 size;
+	int is_erased;
+	int is_protected;
+} flash_sector_t;
+
+struct flash_bank_s;
+
+typedef struct flash_driver_s
+{
+	char *name;
+	int (*register_commands)(struct command_context_s *cmd_ctx);
+	int (*flash_bank_command)(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
+	int (*erase)(struct flash_bank_s *bank, int first, int last);
+	int (*protect)(struct flash_bank_s *bank, int set, int first, int last);
+	int (*write)(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+	int (*probe)(struct flash_bank_s *bank);
+	int (*erase_check)(struct flash_bank_s *bank);
+	int (*protect_check)(struct flash_bank_s *bank);
+	int (*info)(struct flash_bank_s *bank, char *buf, int buf_size);
+} flash_driver_t;
+
+typedef struct flash_bank_s
+{
+	flash_driver_t *driver;
+	void *driver_priv;
+	u32 base;
+	u32 size;
+	int chip_width;
+	int bus_width;
+	int num_sectors;
+	flash_sector_t *sectors;
+	struct flash_bank_s *next;
+} flash_bank_t;
+
+extern int flash_register_commands(struct command_context_s *cmd_ctx);
+extern int flash_init(struct command_context_s *cmd_ctx);
+
+extern flash_bank_t *get_flash_bank_by_num(int num);
+
+#define		ERROR_FLASH_BANK_INVALID		(-900)
+#define		ERROR_FLASH_SECTOR_INVALID		(-901)
+#define		ERROR_FLASH_OPERATION_FAILED	(-902)
+#define		ERROR_FLASH_DST_OUT_OF_BANK		(-903)
+#define		ERROR_FLASH_DST_BREAKS_ALIGNMENT (-904)
+#define		ERROR_FLASH_BUSY				(-905)
+#define		ERROR_FLASH_SECTOR_NOT_ERASED	(-906)
+#define		ERROR_FLASH_BANK_NOT_PROBED		(-907)
+
+#endif /* FLASH_H */
