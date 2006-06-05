@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	DEBUG("log init complete");
 	
-	INFO("Open On-Chip Debugger (Revision 63)");
+	INFO("Open On-Chip Debugger (Revision 65)");
 
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;

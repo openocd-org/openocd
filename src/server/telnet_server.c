@@ -75,12 +75,12 @@ int telnet_target_callback_event_handler(struct target_s *target, enum target_ev
 			buffer[511] = 0;
 			command_print(cmd_ctx, "%s", buffer);
 			telnet_prompt(connection);
-			t_con->surpress_prompt = 1;
+			t_con->suppress_prompt = 1;
 			break;
 		case TARGET_EVENT_RESUMED:
 			command_print(cmd_ctx, "Target %i resumed", get_num_by_target(target));
 			telnet_prompt(connection);
-			t_con->surpress_prompt = 1;
+			t_con->suppress_prompt = 1;
 			break;
 		default:
 			break;
@@ -102,7 +102,7 @@ int telnet_new_connection(connection_t *connection)
 	telnet_connection->line_cursor = 0;
 	telnet_connection->option_size = 0;
 	telnet_connection->prompt = strdup("> ");
-	telnet_connection->surpress_prompt = 0;
+	telnet_connection->suppress_prompt = 0;
 	telnet_connection->state = TELNET_STATE_DATA;
 	
 	/* output goes through telnet connection */
@@ -246,7 +246,7 @@ int telnet_input(connection_t *connection)
 							
 							/* we're running a command, so we need a prompt
 							 * if the output handler is called, this gets set again */
-							t_con->surpress_prompt = 0;
+							t_con->suppress_prompt = 0;
 							if ((retval = command_run_line(command_context, t_con->line)) != ERROR_OK)
 							{
 								if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
@@ -277,13 +277,13 @@ int telnet_input(connection_t *connection)
 							if (t_con->next_history > TELNET_LINE_HISTORY_SIZE - 1)
 								t_con->next_history = 0;
 							
-							if (!t_con->surpress_prompt)
+							if (!t_con->suppress_prompt)
 							{
 								telnet_prompt(connection);
 							}
 							else
 							{
-								t_con->surpress_prompt = 0;
+								t_con->suppress_prompt = 0;
 							}
 							
 							t_con->line_size = 0;

@@ -33,7 +33,7 @@
 
 int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int build_unique_lenghts(command_context_t *context, command_t *commands)
+int build_unique_lengths(command_context_t *context, command_t *commands)
 {
 	command_t *c, *p;
 
@@ -64,7 +64,7 @@ int build_unique_lenghts(command_context_t *context, command_t *commands)
 		
 		/* if the current command has children, build the unique lengths for them */
 		if (c->children)
-			build_unique_lenghts(context, c->children);
+			build_unique_lengths(context, c->children);
 	}
 	
 	return ERROR_OK;
@@ -122,7 +122,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	}
 	
 	/* update unique lengths */
-	build_unique_lenghts(context, (parent) ? parent : context->commands);
+	build_unique_lengths(context, (parent) ? parent : context->commands);
 	
 	return c;
 }
