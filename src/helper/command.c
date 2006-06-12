@@ -443,6 +443,15 @@ int command_print_help(command_context_t* context, char* name, char** args, int 
 
 	for (c = context->commands; c; c = c->next)
 	{
+		if (argc == 1)
+		{
+			 if (strncasecmp(c->name, args[0], c->unique_len))
+				 continue;
+
+			 if (strncasecmp(c->name, args[0], strlen(args[0])))
+				 continue;
+		} 
+
 		command_print_help_line(context, c, 0);
 	}
 	

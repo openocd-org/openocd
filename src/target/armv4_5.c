@@ -19,6 +19,8 @@
  ***************************************************************************/
 #include "config.h"
 
+#include "arm_disassembler.h"
+
 #include "armv4_5.h"
 
 #include "target.h"
@@ -377,6 +379,47 @@ int handle_armv4_5_core_state_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
+int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	u32 address;
+	int count;
+	int i;
+	arm_instruction_t cur_instruction;
+	u32 opcode;
+	int thumb;
+	
+	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	{
+		command_print(cmd_ctx, "current target isn't an ARMV4/5 target");
+		return ERROR_OK;
+	}
+	
+	if (argc < 2)
+	{
+		command_print(cmd_ctx, "usage: armv4_5 disassemble <address> <count> ['thumb']");
+		return ERROR_OK;
+	}
+	
+	address = strtoul(args[0], NULL, 0);
+	count = strtoul(args[1], NULL, 0);
+	
+	if (argc >= 3)
+		if (strcmp(args[2], "thumb") == 0)
+			thumb = 1;
+	
+	for (i = 0; i < count; i++)
+	{
+		target->type->read_memory(target, address, 4, 1, (u8*)&opcode);
+		evaluate_opcode(opcode, address, &cur_instruction);
+		command_print(cmd_ctx, "%s", cur_instruction.text);
+		address += (thumb) ? 2 : 4;
+	}
+	
+	return ERROR_OK;
+}
+
 int armv4_5_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *armv4_5_cmd;
@@ -386,6 +429,7 @@ int armv4_5_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, armv4_5_cmd, "reg", handle_armv4_5_reg_command, COMMAND_EXEC, "display ARM core registers");
 	register_command(cmd_ctx, armv4_5_cmd, "core_state", handle_armv4_5_core_state_command, COMMAND_EXEC, "display/change ARM core state <arm|thumb>");
 	
+	register_command(cmd_ctx, armv4_5_cmd, "disassemble", handle_armv4_5_disassemble_command, COMMAND_EXEC, "disassemble instructions <address> <count> ['thumb']");
 	return ERROR_OK;
 }
 
