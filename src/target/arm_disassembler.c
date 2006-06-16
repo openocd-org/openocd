@@ -70,6 +70,7 @@ int evaluate_blx_imm(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
 	int offset;
 	u32 immediate;
+	u32 target_address;
 	
 	instruction->type = ARM_BLX;
 	immediate = opcode & 0x00ffffff;
@@ -87,9 +88,12 @@ int evaluate_blx_imm(u32 opcode, u32 address, arm_instruction_t *instruction)
 	if (opcode & 0x01000000)
 		offset |= 0x2;
 	
-	instruction->target_address = address + 8 + offset;
+	target_address = address + 8 + offset;
 	
-	snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\tBLX 0x%8.8x", address, opcode, instruction->target_address);
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\tBLX 0x%8.8x", address, opcode, target_address);
+	
+	instruction->info.b_bl_bx_blx.reg_operand = -1;
+	instruction->info.b_bl_bx_blx.target_address = target_address;
 	
 	return ERROR_OK;
 }
@@ -99,6 +103,7 @@ int evaluate_b_bl(u32 opcode, u32 address, arm_instruction_t *instruction)
 	u8 L;
 	u32 immediate;
 	int offset;
+	u32 target_address;
 	
 	immediate = opcode & 0x00ffffff;
 	L = (opcode & 0x01000000) >> 24;
@@ -112,7 +117,7 @@ int evaluate_b_bl(u32 opcode, u32 address, arm_instruction_t *instruction)
 	/* shift two bits left */
 	offset <<= 2;
 	
-	instruction->target_address = address + 8 + offset;
+	target_address = address + 8 + offset;
 
 	if (L)
 		instruction->type = ARM_BL;
@@ -120,7 +125,10 @@ int evaluate_b_bl(u32 opcode, u32 address, arm_instruction_t *instruction)
 		instruction->type = ARM_B;
 	
 	snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\tB%s%s 0x%8.8x", address, opcode,
-			 (L) ? "L" : "", COND(opcode), instruction->target_address);
+			 (L) ? "L" : "", COND(opcode), target_address);
+	
+	instruction->info.b_bl_bx_blx.reg_operand = -1;
+	instruction->info.b_bl_bx_blx.target_address = target_address;
 	
 	return ERROR_OK;
 }
@@ -278,6 +286,10 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 	/* base register */
 	Rn = (opcode & 0xf0000) >> 16;
 	
+	instruction->info.load_store.Rd = Rd;
+	instruction->info.load_store.Rn = Rn;
+	instruction->info.load_store.U = U;
+
 	/* determine operation */
 	if (L)
 		operation = "LDR";
@@ -328,6 +340,9 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 	{
 		u32 offset_12 = (opcode & 0xfff);
 		snprintf(offset, 32, "#%s0x%x", (U) ? "" : "-", offset_12);
+		
+		instruction->info.load_store.offset_mode = 0;
+		instruction->info.load_store.offset.offset = offset_12;
 	}
 	else /* either +-<Rm> or +-<Rm>, <shift>, #<shift_imm> */
 	{
@@ -338,30 +353,46 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 		shift = (opcode & 0x60) >> 5;
 		Rm = (opcode & 0xf);
 		
+		/* LSR encodes a shift by 32 bit as 0x0 */
+		if ((shift == 0x1) && (shift_imm == 0x0))
+			shift_imm = 0x20;
+		
+		/* ASR encodes a shift by 32 bit as 0x0 */
+		if ((shift == 0x2) && (shift_imm == 0x0))
+			shift_imm = 0x20;
+
+		/* ROR by 32 bit is actually a RRX */
+		if ((shift == 0x3) && (shift_imm == 0x0))
+			shift = 0x4;
+		
+		instruction->info.load_store.offset_mode = 1;
+		instruction->info.load_store.offset.reg.Rm = Rm;
+		instruction->info.load_store.offset.reg.shift = shift;
+		instruction->info.load_store.offset.reg.shift_imm = shift_imm;
+
 		if ((shift_imm == 0x0) && (shift == 0x0)) /* +-<Rm> */
 		{
 			snprintf(offset, 32, "%sr%i", (U) ? "" : "-", Rm);
 		}
 		else /* +-<Rm>, <Shift>, #<shift_imm> */
 		{
-			if (shift == 0x0) /* LSL */
+			switch (shift)
 			{
-				snprintf(offset, 32, "%sr%i, LSL #0x%x", (U) ? "" : "-", Rm, shift_imm);
-			}
-			else if (shift == 0x1) /* LSR */
-			{
-				snprintf(offset, 32, "%sr%i, LSR #0x%x", (U) ? "" : "-", Rm, shift_imm);
-			}
-			else if (shift == 0x2) /* ASR */
-			{
-				snprintf(offset, 32, "%sr%i, ASR #0x%x", (U) ? "" : "-", Rm, shift_imm);
-			}
-			else if (shift == 0x3) /* ROR or RRX */
-			{
-				if (shift_imm == 0x0) /* RRX */
-					snprintf(offset, 32, "%sr%i, RRX", (U) ? "" : "-", Rm);
-				else
+				case 0x0: /* LSL */
+					snprintf(offset, 32, "%sr%i, LSL #0x%x", (U) ? "" : "-", Rm, shift_imm);
+					break;
+				case 0x1: /* LSR */
+					snprintf(offset, 32, "%sr%i, LSR #0x%x", (U) ? "" : "-", Rm, shift_imm);
+					break;
+				case 0x2: /* ASR */
+					snprintf(offset, 32, "%sr%i, ASR #0x%x", (U) ? "" : "-", Rm, shift_imm);
+					break;
+				case 0x3: /* ROR */
 					snprintf(offset, 32, "%sr%i, ROR #0x%x", (U) ? "" : "-", Rm, shift_imm);
+					break;
+				case 0x4: /* RRX */
+					snprintf(offset, 32, "%sr%i, RRX", (U) ? "" : "-", Rm);
+					break;
 			}
 		}
 	}
@@ -373,12 +404,16 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i, %s]",
 					 address, opcode, operation, COND(opcode), suffix,
 					 Rd, Rn, offset);
+			
+			instruction->info.load_store.index_mode = 0;
 		}
 		else /* pre-indexed */
 		{
 			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i, %s]!",
 					 address, opcode, operation, COND(opcode), suffix,
 					 Rd, Rn, offset);
+			
+			instruction->info.load_store.index_mode = 1;
 		}
 	}
 	else /* post-indexed */
@@ -386,6 +421,8 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 		snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i], %s",
 				 address, opcode, operation, COND(opcode), suffix,
 				 Rd, Rn, offset);
+		
+		instruction->info.load_store.index_mode = 2;
 	}
 	
 	return ERROR_OK;
@@ -414,6 +451,10 @@ int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruc
 	
 	/* base register */
 	Rn = (opcode & 0xf0000) >> 16;
+	
+	instruction->info.load_store.Rd = Rd;
+	instruction->info.load_store.Rn = Rn;
+	instruction->info.load_store.U = U;
 	
 	/* determine instruction type and suffix */
 	if (S) /* signed */
@@ -467,12 +508,20 @@ int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruc
 	{
 		u32 offset_8 = ((opcode & 0xf00) >> 4) | (opcode & 0xf);
 		snprintf(offset, 32, "#%s0x%x", (U) ? "" : "-", offset_8);
+		
+		instruction->info.load_store.offset_mode = 0;
+		instruction->info.load_store.offset.offset = offset_8;
 	}
 	else /* Register offset/index (+-<Rm>) */
 	{
 		u8 Rm;
 		Rm = (opcode & 0xf);
 		snprintf(offset, 32, "%sr%i", (U) ? "" : "-", Rm);
+		
+		instruction->info.load_store.offset_mode = 1;
+		instruction->info.load_store.offset.reg.Rm = Rm;
+		instruction->info.load_store.offset.reg.shift = 0x0;
+		instruction->info.load_store.offset.reg.shift_imm = 0x0;
 	}
 	
 	if (P == 1)
@@ -482,12 +531,16 @@ int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruc
 			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i, %s]",
 					 address, opcode, operation, COND(opcode), suffix,
 					 Rd, Rn, offset);
+			
+			instruction->info.load_store.index_mode = 0;
 		}
 		else /* pre-indexed */
 		{
 			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i, %s]!",
 					 address, opcode, operation, COND(opcode), suffix,
 					 Rd, Rn, offset);
+		
+			instruction->info.load_store.index_mode = 1;
 		}
 	}
 	else /* post-indexed */
@@ -495,6 +548,8 @@ int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruc
 		snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i], %s",
 				 address, opcode, operation, COND(opcode), suffix,
 				 Rd, Rn, offset);
+	
+		instruction->info.load_store.index_mode = 2;
 	}
 	
 	return ERROR_OK;
@@ -520,6 +575,11 @@ int evaluate_ldm_stm(u32 opcode, u32 address, arm_instruction_t *instruction)
 	register_list = (opcode & 0xffff);
 	Rn = (opcode & 0xf0000) >> 16;
 	
+	instruction->info.load_store_multiple.Rn = Rn;
+	instruction->info.load_store_multiple.register_list = register_list;
+	instruction->info.load_store_multiple.S = S;
+	instruction->info.load_store_multiple.W = W;
+	
 	if (L)
 	{
 		instruction->type = ARM_LDM;
@@ -534,16 +594,28 @@ int evaluate_ldm_stm(u32 opcode, u32 address, arm_instruction_t *instruction)
 	if (P)
 	{
 		if (U)
+		{
+			instruction->info.load_store_multiple.addressing_mode = 1;
 			addressing_mode = "IB";
+		}
 		else
+		{
+			instruction->info.load_store_multiple.addressing_mode = 3;
 			addressing_mode = "DB";
+		}
 	}
 	else
 	{
 		if (U)
+		{
+			instruction->info.load_store_multiple.addressing_mode = 0;
 			addressing_mode = "IA";
+		}
 		else
+		{
+			instruction->info.load_store_multiple.addressing_mode = 2;
 			addressing_mode = "DA";
+		}
 	}
 	
 	reg_list_p = reg_list;
@@ -733,6 +805,9 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 		
 		snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\tBX%s r%i",
 				 address, opcode, COND(opcode), Rm);
+		
+		instruction->info.b_bl_bx_blx.reg_operand = Rm;
+		instruction->info.b_bl_bx_blx.target_address = -1;
 	}
 	
 	/* CLZ */
@@ -898,6 +973,10 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 	Rd = (opcode & 0xf000) >> 12;
 	Rn = (opcode & 0xf0000) >> 16;
 	
+	instruction->info.data_proc.Rd = Rd;
+	instruction->info.data_proc.Rn = Rn;
+	instruction->info.data_proc.S = S;
+
 	switch (op)
 	{
 		case 0x0:
@@ -975,6 +1054,9 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 		immediate = ror(immed_8, rotate_imm * 2);
 		
 		snprintf(shifter_operand, 32, "#0x%x", immediate);
+		
+		instruction->info.data_proc.variant = 0;
+		instruction->info.data_proc.shifter_operand.immediate.immediate = immediate;
 	}
 	else /* register-based shifter operand */
 	{
@@ -987,7 +1069,11 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 			u8 shift_imm;
 			shift_imm = (opcode & 0xf80) >> 7;
 
-			
+			instruction->info.data_proc.variant = 1;
+			instruction->info.data_proc.shifter_operand.immediate_shift.Rm = Rm;
+			instruction->info.data_proc.shifter_operand.immediate_shift.shift_imm = shift_imm;
+			instruction->info.data_proc.shifter_operand.immediate_shift.shift = shift;
+		
 			if ((shift_imm == 0x0) && (shift == 0x0))
 			{
 				snprintf(shifter_operand, 32, "r%i", Rm);
@@ -1022,6 +1108,11 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 		else /* Register shifts ("<Rm>, <shift> <Rs>") */
 		{
 			u8 Rs = (opcode & 0xf00) >> 8;
+			
+			instruction->info.data_proc.variant = 2;
+			instruction->info.data_proc.shifter_operand.register_shift.Rm = Rm;
+			instruction->info.data_proc.shifter_operand.register_shift.Rs = Rs;
+			instruction->info.data_proc.shifter_operand.register_shift.shift = shift;
 			
 			if (shift == 0x0) /* LSL */
 			{

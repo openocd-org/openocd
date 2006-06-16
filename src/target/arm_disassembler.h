@@ -120,15 +120,76 @@ enum arm_instruction_type
 	ARM_UNDEFINED_INSTRUCTION = 0xffffffff,
 };
 
+typedef struct arm_b_bl_bx_blx_instr_s
+{
+	int reg_operand;
+	u32 target_address;
+} arm_b_bl_bx_blx_instr_t;
+
+typedef struct arm_data_proc_instr_s
+{
+	int variant; /* 0: immediate, 1: immediate_shift, 2: register_shift */
+	u8 S;
+	u8 Rn;
+	u8 Rd;
+	union
+	{
+		struct {
+			u8 immediate;
+		} immediate;
+		struct {
+			u8 Rm;
+			u8 shift;
+			u8 shift_imm;
+		} immediate_shift;
+		struct {
+			u8 Rm;
+			u8 shift;
+			u8 Rs;
+		} register_shift;
+	} shifter_operand;
+} arm_data_proc_instr_t;
+
+typedef struct arm_load_store_instr_s
+{
+	u8 Rd;
+	u8 Rn;
+	u8 U;
+	int index_mode; /* 0: offset, 1: pre-indexed, 2: post-indexed */
+	int offset_mode; /* 0: immediate, 1: (scaled) register */
+	union
+	{
+		u32 offset;
+		struct {
+			u8 Rm;
+			u8 shift;
+			u8 shift_imm;
+		} reg;
+	} offset;
+} arm_load_store_instr_t;
+
+typedef struct arm_load_store_multiple_instr_s
+{
+	u8 Rn;
+	u32 register_list;
+	u8 addressing_mode; /* 0: IA, 1: IB, 2: DA, 3: DB */
+	u8 S;
+	u8 W;
+} arm_load_store_multiple_instr_t;
+
 typedef struct arm_instruction_s
 {
 	enum arm_instruction_type type;
 	char text[128];
 	u32 opcode;
 	
-	/* target */
-	u32 target_address;
-	
+	union {
+		arm_b_bl_bx_blx_instr_t b_bl_bx_blx;
+		arm_data_proc_instr_t data_proc;
+		arm_load_store_instr_t load_store;
+		arm_load_store_multiple_instr_t load_store_multiple;
+	} info;
+
 } arm_instruction_t;
 
 extern int evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction);
