@@ -1610,9 +1610,6 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	u32 *reg_p[16];
 	int num_accesses = 0;
 	int thisrun_accesses;
-	u32 *buf32;
-	u16 *buf16;
-	u8 *buf8;
 	int i;
 	u32 cpsr;
 	int retval;
@@ -1645,7 +1642,6 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	switch (size)
 	{
 		case 4:
-			buf32 = (u32*)buffer;
 			while (num_accesses < count)
 			{
 				u32 reg_list;
@@ -1662,13 +1658,13 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 				{
 					if (i > last_reg)
 						last_reg = i;
-					*(buf32++) = reg[i];
+					target_buffer_set_u32(target, buffer, reg[i]);
+					buffer += 4;
 				}
 				num_accesses += thisrun_accesses;
 			}	
 			break;
 		case 2:
-			buf16 = (u16*)buffer;
 			while (num_accesses < count)
 			{
 				u32 reg_list;
@@ -1688,13 +1684,13 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 				
 				for (i = 1; i <= thisrun_accesses; i++)
 				{
-					*(buf16++) = reg[i] & 0xffff;
+					target_buffer_set_u16(target, buffer, reg[i]);
+					buffer += 2;
 				}
 				num_accesses += thisrun_accesses;
 			}	
 			break;
 		case 1:
-			buf8 = buffer;
 			while (num_accesses < count)
 			{
 				u32 reg_list;
@@ -1714,7 +1710,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 				
 				for (i = 1; i <= thisrun_accesses; i++)
 				{
-					*(buf8++) = reg[i] & 0xff;
+					*(buffer++) = reg[i] & 0xff;
 				}
 				num_accesses += thisrun_accesses;
 			}	
@@ -1755,9 +1751,6 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	u32 reg[16];
 	int num_accesses = 0;
 	int thisrun_accesses;
-	u32 *buf32;
-	u16 *buf16;
-	u8 *buf8;
 	int i;
 	u32 cpsr;
 	int retval;
@@ -1785,7 +1778,6 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	switch (size)
 	{
 		case 4:
-			buf32 = (u32*)buffer;
 			while (num_accesses < count)
 			{
 				u32 reg_list;
@@ -1796,7 +1788,8 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 				{
 					if (i > last_reg)
 						last_reg = i;
-					reg[i] = *buf32++;
+					reg[i] = target_buffer_get_u32(target, buffer);
+					buffer += 4;
 				}
 				
 				arm7_9->write_core_regs(target, reg_list, reg);
@@ -1815,7 +1808,6 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 			}	
 			break;
 		case 2:
-			buf16 = (u16*)buffer;
 			while (num_accesses < count)
 			{
 				u32 reg_list;
@@ -1826,7 +1818,8 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 				{
 					if (i > last_reg)
 						last_reg = i;
-					reg[i] = *buf16++ & 0xffff;
+					reg[i] = target_buffer_get_u16(target, buffer) & 0xffff;
+					buffer += 2;
 				}
 				
 				arm7_9->write_core_regs(target, reg_list, reg);
@@ -1848,7 +1841,6 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 			}	
 			break;
 		case 1:
-			buf8 = buffer;
 			while (num_accesses < count)
 			{
 				u32 reg_list;
@@ -1859,7 +1851,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 				{
 					if (i > last_reg)
 						last_reg = i;
-					reg[i] = *buf8++ & 0xff;
+					reg[i] = *buffer++ & 0xff;
 				}
 				
 				arm7_9->write_core_regs(target, reg_list, reg);
@@ -1955,7 +1947,7 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	
 	for (i = 0; i < count; i++)
 	{
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], buf_get_u32(buffer, 0, 32));
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], target_buffer_get_u32(target, buffer));
 		buffer += 4;
 	}
 	

@@ -982,7 +982,7 @@ int ftd2xx_handle_layout_command(struct command_context_s *cmd_ctx, char *cmd, c
 	if (argc == 0)
 		return ERROR_OK;
 
-	ftd2xx_layout = malloc(strlen(args[0]));
+	ftd2xx_layout = malloc(strlen(args[0]) + 1);
 	strcpy(ftd2xx_layout, args[0]);
 
 	return ERROR_OK;

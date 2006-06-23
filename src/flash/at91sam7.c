@@ -244,7 +244,8 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 	at91sam7_info->lockbits = status>>16;
 	at91sam7_info->securitybit = (status>>4)&0x01;
 	
-	if (at91sam7_info->cidr_arch == 0x70 ) {
+	if (at91sam7_info->cidr_arch == 0x70 )
+	{
 		at91sam7_info->num_nvmbits = 2;
 		at91sam7_info->nvmbits = (status>>8)&0x03;
 		bank->base = 0x100000;
@@ -281,7 +282,8 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		return ERROR_OK;
 	}
 
-	if (at91sam7_info->cidr_arch == 0x71 ) {
+	if (at91sam7_info->cidr_arch == 0x71 )
+	{
 		at91sam7_info->num_nvmbits = 2;
 		at91sam7_info->nvmbits = (status>>8)&0x03;
 		bank->base = 0x100000;
@@ -304,7 +306,8 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		return ERROR_OK;
 	}
 	
-	if (at91sam7_info->cidr_arch == 0x75 ) {
+	if (at91sam7_info->cidr_arch == 0x75 )
+	{
 		at91sam7_info->num_nvmbits = 3;
 		at91sam7_info->nvmbits = (status>>8)&0x07;
 		bank->base = 0x100000;
@@ -327,11 +330,26 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		return ERROR_OK;
 	}
 	
-	if (at91sam7_info->cidr_arch != 0x70 ) 
+	if (at91sam7_info->cidr_arch == 0x60 )
 	{
-		   WARNING("at91sam7 flash only tested for AT91SAM7Sxx series");
+		at91sam7_info->num_nvmbits = 3;
+		at91sam7_info->nvmbits = (status>>8)&0x07;
+		bank->base = 0x100000;
+		bank->bus_width = 4;
+		
+		if (bank->size == 0x40000)  /* AT91SAM7A3 */
+		{
+			at91sam7_info->num_lockbits = 16;
+			at91sam7_info->pagesize = 256;
+			at91sam7_info->pages_in_lockregion = 64;
+			at91sam7_info->num_pages = 16*64;
+		}
+		return ERROR_OK;
 	}
-	return ERROR_OK;
+	
+   WARNING("at91sam7 flash only tested for AT91SAM7Sxx series");
+	
+   return ERROR_OK;
 }
 
 int at91sam7_erase_check(struct flash_bank_s *bank)
@@ -377,7 +395,7 @@ int at91sam7_protect_check(struct flash_bank_s *bank)
 
 int at91sam7_register_commands(struct command_context_s *cmd_ctx)
 {
-	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "cfi", NULL, COMMAND_ANY, NULL);
+	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "at91sam7", NULL, COMMAND_ANY, "at91sam7 specific commands");
 
 	return ERROR_OK;
 }

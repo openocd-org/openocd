@@ -4,6 +4,10 @@ AC_SEARCH_LIBS([ioperm], [ioperm])
 
 AC_CANONICAL_HOST
 
+AC_C_BIGENDIAN
+
+AC_CHECK_FUNCS(strndup)
+
 build_bitbang=no
 is_cygwin=no
 

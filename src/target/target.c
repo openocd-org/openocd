@@ -111,6 +111,42 @@ enum daemon_startup_mode startup_mode = DAEMON_ATTACH;
 
 static int target_continous_poll = 1;
 
+/* read a u32 from a buffer in target memory endianness */
+u32 target_buffer_get_u32(target_t *target, u8 *buffer)
+{
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+		return le_to_h_u32(buffer);
+	else
+		return be_to_h_u32(buffer);
+}
+
+/* read a u16 from a buffer in target memory endianness */
+u16 target_buffer_get_u16(target_t *target, u8 *buffer)
+{
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+		return le_to_h_u16(buffer);
+	else
+		return be_to_h_u16(buffer);
+}
+
+/* write a u32 to a buffer in target memory endianness */
+void target_buffer_set_u32(target_t *target, u8 *buffer, u32 value)
+{
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+		h_u32_to_le(buffer, value);
+	else
+		h_u32_to_be(buffer, value);
+}
+
+/* write a u16 to a buffer in target memory endianness */
+void target_buffer_set_u16(target_t *target, u8 *buffer, u16 value)
+{
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+		h_u16_to_le(buffer, value);
+	else
+		h_u16_to_be(buffer, value);
+}
+
 /* returns a pointer to the n-th configured target */
 target_t* get_target_by_num(int num)
 {

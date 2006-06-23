@@ -217,6 +217,11 @@ extern target_t *targets;
 extern target_event_callback_t *target_event_callbacks;
 extern target_timer_callback_t *target_timer_callbacks;
 
+extern u32 target_buffer_get_u32(target_t *target, u8 *buffer);
+extern u16 target_buffer_get_u16(target_t *target, u8 *buffer);
+extern void target_buffer_set_u32(target_t *target, u8 *buffer, u32 value);
+extern void target_buffer_set_u16(target_t *target, u8 *buffer, u16 value);
+
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)
 #define ERROR_TARGET_TIMEOUT	(-302)

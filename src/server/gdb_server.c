@@ -17,6 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#include "config.h"
+
 #include "gdb_server.h"
 
 #include "server.h"
@@ -31,7 +33,7 @@
 #include <stdlib.h>
 
 // -ino: 060521-1116
-#ifdef __FreeBSD__
+#ifndef HAVE_STRNDUP
 #include <stdio.h>
 char * strndup(char * str, int n) {
   unsigned char * tmp = malloc((size_t)n+1);
@@ -40,6 +42,7 @@ char * strndup(char * str, int n) {
   return tmp;
 }
 #endif
+
 #if 0
 #define _DEBUG_GDB_IO_
 #endif
