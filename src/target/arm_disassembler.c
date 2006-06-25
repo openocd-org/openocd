@@ -21,7 +21,7 @@
 
 #include "log.h"
 
-#include <strings.h>
+#include <string.h>
 
 /* textual represenation of the condition field */
 /* ALways (default) is ommitted (empty string) */
@@ -1158,7 +1158,7 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 int evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
 	/* clear fields, to avoid confusion */
-	bzero(instruction, sizeof(arm_instruction_t));
+	memset(instruction, 0, sizeof(arm_instruction_t));
 	instruction->opcode = opcode;
 	
 	/* catch opcodes with condition field [31:28] = b1111 */

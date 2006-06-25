@@ -32,14 +32,18 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-// -ino: 060521-1116
 #ifndef HAVE_STRNDUP
 #include <stdio.h>
-char * strndup(char * str, int n) {
-  unsigned char * tmp = malloc((size_t)n+1);
-  if (! tmp) perror("gdb_server malloc failed");
-  if (strlcpy(tmp, str, n) > n) perror("gdb_server strndup:  too long");
-  return tmp;
+char* strndup(const char *s, size_t n)
+{
+	size_t len = strnlen (s, n);
+	char *new = (char *) malloc (len + 1);
+
+	if (new == NULL)
+		return NULL;
+
+	new[len] = '\0';
+	return (char *) memcpy (new, s, len);
 }
 #endif
 
