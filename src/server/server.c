@@ -86,19 +86,16 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 
 int remove_connection(service_t *service, connection_t *connection)
 {
-	connection_t *c, *p = NULL;
-
+	connection_t *c = service->connections;
+	
 	/* find connection */
-	for (c = service->connections; c; c = c->next)
+	while(c)
 	{
+		connection_t *next = c->next;
+		
 		if (c->fd == connection->fd)
-		{
-			/* unlink connection */
-			if (p)
-				p->next = c->next;
-			else
-				service->connections = c->next;
-			
+		{	
+			service->connections = next;
 			service->connection_closed(c);
 			close(c->fd);
 			
@@ -112,7 +109,7 @@ int remove_connection(service_t *service, connection_t *connection)
 		}
 		
 		/* remember the last connection for unlinking */
-		p = c;
+		c = next;
 	}
 	
 	return ERROR_OK;
@@ -182,28 +179,27 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 
 int remove_service(unsigned short port)
 {
-	service_t *c, *p = NULL;
-
+	service_t *c = services;
+	
 	/* find service */
-	for (c = services; c; c = c->next)
+	while(c)
 	{
+		service_t *next = c->next;
+		
 		if (c->port == port)
-		{
-			/* unlink service */
-			if (p)
-				p->next = c->next;
-			else
-				services = c->next;
-			
+		{	
 			if (c->name)
 				free(c->name);
+			
+			if (c->priv)
+				free(c->priv);
 			
 			/* delete service */
 			free(c);
 		}
 		
 		/* remember the last service for unlinking */
-		p = c;
+		c = next;
 	}
 	
 	return ERROR_OK;

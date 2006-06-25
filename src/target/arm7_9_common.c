@@ -186,7 +186,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		else
 		{
 			target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
-			target->type->read_memory(target, breakpoint->address, 2, 1, (u8*)(&arm7_9->arm_bkpt));
+			target->type->write_memory(target, breakpoint->address, 2, 1, (u8*)(&arm7_9->arm_bkpt));
 		}
 		breakpoint->set = 1;
 	}
