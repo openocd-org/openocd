@@ -254,28 +254,31 @@ int telnet_input(connection_t *connection)
 									return ERROR_SERVER_REMOTE_CLOSED;
 								}
 							}
-							
-							/* if the history slot is already taken, free it */
-							if (t_con->history[t_con->next_history])
+
+							/* Save only non-blank lines in the history */
+							if (t_con->line_size > 0)
 							{
-								free(t_con->history[t_con->next_history]);
+								/* if the history slot is already taken, free it */
+								if (t_con->history[t_con->next_history])
+								{
+									free(t_con->history[t_con->next_history]);
+								}
+		
+								/* add line to history */
+								t_con->history[t_con->next_history] = strdup(t_con->line);
+
+								/* wrap history at TELNET_LINE_HISTORY_SIZE */
+								t_con->next_history = (t_con->next_history + 1) % TELNET_LINE_HISTORY_SIZE;
+							
+								/* current history line starts at the new entry */
+								t_con->current_history = t_con->next_history;
+							
+								if (t_con->history[t_con->current_history])
+								{
+									free(t_con->history[t_con->current_history]);
+								}
+								t_con->history[t_con->current_history] = strdup("");
 							}
-							
-							/* add line to history */
-							t_con->history[t_con->next_history++] = strdup(t_con->line);
-							
-							/* current history line starts at the new entry */
-							t_con->current_history = t_con->next_history;
-							
-							if (t_con->history[t_con->current_history])
-							{
-								free(t_con->history[t_con->current_history]);
-							}
-							t_con->history[t_con->current_history] = strdup("");
-							
-							/* wrap history at TELNET_LINE_HISTORY_SIZE */
-							if (t_con->next_history > TELNET_LINE_HISTORY_SIZE - 1)
-								t_con->next_history = 0;
 							
 							if (!t_con->suppress_prompt)
 							{
@@ -394,7 +397,7 @@ int telnet_input(connection_t *connection)
 					}
 					else if (*buf_p == 'A') /* cursor up */
 					{
-						int last_history = (t_con->current_history - 1 >= 0) ? t_con->current_history - 1 : 127;
+						int last_history = (t_con->current_history > 0) ? t_con->current_history - 1 : TELNET_LINE_HISTORY_SIZE-1;
 						if (t_con->history[last_history])
 						{
 							telnet_clear_line(connection, t_con);
@@ -408,7 +411,7 @@ int telnet_input(connection_t *connection)
 					}
 					else if (*buf_p == 'B') /* cursor down */
 					{
-						int next_history = (t_con->current_history + 1 < 128) ? t_con->current_history + 1 : 0;
+						int next_history = (t_con->current_history + 1) % TELNET_LINE_HISTORY_SIZE;
 						if (t_con->history[next_history])
 						{
 							telnet_clear_line(connection, t_con);

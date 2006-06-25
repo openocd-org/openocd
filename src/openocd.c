@@ -18,6 +18,8 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#define OPENOCD_VERSION "Open On-Chip Debugger (2006-06-25 13:15 CEST)"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -49,11 +51,22 @@
 #include <unistd.h>
 #include <errno.h>
 
+/* Give TELNET a way to find out what version this is */
+int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	command_print(cmd_ctx, OPENOCD_VERSION);
+
+	return ERROR_OK;
+}
+
 int main(int argc, char *argv[])
 {
 	/* initialize commandline interface */
 	command_context_t *cmd_ctx, *cfg_cmd_ctx;
 	cmd_ctx = command_init();
+
+	register_command(cmd_ctx, NULL, "version", handle_version_command,
+					 COMMAND_EXEC, "show OpenOCD version");
 	
 	/* register subsystem commands */
 	server_register_commands(cmd_ctx);
@@ -70,7 +83,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	DEBUG("log init complete");
 	
-	INFO("Open On-Chip Debugger (Revision 65)");
+	INFO( OPENOCD_VERSION );
 
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;
