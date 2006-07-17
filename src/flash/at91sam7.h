@@ -28,7 +28,7 @@ typedef struct at91sam7_flash_bank_s
 	struct target_s *target;
 	u32 working_area;
 	u32 working_area_size;
-		
+
 	/* chip id register */
 	u32 cidr;
 	u16 cidr_ext;
@@ -39,7 +39,8 @@ typedef struct at91sam7_flash_bank_s
 	u16 cidr_nvpsiz2;
 	u16 cidr_eproc;
 	u16 cidr_version;
-		
+	char * target_name;
+
 	/* flash geometry */
 	u16 num_pages;
 	u16 pagesize;
@@ -54,17 +55,23 @@ typedef struct at91sam7_flash_bank_s
 	u16 nvmbits;
 	u8  securitybit;
 	u8  flashmode;         /* 0: not init, 1: fmcn for nvbits (1uS), 2: fmcn for flash (1.5uS) */
-	
+
 	/* main clock status */
-	u8  mainrdy;
-	u16 mainf;
-	u16 usec_clocks;
+	u8  mck_valid;
+	u32 mck_freq;
 	
 } at91sam7_flash_bank_t;
 
 /* AT91SAM7 control registers */
 #define DBGU_CIDR 0xFFFFF240
 #define CKGR_MCFR 0xFFFFFC24
+#define CKGR_MCFR_MAINRDY  0x10000
+#define CKGR_PLLR 0xFFFFFC2c
+#define CKGR_PLLR_DIV 0xff
+#define CKGR_PLLR_MUL 0x07ff0000
+#define PMC_MCKR  0xFFFFFC30
+#define PMC_MCKR_CSS  0x03
+#define PMC_MCKR_PRES 0x1c
 #define MC_FMR	0xFFFFFF60
 #define MC_FCR	0xFFFFFF64
 #define MC_FSR	0xFFFFFF68
@@ -79,5 +86,7 @@ typedef struct at91sam7_flash_bank_s
 #define  CGPB 0x0D
 #define  SSB  0x0F
 
+/* AT91SAM7 constants */
+#define RC_FREQ  32000
 
 #endif /* AT91SAM7_H */

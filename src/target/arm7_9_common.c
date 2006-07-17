@@ -17,7 +17,11 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
+#include "replacements.h"
 
 #include "embeddedice.h"
 #include "target.h"
@@ -186,7 +190,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		else
 		{
 			target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
-			target->type->write_memory(target, breakpoint->address, 2, 1, (u8*)(&arm7_9->arm_bkpt));
+			target->type->write_memory(target, breakpoint->address, 2, 1, (u8*)(&arm7_9->thumb_bkpt));
 		}
 		breakpoint->set = 1;
 	}

@@ -18,10 +18,10 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#define OPENOCD_VERSION "Open On-Chip Debugger (2006-06-25 23:00 CEST)"
+#define OPENOCD_VERSION "Open On-Chip Debugger (2006-07-15 12:00 CEST)"
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #include "log.h"
@@ -40,13 +40,9 @@
 
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/poll.h>
 #include <strings.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>

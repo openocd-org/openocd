@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
+ *   Copyright (C) 2006 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -21,84 +21,76 @@
 #include "config.h"
 #endif
 
-#include "register.h"
+#include "replacements.h"
 
-#include "log.h"
-#include "command.h"
+#include <stdio.h>
 
-#include <string.h>
-#include <stdlib.h>
+/* replacements for gettimeofday */
+#ifndef HAVE_GETTIMEOFDAY
 
-reg_arch_type_t *reg_arch_types = NULL;
+/* Windows */
+#ifdef _WIN32
 
-reg_t* register_get_by_name(reg_cache_t *first, char *name, int search_all)
+#ifndef __GNUC__
+#define EPOCHFILETIME (116444736000000000i64)
+#else
+#define EPOCHFILETIME (116444736000000000LL)
+#endif
+
+int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
-	int i;
-	reg_cache_t *cache = first;
-	
-	while (cache)
+	FILETIME        ft;
+	LARGE_INTEGER   li;
+	__int64         t;
+	static int      tzflag;
+
+	if (tv)
 	{
-		for (i = 0; i < cache->num_regs; i++)
+		GetSystemTimeAsFileTime(&ft);
+		li.LowPart  = ft.dwLowDateTime;
+		li.HighPart = ft.dwHighDateTime;
+		t  = li.QuadPart;                   /* In 100-nanosecond intervals */
+		t -= EPOCHFILETIME;                 /* Offset to the Epoch time */
+		t /= 10;                            /* In microseconds */
+		tv->tv_sec  = (long)(t / 1000000);
+		tv->tv_usec = (long)(t % 1000000);
+	}
+
+	if (tz)
+	{
+		if (!tzflag)
 		{
-			if (strcmp(cache->reg_list[i].name, name) == 0)
-				return &(cache->reg_list[i]);
+			_tzset();
+			tzflag++;
 		}
-		
-		if (search_all)
-			cache = cache->next;
-		else
-			break;
+		tz->tz_minuteswest = _timezone / 60;
+		tz->tz_dsttime = _daylight;
 	}
-	
-	return NULL;
-}
 
-reg_cache_t** register_get_last_cache_p(reg_cache_t **first)
-{
-	reg_cache_t **cache_p = first;
-	
-	if (*cache_p)
-		while (*cache_p)
-			cache_p = &((*cache_p)->next);
-	else
-		return first;
-	
-	return cache_p;
+	return 0;
 }
+#endif /* _WIN32 */
 
-int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, u32 value))
-{
-	reg_arch_type_t** arch_type_p = &reg_arch_types;
-	int id = 0;
-	
-	if (*arch_type_p)
-	{
-		while (*arch_type_p)
-		{
-			id = (*arch_type_p)->id;
-			arch_type_p = &((*arch_type_p)->next);
-		}
-	}
-	
-	(*arch_type_p) = malloc(sizeof(reg_arch_type_t));
-	(*arch_type_p)->id = id + 1;
-	(*arch_type_p)->set = set;
-	(*arch_type_p)->get = get;
-	(*arch_type_p)->next = NULL;
-			
-	return id + 1;
-}
+#endif /* HAVE_GETTIMEOFDAY */
 
-reg_arch_type_t* register_get_arch_type(int id)
+#ifndef HAVE_STRNLEN
+size_t strnlen(const char *s, size_t maxlen)
 {
-	reg_arch_type_t *arch_type = reg_arch_types;
-	
-	while (arch_type)
-	{
-		if (arch_type->id == id)
-			return arch_type;
-		arch_type = arch_type->next;
-	}
-	
-	return NULL;
+	const char *end= (const char *)memchr(s, '\0', maxlen);
+	return end ? (size_t) (end - s) : maxlen;
 }
+#endif
+
+#ifndef HAVE_STRNDUP
+char* strndup(const char *s, size_t n)
+{
+	size_t len = strnlen (s, n);
+	char *new = (char *) malloc (len + 1);
+
+	if (new == NULL)
+		return NULL;
+
+	new[len] = '\0';
+	return (char *) memcpy (new, s, len);
+}
+#endif

@@ -10,13 +10,19 @@ INCLUDES = -I$(top_srcdir)/src/helper \
 openocd_LDFLAGS = $(all_libraries) 
 SUBDIRS = helper jtag xsvf target server flash
 
+if IS_MINGW
+MINGWLDADD = -lwsock32
+else
+MINGWLDADD =
+endif
+
 if FTDI2232
 FTDI2232LIB = -lftdi
 else
 FTDI2232LIB =
 endif
 
-if IS_CYGWIN
+if IS_WIN32
 if FTD2XXDIR
 FTD2XXLDADD = @WITH_FTD2XX@/FTD2XX.lib
 else
@@ -37,4 +43,4 @@ openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
 	$(top_builddir)/src/helper/libhelper.a \
 	$(top_builddir)/src/server/libserver.a $(top_builddir)/src/helper/libhelper.a \
 	$(top_builddir)/src/flash/libflash.a $(top_builddir)/src/target/libtarget.a \
-	$(FTDI2232LIB) $(FTD2XXLIB) 
+	$(FTDI2232LIB) $(FTD2XXLIB) $(MINGWLDADD)

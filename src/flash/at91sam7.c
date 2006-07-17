@@ -33,6 +33,11 @@ There are some things to notice
 * Lock regions (sectors) are 32 or 64 pages
 *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "replacements.h"
 
 #include "at91sam7.h"
 
@@ -59,7 +64,7 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size);
 u32 at91sam7_get_flash_status(flash_bank_t *bank);
 void at91sam7_set_flash_mode(flash_bank_t *bank,int mode);
 u8 at91sam7_wait_status_busy(flash_bank_t *bank, int timeout);
-int at91sam7_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 flash_driver_t at91sam7_flash =
 {
@@ -115,6 +120,15 @@ long SRAMSIZ[16] = {
    0x80000, /* 512K */
 };
 
+int at91sam7_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "at91sam7", NULL, COMMAND_ANY, NULL);
+	register_command(cmd_ctx, at91sam7_cmd, "gpnvm", at91sam7_handle_gpnvm_command, COMMAND_EXEC,
+			"at91sam7 gpnvm <num> <bit> set|clear, set or clear at91sam7 gpnvm bit");
+
+	return ERROR_OK;
+}
+
 u32 at91sam7_get_flash_status(flash_bank_t *bank)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
@@ -126,6 +140,69 @@ u32 at91sam7_get_flash_status(flash_bank_t *bank)
 	return fsr;
 }
 
+/** Read clock configuration and set at91sam7_info->usec_clocks*/ 
+void at91sam7_read_clock_info(flash_bank_t *bank)
+{
+	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
+	target_t *target = at91sam7_info->target;
+	unsigned long mckr, mcfr, pllr, tmp, status, mainfreq;
+	unsigned int css, pres, mul, div;
+
+	/* Read main clock freqency register */
+	target->type->read_memory(target, CKGR_MCFR, 4, 1, (u8 *)&mcfr);
+	/* Read master clock register */
+	target->type->read_memory(target, PMC_MCKR, 4, 1, (u8 *)&mckr);
+	/* Read Clock Generator PLL Register  */
+	target->type->read_memory(target, CKGR_PLLR, 4, 1, (u8 *)&pllr);
+
+	pres = (mckr>>2)&0x7;
+	mul = (pllr>>16)&0x7FF;
+	div = pllr&0xFF;
+
+	at91sam7_info->mck_valid = 0;
+	switch (mckr & PMC_MCKR_CSS) {
+	case 0:			/* Slow Clock */
+		at91sam7_info->mck_valid = 1;
+		tmp = RC_FREQ;
+		break;
+	case 1:			/* Main Clock */
+		if (mcfr & CKGR_MCFR_MAINRDY) 
+		{
+			at91sam7_info->mck_valid = 1;
+			mainfreq = RC_FREQ / 16ul * (mcfr & 0xffff);
+			tmp = mainfreq;
+		}
+		break;
+		  
+	case 2:			/* Reserved */
+		break;
+	case 3:		/* PLL Clock */
+		if (mcfr & CKGR_MCFR_MAINRDY) 
+		{
+		        target->type->read_memory(target, CKGR_PLLR, 4, 1,
+						  (u8 *)&pllr);
+			if (!(pllr & CKGR_PLLR_DIV))
+			        break; /* 0 Hz */
+			at91sam7_info->mck_valid = 1;
+			mainfreq = RC_FREQ / 16ul * (mcfr & 0xffff);
+			/* Integer arithmetic should have sufficient precision
+			   as long as PLL is properly configured. */
+			tmp = mainfreq / (pllr & CKGR_PLLR_DIV) *
+			  (((pllr & CKGR_PLLR_MUL) >> 16) + 1);
+		}
+		break;
+ 	}
+	
+	/* Prescaler adjust */
+	if (((mckr & PMC_MCKR_PRES) >> 2) == 7)
+		at91sam7_info->mck_valid = 0;
+	else
+		at91sam7_info->mck_freq = tmp >> ((mckr & PMC_MCKR_PRES) >> 2);
+
+	/* Forget old flash timing */
+	at91sam7_set_flash_mode(bank,0);
+}
+
 /* Setup the timimg registers for nvbits or normal flash */
 void at91sam7_set_flash_mode(flash_bank_t *bank,int mode)
 {
@@ -133,19 +210,24 @@ void at91sam7_set_flash_mode(flash_bank_t *bank,int mode)
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = at91sam7_info->target;
 	
-	if (mode != at91sam7_info->flashmode) {
-		/* mainf contains the number of main clocks in approx 500uS */
+	if (mode && (mode != at91sam7_info->flashmode)) {
+		/* Always round up (ceil) */
 		if (mode==1)
 			/* main clocks in 1uS */
-			fmcn = (at91sam7_info->mainf>>9)+1;
-		else
+			fmcn = (at91sam7_info->mck_freq/1000000ul)+1;
+		else if (mode==2)
 			/* main clocks in 1.5uS */
-			fmcn = (at91sam7_info->mainf>>9)+(at91sam7_info->mainf>>10)+1;
+			fmcn = (at91sam7_info->mck_freq/666666ul)+1;
+
+		/* Only allow fmcn=0 if clock period is > 30 us. */
+		if (at91sam7_info->mck_freq <= 33333)
+			fmcn = 0;
+
 		DEBUG("fmcn: %i", fmcn); 
 		fmr = fmcn<<16;
 		target->type->write_memory(target, MC_FSR, 4, 1, (u8 *)&fmr);
-		at91sam7_info->flashmode = mode;		
 	}
+	at91sam7_info->flashmode = mode;		
 }
 
 u8 at91sam7_wait_status_busy(flash_bank_t *bank, int timeout)
@@ -174,6 +256,7 @@ u8 at91sam7_wait_status_busy(flash_bank_t *bank, int timeout)
 	return status;
 }
 
+/* Send one command to the AT91SAM flash controller */
 int at91sam7_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen) 
 {
 	u32 fcr;
@@ -222,23 +305,12 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 	at91sam7_info->cidr_eproc = (cidr>>5)&0x0007;
 	at91sam7_info->cidr_version = cidr&0x001F;
 	bank->size = NVPSIZ[at91sam7_info->cidr_nvpsiz];
+	at91sam7_info->target_name = "Unknown";
 	
 	DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x, alt_id: 0x%4.4x, alt_addr: 0x%4.4x", at91sam7_info->cidr_nvptyp, at91sam7_info->cidr_arch );
 
-	/* Read main clock freqency register */
-	target->type->read_memory(target, CKGR_MCFR, 4, 1, (u8 *)&mcfr);
-	if (mcfr&0x10000)
-	{
-		at91sam7_info->mainrdy = 1;
-		at91sam7_info->mainf = mcfr&0xFFFF;
-		at91sam7_info->usec_clocks = mcfr>>9;
-	}
-	else 
-	{
-		at91sam7_info->mainrdy = 0;
-		at91sam7_info->mainf = 0;
-		at91sam7_info->usec_clocks = 0;
-	}
+	/* Read main and master clock freqency register */
+	at91sam7_read_clock_info(bank);
 	
 	status = at91sam7_get_flash_status(bank);
 	at91sam7_info->lockbits = status>>16;
@@ -252,6 +324,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		bank->bus_width = 4;
 		if (bank->size==0x40000)  /* AT91SAM7S256 */
 		{
+			at91sam7_info->target_name = "AT91SAM7S256";
 			at91sam7_info->num_lockbits = 16;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -259,6 +332,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		}
 		if (bank->size==0x20000)  /* AT91SAM7S128 */
 		{
+			at91sam7_info->target_name = "AT91SAM7S128";
 			at91sam7_info->num_lockbits = 8;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -266,6 +340,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		}
 		if (bank->size==0x10000)  /* AT91SAM7S64 */
 		{
+			at91sam7_info->target_name = "AT91SAM7S64";
 			at91sam7_info->num_lockbits = 16;
 			at91sam7_info->pagesize = 128;
 			at91sam7_info->pages_in_lockregion = 32;
@@ -273,6 +348,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		}
 		if (bank->size==0x08000)  /* AT91SAM7S321/32 */
 		{
+			at91sam7_info->target_name = "AT91SAM7S321/32";
 			at91sam7_info->num_lockbits = 8;
 			at91sam7_info->pagesize = 128;
 			at91sam7_info->pages_in_lockregion = 32;
@@ -290,6 +366,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		bank->bus_width = 4;
 		if (bank->size==0x40000)  /* AT91SAM7XC256 */
 		{
+			at91sam7_info->target_name = "AT91SAM7XC256";
 			at91sam7_info->num_lockbits = 16;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -297,6 +374,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		}
 		if (bank->size==0x20000)  /* AT91SAM7XC128 */
 		{
+			at91sam7_info->target_name = "AT91SAM7XC128";
 			at91sam7_info->num_lockbits = 8;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -314,6 +392,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		bank->bus_width = 4;
 		if (bank->size==0x40000)  /* AT91SAM7X256 */
 		{
+			at91sam7_info->target_name = "AT91SAM7X256";
 			at91sam7_info->num_lockbits = 16;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -321,6 +400,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		}
 		if (bank->size==0x20000)  /* AT91SAM7X128 */
 		{
+			at91sam7_info->target_name = "AT91SAM7X128";
 			at91sam7_info->num_lockbits = 8;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -339,6 +419,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		
 		if (bank->size == 0x40000)  /* AT91SAM7A3 */
 		{
+			at91sam7_info->target_name = "AT91SAM7A3";
 			at91sam7_info->num_lockbits = 16;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -389,14 +470,6 @@ int at91sam7_protect_check(struct flash_bank_s *bank)
 	status = at91sam7_get_flash_status(bank);
 	at91sam7_info->lockbits = status>>16;
 	
-	return ERROR_OK;
-}
-
-
-int at91sam7_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "at91sam7", NULL, COMMAND_ANY, "at91sam7 specific commands");
-
 	return ERROR_OK;
 }
 
@@ -452,11 +525,15 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
+	/* Configure the flash controller timing */
+	at91sam7_read_clock_info(bank);	
+	at91sam7_set_flash_mode(bank,2);
+
         if ((first == 0) && (last == (at91sam7_info->num_lockbits-1)))
         {
         	return at91sam7_flash_command(bank, EA, 0);
         }
-        
+
 	WARNING("Can only erase the whole flash area, pages are autoerased on write");
 	return ERROR_FLASH_OPERATION_FAILED;
 }
@@ -490,7 +567,8 @@ int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
-	/* Configure the flash controller timing */	
+	/* Configure the flash controller timing */
+	at91sam7_read_clock_info(bank);	
 	at91sam7_set_flash_mode(bank,1);
 	
 	for (lockregion=first;lockregion<=last;lockregion++) 
@@ -560,6 +638,7 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	DEBUG("first_page: %i, last_page: %i, count %i", first_page, last_page, count);
 	
 	/* Configure the flash controller timing */	
+	at91sam7_read_clock_info(bank);	
 	at91sam7_set_flash_mode(bank,2);
 
 	for (pagen=first_page; pagen<last_page; pagen++) {
@@ -611,10 +690,7 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	int printed;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	
-	if (at91sam7_info->cidr == 0)
-	{
-		at91sam7_read_part_info(bank);
-	}
+	at91sam7_read_part_info(bank);
 
 	if (at91sam7_info->cidr == 0)
 	{
@@ -632,7 +708,7 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 			
-	printed = snprintf(buf, buf_size, "main clock(estimated): %ikHz \n", at91sam7_info->mainf*2);
+	printed = snprintf(buf, buf_size, "master clock(estimated): %ikHz \n", at91sam7_info->mck_freq / 1000);
 	buf += printed;
 	buf_size -= printed;
 	
@@ -645,6 +721,95 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	printed = snprintf(buf, buf_size, "securitybit: %i, nvmbits: 0x%1.1x\n", at91sam7_info->securitybit, at91sam7_info->nvmbits);
 	buf += printed;
 	buf_size -= printed;
+
+	return ERROR_OK;
+}
+
+/* 
+* On AT91SAM7S: When the gpnmv bits are set with 
+* > at91sam7 gpnvm 0 bitnr set
+* the changes are not visible in the flash controller status register MC_FSR 
+* until the processor has been reset.
+* On the Olimex board this requires a power cycle.
+* Note that the AT91SAM7S has the following errata (doc6175.pdf sec 14.1.3):
+* 	The maximum number of write/erase cycles for Non Volatile Memory bits is 100. This includes
+*	Lock Bits (LOCKx), General Purpose NVM bits (GPNVMx) and the Security Bit.
+*/
+int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	flash_bank_t *bank;
+	int bit;
+	u8  flashcmd;
+	u32 status;
+	char *value;
+	at91sam7_flash_bank_t *at91sam7_info;
+
+	if (argc < 3)
+	{
+		command_print(cmd_ctx, "at91sam7 gpnvm <num> <bit> <set|clear>");
+		return ERROR_OK;
+	}
+	
+	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+	bit = atoi(args[1]);
+	value = args[2];
+
+	if (!bank)
+	{
+		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
+		return ERROR_OK;
+	}
+
+	at91sam7_info = bank->driver_priv;
+
+	if (at91sam7_info->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	
+	if (at91sam7_info->cidr == 0)
+	{
+		at91sam7_read_part_info(bank);
+	}
+
+	if (at91sam7_info->cidr == 0)
+	{
+		WARNING("Cannot identify target as an AT91SAM");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	if ((bit<0) || (at91sam7_info->num_nvmbits <= bit))
+	{ 
+		command_print(cmd_ctx, "gpnvm bit '#%s' is out of bounds for target %s", args[1],at91sam7_info->target_name);
+		return ERROR_OK;
+	}
+
+	if (strcmp(value, "set") == 0)
+	{
+		flashcmd = SGPB;
+	}
+	else if (strcmp(value, "clear") == 0)
+	{
+		flashcmd = CGPB;
+	}
+	else
+	{
+		command_print(cmd_ctx, "usage: at91sam7 gpnvm <num> <bit> <set|clear>");
+		return ERROR_OK;
+	}
+
+	/* Configure the flash controller timing */
+	at91sam7_read_clock_info(bank);	
+	at91sam7_set_flash_mode(bank,1);
+	
+	if (at91sam7_flash_command(bank, flashcmd, (u16)(bit)) != ERROR_OK) 
+	{
+		return ERROR_FLASH_OPERATION_FAILED;
+	}	
+
+	status = at91sam7_get_flash_status(bank);
+	DEBUG("at91sam7_handle_gpnvm_command: cmd 0x%x, value 0x%x, status 0x%x \n",flashcmd,bit,status);
+	at91sam7_info->nvmbits = (status>>8)&((1<<at91sam7_info->num_nvmbits)-1);
 
 	return ERROR_OK;
 }

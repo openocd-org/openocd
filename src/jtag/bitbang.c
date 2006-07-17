@@ -17,6 +17,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "bitbang.h"
 
@@ -63,6 +66,38 @@ void bitbang_state_move(void) {
 	bitbang_interface->write(0, tms, 0);
 	
 	cur_state = end_state;
+}
+
+void bitbang_path_move(pathmove_command_t *cmd)
+{
+	int num_states = cmd->num_states;
+	int state_count;
+
+	state_count = 0;
+	while (num_states)
+	{
+		if (tap_transitions[cur_state].low == cmd->path[state_count])
+		{
+			bitbang_interface->write(0, 0, 0);
+			bitbang_interface->write(1, 0, 0);
+		}
+		else if (tap_transitions[cur_state].high == cmd->path[state_count])
+		{
+			bitbang_interface->write(0, 1, 0);
+			bitbang_interface->write(1, 1, 0);
+		}			
+		else
+		{
+			ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
+			exit(-1);
+		}
+		
+		cur_state = cmd->path[state_count];
+		state_count++;
+		num_states--;
+	}
+	
+	end_state = cur_state;
 }
 
 void bitbang_runtest(int num_cycles)
@@ -186,6 +221,12 @@ int bitbang_execute_queue(void)
 				if (cmd->cmd.statemove->end_state != -1)
 					bitbang_end_state(cmd->cmd.statemove->end_state);
 				bitbang_state_move();
+				break;
+			case JTAG_PATHMOVE:
+#ifdef _DEBUG_JTAG_IO_
+				DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+#endif
+				bitbang_path_move(cmd->cmd.pathmove);
 				break;
 			case JTAG_SCAN:
 #ifdef _DEBUG_JTAG_IO_

@@ -17,7 +17,11 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
+#include "replacements.h"
 
 #include "gdb_server.h"
 
@@ -31,21 +35,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
-
-#ifndef HAVE_STRNDUP
-#include <stdio.h>
-char* strndup(const char *s, size_t n)
-{
-	size_t len = strnlen (s, n);
-	char *new = (char *) malloc (len + 1);
-
-	if (new == NULL)
-		return NULL;
-
-	new[len] = '\0';
-	return (char *) memcpy (new, s, len);
-}
-#endif
 
 #if 0
 #define _DEBUG_GDB_IO_
@@ -93,11 +82,26 @@ int gdb_get_char(connection_t *connection, int* next_char)
 		return ERROR_OK;
 	}
 
-	while ((gdb_con->buf_cnt = read(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE)) <= 0)
+	while ((gdb_con->buf_cnt = read_socket(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE)) <= 0)
 	{
 		if (gdb_con->buf_cnt == 0)
 			return ERROR_SERVER_REMOTE_CLOSED;
 		
+#ifdef _WIN32
+		errno = WSAGetLastError();
+
+		switch(errno)
+		{
+			case WSAEWOULDBLOCK:
+				usleep(1000);
+				break;
+			case WSAECONNABORTED:
+				return ERROR_SERVER_REMOTE_CLOSED;
+			default:
+				ERROR("read: %d", strerror(errno));
+				exit(-1);
+		}
+#else
 		switch(errno)
 		{
 			case EAGAIN:
@@ -111,6 +115,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 				ERROR("read: %s", strerror(errno));
 				exit(-1);
 		}
+#endif
 	}
 	
 	debug_buffer = malloc(gdb_con->buf_cnt + 1);
@@ -155,14 +160,14 @@ int gdb_put_packet(connection_t *connection, char *buffer, int len)
 		DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
 		free(debug_buffer);
 		
-		write(connection->fd, "$", 1);
+		write_socket(connection->fd, "$", 1);
 		if (len > 0)
-			write(connection->fd, buffer, len);
-		write(connection->fd, "#", 1);
+			write_socket(connection->fd, buffer, len);
+		write_socket(connection->fd, "#", 1);
 	
 		snprintf(checksum, 3, "%2.2x", my_checksum);
 	
-		write(connection->fd, checksum, 2);
+		write_socket(connection->fd, checksum, 2);
 
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
@@ -310,12 +315,12 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 		
 		if (my_checksum == strtoul(checksum, NULL, 16))
 		{
-			write (connection->fd, "+", 1);
+			write_socket(connection->fd, "+", 1);
 			break;
 		}
 
 		WARNING("checksum error, requesting retransmission");
-		write(connection->fd, "-", 1);
+		write_socket(connection->fd, "-", 1);
 	}
 
 	return ERROR_OK;
@@ -1087,6 +1092,7 @@ int gdb_init()
 		
 		DEBUG("gdb service for target %s at port %i", target->type->name, gdb_port + i);
 		
+		i++;
 		target = target->next;
 	}
 	

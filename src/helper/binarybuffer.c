@@ -17,6 +17,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -112,8 +115,18 @@ int buf_cmp(u8 *buf1, u8 *buf2, int size)
 
 	for (i = 0; i < num_bytes; i++)
 	{
-		if (buf1[i] != buf2[i])
-			return 1;
+		/* last byte */
+		/* mask out bits that don't really belong to the buffer if size isn't a multiple of 8 bits */
+		if ((size % 8) && (i == num_bytes -1 ))
+		{
+			if ((buf1[i] & ((1 << (size % 8)) - 1)) != (buf2[i] & ((1 << (size % 8)) - 1)))
+				return 1;
+		}
+		else
+		{
+			if (buf1[i] != buf2[i])
+				return 1;
+		}
 	}
 
 	return 0;
@@ -126,8 +139,19 @@ int buf_cmp_mask(u8 *buf1, u8 *buf2, u8 *mask, int size)
 
 	for (i = 0; i < num_bytes; i++)
 	{
-		if ((buf1[i] & mask[i]) != (buf2[i] & mask[i]))
-			return 1;
+		/* last byte */
+		/* mask out bits that don't really belong to the buffer if size isn't a multiple of 8 bits */
+		if ((size % 8) && (i == num_bytes -1 ))
+		{
+			if (((buf1[i] & ((1 << (size % 8)) - 1)) & ((1 << (size % 8)) - 1)) != 
+				((buf2[i] & ((1 << (size % 8)) - 1)) & ((1 << (size % 8)) - 1)))
+				return 1;
+		}
+		else
+		{
+			if ((buf1[i] & mask[i]) != (buf2[i] & mask[i]))
+				return 1;
+		}
 	}
 
 	return 0;

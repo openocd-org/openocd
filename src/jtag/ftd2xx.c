@@ -17,17 +17,23 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
 #if IS_CYGWIN == 1
 #include "windows.h"
 #undef ERROR
 #endif
+
+#include "replacements.h"
 
 /* project specific includes */
 #include "log.h"
 #include "types.h"
 #include "jtag.h"
 #include "configuration.h"
+#include "time_support.h"
 
 /* system includes */
 #include <string.h>
@@ -222,6 +228,7 @@ int ftd2xx_send_and_recv(jtag_command_t *first, jtag_command_t *last)
 	
 #ifdef _DEBUG_USB_IO_
 	struct timeval start, inter, inter2, end;
+	struct timeval d_inter, d_inter2, d_end;
 #endif
 
 #ifdef _DEBUG_USB_COMMS_
@@ -272,9 +279,11 @@ int ftd2xx_send_and_recv(jtag_command_t *first, jtag_command_t *last)
 #ifdef _DEBUG_USB_IO_
 		gettimeofday(&end, NULL);	
 
-		INFO("inter: %i.%i, inter2: %i.%i end: %i.%i", inter.tv_sec - start.tv_sec, inter.tv_usec - start.tv_usec,
-			inter2.tv_sec - start.tv_sec, inter2.tv_usec - start.tv_usec,
-			end.tv_sec - start.tv_sec, end.tv_usec - start.tv_usec);
+		timeval_subtract(&d_inter, &inter, &start);
+		timeval_subtract(&d_inter2, &inter2, &start);
+		timeval_subtract(&d_end, &end, &start);
+
+		INFO("inter: %i.%i, inter2: %i.%i end: %i.%i", d_inter.tv_sec, d_inter.tv_usec, d_inter2.tv_sec, d_inter2.tv_usec, d_end.tv_sec, d_end.tv_usec);
 #endif
 	
 		
@@ -324,6 +333,46 @@ int ftd2xx_send_and_recv(jtag_command_t *first, jtag_command_t *last)
 	return ERROR_OK;
 }
 
+void ftd2xx_add_pathmove(pathmove_command_t *cmd)
+{
+	int num_states = cmd->num_states;
+	u8 tms_byte;
+	int state_count;
+
+	state_count = 0;
+	while (num_states)
+	{
+		tms_byte = 0x0;
+		int bit_count = 0;
+		
+		/* command "Clock Data to TMS/CS Pin (no Read)" */
+		BUFFER_ADD = 0x4b;
+		/* number of states remaining */
+		BUFFER_ADD = (num_states % 7) - 1;
+		
+		while (num_states % 7)
+		{
+			if (tap_transitions[cur_state].low == cmd->path[state_count])
+				buf_set_u32(&tms_byte, bit_count++, 1, 0x0);
+			else if (tap_transitions[cur_state].high == cmd->path[state_count])
+				buf_set_u32(&tms_byte, bit_count++, 1, 0x1);
+			else
+			{
+				ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
+				exit(-1);
+			}
+
+			cur_state = cmd->path[state_count];
+			state_count++;
+			num_states--;
+		}
+		
+		BUFFER_ADD = tms_byte;
+	}
+	
+	end_state = cur_state;
+}
+
 void ftd2xx_add_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
@@ -331,23 +380,26 @@ void ftd2xx_add_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size
 	int cur_byte = 0;
 	int last_bit;
 
-	/* command "Clock Data to TMS/CS Pin (no Read)" */
-	BUFFER_ADD = 0x4b;
-	/* scan 7 bit */
-	BUFFER_ADD = 0x6;
-	/* TMS data bits */
-	if (ir_scan)
+	if ((!ir_scan && (cur_state != TAP_SD)) || (ir_scan && (cur_state != TAP_SI)))
 	{
-		BUFFER_ADD = TAP_MOVE(cur_state, TAP_SI);
-		cur_state = TAP_SI;
+		/* command "Clock Data to TMS/CS Pin (no Read)" */
+		BUFFER_ADD = 0x4b;
+		/* scan 7 bit */
+		BUFFER_ADD = 0x6;
+		/* TMS data bits */
+		if (ir_scan)
+		{
+			BUFFER_ADD = TAP_MOVE(cur_state, TAP_SI);
+			cur_state = TAP_SI;
+		}
+		else
+		{
+			BUFFER_ADD = TAP_MOVE(cur_state, TAP_SD);
+			cur_state = TAP_SD;
+		}
+		//DEBUG("added TMS scan (no read)");
 	}
-	else
-	{
-		BUFFER_ADD = TAP_MOVE(cur_state, TAP_SD);
-		cur_state = TAP_SD;
-	}
-	//DEBUG("added TMS scan (no read)");
-
+	
 	/* add command for complete bytes */
 	if (num_bytes > 1)
 	{
@@ -370,7 +422,7 @@ void ftd2xx_add_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size
 			//DEBUG("added TDI bytes (i %i)", num_bytes);
 		}
 		BUFFER_ADD = (num_bytes-2) & 0xff;
-		BUFFER_ADD = (num_bytes >> 8) & 0xff;
+		BUFFER_ADD = ((num_bytes-2) >> 8) & 0xff;
 	}
 	if (type != SCAN_IN)
 	{
@@ -440,15 +492,23 @@ void ftd2xx_add_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size
 
 int ftd2xx_predict_scan_out(int scan_size, enum scan_type type)
 {
-	int predicted_size = 6;
+	int predicted_size = 3;
+	
+	if (cur_state != TAP_SD)
+		predicted_size += 3;
+	
 	if (type == SCAN_IN)	/* only from device to host */
 	{
+		/* complete bytes */
 		predicted_size += (CEIL(scan_size, 8) > 1) ? 3 : 0;
+		/* remaining bits - 1 (up to 7) */
 		predicted_size += ((scan_size - 1) % 8) ? 2 : 0;
 	}
 	else					/* host to device, or bidirectional */
 	{
+		/* complete bytes */
 		predicted_size += (CEIL(scan_size, 8) > 1) ? (CEIL(scan_size, 8) + 3 - 1) : 0;
+		/* remaining bits -1 (up to 7) */
 		predicted_size += ((scan_size - 1) % 8) ? 3 : 0;
 	}
 
@@ -588,7 +648,10 @@ int ftd2xx_execute_queue()
 
 				layout->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				require_send = 1;
-
+				
+#ifdef _DEBUG_JTAG_IO_				
+				DEBUG("trst: %i, srst: %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+#endif
 				break;
 			case JTAG_RUNTEST:
 				/* only send the maximum buffer size that FT2232C can handle */
@@ -644,6 +707,9 @@ int ftd2xx_execute_queue()
 					//DEBUG("added TMS scan (no read)");
 				}
 				require_send = 1;
+#ifdef _DEBUG_JTAG_IO_				
+				DEBUG("runtest: %i, end in %i", cmd->cmd.runtest->num_cycles, end_state);
+#endif
 				break;
 			case JTAG_STATEMOVE:
 				/* only send the maximum buffer size that FT2232C can handle */
@@ -665,6 +731,24 @@ int ftd2xx_execute_queue()
 				//DEBUG("added TMS scan (no read)");
 				cur_state = end_state;
 				require_send = 1;
+#ifdef _DEBUG_JTAG_IO_				
+				DEBUG("statemove: %i", end_state);
+#endif
+				break;
+			case JTAG_PATHMOVE:
+				/* only send the maximum buffer size that FT2232C can handle */
+				predicted_size = 3 * CEIL(cmd->cmd.pathmove->num_states, 7);
+				if (ftd2xx_buffer_size + predicted_size + 1 > FTD2XX_BUFFER_SIZE)
+				{
+					ftd2xx_send_and_recv(first_unsent, cmd);
+					require_send = 0;
+					first_unsent = cmd;
+				}
+				ftd2xx_add_pathmove(cmd->cmd.pathmove);
+				require_send = 1;
+#ifdef _DEBUG_JTAG_IO_				
+				DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+#endif
 				break;
 			case JTAG_SCAN:
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
@@ -685,11 +769,17 @@ int ftd2xx_execute_queue()
 				require_send = 1;
 				if (buffer)
 					free(buffer);
+#ifdef _DEBUG_JTAG_IO_				
+				DEBUG("%s scan, %i bit, end in %i", (cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size, end_state);
+#endif
 				break;
 			case JTAG_SLEEP:
 				ftd2xx_send_and_recv(first_unsent, cmd);
 				first_unsent = cmd->next;
 				jtag_sleep(cmd->cmd.sleep->us);
+#ifdef _DEBUG_JTAG_IO_				
+				DEBUG("sleep %i usec", cmd->cmd.sleep->us);
+#endif
 				break;
 			default:
 				ERROR("BUG: unknown JTAG command type encountered");
@@ -740,7 +830,7 @@ int ftd2xx_init(void)
 		ftd2xx_device_desc = "Dual RS232";
 	}
 	
-#if IS_CYGWIN != 1
+#if IS_WIN32 == 0
 	/* Add JTAGkey Vid/Pid to the linux driver */
 	if ((status = FT_SetVIDPID(ftd2xx_vid, ftd2xx_pid)) != FT_OK)
 	{

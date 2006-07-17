@@ -1,6 +1,10 @@
 
 if FTD2XXDIR
+if IS_MINGW
+FTD2XXINC = -I@WITH_FTD2XX@
+else
 FTD2XXINC = -I@WITH_FTD2XX@/
+endif
 else
 FTD2XXINC =
 endif

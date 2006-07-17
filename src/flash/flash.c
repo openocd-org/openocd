@@ -17,6 +17,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "flash.h"
 #include "command.h"
 #include "log.h"
@@ -506,7 +510,7 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 		
-	if (!(binary = fopen(args[1], "r")))
+	if (!(binary = fopen(args[1], "rb")))
 	{
 		ERROR("couldn't open %s: %s", args[1], strerror(errno));
 		command_print(cmd_ctx, "couldn't open %s", args[1]);

@@ -17,22 +17,34 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
 #include "config.h"
-#include "log.h"
+#endif
+
+#include "replacements.h"
+
 #include "jtag.h"
 #include "bitbang.h"
 
 /* system includes */
 // -ino: 060521-1036
 #ifdef __FreeBSD__
+
 #include <sys/types.h>
 #include <machine/sysarch.h>
 #include <machine/cpufunc.h>
 #define ioperm(startport,length,enable)\
   i386_set_ioperm((startport), (length), (enable))
+
 #else
+
+#ifndef _WIN32
 #include <sys/io.h>
-#endif
+#else
+#include "errno.h"
+#endif /* _WIN32 */
+
+#endif /* __FreeBSD__ */
 
 #include <string.h>
 #include <stdlib.h>
@@ -44,6 +56,16 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #endif
+
+#if PARPORT_USE_GIVEIO == 1
+#if IS_CYGWIN == 1
+#include <windows.h>
+#include <errno.h>
+#undef ERROR
+#endif
+#endif
+
+#include "log.h"
 
 /* parallel port cable description
  */
@@ -221,6 +243,32 @@ int parport_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
+#if PARPORT_USE_GIVEIO == 1
+int parport_get_giveio_access()
+{
+    HANDLE h;
+    OSVERSIONINFO version;
+
+    version.dwOSVersionInfoSize = sizeof version;
+    if (!GetVersionEx( &version )) {
+        errno = EINVAL;
+        return -1;
+    }
+    if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
+        return 0;
+
+    h = CreateFile( "\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+    if (h == INVALID_HANDLE_VALUE) {
+        errno = ENODEV;
+        return -1;
+    }
+
+    CloseHandle( h );
+
+    return 0;
+}
+#endif
+
 int parport_init(void)
 {
 	cable_t *cur_cable;
@@ -303,11 +351,16 @@ int parport_init(void)
 	dataport = parport_port;
 	statusport = parport_port + 1;
 		
-	if (ioperm(dataport, 3, 1) != 0) {
+#if PARPORT_USE_GIVEIO == 1
+	if (parport_get_giveio_access() != 0)
+#else /* PARPORT_USE_GIVEIO */
+	if (ioperm(dataport, 3, 1) != 0)
+#endif /* PARPORT_USE_GIVEIO */
+	{
 		ERROR("missing privileges for direct i/o");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-#endif
+#endif /* PARPORT_USE_PPDEV */
 	
 	parport_reset(0, 0);
 	parport_write(0, 0, 0);

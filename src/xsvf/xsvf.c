@@ -17,6 +17,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "xsvf.h"
 
 #include "jtag.h"
@@ -28,7 +32,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <netinet/in.h>
 #include <string.h>
 
 #include <sys/time.h>
@@ -111,6 +114,7 @@ int xsvf_read_xstates(int fd, enum tap_state *path, int max_path, int *path_len)
 int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	char c;
+	u8 buf4[4], buf2[2];
 	unsigned char uc, uc2;
 	unsigned int ui;
 	unsigned short us;
@@ -252,11 +256,11 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				break;
 			case 0x04:	/* XRUNTEST */
 				DEBUG("XRUNTEST");
-				if (read(xsvf_fd, &ui, 4) < 0)
+				if (read(xsvf_fd, buf4, 4) < 0)
 					do_abort = 1;
 				else
 				{
-					xruntest = ntohl(ui);
+					xruntest = be_to_h_u32(buf4);
 				}
 				break;
 			case 0x07:	/* XREPEAT */
@@ -270,11 +274,11 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				break;
 			case 0x08:	/* XSDRSIZE */
 				DEBUG("XSDRSIZE");
-				if (read(xsvf_fd, &ui, 4) < 0)
+				if (read(xsvf_fd, buf4, 4) < 0)
 					do_abort = 1;
 				else
 				{
-					xsdrsize = ntohl(ui);
+					xsdrsize = be_to_h_u32(buf4);
 					free(dr_out_buf);
 					free(dr_in_buf);
 					free(dr_in_mask);
@@ -408,12 +412,12 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				break;
 			case 0x15:	/* XSIR2 */
 				DEBUG("XSIR2");
-				if (read(xsvf_fd, &us, 2) < 0)
+				if (read(xsvf_fd, buf2, 2) < 0)
 					do_abort = 1;
 				else
 				{
 					u8 *ir_buf;
-					us = ntohs(us);
+					us = be_to_h_u16(buf2);
 					ir_buf = malloc((us + 7) / 8);
 					if (xsvf_read_buffer(us, xsvf_fd, ir_buf) != ERROR_OK)
 						do_abort = 1;
@@ -449,12 +453,12 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				break;
 			case 0x17:	/* XWAIT */
 				DEBUG("XWAIT");
-				if ((read(xsvf_fd, &uc, 1) < 0) || (read(xsvf_fd, &uc2, 1) < 0) || (read(xsvf_fd, &ui, 4) < 0))
+				if ((read(xsvf_fd, &uc, 1) < 0) || (read(xsvf_fd, &uc2, 1) < 0) || (read(xsvf_fd, buf4, 4) < 0))
 					do_abort = 1;
 				else
 				{
 					jtag_add_statemove(xsvf_to_tap[uc]);
-					ui = ntohl(ui);
+					ui = be_to_h_u32(buf4);
 					jtag_add_sleep(ui);
 					jtag_add_statemove(xsvf_to_tap[uc2]);
 				}

@@ -17,7 +17,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
 #include "target.h"
 
 #include "log.h"
@@ -1507,7 +1510,7 @@ int handle_load_binary_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	u8 *buffer;
 	u32 buf_cnt;
 	
-	struct timeval start, end;
+	struct timeval start, end, duration;
 		
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -1526,7 +1529,7 @@ int handle_load_binary_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 
-	if (!(binary = fopen(args[0], "r")))
+	if (!(binary = fopen(args[0], "rb")))
 	{
 		ERROR("couldn't open %s: %s", args[0], strerror(errno));
 		command_print(cmd_ctx, "error accessing file %s", args[0]);
@@ -1550,7 +1553,8 @@ int handle_load_binary_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	free(buffer);
 	
-	command_print(cmd_ctx, "downloaded %lli byte in %is %ius", (long long) binary_stat.st_size, end.tv_sec - start.tv_sec, end.tv_usec - start.tv_usec);
+	timeval_subtract(&duration, &end, &start);
+	command_print(cmd_ctx, "downloaded %lli byte in %is %ius", (long long) binary_stat.st_size, duration.tv_sec, duration.tv_usec);
 	
 	fclose(binary);
 
@@ -1576,7 +1580,7 @@ int handle_dump_binary_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	address = strtoul(args[1], NULL, 0);
 	size = strtoul(args[2], NULL, 0);
 
-	if (!(binary = fopen(args[0], "w")))
+	if (!(binary = fopen(args[0], "wb")))
 	{
 		ERROR("couldn't open %s for writing: %s", args[0], strerror(errno));
 		command_print(cmd_ctx, "error accessing file %s", args[0]);

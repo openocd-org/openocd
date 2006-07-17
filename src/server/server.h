@@ -22,10 +22,9 @@
 
 #include "command.h"
 #include "binarybuffer.h"
+#include "replacements.h"
 
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 enum connection_type
 {
