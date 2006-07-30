@@ -310,6 +310,8 @@ int parport_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	DEBUG("opening /dev/parport%d...", parport_port);
+
 	snprintf(buffer, 256, "/dev/parport%d", parport_port);
 	device_handle = open(buffer, O_WRONLY);
 	
@@ -318,6 +320,8 @@ int parport_init(void)
 		ERROR("cannot open device. check it exists and that user read and write rights are set");
 		return ERROR_JTAG_INIT_FAILED;
 	}
+
+	DEBUG("...open");
 
 	i=ioctl(device_handle, PPCLAIM);
 	if (i<0)
@@ -350,7 +354,8 @@ int parport_init(void)
 	
 	dataport = parport_port;
 	statusport = parport_port + 1;
-		
+	
+	DEBUG("requesting privileges for parallel port 0x%x...", dataport);
 #if PARPORT_USE_GIVEIO == 1
 	if (parport_get_giveio_access() != 0)
 #else /* PARPORT_USE_GIVEIO */
@@ -360,6 +365,7 @@ int parport_init(void)
 		ERROR("missing privileges for direct i/o");
 		return ERROR_JTAG_INIT_FAILED;
 	}
+	DEBUG("...privileges granted");
 #endif /* PARPORT_USE_PPDEV */
 	
 	parport_reset(0, 0);

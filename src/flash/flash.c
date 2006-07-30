@@ -476,7 +476,10 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	u32 buf_cnt;
 	int retval;
 	flash_bank_t *p;
+	struct timeval start, end, duration;
 
+	gettimeofday(&start, NULL);
+		
 	if (argc < 3)
 	{
 		command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
@@ -553,7 +556,10 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	free(buffer);
 	fclose(binary);
 	
-	command_print(cmd_ctx, "wrote file %s to flash bank %i at offset 0x%8.8x", args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0));
+	gettimeofday(&end, NULL);	
+	timeval_subtract(&duration, &end, &start);
+	
+	command_print(cmd_ctx, "wrote file %s to flash bank %i at offset 0x%8.8x in %is %ius", args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0), duration.tv_sec, duration.tv_usec);
 	
 	return ERROR_OK;
 

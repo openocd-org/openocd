@@ -304,7 +304,8 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		arm7_9_unset_breakpoint(target, breakpoint);
 	}
 	
-	arm7_9->wp_available++;
+	if (breakpoint->type == BKPT_HARD)
+		arm7_9->wp_available++;
 	
 	return ERROR_OK;
 }
@@ -456,11 +457,12 @@ int arm7_9_enable_sw_bkpts(struct target_s *target)
 	if (arm7_9->sw_bkpts_enabled)
 		return ERROR_OK;
 	
-	if (arm7_9->wp_available-- < 1)
+	if (arm7_9->wp_available < 1)
 	{
 		WARNING("can't enable sw breakpoints with no watchpoint unit available");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
+	arm7_9->wp_available--;
 	
 	if (!arm7_9->wp0_used)
 	{
@@ -783,6 +785,12 @@ int arm7_9_halt(target_t *target)
 	if (target->state == TARGET_UNKNOWN)
 	{
 		WARNING("target was in unknown state when halt was requested");
+	}
+	
+	if ((target->state == TARGET_RESET) && (jtag_reset_config & RESET_SRST_PULLS_TRST) && (jtag_srst))
+	{
+		ERROR("can't request a halt while in reset if nSRST pulls nTRST");
+		return ERROR_TARGET_FAILURE;
 	}
 
 	if (arm7_9->use_dbgrq)

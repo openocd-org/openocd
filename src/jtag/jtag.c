@@ -111,6 +111,10 @@ enum tap_state cmd_queue_cur_state = TAP_TLR;
 
 int jtag_verify_capture_ir = 1;
 
+/* how long the OpenOCD should wait before attempting JTAG communication after reset lines deasserted (in ms) */
+int jtag_nsrst_delay = 0; /* default to no nSRST delay */
+int jtag_ntrst_delay = 0; /* default to no nTRST delay */ 
+
 /* callbacks to inform high-level handlers about JTAG state changes */
 jtag_event_callback_t *jtag_event_callbacks;
 
@@ -168,6 +172,8 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
@@ -805,7 +811,10 @@ int jtag_add_reset(int req_trst, int req_srst)
 	}
 	
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
+	{
+		ERROR("requested nSRST assertion, but the current configuration doesn't support this");
 		return ERROR_JTAG_RESET_CANT_SRST;
+	}
 	
 	if (req_trst && !(jtag_reset_config & RESET_HAS_TRST))
 	{
@@ -827,9 +836,15 @@ int jtag_add_reset(int req_trst, int req_srst)
 	jtag_srst = req_srst;
 
 	if (jtag_srst)
+	{
 		jtag_call_event_callbacks(JTAG_SRST_ASSERTED);
+	}
 	else
+	{
 		jtag_call_event_callbacks(JTAG_SRST_RELEASED);
+		if (jtag_nsrst_delay)
+			jtag_add_sleep(jtag_nsrst_delay);
+	}
 	
 	if (trst_with_tms)
 	{
@@ -854,8 +869,19 @@ int jtag_add_reset(int req_trst, int req_srst)
 	{
 		if (jtag_trst)
 		{
+			/* we just asserted nTRST, so we're now in Test-Logic-Reset,
+			 * and inform possible listeners about this
+			 */
 			cmd_queue_cur_state = TAP_TLR;
 			jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+		}
+		else
+		{
+			/* the nTRST line got deasserted, so we're still in Test-Logic-Reset,
+			 * but we might want to add a delay to give the TAP time to settle
+			 */
+			if (jtag_ntrst_delay)
+				jtag_add_sleep(jtag_ntrst_delay);
 		}
 	}
 
@@ -1121,7 +1147,11 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
 		COMMAND_CONFIG, NULL);
-
+	register_command(cmd_ctx, NULL, "nsrst_delay", handle_jtag_nsrst_delay_command,
+		COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, NULL, "ntrst_delay", handle_jtag_ntrst_delay_command,
+		COMMAND_CONFIG, NULL);
+		
 	register_command(cmd_ctx, NULL, "scan_chain", handle_scan_chain_command,
 		COMMAND_EXEC, "print current scan chain configuration");
 
@@ -1336,6 +1366,36 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			ERROR("invalid reset_config argument");
 			exit(-1);
 		}
+	}
+	
+	return ERROR_OK;
+}
+
+int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc < 1)
+	{
+		ERROR("nsrst_delay <ms> command takes one required argument");
+		exit(-1);
+	}
+	else
+	{
+		jtag_nsrst_delay = strtoul(args[0], NULL, 0);
+	}
+	
+	return ERROR_OK;
+}
+
+int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc < 1)
+	{
+		ERROR("ntrst_delay <ms> command takes one required argument");
+		exit(-1);
+	}
+	else
+	{
+		jtag_ntrst_delay = strtoul(args[0], NULL, 0);
 	}
 	
 	return ERROR_OK;

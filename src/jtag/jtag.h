@@ -199,6 +199,9 @@ enum jtag_event
 	JTAG_TRST_RELEASED,
 };
 
+extern int jtag_trst;
+extern int jtag_srst;
+
 typedef struct jtag_event_callback_s
 {
 	int (*callback)(enum jtag_event event, void *priv);
