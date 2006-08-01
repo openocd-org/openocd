@@ -1147,9 +1147,9 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
 		COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "nsrst_delay", handle_jtag_nsrst_delay_command,
+	register_command(cmd_ctx, NULL, "jtag_nsrst_delay", handle_jtag_nsrst_delay_command,
 		COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "ntrst_delay", handle_jtag_ntrst_delay_command,
+	register_command(cmd_ctx, NULL, "jtag_ntrst_delay", handle_jtag_ntrst_delay_command,
 		COMMAND_CONFIG, NULL);
 		
 	register_command(cmd_ctx, NULL, "scan_chain", handle_scan_chain_command,
@@ -1375,7 +1375,7 @@ int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 {
 	if (argc < 1)
 	{
-		ERROR("nsrst_delay <ms> command takes one required argument");
+		ERROR("jtag_nsrst_delay <ms> command takes one required argument");
 		exit(-1);
 	}
 	else
@@ -1390,7 +1390,7 @@ int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 {
 	if (argc < 1)
 	{
-		ERROR("ntrst_delay <ms> command takes one required argument");
+		ERROR("jtag_ntrst_delay <ms> command takes one required argument");
 		exit(-1);
 	}
 	else

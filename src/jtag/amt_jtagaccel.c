@@ -21,11 +21,18 @@
 #include "config.h"
 #endif
 
-#include "log.h"
+#include "replacements.h"
+
 #include "jtag.h"
 
 /* system includes */
+
+#ifndef _WIN32
 #include <sys/io.h>
+#else
+#include "errno.h"
+#endif /* _WIN32 */
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -39,6 +46,16 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #endif
+
+#if PARPORT_USE_GIVEIO == 1
+#if IS_CYGWIN == 1
+#include <windows.h>
+#include <errno.h>
+#undef ERROR
+#endif
+#endif
+
+#include "log.h"
 
 /* configuration */
 unsigned long amt_jtagaccel_port;
@@ -382,6 +399,32 @@ int amt_jtagaccel_execute_queue(void)
 	return ERROR_OK;
 }
 
+#if PARPORT_USE_GIVEIO == 1
+int amt_jtagaccel_get_giveio_access()
+{
+    HANDLE h;
+    OSVERSIONINFO version;
+
+    version.dwOSVersionInfoSize = sizeof version;
+    if (!GetVersionEx( &version )) {
+        errno = EINVAL;
+        return -1;
+    }
+    if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
+        return 0;
+
+    h = CreateFile( "\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+    if (h == INVALID_HANDLE_VALUE) {
+        errno = ENODEV;
+        return -1;
+    }
+
+    CloseHandle( h );
+
+    return 0;
+}
+#endif
+
 int amt_jtagaccel_init(void)
 {
 #if PARPORT_USE_PPDEV == 1
@@ -435,8 +478,12 @@ int amt_jtagaccel_init(void)
 		amt_jtagaccel_port = 0x378;
 		WARNING("No parport port specified, using default '0x378' (LPT1)");
 	}
-	
+
+#if PARPORT_USE_GIVEIO == 1
+	if (amt_jtagaccel_get_giveio_access() != 0) {
+#else /* PARPORT_USE_GIVEIO */	
 	if (ioperm(amt_jtagaccel_port, 5, 1) != 0) {
+#endif /* PARPORT_USE_GIVEIO */
 		ERROR("missing privileges for direct i/o");
 		return ERROR_JTAG_INIT_FAILED;
 	}

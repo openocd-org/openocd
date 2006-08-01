@@ -48,14 +48,22 @@ AC_ARG_WITH(ftd2xx,
 
 case $host in 
   *-*-cygwin*) 
-    is_cygwin=yes
     is_win32=yes
 
     AC_ARG_ENABLE(parport_giveio,
     AS_HELP_STRING([--enable-parport_giveio], [Enable use of giveio for parport instead of ioperm]), 
     [parport_use_giveio=$enableval], [parport_use_giveio=no])
-
-    AC_DEFINE(IS_CYGWIN, 1, [1 if building for Cygwin.])
+	
+	AC_COMPILE_IFELSE(AC_LANG_PROGRAM([],[return __MINGW32__;]),[is_mingw=yes],[is_mingw=no])
+	if test $is_mingw = yes; then
+		AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
+		parport_use_giveio=yes
+		is_cygwin=no
+	else
+		is_cygwin=yes
+		AC_DEFINE(IS_CYGWIN, 1, [1 if building for Cygwin.])
+	fi
+	
     AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
     ;; 
   *-*-mingw*) 

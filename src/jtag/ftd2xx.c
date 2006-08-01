@@ -799,6 +799,8 @@ int ftd2xx_init(void)
 	u8 latency_timer;
 	FT_STATUS status;
 	DWORD num_devices;
+	u8 buf[1];
+	DWORD bytes_written;
 	
 	ftd2xx_layout_t *cur_layout = ftd2xx_layouts;
 	
@@ -900,6 +902,13 @@ int ftd2xx_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 
 	ftd2xx_speed(jtag_speed);
+
+	buf[0] = 0x85; /* Disconnect TDI/DO to TDO/DI for Loopback */
+	if (((status = FT_Write(ftdih, buf, 1, &bytes_written)) != FT_OK) || (bytes_written != 1))
+	{
+		ERROR("couldn't write to ftdi device: %i", status);
+		return ERROR_JTAG_INIT_FAILED;
+	}
 	
 	if ((status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX)) != FT_OK)
 	{

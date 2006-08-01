@@ -417,7 +417,7 @@ int server_init()
 	return ERROR_OK;
 }
 
-int server_close()
+int server_quit()
 {
 	remove_services();
 
