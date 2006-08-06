@@ -843,7 +843,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 	{
 		jtag_call_event_callbacks(JTAG_SRST_RELEASED);
 		if (jtag_nsrst_delay)
-			jtag_add_sleep(jtag_nsrst_delay);
+			jtag_add_sleep(jtag_nsrst_delay * 1000);
 	}
 	
 	if (trst_with_tms)
@@ -881,7 +881,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 			 * but we might want to add a delay to give the TAP time to settle
 			 */
 			if (jtag_ntrst_delay)
-				jtag_add_sleep(jtag_ntrst_delay);
+				jtag_add_sleep(jtag_ntrst_delay * 1000);
 		}
 	}
 
