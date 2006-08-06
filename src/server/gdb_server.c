@@ -138,6 +138,23 @@ int gdb_get_char(connection_t *connection, int* next_char)
 	return ERROR_OK;
 }
 
+int gdb_putback_char(connection_t *connection, int last_char)
+{
+	gdb_connection_t *gdb_con = connection->priv;
+	
+	if (gdb_con->buf_p > gdb_con->buffer)
+	{
+		*(--gdb_con->buf_p) = last_char;
+		gdb_con->buf_cnt++;
+	}
+	else
+	{
+		ERROR("BUG: couldn't put character back"); 	
+	}
+	
+	return ERROR_OK;
+}
+
 int gdb_put_packet(connection_t *connection, char *buffer, int len)
 {
 	int i;
@@ -218,6 +235,8 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 		{
 			if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
 				return retval;
+
+			DEBUG("character: '%c'", character);
 
 			switch (character)
 			{
@@ -426,6 +445,9 @@ int gdb_new_connection(connection_t *connection)
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
 		return retval;
+		
+	if (initial_ack != '+')
+		gdb_putback_char(connection, initial_ack);
 		
 	return ERROR_OK;
 }

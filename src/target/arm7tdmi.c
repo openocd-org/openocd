@@ -644,11 +644,11 @@ void arm7tdmi_build_reg_cache(target_t *target)
 	}
 		
 	if (arch_info->has_monitor_mode)
-		(*cache_p)->next->reg_list[0].size = 6;
+		(*cache_p)->next->reg_list[EICE_DBG_CTRL].size = 6;
 	else
-		(*cache_p)->next->reg_list[0].size = 3;
+		(*cache_p)->next->reg_list[EICE_DBG_CTRL].size = 3;
 	
-	(*cache_p)->next->reg_list[1].size = 5;
+	(*cache_p)->next->reg_list[EICE_DBG_STAT].size = 5;
 
 }
 

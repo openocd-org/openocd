@@ -1987,7 +1987,7 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *arm7_9_cmd;
 	
-	arm7_9_cmd = register_command(cmd_ctx, NULL, "arm7_9", NULL, COMMAND_ANY, NULL);
+	arm7_9_cmd = register_command(cmd_ctx, NULL, "arm7_9", NULL, COMMAND_ANY, "arm7/9 specific commands");
 	
 	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr", handle_arm7_9_write_xpsr_command, COMMAND_EXEC, "write program status register <value> <not cpsr|spsr>");
 	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr_im8", handle_arm7_9_write_xpsr_im8_command, COMMAND_EXEC, "write program status register <8bit immediate> <rotate> <not cpsr|spsr>");

@@ -428,7 +428,7 @@ int armv4_5_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *armv4_5_cmd;
 
-	armv4_5_cmd = register_command(cmd_ctx, NULL, "armv4_5", NULL, COMMAND_ANY, NULL);
+	armv4_5_cmd = register_command(cmd_ctx, NULL, "armv4_5", NULL, COMMAND_ANY, "armv4/5 specific commands");
 	
 	register_command(cmd_ctx, armv4_5_cmd, "reg", handle_armv4_5_reg_command, COMMAND_EXEC, "display ARM core registers");
 	register_command(cmd_ctx, armv4_5_cmd, "core_state", handle_armv4_5_core_state_command, COMMAND_EXEC, "display/change ARM core state <arm|thumb>");

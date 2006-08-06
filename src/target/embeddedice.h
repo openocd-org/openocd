@@ -46,6 +46,8 @@ enum
 
 enum
 {
+	EICE_DBG_CONTROL_ICEDIS = 5,
+	EICE_DBG_CONTROL_MONEN = 4,	
 	EICE_DBG_CONTROL_INTDIS = 2,
 	EICE_DBG_CONTROL_DBGRQ = 1,
 	EICE_DBG_CONTROL_DBGACK = 0,
@@ -71,6 +73,12 @@ enum
 	EICE_W_CTRL_MAS = 0x6,
 	EICE_W_CTRL_ITBIT = 0x2,
 	EICE_W_CTRL_nRW = 0x1
+};
+
+enum
+{
+	EICE_COMM_CTRL_WBIT = 1,
+	EICE_COMM_CTRL_RBIT = 0
 };
 
 typedef struct embeddedice_reg_s

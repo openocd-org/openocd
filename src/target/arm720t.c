@@ -458,7 +458,7 @@ int arm720t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	chain_pos = strtoul(args[3], NULL, 0);
 	
 	if (argc >= 5)
-		variant = strdup(args[4]);
+		variant = args[4];
 	
 	DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
 	
@@ -475,7 +475,7 @@ int arm720t_register_commands(struct command_context_s *cmd_ctx)
 		
 	retval = arm7tdmi_register_commands(cmd_ctx);
 	
-	arm720t_cmd = register_command(cmd_ctx, NULL, "arm720t", NULL, COMMAND_ANY, NULL);
+	arm720t_cmd = register_command(cmd_ctx, NULL, "arm720t", NULL, COMMAND_ANY, "arm720t specific commands");
 
 	register_command(cmd_ctx, arm720t_cmd, "cp15", arm720t_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <opcode> [value]");
 	register_command(cmd_ctx, arm720t_cmd, "virt2phys", arm720t_handle_virt2phys_command, COMMAND_EXEC, "translate va to pa <va>");

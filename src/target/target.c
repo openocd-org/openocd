@@ -21,6 +21,7 @@
 #include "config.h"
 #endif
 
+#include "replacements.h"
 #include "target.h"
 
 #include "log.h"
@@ -74,6 +75,7 @@ extern target_type_t arm7tdmi_target;
 extern target_type_t arm720t_target;
 extern target_type_t arm9tdmi_target;
 extern target_type_t arm920t_target;
+extern target_type_t arm966e_target;
 
 target_type_t *target_types[] =
 {
@@ -81,6 +83,7 @@ target_type_t *target_types[] =
 	&arm9tdmi_target,
 	&arm920t_target,
 	&arm720t_target,
+	&arm966e_target,
 	NULL,
 };
 
@@ -692,6 +695,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 		if ((retval = target->type->read_memory(target, address, 1, unaligned, buffer)) != ERROR_OK)
 			return retval;
 		
+		buffer += unaligned;
 		address += unaligned;
 		size -= unaligned;
 	}
@@ -704,6 +708,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 		if ((retval = target->type->read_memory(target, address, 4, aligned / 4, buffer)) != ERROR_OK)
 			return retval;
 		
+		buffer += aligned;
 		address += aligned;
 		size -= aligned;
 	}

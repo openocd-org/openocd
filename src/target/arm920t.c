@@ -716,7 +716,7 @@ int arm920t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	chain_pos = strtoul(args[3], NULL, 0);
 	
 	if (argc >= 5)
-		variant = strdup(args[4]);
+		variant = args[4];
 	
 	DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
 	

@@ -50,6 +50,7 @@ int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size);
 int cfi_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 #define CFI_MAX_BUS_WIDTH	4
+#define CFI_MAX_CHIP_WIDTH	4
 
 flash_driver_t cfi_flash =
 {
@@ -332,6 +333,13 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	if (argc < 6)
 	{
 		WARNING("incomplete flash_bank cfi configuration");
+		return ERROR_FLASH_BANK_INVALID;
+	}
+	
+	if ((strtoul(args[4], NULL, 0) > CFI_MAX_CHIP_WIDTH)
+		|| (strtoul(args[3], NULL, 0) > CFI_MAX_BUS_WIDTH))
+	{
+		ERROR("chip and bus width have to specified in byte");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	

@@ -719,11 +719,11 @@ void arm9tdmi_build_reg_cache(target_t *target)
 	arm7_9->eice_cache = (*cache_p)->next;
 	
 	if (arm9tdmi->has_monitor_mode)
-		(*cache_p)->next->reg_list[0].size = 6;
+		(*cache_p)->next->reg_list[EICE_DBG_CTRL].size = 6;
 	else
-		(*cache_p)->next->reg_list[0].size = 4;
+		(*cache_p)->next->reg_list[EICE_DBG_CTRL].size = 4;
 	
-	(*cache_p)->next->reg_list[1].size = 5;
+	(*cache_p)->next->reg_list[EICE_DBG_STAT].size = 5;
 
 }
 
@@ -808,7 +808,10 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int c
 			arm9tdmi->has_single_step = 1;
 		else if (strcmp(variant, "arm940t") == 0)
 			arm9tdmi->has_single_step = 1;
+		arm9tdmi->variant = strdup(variant);
 	}
+	else
+		arm9tdmi->variant = strdup("");
 	
 	arm7_9_init_arch_info(target, arm7_9);
 	
@@ -831,7 +834,7 @@ int arm9tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	chain_pos = strtoul(args[3], NULL, 0);
 	
 	if (argc >= 5)
-		variant = strdup(args[4]);
+		variant = args[4];
 	
 	arm9tdmi_init_arch_info(target, arm9tdmi, chain_pos, variant);
 	
