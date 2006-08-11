@@ -16,7 +16,7 @@ else
 MINGWLDADD =
 endif
 
-if FTDI2232
+if FT2232_LIBFTDI
 FTDI2232LIB = -lftdi
 else
 FTDI2232LIB =
@@ -32,7 +32,7 @@ else
 FTD2XXLDADD = -lftd2xx 
 endif
   
-if FTD2XX
+if FT2232_FTD2XX
 FTD2XXLIB = $(FTD2XXLDADD)
 else
 FTD2XXLIB =

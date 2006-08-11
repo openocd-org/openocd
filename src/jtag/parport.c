@@ -51,8 +51,15 @@
 #include <stdio.h>
 
 #if PARPORT_USE_PPDEV == 1
+#ifdef __FreeBSD__
+#include <dev/ppbus/ppi.h>
+#include <dev/ppbus/ppbconf.h>
+#define PPRSTATUS	PPIGSTATUS
+#define PPWDATA		PPISDATA
+#else
 #include <linux/parport.h>
 #include <linux/ppdev.h>
+#endif
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #endif
@@ -310,11 +317,17 @@ int parport_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+#ifdef __FreeBSD__
+	DEBUG("opening /dev/ppi%d...", parport_port);
+
+	snprintf(buffer, 256, "/dev/ppi%d", parport_port);
+	device_handle = open(buffer, O_WRONLY);
+#else
 	DEBUG("opening /dev/parport%d...", parport_port);
 
 	snprintf(buffer, 256, "/dev/parport%d", parport_port);
 	device_handle = open(buffer, O_WRONLY);
-	
+#endif	
 	if (device_handle<0)
 	{
 		ERROR("cannot open device. check it exists and that user read and write rights are set");
@@ -323,6 +336,7 @@ int parport_init(void)
 
 	DEBUG("...open");
 
+#ifndef __FreeBSD__
 	i=ioctl(device_handle, PPCLAIM);
 	if (i<0)
 	{
@@ -345,6 +359,7 @@ int parport_init(void)
 		ERROR("cannot set compatible 1284 mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
+#endif
 #else
 	if (parport_port == 0)
 	{

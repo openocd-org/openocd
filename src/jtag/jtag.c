@@ -124,12 +124,12 @@ jtag_event_callback_t *jtag_event_callbacks;
 	extern jtag_interface_t parport_interface;
 #endif
 
-#if BUILD_FTDI2232 == 1
-	extern jtag_interface_t ftdi2232_interface;
+#if BUILD_FT2232_FTD2XX == 1
+	extern jtag_interface_t ft2232_interface;
 #endif
 
-#if BUILD_FTD2XX == 1
-	extern jtag_interface_t ftd2xx_interface;
+#if BUILD_FT2232_LIBFTDI == 1
+	extern jtag_interface_t ft2232_interface;
 #endif
 
 #if BUILD_AMTJTAGACCEL == 1
@@ -144,11 +144,11 @@ jtag_interface_t *jtag_interfaces[] = {
 #if BUILD_PARPORT == 1
 	&parport_interface,
 #endif
-#if BUILD_FTDI2232 == 1
-	&ftdi2232_interface,
+#if BUILD_FT2232_FTD2XX == 1
+	&ft2232_interface,
 #endif
-#if BUILD_FTD2XX == 1
-	&ftd2xx_interface,
+#if BUILD_FT2232_LIBFTDI == 1
+	&ft2232_interface,
 #endif
 #if BUILD_AMTJTAGACCEL == 1
 	&amt_jtagaccel_interface,
@@ -1119,7 +1119,9 @@ int jtag_validate_chain()
 	{
 		if (buf_get_u32(ir_test, chain_pos, 2) != 0x1)
 		{
-			ERROR("Error validating JTAG scan chain, IR mismatch");
+			char *cbuf = buf_to_char(ir_test, total_ir_length);
+			ERROR("Error validating JTAG scan chain, IR mismatch, scan returned %s", cbuf);
+			free(cbuf);
 			exit(-1);
 		}
 		chain_pos += device->ir_length;
@@ -1128,7 +1130,9 @@ int jtag_validate_chain()
 	
 	if (buf_get_u32(ir_test, chain_pos, 2) != 0x3)
 	{
-		ERROR("Error validating JTAG scan chain, IR mismatch");
+		char *cbuf = buf_to_char(ir_test, total_ir_length);
+		ERROR("Error validating JTAG scan chain, IR mismatch, scan returned %s", cbuf);
+		free(cbuf);
 		exit(-1);
 	}
 	
@@ -1217,6 +1221,12 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	 * didn't match one of the compiled-in interfaces
 	 */
 	ERROR("No valid jtag interface found (%s)", jtag_interface);
+	ERROR("compiled-in jtag interfaces:");
+	for (i = 0; jtag_interfaces[i]; i++)
+	{
+		ERROR("%i: %s", i, jtag_interfaces[i]->name);
+	}
+	
 	jtag = NULL;
 	return ERROR_JTAG_INVALID_INTERFACE;
 }

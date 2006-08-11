@@ -270,4 +270,5 @@ extern int jtag_register_event_callback(int (*callback)(enum jtag_event event, v
 #define ERROR_JTAG_QUEUE_FAILED			(-104)
 #define ERROR_JTAG_RESET_WOULD_ASSERT_TRST		(-105)
 #define ERROR_JTAG_RESET_CANT_SRST				(-106)
+#define ERROR_JTAG_DEVICE_ERROR			(-107)
 #endif /* JTAG_H */
