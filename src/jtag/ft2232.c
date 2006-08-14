@@ -95,6 +95,7 @@ ft2232_layout_t ft2232_layouts[] =
 	{"usbjtag", usbjtag_init, usbjtag_reset},
 	{"jtagkey", jtagkey_init, jtagkey_reset},
 	{"jtagkey_prototype_v1", jtagkey_init, jtagkey_reset},
+	{"signalyzer", usbjtag_init, usbjtag_reset},
 	{NULL, NULL, NULL},
 };
 
@@ -893,15 +894,15 @@ int ft2232_init(void)
 #elif BUILD_FT2232_LIBFTDI == 1
 	DEBUG("'ft2232' interface using libftdi with '%s' layout", ft2232_layout);
 #endif
-		
+
+#if BUILD_FT2232_FTD2XX == 1
+	/* Open by device description */
 	if (ft2232_device_desc == NULL)
 	{
 		WARNING("no ftd2xx device description specified, using default 'Dual RS232'");
 		ft2232_device_desc = "Dual RS232";
 	}
-
-#if BUILD_FT2232_FTD2XX == 1
-
+	
 #if IS_WIN32 == 0
 	/* Add non-standard Vid/Pid to the linux driver */
 	if ((status = FT_SetVIDPID(ft2232_vid, ft2232_pid)) != FT_OK)
@@ -1046,10 +1047,25 @@ int usbjtag_init(void)
 	low_output = 0x08;
 	low_direction = 0x0b;
 	
-	nTRST = 0x10;
-	nTRSTnOE = 0x10;
-	nSRST = 0x40;
-	nSRSTnOE = 0x40;
+	if (strcmp(ft2232_layout, "usbjtag") == 0)
+	{
+		nTRST = 0x10;
+		nTRSTnOE = 0x10;
+		nSRST = 0x40;
+		nSRSTnOE = 0x40;
+	}
+	else if (strcmp(ft2232_layout, "signalyzer") == 0)
+	{
+		nTRST = 0x10;
+		nTRSTnOE = 0x10;
+		nSRST = 0x20;
+		nSRSTnOE = 0x20;
+	}
+	else
+	{
+		ERROR("BUG: usbjtag_init called for unknown layout '%s'", ft2232_layout);
+		return ERROR_JTAG_INIT_FAILED;	
+	}
 	
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 	{
