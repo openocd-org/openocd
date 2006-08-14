@@ -7,6 +7,9 @@ one of the following libraries:
 - libftdi (http://www.intra2net.com/opensource/ftdi/)
 - libftd2xx (http://www.ftdichip.com/Drivers/D2XX.htm)
 
+On Windows, you need either Cygwin or MinGW, but compilation for MinGW is also
+possible using a Cygwin host.
+
 Basic Installation
 ==================
 
@@ -16,7 +19,7 @@ necessary files generated.
 
    You have to explicitly enable desired JTAG interfaces during configure:
 
-./configure --enable-parport --enable-ftdi2232 --enable-ftd2xx \
+./configure --enable-parport --enable-ft2232-libftdi (OR  --enable-ft2232-ftd2xx) \
             --enable-amtjtagaccel
 
    Under Windows/Cygwin, only the ftd2xx driver is supported for FT2232 based
@@ -26,7 +29,11 @@ devices. You have to specify the location of the FTDI driver package with the
 Under Linux you can choose to build the parport driver with support for
 /dev/parportN instead of the default access with direct port I/O using
 --enable-parport_ppdev. This has the advantage of running OpenOCD without root
-privileges at the expense of a slight performance decrease.
+privileges at the expense of a slight performance decrease. This is also
+available on FreeBSD using PPI, but the naming of the devices is different.
+
+Generic installation instructions
+=================================
 
    These are generic installation instructions.
 

@@ -1,8 +1,8 @@
-                                    openocd
+                                    OpenOCD
 
-	     Free and Open On-Chip Debugging, In-System Programming 
-			   and Boundary-Scan Testing
-                     Copyright (c) 2004, 2005 Dominic Rath
+			 Free and Open On-Chip Debugging, In-System Programming 
+						   and Boundary-Scan Testing
+				  Copyright (c) 2004, 2005, 2006 Dominic Rath
 
 The debugger uses an IEEE 1149-1 compliant JTAG TAP bus master to access on-chip
 debug functionality available on ARM7 and ARM9 based microcontrollers /
@@ -11,39 +11,83 @@ system-on-chip solutions.
 User interaction is realized through a telnet command line interface and a gdb
 (The GNU Debugger) remote protocol server.
 
-Initially, support for two JTAG TAP bus master interfaces with public hardware
-schematics will be included, but support of additional hardware is an expressed
-goal.
-
 1. JTAG hardware
 
-Currently, openocd contains support for Wiggler-compatible paralell port
-dongles and a USB interface based on the FTDI FT2232, called USBJTAG-1.
-A new version of the USB interface, USB-JTAG v1.2, is available with complete
-schematics (http://www.fh-augsburg.de/~hhoegl/proj/volksmikro/usb-jtag/050910/).
+Currently, OpenOCD supports three types of JTAG interfaces:
 
-It was tested using Amontec's (www.amontec.com) Chameleon POD in it's
-Wiggler configuration, but homemade wigglers should work just as well.
-In order to use the reset functionality (warm-reset, debug from reset, reset
-and init), the choosen Wiggler has to connect the nSRST line.
+- Parallel port wigglers. These devices connect to a PC's parallel port,
+providing direct access to the JTAG lines. The OpenOCD contains descriptions
+of a few Wiggler layouts, including the original 'Wiggler' design. Other
+layouts (i.e. mapping of parallel port pins to JTAG lines) can be added easily.
+Typical Wiggler speeds are around 12kByte/s code download to an ARM7's RAM.
 
-USBJTAG-1 is based on a FTDI DLP2232M module and a few additional parts.
-Schematics are freely available. USB-JTAG v1.2 doesn't use the DLP2232M, but
-has the FTDI chip soldered directly on the PCB. There are two drivers for these
-modules implemented, one using the open source libftdi, the other using FTDI's
-proprietary FTD2XX library.
+- The Amontec JTAG Accelerator. This is a configuration for Amontec's Chameleon
+dongle, a parallel port interface based on a Xilinx CoolRunner CPLD. It uses
+the IEEE1284 EPP parallel port specification, providing many times the
+performance achievable with wiggler-style devices. Additional information is
+available on www.amontec.com.
+Typical JTAG Accelerator speeds are around 120-160kByte/s to an ARM7's RAM.
+
+- FTDI FT2232 based USB devices. The FT2232 (but not FT232 or FT245) features a
+multi-protocol synchronous serial engine (MPSSE) that can be used to run the
+serial JTAG protocol. There are several implemenations of FT2232 based devices:
+
+* USBJTAG: http://www.fh-augsburg.de/~hhoegl/proj/usbjtag/usbjtag.html
+The USBJTAG was designed by Prof. Hubert Hoegl to provide a high-speed USB
+interface for use with the OpenOCD. Schematics are available at the USBJTAG
+website, and a homebrew device can easily be built using the FTDI evaluation
+module DLP2232M.
+
+* Amontec JTAGkey: www.amontec.com
+The Amontec JTAGkey offers support for a wide variety of target voltages from
+1.4V to 5V. It also allows the JTAG lines and reset signals to be tri-stated,
+allowing easy interfacing with a wide variety of targets.
+
+* Olimex ARM-USB-OCD: www.olimex.com
+The Olimex ARM-USB-OCD offers support for a wide vriety of target voltages from
+2.0V to 5V. It also allows targets to be powered from the ARM-USB-OCD and
+features and additional RS232 UART.
+
+* eVerve Signalyzer: www.signalyzer.com
+The Signalyzer offers support for a wide variety of target voltages from 1.2V to
+5.5V. A second connector provides access to a TTL level UART.
+
+All FT2232 based devices may be accessed using either FTDI's proprietary FTD2XX
+library (www.ftdichip.com) or using an open-source replacement from
+http://www.intra2net.com/de/produkte/opensource/ftdi/index.php, also included
+with many Linux distributions.
 
 2. Supported cores
 
 This version of openocd supports the following cores:
 
-- ARM7TDMI
+- ARM7TDMI(-s)
 - ARM9TDMI
+- ARM920t
+- ARM922t
+- ARM966e
 
-Support for cores with MMUs (ARM720t, ARM920t) is currently being merged.
+Support for Intel XScale CPUs (PXA25x, PXA27x and IXP4xx) is currently being
+developed.
 
-3. Licensing
+The OpenOCD is only tested with little-endian targets, but support for
+big-endian is planned. If you're interested in helping with this (and you
+happen to have a big-endian ARM7/ARM9 system, feel free to contact
+Dominic.Rath <at> gmx.de.
 
-openocd is licensed under the terms of the GNU General Public License, see the
+3. Host platforms
+
+OpenOCD was originally developed on x86-Linux, but has since then been ported
+to run on Windows/Cygwin, native Windows with MinGW, FreeBSD, x86-64-Linux and
+(though it's not fully working yet) PowerPC OS-X.
+
+4. Documentation
+
+Documentation for the OpenOCD is hosted in the Berlios OpenFacts Wiki at
+http://openfacts.berlios.de/index-en.phtml?title=Open_On-Chip_Debugger.
+
+5. Licensing
+
+OpenOCD is licensed under the terms of the GNU General Public License, see the
 file COPYING for details.
 
