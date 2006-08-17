@@ -138,7 +138,7 @@ jtag_interface_t parport_interface =
 	
 	.execute_queue = bitbang_execute_queue,
 
-	.support_statemove = 0,
+	.support_pathmove = 1,
 
 	.speed = parport_speed,	
 	.register_commands = parport_register_commands,

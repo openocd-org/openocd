@@ -117,7 +117,7 @@ jtag_interface_t amt_jtagaccel_interface =
 	
 	.execute_queue = amt_jtagaccel_execute_queue,
 
-	.support_statemove = 0,
+	.support_pathmove = 0,
 
 	.speed = amt_jtagaccel_speed,	
 	.register_commands = amt_jtagaccel_register_commands,

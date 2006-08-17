@@ -83,19 +83,29 @@ typedef struct ft2232_layout_s
 	char* name;
 	int(*init)(void);
 	void(*reset)(int trst, int srst);
+	void(*blink)(void);
 } ft2232_layout_t;
 
+/* init procedures for supported layouts */
 int usbjtag_init(void);
 int jtagkey_init(void);
+int olimex_jtag_init(void);
+
+/* reset procedures for supported layouts */
 void usbjtag_reset(int trst, int srst);
 void jtagkey_reset(int trst, int srst);
+void olimex_jtag_reset(int trst, int srst);
+
+/* blink procedures for layouts that support a blinking led */
+void olimex_jtag_blink(void);
 
 ft2232_layout_t ft2232_layouts[] =
 {
-	{"usbjtag", usbjtag_init, usbjtag_reset},
-	{"jtagkey", jtagkey_init, jtagkey_reset},
-	{"jtagkey_prototype_v1", jtagkey_init, jtagkey_reset},
-	{"signalyzer", usbjtag_init, usbjtag_reset},
+	{"usbjtag", usbjtag_init, usbjtag_reset, NULL},
+	{"jtagkey", jtagkey_init, jtagkey_reset, NULL},
+	{"jtagkey_prototype_v1", jtagkey_init, jtagkey_reset, NULL},
+	{"signalyzer", usbjtag_init, usbjtag_reset, NULL},
+	{"olimex-jtag", olimex_jtag_init, olimex_jtag_reset, olimex_jtag_blink},
 	{NULL, NULL, NULL},
 };
 
@@ -128,7 +138,7 @@ jtag_interface_t ft2232_interface =
 	
 	.execute_queue = ft2232_execute_queue,
 	
-	.support_statemove = 1,
+	.support_pathmove = 1,
 	
 	.speed = ft2232_speed,
 	.register_commands = ft2232_register_commands,
@@ -674,6 +684,40 @@ void jtagkey_reset(int trst, int srst)
 	DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
 
+void olimex_jtag_reset(int trst, int srst)
+{
+	if (trst == 1)
+	{
+		cur_state = TAP_TLR;
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+			high_output &= ~nTRSTnOE;
+		else
+			high_output &= ~nTRST;
+	}
+	else if (trst == 0)
+	{
+		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+			high_output |= nTRSTnOE;
+		else
+			high_output |= nTRST;
+	}
+
+    if (srst == 1)
+    {
+        high_output |= nSRST;
+    }
+    else if (srst == 0)
+    {
+        high_output &= ~nSRST;
+    }
+
+    /* command "set data bits high byte" */
+    BUFFER_ADD = 0x82;
+    BUFFER_ADD = high_output;
+    BUFFER_ADD = high_direction;
+    DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
+}
+
 int ft2232_execute_queue()
 {
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
@@ -687,6 +731,10 @@ int ft2232_execute_queue()
 
 	ft2232_buffer_size = 0;
 	ft2232_expect_read = 0;
+	
+	/* blink, if the current layout has that feature */
+	if (layout->blink)
+		layout->blink();
 
 	while (cmd)
 	{
@@ -1170,7 +1218,7 @@ int jtagkey_init(void)
 	}
 	
 	/* initialize high port */
-	buf[0] = 0x82; /* command "set data bits low byte" */
+	buf[0] = 0x82; /* command "set data bits high byte" */
 	buf[1] = high_output; /* value */
 	buf[2] = high_direction;   /* all outputs (xRST and xRSTnOE) */
 	DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
@@ -1182,6 +1230,93 @@ int jtagkey_init(void)
 	}
 	
 	return ERROR_OK;
+}
+
+int olimex_jtag_init(void)
+{
+	u8 buf[3];
+	u32 bytes_written;
+	
+	low_output = 0x08;
+	low_direction = 0x1b;
+	
+	/* initialize low byte for jtag */
+	buf[0] = 0x80; /* command "set data bits low byte" */
+	buf[1] = low_output; /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
+	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+	
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	{
+		ERROR("couldn't initialize FT2232 with 'JTAGkey' layout"); 
+		return ERROR_JTAG_INIT_FAILED;
+	}
+	
+	nTRST = 0x01;
+	nTRSTnOE = 0x4;
+	nSRST = 0x02;
+	nSRSTnOE = 0x00; /* no output enable for nSRST */
+
+	high_output = 0x0;
+	high_direction = 0x0f;
+
+	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+	{
+		high_output |= nTRSTnOE;
+		high_output &= ~nTRST;
+	}
+	else
+	{
+		high_output &= ~nTRSTnOE;
+		high_output |= nTRST;
+	}
+	
+	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+	{
+		ERROR("can't set nSRST to push-pull on the Olimex ARM-USB-OCD");
+	}
+	else
+	{
+		high_output &= ~nSRST;
+	}
+	
+	/* turn red LED on */
+	high_output |= 0x08;
+	
+	/* initialize high port */
+	buf[0] = 0x82; /* command "set data bits high byte" */
+	buf[1] = high_output; /* value */
+	buf[2] = high_direction;   /* all outputs (xRST and xRSTnOE) */
+	DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+	
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	{
+		ERROR("couldn't initialize FT2232 with 'JTAGkey' layout"); 
+		return ERROR_JTAG_INIT_FAILED;
+	}
+	
+	return ERROR_OK;
+}
+
+void olimex_jtag_blink(void)
+{
+	/* Olimex ARM-USB-OCD has a LED connected to ACBUS3
+	 * ACBUS3 is bit 3 of the GPIOH port
+	 */
+	if (high_output & 0x08)
+	{
+		/* set port pin high */
+		high_output &= 0x07;
+	}
+	else
+	{
+		/* set port pin low */
+		high_output |= 0x08;
+	}
+	
+	BUFFER_ADD = 0x82;
+	BUFFER_ADD = high_output;
+	BUFFER_ADD = high_direction;
 }
 
 int ft2232_quit(void)

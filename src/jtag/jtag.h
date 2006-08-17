@@ -25,7 +25,7 @@
 
 #include "command.h"
 
-#if 0
+#if 1
 #define _DEBUG_JTAG_IO_
 #endif
 
@@ -180,7 +180,7 @@ typedef struct jtag_interface_s
 	
 	/* optional command support 
 	 */
-	int support_statemove;
+	int support_pathmove;
 	
 	/* interface initalization
 	 */

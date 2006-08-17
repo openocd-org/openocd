@@ -166,7 +166,7 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	str7x_info->target = get_target_by_num(strtoul(args[6], NULL, 0));
 	if (!str7x_info->target)
 	{
-		ERROR("no target '%i' configured", args[6]);
+		ERROR("no target '%s' configured", args[6]);
 		exit(-1);
 	}
 

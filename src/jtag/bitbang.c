@@ -142,7 +142,11 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 
 	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++)
 	{
-		if ((buffer[bit_cnt/8] >> (bit_cnt % 8)) & 0x1) {
+		/* if we're just reading the scan, but don't care about the output
+		 * default to outputting 'low', this also makes valgrind traces more readable,
+		 * as it removes the dependency on an uninitialised value
+		 */ 
+		if ((type != SCAN_IN) && ((buffer[bit_cnt/8] >> (bit_cnt % 8)) & 0x1)) {
 			bitbang_interface->write(0, (bit_cnt==scan_size-1) ? 1 : 0, 1);
 			bitbang_interface->write(1, (bit_cnt==scan_size-1) ? 1 : 0, 1);
 		} else {

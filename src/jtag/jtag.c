@@ -694,7 +694,7 @@ int jtag_add_pathmove(int num_states, enum tap_state *path)
 		return ERROR_JTAG_NOT_IMPLEMENTED;
 	}
 	
-	if (jtag->support_statemove)
+	if (jtag->support_pathmove)
 	{
 		/* allocate memory for a new list member */
 		*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
