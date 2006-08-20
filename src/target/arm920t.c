@@ -380,6 +380,9 @@ int arm920t_write_cp15_interpreted(target_t *target, u32 opcode, u32 value, u32 
 
 	DEBUG("opcode: %8.8x, value: %8.8x, address: %8.8x", opcode, value, address);
 
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = 1;
+	
 	return ERROR_OK;
 }
 

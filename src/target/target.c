@@ -1663,6 +1663,14 @@ int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 					break;
 			}
 		}
+		else
+		{
+			command_print(cmd_ctx, "breakpoint added at address 0x%8.8x", strtoul(args[0], NULL, 0));
+		}
+	}
+	else
+	{
+		command_print(cmd_ctx, "usage: bp <address> <length> ['hw']");
 	}
 
 	return ERROR_OK;
