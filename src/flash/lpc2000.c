@@ -242,9 +242,9 @@ int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u32 resul
 		}
 		
 		/* write IAP code to working area */
-		buf_set_u32(jump_gate, 0, 32, ARMV4_5_BX(12));
-		buf_set_u32(jump_gate, 32, 32, 0xeafffffe);
-		target->type->write_memory(target, lpc2000_info->iap_working_area->address, 4, 2, (u8*)jump_gate);
+		target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
+		target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
+		target->type->write_memory(target, lpc2000_info->iap_working_area->address, 4, 2, jump_gate);
 	}
 	
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
@@ -253,12 +253,12 @@ int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u32 resul
 	
 	/* command parameter table */
 	init_mem_param(&mem_params[0], lpc2000_info->iap_working_area->address + 8, 4 * 6, PARAM_OUT);
-	buf_set_u32(mem_params[0].value, 0, 32, code);
-	buf_set_u32(mem_params[0].value, 32, 32, param_table[0]);
-	buf_set_u32(mem_params[0].value, 64, 32, param_table[1]);
-	buf_set_u32(mem_params[0].value, 96, 32, param_table[2]);
-	buf_set_u32(mem_params[0].value, 128, 32, param_table[3]);
-	buf_set_u32(mem_params[0].value, 160, 32, param_table[4]);
+	target_buffer_set_u32(target, mem_params[0].value, code);
+	target_buffer_set_u32(target, mem_params[0].value + 0x4, param_table[0]);
+	target_buffer_set_u32(target, mem_params[0].value + 0x8, param_table[1]);
+	target_buffer_set_u32(target, mem_params[0].value + 0xc, param_table[2]);
+	target_buffer_set_u32(target, mem_params[0].value + 0x10, param_table[3]);
+	target_buffer_set_u32(target, mem_params[0].value + 0x14, param_table[4]);
 	
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	buf_set_u32(reg_params[0].value, 0, 32, lpc2000_info->iap_working_area->address + 0x8);
@@ -284,8 +284,8 @@ int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u32 resul
 	target->type->run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, lpc2000_info->iap_working_area->address + 0x4, 10000, &armv4_5_info);
 	
 	status_code = buf_get_u32(mem_params[1].value, 0, 32);
-	result_table[0] = buf_get_u32(mem_params[1].value, 32, 32);
-	result_table[1] = buf_get_u32(mem_params[1].value, 64, 32);
+	result_table[0] = target_buffer_get_u32(target, mem_params[1].value);
+	result_table[1] = target_buffer_get_u32(target, mem_params[1].value + 4);
 	
 	destroy_mem_param(&mem_params[0]);
 	destroy_mem_param(&mem_params[1]);
