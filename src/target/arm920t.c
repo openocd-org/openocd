@@ -42,6 +42,9 @@ int arm920t_handle_cache_info_command(struct command_context_s *cmd_ctx, char *c
 int arm920t_handle_md_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_mw_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
+int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+
 /* forward declarations */
 int arm920t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
@@ -50,6 +53,8 @@ int arm920t_arch_state(struct target_s *target, char *buf, int buf_size);
 int arm920t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm920t_soft_reset_halt(struct target_s *target);
+
+#define ARM920T_CP15_PHYS_ADDR(x, y, z) ((x << 5) | (y << 1) << (z))
 
 target_type_t arm920t_target =
 {
@@ -141,9 +146,15 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	
 	jtag_add_dr_scan(4, fields, -1);
 
-	fields[1].in_value = (u8*)value;
+	fields[1].in_handler_priv = value;
+	fields[1].in_handler = arm_jtag_buf_to_u32;
 
 	jtag_add_dr_scan(4, fields, -1);
+
+#ifdef _DEBUG_INSTRUCTION_EXECUTION_
+	jtag_execute_queue();
+	DEBUG("addr: 0x%x value: %8.8x", reg_addr, *value);
+#endif
 
 	return ERROR_OK;
 }
@@ -157,6 +168,9 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	u8 access_type_buf = 1;
 	u8 reg_addr_buf = reg_addr & 0x3f;
 	u8 nr_w_buf = 1;
+	u8 value_buf[4];
+	
+	buf_set_u32(value_buf, 0, 32, value);
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0xf);
@@ -174,7 +188,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 
 	fields[1].device = jtag_info->chain_pos;
 	fields[1].num_bits = 32;
-	fields[1].out_value = (u8*)&value;
+	fields[1].out_value = value_buf;
 	fields[1].out_mask = NULL;
 	fields[1].in_value = NULL;
 	fields[1].in_check_value = NULL;
@@ -204,20 +218,95 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	
 	jtag_add_dr_scan(4, fields, -1);
 
+#ifdef _DEBUG_INSTRUCTION_EXECUTION_
+	DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
+#endif
+
 	return ERROR_OK;
 }
 
-int arm920t_read_cp15_interpreted(target_t *target, u32 opcode, u32 *value)
+int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 {
-	u32 cp15c15 = 0x0;
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	scan_field_t fields[4];
 	u8 access_type_buf = 0;		/* interpreted access */
 	u8 reg_addr_buf = 0x0;
 	u8 nr_w_buf = 0;
+	u8 cp15_opcode_buf[4];
+	
+	jtag_add_end_state(TAP_RTI);
+	arm_jtag_scann(jtag_info, 0xf);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	
+	buf_set_u32(cp15_opcode_buf, 0, 32, cp15_opcode);
+
+	fields[0].device = jtag_info->chain_pos;
+	fields[0].num_bits = 1;
+	fields[0].out_value = &access_type_buf;
+	fields[0].out_mask = NULL;
+	fields[0].in_value = NULL;
+	fields[0].in_check_value = NULL;
+	fields[0].in_check_mask = NULL;
+	fields[0].in_handler = NULL;
+	fields[0].in_handler_priv = NULL;
+
+	fields[1].device = jtag_info->chain_pos;
+	fields[1].num_bits = 32;
+	fields[1].out_value = cp15_opcode_buf;
+	fields[1].out_mask = NULL;
+	fields[1].in_value = NULL;
+	fields[1].in_check_value = NULL;
+	fields[1].in_check_mask = NULL;
+	fields[1].in_handler = NULL;
+	fields[1].in_handler_priv = NULL;
+
+	fields[2].device = jtag_info->chain_pos;
+	fields[2].num_bits = 6;
+	fields[2].out_value = &reg_addr_buf;
+	fields[2].out_mask = NULL;
+	fields[2].in_value = NULL;
+	fields[2].in_check_value = NULL;
+	fields[2].in_check_mask = NULL;
+	fields[2].in_handler = NULL;
+	fields[2].in_handler_priv = NULL;
+
+	fields[3].device = jtag_info->chain_pos;
+	fields[3].num_bits = 1;
+	fields[3].out_value = &nr_w_buf;
+	fields[3].out_mask = NULL;
+	fields[3].in_value = NULL;
+	fields[3].in_check_value = NULL;
+	fields[3].in_check_mask = NULL;
+	fields[3].in_handler = NULL;
+	fields[3].in_handler_priv = NULL;
+
+	jtag_add_dr_scan(4, fields, -1);
+
+	arm9tdmi_clock_out(jtag_info, arm_opcode, 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
+	arm7_9_execute_sys_speed(target);
+	
+	if (jtag_execute_queue() != ERROR_OK)
+	{
+		ERROR("failed executing JTAG queue, exiting");
+		exit(-1);
+	}
+	
+	return ERROR_OK;
+}
+
+int arm920t_read_cp15_interpreted(target_t *target, u32 cp15_opcode, u32 address, u32 *value)
+{
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-	u32* context_p[1];	
+	u32* regs_p[1];
+	u32 regs[2];
+	u32 cp15c15 = 0x0;
+
+	/* load address into R1 */
+	regs[1] = address;
+	arm9tdmi_write_core_regs(target, 0x2, regs); 
 	
 	/* read-modify-write CP15 test state register 
 	* to enable interpreted access mode */
@@ -226,91 +315,37 @@ int arm920t_read_cp15_interpreted(target_t *target, u32 opcode, u32 *value)
 	cp15c15 |= 1;	/* set interpret mode */
 	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
 
-	jtag_add_end_state(TAP_RTI);
-	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
-
-	fields[0].device = jtag_info->chain_pos;
-	fields[0].num_bits = 1;
-	fields[0].out_value = &access_type_buf;
-	fields[0].out_mask = NULL;
-	fields[0].in_value = NULL;
-	fields[0].in_check_value = NULL;
-	fields[0].in_check_mask = NULL;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
-
-	fields[1].device = jtag_info->chain_pos;
-	fields[1].num_bits = 32;
-	fields[1].out_value = (u8*)&opcode;
-	fields[1].out_mask = NULL;
-	fields[1].in_value = NULL;
-	fields[1].in_check_value = NULL;
-	fields[1].in_check_mask = NULL;
-	fields[1].in_handler = NULL;
-	fields[1].in_handler_priv = NULL;
-
-	fields[2].device = jtag_info->chain_pos;
-	fields[2].num_bits = 6;
-	fields[2].out_value = &reg_addr_buf;
-	fields[2].out_mask = NULL;
-	fields[2].in_value = NULL;
-	fields[2].in_check_value = NULL;
-	fields[2].in_check_mask = NULL;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
-
-	fields[3].device = jtag_info->chain_pos;
-	fields[3].num_bits = 1;
-	fields[3].out_value = &nr_w_buf;
-	fields[3].out_mask = NULL;
-	fields[3].in_value = NULL;
-	fields[3].in_check_value = NULL;
-	fields[3].in_check_mask = NULL;
-	fields[3].in_handler = NULL;
-	fields[3].in_handler_priv = NULL;
-
-	jtag_add_dr_scan(4, fields, -1);
-
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDR(0, 15), 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
-	arm7_9_execute_sys_speed(target);
-	jtag_execute_queue();
-
-	/* read-modify-write CP15 test state register 
-	* to disable interpreted access mode */
-	arm920t_read_cp15_physical(target, 0x1e, &cp15c15);	
-	jtag_execute_queue();
+	/* execute CP15 instruction and ARM load (reading from coprocessor) */
+	arm920t_execute_cp15(target, cp15_opcode, ARMV4_5_LDR(0, 1));
+	
+	/* disable interpreted access mode */
 	cp15c15 &= ~1U;	/* clear interpret mode */
 	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
 
-	context_p[0] = value;
-	arm9tdmi_read_core_regs(target, 0x1, context_p);
+	/* retrieve value from R0 */
+	regs_p[0] = value;
+	arm9tdmi_read_core_regs(target, 0x1, regs_p);
 	jtag_execute_queue();
 	
-	DEBUG("opcode: %8.8x, value: %8.8x", opcode, *value);
+#ifdef _DEBUG_INSTRUCTION_EXECUTION_
+	DEBUG("cp15_opcode: %8.8x, address: %8.8x, value: %8.8x", cp15_opcode, address, *value);
+#endif
 
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 15).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = 1;
 
 	return ERROR_OK;
 }
 
-int arm920t_write_cp15_interpreted(target_t *target, u32 opcode, u32 value, u32 address)
+int arm920t_write_cp15_interpreted(target_t *target, u32 cp15_opcode, u32 value, u32 address)
 {
 	u32 cp15c15 = 0x0;
-	scan_field_t fields[4];
-	u8 access_type_buf = 0;		/* interpreted access */
-	u8 reg_addr_buf = 0x0;
-	u8 nr_w_buf = 0;
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	u32 regs[2];
 
+	/* load value, address into R0, R1 */
 	regs[0] = value;
 	regs[1] = address;
-	
 	arm9tdmi_write_core_regs(target, 0x3, regs);
 
 	/* read-modify-write CP15 test state register 
@@ -320,65 +355,16 @@ int arm920t_write_cp15_interpreted(target_t *target, u32 opcode, u32 value, u32 
 	cp15c15 |= 1;	/* set interpret mode */
 	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
 
-	jtag_add_end_state(TAP_RTI);
-	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	/* execute CP15 instruction and ARM store (writing to coprocessor) */
+	arm920t_execute_cp15(target, cp15_opcode, ARMV4_5_STR(0, 1));
 
-	fields[0].device = jtag_info->chain_pos;
-	fields[0].num_bits = 1;
-	fields[0].out_value = &access_type_buf;
-	fields[0].out_mask = NULL;
-	fields[0].in_value = NULL;
-	fields[0].in_check_value = NULL;
-	fields[0].in_check_mask = NULL;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
-
-	fields[1].device = jtag_info->chain_pos;
-	fields[1].num_bits = 32;
-	fields[1].out_value = (u8*)&opcode;
-	fields[1].out_mask = NULL;
-	fields[1].in_value = NULL;
-	fields[1].in_check_value = NULL;
-	fields[1].in_check_mask = NULL;
-	fields[1].in_handler = NULL;
-	fields[1].in_handler_priv = NULL;
-
-	fields[2].device = jtag_info->chain_pos;
-	fields[2].num_bits = 6;
-	fields[2].out_value = &reg_addr_buf;
-	fields[2].out_mask = NULL;
-	fields[2].in_value = NULL;
-	fields[2].in_check_value = NULL;
-	fields[2].in_check_mask = NULL;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
-
-	fields[3].device = jtag_info->chain_pos;
-	fields[3].num_bits = 1;
-	fields[3].out_value = &nr_w_buf;
-	fields[3].out_mask = NULL;
-	fields[3].in_value = NULL;
-	fields[3].in_check_value = NULL;
-	fields[3].in_check_mask = NULL;
-	fields[3].in_handler = NULL;
-	fields[3].in_handler_priv = NULL;
-
-	jtag_add_dr_scan(4, fields, -1);
-
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_STR(0, 1), 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
-	arm7_9_execute_sys_speed(target);
-	jtag_execute_queue();
-
-	/* read-modify-write CP15 test state register 
-	* to disable interpreted access mode */
-	arm920t_read_cp15_physical(target, 0x1e, &cp15c15);	
-	jtag_execute_queue();
+	/* disable interpreted access mode */
 	cp15c15 &= ~1U;	/* set interpret mode */
 	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
 
-	DEBUG("opcode: %8.8x, value: %8.8x, address: %8.8x", opcode, value, address);
+#ifdef _DEBUG_INSTRUCTION_EXECUTION_
+	DEBUG("cp15_opcode: %8.8x, value: %8.8x, address: %8.8x", cp15_opcode, value, address);
+#endif
 
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = 1;
@@ -391,7 +377,7 @@ u32 arm920t_get_ttb(target_t *target)
 	int retval;
 	u32 ttb = 0x0;
 
-	if ((retval = arm920t_read_cp15_interpreted(target, 0xeebf0f51, &ttb)) != ERROR_OK)
+	if ((retval = arm920t_read_cp15_interpreted(target, 0xeebf0f51, 0x0, &ttb)) != ERROR_OK)
 		return retval;
 
 	return ttb;
@@ -464,18 +450,20 @@ void arm920t_post_debug_entry(target_t *target)
 	arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = (arm920t->cp15_control_reg & 0x1000U) ? 1 : 0;
 
 	/* save i/d fault status and address register */
-	arm920t_read_cp15_interpreted(target, 0xee150f10, &arm920t->d_fsr);
-	arm920t_read_cp15_interpreted(target, 0xee150f30, &arm920t->i_fsr);
-	arm920t_read_cp15_interpreted(target, 0xee160f10, &arm920t->d_far);
-	arm920t_read_cp15_interpreted(target, 0xee160f30, &arm920t->i_far);
+	arm920t_read_cp15_interpreted(target, 0xee150f10, 0x0, &arm920t->d_fsr);
+	arm920t_read_cp15_interpreted(target, 0xee150f30, 0x0, &arm920t->i_fsr);
+	arm920t_read_cp15_interpreted(target, 0xee160f10, 0x0, &arm920t->d_far);
+	arm920t_read_cp15_interpreted(target, 0xee160f30, 0x0, &arm920t->i_far);
 
-	/* read-modify-write CP15 test state register 
-	* to disable I/D-cache linefills */
-	arm920t_read_cp15_physical(target, 0x1e, &cp15c15);	
-	jtag_execute_queue();
-	cp15c15 |= 0x600;
-	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
-
+	if (arm920t->preserve_cache)
+	{
+		/* read-modify-write CP15 test state register 
+		 * to disable I/D-cache linefills */
+		arm920t_read_cp15_physical(target, 0x1e, &cp15c15);
+		jtag_execute_queue();
+		cp15c15 |= 0x600;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	}
 }
 
 void arm920t_pre_restore_context(target_t *target)
@@ -494,11 +482,13 @@ void arm920t_pre_restore_context(target_t *target)
 	
 	/* read-modify-write CP15 test state register 
 	* to reenable I/D-cache linefills */
-	arm920t_read_cp15_physical(target, 0x1e, &cp15c15);
-	jtag_execute_queue();
-	cp15c15 &= ~0x600U;
-	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
-
+	if (arm920t->preserve_cache)
+	{
+		arm920t_read_cp15_physical(target, 0x1e, &cp15c15);
+		jtag_execute_queue();
+		cp15c15 &= ~0x600U;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	}
 }
 
 int arm920t_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p, arm9tdmi_common_t **arm9tdmi_p, arm920t_common_t **arm920t_p)
@@ -682,6 +672,8 @@ int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, int chai
 	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
 	
+	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
+	 */
 	arm9tdmi_init_arch_info(target, arm9tdmi, chain_pos, variant);
 
 	arm9tdmi->arch_info = arm920t;
@@ -699,6 +691,13 @@ int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, int chai
 	arm920t->armv4_5_mmu.has_tiny_pages = 1;
 	arm920t->armv4_5_mmu.mmu_enabled = 0;
 	
+	/* disabling linefills leads to lockups, so keep them enabled for now
+	 * this doesn't affect correctness, but might affect timing issues, if
+	 * important data is evicted from the cache during the debug session
+	 * */
+	arm920t->preserve_cache = 0;
+	
+	/* override hw single-step capability from ARM9TDMI */
 	arm9tdmi->has_single_step = 1;
 	
 	return ERROR_OK;
@@ -751,9 +750,513 @@ int arm920t_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, arm920t_cmd, "mwh_phys", arm920t_handle_mw_phys_command, COMMAND_EXEC, "write memory half-word <physical addr> <value>");
 	register_command(cmd_ctx, arm920t_cmd, "mwb_phys", arm920t_handle_mw_phys_command, COMMAND_EXEC, "write memory byte <physical addr> <value>");
 
+	register_command(cmd_ctx, arm920t_cmd, "read_cache", arm920t_handle_read_cache_command, COMMAND_EXEC, "display I/D cache content");
+	register_command(cmd_ctx, arm920t_cmd, "read_mmu", arm920t_handle_read_mmu_command, COMMAND_EXEC, "display I/D mmu content");
+
 	return ERROR_OK;
 }
 
+int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	arm9tdmi_common_t *arm9tdmi;
+	arm920t_common_t *arm920t;
+	arm_jtag_t *jtag_info;
+	u32 cp15c15;
+	u32 cp15_ctrl, cp15_ctrl_saved;
+	u32 regs[16];
+	u32 *regs_p[16];
+	u32 C15_C_D_Ind, C15_C_I_Ind;
+	int i;
+	FILE *output;
+	arm920t_cache_line_t d_cache[8][64], i_cache[8][64];
+	int segment, index;
+	
+	if (argc != 1)
+	{
+		command_print(cmd_ctx, "usage: arm920t read_cache <filename>");
+		return ERROR_OK;
+	}
+	
+	if ((output = fopen(args[0], "w")) == NULL)
+	{
+		DEBUG("error opening cache content file");
+		return ERROR_OK;
+	}
+	
+	for (i = 0; i < 16; i++)
+		regs_p[i] = &regs[i];
+		
+	if (arm920t_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm920t) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM920t target");
+		return ERROR_OK;
+	}
+	
+	jtag_info = &arm7_9->jtag_info;
+	
+	/* disable MMU and Caches */
+	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), &cp15_ctrl);
+	jtag_execute_queue();
+	cp15_ctrl_saved = cp15_ctrl;
+	cp15_ctrl &= ~(ARMV4_5_MMU_ENABLED | ARMV4_5_D_U_CACHE_ENABLED | ARMV4_5_I_CACHE_ENABLED);
+	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl);
+
+	/* read CP15 test state register */ 
+	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), &cp15c15);
+	jtag_execute_queue();
+	
+	/* read DCache content */
+	fprintf(output, "DCache:\n");
+	
+	/* go through segments 0 to nsets (8 on ARM920T, 4 on ARM922T) */ 
+	for (segment = 0; segment < arm920t->armv4_5_mmu.armv4_5_cache.d_u_size.nsets; segment++)
+	{
+		fprintf(output, "\nsegment: %i\n----------", segment);
+		
+		/* Ra: r0 = SBZ(31:8):segment(7:5):SBZ(4:0) */
+		regs[0] = 0x0 | (segment << 5);
+		arm9tdmi_write_core_regs(target, 0x1, regs);
+		
+		/* set interpret mode */
+		cp15c15 |= 0x1;
+		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		
+		/* D CAM Read, loads current victim into C15.C.D.Ind */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,2,0,15,6,2), ARMV4_5_LDR(1, 0));
+	
+		/* read current victim */
+		arm920t_read_cp15_physical(target, 0x3d, &C15_C_D_Ind);
+
+		/* clear interpret mode */
+		cp15c15 &= ~0x1;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+
+		for (index = 0; index < 64; index++)
+		{
+			/* Ra: r0 = index(31:26):SBZ(25:8):segment(7:5):SBZ(4:0) */
+			regs[0] = 0x0 | (segment << 5) | (index << 26);
+			arm9tdmi_write_core_regs(target, 0x1, regs);
+
+			/* set interpret mode */
+			cp15c15 |= 0x1;
+			arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+	
+			/* Write DCache victim */
+			arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,9,1,0), ARMV4_5_LDR(1, 0));
+	
+			/* Read D RAM */
+			arm920t_execute_cp15(target, ARMV4_5_MCR(15,2,0,15,10,2), ARMV4_5_LDMIA(0, 0x1fe, 0, 0));
+			
+			/* Read D CAM */
+			arm920t_execute_cp15(target, ARMV4_5_MCR(15,2,0,15,6,2), ARMV4_5_LDR(9, 0));
+			
+			/* clear interpret mode */
+			cp15c15 &= ~0x1;
+			arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+
+			/* read D RAM and CAM content */
+			arm9tdmi_read_core_regs(target, 0x3fe, regs_p);
+			jtag_execute_queue();
+
+			d_cache[segment][index].cam = regs[9];
+			
+			/* mask LFSR[6] */
+			regs[9] &= 0xfffffffe;
+			fprintf(output, "\nsegment: %i, index: %i, CAM: 0x%8.8x, content (%s):\n", segment, index, regs[9], (regs[9] & 0x10) ? "valid" : "invalid");
+			
+			for (i = 1; i < 9; i++)
+			{
+				 d_cache[segment][index].data[i] = regs[i];
+				 fprintf(output, "%i: 0x%8.8x\n", i-1, regs[i]);
+			}
+	
+		}
+		
+		/* Ra: r0 = index(31:26):SBZ(25:8):segment(7:5):SBZ(4:0) */
+		regs[0] = 0x0 | (segment << 5) | (C15_C_D_Ind << 26);
+		arm9tdmi_write_core_regs(target, 0x1, regs);
+
+		/* set interpret mode */
+		cp15c15 |= 0x1;
+		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+	
+		/* Write DCache victim */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,9,1,0), ARMV4_5_LDR(1, 0));
+	
+		/* clear interpret mode */
+		cp15c15 &= ~0x1;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	}
+
+	/* read ICache content */
+	fprintf(output, "ICache:\n");
+	
+	/* go through segments 0 to nsets (8 on ARM920T, 4 on ARM922T) */ 
+	for (segment = 0; segment < arm920t->armv4_5_mmu.armv4_5_cache.d_u_size.nsets; segment++)
+	{
+		fprintf(output, "segment: %i\n----------", segment);
+		
+		/* Ra: r0 = SBZ(31:8):segment(7:5):SBZ(4:0) */
+		regs[0] = 0x0 | (segment << 5);
+		arm9tdmi_write_core_regs(target, 0x1, regs);
+		
+		/* set interpret mode */
+		cp15c15 |= 0x1;
+		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		
+		/* I CAM Read, loads current victim into C15.C.I.Ind */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,2,0,15,5,2), ARMV4_5_LDR(1, 0));
+	
+		/* read current victim */
+		arm920t_read_cp15_physical(target, 0x3b, &C15_C_I_Ind);
+
+		/* clear interpret mode */
+		cp15c15 &= ~0x1;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+
+		for (index = 0; index < 64; index++)
+		{
+			/* Ra: r0 = index(31:26):SBZ(25:8):segment(7:5):SBZ(4:0) */
+			regs[0] = 0x0 | (segment << 5) | (index << 26);
+			arm9tdmi_write_core_regs(target, 0x1, regs);
+
+			/* set interpret mode */
+			cp15c15 |= 0x1;
+			arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+	
+			/* Write ICache victim */
+			arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,9,1,1), ARMV4_5_LDR(1, 0));
+	
+			/* Read I RAM */
+			arm920t_execute_cp15(target, ARMV4_5_MCR(15,2,0,15,9,2), ARMV4_5_LDMIA(0, 0x1fe, 0, 0));
+			
+			/* Read I CAM */
+			arm920t_execute_cp15(target, ARMV4_5_MCR(15,2,0,15,5,2), ARMV4_5_LDR(9, 0));
+			
+			/* clear interpret mode */
+			cp15c15 &= ~0x1;
+			arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+
+			/* read I RAM and CAM content */
+			arm9tdmi_read_core_regs(target, 0x3fe, regs_p);
+			jtag_execute_queue();
+
+			i_cache[segment][index].cam = regs[9];
+			
+			/* mask LFSR[6] */
+			regs[9] &= 0xfffffffe;
+			fprintf(output, "\nsegment: %i, index: %i, CAM: 0x%8.8x, content (%s):\n", segment, index, regs[9], (regs[9] & 0x10) ? "valid" : "invalid");
+			
+			for (i = 1; i < 9; i++)
+			{
+				 i_cache[segment][index].data[i] = regs[i];
+				 fprintf(output, "%i: 0x%8.8x\n", i-1, regs[i]);
+			}
+	
+		}
+		
+	
+		/* Ra: r0 = index(31:26):SBZ(25:8):segment(7:5):SBZ(4:0) */
+		regs[0] = 0x0 | (segment << 5) | (C15_C_D_Ind << 26);
+		arm9tdmi_write_core_regs(target, 0x1, regs);
+
+		/* set interpret mode */
+		cp15c15 |= 0x1;
+		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+	
+		/* Write ICache victim */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,9,1,1), ARMV4_5_LDR(1, 0));
+	
+		/* clear interpret mode */
+		cp15c15 &= ~0x1;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	}
+	
+	/* restore CP15 MMU and Cache settings */
+	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl_saved);
+	
+	command_print(cmd_ctx, "cache content successfully output to %s", args[0]);
+	
+	fclose(output);
+	
+	/* mark registers dirty */
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 2).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 3).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 4).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 5).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 6).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 7).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 8).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 9).dirty = 1;
+	
+	return ERROR_OK;
+}
+
+int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	arm9tdmi_common_t *arm9tdmi;
+	arm920t_common_t *arm920t;
+	arm_jtag_t *jtag_info;
+	u32 cp15c15;
+	u32 cp15_ctrl, cp15_ctrl_saved;
+	u32 regs[16];
+	u32 *regs_p[16];
+	int i;
+	FILE *output;
+	u32 Dlockdown, Ilockdown;
+	arm920t_tlb_entry_t d_tlb[64], i_tlb[64];
+	int victim;
+	
+	if (argc != 1)
+	{
+		command_print(cmd_ctx, "usage: arm920t read_mmu <filename>");
+		return ERROR_OK;
+	}
+	
+	if ((output = fopen(args[0], "w")) == NULL)
+	{
+		DEBUG("error opening mmu content file");
+		return ERROR_OK;
+	}
+	
+	for (i = 0; i < 16; i++)
+		regs_p[i] = &regs[i];
+		
+	if (arm920t_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm920t) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM920t target");
+		return ERROR_OK;
+	}
+	
+	jtag_info = &arm7_9->jtag_info;
+	
+	/* disable MMU and Caches */
+	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), &cp15_ctrl);
+	jtag_execute_queue();
+	cp15_ctrl_saved = cp15_ctrl;
+	cp15_ctrl &= ~(ARMV4_5_MMU_ENABLED | ARMV4_5_D_U_CACHE_ENABLED | ARMV4_5_I_CACHE_ENABLED);
+	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl);
+
+	/* read CP15 test state register */ 
+	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), &cp15c15);
+	jtag_execute_queue();
+
+	/* prepare reading D TLB content 
+	 * */
+	
+	/* set interpret mode */
+	cp15c15 |= 0x1;
+	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+	
+	/* Read D TLB lockdown */
+	arm920t_execute_cp15(target, ARMV4_5_MRC(15,0,0,10,0,0), ARMV4_5_LDR(1, 0));
+	
+	/* clear interpret mode */
+	cp15c15 &= ~0x1;
+	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	
+	/* read D TLB lockdown stored to r1 */
+	arm9tdmi_read_core_regs(target, 0x2, regs_p);
+	jtag_execute_queue();
+	Dlockdown = regs[1];
+	
+	for (victim = 0; victim < 64; victim += 8)
+	{
+		/* new lockdown value: base[31:26]:victim[25:20]:SBZ[19:1]:p[0] 
+		 * base remains unchanged, victim goes through entries 0 to 63 */
+		regs[1] = (Dlockdown & 0xfc000000) | (victim << 20);
+		arm9tdmi_write_core_regs(target, 0x2, regs);
+		
+		/* set interpret mode */
+		cp15c15 |= 0x1;
+		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		
+		/* Write D TLB lockdown */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,0), ARMV4_5_STR(1, 0));
+	
+		/* Read D TLB CAM */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,4,0,15,6,4), ARMV4_5_LDMIA(0, 0x3fc, 0, 0));
+		
+		/* clear interpret mode */
+		cp15c15 &= ~0x1;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		
+		/* read D TLB CAM content stored to r2-r9 */
+		arm9tdmi_read_core_regs(target, 0x3fc, regs_p);
+		jtag_execute_queue();
+		
+		for (i = 0; i < 8; i++)
+			d_tlb[victim + i].cam = regs[i + 2]; 
+	}
+
+	for (victim = 0; victim < 64; victim++)
+	{
+		/* new lockdown value: base[31:26]:victim[25:20]:SBZ[19:1]:p[0] 
+		 * base remains unchanged, victim goes through entries 0 to 63 */
+		regs[1] = (Dlockdown & 0xfc000000) | (victim << 20);
+		arm9tdmi_write_core_regs(target, 0x2, regs);
+		
+		/* set interpret mode */
+		cp15c15 |= 0x1;
+		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		
+		/* Write D TLB lockdown */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,0), ARMV4_5_STR(1, 0));
+	
+		/* Read D TLB RAM1 */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,4,0,15,10,4), ARMV4_5_LDR(2,0));
+
+		/* Read D TLB RAM2 */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,4,0,15,2,5), ARMV4_5_LDR(3,0));
+		
+		/* clear interpret mode */
+		cp15c15 &= ~0x1;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		
+		/* read D TLB RAM content stored to r2 and r3 */
+		arm9tdmi_read_core_regs(target, 0xc, regs_p);
+		jtag_execute_queue();
+
+		d_tlb[victim].ram1 = regs[2]; 
+		d_tlb[victim].ram2 = regs[3]; 
+	}
+		
+	/* restore D TLB lockdown */
+	regs[1] = Dlockdown;
+	arm9tdmi_write_core_regs(target, 0x2, regs);
+	
+	/* Write D TLB lockdown */
+	arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,0), ARMV4_5_STR(1, 0));
+
+	/* prepare reading I TLB content 
+	 * */
+	
+	/* set interpret mode */
+	cp15c15 |= 0x1;
+	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+	
+	/* Read I TLB lockdown */
+	arm920t_execute_cp15(target, ARMV4_5_MRC(15,0,0,10,0,1), ARMV4_5_LDR(1, 0));
+	
+	/* clear interpret mode */
+	cp15c15 &= ~0x1;
+	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+	
+	/* read I TLB lockdown stored to r1 */
+	arm9tdmi_read_core_regs(target, 0x2, regs_p);
+	jtag_execute_queue();
+	Ilockdown = regs[1];
+	
+	for (victim = 0; victim < 64; victim += 8)
+	{
+		/* new lockdown value: base[31:26]:victim[25:20]:SBZ[19:1]:p[0] 
+		 * base remains unchanged, victim goes through entries 0 to 63 */
+		regs[1] = (Ilockdown & 0xfc000000) | (victim << 20);
+		arm9tdmi_write_core_regs(target, 0x2, regs);
+		
+		/* set interpret mode */
+		cp15c15 |= 0x1;
+		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		
+		/* Write I TLB lockdown */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,1), ARMV4_5_STR(1, 0));
+	
+		/* Read I TLB CAM */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,4,0,15,5,4), ARMV4_5_LDMIA(0, 0x3fc, 0, 0));
+		
+		/* clear interpret mode */
+		cp15c15 &= ~0x1;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		
+		/* read I TLB CAM content stored to r2-r9 */
+		arm9tdmi_read_core_regs(target, 0x3fc, regs_p);
+		jtag_execute_queue();
+		
+		for (i = 0; i < 8; i++)
+			i_tlb[i + victim].cam = regs[i + 2]; 
+	}
+
+	for (victim = 0; victim < 64; victim++)
+	{
+		/* new lockdown value: base[31:26]:victim[25:20]:SBZ[19:1]:p[0] 
+		 * base remains unchanged, victim goes through entries 0 to 63 */
+		regs[1] = (Dlockdown & 0xfc000000) | (victim << 20);
+		arm9tdmi_write_core_regs(target, 0x2, regs);
+		
+		/* set interpret mode */
+		cp15c15 |= 0x1;
+		arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), cp15c15);
+		
+		/* Write I TLB lockdown */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,1), ARMV4_5_STR(1, 0));
+	
+		/* Read I TLB RAM1 */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,4,0,15,9,4), ARMV4_5_LDR(2,0));
+
+		/* Read I TLB RAM2 */
+		arm920t_execute_cp15(target, ARMV4_5_MCR(15,4,0,15,1,5), ARMV4_5_LDR(3,0));
+		
+		/* clear interpret mode */
+		cp15c15 &= ~0x1;
+		arm920t_write_cp15_physical(target, 0x1e, cp15c15);
+		
+		/* read I TLB RAM content stored to r2 and r3 */
+		arm9tdmi_read_core_regs(target, 0xc, regs_p);
+		jtag_execute_queue();
+
+		i_tlb[victim].ram1 = regs[2]; 
+		i_tlb[victim].ram2 = regs[3]; 
+	}
+		
+	/* restore I TLB lockdown */
+	regs[1] = Ilockdown;
+	arm9tdmi_write_core_regs(target, 0x2, regs);
+	
+	/* Write I TLB lockdown */
+	arm920t_execute_cp15(target, ARMV4_5_MCR(15,0,0,10,0,1), ARMV4_5_STR(1, 0));
+	
+	/* restore CP15 MMU and Cache settings */
+	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl_saved);
+
+	/* output data to file */	
+	fprintf(output, "D TLB content:\n");
+	for (i = 0; i < 64; i++)
+	{
+		fprintf(output, "%i: 0x%8.8x 0x%8.8x 0x%8.8x %s\n", i, d_tlb[i].cam, d_tlb[i].ram1, d_tlb[i].ram2, (d_tlb[i].cam & 0x20) ? "(valid)" : "(invalid)");
+	}
+
+	fprintf(output, "\n\nI TLB content:\n");
+	for (i = 0; i < 64; i++)
+	{
+		fprintf(output, "%i: 0x%8.8x 0x%8.8x 0x%8.8x %s\n", i, i_tlb[i].cam, i_tlb[i].ram1, i_tlb[i].ram2, (i_tlb[i].cam & 0x20) ? "(valid)" : "(invalid)");
+	}
+	
+	command_print(cmd_ctx, "mmu content successfully output to %s", args[0]);
+	
+	fclose(output);
+	
+	/* mark registers dirty */
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 2).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 3).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 4).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 5).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 6).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 7).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 8).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 9).dirty = 1;
+	
+	return ERROR_OK;
+}
 int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval;
@@ -842,7 +1345,7 @@ int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, c
 		if (argc == 1)
 		{
 			u32 value;
-			if ((retval = arm920t_read_cp15_interpreted(target, opcode, &value)) != ERROR_OK)
+			if ((retval = arm920t_read_cp15_interpreted(target, opcode, 0x0, &value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't execute %8.8x", opcode);
 				return ERROR_OK;
@@ -871,6 +1374,10 @@ int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, c
 			}
 			command_print(cmd_ctx, "%8.8x: %8.8x %8.8x", opcode, value, address);
 		}
+	}
+	else
+	{
+		command_print(cmd_ctx, "usage: arm920t cp15i <opcode> [value] [address]");
 	}
 
 	return ERROR_OK;

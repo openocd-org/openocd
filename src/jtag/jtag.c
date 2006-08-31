@@ -140,6 +140,10 @@ jtag_event_callback_t *jtag_event_callbacks;
 	extern jtag_interface_t ep93xx_interface;
 #endif
 
+#if BUILD_AT91RM9200 == 1
+	extern jtag_interface_t at91rm9200_interface;
+#endif
+
 jtag_interface_t *jtag_interfaces[] = {
 #if BUILD_PARPORT == 1
 	&parport_interface,
@@ -155,6 +159,9 @@ jtag_interface_t *jtag_interfaces[] = {
 #endif
 #if BUILD_EP93XX == 1
 	&ep93xx_interface,
+#endif
+#if BUILD_AT91RM9200 == 1
+	&at91rm9200_interface,
 #endif
 	NULL,
 };
@@ -974,20 +981,26 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 
 	for (i=0; i < cmd->num_fields; i++)
 	{
-		/* if neither in_value nor in_check_value are specified we don't have to examine this field */
-		if (cmd->fields[i].in_value || cmd->fields[i].in_check_value)
+		/* if neither in_value, in_check_value nor in_handler
+		 * are specified we don't have to examine this field
+		 */
+		if (cmd->fields[i].in_value || cmd->fields[i].in_check_value || cmd->fields[i].in_handler)
 		{
 			int num_bits = cmd->fields[i].num_bits;
+			u8 *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
+			#ifdef _DEBUG_JTAG_IO_
+				char *char_buf;
 
+				char_buf = buf_to_char(captured, num_bits);
+				DEBUG("fields[%i].in_value: %s", i, char_buf);
+				free(char_buf);
+			#endif
+
+			
 			if (cmd->fields[i].in_value)
 			{
-				char *char_buf;
-				buf_set_buf(buffer, bit_count, cmd->fields[i].in_value, 0, num_bits);
-				char_buf = buf_to_char(cmd->fields[i].in_value, num_bits);
-#ifdef _DEBUG_JTAG_IO_
-				DEBUG("fields[%i].in_value: %s", i, char_buf);
-#endif
-				free(char_buf);
+				buf_cpy(captured, cmd->fields[i].in_value, num_bits);
+				
 				if (cmd->fields[i].in_handler)
 				{
 					if (cmd->fields[i].in_handler(cmd->fields[i].in_value, cmd->fields[i].in_handler_priv) != ERROR_OK)
@@ -997,6 +1010,18 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 						retval = ERROR_JTAG_QUEUE_FAILED;
 					}
 				}
+			}
+			
+			/* no in_value specified, but a handler takes care of the scanned data */
+			if (cmd->fields[i].in_handler && (!cmd->fields[i].in_value))
+			{
+				if (cmd->fields[i].in_handler(captured, cmd->fields[i].in_handler_priv) != ERROR_OK)
+				{
+					/* TODO: error reporting */
+					WARNING("in_handler reported a failed check");
+					retval = ERROR_JTAG_QUEUE_FAILED;
+				}
+				
 			}
 
 			if (cmd->fields[i].in_check_value)
@@ -1015,8 +1040,8 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 					free(in_check_value_char);
 					free(in_check_mask_char);
 				}
-				free(captured);
 			}
+			free(captured);
 		}
 		bit_count += cmd->fields[i].num_bits;
 	}
@@ -1031,7 +1056,7 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 	
 	for (i=0; i < cmd->num_fields; i++)
 	{
-		if (cmd->fields[i].in_check_value || cmd->fields[i].in_value)
+		if (cmd->fields[i].in_check_value || cmd->fields[i].in_value || cmd->fields[i].in_handler)
 			type |= SCAN_IN;
 		if (cmd->fields[i].out_value)
 			type |= SCAN_OUT;

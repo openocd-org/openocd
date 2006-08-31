@@ -52,7 +52,7 @@ int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char
 int handle_arm7_9_sw_bkpts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_force_hw_bkpts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_fast_writes_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int arm7_9_reinit_embeddedice(target_t *target)
@@ -184,13 +184,17 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		if (breakpoint->length == 4)
 		{
+			/* keep the original instruction in target endianness */
 			target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
-			target->type->write_memory(target, breakpoint->address, 4, 1, (u8*)(&arm7_9->arm_bkpt));
+			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
+			target_write_u32(target, breakpoint->address, arm7_9->arm_bkpt);
 		}
 		else
 		{
+			/* keep the original instruction in target endianness */
 			target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
-			target->type->write_memory(target, breakpoint->address, 2, 1, (u8*)(&arm7_9->thumb_bkpt));
+			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
+			target_write_u32(target, breakpoint->address, arm7_9->thumb_bkpt);
 		}
 		breakpoint->set = 1;
 	}
@@ -234,6 +238,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	}
 	else
 	{
+		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4)
 		{
 			target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
@@ -534,7 +539,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
-			
+				
 	/* set RESTART instruction */
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_set_instr(jtag_info, 0x4);
@@ -567,7 +572,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
-			
+				
 	/* set RESTART instruction */
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_set_instr(jtag_info, 0x4);
@@ -588,7 +593,6 @@ enum target_state arm7_9_poll(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	if (arm7_9->reinit_embeddedice)
 	{
@@ -967,6 +971,7 @@ int arm7_9_debug_entry(target_t *target)
 	
 	for (i=0; i<=15; i++)
 	{
+		DEBUG("r%i: 0x%8.8x", i, context[i]);
 		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).value, 0, 32, context[i]);
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = 0;
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid = 1;
@@ -1619,14 +1624,13 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	
 	u32 reg[16];
-	u32 *reg_p[16];
 	int num_accesses = 0;
 	int thisrun_accesses;
 	int i;
 	u32 cpsr;
 	int retval;
 	int last_reg = 0;
-
+	
 	DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
 	if (target->state != TARGET_HALTED)
@@ -1642,11 +1646,6 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 	
-	for (i = 0; i < 16; i++)
-	{
-		reg_p[i] = &reg[i];
-	}
-	
 	/* load the base register with the address of the first word */
 	reg[0] = address;
 	arm7_9->write_core_regs(target, 0x1, reg);
@@ -1660,19 +1659,23 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 				thisrun_accesses = ((count - num_accesses) >= 14) ? 14 : (count - num_accesses);
 				reg_list = (0xffff >> (15 - thisrun_accesses)) & 0xfffe;
 				
+				if (last_reg <= thisrun_accesses)
+					last_reg = thisrun_accesses;
+				
 				arm7_9->load_word_regs(target, reg_list);
-				arm7_9_execute_sys_speed(target);
 				
-				arm7_9->read_core_regs(target, reg_list, reg_p);
-				jtag_execute_queue();
+				/* fast memory reads are only safe when the target is running
+				 * from a sufficiently high clock (32 kHz is usually too slow)
+				 */
+				if (arm7_9->fast_memory_access)
+					arm7_9_execute_fast_sys_speed(target);
+				else
+					arm7_9_execute_sys_speed(target);
+									
+				arm7_9->read_core_regs_target_buffer(target, reg_list, buffer, 4);
 				
-				for (i = 1; i <= thisrun_accesses; i++)
-				{
-					if (i > last_reg)
-						last_reg = i;
-					target_buffer_set_u32(target, buffer, reg[i]);
-					buffer += 4;
-				}
+				/* advance buffer, count number of accesses */
+				buffer += thisrun_accesses * 4;
 				num_accesses += thisrun_accesses;
 			}	
 			break;
@@ -1688,17 +1691,19 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 					if (i > last_reg)
 						last_reg = i;
 					arm7_9->load_hword_reg(target, i);
-					arm7_9_execute_sys_speed(target);
+					/* fast memory reads are only safe when the target is running
+					 * from a sufficiently high clock (32 kHz is usually too slow)
+					 */
+					if (arm7_9->fast_memory_access)
+						arm7_9_execute_fast_sys_speed(target);
+					else
+						arm7_9_execute_sys_speed(target);
 				}
 				
-				arm7_9->read_core_regs(target, reg_list, reg_p);
-				jtag_execute_queue();
+				arm7_9->read_core_regs_target_buffer(target, reg_list, buffer, 2);
 				
-				for (i = 1; i <= thisrun_accesses; i++)
-				{
-					target_buffer_set_u16(target, buffer, reg[i]);
-					buffer += 2;
-				}
+				/* advance buffer, count number of accesses */
+				buffer += thisrun_accesses * 2;
 				num_accesses += thisrun_accesses;
 			}	
 			break;
@@ -1714,16 +1719,19 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 					if (i > last_reg)
 						last_reg = i;
 					arm7_9->load_byte_reg(target, i);
-					arm7_9_execute_sys_speed(target);
+					/* fast memory reads are only safe when the target is running
+					 * from a sufficiently high clock (32 kHz is usually too slow)
+					 */
+					if (arm7_9->fast_memory_access)
+						arm7_9_execute_fast_sys_speed(target);
+					else
+						arm7_9_execute_sys_speed(target);
 				}
 				
-				arm7_9->read_core_regs(target, reg_list, reg_p);
-				jtag_execute_queue();
+				arm7_9->read_core_regs_target_buffer(target, reg_list, buffer, 1);
 				
-				for (i = 1; i <= thisrun_accesses; i++)
-				{
-					*(buffer++) = reg[i] & 0xff;
-				}
+				/* advance buffer, count number of accesses */
+				buffer += thisrun_accesses * 1;
 				num_accesses += thisrun_accesses;
 			}	
 			break;
@@ -1759,6 +1767,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	
 	u32 reg[16];
 	int num_accesses = 0;
@@ -1787,6 +1796,10 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	reg[0] = address;
 	arm7_9->write_core_regs(target, 0x1, reg);
 	
+	/* Clear DBGACK, to make sure memory fetches work as expected */
+	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGACK, 1, 0);
+	embeddedice_store_reg(dbg_ctrl);
+	
 	switch (size)
 	{
 		case 4:
@@ -1811,7 +1824,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 				/* fast memory writes are only safe when the target is running
 				 * from a sufficiently high clock (32 kHz is usually too slow)
 				 */
-				if (arm7_9->fast_memory_writes)
+				if (arm7_9->fast_memory_access)
 					arm7_9_execute_fast_sys_speed(target);
 				else
 					arm7_9_execute_sys_speed(target);
@@ -1843,7 +1856,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 					/* fast memory writes are only safe when the target is running
 					 * from a sufficiently high clock (32 kHz is usually too slow)
 					 */
-					if (arm7_9->fast_memory_writes)
+					if (arm7_9->fast_memory_access)
 						arm7_9_execute_fast_sys_speed(target);
 					else
 						arm7_9_execute_sys_speed(target);
@@ -1874,7 +1887,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 					/* fast memory writes are only safe when the target is running
 					 * from a sufficiently high clock (32 kHz is usually too slow)
 					 */
-					if (arm7_9->fast_memory_writes)
+					if (arm7_9->fast_memory_access)
 						arm7_9_execute_fast_sys_speed(target);
 					else
 						arm7_9_execute_sys_speed(target);
@@ -1889,11 +1902,9 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 			break;
 	}
 	
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		ERROR("JTAG error while writing target memory");
-		exit(-1);
-	}
+	/* Re-Set DBGACK */
+	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGACK, 1, 1);
+	embeddedice_store_reg(dbg_ctrl);
 	
 	for (i=0; i<=last_reg; i++)
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = 1;
@@ -1939,6 +1950,8 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!arm7_9->dcc_working_area)
 	{
+		u8 dcc_code_buf[6 * 4];
+		
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, 24, &arm7_9->dcc_working_area) != ERROR_OK)
 		{
@@ -1946,8 +1959,14 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 			return target->type->write_memory(target, address, 4, count, buffer);
 		}
 		
+		/* copy target instructions to target endianness */
+		for (i = 0; i < 6; i++)
+		{
+			target_buffer_set_u32(target, dcc_code_buf + i*4, dcc_code[i]);
+		}
+		
 		/* write DCC code to working area */
-		target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, 6, (u8*)dcc_code);
+		target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, 6, dcc_code_buf);
 	}
 	
 	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, address);
@@ -1998,8 +2017,10 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, arm7_9_cmd, "force_hw_bkpts", handle_arm7_9_force_hw_bkpts_command, COMMAND_EXEC, "use hardware breakpoints for all breakpoints (disables sw breakpoint support) <enable|disable>");
 	register_command(cmd_ctx, arm7_9_cmd, "dbgrq", handle_arm7_9_dbgrq_command,
 		COMMAND_ANY, "use EmbeddedICE dbgrq instead of breakpoint for target halt requests <enable|disable>");
-	register_command(cmd_ctx, arm7_9_cmd, "fast_writes", handle_arm7_9_fast_writes_command,
-		 COMMAND_ANY, "use fast memory writes instead of slower but potentially unsafe slow writes <enable|disable>");
+	register_command(cmd_ctx, arm7_9_cmd, "fast_writes", handle_arm7_9_fast_memory_access_command,
+		 COMMAND_ANY, "(deprecated, see: arm7_9 fast_memory_access)");
+	register_command(cmd_ctx, arm7_9_cmd, "fast_memory_access", handle_arm7_9_fast_memory_access_command,
+		 COMMAND_ANY, "use fast memory accesses instead of slower but potentially unsafe slow accesses <enable|disable>");
 	register_command(cmd_ctx, arm7_9_cmd, "dcc_downloads", handle_arm7_9_dcc_downloads_command,
 		COMMAND_ANY, "use DCC downloads for larger memory writes <enable|disable>");
 
@@ -2243,7 +2264,7 @@ int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-int handle_arm7_9_fast_writes_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
@@ -2259,19 +2280,19 @@ int handle_arm7_9_fast_writes_command(struct command_context_s *cmd_ctx, char *c
 	{
 		if (strcmp("enable", args[0]) == 0)
 		{
-			arm7_9->fast_memory_writes = 1;
+			arm7_9->fast_memory_access = 1;
 		}
 		else if (strcmp("disable", args[0]) == 0)
 		{
-			arm7_9->fast_memory_writes = 0;
+			arm7_9->fast_memory_access = 0;
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: arm7_9 fast_writes <enable|disable>");
+			command_print(cmd_ctx, "usage: arm7_9 fast_memory_access <enable|disable>");
 		}
 	}
 		
-	command_print(cmd_ctx, "fast memory writes are %s", (arm7_9->fast_memory_writes) ? "enabled" : "disabled");
+	command_print(cmd_ctx, "fast memory access is %s", (arm7_9->fast_memory_access) ? "enabled" : "disabled");
 
 	return ERROR_OK;
 }
@@ -2327,7 +2348,7 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	
 	arm7_9->dcc_working_area = NULL;
 	
-	arm7_9->fast_memory_writes = 0;
+	arm7_9->fast_memory_access = 0;
 	arm7_9->dcc_downloads = 0;
 
 	jtag_register_event_callback(arm7_9_jtag_callback, target);

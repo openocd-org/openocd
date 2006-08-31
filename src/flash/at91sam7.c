@@ -133,9 +133,10 @@ u32 at91sam7_get_flash_status(flash_bank_t *bank)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = at91sam7_info->target;
-	long fsr;
+	u32 fsr;
 	
 	target->type->read_memory(target, MC_FSR, 4, 1, (u8 *)&fsr);
+	fsr = target_buffer_get_u32(target, (u8 *)&fsr);
 	
 	return fsr;
 }
@@ -206,7 +207,7 @@ void at91sam7_read_clock_info(flash_bank_t *bank)
 /* Setup the timimg registers for nvbits or normal flash */
 void at91sam7_set_flash_mode(flash_bank_t *bank,int mode)
 {
-	u32 fmcn, fmr;
+	u32 fmr, fmcn = 0, fws = 0;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = at91sam7_info->target;
 	
@@ -220,12 +221,14 @@ void at91sam7_set_flash_mode(flash_bank_t *bank,int mode)
 			fmcn = (at91sam7_info->mck_freq/666666ul)+1;
 
 		/* Only allow fmcn=0 if clock period is > 30 us. */
-		if (at91sam7_info->mck_freq <= 33333)
+		if (at91sam7_info->mck_freq <= 33333333ul)
 			fmcn = 0;
+		else
+			fws = 1;
 
 		DEBUG("fmcn: %i", fmcn); 
-		fmr = fmcn<<16;
-		target->type->write_memory(target, MC_FSR, 4, 1, (u8 *)&fmr);
+		fmr = fmcn << 16 | fws << 8;
+		target->type->write_memory(target, MC_FMR, 4, 1, (u8 *)&fmr);
 	}
 	at91sam7_info->flashmode = mode;		
 }

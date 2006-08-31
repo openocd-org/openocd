@@ -51,14 +51,15 @@ typedef struct arm7_9_common_s
 	
 	struct working_area_s *dcc_working_area;
 	
-	int fast_memory_writes;
+	int fast_memory_access;
 	int dcc_downloads;
 
 	int (*examine_debug_reason)(target_t *target);
 	
 	void (*change_to_arm)(target_t *target, u32 *r0, u32 *pc);
 	
-	void (*read_core_regs)(target_t *target, u32 mask, u32* core_regs[16]);
+	void (*read_core_regs)(target_t *target, u32 mask, u32 *core_regs[16]);
+	void (*read_core_regs_target_buffer)(target_t *target, u32 mask, void *buffer, int size);
 	void (*read_xpsr)(target_t *target, u32 *xpsr, int spsr);
 	
 	void (*write_xpsr)(target_t *target, u32 xpsr, int spsr);

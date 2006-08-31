@@ -392,7 +392,7 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 	int i;
 	arm_instruction_t cur_instruction;
 	u32 opcode;
-	int thumb;
+	int thumb = 0;
 	
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
@@ -415,7 +415,7 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 	
 	for (i = 0; i < count; i++)
 	{
-		target->type->read_memory(target, address, 4, 1, (u8*)&opcode);
+		target_read_u32(target, address, &opcode);
 		evaluate_opcode(opcode, address, &cur_instruction);
 		command_print(cmd_ctx, "%s", cur_instruction.text);
 		address += (thumb) ? 2 : 4;

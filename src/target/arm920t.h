@@ -40,6 +40,20 @@ typedef struct arm920t_common_s
 	u32 i_fsr;
 	u32 d_far;
 	u32 i_far;
+	int preserve_cache;
 } arm920t_common_t;
+
+typedef struct arm920t_cache_line_s
+{
+	u32 cam;
+	u32 data[8];
+} arm920t_cache_line_t;
+
+typedef struct arm920t_tlb_entry_s
+{
+	u32 cam;
+	u32 ram1;
+	u32 ram2;
+} arm920t_tlb_entry_t;
 
 #endif /* ARM920T_H */

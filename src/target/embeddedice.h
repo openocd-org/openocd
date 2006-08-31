@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
+ *   Copyright (C) 2005, 2006 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -41,7 +41,9 @@ enum
 	EICE_W1_DATA_VALUE = 12,
 	EICE_W1_DATA_MASK = 13,
 	EICE_W1_CONTROL_VALUE = 14,
-	EICE_W1_CONTROL_MASK = 15
+	EICE_W1_CONTROL_MASK = 15,
+	EICE_ABT_STATUS = 16,
+	EICE_VEC_CATCH = 16
 };
 
 enum

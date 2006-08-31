@@ -1009,6 +1009,12 @@ int ft2232_init(void)
 	{
 		DEBUG("current latency timer: %i", latency_timer);
 	}
+	
+	if ((status = FT_SetTimeouts(ftdih, 5000, 5000)) != FT_OK)
+	{
+		ERROR("unable to set timeouts: %i", status);
+		return ERROR_JTAG_INIT_FAILED;
+	}
 
 	if ((status = FT_SetBitMode(ftdih, 0x0b, 2)) != FT_OK)
 	{

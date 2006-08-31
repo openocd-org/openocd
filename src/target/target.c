@@ -723,6 +723,50 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	return ERROR_OK;
 }
 
+void target_read_u32(struct target_s *target, u32 address, u32 *value)
+{
+	u8 value_buf[4];
+	
+	target->type->read_memory(target, address, 4, 1, value_buf);
+	
+	*value = target_buffer_get_u32(target, value_buf);
+}
+
+void target_read_u16(struct target_s *target, u32 address, u16 *value)
+{
+	u8 value_buf[2];
+	
+	target->type->read_memory(target, address, 2, 1, value_buf);
+	
+	*value = target_buffer_get_u16(target, value_buf);
+}
+
+void target_read_u8(struct target_s *target, u32 address, u8 *value)
+{
+	target->type->read_memory(target, address, 1, 1, value);
+}
+
+void target_write_u32(struct target_s *target, u32 address, u32 value)
+{
+	u8 value_buf[4];
+
+	target_buffer_set_u32(target, value_buf, value);	
+	target->type->write_memory(target, address, 4, 1, value_buf);
+}
+
+void target_write_u16(struct target_s *target, u32 address, u16 value)
+{
+	u8 value_buf[2];
+	
+	target_buffer_set_u16(target, value_buf, value);	
+	target->type->write_memory(target, address, 2, 1, value_buf);
+}
+
+void target_write_u8(struct target_s *target, u32 address, u8 value)
+{
+	target->type->read_memory(target, address, 1, 1, &value);
+}
+
 int target_register_user_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx,  NULL, "reg", handle_reg_command, COMMAND_EXEC, NULL);
@@ -1421,6 +1465,7 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 				command_print(cmd_ctx, "error: unknown error");
 				break;
 		}
+		return ERROR_OK;
 	}
 
 	output_len = 0;
@@ -1433,13 +1478,13 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 		switch (size)
 		{
 			case 4:
-				output_len += snprintf(output + output_len, 128 - output_len, "%8.8x ", ((u32*)buffer)[i]);
+				output_len += snprintf(output + output_len, 128 - output_len, "%8.8x ", target_buffer_get_u32(target, &buffer[i*4]));
 				break;
 			case 2:
-				output_len += snprintf(output + output_len, 128 - output_len, "%4.4x ", ((u16*)buffer)[i]);
+				output_len += snprintf(output + output_len, 128 - output_len, "%4.4x ", target_buffer_get_u16(target, &buffer[i*2]));
 				break;
 			case 1:
-				output_len += snprintf(output + output_len, 128 - output_len, "%2.2x ", ((u8*)buffer)[i]);
+				output_len += snprintf(output + output_len, 128 - output_len, "%2.2x ", buffer[i*1]);
 				break;
 		}
 
@@ -1461,6 +1506,7 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	u32 value = 0;
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
+	u8 value_buf[4];
 
 	if (argc < 2)
 		return ERROR_OK;
@@ -1471,13 +1517,16 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	switch (cmd[2])
 	{
 		case 'w':
-			retval = target->type->write_memory(target, address, 4, 1, (u8*)&value);
+			target_buffer_set_u32(target, value_buf, value);
+			retval = target->type->write_memory(target, address, 4, 1, value_buf);
 			break;
 		case 'h':
-			retval = target->type->write_memory(target, address, 2, 1, (u8*)&value);
+			target_buffer_set_u16(target, value_buf, value);
+			retval = target->type->write_memory(target, address, 2, 1, value_buf);
 			break;
 		case 'b':
-			retval = target->type->write_memory(target, address, 1, 1, (u8*)&value);
+			value_buf[0] = value;
+			retval = target->type->write_memory(target, address, 1, 1, value_buf);
 			break;
 		default:
 			return ERROR_OK;
@@ -1574,6 +1623,8 @@ int handle_dump_binary_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	u32 size;
 	u8 buffer[560];
 	
+	struct timeval start, end, duration;
+	
 	target_t *target = get_current_target(cmd_ctx);
 
 	if (argc != 3)
@@ -1598,6 +1649,8 @@ int handle_dump_binary_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 
+	gettimeofday(&start, NULL);	
+	
 	while (size > 0)
 	{
 		u32 this_run_size = (size > 560) ? 560 : size;
@@ -1609,6 +1662,11 @@ int handle_dump_binary_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	fclose(binary);
 
+	gettimeofday(&end, NULL);	
+
+	timeval_subtract(&duration, &end, &start);
+	command_print(cmd_ctx, "dumped %i byte in %is %ius", strtoul(args[2], NULL, 0), duration.tv_sec, duration.tv_usec);
+	
 	return ERROR_OK;
 
 }

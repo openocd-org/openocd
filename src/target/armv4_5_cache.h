@@ -46,4 +46,12 @@ extern int armv4_5_cache_state(u32 cp15_control_reg, armv4_5_cache_common_t *cac
 
 extern int armv4_5_handle_cache_info_command(struct command_context_s *cmd_ctx, armv4_5_cache_common_t *armv4_5_cache);
 
+enum
+{
+	ARMV4_5_D_U_CACHE_ENABLED = 0x4,
+	ARMV4_5_I_CACHE_ENABLED = 0x1000,
+	ARMV4_5_WRITE_BUFFER_ENABLED = 0x8,
+	ARMV4_5_CACHE_RR_BIT = 0x5000,
+};
+
 #endif /* ARMV4_5_CACHE_H */

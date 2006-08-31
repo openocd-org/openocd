@@ -48,7 +48,7 @@ typedef struct at91sam7_flash_bank_s
 	u8 num_erase_regions;
 	u32 *erase_region_info;
 
-        /* nv memory bits */
+	/* nv memory bits */
 	u16 num_lockbits;
 	u16 lockbits;
 	u16 num_nvmbits;

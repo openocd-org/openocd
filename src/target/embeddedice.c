@@ -124,6 +124,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm_jtag_t *jtag_info
 	if (extra_reg)
 	{
 		reg_list[num_regs - 1].arch_info = &arch_info[num_regs - 1];
+		reg_list[num_regs - 1].arch_type = embeddedice_reg_arch_type;
 		arch_info[num_regs - 1].jtag_info = jtag_info;
 	}
 	

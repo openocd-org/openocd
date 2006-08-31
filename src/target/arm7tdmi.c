@@ -51,7 +51,6 @@ int arm7tdmi_quit();
 /* target function declarations */
 enum target_state arm7tdmi_poll(struct target_s *target);
 int arm7tdmi_halt(target_t *target);
-int arm7tdmi_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 		
 target_type_t arm7tdmi_target =
 {
@@ -152,8 +151,7 @@ int arm7tdmi_clock_out(arm_jtag_t *jtag_info, u32 out, u32 *in, int breakpoint)
 	u8 out_buf[4];
 	u8 breakpoint_buf;
 	
-	out = flip_u32(out, 32);
-	buf_set_u32(out_buf, 0, 32, out);
+	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
 	buf_set_u32(&breakpoint_buf, 0, 1, breakpoint);
 
 	jtag_add_end_state(TAP_PD);
@@ -174,18 +172,17 @@ int arm7tdmi_clock_out(arm_jtag_t *jtag_info, u32 out, u32 *in, int breakpoint)
 	fields[1].num_bits = 32;
 	fields[1].out_value = out_buf;
 	fields[1].out_mask = NULL;
+	fields[1].in_value = NULL;
 	if (in)
 	{
-		fields[1].in_value = (u8*)in;
 		fields[1].in_handler = arm_jtag_buf_to_u32_flip;
 		fields[1].in_handler_priv = in;
-	} else
+	}
+	else
 	{
-		fields[1].in_value = NULL;
 		fields[1].in_handler = NULL;
 		fields[1].in_handler_priv = NULL;
 	}
-
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
@@ -195,24 +192,21 @@ int arm7tdmi_clock_out(arm_jtag_t *jtag_info, u32 out, u32 *in, int breakpoint)
 	
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 {
-		char* in_string;
 		jtag_execute_queue();
 		
 		if (in)
 		{
-			in_string = buf_to_char((u8*)in, 32);
-			DEBUG("out: 0x%8.8x, in: %s", flip_u32(out, 32), in_string);
-			free(in_string);
+			DEBUG("out: 0x%8.8x, in: 0x%8.8x", out, *in);
 		}
 		else
-			DEBUG("out: 0x%8.8x", flip_u32(out, 32));
+			DEBUG("out: 0x%8.8x", out);
 }
 #endif
 
 	return ERROR_OK;
 }
 
-/* put an instruction in the ARM7TDMI pipeline, and optionally read data */
+/* clock the target, reading the databus */
 int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 {
 	scan_field_t fields[2];
@@ -235,7 +229,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].out_mask = NULL;
-	fields[1].in_value = (u8*)in;
+	fields[1].in_value = NULL;
 	fields[1].in_handler = arm_jtag_buf_to_u32_flip;
 	fields[1].in_handler_priv = in;
 	fields[1].in_check_value = NULL;
@@ -247,14 +241,80 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 {
-		char* in_string;
 		jtag_execute_queue();
 			
 		if (in)
 		{
-			in_string = buf_to_char((u8*)in, 32);
-			DEBUG("in: %s", in_string);
-			free(in_string);
+			DEBUG("in: 0x%8.8x", *in);
+		}
+		else
+		{
+			ERROR("BUG: called with in == NULL");
+		}
+}
+#endif
+
+	return ERROR_OK;
+}
+
+/* clock the target, and read the databus
+ * the *in pointer points to a buffer where elements of 'size' bytes
+ * are stored in big (be==1) or little (be==0) endianness
+ */ 
+int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be)
+{
+	scan_field_t fields[2];
+
+	jtag_add_end_state(TAP_PD);
+	arm_jtag_scann(jtag_info, 0x1);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	
+	fields[0].device = jtag_info->chain_pos;
+	fields[0].num_bits = 1;
+	fields[0].out_value = NULL;
+	fields[0].out_mask = NULL;
+	fields[0].in_value = NULL;
+	fields[0].in_check_value = NULL;
+	fields[0].in_check_mask = NULL;
+	fields[0].in_handler = NULL;
+	fields[0].in_handler_priv = NULL;
+		
+	fields[1].device = jtag_info->chain_pos;
+	fields[1].num_bits = 32;
+	fields[1].out_value = NULL;
+	fields[1].out_mask = NULL;
+	fields[1].in_value = NULL;
+	switch (size)
+	{
+		case 4:
+			fields[1].in_handler = (be) ? arm_jtag_buf_to_be32_flip : arm_jtag_buf_to_le32_flip;
+			break;
+		case 2:
+			fields[1].in_handler = (be) ? arm_jtag_buf_to_be16_flip : arm_jtag_buf_to_le16_flip;
+			break;
+		case 1:
+			fields[1].in_handler = arm_jtag_buf_to_8_flip;
+			break;
+	}
+	fields[1].in_handler_priv = in;
+	fields[1].in_check_value = NULL;
+	fields[1].in_check_mask = NULL;
+
+	jtag_add_dr_scan(2, fields, -1);
+
+	jtag_add_runtest(0, -1);
+	
+#ifdef _DEBUG_INSTRUCTION_EXECUTION_
+{
+		jtag_execute_queue();
+			
+		if (in)
+		{
+			DEBUG("in: 0x%8.8x", *in);
+		}
+		else
+		{
+			ERROR("BUG: called with in == NULL");
 		}
 }
 #endif
@@ -332,6 +392,50 @@ void arm7tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
 			arm7tdmi_clock_data_in(jtag_info, core_regs[i]);
 	}
 
+}
+
+void arm7tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buffer, int size)
+{
+	int i;
+	/* get pointers to arch-specific information */
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
+	u32 *buf_u32 = buffer;
+	u16 *buf_u16 = buffer;
+	u8 *buf_u8 = buffer;
+		
+	/* STMIA r0-15, [r0] at debug speed
+	 * register values will start to appear on 4th DCLK
+	 */
+	arm7tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask & 0xffff, 0, 0), NULL, 0);
+
+	/* fetch NOP, STM in DECODE stage */
+	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
+	/* fetch NOP, STM in EXECUTE stage (1st cycle) */
+	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
+
+	for (i = 0; i <= 15; i++)
+	{
+		/* nothing fetched, STM still in EXECUTE (1+i cycle), read databus */
+		if (mask & (1 << i))
+		{
+			switch (size)
+			{
+				case 4:
+					arm7tdmi_clock_data_in_endianness(jtag_info, buf_u32++, 4, be);
+					break;
+				case 2:
+					arm7tdmi_clock_data_in_endianness(jtag_info, buf_u16++, 2, be);
+					break;
+				case 1:
+					arm7tdmi_clock_data_in_endianness(jtag_info, buf_u8++, 1, be);
+					break;
+			}
+		}
+	}
+	
 }
 
 void arm7tdmi_read_xpsr(target_t *target, u32 *xpsr, int spsr)
@@ -684,6 +788,7 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, int c
 	arm7_9->examine_debug_reason = arm7tdmi_examine_debug_reason;
 	arm7_9->change_to_arm = arm7tdmi_change_to_arm;
 	arm7_9->read_core_regs = arm7tdmi_read_core_regs;
+	arm7_9->read_core_regs_target_buffer = arm7tdmi_read_core_regs_target_buffer;
 	arm7_9->read_xpsr = arm7tdmi_read_xpsr;
 	
 	arm7_9->write_xpsr = arm7tdmi_write_xpsr;

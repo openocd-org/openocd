@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if 1
+#if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
@@ -92,8 +92,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	u8 out_buf[4];
 	u8 instruction_buf = instruction;
 	
-	out = flip_u32(out, 32);
-	buf_set_u32(out_buf, 0, 32, out);
+	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
 	
 	jtag_add_end_state(TAP_PD);
 	arm_jtag_scann(jtag_info, 0xf);
@@ -113,14 +112,13 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	fields[1].num_bits = 32;
 	fields[1].out_value = out_buf;
 	fields[1].out_mask = NULL;
+	fields[1].in_value = NULL;
 	if (in)
 	{
-		fields[1].in_value = (u8*)in;
 		fields[1].in_handler = arm_jtag_buf_to_u32_flip;
 		fields[1].in_handler_priv = in;
 	} else
 	{
-		fields[1].in_value = NULL;
 		fields[1].in_handler = NULL;
 		fields[1].in_handler_priv = NULL;
 	}

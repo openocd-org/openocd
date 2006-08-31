@@ -108,11 +108,91 @@ int arm_jtag_setup_connection(arm_jtag_t *jtag_info)
 	return ERROR_OK;
 }
 
+/* read JTAG buffer into host-endian u32, flipping bit-order */
 int arm_jtag_buf_to_u32_flip(u8 *in_buf, void *priv)
 {
 	u32 *dest = priv;
-	
-	*dest = flip_u32(buf_get_u32(in_buf, 0, 32), 32);
-	
+	*dest = flip_u32(le_to_h_u32(in_buf), 32);
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into little-endian u32, flipping bit-order */
+int arm_jtag_buf_to_le32_flip(u8 *in_buf, void *priv)
+{
+	h_u32_to_le(((u8*)priv), flip_u32(le_to_h_u32(in_buf), 32));
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into little-endian u16, flipping bit-order */
+int arm_jtag_buf_to_le16_flip(u8 *in_buf, void *priv)
+{
+	h_u16_to_le(((u8*)priv), flip_u32(le_to_h_u32(in_buf), 32) & 0xffff);
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into big-endian u32, flipping bit-order */
+int arm_jtag_buf_to_be32_flip(u8 *in_buf, void *priv)
+{
+	h_u32_to_be(((u8*)priv), flip_u32(le_to_h_u32(in_buf), 32));
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into big-endian u16, flipping bit-order */
+int arm_jtag_buf_to_be16_flip(u8 *in_buf, void *priv)
+{
+	h_u16_to_be(((u8*)priv), flip_u32(le_to_h_u32(in_buf), 32) & 0xffff);
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into u8, flipping bit-order */
+int arm_jtag_buf_to_8_flip(u8 *in_buf, void *priv)
+{
+	u8 *dest = priv;
+	*dest = flip_u32(le_to_h_u32(in_buf), 32) & 0xff;
+	return ERROR_OK;
+}
+
+/* not-flipping variants */
+/* read JTAG buffer into host-endian u32 */
+int arm_jtag_buf_to_u32(u8 *in_buf, void *priv)
+{
+	u32 *dest = priv;
+	*dest = le_to_h_u32(in_buf);
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into little-endian u32 */
+int arm_jtag_buf_to_le32(u8 *in_buf, void *priv)
+{
+	h_u32_to_le(((u8*)priv), le_to_h_u32(in_buf));
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into little-endian u16 */
+int arm_jtag_buf_to_le16(u8 *in_buf, void *priv)
+{
+	h_u16_to_le(((u8*)priv), le_to_h_u32(in_buf) & 0xffff);
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into big-endian u32 */
+int arm_jtag_buf_to_be32(u8 *in_buf, void *priv)
+{
+	h_u32_to_be(((u8*)priv), le_to_h_u32(in_buf));
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into big-endian u16 */
+int arm_jtag_buf_to_be16(u8 *in_buf, void *priv)
+{
+	h_u16_to_be(((u8*)priv), le_to_h_u32(in_buf) & 0xffff);
+	return ERROR_OK;
+}
+
+/* read JTAG buffer into u8 */
+int arm_jtag_buf_to_8(u8 *in_buf, void *priv)
+{
+	u8 *dest = priv;
+	*dest = le_to_h_u32(in_buf) & 0xff;
 	return ERROR_OK;
 }

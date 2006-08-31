@@ -49,4 +49,12 @@ extern int armv4_5_mmu_handle_virt2phys_command(struct command_context_s *cmd_ct
 extern int armv4_5_mmu_handle_md_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu);
 extern int armv4_5_mmu_handle_mw_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu);
 
+enum
+{
+	ARMV4_5_MMU_ENABLED = 0x1,
+	ARMV4_5_ALIGNMENT_CHECK = 0x2,
+	ARMV4_5_MMU_S_BIT = 0x100,
+	ARMV4_5_MMU_R_BIT = 0x200
+};
+
 #endif /* ARMV4_5_MMU_H */

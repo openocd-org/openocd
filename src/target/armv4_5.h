@@ -193,6 +193,27 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  */
 #define ARMV4_5_BX(Rm) (0xe12fff10 | Rm)
 
+/* Move to ARM register from coprocessor
+ * CP: Coprocessor number
+ * op1: Coprocessor opcode
+ * Rd: destination register
+ * CRn: first coprocessor operand
+ * CRm: second coprocessor operand
+ * op2: Second coprocessor opcode
+ */
+#define ARMV4_5_MRC(CP, op1, Rd, CRn, CRm, op2) (0xee100010 | CRm | (op2 << 5) | (CP << 8) | (Rd << 12) | (CRn << 16) | (op1 << 21)) 
+
+/* Move to coprocessor from ARM register
+ * CP: Coprocessor number
+ * op1: Coprocessor opcode
+ * Rd: destination register
+ * CRn: first coprocessor operand
+ * CRm: second coprocessor operand
+ * op2: Second coprocessor opcode
+ */
+#define ARMV4_5_MCR(CP, op1, Rd, CRn, CRm, op2) (0xee000010 | CRm | (op2 << 5) | (CP << 8) | (Rd << 12) | (CRn << 16) | (op1 << 21)) 
+
+
 /* Thumb mode instructions
  */
  

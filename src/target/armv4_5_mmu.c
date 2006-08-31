@@ -25,6 +25,7 @@
 #include "log.h"
 #include "command.h"
 #include "armv4_5_mmu.h"
+#include "target.h"
 
 #include <stdlib.h>
 
@@ -46,6 +47,7 @@ u32 armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu
 	armv4_5_mmu_read_physical(target, armv4_5_mmu,
 		(ttb & 0xffffc000) | ((va & 0xfff00000) >> 18),
 		4, 1, (u8*)&first_lvl_descriptor);
+	first_lvl_descriptor = target_buffer_get_u32(target, (u8*)&first_lvl_descriptor);
 
 	DEBUG("1st lvl desc: %8.8x", first_lvl_descriptor);
 
@@ -80,16 +82,17 @@ u32 armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu
 			(first_lvl_descriptor & 0xfffffc00) | ((va & 0x000ff000) >> 10),
 			4, 1, (u8*)&second_lvl_descriptor);
 	}
-
-	if ((first_lvl_descriptor & 0x3) == 3)
+	else if ((first_lvl_descriptor & 0x3) == 3)
 	{
 		/* fine page table */
 		armv4_5_mmu_read_physical(target, armv4_5_mmu,
 			(first_lvl_descriptor & 0xfffff000) | ((va & 0x000ffc00) >> 8),
 			4, 1, (u8*)&second_lvl_descriptor);
 	}
-
-	DEBUG("2nd lvl desc: %8.8x", first_lvl_descriptor);
+	
+	second_lvl_descriptor = target_buffer_get_u32(target, (u8*)&second_lvl_descriptor);
+	
+	DEBUG("2nd lvl desc: %8.8x", second_lvl_descriptor);
 
 	if ((second_lvl_descriptor & 0x3) == 0)
 	{
@@ -286,17 +289,17 @@ int armv4_5_mmu_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 		switch (size)
 		{
 			case 4:
-				output_len += snprintf(output + output_len, 128 - output_len, "%8.8x ", ((u32*)buffer)[i]);
+				output_len += snprintf(output + output_len, 128 - output_len, "%8.8x ", target_buffer_get_u32(target, &buffer[i*4]));
 				break;
 			case 2:
-				output_len += snprintf(output + output_len, 128 - output_len, "%4.4x ", ((u16*)buffer)[i]);
+				output_len += snprintf(output + output_len, 128 - output_len, "%4.4x ", target_buffer_get_u16(target, &buffer[i*2]));
 				break;
 			case 1:
-				output_len += snprintf(output + output_len, 128 - output_len, "%2.2x ", ((u8*)buffer)[i]);
+				output_len += snprintf(output + output_len, 128 - output_len, "%2.2x ", buffer[i*1]);
 				break;
 		}
 
-		if ((i%8 == 7) || (i == count - 1))
+		if ((i % 8 == 7) || (i == count - 1))
 		{
 			command_print(cmd_ctx, output);
 			output_len = 0;
@@ -313,6 +316,7 @@ int armv4_5_mmu_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 	u32 address = 0;
 	u32 value = 0;
 	int retval;
+	u8 value_buf[4];
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -329,13 +333,16 @@ int armv4_5_mmu_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 	switch (cmd[2])
 	{
 		case 'w':
-			retval = armv4_5_mmu_write_physical(target, armv4_5_mmu, address, 4, 1, (u8*)&value);
+			target_buffer_set_u32(target, value_buf, value);
+			retval = armv4_5_mmu_write_physical(target, armv4_5_mmu, address, 4, 1, value_buf);
 			break;
 		case 'h':
-			retval = armv4_5_mmu_write_physical(target, armv4_5_mmu, address, 2, 1, (u8*)&value);
+			target_buffer_set_u16(target, value_buf, value);
+			retval = armv4_5_mmu_write_physical(target, armv4_5_mmu, address, 2, 1, value_buf);
 			break;
 		case 'b':
-			retval = armv4_5_mmu_write_physical(target, armv4_5_mmu, address, 1, 1, (u8*)&value);
+			value_buf[0] = value;
+			retval = armv4_5_mmu_write_physical(target, armv4_5_mmu, address, 1, 1, value_buf);
 			break;
 		default:
 			return ERROR_OK;
