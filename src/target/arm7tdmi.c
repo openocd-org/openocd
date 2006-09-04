@@ -347,8 +347,14 @@ void arm7tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 	/* nothing fetched, STR r0, [r0] in Execute (2) */
 	arm7tdmi_clock_data_in(jtag_info, pc);
 
-	/* fetch MOV */
-	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_MOV_IM(0, 0x0), NULL, 0);
+	/* use pc-relative LDR to clear r0[1:0] (for switch to ARM mode) */
+	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_LDR_PCREL(0), NULL, 0);
+	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, NULL, 0);
+	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, NULL, 0);
+	/* nothing fetched, data for LDR r0, [PC, #0] */
+	arm7tdmi_clock_out(jtag_info, 0x0, NULL, 0);
+	/* nothing fetched, data from previous cycle is written to register */
+	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, NULL, 0);
 	
 	/* fetch BX */
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_BX(0), NULL, 0);
@@ -702,11 +708,9 @@ void arm7tdmi_branch_resume_thumb(target_t *target)
 	/* target is now in Thumb state */
 	embeddedice_read_reg(dbg_stat);
 
-	/* clean r0 bits to avoid alignment problems */
-	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_MOV_IM(0, 0x0), NULL, 0);
-	/* load r0 value, MOV_IM in Decode*/
-	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_LDR(0, 0), NULL, 0);
-	/* fetch NOP, LDR in Decode, MOV_IM in Execute */
+	/* load r0 value */
+	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_LDR_PCREL(0), NULL, 0);
+	/* fetch NOP, LDR in Decode */
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, NULL, 0);
 	/* fetch NOP, LDR in Execute */
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, NULL, 0);
@@ -721,7 +725,7 @@ void arm7tdmi_branch_resume_thumb(target_t *target)
 	embeddedice_read_reg(dbg_stat);
 	
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, NULL, 1);
-	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_B(0x7f7), NULL, 0);
+	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_B(0x7f8), NULL, 0);
 
 }
 		

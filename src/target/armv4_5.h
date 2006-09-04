@@ -229,6 +229,17 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  */
 #define ARMV4_5_T_LDR(Rd, Rn)	((0x6800 | (Rn << 3) | Rd) | ((0x6800 | (Rn << 3) | Rd) << 16))
 
+/* Load multiple (Thumb state)
+ * Rn: base register
+ * List: for each bit in list: store register
+ */
+#define ARMV4_5_T_LDMIA(Rn, List) ((0xc800 | (Rn << 8) | List) | ((0xc800 | (Rn << 8) | List) << 16))
+ 
+/* Load register with PC relative addressing
+ * Rd: register to load
+ */
+#define ARMV4_5_T_LDR_PCREL(Rd)	((0x4800 | (Rd << 8)) | ((0x4800 | (Rd << 8)) << 16)) 
+ 
 /* Move hi register (Thumb mode)
  * Rd: destination register
  * Rm: source register
@@ -237,7 +248,7 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
 
 /* No operation (Thumb mode)
  */
-#define ARMV4_5_T_NOP	(0x1c3f | (0x1c3f << 16))
+#define ARMV4_5_T_NOP	(0x46c0 | (0x46c0 << 16))
 
 /* Move immediate to register (Thumb state)
  * Rd: destination register

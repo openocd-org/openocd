@@ -454,6 +454,9 @@ void arm920t_post_debug_entry(target_t *target)
 	arm920t_read_cp15_interpreted(target, 0xee150f30, 0x0, &arm920t->i_fsr);
 	arm920t_read_cp15_interpreted(target, 0xee160f10, 0x0, &arm920t->d_far);
 	arm920t_read_cp15_interpreted(target, 0xee160f30, 0x0, &arm920t->i_far);
+	
+	DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x, I FAR: 0x%8.8x",
+		arm920t->d_fsr, arm920t->d_far, arm920t->i_fsr, arm920t->i_far);  
 
 	if (arm920t->preserve_cache)
 	{
