@@ -474,6 +474,8 @@ int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 		count -= thisrun_count;
 	}
 	
+	target_free_working_area(target, source);
+	
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
