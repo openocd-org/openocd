@@ -1003,11 +1003,11 @@ int cfi_erase_check(struct flash_bank_s *bank)
 	{
 		u32 erase_check_code[] =
 		{
-			0xe4d03001,
-			0xe0022003,
-			0xe2511001,
-			0x1afffffb,
-			0xeafffffe
+			0xe4d03001,	/* ldrb r3, [r0], #1	*/
+			0xe0022003, /* and r2, r2, r3 		*/
+			0xe2511001, /* subs r1, r1, #1		*/
+			0x1afffffb,	/* b -4 				*/
+			0xeafffffe	/* b 0 					*/
 		};
 		
 		/* make sure we have a working area */
@@ -1017,8 +1017,13 @@ int cfi_erase_check(struct flash_bank_s *bank)
 		}
 		else
 		{
+			u8 erase_check_code_buf[5 * 4];
+			
+			for (i = 0; i < 5; i++)
+				target_buffer_set_u32(target, erase_check_code_buf + (i*4), erase_check_code[i]);
+			
 			/* write algorithm code to working area */
-			target->type->write_memory(target, cfi_info->erase_check_algorithm->address, 4, 5, (u8*)erase_check_code);
+			target->type->write_memory(target, cfi_info->erase_check_algorithm->address, 4, 5, erase_check_code_buf);
 		}
 	}
 	

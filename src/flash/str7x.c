@@ -172,6 +172,8 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 	str7x_build_block_list(bank);
 	
+	str7x_info->write_algorithm = NULL;
+	
 	return ERROR_OK;
 }
 
@@ -181,7 +183,7 @@ u32 str7x_status(struct flash_bank_s *bank)
 	target_t *target = str7x_info->target;
 	u32 retval;
 
-	target->type->read_memory(target, str7x_get_flash_adr(bank, FLASH_CR0), 4, 1, (u8*)&retval);
+	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), &retval);
 
 	return retval;
 }
@@ -192,7 +194,7 @@ u32 str7x_result(struct flash_bank_s *bank)
 	target_t *target = str7x_info->target;
 	u32 retval;
 
-	target->type->read_memory(target, str7x_get_flash_adr(bank, FLASH_ER), 4, 1, (u8*)&retval);
+	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_ER), &retval);
 	
 	return retval;
 }
@@ -242,14 +244,14 @@ int str7x_protect_check(struct flash_bank_s *bank)
 	target_t *target = str7x_info->target;
 	
 	int i;
-	int retval;
+	u32 retval;
 
 	if (str7x_info->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	target->type->read_memory(target, str7x_get_flash_adr(bank, FLASH_NVWPAR), 4, 1, (u8*)&retval);
+	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_NVWPAR), &retval);
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
@@ -282,14 +284,17 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 	for (i = first; i <= last; i++)
 		erase_blocks |= (mem_layout[i].reg_offset << i);
 	
+	/* clear FLASH_ER register */	
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
+	
 	cmd = FLASH_SER;
-	target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_CR0), 4, 1, (u8*)&cmd);
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 	
 	cmd = erase_blocks;
-	target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_CR1), 4, 1, (u8*)&cmd);
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR1), cmd);
 	
 	cmd = FLASH_SER|FLASH_WMS;
-	target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_CR0), 4, 1, (u8*)&cmd);
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 	
 	while (((retval = str7x_status(bank)) & (FLASH_BSYA1|FLASH_BSYA2))){
 		usleep(1000);
@@ -324,23 +329,26 @@ int str7x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	protect_blocks = 0xFFFFFFFF;
 
-	if( set )
+	if (set)
 	{
 		for (i = first; i <= last; i++)
 			protect_blocks &= ~(mem_layout[i].reg_offset << i);
 	}
+	
+	/* clear FLASH_ER register */	
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
 
 	cmd = FLASH_SPR;
-	target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_CR0), 4, 1, (u8*)&cmd);
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 	
 	cmd = str7x_get_flash_adr(bank, FLASH_NVWPAR);
-	target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_AR), 4, 1, (u8*)&cmd);
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), cmd);
 	
 	cmd = protect_blocks;
-	target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, (u8*)&cmd);
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), cmd);
 	
 	cmd = FLASH_SPR|FLASH_WMS;
-	target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_CR0), 4, 1, (u8*)&cmd);
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 	
 	while (((retval = str7x_status(bank)) & (FLASH_BSYA1|FLASH_BSYA2))){
 		usleep(1000);
@@ -348,11 +356,130 @@ int str7x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	retval = str7x_result(bank);
 	
+	DEBUG("retval: 0x%8.8x", retval);
+	
 	if (retval & FLASH_ERER)
 		return ERROR_FLASH_SECTOR_NOT_ERASED;
 	else if (retval & FLASH_WPF)
 		return ERROR_FLASH_OPERATION_FAILED;
 
+	return ERROR_OK;
+}
+
+int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+{
+	str7x_flash_bank_t *str7x_info = bank->driver_priv;
+	target_t *target = str7x_info->target;
+	u32 buffer_size = 8192;
+	working_area_t *source;
+	u32 address = bank->base + offset;
+	reg_param_t reg_params[5];
+	armv4_5_algorithm_t armv4_5_info;
+	int retval;
+	
+	u32 str7x_flash_write_code[] = {
+					/* write:				*/
+		0xe3a04201, /*	mov r4, #0x10000000	*/
+		0xe5824000, /*	str r4, [r2, #0x0]	*/
+		0xe5821010, /*	str r1, [r2, #0x10]	*/
+		0xe4904004, /*	ldr r4, [r0], #4	*/
+		0xe5824008, /*	str r4, [r2, #0x8]	*/
+		0xe4904004, /*	ldr r4, [r0], #4	*/
+		0xe582400c, /*	str r4, [r2, #0xc]	*/
+		0xe3a04209, /*	mov r4, #0x90000000	*/
+		0xe5824000, /*	str r4, [r2, #0x0]	*/
+		            /* busy:				*/
+		0xe5924000, /*	ldr r4, [r2, #0x0]	*/
+		0xe3140016, /*	tst r4, #0x16		*/
+		0x1afffffc, /*	bne busy			*/
+		0xe5924014, /*	ldr r4, [r2, #0x14]	*/
+		0xe31400ff, /*	tst r4, #0xff		*/
+		0x03140c01, /*	tsteq r4, #0x100	*/
+		0x1a000002, /*	bne exit			*/
+		0xe2811008, /*	add r1, r1, #0x8	*/
+		0xe2533001, /*	subs r3, r3, #1		*/
+		0x1affffec, /*	bne write			*/
+					/* exit:				*/
+		0xeafffffe, /*	b exit				*/
+	};
+	
+	u8 str7x_flash_write_code_buf[80];
+	int i;
+	
+	/* flash write code */
+	if (!str7x_info->write_algorithm)
+	{
+		if (target_alloc_working_area(target, 4 * 20, &str7x_info->write_algorithm) != ERROR_OK)
+		{
+			WARNING("no working area available, can't do block memory writes");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		};
+
+		/* convert flash writing code into a buffer in target endianness */
+		for (i = 0; i < 20; i++)
+			target_buffer_set_u32(target, str7x_flash_write_code_buf + i*4, str7x_flash_write_code[i]);
+			
+		target_write_buffer(target, str7x_info->write_algorithm->address, 20 * 4, str7x_flash_write_code_buf);
+	}
+
+	/* memory buffer */
+	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
+	{
+		buffer_size /= 2;
+		if (buffer_size <= 256)
+		{
+			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
+			if (str7x_info->write_algorithm)
+				target_free_working_area(target, str7x_info->write_algorithm);
+			
+			WARNING("no large enough working area available, can't do block memory writes");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
+	};
+	
+	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+	
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
+	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
+	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);
+	init_reg_param(&reg_params[4], "r4", 32, PARAM_IN);
+	
+	while (count > 0)
+	{
+		u32 thisrun_count = (count > (buffer_size / 8)) ? (buffer_size / 8) : count;
+		
+		target_write_buffer(target, source->address, thisrun_count * 8, buffer);
+		
+		buf_set_u32(reg_params[0].value, 0, 32, source->address);
+		buf_set_u32(reg_params[1].value, 0, 32, address);
+		buf_set_u32(reg_params[2].value, 0, 32, str7x_get_flash_adr(bank, FLASH_CR0));
+		buf_set_u32(reg_params[3].value, 0, 32, thisrun_count);
+	
+		if ((retval = target->type->run_algorithm(target, 0, NULL, 5, reg_params, str7x_info->write_algorithm->address, str7x_info->write_algorithm->address + (19 * 4), 10000, &armv4_5_info)) != ERROR_OK)
+		{
+			ERROR("error executing str7x flash write algorithm");
+			return ERROR_FLASH_OPERATION_FAILED;
+		}
+	
+		if (buf_get_u32(reg_params[4].value, 0, 32) != 0x00)
+		{
+			return ERROR_FLASH_OPERATION_FAILED;
+		}
+		
+		buffer += thisrun_count * 8;
+		address += thisrun_count * 8;
+		count -= thisrun_count;
+	}
+	
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+	destroy_reg_param(&reg_params[2]);
+	destroy_reg_param(&reg_params[3]);
+	destroy_reg_param(&reg_params[4]);
+	
 	return ERROR_OK;
 }
 
@@ -363,44 +490,80 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 dwords_remaining = (count / 8);
 	u32 bytes_remaining = (count & 0x00000007);
 	u32 address = bank->base + offset;
-	u32 *wordbuffer = (u32*)buffer;
 	u32 bytes_written = 0;
 	u32 cmd;
 	u32 retval;
+
 	
 	if (str7x_info->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
+	if (offset & 0x7)
+	{
+		WARNING("offset 0x%x breaks required 8-byte alignment", offset);
+		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+	}
+	
 	if (offset + count > bank->size)
 		return ERROR_FLASH_DST_OUT_OF_BANK;
-	
+
+	/* clear FLASH_ER register */	
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
+
+	/* multiple dwords (8-byte) to be programmed? */
+	if (dwords_remaining > 0) 
+	{
+		/* try using a block write */
+		if ((retval = str7x_write_block(bank, buffer, offset, dwords_remaining)) != ERROR_OK)
+		{
+			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+			{
+				/* if block write failed (no sufficient working area),
+				 * we use normal (slow) single dword accesses */ 
+				WARNING("couldn't use block writes, falling back to single memory accesses");
+			}
+			else if (retval == ERROR_FLASH_OPERATION_FAILED)
+			{
+				/* if an error occured, we examine the reason, and quit */
+				retval = str7x_result(bank);
+				
+				ERROR("flash writing failed with error code: 0x%x", retval);
+				return ERROR_FLASH_OPERATION_FAILED;
+			}
+		}
+		else
+		{
+			buffer += dwords_remaining * 8;
+			address += dwords_remaining * 8;
+			dwords_remaining = 0;
+		}
+	}
+
 	while (dwords_remaining > 0)
 	{
 		// command
 		cmd = FLASH_DWPG;
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_CR0), 4, 1, (u8*)&cmd);
+		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 		
 		// address
-		cmd = address;
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_AR), 4, 1, (u8*)&cmd);
+		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
 		
-		// data byte 1
-		cmd = wordbuffer[bytes_written/4];
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, (u8*)&cmd);
+		// data word 1
+		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, buffer + bytes_written);
 		bytes_written += 4;
 		
-		// data byte 2
-		cmd = wordbuffer[bytes_written/4];
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, (u8*)&cmd);
+		// data word 2
+		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, buffer + bytes_written);
 		bytes_written += 4;
 		
 		/* start programming cycle */
-		cmd = FLASH_DWPG|FLASH_WMS;
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_CR0), 4, 1, (u8*)&cmd);
+		cmd = FLASH_DWPG | FLASH_WMS;
+		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 		
-		while (((retval = str7x_status(bank)) & (FLASH_BSYA1|FLASH_BSYA2))){
+		while (((retval = str7x_status(bank)) & (FLASH_BSYA1 | FLASH_BSYA2)))
+		{
 			usleep(1000);
 		}
 		
@@ -415,25 +578,39 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		address += 8;
 	}
 	
-	while( bytes_remaining > 0 )
+	if (bytes_remaining)
 	{
+		u8 last_dword[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+		int i = 0;
+				
+		while(bytes_remaining > 0)
+		{
+			last_dword[i++] = *(buffer + bytes_written); 
+			bytes_remaining--;
+			bytes_written++;
+		}
+		
 		// command
-		cmd = FLASH_WPG;
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_CR0), 4, 1, (u8*)&cmd);
+		cmd = FLASH_DWPG;
+		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 		
 		// address
-		cmd = address;
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_AR), 4, 1, (u8*)&cmd);
+		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
 		
-		// data byte
-		cmd = buffer[bytes_written];
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, (u8*)&cmd);
+		// data word 1
+		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, last_dword);
+		bytes_written += 4;
+		
+		// data word 2
+		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, last_dword + 4);
+		bytes_written += 4;
 		
 		/* start programming cycle */
-		cmd = FLASH_WPG|FLASH_WMS;
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_CR0), 4, 1, (u8*)&cmd);
+		cmd = FLASH_DWPG | FLASH_WMS;
+		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 		
-		while (((retval = str7x_status(bank)) & (FLASH_BSYA1|FLASH_BSYA2))){
+		while (((retval = str7x_status(bank)) & (FLASH_BSYA1 | FLASH_BSYA2)))
+		{
 			usleep(1000);
 		}
 		
@@ -443,12 +620,8 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			return ERROR_FLASH_OPERATION_FAILED;
 		else if (retval & FLASH_WPF)
 			return ERROR_FLASH_OPERATION_FAILED;
-
-		address++;
-		bytes_remaining--;
-		bytes_written++;
 	}
-	
+		
 	return ERROR_OK;
 }
 

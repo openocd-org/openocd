@@ -25,6 +25,7 @@
 #include "command.h"
 #include "log.h"
 #include "target.h"
+#include "time_support.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -526,6 +527,8 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	if ((retval = p->driver->write(p, buffer, offset, buf_cnt)) != ERROR_OK)
 	{
+		command_print(cmd_ctx, "failed writing file %s to flash bank %i at offset 0x%8.8x",
+			args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0));
 		switch (retval)
 		{
 			case ERROR_TARGET_NOT_HALTED:
@@ -553,14 +556,16 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				command_print(cmd_ctx, "unknown error");
 		}
 	}
+	else
+	{
+		gettimeofday(&end, NULL);	
+		timeval_subtract(&duration, &end, &start);
+		
+		command_print(cmd_ctx, "wrote file %s to flash bank %i at offset 0x%8.8x in %is %ius", args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0), duration.tv_sec, duration.tv_usec);
+	}
+	
 	free(buffer);
 	fclose(binary);
 	
-	gettimeofday(&end, NULL);	
-	timeval_subtract(&duration, &end, &start);
-	
-	command_print(cmd_ctx, "wrote file %s to flash bank %i at offset 0x%8.8x in %is %ius", args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0), duration.tv_sec, duration.tv_usec);
-	
 	return ERROR_OK;
-
 }

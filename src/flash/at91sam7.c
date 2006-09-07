@@ -135,8 +135,7 @@ u32 at91sam7_get_flash_status(flash_bank_t *bank)
 	target_t *target = at91sam7_info->target;
 	u32 fsr;
 	
-	target->type->read_memory(target, MC_FSR, 4, 1, (u8 *)&fsr);
-	fsr = target_buffer_get_u32(target, (u8 *)&fsr);
+	target_read_u32(target, MC_FSR, &fsr);
 	
 	return fsr;
 }
@@ -146,19 +145,15 @@ void at91sam7_read_clock_info(flash_bank_t *bank)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = at91sam7_info->target;
-	unsigned long mckr, mcfr, pllr, tmp, status, mainfreq;
-	unsigned int css, pres, mul, div;
+	u32 mckr, mcfr, pllr;
+	unsigned long tmp, mainfreq;
 
 	/* Read main clock freqency register */
-	target->type->read_memory(target, CKGR_MCFR, 4, 1, (u8 *)&mcfr);
+	target_read_u32(target, CKGR_MCFR, &mcfr);
 	/* Read master clock register */
-	target->type->read_memory(target, PMC_MCKR, 4, 1, (u8 *)&mckr);
+	target_read_u32(target, PMC_MCKR, &mckr);
 	/* Read Clock Generator PLL Register  */
-	target->type->read_memory(target, CKGR_PLLR, 4, 1, (u8 *)&pllr);
-
-	pres = (mckr>>2)&0x7;
-	mul = (pllr>>16)&0x7FF;
-	div = pllr&0xFF;
+	target_read_u32(target, CKGR_PLLR, &pllr);
 
 	at91sam7_info->mck_valid = 0;
 	switch (mckr & PMC_MCKR_CSS) {
@@ -180,10 +175,9 @@ void at91sam7_read_clock_info(flash_bank_t *bank)
 	case 3:		/* PLL Clock */
 		if (mcfr & CKGR_MCFR_MAINRDY) 
 		{
-		        target->type->read_memory(target, CKGR_PLLR, 4, 1,
-						  (u8 *)&pllr);
+			target_read_u32(target, CKGR_PLLR, &pllr);
 			if (!(pllr & CKGR_PLLR_DIV))
-			        break; /* 0 Hz */
+				break; /* 0 Hz */
 			at91sam7_info->mck_valid = 1;
 			mainfreq = RC_FREQ / 16ul * (mcfr & 0xffff);
 			/* Integer arithmetic should have sufficient precision
@@ -211,7 +205,8 @@ void at91sam7_set_flash_mode(flash_bank_t *bank,int mode)
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = at91sam7_info->target;
 	
-	if (mode && (mode != at91sam7_info->flashmode)) {
+	if (mode && (mode != at91sam7_info->flashmode))
+	{
 		/* Always round up (ceil) */
 		if (mode==1)
 			/* main clocks in 1uS */
@@ -220,16 +215,18 @@ void at91sam7_set_flash_mode(flash_bank_t *bank,int mode)
 			/* main clocks in 1.5uS */
 			fmcn = (at91sam7_info->mck_freq/666666ul)+1;
 
-		/* Only allow fmcn=0 if clock period is > 30 us. */
-		if (at91sam7_info->mck_freq <= 33333333ul)
+		/* Only allow fmcn=0 if clock period is > 30 us = 33kHz. */
+ 		if (at91sam7_info->mck_freq <= 33333ul)
 			fmcn = 0;
-		else
+		/* Only allow fws=0 if clock frequency is < 30 MHz. */
+		if (at91sam7_info->mck_freq > 30000000ul)
 			fws = 1;
 
 		DEBUG("fmcn: %i", fmcn); 
 		fmr = fmcn << 16 | fws << 8;
-		target->type->write_memory(target, MC_FMR, 4, 1, (u8 *)&fmr);
+		target_write_u32(target, MC_FMR, fmr);
 	}
+	
 	at91sam7_info->flashmode = mode;		
 }
 
@@ -245,7 +242,7 @@ u8 at91sam7_wait_status_busy(flash_bank_t *bank, int timeout)
 	
 	DEBUG("status: 0x%x", status);
 
-	if (status&0x0C)
+	if (status & 0x0C)
 	{
 		ERROR("status register: 0x%x", status);
 		if (status & 0x4)
@@ -267,7 +264,7 @@ int at91sam7_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen)
 	target_t *target = at91sam7_info->target;
 
 	fcr = (0x5A<<24) | (pagen<<8) | cmd; 
-	target->type->write_memory(target, MC_FCR, 4, 1, (u8 *)&fcr);
+	target_write_u32(target, MC_FCR, fcr);
 	DEBUG("Flash command: 0x%x, pagenumber:", fcr, pagen);
 
 	if (at91sam7_wait_status_busy(bank, 10)&0x0C) 
@@ -282,7 +279,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = at91sam7_info->target;
-	unsigned long cidr, mcfr, status;
+	u32 cidr, status;
 	
 	if (at91sam7_info->target->state != TARGET_HALTED)
 	{
@@ -290,7 +287,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 	}
 	
 	/* Read and parse chip identification register */
-	target->type->read_memory(target, DBGU_CIDR, 4, 1, (u8 *)&cidr);
+	target_read_u32(target, DBGU_CIDR, &cidr);
 	
 	if (cidr == 0)
 	{
@@ -471,7 +468,7 @@ int at91sam7_protect_check(struct flash_bank_s *bank)
 	}
 		
 	status = at91sam7_get_flash_status(bank);
-	at91sam7_info->lockbits = status>>16;
+	at91sam7_info->lockbits = status >> 16;
 	
 	return ERROR_OK;
 }
@@ -495,7 +492,6 @@ int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		ERROR("no target '%i' configured", args[5]);
 		exit(-1);
 	}
-	
 	
 	/* part wasn't probed for info yet */
 	at91sam7_info->cidr = 0;
@@ -532,10 +528,10 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 	at91sam7_read_clock_info(bank);	
 	at91sam7_set_flash_mode(bank,2);
 
-        if ((first == 0) && (last == (at91sam7_info->num_lockbits-1)))
-        {
-        	return at91sam7_flash_command(bank, EA, 0);
-        }
+	if ((first == 0) && (last == (at91sam7_info->num_lockbits-1)))
+	{
+		return at91sam7_flash_command(bank, EA, 0);
+	}
 
 	WARNING("Can only erase the whole flash area, pages are autoerased on write");
 	return ERROR_FLASH_OPERATION_FAILED;
@@ -685,6 +681,7 @@ int at91sam7_probe(struct flash_bank_s *bank)
 		WARNING("Cannot identify target as an AT91SAM");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
+	
 	return ERROR_OK;
 }
 

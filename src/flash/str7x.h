@@ -28,6 +28,7 @@ typedef struct str7x_flash_bank_s
 	int bank1;
 	struct target_s *target;
 	u32 flash_base;
+	working_area_t *write_algorithm;
 } str7x_flash_bank_t;
 
 enum str7x_status_codes
