@@ -930,12 +930,16 @@ int arm7_9_debug_entry(target_t *target)
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
+	
+	/* if the core has been executing in Thumb state, set the T bit */
+	if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
+		cpsr |= 0x20;	
+	
 	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, cpsr);
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 0;
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
 	
 	armv4_5->core_mode = cpsr & 0x1f;
-	DEBUG("target entered debug state in %s mode", armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)]);
 	
 	if (armv4_5_mode_to_number(armv4_5->core_mode) == -1)
 	{
@@ -943,6 +947,8 @@ int arm7_9_debug_entry(target_t *target)
 		ERROR("cpsr contains invalid mode value - communication failure");
 		return ERROR_TARGET_FAILURE;
 	}
+
+	DEBUG("target entered debug state in %s mode", armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)]);
 	
 	if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
 	{
@@ -1040,9 +1046,10 @@ int arm7_9_full_context(target_t *target)
 		{
 			u32 tmp_cpsr;
 			
-			/* change processor mode */
+			/* change processor mode (and mask T bit) */
 			tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
 			tmp_cpsr |= armv4_5_number_to_mode(i);
+			tmp_cpsr &= ~0x20;
 			arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 
 			for (j = 0; j < 15; j++)
@@ -1070,8 +1077,8 @@ int arm7_9_full_context(target_t *target)
 		}
 	}
 
-	/* restore processor mode */
-	arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8), 0, 0);
+	/* restore processor mode (mask T bit) */
+	arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -1150,9 +1157,10 @@ int arm7_9_restore_context(target_t *target)
 			{
 				u32 tmp_cpsr;
 			
-				/* change processor mode */
+				/* change processor mode (mask T bit) */
 				tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
 				tmp_cpsr |= armv4_5_number_to_mode(i);
+				tmp_cpsr &= ~0x20;
 				arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 				current_mode = armv4_5_number_to_mode(i);
 			}
@@ -1191,19 +1199,20 @@ int arm7_9_restore_context(target_t *target)
 	
 	if ((armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty == 0) && (armv4_5->core_mode != current_mode))
 	{
-		/* restore processor mode */
+		/* restore processor mode (mask T bit) */
 		u32 tmp_cpsr;
 			
 		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
 		tmp_cpsr |= armv4_5_number_to_mode(i);
+		tmp_cpsr &= ~0x20;
 		DEBUG("writing lower 8 bit of cpsr with value 0x%2.2x", tmp_cpsr);
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 	}
 	else if (armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty == 1)
 	{
-		/* CPSR has been changed, full restore necessary */
+		/* CPSR has been changed, full restore necessary (mask T bit) */
 		DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-		arm7_9->write_xpsr(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32), 0);
+		arm7_9->write_xpsr(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32) & ~0x20, 0);
 		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 0;
 		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
 	}
@@ -1514,9 +1523,10 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	{
 		u32 tmp_cpsr;
 			
-		/* change processor mode */
+		/* change processor mode (mask T bit) */
 		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
 		tmp_cpsr |= mode;
+		tmp_cpsr &= ~0x20;
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 	}
 	
@@ -1544,8 +1554,8 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	if ((mode != ARMV4_5_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
 			&& (reg_mode != ARMV4_5_MODE_ANY))	{
-		/* restore processor mode */
-		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8), 0, 0);
+		/* restore processor mode (mask T bit) */
+		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 	}
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -1574,9 +1584,10 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 			&& (reg_mode != ARMV4_5_MODE_ANY))	{
 		u32 tmp_cpsr;
 			
-		/* change processor mode */
+		/* change processor mode (mask T bit) */
 		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
 		tmp_cpsr |= mode;
+		tmp_cpsr &= ~0x20;
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 	}
 	
@@ -1595,6 +1606,10 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 		armv4_5_core_reg_t *arch_info = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info;
 		int spsr = (arch_info->mode == ARMV4_5_MODE_ANY) ? 0 : 1;
 		
+		/* if we're writing the CPSR, mask the T bit */
+		if (!spsr)
+			value &= ~0x20;
+		
 		arm7_9->write_xpsr(target, value, spsr);
 	}
 	
@@ -1604,8 +1619,8 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 	if ((mode != ARMV4_5_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
 			&& (reg_mode != ARMV4_5_MODE_ANY))	{
-		/* restore processor mode */
-		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8), 0, 0);
+		/* restore processor mode (mask T bit) */
+		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 	}
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -1755,7 +1770,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	{
 		ERROR("memory read caused data abort");
 
-		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8), 0, 0);
+		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
 		return ERROR_TARGET_DATA_ABORT;
 	}
@@ -1920,7 +1935,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	{
 		ERROR("memory write caused data abort");
 
-		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8), 0, 0);
+		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
 		return ERROR_TARGET_DATA_ABORT;
 	}
@@ -2059,6 +2074,10 @@ int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cm
 	value = strtoul(args[0], NULL, 0);
 	spsr = strtol(args[1], NULL, 0);
 	
+	/* if we're writing the CPSR, mask the T bit */
+	if (!spsr)
+		value &= ~0x20;
+	
 	arm7_9->write_xpsr(target, value, spsr);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -2100,7 +2119,7 @@ int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char
 	value = strtoul(args[0], NULL, 0);
 	rotate = strtol(args[1], NULL, 0);
 	spsr = strtol(args[2], NULL, 0);
-	
+		
 	arm7_9->write_xpsr_im8(target, value, rotate, spsr);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
