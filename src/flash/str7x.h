@@ -27,7 +27,8 @@ typedef struct str7x_flash_bank_s
 {
 	int bank1;
 	struct target_s *target;
-	u32 flash_base;
+	u32 *sector_bank;
+	u32 *sector_bits;
 	working_area_t *write_algorithm;
 } str7x_flash_bank_t;
 
@@ -100,7 +101,7 @@ enum str7x_status_codes
 typedef struct str7x_mem_layout_s {
 	u32 sector_start;
 	u32 sector_size;
-	u32 reg_offset;
+	u32 sector_bit;
 } str7x_mem_layout_t;
 
 #endif /* STR7X_H */
