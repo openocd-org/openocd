@@ -68,6 +68,8 @@ target_type_t arm9tdmi_target =
 	.write_memory = arm7_9_write_memory,
 	.bulk_write_memory = arm7_9_bulk_write_memory,
 
+	.run_algorithm = armv4_5_run_algorithm,
+	
 	.add_breakpoint = arm7_9_add_breakpoint,
 	.remove_breakpoint = arm7_9_remove_breakpoint,
 	.add_watchpoint = arm7_9_add_watchpoint,

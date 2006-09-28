@@ -223,14 +223,40 @@ int armv4_5_get_core_reg(reg_t *reg)
 	return retval;
 }
 
-int armv4_5_set_core_reg(reg_t *reg, u32 value)
+int armv4_5_set_core_reg(reg_t *reg, u8 *buf)
 {
 	armv4_5_core_reg_t *armv4_5 = reg->arch_info;
 	target_t *target = armv4_5->target;
+	armv4_5_common_t *armv4_5_target = target->arch_info;
+	u32 value = buf_get_u32(buf, 0, 32);
 		
 	if (target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
+	}
+	
+	if (reg == &armv4_5_target->core_cache->reg_list[ARMV4_5_CPSR])
+	{
+		if (value & 0x20)
+		{
+			/* T bit should be set */
+			if (armv4_5_target->core_state == ARMV4_5_STATE_ARM)
+			{
+				/* change state to Thumb */
+				DEBUG("changing to Thumb state");
+				armv4_5_target->core_state = ARMV4_5_STATE_THUMB;	
+			}
+		}
+		else
+		{
+			/* T bit should be cleared */
+			if (armv4_5_target->core_state == ARMV4_5_STATE_THUMB)
+			{
+				/* change state to ARM */
+				DEBUG("changing to ARM state");
+				armv4_5_target->core_state = ARMV4_5_STATE_ARM;	
+			}
+		}
 	}
 	
 	buf_set_u32(reg->value, 0, 32, value);
@@ -518,7 +544,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 			exit(-1);
 		}
 		
-		armv4_5_set_core_reg(reg, buf_get_u32(reg_params[i].value, 0, 32));
+		armv4_5_set_core_reg(reg, reg_params[i].value);
 	}
 	
 	armv4_5->core_state = armv4_5_algorithm_info->core_state;

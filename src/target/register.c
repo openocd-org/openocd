@@ -66,7 +66,7 @@ reg_cache_t** register_get_last_cache_p(reg_cache_t **first)
 	return cache_p;
 }
 
-int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, u32 value))
+int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, u8 *buf))
 {
 	reg_arch_type_t** arch_type_p = &reg_arch_types;
 	int id = 0;

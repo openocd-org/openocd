@@ -464,6 +464,13 @@ int gdb_connection_closed(connection_t *connection)
 	return ERROR_OK;
 }
 
+void gdb_send_error(connection_t *connection, u8 the_error)
+{
+    char err[4];
+    snprintf(err, 4, "E%2.2X", the_error );
+    gdb_put_packet(connection, err, 3);
+}
+
 int gdb_last_signal_packet(connection_t *connection, target_t *target, char* packet, int packet_size)
 {
 	char sig_reply[4];
@@ -477,7 +484,63 @@ int gdb_last_signal_packet(connection_t *connection, target_t *target, char* pac
 	return ERROR_OK;
 }
 
-void gdb_get_registers_packet(connection_t *connection, target_t *target, char* packet, int packet_size)
+void gdb_str_to_target(target_t *target, char *str, char *tstr)
+{
+	int str_len = strlen(str);
+	int i;
+	
+	if (str_len % 2)
+	{
+		ERROR("BUG: gdb value with uneven number of characters encountered");
+		exit(-1);
+	}
+	
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+	{
+		for (i = 0; i < str_len; i+=2)
+		{
+			tstr[str_len - i - 1] = str[i + 1];
+			tstr[str_len - i - 2] = str[i];
+		}
+	}
+	else
+	{
+		for (i = 0; i < str_len; i++)
+		{
+			tstr[i] = str[i];
+		}
+	}	
+}
+
+void gdb_target_to_str(target_t *target, char *tstr, char *str)
+{
+	int str_len = strlen(tstr);
+	int i;
+
+	if (str_len % 2)
+	{
+		ERROR("BUG: gdb value with uneven number of characters encountered");
+		exit(-1);
+	}
+	
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+	{
+		for (i = 0; i < str_len; i+=2)
+		{
+			str[str_len - i - 1] = tstr[i + 1];
+			str[str_len - i - 2] = tstr[i];
+		}
+	}
+	else
+	{
+		for (i = 0; i < str_len; i++)
+		{
+			str[i] = tstr[i];
+		}
+	}	
+}
+
+int gdb_get_registers_packet(connection_t *connection, target_t *target, char* packet, int packet_size)
 {
 	reg_t **reg_list;
 	int reg_list_size;
@@ -494,9 +557,10 @@ void gdb_get_registers_packet(connection_t *connection, target_t *target, char* 
 		switch (retval)
 		{
 			case ERROR_TARGET_NOT_HALTED:
-				ERROR("gdb requested registers, but we're not halted");
-				exit(-1);
+				ERROR("gdb requested registers but we're not halted, dropping connection");
+				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
+				/* this is a bug condition - get_gdb_reg_list() may not return any other error */
 				ERROR("BUG: unexpected error returned by get_gdb_reg_list()");
 				exit(-1);
 		}
@@ -512,14 +576,10 @@ void gdb_get_registers_packet(connection_t *connection, target_t *target, char* 
 	
 	for (i = 0; i < reg_list_size; i++)
 	{
-		int j;
-		char *hex_buf = buf_to_char(reg_list[i]->value, reg_list[i]->size);
+		char *hex_buf = buf_to_str(reg_list[i]->value, reg_list[i]->size, 16);
 		DEBUG("hex_buf: %s", hex_buf);
-		for (j = CEIL(reg_list[i]->size, 8) * 2; j > 0; j -= 2)
-		{
-			*reg_packet_p++ = hex_buf[j - 2];
-			*reg_packet_p++ = hex_buf[j - 1];
-		}
+		gdb_str_to_target(target, hex_buf, reg_packet_p);
+		reg_packet_p += CEIL(reg_list[i]->size, 8) * 2;
 		free(hex_buf);
 	}
 
@@ -530,9 +590,12 @@ void gdb_get_registers_packet(connection_t *connection, target_t *target, char* 
 	gdb_put_packet(connection, reg_packet, CEIL(reg_packet_size, 8) * 2);
 	free(reg_packet);
 	
+	free(reg_list);
+	
+	return ERROR_OK;
 }
 
-void gdb_set_registers_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_set_registers_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	int i;
 	reg_t **reg_list;
@@ -548,8 +611,8 @@ void gdb_set_registers_packet(connection_t *connection, target_t *target, char *
 
 	if (packet_size % 2)
 	{
-		WARNING("GDB set_registers packet with uneven characters received");
-		return;
+		WARNING("GDB set_registers packet with uneven characters received, dropping connection");
+		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
@@ -557,9 +620,10 @@ void gdb_set_registers_packet(connection_t *connection, target_t *target, char *
 		switch (retval)
 		{
 			case ERROR_TARGET_NOT_HALTED:
-				ERROR("gdb requested registers, but we're not halted");
-				exit(-1);
+				ERROR("gdb tried to registers but we're not halted, dropping connection");
+				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
+				/* this is a bug condition - get_gdb_reg_list() may not return any other error */
 				ERROR("BUG: unexpected error returned by get_gdb_reg_list()");
 				exit(-1);
 		}
@@ -568,23 +632,50 @@ void gdb_set_registers_packet(connection_t *connection, target_t *target, char *
 	packet_p = packet;
 	for (i = 0; i < reg_list_size; i++)
 	{
-		char_to_buf(packet, CEIL(reg_list[i]->size, 8) * 2, reg_list[i]->value, reg_list[i]->size);
-		reg_list[i]->dirty = 1;
+		u8 *bin_buf;
+		char *hex_buf;
+		reg_arch_type_t *arch_type;
+		
+		/* convert from GDB-string (target-endian) to hex-string (big-endian) */
+		hex_buf = malloc(CEIL(reg_list[i]->size, 8) * 2);
+		gdb_target_to_str(target, packet_p, hex_buf);
+		
+		/* convert hex-string to binary buffer */
+		bin_buf = malloc(CEIL(reg_list[i]->size, 8));
+		str_to_buf(hex_buf, CEIL(reg_list[i]->size, 8) * 2, bin_buf, reg_list[i]->size, 16);
+
+		/* get register arch_type, and call set method */	
+		arch_type = register_get_arch_type(reg_list[i]->arch_type);
+		if (arch_type == NULL)
+		{
+			ERROR("BUG: encountered unregistered arch type");
+			exit(-1);
+		}
+		arch_type->set(reg_list[i], bin_buf);
+
+		/* advance packet pointer */		
+		packet_p += (CEIL(reg_list[i]->size, 8) * 2);
+		
+		free(bin_buf);
+		free(hex_buf);
 	}
+	
+	/* free reg_t *reg_list[] array allocated by get_gdb_reg_list */ 
+	free(reg_list);
 
 	gdb_put_packet(connection, "OK", 2);
+	
+	return ERROR_OK;
 }
 
-void gdb_get_register_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_get_register_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
-	char *hex_buf;
 	char *reg_packet;
-	char *reg_packet_p;
 	int reg_num = strtoul(packet + 1, NULL, 16);
 	reg_t **reg_list;
 	int reg_list_size;
 	int retval;
-	int i;
+	char *hex_buf;
 	
 	DEBUG("");
 	
@@ -593,9 +684,10 @@ void gdb_get_register_packet(connection_t *connection, target_t *target, char *p
 		switch (retval)
 		{
 			case ERROR_TARGET_NOT_HALTED:
-				ERROR("gdb requested registers, but we're not halted");
-				exit(-1);
+				ERROR("gdb requested registers but we're not halted, dropping connection");
+				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
+				/* this is a bug condition - get_gdb_reg_list() may not return any other error */
 				ERROR("BUG: unexpected error returned by get_gdb_reg_list()");
 				exit(-1);
 		}
@@ -607,30 +699,32 @@ void gdb_get_register_packet(connection_t *connection, target_t *target, char *p
 		exit(-1);
 	}
 
-	hex_buf = buf_to_char(reg_list[reg_num]->value, reg_list[reg_num]->size);
-	reg_packet = reg_packet_p = malloc(CEIL(reg_list[reg_num]->size, 8) * 2);
+	reg_packet = malloc(CEIL(reg_list[reg_num]->size, 8) * 2);
+
+	hex_buf = buf_to_str(reg_list[reg_num]->value, reg_list[reg_num]->size, 16);
 	
-	for (i = CEIL(reg_list[reg_num]->size, 8) * 2; i > 0; i -= 2)
-	{
-		*reg_packet_p++ = hex_buf[i - 2];
-		*reg_packet_p++ = hex_buf[i - 1];
-	}
+	gdb_str_to_target(target, reg_packet, hex_buf);
 	
 	gdb_put_packet(connection, reg_packet, CEIL(reg_list[reg_num]->size, 8) * 2);
 	
+	free(reg_list);
 	free(reg_packet);
 	free(hex_buf);
 	
+	return ERROR_OK;
 }
 
-void gdb_set_register_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_set_register_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
+	char *hex_buf;
+	u8 *bin_buf;
 	int reg_num = strtoul(packet + 1, &separator, 16);
 	reg_t **reg_list;
 	int reg_list_size;
 	int retval;
-
+	reg_arch_type_t *arch_type;
+	
 	DEBUG("");
 	
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
@@ -638,9 +732,10 @@ void gdb_set_register_packet(connection_t *connection, target_t *target, char *p
 		switch (retval)
 		{
 			case ERROR_TARGET_NOT_HALTED:
-				ERROR("gdb requested registers, but we're not halted");
-				exit(-1);
+				ERROR("gdb tried to set a register but we're not halted, dropping connection");
+				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
+				/* this is a bug condition - get_gdb_reg_list() may not return any other error */
 				ERROR("BUG: unexpected error returned by get_gdb_reg_list()");
 				exit(-1);
 		}
@@ -649,23 +744,67 @@ void gdb_set_register_packet(connection_t *connection, target_t *target, char *p
 	if (reg_list_size < reg_num)
 	{
 		ERROR("gdb requested a non-existing register");
-		exit(-1);
+		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	if (*separator != '=')
 	{
-		ERROR("GDB set register packet, but no '=' following the register number");
-		exit(-1);
+		ERROR("GDB 'set register packet', but no '=' following the register number");
+		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 	
-	char_to_buf(separator + 1, CEIL(reg_list[reg_num]->size, 8) * 2, reg_list[reg_num]->value, reg_list[reg_num]->size);
-	reg_list[reg_num]->dirty = 1;
+	/* convert from GDB-string (target-endian) to hex-string (big-endian) */
+	hex_buf = malloc(CEIL(reg_list[reg_num]->size, 8) * 2);
+	gdb_target_to_str(target, separator + 1, hex_buf);
+	
+	/* convert hex-string to binary buffer */
+	bin_buf = malloc(CEIL(reg_list[reg_num]->size, 8));
+	str_to_buf(hex_buf, CEIL(reg_list[reg_num]->size, 8) * 2, bin_buf, reg_list[reg_num]->size, 16);
+
+	/* get register arch_type, and call set method */	
+	arch_type = register_get_arch_type(reg_list[reg_num]->arch_type);
+	if (arch_type == NULL)
+	{
+		ERROR("BUG: encountered unregistered arch type");
+		exit(-1);
+	}
+	arch_type->set(reg_list[reg_num], bin_buf);
 
 	gdb_put_packet(connection, "OK", 2);
 
+	free(bin_buf);
+	free(hex_buf);
+	free(reg_list);
+
+	return ERROR_OK;
 }
 
-void gdb_read_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_memory_packet_error(connection_t *connection, int retval)
+{
+	switch (retval)
+	{
+		case ERROR_TARGET_NOT_HALTED:
+			ERROR("gdb tried to read memory but we're not halted, dropping connection");
+			return ERROR_SERVER_REMOTE_CLOSED;
+			break;
+		case ERROR_TARGET_DATA_ABORT:
+			gdb_send_error(connection, EIO);
+			break;
+		case ERROR_TARGET_TRANSLATION_FAULT:
+			gdb_send_error(connection, EFAULT);
+			break;
+		case ERROR_TARGET_UNALIGNED_ACCESS:
+			gdb_send_error(connection, EFAULT);
+			break;
+		default:
+			ERROR("BUG: unexpected error %i", retval);
+			exit(-1);
+	}
+	
+	return ERROR_OK;
+}
+
+int gdb_read_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
 	u32 addr = 0;
@@ -675,6 +814,7 @@ void gdb_read_memory_packet(connection_t *connection, target_t *target, char *pa
 	char *hex_buffer;
 
 	int i;
+	int retval;
 
 	/* skip command character */
 	packet++;
@@ -682,7 +822,10 @@ void gdb_read_memory_packet(connection_t *connection, target_t *target, char *pa
 	addr = strtoul(packet, &separator, 16);
 	
 	if (*separator != ',')
-		return;
+	{
+		ERROR("incomplete read memory packet received, dropping connection");
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
 
 	len = strtoul(separator+1, NULL, 16);
 
@@ -694,35 +837,46 @@ void gdb_read_memory_packet(connection_t *connection, target_t *target, char *pa
 	{
 		case 4:
 			if ((addr % 4) == 0)
-				target->type->read_memory(target, addr, 4, 1, buffer);
+				retval = target->type->read_memory(target, addr, 4, 1, buffer);
 			else
-				target->type->read_memory(target, addr, 1, len, buffer);
+				retval = target->type->read_memory(target, addr, 1, len, buffer);
 			break;
 		case 2:
 			if ((addr % 2) == 0)
-				target->type->read_memory(target, addr, 2, 1, buffer);
+				retval = target->type->read_memory(target, addr, 2, 1, buffer);
 			else
-				target->type->read_memory(target, addr, 1, len, buffer);
+				retval = target->type->read_memory(target, addr, 1, len, buffer);
 			break;
 		default:
 			if (((addr % 4) == 0) && ((len % 4) == 0))
-				target->type->read_memory(target, addr, 4, len / 4, buffer);
+				retval = target->type->read_memory(target, addr, 4, len / 4, buffer);
 			else
-				target->type->read_memory(target, addr, 1, len, buffer);
+				retval = target->type->read_memory(target, addr, 1, len, buffer);
 	}
 
-	hex_buffer = malloc(len * 2 + 1);
+	if (retval == ERROR_OK)
+	{
+		hex_buffer = malloc(len * 2 + 1);
+		
+		for (i=0; i<len; i++)
+			snprintf(hex_buffer + 2*i, 3, "%2.2x", buffer[i]);
 	
-	for (i=0; i<len; i++)
-		snprintf(hex_buffer + 2*i, 3, "%2.2x", buffer[i]);
+		gdb_put_packet(connection, hex_buffer, len * 2);
+	
+		free(hex_buffer);
+	}
+	else
+	{
+		if ((retval = gdb_memory_packet_error(connection, retval)) != ERROR_OK)
+			return retval; 
+	}
 
-	gdb_put_packet(connection, hex_buffer, len * 2);
-	
-	free(hex_buffer);
 	free(buffer);
+	
+	return ERROR_OK;
 }
 
-void gdb_write_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_write_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
 	u32 addr = 0;
@@ -731,6 +885,7 @@ void gdb_write_memory_packet(connection_t *connection, target_t *target, char *p
 	u8 *buffer;
 
 	int i;
+	int retval;
 
 	/* skip command character */
 	packet++;
@@ -738,12 +893,18 @@ void gdb_write_memory_packet(connection_t *connection, target_t *target, char *p
 	addr = strtoul(packet, &separator, 16);
 	
 	if (*separator != ',')
-		return;
+	{
+		ERROR("incomplete write memory packet received, dropping connection");
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
 
 	len = strtoul(separator+1, &separator, 16);
 
 	if (*(separator++) != ':')
-		return;
+	{
+		ERROR("incomplete write memory packet received, dropping connection");
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
 
 	buffer = malloc(len);
 
@@ -761,38 +922,49 @@ void gdb_write_memory_packet(connection_t *connection, target_t *target, char *p
 		/* handle sized writes */
 		case 4:
 			if ((addr % 4) == 0)
-				target->type->write_memory(target, addr, 4, 1, buffer);
+				retval = target->type->write_memory(target, addr, 4, 1, buffer);
 			else
-				target->type->write_memory(target, addr, 1, len, buffer);
+				retval = target->type->write_memory(target, addr, 1, len, buffer);
 			break;
 		case 2:
 			if ((addr % 2) == 0)
-				target->type->write_memory(target, addr, 2, 1, buffer);
+				retval = target->type->write_memory(target, addr, 2, 1, buffer);
 			else
-				target->type->write_memory(target, addr, 1, len, buffer);
+				retval = target->type->write_memory(target, addr, 1, len, buffer);
 			break;
 		case 3:
 		case 1:
-			target->type->write_memory(target, addr, 1, len, buffer);
+			retval = target->type->write_memory(target, addr, 1, len, buffer);
 			break;
 		/* handle bulk writes */
 		default:
-			target_write_buffer(target, addr, len, buffer);
+			retval = target_write_buffer(target, addr, len, buffer);
 			break;
 	}
 
-	gdb_put_packet(connection, "OK", 2);
+	if (retval == ERROR_OK)
+	{
+		gdb_put_packet(connection, "OK", 2);
+	}
+	else
+	{
+		if ((retval = gdb_memory_packet_error(connection, retval)) != ERROR_OK)
+			return retval; 
+	}
 	
 	free(buffer);
+	
+	return ERROR_OK;
 }
 
-void gdb_write_memory_binary_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
 	u32 addr = 0;
 	u32 len = 0;
 
 	u8 *buffer;
+	int retval;
 
 	/* skip command character */
 	packet++;
@@ -800,12 +972,18 @@ void gdb_write_memory_binary_packet(connection_t *connection, target_t *target, 
 	addr = strtoul(packet, &separator, 16);
 	
 	if (*separator != ',')
-		return;
+	{
+		ERROR("incomplete write memory binary packet received, dropping connection");
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
 
 	len = strtoul(separator+1, &separator, 16);
 
 	if (*(separator++) != ':')
-		return;
+	{
+		ERROR("incomplete write memory binary packet received, dropping connection");
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
 
 	if( len ) {
 		
@@ -819,29 +997,39 @@ void gdb_write_memory_binary_packet(connection_t *connection, target_t *target, 
 		{
 			case 4:
 				if ((addr % 4) == 0)
-					target->type->write_memory(target, addr, 4, 1, buffer);
+					retval = target->type->write_memory(target, addr, 4, 1, buffer);
 				else
-					target->type->write_memory(target, addr, 1, len, buffer);
+					retval = target->type->write_memory(target, addr, 1, len, buffer);
 				break;
 			case 2:
 				if ((addr % 2) == 0)
-					target->type->write_memory(target, addr, 2, 1, buffer);
+					retval = target->type->write_memory(target, addr, 2, 1, buffer);
 				else
-					target->type->write_memory(target, addr, 1, len, buffer);
+					retval = target->type->write_memory(target, addr, 1, len, buffer);
 				break;
 			case 3:
 			case 1:
-				target->type->write_memory(target, addr, 1, len, buffer);
+				retval = target->type->write_memory(target, addr, 1, len, buffer);
 				break;
 			default:
-				target_write_buffer(target, addr, len, buffer);
+				retval = target_write_buffer(target, addr, len, buffer);
 				break;
 		}
 		
 		free(buffer);
 	}
 
-	gdb_put_packet(connection, "OK", 2);
+	if (retval == ERROR_OK)
+	{
+		gdb_put_packet(connection, "OK", 2);
+	}
+	else
+	{
+		if ((retval = gdb_memory_packet_error(connection, retval)) != ERROR_OK)
+			return retval; 
+	}
+	
+	return ERROR_OK;
 }
 
 void gdb_step_continue_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
@@ -853,7 +1041,6 @@ void gdb_step_continue_packet(connection_t *connection, target_t *target, char *
 
 	if (packet_size > 1)
 	{
-		u32 address = 0;
 		packet[packet_size] = 0;
 		address = strtoul(packet + 1, NULL, 16);
 	}
@@ -874,7 +1061,26 @@ void gdb_step_continue_packet(connection_t *connection, target_t *target, char *
 	}
 }
 
-void gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_bp_wp_packet_error(connection_t *connection, int retval)
+{
+	switch (retval)
+	{
+		case ERROR_TARGET_NOT_HALTED:
+			ERROR("gdb tried to set a breakpoint but we're not halted, dropping connection");
+			return ERROR_SERVER_REMOTE_CLOSED;
+			break;
+		case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
+			gdb_send_error(connection, EBUSY);
+			break;
+		default:
+			ERROR("BUG: unexpected error %i", retval);
+			exit(-1);
+	}
+	
+	return ERROR_OK;
+}
+
+int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	int type;
 	enum breakpoint_type bp_type;
@@ -900,12 +1106,18 @@ void gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target
 		wp_type = WPT_ACCESS;
 		
 	if (*separator != ',')
-		return;
+	{
+		ERROR("incomplete breakpoint/watchpoint packet received, dropping connection");
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
 
 	address = strtoul(separator+1, &separator, 16);
 
 	if (*separator != ',')
-		return;
+	{
+		ERROR("incomplete breakpoint/watchpoint packet received, dropping connection");
+		return ERROR_SERVER_REMOTE_CLOSED;
+	}
 
 	size = strtoul(separator+1, &separator, 16);
 
@@ -917,41 +1129,53 @@ void gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target
 			{
 				if ((retval = breakpoint_add(target, address, size, bp_type)) != ERROR_OK)
 				{
-					if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-					{
-						gdb_put_packet(connection, "E00", 3);
-						break;
-					}
+					if ((retval = gdb_bp_wp_packet_error(connection, retval)) != ERROR_OK)
+						return retval;
+				}
+				else
+				{
+					gdb_put_packet(connection, "OK", 2);
 				}
 			}
 			else
 			{
 				breakpoint_remove(target, address);
+				gdb_put_packet(connection, "OK", 2);
 			}
-			gdb_put_packet(connection, "OK", 2);
 			break;
 		case 2:
 		case 3:
 		case 4:
 		{
 			if (packet[0] == 'Z')
-				watchpoint_add(target, address, size, type-2, 0, 0xffffffffu);
+			{
+				if ((retval = watchpoint_add(target, address, size, type-2, 0, 0xffffffffu)) != ERROR_OK)
+				{
+					if ((retval = gdb_bp_wp_packet_error(connection, retval)) != ERROR_OK)
+						return retval;
+				}
+				else
+				{
+					gdb_put_packet(connection, "OK", 2);
+				}
+			}
 			else
+			{
 				watchpoint_remove(target, address);
-			gdb_put_packet(connection, "OK", 2);
+				gdb_put_packet(connection, "OK", 2);
+			}
 			break;
 		}
 		default:
 			break;
 	}
 
+	return ERROR_OK;
 }
 
 void gdb_query_packet(connection_t *connection, char *packet, int packet_size)
 {
 	command_context_t *cmd_ctx = connection->cmd_ctx;
-	gdb_service_t *gdb_service = connection->service->priv;
-	target_t *target = gdb_service->target;
 
 	if (strstr(packet, "qRcmd,"))
 	{
@@ -1000,7 +1224,7 @@ int gdb_input(connection_t *connection)
 				case ERROR_SERVER_REMOTE_CLOSED:
 					return ERROR_SERVER_REMOTE_CLOSED;
 				default:
-					ERROR("unexpected error");
+					ERROR("BUG: unexpected error");
 					exit(-1);
 			}
 		}
@@ -1012,6 +1236,7 @@ int gdb_input(connection_t *connection)
 		
 		if (packet_size > 0)
 		{
+			retval = ERROR_OK;
 			switch (packet[0])
 			{
 				case 'H':
@@ -1023,26 +1248,26 @@ int gdb_input(connection_t *connection)
 					gdb_query_packet(connection, packet, packet_size);
 					break;
 				case 'g':
-					gdb_get_registers_packet(connection, target, packet, packet_size);
+					retval = gdb_get_registers_packet(connection, target, packet, packet_size);
 					break;
 				case 'G':
-					gdb_set_registers_packet(connection, target, packet, packet_size);
+					retval = gdb_set_registers_packet(connection, target, packet, packet_size);
 					break;
 				case 'p':
-					gdb_get_register_packet(connection, target, packet, packet_size);
+					retval = gdb_get_register_packet(connection, target, packet, packet_size);
 					break;
 				case 'P':
-					gdb_set_register_packet(connection, target, packet, packet_size);
+					retval = gdb_set_register_packet(connection, target, packet, packet_size);
 					break;
 				case 'm':
-					gdb_read_memory_packet(connection, target, packet, packet_size);
+					retval = gdb_read_memory_packet(connection, target, packet, packet_size);
 					break;
 				case 'M':
-					gdb_write_memory_packet(connection, target, packet, packet_size);
+					retval = gdb_write_memory_packet(connection, target, packet, packet_size);
 					break;
 				case 'z':
 				case 'Z':
-					gdb_breakpoint_watchpoint_packet(connection, target, packet, packet_size);
+					retval = gdb_breakpoint_watchpoint_packet(connection, target, packet, packet_size);
 					break;
 				case '?':
 					gdb_last_signal_packet(connection, target, packet, packet_size);
@@ -1056,7 +1281,8 @@ int gdb_input(connection_t *connection)
 					gdb_put_packet(connection, "OK", 2);
 					break;
 				case 'X':
-					gdb_write_memory_binary_packet(connection, target, packet, packet_size);
+					if ((retval = gdb_write_memory_binary_packet(connection, target, packet, packet_size)) != ERROR_OK)
+						return retval;
 					break;
 				case 'k':
 					gdb_put_packet(connection, "OK", 2);
@@ -1067,6 +1293,10 @@ int gdb_input(connection_t *connection)
 					gdb_put_packet(connection, NULL, 0);
 					break;
 			}
+			
+			/* if a packet handler returned an error, exit input loop */
+			if (retval != ERROR_OK)
+				return retval;
 		}
 				
 		if (gdb_con->ctrl_c)

@@ -51,6 +51,7 @@ extern flash_driver_t lpc2000_flash;
 extern flash_driver_t cfi_flash;
 extern flash_driver_t at91sam7_flash;
 extern flash_driver_t str7x_flash;
+extern flash_driver_t str9x_flash;
 
 flash_driver_t *flash_drivers[] =
 {
@@ -58,6 +59,7 @@ flash_driver_t *flash_drivers[] =
 	&cfi_flash,
 	&at91sam7_flash,
 	&str7x_flash,
+	&str9x_flash,
 	NULL,
 };
 
@@ -366,6 +368,10 @@ int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		int last = strtoul(args[2], NULL, 0);
 		int retval;
 		flash_bank_t *p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+		struct timeval start, end, duration;
+
+		gettimeofday(&start, NULL);
+	
 		if (!p)
 		{
 			command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
@@ -397,6 +403,13 @@ int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				default:
 					command_print(cmd_ctx, "unknown error");
 			}
+		}
+		else
+		{
+			gettimeofday(&end, NULL);	
+			timeval_subtract(&duration, &end, &start);
+		
+			command_print(cmd_ctx, "erased sectors %i through %i on flash bank %i in %is %ius", first, last, strtoul(args[0], 0, 0), duration.tv_sec, duration.tv_usec);
 		}
 	}
 	else

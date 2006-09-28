@@ -95,6 +95,6 @@ extern int embeddedice_write_reg(reg_t *reg, u32 value);
 extern int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask);
 extern int embeddedice_store_reg(reg_t *reg);
 extern int embeddedice_set_reg(reg_t *reg, u32 value);
-extern int embeddedice_set_reg_w_exec(reg_t *reg, u32 value);
+extern int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf);
 
 #endif /* EMBEDDED_ICE_H */

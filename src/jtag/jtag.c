@@ -958,12 +958,14 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 	{
 		if (cmd->fields[i].out_value)
 		{
-			char* char_buf = buf_to_char(cmd->fields[i].out_value, cmd->fields[i].num_bits);
+#ifdef _DEBUG_JTAG_IO_
+			char* char_buf = buf_to_str(cmd->fields[i].out_value, cmd->fields[i].num_bits, 16);
+#endif
 			buf_set_buf(cmd->fields[i].out_value, 0, *buffer, bit_count, cmd->fields[i].num_bits);
 #ifdef _DEBUG_JTAG_IO_
-			DEBUG("fields[%i].out_value: %s", i, char_buf);
-#endif
+			DEBUG("fields[%i].out_value: 0x%s", i, char_buf);
 			free(char_buf);
+#endif
 		}
 		
 		bit_count += cmd->fields[i].num_bits;
@@ -991,8 +993,8 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			#ifdef _DEBUG_JTAG_IO_
 				char *char_buf;
 
-				char_buf = buf_to_char(captured, num_bits);
-				DEBUG("fields[%i].in_value: %s", i, char_buf);
+				char_buf = buf_to_str(captured, num_bits, 16);
+				DEBUG("fields[%i].in_value: 0x%s", i, char_buf);
 				free(char_buf);
 			#endif
 
@@ -1030,11 +1032,11 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 				if ((cmd->fields[i].in_check_mask && buf_cmp_mask(captured, cmd->fields[i].in_check_value, cmd->fields[i].in_check_mask, num_bits))
 					|| (!cmd->fields[i].in_check_mask && buf_cmp(captured, cmd->fields[i].in_check_mask, num_bits)))
 				{
-					char *captured_char = buf_to_char(captured, num_bits);
-					char *in_check_value_char = buf_to_char(cmd->fields[i].in_check_value, num_bits);
-					char *in_check_mask_char = buf_to_char(cmd->fields[i].in_check_mask, num_bits);
+					char *captured_char = buf_to_str(captured, num_bits, 16);
+					char *in_check_value_char = buf_to_str(cmd->fields[i].in_check_value, num_bits, 16);
+					char *in_check_mask_char = buf_to_str(cmd->fields[i].in_check_mask, num_bits, 16);
 					/* TODO: error reporting */
-					WARNING("value captured during scan didn't pass the requested check: captured: %s check_value: %s check_mask: %s", captured_char, in_check_value_char, in_check_mask_char);
+					WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s check_mask: 0x%s", captured_char, in_check_value_char, in_check_mask_char);
 					retval = ERROR_JTAG_QUEUE_FAILED;
 					free(captured_char);
 					free(in_check_value_char);
@@ -1144,8 +1146,8 @@ int jtag_validate_chain()
 	{
 		if (buf_get_u32(ir_test, chain_pos, 2) != 0x1)
 		{
-			char *cbuf = buf_to_char(ir_test, total_ir_length);
-			ERROR("Error validating JTAG scan chain, IR mismatch, scan returned %s", cbuf);
+			char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
+			ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
 			free(cbuf);
 			exit(-1);
 		}
@@ -1155,8 +1157,8 @@ int jtag_validate_chain()
 	
 	if (buf_get_u32(ir_test, chain_pos, 2) != 0x3)
 	{
-		char *cbuf = buf_to_char(ir_test, total_ir_length);
-		ERROR("Error validating JTAG scan chain, IR mismatch, scan returned %s", cbuf);
+		char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
+		ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
 		free(cbuf);
 		exit(-1);
 	}

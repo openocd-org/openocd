@@ -208,56 +208,156 @@ u32 flip_u32(u32 value, unsigned int num)
 	return c;
 }
 
-char* buf_to_char(u8 *buf, int size)
+int ceil_f_to_u32(float x)
 {
-	int char_len = CEIL(size, 8) * 2;
-	char *char_buf = malloc(char_len + 1);
-	int i;
-	int bits_left = size;
+	u32 y;
 	
-	char_buf[char_len] = 0;
+	if (x < 0)	/* return zero for negative numbers */
+		return 0;
 	
-	for (i = 0; i < CEIL(size, 8); i++)
-	{
-		if (bits_left < 8)
-		{
-			buf[i] &= ((1 << bits_left) - 1);
-		}
-		
-		if (((buf[i] & 0x0f) >= 0) && ((buf[i] & 0x0f) <= 9))
-			char_buf[char_len - 2*i - 1] = '0' + (buf[i] & 0xf);
-		else
-			char_buf[char_len - 2*i - 1] = 'a' + (buf[i] & 0xf) - 10;
-		
-		if (((buf[i] & 0xf0) >> 4 >= 0) && ((buf[i] & 0xf0) >> 4 <= 9))
-			char_buf[char_len - 2*i - 2] = '0' + ((buf[i] & 0xf0) >> 4);
-		else
-			char_buf[char_len - 2*i - 2] = 'a' + ((buf[i] & 0xf0) >> 4) - 10;
-		
-	}
-
-	return char_buf;
+	y = x;	/* cut off fraction */
+	
+	if ((x - y) > 0.0) /* if there was a fractional part, increase by one */
+		y++;
+	
+	return y;
 }
 
-int char_to_buf(char *buf, int len, u8 *bin_buf, int buf_size)
+char* buf_to_str(u8 *buf, int buf_len, int radix)
 {
-	int bin_len = CEIL(len, 2);
-	int i;
+	const char *DIGITS = "0123456789abcdef";
+	float factor;
+	char *str;
+	int str_len;
+	int b256_len = CEIL(buf_len, 8);
+	u32 tmp;
+
+	int j; /* base-256 digits */
+	int i; /* output digits (radix) */
 	
-	if (buf_size < CEIL(bin_len, 8))
-		return 0;
-	
-	if (len % 2)
-		return 0;
-	
-	for (i = 0; i < strlen(buf); i++)
+	if (radix == 16)
 	{
-		u32 tmp;
-		sscanf(buf + 2*i, "%2x", &tmp);
-		bin_buf[i] = tmp & 0xff;
+		factor = 2.0;   /* log(256) / log(16) = 2.0 */
+	}
+	else if (radix == 10)
+	{
+		factor = 2.40824;   /* log(256) / log(10) = 2.40824 */
+    }
+	else if (radix == 8)
+	{
+		factor = 2.66667;	/* log(256) / log(8) = 2.66667 */
+	}
+	else
+		return NULL;
+	
+	str_len = ceil_f_to_u32(CEIL(buf_len, 8) * factor);
+	str = calloc(str_len + 1, 1);
+	
+	for (i = b256_len - 1; i >= 0; i--)
+    {
+        tmp = buf[i];
+    	if ((i == (buf_len / 8)) && (buf_len % 8))
+    		tmp &= (0xff >> (8 - (buf_len % 8)));
+
+        for (j = str_len; j > 0; j--)
+        {
+            tmp += (u32)str[j-1] * 256;
+            str[j-1] = (u8)(tmp % radix);
+            tmp /= radix;
+        }
+    }
+    
+    for (j = 0; j < str_len; j++)
+		str[j] = DIGITS[(int)str[j]];
+	
+	return str;
+}
+
+int str_to_buf(char* str, int str_len, u8 *buf, int buf_len, int radix)
+{
+	char *charbuf;
+	u32 tmp;
+	float factor;
+	u8 *b256_buf;
+	int b256_len; 
+	
+	int j; /* base-256 digits */
+	int i; /* input digits (ASCII) */
+	
+	if (radix == 0)	
+	{
+		/* identify radix, and skip radix-prefix (0, 0x or 0X) */
+		if ((str[0] == '0') && (str[1] && ((str[1] == 'x') || (str[1] == 'X'))))
+		{
+			radix = 16;
+			str += 2;
+			str_len -= 2;
+		}
+		else if ((str[0] == '0') && (str_len != 1))
+		{
+			radix = 8;
+			str += 1;
+			str_len -= 1;
+		}
+		else
+		{
+			radix = 10;
+		}
 	}
 	
-	return bin_len * 8;
+	if (radix == 16)
+		factor = 0.5; /* log(16) / log(256) = 0.5 */
+	else if (radix == 10)
+		factor = 0.41524; /* log(10) / log(256) = 0.41524 */
+	else if (radix == 8)
+		factor = 0.375; /* log(8) / log(256) = 0.375 */
+	else
+		return 0;
+
+	/* copy to zero-terminated buffer */
+	charbuf = malloc(str_len + 1);
+	memcpy(charbuf, str, str_len);
+	charbuf[str_len] = '\0';
+	
+	/* number of digits in base-256 notation */
+	b256_len = ceil_f_to_u32(str_len * factor);
+	b256_buf = calloc(b256_len, 1);
+		
+	/* go through zero terminated buffer */
+	for (i = 0; charbuf[i]; i++)
+	{ 
+		tmp = charbuf[i];
+        if ((tmp >= '0') && (tmp <= '9'))
+        	tmp = (tmp - '0');
+        else if ((tmp >= 'a') && (tmp <= 'f'))
+        	tmp = (tmp - 'a' + 10);
+        else if ((tmp >= 'A') && (tmp <= 'F'))
+        	tmp = (tmp - 'A' + 10);
+        else continue;	/* skip characters other than [0-9,a-f,A-F] */
+		
+		if (tmp >= radix)
+			continue;	/* skip digits invalid for the current radix */ 
+		
+		for (j = 0; j < b256_len; j++)
+        {
+            tmp += (u32)b256_buf[j] * radix;
+            b256_buf[j] = (u8)(tmp & 0xFF);
+            tmp >>= 8;
+        }
+		
+	}
+	
+	for (j = 0; j < CEIL(buf_len, 8); j++)
+		buf[j] = b256_buf[j];
+
+	/* mask out bits that don't belong to the buffer */
+	if (buf_len % 8)
+		buf[(buf_len / 8)] &= 0xff >> (8 - (buf_len % 8));
+		
+	free(b256_buf);
+	free(charbuf);
+	
+	return i;
 }
 
 int buf_to_u32_handler(u8 *in_buf, void *priv)

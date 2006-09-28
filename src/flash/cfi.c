@@ -685,6 +685,8 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		count -= thisrun_count;
 	}
 	
+	target_free_working_area(target, source);
+	
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
@@ -881,6 +883,8 @@ int cfi_probe(struct flash_bank_s *bank)
 	cfi_info->qry[0] = cfi_query_u8(bank, 0, 0x10);
 	cfi_info->qry[1] = cfi_query_u8(bank, 0, 0x11);
 	cfi_info->qry[2] = cfi_query_u8(bank, 0, 0x12);
+	
+	DEBUG("CFI qry returned: 0x%2.2x 0x%2.2x 0x%2.2x", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2]);
 	
 	if ((cfi_info->qry[0] != 'Q') || (cfi_info->qry[1] != 'R') || (cfi_info->qry[2] != 'Y'))
 	{

@@ -1085,7 +1085,7 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 			int i;
 			for (i = 0; i < cache->num_regs; i++)
 			{
-				value = buf_to_char(cache->reg_list[i].value, cache->reg_list[i].size);
+				value = buf_to_str(cache->reg_list[i].value, cache->reg_list[i].size, 16);
 				command_print(cmd_ctx, "(%i) %s (/%i): 0x%s (dirty: %i, valid: %i)", count++, cache->reg_list[i].name, cache->reg_list[i].size, value, cache->reg_list[i].dirty, cache->reg_list[i].valid);
 				free(value);
 			}
@@ -1150,7 +1150,7 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 			}
 			arch_type->get(reg);
 		}
-		value = buf_to_char(reg->value, reg->size);
+		value = buf_to_str(reg->value, reg->size, 16);
 		command_print(cmd_ctx, "%s (/%i): 0x%s", reg->name, reg->size, value);
 		free(value);
 		return ERROR_OK;
@@ -1159,7 +1159,9 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	/* set register value */
 	if (argc == 2)
 	{
-		u32 new_value = strtoul(args[1], NULL, 0);
+		u8 *buf = malloc(CEIL(reg->size, 8));
+		str_to_buf(args[1], strlen(args[1]), buf, reg->size, 0);
+
 		reg_arch_type_t *arch_type = register_get_arch_type(reg->arch_type);
 		if (arch_type == NULL)
 		{
@@ -1167,10 +1169,13 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 			return ERROR_OK;
 		}
 		
-		arch_type->set(reg, new_value);
-		value = buf_to_char(reg->value, reg->size);
+		arch_type->set(reg, buf);
+		
+		value = buf_to_str(reg->value, reg->size, 16);
 		command_print(cmd_ctx, "%s (/%i): 0x%s", reg->name, reg->size, value);
 		free(value);
+		
+		free(buf);
 		
 		return ERROR_OK;
 	}
@@ -1684,7 +1689,7 @@ int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 		{
 			if (breakpoint->type == BKPT_SOFT)
 			{
-				char* buf = buf_to_char(breakpoint->orig_instr, breakpoint->length);
+				char* buf = buf_to_str(breakpoint->orig_instr, breakpoint->length, 16);
 				command_print(cmd_ctx, "0x%8.8x, 0x%x, %i, 0x%s", breakpoint->address, breakpoint->length, breakpoint->set, buf);
 				free(buf);
 			}

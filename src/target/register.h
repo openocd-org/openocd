@@ -56,13 +56,13 @@ typedef struct reg_arch_type_s
 {
 	int id;
 	int (*get)(reg_t *reg);
-	int (*set)(reg_t *reg, u32 value);
+	int (*set)(reg_t *reg, u8 *buf);
 	struct reg_arch_type_s *next;
 } reg_arch_type_t;
 
 extern reg_t* register_get_by_name(reg_cache_t *first, char *name, int search_all);
 extern reg_cache_t** register_get_last_cache_p(reg_cache_t **first);
-extern int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, u32 value));
+extern int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, u8 *buf));
 extern reg_arch_type_t* register_get_arch_type(int id);
 
 #endif /* REGISTER_H */

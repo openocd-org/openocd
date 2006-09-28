@@ -199,6 +199,7 @@ int etm_reg_arch_type = -1;
 
 int etm_get_reg(reg_t *reg);
 int etm_set_reg(reg_t *reg, u32 value);
+int etm_set_reg_w_exec(reg_t *reg, u8 *buf);
 
 int etm_write_reg(reg_t *reg, u32 value);
 int etm_read_reg(reg_t *reg);
@@ -338,9 +339,9 @@ int etm_set_reg(reg_t *reg, u32 value)
 	return ERROR_OK;
 }
 
-int etm_set_reg_w_exec(reg_t *reg, u32 value)
+int etm_set_reg_w_exec(reg_t *reg, u8 *buf)
 {
-	etm_set_reg(reg, value);
+	etm_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 	
 	if (jtag_execute_queue() != ERROR_OK)
 	{

@@ -126,7 +126,7 @@ int handle_var_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 			last_var_p = &((*last_var_p)->next);
 		}
 
-		if ((args[0][0] >= 0) && (args[0][0] <= 9))
+		if ((args[0][0] >= '0') && (args[0][0] <= '9'))
 		{
 			command_print(cmd_ctx, "invalid name specified (first character may not be a number)");
 			return ERROR_OK;

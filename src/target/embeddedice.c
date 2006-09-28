@@ -78,6 +78,7 @@ int embeddedice_reg_arch_type = -1;
 
 int embeddedice_get_reg(reg_t *reg);
 int embeddedice_set_reg(reg_t *reg, u32 value);
+int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf);
 
 int embeddedice_write_reg(reg_t *reg, u32 value);
 int embeddedice_read_reg(reg_t *reg);
@@ -231,9 +232,9 @@ int embeddedice_set_reg(reg_t *reg, u32 value)
 	return ERROR_OK;
 }
 
-int embeddedice_set_reg_w_exec(reg_t *reg, u32 value)
+int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf)
 {
-	embeddedice_set_reg(reg, value);
+	embeddedice_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 	
 	if (jtag_execute_queue() != ERROR_OK)
 	{

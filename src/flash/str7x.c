@@ -183,6 +183,15 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			bank->base = 0x80000000;
 		}
 	}
+	else if (strcmp(args[5], "STR75x") == 0)
+	{
+		str7x_info->bank1 = 1;
+		if (bank->base != 0x20000000)
+		{
+			WARNING("overriding flash base address for STR75x device with 0x20000000");
+			bank->base = 0x20000000;
+		}
+	}
 	else
 	{
 		ERROR("unknown STR7x variant");
