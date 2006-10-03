@@ -491,7 +491,7 @@ void gdb_str_to_target(target_t *target, char *str, char *tstr)
 	
 	if (str_len % 2)
 	{
-		ERROR("BUG: gdb value with uneven number of characters encountered");
+		ERROR("BUG: gdb value with uneven number of characters encountered: %s", str);
 		exit(-1);
 	}
 	
@@ -703,7 +703,7 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 
 	hex_buf = buf_to_str(reg_list[reg_num]->value, reg_list[reg_num]->size, 16);
 	
-	gdb_str_to_target(target, reg_packet, hex_buf);
+	gdb_str_to_target(target, hex_buf, reg_packet);
 	
 	gdb_put_packet(connection, reg_packet, CEIL(reg_list[reg_num]->size, 8) * 2);
 	
@@ -917,6 +917,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 		buffer[i] = tmp;
 	}
 
+	retval = ERROR_OK;
 	switch (len)
 	{
 		/* handle sized writes */
@@ -985,6 +986,7 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
+	retval = ERROR_OK;
 	if( len ) {
 		
 		buffer = malloc(len);
