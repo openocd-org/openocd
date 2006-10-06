@@ -86,7 +86,16 @@ typedef struct at91sam7_flash_bank_s
 #define  CGPB 0x0D
 #define  SSB  0x0F
 
+/* MC_FSR bit definitions */
+#define        MC_FSR_FRDY 1
+#define        MC_FSR_EOL 2
+
 /* AT91SAM7 constants */
 #define RC_FREQ  32000
+
+/*  FLASH_TIMING_MODES */
+#define  FMR_TIMING_NONE    0
+#define  FMR_TIMING_NVBITS  1
+#define  FMR_TIMING_FLASH   2
 
 #endif /* AT91SAM7_H */

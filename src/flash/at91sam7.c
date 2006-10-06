@@ -63,7 +63,7 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
 u32 at91sam7_get_flash_status(flash_bank_t *bank);
 void at91sam7_set_flash_mode(flash_bank_t *bank,int mode);
-u8 at91sam7_wait_status_busy(flash_bank_t *bank, int timeout);
+u32 at91sam7_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout);
 int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 flash_driver_t at91sam7_flash =
@@ -195,7 +195,7 @@ void at91sam7_read_clock_info(flash_bank_t *bank)
 		at91sam7_info->mck_freq = tmp >> ((mckr & PMC_MCKR_PRES) >> 2);
 
 	/* Forget old flash timing */
-	at91sam7_set_flash_mode(bank,0);
+       at91sam7_set_flash_mode(bank,FMR_TIMING_NONE);
 }
 
 /* Setup the timimg registers for nvbits or normal flash */
@@ -208,10 +208,20 @@ void at91sam7_set_flash_mode(flash_bank_t *bank,int mode)
 	if (mode && (mode != at91sam7_info->flashmode))
 	{
 		/* Always round up (ceil) */
-		if (mode==1)
-			/* main clocks in 1uS */
-			fmcn = (at91sam7_info->mck_freq/1000000ul)+1;
-		else if (mode==2)
+              if (mode==FMR_TIMING_NVBITS)
+              {
+                     if (at91sam7_info->cidr_arch == 0x60)
+                     {                           
+                            /* AT91SAM7A3 uses master clocks in 100 ns */
+                            fmcn = (at91sam7_info->mck_freq/10000000ul)+1;
+                     }
+                     else
+                     {
+                            /* master clocks in 1uS for ARCH 0x7 types */
+                            fmcn = (at91sam7_info->mck_freq/1000000ul)+1;
+                     }
+              }
+              else if (mode==FMR_TIMING_FLASH)
 			/* main clocks in 1.5uS */
 			fmcn = (at91sam7_info->mck_freq/666666ul)+1;
 
@@ -230,11 +240,11 @@ void at91sam7_set_flash_mode(flash_bank_t *bank,int mode)
 	at91sam7_info->flashmode = mode;		
 }
 
-u8 at91sam7_wait_status_busy(flash_bank_t *bank, int timeout)
+u32 at91sam7_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout)
 {
 	u32 status;
 	
-	while ((!((status = at91sam7_get_flash_status(bank)) & 0x01)) && (timeout-- > 0))
+       while ((!((status = at91sam7_get_flash_status(bank)) & waitbits)) && (timeout-- > 0))
 	{
 		DEBUG("status: 0x%x", status);
 		usleep(1000);
@@ -256,6 +266,7 @@ u8 at91sam7_wait_status_busy(flash_bank_t *bank, int timeout)
 	return status;
 }
 
+
 /* Send one command to the AT91SAM flash controller */
 int at91sam7_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen) 
 {
@@ -267,8 +278,18 @@ int at91sam7_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen)
 	target_write_u32(target, MC_FCR, fcr);
 	DEBUG("Flash command: 0x%x, pagenumber:", fcr, pagen);
 
-	if (at91sam7_wait_status_busy(bank, 10)&0x0C) 
+       if ((at91sam7_info->cidr_arch == 0x60)&&((cmd==SLB)|(cmd==CLB)))
 	{
+              /* Lock bit manipulation on AT91SAM7A3 waits for FC_FSR bit 1, EOL */
+              if (at91sam7_wait_status_busy(bank, MC_FSR_EOL, 10)&0x0C) 
+              {
+                     return ERROR_FLASH_OPERATION_FAILED;
+              }
+              return ERROR_OK;
+       }
+
+       if (at91sam7_wait_status_busy(bank, MC_FSR_FRDY, 10)&0x0C) 
+       {
 		return ERROR_FLASH_OPERATION_FAILED;
 	}		
 	return ERROR_OK;
@@ -422,7 +443,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 			at91sam7_info->target_name = "AT91SAM7A3";
 			at91sam7_info->num_lockbits = 16;
 			at91sam7_info->pagesize = 256;
-			at91sam7_info->pages_in_lockregion = 64;
+                     at91sam7_info->pages_in_lockregion = 16;
 			at91sam7_info->num_pages = 16*64;
 		}
 		return ERROR_OK;
@@ -526,7 +547,7 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 
 	/* Configure the flash controller timing */
 	at91sam7_read_clock_info(bank);	
-	at91sam7_set_flash_mode(bank,2);
+       at91sam7_set_flash_mode(bank,FMR_TIMING_FLASH);
 
 	if ((first == 0) && (last == (at91sam7_info->num_lockbits-1)))
 	{
@@ -568,7 +589,7 @@ int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	/* Configure the flash controller timing */
 	at91sam7_read_clock_info(bank);	
-	at91sam7_set_flash_mode(bank,1);
+       at91sam7_set_flash_mode(bank,FMR_TIMING_NVBITS);
 	
 	for (lockregion=first;lockregion<=last;lockregion++) 
 	{
@@ -638,7 +659,7 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	
 	/* Configure the flash controller timing */	
 	at91sam7_read_clock_info(bank);	
-	at91sam7_set_flash_mode(bank,2);
+       at91sam7_set_flash_mode(bank,FMR_TIMING_FLASH);
 
 	for (pagen=first_page; pagen<last_page; pagen++) {
 		if (bytes_remaining<dst_min_alignment) 
@@ -700,7 +721,7 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
-	printed = snprintf(buf, buf_size, "\nat91sam7 information:\n");
+       printed = snprintf(buf, buf_size, "\nat91sam7 information: Chip is %s\n",at91sam7_info->target_name);
 	buf += printed;
 	buf_size -= printed;
 	
@@ -800,7 +821,7 @@ int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 	/* Configure the flash controller timing */
 	at91sam7_read_clock_info(bank);	
-	at91sam7_set_flash_mode(bank,1);
+       at91sam7_set_flash_mode(bank,FMR_TIMING_NVBITS);
 	
 	if (at91sam7_flash_command(bank, flashcmd, (u16)(bit)) != ERROR_OK) 
 	{

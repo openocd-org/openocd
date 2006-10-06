@@ -43,6 +43,11 @@ The Amontec JTAGkey offers support for a wide variety of target voltages from
 1.4V to 5V. It also allows the JTAG lines and reset signals to be tri-stated,
 allowing easy interfacing with a wide variety of targets.
 
+* Amontec JTAGkey-Tiny: www.amontec.com
+The Amontec JTAGkey offers support for a wide variety of target voltages from
+2.8V to 5V. It also allows the reset signals to be tri-stated, allowing easy
+interfacing with a wide variety of targets.
+
 * Olimex ARM-USB-OCD: www.olimex.com
 The Olimex ARM-USB-OCD offers support for a wide vriety of target voltages from
 2.0V to 5V. It also allows targets to be powered from the ARM-USB-OCD and
