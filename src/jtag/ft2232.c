@@ -70,10 +70,12 @@ int ft2232_init(void);
 int ft2232_quit(void);
 
 int ft2232_handle_device_desc_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int ft2232_handle_serial_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int ft2232_handle_layout_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int ft2232_handle_vid_pid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 char *ft2232_device_desc = NULL;
+char *ft2232_serial = NULL;
 char *ft2232_layout = NULL;
 u16 ft2232_vid = 0x0403;
 u16 ft2232_pid = 0x6010;
@@ -237,6 +239,8 @@ int ft2232_speed(int speed)
 int ft2232_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "ft2232_device_desc", ft2232_handle_device_desc_command,
+		COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, NULL, "ft2232_serial", ft2232_handle_serial_command,
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "ft2232_layout", ft2232_handle_layout_command,
 		COMMAND_CONFIG, NULL);
@@ -942,6 +946,8 @@ int ft2232_init(void)
 	
 #if BUILD_FT2232_FTD2XX == 1
 	FT_STATUS status;
+	DWORD openex_flags = 0;
+	char *openex_string = NULL;
 #endif
 
 	ft2232_layout_t *cur_layout = ft2232_layouts;
@@ -975,13 +981,6 @@ int ft2232_init(void)
 #endif
 
 #if BUILD_FT2232_FTD2XX == 1
-	/* Open by device description */
-	if (ft2232_device_desc == NULL)
-	{
-		WARNING("no ftd2xx device description specified, using default 'Dual RS232'");
-		ft2232_device_desc = "Dual RS232";
-	}
-	
 #if IS_WIN32 == 0
 	/* Add non-standard Vid/Pid to the linux driver */
 	if ((status = FT_SetVIDPID(ft2232_vid, ft2232_pid)) != FT_OK)
@@ -990,7 +989,30 @@ int ft2232_init(void)
 	}
 #endif
 
-	if ((status = FT_OpenEx(ft2232_device_desc, FT_OPEN_BY_DESCRIPTION, &ftdih)) != FT_OK)
+	if (ft2232_device_desc && ft2232_serial)
+	{
+		WARNING("can't open by device description and serial number, giving precedence to serial");
+		ft2232_device_desc = NULL;
+	}
+	else if (ft2232_device_desc)
+	{
+		openex_string = ft2232_device_desc;
+		openex_flags = FT_OPEN_BY_DESCRIPTION;
+	}
+	else if (ft2232_serial)
+	{
+		openex_string = ft2232_serial;
+		openex_flags = FT_OPEN_BY_SERIAL_NUMBER;
+	}
+	else
+	{
+		ERROR("neither device description nor serial number specified");
+		ERROR("please add \"ft2232_device_desc <string>\" or \"ft2232_serial <string>\" to your .cfg file");
+		
+		return ERROR_JTAG_INIT_FAILED;	
+	}
+
+	if ((status = FT_OpenEx(openex_string, openex_flags, &ftdih)) != FT_OK)
 	{
 		DWORD num_devices;
 		
@@ -1005,7 +1027,7 @@ int ft2232_init(void)
 				desc_array[i] = malloc(64);
 			desc_array[num_devices] = NULL;
 
-			status = FT_ListDevices(desc_array, &num_devices, FT_LIST_ALL | FT_OPEN_BY_DESCRIPTION);
+			status = FT_ListDevices(desc_array, &num_devices, FT_LIST_ALL | openex_flags);
 
 			if (status == FT_OK)
 			{
@@ -1430,6 +1452,20 @@ int ft2232_handle_device_desc_command(struct command_context_s *cmd_ctx, char *c
 	else
 	{
 		ERROR("expected exactly one argument to ft2232_device_desc <description>");
+	}
+	
+	return ERROR_OK;
+}
+
+int ft2232_handle_serial_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc == 1)
+	{
+		ft2232_serial = strdup(args[0]);
+	}
+	else
+	{
+		ERROR("expected exactly one argument to ft2232_serial <serial-number>");
 	}
 	
 	return ERROR_OK;

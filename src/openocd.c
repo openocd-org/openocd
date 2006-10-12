@@ -18,7 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#define OPENOCD_VERSION "Open On-Chip Debugger (2006-09-07 20:00 CEST)"
+#define OPENOCD_VERSION "Open On-Chip Debugger (2006-10-12 18:00 CEST)"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -92,6 +92,8 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	
 	command_done(cfg_cmd_ctx);
+
+	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 
 	if (jtag_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;

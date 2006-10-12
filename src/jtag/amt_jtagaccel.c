@@ -181,7 +181,7 @@ void amt_wait_scan_busy()
 	
 	if (ar_status & 0x80)
 	{
-		ERROR("amt_jtagaccel timed out while waiting for end of scan, rtck was %s", (rtck_enabled) ? "enabled" : "disabled");
+		ERROR("amt_jtagaccel timed out while waiting for end of scan, rtck was %s, last AR_STATUS: 0x%2.2x", (rtck_enabled) ? "enabled" : "disabled", ar_status);
 		exit(-1);
 	}
 }
@@ -434,7 +434,8 @@ int amt_jtagaccel_init(void)
 #else
 	u8 status_port;
 #endif
-
+	u8 ar_status;
+	
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle > 0)
 	{
@@ -498,6 +499,12 @@ int amt_jtagaccel_init(void)
 	outb(0x04, amt_jtagaccel_port + 2);
 #endif
 	
+	if (rtck_enabled)
+	{	
+		/* set RTCK enable bit */
+		aw_control_fsm |= 0x02;
+	}
+	
 	/* enable JTAG port */
 	aw_control_fsm |= 0x04;
 	AMT_AW(aw_control_fsm);
@@ -515,6 +522,10 @@ int amt_jtagaccel_init(void)
 		aw_control_rst |= 0x2;
 	
 	amt_jtagaccel_reset(0, 0);
+	
+	/* read status register */
+	AMT_AR(ar_status);
+	DEBUG("AR_STATUS: 0x%2.2x", ar_status);
 	
 	return ERROR_OK;
 }
@@ -549,10 +560,10 @@ int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, char *c
 		if (strcmp(args[0], "enabled") == 0)
 		{
 			rtck_enabled = 1;
-			
-			/* set RTCK enable bit */
-			aw_control_fsm |= 0x02;
-			AMT_AW(aw_control_fsm);
+		}
+		else
+		{
+			rtck_enabled = 0;
 		}
 	}
 	

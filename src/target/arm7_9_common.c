@@ -1768,7 +1768,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
 	{
-		ERROR("memory read caused data abort");
+		ERROR("memory read caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
 
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
@@ -1933,7 +1933,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
 	{
-		ERROR("memory write caused data abort");
+		ERROR("memory write caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
 
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
