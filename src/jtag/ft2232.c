@@ -994,7 +994,8 @@ int ft2232_init(void)
 		WARNING("can't open by device description and serial number, giving precedence to serial");
 		ft2232_device_desc = NULL;
 	}
-	else if (ft2232_device_desc)
+	
+	if (ft2232_device_desc)
 	{
 		openex_string = ft2232_device_desc;
 		openex_flags = FT_OPEN_BY_DESCRIPTION;

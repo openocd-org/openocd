@@ -1509,6 +1509,7 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mode)
 {
 	u32* reg_p[16];
+	u32 value;
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -1533,7 +1534,7 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	if ((num >= 0) && (num <= 15))
 	{
 		/* read a normal core register */
-		reg_p[num] = (u32*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).value;
+		reg_p[num] = &value;
 		
 		arm7_9->read_core_regs(target, 1 << num, reg_p);
 	}
@@ -1545,23 +1546,24 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 		armv4_5_core_reg_t *arch_info = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info;
 		int spsr = (arch_info->mode == ARMV4_5_MODE_ANY) ? 0 : 1;
 		
-		arm7_9->read_xpsr(target, (u32*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).value, spsr);
-	}
-	
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
-		
-	if ((mode != ARMV4_5_MODE_ANY)
-			&& (mode != armv4_5->core_mode)
-			&& (reg_mode != ARMV4_5_MODE_ANY))	{
-		/* restore processor mode (mask T bit) */
-		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
+		arm7_9->read_xpsr(target, &value, spsr);
 	}
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG failure");
 		exit(-1);
+	}
+		
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).dirty = 0;
+	buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).value, 0, 32, value);
+		
+	if ((mode != ARMV4_5_MODE_ANY)
+			&& (mode != armv4_5->core_mode)
+			&& (reg_mode != ARMV4_5_MODE_ANY))	{
+		/* restore processor mode (mask T bit) */
+		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 	}
 	
 	return ERROR_OK;
@@ -1768,7 +1770,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
 	{
-		ERROR("memory read caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
+		WARNING("memory read caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
 
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
@@ -1933,7 +1935,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
 	{
-		ERROR("memory write caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
+		WARNING("memory write caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
 
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
