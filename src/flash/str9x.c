@@ -107,7 +107,7 @@ int str9x_build_block_list(struct flash_bank_s *bank)
 			exit(-1);
 	}
 	
-	num_sectors = b0_sectors + 2;
+	num_sectors = b0_sectors + 4;
 	
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
@@ -510,7 +510,7 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 	while (words_remaining > 0)
 	{
-		bank_adr = address & 0x03;
+		bank_adr = address & ~0x03;
 		
 		/* write data command */
 		target_write_u16(target, bank_adr, 0x40);
@@ -552,7 +552,7 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			bytes_written++;
 		}
 		
-		bank_adr = address & 0x03;
+		bank_adr = address & ~0x03;
 		
 		/* write data comamnd */
 		target_write_u16(target, bank_adr, 0x40);

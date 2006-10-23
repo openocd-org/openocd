@@ -281,14 +281,14 @@ int arm7_9_add_breakpoint(struct target_s *target, u32 address, u32 length, enum
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
-	if (type == BKPT_HARD)
-		arm7_9->wp_available--;
-	
 	if ((length != 2) && (length != 4))
 	{
 		INFO("only breakpoints of two (Thumb) or four (ARM) bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
+	
+	if (type == BKPT_HARD)
+		arm7_9->wp_available--;
 	
 	return ERROR_OK;
 }
@@ -1448,7 +1448,7 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	breakpoint_t *breakpoint = target->breakpoints;
+	breakpoint_t *breakpoint = NULL;
 
 	if (target->state != TARGET_HALTED)
 	{

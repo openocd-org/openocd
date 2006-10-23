@@ -1028,7 +1028,6 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 
 			if (cmd->fields[i].in_check_value)
 			{
-				u8 *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
 				if ((cmd->fields[i].in_check_mask && buf_cmp_mask(captured, cmd->fields[i].in_check_value, cmd->fields[i].in_check_mask, num_bits))
 					|| (!cmd->fields[i].in_check_mask && buf_cmp(captured, cmd->fields[i].in_check_mask, num_bits)))
 				{

@@ -869,7 +869,7 @@ int arm7tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		exit(-1);
 	}
 	
-	chain_pos = strtoul(args[2], NULL, 0);
+	chain_pos = strtoul(args[3], NULL, 0);
 	
 	if (argc >= 5)
 		variant = args[4];
