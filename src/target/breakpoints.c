@@ -167,6 +167,10 @@ int watchpoint_add(target_t *target, u32 address, u32 length, enum watchpoint_rw
 				INFO("can't add %s watchpoint, resource not available", watchpoint_rw_strings[rw]);
 				return retval;
 				break;
+			case ERROR_TARGET_NOT_HALTED:
+				INFO("can't add watchpoint while target is running");
+				return retval;
+				break;
 			default:
 				ERROR("unknown error");
 				exit(-1);

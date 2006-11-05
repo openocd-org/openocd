@@ -189,15 +189,19 @@ int ft2232_read(u8* buf, int size, u32* bytes_read)
 #if BUILD_FT2232_FTD2XX == 1
 	DWORD dw_bytes_read;
 	FT_STATUS status;
-	if ((status = FT_Read(ftdih, buf, size, &dw_bytes_read)) != FT_OK)
-	{
-		*bytes_read = dw_bytes_read; 
-		ERROR("FT_Read returned: %i", status);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	*bytes_read = dw_bytes_read; 
-	return ERROR_OK;	
+	int timeout = 5;
+	*bytes_read = 0;
 
+	while ((*bytes_read < size) && timeout--)
+	{
+		if ((status = FT_Read(ftdih, buf, size, &dw_bytes_read)) != FT_OK)
+		{
+			*bytes_read = 0; 
+			ERROR("FT_Read returned: %i", status);
+			return ERROR_JTAG_DEVICE_ERROR;
+		}
+		*bytes_read += dw_bytes_read; 
+	}
 #elif BUILD_FT2232_LIBFTDI == 1
 	int retval;
 	int timeout = 100;
@@ -213,8 +217,15 @@ int ft2232_read(u8* buf, int size, u32* bytes_read)
 		}
 		*bytes_read += retval;
 	}
-	return ERROR_OK;	
 #endif
+
+	if (*bytes_read < size)
+	{
+		ERROR("couldn't read the requested number of bytes from FT2232 device (%i < %i)", *bytes_read, size);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
+	
+	return ERROR_OK;
 }
 
 int ft2232_speed(int speed)

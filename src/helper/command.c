@@ -400,7 +400,7 @@ int command_run_file(command_context_t *context, FILE *file, enum command_mode m
 			break;
 
 		/* run line */
-		if (command_run_line(context, cmd) == ERROR_COMMAND_CLOSE_CONNECTION)
+		if ((retval = command_run_line(context, cmd)) == ERROR_COMMAND_CLOSE_CONNECTION)
 			break;
 	}
 	

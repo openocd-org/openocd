@@ -904,7 +904,6 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				(*last_target_p)->working_areas = NULL;
 				(*last_target_p)->backup_working_area = 0;
 				
-				(*last_target_p)->endianness = TARGET_LITTLE_ENDIAN;
 				(*last_target_p)->state = TARGET_UNKNOWN;
 				(*last_target_p)->reg_cache = NULL;
 				(*last_target_p)->breakpoints = NULL;

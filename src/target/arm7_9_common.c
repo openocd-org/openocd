@@ -656,6 +656,9 @@ int arm7_9_assert_reset(target_t *target)
 	
 	if (target->state == TARGET_HALTED || target->state == TARGET_UNKNOWN)
 	{
+		/* if the target wasn't running, there might be working areas allocated */
+		target_free_all_working_areas(target);
+		
 		/* assert SRST and TRST */
 		/* system would get ouf sync if we didn't reset test-logic, too */
 		if ((retval = jtag_add_reset(1, 1)) != ERROR_OK)
@@ -724,11 +727,44 @@ int arm7_9_deassert_reset(target_t *target)
 
 }
 
+int arm7_9_clear_halt(target_t *target)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+	
+	if (arm7_9->use_dbgrq)
+	{
+		/* program EmbeddedICE Debug Control Register to deassert DBGRQ
+		 */
+		buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGRQ, 1, 0);	
+		embeddedice_store_reg(dbg_ctrl);
+	}
+	else
+	{
+		/* restore registers if watchpoint unit 0 was in use
+		 */
+		if (arm7_9->wp0_used)
+		{
+			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK]);
+			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK]);
+			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK]);
+		}
+		/* control value always has to be restored, as it was either disabled, 
+		 * or enabled with possibly different bits
+		 */
+		embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE]);
+	}
+	
+	return ERROR_OK;
+}
+
 int arm7_9_soft_reset_halt(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
+	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int i;
 	
 	if (target->state == TARGET_RUNNING)
@@ -742,6 +778,26 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 		jtag_execute_queue();
 	}
 	target->state = TARGET_HALTED;
+	
+	/* program EmbeddedICE Debug Control Register to assert DBGACK and INTDIS
+	 * ensure that DBGRQ is cleared
+	 */
+	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGACK, 1, 1);
+	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGRQ, 1, 0);
+	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_INTDIS, 1, 1);
+	embeddedice_store_reg(dbg_ctrl);
+	
+	arm7_9_clear_halt(target);
+	
+	/* if the target is in Thumb state, change to ARM state */
+	if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_ITBIT, 1))
+	{
+		u32 r0_thumb, pc_thumb;
+		DEBUG("target entered debug from Thumb state, changing to ARM");
+		/* Entered debug from Thumb mode */
+		armv4_5->core_state = ARMV4_5_STATE_THUMB;
+		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
+	}
 	
 	/* all register content is now invalid */
 	armv4_5_invalidate_core_regs(target);
@@ -815,38 +871,6 @@ int arm7_9_halt(target_t *target)
 	}
 
 	target->debug_reason = DBG_REASON_DBGRQ;
-	
-	return ERROR_OK;
-}
-
-int arm7_9_clear_halt(target_t *target)
-{
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
-	
-	if (arm7_9->use_dbgrq)
-	{
-		/* program EmbeddedICE Debug Control Register to deassert DBGRQ
-		 */
-		buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGRQ, 1, 0);	
-		embeddedice_store_reg(dbg_ctrl);
-	}
-	else
-	{
-		/* restore registers if watchpoint unit 0 was in use
-		 */
-		if (arm7_9->wp0_used)
-		{
-			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK]);
-			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK]);
-			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK]);
-		}
-		/* control value always has to be restored, as it was either disabled, 
-		 * or enabled with possibly different bits
-		 */
-		embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE]);
-	}
 	
 	return ERROR_OK;
 }

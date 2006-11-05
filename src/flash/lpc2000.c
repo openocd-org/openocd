@@ -46,6 +46,7 @@
  * variant 2 (lpc2000_v2):
  * - 213x
  * - 214x
+ * - 2101|2|3
  */
 
 int lpc2000_register_commands(struct command_context_s *cmd_ctx);
@@ -152,6 +153,12 @@ int lpc2000_build_sector_list(struct flash_bank_s *bank)
 		/* variant 2 has a uniform layout, only number of sectors differs */
 		switch (bank->size)
 		{
+			case 8 * 1024:
+				num_sectors = 2;
+				break;
+			case 16 * 1024:
+				num_sectors = 4;
+				break;
 			case 32 * 1024:
 				num_sectors = 8;
 				break;
