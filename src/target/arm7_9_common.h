@@ -114,9 +114,9 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 
 int arm7_9_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_prams, reg_param_t *reg_param, u32 entry_point, void *arch_info);
 
-int arm7_9_add_breakpoint(struct target_s *target, u32 address, u32 length, enum breakpoint_type type);
+int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
-int arm7_9_add_watchpoint(struct target_s *target, u32 address, u32 length, enum watchpoint_rw rw);
+int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 
 void arm7_9_enable_eice_step(target_t *target);

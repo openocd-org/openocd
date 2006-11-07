@@ -253,7 +253,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return ERROR_OK;
 }
 
-int arm7_9_add_breakpoint(struct target_s *target, u32 address, u32 length, enum breakpoint_type type)
+int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -266,28 +266,29 @@ int arm7_9_add_breakpoint(struct target_s *target, u32 address, u32 length, enum
 	
 	if (arm7_9->force_hw_bkpts)
 	{
-		type = BKPT_HARD;
+		DEBUG("forcing use of hardware breakpoint at address 0x%8.8x", breakpoint->address);
+		breakpoint->type = BKPT_HARD;
 	}
 	
-	if ((type == BKPT_SOFT) && (arm7_9->sw_bkpts_enabled == 0))
+	if ((breakpoint->type == BKPT_SOFT) && (arm7_9->sw_bkpts_enabled == 0))
 	{
 		INFO("sw breakpoint requested, but software breakpoints not enabled");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
-	if ((type == BKPT_HARD) && (arm7_9->wp_available < 1))
+	if ((breakpoint->type == BKPT_HARD) && (arm7_9->wp_available < 1))
 	{
 		INFO("no watchpoint unit available for hardware breakpoint");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
-	if ((length != 2) && (length != 4))
+	if ((breakpoint->length != 2) && (breakpoint->length != 4))
 	{
 		INFO("only breakpoints of two (Thumb) or four (ARM) bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
-	if (type == BKPT_HARD)
+	if (breakpoint->type == BKPT_HARD)
 		arm7_9->wp_available--;
 	
 	return ERROR_OK;
@@ -406,7 +407,7 @@ int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
-int arm7_9_add_watchpoint(struct target_s *target, u32 address, u32 length, enum watchpoint_rw rw)
+int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -422,7 +423,7 @@ int arm7_9_add_watchpoint(struct target_s *target, u32 address, u32 length, enum
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
-	if ((length != 1) && (length != 2) && (length != 4))
+	if ((watchpoint->length != 1) && (watchpoint->length != 2) && (watchpoint->length != 4))
 	{
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}

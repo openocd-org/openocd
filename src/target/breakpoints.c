@@ -56,17 +56,29 @@ int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_ty
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
 	}
+		
+	(*breakpoint_p) = malloc(sizeof(breakpoint_t));
+	(*breakpoint_p)->address = address;
+	(*breakpoint_p)->length = length;
+	(*breakpoint_p)->type = type;
+	(*breakpoint_p)->set = 0;
+	(*breakpoint_p)->orig_instr = malloc(CEIL(length, 8));
+	(*breakpoint_p)->next = NULL;
 	
-	if ((retval = target->type->add_breakpoint(target, address, length, type)) != ERROR_OK)
+	if ((retval = target->type->add_breakpoint(target, *breakpoint_p)) != ERROR_OK)
 	{
 		switch (retval)
 		{
 			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				INFO("can't add %s breakpoint, resource not available", breakpoint_type_strings[type]);
+				INFO("can't add %s breakpoint, resource not available", breakpoint_type_strings[(*breakpoint_p)->type]);
+				free (*breakpoint_p);
+				*breakpoint_p = NULL;
 				return retval;
 				break;
 			case ERROR_TARGET_NOT_HALTED:
 				INFO("can't add breakpoint while target is running");
+				free (*breakpoint_p);
+				*breakpoint_p = NULL;
 				return retval;
 				break;
 			default:
@@ -76,15 +88,9 @@ int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_ty
 		}
 	}
 	
-	(*breakpoint_p) = malloc(sizeof(breakpoint_t));
-	(*breakpoint_p)->address = address;
-	(*breakpoint_p)->length = length;
-	(*breakpoint_p)->type = type;
-	(*breakpoint_p)->set = 0;
-	(*breakpoint_p)->orig_instr = malloc(CEIL(length, 8));
-	(*breakpoint_p)->next = NULL;
-	
-	DEBUG("added %s breakpoint at 0x%8.8x of length 0x%8.8x", breakpoint_type_strings[type], address, length);
+	DEBUG("added %s breakpoint at 0x%8.8x of length 0x%8.8x", 
+		breakpoint_type_strings[(*breakpoint_p)->type],
+		(*breakpoint_p)->address, (*breakpoint_p)->length);
 	
 	return ERROR_OK;
 }
@@ -159,16 +165,29 @@ int watchpoint_add(target_t *target, u32 address, u32 length, enum watchpoint_rw
 		watchpoint = watchpoint->next;
 	}
 	
-	if ((retval = target->type->add_watchpoint(target, address, length, rw)) != ERROR_OK)
+	(*watchpoint_p) = malloc(sizeof(watchpoint_t));
+	(*watchpoint_p)->address = address;
+	(*watchpoint_p)->length = length;
+	(*watchpoint_p)->value = value;
+	(*watchpoint_p)->mask = mask;
+	(*watchpoint_p)->rw = rw;
+	(*watchpoint_p)->set = 0;
+	(*watchpoint_p)->next = NULL;
+		
+	if ((retval = target->type->add_watchpoint(target, *watchpoint_p)) != ERROR_OK)
 	{
 		switch (retval)
 		{
 			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				INFO("can't add %s watchpoint, resource not available", watchpoint_rw_strings[rw]);
+				INFO("can't add %s watchpoint, resource not available", watchpoint_rw_strings[(*watchpoint_p)->rw]);
+				free (*watchpoint_p);
+				*watchpoint_p = NULL;
 				return retval;
 				break;
 			case ERROR_TARGET_NOT_HALTED:
 				INFO("can't add watchpoint while target is running");
+				free (*watchpoint_p);
+				*watchpoint_p = NULL;
 				return retval;
 				break;
 			default:
@@ -178,16 +197,9 @@ int watchpoint_add(target_t *target, u32 address, u32 length, enum watchpoint_rw
 		}
 	}
 	
-	(*watchpoint_p) = malloc(sizeof(watchpoint_t));
-	(*watchpoint_p)->address = address;
-	(*watchpoint_p)->length = length;
-	(*watchpoint_p)->value = value;
-	(*watchpoint_p)->mask = mask;
-	(*watchpoint_p)->rw = rw;
-	(*watchpoint_p)->set = 0;
-	(*watchpoint_p)->next = NULL;
-	
-	DEBUG("added %s watchpoint at 0x%8.8x of length 0x%8.8x", watchpoint_rw_strings[rw], address, length);
+	DEBUG("added %s watchpoint at 0x%8.8x of length 0x%8.8x",
+		watchpoint_rw_strings[(*watchpoint_p)->rw],
+		(*watchpoint_p)->address, (*watchpoint_p)->length);
 	
 	return ERROR_OK;
 }

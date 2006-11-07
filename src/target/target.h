@@ -125,9 +125,9 @@ typedef struct target_type_s
 	/* target break-/watchpoint control 
 	* rw: 0 = write, 1 = read, 2 = access
 	*/
-	int (*add_breakpoint)(struct target_s *target, u32 address, u32 length, enum breakpoint_type type);
+	int (*add_breakpoint)(struct target_s *target, breakpoint_t *breakpoint);
 	int (*remove_breakpoint)(struct target_s *target, breakpoint_t *breakpoint);
-	int (*add_watchpoint)(struct target_s *target, u32 address, u32 length, enum watchpoint_rw rw);
+	int (*add_watchpoint)(struct target_s *target, watchpoint_t *watchpoint);
 	int (*remove_watchpoint)(struct target_s *target, watchpoint_t *watchpoint);
 
 	/* target algorithm support */

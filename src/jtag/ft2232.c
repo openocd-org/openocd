@@ -108,6 +108,7 @@ ft2232_layout_t ft2232_layouts[] =
 	{"usbjtag", usbjtag_init, usbjtag_reset, NULL},
 	{"jtagkey", jtagkey_init, jtagkey_reset, NULL},
 	{"jtagkey_prototype_v1", jtagkey_init, jtagkey_reset, NULL},
+	{"oocdlink", jtagkey_init, jtagkey_reset, NULL},
 	{"signalyzer", usbjtag_init, usbjtag_reset, NULL},
 	{"evb_lm3s811", usbjtag_init, usbjtag_reset, NULL},
 	{"olimex-jtag", olimex_jtag_init, olimex_jtag_reset, olimex_jtag_blink},
@@ -1260,7 +1261,8 @@ int jtagkey_init(void)
 		nSRST = 0x02;
 		nSRSTnOE = 0x08;
 	}
-	else if (strcmp(layout->name, "jtagkey_prototype_v1") == 0)
+	else if ((strcmp(layout->name, "jtagkey_prototype_v1") == 0) ||
+		(strcmp(layout->name, "oocdlink") == 0))
 	{
 		nTRST = 0x02;
 		nTRSTnOE = 0x1;
