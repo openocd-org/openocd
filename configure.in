@@ -44,6 +44,10 @@ AC_ARG_ENABLE(at91rm9200,
   AS_HELP_STRING([--enable-at91rm9200], [Enable building support for AT91RM9200 based SBCs]),
   [build_at91rm9200=$enableval], [build_at91rm9200=no])
 
+AC_ARG_ENABLE(gw16012,
+  AS_HELP_STRING([--enable-gw16012], [Enable building support for the Gateworks GW16012 JTAG Programmer]),
+  [build_gw16012=$enableval], [build_gw16012=no])
+
 AC_ARG_WITH(ftd2xx,
         [AS_HELP_STRING(--with-ftd2xx,
            [Where libftd2xx can be found <default=search>])],
@@ -143,6 +147,12 @@ else
   AC_DEFINE(BUILD_AMTJTAGACCEL, 0, [0 if you don't want the Amontec JTAG-Accelerator driver.])
 fi
 
+if test $build_gw16012 = yes; then
+  AC_DEFINE(BUILD_GW16012, 1, [1 if you want the Gateworks GW16012 driver.])
+else
+  AC_DEFINE(BUILD_GW16012, 0, [0 if you don't want the Gateworks GW16012 driver.])
+fi
+
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(openocd, 0.1)
 
@@ -154,6 +164,7 @@ AM_CONDITIONAL(BITBANG, test $build_bitbang = yes)
 AM_CONDITIONAL(FT2232_LIBFTDI, test $build_ft2232_libftdi = yes)
 AM_CONDITIONAL(FT2232_FTD2XX, test $build_ft2232_ftd2xx = yes)
 AM_CONDITIONAL(AMTJTAGACCEL, test $build_amtjtagaccel = yes)
+AM_CONDITIONAL(GW16012, test $build_gw16012 = yes)
 AM_CONDITIONAL(IS_CYGWIN, test $is_cygwin = yes)
 AM_CONDITIONAL(IS_MINGW, test $is_mingw = yes)
 AM_CONDITIONAL(IS_WIN32, test $is_win32 = yes)
@@ -165,4 +176,4 @@ AC_PROG_RANLIB
 
 AC_SUBST(WITH_FTD2XX, $with_ftd2xx)
 
-AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile src/pld/Makefile)
