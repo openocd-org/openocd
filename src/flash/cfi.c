@@ -208,8 +208,12 @@ u8 cfi_intel_wait_status_busy(flash_bank_t *bank, int timeout)
 	}
 	
 	DEBUG("status: 0x%x", status);
-
-	if (status != 0x80)
+	
+	if ((status & 0x80) != 0x80)
+	{
+		ERROR("timeout while waiting for WSM to become ready");
+	}
+	else if (status != 0x80)
 	{
 		ERROR("status register: 0x%x", status);
 		if (status & 0x2)
@@ -352,6 +356,8 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 		ERROR("no target '%i' configured", args[5]);
 		exit(-1);
 	}
+	
+	cfi_info->write_algorithm = NULL;
 
 	/* bank wasn't probed yet */
 	cfi_info->qry[0] = -1;
@@ -434,6 +440,9 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 	u8 command[8];
 	int i;
 	
+	/* if the device supports neither legacy lock/unlock (bit 3) nor
+	 * instant individual block locking (bit 5).
+	 */
 	if (!(pri_ext->feature_support & 0x28))
 		return ERROR_FLASH_OPERATION_FAILED;
 	
@@ -456,7 +465,8 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 			bank->sectors[i].is_protected = 0;
 		}
 		
-		cfi_intel_wait_status_busy(bank, 100);
+		/* Clear lock bits operation may take up to 1.4s */
+		cfi_intel_wait_status_busy(bank, 1400);
 	}
 	
 	/* if the device doesn't support individual block lock bits set/clear,
@@ -544,27 +554,40 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = cfi_info->target;
-	reg_param_t reg_params[5];
+	reg_param_t reg_params[7];
 	armv4_5_algorithm_t armv4_5_info;
 	working_area_t *source;
 	u32 buffer_size = 32768;
 	u8 write_command[CFI_MAX_BUS_WIDTH];
+	u8 busy_pattern[CFI_MAX_BUS_WIDTH];
+	u8 error_pattern[CFI_MAX_BUS_WIDTH];
 	int i;
 	int retval;
 	
+	/* algorithm register usage:
+	 * r0: source address (in RAM)
+	 * r1: target address (in Flash)
+	 * r2: count
+	 * r3: flash write command
+	 * r4: status byte (returned to host)
+	 * r5: busy test pattern
+	 * r6: error test pattern
+	 */
+	 
 	u32 word_32_code[] = {
 		0xe4904004,   /* loop:	ldr r4, [r0], #4 */
 		0xe5813000,   /* 		str r3, [r1] */
 		0xe5814000,   /* 		str r4, [r1] */
-		0xe5914000,   /* busy	ldr r4, [r1] */
-		0xe3140080,   /*		tst r4, #0x80 */
-		0x0afffffc,   /*		beq busy */
-		0xe314007f,   /* 		tst r4, #0x7f */
+		0xe5914000,   /* busy:  ldr r4, [r1] */
+		0xe0047005,   /*		and r7, r4, r5 */
+		0xe1570005,   /*		cmp r7, r5 */
+		0x1afffffb,   /*		bne busy */
+		0xe1140006,   /* 		tst r4, r6 */
 		0x1a000003,   /*		bne done */
 		0xe2522001,   /*		subs r2, r2, #1 */
 		0x0a000001,   /* 		beq done */
 		0xe2811004,   /*		add r1, r1 #4 */
-		0xeafffff3,   /* 		b loop */
+		0xeafffff2,   /* 		b loop */
 		0xeafffffe,   /* done:	b -2 */
 	};
 	
@@ -573,14 +596,15 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		0xe1c130b0,   /* 		strh r3, [r1] */
 		0xe1c140b0,   /* 		strh r4, [r1] */
 		0xe1d140b0,   /* busy	ldrh r4, [r1] */
-		0xe3140080,   /*		tst r4, #0x80 */
-		0x0afffffc,   /*		beq busy */
-		0xe314007f,   /* 		tst r4, #0x7f */
+		0xe0047005,   /*		and r7, r4, r5 */
+		0xe1570005,   /*		cmp r7, r5 */
+		0x1afffffb,   /*		bne busy */
+		0xe1140006,   /* 		tst r4, r6 */
 		0x1a000003,   /*		bne done */
 		0xe2522001,   /*		subs r2, r2, #1 */
 		0x0a000001,   /* 		beq done */
 		0xe2811002,   /*		add r1, r1 #2 */
-		0xeafffff3,   /* 		b loop */
+		0xeafffff2,   /* 		b loop */
 		0xeafffffe,   /* done:	b -2 */
 	};
 	
@@ -589,14 +613,15 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		0xe5c13000,   /* 		strb r3, [r1] */
 		0xe5c14000,   /* 		strb r4, [r1] */
 		0xe5d14000,   /* busy	ldrb r4, [r1] */
-		0xe3140080,   /*		tst r4, #0x80 */
-		0x0afffffc,   /*		beq busy */
-		0xe314007f,   /* 		tst r4, #0x7f */
+		0xe0047005,   /*		and r7, r4, r5 */
+		0xe1570005,   /*		cmp r7, r5 */
+		0x1afffffb,   /*		bne busy */
+		0xe1140006,   /* 		tst r4, r6 */
 		0x1a000003,   /*		bne done */
 		0xe2522001,   /*		subs r2, r2, #1 */
 		0x0a000001,   /* 		beq done */
 		0xe2811001,   /*		add r1, r1 #1 */
-		0xeafffff3,   /* 		b loop */
+		0xeafffff2,   /* 		b loop */
 		0xeafffffe,   /* done:	b -2 */
 	};
 	
@@ -609,7 +634,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	/* flash write code */
 	if (!cfi_info->write_algorithm)
 	{
-		if (target_alloc_working_area(target, 4 * 13, &cfi_info->write_algorithm) != ERROR_OK)
+		if (target_alloc_working_area(target, 4 * 14, &cfi_info->write_algorithm) != ERROR_OK)
 		{
 			WARNING("no working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -618,15 +643,15 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		/* write algorithm code to working area */
 		if (bank->bus_width == 1)
 		{
-			target_write_buffer(target, cfi_info->write_algorithm->address, 13 * 4, (u8*)word_8_code);
+			target_write_buffer(target, cfi_info->write_algorithm->address, 14 * 4, (u8*)word_8_code);
 		}
 		else if (bank->bus_width == 2)
 		{
-			target_write_buffer(target, cfi_info->write_algorithm->address, 13 * 4, (u8*)word_16_code);
+			target_write_buffer(target, cfi_info->write_algorithm->address, 14 * 4, (u8*)word_16_code);
 		}	
 		else if (bank->bus_width == 4)
 		{
-			target_write_buffer(target, cfi_info->write_algorithm->address, 13 * 4, (u8*)word_32_code);
+			target_write_buffer(target, cfi_info->write_algorithm->address, 14 * 4, (u8*)word_32_code);
 		}
 		else
 		{
@@ -653,6 +678,12 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);
 	init_reg_param(&reg_params[4], "r4", 32, PARAM_IN);
+	init_reg_param(&reg_params[5], "r5", 32, PARAM_OUT);
+	init_reg_param(&reg_params[6], "r6", 32, PARAM_OUT);
+
+	cfi_command(bank, 0x40, write_command);
+	cfi_command(bank, 0x80, busy_pattern);
+	cfi_command(bank, 0x7f, error_pattern);
 
 	while (count > 0)
 	{
@@ -663,16 +694,17 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count / bank->bus_width);
-		cfi_command(bank, 0x40, write_command);
 		buf_set_u32(reg_params[3].value, 0, 32, buf_get_u32(write_command, 0, 32));
+		buf_set_u32(reg_params[5].value, 0, 32, buf_get_u32(busy_pattern, 0, 32));
+		buf_set_u32(reg_params[6].value, 0, 32, buf_get_u32(error_pattern, 0, 32));
 	
-		if ((retval = target->type->run_algorithm(target, 0, NULL, 5, reg_params, cfi_info->write_algorithm->address, cfi_info->write_algorithm->address + (12 * 4), 10000, &armv4_5_info)) != ERROR_OK)
+		if ((retval = target->type->run_algorithm(target, 0, NULL, 7, reg_params, cfi_info->write_algorithm->address, cfi_info->write_algorithm->address + (13 * 4), 10000, &armv4_5_info)) != ERROR_OK)
 		{
 			cfi_intel_clear_status_register(bank);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	
-		if (buf_get_u32(reg_params[4].value, 0, 32) != 0x80)
+		if (buf_get_u32(reg_params[4].value, 0, 32) & target_buffer_get_u32(target, error_pattern))
 		{
 			/* read status register (outputs debug inforation) */
 			cfi_intel_wait_status_busy(bank, 100);
@@ -692,7 +724,9 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	destroy_reg_param(&reg_params[2]);
 	destroy_reg_param(&reg_params[3]);
 	destroy_reg_param(&reg_params[4]);
-
+	destroy_reg_param(&reg_params[5]);
+	destroy_reg_param(&reg_params[6]);
+	
 	return ERROR_OK;
 }
 
@@ -932,9 +966,9 @@ int cfi_probe(struct flash_bank_s *bank)
 	cfi_info->max_buf_write_size = cfi_query_u16(bank, 0, 0x2a);
 	cfi_info->num_erase_regions = cfi_query_u8(bank, 0, 0x2c);
 	
-	DEBUG("size: 0x%x, interface desc: %i, max buffer write size: %x", 1 << cfi_info->dev_size, cfi_info->interface_desc, cfi_info->max_buf_write_size);
+	DEBUG("size: 0x%x, interface desc: %i, max buffer write size: %x", 1 << cfi_info->dev_size, cfi_info->interface_desc, (1 << cfi_info->max_buf_write_size));
 	
-	if (1 << cfi_info->dev_size != bank->size)
+	if (((1 << cfi_info->dev_size) * bank->bus_width / bank->chip_width) != bank->size)
 	{
 		WARNING("configuration specifies 0x%x size, but a 0x%x size flash was found", bank->size, 1 << cfi_info->dev_size);
 	}
@@ -963,7 +997,7 @@ int cfi_probe(struct flash_bank_s *bank)
 			for (j = 0; j < (cfi_info->erase_region_info[i] & 0xffff) + 1; j++)
 			{
 				bank->sectors[sector].offset = offset;
-				bank->sectors[sector].size = (cfi_info->erase_region_info[i] >> 16) * 256;
+				bank->sectors[sector].size = ((cfi_info->erase_region_info[i] >> 16) * 256) * bank->bus_width / bank->chip_width;
 				offset += bank->sectors[sector].size;
 				bank->sectors[sector].is_erased = -1;
 				bank->sectors[sector].is_protected = -1;
@@ -1112,7 +1146,7 @@ int cfi_intel_protect_check(struct flash_bank_s *bank)
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = cfi_info->target;
-	u8 command[8];
+	u8 command[CFI_MAX_BUS_WIDTH];
 	int i;
 	
 	/* check if block lock bits are supported on this device */

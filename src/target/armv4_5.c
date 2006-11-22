@@ -285,7 +285,7 @@ reg_cache_t* armv4_5_build_reg_cache(target_t *target, armv4_5_common_t *armv4_5
 	int num_regs = 37;
 	reg_cache_t *cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = malloc(sizeof(reg_t) * num_regs);
-	armv4_5_core_reg_t *arch_info = malloc(sizeof(reg_t) * num_regs);
+	armv4_5_core_reg_t *arch_info = malloc(sizeof(armv4_5_core_reg_t) * num_regs);
 	int i;
 	
 	cache->name = "arm v4/5 registers";
@@ -630,7 +630,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	
 	for (i = 0; i <= 16; i++)
 	{
-		DEBUG("restoring register %s with value 0x%8.8x", ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).name, buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32));
+		DEBUG("restoring register %s with value 0x%8.8x", ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).name, context[i]);
 		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32, context[i]);
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).valid = 1;
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).dirty = 1;

@@ -144,6 +144,10 @@ jtag_event_callback_t *jtag_event_callbacks;
 	extern jtag_interface_t at91rm9200_interface;
 #endif
 
+#if BUILD_GW16012 == 1
+	extern jtag_interface_t gw16012_interface;
+#endif
+
 jtag_interface_t *jtag_interfaces[] = {
 #if BUILD_PARPORT == 1
 	&parport_interface,
@@ -162,6 +166,9 @@ jtag_interface_t *jtag_interfaces[] = {
 #endif
 #if BUILD_AT91RM9200 == 1
 	&at91rm9200_interface,
+#endif
+#if BUILD_GW16012 == 1
+	&gw16012_interface,
 #endif
 	NULL,
 };
@@ -959,7 +966,7 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 		if (cmd->fields[i].out_value)
 		{
 #ifdef _DEBUG_JTAG_IO_
-			char* char_buf = buf_to_str(cmd->fields[i].out_value, cmd->fields[i].num_bits, 16);
+			char* char_buf = buf_to_str(cmd->fields[i].out_value, (cmd->fields[i].num_bits > 64) ? 64 : cmd->fields[i].num_bits, 16);
 #endif
 			buf_set_buf(cmd->fields[i].out_value, 0, *buffer, bit_count, cmd->fields[i].num_bits);
 #ifdef _DEBUG_JTAG_IO_
@@ -993,7 +1000,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			#ifdef _DEBUG_JTAG_IO_
 				char *char_buf;
 
-				char_buf = buf_to_str(captured, num_bits, 16);
+				char_buf = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
 				DEBUG("fields[%i].in_value: 0x%s", i, char_buf);
 				free(char_buf);
 			#endif
@@ -1031,9 +1038,9 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 				if ((cmd->fields[i].in_check_mask && buf_cmp_mask(captured, cmd->fields[i].in_check_value, cmd->fields[i].in_check_mask, num_bits))
 					|| (!cmd->fields[i].in_check_mask && buf_cmp(captured, cmd->fields[i].in_check_mask, num_bits)))
 				{
-					char *captured_char = buf_to_str(captured, num_bits, 16);
-					char *in_check_value_char = buf_to_str(cmd->fields[i].in_check_value, num_bits, 16);
-					char *in_check_mask_char = buf_to_str(cmd->fields[i].in_check_mask, num_bits, 16);
+					char *captured_char = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
+					char *in_check_value_char = buf_to_str(cmd->fields[i].in_check_value, (num_bits > 64) ? 64 : num_bits, 16);
+					char *in_check_mask_char = buf_to_str(cmd->fields[i].in_check_mask, (num_bits > 64) ? 64 : num_bits, 16);
 					/* TODO: error reporting */
 					WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s check_mask: 0x%s", captured_char, in_check_value_char, in_check_mask_char);
 					retval = ERROR_JTAG_QUEUE_FAILED;

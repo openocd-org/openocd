@@ -143,8 +143,8 @@ int buf_cmp_mask(u8 *buf1, u8 *buf2, u8 *mask, int size)
 		/* mask out bits that don't really belong to the buffer if size isn't a multiple of 8 bits */
 		if ((size % 8) && (i == num_bytes -1 ))
 		{
-			if (((buf1[i] & ((1 << (size % 8)) - 1)) & ((1 << (size % 8)) - 1)) != 
-				((buf2[i] & ((1 << (size % 8)) - 1)) & ((1 << (size % 8)) - 1)))
+			if ((buf1[i] & ((1 << (size % 8)) - 1) & mask[i]) != 
+				(buf2[i] & ((1 << (size % 8)) - 1) & mask[i]))
 				return 1;
 		}
 		else

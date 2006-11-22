@@ -18,7 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#define OPENOCD_VERSION "Open On-Chip Debugger (2006-10-12 18:00 CEST)"
+#define OPENOCD_VERSION "Open On-Chip Debugger (2006-11-22 14:00 CEST)"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -32,6 +32,7 @@
 #include "xsvf.h"
 #include "target.h"
 #include "flash.h"
+#include "pld.h"
 
 #include "command.h"
 #include "server.h"
@@ -74,6 +75,7 @@ int main(int argc, char *argv[])
 	xsvf_register_commands(cmd_ctx);
 	target_register_commands(cmd_ctx);
 	flash_register_commands(cmd_ctx);
+	pld_register_commands(cmd_ctx);
 	
 	if (log_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
@@ -106,6 +108,10 @@ int main(int argc, char *argv[])
 	if (flash_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
 	DEBUG("flash init complete");
+
+	if (pld_init(cmd_ctx) != ERROR_OK)
+		return EXIT_FAILURE;
+	DEBUG("pld init complete");
 
 	/* initialize tcp server */
 	server_init();
