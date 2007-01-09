@@ -52,13 +52,13 @@
 
 /* enable this to debug io latency
  */
-#if 1
+#if 0
 #define _DEBUG_USB_IO_
 #endif
 
 /* enable this to debug communication
  */
-#if 1
+#if 0
 #define _DEBUG_USB_COMMS_
 #endif
 

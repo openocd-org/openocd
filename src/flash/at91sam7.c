@@ -405,6 +405,40 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		return ERROR_OK;
 	}
 	
+	if (at91sam7_info->cidr_arch == 0x72 )
+	{
+		at91sam7_info->num_nvmbits = 2;
+		at91sam7_info->nvmbits = (status>>8)&0x03;
+		bank->base = 0x100000;
+		bank->bus_width = 4;
+		if (bank->size==0x80000) /* AT91SAM7SE512 */
+		{
+			at91sam7_info->target_name = "AT91SAM7SE512";
+			at91sam7_info->num_lockbits = 32;
+			at91sam7_info->pagesize = 256;
+			at91sam7_info->pages_in_lockregion = 64;
+			at91sam7_info->num_pages = 32*64;
+		}
+		if (bank->size==0x40000)
+		{
+			at91sam7_info->target_name = "AT91SAM7SE256";
+			at91sam7_info->num_lockbits = 16;
+			at91sam7_info->pagesize = 256;
+			at91sam7_info->pages_in_lockregion = 64;
+			at91sam7_info->num_pages = 16*64;
+		}
+		if (bank->size==0x08000)
+		{
+			at91sam7_info->target_name = "AT91SAM7SE32";
+			at91sam7_info->num_lockbits = 8;
+			at91sam7_info->pagesize = 128;
+			at91sam7_info->pages_in_lockregion = 32;
+			at91sam7_info->num_pages = 8*32;
+		}
+		
+		return ERROR_OK;
+	}
+	
 	if (at91sam7_info->cidr_arch == 0x75 )
 	{
 		at91sam7_info->num_nvmbits = 3;

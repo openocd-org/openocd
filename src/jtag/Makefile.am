@@ -28,13 +28,11 @@ endif
 if FT2232_LIBFTDI
 FT2232FILES = ft2232.c
 else
-FT2232FILES =
-endif
-
 if FT2232_FTD2XX
 FT2232FILES = ft2232.c
 else
 FT2232FILES =
+endif
 endif
 
 if AMTJTAGACCEL

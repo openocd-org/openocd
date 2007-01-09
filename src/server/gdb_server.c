@@ -98,7 +98,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 			case WSAECONNABORTED:
 				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
-				ERROR("read: %d", strerror(errno));
+				ERROR("read: %d", errno);
 				exit(-1);
 		}
 #else

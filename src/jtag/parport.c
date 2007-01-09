@@ -98,6 +98,7 @@ cable_t cables[] =
 	{ "chameleon",			0x80, 0x00, 0x04, 0x01, 0x02, 0x00, 0x00, 0x80, 0x00 },
 	{ "dlc5",				0x10, 0x00, 0x04, 0x02, 0x01, 0x00, 0x00, 0x00, 0x10 },
 	{ "triton",				0x80, 0x08, 0x04, 0x01, 0x02, 0x00, 0x00, 0x80, 0x00 },
+	{ "lattice",			0x40, 0x10, 0x04, 0x02, 0x01, 0x08, 0x00, 0x00, 0x18 },
 	{ NULL,					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
 };
 
@@ -311,7 +312,7 @@ int parport_init(void)
 	dataport_value = cable->PORT_INIT;
 	
 #if PARPORT_USE_PPDEV == 1
-	if (device_handle>0)
+	if (device_handle > 0)
 	{
 		ERROR("device is already opened");
 		return ERROR_JTAG_INIT_FAILED;
@@ -322,13 +323,14 @@ int parport_init(void)
 
 	snprintf(buffer, 256, "/dev/ppi%d", parport_port);
 	device_handle = open(buffer, O_WRONLY);
-#else
+#else /* not __Free_BSD */
 	DEBUG("opening /dev/parport%d...", parport_port);
 
 	snprintf(buffer, 256, "/dev/parport%d", parport_port);
 	device_handle = open(buffer, O_WRONLY);
-#endif	
-	if (device_handle<0)
+#endif /* __FreeBSD__ */
+
+	if (device_handle < 0)
 	{
 		ERROR("cannot open device. check it exists and that user read and write rights are set");
 		return ERROR_JTAG_INIT_FAILED;
@@ -359,8 +361,9 @@ int parport_init(void)
 		ERROR("cannot set compatible 1284 mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-#endif
-#else
+#endif /* not __Free_BSD__ */
+
+#else /* not PARPORT_USE_PPDEV */
 	if (parport_port == 0)
 	{
 		parport_port = 0x378;
@@ -381,6 +384,14 @@ int parport_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	DEBUG("...privileges granted");
+	
+	/* make sure parallel port is in right mode (clear tristate and interrupt */
+	#ifdef __FreeBSD__
+		outb(parport_port + 2, 0x0);
+	#else
+		outb(0x0, dataport);
+	#endif
+	
 #endif /* PARPORT_USE_PPDEV */
 	
 	parport_reset(0, 0);

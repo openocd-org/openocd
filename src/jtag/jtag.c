@@ -714,7 +714,7 @@ int jtag_add_pathmove(int num_states, enum tap_state *path)
 		*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 		last_comand_pointer = &((*last_cmd)->next);
 		(*last_cmd)->next = NULL;
-		(*last_cmd)->type = JTAG_RUNTEST;
+		(*last_cmd)->type = JTAG_PATHMOVE;
 	
 		(*last_cmd)->cmd.pathmove = cmd_queue_alloc(sizeof(pathmove_command_t));
 		(*last_cmd)->cmd.pathmove->num_states = num_states;

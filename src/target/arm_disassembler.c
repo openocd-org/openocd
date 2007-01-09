@@ -1247,7 +1247,7 @@ int evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
 	}
 	
 	/* catch opcodes with [27:25] = b011 */
-	if ((opcode & 0x0e000000) == 0x04000000)
+	if ((opcode & 0x0e000000) == 0x06000000)
 	{
 		/* Undefined instruction */
 		if ((opcode & 0x00000010) == 0x00000010)
