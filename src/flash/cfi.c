@@ -88,6 +88,12 @@ void cfi_command(flash_bank_t *bank, u8 cmd, u8 *cmd_buf)
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	int i;
 	
+	/* clear whole buffer, to ensure bits that exceed the bus_width
+	 * are set to zero
+	 */
+	for (i = 0; i < CFI_MAX_BUS_WIDTH; i++)
+		cmd_buf[i] = 0;
+
 	if (cfi_info->target->endianness == TARGET_LITTLE_ENDIAN)
 	{
 		for (i = bank->bus_width; i > 0; i--)
@@ -206,7 +212,10 @@ u8 cfi_intel_wait_status_busy(flash_bank_t *bank, int timeout)
 		DEBUG("status: 0x%x", status);
 		usleep(1000);
 	}
-	
+
+	/* mask out bit 0 (reserved) */
+	status = status & 0xfe;
+
 	DEBUG("status: 0x%x", status);
 	
 	if ((status & 0x80) != 0x80)
@@ -438,6 +447,7 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = cfi_info->target;
 	u8 command[8];
+	int retry = 0;
 	int i;
 	
 	/* if the device supports neither legacy lock/unlock (bit 3) nor
@@ -451,22 +461,53 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 	for (i = first; i <= last; i++)
 	{
 		cfi_command(bank, 0x60, command);
+		DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
 		target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
 		if (set)
 		{
 			cfi_command(bank, 0x01, command);
+			DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
 			target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
 			bank->sectors[i].is_protected = 1;
 		}
 		else
 		{
 			cfi_command(bank, 0xd0, command);
+			DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
 			target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
 			bank->sectors[i].is_protected = 0;
 		}
-		
-		/* Clear lock bits operation may take up to 1.4s */
-		cfi_intel_wait_status_busy(bank, 1400);
+
+		/* instant individual block locking doesn't require reading of the status register */
+		if (!(pri_ext->feature_support & 0x20))
+		{
+			/* Clear lock bits operation may take up to 1.4s */
+			cfi_intel_wait_status_busy(bank, 1400);
+		}
+		else
+		{
+			u8 block_status;
+			/* read block lock bit, to verify status */
+			cfi_command(bank, 0x90, command);
+			target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command);
+			block_status = cfi_get_u8(bank, i, 0x2);
+			
+			if ((block_status & 0x1) != set)
+			{
+				ERROR("couldn't change block lock status (set = %i, block_status = 0x%2.2x)", set, block_status);
+				cfi_command(bank, 0x70, command);
+				target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command);
+				cfi_intel_wait_status_busy(bank, 10);
+				
+				if (retry > 10)
+					return ERROR_FLASH_OPERATION_FAILED;
+				else
+				{
+					i--;
+					retry++;	
+				}
+			}		
+		}
 	}
 	
 	/* if the device doesn't support individual block lock bits set/clear,
@@ -683,7 +724,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 
 	cfi_command(bank, 0x40, write_command);
 	cfi_command(bank, 0x80, busy_pattern);
-	cfi_command(bank, 0x7f, error_pattern);
+	cfi_command(bank, 0x7e, error_pattern);
 
 	while (count > 0)
 	{
@@ -694,9 +735,9 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count / bank->bus_width);
-		buf_set_u32(reg_params[3].value, 0, 32, buf_get_u32(write_command, 0, 32));
-		buf_set_u32(reg_params[5].value, 0, 32, buf_get_u32(busy_pattern, 0, 32));
-		buf_set_u32(reg_params[6].value, 0, 32, buf_get_u32(error_pattern, 0, 32));
+		buf_set_u32(reg_params[3].value, 0, 32, target_buffer_get_u32(target, write_command));
+		buf_set_u32(reg_params[5].value, 0, 32, target_buffer_get_u32(target, busy_pattern));
+		buf_set_u32(reg_params[6].value, 0, 32, target_buffer_get_u32(target, error_pattern));
 	
 		if ((retval = target->type->run_algorithm(target, 0, NULL, 7, reg_params, cfi_info->write_algorithm->address, cfi_info->write_algorithm->address + (13 * 4), 10000, &armv4_5_info)) != ERROR_OK)
 		{

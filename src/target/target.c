@@ -209,6 +209,8 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 	
 	if ((event == TARGET_EVENT_HALTED) && (target->reset_script))
 	{
+		target_unregister_event_callback(target_init_handler, priv);
+
 		script = fopen(target->reset_script, "r");
 		if (!script)
 		{
@@ -221,8 +223,6 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 		fclose(script);
 
 		jtag_execute_queue();
-
-		target_unregister_event_callback(target_init_handler, priv);
 	}
 	
 	return ERROR_OK;

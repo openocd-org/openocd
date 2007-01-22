@@ -23,6 +23,7 @@
 #include "target.h"
 #include "register.h"
 #include "arm_jtag.h"
+#include "arm7_9_common.h"
 
 enum
 {
@@ -42,7 +43,6 @@ enum
 	EICE_W1_DATA_MASK = 13,
 	EICE_W1_CONTROL_VALUE = 14,
 	EICE_W1_CONTROL_MASK = 15,
-	EICE_ABT_STATUS = 16,
 	EICE_VEC_CATCH = 16
 };
 
@@ -57,6 +57,7 @@ enum
 
 enum
 {
+	EICE_DBG_STATUS_IJBIT = 5,
 	EICE_DBG_STATUS_ITBIT = 4,
 	EICE_DBG_STATUS_SYSCOMP = 3,
 	EICE_DBG_STATUS_IFEN = 2,
@@ -89,7 +90,7 @@ typedef struct embeddedice_reg_s
 	arm_jtag_t *jtag_info;
 } embeddedice_reg_t;
 
-extern reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, int extra_reg);
+extern reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9);
 extern int embeddedice_read_reg(reg_t *reg);
 extern int embeddedice_write_reg(reg_t *reg, u32 value);
 extern int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask);

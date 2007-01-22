@@ -48,7 +48,8 @@ int embeddedice_reg_arch_info[] =
 {
 	0x0, 0x1, 0x4, 0x5,
 	0x8, 0x9, 0xa, 0xb, 0xc, 0xd,
-	0x10, 0x11, 0x12, 0x13, 0x14, 0x15
+	0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
+	0x2
 };
 
 char* embeddedice_reg_list[] =
@@ -71,7 +72,9 @@ char* embeddedice_reg_list[] =
 	"watch 1 data value",
 	"watch 1 data mask",
 	"watch 1 control value",
-	"watch 1 control mask"
+	"watch 1 control mask",
+	
+	"vector catch"
 };
 
 int embeddedice_reg_arch_type = -1;
@@ -83,18 +86,25 @@ int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf);
 int embeddedice_write_reg(reg_t *reg, u32 value);
 int embeddedice_read_reg(reg_t *reg);
 
-reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, int extra_reg)
+reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
 {
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
 	embeddedice_reg_t *arch_info = NULL;
-	int num_regs = 16 + extra_reg;
+	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	int num_regs;
 	int i;
+	int eice_version = 0;
 	
 	/* register a register arch-type for EmbeddedICE registers only once */
 	if (embeddedice_reg_arch_type == -1)
 		embeddedice_reg_arch_type = register_reg_arch_type(embeddedice_get_reg, embeddedice_set_reg_w_exec);
 	
+	if (arm7_9->has_vector_catch)
+		num_regs = 17;
+	else
+		num_regs = 16;
+		
 	/* the actual registers are kept in two arrays */
 	reg_list = calloc(num_regs, sizeof(reg_t));
 	arch_info = calloc(num_regs, sizeof(embeddedice_reg_t));
@@ -106,7 +116,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm_jtag_t *jtag_info
 	reg_cache->num_regs = num_regs;
 	
 	/* set up registers */
-	for (i = 0; i < num_regs - extra_reg; i++)
+	for (i = 0; i < num_regs; i++)
 	{
 		reg_list[i].name = embeddedice_reg_list[i];
 		reg_list[i].size = 32;
@@ -121,12 +131,49 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm_jtag_t *jtag_info
 		arch_info[i].jtag_info = jtag_info;
 	}
 	
-	/* there may be one extra reg (Abort status (ARM7 rev4) or Vector catch (ARM9)) */
-	if (extra_reg)
+	/* identify EmbeddedICE version by reading DCC control register */
+	embeddedice_read_reg(&reg_list[EICE_COMMS_CTRL]);
+	jtag_execute_queue();
+	
+	eice_version = buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 28, 4);
+	
+	switch (eice_version)
 	{
-		reg_list[num_regs - 1].arch_info = &arch_info[num_regs - 1];
-		reg_list[num_regs - 1].arch_type = embeddedice_reg_arch_type;
-		arch_info[num_regs - 1].jtag_info = jtag_info;
+		case 1:
+			reg_list[EICE_DBG_CTRL].size = 3;
+			reg_list[EICE_DBG_STAT].size = 5;
+			break;
+		case 2:
+			reg_list[EICE_DBG_CTRL].size = 4;
+			reg_list[EICE_DBG_STAT].size = 5;
+			arm7_9->has_single_step = 1;
+			break;
+		case 3:
+			ERROR("EmbeddedICE version 3 detected, EmbeddedICE handling might be broken"); 
+			reg_list[EICE_DBG_CTRL].size = 6;
+			reg_list[EICE_DBG_STAT].size = 5;
+			arm7_9->has_single_step = 1;
+			arm7_9->has_monitor_mode = 1;
+			break;
+		case 4:
+			reg_list[EICE_DBG_CTRL].size = 6;
+			reg_list[EICE_DBG_STAT].size = 5;
+			arm7_9->has_monitor_mode = 1;
+			break;
+		case 5:
+			reg_list[EICE_DBG_CTRL].size = 6;
+			reg_list[EICE_DBG_STAT].size = 5;
+			arm7_9->has_single_step = 1;
+			arm7_9->has_monitor_mode = 1;
+			break;
+		case 6:
+			reg_list[EICE_DBG_CTRL].size = 6;
+			reg_list[EICE_DBG_STAT].size = 10;
+			arm7_9->has_single_step = 1;
+			arm7_9->has_monitor_mode = 1;
+			break;
+		default:
+			ERROR("unknown EmbeddedICE version (comms ctrl: 0x%4.4x)", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
 	
 	return reg_cache;

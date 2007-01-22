@@ -33,7 +33,6 @@ typedef struct arm966e_common_s
 	int common_magic;
 	arm9tdmi_common_t arm9tdmi_common;
 	u32 cp15_control_reg;
-	int monitor_mode_set;
 } arm966e_common_t;
 
 #endif /* ARM966E_H */

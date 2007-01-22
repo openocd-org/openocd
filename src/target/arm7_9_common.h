@@ -45,7 +45,11 @@ typedef struct arm7_9_common_s
 	int force_hw_bkpts;
 	int dbgreq_adjust_pc;
 	int use_dbgrq;
+	
 	int has_etm;
+	int has_single_step;
+	int has_monitor_mode;
+	int has_vector_catch;
 	
 	int reinit_embeddedice;
 	

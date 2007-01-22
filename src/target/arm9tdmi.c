@@ -788,7 +788,7 @@ void arm9tdmi_enable_single_step(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9 = arm7_9->arch_info;
 	
-	if (arm9->has_single_step)
+	if (arm7_9->has_single_step)
 	{
 		buf_set_u32(arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].value, 3, 1, 1);
 		embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_DBG_CTRL]);
@@ -806,7 +806,7 @@ void arm9tdmi_disable_single_step(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9 = arm7_9->arch_info;
 	
-	if (arm9->has_single_step)
+	if (arm7_9->has_single_step)
 	{
 		buf_set_u32(arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].value, 3, 1, 0);
 		embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_DBG_CTRL]);
@@ -832,16 +832,10 @@ void arm9tdmi_build_reg_cache(target_t *target)
 	armv4_5->core_cache = (*cache_p);
 	
 	/* one extra register (vector catch) */
-	(*cache_p)->next = embeddedice_build_reg_cache(target, jtag_info, 1);
+	(*cache_p)->next = embeddedice_build_reg_cache(target, arm7_9);
 	arm7_9->eice_cache = (*cache_p)->next;
-	
-	if (arm9tdmi->has_monitor_mode)
-		(*cache_p)->next->reg_list[EICE_DBG_CTRL].size = 6;
-	else
-		(*cache_p)->next->reg_list[EICE_DBG_CTRL].size = 4;
-	
-	(*cache_p)->next->reg_list[EICE_DBG_STAT].size = 5;
 
+#if 0	
 	(*cache_p)->next->reg_list[EICE_VEC_CATCH].name = "vector catch";
 	(*cache_p)->next->reg_list[EICE_VEC_CATCH].dirty = 0;
 	(*cache_p)->next->reg_list[EICE_VEC_CATCH].valid = 0;
@@ -851,7 +845,7 @@ void arm9tdmi_build_reg_cache(target_t *target)
 	(*cache_p)->next->reg_list[EICE_VEC_CATCH].value = calloc(1, 4);
 	vec_catch_arch_info = (*cache_p)->next->reg_list[EICE_VEC_CATCH].arch_info;
 	vec_catch_arch_info->addr = 0x2;
-	
+#endif
 }
 
 int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
@@ -923,27 +917,24 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int c
 	arm7_9->arch_info = arm9tdmi;
 	
 	arm9tdmi->common_magic = ARM9TDMI_COMMON_MAGIC;
-	arm9tdmi->has_monitor_mode = 0;
-	arm9tdmi->has_single_step = 0;
 	arm9tdmi->arch_info = NULL;
 
 	if (variant)
 	{
-		if (strcmp(variant, "arm920t") == 0)
-			arm9tdmi->has_single_step = 1;
-		else if (strcmp(variant, "arm922t") == 0)
-			arm9tdmi->has_single_step = 1;
-		else if (strcmp(variant, "arm940t") == 0)
-			arm9tdmi->has_single_step = 1;
 		arm9tdmi->variant = strdup(variant);
 	}
 	else
+	{
 		arm9tdmi->variant = strdup("");
+	}
 	
 	arm7_9_init_arch_info(target, arm7_9);
 
 	/* override use of DBGRQ, this is safe on ARM9TDMI */
 	arm7_9->use_dbgrq = 1;
+
+	/* all ARM9s have the vector catch register */
+	arm7_9->has_vector_catch = 1;
 	
 	return ERROR_OK;
 }

@@ -701,7 +701,7 @@ int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, int chai
 	arm920t->preserve_cache = 0;
 	
 	/* override hw single-step capability from ARM9TDMI */
-	arm9tdmi->has_single_step = 1;
+	arm7_9->has_single_step = 1;
 	
 	return ERROR_OK;
 }

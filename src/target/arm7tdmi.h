@@ -33,7 +33,6 @@ typedef struct arm7tdmi_common_s
 {
 	int common_magic;
 	char *variant;
-	int has_monitor_mode;
 	void *arch_info;
 	arm7_9_common_t arm7_9_common;
 } arm7tdmi_common_t;

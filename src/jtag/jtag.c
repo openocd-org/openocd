@@ -115,6 +115,10 @@ int jtag_verify_capture_ir = 1;
 int jtag_nsrst_delay = 0; /* default to no nSRST delay */
 int jtag_ntrst_delay = 0; /* default to no nTRST delay */ 
 
+/* maximum number of JTAG devices expected in the chain
+ */
+#define JTAG_MAX_CHAIN_SIZE 20 
+
 /* callbacks to inform high-level handlers about JTAG state changes */
 jtag_event_callback_t *jtag_event_callbacks;
 
@@ -597,8 +601,7 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 			/* if a device is listed, the BYPASS register must not be selected */
 			if (jtag_get_device(i)->bypass)
 			{
-				ERROR("BUG: scan data for a device in BYPASS");
-				exit(-1);
+				WARNING("scan data for a device in BYPASS");
 			}
 		}
 	}
@@ -1116,6 +1119,93 @@ void jtag_sleep(u32 us)
 	usleep(us);
 }
 
+/* Try to examine chain layout according to IEEE 1149.1 §12
+ */
+int jtag_examine_chain()
+{
+	scan_field_t field;
+	u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
+	int i;
+	int bit_count;
+	int device_count = 0;
+	u8 valid = 0x0;
+	
+	field.device = 0;
+	field.num_bits = sizeof(idcode_buffer) * 8;
+	field.out_value = idcode_buffer;
+	field.out_mask = NULL;
+	field.in_value = idcode_buffer;
+	field.in_check_value = NULL;
+	field.in_check_mask = NULL;
+	field.in_handler = NULL;
+	field.in_handler_priv = NULL;
+	
+	for (i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
+	{
+		buf_set_u32(idcode_buffer, 0, 32, 0x000000FF);
+	}
+	
+	jtag_add_plain_dr_scan(1, &field, TAP_TLR);
+	jtag_execute_queue();
+	
+	for (i = 0; i < JTAG_MAX_CHAIN_SIZE * 4; i++)
+	{
+		valid |= idcode_buffer[i];
+	}
+	
+	/* if there wasn't a single non-zero bit, the scan isn't valid */
+	if (!valid)
+	{
+		ERROR("JTAG communication failure, check connection, JTAG interface, target power etc.");
+		exit(-1);
+	}
+	
+	for (bit_count = 0; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;)
+	{
+		u32 idcode = buf_get_u32(idcode_buffer, bit_count, 32);
+		if ((idcode & 1) == 0)
+		{
+			/* LSB must not be 0, this indicates a device in bypass */
+			device_count++;
+			
+			bit_count += 1;
+		}
+		else
+		{
+			u32 manufacturer;
+			u32 part;
+			u32 version;
+			
+			if (idcode == 0x000000FF)
+			{
+				/* End of chain (invalid manufacturer ID) */
+				break;
+			}
+			
+			device_count++;
+			
+			manufacturer = (idcode & 0xffe) >> 1;
+			part = (idcode & 0xffff000) >> 12;
+			version = (idcode & 0xf0000000) >> 28;
+
+			DEBUG("JTAG device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x", 
+				idcode, manufacturer, part, version);
+			
+			bit_count += 32;
+		}
+	}
+	
+	/* see if number of discovered devices matches configuration */
+	if (device_count != jtag_num_devices)
+	{
+		ERROR("number of discovered devices in JTAG chain (%i) doesn't match configuration (%i)", 
+			device_count, jtag_num_devices);
+		exit(-1);
+	}
+	
+	return ERROR_OK;
+}
+
 int jtag_validate_chain()
 {
 	jtag_device_t *device = jtag_devices;
@@ -1243,6 +1333,8 @@ int jtag_init(struct command_context_s *cmd_ctx)
 				
 				jtag_add_statemove(TAP_TLR);
 				jtag_execute_queue();
+				
+				jtag_examine_chain();
 				
 				jtag_validate_chain();
 				

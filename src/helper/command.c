@@ -200,12 +200,23 @@ int parse_line(char *line, char *words[], int max_words)
 			/* we're inside a word or quote, and reached its end*/
 			if (word_start)
 			{
-				int len = p - word_start;
-
-				/* copy the word */
-				memcpy(words[nwords] = malloc(len + 1), word_start, len);
-				/* add terminating NUL */
-				words[nwords++][len] = 0;
+                         int len;
+                            char *word_end=p;
+                            /* This will handle extra whitespace within quotes */
+                         while (isspace(*word_start)&&(word_start<word_end))
+                                   word_start++;
+                         while (isspace(*(word_end-1))&&(word_start<word_end))
+                                   word_end--;
+                            
+                            len = word_end - word_start;
+                            
+                            if (len>0)
+                            {
+                                   /* copy the word */
+                                   memcpy(words[nwords] = malloc(len + 1), word_start, len);
+                                   /* add terminating NUL */
+                                   words[nwords++][len] = 0;
+                            }
 			}
 
 			/* we're done parsing the line */
@@ -215,6 +226,8 @@ int parse_line(char *line, char *words[], int max_words)
 			/* skip over trailing quote or whitespace*/
 			if (inquote || isspace(*p))
 				p++;
+                     while (isspace(*p))
+                            p++;
 
 			inquote = 0;
 			word_start = 0;

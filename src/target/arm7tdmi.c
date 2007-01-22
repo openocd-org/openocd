@@ -742,7 +742,7 @@ void arm7tdmi_build_reg_cache(target_t *target)
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 	armv4_5->core_cache = (*cache_p);
 	
-	(*cache_p)->next = embeddedice_build_reg_cache(target, jtag_info, 0);
+	(*cache_p)->next = embeddedice_build_reg_cache(target, arm7_9);
 	arm7_9->eice_cache = (*cache_p)->next;
 	
 	if (arm7_9->has_etm)
@@ -750,14 +750,6 @@ void arm7tdmi_build_reg_cache(target_t *target)
 		(*cache_p)->next->next = etm_build_reg_cache(target, jtag_info, 0);
 		arm7_9->etm_cache = (*cache_p)->next->next;
 	}
-		
-	if (arch_info->has_monitor_mode)
-		(*cache_p)->next->reg_list[EICE_DBG_CTRL].size = 6;
-	else
-		(*cache_p)->next->reg_list[EICE_DBG_CTRL].size = 3;
-	
-	(*cache_p)->next->reg_list[EICE_DBG_STAT].size = 5;
-
 }
 
 int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
@@ -828,30 +820,20 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, int c
 	arm7_9->sw_bkpts_enabled = 0;
 	arm7_9->dbgreq_adjust_pc = 2;
 	arm7_9->arch_info = arm7tdmi;
-	
-	arm7tdmi->has_monitor_mode = 0;
+
 	arm7tdmi->arch_info = NULL;
 	arm7tdmi->common_magic = ARM7TDMI_COMMON_MAGIC;
 	
 	if (variant)
 	{
-		if (strcmp(variant, "arm7tdmi-s_r4") == 0)
-			arm7tdmi->has_monitor_mode = 1;
-		else if (strcmp(variant, "arm7tdmi_r4") == 0)
-			arm7tdmi->has_monitor_mode = 1;
-		else if (strcmp(variant, "lpc2000") == 0)
-		{
-			arm7tdmi->has_monitor_mode = 1;
-			has_etm = 1;
-		}
 		arm7tdmi->variant = strdup(variant);
 	}
 	else
+	{
 		arm7tdmi->variant = strdup("");
+	}
 	
 	arm7_9_init_arch_info(target, arm7_9);
-	
-	arm7_9->has_etm = has_etm;
 
 	return ERROR_OK;
 }

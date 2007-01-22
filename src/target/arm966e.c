@@ -91,9 +91,6 @@ int arm966e_assert_reset(target_t *target)
 	arm966e_common_t *arm966e = arm9tdmi->arch_info;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int retval;
-	int trst_asserted_with_srt = 0;
-	
-	arm966e->monitor_mode_set = 1;
 	
 	DEBUG("target->state: %s", target_state_strings[target->state]);
 	
@@ -121,7 +118,6 @@ int arm966e_assert_reset(target_t *target)
 			{
 				WARNING("srst resets test logic, too");
 				retval = jtag_add_reset(1, 1);
-				trst_asserted_with_srt = 1;
 			}
 		}
 	}
@@ -133,7 +129,6 @@ int arm966e_assert_reset(target_t *target)
 			{
 				WARNING("srst resets test logic, too");
 				retval = jtag_add_reset(1, 1);
-				trst_asserted_with_srt = 1;
 			}
 			
 			if (retval == ERROR_JTAG_RESET_CANT_SRST)
@@ -153,23 +148,6 @@ int arm966e_assert_reset(target_t *target)
 	jtag_add_sleep(50000);
 	
 	armv4_5_invalidate_core_regs(target);
-
-	if( trst_asserted_with_srt == 0 )
-	{
-		DEBUG("monitor mode needs clearing");
-		
-		/* arm9e monitor mode enabled at reset */
-		embeddedice_read_reg(dbg_ctrl);
-		jtag_execute_queue();
-		
-		if(buf_get_u32(dbg_ctrl->value, EICE_DBG_CONTROL_MONEN, 1))
-		{
-			buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_MONEN, 1, 0);
-			embeddedice_store_reg(dbg_ctrl);
-			DEBUG("monitor mode disabled");
-		}
-		arm966e->monitor_mode_set = 0;
-	}
 	
 	return ERROR_OK;
 }
@@ -183,23 +161,6 @@ int arm966e_deassert_reset(target_t *target)
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	
 	arm7_9_deassert_reset( target );
-	
-	if( arm966e->monitor_mode_set == 1 )
-	{
-		DEBUG("monitor mode needs clearing");
-		
-		/* arm9e monitor mode enabled at reset */
-		embeddedice_read_reg(dbg_ctrl);
-		jtag_execute_queue();
-				
-		if(buf_get_u32(dbg_ctrl->value, EICE_DBG_CONTROL_MONEN, 1))
-		{
-			buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_MONEN, 1, 0);
-			embeddedice_store_reg(dbg_ctrl);
-			arm966e->monitor_mode_set = 0;
-			DEBUG("monitor mode disabled");
-		}
-	}
 	
 	return ERROR_OK;
 }
@@ -225,9 +186,6 @@ int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, int chai
 
 	arm9tdmi->arch_info = arm966e;
 	arm966e->common_magic = ARM966E_COMMON_MAGIC;
-	
-	arm9tdmi->has_single_step = 0;
-	arm9tdmi->has_monitor_mode = 1;
 	
 	return ERROR_OK;
 }

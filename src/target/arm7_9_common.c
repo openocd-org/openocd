@@ -2388,7 +2388,11 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	arm7_9->wp1_used = 0;
 	arm7_9->force_hw_bkpts = 0;
 	arm7_9->use_dbgrq = 0;
+	
 	arm7_9->has_etm = 0;
+	arm7_9->has_single_step = 0;
+	arm7_9->has_monitor_mode = 0;
+	arm7_9->has_vector_catch = 0;
 	
 	arm7_9->reinit_embeddedice = 0;
 	

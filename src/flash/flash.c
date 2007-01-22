@@ -471,6 +471,10 @@ int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, c
 					command_print(cmd_ctx, "unknown error");
 			}
 		}
+		else
+		{
+			command_print(cmd_ctx, "%s protection for sectors %i through %i on flash bank %i", (set) ? "set" : "cleared", first, last, strtoul(args[0], 0, 0));
+		}
 	}
 	else
 	{
