@@ -38,6 +38,9 @@ interface for use with the OpenOCD. Schematics are available at the USBJTAG
 website, and a homebrew device can easily be built using the FTDI evaluation
 module DLP2232M.
 
+* OOCD-Link: http://www.joernonline.de/dw/doku.php?id=en:projects:oocdlink
+Similar to the USBJTAG, this design comes with free schematics, too.
+
 * Amontec JTAGkey: www.amontec.com
 The Amontec JTAGkey offers support for a wide variety of target voltages from
 1.4V to 5V. It also allows the JTAG lines and reset signals to be tri-stated,
@@ -74,11 +77,6 @@ This version of openocd supports the following cores:
 
 Support for Intel XScale CPUs (PXA25x, PXA27x and IXP4xx) is currently being
 developed.
-
-The OpenOCD is only tested with little-endian targets, but support for
-big-endian is planned. If you're interested in helping with this (and you
-happen to have a big-endian ARM7/ARM9 system, feel free to contact
-Dominic.Rath <at> gmx.de.
 
 3. Host platforms
 
