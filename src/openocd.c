@@ -18,7 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#define OPENOCD_VERSION "Open On-Chip Debugger (2006-01-25 11:30 CET)"
+#define OPENOCD_VERSION "Open On-Chip Debugger (2006-01-26 13:30 CET)"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

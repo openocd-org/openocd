@@ -169,7 +169,6 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 		case 6:
 			reg_list[EICE_DBG_CTRL].size = 6;
 			reg_list[EICE_DBG_STAT].size = 10;
-			arm7_9->has_single_step = 1;
 			arm7_9->has_monitor_mode = 1;
 			break;
 		default:
