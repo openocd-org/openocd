@@ -25,7 +25,7 @@
 
 #include "command.h"
 
-#if 0
+#if 1
 #define _DEBUG_JTAG_IO_
 #endif
 
@@ -198,6 +198,8 @@ enum jtag_event
 	JTAG_SRST_RELEASED,
 	JTAG_TRST_RELEASED,
 };
+
+extern char* jtag_event_strings[];
 
 extern int jtag_trst;
 extern int jtag_srst;

@@ -95,6 +95,14 @@ tap_transition_t tap_transitions[16] =
 	{TAP_SDS, TAP_RTI}		/* UI  */
 };
 
+char* jtag_event_strings[] =
+{
+	"SRST asserted",
+	"TRST asserted",
+	"SRST released",
+	"TRST released"
+};
+
 enum tap_state end_state = TAP_TLR;
 enum tap_state cur_state = TAP_TLR;
 int jtag_trst = 0;
@@ -184,6 +192,18 @@ char* jtag_interface = NULL;
 int jtag_speed = -1;
 
 /* forward declarations */
+int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+int jtag_add_statemove(enum tap_state endstate);
+int jtag_add_pathmove(int num_states, enum tap_state *path);
+int jtag_add_runtest(int num_cycles, enum tap_state endstate);
+int jtag_add_reset(int trst, int srst);
+int jtag_add_end_state(enum tap_state endstate);
+int jtag_add_sleep(u32 us);
+int jtag_execute_queue(void);
+int jtag_cancel_queue(void);
 
 /* jtag commands */
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -255,7 +275,7 @@ int jtag_call_event_callbacks(enum jtag_event event)
 {
 	jtag_event_callback_t *callback = jtag_event_callbacks;
 	
-	DEBUG("jtag event: %i", event);
+	DEBUG("jtag event: %s", jtag_event_strings[event]);
 	
 	while (callback)
 	{
@@ -1128,7 +1148,8 @@ int jtag_examine_chain()
 	int i;
 	int bit_count;
 	int device_count = 0;
-	u8 valid = 0x0;
+	u8 zero_check = 0x0;
+	u8 one_check = 0xff;
 	
 	field.device = 0;
 	field.num_bits = sizeof(idcode_buffer) * 8;
@@ -1150,11 +1171,12 @@ int jtag_examine_chain()
 	
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE * 4; i++)
 	{
-		valid |= idcode_buffer[i];
+		zero_check |= idcode_buffer[i];
+		one_check &= idcode_buffer[i];
 	}
 	
-	/* if there wasn't a single non-zero bit, the scan isn't valid */
-	if (!valid)
+	/* if there wasn't a single non-zero bit or if all bits were one, the scan isn't valid */
+	if ((zero_check == 0x00) || (one_check == 0xff))
 	{
 		ERROR("JTAG communication failure, check connection, JTAG interface, target power etc.");
 		exit(-1);

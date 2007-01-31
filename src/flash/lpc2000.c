@@ -47,6 +47,8 @@
  * - 213x
  * - 214x
  * - 2101|2|3
+ * - 2364|6|8
+ * - 2378
  */
 
 int lpc2000_register_commands(struct command_context_s *cmd_ctx);
@@ -171,6 +173,7 @@ int lpc2000_build_sector_list(struct flash_bank_s *bank)
 			case 256 * 1024:
 				num_sectors = 15;
 				break;
+			case 512 * 1024:
 			case 500 * 1024:
 				num_sectors = 27;
 				break;

@@ -25,6 +25,10 @@
 
 #include "jtag.h"
 
+#if 1
+#define _DEBUG_GW16012_IO_
+#endif
+
 /* system includes */
 
 /* system includes */
@@ -123,6 +127,10 @@ void gw16012_data(u8 value)
 {
 	value = (value & 0x7f) | gw16012_msb;
 	gw16012_msb ^= 0x80; /* toggle MSB */
+
+#ifdef _DEBUG_GW16012_IO_
+	DEBUG("%2.2x", value);
+#endif
 	
 	#if PARPORT_USE_PPDEV == 1
 		ioctl(device_handle, PPWDATA, &value);
@@ -140,6 +148,10 @@ void gw16012_control(u8 value)
 	if (value != gw16012_control_value)
 	{
 		gw16012_control_value = value;
+
+#ifdef _DEBUG_GW16012_IO_
+		DEBUG("%2.2x", gw16012_control_value);
+#endif
 
 		#if PARPORT_USE_PPDEV == 1
 			ioctl(device_handle, PPWCONTROL, &gw16012_control_value);
@@ -160,6 +172,10 @@ void gw16012_input(u8 *value)
 	#else
 		*value = inb(gw16012_port + 1);
 	#endif
+
+#ifdef _DEBUG_GW16012_IO_
+	DEBUG("%2.2x", *value);
+#endif
 }
 
 /* (1) assert or (0) deassert reset lines */
@@ -209,6 +225,37 @@ void gw16012_state_move(void)
 	}
 	
 	cur_state = end_state;
+}
+
+void gw16012_path_move(pathmove_command_t *cmd)
+{
+	int num_states = cmd->num_states;
+	int state_count;
+
+	state_count = 0;
+	while (num_states)
+	{
+		gw16012_control(0x0); /* single-bit mode */
+		if (tap_transitions[cur_state].low == cmd->path[state_count])
+		{
+			gw16012_data(0x0); /* TCK cycle with TMS low */
+		}
+		else if (tap_transitions[cur_state].high == cmd->path[state_count])
+		{
+			gw16012_data(0x2); /* TCK cycle with TMS high */
+		}
+		else
+		{
+			ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
+			exit(-1);
+		}
+		
+		cur_state = cmd->path[state_count];
+		state_count++;
+		num_states--;
+	}
+	
+	end_state = cur_state;
 }
 
 void gw16012_runtest(int num_cycles)
@@ -342,6 +389,12 @@ int gw16012_execute_queue(void)
 				if (cmd->cmd.statemove->end_state != -1)
 					gw16012_end_state(cmd->cmd.statemove->end_state);
 				gw16012_state_move();
+				break;
+			case JTAG_PATHMOVE:
+#ifdef _DEBUG_JTAG_IO_
+				DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+#endif
+				gw16012_path_move(cmd->cmd.pathmove);
 				break;
 			case JTAG_SCAN:
 				if (cmd->cmd.scan->end_state != -1)
