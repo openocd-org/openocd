@@ -350,7 +350,7 @@ int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-/* flash_bank lpc2000 <base> <size> 0 0 <lpc_variant> <target#> <cclk> [calc_checksum]
+/* flash bank lpc2000 <base> <size> 0 0 <lpc_variant> <target#> <cclk> [calc_checksum]
  */
 int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
