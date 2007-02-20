@@ -1346,9 +1346,15 @@ int ft2232_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 
 	/* context, vendor id, product id */
-	if (ftdi_usb_open(&ftdic, ft2232_vid, ft2232_pid) < 0)
+	if (ftdi_usb_open_desc(&ftdic, ft2232_vid, ft2232_pid, ft2232_device_desc, ft2232_serial) < 0)
 	{
 		ERROR("unable to open ftdi device: %s", ftdic.error_str);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	if (ftdi_set_interface(&ftdic, INTERFACE_A) < 0)
+	{
+		ERROR("unable to select FT2232 channel A: %s", ftdic.error_str);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -1374,11 +1380,7 @@ int ft2232_init(void)
 		DEBUG("current latency timer: %i", latency_timer);
 	}
 
-	ftdic.bitbang_mode = 0; /* Reset controller */
-	ftdi_enable_bitbang(&ftdic, 0x0b); /* ctx, JTAG I/O mask */
-
-	ftdic.bitbang_mode = 2; /* MPSSE mode */
-	ftdi_enable_bitbang(&ftdic, 0x0b); /* ctx, JTAG I/O mask */
+	ftdi_set_bitmode(&ftdic, 0x0b, 2); /* ctx, JTAG I/O mask */
 #endif	
 
 	ft2232_buffer_size = 0;
