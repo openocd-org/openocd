@@ -28,6 +28,7 @@
 #include "target.h"
 #include "armv4_5.h"
 #include "embeddedice.h"
+#include "etm.h"
 #include "log.h"
 #include "jtag.h"
 #include "arm_jtag.h"
@@ -824,9 +825,6 @@ void arm9tdmi_build_reg_cache(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-
-	embeddedice_reg_t *vec_catch_arch_info;
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 	armv4_5->core_cache = (*cache_p);
@@ -835,17 +833,11 @@ void arm9tdmi_build_reg_cache(target_t *target)
 	(*cache_p)->next = embeddedice_build_reg_cache(target, arm7_9);
 	arm7_9->eice_cache = (*cache_p)->next;
 
-#if 0	
-	(*cache_p)->next->reg_list[EICE_VEC_CATCH].name = "vector catch";
-	(*cache_p)->next->reg_list[EICE_VEC_CATCH].dirty = 0;
-	(*cache_p)->next->reg_list[EICE_VEC_CATCH].valid = 0;
-	(*cache_p)->next->reg_list[EICE_VEC_CATCH].bitfield_desc = NULL;
-	(*cache_p)->next->reg_list[EICE_VEC_CATCH].num_bitfields = 0;
-	(*cache_p)->next->reg_list[EICE_VEC_CATCH].size = 8;
-	(*cache_p)->next->reg_list[EICE_VEC_CATCH].value = calloc(1, 4);
-	vec_catch_arch_info = (*cache_p)->next->reg_list[EICE_VEC_CATCH].arch_info;
-	vec_catch_arch_info->addr = 0x2;
-#endif
+	if (arm7_9->has_etm)
+	{
+		(*cache_p)->next->next = etm_build_reg_cache(target, jtag_info, 0);
+		arm7_9->etm_cache = (*cache_p)->next->next;
+	}
 }
 
 int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target)

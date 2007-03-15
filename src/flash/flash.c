@@ -34,6 +34,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#include <fileio.h>
+
 /* command handlers */
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_banks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -486,23 +488,30 @@ int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, c
 
 int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	FILE *binary;
 	u32 offset;
-	struct stat binary_stat;
 	u32 binary_size;
 	u8 *buffer;
 	u32 buf_cnt;
+
+	fileio_t file;
+	fileio_image_t image_info;
+	enum fileio_sec_type sec_type;
+	
+	duration_t duration;
+	char *duration_text;
+	
 	int retval;
 	flash_bank_t *p;
-	struct timeval start, end, duration;
 
-	gettimeofday(&start, NULL);
-		
 	if (argc < 3)
 	{
-		command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
+		command_print(cmd_ctx, "usage: flash write <bank> <file> <offset> [type]");
 		return ERROR_OK;
 	}
+	
+	duration_start_measure(&duration);
+	
+	fileio_identify_image_type(&sec_type, (argc == 4) ? args[3] : NULL);
 	
 	offset = strtoul(args[2], NULL, 0);
 	p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
@@ -512,36 +521,21 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 	
-	if (stat(args[1], &binary_stat) == -1)
-	{
-		ERROR("couldn't stat() %s: %s", args[1], strerror(errno));
-		return ERROR_OK;
-	}
+	image_info.base_address = strtoul(args[2], NULL, 0);
+	image_info.has_start_address = 0;
 
-	if (S_ISDIR(binary_stat.st_mode))
+	if (fileio_open(&file, args[1], FILEIO_READ, 
+		FILEIO_IMAGE, &image_info, sec_type) != ERROR_OK)
 	{
-		ERROR("%s is a directory", args[1]);
-		command_print(cmd_ctx,"%s is a directory", args[1]);
+		command_print(cmd_ctx, "flash write error: %s", file.error_str);
 		return ERROR_OK;
 	}
-		
-	if (binary_stat.st_size == 0){
-		ERROR("Empty file %s", args[1]);
-		command_print(cmd_ctx,"Empty file %s", args[1]);
-		return ERROR_OK;
-	}
-		
-	if (!(binary = fopen(args[1], "rb")))
-	{
-		ERROR("couldn't open %s: %s", args[1], strerror(errno));
-		command_print(cmd_ctx, "couldn't open %s", args[1]);
-		return ERROR_OK;
-	}
-
-	binary_size = binary_stat.st_size;
+	
+	binary_size = file.size;
 	buffer = malloc(binary_size);
-	buf_cnt = fread(buffer, 1, binary_size, binary);
 
+	fileio_read(&file, binary_size, buffer, &buf_cnt);
+	
 	if ((retval = p->driver->write(p, buffer, offset, buf_cnt)) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "failed writing file %s to flash bank %i at offset 0x%8.8x",
@@ -575,14 +569,14 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	}
 	else
 	{
-		gettimeofday(&end, NULL);	
-		timeval_subtract(&duration, &end, &start);
-		
-		command_print(cmd_ctx, "wrote file %s to flash bank %i at offset 0x%8.8x in %is %ius", args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0), duration.tv_sec, duration.tv_usec);
+		duration_stop_measure(&duration, &duration_text);
+		command_print(cmd_ctx, "wrote file %s to flash bank %i at offset 0x%8.8x in %s",
+			file.url, strtoul(args[0], NULL, 0), offset, duration_text);
+		free(duration_text);
 	}
 	
 	free(buffer);
-	fclose(binary);
+	fileio_close(&file);
 	
 	return ERROR_OK;
 }

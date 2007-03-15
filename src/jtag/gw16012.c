@@ -288,13 +288,17 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	enum tap_state saved_end_state = end_state;
 	u8 scan_out, scan_in;
 
-	if (ir_scan)
-		gw16012_end_state(TAP_SI);
-	else
-		gw16012_end_state(TAP_SD);
+	/* only if we're not already in the correct Shift state */
+	if (!((!ir_scan && (cur_state == TAP_SD)) || (ir_scan && (cur_state == TAP_SI))))
+	{
+		if (ir_scan)
+			gw16012_end_state(TAP_SI);
+		else
+			gw16012_end_state(TAP_SD);
 
-	gw16012_state_move();
-	gw16012_end_state(saved_end_state);
+		gw16012_state_move();
+		gw16012_end_state(saved_end_state);
+	}
 
 	while (type == SCAN_OUT && ((bits_left - 1) > 7))
 	{
@@ -309,6 +313,9 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	while (bits_left-- > 0)
 	{
 		u8 tms = 0;
+		
+		scan_out = buf_get_u32(buffer, bit_count, 1);
+		
 		if (bits_left == 0) /* last bit */
 		{
 			if ((ir_scan && (end_state == TAP_SI))
@@ -321,14 +328,15 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 				tms = 2;
 			}
 		}
-		
-		scan_out = buf_get_u32(buffer, bit_count, 1);
+
 		gw16012_data(scan_out | tms);
+
 		if (type != SCAN_OUT)
 		{
 			gw16012_input(&scan_in);
 			buf_set_u32(buffer, bit_count, 1, ((scan_in & 0x08) >> 3));
-		}
+		}		
+
 		bit_count++;
 	}
 
@@ -530,6 +538,13 @@ int gw16012_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	DEBUG("...privileges granted");
+
+	/* make sure parallel port is in right mode (clear tristate and interrupt */
+#ifdef __FreeBSD__
+	outb(gw16012_port + 2, 0x0);
+#else
+	outb(0x0, gw16012_port + 2);
+#endif
 #endif /* PARPORT_USE_PPDEV */
 	
 	gw16012_input(&status_port);

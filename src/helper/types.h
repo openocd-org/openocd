@@ -34,6 +34,10 @@ typedef unsigned short u16;
 typedef unsigned int u32;
 #endif
 
+#ifndef u64
+typedef unsigned long long u64;
+#endif
+
 #ifdef WORDS_BIGENDIAN /* big endian host */
 
 #define le_to_h_u32(x) (u32)(x[0] | x[1] << 8 | x[2] << 16 | x[3] << 24)
@@ -61,8 +65,8 @@ typedef unsigned int u32;
 #else /* little endian host */
 #define le_to_h_u32(x) (*(u32*)(x))
 #define le_to_h_u16(x) (*(u16*)(x))
-#define be_to_h_u32(x) (u32)(x[3] | x[2] << 8 | x[1] << 16 | x[0] << 24)
-#define be_to_h_u16(x) (u16)(x[1] | x[0] << 8)
+#define be_to_h_u32(x) (u32)((x)[3] | (x)[2] << 8 | (x)[1] << 16 | (x)[0] << 24)
+#define be_to_h_u16(x) (u16)((x)[1] | (x)[0] << 8)
 
 #define h_u32_to_le(buf, val) do { *(u32*)(buf) = (val); } while (0)
 #define h_u16_to_le(buf, val) do { *(u16*)(buf) = (val); } while (0)

@@ -736,8 +736,6 @@ void arm7tdmi_build_reg_cache(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-	arm7tdmi_common_t *arch_info = arm7_9->arch_info;
-
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 	armv4_5->core_cache = (*cache_p);
@@ -771,7 +769,6 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, int c
 {
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
-	int has_etm = 0;
 	
 	arm7_9 = &arm7tdmi->arm7_9_common;
 	armv4_5 = &arm7_9->armv4_5_common;

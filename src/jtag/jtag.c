@@ -1143,6 +1143,7 @@ void jtag_sleep(u32 us)
  */
 int jtag_examine_chain()
 {
+	jtag_device_t *device = jtag_devices;
 	scan_field_t field;
 	u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
 	int i;
@@ -1204,6 +1205,11 @@ int jtag_examine_chain()
 				break;
 			}
 			
+			if (device)
+			{
+				device->idcode = idcode;
+				device = device->next;
+			}
 			device_count++;
 			
 			manufacturer = (idcode & 0xffe) >> 1;

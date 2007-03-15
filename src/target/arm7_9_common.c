@@ -54,6 +54,7 @@ int handle_arm7_9_force_hw_bkpts_command(struct command_context_s *cmd_ctx, char
 int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_arm7_9_etm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int arm7_9_reinit_embeddedice(target_t *target)
 {
@@ -2049,6 +2050,8 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 	command_t *arm7_9_cmd;
 	
 	arm7_9_cmd = register_command(cmd_ctx, NULL, "arm7_9", NULL, COMMAND_ANY, "arm7/9 specific commands");
+
+	register_command(cmd_ctx, arm7_9_cmd, "etm", handle_arm7_9_etm_command, COMMAND_CONFIG, NULL);
 	
 	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr", handle_arm7_9_write_xpsr_command, COMMAND_EXEC, "write program status register <value> <not cpsr|spsr>");
 	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr_im8", handle_arm7_9_write_xpsr_im8_command, COMMAND_EXEC, "write program status register <8bit immediate> <rotate> <not cpsr|spsr>");
@@ -2373,6 +2376,37 @@ int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char 
 		
 	command_print(cmd_ctx, "dcc downloads are %s", (arm7_9->dcc_downloads) ? "enabled" : "disabled");
 
+	return ERROR_OK;
+}
+
+int handle_arm7_9_etm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	
+	if (argc != 1)
+	{
+		ERROR("incomplete 'arm7_9 etm <target>' command");
+		exit(-1);
+	}
+	
+	target = get_target_by_num(strtoul(args[0], NULL, 0));
+	
+	if (!target)
+	{
+		ERROR("target number '%s' not defined", args[0]);
+		exit(-1);
+	}
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	arm7_9->has_etm = 1;
+	
 	return ERROR_OK;
 }
 

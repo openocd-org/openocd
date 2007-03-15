@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2006 by Dominic Rath                                    *
+ *   Copyright (C) 2007 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,23 +17,26 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef TIME_SUPPORT_H
-#define TIME_SUPPORT_H
+#ifndef LPC3180_NAND_CONTROLLER_H
+#define LPC3180_NAND_CONTROLLER_H
 
-#include <sys/time.h>
-#include <time.h>
+#include "target.h"
 
-extern int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
-extern int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y);
-extern int timeval_add_time(struct timeval *result, int sec, int usec);
-
-typedef struct duration_s
+enum lpc3180_selected_controller
 {
-	struct timeval start;
-	struct timeval duration;
-} duration_t;
+	LPC3180_NO_CONTROLLER,
+	LPC3180_MLC_CONTROLLER,
+	LPC3180_SLC_CONTROLLER,
+};
 
-extern int duration_start_measure(duration_t *duration);
-extern int duration_stop_measure(duration_t *duration, char **text);
+typedef struct lpc3180_nand_controller_s
+{
+	struct target_s *target;
+	int osc_freq;
+	enum lpc3180_selected_controller selected_controller;
+	int sw_write_protection;
+	u32 sw_wp_lower_bound;
+	u32 sw_wp_upper_bound;
+} lpc3180_nand_controller_t;
 
-#endif /* TIME_SUPPORT_H */
+#endif /*LPC3180_NAND_CONTROLLER_H */

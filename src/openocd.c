@@ -18,7 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#define OPENOCD_VERSION "Open On-Chip Debugger (2007-01-31 12:00 CET)"
+#define OPENOCD_VERSION "Open On-Chip Debugger (2007-03-15 14:30 CET)"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -75,6 +75,7 @@ int main(int argc, char *argv[])
 	xsvf_register_commands(cmd_ctx);
 	target_register_commands(cmd_ctx);
 	flash_register_commands(cmd_ctx);
+	nand_register_commands(cmd_ctx);
 	pld_register_commands(cmd_ctx);
 	
 	if (log_init(cmd_ctx) != ERROR_OK)
@@ -108,6 +109,10 @@ int main(int argc, char *argv[])
 	if (flash_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
 	DEBUG("flash init complete");
+
+	if (nand_init(cmd_ctx) != ERROR_OK)
+		return EXIT_FAILURE;
+	DEBUG("NAND init complete");
 
 	if (pld_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;

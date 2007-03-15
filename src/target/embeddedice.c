@@ -171,6 +171,12 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			reg_list[EICE_DBG_STAT].size = 10;
 			arm7_9->has_monitor_mode = 1;
 			break;
+		case 7:
+			WARNING("EmbeddedICE version 7 detected, EmbeddedICE handling might be broken");
+			reg_list[EICE_DBG_CTRL].size = 6;
+			reg_list[EICE_DBG_STAT].size = 5;
+			arm7_9->has_monitor_mode = 1;
+			break;
 		default:
 			ERROR("unknown EmbeddedICE version (comms ctrl: 0x%4.4x)", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}

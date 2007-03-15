@@ -42,6 +42,8 @@
 
 #include <time_support.h>
 
+#include <fileio.h>
+
 int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
 
 int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -62,8 +64,8 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_load_binary_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_dump_binary_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -732,6 +734,8 @@ void target_read_u32(struct target_s *target, u32 address, u32 *value)
 	target->type->read_memory(target, address, 4, 1, value_buf);
 	
 	*value = target_buffer_get_u32(target, value_buf);
+
+	DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, *value);
 }
 
 void target_read_u16(struct target_s *target, u32 address, u16 *value)
@@ -741,16 +745,22 @@ void target_read_u16(struct target_s *target, u32 address, u16 *value)
 	target->type->read_memory(target, address, 2, 1, value_buf);
 	
 	*value = target_buffer_get_u16(target, value_buf);
+
+	DEBUG("address: 0x%8.8x, value: 0x%4.4x", address, *value);
 }
 
 void target_read_u8(struct target_s *target, u32 address, u8 *value)
 {
 	target->type->read_memory(target, address, 1, 1, value);
+
+	DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, *value);
 }
 
 void target_write_u32(struct target_s *target, u32 address, u32 value)
 {
 	u8 value_buf[4];
+
+	DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
 
 	target_buffer_set_u32(target, value_buf, value);	
 	target->type->write_memory(target, address, 4, 1, value_buf);
@@ -760,12 +770,16 @@ void target_write_u16(struct target_s *target, u32 address, u16 value)
 {
 	u8 value_buf[2];
 	
+	DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
+
 	target_buffer_set_u16(target, value_buf, value);	
 	target->type->write_memory(target, address, 2, 1, value_buf);
 }
 
 void target_write_u8(struct target_s *target, u32 address, u8 value)
 {
+	DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, value);
+
 	target->type->read_memory(target, address, 1, 1, &value);
 }
 
@@ -773,7 +787,7 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx,  NULL, "reg", handle_reg_command, COMMAND_EXEC, NULL);
 	register_command(cmd_ctx,  NULL, "poll", handle_poll_command, COMMAND_EXEC, "poll target state");
-	register_command(cmd_ctx,  NULL, "wait_halt", handle_wait_halt_command, COMMAND_EXEC, "wait for target halt");
+	register_command(cmd_ctx,  NULL, "wait_halt", handle_wait_halt_command, COMMAND_EXEC, "wait for target halt [time (s)]");
 	register_command(cmd_ctx,  NULL, "halt", handle_halt_command, COMMAND_EXEC, "halt target");
 	register_command(cmd_ctx,  NULL, "resume", handle_resume_command, COMMAND_EXEC, "resume target [addr]");
 	register_command(cmd_ctx,  NULL, "step", handle_step_command, COMMAND_EXEC, "step one instruction");
@@ -793,8 +807,10 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "wp", handle_wp_command, COMMAND_EXEC, "set watchpoint <address> <length> <r/w/a> [value] [mask]");	
 	register_command(cmd_ctx,  NULL, "rwp", handle_rwp_command, COMMAND_EXEC, "remove watchpoint <adress>");
 	
-	register_command(cmd_ctx,  NULL, "load_binary", handle_load_binary_command, COMMAND_EXEC, "load binary <file> <address>");
-	register_command(cmd_ctx,  NULL, "dump_binary", handle_dump_binary_command, COMMAND_EXEC, "dump binary <file> <address> <size>");
+	register_command(cmd_ctx,  NULL, "load_image", handle_load_image_command, COMMAND_EXEC, "load_image <file> <address> ['bin'|'ihex']");
+	register_command(cmd_ctx,  NULL, "dump_image", handle_dump_image_command, COMMAND_EXEC, "dump_image <file> <address> <size>");
+	register_command(cmd_ctx,  NULL, "load_binary", handle_load_image_command, COMMAND_EXEC, "[DEPRECATED] load_binary <file> <address>");
+	register_command(cmd_ctx,  NULL, "dump_binary", handle_dump_image_command, COMMAND_EXEC, "[DEPRECATED] dump_binary <file> <address> <size>");
 	
 	return ERROR_OK;
 }
@@ -1223,7 +1239,17 @@ int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	struct timeval timeout, now;
 	
 	gettimeofday(&timeout, NULL);
-	timeval_add_time(&timeout, 5, 0);
+	if (!argc)
+		timeval_add_time(&timeout, 5, 0);
+	else {
+		char *end;
+
+		timeval_add_time(&timeout, strtoul(args[0], &end, 0), 0);
+		if (*end) {
+			command_print(cmd_ctx, "usage: wait_halt [seconds]");
+			return ERROR_OK;
+		}
+	}
 
 	command_print(cmd_ctx, "waiting for target halted...");
 
@@ -1560,118 +1586,126 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 
 }
 
-int handle_load_binary_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	FILE *binary;
 	u32 address;
-	struct stat binary_stat;
-	u32 binary_size;
-
 	u8 *buffer;
 	u32 buf_cnt;
+	u32 binary_size;
 	
-	struct timeval start, end, duration;
-		
+	fileio_t file;
+	enum fileio_pri_type pri_type = FILEIO_IMAGE;
+	fileio_image_t image_info;
+	enum fileio_sec_type sec_type;
+	
+	duration_t duration;
+	char *duration_text;
+	
 	target_t *target = get_current_target(cmd_ctx);
 
-	if (argc != 2)
+	if (argc < 2)
 	{
-		command_print(cmd_ctx, "usage: load_binary <filename> <address>");
+		command_print(cmd_ctx, "usage: load_image <filename> <address> [type]");
 		return ERROR_OK;
 	}
+	
+	memset(&file, 0, sizeof(fileio_t));
+	fileio_identify_image_type(&sec_type, (argc == 3) ? args[2] : NULL);
 
-	address = strtoul(args[1], NULL, 0);
-
-	if (stat(args[0], &binary_stat) == -1)
-	{
-		ERROR("couldn't stat() %s: %s", args[0], strerror(errno));
-		command_print(cmd_ctx, "error accessing file %s", args[0]);
-		return ERROR_OK;
-	}
-
-	if (!(binary = fopen(args[0], "rb")))
-	{
-		ERROR("couldn't open %s: %s", args[0], strerror(errno));
-		command_print(cmd_ctx, "error accessing file %s", args[0]);
-		return ERROR_OK;
-	}
+	image_info.base_address = strtoul(args[1], NULL, 0);
+	image_info.has_start_address = 0;
 	
 	buffer = malloc(128 * 1024);
 
-	gettimeofday(&start, NULL);	
-
-	binary_size = binary_stat.st_size;
-	while (binary_size > 0)
+	duration_start_measure(&duration);
+	
+	if (fileio_open(&file, args[0], FILEIO_READ, 
+		pri_type, &image_info, sec_type) != ERROR_OK)
 	{
-		buf_cnt = fread(buffer, 1, 128*1024, binary);
+		command_print(cmd_ctx, "load_image error: %s", file.error_str);
+		return ERROR_OK;
+	}
+	
+	binary_size = file.size;
+	address = image_info.base_address;
+	while ((binary_size > 0) &&
+		(fileio_read(&file, 128 * 1024, buffer, &buf_cnt) == ERROR_OK))
+	{
 		target_write_buffer(target, address, buf_cnt, buffer);
 		address += buf_cnt;
 		binary_size -= buf_cnt;
 	}
 
-	gettimeofday(&end, NULL);	
-
 	free(buffer);
 	
-	timeval_subtract(&duration, &end, &start);
-	command_print(cmd_ctx, "downloaded %lli byte in %is %ius", (long long) binary_stat.st_size, duration.tv_sec, duration.tv_usec);
+	duration_stop_measure(&duration, &duration_text);
+	command_print(cmd_ctx, "downloaded %lli byte in %s", file.size, duration_text);
+	free(duration_text);
 	
-	fclose(binary);
+	fileio_close(&file);
 
 	return ERROR_OK;
 
 }
 
-int handle_dump_binary_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	FILE *binary;
+	fileio_t file;
+	fileio_image_t image_info;
+	
 	u32 address;
 	u32 size;
 	u8 buffer[560];
 	
-	struct timeval start, end, duration;
+	duration_t duration;
+	char *duration_text;
 	
 	target_t *target = get_current_target(cmd_ctx);
 
 	if (argc != 3)
 	{
-		command_print(cmd_ctx, "usage: dump_binary <filename> <address> <size>");
+		command_print(cmd_ctx, "usage: dump_image <filename> <address> <size>");
 		return ERROR_OK;
 	}
 
 	address = strtoul(args[1], NULL, 0);
 	size = strtoul(args[2], NULL, 0);
 
-	if (!(binary = fopen(args[0], "wb")))
-	{
-		ERROR("couldn't open %s for writing: %s", args[0], strerror(errno));
-		command_print(cmd_ctx, "error accessing file %s", args[0]);
-		return ERROR_OK;
-	}
-
 	if ((address & 3) || (size & 3))
 	{
 		command_print(cmd_ctx, "only 32-bit aligned address and size are supported");
 		return ERROR_OK;
 	}
-
-	gettimeofday(&start, NULL);	
+	
+	image_info.base_address = address;
+	image_info.has_start_address = 0;
+	
+	if (fileio_open(&file, args[0], FILEIO_WRITE, 
+		FILEIO_IMAGE, &image_info, FILEIO_PLAIN) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "dump_image error: %s", file.error_str);
+		return ERROR_OK;
+	}
+	
+	duration_start_measure(&duration);
 	
 	while (size > 0)
 	{
+		u32 size_written;
 		u32 this_run_size = (size > 560) ? 560 : size;
+		
 		target->type->read_memory(target, address, 4, this_run_size / 4, buffer);
-		fwrite(buffer, 1, this_run_size, binary);
+		fileio_write(&file, this_run_size, buffer, &size_written);
+		
 		size -= this_run_size;
 		address += this_run_size;
 	}
 
-	fclose(binary);
+	fileio_close(&file);
 
-	gettimeofday(&end, NULL);	
-
-	timeval_subtract(&duration, &end, &start);
-	command_print(cmd_ctx, "dumped %i byte in %is %ius", strtoul(args[2], NULL, 0), duration.tv_sec, duration.tv_usec);
+	duration_stop_measure(&duration, &duration_text);
+	command_print(cmd_ctx, "dumped %lli byte in %s", file.size, duration_text);
+	free(duration_text);
 	
 	return ERROR_OK;
 
