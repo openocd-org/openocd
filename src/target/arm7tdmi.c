@@ -669,7 +669,7 @@ void arm7tdmi_branch_resume(target_t *target)
 
 void arm7tdmi_branch_resume_thumb(target_t *target)
 {
-	DEBUG("");
+	DEBUG("-");
 	
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;

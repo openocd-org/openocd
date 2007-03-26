@@ -377,7 +377,7 @@ int command_run_line(command_context_t *context, char *line)
 
 int command_run_file(command_context_t *context, FILE *file, enum command_mode mode)
 {
-	int retval;
+	int retval = ERROR_OK;
 	int old_command_mode;
 	char buffer[4096];
 	

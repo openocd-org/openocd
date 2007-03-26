@@ -85,11 +85,6 @@ target_type_t arm966e_target =
 
 int arm966e_assert_reset(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm966e_common_t *arm966e = arm9tdmi->arch_info;
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int retval;
 	
 	DEBUG("target->state: %s", target_state_strings[target->state]);
@@ -154,12 +149,6 @@ int arm966e_assert_reset(target_t *target)
 
 int arm966e_deassert_reset(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
-	arm966e_common_t *arm966e = arm9tdmi->arch_info;
-	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
-	
 	arm7_9_deassert_reset( target );
 	
 	return ERROR_OK;

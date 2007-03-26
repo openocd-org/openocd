@@ -24,6 +24,7 @@
 #include "time_support.h"
 #include "log.h"
 
+#include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -101,7 +102,7 @@ int duration_stop_measure(duration_t *duration, char **text)
 	if (text)
 	{
 		*text = malloc(16);
-		snprintf(*text, 16, "%is %ius", duration->duration.tv_sec, duration->duration.tv_usec);
+		snprintf(*text, 16, "%lis %lius", duration->duration.tv_sec, duration->duration.tv_usec);
 	}
 	
 	return ERROR_OK;

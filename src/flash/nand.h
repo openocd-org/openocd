@@ -196,6 +196,10 @@ enum oob_formats
 extern nand_device_t *get_nand_device_by_num(int num);
 extern int nand_read_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
 extern int nand_write_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
+extern int nand_read_status(struct nand_device_s *device, u8 *status);
+
+extern int nand_register_commands(struct command_context_s *cmd_ctx);
+extern int nand_init(struct command_context_s *cmd_ctx);
 
 #define		ERROR_NAND_DEVICE_INVALID		(-1100)
 #define		ERROR_NAND_OPERATION_FAILED		(-1101)

@@ -138,7 +138,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	else
 		DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock);
 #else
-		DEBUG("out: %8.8x, instruction: %i, clock: %i", in, out, instruction, clock);
+		DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock);
 #endif
 
 	return ERROR_OK;

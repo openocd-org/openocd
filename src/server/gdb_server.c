@@ -224,7 +224,7 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 	int count = 0;
 	int retval;
 	int first_char = 0;
-	int packet_type;
+	int packet_type = '\0';
 	char checksum[3];
 	unsigned char my_checksum = 0;
 	gdb_connection_t *gdb_con = connection->priv;
@@ -550,7 +550,7 @@ int gdb_get_registers_packet(connection_t *connection, target_t *target, char* p
 	char *reg_packet_p;
 	int i;
 	
-	DEBUG("");
+	DEBUG("-");
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
@@ -603,7 +603,7 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 	int retval;
 	char *packet_p;
 	
-	DEBUG("");
+	DEBUG("-");
 
 	/* skip command character */
 	packet++;
@@ -677,7 +677,7 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 	int retval;
 	char *hex_buf;
 	
-	DEBUG("");
+	DEBUG("-");
 	
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
@@ -725,7 +725,7 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 	int retval;
 	reg_arch_type_t *arch_type;
 	
-	DEBUG("");
+	DEBUG("-");
 	
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
@@ -1039,7 +1039,7 @@ void gdb_step_continue_packet(connection_t *connection, target_t *target, char *
 	int current = 0;
 	u32 address = 0x0;
 
-	DEBUG("");
+	DEBUG("-");
 
 	if (packet_size > 1)
 	{
@@ -1085,14 +1085,14 @@ int gdb_bp_wp_packet_error(connection_t *connection, int retval)
 int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	int type;
-	enum breakpoint_type bp_type;
+	enum breakpoint_type bp_type = BKPT_SOFT /* dummy init to avoid warning */;
 	enum watchpoint_rw wp_type;
 	u32 address;
 	u32 size;
 	char *separator;
 	int retval;
 
-	DEBUG("");
+	DEBUG("-");
 
 	type = strtoul(packet + 1, &separator, 16);
 	

@@ -32,6 +32,7 @@
 #include "xsvf.h"
 #include "target.h"
 #include "flash.h"
+#include "nand.h"
 #include "pld.h"
 
 #include "command.h"

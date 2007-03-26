@@ -146,7 +146,7 @@ void at91sam7_read_clock_info(flash_bank_t *bank)
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = at91sam7_info->target;
 	u32 mckr, mcfr, pllr;
-	unsigned long tmp, mainfreq;
+	unsigned long tmp = 0, mainfreq;
 
 	/* Read main clock freqency register */
 	target_read_u32(target, CKGR_MCFR, &mcfr);
@@ -276,7 +276,7 @@ int at91sam7_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen)
 
 	fcr = (0x5A<<24) | (pagen<<8) | cmd; 
 	target_write_u32(target, MC_FCR, fcr);
-	DEBUG("Flash command: 0x%x, pagenumber:", fcr, pagen);
+	DEBUG("Flash command: 0x%x, pagenumber:%u", fcr, pagen);
 
        if ((at91sam7_info->cidr_arch == 0x60)&&((cmd==SLB)|(cmd==CLB)))
 	{
@@ -328,7 +328,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 	bank->size = NVPSIZ[at91sam7_info->cidr_nvpsiz];
 	at91sam7_info->target_name = "Unknown";
 	
-	DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x, alt_id: 0x%4.4x, alt_addr: 0x%4.4x", at91sam7_info->cidr_nvptyp, at91sam7_info->cidr_arch );
+	DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x", at91sam7_info->cidr_nvptyp, at91sam7_info->cidr_arch );
 
 	/* Read main and master clock freqency register */
 	at91sam7_read_clock_info(bank);
@@ -491,8 +491,6 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 int at91sam7_erase_check(struct flash_bank_s *bank)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	target_t *target = at91sam7_info->target;
-	int i;
 	
 	if (!at91sam7_info->working_area_size)
 	{
@@ -509,7 +507,6 @@ int at91sam7_protect_check(struct flash_bank_s *bank)
 	u32 status;
 	
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	target_t *target = at91sam7_info->target;
 
 	if (at91sam7_info->cidr == 0)
 	{
@@ -544,7 +541,7 @@ int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	at91sam7_info->target = get_target_by_num(strtoul(args[5], NULL, 0));
 	if (!at91sam7_info->target)
 	{
-		ERROR("no target '%i' configured", args[5]);
+		ERROR("no target '%s' configured", args[5]);
 		exit(-1);
 	}
 	
@@ -598,7 +595,6 @@ int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 	int lockregion;
 	
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	target_t *target = at91sam7_info->target;
 	
 	if (at91sam7_info->target->state != TARGET_HALTED)
 	{
@@ -651,7 +647,6 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	target_t *target = at91sam7_info->target;
 	u32 dst_min_alignment, wcount, bytes_remaining = count;
 	u32 first_page, last_page, pagen, buffer_pos;
-	u32 fcr;
 	
 	if (at91sam7_info->target->state != TARGET_HALTED)
 	{
@@ -712,7 +707,7 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		{
 			return ERROR_FLASH_OPERATION_FAILED;
 		}	
-		DEBUG("Flash command: 0x%x, pagenumber:", fcr, pagen);
+		DEBUG("Write page number:%i", pagen);
 	}
 	
 	return ERROR_OK;

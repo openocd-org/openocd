@@ -329,7 +329,7 @@ int cfi_intel_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 int cfi_register_commands(struct command_context_s *cmd_ctx)
 {
-	command_t *cfi_cmd = register_command(cmd_ctx, NULL, "cfi", NULL, COMMAND_ANY, NULL);
+	/*command_t *cfi_cmd = */register_command(cmd_ctx, NULL, "cfi", NULL, COMMAND_ANY, NULL);
 	/*	
 	register_command(cmd_ctx, cfi_cmd, "part_id", cfi_handle_part_id_command, COMMAND_EXEC,
 					 "print part id of cfi flash bank <num>");
@@ -362,7 +362,7 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	cfi_info->target = get_target_by_num(strtoul(args[5], NULL, 0));
 	if (!cfi_info->target)
 	{
-		ERROR("no target '%i' configured", args[5]);
+		ERROR("no target '%s' configured", args[5]);
 		exit(-1);
 	}
 	
@@ -377,7 +377,6 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 int cfi_intel_erase(struct flash_bank_s *bank, int first, int last)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
-	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = cfi_info->target;
 	u8 command[8];
 	int i;
@@ -593,7 +592,6 @@ void cfi_add_byte(struct flash_bank_s *bank, u8 *word, u8 byte)
 int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u32 count)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
-	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = cfi_info->target;
 	reg_param_t reg_params[7];
 	armv4_5_algorithm_t armv4_5_info;
@@ -602,7 +600,6 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	u8 write_command[CFI_MAX_BUS_WIDTH];
 	u8 busy_pattern[CFI_MAX_BUS_WIDTH];
 	u8 error_pattern[CFI_MAX_BUS_WIDTH];
-	int i;
 	int retval;
 	
 	/* algorithm register usage:
@@ -774,7 +771,6 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
-	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = cfi_info->target;
 	u8 command[8];
 	
@@ -799,7 +795,6 @@ int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 int cfi_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
-	target_t *target = cfi_info->target;
 	
 	switch(cfi_info->pri_id)
 	{
@@ -885,6 +880,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			break;
 		default:
 			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+      retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 	}
 	if (retval != ERROR_OK)
@@ -1216,7 +1212,6 @@ int cfi_intel_protect_check(struct flash_bank_s *bank)
 int cfi_protect_check(struct flash_bank_s *bank)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
-	target_t *target = cfi_info->target;
 
 	if (cfi_info->qry[0] != 'Q')
 		return ERROR_FLASH_BANK_NOT_PROBED;

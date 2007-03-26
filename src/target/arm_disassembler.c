@@ -682,7 +682,7 @@ int evaluate_mul_and_extra_ld_st(u32 opcode, u32 address, arm_instruction_t *ins
 		/* Multiply (accumulate) long */
 		if ((opcode & 0x0f800000) == 0x00800000)
 		{
-			char* mnemonic;
+			char* mnemonic = NULL;
 			u8 Rm, Rs, RdHi, RdLow, S;
 			Rm = opcode & 0xf;
 			Rs = (opcode & 0xf00) >> 8;
@@ -841,7 +841,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 	if ((opcode & 0x0000000f0) == 0x00000050)
 	{
 		u8 Rm, Rd, Rn;
-		char *mnemonic;
+		char *mnemonic = NULL;
 		Rm = opcode & 0xf;
 		Rd = (opcode & 0xf000) >> 12;
 		Rn = (opcode & 0xf0000) >> 16;
@@ -967,7 +967,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
 	u8 I, op, S, Rn, Rd;
-	char *mnemonic;
+	char *mnemonic = NULL;
 	char shifter_operand[32];
 	
 	I = (opcode & 0x02000000) >> 25;

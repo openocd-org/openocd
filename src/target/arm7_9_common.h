@@ -25,6 +25,8 @@
 #include "breakpoints.h"
 #include "target.h"
 
+#include "etb.h"
+
 #define	ARM7_9_COMMON_MAGIC 0x0a790a79
 
 typedef struct arm7_9_common_s
@@ -47,6 +49,7 @@ typedef struct arm7_9_common_s
 	int use_dbgrq;
 	
 	int has_etm;
+	etb_t *etb;
 	int has_single_step;
 	int has_monitor_mode;
 	int has_vector_catch;

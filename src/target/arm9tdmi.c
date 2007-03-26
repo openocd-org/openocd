@@ -29,6 +29,7 @@
 #include "armv4_5.h"
 #include "embeddedice.h"
 #include "etm.h"
+#include "etb.h"
 #include "log.h"
 #include "jtag.h"
 #include "arm_jtag.h"
@@ -723,7 +724,7 @@ void arm9tdmi_branch_resume(target_t *target)
 
 void arm9tdmi_branch_resume_thumb(target_t *target)
 {
-	DEBUG("");
+	DEBUG("-");
 	
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -787,7 +788,6 @@ void arm9tdmi_enable_single_step(target_t *target)
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9 = arm7_9->arch_info;
 	
 	if (arm7_9->has_single_step)
 	{
@@ -805,7 +805,6 @@ void arm9tdmi_disable_single_step(target_t *target)
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm9tdmi_common_t *arm9 = arm7_9->arch_info;
 	
 	if (arm7_9->has_single_step)
 	{
@@ -837,6 +836,12 @@ void arm9tdmi_build_reg_cache(target_t *target)
 	{
 		(*cache_p)->next->next = etm_build_reg_cache(target, jtag_info, 0);
 		arm7_9->etm_cache = (*cache_p)->next->next;
+	}
+	
+	if (arm7_9->etb)
+	{
+		(*cache_p)->next->next->next = etb_build_reg_cache(arm7_9->etb);
+		arm7_9->etb->reg_cache = (*cache_p)->next->next->next;
 	}
 }
 

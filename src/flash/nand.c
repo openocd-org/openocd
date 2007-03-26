@@ -368,7 +368,6 @@ int nand_read_status(struct nand_device_s *device, u8 *status)
 int nand_probe(struct nand_device_s *device)
 {
 	u8 manufacturer_id, device_id;
-	nand_manufacturer_t *manufacturer;
 	int retval;
 	int i;
 
@@ -419,8 +418,6 @@ int nand_probe(struct nand_device_s *device)
 		device_id = data_buf & 0xff;
 	}
 		
-	device->manufacturer = manufacturer;
-	
 	for (i = 0; nand_flash_ids[i].name; i++)
 	{
 		if (nand_flash_ids[i].id == device_id)
@@ -1139,7 +1136,6 @@ int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char
 int handle_nand_copy_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	nand_device_t *p;
-	int retval;
 		
 	if (argc != 4)
 	{

@@ -1087,7 +1087,7 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	int count = 0;
 	char *value;
 	
-	DEBUG("");
+	DEBUG("-");
 	
 	target = get_current_target(cmd_ctx);
 	
@@ -1279,7 +1279,7 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
 
-	DEBUG("");
+	DEBUG("-");
 	
 	command_print(cmd_ctx, "requesting target halt...");
 
@@ -1353,7 +1353,7 @@ int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	target_t *target = get_current_target(cmd_ctx);
 	enum target_reset_mode reset_mode = RESET_RUN;
 	
-	DEBUG("");
+	DEBUG("-");
 	
 	if (argc >= 1)
 	{
@@ -1397,7 +1397,7 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
 	
-	DEBUG("");
+	DEBUG("-");
 	
 	if (argc == 0)
 		retval = target->type->resume(target, 1, 0, 1, 0); /* current pc, addr = 0, handle breakpoints, not debugging */
@@ -1429,7 +1429,7 @@ int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 {
 	target_t *target = get_current_target(cmd_ctx);
 	
-	DEBUG("");
+	DEBUG("-");
 	
 	if (argc == 0)
 		target->type->step(target, 1, 0, 1); /* current pc, addr = 0, handle breakpoints */

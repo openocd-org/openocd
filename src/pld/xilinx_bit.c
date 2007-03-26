@@ -67,8 +67,7 @@ int read_section(FILE *input_file, int length_size, char section, u32 *buffer_le
 	
 	if (length_size == 4)
 		length = be_to_h_u32(length_buffer);
-
-	if (length_size == 2)
+	else /* (length_size == 2) */
 		length = be_to_h_u16(length_buffer);
 		
 	if (buffer_length)

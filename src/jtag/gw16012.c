@@ -421,7 +421,7 @@ int gw16012_execute_queue(void)
 				break;
 			case JTAG_SLEEP:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("sleep", cmd->cmd.sleep->us);
+				DEBUG("sleep %i", cmd->cmd.sleep->us);
 #endif
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
@@ -527,7 +527,7 @@ int gw16012_init(void)
 		WARNING("No gw16012 port specified, using default '0x378' (LPT1)");
 	}
 	
-	DEBUG("requesting privileges for parallel port 0x%x...", gw16012_port);
+	DEBUG("requesting privileges for parallel port 0x%lx...", gw16012_port);
 #if PARPORT_USE_GIVEIO == 1
 	if (gw16012_get_giveio_access() != 0)
 #else /* PARPORT_USE_GIVEIO */

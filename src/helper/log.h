@@ -39,7 +39,8 @@ enum log_levels
 };
 
 extern void log_printf(enum log_levels level, const char *file, int line, 
-	const char *function, const char *format, ...);
+	const char *function, const char *format, ...) 
+	__attribute__ ((format (printf, 5, 6)));
 extern int log_register_commands(struct command_context_s *cmd_ctx);
 extern int log_init(struct command_context_s *cmd_ctx);
 

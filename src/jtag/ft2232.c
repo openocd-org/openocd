@@ -161,7 +161,7 @@ int ft2232_write(u8 *buf, int size, u32* bytes_written)
 	if ((status = FT_Write(ftdih, buf, size, &dw_bytes_written)) != FT_OK)
 	{
 		*bytes_written = dw_bytes_written;
-		ERROR("FT_Write returned: %i", status);
+		ERROR("FT_Write returned: %lu", status);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 	else
@@ -198,7 +198,7 @@ int ft2232_read(u8* buf, int size, u32* bytes_read)
 		if ((status = FT_Read(ftdih, buf, size, &dw_bytes_read)) != FT_OK)
 		{
 			*bytes_read = 0; 
-			ERROR("FT_Read returned: %i", status);
+			ERROR("FT_Read returned: %lu", status);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 		*bytes_read += dw_bytes_read; 
@@ -1165,7 +1165,7 @@ int ft2232_execute_queue()
 				}
 				else if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
 				{
-					DEBUG("ft2232 buffer size reached, sending queued commands (first_unsent: %x, cmd: %x)", first_unsent, cmd);
+					DEBUG("ft2232 buffer size reached, sending queued commands (first_unsent: %p, cmd: %p)", first_unsent, cmd);
 					ft2232_send_and_recv(first_unsent, cmd);
 					require_send = 0;
 					first_unsent = cmd;
@@ -1283,7 +1283,7 @@ int ft2232_init(void)
 	{
 		DWORD num_devices;
 		
-		ERROR("unable to open ftdi device: %i", status);
+		ERROR("unable to open ftdi device: %lu", status);
 		status = FT_ListDevices(&num_devices, NULL, FT_LIST_NUMBER_ONLY);
 		if (status == FT_OK)
 		{
@@ -1298,7 +1298,7 @@ int ft2232_init(void)
 
 			if (status == FT_OK)
 			{
-				ERROR("ListDevices: %d\n", num_devices);
+				ERROR("ListDevices: %lu\n", num_devices);
 				for (i = 0; i < num_devices; i++)
 					ERROR("%i: %s", i, desc_array[i]);
 			}
@@ -1316,13 +1316,13 @@ int ft2232_init(void)
 
 	if ((status = FT_SetLatencyTimer(ftdih, 2)) != FT_OK)
 	{
-		ERROR("unable to set latency timer: %i", status);
+		ERROR("unable to set latency timer: %lu", status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	
 	if ((status = FT_GetLatencyTimer(ftdih, &latency_timer)) != FT_OK)
 	{
-		ERROR("unable to get latency timer: %i", status);
+		ERROR("unable to get latency timer: %lu", status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	else
@@ -1332,13 +1332,13 @@ int ft2232_init(void)
 	
 	if ((status = FT_SetTimeouts(ftdih, 5000, 5000)) != FT_OK)
 	{
-		ERROR("unable to set timeouts: %i", status);
+		ERROR("unable to set timeouts: %lu", status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	if ((status = FT_SetBitMode(ftdih, 0x0b, 2)) != FT_OK)
 	{
-		ERROR("unable to enable bit i/o mode: %i", status);
+		ERROR("unable to enable bit i/o mode: %lu", status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 #elif BUILD_FT2232_LIBFTDI == 1
@@ -1401,7 +1401,7 @@ int ft2232_init(void)
 #if BUILD_FT2232_FTD2XX == 1
 	if ((status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX)) != FT_OK)
 	{
-		ERROR("error purging ftd2xx device: %i", status);
+		ERROR("error purging ftd2xx device: %lu", status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 #elif BUILD_FT2232_LIBFTDI == 1

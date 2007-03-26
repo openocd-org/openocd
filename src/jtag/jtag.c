@@ -1123,7 +1123,7 @@ int jtag_reset_callback(enum jtag_event event, void *priv)
 {
 	jtag_device_t *device = priv;
 
-	DEBUG("");
+	DEBUG("-");
 	
 	if (event == JTAG_TRST_ASSERTED)
 	{
@@ -1332,7 +1332,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 {
 	int i;
 	
-	DEBUG("");
+	DEBUG("-");
 
 	if (jtag_speed == -1)
 		jtag_speed = 0;

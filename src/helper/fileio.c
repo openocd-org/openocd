@@ -360,6 +360,7 @@ int fileio_close(fileio_t *fileio)
 			break;
 		default:
 			ERROR("BUG: should never get here");
+			retval = ERROR_FILEIO_OPERATION_FAILED;
 	}
 	
 	if (retval != ERROR_OK)
@@ -500,7 +501,7 @@ int fileio_dispatch_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_writ
 
 int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
 {
-	int retval;
+	int retval = ERROR_FILEIO_OPERATION_NOT_SUPPORTED;
 	if (fileio->sec_type == FILEIO_PLAIN)
 	{
 		retval = fileio_dispatch_write(fileio, size, buffer, size_written);
