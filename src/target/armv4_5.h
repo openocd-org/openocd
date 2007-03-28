@@ -213,6 +213,11 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  */
 #define ARMV4_5_MCR(CP, op1, Rd, CRn, CRm, op2) (0xee000010 | (CRm) | ((op2) << 5) | ((CP) << 8) | ((Rd) << 12) | ((CRn) << 16) | ((op1) << 21)) 
 
+/* Breakpoint instruction (ARMv5)
+ * Im: 16-bit immediate
+ */
+#define ARMV5_BKPT(Im) (0xe1200070 | ((Im & 0xfff0) << 8) | (Im & 0xf))
+
 
 /* Thumb mode instructions
  */
@@ -265,5 +270,10 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  * Imm: Branch target
  */
 #define ARMV4_5_T_B(Imm)	((0xe000 | (Imm)) | ((0xe000 | (Imm)) << 16))
+
+/* Breakpoint instruction (ARMv5) (Thumb state)
+ * Im: 8-bit immediate
+ */
+#define ARMV5_T_BKPT(Im) ((0xbe00 | Im) | ((0xbe00 | Im) << 16))
 
 #endif /* ARMV4_5_H */

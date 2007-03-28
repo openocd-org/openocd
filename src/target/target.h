@@ -50,6 +50,8 @@ enum daemon_startup_mode
 	DAEMON_RESET,		/* reset target (behaviour defined by reset_mode */
 };
 
+extern enum daemon_startup_mode startup_mode;
+
 enum target_reset_mode
 {
 	RESET_RUN = 0,		/* reset and let target run */
@@ -222,12 +224,12 @@ extern u16 target_buffer_get_u16(target_t *target, u8 *buffer);
 extern void target_buffer_set_u32(target_t *target, u8 *buffer, u32 value);
 extern void target_buffer_set_u16(target_t *target, u8 *buffer, u16 value);
 
-void target_read_u32(struct target_s *target, u32 address, u32 *value);
-void target_read_u16(struct target_s *target, u32 address, u16 *value);
-void target_read_u8(struct target_s *target, u32 address, u8 *value);
-void target_write_u32(struct target_s *target, u32 address, u32 value);
-void target_write_u16(struct target_s *target, u32 address, u16 value);
-void target_write_u8(struct target_s *target, u32 address, u8 value);
+int target_read_u32(struct target_s *target, u32 address, u32 *value);
+int target_read_u16(struct target_s *target, u32 address, u16 *value);
+int target_read_u8(struct target_s *target, u32 address, u8 *value);
+int target_write_u32(struct target_s *target, u32 address, u32 value);
+int target_write_u16(struct target_s *target, u32 address, u16 value);
+int target_write_u8(struct target_s *target, u32 address, u8 value);
 
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)

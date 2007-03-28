@@ -79,6 +79,7 @@ extern target_type_t arm9tdmi_target;
 extern target_type_t arm920t_target;
 extern target_type_t arm966e_target;
 extern target_type_t arm926ejs_target;
+extern target_type_t xscale_target;
 
 target_type_t *target_types[] =
 {
@@ -88,6 +89,7 @@ target_type_t *target_types[] =
 	&arm720t_target,
 	&arm966e_target,
 	&arm926ejs_target,
+	&xscale_target,
 	NULL,
 };
 
@@ -727,60 +729,107 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	return ERROR_OK;
 }
 
-void target_read_u32(struct target_s *target, u32 address, u32 *value)
+int target_read_u32(struct target_s *target, u32 address, u32 *value)
 {
 	u8 value_buf[4];
-	
-	target->type->read_memory(target, address, 4, 1, value_buf);
-	
-	*value = target_buffer_get_u32(target, value_buf);
 
-	DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, *value);
+	int retval = target->type->read_memory(target, address, 4, 1, value_buf);
+	
+	if (retval == ERROR_OK)
+	{
+		*value = target_buffer_get_u32(target, value_buf);
+		DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, *value);
+	}
+	else
+	{
+		*value = 0x0;
+		DEBUG("address: 0x%8.8x failed", address);
+	}
+	
+	return retval;
 }
 
-void target_read_u16(struct target_s *target, u32 address, u16 *value)
+int target_read_u16(struct target_s *target, u32 address, u16 *value)
 {
 	u8 value_buf[2];
 	
-	target->type->read_memory(target, address, 2, 1, value_buf);
+	int retval = target->type->read_memory(target, address, 2, 1, value_buf);
 	
-	*value = target_buffer_get_u16(target, value_buf);
-
-	DEBUG("address: 0x%8.8x, value: 0x%4.4x", address, *value);
+	if (retval == ERROR_OK)
+	{
+		*value = target_buffer_get_u16(target, value_buf);
+		DEBUG("address: 0x%8.8x, value: 0x%4.4x", address, *value);
+	}
+	else
+	{
+		*value = 0x0;
+		DEBUG("address: 0x%8.8x failed", address);
+	}
+	
+	return retval;
 }
 
-void target_read_u8(struct target_s *target, u32 address, u8 *value)
+int target_read_u8(struct target_s *target, u32 address, u8 *value)
 {
-	target->type->read_memory(target, address, 1, 1, value);
+	int retval = target->type->read_memory(target, address, 1, 1, value);
 
-	DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, *value);
+	if (retval == ERROR_OK)
+	{
+		DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, *value);
+	}
+	else
+	{
+		*value = 0x0;
+		DEBUG("address: 0x%8.8x failed", address);
+	}
+	
+	return retval;
 }
 
-void target_write_u32(struct target_s *target, u32 address, u32 value)
+int target_write_u32(struct target_s *target, u32 address, u32 value)
 {
+	int retval;
 	u8 value_buf[4];
 
 	DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
 
 	target_buffer_set_u32(target, value_buf, value);	
-	target->type->write_memory(target, address, 4, 1, value_buf);
+	if ((retval = target->type->write_memory(target, address, 4, 1, value_buf)) != ERROR_OK)
+	{
+		DEBUG("failed: %i", retval);
+	}
+	
+	return retval;
 }
 
-void target_write_u16(struct target_s *target, u32 address, u16 value)
+int target_write_u16(struct target_s *target, u32 address, u16 value)
 {
+	int retval;
 	u8 value_buf[2];
 	
 	DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
 
 	target_buffer_set_u16(target, value_buf, value);	
-	target->type->write_memory(target, address, 2, 1, value_buf);
+	if ((retval = target->type->write_memory(target, address, 2, 1, value_buf)) != ERROR_OK)
+	{
+		DEBUG("failed: %i", retval);
+	}
+	
+	return retval;
 }
 
-void target_write_u8(struct target_s *target, u32 address, u8 value)
+int target_write_u8(struct target_s *target, u32 address, u8 value)
 {
+	int retval;
+	
 	DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, value);
 
-	target->type->read_memory(target, address, 1, 1, &value);
+	if ((retval = target->type->read_memory(target, address, 1, 1, &value)) != ERROR_OK)
+	{
+		DEBUG("failed: %i", retval);
+	}
+	
+	return retval;
 }
 
 int target_register_user_commands(struct command_context_s *cmd_ctx)

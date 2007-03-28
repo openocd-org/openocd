@@ -248,7 +248,7 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_SLEEP:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("sleep", cmd->cmd.sleep->us);
+				DEBUG("sleep %i", cmd->cmd.sleep->us);
 #endif
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;

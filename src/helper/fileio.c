@@ -242,22 +242,23 @@ int fileio_open(fileio_t *fileio, char *url, enum fileio_access access,
 	enum fileio_pri_type pri_type, void *pri_info, enum fileio_sec_type sec_type)
 {
 	int retval = ERROR_OK;
-	
-	if ((!url) || (strlen(url) < 3))
+	char *resource_identifier = NULL;
+
+	/* try to identify file location */
+	if ((resource_identifier = strstr(url, "bootp://")) && (resource_identifier == url))
 	{
-		snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "invalid file url");
-		return ERROR_INVALID_ARGUMENTS;
+		ERROR("bootp resource location isn't supported yet");
+		return ERROR_FILEIO_RESOURCE_TYPE_UNKNOWN;
 	}
-	
-	if ((url[0] == '/') || (isalpha(url[0])) || ((url[1] == ':') && (url[2] == '\\')))
+	else if ((resource_identifier = strstr(url, "tftp://")) && (resource_identifier == url))
 	{
-		fileio->location = FILEIO_LOCAL;
+		ERROR("tftp resource location isn't supported yet");
+		return ERROR_FILEIO_RESOURCE_TYPE_UNKNOWN;
 	}
 	else
 	{
-		ERROR("couldn't identify resource location from URL '%s'", url);
-		snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "couldn't identify resource location from URL '%s'", url);
-		return ERROR_FILEIO_LOCATION_UNKNOWN;
+		/* default to local files */
+		fileio->location = FILEIO_LOCAL;
 	}
 	
 	fileio->access = access;

@@ -375,7 +375,7 @@ int parport_init(void)
 	dataport = parport_port;
 	statusport = parport_port + 1;
 	
-	DEBUG("requesting privileges for parallel port 0x%x...", dataport);
+	DEBUG("requesting privileges for parallel port 0x%lx...", dataport);
 #if PARPORT_USE_GIVEIO == 1
 	if (parport_get_giveio_access() != 0)
 #else /* PARPORT_USE_GIVEIO */

@@ -442,7 +442,7 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 	for (i = 0; i < count; i++)
 	{
 		target_read_u32(target, address, &opcode);
-		evaluate_opcode(opcode, address, &cur_instruction);
+		arm_evaluate_opcode(opcode, address, &cur_instruction);
 		command_print(cmd_ctx, "%s", cur_instruction.text);
 		address += (thumb) ? 2 : 4;
 	}
@@ -596,6 +596,13 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 			}
 			retval = ERROR_TARGET_TIMEOUT;
 		}
+	}
+	
+	if ((retval != ERROR_TARGET_TIMEOUT) && 
+		(buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != exit_point))
+	{
+		WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
+			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32)); 
 	}
 	
 	breakpoint_remove(target, exit_point);

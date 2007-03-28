@@ -835,6 +835,9 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 		
 		snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\tBLX%s r%i",
 				 address, opcode, COND(opcode), Rm);
+				 
+		instruction->info.b_bl_bx_blx.reg_operand = Rm;
+		instruction->info.b_bl_bx_blx.target_address = -1;
 	}
 	
 	/* Enhanced DSP add/subtracts */
@@ -1078,6 +1081,18 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 			instruction->info.data_proc.shifter_operand.immediate_shift.shift_imm = shift_imm;
 			instruction->info.data_proc.shifter_operand.immediate_shift.shift = shift;
 		
+			/* LSR encodes a shift by 32 bit as 0x0 */
+			if ((shift == 0x1) && (shift_imm == 0x0))
+				shift_imm = 0x20;
+		
+			/* ASR encodes a shift by 32 bit as 0x0 */
+			if ((shift == 0x2) && (shift_imm == 0x0))
+				shift_imm = 0x20;
+
+			/* ROR by 32 bit is actually a RRX */
+			if ((shift == 0x3) && (shift_imm == 0x0))
+				shift = 0x4;
+			
 			if ((shift_imm == 0x0) && (shift == 0x0))
 			{
 				snprintf(shifter_operand, 32, "r%i", Rm);
@@ -1090,22 +1105,19 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 				}
 				else if (shift == 0x1) /* LSR */
 				{
-					if (shift_imm == 0x0)
-						shift_imm = 0x32;
 					snprintf(shifter_operand, 32, "r%i, LSR #0x%x", Rm, shift_imm);
 				}
 				else if (shift == 0x2) /* ASR */
 				{
-					if (shift_imm == 0x0)
-						shift_imm = 0x32;
 					snprintf(shifter_operand, 32, "r%i, ASR #0x%x", Rm, shift_imm);
 				}
-				else if (shift == 0x3) /* ROR or RRX */
+				else if (shift == 0x3) /* ROR */
 				{
-					if (shift_imm == 0x0) /* RRX */
-						snprintf(shifter_operand, 32, "r%i, RRX", Rm);
-					else
-						snprintf(shifter_operand, 32, "r%i, ROR #0x%x", Rm, shift_imm);
+					snprintf(shifter_operand, 32, "r%i, ROR #0x%x", Rm, shift_imm);
+				}
+				else if (shift == 0x4) /* RRX */
+				{
+					snprintf(shifter_operand, 32, "r%i, RRX", Rm);
 				}
 			}
 		}
@@ -1130,7 +1142,7 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 			{
 				snprintf(shifter_operand, 32, "r%i, ASR r%i", Rm, Rs);
 			}
-			else if (shift == 0x3) /* ROR or RRX */
+			else if (shift == 0x3) /* ROR */
 			{
 				snprintf(shifter_operand, 32, "r%i, ROR r%i", Rm, Rs);
 			}
@@ -1159,7 +1171,7 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 	return ERROR_OK;
 }
 		
-int evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
+int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
 	/* clear fields, to avoid confusion */
 	memset(instruction, 0, sizeof(arm_instruction_t));
@@ -1302,3 +1314,4 @@ int evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
 	ERROR("should never reach this point");
 	return -1;
 }
+

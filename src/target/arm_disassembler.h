@@ -126,28 +126,30 @@ typedef struct arm_b_bl_bx_blx_instr_s
 	u32 target_address;
 } arm_b_bl_bx_blx_instr_t;
 
+union arm_shifter_operand
+{
+	struct {
+		u32 immediate;
+	} immediate;
+	struct {
+		u8 Rm;
+		u8 shift;
+		u8 shift_imm;
+	} immediate_shift;
+	struct {
+		u8 Rm;
+		u8 shift;
+		u8 Rs;
+	} register_shift;
+};
+
 typedef struct arm_data_proc_instr_s
 {
 	int variant; /* 0: immediate, 1: immediate_shift, 2: register_shift */
 	u8 S;
 	u8 Rn;
 	u8 Rd;
-	union
-	{
-		struct {
-			u8 immediate;
-		} immediate;
-		struct {
-			u8 Rm;
-			u8 shift;
-			u8 shift_imm;
-		} immediate_shift;
-		struct {
-			u8 Rm;
-			u8 shift;
-			u8 Rs;
-		} register_shift;
-	} shifter_operand;
+	union arm_shifter_operand shifter_operand;
 } arm_data_proc_instr_t;
 
 typedef struct arm_load_store_instr_s
@@ -192,7 +194,7 @@ typedef struct arm_instruction_s
 
 } arm_instruction_t;
 
-extern int evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction);
+extern int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction);
 
 #define COND(opcode) (arm_condition_strings[(opcode & 0xf0000000)>>28])
 
