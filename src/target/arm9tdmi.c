@@ -43,6 +43,7 @@
 
 /* cli handling */
 int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
+int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* forward declarations */
 int arm9tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
@@ -81,6 +82,19 @@ target_type_t arm9tdmi_target =
 	.target_command = arm9tdmi_target_command,
 	.init_target = arm9tdmi_init_target,
 	.quit = arm9tdmi_quit
+};
+
+arm9tdmi_vector_t arm9tdmi_vectors[] =
+{
+	{"reset", ARM9TDMI_RESET_VECTOR},
+	{"undef", ARM9TDMI_UNDEF_VECTOR},
+	{"swi", ARM9TDMI_SWI_VECTOR},
+	{"pabt", ARM9TDMI_PABT_VECTOR},
+	{"dabt", ARM9TDMI_DABT_VECTOR},
+	{"reserved", ARM9TDMI_RESERVED_VECTOR},
+	{"irq", ARM9TDMI_IRQ_VECTOR},
+	{"fiq", ARM9TDMI_FIQ_VECTOR},
+	{0, 0},
 };
 
 int arm9tdmi_examine_debug_reason(target_t *target)
@@ -936,6 +950,37 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int c
 	return ERROR_OK;
 }
 
+int arm9tdmi_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p, arm9tdmi_common_t **arm9tdmi_p)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9;
+	arm9tdmi_common_t *arm9tdmi;
+	
+	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	{
+		return -1;
+	}
+	
+	arm7_9 = armv4_5->arch_info;
+	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC)
+	{
+		return -1;
+	}
+	
+	arm9tdmi = arm7_9->arch_info;
+	if (arm9tdmi->common_magic != ARM9TDMI_COMMON_MAGIC)
+	{
+		return -1;
+	}
+	
+	*armv4_5_p = armv4_5;
+	*arm7_9_p = arm7_9;
+	*arm9tdmi_p = arm9tdmi;
+	
+	return ERROR_OK;
+}
+
+
 /* target arm9tdmi <endianess> <startup_mode> <chain_pos> <variant>*/
 int arm9tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
 {
@@ -963,9 +1008,97 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
 	
+	command_t *arm9tdmi_cmd;
+	
+		
 	retval = arm7_9_register_commands(cmd_ctx);
+	
+	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9tdmi", NULL, COMMAND_ANY, "arm9tdmi specific commands");
+
+	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch", handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC, "catch arm920t vectors ['all'|'none'|'<vec1,vec2,...>']");
+	
 	
 	return ERROR_OK;
 
 }
 
+int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	arm9tdmi_common_t *arm9tdmi;
+	reg_t *vector_catch;
+	u32 vector_catch_value;
+	int i, j;
+	
+	if (arm9tdmi_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM9TDMI based target");
+		return ERROR_OK;
+	}
+	
+	vector_catch = &arm7_9->eice_cache->reg_list[EICE_VEC_CATCH];
+	
+	/* read the vector catch register if necessary */
+	if (!vector_catch->valid)
+		embeddedice_read_reg(vector_catch);
+	
+	/* get the current setting */
+	vector_catch_value = buf_get_u32(vector_catch->value, 0, 32);
+	
+	if (argc > 0)
+	{
+		vector_catch_value = 0x0;
+		if (strcmp(args[0], "all") == 0)
+		{
+			vector_catch_value = 0xdf;
+		}
+		else if (strcmp(args[0], "none") == 0)
+		{
+			/* do nothing */
+		}
+		else
+		{
+			for (i = 0; i < argc; i++)
+			{
+				/* go through list of vectors */
+				for(j = 0; arm9tdmi_vectors[j].name; j++)
+				{
+					if (strcmp(args[i], arm9tdmi_vectors[j].name) == 0)
+					{
+						vector_catch_value |= arm9tdmi_vectors[j].value;
+						break;
+					}
+				}
+				
+				/* complain if vector wasn't found */
+				if (!arm9tdmi_vectors[j].name)
+				{
+					command_print(cmd_ctx, "vector '%s' not found, leaving current setting unchanged", args[i]);
+					
+					/* reread current setting */
+					vector_catch_value = buf_get_u32(vector_catch->value, 0, 32);
+					
+					break;
+				}
+			}
+		}
+		
+		/* store new settings */
+		buf_set_u32(vector_catch->value, 0, 32, vector_catch_value);
+		embeddedice_store_reg(vector_catch);
+	}
+		
+	/* output current settings (skip RESERVED vector) */
+	for (i = 0; i < 8; i++)
+	{
+		if (i != 5)
+		{
+			command_print(cmd_ctx, "%s: %s", arm9tdmi_vectors[i].name,
+				(vector_catch_value & (1 << i)) ? "catch" : "don't catch");
+		}  
+	}
+
+	return ERROR_OK;
+}

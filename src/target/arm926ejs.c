@@ -701,10 +701,21 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 	arm7_9_common_t *arm7_9;
 	arm9tdmi_common_t *arm9tdmi;
 	arm926ejs_common_t *arm926ejs;
-	int opcode_1 = strtoul(args[0], NULL, 0);
-	int opcode_2 = strtoul(args[1], NULL, 0);
-	int CRn = strtoul(args[2], NULL, 0);
-	int CRm = strtoul(args[3], NULL, 0);
+	int opcode_1;
+	int opcode_2;
+	int CRn;
+	int CRm;
+
+	if ((argc < 4) || (argc > 5))
+	{
+		command_print(cmd_ctx, "usage: arm926ejs cp15 <opcode_1> <opcode_2> <CRn> <CRm> [value]");
+		return ERROR_OK;
+	}
+	
+	opcode_1 = strtoul(args[0], NULL, 0);
+	opcode_2 = strtoul(args[1], NULL, 0);
+	CRn = strtoul(args[2], NULL, 0);
+	CRm = strtoul(args[3], NULL, 0);
 
 	if (arm926ejs_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm926ejs) != ERROR_OK)
 	{
@@ -718,11 +729,6 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 		return ERROR_OK;
 	}
 	
-	if ((argc < 4) || (argc > 5))
-	{
-		command_print(cmd_ctx, "usage: arm926ejs cp15 <opcode_1> <opcode_2> <CRn> <CRm> [value]");
-	}
-
 	if (argc == 4)
 	{
 		u32 value;

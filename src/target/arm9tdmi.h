@@ -37,6 +37,24 @@ typedef struct arm9tdmi_common_s
 	arm7_9_common_t arm7_9_common;
 } arm9tdmi_common_t;
 
+typedef struct arm9tdmi_vector_s
+{
+	char *name;
+	u32 value;
+} arm9tdmi_vector_t;
+
+enum arm9tdmi_vector
+{
+	ARM9TDMI_RESET_VECTOR = 0x01,
+	ARM9TDMI_UNDEF_VECTOR = 0x02,
+	ARM9TDMI_SWI_VECTOR = 0x04,
+	ARM9TDMI_PABT_VECTOR = 0x08,
+	ARM9TDMI_DABT_VECTOR = 0x10,
+	ARM9TDMI_RESERVED_VECTOR = 0x20,
+	ARM9TDMI_IRQ_VECTOR = 0x40,
+	ARM9TDMI_FIQ_VECTOR = 0x80,
+};
+
 extern int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 extern int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int chain_pos, char *variant);
 extern int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
