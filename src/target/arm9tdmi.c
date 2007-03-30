@@ -1015,7 +1015,7 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 	
 	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9tdmi", NULL, COMMAND_ANY, "arm9tdmi specific commands");
 
-	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch", handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC, "catch arm920t vectors ['all'|'none'|'<vec1,vec2,...>']");
+	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch", handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC, "catch arm920t vectors ['all'|'none'|'<vec1 vec2 ...>']");
 	
 	
 	return ERROR_OK;
