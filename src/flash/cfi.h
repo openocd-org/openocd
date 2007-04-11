@@ -28,6 +28,11 @@ typedef struct cfi_flash_bank_s
 	struct target_s *target;
 	working_area_t *write_algorithm;
 	working_area_t *erase_check_algorithm;
+	
+	int x16_as_x8;
+	
+	u16 manufacturer;
+	u16 device_id;
 		
 	char qry[3];
 	
@@ -82,5 +87,56 @@ typedef struct cfi_intel_pri_ext_s
 	u8 user_prot_reg_size;
 	u8 extra[0];
 } cfi_intel_pri_ext_t;
+
+/* Spansion primary extended query table as defined for and used by
+ * the linux kernel cfi driver (as of 2.6.15)
+ */
+typedef struct cfi_spansion_pri_ext_s
+{
+	u8  pri[3];
+	u8  major_version;
+	u8  minor_version;
+	u8  SiliconRevision; /* bits 1-0: Address Sensitive Unlock */
+	u8  EraseSuspend;
+	u8  BlkProt;
+	u8  TmpBlkUnprotect;
+	u8  BlkProtUnprot;
+	u8  SimultaneousOps;
+	u8  BurstMode;
+	u8  PageMode;
+	u8  VppMin;
+	u8  VppMax;
+	u8  TopBottom;
+	int _reversed_geometry;
+} cfi_spansion_pri_ext_t;
+
+/* Atmel primary extended query table as defined for and used by
+ * the linux kernel cfi driver (as of 2.6.20+)
+ */
+typedef struct cfi_atmel_pri_ext_s
+{
+	u8 pri[3];
+	u8 major_version;
+	u8 minor_version;
+	u8 features;
+	u8 bottom_boot;
+	u8 burst_mode;
+	u8 page_mode;
+} cfi_atmel_pri_ext_t;
+
+typedef struct cfi_fixup_s
+{
+	u16 mfr;
+	u16 id;
+	void (*fixup)(flash_bank_t *flash, void *param);
+	void *param;
+} cfi_fixup_t;
+
+#define CFI_MFR_AMD		0x0001
+#define CFI_MFR_ATMEL	0x001F
+#define CFI_MFR_ST		0x0020	/* STMicroelectronics */
+
+#define CFI_MFR_ANY		0xffff
+#define CFI_ID_ANY		0xffff
 
 #endif /* CFI_H */

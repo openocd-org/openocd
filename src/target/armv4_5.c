@@ -257,6 +257,13 @@ int armv4_5_set_core_reg(reg_t *reg, u8 *buf)
 				armv4_5_target->core_state = ARMV4_5_STATE_ARM;	
 			}
 		}
+		
+		if (armv4_5_target->core_mode != (value & 0x1f))
+		{
+			DEBUG("changing ARM core mode to '%s'", armv4_5_mode_strings[armv4_5_mode_to_number(value & 0x1f)]);
+			armv4_5_target->core_mode = value & 0x1f;
+			armv4_5_target->write_core_reg(target, 16, ARMV4_5_MODE_ANY, value);
+		}
 	}
 	
 	buf_set_u32(reg->value, 0, 32, value);

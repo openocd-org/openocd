@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
+ *   Copyright (C) 2005, 2007 by Dominic Rath                              *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -65,6 +65,42 @@ flash_driver_t cfi_flash =
 	.protect_check = cfi_protect_check,
 	.info = cfi_info
 };
+
+/* CFI fixups foward declarations */
+void cfi_fixup_0002_erase_regions(flash_bank_t *flash, void *param);
+void cfi_fixup_atmel_reversed_erase_regions(flash_bank_t *flash, void *param);
+
+/* fixup after identifying JEDEC manufactuer and ID */
+cfi_fixup_t cfi_jedec_fixups[] = {
+	{0, 0, NULL, NULL}
+};
+
+/* fixup after reading cmdset 0002 primary query table */
+cfi_fixup_t cfi_0002_fixups[] = {
+	{CFI_MFR_ATMEL, 0x00C8, cfi_fixup_atmel_reversed_erase_regions, NULL},
+	{CFI_MFR_ANY, CFI_ID_ANY, cfi_fixup_0002_erase_regions, NULL},
+	{0, 0, NULL, NULL}
+};
+
+/* fixup after reading cmdset 0001 primary query table */
+cfi_fixup_t cfi_0001_fixups[] = {
+	{0, 0, NULL, NULL}
+};
+
+void cfi_fixup(flash_bank_t *bank, cfi_fixup_t *fixups)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_fixup_t *f;
+
+	for (f = fixups; f->fixup; f++)
+	{
+		if (((f->mfr == CFI_MFR_ANY) || (f->mfr == cfi_info->manufacturer)) &&
+			((f->id  == CFI_ID_ANY)  || (f->id  == cfi_info->device_id)))
+		{
+			f->fixup(bank, f->param);
+		}
+	}
+}
 
 inline u32 flash_address(flash_bank_t *bank, int sector, u32 offset)
 {
@@ -243,13 +279,48 @@ u8 cfi_intel_wait_status_busy(flash_bank_t *bank, int timeout)
 	
 	return status;
 }
+
+int cfi_spansion_wait_status_busy(flash_bank_t *bank, int timeout)
+{
+	u8 status, oldstatus;
+	
+	oldstatus = cfi_get_u8(bank, 0, 0x0);
+
+	do {
+		status = cfi_get_u8(bank, 0, 0x0);
+		if ((status ^ oldstatus) & 0x40) {
+			if (status & 0x20) {
+				oldstatus = cfi_get_u8(bank, 0, 0x0);
+				status = cfi_get_u8(bank, 0, 0x0);
+				if ((status ^ oldstatus) & 0x40) {
+					ERROR("dq5 timeout, status: 0x%x", status);
+					return(ERROR_FLASH_OPERATION_FAILED);
+				} else {
+					DEBUG("status: 0x%x", status);
+					return(ERROR_OK);
+				}
+			}
+		} else {
+			DEBUG("status: 0x%x", status);
+			return(ERROR_OK);
+		}
+		
+		oldstatus = status;
+		usleep(1000);
+	} while (timeout-- > 0);
+	
+	ERROR("timeout, status: 0x%x", status);
+
+	return(ERROR_FLASH_BUSY);
+}
+
 int cfi_read_intel_pri_ext(flash_bank_t *bank)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_intel_pri_ext_t *pri_ext = malloc(sizeof(cfi_intel_pri_ext_t));
 	target_t *target = cfi_info->target;
 	u8 command[8];
-
+	
 	cfi_info->pri_ext = pri_ext;
 	
 	pri_ext->pri[0] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0);
@@ -298,6 +369,169 @@ int cfi_read_intel_pri_ext(flash_bank_t *bank)
 	return ERROR_OK;
 }
 
+int cfi_read_spansion_pri_ext(flash_bank_t *bank)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
+	target_t *target = cfi_info->target;
+	u8 command[8];
+
+	cfi_info->pri_ext = pri_ext;
+	
+	pri_ext->pri[0] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0);
+	pri_ext->pri[1] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 1);
+	pri_ext->pri[2] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 2);
+	
+	if ((pri_ext->pri[0] != 'P') || (pri_ext->pri[1] != 'R') || (pri_ext->pri[2] != 'I'))
+	{
+		cfi_command(bank, 0xf0, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		return ERROR_FLASH_BANK_INVALID;
+	}
+	
+	pri_ext->major_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3);
+	pri_ext->minor_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4);
+	
+	DEBUG("pri: '%c%c%c', version: %c.%c", pri_ext->pri[0], pri_ext->pri[1], pri_ext->pri[2], pri_ext->major_version, pri_ext->minor_version);
+
+	pri_ext->SiliconRevision = cfi_query_u8(bank, 0, cfi_info->pri_addr + 5);
+	pri_ext->EraseSuspend    = cfi_query_u8(bank, 0, cfi_info->pri_addr + 6);
+	pri_ext->BlkProt         = cfi_query_u8(bank, 0, cfi_info->pri_addr + 7);
+	pri_ext->TmpBlkUnprotect = cfi_query_u8(bank, 0, cfi_info->pri_addr + 8);
+	pri_ext->BlkProtUnprot   = cfi_query_u8(bank, 0, cfi_info->pri_addr + 9);
+	pri_ext->SimultaneousOps = cfi_query_u8(bank, 0, cfi_info->pri_addr + 10);
+	pri_ext->BurstMode       = cfi_query_u8(bank, 0, cfi_info->pri_addr + 11);
+	pri_ext->PageMode        = cfi_query_u8(bank, 0, cfi_info->pri_addr + 12);
+	pri_ext->VppMin          = cfi_query_u8(bank, 0, cfi_info->pri_addr + 13);
+	pri_ext->VppMax          = cfi_query_u8(bank, 0, cfi_info->pri_addr + 14);
+	pri_ext->TopBottom       = cfi_query_u8(bank, 0, cfi_info->pri_addr + 15);
+
+	DEBUG("Silicon Revision: 0x%x, Erase Suspend: 0x%x, Block protect: 0x%x", pri_ext->SiliconRevision,
+	      pri_ext->EraseSuspend, pri_ext->BlkProt);
+
+	DEBUG("Temporary Unprotect: 0x%x, Block Protect Scheme: 0x%x, Simultaneous Ops: 0x%x", pri_ext->TmpBlkUnprotect,
+	      pri_ext->BlkProtUnprot, pri_ext->SimultaneousOps);
+
+	DEBUG("Burst Mode: 0x%x, Page Mode: 0x%x, ", pri_ext->BurstMode, pri_ext->PageMode);
+
+	
+	DEBUG("Vpp min: %2.2d.%1.1d, Vpp max: %2.2d.%1.1x",
+		  (pri_ext->VppMin & 0xf0) >> 4, pri_ext->VppMin & 0x0f,
+		  (pri_ext->VppMax & 0xf0) >> 4, pri_ext->VppMax & 0x0f);
+	
+	DEBUG("WP# protection 0x%x", pri_ext->TopBottom);
+	
+	return ERROR_OK;
+}
+
+int cfi_read_atmel_pri_ext(flash_bank_t *bank)
+{
+	cfi_atmel_pri_ext_t atmel_pri_ext;
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
+	target_t *target = cfi_info->target;
+	u8 command[8];
+	
+	/* ATMEL devices use the same CFI primary command set (0x2) as AMD/Spansion,
+	 * but a different primary extended query table.
+	 * We read the atmel table, and prepare a valid AMD/Spansion query table.
+	 */
+	 
+	memset(pri_ext, 0, sizeof(cfi_spansion_pri_ext_t));
+	
+	cfi_info->pri_ext = pri_ext;
+	
+	atmel_pri_ext.pri[0] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0);
+	atmel_pri_ext.pri[1] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 1);
+	atmel_pri_ext.pri[2] = cfi_query_u8(bank, 0, cfi_info->pri_addr + 2);
+	
+	if ((atmel_pri_ext.pri[0] != 'P') || (atmel_pri_ext.pri[1] != 'R') || (atmel_pri_ext.pri[2] != 'I'))
+	{
+		cfi_command(bank, 0xf0, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		return ERROR_FLASH_BANK_INVALID;
+	}
+	
+	pri_ext->pri[0] = atmel_pri_ext.pri[0];
+	pri_ext->pri[1] = atmel_pri_ext.pri[1];
+	pri_ext->pri[2] = atmel_pri_ext.pri[2];
+	
+	atmel_pri_ext.major_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3);
+	atmel_pri_ext.minor_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4);
+	
+	DEBUG("pri: '%c%c%c', version: %c.%c", atmel_pri_ext.pri[0], atmel_pri_ext.pri[1], atmel_pri_ext.pri[2], atmel_pri_ext.major_version, atmel_pri_ext.minor_version);
+	
+	pri_ext->major_version = atmel_pri_ext.major_version;
+	pri_ext->minor_version = atmel_pri_ext.minor_version;
+	
+	atmel_pri_ext.features = cfi_query_u8(bank, 0, cfi_info->pri_addr + 5);
+	atmel_pri_ext.bottom_boot = cfi_query_u8(bank, 0, cfi_info->pri_addr + 6);
+	atmel_pri_ext.burst_mode = cfi_query_u8(bank, 0, cfi_info->pri_addr + 7);
+	atmel_pri_ext.page_mode = cfi_query_u8(bank, 0, cfi_info->pri_addr + 8);
+
+	DEBUG("features: 0x%2.2x, bottom_boot: 0x%2.2x, burst_mode: 0x%2.2x, page_mode: 0x%2.2x",
+		atmel_pri_ext.features, atmel_pri_ext.bottom_boot, atmel_pri_ext.burst_mode, atmel_pri_ext.page_mode);
+	
+	if (atmel_pri_ext.features & 0x02)
+		pri_ext->EraseSuspend = 2;
+
+	if (atmel_pri_ext.bottom_boot)
+		pri_ext->TopBottom = 2;
+	else
+		pri_ext->TopBottom = 3;
+	
+	return ERROR_OK;
+}
+
+int cfi_read_0002_pri_ext(flash_bank_t *bank)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	
+	if (cfi_info->manufacturer == CFI_MFR_ATMEL)
+	{
+		return cfi_read_atmel_pri_ext(bank);
+	}
+	else
+	{
+		return cfi_read_spansion_pri_ext(bank);
+	}
+}
+
+int cfi_spansion_info(struct flash_bank_s *bank, char *buf, int buf_size)
+{
+	int printed;
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+		
+	printed = snprintf(buf, buf_size, "\nSpansion primary algorithm extend information:\n");
+	buf += printed;
+	buf_size -= printed;
+	
+	printed = snprintf(buf, buf_size, "pri: '%c%c%c', version: %c.%c\n", pri_ext->pri[0], 
+			   pri_ext->pri[1], pri_ext->pri[2], 
+			   pri_ext->major_version, pri_ext->minor_version);
+	buf += printed;
+	buf_size -= printed;
+	
+	printed = snprintf(buf, buf_size, "Silicon Rev.: 0x%x, Address Sensitive unlock: 0x%x\n", 
+			   (pri_ext->SiliconRevision) >> 2,
+			   (pri_ext->SiliconRevision) & 0x03);
+	buf += printed;
+	buf_size -= printed;
+	
+	printed = snprintf(buf, buf_size, "Erase Suspend: 0x%x, Sector Protect: 0x%x\n", 
+			   pri_ext->EraseSuspend,
+			   pri_ext->BlkProt);
+	buf += printed;
+	buf_size -= printed;
+	
+	printed = snprintf(buf, buf_size, "VppMin: %2.2d.%1.1x, VppMax: %2.2d.%1.1x\n",
+		(pri_ext->VppMin & 0xf0) >> 4, pri_ext->VppMin & 0x0f,
+		(pri_ext->VppMax & 0xf0) >> 4, pri_ext->VppMax & 0x0f);
+
+	return ERROR_OK;
+}
+
 int cfi_intel_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	int printed;
@@ -337,11 +571,12 @@ int cfi_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-/* flash_bank cfi <base> <size> <chip_width> <bus_width> <target#>
+/* flash_bank cfi <base> <size> <chip_width> <bus_width> <target#> [options]
  */
 int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	cfi_flash_bank_t *cfi_info;
+	int i;
 	
 	if (argc < 6)
 	{
@@ -359,13 +594,23 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	cfi_info = malloc(sizeof(cfi_flash_bank_t));
 	bank->driver_priv = cfi_info;
 	
+	cfi_info->x16_as_x8 = 1;
+	
 	cfi_info->target = get_target_by_num(strtoul(args[5], NULL, 0));
 	if (!cfi_info->target)
 	{
 		ERROR("no target '%s' configured", args[5]);
 		exit(-1);
 	}
-	
+
+	for (i = 6; i < argc; i++)
+	{
+		if (strcmp(args[i], "x16_as_x8") != 0)
+		{
+			cfi_info->x16_as_x8 = 0;
+		}
+	}
+	 	
 	cfi_info->write_algorithm = NULL;
 
 	/* bank wasn't probed yet */
@@ -409,6 +654,52 @@ int cfi_intel_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 	
+int cfi_spansion_erase(struct flash_bank_s *bank, int first, int last)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	target_t *target = cfi_info->target;
+	u8 command[8];
+	int i;
+	
+	for (i = first; i <= last; i++)
+	{
+		cfi_command(bank, 0xaa, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x555), bank->bus_width, 1, command);
+			
+		cfi_command(bank, 0x55, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x2aa), bank->bus_width, 1, command);
+		
+		cfi_command(bank, 0x80, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x555), bank->bus_width, 1, command);
+
+		cfi_command(bank, 0xaa, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x555), bank->bus_width, 1, command);
+			
+		cfi_command(bank, 0x55, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x2aa), bank->bus_width, 1, command);
+		
+		cfi_command(bank, 0x30, command);
+		target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+
+		if (cfi_spansion_wait_status_busy(bank, 1000 * (1 << cfi_info->block_erase_timeout_typ)) == ERROR_OK)
+			bank->sectors[i].is_erased = 1;
+		else
+		{
+			cfi_command(bank, 0xf0, command);
+			target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+			
+			ERROR("couldn't erase block %i of flash bank at base 0x%x", i, bank->base);
+			return ERROR_FLASH_OPERATION_FAILED;
+		}
+	}
+	
+	cfi_command(bank, 0xf0, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+	
+	return ERROR_OK;
+}
+	
 int cfi_erase(struct flash_bank_s *bank, int first, int last)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
@@ -431,6 +722,9 @@ int cfi_erase(struct flash_bank_s *bank, int first, int last)
 		case 1:
 		case 3:
 			return cfi_intel_erase(bank, first, last);
+			break;
+		case 2:
+			return cfi_spansion_erase(bank, first, last);
 			break;
 		default:
 			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
@@ -601,7 +895,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	u8 busy_pattern[CFI_MAX_BUS_WIDTH];
 	u8 error_pattern[CFI_MAX_BUS_WIDTH];
 	int retval;
-	
+
 	/* algorithm register usage:
 	 * r0: source address (in RAM)
 	 * r1: target address (in Flash)
@@ -735,6 +1029,8 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		buf_set_u32(reg_params[3].value, 0, 32, target_buffer_get_u32(target, write_command));
 		buf_set_u32(reg_params[5].value, 0, 32, target_buffer_get_u32(target, busy_pattern));
 		buf_set_u32(reg_params[6].value, 0, 32, target_buffer_get_u32(target, error_pattern));
+		buf_set_u32(reg_params[5].value, 0, 32, buf_get_u32(busy_pattern, 0, 32));
+		buf_set_u32(reg_params[6].value, 0, 32, buf_get_u32(error_pattern, 0, 32));
 	
 		if ((retval = target->type->run_algorithm(target, 0, NULL, 7, reg_params, cfi_info->write_algorithm->address, cfi_info->write_algorithm->address + (13 * 4), 10000, &armv4_5_info)) != ERROR_OK)
 		{
@@ -768,6 +1064,257 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	return ERROR_OK;
 }
 
+int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u32 count)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	target_t *target = cfi_info->target;
+	reg_param_t reg_params[10];
+	armv4_5_algorithm_t armv4_5_info;
+	working_area_t *source;
+	u32 buffer_size = 32768;
+	u8 write_command[CFI_MAX_BUS_WIDTH];
+	u32 status;
+	int i;
+	int retval;
+	int exit_code = ERROR_OK;
+	int code_size;
+	void *code_p;
+
+	/* input parameters - */
+	/*	R0 = source address */
+	/*	R1 = destination address */
+	/*	R2 = number of writes */
+	/*	R3 = flash write command */
+	/*	R4 = constant to mask DQ7 bits (also used for Dq5 with shift) */
+	/* output parameters - */
+	/*	R5 = 0x80 ok 0x00 bad */
+	/* temp registers - */
+	/*	R6 = value read from flash to test status */
+	/*	R7 = holding register */
+	/* unlock registers - */
+	/*  R8 = unlock1_addr */
+	/*  R9 = unlock1_cmd */
+	/*  R10 = unlock1_addr */
+	/*  R11 = unlock1_cmd */
+
+	u32 word_32_code[] = {
+						/* 00008100 <sp_32_code>:		*/
+		0xe4905004,		/* ldr	r5, [r0], #4			*/
+		0xe5889000, 	/* str	r9, [r8]				*/
+		0xe58ab000, 	/* str	r11, [r10]				*/
+		0xe5883000, 	/* str	r3, [r8]				*/
+		0xe5815000, 	/* str	r5, [r1]				*/
+		0xe1a00000, 	/* nop							*/
+						/*								*/
+						/* 00008110 <sp_32_busy>:		*/
+		0xe5916000, 	/* ldr	r6, [r1]				*/
+		0xe0257006, 	/* eor	r7, r5, r6				*/
+		0xe0147007, 	/* ands	r7, r4, r7				*/
+		0x0a000007, 	/* beq	8140 <sp_32_cont> ; b if DQ7 == Data7 */
+		0xe0166124, 	/* ands	r6, r6, r4, lsr #2		*/
+		0x0afffff9, 	/* beq	8110 <sp_32_busy> ;	b if DQ5 low */
+		0xe5916000, 	/* ldr	r6, [r1]				*/
+		0xe0257006, 	/* eor	r7, r5, r6				*/
+		0xe0147007, 	/* ands	r7, r4, r7				*/
+		0x0a000001, 	/* beq	8140 <sp_32_cont> ; b if DQ7 == Data7 */
+		0xe3a05000, 	/* mov	r5, #0	; 0x0 - return 0x00, error */
+		0x1a000004, 	/* bne	8154 <sp_32_done>		*/
+						/*								*/
+				/* 00008140 <sp_32_cont>:				*/
+		0xe2522001, 	/* subs	r2, r2, #1	; 0x1		*/
+		0x03a05080, 	/* moveq	r5, #128	; 0x80	*/
+		0x0a000001, 	/* beq	8154 <sp_32_done>		*/
+		0xe2811004, 	/* add	r1, r1, #4	; 0x4		*/
+		0xeaffffe8, 	/* b	8100 <sp_32_code>		*/
+						/*								*/
+						/* 00008154 <sp_32_done>:		*/
+		0xeafffffe		/* b	8154 <sp_32_done>		*/
+        };
+        
+        u32 word_16_code[] = {
+				/* 00008158 <sp_16_code>:              */
+		0xe0d050b2, 	/* ldrh	r5, [r0], #2		   */
+		0xe1c890b0, 	/* strh	r9, [r8]				*/
+		0xe1cab0b0, 	/* strh	r11, [r10]				*/
+		0xe1c830b0, 	/* strh	r3, [r8]				*/
+		0xe1c150b0, 	/* strh	r5, [r1]		       */
+		0xe1a00000, 	/* nop			(mov r0,r0)    */
+				/* 				       */
+				/* 00008168 <sp_16_busy>:	       */
+		0xe1d160b0, 	/* ldrh	r6, [r1]		       */
+		0xe0257006, 	/* eor	r7, r5, r6		       */
+		0xe0147007, 	/* ands	r7, r4, r7		       */
+		0x0a000007, 	/* beq	8198 <sp_16_cont>	       */
+		0xe0166124, 	/* ands	r6, r6, r4, lsr #2	       */
+		0x0afffff9, 	/* beq	8168 <sp_16_busy>	       */
+		0xe1d160b0, 	/* ldrh	r6, [r1]		       */
+		0xe0257006, 	/* eor	r7, r5, r6		       */
+		0xe0147007, 	/* ands	r7, r4, r7		       */
+		0x0a000001, 	/* beq	8198 <sp_16_cont>	       */
+		0xe3a05000, 	/* mov	r5, #0	; 0x0		       */
+		0x1a000004, 	/* bne	81ac <sp_16_done>	       */
+				/* 				       */
+				/* 00008198 <sp_16_cont>:	       */
+		0xe2522001, 	/* subs	r2, r2, #1	; 0x1	       */
+		0x03a05080, 	/* moveq	r5, #128	; 0x80 */
+		0x0a000001, 	/* beq	81ac <sp_16_done>	       */
+		0xe2811002, 	/* add	r1, r1, #2	; 0x2	       */
+		0xeaffffe8, 	/* b	8158 <sp_16_code>	       */
+				/* 				       */
+				/* 000081ac <sp_16_done>:	       */
+		0xeafffffe 	/* b	81ac <sp_16_done>              */  
+        };
+        
+        u32 word_8_code[] = {
+				/* 000081b0 <sp_16_code_end>:          */
+		0xe4d05001, 	/* ldrb	r5, [r0], #1		       */
+		0xe5c89000, 	/* strb	r9, [r8]				*/
+		0xe5cab000, 	/* strb	r11, [r10]				*/
+		0xe5c83000, 	/* strb	r3, [r8]				*/
+		0xe5c15000, 	/* strb	r5, [r1]		       */
+		0xe1a00000, 	/* nop			(mov r0,r0)    */
+				/* 				       */
+				/* 000081c0 <sp_8_busy>:	       */
+		0xe5d16000, 	/* ldrb	r6, [r1]		       */
+		0xe0257006, 	/* eor	r7, r5, r6		       */
+		0xe0147007, 	/* ands	r7, r4, r7		       */
+		0x0a000007, 	/* beq	81f0 <sp_8_cont>	       */
+		0xe0166124, 	/* ands	r6, r6, r4, lsr #2	       */
+		0x0afffff9, 	/* beq	81c0 <sp_8_busy>	       */
+		0xe5d16000, 	/* ldrb	r6, [r1]		       */
+		0xe0257006, 	/* eor	r7, r5, r6		       */
+		0xe0147007, 	/* ands	r7, r4, r7		       */
+		0x0a000001, 	/* beq	81f0 <sp_8_cont>	       */
+		0xe3a05000, 	/* mov	r5, #0	; 0x0		       */
+		0x1a000004, 	/* bne	8204 <sp_8_done>	       */
+				/* 				       */
+				/* 000081f0 <sp_8_cont>:	       */
+		0xe2522001, 	/* subs	r2, r2, #1	; 0x1	       */
+		0x03a05080, 	/* moveq	r5, #128	; 0x80 */
+		0x0a000001, 	/* beq	8204 <sp_8_done>	       */
+		0xe2811001, 	/* add	r1, r1, #1	; 0x1	       */
+		0xeaffffe8, 	/* b	81b0 <sp_16_code_end>	       */
+				/* 				       */
+				/* 00008204 <sp_8_done>:	       */
+		0xeafffffe 	/* b	8204 <sp_8_done>               */
+	};
+	
+	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+			
+	/* flash write code */
+	if (!cfi_info->write_algorithm)
+	{
+		/* write algorithm code to working area */
+		if (bank->bus_width == 1)
+		{
+			code_size = sizeof(word_8_code);
+			code_p = word_8_code;
+		}
+		else if (bank->bus_width == 2)
+		{
+			code_size = sizeof(word_16_code);
+			code_p = word_16_code;
+		}
+		else if (bank->bus_width == 4)
+		{
+			code_size = sizeof(word_32_code);
+			code_p = word_32_code;
+		}
+		else
+		{
+			return ERROR_FLASH_OPERATION_FAILED;
+		}
+
+		if (target_alloc_working_area(target, code_size,
+						      &cfi_info->write_algorithm) != ERROR_OK)
+		{
+			WARNING("no working area available, can't do block memory writes");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
+			
+		target_write_buffer(target, cfi_info->write_algorithm->address, 
+				    code_size, code_p);
+	}
+	
+	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
+	{
+		buffer_size /= 2;
+		if (buffer_size <= 256)
+		{
+			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
+			if (cfi_info->write_algorithm)
+				target_free_working_area(target, cfi_info->write_algorithm);
+			
+			WARNING("not enough working area available, can't do block memory writes");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
+	};
+
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
+	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
+	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);
+	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
+	init_reg_param(&reg_params[5], "r5", 32, PARAM_IN);
+	init_reg_param(&reg_params[6], "r8", 32, PARAM_OUT);
+	init_reg_param(&reg_params[7], "r9", 32, PARAM_OUT);
+	init_reg_param(&reg_params[8], "r10", 32, PARAM_OUT);
+	init_reg_param(&reg_params[9], "r11", 32, PARAM_OUT);
+
+	while (count > 0)
+	{
+		u32 thisrun_count = (count > buffer_size) ? buffer_size : count;
+		
+		target_write_buffer(target, source->address, thisrun_count, buffer);
+		
+		buf_set_u32(reg_params[0].value, 0, 32, source->address);
+		buf_set_u32(reg_params[1].value, 0, 32, address);
+		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count / bank->bus_width);
+		cfi_command(bank, 0xA0, write_command);
+		buf_set_u32(reg_params[3].value, 0, 32, buf_get_u32(write_command, 0, 32));
+		cfi_command(bank, 0x80, write_command);
+		buf_set_u32(reg_params[4].value, 0, 32, buf_get_u32(write_command, 0, 32));
+		buf_set_u32(reg_params[6].value, 0, 32, flash_address(bank, 0, 0x555));
+		buf_set_u32(reg_params[7].value, 0, 32, 0xaa);
+		buf_set_u32(reg_params[8].value, 0, 32, flash_address(bank, 0, 0xaaa));
+		buf_set_u32(reg_params[9].value, 0, 32, 0x55);
+	
+		retval = target->type->run_algorithm(target, 0, NULL, 10, reg_params, 
+						     cfi_info->write_algorithm->address, 
+						     cfi_info->write_algorithm->address + (code_size - 4), 
+						     10000, &armv4_5_info);
+
+		status = buf_get_u32(reg_params[5].value, 0, 32);
+ 
+		if ((retval != ERROR_OK) || status != 0x80)
+		{
+			DEBUG("status: 0x%x", status);
+			exit_code = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		}
+		
+		buffer += thisrun_count;
+		address += thisrun_count;
+		count -= thisrun_count;
+	}
+	
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+	destroy_reg_param(&reg_params[2]);
+	destroy_reg_param(&reg_params[3]);
+	destroy_reg_param(&reg_params[4]);
+	destroy_reg_param(&reg_params[5]);
+	destroy_reg_param(&reg_params[6]);
+	destroy_reg_param(&reg_params[7]);
+	destroy_reg_param(&reg_params[8]);
+	destroy_reg_param(&reg_params[9]);
+
+	return exit_code;
+}
+
 int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
@@ -792,6 +1339,36 @@ int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 	return ERROR_OK;
 }
 
+int cfi_spansion_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	target_t *target = cfi_info->target;
+	u8 command[8];
+	
+	cfi_command(bank, 0xaa, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x555), bank->bus_width, 1, command);
+	
+	cfi_command(bank, 0x55, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x2aa), bank->bus_width, 1, command);
+	
+	cfi_command(bank, 0xa0, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x555), bank->bus_width, 1, command);
+
+	target->type->write_memory(target, address, bank->bus_width, 1, word);
+	
+	if (cfi_spansion_wait_status_busy(bank, 1000 * (1 << cfi_info->word_write_timeout_max)) != ERROR_OK)
+	{
+		cfi_command(bank, 0xf0, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		
+		ERROR("couldn't write word at base 0x%x, address %x", bank->base, address);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+	
+	return ERROR_OK;
+}
+
 int cfi_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
@@ -801,6 +1378,9 @@ int cfi_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 		case 1:
 		case 3:
 			return cfi_intel_write_word(bank, word, address);
+			break;
+		case 2:
+			return cfi_spansion_write_word(bank, word, address);
 			break;
 		default:
 			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
@@ -878,6 +1458,9 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		case 3:
 			retval = cfi_intel_write_block(bank, buffer, write_p, count);
 			break;
+		case 2:
+			retval = cfi_spansion_write_block(bank, buffer, write_p, count);
+			break;
 		default:
 			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
       retval = ERROR_FLASH_OPERATION_FAILED;
@@ -941,13 +1524,83 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	return ERROR_OK;
 }
 
+void cfi_fixup_atmel_reversed_erase_regions(flash_bank_t *bank, void *param)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	
+	pri_ext->_reversed_geometry = 1;
+}
+
+void cfi_fixup_0002_erase_regions(flash_bank_t *bank, void *param)
+{
+	int i;
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	
+	if ((pri_ext->_reversed_geometry) || (pri_ext->TopBottom == 3))
+	{
+		DEBUG("swapping reversed erase region information on cmdset 0002 device");
+		
+		for (i = 0; i < cfi_info->num_erase_regions / 2; i++)
+		{
+			int j = (cfi_info->num_erase_regions - 1) - i;
+			u32 swap;
+	
+			swap = cfi_info->erase_region_info[i];
+			cfi_info->erase_region_info[i] = cfi_info->erase_region_info[j];
+			cfi_info->erase_region_info[j] = swap;
+		}
+	}
+}
+
 int cfi_probe(struct flash_bank_s *bank)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = cfi_info->target;
 	u8 command[8];
-	
+	int num_sectors = 0;
+	int i;
+	int sector = 0;
+	u32 offset = 0;
+		
+	/* switch to read identifier codes mode ("AUTOSELECT") */
+	cfi_command(bank, 0xaa, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x555), bank->bus_width, 1, command);
+	cfi_command(bank, 0x55, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x2aa), bank->bus_width, 1, command);
+	cfi_command(bank, 0x90, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x555), bank->bus_width, 1, command);
 
+	if (bank->chip_width == 1)
+	{
+		u8 manufacturer, device_id;
+		target_read_u8(target, bank->base + 0x0, &manufacturer);
+		target_read_u8(target, bank->base + 0x1, &device_id);
+		cfi_info->manufacturer = manufacturer;
+		cfi_info->device_id = device_id;
+	}
+	else if (bank->chip_width == 2)
+	{
+		target_read_u16(target, bank->base + 0x0, &cfi_info->manufacturer);
+		target_read_u16(target, bank->base + 0x2, &cfi_info->device_id);
+	}
+	
+	/* switch back to read array mode */
+	cfi_command(bank, 0xf0, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x00), bank->bus_width, 1, command);
+	cfi_command(bank, 0xff, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x00), bank->bus_width, 1, command);
+
+	cfi_fixup(bank, cfi_jedec_fixups);
+
+	/* enter CFI query mode
+	 * according to JEDEC Standard No. 68.01,
+	 * a single bus sequence with address = 0x55, data = 0x98 should put
+	 * the device into CFI query mode.
+	 * 
+	 * SST flashes clearly violate this, and we will consider them incompatbile for now
+	 */
 	cfi_command(bank, 0x98, command);
 	target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command);
 	
@@ -1012,12 +1665,7 @@ int cfi_probe(struct flash_bank_s *bank)
 	
 	if (cfi_info->num_erase_regions)
 	{
-		int i;
-		int num_sectors = 0;
-		int sector = 0;
-		u32 offset = 0;
 		cfi_info->erase_region_info = malloc(4 * cfi_info->num_erase_regions);
-		
 		for (i = 0; i < cfi_info->num_erase_regions; i++)
 		{
 			cfi_info->erase_region_info[i] = cfi_query_u32(bank, 0, 0x2d + (4 * i));
@@ -1025,9 +1673,49 @@ int cfi_probe(struct flash_bank_s *bank)
 			
 			num_sectors += (cfi_info->erase_region_info[i] & 0xffff) + 1;
 		}
+	}
+	else
+	{
+		cfi_info->erase_region_info = NULL;
+	}
 		
+	/* We need to read the primary algorithm extended query table before calculating
+	 * the sector layout to be able to apply fixups
+	 */	
+	switch(cfi_info->pri_id)
+	{
+		/* Intel command set (standard and extended) */
+		case 0x0001:
+		case 0x0003:
+			cfi_read_intel_pri_ext(bank);
+			cfi_fixup(bank, cfi_0001_fixups);
+			break;
+		/* AMD/Spansion, Atmel, ... command set */
+        case 0x0002:
+			cfi_read_0002_pri_ext(bank);
+			cfi_fixup(bank, cfi_0002_fixups);
+			break;
+		default:
+			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			break;
+	}
+	
+	if (cfi_info->num_erase_regions == 0)
+	{
+		/* a device might have only one erase block, spanning the whole device */ 
+		bank->num_sectors = 1;
+		bank->sectors = malloc(sizeof(flash_sector_t));
+		
+		bank->sectors[sector].offset = 0x0;
+		bank->sectors[sector].size = bank->size;
+		bank->sectors[sector].is_erased = -1;
+		bank->sectors[sector].is_protected = -1;
+	}
+	else
+	{
 		bank->num_sectors = num_sectors;
 		bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
+		
 		for (i = 0; i < cfi_info->num_erase_regions; i++)
 		{
 			int j;
@@ -1042,23 +1730,10 @@ int cfi_probe(struct flash_bank_s *bank)
 			}
 		}
 	}
-	else
-	{
-		cfi_info->erase_region_info = NULL;
-	}
 	
-	switch(cfi_info->pri_id)
-	{
-		case 1:
-		case 3:
-			cfi_read_intel_pri_ext(bank);
-			break;
-		default:
-			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-			break;
-	}
-	
-	/* return to read array mode */
+	/* return to read array mode
+	 * we use both reset commands, as some Intel flashes fail to recognize the 0xF0 command
+	 */
 	cfi_command(bank, 0xf0, command);
 	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 	cfi_command(bank, 0xff, command);
@@ -1209,6 +1884,39 @@ int cfi_intel_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
+int cfi_spansion_protect_check(struct flash_bank_s *bank)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	target_t *target = cfi_info->target;
+	u8 command[8];
+	int i;
+	
+	cfi_command(bank, 0xaa, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x555), bank->bus_width, 1, command);
+	
+	cfi_command(bank, 0x55, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x2aa), bank->bus_width, 1, command);
+	
+	cfi_command(bank, 0x90, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x555), bank->bus_width, 1, command);
+
+	for (i = 0; i < bank->num_sectors; i++)
+	{
+		u8 block_status = cfi_get_u8(bank, i, 0x2);
+		
+		if (block_status & 1)
+			bank->sectors[i].is_protected = 1;
+		else
+			bank->sectors[i].is_protected = 0;
+	}
+
+	cfi_command(bank, 0xf0, command);
+	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+
+	return ERROR_OK;
+}
+
 int cfi_protect_check(struct flash_bank_s *bank)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
@@ -1221,6 +1929,9 @@ int cfi_protect_check(struct flash_bank_s *bank)
 		case 1:
 		case 3:
 			return cfi_intel_protect_check(bank);
+			break;
+		case 2:
+			return cfi_spansion_protect_check(bank);
 			break;
 		default:
 			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
@@ -1244,7 +1955,12 @@ int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	printed = snprintf(buf, buf_size, "\ncfi information:\n");
 	buf += printed;
 	buf_size -= printed;
-	
+
+	printed = snprintf(buf, buf_size, "\nmfr: 0x%4.4x, id:0x%4.4x\n",
+		cfi_info->manufacturer, cfi_info->device_id);
+	buf += printed;
+	buf_size -= printed;
+		
 	printed = snprintf(buf, buf_size, "qry: '%c%c%c', pri_id: 0x%4.4x, pri_addr: 0x%4.4x, alt_id: 0x%4.4x, alt_addr: 0x%4.4x\n", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2], cfi_info->pri_id, cfi_info->pri_addr, cfi_info->alt_id, cfi_info->alt_addr);
 	buf += printed;
 	buf_size -= printed;
@@ -1277,6 +1993,9 @@ int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		case 1:
 		case 3:
 			cfi_intel_info(bank, buf, buf_size);
+			break;
+		case 2:
+			cfi_spansion_info(bank, buf, buf_size);
 			break;
 		default:
 			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
