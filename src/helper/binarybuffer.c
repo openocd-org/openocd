@@ -101,6 +101,12 @@ u8* buf_cpy(u8 *from, u8 *to, int size)
 
 	for (i = 0; i < num_bytes; i++)
 		to[i] = from[i];
+	
+	/* mask out bits that don't belong to the buffer */	
+	if (size % 8)
+	{
+		to[size / 8] &= (0xff >> (8 - (size % 8)));
+	}
 
 	return to;
 }

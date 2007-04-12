@@ -150,7 +150,7 @@ float lpc3180_cycle_time(lpc3180_nand_controller_t *lpc3180_info)
 	/* determine current SYSCLK (13'MHz or main oscillator) */ 
 	target_read_u32(target, 0x40004050, &sysclk_ctrl);
 	
-	if (sysclk_ctrl & 1)
+	if ((sysclk_ctrl & 1) == 0)
 		sysclk = lpc3180_info->osc_freq;
 	else
 		sysclk = 13000;

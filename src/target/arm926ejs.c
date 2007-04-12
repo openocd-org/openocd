@@ -158,7 +158,7 @@ int arm926ejs_read_cp15(target_t *target, u32 address, u32 *value)
 	{
 		jtag_add_dr_scan(4, fields, -1);
 		jtag_execute_queue();
-	} while ((access & 1) != 1);
+	} while (buf_get_u32(&access, 0, 1) != 1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	DEBUG("addr: 0x%x value: %8.8x", address, *value);
@@ -234,7 +234,7 @@ int arm926ejs_write_cp15(target_t *target, u32 address, u32 value)
 	{
 		jtag_add_dr_scan(4, fields, -1);
 		jtag_execute_queue();
-	} while (access != 1);
+	} while (buf_get_u32(&access, 0, 1) != 1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	DEBUG("addr: 0x%x value: %8.8x", address, value);
