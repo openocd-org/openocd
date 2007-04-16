@@ -247,7 +247,23 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 {
 	int retval = ERROR_OK;
 	target_t *target;
-	 
+	
+	/* prepare reset_halt where necessary */
+	target = targets;
+	while (target)
+	{
+		switch (target->reset_mode)
+		{
+			case RESET_HALT:
+			case RESET_INIT:
+				target->type->prepare_reset_halt(target);
+				break;
+			default:
+				break;
+		}
+		target = target->next;
+	}
+	
 	target = targets;
 	while (target)
 	{

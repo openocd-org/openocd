@@ -110,6 +110,7 @@ typedef struct target_type_s
 	int (*assert_reset)(struct target_s *target);
 	int (*deassert_reset)(struct target_s *target);
 	int (*soft_reset_halt)(struct target_s *target);
+	int (*prepare_reset_halt)(struct target_s *target);
 	
 	/* target register access for gdb */
 	int (*get_gdb_reg_list)(struct target_s *target, struct reg_s **reg_list[], int *reg_list_size);

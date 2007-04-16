@@ -181,6 +181,15 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			ERROR("unknown EmbeddedICE version (comms ctrl: 0x%8.8x)", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
 	
+	/* explicitly disable monitor mode */
+	if (arm7_9->has_monitor_mode)
+	{
+		embeddedice_read_reg(&reg_list[EICE_DBG_CTRL]);
+		jtag_execute_queue();
+		buf_set_u32(reg_list[EICE_DBG_CTRL].value, 4, 1, 0);
+		embeddedice_set_reg_w_exec(&reg_list[EICE_DBG_CTRL], reg_list[EICE_DBG_CTRL].value);
+	}
+	
 	return reg_cache;
 }
 

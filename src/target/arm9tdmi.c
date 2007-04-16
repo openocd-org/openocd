@@ -64,6 +64,7 @@ target_type_t arm9tdmi_target =
 	.assert_reset = arm7_9_assert_reset,
 	.deassert_reset = arm7_9_deassert_reset,
 	.soft_reset_halt = arm7_9_soft_reset_halt,
+	.prepare_reset_halt = arm7_9_prepare_reset_halt,
 
 	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
 

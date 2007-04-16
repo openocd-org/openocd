@@ -725,9 +725,8 @@ int arm7_9_deassert_reset(target_t *target)
 	
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
-		
+	
 	return ERROR_OK;
-
 }
 
 int arm7_9_clear_halt(target_t *target)
@@ -736,7 +735,8 @@ int arm7_9_clear_halt(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	
-	if (arm7_9->use_dbgrq)
+	/* we used DBGRQ only if we didn't come out of reset */
+	if (!arm7_9->debug_entry_from_reset && arm7_9->use_dbgrq)
 	{
 		/* program EmbeddedICE Debug Control Register to deassert DBGRQ
 		 */
@@ -745,18 +745,29 @@ int arm7_9_clear_halt(target_t *target)
 	}
 	else
 	{
-		/* restore registers if watchpoint unit 0 was in use
-		 */
-		if (arm7_9->wp0_used)
+		if (arm7_9->debug_entry_from_reset && arm7_9->has_vector_catch)
 		{
-			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK]);
-			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK]);
-			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK]);
+			/* if we came out of reset, and vector catch is supported, we used
+			 * vector catch to enter debug state
+			 * restore the register in that case
+			 */
+			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_VEC_CATCH]);
 		}
-		/* control value always has to be restored, as it was either disabled, 
-		 * or enabled with possibly different bits
-		 */
-		embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE]);
+		else
+		{
+			/* restore registers if watchpoint unit 0 was in use
+			 */
+			if (arm7_9->wp0_used)
+			{
+				embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK]);
+				embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK]);
+				embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK]);
+			}
+			/* control value always has to be restored, as it was either disabled, 
+			 * or enabled with possibly different bits
+			 */
+			embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE]);
+		}
 	}
 	
 	return ERROR_OK;
@@ -831,6 +842,28 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
+int arm7_9_prepare_reset_halt(target_t *target)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	
+	if (arm7_9->has_vector_catch)
+	{
+		/* program vector catch register to catch reset vector */
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_VEC_CATCH], 0x1);
+	}
+	else
+	{
+		/* program watchpoint unit to match on reset vector address */
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0x3);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0x0);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x100);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], 0xf7);
+	}
+	
+	return ERROR_OK;
+}
+
 int arm7_9_halt(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -843,17 +876,29 @@ int arm7_9_halt(target_t *target)
 	{
 		WARNING("target was already halted");
 		return ERROR_TARGET_ALREADY_HALTED;
-	} 
+	}
 	
 	if (target->state == TARGET_UNKNOWN)
 	{
 		WARNING("target was in unknown state when halt was requested");
 	}
 	
-	if ((target->state == TARGET_RESET) && (jtag_reset_config & RESET_SRST_PULLS_TRST) && (jtag_srst))
+	if (target->state == TARGET_RESET) 
 	{
-		ERROR("can't request a halt while in reset if nSRST pulls nTRST");
-		return ERROR_TARGET_FAILURE;
+		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) && jtag_srst)
+		{
+			ERROR("can't request a halt while in reset if nSRST pulls nTRST");
+			return ERROR_TARGET_FAILURE;
+		}
+		else
+		{
+			/* we came here in a reset_halt or reset_init sequence
+			 * debug entry was already prepared in arm7_9_prepare_reset_halt()
+			 */
+			target->debug_reason = DBG_REASON_DBGRQ;
+			
+			return ERROR_OK; 
+		}
 	}
 
 	if (arm7_9->use_dbgrq)
@@ -2476,6 +2521,8 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	arm7_9->has_vector_catch = 0;
 	
 	arm7_9->reinit_embeddedice = 0;
+	
+	arm7_9->debug_entry_from_reset = 0;
 	
 	arm7_9->dcc_working_area = NULL;
 	

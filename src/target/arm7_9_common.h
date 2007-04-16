@@ -55,6 +55,7 @@ typedef struct arm7_9_common_s
 	int has_vector_catch;
 	
 	int reinit_embeddedice;
+	int debug_entry_from_reset;
 	
 	struct working_area_s *dcc_working_area;
 	
@@ -108,6 +109,7 @@ int arm7_9_deassert_reset(target_t *target);
 int arm7_9_reset_request_halt(target_t *target);
 int arm7_9_early_halt(target_t *target);
 int arm7_9_soft_reset_halt(struct target_s *target);
+int arm7_9_prepare_reset_halt(struct target_s *target);
 
 int arm7_9_halt(target_t *target);
 int arm7_9_debug_entry(target_t *target);
