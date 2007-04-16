@@ -77,8 +77,11 @@ int ft2232_handle_vid_pid_command(struct command_context_s *cmd_ctx, char *cmd, 
 char *ft2232_device_desc = NULL;
 char *ft2232_serial = NULL;
 char *ft2232_layout = NULL;
-u16 ft2232_vid = 0x0403;
-u16 ft2232_pid = 0x6010;
+
+#define MAX_USB_IDS	8
+/* vid = pid = 0 marks the end of the list */
+static u16 ft2232_vid[MAX_USB_IDS+1] = { 0x0403, 0 };
+static u16 ft2232_pid[MAX_USB_IDS+1] = { 0x6010, 0 };
 
 typedef struct ft2232_layout_s
 {
@@ -1227,55 +1230,23 @@ int ft2232_execute_queue()
 	return ERROR_OK;
 }
 
-int ft2232_init(void)
-{
-	u8 latency_timer;
-	u8 buf[1];
-	int retval;
-	u32 bytes_written;
-	
 #if BUILD_FT2232_FTD2XX == 1
+static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int *try_more)
+{
 	FT_STATUS status;
 	DWORD openex_flags = 0;
 	char *openex_string = NULL;
-#endif
+	u8 latency_timer;
 
-	ft2232_layout_t *cur_layout = ft2232_layouts;
-	
-	if ((ft2232_layout == NULL) || (ft2232_layout[0] == 0))
-	{
-		ft2232_layout = "usbjtag";
-		WARNING("No ft2232 layout specified, using default 'usbjtag'");
-	}
-	
-	while (cur_layout->name)
-	{
-		if (strcmp(cur_layout->name, ft2232_layout) == 0)
-		{
-			layout = cur_layout;
-			break;
-		}
-		cur_layout++;
-	}
+	DEBUG("'ft2232' interface using FTD2XX with '%s' layout (%4.4x:%4.4x)",
+	    ft2232_layout, vid, pid);
 
-	if (!layout)
-	{
-		ERROR("No matching layout found for %s", ft2232_layout);
-		return ERROR_JTAG_INIT_FAILED;
-	}
-	
-#if BUILD_FT2232_FTD2XX == 1
-	DEBUG("'ft2232' interface using FTD2XX with '%s' layout", ft2232_layout);
-#elif BUILD_FT2232_LIBFTDI == 1
-	DEBUG("'ft2232' interface using libftdi with '%s' layout", ft2232_layout);
-#endif
-
-#if BUILD_FT2232_FTD2XX == 1
 #if IS_WIN32 == 0
 	/* Add non-standard Vid/Pid to the linux driver */
-	if ((status = FT_SetVIDPID(ft2232_vid, ft2232_pid)) != FT_OK)
+	if ((status = FT_SetVIDPID(vid, pid)) != FT_OK)
 	{
-		WARNING("couldn't add %4.4x:%4.4x", ft2232_vid, ft2232_pid);
+		WARNING("couldn't add %4.4x:%4.4x",
+		    vid, pid);
 	}
 #endif
 
@@ -1307,6 +1278,12 @@ int ft2232_init(void)
 	{
 		DWORD num_devices;
 		
+		if (more) {
+			WARNING("unable to open ftdi device (trying more): %lu",
+			    status);
+			*try_more = 1;
+			return ERROR_JTAG_INIT_FAILED;
+		}
 		ERROR("unable to open ftdi device: %lu", status);
 		status = FT_ListDevices(&num_devices, NULL, FT_LIST_NUMBER_ONLY);
 		if (status == FT_OK)
@@ -1365,14 +1342,44 @@ int ft2232_init(void)
 		ERROR("unable to enable bit i/o mode: %lu", status);
 		return ERROR_JTAG_INIT_FAILED;
 	}
-#elif BUILD_FT2232_LIBFTDI == 1
+
+	return ERROR_OK;
+}
+
+static int ft2232_purge_ftd2xx(void)
+{
+	FT_STATUS status;
+
+	if ((status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX)) != FT_OK)
+	{
+		ERROR("error purging ftd2xx device: %lu", status);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
+#endif /* BUILD_FT2232_FTD2XX == 1 */
+
+#if BUILD_FT2232_LIBFTDI == 1
+static int ft2232_init_libftdi(u16 vid, u16 pid, int more, int *try_more)
+{
+	u8 latency_timer;
+
+	DEBUG("'ft2232' interface using libftdi with '%s' layout (%4.4x:%4.4x)",
+	    ft2232_layout, vid, pid);
+
 	if (ftdi_init(&ftdic) < 0)
 		return ERROR_JTAG_INIT_FAILED;
 
 	/* context, vendor id, product id */
-	if (ftdi_usb_open_desc(&ftdic, ft2232_vid, ft2232_pid, ft2232_device_desc, ft2232_serial) < 0)
-	{
-		ERROR("unable to open ftdi device: %s", ftdic.error_str);
+	if (ftdi_usb_open_desc(&ftdic, vid, pid, ft2232_device_desc,
+	    ft2232_serial) < 0) {
+		if (more)
+			WARNING("unable to open ftdi device (trying more): %s",
+			     ftdic.error_str);
+		else
+			ERROR("unable to open ftdi device: %s", ftdic.error_str);
+		*try_more = 1;
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -1405,7 +1412,77 @@ int ft2232_init(void)
 	}
 
 	ftdi_set_bitmode(&ftdic, 0x0b, 2); /* ctx, JTAG I/O mask */
+
+	return ERROR_OK;
+}
+
+static int ft2232_purge_libftdi(void)
+{
+	if (ftdi_usb_purge_buffers(&ftdic) < 0)
+	{
+		ERROR("ftdi_purge_buffers: %s", ftdic.error_str);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
+#endif /* BUILD_FT2232_LIBFTDI == 1 */
+
+int ft2232_init(void)
+{
+	u8 buf[1];
+	int retval;
+	u32 bytes_written;
+	ft2232_layout_t *cur_layout = ft2232_layouts;
+	int i;
+	
+	if ((ft2232_layout == NULL) || (ft2232_layout[0] == 0))
+	{
+		ft2232_layout = "usbjtag";
+		WARNING("No ft2232 layout specified, using default 'usbjtag'");
+	}
+	
+	while (cur_layout->name)
+	{
+		if (strcmp(cur_layout->name, ft2232_layout) == 0)
+		{
+			layout = cur_layout;
+			break;
+		}
+		cur_layout++;
+	}
+
+	if (!layout)
+	{
+		ERROR("No matching layout found for %s", ft2232_layout);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+	
+	for (i = 0; 1; i++) {
+		/*
+		 * "more indicates that there are more IDs to try, so we should
+		 * not print an error for an ID mismatch (but for anything
+		 * else, we should).
+		 *
+		 * try_more indicates that the error code returned indicates an
+		 * ID mismatch (and nothing else) and that we should proceeed
+		 * with the next ID pair.
+		 */
+		int more = ft2232_vid[i+1] || ft2232_pid[i+1];
+		int try_more = 0;
+
+#if BUILD_FT2232_FTD2XX == 1
+		retval = ft2232_init_ftd2xx(ft2232_vid[i], ft2232_pid[i],
+		    more, &try_more);
+#elif BUILD_FT2232_LIBFTDI == 1
+		retval = ft2232_init_libftdi(ft2232_vid[i], ft2232_pid[i],
+		    more, &try_more);
 #endif	
+		if (retval >= 0)
+			break;
+		if (!more || !try_more)
+			return retval;
+	}
 
 	ft2232_buffer_size = 0;
 	ft2232_buffer = malloc(FT2232_BUFFER_SIZE);
@@ -1423,17 +1500,9 @@ int ft2232_init(void)
 	}
 
 #if BUILD_FT2232_FTD2XX == 1
-	if ((status = FT_Purge(ftdih, FT_PURGE_RX | FT_PURGE_TX)) != FT_OK)
-	{
-		ERROR("error purging ftd2xx device: %lu", status);
-		return ERROR_JTAG_INIT_FAILED;
-	}
+	return ft2232_purge_ftd2xx();
 #elif BUILD_FT2232_LIBFTDI == 1
-	if (ftdi_usb_purge_buffers(&ftdic) < 0)
-	{
-		ERROR("ftdi_purge_buffers: %s", ftdic.error_str);
-		return ERROR_JTAG_INIT_FAILED;
-	}
+	return ft2232_purge_libftdi();
 #endif	
 
 	return ERROR_OK;
@@ -1847,15 +1916,29 @@ int ft2232_handle_layout_command(struct command_context_s *cmd_ctx, char *cmd, c
 
 int ft2232_handle_vid_pid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc >= 2)
-	{
-		ft2232_vid = strtol(args[0], NULL, 0);
-		ft2232_pid = strtol(args[1], NULL, 0);
+	int i;
+
+	if (argc > MAX_USB_IDS*2) {
+		WARNING("ignoring extra IDs in ft2232_vid_pid "
+		    "(maximum is %d pairs)", MAX_USB_IDS);
+		argc = MAX_USB_IDS*2;
 	}
-	else
+	if (argc < 2 || (argc & 1))
 	{
 		WARNING("incomplete ft2232_vid_pid configuration directive");
+		if (argc < 2)
+			return ERROR_OK;
 	}
-	
+
+	for (i = 0; i+1 < argc; i += 2) {
+		ft2232_vid[i >> 1] = strtol(args[i], NULL, 0);
+		ft2232_pid[i >> 1] = strtol(args[i+1], NULL, 0);
+	}
+	/*
+	 * Explicitly terminate, in case there are multiples instances of
+	 * ft2232_vid_pid.
+	 */
+	ft2232_vid[i >> 1] = ft2232_pid[i >> 1] = 0;
+
 	return ERROR_OK;
 }
