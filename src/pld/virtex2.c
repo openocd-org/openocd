@@ -62,7 +62,7 @@ int virtex2_set_instr(int chain_pos, u32 new_instr)
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 		
-		jtag_add_ir_scan(1, &field, TAP_RTI);
+		jtag_add_ir_scan(1, &field, TAP_RTI, NULL);
 		
 		free(field.out_value);
 	}
@@ -94,7 +94,7 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 	
 	virtex2_set_instr(virtex2_info->chain_pos, 0x5); /* CFG_IN */
 	
-	jtag_add_dr_scan(1, &scan_field, TAP_PD);
+	jtag_add_dr_scan(1, &scan_field, TAP_PD, NULL);
 	
 	free(values);
 	
@@ -127,7 +127,7 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	while (num_words--)
 	{
 		scan_field.in_handler_priv = words++;
-		jtag_add_dr_scan(1, &scan_field, TAP_PD);
+		jtag_add_dr_scan(1, &scan_field, TAP_PD, NULL);
 	}
 	
 	return ERROR_OK;
@@ -189,7 +189,7 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	field.num_bits = bit_file.length * 8;
 	field.out_value = bit_file.data;
 
-	jtag_add_dr_scan(1, &field, TAP_PD);
+	jtag_add_dr_scan(1, &field, TAP_PD, NULL);
 	jtag_execute_queue();
 	
 	jtag_add_statemove(TAP_TLR);

@@ -253,7 +253,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -285,11 +285,11 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	fields[0].in_value = (u8*)value;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	return ERROR_OK;
 }
@@ -305,7 +305,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -337,7 +337,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	return ERROR_OK;
 }

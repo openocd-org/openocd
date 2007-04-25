@@ -20,6 +20,7 @@
 #ifndef ETB_H
 #define ETB_H
 
+#include "command.h"
 #include "target.h"
 #include "register.h"
 #include "arm_jtag.h"
@@ -43,6 +44,10 @@ typedef struct etb_s
 	int chain_pos;
 	int cur_scan_chain;
 	reg_cache_t *reg_cache;
+	
+	/* ETB parameters */
+	int RAM_depth;
+	int RAM_width;
 } etb_t;
 
 typedef struct etb_reg_s
@@ -58,5 +63,7 @@ extern int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask);
 extern int etb_store_reg(reg_t *reg);
 extern int etb_set_reg(reg_t *reg, u32 value);
 extern int etb_set_reg_w_exec(reg_t *reg, u8 *buf);
+
+extern int etb_register_commands(struct command_context_s *cmd_ctx, command_t *arm7_9_cmd);
 
 #endif /* ETB_H */

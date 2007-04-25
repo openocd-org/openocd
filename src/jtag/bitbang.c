@@ -182,12 +182,18 @@ int bitbang_execute_queue(void)
 	int scan_size;
 	enum scan_type type;
 	u8 *buffer;
+	int retval;
 	
 	if (!bitbang_interface)
 	{
 		ERROR("BUG: Bitbang interface called, but not yet initialized");
 		exit(-1);
 	}
+	
+	/* return ERROR_OK, unless a jtag_read_buffer returns a failed check
+	 * that wasn't handled by a caller-provided error handler
+	 */ 
+	retval = ERROR_OK;
 		
 	while (cmd)
 	{
@@ -234,7 +240,7 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_SCAN:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("scan end in %i", cmd->cmd.scan->end_state);
+				DEBUG("%s scan end in %i",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", cmd->cmd.scan->end_state);
 #endif
 				if (cmd->cmd.scan->end_state != -1)
 					bitbang_end_state(cmd->cmd.scan->end_state);
@@ -242,7 +248,7 @@ int bitbang_execute_queue(void)
 				type = jtag_scan_type(cmd->cmd.scan);
 				bitbang_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
 				if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
-					return ERROR_JTAG_QUEUE_FAILED;
+					retval = ERROR_JTAG_QUEUE_FAILED;
 				if (buffer)
 					free(buffer);
 				break;
@@ -259,6 +265,6 @@ int bitbang_execute_queue(void)
 		cmd = cmd->next;
 	}
 	
-	return ERROR_OK;
+	return retval;
 }
 

@@ -103,7 +103,7 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 1;
@@ -145,12 +145,12 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, -1, NULL);
 
 	fields[1].in_handler_priv = value;
 	fields[1].in_handler = arm_jtag_buf_to_u32;
 
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, -1, NULL);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	jtag_execute_queue();
@@ -175,7 +175,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 1;
@@ -217,7 +217,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, -1, NULL);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
@@ -239,7 +239,7 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 	
 	buf_set_u32(cp15_opcode_buf, 0, 32, cp15_opcode);
 
@@ -283,7 +283,7 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, -1, NULL);
 
 	arm9tdmi_clock_out(jtag_info, arm_opcode, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);

@@ -402,7 +402,12 @@ int ft2232_send_and_recv(jtag_command_t *first, jtag_command_t *last)
 
 	ft2232_expect_read = 0;
 	ft2232_read_pointer = 0;
-
+	
+	/* return ERROR_OK, unless a jtag_read_buffer returns a failed check
+	 * that wasn't handled by a caller-provided error handler
+	 */ 
+	retval = ERROR_OK;
+	
 	cmd = first;
 	while (cmd != last)
 	{
@@ -415,7 +420,8 @@ int ft2232_send_and_recv(jtag_command_t *first, jtag_command_t *last)
 					scan_size = jtag_scan_size(cmd->cmd.scan);
 					buffer = calloc(CEIL(scan_size, 8), 1);
 					ft2232_read_scan(type, buffer, scan_size);
-					jtag_read_buffer(buffer, cmd->cmd.scan);
+					if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
+						retval = ERROR_JTAG_QUEUE_FAILED;
 					free(buffer);
 				}
 				break;
@@ -427,7 +433,7 @@ int ft2232_send_and_recv(jtag_command_t *first, jtag_command_t *last)
 	
 	ft2232_buffer_size = 0;
 
-	return ERROR_OK;
+	return retval;
 }
 
 void ft2232_add_pathmove(pathmove_command_t *cmd)
@@ -1039,6 +1045,12 @@ int ft2232_execute_queue()
 	int i;
 	int predicted_size = 0;
 	int require_send = 0;
+	int retval;
+	
+	/* return ERROR_OK, unless ft2232_send_and_recv reports a failed check
+	 * that wasn't handled by a caller-provided error handler
+	 */ 
+	retval = ERROR_OK;
 
 	ft2232_buffer_size = 0;
 	ft2232_expect_read = 0;
@@ -1060,7 +1072,8 @@ int ft2232_execute_queue()
 				predicted_size = 3;
 				if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
 				{
-					ft2232_send_and_recv(first_unsent, cmd);
+					if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
+						retval = ERROR_JTAG_QUEUE_FAILED;
 					require_send = 0;
 					first_unsent = cmd;
 				}
@@ -1084,7 +1097,8 @@ int ft2232_execute_queue()
 					predicted_size += 3;
 				if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
 				{
-					ft2232_send_and_recv(first_unsent, cmd);
+					if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
+						retval = ERROR_JTAG_QUEUE_FAILED;
 					require_send = 0;
 					first_unsent = cmd;
 				}
@@ -1135,7 +1149,8 @@ int ft2232_execute_queue()
 				predicted_size = 3;
 				if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
 				{
-					ft2232_send_and_recv(first_unsent, cmd);
+					if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
+						retval = ERROR_JTAG_QUEUE_FAILED;
 					require_send = 0;
 					first_unsent = cmd;
 				}
@@ -1159,7 +1174,8 @@ int ft2232_execute_queue()
 				predicted_size = 3 * CEIL(cmd->cmd.pathmove->num_states, 7);
 				if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
 				{
-					ft2232_send_and_recv(first_unsent, cmd);
+					if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
+						retval = ERROR_JTAG_QUEUE_FAILED;
 					require_send = 0;
 					first_unsent = cmd;
 				}
@@ -1178,7 +1194,8 @@ int ft2232_execute_queue()
 					DEBUG("oversized ft2232 scan (predicted_size > FT2232_BUFFER_SIZE)");
 					/* unsent commands before this */
 					if (first_unsent != cmd)
-						ft2232_send_and_recv(first_unsent, cmd);
+						if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
+							retval = ERROR_JTAG_QUEUE_FAILED;
 					
 					/* current command */
 					if (cmd->cmd.scan->end_state != -1)
@@ -1193,7 +1210,8 @@ int ft2232_execute_queue()
 				else if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
 				{
 					DEBUG("ft2232 buffer size reached, sending queued commands (first_unsent: %p, cmd: %p)", first_unsent, cmd);
-					ft2232_send_and_recv(first_unsent, cmd);
+					if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
+						retval = ERROR_JTAG_QUEUE_FAILED;
 					require_send = 0;
 					first_unsent = cmd;
 				}
@@ -1210,7 +1228,8 @@ int ft2232_execute_queue()
 #endif
 				break;
 			case JTAG_SLEEP:
-				ft2232_send_and_recv(first_unsent, cmd);
+				if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
+					retval = ERROR_JTAG_QUEUE_FAILED;
 				first_unsent = cmd->next;
 				jtag_sleep(cmd->cmd.sleep->us);
 #ifdef _DEBUG_JTAG_IO_				
@@ -1225,9 +1244,10 @@ int ft2232_execute_queue()
 	}
 
 	if (require_send > 0)
-		ft2232_send_and_recv(first_unsent, cmd);
+		if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
+			retval = ERROR_JTAG_QUEUE_FAILED;
 
-	return ERROR_OK;
+	return retval;
 }
 
 #if BUILD_FT2232_FTD2XX == 1

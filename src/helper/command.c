@@ -357,6 +357,10 @@ int command_run_line(command_context_t *context, char *line)
 	if (!*line)
 		return ERROR_OK;
 	
+	/* ignore comments */
+	if (*line && (line[0] == '#'))
+		return ERROR_OK;
+	
 	if (context->echo)
 	{
 		command_print(context, "%s", line);

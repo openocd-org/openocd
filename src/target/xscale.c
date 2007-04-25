@@ -210,7 +210,7 @@ int xscale_jtag_set_instr(int chain_pos, u32 new_instr)
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 		
-		jtag_add_ir_scan(1, &field, -1);
+		jtag_add_ir_scan(1, &field, -1, NULL);
 		
 		free(field.out_value);
 	}
@@ -288,7 +288,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -308,7 +308,7 @@ int xscale_read_dcsr(target_t *target)
 	
 	jtag_add_end_state(TAP_RTI);
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 	
 	return ERROR_OK;
 }
@@ -383,7 +383,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 			fields[1].in_handler_priv = (u8*)&field1[i];
 			
 			jtag_add_pathmove(3, path);
-			jtag_add_dr_scan(3, fields, TAP_RTI);
+			jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 			words_scheduled++;
 		}
 		
@@ -487,7 +487,7 @@ int xscale_read_tx(target_t *target, int consume)
 		else
 			jtag_add_statemove(TAP_PD);
 		
-		jtag_add_dr_scan(3, fields, TAP_RTI);
+		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 	
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
@@ -567,7 +567,7 @@ int xscale_write_rx(target_t *target)
 	do
 	{
 		DEBUG("polling RX");
-		jtag_add_dr_scan(3, fields, TAP_RTI);
+		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 	
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
@@ -585,7 +585,7 @@ int xscale_write_rx(target_t *target)
 	
 	/* set rx_valid */
 	field2 = 0x1;
-	jtag_add_dr_scan(3, fields, TAP_RTI);
+	jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -671,7 +671,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 				exit(-1); 
 		}
 
-		jtag_add_dr_scan(3, fields, TAP_RTI);
+		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 		buffer += size;
 	}
 	
@@ -750,7 +750,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -822,7 +822,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(2, fields, -1);
+	jtag_add_dr_scan(2, fields, -1, NULL);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = packet;
@@ -834,7 +834,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	{
 		buf_set_u32(packet, 0, 32, buffer[word]);
 		cmd = parity(*((u32*)packet));
-		jtag_add_dr_scan(2, fields, -1);
+		jtag_add_dr_scan(2, fields, -1, NULL);
 	}
 	
 	jtag_execute_queue();
@@ -880,7 +880,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(2, fields, -1);
+	jtag_add_dr_scan(2, fields, -1, NULL);
 	
 	return ERROR_OK;
 }

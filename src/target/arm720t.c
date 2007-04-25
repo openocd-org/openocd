@@ -97,7 +97,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	
 	jtag_add_end_state(TAP_PD);
 	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 		
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 1;
@@ -126,7 +126,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 	
-	jtag_add_dr_scan(2, fields, -1);
+	jtag_add_dr_scan(2, fields, -1, NULL);
 
 	if (clock)
 		jtag_add_runtest(0, -1);

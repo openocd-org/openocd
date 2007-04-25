@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if 0
+#if 1
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
@@ -91,6 +91,22 @@ target_type_t arm926ejs_target =
 	.quit = arm926ejs_quit
 };
 
+int arm926ejs_catch_broken_irscan(u8 *in_value, void *priv)
+{
+	/* The ARM926EJ-S' instruction register is 4 bits wide */
+	*in_value &= 0xf;
+	
+	if ((*in_value == 0x0f) || (*in_value == 0x00))
+	{
+		DEBUG("caught ARM926EJ-S invalid Capture-IR result after CP15 access");
+		return ERROR_OK;
+	}
+	else
+	{
+		return ERROR_JTAG_QUEUE_FAILED;
+	}
+}
+
 int arm926ejs_read_cp15(target_t *target, u32 address, u32 *value)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -100,12 +116,13 @@ int arm926ejs_read_cp15(target_t *target, u32 address, u32 *value)
 	u8 address_buf[2];
 	u8 nr_w_buf = 0;
 	u8 access = 1;
+	error_handler_t error_handler;
 	
 	buf_set_u32(address_buf, 0, 14, address);
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -147,23 +164,28 @@ int arm926ejs_read_cp15(target_t *target, u32 address, u32 *value)
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, -1, NULL);
 
-	/* rescan with NOP, to wait for the access to complete */
-	access = 0;
-	
 	fields[0].in_handler_priv = value;
 	fields[0].in_handler = arm_jtag_buf_to_u32;
 	
 	do
 	{
-		jtag_add_dr_scan(4, fields, -1);
+		/* rescan with NOP, to wait for the access to complete */
+		access = 0;
+		nr_w_buf = 0;
+		jtag_add_dr_scan(4, fields, -1, NULL);
 		jtag_execute_queue();
 	} while (buf_get_u32(&access, 0, 1) != 1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	DEBUG("addr: 0x%x value: %8.8x", address, *value);
 #endif
+
+	error_handler.error_handler = arm926ejs_catch_broken_irscan;
+	error_handler.error_handler_priv = NULL;
+	
+	arm_jtag_set_instr(jtag_info, 0xc, &error_handler);
 
 	return ERROR_OK;
 }
@@ -178,13 +200,14 @@ int arm926ejs_write_cp15(target_t *target, u32 address, u32 value)
 	u8 address_buf[2];
 	u8 nr_w_buf = 1;
 	u8 access = 1;
+	error_handler_t error_handler;
 	
 	buf_set_u32(address_buf, 0, 14, address);
 	buf_set_u32(value_buf, 0, 32, value);
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -226,20 +249,25 @@ int arm926ejs_write_cp15(target_t *target, u32 address, u32 value)
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, -1, NULL);
 
-	/* rescan with NOP, to wait for the access to complete */
-	access = 0;
-	
 	do
 	{
-		jtag_add_dr_scan(4, fields, -1);
+		/* rescan with NOP, to wait for the access to complete */
+		access = 0;
+		nr_w_buf = 0;
+		jtag_add_dr_scan(4, fields, -1, NULL);
 		jtag_execute_queue();
 	} while (buf_get_u32(&access, 0, 1) != 1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	DEBUG("addr: 0x%x value: %8.8x", address, value);
 #endif
+
+	error_handler.error_handler = arm926ejs_catch_broken_irscan;
+	error_handler.error_handler_priv = NULL;
+	
+	arm_jtag_set_instr(jtag_info, 0xf, &error_handler);
 
 	return ERROR_OK;
 }
@@ -395,7 +423,7 @@ void arm926ejs_post_debug_entry(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
-	
+
 	/* examine cp15 control reg */
 	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 1, 0), &arm926ejs->cp15_control_reg);
 	jtag_execute_queue();
@@ -430,7 +458,6 @@ void arm926ejs_post_debug_entry(target_t *target)
 	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(7, 0, 15, 0), &cache_dbg_ctrl);
 	cache_dbg_ctrl |= 0x7;
 	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(7, 0, 15, 0), cache_dbg_ctrl);
-
 }
 
 void arm926ejs_pre_restore_context(target_t *target)
@@ -439,7 +466,7 @@ void arm926ejs_pre_restore_context(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
-	
+
 	/* restore i/d fault status and address register */
 	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 5, 0), arm926ejs->d_fsr);
 	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 1, 5, 0), arm926ejs->i_fsr);
@@ -640,6 +667,11 @@ int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, in
 	arm926ejs->armv4_5_mmu.mmu_enabled = 0;
 	
 	arm7_9->examine_debug_reason = arm926ejs_examine_debug_reason;
+	
+	/* The ARM926EJ-S implements the ARMv5TE architecture which
+	 * has the BKPT instruction, so we don't have to use a watchpoint comparator
+	 */
+	arm7_9->sw_bkpts_enabled = 1;
 	
 	return ERROR_OK;
 }

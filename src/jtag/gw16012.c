@@ -360,6 +360,12 @@ int gw16012_execute_queue(void)
 	int scan_size;
 	enum scan_type type;
 	u8 *buffer;
+	int retval;
+	
+	/* return ERROR_OK, unless a jtag_read_buffer returns a failed check
+	 * that wasn't handled by a caller-provided error handler
+	 */ 
+	retval = ERROR_OK;
 		
 	while (cmd)
 	{
@@ -415,7 +421,7 @@ int gw16012_execute_queue(void)
 #endif
 				gw16012_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
 				if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
-					return ERROR_JTAG_QUEUE_FAILED;
+					retval = ERROR_JTAG_QUEUE_FAILED;
 				if (buffer)
 					free(buffer);
 				break;
@@ -432,7 +438,7 @@ int gw16012_execute_queue(void)
 		cmd = cmd->next;
 	}
 	
-	return ERROR_OK;
+	return retval;
 }
 
 #if PARPORT_USE_GIVEIO == 1

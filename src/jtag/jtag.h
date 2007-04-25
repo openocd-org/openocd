@@ -61,6 +61,12 @@ extern enum tap_state cur_state;		/* current TAP state */
 
 #define TAP_MOVE(from, to) tap_move[tap_move_map[from]][tap_move_map[to]]
 
+typedef struct error_handler_s
+{
+	int (*error_handler)(u8 *in_value, void *priv);	/* handle failed checks */
+	void *error_handler_priv;	/* additional information for the check_handler */
+} error_handler_t;
+
 typedef struct scan_field_s
 {
 	int device;			/* ordinal device number this instruction refers to */
@@ -86,6 +92,7 @@ typedef struct scan_command_s
 	int num_fields;		/* number of fields in *fields array */
 	scan_field_t *fields;	/* pointer to an array of data scan fields */
 	enum tap_state end_state;	/* TAP state in which JTAG commands should finish */
+	error_handler_t *error_handler;
 } scan_command_t;
 
 typedef struct statemove_command_s
@@ -239,10 +246,10 @@ extern int jtag_init(struct command_context_s *cmd_ctx);
 extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
 /* JTAG interface */
-extern int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
-extern int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
-extern int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
-extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
+extern int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
+extern int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
+extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
 extern int jtag_add_statemove(enum tap_state endstate);
 extern int jtag_add_pathmove(int num_states, enum tap_state *path);
 extern int jtag_add_runtest(int num_cycles, enum tap_state endstate);

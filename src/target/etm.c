@@ -64,8 +64,8 @@ int etm_reg_arch_info[] =
 
 int etm_reg_arch_size_info[] =
 {
-	32, 32, 17, 8, 3, 9, 32, 17,
-	26, 16, 25, 8, 17, 32, 32, 17,
+	32, 32, 17, 8, 3, 9, 32, 16,
+	17, 26, 25, 8, 17, 32, 32, 17,
 	32, 32, 32, 32, 32, 32, 32, 32, 
 	32, 32, 32, 32, 32, 32, 32, 32, 
 	7, 7, 7, 7, 7, 7, 7, 7, 
@@ -271,7 +271,7 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(etm_reg->jtag_info, 0x6);
-	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr);
+	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL);
 	
 	fields[0].device = etm_reg->jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -305,13 +305,13 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 	
 	fields[0].in_value = reg->value;
 	fields[0].in_check_value = check_value;
 	fields[0].in_check_mask = check_mask;
 		
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);
@@ -361,7 +361,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(etm_reg->jtag_info, 0x6);
-	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr);
+	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL);
 	
 	fields[0].device = etm_reg->jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -396,7 +396,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 	
 	free(fields[0].out_value);
 	free(fields[1].out_value);

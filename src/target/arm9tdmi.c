@@ -98,6 +98,15 @@ arm9tdmi_vector_t arm9tdmi_vectors[] =
 	{0, 0},
 };
 
+int arm9tdmi_jtag_error_handler(u8 *in_value, void *priv)
+{
+	char *caller = priv;
+	
+	DEBUG("caller: %s", caller);
+	
+	return ERROR_OK;
+}
+
 int arm9tdmi_examine_debug_reason(target_t *target)
 {
 	/* get pointers to arch-specific information */
@@ -108,6 +117,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 			&& (target->debug_reason != DBG_REASON_SINGLESTEP))
 	{
+		error_handler_t error_handler;
 		scan_field_t fields[3];
 		u8 databus[4];
 		u8 instructionbus[4];
@@ -146,9 +156,11 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		fields[2].in_handler_priv = NULL;
 		
 		arm_jtag_scann(&arm7_9->jtag_info, 0x1);
-		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr);
+		error_handler.error_handler = arm9tdmi_jtag_error_handler;
+		error_handler.error_handler_priv = "arm9tdmi_examine_debug_reason";
+		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, &error_handler);
 
-		jtag_add_dr_scan(3, fields, TAP_PD);
+		jtag_add_dr_scan(3, fields, TAP_PD, NULL);
 		jtag_execute_queue();
 		
 		fields[0].in_value = NULL;
@@ -158,7 +170,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		fields[2].in_value = NULL;
 		fields[2].out_value = instructionbus;
 		
-		jtag_add_dr_scan(3, fields, TAP_PD);
+		jtag_add_dr_scan(3, fields, TAP_PD, NULL);
 
 		if (debug_reason & 0x4)
 			if (debug_reason & 0x2)
@@ -175,6 +187,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 /* put an instruction in the ARM9TDMI pipeline or write the data bus, and optionally read data */
 int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int sysspeed)
 {
+	error_handler_t error_handler;
 	scan_field_t fields[3];
 	u8 out_buf[4];
 	u8 instr_buf[4];
@@ -190,7 +203,11 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 	
 	jtag_add_end_state(TAP_PD);
 	arm_jtag_scann(jtag_info, 0x1);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	
+	error_handler.error_handler = arm9tdmi_jtag_error_handler;
+	error_handler.error_handler_priv = "arm9tdmi_clock_out";
+	
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, &error_handler);
 		
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -230,7 +247,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	jtag_add_runtest(0, -1);
 	
@@ -254,10 +271,15 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 {
 	scan_field_t fields[3];
+	error_handler_t error_handler;
 
 	jtag_add_end_state(TAP_PD);
 	arm_jtag_scann(jtag_info, 0x1);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	
+	error_handler.error_handler = arm9tdmi_jtag_error_handler;
+	error_handler.error_handler_priv = "arm9tdmi_clock_data_in_endianness";
+	
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, &error_handler);
 		
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -289,7 +311,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	jtag_add_runtest(0, -1);
 	
@@ -318,10 +340,15 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be)
 {
 	scan_field_t fields[3];
-
+	error_handler_t error_handler;
+	
 	jtag_add_end_state(TAP_PD);
 	arm_jtag_scann(jtag_info, 0x1);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr);
+	
+	error_handler.error_handler = arm9tdmi_jtag_error_handler;
+	error_handler.error_handler_priv = "arm9tdmi_clock_data_in_endianness";
+	
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, &error_handler);
 		
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -364,7 +391,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	jtag_add_runtest(0, -1);
 	

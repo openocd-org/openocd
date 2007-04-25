@@ -55,7 +55,6 @@ int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, ch
 int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_etm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_etb_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int arm7_9_reinit_embeddedice(target_t *target)
 {
@@ -545,7 +544,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 				
 	/* set RESTART instruction */
 	jtag_add_end_state(TAP_RTI);
-	arm_jtag_set_instr(jtag_info, 0x4);
+	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 	
 	for (timeout=0; timeout<50; timeout++)
 	{
@@ -578,7 +577,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 				
 	/* set RESTART instruction */
 	jtag_add_end_state(TAP_RTI);
-	arm_jtag_set_instr(jtag_info, 0x4);
+	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 	
 	/* check for DBGACK and SYSCOMP set (others don't care) */
 	buf_set_u32(check_value, 0, 32, 0x9);
@@ -1308,7 +1307,7 @@ int arm7_9_restart_core(struct target_s *target)
 	
 	/* set RESTART instruction */
 	jtag_add_end_state(TAP_RTI);
-	arm_jtag_set_instr(jtag_info, 0x4);
+	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 	
 	jtag_add_runtest(1, TAP_RTI);
 	if ((jtag_execute_queue()) != ERROR_OK)
@@ -2098,7 +2097,6 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 	arm7_9_cmd = register_command(cmd_ctx, NULL, "arm7_9", NULL, COMMAND_ANY, "arm7/9 specific commands");
 
 	register_command(cmd_ctx, arm7_9_cmd, "etm", handle_arm7_9_etm_command, COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, arm7_9_cmd, "etb", handle_arm7_9_etb_command, COMMAND_CONFIG, NULL);
 	
 	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr", handle_arm7_9_write_xpsr_command, COMMAND_EXEC, "write program status register <value> <not cpsr|spsr>");
 	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr_im8", handle_arm7_9_write_xpsr_im8_command, COMMAND_EXEC, "write program status register <8bit immediate> <rotate> <not cpsr|spsr>");
@@ -2117,6 +2115,7 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_ANY, "use DCC downloads for larger memory writes <enable|disable>");
 
 	armv4_5_register_commands(cmd_ctx);
+	etb_register_commands(cmd_ctx, arm7_9_cmd);
 	
 	return ERROR_OK;
 }

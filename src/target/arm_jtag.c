@@ -29,7 +29,18 @@
 
 #include <stdlib.h>
 
-int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr)
+#if 0
+#define _ARM_JTAG_SCAN_N_CHECK_
+#endif
+
+int arm_jtag_set_instr_error_handler(u8 *in_value, void *priv)
+{
+	ERROR("setting the new JTAG instruction failed, debugging is likely to be broken");
+	
+	return ERROR_OK;
+}
+
+int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr, error_handler_t *caller_error_handler)
 {
 	jtag_device_t *device = jtag_get_device(jtag_info->chain_pos);
 	
@@ -48,7 +59,18 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr)
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 		
-		jtag_add_ir_scan(1, &field, -1);
+		if (caller_error_handler)
+		{
+			jtag_add_ir_scan(1, &field, -1, caller_error_handler);
+		}
+		else
+		{
+			error_handler_t error_handler;
+			error_handler.error_handler = arm_jtag_set_instr_error_handler;
+			error_handler.error_handler_priv = NULL;
+			jtag_add_ir_scan(1, &field, -1, &error_handler);
+		}
+		
 		
 		free(field.out_value);
 	}
@@ -60,6 +82,9 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 {
 	if(jtag_info->cur_scan_chain != new_scan_chain)
 	{
+#ifdef _ARM_JTAG_SCAN_N_CHECK_
+		u8 scan_n_check_value = 0x10;
+#endif
 		scan_field_t field;
 		
 		field.device = jtag_info->chain_pos;
@@ -67,15 +92,18 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_scan_chain);
 		field.out_mask = NULL;
-		//field.in_value = &scan_n_capture;
 		field.in_value = NULL;
+#ifdef _ARM_JTAG_SCAN_N_CHECK_
+		field.in_check_value = &scan_n_check_value;
+#else
 		field.in_check_value = NULL;
+#endif 
 		field.in_check_mask = NULL;
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 		
-		arm_jtag_set_instr(jtag_info, jtag_info->scann_instr);
-		jtag_add_dr_scan(1, &field, -1);
+		arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL);
+		jtag_add_dr_scan(1, &field, -1, NULL);
 		
 		jtag_info->cur_scan_chain = new_scan_chain;
 		

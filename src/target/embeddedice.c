@@ -86,6 +86,15 @@ int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf);
 int embeddedice_write_reg(reg_t *reg, u32 value);
 int embeddedice_read_reg(reg_t *reg);
 
+int embeddedice_jtag_error_handler(u8 *in_value, void *priv)
+{
+	char *caller = priv;
+	
+	DEBUG("caller: %s", caller);
+	
+	return ERROR_OK;
+}
+
 reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
 {
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
@@ -214,12 +223,17 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	embeddedice_reg_t *ice_reg = reg->arch_info;
 	u8 reg_addr = ice_reg->addr & 0x1f;
 	scan_field_t fields[3];
+	error_handler_t error_handler;
 	
 	DEBUG("%i", ice_reg->addr);
 
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);
-	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr);
+	
+	error_handler.error_handler = embeddedice_jtag_error_handler;
+	error_handler.error_handler_priv = "embeddedice_read_reg_w_check";
+	
+	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, &error_handler);
 	
 	fields[0].device = ice_reg->jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -253,7 +267,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 	
 	fields[0].in_value = reg->value;
 	fields[0].in_check_value = check_value;
@@ -265,7 +279,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	 */
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);
@@ -310,12 +324,17 @@ int embeddedice_write_reg(reg_t *reg, u32 value)
 	embeddedice_reg_t *ice_reg = reg->arch_info;
 	u8 reg_addr = ice_reg->addr & 0x1f;
 	scan_field_t fields[3];
+	error_handler_t error_handler;
 	
 	DEBUG("%i: 0x%8.8x", ice_reg->addr, value);
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);
-	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr);
+	
+	error_handler.error_handler = embeddedice_jtag_error_handler;
+	error_handler.error_handler_priv = "embeddedice_write_reg";
+	
+	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
 	
 	fields[0].device = ice_reg->jtag_info->chain_pos;
 	fields[0].num_bits = 32;
@@ -350,7 +369,7 @@ int embeddedice_write_reg(reg_t *reg, u32 value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 	
 	free(fields[0].out_value);
 	free(fields[1].out_value);

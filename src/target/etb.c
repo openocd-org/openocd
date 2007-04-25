@@ -21,6 +21,7 @@
 #include "config.h"
 #endif
 
+#include "arm7_9_common.h"
 #include "etb.h"
 
 #include "log.h"
@@ -54,6 +55,9 @@ int etb_set_reg_w_exec(reg_t *reg, u8 *buf);
 int etb_write_reg(reg_t *reg, u32 value);
 int etb_read_reg(reg_t *reg);
 
+int handle_arm7_9_etb_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_arm7_9_etb_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+
 int etb_set_instr(etb_t *etb, u32 new_instr)
 {
 	jtag_device_t *device = jtag_get_device(etb->chain_pos);
@@ -72,8 +76,8 @@ int etb_set_instr(etb_t *etb, u32 new_instr)
 		field.in_check_mask = NULL;
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
-		
-		jtag_add_ir_scan(1, &field, -1);
+				
+		jtag_add_ir_scan(1, &field, -1, NULL);
 		
 		free(field.out_value);
 	}
@@ -100,7 +104,7 @@ int etb_scann(etb_t *etb, u32 new_scan_chain)
 		
 		/* select INTEST instruction */
 		etb_set_instr(etb, 0x2);
-		jtag_add_dr_scan(1, &field, -1);
+		jtag_add_dr_scan(1, &field, -1, NULL);
 		
 		etb->cur_scan_chain = new_scan_chain;
 		
@@ -212,13 +216,17 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 	
+	/* read the identification register in the second run, to make sure we
+	 * don't read the ETB data register twice, skipping every second entry
+	 */
+	buf_set_u32(fields[1].out_value, 0, 7, 0x0);
 	fields[0].in_value = reg->value;
 	fields[0].in_check_value = check_value;
 	fields[0].in_check_mask = check_mask;
 		
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);
@@ -303,7 +311,7 @@ int etb_write_reg(reg_t *reg, u32 value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, -1, NULL);
 	
 	free(fields[0].out_value);
 	free(fields[1].out_value);
@@ -317,3 +325,57 @@ int etb_store_reg(reg_t *reg)
 	return etb_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
 }
 
+int etb_register_commands(struct command_context_s *cmd_ctx, command_t *arm7_9_cmd)
+{
+	register_command(cmd_ctx, arm7_9_cmd, "etb", handle_arm7_9_etb_command, COMMAND_CONFIG, NULL);
+
+	register_command(cmd_ctx, arm7_9_cmd, "etb_dump", handle_arm7_9_etb_dump_command, COMMAND_EXEC, "dump current ETB content");
+
+	return ERROR_OK;
+}
+
+int handle_arm7_9_etb_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	int retval;
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	int i;
+
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	if (!arm7_9->etb)
+	{
+		command_print(cmd_ctx, "no ETB configured for current target");
+		return ERROR_OK;
+	}
+	
+	if (!(arm7_9->etb->RAM_depth && arm7_9->etb->RAM_width))
+	{
+		/* identify ETB RAM depth and width */
+		etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_DEPTH]);
+		etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_WIDTH]);
+		jtag_execute_queue();
+	
+		arm7_9->etb->RAM_depth = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_DEPTH].value, 0, 32);
+		arm7_9->etb->RAM_width = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_WIDTH].value, 0, 32);
+	}
+	
+	/* always start reading from the beginning of the buffer */
+	etb_write_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_READ_POINTER], 0x0);
+	for (i = 0; i < arm7_9->etb->RAM_depth; i++)
+	{
+		u32 trace_data;
+		etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_DATA]);
+		jtag_execute_queue();
+		trace_data = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_DATA].value, 0, 32);
+		command_print(cmd_ctx, "%8.8i: %i %2.2x %2.2x %2.2x (0x%8.8x)",
+			i, (trace_data >> 19) & 1, (trace_data >> 11) & 0xff, (trace_data >> 3) & 0xff, trace_data & 0x7, trace_data);
+	}
+	
+	return ERROR_OK;
+}
