@@ -947,8 +947,8 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int c
 	arm7_9->post_restore_context = NULL;
 
 	/* initialize arch-specific breakpoint handling */
-	buf_set_u32((u8*)(&arm7_9->arm_bkpt), 0, 32, 0xdeeedeee);
-	buf_set_u32((u8*)(&arm7_9->thumb_bkpt), 0, 16, 0xdeee);
+	arm7_9->arm_bkpt = 0xdeeedeee;
+	arm7_9->thumb_bkpt = 0xdeee;
 	
 	arm7_9->sw_bkpts_use_wp = 1;
 	arm7_9->sw_bkpts_enabled = 0;

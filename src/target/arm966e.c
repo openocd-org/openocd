@@ -171,11 +171,21 @@ int arm966e_quit(void)
 int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, int chain_pos, char *variant)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
+	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
 	
 	arm9tdmi_init_arch_info(target, arm9tdmi, chain_pos, variant);
 
 	arm9tdmi->arch_info = arm966e;
 	arm966e->common_magic = ARM966E_COMMON_MAGIC;
+	
+	/* The ARM966E-S implements the ARMv5TE architecture which
+	 * has the BKPT instruction, so we don't have to use a watchpoint comparator
+	 */
+	arm7_9->arm_bkpt = ARMV5_BKPT(0x0);
+	arm7_9->thumb_bkpt = ARMV5_T_BKPT(0x0) & 0xffff;
+	
+	arm7_9->sw_bkpts_use_wp = 0;
+	arm7_9->sw_bkpts_enabled = 1;
 	
 	return ERROR_OK;
 }

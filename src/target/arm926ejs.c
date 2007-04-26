@@ -671,6 +671,10 @@ int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, in
 	/* The ARM926EJ-S implements the ARMv5TE architecture which
 	 * has the BKPT instruction, so we don't have to use a watchpoint comparator
 	 */
+	arm7_9->arm_bkpt = ARMV5_BKPT(0x0);
+	arm7_9->thumb_bkpt = ARMV5_T_BKPT(0x0) & 0xffff;
+	
+	arm7_9->sw_bkpts_use_wp = 0;
 	arm7_9->sw_bkpts_enabled = 1;
 	
 	return ERROR_OK;

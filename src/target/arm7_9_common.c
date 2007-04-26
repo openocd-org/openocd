@@ -187,15 +187,15 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			/* keep the original instruction in target endianness */
 			target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
-			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
+			/* write the breakpoint instruction in target endianness (arm7_9->arm_bkpt is host endian) */
 			target_write_u32(target, breakpoint->address, arm7_9->arm_bkpt);
 		}
 		else
 		{
 			/* keep the original instruction in target endianness */
 			target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
-			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
-			target_write_u32(target, breakpoint->address, arm7_9->thumb_bkpt);
+			/* write the breakpoint instruction in target endianness (arm7_9->thumb_bkpt is host endian) */
+			target_write_u16(target, breakpoint->address, arm7_9->thumb_bkpt);
 		}
 		breakpoint->set = 1;
 	}

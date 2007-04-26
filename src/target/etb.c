@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
+ *   Copyright (C) 2007 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -341,6 +341,8 @@ int handle_arm7_9_etb_dump_command(struct command_context_s *cmd_ctx, char *cmd,
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	int i;
+	int first_frame = 0;
+	int last_frame;
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
@@ -365,16 +367,29 @@ int handle_arm7_9_etb_dump_command(struct command_context_s *cmd_ctx, char *cmd,
 		arm7_9->etb->RAM_width = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_WIDTH].value, 0, 32);
 	}
 	
-	/* always start reading from the beginning of the buffer */
-	etb_write_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_READ_POINTER], 0x0);
-	for (i = 0; i < arm7_9->etb->RAM_depth; i++)
+	etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_STATUS]);
+	etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER]);
+	
+	/* check if we overflowed, and adjust first and last frame of the trace accordingly */
+	if (buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_STATUS].value, 1, 1))
+	{
+		first_frame = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value, 0, 32);
+		last_frame = first_frame - 1;
+	}
+	else
+	{
+		last_frame = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value, 0, 32) - 1;
+	}
+	
+	etb_write_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_READ_POINTER], first_frame);
+	for (i = first_frame; (i % arm7_9->etb->RAM_depth) != last_frame; i++)
 	{
 		u32 trace_data;
 		etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_DATA]);
 		jtag_execute_queue();
 		trace_data = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_DATA].value, 0, 32);
 		command_print(cmd_ctx, "%8.8i: %i %2.2x %2.2x %2.2x (0x%8.8x)",
-			i, (trace_data >> 19) & 1, (trace_data >> 11) & 0xff, (trace_data >> 3) & 0xff, trace_data & 0x7, trace_data);
+			i % 2048, (trace_data >> 19) & 1, (trace_data >> 11) & 0xff, (trace_data >> 3) & 0xff, trace_data & 0x7, trace_data);
 	}
 	
 	return ERROR_OK;
