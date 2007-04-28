@@ -97,6 +97,7 @@ int jtagkey_init(void);
 int olimex_jtag_init(void);
 int m5960_init(void);
 int turtle_init(void);
+int comstick_init(void);
 
 /* reset procedures for supported layouts */
 void usbjtag_reset(int trst, int srst);
@@ -104,6 +105,7 @@ void jtagkey_reset(int trst, int srst);
 void olimex_jtag_reset(int trst, int srst);
 void m5960_reset(int trst, int srst);
 void turtle_reset(int trst, int srst);
+void comstick_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
 void olimex_jtag_blink(void);
@@ -119,7 +121,8 @@ ft2232_layout_t ft2232_layouts[] =
 	{"evb_lm3s811", usbjtag_init, usbjtag_reset, NULL},
 	{"olimex-jtag", olimex_jtag_init, olimex_jtag_reset, olimex_jtag_blink},
 	{"m5960", m5960_init, m5960_reset, NULL},
-        {"turtelizer2", turtle_init, turtle_reset, turtle_jtag_blink},
+	{"turtelizer2", turtle_init, turtle_reset, turtle_jtag_blink},
+	{"comstick", comstick_init, comstick_reset, NULL},
 	{NULL, NULL, NULL},
 };
 
@@ -1012,27 +1015,55 @@ void m5960_reset(int trst, int srst)
     BUFFER_ADD = 0x80;
     BUFFER_ADD = low_output;
     BUFFER_ADD = low_direction;
-    DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
+    DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
 }
 
 void turtle_reset(int trst, int srst)
 {
-  trst = trst;
-  
+	trst = trst;
+	
 	if (srst == 1)
 	{
-  	low_output |= nSRST;
+		low_output |= nSRST;
 	}
 	else if (srst == 0)
 	{
 		low_output &= ~nSRST;
 	}
 	
-	/* command "set data bits high byte" */
+	/* command "set data bits low byte" */
 	BUFFER_ADD = 0x80;
 	BUFFER_ADD = low_output;
 	BUFFER_ADD = low_direction;
 	DEBUG("srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", srst, low_output, low_direction);
+}
+
+void comstick_reset(int trst, int srst)
+{
+	if (trst == 1)
+	{
+		cur_state = TAP_TLR;
+		high_output &= ~nTRST;
+	}
+	else if (trst == 0)
+	{
+		high_output |= nTRST;
+	}
+
+    if (srst == 1)
+    {
+        high_output &= ~nSRST;
+    }
+    else if (srst == 0)
+    {
+        high_output |= nSRST;
+    }
+	
+	/* command "set data bits high byte" */
+	BUFFER_ADD = 0x82;
+	BUFFER_ADD = high_output;
+	BUFFER_ADD = high_direction;
+	DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
 
 int ft2232_execute_queue()
@@ -1815,7 +1846,7 @@ int turtle_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	
-  nSRST = 0x40;
+	nSRST = 0x40;
   	
 	high_output = 0x00;
 	high_direction = 0x0C;
@@ -1829,6 +1860,49 @@ int turtle_init(void)
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
 	{
 		ERROR("couldn't initialize FT2232 with 'turtelizer2' layout"); 
+		return ERROR_JTAG_INIT_FAILED;
+	}
+	
+	return ERROR_OK;
+}
+
+int comstick_init(void)
+{
+	u8 buf[3];
+	u32 bytes_written;
+	
+	low_output = 0x08;
+	low_direction = 0x0b;
+	
+	/* initialize low byte for jtag */
+	buf[0] = 0x80; /* command "set data bits low byte" */
+	buf[1] = low_output; /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
+	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+	
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	{
+		ERROR("couldn't initialize FT2232 with 'comstick' layout"); 
+		return ERROR_JTAG_INIT_FAILED;
+	}
+	
+	nTRST = 0x01;
+	nTRSTnOE = 0x00; /* no output enable for nTRST */
+	nSRST = 0x02;
+	nSRSTnOE = 0x00; /* no output enable for nSRST */
+  	
+	high_output = 0x03;
+	high_direction = 0x03;
+	
+	/* initialize high port */
+	buf[0] = 0x82; /* command "set data bits high byte" */
+	buf[1] = high_output;
+	buf[2] = high_direction;
+	DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+	
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	{
+		ERROR("couldn't initialize FT2232 with 'comstick' layout"); 
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	
