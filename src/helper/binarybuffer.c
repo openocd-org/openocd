@@ -354,7 +354,12 @@ int str_to_buf(char* str, int str_len, u8 *buf, int buf_len, int radix)
 	}
 	
 	for (j = 0; j < CEIL(buf_len, 8); j++)
-		buf[j] = b256_buf[j];
+	{
+		if (j < b256_len)
+			buf[j] = b256_buf[j];
+		else
+			buf[j] = 0;
+	}
 
 	/* mask out bits that don't belong to the buffer */
 	if (buf_len % 8)

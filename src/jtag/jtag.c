@@ -1039,6 +1039,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 		{
 			int num_bits = cmd->fields[i].num_bits;
 			u8 *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
+			
 			#ifdef _DEBUG_JTAG_IO_
 				char *char_buf;
 
@@ -1217,7 +1218,7 @@ int jtag_examine_chain()
 	
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
 	{
-		buf_set_u32(idcode_buffer, 0, 32, 0x000000FF);
+		buf_set_u32(idcode_buffer, i * 32, 32, 0x000000FF);
 	}
 	
 	jtag_add_plain_dr_scan(1, &field, TAP_TLR, NULL);

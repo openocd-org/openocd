@@ -2496,6 +2496,8 @@ int handle_arm7_9_etb_command(struct command_context_s *cmd_ctx, char *cmd, char
 	arm7_9->etb->chain_pos = strtoul(args[1], NULL, 0);
 	arm7_9->etb->cur_scan_chain = -1;
 	arm7_9->etb->reg_cache = NULL;
+	arm7_9->etb->RAM_width = 0;
+	arm7_9->etb->RAM_depth = 0;
 
 	return ERROR_OK;
 }
