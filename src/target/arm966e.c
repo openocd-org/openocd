@@ -43,8 +43,6 @@
 int arm966e_register_commands(struct command_context_s *cmd_ctx);
 
 /* forward declarations */
-int arm966e_deassert_reset(target_t *target);
-int arm966e_assert_reset(target_t *target);
 int arm966e_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm966e_quit(void);
@@ -60,8 +58,8 @@ target_type_t arm966e_target =
 	.resume = arm7_9_resume,
 	.step = arm7_9_step,
 
-	.assert_reset = arm966e_assert_reset,
-	.deassert_reset = arm966e_deassert_reset,
+	.assert_reset = arm7_9_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
 	.soft_reset_halt = arm7_9_soft_reset_halt,
 	.prepare_reset_halt = arm7_9_prepare_reset_halt,
 
@@ -83,77 +81,6 @@ target_type_t arm966e_target =
 	.init_target = arm966e_init_target,
 	.quit = arm966e_quit,
 };
-
-int arm966e_assert_reset(target_t *target)
-{
-	int retval;
-	
-	DEBUG("target->state: %s", target_state_strings[target->state]);
-	
-	if (target->state == TARGET_HALTED || target->state == TARGET_UNKNOWN)
-	{
-		/* assert SRST and TRST */
-		/* system would get ouf sync if we didn't reset test-logic, too */
-		if ((retval = jtag_add_reset(1, 1)) != ERROR_OK)
-		{
-			if (retval == ERROR_JTAG_RESET_CANT_SRST)
-			{
-				WARNING("can't assert srst");
-				return retval;
-			}
-			else
-			{
-				ERROR("unknown error");
-				exit(-1);
-			}
-		}
-		jtag_add_sleep(5000);
-		if ((retval = jtag_add_reset(0, 1)) != ERROR_OK)
-		{
-			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
-			{
-				WARNING("srst resets test logic, too");
-				retval = jtag_add_reset(1, 1);
-			}
-		}
-	}
-	else
-	{
-		if ((retval = jtag_add_reset(0, 1)) != ERROR_OK)
-		{
-			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
-			{
-				WARNING("srst resets test logic, too");
-				retval = jtag_add_reset(1, 1);
-			}
-			
-			if (retval == ERROR_JTAG_RESET_CANT_SRST)
-			{
-				WARNING("can't assert srst");
-				return retval;
-			}
-			else if (retval != ERROR_OK)
-			{
-				ERROR("unknown error");
-				exit(-1);
-			}
-		}
-	}
-	
-	target->state = TARGET_RESET;
-	jtag_add_sleep(50000);
-	
-	armv4_5_invalidate_core_regs(target);
-	
-	return ERROR_OK;
-}
-
-int arm966e_deassert_reset(target_t *target)
-{
-	arm7_9_deassert_reset( target );
-	
-	return ERROR_OK;
-}
 
 int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
@@ -413,7 +340,7 @@ int arm966e_register_commands(struct command_context_s *cmd_ctx)
 	int retval;
 	command_t *arm966e_cmd;
 	
-	retval = arm7_9_register_commands(cmd_ctx);
+	retval = arm9tdmi_register_commands(cmd_ctx);
 	arm966e_cmd = register_command(cmd_ctx, NULL, "arm966e", NULL, COMMAND_ANY, "arm966e specific commands");
 	register_command(cmd_ctx, arm966e_cmd, "cp15", arm966e_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <num> [value]");
 	

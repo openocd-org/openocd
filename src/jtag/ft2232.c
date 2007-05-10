@@ -272,7 +272,7 @@ int ft2232_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-void ft2232_end_state(state)
+void ft2232_end_state(enum tap_state state)
 {
 	if (tap_move_map[state] != -1)
 		end_state = state;
