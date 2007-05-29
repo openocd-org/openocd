@@ -133,7 +133,7 @@ union arm_shifter_operand
 	} immediate;
 	struct {
 		u8 Rm;
-		u8 shift;
+		u8 shift; /* 0: LSL, 1: LSR, 2: ASR, 3: ROR, 4: RRX */
 		u8 shift_imm;
 	} immediate_shift;
 	struct {
@@ -164,7 +164,7 @@ typedef struct arm_load_store_instr_s
 		u32 offset;
 		struct {
 			u8 Rm;
-			u8 shift;
+			u8 shift; /* 0: LSL, 1: LSR, 2: ASR, 3: ROR, 4: RRX */
 			u8 shift_imm;
 		} reg;
 	} offset;
@@ -195,6 +195,7 @@ typedef struct arm_instruction_s
 } arm_instruction_t;
 
 extern int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction);
+extern int thumb_evaluate_opcode(u16 opcode, u32 address, arm_instruction_t *instruction);
 
 #define COND(opcode) (arm_condition_strings[(opcode & 0xf0000000)>>28])
 

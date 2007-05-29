@@ -23,7 +23,7 @@
 #include "register.h"
 #include "target.h"
 
-enum armv4_5_mode
+typedef enum armv4_5_mode
 {
 	ARMV4_5_MODE_USR = 16, 
 	ARMV4_5_MODE_FIQ = 17, 
@@ -33,16 +33,16 @@ enum armv4_5_mode
 	ARMV4_5_MODE_UND = 27,
 	ARMV4_5_MODE_SYS = 31,
 	ARMV4_5_MODE_ANY = -1
-};
+} armv4_5_mode_t;
 
 extern char* armv4_5_mode_strings[];
 
-enum armv4_5_state
+typedef enum armv4_5_state
 {
 	ARMV4_5_STATE_ARM,
 	ARMV4_5_STATE_THUMB,
 	ARMV4_5_STATE_JAZELLE,
-};
+} armv4_5_state_t;
 
 extern char* armv4_5_state_strings[];
 

@@ -25,7 +25,7 @@
 #include "breakpoints.h"
 #include "target.h"
 
-#include "etb.h"
+#include "etm.h"
 
 #define	ARM7_9_COMMON_MAGIC 0x0a790a79
 
@@ -35,7 +35,6 @@ typedef struct arm7_9_common_s
 	
 	arm_jtag_t jtag_info;
 	reg_cache_t *eice_cache;
-	reg_cache_t *etm_cache;
 	
 	u32 arm_bkpt;
 	u16 thumb_bkpt;
@@ -48,8 +47,8 @@ typedef struct arm7_9_common_s
 	int dbgreq_adjust_pc;
 	int use_dbgrq;
 	
-	int has_etm;
-	etb_t *etb;
+	etm_context_t *etm_ctx;
+	
 	int has_single_step;
 	int has_monitor_mode;
 	int has_vector_catch;

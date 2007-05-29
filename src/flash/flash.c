@@ -35,6 +35,7 @@
 #include <errno.h>
 
 #include <fileio.h>
+#include <image.h>
 
 /* command handlers */
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -493,9 +494,7 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	u8 *buffer;
 	u32 buf_cnt;
 
-	fileio_t file;
-	fileio_image_t image_info;
-	enum fileio_sec_type sec_type;
+	image_t image;
 	
 	duration_t duration;
 	char *duration_text;
@@ -511,7 +510,12 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	
 	duration_start_measure(&duration);
 	
-	fileio_identify_image_type(&sec_type, (argc == 4) ? args[3] : NULL);
+	identify_image_type(&image.type, (argc == 4) ? args[3] : NULL);
+
+	image.base_address_set = 1;
+	image.base_address = strtoul(args[1], NULL, 0);
+	
+	image.start_address_set = 0;
 	
 	offset = strtoul(args[2], NULL, 0);
 	p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
@@ -521,20 +525,16 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 	
-	image_info.base_address = strtoul(args[2], NULL, 0);
-	image_info.has_start_address = 0;
-
-	if (fileio_open(&file, args[1], FILEIO_READ, 
-		FILEIO_IMAGE, &image_info, sec_type) != ERROR_OK)
+	if (image_open(&image, args[1], FILEIO_READ) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "flash write error: %s", file.error_str);
+		command_print(cmd_ctx, "flash write error: %s", image.error_str);
 		return ERROR_OK;
 	}
 	
-	binary_size = file.size;
+	binary_size = image.size;
 	buffer = malloc(binary_size);
 
-	fileio_read(&file, binary_size, buffer, &buf_cnt);
+	image_read(&image, binary_size, buffer, &buf_cnt);
 	
 	if ((retval = p->driver->write(p, buffer, offset, buf_cnt)) != ERROR_OK)
 	{
@@ -571,12 +571,12 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	{
 		duration_stop_measure(&duration, &duration_text);
 		command_print(cmd_ctx, "wrote file %s to flash bank %i at offset 0x%8.8x in %s",
-			file.url, strtoul(args[0], NULL, 0), offset, duration_text);
+			args[1], strtoul(args[0], NULL, 0), offset, duration_text);
 		free(duration_text);
 	}
 	
 	free(buffer);
-	fileio_close(&file);
+	image_close(&image);
 	
 	return ERROR_OK;
 }

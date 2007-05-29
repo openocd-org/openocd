@@ -257,6 +257,11 @@ int pass_condition(u32 cpsr, u32 opcode)
 	return 0;
 }
 
+int thumb_pass_branch_condition(u32 cpsr, u16 opcode)
+{
+	return pass_condition(cpsr, (opcode & 0x0f00) << 20); 
+}
+
 /* simulate a single step (if possible)
  * if the dry_run_pc argument is provided, no state is changed,
  * but the new pc is stored in the variable pointed at by the argument
@@ -275,26 +280,43 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		target_read_u32(target, current_pc, &opcode);
 		arm_evaluate_opcode(opcode, current_pc, &instruction);
 		instruction_size = 4;
+		
+		/* check condition code (for all instructions) */
+		if (!pass_condition(buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32), opcode))
+		{
+			if (dry_run_pc)
+			{
+				*dry_run_pc = current_pc + instruction_size;
+			}
+			else
+			{
+				buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, current_pc + instruction_size);
+			}
+			
+			return ERROR_OK;
+		}
 	}
 	else
 	{
-		/* TODO: add support for Thumb instruction set */
+		target_read_u32(target, current_pc, &opcode);
+		arm_evaluate_opcode(opcode, current_pc, &instruction);
 		instruction_size = 2;
-	}
-	
-	/* check condition code */
-	if (!pass_condition(buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32), opcode))
-	{
-		if (dry_run_pc)
-		{
-			*dry_run_pc = current_pc + instruction_size;
-		}
-		else
-		{
-			buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, current_pc + instruction_size);
-		}
 		
-		return ERROR_OK;
+		/* check condition code (only for branch instructions) */
+		if ((!thumb_pass_branch_condition(buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32), opcode)) &&
+			(instruction.type == ARM_B))
+		{
+			if (dry_run_pc)
+			{
+				*dry_run_pc = current_pc + instruction_size;
+			}
+			else
+			{
+				buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, current_pc + instruction_size);
+			}
+			
+			return ERROR_OK;
+		}
 	}
 	
 	/* examine instruction type */

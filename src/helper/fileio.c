@@ -98,7 +98,7 @@ int fileio_open_local(fileio_t *fileio)
 		}
 	}
 	
-	if (fileio->pri_type == FILEIO_IMAGE)
+	if (fileio->type == FILEIO_BINARY)
 		strcat(access, "b");
 	
 	if (!(fileio_local->file = fopen(fileio->url, access)))
@@ -120,126 +120,7 @@ int fileio_open_local(fileio_t *fileio)
 	return ERROR_OK;
 }
 
-//#ifdef FILEIO_BUFFER_COMPLETE_IHEX
-int fileio_ihex_buffer_complete(fileio_t *fileio)
-{
-	fileio_image_t *image = fileio->pri_type_private;
-	fileio_ihex_t *ihex = fileio->sec_type_private;
-	u32 raw_bytes_read, raw_bytes;
-	int retval;
-	u32 full_address = image->base_address;
-	char *buffer = malloc(ihex->raw_size);
-	u32 cooked_bytes = 0x0;
-	
-	ihex->raw_size = fileio->size;
-	ihex->buffer = malloc(ihex->raw_size >> 1);
-	
-	if ((retval = fileio_dispatch_read(fileio, ihex->raw_size, (u8*)buffer, &raw_bytes_read)) != ERROR_OK)
-	{
-		free(buffer);
-		ERROR("failed buffering IHEX file, read failed");
-		return ERROR_FILEIO_OPERATION_FAILED;
-	}
-	
-	if (raw_bytes_read != ihex->raw_size)
-	{
-		free(buffer);
-		ERROR("failed buffering complete IHEX file, only partially read");
-		return ERROR_FILEIO_OPERATION_FAILED;
-	}
-	
-	raw_bytes = 0x0;
-	while (raw_bytes < raw_bytes_read)
-	{
-		u32 count;
-		u32 address;
-		u32 record_type;
-		u32 checksum;
-		
-		if (sscanf(&buffer[raw_bytes], ":%2x%4x%2x", &count, &address, &record_type) != 3)
-		{
-			snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "invalid IHEX record");
-			return ERROR_FILEIO_OPERATION_FAILED;
-		}
-		raw_bytes += 9;
-		
-		if (record_type == 0)
-		{
-			if ((full_address & 0xffff) != address)
-			{
-				free(buffer);
-				ERROR("can't handle non-linear IHEX file");
-				snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "can't handle non-linear IHEX file");
-				return ERROR_FILEIO_OPERATION_FAILED;
-			}
-			
-			while (count-- > 0)
-			{
-				sscanf(&buffer[raw_bytes], "%2hhx", &ihex->buffer[cooked_bytes]);
-				raw_bytes += 2;
-				cooked_bytes += 1;
-				full_address++;
-			}
-		}
-		else if (record_type == 1)
-		{
-			free(buffer);
-			fileio->size = cooked_bytes;
-			return ERROR_OK;
-		}
-		else if (record_type == 4)
-		{
-			u16 upper_address;
-			
-			sscanf(&buffer[raw_bytes], "%4hx", &upper_address);
-			raw_bytes += 4;
-			
-			if ((full_address >> 16) != upper_address)
-			{
-				free(buffer);
-				ERROR("can't handle non-linear IHEX file");
-				snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "can't handle non-linear IHEX file");
-				return ERROR_FILEIO_OPERATION_FAILED;
-			}
-		}
-		else if (record_type == 5)
-		{
-			u32 start_address;
-			
-			sscanf(&buffer[raw_bytes], "%8x", &start_address);
-			raw_bytes += 8;
-			
-			image->has_start_address = 1;
-			image->start_address = be_to_h_u32((u8*)&start_address);
-		}
-		else
-		{
-			free(buffer);
-			ERROR("unhandled IHEX record type: %i", record_type);
-			snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "unhandled IHEX record type: %i", record_type);
-			return ERROR_FILEIO_OPERATION_FAILED;
-		}
-		
-		sscanf(&buffer[raw_bytes], "%2x", &checksum);
-		raw_bytes += 2;
-		
-		/* consume new-line character(s) */
-		if ((buffer[raw_bytes] == '\n') || (buffer[raw_bytes] == '\r'))
-			raw_bytes++;
-
-		if ((buffer[raw_bytes] == '\n') || (buffer[raw_bytes] == '\r'))
-			raw_bytes++;
-	}
-
-	free(buffer);
-	ERROR("premature end of IHEX file, no end-of-file record found");
-	snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "premature end of IHEX file, no end-of-file record found");
-	return ERROR_FILEIO_OPERATION_FAILED;	
-}
-//#endif
-
-int fileio_open(fileio_t *fileio, char *url, enum fileio_access access,
-	enum fileio_pri_type pri_type, void *pri_info, enum fileio_sec_type sec_type)
+int fileio_open(fileio_t *fileio, char *url, enum fileio_access access,	enum fileio_type type)
 {
 	int retval = ERROR_OK;
 	char *resource_identifier = NULL;
@@ -261,9 +142,8 @@ int fileio_open(fileio_t *fileio, char *url, enum fileio_access access,
 		fileio->location = FILEIO_LOCAL;
 	}
 	
+	fileio->type = type;
 	fileio->access = access;
-	fileio->pri_type = pri_type;
-	fileio->sec_type = sec_type;
 	fileio->url = strdup(url);
 	
 	switch (fileio->location)
@@ -278,50 +158,6 @@ int fileio_open(fileio_t *fileio, char *url, enum fileio_access access,
 	
 	if (retval != ERROR_OK)
 		return retval;
-	
-	if (fileio->pri_type == FILEIO_TEXT)
-	{
-		/* do nothing for now */
-		return ERROR_OK;
-	}
-	else if (fileio->pri_type == FILEIO_IMAGE)
-	{
-		fileio_image_t *image = malloc(sizeof(fileio_image_t));
-		fileio_image_t *image_info = pri_info;
-		
-		fileio->pri_type_private = image;
-		*image = *image_info; 
-		
-		if (fileio->sec_type == FILEIO_PLAIN)
-		{
-			fileio->sec_type_private = NULL;
-		}
-		else if (fileio->sec_type == FILEIO_IHEX)
-		{
-			fileio_ihex_t *fileio_ihex;
-			
-			if (fileio->access != FILEIO_READ)
-			{
-				ERROR("can't write/append to a IHEX file");
-				snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "can't write/append to a IHEX file");
-				fileio_close(fileio);
-				return ERROR_FILEIO_OPERATION_FAILED;
-			}
-			
-			fileio_ihex = malloc(sizeof(fileio_ihex_t));
-			fileio->sec_type_private = fileio_ihex;
-			
-			fileio_ihex->position = 0;
-			fileio_ihex->raw_size = fileio->size;
-#ifdef FILEIO_BUFFER_COMPLETE_IHEX
-			if (fileio_ihex_buffer_complete(fileio) != ERROR_OK)
-			{
-				fileio_close(fileio);
-				return ERROR_FILEIO_OPERATION_FAILED;
-			}
-#endif
-		}
-	}
 	
 	return ERROR_OK;
 }
@@ -369,29 +205,6 @@ int fileio_close(fileio_t *fileio)
 	
 	free(fileio->url);
 	
-	if (fileio->pri_type == FILEIO_TEXT)
-	{
-		/* do nothing for now */
-	}
-	else if (fileio->pri_type == FILEIO_IMAGE)
-	{
-		if (fileio->sec_type == FILEIO_PLAIN)
-		{
-			/* nothing special to do for plain binary */
-		}
-		else if (fileio->sec_type == FILEIO_IHEX)
-		{
-			fileio_ihex_t *fileio_ihex = fileio->sec_type_private;
-	
-			if (fileio_ihex->buffer)
-				free(fileio_ihex->buffer);
-			
-			free(fileio->sec_type_private);
-		}
-		
-		free(fileio->pri_type_private);
-	}
-	
 	return ERROR_OK;
 }
 
@@ -432,7 +245,7 @@ int fileio_local_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
 	return ERROR_OK;
 }
 
-int fileio_dispatch_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
+int fileio_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
 {
 	switch (fileio->location)
 	{
@@ -445,38 +258,6 @@ int fileio_dispatch_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
 	}
 }
 
-int fileio_read_ihex(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
-{
-	fileio_ihex_t *fileio_ihex = fileio->sec_type_private;
-
-	if ((fileio_ihex->position + size) > fileio->size)
-	{
-		/* don't read past the end of the file */
-		size = (fileio->size - fileio_ihex->position);
-	}
-	
-#ifdef FILEIO_BUFFER_COMPLETE_IHEX
-	memcpy(buffer, fileio_ihex->buffer + fileio_ihex->position, size);
-	*size_read = size;
-#endif
-
-	return ERROR_OK;
-}
-
-int fileio_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
-{
-	if (fileio->sec_type == FILEIO_PLAIN)
-	{
-		return fileio_dispatch_read(fileio, size, buffer, size_read);
-	}
-	else if (fileio->sec_type == FILEIO_IHEX)
-	{
-		return fileio_read_ihex(fileio, size, buffer, size_read);
-	}
-	
-	return ERROR_OK;
-}
-
 int fileio_local_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
 {
 	fileio_local_t *fileio_local = fileio->location_private;
@@ -486,7 +267,7 @@ int fileio_local_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written
 	return ERROR_OK;
 }
 
-int fileio_dispatch_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
+int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
 {
 	switch (fileio->location)
 	{
@@ -495,51 +276,6 @@ int fileio_dispatch_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_writ
 			break;
 		default:
 			ERROR("BUG: should never get here");
-	}
-	
-	return ERROR_OK;
-}
-
-int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
-{
-	int retval = ERROR_FILEIO_OPERATION_NOT_SUPPORTED;
-	if (fileio->sec_type == FILEIO_PLAIN)
-	{
-		retval = fileio_dispatch_write(fileio, size, buffer, size_written);
-	}
-	else if (fileio->sec_type == FILEIO_IHEX)
-	{
-		return ERROR_FILEIO_OPERATION_NOT_SUPPORTED;
-	}
-	
-	if (retval != ERROR_OK)
-		return retval;
-		
-	fileio->size += size;
-	
-	return ERROR_OK;
-}
-
-int fileio_identify_image_type(enum fileio_sec_type *sec_type, char *type_string)
-{
-	if (type_string)
-	{
-		if (!strcmp(type_string, "bin"))
-		{
-			*sec_type = FILEIO_PLAIN;
-		}
-		else if (!strcmp(type_string, "ihex"))
-		{
-			*sec_type = FILEIO_IHEX;
-		}
-		else
-		{
-			return ERROR_FILEIO_RESOURCE_TYPE_UNKNOWN;
-		}
-	}
-	else
-	{
-		*sec_type = FILEIO_PLAIN;
 	}
 	
 	return ERROR_OK;

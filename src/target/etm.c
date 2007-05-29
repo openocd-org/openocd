@@ -21,7 +21,10 @@
 #include "config.h"
 #endif
 
+#include <string.h>
+
 #include "etm.h"
+#include "etb.h"
 
 #include "armv4_5.h"
 #include "arm7_9_common.h"
@@ -33,8 +36,13 @@
 #include "target.h"
 #include "register.h"
 #include "jtag.h"
+#include "fileio.h"
 
 #include <stdlib.h>
+
+/* ETM register access functionality 
+ * 
+ */
 
 bitfield_desc_t etm_comms_ctrl_bitfield_desc[] = 
 {
@@ -204,13 +212,16 @@ int etm_set_reg_w_exec(reg_t *reg, u8 *buf);
 int etm_write_reg(reg_t *reg, u32 value);
 int etm_read_reg(reg_t *reg);
 
-reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, int extra_reg)
+command_t *etm_cmd = NULL;
+
+reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_context_t *etm_ctx)
 {
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
 	etm_reg_t *arch_info = NULL;
 	int num_regs = sizeof(etm_reg_arch_info)/sizeof(int);
 	int i;
+	u32 etm_ctrl_value;
 	
 	/* register a register arch-type for etm registers only once */
 	if (etm_reg_arch_type == -1)
@@ -242,6 +253,44 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, int ex
 		arch_info[i].addr = etm_reg_arch_info[i];
 		arch_info[i].jtag_info = jtag_info;
 	}
+
+	/* initialize some ETM control register settings */	
+	etm_get_reg(&reg_list[ETM_CTRL]);
+	etm_ctrl_value = buf_get_u32(reg_list[ETM_CTRL].value, 0, reg_list[ETM_CTRL].size);
+	
+	/* clear the ETM powerdown bit (0) */
+	etm_ctrl_value &= ~0x1;
+		
+	/* configure port width (6:4), mode (17:16) and clocking (13) */
+	etm_ctrl_value = (etm_ctrl_value & 
+		~ETM_PORT_WIDTH_MASK & ~ETM_PORT_MODE_MASK & ~ETM_PORT_CLOCK_MASK)
+		| etm_ctx->portmode;
+	
+	buf_set_u32(reg_list[ETM_CTRL].value, 0, reg_list[ETM_CTRL].size, etm_ctrl_value);
+	etm_store_reg(&reg_list[ETM_CTRL]);
+	
+	/* the ETM might have an ETB connected */
+	if (strcmp(etm_ctx->capture_driver->name, "etb") == 0)
+	{
+		etb_t *etb = etm_ctx->capture_driver_priv;
+		
+		if (!etb)
+		{
+			ERROR("etb selected as etm capture driver, but no ETB configured");
+			return ERROR_OK;
+		}
+		
+		reg_cache->next = etb_build_reg_cache(etb);
+		
+		etb->reg_cache = reg_cache->next;
+		
+		if (etm_ctx->capture_driver->init(etm_ctx) != ERROR_OK)
+		{
+			ERROR("ETM capture driver initialization failed");
+			exit(-1);
+		}
+	}
+	
 	return reg_cache;
 }
 
@@ -410,3 +459,638 @@ int etm_store_reg(reg_t *reg)
 	return etm_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
 }
 
+/* ETM trace analysis functionality
+ * 
+ */
+extern etm_capture_driver_t etb_capture_driver;
+
+etm_capture_driver_t *etm_capture_drivers[] = 
+{
+	&etb_capture_driver,
+	NULL
+};
+
+char *etmv1v1_branch_reason_strings[] =
+{
+	"normal PC change",
+	"tracing enabled",
+	"trace restarted after overflow",
+	"exit from debug",
+	"periodic synchronization",
+	"reserved",
+	"reserved",
+	"reserved",
+};
+
+int etmv1_next_packet(etm_context_t *ctx, u8 *packet)
+{
+	
+	
+	return ERROR_OK;
+}
+
+int etmv1_analyse_trace(etm_context_t *ctx)
+{
+	ctx->pipe_index = 0;
+	ctx->data_index = 0;
+	
+	while (ctx->pipe_index < ctx->trace_depth)
+	{
+		switch (ctx->trace_data[ctx->pipe_index].pipestat)
+		{
+			case STAT_IE:
+			case STAT_ID:
+				break;
+			case STAT_IN:
+				DEBUG("IN");
+				break;
+			case STAT_WT:
+				DEBUG("WT");
+				break;
+			case STAT_BE:
+			case STAT_BD:
+				break;
+			case STAT_TD:
+				/* TODO: in cycle accurate trace, we have to count cycles */
+				DEBUG("TD");
+				break;
+		}
+	}
+	
+	return ERROR_OK;
+}
+
+int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	etmv1_tracemode_t tracemode;
+	
+	target = get_current_target(cmd_ctx);
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	if (!arm7_9->etm_ctx)
+	{
+		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		return ERROR_OK;
+	}
+	
+	tracemode = arm7_9->etm_ctx->tracemode;
+
+	if (argc == 3)
+	{
+		if (strcmp(args[0], "none") == 0)
+		{
+			tracemode = ETMV1_TRACE_NONE;
+		}
+		else if (strcmp(args[0], "data") == 0)
+		{
+			tracemode = ETMV1_TRACE_DATA;
+		}
+		else if (strcmp(args[0], "address") == 0)
+		{
+			tracemode = ETMV1_TRACE_ADDR;
+		}
+		else if (strcmp(args[0], "all") == 0)
+		{
+			tracemode = ETMV1_TRACE_DATA | ETMV1_TRACE_ADDR;
+		}
+		else
+		{
+			command_print(cmd_ctx, "invalid option '%s'", args[0]);
+			return ERROR_OK;
+		}
+		
+		switch (strtol(args[1], NULL, 0))
+		{
+			case 0:
+				tracemode |= ETMV1_CONTEXTID_NONE;
+				break;
+			case 8:
+				tracemode |= ETMV1_CONTEXTID_8;
+				break;
+			case 16:
+				tracemode |= ETMV1_CONTEXTID_16;
+				break;
+			case 32:
+				tracemode |= ETMV1_CONTEXTID_32;
+				break;
+			default:
+				command_print(cmd_ctx, "invalid option '%s'", args[1]);
+				return ERROR_OK;
+		}
+		
+		if (strcmp(args[2], "enable") == 0)
+		{
+			tracemode |= ETMV1_CYCLE_ACCURATE;
+		}
+		else if (strcmp(args[2], "disable") == 0)
+		{
+			tracemode |= 0;
+		}
+		else
+		{
+			command_print(cmd_ctx, "invalid option '%s'", args[2]);
+			return ERROR_OK;
+		}
+	}
+	else if (argc != 0)
+	{
+		command_print(cmd_ctx, "usage: configure trace mode <none|data|address|all> <context id bits> <enable|disable cycle accurate>");
+		return ERROR_OK;
+	}
+	
+	command_print(cmd_ctx, "current tracemode configuration:");
+	
+	switch (tracemode & ETMV1_TRACE_MASK)
+	{
+		case ETMV1_TRACE_NONE:
+			command_print(cmd_ctx, "data tracing: none");
+			break;
+		case ETMV1_TRACE_DATA:
+			command_print(cmd_ctx, "data tracing: data only");
+			break;
+		case ETMV1_TRACE_ADDR:
+			command_print(cmd_ctx, "data tracing: address only");
+			break;
+		case ETMV1_TRACE_DATA | ETMV1_TRACE_ADDR:
+			command_print(cmd_ctx, "data tracing: address and data");
+			break;
+	}
+	
+	switch (tracemode & ETMV1_CONTEXTID_MASK)
+	{
+		case ETMV1_CONTEXTID_NONE:
+			command_print(cmd_ctx, "contextid tracing: none");
+			break;
+		case ETMV1_CONTEXTID_8:
+			command_print(cmd_ctx, "contextid tracing: 8 bit");
+			break;
+		case ETMV1_CONTEXTID_16:
+			command_print(cmd_ctx, "contextid tracing: 16 bit");
+			break;
+		case ETMV1_CONTEXTID_32:
+			command_print(cmd_ctx, "contextid tracing: 32 bit");
+			break;
+	}
+	
+	if (tracemode & ETMV1_CYCLE_ACCURATE)
+	{
+		command_print(cmd_ctx, "cycle-accurate tracing enabled");
+	}
+	else
+	{
+		command_print(cmd_ctx, "cycle-accurate tracing disabled");
+	}
+	
+	/* only update ETM_CTRL register if tracemode changed */
+	if (arm7_9->etm_ctx->tracemode != tracemode)
+	{
+		reg_t *etm_ctrl_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CTRL];
+		
+		etm_get_reg(etm_ctrl_reg);
+		
+		buf_set_u32(etm_ctrl_reg->value, 2, 2, tracemode & ETMV1_TRACE_MASK);
+		buf_set_u32(etm_ctrl_reg->value, 14, 2, (tracemode & ETMV1_CONTEXTID_MASK) >> 4);
+		buf_set_u32(etm_ctrl_reg->value, 12, 1, (tracemode & ETMV1_CYCLE_ACCURATE) >> 8);
+		
+		etm_store_reg(etm_ctrl_reg);
+		
+		arm7_9->etm_ctx->tracemode = tracemode;
+		
+		/* invalidate old trace data */
+		arm7_9->etm_ctx->capture_status = TRACE_IDLE;
+		if (arm7_9->etm_ctx->trace_depth > 0)
+		{
+			free(arm7_9->etm_ctx->trace_data);
+		}
+		arm7_9->etm_ctx->trace_depth = 0;
+	}
+	
+	return ERROR_OK;
+}
+
+int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	etm_portmode_t portmode = 0x0;
+	etm_context_t *etm_ctx = malloc(sizeof(etm_context_t));
+	int i;
+	
+	if (argc != 5)
+	{
+		ERROR("incomplete 'etm config <target> <port_width> <port_mode> <clocking> <capture_driver>' command");
+		exit(-1);
+	}
+	
+	target = get_target_by_num(strtoul(args[0], NULL, 0));
+	
+	if (!target)
+	{
+		ERROR("target number '%s' not defined", args[0]);
+		exit(-1);
+	}
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	switch (strtoul(args[1], NULL, 0))
+	{
+		case 4:
+			portmode |= ETM_PORT_4BIT;
+			break;
+		case 8:
+			portmode |= ETM_PORT_8BIT;
+			break;
+		case 16:
+			portmode |= ETM_PORT_16BIT;
+			break;
+		default:
+			command_print(cmd_ctx, "unsupported ETM port width '%s', must be 4, 8 or 16", args[1]);
+			return ERROR_OK;
+	}
+	
+	if (strcmp("normal", args[2]) == 0)
+	{
+		portmode |= ETM_PORT_NORMAL;
+	}
+	else if (strcmp("multiplexed", args[2]) == 0)
+	{
+		portmode |= ETM_PORT_MUXED;
+	}
+	else if (strcmp("demultiplexed", args[2]) == 0)
+	{
+		portmode |= ETM_PORT_DEMUXED;
+	}
+	else
+	{
+		command_print(cmd_ctx, "unsupported ETM port mode '%s', must be 'normal', 'multiplexed' or 'demultiplexed'", args[2]);
+		return ERROR_OK;
+	}
+	
+	if (strcmp("half", args[3]) == 0)
+	{
+		portmode |= ETM_PORT_HALF_CLOCK;
+	}
+	else if (strcmp("full", args[3]) == 0)
+	{
+		portmode |= ETM_PORT_FULL_CLOCK;
+	}
+	else
+	{
+		command_print(cmd_ctx, "unsupported ETM port clocking '%s', must be 'full' or 'half'", args[3]);
+		return ERROR_OK;
+	}
+	
+	for (i=0; etm_capture_drivers[i]; i++)
+	{
+		if (strcmp(args[4], etm_capture_drivers[i]->name) == 0)
+		{
+			if (etm_capture_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
+			{
+				free(etm_ctx);
+				exit(-1);
+			}
+		
+			etm_ctx->capture_driver = etm_capture_drivers[i];
+
+			break;
+		}
+	}
+	
+	etm_ctx->trace_data = NULL;
+	etm_ctx->trace_depth = 0;
+	etm_ctx->portmode = portmode;
+	etm_ctx->tracemode = 0x0;
+	etm_ctx->core_state = ARMV4_5_STATE_ARM;
+	etm_ctx->pipe_index = 0;
+	etm_ctx->data_index = 0;
+	etm_ctx->current_pc = 0x0;
+	etm_ctx->pc_ok = 0;
+	etm_ctx->last_branch = 0x0;
+	etm_ctx->last_ptr = 0x0;
+	etm_ctx->context_id = 0x0;
+	
+	arm7_9->etm_ctx = etm_ctx;
+	
+	etm_register_user_commands(cmd_ctx);
+	
+	return ERROR_OK;
+}
+
+int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	trace_status_t trace_status;
+	
+	target = get_current_target(cmd_ctx);
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	if (!arm7_9->etm_ctx)
+	{
+		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		return ERROR_OK;
+	}
+	
+	trace_status = arm7_9->etm_ctx->capture_driver->status(arm7_9->etm_ctx);
+	
+	if (trace_status == TRACE_IDLE)
+	{
+		command_print(cmd_ctx, "tracing is idle");
+	}
+	else
+	{
+		static char *completed = " completed";
+		static char *running = " is running";
+		static char *overflowed = ", trace overflowed";
+		static char *triggered = ", trace triggered";
+		
+		command_print(cmd_ctx, "trace collection%s%s%s", 
+			(trace_status & TRACE_RUNNING) ? running : completed,
+			(trace_status & TRACE_OVERFLOWED) ? overflowed : "",
+			(trace_status & TRACE_TRIGGERED) ? triggered : "");
+		
+		if (arm7_9->etm_ctx->trace_depth > 0)
+		{
+			command_print(cmd_ctx, "%i frames of trace data read", arm7_9->etm_ctx->trace_depth);
+		}
+	}
+	
+	return ERROR_OK;
+}
+
+int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	fileio_t file;
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	etm_context_t *etm_ctx;
+	u32 size_written;
+	
+	if (argc != 1)
+	{
+		command_print(cmd_ctx, "usage: etm dump <file>");
+		return ERROR_OK;
+	}
+	
+	target = get_current_target(cmd_ctx);
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	if (!(etm_ctx = arm7_9->etm_ctx))
+	{
+		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		return ERROR_OK;
+	}
+	
+	if (etm_ctx->capture_driver->status == TRACE_IDLE)
+	{
+		command_print(cmd_ctx, "trace capture wasn't enabled, no trace data captured");
+		return ERROR_OK;
+	}
+
+	if (etm_ctx->capture_driver->status(etm_ctx) & TRACE_RUNNING)
+	{
+		/* TODO: if on-the-fly capture is to be supported, this needs to be changed */
+		command_print(cmd_ctx, "trace capture not completed");
+		return ERROR_OK;
+	}
+	
+	/* read the trace data if it wasn't read already */
+	if (etm_ctx->trace_depth == 0)
+		etm_ctx->capture_driver->read_trace(etm_ctx);
+	
+	if (fileio_open(&file, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "file open error: %s", file.error_str);
+		return ERROR_OK;
+	}
+	
+	//fileio_write(&file, etm_ctx->trace_depth * 4, (u8*)etm_ctx->trace_data, &size_written);
+	
+	fileio_close(&file);
+	
+	return ERROR_OK;	
+}
+
+int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	fileio_t file;
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	etm_context_t *etm_ctx;
+	u32 size_read;
+	
+	if (argc != 1)
+	{
+		command_print(cmd_ctx, "usage: etm load <file>");
+		return ERROR_OK;
+	}
+	
+	target = get_current_target(cmd_ctx);
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	if (!(etm_ctx = arm7_9->etm_ctx))
+	{
+		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		return ERROR_OK;
+	}
+	
+	if (etm_ctx->capture_driver->status(etm_ctx) & TRACE_RUNNING)
+	{
+		command_print(cmd_ctx, "trace capture running, stop first");
+		return ERROR_OK;
+	}
+	
+	if (fileio_open(&file, args[0], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "file open error: %s", file.error_str);
+		return ERROR_OK;
+	}
+	
+	if (file.size % 4)
+	{
+		command_print(cmd_ctx, "size isn't a multiple of 4, no valid trace data");
+		return ERROR_OK;
+	}
+	
+	if (etm_ctx->trace_depth > 0)
+	{
+		free(etm_ctx->trace_data);
+	}
+	
+	//fileio_read(&file, file.size, (u8*)etm_ctx->trace_data, &size_read);
+	etm_ctx->trace_depth = file.size / 4;
+	etm_ctx->capture_status = TRACE_COMPLETED;
+	
+	fileio_close(&file);
+	
+	return ERROR_OK;	
+}
+
+int handle_etm_start_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	etm_context_t *etm_ctx;
+	reg_t *etm_ctrl_reg;
+
+	target = get_current_target(cmd_ctx);
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	if (!(etm_ctx = arm7_9->etm_ctx))
+	{
+		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		return ERROR_OK;
+	}
+	
+	/* invalidate old tracing data */
+	arm7_9->etm_ctx->capture_status = TRACE_IDLE;
+	if (arm7_9->etm_ctx->trace_depth > 0)
+	{
+		free(arm7_9->etm_ctx->trace_data);
+	}
+	arm7_9->etm_ctx->trace_depth = 0;
+		
+	etm_ctrl_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CTRL];
+	etm_get_reg(etm_ctrl_reg);
+		
+	/* Clear programming bit (10), set port selection bit (11) */
+	buf_set_u32(etm_ctrl_reg->value, 10, 2, 0x2);
+
+	etm_store_reg(etm_ctrl_reg);
+	jtag_execute_queue();
+
+	etm_ctx->capture_driver->start_capture(etm_ctx);
+
+	return ERROR_OK;
+}
+
+int handle_etm_stop_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	etm_context_t *etm_ctx;
+	reg_t *etm_ctrl_reg;
+
+	target = get_current_target(cmd_ctx);
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	if (!(etm_ctx = arm7_9->etm_ctx))
+	{
+		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		return ERROR_OK;
+	}
+	
+	etm_ctrl_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CTRL];
+	etm_get_reg(etm_ctrl_reg);
+		
+	/* Set programming bit (10), clear port selection bit (11) */
+	buf_set_u32(etm_ctrl_reg->value, 10, 2, 0x1);
+
+	etm_store_reg(etm_ctrl_reg);	
+	jtag_execute_queue();
+	
+	etm_ctx->capture_driver->stop_capture(etm_ctx);
+	
+	return ERROR_OK;
+}
+
+int handle_etm_analyse_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	etm_context_t *etm_ctx;
+
+	target = get_current_target(cmd_ctx);
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	if (!(etm_ctx = arm7_9->etm_ctx))
+	{
+		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		return ERROR_OK;
+	}
+	
+	etmv1_analyse_trace(etm_ctx);
+	
+	return ERROR_OK;
+}
+
+int etm_register_commands(struct command_context_s *cmd_ctx)
+{
+	etm_cmd = register_command(cmd_ctx, NULL, "etm", NULL, COMMAND_ANY, "Embedded Trace Macrocell");
+
+	register_command(cmd_ctx, etm_cmd, "config", handle_etm_config_command, COMMAND_CONFIG, NULL);
+
+	return ERROR_OK;
+}
+
+int etm_register_user_commands(struct command_context_s *cmd_ctx)
+{
+	register_command(cmd_ctx, etm_cmd, "tracemode", handle_etm_tracemode_command,
+		COMMAND_EXEC, "configure trace mode <none|data|address|all> <context id bits> <enable|disable cycle accurate>");
+
+	register_command(cmd_ctx, etm_cmd, "status", handle_etm_status_command,
+		COMMAND_EXEC, "display current target's ETM status");
+	register_command(cmd_ctx, etm_cmd, "start", handle_etm_start_command,
+		COMMAND_EXEC, "start ETM trace collection");
+	register_command(cmd_ctx, etm_cmd, "stop", handle_etm_stop_command,
+		COMMAND_EXEC, "stop ETM trace collection");
+
+	register_command(cmd_ctx, etm_cmd, "analyze", handle_etm_stop_command,
+		COMMAND_EXEC, "anaylze collected ETM trace");
+
+	register_command(cmd_ctx, etm_cmd, "dump", handle_etm_dump_command,
+		COMMAND_EXEC, "dump captured trace data <file>");
+	register_command(cmd_ctx, etm_cmd, "load", handle_etm_load_command,
+		COMMAND_EXEC, "load trace data for analysis <file>");
+
+	return ERROR_OK;
+}

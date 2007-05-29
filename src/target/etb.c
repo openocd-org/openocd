@@ -21,8 +21,11 @@
 #include "config.h"
 #endif
 
+#include <string.h>
+
 #include "arm7_9_common.h"
 #include "etb.h"
+#include "etm.h"
 
 #include "log.h"
 #include "types.h"
@@ -55,16 +58,7 @@ int etb_set_reg_w_exec(reg_t *reg, u8 *buf);
 int etb_write_reg(reg_t *reg, u32 value);
 int etb_read_reg(reg_t *reg);
 
-int handle_arm7_9_etb_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_etb_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-char *etmv1_branch_reason_string[] =
-{
-	"normal pc change", "tracing enabled", "restart after FIFO overflow",
-	"exit from debug state", "peridoic synchronization point",
-	"reserved", "reserved", "reserved"
-};
-
+int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int etb_set_instr(etb_t *etb, u32 new_instr)
 {
@@ -176,6 +170,74 @@ int etb_get_reg(reg_t *reg)
 	{
 		ERROR("register read failed");
 	}
+	
+	return ERROR_OK;
+}
+
+int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
+{
+	scan_field_t fields[3];
+	int i;
+	
+	jtag_add_end_state(TAP_RTI);
+	etb_scann(etb, 0x0);
+	etb_set_instr(etb, 0xc);
+	
+	fields[0].device = etb->chain_pos;
+	fields[0].num_bits = 32;
+	fields[0].out_value = NULL;
+	fields[0].out_mask = NULL;
+	fields[0].in_value = NULL;
+	fields[0].in_check_value = NULL;
+	fields[0].in_check_mask = NULL;
+	fields[0].in_handler = NULL;
+	fields[0].in_handler_priv = NULL;
+	
+	fields[1].device = etb->chain_pos;
+	fields[1].num_bits = 7;
+	fields[1].out_value = malloc(1);
+	buf_set_u32(fields[1].out_value, 0, 7, 4);
+	fields[1].out_mask = NULL;
+	fields[1].in_value = NULL;
+	fields[1].in_check_value = NULL;
+	fields[1].in_check_mask = NULL;
+	fields[1].in_handler = NULL;
+	fields[1].in_handler_priv = NULL;
+
+	fields[2].device = etb->chain_pos;
+	fields[2].num_bits = 1;
+	fields[2].out_value = malloc(1);
+	buf_set_u32(fields[2].out_value, 0, 1, 0);
+	fields[2].out_mask = NULL;
+	fields[2].in_value = NULL;
+	fields[2].in_check_value = NULL;
+	fields[2].in_check_mask = NULL;
+	fields[2].in_handler = NULL;
+	fields[2].in_handler_priv = NULL;
+	
+	jtag_add_dr_scan(3, fields, -1, NULL);
+
+	fields[0].in_handler = buf_to_u32_handler;
+	
+	for (i = 0; i < num_frames; i++)
+	{
+		/* ensure nR/W reamins set to read */
+		buf_set_u32(fields[2].out_value, 0, 1, 0);
+		
+		/* address remains set to 0x4 (RAM data) until we read the last frame */
+		if (i < num_frames - 1)
+			buf_set_u32(fields[1].out_value, 0, 7, 4);
+		else
+			buf_set_u32(fields[1].out_value, 0, 7, 0);
+		
+		fields[0].in_handler_priv = &data[i];
+		jtag_add_dr_scan(3, fields, -1, NULL);
+	}
+	
+	jtag_execute_queue();
+	
+	free(fields[1].out_value);
+	free(fields[2].out_value);
 	
 	return ERROR_OK;
 }
@@ -333,293 +395,266 @@ int etb_store_reg(reg_t *reg)
 	return etb_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
 }
 
-int etb_register_commands(struct command_context_s *cmd_ctx, command_t *arm7_9_cmd)
+int etb_register_commands(struct command_context_s *cmd_ctx)
 {
-	register_command(cmd_ctx, arm7_9_cmd, "etb", handle_arm7_9_etb_command, COMMAND_CONFIG, NULL);
-
-	register_command(cmd_ctx, arm7_9_cmd, "etb_dump", handle_arm7_9_etb_dump_command, COMMAND_EXEC, "dump current ETB content");
+	command_t *etb_cmd;
+	
+	etb_cmd = register_command(cmd_ctx, NULL, "etb", NULL, COMMAND_ANY, "Embedded Trace Buffer");
+	
+	register_command(cmd_ctx, etb_cmd, "config", handle_etb_config_command, COMMAND_CONFIG, NULL);
 
 	return ERROR_OK;
 }
 
-#define PIPESTAT(x) ((x) & 0x7)
-#define TRACEPKT(x) (((x) & 0x7fff8) >> 3)
-#define TRACESYNC(x) (((x) & 0x80000) >> 19)
-
-int etmv1_next_packet(int trace_depth, u32 *trace_data, int frame, int *port_half, int apo, u8 *packet)
+int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	while (frame < trace_depth)
-	{
-		if (apo > 0)
-		{
-			if (TRACESYNC(trace_data[frame]))
-				apo--;
-		}
-		else
-		{
-			/* we're looking for a branch address, skip if TRACESYNC isn't set */
-			if ((apo == 0) && (!TRACESYNC(trace_data[frame])))
-			{
-				frame++;
-				continue;
-			}
-				
-			/* TRACEPKT is valid if this isn't a TD nor a TRIGGER cycle */
-			if (((PIPESTAT(trace_data[frame]) != 0x7) && (PIPESTAT(trace_data[frame]) != 0x6))
-				&& !((apo == 0) && (!TRACESYNC(trace_data[frame]))))
-			{
-				if (*port_half == 0)
-				{
-					*packet = TRACEPKT(trace_data[frame]) & 0xff;
-					*port_half = 1;
-				}
-				else
-				{
-					*packet = (TRACEPKT(trace_data[frame]) & 0xff00) >> 8;
-					*port_half = 0;
-					frame++;
-				}
-				return frame;
-			}
-		}
-		frame++;
-	}
-	
-	/* we reached the end of the trace without finding the packet we're looking for
-	 * tracing is finished
-	 */
-	return -1;
-}
-
-int handle_arm7_9_etb_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	int retval;
-	target_t *target = get_current_target(cmd_ctx);
+	target_t *target;
+	jtag_device_t *jtag_device;
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
-	int i, j, k;
-	int first_frame = 0;
-	int last_frame;
-	int addressbits_valid = 0;
-	u32 address = 0x0;
-	u32 *trace_data;
-	int port_half = 0;
-	int last_instruction = -1;
-	u8 branch_reason;
-	u8 packet;
-	char trace_output[256];
-	int trace_output_len;
-	u8 apo;
-
+	
+	if (argc != 2)
+	{
+		ERROR("incomplete 'etb config <target> <chain_pos>' command");
+		exit(-1);
+	}
+	
+	target = get_target_by_num(strtoul(args[0], NULL, 0));
+	
+	if (!target)
+	{
+		ERROR("target number '%s' not defined", args[0]);
+		exit(-1);
+	}
+	
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
 		return ERROR_OK;
 	}
 	
-	if (!arm7_9->etb)
+	jtag_device = jtag_get_device(strtoul(args[1], NULL, 0));
+	
+	if (!jtag_device)
 	{
-		command_print(cmd_ctx, "no ETB configured for current target");
-		return ERROR_OK;
+		ERROR("jtag device number '%s' not defined", args[1]);
+		exit(-1);
 	}
 	
-	if (!(arm7_9->etb->RAM_depth && arm7_9->etb->RAM_width))
+	if (arm7_9->etm_ctx)
 	{
-		/* identify ETB RAM depth and width */
-		etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_DEPTH]);
-		etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_WIDTH]);
-		jtag_execute_queue();
-	
-		arm7_9->etb->RAM_depth = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_DEPTH].value, 0, 32);
-		arm7_9->etb->RAM_width = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_WIDTH].value, 0, 32);
+		etb_t *etb = malloc(sizeof(etb_t));
+		
+		arm7_9->etm_ctx->capture_driver_priv = etb;
+		
+		etb->chain_pos = strtoul(args[1], NULL, 0);
+		etb->cur_scan_chain = -1;
+		etb->reg_cache = NULL;
+		etb->ram_width = 0;
+		etb->ram_depth = 0;
 	}
+	else
+	{
+		ERROR("target has no ETM defined, ETB left unconfigured");
+	}
+
+	return ERROR_OK;
+}
+
+int etb_init(etm_context_t *etm_ctx)
+{
+	etb_t *etb = etm_ctx->capture_driver_priv;
 	
-	trace_data = malloc(sizeof(u32) * arm7_9->etb->RAM_depth);
+	etb->etm_ctx = etm_ctx;
 	
-	etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_STATUS]);
-	etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER]);
+	/* identify ETB RAM depth and width */
+	etb_read_reg(&etb->reg_cache->reg_list[ETB_RAM_DEPTH]);
+	etb_read_reg(&etb->reg_cache->reg_list[ETB_RAM_WIDTH]);
 	jtag_execute_queue();
-	
-	/* check if we overflowed, and adjust first and last frame of the trace accordingly */
-	if (buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_STATUS].value, 1, 1))
-	{
-		first_frame = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value, 0, 32);
-	}
-	
-	last_frame = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value, 0, 32) - 1;
-	
-	etb_write_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_READ_POINTER], first_frame);
 
-	/* read trace data from ETB */
-	i = first_frame;
-	j = 0;
-	do {
-		etb_read_reg(&arm7_9->etb->reg_cache->reg_list[ETB_RAM_DATA]);
-		jtag_execute_queue();
-		trace_data[j++] = buf_get_u32(arm7_9->etb->reg_cache->reg_list[ETB_RAM_DATA].value, 0, 32);
-		i++;
-	} while ((i % arm7_9->etb->RAM_depth) != (first_frame % arm7_9->etb->RAM_depth));
-	
-	for (i = 0, j = 0; i < arm7_9->etb->RAM_depth; i++)
-	{
-		int trigger = 0;
-		
-		trace_output_len = 0;
-		
-		/* catch trigger, actual PIPESTAT is encoded in TRACEPKT[2:0] */
-		if (PIPESTAT(trace_data[i]) == 0x6)
-		{
-			trigger = 1;
-			trace_data[i] &= ~0x7;
-			trace_data[i] |= TRACEPKT(trace_data[i]) & 0x7;
-		}
-	
-		if (addressbits_valid == 32)
-		{
-			trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-				"%i: 0x%8.8x %s", i, address, (trigger) ? "(TRIGGER) " : "");
-		}
-		else if (addressbits_valid != 0)
-		{
-			trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-				"%i: 0x...%x %s", i, address, (trigger) ? "(TRIGGER) " : "");
-		}
-		else
-		{
-			trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-				"%i: 0xUNK %s", i, (trigger) ? "(TRIGGER) " : "");
-		}
-		
-		switch (PIPESTAT(trace_data[i]))
-		{
-			case 0x0:
-				trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-					"IE");
-				break;
-			case 0x1:
-				trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-					"ID");
-				break;
-			case 0x2:
-				/* Instruction exectued - TRACEPKT might be valid, but belongs to another cycle */
-				trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-					"IN");
-				break;
-			case 0x3:
-				/* WAIT cycle - TRACEPKT is valid, but belongs to another cycle */
-				trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-					"WT");
-				break;
-			case 0x4:
-				/* following a branch two APO cycles are output on PIPESTAT[1:0]
-				 * but another BE/BD could overwrite the current branch,
-				 * or a trigger could cause the APO to be output on TRACEPKT[1:0]
-				 */
-				if ((PIPESTAT(trace_data[i + 1]) == 0x4)
-					|| (PIPESTAT(trace_data[i + 1]) == 0x5))
-				{
-					/* another branch occured, we ignore this one */
-					j = (j < i + 1) ? i + 1 : j;
-					break;
-				}
-				else if (PIPESTAT(trace_data[i + 1]) == 0x6)
-				{
-					apo = TRACEPKT(trace_data[i + 1]) & 0x3;
-				}
-				else
-				{
-					apo = PIPESTAT(trace_data[i + 1]) & 0x3;
-				}
-
-				if ((PIPESTAT(trace_data[i + 2]) == 0x4)
-					|| (PIPESTAT(trace_data[i + 2]) == 0x5))
-				{
-					j = (j < i + 2) ? i + 1 : j;
-					i = i + 1;
-					break;
-				}
-				else if (PIPESTAT(trace_data[i + 2]) == 0x6)
-				{
-					apo |= (TRACEPKT(trace_data[i + 2]) & 0x3) << 2;
-				}
-				else
-				{
-					apo = (PIPESTAT(trace_data[i + 1]) & 0x3) << 2;
-				}
-				
-				branch_reason = -1;
-				k = 0;
-				do
-				{
-					if ((j = etmv1_next_packet(arm7_9->etb->RAM_depth, trace_data, j, &port_half, apo, &packet)) != -1)
-					{
-						address &= ~(0x7f << (k * 7));
-						address |= (packet & 0x7f) << (k * 7);
-					}
-					else
-					{
-						break;
-					}
-					k++;
-				} while ((k < 5) && (packet & 0x80));
-				
-				if (addressbits_valid < ((k * 7 > 32) ? 32 : k * 7))
-					addressbits_valid = (k * 7 > 32) ? 32 : k * 7;
-				
-				if (k == 5)
-				{
-					branch_reason = (packet & 0x7) >> 4;
-					trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-						"BE 0x%x (/%i) (%s)", address, addressbits_valid, etmv1_branch_reason_string[branch_reason]);
-				}
-				else
-				{
-					trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-						"BE 0x%x (/%i)", address, addressbits_valid);
-				}
-				
-				break;
-			case 0x5:
-				trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-					"BD");
-				break;
-			case 0x6:
-				/* We catch the trigger event before we get here */
-				ERROR("TR pipestat should have been caught earlier");
-				trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-					"--");
-				break;
-			case 0x7:
-				/* TRACE disabled - TRACEPKT = invalid */
-				trace_output_len += snprintf(trace_output + trace_output_len, 256 - trace_output_len,
-					"TD");
-				break;
-		}
-		
-		/* PIPESTAT other than WT (b011) and TD (b111) mean we executed an instruction */
-		if ((PIPESTAT(trace_data[i]) & 0x3) != 0x3)
-		{
-			last_instruction = i;
-			address += 4;
-		}
-
-		/* The group of packets for a particular instruction cannot start on or before any
-		 * previous functional PIPESTAT (IE, IN, ID, BE, or BD)
-		 */
-		if (j < last_instruction)
-		{
-			j = last_instruction + 1;
-		}
-
-		/* restore trigger PIPESTAT to ensure TRACEPKT is ignored */		
-		if (trigger == 1)
-		{
-			trace_data[i] &= ~0x7;
-			trace_data[i] |= 0x6;	
-		}
-		
-		command_print(cmd_ctx, "%s (raw: 0x%8.8x)", trace_output, trace_data[i]);
-	}
+	etb->ram_depth = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_DEPTH].value, 0, 32);
+	etb->ram_width = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_WIDTH].value, 0, 32);
 	
 	return ERROR_OK;
 }
+
+trace_status_t etb_status(etm_context_t *etm_ctx)
+{
+	etb_t *etb = etm_ctx->capture_driver_priv;
+	
+	etb->etm_ctx = etm_ctx;
+	
+	/* if tracing is currently idle, return this information */
+	if (etm_ctx->capture_status == TRACE_IDLE)
+	{
+		return etm_ctx->capture_status;
+	}
+	else if (etm_ctx->capture_status & TRACE_RUNNING)
+	{
+		reg_t *etb_status_reg = &etb->reg_cache->reg_list[ETB_STATUS];
+		int etb_timeout = 100;
+		
+		/* trace is running, check the ETB status flags */
+		etb_get_reg(etb_status_reg);
+	
+		/* check Full bit to identify an overflow */
+		if (buf_get_u32(etb_status_reg->value, 0, 1) == 1)
+			etm_ctx->capture_status |= TRACE_OVERFLOWED;
+
+		/* check Triggered bit to identify trigger condition */
+		if (buf_get_u32(etb_status_reg->value, 1, 1) == 1)
+			etm_ctx->capture_status |= TRACE_TRIGGERED;
+
+		/* check AcqComp to identify trace completion */
+		if (buf_get_u32(etb_status_reg->value, 2, 1) == 1)
+		{
+			while (etb_timeout-- && (buf_get_u32(etb_status_reg->value, 3, 1) == 0))
+			{
+				/* wait for data formatter idle */
+				etb_get_reg(etb_status_reg);
+			}
+			
+			if (etb_timeout == 0)
+			{
+				ERROR("AcqComp set but DFEmpty won't go high, ETB status: 0x%x",
+					buf_get_u32(etb_status_reg->value, 0, etb_status_reg->size));
+			}
+			
+			if (!(etm_ctx->capture_status && TRACE_TRIGGERED))
+			{
+				ERROR("trace completed, but no trigger condition detected");
+			}
+			
+			etm_ctx->capture_status &= ~TRACE_RUNNING;
+			etm_ctx->capture_status |= TRACE_COMPLETED;
+		}
+	}
+	
+	return etm_ctx->capture_status;
+}
+
+int etb_read_trace(etm_context_t *etm_ctx)
+{
+	etb_t *etb = etm_ctx->capture_driver_priv;
+	int first_frame = 0;
+	int num_frames = etb->ram_depth;
+	u32 *trace_data = NULL;
+	int i, j;
+	
+	etb_read_reg(&etb->reg_cache->reg_list[ETB_STATUS]);
+	etb_read_reg(&etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER]);
+	jtag_execute_queue();
+	
+	/* check if we overflowed, and adjust first frame of the trace accordingly
+	 * if we didn't overflow, read only up to the frame that would be written next,
+	 * i.e. don't read invalid entries
+	 */
+	if (buf_get_u32(etb->reg_cache->reg_list[ETB_STATUS].value, 0, 1))
+	{
+		first_frame = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value, 0, 32);
+	}
+	else
+	{
+		num_frames = buf_get_u32(etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER].value, 0, 32);
+	}
+	
+	etb_write_reg(&etb->reg_cache->reg_list[ETB_RAM_READ_POINTER], first_frame);
+
+	/* read data into temporary array for unpacking */	
+	trace_data = malloc(sizeof(u32) * num_frames);
+	etb_read_ram(etb, trace_data, num_frames);
+
+	if (etm_ctx->trace_depth > 0)
+	{
+		free(etm_ctx->trace_data);
+	}
+	
+	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
+		etm_ctx->trace_depth = num_frames * 2;
+	else
+		etm_ctx->trace_depth = num_frames;
+
+	etm_ctx->trace_data= malloc(sizeof(etmv1_trace_data_t) * etm_ctx->trace_depth);
+	
+	for (i = 0, j = 0; i < num_frames; i++)
+	{
+		if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
+		{
+			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
+			etm_ctx->trace_data[j].packet = (trace_data[i] & 0x7f8) >> 3;
+			etm_ctx->trace_data[j].tracesync = (trace_data[i] & 0x800) >> 11;
+
+			etm_ctx->trace_data[j+1].pipestat = (trace_data[i] & 0x7000) >> 12;
+			etm_ctx->trace_data[j+1].packet = (trace_data[i] & 0x7f8000) >> 15;
+			etm_ctx->trace_data[j+1].tracesync = (trace_data[i] & 0x800000) >> 23;
+			
+			j += 2;
+		}
+		else
+		{
+			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
+			etm_ctx->trace_data[j].packet = (trace_data[i] & 0x7fff8) >> 3;
+			etm_ctx->trace_data[j].tracesync = (trace_data[i] & 0x80000) >> 19;
+			
+			j += 1;
+		}
+	}
+	
+	free(trace_data);
+	
+	return ERROR_OK;
+}
+
+int etb_start_capture(etm_context_t *etm_ctx)
+{
+	etb_t *etb = etm_ctx->capture_driver_priv;
+	u32 etb_ctrl_value = 0x1;
+
+	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
+	{
+		if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_16BIT)
+		{
+			DEBUG("ETB can't run in demultiplexed mode with a 16-bit port");
+			return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
+		}
+		etb_ctrl_value |= 0x2;
+	}
+	
+	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_MUXED)
+		return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
+	
+	etb_write_reg(&etb->reg_cache->reg_list[ETB_TRIGGER_COUNTER], 0x600);
+	etb_write_reg(&etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER], 0x0);
+	etb_write_reg(&etb->reg_cache->reg_list[ETB_CTRL], etb_ctrl_value);
+	jtag_execute_queue();
+	
+	/* we're starting a new trace, initialize capture status */
+	etm_ctx->capture_status = TRACE_RUNNING;
+	
+	return ERROR_OK; 
+}
+
+int etb_stop_capture(etm_context_t *etm_ctx)
+{
+	etb_t *etb = etm_ctx->capture_driver_priv;
+	reg_t *etb_ctrl_reg = &etb->reg_cache->reg_list[ETB_CTRL];
+
+	etb_write_reg(etb_ctrl_reg, 0x0);
+	jtag_execute_queue();
+	
+	/* trace stopped, just clear running flag, but preserve others */ 
+	etm_ctx->capture_status &= ~TRACE_RUNNING;
+	
+	return ERROR_OK;
+}
+
+etm_capture_driver_t etb_capture_driver =
+{
+	.name = "etb",
+	.register_commands = etb_register_commands,
+	.init = etb_init,
+	.status = etb_status,
+	.start_capture = etb_start_capture,
+	.stop_capture = etb_stop_capture,
+	.read_trace = etb_read_trace,
+};

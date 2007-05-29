@@ -343,7 +343,10 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 	if (!I) /* #+-<offset_12> */
 	{
 		u32 offset_12 = (opcode & 0xfff);
-		snprintf(offset, 32, "#%s0x%x", (U) ? "" : "-", offset_12);
+		if (offset_12)
+			snprintf(offset, 32, ", #%s0x%x", (U) ? "" : "-", offset_12);
+		else
+			snprintf(offset, 32, "");
 		
 		instruction->info.load_store.offset_mode = 0;
 		instruction->info.load_store.offset.offset = offset_12;
@@ -376,26 +379,26 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 
 		if ((shift_imm == 0x0) && (shift == 0x0)) /* +-<Rm> */
 		{
-			snprintf(offset, 32, "%sr%i", (U) ? "" : "-", Rm);
+			snprintf(offset, 32, ", %sr%i", (U) ? "" : "-", Rm);
 		}
 		else /* +-<Rm>, <Shift>, #<shift_imm> */
 		{
 			switch (shift)
 			{
 				case 0x0: /* LSL */
-					snprintf(offset, 32, "%sr%i, LSL #0x%x", (U) ? "" : "-", Rm, shift_imm);
+					snprintf(offset, 32, ", %sr%i, LSL #0x%x", (U) ? "" : "-", Rm, shift_imm);
 					break;
 				case 0x1: /* LSR */
-					snprintf(offset, 32, "%sr%i, LSR #0x%x", (U) ? "" : "-", Rm, shift_imm);
+					snprintf(offset, 32, ", %sr%i, LSR #0x%x", (U) ? "" : "-", Rm, shift_imm);
 					break;
 				case 0x2: /* ASR */
-					snprintf(offset, 32, "%sr%i, ASR #0x%x", (U) ? "" : "-", Rm, shift_imm);
+					snprintf(offset, 32, ", %sr%i, ASR #0x%x", (U) ? "" : "-", Rm, shift_imm);
 					break;
 				case 0x3: /* ROR */
-					snprintf(offset, 32, "%sr%i, ROR #0x%x", (U) ? "" : "-", Rm, shift_imm);
+					snprintf(offset, 32, ", %sr%i, ROR #0x%x", (U) ? "" : "-", Rm, shift_imm);
 					break;
 				case 0x4: /* RRX */
-					snprintf(offset, 32, "%sr%i, RRX", (U) ? "" : "-", Rm);
+					snprintf(offset, 32, ", %sr%i, RRX", (U) ? "" : "-", Rm);
 					break;
 			}
 		}
@@ -405,7 +408,7 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 	{
 		if (W == 0) /* offset */
 		{
-			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i, %s]",
+			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i%s]",
 					 address, opcode, operation, COND(opcode), suffix,
 					 Rd, Rn, offset);
 			
@@ -413,7 +416,7 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 		}
 		else /* pre-indexed */
 		{
-			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i, %s]!",
+			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i%s]!",
 					 address, opcode, operation, COND(opcode), suffix,
 					 Rd, Rn, offset);
 			
@@ -422,7 +425,7 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 	}
 	else /* post-indexed */
 	{
-		snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i], %s",
+		snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, [r%i]%s",
 				 address, opcode, operation, COND(opcode), suffix,
 				 Rd, Rn, offset);
 		
@@ -1157,7 +1160,10 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 	}
 	else if ((op == 0xd) || (op == 0xf)) /* <opcode1>{<cond>}{S} <Rd>, <shifter_operand> */
 	{
-		snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, %s",
+		if (opcode==0xe1a00000) /* print MOV r0,r0 as NOP */
+			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\tNOP",address, opcode);
+		else
+			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\t%s%s%s r%i, %s",
 				 address, opcode, mnemonic, COND(opcode),
 				 (S) ? "S" : "", Rd, shifter_operand);
 	}
@@ -1312,6 +1318,765 @@ int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
 	}
 	
 	ERROR("should never reach this point");
+	return -1;
+}
+
+int evaluate_b_bl_blx_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u32 offset = opcode & 0x7ff;
+	u32 opc = (opcode >> 11) & 0x3;
+	u32 target_address;
+	char *mnemonic = NULL;
+	
+	/* sign extend 11-bit offset */
+	if (((opc==0) || (opc==2)) && (offset & 0x00000400))
+		offset = 0xfffff800 | offset;
+	
+	target_address = address + 4 + (offset<<1);
+
+	switch(opc)
+	{
+		/* unconditional branch */
+		case 0:
+			instruction->type = ARM_B;
+			mnemonic = "B";
+			break;
+		/* BLX suffix */
+		case 1:
+			instruction->type = ARM_BLX;
+			mnemonic = "BLX";
+			break;
+		/* BL/BLX prefix */
+		case 2:
+			instruction->type = ARM_UNKNOWN_INSTUCTION;
+			mnemonic = "prefix";
+			target_address = offset<<12;
+			break;
+		/* BL suffix */
+		case 3:
+			instruction->type = ARM_BL;
+			mnemonic = "BL";
+			break;
+	}
+	/* TODO: deals correctly with dual opcodes BL/BLX ... */
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s 0x%8.8x", address, opcode,mnemonic, target_address);
+	
+	instruction->info.b_bl_bx_blx.reg_operand = -1;
+	instruction->info.b_bl_bx_blx.target_address = target_address;
+
+	return ERROR_OK;
+}
+
+int evaluate_add_sub_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u8 Rd = (opcode >> 0) & 0x7;
+	u8 Rn = (opcode >> 3) & 0x7;
+	u8 Rm_imm = (opcode >> 6) & 0x7;
+	u32 opc = opcode & (1<<9);
+	u32 reg_imm  = opcode & (1<<10);
+	char *mnemonic;
+	
+	if (opc)
+	{
+		instruction->type = ARM_SUB;
+		mnemonic = "SUBS";
+	}
+	else
+	{
+		instruction->type = ARM_ADD;
+		mnemonic = "ADDS";
+	}
+	
+	instruction->info.data_proc.Rd = Rd;
+	instruction->info.data_proc.Rn = Rn;
+	instruction->info.data_proc.S = 1;
+
+	if (reg_imm)
+	{
+		instruction->info.data_proc.variant = 0; /*immediate*/
+		instruction->info.data_proc.shifter_operand.immediate.immediate = Rm_imm;
+		snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s r%i, r%i, #%d",
+				 address, opcode, mnemonic, Rd, Rn, Rm_imm);
+	}
+	else
+	{
+		instruction->info.data_proc.variant = 1; /*immediate shift*/
+		instruction->info.data_proc.shifter_operand.immediate_shift.Rm = Rm_imm;
+		snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s r%i, r%i, r%i",
+				 address, opcode, mnemonic, Rd, Rn, Rm_imm);
+	}
+
+	return ERROR_OK;
+}
+
+int evaluate_shift_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u8 Rd = (opcode >> 0) & 0x7;
+	u8 Rm = (opcode >> 3) & 0x7;
+	u8 imm = (opcode >> 6) & 0x1f;
+	u8 opc = (opcode >> 11) & 0x3;
+	char *mnemonic = NULL;
+	
+	switch(opc)
+	{
+		case 0:
+			instruction->type = ARM_MOV;
+			mnemonic = "LSLS";
+			instruction->info.data_proc.shifter_operand.immediate_shift.shift = 0;
+			break;
+		case 1:
+			instruction->type = ARM_MOV;
+			mnemonic = "LSRS";
+			instruction->info.data_proc.shifter_operand.immediate_shift.shift = 1;
+			break;
+		case 2:
+			instruction->type = ARM_MOV;
+			mnemonic = "ASRS";
+			instruction->info.data_proc.shifter_operand.immediate_shift.shift = 2;
+			break;
+	}
+
+	if ((imm==0) && (opc!=0))
+		imm = 32;
+
+	instruction->info.data_proc.Rd = Rd;
+	instruction->info.data_proc.Rn = -1;
+	instruction->info.data_proc.S = 1;
+
+	instruction->info.data_proc.variant = 1; /*immediate_shift*/
+	instruction->info.data_proc.shifter_operand.immediate_shift.Rm = Rm;
+	instruction->info.data_proc.shifter_operand.immediate_shift.shift_imm = imm;
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s r%i, r%i, #0x%02x",
+				 address, opcode, mnemonic, Rd, Rm, imm);
+
+	return ERROR_OK;
+}
+
+int evaluate_data_proc_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u8 imm = opcode & 0xff;
+	u8 Rd = (opcode >> 8) & 0x7;
+	u32 opc = (opcode >> 11) & 0x3;
+	char *mnemonic = NULL;
+	
+	instruction->info.data_proc.Rd = Rd;
+	instruction->info.data_proc.Rn = Rd;
+	instruction->info.data_proc.S = 1;
+	instruction->info.data_proc.variant = 0; /*immediate*/
+	instruction->info.data_proc.shifter_operand.immediate.immediate = imm;
+	
+	switch(opc)
+	{
+		case 0:
+			instruction->type = ARM_MOV;
+			mnemonic = "MOVS";
+			instruction->info.data_proc.Rn = -1;
+			break;
+		case 1:
+			instruction->type = ARM_CMP;
+			mnemonic = "CMP";
+			instruction->info.data_proc.Rd = -1;
+			break;
+		case 2:
+			instruction->type = ARM_ADD;
+			mnemonic = "ADDS";
+			break;
+		case 3:
+			instruction->type = ARM_SUB;
+			mnemonic = "SUBS";
+			break;
+	}
+	
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s r%i, #0x%02x",
+				 address, opcode, mnemonic, Rd, imm);
+
+	return ERROR_OK;
+}
+
+int evaluate_data_proc_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u8 high_reg, op, Rm, Rd,H1,H2;
+	char *mnemonic = NULL;
+	
+	high_reg = (opcode & 0x0400) >> 10;
+	op = (opcode & 0x03C0) >> 6;
+	
+	Rd = (opcode & 0x0007);
+	Rm = (opcode & 0x0038) >> 3;
+	H1 = (opcode & 0x0080) >> 7;
+	H2 = (opcode & 0x0040) >> 6;
+	
+	instruction->info.data_proc.Rd = Rd;
+	instruction->info.data_proc.Rn = Rd;
+	instruction->info.data_proc.S = (!high_reg || (instruction->type == ARM_CMP));
+	instruction->info.data_proc.variant = 1 /*immediate shift*/;
+	instruction->info.data_proc.shifter_operand.immediate_shift.Rm = Rm;
+
+	if (high_reg)
+	{
+		Rd |= H1 << 3;
+		Rm |= H2 << 3;
+		op >>= 2;
+	
+		switch (op)
+		{
+			case 0x0:
+				instruction->type = ARM_ADD;
+				mnemonic = "ADD";
+				break;
+			case 0x1:
+				instruction->type = ARM_CMP;
+				mnemonic = "CMP";
+				break;
+			case 0x2:
+				instruction->type = ARM_MOV;
+				mnemonic = "MOV";
+				break;
+			case 0x3:
+				if ((opcode & 0x7) == 0x0)
+				{
+					instruction->info.b_bl_bx_blx.reg_operand = Rm;
+					if (H1)
+					{
+						instruction->type = ARM_BLX;
+						snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tBLX r%i", address, opcode, Rm);
+					}
+					else
+					{
+						instruction->type = ARM_BX;
+						snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tBX r%i", address, opcode, Rm);
+					}
+				}
+				else
+				{
+					instruction->type = ARM_UNDEFINED_INSTRUCTION;
+					snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tUNDEFINED INSTRUCTION", address, opcode);
+				}
+				return ERROR_OK;	
+				break;
+		}
+	}
+	else
+	{
+		switch (op)
+		{
+			case 0x0:
+				instruction->type = ARM_AND;
+				mnemonic = "ANDS";
+				break;
+			case 0x1:
+				instruction->type = ARM_EOR;
+				mnemonic = "EORS";
+				break;
+			case 0x2:
+				instruction->type = ARM_MOV;
+				mnemonic = "LSLS";
+				instruction->info.data_proc.variant = 2 /*register shift*/;
+				instruction->info.data_proc.shifter_operand.register_shift.shift = 0;
+				instruction->info.data_proc.shifter_operand.register_shift.Rm = Rd;
+				instruction->info.data_proc.shifter_operand.register_shift.Rs = Rm;
+				break;
+			case 0x3:
+				instruction->type = ARM_MOV;
+				mnemonic = "LSRS";
+				instruction->info.data_proc.variant = 2 /*register shift*/;
+				instruction->info.data_proc.shifter_operand.register_shift.shift = 1;
+				instruction->info.data_proc.shifter_operand.register_shift.Rm = Rd;
+				instruction->info.data_proc.shifter_operand.register_shift.Rs = Rm;
+				break;
+			case 0x4:
+				instruction->type = ARM_MOV;
+				mnemonic = "ASRS";
+				instruction->info.data_proc.variant = 2 /*register shift*/;
+				instruction->info.data_proc.shifter_operand.register_shift.shift = 2;
+				instruction->info.data_proc.shifter_operand.register_shift.Rm = Rd;
+				instruction->info.data_proc.shifter_operand.register_shift.Rs = Rm;
+				break;
+			case 0x5:
+				instruction->type = ARM_ADC;
+				mnemonic = "ADCS";
+				break;
+			case 0x6:
+				instruction->type = ARM_SBC;
+				mnemonic = "SBCS";
+				break;
+			case 0x7:
+				instruction->type = ARM_MOV;
+				mnemonic = "RORS";
+				instruction->info.data_proc.variant = 2 /*register shift*/;
+				instruction->info.data_proc.shifter_operand.register_shift.shift = 3;
+				instruction->info.data_proc.shifter_operand.register_shift.Rm = Rd;
+				instruction->info.data_proc.shifter_operand.register_shift.Rs = Rm;
+				break;
+			case 0x8:
+				instruction->type = ARM_TST;
+				mnemonic = "TST";
+				break;
+			case 0x9:
+				instruction->type = ARM_RSB;
+				mnemonic = "NEGS";
+				instruction->info.data_proc.variant = 0 /*immediate*/;
+				instruction->info.data_proc.shifter_operand.immediate.immediate = 0;
+				instruction->info.data_proc.Rn = Rm;
+				break;
+			case 0xA:
+				instruction->type = ARM_CMP;
+				mnemonic = "CMP";
+				break;
+			case 0xB:
+				instruction->type = ARM_CMN;
+				mnemonic = "CMN";
+				break;
+			case 0xC:
+				instruction->type = ARM_ORR;
+				mnemonic = "ORRS";
+				break;
+			case 0xD:
+				instruction->type = ARM_MUL;
+				mnemonic = "MULS";
+				break;
+			case 0xE:
+				instruction->type = ARM_BIC;
+				mnemonic = "BICS";
+				break;
+			case 0xF:
+				instruction->type = ARM_MVN;
+				mnemonic = "MVNS";
+				break;
+		}
+	}
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s r%i, r%i",
+				 address, opcode, mnemonic, Rd, Rm);
+
+	return ERROR_OK;
+}
+
+int evaluate_load_literal_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u32 immediate;
+	u8 Rd = (opcode >> 8) & 0x7; 
+
+	instruction->type = ARM_LDR;
+	immediate = opcode & 0x000000ff;
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tLDR r%i, [PC, #0x%x]", address, opcode, Rd, immediate*4);
+
+	instruction->info.load_store.Rd = Rd;
+	instruction->info.load_store.Rn = 15 /*PC*/;
+	instruction->info.load_store.index_mode = 0; /*offset*/
+	instruction->info.load_store.offset_mode = 0; /*immediate*/
+	instruction->info.load_store.offset.offset = immediate*4;
+
+	return ERROR_OK;
+}
+
+int evaluate_load_store_reg_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u8 Rd = (opcode >> 0) & 0x7; 
+	u8 Rn = (opcode >> 3) & 0x7; 
+	u8 Rm = (opcode >> 6) & 0x7; 
+	u8 opc = (opcode >> 9) & 0x7; 
+	char *mnemonic = NULL;
+
+	switch(opc)
+	{
+		case 0:
+			instruction->type = ARM_STR;
+			mnemonic = "STR";
+			break;
+		case 1:
+			instruction->type = ARM_STRH;
+			mnemonic = "STRH";
+			break;
+		case 2:
+			instruction->type = ARM_STRB;
+			mnemonic = "STRB";
+			break;
+		case 3:
+			instruction->type = ARM_LDRSB;
+			mnemonic = "LDRSB";
+			break;
+		case 4:
+			instruction->type = ARM_LDR;
+			mnemonic = "LDR";
+			break;
+		case 5:
+			instruction->type = ARM_LDRH;
+			mnemonic = "LDRH";
+			break;
+		case 6:
+			instruction->type = ARM_LDRB;
+			mnemonic = "LDRB";
+			break;
+		case 7:
+			instruction->type = ARM_LDRSH;
+			mnemonic = "LDRSH";
+			break;
+	}
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s r%i, [r%i, r%i]", address, opcode, mnemonic, Rd, Rn, Rm);
+	
+	instruction->info.load_store.Rd = Rd;
+	instruction->info.load_store.Rn = Rn;
+	instruction->info.load_store.index_mode = 0; /*offset*/
+	instruction->info.load_store.offset_mode = 1; /*register*/
+	instruction->info.load_store.offset.reg.Rm = Rm;
+
+	return ERROR_OK;
+}
+
+int evaluate_load_store_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u32 offset = (opcode >> 6) & 0x1f;
+	u8 Rd = (opcode >> 0) & 0x7; 
+	u8 Rn = (opcode >> 3) & 0x7; 
+	u32 L = opcode & (1<<11);
+	u32 B = opcode & (1<<12);
+	char *mnemonic;
+	char suffix = ' ';
+	u32 shift = 2;
+
+	if (L)
+	{
+		instruction->type = ARM_LDR;
+		mnemonic = "LDR";
+	}
+	else
+	{
+		instruction->type = ARM_STR;
+		mnemonic = "STR";
+	}
+
+	if ((opcode&0xF000)==0x8000)
+	{
+		suffix = 'H';
+		shift = 1;
+	}
+	else if (B)
+	{
+		suffix = 'B';
+		shift = 0;
+	}
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s%c r%i, [r%i, #0x%x]", address, opcode, mnemonic, suffix, Rd, Rn, offset<<shift);
+	
+	instruction->info.load_store.Rd = Rd;
+	instruction->info.load_store.Rn = Rn;
+	instruction->info.load_store.index_mode = 0; /*offset*/
+	instruction->info.load_store.offset_mode = 0; /*immediate*/
+	instruction->info.load_store.offset.offset = offset<<shift;
+
+	return ERROR_OK;
+}
+
+int evaluate_load_store_stack_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u32 offset = opcode  & 0xff;
+	u8 Rd = (opcode >> 8) & 0x7; 
+	u32 L = opcode & (1<<11);
+	char *mnemonic;
+
+	if (L)
+	{
+		instruction->type = ARM_LDR;
+		mnemonic = "LDR";
+	}
+	else
+	{
+		instruction->type = ARM_STR;
+		mnemonic = "STR";
+	}
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s r%i, [SP, #0x%x]", address, opcode, mnemonic, Rd, offset*4);
+	
+	instruction->info.load_store.Rd = Rd;
+	instruction->info.load_store.Rn = 13 /*SP*/;
+	instruction->info.load_store.index_mode = 0; /*offset*/
+	instruction->info.load_store.offset_mode = 0; /*immediate*/
+	instruction->info.load_store.offset.offset = offset*4;
+
+	return ERROR_OK;
+}
+
+int evaluate_add_sp_pc_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u32 imm = opcode  & 0xff;
+	u8 Rd = (opcode >> 8) & 0x7; 
+	u8 Rn;
+	u32 SP = opcode & (1<<11);
+	char *reg_name;
+
+	instruction->type = ARM_ADD;
+	
+	if (SP)
+	{
+		reg_name = "SP";
+		Rn = 13;
+	}
+	else
+	{
+		reg_name = "PC";
+		Rn = 15;
+	}
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tADD r%i, %s, #0x%x", address, opcode, Rd,reg_name, imm*4);
+
+	instruction->info.data_proc.variant = 0 /* immediate */;
+	instruction->info.data_proc.Rd = Rd;
+	instruction->info.data_proc.Rn = Rn;
+	instruction->info.data_proc.shifter_operand.immediate.immediate = imm*4;
+
+	return ERROR_OK;
+}
+
+int evaluate_adjust_stack_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u32 imm = opcode  & 0x7f;
+	u8 opc = opcode & (1<<7);
+	char *mnemonic;
+
+	
+	if (opc)
+	{
+		instruction->type = ARM_SUB;
+		mnemonic = "SUB";
+	}
+	else
+	{
+		instruction->type = ARM_ADD;
+		mnemonic = "ADD";
+	}
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s SP, #0x%x", address, opcode, mnemonic, imm*4);
+
+	instruction->info.data_proc.variant = 0 /* immediate */;
+	instruction->info.data_proc.Rd = 13 /*SP*/;
+	instruction->info.data_proc.Rn = 13 /*SP*/;
+	instruction->info.data_proc.shifter_operand.immediate.immediate = imm*4;
+
+	return ERROR_OK;
+}
+
+int evaluate_breakpoint_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u32 imm = opcode  & 0xff;
+	
+	instruction->type = ARM_BKPT;
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tBKPT 0x%02x", address, opcode, imm);
+
+	return ERROR_OK;
+}
+
+int evaluate_load_store_multiple_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u32 reg_list = opcode  & 0xff;
+	u32 L = opcode & (1<<11);
+	u32 R = opcode & (1<<8);
+	u8 Rn = (opcode >> 8) & 7;
+	u8 addr_mode = 0 /* IA */;
+	char reg_names[40];
+	char *reg_names_p;
+	char *mnemonic;
+	char ptr_name[7] = "";
+	int i;	
+
+	if ((opcode & 0xf000) == 0xc000)
+	{ /* generic load/store multiple */
+		if (L)
+		{
+			instruction->type = ARM_LDM;
+			mnemonic = "LDMIA";
+		}
+		else
+		{
+			instruction->type = ARM_STM;
+			mnemonic = "STMIA";
+		}
+		snprintf(ptr_name,7,"r%i!, ",Rn);
+	}
+	else
+	{ /* push/pop */
+		Rn = 13; /* SP */
+		if (L)
+		{
+			instruction->type = ARM_LDM;
+			mnemonic = "POP";
+			if (R)
+				reg_list |= (1<<15) /*PC*/;
+		}
+		else
+		{
+			instruction->type = ARM_STM;
+			mnemonic = "PUSH";
+			addr_mode = 3; /*DB*/
+			if (R)
+				reg_list |= (1<<14) /*LR*/;
+		}
+	}
+
+	reg_names_p = reg_names;
+	for (i = 0; i <= 15; i++)
+	{
+		if (reg_list & (1<<i))
+			reg_names_p += snprintf(reg_names_p, (reg_names + 40 - reg_names_p), "r%i, ", i);
+	}
+	if (reg_names_p>reg_names)
+		reg_names_p[-2] = '\0';
+	else /* invalid op : no registers */
+    		reg_names[0] = '\0';
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\t%s %s{%s}", address, opcode, mnemonic, ptr_name,reg_names);
+
+	instruction->info.load_store_multiple.register_list = reg_list;
+	instruction->info.load_store_multiple.Rn = Rn;
+	instruction->info.load_store_multiple.addressing_mode = addr_mode;
+
+	return ERROR_OK;
+}
+
+int evaluate_cond_branch_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	u32 offset = opcode  & 0xff;
+	u8 cond = (opcode >> 8) & 0xf;
+	u32 target_address;
+
+	if (cond == 0xf)
+	{
+		instruction->type = ARM_SWI;
+		snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tSWI 0x%02x", address, opcode, offset);
+		return ERROR_OK;
+	}
+	else if (cond == 0xe)
+	{
+		instruction->type = ARM_UNDEFINED_INSTRUCTION;
+		snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tUNDEFINED INSTRUCTION", address, opcode);
+		return ERROR_OK;
+	}
+
+	/* sign extend 8-bit offset */
+	if (offset & 0x00000080)
+		offset = 0xffffff00 | offset;
+	
+	target_address = address + 4 + (offset<<1);
+
+	snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tB%s 0x%8.8x", address, opcode,
+			 arm_condition_strings[cond], target_address);
+	
+	instruction->type = ARM_B;
+	instruction->info.b_bl_bx_blx.reg_operand = -1;
+	instruction->info.b_bl_bx_blx.target_address = target_address;
+
+	return ERROR_OK;
+}
+
+int thumb_evaluate_opcode(u16 opcode, u32 address, arm_instruction_t *instruction)
+{
+	/* clear fields, to avoid confusion */
+	memset(instruction, 0, sizeof(arm_instruction_t));
+	instruction->opcode = opcode;
+	
+	if ((opcode & 0xe000) == 0x0000)
+	{
+		/* add/substract register or immediate */
+		if ((opcode & 0x1800) == 0x1800)
+			return evaluate_add_sub_thumb(opcode, address, instruction);
+		/* shift by immediate */
+		else
+			return evaluate_shift_imm_thumb(opcode, address, instruction);
+	}
+	
+	/* Add/substract/compare/move immediate */
+	if ((opcode & 0xe000) == 0x2000)
+	{
+		return evaluate_data_proc_imm_thumb(opcode, address, instruction);
+	}
+	
+	/* Data processing instructions */
+	if ((opcode & 0xf800) == 0x4000)
+	{
+		return evaluate_data_proc_thumb(opcode, address, instruction);
+	}
+	
+	/* Load from literal pool */
+	if ((opcode & 0xf800) == 0x4800)
+	{
+		return evaluate_load_literal_thumb(opcode, address, instruction);
+	}
+
+	/* Load/Store register offset */
+	if ((opcode & 0xf000) == 0x5000)
+	{
+		return evaluate_load_store_reg_thumb(opcode, address, instruction);
+	}
+
+	/* Load/Store immediate offset */
+	if (((opcode & 0xe000) == 0x6000)
+		||((opcode & 0xf000) == 0x8000))
+	{
+		return evaluate_load_store_imm_thumb(opcode, address, instruction);
+	}
+	
+	/* Load/Store from/to stack */
+	if ((opcode & 0xf000) == 0x9000)
+	{
+		return evaluate_load_store_stack_thumb(opcode, address, instruction);
+	}
+
+	/* Add to SP/PC */
+	if ((opcode & 0xf000) == 0xa000)
+	{
+		return evaluate_add_sp_pc_thumb(opcode, address, instruction);
+	}
+
+	/* Misc */
+	if ((opcode & 0xf000) == 0xb000)
+	{
+		if ((opcode & 0x0f00) == 0x0000)
+			return evaluate_adjust_stack_thumb(opcode, address, instruction);
+		else if ((opcode & 0x0f00) == 0x0e00)
+			return evaluate_breakpoint_thumb(opcode, address, instruction);
+		else if ((opcode & 0x0600) == 0x0400) /* push pop */
+			return evaluate_load_store_multiple_thumb(opcode, address, instruction);
+		else
+		{
+			instruction->type = ARM_UNDEFINED_INSTRUCTION;
+			snprintf(instruction->text, 128, "0x%8.8x\t0x%4.4x\tUNDEFINED INSTRUCTION", address, opcode);
+			return ERROR_OK;
+		}
+	}
+
+	/* Load/Store multiple */
+	if ((opcode & 0xf000) == 0xc000)
+	{
+		return evaluate_load_store_multiple_thumb(opcode, address, instruction);
+	}
+
+	/* Conditional branch + SWI */
+	if ((opcode & 0xf000) == 0xd000)
+	{
+		return evaluate_cond_branch_thumb(opcode, address, instruction);
+	}
+	
+	if ((opcode & 0xe000) == 0xe000)
+	{
+		/* Undefined instructions */
+		if ((opcode & 0xf801) == 0xe801)
+		{
+			instruction->type = ARM_UNDEFINED_INSTRUCTION;
+			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\tUNDEFINED INSTRUCTION", address, opcode);
+			return ERROR_OK;
+		}
+		else
+		{ /* Branch to offset */
+			return evaluate_b_bl_blx_thumb(opcode, address, instruction);
+		}
+	}
+
+	ERROR("should never reach this point (opcode=%04x)",opcode);
 	return -1;
 }
 

@@ -1282,6 +1282,7 @@ int jtag_examine_chain()
 	{
 		ERROR("number of discovered devices in JTAG chain (%i) doesn't match configuration (%i)", 
 			device_count, jtag_num_devices);
+		ERROR("check the config file and ensure proper JTAG communication (connections, speed, ...)");
 		exit(-1);
 	}
 	

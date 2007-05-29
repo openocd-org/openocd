@@ -744,10 +744,10 @@ void arm7tdmi_build_reg_cache(target_t *target)
 	(*cache_p)->next = embeddedice_build_reg_cache(target, arm7_9);
 	arm7_9->eice_cache = (*cache_p)->next;
 	
-	if (arm7_9->has_etm)
+	if (arm7_9->etm_ctx)
 	{
-		(*cache_p)->next->next = etm_build_reg_cache(target, jtag_info, 0);
-		arm7_9->etm_cache = (*cache_p)->next->next;
+		(*cache_p)->next->next = etm_build_reg_cache(target, jtag_info, arm7_9->etm_ctx);
+		arm7_9->etm_ctx->reg_cache = (*cache_p)->next->next;
 	}
 }
 

@@ -30,10 +30,12 @@ typedef struct cfi_flash_bank_s
 	working_area_t *erase_check_algorithm;
 	
 	int x16_as_x8;
+	int jedec_probe;
+	int not_cfi;
 	
 	u16 manufacturer;
 	u16 device_id;
-		
+	
 	char qry[3];
 	
 	/* identification string */
@@ -108,6 +110,8 @@ typedef struct cfi_spansion_pri_ext_s
 	u8  VppMax;
 	u8  TopBottom;
 	int _reversed_geometry;
+	u32 _unlock1;
+	u32 _unlock2;
 } cfi_spansion_pri_ext_t;
 
 /* Atmel primary extended query table as defined for and used by
@@ -124,6 +128,17 @@ typedef struct cfi_atmel_pri_ext_s
 	u8 page_mode;
 } cfi_atmel_pri_ext_t;
 
+enum {
+	CFI_UNLOCK_555_2AA,
+	CFI_UNLOCK_5555_2AAA,
+};
+
+typedef struct cfi_unlock_addresses_s
+{
+	u32 unlock1;
+	u32 unlock2;
+} cfi_unlock_addresses_t;
+
 typedef struct cfi_fixup_s
 {
 	u16 mfr;
@@ -135,6 +150,7 @@ typedef struct cfi_fixup_s
 #define CFI_MFR_AMD		0x0001
 #define CFI_MFR_ATMEL	0x001F
 #define CFI_MFR_ST		0x0020	/* STMicroelectronics */
+#define CFI_MFR_SST		0x00BF
 
 #define CFI_MFR_ANY		0xffff
 #define CFI_ID_ANY		0xffff

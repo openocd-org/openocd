@@ -43,6 +43,7 @@
 #include <time_support.h>
 
 #include <fileio.h>
+#include <image.h>
 
 int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
 
@@ -1656,12 +1657,9 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	u32 address;
 	u8 *buffer;
 	u32 buf_cnt;
-	u32 binary_size;
-	
-	fileio_t file;
-	enum fileio_pri_type pri_type = FILEIO_IMAGE;
-	fileio_image_t image_info;
-	enum fileio_sec_type sec_type;
+	u32 image_size;
+
+	image_t image;	
 	
 	duration_t duration;
 	char *duration_text;
@@ -1674,40 +1672,41 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_OK;
 	}
 	
-	memset(&file, 0, sizeof(fileio_t));
-	fileio_identify_image_type(&sec_type, (argc == 3) ? args[2] : NULL);
+	identify_image_type(&image.type, (argc == 3) ? args[2] : NULL);
 
-	image_info.base_address = strtoul(args[1], NULL, 0);
-	image_info.has_start_address = 0;
+	image.base_address_set = 1;
+	image.base_address = strtoul(args[1], NULL, 0);
+	
+	image.start_address_set = 0;
 	
 	buffer = malloc(128 * 1024);
 
 	duration_start_measure(&duration);
 	
-	if (fileio_open(&file, args[0], FILEIO_READ, 
-		pri_type, &image_info, sec_type) != ERROR_OK)
+	if (image_open(&image, args[0], FILEIO_READ) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "load_image error: %s", file.error_str);
+		command_print(cmd_ctx, "load_image error: %s", image.error_str);
 		return ERROR_OK;
 	}
 	
-	binary_size = file.size;
-	address = image_info.base_address;
-	while ((binary_size > 0) &&
-		(fileio_read(&file, 128 * 1024, buffer, &buf_cnt) == ERROR_OK))
+	image_size = image.size;
+	address = image.base_address;
+	
+	while ((image_size > 0) &&
+		(image_read(&image, 128 * 1024, buffer, &buf_cnt) == ERROR_OK))
 	{
 		target_write_buffer(target, address, buf_cnt, buffer);
 		address += buf_cnt;
-		binary_size -= buf_cnt;
+		image_size -= buf_cnt;
 	}
 
 	free(buffer);
 	
 	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "downloaded %lli byte in %s", file.size, duration_text);
+	command_print(cmd_ctx, "downloaded %u byte in %s", image.size, duration_text);
 	free(duration_text);
 	
-	fileio_close(&file);
+	image_close(&image);
 
 	return ERROR_OK;
 
@@ -1715,8 +1714,7 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	fileio_t file;
-	fileio_image_t image_info;
+	fileio_t fileio;
 	
 	u32 address;
 	u32 size;
@@ -1742,13 +1740,9 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_OK;
 	}
 	
-	image_info.base_address = address;
-	image_info.has_start_address = 0;
-	
-	if (fileio_open(&file, args[0], FILEIO_WRITE, 
-		FILEIO_IMAGE, &image_info, FILEIO_PLAIN) != ERROR_OK)
+	if (fileio_open(&fileio, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "dump_image error: %s", file.error_str);
+		command_print(cmd_ctx, "dump_image error: %s", fileio.error_str);
 		return ERROR_OK;
 	}
 	
@@ -1760,16 +1754,16 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		u32 this_run_size = (size > 560) ? 560 : size;
 		
 		target->type->read_memory(target, address, 4, this_run_size / 4, buffer);
-		fileio_write(&file, this_run_size, buffer, &size_written);
+		fileio_write(&fileio, this_run_size, buffer, &size_written);
 		
 		size -= this_run_size;
 		address += this_run_size;
 	}
 
-	fileio_close(&file);
+	fileio_close(&fileio);
 
 	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "dumped %lli byte in %s", file.size, duration_text);
+	command_print(cmd_ctx, "dumped %lli byte in %s", fileio.size, duration_text);
 	free(duration_text);
 	
 	return ERROR_OK;
