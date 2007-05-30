@@ -1658,6 +1658,8 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	u8 *buffer;
 	u32 buf_cnt;
 	u32 image_size;
+	int i;
+	int retval;
 
 	image_t image;	
 	
@@ -1678,8 +1680,6 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	image.base_address = strtoul(args[1], NULL, 0);
 	
 	image.start_address_set = 0;
-	
-	buffer = malloc(128 * 1024);
 
 	duration_start_measure(&duration);
 	
@@ -1689,21 +1689,27 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_OK;
 	}
 	
-	image_size = image.size;
-	address = image.base_address;
-	
-	while ((image_size > 0) &&
-		(image_read(&image, 128 * 1024, buffer, &buf_cnt) == ERROR_OK))
+	image_size = 0x0;
+	for (i = 0; i < image.num_sections; i++)
 	{
-		target_write_buffer(target, address, buf_cnt, buffer);
-		address += buf_cnt;
-		image_size -= buf_cnt;
+		buffer = malloc(image.sections[i].size);
+		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
+		{
+			ERROR("image_read_section failed with error code: %i", retval);
+			command_print(cmd_ctx, "image reading failed, download aborted");
+			free(buffer);
+			image_close(&image);
+			return ERROR_OK;
+		}
+		target_write_buffer(target, image.sections[i].base_address, buf_cnt, buffer);
+		image_size += buf_cnt;
+		command_print(cmd_ctx, "%u byte written at address 0x%8.8x", buf_cnt, image.sections[i].base_address);
+		
+		free(buffer);
 	}
 
-	free(buffer);
-	
 	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "downloaded %u byte in %s", image.size, duration_text);
+	command_print(cmd_ctx, "downloaded %u byte in %s", image_size, duration_text);
 	free(duration_text);
 	
 	image_close(&image);

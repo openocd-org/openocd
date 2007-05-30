@@ -490,9 +490,10 @@ int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, c
 int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 offset;
-	u32 binary_size;
 	u8 *buffer;
 	u32 buf_cnt;
+	u32 image_size;
+	int i;
 
 	image_t image;
 	
@@ -531,51 +532,62 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 	
-	binary_size = image.size;
-	buffer = malloc(binary_size);
-
-	image_read(&image, binary_size, buffer, &buf_cnt);
-	
-	if ((retval = p->driver->write(p, buffer, offset, buf_cnt)) != ERROR_OK)
+	image_size = 0x0;
+	for (i = 0; i < image.num_sections; i++)
 	{
-		command_print(cmd_ctx, "failed writing file %s to flash bank %i at offset 0x%8.8x",
-			args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0));
-		switch (retval)
+		buffer = malloc(image.sections[i].size);
+		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
 		{
-			case ERROR_TARGET_NOT_HALTED:
-				command_print(cmd_ctx, "can't work with this flash while target is running");
-				break;
-			case ERROR_INVALID_ARGUMENTS:
-				command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
-				break;
-			case ERROR_FLASH_BANK_INVALID:
-				command_print(cmd_ctx, "no '%s' flash found at 0x%8.8x", p->driver->name, p->base);
-				break;
-			case ERROR_FLASH_OPERATION_FAILED:
-				command_print(cmd_ctx, "flash program error");
-				break;
-			case ERROR_FLASH_DST_BREAKS_ALIGNMENT:
-				command_print(cmd_ctx, "offset breaks required alignment");
-				break;
-			case ERROR_FLASH_DST_OUT_OF_BANK:
-				command_print(cmd_ctx, "destination is out of flash bank (offset and/or file too large)");
-				break;
-			case ERROR_FLASH_SECTOR_NOT_ERASED:
-				command_print(cmd_ctx, "destination sector(s) not erased");
-				break;
-			default:
-				command_print(cmd_ctx, "unknown error");
+			ERROR("image_read_section failed with error code: %i", retval);
+			command_print(cmd_ctx, "image reading failed, flash write aborted");
+			free(buffer);
+			image_close(&image);
+			return ERROR_OK;
 		}
+		
+		if ((retval = p->driver->write(p, buffer, offset, buf_cnt)) != ERROR_OK)
+		{
+			command_print(cmd_ctx, "failed writing file %s to flash bank %i at offset 0x%8.8x",
+				args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0));
+			switch (retval)
+			{
+				case ERROR_TARGET_NOT_HALTED:
+					command_print(cmd_ctx, "can't work with this flash while target is running");
+					break;
+				case ERROR_INVALID_ARGUMENTS:
+					command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
+					break;
+				case ERROR_FLASH_BANK_INVALID:
+					command_print(cmd_ctx, "no '%s' flash found at 0x%8.8x", p->driver->name, p->base);
+					break;
+				case ERROR_FLASH_OPERATION_FAILED:
+					command_print(cmd_ctx, "flash program error");
+					break;
+				case ERROR_FLASH_DST_BREAKS_ALIGNMENT:
+					command_print(cmd_ctx, "offset breaks required alignment");
+					break;
+				case ERROR_FLASH_DST_OUT_OF_BANK:
+					command_print(cmd_ctx, "destination is out of flash bank (offset and/or file too large)");
+					break;
+				case ERROR_FLASH_SECTOR_NOT_ERASED:
+					command_print(cmd_ctx, "destination sector(s) not erased");
+					break;
+				default:
+					command_print(cmd_ctx, "unknown error");
+			}
+		}
+		image_size += buf_cnt;
+
+		free(buffer);
 	}
-	else
-	{
-		duration_stop_measure(&duration, &duration_text);
-		command_print(cmd_ctx, "wrote file %s to flash bank %i at offset 0x%8.8x in %s",
-			args[1], strtoul(args[0], NULL, 0), offset, duration_text);
-		free(duration_text);
-	}
+
 	
-	free(buffer);
+	duration_stop_measure(&duration, &duration_text);
+	command_print(cmd_ctx, "wrote %u byte from file %s to flash bank %i at offset 0x%8.8x in %s (%f kb/s)",
+		image_size, args[1], strtoul(args[0], NULL, 0), offset, duration_text,
+		(float)image_size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
+	free(duration_text);
+
 	image_close(&image);
 	
 	return ERROR_OK;

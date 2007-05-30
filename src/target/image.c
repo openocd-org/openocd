@@ -39,29 +39,38 @@ int image_ihex_buffer_complete(image_t *image)
 	fileio_t *fileio = &ihex->fileio;
 	u32 raw_bytes_read, raw_bytes;
 	int retval;
-	u32 full_address = image->base_address;
-	char *buffer = malloc(ihex->raw_size);
-	u32 cooked_bytes = 0x0;
+	u32 full_address = 0x0;
+	char *buffer = malloc(fileio->size);
+	u32 cooked_bytes;
+	int i;
 	
-	ihex->raw_size = fileio->size;
-	ihex->buffer = malloc(ihex->raw_size >> 1);
+	/* we can't determine the number of sections that we'll have to create ahead of time,
+	 * so we locally hold them until parsing is finished */
+	image_section_t section[IMAGE_MAX_SECTIONS];
+	u8 *section_pointer[IMAGE_MAX_SECTIONS];
 	
-	if ((retval = fileio_read(fileio, ihex->raw_size, (u8*)buffer, &raw_bytes_read)) != ERROR_OK)
+	if ((retval = fileio_read(fileio, fileio->size, (u8*)buffer, &raw_bytes_read)) != ERROR_OK)
 	{
 		free(buffer);
 		ERROR("failed buffering IHEX file, read failed");
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	
-	if (raw_bytes_read != ihex->raw_size)
+	if (raw_bytes_read != fileio->size)
 	{
 		free(buffer);
 		ERROR("failed buffering complete IHEX file, only partially read");
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
-	
-	image->size = 0x0;
+
+	ihex->buffer = malloc(fileio->size >> 1);
 	raw_bytes = 0x0;
+	cooked_bytes = 0x0;
+	image->num_sections = 0;
+	section_pointer[image->num_sections] = &ihex->buffer[cooked_bytes];
+	section[image->num_sections].base_address = 0x0;
+	section[image->num_sections].size = 0x0;
+	section[image->num_sections].flags = 0;
 	while (raw_bytes < raw_bytes_read)
 	{
 		u32 count;
@@ -75,13 +84,24 @@ int image_ihex_buffer_complete(image_t *image)
 		}
 		raw_bytes += 9;
 		
-		if (record_type == 0)
+		if (record_type == 0) /* Data Record */
 		{
 			if ((full_address & 0xffff) != address)
 			{
-				free(buffer);
-				ERROR("can't handle non-linear IHEX file");
-				return ERROR_IMAGE_FORMAT_ERROR;
+				/* we encountered a nonconsecutive location, create a new section,
+				 * unless the current section has zero size, in which case this specifies
+				 * the current section's base address
+				 */
+				if (section[image->num_sections].size != 0)
+				{
+					image->num_sections++;
+					section[image->num_sections].size = 0x0;
+					section[image->num_sections].flags = 0;
+					section_pointer[image->num_sections] = &ihex->buffer[cooked_bytes];
+				}
+				section[image->num_sections].base_address =
+					(full_address & 0xffff0000) | address;
+				full_address = (full_address & 0xffff0000) | address;
 			}
 			
 			while (count-- > 0)
@@ -89,16 +109,31 @@ int image_ihex_buffer_complete(image_t *image)
 				sscanf(&buffer[raw_bytes], "%2hhx", &ihex->buffer[cooked_bytes]);
 				raw_bytes += 2;
 				cooked_bytes += 1;
+				section[image->num_sections].size += 1;
 				full_address++;
 			}
 		}
-		else if (record_type == 1)
+		else if (record_type == 1) /* End of File Record */
 		{
+			/* finish the current section */
+			image->num_sections++;
+			
+			/* copy section information */
+			ihex->section_pointer = malloc(sizeof(u8*) * image->num_sections);
+			image->sections = malloc(sizeof(image_section_t) * image->num_sections);
+			for (i = 0; i < image->num_sections; i++)
+			{
+				ihex->section_pointer[i] = section_pointer[i];
+				image->sections[i].base_address = section[i].base_address +
+					((image->base_address_set) ? image->base_address : 0);
+				image->sections[i].size = section[i].size;
+				image->sections[i].flags = section[i].flags;
+			}
+			
 			free(buffer);
-			image->size = cooked_bytes;
 			return ERROR_OK;
 		}
-		else if (record_type == 4)
+		else if (record_type == 4) /* Extended Linear Address Record */
 		{
 			u16 upper_address;
 			
@@ -107,12 +142,23 @@ int image_ihex_buffer_complete(image_t *image)
 			
 			if ((full_address >> 16) != upper_address)
 			{
-				free(buffer);
-				ERROR("can't handle non-linear IHEX file");
-				return ERROR_IMAGE_FORMAT_ERROR;
+				/* we encountered a nonconsecutive location, create a new section,
+				 * unless the current section has zero size, in which case this specifies
+				 * the current section's base address
+				 */
+				if (section[image->num_sections].size != 0)
+				{
+					image->num_sections++;
+					section[image->num_sections].size = 0x0;
+					section[image->num_sections].flags = 0;
+					section_pointer[image->num_sections] = &ihex->buffer[cooked_bytes];
+				}
+				section[image->num_sections].base_address = 
+					(full_address & 0xffff) | (upper_address << 16);
+				full_address = (full_address & 0xffff) | (upper_address << 16);
 			}
 		}
-		else if (record_type == 5)
+		else if (record_type == 5) /* Start Linear Address Record */
 		{
 			u32 start_address;
 			
@@ -163,10 +209,14 @@ int image_open(image_t *image, void *source, enum fileio_access access)
 			return retval;
 		}
 		
-		if (access == FILEIO_WRITE)
-			image->size = 0;
-		else
-			image->size = image_binary->fileio.size;
+		image->num_sections = 1;
+		image->sections = malloc(sizeof(image_section_t));
+		image->sections[0].base_address = 0x0;
+		image->sections[0].size = image_binary->fileio.size;
+		image->sections[0].flags = 0;
+		
+		if (image->base_address_set == 1)
+			image->sections[0].base_address = image->base_address;
 		
 		return ERROR_OK;
 	}
@@ -192,9 +242,6 @@ int image_open(image_t *image, void *source, enum fileio_access access)
 			return retval;
 		}
 		
-		image_ihex->position = 0;
-		image_ihex->raw_size = image_ihex->fileio.size;
-		
 		if ((retval = image_ihex_buffer_complete(image)) != ERROR_OK)
 		{
 			snprintf(image->error_str, IMAGE_MAX_ERROR_STRING,
@@ -217,7 +264,7 @@ int image_open(image_t *image, void *source, enum fileio_access access)
 	return retval;
 };
 
-int image_read(image_t *image, u32 size, u8 *buffer, u32 *size_read)
+int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read)
 {
 	int retval;
 	
@@ -225,6 +272,21 @@ int image_read(image_t *image, u32 size, u8 *buffer, u32 *size_read)
 	{
 		image_binary_t *image_binary = image->type_private;
 		
+		/* only one section in a plain binary */
+		if (section != 0)
+			return ERROR_INVALID_ARGUMENTS;
+			
+		if ((offset > image->sections[0].size) || (offset + size > image->sections[0].size))
+			return ERROR_INVALID_ARGUMENTS;
+		
+		/* seek to offset */
+		if ((retval = fileio_seek(&image_binary->fileio, offset)) != ERROR_OK)
+		{
+			strncpy(image->error_str, image_binary->fileio.error_str, IMAGE_MAX_ERROR_STRING);
+			return retval;
+		}
+		
+		/* return requested bytes */
 		if ((retval = fileio_read(&image_binary->fileio, size, buffer, size_read)) != ERROR_OK)
 		{
 			strncpy(image->error_str, image_binary->fileio.error_str, IMAGE_MAX_ERROR_STRING);
@@ -234,15 +296,8 @@ int image_read(image_t *image, u32 size, u8 *buffer, u32 *size_read)
 	else if (image->type == IMAGE_IHEX)
 	{
 		image_ihex_t *image_ihex = image->type_private;
-	
-		if ((image_ihex->position + size) > image->size)
-		{
-			/* don't read past the end of the file */
-			size = (image->size - image_ihex->position);
-		}
-	
-		memcpy(buffer, image_ihex->buffer + image_ihex->position, size);
-		image_ihex->position += size;
+
+		memcpy(buffer, image_ihex->section_pointer[section] + offset, size);
 		*size_read = size;
 		image->error_str[0] = '\0';
 		
@@ -252,37 +307,6 @@ int image_read(image_t *image, u32 size, u8 *buffer, u32 *size_read)
 	{
 		/* TODO: handle target memory pseudo image */
 	}
-	
-	return ERROR_OK;
-}
-
-int image_write(image_t *image, u32 size, u8 *buffer, u32 *size_written)
-{
-	int retval = ERROR_FILEIO_OPERATION_NOT_SUPPORTED;
-	
-	if (image->type == IMAGE_BINARY)
-	{
-		image_binary_t *image_binary = image->type_private;
-		
-		if ((retval = fileio_write(&image_binary->fileio, size, buffer, size_written)) != ERROR_OK)
-		{
-			strncpy(image->error_str, image_binary->fileio.error_str, IMAGE_MAX_ERROR_STRING);
-			return retval;
-		}
-	}
-	else if (image->type == IMAGE_IHEX)
-	{
-		return ERROR_FILEIO_OPERATION_NOT_SUPPORTED;
-	}
-	else if (image->type == IMAGE_MEMORY)
-	{
-		/* TODO: handle target memory pseudo image */
-	}
-	
-	if (retval != ERROR_OK)
-		return retval;
-		
-	image->size += size;
 	
 	return ERROR_OK;
 }
@@ -301,6 +325,9 @@ int image_close(image_t *image)
 		
 		fileio_close(&image_ihex->fileio);
 		
+		if (image_ihex->section_pointer)
+			free(image_ihex->section_pointer);
+		
 		if (image_ihex->buffer)
 			free(image_ihex->buffer);
 	}
@@ -309,7 +336,11 @@ int image_close(image_t *image)
 		/* do nothing for now */
 	}
 
-	free(image->type_private);
+	if (image->type_private)
+		free(image->type_private);
+	
+	if (image->sections)
+		free(image->sections);
 	
 	return ERROR_OK;
 }

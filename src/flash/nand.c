@@ -1164,8 +1164,7 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 	u32 buf_cnt;
 	enum oob_formats oob_format = NAND_OOB_NONE;
 	
-	image_t image;
-	int image_type_identified = 0;
+	fileio_t fileio;
 	
 	duration_t duration;
 	char *duration_text;
@@ -1187,7 +1186,7 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 		u32 oob_size = 0;
 			
 		duration_start_measure(&duration);
-		strtoul(args[2], NULL, 0);
+		offset = strtoul(args[2], NULL, 0);
 		
 		if (argc > 3)
 		{
@@ -1200,40 +1199,18 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 					oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
 				else
 				{
-					if (identify_image_type(&image.type, args[i]) == ERROR_OK)
-					{
-						image_type_identified = 1;
-					}
-					else
-					{
-						command_print(cmd_ctx, "unknown option: %s", args[i]);
-					}
+					command_print(cmd_ctx, "unknown option: %s", args[i]);
 				}
 			}
 		}
 		
-		/* if no image type option was encountered, set the default */
-		if (!image_type_identified)
+		if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 		{
-			
-			identify_image_type(&image.type, NULL);
-			image_type_identified = 1;
-		}
-
-		image.base_address_set = 1;
-		image.base_address = strtoul(args[2], NULL, 0);
-		image.start_address_set = 0;
-	
-		if (image_open(&image, args[1], FILEIO_READ) != ERROR_OK)
-		{
-			command_print(cmd_ctx, "flash write error: %s", image.error_str);
+			command_print(cmd_ctx, "file open error: %s", fileio.error_str);
 			return ERROR_OK;
 		}
 	
-		/* the offset might have been overwritten by the image base address */
-		offset = image.base_address;
-		
-		buf_cnt = binary_size = image.size;
+		buf_cnt = binary_size = fileio.size;
 		
 		if (!(oob_format & NAND_OOB_ONLY))
 		{
@@ -1262,7 +1239,7 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 			
 			if (page)
 			{
-				image_read(&image, page_size, page, &size_read);
+				fileio_read(&fileio, page_size, page, &size_read);
 				buf_cnt -= size_read;
 				if (size_read < page_size)
 				{
@@ -1272,7 +1249,7 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 				
 			if (oob)
 			{
-				image_read(&image, oob_size, oob, &size_read);
+				fileio_read(&fileio, oob_size, oob, &size_read);
 				buf_cnt -= size_read;
 				if (size_read < oob_size)
 				{
@@ -1289,9 +1266,11 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 			offset += page_size;
 		}
 
+		fileio_close(&fileio);
+		
 		duration_stop_measure(&duration, &duration_text);
 		command_print(cmd_ctx, "wrote file %s to NAND flash %s at offset 0x%8.8x in %s",
-			args[1], args[0], image.base_address, duration_text);
+			args[1], args[0], offset, duration_text);
 		free(duration_text);
 	}
 	else
