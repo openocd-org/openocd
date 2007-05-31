@@ -20,6 +20,7 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
+#include <elf.h>
 #include "fileio.h"
 #include "target.h"
 
@@ -31,9 +32,9 @@ typedef enum image_type
     IMAGE_BINARY,	/* plain binary */
     IMAGE_IHEX,		/* intel hex-record format */
     IMAGE_MEMORY,	/* target-memory pseudo-image */
+    IMAGE_ELF,		/* ELF binary */
 /*
  * Possible future enhancements:
- * IMAGE_ELF,
  * IMAGE_SRECORD,
  */
 } image_type_t;
@@ -43,6 +44,7 @@ typedef struct image_section_s
 	u32 base_address;
 	u32 size;
 	int flags;
+	void *private;		/* private data */
 } image_section_t;
 
 typedef struct image_s
@@ -74,6 +76,15 @@ typedef struct image_memory_s
 {
 	target_t *target;
 } image_memory_t;
+
+typedef struct fileio_elf_s
+{
+	fileio_t fileio;
+	Elf32_Ehdr *header;
+	Elf32_Phdr *segments;
+	u32 segment_count;
+	u8 endianness;
+} image_elf_t;
 
 extern int image_open(image_t *image, void *source, enum fileio_access access);
 extern int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read);

@@ -35,6 +35,18 @@
 #include <fcntl.h>
 #endif
 
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h> /* for MIN/MAX macros */
+#endif
+
+/* MIN,MAX macros */
+#ifndef MIN
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+#ifndef MAX
+#define MAX(a,b) (((a)>(b))?(a):(b))
+#endif
+																 
 /* gettimeofday() */
 #ifndef HAVE_GETTIMEOFDAY
 

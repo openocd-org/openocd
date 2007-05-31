@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <elf.h>
 
 #include "image.h"
 
@@ -32,6 +33,15 @@
 
 #include "fileio.h"
 #include "target.h"
+
+/* convert ELF header field to host endianness */
+#define field16(elf,field)\
+	((elf->endianness==ELFDATA2LSB)? \
+		le_to_h_u16((u8*)&field):be_to_h_u16((u8*)&field)) 
+
+#define field32(elf,field)\
+	((elf->endianness==ELFDATA2LSB)? \
+		le_to_h_u32((u8*)&field):be_to_h_u32((u8*)&field)) 
 
 int image_ihex_buffer_complete(image_t *image)
 {
@@ -47,7 +57,6 @@ int image_ihex_buffer_complete(image_t *image)
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
 	image_section_t section[IMAGE_MAX_SECTIONS];
-	u8 *section_pointer[IMAGE_MAX_SECTIONS];
 	
 	if ((retval = fileio_read(fileio, fileio->size, (u8*)buffer, &raw_bytes_read)) != ERROR_OK)
 	{
@@ -67,7 +76,7 @@ int image_ihex_buffer_complete(image_t *image)
 	raw_bytes = 0x0;
 	cooked_bytes = 0x0;
 	image->num_sections = 0;
-	section_pointer[image->num_sections] = &ihex->buffer[cooked_bytes];
+	section[image->num_sections].private = &ihex->buffer[cooked_bytes];
 	section[image->num_sections].base_address = 0x0;
 	section[image->num_sections].size = 0x0;
 	section[image->num_sections].flags = 0;
@@ -97,7 +106,7 @@ int image_ihex_buffer_complete(image_t *image)
 					image->num_sections++;
 					section[image->num_sections].size = 0x0;
 					section[image->num_sections].flags = 0;
-					section_pointer[image->num_sections] = &ihex->buffer[cooked_bytes];
+					section[image->num_sections].private = &ihex->buffer[cooked_bytes];
 				}
 				section[image->num_sections].base_address =
 					(full_address & 0xffff0000) | address;
@@ -119,11 +128,10 @@ int image_ihex_buffer_complete(image_t *image)
 			image->num_sections++;
 			
 			/* copy section information */
-			ihex->section_pointer = malloc(sizeof(u8*) * image->num_sections);
 			image->sections = malloc(sizeof(image_section_t) * image->num_sections);
 			for (i = 0; i < image->num_sections; i++)
 			{
-				ihex->section_pointer[i] = section_pointer[i];
+				image->sections[i].private = section[i].private;
 				image->sections[i].base_address = section[i].base_address +
 					((image->base_address_set) ? image->base_address : 0);
 				image->sections[i].size = section[i].size;
@@ -151,7 +159,7 @@ int image_ihex_buffer_complete(image_t *image)
 					image->num_sections++;
 					section[image->num_sections].size = 0x0;
 					section[image->num_sections].flags = 0;
-					section_pointer[image->num_sections] = &ihex->buffer[cooked_bytes];
+					section[image->num_sections].private = &ihex->buffer[cooked_bytes];
 				}
 				section[image->num_sections].base_address = 
 					(full_address & 0xffff) | (upper_address << 16);
@@ -189,6 +197,141 @@ int image_ihex_buffer_complete(image_t *image)
 	free(buffer);
 	ERROR("premature end of IHEX file, no end-of-file record found");
 	return ERROR_IMAGE_FORMAT_ERROR;
+}
+
+int image_elf_read_headers(image_t *image)
+{
+	image_elf_t *elf = image->type_private;
+	u32 read_bytes;
+	u32 i,j;
+	int retval;
+
+	elf->header = malloc(sizeof(Elf32_Ehdr));
+
+	if ((retval = fileio_read(&elf->fileio, sizeof(Elf32_Ehdr), (u8*)elf->header, &read_bytes)) != ERROR_OK)
+	{
+		ERROR("cannot read ELF file header, read failed");
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+	if (read_bytes != sizeof(Elf32_Ehdr))
+	{
+		ERROR("cannot read ELF file header, only partially read");
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+
+	if (strncmp((char*)elf->header->e_ident,ELFMAG,SELFMAG)!=0)
+	{
+		ERROR("invalid ELF file, bad magic number");
+		return ERROR_IMAGE_FORMAT_ERROR;
+	}
+	if (elf->header->e_ident[EI_CLASS]!=ELFCLASS32)
+	{
+		ERROR("invalid ELF file, only 32bits files are supported");
+		return ERROR_IMAGE_FORMAT_ERROR;
+	}
+
+
+	elf->endianness = elf->header->e_ident[EI_DATA];
+	if ((elf->endianness==ELFDATANONE)
+		 ||(elf->endianness>=ELFDATANUM))
+	{
+		ERROR("invalid ELF file, unknown endianess setting");
+		return ERROR_IMAGE_FORMAT_ERROR;
+	}
+
+	elf->segment_count = field16(elf,elf->header->e_phnum);
+	if (elf->segment_count==0)
+	{
+		ERROR("invalid ELF file, no program headers");
+		return ERROR_IMAGE_FORMAT_ERROR;
+	}
+
+	elf->segments = malloc(elf->segment_count*sizeof(Elf32_Phdr));
+
+	if ((retval = fileio_read(&elf->fileio, elf->segment_count*sizeof(Elf32_Phdr), (u8*)elf->segments, &read_bytes)) != ERROR_OK)
+	{
+		ERROR("cannot read ELF segment headers, read failed");
+		return retval;
+	}
+	if (read_bytes != elf->segment_count*sizeof(Elf32_Phdr))
+	{
+		ERROR("cannot read ELF segment headers, only partially read");
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+
+	/* count useful segments (loadable) */
+	image->num_sections = 0;
+	for (i=0;i<elf->segment_count;i++)
+		if (field32(elf,elf->segments[i].p_type) == PT_LOAD)
+			image->num_sections++;
+	/* alloc and fill sections array with loadable segments */
+	image->sections = malloc(image->num_sections * sizeof(image_section_t));
+	for (i=0,j=0;i<elf->segment_count;i++)
+	{
+		if (field32(elf,elf->segments[i].p_type) == PT_LOAD)
+		{
+			image->sections[j].size = field32(elf,elf->segments[i].p_memsz);
+			image->sections[j].base_address = field32(elf,elf->segments[i].p_vaddr);
+			image->sections[j].private = &elf->segments[i];
+			image->sections[j].flags = field32(elf,elf->segments[i].p_flags);
+			j++;
+		}
+	}
+		
+	image->start_address_set = 1;
+	image->start_address = field32(elf,elf->header->e_entry);
+
+	return ERROR_OK;
+}
+
+int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read)
+{
+	image_elf_t *elf = image->type_private;
+	Elf32_Phdr *segment = (Elf32_Phdr *)image->sections[section].private;
+	u32 read_size,really_read;
+	int retval;
+
+	*size_read = 0;
+	
+	DEBUG("load segment %d at 0x%x (sz=0x%x)",section,offset,size);
+
+	/* read initialized data in current segment if any */
+	if (offset<field32(elf,segment->p_filesz))
+	{
+		/* maximal size present in file for the current segment */
+		read_size = MIN(size, field32(elf,segment->p_filesz)-offset);
+		DEBUG("read elf: size = 0x%x at 0x%x",read_size,
+			field32(elf,segment->p_offset)+offset);
+		/* read initialized area of the segment */
+		if ((retval = fileio_seek(&elf->fileio, field32(elf,segment->p_offset)+offset)) != ERROR_OK)
+		{
+			ERROR("cannot find ELF segment content, seek failed");
+			return retval;
+		}
+		if ((retval = fileio_read(&elf->fileio, read_size, buffer, &really_read)) != ERROR_OK)
+		{
+			ERROR("cannot read ELF segment content, read failed");
+			return retval;
+		}
+		buffer += read_size;
+		size -= read_size;
+		offset += read_size;
+		*size_read += read_size;
+		/* need more data ? */
+		if (!size)
+			return ERROR_OK;
+	}
+	/* if there is remaining zeroed area in current segment */
+	if (offset<field32(elf,segment->p_memsz))
+	{
+		/* fill zeroed part (BSS) of the segment */
+		read_size = MIN(size, field32(elf,segment->p_memsz)-offset);
+		DEBUG("zero fill: size = 0x%x",read_size);
+		memset(buffer,0,read_size);
+		*size_read += read_size;
+	}
+	
+	return ERROR_OK;
 }
 
 int image_open(image_t *image, void *source, enum fileio_access access)
@@ -251,6 +394,29 @@ int image_open(image_t *image, void *source, enum fileio_access access)
 			return retval;
 		}
 	}
+	else if (image->type == IMAGE_ELF)
+	{
+		image_elf_t *image_elf;
+		char *url = source;
+		
+		image_elf = image->type_private = malloc(sizeof(image_elf_t));
+		
+		if ((retval = fileio_open(&image_elf->fileio, url, FILEIO_READ, FILEIO_BINARY)) != ERROR_OK)
+		{
+			strncpy(image->error_str, image_elf->fileio.error_str, IMAGE_MAX_ERROR_STRING); 
+			ERROR(image->error_str);
+			return retval;
+		}
+		
+		if ((retval = image_elf_read_headers(image)) != ERROR_OK)
+		{
+			snprintf(image->error_str, IMAGE_MAX_ERROR_STRING,
+				"failed to read ELF headers, check daemon output for additional information");
+			ERROR(image->error_str);
+			fileio_close(&image_elf->fileio);
+			return retval;
+		}
+	}
 	else if (image->type == IMAGE_MEMORY)
 	{
 		image_memory_t *image_memory;
@@ -295,13 +461,15 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	}
 	else if (image->type == IMAGE_IHEX)
 	{
-		image_ihex_t *image_ihex = image->type_private;
-
-		memcpy(buffer, image_ihex->section_pointer[section] + offset, size);
+		memcpy(buffer, (u8*)image->sections[section].private + offset, size);
 		*size_read = size;
 		image->error_str[0] = '\0';
 		
 		return ERROR_OK;
+	}
+	else if (image->type == IMAGE_ELF)
+	{
+		return image_elf_read_section(image, section, offset, size, buffer, size_read);
 	}
 	else if (image->type == IMAGE_MEMORY)
 	{
@@ -331,6 +499,18 @@ int image_close(image_t *image)
 		if (image_ihex->buffer)
 			free(image_ihex->buffer);
 	}
+	else if (image->type == IMAGE_ELF)
+	{
+		image_elf_t *image_elf = image->type_private;
+		
+		fileio_close(&image_elf->fileio);
+
+		if (image_elf->header)
+			free(image_elf->header);
+
+		if (image_elf->segments)
+			free(image_elf->segments);
+	}
 	else if (image->type == IMAGE_MEMORY)
 	{
 		/* do nothing for now */
@@ -356,6 +536,10 @@ int identify_image_type(image_type_t *type, char *type_string)
 		else if (!strcmp(type_string, "ihex"))
 		{
 			*type = IMAGE_IHEX;
+		}
+		else if (!strcmp(type_string, "elf"))
+		{
+			*type = IMAGE_ELF;
 		}
 		else
 		{
