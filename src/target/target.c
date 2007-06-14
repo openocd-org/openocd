@@ -81,6 +81,7 @@ extern target_type_t arm920t_target;
 extern target_type_t arm966e_target;
 extern target_type_t arm926ejs_target;
 extern target_type_t xscale_target;
+extern target_type_t cortexm3_target;
 
 target_type_t *target_types[] =
 {
@@ -91,6 +92,7 @@ target_type_t *target_types[] =
 	&arm966e_target,
 	&arm926ejs_target,
 	&xscale_target,
+	&cortexm3_target,
 	NULL,
 };
 
