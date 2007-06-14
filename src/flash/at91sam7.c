@@ -381,8 +381,8 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 
 	if (at91sam7_info->cidr_arch == 0x71 )
 	{
-		at91sam7_info->num_nvmbits = 2;
-		at91sam7_info->nvmbits = (status>>8)&0x03;
+		at91sam7_info->num_nvmbits = 3;
+		at91sam7_info->nvmbits = (status>>8)&0x07;
 		bank->base = 0x100000;
 		bank->bus_width = 4;
 		if (bank->size==0x40000)  /* AT91SAM7XC256 */
