@@ -28,6 +28,8 @@
 
 #include "armv4_5.h"
 #include "arm7_9_common.h"
+#include "arm_disassembler.h"
+#include "arm_simulator.h"
 
 #include "log.h"
 #include "arm_jtag.h"
@@ -482,39 +484,499 @@ char *etmv1v1_branch_reason_strings[] =
 	"reserved",
 };
 
-int etmv1_next_packet(etm_context_t *ctx, u8 *packet)
+int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instruction)
 {
+	int i;
+	int section = -1;
+	u32 size_read;
+	u32 opcode;
+	int retval;
 	
+	if (!ctx->image)
+		return ERROR_TRACE_IMAGE_UNAVAILABLE;
+	
+	/* search for the section the current instruction belongs to */	
+	for (i = 0; i < ctx->image->num_sections; i++)
+	{
+		if ((ctx->image->sections[i].base_address <= ctx->current_pc) &&
+			(ctx->image->sections[i].base_address + ctx->image->sections[i].size > ctx->current_pc))
+		{
+			section = i;
+			break;
+		}
+	}
+	
+	if (section == -1)
+	{
+		/* current instruction couldn't be found in the image */
+		return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
+	}
+	
+	if (ctx->core_state == ARMV4_5_STATE_ARM)
+	{
+		u8 buf[4];
+		if ((retval = image_read_section(ctx->image, section, 
+			ctx->current_pc - ctx->image->sections[section].base_address,
+			4, buf, &size_read)) != ERROR_OK)
+		{
+			ERROR("error while reading instruction: %i", retval);
+			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
+		}
+		opcode = target_buffer_get_u32(ctx->target, buf);
+		arm_evaluate_opcode(opcode, ctx->current_pc, instruction);
+	}
+	else if (ctx->core_state == ARMV4_5_STATE_THUMB)
+	{
+		u8 buf[2];
+		if ((retval = image_read_section(ctx->image, section, 
+			ctx->current_pc - ctx->image->sections[section].base_address,
+			2, buf, &size_read)) != ERROR_OK)
+		{
+			ERROR("error while reading instruction: %i", retval);
+			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
+		}
+		opcode = target_buffer_get_u16(ctx->target, buf);
+		thumb_evaluate_opcode(opcode, ctx->current_pc, instruction);
+	}
+	else if (ctx->core_state == ARMV4_5_STATE_JAZELLE)
+	{
+		ERROR("BUG: tracing of jazelle code not supported");
+		exit(-1);
+	}
+	else
+	{
+		ERROR("BUG: unknown core state encountered");
+		exit(-1);
+	}
 	
 	return ERROR_OK;
 }
 
-int etmv1_analyse_trace(etm_context_t *ctx)
+int etmv1_next_packet(etm_context_t *ctx, u8 *packet, int apo)
 {
+	while (ctx->data_index < ctx->trace_depth)
+	{
+		/* if the caller specified an address packet offset, skip until the
+		 * we reach the n-th cycle marked with tracesync */
+		if (apo > 0)
+		{
+			if (ctx->trace_data[ctx->data_index].flags & ETMV1_TRACESYNC_CYCLE)
+				apo--;
+			
+			if (apo > 0)
+			{
+				ctx->data_index++;
+				ctx->data_half = 0;
+			}
+			continue;
+		}
+		
+		/* no tracedata output during a TD cycle
+		 * or in a trigger cycle */
+		if ((ctx->trace_data[ctx->data_index].pipestat == STAT_TD)
+			|| (ctx->trace_data[ctx->data_index].flags & ETMV1_TRIGGER_CYCLE))
+		{
+			ctx->data_index++;
+			ctx->data_half = 0;
+			continue;
+		}
+		
+		if ((ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_16BIT)
+		{
+			if (ctx->data_half == 0)
+			{
+				*packet = ctx->trace_data[ctx->data_index].packet & 0xff;
+				ctx->data_half = 1;
+			}
+			else
+			{
+				*packet = (ctx->trace_data[ctx->data_index].packet & 0xff00) >> 8;
+				ctx->data_half = 0;
+				ctx->data_index++;
+			}
+		}
+		else if ((ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
+		{
+			*packet = ctx->trace_data[ctx->data_index].packet & 0xff;
+			ctx->data_index++;
+		}
+		else
+		{
+			/* on a 4-bit port, a packet will be output during two consecutive cycles */
+			if (ctx->data_index > (ctx->trace_depth - 2))
+				return -1;
+			
+			*packet = ctx->trace_data[ctx->data_index].packet & 0xf;
+			*packet |= (ctx->trace_data[ctx->data_index + 1].packet & 0xf) << 4;
+			ctx->data_index += 2;
+		}
+					
+		return 0;
+	}
+	
+	return -1;
+}
+
+int etmv1_branch_address(etm_context_t *ctx)
+{
+	int retval;
+	u8 packet;
+	int shift = 0;
+	int apo;
+	int i;
+	
+	/* quit analysis if less than two cycles are left in the trace
+	 * because we can't extract the APO */
+	if (ctx->data_index > (ctx->trace_depth - 2))
+		return -1;
+		
+	/* a BE could be output during an APO cycle, skip the current
+	 * and continue with the new one */
+	if (ctx->trace_data[ctx->pipe_index + 1].pipestat & 0x4)
+		return 1;
+	if (ctx->trace_data[ctx->pipe_index + 2].pipestat & 0x4)
+		return 2;
+		
+	/* address packet offset encoded in the next two cycles' pipestat bits */
+	apo = ctx->trace_data[ctx->pipe_index + 1].pipestat & 0x3;
+	apo |= (ctx->trace_data[ctx->pipe_index + 2].pipestat & 0x3) << 2;
+	
+	/* count number of tracesync cycles between current pipe_index and data_index
+	 * i.e. the number of tracesyncs that data_index already passed by
+	 * to subtract them from the APO */
+	for (i = ctx->pipe_index; i < ctx->data_index; i++)
+	{
+		if (ctx->trace_data[ctx->pipe_index + 1].pipestat & ETMV1_TRACESYNC_CYCLE)
+			apo--;
+	}
+	
+	/* extract up to four 7-bit packets */
+	do {
+		if ((retval = etmv1_next_packet(ctx, &packet, (shift == 0) ? apo + 1 : 0)) != 0)
+			return -1;
+		ctx->last_branch &= ~(0x7f << shift);
+		ctx->last_branch |= (packet & 0x7f) << shift;
+		shift += 7;
+	} while ((packet & 0x80) && (shift < 28));
+	
+	/* one last packet holding 4 bits of the address, plus the branch reason code */
+	if ((shift == 28) && (packet & 0x80))
+	{
+		if ((retval = etmv1_next_packet(ctx, &packet, 0)) != 0)
+			return -1;
+		ctx->last_branch &= 0x0fffffff;
+		ctx->last_branch |= (packet & 0x0f) << 28;
+		ctx->last_branch_reason = (packet & 0x70) >> 4;
+		shift += 4;
+	}
+	else
+	{
+		ctx->last_branch_reason = 0;
+	}
+	
+	if (shift == 32)
+	{
+		ctx->pc_ok = 1;
+	}
+	
+	/* if a full address was output, we might have branched into Jazelle state */
+	if ((shift == 32) && (packet & 0x80))
+	{
+		ctx->core_state = ARMV4_5_STATE_JAZELLE;
+	}
+	else
+	{
+		/* if we didn't branch into Jazelle state, the current processor state is
+		 * encoded in bit 0 of the branch target address */
+		if (ctx->last_branch & 0x1)
+		{
+			ctx->core_state = ARMV4_5_STATE_THUMB;
+			ctx->last_branch &= ~0x1;
+		}
+		else
+		{
+			ctx->core_state = ARMV4_5_STATE_ARM;
+			ctx->last_branch &= ~0x3;
+		}
+	}
+	
+	return 0;
+}
+
+int etmv1_data(etm_context_t *ctx, int size, u32 *data)
+{
+	int j;
+	u8 buf[4];
+	int retval;
+	
+	for (j = 0; j < size; j++)
+	{
+		if ((retval = etmv1_next_packet(ctx, &buf[j], 0)) != 0)
+			return -1;
+	}
+	
+	if (size == 8)
+		ERROR("TODO: add support for 64-bit values");
+	else if (size == 4)
+		*data = target_buffer_get_u32(ctx->target, buf);
+	else if (size == 2)
+		*data = target_buffer_get_u16(ctx->target, buf);
+	else if (size == 1)
+		*data = buf[0];
+		
+	return 0;
+}
+
+int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
+{
+	int retval;
+	arm_instruction_t instruction;
+	
+	/* read the trace data if it wasn't read already */
+	if (ctx->trace_depth == 0)
+		ctx->capture_driver->read_trace(ctx);
+	
+	/* start at the beginning of the captured trace */
 	ctx->pipe_index = 0;
 	ctx->data_index = 0;
+	ctx->data_half = 0;
+
+	/* neither the PC nor the data pointer are valid */	
+	ctx->pc_ok = 0;
+	ctx->ptr_ok = 0;
 	
 	while (ctx->pipe_index < ctx->trace_depth)
 	{
-		switch (ctx->trace_data[ctx->pipe_index].pipestat)
+		u8 pipestat = ctx->trace_data[ctx->pipe_index].pipestat;
+		u32 next_pc = ctx->current_pc;
+		u32 old_data_index = ctx->data_index;
+		u32 old_data_half = ctx->data_half;
+		
+		if (ctx->trace_data[ctx->pipe_index].flags & ETMV1_TRIGGER_CYCLE)
 		{
-			case STAT_IE:
-			case STAT_ID:
-				break;
-			case STAT_IN:
-				DEBUG("IN");
-				break;
-			case STAT_WT:
-				DEBUG("WT");
-				break;
-			case STAT_BE:
-			case STAT_BD:
-				break;
-			case STAT_TD:
-				/* TODO: in cycle accurate trace, we have to count cycles */
-				DEBUG("TD");
-				break;
+			command_print(cmd_ctx, "--- trigger ---");
 		}
+		
+		/* if we don't have a valid pc skip until we reach an indirect branch */
+		if ((!ctx->pc_ok) && (pipestat != STAT_BE))
+		{
+			ctx->pipe_index++;
+			continue;
+		}
+		
+		/* any indirect branch could have interrupted instruction flow
+		 * - the branch reason code could indicate a trace discontinuity
+		 * - a branch to the exception vectors indicates an exception
+		 */
+		if ((pipestat == STAT_BE) || (pipestat == STAT_BD))
+		{
+			/* backup current data index, to be able to consume the branch address
+			 * before examining data address and values
+			 */
+			old_data_index = ctx->data_index;
+			old_data_half = ctx->data_half;
+			
+			if ((retval = etmv1_branch_address(ctx)) != 0)
+			{
+				/* negative return value from etmv1_branch_address means we ran out of packets,
+				 * quit analysing the trace */
+				if (retval < 0)
+					break;
+				
+				/* a positive return values means the current branch was abandoned,
+				 * and a new branch was encountered in cycle ctx->pipe_index + retval;
+				 */
+				WARNING("abandoned branch encountered, correctnes of analysis uncertain");
+				ctx->pipe_index += retval;
+				continue;
+			}
+			
+			/* skip over APO cycles */
+			ctx->pipe_index += 2;
+			
+			switch (ctx->last_branch_reason)
+			{
+				case 0x0:	/* normal PC change */
+					next_pc = ctx->last_branch;
+					break;
+				case 0x1:	/* tracing enabled */
+					command_print(cmd_ctx, "--- tracing enabled at 0x%8.8x ---", ctx->last_branch);
+					ctx->current_pc = ctx->last_branch;
+					ctx->pipe_index++;
+					continue;
+					break;
+				case 0x2:	/* trace restarted after FIFO overflow */
+					command_print(cmd_ctx, "--- trace restarted after FIFO overflow at 0x%8.8x ---", ctx->last_branch);
+					ctx->current_pc = ctx->last_branch;
+					ctx->pipe_index++;
+					continue;
+					break;
+				case 0x3:	/* exit from debug state */
+					command_print(cmd_ctx, "--- exit from debug state at 0x%8.8x ---", ctx->last_branch);
+					ctx->current_pc = ctx->last_branch;
+					ctx->pipe_index++;
+					continue;
+					break;
+				case 0x4:	/* periodic synchronization point */
+					next_pc = ctx->last_branch;
+					break;
+				default:	/* reserved */
+					ERROR("BUG: branch reason code 0x%x is reserved", ctx->last_branch_reason);		
+					exit(-1);
+					break;
+			}
+			
+			/* if we got here the branch was a normal PC change
+			 * (or a periodic synchronization point, which means the same for that matter)
+			 * if we didn't accquire a complete PC continue with the next cycle
+			 */
+			if (!ctx->pc_ok)
+				continue;
+			
+			/* indirect branch to the exception vector means an exception occured */
+			if (((ctx->last_branch >= 0x0) && (ctx->last_branch <= 0x20))
+				|| ((ctx->last_branch >= 0xffff0000) && (ctx->last_branch <= 0xffff0020)))
+			{
+				if ((ctx->last_branch & 0xff) == 0x10)
+				{
+					command_print(cmd_ctx, "data abort");
+				}
+				else
+				{
+					command_print(cmd_ctx, "exception vector 0x%2.2x", ctx->last_branch);
+					ctx->current_pc = ctx->last_branch;
+					ctx->pipe_index++;
+					continue;
+				}
+			}
+		}
+		
+		/* an instruction was executed (or not, depending on the condition flags)
+		 * retrieve it from the image for displaying */
+		if (ctx->pc_ok && (pipestat != STAT_WT) && (pipestat != STAT_TD) &&
+			!(((pipestat == STAT_BE) || (pipestat == STAT_BD)) &&
+				((ctx->last_branch_reason != 0x0) && (ctx->last_branch_reason != 0x4))))  
+		{
+			if ((retval = etm_read_instruction(ctx, &instruction)) != ERROR_OK)
+			{
+				/* can't continue tracing with no image available */
+				if (retval == ERROR_TRACE_IMAGE_UNAVAILABLE)
+				{
+					return retval;
+				}
+				else if (retval == ERROR_TRACE_INSTRUCTION_UNAVAILABLE)
+				{
+					/* TODO: handle incomplete images */
+				}
+			}
+		}
+		
+		if ((pipestat == STAT_ID) || (pipestat == STAT_BD))
+		{
+			u32 new_data_index = ctx->data_index;
+			u32 new_data_half = ctx->data_half;
+			
+			/* in case of a branch with data, the branch target address was consumed before
+			 * we temporarily go back to the saved data index */
+			if (pipestat == STAT_BD)
+			{
+				ctx->data_index = old_data_index;
+				ctx->data_half = old_data_half;
+			}
+			
+			if (ctx->tracemode & ETMV1_TRACE_ADDR)
+			{			
+				u8 packet;
+				int shift = 0;
+				
+				do {
+					if ((retval = etmv1_next_packet(ctx, &packet, 0)) != 0)
+						return -1;
+					ctx->last_ptr &= ~(0x7f << shift);
+					ctx->last_ptr |= (packet & 0x7f) << shift;
+					shift += 7;
+				} while ((packet & 0x80) && (shift < 32));
+				
+				if (shift >= 32)
+					ctx->ptr_ok = 1;
+				
+				if (ctx->ptr_ok)
+				{
+					command_print(cmd_ctx, "address: 0x%8.8x", ctx->last_ptr);
+				}
+			}
+			
+			if (ctx->tracemode & ETMV1_TRACE_DATA)
+			{
+				if ((instruction.type == ARM_LDM) || (instruction.type == ARM_STM))
+				{
+					int i;
+					for (i = 0; i < 16; i++)
+					{
+						if (instruction.info.load_store_multiple.register_list & (1 << i))
+						{
+							u32 data;
+							if (etmv1_data(ctx, 4, &data) != 0)
+								return -1;
+							command_print(cmd_ctx, "data: 0x%8.8x", data);
+						}
+					}
+				}
+				else if ((instruction.type >= ARM_LDR) && (instruction.type <= ARM_STRH))
+				{
+					u32 data;
+					if (etmv1_data(ctx, arm_access_size(&instruction), &data) != 0)
+						return -1;
+					command_print(cmd_ctx, "data: 0x%8.8x", data);
+				}
+			}
+			
+			/* restore data index after consuming BD address and data */
+			if (pipestat == STAT_BD)
+			{
+				ctx->data_index = new_data_index;
+				ctx->data_half = new_data_half;
+			}
+		}
+		
+		/* adjust PC */
+		if ((pipestat == STAT_IE) || (pipestat == STAT_ID))
+		{
+			if (((instruction.type == ARM_B) ||
+				(instruction.type == ARM_BL) ||
+				(instruction.type == ARM_BLX)) &&
+				(instruction.info.b_bl_bx_blx.target_address != -1))
+			{
+				next_pc = instruction.info.b_bl_bx_blx.target_address;
+			}
+			else
+			{
+				next_pc += (ctx->core_state == ARMV4_5_STATE_ARM) ? 4 : 2;
+			}
+		}
+		else if (pipestat == STAT_IN)
+		{
+			next_pc += (ctx->core_state == ARMV4_5_STATE_ARM) ? 4 : 2;
+		}
+
+		if ((pipestat != STAT_TD) && (pipestat != STAT_WT))
+		{
+			command_print(cmd_ctx, "%s%s",
+				instruction.text, (pipestat == STAT_IN) ? " (not executed)" : "");
+
+			ctx->current_pc = next_pc;
+			
+			/* packets for an instruction don't start on or before the preceding
+			 * functional pipestat (i.e. other than WT or TD)
+			 */
+			if (ctx->data_index <= ctx->pipe_index)
+			{
+				ctx->data_index = ctx->pipe_index + 1;
+				ctx->data_half = 0;
+			}
+		}
+		
+		ctx->pipe_index += 1;
 	}
 	
 	return ERROR_OK;
@@ -769,17 +1231,21 @@ int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 		}
 	}
 	
+	etm_ctx->target = target;
 	etm_ctx->trace_data = NULL;
 	etm_ctx->trace_depth = 0;
 	etm_ctx->portmode = portmode;
 	etm_ctx->tracemode = 0x0;
 	etm_ctx->core_state = ARMV4_5_STATE_ARM;
+	etm_ctx->image = NULL;
 	etm_ctx->pipe_index = 0;
 	etm_ctx->data_index = 0;
 	etm_ctx->current_pc = 0x0;
 	etm_ctx->pc_ok = 0;
 	etm_ctx->last_branch = 0x0;
+	etm_ctx->last_branch_reason = 0x0;
 	etm_ctx->last_ptr = 0x0;
+	etm_ctx->ptr_ok = 0x0;
 	etm_ctx->context_id = 0x0;
 	
 	arm7_9->etm_ctx = etm_ctx;
@@ -837,6 +1303,67 @@ int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
+int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	etm_context_t *etm_ctx;
+	int i;
+
+	if (argc < 1)
+	{
+		command_print(cmd_ctx, "usage: etm image <file> ['bin'|'ihex'|'elf'] [base address]");
+		return ERROR_OK;
+	}
+	
+	target = get_current_target(cmd_ctx);
+	
+	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		return ERROR_OK;
+	}
+	
+	if (!(etm_ctx = arm7_9->etm_ctx))
+	{
+		command_print(cmd_ctx, "current target doesn't have an ETM configured");
+		return ERROR_OK;
+	}
+	
+	if (etm_ctx->image)
+	{
+		image_close(etm_ctx->image);
+		free(etm_ctx->image);
+		command_print(cmd_ctx, "previously loaded image found and closed");
+	}
+	
+	etm_ctx->image = malloc(sizeof(image_t));
+	etm_ctx->image->base_address_set = 0;
+	etm_ctx->image->start_address_set = 0;
+	
+	for (i = 1; i < argc; i++)
+	{
+		/* optional argument could be image type */
+		if (identify_image_type(&etm_ctx->image->type, args[i], args[0]) == ERROR_IMAGE_TYPE_UNKNOWN)
+		{
+			/* if it wasn't a valid image type, treat it as the base address */
+			etm_ctx->image->base_address_set = 1;
+			etm_ctx->image->base_address = strtoul(args[i], NULL, 0);
+		}
+	}
+	
+	if (image_open(etm_ctx->image, args[0], FILEIO_READ) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "image opening error: %s", etm_ctx->image->error_str);
+		free(etm_ctx->image);
+		etm_ctx->image = NULL;
+		return ERROR_OK;
+	}
+	
+	return ERROR_OK;
+}
+
 int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	fileio_t file;
@@ -844,7 +1371,7 @@ int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	etm_context_t *etm_ctx;
-	u32 size_written;
+	int i;
 	
 	if (argc != 1)
 	{
@@ -889,7 +1416,17 @@ int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		return ERROR_OK;
 	}
 	
-	//fileio_write(&file, etm_ctx->trace_depth * 4, (u8*)etm_ctx->trace_data, &size_written);
+	fileio_write_u32(&file, etm_ctx->capture_status);
+	fileio_write_u32(&file, etm_ctx->portmode);
+	fileio_write_u32(&file, etm_ctx->tracemode);
+	fileio_write_u32(&file, etm_ctx->trace_depth);
+	
+	for (i = 0; i < etm_ctx->trace_depth; i++)
+	{
+		fileio_write_u32(&file, etm_ctx->trace_data[i].pipestat);
+		fileio_write_u32(&file, etm_ctx->trace_data[i].packet);
+		fileio_write_u32(&file, etm_ctx->trace_data[i].flags);
+	}
 	
 	fileio_close(&file);
 	
@@ -903,7 +1440,7 @@ int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	etm_context_t *etm_ctx;
-	u32 size_read;
+	int i;
 	
 	if (argc != 1)
 	{
@@ -948,9 +1485,19 @@ int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		free(etm_ctx->trace_data);
 	}
 	
-	//fileio_read(&file, file.size, (u8*)etm_ctx->trace_data, &size_read);
-	etm_ctx->trace_depth = file.size / 4;
-	etm_ctx->capture_status = TRACE_COMPLETED;
+	fileio_read_u32(&file, &etm_ctx->capture_status);
+	fileio_read_u32(&file, &etm_ctx->portmode);
+	fileio_read_u32(&file, &etm_ctx->tracemode);
+	fileio_read_u32(&file, &etm_ctx->trace_depth);
+	
+	etm_ctx->trace_data = malloc(sizeof(etmv1_trace_data_t) * etm_ctx->trace_depth);
+	
+	for (i = 0; i < etm_ctx->trace_depth; i++)
+	{
+		fileio_read_u32(&file, &etm_ctx->trace_data[i].pipestat);
+		fileio_read_u32(&file, &etm_ctx->trace_data[i].packet);
+		fileio_read_u32(&file, &etm_ctx->trace_data[i].flags);
+	}
 	
 	fileio_close(&file);
 	
@@ -1037,7 +1584,7 @@ int handle_etm_stop_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
-int handle_etm_analyse_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_etm_analyze_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1058,7 +1605,7 @@ int handle_etm_analyse_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 	
-	etmv1_analyse_trace(etm_ctx);
+	etmv1_analyze_trace(etm_ctx, cmd_ctx);
 	
 	return ERROR_OK;
 }
@@ -1084,8 +1631,11 @@ int etm_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, etm_cmd, "stop", handle_etm_stop_command,
 		COMMAND_EXEC, "stop ETM trace collection");
 
-	register_command(cmd_ctx, etm_cmd, "analyze", handle_etm_stop_command,
+	register_command(cmd_ctx, etm_cmd, "analyze", handle_etm_analyze_command,
 		COMMAND_EXEC, "anaylze collected ETM trace");
+
+	register_command(cmd_ctx, etm_cmd, "image", handle_etm_image_command,
+		COMMAND_EXEC, "load image from <file> [base address]");
 
 	register_command(cmd_ctx, etm_cmd, "dump", handle_etm_dump_command,
 		COMMAND_EXEC, "dump captured trace data <file>");

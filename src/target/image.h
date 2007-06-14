@@ -24,7 +24,7 @@
 #include "fileio.h"
 #include "target.h"
 
-#define IMAGE_MAX_ERROR_STRING		(128)
+#define IMAGE_MAX_ERROR_STRING		(256)
 #define IMAGE_MAX_SECTIONS			(128)
 
 typedef enum image_type
@@ -69,7 +69,6 @@ typedef struct image_ihex_s
 {
 	fileio_t fileio;
 	u8 *buffer;
-	u8 **section_pointer;
 } image_ihex_t;
 
 typedef struct image_memory_s
@@ -86,10 +85,9 @@ typedef struct fileio_elf_s
 	u8 endianness;
 } image_elf_t;
 
-extern int image_open(image_t *image, void *source, enum fileio_access access);
+extern int image_open(image_t *image, void *source, char *type_string);
 extern int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read);
 extern int image_close(image_t *image);
-extern int identify_image_type(image_type_t *type, char *type_string);
 
 #define ERROR_IMAGE_FORMAT_ERROR	(-1400)
 #define ERROR_IMAGE_TYPE_UNKNOWN	(-1401)

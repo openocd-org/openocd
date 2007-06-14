@@ -2080,3 +2080,37 @@ int thumb_evaluate_opcode(u16 opcode, u32 address, arm_instruction_t *instructio
 	return -1;
 }
 
+int arm_access_size(arm_instruction_t *instruction)
+{
+	if ((instruction->type == ARM_LDRB)
+		|| (instruction->type == ARM_LDRBT)
+		|| (instruction->type == ARM_LDRSB)
+		|| (instruction->type == ARM_STRB)
+		|| (instruction->type == ARM_STRBT))
+	{
+		return 1;
+	}
+	else if ((instruction->type == ARM_LDRH)
+		|| (instruction->type == ARM_LDRSH)
+		|| (instruction->type == ARM_STRH))
+	{
+		return 2;
+	}
+	else if ((instruction->type == ARM_LDR)
+		|| (instruction->type == ARM_LDRT)
+		|| (instruction->type == ARM_STR)
+		|| (instruction->type == ARM_STRT))
+	{
+		return 4;
+	}
+	else if ((instruction->type == ARM_LDRD)
+		|| (instruction->type == ARM_STRD))
+	{
+		return 8;
+	}
+	else
+	{
+		ERROR("BUG: instruction type %i isn't a load/store instruction", instruction->type);
+		return 0;
+	}
+}

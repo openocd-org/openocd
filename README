@@ -2,7 +2,7 @@
 
 			 Free and Open On-Chip Debugging, In-System Programming 
 						   and Boundary-Scan Testing
-				  Copyright (c) 2004, 2005, 2006 Dominic Rath
+				  Copyright (c) 2004-2007 Dominic Rath
 
 The debugger uses an IEEE 1149-1 compliant JTAG TAP bus master to access on-chip
 debug functionality available on ARM7 and ARM9 based microcontrollers /
@@ -67,22 +67,28 @@ with many Linux distributions.
 
 2. Supported cores
 
-This version of openocd supports the following cores:
+This version of openocd supports the following ARM7/9 cores:
 
 - ARM7TDMI(-s)
 - ARM9TDMI
 - ARM920t
 - ARM922t
+- ARM926ej-s
 - ARM966e
 
-Support for Intel XScale CPUs (PXA25x, PXA27x and IXP4xx) is currently being
-developed.
+Support for Intel XScale CPUs is also included:
 
+- PXA25x
+- IXP42x
+
+PXA27x debugging should be similar to the PXA25x but fails in the current
+version of OpenOCD.
+ 
 3. Host platforms
 
 OpenOCD was originally developed on x86-Linux, but has since then been ported
 to run on Windows/Cygwin, native Windows with MinGW, FreeBSD, x86-64-Linux and
-(though it's not fully working yet) PowerPC OS-X.
+PowerPC OS-X.
 
 4. Documentation
 

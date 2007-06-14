@@ -120,11 +120,17 @@ typedef struct etm_capture_driver_s
 	int (*stop_capture)(struct etm_context_s *etm_ctx);
 } etm_capture_driver_t;
 
+enum
+{
+	ETMV1_TRACESYNC_CYCLE = 0x1,
+	ETMV1_TRIGGER_CYCLE = 0x2,
+};
+
 typedef struct etmv1_trace_data_s
 {
-	u8 pipestat;	/* pipeline cycle this packet belongs to */
-	u16 packet;	/* packet data (4, 8 or 16 bit) */
-	int tracesync;	/* 1 if tracesync was set on this packet */
+	u8 pipestat;	/* bits 0-2 pipeline status */
+	u16 packet;		/* packet data (4, 8 or 16 bit) */
+	int flags;		/* ETMV1_TRACESYNC_CYCLE, ETMV1_TRIGGER_CYCLE */
 } etmv1_trace_data_t;
 
 /* describe a trace context
@@ -134,6 +140,7 @@ typedef struct etmv1_trace_data_s
  */
 typedef struct etm_context_s
 {
+	target_t *target;				/* target this ETM is connected to */
 	reg_cache_t *reg_cache;			/* ETM register cache */
 	etm_capture_driver_t *capture_driver;	/* driver used to access ETM data */
 	void *capture_driver_priv;		/* capture driver private data */
@@ -143,13 +150,16 @@ typedef struct etm_context_s
 	etm_portmode_t portmode;		/* normal, multiplexed or demultiplexed */
 	etmv1_tracemode_t tracemode;	/* type of information the trace contains (data, addres, contextID, ...) */ 
 	armv4_5_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
-	image_t image;					/* source for target opcodes */
+	image_t *image;					/* source for target opcodes */
 	u32 pipe_index;					/* current trace cycle */
 	u32 data_index;					/* cycle holding next data packet */
+	int data_half;					/* port half on a 16 bit port */
 	u32 current_pc;					/* current program counter */
 	u32 pc_ok;						/* full PC has been acquired */
 	u32 last_branch;				/* last branch address output */ 
+	u32 last_branch_reason;			/* branch reason code for the last branch encountered */
 	u32 last_ptr;					/* address of the last data access */
+	u32 ptr_ok;						/* whether last_ptr is valid */ 
 	u32 context_id;					/* context ID of the code being traced */
 } etm_context_t;
 

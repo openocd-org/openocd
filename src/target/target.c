@@ -1654,7 +1654,6 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 
 int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u32 address;
 	u8 *buffer;
 	u32 buf_cnt;
 	u32 image_size;
@@ -1668,22 +1667,28 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	target_t *target = get_current_target(cmd_ctx);
 
-	if (argc < 2)
+	if (argc < 1)
 	{
-		command_print(cmd_ctx, "usage: load_image <filename> <address> [type]");
+		command_print(cmd_ctx, "usage: load_image <filename> [address] [type]");
 		return ERROR_OK;
 	}
 	
-	identify_image_type(&image.type, (argc == 3) ? args[2] : NULL);
-
-	image.base_address_set = 1;
-	image.base_address = strtoul(args[1], NULL, 0);
+	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
+	if (argc >= 2)
+	{
+		image.base_address_set = 1;
+		image.base_address = strtoul(args[1], NULL, 0);
+	}
+	else
+	{
+		image.base_address_set = 0;
+	}
 	
 	image.start_address_set = 0;
 
 	duration_start_measure(&duration);
 	
-	if (image_open(&image, args[0], FILEIO_READ) != ERROR_OK)
+	if (image_open(&image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "load_image error: %s", image.error_str);
 		return ERROR_OK;

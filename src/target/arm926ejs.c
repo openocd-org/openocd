@@ -477,7 +477,7 @@ void arm926ejs_pre_restore_context(target_t *target)
 	/* read-modify-write CP15 cache debug control register 
 	 * to reenable I/D-cache linefills and disable WT */
 	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(7, 0, 15, 0), &cache_dbg_ctrl);
-	cache_dbg_ctrl |= 0x7;
+	cache_dbg_ctrl &= ~0x7;
 	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(7, 0, 15, 0), cache_dbg_ctrl);
 }
 

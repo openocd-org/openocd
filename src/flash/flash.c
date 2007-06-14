@@ -511,8 +511,6 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	
 	duration_start_measure(&duration);
 	
-	identify_image_type(&image.type, (argc == 4) ? args[3] : NULL);
-
 	image.base_address_set = 1;
 	image.base_address = strtoul(args[1], NULL, 0);
 	
@@ -526,7 +524,7 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 	
-	if (image_open(&image, args[1], FILEIO_READ) != ERROR_OK)
+	if (image_open(&image, args[1], (argc == 4) ? args[3] : NULL) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "flash write error: %s", image.error_str);
 		return ERROR_OK;

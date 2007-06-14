@@ -43,6 +43,94 @@
 	((elf->endianness==ELFDATA2LSB)? \
 		le_to_h_u32((u8*)&field):be_to_h_u32((u8*)&field)) 
 
+static int autodetect_image_type(image_t *image, char *url)
+{
+	int retval;
+	fileio_t fileio;
+	u32 read_bytes;
+	u8 buffer[9];
+	
+	/* read the first 4 bytes of image */
+	if ((retval = fileio_open(&fileio, url, FILEIO_READ, FILEIO_BINARY)) != ERROR_OK)
+	{
+		snprintf(image->error_str, IMAGE_MAX_ERROR_STRING, "cannot open image: %s", fileio.error_str); 
+		ERROR(image->error_str);
+		return retval;
+	}
+	if ((retval = fileio_read(&fileio, 9, buffer, &read_bytes)) != ERROR_OK)
+	{
+		snprintf(image->error_str, IMAGE_MAX_ERROR_STRING, "cannot read image header: %s", fileio.error_str);
+		ERROR(image->error_str);
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+	if (read_bytes != 9)
+	{
+		snprintf(image->error_str, IMAGE_MAX_ERROR_STRING, "cannot read image, only partially read");
+		ERROR(image->error_str);
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+	fileio_close(&fileio);
+
+	/* check header against known signatures */
+	if (strncmp((char*)buffer,ELFMAG,SELFMAG)==0)
+	{
+		DEBUG("ELF image detected.");
+		image->type = IMAGE_ELF;
+	}
+	else if  ((buffer[0]==':') /* record start byte */
+	        &&(isxdigit(buffer[1]))
+	        &&(isxdigit(buffer[2]))
+	        &&(isxdigit(buffer[3]))
+	        &&(isxdigit(buffer[4]))
+	        &&(isxdigit(buffer[5]))
+	        &&(isxdigit(buffer[6]))
+	        &&(buffer[7]=='0') /* record type : 00 -> 05 */
+	        &&(buffer[8]>='0')&&(buffer[8]<'6'))
+	{
+		DEBUG("IHEX image detected.");
+		image->type = IMAGE_IHEX;
+	}
+	else
+	{
+		image->type = IMAGE_BINARY;
+	}
+
+	return ERROR_OK;
+}
+
+int identify_image_type(image_t *image, char *type_string, char *url)
+{
+	if (type_string)
+	{
+		if (!strcmp(type_string, "bin"))
+		{
+			image->type = IMAGE_BINARY;
+		}
+		else if (!strcmp(type_string, "ihex"))
+		{
+			image->type = IMAGE_IHEX;
+		}
+		else if (!strcmp(type_string, "elf"))
+		{
+			image->type = IMAGE_ELF;
+		}
+		else if (!strcmp(type_string, "mem"))
+		{
+			image->type = IMAGE_MEMORY;
+		}
+		else
+		{
+			return ERROR_IMAGE_TYPE_UNKNOWN;
+		}
+	}
+	else
+	{
+		return autodetect_image_type(image, url);
+	}
+	
+	return ERROR_OK;
+}
+
 int image_ihex_buffer_complete(image_t *image)
 {
 	image_ihex_t *ihex = image->type_private;
@@ -334,9 +422,14 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 	return ERROR_OK;
 }
 
-int image_open(image_t *image, void *source, enum fileio_access access)
+int image_open(image_t *image, void *source, char *type_string)
 {
 	int retval = ERROR_OK;
+	
+	if ((retval = identify_image_type(image, type_string, source)) != ERROR_OK)
+	{
+		return retval;
+	} 
 	
 	if (image->type == IMAGE_BINARY)
 	{
@@ -345,7 +438,7 @@ int image_open(image_t *image, void *source, enum fileio_access access)
 		
 		image_binary = image->type_private = malloc(sizeof(image_binary_t));
 		
-		if ((retval = fileio_open(&image_binary->fileio, url, access, FILEIO_BINARY)) != ERROR_OK)
+		if ((retval = fileio_open(&image_binary->fileio, url, FILEIO_READ, FILEIO_BINARY)) != ERROR_OK)
 		{
 			strncpy(image->error_str, image_binary->fileio.error_str, IMAGE_MAX_ERROR_STRING); 
 			ERROR(image->error_str);
@@ -367,14 +460,6 @@ int image_open(image_t *image, void *source, enum fileio_access access)
 	{
 		image_ihex_t *image_ihex;
 		char *url = source;
-		
-		if (access != FILEIO_READ)
-		{
-			snprintf(image->error_str, IMAGE_MAX_ERROR_STRING,
-				"can't open IHEX file for writing");
-			ERROR(image->error_str);
-			return ERROR_FILEIO_ACCESS_NOT_SUPPORTED;
-		}
 		
 		image_ihex = image->type_private = malloc(sizeof(image_ihex_t));
 		
@@ -493,9 +578,6 @@ int image_close(image_t *image)
 		
 		fileio_close(&image_ihex->fileio);
 		
-		if (image_ihex->section_pointer)
-			free(image_ihex->section_pointer);
-		
 		if (image_ihex->buffer)
 			free(image_ihex->buffer);
 	}
@@ -521,35 +603,6 @@ int image_close(image_t *image)
 	
 	if (image->sections)
 		free(image->sections);
-	
-	return ERROR_OK;
-}
-
-int identify_image_type(image_type_t *type, char *type_string)
-{
-	if (type_string)
-	{
-		if (!strcmp(type_string, "bin"))
-		{
-			*type = IMAGE_BINARY;
-		}
-		else if (!strcmp(type_string, "ihex"))
-		{
-			*type = IMAGE_IHEX;
-		}
-		else if (!strcmp(type_string, "elf"))
-		{
-			*type = IMAGE_ELF;
-		}
-		else
-		{
-			return ERROR_IMAGE_TYPE_UNKNOWN;
-		}
-	}
-	else
-	{
-		*type = IMAGE_BINARY;
-	}
 	
 	return ERROR_OK;
 }

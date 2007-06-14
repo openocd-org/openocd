@@ -31,4 +31,7 @@ typedef enum trace_status
 	TRACE_OVERFLOWED = 0x8,
 } trace_status_t;
 
+#define ERROR_TRACE_IMAGE_UNAVAILABLE	-(1500)
+#define ERROR_TRACE_INSTRUCTION_UNAVAILABLE	-(1500)
+
 #endif /* TRACE_H */

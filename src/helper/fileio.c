@@ -258,6 +258,27 @@ int fileio_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
 	}
 }
 
+int fileio_read_u32(fileio_t *fileio, u32 *data)
+{
+	u8 buf[4];
+	u32 size_read;
+	int retval;
+	
+	switch (fileio->location)
+	{
+		case FILEIO_LOCAL:
+			if ((retval = fileio_local_read(fileio, 4, buf, &size_read)) != ERROR_OK)
+				return retval;
+			*data = be_to_h_u32(buf);
+			break;
+		default:
+			ERROR("BUG: should never get here");
+			exit(-1);
+	}
+	
+	return ERROR_OK;
+}
+
 int fileio_local_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
 {
 	fileio_local_t *fileio_local = fileio->location_private;
@@ -273,6 +294,27 @@ int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
 	{
 		case FILEIO_LOCAL:
 			return fileio_local_write(fileio, size, buffer, size_written);
+			break;
+		default:
+			ERROR("BUG: should never get here");
+	}
+	
+	return ERROR_OK;
+}
+
+int fileio_write_u32(fileio_t *fileio, u32 data)
+{
+	u8 buf[4];
+	u32 size_written;
+	int retval;
+	
+	h_u32_to_be(buf, data);
+	
+	switch (fileio->location)
+	{
+		case FILEIO_LOCAL:
+			if ((retval = fileio_local_write(fileio, 4, buf, &size_written)) != ERROR_OK)
+				return retval;
 			break;
 		default:
 			ERROR("BUG: should never get here");
