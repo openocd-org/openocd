@@ -422,19 +422,18 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 	return ERROR_OK;
 }
 
-int image_open(image_t *image, void *source, char *type_string)
+int image_open(image_t *image, char *url, char *type_string)
 {
 	int retval = ERROR_OK;
 	
-	if ((retval = identify_image_type(image, type_string, source)) != ERROR_OK)
+	if ((retval = identify_image_type(image, type_string, url)) != ERROR_OK)
 	{
 		return retval;
-	} 
+	}
 	
 	if (image->type == IMAGE_BINARY)
 	{
 		image_binary_t *image_binary;
-		char *url = source;
 		
 		image_binary = image->type_private = malloc(sizeof(image_binary_t));
 		
@@ -459,7 +458,6 @@ int image_open(image_t *image, void *source, char *type_string)
 	else if (image->type == IMAGE_IHEX)
 	{
 		image_ihex_t *image_ihex;
-		char *url = source;
 		
 		image_ihex = image->type_private = malloc(sizeof(image_ihex_t));
 		
@@ -482,7 +480,6 @@ int image_open(image_t *image, void *source, char *type_string)
 	else if (image->type == IMAGE_ELF)
 	{
 		image_elf_t *image_elf;
-		char *url = source;
 		
 		image_elf = image->type_private = malloc(sizeof(image_elf_t));
 		
@@ -505,11 +502,18 @@ int image_open(image_t *image, void *source, char *type_string)
 	else if (image->type == IMAGE_MEMORY)
 	{
 		image_memory_t *image_memory;
-		target_t *target = source;
+		
+		image->num_sections = 1;
+		image->sections = malloc(sizeof(image_section_t));
+		image->sections[0].base_address = 0x0;
+		image->sections[0].size = 0xffffffff;
+		image->sections[0].flags = 0;
 		
 		image_memory = image->type_private = malloc(sizeof(image_memory_t));
 		
-		image_memory->target = target;
+		image_memory->target = get_target_by_num(strtoul(url, NULL, 0));;
+		image_memory->cache = NULL;
+		image_memory->cache_address = 0x0;
 	}
 	
 	return retval;
@@ -558,7 +562,41 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	}
 	else if (image->type == IMAGE_MEMORY)
 	{
-		/* TODO: handle target memory pseudo image */
+		image_memory_t *image_memory = image->type_private;
+		u32 address = image->sections[section].base_address + offset;
+		
+		*size_read = 0;
+		
+		while ((size - *size_read) > 0)
+		{
+			u32 size_in_cache;
+			
+			if (!image_memory->cache
+				|| (address < image_memory->cache_address)
+				|| (address >= (image_memory->cache_address + IMAGE_MEMORY_CACHE_SIZE)))
+			{
+				if (!image_memory->cache)
+					image_memory->cache = malloc(IMAGE_MEMORY_CACHE_SIZE);
+				
+				if (target_read_buffer(image_memory->target, address & ~(IMAGE_MEMORY_CACHE_SIZE - 1),
+					IMAGE_MEMORY_CACHE_SIZE, image_memory->cache) != ERROR_OK)
+				{
+					free(image_memory->cache);
+					return ERROR_IMAGE_TEMPORARILY_UNAVAILABLE;
+				}
+				image_memory->cache_address = address & ~(IMAGE_MEMORY_CACHE_SIZE - 1);
+			}
+			
+			size_in_cache = (image_memory->cache_address + IMAGE_MEMORY_CACHE_SIZE) - address;
+			
+			memcpy(buffer + *size_read,
+				image_memory->cache + (address - image_memory->cache_address),
+				(size_in_cache > size) ? size : size_in_cache
+				);
+				
+			*size_read += (size_in_cache > size) ? size : size_in_cache;
+			address += (size_in_cache > size) ? size : size_in_cache;
+		}
 	}
 	
 	return ERROR_OK;
@@ -595,7 +633,10 @@ int image_close(image_t *image)
 	}
 	else if (image->type == IMAGE_MEMORY)
 	{
-		/* do nothing for now */
+		image_memory_t *image_memory = image->type_private;
+		
+		if (image_memory->cache)
+			free(image_memory->cache);
 	}
 
 	if (image->type_private)

@@ -27,6 +27,8 @@
 #define IMAGE_MAX_ERROR_STRING		(256)
 #define IMAGE_MAX_SECTIONS			(128)
 
+#define IMAGE_MEMORY_CACHE_SIZE		(128)
+
 typedef enum image_type
 {
     IMAGE_BINARY,	/* plain binary */
@@ -74,6 +76,8 @@ typedef struct image_ihex_s
 typedef struct image_memory_s
 {
 	target_t *target;
+	u8 *cache;
+	u32 cache_address;
 } image_memory_t;
 
 typedef struct fileio_elf_s
@@ -85,11 +89,12 @@ typedef struct fileio_elf_s
 	u8 endianness;
 } image_elf_t;
 
-extern int image_open(image_t *image, void *source, char *type_string);
+extern int image_open(image_t *image, char *url, char *type_string);
 extern int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read);
 extern int image_close(image_t *image);
 
 #define ERROR_IMAGE_FORMAT_ERROR	(-1400)
 #define ERROR_IMAGE_TYPE_UNKNOWN	(-1401)
+#define ERROR_IMAGE_TEMPORARILY_UNAVAILABLE		(-1402)
 
 #endif /* IMAGE_H */

@@ -1313,7 +1313,7 @@ int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 	if (argc < 1)
 	{
-		command_print(cmd_ctx, "usage: etm image <file> ['bin'|'ihex'|'elf'] [base address]");
+		command_print(cmd_ctx, "usage: etm image <file> [base address] [type]");
 		return ERROR_OK;
 	}
 	
@@ -1342,18 +1342,18 @@ int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	etm_ctx->image->base_address_set = 0;
 	etm_ctx->image->start_address_set = 0;
 	
-	for (i = 1; i < argc; i++)
+	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
+	if (argc >= 2)
 	{
-		/* optional argument could be image type */
-		if (identify_image_type(&etm_ctx->image->type, args[i], args[0]) == ERROR_IMAGE_TYPE_UNKNOWN)
-		{
-			/* if it wasn't a valid image type, treat it as the base address */
-			etm_ctx->image->base_address_set = 1;
-			etm_ctx->image->base_address = strtoul(args[i], NULL, 0);
-		}
+		etm_ctx->image->base_address_set = 1;
+		etm_ctx->image->base_address = strtoul(args[1], NULL, 0);
 	}
-	
-	if (image_open(etm_ctx->image, args[0], FILEIO_READ) != ERROR_OK)
+	else
+	{
+		etm_ctx->image->base_address_set = 0;
+	}
+		
+	if (image_open(etm_ctx->image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "image opening error: %s", etm_ctx->image->error_str);
 		free(etm_ctx->image);
