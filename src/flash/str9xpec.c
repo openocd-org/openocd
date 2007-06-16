@@ -599,36 +599,8 @@ int str9xpec_lock_device(struct flash_bank_s *bank)
 int str9xpec_unlock_device(struct flash_bank_s *bank)
 {
 	u8 status;
-	//u32 chain_pos;
-	//jtag_device_t* dev0;
-	//jtag_device_t* dev1;
-	//jtag_device_t* dev2;
-	
-	//str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
-	
-	//chain_pos = str9xpec_info->chain_pos;
-	
-	/* remove arm core from chain - enter turbo mode */
-	
-	//str9xpec_set_instr(chain_pos+2, 0xD, TAP_RTI);
-	//jtag_execute_queue();
-	
-	/* modify scan chain - arm9 has been removed */
-	//dev0 = jtag_get_device(chain_pos);
-	//dev1 = jtag_get_device(chain_pos+1);
-	//dev2 = jtag_get_device(chain_pos+2);
-	//dev0->next = dev2;
-	//jtag_num_devices--;
 	
 	status = str9xpec_erase_area(bank, 0, 255);
-	
-	/* exit turbo mode via TLR */
-	//str9xpec_set_instr(chain_pos, ISC_NOOP, TAP_TLR);
-	//jtag_execute_queue();
-	
-	/* restore previous scan chain */
-	//dev0->next = dev1;
-	//jtag_num_devices++;
 	
 	return status;
 }
@@ -1128,7 +1100,7 @@ int str9xpec_handle_flash_options_cmap_command(struct command_context_s *cmd_ctx
 	
 	str9xpec_info = bank->driver_priv;
 	
-	if (stricmp(args[1], "bank1") == 0)
+	if (strcmp(args[1], "bank1") == 0)
 	{
 		buf_set_u32(str9xpec_info->options, STR9XPEC_OPT_CSMAPBIT, 1, 1);
 	}
@@ -1160,7 +1132,7 @@ int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s *cmd_c
 	
 	str9xpec_info = bank->driver_priv;
 	
-	if (stricmp(args[1], "2.7v") == 0)
+	if (strcmp(args[1], "2.7v") == 0)
 	{
 		buf_set_u32(str9xpec_info->options, STR9XPEC_OPT_LVDTHRESBIT, 1, 1);
 	}
@@ -1192,7 +1164,7 @@ int str9xpec_handle_flash_options_lvdsel_command(struct command_context_s *cmd_c
 	
 	str9xpec_info = bank->driver_priv;
 	
-	if (stricmp(args[1], "vdd_vddq") == 0)
+	if (strcmp(args[1], "vdd_vddq") == 0)
 	{
 		buf_set_u32(str9xpec_info->options, STR9XPEC_OPT_LVDSELBIT, 1, 1);
 	}
@@ -1224,7 +1196,7 @@ int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_s *cmd_
 	
 	str9xpec_info = bank->driver_priv;
 	
-	if (stricmp(args[1], "vdd_vddq") == 0)
+	if (strcmp(args[1], "vdd_vddq") == 0)
 	{
 		buf_set_u32(str9xpec_info->options, STR9XPEC_OPT_LVDWARNBIT, 1, 1);
 	}
