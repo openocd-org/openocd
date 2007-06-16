@@ -301,7 +301,7 @@ int server_loop(command_context_t *command_context)
 				FD_ZERO(&read_fds);
 			else
 			{
-				ERROR("error during select: %d", strerror(errno));
+				ERROR("error during select: %s", strerror(errno));
 				exit(-1);
 			}
 #else

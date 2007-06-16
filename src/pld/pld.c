@@ -21,6 +21,8 @@
 #include "config.h"
 #endif
 
+#include "replacements.h"
+
 #include "pld.h"
 
 #include "jtag.h"

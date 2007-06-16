@@ -17,27 +17,69 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef ARM720T_H
-#define ARM720T_H
+#ifndef STR9XPEC_H
+#define STR9XPEC_H
 
+#include "flash.h"
 #include "target.h"
-#include "register.h"
-#include "embeddedice.h"
-#include "arm_jtag.h"
-#include "arm7tdmi.h"
-#include "armv4_5_mmu.h"
-#include "armv4_5_cache.h"
+#include "jtag.h"
 
-#define	ARM720T_COMMON_MAGIC 0xa720a720
-
-typedef struct arm720t_common_s
+typedef struct str9xpec_flash_controller_s
 {
-	int common_magic;
-	armv4_5_mmu_common_t armv4_5_mmu;
-	arm7tdmi_common_t arm7tdmi_common;
-	u32 cp15_control_reg;
-	u32 fsr_reg;
-	u32 far_reg;
-} arm720t_common_t;
+	struct target_s *target;
+	u32 *sector_bits;
+	int chain_pos;
+	int isc_enable;
+	jtag_device_t* devarm;
+	u8 options[8];
+} str9xpec_flash_controller_t;
 
-#endif /* ARM720T_H */
+enum str9xpec_status_codes
+{
+	STR9XPEC_INVALID_COMMAND = 1,
+	STR9XPEC_ISC_SUCCESS = 2,
+	STR9XPEC_ISC_DISABLED = 3,
+	STR9XPEC_ISC_INTFAIL = 32,
+};
+
+/* ISC commands */
+
+#define ISC_IDCODE				0xFE
+#define ISC_MFG_READ			0x4C
+#define ISC_CONFIGURATION		0x07
+#define ISC_ENABLE				0x0C
+#define ISC_DISABLE				0x0F
+#define ISC_NOOP				0x10
+#define ISC_ADDRESS_SHIFT		0x11
+#define ISC_CLR_STATUS			0x13
+#define ISC_PROGRAM				0x20
+#define ISC_PROGRAM_SECURITY	0x22
+#define ISC_PROGRAM_UC			0x23
+#define ISC_ERASE				0x30
+#define ISC_READ				0x50
+#define ISC_BLANK_CHECK			0x60
+
+/* ISC_DEFAULT bit definitions */
+
+#define ISC_STATUS_SECURITY		0x40
+#define ISC_STATUS_INT_ERROR	0x30
+#define ISC_STATUS_MODE			0x08
+#define ISC_STATUS_BUSY			0x04
+#define ISC_STATUS_ERROR		0x03
+
+typedef struct mem_layout_str9pec {
+	u32 sector_start;
+	u32 sector_size;
+	u32 sector_bit;
+} str9xpec_mem_layout_t;
+
+/* Option bytes definitions */
+
+#define STR9XPEC_OPT_CSMAPBIT		48
+#define STR9XPEC_OPT_LVDTHRESBIT	49
+#define STR9XPEC_OPT_LVDSELBIT		50
+#define STR9XPEC_OPT_LVDWARNBIT		51
+#define STR9XPEC_OPT_OTPBIT			63
+
+#endif /* STR9XPEC_H */
+

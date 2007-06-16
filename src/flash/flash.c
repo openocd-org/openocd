@@ -23,7 +23,6 @@
 
 #include "flash.h"
 #include "command.h"
-#include "log.h"
 #include "target.h"
 #include "time_support.h"
 
@@ -36,6 +35,7 @@
 
 #include <fileio.h>
 #include <image.h>
+#include "log.h"
 
 /* command handlers */
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -56,6 +56,7 @@ extern flash_driver_t at91sam7_flash;
 extern flash_driver_t str7x_flash;
 extern flash_driver_t str9x_flash;
 extern flash_driver_t stellaris_flash;
+extern flash_driver_t str9xpec_flash;
 
 flash_driver_t *flash_drivers[] =
 {
@@ -65,6 +66,7 @@ flash_driver_t *flash_drivers[] =
 	&str7x_flash,
 	&str9x_flash,
 	&stellaris_flash,
+	&str9xpec_flash,
 	NULL,
 };
 
@@ -373,9 +375,10 @@ int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		int last = strtoul(args[2], NULL, 0);
 		int retval;
 		flash_bank_t *p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-		struct timeval start, end, duration;
-
-		gettimeofday(&start, NULL);
+		duration_t duration;
+		char *duration_text;
+	
+		duration_start_measure(&duration);
 	
 		if (!p)
 		{
@@ -411,10 +414,10 @@ int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		}
 		else
 		{
-			gettimeofday(&end, NULL);	
-			timeval_subtract(&duration, &end, &start);
-		
-			command_print(cmd_ctx, "erased sectors %i through %i on flash bank %i in %is %ius", first, last, strtoul(args[0], 0, 0), duration.tv_sec, duration.tv_usec);
+			duration_stop_measure(&duration, &duration_text);	
+			
+			command_print(cmd_ctx, "erased sectors %i through %i on flash bank %i in %s", first, last, strtoul(args[0], 0, 0), duration_text);
+			free(duration_text);
 		}
 	}
 	else

@@ -31,6 +31,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1776,7 +1777,7 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	fileio_close(&fileio);
 
 	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "dumped %lli byte in %s", fileio.size, duration_text);
+	command_print(cmd_ctx, "dumped %"PRIi64" byte in %s", fileio.size, duration_text);
 	free(duration_text);
 	
 	return ERROR_OK;

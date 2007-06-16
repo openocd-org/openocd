@@ -241,8 +241,8 @@ void arm720t_post_debug_entry(target_t *target)
 	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
 	/* save i/d fault status and address register */
-	arm720t_read_cp15(target, 0xee150f10, &arm720t->fsr);
-	arm720t_read_cp15(target, 0xee160f10, &arm720t->far);
+	arm720t_read_cp15(target, 0xee150f10, &arm720t->fsr_reg);
+	arm720t_read_cp15(target, 0xee160f10, &arm720t->far_reg);
 	jtag_execute_queue();
 }
 
@@ -254,8 +254,8 @@ void arm720t_pre_restore_context(target_t *target)
 	arm720t_common_t *arm720t = arm7tdmi->arch_info;
 	
 	/* restore i/d fault status and address register */
-	arm720t_write_cp15(target, 0xee050f10, arm720t->fsr);
-	arm720t_write_cp15(target, 0xee060f10, arm720t->far);
+	arm720t_write_cp15(target, 0xee050f10, arm720t->fsr_reg);
+	arm720t_write_cp15(target, 0xee060f10, arm720t->far_reg);
 }
 
 int arm720t_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p, arm7tdmi_common_t **arm7tdmi_p, arm720t_common_t **arm720t_p)

@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <errno.h>
 
@@ -1387,7 +1388,7 @@ int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			fileio_close(&fileio);
 
 			duration_stop_measure(&duration, &duration_text);
-			command_print(cmd_ctx, "dumped %lli byte in %s", fileio.size, duration_text);
+			command_print(cmd_ctx, "dumped %"PRIi64" byte in %s", fileio.size, duration_text);
 			free(duration_text);
 		}
 		else

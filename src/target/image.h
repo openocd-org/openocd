@@ -20,7 +20,14 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_ELF_H
 #include <elf.h>
+#endif
+#include "replacements.h"
 #include "fileio.h"
 #include "target.h"
 

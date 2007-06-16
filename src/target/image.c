@@ -23,7 +23,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_ELF_H
 #include <elf.h>
+#endif
 
 #include "image.h"
 
@@ -320,8 +322,8 @@ int image_elf_read_headers(image_t *image)
 
 
 	elf->endianness = elf->header->e_ident[EI_DATA];
-	if ((elf->endianness==ELFDATANONE)
-		 ||(elf->endianness>=ELFDATANUM))
+	if ((elf->endianness!=ELFDATA2LSB)
+		 &&(elf->endianness!=ELFDATA2MSB))
 	{
 		ERROR("invalid ELF file, unknown endianess setting");
 		return ERROR_IMAGE_FORMAT_ERROR;
