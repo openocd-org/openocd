@@ -59,6 +59,9 @@ extern tap_transition_t tap_transitions[16];	/* describe the TAP state diagram *
 extern enum tap_state end_state;		/* finish DR scans in dr_end_state */
 extern enum tap_state cur_state;		/* current TAP state */
 
+extern enum tap_state cmd_queue_end_state;		/* finish DR scans in dr_end_state */
+extern enum tap_state cmd_queue_cur_state;		/* current TAP state */
+
 #define TAP_MOVE(from, to) tap_move[tap_move_map[from]][tap_move_map[to]]
 
 typedef struct error_handler_s

@@ -58,6 +58,8 @@ static cmd_queue_page_t *cmd_queue_pages = NULL;
  * 3: Pause-DR
  * 4: Shift-IR
  * 5: Pause-IR
+ * 
+ * SD->SD and SI->SI have to be caught in interface specific code
  */
 u8 tap_move[6][6] =
 {
@@ -1086,9 +1088,6 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 				
 				if (compare_failed)
 				{
-					char *captured_char = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
-					char *in_check_value_char = buf_to_str(cmd->fields[i].in_check_value, (num_bits > 64) ? 64 : num_bits, 16);
-
 					if (cmd->error_handler)
 					{
 						/* ask the error handler if once has been specified if this is a real problem */ 
@@ -1109,6 +1108,9 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 					 */ 
 					if (compare_failed)
 					{
+						char *captured_char = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
+						char *in_check_value_char = buf_to_str(cmd->fields[i].in_check_value, (num_bits > 64) ? 64 : num_bits, 16);
+
 						if (cmd->fields[i].in_check_mask)
 						{
 							char *in_check_mask_char;
@@ -1120,10 +1122,11 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 						{
 							WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s", captured_char, in_check_value_char);
 						}
+
+						free(captured_char);
+						free(in_check_value_char);
 					}
 					
-					free(captured_char);
-					free(in_check_value_char);
 				}
 			}
 			free(captured);

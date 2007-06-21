@@ -54,26 +54,14 @@ are immediatley available.
  *                                                                         *
 ***************************************************************************/
 
-int swjdp_jtag_error_handler(u8 *in_value, void *priv)
-{
-	char *caller = priv;
-	
-	DEBUG("caller: %s", caller);
-	
-	return ERROR_OK;
-}
-
 /* Scan out and in from target ordered u8 buffers */
 int swjdp_scan(arm_jtag_t *jtag_info, u8 chain, u8 reg_addr, u8 RnW, u8 *outvalue, u8 *invalue, u8 *ack)
 {
 	scan_field_t fields[2];
 	u8 out_addr_buf;
-	error_handler_t error_handler;
 	
 	jtag_add_end_state(TAP_RTI);
-	error_handler.error_handler = swjdp_jtag_error_handler;
-	error_handler.error_handler_priv = "swjdp_scan";
-	arm_jtag_set_instr(jtag_info, chain, &error_handler);
+	arm_jtag_set_instr(jtag_info, chain, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 3;
@@ -108,12 +96,9 @@ int swjdp_scan_u32(arm_jtag_t *jtag_info, u8 chain, u8 reg_addr, u8 RnW, u32 out
 	scan_field_t fields[2];
 	u8 out_value_buf[4];
 	u8 out_addr_buf;
-	error_handler_t error_handler;
 	
 	jtag_add_end_state(TAP_RTI);
-	error_handler.error_handler = swjdp_jtag_error_handler;
-	error_handler.error_handler_priv = "swjdp_scan_u32";
-	arm_jtag_set_instr(jtag_info, chain, &error_handler);
+	arm_jtag_set_instr(jtag_info, chain, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 3;

@@ -132,21 +132,35 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	enum tap_state saved_end_state = end_state;
 	int bit_cnt;
 	
-	if (ir_scan)
-		bitbang_end_state(TAP_SI);
-	else
-		bitbang_end_state(TAP_SD);
+	if (!((!ir_scan && (cur_state == TAP_SD)) || (ir_scan && (cur_state == TAP_SI))))
+	{
+		if (ir_scan)
+			bitbang_end_state(TAP_SI);
+		else
+			bitbang_end_state(TAP_SD);
 
-	bitbang_state_move();
-	bitbang_end_state(saved_end_state);
+		bitbang_state_move();
+		bitbang_end_state(saved_end_state);
+	}
 
 	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++)
 	{
+		/* set TMS high on the last bit unless we want to end in TAP_SD/SI */
+		int tms;
+		if ((ir_scan && (end_state == TAP_SI)) ||
+			(!ir_scan && (end_state == TAP_SD)))
+		{
+			tms = 0;
+		} else {
+			tms = (bit_cnt==scan_size-1) ? 1 : 0;
+		}
+		
 		/* if we're just reading the scan, but don't care about the output
 		 * default to outputting 'low', this also makes valgrind traces more readable,
 		 * as it removes the dependency on an uninitialised value
 		 */ 
-		if ((type != SCAN_IN) && ((buffer[bit_cnt/8] >> (bit_cnt % 8)) & 0x1)) {
+		if ((type != SCAN_IN) && ((buffer[bit_cnt/8] >> (bit_cnt % 8)) & 0x1))
+		{
 			bitbang_interface->write(0, (bit_cnt==scan_size-1) ? 1 : 0, 1);
 			bitbang_interface->write(1, (bit_cnt==scan_size-1) ? 1 : 0, 1);
 		} else {

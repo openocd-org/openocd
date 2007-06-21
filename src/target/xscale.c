@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2006 by Dominic Rath                                    *
+ *   Copyright (C) 2006, 2007 by Dominic Rath                              *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -34,14 +34,15 @@
 #include "binarybuffer.h"
 #include "time_support.h"
 #include "breakpoints.h"
+#include "fileio.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+
 
 /* cli handling */
 int xscale_register_commands(struct command_context_s *cmd_ctx);
@@ -1197,9 +1198,6 @@ int xscale_halt(target_t *target)
 	else if (target->state == TARGET_RESET)
 	{
 		DEBUG("target->state == TARGET_RESET");
-		
-		/* clear TRST */
-		jtag_add_reset(0, -1);
 	}
 	else
 	{
@@ -1517,22 +1515,32 @@ int xscale_assert_reset(target_t *target)
 	xscale_common_t *xscale = armv4_5->arch_info;
 	
 	DEBUG("target->state: %s", target_state_strings[target->state]);
+
+	/* select DCSR instruction (set endstate to R-T-I to ensure we don't 
+	 * end up in T-L-R, which would reset JTAG
+	 */ 
+	jtag_add_end_state(TAP_RTI);
+	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dcsr);
 	
-	/* if the handler isn't installed yet, we have to assert TRST, too */
-	if (!xscale->handler_installed)
-	{
-		jtag_add_reset(1, 1);
-	}
-	else
-		jtag_add_reset(-1, 1);
+	/* set Hold reset, Halt mode and Trap Reset */
+	buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 30, 1, 0x1);
+	buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 1, 0x1);
+	xscale_write_dcsr(target, 1, 0);
+
+	/* select BYPASS, because having DCSR selected caused problems on the PXA27x */
+	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, 0x7f);
+	jtag_execute_queue();
+		
+	/* assert reset */	
+	jtag_add_reset(0, 1);
 	
 	/* sleep 1ms, to be sure we fulfill any requirements */
 	jtag_add_sleep(1000);
+	jtag_execute_queue();
 	
 	target->state = TARGET_RESET;
 	
 	return ERROR_OK;
-
 }
 
 int xscale_deassert_reset(target_t *target)
@@ -1540,16 +1548,17 @@ int xscale_deassert_reset(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	
-	FILE *binary;
+	fileio_t debug_handler;
 	u32 address;
-	struct stat binary_stat;
 	u32 binary_size;
 
-	u32 buffer[8];
 	u32 buf_cnt;
 	int i;
+	int retval;
 	
 	breakpoint_t *breakpoint = target->breakpoints;
+	
+	DEBUG("-");
 	
 	xscale->ibcr_available = 2;
 	xscale->ibcr0_used = 0;
@@ -1571,42 +1580,27 @@ int xscale_deassert_reset(target_t *target)
 	
 	if (!xscale->handler_installed)
 	{
-		/* release TRST */
-		jtag_add_reset(0, -1);
-		jtag_add_sleep(100000);
+		/* release SRST */
+		jtag_add_reset(0, 0);
 		
+		/* wait 300ms; 150 and 100ms were not enough */
+		jtag_add_sleep(3000000);
+
+		jtag_add_runtest(2030, TAP_RTI);
+		jtag_execute_queue();
+
 		/* set Hold reset, Halt mode and Trap Reset */
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 30, 1, 0x1);
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 1, 0x1);
 		xscale_write_dcsr(target, 1, 0);
-		jtag_add_runtest(100, TAP_RTI);
-		jtag_execute_queue();
-		
-		/* release SRST */
-		jtag_add_reset(0, 0);
-		/* wait 150ms; 100ms were not enough */
-		jtag_add_sleep(150000);
 
-		jtag_add_runtest(2030, TAP_RTI);
-		jtag_execute_queue();
-		
-		xscale_write_dcsr(target, 1, 0);
-		jtag_execute_queue();
-		
-		/* TODO: load debug handler */
-		if (stat("target/xscale/debug_handler.bin", &binary_stat) == -1)
+		if (fileio_open(&debug_handler, "target/xscale/debug_handler.bin", FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 		{
-			ERROR("couldn't stat() target/xscale/debug_handler.bin: %s",  strerror(errno));
+			ERROR("file open error: %s", debug_handler.error_str);
 			return ERROR_OK;
 		}
-		
-		if (!(binary = fopen("target/xscale/debug_handler.bin", "r")))
-		{
-			ERROR("couldn't open target/xscale/debug_handler.bin: %s", strerror(errno));
-			return ERROR_OK;
-		}
-		
-		if ((binary_size = binary_stat.st_size) % 4)
+	
+		if ((binary_size = debug_handler.size) % 4)
 		{
 			ERROR("debug_handler.bin: size not a multiple of 4");
 			exit(-1);
@@ -1623,41 +1617,51 @@ int xscale_deassert_reset(target_t *target)
 		address = xscale->handler_address;
 		while (binary_size > 0)
 		{
-			buf_cnt = fread(buffer, 4, 8, binary);
+			u32 cache_line[8];
+			u8 buffer[32];
 			
-			for (i = 0; i < buf_cnt; i++)
+			if ((retval = fileio_read(&debug_handler, 32, buffer, &buf_cnt)) != ERROR_OK)
 			{
-				/* convert LE buffer to host-endian u32 */
-				buffer[i] = buf_get_u32((u8*)(&buffer[i]), 0, 32);
+				ERROR("reading debug handler failed: %s", debug_handler.error_str);
 			}
 			
-			if (buf_cnt < 8)
+			for (i = 0; i < buf_cnt; i += 4)
 			{
-				for (; buf_cnt < 8; buf_cnt++)
-				{
-					buffer[buf_cnt] = 0xe1a08008;
-				}
+				/* convert LE buffer to host-endian u32 */
+				cache_line[i / 4] = le_to_h_u32(&buffer[i]);
+			}
+			
+			for (; buf_cnt < 32; buf_cnt += 4)
+			{
+					cache_line[buf_cnt / 4] = 0xe1a08008;
 			}
 			
 			/* only load addresses other than the reset vectors */
 			if ((address % 0x400) != 0x0)
 			{
-				xscale_load_ic(target, 1, address, buffer);
+				xscale_load_ic(target, 1, address, cache_line);
 			}
 			
-			address += buf_cnt * 4;
-			binary_size -= buf_cnt * 4;
+			address += buf_cnt;
+			binary_size -= buf_cnt;
 		};
 		
 		xscale_load_ic(target, 1, 0x0, xscale->low_vectors);
 		xscale_load_ic(target, 1, 0xffff0000, xscale->high_vectors);
 	
 		jtag_add_runtest(30, TAP_RTI);
+
+		jtag_add_sleep(100000);
 		
-		/* let the target run (should enter debug handler) */
-		xscale_write_dcsr(target, 0, 0);
+		/* set Hold reset, Halt mode and Trap Reset */
+		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 30, 1, 0x1);
+		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 1, 0x1);
+		xscale_write_dcsr(target, 1, 0);
+
+		/* clear Hold reset to let the target run (should enter debug handler) */
+		xscale_write_dcsr(target, 0, 1);
 		target->state = TARGET_RUNNING;
-		
+
 		if ((target->reset_mode != RESET_HALT) && (target->reset_mode != RESET_INIT))
 		{
 			jtag_add_sleep(10000);
@@ -1666,8 +1670,8 @@ int xscale_deassert_reset(target_t *target)
 			xscale_debug_entry(target);
 			target->state = TARGET_HALTED;
 			
-			/* the PC is now at 0x0 */
-			buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, 0x0);
+			/* resume the target */
+			xscale_resume(target, 1, 0x0, 1, 0);
 		}
 	}
 	else
@@ -1687,7 +1691,9 @@ int xscale_soft_reset_halt(struct target_s *target)
 
 int xscale_prepare_reset_halt(struct target_s *target)
 {
-	/* nothing to be done for reset_halt on XScale targets */
+	/* nothing to be done for reset_halt on XScale targets
+	 * we always halt after a reset to upload the debug handler
+	 */
 	return ERROR_OK;
 }
 
@@ -2583,6 +2589,10 @@ int xscale_init_target(struct command_context_s *cmd_ctx, struct target_s *targe
 		ERROR("XScale target requires a reset");
 		ERROR("Reset target to enable debug");
 	}
+	
+	/* assert TRST once during startup */
+	jtag_add_reset(1, 0);
+	jtag_add_reset(0, 0);
 	
 	return ERROR_OK;
 }

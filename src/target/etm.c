@@ -1231,6 +1231,14 @@ int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 		}
 	}
 	
+	if (!etm_capture_drivers[i])
+	{
+		/* no supported capture driver found, don't register an ETM */
+		free(etm_ctx);
+		ERROR("trace capture driver '%s' not found", args[4]);
+		return ERROR_OK;
+	}
+	
 	etm_ctx->target = target;
 	etm_ctx->trace_data = NULL;
 	etm_ctx->trace_depth = 0;

@@ -846,6 +846,13 @@ int arm7_9_prepare_reset_halt(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	
+	/* poll the target, and resume if it was currently halted */
+	arm7_9_poll(target);
+	if (target->state == TARGET_HALTED)
+	{
+		arm7_9_resume(target, 1, 0x0, 0, 1);
+	}
+	
 	if (arm7_9->has_vector_catch)
 	{
 		/* program vector catch register to catch reset vector */
