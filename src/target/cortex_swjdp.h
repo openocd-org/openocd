@@ -44,8 +44,6 @@
 #define CSYSPWRUPREQ	(1<<30)
 #define CSYSPWRUPACK	(1<<31)
 
-
-
 #define	AHBAP_CSW	0x00
 #define AHBAP_TAR	0x04
 #define AHBAP_DRW	0x0C
@@ -56,7 +54,6 @@
 #define AHBAP_DBGROMA	0xF8
 #define AHBAP_IDR	0xFC
 
-
 #define CSW_8BIT		0
 #define CSW_16BIT		1
 #define CSW_32BIT		2
@@ -65,16 +62,16 @@
 #define CSW_ADDRINC_OFF		0
 #define CSW_ADDRINC_SINGLE	(1<<4)
 #define CSW_ADDRINC_PACKED	(2<<4)
-#define CSW_HPROT	(1<<25)
+#define CSW_HPROT			(1<<25)
 #define CSW_MASTER_DEBUG	(1<<29)
-#define CSW_DBGSWENABLE	(1<<31)
-#define TRANS_MODE_NONE	0
+#define CSW_DBGSWENABLE		(1<<31)
 
+/* transaction mode */
+#define TRANS_MODE_NONE		0
 /* Transaction waits for previous to complete */
 #define TRANS_MODE_ATOMIC	1
 /* Freerunning transactions with delays and overrun checking */
 #define TRANS_MODE_COMPOSITE	2
-
 
 typedef struct swjdp_reg_s
 {
@@ -96,7 +93,7 @@ typedef struct swjdp_common_s
 	u8  trans_mode;
 	u8  trans_rw;
 	u8  ack;
-	u32 * trans_value;
+	u32 *trans_value;
 } swjdp_common_t;
 
 /* Internal functions used in the module, partial transactions, use with caution */
@@ -112,7 +109,6 @@ extern int ahbap_read_system_u32(swjdp_common_t *swjdp, u32 address, u32 *value)
 extern int ahbap_write_system_u32(swjdp_common_t *swjdp, u32 address, u32 value);
 extern int swjdp_transaction_endcheck(swjdp_common_t *swjdp);
 
-
 /* External interface, complete atomic operations  */
 /* Host endian word transfer of single memory and system registers */
 extern int ahbap_read_system_atomic_u32(swjdp_common_t *swjdp, u32 address, u32 *value);
@@ -123,6 +119,11 @@ extern int ahbap_write_block(swjdp_common_t *swjdp, u8 *buffer, int bytecount, u
 /* Host endian word transfers of processor core registers */
 extern int ahbap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum);
 extern int ahbap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum);
+
+extern int ahbap_read_buf(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
+extern int ahbap_read_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
+extern int ahbap_write_buf(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
+extern int ahbap_write_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
 
 /* Initialisation of the debug system, power domains and registers */
 extern int ahbap_debugport_init(swjdp_common_t *swjdp);

@@ -40,7 +40,6 @@ extern char* cortex_m3_state_strings[];
 #define DCB_DCRDR	0xE000EDF8
 #define DCB_DEMCR	0xE000EDFC
 
-
 #define DCRSR_WnR	(1<<16)	
 
 #define DWT_CTRL	0xE0001000
@@ -107,7 +106,6 @@ extern char* cortex_m3_state_strings[];
 #define DFSR_DWTTRAP	4
 #define DFSR_VCATCH	8
 
-
 #define FPCR_CODE 0
 #define FPCR_LITERAL 1
 #define FPCR_REPLACE_REMAP  (0<<30)
@@ -149,16 +147,16 @@ typedef struct cortex_m3_common_s
 	int fp_num_code;
 	int fp_code_available;
 	int auto_bp_type;
-	cortex_m3_fp_comparator_t * fp_comparator_list;
+	cortex_m3_fp_comparator_t *fp_comparator_list;
 	
 	/* DWT */
 	int dwt_num_comp;
 	int dwt_comp_available;
-	cortex_m3_dwt_comparator_t * dwt_comparator_list;
+	cortex_m3_dwt_comparator_t *dwt_comparator_list;
 	
 	/* Interrupts */
 	int intlinesnum;
-	u32 * intsetenable;
+	u32 *intsetenable;
 	
 /*
 	u32 arm_bkpt;
@@ -188,7 +186,6 @@ typedef struct cortex_m3_common_s
 	
 	void *arch_info;
 } cortex_m3_common_t;
-
 
 extern void cortex_m3_build_reg_cache(target_t *target);
 

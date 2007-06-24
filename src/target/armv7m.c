@@ -129,8 +129,10 @@ enum armv7m_runcontext armv7m_get_context(target_t *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	
-	if (armv7m->process_context == armv7m->core_cache) return ARMV7M_PROCESS_CONTEXT;
-	if (armv7m->debug_context == armv7m->core_cache) return ARMV7M_DEBUG_CONTEXT;
+	if (armv7m->process_context == armv7m->core_cache)
+		return ARMV7M_PROCESS_CONTEXT;
+	if (armv7m->debug_context == armv7m->core_cache)
+		return ARMV7M_DEBUG_CONTEXT;
 	
 	ERROR("Invalid runcontext");
 	exit(-1);
@@ -177,9 +179,11 @@ int armv7m_use_context(target_t *target, enum armv7m_runcontext new_ctx)
 char enamebuf[32];
 char *armv7m_exception_string(int number)
 {
-	if ((number<0)|(number>511)) return "Invalid exception";
-	if (number<16) return armv7m_exception_strings[number];
-	sprintf(enamebuf,"External Interrupt(%i)",number-16);
+	if ((number < 0) | (number > 511))
+		return "Invalid exception";
+	if (number < 16)
+		return armv7m_exception_strings[number];
+	sprintf(enamebuf, "External Interrupt(%i)", number - 16);
 	return enamebuf;
 }
 
@@ -252,25 +256,21 @@ int armv7m_write_core_reg(struct target_s *target, int num)
 	if ((num < 0) || (num >= ARMV7NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
 	
-	
 	reg_value = buf_get_u32(armv7m->core_cache->reg_list[num].value, 0, 32);
 	armv7m_core_reg = armv7m->core_cache->reg_list[num].arch_info;
 	retval = armv7m->store_core_reg_u32(target, armv7m_core_reg->type, armv7m_core_reg->num, reg_value);
 	if (retval != ERROR_OK)
 	{
-			ERROR("JTAG failure");
-			armv7m->core_cache->reg_list[num].dirty=1;
-			return ERROR_JTAG_DEVICE_ERROR;
+		ERROR("JTAG failure");
+		armv7m->core_cache->reg_list[num].dirty=1;
+		return ERROR_JTAG_DEVICE_ERROR;
 	}
 	DEBUG("write core reg %i value 0x%x",num ,reg_value);
 	armv7m->core_cache->reg_list[num].valid=1;
 	armv7m->core_cache->reg_list[num].dirty=0;
 	
 	return ERROR_OK;
-	
 }
-
-
 
 int armv7m_invalidate_core_regs(target_t *target)
 {
@@ -287,13 +287,11 @@ int armv7m_invalidate_core_regs(target_t *target)
 	return ERROR_OK;
 }
 
-
 int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	int i;
-	
 	
 	if (target->state != TARGET_HALTED)
 	{
@@ -306,7 +304,7 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	/* TODOLATER correct list of registers, names ? */
 	for (i = 0; i < *reg_list_size; i++)
 	{
-		if (i<ARMV7NUMCOREREGS)
+		if (i < ARMV7NUMCOREREGS)
 			(*reg_list)[i] = &armv7m->process_context->reg_list[i];
 			//(*reg_list)[i] = &armv7m->core_cache->reg_list[i];
 		else
@@ -382,7 +380,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		armv7m_set_core_reg(reg, reg_params[i].value);
 	}
 	
-	/* ARMV7M always runs in Tumb state */
+	/* ARMV7M always runs in Thumb state */
 	exit_breakpoint_size = 2;
 	if ((retval = breakpoint_add(target, exit_point, exit_breakpoint_size, BKPT_SOFT)) != ERROR_OK)
 	{
@@ -415,7 +413,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 				}
 			}
 			armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
-			DEBUG("failed algoritm halted at 0x%x ",pc); 
+			DEBUG("failed algoritm halted at 0x%x ", pc); 
 			retval = ERROR_TARGET_TIMEOUT;
 		}
 	}
@@ -450,7 +448,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 				exit(-1);
 			}
 			
-			armv7m_core_reg_t * armv7m_core_reg = reg->arch_info;
+			armv7m_core_reg_t *armv7m_core_reg = reg->arch_info;
 			//armv7m->load_core_reg_u32(target, armv7m_core_reg->type, armv7m_core_reg->num, &regvalue);
 			//buf_set_u32(reg_params[i].value, 0, 32, regvalue);
 			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
@@ -464,10 +462,8 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	//	armv7m->core_cache->reg_list[i].dirty = 1;
 	//}
 
-	
 	// ????armv7m->core_state = core_state;
 	// ????armv7m->core_mode = core_mode;
-
 
 	return retval;
 }
@@ -478,20 +474,19 @@ int armv7m_arch_state(struct target_s *target, char *buf, int buf_size)
 	armv7m_common_t *armv7m = target->arch_info;
 	
 	snprintf(buf, buf_size,
-			 "target halted in %s state due to %s, current mode: %s %s\nxPSR: 0x%8.8x pc: 0x%8.8x",
-			 armv7m_state_strings[armv7m->core_state],
-			 target_debug_reason_strings[target->debug_reason],
-			 armv7m_mode_strings[armv7m->core_mode],
-			 armv7m_exception_string(armv7m->exception_number),
-			 buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32),
-			 buf_get_u32(armv7m->core_cache->reg_list[15].value, 0, 32));
+		 "target halted in %s state due to %s, current mode: %s %s\nxPSR: 0x%8.8x pc: 0x%8.8x",
+		 armv7m_state_strings[armv7m->core_state],
+		 target_debug_reason_strings[target->debug_reason],
+		 armv7m_mode_strings[armv7m->core_mode],
+		 armv7m_exception_string(armv7m->exception_number),
+		 buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32),
+		 buf_get_u32(armv7m->core_cache->reg_list[15].value, 0, 32));
 	
 	return ERROR_OK;
 }
 
 reg_cache_t *armv7m_build_reg_cache(target_t *target)
 {
-
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	arm_jtag_t *jtag_info = &armv7m->jtag_info;
@@ -560,16 +555,13 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 
 int armv7m_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
-	
 	armv7m_build_reg_cache(target);
 	
 	return ERROR_OK;
-	
 }
 
 int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m)
 {
-
 	/* register arch-specific functions */
 	
 	target->arch_info = armv7m;
@@ -580,11 +572,9 @@ int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m)
 	return ERROR_OK;
 }
 
-
 int armv7m_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
 	
 	return ERROR_OK;
-
 }

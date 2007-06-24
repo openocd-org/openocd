@@ -57,6 +57,7 @@ extern flash_driver_t str7x_flash;
 extern flash_driver_t str9x_flash;
 extern flash_driver_t stellaris_flash;
 extern flash_driver_t str9xpec_flash;
+extern flash_driver_t stm32x_flash;
 
 flash_driver_t *flash_drivers[] =
 {
@@ -67,6 +68,7 @@ flash_driver_t *flash_drivers[] =
 	&str9x_flash,
 	&stellaris_flash,
 	&str9xpec_flash,
+	&stm32x_flash,
 	NULL,
 };
 

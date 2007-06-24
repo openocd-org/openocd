@@ -26,7 +26,6 @@
 #include "target.h"
 #include "arm_jtag.h"
 
-
 enum armv7m_mode
 {
 	ARMV7M_MODE_HANDLER = 0, 
@@ -56,17 +55,18 @@ enum armv7m_runcontext
 };
 
 extern char* armv7m_state_strings[];
+extern char* armv7m_exception_strings[];
 
-//#define ARMV7NUMCOREREGS 23
+extern char *armv7m_exception_string(int number);
 
 /* offsets into armv7m core register cache */
 enum 
 {
 	ARMV7M_PC = 15,
 	ARMV7M_xPSR = 16,
-	ARMV7M_MSP ,
-	ARMV7M_PSP ,
-	ARMV7M_PRIMASK ,
+	ARMV7M_MSP,
+	ARMV7M_PSP,
+	ARMV7M_PRIMASK,
 	ARMV7M_BASEPRI,
 	ARMV7M_FAULTMASK,
 	ARMV7M_CONTROL,
@@ -163,8 +163,9 @@ extern int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem
 
 extern int armv7m_invalidate_core_regs(target_t *target);
 
-
-
+extern enum armv7m_runcontext armv7m_get_context(target_t *target);
+extern int armv7m_use_context(target_t *target, enum armv7m_runcontext new_ctx);
+extern enum armv7m_runcontext armv7m_get_context(target_t *target);
 
 /* Thumb mode instructions
  */

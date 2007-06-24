@@ -653,6 +653,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 	{
 		if ((retval = target->type->write_memory(target, address, 1, size, buffer)) != ERROR_OK)
 			return retval;
+		return ERROR_OK;
 	}
 	
 	/* handle unaligned head bytes */
@@ -711,6 +712,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	{
 		if ((retval = target->type->read_memory(target, address, 1, size, buffer)) != ERROR_OK)
 			return retval;
+		return ERROR_OK;
 	}
 	
 	/* handle unaligned head bytes */

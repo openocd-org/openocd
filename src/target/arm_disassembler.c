@@ -346,7 +346,7 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 		if (offset_12)
 			snprintf(offset, 32, ", #%s0x%x", (U) ? "" : "-", offset_12);
 		else
-			snprintf(offset, 32, "");
+			snprintf(offset, 32, "%s", "");
 		
 		instruction->info.load_store.offset_mode = 0;
 		instruction->info.load_store.offset.offset = offset_12;

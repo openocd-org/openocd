@@ -71,13 +71,15 @@ int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_ty
 		{
 			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
 				INFO("can't add %s breakpoint, resource not available", breakpoint_type_strings[(*breakpoint_p)->type]);
-				free (*breakpoint_p);
+				free((*breakpoint_p)->orig_instr);
+				free(*breakpoint_p);
 				*breakpoint_p = NULL;
 				return retval;
 				break;
 			case ERROR_TARGET_NOT_HALTED:
 				INFO("can't add breakpoint while target is running");
-				free (*breakpoint_p);
+				free((*breakpoint_p)->orig_instr);
+				free(*breakpoint_p);
 				*breakpoint_p = NULL;
 				return retval;
 				break;
