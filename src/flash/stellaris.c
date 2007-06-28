@@ -148,7 +148,7 @@ int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, c
 	stellaris_info->target = get_target_by_num(strtoul(args[5], NULL, 0));
 	if (!stellaris_info->target)
 	{
-		ERROR("no target '%i' configured", args[5]);
+		ERROR("no target '%s' configured", args[5]);
 		exit(-1);
 	}
 	

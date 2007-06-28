@@ -29,6 +29,7 @@
 #include "target.h"
 #include "armv4_5.h"
 #include "arm_simulator.h"
+#include "arm_disassembler.h"
 #include "log.h"
 #include "jtag.h"
 #include "binarybuffer.h"
@@ -995,21 +996,29 @@ enum target_state xscale_poll(target_t *target)
 	{
 		if ((retval = xscale_read_tx(target, 0)) == ERROR_OK)
 		{
+			enum target_state previous_state = target->state;
+			
 			/* there's data to read from the tx register, we entered debug state */
 			xscale->handler_running = 1;
+
+			target->state = TARGET_HALTED;
 			
 			/* process debug entry, fetching current mode regs */
 			if ((retval = xscale_debug_entry(target)) != ERROR_OK)
 				return retval;
 			
+			/* debug_entry could have overwritten target state (i.e. immediate resume)
+			 * don't signal event handlers in that case
+			 */
+			if (target->state != TARGET_HALTED)
+				return target->state;
+			
 			/* if target was running, signal that we halted
 			 * otherwise we reentered from debug execution */
-			if (target->state == TARGET_RUNNING)
+			if (previous_state == TARGET_RUNNING)
 				target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 			else
 				target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
-
-			target->state = TARGET_HALTED;
 		}
 		else if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 		{
@@ -1174,6 +1183,24 @@ int xscale_debug_entry(target_t *target)
 	xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = (xscale->cp15_control_reg & 0x4U) ? 1 : 0;
 	xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled = (xscale->cp15_control_reg & 0x1000U) ? 1 : 0;
 	
+	/* tracing enabled, read collected trace data */
+	if (xscale->trace.buffer_enabled)
+	{
+		xscale_read_trace(target);
+		xscale->trace.buffer_fill--;
+		
+		/* resume if we're still collecting trace data */
+		if ((xscale->arch_debug_reason == XSCALE_DBG_REASON_TB_FULL)
+			&& (xscale->trace.buffer_fill > 0))
+		{
+			xscale_resume(target, 1, 0x0, 1, 0);
+		}
+		else
+		{
+			xscale->trace.buffer_enabled = 0;
+		}
+	}
+	
 	return ERROR_OK;
 }
 
@@ -1315,7 +1342,7 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 			
 			/* send resume request (command 0x30 or 0x31)
 			 * clean the trace buffer if it is to be enabled (0x62) */
-			if (xscale->trace_buffer_enabled)
+			if (xscale->trace.buffer_enabled)
 			{
 				xscale_send_u32(target, 0x62);
 				xscale_send_u32(target, 0x31);
@@ -1358,7 +1385,7 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 	
 	/* send resume request (command 0x30 or 0x31)
 	 * clean the trace buffer if it is to be enabled (0x62) */
-	if (xscale->trace_buffer_enabled)
+	if (xscale->trace.buffer_enabled)
 	{
 		xscale_send_u32(target, 0x62);
 		xscale_send_u32(target, 0x31);
@@ -1462,7 +1489,7 @@ int xscale_step(struct target_s *target, int current, u32 address, int handle_br
 	
 	/* send resume request (command 0x30 or 0x31)
 	 * clean the trace buffer if it is to be enabled (0x62) */
-	if (xscale->trace_buffer_enabled)
+	if (xscale->trace.buffer_enabled)
 	{
 		xscale_send_u32(target, 0x62);
 		xscale_send_u32(target, 0x31);
@@ -2537,6 +2564,355 @@ int xscale_write_dcsr_sw(target_t *target, u32 value)
 	return ERROR_OK;
 }
 
+int xscale_read_trace(target_t *target)
+{
+	/* get pointers to arch-specific information */
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	xscale_common_t *xscale = armv4_5->arch_info;
+	xscale_trace_data_t **trace_data_p;
+	
+	/* 258 words from debug handler
+	 * 256 trace buffer entries
+	 * 2 checkpoint addresses
+	 */ 
+	u32 trace_buffer[258];
+	int is_address[256];
+	int i, j;
+	
+	if (target->state != TARGET_HALTED)
+	{
+		WARNING("target must be stopped to read trace data");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/* send read trace buffer command (command 0x61) */
+	xscale_send_u32(target, 0x61);
+	
+	/* receive trace buffer content */
+	xscale_receive(target, trace_buffer, 258);
+	
+	/* parse buffer backwards to identify address entries */
+	for (i = 255; i >= 0; i--)
+	{
+		is_address[i] = 0;
+		if (((trace_buffer[i] & 0xf0) == 0x90) ||
+			((trace_buffer[i] & 0xf0) == 0xd0)) 
+		{
+			if (i >= 3)
+				is_address[--i] = 1;
+			if (i >= 2)
+				is_address[--i] = 1;
+			if (i >= 1)
+				is_address[--i] = 1;
+			if (i >= 0)
+				is_address[--i] = 1;
+		}
+	}
+
+	
+	/* search first non-zero entry */
+	for (j = 0; (j < 256) && (trace_buffer[j] == 0) && (!is_address[j]); j++)
+		;
+
+	if (j == 256)
+	{
+		DEBUG("no trace data collected");
+		return ERROR_XSCALE_NO_TRACE_DATA;
+	}
+		
+	for (trace_data_p = &xscale->trace.data; *trace_data_p; trace_data_p = &(*trace_data_p)->next)
+		;
+
+	*trace_data_p = malloc(sizeof(xscale_trace_data_t));
+	(*trace_data_p)->next = NULL;
+	(*trace_data_p)->chkpt0 = trace_buffer[256];
+	(*trace_data_p)->chkpt1 = trace_buffer[257];
+	(*trace_data_p)->last_instruction = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	(*trace_data_p)->entries = malloc(sizeof(xscale_trace_entry_t) * (256 - j));
+	(*trace_data_p)->depth = 256 - j;
+		
+	for (i = j; i < 256; i++)
+	{
+		(*trace_data_p)->entries[i - j].data = trace_buffer[i];
+		if (is_address[i])
+			(*trace_data_p)->entries[i - j].type = XSCALE_TRACE_ADDRESS;
+		else
+			(*trace_data_p)->entries[i - j].type = XSCALE_TRACE_MESSAGE;
+	}
+	
+	return ERROR_OK;
+}
+
+int xscale_read_instruction(target_t *target, arm_instruction_t *instruction)
+{
+	/* get pointers to arch-specific information */
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	xscale_common_t *xscale = armv4_5->arch_info;
+	int i;
+	int section = -1;
+	u32 size_read;
+	u32 opcode;
+	int retval;
+	
+	if (!xscale->trace.image)
+		return ERROR_TRACE_IMAGE_UNAVAILABLE;
+	
+	/* search for the section the current instruction belongs to */	
+	for (i = 0; i < xscale->trace.image->num_sections; i++)
+	{
+		if ((xscale->trace.image->sections[i].base_address <= xscale->trace.current_pc) &&
+			(xscale->trace.image->sections[i].base_address + xscale->trace.image->sections[i].size > xscale->trace.current_pc))
+		{
+			section = i;
+			break;
+		}
+	}
+	
+	if (section == -1)
+	{
+		/* current instruction couldn't be found in the image */
+		return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
+	}
+	
+	if (xscale->trace.core_state == ARMV4_5_STATE_ARM)
+	{
+		u8 buf[4];
+		if ((retval = image_read_section(xscale->trace.image, section, 
+			xscale->trace.current_pc - xscale->trace.image->sections[section].base_address,
+			4, buf, &size_read)) != ERROR_OK)
+		{
+			ERROR("error while reading instruction: %i", retval);
+			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
+		}
+		opcode = target_buffer_get_u32(target, buf);
+		arm_evaluate_opcode(opcode, xscale->trace.current_pc, instruction);
+	}
+	else if (xscale->trace.core_state == ARMV4_5_STATE_THUMB)
+	{
+		u8 buf[2];
+		if ((retval = image_read_section(xscale->trace.image, section, 
+			xscale->trace.current_pc - xscale->trace.image->sections[section].base_address,
+			2, buf, &size_read)) != ERROR_OK)
+		{
+			ERROR("error while reading instruction: %i", retval);
+			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
+		}
+		opcode = target_buffer_get_u16(target, buf);
+		thumb_evaluate_opcode(opcode, xscale->trace.current_pc, instruction);
+	}
+	else
+	{
+		ERROR("BUG: unknown core state encountered");
+		exit(-1);
+	}
+	
+	return ERROR_OK;
+}
+
+int xscale_branch_address(xscale_trace_data_t *trace_data, int i, u32 *target)
+{
+	/* if there are less than four entries prior to the indirect branch message
+	 * we can't extract the address */
+	if (i < 4)
+	{
+		return -1;
+	}
+	
+	*target = (trace_data->entries[i-1].data) | (trace_data->entries[i-2].data << 8) |
+				(trace_data->entries[i-3].data << 16) | (trace_data->entries[i-4].data << 24);
+	
+	return 0;
+}
+
+int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
+{
+	/* get pointers to arch-specific information */
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	xscale_common_t *xscale = armv4_5->arch_info;
+	int next_pc_ok = 0;
+	u32 next_pc = 0x0;
+	xscale_trace_data_t *trace_data = xscale->trace.data;
+	int retval;
+	
+	while (trace_data)
+	{
+		int i, chkpt;
+		int rollover;
+		int branch;
+		int exception;
+		xscale->trace.core_state = ARMV4_5_STATE_ARM;
+
+		chkpt = 0;
+		rollover = 0;
+		
+		for (i = 0; i < trace_data->depth; i++)
+		{
+			next_pc_ok = 0;
+			branch = 0;
+			exception = 0;
+			
+			if (trace_data->entries[i].type == XSCALE_TRACE_ADDRESS)
+				continue;
+			
+			switch ((trace_data->entries[i].data & 0xf0) >> 4)
+			{
+				case 0:		/* Exceptions */
+				case 1:
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+				case 7:
+					exception = (trace_data->entries[i].data & 0x70) >> 4;
+					next_pc_ok = 1;
+					next_pc = (trace_data->entries[i].data & 0xf0) >> 2;
+					command_print(cmd_ctx, "--- exception %i ---", (trace_data->entries[i].data & 0xf0) >> 4);
+					break;
+				case 8:		/* Direct Branch */
+					branch = 1;
+					break;
+				case 9:		/* Indirect Branch */
+					branch = 1;
+					if (xscale_branch_address(trace_data, i, &next_pc) == 0)
+					{
+						next_pc_ok = 1;
+					}
+					break;
+				case 13:	/* Checkpointed Indirect Branch */
+					if (xscale_branch_address(trace_data, i, &next_pc) == 0)
+					{
+						next_pc_ok = 1;
+						if (((chkpt == 0) && (next_pc != trace_data->chkpt0))
+							|| ((chkpt == 1) && (next_pc != trace_data->chkpt1)))
+							WARNING("checkpointed indirect branch target address doesn't match checkpoint");
+					}
+					/* explicit fall-through */
+				case 12:	/* Checkpointed Direct Branch */
+					branch = 1;
+					if (chkpt == 0)
+					{
+						next_pc_ok = 1;
+						next_pc = trace_data->chkpt0;
+						chkpt++;
+					}
+					else if (chkpt == 1)
+					{
+						next_pc_ok = 1;
+						next_pc = trace_data->chkpt0;
+						chkpt++;
+					}
+					else
+					{
+						WARNING("more than two checkpointed branches encountered");
+					}
+					break;
+				case 15:	/* Roll-over */
+					rollover++;
+					continue;
+				default:	/* Reserved */
+					command_print(cmd_ctx, "--- reserved trace message ---");
+					ERROR("BUG: trace message %i is reserved", (trace_data->entries[i].data & 0xf0) >> 4);
+					return ERROR_OK;
+			}
+			
+			if (xscale->trace.pc_ok)
+			{
+				int executed = (trace_data->entries[i].data & 0xf) + rollover * 16;
+				arm_instruction_t instruction;
+				
+				if ((exception == 6) || (exception == 7))
+				{
+					/* IRQ or FIQ exception, no instruction executed */ 
+					executed -= 1;
+				}
+				
+				while (executed-- >= 0)
+				{
+					if ((retval = xscale_read_instruction(target, &instruction)) != ERROR_OK)
+					{
+						/* can't continue tracing with no image available */
+						if (retval == ERROR_TRACE_IMAGE_UNAVAILABLE)
+						{
+							return retval;
+						}
+						else if (retval == ERROR_TRACE_INSTRUCTION_UNAVAILABLE)
+						{
+							/* TODO: handle incomplete images */
+						}
+					}
+					
+					/* a precise abort on a load to the PC is included in the incremental
+					 * word count, other instructions causing data aborts are not included
+					 */
+					if ((executed == 0) && (exception == 4)
+						&& ((instruction.type >= ARM_LDR) && (instruction.type <= ARM_LDM)))
+					{
+						if ((instruction.type == ARM_LDM)
+							&& ((instruction.info.load_store_multiple.register_list & 0x8000) == 0))
+						{
+							executed--;
+						}
+						else if (((instruction.type >= ARM_LDR) && (instruction.type <= ARM_LDRSH))
+							&& (instruction.info.load_store.Rd != 15))
+						{
+							executed--;
+						}
+					}
+
+					/* only the last instruction executed
+					 * (the one that caused the control flow change)
+					 * could be a taken branch
+					 */
+					if (((executed == -1) && (branch == 1)) &&
+						(((instruction.type == ARM_B) ||
+							(instruction.type == ARM_BL) ||
+							(instruction.type == ARM_BLX)) &&
+							(instruction.info.b_bl_bx_blx.target_address != -1)))
+					{
+						xscale->trace.current_pc = instruction.info.b_bl_bx_blx.target_address;
+					}
+					else
+					{
+						xscale->trace.current_pc += (xscale->trace.core_state == ARMV4_5_STATE_ARM) ? 4 : 2;
+					}
+					command_print(cmd_ctx, "%s", instruction.text);
+				}
+				
+				rollover = 0;
+			}
+			
+			if (next_pc_ok)
+			{
+				xscale->trace.current_pc = next_pc;
+				xscale->trace.pc_ok = 1;
+			}
+		}
+		
+		for (; xscale->trace.current_pc < trace_data->last_instruction; xscale->trace.current_pc += (xscale->trace.core_state == ARMV4_5_STATE_ARM) ? 4 : 2)
+		{
+			arm_instruction_t instruction;
+			if ((retval = xscale_read_instruction(target, &instruction)) != ERROR_OK)
+			{
+				/* can't continue tracing with no image available */
+				if (retval == ERROR_TRACE_IMAGE_UNAVAILABLE)
+				{
+					return retval;
+				}
+				else if (retval == ERROR_TRACE_INSTRUCTION_UNAVAILABLE)
+				{
+					/* TODO: handle incomplete images */
+				}
+			}
+			command_print(cmd_ctx, "%s", instruction.text);
+		}
+		
+		trace_data = trace_data->next;
+	}
+	
+	return ERROR_OK;
+}
+
 void xscale_build_reg_cache(target_t *target)
 {
 	/* get pointers to arch-specific information */
@@ -2592,7 +2968,9 @@ int xscale_init_target(struct command_context_s *cmd_ctx, struct target_s *targe
 	
 	/* assert TRST once during startup */
 	jtag_add_reset(1, 0);
+	jtag_add_sleep(5000);
 	jtag_add_reset(0, 0);
+	jtag_execute_queue();
 	
 	return ERROR_OK;
 }
@@ -2688,8 +3066,11 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	
 	xscale->vector_catch = 0x1;
 	
-	xscale->trace_buffer_enabled = 0;
-	xscale->trace_buffer_fill = 0;
+	xscale->trace.capture_status = TRACE_IDLE;
+	xscale->trace.data = NULL;
+	xscale->trace.image = NULL;
+	xscale->trace.buffer_enabled = 0;
+	xscale->trace.buffer_fill = 0;
 	
 	/* prepare ARMv4/5 specific information */
 	armv4_5->arch_info = xscale;
@@ -3022,32 +3403,102 @@ int xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx, char *
 	
 	if ((argc >= 1) && (strcmp("enable", args[0]) == 0))
 	{
-		xscale->trace_buffer_enabled = 1;
+		xscale_trace_data_t *td, *next_td;
+		xscale->trace.buffer_enabled = 1;
+		
+		/* free old trace data */
+		td = xscale->trace.data;
+		while (td)
+		{
+			next_td = td->next;
+			
+			if (td->entries)
+				free(td->entries);
+			free(td);
+			td = next_td;
+		}
+		xscale->trace.data = NULL;
 	}
 	else if ((argc >= 1) && (strcmp("disable", args[0]) == 0))
 	{
-		xscale->trace_buffer_enabled = 0;
+		xscale->trace.buffer_enabled = 0;
 	}
 
 	if ((argc >= 2) && (strcmp("fill", args[1]) == 0))
 	{
-		xscale->trace_buffer_fill = 1;
+		if (argc >= 3)
+			xscale->trace.buffer_fill = strtoul(args[2], NULL, 0);
+		else
+			xscale->trace.buffer_fill = 1;
 	}
 	else if ((argc >= 2) && (strcmp("wrap", args[1]) == 0))
 	{
-		xscale->trace_buffer_fill = 0;
+		xscale->trace.buffer_fill = -1;
 	}
 	
 	command_print(cmd_ctx, "trace buffer %s (%s)", 
-		(xscale->trace_buffer_enabled) ? "enabled" : "disabled",
-		(xscale->trace_buffer_fill) ? "fill" : "wrap");
+		(xscale->trace.buffer_enabled) ? "enabled" : "disabled",
+		(xscale->trace.buffer_fill > 0) ? "fill" : "wrap");
 
 	dcsr_value = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 0, 32);
-	if (xscale->trace_buffer_fill)
+	if (xscale->trace.buffer_fill >= 0)
 		xscale_write_dcsr_sw(target, (dcsr_value & 0xfffffffc) | 2);
 	else
 		xscale_write_dcsr_sw(target, dcsr_value & 0xfffffffc);
 		
+	return ERROR_OK;
+}
+
+int xscale_handle_trace_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target;
+	armv4_5_common_t *armv4_5;
+	xscale_common_t *xscale;
+
+	if (argc < 1)
+	{
+		command_print(cmd_ctx, "usage: xscale trace_image <file> [base address] [type]");
+		return ERROR_OK;
+	}
+	
+	target = get_current_target(cmd_ctx);
+	
+	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "target isn't an XScale target");
+		return ERROR_OK;
+	}
+	
+	if (xscale->trace.image)
+	{
+		image_close(xscale->trace.image);
+		free(xscale->trace.image);
+		command_print(cmd_ctx, "previously loaded image found and closed");
+	}
+	
+	xscale->trace.image = malloc(sizeof(image_t));
+	xscale->trace.image->base_address_set = 0;
+	xscale->trace.image->start_address_set = 0;
+	
+	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
+	if (argc >= 2)
+	{
+		xscale->trace.image->base_address_set = 1;
+		xscale->trace.image->base_address = strtoul(args[1], NULL, 0);
+	}
+	else
+	{
+		xscale->trace.image->base_address_set = 0;
+	}
+		
+	if (image_open(xscale->trace.image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "image opening error: %s", xscale->trace.image->error_str);
+		free(xscale->trace.image);
+		xscale->trace.image = NULL;
+		return ERROR_OK;
+	}
+	
 	return ERROR_OK;
 }
 
@@ -3056,117 +3507,30 @@ int xscale_handle_dump_trace_buffer_command(struct command_context_s *cmd_ctx, c
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-	u32 trace_buffer[258];
-	int is_address[256];
-	int i;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 	
-	if (target->state != TARGET_HALTED)
+	return ERROR_OK;	
+}
+
+int xscale_handle_analyze_trace_buffer_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5;
+	xscale_common_t *xscale;
+
+	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-
-	/* send read trace buffer command (command 0x61) */
-	xscale_send_u32(target, 0x61);
 	
-	/* receive trace buffer content */
-	xscale_receive(target, trace_buffer, 258);
+	xscale_analyze_trace(target, cmd_ctx);
 	
-	for (i = 255; i >= 0; i--)
-	{
-		is_address[i] = 0;
-		if (((trace_buffer[i] & 0xf0) == 0x90) ||
-			((trace_buffer[i] & 0xf0) == 0xd0)) 
-		{
-			if (i >= 4)
-				is_address[--i] = 1;
-			if (i >= 3)
-				is_address[--i] = 1;
-			if (i >= 2)
-				is_address[--i] = 1;
-			if (i >= 1)
-				is_address[--i] = 1;
-		}
-	}
-	
-	for (i = 0; i < 256; i++)
-	{
-#if 0
-		command_print(cmd_ctx, "0x%2.2x 0x%2.2x 0x%2.2x 0x%2.2x 0x%2.2x 0x%2.2x 0x%2.2x 0x%2.2x",
-			trace_buffer[i + 0], trace_buffer[i + 1], trace_buffer[i + 2], trace_buffer[i + 3],
-			trace_buffer[i + 4], trace_buffer[i + 5], trace_buffer[i + 6], trace_buffer[i + 6]
-			);
-		i += 8;
-#endif
-		if (is_address[i])
-		{
-			command_print(cmd_ctx, "address: 0x%2.2x%2.2x%2.2x%2.2x", trace_buffer[i], trace_buffer[i+1], trace_buffer[i+2], trace_buffer[i+3]);
-			i += 3; 
-		}
-		else
-		{
-			switch ((trace_buffer[i] & 0xf0) >> 4)
-			{
-				case 0:
-					command_print(cmd_ctx, "0x%2.2x: reset exception", trace_buffer[i]);
-					break;
-				case 1:
-					command_print(cmd_ctx, "0x%2.2x: undef exception", trace_buffer[i]);
-					break;
-				case 2:
-					command_print(cmd_ctx, "0x%2.2x: swi exception", trace_buffer[i]);
-					break;
-				case 3:
-					command_print(cmd_ctx, "0x%2.2x: pabort exception", trace_buffer[i]);
-					break;
-				case 4:
-					command_print(cmd_ctx, "0x%2.2x: dabort exception", trace_buffer[i]);
-					break;
-				case 5:
-					command_print(cmd_ctx, "0x%2.2x: invalid", trace_buffer[i]);
-					break;
-				case 6:
-					command_print(cmd_ctx, "0x%2.2x: irq exception", trace_buffer[i]);
-					break;
-				case 7:
-					command_print(cmd_ctx, "0x%2.2x: fiq exception", trace_buffer[i]);
-					break;
-				case 0x8:
-					command_print(cmd_ctx, "0x%2.2x: direct branch", trace_buffer[i]);
-					break;
-				case 0x9:
-					command_print(cmd_ctx, "0x%2.2x: indirect branch", trace_buffer[i]);
-					break;
-				case 0xa:
-					command_print(cmd_ctx, "0x%2.2x: invalid", trace_buffer[i]);
-					break;
-				case 0xb:
-					command_print(cmd_ctx, "0x%2.2x: invalid", trace_buffer[i]);
-					break;
-				case 0xc:
-					command_print(cmd_ctx, "0x%2.2x: checkpointed direct branch", trace_buffer[i]);
-					break;
-				case 0xd:
-					command_print(cmd_ctx, "0x%2.2x: checkpointed indirect branch", trace_buffer[i]);
-					break;
-				case 0xe:
-					command_print(cmd_ctx, "0x%2.2x: invalid", trace_buffer[i]);
-					break;
-				case 0xf:
-					command_print(cmd_ctx, "0x%2.2x: rollover", trace_buffer[i]);
-					break;
-			} 
-		}
-	}
-	
-	command_print(cmd_ctx, "chkpt0: 0x%8.8x, chkpt1: 0x%8.8x", trace_buffer[256], trace_buffer[257]);
-
 	return ERROR_OK;	
 }
 
@@ -3190,7 +3554,10 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable|disable> ['fill'|'wrap']");
 
 	register_command(cmd_ctx, xscale_cmd, "dump_trace_buffer", xscale_handle_dump_trace_buffer_command, COMMAND_EXEC, "dump content of trace buffer");
-	
+	register_command(cmd_ctx, xscale_cmd, "analyze_trace", xscale_handle_analyze_trace_buffer_command, COMMAND_EXEC, "analyze content of trace buffer");
+	register_command(cmd_ctx, xscale_cmd, "trace_image", xscale_handle_trace_image_command,
+		COMMAND_EXEC, "load image from <file> [base address]");
+		
 	armv4_5_register_commands(cmd_ctx);
 	
 	return ERROR_OK;

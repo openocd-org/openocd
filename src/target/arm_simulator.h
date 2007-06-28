@@ -26,6 +26,6 @@
 extern int arm_simulate_step(target_t *target, u32 *dry_run_pc);
 
 
-#define ERROR_ARM_SIMULATOR_NOT_IMPLEMENTED	(-1000)
+#define ERROR_ARM_SIMULATOR_NOT_IMPLEMENTED	(-700)
 
 #endif /* ARM_SIMULATOR_H */

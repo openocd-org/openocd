@@ -24,6 +24,8 @@
 #include "register.h"
 #include "armv4_5.h"
 #include "armv4_5_mmu.h"
+#include "trace.h"
+#include "image.h"
 
 #define	XSCALE_COMMON_MAGIC 0x58534341
 
@@ -46,6 +48,40 @@ enum xscale_debug_reason
 	XSCALE_DBG_REASON_RESET,
 	XSCALE_DBG_REASON_TB_FULL,
 };
+
+enum xscale_trace_entry_type
+{
+	XSCALE_TRACE_MESSAGE,
+	XSCALE_TRACE_ADDRESS,
+};
+
+typedef struct xscale_trace_entry_s
+{
+	u8 data;
+	enum xscale_trace_entry_type type;
+} xscale_trace_entry_t;
+
+typedef struct xscale_trace_data_s
+{
+	xscale_trace_entry_t *entries;
+	int depth;
+	u32 chkpt0;
+	u32 chkpt1;
+	u32 last_instruction;
+	struct xscale_trace_data_s *next;
+} xscale_trace_data_t;
+
+typedef struct xscale_trace_s
+{
+	trace_status_t capture_status;	/* current state of capture run */
+	image_t *image;					/* source for target opcodes */
+	xscale_trace_data_t *data;		/* linked list of collected trace data */
+	int buffer_enabled;				/* whether trace buffer is enabled */
+	int buffer_fill;				/* maximum number of trace runs to read (-1 for wrap-around) */
+	int pc_ok;
+	u32 current_pc;
+	armv4_5_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
+} xscale_trace_t;
 
 typedef struct xscale_common_s
 {
@@ -93,9 +129,8 @@ typedef struct xscale_common_s
 	u16 thumb_bkpt;
 	
 	u8 vector_catch;
-	
-	int trace_buffer_enabled;
-	int trace_buffer_fill;
+
+	xscale_trace_t trace;
 	
 	int arch_debug_reason;
 	
@@ -141,5 +176,7 @@ enum
 	XSCALE_RX,			/* 20 */
 	XSCALE_TXRXCTRL,
 };
+
+#define ERROR_XSCALE_NO_TRACE_DATA	(-1500)
 
 #endif /* XSCALE_H */

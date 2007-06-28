@@ -1502,9 +1502,13 @@ int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	
 	for (i = 0; i < etm_ctx->trace_depth; i++)
 	{
-		fileio_read_u32(&file, &etm_ctx->trace_data[i].pipestat);
-		fileio_read_u32(&file, &etm_ctx->trace_data[i].packet);
-		fileio_read_u32(&file, &etm_ctx->trace_data[i].flags);
+		u32 pipestat, packet, flags;
+		fileio_read_u32(&file, &pipestat);
+		fileio_read_u32(&file, &packet);
+		fileio_read_u32(&file, &flags);
+		etm_ctx->trace_data[i].pipestat = pipestat & 0xff;
+		etm_ctx->trace_data[i].packet = packet & 0xffff;
+		etm_ctx->trace_data[i].flags = flags;
 	}
 	
 	fileio_close(&file);
