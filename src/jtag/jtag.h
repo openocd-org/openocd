@@ -25,7 +25,7 @@
 
 #include "command.h"
 
-#if 0
+#if 1
 #define _DEBUG_JTAG_IO_
 #endif
 

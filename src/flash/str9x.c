@@ -610,7 +610,7 @@ int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *c
 	
 	if (argc < 4)
 	{
-		command_print(cmd_ctx, "usage: str9x flash_config b0size b1size b0start b1start");
+		command_print(cmd_ctx, "usage: str9x flash_config <b0size> <b1size> <b0start> <b1start>");
 		return ERROR_OK;
 	}
 	

@@ -103,7 +103,8 @@ typedef enum
 	ETMV1_CONTEXTID_32   = 0x30,
 	ETMV1_CONTEXTID_MASK = 0x30,
 	/* Misc */
-	ETMV1_CYCLE_ACCURATE = 0x100
+	ETMV1_CYCLE_ACCURATE = 0x100,
+	ETMV1_BRANCH_OUTPUT = 0x200
 } etmv1_tracemode_t;
 
 /* forward-declare ETM context */

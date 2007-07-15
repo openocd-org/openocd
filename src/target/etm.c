@@ -465,10 +465,12 @@ int etm_store_reg(reg_t *reg)
  * 
  */
 extern etm_capture_driver_t etb_capture_driver;
+extern etm_capture_driver_t etm_dummy_capture_driver;
 
 etm_capture_driver_t *etm_capture_drivers[] = 
 {
 	&etb_capture_driver,
+	&etm_dummy_capture_driver,
 	NULL
 };
 
@@ -1005,7 +1007,7 @@ int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, c
 	
 	tracemode = arm7_9->etm_ctx->tracemode;
 
-	if (argc == 3)
+	if (argc == 4)
 	{
 		if (strcmp(args[0], "none") == 0)
 		{
@@ -1061,10 +1063,24 @@ int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, c
 			command_print(cmd_ctx, "invalid option '%s'", args[2]);
 			return ERROR_OK;
 		}
+		
+		if (strcmp(args[3], "enable") == 0)
+		{
+			tracemode |= ETMV1_BRANCH_OUTPUT;
+		}
+		else if (strcmp(args[3], "disable") == 0)
+		{
+			tracemode |= 0;
+		}
+		else
+		{
+			command_print(cmd_ctx, "invalid option '%s'", args[2]);
+			return ERROR_OK;
+		}
 	}
 	else if (argc != 0)
 	{
-		command_print(cmd_ctx, "usage: configure trace mode <none|data|address|all> <context id bits> <enable|disable cycle accurate>");
+		command_print(cmd_ctx, "usage: configure trace mode <none|data|address|all> <context id bits> <cycle accurate> <branch output>");
 		return ERROR_OK;
 	}
 	
@@ -1110,6 +1126,15 @@ int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, c
 	{
 		command_print(cmd_ctx, "cycle-accurate tracing disabled");
 	}
+
+	if (tracemode & ETMV1_BRANCH_OUTPUT)
+	{
+		command_print(cmd_ctx, "full branch address output enabled");
+	}
+	else
+	{
+		command_print(cmd_ctx, "full branch address output disabled");
+	}
 	
 	/* only update ETM_CTRL register if tracemode changed */
 	if (arm7_9->etm_ctx->tracemode != tracemode)
@@ -1121,7 +1146,7 @@ int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, c
 		buf_set_u32(etm_ctrl_reg->value, 2, 2, tracemode & ETMV1_TRACE_MASK);
 		buf_set_u32(etm_ctrl_reg->value, 14, 2, (tracemode & ETMV1_CONTEXTID_MASK) >> 4);
 		buf_set_u32(etm_ctrl_reg->value, 12, 1, (tracemode & ETMV1_CYCLE_ACCURATE) >> 8);
-		
+		buf_set_u32(etm_ctrl_reg->value, 8, 1, (tracemode & ETMV1_BRANCH_OUTPUT) >> 9);
 		etm_store_reg(etm_ctrl_reg);
 		
 		arm7_9->etm_ctx->tracemode = tracemode;
@@ -1317,7 +1342,6 @@ int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	etm_context_t *etm_ctx;
-	int i;
 
 	if (argc < 1)
 	{
@@ -1634,7 +1658,7 @@ int etm_register_commands(struct command_context_s *cmd_ctx)
 int etm_register_user_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, etm_cmd, "tracemode", handle_etm_tracemode_command,
-		COMMAND_EXEC, "configure trace mode <none|data|address|all> <context id bits> <enable|disable cycle accurate>");
+		COMMAND_EXEC, "configure trace mode <none|data|address|all> <context id bits> <cycle accurate> <branch output");
 
 	register_command(cmd_ctx, etm_cmd, "status", handle_etm_status_command,
 		COMMAND_EXEC, "display current target's ETM status");

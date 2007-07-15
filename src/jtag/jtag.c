@@ -162,6 +162,14 @@ jtag_event_callback_t *jtag_event_callbacks;
 	extern jtag_interface_t gw16012_interface;
 #endif
 
+#if BUILD_PRESTO == 1
+	extern jtag_interface_t presto_interface;
+#endif
+
+#if BUILD_USBPROG == 1
+	extern jtag_interface_t usbprog_interface;
+#endif
+
 jtag_interface_t *jtag_interfaces[] = {
 #if BUILD_PARPORT == 1
 	&parport_interface,
@@ -183,6 +191,12 @@ jtag_interface_t *jtag_interfaces[] = {
 #endif
 #if BUILD_GW16012 == 1
 	&gw16012_interface,
+#endif
+#if BUILD_PRESTO == 1
+	&presto_interface,
+#endif
+#if BUILD_USBPROG == 1
+	&usbprog_interface,
 #endif
 	NULL,
 };

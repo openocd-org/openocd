@@ -382,6 +382,12 @@ int server_loop(command_context_t *command_context)
 				shutdown_openocd = 1;
 			}
 		}
+#else
+		MSG msg;
+		while (PeekMessage(&msg,NULL,0,0,PM_REMOVE))
+		{
+			if (msg.message==WM_QUIT) shutdown_openocd = 1;
+		}
 #endif
 	}
 	
@@ -393,6 +399,10 @@ BOOL WINAPI ControlHandler(DWORD dwCtrlType)
 {
     shutdown_openocd = 1;
     return TRUE;
+}
+
+void sig_handler(int sig) {
+    shutdown_openocd = 1;
 }
 #endif
 
@@ -411,6 +421,11 @@ int server_init()
 	}
 
 	SetConsoleCtrlHandler( ControlHandler, TRUE );
+
+        signal(SIGINT, sig_handler);
+        signal(SIGTERM, sig_handler);
+        signal(SIGBREAK, sig_handler);
+        signal(SIGABRT, sig_handler);
 #endif
 
 	
