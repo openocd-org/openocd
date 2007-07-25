@@ -264,63 +264,31 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 		{
 			if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
 				return retval;
-			
-			if( !first_char ) {
-				packet_type = character;
-				first_char = 1;	
-			}
-			
-			if( packet_type == 'X' )
+				
+			if (character == '#') break;
+
+			if (character == '}')
 			{
-				switch (character)
-				{
-					case '#':
-						break;
-					case 0x7d:
-						/* data transmitted in binary mode (X packet)
-						* uses 0x7d as escape character */
-						my_checksum += character & 0xff;
-						gdb_get_char(connection, &character);
-						my_checksum += character & 0xff;
-						buffer[count++] = (character ^ 0x20) & 0xff;
-						if (count > *len)
-						{
-							ERROR("packet buffer too small");
-							return ERROR_GDB_BUFFER_TOO_SMALL;
-						}
-						break;
-					default:
-						buffer[count++] = character & 0xff;
-						my_checksum += character & 0xff;
-						if (count > *len)
-						{
-							ERROR("packet buffer too small");
-							return ERROR_GDB_BUFFER_TOO_SMALL;
-						}
-						break;
-				}
+				/* data transmitted in binary mode (X packet)
+				* uses 0x7d as escape character */
+				my_checksum += character & 0xff;
+				if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
+					return retval;
+				my_checksum += character & 0xff;
+				buffer[count++] = (character ^ 0x20) & 0xff;
 			}
 			else
 			{
-				switch (character)
-				{
-					case '#':
-						break;
-					case 0x3:
-						gdb_con->ctrl_c = 1;
-						break;
-					default:
-						buffer[count++] = character & 0xff;
-						my_checksum += character & 0xff;
-						if (count > *len)
-						{
-							ERROR("packet buffer too small");
-							return ERROR_GDB_BUFFER_TOO_SMALL;
-						}
-						break;
-				}
+				my_checksum += character & 0xff;
+				buffer[count++] = character & 0xff;
 			}
-		} while (character != '#');
+
+			if (count > *len)
+			{
+				ERROR("packet buffer too small");
+				return ERROR_GDB_BUFFER_TOO_SMALL;
+			}
+		} while (1);
 
 		*len = count;
 		

@@ -205,7 +205,8 @@ int ft2232_read(u8* buf, int size, u32* bytes_read)
 
 	while ((*bytes_read < size) && timeout--)
 	{
-		if ((status = FT_Read(ftdih, buf, size, &dw_bytes_read)) != FT_OK)
+		if ((status = FT_Read(ftdih, buf + *bytes_read, size - 
+			*bytes_read, &dw_bytes_read)) != FT_OK)		
 		{
 			*bytes_read = 0; 
 			ERROR("FT_Read returned: %lu", status);

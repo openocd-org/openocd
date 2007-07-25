@@ -675,9 +675,6 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
-	if (offset + count > bank->size)
-		return ERROR_FLASH_DST_OUT_OF_BANK;
-	
 	if (at91sam7_info->cidr_arch == 0)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
@@ -688,7 +685,7 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	
 	/* Configure the flash controller timing */	
 	at91sam7_read_clock_info(bank);	
-       at91sam7_set_flash_mode(bank,FMR_TIMING_FLASH);
+	at91sam7_set_flash_mode(bank,FMR_TIMING_FLASH);
 
 	for (pagen=first_page; pagen<last_page; pagen++) {
 		if (bytes_remaining<dst_min_alignment) 

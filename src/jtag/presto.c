@@ -166,7 +166,7 @@ int presto_open(char *req_serial)
 		if (FT_GetDeviceInfo(presto->handle,&device,&vidpid,presto->serial,devname,NULL)==FT_OK)
 		{
 			if (vidpid==PRESTO_VID_PID && (req_serial==NULL || !strcmp(presto->serial,req_serial)))
-			  break;
+				break;
 		}
 		FT_Close(presto->handle);
 		presto->handle=INVALID_HANDLE_VALUE;

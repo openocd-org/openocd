@@ -1862,6 +1862,7 @@ int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
+	int retval;
 
 	if (argc == 0)
 	{
@@ -1905,7 +1906,23 @@ int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 		{
 			data_mask = strtoul(args[4], NULL, 0);
 		}
-		watchpoint_add(target, strtoul(args[0], NULL, 0), strtoul(args[1], NULL, 0), type, data_value, data_mask);
+		
+		if ((retval = watchpoint_add(target, strtoul(args[0], NULL, 0),
+				strtoul(args[1], NULL, 0), type, data_value, data_mask)) != ERROR_OK)
+		{
+			switch (retval)
+			{
+				case ERROR_TARGET_NOT_HALTED:
+					command_print(cmd_ctx, "target must be halted to set watchpoints");
+					break;
+				case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
+					command_print(cmd_ctx, "no more watchpoints available");
+					break;
+				default:
+					command_print(cmd_ctx, "unknown error, watchpoint not set");
+					break;
+			}	
+		}
 	}
 	else
 	{
