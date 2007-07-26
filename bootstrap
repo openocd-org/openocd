@@ -1,4 +1,4 @@
 aclocal \
 && autoheader \
-&& automake --gnu --add-missing \
+&& automake --foreign --add-missing --copy \
 && autoconf

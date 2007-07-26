@@ -13,13 +13,22 @@ User interaction is realized through a telnet command line interface and a gdb
 
 1. JTAG hardware
 
-Currently, OpenOCD supports three types of JTAG interfaces:
+Currently, OpenOCD supports the following JTAG interfaces:
 
 - Parallel port wigglers. These devices connect to a PC's parallel port,
 providing direct access to the JTAG lines. The OpenOCD contains descriptions
 of a few Wiggler layouts, including the original 'Wiggler' design. Other
 layouts (i.e. mapping of parallel port pins to JTAG lines) can be added easily.
 Typical Wiggler speeds are around 12kByte/s code download to an ARM7's RAM.
+
+The list of supported parallel port devices includes:
+
+  * Macraigor Wiggler JTAG cable
+  * Gateworks GW16012 JTAG programmer
+  * Xilinx DLC5 JTAG parallel cable III
+  * Ka-Ro TRITON starterkit II JTAG cable
+  * Lattice parallel port JTAG cable
+  * ST FlashLINK programming cable
 
 - The Amontec JTAG Accelerator. This is a configuration for Amontec's Chameleon
 dongle, a parallel port interface based on a Xilinx CoolRunner CPLD. It uses
@@ -60,6 +69,25 @@ features and additional RS232 UART.
 The Signalyzer offers support for a wide variety of target voltages from 1.2V to
 5.5V. A second connector provides access to a TTL level UART.
 
+* American Microsystem M5960 USB JTAG programmer.
+
+* Turtelizer 2: http://www.ethernut.de/en/hardware/turtelizer/index.html
+Another USB JTAG programmer, with freely available schematics. It supports
+target voltages from 1.65V to 5.5V.
+
+* Hitex STR9-comSTICK: http://www.ehitex.de/p_info.php?products_id=292
+A STR912FW44x microcontroller "board" with USB and JTAG functionality.
+
+* Luminary Micro development board evb_lm3s811 JTAG interface.
+
+* ASIX PRESTO: http://www.asix-tools.com/prg_presto.htm
+The ASIX PRESTO is a USB JTAG programmer for a wide range of components, e.g.
+microcontrollers, serial EEPROM and Flash memory chips, CPLDs and others.
+
+* usbprog: http://www.embedded-projects.net/index.php?page_id=165
+The usbprog is a freely programmable USB adapter, which can (among other
+things) use a firmware which turns it into a JTAG programmer/debugger.
+
 All FT2232 based devices may be accessed using either FTDI's proprietary FTD2XX
 library (www.ftdichip.com) or using an open-source replacement from
 http://www.intra2net.com/de/produkte/opensource/ftdi/index.php, also included
@@ -75,20 +103,19 @@ This version of openocd supports the following ARM7/9 cores:
 - ARM922t
 - ARM926ej-s
 - ARM966e
+- Cortex-M3
 
 Support for Intel XScale CPUs is also included:
 
 - PXA25x
+- PXA27x
 - IXP42x
 
-PXA27x debugging should be similar to the PXA25x but fails in the current
-version of OpenOCD.
- 
 3. Host platforms
 
 OpenOCD was originally developed on x86-Linux, but has since then been ported
-to run on Windows/Cygwin, native Windows with MinGW, FreeBSD, x86-64-Linux and
-PowerPC OS-X.
+to run on Windows/Cygwin, native Windows with MinGW, FreeBSD, IA64-Linux,
+AMD64-Linux, Alpha-Linux, ARM-Linux, and PowerPC OS-X.
 
 4. Documentation
 
