@@ -386,7 +386,8 @@ int server_loop(command_context_t *command_context)
 		MSG msg;
 		while (PeekMessage(&msg,NULL,0,0,PM_REMOVE))
 		{
-			if (msg.message==WM_QUIT) shutdown_openocd = 1;
+			if (msg.message == WM_QUIT)
+				shutdown_openocd = 1;
 		}
 #endif
 	}
@@ -422,10 +423,10 @@ int server_init()
 
 	SetConsoleCtrlHandler( ControlHandler, TRUE );
 
-        signal(SIGINT, sig_handler);
-        signal(SIGTERM, sig_handler);
-        signal(SIGBREAK, sig_handler);
-        signal(SIGABRT, sig_handler);
+	signal(SIGINT, sig_handler);
+	signal(SIGTERM, sig_handler);
+	signal(SIGBREAK, sig_handler);
+	signal(SIGABRT, sig_handler);
 #endif
 
 	

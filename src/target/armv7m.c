@@ -57,22 +57,22 @@ char* armv7m_exception_strings[] =
 
 char* armv7m_core_reg_list[] =
 {
-/* Registers accessed through core debug */
+	/* Registers accessed through core debug */
 	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12",
 	"sp", "lr", "pc",
 	"xPSR", "msp", "psp",
-/* Registers accessed through MSR instructions */
+	/* Registers accessed through MSR instructions */
 //	"apsr", "iapsr", "ipsr", "epsr",
 	"primask", "basepri", "faultmask", "control"
 };
 
 char* armv7m_core_dbgreg_list[] =
 {
-/* Registers accessed through core debug */
+	/* Registers accessed through core debug */
 	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12",
 	"sp", "lr", "pc",
 	"xPSR", "msp", "psp",
-/* Registers accessed through MSR instructions */
+	/* Registers accessed through MSR instructions */
 //	"dbg_apsr", "iapsr", "ipsr", "epsr",
 	"primask", "basepri", "faultmask", "dbg_control"
 };
@@ -121,7 +121,6 @@ armv7m_core_reg_t armv7m_core_reg_list_arch_info[] =
 };
 
 int armv7m_core_reg_arch_type = -1;
-
 
 /* Keep different contexts for the process being debugged and debug algorithms */
 enum armv7m_runcontext armv7m_get_context(target_t *target)
@@ -238,8 +237,8 @@ int armv7m_read_core_reg(struct target_s *target, int num)
 	armv7m_core_reg = armv7m->core_cache->reg_list[num].arch_info;
 	retval = armv7m->load_core_reg_u32(target, armv7m_core_reg->type, armv7m_core_reg->num, &reg_value);
 	buf_set_u32(armv7m->core_cache->reg_list[num].value, 0, 32, reg_value);
-	armv7m->core_cache->reg_list[num].valid=1;
-	armv7m->core_cache->reg_list[num].dirty=0;
+	armv7m->core_cache->reg_list[num].valid = 1;
+	armv7m->core_cache->reg_list[num].dirty = 0;
 		
 	return ERROR_OK;	
 }
@@ -248,7 +247,7 @@ int armv7m_write_core_reg(struct target_s *target, int num)
 {
 	int retval;
 	u32 reg_value;
-	armv7m_core_reg_t * armv7m_core_reg;
+	armv7m_core_reg_t *armv7m_core_reg;
 	
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -262,12 +261,12 @@ int armv7m_write_core_reg(struct target_s *target, int num)
 	if (retval != ERROR_OK)
 	{
 		ERROR("JTAG failure");
-		armv7m->core_cache->reg_list[num].dirty=1;
+		armv7m->core_cache->reg_list[num].dirty = 1;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
-	DEBUG("write core reg %i value 0x%x",num ,reg_value);
-	armv7m->core_cache->reg_list[num].valid=1;
-	armv7m->core_cache->reg_list[num].dirty=0;
+	DEBUG("write core reg %i value 0x%x", num , reg_value);
+	armv7m->core_cache->reg_list[num].valid = 1;
+	armv7m->core_cache->reg_list[num].dirty = 0;
 	
 	return ERROR_OK;
 }
@@ -549,7 +548,7 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 		reg_list[i].arch_type = armv7m_core_reg_arch_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}
- 
+	
     return cache;
 }
 

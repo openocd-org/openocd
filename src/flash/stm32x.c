@@ -736,7 +736,7 @@ int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char 
 	
 	if (argc < 4)
 	{
-		command_print(cmd_ctx, "stm32x options_write <bank> <RSTSTNDBY|NORSTSTNDBY> <RSTSTOP|NORSTSTOP> <SWWDG|HWWDG>");
+		command_print(cmd_ctx, "stm32x options_write <bank> <SWWDG|HWWDG> <RSTSTNDBY|NORSTSTNDBY> <RSTSTOP|NORSTSTOP>");
 		return ERROR_OK;	
 	}
 	

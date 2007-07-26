@@ -197,6 +197,7 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 int cortex_m3_assert_reset(target_t *target);
 int cortex_m3_deassert_reset(target_t *target);
 int cortex_m3_soft_reset_halt(struct target_s *target);
+int cortex_m3_prepare_reset_halt(struct target_s *target);
 
 int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);

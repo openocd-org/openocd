@@ -439,7 +439,7 @@ int ahbap_write_buf(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address)
 		}
 		if (errorcount > 1)
 		{
-			WARNING("Block read error address %x, count %x", address, count);
+			WARNING("Block read error address 0x%x, count 0x%x", address, count);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
@@ -531,7 +531,7 @@ int ahbap_read_buf(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address)
 		}
 		if (errorcount > 1)
 		{
-			WARNING("Block read error address %x, count %x", address, count);
+			WARNING("Block read error address 0x%x, count 0x%x", address, count);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
@@ -600,7 +600,7 @@ int ahbap_block_read_u32(swjdp_common_t *swjdp, u32 *buffer, int count, u32 addr
 		}
 		if (errorcount > 1)
 		{
-			WARNING("Block read error address %x, count %x", address, count);
+			WARNING("Block read error address 0x%x, count 0x%x", address, count);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
