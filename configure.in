@@ -24,9 +24,16 @@ AC_ARG_ENABLE(parport,
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]), 
   [build_parport=$enableval], [build_parport=no])
 
-AC_ARG_ENABLE(parport_ppdev,
-  AS_HELP_STRING([--enable-parport_ppdev], [Enable use of ppdev (/dev/parportN) for parport]), 
-  [parport_use_ppdev=$enableval], [parport_use_ppdev=no])
+case "${host_cpu}" in 
+  i?86|x86*)
+    AC_ARG_ENABLE(parport_ppdev,
+      AS_HELP_STRING([--enable-parport_ppdev], [Enable use of ppdev (/dev/parportN) for parport]), 
+      [parport_use_ppdev=$enableval], [parport_use_ppdev=no])
+    ;;
+  *) 
+    parport_use_ppdev=yes
+    ;;
+esac
 
 AC_ARG_ENABLE(ft2232_libftdi,
   AS_HELP_STRING([--enable-ft2232_libftdi], [Enable building support for FT2232 based devices using the libftdi driver]), 

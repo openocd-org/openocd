@@ -43,9 +43,7 @@
 
 #else
 
-#ifndef _WIN32
-#include <sys/io.h>
-#else
+#ifdef _WIN32
 #include "errno.h"
 #endif /* _WIN32 */
 
@@ -69,6 +67,10 @@
 #endif
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#else /* not PARPORT_USE_PPDEV */
+#ifndef _WIN32
+#include <sys/io.h>
+#endif
 #endif
 
 #if PARPORT_USE_GIVEIO == 1
