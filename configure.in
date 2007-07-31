@@ -67,6 +67,10 @@ AC_ARG_ENABLE(usbprog,
   AS_HELP_STRING([--enable-usbprog], [Enable building support for the usbprog JTAG Programmer]),
   [build_usbprog=$enableval], [build_usbprog=no])
 
+AC_ARG_ENABLE(oocd_trace,
+  AS_HELP_STRING([--enable-oocd_trace], [Enable building support for the OpenOCD+trace ETM capture device]),
+  [build_oocd_trace=$enableval], [build_oocd_trace=no])
+
 AC_ARG_WITH(ftd2xx,
         [AS_HELP_STRING(--with-ftd2xx,
            [Where libftd2xx can be found <default=search>])],
@@ -191,6 +195,12 @@ else
   AC_DEFINE(BUILD_USBPROG, 0, [0 if you don't want the usbprog JTAG driver.])
 fi
 
+if test $build_oocd_trace = yes; then
+  AC_DEFINE(BUILD_OOCD_TRACE, 1, [1 if you want the OpenOCD+trace ETM capture driver.])
+else
+  AC_DEFINE(BUILD_OOCD_TRACE, 0, [0 if you don't want the OpenOCD+trace ETM capture driver.])
+fi
+
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(openocd, 0.1)
 
@@ -205,6 +215,7 @@ AM_CONDITIONAL(AMTJTAGACCEL, test $build_amtjtagaccel = yes)
 AM_CONDITIONAL(GW16012, test $build_gw16012 = yes)
 AM_CONDITIONAL(PRESTO, test $build_presto = yes)
 AM_CONDITIONAL(USBPROG, test $build_usbprog = yes)
+AM_CONDITIONAL(OOCD_TRACE, test $build_oocd_trace = yes)
 AM_CONDITIONAL(IS_CYGWIN, test $is_cygwin = yes)
 AM_CONDITIONAL(IS_MINGW, test $is_mingw = yes)
 AM_CONDITIONAL(IS_WIN32, test $is_win32 = yes)
