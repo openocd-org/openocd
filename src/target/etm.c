@@ -760,18 +760,21 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 		u32 old_data_index = ctx->data_index;
 		u32 old_data_half = ctx->data_half;
 		u32 old_index = ctx->pipe_index;
+		u32 last_instruction = ctx->last_instruction;
 		u32 cycles = 0;
 		
 		if (ctx->trace_data[ctx->pipe_index].flags & ETMV1_TRIGGER_CYCLE)
 		{
 			command_print(cmd_ctx, "--- trigger ---");
 		}
+
+		/* instructions execute in IE/D or BE/D cycles */
+		if ((pipestat == STAT_IE) || (pipestat == STAT_ID))
+			ctx->last_instruction = ctx->pipe_index;
 		
 		/* if we don't have a valid pc skip until we reach an indirect branch */
 		if ((!ctx->pc_ok) && (pipestat != STAT_BE))
 		{
-			if (pipestat == STAT_IE)
-				ctx->last_instruction = ctx->pipe_index;
 			ctx->pipe_index++;
 			continue;
 		}
@@ -787,6 +790,8 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 			 */
 			old_data_index = ctx->data_index;
 			old_data_half = ctx->data_half;
+
+			ctx->last_instruction = ctx->pipe_index;
 			
 			if ((retval = etmv1_branch_address(ctx)) != 0)
 			{
@@ -810,32 +815,27 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 			{
 				case 0x0:	/* normal PC change */
 					next_pc = ctx->last_branch;
-					ctx->last_instruction = old_index;
 					break;
 				case 0x1:	/* tracing enabled */
 					command_print(cmd_ctx, "--- tracing enabled at 0x%8.8x ---", ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
-					ctx->last_instruction = old_index;
 					continue;
 					break;
 				case 0x2:	/* trace restarted after FIFO overflow */
 					command_print(cmd_ctx, "--- trace restarted after FIFO overflow at 0x%8.8x ---", ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
-					ctx->last_instruction = old_index;
 					continue;
 					break;
 				case 0x3:	/* exit from debug state */
 					command_print(cmd_ctx, "--- exit from debug state at 0x%8.8x ---", ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
-					ctx->last_instruction = old_index;
 					continue;
 					break;
 				case 0x4:	/* periodic synchronization point */
 					next_pc = ctx->last_branch;
-					ctx->last_instruction = old_index;
 					break;
 				default:	/* reserved */
 					ERROR("BUG: branch reason code 0x%x is reserved", ctx->last_branch_reason);		
@@ -854,8 +854,6 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 			if (((ctx->last_branch >= 0x0) && (ctx->last_branch <= 0x20))
 				|| ((ctx->last_branch >= 0xffff0000) && (ctx->last_branch <= 0xffff0020)))
 			{
-				ctx->last_instruction = old_index;
-				
 				if ((ctx->last_branch & 0xff) == 0x10)
 				{
 					command_print(cmd_ctx, "data abort");
@@ -889,8 +887,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 				}
 			}
 			
-			cycles = old_index - ctx->last_instruction;
-			ctx->last_instruction = old_index;
+			cycles = old_index - last_instruction;
 		}
 		
 		if ((pipestat == STAT_ID) || (pipestat == STAT_BD))
