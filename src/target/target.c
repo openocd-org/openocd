@@ -878,7 +878,7 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "wp", handle_wp_command, COMMAND_EXEC, "set watchpoint <address> <length> <r/w/a> [value] [mask]");	
 	register_command(cmd_ctx,  NULL, "rwp", handle_rwp_command, COMMAND_EXEC, "remove watchpoint <adress>");
 	
-	register_command(cmd_ctx,  NULL, "load_image", handle_load_image_command, COMMAND_EXEC, "load_image <file> <address> ['bin'|'ihex'|'elf']");
+	register_command(cmd_ctx,  NULL, "load_image", handle_load_image_command, COMMAND_EXEC, "load_image <file> <address> ['bin'|'ihex'|'elf'|'s19']");
 	register_command(cmd_ctx,  NULL, "dump_image", handle_dump_image_command, COMMAND_EXEC, "dump_image <file> <address> <size>");
 	register_command(cmd_ctx,  NULL, "load_binary", handle_load_image_command, COMMAND_EXEC, "[DEPRECATED] load_binary <file> <address>");
 	register_command(cmd_ctx,  NULL, "dump_binary", handle_dump_image_command, COMMAND_EXEC, "[DEPRECATED] dump_binary <file> <address> <size>");

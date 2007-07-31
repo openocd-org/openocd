@@ -97,9 +97,14 @@ int fileio_open_local(fileio_t *fileio)
 			return ERROR_FILEIO_OPERATION_FAILED;
 		}
 	}
-	
+
+	/* win32 always opens in binary mode */
+#ifndef _WIN32
 	if (fileio->type == FILEIO_BINARY)
+#endif
+	{
 		strcat(access, "b");
+	}
 	
 	if (!(fileio_local->file = fopen(fileio->url, access)))
 	{

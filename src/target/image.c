@@ -92,6 +92,15 @@ static int autodetect_image_type(image_t *image, char *url)
 		DEBUG("IHEX image detected.");
 		image->type = IMAGE_IHEX;
 	}
+	else if ((buffer[0] == 'S') /* record start byte */
+		&&(isxdigit(buffer[1]))
+		&&(isxdigit(buffer[2]))
+		&&(isxdigit(buffer[3]))
+		&&(buffer[1] >= '0') && (buffer[1] < '9'))
+	{
+		DEBUG("S19 image detected.");
+		image->type = IMAGE_SRECORD;
+	}
 	else
 	{
 		image->type = IMAGE_BINARY;
@@ -119,6 +128,10 @@ int identify_image_type(image_t *image, char *type_string, char *url)
 		else if (!strcmp(type_string, "mem"))
 		{
 			image->type = IMAGE_MEMORY;
+		}
+		else if (!strcmp(type_string, "s19"))
+		{
+			image->type = IMAGE_SRECORD;
 		}
 		else
 		{
@@ -176,12 +189,18 @@ int image_ihex_buffer_complete(image_t *image)
 		u32 address;
 		u32 record_type;
 		u32 checksum;
+		u8 cal_checksum = 0;
 		
 		if (sscanf(&buffer[raw_bytes], ":%2x%4x%2x", &count, &address, &record_type) != 3)
 		{
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
 		raw_bytes += 9;
+		
+		cal_checksum += (u8)count;
+		cal_checksum += (u8)(address >> 8);
+		cal_checksum += (u8)address;
+		cal_checksum += (u8)record_type;
 		
 		if (record_type == 0) /* Data Record */
 		{
@@ -206,6 +225,7 @@ int image_ihex_buffer_complete(image_t *image)
 			while (count-- > 0)
 			{
 				sscanf(&buffer[raw_bytes], "%2hhx", &ihex->buffer[cooked_bytes]);
+				cal_checksum += (u8)ihex->buffer[cooked_bytes];
 				raw_bytes += 2;
 				cooked_bytes += 1;
 				section[image->num_sections].size += 1;
@@ -236,6 +256,8 @@ int image_ihex_buffer_complete(image_t *image)
 			u16 upper_address;
 			
 			sscanf(&buffer[raw_bytes], "%4hx", &upper_address);
+			cal_checksum += (u8)(upper_address >> 8);
+			cal_checksum += (u8)upper_address;
 			raw_bytes += 4;
 			
 			if ((full_address >> 16) != upper_address)
@@ -261,6 +283,10 @@ int image_ihex_buffer_complete(image_t *image)
 			u32 start_address;
 			
 			sscanf(&buffer[raw_bytes], "%8x", &start_address);
+			cal_checksum += (u8)(start_address >> 24);
+			cal_checksum += (u8)(start_address >> 16);
+			cal_checksum += (u8)(start_address >> 8);
+			cal_checksum += (u8)start_address;
 			raw_bytes += 8;
 			
 			image->start_address_set = 1;
@@ -275,6 +301,14 @@ int image_ihex_buffer_complete(image_t *image)
 		
 		sscanf(&buffer[raw_bytes], "%2x", &checksum);
 		raw_bytes += 2;
+		
+		if ((u8)checksum != (u8)(~cal_checksum + 1))
+		{
+			/* checksum failed */
+			free(buffer);
+			ERROR("incorrect record checksum found in IHEX file");
+			return ERROR_IMAGE_CHECKSUM;
+		}
 		
 		/* consume new-line character(s) */
 		if ((buffer[raw_bytes] == '\n') || (buffer[raw_bytes] == '\r'))
@@ -349,16 +383,16 @@ int image_elf_read_headers(image_t *image)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
-	/* count useful segments (loadable) */
+	/* count useful segments (loadable), ignore BSS section */
 	image->num_sections = 0;
 	for (i=0;i<elf->segment_count;i++)
-		if (field32(elf,elf->segments[i].p_type) == PT_LOAD)
+		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 			image->num_sections++;
 	/* alloc and fill sections array with loadable segments */
 	image->sections = malloc(image->num_sections * sizeof(image_section_t));
 	for (i=0,j=0;i<elf->segment_count;i++)
 	{
-		if (field32(elf,elf->segments[i].p_type) == PT_LOAD)
+		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 		{
 			image->sections[j].size = field32(elf,elf->segments[i].p_memsz);
 			image->sections[j].base_address = field32(elf,elf->segments[i].p_vaddr);
@@ -422,6 +456,191 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 	}
 	
 	return ERROR_OK;
+}
+
+int image_mot_buffer_complete(image_t *image)
+{
+	image_mot_t *mot = image->type_private;
+	fileio_t *fileio = &mot->fileio;
+	u32 raw_bytes_read, raw_bytes;
+	int retval;
+	u32 full_address = 0x0;
+	char *buffer = malloc(fileio->size);
+	u32 cooked_bytes;
+	int i;
+	
+	/* we can't determine the number of sections that we'll have to create ahead of time,
+	 * so we locally hold them until parsing is finished */
+	image_section_t section[IMAGE_MAX_SECTIONS];
+	
+	if ((retval = fileio_read(fileio, fileio->size, (u8*)buffer, &raw_bytes_read)) != ERROR_OK)
+	{
+		free(buffer);
+		ERROR("failed buffering S19 file, read failed");
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+	
+	if (raw_bytes_read != fileio->size)
+	{
+		free(buffer);
+		ERROR("failed buffering complete IHEX file, only partially read");
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+
+	mot->buffer = malloc(fileio->size >> 1);
+	raw_bytes = 0x0;
+	cooked_bytes = 0x0;
+	image->num_sections = 0;
+	section[image->num_sections].private = &mot->buffer[cooked_bytes];
+	section[image->num_sections].base_address = 0x0;
+	section[image->num_sections].size = 0x0;
+	section[image->num_sections].flags = 0;
+	
+	while (raw_bytes < raw_bytes_read)
+	{
+		u32 count;
+		u32 address;
+		u32 record_type;
+		u32 checksum;
+		u8 cal_checksum = 0;
+		
+		/* get record type and record length */
+		if (sscanf(&buffer[raw_bytes], "S%1x%2x", &record_type, &count) != 2)
+		{
+			return ERROR_IMAGE_FORMAT_ERROR;
+		}
+		
+		raw_bytes += 4;
+		cal_checksum += (u8)count;
+		
+		/* skip checksum byte */
+		count -=1;
+		
+		if (record_type == 0)
+		{
+			/* S0 - starting record (optional) */
+			int iValue;
+			
+			while (count-- > 0) {
+				sscanf(&buffer[raw_bytes], "%2x", &iValue);
+				cal_checksum += (u8)iValue;
+				raw_bytes += 2;
+			}
+		}
+		else if (record_type >= 1 && record_type <= 3)
+		{
+			switch( record_type )
+			{
+				case 1:
+					/* S1 - 16 bit address data record */
+					sscanf(&buffer[raw_bytes], "%4x", &address);
+					cal_checksum += (u8)(address >> 8);
+					cal_checksum += (u8)address;
+					raw_bytes += 4;
+					count -=2;
+					break;
+			
+				case 2:
+					/* S2 - 24 bit address data record */
+					sscanf(&buffer[raw_bytes], "%6x", &address);
+					cal_checksum += (u8)(address >> 16);
+					cal_checksum += (u8)(address >> 8);
+					cal_checksum += (u8)address;
+					raw_bytes += 6;
+					count -=3;
+					break;
+					
+				case 3:
+					/* S3 - 32 bit address data record */
+					sscanf(&buffer[raw_bytes], "%8x", &address);
+					cal_checksum += (u8)(address >> 24);
+					cal_checksum += (u8)(address >> 16);
+					cal_checksum += (u8)(address >> 8);
+					cal_checksum += (u8)address;
+					raw_bytes += 8;
+					count -=4;
+					break;
+			
+			}
+			
+			if (full_address != address)
+			{
+				/* we encountered a nonconsecutive location, create a new section,
+				 * unless the current section has zero size, in which case this specifies
+				 * the current section's base address
+				 */
+				if (section[image->num_sections].size != 0)
+				{
+					image->num_sections++;
+					section[image->num_sections].size = 0x0;
+					section[image->num_sections].flags = 0;
+					section[image->num_sections].private = &mot->buffer[cooked_bytes];
+				}
+				section[image->num_sections].base_address =
+					full_address | address;
+				full_address = full_address | address;
+			}
+			
+			while (count-- > 0)
+			{
+				sscanf(&buffer[raw_bytes], "%2hhx", &mot->buffer[cooked_bytes]);
+				cal_checksum += (u8)mot->buffer[cooked_bytes];
+				raw_bytes += 2;
+				cooked_bytes += 1;
+				section[image->num_sections].size += 1;
+				full_address++;
+			}
+		}
+		else if (record_type >= 7 && record_type <= 9)
+		{
+			/* S7, S8, S9 - ending records for 32, 24 and 16bit */
+			image->num_sections++;
+			
+			/* copy section information */
+			image->sections = malloc(sizeof(image_section_t) * image->num_sections);
+			for (i = 0; i < image->num_sections; i++)
+			{
+				image->sections[i].private = section[i].private;
+				image->sections[i].base_address = section[i].base_address +
+					((image->base_address_set) ? image->base_address : 0);
+				image->sections[i].size = section[i].size;
+				image->sections[i].flags = section[i].flags;
+			}
+			
+			free(buffer);
+			return ERROR_OK;
+		}
+		else
+		{
+			free(buffer);
+			ERROR("unhandled S19 record type: %i", record_type);
+			return ERROR_IMAGE_FORMAT_ERROR;
+		}
+		
+		/* account for checksum, will always be 0xFF */
+		sscanf(&buffer[raw_bytes], "%2x", &checksum);
+		cal_checksum += (u8)checksum;
+		raw_bytes += 2;
+		
+		if( cal_checksum != 0xFF )
+		{
+			/* checksum failed */
+			free(buffer);
+			ERROR("incorrect record checksum found in S19 file");
+			return ERROR_IMAGE_CHECKSUM;
+		}
+		
+		/* consume new-line character(s) */
+		if ((buffer[raw_bytes] == '\n') || (buffer[raw_bytes] == '\r'))
+			raw_bytes++;
+
+		if ((buffer[raw_bytes] == '\n') || (buffer[raw_bytes] == '\r'))
+			raw_bytes++;
+	}
+
+	free(buffer);
+	ERROR("premature end of S19 file, no end-of-file record found");
+	return ERROR_IMAGE_FORMAT_ERROR;
 }
 
 int image_open(image_t *image, char *url, char *type_string)
@@ -517,6 +736,28 @@ int image_open(image_t *image, char *url, char *type_string)
 		image_memory->cache = NULL;
 		image_memory->cache_address = 0x0;
 	}
+	else if (image->type == IMAGE_SRECORD)
+	{
+		image_mot_t *image_mot;
+		
+		image_mot = image->type_private = malloc(sizeof(image_mot_t));
+		
+		if ((retval = fileio_open(&image_mot->fileio, url, FILEIO_READ, FILEIO_TEXT)) != ERROR_OK)
+		{
+			strncpy(image->error_str, image_mot->fileio.error_str, IMAGE_MAX_ERROR_STRING); 
+			ERROR(image->error_str);
+			return retval;
+		}
+		
+		if ((retval = image_mot_buffer_complete(image)) != ERROR_OK)
+		{
+			snprintf(image->error_str, IMAGE_MAX_ERROR_STRING,
+				"failed buffering S19 image, check daemon output for additional information");
+			ERROR(image->error_str);
+			fileio_close(&image_mot->fileio);
+			return retval;
+		}
+	}
 	
 	return retval;
 };
@@ -600,6 +841,14 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 			address += (size_in_cache > size) ? size : size_in_cache;
 		}
 	}
+	else if (image->type == IMAGE_SRECORD)
+	{
+		memcpy(buffer, (u8*)image->sections[section].private + offset, size);
+		*size_read = size;
+		image->error_str[0] = '\0';
+		
+		return ERROR_OK;
+	}
 	
 	return ERROR_OK;
 }
@@ -639,6 +888,15 @@ int image_close(image_t *image)
 		
 		if (image_memory->cache)
 			free(image_memory->cache);
+	}
+	else if (image->type == IMAGE_SRECORD)
+	{
+		image_mot_t *image_mot = image->type_private;
+		
+		fileio_close(&image_mot->fileio);
+		
+		if (image_mot->buffer)
+			free(image_mot->buffer);
 	}
 
 	if (image->type_private)
