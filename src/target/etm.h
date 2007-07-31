@@ -145,6 +145,7 @@ typedef struct etm_context_s
 	reg_cache_t *reg_cache;			/* ETM register cache */
 	etm_capture_driver_t *capture_driver;	/* driver used to access ETM data */
 	void *capture_driver_priv;		/* capture driver private data */
+	u32 trigger_percent;			/* percent of trace buffer to be filled after the trigger */
 	trace_status_t capture_status;	/* current state of capture run */ 
 	etmv1_trace_data_t *trace_data;	/* trace data */
 	u32 trace_depth;				/* number of trace cycles to be analyzed, 0 if no trace data available */
@@ -162,6 +163,7 @@ typedef struct etm_context_s
 	u32 last_ptr;					/* address of the last data access */
 	u32 ptr_ok;						/* whether last_ptr is valid */ 
 	u32 context_id;					/* context ID of the code being traced */
+	u32 last_instruction;			/* index of last instruction executed (to calculate cycle timings) */
 } etm_context_t;
 
 /* PIPESTAT values */
