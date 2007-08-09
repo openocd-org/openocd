@@ -224,8 +224,17 @@ int watchpoint_remove(target_t *target, u32 address)
 	{
 		if ((retval = target->type->remove_watchpoint(target, watchpoint)) != ERROR_OK)
 		{
-			ERROR("BUG: can't remove watchpoint");
-			exit(-1);
+			switch (retval)
+			{
+				case ERROR_TARGET_NOT_HALTED:
+					INFO("can't remove watchpoint while target is running");
+					return retval;
+					break;
+				default:
+					ERROR("unknown error");
+					exit(-1);
+					break;
+			}
 		}
 		(*watchpoint_p) = watchpoint->next;
 		free(watchpoint);
