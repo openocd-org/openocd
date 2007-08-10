@@ -20,6 +20,7 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+#include "replacements.h"
 #include "command.h"
 
 #include <stdarg.h>
