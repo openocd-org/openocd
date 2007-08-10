@@ -25,7 +25,6 @@
 
 typedef struct at91sam7_flash_bank_s
 {
-	struct target_s *target;
 	u32 working_area;
 	u32 working_area_size;
 

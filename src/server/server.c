@@ -323,13 +323,6 @@ int server_loop(command_context_t *command_context)
 			/* do regular tasks after at most 100ms */
 			tv.tv_sec = 0;
 			tv.tv_usec = 10000;
-				
-#if 0
-			if (shutdown_openocd)
-				return ERROR_COMMAND_CLOSE_CONNECTION;
-			
-			handle_target();
-#endif
 		}
 		
 		for (service = services; service; service = service->next)

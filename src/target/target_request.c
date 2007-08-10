@@ -1,0 +1,270 @@
+/***************************************************************************
+ *   Copyright (C) 2007 by Dominic Rath                                    *
+ *   Dominic.Rath@gmx.de                                                   *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "replacements.h"
+#include "log.h"
+#include "target.h"
+#include "target_request.h"
+#include "binarybuffer.h"
+#include "command.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+command_t *target_request_cmd = NULL;
+
+int target_asciimsg(target_t *target, u32 length)
+{
+	char *msg = malloc(CEIL(length + 1, 4) * 4);
+	debug_msg_receiver_t *c = target->dbgmsg;
+	
+	target->type->target_request_data(target, CEIL(length, 4), (u8*)msg);
+	msg[length] = 0;
+	
+	DEBUG("%s", msg);
+	
+	while (c)
+	{
+		command_print(c->cmd_ctx, "%s", msg);
+		c = c->next;
+	}
+	
+	return ERROR_OK;
+}
+
+int target_hexmsg(target_t *target, int size, u32 length)
+{
+	if (size == 1)
+	{
+		u8 *data = malloc(CEIL(length * sizeof(u8), 4) * 4);
+		
+		target->type->target_request_data(target, CEIL(length * sizeof(u8), 4), (u8*)data);
+		
+		free(data);
+	}
+	else if (size == 2)
+	{
+		u16 *data = malloc(CEIL(length * sizeof(u16), 4) * 4);
+		
+		target->type->target_request_data(target, CEIL(length * sizeof(u16), 4), (u8*)data);
+
+		free(data);
+	}
+	else if (size == 4)
+	{
+		u32 *data = malloc(CEIL(length * sizeof(u32), 4) * 4);
+		
+		target->type->target_request_data(target, CEIL(length * sizeof(u32), 4), (u8*)data);
+
+		free(data);
+	}
+	else
+	{
+		ERROR("invalid debug message type");
+	}
+	
+	return ERROR_OK;
+}
+
+/* handle requests from the target received by a target specific
+ * side-band channel (e.g. ARM7/9 DCC)
+ */
+int target_request(target_t *target, u32 request)
+{
+	target_req_cmd_t target_req_cmd = request & 0xff;
+	
+	switch (target_req_cmd)
+	{
+		case TARGET_REQ_TRACEMSG:
+			DEBUG("tracepoint: %i", (request & 0xffffff00) >> 8);
+			break;
+		case TARGET_REQ_DEBUGMSG:
+			if (((request & 0xff00) >> 8) == 0)
+			{
+				target_asciimsg(target, (request & 0xffff0000) >> 16);
+			}
+			else
+			{
+				target_hexmsg(target, (request & 0xff00) >> 8, (request & 0xffff0000) >> 16);
+			}
+			break;
+/*		case TARGET_REQ_SEMIHOSTING:
+ *			break;
+ */
+ 		default:
+ 			ERROR("unknown target request: %2.2x", target_req_cmd);
+ 			break;
+	}
+	
+	return ERROR_OK;
+}
+
+int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
+{
+	debug_msg_receiver_t **p = &target->dbgmsg;
+	
+	if (target == NULL)
+		return ERROR_INVALID_ARGUMENTS;
+
+	/* see if there's already a list */
+	if (*p)
+	{
+		/* find end of linked list */
+		p = &target->dbgmsg;
+		while ((*p)->next)
+			p = &((*p)->next);
+		p = &((*p)->next);
+	}
+
+	/* add new debug message receiver */
+	(*p) = malloc(sizeof(debug_msg_receiver_t));
+	(*p)->cmd_ctx = cmd_ctx;
+	(*p)->next = NULL;
+	
+	return ERROR_OK;
+}
+
+debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
+{
+	int all_targets = 0;
+	debug_msg_receiver_t **p = &target->dbgmsg;
+	
+	/* if no target has been specified search all of them */
+	if (target == NULL)
+	{
+		/* if no targets haven been specified */
+		if (targets == NULL)
+			return NULL;
+
+		target = targets;
+		all_targets = 1;
+	}
+	
+	do
+	{
+		while (*p)
+		{
+			if ((*p)->cmd_ctx == cmd_ctx)
+			{
+				return *p;
+			}
+			p = &((*p)->next);
+		}
+		
+		target = target->next;
+	} while (target && all_targets);
+	
+	return NULL;
+}
+
+int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
+{
+	debug_msg_receiver_t **p;
+	debug_msg_receiver_t *c;
+	int all_targets = 0;
+	
+	/* if no target has been specified search all of them */
+	if (target == NULL)
+	{
+		/* if no targets haven been specified */
+		if (targets == NULL)
+			return ERROR_OK;
+		
+		target = targets;
+		all_targets = 1;
+	}
+
+	do
+	{
+		while (c)
+		{
+			debug_msg_receiver_t *next = c->next;
+			if (c->cmd_ctx == cmd_ctx)
+			{
+				*p = next;
+				free(c);
+				return ERROR_OK;
+			}
+			else
+				p = &(c->next);
+			c = next;
+		}
+	
+		target = target->next;
+	} while (target && all_targets);
+	
+	return ERROR_OK;
+}
+
+int handle_target_request_debugmsgs_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+
+	int receiving = 0;
+	
+	/* see if reciever is already registered */
+	if (find_debug_msg_receiver(cmd_ctx, target) != NULL)
+		receiving = 1;
+
+	if (argc > 0)
+	{
+		if (!strcmp(args[0], "enable"))
+		{
+			/* don't register if this command context is already receiving */
+			if (!receiving)
+			{
+				receiving = 1;
+				add_debug_msg_receiver(cmd_ctx, target);
+			}
+		}
+		else if (!strcmp(args[0], "disable"))
+		{
+			/* no need to delete a receiver if none is registered */
+			if (receiving)
+			{
+				receiving = 0;
+				delete_debug_msg_receiver(cmd_ctx, target);
+			}
+		}
+		else
+		{
+			command_print(cmd_ctx, "usage: target_request debugmsgs ['enable'|'disable']");
+		}
+	}
+	
+	command_print(cmd_ctx, "receiving debug messages from current target %s",
+			(receiving) ? "enabled" : "disabled");
+	
+	return ERROR_OK;
+}
+
+int target_request_register_commands(struct command_context_s *cmd_ctx)
+{
+	target_request_cmd =
+		register_command(cmd_ctx, NULL, "target_request", NULL, COMMAND_ANY, "target_request commands");
+	
+	register_command(cmd_ctx, target_request_cmd, "debugmsgs", handle_target_request_debugmsgs_command,
+		COMMAND_EXEC, "enable/disable reception of debug messgages from target");
+
+	return ERROR_OK;
+}

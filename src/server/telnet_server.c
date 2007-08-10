@@ -29,6 +29,7 @@
 #include "log.h"
 #include "command.h"
 #include "target.h"
+#include "target_request.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -512,6 +513,9 @@ int telnet_connection_closed(connection_t *connection)
 		if (t_con->history[i])
 			free(t_con->history[i]);
 	}
+	
+	/* if this connection registered a debug-message receiver delete it */
+	delete_debug_msg_receiver(connection->cmd_ctx, NULL);
 	
 	if (connection->priv)
 		free(connection->priv);

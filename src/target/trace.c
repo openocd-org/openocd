@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
+ *   Copyright (C) 2005, 2007 by Dominic Rath                              *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,67 +17,53 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef STM32X_H
-#define STM32X_H
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
-#include "flash.h"
+#include "replacements.h"
+#include "log.h"
+#include "trace.h"
 #include "target.h"
 
-typedef struct stm32x_flash_bank_s
+#include <stdlib.h>
+
+int handle_trace_history_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	working_area_t *write_algorithm;
-} stm32x_flash_bank_t;
+	target_t *target = get_current_target(cmd_ctx);
+	trace_t *trace = target->trace_info;
+	
+	if (argc > 0)
+	{
+		if (trace->trace_history)
+			free(trace->trace_history);
+		
+		trace->trace_history_size = strtoul(args[0], NULL, 0);
+		trace->trace_history = malloc(sizeof(u32) * trace->trace_history_size);
+		
+		command_print(cmd_ctx, "new trace history size: %i", trace->trace_history_size);
+	}
+	else
+	{
+		int i;
+		
+		for (i = 0; i < trace->trace_history_size; i++)
+		{
+			if (trace->trace_history[i] < trace->num_trace_points)
+			{
+				u32 address;
+				address = trace->trace_points[trace->trace_history[i]].address;
+				command_print(cmd_ctx, "trace point %i: 0x%8.8x",
+					trace->trace_history[i],
+					address);
+			}
 
-/* stm32x register locations */
+			else
+			{
+				command_print(cmd_ctx, "trace point %i: -not defined-", trace->trace_history[i]);
+			}
+		}
+	}
 
-#define STM32_FLASH_ACR		0x40022000
-#define STM32_FLASH_KEYR	0x40022004
-#define STM32_FLASH_OPTKEYR	0x40022008
-#define STM32_FLASH_SR		0x4002200C
-#define STM32_FLASH_CR		0x40022010
-#define STM32_FLASH_AR		0x40022014
-#define STM32_FLASH_OBR		0x4002201C
-#define STM32_FLASH_WRPR	0x40022020
-
-/* option byte location */
-
-#define STM32_OB_ADR		0x1FFFF800
-
-/* FLASH_CR register bits */
-
-#define FLASH_PG		(1<<0)
-#define FLASH_PER		(1<<1)
-#define FLASH_MER   	(1<<2)
-#define FLASH_OPTPG		(1<<4)
-#define FLASH_OPTER		(1<<5)
-#define FLASH_STRT		(1<<6)
-#define FLASH_LOCK		(1<<7)
-#define FLASH_OPTWRE	(1<<9)
-
-/* FLASH_SR regsiter bits */
-
-#define FLASH_BSY		(1<<0)
-#define FLASH_PGERR   	(1<<2)
-#define FLASH_WRPRTERR	(1<<4)
-#define FLASH_EOP		(1<<5)
-
-/* STM32_FLASH_OBR bit definitions (reading) */
-
-#define OPT_ERROR		0
-#define OPT_READOUT		1
-#define OPT_RDWDGSW		2
-#define OPT_RDRSTSTOP	3
-#define OPT_RDRSTSTDBY	4
-
-/* register unlock keys */
-
-#define KEY1			0x45670123
-#define KEY2			0xCDEF89AB
-
-typedef struct stm32x_mem_layout_s {
-	u32 sector_start;
-	u32 sector_size;
-} stm32x_mem_layout_t;
-
-#endif /* STM32X_H */
-
+	return ERROR_OK;
+}

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
+ *   Copyright (C) 2007 by Dominic Rath                              *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,67 +17,26 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef STM32X_H
-#define STM32X_H
+#ifndef TARGET_REQUEST_H
+#define TARGET_REQUEST_H
 
-#include "flash.h"
-#include "target.h"
+#include "command.h"
 
-typedef struct stm32x_flash_bank_s
+typedef enum target_req_cmd
 {
-	working_area_t *write_algorithm;
-} stm32x_flash_bank_t;
+	TARGET_REQ_TRACEMSG,
+	TARGET_REQ_DEBUGMSG,
+/*	TARGET_REQ_SEMIHOSTING, */
+} target_req_cmd_t;
 
-/* stm32x register locations */
+typedef struct debug_msg_receiver_s
+{
+	command_context_t *cmd_ctx;
+	struct debug_msg_receiver_s *next;
+} debug_msg_receiver_t;
 
-#define STM32_FLASH_ACR		0x40022000
-#define STM32_FLASH_KEYR	0x40022004
-#define STM32_FLASH_OPTKEYR	0x40022008
-#define STM32_FLASH_SR		0x4002200C
-#define STM32_FLASH_CR		0x40022010
-#define STM32_FLASH_AR		0x40022014
-#define STM32_FLASH_OBR		0x4002201C
-#define STM32_FLASH_WRPR	0x40022020
+extern int target_request(target_t *target, u32 request);
+extern int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target);
+extern int target_request_register_commands(struct command_context_s *cmd_ctx);
 
-/* option byte location */
-
-#define STM32_OB_ADR		0x1FFFF800
-
-/* FLASH_CR register bits */
-
-#define FLASH_PG		(1<<0)
-#define FLASH_PER		(1<<1)
-#define FLASH_MER   	(1<<2)
-#define FLASH_OPTPG		(1<<4)
-#define FLASH_OPTER		(1<<5)
-#define FLASH_STRT		(1<<6)
-#define FLASH_LOCK		(1<<7)
-#define FLASH_OPTWRE	(1<<9)
-
-/* FLASH_SR regsiter bits */
-
-#define FLASH_BSY		(1<<0)
-#define FLASH_PGERR   	(1<<2)
-#define FLASH_WRPRTERR	(1<<4)
-#define FLASH_EOP		(1<<5)
-
-/* STM32_FLASH_OBR bit definitions (reading) */
-
-#define OPT_ERROR		0
-#define OPT_READOUT		1
-#define OPT_RDWDGSW		2
-#define OPT_RDRSTSTOP	3
-#define OPT_RDRSTSTDBY	4
-
-/* register unlock keys */
-
-#define KEY1			0x45670123
-#define KEY2			0xCDEF89AB
-
-typedef struct stm32x_mem_layout_s {
-	u32 sector_start;
-	u32 sector_size;
-} stm32x_mem_layout_t;
-
-#endif /* STM32X_H */
-
+#endif /* TARGET_REQUEST_H */

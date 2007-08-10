@@ -150,7 +150,7 @@ int str7x_build_block_list(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-/* flash bank str7x <base> <size> 0 0 <str71_variant> <target#>
+/* flash bank str7x <base> <size> 0 0 <target#> <str71_variant>
  */
 int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
@@ -165,7 +165,7 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	str7x_info = malloc(sizeof(str7x_flash_bank_t));
 	bank->driver_priv = str7x_info;
 	
-	if (strcmp(args[5], "STR71x") == 0)
+	if (strcmp(args[6], "STR71x") == 0)
 	{
 		str7x_info->bank1 = 1;
 		if (bank->base != 0x40000000)
@@ -174,7 +174,7 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			bank->base = 0x40000000;
 		}
 	}
-	else if (strcmp(args[5], "STR73x") == 0)
+	else if (strcmp(args[6], "STR73x") == 0)
 	{
 		str7x_info->bank1 = 0;
 		if (bank->base != 0x80000000)
@@ -183,7 +183,7 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			bank->base = 0x80000000;
 		}
 	}
-	else if (strcmp(args[5], "STR75x") == 0)
+	else if (strcmp(args[6], "STR75x") == 0)
 	{
 		str7x_info->bank1 = 1;
 		if (bank->base != 0x20000000)
@@ -194,16 +194,9 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	}
 	else
 	{
-		ERROR("unknown STR7x variant");
+		ERROR("unknown STR7x variant: '%s'", args[6]);
 		free(str7x_info);
 		return ERROR_FLASH_BANK_INVALID;
-	}
-	
-	str7x_info->target = get_target_by_num(strtoul(args[6], NULL, 0));
-	if (!str7x_info->target)
-	{
-		ERROR("no target '%s' configured", args[6]);
-		exit(-1);
 	}
 
 	str7x_build_block_list(bank);
@@ -215,8 +208,7 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 u32 str7x_status(struct flash_bank_s *bank)
 {
-	str7x_flash_bank_t *str7x_info = bank->driver_priv;
-	target_t *target = str7x_info->target;
+	target_t *target = bank->target;
 	u32 retval;
 
 	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), &retval);
@@ -226,8 +218,7 @@ u32 str7x_status(struct flash_bank_s *bank)
 
 u32 str7x_result(struct flash_bank_s *bank)
 {
-	str7x_flash_bank_t *str7x_info = bank->driver_priv;
-	target_t *target = str7x_info->target;
+	target_t *target = bank->target;
 	u32 retval;
 
 	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_ER), &retval);
@@ -237,8 +228,7 @@ u32 str7x_result(struct flash_bank_s *bank)
 
 int str7x_blank_check(struct flash_bank_s *bank, int first, int last)
 {
-	str7x_flash_bank_t *str7x_info = bank->driver_priv;
-	target_t *target = str7x_info->target;
+	target_t *target = bank->target;
 	u8 *buffer;
 	int i;
 	int nBytes;
@@ -246,7 +236,7 @@ int str7x_blank_check(struct flash_bank_s *bank, int first, int last)
 	if ((first < 0) || (last > bank->num_sectors))
 		return ERROR_FLASH_SECTOR_INVALID;
 
-	if (str7x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -277,12 +267,12 @@ int str7x_blank_check(struct flash_bank_s *bank, int first, int last)
 int str7x_protect_check(struct flash_bank_s *bank)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
-	target_t *target = str7x_info->target;
+	target_t *target = bank->target;
 	
 	int i;
 	u32 retval;
 
-	if (str7x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -303,14 +293,14 @@ int str7x_protect_check(struct flash_bank_s *bank)
 int str7x_erase(struct flash_bank_s *bank, int first, int last)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
-	target_t *target = str7x_info->target;
+	target_t *target = bank->target;
 	
 	int i;
 	u32 cmd;
 	u32 retval;
 	u32 b0_sectors = 0, b1_sectors = 0;
 	
-	if (str7x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -392,13 +382,13 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 int str7x_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
-	target_t *target = str7x_info->target;
+	target_t *target = bank->target;
 	int i;
 	u32 cmd;
 	u32 retval;
 	u32 protect_blocks;
 	
-	if (str7x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -445,7 +435,7 @@ int str7x_protect(struct flash_bank_s *bank, int set, int first, int last)
 int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
-	target_t *target = str7x_info->target;
+	target_t *target = bank->target;
 	u32 buffer_size = 8192;
 	working_area_t *source;
 	u32 address = bank->base + offset;
@@ -564,8 +554,7 @@ int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 
 int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
-	str7x_flash_bank_t *str7x_info = bank->driver_priv;
-	target_t *target = str7x_info->target;
+	target_t *target = bank->target;
 	u32 dwords_remaining = (count / 8);
 	u32 bytes_remaining = (count & 0x00000007);
 	u32 address = bank->base + offset;
@@ -575,7 +564,7 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 check_address = offset;
 	int i;
 	
-	if (str7x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}

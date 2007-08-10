@@ -28,7 +28,7 @@
 
 /* system includes */
 // -ino: 060521-1036
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 
 #include <sys/types.h>
 #include <machine/sysarch.h>
@@ -49,7 +49,7 @@
 #include <stdio.h>
 
 #if PARPORT_USE_PPDEV == 1
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 #include <dev/ppbus/ppi.h>
 #include <dev/ppbus/ppbconf.h>
 #define PPRSTATUS	PPIGSTATUS
@@ -200,7 +200,7 @@ void parport_write(int tck, int tms, int tdi)
 #if PARPORT_USE_PPDEV == 1
 		ioctl(device_handle, PPWDATA, &output);
 #else
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 	outb(dataport, output);
 #else
 	outb(output, dataport);
@@ -229,7 +229,7 @@ void parport_reset(int trst, int srst)
 #if PARPORT_USE_PPDEV == 1
 	ioctl(device_handle, PPWDATA, &output);
 #else
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 	outb(dataport, output);
 #else
 	outb(output, dataport);
@@ -322,17 +322,17 @@ int parport_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 	DEBUG("opening /dev/ppi%d...", parport_port);
 
 	snprintf(buffer, 256, "/dev/ppi%d", parport_port);
 	device_handle = open(buffer, O_WRONLY);
-#else /* not __Free_BSD */
+#else /* not __FreeBSD__, __FreeBSD_kernel__ */
 	DEBUG("opening /dev/parport%d...", parport_port);
 
 	snprintf(buffer, 256, "/dev/parport%d", parport_port);
 	device_handle = open(buffer, O_WRONLY);
-#endif /* __FreeBSD__ */
+#endif /* __FreeBSD__, __FreeBSD_kernel__ */
 
 	if (device_handle < 0)
 	{
@@ -342,7 +342,7 @@ int parport_init(void)
 
 	DEBUG("...open");
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__FreeBSD_kernel__)
 	i=ioctl(device_handle, PPCLAIM);
 	if (i<0)
 	{
@@ -365,7 +365,7 @@ int parport_init(void)
 		ERROR("cannot set compatible 1284 mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-#endif /* not __Free_BSD__ */
+#endif /* not __FreeBSD__, __FreeBSD_kernel__ */
 
 #else /* not PARPORT_USE_PPDEV */
 	if (parport_port == 0)
@@ -390,7 +390,7 @@ int parport_init(void)
 	DEBUG("...privileges granted");
 	
 	/* make sure parallel port is in right mode (clear tristate and interrupt */
-	#ifdef __FreeBSD__
+	#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 		outb(parport_port + 2, 0x0);
 	#else
 		outb(0x0, parport_port + 2);

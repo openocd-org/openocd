@@ -131,8 +131,7 @@ int at91sam7_register_commands(struct command_context_s *cmd_ctx)
 
 u32 at91sam7_get_flash_status(flash_bank_t *bank)
 {
-	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	target_t *target = at91sam7_info->target;
+	target_t *target = bank->target;
 	u32 fsr;
 	
 	target_read_u32(target, MC_FSR, &fsr);
@@ -144,7 +143,7 @@ u32 at91sam7_get_flash_status(flash_bank_t *bank)
 void at91sam7_read_clock_info(flash_bank_t *bank)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	target_t *target = at91sam7_info->target;
+	target_t *target = bank->target;
 	u32 mckr, mcfr, pllr;
 	unsigned long tmp = 0, mainfreq;
 
@@ -203,7 +202,7 @@ void at91sam7_set_flash_mode(flash_bank_t *bank,int mode)
 {
 	u32 fmr, fmcn = 0, fws = 0;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	target_t *target = at91sam7_info->target;
+	target_t *target = bank->target;
 	
 	if (mode && (mode != at91sam7_info->flashmode))
 	{
@@ -272,7 +271,7 @@ int at91sam7_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen)
 {
 	u32 fcr;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	target_t *target = at91sam7_info->target;
+	target_t *target = bank->target;
 
 	fcr = (0x5A<<24) | (pagen<<8) | cmd; 
 	target_write_u32(target, MC_FCR, fcr);
@@ -299,10 +298,10 @@ int at91sam7_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen)
 int at91sam7_read_part_info(struct flash_bank_s *bank)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	target_t *target = at91sam7_info->target;
+	target_t *target = bank->target;
 	u32 cidr, status;
 	
-	if (at91sam7_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -525,6 +524,8 @@ int at91sam7_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
+/* flash_bank at91sam7 0 0 0 0 <target#>
+ */
 int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	at91sam7_flash_bank_t *at91sam7_info;
@@ -538,13 +539,6 @@ int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	at91sam7_info = malloc(sizeof(at91sam7_flash_bank_t));
 	bank->driver_priv = at91sam7_info;
 	
-	at91sam7_info->target = get_target_by_num(strtoul(args[5], NULL, 0));
-	if (!at91sam7_info->target)
-	{
-		ERROR("no target '%s' configured", args[5]);
-		exit(-1);
-	}
-	
 	/* part wasn't probed for info yet */
 	at91sam7_info->cidr = 0;
 	
@@ -555,7 +549,7 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	
-	if (at91sam7_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -596,7 +590,7 @@ int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	
-	if (at91sam7_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -644,11 +638,11 @@ int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	target_t *target = at91sam7_info->target;
+	target_t *target = bank->target;
 	u32 dst_min_alignment, wcount, bytes_remaining = count;
 	u32 first_page, last_page, pagen, buffer_pos;
 	
-	if (at91sam7_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -809,7 +803,7 @@ int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 	at91sam7_info = bank->driver_priv;
 
-	if (at91sam7_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}

@@ -22,6 +22,20 @@
 
 #include "target.h"
 
+typedef struct trace_point_s
+{
+	u32 address;
+	u64 hit_counter;
+} trace_point_t;
+
+typedef struct trace_s
+{
+	int num_trace_points;
+	trace_point_t *trace_points;
+	int trace_history_size;
+	u32 *trace_history;
+} trace_t;
+
 typedef enum trace_status
 {
 	TRACE_IDLE = 0x0,

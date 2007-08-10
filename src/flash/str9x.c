@@ -156,13 +156,6 @@ int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		WARNING("overriding flash base address for STR91x device with 0x00000000");
 		bank->base = 0x00000000;
 	}
-	
-	str9x_info->target = get_target_by_num(strtoul(args[5], NULL, 0));
-	if (!str9x_info->target)
-	{
-		ERROR("no target '%s' configured", args[5]);
-		exit(-1);
-	}
 
 	str9x_build_block_list(bank);
 	
@@ -173,8 +166,7 @@ int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 int str9x_blank_check(struct flash_bank_s *bank, int first, int last)
 {
-	str9x_flash_bank_t *str9x_info = bank->driver_priv;
-	target_t *target = str9x_info->target;
+	target_t *target = bank->target;
 	u8 *buffer;
 	int i;
 	int nBytes;
@@ -182,7 +174,7 @@ int str9x_blank_check(struct flash_bank_s *bank, int first, int last)
 	if ((first < 0) || (last > bank->num_sectors))
 		return ERROR_FLASH_SECTOR_INVALID;
 
-	if (str9x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -213,13 +205,13 @@ int str9x_blank_check(struct flash_bank_s *bank, int first, int last)
 int str9x_protect_check(struct flash_bank_s *bank)
 {
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
-	target_t *target = str9x_info->target;
+	target_t *target = bank->target;
 	
 	int i;
 	u32 adr;
 	u16 status;
 
-	if (str9x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -245,13 +237,12 @@ int str9x_protect_check(struct flash_bank_s *bank)
 
 int str9x_erase(struct flash_bank_s *bank, int first, int last)
 {
-	str9x_flash_bank_t *str9x_info = bank->driver_priv;
-	target_t *target = str9x_info->target;
+	target_t *target = bank->target;
 	int i;
 	u32 adr;
 	u8 status;
 	
-	if (str9x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -295,13 +286,12 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 
 int str9x_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
-	str9x_flash_bank_t *str9x_info = bank->driver_priv;
-	target_t *target = str9x_info->target;
+	target_t *target = bank->target;
 	int i;
 	u32 adr;
 	u8 status;
 	
-	if (str9x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -328,7 +318,7 @@ int str9x_protect(struct flash_bank_s *bank, int set, int first, int last)
 int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
-	target_t *target = str9x_info->target;
+	target_t *target = bank->target;
 	u32 buffer_size = 8192;
 	working_area_t *source;
 	u32 address = bank->base + offset;
@@ -440,8 +430,7 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 
 int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
-	str9x_flash_bank_t *str9x_info = bank->driver_priv;
-	target_t *target = str9x_info->target;
+	target_t *target = bank->target;
 	u32 words_remaining = (count / 2);
 	u32 bytes_remaining = (count & 0x00000001);
 	u32 address = bank->base + offset;
@@ -452,7 +441,7 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 bank_adr;
 	int i;
 	
-	if (str9x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -616,9 +605,9 @@ int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *c
 	
 	bank = get_flash_bank_by_num(0);
 	str9x_info = bank->driver_priv;
-	target = str9x_info->target;
+	target = bank->target;
 	
-	if (str9x_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}

@@ -30,10 +30,8 @@
 #endif
 
 /* system includes */
-
-/* system includes */
 // -ino: 060521-1036
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 
 #include <sys/types.h>
 #include <machine/sysarch.h>
@@ -47,7 +45,7 @@
 #include "errno.h"
 #endif /* _WIN32 */
 
-#endif /* __FreeBSD__ */
+#endif /* __FreeBSD__, __FreeBSD_kernel__ */
 
 #include <string.h>
 #include <stdlib.h>
@@ -56,7 +54,7 @@
 #include <time.h>
 
 #if PARPORT_USE_PPDEV == 1
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 #include <dev/ppbus/ppi.h>
 #include <dev/ppbus/ppbconf.h>
 #define PPRSTATUS	PPIGSTATUS
@@ -137,7 +135,7 @@ void gw16012_data(u8 value)
 	#if PARPORT_USE_PPDEV == 1
 		ioctl(device_handle, PPWDATA, &value);
 	#else
-		#ifdef __FreeBSD__
+		#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 			outb(gw16012_port, value);
 		#else
 			outb(value, gw16012_port);
@@ -158,7 +156,7 @@ void gw16012_control(u8 value)
 		#if PARPORT_USE_PPDEV == 1
 			ioctl(device_handle, PPWCONTROL, &gw16012_control_value);
 		#else
-			#ifdef __FreeBSD__
+			#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 				outb(gw16012_port + 2, gw16012_control_value);
 			#else
 				outb(gw16012_control_value, gw16012_port + 2);
@@ -485,7 +483,7 @@ int gw16012_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 	DEBUG("opening /dev/ppi%d...", gw16012_port);
 
 	snprintf(buffer, 256, "/dev/ppi%d", gw16012_port);
@@ -504,7 +502,7 @@ int gw16012_init(void)
 
 	DEBUG("...open");
 
-#ifndef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 	i=ioctl(device_handle, PPCLAIM);
 	if (i<0)
 	{
@@ -548,7 +546,7 @@ int gw16012_init(void)
 	DEBUG("...privileges granted");
 
 	/* make sure parallel port is in right mode (clear tristate and interrupt */
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 	outb(gw16012_port + 2, 0x0);
 #else
 	outb(0x0, gw16012_port + 2);

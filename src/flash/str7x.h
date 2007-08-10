@@ -26,7 +26,6 @@
 typedef struct str7x_flash_bank_s
 {
 	int bank1;
-	struct target_s *target;
 	u32 *sector_bank;
 	u32 *sector_bits;
 	working_area_t *write_algorithm;

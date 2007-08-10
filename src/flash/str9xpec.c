@@ -336,18 +336,11 @@ int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		WARNING("overriding flash base address for STR91x device with 0x00000000");
 		bank->base = 0x00000000;
 	}
-	
-	str9xpec_info->target = get_target_by_num(strtoul(args[5], NULL, 0));
-	if (!str9xpec_info->target)
-	{
-		ERROR("no target '%s' configured", args[5]);
-		exit(-1);
-	}
 
 	/* find out jtag position of flash controller
 	 * it is always after the arm966 core */
 	
-	armv4_5 = str9xpec_info->target->arch_info;
+	armv4_5 = bank->target->arch_info;
 	arm7_9 = armv4_5->arch_info;
 	jtag_info = &arm7_9->jtag_info;
 	

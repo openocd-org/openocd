@@ -26,7 +26,6 @@
 typedef struct lpc2000_flash_bank_s
 {
 	int variant;
-	struct target_s *target;
 	struct working_area_s *iap_working_area;
 	u32 cclk;
 	int cmd51_dst_boundary;

@@ -135,7 +135,6 @@ BYTE presto_init_seq[] =
 int presto_open(char *req_serial)
 {
 	int i;
-	int result;
 	DWORD numdevs;
 	DWORD vidpid;
 	char devname[FT_DEVICE_NAME_LEN];
@@ -144,7 +143,7 @@ int presto_open(char *req_serial)
 	BYTE presto_data;
 	unsigned long ftbytes;
 
-	presto->handle=INVALID_HANDLE_VALUE;
+	presto->handle = (FT_HANDLE)INVALID_HANDLE_VALUE;
 
 	presto->buff_out_pos=0;
 	presto->buff_in_pos=0;
@@ -169,10 +168,10 @@ int presto_open(char *req_serial)
 				break;
 		}
 		FT_Close(presto->handle);
-		presto->handle=INVALID_HANDLE_VALUE;
+		presto->handle = (FT_HANDLE)INVALID_HANDLE_VALUE;
 	}
 
-	if (presto->handle==INVALID_HANDLE_VALUE) return PRST_ERR;
+	if (presto->handle == (FT_HANDLE)INVALID_HANDLE_VALUE) return PRST_ERR;
 
 	if ((presto->status=FT_SetLatencyTimer(presto->handle,1))!=FT_OK) return PRST_ERR;
 	if ((presto->status=FT_SetTimeouts(presto->handle,100,0))!=FT_OK) return PRST_ERR;
@@ -219,7 +218,7 @@ int presto_close(void)
 
 	int result=PRST_OK;
 
-	if (presto->handle==INVALID_HANDLE_VALUE) return result;
+	if (presto->handle == (FT_HANDLE)INVALID_HANDLE_VALUE) return result;
 
 	presto->status=FT_Write(presto->handle,&presto_init_seq,sizeof(presto_init_seq),&ftbytes);
 	if (presto->status!=FT_OK) result=PRST_ERR;
@@ -228,7 +227,7 @@ int presto_close(void)
 	if ((presto->status=FT_SetLatencyTimer(presto->handle,16))!=FT_OK) result=PRST_ERR;
 
 	if ((presto->status=FT_Close(presto->handle))!=FT_OK) result=PRST_ERR;
-	else presto->handle=INVALID_HANDLE_VALUE;
+	else presto->handle = (FT_HANDLE)INVALID_HANDLE_VALUE;
 
 	return result;
 }

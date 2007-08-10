@@ -21,6 +21,7 @@
 #include "config.h"
 #endif
 
+#define _GNU_SOURCE
 #include <string.h>
 #include <errno.h>
 
@@ -34,6 +35,7 @@
 #include "register.h"
 #include "jtag.h"
 #include "arm7_9_common.h"
+#include "replacements.h"
 
 #include <stdlib.h>
 
@@ -78,7 +80,6 @@ int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 address, u32 
 {
 	size_t bytes_written, bytes_read, bytes_to_read;
 	u8 cmd;
-	int i;
 
 	oocd_trace_write_reg(oocd_trace, OOCD_TRACE_ADDRESS, address);
 	oocd_trace_write_reg(oocd_trace, OOCD_TRACE_SDRAM_COUNTER, size);
@@ -105,7 +106,7 @@ int oocd_trace_init(etm_context_t *etm_ctx)
 {
 	u8 trash[256];
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
-	size_t bytes_written, bytes_read, bytes_to_read;
+	size_t bytes_read;
 	
 	oocd_trace->tty_fd = open(oocd_trace->tty, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
@@ -378,7 +379,6 @@ int handle_oocd_trace_resync_command(struct command_context_s *cmd_ctx, char *cm
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	oocd_trace_t *oocd_trace;
-	u32 status;
 	size_t bytes_written;
 	u8 cmd_array[1];
 	

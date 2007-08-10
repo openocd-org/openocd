@@ -25,8 +25,6 @@
 
 typedef struct stellaris_flash_bank_s
 {
-	struct target_s *target;
-
 	/* chip id register */
 	u32 did0;
 	u32 did1;

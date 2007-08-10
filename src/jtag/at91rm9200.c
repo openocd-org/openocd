@@ -26,7 +26,6 @@
 #include "bitbang.h"
 
 /* system includes */
-#include <sys/io.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -217,7 +216,6 @@ int at91rm9200_register_commands(struct command_context_s *cmd_ctx)
 
 int at91rm9200_init(void)
 {
-	int ret;
 	struct device_t *cur_device;
 
 	cur_device = devices;

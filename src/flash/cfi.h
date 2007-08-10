@@ -25,7 +25,6 @@
 
 typedef struct cfi_flash_bank_s
 {
-	struct target_s *target;
 	working_area_t *write_algorithm;
 	working_area_t *erase_check_algorithm;
 	

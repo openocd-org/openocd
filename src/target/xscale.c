@@ -84,12 +84,16 @@ int xscale_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 void xscale_enable_watchpoints(struct target_s *target);
 void xscale_enable_breakpoints(struct target_s *target);
 
+int xscale_read_trace(target_t *target);
+
 target_type_t xscale_target =
 {
 	.name = "xscale",
 
 	.poll = xscale_poll,
 	.arch_state = xscale_arch_state,
+
+	.target_request_data = NULL,
 
 	.halt = xscale_halt,
 	.resume = xscale_resume,

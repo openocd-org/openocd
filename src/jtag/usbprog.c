@@ -129,83 +129,83 @@ int usbprog_register_commands(struct command_context_s *cmd_ctx)
 
 int usbprog_execute_queue(void)
 {
-        jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
-        int scan_size;
-        enum scan_type type;
-        u8 *buffer;
+	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
+	int scan_size;
+	enum scan_type type;
+	u8 *buffer;
 
-        while (cmd)
-        {
-                switch (cmd->type)
-                {
-                        case JTAG_END_STATE:
+	while (cmd)
+	{
+		switch (cmd->type)
+		{
+			case JTAG_END_STATE:
 #ifdef _DEBUG_JTAG_IO_
-                                DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
+DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
 #endif
-                                if (cmd->cmd.end_state->end_state != -1)
-                                        usbprog_end_state(cmd->cmd.end_state->end_state);
-                                break;
-                        case JTAG_RESET:
+if (cmd->cmd.end_state->end_state != -1)
+	usbprog_end_state(cmd->cmd.end_state->end_state);
+break;
+			case JTAG_RESET:
 #ifdef _DEBUG_JTAG_IO_
-                                DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+				DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 #endif
-                                if (cmd->cmd.reset->trst == 1)
-                                {
-                                        cur_state = TAP_TLR;
-                                }
-                                usbprog_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-                                break;
-                        case JTAG_RUNTEST:
+				if (cmd->cmd.reset->trst == 1)
+				{
+					cur_state = TAP_TLR;
+				}
+				usbprog_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+				break;
+			case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
-                                DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
+				DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
 #endif
-                                if (cmd->cmd.runtest->end_state != -1)
-                                        usbprog_end_state(cmd->cmd.runtest->end_state);
-                                usbprog_runtest(cmd->cmd.runtest->num_cycles);
-                                break;
-                        case JTAG_STATEMOVE:
+				if (cmd->cmd.runtest->end_state != -1)
+					usbprog_end_state(cmd->cmd.runtest->end_state);
+				usbprog_runtest(cmd->cmd.runtest->num_cycles);
+				break;
+			case JTAG_STATEMOVE:
 #ifdef _DEBUG_JTAG_IO_
-                                DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
+				DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif
-                                if (cmd->cmd.statemove->end_state != -1)
-                                        usbprog_end_state(cmd->cmd.statemove->end_state);
-                                usbprog_state_move();
-                                break;
-                        case JTAG_PATHMOVE:
+				if (cmd->cmd.statemove->end_state != -1)
+					usbprog_end_state(cmd->cmd.statemove->end_state);
+				usbprog_state_move();
+				break;
+			case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
-                                DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, 
-				cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+				DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, 
+						cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 #endif
-                                usbprog_path_move(cmd->cmd.pathmove);
-                                break;
-                        case JTAG_SCAN:
+				usbprog_path_move(cmd->cmd.pathmove);
+				break;
+			case JTAG_SCAN:
 #ifdef _DEBUG_JTAG_IO_
-                                DEBUG("scan end in %i", cmd->cmd.scan->end_state);
+				DEBUG("scan end in %i", cmd->cmd.scan->end_state);
 #endif
-                                if (cmd->cmd.scan->end_state != -1)
-                                        usbprog_end_state(cmd->cmd.scan->end_state);
-                                scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
-                                type = jtag_scan_type(cmd->cmd.scan);
-                                usbprog_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
-                                if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
-                                        return ERROR_JTAG_QUEUE_FAILED;
-                                if (buffer)
-                                        free(buffer);
-                                break;
-                        case JTAG_SLEEP:
+				if (cmd->cmd.scan->end_state != -1)
+					usbprog_end_state(cmd->cmd.scan->end_state);
+				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
+				type = jtag_scan_type(cmd->cmd.scan);
+				usbprog_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
+				if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
+					return ERROR_JTAG_QUEUE_FAILED;
+				if (buffer)
+					free(buffer);
+				break;
+			case JTAG_SLEEP:
 #ifdef _DEBUG_JTAG_IO_
-                                DEBUG("sleep %i", cmd->cmd.sleep->us);
+				DEBUG("sleep %i", cmd->cmd.sleep->us);
 #endif
-                                jtag_sleep(cmd->cmd.sleep->us);
-                                break;
-                        default:
-                                ERROR("BUG: unknown JTAG command type encountered");
-                                exit(-1);
-                }
-                cmd = cmd->next;
-        }
+				jtag_sleep(cmd->cmd.sleep->us);
+				break;
+			default:
+				ERROR("BUG: unknown JTAG command type encountered");
+				exit(-1);
+		}
+		cmd = cmd->next;
+	}
 
-        return ERROR_OK;
+	return ERROR_OK;
 }
 
 
@@ -218,9 +218,9 @@ int usbprog_init(void)
 		ERROR("Can't find USB JTAG Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-				
+
 	INFO("USB JTAG Interface ready!");
-				    
+
 	usbprog_jtag_init(usbprog_jtag_handle);
 	usbprog_reset(0, 0);
 	usbprog_write(0, 0, 0);
@@ -230,7 +230,7 @@ int usbprog_init(void)
 
 int usbprog_quit(void)
 {
-	
+
 	return ERROR_OK;
 }
 
@@ -249,69 +249,70 @@ void usbprog_end_state(enum tap_state state)
 
 void usbprog_state_move(void) {
 
-        int i=0, tms=0;
-        u8 tms_scan = TAP_MOVE(cur_state, end_state);
+	int i=0, tms=0;
+	u8 tms_scan = TAP_MOVE(cur_state, end_state);
 
-        usbprog_jtag_write_tms(usbprog_jtag_handle,(char)tms_scan);
-        for (i = 0; i < 7; i++)
-        {
-                tms = (tms_scan >> i) & 1;
-        }
-	
-        cur_state = end_state;
+	usbprog_jtag_write_tms(usbprog_jtag_handle,(char)tms_scan);
+	for (i = 0; i < 7; i++)
+	{
+		tms = (tms_scan >> i) & 1;
+	}
+
+	cur_state = end_state;
 }
 
 
 void usbprog_path_move(pathmove_command_t *cmd)
 {
-        int num_states = cmd->num_states;
-        int state_count;
+	int num_states = cmd->num_states;
+	int state_count;
 
-        state_count = 0;
-        while (num_states)
-        {
-                if (tap_transitions[cur_state].low == cmd->path[state_count])
-                {
+	state_count = 0;
+	while (num_states)
+	{
+		if (tap_transitions[cur_state].low == cmd->path[state_count])
+		{
 			INFO("1");
-                        usbprog_write(0, 0, 0);
-                        usbprog_write(1, 0, 0);
-                }
-                else if (tap_transitions[cur_state].high == cmd->path[state_count])
-                {
+			usbprog_write(0, 0, 0);
+			usbprog_write(1, 0, 0);
+		}
+		else if (tap_transitions[cur_state].high == cmd->path[state_count])
+		{
 			INFO("2");
-                        usbprog_write(0, 1, 0);
-                        usbprog_write(1, 1, 0);
-                }
-                else
-                {
-                        ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
-                        exit(-1);
-                }
+			usbprog_write(0, 1, 0);
+			usbprog_write(1, 1, 0);
+		}
+		else
+		{
+			ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
+			exit(-1);
+		}
 
-                cur_state = cmd->path[state_count];
-                state_count++;
-                num_states--;
-        }
+		cur_state = cmd->path[state_count];
+		state_count++;
+		num_states--;
+	}
 
-        end_state = cur_state;
+	end_state = cur_state;
 }
 
 
 void usbprog_runtest(int num_cycles)
 {
-        int i;
+	int i;
 
-        enum tap_state saved_end_state = end_state;
+	/*
+	enum tap_state saved_end_state = end_state;
+	*/
 
-        
 	/* only do a state_move when we're not already in RTI */
-        if (cur_state != TAP_RTI)
-        {
-                usbprog_end_state(TAP_RTI);
-                usbprog_state_move();
-        }
+	if (cur_state != TAP_RTI)
+	{
+		usbprog_end_state(TAP_RTI);
+		usbprog_state_move();
+	}
 
-        /* execute num_cycles */
+	/* execute num_cycles */
 	if(num_cycles>0)
 	{
 		usbprog_write(0, 0, 0);
@@ -320,86 +321,85 @@ void usbprog_runtest(int num_cycles)
 		usbprog_jtag_tms_send(usbprog_jtag_handle);
 	}
 
-        for (i = 0; i < num_cycles; i++)
-        {
-                usbprog_write(1, 0, 0);
-                usbprog_write(0, 0, 0);
-        }
+	for (i = 0; i < num_cycles; i++)
+	{
+		usbprog_write(1, 0, 0);
+		usbprog_write(0, 0, 0);
+	}
 
-        /* finish in end_state */
+	/* finish in end_state */
 	/*
         usbprog_end_state(saved_end_state);
         if (cur_state != end_state)
                 usbprog_state_move();
-	*/
+	 */
 }
 
 
 
 void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
-        enum tap_state saved_end_state = end_state;
-        int bit_cnt;
+	enum tap_state saved_end_state = end_state;
 
-        if (ir_scan)
-                usbprog_end_state(TAP_SI);
-        else
-                usbprog_end_state(TAP_SD);
+	if (ir_scan)
+		usbprog_end_state(TAP_SI);
+	else
+		usbprog_end_state(TAP_SD);
 
-        usbprog_state_move();
-        usbprog_end_state(saved_end_state);
+	usbprog_state_move();
+	usbprog_end_state(saved_end_state);
 
 	usbprog_jtag_tms_send(usbprog_jtag_handle);
 
-        if (type == SCAN_OUT) {
-                usbprog_jtag_write_tdi(usbprog_jtag_handle,buffer, scan_size);
-        }
-        if (type == SCAN_IN) {
-                usbprog_jtag_read_tdo(usbprog_jtag_handle,buffer, scan_size);
-        }
-        if (type == SCAN_IO) {
-                usbprog_jtag_write_and_read(usbprog_jtag_handle,buffer, scan_size);
-        }
-        
-        if (ir_scan)
-                cur_state = TAP_PI;
-        else
-                cur_state = TAP_PD;
+	if (type == SCAN_OUT) {
+		usbprog_jtag_write_tdi(usbprog_jtag_handle, (char*)buffer, scan_size);
+	}
+	if (type == SCAN_IN) {
+		usbprog_jtag_read_tdo(usbprog_jtag_handle, (char*)buffer, scan_size);
+	}
+	if (type == SCAN_IO) {
+		usbprog_jtag_write_and_read(usbprog_jtag_handle, (char*)buffer, scan_size);
+	}
 
-        if (cur_state != end_state)
-                usbprog_state_move();
+	if (ir_scan)
+		cur_state = TAP_PI;
+	else
+		cur_state = TAP_PD;
+
+	if (cur_state != end_state)
+		usbprog_state_move();
 }
 
 /*************** jtag wrapper functions *********************/
 
 void usbprog_write(int tck, int tms, int tdi)
 {
-        unsigned char output_value=0x00;
+	unsigned char output_value=0x00;
 
-        if (tms)
-                output_value |= (1<<TMS_BIT);
-        if (tdi)
-                output_value |= (1<<TDI_BIT);
-        if (tck)
-                output_value |= (1<<TCK_BIT);
+	if (tms)
+		output_value |= (1<<TMS_BIT);
+	if (tdi)
+		output_value |= (1<<TDI_BIT);
+	if (tck)
+		output_value |= (1<<TCK_BIT);
 
-        usbprog_jtag_write_slice(usbprog_jtag_handle,output_value);
+	usbprog_jtag_write_slice(usbprog_jtag_handle,output_value);
 }
 
 /* (1) assert or (0) deassert reset lines */
 void usbprog_reset(int trst, int srst)
 {
-        DEBUG("trst: %i, srst: %i", trst, srst);
+	DEBUG("trst: %i, srst: %i", trst, srst);
 
-        if(trst)
-                usbprog_jtag_set_bit(usbprog_jtag_handle,5,0);
-        else
-                usbprog_jtag_set_bit(usbprog_jtag_handle,5,1);
+	if(trst)
+		usbprog_jtag_set_bit(usbprog_jtag_handle,5,0);
+	else
+		usbprog_jtag_set_bit(usbprog_jtag_handle,5,1);
 
-        if(srst)
-                usbprog_jtag_set_bit(usbprog_jtag_handle,4,0);
-        else
-                usbprog_jtag_set_bit(usbprog_jtag_handle,4,1);
+	if(srst)
+		usbprog_jtag_set_bit(usbprog_jtag_handle,4,0);
+	else
+		usbprog_jtag_set_bit(usbprog_jtag_handle,4,1);
 }
 
 
@@ -410,7 +410,6 @@ void usbprog_reset(int trst, int srst)
 struct usbprog_jtag* usbprog_jtag_open()
 {
 	struct usb_bus *busses;
-	struct usb_dev_handle* usb_handle;
 	struct usb_bus *bus;
 	struct usb_device *dev;
 
@@ -476,11 +475,11 @@ void usbprog_jtag_init(struct usbprog_jtag *usbprog_jtag)
 void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char * buffer, int size)
 {
 	char tmp[64];	// fastes packet size for usb controller
-	int send_bits,bufindex=0,fillindex=0,i,j,complete=size,loops;
+	int send_bits, bufindex = 0, fillindex = 0, i, loops;
 
 	char swap;
 	// 61 byte can be transfered (488 bit)
-    
+
 	while(size > 0) {  
 		if(size > 488) {
 			send_bits = 488;
@@ -501,9 +500,9 @@ void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char * buffe
 			tmp[3+i]=buffer[bufindex];
 			bufindex++;
 		}
-    
+
 		usb_bulk_write(usbprog_jtag->usb_handle,3,tmp,64,1000);
-		
+
 		while(usb_bulk_read(usbprog_jtag->usb_handle,0x82, tmp, 64, 1000) < 1);
 
 		for(i=0;i<loops ;i++) {
@@ -517,11 +516,11 @@ void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char * buffe
 void usbprog_jtag_read_tdo(struct usbprog_jtag *usbprog_jtag, char * buffer, int size)
 {
 	char tmp[64];	// fastes packet size for usb controller
-	int send_bits,bufindex=0,fillindex=0,i,j,complete=size,loops;
+	int send_bits, fillindex = 0, i, loops;
 
 	char swap;
 	// 61 byte can be transfered (488 bit)
-    
+
 	while(size > 0) {  
 		if(size > 488) {
 			send_bits = 488;
@@ -536,9 +535,9 @@ void usbprog_jtag_read_tdo(struct usbprog_jtag *usbprog_jtag, char * buffer, int
 		tmp[0] = WRITE_AND_READ;
 		tmp[1] = (char)(send_bits>>8); // high 
 		tmp[2] = (char)(send_bits);    // low
-    
+
 		usb_bulk_write(usbprog_jtag->usb_handle,3,tmp,3,1000);
-    
+
 		while(usb_bulk_read(usbprog_jtag->usb_handle,0x82, tmp, 64, 10) < 1);
 
 		for(i=0;i<loops ;i++) {
@@ -550,10 +549,10 @@ void usbprog_jtag_read_tdo(struct usbprog_jtag *usbprog_jtag, char * buffer, int
 
 void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buffer, int size)
 {
-	char tmp[64];	// fastes packet size for usb controller
-	int send_bits,bufindex=0,fillindex=0,i,j,complete=size,loops;
-	char swap;
-	// 61 byte can be transfered (488 bit)
+	char tmp[64];	/* fastes packet size for usb controller */
+	int send_bits, bufindex = 0, i, loops;
+
+	/* 61 byte can be transfered (488 bit) */
 	while(size > 0) {  
 		if(size > 488) {
 			send_bits = 488;
@@ -562,13 +561,13 @@ void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buffer, in
 		} else {
 			send_bits = size;
 			loops = size/8;
-			//if(loops==0)
+			/*if(loops==0)*/
 			loops++;
 			size = 0;
 		}
 		tmp[0] = WRITE_TDI;
-		tmp[1] = (char)(send_bits>>8); // high 
-		tmp[2] = (char)(send_bits);    // low
+		tmp[1] = (char)(send_bits>>8); /* high */ 
+		tmp[2] = (char)(send_bits);    /* low */
 		i=0; 
 
 		for(i=0;i < loops ;i++) {

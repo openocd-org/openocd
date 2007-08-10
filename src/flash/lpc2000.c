@@ -233,7 +233,7 @@ int lpc2000_build_sector_list(struct flash_bank_s *bank)
 int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u32 result_table[2])
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
-	target_t *target = lpc2000_info->target;
+	target_t *target = bank->target;
 	mem_param_t mem_params[2];
 	reg_param_t reg_params[5];
 	armv4_5_algorithm_t armv4_5_info;
@@ -350,7 +350,7 @@ int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-/* flash bank lpc2000 <base> <size> 0 0 <lpc_variant> <target#> <cclk> [calc_checksum]
+/* flash bank lpc2000 <base> <size> 0 0 <target#> <lpc_variant> <cclk> [calc_checksum]
  */
 int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
@@ -365,14 +365,14 @@ int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	lpc2000_info = malloc(sizeof(lpc2000_flash_bank_t));
 	bank->driver_priv = lpc2000_info;
 	
-	if (strcmp(args[5], "lpc2000_v1") == 0)
+	if (strcmp(args[6], "lpc2000_v1") == 0)
 	{
 		lpc2000_info->variant = 1;
 		lpc2000_info->cmd51_dst_boundary = 512;
 		lpc2000_info->cmd51_can_256b = 0;
 		lpc2000_info->cmd51_can_8192b = 1;
 	}
-	else if (strcmp(args[5], "lpc2000_v2") == 0)
+	else if (strcmp(args[6], "lpc2000_v2") == 0)
 	{
 		lpc2000_info->variant = 2;
 		lpc2000_info->cmd51_dst_boundary = 256;
@@ -386,18 +386,11 @@ int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
-	lpc2000_info->target = get_target_by_num(strtoul(args[6], NULL, 0));
-	if (!lpc2000_info->target)
-	{
-		ERROR("no target '%s' configured", args[6]);
-		exit(-1);
-	}
 	lpc2000_info->iap_working_area = NULL;
 	lpc2000_info->cclk = strtoul(args[7], NULL, 0);
 	lpc2000_info->calc_checksum = 0;
 	lpc2000_build_sector_list(bank);
-	
-	
+		
 	if (argc >= 9)
 	{
 		if (strcmp(args[8], "calc_checksum") == 0)
@@ -414,7 +407,7 @@ int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 	u32 result_table[2];
 	int status_code;
 	
-	if (lpc2000_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -472,7 +465,7 @@ int lpc2000_protect(struct flash_bank_s *bank, int set, int first, int last)
 int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
-	target_t *target = lpc2000_info->target;
+	target_t *target = bank->target;
 	u32 dst_min_alignment;
 	u32 bytes_remaining = count;
 	u32 bytes_written = 0;
@@ -484,7 +477,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	int i;
 	working_area_t *download_area;
 		 
-	if (lpc2000_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -568,7 +561,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		
 		if (bytes_remaining >= thisrun_bytes)
 		{
-			if (target_write_buffer(lpc2000_info->target, download_area->address, thisrun_bytes, buffer + bytes_written) != ERROR_OK)
+			if (target_write_buffer(bank->target, download_area->address, thisrun_bytes, buffer + bytes_written) != ERROR_OK)
 			{
 				target_free_working_area(target, download_area);
 				return ERROR_FLASH_OPERATION_FAILED;
@@ -581,7 +574,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			memcpy(last_buffer, buffer + bytes_written, bytes_remaining);
 			for (i = bytes_remaining; i < thisrun_bytes; i++)
 				last_buffer[i] = 0xff;
-			target_write_buffer(lpc2000_info->target, download_area->address, thisrun_bytes, last_buffer);
+			target_write_buffer(bank->target, download_area->address, thisrun_bytes, last_buffer);
 			free(last_buffer);
 		}
 		
@@ -629,9 +622,7 @@ int lpc2000_probe(struct flash_bank_s *bank)
 
 int lpc2000_erase_check(struct flash_bank_s *bank)
 {
-	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
-	
-	if (lpc2000_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -676,7 +667,7 @@ int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd,
 	}
 
 	lpc2000_info = bank->driver_priv;
-	if (lpc2000_info->target->state != TARGET_HALTED)
+	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}

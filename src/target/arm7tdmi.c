@@ -59,6 +59,8 @@ target_type_t arm7tdmi_target =
 	.poll = arm7_9_poll,
 	.arch_state = armv4_5_arch_state,
 
+	.target_request_data = arm7_9_target_request_data,
+
 	.halt = arm7_9_halt,
 	.resume = arm7_9_resume,
 	.step = arm7_9_step,

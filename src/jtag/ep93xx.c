@@ -34,7 +34,6 @@
 #define VCC_BIT		64
 
 /* system includes */
-#include <sys/io.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -211,8 +210,8 @@ int ep93xx_init(void)
 	gpio_data_register = gpio_controller + 0x08;
 	gpio_data_direction_register = gpio_controller + 0x18;
 
-	printf("gpio_data_register      = %08x\n", gpio_data_register);
-        printf("gpio_data_direction_reg = %08x\n", gpio_data_direction_register); 
+	printf("gpio_data_register      = %p\n", gpio_data_register);
+        printf("gpio_data_direction_reg = %p\n", gpio_data_direction_register); 
 	/*
 	 * Configure bit 0 (TDO) as an input, and bits 1-5 (TDI, TCK
 	 * TMS, TRST, SRST) as outputs.  Drive TDI and TCK low, and

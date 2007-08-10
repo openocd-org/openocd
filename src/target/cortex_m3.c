@@ -60,6 +60,8 @@ target_type_t cortexm3_target =
 	.poll = cortex_m3_poll,
 	.arch_state = armv7m_arch_state,
 
+	.target_request_data = NULL,
+
 	.halt = cortex_m3_halt,
 	.resume = cortex_m3_resume,
 	.step = cortex_m3_step,

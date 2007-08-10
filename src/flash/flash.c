@@ -25,6 +25,9 @@
 #include "command.h"
 #include "target.h"
 #include "time_support.h"
+#include "fileio.h"
+#include "image.h"
+#include "log.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -32,10 +35,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
-
-#include <fileio.h>
-#include <image.h>
-#include "log.h"
+#include <inttypes.h>
 
 /* command handlers */
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -46,6 +46,8 @@ int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cm
 int handle_flash_protect_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_flash_write_binary_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* flash drivers
@@ -100,8 +102,12 @@ int flash_init(struct command_context_s *cmd_ctx)
 						 "check protection state of sectors in flash bank <num>");
 		register_command(cmd_ctx, flash_cmd, "erase", handle_flash_erase_command, COMMAND_EXEC,
 						 "erase sectors at <bank> <first> <last>");
-		register_command(cmd_ctx, flash_cmd, "write", handle_flash_write_command, COMMAND_EXEC,
+		register_command(cmd_ctx, flash_cmd, "write", handle_flash_write_binary_command, COMMAND_EXEC,
+						 "DEPRECATED, use 'write_binary' or 'write_image' instead");
+		register_command(cmd_ctx, flash_cmd, "write_binary", handle_flash_write_binary_command, COMMAND_EXEC,
 						 "write binary <bank> <file> <offset>");
+		register_command(cmd_ctx, flash_cmd, "write_image", handle_flash_write_image_command, COMMAND_EXEC,
+						 "write image <file> [offset] [type]");
 		register_command(cmd_ctx, flash_cmd, "protect", handle_flash_protect_command, COMMAND_EXEC,
 						 "set protection of sectors at <bank> <first> <last> <on|off>");
 	}
@@ -125,16 +131,24 @@ flash_bank_t *get_flash_bank_by_num(int num)
 	return NULL;
 }
 
-/* flash_bank <driver> <base> <size> <chip_width> <bus_width> [driver_options ...]
+/* flash_bank <driver> <base> <size> <chip_width> <bus_width> <target> [driver_options ...]
  */
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
 	int found = 0;
+	target_t *target;
 		
-	if (argc < 5)
+	if (argc < 6)
 	{
 		WARNING("incomplete flash_bank configuration");
+		WARNING("flash_bank <driver> <base> <size> <chip_width> <bus_width> <target> [driver_options ...]");
+		return ERROR_OK;
+	}
+	
+	if ((target = get_target_by_num(strtoul(args[5], NULL, 0))) == NULL)
+	{
+		ERROR("target %lu not defined", strtoul(args[5], NULL, 0));
 		return ERROR_OK;
 	}
 	
@@ -152,6 +166,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 			}
 			
 			c = malloc(sizeof(flash_bank_t));
+			c->target = target;
 			c->driver = flash_drivers[i];
 			c->driver_priv = NULL;
 			c->base = strtoul(args[1], NULL, 0);
@@ -226,9 +241,9 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_OK;
 	}
 	
-	for (p = flash_banks; p; p = p->next)
+	for (p = flash_banks; p; p = p->next, i++)
 	{
-		if (i++ == strtoul(args[0], NULL, 0))
+		if (i == strtoul(args[0], NULL, 0))
 		{
 			char buf[1024];
 			
@@ -494,15 +509,96 @@ int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, c
 	return ERROR_OK;
 }
 
-int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	
+	image_t image;
+	u32 image_size;
+	char *error_str;
+	u32 *failed;
+	
+	int i;
+	
+	duration_t duration;
+	char *duration_text;
+	
+	int retval;
+	
+	if (!strcmp(cmd, "write"))
+	{
+		command_print(cmd_ctx, "'flash write' has been deprecated in favor of 'flash write_binary' and 'flash write_image'");
+		DEBUG("'flash write' has been deprecated in favor of 'flash write_binary' and 'flash write_image'");
+	}
+
+	if (argc < 1)
+	{
+		command_print(cmd_ctx, "usage: flash write <file> [offset] [type]");
+		return ERROR_OK;
+	}
+	
+	if (!target)
+	{
+		ERROR("no target selected");
+		return ERROR_OK;
+	}
+	
+	duration_start_measure(&duration);
+	
+	if (argc >= 2)
+	{
+		image.base_address_set = 1;
+		image.base_address = strtoul(args[1], NULL, 0);
+	}
+	else
+	{
+		image.base_address_set = 0;
+		image.base_address = 0x0;
+	}
+	
+	image.start_address_set = 0;
+
+	if (image_open(&image, args[0], (argc == 4) ? args[2] : NULL) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "flash write error: %s", image.error_str);
+		return ERROR_OK;
+	}
+	
+	failed = malloc(sizeof(u32) * image.num_sections);
+
+	if ((retval = flash_write(target, &image, &image_size, &error_str, failed)) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "failed writing image %s: %s", args[0], error_str);
+		free(error_str);
+	}
+	
+	for (i = 0; i < image.num_sections; i++)
+	{
+		if (failed[i])
+		{
+			command_print(cmd_ctx, "didn't write section at 0x%8.8x, size 0x%8.8x",
+					image.sections[i].base_address, image.sections[i].size);
+		}
+	}
+	
+	duration_stop_measure(&duration, &duration_text);
+	command_print(cmd_ctx, "wrote %u byte from file %s in %s (%f kb/s)",
+		image_size, args[0], duration_text,
+		(float)image_size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
+	free(duration_text);
+
+	image_close(&image);
+	
+	return ERROR_OK;
+}
+
+int handle_flash_write_binary_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 offset;
 	u8 *buffer;
 	u32 buf_cnt;
-	u32 image_size;
-	int i;
 
-	image_t image;
+	fileio_t fileio;
 	
 	duration_t duration;
 	char *duration_text;
@@ -512,16 +608,11 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	if (argc < 3)
 	{
-		command_print(cmd_ctx, "usage: flash write <bank> <file> <offset> [type]");
+		command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
 		return ERROR_OK;
 	}
 	
 	duration_start_measure(&duration);
-	
-	image.base_address_set = 1;
-	image.base_address = strtoul(args[1], NULL, 0);
-	
-	image.start_address_set = 0;
 	
 	offset = strtoul(args[2], NULL, 0);
 	p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
@@ -531,69 +622,208 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 	
-	if (image_open(&image, args[1], (argc == 4) ? args[3] : NULL) != ERROR_OK)
+	if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "flash write error: %s", image.error_str);
+		command_print(cmd_ctx, "flash write error: %s", fileio.error_str);
 		return ERROR_OK;
 	}
 	
-	image_size = 0x0;
-	for (i = 0; i < image.num_sections; i++)
+	buffer = malloc(fileio.size);
+	if (fileio_read(&fileio, fileio.size, buffer, &buf_cnt) != ERROR_OK)
 	{
-		buffer = malloc(image.sections[i].size);
-		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
+		command_print(cmd_ctx, "flash write error: %s", fileio.error_str);
+		return ERROR_OK;
+	}
+	
+	if ((retval = p->driver->write(p, buffer, offset, buf_cnt)) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "failed writing file %s to flash bank %i at offset 0x%8.8x",
+			args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0));
+		switch (retval)
 		{
-			ERROR("image_read_section failed with error code: %i", retval);
-			command_print(cmd_ctx, "image reading failed, flash write aborted");
-			free(buffer);
-			image_close(&image);
-			return ERROR_OK;
+			case ERROR_TARGET_NOT_HALTED:
+				command_print(cmd_ctx, "can't work with this flash while target is running");
+				break;
+			case ERROR_INVALID_ARGUMENTS:
+				command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
+				break;
+			case ERROR_FLASH_BANK_INVALID:
+				command_print(cmd_ctx, "no '%s' flash found at 0x%8.8x", p->driver->name, p->base);
+				break;
+			case ERROR_FLASH_OPERATION_FAILED:
+				command_print(cmd_ctx, "flash program error");
+				break;
+			case ERROR_FLASH_DST_BREAKS_ALIGNMENT:
+				command_print(cmd_ctx, "offset breaks required alignment");
+				break;
+			case ERROR_FLASH_DST_OUT_OF_BANK:
+				command_print(cmd_ctx, "destination is out of flash bank (offset and/or file too large)");
+				break;
+			case ERROR_FLASH_SECTOR_NOT_ERASED:
+				command_print(cmd_ctx, "destination sector(s) not erased");
+				break;
+			default:
+				command_print(cmd_ctx, "unknown error");
 		}
-		
-		if ((retval = p->driver->write(p, buffer, offset, buf_cnt)) != ERROR_OK)
-		{
-			command_print(cmd_ctx, "failed writing file %s to flash bank %i at offset 0x%8.8x",
-				args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0));
-			switch (retval)
-			{
-				case ERROR_TARGET_NOT_HALTED:
-					command_print(cmd_ctx, "can't work with this flash while target is running");
-					break;
-				case ERROR_INVALID_ARGUMENTS:
-					command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
-					break;
-				case ERROR_FLASH_BANK_INVALID:
-					command_print(cmd_ctx, "no '%s' flash found at 0x%8.8x", p->driver->name, p->base);
-					break;
-				case ERROR_FLASH_OPERATION_FAILED:
-					command_print(cmd_ctx, "flash program error");
-					break;
-				case ERROR_FLASH_DST_BREAKS_ALIGNMENT:
-					command_print(cmd_ctx, "offset breaks required alignment");
-					break;
-				case ERROR_FLASH_DST_OUT_OF_BANK:
-					command_print(cmd_ctx, "destination is out of flash bank (offset and/or file too large)");
-					break;
-				case ERROR_FLASH_SECTOR_NOT_ERASED:
-					command_print(cmd_ctx, "destination sector(s) not erased");
-					break;
-				default:
-					command_print(cmd_ctx, "unknown error");
-			}
-		}
-		image_size += buf_cnt;
-
-		free(buffer);
 	}
 
+	free(buffer);
 	
 	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "wrote %u byte from file %s to flash bank %i at offset 0x%8.8x in %s (%f kb/s)",
-		image_size, args[1], strtoul(args[0], NULL, 0), offset, duration_text,
-		(float)image_size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
+	command_print(cmd_ctx, "wrote  %"PRIi64" byte from file %s to flash bank %i at offset 0x%8.8x in %s (%f kb/s)",
+		fileio.size, args[1], strtoul(args[0], NULL, 0), offset, duration_text,
+		(float)fileio.size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
 	free(duration_text);
 
-	image_close(&image);
+	fileio_close(&fileio);
+	
+	return ERROR_OK;
+}
+
+/* lookup flash bank by address */
+flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr)
+{
+	flash_bank_t *c;
+
+	/* cycle through bank list */
+	for (c = flash_banks; c; c = c->next)
+	{
+		/* check whether address belongs to this flash bank */
+		if ((addr >= c->base) && (addr < c->base + c->size) && target == c->target)
+			return c;
+	}
+
+	return NULL;
+}
+
+/* erase given flash region, selects proper bank according to target and address */
+int flash_erase(target_t *target, u32 addr, u32 length)
+{
+	flash_bank_t *c;
+	unsigned long sector_size;
+	int first;
+	int last;
+
+	if ((c = get_flash_bank_by_addr(target, addr)) == NULL)
+		return ERROR_FLASH_DST_OUT_OF_BANK; /* no corresponding bank found */
+ 
+	/* sanity checks */
+	if (c->size == 0 || c->num_sectors == 0 || c->size % c->num_sectors)
+		return ERROR_FLASH_BANK_INVALID;
+
+	if (length == 0)
+	{
+		/* special case, erase whole bank when length is zero */
+		if (addr != c->base)
+			return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+		
+		return c->driver->erase(c, 0, c->num_sectors - 1);
+	}
+
+	/* check whether it fits */
+	if (addr + length > c->base + c->size)
+	  return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+
+	/* calculate sector size */
+	sector_size = c->size / c->num_sectors;
+
+	/* check alignment */
+	if ((addr - c->base) % sector_size || length % sector_size)
+		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+
+	first = (addr - c->base) / sector_size;
+	last = first + length / sector_size - 1;
+	return c->driver->erase(c, first, last);
+}
+
+int flash_write(target_t *target, image_t *image, u32 *image_size, char **error_str, u32 *failed)
+{
+	int section;
+	int retval;
+	
+	*image_size = 0;
+	
+	/* for each section in the image */
+	for (section = 0; section < image->num_sections; section++)
+	{
+		u32 offset = 0;
+		u32 address = image->sections[section].base_address;
+		u32 size = image->sections[section].size;
+		
+		failed[section] = 0;
+		
+		while (size != 0)
+		{
+			flash_bank_t *c;
+			u32 thisrun_size = size;
+			u32 size_read;
+			u8 *buffer;
+			
+			/* find the corresponding flash bank */
+			if ((c = get_flash_bank_by_addr(target, address)) == NULL)
+			{
+				/* mark as failed, and skip the current section */
+				failed[section] = 1;
+				break;
+			}
+			
+			/* check whether it fits, split into multiple runs if not */
+			if ((address + size) > (c->base + c->size))
+				thisrun_size = c->base + c->size - address;
+
+			buffer = malloc(thisrun_size);
+			if (((retval = image_read_section(image, section, offset, size, buffer, &size_read)) != ERROR_OK)
+					|| (thisrun_size != size_read))
+			{
+				*error_str = malloc(FLASH_MAX_ERROR_STR);
+				snprintf(*error_str, FLASH_MAX_ERROR_STR, "error reading from image");
+				return ERROR_IMAGE_TEMPORARILY_UNAVAILABLE;
+			}
+			
+			if ((retval = c->driver->write(c, buffer, address - c->base, thisrun_size)) != ERROR_OK)
+			{
+				/* mark the current section as failed */
+				failed[section] = 1;
+				*error_str = malloc(FLASH_MAX_ERROR_STR);
+				switch (retval)
+				{
+					case ERROR_TARGET_NOT_HALTED:
+						snprintf(*error_str, FLASH_MAX_ERROR_STR, "can't flash image while target is running");
+						break;
+					case ERROR_INVALID_ARGUMENTS:
+						snprintf(*error_str, FLASH_MAX_ERROR_STR, "flash driver can't fulfill request");
+						break;
+					case ERROR_FLASH_OPERATION_FAILED:
+						snprintf(*error_str, FLASH_MAX_ERROR_STR, "flash program error");
+						break;
+					case ERROR_FLASH_DST_BREAKS_ALIGNMENT:
+						snprintf(*error_str, FLASH_MAX_ERROR_STR, "offset breaks required alignment");
+						break;
+					case ERROR_FLASH_DST_OUT_OF_BANK:
+						snprintf(*error_str, FLASH_MAX_ERROR_STR, "no flash mapped at requested address");
+						break;
+					case ERROR_FLASH_SECTOR_NOT_ERASED:
+						snprintf(*error_str, FLASH_MAX_ERROR_STR, "destination sector(s) not erased");
+						break;
+					default:
+						snprintf(*error_str, FLASH_MAX_ERROR_STR, "unknown error: %i", retval);
+				}
+				
+				free(buffer);
+				
+				/* abort operation */
+				return retval;
+			}
+			
+			free(buffer);
+			
+			offset += thisrun_size;
+			address += thisrun_size;
+			size -= thisrun_size;
+		}
+		
+		*image_size += image->sections[section].size;
+	}
 	
 	return ERROR_OK;
 }

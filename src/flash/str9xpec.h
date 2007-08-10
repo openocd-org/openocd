@@ -26,7 +26,6 @@
 
 typedef struct str9xpec_flash_controller_s
 {
-	struct target_s *target;
 	u32 *sector_bits;
 	int chain_pos;
 	int isc_enable;

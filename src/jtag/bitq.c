@@ -61,8 +61,6 @@ void bitq_in_proc(void)
 	scan_field_t *field;
 	int tdo;
 	
-	int result;
-
 	/* loop through the queue */
 	while (bitq_in_state.cmd) {
 		/* only JTAG_SCAN command may return data */

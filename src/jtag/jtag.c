@@ -1251,7 +1251,7 @@ int jtag_examine_chain()
 	if ((zero_check == 0x00) || (one_check == 0xff))
 	{
 		ERROR("JTAG communication failure, check connection, JTAG interface, target power etc.");
-		exit(-1);
+		return ERROR_JTAG_INIT_FAILED;
 	}
 	
 	for (bit_count = 0; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;)
@@ -1300,7 +1300,7 @@ int jtag_examine_chain()
 		ERROR("number of discovered devices in JTAG chain (%i) doesn't match configuration (%i)", 
 			device_count, jtag_num_devices);
 		ERROR("check the config file and ensure proper JTAG communication (connections, speed, ...)");
-		exit(-1);
+		return ERROR_JTAG_INIT_FAILED;
 	}
 	
 	return ERROR_OK;
@@ -1434,6 +1434,12 @@ int jtag_init(struct command_context_s *cmd_ctx)
 				jtag_add_statemove(TAP_TLR);
 				jtag_execute_queue();
 
+				/* examine chain first, as this could discover the real chain layout */
+				if (jtag_examine_chain() != ERROR_OK)
+				{
+					ERROR("trying to validate configured JTAG chain anyway...");
+				}
+				
 				while (jtag_validate_chain() != ERROR_OK)
 				{
 					validate_tries++;
@@ -1445,8 +1451,6 @@ int jtag_init(struct command_context_s *cmd_ctx)
 					usleep(10000);
 				}
 
-				jtag_examine_chain();
-				
 				return ERROR_OK;
 			}
 		}

@@ -21,6 +21,9 @@
 #define FLASH_H
 
 #include "target.h"
+#include "image.h"
+
+#define FLASH_MAX_ERROR_STR	(128)
 
 typedef struct flash_sector_s
 {
@@ -48,6 +51,7 @@ typedef struct flash_driver_s
 
 typedef struct flash_bank_s
 {
+	target_t *target;
 	flash_driver_t *driver;
 	void *driver_priv;
 	u32 base;
@@ -62,7 +66,11 @@ typedef struct flash_bank_s
 extern int flash_register_commands(struct command_context_s *cmd_ctx);
 extern int flash_init(struct command_context_s *cmd_ctx);
 
+extern int flash_erase(target_t *target, u32 addr, u32 length);
+extern int flash_write(target_t *target, image_t *image, u32 *image_size, char **error, u32 *failed);
+
 extern flash_bank_t *get_flash_bank_by_num(int num);
+extern flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);
 
 #define		ERROR_FLASH_BANK_INVALID		(-900)
 #define		ERROR_FLASH_SECTOR_INVALID		(-901)

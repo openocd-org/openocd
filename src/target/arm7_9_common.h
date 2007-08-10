@@ -103,6 +103,8 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx);
 
 enum target_state arm7_9_poll(target_t *target);
 
+int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer);
+
 int arm7_9_assert_reset(target_t *target);
 int arm7_9_deassert_reset(target_t *target);
 int arm7_9_reset_request_halt(target_t *target);

@@ -133,6 +133,10 @@ int identify_image_type(image_t *image, char *type_string, char *url)
 		{
 			image->type = IMAGE_SRECORD;
 		}
+		else if (!strcmp(type_string, "build"))
+		{
+			image->type = IMAGE_BUILDER;
+		}
 		else
 		{
 			return ERROR_IMAGE_TYPE_UNKNOWN;
@@ -395,7 +399,7 @@ int image_elf_read_headers(image_t *image)
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 		{
 			image->sections[j].size = field32(elf,elf->segments[i].p_memsz);
-			image->sections[j].base_address = field32(elf,elf->segments[i].p_vaddr);
+			image->sections[j].base_address = field32(elf,elf->segments[i].p_paddr);
 			image->sections[j].private = &elf->segments[i];
 			image->sections[j].flags = field32(elf,elf->segments[i].p_flags);
 			j++;
@@ -758,6 +762,12 @@ int image_open(image_t *image, char *url, char *type_string)
 			return retval;
 		}
 	}
+	else if (image->type == IMAGE_BUILDER)
+	{
+		image->num_sections = 0;
+		image->sections = NULL;
+		image->type_private = NULL;
+	}
 	
 	return retval;
 };
@@ -765,7 +775,15 @@ int image_open(image_t *image, char *url, char *type_string)
 int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read)
 {
 	int retval;
-	
+
+	/* don't read past the end of a section */
+	if (offset + size > image->sections[section].size)
+	{
+		DEBUG("read past end of section: 0x%8.8x + 0x%8.8x > 0x%8.8x",
+				offset, size, image->sections[section].size);
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
 	if (image->type == IMAGE_BINARY)
 	{
 		image_binary_t *image_binary = image->type_private;
@@ -774,9 +792,6 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 		if (section != 0)
 			return ERROR_INVALID_ARGUMENTS;
 			
-		if ((offset > image->sections[0].size) || (offset + size > image->sections[0].size))
-			return ERROR_INVALID_ARGUMENTS;
-		
 		/* seek to offset */
 		if ((retval = fileio_seek(&image_binary->fileio, offset)) != ERROR_OK)
 		{
@@ -849,6 +864,44 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 		
 		return ERROR_OK;
 	}
+	else if (image->type == IMAGE_BUILDER)
+	{
+		memcpy(buffer, (u8*)image->sections[section].private + offset, size);
+		*size_read = size;
+		image->error_str[0] = '\0';
+		
+		return ERROR_OK;
+	}
+	
+	return ERROR_OK;
+}
+
+int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data)
+{
+	/* only image builder supports adding sections */
+	if (image->type != IMAGE_BUILDER)
+		return ERROR_INVALID_ARGUMENTS;
+	
+	/* see if it's enough to extend an existing section */
+	if (((image->sections[image->num_sections - 1].base_address + image->sections[image->num_sections - 1].size) == base)
+		&& (image->sections[image->num_sections - 1].flags == flags))
+	{
+		u32 old_size = image->sections[image->num_sections - 1].size;
+		image->sections[image->num_sections - 1].size += size;
+		image->sections[image->num_sections - 1].private = realloc(image->sections[image->num_sections - 1].private, image->sections[image->num_sections - 1].size);
+		memcpy((u8*)image->sections[image->num_sections - 1].private + old_size, data, size);
+		
+		return ERROR_OK;
+	}
+		
+	/* allocate new section */
+	image->num_sections++;
+	image->sections = realloc(image->sections, sizeof(image_section_t) * image->num_sections);
+	image->sections[image->num_sections - 1].base_address = base;
+	image->sections[image->num_sections - 1].size = size;
+	image->sections[image->num_sections - 1].flags = flags;
+	image->sections[image->num_sections - 1].private = malloc(sizeof(u8) * size);
+	memcpy((u8*)image->sections[image->num_sections - 1].private, data, size);
 	
 	return ERROR_OK;
 }
@@ -897,6 +950,15 @@ int image_close(image_t *image)
 		
 		if (image_mot->buffer)
 			free(image_mot->buffer);
+	}
+	else if (image->type == IMAGE_BUILDER)
+	{
+		int i;
+		
+		for (i = 0; i < image->num_sections; i++)
+		{
+			free(image->sections[i].private);
+		}
 	}
 
 	if (image->type_private)

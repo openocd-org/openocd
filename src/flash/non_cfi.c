@@ -35,13 +35,13 @@ non_cfi_t non_cfi_flashes[] = {
 		.mfr = CFI_MFR_SST,
 		.id = 0xd4,
 		.pri_id = 0x02,
-		.dev_size = 0x10,
-		.interface_desc = 0x0,
+		.dev_size = 0x10,			/* 2^16 = 64KB */
+		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
-			0x0010000f,
+			0x0010000f,				/* 16x  4KB */
 			0x00000000
 		}
 	},
@@ -49,8 +49,8 @@ non_cfi_t non_cfi_flashes[] = {
 		.mfr = CFI_MFR_SST,
 		.id = 0xd5,
 		.pri_id = 0x02,
-		.dev_size = 0x11,
-		.interface_desc = 0x0,
+		.dev_size = 0x11,			/* 2^17 = 128KB */
+		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 1,
 		.erase_region_info =
@@ -63,8 +63,8 @@ non_cfi_t non_cfi_flashes[] = {
 		.mfr = CFI_MFR_SST,
 		.id = 0xd6,
 		.pri_id = 0x02,
-		.dev_size = 0x12,
-		.interface_desc = 0x0,
+		.dev_size = 0x12,			/* 2^18 = 256KB */
+		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 1,
 		.erase_region_info =
@@ -77,13 +77,81 @@ non_cfi_t non_cfi_flashes[] = {
 		.mfr = CFI_MFR_SST,
 		.id = 0xd7,
 		.pri_id = 0x02,
-		.dev_size = 0x13,
-		.interface_desc = 0x0,
+		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
 			0x0010007f,
+			0x00000000
+		}
+	},
+	{
+		.mfr = CFI_MFR_ST,
+		.id = 0xd6,					/* ST29F400BB */
+		.pri_id = 0x02,
+		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 4,
+		.erase_region_info =
+		{
+			0x00400000,		/* 1x 16KB */
+			0x00200001,		/* 2x  8KB */
+			0x00800000,		/* 1x 32KB */
+			0x01000006,		/* 7x 64KB */
+			0x00000000
+		}
+	},
+	{
+		.mfr = CFI_MFR_ST,
+		.id = 0xd5,					/* ST29F400BT */
+		.pri_id = 0x02,
+		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 4,
+		.erase_region_info =
+		{
+			0x01000006,		/* 7x 64KB */
+			0x00800000,		/* 1x 32KB */
+			0x00200001,		/* 2x  8KB */
+			0x00400000,		/* 1x 16KB */
+			0x00000000
+		}
+	},
+	{
+		.mfr = CFI_MFR_AMD,
+		.id = 0x22ab,				/* AM29F400BB */
+		.pri_id = 0x02,
+		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 4,
+		.erase_region_info =
+		{
+			0x00400000,		/* 1x 16KB */
+			0x00200001,		/* 2x  8KB */
+			0x00800000,		/* 1x 32KB */
+			0x01000006,		/* 7x 64KB */
+			0x00000000
+		}
+	},
+	{
+		.mfr = CFI_MFR_AMD,
+		.id = 0x2223,				/* AM29F400BT */
+		.pri_id = 0x02,
+		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 4,
+		.erase_region_info =
+		{
+			0x01000006,		/* 7x 64KB */
+			0x00800000,		/* 1x 32KB */
+			0x00200001,		/* 2x  8KB */
+			0x00400000,		/* 1x 16KB */
 			0x00000000
 		}
 	},

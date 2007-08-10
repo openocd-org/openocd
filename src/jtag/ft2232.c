@@ -95,7 +95,7 @@ typedef struct ft2232_layout_s
 int usbjtag_init(void);
 int jtagkey_init(void);
 int olimex_jtag_init(void);
-int m5960_init(void);
+int flyswatter_init(void);
 int turtle_init(void);
 int comstick_init(void);
 
@@ -103,7 +103,7 @@ int comstick_init(void);
 void usbjtag_reset(int trst, int srst);
 void jtagkey_reset(int trst, int srst);
 void olimex_jtag_reset(int trst, int srst);
-void m5960_reset(int trst, int srst);
+void flyswatter_reset(int trst, int srst);
 void turtle_reset(int trst, int srst);
 void comstick_reset(int trst, int srst);
 
@@ -120,7 +120,7 @@ ft2232_layout_t ft2232_layouts[] =
 	{"signalyzer", usbjtag_init, usbjtag_reset, NULL},
 	{"evb_lm3s811", usbjtag_init, usbjtag_reset, NULL},
 	{"olimex-jtag", olimex_jtag_init, olimex_jtag_reset, olimex_jtag_blink},
-	{"m5960", m5960_init, m5960_reset, NULL},
+	{"flyswatter", flyswatter_init, flyswatter_reset, NULL},
 	{"turtelizer2", turtle_init, turtle_reset, turtle_jtag_blink},
 	{"comstick", comstick_init, comstick_reset, NULL},
 	{NULL, NULL, NULL},
@@ -991,7 +991,7 @@ void olimex_jtag_reset(int trst, int srst)
     DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
 
-void m5960_reset(int trst, int srst)
+void flyswatter_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
@@ -1781,7 +1781,7 @@ int olimex_jtag_init(void)
 	return ERROR_OK;
 }
 
-int m5960_init(void)
+int flyswatter_init(void)
 {
 	u8 buf[3];
 	u32 bytes_written;
@@ -1797,7 +1797,7 @@ int m5960_init(void)
 	
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
 	{
-		ERROR("couldn't initialize FT2232 with 'm5960' layout"); 
+		ERROR("couldn't initialize FT2232 with 'flyswatter' layout"); 
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	
@@ -1820,7 +1820,7 @@ int m5960_init(void)
 	
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
 	{
-		ERROR("couldn't initialize FT2232 with 'm5960' layout"); 
+		ERROR("couldn't initialize FT2232 with 'flyswatter' layout"); 
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	

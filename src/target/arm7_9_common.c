@@ -25,6 +25,7 @@
 
 #include "embeddedice.h"
 #include "target.h"
+#include "target_request.h"
 #include "armv4_5.h"
 #include "arm_jtag.h"
 #include "jtag.h"
@@ -586,6 +587,55 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 	/* read debug status register */
 	embeddedice_read_reg_w_check(dbg_stat, check_value, check_value);
 
+	return ERROR_OK;
+}
+
+int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	u32 *data;
+	int i;
+	
+	data = malloc(size * (sizeof(u32)));
+	
+	embeddedice_receive(jtag_info, data, size);
+	
+	for (i = 0; i < size; i++)
+	{
+		h_u32_to_le(buffer + (i * 4), data[i]);
+	}
+	
+	free(data);
+	
+	return ERROR_OK;
+}
+
+int arm7_9_handle_target_request(void *priv)
+{
+	target_t *target = priv;
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm_jtag_t *jtag_info = &arm7_9->jtag_info; 
+	reg_t *dcc_control = &arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL];
+	
+	if (target->state == TARGET_RUNNING)
+	{
+		/* read DCC control register */
+		embeddedice_read_reg(dcc_control);
+		jtag_execute_queue();
+		
+		/* check W bit */
+		if (buf_get_u32(dcc_control->value, 1, 1) == 1)
+		{
+			u32 request;
+			
+			embeddedice_receive(jtag_info, &request, 1);
+			target_request(target, request);
+		}
+	}
+	
 	return ERROR_OK;
 }
 
@@ -2466,6 +2516,8 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	armv4_5->full_context = arm7_9_full_context;
 	
 	armv4_5_init_arch_info(target, armv4_5);
+	
+	target_register_timer_callback(arm7_9_handle_target_request, 1, 1, target);
 	
 	return ERROR_OK;
 }

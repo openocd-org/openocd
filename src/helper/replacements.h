@@ -187,14 +187,14 @@ typedef struct
 
 typedef struct
 {
-	u32	p_type;			/* Segment type */
-	u32  p_offset;		/* Segment file offset */
-	u32	p_vaddr;		/* Segment virtual address */
-	u32	p_paddr;		/* Segment physical address */
-	u32	p_filesz;		/* Segment size in file */
-	u32	p_memsz;		/* Segment size in memory */
-	u32	p_flags;		/* Segment flags */
-	u32	p_align;		/* Segment alignment */
+	u32 p_type;			/* Segment type */
+	u32 p_offset;		/* Segment file offset */
+	u32 p_vaddr;		/* Segment virtual address */
+	u32 p_paddr;		/* Segment physical address */
+	u32 p_filesz;		/* Segment size in file */
+	u32 p_memsz;		/* Segment size in memory */
+	u32 p_flags;		/* Segment flags */
+	u32 p_align;		/* Segment alignment */
 } Elf32_Phdr;
 
 #define PT_LOAD		1		/* Loadable program segment */

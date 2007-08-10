@@ -1,4 +1,4 @@
-INCLUDES = -I$(top_srcdir)/src/helper -I$(top_srcdir)/src/target $(all_includes)
+INCLUDES = -I$(top_srcdir)/src/helper -I$(top_srcdir)/src/target -I$(top_srcdir)/src/flash $(all_includes)
 METASOURCES = AUTO
 noinst_LIBRARIES = libserver.a
 noinst_HEADERS = server.h telnet_server.h gdb_server.h

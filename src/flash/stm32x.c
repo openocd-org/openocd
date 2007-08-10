@@ -137,13 +137,6 @@ int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 		WARNING("overriding flash base address for STM32x device with 0x08000000");
 		bank->base = 0x08000000;
 	}
-	
-	stm32x_info->target = get_target_by_num(strtoul(args[5], NULL, 0));
-	if (!stm32x_info->target)
-	{
-		ERROR("no target '%s' configured", args[5]);
-		exit(-1);
-	}
 
 	stm32x_build_block_list(bank);
 	
@@ -154,8 +147,7 @@ int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 u32 stm32x_get_flash_status(flash_bank_t *bank)
 {
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
-	target_t *target = stm32x_info->target;
+	target_t *target = bank->target;
 	u32 status;
 	
 	target_read_u32(target, STM32_FLASH_SR, &status);
@@ -179,8 +171,7 @@ u32 stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 
 int stm32x_blank_check(struct flash_bank_s *bank, int first, int last)
 {
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
-	target_t *target = stm32x_info->target;
+	target_t *target = bank->target;
 	u8 *buffer;
 	int i;
 	int nBytes;
@@ -218,8 +209,7 @@ int stm32x_blank_check(struct flash_bank_s *bank, int first, int last)
 
 int stm32x_protect_check(struct flash_bank_s *bank)
 {
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
-	target_t *target = stm32x_info->target;
+	target_t *target = bank->target;
 	
 	u32 protection;
 	int i, s;
@@ -248,8 +238,7 @@ int stm32x_protect_check(struct flash_bank_s *bank)
 
 int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 {
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
-	target_t *target = stm32x_info->target;
+	target_t *target = bank->target;
 	
 	int i;
 	u32 status;
@@ -285,8 +274,7 @@ int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 
 int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
-	target_t *target = stm32x_info->target;
+	target_t *target = bank->target;
 	
 	if (target->state != TARGET_HALTED)
 	{
@@ -299,7 +287,7 @@ int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
-	target_t *target = stm32x_info->target;
+	target_t *target = bank->target;
 	u32 buffer_size = 8192;
 	working_area_t *source;
 	u32 address = bank->base + offset;
@@ -409,8 +397,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 
 int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
-	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
-	target_t *target = stm32x_info->target;
+	target_t *target = bank->target;
 	u32 words_remaining = (count / 2);
 	u32 bytes_remaining = (count & 0x00000001);
 	u32 address = bank->base + offset;
@@ -547,7 +534,7 @@ int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	
 	stm32x_info = bank->driver_priv;
 	
-	target = stm32x_info->target;
+	target = bank->target;
 	
 	if (target->state != TARGET_HALTED)
 	{
@@ -614,7 +601,7 @@ int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, c
 	
 	stm32x_info = bank->driver_priv;
 	
-	target = stm32x_info->target;
+	target = bank->target;
 	
 	if (target->state != TARGET_HALTED)
 	{
@@ -681,7 +668,7 @@ int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *
 	
 	stm32x_info = bank->driver_priv;
 	
-	target = stm32x_info->target;
+	target = bank->target;
 	
 	if (target->state != TARGET_HALTED)
 	{
@@ -749,7 +736,7 @@ int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char 
 	
 	stm32x_info = bank->driver_priv;
 	
-	target = stm32x_info->target;
+	target = bank->target;
 	
 	if (target->state != TARGET_HALTED)
 	{
@@ -831,7 +818,7 @@ int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cm
 	
 	stm32x_info = bank->driver_priv;
 	
-	target = stm32x_info->target;
+	target = bank->target;
 	
 	if (target->state != TARGET_HALTED)
 	{

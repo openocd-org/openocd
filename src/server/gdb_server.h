@@ -22,6 +22,7 @@
 
 #include "target.h"
 #include "server.h"
+#include "image.h"
 
 #define GDB_BUFFER_SIZE	2048
 
@@ -32,6 +33,7 @@ typedef struct gdb_connection_s
 	int buf_cnt;
 	int ctrl_c;
 	enum target_state frontend_state;
+	image_t *vflash_image;
 } gdb_connection_t;
 
 typedef struct gdb_service_s
