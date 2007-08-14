@@ -70,8 +70,9 @@ PRESTOFILES = presto.c
 else
 if PRESTO_FTD2XX
 PRESTOFILES = presto.c
-endif
+else
 PRESTOFILES =
+endif
 endif
 
 if USBPROG

@@ -21,8 +21,9 @@ FTDI2232LIB = -lftdi
 else
 if PRESTO_LIBFTDI
 FTDI2232LIB = -lftdi
-endif
+else
 FTDI2232LIB =
+endif
 endif
 
 if USBPROG
