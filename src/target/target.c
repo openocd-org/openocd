@@ -885,6 +885,7 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "dump_binary", handle_dump_image_command, COMMAND_EXEC, "[DEPRECATED] dump_binary <file> <address> <size>");
 	
 	target_request_register_commands(cmd_ctx);
+	trace_register_commands(cmd_ctx);
 	
 	return ERROR_OK;
 }
@@ -1006,10 +1007,13 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				/* initialize trace information */
 				(*last_target_p)->trace_info = malloc(sizeof(trace_t));
 				(*last_target_p)->trace_info->num_trace_points = 0;
+				(*last_target_p)->trace_info->trace_points_size = 0;
 				(*last_target_p)->trace_info->trace_points = NULL;
 				(*last_target_p)->trace_info->trace_history_size = 0;
 				(*last_target_p)->trace_info->trace_history = NULL;
-				
+				(*last_target_p)->trace_info->trace_history_pos = 0;
+				(*last_target_p)->trace_info->trace_history_overflowed = 0;
+								
 				(*last_target_p)->type->target_command(cmd_ctx, cmd, args, argc, *last_target_p);
 				
 				found = 1;

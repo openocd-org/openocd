@@ -65,9 +65,12 @@ else
 BITQFILES =
 endif
 
-if PRESTO
+if PRESTO_LIBFTDI
 PRESTOFILES = presto.c
 else
+if PRESTO_FTD2XX
+PRESTOFILES = presto.c
+endif
 PRESTOFILES =
 endif
 

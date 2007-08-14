@@ -68,9 +68,13 @@ AC_ARG_ENABLE(gw16012,
   AS_HELP_STRING([--enable-gw16012], [Enable building support for the Gateworks GW16012 JTAG Programmer]),
   [build_gw16012=$enableval], [build_gw16012=no])
 
-AC_ARG_ENABLE(presto,
-  AS_HELP_STRING([--enable-presto], [Enable building support for ASIX Presto Programmer]),
-  [build_presto=$enableval], [build_presto=no])
+AC_ARG_ENABLE(presto_libftdi,
+  AS_HELP_STRING([--enable-presto_libftdi], [Enable building support for ASIX Presto Programmer using the libftdi driver]),
+  [build_presto_libftdi=$enableval], [build_presto_libftdi=no])
+
+AC_ARG_ENABLE(presto_ftd2xx,
+  AS_HELP_STRING([--enable-presto_ftd2xx], [Enable building support for ASIX Presto Programmer using the FTD2XX driver]),
+  [build_presto_ftd2xx=$enableval], [build_presto_ftd2xx=no])
 
 AC_ARG_ENABLE(usbprog,
   AS_HELP_STRING([--enable-usbprog], [Enable building support for the usbprog JTAG Programmer]),
@@ -185,11 +189,18 @@ else
   AC_DEFINE(BUILD_GW16012, 0, [0 if you don't want the Gateworks GW16012 driver.])
 fi
 
-if test $build_presto = yes; then
+if test $build_presto_libftdi = yes; then
   build_bitq=yes
-  AC_DEFINE(BUILD_PRESTO, 1, [1 if you want the ASIX PRESTO driver.])
+  AC_DEFINE(BUILD_PRESTO_LIBFTDI, 1, [1 if you want the ASIX PRESTO driver using libftdi.])
 else
-  AC_DEFINE(BUILD_PRESTO, 0, [0 if you don't want the ASIX PRESTO driver.])
+  AC_DEFINE(BUILD_PRESTO_LIBFTDI, 0, [0 if you don't want the ASIX PRESTO driver using libftdi.])
+fi
+
+if test $build_presto_ftd2xx = yes; then
+  build_bitq=yes
+  AC_DEFINE(BUILD_PRESTO_FTD2XX, 1, [1 if you want the ASIX PRESTO driver using FTD2XX.])
+else
+  AC_DEFINE(BUILD_PRESTO_FTD2XX, 0, [0 if you don't want the ASIX PRESTO driver using FTD2XX.])
 fi
 
 if test $build_bitq = yes; then
@@ -222,7 +233,8 @@ AM_CONDITIONAL(FT2232_LIBFTDI, test $build_ft2232_libftdi = yes)
 AM_CONDITIONAL(FT2232_FTD2XX, test $build_ft2232_ftd2xx = yes)
 AM_CONDITIONAL(AMTJTAGACCEL, test $build_amtjtagaccel = yes)
 AM_CONDITIONAL(GW16012, test $build_gw16012 = yes)
-AM_CONDITIONAL(PRESTO, test $build_presto = yes)
+AM_CONDITIONAL(PRESTO_LIBFTDI, test $build_presto_libftdi = yes)
+AM_CONDITIONAL(PRESTO_FTD2XX, test $build_presto_ftd2xx = yes)
 AM_CONDITIONAL(USBPROG, test $build_usbprog = yes)
 AM_CONDITIONAL(OOCD_TRACE, test $build_oocd_trace = yes)
 AM_CONDITIONAL(IS_CYGWIN, test $is_cygwin = yes)

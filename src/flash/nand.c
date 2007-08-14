@@ -256,7 +256,7 @@ int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 int nand_register_commands(struct command_context_s *cmd_ctx)
 {
-	nand_cmd = register_command(cmd_ctx, NULL, "nand", NULL, COMMAND_ANY, NULL);
+	nand_cmd = register_command(cmd_ctx, NULL, "nand", NULL, COMMAND_ANY, "NAND specific commands");
 	
 	register_command(cmd_ctx, nand_cmd, "device", handle_nand_device_command, COMMAND_CONFIG, NULL);
 	

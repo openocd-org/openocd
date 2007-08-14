@@ -27,6 +27,7 @@
 #include "target_request.h"
 #include "binarybuffer.h"
 #include "command.h"
+#include "trace.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -54,35 +55,46 @@ int target_asciimsg(target_t *target, u32 length)
 
 int target_hexmsg(target_t *target, int size, u32 length)
 {
-	if (size == 1)
-	{
-		u8 *data = malloc(CEIL(length * sizeof(u8), 4) * 4);
-		
-		target->type->target_request_data(target, CEIL(length * sizeof(u8), 4), (u8*)data);
-		
-		free(data);
-	}
-	else if (size == 2)
-	{
-		u16 *data = malloc(CEIL(length * sizeof(u16), 4) * 4);
-		
-		target->type->target_request_data(target, CEIL(length * sizeof(u16), 4), (u8*)data);
+	u8 *data = malloc(CEIL(length * size, 4) * 4);
+	char line[128];
+	int line_len;
+	debug_msg_receiver_t *c = target->dbgmsg;
+	int i;
+	
+	DEBUG("size: %i, length: %i", size, length);
 
-		free(data);
-	}
-	else if (size == 4)
-	{
-		u32 *data = malloc(CEIL(length * sizeof(u32), 4) * 4);
-		
-		target->type->target_request_data(target, CEIL(length * sizeof(u32), 4), (u8*)data);
+	target->type->target_request_data(target, CEIL(length * size, 4), (u8*)data);
 
-		free(data);
-	}
-	else
+	line_len = 0;
+	for (i = 0; i < length; i++)
 	{
-		ERROR("invalid debug message type");
+		switch (size)
+		{
+			case 4:
+				line_len += snprintf(line + line_len, 128 - line_len, "%8.8x ", le_to_h_u32(data + (4*i)));
+				break;
+			case 2:
+				line_len += snprintf(line + line_len, 128 - line_len, "%4.4x ", le_to_h_u16(data + (2*i)));
+				break;
+			case 1:
+				line_len += snprintf(line + line_len, 128 - line_len, "%2.2x ", data[i]);
+				break;
+		}
+		
+		if ((i%8 == 7) || (i == length - 1))
+		{
+			while (c)
+			{
+				command_print(c->cmd_ctx, "%s", line);
+				c = c->next;
+			}
+			c = target->dbgmsg;
+			line_len = 0;
+		}
 	}
 	
+	free(data);
+
 	return ERROR_OK;
 }
 
@@ -96,7 +108,7 @@ int target_request(target_t *target, u32 request)
 	switch (target_req_cmd)
 	{
 		case TARGET_REQ_TRACEMSG:
-			DEBUG("tracepoint: %i", (request & 0xffffff00) >> 8);
+			trace_point(target, (request & 0xffffff00) >> 8);
 			break;
 		case TARGET_REQ_DEBUGMSG:
 			if (((request & 0xff00) >> 8) == 0)
@@ -196,6 +208,8 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 
 	do
 	{
+		p = &target->dbgmsg;
+		c = *p;
 		while (c)
 		{
 			debug_msg_receiver_t *next = c->next;

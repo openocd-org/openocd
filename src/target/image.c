@@ -878,30 +878,37 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 
 int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data)
 {
+	image_section_t *section;
+	
 	/* only image builder supports adding sections */
 	if (image->type != IMAGE_BUILDER)
 		return ERROR_INVALID_ARGUMENTS;
 	
-	/* see if it's enough to extend an existing section */
-	if (((image->sections[image->num_sections - 1].base_address + image->sections[image->num_sections - 1].size) == base)
-		&& (image->sections[image->num_sections - 1].flags == flags))
+	/* see if there's a previous section */
+	if (image->num_sections)
 	{
-		u32 old_size = image->sections[image->num_sections - 1].size;
-		image->sections[image->num_sections - 1].size += size;
-		image->sections[image->num_sections - 1].private = realloc(image->sections[image->num_sections - 1].private, image->sections[image->num_sections - 1].size);
-		memcpy((u8*)image->sections[image->num_sections - 1].private + old_size, data, size);
+		section = &image->sections[image->num_sections - 1];
 		
-		return ERROR_OK;
+		/* see if it's enough to extend the last section,
+		 * adding data to previous sections or merging is not supported */
+		if (((section->base_address + section->size) == base) && (section->flags == flags))
+		{
+			section->private = realloc(section->private, section->size + size);
+			memcpy((u8*)section->private + section->size, data, size);
+			section->size += size;
+			return ERROR_OK;
+		}
 	}
 		
 	/* allocate new section */
 	image->num_sections++;
 	image->sections = realloc(image->sections, sizeof(image_section_t) * image->num_sections);
-	image->sections[image->num_sections - 1].base_address = base;
-	image->sections[image->num_sections - 1].size = size;
-	image->sections[image->num_sections - 1].flags = flags;
-	image->sections[image->num_sections - 1].private = malloc(sizeof(u8) * size);
-	memcpy((u8*)image->sections[image->num_sections - 1].private, data, size);
+	section = &image->sections[image->num_sections - 1];
+	section->base_address = base;
+	section->size = size;
+	section->flags = flags;
+	section->private = malloc(sizeof(u8) * size);
+	memcpy((u8*)section->private, data, size);
 	
 	return ERROR_OK;
 }

@@ -326,7 +326,15 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 	at91sam7_info->cidr_version = cidr&0x001F;
 	bank->size = NVPSIZ[at91sam7_info->cidr_nvpsiz];
 	at91sam7_info->target_name = "Unknown";
-	
+
+	/* Support just for bulk erase of the whole device */
+	bank->num_sectors = 1;
+	bank->sectors = malloc(sizeof(flash_sector_t));
+	bank->sectors[0].offset = 0;
+	bank->sectors[0].size = bank->size;
+	bank->sectors[0].is_erased = -1;
+	bank->sectors[0].is_protected = -1;
+
 	DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x", at91sam7_info->cidr_nvptyp, at91sam7_info->cidr_arch );
 
 	/* Read main and master clock freqency register */
@@ -565,22 +573,27 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}	
 	
-	if ((first < 0) || (last < first) || (last >= at91sam7_info->num_lockbits))
+	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
 	{
-		return ERROR_FLASH_SECTOR_INVALID;
+		if ((first == 0) && (last == (at91sam7_info->num_lockbits-1)))
+		{
+			WARNING("Sector numbers based on lockbit count, probably a deprecated script");
+			last = bank->num_sectors-1;
+		}
+		else return ERROR_FLASH_SECTOR_INVALID;
+	}
+
+	if ((first != 0) || (last != (bank->num_sectors-1)))
+	{
+		WARNING("Can only erase the whole flash area, pages are autoerased on write");
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	/* Configure the flash controller timing */
 	at91sam7_read_clock_info(bank);	
-       at91sam7_set_flash_mode(bank,FMR_TIMING_FLASH);
+	at91sam7_set_flash_mode(bank,FMR_TIMING_FLASH);
 
-	if ((first == 0) && (last == (at91sam7_info->num_lockbits-1)))
-	{
-		return at91sam7_flash_command(bank, EA, 0);
-	}
-
-	WARNING("Can only erase the whole flash area, pages are autoerased on write");
-	return ERROR_FLASH_OPERATION_FAILED;
+	return at91sam7_flash_command(bank, EA, 0);
 }
 
 int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
