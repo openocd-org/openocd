@@ -1270,28 +1270,28 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 	if (!strcmp(packet, "vFlashDone"))
 	{
-		u32 image_size;
+		u32 written;
 		char *error_str;
-		u32 *failed = malloc(sizeof(u32) * gdb_connection->vflash_image->num_sections);
-		
+
 		/* process the flashing buffer */
-		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &image_size, &error_str, failed)) != ERROR_OK)
+		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, &error_str, NULL)) != ERROR_OK)
 		{
 			if (result == ERROR_FLASH_DST_OUT_OF_BANK)
 				gdb_put_packet(connection, "E.memtype", 9);
 			else
 				gdb_send_error(connection, EIO);
 			
-			ERROR("flash writing failed: %s", error_str);
-			free(error_str);
+			if (error_str)
+			{
+				ERROR("flash writing failed: %s", error_str);
+				free(error_str);
+			}
 		}
 		else
 		{
-			DEBUG("wrote %u bytes from vFlash image to flash", image_size);
+			DEBUG("wrote %u bytes from vFlash image to flash", written);
 			gdb_put_packet(connection, "OK", 2);
 		}
-		
-		free(failed);
 		
 		image_close(gdb_connection->vflash_image);
 		free(gdb_connection->vflash_image);

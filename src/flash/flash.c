@@ -514,9 +514,9 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	target_t *target = get_current_target(cmd_ctx);
 	
 	image_t image;
-	u32 image_size;
+	u32 written;
 	char *error_str;
-	u32 *failed;
+	int *failed;
 	
 	int i;
 	
@@ -564,9 +564,9 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_OK;
 	}
 	
-	failed = malloc(sizeof(u32) * image.num_sections);
+	failed = malloc(sizeof(int) * image.num_sections);
 
-	if ((retval = flash_write(target, &image, &image_size, &error_str, failed)) != ERROR_OK)
+	if ((retval = flash_write(target, &image, &written, &error_str, failed)) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "failed writing image %s: %s", args[0], error_str);
 		free(error_str);
@@ -583,8 +583,8 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	
 	duration_stop_measure(&duration, &duration_text);
 	command_print(cmd_ctx, "wrote %u byte from file %s in %s (%f kb/s)",
-		image_size, args[0], duration_text,
-		(float)image_size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
+		written, args[0], duration_text,
+		(float)written / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
 	free(duration_text);
 
 	image_close(&image);
@@ -736,132 +736,160 @@ int flash_erase(target_t *target, u32 addr, u32 length)
 	return c->driver->erase(c, first, last);
 }
 
-int flash_write(target_t *target, image_t *image, u32 *image_size, char **error_str, u32 *failed)
+/* write an image to flash memory of the given target */
+int flash_write(target_t *target, image_t *image, u32 *written, char **error_str, int *failed)
 {
-	int last_section;
-	int section;
-	int next_section;
 	int retval;
-	
-	*image_size = 0;
-	
-	/* for each section in the image */
-	last_section = 0;
+	int i;
+
+	int section;
+	u32 section_offset;
+
 	section = 0;
+	section_offset = 0;
+
+	if (written)
+		*written = 0;
+	
+	if (failed != NULL)
+		for (i = 0; i < image->num_sections; i++)
+			failed[i] = 0;
+
+	/* loop until we reach end of the image */
 	while (section < image->num_sections)
 	{
-		u32 offset = 0;
-		u32 address = image->sections[section].base_address;
-		u32 size = image->sections[section].size;
-		
-		/* collect consecutive sections */
-		next_section = section + 1;
-		while ((next_section < image->num_sections)
-				&& (image->sections[next_section].base_address == (address + size)))
-		{
-			size += image->sections[next_section].size;
-			next_section++;
-		}
-		
-		while (size != 0)
-		{
-			flash_bank_t *c;
-			u32 thisrun_size = size;
-			u32 buffer_size;
-			u32 size_read;
-			u8 *buffer;
-			
-			/* find the corresponding flash bank */
-			if ((c = get_flash_bank_by_addr(target, address)) == NULL)
-			{
-				/* mark as failed, and skip the current section */
-				failed[section] = 1;
-				break;
-			}
-			
-			/* check whether cumulated sections fit the bank, split into multiple runs if not */
-			if ((address + size) > (c->base + c->size))
-				thisrun_size = c->base + c->size - address;
+		flash_bank_t *c;
+		u32 buffer_size;
+		u8 *buffer;
+		int section_first;
+		int section_last;
+		u32 run_address = image->sections[section].base_address+section_offset;
+		u32 run_size = image->sections[section].size-section_offset;
 
-			buffer = malloc(thisrun_size);
-			buffer_size = 0;
-			
-			while (buffer_size < thisrun_size)
+		if (image->sections[section].size ==  0)
+		{
+			WARNING("empty section %d", section);
+			section++;
+			section_offset = 0;
+			continue;
+		}
+
+		/* find the corresponding flash bank */
+		if ((c = get_flash_bank_by_addr(target, run_address)) == NULL)
+		{
+			if (failed == NULL)
 			{
-				u32 thissection_size = image->sections[section].size - offset;
-				
-				if ((retval = image_read_section(image, section, offset,
-						MIN(thisrun_size, thissection_size),
-						buffer + buffer_size, &size_read)) != ERROR_OK)
-				{
-					*error_str = malloc(FLASH_MAX_ERROR_STR);
-					snprintf(*error_str, FLASH_MAX_ERROR_STR, "error reading from image");
-					return ERROR_IMAGE_TEMPORARILY_UNAVAILABLE;
-				}
-				
-				/* see if we're done with the current section */
-				if (thissection_size < thisrun_size)
-				{
-					/* start with the next section */
-					offset = 0;
-					failed[section] = 0;
-					section++;
-				}
-				else
-				{
-					/* continue inside the current section */
-					offset += size_read;
-				}
-				
-				buffer_size += size_read;
-			}
-			
-			if ((retval = c->driver->write(c, buffer, address - c->base, thisrun_size)) != ERROR_OK)
-			{
-				int i;
-				/* mark sections as failed */
-				for (i = last_section; i <= section; i++)
-					failed[i] = 1;
-				
+				if (error_str == NULL)
+					return ERROR_FLASH_DST_OUT_OF_BANK; /* abort operation */
 				*error_str = malloc(FLASH_MAX_ERROR_STR);
-				switch (retval)
-				{
-					case ERROR_TARGET_NOT_HALTED:
-						snprintf(*error_str, FLASH_MAX_ERROR_STR, "can't flash image while target is running");
-						break;
-					case ERROR_INVALID_ARGUMENTS:
-						snprintf(*error_str, FLASH_MAX_ERROR_STR, "flash driver can't fulfill request");
-						break;
-					case ERROR_FLASH_OPERATION_FAILED:
-						snprintf(*error_str, FLASH_MAX_ERROR_STR, "flash program error");
-						break;
-					case ERROR_FLASH_DST_BREAKS_ALIGNMENT:
-						snprintf(*error_str, FLASH_MAX_ERROR_STR, "offset breaks required alignment");
-						break;
-					case ERROR_FLASH_DST_OUT_OF_BANK:
-						snprintf(*error_str, FLASH_MAX_ERROR_STR, "no flash mapped at requested address");
-						break;
-					case ERROR_FLASH_SECTOR_NOT_ERASED:
-						snprintf(*error_str, FLASH_MAX_ERROR_STR, "destination sector(s) not erased");
-						break;
-					default:
-						snprintf(*error_str, FLASH_MAX_ERROR_STR, "unknown error: %i", retval);
-				}
-				
+				snprintf(*error_str, FLASH_MAX_ERROR_STR, "no flash mapped at requested address");
+				return ERROR_FLASH_DST_OUT_OF_BANK; /* abort operation */
+			}
+			failed[section] = ERROR_FLASH_DST_OUT_OF_BANK; /* mark the section as failed */
+			section++; /* and skip it */
+			section_offset = 0;
+			continue;
+		}
+
+		/* collect consecutive sections which fall into the same bank */
+		section_first = section;
+		section_last = section;
+		while ((run_address + run_size < c->base + c->size)
+				&& (section_last + 1 < image->num_sections))
+		{
+			if (image->sections[section_last + 1].base_address > (run_address + run_size))
+				break;
+			if (image->sections[section_last + 1].base_address < (run_address + run_size))
+				WARNING("section %d out of order", section_last + 1);
+			run_size += image->sections[++section_last].size;
+		}
+
+		/* fit the run into bank constraints */
+		if (run_address + run_size > c->base + c->size)
+			run_size = c->base + c->size - run_address;
+
+		/* allocate buffer */
+		buffer = malloc(run_size);
+		buffer_size = 0;
+
+		/* read sections to the buffer */
+		while (buffer_size < run_size)
+		{
+			u32 size_read;
+			
+			if (buffer_size - run_size <= image->sections[section].size - section_offset)
+				size_read = buffer_size - run_size;
+			else
+				size_read = image->sections[section].size - section_offset;
+			
+			if ((retval = image_read_section(image, section, section_offset,
+					size_read, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
+			{
 				free(buffer);
 				
-				/* abort operation */
-				return retval;
+				if (error_str == NULL)
+					return ERROR_IMAGE_TEMPORARILY_UNAVAILABLE;
+				
+				*error_str = malloc(FLASH_MAX_ERROR_STR);
+				
+				/* if image_read_section returned an error there's an error string we can pass on */
+				if (retval != ERROR_OK)
+					snprintf(*error_str, FLASH_MAX_ERROR_STR, "error reading from image: %s", image->error_str);
+				else
+					
+					snprintf(*error_str, FLASH_MAX_ERROR_STR, "error reading from image");
+				return ERROR_IMAGE_TEMPORARILY_UNAVAILABLE;
 			}
-			
-			free(buffer);
-			
-			address += thisrun_size;
-			size -= thisrun_size;
-			*image_size += thisrun_size;
-			last_section = section;
+
+			buffer_size += size_read;
+			section_offset += size_read;
+
+			if (section_offset >= image->sections[section].size)
+			{
+				section++;
+				section_offset = 0;
+			}
 		}
+
+		retval = c->driver->write(c, buffer, run_address - c->base, run_size);
+		free(buffer);
+
+		if (retval != ERROR_OK)
+		{
+			if (error_str == NULL)
+				return retval; /* abort operation */
+
+			*error_str = malloc(FLASH_MAX_ERROR_STR);
+			switch (retval)
+			{
+				case ERROR_TARGET_NOT_HALTED:
+					snprintf(*error_str, FLASH_MAX_ERROR_STR, "can't flash image while target is running");
+					break;
+				case ERROR_INVALID_ARGUMENTS:
+					snprintf(*error_str, FLASH_MAX_ERROR_STR, "flash driver can't fulfill request");
+					break;
+				case ERROR_FLASH_OPERATION_FAILED:
+					snprintf(*error_str, FLASH_MAX_ERROR_STR, "flash program error");
+					break;
+				case ERROR_FLASH_DST_BREAKS_ALIGNMENT:
+					snprintf(*error_str, FLASH_MAX_ERROR_STR, "offset breaks required alignment");
+					break;
+				case ERROR_FLASH_DST_OUT_OF_BANK:
+					snprintf(*error_str, FLASH_MAX_ERROR_STR, "no flash mapped at requested address");
+					break;
+				case ERROR_FLASH_SECTOR_NOT_ERASED:
+					snprintf(*error_str, FLASH_MAX_ERROR_STR, "destination sector(s) not erased");
+					break;
+				default:
+					snprintf(*error_str, FLASH_MAX_ERROR_STR, "unknown error: %i", retval);
+			}
+
+			return retval; /* abort operation */
+		}
+
+		if (written != NULL)
+			*written += run_size; /* add run size to total written counter */
 	}
-	
+
 	return ERROR_OK;
 }
