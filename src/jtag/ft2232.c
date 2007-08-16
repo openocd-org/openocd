@@ -256,6 +256,8 @@ int ft2232_speed(int speed)
 		ERROR("couldn't set FT2232 TCK speed");
 		return retval;
 	}
+
+	jtag_speed = speed;
 	
 	return ERROR_OK;
 }

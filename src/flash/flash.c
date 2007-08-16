@@ -797,10 +797,13 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 		while ((run_address + run_size < c->base + c->size)
 				&& (section_last + 1 < image->num_sections))
 		{
-			if (image->sections[section_last + 1].base_address > (run_address + run_size))
-				break;
 			if (image->sections[section_last + 1].base_address < (run_address + run_size))
+			{
 				WARNING("section %d out of order", section_last + 1);
+				break;
+			}
+			if (image->sections[section_last + 1].base_address != (run_address + run_size))
+				break;
 			run_size += image->sections[++section_last].size;
 		}
 
@@ -836,8 +839,8 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 				if (retval != ERROR_OK)
 					snprintf(*error_str, FLASH_MAX_ERROR_STR, "error reading from image: %s", image->error_str);
 				else
-					
 					snprintf(*error_str, FLASH_MAX_ERROR_STR, "error reading from image");
+				
 				return ERROR_IMAGE_TEMPORARILY_UNAVAILABLE;
 			}
 

@@ -636,6 +636,7 @@ int etb_start_capture(etm_context_t *etm_ctx)
 {
 	etb_t *etb = etm_ctx->capture_driver_priv;
 	u32 etb_ctrl_value = 0x1;
+	u32 trigger_count;
 
 	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
 	{
@@ -650,7 +651,9 @@ int etb_start_capture(etm_context_t *etm_ctx)
 	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_MUXED)
 		return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 	
-	etb_write_reg(&etb->reg_cache->reg_list[ETB_TRIGGER_COUNTER], 0x600);
+	trigger_count = (etb->ram_depth * etm_ctx->trigger_percent) / 100;
+	
+	etb_write_reg(&etb->reg_cache->reg_list[ETB_TRIGGER_COUNTER], trigger_count);
 	etb_write_reg(&etb->reg_cache->reg_list[ETB_RAM_WRITE_POINTER], 0x0);
 	etb_write_reg(&etb->reg_cache->reg_list[ETB_CTRL], etb_ctrl_value);
 	jtag_execute_queue();

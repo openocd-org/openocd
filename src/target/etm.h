@@ -209,5 +209,6 @@ extern etm_context_t* etm_create_context(etm_portmode_t portmode, char *capture_
 #define ERROR_ETM_INVALID_DRIVER	(-1300)
 #define ERROR_ETM_PORTMODE_NOT_SUPPORTED	(-1301)
 #define ERROR_ETM_CAPTURE_INIT_FAILED	(-1302)
+#define ERROR_ETM_ANALYSIS_FAILED	(-1303)
 
 #endif /* ETM_H */

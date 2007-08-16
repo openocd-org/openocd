@@ -762,6 +762,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 		u32 old_index = ctx->pipe_index;
 		u32 last_instruction = ctx->last_instruction;
 		u32 cycles = 0;
+		int current_pc_ok = ctx->pc_ok;
 		
 		if (ctx->trace_data[ctx->pipe_index].flags & ETMV1_TRIGGER_CYCLE)
 		{
@@ -836,6 +837,16 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 					break;
 				case 0x4:	/* periodic synchronization point */
 					next_pc = ctx->last_branch;
+					/* if we had no valid PC prior to this synchronization point,
+					 * we have to move on with the next trace cycle
+					 */
+					if (!current_pc_ok)
+					{
+						command_print(cmd_ctx, "--- periodic synchronization point at 0x%8.8x ---", next_pc);
+						ctx->current_pc = next_pc;
+						ctx->pipe_index++;
+						continue;
+					}
 					break;
 				default:	/* reserved */
 					ERROR("BUG: branch reason code 0x%x is reserved", ctx->last_branch_reason);		
@@ -883,7 +894,9 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 				}
 				else if (retval == ERROR_TRACE_INSTRUCTION_UNAVAILABLE)
 				{
-					/* TODO: handle incomplete images */
+					/* TODO: handle incomplete images 
+					 * for now we just quit the analsysis*/
+					return retval;
 				}
 			}
 			
@@ -910,7 +923,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 				
 				do {
 					if ((retval = etmv1_next_packet(ctx, &packet, 0)) != 0)
-						return -1;
+						return ERROR_ETM_ANALYSIS_FAILED;
 					ctx->last_ptr &= ~(0x7f << shift);
 					ctx->last_ptr |= (packet & 0x7f) << shift;
 					shift += 7;
@@ -936,7 +949,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 						{
 							u32 data;
 							if (etmv1_data(ctx, 4, &data) != 0)
-								return -1;
+								return ERROR_ETM_ANALYSIS_FAILED;
 							command_print(cmd_ctx, "data: 0x%8.8x", data);
 						}
 					}
@@ -945,7 +958,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 				{
 					u32 data;
 					if (etmv1_data(ctx, arm_access_size(&instruction), &data) != 0)
-						return -1;
+						return ERROR_ETM_ANALYSIS_FAILED;
 					command_print(cmd_ctx, "data: 0x%8.8x", data);
 				}
 			}
@@ -1771,6 +1784,7 @@ int handle_etm_analyze_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	etm_context_t *etm_ctx;
+	int retval;
 
 	target = get_current_target(cmd_ctx);
 	
@@ -1786,7 +1800,23 @@ int handle_etm_analyze_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 	
-	etmv1_analyze_trace(etm_ctx, cmd_ctx);
+	if ((retval = etmv1_analyze_trace(etm_ctx, cmd_ctx)) != ERROR_OK)
+	{
+		switch(retval)
+		{
+			case ERROR_ETM_ANALYSIS_FAILED:
+				command_print(cmd_ctx, "further analysis failed (corrupted trace data or just end of data");
+				break;
+			case ERROR_TRACE_INSTRUCTION_UNAVAILABLE:
+				command_print(cmd_ctx, "no instruction for current address available, analysis aborted");
+				break;
+			case ERROR_TRACE_IMAGE_UNAVAILABLE:
+				command_print(cmd_ctx, "no image available for trace analysis");
+				break;
+			default:
+				command_print(cmd_ctx, "unknown error: %i", retval);
+		}
+	}
 	
 	return ERROR_OK;
 }
