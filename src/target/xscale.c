@@ -3506,17 +3506,62 @@ int xscale_handle_trace_image_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
-int xscale_handle_dump_trace_buffer_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int xscale_handle_dump_trace_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-
+	xscale_trace_data_t *trace_data;
+	fileio_t file;
+	
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
+	
+	if (target->state != TARGET_HALTED)
+	{
+		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		return ERROR_OK;
+	}
+	
+	if (argc < 1)
+	{
+		command_print(cmd_ctx, "usage: xscale dump_trace <file>");
+		return ERROR_OK;
+	}
+	
+	trace_data = xscale->trace.data;
+	
+	if (!trace_data)
+	{
+		command_print(cmd_ctx, "no trace data collected");
+		return ERROR_OK;
+	}
+	
+	if (fileio_open(&file, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "file open error: %s", file.error_str);
+		return ERROR_OK;
+	}
+	
+	while (trace_data)
+	{
+		int i;
+		
+		fileio_write_u32(&file, trace_data->chkpt0);
+		fileio_write_u32(&file, trace_data->chkpt1);
+		fileio_write_u32(&file, trace_data->last_instruction);
+		fileio_write_u32(&file, trace_data->depth);
+		
+		for (i = 0; i < trace_data->depth; i++)
+			fileio_write_u32(&file, trace_data->entries[i].data | ((trace_data->entries[i].type & 0xffff) << 16));
+		
+		trace_data = trace_data->next;
+	}
+	
+	fileio_close(&file);
 	
 	return ERROR_OK;	
 }
@@ -3555,9 +3600,9 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 	
 	register_command(cmd_ctx, xscale_cmd, "vector_catch", xscale_handle_idcache_command, COMMAND_EXEC, "<mask> of vectors that should be catched");
 	
-	register_command(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable|disable> ['fill'|'wrap']");
+	register_command(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable|disable> ['fill' [n]|'wrap']");
 
-	register_command(cmd_ctx, xscale_cmd, "dump_trace_buffer", xscale_handle_dump_trace_buffer_command, COMMAND_EXEC, "dump content of trace buffer");
+	register_command(cmd_ctx, xscale_cmd, "dump_trace", xscale_handle_dump_trace_command, COMMAND_EXEC, "dump content of trace buffer to <file>");
 	register_command(cmd_ctx, xscale_cmd, "analyze_trace", xscale_handle_analyze_trace_buffer_command, COMMAND_EXEC, "analyze content of trace buffer");
 	register_command(cmd_ctx, xscale_cmd, "trace_image", xscale_handle_trace_image_command,
 		COMMAND_EXEC, "load image from <file> [base address]");

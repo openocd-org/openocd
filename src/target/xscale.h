@@ -51,8 +51,8 @@ enum xscale_debug_reason
 
 enum xscale_trace_entry_type
 {
-	XSCALE_TRACE_MESSAGE,
-	XSCALE_TRACE_ADDRESS,
+	XSCALE_TRACE_MESSAGE = 0x0,
+	XSCALE_TRACE_ADDRESS = 0x1,
 };
 
 typedef struct xscale_trace_entry_s
