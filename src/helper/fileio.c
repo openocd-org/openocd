@@ -295,16 +295,22 @@ int fileio_local_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written
 
 int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
 {
+	int retval;
+	
 	switch (fileio->location)
 	{
 		case FILEIO_LOCAL:
-			return fileio_local_write(fileio, size, buffer, size_written);
+			retval = fileio_local_write(fileio, size, buffer, size_written);
 			break;
 		default:
 			ERROR("BUG: should never get here");
+			exit(-1);
 	}
 	
-	return ERROR_OK;
+	if (retval == ERROR_OK)
+		fileio->size += *size_written;
+	
+	return retval;;
 }
 
 int fileio_write_u32(fileio_t *fileio, u32 data)
