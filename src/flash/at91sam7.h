@@ -45,15 +45,16 @@ typedef struct at91sam7_flash_bank_s
 	u16 pagesize;
 	u16 pages_in_lockregion;
 	u8 num_erase_regions;
+	u8 num_planes;
 	u32 *erase_region_info;
 
 	/* nv memory bits */
 	u16 num_lockbits;
-	u16 lockbits;
+	u16 lockbits[4];
 	u16 num_nvmbits;
 	u16 nvmbits;
 	u8  securitybit;
-	u8  flashmode;         /* 0: not init, 1: fmcn for nvbits (1uS), 2: fmcn for flash (1.5uS) */
+	u8  flashmode[4];         /* 0: not init, 1: fmcn for nvbits (1uS), 2: fmcn for flash (1.5uS) */
 
 	/* main clock status */
 	u8  mck_valid;
@@ -71,9 +72,6 @@ typedef struct at91sam7_flash_bank_s
 #define PMC_MCKR  0xFFFFFC30
 #define PMC_MCKR_CSS  0x03
 #define PMC_MCKR_PRES 0x1c
-#define MC_FMR	0xFFFFFF60
-#define MC_FCR	0xFFFFFF64
-#define MC_FSR	0xFFFFFF68
 
 /* Flash Controller Commands */
 #define  WP   0x01
