@@ -3440,6 +3440,19 @@ int xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx, char *
 		xscale->trace.buffer_fill = -1;
 	}
 	
+	if (xscale->trace.buffer_enabled)
+	{
+		/* if we enable the trace buffer in fill-once
+		 * mode we know the address of the first instruction */
+		xscale->trace.pc_ok = 1;
+		xscale->trace.current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	}
+	else
+	{
+		/* otherwise the address is unknown, and we have no known good PC */
+		xscale->trace.pc_ok = 0;
+	}
+	
 	command_print(cmd_ctx, "trace buffer %s (%s)", 
 		(xscale->trace.buffer_enabled) ? "enabled" : "disabled",
 		(xscale->trace.buffer_fill > 0) ? "fill" : "wrap");
