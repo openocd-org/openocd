@@ -656,11 +656,26 @@ int presto_bitq_reset(int trst, int srst)
 
 /* -------------------------------------------------------------------------- */
 
+char *presto_speed_text[4] =
+{
+	"3 MHz",
+	"1.5 MHz",
+	"750 kHz",
+	"93.75 kHz"
+};
 
 int presto_jtag_speed(int speed)
 {
+
+	if ((speed < 0) || (speed > 3))
+	{
+		INFO("valid speed values: 0 (3 MHz), 1 (1.5 MHz), 2 (750 kHz) and 3 (93.75 kHz)");
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
 	jtag_speed = speed;
-	return ERROR_OK;
+	INFO("setting speed to %d, max. TCK freq. is %s", speed, presto_speed_text[speed]);
+	return presto_sendbyte(0xA8 | speed);
 }
 
 
@@ -703,6 +718,9 @@ int presto_jtag_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	INFO("PRESTO open, serial number '%s'", presto->serial);
+	
+	/* use JTAG speed setting from configuration file */
+	presto_jtag_speed(jtag_speed);
 	
 	bitq_interface = &presto_bitq;
 	return ERROR_OK;

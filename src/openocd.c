@@ -18,7 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#define OPENOCD_VERSION "Open On-Chip Debugger (2007-08-21 18:30 CEST)"
+#define OPENOCD_VERSION "Open On-Chip Debugger (2007-08-25 12:00 CEST)"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -60,7 +60,8 @@ int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **
 void exit_handler(void)
 {
 	/* close JTAG interface */
-	if (jtag && jtag->quit) jtag->quit();
+	if (jtag && jtag->quit)
+		jtag->quit();
 }
 
 int main(int argc, char *argv[])

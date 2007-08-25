@@ -569,17 +569,66 @@ int etb_read_trace(etm_context_t *etm_ctx)
 		free(etm_ctx->trace_data);
 	}
 	
-	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
+	if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_4BIT)
+		etm_ctx->trace_depth = num_frames * 3;
+	else if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
 		etm_ctx->trace_depth = num_frames * 2;
 	else
 		etm_ctx->trace_depth = num_frames;
 
-	etm_ctx->trace_data= malloc(sizeof(etmv1_trace_data_t) * etm_ctx->trace_depth);
+	etm_ctx->trace_data = malloc(sizeof(etmv1_trace_data_t) * etm_ctx->trace_depth);
 	
 	for (i = 0, j = 0; i < num_frames; i++)
 	{
-		if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
+		if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_4BIT)
 		{
+			/* trace word j */
+			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
+			etm_ctx->trace_data[j].packet = (trace_data[i] & 0x78) >> 3;
+			etm_ctx->trace_data[j].flags = 0;
+			if ((trace_data[i] & 0x80) >> 7)
+			{
+				etm_ctx->trace_data[j].flags |= ETMV1_TRACESYNC_CYCLE;
+			}
+			if (etm_ctx->trace_data[j].pipestat == STAT_TR)
+			{
+				etm_ctx->trace_data[j].pipestat = etm_ctx->trace_data[j].packet & 0x7;
+				etm_ctx->trace_data[j].flags |= ETMV1_TRIGGER_CYCLE;
+			}
+			
+			/* trace word j+1 */
+			etm_ctx->trace_data[j+1].pipestat = (trace_data[i] & 0x100) >> 8;
+			etm_ctx->trace_data[j+1].packet = (trace_data[i] & 0x7800) >> 11;
+			etm_ctx->trace_data[j+1].flags = 0;
+			if ((trace_data[i] & 0x8000) >> 15)
+			{
+				etm_ctx->trace_data[j+1].flags |= ETMV1_TRACESYNC_CYCLE;
+			}
+			if (etm_ctx->trace_data[j+1].pipestat == STAT_TR)
+			{
+				etm_ctx->trace_data[j+1].pipestat = etm_ctx->trace_data[j+1].packet & 0x7;
+				etm_ctx->trace_data[j+1].flags |= ETMV1_TRIGGER_CYCLE;
+			}
+			
+			/* trace word j+2 */
+			etm_ctx->trace_data[j+2].pipestat = (trace_data[i] & 0x10000) >> 16;
+			etm_ctx->trace_data[j+2].packet = (trace_data[i] & 0x780000) >> 19;
+			etm_ctx->trace_data[j+2].flags = 0;
+			if ((trace_data[i] & 0x800000) >> 23)
+			{
+				etm_ctx->trace_data[j+2].flags |= ETMV1_TRACESYNC_CYCLE;
+			}
+			if (etm_ctx->trace_data[j+2].pipestat == STAT_TR)
+			{
+				etm_ctx->trace_data[j+2].pipestat = etm_ctx->trace_data[j+2].packet & 0x7;
+				etm_ctx->trace_data[j+2].flags |= ETMV1_TRIGGER_CYCLE;
+			}
+			
+			j += 3;
+		}
+		else if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_8BIT)
+		{
+			/* trace word j */
 			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
 			etm_ctx->trace_data[j].packet = (trace_data[i] & 0x7f8) >> 3;
 			etm_ctx->trace_data[j].flags = 0;
@@ -593,6 +642,7 @@ int etb_read_trace(etm_context_t *etm_ctx)
 				etm_ctx->trace_data[j].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
+			/* trace word j+1 */
 			etm_ctx->trace_data[j+1].pipestat = (trace_data[i] & 0x7000) >> 12;
 			etm_ctx->trace_data[j+1].packet = (trace_data[i] & 0x7f8000) >> 15;
 			etm_ctx->trace_data[j+1].flags = 0;
@@ -610,6 +660,7 @@ int etb_read_trace(etm_context_t *etm_ctx)
 		}
 		else
 		{
+			/* trace word j */
 			etm_ctx->trace_data[j].pipestat = trace_data[i] & 0x7;
 			etm_ctx->trace_data[j].packet = (trace_data[i] & 0x7fff8) >> 3;
 			etm_ctx->trace_data[j].flags = 0;
@@ -640,9 +691,9 @@ int etb_start_capture(etm_context_t *etm_ctx)
 
 	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
 	{
-		if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) == ETM_PORT_16BIT)
+		if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) != ETM_PORT_8BIT)
 		{
-			DEBUG("ETB can't run in demultiplexed mode with a 16-bit port");
+			ERROR("ETB can't run in demultiplexed mode with a 4 or 16 bit port");
 			return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 		}
 		etb_ctrl_value |= 0x2;
