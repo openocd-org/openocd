@@ -506,7 +506,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 
 	if (hsbit == EICE_COMM_CTRL_WBIT)
 		hsact = 1;
-	else if (hsbit != EICE_COMM_CTRL_RBIT)
+	else if (hsbit == EICE_COMM_CTRL_RBIT)
 		hsact = 0;
 	else
 		return ERROR_INVALID_ARGUMENTS;

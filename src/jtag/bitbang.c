@@ -209,6 +209,9 @@ int bitbang_execute_queue(void)
 	 */ 
 	retval = ERROR_OK;
 		
+	if(bitbang_interface->blink)
+		bitbang_interface->blink(1);
+
 	while (cmd)
 	{
 		switch (cmd->type)
@@ -278,6 +281,8 @@ int bitbang_execute_queue(void)
 		}
 		cmd = cmd->next;
 	}
+	if(bitbang_interface->blink)
+		bitbang_interface->blink(0);
 	
 	return retval;
 }

@@ -27,6 +27,7 @@ typedef struct bitbang_interface_s
 	int (*read)(void);
 	void (*write)(int tck, int tms, int tdi);
 	void (*reset)(int trst, int srst);
+	void (*blink)(int on);
 } bitbang_interface_t;
 
 extern bitbang_interface_t *bitbang_interface;

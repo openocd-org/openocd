@@ -146,7 +146,8 @@ bitbang_interface_t at91rm9200_bitbang =
 {
 	.read = at91rm9200_read,
 	.write = at91rm9200_write,
-	.reset = at91rm9200_reset
+	.reset = at91rm9200_reset,
+	.blink = 0
 };
 
 int at91rm9200_read(void)

@@ -78,7 +78,8 @@ bitbang_interface_t ep93xx_bitbang =
 {
 	.read = ep93xx_read,
 	.write = ep93xx_write,
-	.reset = ep93xx_reset
+	.reset = ep93xx_reset,
+	.blink = 0;
 };
 
 int ep93xx_read(void)

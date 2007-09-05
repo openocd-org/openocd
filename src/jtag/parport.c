@@ -90,20 +90,33 @@ typedef struct cable_s
 	u8 OUTPUT_INVERT;	/* data port bits that should be inverted */
 	u8 INPUT_INVERT;	/* status port that should be inverted */
 	u8 PORT_INIT;	/* initialize data port with this value */
+	u8 PORT_EXIT;	/* de-initialize data port with this value */
+	u8 LED_MASK;	/* data port bit for LED */
 } cable_t;
 
 cable_t cables[] = 
 {	
-	/* name					tdo   trst  tms   tck   tdi   srst  o_inv i_inv init */
-	{ "wiggler",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80 },
-	{ "wiggler_ntrst_inverted",	0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x11, 0x80, 0x80 },
-	{ "old_amt_wiggler",	0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x11, 0x80, 0x80 },
-	{ "chameleon",			0x80, 0x00, 0x04, 0x01, 0x02, 0x00, 0x00, 0x80, 0x00 },
-	{ "dlc5",				0x10, 0x00, 0x04, 0x02, 0x01, 0x00, 0x00, 0x00, 0x10 },
-	{ "triton",				0x80, 0x08, 0x04, 0x01, 0x02, 0x00, 0x00, 0x80, 0x00 },
-	{ "lattice",			0x40, 0x10, 0x04, 0x02, 0x01, 0x08, 0x00, 0x00, 0x18 },
-	{ "flashlink",			0x20, 0x10, 0x02, 0x01, 0x04, 0x20, 0x30, 0x20, 0x00 },
-	{ NULL,					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
+	/* name					tdo   trst  tms   tck   tdi   srst  o_inv i_inv init  exit  led */
+	{ "wiggler",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x80, 0x00 },
+	{ "wiggler2",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x00, 0x20 },
+	{ "wiggler_ntrst_inverted",
+							0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x11, 0x80, 0x80, 0x80, 0x00 },
+	{ "old_amt_wiggler",	0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x11, 0x80, 0x80, 0x80, 0x00 },
+	{ "chameleon",			0x80, 0x00, 0x04, 0x01, 0x02, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00 },
+	{ "dlc5",				0x10, 0x00, 0x04, 0x02, 0x01, 0x00, 0x00, 0x00, 0x10, 0x10, 0x00 },
+	{ "triton",				0x80, 0x08, 0x04, 0x01, 0x02, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00 },
+	{ "lattice",			0x40, 0x10, 0x04, 0x02, 0x01, 0x08, 0x00, 0x00, 0x18, 0x18, 0x00 },
+	{ "flashlink",			0x20, 0x10, 0x02, 0x01, 0x04, 0x20, 0x30, 0x20, 0x00, 0x00, 0x00 },
+/* Altium Universal JTAG cable. Set the cable to Xilinx Mode and wire to target as follows:
+	HARD TCK - Target TCK
+	HARD TMS - Target TMS
+	HARD TDI - Target TDI
+	HARD TDO - Target TDO
+	SOFT TCK - Target TRST
+	SOFT TDI - Target SRST
+*/
+	{ "altium",			0x10, 0x20, 0x04, 0x02, 0x01, 0x80, 0x00, 0x00, 0x10, 0x00, 0x08 },
+	{ NULL,				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
 };
 
 /* configuration */
@@ -127,6 +140,7 @@ static unsigned long statusport;
 int parport_read(void);
 void parport_write(int tck, int tms, int tdi);
 void parport_reset(int trst, int srst);
+void parport_led(int on);
 
 int parport_speed(int speed);
 int parport_register_commands(struct command_context_s *cmd_ctx);
@@ -155,7 +169,8 @@ bitbang_interface_t parport_bitbang =
 {
 	.read = parport_read,
 	.write = parport_write,
-	.reset = parport_reset
+	.reset = parport_reset,
+	.blink = parport_led
 };
 
 int parport_read(void)
@@ -174,9 +189,24 @@ int parport_read(void)
 		return 0;
 }
 
-void parport_write(int tck, int tms, int tdi)
+static inline void parport_write_data(void)
 {
 	u8 output;
+	output = dataport_value ^ cable->OUTPUT_INVERT;
+
+#if PARPORT_USE_PPDEV == 1
+	ioctl(device_handle, PPWDATA, &output);
+#else
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+	outb(dataport, output);
+#else
+	outb(output, dataport);
+#endif
+#endif
+}
+
+void parport_write(int tck, int tms, int tdi)
+{
 	int i = jtag_speed + 1;
 	
 	if (tck)
@@ -194,24 +224,13 @@ void parport_write(int tck, int tms, int tdi)
 	else
 		dataport_value &= ~cable->TDI_MASK;
 		
-	output = dataport_value ^ cable->OUTPUT_INVERT;
-
 	while (i-- > 0)
-#if PARPORT_USE_PPDEV == 1
-		ioctl(device_handle, PPWDATA, &output);
-#else
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-	outb(dataport, output);
-#else
-	outb(output, dataport);
-#endif
-#endif
+		parport_write_data();
 }
 
 /* (1) assert or (0) deassert reset lines */
 void parport_reset(int trst, int srst)
 {
-	u8 output;
 	DEBUG("trst: %i, srst: %i", trst, srst);
 
 	if (trst == 0)
@@ -224,18 +243,19 @@ void parport_reset(int trst, int srst)
 	else if (srst == 1)
 		dataport_value &= ~cable->SRST_MASK;
 	
-	output = dataport_value ^ cable->OUTPUT_INVERT;
+	parport_write_data();
+}
 	
-#if PARPORT_USE_PPDEV == 1
-	ioctl(device_handle, PPWDATA, &output);
-#else
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-	outb(dataport, output);
-#else
-	outb(output, dataport);
-#endif
-#endif
+/* turn LED on parport adapter on (1) or off (0) */
+void parport_led(int on)
+{
+	u8 output;
+	if (on)
+		dataport_value |= cable->LED_MASK;
+	else
+		dataport_value &= ~cable->LED_MASK;
 
+	parport_write_data();
 }
 
 int parport_speed(int speed)
@@ -400,6 +420,7 @@ int parport_init(void)
 	
 	parport_reset(0, 0);
 	parport_write(0, 0, 0);
+	parport_led(1);
 
 	bitbang_interface = &parport_bitbang;	
 
@@ -408,7 +429,11 @@ int parport_init(void)
 
 int parport_quit(void)
 {
+	u8 output;
+	parport_led(0);
 
+	dataport_value = cable->PORT_EXIT;
+	parport_write_data();
 	return ERROR_OK;
 }
 
