@@ -73,10 +73,12 @@ int ft2232_handle_device_desc_command(struct command_context_s *cmd_ctx, char *c
 int ft2232_handle_serial_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int ft2232_handle_layout_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int ft2232_handle_vid_pid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int ft2232_handle_latency_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 char *ft2232_device_desc = NULL;
 char *ft2232_serial = NULL;
 char *ft2232_layout = NULL;
+unsigned char ft2232_latency = 2;
 
 #define MAX_USB_IDS	8
 /* vid = pid = 0 marks the end of the list */
@@ -271,6 +273,8 @@ int ft2232_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "ft2232_layout", ft2232_handle_layout_command,
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "ft2232_vid_pid", ft2232_handle_vid_pid_command,
+					 COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, NULL, "ft2232_latency", ft2232_handle_latency_command,
 					 COMMAND_CONFIG, NULL);
 	return ERROR_OK;
 }
@@ -1369,7 +1373,7 @@ static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int *try_more)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if ((status = FT_SetLatencyTimer(ftdih, 2)) != FT_OK)
+	if ((status = FT_SetLatencyTimer(ftdih, ft2232_latency)) != FT_OK)
 	{
 		ERROR("unable to set latency timer: %lu", status);
 		return ERROR_JTAG_INIT_FAILED;
@@ -1449,7 +1453,7 @@ static int ft2232_init_libftdi(u16 vid, u16 pid, int more, int *try_more)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if (ftdi_set_latency_timer(&ftdic, 2) < 0)
+	if (ftdi_set_latency_timer(&ftdic, ft2232_latency) < 0)
 	{
 		ERROR("unable to set latency timer");
 		return ERROR_JTAG_INIT_FAILED;
@@ -2039,3 +2043,18 @@ int ft2232_handle_vid_pid_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 	return ERROR_OK;
 }
+
+int ft2232_handle_latency_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc == 1)
+	{
+		ft2232_latency = atoi(args[0]);
+	}
+	else
+	{
+		ERROR("expected exactly one argument to ft2232_latency <ms>");
+	}
+	
+	return ERROR_OK;
+}
+
