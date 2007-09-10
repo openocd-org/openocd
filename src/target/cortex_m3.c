@@ -23,8 +23,6 @@
 #include "config.h"
 #endif
 
-#define USE_SP_REGS
-
 #include "replacements.h"
 
 #include "cortex_m3.h"
@@ -157,6 +155,7 @@ int cortex_m3_cpsid(target_t *target, u32 IF)
 int cortex_m3_endreset_event(target_t *target)
 {
 	int i;
+	u32 dcb_demcr;
 	
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -165,7 +164,9 @@ int cortex_m3_endreset_event(target_t *target)
 	cortex_m3_fp_comparator_t *fp_list = cortex_m3->fp_comparator_list; 
 	cortex_m3_dwt_comparator_t *dwt_list = cortex_m3->dwt_comparator_list;
 
-	DEBUG(" ");
+	ahbap_read_system_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
+	DEBUG("DCB_DEMCR = 0x%8.8x",dcb_demcr);
+	
 	/* Enable debug requests */
 	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
@@ -191,6 +192,7 @@ int cortex_m3_endreset_event(target_t *target)
 		target_write_u32(target, dwt_list[i].dwt_comparator_address | 0x4, dwt_list[i].mask);
 		target_write_u32(target, dwt_list[i].dwt_comparator_address | 0x8, dwt_list[i].function);
 	}
+	swjdp_transaction_endcheck(swjdp);
 	
 	/* Make sure working_areas are all free */
 	target_free_all_working_areas(target);
@@ -206,7 +208,6 @@ int cortex_m3_examine_debug_reason(target_t *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 
 	/* THIS IS NOT GOOD, TODO - better logic for detection of debug state reason */
 	/* only check the debug reason if we don't know it already */
@@ -283,7 +284,7 @@ int cortex_m3_examine_exception_reason(target_t *target)
 
 int cortex_m3_debug_entry(target_t *target)
 {
-	int i, irq_is_pending;
+	int i;
 	u32 xPSR;
 	int retval;
 
@@ -321,13 +322,11 @@ int cortex_m3_debug_entry(target_t *target)
 
 
 	/* Now we can load SP core registers */	
-#ifdef USE_SP_REGS
 	for (i = ARMV7M_PRIMASK; i < ARMV7NUMCOREREGS; i++)
 	{
 		if (!armv7m->core_cache->reg_list[i].valid)
 			armv7m->read_core_reg(target, i);		
 	}
-#endif
 
 	/* Are we in an exception handler */
     armv7m->core_mode = (xPSR & 0x1FF) ? ARMV7M_MODE_HANDLER : ARMV7M_MODE_THREAD;
@@ -343,37 +342,6 @@ int cortex_m3_debug_entry(target_t *target)
 		armv7m->post_debug_entry(target);
 
 	return ERROR_OK;
-}
-
-int cortex_m3_restore_context(target_t *target)
-{
-	int i;
-	
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-
-	DEBUG(" ");
-
-	if (armv7m->pre_restore_context)
-		armv7m->pre_restore_context(target);
-		
-#ifdef USE_SP_REGS
-	for (i = ARMV7NUMCOREREGS; i >= 0; i--)
-#else
-	for (i = ARMV7M_PSP; i >= 0; i--)
-#endif
-	{
-		if (armv7m->core_cache->reg_list[i].dirty)
-		{
-			armv7m->write_core_reg(target, i);
-		}
-	}
-	
-	if (armv7m->post_restore_context)
-		armv7m->post_restore_context(target);
-		
-	return ERROR_OK;		
 }
 
 enum target_state cortex_m3_poll(target_t *target)
@@ -415,7 +383,7 @@ enum target_state cortex_m3_poll(target_t *target)
 		if ((prev_target_state == TARGET_RUNNING) || (prev_target_state == TARGET_RESET))
 		{
 			if ((retval = cortex_m3_debug_entry(target)) != ERROR_OK)
-				return retval;
+				return TARGET_UNKNOWN;
 			
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 		}
@@ -423,7 +391,7 @@ enum target_state cortex_m3_poll(target_t *target)
 		{
 			DEBUG(" ");
 			if ((retval = cortex_m3_debug_entry(target)) != ERROR_OK)
-				return retval;
+				return TARGET_UNKNOWN;
 
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		}
@@ -449,6 +417,35 @@ int cortex_m3_halt(target_t *target)
 	
 	DEBUG("target->state: %s", target_state_strings[target->state]);
 	
+	if (target->state == TARGET_HALTED)
+	{
+		WARNING("target was already halted");
+		return ERROR_TARGET_ALREADY_HALTED;
+	}
+	
+	if (target->state == TARGET_UNKNOWN)
+	{
+		WARNING("target was in unknown state when halt was requested");
+	}
+	
+	if (target->state == TARGET_RESET) 
+	{
+		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) && jtag_srst)
+		{
+			ERROR("can't request a halt while in reset if nSRST pulls nTRST");
+			return ERROR_TARGET_FAILURE;
+		}
+		else
+		{
+			/* we came here in a reset_halt or reset_init sequence
+			 * debug entry was already prepared in cortex_m3_prepare_reset_halt()
+			 */
+			target->debug_reason = DBG_REASON_DBGRQ;
+			
+			return ERROR_OK; 
+		}
+	}
+
 	/* Write to Debug Halting Control and Status Register */
 	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT );
 
@@ -510,14 +507,19 @@ int cortex_m3_prepare_reset_halt(struct target_s *target)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
-		
+	u32 dcb_demcr, dcb_dhcsr;
+	
 	/* Enable debug requests */
 	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
 		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN );
 	
 	/* Enter debug state on reset, cf. end_reset_event() */
-	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
+	ahbap_write_system_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
+	
+	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
+	ahbap_read_system_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
+	DEBUG("dcb_dhcsr 0x%x, dcb_demcr 0x%x, ", dcb_dhcsr, dcb_demcr);
 	
 	return ERROR_OK;
 }
@@ -584,7 +586,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 	
 	resume_pc = buf_get_u32(armv7m->core_cache->reg_list[15].value, 0, 32);
 
-	cortex_m3_restore_context(target);
+	armv7m_restore_context(target);
 	
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
@@ -658,7 +660,7 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 	
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 	
-	cortex_m3_restore_context(target);
+	armv7m_restore_context(target);
 	
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
     
@@ -1269,7 +1271,7 @@ void cortex_m3_build_reg_cache(target_t *target)
 
 int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
-	u32 did1, dc0, cpuid, fpcr, dwtcr, ictr;
+	u32 cpuid, fpcr, dwtcr, ictr;
 	int i;
 	
 	/* get pointers to arch-specific information */
@@ -1332,8 +1334,6 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, in
 {
 	armv7m_common_t *armv7m;
 	armv7m = &cortex_m3->armv7m;
-
-	arm_jtag_t *jtag_info = &cortex_m3->jtag_info;	
 
 	/* prepare JTAG information for the new target */
 	cortex_m3->jtag_info.chain_pos = chain_pos;

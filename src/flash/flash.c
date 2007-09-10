@@ -267,8 +267,8 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 				else
 					protect_state = "protection state unknown";
 
-				command_print(cmd_ctx, "\t#%i: 0x%8.8x (0x%xkB) %s, %s",
-							j, p->sectors[j].offset, p->sectors[j].size,
+				command_print(cmd_ctx, "\t#%i: 0x%8.8x (0x%x %ikB) %s, %s",
+							j, p->sectors[j].offset, p->sectors[j].size, p->sectors[j].size>>10,
 							erase_state, protect_state);
 			}
 			

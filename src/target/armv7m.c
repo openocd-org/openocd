@@ -174,6 +174,33 @@ int armv7m_use_context(target_t *target, enum armv7m_runcontext new_ctx)
 	return ERROR_OK;
 }
 
+int armv7m_restore_context(target_t *target)
+{
+	int i;
+	
+	/* get pointers to arch-specific information */
+	armv7m_common_t *armv7m = target->arch_info;
+
+	DEBUG(" ");
+
+	if (armv7m->pre_restore_context)
+		armv7m->pre_restore_context(target);
+		
+	for (i = ARMV7NUMCOREREGS; i >= 0; i--)
+	{
+		if (armv7m->core_cache->reg_list[i].dirty)
+		{
+			armv7m->write_core_reg(target, i);
+		}
+	}
+	
+	if (armv7m->post_restore_context)
+		armv7m->post_restore_context(target);
+		
+	return ERROR_OK;		
+}
+
+
 /* Core state functions */
 char enamebuf[32];
 char *armv7m_exception_string(int number)
@@ -207,7 +234,6 @@ int armv7m_set_core_reg(reg_t *reg, u8 *buf)
 {
 	armv7m_core_reg_t *armv7m_reg = reg->arch_info;
 	target_t *target = armv7m_reg->target;
-	armv7m_common_t *armv7m_target = target->arch_info;
 	u32 value = buf_get_u32(buf, 0, 32);
 		
 	if (target->state != TARGET_HALTED)
@@ -310,12 +336,8 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 			(*reg_list)[i] = &armv7m_gdb_dummy_fp_reg;
 	}
 	/* ARMV7M is always in thumb mode, try to make GDB understand this if it does not support this arch */
-	//armv7m->core_cache->reg_list[15].value[0] |= 1;	
 	armv7m->process_context->reg_list[15].value[0] |= 1;	
-	//armv7m->core_cache->reg_list[ARMV7M_xPSR].value[0] = (1<<5);
-	//armv7m->process_context->reg_list[ARMV7M_xPSR].value[0] = (1<<5);
 	(*reg_list)[25] = &armv7m->process_context->reg_list[ARMV7M_xPSR];	
-	//(*reg_list)[25] = &armv7m->process_context->reg_list[ARMV7M_xPSR];	
 	return ERROR_OK;
 }
 
@@ -358,8 +380,6 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	for (i = 0; i < num_reg_params; i++)
 	{
 		reg_t *reg = register_get_by_name(armv7m->core_cache, reg_params[i].reg_name, 0);
-		//reg_t *reg = register_get_by_name(armv7m->debug_context, reg_params[i].reg_name, 0);
-		//armv7m_core_reg_t * armv7m_core_reg = reg->arch_info;
 		u32 regvalue;
 		
 		if (!reg)
@@ -375,7 +395,6 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		}
 		
 		regvalue = buf_get_u32(reg_params[i].value, 0, 32);
-		//armv7m->store_core_reg_u32(target, armv7m_core_reg->type, armv7m_core_reg->num, regvalue);
 		armv7m_set_core_reg(reg, reg_params[i].value);
 	}
 	
@@ -431,9 +450,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	{
 		if (reg_params[i].direction != PARAM_OUT)
 		{
-			//reg_t *reg = register_get_by_name(armv7m->core_cache, reg_params[i].reg_name, 0);
 			reg_t *reg = register_get_by_name(armv7m->debug_context, reg_params[i].reg_name, 0);
-			u32 regvalue;
 		
 			if (!reg)
 			{
@@ -447,23 +464,10 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 				exit(-1);
 			}
 			
-			armv7m_core_reg_t *armv7m_core_reg = reg->arch_info;
-			//armv7m->load_core_reg_u32(target, armv7m_core_reg->type, armv7m_core_reg->num, &regvalue);
-			//buf_set_u32(reg_params[i].value, 0, 32, regvalue);
 			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
 		}
 	}
 	
-	/* Mark all core registers !! except control !! as valid but dirty */
-	/* This will be done by armv7m_use_context in resume function */
-	//for (i = 0; i < armv7m->core_cache->num_regs-1; i++)
-	//{
-	//	armv7m->core_cache->reg_list[i].dirty = 1;
-	//}
-
-	// ????armv7m->core_state = core_state;
-	// ????armv7m->core_mode = core_mode;
-
 	return retval;
 }
 
@@ -488,7 +492,6 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
-	arm_jtag_t *jtag_info = &armv7m->jtag_info;
 
 	int num_regs = ARMV7NUMCOREREGS;
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
@@ -549,7 +552,7 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 		reg_list[i].arch_info = &arch_info[i];
 	}
 	
-    return cache;
+	return cache;
 }
 
 int armv7m_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
@@ -573,7 +576,5 @@ int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m)
 
 int armv7m_register_commands(struct command_context_s *cmd_ctx)
 {
-	int retval;
-	
 	return ERROR_OK;
 }

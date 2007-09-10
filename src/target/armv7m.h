@@ -166,6 +166,7 @@ extern int armv7m_invalidate_core_regs(target_t *target);
 extern enum armv7m_runcontext armv7m_get_context(target_t *target);
 extern int armv7m_use_context(target_t *target, enum armv7m_runcontext new_ctx);
 extern enum armv7m_runcontext armv7m_get_context(target_t *target);
+extern int armv7m_restore_context(target_t *target);
 
 /* Thumb mode instructions
  */
