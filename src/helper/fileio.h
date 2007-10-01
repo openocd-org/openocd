@@ -79,6 +79,7 @@ typedef struct fileio_local_s
 
 extern int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written);
 extern int fileio_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read);
+extern int fileio_fgets(fileio_t *fileio, u32 size, u8 *buffer);
 extern int fileio_seek(fileio_t *fileio, u32 position);
 extern int fileio_close(fileio_t *fileio);
 extern int fileio_open(fileio_t *fileio, char *url, enum fileio_access access, enum fileio_type type);

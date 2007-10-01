@@ -186,7 +186,7 @@ int armv7m_restore_context(target_t *target)
 	if (armv7m->pre_restore_context)
 		armv7m->pre_restore_context(target);
 		
-	for (i = ARMV7NUMCOREREGS; i >= 0; i--)
+	for (i = ARMV7NUMCOREREGS-1; i >= 0; i--)
 	{
 		if (armv7m->core_cache->reg_list[i].dirty)
 		{

@@ -284,6 +284,29 @@ int fileio_read_u32(fileio_t *fileio, u32 *data)
 	return ERROR_OK;
 }
 
+int fileio_local_fgets(fileio_t *fileio, u32 size, u8 *buffer)
+{
+	fileio_local_t *fileio_local = fileio->location_private;
+	
+	if( fgets(buffer, size, fileio_local->file) == NULL)
+		return ERROR_FILEIO_OPERATION_FAILED;
+	
+	return ERROR_OK;
+}
+
+int fileio_fgets(fileio_t *fileio, u32 size, u8 *buffer)
+{
+	switch (fileio->location)
+	{
+		case FILEIO_LOCAL:
+			return fileio_local_fgets(fileio, size, buffer);
+			break;
+		default:
+			ERROR("BUG: should never get here");
+			exit(-1);
+	}
+}
+
 int fileio_local_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
 {
 	fileio_local_t *fileio_local = fileio->location_private;

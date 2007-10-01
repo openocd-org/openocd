@@ -62,7 +62,7 @@ int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_ty
 	(*breakpoint_p)->length = length;
 	(*breakpoint_p)->type = type;
 	(*breakpoint_p)->set = 0;
-	(*breakpoint_p)->orig_instr = malloc(CEIL(length, 8));
+	(*breakpoint_p)->orig_instr = malloc(length);
 	(*breakpoint_p)->next = NULL;
 	
 	if ((retval = target->type->add_breakpoint(target, *breakpoint_p)) != ERROR_OK)

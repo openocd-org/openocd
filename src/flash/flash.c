@@ -49,6 +49,7 @@ int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, cha
 int handle_flash_write_binary_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* flash drivers
  */
@@ -76,6 +77,7 @@ flash_driver_t *flash_drivers[] =
 
 flash_bank_t *flash_banks;
 static 	command_t *flash_cmd;
+static int auto_erase = 0;
 
 int flash_register_commands(struct command_context_s *cmd_ctx)
 {
@@ -110,6 +112,8 @@ int flash_init(struct command_context_s *cmd_ctx)
 						 "write image <file> [offset] [type]");
 		register_command(cmd_ctx, flash_cmd, "protect", handle_flash_protect_command, COMMAND_EXEC,
 						 "set protection of sectors at <bank> <first> <last> <on|off>");
+		register_command(cmd_ctx, flash_cmd, "auto_erase", handle_flash_auto_erase_command, COMMAND_EXEC,
+						 "auto erase flash sectors <on|off>");
 	}
 	
 	return ERROR_OK;
@@ -566,7 +570,7 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	
 	failed = malloc(sizeof(int) * image.num_sections);
 
-	if ((retval = flash_write(target, &image, &written, &error_str, failed)) != ERROR_OK)
+	if ((retval = flash_write(target, &image, &written, &error_str, failed, auto_erase)) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "failed writing image %s: %s", args[0], error_str);
 		free(error_str);
@@ -700,17 +704,16 @@ flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr)
 int flash_erase(target_t *target, u32 addr, u32 length)
 {
 	flash_bank_t *c;
-	unsigned long sector_size;
-	int first;
-	int last;
-
+	int first = -1;
+	int last = -1;
+	int i;
+	
 	if ((c = get_flash_bank_by_addr(target, addr)) == NULL)
 		return ERROR_FLASH_DST_OUT_OF_BANK; /* no corresponding bank found */
- 
-	/* sanity checks */
-	if (c->size == 0 || c->num_sectors == 0 || c->size % c->num_sectors)
-		return ERROR_FLASH_BANK_INVALID;
 
+	if (c->size == 0 || c->num_sectors == 0)
+		return ERROR_FLASH_BANK_INVALID;
+	
 	if (length == 0)
 	{
 		/* special case, erase whole bank when length is zero */
@@ -722,22 +725,29 @@ int flash_erase(target_t *target, u32 addr, u32 length)
 
 	/* check whether it fits */
 	if (addr + length > c->base + c->size)
-	  return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
-
-	/* calculate sector size */
-	sector_size = c->size / c->num_sectors;
-
-	/* check alignment */
-	if ((addr - c->base) % sector_size || length % sector_size)
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
-
-	first = (addr - c->base) / sector_size;
-	last = first + length / sector_size - 1;
+	
+	addr -= c->base;
+	
+	for (i = 0; i < c->num_sectors; i++)
+	{		
+		/* check whether sector overlaps with the given range and is not yet erased */
+		if (addr < c->sectors[i].offset + c->sectors[i].size && addr + length > c->sectors[i].offset && c->sectors[i].is_erased != 1) {
+			/* if first is not set yet then this is the first sector */
+			if (first == -1)
+				first = i;
+			last = i; /* and it is the last one so far in any case */
+		}
+	}
+	
+	if( first == -1 || last == -1 )
+		return ERROR_OK;
+	
 	return c->driver->erase(c, first, last);
 }
 
 /* write an image to flash memory of the given target */
-int flash_write(target_t *target, image_t *image, u32 *written, char **error_str, int *failed)
+int flash_write(target_t *target, image_t *image, u32 *written, char **error_str, int *failed, int erase)
 {
 	int retval;
 	int i;
@@ -854,7 +864,20 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 			}
 		}
 
-		retval = c->driver->write(c, buffer, run_address - c->base, run_size);
+		retval = ERROR_OK;
+		
+		if (erase)
+		{
+			/* calculate and erase sectors */
+			retval = flash_erase( target, run_address, run_size );
+		}
+		
+		if (retval == ERROR_OK)
+		{
+			/* write flash sectors */
+			retval = c->driver->write(c, buffer, run_address - c->base, run_size);
+		}
+		
 		free(buffer);
 
 		if (retval != ERROR_OK)
@@ -896,3 +919,20 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 
 	return ERROR_OK;
 }
+
+int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc != 1)
+	{
+		command_print(cmd_ctx, "usage: flash auto_erase <on|off>");
+		return ERROR_OK;
+	}
+	
+	if (strcmp(args[0], "on") == 0)
+		auto_erase = 1;
+	else if (strcmp(args[0], "off") == 0)
+		auto_erase = 0;
+	
+	return ERROR_OK;
+}
+

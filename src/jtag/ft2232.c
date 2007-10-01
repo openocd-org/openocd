@@ -249,7 +249,7 @@ int ft2232_speed(int speed)
 	u32 bytes_written;
 
 	buf[0] = 0x86; /* command "set divisor" */
-	buf[1] = speed & 0xff; /* valueL (0=6MHz, 1=3MHz, 2=1.5MHz, ...*/
+	buf[1] = speed & 0xff; /* valueL (0=6MHz, 1=3MHz, 2=2.0MHz, ...*/
 	buf[2] = (speed >> 8) & 0xff; /* valueH */
 	
 	DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
