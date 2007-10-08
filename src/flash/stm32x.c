@@ -291,7 +291,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 	u32 buffer_size = 8192;
 	working_area_t *source;
 	u32 address = bank->base + offset;
-	reg_param_t reg_params[6];
+	reg_param_t reg_params[4];
 	armv7m_algorithm_t armv7m_info;
 	int retval = ERROR_OK;
 	
@@ -318,16 +318,13 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 	};
 	
 	/* flash write code */
-	if (!stm32x_info->write_algorithm)
+	if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code), &stm32x_info->write_algorithm) != ERROR_OK)
 	{
-		if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code), &stm32x_info->write_algorithm) != ERROR_OK)
-		{
-			WARNING("no working area available, can't do block memory writes");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		};
-		
-		target_write_buffer(target, stm32x_info->write_algorithm->address, sizeof(stm32x_flash_write_code), stm32x_flash_write_code);
-	}
+		WARNING("no working area available, can't do block memory writes");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	};
+	
+	target_write_buffer(target, stm32x_info->write_algorithm->address, sizeof(stm32x_flash_write_code), stm32x_flash_write_code);
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -352,8 +349,6 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN);
-	init_reg_param(&reg_params[4], "r4", 32, PARAM_IN);
-	init_reg_param(&reg_params[5], "r5", 32, PARAM_IN);
 	
 	while (count > 0)
 	{
@@ -365,7 +360,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
 		
-		if ((retval = target->type->run_algorithm(target, 0, NULL, 6, reg_params, stm32x_info->write_algorithm->address, \
+		if ((retval = target->type->run_algorithm(target, 0, NULL, 4, reg_params, stm32x_info->write_algorithm->address, \
 				stm32x_info->write_algorithm->address + (sizeof(stm32x_flash_write_code) - 10), 10000, &armv7m_info)) != ERROR_OK)
 		{
 			ERROR("error executing str7x flash write algorithm");
@@ -384,13 +379,12 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 	}
 	
 	target_free_working_area(target, source);
+	target_free_working_area(target, stm32x_info->write_algorithm);
 	
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
 	destroy_reg_param(&reg_params[3]);
-	destroy_reg_param(&reg_params[4]);
-	destroy_reg_param(&reg_params[5]);
 	
 	return retval;
 }

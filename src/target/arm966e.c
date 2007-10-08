@@ -226,9 +226,15 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	
 	jtag_add_dr_scan(3, fields, -1, NULL);
 
-	fields[0].in_value = (u8*)value;
+	fields[0].in_handler_priv = value;
+	fields[0].in_handler = arm_jtag_buf_to_u32;
 
 	jtag_add_dr_scan(3, fields, -1, NULL);
+
+#ifdef _DEBUG_INSTRUCTION_EXECUTION_
+	jtag_execute_queue();
+	DEBUG("addr: 0x%x value: %8.8x", reg_addr, *value);
+#endif
 
 	return ERROR_OK;
 }
@@ -241,6 +247,9 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	scan_field_t fields[3];
 	u8 reg_addr_buf = reg_addr & 0x3f;
 	u8 nr_w_buf = 1;
+	u8 value_buf[4];
+	
+	buf_set_u32(value_buf, 0, 32, value);
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0xf);
@@ -248,7 +257,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 32;
-	fields[0].out_value = (u8*)&value;
+	fields[0].out_value = value_buf;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = NULL;
 	fields[0].in_check_value = NULL;
@@ -277,6 +286,10 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[2].in_handler_priv = NULL;
 	
 	jtag_add_dr_scan(3, fields, -1, NULL);
+
+#ifdef _DEBUG_INSTRUCTION_EXECUTION_
+	DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
+#endif
 
 	return ERROR_OK;
 }

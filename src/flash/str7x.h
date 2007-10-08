@@ -28,6 +28,8 @@ typedef struct str7x_flash_bank_s
 	int bank1;
 	u32 *sector_bank;
 	u32 *sector_bits;
+	u32 disable_bit;
+	u32 busy_bits;
 	working_area_t *write_algorithm;
 } str7x_flash_bank_t;
 
@@ -69,8 +71,9 @@ enum str7x_status_codes
 #define FLASH_SPR		0x01000000
 #define FLASH_BER		0x04000000
 #define FLASH_MER		0x02000000
-#define FLASH_BSYA1		0x00000002
-#define FLASH_BSYA2		0x00000004
+#define FLASH_LOCK		0x00000010
+#define FLASH_BSYA1		0x00000004
+#define FLASH_BSYA0		0x00000002
 
 /* FLASH_CR1 regsiter bits */
 

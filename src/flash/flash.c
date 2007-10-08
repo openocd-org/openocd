@@ -574,6 +574,7 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	{
 		command_print(cmd_ctx, "failed writing image %s: %s", args[0], error_str);
 		free(error_str);
+		free(failed);
 	}
 	
 	for (i = 0; i < image.num_sections; i++)
@@ -589,7 +590,9 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	command_print(cmd_ctx, "wrote %u byte from file %s in %s (%f kb/s)",
 		written, args[0], duration_text,
 		(float)written / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
+
 	free(duration_text);
+	free(failed);
 
 	image_close(&image);
 	

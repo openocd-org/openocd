@@ -35,4 +35,7 @@ typedef struct arm966e_common_s
 	u32 cp15_control_reg;
 } arm966e_common_t;
 
+extern int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value);
+extern int arm966e_write_cp15(target_t *target, int reg_addr, u32 value);
+
 #endif /* ARM966E_H */

@@ -28,6 +28,7 @@
 #include "target.h"
 #include "log.h"
 #include "armv4_5.h"
+#include "arm966e.h"
 #include "algorithm.h"
 #include "binarybuffer.h"
 
@@ -351,24 +352,14 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 		0xeafffffe,	/*	b exit				*/
 	};
 	
-	u8 str9x_flash_write_code_buf[76];
-	int i;
-	
 	/* flash write code */
-	if (!str9x_info->write_algorithm)
+	if (target_alloc_working_area(target, 4 * 19, &str9x_info->write_algorithm) != ERROR_OK)
 	{
-		if (target_alloc_working_area(target, 4 * 19, &str9x_info->write_algorithm) != ERROR_OK)
-		{
-			WARNING("no working area available, can't do block memory writes");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		};
-
-		/* convert flash writing code into a buffer in target endianness */
-		for (i = 0; i < 19; i++)
-			target_buffer_set_u32(target, str9x_flash_write_code_buf + i*4, str9x_flash_write_code[i]);
-			
-		target_write_buffer(target, str9x_info->write_algorithm->address, 19 * 4, str9x_flash_write_code_buf);
-	}
+		WARNING("no working area available, can't do block memory writes");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	};
+		
+	target_write_buffer(target, str9x_info->write_algorithm->address, 19 * 4, (u8*)str9x_flash_write_code);
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -383,7 +374,7 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 			WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
-	};
+	}
 	
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
@@ -406,6 +397,8 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 
 		if ((retval = target->type->run_algorithm(target, 0, NULL, 4, reg_params, str9x_info->write_algorithm->address, str9x_info->write_algorithm->address + (18 * 4), 10000, &armv4_5_info)) != ERROR_OK)
 		{
+			target_free_working_area(target, source);
+			target_free_working_area(target, str9x_info->write_algorithm);
 			ERROR("error executing str9x flash write algorithm");
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
@@ -419,6 +412,9 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 		address += thisrun_count * 2;
 		count -= thisrun_count;
 	}
+	
+	target_free_working_area(target, source);
+	target_free_working_area(target, str9x_info->write_algorithm);
 	
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
@@ -615,10 +611,13 @@ int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *c
 	/* config flash controller */
 	target_write_u32(target, FLASH_BBSR, strtoul(args[0], NULL, 0));
 	target_write_u32(target, FLASH_NBBSR, strtoul(args[1], NULL, 0));
-    target_write_u32(target, FLASH_BBADR, (strtoul(args[2], NULL, 0) >> 2));
-    target_write_u32(target, FLASH_NBBADR, (strtoul(args[3], NULL, 0) >> 2));
+	target_write_u32(target, FLASH_BBADR, (strtoul(args[2], NULL, 0) >> 2));
+	target_write_u32(target, FLASH_NBBADR, (strtoul(args[3], NULL, 0) >> 2));
 
+	/* set b18 instruction TCM order as per flash programming manual */
+	arm966e_write_cp15(target, 62, 0x40000);
+	
 	/* enable flash bank 1 */
-    target_write_u32(target, FLASH_CR, 0x18);
+	target_write_u32(target, FLASH_CR, 0x18);
 	return ERROR_OK;
 }

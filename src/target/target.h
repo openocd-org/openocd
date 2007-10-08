@@ -201,6 +201,7 @@ extern int target_register_commands(struct command_context_s *cmd_ctx);
 extern int target_register_user_commands(struct command_context_s *cmd_ctx);
 extern int target_init(struct command_context_s *cmd_ctx);
 extern int handle_target(void *priv);
+extern int target_process_reset(struct command_context_s *cmd_ctx);
 
 extern int target_register_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv);
 extern int target_unregister_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv);

@@ -44,6 +44,16 @@
 
 static unsigned short gdb_port;
 
+enum gdb_detach_mode
+{
+	GDB_DETACH_RESUME,
+	GDB_DETACH_RESET,
+	GDB_DETACH_HALT,
+	GDB_DETACH_NOTHING
+};
+
+enum gdb_detach_mode detach_mode = GDB_DETACH_RESUME;
+
 int gdb_last_signal(target_t *target)
 {
 	switch (target->debug_reason)
@@ -172,7 +182,6 @@ int gdb_put_packet(connection_t *connection, char *buffer, int len)
 
 	while (1)
 	{
-
 		debug_buffer = malloc(len + 1);
 		memcpy(debug_buffer, buffer, len);
 		debug_buffer[len] = 0;
@@ -1304,6 +1313,31 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 	return ERROR_OK;
 }
 
+int gdb_detach(connection_t *connection, target_t *target)
+{
+	switch( detach_mode )
+	{
+		case GDB_DETACH_RESUME:
+			target->type->resume(target, 1, 0, 1, 0);
+			break;
+		
+		case GDB_DETACH_RESET:
+			target_process_reset(connection->cmd_ctx);
+			break;
+		
+		case GDB_DETACH_HALT:
+			target->type->halt(target);
+			break;
+		
+		case GDB_DETACH_NOTHING:
+			break;
+	}
+	
+	gdb_put_packet(connection, "OK", 2);
+	
+	return ERROR_OK;
+}
+
 int gdb_input(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
@@ -1383,8 +1417,7 @@ int gdb_input(connection_t *connection)
 					retval = gdb_v_packet(connection, target, packet, packet_size);
 					break;
 				case 'D':
-					target->type->resume(target, 1, 0, 1, 0);
-					gdb_put_packet(connection, "OK", 2);
+					retval = gdb_detach(connection, target);
 					break;
 				case 'X':
 					if ((retval = gdb_write_memory_binary_packet(connection, target, packet, packet_size)) != ERROR_OK)
@@ -1470,10 +1503,42 @@ int handle_gdb_port_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
+int handle_gdb_detach_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc == 1)
+	{
+		if (strcmp(args[0], "resume") == 0)
+		{
+			detach_mode = GDB_DETACH_RESUME;
+			return ERROR_OK;
+		}
+		else if (strcmp(args[0], "reset") == 0)
+		{
+			detach_mode = GDB_DETACH_RESET;
+			return ERROR_OK;
+		}
+		else if (strcmp(args[0], "halt") == 0)
+		{
+			detach_mode = GDB_DETACH_HALT;
+			return ERROR_OK;
+		}
+		else if (strcmp(args[0], "nothing") == 0)
+		{
+			detach_mode = GDB_DETACH_NOTHING;
+			return ERROR_OK;
+		}
+	}
+	
+	WARNING("invalid gdb_detach configuration directive: %s", args[0]);
+	return ERROR_OK;
+}
+
 int gdb_register_commands(command_context_t *command_context)
 {
 	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
 			COMMAND_CONFIG, "");
-
+	register_command(command_context, NULL, "gdb_detach", handle_gdb_detach_command,
+			COMMAND_CONFIG, "");
+	
 	return ERROR_OK;
 }
