@@ -2147,6 +2147,82 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	return ERROR_OK;
 }
 
+int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum)
+{
+	working_area_t *crc_algorithm;
+	armv4_5_algorithm_t armv4_5_info;
+	reg_param_t reg_params[2];
+	int retval;
+	
+	u32 arm7_9_crc_code[] = {
+		0xE1A02000,				/* mov		r2, r0 */
+		0xE3E00000,				/* mov		r0, #0xffffffff */
+		0xE1A03001,				/* mov		r3, r1 */
+		0xE3A04000,				/* mov		r4, #0 */
+		0xEA00000B,				/* b		ncomp */
+								/* nbyte: */
+		0xE7D21004,				/* ldrb	r1, [r2, r4] */
+		0xE59F7030,				/* ldr		r7, CRC32XOR */
+		0xE0200C01,				/* eor		r0, r0, r1, asl 24 */
+		0xE3A05000,				/* mov		r5, #0 */
+								/* loop: */
+		0xE3500000,				/* cmp		r0, #0 */
+		0xE1A06080,				/* mov		r6, r0, asl #1 */
+		0xE2855001,				/* add		r5, r5, #1 */
+		0xE1A00006,				/* mov		r0, r6 */
+		0xB0260007,				/* eorlt	r0, r6, r7 */
+		0xE3550008,				/* cmp		r5, #8 */
+		0x1AFFFFF8,				/* bne		loop */
+		0xE2844001,				/* add		r4, r4, #1 */
+								/* ncomp: */
+		0xE1540003,				/* cmp		r4, r3 */
+		0x1AFFFFF1,				/* bne		nbyte */
+								/* end: */
+		0xEAFFFFFE,				/* b		end */
+		0x04C11DB7				/* CRC32XOR:	.word 0x04C11DB7 */
+	};
+	
+	int i;
+	
+	if (target_alloc_working_area(target, sizeof(arm7_9_crc_code), &crc_algorithm) != ERROR_OK)
+	{
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	
+	/* convert flash writing code into a buffer in target endianness */
+	for (i = 0; i < (sizeof(arm7_9_crc_code)/sizeof(u32)); i++)
+		target_write_u32(target, crc_algorithm->address + i*sizeof(u32), arm7_9_crc_code[i]);
+	
+	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+	
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
+	
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+	buf_set_u32(reg_params[1].value, 0, 32, count);
+		
+	if ((retval = target->type->run_algorithm(target, 0, NULL, 2, reg_params,
+		crc_algorithm->address, crc_algorithm->address + (sizeof(arm7_9_crc_code) - 8), 20000, &armv4_5_info)) != ERROR_OK)
+	{
+		ERROR("error executing arm7_9 crc algorithm");
+		destroy_reg_param(&reg_params[0]);
+		destroy_reg_param(&reg_params[1]);
+		target_free_working_area(target, crc_algorithm);
+		return retval;
+	}
+	
+	*checksum = buf_get_u32(reg_params[0].value, 0, 32);
+	
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+	
+	target_free_working_area(target, crc_algorithm);
+	
+	return ERROR_OK;
+}
+
 int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *arm7_9_cmd;

@@ -1167,7 +1167,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 	return ERROR_OK;
 }
 
-void gdb_query_packet(connection_t *connection, char *packet, int packet_size)
+int gdb_query_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	command_context_t *cmd_ctx = connection->cmd_ctx;
 
@@ -1189,10 +1189,52 @@ void gdb_query_packet(connection_t *connection, char *packet, int packet_size)
 			free(cmd);
 		}
 		gdb_put_packet(connection, "OK", 2);
-		return;
+		return ERROR_OK;
 	}
 
+	if (strstr(packet, "qCRC:"))
+	{
+		if (packet_size > 5)
+		{
+			int retval;
+			u8 gdb_reply[9];
+			char *separator;
+			u32 checksum;
+			u32 addr = 0;
+			u32 len = 0;
+			
+			/* skip command character */
+			packet += 5;
+			
+			addr = strtoul(packet, &separator, 16);
+			
+			if (*separator != ',')
+			{
+				ERROR("incomplete read memory packet received, dropping connection");
+				return ERROR_SERVER_REMOTE_CLOSED;
+			}
+			
+			len = strtoul(separator+1, NULL, 16);
+			
+			retval = target_checksum_memory(target, addr, len, &checksum);
+			
+			if (retval == ERROR_OK)
+			{
+				snprintf(gdb_reply, 9, "C%2.2x", checksum);
+				gdb_put_packet(connection, gdb_reply, 9);
+			}
+			else
+			{
+				if ((retval = gdb_memory_packet_error(connection, retval)) != ERROR_OK)
+					return retval; 
+			}
+			
+			return ERROR_OK;
+		}
+	}
+	
 	gdb_put_packet(connection, "", 0);
+	return ERROR_OK;
 }
 
 int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
@@ -1382,7 +1424,7 @@ int gdb_input(connection_t *connection)
 					gdb_put_packet(connection, NULL, 0);
 					break;
 				case 'q':
-					gdb_query_packet(connection, packet, packet_size);
+					retval = gdb_query_packet(connection, target, packet, packet_size);
 					break;
 				case 'g':
 					retval = gdb_get_registers_packet(connection, target, packet, packet_size);

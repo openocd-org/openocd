@@ -21,6 +21,8 @@
 #define TRACE_H
 
 #include "target.h"
+#include "command.h"
+#include "types.h"
 
 typedef struct trace_point_s
 {
@@ -49,6 +51,7 @@ typedef enum trace_status
 } trace_status_t;
 
 extern int trace_point(struct target_s *target, int number);
+extern int trace_register_commands(struct command_context_s *cmd_ctx);
 
 #define ERROR_TRACE_IMAGE_UNAVAILABLE		-(1500)
 #define ERROR_TRACE_INSTRUCTION_UNAVAILABLE	-(1501)

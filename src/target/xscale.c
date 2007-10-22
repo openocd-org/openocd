@@ -74,6 +74,7 @@ int xscale_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int xscale_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
+int xscale_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum);
 
 int xscale_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int xscale_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
@@ -109,7 +110,8 @@ target_type_t xscale_target =
 	.read_memory = xscale_read_memory,
 	.write_memory = xscale_write_memory,
 	.bulk_write_memory = xscale_bulk_write_memory,
-
+	.checksum_memory = xscale_checksum_memory,
+	
 	.run_algorithm = armv4_5_run_algorithm,
 	
 	.add_breakpoint = xscale_add_breakpoint,
@@ -2033,6 +2035,11 @@ int xscale_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	xscale_write_memory(target, address, 4, count, buffer);
 	
 	return ERROR_OK;
+}
+
+int xscale_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum)
+{
+	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
 u32 xscale_get_ttb(target_t *target)

@@ -74,7 +74,8 @@ target_type_t cortexm3_target =
 	.read_memory = cortex_m3_read_memory,
 	.write_memory = cortex_m3_write_memory,
 	.bulk_write_memory = cortex_m3_bulk_write_memory,
-
+	.checksum_memory = armv7m_checksum_memory,
+	
 	.run_algorithm = armv7m_run_algorithm,
 	
 	.add_breakpoint = cortex_m3_add_breakpoint,

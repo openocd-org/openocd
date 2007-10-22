@@ -578,3 +578,83 @@ int armv7m_register_commands(struct command_context_s *cmd_ctx)
 {
 	return ERROR_OK;
 }
+
+int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum)
+{
+	working_area_t *crc_algorithm;
+	armv7m_algorithm_t armv7m_info;
+	reg_param_t reg_params[2];
+	int retval;
+	
+	u16 cortex_m3_crc_code[] = {	    
+		0x4602,					/* mov	r2, r0 */
+		0xF04F, 0x30FF,			/* mov	r0, #0xffffffff */
+		0x460B,					/* mov	r3, r1 */
+		0xF04F, 0x0400,			/* mov	r4, #0 */
+		0xE013,					/* b	ncomp */
+								/* nbyte: */
+		0x5D11,					/* ldrb	r1, [r2, r4] */
+		0xF8DF, 0x7028,			/* ldr		r7, CRC32XOR */
+		0xEA80, 0x6001,			/* eor		r0, r0, r1, asl #24 */
+		
+		0xF04F, 0x0500,			/* mov		r5, #0 */
+								/* loop: */
+		0x2800,					/* cmp		r0, #0 */
+		0xEA4F, 0x0640,			/* mov		r6, r0, asl #1 */
+		0xF105, 0x0501,			/* add		r5, r5, #1 */
+		0x4630,					/* mov		r0, r6 */
+		0xBFB8,					/* it		lt */
+		0xEA86, 0x0007,			/* eor		r0, r6, r7 */
+		0x2D08, 				/* cmp		r5, #8 */
+		0xD1F4,					/* bne		loop */
+		
+		0xF104, 0x0401,			/* add	r4, r4, #1 */
+								/* ncomp: */
+		0x429C,					/* cmp	r4, r3 */
+		0xD1E9,					/* bne	nbyte */
+								/* end: */
+		0xE7FE,					/* b	end */
+		0x1DB7, 0x04C1			/* CRC32XOR:	.word 0x04C11DB7 */
+	};
+
+	int i;
+	
+	if (target_alloc_working_area(target, sizeof(cortex_m3_crc_code), &crc_algorithm) != ERROR_OK)
+	{
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	
+	/* convert flash writing code into a buffer in target endianness */
+	for (i = 0; i < (sizeof(cortex_m3_crc_code)/sizeof(u16)); i++)
+		target_write_u16(target, crc_algorithm->address + i*sizeof(u16), cortex_m3_crc_code[i]);
+	
+	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
+	armv7m_info.core_mode = ARMV7M_MODE_ANY;
+	armv7m_info.core_state = ARMV7M_STATE_THUMB;
+	
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
+	
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+	buf_set_u32(reg_params[1].value, 0, 32, count);
+		
+	if ((retval = target->type->run_algorithm(target, 0, NULL, 2, reg_params,
+		crc_algorithm->address, crc_algorithm->address + (sizeof(cortex_m3_crc_code)-6), 20000, &armv7m_info)) != ERROR_OK)
+	{
+		ERROR("error executing cortex_m3 crc algorithm");
+		destroy_reg_param(&reg_params[0]);
+		destroy_reg_param(&reg_params[1]);
+		target_free_working_area(target, crc_algorithm);
+		return retval;
+	}
+	
+	*checksum = buf_get_u32(reg_params[0].value, 0, 32);
+	
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+	
+	target_free_working_area(target, crc_algorithm);
+	
+	return ERROR_OK;
+}
+

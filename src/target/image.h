@@ -105,6 +105,8 @@ extern int image_read_section(image_t *image, int section, u32 offset, u32 size,
 extern int image_close(image_t *image);
 extern int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data);
 
+extern int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum);
+
 #define ERROR_IMAGE_FORMAT_ERROR	(-1400)
 #define ERROR_IMAGE_TYPE_UNKNOWN	(-1401)
 #define ERROR_IMAGE_TEMPORARILY_UNAVAILABLE		(-1402)

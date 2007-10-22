@@ -79,7 +79,8 @@ target_type_t arm920t_target =
 	.read_memory = arm920t_read_memory,
 	.write_memory = arm920t_write_memory,
 	.bulk_write_memory = arm7_9_bulk_write_memory,
-
+	.checksum_memory = arm7_9_checksum_memory,
+	
 	.run_algorithm = armv4_5_run_algorithm,
 
 	.add_breakpoint = arm7_9_add_breakpoint,

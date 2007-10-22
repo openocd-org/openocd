@@ -168,6 +168,8 @@ extern int armv7m_use_context(target_t *target, enum armv7m_runcontext new_ctx);
 extern enum armv7m_runcontext armv7m_get_context(target_t *target);
 extern int armv7m_restore_context(target_t *target);
 
+extern int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum);
+
 /* Thumb mode instructions
  */
  

@@ -69,6 +69,7 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -752,6 +753,36 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	return ERROR_OK;
 }
 
+int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* crc)
+{
+	u8 *buffer;
+	int retval;
+	int i;
+	u32 checksum = 0;
+	
+	if ((retval = target->type->checksum_memory(target, address,
+		size, &checksum)) == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+	{
+		buffer = malloc(size);
+		target_read_buffer(target, address, size, buffer);
+
+		/* convert to target endianess */
+		for (i = 0; i < (size/sizeof(u32)); i++)
+		{
+			u32 target_data;
+			target_data = target_buffer_get_u32(target, &buffer[i*sizeof(u32)]);
+			target_buffer_set_u32(target, &buffer[i*sizeof(u32)], target_data);
+		}
+
+		retval = image_calculate_checksum( buffer, size, &checksum );
+		free(buffer);
+	}
+	
+	*crc = checksum;
+	
+	return retval;
+}
+
 int target_read_u32(struct target_s *target, u32 address, u32 *value)
 {
 	u8 value_buf[4];
@@ -881,6 +912,7 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	
 	register_command(cmd_ctx,  NULL, "load_image", handle_load_image_command, COMMAND_EXEC, "load_image <file> <address> ['bin'|'ihex'|'elf'|'s19']");
 	register_command(cmd_ctx,  NULL, "dump_image", handle_dump_image_command, COMMAND_EXEC, "dump_image <file> <address> <size>");
+	register_command(cmd_ctx,  NULL, "verify_image", handle_verify_image_command, COMMAND_EXEC, "verify_image <file> [offset] [type]");
 	register_command(cmd_ctx,  NULL, "load_binary", handle_load_image_command, COMMAND_EXEC, "[DEPRECATED] load_binary <file> <address>");
 	register_command(cmd_ctx,  NULL, "dump_binary", handle_dump_image_command, COMMAND_EXEC, "[DEPRECATED] dump_binary <file> <address> <size>");
 	
@@ -1800,6 +1832,101 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	return ERROR_OK;
 
+}
+
+int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	u8 *buffer;
+	u32 buf_cnt;
+	u32 image_size;
+	int i;
+	int retval;
+	u32 checksum = 0;
+	u32 mem_checksum = 0;
+
+	image_t image;	
+	
+	duration_t duration;
+	char *duration_text;
+	
+	target_t *target = get_current_target(cmd_ctx);
+	
+	if (argc < 1)
+	{
+		command_print(cmd_ctx, "usage: verify_image <file> [offset] [type]");
+		return ERROR_OK;
+	}
+	
+	if (!target)
+	{
+		ERROR("no target selected");
+		return ERROR_OK;
+	}
+	
+	duration_start_measure(&duration);
+	
+	if (argc >= 2)
+	{
+		image.base_address_set = 1;
+		image.base_address = strtoul(args[1], NULL, 0);
+	}
+	else
+	{
+		image.base_address_set = 0;
+		image.base_address = 0x0;
+	}
+	
+	image.start_address_set = 0;
+
+	if (image_open(&image, args[0], (argc == 3) ? args[2] : NULL) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "verify_image error: %s", image.error_str);
+		return ERROR_OK;
+	}
+	
+	image_size = 0x0;
+	for (i = 0; i < image.num_sections; i++)
+	{
+		buffer = malloc(image.sections[i].size);
+		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
+		{
+			ERROR("image_read_section failed with error code: %i", retval);
+			command_print(cmd_ctx, "image reading failed, verify aborted");
+			free(buffer);
+			image_close(&image);
+			return ERROR_OK;
+		}
+		
+		/* calculate checksum of image */
+		image_calculate_checksum( buffer, buf_cnt, &checksum );
+		free(buffer);
+		
+		retval = target_checksum_memory(target, image.sections[i].base_address, buf_cnt, &mem_checksum);
+		
+		if( retval != ERROR_OK )
+		{
+			command_print(cmd_ctx, "image verify failed, verify aborted");
+			image_close(&image);
+			return ERROR_OK;
+		}
+		
+		if( checksum != mem_checksum )
+		{
+			command_print(cmd_ctx, "image verify failed, verify aborted");
+			image_close(&image);
+			return ERROR_OK;
+		}
+			
+		image_size += buf_cnt;
+	}
+
+	duration_stop_measure(&duration, &duration_text);
+	command_print(cmd_ctx, "verified %u bytes in %s", image_size, duration_text);
+	free(duration_text);
+	
+	image_close(&image);
+	
+	return ERROR_OK;
 }
 
 int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

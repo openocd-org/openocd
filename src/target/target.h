@@ -129,6 +129,8 @@ typedef struct target_type_s
 	/* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
 	int (*bulk_write_memory)(struct target_s *target, u32 address, u32 count, u8 *buffer);
 	
+	int (*checksum_memory)(struct target_s *target, u32 address, u32 count, u32* checksum);
+	
 	/* target break-/watchpoint control 
 	* rw: 0 = write, 1 = read, 2 = access
 	*/
@@ -217,6 +219,7 @@ extern target_t* get_target_by_num(int num);
 
 extern int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
 extern int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
+extern int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* crc);
 
 extern int target_alloc_working_area(struct target_s *target, u32 size, working_area_t **area);
 extern int target_free_working_area(struct target_s *target, working_area_t *area);
