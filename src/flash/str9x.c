@@ -36,7 +36,7 @@
 #include <string.h>
 #include <unistd.h>
 
-str9x_mem_layout_t mem_layout_str9[] = {
+str9x_mem_layout_t mem_layout_str9bank0[] = {
 	{0x00000000, 0x10000, 0x01},
 	{0x00010000, 0x10000, 0x02},
 	{0x00020000, 0x10000, 0x04},
@@ -45,11 +45,16 @@ str9x_mem_layout_t mem_layout_str9[] = {
 	{0x00050000, 0x10000, 0x20},
 	{0x00060000, 0x10000, 0x40},
 	{0x00070000, 0x10000, 0x80},
-	{0x00080000, 0x02000, 0x100},
-	{0x00082000, 0x02000, 0x200},
-	{0x00084000, 0x02000, 0x400},
-	{0x00086000, 0x02000, 0x800}
 };
+
+str9x_mem_layout_t mem_layout_str9bank1[] = {
+	{0x00000000, 0x02000, 0x100},
+	{0x00002000, 0x02000, 0x200},
+	{0x00004000, 0x02000, 0x400},
+	{0x00006000, 0x02000, 0x800}
+};
+
+static u32 bank1start = 0x00080000;
 
 int str9x_register_commands(struct command_context_s *cmd_ctx);
 int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
@@ -93,22 +98,27 @@ int str9x_build_block_list(struct flash_bank_s *bank)
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
 	
 	int i;
-	int num_sectors = 0, b0_sectors = 0;
+	int num_sectors = 0;
+	int b0_sectors = 0, b1_sectors = 0;
 		
 	switch (bank->size)
 	{
-		case 256 * 1024:
+		case (256 * 1024):
 			b0_sectors = 4;
 			break;
-		case 512 * 1024:
+		case (512 * 1024):
 			b0_sectors = 8;
+			break;
+		case (32 * 1024):
+			b1_sectors = 4;
+			bank1start = bank->base;
 			break;
 		default:
 			ERROR("BUG: unknown bank->size encountered");
 			exit(-1);
 	}
-	
-	num_sectors = b0_sectors + 4;
+		
+	num_sectors = b0_sectors + b1_sectors;
 	
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
@@ -118,20 +128,20 @@ int str9x_build_block_list(struct flash_bank_s *bank)
 	
 	for (i = 0; i < b0_sectors; i++)
 	{
-		bank->sectors[num_sectors].offset = mem_layout_str9[i].sector_start;
-		bank->sectors[num_sectors].size = mem_layout_str9[i].sector_size;
+		bank->sectors[num_sectors].offset = mem_layout_str9bank0[i].sector_start;
+		bank->sectors[num_sectors].size = mem_layout_str9bank0[i].sector_size;
 		bank->sectors[num_sectors].is_erased = -1;
 		bank->sectors[num_sectors].is_protected = 1;
-		str9x_info->sector_bits[num_sectors++] = mem_layout_str9[i].sector_bit;
+		str9x_info->sector_bits[num_sectors++] = mem_layout_str9bank0[i].sector_bit;
 	}
-	
-	for (i = 8; i < 12; i++)
+
+	for (i = 0; i < b1_sectors; i++)
 	{
-		bank->sectors[num_sectors].offset = mem_layout_str9[i].sector_start;
-		bank->sectors[num_sectors].size = mem_layout_str9[i].sector_size;
+		bank->sectors[num_sectors].offset = mem_layout_str9bank1[i].sector_start;
+		bank->sectors[num_sectors].size = mem_layout_str9bank1[i].sector_size;
 		bank->sectors[num_sectors].is_erased = -1;
 		bank->sectors[num_sectors].is_protected = 1;
-		str9x_info->sector_bits[num_sectors++] = mem_layout_str9[i].sector_bit;
+		str9x_info->sector_bits[num_sectors++] = mem_layout_str9bank1[i].sector_bit;
 	}
 	
 	return ERROR_OK;
@@ -152,12 +162,6 @@ int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	str9x_info = malloc(sizeof(str9x_flash_bank_t));
 	bank->driver_priv = str9x_info;
 	
-	if (bank->base != 0x00000000)
-	{
-		WARNING("overriding flash base address for STR91x device with 0x00000000");
-		bank->base = 0x00000000;
-	}
-
 	str9x_build_block_list(bank);
 	
 	str9x_info->write_algorithm = NULL;
@@ -219,11 +223,11 @@ int str9x_protect_check(struct flash_bank_s *bank)
 
 	/* read level one protection */
 	
-	adr = mem_layout_str9[10].sector_start + 4;
+	adr = bank1start + 0x10;
 	
-	target_write_u32(target, adr, 0x90);
+	target_write_u16(target, adr, 0x90);
 	target_read_u16(target, adr, &status);
-	target_write_u32(target, adr, 0xFF);
+	target_write_u16(target, adr, 0xFF);
 	
 	for (i = 0; i < bank->num_sectors; i++)
 	{
@@ -250,7 +254,7 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
     
 	for (i = first; i <= last; i++)
 	{
-		adr = bank->sectors[i].offset;
+		adr = bank->base + bank->sectors[i].offset;
 		
     	/* erase sectors */
 		target_write_u16(target, adr, 0x20);
@@ -301,7 +305,7 @@ int str9x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	{
 		/* Level One Protection */
 	
-		adr = bank->sectors[i].offset;
+		adr = bank->base + bank->sectors[i].offset;
 		
 		target_write_u16(target, adr, 0x60);
 		if( set )
@@ -593,14 +597,21 @@ int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *c
 	flash_bank_t *bank;
 	target_t *target = NULL;
 	
-	if (argc < 4)
+	if (argc < 5)
 	{
-		command_print(cmd_ctx, "usage: str9x flash_config <b0size> <b1size> <b0start> <b1start>");
+		command_print(cmd_ctx, "usage: str9x flash_config <bank> <bbsize> <nbsize> <bbstart> <nbstart>");
 		return ERROR_OK;
 	}
 	
-	bank = get_flash_bank_by_num(0);
+	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+	if (!bank)
+	{
+		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
+		return ERROR_OK;
+	}
+	
 	str9x_info = bank->driver_priv;
+	
 	target = bank->target;
 	
 	if (bank->target->state != TARGET_HALTED)
@@ -609,12 +620,12 @@ int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *c
 	}
 	
 	/* config flash controller */
-	target_write_u32(target, FLASH_BBSR, strtoul(args[0], NULL, 0));
-	target_write_u32(target, FLASH_NBBSR, strtoul(args[1], NULL, 0));
-	target_write_u32(target, FLASH_BBADR, (strtoul(args[2], NULL, 0) >> 2));
-	target_write_u32(target, FLASH_NBBADR, (strtoul(args[3], NULL, 0) >> 2));
+	target_write_u32(target, FLASH_BBSR, strtoul(args[1], NULL, 0));
+	target_write_u32(target, FLASH_NBBSR, strtoul(args[2], NULL, 0));
+	target_write_u32(target, FLASH_BBADR, (strtoul(args[3], NULL, 0) >> 2));
+	target_write_u32(target, FLASH_NBBADR, (strtoul(args[4], NULL, 0) >> 2));
 
-	/* set b18 instruction TCM order as per flash programming manual */
+	/* set bit 18 instruction TCM order as per flash programming manual */
 	arm966e_write_cp15(target, 62, 0x40000);
 	
 	/* enable flash bank 1 */

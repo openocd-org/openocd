@@ -45,25 +45,6 @@ enum str9x_status_codes
 	STR9X_BUSY = 11
 };
 
-/* FMI sectors */
-
-#define FMI_BANK_0	(0x5400000C << 2)			/* FMI Bank 0 */
-#define FMI_BANK_1	(0x54000010 << 2)			/* FMI Bank 1 */
-
-#define FMI_B0S0	(0x00000000 + FMI_BANK_0)	/* Bank 0 sector 0 */
-#define FMI_B0S1	(0x00010000 + FMI_BANK_0)	/* Bank 0 sector 1 */
-#define FMI_B0S2	(0x00020000 + FMI_BANK_0)	/* Bank 0 sector 2 */
-#define FMI_B0S3	(0x00030000 + FMI_BANK_0)	/* Bank 0 sector 3 */
-#define FMI_B0S4	(0x00040000 + FMI_BANK_0)	/* Bank 0 sector 4 */
-#define FMI_B0S5	(0x00050000 + FMI_BANK_0)	/* Bank 0 sector 5 */
-#define FMI_B0S6	(0x00060000 + FMI_BANK_0)	/* Bank 0 sector 6 */
-#define FMI_B0S7	(0x00070000 + FMI_BANK_0)	/* Bank 0 sector 7 */
-
-#define FMI_B1S0	(0x00000000 + FMI_BANK_1)	/* Bank 1 sector 0 */
-#define FMI_B1S1	(0x00002000 + FMI_BANK_1)	/* Bank 1 sector 1 */
-#define FMI_B1S2	(0x00004000 + FMI_BANK_1)	/* Bank 1 sector 2 */
-#define FMI_B1S3	(0x00006000 + FMI_BANK_1)	/* Bank 1 sector 3 */
-
 /*  Flash registers */
 
 #define FLASH_BBSR		0x54000000		/* Boot Bank Size Register                */

@@ -125,6 +125,12 @@ int str9xpec_register_commands(struct command_context_s *cmd_ctx)
 int str9xpec_set_instr(int chain_pos, u32 new_instr, enum tap_state end_state)
 {
 	jtag_device_t *device = jtag_get_device(chain_pos);
+	
+	if (device == NULL)
+	{
+		DEBUG("Invalid Target");
+		return ERROR_TARGET_INVALID;
+	}
 		
 	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
 	{
@@ -154,7 +160,8 @@ u8 str9xpec_isc_status(int chain_pos)
 	scan_field_t field;
 	u8 status;
 	
-	str9xpec_set_instr(chain_pos, ISC_NOOP, TAP_PI);
+	if (str9xpec_set_instr(chain_pos, ISC_NOOP, TAP_PI) != ERROR_OK)
+		return ISC_STATUS_ERROR;
 	
 	field.device = chain_pos;
 	field.num_bits = 8;
@@ -189,7 +196,8 @@ int str9xpec_isc_enable(struct flash_bank_s *bank)
 		return ERROR_OK;
 	
 	/* enter isc mode */
-	str9xpec_set_instr(chain_pos, ISC_ENABLE, TAP_RTI);
+	if (str9xpec_set_instr(chain_pos, ISC_ENABLE, TAP_RTI) != ERROR_OK)
+		return ERROR_TARGET_INVALID;
 	
 	/* check ISC status */
 	status = str9xpec_isc_status(chain_pos);
@@ -214,7 +222,8 @@ int str9xpec_isc_disable(struct flash_bank_s *bank)
 	if (!str9xpec_info->isc_enable)
 		return ERROR_OK;
 	
-	str9xpec_set_instr(chain_pos, ISC_DISABLE, TAP_RTI);
+	if (str9xpec_set_instr(chain_pos, ISC_DISABLE, TAP_RTI) != ERROR_OK)
+		return ERROR_TARGET_INVALID;
 	
 	/* delay to handle aborts */
 	jtag_add_sleep(50);
@@ -273,10 +282,10 @@ int str9xpec_build_block_list(struct flash_bank_s *bank)
 		
 	switch (bank->size)
 	{
-		case 256 * 1024:
+		case (256 * 1024):
 			b0_sectors = 4;
 			break;
-		case 512 * 1024:
+		case (512 * 1024):
 			b0_sectors = 8;
 			break;
 		default:
@@ -284,7 +293,9 @@ int str9xpec_build_block_list(struct flash_bank_s *bank)
 			exit(-1);
 	}
 	
+	/* include bank 1 sectors */
 	num_sectors = b0_sectors + 4;
+	bank->size += (32 * 1024);
 	
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
@@ -1327,6 +1338,7 @@ int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ct
 	if( str9xpec_info->devarm ) {
 		dev0->next = str9xpec_info->devarm;
 		jtag_num_devices++;
+		str9xpec_info->devarm = NULL;
 	}
 	
 	return ERROR_OK;
