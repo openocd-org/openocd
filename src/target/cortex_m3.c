@@ -173,7 +173,7 @@ int cortex_m3_endreset_event(target_t *target)
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
 		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN );
 	/* Enable trace and dwt */
-	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
+	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR );
 	/* Monitor bus faults */
 	ahbap_write_system_u32(swjdp, NVIC_SHCSR, SHCSR_BUSFAULTENA );
 
@@ -216,7 +216,6 @@ int cortex_m3_examine_debug_reason(target_t *target)
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 		&& (target->debug_reason != DBG_REASON_SINGLESTEP))
 	{
-
 		/*  INCOPMPLETE */
 
 		if (cortex_m3->nvic_dfsr & 0x2)
@@ -365,10 +364,17 @@ enum target_state cortex_m3_poll(target_t *target)
 	
 	if (cortex_m3->dcb_dhcsr & S_RESET_ST)
 	{
-		target->state = TARGET_RESET;
-		return target->state;
+		/* check if still in reset */
+		ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+		
+		if (cortex_m3->dcb_dhcsr & S_RESET_ST)
+		{
+			target->state = TARGET_RESET;
+			return target->state;
+		}
 	}
-	else if (target->state == TARGET_RESET)
+	
+	if (target->state == TARGET_RESET)
 	{
 		/* Cannot switch context while running so endreset is called with target->state == TARGET_RESET */
 		DEBUG("Exit from reset with dcb_dhcsr 0x%x", cortex_m3->dcb_dhcsr);
@@ -689,8 +695,24 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 int cortex_m3_assert_reset(target_t *target)
 {
 	int retval;
-		
+	armv7m_common_t *armv7m = target->arch_info;
+	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	
 	DEBUG("target->state: %s", target_state_strings[target->state]);
+	
+	if (target->reset_mode == RESET_RUN)
+	{
+		/* Set/Clear C_MASKINTS in a separate operation */
+		if (cortex_m3->dcb_dhcsr & C_MASKINTS)
+			ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT );
+		
+		cortex_m3_clear_halt(target);
+							
+		/* Enter debug state on reset, cf. end_reset_event() */	
+		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN );
+		ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
+	}
 	
 	if (target->state == TARGET_HALTED || target->state == TARGET_UNKNOWN)
 	{

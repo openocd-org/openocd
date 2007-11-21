@@ -249,4 +249,4 @@ AC_PROG_RANLIB
 
 AC_SUBST(WITH_FTD2XX, $with_ftd2xx)
 
-AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile src/pld/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile src/pld/Makefile doc/Makefile)

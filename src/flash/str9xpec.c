@@ -791,10 +791,10 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			} while(!(status & ISC_STATUS_BUSY));
 			
 			if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
-				return ERROR_FLASH_OPERATION_FAILED; 
+				return ERROR_FLASH_OPERATION_FAILED;
 			
 			//if ((status & ISC_STATUS_INT_ERROR) != STR9XPEC_ISC_INTFAIL)
-			//	return ERROR_FLASH_OPERATION_FAILED; 
+			//	return ERROR_FLASH_OPERATION_FAILED;
 		
 			dwords_remaining--;
 			bytes_written += 8;
@@ -854,7 +854,7 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			return ERROR_FLASH_OPERATION_FAILED;
 		
 		//if ((status & ISC_STATUS_INT_ERROR) != STR9XPEC_ISC_INTFAIL)
-		//	return ERROR_FLASH_OPERATION_FAILED; 
+		//	return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	free(scanbuf);
@@ -1001,7 +1001,10 @@ int str9xpec_write_options(struct flash_bank_s *bank)
 	chain_pos = str9xpec_info->chain_pos;
 	
 	/* erase config options first */
-	str9xpec_erase_area( bank, 0xFE, 0xFE );
+	status = str9xpec_erase_area( bank, 0xFE, 0xFE );
+	
+	if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
+		return status; 
 	
 	if (!str9xpec_info->isc_enable) {
 		str9xpec_isc_enable( bank );

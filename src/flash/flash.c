@@ -574,7 +574,6 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	{
 		command_print(cmd_ctx, "failed writing image %s: %s", args[0], error_str);
 		free(error_str);
-		free(failed);
 	}
 	
 	for (i = 0; i < image.num_sections; i++)
@@ -839,7 +838,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 				size_read = image->sections[section].size - section_offset;
 			
 			if ((retval = image_read_section(image, section, section_offset,
-					size_read, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
+					run_size, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
 			{
 				free(buffer);
 				

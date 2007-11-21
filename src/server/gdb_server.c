@@ -1411,7 +1411,7 @@ int gdb_input(connection_t *connection)
 		/* terminate with zero */
 		packet[packet_size] = 0;
 
-		DEBUG("recevied packet: '%s'", packet);
+		DEBUG("received packet: '%s'", packet);
 
 		if (packet_size > 0)
 		{

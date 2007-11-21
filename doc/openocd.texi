@@ -1,0 +1,1653 @@
+\input texinfo	@c -*-texinfo-*-
+@c %**start of header
+@setfilename openocd.info
+@settitle Open On-Chip Debugger (openocd)
+@c %**end of header
+
+@titlepage
+@title Open On-Chip Debugger (openocd)
+@page
+@vskip 0pt plus 1filll
+@end titlepage
+
+@contents
+
+@node Top, About, , (dir)
+@top OpenOCD
+
+The Manual always document the latest version of OpenOCD available from SVN.
+
+@menu
+* About::             About Openocd.
+* Developers::        
+* Building::          Building Openocd
+* Running::           Running Openocd
+* Configuration::     Openocd Configuration.
+* Commands::          Openocd Commands
+* Sample Scripts::    Sample Target Scripts
+* FAQ::               Frequently Asked Questions
+* License::           GNU Free Documentation License
+* Index::             Main index.
+@end menu
+
+@node About
+@unnumbered About
+@cindex about
+
+The Open On-Chip Debugger (openocd) aims to provide debugging, in-system programming
+and boundary-scan testing for embedded target devices. The targets are interfaced
+using JTAG (IEEE 1149.1) compliant hardware, but this may be extended to other
+connection types in the future.
+
+Openocd currently supports Wiggler (clones), FTDI FT2232 based JTAG interfaces, the
+Amontec JTAG Accelerator, and the Gateworks GW1602. It allows ARM7 (ARM7TDMI and ARM720t),
+ARM9 (ARM920t, ARM922t, ARM926ej--s, ARM966e--s), XScale (PXA25x, IXP42x) and
+Cortex-M3 (Luminary Stellaris LM3 and ST STM32) based cores to be debugged.
+
+Flash writing is supported for external CFI compatible flashes (Intel and AMD/Spansion
+command set) and several internal flashes (LPC2000, AT91SAM7, STR7x, STR9x, LM3
+and STM32x). Preliminary support for using the LPC3180's NAND flash controller is included.
+
+@node Developers
+@chapter Developers
+@cindex developers
+
+Openocd has been created by Dominic Rath as part of a diploma thesis written at the
+University of Applied Sciences Augsburg (@uref{http://www.fh-augsburg.de}).
+Others interested in improving the state of free and open debug and testing technology
+are welcome to participate.
+
+Other developers have contributed support for additional targets and flashes as well
+as numerous bugfixes and enhancements. See the AUTHORS file for regular contributors. 
+
+@node Building
+@chapter Building
+@cindex building openocd
+
+You can download the current SVN version with SVN client of your choice from the
+following repositories:
+
+ (@uref{svn://svn.berlios.de/openocd/trunk}
+
+or
+
+ (@uref{http://svn.berlios.de/svnroot/repos/openocd/trunk}
+
+Using the SVN command line client, you could use the following command to fetch the
+latest version (make sure there is no (non-svn) directory called "openocd" in the
+current directory):
+
+@smallexample
+ svn checkout svn://svn.berlios.de/openocd/trunk
+@end smallexample
+
+Building the OpenOCD requires a recent version of the GNU autotools.
+On my build system, I'm using autoconf 2.13 and automake 1.9. For building on Windows,
+you have to use Cygwin. Make sure that your @env{PATH} environment variable contains no
+other locations with Unix utils (like UnxUtils) - these can't handle the Cygwin
+paths, resulting in obscure dependency errors (This is an observation I've gathered
+from the logs of one user - correct me if I'm wrong).
+
+You further need the appropriate driver files, if you want to build support for
+a FTDI FT2232 based interface:
+@itemize @bullet
+@item @b{ftdi2232} libftdi ((@uref{http://www.intra2net.com/opensource/ftdi/})
+@item @b{ftd2xx} libftd2xx ((@uref{http://www.ftdichip.com/Drivers/D2XX.htm})
+@item When using the Amontec JTAGkey, you have to get the drivers from the Amontec
+homepage (@uref{www.amontec.com}), as the JTAGkey uses a non-standard VID/PID. 
+@end itemize
+
+Please note that the ftdi2232 variant (using libftdi) isn't supported under Cygwin.
+You have to use the ftd2xx variant (using FTDI's D2XX) on Cygwin.
+
+In general, the D2XX driver provides superior performance (several times as fast),
+but has the draw-back of being binary-only - though that isn't as worse, as it isn't
+a kernel module, only a user space library.
+
+To build OpenOCD (on both Linux and Cygwin), use the following commands:
+@smallexample
+ ./bootstrap 
+@end smallexample
+Bootstrap generates the configure script, and prepares building on your system.
+@smallexample
+ ./configure 
+@end smallexample
+Configure generates the Makefiles used to build OpenOCD
+@smallexample
+ make 
+@end smallexample
+Make builds the OpenOCD, and places the final executable in ./src/
+
+The configure script takes several options, specifying which JTAG interfaces
+should be included:
+
+@itemize @bullet
+@item
+--enable-parport
+@item
+--enable-parport_ppdev
+@item
+--enable-amtjtagaccel
+@item
+--enable-ft2232_ftd2xx
+@footnote{Using the latest D2XX drivers from FTDI and following their installation
+instructions, I had to use @option{--enable-ft2232_libftd2xx} for the OpenOCD to
+build properly}
+@item
+--enable-ft2232_libftdi
+@item
+--with-ftd2xx=/path/to/d2xx/
+@end itemize
+
+If you want to access the parallel port using the PPDEV interface you have to specify
+both the @option{--enable-parport} AND the @option{--enable-parport_ppdev} option since
+the @option{--enable-parport_ppdev} option actually is an option to the parport driver
+(see (@uref{http://forum.sparkfun.com/viewtopic.php?t=3795} for more info).
+
+Cygwin users have to specify the location of the FTDI D2XX package. This should be an
+absolute path containing no spaces.
+
+Linux users should copy the various parts of the D2XX package to the appropriate
+locations, i.e. /usr/include, /usr/lib. 
+
+@node Running
+@chapter Running
+@cindex running openocd
+The OpenOCD runs as a daemon, waiting for connections from clients (Telnet or GDB).
+Run with @option{--help} or @option{-h} to view the available command line arguments.
+
+It reads its configuration by default from the file openocd.cfg located in the current
+working directory. This may be overwritten with the @option{-f <configfile>} command line
+switch.
+
+To enable debug output (when reporting problems or working on OpenOCD itself), use
+the @option{-d} command line switch. This sets the debug_level to "3", outputting
+the most information, including debug messages. The default setting is "2", outputting
+only informational messages, warnings and errors. You can also change this setting
+from within a telnet or gdb session (@option{debug_level <n>}).
+
+You can redirect all output from the daemon to a file using the @option{-l <logfile>} switch. 
+
+@node Configuration
+@chapter Configuration
+@cindex configuration
+The Open On-Chip Debugger (OpenOCD) runs as a daemon, and reads it current configuration
+by default from the file openocd.cfg in the current directory. A different configuration
+file can be specified with the  @option{-f <conf.file>} given at the openocd command line.
+
+The configuration file is used to specify on which ports the daemon listens for new
+connections, the JTAG interface used to connect to the target, the layout of the JTAG
+chain, the targets that should be debugged, and connected flashes.
+
+@section Daemon configuration
+
+@itemize @bullet
+@item @b{telnet_port} <@var{number}>
+@cindex telnet_port
+Port on which to listen for incoming telnet connections 
+@item @b{gdb_port} <@var{number}>
+@cindex gdb_port
+First port on which to listen for incoming GDB connections. The GDB port for the
+first target will be gdb_port, the second target will listen on gdb_port + 1, and so on. 
+@item @b{daemon_startup} <@var{mode}> either @samp{attach} or @samp{reset}
+@cindex daemon_startup
+Tells the OpenOCD whether it should reset the target when the daemon is launched, or
+if it should just attach to the target. 
+@end itemize
+
+@section JTAG interface configuration
+
+@itemize @bullet
+@item @b{interface} <@var{name}>
+@cindex interface
+Use the interface driver <@var{name}> to connect to the target. Currently supported
+interfaces are
+@itemize @minus
+@item parport
+PC parallel port bit-banging (Wigglers, PLD download cable, ...)
+@end itemize
+@itemize @minus
+@item amt_jtagaccel
+Amontec Chameleon in its JTAG Accelerator configuration connected to a PC's EPP
+mode parallel port
+@end itemize
+@itemize @minus
+@item ft2232
+FTDI FT2232 based devices using either the open-source libftdi or the binary only
+FTD2XX driver. The FTD2XX is superior in performance, but not available on every
+platform. The libftdi uses libusb, and should be portable to all systems that provide
+libusb.
+@end itemize
+@itemize @minus
+@item ep93xx
+Cirrus Logic EP93xx based single-board computer bit-banging (in development)
+@end itemize
+@end itemize
+
+@itemize @bullet
+@item @b{jtag_speed} <@var{number}>
+@cindex jtag_speed
+Limit the maximum speed of the JTAG interface. Usually, a value of zero means maximum
+speed. The actual effect of this option depends on the JTAG interface used. 
+
+@item @b{reset_config} <@var{signals}> [@var{combination}] [@var{trst_type}] [@var{srst_type}]
+@cindex reset_config
+The configuration of the reset signals available on the JTAG interface AND the target.
+If the JTAG interface provides SRST, but the target doesn't connect that signal properly,
+then OpenOCD can't use it. <@var{signals}> can be @samp{none}, @samp{trst_only},
+@samp{srst_only} or @samp{trst_and_srst}.
+[@var{combination}] is an optional value specifying broken reset signal implementations.
+@samp{srst_pulls_trst} states that the testlogic is reset together with the reset of
+the system (e.g. Philips LPC2000, "broken" board layout), @samp{trst_pulls_srst} says
+that the system is reset together with the test logic (only hypothetical, I haven't
+seen hardware with such a bug, and can be worked around).
+
+The [@var{trst_type}] and [@var{srst_type}] parameters allow the driver type of the
+reset lines to be specified. Possible values are @samp{trst_push_pull} (default)
+and @samp{trst_open_drain} for the test reset signal, and @samp{srst_open_drain}
+(default) and @samp{srst_push_pull} for the system reset. These values only affect
+JTAG interfaces with support for different drivers, like the Amontec JTAGkey and JTAGAccelerator. 
+
+@item @b{jtag_device} <@var{IR length}> <@var{IR capture}> <@var{IR mask}> <@var{IDCODE instruction}>
+@cindex jtag_device
+Describes the devices that form the JTAG daisy chain, with the first device being
+the one closest to TDO. The parameters are the length of the instruction register
+(4 for all ARM7/9s), the value captured during Capture-IR (0x1 for ARM7/9), and a mask
+of bits that should be validated when doing IR scans (all four bits (0xf) for ARM7/9).
+The IDCODE instruction will in future be used to query devices for their JTAG
+identification code. This line is the same for all ARM7 and ARM9 devices.
+Other devices, like CPLDs, require different parameters. An example configuration
+line for a Xilinx XC9500 CPLD would look like this:
+@smallexample
+jtag_device 8 0x01 0x0e3 0xfe
+@end smallexample
+The instruction register (IR) is 8 bits long, during Capture-IR 0x01 is loaded into
+the IR, but only bits 0-1 and 5-7 should be checked, the others (2-4) might vary.
+The IDCODE instruction is 0xfe.
+
+@item @b{jtag_nsrst_delay} <@var{ms}>
+@cindex jtag_nsrst_delay
+How long (in miliseconds) the OpenOCD should wait after deasserting nSRST before
+starting new JTAG operations. 
+@item @b{jtag_ntrst_delay} <@var{ms}>
+@cindex jtag_ntrst_delay
+How long (in miliseconds) the OpenOCD should wait after deasserting nTRST before
+starting new JTAG operations. 
+
+The jtag_n[st]rst_delay options are useful if reset circuitry (like a reset supervisor,
+or on-chip features) keep a reset line asserted for some time after the external reset
+got deasserted.
+@end itemize
+
+@section parport options
+
+@itemize @bullet
+@item @b{parport_port} <@var{number}>
+@cindex parport_port
+Either the address of the I/O port (default: 0x378 for LPT1) or the number of
+the @file{/dev/parport} device
+
+When using PPDEV to access the parallel port, use the number of the parallel port:
+@option{parport_port 0} (the default). If @option{parport_port 0x378} is specified
+you may encounter a problem.
+@item @b{parport_cable} <@var{name}>
+@cindex parport_cable
+The layout of the parallel port cable used to connect to the target.
+Currently supported cables are 
+@itemize @minus
+@item wiggler
+@cindex wiggler
+Original Wiggler layout, also supported by several clones, such
+as the Olimex ARM-JTAG
+@item old_amt_wiggler
+@cindex old_amt_wiggler
+The Wiggler configuration that comes with Amontec's Chameleon Programmer. The new
+version available from the website uses the original Wiggler layout ('@var{wiggler}')
+@item chameleon
+@cindex chameleon
+Describes the connection of the Amontec Chameleon's CPLD when operated in
+configuration mode. This is only used to program the Chameleon itself, not
+a connected target.
+@item dlc5
+@cindex dlc5
+Xilinx Parallel cable III.
+@item triton
+@cindex triton
+The parallel port adapter found on the 'Karo Triton 1 Development Board'.
+This is also the layout used by the HollyGates design
+(see @uref{http://www.lartmaker.nl/projects/jtag/}).
+@item flashlink
+@cindex flashlink
+ST Parallel cable. 
+@end itemize
+@end itemize
+
+@section amt_jtagaccel options
+@itemize @bullet
+@item @b{parport_port} <@var{number}>
+@cindex parport_port
+Either the address of the I/O port (default: 0x378 for LPT1) or the number of the
+@file{/dev/parport} device 
+@end itemize
+@section ft2232 options
+
+@itemize @bullet
+@item @b{ft2232_device_desc} <@var{description}>
+@cindex ft2232_device_desc
+The USB device description of the FTDI FT2232 device. If not specified, the FTDI
+default value is used. This setting is only valid if compiled with FTD2XX support.
+@item @b{ft2232_layout} <@var{name}>
+@cindex ft2232_layout
+The layout of the FT2232 GPIO signals used to control output-enables and reset
+signals. Valid layouts are
+@itemize @minus
+@item usbjtag
+The "USBJTAG-1" layout described in the original OpenOCD diploma thesis
+@item jtagkey
+Amontec JTAGkey and JTAGkey-tiny
+@item signalyzer
+Signalyzer
+@item olimex-jtag
+Olimex ARM-USB-OCD
+@item m5960
+American Microsystems M5960
+@item evb_lm3s811
+Luminary Micro EVB_LM3S811 as a JTAG interface (not onboard processor), no TRST or
+SRST signals on external connector
+@item comstick
+Hitex STR9 comstick 
+@end itemize
+
+@item @b{ft2232_vid_pid} <@var{vid}> <@var{pid}>
+The vendor ID and product ID of the FTDI FT2232 device. If not specified, the FTDI
+default values are used. This command is not available on Windows. 
+@item @b{ft2232_latency} <@var{ms}>
+On some systems using ft2232 based JTAG interfaces the FT_Read function call in
+ft2232_read() fails to return the expected number of bytes. This can be caused by
+USB communication delays and has proved hard to reproduce and debug. Setting the
+FT2232 latency timer to a larger value increases delays for short USB packages but it
+also reduces the risk of timeouts before receiving the expected number of bytes.
+The OpenOCD default value is 2 and for some systems a value of 10 has proved useful. 
+@end itemize
+
+@section ep93xx options
+@cindex ep93xx options
+Currently, there are no options available for the ep93xx interface.
+
+@page
+@section Target configuration
+
+@itemize @bullet
+@item @b{target} <@var{type}> <@var{endianess}> <@var{reset_mode}> <@var{JTAG pos}>
+<@var{variant}>
+@cindex target
+Defines a target that should be debugged. Currently supported types are:
+@itemize @minus
+@item arm7tdmi
+@item arm720t
+@item arm9tdmi
+@item arm920t
+@item arm922t
+@item arm926ejs
+@item arm966e
+@item cortex_m3
+@item xscale 
+@end itemize
+
+If you want to use a target board that is not on this list, see Adding a new
+target board
+
+Endianess may be @option{little} or @option{big}.
+
+The reset_mode specifies what should happen to the target when a reset occurs:
+@itemize @minus
+@item reset_halt
+@cindex reset_halt
+Immediately request a target halt after reset. This allows targets to be debugged
+from the very first instruction. This is only possible with targets and JTAG
+interfaces that correctly implement the reset signals.
+@item reset_init
+@cindex reset_init
+Similar to @option{reset_halt}, but executes the script file defined to handle the
+'reset' event for the target. Like @option{reset_halt} this only works with
+correct reset implementations.
+@item reset_run
+@cindex reset_run
+Simply let the target run after a reset.
+@item run_and_halt
+@cindex run_and_halt
+Let the target run for some time (default: 1s), and then request halt.
+@item run_and_init
+@cindex run_and_init
+A combination of @option{reset_init} and @option{run_and_halt}. The target is allowed
+to run for some time, then halted, and the @option{reset} event script is executed. 
+@end itemize
+
+On JTAG interfaces / targets where system reset and test-logic reset can't be driven
+completely independent (like the LPC2000 series), or where the JTAG interface is
+unavailable for some time during startup (like the STR7 series), you can't use
+@option{reset_halt} or @option{reset_init}.
+
+@item @b{target_script} <@var{target#}> <@var{event}> <@var{script_file}>
+@cindex target_script
+Event is either @var{reset} or @var{post_halt} or @var{pre_resume}.
+TODO: describe exact semantic of events 
+@item @b{run_and_halt_time} <@var{target#}> <@var{time_in_ms}>
+@cindex run_and_halt_time
+The amount of time the debugger should wait after releasing reset before it asserts
+a debug request. This is used by the @option{run_and_halt} and @option{run_and_init}
+reset modes. 
+@item @b{working_area} <@var{target#}> <@var{address}> <@var{size}>
+<@var{backup}|@var{nobackup}>
+@cindex working_area
+Specifies a working area for the debugger to use. This may be used to speed-up
+downloads to target memory and flash operations, or to perform otherwise unavailable
+operations (some coprocessor operations on ARM7/9 systems, for example). The last
+parameter decides whether the memory should be preserved <@var{backup}>. If possible, use
+a working_area that doesn't need to be backed up, as that slows down operation. 
+@end itemize
+
+@subsection arm7tdmi options
+@cindex arm7tdmi options
+target arm7tdmi <@var{endianess}> <@var{reset_mode}> <@var{jtag#}>
+The arm7tdmi target definition requires at least one additional argument, specifying
+the position of the target in the JTAG daisy-chain. The first JTAG device is number 0.
+The optional [@var{variant}] parameter has been removed in recent versions.
+The correct feature set is determined at runtime. 
+
+@subsection arm720t options
+@cindex arm720t options
+ARM720t options are similar to ARM7TDMI options.
+
+@subsection arm9tdmi options
+@cindex arm9tdmi options
+ARM9TDMI options are similar to ARM7TDMI options. Supported variants are
+@option{arm920t}, @option{arm922t} and @option{arm940t}.
+This enables the hardware single-stepping support found on these cores.
+
+@subsection arm920t options
+@cindex arm920t options
+ARM920t options are similar to ARM9TDMI options.
+
+@subsection arm966e options
+@cindex arm966e options
+ARM966e options are similar to ARM9TDMI options.
+
+@subsection xscale options
+@cindex xscale options
+Supported variants are @option{ixp42x}, @option{ixp45x}, @option{ixp46x},
+@option{pxa250}, @option{pxa255}, @option{pxa26x}.
+
+@section Flash configuration
+@cindex Flash configuration
+
+@itemize @bullet
+@item @b{flash bank} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}>
+<@var{bus_width}> <@var{target#}> [@var{driver_options ...}]
+@cindex flash bank
+Configures a flash bank at <@var{base}> of <@var{size}> bytes and <@var{chip_width}>
+and <@var{bus_width}> bytes using the selected flash <driver>.
+
+@item @b{flash autoerase} <@option{on}|@option{off}>
+@cindex flash autoerase
+auto erase flash banks prior to writing. Currently only works when using
+@option{flash write_image} command. Default is @option{off}.
+@end itemize
+
+@subsection lpc2000 options
+@cindex lpc2000 options
+
+@b{flash bank lpc2000} <@var{base}> <@var{size}> 0 0 <@var{target#}> <@var{variant}>
+<@var{clock}> [@var{calc_checksum}]
+LPC flashes don't require the chip and bus width to be specified. Additional
+parameters are the <@var{variant}>, which may be @var{lpc2000_v1} (older LPC21xx and LPC22xx)
+or @var{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx), the number
+of the target this flash belongs to (first is 0), the frequency at which the core
+is currently running (in kHz - must be an integral number), and the optional keyword
+@var{calc_checksum}, telling the driver to calculate a valid checksum for the exception
+vector table. 
+
+@subsection cfi options
+@cindex cfi options
+
+@b{flash bank cfi} <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}>
+<@var{target#}>
+CFI flashes require the number of the target they're connected to as an additional
+argument. The CFI driver makes use of a working area (specified for the target)
+to significantly speed up operation. 
+
+@subsection at91sam7 options
+@cindex at91sam7 options
+
+@b{flash bank at91sam7} 0 0 0 0 <@var{target#>}>
+AT91SAM7 flashes only require the target#, all other values are looked up after
+reading the chip-id and type. 
+
+@subsection str7 options
+@cindex str7 options
+
+@b{flash bank str7x} <@var{base}> <@var{size}> 0 0 <@var{target#}> <@var{variant}>
+variant can be either STR71x, STR73x or STR75x. 
+
+@subsection str9 options
+@cindex str9 options
+
+@b{flash bank str9x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+The str9 needs the flash controller to be configured prior to Flash programming, eg.
+@smallexample
+str9x flash_config 0 4 2 0 0x80000
+@end smallexample
+This will setup the BBSR, NBBSR, BBADR and NBBADR registers respectively. 
+
+@subsection str9 options (str9xpec driver)
+
+@b{flash bank str9xpec} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+Before using the flash commands the turbo mode will need enabling using str9xpec
+@option{enable_turbo} <@var{num>.}
+
+Only use this driver for locking/unlocking the device or configuring the option bytes.
+Use the standard str9 driver for programming.
+
+@subsection stellaris (LM3Sxxx) options
+@cindex stellaris (LM3Sxxx) options
+
+@b{flash bank stellaris} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+stellaris flash plugin only require the target#. 
+
+@subsection stm32x options
+@cindex stm32x options
+
+@b{flash bank stm32x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+stm32x flash plugin only require the target#. 
+
+@node Commands
+@chapter Commands
+@cindex commands
+
+The Open On-Chip Debugger (OpenOCD) allows user interaction through a telnet interface
+(default: port 4444) and a GDB server (default: port 3333). The command line interpreter
+is available from both the telnet interface and a GDB session. To issue commands to the
+interpreter from within a GDB session, use the @option{monitor} command, e.g. use
+@option{monitor poll} to issue the @option{poll} command. All output is relayed through the
+GDB session.
+
+@section Daemon
+
+@itemize @bullet
+@item @b{sleep} <@var{msec}>
+@cindex sleep
+Wait for n milliseconds before resuming. Useful in connection with script files
+(@var{script} command and @var{target_script} configuration). 
+
+@item @b{shutdown}
+@cindex shutdown
+Close the OpenOCD daemon, disconnecting all clients (GDB, Telnet). 
+
+@item @b{debug_level} [@var{n}]
+@cindex debug_level
+Display or adjust debug level to n<0-3> 
+
+@item @b{log_output} <@var{file}>
+@cindex log_output
+Redirect logging to <file> (default: stderr) 
+
+@item @b{script} <@var{file}>
+@cindex script
+Execute commands from <file> 
+
+@end itemize
+
+@subsection Target state handling
+@itemize @bullet
+@item @b{poll} [@option{on}|@option{off}]
+@cindex poll
+Poll the target for its current state. If the target is in debug mode, architecture
+specific information about the current state are printed. An optional parameter
+allows continuous polling to be enabled and disabled.
+
+@item @b{halt}
+@cindex halt
+Send a halt request to the target. The debugger signals the debug request,
+and waits for the target to enter debug mode.
+
+@item @b{resume} [@var{address}]
+@cindex resume
+Resume the target at its current code position, or at an optional address.
+
+@item @b{step} [@var{address}]
+@cindex step
+Single-step the target at its current code position, or at an optional address. 
+
+@item @b{reset} [@option{run}|@option{halt}|@option{init}|@option{run_and_halt}
+|@option{run_and_init}]
+@cindex reset
+Do a hard-reset. The optional parameter specifies what should happen after the reset.
+This optional parameter overwrites the setting specified in the configuration file,
+making the new behaviour the default for the @option{reset} command.
+@itemize @minus
+@item run
+@cindex reset run
+Let the target run.
+@item halt
+@cindex reset halt
+Immediately halt the target (works only with certain configurations).
+@item init
+@cindex reset init
+Immediately halt the target, and execute the reset script (works only with certain
+configurations)
+@item run_and_halt
+@cindex reset run_and_halt
+Let the target run for a certain amount of time, then request a halt.
+@item run_and_init
+@cindex reset run_and_init
+Let the target run for a certain amount of time, then request a halt. Execute the
+reset script once the target entered debug mode.
+@end itemize
+@end itemize
+
+@subsection Memory access commands
+These commands allow accesses of a specific size to the memory system:
+@itemize @bullet
+@item @b{mdw} <@var{addr}> [@var{count}]
+@cindex mdw
+display memory words 
+@item @b{mdh} <@var{addr}> [@var{count}]
+@cindex mdh
+display memory half-words 
+@item @b{mdb} <@var{addr}> [@var{count}]
+@cindex mdb
+display memory bytes 
+@item @b{mww} <@var{addr}> <@var{value}>
+@cindex mww
+write memory word 
+@item @b{mwh} <@var{addr}> <@var{value}>
+@cindex mwh
+write memory half-word 
+@item @b{mwb} <@var{addr}> <@var{value}>
+@cindex mwb
+write memory byte 
+
+@item @b{load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
+@cindex load_image
+Load image <@var{file}> to target memory at <@var{address}> 
+@item @b{dump_image} <@var{file}> <@var{address}> <@var{size}>
+@cindex dump_image
+Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
+(binary) <@var{file}>.
+@item @b{verify_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
+@cindex verify_image
+Verify <@var{file}> to target memory starting at <@var{address}>.
+@item @b{load_binary} <@var{file}> <@var{address}> [DEPRECATED]
+@cindex load_binary
+Load binary <@var{file}> to target memory at <@var{address}> 
+@item @b{dump_binary} <@var{file}> <@var{address}> <@var{size}> [DEPRECATED]
+@cindex dump_binary
+Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
+(binary) <@var{file}>.
+@end itemize
+
+@subsection Flash commands
+@cindex Flash commands
+@itemize @bullet
+@item @b{flash banks}
+@cindex flash banks
+List configured flash banks 
+@item @b{flash info} <@var{num}>
+@cindex flash info
+Print info about flash bank <@option{num}> 
+@item @b{flash probe} <@var{num}>
+@cindex flash probe
+Identify the flash, or validate the parameters of the configured flash. Operation
+depends on the flash type. 
+@item @b{flash erase_check} <@var{num}>
+@cindex flash erase_check
+Check erase state of sectors in flash bank <@var{num}>. This is the only operation that
+updates the erase state information displayed by @option{flash info}. That means you have
+to issue an @option{erase_check} command after erasing or programming the device to get
+updated information. 
+@item @b{flash protect_check} <@var{num}>
+@cindex flash protect_check
+Check protection state of sectors in flash bank <num>. 
+@item @b{flash erase} <@var{num}> <@var{first}> <@var{last}>
+@cindex flash erase
+Erase sectors at bank <@var{num}>, starting at sector <@var{first}> up to and including
+<@var{last}>. Sector numbering starts at 0. Depending on the flash type, erasing might
+require the protection to be disabled first (e.g. Intel Advanced Bootblock flash using
+the CFI driver). 
+@item @b{flash write} <@var{num}> <@var{file}> <@var{offset}> [DEPRECATED]
+@cindex flash write
+Write the binary <@var{file}> to flash bank <@var{num}>, starting at <@var{offset}>
+bytes from the beginning of the bank. This command was replaced by the new command
+@option{flash write_binary} using the same syntax. 
+@item @b{flash write_binary} <@var{num}> <@var{file}> <@var{offset}>
+@cindex flash write_binary
+Write the binary <@var{file}> to flash bank <@var{num}>, starting at
+<@option{offset}> bytes from the beginning of the bank. 
+@item @b{flash write_image} <@var{file}> [@var{offset}] [@var{type}]
+@cindex flash write_image
+Write the image <@var{file}> to the current target's flash bank(s). A relocation
+[@var{offset}] can be specified and the file [@var{type}] can be specified
+explicitly as @option{bin} (binary), @option{ihex} (Intel hex), @option{elf}
+(ELF file) or @option{s19} (Motorola s19). 
+@item @b{flash protect} <@var{num}> <@var{first}> <@var{last}> <@option{on}|@option{off}>
+@cindex flash protect
+Enable (@var{on}) or disable (@var{off}) protection of flash sectors <@var{first}> to
+<@var{last}> of @option{flash bank} <@var{num}>. 
+@item @b{flash auto_erase} <@var{on}|@var{off}>
+@cindex flash auto_erase
+Enable (@option{on}) to erase flash banks prior to writing using the flash @option{write_image} command
+only. Default is (@option{off}), flash banks have to be erased using @option{flash erase} command. 
+@end itemize
+
+@page
+@section Target Specific Commands
+@cindex Target Specific Commands
+
+@subsection AT91SAM7 specific commands
+@cindex AT91SAM7 specific commands
+The flash configuration is deduced from the chip identification register. The flash
+controller handles erases automatically on a page (128/265 byte) basis so erase is
+not necessary for flash programming. AT91SAM7 processors with less than 512K flash
+only have a single flash bank embedded on chip. AT91SAM7xx512 have two flash planes
+that can be erased separatly.Only an EraseAll command is supported by the controller
+for each flash plane and this is called with
+@itemize @bullet
+@item @b{flash erase} <@var{num}> @var{first_plane} @var{last_plane}
+bulk erase flash planes first_plane to last_plane. 
+@item @b{at91sam7 gpnvm} <@var{num}> <@var{bit}> <@option{set}|@option{clear}>
+@cindex at91sam7 gpnvm
+set or clear a gpnvm bit for the processor 
+@end itemize
+
+@subsection STR9 specific commands
+@cindex STR9 specific commands
+These are flash specific commands when using the str9xpec driver.
+@itemize @bullet
+@item @b{str9xpec enable_turbo} <@var{num}>
+@cindex str9xpec enable_turbo
+enable turbo mode, simply this will remove the str9 from the chain and talk
+directly to the embedded flash controller. 
+@item @b{str9xpec disable_turbo} <@var{num}>
+@cindex str9xpec disable_turbo
+restore the str9 into jtag chain. 
+@item @b{str9xpec lock} <@var{num}>
+@cindex str9xpec lock
+lock str9 device. The str9 will only respond to an unlock command that will
+erase the device. 
+@item @b{str9xpec unlock} <@var{num}>
+@cindex str9xpec unlock
+unlock str9 device. 
+@item @b{str9xpec options_read} <@var{num}>
+@cindex str9xpec options_read
+read str9 option bytes. 
+@item @b{str9xpec options_write} <@var{num}>
+@cindex str9xpec options_write
+write str9 option bytes. 
+@end itemize
+
+@subsection STR9 configuration
+@cindex STR9 configuration
+@itemize @bullet
+@item @b{str9x flash_config} <@var{bank}> <@var{BBSR}> <@var{NBBSR}>
+<@var{BBADR}> <@var{NBBADR}>
+@cindex str9x flash_config
+Configure str9 flash controller.
+@smallexample
+eg. str9x flash_config 0 4 2 0 0x80000
+This will setup
+BBSR - Boot Bank Size register
+NBBSR - Non Boot Bank Size register
+BBADR - Boot Bank Start Address register
+NBBADR - Boot Bank Start Address register
+@end smallexample
+@end itemize
+
+@subsection STR9 option byte configuration
+@cindex STR9 option byte configuration
+@itemize @bullet
+@item @b{str9xpec options_cmap} <@var{num}> <@option{bank0}|@option{bank1}>
+@cindex str9xpec options_cmap
+configure str9 boot bank. 
+@item @b{str9xpec options_lvdthd} <@var{num}> <@option{2.4v}|@option{2.7v}>
+@cindex str9xpec options_lvdthd
+configure str9 lvd threshold. 
+@item @b{str9xpec options_lvdsel} <@var{num}> <@option{vdd}|@option{vdd_vddq}>
+@cindex str9xpec options_lvdsel
+configure str9 lvd source. 
+@item @b{str9xpec options_lvdwarn} <@var{bank}> <@option{vdd}|@option{vdd_vddq}>
+@cindex str9xpec options_lvdwarn
+configure str9 lvd reset warning source. 
+@end itemize
+
+@subsection STM32x specific commands
+@cindex STM32x specific commands
+ 
+These are flash specific commands when using the stm32x driver.
+@itemize @bullet
+@item @b{stm32x lock} <@var{num}>
+@cindex stm32x lock
+lock stm32 device. 
+@item @b{stm32x unlock} <@var{num}>
+@cindex stm32x unlock
+unlock stm32 device. 
+@item @b{stm32x options_read} <@var{num}>
+@cindex stm32x options_read
+read stm32 option bytes. 
+@item @b{stm32x options_write} <@var{num}> <@option{SWWDG}|@option{HWWDG}>
+<@option{RSTSTNDBY}|@option{NORSTSTNDBY}> <@option{RSTSTOP}|@option{NORSTSTOP}>
+@cindex stm32x options_write
+write stm32 option bytes. 
+@item @b{stm32x mass_erase} <@var{num}>
+@cindex stm32x mass_erase
+mass erase flash memory. 
+@end itemize
+
+@page
+@section Arcitecture Specific Commands
+@cindex Arcitecture Specific Commands
+
+@subsection ARMV4/5 specific commands
+@cindex ARMV4/5 specific commands
+
+These commands are specific to ARM architecture v4 and v5, like all ARM7/9 systems
+or Intel XScale (XScale isn't supported yet).
+@itemize @bullet
+@item @b{armv4_5 reg}
+@cindex armv4_5 reg
+Display a list of all banked core registers, fetching the current value from every
+core mode if necessary. OpenOCD versions before rev. 60 didn't fetch the current
+register value. 
+@item @b{armv4_5 core_mode} [@option{arm}|@option{thumb}]
+@cindex armv4_5 core_mode
+Displays the core_mode, optionally changing it to either ARM or Thumb mode.
+The target is resumed in the currently set @option{core_mode}. 
+@end itemize
+
+@subsection ARM7/9 specific commands
+@cindex ARM7/9 specific commands
+
+These commands are specific to ARM7 and ARM9 targets, like ARM7TDMI, ARM720t,
+ARM920t or ARM926EJ-S.
+@itemize @bullet
+@item @b{arm7_9 sw_bkpts} <@option{enable}|@option{disable}>
+@cindex arm7_9 sw_bkpts
+Enable/disable use of software breakpoints. On ARMv4 systems, this reserves
+one of the watchpoint registers to implement software breakpoints. Disabling
+SW Bkpts frees that register again. 
+@item @b{arm7_9 force_hw_bkpts} <@option{enable}|@option{disable}>
+@cindex arm7_9 force_hw_bkpts
+When @option{force_hw_bkpts} is enabled, the @option{sw_bkpts} support is disabled, and all
+breakpoints are turned into hardware breakpoints.
+@item @b{arm7_9 dbgrq} <@option{enable}|@option{disable}>
+@cindex arm7_9 dbgrq
+Enable use of the DBGRQ bit to force entry into debug mode. This should be
+safe for all but ARM7TDMI--S cores (like Philips LPC). 
+@item @b{arm7_9 fast_writes} <@option{enable}|@option{disable}>
+@cindex arm7_9 fast_writes [DEPRECATED]
+See @option{arm7_9 fast_memory_access} instead. 
+@item @b{arm7_9 fast_memory_access} <@option{enable}|@option{disable}>
+@cindex arm7_9 fast_memory_access
+Allow the OpenOCD to read and write memory without checking completion of
+the operation. This provides a huge speed increase, especially with USB JTAG
+cables (FT2232), but might be unsafe if used with targets running at a very low
+speed, like the 32kHz startup clock of an AT91RM9200. 
+@item @b{arm7_9 dcc_downloads} <@option{enable}|@option{disable}>
+@cindex arm7_9 dcc_downloads
+Enable the use of the debug communications channel (DCC) to write larger (>128 byte)
+amounts of memory. DCC downloads offer a huge speed increase, but might be potentially
+unsafe, especially with targets running at a very low speed. This command was introduced
+with OpenOCD rev. 60. 
+@end itemize
+
+@subsection ARM920T specific commands
+@cindex ARM920T specific commands
+
+@itemize @bullet
+@item @b{arm920t cache_info}
+@cindex arm920t cache_info
+Print information about the caches found. This allows you to see if your target
+is a ARM920T (2x16kByte cache) or ARM922T (2x8kByte cache). 
+@item @b{arm920t md<bhw>_phys} <@var{addr}> [@var{count}]
+@cindex arm920t md<bhw>_phys
+Display memory at physical address addr. 
+@item @b{arm920t mw<bhw>_phys} <@var{addr}> <@var{value}>
+@cindex arm920t mw<bhw>_phys
+Write memory at physical address addr. 
+@item @b{arm920t read_cache} <@var{filename}>
+@cindex arm920t read_cache
+Dump the content of ICache and DCache to a file. 
+@item @b{arm920t read_mmu} <@var{filename}>
+@cindex arm920t read_mmu
+Dump the content of the ITLB and DTLB to a file. 
+@item @b{arm920t virt2phys} <@var{VA}>
+@cindex arm920t virt2phys
+Translate a virtual address to a physical address. 
+@end itemize
+
+@page
+@section Debug commands
+@cindex Debug commands
+The following commands give direct access to the core, and are most likely
+only useful while debugging the OpenOCD.
+@itemize @bullet
+@item @b{arm7_9 write_xpsr} <@var{32-bit value}> <@option{0=cpsr}, @option{1=spsr}>
+@cindex arm7_9 write_xpsr
+Immediately write either the current program status register (CPSR) or the saved
+program status register (SPSR), without changing the register cache (as displayed
+by the @option{reg} and @option{armv4_5 reg} commands). 
+@item @b{arm7_9 write_xpsr_im8} <@var{8-bit value}> <@var{rotate 4-bit}>
+<@var{0=cpsr},@var{1=spsr}>
+@cindex arm7_9 write_xpsr_im8
+Write the 8-bit value rotated right by 2*rotate bits, using an immediate write
+operation (similar to @option{write_xpsr}). 
+@item @b{arm7_9 write_core_reg} <@var{num}> <@var{mode}> <@var{value}>
+@cindex arm7_9 write_core_reg
+Write a core register, without changing the register cache (as displayed by the
+@option{reg} and @option{armv4_5 reg} commands). The <@var{mode}> argument takes the
+encoding of the [M4:M0] bits of the PSR. 
+@end itemize
+
+@page
+@section JTAG commands
+@cindex JTAG commands
+@itemize @bullet
+@item @b{scan_chain}
+@cindex scan_chain
+Print current scan chain configuration. 
+@item @b{jtag_reset}
+@cindex jtag_reset
+Toggle reset lines <@var{trst}> <@var{srst}>. 
+@item @b{endstate} <@var{tap_state}>
+@cindex endstate
+Finish JTAG operations in <@var{tap_state}>. 
+@item @b{runtest} <@var{num_cycles}>
+@cindex runtest
+Move to Run-Test/Idle, and execute <@var{num_cycles}> 
+@item @b{statemove} [@var{tap_state}]
+@cindex statemove
+Move to current endstate or [@var{tap_state}] 
+@item @b{irscan}
+@cindex irscan
+Execute IR scan <@var{device}> <@var{instr}> [@var{dev2}] [@var{instr2}] ... 
+@item @b{drscan}
+@cindex drscan
+Execute DR scan <@var{device}> [@var{dev2}] [@var{var2}] ... 
+@item @b{verify_ircapture}
+@cindex verify_ircapture
+Verify value captured during Capture-IR <@option{enable}|@option{disable}> 
+@item @b{var}
+@cindex var
+Allocate, display or delete variable <@var{name}> [@var{num_fields}|@var{del}] [@var{size1}] ... 
+@item @b{field}
+@cindex field
+Display/modify variable field <@var{var}> <@var{field}> [@var{value}|@var{flip}] 
+@end itemize
+
+@node Sample Scripts
+@chapter Sample Scripts
+@cindex scripts
+
+This page will collect some script examples for different CPUs.
+
+The configuration script can be divided in the following section:
+@itemize @bullet
+@item deamon configuration
+@item interface
+@item jtag scan chain
+@item target configuration
+@item flash configuration 
+@end itemize
+
+Detailed information about each section can be found at OpenOCD configuration 
+
+@section OMAP5912 Flash Debug
+@cindex OMAP5912 Flash Debug
+The following two scripts was used with an wiggler PP and and a TI OMAP5912
+dual core processor (@uref{http://www.ti.com}) on a OMAP5912 OSK board
+@uref{(http://www.spectrumdigital.com}).
+@subsection Openocd config
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+
+#interface
+interface parport
+parport_port 0x378
+parport_cable wiggler
+jtag_speed 0
+
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst
+
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 38 0x0 0x0 0x0
+jtag_device 4  0x1 0x0 0xe
+jtag_device 8  0x0 0x0 0x0
+
+#target configuration
+daemon_startup reset
+
+#target <type> <endianness> <reset mode> <chainpos> <variant>
+target arm926ejs little run_and_init 1 arm926ejs
+target_script 0 reset omap5912_osk.init
+run_and_halt_time 0 30
+
+# omap5912 lcd frame buffer as working area
+working_area 0 0x20000000 0x3e800 nobackup
+
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+flash bank cfi 0x00000000 0x1000000 2 2 0
+@end smallexample
+
+@subsection Openocd init
+@smallexample
+#
+# halt target
+#
+poll
+sleep 1
+halt
+wait_halt
+#
+# disable wdt
+#
+mww 0xfffec808 0x000000f5
+mww 0xfffec808 0x000000a0
+
+mww 0xfffeb048 0x0000aaaa
+sleep 500
+mww 0xfffeb048 0x00005555
+sleep 500
+#
+# detect flash
+#
+flash probe 0
+
+@end smallexample
+
+@section STR71x Script
+@cindex STR71x Script
+The following script was used with an Amontec JTAGkey and a STR710 / STR711 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+ft2232_vid_pid 0x0403 0xcff8
+jtag_speed 0
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst srst_pulls_trst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm7tdmi <endianness> <reset mode> <chainpos> <variant>
+target arm7tdmi little run_and_halt 0 arm7tdmi
+run_and_halt_time 0 30
+
+working_area 0 0x2000C000 0x4000 nobackup
+ 
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+flash bank str7x 0x40000000 0x00040000 0 0 0 STR71x
+@end smallexample
+
+@section STR750 Script
+@cindex STR750 Script
+The following script was used with an Amontec JTAGkey and a STR750 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+ft2232_vid_pid 0x0403 0xcff8
+jtag_speed 19
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+#reset_config trst_and_srst srst_pulls_trst
+reset_config trst_and_srst srst_pulls_trst
+
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+
+#jtag nTRST and nSRST delay
+jtag_nsrst_delay 500
+jtag_ntrst_delay 500
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm7tdmi <reset mode> <chainpos> <endianness> <variant>
+target arm7tdmi little run_and_halt 0 arm7tdmi
+run_and_halt_time 0 30
+ 
+working_area 0 0x40000000 0x4000 nobackup
+ 
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+flash bank str7x 0x20000000 0x000040000 0 0 0 STR75x
+@end smallexample
+
+@section STR912 Script
+@cindex STR912 Script
+The following script was used with an Amontec JTAGkey and a STR912 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+jtag_speed 1
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 8 0x1 0x1 0xfe
+jtag_device 4 0x1 0xf 0xe
+jtag_device 5 0x1 0x1 0x1e
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm966e <endianness> <reset mode> <chainpos> <variant>
+target arm966e little reset_halt 1 arm966e
+run_and_halt_time 0 30
+ 
+working_area 0 0x50000000 16384 nobackup
+ 
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+flash bank str9x 0x00000000 0x00080000 0 0 0
+@end smallexample
+
+@section STM32x Script
+@cindex STM32x Script
+The following script was used with an Amontec JTAGkey and a STM32x cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+jtag_speed 10
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+jtag_device 5 0x1 0x1 0x1e
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target cortex_m3 <endianness> <reset mode> <chainpos> <variant>
+target cortex_m3 little run_and_halt 0
+run_and_halt_time 0 30
+ 
+working_area 0 0x20000000 16384 nobackup
+ 
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+flash bank stm32x 0x08000000 0x00010000 0 0 0
+@end smallexample
+
+@section  LPC2294 Script
+@cindex  LPC2294 Script
+The following script was used with an Amontec JTAGkey and a LPC2294 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+ft2232_vid_pid 0x0403 0xcff8
+jtag_speed 2
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst srst_pulls_trst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm7tdmi <endianness> <reset mode> <chainpos> <variant>
+target arm7tdmi little run_and_halt 0 arm7tdmi-s_r4
+run_and_halt_time 0 30
+ 
+working_area 0 0x40000000 0x40000 nobackup
+ 
+#flash configuration
+flash bank lpc2000 0x0 0x40000 0 0 0 lpc2000_v1 14765 calc_checksum
+@end smallexample
+
+@section AT91R40008 Script
+@cindex AT91R40008 Script
+The following script was used with an Amontec JTAGkey and a AT91R40008 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+ft2232_vid_pid 0x0403 0xcff8
+jtag_speed 0
+jtag_nsrst_delay 200
+jtag_ntrst_delay 200
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config srst_only srst_pulls_trst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm7tdmi <endianness> <reset mode> <chainpos> <variant>
+target arm7tdmi little run_and_halt 0 arm7tdmi
+run_and_halt_time 0 30
+@end smallexample
+
+@section LPC2129 Script
+@cindex LPC2129 Script
+The following script was used with an wiggler PP and a LPC-2129 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface parport
+parport_port 0x378
+parport_cable wiggler
+jtag_speed 0
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst srst_pulls_trst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm7tdmi <endianness> <reset mode> <chainpos> <variant>
+target arm7tdmi little run_and_halt 0 arm7tdmi-s_r4
+run_and_halt_time 0 30
+ 
+working_area 0 0x00000000 0x400000 nobackup
+ 
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+flash bank lpc2000 0x0 0x40000 0 0 0 lpc2000_v1 14765 calc_checksum
+@end smallexample
+
+@section AT91SAM7s Script
+@cindex AT91SAM7s Script
+The following script was used with an Olimex ARM-JTAG-OCD and a AT91SAM7S64 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "Olimex OpenOCD JTAG A"
+ft2232_layout olimex-jtag
+ft2232_vid_pid 0x15BA 0x0003
+jtag_speed 0
+jtag_nsrst_delay 200
+jtag_ntrst_delay 200
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config srst_only srst_pulls_trst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm7tdmi <endianness> <reset mode> <chainpos> <variant>
+target arm7tdmi little run_and_halt 0 arm7tdmi
+run_and_halt_time 0 30
+ 
+# flash-options AT91
+working_area 0 0x00200000 0x4000 nobackup
+flash bank at91sam7 0 0 0 0 0
+ 
+# Information: 
+# erase command (telnet-interface) for complete flash:
+# flash erase <num> 0 numlockbits-1 (can be seen from output of flash info 0)
+# SAM7S64 with 16 lockbits and bank 0: flash erase 0 0 15
+# set/clear NVM-Bits:
+# at91sam7 gpnvm <num> <bit> <set|clear>
+# disable locking from SAM-BA:
+# flash protect 0 0 1 off
+@end smallexample
+
+@section XSCALE IXP42x Script
+@cindex XSCALE IXP42x Script
+The following script was used with an Amontec JTAGkey-Tiny and a xscale ixp42x cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+ft2232_vid_pid 0x0403 0xcff8
+jtag_speed 0
+jtag_nsrst_delay 200
+jtag_ntrst_delay 200
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config srst_only srst_pulls_trst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 7 0x1 0x7f 0x7e
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm7tdmi <reset mode> <chainpos> <endianness> <variant>
+target xscale big run_and_halt 0 IXP42x
+run_and_halt_time 0 30
+@end smallexample
+
+@section Cirrus Logic EP9301 Script
+@cindex Cirrus Logic EP9301 Script
+The following script was used with FT2232 based JTAG interfaces and a
+Cirrus Logic EP9301 processor on an Olimex CS-E9301 board.
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+
+#Olimex ARM-USB-OCD
+#ft2232_device_desc "Olimex OpenOCD JTAG"
+#ft2232_layout olimex-jtag
+#ft2232_vid_pid 0x15ba 0x0003
+ 
+#Amontec JTAGkey (and JTAGkey-Tiny)
+#Serial is only necessary if more than one JTAGkey is connected
+ft2232_device_desc "Amontec JTAGkey A"
+#ft2232_serial AMTJKV31
+#ft2232_serial T1P3S2W8
+ft2232_layout jtagkey
+ft2232_vid_pid 0x0403 0xcff8
+ 
+#wiggler/parallel port interface
+#interface parport
+#parport_port 0x378
+#parport_cable wiggler
+#jtag_speed 0
+jtag_speed 1
+reset_config trst_and_srst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+ 
+jtag_nsrst_delay 100
+jtag_ntrst_delay 100
+ 
+#target configuration
+daemon_startup attach
+ 
+#target <type> <endianess> <reset mode>
+target arm920t little reset_halt 0
+working_area 0 0x80014000 0x1000 backup
+ 
+#flash configuration
+#flash bank <driver> <base> <size> <chip_width> <bus_width> [driver_options ...]
+flash bank cfi 0x60000000 0x1000000 2 2 0
+@end smallexample
+
+@section Hilscher netX 100 / 500 Script
+@cindex Hilscher netX 100 / 500 Script
+The following script was used with an Amontec JTAGkey and a Hilscher
+netX 500 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+ft2232_vid_pid 0x0403 0xcff8
+jtag_speed 5
+
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst
+
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+
+jtag_nsrst_delay 100
+jtag_ntrst_delay 100
+
+#target configuration
+daemon_startup reset
+
+#target <type> <endianness> <startup mode> <chainpos> <variant>
+target arm926ejs little run_and_halt 0 arm926ejs
+run_and_halt_time 0 500
+@end smallexample
+
+@section Marvell/Intel PXA270 Script
+@cindex Marvell/Intel PXA270 Script
+@smallexample
+# config for Intel PXA270
+# not, as of 2007-06-22, openocd only works with the
+# libftd2xx library from ftdi.  libftdi does not work.
+
+telnet_port	3333
+gdb_port	4444
+
+interface ft2232
+ft2232_layout olimex-jtag
+ft2232_vid_pid 0x15BA 0x0003
+ft2232_device_desc "Olimex OpenOCD JTAG"
+jtag_speed 0
+# set jtag_nsrst_delay to the delay introduced by your reset circuit
+# the rest of the needed delays are built into the openocd program
+jtag_nsrst_delay 260
+# set the jtag_ntrst_delay to the delay introduced by a reset circuit
+# the rest of the needed delays are built into the openocd program
+jtag_ntrst_delay 0
+
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst separate
+
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 7 0x1 0x7f 0x7e
+
+#target configuration
+daemon_startup reset
+
+target xscale little reset_halt 0 pxa27x
+
+# maps to PXA internal RAM.  If you are using a PXA255
+# you must initialize SDRAM or leave this option off
+working_area 0 0x5c000000 0x10000 nobackup
+
+run_and_halt_time 0 30
+
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+# works for P30 flash
+flash bank cfi 0x00000000 0x1000000 2 4 0
+@end smallexample
+
+@node FAQ
+@chapter FAQ
+@cindex faq
+@enumerate
+@item OpenOCD complains about a missing cygwin1.dll
+
+Make sure you have Cygwin installed, or at least a version of OpenOCD that
+claims to come with all the necessary dlls. When using Cygwin, try launching
+the OpenOCD from the Cygwin shell.
+
+@item I'm trying to set a breakpoint using GDB (or a frontend like Insight or
+Eclipse), but OpenOCD complains that "Info: arm7_9_common.c:213
+arm7_9_add_breakpoint(): sw breakpoint requested, but software breakpoints not enabled".
+
+GDB issues software breakpoints when a normal breakpoint is requested, or to implement
+source-line single-stepping. On ARMv4T systems, like ARM7TDMI, ARM720t or ARM920t,
+software breakpoints consume one of the two available hardware breakpoints,
+and are therefor disabled by default. If your code is running from RAM, you
+can enable software breakpoints with the @option{arm7_9 sw_bkpts enable} command. If
+your code resides in Flash, you can't use software breakpoints, but you can force
+OpenOCD to use hardware breakpoints instead: @option{arm7_9 force_hw_bkpts enable}.
+
+@item When erasing or writing LPC2000 on-chip flash, the operation fails sometimes
+and works sometimes fine.
+
+Make sure the core frequency specified in the @option{flash lpc2000} line matches the
+clock at the time you're programming the flash. If you've specified the crystal's
+frequency, make sure the PLL is disabled, if you've specified the full core speed
+(e.g. 60MHz), make sure the PLL is enabled.
+
+@item When debugging using an Amontec Chameleon in its JTAG Accelerator configuration,
+I keep getting "Error: amt_jtagaccel.c:184 amt_wait_scan_busy(): amt_jtagaccel timed
+out while waiting for end of scan, rtck was disabled".
+
+Make sure your PC's parallel port operates in EPP mode. You might have to try several
+settings in your PC Bios (ECP, EPP, and different versions of those).
+
+@item When debugging with the OpenOCD and GDB (plain GDB, Insight, or Eclipse),
+I get lots of "Error: arm7_9_common.c:1771 arm7_9_read_memory():
+memory read caused data abort". 
+
+The errors are non-fatal, and are the result of GDB trying to trace stack frames
+beyond the last valid frame. It might be possible to prevent this by setting up
+a proper "initial" stack frame, if you happen to know what exactly has to
+be done, feel free to add this here.
+
+@item I get the following message in the OpenOCD console (or log file):
+"Warning: arm7_9_common.c:679 arm7_9_assert_reset(): srst resets test logic, too".
+
+This warning doesn't indicate any serious problem, as long as you don't want to
+debug your core right out of reset. Your .cfg file specified @option{jtag_reset
+trst_and_srst srst_pulls_trst} to tell the OpenOCD that either your board,
+your debugger or your target uC (e.g. LPC2000) can't assert the two reset signals
+independently. With this setup, it's not possible to halt the core right out of
+reset, everything else should work fine.
+
+@item When using OpenOCD in conjunction with Amontec JTAGkey and the Yagarto
+Toolchain (Eclipse, arm-elf-gcc, arm-elf-gdb), the debugging seems to be
+unstable. When single-stepping over large blocks of code, GDB and OpenOCD
+quit with an error message. Is there a stability issue with OpenOCD?
+
+No, this is not a stability issue concering OpenOCD. Most users have solved
+this issue by simply using a self-powered USB Hub, which they connect their
+Amontec JTAGkey to. Apparently, some computers do not provide a USB power
+supply stable enough for the Amontec JTAGkey to be operated.
+
+@item When using the Amontec JTAGkey, sometimes OpenOCD crashes with the
+following error messages: "Error: ft2232.c:201 ft2232_read(): FT_Read returned:
+4" and "Error: ft2232.c:365 ft2232_send_and_recv(): couldn't read from FT2232".
+What does that mean and what might be the reason for this?
+
+First of all, the reason might be the USB power supply. Try using a self-powered
+hub instead of a direct connection to your computer. Secondly, the error code 4
+corresponds to an FT_IO_ERROR, which means that the driver for the FTDI USB
+Chip ran into some sort of error - this points us to a USB problem.
+
+@item When using the Amontec JTAGkey, sometimes OpenOCD crashes with the following
+error message: "Error: gdb_server.c:101 gdb_get_char(): read: 10054".
+What does that mean and what might be the reason for this?
+
+Error code 10054 corresponds to WSAECONNRESET, which means that the debugger (GDB)
+has closed the connection to OpenOCD. This might be a GDB issue.
+
+@item In the configuration file in the section where flash device configurations
+are described, there is a parameter for specifying the clock frequency for
+LPC2000 internal flash devices (e.g.
+@option{flash bank lpc2000 0x0 0x40000 0 0 lpc2000_v1 0 14746 calc_checksum}),
+which must be sepcified in kilohertz. However, I do have a quartz crystal of a
+frequency that contains fractions of kilohertz (e.g. 14,745,600 Hz, i.e. 14,745.600 kHz).
+Is it possible to specify real numbers for the clock frequency?
+
+No. The clock frequency specified here must be given as an integral number.
+However, this clock frequency is used by the In-Application-Programming (IAP)
+routines of the LPC2000 family only, which seems to be very tolerant concerning
+the given clock frequency, so a slight difference between the specified clock
+frequency and the actual clock frequency will not cause any trouble.
+
+@item Do I have to keep a specific order for the commands in the configuration file?
+
+Well, yes and no. Commands can be given in arbitrary order, yet the devices
+listed for the JTAG scan chain must be given in the right order (jtag_device),
+with the device closest to the TDO-Pin being listed first. In general,
+whenever objects of the same type exist which require an index number, then
+these objects must be given in the right order (jtag_devices, targets and flash
+banks - a target references a jtag_device and a flash bank references a target).
+
+@item Sometimes my debugging session terminates with an error. When I look into the
+log file, I can see these error messages: Error: arm7_9_common.c:561
+arm7_9_execute_sys_speed(): timeout waiting for SYSCOMP
+							
+@end enumerate
+
+@include fdl.texi
+
+@node Index
+@unnumbered Index
+
+@printindex cp
+
+@bye

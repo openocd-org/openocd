@@ -23,8 +23,16 @@
 #include "flash.h"
 #include "target.h"
 
+typedef struct stm32x_options_s
+{
+	u16 RDP;
+	u16 user_options;
+	u16 protection[4];
+} stm32x_options_t;
+
 typedef struct stm32x_flash_bank_s
 {
+	stm32x_options_t option_bytes;
 	working_area_t *write_algorithm;
 } stm32x_flash_bank_t;
 
@@ -41,7 +49,14 @@ typedef struct stm32x_flash_bank_s
 
 /* option byte location */
 
-#define STM32_OB_ADR		0x1FFFF800
+#define STM32_OB_RDP		0x1FFFF800
+#define STM32_OB_USER		0x1FFFF802
+#define STM32_OB_DATA0		0x1FFFF804
+#define STM32_OB_DATA1		0x1FFFF806
+#define STM32_OB_WRP0		0x1FFFF808
+#define STM32_OB_WRP1		0x1FFFF80A
+#define STM32_OB_WRP2		0x1FFFF80C
+#define STM32_OB_WRP3		0x1FFFF80E
 
 /* FLASH_CR register bits */
 
