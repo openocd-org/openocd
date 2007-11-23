@@ -356,6 +356,8 @@ Luminary Micro EVB_LM3S811 as a JTAG interface (not onboard processor), no TRST 
 SRST signals on external connector
 @item comstick
 Hitex STR9 comstick 
+@item stm32stick
+Hitex STM32 Performance Stick
 @end itemize
 
 @item @b{ft2232_vid_pid} <@var{vid}> <@var{pid}>
@@ -1181,6 +1183,46 @@ working_area 0 0x50000000 16384 nobackup
 flash bank str9x 0x00000000 0x00080000 0 0 0
 @end smallexample
 
+@section STR912 comstick
+@cindex STR912 comstick Script
+The following script was used with a Hitex STR9 Comstick:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "STR9-comStick A"
+ft2232_layout comstick
+jtag_speed 1
+
+jtag_nsrst_delay 100
+jtag_ntrst_delay 100
+
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 8 0x1 0x1 0xfe
+jtag_device 4 0x1 0xf 0xe
+jtag_device 5 0x1 0x1 0x1e
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm966e <endianness> <reset mode> <chainpos> <variant>
+target arm966e little reset_halt 1 arm966e
+run_and_halt_time 0 30
+ 
+working_area 0 0x50000000 16384 nobackup
+ 
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+flash bank str9x 0x00000000 0x00080000 0 0 0
+@end smallexample
+
 @section STM32x Script
 @cindex STM32x Script
 The following script was used with an Amontec JTAGkey and a STM32x cpu:
@@ -1194,7 +1236,10 @@ interface ft2232
 ft2232_device_desc "Amontec JTAGkey A"
 ft2232_layout jtagkey
 jtag_speed 10
- 
+
+jtag_nsrst_delay 100
+jtag_ntrst_delay 100
+
 #use combined on interfaces or targets that can't set TRST/SRST separately
 reset_config trst_and_srst
  
@@ -1202,6 +1247,46 @@ reset_config trst_and_srst
 #format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
 jtag_device 4 0x1 0xf 0xe
 jtag_device 5 0x1 0x1 0x1e
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target cortex_m3 <endianness> <reset mode> <chainpos> <variant>
+target cortex_m3 little run_and_halt 0
+run_and_halt_time 0 30
+ 
+working_area 0 0x20000000 16384 nobackup
+ 
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+flash bank stm32x 0x08000000 0x00010000 0 0 0
+@end smallexample
+
+@section STM32x Performance Stick
+@cindex STM32x Performance Stick Script
+The following script was used with the Hitex STM32 Performance Stick
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "STM32-PerformanceStick A"
+ft2232_layout stm32stick
+jtag_speed 10
+
+jtag_nsrst_delay 100
+jtag_ntrst_delay 100
+
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+jtag_device 5 0x1 0x1 0x1e
+jtag_device 4 0x1 0xf 0xe
  
 #target configuration
 daemon_startup reset
