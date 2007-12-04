@@ -243,11 +243,19 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4)
 		{
-			target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
+			u32 current_instr;
+			/* check that user program as not modified breakpoint instruction */
+			target->type->read_memory(target, breakpoint->address, 4, 1, (u8*)&current_instr);
+			if (current_instr==arm7_9->arm_bkpt)
+				target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
 		}
 		else
 		{
-			target->type->write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
+			u16 current_instr;
+			/* check that user program as not modified breakpoint instruction */
+			target->type->read_memory(target, breakpoint->address, 2, 1, (u8*)&current_instr);
+			if (current_instr==arm7_9->thumb_bkpt)
+				target->type->write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
 		}
 		breakpoint->set = 0;
 	}
