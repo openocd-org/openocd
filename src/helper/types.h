@@ -57,14 +57,15 @@ typedef unsigned long long u64;
 
 #define h_u16_to_le(buf, val)  \
 	do { \
-		(buf)[0] = ((val) & 0xff000) >> 8; \
-		(buf)[1] = ((val) & 0x00ff); \
+		(buf)[1] = ((val) & 0xff00) >> 8; \
+		(buf)[0] = ((val) & 0x00ff); \
 	} while (0)
 
 #define h_u32_to_be(buf, val) do { *(u32*)(buf) = (val); } while (0)
 #define h_u16_to_be(buf, val) do { *(u16*)(buf) = (val); } while (0)
 
 #else /* little endian host */
+
 #define le_to_h_u32(x) (*(u32*)(x))
 #define le_to_h_u16(x) (*(u16*)(x))
 #define be_to_h_u32(x) (u32)((x)[3] | (x)[2] << 8 | (x)[1] << 16 | (x)[0] << 24)
@@ -83,7 +84,7 @@ typedef unsigned long long u64;
 
 #define h_u16_to_be(buf, val) \
 	do { \
-		(buf)[0] = ((val) & 0xff000) >> 8; \
+		(buf)[0] = ((val) & 0xff00) >> 8; \
 		(buf)[1] = ((val) & 0x00ff); \
 	} while (0)
 #endif
