@@ -1287,7 +1287,7 @@ int jtag_examine_chain()
 			part = (idcode & 0xffff000) >> 12;
 			version = (idcode & 0xf0000000) >> 28;
 
-			DEBUG("JTAG device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x", 
+			INFO("JTAG device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x)", 
 				idcode, manufacturer, part, version);
 			
 			bit_count += 32;

@@ -570,10 +570,19 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	
 	failed = malloc(sizeof(int) * image.num_sections);
 
-	if ((retval = flash_write(target, &image, &written, &error_str, failed, auto_erase)) != ERROR_OK)
+	error_str=NULL;
+	retval = flash_write(target, &image, &written, &error_str, failed, auto_erase);
+	
+	if (retval != ERROR_OK)
 	{
-		command_print(cmd_ctx, "failed writing image %s: %s", args[0], error_str);
-		free(error_str);
+		if (error_str)
+		{
+			command_print(cmd_ctx, "failed writing image %s: %s", args[0], error_str);
+			free(error_str);
+		}
+		image_close(&image);
+		free(failed);
+		return retval;
 	}
 	
 	for (i = 0; i < image.num_sections; i++)
@@ -937,4 +946,5 @@ int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	return ERROR_OK;
 }
+
 

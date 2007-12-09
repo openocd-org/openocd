@@ -313,6 +313,23 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	while (target)
 	{
 		target->type->deassert_reset(target);
+
+		switch (target->reset_mode)
+		{
+			case RESET_INIT:
+			case RESET_HALT:
+				// If we're already halted, then this is harmless(reducing # of execution paths here)
+				// If nSRST & nTRST are tied together then the halt during reset failed(logged) and
+				// we use this as fallback(there is no other output to tell the user that reset halt 
+				// didn't work).
+				target->type->poll(target);
+				target->type->halt(target);
+				break;
+			default:
+				break;
+		}
+		
+		
 		target = target->next;
 	}
 	jtag_execute_queue();
@@ -1047,7 +1064,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				(*last_target_p)->trace_info->trace_history_overflowed = 0;
 				
 				(*last_target_p)->dbgmsg = NULL;
-				
+								
 				(*last_target_p)->type->target_command(cmd_ctx, cmd, args, argc, *last_target_p);
 				
 				found = 1;
@@ -1188,8 +1205,7 @@ int handle_target(void *priv)
 			if (target_continous_poll)
 				if ((retval = target->type->poll(target)) < 0)
 				{
-					ERROR("couldn't poll target, exiting");
-					exit(-1);
+					ERROR("couldn't poll target. It's due for a reset.");
 				}
 		}
 	
@@ -1860,7 +1876,7 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	if (!target)
 	{
 		ERROR("no target selected");
-		return ERROR_OK;
+	return ERROR_OK;
 	}
 	
 	duration_start_measure(&duration);
@@ -1875,7 +1891,7 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		image.base_address_set = 0;
 		image.base_address = 0x0;
 	}
-	
+
 	image.start_address_set = 0;
 
 	if (image_open(&image, args[0], (argc == 3) ? args[2] : NULL) != ERROR_OK)
@@ -2084,4 +2100,5 @@ int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	
 	return ERROR_OK;
 }
+
 
