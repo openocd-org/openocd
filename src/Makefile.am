@@ -6,6 +6,13 @@ INCLUDES = -I$(top_srcdir)/src/helper \
 	-I$(top_srcdir)/src/jtag -I$(top_srcdir)/src/target -I$(top_srcdir)/src/xsvf -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/flash -I$(top_srcdir)/src/pld $(all_includes)
 
+# pass path to prefix path
+openocd_CPPFLAGS = \
+ -DPKGLIBDIR=\"$(pkglibdir)\" \
+ -DPKGBLDDATE=\"`date +%F-%R`\" \
+ -DPKGBLDREV=\"`$(top_srcdir)/guess-rev.sh`\" \
+ @CPPFLAGS@
+
 # the library search path.
 openocd_LDFLAGS = $(all_libraries) 
 SUBDIRS = helper jtag xsvf target server flash pld

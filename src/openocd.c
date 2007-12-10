@@ -18,7 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#define OPENOCD_VERSION "Open On-Chip Debugger (2007-09-05 09:00 CEST)"
+#define OPENOCD_VERSION "Open On-Chip Debugger " VERSION " (" PKGBLDDATE ") svn:" PKGBLDREV
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
 	DEBUG("log init complete");
 	
 	INFO( OPENOCD_VERSION );
+	INFO( "$URL: $");
 
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;

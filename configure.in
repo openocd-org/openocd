@@ -222,7 +222,7 @@ else
 fi
 
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(openocd, 0.1)
+AM_INIT_AUTOMAKE(openocd, 1.0)
 
 AM_CONDITIONAL(PARPORT, test $build_parport = yes)
 AM_CONDITIONAL(GIVEIO, test $parport_use_giveio = yes)
