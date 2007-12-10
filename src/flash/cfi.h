@@ -27,22 +27,22 @@ typedef struct cfi_flash_bank_s
 {
 	working_area_t *write_algorithm;
 	working_area_t *erase_check_algorithm;
-	
+
 	int x16_as_x8;
 	int jedec_probe;
 	int not_cfi;
-	
+
 	u16 manufacturer;
 	u16 device_id;
-	
+
 	char qry[3];
-	
+
 	/* identification string */
 	u16 pri_id;
 	u16 pri_addr;
 	u16 alt_id;
 	u16 alt_addr;
-	
+
 	/* device-system interface */
 	u8 vcc_min;
 	u8 vcc_max;
@@ -56,19 +56,19 @@ typedef struct cfi_flash_bank_s
 	u8 buf_write_timeout_max;
 	u8 block_erase_timeout_max;
 	u8 chip_erase_timeout_max;
-	
+
 	/* flash geometry */
 	u8 dev_size;
 	u16 interface_desc;
 	u16 max_buf_write_size;
 	u8 num_erase_regions;
 	u32 *erase_region_info;
-	
+
 	void *pri_ext;
 	void *alt_ext;
 } cfi_flash_bank_t;
 
-/* Intel primary extended query table 
+/* Intel primary extended query table
  * as defined for the Advanced+ Boot Block Flash Memory (C3)
  * and used by the linux kernel cfi driver (as of 2.6.14)
  */
