@@ -106,14 +106,14 @@ target_type_t xscale_target =
 	.prepare_reset_halt = xscale_prepare_reset_halt,
 
 	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-	
+
 	.read_memory = xscale_read_memory,
 	.write_memory = xscale_write_memory,
 	.bulk_write_memory = xscale_bulk_write_memory,
 	.checksum_memory = xscale_checksum_memory,
-	
+
 	.run_algorithm = armv4_5_run_algorithm,
-	
+
 	.add_breakpoint = xscale_add_breakpoint,
 	.remove_breakpoint = xscale_remove_breakpoint,
 	.add_watchpoint = xscale_add_watchpoint,
@@ -143,7 +143,7 @@ char* xscale_reg_list[] =
 	"XSCALE_DBR1",
 	"XSCALE_DBCON",
 	"XSCALE_TBREG",
-	"XSCALE_CHKPT0",		
+	"XSCALE_CHKPT0",
 	"XSCALE_CHKPT1",
 	"XSCALE_DCSR",
 	"XSCALE_TX",
@@ -186,31 +186,31 @@ int xscale_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, xsc
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	if (xscale->common_magic != XSCALE_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	*armv4_5_p = armv4_5;
 	*xscale_p = xscale;
-	
+
 	return ERROR_OK;
 }
 
 int xscale_jtag_set_instr(int chain_pos, u32 new_instr)
 {
 	jtag_device_t *device = jtag_get_device(chain_pos);
-	
+
 	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
 	{
 		scan_field_t field;
-	
+
 		field.device = chain_pos;
 		field.num_bits = device->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
@@ -221,12 +221,12 @@ int xscale_jtag_set_instr(int chain_pos, u32 new_instr)
 		field.in_check_mask = device->expected_mask;
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
-		
+
 		jtag_add_ir_scan(1, &field, -1, NULL);
-		
+
 		free(field.out_value);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -245,7 +245,7 @@ int xscale_jtag_callback(enum jtag_event event, void *priv)
 		default:
 			WARNING("unhandled JTAG event");
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -253,9 +253,9 @@ int xscale_read_dcsr(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	int retval;
-	
+
 	scan_field_t fields[3];
 	u8 field0 = 0x0;
 	u8 field0_check_value = 0x2;
@@ -266,10 +266,10 @@ int xscale_read_dcsr(target_t *target)
 
 	jtag_add_end_state(TAP_PD);
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dcsr);
-	
+
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
-	
+
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
@@ -279,7 +279,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[0].in_check_mask = &field0_check_mask;
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
-		
+
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
@@ -299,7 +299,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[2].in_check_mask = &field2_check_mask;
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
-	
+
 	jtag_add_dr_scan(3, fields, -1, NULL);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -307,21 +307,21 @@ int xscale_read_dcsr(target_t *target)
 		ERROR("JTAG error while reading DCSR");
 		exit(-1);
 	}
-	
+
 	xscale->reg_cache->reg_list[XSCALE_DCSR].dirty = 0;
 	xscale->reg_cache->reg_list[XSCALE_DCSR].valid = 1;
-	
+
 	/* write the register with the value we just read
 	 * on this second pass, only the first bit of field0 is guaranteed to be 0)
 	 */
 	field0_check_mask = 0x1;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 	fields[1].in_value = NULL;
-	
+
 	jtag_add_end_state(TAP_RTI);
-	
+
 	jtag_add_dr_scan(3, fields, -1, NULL);
-	
+
 	return ERROR_OK;
 }
 
@@ -329,10 +329,10 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	enum tap_state path[3];
 	scan_field_t fields[3];
-	
+
 	u8 *field0 = malloc(num_words * 1);
 	u8 field0_check_value = 0x2;
 	u8 field0_check_mask = 0x6;
@@ -341,14 +341,14 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	u8 field2_check_mask = 0x1;
 	int words_done = 0;
 	int words_scheduled = 0;
-	
+
 	int i;
 	int retval;
 
 	path[0] = TAP_SDS;
 	path[1] = TAP_CD;
 	path[2] = TAP_SD;
-	
+
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
 	fields[0].out_value = NULL;
@@ -358,7 +358,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[0].in_check_mask = &field0_check_mask;
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
-		
+
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
@@ -382,7 +382,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	jtag_add_end_state(TAP_RTI);
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgtx);
 	jtag_add_runtest(1, -1);
-	
+
 	/* repeat until all words have been collected */
 	while (words_done < num_words)
 	{
@@ -393,18 +393,18 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 			fields[0].in_value = &field0[i];
 			fields[1].in_handler = buf_to_u32_handler;
 			fields[1].in_handler_priv = (u8*)&field1[i];
-			
+
 			jtag_add_pathmove(3, path);
 			jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 			words_scheduled++;
 		}
-		
+
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			ERROR("JTAG error while receiving data from debug handler");
 			exit(-1);
 		}
-		
+
 		/* examine results */
 		for (i = words_done; i < num_words; i++)
 		{
@@ -422,12 +422,12 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 		}
 		words_done += words_scheduled;
 	}
-	
+
 	for (i = 0; i < num_words; i++)
 		*(buffer++) = buf_get_u32((u8*)&field1[i], 0, 32);
-	
+
 	free(field1);
-	
+
 	return ERROR_OK;
 }
 
@@ -436,25 +436,25 @@ int xscale_read_tx(target_t *target, int consume)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	enum tap_state path[3];
-	
+
 	int retval;
 	struct timeval timeout, now;
-	
+
 	scan_field_t fields[3];
 	u8 field0_in = 0x0;
 	u8 field0_check_value = 0x2;
 	u8 field0_check_mask = 0x6;
 	u8 field2_check_value = 0x0;
 	u8 field2_check_mask = 0x1;
-	
+
 	jtag_add_end_state(TAP_RTI);
-	
+
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgtx);
-	
+
 	path[0] = TAP_SDS;
 	path[1] = TAP_CD;
 	path[2] = TAP_SD;
-	
+
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
 	fields[0].out_value = NULL;
@@ -464,7 +464,7 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[0].in_check_mask = &field0_check_mask;
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
-		
+
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
@@ -484,10 +484,10 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[2].in_check_mask = &field2_check_mask;
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
-	
+
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 5, 0);
-	
+
 	do
 	{
 		/* if we want to consume the register content (i.e. clear TX_READY),
@@ -498,15 +498,15 @@ int xscale_read_tx(target_t *target, int consume)
 			jtag_add_pathmove(3, path);
 		else
 			jtag_add_statemove(TAP_PD);
-		
+
 		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
-	
+
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			ERROR("JTAG error while reading TX");
 			exit(-1);
 		}
-		
+
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec > timeout.tv_sec) && (now.tv_usec > timeout.tv_usec))
 		{
@@ -514,10 +514,10 @@ int xscale_read_tx(target_t *target, int consume)
 			return ERROR_TARGET_TIMEOUT;
 		}
 	} while ((!(field0_in & 1)) && consume);
-	
+
 	if (!(field0_in & 1))
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		
+
 	return ERROR_OK;
 }
 
@@ -525,10 +525,10 @@ int xscale_write_rx(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	int retval;
 	struct timeval timeout, now;
-	
+
 	scan_field_t fields[3];
 	u8 field0_out = 0x0;
 	u8 field0_in = 0x0;
@@ -537,11 +537,11 @@ int xscale_write_rx(target_t *target)
 	u8 field2 = 0x0;
 	u8 field2_check_value = 0x0;
 	u8 field2_check_mask = 0x1;
-	
+
 	jtag_add_end_state(TAP_RTI);
-	
+
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgrx);
-	
+
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0_out;
@@ -551,7 +551,7 @@ int xscale_write_rx(target_t *target)
 	fields[0].in_check_mask = &field0_check_mask;
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
-		
+
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_RX].value;
@@ -571,22 +571,22 @@ int xscale_write_rx(target_t *target)
 	fields[2].in_check_mask = &field2_check_mask;
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
-	
+
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 5, 0);
-	
+
 	/* poll until rx_read is low */
 	do
 	{
 		DEBUG("polling RX");
 		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
-	
+
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			ERROR("JTAG error while writing RX");
 			exit(-1);
 		}
-		
+
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec > timeout.tv_sec) && (now.tv_usec > timeout.tv_usec))
 		{
@@ -594,17 +594,17 @@ int xscale_write_rx(target_t *target)
 			return ERROR_TARGET_TIMEOUT;
 		}
 	} while (field0_in & 1);
-	
+
 	/* set rx_valid */
 	field2 = 0x1;
 	jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
-	
+
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while writing RX");
 		exit(-1);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -613,12 +613,12 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-		
+
 	int retval;
-	
+
 	int done_count = 0;
 	u8 output[4] = {0, 0, 0, 0};
-	
+
 	scan_field_t fields[3];
 	u8 field0_out = 0x0;
 	u8 field0_in = 0x0;
@@ -627,11 +627,11 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	u8 field2 = 0x1;
 	u8 field2_check_value = 0x0;
 	u8 field2_check_mask = 0x1;
-	
+
 	jtag_add_end_state(TAP_RTI);
-	
+
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgrx);
-	
+
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0_out;
@@ -641,7 +641,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	fields[0].in_check_mask = &field0_check_mask;
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
-		
+
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
 	fields[1].out_value = output;
@@ -661,10 +661,10 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	fields[2].in_check_mask = &field2_check_mask;
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
-	
+
 	while (done_count++ < count)
 	{
-		/* extract sized element from target-endian buffer, and put it 
+		/* extract sized element from target-endian buffer, and put it
 		 * into little-endian output buffer
 		 */
 		switch (size)
@@ -680,19 +680,19 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 				break;
 			default:
 				ERROR("BUG: size neither 4, 2 nor 1");
-				exit(-1); 
+				exit(-1);
 		}
 
 		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 		buffer += size;
 	}
-	
+
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while sending data to debug handler");
 		exit(-1);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -700,7 +700,7 @@ int xscale_send_u32(target_t *target, u32 value)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	buf_set_u32(xscale->reg_cache->reg_list[XSCALE_RX].value, 0, 32, value);
 	return xscale_write_rx(target);
 }
@@ -709,9 +709,9 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	int retval;
-	
+
 	scan_field_t fields[3];
 	u8 field0 = 0x0;
 	u8 field0_check_value = 0x2;
@@ -719,19 +719,19 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	u8 field2 = 0x0;
 	u8 field2_check_value = 0x0;
 	u8 field2_check_mask = 0x1;
-	
+
 	if (hold_rst != -1)
 		xscale->hold_rst = hold_rst;
-	
+
 	if (ext_dbg_brk != -1)
 		xscale->external_debug_break = ext_dbg_brk;
 
 	jtag_add_end_state(TAP_RTI);
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dcsr);
-	
+
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
-	
+
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
@@ -741,7 +741,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[0].in_check_mask = &field0_check_mask;
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
-		
+
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
@@ -761,18 +761,18 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[2].in_check_mask = &field2_check_mask;
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
-	
+
 	jtag_add_dr_scan(3, fields, -1, NULL);
-	
+
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while writing DCSR");
 		exit(-1);
 	}
-	
+
 	xscale->reg_cache->reg_list[XSCALE_DCSR].dirty = 0;
 	xscale->reg_cache->reg_list[XSCALE_DCSR].valid = 1;
-	
+
 	return ERROR_OK;
 }
 
@@ -795,25 +795,25 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	u8 packet[4];
 	u8 cmd;
 	int word;
-	
+
 	scan_field_t fields[2];
 
 	DEBUG("loading miniIC at 0x%8.8x", va);
 
 	jtag_add_end_state(TAP_RTI);
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.ldic); /* LDIC */
-	
+
 	/* CMD is b010 for Main IC and b011 for Mini IC */
 	if (mini)
 		buf_set_u32(&cmd, 0, 3, 0x3);
 	else
 		buf_set_u32(&cmd, 0, 3, 0x2);
-	
+
 	buf_set_u32(&cmd, 3, 3, 0x0);
-		
+
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
-	
+
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
@@ -833,24 +833,24 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	fields[1].in_check_mask = NULL;
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
-	
+
 	jtag_add_dr_scan(2, fields, -1, NULL);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = packet;
-	
+
 	fields[1].num_bits = 1;
 	fields[1].out_value = &cmd;
-	
+
 	for (word = 0; word < 8; word++)
 	{
 		buf_set_u32(packet, 0, 32, buffer[word]);
 		cmd = parity(*((u32*)packet));
 		jtag_add_dr_scan(2, fields, -1, NULL);
 	}
-	
+
 	jtag_execute_queue();
-	
+
 	return ERROR_OK;
 }
 
@@ -860,18 +860,18 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	xscale_common_t *xscale = armv4_5->arch_info;
 	u8 packet[4];
 	u8 cmd;
-	
+
 	scan_field_t fields[2];
 
 	jtag_add_end_state(TAP_RTI);
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.ldic); /* LDIC */
-	
+
 	/* CMD for invalidate IC line b000, bits [6:4] b000 */
 	buf_set_u32(&cmd, 0, 6, 0x0);
-	
+
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
-	
+
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
@@ -891,9 +891,9 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	fields[1].in_check_mask = NULL;
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
-	
+
 	jtag_add_dr_scan(2, fields, -1, NULL);
-	
+
 	return ERROR_OK;
 }
 
@@ -902,7 +902,7 @@ int xscale_update_vectors(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	int i;
-	
+
 	u32 low_reset_branch, high_reset_branch;
 
 	for (i = 1; i < 8; i++)
@@ -935,21 +935,21 @@ int xscale_update_vectors(target_t *target)
 			}
 		}
 	}
-	
+
 	/* calculate branches to debug handler */
 	low_reset_branch = (xscale->handler_address + 0x20 - 0x0 - 0x8) >> 2;
 	high_reset_branch = (xscale->handler_address + 0x20 - 0xffff0000 - 0x8) >> 2;
-	
+
 	xscale->low_vectors[0] = ARMV4_5_B((low_reset_branch & 0xffffff), 0);
 	xscale->high_vectors[0] = ARMV4_5_B((high_reset_branch & 0xffffff), 0);
-	
+
 	/* invalidate and load exception vectors in mini i-cache */
 	xscale_invalidate_ic_line(target, 0x0);
 	xscale_invalidate_ic_line(target, 0xffff0000);
-	
+
 	xscale_load_ic(target, 1, 0x0, xscale->low_vectors);
 	xscale_load_ic(target, 1, 0xffff0000, xscale->high_vectors);
-	
+
 	return ERROR_OK;
 }
 
@@ -957,23 +957,23 @@ int xscale_arch_state(struct target_s *target, char *buf, int buf_size)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
-	char *state[] = 
+
+	char *state[] =
 	{
 		"disabled", "enabled"
 	};
-	
+
 	char *arch_dbg_reason[] =
 	{
 		"", "\n(processor reset)", "\n(trace buffer full)"
 	};
-	
+
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		ERROR("BUG: called for a non-ARMv4/5 target");
 		exit(-1);
 	}
-	
+
 	snprintf(buf, buf_size,
 			"target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
@@ -985,10 +985,10 @@ int xscale_arch_state(struct target_s *target, char *buf, int buf_size)
 			 buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
 			 state[xscale->armv4_5_mmu.mmu_enabled],
-			 state[xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled], 
+			 state[xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
 			 state[xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled],
 			 arch_dbg_reason[xscale->arch_debug_reason]);
-	
+
 	return ERROR_OK;
 }
 
@@ -997,28 +997,28 @@ enum target_state xscale_poll(target_t *target)
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	if ((target->state == TARGET_RUNNING) || (target->state == TARGET_DEBUG_RUNNING))
 	{
 		if ((retval = xscale_read_tx(target, 0)) == ERROR_OK)
 		{
 			enum target_state previous_state = target->state;
-			
+
 			/* there's data to read from the tx register, we entered debug state */
 			xscale->handler_running = 1;
 
 			target->state = TARGET_HALTED;
-			
+
 			/* process debug entry, fetching current mode regs */
 			if ((retval = xscale_debug_entry(target)) != ERROR_OK)
 				return retval;
-			
+
 			/* debug_entry could have overwritten target state (i.e. immediate resume)
 			 * don't signal event handlers in that case
 			 */
 			if (target->state != TARGET_HALTED)
 				return target->state;
-			
+
 			/* if target was running, signal that we halted
 			 * otherwise we reentered from debug execution */
 			if (previous_state == TARGET_RUNNING)
@@ -1032,7 +1032,7 @@ enum target_state xscale_poll(target_t *target)
 			exit(-1);
 		}
 	}
-	
+
 	return target->state;
 }
 
@@ -1043,28 +1043,28 @@ int xscale_debug_entry(target_t *target)
 	u32 pc;
 	u32 *buffer = malloc(4 * 10);
 	int i;
-	
+
 	u32 moe;
-	
+
 	/* clear external dbg break (will be written on next DCSR read) */
 	xscale->external_debug_break = 0;
 	xscale_read_dcsr(target);
-	
+
 	/* get r0, pc, r1 to r7 and cpsr */
 	xscale_receive(target, buffer, 10);
-	
+
 	/* move r0 from buffer to register cache */
 	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, buffer[0]);
 	armv4_5->core_cache->reg_list[15].dirty = 1;
 	armv4_5->core_cache->reg_list[15].valid = 1;
 	DEBUG("r0: 0x%8.8x", buffer[0]);
-	
+
 	/* move pc from buffer to register cache */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, buffer[1]);
 	armv4_5->core_cache->reg_list[15].dirty = 1;
 	armv4_5->core_cache->reg_list[15].valid = 1;
 	DEBUG("pc: 0x%8.8x", buffer[1]);
-	
+
 	/* move data from buffer to register cache */
 	for (i = 1; i <= 7; i++)
 	{
@@ -1073,12 +1073,12 @@ int xscale_debug_entry(target_t *target)
 		armv4_5->core_cache->reg_list[i].valid = 1;
 		DEBUG("r%i: 0x%8.8x", i, buffer[i + 1]);
 	}
-	
+
 	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, buffer[9]);
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
 	DEBUG("cpsr: 0x%8.8x", buffer[9]);
-	
+
 	armv4_5->core_mode = buffer[9] & 0x1f;
 	if (armv4_5_mode_to_number(armv4_5->core_mode) == -1)
 	{
@@ -1087,12 +1087,12 @@ int xscale_debug_entry(target_t *target)
 		return ERROR_TARGET_FAILURE;
 	}
 	DEBUG("target entered debug state in %s mode", armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)]);
-	
+
 	if (buffer[9] & 0x20)
 		armv4_5->core_state = ARMV4_5_STATE_THUMB;
 	else
 		armv4_5->core_state = ARMV4_5_STATE_ARM;
-	
+
 	/* get banked registers, r8 to r14, and spsr if not in USR/SYS mode */
 	if ((armv4_5->core_mode != ARMV4_5_MODE_USR) && (armv4_5->core_mode != ARMV4_5_MODE_SYS))
 	{
@@ -1106,7 +1106,7 @@ int xscale_debug_entry(target_t *target)
 		/* r8 to r14, but no spsr */
 		xscale_receive(target, buffer, 7);
 	}
-	
+
 	/* move data from buffer to register cache */
 	for (i = 8; i <= 14; i++)
 	{
@@ -1114,14 +1114,14 @@ int xscale_debug_entry(target_t *target)
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = 0;
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid = 1;
 	}
-	
+
 	/* examine debug reason */
 	xscale_read_dcsr(target);
 	moe = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 2, 3);
-	
+
 	/* stored PC (for calculating fixup) */
 	pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-	
+
 	switch (moe)
 	{
 		case 0x0: /* Processor reset */
@@ -1165,22 +1165,22 @@ int xscale_debug_entry(target_t *target)
 			exit(-1);
 			break;
 	}
-	
+
 	/* apply PC fixup */
-	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, pc); 
-	
+	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, pc);
+
 	/* on the first debug entry, identify cache type */
 	if (xscale->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
 		u32 cache_type_reg;
-		
+
 		/* read cp15 cache type register */
 		xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_CACHETYPE]);
 		cache_type_reg = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_CACHETYPE].value, 0, 32);
-		
+
 		armv4_5_identify_cache(cache_type_reg, &xscale->armv4_5_mmu.armv4_5_cache);
 	}
-	
+
 	/* examine MMU and Cache settings */
 	/* read cp15 control register */
 	xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_CTRL]);
@@ -1188,13 +1188,13 @@ int xscale_debug_entry(target_t *target)
 	xscale->armv4_5_mmu.mmu_enabled = (xscale->cp15_control_reg & 0x1U) ? 1 : 0;
 	xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = (xscale->cp15_control_reg & 0x4U) ? 1 : 0;
 	xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled = (xscale->cp15_control_reg & 0x1000U) ? 1 : 0;
-	
+
 	/* tracing enabled, read collected trace data */
 	if (xscale->trace.buffer_enabled)
 	{
 		xscale_read_trace(target);
 		xscale->trace.buffer_fill--;
-		
+
 		/* resume if we're still collecting trace data */
 		if ((xscale->arch_debug_reason == XSCALE_DBG_REASON_TB_FULL)
 			&& (xscale->trace.buffer_fill > 0))
@@ -1206,7 +1206,7 @@ int xscale_debug_entry(target_t *target)
 			xscale->trace.buffer_enabled = 0;
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1214,14 +1214,14 @@ int xscale_halt(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	DEBUG("target->state: %s", target_state_strings[target->state]);
-	
+
 	if (target->state == TARGET_HALTED)
 	{
 		WARNING("target was already halted");
 		return ERROR_TARGET_ALREADY_HALTED;
-	} 
+	}
 	else if (target->state == TARGET_UNKNOWN)
 	{
 		/* this must not happen for a xscale target */
@@ -1237,10 +1237,10 @@ int xscale_halt(target_t *target)
 		/* assert external dbg break */
 		xscale->external_debug_break = 1;
 		xscale_read_dcsr(target);
-	
+
 		target->debug_reason = DBG_REASON_DBGRQ;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1249,11 +1249,11 @@ int xscale_enable_single_step(struct target_s *target, u32 next_pc)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale= armv4_5->arch_info;
 	reg_t *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
-	
+
 	if (xscale->ibcr0_used)
 	{
 		breakpoint_t *ibcr0_bp = breakpoint_find(target, buf_get_u32(ibcr0->value, 0, 32) & 0xfffffffe);
-		
+
 		if (ibcr0_bp)
 		{
 			xscale_unset_breakpoint(target, ibcr0_bp);
@@ -1264,9 +1264,9 @@ int xscale_enable_single_step(struct target_s *target, u32 next_pc)
 			exit(-1);
 		}
 	}
-	
+
 	xscale_set_reg_u32(ibcr0, next_pc | 0x1);
-	
+
 	return ERROR_OK;
 }
 
@@ -1275,9 +1275,9 @@ int xscale_disable_single_step(struct target_s *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale= armv4_5->arch_info;
 	reg_t *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
-	
+
 	xscale_set_reg_u32(ibcr0, 0x0);
-	
+
 	return ERROR_OK;
 }
 
@@ -1286,52 +1286,52 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale= armv4_5->arch_info;
 	breakpoint_t *breakpoint = target->breakpoints;
-	
+
 	u32 current_pc;
-	
+
 	int retval;
 	int i;
-	
+
 	DEBUG("-");
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (!debug_execution)
 	{
 		target_free_all_working_areas(target);
 	}
-	
+
 	/* update vector tables */
 	xscale_update_vectors(target);
-	
+
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
 		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
 
 	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-	
+
 	/* if we're at the reset vector, we have to simulate the branch */
 	if (current_pc == 0x0)
 	{
 		arm_simulate_step(target, NULL);
 		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 	}
-	
+
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 	{
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
 		{
 			u32 next_pc;
-			
+
 			/* there's a breakpoint at the current PC, we have to step over it */
 			DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
 			xscale_unset_breakpoint(target, breakpoint);
-			
+
 			/* calculate PC of next instruction */
 			if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
 			{
@@ -1339,13 +1339,13 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 				target_read_u32(target, current_pc, &current_opcode);
 				ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
 			}
-			
+
 			DEBUG("enable single-step");
 			xscale_enable_single_step(target, next_pc);
-			
+
 			/* restore banked registers */
 			xscale_restore_context(target);
-			
+
 			/* send resume request (command 0x30 or 0x31)
 			 * clean the trace buffer if it is to be enabled (0x62) */
 			if (xscale->trace.buffer_enabled)
@@ -1355,11 +1355,11 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 			}
 			else
 				xscale_send_u32(target, 0x30);
-							
+
 			/* send CPSR */
 			xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
 			DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-				
+
 			for (i = 7; i >= 0; i--)
 			{
 				/* send register */
@@ -1370,25 +1370,25 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 			/* send PC */
 			xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 			DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-			
+
 			/* wait for and process debug entry */
 			xscale_debug_entry(target);
-			
+
 			DEBUG("disable single-step");
 			xscale_disable_single_step(target);
-			
+
 			DEBUG("set breakpoint at 0x%8.8x", breakpoint->address);
 			xscale_set_breakpoint(target, breakpoint);
 		}
 	}
-	
+
 	/* enable any pending breakpoints and watchpoints */
 	xscale_enable_breakpoints(target);
 	xscale_enable_watchpoints(target);
-	
+
 	/* restore banked registers */
 	xscale_restore_context(target);
-	
+
 	/* send resume request (command 0x30 or 0x31)
 	 * clean the trace buffer if it is to be enabled (0x62) */
 	if (xscale->trace.buffer_enabled)
@@ -1398,11 +1398,11 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 	}
 	else
 		xscale_send_u32(target, 0x30);
-	
+
 	/* send CPSR */
 	xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
 	DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-		
+
 	for (i = 7; i >= 0; i--)
 	{
 		/* send register */
@@ -1413,9 +1413,9 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 	/* send PC */
 	xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 	DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-		
+
 	target->debug_reason = DBG_REASON_NOTHALTED;
-		
+
 	if (!debug_execution)
 	{
 		/* registers are now invalid */
@@ -1428,11 +1428,11 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
 	}
-	
+
 	DEBUG("target resumed");
-	
+
 	xscale->handler_running = 1;
-	
+
 	return ERROR_OK;
 }
 
@@ -1441,7 +1441,7 @@ int xscale_step(struct target_s *target, int current, u32 address, int handle_br
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	breakpoint_t *breakpoint = target->breakpoints;
-	
+
 	u32 current_pc, next_pc;
 	int i;
 	int retval;
@@ -1451,32 +1451,32 @@ int xscale_step(struct target_s *target, int current, u32 address, int handle_br
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
 		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
-	
+
 	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-	
+
 	/* if we're at the reset vector, we have to simulate the step */
 	if (current_pc == 0x0)
 	{
 		arm_simulate_step(target, NULL);
 		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-		
+
 		target->debug_reason = DBG_REASON_SINGLESTEP;
 		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-		
+
 		return ERROR_OK;
 	}
-	
+
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
 		{
 			xscale_unset_breakpoint(target, breakpoint);
 		}
-	
+
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
 	/* calculate PC of next instruction */
@@ -1486,13 +1486,13 @@ int xscale_step(struct target_s *target, int current, u32 address, int handle_br
 		target_read_u32(target, current_pc, &current_opcode);
 		ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
 	}
-	
+
 	DEBUG("enable single-step");
 	xscale_enable_single_step(target, next_pc);
-	
+
 	/* restore banked registers */
 	xscale_restore_context(target);
-	
+
 	/* send resume request (command 0x30 or 0x31)
 	 * clean the trace buffer if it is to be enabled (0x62) */
 	if (xscale->trace.buffer_enabled)
@@ -1502,11 +1502,11 @@ int xscale_step(struct target_s *target, int current, u32 address, int handle_br
 	}
 	else
 		xscale_send_u32(target, 0x30);
-	
+
 	/* send CPSR */
 	xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
 	DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-		
+
 	for (i = 7; i >= 0; i--)
 	{
 		/* send register */
@@ -1522,20 +1522,20 @@ int xscale_step(struct target_s *target, int current, u32 address, int handle_br
 
 	/* registers are now invalid */
 	armv4_5_invalidate_core_regs(target);
-	
+
 	/* wait for and process debug entry */
 	xscale_debug_entry(target);
-	
+
 	DEBUG("disable single-step");
 	xscale_disable_single_step(target);
-		
+
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
 	if (breakpoint)
 	{
 		xscale_set_breakpoint(target, breakpoint);
 	}
-		
+
 	DEBUG("target stepped");
 
 	return ERROR_OK;
@@ -1546,15 +1546,15 @@ int xscale_assert_reset(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	DEBUG("target->state: %s", target_state_strings[target->state]);
 
-	/* select DCSR instruction (set endstate to R-T-I to ensure we don't 
+	/* select DCSR instruction (set endstate to R-T-I to ensure we don't
 	 * end up in T-L-R, which would reset JTAG
-	 */ 
+	 */
 	jtag_add_end_state(TAP_RTI);
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dcsr);
-	
+
 	/* set Hold reset, Halt mode and Trap Reset */
 	buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 30, 1, 0x1);
 	buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 1, 0x1);
@@ -1563,16 +1563,16 @@ int xscale_assert_reset(target_t *target)
 	/* select BYPASS, because having DCSR selected caused problems on the PXA27x */
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, 0x7f);
 	jtag_execute_queue();
-		
-	/* assert reset */	
+
+	/* assert reset */
 	jtag_add_reset(0, 1);
-	
+
 	/* sleep 1ms, to be sure we fulfill any requirements */
 	jtag_add_sleep(1000);
 	jtag_execute_queue();
-	
+
 	target->state = TARGET_RESET;
-	
+
 	return ERROR_OK;
 }
 
@@ -1580,7 +1580,7 @@ int xscale_deassert_reset(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	fileio_t debug_handler;
 	u32 address;
 	u32 binary_size;
@@ -1588,19 +1588,19 @@ int xscale_deassert_reset(target_t *target)
 	u32 buf_cnt;
 	int i;
 	int retval;
-	
+
 	breakpoint_t *breakpoint = target->breakpoints;
-	
+
 	DEBUG("-");
-	
+
 	xscale->ibcr_available = 2;
 	xscale->ibcr0_used = 0;
 	xscale->ibcr1_used = 0;
-		
+
 	xscale->dbr_available = 2;
 	xscale->dbr0_used = 0;
 	xscale->dbr1_used = 0;
-	
+
 	/* mark all hardware breakpoints as unset */
 	while (breakpoint)
 	{
@@ -1610,12 +1610,12 @@ int xscale_deassert_reset(target_t *target)
 		}
 		breakpoint = breakpoint->next;
 	}
-	
+
 	if (!xscale->handler_installed)
 	{
 		/* release SRST */
 		jtag_add_reset(0, 0);
-		
+
 		/* wait 300ms; 150 and 100ms were not enough */
 		jtag_add_sleep(3000000);
 
@@ -1627,65 +1627,66 @@ int xscale_deassert_reset(target_t *target)
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 1, 0x1);
 		xscale_write_dcsr(target, 1, 0);
 
-		if (fileio_open(&debug_handler, "target/xscale/debug_handler.bin", FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
+		/* Load debug handler */
+		if (fileio_open(&debug_handler, PKGLIBDIR "/xscale/debug_handler.bin", FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 		{
 			ERROR("file open error: %s", debug_handler.error_str);
 			return ERROR_OK;
 		}
-	
+
 		if ((binary_size = debug_handler.size) % 4)
 		{
 			ERROR("debug_handler.bin: size not a multiple of 4");
 			exit(-1);
 		}
-			
+
 		if (binary_size > 0x800)
 		{
 			ERROR("debug_handler.bin: larger than 2kb");
 			exit(-1);
 		}
-		
+
 		binary_size = CEIL(binary_size, 32) * 32;
-		
+
 		address = xscale->handler_address;
 		while (binary_size > 0)
 		{
 			u32 cache_line[8];
 			u8 buffer[32];
-			
+
 			if ((retval = fileio_read(&debug_handler, 32, buffer, &buf_cnt)) != ERROR_OK)
 			{
 				ERROR("reading debug handler failed: %s", debug_handler.error_str);
 			}
-			
+
 			for (i = 0; i < buf_cnt; i += 4)
 			{
 				/* convert LE buffer to host-endian u32 */
 				cache_line[i / 4] = le_to_h_u32(&buffer[i]);
 			}
-			
+
 			for (; buf_cnt < 32; buf_cnt += 4)
 			{
 					cache_line[buf_cnt / 4] = 0xe1a08008;
 			}
-			
+
 			/* only load addresses other than the reset vectors */
 			if ((address % 0x400) != 0x0)
 			{
 				xscale_load_ic(target, 1, address, cache_line);
 			}
-			
+
 			address += buf_cnt;
 			binary_size -= buf_cnt;
 		};
-		
+
 		xscale_load_ic(target, 1, 0x0, xscale->low_vectors);
 		xscale_load_ic(target, 1, 0xffff0000, xscale->high_vectors);
-	
+
 		jtag_add_runtest(30, TAP_RTI);
 
 		jtag_add_sleep(100000);
-		
+
 		/* set Hold reset, Halt mode and Trap Reset */
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 30, 1, 0x1);
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 1, 0x1);
@@ -1698,11 +1699,11 @@ int xscale_deassert_reset(target_t *target)
 		if ((target->reset_mode != RESET_HALT) && (target->reset_mode != RESET_INIT))
 		{
 			jtag_add_sleep(10000);
-			
+
 			/* we should have entered debug now */
 			xscale_debug_entry(target);
 			target->state = TARGET_HALTED;
-			
+
 			/* resume the target */
 			xscale_resume(target, 1, 0x0, 1, 0);
 		}
@@ -1711,14 +1712,14 @@ int xscale_deassert_reset(target_t *target)
 	{
 		jtag_add_reset(0, 0);
 	}
-		
-		
+
+
 	return ERROR_OK;
 }
 
 int xscale_soft_reset_halt(struct target_s *target)
 {
-	
+
 	return ERROR_OK;
 }
 
@@ -1738,28 +1739,28 @@ int xscale_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 
 int xscale_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mode, u32 value)
 {
-	
+
 	return ERROR_OK;
 }
 
 int xscale_full_context(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	
+
 	u32 *buffer;
-	
+
 	int i, j;
-	
+
 	DEBUG("-");
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	buffer = malloc(4 * 8);
-	
+
 	/* iterate through processor modes (FIQ, IRQ, SVC, ABT, UND and SYS)
 	 * we can't enter User mode on an XScale (unpredictable),
 	 * but User shares registers with SYS
@@ -1767,26 +1768,26 @@ int xscale_full_context(target_t *target)
 	for(i = 1; i < 7; i++)
 	{
 		int valid = 1;
-		
-		/* check if there are invalid registers in the current mode 
+
+		/* check if there are invalid registers in the current mode
 		 */
 		for (j = 0; j <= 16; j++)
 		{
 			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).valid == 0)
 				valid = 0;
 		}
-		
+
 		if (!valid)
 		{
 			u32 tmp_cpsr;
-			
+
 			/* request banked registers */
 			xscale_send_u32(target, 0x0);
-			
+
 			tmp_cpsr = 0x0;
 			tmp_cpsr |= armv4_5_number_to_mode(i);
 			tmp_cpsr |= 0xc0; /* I/F bits */
-			
+
 			/* send CPSR for desired mode */
 			xscale_send_u32(target, tmp_cpsr);
 
@@ -1802,7 +1803,7 @@ int xscale_full_context(target_t *target)
 			{
 				xscale_receive(target, buffer, 7);
 			}
-	
+
 			/* move data from buffer to register cache */
 			for (j = 8; j <= 14; j++)
 			{
@@ -1812,26 +1813,26 @@ int xscale_full_context(target_t *target)
 			}
 		}
 	}
-	
+
 	free(buffer);
-	
+
 	return ERROR_OK;
 }
 
 int xscale_restore_context(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	
+
 	int i, j;
-	
+
 	DEBUG("-");
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	/* iterate through processor modes (FIQ, IRQ, SVC, ABT, UND and SYS)
 	* we can't enter User mode on an XScale (unpredictable),
 	* but User shares registers with SYS
@@ -1839,33 +1840,33 @@ int xscale_restore_context(target_t *target)
 	for(i = 1; i < 7; i++)
 	{
 		int dirty = 0;
-		
-		/* check if there are invalid registers in the current mode 
+
+		/* check if there are invalid registers in the current mode
 		*/
 		for (j = 8; j <= 14; j++)
 		{
 			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).dirty == 1)
 				dirty = 1;
 		}
-		
+
 		/* if not USR/SYS, check if the SPSR needs to be written */
 		if ((armv4_5_number_to_mode(i) != ARMV4_5_MODE_USR) && (armv4_5_number_to_mode(i) != ARMV4_5_MODE_SYS))
 		{
 			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).dirty == 1)
 				dirty = 1;
 		}
-		
+
 		if (dirty)
 		{
 			u32 tmp_cpsr;
-			
+
 			/* send banked registers */
 			xscale_send_u32(target, 0x1);
-			
+
 			tmp_cpsr = 0x0;
 			tmp_cpsr |= armv4_5_number_to_mode(i);
 			tmp_cpsr |= 0xc0; /* I/F bits */
-			
+
 			/* send CPSR for desired mode */
 			xscale_send_u32(target, tmp_cpsr);
 
@@ -1875,7 +1876,7 @@ int xscale_restore_context(target_t *target)
 				xscale_send_u32(target, buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, j).value, 0, 32));
 				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).dirty = 0;
 			}
-			
+
 			if ((armv4_5_number_to_mode(i) != ARMV4_5_MODE_USR) && (armv4_5_number_to_mode(i) != ARMV4_5_MODE_SYS))
 			{
 				xscale_send_u32(target, buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).value, 0, 32));
@@ -1883,7 +1884,7 @@ int xscale_restore_context(target_t *target)
 			}
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1893,7 +1894,7 @@ int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	xscale_common_t *xscale = armv4_5->arch_info;
 	u32 *buf32;
 	int i;
-	
+
 	DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
 	if (target->state != TARGET_HALTED)
@@ -1908,20 +1909,20 @@ int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
-	
+
 	/* send memory read request (command 0x1n, n: access size) */
 	xscale_send_u32(target, 0x10 | size);
-	
+
 	/* send base address for read request */
 	xscale_send_u32(target, address);
-	
+
 	/* send number of requested data words */
 	xscale_send_u32(target, count);
-	
+
 	/* receive data from target (count times 32-bit words in host endianness) */
 	buf32 = malloc(4 * count);
 	xscale_receive(target, buf32, count);
-	
+
 	/* extract data from host-endian buffer into byte stream */
 	for (i = 0; i < count; i++)
 	{
@@ -1945,17 +1946,17 @@ int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	}
 
 	free(buf32);
-	
-	/* examine DCSR, to see if Sticky Abort (SA) got set */ 
+
+	/* examine DCSR, to see if Sticky Abort (SA) got set */
 	xscale_read_dcsr(target);
 	if (buf_get_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 5, 1) == 1)
 	{
 		/* clear SA bit */
 		xscale_send_u32(target, 0x60);
-		
+
 		return ERROR_TARGET_DATA_ABORT;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1963,7 +1964,7 @@ int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
 	if (target->state != TARGET_HALTED)
@@ -1978,16 +1979,16 @@ int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
-	
+
 	/* send memory write request (command 0x2n, n: access size) */
 	xscale_send_u32(target, 0x20 | size);
-	
+
 	/* send base address for read request */
 	xscale_send_u32(target, address);
-	
+
 	/* send number of requested data words to be written*/
 	xscale_send_u32(target, count);
-	
+
 	/* extract data from host-endian buffer into byte stream */
 #if 0
 	for (i = 0; i < count; i++)
@@ -2007,7 +2008,7 @@ int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 			case 1:
 				value = *buffer;
 				xscale_send_u32(target, value);
-				buffer += 1; 
+				buffer += 1;
 				break;
 			default:
 				ERROR("should never get here");
@@ -2016,24 +2017,24 @@ int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	}
 #endif
 	xscale_send(target, buffer, count, size);
-	
-	/* examine DCSR, to see if Sticky Abort (SA) got set */ 
+
+	/* examine DCSR, to see if Sticky Abort (SA) got set */
 	xscale_read_dcsr(target);
 	if (buf_get_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 5, 1) == 1)
 	{
 		/* clear SA bit */
 		xscale_send_u32(target, 0x60);
-		
+
 		return ERROR_TARGET_DATA_ABORT;
 	}
-	
+
 	return ERROR_OK;
 }
 
 int xscale_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
 {
 	xscale_write_memory(target, address, 4, count, buffer);
-	
+
 	return ERROR_OK;
 }
 
@@ -2063,22 +2064,22 @@ void xscale_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_c
 	/* read cp15 control register */
 	xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_CTRL]);
 	cp15_control = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_CTRL].value, 0, 32);
-	
+
 	if (mmu)
 		cp15_control &= ~0x1U;
-	
+
 	if (d_u_cache)
 	{
 		/* clean DCache */
 		xscale_send_u32(target, 0x50);
 		xscale_send_u32(target, xscale->cache_clean_address);
-		
+
 		/* invalidate DCache */
 		xscale_send_u32(target, 0x51);
-		
+
 		cp15_control &= ~0x4U;
 	}
-	
+
 	if (i_cache)
 	{
 		/* invalidate ICache */
@@ -2088,7 +2089,7 @@ void xscale_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_c
 
 	/* write new cp15 control register */
 	xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_CTRL], cp15_control);
-	
+
 	/* execute cpwait to ensure outstanding operations complete */
 	xscale_send_u32(target, 0x53);
 }
@@ -2102,19 +2103,19 @@ void xscale_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_ca
 	/* read cp15 control register */
 	xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_CTRL]);
 	cp15_control = buf_get_u32(xscale->reg_cache->reg_list[XSCALE_CTRL].value, 0, 32);
-			
+
 	if (mmu)
 		cp15_control |= 0x1U;
-	
+
 	if (d_u_cache)
 		cp15_control |= 0x4U;
-	
+
 	if (i_cache)
 		cp15_control |= 0x1000U;
-	
+
 	/* write new cp15 control register */
 	xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_CTRL], cp15_control);
-	
+
 	/* execute cpwait to ensure outstanding operations complete */
 	xscale_send_u32(target, 0x53);
 }
@@ -2123,13 +2124,13 @@ int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (xscale->force_hw_bkpts)
 		breakpoint->type = BKPT_HARD;
 
@@ -2144,13 +2145,13 @@ int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		u32 value = breakpoint->address | 1;
 		if (!xscale->ibcr0_used)
 		{
-			xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_IBCR0], value); 
+			xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_IBCR0], value);
 			xscale->ibcr0_used = 1;
 			breakpoint->set = 1;	/* breakpoint set on first breakpoint register */
 		}
 		else if (!xscale->ibcr1_used)
 		{
-			xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_IBCR1], value); 
+			xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_IBCR1], value);
 			xscale->ibcr1_used = 1;
 			breakpoint->set = 2;	/* breakpoint set on second breakpoint register */
 		}
@@ -2187,19 +2188,19 @@ int xscale_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (xscale->force_hw_bkpts)
 	{
 		DEBUG("forcing use of hardware breakpoint at address 0x%8.8x", breakpoint->address);
 		breakpoint->type = BKPT_HARD;
 	}
-	
+
 	if ((breakpoint->type == BKPT_HARD) && (xscale->ibcr_available < 1))
 	{
 		INFO("no breakpoint unit available for hardware breakpoint");
@@ -2209,13 +2210,13 @@ int xscale_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		xscale->ibcr_available--;
 	}
-	
+
 	if ((breakpoint->length != 2) && (breakpoint->length != 4))
 	{
 		INFO("only breakpoints of two (Thumb) or four (ARM) bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -2223,7 +2224,7 @@ int xscale_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
@@ -2235,17 +2236,17 @@ int xscale_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		WARNING("breakpoint not set");
 		return ERROR_OK;
 	}
-	
+
 	if (breakpoint->type == BKPT_HARD)
 	{
 		if (breakpoint->set == 1)
 		{
-			xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_IBCR0], 0x0); 
+			xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_IBCR0], 0x0);
 			xscale->ibcr0_used = 0;
 		}
 		else if (breakpoint->set == 2)
 		{
-			xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_IBCR1], 0x0); 
+			xscale_set_reg_u32(&xscale->reg_cache->reg_list[XSCALE_IBCR1], 0x0);
 			xscale->ibcr1_used = 0;
 		}
 		breakpoint->set = 0;
@@ -2271,21 +2272,21 @@ int xscale_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (breakpoint->set)
 	{
 		xscale_unset_breakpoint(target, breakpoint);
 	}
-	
+
 	if (breakpoint->type == BKPT_HARD)
 		xscale->ibcr_available++;
-	
+
 	return ERROR_OK;
 }
 
@@ -2296,15 +2297,15 @@ int xscale_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	u8 enable;
 	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	u32 dbcon_value = buf_get_u32(dbcon->value, 0, 32);
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	xscale_get_reg(dbcon);
-	
+
 	switch (watchpoint->rw)
 	{
 		case WPT_READ:
@@ -2317,7 +2318,7 @@ int xscale_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 			enable = 0x1;
 			break;
 		default:
-			ERROR("BUG: watchpoint->rw neither read, write nor access");	
+			ERROR("BUG: watchpoint->rw neither read, write nor access");
 	}
 
 	if (!xscale->dbr0_used)
@@ -2341,7 +2342,7 @@ int xscale_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		ERROR("BUG: no hardware comparator available");
 		return ERROR_OK;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -2349,25 +2350,25 @@ int xscale_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (xscale->dbr_available < 1)
 	{
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-	
+
 	if ((watchpoint->length != 1) && (watchpoint->length != 2) && (watchpoint->length != 4))
 	{
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-	
+
 	xscale->dbr_available--;
-		
+
 	return ERROR_OK;
 }
 
@@ -2377,19 +2378,19 @@ int xscale_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	xscale_common_t *xscale = armv4_5->arch_info;
 	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	u32 dbcon_value = buf_get_u32(dbcon->value, 0, 32);
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (!watchpoint->set)
 	{
 		WARNING("breakpoint not set");
 		return ERROR_OK;
 	}
-	
+
 	if (watchpoint->set == 1)
 	{
 		dbcon_value &= ~0x3;
@@ -2411,27 +2412,27 @@ int xscale_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (watchpoint->set)
 	{
 		xscale_unset_watchpoint(target, watchpoint);
 	}
-		
+
 	xscale->dbr_available++;
-	
+
 	return ERROR_OK;
 }
 
 void xscale_enable_watchpoints(struct target_s *target)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
-	
+
 	while (watchpoint)
 	{
 		if (watchpoint->set == 0)
@@ -2443,7 +2444,7 @@ void xscale_enable_watchpoints(struct target_s *target)
 void xscale_enable_breakpoints(struct target_s *target)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
-	
+
 	/* set any pending breakpoints */
 	while (breakpoint)
 	{
@@ -2459,7 +2460,7 @@ int xscale_get_reg(reg_t *reg)
 	target_t *target = arch_info->target;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-		
+
 	/* DCSR, TX and RX are accessible via JTAG */
 	if (strcmp(reg->name, "XSCALE_DCSR") == 0)
 	{
@@ -2484,7 +2485,7 @@ int xscale_get_reg(reg_t *reg)
 	{
 		/* send CP read request (command 0x40) */
 		xscale_send_u32(target, 0x40);
-		
+
 		/* send CP register number */
 		xscale_send_u32(target, arch_info->dbg_handler_number);
 
@@ -2495,7 +2496,7 @@ int xscale_get_reg(reg_t *reg)
 		reg->dirty = 0;
 		reg->valid = 1;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -2506,7 +2507,7 @@ int xscale_set_reg(reg_t *reg, u8* buf)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	u32 value = buf_get_u32(buf, 0, 32);
-	
+
 	/* DCSR, TX and RX are accessible via JTAG */
 	if (strcmp(reg->name, "XSCALE_DCSR") == 0)
 	{
@@ -2532,15 +2533,15 @@ int xscale_set_reg(reg_t *reg, u8* buf)
 	{
 		/* send CP write request (command 0x41) */
 		xscale_send_u32(target, 0x41);
-		
+
 		/* send CP register number */
 		xscale_send_u32(target, arch_info->dbg_handler_number);
-		
+
 		/* send CP register value */
 		xscale_send_u32(target, value);
 		buf_set_u32(reg->value, 0, 32, value);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -2548,9 +2549,9 @@ int xscale_set_reg(reg_t *reg, u8* buf)
 int xscale_set_reg_u32(reg_t *reg, u32 value)
 {
 	u8 buf[4];
-	
+
 	buf_set_u32(buf, 0, 32, value);
-	
+
 	return xscale_set_reg(reg, buf);
 }
 
@@ -2561,17 +2562,17 @@ int xscale_write_dcsr_sw(target_t *target, u32 value)
 	xscale_common_t *xscale = armv4_5->arch_info;
 	reg_t *dcsr = &xscale->reg_cache->reg_list[XSCALE_DCSR];
 	xscale_reg_t *dcsr_arch_info = dcsr->arch_info;
-	
+
 	/* send CP write request (command 0x41) */
 	xscale_send_u32(target, 0x41);
-		
+
 	/* send CP register number */
 	xscale_send_u32(target, dcsr_arch_info->dbg_handler_number);
-		
+
 	/* send CP register value */
 	xscale_send_u32(target, value);
 	buf_set_u32(dcsr->value, 0, 32, value);
-	
+
 	return ERROR_OK;
 }
 
@@ -2581,15 +2582,15 @@ int xscale_read_trace(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	xscale_trace_data_t **trace_data_p;
-	
+
 	/* 258 words from debug handler
 	 * 256 trace buffer entries
 	 * 2 checkpoint addresses
-	 */ 
+	 */
 	u32 trace_buffer[258];
 	int is_address[256];
 	int i, j;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		WARNING("target must be stopped to read trace data");
@@ -2598,16 +2599,16 @@ int xscale_read_trace(target_t *target)
 
 	/* send read trace buffer command (command 0x61) */
 	xscale_send_u32(target, 0x61);
-	
+
 	/* receive trace buffer content */
 	xscale_receive(target, trace_buffer, 258);
-	
+
 	/* parse buffer backwards to identify address entries */
 	for (i = 255; i >= 0; i--)
 	{
 		is_address[i] = 0;
 		if (((trace_buffer[i] & 0xf0) == 0x90) ||
-			((trace_buffer[i] & 0xf0) == 0xd0)) 
+			((trace_buffer[i] & 0xf0) == 0xd0))
 		{
 			if (i >= 3)
 				is_address[--i] = 1;
@@ -2620,7 +2621,7 @@ int xscale_read_trace(target_t *target)
 		}
 	}
 
-	
+
 	/* search first non-zero entry */
 	for (j = 0; (j < 256) && (trace_buffer[j] == 0) && (!is_address[j]); j++)
 		;
@@ -2630,7 +2631,7 @@ int xscale_read_trace(target_t *target)
 		DEBUG("no trace data collected");
 		return ERROR_XSCALE_NO_TRACE_DATA;
 	}
-		
+
 	for (trace_data_p = &xscale->trace.data; *trace_data_p; trace_data_p = &(*trace_data_p)->next)
 		;
 
@@ -2641,7 +2642,7 @@ int xscale_read_trace(target_t *target)
 	(*trace_data_p)->last_instruction = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 	(*trace_data_p)->entries = malloc(sizeof(xscale_trace_entry_t) * (256 - j));
 	(*trace_data_p)->depth = 256 - j;
-		
+
 	for (i = j; i < 256; i++)
 	{
 		(*trace_data_p)->entries[i - j].data = trace_buffer[i];
@@ -2650,7 +2651,7 @@ int xscale_read_trace(target_t *target)
 		else
 			(*trace_data_p)->entries[i - j].type = XSCALE_TRACE_MESSAGE;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -2664,11 +2665,11 @@ int xscale_read_instruction(target_t *target, arm_instruction_t *instruction)
 	u32 size_read;
 	u32 opcode;
 	int retval;
-	
+
 	if (!xscale->trace.image)
 		return ERROR_TRACE_IMAGE_UNAVAILABLE;
-	
-	/* search for the section the current instruction belongs to */	
+
+	/* search for the section the current instruction belongs to */
 	for (i = 0; i < xscale->trace.image->num_sections; i++)
 	{
 		if ((xscale->trace.image->sections[i].base_address <= xscale->trace.current_pc) &&
@@ -2678,17 +2679,17 @@ int xscale_read_instruction(target_t *target, arm_instruction_t *instruction)
 			break;
 		}
 	}
-	
+
 	if (section == -1)
 	{
 		/* current instruction couldn't be found in the image */
 		return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 	}
-	
+
 	if (xscale->trace.core_state == ARMV4_5_STATE_ARM)
 	{
 		u8 buf[4];
-		if ((retval = image_read_section(xscale->trace.image, section, 
+		if ((retval = image_read_section(xscale->trace.image, section,
 			xscale->trace.current_pc - xscale->trace.image->sections[section].base_address,
 			4, buf, &size_read)) != ERROR_OK)
 		{
@@ -2701,7 +2702,7 @@ int xscale_read_instruction(target_t *target, arm_instruction_t *instruction)
 	else if (xscale->trace.core_state == ARMV4_5_STATE_THUMB)
 	{
 		u8 buf[2];
-		if ((retval = image_read_section(xscale->trace.image, section, 
+		if ((retval = image_read_section(xscale->trace.image, section,
 			xscale->trace.current_pc - xscale->trace.image->sections[section].base_address,
 			2, buf, &size_read)) != ERROR_OK)
 		{
@@ -2716,7 +2717,7 @@ int xscale_read_instruction(target_t *target, arm_instruction_t *instruction)
 		ERROR("BUG: unknown core state encountered");
 		exit(-1);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -2728,10 +2729,10 @@ int xscale_branch_address(xscale_trace_data_t *trace_data, int i, u32 *target)
 	{
 		return -1;
 	}
-	
+
 	*target = (trace_data->entries[i-1].data) | (trace_data->entries[i-2].data << 8) |
 				(trace_data->entries[i-3].data << 16) | (trace_data->entries[i-4].data << 24);
-	
+
 	return 0;
 }
 
@@ -2744,7 +2745,7 @@ int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 	u32 next_pc = 0x0;
 	xscale_trace_data_t *trace_data = xscale->trace.data;
 	int retval;
-	
+
 	while (trace_data)
 	{
 		int i, chkpt;
@@ -2755,16 +2756,16 @@ int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 
 		chkpt = 0;
 		rollover = 0;
-		
+
 		for (i = 0; i < trace_data->depth; i++)
 		{
 			next_pc_ok = 0;
 			branch = 0;
 			exception = 0;
-			
+
 			if (trace_data->entries[i].type == XSCALE_TRACE_ADDRESS)
 				continue;
-			
+
 			switch ((trace_data->entries[i].data & 0xf0) >> 4)
 			{
 				case 0:		/* Exceptions */
@@ -2826,18 +2827,18 @@ int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 					ERROR("BUG: trace message %i is reserved", (trace_data->entries[i].data & 0xf0) >> 4);
 					return ERROR_OK;
 			}
-			
+
 			if (xscale->trace.pc_ok)
 			{
 				int executed = (trace_data->entries[i].data & 0xf) + rollover * 16;
 				arm_instruction_t instruction;
-				
+
 				if ((exception == 6) || (exception == 7))
 				{
-					/* IRQ or FIQ exception, no instruction executed */ 
+					/* IRQ or FIQ exception, no instruction executed */
 					executed -= 1;
 				}
-				
+
 				while (executed-- >= 0)
 				{
 					if ((retval = xscale_read_instruction(target, &instruction)) != ERROR_OK)
@@ -2852,7 +2853,7 @@ int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 							/* TODO: handle incomplete images */
 						}
 					}
-					
+
 					/* a precise abort on a load to the PC is included in the incremental
 					 * word count, other instructions causing data aborts are not included
 					 */
@@ -2889,17 +2890,17 @@ int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 					}
 					command_print(cmd_ctx, "%s", instruction.text);
 				}
-				
+
 				rollover = 0;
 			}
-			
+
 			if (next_pc_ok)
 			{
 				xscale->trace.current_pc = next_pc;
 				xscale->trace.pc_ok = 1;
 			}
 		}
-		
+
 		for (; xscale->trace.current_pc < trace_data->last_instruction; xscale->trace.current_pc += (xscale->trace.core_state == ARMV4_5_STATE_ARM) ? 4 : 2)
 		{
 			arm_instruction_t instruction;
@@ -2917,10 +2918,10 @@ int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 			}
 			command_print(cmd_ctx, "%s", instruction.text);
 		}
-		
+
 		trace_data = trace_data->next;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -2934,23 +2935,23 @@ void xscale_build_reg_cache(target_t *target)
 	xscale_reg_t *arch_info = malloc(sizeof(xscale_reg_arch_info));
 	int i;
 	int num_regs = sizeof(xscale_reg_arch_info) / sizeof(xscale_reg_t);
-	
+
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 	armv4_5->core_cache = (*cache_p);
-	
+
 	/* register a register arch-type for XScale dbg registers only once */
 	if (xscale_reg_arch_type == -1)
 		xscale_reg_arch_type = register_reg_arch_type(xscale_get_reg, xscale_set_reg);
-	
+
 	(*cache_p)->next = malloc(sizeof(reg_cache_t));
 	cache_p = &(*cache_p)->next;
-	
+
 	/* fill in values for the xscale reg cache */
 	(*cache_p)->name = "XScale registers";
 	(*cache_p)->next = NULL;
 	(*cache_p)->reg_list = malloc(num_regs * sizeof(reg_t));
 	(*cache_p)->num_regs = num_regs;
-	
+
 	for (i = 0; i < num_regs; i++)
 	{
 		(*cache_p)->reg_list[i].name = xscale_reg_list[i];
@@ -2965,7 +2966,7 @@ void xscale_build_reg_cache(target_t *target)
 		arch_info[i] = xscale_reg_arch_info[i];
 		arch_info[i].target = target;
 	}
-	
+
 	xscale->reg_cache = (*cache_p);
 }
 
@@ -2976,19 +2977,19 @@ int xscale_init_target(struct command_context_s *cmd_ctx, struct target_s *targe
 		ERROR("XScale target requires a reset");
 		ERROR("Reset target to enable debug");
 	}
-	
+
 	/* assert TRST once during startup */
 	jtag_add_reset(1, 0);
 	jtag_add_sleep(5000);
 	jtag_add_reset(0, 0);
 	jtag_execute_queue();
-	
+
 	return ERROR_OK;
 }
 
 int xscale_quit()
 {
-	
+
 	return ERROR_OK;
 }
 
@@ -2997,16 +2998,16 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	armv4_5_common_t *armv4_5;
 	u32 high_reset_branch, low_reset_branch;
 	int i;
-	
+
 	armv4_5 = &xscale->armv4_5_common;
-	
+
 	/* store architecture specfic data (none so far) */
 	xscale->arch_info = NULL;
 	xscale->common_magic = XSCALE_COMMON_MAGIC;
-	
+
 	/* remember the variant (PXA25x, PXA27x, IXP42x, ...) */
 	xscale->variant = strdup(variant);
-	
+
 	/* prepare JTAG information for the new target */
 	xscale->jtag_info.chain_pos = chain_pos;
 	jtag_register_event_callback(xscale_jtag_callback, target);
@@ -3014,7 +3015,7 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	xscale->jtag_info.dbgrx = 0x02;
 	xscale->jtag_info.dbgtx = 0x10;
 	xscale->jtag_info.dcsr = 0x09;
-	xscale->jtag_info.ldic = 0x07;	
+	xscale->jtag_info.ldic = 0x07;
 
 	if ((strcmp(xscale->variant, "pxa250") == 0) ||
 		(strcmp(xscale->variant, "pxa255") == 0) ||
@@ -3029,12 +3030,12 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	{
 		xscale->jtag_info.ir_length = 7;
 	}
-	
+
 	/* the debug handler isn't installed (and thus not running) at this time */
 	xscale->handler_installed = 0;
 	xscale->handler_running = 0;
 	xscale->handler_address = 0xfe000800;
-	
+
 	/* clear the vectors we keep locally for reference */
 	memset(xscale->low_vectors, 0, sizeof(xscale->low_vectors));
 	memset(xscale->high_vectors, 0, sizeof(xscale->high_vectors));
@@ -3046,43 +3047,43 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	/* calculate branches to debug handler */
 	low_reset_branch = (xscale->handler_address + 0x20 - 0x0 - 0x8) >> 2;
 	high_reset_branch = (xscale->handler_address + 0x20 - 0xffff0000 - 0x8) >> 2;
-	
+
 	xscale->low_vectors[0] = ARMV4_5_B((low_reset_branch & 0xffffff), 0);
 	xscale->high_vectors[0] = ARMV4_5_B((high_reset_branch & 0xffffff), 0);
-	
+
 	for (i = 1; i <= 7; i++)
 	{
 		xscale->low_vectors[i] = ARMV4_5_B(0xfffffe, 0);
 		xscale->high_vectors[i] = ARMV4_5_B(0xfffffe, 0);
 	}
-	
-	/* 64kB aligned region used for DCache cleaning */ 
-	xscale->cache_clean_address = 0xfffe0000;	
-	
+
+	/* 64kB aligned region used for DCache cleaning */
+	xscale->cache_clean_address = 0xfffe0000;
+
 	xscale->hold_rst = 0;
 	xscale->external_debug_break = 0;
-	
+
 	xscale->force_hw_bkpts = 1;
-	
+
 	xscale->ibcr_available = 2;
 	xscale->ibcr0_used = 0;
 	xscale->ibcr1_used = 0;
-		
+
 	xscale->dbr_available = 2;
 	xscale->dbr0_used = 0;
 	xscale->dbr1_used = 0;
-	
+
 	xscale->arm_bkpt = ARMV5_BKPT(0x0);
 	xscale->thumb_bkpt = ARMV5_T_BKPT(0x0) & 0xffff;
-	
+
 	xscale->vector_catch = 0x1;
-	
+
 	xscale->trace.capture_status = TRACE_IDLE;
 	xscale->trace.data = NULL;
 	xscale->trace.image = NULL;
 	xscale->trace.buffer_enabled = 0;
 	xscale->trace.buffer_fill = 0;
-	
+
 	/* prepare ARMv4/5 specific information */
 	armv4_5->arch_info = xscale;
 	armv4_5->read_core_reg = xscale_read_core_reg;
@@ -3099,7 +3100,7 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	xscale->armv4_5_mmu.enable_mmu_caches = xscale_enable_mmu_caches;
 	xscale->armv4_5_mmu.has_tiny_pages = 1;
 	xscale->armv4_5_mmu.mmu_enabled = 0;
-	
+
 	return ERROR_OK;
 }
 
@@ -3115,14 +3116,14 @@ int xscale_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		ERROR("'target xscale' requires four arguments: <endianess> <startup_mode> <chain_pos> <variant>");
 		exit(-1);
 	}
-	
+
 	chain_pos = strtoul(args[3], NULL, 0);
-	
+
 	variant = args[4];
-	
+
 	xscale_init_arch_info(target, xscale, chain_pos, variant);
 	xscale_build_reg_cache(target);
-	
+
 	return ERROR_OK;
 }
 
@@ -3139,21 +3140,21 @@ int xscale_handle_debug_handler_command(struct command_context_s *cmd_ctx, char 
 		ERROR("'xscale debug_handler <target#> <address>' command takes two required operands");
 		return ERROR_OK;
 	}
-	
+
 	if ((target = get_target_by_num(strtoul(args[0], NULL, 0))) == NULL)
 	{
 		ERROR("no target '%s' configured", args[0]);
 		return ERROR_OK;
 	}
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an ARM920t target");
 		return ERROR_OK;
 	}
-	
+
 	handler_address = strtoul(args[1], NULL, 0);
-	
+
 	if (((handler_address >= 0x800) && (handler_address <= 0x1fef800)) ||
 		((handler_address >= 0xfe000800) && (handler_address <= 0xfffff800)))
 	{
@@ -3163,7 +3164,7 @@ int xscale_handle_debug_handler_command(struct command_context_s *cmd_ctx, char 
 	{
 		ERROR("xscale debug_handler <address> must be between 0x800 and 0x1fef800 or between 0xfe000800 and 0xfffff800");
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -3174,27 +3175,27 @@ int xscale_handle_cache_clean_address_command(struct command_context_s *cmd_ctx,
 	xscale_common_t *xscale;
 
 	u32 cache_clean_address;
-	
+
 	if (argc < 2)
 	{
 		ERROR("'xscale cache_clean_address <target#> <address>' command takes two required operands");
 		return ERROR_OK;
 	}
-	
+
 	if ((target = get_target_by_num(strtoul(args[0], NULL, 0))) == NULL)
 	{
 		ERROR("no target '%s' configured", args[0]);
 		return ERROR_OK;
 	}
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	cache_clean_address = strtoul(args[1], NULL, 0);
-	
+
 	if (cache_clean_address & 0xffff)
 	{
 		ERROR("xscale cache_clean_address <address> must be 64kb aligned");
@@ -3203,7 +3204,7 @@ int xscale_handle_cache_clean_address_command(struct command_context_s *cmd_ctx,
 	{
 		xscale->cache_clean_address = cache_clean_address;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -3212,55 +3213,55 @@ int xscale_handle_cache_info_command(struct command_context_s *cmd_ctx, char *cm
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	return armv4_5_handle_cache_info_command(cmd_ctx, &xscale->armv4_5_mmu.armv4_5_cache);
 }
 
 int xscale_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{	
+{
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
 		return ERROR_OK;
 	}
-		
+
 	return armv4_5_mmu_handle_virt2phys_command(cmd_ctx, cmd, args, argc, target, &xscale->armv4_5_mmu);
 }
 
 int xscale_handle_mmu_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{	
+{
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
 		return ERROR_OK;
 	}
-	
+
 	if (argc >= 1)
 	{
 		if (strcmp("enable", args[0]) == 0)
@@ -3274,42 +3275,42 @@ int xscale_handle_mmu_command(command_context_t *cmd_ctx, char *cmd, char **args
 			xscale->armv4_5_mmu.mmu_enabled = 0;
 		}
 	}
-		
+
 	command_print(cmd_ctx, "mmu %s", (xscale->armv4_5_mmu.mmu_enabled) ? "enabled" : "disabled");
-	
+
 	return ERROR_OK;
 }
 
 int xscale_handle_idcache_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{	
+{
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
 	int icache = 0, dcache = 0;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
 		return ERROR_OK;
 	}
-	
+
 	if (strcmp(cmd, "icache") == 0)
 		icache = 1;
 	else if (strcmp(cmd, "dcache") == 0)
 		dcache = 1;
-	
+
 	if (argc >= 1)
 	{
 		if (strcmp("enable", args[0]) == 0)
 		{
 			xscale_enable_mmu_caches(target, 0, dcache, icache);
-			
+
 			if (icache)
 				xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 1;
 			else if (dcache)
@@ -3325,28 +3326,28 @@ int xscale_handle_idcache_command(command_context_t *cmd_ctx, char *cmd, char **
 				xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 		}
 	}
-	
+
 	if (icache)
 		command_print(cmd_ctx, "icache %s", (xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled) ? "enabled" : "disabled");
-	
+
 	if (dcache)
 	 	command_print(cmd_ctx, "dcache %s", (xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled) ? "enabled" : "disabled");
-	 	
+
 	return ERROR_OK;
 }
 
 int xscale_handle_vector_catch_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{	
+{
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	if (argc < 1)
 	{
 		command_print(cmd_ctx, "usage: xscale vector_catch [mask]");
@@ -3357,9 +3358,9 @@ int xscale_handle_vector_catch_command(command_context_t *cmd_ctx, char *cmd, ch
 		buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 16, 8, xscale->vector_catch);
 		xscale_write_dcsr(target, -1, -1);
 	}
-	
+
 	command_print(cmd_ctx, "vector catch mask: 0x%2.2x", xscale->vector_catch);
-	
+
 	return ERROR_OK;
 }
 
@@ -3368,13 +3369,13 @@ int xscale_handle_force_hw_bkpts_command(struct command_context_s *cmd_ctx, char
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	if ((argc >= 1) && (strcmp("enable", args[0]) == 0))
 	{
 		xscale->force_hw_bkpts = 1;
@@ -3387,7 +3388,7 @@ int xscale_handle_force_hw_bkpts_command(struct command_context_s *cmd_ctx, char
 	{
 		command_print(cmd_ctx, "usage: xscale force_hw_bkpts <enable|disable>");
 	}
-		
+
 	command_print(cmd_ctx, "force hardware breakpoints %s", (xscale->force_hw_bkpts) ? "enabled" : "disabled");
 
 	return ERROR_OK;
@@ -3399,30 +3400,30 @@ int xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx, char *
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
 	u32 dcsr_value;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
 		return ERROR_OK;
 	}
-	
+
 	if ((argc >= 1) && (strcmp("enable", args[0]) == 0))
 	{
 		xscale_trace_data_t *td, *next_td;
 		xscale->trace.buffer_enabled = 1;
-		
+
 		/* free old trace data */
 		td = xscale->trace.data;
 		while (td)
 		{
 			next_td = td->next;
-			
+
 			if (td->entries)
 				free(td->entries);
 			free(td);
@@ -3446,7 +3447,7 @@ int xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx, char *
 	{
 		xscale->trace.buffer_fill = -1;
 	}
-	
+
 	if (xscale->trace.buffer_enabled)
 	{
 		/* if we enable the trace buffer in fill-once
@@ -3459,8 +3460,8 @@ int xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx, char *
 		/* otherwise the address is unknown, and we have no known good PC */
 		xscale->trace.pc_ok = 0;
 	}
-	
-	command_print(cmd_ctx, "trace buffer %s (%s)", 
+
+	command_print(cmd_ctx, "trace buffer %s (%s)",
 		(xscale->trace.buffer_enabled) ? "enabled" : "disabled",
 		(xscale->trace.buffer_fill > 0) ? "fill" : "wrap");
 
@@ -3469,7 +3470,7 @@ int xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx, char *
 		xscale_write_dcsr_sw(target, (dcsr_value & 0xfffffffc) | 2);
 	else
 		xscale_write_dcsr_sw(target, dcsr_value & 0xfffffffc);
-		
+
 	return ERROR_OK;
 }
 
@@ -3484,26 +3485,26 @@ int xscale_handle_trace_image_command(struct command_context_s *cmd_ctx, char *c
 		command_print(cmd_ctx, "usage: xscale trace_image <file> [base address] [type]");
 		return ERROR_OK;
 	}
-	
+
 	target = get_current_target(cmd_ctx);
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	if (xscale->trace.image)
 	{
 		image_close(xscale->trace.image);
 		free(xscale->trace.image);
 		command_print(cmd_ctx, "previously loaded image found and closed");
 	}
-	
+
 	xscale->trace.image = malloc(sizeof(image_t));
 	xscale->trace.image->base_address_set = 0;
 	xscale->trace.image->start_address_set = 0;
-	
+
 	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
 	if (argc >= 2)
 	{
@@ -3514,7 +3515,7 @@ int xscale_handle_trace_image_command(struct command_context_s *cmd_ctx, char *c
 	{
 		xscale->trace.image->base_address_set = 0;
 	}
-		
+
 	if (image_open(xscale->trace.image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "image opening error: %s", xscale->trace.image->error_str);
@@ -3522,7 +3523,7 @@ int xscale_handle_trace_image_command(struct command_context_s *cmd_ctx, char *c
 		xscale->trace.image = NULL;
 		return ERROR_OK;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -3533,57 +3534,57 @@ int xscale_handle_dump_trace_command(struct command_context_s *cmd_ctx, char *cm
 	xscale_common_t *xscale;
 	xscale_trace_data_t *trace_data;
 	fileio_t file;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
 		return ERROR_OK;
 	}
-	
+
 	if (argc < 1)
 	{
 		command_print(cmd_ctx, "usage: xscale dump_trace <file>");
 		return ERROR_OK;
 	}
-	
+
 	trace_data = xscale->trace.data;
-	
+
 	if (!trace_data)
 	{
 		command_print(cmd_ctx, "no trace data collected");
 		return ERROR_OK;
 	}
-	
+
 	if (fileio_open(&file, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "file open error: %s", file.error_str);
 		return ERROR_OK;
 	}
-	
+
 	while (trace_data)
 	{
 		int i;
-		
+
 		fileio_write_u32(&file, trace_data->chkpt0);
 		fileio_write_u32(&file, trace_data->chkpt1);
 		fileio_write_u32(&file, trace_data->last_instruction);
 		fileio_write_u32(&file, trace_data->depth);
-		
+
 		for (i = 0; i < trace_data->depth; i++)
 			fileio_write_u32(&file, trace_data->entries[i].data | ((trace_data->entries[i].type & 0xffff) << 16));
-		
+
 		trace_data = trace_data->next;
 	}
-	
+
 	fileio_close(&file);
-	
-	return ERROR_OK;	
+
+	return ERROR_OK;
 }
 
 int xscale_handle_analyze_trace_buffer_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -3597,10 +3598,10 @@ int xscale_handle_analyze_trace_buffer_command(struct command_context_s *cmd_ctx
 		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
-	
+
 	xscale_analyze_trace(target, cmd_ctx);
-	
-	return ERROR_OK;	
+
+	return ERROR_OK;
 }
 
 int xscale_register_commands(struct command_context_s *cmd_ctx)
@@ -3608,7 +3609,7 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 	command_t *xscale_cmd;
 
 	xscale_cmd = register_command(cmd_ctx, NULL, "xscale", NULL, COMMAND_ANY, "xscale specific commands");
-	
+
 	register_command(cmd_ctx, xscale_cmd, "debug_handler", xscale_handle_debug_handler_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, xscale_cmd, "cache_clean_address", xscale_handle_cache_clean_address_command, COMMAND_ANY, NULL);
 
@@ -3617,17 +3618,17 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, xscale_cmd, "mmu", xscale_handle_mmu_command, COMMAND_EXEC, "['enable'|'disable'] the MMU");
 	register_command(cmd_ctx, xscale_cmd, "icache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the ICache");
 	register_command(cmd_ctx, xscale_cmd, "dcache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the DCache");
-	
+
 	register_command(cmd_ctx, xscale_cmd, "vector_catch", xscale_handle_idcache_command, COMMAND_EXEC, "<mask> of vectors that should be catched");
-	
+
 	register_command(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable|disable> ['fill' [n]|'wrap']");
 
 	register_command(cmd_ctx, xscale_cmd, "dump_trace", xscale_handle_dump_trace_command, COMMAND_EXEC, "dump content of trace buffer to <file>");
 	register_command(cmd_ctx, xscale_cmd, "analyze_trace", xscale_handle_analyze_trace_buffer_command, COMMAND_EXEC, "analyze content of trace buffer");
 	register_command(cmd_ctx, xscale_cmd, "trace_image", xscale_handle_trace_image_command,
 		COMMAND_EXEC, "load image from <file> [base address]");
-		
+
 	armv4_5_register_commands(cmd_ctx);
-	
+
 	return ERROR_OK;
 }
