@@ -674,7 +674,7 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 
 int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
-	u32 cmd, pagen, status;
+	u32 cmd, pagen;
 	u8 flashplane;
 	int lockregion;
 	

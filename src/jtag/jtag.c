@@ -1446,7 +1446,8 @@ int jtag_init(struct command_context_s *cmd_ctx)
 					if (validate_tries > 5)
 					{
 						ERROR("Could not validate JTAG chain, exit");
-						exit(-1);
+						jtag = NULL;
+						return ERROR_JTAG_INVALID_INTERFACE;
 					}
 					usleep(10000);
 				}
@@ -1568,8 +1569,9 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			jtag_reset_config = RESET_TRST_AND_SRST;
 		else
 		{
-			ERROR("invalid reset_config argument");
-			exit(-1);
+			ERROR("invalid reset_config argument, defaulting to none");
+			jtag_reset_config = RESET_NONE;
+			return ERROR_INVALID_ARGUMENTS;
 		}
 	}
 	
@@ -1585,8 +1587,9 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			jtag_reset_config &= ~(RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST);
 		else
 		{
-			ERROR("invalid reset_config argument");
-			exit(-1);
+			ERROR("invalid reset_config argument, defaulting to none");
+			jtag_reset_config = RESET_NONE;
+			return ERROR_INVALID_ARGUMENTS;
 		}
 	}
 	
@@ -1598,8 +1601,9 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			jtag_reset_config &= ~RESET_TRST_OPEN_DRAIN;
 		else
 		{
-			ERROR("invalid reset_config argument");
-			exit(-1);
+			ERROR("invalid reset_config argument, defaulting to none");
+			jtag_reset_config = RESET_NONE;
+			return ERROR_INVALID_ARGUMENTS;
 		}
 	}
 
@@ -1611,8 +1615,9 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			jtag_reset_config &= ~RESET_SRST_PUSH_PULL;
 		else
 		{
-			ERROR("invalid reset_config argument");
-			exit(-1);
+			ERROR("invalid reset_config argument, defaulting to none");
+			jtag_reset_config = RESET_NONE;
+			return ERROR_INVALID_ARGUMENTS;
 		}
 	}
 	

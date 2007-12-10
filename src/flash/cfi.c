@@ -2046,7 +2046,7 @@ int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	int printed;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 
-	if (cfi_info->qry[0] == -1)
+	if (cfi_info->qry[0] == (char)-1)
 	{
 		printed = snprintf(buf, buf_size, "\ncfi flash bank not probed yet\n");
 		return ERROR_OK;

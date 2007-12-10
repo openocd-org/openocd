@@ -383,7 +383,11 @@ int command_run_file(command_context_t *context, FILE *file, enum command_mode m
 {
 	int retval = ERROR_OK;
 	int old_command_mode;
-	char buffer[4096];
+	char *buffer=malloc(4096);
+	if (buffer==NULL)
+	{
+		return ERROR_INVALID_ARGUMENTS;
+	}
 	
 	old_command_mode = context->mode;
 	context->mode = mode;
@@ -422,6 +426,9 @@ int command_run_file(command_context_t *context, FILE *file, enum command_mode m
 	}
 	
 	context->mode = old_command_mode;
+
+	
+	free(buffer);
 	
 	return retval;
 }
