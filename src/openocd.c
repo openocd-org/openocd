@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 	DEBUG("log init complete");
 	
 	INFO( OPENOCD_VERSION );
-	INFO( "$URL: $");
+	INFO( "$URL$");
 
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;
