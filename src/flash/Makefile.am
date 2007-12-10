@@ -1,4 +1,5 @@
 INCLUDES = -I$(top_srcdir)/src/helper -I$(top_srcdir)/src/jtag -I$(top_srcdir)/src/target $(all_includes)
+AM_CPPFLAGS = -DPKGLIBDIR=\"$(pkglibdir)\" @CPPFLAGS@
 METASOURCES = AUTO
 noinst_LIBRARIES = libflash.a
 libflash_a_SOURCES = flash.c lpc2000.c cfi.c non_cfi.c at91sam7.c str7x.c str9x.c nand.c lpc3180_nand_controller.c \
