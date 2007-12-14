@@ -52,6 +52,9 @@ int cfi_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, cha
 #define CFI_MAX_BUS_WIDTH	4
 #define CFI_MAX_CHIP_WIDTH	4
 
+/* defines internal maximum size for code fragment in cfi_intel_write_block() */
+#define CFI_MAX_INTEL_CODESIZE 256
+
 flash_driver_t cfi_flash =
 {
 	.name = "cfi",
@@ -834,16 +837,18 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 	{
 		for (i = 0; i < bank->num_sectors; i++)
 		{
-			cfi_intel_clear_status_register(bank);
-			cfi_command(bank, 0x60, command);
-			target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
 			if (bank->sectors[i].is_protected == 1)
 			{
+				cfi_intel_clear_status_register(bank);
+
+				cfi_command(bank, 0x60, command);
+				target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+
 				cfi_command(bank, 0x01, command);
 				target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
-			}
 
-			cfi_intel_wait_status_busy(bank, 100);
+				cfi_intel_wait_status_busy(bank, 100);
+			}
 		}
 	}
 
@@ -884,25 +889,45 @@ int cfi_protect(struct flash_bank_s *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-void cfi_add_byte(struct flash_bank_s *bank, u8 *word, u8 byte)
+/* FIXME Replace this by a simple memcpy() - still unsure about sideeffects */
+static void cfi_add_byte(struct flash_bank_s *bank, u8 *word, u8 byte)
 {
 	target_t *target = bank->target;
 
 	int i;
 
-	if (target->endianness == TARGET_LITTLE_ENDIAN)
-	{
+	// NOTE:
+	// The data to flash must not be changed in endian! We write a bytestrem in
+	// target byte order already. Only the control and status byte lane of the flash
+	// WSM is interpreted by the CPU in different ways, when read a u16 or u32
+	// word (data seems to be in the upper or lower byte lane for u16 accesses).
+
+	//if (target->endianness == TARGET_LITTLE_ENDIAN)
+	//{
 		/* shift bytes */
 		for (i = 0; i < bank->bus_width - 1; i++)
 			word[i] = word[i + 1];
 		word[bank->bus_width - 1] = byte;
-	}
-	else
+	//}
+	//else
+	//{
+	//	/* shift bytes */
+	//	for (i = bank->bus_width - 1; i > 0; i--)
+	//		word[i] = word[i - 1];
+	//	word[0] = byte;
+	//}
+}
+
+/* Convert code image to target endian */
+/* FIXME create general block conversion fcts in target.c?) */ static
+void cfi_fix_code_endian(target_t *target, u32 *dest, const u32 *src, u32 count)
+{
+	u32 i;
+	for (i=0; i< count; i++)
 	{
-		/* shift bytes */
-		for (i = bank->bus_width - 1; i > 0; i--)
-			word[i] = word[i - 1];
-		word[0] = byte;
+		target_buffer_set_u32(target, (u8*)dest, *src);
+		dest++;
+		src++;
 	}
 }
 
@@ -918,7 +943,6 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	u8 busy_pattern_buf[CFI_MAX_BUS_WIDTH];
 	u8 error_pattern_buf[CFI_MAX_BUS_WIDTH];
 	u32 write_command_val, busy_pattern_val, error_pattern_val;
-	int retval;
 
 	/* algorithm register usage:
 	 * r0: source address (in RAM)
@@ -944,7 +968,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		0x0a000001,   /* 		beq done */
 		0xe2811004,   /*		add r1, r1 #4 */
 		0xeafffff2,   /* 		b loop */
-		0xeafffffe,   /* done:	b -2 */
+		0xeafffffe    /* done:	b -2 */
 	};
 
 	static const u32 word_16_code[] = {
@@ -961,7 +985,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		0x0a000001,   /* 		beq done */
 		0xe2811002,   /*		add r1, r1 #2 */
 		0xeafffff2,   /* 		b loop */
-		0xeafffffe,   /* done:	b -2 */
+		0xeafffffe    /* done:	b -2 */
 	};
 
 	static const u32 word_8_code[] = {
@@ -978,8 +1002,13 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		0x0a000001,   /* 		beq done */
 		0xe2811001,   /*		add r1, r1 #1 */
 		0xeafffff2,   /* 		b loop */
-		0xeafffffe,   /* done:	b -2 */
+		0xeafffffe    /* done:	b -2 */
 	};
+	u32 target_code[CFI_MAX_INTEL_CODESIZE];
+	const u32 *target_code_src;
+	int target_code_size;
+	int retval = ERROR_OK;
+
 
 	cfi_intel_clear_status_register(bank);
 
@@ -990,53 +1019,64 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	/* flash write code */
 	if (!cfi_info->write_algorithm)
 	{
-		u8 write_code_buf[14 * 4];
-		int i;
-
-		if (target_alloc_working_area(target, 4 * 14, &cfi_info->write_algorithm) != ERROR_OK)
+		/* prepare algorithm code for target endian */
+		switch (bank->bus_width)
 		{
-			WARNING("no working area available, can't do block memory writes");
+		case 1 :
+			target_code_src = word_8_code;
+			target_code_size = sizeof(word_8_code);
+			break;
+		case 2 :
+			target_code_src = word_16_code;
+			target_code_size = sizeof(word_16_code);
+			break;
+		case 4 :
+			target_code_src = word_32_code;
+			target_code_size = sizeof(word_32_code);
+			break;
+		default:
+			ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
+		if ( target_code_size > sizeof(target_code) )
+		{
+			WARNING("Internal error - target code buffer to small. Increase CFI_MAX_INTEL_CODESIZE and recompile.");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
+		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size);
+
+		/* Get memory for block write handler */
+		retval = target_alloc_working_area(target, target_code_size, &cfi_info->write_algorithm);
+		if (retval != ERROR_OK)
+		{
+			WARNING("No working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		};
 
 		/* write algorithm code to working area */
-		if (bank->bus_width == 1)
+		retval = target_write_buffer(target, cfi_info->write_algorithm->address, target_code_size, (u8*)target_code);
+		if (retval != ERROR_OK)
 		{
-			for (i = 0; i < 14; i++)
-				target_buffer_set_u32(target, write_code_buf + (i*4), word_8_code[i]);
+			ERROR("Unable to write block write code to target");
+			goto cleanup;
 		}
-		else if (bank->bus_width == 2)
-		{
-			for (i = 0; i < 14; i++)
-				target_buffer_set_u32(target, write_code_buf + (i*4), word_16_code[i]);
-		}
-		else if (bank->bus_width == 4)
-		{
-			for (i = 0; i < 14; i++)
-				target_buffer_set_u32(target, write_code_buf + (i*4), word_32_code[i]);
-		}
-		else
-		{
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
-
-		target_write_buffer(target, cfi_info->write_algorithm->address, 14 * 4, write_code_buf);
 	}
 
+	/* Get a workspace buffer for the data to flash starting with 32k size.
+	   Half size until buffer would be smaller 256 Bytem then fail back */
+	/* FIXME Why 256 bytes, why not 32 bytes (smallest flash write page */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
 	{
 		buffer_size /= 2;
 		if (buffer_size <= 256)
 		{
-			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
-			if (cfi_info->write_algorithm)
-				target_free_working_area(target, cfi_info->write_algorithm);
-
 			WARNING("no large enough working area available, can't do block memory writes");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+			retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+			goto cleanup;
 		}
 	};
 
+	/* setup algo registers */
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
@@ -1050,50 +1090,77 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	cfi_command(bank, 0x80, busy_pattern_buf);
 	cfi_command(bank, 0x7e, error_pattern_buf);
 
-	if (bank->bus_width == 1)
+	switch (bank->bus_width)
 	{
+	case 1 :
 		write_command_val = write_command_buf[0];
 		busy_pattern_val = busy_pattern_buf[0];
 		error_pattern_val = error_pattern_buf[0];
-	}
-	else if (bank->bus_width == 2)
-	{
+		break;
+	case 2 :
 		write_command_val = target_buffer_get_u16(target, write_command_buf);
 		busy_pattern_val = target_buffer_get_u16(target, busy_pattern_buf);
 		error_pattern_val = target_buffer_get_u16(target, error_pattern_buf);
-	}
-	else if (bank->bus_width == 4)
-	{
+		break;
+	case 4 :
 		write_command_val = target_buffer_get_u32(target, write_command_buf);
 		busy_pattern_val = target_buffer_get_u32(target, busy_pattern_buf);
 		error_pattern_val = target_buffer_get_u32(target, error_pattern_buf);
+		break;
+	default :
+		ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
+		retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		goto cleanup;
 	}
 
+	INFO("Using target buffer at 0x%08x and of size 0x%04x", source->address, buffer_size );
+
+	/* Programming main loop */
 	while (count > 0)
 	{
 		u32 thisrun_count = (count > buffer_size) ? buffer_size : count;
+		u32 wsm_error;
 
 		target_write_buffer(target, source->address, thisrun_count, buffer);
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count / bank->bus_width);
+
 		buf_set_u32(reg_params[3].value, 0, 32, write_command_val);
 		buf_set_u32(reg_params[5].value, 0, 32, busy_pattern_val);
 		buf_set_u32(reg_params[6].value, 0, 32, error_pattern_val);
 
-		if ((retval = target->type->run_algorithm(target, 0, NULL, 7, reg_params, cfi_info->write_algorithm->address, cfi_info->write_algorithm->address + (13 * 4), 10000, &armv4_5_info)) != ERROR_OK)
+		INFO("Write 0x%04x bytes to flash at 0x%08x", thisrun_count, address );
+
+		/* Execute algorithm, assume breakpoint for last instruction */
+		retval = target->type->run_algorithm(target, 0, NULL, 7, reg_params,
+			cfi_info->write_algorithm->address,
+			cfi_info->write_algorithm->address + target_code_size - sizeof(u32),
+			10000, /* 10s should be enough for max. 32k of data */
+			&armv4_5_info);
+
+		/* On failure try a fall back to direct word writes */
+		if (retval != ERROR_OK)
 		{
 			cfi_intel_clear_status_register(bank);
-			return ERROR_FLASH_OPERATION_FAILED;
+			ERROR("Execution of flash algorythm failed. Can't fall back. Please report.");
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			//retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+			// FIXME To allow fall back or recovery, we must save the actual status
+			//       somewhere, so that a higher level code can start recovery.
+			goto cleanup;
 		}
 
-		if (buf_get_u32(reg_params[4].value, 0, 32) & error_pattern_val)
+		/* Check return value from algo code */
+		wsm_error = buf_get_u32(reg_params[4].value, 0, 32) & error_pattern_val;
+		if (wsm_error)
 		{
 			/* read status register (outputs debug inforation) */
 			cfi_intel_wait_status_busy(bank, 100);
 			cfi_intel_clear_status_register(bank);
-			return ERROR_FLASH_OPERATION_FAILED;
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			goto cleanup;
 		}
 
 		buffer += thisrun_count;
@@ -1101,7 +1168,16 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		count -= thisrun_count;
 	}
 
-	target_free_working_area(target, source);
+	/* free up resources */
+cleanup:
+	if (source)
+		target_free_working_area(target, source);
+
+	if (cfi_info->write_algorithm)
+	{
+		target_free_working_area(target, cfi_info->write_algorithm);
+		cfi_info->write_algorithm = NULL;
+	}
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
@@ -1111,7 +1187,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	destroy_reg_param(&reg_params[5]);
 	destroy_reg_param(&reg_params[6]);
 
-	return ERROR_OK;
+	return retval;
 }
 
 int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u32 count)
@@ -1178,9 +1254,9 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 						/*								*/
 						/* 00008154 <sp_32_done>:		*/
 		0xeafffffe		/* b	8154 <sp_32_done>		*/
-        };
+		};
 
-        u32 word_16_code[] = {
+		u32 word_16_code[] = {
 				/* 00008158 <sp_16_code>:              */
 		0xe0d050b2, 	/* ldrh	r5, [r0], #2		   */
 		0xe1c890b0, 	/* strh	r9, [r8]				*/
@@ -1212,9 +1288,9 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 				/* 				       */
 				/* 000081ac <sp_16_done>:	       */
 		0xeafffffe 	/* b	81ac <sp_16_done>              */
-        };
+		};
 
-        u32 word_8_code[] = {
+		u32 word_8_code[] = {
 				/* 000081b0 <sp_16_code_end>:          */
 		0xe4d05001, 	/* ldrb	r5, [r0], #1		       */
 		0xe5c89000, 	/* strb	r9, [r8]				*/
@@ -1400,6 +1476,77 @@ int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 	return ERROR_OK;
 }
 
+int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 address)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	target_t *target = bank->target;
+	u8 command[8];
+	int i;
+
+	/* Calculate buffer size and boundary mask */
+	u32 buffersize = 1UL << cfi_info->max_buf_write_size;
+	u32 buffermask = buffersize-1;
+	u32 bufferwsize;
+
+	/* Check for valid range */
+	if (address & buffermask)
+	{
+		ERROR("Write address at base 0x%x, address %x not aligned to 2^%d boundary", bank->base, address, cfi_info->max_buf_write_size);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+	switch(bank->chip_width)
+	{
+	case 4 : bufferwsize = buffersize / 4; break;
+	case 2 : bufferwsize = buffersize / 2; break;
+	case 1 : bufferwsize = buffersize; break;
+	default:
+		ERROR("Unsupported chip width %d", bank->chip_width);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	/* Check for valid size */
+	if (wordcount > bufferwsize)
+	{
+		ERROR("Number of data words %d exceeds available buffersize %d", wordcount, buffersize);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	/* Write to flash buffer */
+	cfi_intel_clear_status_register(bank);
+
+	/* Initiate buffer operation _*/
+	cfi_command(bank, 0xE8, command);
+	target->type->write_memory(target, address, bank->bus_width, 1, command);
+	if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->buf_write_timeout_max)) != 0x80)
+	{
+		cfi_command(bank, 0xff, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+
+		ERROR("couldn't start buffer write operation at base 0x%x, address %x", bank->base, address);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	/* Write buffer wordcount-1 and data words */
+	cfi_command(bank, bufferwsize-1, command);
+	target->type->write_memory(target, address, bank->bus_width, 1, command);
+
+	target->type->write_memory(target, address, bank->bus_width, bufferwsize, word);
+
+	/* Commit write operation */
+	cfi_command(bank, 0xd0, command);
+	target->type->write_memory(target, address, bank->bus_width, 1, command);
+	if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->buf_write_timeout_max)) != 0x80)
+	{
+		cfi_command(bank, 0xff, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+
+		ERROR("Buffer write at base 0x%x, address %x failed.", bank->base, address);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
 int cfi_spansion_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
@@ -1451,6 +1598,28 @@ int cfi_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
+int cfi_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 address)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+
+	switch(cfi_info->pri_id)
+	{
+		case 1:
+		case 3:
+			return cfi_intel_write_words(bank, word, wordcount, address);
+			break;
+		case 2:
+			//return cfi_spansion_write_words(bank, word, address);
+			ERROR("cfi primary command set %i unimplemented - FIXME", cfi_info->pri_id);
+			break;
+		default:
+			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			break;
+	}
+
+	return ERROR_FLASH_OPERATION_FAILED;
+}
+
 int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
@@ -1458,6 +1627,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 address = bank->base + offset;	/* address of first byte to be programmed */
 	u32 write_p, copy_p;
 	int align;	/* number of unaligned bytes */
+	int blk_count; /* number of bus_width bytes for block copy */
 	u8 current_word[CFI_MAX_BUS_WIDTH * 4];	/* word (bus_width size) currently being programmed */
 	int i;
 	int retval;
@@ -1477,6 +1647,8 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	write_p = address & ~(bank->bus_width - 1);
 	if ((align = address - write_p) != 0)
 	{
+		INFO("Fixup %d unaligned head bytes", align );
+
 		for (i = 0; i < bank->bus_width; i++)
 			current_word[i] = 0;
 		copy_p = write_p;
@@ -1512,50 +1684,98 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	}
 
 	/* handle blocks of bus_size aligned bytes */
+	blk_count = count & ~(bank->bus_width - 1); /* round down, leave tail bytes */
 	switch(cfi_info->pri_id)
 	{
 		/* try block writes (fails without working area) */
 		case 1:
 		case 3:
-			retval = cfi_intel_write_block(bank, buffer, write_p, count);
+			retval = cfi_intel_write_block(bank, buffer, write_p, blk_count);
 			break;
 		case 2:
-			retval = cfi_spansion_write_block(bank, buffer, write_p, count);
+			retval = cfi_spansion_write_block(bank, buffer, write_p, blk_count);
 			break;
 		default:
 			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-      retval = ERROR_FLASH_OPERATION_FAILED;
+			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 	}
-	if (retval != ERROR_OK)
+	if (retval == ERROR_OK)
+	{
+		/* Increment pointers and decrease count on succesful block write */
+		buffer += blk_count;
+		write_p += blk_count;
+		count -= blk_count;
+	}
+	else
 	{
 		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 		{
+			u32 buffersize = 1UL << cfi_info->max_buf_write_size;
+			u32 buffermask = buffersize-1;
+			u32 bufferwsize;
+
+			switch(bank->chip_width)
+			{
+			case 4 : bufferwsize = buffersize / 4; break;
+			case 2 : bufferwsize = buffersize / 2; break;
+			case 1 : bufferwsize = buffersize; break;
+			default:
+				ERROR("Unsupported chip width %d", bank->chip_width);
+				return ERROR_FLASH_OPERATION_FAILED;
+			}
+
 			/* fall back to memory writes */
 			while (count > bank->bus_width)
 			{
-				for (i = 0; i < bank->bus_width; i++)
-					current_word[i] = 0;
-
-				for (i = 0; i < bank->bus_width; i++)
+				if ((write_p & 0xff) == 0)
 				{
-					cfi_add_byte(bank, current_word, *buffer++);
+					INFO("Programming at %08x, count %08x bytes remaining", write_p, count);
 				}
+				if ((count > bufferwsize) && !(write_p & buffermask))
+				{
+					retval = cfi_write_words(bank, buffer, bufferwsize, write_p);
+					if (retval != ERROR_OK)
+						return retval;
 
-				retval = cfi_write_word(bank, current_word, write_p);
-				if (retval != ERROR_OK)
-					return retval;
-				write_p += bank->bus_width;
-				count -= bank->bus_width;
+					buffer += buffersize;
+					write_p += buffersize;
+					count -= buffersize;
+				}
+				else
+				{
+					for (i = 0; i < bank->bus_width; i++)
+						current_word[i] = 0;
+
+					for (i = 0; i < bank->bus_width; i++)
+					{
+						cfi_add_byte(bank, current_word, *buffer++);
+					}
+
+					retval = cfi_write_word(bank, current_word, write_p);
+					if (retval != ERROR_OK)
+						return retval;
+
+					write_p += bank->bus_width;
+					count -= bank->bus_width;
+				}
 			}
 		}
 		else
 			return retval;
 	}
 
+	/* return to read array mode, so we can read from flash again for padding */
+	cfi_command(bank, 0xf0, current_word);
+	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word);
+	cfi_command(bank, 0xff, current_word);
+	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word);
+
 	/* handle unaligned tail bytes */
 	if (count > 0)
 	{
+		INFO("Fixup %d unaligned tail bytes", count );
+
 		copy_p = write_p;
 		for (i = 0; i < bank->bus_width; i++)
 			current_word[i] = 0;
