@@ -98,6 +98,7 @@ void *fill_malloc(size_t size);
  * If you do not want to change the malloc function, to not use one of
  * the following macros. Which is the default way.
  */
+ 
 //#define malloc((_a)) clear_malloc((_a))
 //#define malloc((_a)) fill_malloc((_a))
 
