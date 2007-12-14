@@ -499,6 +499,9 @@ int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 	else
 		pri_ext->TopBottom = 3;
 
+	pri_ext->_unlock1 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock1;
+	pri_ext->_unlock2 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock2;
+
 	return ERROR_OK;
 }
 
@@ -612,6 +615,9 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 	cfi_info = malloc(sizeof(cfi_flash_bank_t));
 	bank->driver_priv = cfi_info;
+  
+  cfi_info->write_algorithm       = NULL;
+  cfi_info->erase_check_algorithm = NULL;
 
 	cfi_info->x16_as_x8 = 0;
 	cfi_info->jedec_probe = 0;
