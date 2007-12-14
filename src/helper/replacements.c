@@ -21,6 +21,40 @@
 #include "config.h"
 #endif
 
+/* DANGER!!!! These must be defined *BEFORE* replacements.h and the malloc() macro!!!! */
+
+#include <stdlib.h>
+#include <strings.h>
+/* 
+ * clear_malloc
+ *
+ * will alloc memory and clear it
+ */
+void *clear_malloc(size_t size)
+{
+	void *t = malloc(size);
+	if (t!=NULL)
+	{
+		memset(t, 0x00, size);
+	}
+	return t;
+}
+
+void *fill_malloc(size_t size)
+{
+	void *t = malloc(size);
+	if (t!=NULL)
+	{
+		/* We want to initialize memory to some known bad state.  */
+		/* 0 and 0xff yields 0 and -1 as integers, which often		*/
+		/* have meaningful values. 0x5555... is not often a valid	*/
+		/* integer and is quite easily spotted in the debugger		*/
+		/* also it is almost certainly an invalid address					*/
+		memset(t, 0x55, size);
+	}
+	return t;
+}
+
 #include "replacements.h"
 
 #include <stdio.h>
