@@ -99,8 +99,8 @@ void *fill_malloc(size_t size);
  * the following macros. Which is the default way.
  */
  
-//#define malloc((_a)) clear_malloc((_a))
-//#define malloc((_a)) fill_malloc((_a))
+//#define malloc(_a) clear_malloc(_a)
+//#define malloc(_a) fill_malloc(_a)
 
 /* GNU extensions to the C library that may be missing on some systems */
 #ifndef HAVE_STRNDUP
