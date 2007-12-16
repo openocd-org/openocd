@@ -1364,8 +1364,8 @@ int handle_etm_info_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	etm_get_reg(etm_config_reg);
 	command_print(cmd_ctx, "pairs of address comparators: %i", buf_get_u32(etm_config_reg->value, 0, 4));
 	command_print(cmd_ctx, "pairs of data comparators: %i", buf_get_u32(etm_config_reg->value, 4, 4));
-	command_print(cmd_ctx, "memory map decoders: %i", buf_get_u32(etm_config_reg->value, 8, 4));
-	command_print(cmd_ctx, "number of counters: %i", buf_get_u32(etm_config_reg->value, 12, 4));
+	command_print(cmd_ctx, "memory map decoders: %i", buf_get_u32(etm_config_reg->value, 8, 5));
+	command_print(cmd_ctx, "number of counters: %i", buf_get_u32(etm_config_reg->value, 13, 3));
 	command_print(cmd_ctx, "sequencer %spresent",
 			(buf_get_u32(etm_config_reg->value, 16, 1) == 1) ? "" : "not ");
 	command_print(cmd_ctx, "number of ext. inputs: %i", buf_get_u32(etm_config_reg->value, 17, 3));
