@@ -892,7 +892,7 @@ int cfi_protect(struct flash_bank_s *bank, int set, int first, int last)
 /* FIXME Replace this by a simple memcpy() - still unsure about sideeffects */
 static void cfi_add_byte(struct flash_bank_s *bank, u8 *word, u8 byte)
 {
-	target_t *target = bank->target;
+	//target_t *target = bank->target;
 
 	int i;
 
@@ -1015,29 +1015,37 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
 	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
-
+  
+	/* If we are setting up the write_algorith, we need target_code_src */
+	/* if not we only need target_code_size.														*/
+	/* 																																	*/
+	/* However, we don't want to create multiple code paths, so we			*/
+	/* do the unecessary evaluation of target_code_src, which the 			*/
+	/* compiler will probably nicely optimize away if not needed				*/
+  
+	/* prepare algorithm code for target endian */
+	switch (bank->bus_width)
+	{
+	case 1 :
+		target_code_src = word_8_code;
+		target_code_size = sizeof(word_8_code);
+		break;
+	case 2 :
+		target_code_src = word_16_code;
+		target_code_size = sizeof(word_16_code);
+		break;
+	case 4 :
+		target_code_src = word_32_code;
+		target_code_size = sizeof(word_32_code);
+		break;
+	default:
+		ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+  
 	/* flash write code */
 	if (!cfi_info->write_algorithm)
 	{
-		/* prepare algorithm code for target endian */
-		switch (bank->bus_width)
-		{
-		case 1 :
-			target_code_src = word_8_code;
-			target_code_size = sizeof(word_8_code);
-			break;
-		case 2 :
-			target_code_src = word_16_code;
-			target_code_size = sizeof(word_16_code);
-			break;
-		case 4 :
-			target_code_src = word_32_code;
-			target_code_size = sizeof(word_32_code);
-			break;
-		default:
-			ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
 		if ( target_code_size > sizeof(target_code) )
 		{
 			WARNING("Internal error - target code buffer to small. Increase CFI_MAX_INTEL_CODESIZE and recompile.");
@@ -1481,7 +1489,6 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u8 command[8];
-	int i;
 
 	/* Calculate buffer size and boundary mask */
 	u32 buffersize = 1UL << cfi_info->max_buf_write_size;
