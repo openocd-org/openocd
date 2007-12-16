@@ -564,10 +564,11 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	
 	image.start_address_set = 0;
 
-	if (image_open(&image, args[0], (argc == 4) ? args[2] : NULL) != ERROR_OK)
+	retval = image_open(&image, args[0], (argc == 4) ? args[2] : NULL);
+	if (retval != ERROR_OK)
 	{
-		command_print(cmd_ctx, "flash write error: %s", image.error_str);
-		return ERROR_OK;
+		command_print(cmd_ctx, "image_open error: %s", image.error_str);
+		return retval;
 	}
 	
 	failed = malloc(sizeof(int) * image.num_sections);
@@ -849,7 +850,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 				size_read = image->sections[section].size - section_offset;
 			
 			if ((retval = image_read_section(image, section, section_offset,
-					run_size, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
+					size_read, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
 			{
 				free(buffer);
 				
