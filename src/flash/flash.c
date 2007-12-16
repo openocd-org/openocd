@@ -177,6 +177,8 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 			c->size = strtoul(args[2], NULL, 0);
 			c->chip_width = strtoul(args[3], NULL, 0);
 			c->bus_width = strtoul(args[4], NULL, 0);
+			c->num_sectors = 0;
+			c->sectors = NULL;
 			c->next = NULL;
 			
 			if (flash_drivers[i]->flash_bank_command(cmd_ctx, cmd, args, argc, c) != ERROR_OK)
