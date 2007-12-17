@@ -231,8 +231,7 @@ int image_ihex_buffer_complete(image_t *image)
 			for (i = 0; i < image->num_sections; i++)
 			{
 				image->sections[i].private = section[i].private;
-				image->sections[i].base_address = section[i].base_address +
-					((image->base_address_set) ? image->base_address : 0);
+				image->sections[i].base_address = section[i].base_address;
 				image->sections[i].size = section[i].size;
 				image->sections[i].flags = section[i].flags;
 			}
@@ -589,8 +588,7 @@ int image_mot_buffer_complete(image_t *image)
 			for (i = 0; i < image->num_sections; i++)
 			{
 				image->sections[i].private = section[i].private;
-				image->sections[i].base_address = section[i].base_address +
-					((image->base_address_set) ? image->base_address : 0);
+				image->sections[i].base_address = section[i].base_address;
 				image->sections[i].size = section[i].size;
 				image->sections[i].flags = section[i].flags;
 			}
@@ -647,11 +645,6 @@ int image_open(image_t *image, char *url, char *type_string)
 		image->sections[0].base_address = 0x0;
 		image->sections[0].size = image_binary->fileio.size;
 		image->sections[0].flags = 0;
-		
-		if (image->base_address_set == 1)
-			image->sections[0].base_address = image->base_address;
-		
-		return ERROR_OK;
 	}
 	else if (image->type == IMAGE_IHEX)
 	{
@@ -740,6 +733,21 @@ int image_open(image_t *image, char *url, char *type_string)
 		image->num_sections = 0;
 		image->sections = NULL;
 		image->type_private = NULL;
+	}
+
+	if (image->base_address_set)
+	{
+		// relocate
+		int section;
+		for (section=0; section < image->num_sections; section++)
+		{
+			image->sections[section].base_address+=image->base_address;
+		}
+		// we're done relocating. The two statements below are mainly
+		// for documenation purposes: stop anyone from empirically
+		// thinking they should use these values henceforth.
+		image->base_address=0;
+		image->base_address_set=0;
 	}
 	
 	return retval;
