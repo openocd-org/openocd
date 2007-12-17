@@ -231,7 +231,7 @@ int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	echo = cmd_ctx->echo;
 	cmd_ctx->echo = 1;
 	
-	command_run_file(cmd_ctx, script_file, COMMAND_EXEC);
+	command_run_file(cmd_ctx, script_file, cmd_ctx->mode);
 	
 	cmd_ctx->echo = echo;
 	
