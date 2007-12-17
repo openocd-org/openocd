@@ -564,7 +564,7 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	
 	image.start_address_set = 0;
 
-	retval = image_open(&image, args[0], (argc == 4) ? args[2] : NULL);
+	retval = image_open(&image, args[0], (argc == 3) ? args[2] : NULL);
 	if (retval != ERROR_OK)
 	{
 		command_print(cmd_ctx, "image_open error: %s", image.error_str);
