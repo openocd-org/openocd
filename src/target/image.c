@@ -265,6 +265,19 @@ int image_ihex_buffer_complete(image_t *image)
 				full_address = (full_address & 0xffff) | (upper_address << 4);
 			}
 		}
+		else if (record_type == 3) /* Start Segment Address Record */
+		{
+			u32 dummy;
+			
+			/* "Start Segment Address Record" will not be supported */
+			/* but we must consume it, and do not create an error.  */
+			while (count-- > 0)
+			{
+				sscanf(&lpszLine[bytes_read], "%2x", &dummy);
+				cal_checksum += (u8)dummy;
+				bytes_read += 2;
+			}
+		}
 		else if (record_type == 4) /* Extended Linear Address Record */
 		{
 			u16 upper_address;
@@ -576,6 +589,18 @@ int image_mot_buffer_complete(image_t *image)
 				cooked_bytes += 1;
 				section[image->num_sections].size += 1;
 				full_address++;
+			}
+		}
+		else if (record_type == 5)
+		{
+			/* S5 is the data count record, we ignore it */
+			u32 dummy;
+			
+			while (count-- > 0)
+			{
+				sscanf(&lpszLine[bytes_read], "%2x", &dummy);
+				cal_checksum += (u8)dummy;
+				bytes_read += 2;
 			}
 		}
 		else if (record_type >= 7 && record_type <= 9)
