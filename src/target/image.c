@@ -821,6 +821,7 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 					IMAGE_MEMORY_CACHE_SIZE, image_memory->cache) != ERROR_OK)
 				{
 					free(image_memory->cache);
+					image_memory->cache = NULL;
 					return ERROR_IMAGE_TEMPORARILY_UNAVAILABLE;
 				}
 				image_memory->cache_address = address & ~(IMAGE_MEMORY_CACHE_SIZE - 1);
@@ -909,7 +910,10 @@ int image_close(image_t *image)
 		fileio_close(&image_ihex->fileio);
 		
 		if (image_ihex->buffer)
+		{
 			free(image_ihex->buffer);
+			image_ihex->buffer = NULL;
+		}
 	}
 	else if (image->type == IMAGE_ELF)
 	{
@@ -918,17 +922,26 @@ int image_close(image_t *image)
 		fileio_close(&image_elf->fileio);
 
 		if (image_elf->header)
+		{
 			free(image_elf->header);
+			image_elf->header = NULL;
+		}
 
 		if (image_elf->segments)
+		{
 			free(image_elf->segments);
+			image_elf->segments = NULL;
+		}
 	}
 	else if (image->type == IMAGE_MEMORY)
 	{
 		image_memory_t *image_memory = image->type_private;
 		
 		if (image_memory->cache)
+		{
 			free(image_memory->cache);
+			image_memory->cache = NULL;
+		}
 	}
 	else if (image->type == IMAGE_SRECORD)
 	{
@@ -937,7 +950,10 @@ int image_close(image_t *image)
 		fileio_close(&image_mot->fileio);
 		
 		if (image_mot->buffer)
+		{
 			free(image_mot->buffer);
+			image_mot->buffer = NULL;
+		}
 	}
 	else if (image->type == IMAGE_BUILDER)
 	{
@@ -946,14 +962,21 @@ int image_close(image_t *image)
 		for (i = 0; i < image->num_sections; i++)
 		{
 			free(image->sections[i].private);
+			image->sections[i].private = NULL;
 		}
 	}
 
 	if (image->type_private)
+	{
 		free(image->type_private);
+		image->type_private = NULL;
+	}
 	
 	if (image->sections)
+	{
 		free(image->sections);
+		image->sections = NULL;
+	}
 	
 	return ERROR_OK;
 }
@@ -987,4 +1010,5 @@ int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum)
 	*checksum = crc;
 	return ERROR_OK;
 }
+
 

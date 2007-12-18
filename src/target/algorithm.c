@@ -41,6 +41,7 @@ void init_mem_param(mem_param_t *param, u32 address, u32 size, enum param_direct
 void destroy_mem_param(mem_param_t *param)
 {
 	free(param->value);
+	param->value = NULL;
 }
 
 void init_reg_param(reg_param_t *param, char *reg_name, u32 size, enum param_direction direction)
@@ -54,4 +55,5 @@ void init_reg_param(reg_param_t *param, char *reg_name, u32 size, enum param_dir
 void destroy_reg_param(reg_param_t *param)
 {
 	free(param->value);
+	param->value = NULL;
 }

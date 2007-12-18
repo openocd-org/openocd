@@ -120,8 +120,9 @@ cable_t cables[] =
 };
 
 /* configuration */
-char* parport_cable;
+char* parport_cable = NULL;
 unsigned long parport_port;
+static int parport_exit = 0;
 
 /* interface variables
  */
@@ -150,6 +151,7 @@ int parport_quit(void);
 /* interface commands */
 int parport_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int parport_handle_write_on_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 jtag_interface_t parport_interface = 
 {
@@ -249,7 +251,6 @@ void parport_reset(int trst, int srst)
 /* turn LED on parport adapter on (1) or off (0) */
 void parport_led(int on)
 {
-	u8 output;
 	if (on)
 		dataport_value |= cable->LED_MASK;
 	else
@@ -270,6 +271,8 @@ int parport_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "parport_port", parport_handle_parport_port_command,
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "parport_cable", parport_handle_parport_cable_command,
+		COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, NULL, "parport_write_on_exit", parport_handle_write_on_exit_command,
 		COMMAND_CONFIG, NULL);
 
 	return ERROR_OK;
@@ -429,11 +432,20 @@ int parport_init(void)
 
 int parport_quit(void)
 {
-	u8 output;
 	parport_led(0);
 
-	dataport_value = cable->PORT_EXIT;
-	parport_write_data();
+	if (parport_exit)
+	{
+		dataport_value = cable->PORT_EXIT;
+		parport_write_data();
+	}
+	
+	if (parport_cable)
+	{
+		free(parport_cable);
+		parport_cable = NULL;
+	}
+	
 	return ERROR_OK;
 }
 
@@ -461,5 +473,21 @@ int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char
 		strcpy(parport_cable, args[0]);
 	}
 
+	return ERROR_OK;
+}
+
+int parport_handle_write_on_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc != 1)
+	{
+		command_print(cmd_ctx, "usage: parport_write_on_exit <on|off>");
+		return ERROR_OK;
+	}
+	
+	if (strcmp(args[0], "on") == 0)
+		parport_exit = 1;
+	else if (strcmp(args[0], "off") == 0)
+		parport_exit = 0;
+	
 	return ERROR_OK;
 }

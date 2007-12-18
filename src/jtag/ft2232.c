@@ -2051,6 +2051,7 @@ int ft2232_quit(void)
 #endif
 
 	free(ft2232_buffer);
+	ft2232_buffer = NULL;
 
 	return ERROR_OK;
 }
@@ -2136,4 +2137,5 @@ int ft2232_handle_latency_command(struct command_context_s *cmd_ctx, char *cmd, 
 	
 	return ERROR_OK;
 }
+
 

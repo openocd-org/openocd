@@ -1345,6 +1345,7 @@ int jtag_validate_chain()
 			char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
 			ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
 			free(cbuf);
+			free(ir_test);
 			return ERROR_JTAG_INIT_FAILED;
 		}
 		chain_pos += device->ir_length;
@@ -1356,6 +1357,7 @@ int jtag_validate_chain()
 		char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
 		ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
 		free(cbuf);
+		free(ir_test);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	

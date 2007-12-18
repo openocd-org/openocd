@@ -43,13 +43,16 @@ int handle_flash_banks_command(struct command_context_s *cmd_ctx, char *cmd, cha
 int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_protect_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_write_binary_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_flash_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);
 
 /* flash drivers
  */
@@ -103,13 +106,19 @@ int flash_init(struct command_context_s *cmd_ctx)
 		register_command(cmd_ctx, flash_cmd, "protect_check", handle_flash_protect_check_command, COMMAND_EXEC,
 						 "check protection state of sectors in flash bank <num>");
 		register_command(cmd_ctx, flash_cmd, "erase", handle_flash_erase_command, COMMAND_EXEC,
+						 "DEPRECATED, use 'erase_sector' instead");
+		register_command(cmd_ctx, flash_cmd, "erase_sector", handle_flash_erase_command, COMMAND_EXEC,
 						 "erase sectors at <bank> <first> <last>");
+		register_command(cmd_ctx, flash_cmd, "erase_address", handle_flash_erase_address_command, COMMAND_EXEC,
+						 "erase address range <address> <length>");
 		register_command(cmd_ctx, flash_cmd, "write", handle_flash_write_binary_command, COMMAND_EXEC,
-						 "DEPRECATED, use 'write_binary' or 'write_image' instead");
+						 "DEPRECATED, use 'write_binary' instead");
 		register_command(cmd_ctx, flash_cmd, "write_binary", handle_flash_write_binary_command, COMMAND_EXEC,
 						 "write binary <bank> <file> <offset>");
 		register_command(cmd_ctx, flash_cmd, "write_image", handle_flash_write_image_command, COMMAND_EXEC,
-						 "write image <file> [offset] [type]");
+						 "write_image <file> [offset] [type]");
+		register_command(cmd_ctx, flash_cmd, "verify_image", handle_flash_verify_image_command, COMMAND_EXEC,
+						 "verify_image <file> [offset] [type]");
 		register_command(cmd_ctx, flash_cmd, "protect", handle_flash_protect_command, COMMAND_EXEC,
 						 "set protection of sectors at <bank> <first> <last> <on|off>");
 		register_command(cmd_ctx, flash_cmd, "auto_erase", handle_flash_auto_erase_command, COMMAND_EXEC,
@@ -355,6 +364,71 @@ int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
+static void printError(struct command_context_s *cmd_ctx, flash_bank_t *p, int retval)
+{
+	if (retval==ERROR_OK)
+		return;
+	switch (retval)
+	{
+		case ERROR_TARGET_NOT_HALTED:
+			command_print(cmd_ctx, "can't work with this flash while target is running");
+			break;
+		case ERROR_INVALID_ARGUMENTS:
+			command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
+			break;
+		case ERROR_FLASH_BANK_INVALID:
+			command_print(cmd_ctx, "no '%s' flash found at 0x%8.8x", p->driver->name, p->base);
+			break;
+		case ERROR_FLASH_OPERATION_FAILED:
+			command_print(cmd_ctx, "flash program error");
+			break;
+		case ERROR_FLASH_DST_BREAKS_ALIGNMENT:
+			command_print(cmd_ctx, "offset breaks required alignment");
+			break;
+		case ERROR_FLASH_DST_OUT_OF_BANK:
+			command_print(cmd_ctx, "destination is out of flash bank (offset and/or file too large)");
+			break;
+		case ERROR_FLASH_SECTOR_NOT_ERASED:
+			command_print(cmd_ctx, "destination sector(s) not erased");
+			break;
+		default:
+			command_print(cmd_ctx, "unknown error");
+}
+}
+
+
+int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	flash_bank_t *p;
+		
+	target_t *target = get_current_target(cmd_ctx);
+
+	if (argc != 2)
+	{
+		command_print(cmd_ctx, "usage: flash erase_address <address> <range>");
+		return ERROR_OK;
+	}
+	
+	int address=strtoul(args[0], NULL, 0);
+	int length=strtoul(args[1], NULL, 0);
+	if (length<=0)
+	{
+		command_print(cmd_ctx, "Length must be >0");
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	p = get_flash_bank_by_addr(target, address);
+	if (p==NULL)
+	{
+		command_print(cmd_ctx, "No flash at that address");
+		return ERROR_INVALID_ARGUMENTS;
+	}
+	int retval=flash_erase(target, address, length);
+	printError(cmd_ctx, p, retval);
+	return retval;
+	
+}
+
 int handle_flash_protect_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *p;
@@ -515,7 +589,7 @@ int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, c
 	return ERROR_OK;
 }
 
-int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_flash_write_image_command_core(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, enum flash_image_op op)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	
@@ -530,17 +604,11 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	char *duration_text;
 	
 	int retval;
-	
-	if (!strcmp(cmd, "write"))
-	{
-		command_print(cmd_ctx, "'flash write' has been deprecated in favor of 'flash write_binary' and 'flash write_image'");
-		DEBUG("'flash write' has been deprecated in favor of 'flash write_binary' and 'flash write_image'");
-	}
 
 	if (argc < 1)
 	{
-		command_print(cmd_ctx, "usage: flash write <file> [offset] [type]");
-		return ERROR_OK;
+		command_print(cmd_ctx, "usage: flash %s <file> [offset] [type]", cmd);
+		return ERROR_INVALID_ARGUMENTS;
 	}
 	
 	if (!target)
@@ -574,7 +642,16 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	failed = malloc(sizeof(int) * image.num_sections);
 
 	error_str=NULL;
-	retval = flash_write(target, &image, &written, &error_str, failed, auto_erase);
+
+	retval=ERROR_OK;
+	if ((op==flash_image_op_write)&&auto_erase)
+	{
+		retval = flash_image_operation(target, &image, &written, &error_str, failed, flash_image_op_erase);
+	}
+	if (retval == ERROR_OK)
+	{
+		retval = flash_image_operation(target, &image, &written, &error_str, failed, op);
+	}
 	
 	if (retval != ERROR_OK)
 	{
@@ -598,7 +675,8 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	}
 	
 	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "wrote %u byte from file %s in %s (%f kb/s)",
+	command_print(cmd_ctx, "%s %u byte from file %s in %s (%f kb/s)",
+			(op==flash_image_op_write)?"wrote":"verified",
 		written, args[0], duration_text,
 		(float)written / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
 
@@ -608,6 +686,16 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	image_close(&image);
 	
 	return ERROR_OK;
+}
+
+
+int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	return handle_flash_write_image_command_core(cmd_ctx, cmd, args, argc, flash_image_op_write);
+}
+int handle_flash_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	return handle_flash_write_image_command_core(cmd_ctx, cmd, args, argc, flash_image_op_verify);
 }
 
 int handle_flash_write_binary_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -626,7 +714,7 @@ int handle_flash_write_binary_command(struct command_context_s *cmd_ctx, char *c
 
 	if (argc < 3)
 	{
-		command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
+		command_print(cmd_ctx, "usage: flash write_binary <bank> <file> <offset>");
 		return ERROR_OK;
 	}
 	
@@ -642,14 +730,14 @@ int handle_flash_write_binary_command(struct command_context_s *cmd_ctx, char *c
 	
 	if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "flash write error: %s", fileio.error_str);
+		command_print(cmd_ctx, "flash write_binary error: %s", fileio.error_str);
 		return ERROR_OK;
 	}
 	
 	buffer = malloc(fileio.size);
 	if (fileio_read(&fileio, fileio.size, buffer, &buf_cnt) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "flash write error: %s", fileio.error_str);
+		command_print(cmd_ctx, "flash write_binary error: %s", fileio.error_str);
 		return ERROR_OK;
 	}
 	
@@ -657,32 +745,7 @@ int handle_flash_write_binary_command(struct command_context_s *cmd_ctx, char *c
 	{
 		command_print(cmd_ctx, "failed writing file %s to flash bank %i at offset 0x%8.8x",
 			args[1], strtoul(args[0], NULL, 0), strtoul(args[2], NULL, 0));
-		switch (retval)
-		{
-			case ERROR_TARGET_NOT_HALTED:
-				command_print(cmd_ctx, "can't work with this flash while target is running");
-				break;
-			case ERROR_INVALID_ARGUMENTS:
-				command_print(cmd_ctx, "usage: flash write <bank> <file> <offset>");
-				break;
-			case ERROR_FLASH_BANK_INVALID:
-				command_print(cmd_ctx, "no '%s' flash found at 0x%8.8x", p->driver->name, p->base);
-				break;
-			case ERROR_FLASH_OPERATION_FAILED:
-				command_print(cmd_ctx, "flash program error");
-				break;
-			case ERROR_FLASH_DST_BREAKS_ALIGNMENT:
-				command_print(cmd_ctx, "offset breaks required alignment");
-				break;
-			case ERROR_FLASH_DST_OUT_OF_BANK:
-				command_print(cmd_ctx, "destination is out of flash bank (offset and/or file too large)");
-				break;
-			case ERROR_FLASH_SECTOR_NOT_ERASED:
-				command_print(cmd_ctx, "destination sector(s) not erased");
-				break;
-			default:
-				command_print(cmd_ctx, "unknown error");
-		}
+		printError(cmd_ctx, p, retval);
 	}
 
 	free(buffer);
@@ -760,8 +823,8 @@ int flash_erase(target_t *target, u32 addr, u32 length)
 	return c->driver->erase(c, first, last);
 }
 
-/* write an image to flash memory of the given target */
-int flash_write(target_t *target, image_t *image, u32 *written, char **error_str, int *failed, int erase)
+/* perform an operation on flash using an image: verify, erase or write. */
+int flash_image_operation(target_t *target, image_t *image, u32 *written, char **error_str, int *failed, enum flash_image_op op)
 {
 	int retval;
 	int i;
@@ -823,7 +886,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 		{
 			if (image->sections[section_last + 1].base_address < (run_address + run_size))
 			{
-				WARNING("section %d out of order", section_last + 1);
+				DEBUG("section %d out of order(very slightly surprising, but supported)", section_last + 1);
 				break;
 			}
 			if (image->sections[section_last + 1].base_address != (run_address + run_size))
@@ -880,16 +943,57 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 
 		retval = ERROR_OK;
 		
-		if (erase)
+		switch (op)
 		{
-			/* calculate and erase sectors */
-			retval = flash_erase( target, run_address, run_size );
-		}
+			case flash_image_op_erase:
+				/* calculate and erase sectors */
+				retval = flash_erase( target, run_address, run_size );
+				break;
 		
-		if (retval == ERROR_OK)
-		{
-			/* write flash sectors */
-			retval = c->driver->write(c, buffer, run_address - c->base, run_size);
+			case flash_image_op_write:
+				/* write flash sectors */
+				retval = c->driver->write(c, buffer, run_address - c->base, run_size);
+				break;
+			
+			case flash_image_op_verify:
+			{
+				// Verify
+				u8 *data;
+				data=(u8 *)malloc(run_size);
+				if (data==NULL)
+					retval = ERROR_INVALID_ARGUMENTS; // exception handling would be nice...
+				
+				// Can we use long word accesses?
+				int size=1;
+				int count=run_size;
+				if ((count%4)==0)
+				{
+					size*=4;
+					count/=4;
+				}
+				retval = target->type->read_memory(target, run_address, size, count, data);
+		
+				if (retval == ERROR_OK)
+				{
+					int i;
+					for (i=0; i<run_size; i++)
+					{
+						if (data[i]!=buffer[i])
+						{
+							ERROR("Verify operation failed address 0x%08x. Was %02x instead of %02x\n", i+run_address, data[i], buffer[i]);
+							retval=ERROR_FLASH_OPERATION_FAILED;
+							break;
+						}
+					}
+				}
+				free(data);
+        
+				break;
+			}
+      
+			default:
+				// can't happen
+				exit(-1);
 		}
 		
 		free(buffer);
@@ -949,5 +1053,6 @@ int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	return ERROR_OK;
 }
+
 
 

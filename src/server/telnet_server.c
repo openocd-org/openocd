@@ -506,21 +506,32 @@ int telnet_connection_closed(connection_t *connection)
 	int i;
 	
 	if (t_con->prompt)
+	{
 		free(t_con->prompt);
+		t_con->prompt = NULL;
+	}
 	
 	for (i = 0; i < TELNET_LINE_HISTORY_SIZE; i++)
 	{
 		if (t_con->history[i])
+		{
 			free(t_con->history[i]);
+			t_con->history[i] = NULL;
+		}
 	}
 	
 	/* if this connection registered a debug-message receiver delete it */
 	delete_debug_msg_receiver(connection->cmd_ctx, NULL);
 	
 	if (connection->priv)
+	{
 		free(connection->priv);
+		connection->priv = NULL;
+	}
 	else
+	{
 		ERROR("BUG: connection->priv == NULL");
+	}
 	
 	target_unregister_event_callback(telnet_target_callback_event_handler, connection->cmd_ctx);
 

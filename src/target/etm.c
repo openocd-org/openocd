@@ -1200,6 +1200,7 @@ int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, c
 		if (arm7_9->etm_ctx->trace_depth > 0)
 		{
 			free(arm7_9->etm_ctx->trace_data);
+			arm7_9->etm_ctx->trace_data = NULL;
 		}
 		arm7_9->etm_ctx->trace_depth = 0;
 	}
@@ -1725,6 +1726,7 @@ int handle_etm_start_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	if (arm7_9->etm_ctx->trace_depth > 0)
 	{
 		free(arm7_9->etm_ctx->trace_data);
+		arm7_9->etm_ctx->trace_data = NULL;
 	}
 	arm7_9->etm_ctx->trace_depth = 0;
 		

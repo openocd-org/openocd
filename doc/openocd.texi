@@ -320,6 +320,10 @@ This is also the layout used by the HollyGates design
 @cindex flashlink
 ST Parallel cable. 
 @end itemize
+@item @b{parport_write_on_exit} <@var{on|off}>
+@cindex parport_write_on_exit
+This will configure the parallel driver to write a known value to the parallel
+interface on exiting openocd
 @end itemize
 
 @section amt_jtagaccel options

@@ -447,9 +447,14 @@ int gdb_connection_closed(connection_t *connection)
 	delete_debug_msg_receiver(connection->cmd_ctx, gdb_service->target);
 	
 	if (connection->priv)
+	{
 		free(connection->priv);
+		connection->priv = NULL;
+	}
 	else
+	{
 		ERROR("BUG: connection->priv == NULL");
+	}
 
 	target_unregister_event_callback(gdb_target_callback_event_handler, connection);
 
@@ -1325,7 +1330,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		char *error_str;
 
 		/* process the flashing buffer */
-		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, &error_str, NULL, 0)) != ERROR_OK)
+		if ((result = flash_image_operation(gdb_service->target, gdb_connection->vflash_image, &written, &error_str, NULL, flash_image_op_write)) != ERROR_OK)
 		{
 			if (result == ERROR_FLASH_DST_OUT_OF_BANK)
 				gdb_put_packet(connection, "E.memtype", 9);

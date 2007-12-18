@@ -506,6 +506,7 @@ command_context_t* copy_command_context(command_context_t* context)
 int command_done(command_context_t *context)
 {
 	free(context);
+	context = NULL;
 	
 	return ERROR_OK;
 }

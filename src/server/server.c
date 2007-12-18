@@ -230,6 +230,8 @@ int remove_services()
 		c = next;
 	}
 
+	services = NULL;
+	
 	return ERROR_OK;
 }
 
@@ -453,4 +455,5 @@ int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
+
 

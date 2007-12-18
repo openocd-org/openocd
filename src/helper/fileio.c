@@ -44,8 +44,6 @@ int fileio_open_local(fileio_t *fileio)
 	fileio_local_t *fileio_local = malloc(sizeof(fileio_local_t));
 	char access[4];
 	
-	fileio->location_private = fileio_local;
-	
 	if ((fileio->access != FILEIO_WRITE) && (fileio->access != FILEIO_READWRITE))
 	{
 		if (stat(fileio->url, &fileio_local->file_stat) == -1)
@@ -113,6 +111,8 @@ int fileio_open_local(fileio_t *fileio)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	
+	fileio->location_private = fileio_local;
+	
 	if ((fileio->access != FILEIO_WRITE) || (fileio->access == FILEIO_READWRITE))
 	{
 		fileio->size = fileio_local->file_stat.st_size;
@@ -172,6 +172,12 @@ int fileio_close_local(fileio_t *fileio)
 	int retval;
 	fileio_local_t *fileio_local = fileio->location_private;
 	
+	if (fileio->location_private == NULL)
+	{
+		snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "couldn't close %s: ", fileio->url);
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+	
 	if ((retval = fclose(fileio_local->file)) != 0)
 	{
 		if (retval == EBADF)
@@ -187,6 +193,7 @@ int fileio_close_local(fileio_t *fileio)
 	}
 	
 	free(fileio->location_private);
+	fileio->location_private = NULL;
 	
 	return ERROR_OK;
 }
@@ -209,6 +216,7 @@ int fileio_close(fileio_t *fileio)
 		return retval;
 	
 	free(fileio->url);
+	fileio->url = NULL;
 	
 	return ERROR_OK;
 }
