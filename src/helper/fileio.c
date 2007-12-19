@@ -44,23 +44,7 @@ int fileio_open_local(fileio_t *fileio)
 	fileio_local_t *fileio_local = malloc(sizeof(fileio_local_t));
 	char access[4];
 	
-	if ((fileio->access != FILEIO_WRITE) && (fileio->access != FILEIO_READWRITE))
-	{
-		if (stat(fileio->url, &fileio_local->file_stat) == -1)
-		{
-			free(fileio_local);
-			snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING,
-				"couldn't stat() %s: %s", fileio->url, strerror(errno));
-			return ERROR_FILEIO_NOT_FOUND;
-		}
-	
-		if (S_ISDIR(fileio_local->file_stat.st_mode))
-		{
-			free(fileio_local);
-			snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "%s is a directory", fileio->url);
-			return ERROR_FILEIO_NOT_FOUND;
-		}
-	}
+	fileio->location_private = fileio_local;
 	
 	switch (fileio->access)
 	{
@@ -84,17 +68,6 @@ int fileio_open_local(fileio_t *fileio)
 			ERROR("BUG: access neither read, write nor readwrite");
 			return ERROR_INVALID_ARGUMENTS;
 	}
-	
-	if (fileio->access == FILEIO_READ)
-	{
-		if (fileio_local->file_stat.st_size == 0)
-		{
-			/* tried to open an empty file for reading */
-			free(fileio_local);
-			snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "empty file %s", fileio->url);
-			return ERROR_FILEIO_OPERATION_FAILED;
-		}
-	}
 
 	/* win32 always opens in binary mode */
 #ifndef _WIN32
@@ -111,11 +84,22 @@ int fileio_open_local(fileio_t *fileio)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	
-	fileio->location_private = fileio_local;
-	
 	if ((fileio->access != FILEIO_WRITE) || (fileio->access == FILEIO_READWRITE))
 	{
-		fileio->size = fileio_local->file_stat.st_size;
+		// NB! Here we use fseek() instead of stat(), since stat is a 
+		// more advanced operation that might not apply to e.g. a disk path
+		// that refers to e.g. a tftp client
+		int result=fseek(fileio_local->file, 0, SEEK_END);
+
+		fileio->size = ftell(fileio_local->file);
+		
+		int result2 = fseek(fileio_local->file, 0, SEEK_SET); 
+			
+		if ((fileio->size<0)||(result<0)||(result2<0))
+		{
+			fileio_close(fileio);
+			return ERROR_FILEIO_OPERATION_FAILED;
+		}
 	}
 	else
 	{
@@ -130,15 +114,12 @@ int fileio_open(fileio_t *fileio, char *url, enum fileio_access access,	enum fil
 	int retval = ERROR_OK;
 	char *resource_identifier = NULL;
 
-	/* try to identify file location */
+	/* try to identify file location. We only hijack the file paths we understand, the rest is
+	 * passed on to the OS which might implement e.g. tftp via a mounted tftp device.
+	 */
 	if ((resource_identifier = strstr(url, "bootp://")) && (resource_identifier == url))
 	{
 		ERROR("bootp resource location isn't supported yet");
-		return ERROR_FILEIO_RESOURCE_TYPE_UNKNOWN;
-	}
-	else if ((resource_identifier = strstr(url, "tftp://")) && (resource_identifier == url))
-	{
-		ERROR("tftp resource location isn't supported yet");
 		return ERROR_FILEIO_RESOURCE_TYPE_UNKNOWN;
 	}
 	else

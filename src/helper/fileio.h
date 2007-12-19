@@ -74,7 +74,6 @@ typedef struct fileio_s
 typedef struct fileio_local_s
 {
 	FILE *file;
-	struct stat file_stat;
 } fileio_local_t;
 
 extern int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written);
