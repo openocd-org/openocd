@@ -44,8 +44,6 @@ int fileio_open_local(fileio_t *fileio)
 	fileio_local_t *fileio_local = malloc(sizeof(fileio_local_t));
 	char access[4];
 	
-	fileio->location_private = fileio_local;
-	
 	switch (fileio->access)
 	{
 		case FILEIO_READ:
@@ -86,16 +84,18 @@ int fileio_open_local(fileio_t *fileio)
 	
 	if ((fileio->access != FILEIO_WRITE) || (fileio->access == FILEIO_READWRITE))
 	{
-		// NB! Here we use fseek() instead of stat(), since stat is a 
-		// more advanced operation that might not apply to e.g. a disk path
-		// that refers to e.g. a tftp client
-		int result=fseek(fileio_local->file, 0, SEEK_END);
-
+		/* NB! Here we use fseek() instead of stat(), since stat is a
+		 * more advanced operation that might not apply to e.g. a disk path
+		 * that refers to e.g. a tftp client */
+		int result, result2;
+		
+		result = fseek(fileio_local->file, 0, SEEK_END);
+		
 		fileio->size = ftell(fileio_local->file);
 		
-		int result2 = fseek(fileio_local->file, 0, SEEK_SET); 
+		result2 = fseek(fileio_local->file, 0, SEEK_SET); 
 			
-		if ((fileio->size<0)||(result<0)||(result2<0))
+		if ((fileio->size < 0) || (result < 0) || (result2 < 0))
 		{
 			fileio_close(fileio);
 			return ERROR_FILEIO_OPERATION_FAILED;
@@ -105,6 +105,8 @@ int fileio_open_local(fileio_t *fileio)
 	{
 		fileio->size = 0x0;
 	}
+	
+	fileio->location_private = fileio_local;
 	
 	return ERROR_OK;
 }

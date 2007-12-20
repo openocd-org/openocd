@@ -1876,7 +1876,7 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	if (!target)
 	{
 		ERROR("no target selected");
-	return ERROR_OK;
+		return ERROR_OK;
 	}
 	
 	duration_start_measure(&duration);
@@ -1915,27 +1915,59 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		
 		/* calculate checksum of image */
 		image_calculate_checksum( buffer, buf_cnt, &checksum );
-		free(buffer);
 		
 		retval = target_checksum_memory(target, image.sections[i].base_address, buf_cnt, &mem_checksum);
 		
 		if( retval != ERROR_OK )
 		{
 			command_print(cmd_ctx, "image verify failed, verify aborted");
+			free(buffer);
 			image_close(&image);
 			return ERROR_OK;
 		}
 		
 		if( checksum != mem_checksum )
 		{
-			command_print(cmd_ctx, "image verify failed, verify aborted");
-			image_close(&image);
-			return ERROR_OK;
-		}
+			/* failed crc checksum, fall back to a binary compare */
+			u8 *data;
 			
+			command_print(cmd_ctx, "image verify checksum failed - attempting binary compare");
+			
+			data = (u8*)malloc(buf_cnt);
+			
+			/* Can we use 32bit word accesses? */
+			int size = 1;
+			int count = buf_cnt;
+			if ((count % 4) == 0)
+			{
+				size *= 4;
+				count /= 4;
+			}
+			retval = target->type->read_memory(target, image.sections[i].base_address, size, count, data);
+	
+			if (retval == ERROR_OK)
+			{
+				int t;
+				for (t = 0; t < buf_cnt; t++)
+				{
+					if (data[t] != buffer[t])
+					{
+						command_print(cmd_ctx, "Verify operation failed address 0x%08x. Was 0x%02x instead of 0x%02x\n", t + image.sections[i].base_address, data[t], buffer[t]);
+						free(data);
+						free(buffer);
+						image_close(&image);
+						return ERROR_OK;
+					}
+				}
+			}
+			
+			free(data);
+		}
+		
+		free(buffer);
 		image_size += buf_cnt;
 	}
-
+	
 	duration_stop_measure(&duration, &duration_text);
 	command_print(cmd_ctx, "verified %u bytes in %s", image_size, duration_text);
 	free(duration_text);

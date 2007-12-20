@@ -37,13 +37,13 @@
 #include "target.h"
 
 /* convert ELF header field to host endianness */
-#define field16(elf,field)\
-	((elf->endianness==ELFDATA2LSB)? \
-		le_to_h_u16((u8*)&field):be_to_h_u16((u8*)&field)) 
+#define field16(elf, field)\
+	((elf->endianness == ELFDATA2LSB)? \
+		le_to_h_u16((u8*)&field) : be_to_h_u16((u8*)&field)) 
 
-#define field32(elf,field)\
-	((elf->endianness==ELFDATA2LSB)? \
-		le_to_h_u32((u8*)&field):be_to_h_u32((u8*)&field)) 
+#define field32(elf, field)\
+	((elf->endianness == ELFDATA2LSB)? \
+		le_to_h_u32((u8*)&field) : be_to_h_u32((u8*)&field)) 
 
 static int autodetect_image_type(image_t *image, char *url)
 {
@@ -79,15 +79,15 @@ static int autodetect_image_type(image_t *image, char *url)
 		DEBUG("ELF image detected.");
 		image->type = IMAGE_ELF;
 	}
-	else if  ((buffer[0]==':') /* record start byte */
+	else if ((buffer[0] == ':') /* record start byte */
 	        &&(isxdigit(buffer[1]))
 	        &&(isxdigit(buffer[2]))
 	        &&(isxdigit(buffer[3]))
 	        &&(isxdigit(buffer[4]))
 	        &&(isxdigit(buffer[5]))
 	        &&(isxdigit(buffer[6]))
-	        &&(buffer[7]=='0') /* record type : 00 -> 05 */
-	        &&(buffer[8]>='0')&&(buffer[8]<'6'))
+	        &&(buffer[7] == '0') /* record type : 00 -> 05 */
+	        &&(buffer[8] >= '0') && (buffer[8] < '6'))
 	{
 		DEBUG("IHEX image detected.");
 		image->type = IMAGE_IHEX;
@@ -402,12 +402,12 @@ int image_elf_read_headers(image_t *image)
 
 	/* count useful segments (loadable), ignore BSS section */
 	image->num_sections = 0;
-	for (i=0;i<elf->segment_count;i++)
+	for (i = 0; i < elf->segment_count; i++)
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 			image->num_sections++;
 	/* alloc and fill sections array with loadable segments */
 	image->sections = malloc(image->num_sections * sizeof(image_section_t));
-	for (i=0,j=0;i<elf->segment_count;i++)
+	for (i = 0, j = 0; i < elf->segment_count; i++)
 	{
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 		{
@@ -429,22 +429,22 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 {
 	image_elf_t *elf = image->type_private;
 	Elf32_Phdr *segment = (Elf32_Phdr *)image->sections[section].private;
-	u32 read_size,really_read;
+	u32 read_size, really_read;
 	int retval;
 
 	*size_read = 0;
 	
-	DEBUG("load segment %d at 0x%x (sz=0x%x)",section,offset,size);
+	DEBUG("load segment %d at 0x%x (sz = 0x%x)", section, offset, size);
 
 	/* read initialized data in current segment if any */
-	if (offset<field32(elf,segment->p_filesz))
+	if (offset < field32(elf, segment->p_filesz))
 	{
 		/* maximal size present in file for the current segment */
-		read_size = MIN(size, field32(elf,segment->p_filesz)-offset);
-		DEBUG("read elf: size = 0x%x at 0x%x",read_size,
-			field32(elf,segment->p_offset)+offset);
+		read_size = MIN(size, field32(elf, segment->p_filesz) - offset);
+		DEBUG("read elf: size = 0x%x at 0x%x", read_size,
+			field32(elf,segment->p_offset) + offset);
 		/* read initialized area of the segment */
-		if ((retval = fileio_seek(&elf->fileio, field32(elf,segment->p_offset)+offset)) != ERROR_OK)
+		if ((retval = fileio_seek(&elf->fileio, field32(elf,segment->p_offset) + offset)) != ERROR_OK)
 		{
 			ERROR("cannot find ELF segment content, seek failed");
 			return retval;
@@ -463,12 +463,12 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 			return ERROR_OK;
 	}
 	/* if there is remaining zeroed area in current segment */
-	if (offset<field32(elf,segment->p_memsz))
+	if (offset < field32(elf, segment->p_memsz))
 	{
 		/* fill zeroed part (BSS) of the segment */
-		read_size = MIN(size, field32(elf,segment->p_memsz)-offset);
-		DEBUG("zero fill: size = 0x%x",read_size);
-		memset(buffer,0,read_size);
+		read_size = MIN(size, field32(elf, segment->p_memsz) - offset);
+		DEBUG("zero fill: size = 0x%x", read_size);
+		memset(buffer, 0, read_size);
 		*size_read += read_size;
 	}
 	
@@ -561,7 +561,6 @@ int image_mot_buffer_complete(image_t *image)
 					bytes_read += 8;
 					count -=4;
 					break;
-			
 			}
 			
 			if (full_address != address)
@@ -762,17 +761,17 @@ int image_open(image_t *image, char *url, char *type_string)
 
 	if (image->base_address_set)
 	{
-		// relocate
+		/* relocate */
 		int section;
-		for (section=0; section < image->num_sections; section++)
+		for (section = 0; section < image->num_sections; section++)
 		{
-			image->sections[section].base_address+=image->base_address;
+			image->sections[section].base_address += image->base_address;
 		}
-		// we're done relocating. The two statements below are mainly
-		// for documenation purposes: stop anyone from empirically
-		// thinking they should use these values henceforth.
-		image->base_address=0;
-		image->base_address_set=0;
+		/* we're done relocating. The two statements below are mainly
+		 * for documenation purposes: stop anyone from empirically
+		 * thinking they should use these values henceforth. */
+		image->base_address = 0;
+		image->base_address_set = 0;
 	}
 	
 	return retval;
@@ -945,7 +944,7 @@ int image_close(image_t *image)
 		image_elf_t *image_elf = image->type_private;
 		
 		fileio_close(&image_elf->fileio);
-
+		
 		if (image_elf->header)
 		{
 			free(image_elf->header);

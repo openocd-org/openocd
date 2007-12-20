@@ -63,18 +63,11 @@ typedef struct flash_bank_s
 	struct flash_bank_s *next;
 } flash_bank_t;
 
-enum flash_image_op
-{
-	flash_image_op_write = 0,
-  flash_image_op_verify,
-  flash_image_op_erase
-};
-
 extern int flash_register_commands(struct command_context_s *cmd_ctx);
 extern int flash_init(struct command_context_s *cmd_ctx);
 
 extern int flash_erase(target_t *target, u32 addr, u32 length);
-extern int flash_image_operation(target_t *target, image_t *image, u32 *written, char **error_str, int *failed, enum flash_image_op op);
+extern int flash_write(target_t *target, image_t *image, u32 *written, char **error, int *failed, int erase);
 
 extern flash_bank_t *get_flash_bank_by_num(int num);
 extern flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);

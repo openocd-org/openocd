@@ -1330,7 +1330,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		char *error_str;
 
 		/* process the flashing buffer */
-		if ((result = flash_image_operation(gdb_service->target, gdb_connection->vflash_image, &written, &error_str, NULL, flash_image_op_write)) != ERROR_OK)
+		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, &error_str, NULL, 0)) != ERROR_OK)
 		{
 			if (result == ERROR_FLASH_DST_OUT_OF_BANK)
 				gdb_put_packet(connection, "E.memtype", 9);

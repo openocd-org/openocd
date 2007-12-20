@@ -4,8 +4,12 @@
 @settitle Open On-Chip Debugger (openocd)
 @c %**end of header
 
+@include version.texi
+
 @titlepage
 @title Open On-Chip Debugger (openocd)
+@subtitle Edition @value{EDITION} for openocd version @value{VERSION}
+@subtitle @value{UPDATED}
 @page
 @vskip 0pt plus 1filll
 @end titlepage
@@ -15,7 +19,8 @@
 @node Top, About, , (dir)
 @top OpenOCD
 
-The Manual always document the latest version of OpenOCD available from SVN.
+This is edition @value{EDITION} of the openocd manual for version
+@value{VERSION}, @value{UPDATED}
 
 @menu
 * About::             About Openocd.
@@ -67,11 +72,11 @@ as numerous bugfixes and enhancements. See the AUTHORS file for regular contribu
 You can download the current SVN version with SVN client of your choice from the
 following repositories:
 
- (@uref{svn://svn.berlios.de/openocd/trunk}
+ (@uref{svn://svn.berlios.de/openocd/trunk})
 
 or
 
- (@uref{http://svn.berlios.de/svnroot/repos/openocd/trunk}
+ (@uref{http://svn.berlios.de/svnroot/repos/openocd/trunk})
 
 Using the SVN command line client, you could use the following command to fetch the
 latest version (make sure there is no (non-svn) directory called "openocd" in the
@@ -91,8 +96,8 @@ from the logs of one user - correct me if I'm wrong).
 You further need the appropriate driver files, if you want to build support for
 a FTDI FT2232 based interface:
 @itemize @bullet
-@item @b{ftdi2232} libftdi ((@uref{http://www.intra2net.com/opensource/ftdi/})
-@item @b{ftd2xx} libftd2xx ((@uref{http://www.ftdichip.com/Drivers/D2XX.htm})
+@item @b{ftdi2232} libftdi (@uref{http://www.intra2net.com/opensource/ftdi/})
+@item @b{ftd2xx} libftd2xx (@uref{http://www.ftdichip.com/Drivers/D2XX.htm})
 @item When using the Amontec JTAGkey, you have to get the drivers from the Amontec
 homepage (@uref{www.amontec.com}), as the JTAGkey uses a non-standard VID/PID. 
 @end itemize
@@ -142,7 +147,7 @@ build properly}
 If you want to access the parallel port using the PPDEV interface you have to specify
 both the @option{--enable-parport} AND the @option{--enable-parport_ppdev} option since
 the @option{--enable-parport_ppdev} option actually is an option to the parport driver
-(see (@uref{http://forum.sparkfun.com/viewtopic.php?t=3795} for more info).
+(see @uref{http://forum.sparkfun.com/viewtopic.php?t=3795} for more info).
 
 Cygwin users have to specify the location of the FTDI D2XX package. This should be an
 absolute path containing no spaces.
@@ -683,6 +688,7 @@ Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
 @item @b{verify_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
 @cindex verify_image
 Verify <@var{file}> to target memory starting at <@var{address}>.
+This will first attempt using a crc checksum, if this fails it will try a binary compare.
 @item @b{load_binary} <@var{file}> <@var{address}> [DEPRECATED]
 @cindex load_binary
 Load binary <@var{file}> to target memory at <@var{address}> 
@@ -714,12 +720,23 @@ updated information.
 @item @b{flash protect_check} <@var{num}>
 @cindex flash protect_check
 Check protection state of sectors in flash bank <num>. 
-@item @b{flash erase} <@var{num}> <@var{first}> <@var{last}>
+
+@item @b{flash erase} <@var{num}> <@var{first}> <@var{last}> [DEPRECATED]
 @cindex flash erase
 Erase sectors at bank <@var{num}>, starting at sector <@var{first}> up to and including
 <@var{last}>. Sector numbering starts at 0. Depending on the flash type, erasing might
 require the protection to be disabled first (e.g. Intel Advanced Bootblock flash using
-the CFI driver). 
+the CFI driver). This command was replaced by the new command
+@option{flash erase_sector} using the same syntax. 
+@item @b{flash erase_sector} <@var{num}> <@var{first}> <@var{last}>
+@cindex flash erase_sector
+Erase sectors at bank <@var{num}>, starting at sector <@var{first}> up to and including
+<@var{last}>. Sector numbering starts at 0. Depending on the flash type, erasing might
+require the protection to be disabled first (e.g. Intel Advanced Bootblock flash using
+the CFI driver).
+@item @b{flash erase_address} <@var{address}> <@var{length}>
+@cindex flash erase_address
+Erase sectors starting at <@var{address}> for <@var{length}> number of bytes
 @item @b{flash write} <@var{num}> <@var{file}> <@var{offset}> [DEPRECATED]
 @cindex flash write
 Write the binary <@var{file}> to flash bank <@var{num}>, starting at <@var{offset}>
@@ -1010,7 +1027,7 @@ Detailed information about each section can be found at OpenOCD configuration
 @cindex OMAP5912 Flash Debug
 The following two scripts was used with an wiggler PP and and a TI OMAP5912
 dual core processor (@uref{http://www.ti.com}) on a OMAP5912 OSK board
-@uref{(http://www.spectrumdigital.com}).
+(@uref{http://www.spectrumdigital.com}).
 @subsection Openocd config
 @smallexample
 #daemon configuration
