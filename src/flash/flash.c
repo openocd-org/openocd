@@ -836,7 +836,8 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 
 	int section;
 	u32 section_offset;
-
+	flash_bank_t *c;
+	
 	section = 0;
 	section_offset = 0;
 
@@ -846,11 +847,24 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 	if (failed != NULL)
 		for (i = 0; i < image->num_sections; i++)
 			failed[i] = 0;
-
+	
+	if (erase)
+	{
+		/* assume all sectors need erasing - stops any problems
+		 * when flash_write is called multiple times */
+		 
+		for (c = flash_banks; c; c = c->next)
+		{
+			for (i = 0; i < c->num_sectors; i++)
+			{
+				c->sectors[i].is_erased = 0; 
+			}
+		}
+	}
+	
 	/* loop until we reach end of the image */
 	while (section < image->num_sections)
 	{
-		flash_bank_t *c;
 		u32 buffer_size;
 		u8 *buffer;
 		int section_first;
