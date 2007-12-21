@@ -1323,20 +1323,19 @@ working_area 0 0x20000000 16384 nobackup
 flash bank stm32x 0x08000000 0x00010000 0 0 0
 @end smallexample
 
-@section  LPC2294 Script
-@cindex  LPC2294 Script
-The following script was used with an Amontec JTAGkey and a LPC2294 cpu:
+@section LPC2129 Script
+@cindex LPC2129 Script
+The following script was used with an wiggler PP and a LPC-2129 cpu:
 @smallexample
 #daemon configuration
 telnet_port 4444
 gdb_port 3333
  
 #interface
-interface ft2232
-ft2232_device_desc "Amontec JTAGkey A"
-ft2232_layout jtagkey
-ft2232_vid_pid 0x0403 0xcff8
-jtag_speed 2
+interface parport
+parport_port 0x378
+parport_cable wiggler
+jtag_speed 0
  
 #use combined on interfaces or targets that can't set TRST/SRST separately
 reset_config trst_and_srst srst_pulls_trst
@@ -1353,7 +1352,79 @@ daemon_startup reset
 target arm7tdmi little run_and_halt 0 arm7tdmi-s_r4
 run_and_halt_time 0 30
  
-working_area 0 0x40000000 0x40000 nobackup
+working_area 0 0x40000000 0x4000 nobackup
+ 
+#flash bank <driver> <base> <size> <chip_width> <bus_width>
+flash bank lpc2000 0x0 0x40000 0 0 0 lpc2000_v1 14765 calc_checksum
+@end smallexample
+
+@section  LPC2148 Script
+@cindex  LPC2148 Script
+The following script was used with an Amontec JTAGkey and a LPC2148 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+ft2232_vid_pid 0x0403 0xcff8
+jtag_speed 3
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst srst_pulls_trst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm7tdmi <endianness> <reset mode> <chainpos> <variant>
+target arm7tdmi little run_and_halt 0 arm7tdmi-s_r4
+run_and_halt_time 0 30
+ 
+working_area 0 0x40000000 0x8000 nobackup
+ 
+#flash configuration
+flash bank lpc2000 0x0 0x7d000 0 0 0 lpc2000_v1 14765 calc_checksum
+@end smallexample
+
+@section  LPC2294 Script
+@cindex  LPC2294 Script
+The following script was used with an Amontec JTAGkey and a LPC2294 cpu:
+@smallexample
+#daemon configuration
+telnet_port 4444
+gdb_port 3333
+ 
+#interface
+interface ft2232
+ft2232_device_desc "Amontec JTAGkey A"
+ft2232_layout jtagkey
+ft2232_vid_pid 0x0403 0xcff8
+jtag_speed 3
+ 
+#use combined on interfaces or targets that can't set TRST/SRST separately
+reset_config trst_and_srst srst_pulls_trst
+ 
+#jtag scan chain
+#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
+jtag_device 4 0x1 0xf 0xe
+ 
+#target configuration
+daemon_startup reset
+ 
+#target <type> <startup mode>
+#target arm7tdmi <endianness> <reset mode> <chainpos> <variant>
+target arm7tdmi little run_and_halt 0 arm7tdmi-s_r4
+run_and_halt_time 0 30
+ 
+working_area 0 0x40000000 0x4000 nobackup
  
 #flash configuration
 flash bank lpc2000 0x0 0x40000 0 0 0 lpc2000_v1 14765 calc_checksum
@@ -1390,41 +1461,6 @@ daemon_startup reset
 #target arm7tdmi <endianness> <reset mode> <chainpos> <variant>
 target arm7tdmi little run_and_halt 0 arm7tdmi
 run_and_halt_time 0 30
-@end smallexample
-
-@section LPC2129 Script
-@cindex LPC2129 Script
-The following script was used with an wiggler PP and a LPC-2129 cpu:
-@smallexample
-#daemon configuration
-telnet_port 4444
-gdb_port 3333
- 
-#interface
-interface parport
-parport_port 0x378
-parport_cable wiggler
-jtag_speed 0
- 
-#use combined on interfaces or targets that can't set TRST/SRST separately
-reset_config trst_and_srst srst_pulls_trst
- 
-#jtag scan chain
-#format L IRC IRCM IDCODE (Length, IR Capture, IR Capture Mask, IDCODE)
-jtag_device 4 0x1 0xf 0xe
- 
-#target configuration
-daemon_startup reset
- 
-#target <type> <startup mode>
-#target arm7tdmi <endianness> <reset mode> <chainpos> <variant>
-target arm7tdmi little run_and_halt 0 arm7tdmi-s_r4
-run_and_halt_time 0 30
- 
-working_area 0 0x00000000 0x400000 nobackup
- 
-#flash bank <driver> <base> <size> <chip_width> <bus_width>
-flash bank lpc2000 0x0 0x40000 0 0 0 lpc2000_v1 14765 calc_checksum
 @end smallexample
 
 @section AT91SAM7s Script
