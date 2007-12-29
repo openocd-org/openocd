@@ -34,6 +34,7 @@ typedef struct gdb_connection_s
 	int ctrl_c;
 	enum target_state frontend_state;
 	image_t *vflash_image;
+	int output_disable;
 } gdb_connection_t;
 
 typedef struct gdb_service_s

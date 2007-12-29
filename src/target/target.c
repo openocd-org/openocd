@@ -1040,6 +1040,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				(*last_target_p)->reset_script = NULL;
 				(*last_target_p)->post_halt_script = NULL;
 				(*last_target_p)->pre_resume_script = NULL;
+				(*last_target_p)->gdb_program_script = NULL;
 				
 				(*last_target_p)->working_area = 0x0;
 				(*last_target_p)->working_area_size = 0x0;
@@ -1119,6 +1120,12 @@ int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, c
 		if (target->pre_resume_script)
 			free(target->pre_resume_script);
 		target->pre_resume_script = strdup(args[2]);
+	}
+	else if (strcmp(args[1], "gdb_program_config") == 0)
+	{
+		if (target->gdb_program_script)
+			free(target->gdb_program_script);
+		target->gdb_program_script = strdup(args[2]);
 	}
 	else
 	{

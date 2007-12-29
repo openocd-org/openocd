@@ -393,6 +393,9 @@ int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	
+	/* We can't know if we did a resume + halt, in which case we no longer know the erased state */
+	flash_set_dirty();
+	
 	duration_start_measure(&duration);
 	
 	if ((retval = flash_erase(target, address, length)) != ERROR_OK)
@@ -766,6 +769,21 @@ int handle_flash_write_binary_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
+void flash_set_dirty(void)
+{
+	flash_bank_t *c;
+	int i;
+	
+	/* set all flash to require erasing */
+	for (c = flash_banks; c; c = c->next)
+	{
+		for (i = 0; i < c->num_sectors; i++)
+		{
+			c->sectors[i].is_erased = 0; 
+		}
+	}
+}
+
 /* lookup flash bank by address */
 flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr)
 {
@@ -852,14 +870,8 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 	{
 		/* assume all sectors need erasing - stops any problems
 		 * when flash_write is called multiple times */
-		 
-		for (c = flash_banks; c; c = c->next)
-		{
-			for (i = 0; i < c->num_sectors; i++)
-			{
-				c->sectors[i].is_erased = 0; 
-			}
-		}
+		
+		flash_set_dirty();
 	}
 	
 	/* loop until we reach end of the image */

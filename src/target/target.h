@@ -157,6 +157,7 @@ typedef struct target_s
 	char *reset_script;					/* script file to initialize the target after a reset */
 	char *post_halt_script;				/* script file to execute after the target halted */
 	char *pre_resume_script;			/* script file to execute before the target resumed */
+	char *gdb_program_script;			/* script file to execute before programming vis gdb */
 	u32 working_area;					/* working area (initialized RAM) */
 	u32 working_area_size;				/* size in bytes */
 	u32 backup_working_area;			/* whether the content of the working area has to be preserved */
@@ -180,6 +181,7 @@ enum target_event
 	TARGET_EVENT_RESET,			/* target entered reset */
 	TARGET_EVENT_DEBUG_HALTED,	/* target entered debug state, but was executing on behalf of the debugger */
 	TARGET_EVENT_DEBUG_RESUMED, /* target resumed to execute on behalf of the debugger */
+	TARGET_EVENT_GDB_PROGRAM	/* target about to be be programmed by gdb */
 };
 
 typedef struct target_event_callback_s

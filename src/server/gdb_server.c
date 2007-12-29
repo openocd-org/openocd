@@ -28,11 +28,11 @@
 #include "server.h"
 #include "log.h"
 #include "binarybuffer.h"
+#include "jtag.h"
 #include "breakpoints.h"
 #include "flash.h"
 #include "target_request.h"
 
-#define __USE_GNU
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -52,7 +52,13 @@ enum gdb_detach_mode
 	GDB_DETACH_NOTHING
 };
 
+/* target behaviour on gdb detach */
 enum gdb_detach_mode detach_mode = GDB_DETACH_RESUME;
+
+/* set if we are sending a memory map to gdb
+ * via qXfer:memory-map:read packet */
+int gdb_use_memory_map = 0;
+int gdb_flash_program = 0;
 
 int gdb_last_signal(target_t *target)
 {
@@ -77,7 +83,10 @@ int gdb_last_signal(target_t *target)
 int gdb_get_char(connection_t *connection, int* next_char)
 {
 	gdb_connection_t *gdb_con = connection->priv;
+
+#ifdef _DEBUG_GDB_IO_
 	char *debug_buffer;
+#endif
 
 	if (gdb_con->buf_cnt-- > 0)
 	{
@@ -109,6 +118,8 @@ int gdb_get_char(connection_t *connection, int* next_char)
 				break;
 			case WSAECONNABORTED:
 				return ERROR_SERVER_REMOTE_CLOSED;
+			case WSAECONNRESET:
+				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
 				ERROR("read: %d", errno);
 				exit(-1);
@@ -130,11 +141,13 @@ int gdb_get_char(connection_t *connection, int* next_char)
 #endif
 	}
 
+#ifdef _DEBUG_GDB_IO_
 	debug_buffer = malloc(gdb_con->buf_cnt + 1);
 	memcpy(debug_buffer, gdb_con->buffer, gdb_con->buf_cnt);
 	debug_buffer[gdb_con->buf_cnt] = 0;
 	DEBUG("received '%s'", debug_buffer);
 	free(debug_buffer);
+#endif
 
 	gdb_con->buf_p = gdb_con->buffer;
 	gdb_con->buf_cnt--;
@@ -245,7 +258,9 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 			if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
 				return retval;
 
+#ifdef _DEBUG_GDB_IO_
 			DEBUG("character: '%c'", character);
+#endif
 
 			switch (character)
 			{
@@ -325,9 +340,17 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 int gdb_output(struct command_context_s *context, char* line)
 {
 	connection_t *connection = context->output_handler_priv;
+	gdb_connection_t *gdb_connection = connection->priv;
+	
 	char *hex_buffer;
 	int i, bin_size;
 
+	/* check if output is enabled */
+	if (gdb_connection->output_disable)
+	{
+		return ERROR_OK;
+	}
+	
 	bin_size = strlen(line);
 
 	hex_buffer = malloc(bin_size*2 + 4);
@@ -342,6 +365,30 @@ int gdb_output(struct command_context_s *context, char* line)
 	gdb_put_packet(connection, hex_buffer, bin_size*2 + 3);
 
 	free(hex_buffer);
+	return ERROR_OK;
+}
+
+int gdb_program_handler(struct target_s *target, enum target_event event, void *priv)
+{
+	FILE *script;
+	struct command_context_s *cmd_ctx = priv;
+	
+	if (target->gdb_program_script)
+	{
+		script = fopen(target->gdb_program_script, "r");
+		if (!script)
+		{
+			ERROR("couldn't open script file %s", target->gdb_program_script);
+				return ERROR_OK;
+		}
+
+		INFO("executing gdb_program script '%s'", target->gdb_program_script);
+		command_run_file(cmd_ctx, script, COMMAND_EXEC);
+		fclose(script);
+		
+		jtag_execute_queue();
+	}
+	
 	return ERROR_OK;
 }
 
@@ -378,6 +425,9 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 				gdb_connection->frontend_state = TARGET_RUNNING;
 			}
 			break;
+		case TARGET_EVENT_GDB_PROGRAM:
+			gdb_program_handler(target, event, connection->cmd_ctx);
+			break;
 		default:
 			break;
 	}
@@ -400,7 +450,8 @@ int gdb_new_connection(connection_t *connection)
 	gdb_connection->ctrl_c = 0;
 	gdb_connection->frontend_state = TARGET_HALTED;
 	gdb_connection->vflash_image = NULL;
-
+	gdb_connection->output_disable = 0;
+	
 	/* output goes through gdb connection */
 	command_set_output_handler(connection->cmd_ctx, gdb_output, connection);
 
@@ -1172,10 +1223,76 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 	return ERROR_OK;
 }
 
+/* print out XML and allocate more space as needed */
+void xml_printf(int *retval, char **xml, int *pos, int *size, const char *fmt, ...)
+{
+	if (*retval != ERROR_OK)
+	{
+		return;
+	}
+	int first = 1;
+	
+	for (;;)
+	{
+		if ((*xml == NULL) || (!first))
+		{
+			/* start by 0 to exercise all the code paths.
+			 * Need minimum 2 bytes to fit 1 char and 0 terminator. */
+			 
+			*size = *size * 2 + 2;
+			*xml = realloc(*xml, *size);
+			if (*xml == NULL)
+			{
+				*retval = 1;
+				return;
+			}
+		}
+		
+	    va_list ap;
+	    int ret;
+	    va_start(ap, fmt);
+	    ret = vsnprintf(*xml + *pos, *size - *pos, fmt, ap);
+	    va_end(ap);
+	    if ((ret > 0) && ((ret + 1) < *size - *pos))
+	    {
+	    	*pos += ret;
+	    	return;
+	    }
+	    /* there was just enough or not enough space, allocate more. */
+	    first = 0;
+	}
+}
+
+static int decode_xfer_read (char *buf, char **annex, int *ofs, unsigned int *len)
+{
+	char *separator;
+	
+	/* Extract and NUL-terminate the annex. */
+	*annex = buf;
+	while (*buf && *buf != ':')
+		buf++;
+	if (*buf == '\0')
+		return -1;
+	*buf++ = 0;
+	
+	/* After the read marker and annex, qXfer looks like a
+	 * traditional 'm' packet. */
+	
+	*ofs = strtoul(buf, &separator, 16);
+
+	if (*separator != ',')
+		return -1;
+
+	*len = strtoul(separator+1, NULL, 16);
+	
+	return 0;
+}
+
 int gdb_query_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
+	char buffer[GDB_BUFFER_SIZE];
 	command_context_t *cmd_ctx = connection->cmd_ctx;
-
+	
 	if (strstr(packet, "qRcmd,"))
 	{
 		if (packet_size > 6)
@@ -1196,13 +1313,12 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
 	}
-
-	if (strstr(packet, "qCRC:"))
+	else if (strstr(packet, "qCRC:"))
 	{
 		if (packet_size > 5)
 		{
 			int retval;
-			u8 gdb_reply[9];
+			u8 gdb_reply[10];
 			char *separator;
 			u32 checksum;
 			u32 addr = 0;
@@ -1219,13 +1335,13 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 			
-			len = strtoul(separator+1, NULL, 16);
+			len = strtoul(separator + 1, NULL, 16);
 			
 			retval = target_checksum_memory(target, addr, len, &checksum);
 			
 			if (retval == ERROR_OK)
 			{
-				snprintf(gdb_reply, 9, "C%2.2x", checksum);
+				snprintf(gdb_reply, 10, "C%8.8x", checksum);
 				gdb_put_packet(connection, gdb_reply, 9);
 			}
 			else
@@ -1236,6 +1352,119 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			
 			return ERROR_OK;
 		}
+	}
+	else if (strstr(packet, "qSupported"))
+	{
+		/* we currently support packet size and qXfer:memory-map:read (if enabled)
+		 * disable qXfer:features:read for the moment */
+		
+		sprintf(buffer, "PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-",
+			(GDB_BUFFER_SIZE - 1), gdb_use_memory_map == 1 ? '+' : '-');
+		
+		gdb_put_packet(connection, buffer, strlen(buffer));
+		return ERROR_OK;
+	}
+	else if (strstr(packet, "qXfer:memory-map:read::"))
+	{
+		/* We get away with only specifying flash here. Regions that are not
+		 * specified are treated as if we provided no memory map(if not we 
+		 * could detect the holes and mark them as RAM).
+		 * Normally we only execute this code once, but no big deal if we
+		 * have to regenerate it a couple of times. */
+		 
+		flash_bank_t *p;
+		char *xml = NULL;
+		int size = 0;
+		int pos = 0;
+		int retval = ERROR_OK;
+		
+		int offset;
+		int length;
+		char *separator;
+		
+		/* skip command character */
+		packet += 23;
+		
+		offset = strtoul(packet, &separator, 16);
+		length = strtoul(separator + 1, &separator, 16);
+		
+		xml_printf(&retval, &xml, &pos, &size, "<memory-map>\n");
+		
+		int i = 0;
+		for (;;)
+		{
+			p = get_flash_bank_by_num(i);
+			if (p == NULL)
+				break;
+			
+			xml_printf(&retval, &xml, &pos, &size, "<memory type=\"flash\" start=\"0x%x\" length=\"0x%x\">\n" \
+				"<property name=\"blocksize\">0x%x</property>\n" \
+				"</memory>\n", \
+				p->base, p->size, p->size/p->num_sectors);
+			i++;
+		}
+		
+		xml_printf(&retval, &xml, &pos, &size, "</memory-map>\n");
+
+		if (retval != ERROR_OK)
+		{
+			gdb_send_error(connection, retval);
+			return retval;
+		}
+				
+		if (offset + length > pos)
+		{
+			length = pos - offset;
+		}
+
+		char *t = malloc(length + 1);
+		t[0] = 'l';
+		memcpy(t + 1, xml + offset, length);
+		gdb_put_packet(connection, t, length + 1);
+		
+		free(t);
+		free(xml);
+		return ERROR_OK;
+	}
+	else if (strstr(packet, "qXfer:features:read:"))
+	{		 
+		char *xml = NULL;
+		int size = 0;
+		int pos = 0;
+		int retval = ERROR_OK;
+		
+		int offset;
+		int length;
+		char *annex;
+		
+		/* skip command character */
+		packet += 20;
+		
+		if (decode_xfer_read( packet, &annex, &offset, &length ) < 0)
+		{
+			gdb_send_error(connection, 01);
+			return ERROR_OK;
+		}
+		
+		if (strcmp(annex, "target.xml") != 0)
+		{
+			gdb_send_error(connection, 01);
+			return ERROR_OK;
+		}
+				
+		xml_printf(&retval, &xml, &pos, &size, \
+			"l<target version=\"1.0\">\n<architecture>arm</architecture>\n</target>\n");
+					
+		if (retval != ERROR_OK)
+		{
+			gdb_send_error(connection, retval);
+			return retval;
+		}
+		
+		gdb_put_packet(connection, xml, strlen(xml) + 1);
+		
+		free(xml);
+		return ERROR_OK;
 	}
 	
 	gdb_put_packet(connection, "", 0);
@@ -1248,10 +1477,19 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 	gdb_service_t *gdb_service = connection->service->priv;
 	int result;
 
+	/* if flash programming disabled - send a empty reply */
+	
+	if (gdb_flash_program == 0)
+	{
+		gdb_put_packet(connection, "", 0);
+		return ERROR_OK;
+	}
+	
 	if (strstr(packet, "vFlashErase:"))
 	{
 		unsigned long addr;
 		unsigned long length;
+	
 		char *parse = packet + 12;
 		if (*parse == '\0')
 		{
@@ -1274,7 +1512,17 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 			ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
-
+		
+		/* disable gdb output while programming */
+		gdb_connection->output_disable = 1;
+		
+		/* assume all sectors need erasing - stops any problems
+		 * when flash_write is called multiple times */
+		flash_set_dirty();
+		
+		/* perform any target specific operations before the erase */
+		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_PROGRAM);
+		
 		/* perform erase */
 		if ((result = flash_erase(gdb_service->target, addr, length)) != ERROR_OK)
 		{
@@ -1286,7 +1534,10 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		}
 		else
 			gdb_put_packet(connection, "OK", 2);
-
+		
+		/* reenable gdb output */
+		gdb_connection->output_disable = 0;
+		
 		return ERROR_OK;
 	}
 
@@ -1309,6 +1560,9 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		}
 		length = packet_size - (parse - packet);
 		
+		/* disable gdb output while programming */
+		gdb_connection->output_disable = 1;
+		
 		/* create a new image if there isn't already one */
 		if (gdb_connection->vflash_image == NULL)
 		{
@@ -1321,6 +1575,9 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 		gdb_put_packet(connection, "OK", 2);
 
+		/* reenable gdb output */
+		gdb_connection->output_disable = 0;
+		
 		return ERROR_OK;
 	}
 
@@ -1329,6 +1586,9 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		u32 written;
 		char *error_str;
 
+		/* disable gdb output while programming */
+		gdb_connection->output_disable = 1;
+		
 		/* process the flashing buffer */
 		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, &error_str, NULL, 0)) != ERROR_OK)
 		{
@@ -1352,7 +1612,10 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		image_close(gdb_connection->vflash_image);
 		free(gdb_connection->vflash_image);
 		gdb_connection->vflash_image = NULL;
-
+		
+		/* reenable gdb output */
+		gdb_connection->output_disable = 0;
+		
 		return ERROR_OK;
 	}
 
@@ -1580,12 +1843,55 @@ int handle_gdb_detach_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
+int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc == 1)
+	{
+		if (strcmp(args[0], "enable") == 0)
+		{
+			gdb_use_memory_map = 1;
+			return ERROR_OK;
+		}
+		else if (strcmp(args[0], "disable") == 0)
+		{
+			gdb_use_memory_map = 0;
+			return ERROR_OK;
+		}
+	}
+	
+	WARNING("invalid gdb_memory_map configuration directive: %s", args[0]);
+	return ERROR_OK;
+}
+
+int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc == 1)
+	{
+		if (strcmp(args[0], "enable") == 0)
+		{
+			gdb_flash_program = 1;
+			return ERROR_OK;
+		}
+		else if (strcmp(args[0], "disable") == 0)
+		{
+			gdb_flash_program = 0;
+			return ERROR_OK;
+		}
+	}
+	
+	WARNING("invalid gdb_memory_map configuration directive: %s", args[0]);
+	return ERROR_OK;
+}
+
 int gdb_register_commands(command_context_t *command_context)
 {
 	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
 			COMMAND_CONFIG, "");
 	register_command(command_context, NULL, "gdb_detach", handle_gdb_detach_command,
 			COMMAND_CONFIG, "");
-	
+	register_command(command_context, NULL, "gdb_memory_map", handle_gdb_memory_map_command,
+			COMMAND_CONFIG, "");
+	register_command(command_context, NULL, "gdb_flash_program", handle_gdb_flash_program_command,
+			COMMAND_CONFIG, "");
 	return ERROR_OK;
 }

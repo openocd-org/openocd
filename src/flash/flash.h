@@ -68,6 +68,7 @@ extern int flash_init(struct command_context_s *cmd_ctx);
 
 extern int flash_erase(target_t *target, u32 addr, u32 length);
 extern int flash_write(target_t *target, image_t *image, u32 *written, char **error, int *failed, int erase);
+extern void flash_set_dirty(void);
 
 extern flash_bank_t *get_flash_bank_by_num(int num);
 extern flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);

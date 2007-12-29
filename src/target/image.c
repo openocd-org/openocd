@@ -360,12 +360,12 @@ int image_elf_read_headers(image_t *image)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
-	if (strncmp((char*)elf->header->e_ident,ELFMAG,SELFMAG)!=0)
+	if (strncmp((char*)elf->header->e_ident,ELFMAG,SELFMAG) != 0)
 	{
 		ERROR("invalid ELF file, bad magic number");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
-	if (elf->header->e_ident[EI_CLASS]!=ELFCLASS32)
+	if (elf->header->e_ident[EI_CLASS] != ELFCLASS32)
 	{
 		ERROR("invalid ELF file, only 32bits files are supported");
 		return ERROR_IMAGE_FORMAT_ERROR;
@@ -373,28 +373,28 @@ int image_elf_read_headers(image_t *image)
 
 
 	elf->endianness = elf->header->e_ident[EI_DATA];
-	if ((elf->endianness!=ELFDATA2LSB)
-		 &&(elf->endianness!=ELFDATA2MSB))
+	if ((elf->endianness != ELFDATA2LSB)
+		 &&(elf->endianness != ELFDATA2MSB))
 	{
 		ERROR("invalid ELF file, unknown endianess setting");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 
-	elf->segment_count = field16(elf,elf->header->e_phnum);
-	if (elf->segment_count==0)
+	elf->segment_count = field16(elf, elf->header->e_phnum);
+	if (elf->segment_count == 0)
 	{
 		ERROR("invalid ELF file, no program headers");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 
-	elf->segments = malloc(elf->segment_count*sizeof(Elf32_Phdr));
+	elf->segments = malloc(elf->segment_count * sizeof(Elf32_Phdr));
 
-	if ((retval = fileio_read(&elf->fileio, elf->segment_count*sizeof(Elf32_Phdr), (u8*)elf->segments, &read_bytes)) != ERROR_OK)
+	if ((retval = fileio_read(&elf->fileio, elf->segment_count * sizeof(Elf32_Phdr), (u8*)elf->segments, &read_bytes)) != ERROR_OK)
 	{
 		ERROR("cannot read ELF segment headers, read failed");
 		return retval;
 	}
-	if (read_bytes != elf->segment_count*sizeof(Elf32_Phdr))
+	if (read_bytes != elf->segment_count * sizeof(Elf32_Phdr))
 	{
 		ERROR("cannot read ELF segment headers, only partially read");
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -411,16 +411,16 @@ int image_elf_read_headers(image_t *image)
 	{
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 		{
-			image->sections[j].size = field32(elf,elf->segments[i].p_memsz);
-			image->sections[j].base_address = field32(elf,elf->segments[i].p_paddr);
+			image->sections[j].size = field32(elf, elf->segments[i].p_memsz);
+			image->sections[j].base_address = field32(elf, elf->segments[i].p_paddr);
 			image->sections[j].private = &elf->segments[i];
-			image->sections[j].flags = field32(elf,elf->segments[i].p_flags);
+			image->sections[j].flags = field32(elf, elf->segments[i].p_flags);
 			j++;
 		}
 	}
 		
 	image->start_address_set = 1;
-	image->start_address = field32(elf,elf->header->e_entry);
+	image->start_address = field32(elf, elf->header->e_entry);
 
 	return ERROR_OK;
 }
@@ -442,9 +442,9 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 		/* maximal size present in file for the current segment */
 		read_size = MIN(size, field32(elf, segment->p_filesz) - offset);
 		DEBUG("read elf: size = 0x%x at 0x%x", read_size,
-			field32(elf,segment->p_offset) + offset);
+			field32(elf, segment->p_offset) + offset);
 		/* read initialized area of the segment */
-		if ((retval = fileio_seek(&elf->fileio, field32(elf,segment->p_offset) + offset)) != ERROR_OK)
+		if ((retval = fileio_seek(&elf->fileio, field32(elf, segment->p_offset) + offset)) != ERROR_OK)
 		{
 			ERROR("cannot find ELF segment content, seek failed");
 			return retval;
@@ -462,16 +462,7 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 		if (!size)
 			return ERROR_OK;
 	}
-	/* if there is remaining zeroed area in current segment */
-	if (offset < field32(elf, segment->p_memsz))
-	{
-		/* fill zeroed part (BSS) of the segment */
-		read_size = MIN(size, field32(elf, segment->p_memsz) - offset);
-		DEBUG("zero fill: size = 0x%x", read_size);
-		memset(buffer, 0, read_size);
-		*size_read += read_size;
-	}
-	
+		
 	return ERROR_OK;
 }
 

@@ -30,6 +30,7 @@ This is edition @value{EDITION} of the openocd manual for version
 * Configuration::     Openocd Configuration.
 * Commands::          Openocd Commands
 * Sample Scripts::    Sample Target Scripts
+* GDB and Openocd::   Using GDB and Openocd
 * FAQ::               Frequently Asked Questions
 * License::           GNU Free Documentation License
 * Index::             Main index.
@@ -194,6 +195,22 @@ Port on which to listen for incoming telnet connections
 @cindex gdb_port
 First port on which to listen for incoming GDB connections. The GDB port for the
 first target will be gdb_port, the second target will listen on gdb_port + 1, and so on. 
+@item @b{gdb_detach} <@var{resume|reset|halt|nothing}>
+@cindex gdb_detach
+Configures what openocd will do when gdb detaches from the daeman.
+Default behaviour is <@var{resume}>
+@item @b{gdb_memory_map} <@var{enable|disable}>
+@cindex gdb_memory_map
+Set to <@var{enable}> so that openocd will send the memory configuration to gdb when
+requested. gdb will then know when to set hardware breakpoints, and program flash
+using the gdb load command. @option{gdb_flash_program enable} will also need enabling
+for flash programming to work.
+Default behaviour is <@var{disable}>
+@item @b{gdb_flash_program} <@var{enable|disable}>
+@cindex gdb_flash_program
+Set to <@var{enable}> so that openocd will program the flash memory when a
+vFlash packet is received.
+Default behaviour is <@var{disable}>
 @item @b{daemon_startup} <@var{mode}> either @samp{attach} or @samp{reset}
 @cindex daemon_startup
 Tells the OpenOCD whether it should reset the target when the daemon is launched, or
@@ -441,8 +458,9 @@ unavailable for some time during startup (like the STR7 series), you can't use
 
 @item @b{target_script} <@var{target#}> <@var{event}> <@var{script_file}>
 @cindex target_script
-Event is either @var{reset} or @var{post_halt} or @var{pre_resume}.
-TODO: describe exact semantic of events 
+Event is either @option{reset}, @option{post_halt}, @option{pre_resume} or @option{gdb_program_config}
+
+TODO: describe exact semantic of events
 @item @b{run_and_halt_time} <@var{target#}> <@var{time_in_ms}>
 @cindex run_and_halt_time
 The amount of time the debugger should wait after releasing reset before it asserts
@@ -866,8 +884,8 @@ mass erase flash memory.
 @end itemize
 
 @page
-@section Arcitecture Specific Commands
-@cindex Arcitecture Specific Commands
+@section Architecture Specific Commands
+@cindex Architecture Specific Commands
 
 @subsection ARMV4/5 specific commands
 @cindex ARMV4/5 specific commands
@@ -1014,7 +1032,7 @@ This page will collect some script examples for different CPUs.
 
 The configuration script can be divided in the following section:
 @itemize @bullet
-@item deamon configuration
+@item daemon configuration
 @item interface
 @item jtag scan chain
 @item target configuration
@@ -1025,9 +1043,9 @@ Detailed information about each section can be found at OpenOCD configuration
 
 @section OMAP5912 Flash Debug
 @cindex OMAP5912 Flash Debug
-The following two scripts was used with an wiggler PP and and a TI OMAP5912
-dual core processor (@uref{http://www.ti.com}) on a OMAP5912 OSK board
-(@uref{http://www.spectrumdigital.com}).
+The following two scripts were used with a wiggler PP and and a TI OMAP5912
+dual core processor - (@uref{http://www.ti.com}), on a OMAP5912 OSK board
+- (@uref{http://www.spectrumdigital.com}).
 @subsection Openocd config
 @smallexample
 #daemon configuration
@@ -1280,7 +1298,7 @@ run_and_halt_time 0 30
 working_area 0 0x20000000 16384 nobackup
  
 #flash bank <driver> <base> <size> <chip_width> <bus_width>
-flash bank stm32x 0x08000000 0x00010000 0 0 0
+flash bank stm32x 0x08000000 0x00020000 0 0 0
 @end smallexample
 
 @section STM32x Performance Stick
@@ -1320,7 +1338,7 @@ run_and_halt_time 0 30
 working_area 0 0x20000000 16384 nobackup
  
 #flash bank <driver> <base> <size> <chip_width> <bus_width>
-flash bank stm32x 0x08000000 0x00010000 0 0 0
+flash bank stm32x 0x08000000 0x00020000 0 0 0
 @end smallexample
 
 @section LPC2129 Script
@@ -1672,6 +1690,71 @@ run_and_halt_time 0 30
 # works for P30 flash
 flash bank cfi 0x00000000 0x1000000 2 4 0
 @end smallexample
+
+@node GDB and Openocd
+@chapter GDB and Openocd
+@cindex GDB and Openocd
+Openocd complies with the remote gdbserver protocol, and as such can be used
+to debug remote targets.
+
+@section Connecting to gdb
+@cindex Connecting to gdb
+A connection is typically started as follows:
+@smallexample
+target remote localhost:3333
+@end smallexample
+This would cause gdb to connect to the gdbserver on the local pc using port 3333.
+
+To see a list of available openocd commands type @option{monitor help} on the
+gdb commandline.
+
+Openocd supports the gdb @option{qSupported} packet, this enables information
+to be sent by the gdb server (openocd) to gdb. Typical information includes
+packet size and device memory map.
+
+Previous versions of openocd required the following gdb options to increase
+the packet size and speed up gdb communication.
+@smallexample
+set remote memory-write-packet-size 1024
+set remote memory-write-packet-size fixed
+set remote memory-read-packet-size 1024
+set remote memory-read-packet-size fixed
+@end smallexample
+This is now handled in the @option{qSupported} PacketSize.
+
+@section Programming using gdb
+@cindex Programming using gdb
+
+By default the target memory map is not sent to gdb, this can be enabled by
+the following openocd config option:
+@smallexample
+gdb_memory_map enable
+@end smallexample
+For this to function correctly a valid flash config must also be configured
+in openocd. For speed also configure a valid working area.
+
+Informing gdb of the memory map of the target will enable gdb to protect any
+flash area of the target and use hardware breakpoints by default. This means
+that the openocd option @option{arm7_9 force_hw_bkpts} is not required when
+using a memory map.
+
+To view the configured memory map in gdb, use the gdb command @option{info mem}
+All other unasigned addresses within gdb are treated as ram.
+
+If @option{gdb_flash_program enable} is also used, gdb will be able to
+program any flash memory using the vFlash interface.
+
+gdb will look at the target memory map when a load command is given, if any
+areas to be programmed lie within the target flash area the vFlash packets
+will be used.
+
+Incase the target needs configuring before gdb programming, a script can be executed.
+@smallexample
+target_script 0 gdb_program_config config.script
+@end smallexample
+
+To verify any flash programming the gdb command @option{compare-sections}
+can be used.
 
 @node FAQ
 @chapter FAQ
