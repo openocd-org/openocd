@@ -1656,6 +1656,7 @@ int gdb_input(connection_t *connection)
 	int packet_size;
 	int retval;
 	gdb_connection_t *gdb_con = connection->priv;
+	static int extended_protocol = 0;
 
 	/* drain input buffer */
 	do
@@ -1728,14 +1729,26 @@ int gdb_input(connection_t *connection)
 					break;
 				case 'D':
 					retval = gdb_detach(connection, target);
+					extended_protocol = 0;
 					break;
 				case 'X':
 					if ((retval = gdb_write_memory_binary_packet(connection, target, packet, packet_size)) != ERROR_OK)
 						return retval;
 					break;
 				case 'k':
+					if (extended_protocol != 0)
+						break;
 					gdb_put_packet(connection, "OK", 2);
 					return ERROR_SERVER_REMOTE_CLOSED;
+				case '!':
+					/* handle extended remote protocol */
+					extended_protocol = 1;
+					gdb_put_packet(connection, "OK", 2);
+					break;
+				case 'R':
+					/* handle extended restart packet */
+					target_process_reset(connection->cmd_ctx);
+					break;
 				default:
 					/* ignore unkown packets */
 					DEBUG("ignoring 0x%2.2x packet", packet[0]);
