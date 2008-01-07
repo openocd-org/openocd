@@ -77,6 +77,8 @@ typedef struct scan_field_s
 	u8 *out_value;		/* value to be scanned into the device */
 	u8 *out_mask;		/* only masked bits care */
 	u8 *in_value;		/* pointer to a 32-bit memory location to take data scanned out */
+	/* in_check_value/mask, in_handler_error_handler, in_handler_priv can be used by the in handler, otherwise they contain garbage  */
+	error_handler_t in_handler_error_handler; 
 	u8 *in_check_value;		/* used to validate scan results */ 
 	u8 *in_check_mask;		/* check specified bits against check_value */
 	int (*in_handler)(u8 *in_value, void *priv);	/* process received buffer using this handler */
@@ -95,7 +97,6 @@ typedef struct scan_command_s
 	int num_fields;		/* number of fields in *fields array */
 	scan_field_t *fields;	/* pointer to an array of data scan fields */
 	enum tap_state end_state;	/* TAP state in which JTAG commands should finish */
-	error_handler_t *error_handler;
 } scan_command_t;
 
 typedef struct statemove_command_s
@@ -249,10 +250,10 @@ extern int jtag_init(struct command_context_s *cmd_ctx);
 extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
 /* JTAG interface */
-extern int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
-extern int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
-extern int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
-extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
+extern int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
+extern int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
+extern int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
+extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
 extern int jtag_add_statemove(enum tap_state endstate);
 extern int jtag_add_pathmove(int num_states, enum tap_state *path);
 extern int jtag_add_runtest(int num_cycles, enum tap_state endstate);
@@ -263,6 +264,7 @@ extern int jtag_execute_queue(void);
 extern int jtag_cancel_queue(void);
 
 /* JTAG support functions */
+extern void jtag_set_check_value(scan_field_t *field, u8 *value,  u8 *mask, error_handler_t *in_error_handler);
 extern enum scan_type jtag_scan_type(scan_command_t *cmd);
 extern int jtag_scan_size(scan_command_t *cmd);
 extern int jtag_read_buffer(u8 *buffer, scan_command_t *cmd);

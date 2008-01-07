@@ -69,7 +69,7 @@ void bitq_in_proc(void)
 			while (bitq_in_state.field_idx<bitq_in_state.cmd->cmd.scan->num_fields) {
 
 				field=&bitq_in_state.cmd->cmd.scan->fields[bitq_in_state.field_idx];
-				if (field->in_check_value || field->in_value || field->in_handler) {
+				if ( field->in_value || field->in_handler) {
 
 					if (bitq_in_state.bit_pos==0) {
 						/* initialize field scanning */
@@ -115,26 +115,6 @@ void bitq_in_proc(void)
 						bitq_in_state.bit_pos++;
 					}
 					
-					if (field->in_check_value) {
-						/* match scanned in value */
-						for (in_idx=0; in_idx*8<field->num_bits; in_idx++) {
-							if (field->in_check_mask) in_mask=field->in_check_mask[in_idx];
-							else in_mask=0xff;
-							if (field->num_bits-in_idx*8<8) in_mask>>=8-(field->num_bits-in_idx*8);
-							if (field->in_check_value[in_idx]&in_mask!=in_buff[in_idx]&in_mask) {
-								char *captured_char = buf_to_str(in_buff, (field->num_bits > 64) ? 64 : field->num_bits, 16);
-								char *in_check_value_char = buf_to_str(field->in_check_value, (field->num_bits > 64) ? 64 : field->num_bits, 16);
-								char *in_check_mask_char = buf_to_str(field->in_check_mask, (field->num_bits > 64) ? 64 : field->num_bits, 16);
-								/* TODO: error reporting */
-								WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s check_mask: 0x%s", captured_char, in_check_value_char, in_check_mask_char);
-								bitq_in_state.status=ERROR_JTAG_QUEUE_FAILED;
-								free(captured_char);
-								free(in_check_value_char);
-								free(in_check_mask_char);
-								break; /* leave the comparison loop upon first mismatch */      					
-							}
-						}
-					}
 
 					if (field->in_handler && bitq_in_state.status==ERROR_OK) {
 						bitq_in_state.status=(*field->in_handler)(in_buff, field->in_handler_priv);
@@ -237,7 +217,7 @@ void bitq_scan_field(scan_field_t *field, int pause)
 	u8 *out_ptr;
 	u8 out_mask;
 	
-	if (field->in_check_value || field->in_value || field->in_handler) tdo_req=1;
+	if ( field->in_value || field->in_handler) tdo_req=1;
 	else tdo_req=0;
 
 	if (field->out_value==NULL) {

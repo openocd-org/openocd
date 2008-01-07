@@ -59,17 +59,20 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr, error_handler_t *ca
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 		
+		
+		
 		if (caller_error_handler)
 		{
-			jtag_add_ir_scan(1, &field, -1, caller_error_handler);
+			jtag_set_check_value(&field, NULL, NULL, caller_error_handler);
 		}
 		else
 		{
 			error_handler_t error_handler;
 			error_handler.error_handler = arm_jtag_set_instr_error_handler;
 			error_handler.error_handler_priv = NULL;
-			jtag_add_ir_scan(1, &field, -1, &error_handler);
+			jtag_set_check_value(&field, NULL, NULL, &error_handler);
 		}
+		jtag_add_ir_scan(1, &field, -1, NULL);
 		
 		
 		free(field.out_value);
@@ -94,13 +97,12 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 		field.out_mask = NULL;
 		field.in_value = NULL;
 #ifdef _ARM_JTAG_SCAN_N_CHECK_
-		field.in_check_value = &scan_n_check_value;
+		jtag_set_check_value(&field, &scan_n_check_value, NULL, NULL, NULL);
 #else
-		field.in_check_value = NULL;
-#endif 
-		field.in_check_mask = NULL;
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
+#endif 
+		
 		
 		arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL);
 		jtag_add_dr_scan(1, &field, -1, NULL);

@@ -209,10 +209,6 @@ int jtag_speed = -1;
 
 
 /* forward declarations */
-int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
-int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
-int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
-int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, error_handler_t *error_handler);
 int jtag_add_statemove(enum tap_state endstate);
 int jtag_add_pathmove(int num_states, enum tap_state *path);
 int jtag_add_runtest(int num_cycles, enum tap_state endstate);
@@ -381,7 +377,7 @@ void cmd_queue_free()
 	cmd_queue_pages = NULL;
 }
 
-int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state, error_handler_t *error_handler)
+int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state, void *dummy_anachronism)
 {
 	jtag_command_t **last_cmd;
 	jtag_device_t *device;
@@ -408,15 +404,6 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 	(*last_cmd)->cmd.scan->num_fields = jtag_num_devices;	/* one field per device */
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(jtag_num_devices * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
-	if (error_handler)
-	{
-		(*last_cmd)->cmd.scan->error_handler = cmd_queue_alloc(sizeof(error_handler_t));
-		*(*last_cmd)->cmd.scan->error_handler = *error_handler;
-	}
-	else
-	{
-		(*last_cmd)->cmd.scan->error_handler = NULL;
-	}
 		
 	if (state != -1)
 		cmd_queue_end_state = state;
@@ -437,18 +424,12 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 		(*last_cmd)->cmd.scan->fields[i].device = i;
 		(*last_cmd)->cmd.scan->fields[i].num_bits = scan_size;
 		(*last_cmd)->cmd.scan->fields[i].in_value = NULL;
-		if (jtag_verify_capture_ir)
-		{
-			(*last_cmd)->cmd.scan->fields[i].in_check_value = buf_cpy(device->expected, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-			(*last_cmd)->cmd.scan->fields[i].in_check_mask = buf_cpy(device->expected_mask, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-		}
-		else
-		{
-			(*last_cmd)->cmd.scan->fields[i].in_check_value = NULL;
-			(*last_cmd)->cmd.scan->fields[i].in_check_mask = NULL;
-		}
 		(*last_cmd)->cmd.scan->fields[i].in_handler = NULL;
 		(*last_cmd)->cmd.scan->fields[i].in_handler_priv = NULL;
+		if (jtag_verify_capture_ir)
+		{
+			jtag_set_check_value((*last_cmd)->cmd.scan->fields+i, device->expected, device->expected_mask, NULL);
+		}
 
 		/* search the list */
 		for (j=0; j < num_fields; j++)
@@ -480,7 +461,7 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 	return ERROR_OK;
 }
 
-int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state, error_handler_t *error_handler)
+int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state, void *dummy_anachronism)
 {
 	jtag_command_t **last_cmd;
 	int i;
@@ -505,15 +486,6 @@ int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state 
 	(*last_cmd)->cmd.scan->num_fields = num_fields;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
-	if (error_handler)
-	{
-		(*last_cmd)->cmd.scan->error_handler = cmd_queue_alloc(sizeof(error_handler_t));
-		*(*last_cmd)->cmd.scan->error_handler = *error_handler;
-	}
-	else
-	{
-		(*last_cmd)->cmd.scan->error_handler = NULL;
-	}
 
 	if (state != -1)
 		cmd_queue_end_state = state;
@@ -535,15 +507,15 @@ int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state 
 		(*last_cmd)->cmd.scan->fields[i].out_value = buf_cpy(fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
 		(*last_cmd)->cmd.scan->fields[i].out_mask = buf_cpy(fields[i].out_mask, cmd_queue_alloc(num_bytes), num_bits);
 		(*last_cmd)->cmd.scan->fields[i].in_value = fields[i].in_value;
-		(*last_cmd)->cmd.scan->fields[i].in_check_value = buf_cpy(fields[i].in_check_value, cmd_queue_alloc(num_bytes), num_bits);
-		(*last_cmd)->cmd.scan->fields[i].in_check_mask = buf_cpy(fields[i].in_check_mask, cmd_queue_alloc(num_bytes), num_bits);
+		(*last_cmd)->cmd.scan->fields[i].in_check_value = fields[i].in_check_value;
+		(*last_cmd)->cmd.scan->fields[i].in_check_mask = fields[i].in_check_mask;
 		(*last_cmd)->cmd.scan->fields[i].in_handler = NULL;
 		(*last_cmd)->cmd.scan->fields[i].in_handler_priv = NULL;
 	}
 	return ERROR_OK;
 }
 
-int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state, error_handler_t *error_handler)
+int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state, void *dummy_anachronism)
 {
 	int i, j;
 	int bypass_devices = 0;
@@ -578,15 +550,6 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 	(*last_cmd)->cmd.scan->num_fields = num_fields + bypass_devices;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
-	if (error_handler)
-	{
-		(*last_cmd)->cmd.scan->error_handler = cmd_queue_alloc(sizeof(error_handler_t));
-		*(*last_cmd)->cmd.scan->error_handler = *error_handler;
-	}
-	else
-	{
-		(*last_cmd)->cmd.scan->error_handler = NULL;
-	}
 	
 	if (state != -1)
 		cmd_queue_end_state = state;
@@ -614,8 +577,8 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 				(*last_cmd)->cmd.scan->fields[field_count].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 				(*last_cmd)->cmd.scan->fields[field_count].out_mask = buf_cpy(fields[j].out_mask, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 				(*last_cmd)->cmd.scan->fields[field_count].in_value = fields[j].in_value;
-				(*last_cmd)->cmd.scan->fields[field_count].in_check_value = buf_cpy(fields[j].in_check_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				(*last_cmd)->cmd.scan->fields[field_count].in_check_mask = buf_cpy(fields[j].in_check_mask, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+				(*last_cmd)->cmd.scan->fields[field_count].in_check_value = fields[j].in_check_value;
+				(*last_cmd)->cmd.scan->fields[field_count].in_check_mask = fields[j].in_check_mask;
 				(*last_cmd)->cmd.scan->fields[field_count].in_handler = fields[j].in_handler;
 				(*last_cmd)->cmd.scan->fields[field_count++].in_handler_priv = fields[j].in_handler_priv;
 			}
@@ -651,7 +614,7 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 	return ERROR_OK;
 }
 
-int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state, error_handler_t *error_handler)
+int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state, void *dummy_anachronism)
 {
 	int i;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
@@ -674,15 +637,6 @@ int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state 
 	(*last_cmd)->cmd.scan->num_fields = num_fields;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
-	if (error_handler)
-	{
-		(*last_cmd)->cmd.scan->error_handler = cmd_queue_alloc(sizeof(error_handler_t));
-		*(*last_cmd)->cmd.scan->error_handler = *error_handler;
-	}
-	else
-	{
-		(*last_cmd)->cmd.scan->error_handler = NULL;
-	}
 		
 	if (state != -1)
 		cmd_queue_end_state = state;
@@ -704,8 +658,8 @@ int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state 
 		(*last_cmd)->cmd.scan->fields[i].out_value = buf_cpy(fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
 		(*last_cmd)->cmd.scan->fields[i].out_mask = buf_cpy(fields[i].out_mask, cmd_queue_alloc(num_bytes), num_bits);
 		(*last_cmd)->cmd.scan->fields[i].in_value = fields[i].in_value;
-		(*last_cmd)->cmd.scan->fields[i].in_check_value = buf_cpy(fields[i].in_check_value, cmd_queue_alloc(num_bytes), num_bits);
-		(*last_cmd)->cmd.scan->fields[i].in_check_mask = buf_cpy(fields[i].in_check_mask, cmd_queue_alloc(num_bytes), num_bits);
+		(*last_cmd)->cmd.scan->fields[i].in_check_value = fields[i].in_check_value;
+		(*last_cmd)->cmd.scan->fields[i].in_check_mask = fields[i].in_check_mask;
 		(*last_cmd)->cmd.scan->fields[i].in_handler = fields[i].in_handler;
 		(*last_cmd)->cmd.scan->fields[i].in_handler_priv = fields[i].in_handler_priv;
 	}
@@ -1037,6 +991,8 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 
 }
 
+extern int jtag_check_value(u8 *captured, void *priv);
+
 int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 {
 	int i;
@@ -1048,10 +1004,10 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 	
 	for (i=0; i < cmd->num_fields; i++)
 	{
-		/* if neither in_value, in_check_value nor in_handler
+		/* if neither in_value nor in_handler
 		 * are specified we don't have to examine this field
 		 */
-		if (cmd->fields[i].in_value || cmd->fields[i].in_check_value || cmd->fields[i].in_handler)
+		if (cmd->fields[i].in_value || cmd->fields[i].in_handler)
 		{
 			int num_bits = cmd->fields[i].num_bits;
 			u8 *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
@@ -1064,13 +1020,30 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 				free(char_buf);
 			#endif
 			
+			void *priv=cmd->fields[i].in_handler_priv;
+			if (cmd->fields[i].in_handler==&jtag_check_value)
+			{
+				/* Yuk! we want to pass in the pointer to cmd->fields[i] which is not known
+				 * when jtag_check_value is invoked
+				 * 
+				 * Not pretty, but this is part of synthesizing check_mask via in_handler
+				 * with a minimum of code impact.
+				 * 
+				 * A cleaner change would be to modify the in_handler to always take field 
+				 * as an argument. Perhaps later...
+				 * 
+				 * Change in_handler to be varargs and have fields+i as the first vararg?
+				 * 
+				 */
+				priv=cmd->fields+i;
+			}
 			if (cmd->fields[i].in_value)
 			{
 				buf_cpy(captured, cmd->fields[i].in_value, num_bits);
 				
 				if (cmd->fields[i].in_handler)
 				{
-					if (cmd->fields[i].in_handler(cmd->fields[i].in_value, cmd->fields[i].in_handler_priv) != ERROR_OK)
+					if (cmd->fields[i].in_handler(cmd->fields[i].in_value, priv) != ERROR_OK)
 					{
 						WARNING("in_handler reported a failed check");
 						retval = ERROR_JTAG_QUEUE_FAILED;
@@ -1081,7 +1054,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			/* no in_value specified, but a handler takes care of the scanned data */
 			if (cmd->fields[i].in_handler && (!cmd->fields[i].in_value))
 			{
-				if (cmd->fields[i].in_handler(captured, cmd->fields[i].in_handler_priv) != ERROR_OK)
+				if (cmd->fields[i].in_handler(captured, priv) != ERROR_OK)
 				{
 					/* We're going to call the error:handler later, but if the in_handler
 					 * reported an error we report this failure upstream
@@ -1091,64 +1064,89 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 				}
 			}
 
-			if (cmd->fields[i].in_check_value)
-			{
-				int compare_failed = 0;
-				
-				if (cmd->fields[i].in_check_mask)
-					compare_failed = buf_cmp_mask(captured, cmd->fields[i].in_check_value, cmd->fields[i].in_check_mask, num_bits);
-				else
-					compare_failed = buf_cmp(captured, cmd->fields[i].in_check_value, num_bits);
-				
-				if (compare_failed)
-				{
-					if (cmd->error_handler)
-					{
-						/* ask the error handler if once has been specified if this is a real problem */ 
-						if (cmd->error_handler->error_handler(captured, cmd->error_handler->error_handler_priv) != ERROR_OK)
-							retval = ERROR_JTAG_QUEUE_FAILED;
-						else
-							compare_failed = 0;
-					}
-					else
-					{
-						/* if there wasn't a handler specified, we report a failure */
-						retval = ERROR_JTAG_QUEUE_FAILED;
-					}
-					
-					/* An error handler could have caught the failing check
-					 * only report a problem when there wasn't a handler, or if the handler
-					 * acknowledged the error
-					 */ 
-					if (compare_failed)
-					{
-						char *captured_char = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
-						char *in_check_value_char = buf_to_str(cmd->fields[i].in_check_value, (num_bits > 64) ? 64 : num_bits, 16);
-
-						if (cmd->fields[i].in_check_mask)
-						{
-							char *in_check_mask_char;
-							in_check_mask_char = buf_to_str(cmd->fields[i].in_check_mask, (num_bits > 64) ? 64 : num_bits, 16);
-							WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s check_mask: 0x%s", captured_char, in_check_value_char, in_check_mask_char);
-							free(in_check_mask_char);
-						}
-						else
-						{
-							WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s", captured_char, in_check_value_char);
-						}
-
-						free(captured_char);
-						free(in_check_value_char);
-					}
-					
-				}
-			}
 			free(captured);
 		}
 		bit_count += cmd->fields[i].num_bits;
 	}
 
 	return retval;
+}
+
+int jtag_check_value(u8 *captured, void *priv)
+{
+	int retval=ERROR_OK;
+	scan_field_t *field=(scan_field_t *)priv;
+	int num_bits = field->num_bits;
+	
+	int compare_failed = 0;
+	
+	if (field->in_check_mask)
+		compare_failed = buf_cmp_mask(captured, field->in_check_value, field->in_check_mask, num_bits);
+	else
+		compare_failed = buf_cmp(captured, field->in_check_value, num_bits);
+	
+	if (compare_failed)
+	{
+		if (field->in_handler_error_handler.error_handler)
+		{
+			/* ask the error handler if once has been specified if this is a real problem */ 
+			if (field->in_handler_error_handler.error_handler(captured, field->in_handler_error_handler.error_handler_priv) != ERROR_OK)
+				retval = ERROR_JTAG_QUEUE_FAILED;
+			else
+				compare_failed = 0;
+		}
+		else
+		{
+			/* if there wasn't a handler specified, we report a failure */
+			retval = ERROR_JTAG_QUEUE_FAILED;
+		}
+		
+		/* An error handler could have caught the failing check
+		 * only report a problem when there wasn't a handler, or if the handler
+		 * acknowledged the error
+		 */ 
+		if (compare_failed)
+		{
+			char *captured_char = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
+			char *in_check_value_char = buf_to_str(field->in_check_value, (num_bits > 64) ? 64 : num_bits, 16);
+
+			if (field->in_check_mask)
+			{
+				char *in_check_mask_char;
+				in_check_mask_char = buf_to_str(field->in_check_mask, (num_bits > 64) ? 64 : num_bits, 16);
+				WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s check_mask: 0x%s", captured_char, in_check_value_char, in_check_mask_char);
+				free(in_check_mask_char);
+			}
+			else
+			{
+				WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s", captured_char, in_check_value_char);
+			}
+
+			free(captured_char);
+			free(in_check_value_char);
+		}
+		
+	}
+	return retval;
+}
+
+/* 
+  set up checking of this field using the in_handler. The values passed in must be valid until
+  after jtag_execute() has completed.
+ */
+void jtag_set_check_value(scan_field_t *field, u8 *value, u8 *mask, error_handler_t *in_error_handler)
+{
+	if (value)
+		field->in_handler=jtag_check_value;
+	else
+		field->in_handler=NULL; /* No check, e.g. embeddedice uses value==NULL to indicate no check */
+	field->in_handler_priv=NULL; /* this will be filled in at the invocation site to point to the field duplicate */ 
+	field->in_check_value=value;
+	field->in_check_mask=mask;
+	if (in_error_handler)
+		field->in_handler_error_handler=*in_error_handler;
+	else
+		field->in_handler_error_handler.error_handler=NULL;
 }
 
 enum scan_type jtag_scan_type(scan_command_t *cmd)
@@ -1158,7 +1156,7 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 	
 	for (i=0; i < cmd->num_fields; i++)
 	{
-		if (cmd->fields[i].in_check_value || cmd->fields[i].in_value || cmd->fields[i].in_handler)
+		if (cmd->fields[i].in_value || cmd->fields[i].in_handler)
 			type |= SCAN_IN;
 		if (cmd->fields[i].out_value)
 			type |= SCAN_OUT;

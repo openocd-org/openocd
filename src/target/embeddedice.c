@@ -259,8 +259,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	jtag_add_dr_scan(3, fields, -1, NULL);
 	
 	fields[0].in_value = reg->value;
-	fields[0].in_check_value = check_value;
-	fields[0].in_check_mask = check_mask;
+	jtag_set_check_value(fields+0, check_value, check_mask, NULL);
 	
 	/* when reading the DCC data register, leaving the address field set to
 	 * EICE_COMMS_DATA would read the register twice

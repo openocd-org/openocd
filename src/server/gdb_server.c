@@ -1223,7 +1223,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 	return ERROR_OK;
 }
 
-/* print out XML and allocate more space as needed */
+/* print out a string and allocate more space as needed, mainly used for XML at this point */
 void xml_printf(int *retval, char **xml, int *pos, int *size, const char *fmt, ...)
 {
 	if (*retval != ERROR_OK)
@@ -1240,10 +1240,13 @@ void xml_printf(int *retval, char **xml, int *pos, int *size, const char *fmt, .
 			 * Need minimum 2 bytes to fit 1 char and 0 terminator. */
 			 
 			*size = *size * 2 + 2;
+			char *t=*xml;
 			*xml = realloc(*xml, *size);
 			if (*xml == NULL)
 			{
-				*retval = 1;
+				if (t)
+					free(t);
+				*retval=ERROR_SERVER_REMOTE_CLOSED;
 				return;
 			}
 		}
@@ -1290,7 +1293,6 @@ static int decode_xfer_read (char *buf, char **annex, int *ofs, unsigned int *le
 
 int gdb_query_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
-	char buffer[GDB_BUFFER_SIZE];
 	command_context_t *cmd_ctx = connection->cmd_ctx;
 	
 	if (strstr(packet, "qRcmd,"))
@@ -1357,12 +1359,19 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 	{
 		/* we currently support packet size and qXfer:memory-map:read (if enabled)
 		 * disable qXfer:features:read for the moment */
-		
-		sprintf(buffer, "PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-",
-			(GDB_BUFFER_SIZE - 1), gdb_use_memory_map == 1 ? '+' : '-');
-		
-		gdb_put_packet(connection, buffer, strlen(buffer));
-		return ERROR_OK;
+		int retval = ERROR_OK;
+		char *buffer = NULL;
+		int pos = 0;
+		int size = 0;
+		xml_printf(&retval, &buffer, &pos, &size, 
+				"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-",
+				(GDB_BUFFER_SIZE - 1), gdb_use_memory_map == 1 ? '+' : '-');
+		if (buffer!=NULL)
+		{
+			gdb_put_packet(connection, buffer, strlen(buffer));
+			free(buffer);
+		}
+		return retval;
 	}
 	else if (strstr(packet, "qXfer:memory-map:read::"))
 	{

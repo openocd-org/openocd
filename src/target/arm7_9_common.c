@@ -577,7 +577,8 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 
 int arm7_9_execute_fast_sys_speed(struct target_s *target)
 {
-	u8 check_value[4], check_mask[4];
+	static int set=0;
+	static u8 check_value[4], check_mask[4];
 	
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -588,9 +589,18 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 	
-	/* check for DBGACK and SYSCOMP set (others don't care) */
-	buf_set_u32(check_value, 0, 32, 0x9);
-	buf_set_u32(check_mask, 0, 32, 0x9);
+	if (!set)
+	{
+		/* check for DBGACK and SYSCOMP set (others don't care) */
+		
+		/* NB! These are constants that must be available until after next jtag_execute() and
+		   we evaluate the values upon first execution in lieu of setting up these constants
+		   during early setup.
+		*/
+		buf_set_u32(check_value, 0, 32, 0x9);
+		buf_set_u32(check_mask, 0, 32, 0x9);
+		set=1;
+	}
 	
 	/* read debug status register */
 	embeddedice_read_reg_w_check(dbg_stat, check_value, check_value);

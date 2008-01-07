@@ -217,11 +217,8 @@ int xscale_jtag_set_instr(int chain_pos, u32 new_instr)
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.out_mask = NULL;
 		field.in_value = NULL;
-		field.in_check_value = device->expected;
-		field.in_check_mask = device->expected_mask;
-		field.in_handler = NULL;
-		field.in_handler_priv = NULL;
-
+		jtag_set_check_value(&field, device->expected, device->expected_mask, NULL);
+		
 		jtag_add_ir_scan(1, &field, -1, NULL);
 
 		free(field.out_value);
@@ -275,10 +272,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[0].out_value = &field0;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = NULL;
-	fields[0].in_check_value = &field0_check_value;
-	fields[0].in_check_mask = &field0_check_mask;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
+	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
@@ -289,16 +283,15 @@ int xscale_read_dcsr(target_t *target)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
+	
+	
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	fields[2].out_mask = NULL;
 	fields[2].in_value = NULL;
-	fields[2].in_check_value = &field2_check_value;
-	fields[2].in_check_mask = &field2_check_mask;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
+	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
 	jtag_add_dr_scan(3, fields, -1, NULL);
 
@@ -354,10 +347,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
 	/* fields[0].in_value = field0; */
-	fields[0].in_check_value = &field0_check_value;
-	fields[0].in_check_mask = &field0_check_mask;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
+	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
@@ -368,16 +358,15 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
+	
+	
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
 	fields[2].out_mask = NULL;
 	fields[2].in_value = NULL;
-	fields[2].in_check_value = &field2_check_value;
-	fields[2].in_check_mask = &field2_check_mask;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
+	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
 	jtag_add_end_state(TAP_RTI);
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgtx);
@@ -460,10 +449,7 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = &field0_in;
-	fields[0].in_check_value = &field0_check_value;
-	fields[0].in_check_mask = &field0_check_mask;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
+	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
@@ -474,16 +460,15 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
+	
+	
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
 	fields[2].out_mask = NULL;
 	fields[2].in_value = NULL;
-	fields[2].in_check_value = &field2_check_value;
-	fields[2].in_check_mask = &field2_check_mask;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
+	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 5, 0);
@@ -547,10 +532,7 @@ int xscale_write_rx(target_t *target)
 	fields[0].out_value = &field0_out;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = &field0_in;
-	fields[0].in_check_value = &field0_check_value;
-	fields[0].in_check_mask = &field0_check_mask;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
+	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
@@ -561,16 +543,15 @@ int xscale_write_rx(target_t *target)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
+	
+	
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	fields[2].out_mask = NULL;
 	fields[2].in_value = NULL;
-	fields[2].in_check_value = &field2_check_value;
-	fields[2].in_check_mask = &field2_check_mask;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
+	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 5, 0);
@@ -637,10 +618,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	fields[0].out_value = &field0_out;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = &field0_in;
-	fields[0].in_check_value = &field0_check_value;
-	fields[0].in_check_mask = &field0_check_mask;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
+	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
@@ -651,16 +629,15 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
+	
+	
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	fields[2].out_mask = NULL;
 	fields[2].in_value = NULL;
-	fields[2].in_check_value = &field2_check_value;
-	fields[2].in_check_mask = &field2_check_mask;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
+	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
 	while (done_count++ < count)
 	{
@@ -737,10 +714,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[0].out_value = &field0;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = NULL;
-	fields[0].in_check_value = &field0_check_value;
-	fields[0].in_check_mask = &field0_check_mask;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
+	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
@@ -751,16 +725,15 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
+	
+	
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	fields[2].out_mask = NULL;
 	fields[2].in_value = NULL;
-	fields[2].in_check_value = &field2_check_value;
-	fields[2].in_check_mask = &field2_check_mask;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
+	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
 	jtag_add_dr_scan(3, fields, -1, NULL);
 

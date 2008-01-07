@@ -226,10 +226,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 					field.out_value = dr_out_buf;
 					field.out_mask = NULL;
 					field.in_value = NULL;
-					field.in_check_value = dr_in_buf;
-					field.in_check_mask = dr_in_mask;
-					field.in_handler = NULL;
-					field.in_handler_priv = NULL;
+					jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
 					if (device == -1)
 						jtag_add_plain_dr_scan(1, &field, TAP_PD, NULL);
 					else
@@ -303,10 +300,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						field.out_value = dr_out_buf;
 						field.out_mask = NULL;
 						field.in_value = NULL;
-						field.in_check_value = dr_in_buf;
-						field.in_check_mask = dr_in_mask;
-						field.in_handler = NULL;
-						field.in_handler_priv = NULL;
+						jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
 						if (device == -1)
 							jtag_add_plain_dr_scan(1, &field, TAP_PD, NULL);
 						else
