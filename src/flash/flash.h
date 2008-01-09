@@ -64,9 +64,9 @@ typedef struct flash_bank_s
 } flash_bank_t;
 
 extern int flash_register_commands(struct command_context_s *cmd_ctx);
-extern int flash_init(struct command_context_s *cmd_ctx);
+extern int flash_init_drivers(struct command_context_s *cmd_ctx);
 
-extern int flash_erase(target_t *target, u32 addr, u32 length);
+extern int flash_erase_address_range(target_t *target, u32 addr, u32 length);
 extern int flash_write(target_t *target, image_t *image, u32 *written, char **error, int *failed, int erase);
 extern void flash_set_dirty(void);
 

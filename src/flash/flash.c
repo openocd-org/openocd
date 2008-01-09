@@ -90,7 +90,7 @@ int flash_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int flash_init(struct command_context_s *cmd_ctx)
+int flash_init_drivers(struct command_context_s *cmd_ctx)
 {
 	if (flash_banks)
 	{
@@ -398,7 +398,7 @@ int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *
 	
 	duration_start_measure(&duration);
 	
-	if ((retval = flash_erase(target, address, length)) != ERROR_OK)
+	if ((retval = flash_erase_address_range(target, address, length)) != ERROR_OK)
 	{
 		switch (retval)
 		{
@@ -801,7 +801,7 @@ flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr)
 }
 
 /* erase given flash region, selects proper bank according to target and address */
-int flash_erase(target_t *target, u32 addr, u32 length)
+int flash_erase_address_range(target_t *target, u32 addr, u32 length)
 {
 	flash_bank_t *c;
 	int first = -1;
@@ -977,7 +977,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, char **error_str
 		if (erase)
 		{
 			/* calculate and erase sectors */
-			retval = flash_erase( target, run_address, run_size );
+			retval = flash_erase_address_range( target, run_address, run_size );
 		}
 		
 		if (retval == ERROR_OK)

@@ -289,7 +289,8 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 			if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
 				return retval;
 
-			if (character == '#') break;
+			if (character == '#')
+				break;
 
 			if (character == '}')
 			{
@@ -532,30 +533,33 @@ int gdb_last_signal_packet(connection_t *connection, target_t *target, char* pac
 	return ERROR_OK;
 }
 
-void gdb_str_to_target(target_t *target, char *str, char *tstr)
+/* Convert register to string of bits. NB! The # of bits in the
+ * register might be non-divisible by 8(a byte), in which
+ * case an entire byte is shown. */
+void gdb_str_to_target(target_t *target, char *tstr, reg_t *reg)
 {
-	int str_len = strlen(str);
+	static const char *DIGITS = "0123456789abcdef";
 	int i;
 
-	if (str_len % 2)
-	{
-		ERROR("BUG: gdb value with uneven number of characters encountered: %s", str);
-		exit(-1);
-	}
+	u8 *buf;
+	int buf_len;
+	buf = reg->value;
+	buf_len = CEIL(reg->size, 8); 
 
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 	{
-		for (i = 0; i < str_len; i+=2)
+		for (i = 0; i < buf_len; i++)
 		{
-			tstr[str_len - i - 1] = str[i + 1];
-			tstr[str_len - i - 2] = str[i];
+			tstr[i*2]   = DIGITS[(buf[i]>>4) & 0xf];
+			tstr[i*2+1] = DIGITS[buf[i]&0xf];
 		}
 	}
 	else
 	{
-		for (i = 0; i < str_len; i++)
+		for (i = 0; i < buf_len; i++)
 		{
-			tstr[i] = str[i];
+			tstr[(buf_len-1-i)*2]   = DIGITS[(buf[i]>>4)&0xf];
+			tstr[(buf_len-1-i)*2+1] = DIGITS[buf[i]&0xf];
 		}
 	}	
 }
@@ -598,7 +602,9 @@ int gdb_get_registers_packet(connection_t *connection, target_t *target, char* p
 	char *reg_packet_p;
 	int i;
 
+#ifdef _DEBUG_GDB_IO_
 	DEBUG("-");
+#endif
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
@@ -624,16 +630,18 @@ int gdb_get_registers_packet(connection_t *connection, target_t *target, char* p
 
 	for (i = 0; i < reg_list_size; i++)
 	{
-		char *hex_buf = buf_to_str(reg_list[i]->value, reg_list[i]->size, 16);
-		DEBUG("hex_buf: %s", hex_buf);
-		gdb_str_to_target(target, hex_buf, reg_packet_p);
+		gdb_str_to_target(target, reg_packet_p, reg_list[i]);
 		reg_packet_p += CEIL(reg_list[i]->size, 8) * 2;
-		free(hex_buf);
 	}
 
-	reg_packet_p = strndup(reg_packet, CEIL(reg_packet_size, 8) * 2);
-	DEBUG("reg_packet: %s", reg_packet_p);
-	free(reg_packet_p);
+#ifdef _DEBUG_GDB_IO_
+	{
+		char *reg_packet_p;
+		reg_packet_p = strndup(reg_packet, CEIL(reg_packet_size, 8) * 2);
+		DEBUG("reg_packet: %s", reg_packet_p);
+		free(reg_packet_p);
+	}
+#endif
 
 	gdb_put_packet(connection, reg_packet, CEIL(reg_packet_size, 8) * 2);
 	free(reg_packet);
@@ -651,7 +659,9 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 	int retval;
 	char *packet_p;
 
+#ifdef _DEBUG_GDB_IO_
 	DEBUG("-");
+#endif
 
 	/* skip command character */
 	packet++;
@@ -723,9 +733,10 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 	reg_t **reg_list;
 	int reg_list_size;
 	int retval;
-	char *hex_buf;
 
+#ifdef _DEBUG_GDB_IO_
 	DEBUG("-");
+#endif
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
@@ -749,15 +760,12 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 
 	reg_packet = malloc(CEIL(reg_list[reg_num]->size, 8) * 2);
 
-	hex_buf = buf_to_str(reg_list[reg_num]->value, reg_list[reg_num]->size, 16);
-
-	gdb_str_to_target(target, hex_buf, reg_packet);
+	gdb_str_to_target(target, reg_packet, reg_list[reg_num]);
 
 	gdb_put_packet(connection, reg_packet, CEIL(reg_list[reg_num]->size, 8) * 2);
 
 	free(reg_list);
 	free(reg_packet);
-	free(hex_buf);
 
 	return ERROR_OK;
 }
@@ -1240,13 +1248,13 @@ void xml_printf(int *retval, char **xml, int *pos, int *size, const char *fmt, .
 			 * Need minimum 2 bytes to fit 1 char and 0 terminator. */
 			 
 			*size = *size * 2 + 2;
-			char *t=*xml;
+			char *t = *xml;
 			*xml = realloc(*xml, *size);
 			if (*xml == NULL)
 			{
 				if (t)
 					free(t);
-				*retval=ERROR_SERVER_REMOTE_CLOSED;
+				*retval = ERROR_SERVER_REMOTE_CLOSED;
 				return;
 			}
 		}
@@ -1309,6 +1317,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 				cmd[i] = tmp;
 			}
 			cmd[(packet_size - 6)/2] = 0x0;
+			target_call_timer_callbacks();
 			command_run_line(cmd_ctx, cmd);
 			free(cmd);
 		}
@@ -1363,15 +1372,21 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		char *buffer = NULL;
 		int pos = 0;
 		int size = 0;
+
 		xml_printf(&retval, &buffer, &pos, &size, 
 				"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-",
 				(GDB_BUFFER_SIZE - 1), gdb_use_memory_map == 1 ? '+' : '-');
-		if (buffer!=NULL)
+		
+		if (retval != ERROR_OK)
 		{
-			gdb_put_packet(connection, buffer, strlen(buffer));
-			free(buffer);
+			gdb_send_error(connection, 01);
+			return ERROR_OK;
 		}
-		return retval;
+		
+		gdb_put_packet(connection, buffer, strlen(buffer));
+		free(buffer);
+		
+		return ERROR_OK;
 	}
 	else if (strstr(packet, "qXfer:memory-map:read::"))
 	{
@@ -1533,7 +1548,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_PROGRAM);
 		
 		/* perform erase */
-		if ((result = flash_erase(gdb_service->target, addr, length)) != ERROR_OK)
+		if ((result = flash_erase_address_range(gdb_service->target, addr, length)) != ERROR_OK)
 		{
 			/* GDB doesn't evaluate the actual error number returned,
 			 * treat a failed erase as an I/O error
@@ -1598,7 +1613,8 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		/* disable gdb output while programming */
 		gdb_connection->output_disable = 1;
 		
-		/* process the flashing buffer */
+		/* process the flashing buffer. No need to erase as GDB
+		 * always issues a vFlashErase first. */
 		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, &error_str, NULL, 0)) != ERROR_OK)
 		{
 			if (result == ERROR_FLASH_DST_OUT_OF_BANK)

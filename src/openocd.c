@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	DEBUG("target init complete");
 
-	if (flash_init(cmd_ctx) != ERROR_OK)
+	if (flash_init_drivers(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
 	DEBUG("flash init complete");
 
