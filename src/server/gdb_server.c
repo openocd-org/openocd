@@ -248,7 +248,7 @@ int gdb_put_packet(connection_t *connection, char *buffer, int len)
 int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 {
 	int character;
-	int count = 0;
+	int count;
 	int retval;
 	char checksum[3];
 	unsigned char my_checksum = 0;
@@ -286,6 +286,7 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 		} while (character != '$');
 
 		my_checksum = 0;
+		count = 0;
 		
 		for (;;)
 		{
