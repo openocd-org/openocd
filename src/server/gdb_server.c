@@ -38,7 +38,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#if 1
+#if 0
 #define _DEBUG_GDB_IO_
 #endif
 
