@@ -38,7 +38,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#if 0
+#if 1
 #define _DEBUG_GDB_IO_
 #endif
 
@@ -185,7 +185,9 @@ int gdb_put_packet(connection_t *connection, char *buffer, int len)
 	int i;
 	unsigned char my_checksum = 0;
 	char checksum[3];
+#ifdef _DEBUG_GDB_IO_
 	char *debug_buffer;
+#endif
 	int reply;
 	int retval;
 	gdb_connection_t *gdb_con = connection->priv;
@@ -195,12 +197,13 @@ int gdb_put_packet(connection_t *connection, char *buffer, int len)
 
 	while (1)
 	{
+#ifdef _DEBUG_GDB_IO_
 		debug_buffer = malloc(len + 1);
 		memcpy(debug_buffer, buffer, len);
 		debug_buffer[len] = 0;
 		DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
 		free(debug_buffer);
-
+#endif
 		write_socket(connection->fd, "$", 1);
 		if (len > 0)
 			write_socket(connection->fd, buffer, len);
@@ -283,9 +286,63 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 		} while (character != '$');
 
 		my_checksum = 0;
-
-		do
+		
+		for (;;)
 		{
+			/* The common case is that we have an entire packet with no escape chars.
+			 * We need to leave at least 2 bytes in the buffer to have
+			 * gdb_get_char() update various bits and bobs correctly. 
+			 */
+			if ((gdb_con->buf_cnt > 2) && ((gdb_con->buf_cnt+count) < *len))
+			{
+				/* The compiler will struggle a bit with constant propagation and
+				 * aliasing, so we help it by showing that these values do not
+				 * change inside the loop 
+				 */ 
+				int i;
+				char *buf = gdb_con->buf_p;
+				int run = gdb_con->buf_cnt - 2;
+				i = 0;
+				int done = 0;
+				while (i < run)
+				{
+					character = *buf++;
+					i++;
+					if (character == '#')
+					{
+						/* Danger! character can be '#' when esc is 
+						 * used so we need an explicit boolean for done here.
+						 */
+						done = 1;
+						break;
+					}
+					
+					if (character == '}')
+					{
+						/* data transmitted in binary mode (X packet)
+						 * uses 0x7d as escape character */
+						my_checksum += character & 0xff;
+						character = *buf++;
+						i++;
+						my_checksum += character & 0xff;
+						buffer[count++] = (character ^ 0x20) & 0xff;
+					} else
+					{
+						my_checksum += character & 0xff;
+						buffer[count++] = character & 0xff;
+					}
+				}
+				gdb_con->buf_p += i;
+				gdb_con->buf_cnt -= i;
+				if (done) 
+					break;
+			} 
+			if (count > *len)
+			{
+				ERROR("packet buffer too small");
+				return ERROR_GDB_BUFFER_TOO_SMALL;
+			}
+			
 			if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
 				return retval;
 
@@ -308,12 +365,7 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 				buffer[count++] = character & 0xff;
 			}
 
-			if (count > *len)
-			{
-				ERROR("packet buffer too small");
-				return ERROR_GDB_BUFFER_TOO_SMALL;
-			}
-		} while (1);
+		}
 
 		*len = count;
 
@@ -909,6 +961,18 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 			else
 				retval = target->type->read_memory(target, addr, 1, len, buffer);
 	}
+
+#if 0
+	if (retval == ERROR_TARGET_DATA_ABORT)
+	{
+		/* TODO : Here we have to lie and send back all zero's lest stack traces won't work.
+		 * At some point this might be fixed in GDB, in which case this code can be removed.
+		 * http://sourceware.org/cgi-bin/gnatsweb.pl?cmd=view%20audit-trail&database=gdb&pr=2395
+		 */
+		memset(buffer, 0, len);
+		retval = ERROR_OK;
+	}
+#endif
 
 	if (retval == ERROR_OK)
 	{

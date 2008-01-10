@@ -79,12 +79,12 @@ int build_unique_lengths(command_context_t *context, command_t *commands)
 /* Avoid evaluating this each time we add a command. Reduces overhead from O(n^2) to O(n). 
  * Makes a difference on ARM7 types machines and is not observable on GHz machines.
  */
-static int unique_length_dirty=1; 
+static int unique_length_dirty = 1; 
 
 command_t* register_command(command_context_t *context, command_t *parent, char *name, int (*handler)(struct command_context_s *context, char* name, char** args, int argc), enum command_mode mode, char *help)
 {
 	command_t *c, *p;
-	unique_length_dirty=1;
+	unique_length_dirty = 1;
 	
 	if (!context || !name)
 		return NULL;
@@ -138,7 +138,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 
 int unregister_command(command_context_t *context, char *name)
 {
-	unique_length_dirty=1;
+	unique_length_dirty = 1;
 	
 	command_t *c, *p = NULL, *c2;
 	
@@ -316,7 +316,7 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 	
 	if (unique_length_dirty)
 	{
-		unique_length_dirty=0;
+		unique_length_dirty = 0;
 		/* update unique lengths */
 		build_unique_lengths(context, context->commands);
 	}
