@@ -269,13 +269,14 @@ int thumb_pass_branch_condition(u32 cpsr, u16 opcode)
 int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	u32 opcode;
 	u32 current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 	arm_instruction_t instruction;
 	int instruction_size;
 	
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 	{
+		u32 opcode;
+		
 		/* get current instruction, and identify it */
 		target_read_u32(target, current_pc, &opcode);
 		arm_evaluate_opcode(opcode, current_pc, &instruction);
@@ -298,8 +299,10 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 	}
 	else
 	{
-		target_read_u32(target, current_pc, &opcode);
-		arm_evaluate_opcode(opcode, current_pc, &instruction);
+		u16 opcode;
+		
+		target_read_u16(target, current_pc, &opcode);
+		thumb_evaluate_opcode(opcode, current_pc, &instruction);
 		instruction_size = 2;
 		
 		/* check condition code (only for branch instructions) */

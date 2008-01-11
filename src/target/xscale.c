@@ -1680,6 +1680,8 @@ int xscale_deassert_reset(target_t *target)
 			/* resume the target */
 			xscale_resume(target, 1, 0x0, 1, 0);
 		}
+		
+		fileio_close(&debug_handler);
 	}
 	else
 	{

@@ -416,7 +416,7 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 	
 	cmd_queue_cur_state = cmd_queue_end_state;
 		
-	for (i=0; i < jtag_num_devices; i++)
+	for (i = 0; i < jtag_num_devices; i++)
 	{
 		int found = 0;
 		device = jtag_get_device(i);
@@ -432,7 +432,7 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 		}
 
 		/* search the list */
-		for (j=0; j < num_fields; j++)
+		for (j = 0; j < num_fields; j++)
 		{
 			if (i == fields[j].device)
 			{
@@ -562,12 +562,12 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 			
 	cmd_queue_cur_state = cmd_queue_end_state;
 	
-	for (i=0; i < jtag_num_devices; i++)
+	for (i = 0; i < jtag_num_devices; i++)
 	{
 		int found = 0;
 		(*last_cmd)->cmd.scan->fields[field_count].device = i;
 	
-		for (j=0; j < num_fields; j++)
+		for (j = 0; j < num_fields; j++)
 		{
 			if (i == fields[j].device)
 			{
@@ -952,7 +952,7 @@ int jtag_scan_size(scan_command_t *cmd)
 	int i;
 
 	/* count bits in scan command */
-	for (i=0; i<cmd->num_fields; i++)
+	for (i = 0; i < cmd->num_fields; i++)
 	{
 		bit_count += cmd->fields[i].num_bits;
 	}
@@ -1002,7 +1002,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 	/* we return ERROR_OK, unless a check fails, or a handler reports a problem */
 	retval = ERROR_OK;
 	
-	for (i=0; i < cmd->num_fields; i++)
+	for (i = 0; i < cmd->num_fields; i++)
 	{
 		/* if neither in_value nor in_handler
 		 * are specified we don't have to examine this field
@@ -1012,16 +1012,16 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			int num_bits = cmd->fields[i].num_bits;
 			u8 *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
 			
-			#ifdef _DEBUG_JTAG_IO_
-				char *char_buf;
+#ifdef _DEBUG_JTAG_IO_
+			char *char_buf;
 
-				char_buf = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
-				DEBUG("fields[%i].in_value: 0x%s", i, char_buf);
-				free(char_buf);
-			#endif
+			char_buf = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
+			DEBUG("fields[%i].in_value: 0x%s", i, char_buf);
+			free(char_buf);
+#endif
 			
-			void *priv=cmd->fields[i].in_handler_priv;
-			if (cmd->fields[i].in_handler==&jtag_check_value)
+			void *priv = cmd->fields[i].in_handler_priv;
+			if (cmd->fields[i].in_handler == &jtag_check_value)
 			{
 				/* Yuk! we want to pass in the pointer to cmd->fields[i] which is not known
 				 * when jtag_check_value is invoked
@@ -1035,7 +1035,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 				 * Change in_handler to be varargs and have fields+i as the first vararg?
 				 * 
 				 */
-				priv=cmd->fields+i;
+				priv = cmd->fields + i;
 			}
 			if (cmd->fields[i].in_value)
 			{
@@ -1074,7 +1074,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 
 int jtag_check_value(u8 *captured, void *priv)
 {
-	int retval=ERROR_OK;
+	int retval = ERROR_OK;
 	scan_field_t *field=(scan_field_t *)priv;
 	int num_bits = field->num_bits;
 	
@@ -1137,16 +1137,16 @@ int jtag_check_value(u8 *captured, void *priv)
 void jtag_set_check_value(scan_field_t *field, u8 *value, u8 *mask, error_handler_t *in_error_handler)
 {
 	if (value)
-		field->in_handler=jtag_check_value;
+		field->in_handler = jtag_check_value;
 	else
-		field->in_handler=NULL; /* No check, e.g. embeddedice uses value==NULL to indicate no check */
-	field->in_handler_priv=NULL; /* this will be filled in at the invocation site to point to the field duplicate */ 
-	field->in_check_value=value;
-	field->in_check_mask=mask;
+		field->in_handler = NULL;	/* No check, e.g. embeddedice uses value==NULL to indicate no check */
+	field->in_handler_priv = NULL;	/* this will be filled in at the invocation site to point to the field duplicate */ 
+	field->in_check_value = value;
+	field->in_check_mask = mask;
 	if (in_error_handler)
-		field->in_handler_error_handler=*in_error_handler;
+		field->in_handler_error_handler = *in_error_handler;
 	else
-		field->in_handler_error_handler.error_handler=NULL;
+		field->in_handler_error_handler.error_handler = NULL;
 }
 
 enum scan_type jtag_scan_type(scan_command_t *cmd)
@@ -1154,7 +1154,7 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 	int i;
 	int type = 0;
 	
-	for (i=0; i < cmd->num_fields; i++)
+	for (i = 0; i < cmd->num_fields; i++)
 	{
 		if (cmd->fields[i].in_value || cmd->fields[i].in_handler)
 			type |= SCAN_IN;
