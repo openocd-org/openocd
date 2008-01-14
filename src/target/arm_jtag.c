@@ -86,7 +86,7 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 	if(jtag_info->cur_scan_chain != new_scan_chain)
 	{
 #ifdef _ARM_JTAG_SCAN_N_CHECK_
-		u8 scan_n_check_value = 0x10;
+		u8 scan_n_check_value = 1 << (jtag_info->scann_size - 1);
 #endif
 		scan_field_t field;
 		
