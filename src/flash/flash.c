@@ -75,7 +75,7 @@ flash_driver_t *flash_drivers[] =
 	&stellaris_flash,
 	&str9xpec_flash,
 	&stm32x_flash,
-        &tms470_flash,
+	&tms470_flash,
 	NULL,
 };
 
