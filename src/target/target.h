@@ -170,6 +170,7 @@ typedef struct target_s
 	struct watchpoint_s *watchpoints;	/* list of watchpoints */
 	struct trace_s *trace_info;			/* generic trace information */
 	struct debug_msg_receiver_s *dbgmsg;/* list of debug message receivers */
+	u32 dbg_msg_enabled;				/* debug message status */
 	void *arch_info;					/* architecture specific information */
 	struct target_s *next;				/* next target in list */
 } target_t;

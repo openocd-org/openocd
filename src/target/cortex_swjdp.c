@@ -613,6 +613,11 @@ int ahbap_block_read_u32(swjdp_common_t *swjdp, u32 *buffer, int count, u32 addr
 
 int ahbap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum)
 {
+	int retval;
+	u32 dcrdr;
+	
+	ahbap_read_system_atomic_u32(swjdp, DCB_DCRDR, &dcrdr);
+	
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	/* ahbap_write_system_u32(swjdp, DCB_DCRSR, regnum); */
@@ -623,11 +628,18 @@ int ahbap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum)
 	ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
 	ahbap_read_reg_u32(swjdp, AHBAP_BD0 | (DCB_DCRDR & 0xC), value );
 	
-	return swjdp_transaction_endcheck(swjdp);
+	retval = swjdp_transaction_endcheck(swjdp);
+	ahbap_write_system_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
+	return retval;
 }
 
 int ahbap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum)
 {
+	int retval;
+	u32 dcrdr;
+	
+	ahbap_read_system_atomic_u32(swjdp, DCB_DCRDR, &dcrdr);
+	
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 	
 	/* ahbap_write_system_u32(swjdp, DCB_DCRDR, core_regs[i]); */
@@ -637,8 +649,10 @@ int ahbap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum)
 	/* ahbap_write_system_u32(swjdp, DCB_DCRSR, i | DCRSR_WnR	); */
 	ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
 	ahbap_write_reg_u32(swjdp, AHBAP_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR );
-
-	return swjdp_transaction_endcheck(swjdp);
+	
+	retval = swjdp_transaction_endcheck(swjdp);
+	ahbap_write_system_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
+	return retval;
 }
 
 int ahbap_debugport_init(swjdp_common_t *swjdp)

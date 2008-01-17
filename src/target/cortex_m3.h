@@ -101,10 +101,10 @@ extern char* cortex_m3_state_strings[];
 /* NVIC_SHCSR bits */
 #define SHCSR_BUSFAULTENA	(1<<17)
 /* NVIC_DFSR bits */
-#define DFSR_HALTED	1
-#define DFSR_BKPT	2
-#define DFSR_DWTTRAP	4
-#define DFSR_VCATCH	8
+#define DFSR_HALTED			1
+#define DFSR_BKPT			2
+#define DFSR_DWTTRAP		4
+#define DFSR_VCATCH			8
 
 #define FPCR_CODE 0
 #define FPCR_LITERAL 1

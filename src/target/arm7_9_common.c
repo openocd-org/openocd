@@ -638,6 +638,9 @@ int arm7_9_handle_target_request(void *priv)
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info; 
 	reg_t *dcc_control = &arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL];
 	
+	if (!target->dbg_msg_enabled)
+		return ERROR_OK;
+		
 	if (target->state == TARGET_RUNNING)
 	{
 		/* read DCC control register */

@@ -1065,7 +1065,8 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				(*last_target_p)->trace_info->trace_history_overflowed = 0;
 				
 				(*last_target_p)->dbgmsg = NULL;
-								
+				(*last_target_p)->dbg_msg_enabled = 0;
+				
 				(*last_target_p)->type->target_command(cmd_ctx, cmd, args, argc, *last_target_p);
 				
 				found = 1;

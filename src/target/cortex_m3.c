@@ -30,6 +30,7 @@
 
 #include "register.h"
 #include "target.h"
+#include "target_request.h"
 #include "log.h"
 #include "jtag.h"
 #include "arm_jtag.h"
@@ -50,7 +51,8 @@ int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 int cortex_m3_quit();
 int cortex_m3_load_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 *value);
 int cortex_m3_store_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 value);
-		
+int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer);
+
 target_type_t cortexm3_target =
 {
 	.name = "cortex_m3",
@@ -58,8 +60,8 @@ target_type_t cortexm3_target =
 	.poll = cortex_m3_poll,
 	.arch_state = armv7m_arch_state,
 
-	.target_request_data = NULL,
-
+	.target_request_data = cortex_m3_target_request_data,
+	
 	.halt = cortex_m3_halt,
 	.resume = cortex_m3_resume,
 	.step = cortex_m3_step,
@@ -168,6 +170,8 @@ int cortex_m3_endreset_event(target_t *target)
 	ahbap_read_system_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
 	DEBUG("DCB_DEMCR = 0x%8.8x",dcb_demcr);
 	
+	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
+	
 	/* Enable debug requests */
 	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
@@ -216,15 +220,15 @@ int cortex_m3_examine_debug_reason(target_t *target)
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 		&& (target->debug_reason != DBG_REASON_SINGLESTEP))
 	{
-		/*  INCOPMPLETE */
+		/*  INCOMPLETE */
 
-		if (cortex_m3->nvic_dfsr & 0x2)
+		if (cortex_m3->nvic_dfsr & DFSR_BKPT)
 		{
 			target->debug_reason = DBG_REASON_BREAKPOINT;
-			if (cortex_m3->nvic_dfsr & 0x4)
+			if (cortex_m3->nvic_dfsr & DFSR_DWTTRAP)
 				target->debug_reason = DBG_REASON_WPTANDBKPT;
 		}
-		else if (cortex_m3->nvic_dfsr & 0x4)
+		else if (cortex_m3->nvic_dfsr & DFSR_DWTTRAP)
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 	}
 
@@ -700,6 +704,8 @@ int cortex_m3_assert_reset(target_t *target)
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	
 	DEBUG("target->state: %s", target_state_strings[target->state]);
+	
+	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
 	
 	if (target->reset_mode == RESET_RUN)
 	{
@@ -1353,6 +1359,77 @@ int cortex_m3_quit()
 	return ERROR_OK;
 }
 
+int cortex_m3_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
+{
+	u16 dcrdr;
+	
+	ahbap_read_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
+	*ctrl = (u8)dcrdr;
+	*value = (u8)(dcrdr >> 8);
+	
+	DEBUG("data 0x%x ctrl 0x%x", *value, *ctrl);
+	
+	/* write ack back to software dcc register
+	 * signify we have read data */
+	dcrdr = 0;
+	ahbap_write_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
+	return ERROR_OK;
+}
+
+int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer)
+{
+	armv7m_common_t *armv7m = target->arch_info;
+	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	u8 data;
+	u8 ctrl;
+	int i;
+	
+	for (i = 0; i < (size * 4); i++)
+	{
+		cortex_m3_dcc_read(swjdp, &data, &ctrl);
+		buffer[i] = data;
+	}
+	
+	return ERROR_OK;
+}
+
+int cortex_m3_handle_target_request(void *priv)
+{
+	target_t *target = priv;
+	armv7m_common_t *armv7m = target->arch_info;
+	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	
+	if (!target->dbg_msg_enabled)
+		return ERROR_OK;
+	
+	if (target->state == TARGET_RUNNING)
+	{
+		u8 data;
+		u8 ctrl;
+				
+		cortex_m3_dcc_read(swjdp, &data, &ctrl);
+		
+		/* check if we have data */
+		if (ctrl & (1<<0))
+		{
+			u32 request;
+			
+			request = data;
+			cortex_m3_dcc_read(swjdp, &data, &ctrl);
+			request |= (data << 8);
+			cortex_m3_dcc_read(swjdp, &data, &ctrl);
+			request |= (data << 16);
+			cortex_m3_dcc_read(swjdp, &data, &ctrl);
+			request |= (data << 24);
+			target_request(target, request);
+		}
+	}
+	
+	return ERROR_OK;
+}
+
 int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, int chain_pos, char *variant)
 {
 	armv7m_common_t *armv7m;
@@ -1386,6 +1463,8 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, in
 	armv7m->load_core_reg_u32 = cortex_m3_load_core_reg_u32;
 	armv7m->store_core_reg_u32 = cortex_m3_store_core_reg_u32;
 //	armv7m->full_context = cortex_m3_full_context;
+	
+	target_register_timer_callback(cortex_m3_handle_target_request, 1, 1, target);
 	
 	return ERROR_OK;
 }

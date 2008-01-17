@@ -83,6 +83,8 @@ int target_hexmsg(target_t *target, int size, u32 length)
 		
 		if ((i%8 == 7) || (i == length - 1))
 		{
+			DEBUG("%s", line);
+			
 			while (c)
 			{
 				command_print(c->cmd_ctx, "%s", line);
@@ -153,6 +155,9 @@ int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 	(*p)->cmd_ctx = cmd_ctx;
 	(*p)->next = NULL;
 	
+	/* enable callback */
+	target->dbg_msg_enabled = 1;
+	
 	return ERROR_OK;
 }
 
@@ -217,6 +222,11 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 			{
 				*p = next;
 				free(c);
+				if (*p == NULL)
+				{
+					/* disable callback */
+					target->dbg_msg_enabled = 0;
+				}
 				return ERROR_OK;
 			}
 			else
