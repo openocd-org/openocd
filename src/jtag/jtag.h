@@ -64,11 +64,10 @@ extern enum tap_state cmd_queue_cur_state;		/* current TAP state */
 
 #define TAP_MOVE(from, to) tap_move[tap_move_map[from]][tap_move_map[to]]
 
-typedef struct error_handler_s
-{
-	int (*error_handler)(u8 *in_value, void *priv);	/* handle failed checks */
-	void *error_handler_priv;	/* additional information for the check_handler */
-} error_handler_t;
+typedef void * error_handler_t; /* Later on we can delete error_handler_t, but keep it for now to make patches more readable */
+
+struct scan_field_s;
+typedef int (*in_handler_t)(u8 *in_value, void *priv, struct scan_field_s *field);
 
 typedef struct scan_field_s
 {
@@ -78,10 +77,9 @@ typedef struct scan_field_s
 	u8 *out_mask;		/* only masked bits care */
 	u8 *in_value;		/* pointer to a 32-bit memory location to take data scanned out */
 	/* in_check_value/mask, in_handler_error_handler, in_handler_priv can be used by the in handler, otherwise they contain garbage  */
-	error_handler_t in_handler_error_handler; 
 	u8 *in_check_value;		/* used to validate scan results */ 
 	u8 *in_check_mask;		/* check specified bits against check_value */
-	int (*in_handler)(u8 *in_value, void *priv);	/* process received buffer using this handler */
+	in_handler_t in_handler;	    /* process received buffer using this handler */
 	void *in_handler_priv;	/* additional information for the in_handler */
 } scan_field_t;
 
@@ -273,6 +271,9 @@ extern jtag_device_t* jtag_get_device(int num);
 extern void jtag_sleep(u32 us);
 extern int jtag_call_event_callbacks(enum jtag_event event);
 extern int jtag_register_event_callback(int (*callback)(enum jtag_event event, void *priv), void *priv);
+
+extern int jtag_verify_capture_ir;
+
 
 /* error codes
  * JTAG subsystem uses codes between -100 and -199 */

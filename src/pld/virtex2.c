@@ -101,7 +101,7 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 	return ERROR_OK;
 }
 
-int virtex2_jtag_buf_to_u32(u8 *in_buf, void *priv)
+int virtex2_jtag_buf_to_u32(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	u32 *dest = priv;
 	*dest = flip_u32(le_to_h_u32(in_buf), 32);

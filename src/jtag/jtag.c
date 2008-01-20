@@ -359,7 +359,8 @@ void* cmd_queue_alloc(size_t size)
 	offset = (*p_page)->used;
 	(*p_page)->used += size;
 	
-	return ((*p_page)->address) + offset;
+	u8 *t=(u8 *)((*p_page)->address);
+	return t + offset;
 }
 
 void cmd_queue_free()
@@ -424,11 +425,15 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 		(*last_cmd)->cmd.scan->fields[i].device = i;
 		(*last_cmd)->cmd.scan->fields[i].num_bits = scan_size;
 		(*last_cmd)->cmd.scan->fields[i].in_value = NULL;
-		(*last_cmd)->cmd.scan->fields[i].in_handler = NULL;
-		(*last_cmd)->cmd.scan->fields[i].in_handler_priv = NULL;
-		if (jtag_verify_capture_ir)
+		if ((jtag_verify_capture_ir)&&(fields[i].in_handler==NULL))
 		{
 			jtag_set_check_value((*last_cmd)->cmd.scan->fields+i, device->expected, device->expected_mask, NULL);
+		} else if (jtag_verify_capture_ir)
+		{
+			(*last_cmd)->cmd.scan->fields[i].in_handler = fields[i].in_handler;
+			(*last_cmd)->cmd.scan->fields[i].in_handler_priv = fields[i].in_handler_priv;
+			(*last_cmd)->cmd.scan->fields[i].in_check_value = device->expected; 
+			(*last_cmd)->cmd.scan->fields[i].in_check_mask = device->expected_mask;
 		}
 
 		/* search the list */
@@ -991,8 +996,6 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 
 }
 
-extern int jtag_check_value(u8 *captured, void *priv);
-
 int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 {
 	int i;
@@ -1020,30 +1023,13 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			free(char_buf);
 #endif
 			
-			void *priv = cmd->fields[i].in_handler_priv;
-			if (cmd->fields[i].in_handler == &jtag_check_value)
-			{
-				/* Yuk! we want to pass in the pointer to cmd->fields[i] which is not known
-				 * when jtag_check_value is invoked
-				 * 
-				 * Not pretty, but this is part of synthesizing check_mask via in_handler
-				 * with a minimum of code impact.
-				 * 
-				 * A cleaner change would be to modify the in_handler to always take field 
-				 * as an argument. Perhaps later...
-				 * 
-				 * Change in_handler to be varargs and have fields+i as the first vararg?
-				 * 
-				 */
-				priv = cmd->fields + i;
-			}
 			if (cmd->fields[i].in_value)
 			{
 				buf_cpy(captured, cmd->fields[i].in_value, num_bits);
 				
 				if (cmd->fields[i].in_handler)
 				{
-					if (cmd->fields[i].in_handler(cmd->fields[i].in_value, priv) != ERROR_OK)
+					if (cmd->fields[i].in_handler(cmd->fields[i].in_value, cmd->fields[i].in_handler_priv, cmd->fields+i) != ERROR_OK)
 					{
 						WARNING("in_handler reported a failed check");
 						retval = ERROR_JTAG_QUEUE_FAILED;
@@ -1054,7 +1040,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			/* no in_value specified, but a handler takes care of the scanned data */
 			if (cmd->fields[i].in_handler && (!cmd->fields[i].in_value))
 			{
-				if (cmd->fields[i].in_handler(captured, priv) != ERROR_OK)
+				if (cmd->fields[i].in_handler(captured, cmd->fields[i].in_handler_priv, cmd->fields+i) != ERROR_OK)
 				{
 					/* We're going to call the error:handler later, but if the in_handler
 					 * reported an error we report this failure upstream
@@ -1072,10 +1058,9 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 	return retval;
 }
 
-int jtag_check_value(u8 *captured, void *priv)
+int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 {
 	int retval = ERROR_OK;
-	scan_field_t *field=(scan_field_t *)priv;
 	int num_bits = field->num_bits;
 	
 	int compare_failed = 0;
@@ -1086,21 +1071,7 @@ int jtag_check_value(u8 *captured, void *priv)
 		compare_failed = buf_cmp(captured, field->in_check_value, num_bits);
 	
 	if (compare_failed)
-	{
-		if (field->in_handler_error_handler.error_handler)
 		{
-			/* ask the error handler if once has been specified if this is a real problem */ 
-			if (field->in_handler_error_handler.error_handler(captured, field->in_handler_error_handler.error_handler_priv) != ERROR_OK)
-				retval = ERROR_JTAG_QUEUE_FAILED;
-			else
-				compare_failed = 0;
-		}
-		else
-		{
-			/* if there wasn't a handler specified, we report a failure */
-			retval = ERROR_JTAG_QUEUE_FAILED;
-		}
-		
 		/* An error handler could have caught the failing check
 		 * only report a problem when there wasn't a handler, or if the handler
 		 * acknowledged the error
@@ -1143,10 +1114,6 @@ void jtag_set_check_value(scan_field_t *field, u8 *value, u8 *mask, error_handle
 	field->in_handler_priv = NULL;	/* this will be filled in at the invocation site to point to the field duplicate */ 
 	field->in_check_value = value;
 	field->in_check_mask = mask;
-	if (in_error_handler)
-		field->in_handler_error_handler = *in_error_handler;
-	else
-		field->in_handler_error_handler.error_handler = NULL;
 }
 
 enum scan_type jtag_scan_type(scan_command_t *cmd)

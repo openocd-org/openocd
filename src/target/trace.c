@@ -76,7 +76,7 @@ int handle_trace_point_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	{
 		if (trace->trace_points)
 			free(trace->trace_points);
-		trace->num_trace_points = NULL;
+		trace->num_trace_points = 0;
 		trace->trace_points_size = 0;
 		
 		return ERROR_OK;

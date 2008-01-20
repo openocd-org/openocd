@@ -94,12 +94,14 @@ target_type_t arm926ejs_target =
 	.quit = arm926ejs_quit
 };
 
-int arm926ejs_catch_broken_irscan(u8 *in_value, void *priv)
+
+int arm926ejs_catch_broken_irscan(u8 *captured, void *priv, scan_field_t *field)
 {
-	/* The ARM926EJ-S' instruction register is 4 bits wide */
-	*in_value &= 0xf;
+	u8 *in_value=field->in_check_value;
 	
-	if ((*in_value == 0x0f) || (*in_value == 0x00))
+	/* The ARM926EJ-S' instruction register is 4 bits wide */
+	u8 t=*in_value & 0xf;
+	if ((t == 0x0f) || (t == 0x00))
 	{
 		DEBUG("caught ARM926EJ-S invalid Capture-IR result after CP15 access");
 		return ERROR_OK;
@@ -119,7 +121,6 @@ int arm926ejs_read_cp15(target_t *target, u32 address, u32 *value)
 	u8 address_buf[2];
 	u8 nr_w_buf = 0;
 	u8 access = 1;
-	error_handler_t error_handler;
 	
 	buf_set_u32(address_buf, 0, 14, address);
 	
@@ -184,11 +185,8 @@ int arm926ejs_read_cp15(target_t *target, u32 address, u32 *value)
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	DEBUG("addr: 0x%x value: %8.8x", address, *value);
 #endif
-
-	error_handler.error_handler = arm926ejs_catch_broken_irscan;
-	error_handler.error_handler_priv = NULL;
 	
-	arm_jtag_set_instr(jtag_info, 0xc, &error_handler);
+	arm_jtag_set_instr(jtag_info, 0xc, &arm926ejs_catch_broken_irscan);
 
 	return ERROR_OK;
 }
@@ -203,7 +201,6 @@ int arm926ejs_write_cp15(target_t *target, u32 address, u32 value)
 	u8 address_buf[2];
 	u8 nr_w_buf = 1;
 	u8 access = 1;
-	error_handler_t error_handler;
 	
 	buf_set_u32(address_buf, 0, 14, address);
 	buf_set_u32(value_buf, 0, 32, value);
@@ -267,10 +264,7 @@ int arm926ejs_write_cp15(target_t *target, u32 address, u32 value)
 	DEBUG("addr: 0x%x value: %8.8x", address, value);
 #endif
 
-	error_handler.error_handler = arm926ejs_catch_broken_irscan;
-	error_handler.error_handler_priv = NULL;
-	
-	arm_jtag_set_instr(jtag_info, 0xf, &error_handler);
+	arm_jtag_set_instr(jtag_info, 0xf, &arm926ejs_catch_broken_irscan);
 
 	return ERROR_OK;
 }

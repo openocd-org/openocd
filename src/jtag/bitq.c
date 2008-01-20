@@ -117,7 +117,7 @@ void bitq_in_proc(void)
 					
 
 					if (field->in_handler && bitq_in_state.status==ERROR_OK) {
-						bitq_in_state.status=(*field->in_handler)(in_buff, field->in_handler_priv);
+						bitq_in_state.status=(*field->in_handler)(in_buff, field->in_handler_priv, field);
 					}
 
 				}

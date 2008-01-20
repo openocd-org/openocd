@@ -33,14 +33,7 @@
 #define _ARM_JTAG_SCAN_N_CHECK_
 #endif
 
-int arm_jtag_set_instr_error_handler(u8 *in_value, void *priv)
-{
-	ERROR("setting the new JTAG instruction failed, debugging is likely to be broken");
-	
-	return ERROR_OK;
-}
-
-int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr, error_handler_t *caller_error_handler)
+int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handler)
 {
 	jtag_device_t *device = jtag_get_device(jtag_info->chain_pos);
 	
@@ -56,22 +49,8 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr, error_handler_t *ca
 		field.in_value = NULL;
 		field.in_check_value = NULL;
 		field.in_check_mask = NULL;
-		field.in_handler = NULL;
+		field.in_handler = handler;
 		field.in_handler_priv = NULL;
-		
-		
-		
-		if (caller_error_handler)
-		{
-			jtag_set_check_value(&field, NULL, NULL, caller_error_handler);
-		}
-		else
-		{
-			error_handler_t error_handler;
-			error_handler.error_handler = arm_jtag_set_instr_error_handler;
-			error_handler.error_handler_priv = NULL;
-			jtag_set_check_value(&field, NULL, NULL, &error_handler);
-		}
 		jtag_add_ir_scan(1, &field, -1, NULL);
 		
 		
@@ -139,7 +118,7 @@ int arm_jtag_setup_connection(arm_jtag_t *jtag_info)
 }
 
 /* read JTAG buffer into host-endian u32, flipping bit-order */
-int arm_jtag_buf_to_u32_flip(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_u32_flip(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	u32 *dest = priv;
 	*dest = flip_u32(le_to_h_u32(in_buf), 32);
@@ -147,35 +126,35 @@ int arm_jtag_buf_to_u32_flip(u8 *in_buf, void *priv)
 }
 
 /* read JTAG buffer into little-endian u32, flipping bit-order */
-int arm_jtag_buf_to_le32_flip(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_le32_flip(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	h_u32_to_le(((u8*)priv), flip_u32(le_to_h_u32(in_buf), 32));
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into little-endian u16, flipping bit-order */
-int arm_jtag_buf_to_le16_flip(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_le16_flip(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	h_u16_to_le(((u8*)priv), flip_u32(le_to_h_u32(in_buf), 32) & 0xffff);
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into big-endian u32, flipping bit-order */
-int arm_jtag_buf_to_be32_flip(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_be32_flip(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	h_u32_to_be(((u8*)priv), flip_u32(le_to_h_u32(in_buf), 32));
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into big-endian u16, flipping bit-order */
-int arm_jtag_buf_to_be16_flip(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_be16_flip(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	h_u16_to_be(((u8*)priv), flip_u32(le_to_h_u32(in_buf), 32) & 0xffff);
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into u8, flipping bit-order */
-int arm_jtag_buf_to_8_flip(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_8_flip(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	u8 *dest = priv;
 	*dest = flip_u32(le_to_h_u32(in_buf), 32) & 0xff;
@@ -184,7 +163,7 @@ int arm_jtag_buf_to_8_flip(u8 *in_buf, void *priv)
 
 /* not-flipping variants */
 /* read JTAG buffer into host-endian u32 */
-int arm_jtag_buf_to_u32(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_u32(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	u32 *dest = priv;
 	*dest = le_to_h_u32(in_buf);
@@ -192,35 +171,35 @@ int arm_jtag_buf_to_u32(u8 *in_buf, void *priv)
 }
 
 /* read JTAG buffer into little-endian u32 */
-int arm_jtag_buf_to_le32(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_le32(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	h_u32_to_le(((u8*)priv), le_to_h_u32(in_buf));
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into little-endian u16 */
-int arm_jtag_buf_to_le16(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_le16(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	h_u16_to_le(((u8*)priv), le_to_h_u32(in_buf) & 0xffff);
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into big-endian u32 */
-int arm_jtag_buf_to_be32(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_be32(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	h_u32_to_be(((u8*)priv), le_to_h_u32(in_buf));
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into big-endian u16 */
-int arm_jtag_buf_to_be16(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_be16(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	h_u16_to_be(((u8*)priv), le_to_h_u32(in_buf) & 0xffff);
 	return ERROR_OK;
 }
 
 /* read JTAG buffer into u8 */
-int arm_jtag_buf_to_8(u8 *in_buf, void *priv)
+int arm_jtag_buf_to_8(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	u8 *dest = priv;
 	*dest = le_to_h_u32(in_buf) & 0xff;

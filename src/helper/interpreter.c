@@ -92,7 +92,7 @@ var_t* get_var_by_namenum(char *namenum)
 	
 }
 
-int field_le_to_host(u8 *buffer, void *priv)
+int field_le_to_host(u8 *buffer, void *priv, struct scan_field_s *dummy)
 {
 	var_field_t *field = priv;
 	field->value = buf_get_u32(buffer, 0, field->num_bits);

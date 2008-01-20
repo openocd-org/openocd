@@ -40,7 +40,8 @@ typedef struct var_s
 
 extern var_t *variables;
 
-extern int field_le_to_host(u8 *buffer, void *priv);
+struct scan_field_s;
+extern int field_le_to_host(u8 *buffer, void *priv, struct scan_field_s *field);
 
 extern var_t* get_var_by_namenum(char *namenum);
 extern int interpreter_register_commands(struct command_context_s *cmd_ctx);

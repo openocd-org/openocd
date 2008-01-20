@@ -371,7 +371,7 @@ int str_to_buf(char* str, int str_len, u8 *buf, int buf_len, int radix)
 	return i;
 }
 
-int buf_to_u32_handler(u8 *in_buf, void *priv)
+int buf_to_u32_handler(u8 *in_buf, void *priv, struct scan_field_s *field)
 {
 	u32 *dest = priv;
 	

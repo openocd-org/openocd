@@ -101,15 +101,6 @@ arm9tdmi_vector_t arm9tdmi_vectors[] =
 	{0, 0},
 };
 
-int arm9tdmi_jtag_error_handler(u8 *in_value, void *priv)
-{
-	char *caller = priv;
-	
-	DEBUG("caller: %s", caller);
-	
-	return ERROR_JTAG_QUEUE_FAILED;
-}
-
 int arm9tdmi_examine_debug_reason(target_t *target)
 {
 	/* get pointers to arch-specific information */
