@@ -618,7 +618,7 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 	cfi_info = malloc(sizeof(cfi_flash_bank_t));
 	bank->driver_priv = cfi_info;
-	
+
 	cfi_info->write_algorithm = NULL;
 	cfi_info->erase_check_algorithm = NULL;
 
@@ -1015,14 +1015,14 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
 	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
-  
+
 	/* If we are setting up the write_algorith, we need target_code_src */
 	/* if not we only need target_code_size.														*/
 	/* 																																	*/
 	/* However, we don't want to create multiple code paths, so we			*/
 	/* do the unecessary evaluation of target_code_src, which the 			*/
 	/* compiler will probably nicely optimize away if not needed				*/
-  
+
 	/* prepare algorithm code for target endian */
 	switch (bank->bus_width)
 	{
@@ -1042,7 +1042,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-  
+
 	/* flash write code */
 	if (!cfi_info->write_algorithm)
 	{
