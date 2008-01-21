@@ -1585,9 +1585,11 @@ int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	const int line_bytecnt = 32;
 	int count = 1;
 	int size = 4;
-	u32 address = 0;
+	u32 address = 0;  
+	int line_modulo;
 	int i;
 
 	char output[128];
@@ -1610,20 +1612,21 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	switch (cmd[2])
 	{
 		case 'w':
-			size = 4;
+			size = 4; line_modulo = line_bytecnt / 4;
 			break;
 		case 'h':
-			size = 2;
+			size = 2; line_modulo = line_bytecnt / 2;
 			break;
 		case 'b':
-			size = 1;
+			size = 1; line_modulo = line_bytecnt / 1;
 			break;
 		default:
 			return ERROR_OK;
 	}
 
 	buffer = calloc(count, size);
-	if ((retval  = target->type->read_memory(target, address, size, count, buffer)) != ERROR_OK)
+	retval  = target->type->read_memory(target, address, size, count, buffer);
+	if (retval != ERROR_OK)
 	{
 		switch (retval)
 		{
@@ -1647,7 +1650,7 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 
 	for (i = 0; i < count; i++)
 	{
-		if (i%8 == 0)
+		if (i%line_modulo == 0)
 			output_len += snprintf(output + output_len, 128 - output_len, "0x%8.8x: ", address + (i*size));
 		
 		switch (size)
@@ -1663,7 +1666,7 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 				break;
 		}
 
-		if ((i%8 == 7) || (i == count - 1))
+		if ((i%line_modulo == line_modulo-1) || (i == count - 1))
 		{
 			command_print(cmd_ctx, output);
 			output_len = 0;
