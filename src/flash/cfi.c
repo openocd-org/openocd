@@ -612,15 +612,15 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	if ((strtoul(args[4], NULL, 0) > CFI_MAX_CHIP_WIDTH)
 		|| (strtoul(args[3], NULL, 0) > CFI_MAX_BUS_WIDTH))
 	{
-		ERROR("chip and bus width have to specified in byte");
+		ERROR("chip and bus width have to specified in bytes");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
 	cfi_info = malloc(sizeof(cfi_flash_bank_t));
 	bank->driver_priv = cfi_info;
-  
-  cfi_info->write_algorithm       = NULL;
-  cfi_info->erase_check_algorithm = NULL;
+	
+	cfi_info->write_algorithm = NULL;
+	cfi_info->erase_check_algorithm = NULL;
 
 	cfi_info->x16_as_x8 = 0;
 	cfi_info->jedec_probe = 0;
