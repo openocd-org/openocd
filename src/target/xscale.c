@@ -218,7 +218,7 @@ int xscale_jtag_set_instr(int chain_pos, u32 new_instr)
 		field.out_mask = NULL;
 		field.in_value = NULL;
 		jtag_set_check_value(&field, device->expected, device->expected_mask, NULL);
-		
+
 		jtag_add_ir_scan(1, &field, -1, NULL);
 
 		free(field.out_value);
@@ -283,8 +283,8 @@ int xscale_read_dcsr(target_t *target)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
-	
-	
+
+
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
@@ -358,8 +358,8 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
-	
-	
+
+
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
@@ -460,8 +460,8 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
-	
-	
+
+
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
@@ -543,8 +543,8 @@ int xscale_write_rx(target_t *target)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
-	
-	
+
+
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
@@ -629,8 +629,8 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
-	
-	
+
+
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
@@ -725,8 +725,8 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
-	
-	
+
+
 
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
@@ -1680,7 +1680,7 @@ int xscale_deassert_reset(target_t *target)
 			/* resume the target */
 			xscale_resume(target, 1, 0x0, 1, 0);
 		}
-		
+
 		fileio_close(&debug_handler);
 	}
 	else
