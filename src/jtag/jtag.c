@@ -425,16 +425,7 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 		(*last_cmd)->cmd.scan->fields[i].device = i;
 		(*last_cmd)->cmd.scan->fields[i].num_bits = scan_size;
 		(*last_cmd)->cmd.scan->fields[i].in_value = NULL;
-		if ((jtag_verify_capture_ir)&&(fields[i].in_handler==NULL))
-		{
-			jtag_set_check_value((*last_cmd)->cmd.scan->fields+i, device->expected, device->expected_mask, NULL);
-		} else if (jtag_verify_capture_ir)
-		{
-			(*last_cmd)->cmd.scan->fields[i].in_handler = fields[i].in_handler;
-			(*last_cmd)->cmd.scan->fields[i].in_handler_priv = fields[i].in_handler_priv;
-			(*last_cmd)->cmd.scan->fields[i].in_check_value = device->expected; 
-			(*last_cmd)->cmd.scan->fields[i].in_check_mask = device->expected_mask;
-		}
+		(*last_cmd)->cmd.scan->fields[i].in_handler = NULL;	/* disable verification by default */
 
 		/* search the list */
 		for (j = 0; j < num_fields; j++)
@@ -444,6 +435,20 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 				found = 1;
 				(*last_cmd)->cmd.scan->fields[i].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 				(*last_cmd)->cmd.scan->fields[i].out_mask = buf_cpy(fields[j].out_mask, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+			
+				if (jtag_verify_capture_ir)
+				{
+					if (fields[j].in_handler==NULL)
+					{
+						jtag_set_check_value((*last_cmd)->cmd.scan->fields+i, device->expected, device->expected_mask, NULL);
+					} else
+					{
+						(*last_cmd)->cmd.scan->fields[i].in_handler = fields[j].in_handler;
+						(*last_cmd)->cmd.scan->fields[i].in_handler_priv = fields[j].in_handler_priv;
+						(*last_cmd)->cmd.scan->fields[i].in_check_value = device->expected; 
+						(*last_cmd)->cmd.scan->fields[i].in_check_mask = device->expected_mask;
+					}
+				}
 				
 				device->bypass = 0;
 				break;
