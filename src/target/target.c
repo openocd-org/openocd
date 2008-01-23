@@ -1778,6 +1778,11 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	for (i = 0; i < image.num_sections; i++)
 	{
 		buffer = malloc(image.sections[i].size);
+		if (buffer==NULL)
+		{
+			command_print(cmd_ctx, "error allocating buffer for section (%d bytes)", image.sections[i].size);
+			break;
+		}
 		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
 		{
 			ERROR("image_read_section failed with error code: %i", retval);
