@@ -781,6 +781,11 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 		size, &checksum)) == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 	{
 		buffer = malloc(size);
+		if (buffer==NULL)
+		{
+			ERROR("error allocating buffer for section (%d bytes)", size);
+			return ERROR_OK;
+		}
 		target_read_buffer(target, address, size, buffer);
 
 		/* convert to target endianess */
@@ -1066,7 +1071,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				
 				(*last_target_p)->dbgmsg = NULL;
 				(*last_target_p)->dbg_msg_enabled = 0;
-				
+								
 				(*last_target_p)->type->target_command(cmd_ctx, cmd, args, argc, *last_target_p);
 				
 				found = 1;
@@ -1435,10 +1440,10 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				break;
 			case ERROR_TARGET_TIMEOUT:
 				command_print(cmd_ctx, "target timed out... shutting down");
-				exit(-1);
+				return retval;
 			default:
 				command_print(cmd_ctx, "unknown error... shutting down");
-				exit(-1);
+				return retval;
 		}
 	}
 	
@@ -1588,7 +1593,7 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	const int line_bytecnt = 32;
 	int count = 1;
 	int size = 4;
-	u32 address = 0;  
+	u32 address = 0;
 	int line_modulo;
 	int i;
 
@@ -1920,6 +1925,11 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	for (i = 0; i < image.num_sections; i++)
 	{
 		buffer = malloc(image.sections[i].size);
+		if (buffer==NULL)
+		{
+			command_print(cmd_ctx, "error allocating buffer for section (%d bytes)", image.sections[i].size);
+			break;
+		}
 		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
 		{
 			ERROR("image_read_section failed with error code: %i", retval);
