@@ -781,7 +781,7 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 		size, &checksum)) == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 	{
 		buffer = malloc(size);
-		if (buffer==NULL)
+		if (buffer == NULL)
 		{
 			ERROR("error allocating buffer for section (%d bytes)", size);
 			return ERROR_OK;
@@ -1925,7 +1925,7 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	for (i = 0; i < image.num_sections; i++)
 	{
 		buffer = malloc(image.sections[i].size);
-		if (buffer==NULL)
+		if (buffer == NULL)
 		{
 			command_print(cmd_ctx, "error allocating buffer for section (%d bytes)", image.sections[i].size);
 			break;

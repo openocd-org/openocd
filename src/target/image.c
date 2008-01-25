@@ -411,7 +411,7 @@ int image_elf_read_headers(image_t *image)
 	{
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 		{
-			image->sections[j].size = field32(elf, elf->segments[i].p_memsz);
+			image->sections[j].size = field32(elf, elf->segments[i].p_filesz);
 			image->sections[j].base_address = field32(elf, elf->segments[i].p_paddr);
 			image->sections[j].private = &elf->segments[i];
 			image->sections[j].flags = field32(elf, elf->segments[i].p_flags);
@@ -1025,5 +1025,6 @@ int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum)
 	*checksum = crc;
 	return ERROR_OK;
 }
+
 
 
