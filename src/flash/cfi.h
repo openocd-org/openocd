@@ -31,6 +31,7 @@ typedef struct cfi_flash_bank_s
 	int x16_as_x8;
 	int jedec_probe;
 	int not_cfi;
+	int probed;
 
 	u16 manufacturer;
 	u16 device_id;

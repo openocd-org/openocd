@@ -70,6 +70,7 @@ flash_driver_t str7x_flash =
 	.protect = str7x_protect,
 	.write = str7x_write,
 	.probe = str7x_probe,
+	.auto_probe = str7x_probe,
 	.erase_check = str7x_erase_check,
 	.protect_check = str7x_protect_check,
 	.info = str7x_info

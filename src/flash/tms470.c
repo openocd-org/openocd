@@ -58,6 +58,9 @@ int
 tms470_probe( struct flash_bank_s *bank );
 
 int 
+tms470_auto_probe( struct flash_bank_s *bank );
+
+int 
 tms470_erase_check( struct flash_bank_s *bank );
 
 int 
@@ -77,6 +80,7 @@ flash_driver_t tms470_flash =
     .protect =            tms470_protect,
     .write =              tms470_write,
     .probe =              tms470_probe,
+    .auto_probe =         tms470_auto_probe,
     .erase_check =        tms470_erase_check,
     .protect_check =      tms470_protect_check,
     .info =               tms470_info
@@ -1078,14 +1082,26 @@ tms470_probe( struct flash_bank_s * bank )
 {
   tms470_flash_bank_t * tms470_info = bank->driver_priv;
 
+  tms470_info->probed = 0;
+  
   if (!tms470_info->device_ident_reg)
     {
       tms470_read_part_info( bank );
     }
+  
+  tms470_info->probed = 1;
 
   return ERROR_OK;
 }
 
+int 
+tms470_auto_probe( struct flash_bank_s * bank )
+{
+	tms470_flash_bank_t * tms470_info = bank->driver_priv;
+	if (tms470_info->probed)
+		return ERROR_OK;
+	return tms470_probe(bank);
+}
 /* ---------------------------------------------------------------------- */
 
 int 

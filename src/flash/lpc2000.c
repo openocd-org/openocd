@@ -72,6 +72,7 @@ flash_driver_t lpc2000_flash =
 	.protect = lpc2000_protect,
 	.write = lpc2000_write,
 	.probe = lpc2000_probe,
+	.auto_probe = lpc2000_probe,
 	.erase_check = lpc2000_erase_check,
 	.protect_check = lpc2000_protect_check,
 	.info = lpc2000_info
@@ -185,7 +186,7 @@ int lpc2000_build_sector_list(struct flash_bank_s *bank)
 		
 		bank->num_sectors = num_sectors;
 		bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
-
+		
 		for (i = 0; i < num_sectors; i++)
 		{
 			if ((i >= 0) && (i < 8))

@@ -60,6 +60,8 @@ typedef struct at91sam7_flash_bank_s
 	u8  mck_valid;
 	u32 mck_freq;
 	
+	int probed;
+	
 } at91sam7_flash_bank_t;
 
 /* AT91SAM7 control registers */

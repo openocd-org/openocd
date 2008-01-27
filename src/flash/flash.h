@@ -47,6 +47,7 @@ typedef struct flash_driver_s
 	int (*erase_check)(struct flash_bank_s *bank);
 	int (*protect_check)(struct flash_bank_s *bank);
 	int (*info)(struct flash_bank_s *bank, char *buf, int buf_size);
+	int (*auto_probe)(struct flash_bank_s *bank);
 } flash_driver_t;
 
 typedef struct flash_bank_s

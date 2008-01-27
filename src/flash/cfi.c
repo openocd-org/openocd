@@ -43,6 +43,7 @@ int cfi_erase(struct flash_bank_s *bank, int first, int last);
 int cfi_protect(struct flash_bank_s *bank, int set, int first, int last);
 int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
 int cfi_probe(struct flash_bank_s *bank);
+int cfi_auto_probe(struct flash_bank_s *bank);
 int cfi_erase_check(struct flash_bank_s *bank);
 int cfi_protect_check(struct flash_bank_s *bank);
 int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size);
@@ -64,6 +65,7 @@ flash_driver_t cfi_flash =
 	.protect = cfi_protect,
 	.write = cfi_write,
 	.probe = cfi_probe,
+	.auto_probe = cfi_auto_probe,
 	.erase_check = cfi_erase_check,
 	.protect_check = cfi_protect_check,
 	.info = cfi_info
@@ -617,6 +619,7 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	}
 
 	cfi_info = malloc(sizeof(cfi_flash_bank_t));
+	cfi_info->probed = 0;
 	bank->driver_priv = cfi_info;
 
 	cfi_info->write_algorithm = NULL;
@@ -1864,6 +1867,8 @@ int cfi_probe(struct flash_bank_s *bank)
 	u32 unlock1 = 0x555;
 	u32 unlock2 = 0x2aa;
 
+	cfi_info->probed = 0;
+
 	/* JEDEC standard JESD21C uses 0x5555 and 0x2aaa as unlock addresses,
 	 * while CFI compatible AMD/Spansion flashes use 0x555 and 0x2aa
 	 */
@@ -2071,8 +2076,18 @@ int cfi_probe(struct flash_bank_s *bank)
 			}
 		}
 	}
+	
+	cfi_info->probed = 1;
 
 	return ERROR_OK;
+}
+
+int cfi_auto_probe(struct flash_bank_s *bank)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	if (cfi_info->probed)
+		return ERROR_OK;
+	return cfi_probe(bank);
 }
 
 int cfi_erase_check(struct flash_bank_s *bank)

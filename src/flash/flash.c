@@ -127,7 +127,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-flash_bank_t *get_flash_bank_by_num(int num)
+flash_bank_t *get_flash_bank_by_num_noprobe(int num)
 {
 	flash_bank_t *p;
 	int i = 0;
@@ -141,6 +141,24 @@ flash_bank_t *get_flash_bank_by_num(int num)
 	}
 	
 	return NULL;
+}
+
+flash_bank_t *get_flash_bank_by_num(int num)
+{
+	flash_bank_t *p = get_flash_bank_by_num_noprobe(num);
+	int retval;
+	
+	if (p == NULL)
+		return NULL;
+	
+	retval = p->driver->auto_probe(p);
+	
+	if (retval != ERROR_OK)
+	{
+		ERROR("auto_probe failed %d\n", retval);
+		return NULL;
+	}
+	return p;
 }
 
 /* flash_bank <driver> <base> <size> <chip_width> <bus_width> <target> [driver_options ...]
@@ -305,7 +323,7 @@ int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 	
-	p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+	p = get_flash_bank_by_num_noprobe(strtoul(args[0], NULL, 0));
 	if (p)
 	{
 		if ((retval = p->driver->probe(p)) == ERROR_OK)
@@ -794,6 +812,14 @@ flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr)
 	/* cycle through bank list */
 	for (c = flash_banks; c; c = c->next)
 	{
+		int retval;
+		retval = c->driver->auto_probe(c);
+		
+		if (retval != ERROR_OK)
+		{
+			ERROR("auto_probe failed %d\n", retval);
+			return NULL;
+		}
 		/* check whether address belongs to this flash bank */
 		if ((addr >= c->base) && (addr < c->base + c->size) && target == c->target)
 			return c;

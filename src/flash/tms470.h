@@ -34,6 +34,8 @@ typedef struct tms470_flash_bank_s
   u32 rom_flash;
   u32 part_number;
   char * part_name;
+  
+  int probed;
 } tms470_flash_bank_t;
 
 #endif /* TMS470_DOT_H */

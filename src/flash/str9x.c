@@ -78,6 +78,7 @@ flash_driver_t str9x_flash =
 	.protect = str9x_protect,
 	.write = str9x_write,
 	.probe = str9x_probe,
+	.auto_probe = str9x_probe,
 	.erase_check = str9x_erase_check,
 	.protect_check = str9x_protect_check,
 	.info = str9x_info

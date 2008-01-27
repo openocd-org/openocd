@@ -1364,6 +1364,22 @@ static int decode_xfer_read (char *buf, char **annex, int *ofs, unsigned int *le
 	return 0;
 }
 
+int gdb_calc_blocksize(flash_bank_t *bank)
+{
+	int i;
+	int block_size = 0xffffffff;
+	
+	/* loop through all sectors and return smallest sector size */
+	
+	for (i = 0; i < bank->num_sectors; i++)
+	{
+		if (bank->sectors[i].size < block_size)
+			block_size = bank->sectors[i].size;
+	}
+	
+	return block_size;
+}
+
 int gdb_query_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	command_context_t *cmd_ctx = connection->cmd_ctx;
@@ -1470,6 +1486,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		int offset;
 		int length;
 		char *separator;
+		int blocksize;
 		
 		/* skip command character */
 		packet += 23;
@@ -1486,10 +1503,14 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			if (p == NULL)
 				break;
 			
+			/* if device has uneven sector sizes, eg. str7, lpc
+			 * we pass the smallest sector size to gdb memory map */
+			blocksize = gdb_calc_blocksize(p);
+			
 			xml_printf(&retval, &xml, &pos, &size, "<memory type=\"flash\" start=\"0x%x\" length=\"0x%x\">\n" \
 				"<property name=\"blocksize\">0x%x</property>\n" \
 				"</memory>\n", \
-				p->base, p->size, p->size/p->num_sectors);
+				p->base, p->size, blocksize);
 			i++;
 		}
 		

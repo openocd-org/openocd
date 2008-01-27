@@ -57,6 +57,7 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last);
 int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last);
 int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
 int at91sam7_probe(struct flash_bank_s *bank);
+int at91sam7_auto_probe(struct flash_bank_s *bank);
 int at91sam7_erase_check(struct flash_bank_s *bank);
 int at91sam7_protect_check(struct flash_bank_s *bank);
 int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size);
@@ -76,6 +77,7 @@ flash_driver_t at91sam7_flash =
 	.protect = at91sam7_protect,
 	.write = at91sam7_write,
 	.probe = at91sam7_probe,
+	.auto_probe = at91sam7_auto_probe,
 	.erase_check = at91sam7_erase_check,
 	.protect_check = at91sam7_protect_check,
 	.info = at91sam7_info
@@ -617,6 +619,7 @@ int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	
 	at91sam7_info = malloc(sizeof(at91sam7_flash_bank_t));
 	bank->driver_priv = at91sam7_info;
+	at91sam7_info->probed = 0;
 	
 	/* part wasn't probed for info yet */
 	at91sam7_info->cidr = 0;
@@ -806,6 +809,7 @@ int at91sam7_probe(struct flash_bank_s *bank)
 	 * if this is an at91sam7, it has the configured flash
 	 */
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
+	at91sam7_info->probed = 0;
 	
 	if (at91sam7_info->cidr == 0)
 	{
@@ -818,7 +822,18 @@ int at91sam7_probe(struct flash_bank_s *bank)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
+	at91sam7_info->probed = 1;
+	
 	return ERROR_OK;
+}
+
+
+int at91sam7_auto_probe(struct flash_bank_s *bank)
+{
+	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
+	if (at91sam7_info->probed)
+		return ERROR_OK;
+	return at91sam7_probe(bank);
 }
 
 int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)

@@ -60,6 +60,7 @@ flash_driver_t stm32x_flash =
 	.protect = stm32x_protect,
 	.write = stm32x_write,
 	.probe = stm32x_probe,
+	.auto_probe = stm32x_probe,
 	.erase_check = stm32x_erase_check,
 	.protect_check = stm32x_protect_check,
 	.info = stm32x_info

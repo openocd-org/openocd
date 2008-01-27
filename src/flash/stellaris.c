@@ -49,6 +49,7 @@ int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, c
 int stellaris_erase(struct flash_bank_s *bank, int first, int last);
 int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last);
 int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+int stellaris_auto_probe(struct flash_bank_s *bank);
 int stellaris_probe(struct flash_bank_s *bank);
 int stellaris_erase_check(struct flash_bank_s *bank);
 int stellaris_protect_check(struct flash_bank_s *bank);
@@ -70,6 +71,7 @@ flash_driver_t stellaris_flash =
 	.protect = stellaris_protect,
 	.write = stellaris_write,
 	.probe = stellaris_probe,
+	.auto_probe = stellaris_auto_probe,
 	.erase_check = stellaris_erase_check,
 	.protect_check = stellaris_protect_check,
 	.info = stellaris_info
@@ -916,6 +918,8 @@ int stellaris_probe(struct flash_bank_s *bank)
 	 */
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	
+	stellaris_info->probed = 0;
+	
 	if (stellaris_info->did1 == 0)
 	{
 		stellaris_read_part_info(bank);
@@ -927,5 +931,15 @@ int stellaris_probe(struct flash_bank_s *bank)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
+	stellaris_info->probed = 1;
+	
 	return ERROR_OK;
+}
+
+int stellaris_auto_probe(struct flash_bank_s *bank)
+{
+	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
+	if (stellaris_info->probed)
+		return ERROR_OK;
+	return stellaris_probe(bank);
 }
