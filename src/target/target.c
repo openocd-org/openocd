@@ -313,23 +313,6 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	while (target)
 	{
 		target->type->deassert_reset(target);
-
-		switch (target->reset_mode)
-		{
-			case RESET_INIT:
-			case RESET_HALT:
-				// If we're already halted, then this is harmless(reducing # of execution paths here)
-				// If nSRST & nTRST are tied together then the halt during reset failed(logged) and
-				// we use this as fallback(there is no other output to tell the user that reset halt 
-				// didn't work).
-				target->type->poll(target);
-				target->type->halt(target);
-				break;
-			default:
-				break;
-		}
-		
-		
 		target = target->next;
 	}
 	jtag_execute_queue();
@@ -2158,5 +2141,6 @@ int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	
 	return ERROR_OK;
 }
+
 
 
