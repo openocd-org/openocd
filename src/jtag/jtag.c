@@ -331,8 +331,9 @@ jtag_device_t* jtag_get_device(int num)
 		device = device->next;
 		i++;
 	}
-
-	return NULL;
+	
+	ERROR("jtag device number %d not defined", num);
+	exit(-1);
 }
 
 void* cmd_queue_alloc(size_t size)
