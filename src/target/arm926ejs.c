@@ -97,19 +97,19 @@ target_type_t arm926ejs_target =
 
 int arm926ejs_catch_broken_irscan(u8 *captured, void *priv, scan_field_t *field)
 {
-	u8 *in_value=field->in_check_value;
-	
 	/* The ARM926EJ-S' instruction register is 4 bits wide */
-	u8 t=*in_value & 0xf;
-	if ((t == 0x0f) || (t == 0x00))
+	u8 t = *captured & 0xf;
+	u8 t2 = *field->in_check_value & 0xf;
+	if (t == t2)
+	{
+		return ERROR_OK;
+	}
+	else if ((t == 0x0f) || (t == 0x00))
 	{
 		DEBUG("caught ARM926EJ-S invalid Capture-IR result after CP15 access");
 		return ERROR_OK;
 	}
-	else
-	{
-		return ERROR_JTAG_QUEUE_FAILED;
-	}
+	return ERROR_JTAG_QUEUE_FAILED;;
 }
 
 int arm926ejs_read_cp15(target_t *target, u32 address, u32 *value)
