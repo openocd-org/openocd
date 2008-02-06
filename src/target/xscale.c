@@ -3579,6 +3579,96 @@ int xscale_handle_analyze_trace_buffer_command(struct command_context_s *cmd_ctx
 	return ERROR_OK;
 }
 
+int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5;
+	xscale_common_t *xscale;
+	
+	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
+	{
+		command_print(cmd_ctx, "target isn't an XScale target");
+		return ERROR_OK;
+	}
+	
+	if (target->state != TARGET_HALTED)
+	{
+		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		return ERROR_OK;
+	}
+	u32 reg_no = 0;
+	reg_t *reg = NULL;
+	if(argc > 0)
+	{
+		reg_no = strtoul(args[0], NULL, 0);
+		/*translate from xscale cp15 register no to openocd register*/
+		switch(reg_no)
+		{
+		case 0:
+			reg_no = XSCALE_MAINID;
+			break;
+		case 1:
+			reg_no = XSCALE_CTRL;
+			break;
+		case 2:
+			reg_no = XSCALE_TTB;
+			break; 
+		case 3:
+			reg_no = XSCALE_DAC;
+			break;
+		case 5:
+			reg_no = XSCALE_FSR;
+			break;
+		case 6:
+			reg_no = XSCALE_FAR;
+			break;
+		case 13:
+			reg_no = XSCALE_PID;
+			break;
+		case 15:
+			reg_no = XSCALE_CPACCESS;
+			break;
+		default:
+			command_print(cmd_ctx, "invalid register number");
+			return ERROR_INVALID_ARGUMENTS;
+		}
+		reg = &xscale->reg_cache->reg_list[reg_no];
+		
+	}
+	if(argc == 1)
+	{
+		u32 value;
+		
+		/* read cp15 control register */
+		xscale_get_reg(reg);
+		value = buf_get_u32(reg->value, 0, 32);
+		command_print(cmd_ctx, "%s (/%i): 0x%x", reg->name, reg->size, value);
+	}
+	else if(argc == 2)
+	{   
+
+		u32 value = strtoul(args[1], NULL, 0);
+		
+		/* send CP write request (command 0x41) */
+		xscale_send_u32(target, 0x41);
+		
+		/* send CP register number */
+		xscale_send_u32(target, reg_no);
+		
+		/* send CP register value */
+		xscale_send_u32(target, value);
+		
+		/* execute cpwait to ensure outstanding operations complete */
+		xscale_send_u32(target, 0x53);
+	}
+	else
+	{
+		command_print(cmd_ctx, "usage: cp15 [register]<, [value]>");	
+	}
+	
+	return ERROR_OK;
+}
+
 int xscale_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *xscale_cmd;
@@ -3603,6 +3693,8 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, xscale_cmd, "trace_image", xscale_handle_trace_image_command,
 		COMMAND_EXEC, "load image from <file> [base address]");
 
+	register_command(cmd_ctx, xscale_cmd, "cp15", xscale_handle_cp15, COMMAND_EXEC, "access coproc 15 <register> [value]");
+	
 	armv4_5_register_commands(cmd_ctx);
 
 	return ERROR_OK;
