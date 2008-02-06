@@ -989,17 +989,17 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 	
 	fclose(output);
 	
-	/* mark registers dirty */
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 2).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 3).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 4).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 5).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 6).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 7).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 8).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 9).dirty = 1;
+	/* mark registers dirty. */
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 2).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 2).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 3).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 3).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 4).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 4).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 5).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 5).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 6).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 6).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 7).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 7).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 8).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 8).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 9).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 9).valid;
 	
 	return ERROR_OK;
 }
@@ -1251,16 +1251,16 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 	fclose(output);
 	
 	/* mark registers dirty */
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 2).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 3).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 4).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 5).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 6).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 7).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 8).dirty = 1;
-	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 9).dirty = 1;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 2).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 2).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 3).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 3).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 4).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 4).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 5).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 5).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 6).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 6).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 7).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 7).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 8).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 8).valid;
+	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 9).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 9).valid;
 	
 	return ERROR_OK;
 }

@@ -137,7 +137,7 @@ int cortex_m3_exec_opcode(target_t *target,u32 opcode, int len /* MODE, r0_inval
 	ahbap_write_system_u32(swjdp, 0x20000000, opcode);
 	ahbap_write_coreregister_u32(swjdp, 0x20000000, 15);
 	cortex_m3_single_step_core(target);
-	armv7m->core_cache->reg_list[15].dirty = 1;
+	armv7m->core_cache->reg_list[15].dirty = armv7m->core_cache->reg_list[15].valid;
 	retvalue = ahbap_write_system_atomic_u32(swjdp, 0x20000000, savedram);		
 	
 	return retvalue;
@@ -320,7 +320,7 @@ int cortex_m3_debug_entry(target_t *target)
 	/* For IT instructions xPSR must be reloaded on resume and clear on debug exec*/
 	if (xPSR & 0xf00)
 	{
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = 1;
+		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = armv7m->core_cache->reg_list[ARMV7M_xPSR].valid;
 		cortex_m3_store_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 16, xPSR &~ 0xff);
 	}
 
@@ -1149,8 +1149,8 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 		ahbap_write_coreregister_u32(swjdp, 0x20000000, 15);
 		cortex_m3_single_step_core(target);
 		ahbap_read_coreregister_u32(swjdp, value, 0);
-		armv7m->core_cache->reg_list[0].dirty = 1;
-		armv7m->core_cache->reg_list[15].dirty = 1;
+		armv7m->core_cache->reg_list[0].dirty = armv7m->core_cache->reg_list[0].valid;
+		armv7m->core_cache->reg_list[15].dirty = armv7m->core_cache->reg_list[15].valid;
 		ahbap_write_system_u32(swjdp, 0x20000000, savedram);
 		swjdp_transaction_endcheck(swjdp);
 		DEBUG("load from special reg %i value 0x%x", SYSm, *value);
@@ -1175,7 +1175,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 		if (retval != ERROR_OK)
 		{
 			ERROR("JTAG failure %i", retval);
-			armv7m->core_cache->reg_list[num].dirty = 1;
+			armv7m->core_cache->reg_list[num].dirty = armv7m->core_cache->reg_list[num].valid;
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 		DEBUG("write core reg %i value 0x%x", num, value);
@@ -1195,7 +1195,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 		ahbap_write_coreregister_u32(swjdp, 0x20000000, 15);
 		cortex_m3_single_step_core(target);
 		ahbap_write_coreregister_u32(swjdp, tempr0, 0);
-		armv7m->core_cache->reg_list[15].dirty = 1;
+		armv7m->core_cache->reg_list[15].dirty = armv7m->core_cache->reg_list[15].valid;
 		ahbap_write_system_u32(swjdp, 0x20000000, savedram);
 		swjdp_transaction_endcheck(swjdp);
 		DEBUG("write special reg %i value 0x%x ", SYSm, value);

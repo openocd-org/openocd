@@ -287,7 +287,7 @@ int armv7m_write_core_reg(struct target_s *target, int num)
 	if (retval != ERROR_OK)
 	{
 		ERROR("JTAG failure");
-		armv7m->core_cache->reg_list[num].dirty = 1;
+		armv7m->core_cache->reg_list[num].dirty = armv7m->core_cache->reg_list[num].valid;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 	DEBUG("write core reg %i value 0x%x", num , reg_value);
