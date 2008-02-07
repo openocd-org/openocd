@@ -135,7 +135,12 @@ int main(int argc, char *argv[])
 	/* initialize telnet subsystem */
 	telnet_init("Open On-Chip Debugger");
 	gdb_init();
-
+	
+	/* call any target resets */
+	if (target_init_reset(cmd_ctx) != ERROR_OK)
+		return EXIT_FAILURE;
+	DEBUG("target init reset complete");
+	
 	/* handle network connections */
 	server_loop(cmd_ctx);
 	

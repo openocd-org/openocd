@@ -253,11 +253,28 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 {
 	int retval = ERROR_OK;
 	target_t *target;
+	struct timeval timeout, now;
 	
 	/* prepare reset_halt where necessary */
 	target = targets;
 	while (target)
 	{
+		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
+		{
+			switch (target->reset_mode)
+			{
+				case RESET_HALT:
+					command_print(cmd_ctx, "nSRST pulls nTRST, falling back to RESET_RUN_AND_HALT");
+					target->reset_mode = RESET_RUN_AND_HALT;
+					break;
+				case RESET_INIT:
+					command_print(cmd_ctx, "nSRST pulls nTRST, falling back to RESET_RUN_AND_INIT");
+					target->reset_mode = RESET_RUN_AND_INIT;
+					break;
+				default:
+					break;
+			} 
+		}
 		switch (target->reset_mode)
 		{
 			case RESET_HALT:
@@ -316,6 +333,42 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		target = target->next;
 	}
 	jtag_execute_queue();
+
+	/* Wait for reset to complete, maximum 5 seconds. */	
+	gettimeofday(&timeout, NULL);
+	timeval_add_time(&timeout, 5, 0);
+	for(;;)
+	{
+		gettimeofday(&now, NULL);
+		
+		target_call_timer_callbacks();
+	
+		target = targets;
+		while (target)
+		{
+			target->type->poll(target);
+			if ((target->reset_mode == RESET_RUN_AND_INIT) || (target->reset_mode == RESET_RUN_AND_HALT))
+			{
+				if (target->state != TARGET_HALTED)
+				{
+					if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
+					{
+						command_print(cmd_ctx, "Timed out waiting for reset");
+						goto done;
+					}
+					usleep(100*1000); /* Do not eat all cpu */
+					goto again;
+				}
+			}
+			target = target->next;
+		}
+		/* All targets we're waiting for are halted */
+		break;
+		
+		again:;
+	}
+	done:
+	
 	
 	return retval;
 }	
@@ -340,6 +393,11 @@ int target_init(struct command_context_s *cmd_ctx)
 		target_register_timer_callback(handle_target, 100, 1, NULL);
 	}
 		
+	return ERROR_OK;
+}
+
+int target_init_reset(struct command_context_s *cmd_ctx)
+{
 	if (startup_mode == DAEMON_RESET)
 		target_process_reset(cmd_ctx);
 	
@@ -1358,6 +1416,10 @@ int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		{
 			target_continous_poll = 0;
 		}
+		else
+		{
+			command_print(cmd_ctx, "arg is \"on\" or \"off\"");
+		}
 	}
 	
 	
@@ -1482,7 +1544,8 @@ int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd,
 int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	enum target_reset_mode reset_mode = RESET_RUN;
+	enum target_reset_mode reset_mode = target->reset_mode;
+	enum target_reset_mode save = target->reset_mode;
 	
 	DEBUG("-");
 	
@@ -1515,10 +1578,16 @@ int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 			command_print(cmd_ctx, "usage: reset ['run', 'halt', 'init', 'run_and_halt', 'run_and_init]");
 			return ERROR_OK;
 		}
-		target->reset_mode = reset_mode;
 	}
 	
+	/* temporarily modify mode of current reset target */
+	target->reset_mode = reset_mode;
+
+	/* reset *all* targets */
 	target_process_reset(cmd_ctx);
+	
+	/* Restore default reset mode for this target */
+    target->reset_mode = save;
 	
 	return ERROR_OK;
 }
@@ -1803,6 +1872,7 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	u32 address;
 	u32 size;
 	u8 buffer[560];
+	int retval;
 	
 	duration_t duration;
 	char *duration_text;
@@ -1837,7 +1907,13 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		u32 size_written;
 		u32 this_run_size = (size > 560) ? 560 : size;
 		
-		target->type->read_memory(target, address, 4, this_run_size / 4, buffer);
+		retval = target->type->read_memory(target, address, 4, this_run_size / 4, buffer);
+		if (retval != ERROR_OK)
+		{
+			command_print(cmd_ctx, "Reading memory failed %d", retval);
+			break;
+		}
+		
 		fileio_write(&fileio, this_run_size, buffer, &size_written);
 		
 		size -= this_run_size;
@@ -1851,7 +1927,6 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	free(duration_text);
 	
 	return ERROR_OK;
-
 }
 
 int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -2141,6 +2216,3 @@ int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	
 	return ERROR_OK;
 }
-
-
-
