@@ -651,14 +651,23 @@ Poll the target for its current state. If the target is in debug mode, architect
 specific information about the current state are printed. An optional parameter
 allows continuous polling to be enabled and disabled.
 
-@item @b{halt}
+@item @b{halt} [@option{ms}]
 @cindex halt
-Send a halt request to the target. The debugger signals the debug request,
-and waits for the target to enter debug mode.
+Send a halt request to the target and waits for it to halt for [@option{ms}].
+Default [@option{ms}] is 5 seconds if no arg given.
+Optional arg @option{ms} is a timeout in milliseconds. Using 0 as the [@option{ms}]
+will stop openocd from waiting.
+
+@item @b{wait_halt} [@option{ms}]
+@cindex wait_halt
+Wait for the target to enter debug mode. Optional [@option{ms}] is
+a timeout in milliseconds. Default [@option{ms}] is 5 seconds if no
+arg given.
 
 @item @b{resume} [@var{address}]
 @cindex resume
 Resume the target at its current code position, or at an optional address.
+Openocd will wait 5 seconds for the target to resume.
 
 @item @b{step} [@var{address}]
 @cindex step

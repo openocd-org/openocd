@@ -342,7 +342,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		gettimeofday(&now, NULL);
 		
 		target_call_timer_callbacks();
-	
+		
 		target = targets;
 		while (target)
 		{
@@ -370,8 +370,11 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	done:
 	
 	
+	/* We want any events to be processed before the prompt */
+	target_call_timer_callbacks();
+	
 	return retval;
-}	
+}
 
 int target_init(struct command_context_s *cmd_ctx)
 {
@@ -1391,6 +1394,8 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	return ERROR_OK;
 }
 
+static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_state state, int ms);
+
 int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
@@ -1428,38 +1433,46 @@ int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	target_t *target = get_current_target(cmd_ctx);
-	struct timeval timeout, now;
+	int ms = 5000;
 	
-	gettimeofday(&timeout, NULL);
-	if (!argc)
-		timeval_add_time(&timeout, 5, 0);
-	else {
+	if (argc > 0)
+	{
 		char *end;
 
-		timeval_add_time(&timeout, strtoul(args[0], &end, 0), 0);
-		if (*end) {
-			command_print(cmd_ctx, "usage: wait_halt [seconds]");
+		ms = strtoul(args[0], &end, 0) * 1000;
+		if (*end)
+		{
+			command_print(cmd_ctx, "usage: %s [seconds]", cmd);
 			return ERROR_OK;
 		}
 	}
 
-	command_print(cmd_ctx, "waiting for target halted...");
+	return wait_state(cmd_ctx, cmd, TARGET_HALTED, ms); 
+}
 
-	while(target->type->poll(target))
+static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_state state, int ms)
+{
+	struct timeval timeout, now;
+	
+	gettimeofday(&timeout, NULL);
+	timeval_add_time(&timeout, 0, ms * 1000);
+	command_print(cmd_ctx, "waiting for target %s...", target_state_strings[state]);
+	
+	target_t *target = get_current_target(cmd_ctx);
+	while (target->type->poll(target))
 	{
-		if (target->state == TARGET_HALTED)
+		target_call_timer_callbacks();
+		if (target->state == state)
 		{
-			command_print(cmd_ctx, "target halted");
+			command_print(cmd_ctx, "target %s", target_state_strings[state]);
 			break;
 		}
-		target_call_timer_callbacks();
 		
 		gettimeofday(&now, NULL);
-		if ((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec))
+		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
-			command_print(cmd_ctx, "timed out while waiting for target halt");
-			ERROR("timed out while waiting for target halt");
+			command_print(cmd_ctx, "timed out while waiting for target %s", target_state_strings[state]);
+			ERROR("timed out while waiting for target %s", target_state_strings[state]);
 			break;
 		}
 	}
@@ -1492,8 +1505,7 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		}
 	}
 	
-	return ERROR_OK;
-
+	return handle_wait_halt_command(cmd_ctx, cmd, args, argc);
 }
 
 /* what to do on daemon startup */
@@ -1622,7 +1634,7 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		}
 	}
 
-	return ERROR_OK;
+	return wait_state(cmd_ctx, cmd, TARGET_RUNNING, 5000);
 }
 
 int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1835,11 +1847,12 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	for (i = 0; i < image.num_sections; i++)
 	{
 		buffer = malloc(image.sections[i].size);
-		if (buffer==NULL)
+		if (buffer == NULL)
 		{
 			command_print(cmd_ctx, "error allocating buffer for section (%d bytes)", image.sections[i].size);
 			break;
 		}
+		
 		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
 		{
 			ERROR("image_read_section failed with error code: %i", retval);
