@@ -64,7 +64,6 @@ jtag_interface_t usbprog_interface =
 {
 	.name = "usbprog",
 	.execute_queue = usbprog_execute_queue,
-	.support_pathmove = 0,
 	.speed = usbprog_speed,	
 	.register_commands = usbprog_register_commands,
 	.init = usbprog_init,

@@ -187,10 +187,6 @@ typedef struct jtag_interface_s
 	 */
 	int (*execute_queue)(void);
 	
-	/* optional command support 
-	 */
-	int support_pathmove;
-	
 	/* interface initalization
 	 */
 	int (*speed)(int speed);

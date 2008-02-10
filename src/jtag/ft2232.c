@@ -160,8 +160,6 @@ jtag_interface_t ft2232_interface =
 	
 	.execute_queue = ft2232_execute_queue,
 	
-	.support_pathmove = 1,
-	
 	.speed = ft2232_speed,
 	.register_commands = ft2232_register_commands,
 	.init = ft2232_init,

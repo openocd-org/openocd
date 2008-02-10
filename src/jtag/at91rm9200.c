@@ -134,8 +134,6 @@ jtag_interface_t at91rm9200_interface =
 
 	.execute_queue = bitbang_execute_queue,
 
-	.support_pathmove = 0,
-
 	.speed = at91rm9200_speed,
 	.register_commands = at91rm9200_register_commands,
 	.init = at91rm9200_init,

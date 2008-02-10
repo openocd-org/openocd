@@ -728,52 +728,18 @@ int jtag_add_pathmove(int num_states, enum tap_state *path)
 		return ERROR_JTAG_NOT_IMPLEMENTED;
 	}
 	
-	if (jtag->support_pathmove)
-	{
-		/* allocate memory for a new list member */
-		*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-		last_comand_pointer = &((*last_cmd)->next);
-		(*last_cmd)->next = NULL;
-		(*last_cmd)->type = JTAG_PATHMOVE;
+	/* allocate memory for a new list member */
+	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	last_comand_pointer = &((*last_cmd)->next);
+	(*last_cmd)->next = NULL;
+	(*last_cmd)->type = JTAG_PATHMOVE;
+
+	(*last_cmd)->cmd.pathmove = cmd_queue_alloc(sizeof(pathmove_command_t));
+	(*last_cmd)->cmd.pathmove->num_states = num_states;
+	(*last_cmd)->cmd.pathmove->path = cmd_queue_alloc(sizeof(enum tap_state) * num_states);
 	
-		(*last_cmd)->cmd.pathmove = cmd_queue_alloc(sizeof(pathmove_command_t));
-		(*last_cmd)->cmd.pathmove->num_states = num_states;
-		(*last_cmd)->cmd.pathmove->path = cmd_queue_alloc(sizeof(enum tap_state) * num_states);
-		
-		for (i = 0; i < num_states; i++)
-			(*last_cmd)->cmd.pathmove->path[i] = path[i];
-	}
-	else
-	{
-		/* validate the desired path, and see if it fits a default path */
-		int begin = 0;
-		int end = 0;
-		int j;
-		
-		for (i = 0; i < num_states; i++)
-		{
-			for (j = i; j < num_states; j++)
-			{
-				if (tap_move_map[path[j]] != -1)
-				{	
-					end = j;
-					break;
-				}
-			}
-			
-			if (begin - end <= 7) 	/* a default path spans no more than 7 states */
-			{
-				jtag_add_statemove(path[end]);
-			}
-			else
-			{
-				ERROR("encountered a TAP path that can't be fulfilled by default paths");	
-				return ERROR_JTAG_NOT_IMPLEMENTED;
-			}
-			
-			i = end;
-		}
-	}
+	for (i = 0; i < num_states; i++)
+		(*last_cmd)->cmd.pathmove->path[i] = path[i];
 
 	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_RELEASED);

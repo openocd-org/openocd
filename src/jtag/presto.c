@@ -61,7 +61,6 @@ jtag_interface_t presto_interface =
 {
 	.name = "presto",
 	.execute_queue = bitq_execute_queue,
-	.support_pathmove = 1,
 	.speed = presto_jtag_speed,
 	.register_commands = presto_jtag_register_commands,
 	.init = presto_jtag_init,

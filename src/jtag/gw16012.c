@@ -107,8 +107,6 @@ jtag_interface_t gw16012_interface =
 	
 	.execute_queue = gw16012_execute_queue,
 
-	.support_pathmove = 0,
-
 	.speed = gw16012_speed,	
 	.register_commands = gw16012_register_commands,
 	.init = gw16012_init,

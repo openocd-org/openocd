@@ -66,8 +66,6 @@ jtag_interface_t ep93xx_interface =
 	
 	.execute_queue = bitbang_execute_queue,
 
-	.support_pathmove = 0,
-
 	.speed = ep93xx_speed,	
 	.register_commands = ep93xx_register_commands,
 	.init = ep93xx_init,
