@@ -532,8 +532,8 @@ Supported variants are @option{ixp42x}, @option{ixp45x}, @option{ixp46x},
 Configures a flash bank at <@var{base}> of <@var{size}> bytes and <@var{chip_width}>
 and <@var{bus_width}> bytes using the selected flash <driver>.
 
-@item @b{flash autoerase} <@option{on}|@option{off}>
-@cindex flash autoerase
+@item @b{flash auto_erase} <@option{on}|@option{off}>
+@cindex flash auto_erase
 auto erase flash banks prior to writing. Currently only works when using
 @option{flash write_image} command. Default is @option{off}.
 @end itemize

@@ -40,6 +40,7 @@ int stm32x_erase(struct flash_bank_s *bank, int first, int last);
 int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last);
 int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
 int stm32x_probe(struct flash_bank_s *bank);
+int stm32x_auto_probe(struct flash_bank_s *bank);
 int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int stm32x_protect_check(struct flash_bank_s *bank);
 int stm32x_erase_check(struct flash_bank_s *bank);
@@ -60,7 +61,7 @@ flash_driver_t stm32x_flash =
 	.protect = stm32x_protect,
 	.write = stm32x_write,
 	.probe = stm32x_probe,
-	.auto_probe = stm32x_probe,
+	.auto_probe = stm32x_auto_probe,
 	.erase_check = stm32x_erase_check,
 	.protect_check = stm32x_protect_check,
 	.info = stm32x_info
@@ -83,41 +84,6 @@ int stm32x_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int stm32x_build_block_list(struct flash_bank_s *bank)
-{
-	int i;
-	int num_sectors = 0;
-		
-	switch (bank->size)
-	{
-		case 32 * 1024:
-			num_sectors = 32;
-			break;
-		case 64 * 1024:
-			num_sectors = 64;
-			break;
-		case 128 * 1024:
-			num_sectors = 128;
-			break;
-		default:
-			ERROR("BUG: unknown bank->size encountered");
-			exit(-1);
-	}
-	
-	bank->num_sectors = num_sectors;
-	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
-	
-	for (i = 0; i < num_sectors; i++)
-	{
-		bank->sectors[i].offset = i * 1024;
-		bank->sectors[i].size = 1024;
-		bank->sectors[i].is_erased = -1;
-		bank->sectors[i].is_protected = 1;
-	}
-	
-	return ERROR_OK;
-}
-
 /* flash bank stm32x <base> <size> 0 0 <target#>
  */
 int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
@@ -133,15 +99,8 @@ int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 	stm32x_info = malloc(sizeof(stm32x_flash_bank_t));
 	bank->driver_priv = stm32x_info;
 	
-	if (bank->base != 0x08000000)
-	{
-		WARNING("overriding flash base address for STM32x device with 0x08000000");
-		bank->base = 0x08000000;
-	}
-
-	stm32x_build_block_list(bank);
-	
 	stm32x_info->write_algorithm = NULL;
+	stm32x_info->probed = 0;
 	
 	return ERROR_OK;
 }
@@ -681,7 +640,41 @@ int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 int stm32x_probe(struct flash_bank_s *bank)
 {
+	target_t *target = bank->target;
+	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
+	int i;
+	u16 num_sectors;
+	
+	stm32x_info->probed = 0;
+	
+	/* get flash size from target */
+	target_read_u16(target, 0x1FFFF7E0, &num_sectors);
+	INFO( "flash size = %dkbytes", num_sectors );
+	
+	bank->base = 0x08000000;
+	bank->size = num_sectors * 1024;
+	bank->num_sectors = num_sectors;
+	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
+	
+	for (i = 0; i < num_sectors; i++)
+	{
+		bank->sectors[i].offset = i * 1024;
+		bank->sectors[i].size = 1024;
+		bank->sectors[i].is_erased = -1;
+		bank->sectors[i].is_protected = 1;
+	}
+	
+	stm32x_info->probed = 1;
+	
 	return ERROR_OK;
+}
+
+int stm32x_auto_probe(struct flash_bank_s *bank)
+{
+	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
+	if (stm32x_info->probed)
+		return ERROR_OK;
+	return stm32x_probe(bank);
 }
 
 int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
