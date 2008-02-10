@@ -644,9 +644,20 @@ int stm32x_probe(struct flash_bank_s *bank)
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
 	int i;
 	u16 num_sectors;
+	u32 device_id;
 	
 	stm32x_info->probed = 0;
 	
+	/* read stm32 device id register */
+	target_read_u32(target, 0xE0042000, &device_id);
+	INFO( "device id = 0x%08x", device_id );
+	
+	if (!(device_id & 0x410))
+    {
+		WARNING( "Cannot identify target as a STM32 family." );
+		return ERROR_FLASH_OPERATION_FAILED;
+    }
+    
 	/* get flash size from target */
 	target_read_u16(target, 0x1FFFF7E0, &num_sectors);
 	INFO( "flash size = %dkbytes", num_sectors );
