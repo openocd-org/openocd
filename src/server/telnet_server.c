@@ -70,8 +70,6 @@ int telnet_output(struct command_context_s *cmd_ctx, char* line)
 int telnet_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
 {
 	struct command_context_s *cmd_ctx = priv;
-	connection_t *connection = cmd_ctx->output_handler_priv;
-	telnet_connection_t *t_con = connection->priv;
 	char buffer[512];
 	
 	switch (event)
@@ -81,13 +79,9 @@ int telnet_target_callback_event_handler(struct target_s *target, enum target_ev
 			target->type->arch_state(target, buffer, 512);
 			buffer[511] = 0;
 			command_print(cmd_ctx, "%s", buffer);
-			telnet_prompt(connection);
-			t_con->suppress_prompt = 1;
 			break;
 		case TARGET_EVENT_RESUMED:
 			command_print(cmd_ctx, "Target %i resumed", get_num_by_target(target));
-			telnet_prompt(connection);
-			t_con->suppress_prompt = 1;
 			break;
 		default:
 			break;
@@ -109,7 +103,6 @@ int telnet_new_connection(connection_t *connection)
 	telnet_connection->line_cursor = 0;
 	telnet_connection->option_size = 0;
 	telnet_connection->prompt = strdup("> ");
-	telnet_connection->suppress_prompt = 0;
 	telnet_connection->state = TELNET_STATE_DATA;
 	
 	/* output goes through telnet connection */
@@ -251,9 +244,6 @@ int telnet_input(connection_t *connection)
 								continue;
 							}
 							
-							/* we're running a command, so we need a prompt
-							 * if the output handler is called, this gets set again */
-							t_con->suppress_prompt = 0;
 							if ((retval = command_run_line(command_context, t_con->line)) != ERROR_OK)
 							{
 								if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
@@ -287,14 +277,8 @@ int telnet_input(connection_t *connection)
 								t_con->history[t_con->current_history] = strdup("");
 							}
 							
-							if (!t_con->suppress_prompt)
-							{
-								telnet_prompt(connection);
-							}
-							else
-							{
-								t_con->suppress_prompt = 0;
-							}
+							/* output prompt after command */
+							telnet_prompt(connection);
 							
 							t_con->line_size = 0;
 							t_con->line_cursor = 0;

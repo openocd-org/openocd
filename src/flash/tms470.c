@@ -430,7 +430,7 @@ tms470_try_flash_keys( target_t *  target,
   if (!(fmmstat & 0x08))
     {
       unsigned i;
-      u32 fmmac2, fmbptr, fmbac2, fmbbusy, orig_fmregopt;
+      u32 fmbptr, fmbac2, orig_fmregopt;
       
       target_write_u32( target, 0xFFE8BC04, fmmstat & ~0x07 );
 
@@ -496,7 +496,6 @@ tms470_try_flash_keys( target_t *  target,
 int
 tms470_unlock_flash( struct flash_bank_s * bank )
 {
-  tms470_flash_bank_t * tms470_info = bank->driver_priv;
   target_t *            target =      bank->target;
   const u32 *           p_key_sets[5];
   unsigned              i, key_set_count;
@@ -869,7 +868,6 @@ tms470_erase( struct flash_bank_s * bank,
               int                   last )
 {
   tms470_flash_bank_t *tms470_info = bank->driver_priv;
-  target_t *target = bank->target;
   int sector, result = ERROR_OK;
 
   if (!tms470_info->device_ident_reg)
