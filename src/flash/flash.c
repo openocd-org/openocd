@@ -88,7 +88,8 @@ int flash_register_commands(struct command_context_s *cmd_ctx)
 	flash_cmd = register_command(cmd_ctx, NULL, "flash", NULL, COMMAND_ANY, NULL);
 	
 	register_command(cmd_ctx, flash_cmd, "bank", handle_flash_bank_command, COMMAND_CONFIG, NULL);
-	
+	register_command(cmd_ctx, flash_cmd, "auto_erase", handle_flash_auto_erase_command, COMMAND_ANY,
+						 "auto erase flash sectors <on|off>");
 	return ERROR_OK;
 }
 
@@ -120,8 +121,6 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 						 "write_image <file> [offset] [type]");
 		register_command(cmd_ctx, flash_cmd, "protect", handle_flash_protect_command, COMMAND_EXEC,
 						 "set protection of sectors at <bank> <first> <last> <on|off>");
-		register_command(cmd_ctx, flash_cmd, "auto_erase", handle_flash_auto_erase_command, COMMAND_EXEC,
-						 "auto erase flash sectors <on|off>");
 	}
 	
 	return ERROR_OK;
@@ -278,6 +277,9 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 		if (i == strtoul(args[0], NULL, 0))
 		{
 			char buf[1024];
+			
+			/* attempt auto probe */
+			p->driver->auto_probe(p);
 			
 			command_print(cmd_ctx, "#%i: %s at 0x%8.8x, size 0x%8.8x, buswidth %i, chipwidth %i",
 						i, p->driver->name, p->base, p->size, p->bus_width, p->chip_width);
