@@ -268,7 +268,7 @@ void command_print(command_context_t *context, char *format, ...)
 	/* process format string */
 	/* TODO: possible bug. va_list is undefined after the first call to vsnprintf */
 	while (!buffer || (n = vsnprintf(buffer, size, format, ap)) >= size)
-	{
+		{
 		/* increase buffer until it fits the whole string */
 		if (!(p = realloc(buffer, size += 4096)))
 		{
@@ -359,7 +359,7 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 	return ERROR_OK;
 }
 
-int command_run_line(command_context_t *context, char *line)
+static int command_run_line_inner(command_context_t *context, char *line)
 {
 	int nwords;
 	char *words[128] = {0};
@@ -399,6 +399,17 @@ int command_run_line(command_context_t *context, char *line)
 	return retval;
 }
 
+int command_run_line(command_context_t *context, char *line)
+{
+	int retval=command_run_line_inner(context, line);
+	// we don't want any dangling callbacks!
+	// 
+	// Capturing output from logging is *very* loosly modeled on C/C++ exceptions.
+	// the capture must be set up at function entry and 
+	// stops when the function call returns
+	log_setCallback(NULL, NULL);
+	return retval;
+}
 int command_run_file(command_context_t *context, FILE *file, enum command_mode mode)
 {
 	int retval = ERROR_OK;
@@ -441,7 +452,7 @@ int command_run_file(command_context_t *context, FILE *file, enum command_mode m
 			break;
 
 		/* run line */
-		if ((retval = command_run_line(context, cmd)) == ERROR_COMMAND_CLOSE_CONNECTION)
+		if ((retval = command_run_line_inner(context, cmd)) == ERROR_COMMAND_CLOSE_CONNECTION)
 			break;
 	}
 	

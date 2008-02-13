@@ -33,6 +33,16 @@ int debug_level = -1;
 
 static FILE* log_output;
 
+
+static void *privData;
+static logCallback callback;
+
+void log_setCallback(logCallback c, void *p)
+{
+	callback=c;
+	privData=p;
+}
+
 static char *log_strings[4] = 
 {
 	"Error:  ",
@@ -56,23 +66,16 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	fflush(log_output);
 	
 	va_end(args);
-}
 
-void short_log_printf(enum log_levels level, const char *format, ...)
+	if (callback)
 {
-	va_list args;
-	char buffer[512];
-
-	if (level > debug_level)
-		return;
-
 	va_start(args, format);
-	vsnprintf(buffer, 512, format, args);
 
-	fprintf(log_output, "%s %s\n", log_strings[level], buffer);
-	fflush(log_output);
+		callback(privData, file, line, function, format, args);
 
 	va_end(args);
+}
+
 }
 
 /* change the current debug level on the fly
@@ -135,4 +138,43 @@ int log_init(struct command_context_s *cmd_ctx)
 	}
 	
 	return ERROR_OK;
+}
+	
+int set_log_output(struct command_context_s *cmd_ctx, FILE *output)
+{
+	log_output=output;
+	return ERROR_OK;
+}
+
+/* return allocated string w/printf() result */
+char *allocPrintf(const char *fmt, va_list ap)
+{
+	char *string=NULL;
+	int size=0; // start by 0 to exercise all the code paths. Need minimum 2 bytes to fit 1 char and 0 terminator.
+	int first=1;
+	for (;;)
+	{
+		if ((string==NULL)||(!first))
+		{
+			size=size*2+2;
+			char *t=string;
+			string=realloc(string, size);
+			if (string==NULL)
+			{
+				if (t!=NULL)
+					free(t);
+				return NULL;
+			}
+		}
+	
+	    int ret;
+	    ret = vsnprintf(string, size, fmt, ap);
+	    // NB! The result of the vsnprintf() might be an *EMPTY* string!
+	    if ((ret>=0)&&((ret+1)<size))
+	    {
+	    	return string;
+	    }
+	    // there was just enough or not enough space, allocate more.
+	    first=0;
+	}
 }

@@ -44,6 +44,10 @@
 
 static unsigned short gdb_port;
 
+static void gdb_log_callback(void *privData, const char *file, int line, 
+		const char *function, const char *format, va_list args);
+
+
 enum gdb_detach_mode
 {
 	GDB_DETACH_RESUME,
@@ -180,7 +184,7 @@ int gdb_putback_char(connection_t *connection, int last_char)
 	return ERROR_OK;
 }
 
-int gdb_put_packet(connection_t *connection, char *buffer, int len)
+int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 {
 	int i;
 	unsigned char my_checksum = 0;
@@ -245,10 +249,19 @@ int gdb_put_packet(connection_t *connection, char *buffer, int len)
 	return ERROR_OK;
 }
 
-int gdb_get_packet(connection_t *connection, char *buffer, int *len)
+int gdb_put_packet(connection_t *connection, char *buffer, int len)
+{
+	gdb_connection_t *gdb_connection = connection->priv;
+	gdb_connection->output_disable=1;
+	int retval=gdb_put_packet_inner(connection, buffer, len);
+	gdb_connection->output_disable=0;
+	return retval;
+}
+
+int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 {
 	int character;
-	int count;
+	int count = 0;
 	int retval;
 	char checksum[3];
 	unsigned char my_checksum = 0;
@@ -286,8 +299,9 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 		} while (character != '$');
 
 		my_checksum = 0;
-		count = 0;
 		
+		count=0;
+		gdb_connection_t *gdb_con = connection->priv;
 		for (;;)
 		{
 			/* The common case is that we have an entire packet with no escape chars.
@@ -391,11 +405,18 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 	return ERROR_OK;
 }
 
-int gdb_output(struct command_context_s *context, char* line)
+int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 {
-	connection_t *connection = context->output_handler_priv;
 	gdb_connection_t *gdb_connection = connection->priv;
+	gdb_connection->output_disable=1;
+	int retval=gdb_get_packet_inner(connection, buffer, len);
+	gdb_connection->output_disable=0;
+	return retval;
+}
 	
+int gdb_output_con(connection_t *connection, char* line)
+{
+	gdb_connection_t *gdb_connection = connection->priv;
 	char *hex_buffer;
 	int i, bin_size;
 
@@ -420,6 +441,12 @@ int gdb_output(struct command_context_s *context, char* line)
 
 	free(hex_buffer);
 	return ERROR_OK;
+}
+
+int gdb_output(struct command_context_s *context, char* line)
+{
+	connection_t *connection = context->output_handler_priv;
+	return gdb_output_con(connection, line);
 }
 
 int gdb_program_handler(struct target_s *target, enum target_event event, void *priv)
@@ -458,6 +485,9 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 		case TARGET_EVENT_HALTED:
 			if (gdb_connection->frontend_state == TARGET_RUNNING)
 			{
+				// stop forwarding log packets!
+				log_setCallback(NULL, NULL);
+				
 				if (gdb_connection->ctrl_c)
 				{
 					signal = 0x2;
@@ -895,7 +925,6 @@ int gdb_memory_packet_error(connection_t *connection, int retval)
 		case ERROR_TARGET_NOT_HALTED:
 			ERROR("gdb tried to read memory but we're not halted, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
-			break;
 		case ERROR_TARGET_DATA_ABORT:
 			gdb_send_error(connection, EIO);
 			break;
@@ -1398,6 +1427,9 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 				cmd[i] = tmp;
 			}
 			cmd[(packet_size - 6)/2] = 0x0;
+			
+			/* We want to print all debug output to GDB connection */
+			log_setCallback(gdb_log_callback, connection);
 			target_call_timer_callbacks();
 			command_run_line(cmd_ctx, cmd);
 			free(cmd);
@@ -1759,6 +1791,22 @@ int gdb_detach(connection_t *connection, target_t *target)
 	return ERROR_OK;
 }
 
+
+
+static void gdb_log_callback(void *privData, const char *file, int line, 
+		const char *function, const char *format, va_list args)
+{
+	connection_t *connection=(connection_t *)privData;
+	
+	char *t=allocPrintf(format, args);
+	if (t==NULL)
+		return;
+	
+	gdb_output_con(connection, t); 
+	
+	free(t);
+}
+
 int gdb_input(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
@@ -1833,6 +1881,9 @@ int gdb_input(connection_t *connection)
 					break;
 				case 'c':
 				case 's':
+					/* We're running/stepping, in which case we can 
+					 * forward log output until the target is halted */
+					log_setCallback(gdb_log_callback, connection);
 					gdb_step_continue_packet(connection, target, packet, packet_size);
 					break;
 				case 'v':

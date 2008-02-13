@@ -57,6 +57,12 @@ void telnet_prompt(connection_t *connection)
 	write_socket(connection->fd, t_con->prompt, strlen(t_con->prompt));
 }
 
+int telnet_outputline(connection_t *connection, char* line)
+{
+	write_socket(connection->fd, line, strlen(line));
+	return write_socket(connection->fd, "\r\n\0", 3);
+}
+
 int telnet_output(struct command_context_s *cmd_ctx, char* line)
 {
 	connection_t *connection = cmd_ctx->output_handler_priv;
@@ -65,6 +71,19 @@ int telnet_output(struct command_context_s *cmd_ctx, char* line)
 	write_socket(connection->fd, "\r\n\0", 3);
 	
 	return ERROR_OK;
+}
+
+void telnet_log_callback(void *privData, const char *file, int line, 
+		const char *function, const char *format, va_list args)
+{
+	connection_t *connection=(connection_t *)privData;
+	char *t=allocPrintf(format, args);
+	if (t==NULL)
+		return;
+	
+	telnet_outputline(connection, t);
+	
+	free(t);
 }
 
 int telnet_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
@@ -243,6 +262,10 @@ int telnet_input(connection_t *connection)
 								t_con->line_cursor = 0;
 								continue;
 							}
+							
+
+							
+							log_setCallback(telnet_log_callback, connection);
 							
 							if ((retval = command_run_line(command_context, t_con->line)) != ERROR_OK)
 							{
