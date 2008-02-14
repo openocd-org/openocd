@@ -660,6 +660,15 @@ int stm32x_probe(struct flash_bank_s *bank)
     
 	/* get flash size from target */
 	target_read_u16(target, 0x1FFFF7E0, &num_sectors);
+	
+	/* check for early silicon rev A */
+	if ((device_id >> 16) == 0 )
+	{
+		/* number of sectors incorrect on revA */
+		WARNING( "STM32 Rev A Silicon detected, probe inaccurate - assuming 128k flash" );
+		num_sectors = 128;
+	}
+	
 	INFO( "flash size = %dkbytes", num_sectors );
 	
 	bank->base = 0x08000000;
