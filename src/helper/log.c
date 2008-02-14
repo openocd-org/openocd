@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <time.h>
 
 int debug_level = -1;
 
@@ -53,6 +54,8 @@ static char *log_strings[4] =
 
 void log_printf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
 {
+	static int count=0;
+	count++;
 	va_list args;
 	char buffer[512];
 
@@ -62,19 +65,25 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	va_start(args, format);
 	vsnprintf(buffer, 512, format, args);
 
-	fprintf(log_output, "%s %s:%d %s(): %s\n", log_strings[level], file, line, function, buffer);
+	char *f=strrchr(file, '/');
+	if (f!=NULL)
+		file=f+1;
+
+	fprintf(log_output, "%s %d %d %s:%d %s(): %s\n", log_strings[level], count, time(NULL), file, line, function, buffer);
 	fflush(log_output);
 	
 	va_end(args);
 
-	if (callback)
-{
-	va_start(args, format);
+	/* Never forward LOG_DEBUG, too verbose and they can be found in the log if need be */
+	if (callback&&(level<=LOG_INFO))
+
+	{
+		va_start(args, format);
 
 		callback(privData, file, line, function, format, args);
 
-	va_end(args);
-}
+		va_end(args);
+	}
 
 }
 
