@@ -91,7 +91,10 @@ int lpc2000_register_commands(struct command_context_s *cmd_ctx)
 int lpc2000_build_sector_list(struct flash_bank_s *bank)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
-
+	
+	/* default to a 4096 write buffer */
+	lpc2000_info->cmd51_max_buffer = 4096;
+	
 	if (lpc2000_info->variant == 1)
 	{
 		int i = 0;
@@ -156,7 +159,12 @@ int lpc2000_build_sector_list(struct flash_bank_s *bank)
 		/* variant 2 has a uniform layout, only number of sectors differs */
 		switch (bank->size)
 		{
+			case 4 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024;
+				num_sectors = 1;
+				break;
 			case 8 * 1024:
+				lpc2000_info->cmd51_max_buffer = 1024;
 				num_sectors = 2;
 				break;
 			case 16 * 1024:
@@ -484,7 +492,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	}
 	
 	/* allocate a working area */
-	if (target_alloc_working_area(target, 4096, &download_area) != ERROR_OK)
+	if (target_alloc_working_area(target, lpc2000_info->cmd51_max_buffer, &download_area) != ERROR_OK)
 	{
 		ERROR("no working area specified, can't write LPC2000 internal flash");
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -533,8 +541,8 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	while (bytes_remaining > 0)
 	{
 		u32 thisrun_bytes;
-		if (bytes_remaining >= 4096)
-			thisrun_bytes = 4096;
+		if (bytes_remaining >= lpc2000_info->cmd51_max_buffer)
+			thisrun_bytes = lpc2000_info->cmd51_max_buffer;
 		else if (bytes_remaining >= 1024)
 			thisrun_bytes = 1024;
 		else if ((bytes_remaining >= 512) || (!lpc2000_info->cmd51_can_256b))
