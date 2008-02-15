@@ -1014,7 +1014,7 @@ int xscale_debug_entry(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	u32 pc;
-	u32 *buffer = malloc(4 * 10);
+	u32 buffer[10];
 	int i;
 
 	u32 moe;
@@ -1199,7 +1199,7 @@ int xscale_halt(target_t *target)
 	{
 		/* this must not happen for a xscale target */
 		ERROR("target was in unknown state when halt was requested");
-		exit(-1);
+		return ERROR_TARGET_INVALID;
 	}
 	else if (target->state == TARGET_RESET)
 	{
@@ -2269,7 +2269,7 @@ int xscale_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	u8 enable;
+	u8 enable = 0;
 	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	u32 dbcon_value = buf_get_u32(dbcon->value, 0, 32);
 
