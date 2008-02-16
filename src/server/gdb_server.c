@@ -43,10 +43,10 @@
 #endif
 
 static unsigned short gdb_port;
+static const char *DIGITS = "0123456789abcdef";
 
-static void gdb_log_callback(void *privData, const char *file, int line, 
+static void gdb_log_callback(void *priv, const char *file, int line, 
 		const char *function, const char *format, va_list args);
-
 
 enum gdb_detach_mode
 {
@@ -107,10 +107,38 @@ int gdb_get_char(connection_t *connection, int* next_char)
 		return ERROR_OK;
 	}
 
-	while ((gdb_con->buf_cnt = read_socket(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE)) <= 0)
+	for (;;)
 	{
+#ifndef _WIN32
+		/* a non-blocking socket will block if there is 0 bytes available on the socket,
+		 * but return with as many bytes as are available immediately
+		 */
+		struct timeval tv;
+		fd_set read_fds;
+		
+		FD_ZERO(&read_fds);
+		FD_SET(connection->fd, &read_fds);
+		
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
+		if (select(connection->fd + 1, &read_fds, NULL, NULL, &tv) == 0)
+		{
+			/* This can typically be because a "monitor" command took too long
+			 * before printing any progress messages
+			 */
+			return ERROR_GDB_TIMEOUT; 
+		}
+#endif
+		gdb_con->buf_cnt = read_socket(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
+		if (gdb_con->buf_cnt > 0)
+		{
+			break;
+		}
 		if (gdb_con->buf_cnt == 0)
+		{
+			gdb_con->closed = 1;
 			return ERROR_SERVER_REMOTE_CLOSED;
+		}
 
 #ifdef _WIN32
 		errno = WSAGetLastError();
@@ -140,7 +168,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
 				ERROR("read: %s", strerror(errno));
-				exit(-1);
+				return ERROR_SERVER_REMOTE_CLOSED;
 		}
 #endif
 	}
@@ -184,11 +212,27 @@ int gdb_putback_char(connection_t *connection, int last_char)
 	return ERROR_OK;
 }
 
+/* The only way we can detect that the socket is closed is the first time
+ * we write to it, we will fail. Subsequent write operations will
+ * succeed. Shudder! */
+int gdb_write(connection_t *connection, void *data, int len)
+{
+	gdb_connection_t *gdb_con = connection->priv;
+	if (gdb_con->closed)
+		return ERROR_SERVER_REMOTE_CLOSED;
+
+	if (write_socket(connection->fd, data, len) == len)
+	{
+		return ERROR_OK;
+	}
+	gdb_con->closed = 1;
+	return ERROR_SERVER_REMOTE_CLOSED;
+}
+
 int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 {
 	int i;
 	unsigned char my_checksum = 0;
-	char checksum[3];
 #ifdef _DEBUG_GDB_IO_
 	char *debug_buffer;
 #endif
@@ -208,22 +252,55 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
 		free(debug_buffer);
 #endif
-		write_socket(connection->fd, "$", 1);
+#if 0
+		char checksum[3];
+		gdb_write(connection, "$", 1);
 		if (len > 0)
-			write_socket(connection->fd, buffer, len);
-		write_socket(connection->fd, "#", 1);
-
+			gdb_write(connection, buffer, len);
+		gdb_write(connection, "#", 1);
+		
 		snprintf(checksum, 3, "%2.2x", my_checksum);
-
-		write_socket(connection->fd, checksum, 2);
-
+		
+		gdb_write(connection, checksum, 2);
+#else
+		void *allocated = NULL;
+		char stackAlloc[1024];
+		char *t = stackAlloc;
+		int totalLen = 1 + len + 1 + 2;
+		if (totalLen > sizeof(stackAlloc))
+		{
+			allocated = malloc(totalLen);
+			t = allocated;
+			if (allocated == NULL)
+			{
+				ERROR("Ran out of memory trying to reply packet %d\n", totalLen);
+				exit(-1);
+			}
+		}
+		t[0] = '$';
+		memcpy(t + 1, buffer, len);
+		t[1 + len] = '#';
+		t[1 + len + 1] = DIGITS[(my_checksum >> 4) & 0xf];
+		t[1 + len + 2] = DIGITS[my_checksum & 0xf];
+		
+		gdb_write(connection, t, totalLen);
+		
+		if (allocated)
+		{
+			free(allocated);
+		}
+#endif
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
 
 		if (reply == '+')
 			break;
 		else if (reply == '-')
+		{
+			/* Stop sending output packets for now */
+			log_setCallback(NULL, NULL);
 			WARNING("negative reply, retrying");
+		}
 		else if (reply == 0x3)
 		{
 			gdb_con->ctrl_c = 1;
@@ -232,7 +309,11 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			if (reply == '+')
 				break;
 			else if (reply == '-')
+			{
+				/* Stop sending output packets for now */
+				log_setCallback(NULL, NULL);
 				WARNING("negative reply, retrying");
+			}
 			else
 			{
 				ERROR("unknown character 0x%2.2x in reply, dropping connection", reply);
@@ -245,16 +326,18 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 	}
+	if (gdb_con->closed)
+		return ERROR_SERVER_REMOTE_CLOSED;
 
 	return ERROR_OK;
 }
 
 int gdb_put_packet(connection_t *connection, char *buffer, int len)
 {
-	gdb_connection_t *gdb_connection = connection->priv;
-	gdb_connection->output_disable=1;
-	int retval=gdb_put_packet_inner(connection, buffer, len);
-	gdb_connection->output_disable=0;
+	gdb_connection_t *gdb_con = connection->priv;
+	gdb_con->busy = 1;
+	int retval = gdb_put_packet_inner(connection, buffer, len);
+	gdb_con->busy = 0;
 	return retval;
 }
 
@@ -300,7 +383,7 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 
 		my_checksum = 0;
 		
-		count=0;
+		count = 0;
 		gdb_connection_t *gdb_con = connection->priv;
 		for (;;)
 		{
@@ -394,38 +477,33 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 
 		if (my_checksum == strtoul(checksum, NULL, 16))
 		{
-			write_socket(connection->fd, "+", 1);
+			gdb_write(connection, "+", 1);
 			break;
 		}
 
 		WARNING("checksum error, requesting retransmission");
-		write_socket(connection->fd, "-", 1);
+		gdb_write(connection, "-", 1);
 	}
+	if (gdb_con->closed)
+		return ERROR_SERVER_REMOTE_CLOSED;
 
 	return ERROR_OK;
 }
 
 int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 {
-	gdb_connection_t *gdb_connection = connection->priv;
-	gdb_connection->output_disable=1;
-	int retval=gdb_get_packet_inner(connection, buffer, len);
-	gdb_connection->output_disable=0;
+	gdb_connection_t *gdb_con = connection->priv;
+	gdb_con->busy = 1;
+	int retval = gdb_get_packet_inner(connection, buffer, len);
+	gdb_con->busy = 0;
 	return retval;
 }
 	
 int gdb_output_con(connection_t *connection, char* line)
 {
-	gdb_connection_t *gdb_connection = connection->priv;
 	char *hex_buffer;
 	int i, bin_size;
 
-	/* check if output is enabled */
-	if (gdb_connection->output_disable)
-	{
-		return ERROR_OK;
-	}
-	
 	bin_size = strlen(line);
 
 	hex_buffer = malloc(bin_size*2 + 4);
@@ -445,8 +523,9 @@ int gdb_output_con(connection_t *connection, char* line)
 
 int gdb_output(struct command_context_s *context, char* line)
 {
-	connection_t *connection = context->output_handler_priv;
-	return gdb_output_con(connection, line);
+	/* this will be dumped to the log and also sent as an O packet if possible */
+	ERROR(line);
+	return ERROR_OK;
 }
 
 int gdb_program_handler(struct target_s *target, enum target_event event, void *priv)
@@ -483,9 +562,18 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 	switch (event)
 	{
 		case TARGET_EVENT_HALTED:
+			/* In the GDB protocol when we are stepping or coninuing execution,
+			 * we have a lingering reply. Upon receiving a halted event 
+			 * when we have that lingering packet, we reply to the original
+			 * step or continue packet.
+			 * 
+			 * Executing monitor commands can bring the target in and
+			 * out of the running state so we'll see lots of TARGET_EVENT_XXX
+			 * that are to be ignored.
+			 */
 			if (gdb_connection->frontend_state == TARGET_RUNNING)
 			{
-				// stop forwarding log packets!
+				/* stop forwarding log packets! */
 				log_setCallback(NULL, NULL);
 				
 				if (gdb_connection->ctrl_c)
@@ -501,12 +589,6 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 				snprintf(sig_reply, 4, "T%2.2x", signal);
 				gdb_put_packet(connection, sig_reply, 3);
 				gdb_connection->frontend_state = TARGET_HALTED;
-			}
-			break;
-		case TARGET_EVENT_RESUMED:
-			if (gdb_connection->frontend_state == TARGET_HALTED)
-			{
-				gdb_connection->frontend_state = TARGET_RUNNING;
 			}
 			break;
 		case TARGET_EVENT_GDB_PROGRAM:
@@ -534,7 +616,8 @@ int gdb_new_connection(connection_t *connection)
 	gdb_connection->ctrl_c = 0;
 	gdb_connection->frontend_state = TARGET_HALTED;
 	gdb_connection->vflash_image = NULL;
-	gdb_connection->output_disable = 0;
+	gdb_connection->closed = 0;
+	gdb_connection->busy = 0;
 	
 	/* output goes through gdb connection */
 	command_set_output_handler(connection->cmd_ctx, gdb_output, connection);
@@ -546,14 +629,12 @@ int gdb_new_connection(connection_t *connection)
 	if (((retval = gdb_service->target->type->halt(gdb_service->target)) != ERROR_OK) &&
 			(retval != ERROR_TARGET_ALREADY_HALTED))
 	{
-		ERROR("error when trying to halt target");
-		exit(-1);
+		ERROR("error(%d) when trying to halt target, falling back to \"reset halt\"", retval);
+		command_run_line(connection->cmd_ctx, "reset halt");
 	}
 
-	while (gdb_service->target->state != TARGET_HALTED)
-	{
-		gdb_service->target->type->poll(gdb_service->target);
-	}
+	/* This will time out after 1 second */
+	command_run_line(connection->cmd_ctx, "wait_halt 1");
 
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
@@ -621,7 +702,6 @@ int gdb_last_signal_packet(connection_t *connection, target_t *target, char* pac
  * case an entire byte is shown. */
 void gdb_str_to_target(target_t *target, char *tstr, reg_t *reg)
 {
-	static const char *DIGITS = "0123456789abcdef";
 	int i;
 
 	u8 *buf;
@@ -935,13 +1015,19 @@ int gdb_memory_packet_error(connection_t *connection, int retval)
 			gdb_send_error(connection, EFAULT);
 			break;
 		default:
-			ERROR("BUG: unexpected error %i", retval);
-			exit(-1);
+			/* This could be that the target reset itself. */
+			ERROR("unexpected error %i. Dropping connection.", retval);
+			return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	return ERROR_OK;
 }
 
+/* We don't have to worry about the default 2 second timeout for GDB packets,
+ * because GDB breaks up large memory reads into smaller reads.
+ * 
+ * 8191 bytes by the looks of it. Why 8191 bytes instead of 8192?????
+ */
 int gdb_read_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
@@ -951,8 +1037,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 	u8 *buffer;
 	char *hex_buffer;
 
-	int i;
-	int retval;
+	int retval = ERROR_OK;
 
 	/* skip command character */
 	packet++;
@@ -985,11 +1070,14 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 			else
 				retval = target->type->read_memory(target, addr, 1, len, buffer);
 			break;
+		case 3:
+		case 1:
+			retval = target->type->read_memory(target, addr, 1, len, buffer);
+			break;
+			/* handle bulk reads */
 		default:
-			if (((addr % 4) == 0) && ((len % 4) == 0))
-				retval = target->type->read_memory(target, addr, 4, len / 4, buffer);
-			else
-				retval = target->type->read_memory(target, addr, 1, len, buffer);
+			retval = target_read_buffer(target, addr, len, buffer);
+			break;
 	}
 
 #if 0
@@ -1008,8 +1096,13 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 	{
 		hex_buffer = malloc(len * 2 + 1);
 
-		for (i=0; i<len; i++)
-			snprintf(hex_buffer + 2*i, 3, "%2.2x", buffer[i]);
+		int i;
+		for (i = 0; i < len; i++)
+		{
+			u8 t = buffer[i];
+			hex_buffer[2 * i] = DIGITS[(t >> 4) & 0xf];
+			hex_buffer[2 * i + 1] = DIGITS[t & 0xf];
+		}
 
 		gdb_put_packet(connection, hex_buffer, len * 2);
 
@@ -1017,13 +1110,12 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 	}
 	else
 	{
-		if ((retval = gdb_memory_packet_error(connection, retval)) != ERROR_OK)
-			return retval; 
+		retval = gdb_memory_packet_error(connection, retval);
 	}
 
 	free(buffer);
 
-	return ERROR_OK;
+	return retval;
 }
 
 int gdb_write_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
@@ -1655,9 +1747,6 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 		
-		/* disable gdb output while programming */
-		gdb_connection->output_disable = 1;
-		
 		/* assume all sectors need erasing - stops any problems
 		 * when flash_write is called multiple times */
 		flash_set_dirty();
@@ -1676,9 +1765,6 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		}
 		else
 			gdb_put_packet(connection, "OK", 2);
-		
-		/* reenable gdb output */
-		gdb_connection->output_disable = 0;
 		
 		return ERROR_OK;
 	}
@@ -1702,9 +1788,6 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		}
 		length = packet_size - (parse - packet);
 		
-		/* disable gdb output while programming */
-		gdb_connection->output_disable = 1;
-		
 		/* create a new image if there isn't already one */
 		if (gdb_connection->vflash_image == NULL)
 		{
@@ -1717,9 +1800,6 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 		gdb_put_packet(connection, "OK", 2);
 
-		/* reenable gdb output */
-		gdb_connection->output_disable = 0;
-		
 		return ERROR_OK;
 	}
 
@@ -1728,9 +1808,6 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		u32 written;
 		char *error_str;
 
-		/* disable gdb output while programming */
-		gdb_connection->output_disable = 1;
-		
 		/* process the flashing buffer. No need to erase as GDB
 		 * always issues a vFlashErase first. */
 		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, &error_str, NULL, 0)) != ERROR_OK)
@@ -1755,9 +1832,6 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		image_close(gdb_connection->vflash_image);
 		free(gdb_connection->vflash_image);
 		gdb_connection->vflash_image = NULL;
-		
-		/* reenable gdb output */
-		gdb_connection->output_disable = 0;
 		
 		return ERROR_OK;
 	}
@@ -1791,15 +1865,20 @@ int gdb_detach(connection_t *connection, target_t *target)
 	return ERROR_OK;
 }
 
-
-
-static void gdb_log_callback(void *privData, const char *file, int line, 
+static void gdb_log_callback(void *priv, const char *file, int line, 
 		const char *function, const char *format, va_list args)
 {
-	connection_t *connection=(connection_t *)privData;
+	connection_t *connection = priv;
+	gdb_connection_t *gdb_con = connection->priv;
 	
-	char *t=allocPrintf(format, args);
-	if (t==NULL)
+	if (gdb_con->busy)
+	{
+		/* do not reply this using the O packet */
+		return;
+	}
+
+	char *t = allocPrintf(format, args);
+	if (t == NULL)
 		return;
 	
 	gdb_output_con(connection, t); 
@@ -1807,7 +1886,7 @@ static void gdb_log_callback(void *privData, const char *file, int line,
 	free(t);
 }
 
-int gdb_input(connection_t *connection)
+int gdb_input_inner(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
 	target_t *target = gdb_service->target;
@@ -1823,17 +1902,7 @@ int gdb_input(connection_t *connection)
 		packet_size = GDB_BUFFER_SIZE-1;
 		if ((retval = gdb_get_packet(connection, packet, &packet_size)) != ERROR_OK)
 		{
-			switch (retval)
-			{
-				case ERROR_GDB_BUFFER_TOO_SMALL:
-					ERROR("BUG: buffer supplied for gdb packet was too small");
-					exit(-1);
-				case ERROR_SERVER_REMOTE_CLOSED:
-					return ERROR_SERVER_REMOTE_CLOSED;
-				default:
-					ERROR("BUG: unexpected error");
-					exit(-1);
-			}
+			return retval;
 		}
 
 		/* terminate with zero */
@@ -1881,10 +1950,14 @@ int gdb_input(connection_t *connection)
 					break;
 				case 'c':
 				case 's':
+					{
 					/* We're running/stepping, in which case we can 
 					 * forward log output until the target is halted */
-					log_setCallback(gdb_log_callback, connection);
-					gdb_step_continue_packet(connection, target, packet, packet_size);
+						gdb_connection_t *gdb_con = connection->priv;
+						gdb_con->frontend_state = TARGET_RUNNING;
+						log_setCallback(gdb_log_callback, connection);
+						gdb_step_continue_packet(connection, target, packet, packet_size);
+					}
 					break;
 				case 'v':
 					retval = gdb_v_packet(connection, target, packet, packet_size);
@@ -1934,6 +2007,15 @@ int gdb_input(connection_t *connection)
 
 	} while (gdb_con->buf_cnt > 0);
 
+	return ERROR_OK;
+}
+
+int gdb_input(connection_t *connection)
+{
+	int retval = gdb_input_inner(connection);
+	if (retval == ERROR_SERVER_REMOTE_CLOSED)
+		return retval;
+	/* we'll recover from any other errors(e.g. temporary timeouts, etc.) */
 	return ERROR_OK;
 }
 

@@ -34,7 +34,8 @@ typedef struct gdb_connection_s
 	int ctrl_c;
 	enum target_state frontend_state;
 	image_t *vflash_image;
-	int output_disable;
+	int closed;
+	int busy;
 } gdb_connection_t;
 
 typedef struct gdb_service_s
@@ -46,5 +47,6 @@ extern int gdb_init();
 extern int gdb_register_commands(command_context_t *command_context);
 
 #define ERROR_GDB_BUFFER_TOO_SMALL (-800)
+#define ERROR_GDB_TIMEOUT (-801)
 
 #endif /* GDB_SERVER_H */
