@@ -76,9 +76,9 @@ int telnet_output(struct command_context_s *cmd_ctx, char* line)
 void telnet_log_callback(void *privData, const char *file, int line, 
 		const char *function, const char *format, va_list args)
 {
-	connection_t *connection=(connection_t *)privData;
-	char *t=allocPrintf(format, args);
-	if (t==NULL)
+	connection_t *connection = (connection_t *)privData;
+	char *t = allocPrintf(format, args);
+	if (t == NULL)
 		return;
 	
 	telnet_outputline(connection, t);
@@ -89,6 +89,8 @@ void telnet_log_callback(void *privData, const char *file, int line,
 int telnet_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
 {
 	struct command_context_s *cmd_ctx = priv;
+	connection_t *connection = cmd_ctx->output_handler_priv;
+	telnet_connection_t *t_con = connection->priv;
 	char buffer[512];
 	
 	switch (event)
@@ -98,9 +100,13 @@ int telnet_target_callback_event_handler(struct target_s *target, enum target_ev
 			target->type->arch_state(target, buffer, 512);
 			buffer[511] = 0;
 			command_print(cmd_ctx, "%s", buffer);
+			if (!t_con->suppress_prompt)
+				telnet_prompt(connection);
 			break;
 		case TARGET_EVENT_RESUMED:
 			command_print(cmd_ctx, "Target %i resumed", get_num_by_target(target));
+			if (!t_con->suppress_prompt)
+				telnet_prompt(connection);
 			break;
 		default:
 			break;
@@ -122,6 +128,7 @@ int telnet_new_connection(connection_t *connection)
 	telnet_connection->line_cursor = 0;
 	telnet_connection->option_size = 0;
 	telnet_connection->prompt = strdup("> ");
+	telnet_connection->suppress_prompt = 0;
 	telnet_connection->state = TELNET_STATE_DATA;
 	
 	/* output goes through telnet connection */
@@ -263,9 +270,8 @@ int telnet_input(connection_t *connection)
 								continue;
 							}
 							
-
-							
 							log_setCallback(telnet_log_callback, connection);
+							t_con->suppress_prompt = 1;
 							
 							if ((retval = command_run_line(command_context, t_con->line)) != ERROR_OK)
 							{
@@ -274,7 +280,9 @@ int telnet_input(connection_t *connection)
 									return ERROR_SERVER_REMOTE_CLOSED;
 								}
 							}
-
+							
+							t_con->suppress_prompt = 0;
+							
 							/* Save only non-blank lines in the history */
 							if (t_con->line_size > 0)
 							{
