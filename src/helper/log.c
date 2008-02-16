@@ -40,8 +40,8 @@ static logCallback callback;
 
 void log_setCallback(logCallback c, void *p)
 {
-	callback=c;
-	privData=p;
+	callback = c;
+	privData = p;
 }
 
 static char *log_strings[4] = 
@@ -54,7 +54,7 @@ static char *log_strings[4] =
 
 void log_printf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
 {
-	static int count=0;
+	static int count = 0;
 	count++;
 	va_list args;
 	char buffer[512];
@@ -65,26 +65,22 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	va_start(args, format);
 	vsnprintf(buffer, 512, format, args);
 
-	char *f=strrchr(file, '/');
-	if (f!=NULL)
-		file=f+1;
+	char *f = strrchr(file, '/');
+	if (f != NULL)
+		file = f + 1;
 
-	fprintf(log_output, "%s %d %d %s:%d %s(): %s\n", log_strings[level], count, time(NULL), file, line, function, buffer);
+	fprintf(log_output, "%s %d %ld %s:%d %s(): %s\n", log_strings[level], count, time(NULL), file, line, function, buffer);
 	fflush(log_output);
 	
 	va_end(args);
 
 	/* Never forward LOG_DEBUG, too verbose and they can be found in the log if need be */
-	if (callback&&(level<=LOG_INFO))
-
+	if (callback && (level <= LOG_INFO))
 	{
 		va_start(args, format);
-
 		callback(privData, file, line, function, format, args);
-
 		va_end(args);
 	}
-
 }
 
 /* change the current debug level on the fly
@@ -151,26 +147,29 @@ int log_init(struct command_context_s *cmd_ctx)
 	
 int set_log_output(struct command_context_s *cmd_ctx, FILE *output)
 {
-	log_output=output;
+	log_output = output;
 	return ERROR_OK;
 }
 
 /* return allocated string w/printf() result */
 char *allocPrintf(const char *fmt, va_list ap)
 {
-	char *string=NULL;
-	int size=0; // start by 0 to exercise all the code paths. Need minimum 2 bytes to fit 1 char and 0 terminator.
-	int first=1;
+	char *string = NULL;
+	
+	/* start by 0 to exercise all the code paths. Need minimum 2 bytes to
+	 * fit 1 char and 0 terminator. */
+	int size = 0;
+	int first = 1;
 	for (;;)
 	{
-		if ((string==NULL)||(!first))
+		if ((string == NULL) || (!first))
 		{
-			size=size*2+2;
-			char *t=string;
-			string=realloc(string, size);
-			if (string==NULL)
+			size = size * 2 + 2;
+			char *t = string;
+			string = realloc(string, size);
+			if (string == NULL)
 			{
-				if (t!=NULL)
+				if (t != NULL)
 					free(t);
 				return NULL;
 			}
@@ -178,12 +177,12 @@ char *allocPrintf(const char *fmt, va_list ap)
 	
 	    int ret;
 	    ret = vsnprintf(string, size, fmt, ap);
-	    // NB! The result of the vsnprintf() might be an *EMPTY* string!
-	    if ((ret>=0)&&((ret+1)<size))
+	    /* NB! The result of the vsnprintf() might be an *EMPTY* string! */
+	    if ((ret >= 0) && ((ret + 1) < size))
 	    {
 	    	return string;
 	    }
-	    // there was just enough or not enough space, allocate more.
-	    first=0;
+	    /* there was just enough or not enough space, allocate more. */
+	    first = 0;
 	}
 }

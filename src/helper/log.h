@@ -73,7 +73,6 @@ extern int debug_level;
 		log_printf (LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
-
 /* general failures
  * error codes < 100
  */
@@ -83,6 +82,5 @@ extern int debug_level;
 #define ERROR_BUF_TOO_SMALL			(-3)
 
 char *allocPrintf(const char *fmt, va_list ap);
-
 
 #endif /* LOG_H */
