@@ -34,7 +34,6 @@ int debug_level = -1;
 
 static FILE* log_output;
 
-
 static void *privData;
 static logCallback callback;
 

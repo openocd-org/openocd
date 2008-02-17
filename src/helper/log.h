@@ -46,10 +46,10 @@ extern int log_register_commands(struct command_context_s *cmd_ctx);
 extern int log_init(struct command_context_s *cmd_ctx);
 extern int set_log_output(struct command_context_s *cmd_ctx, FILE *output);
 
-typedef void (*logCallback)(void *privData, const char *file, int line, 
+typedef void (*logCallback)(void *priv, const char *file, int line, 
 		const char *function, const char *format, va_list args);
 
-void log_setCallback(logCallback callback, void *privData);		
+extern void log_setCallback(logCallback callback, void *priv);		
 
 extern int debug_level;
 
