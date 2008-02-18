@@ -1067,6 +1067,8 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 
 			free(captured_char);
 			free(in_check_value_char);
+			
+			retval = ERROR_JTAG_QUEUE_FAILED;
 		}
 		
 	}
@@ -1310,7 +1312,7 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "jtag_speed", handle_jtag_speed_command,
 		COMMAND_ANY, "set jtag speed (if supported) <speed>");
 	register_command(cmd_ctx, NULL, "jtag_device", handle_jtag_device_command,
-		COMMAND_CONFIG, NULL);
+		COMMAND_CONFIG, "jtag_device <ir_length> <ir_expected> <ir_mask>");
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "jtag_nsrst_delay", handle_jtag_nsrst_delay_command,

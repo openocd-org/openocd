@@ -258,27 +258,33 @@ int parse_line(char *line, char *words[], int max_words)
 
 void command_print(command_context_t *context, char *format, ...)
 {
-	va_list ap;
 	char *buffer = NULL;
 	int n, size = 0;
 	char *p;
 
-	va_start(ap, format);
-	
 	/* process format string */
-	/* TODO: possible bug. va_list is undefined after the first call to vsnprintf */
-	while (!buffer || (n = vsnprintf(buffer, size, format, ap)) >= size)
+	for (;;)
+	{
+		va_list ap;
+		va_start(ap, format);
+		if (!buffer || (n = vsnprintf(buffer, size, format, ap)) >= size)
 		{
-		/* increase buffer until it fits the whole string */
-		if (!(p = realloc(buffer, size += 4096)))
-		{
-			/* gotta free up */
-			if (buffer)
-				free(buffer);
-			return;
+			/* increase buffer until it fits the whole string */
+			if (!(p = realloc(buffer, size += 4096)))
+			{
+				/* gotta free up */
+				if (buffer)
+					free(buffer);
+				return;
+			}
+	
+			buffer = p;
+			
+			va_end(ap);
+			continue;
 		}
-
-		buffer = p;
+		va_end(ap);
+		break;
 	}
 	
 	/* vsnprintf failed */
@@ -306,8 +312,6 @@ void command_print(command_context_t *context, char *format, ...)
 	
 	if (buffer)
 		free(buffer);
-	
-	va_end(ap);
 }
 
 int find_and_run_command(command_context_t *context, command_t *commands, char *words[], int num_words, int start_word)
@@ -329,7 +333,7 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 		if (strncasecmp(c->name, words[start_word], strlen(words[start_word])))
 			continue;
 		
-		if ((c->mode == context->mode) || (c->mode == COMMAND_ANY))
+		if ((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode) )
 		{
 			if (!c->children)
 			{
@@ -479,15 +483,12 @@ void command_print_help_line(command_context_t* context, struct command_s *comma
 	}
 	indents[i*2] = 0;
 	
-	if ((command->mode == COMMAND_EXEC) || (command->mode == COMMAND_ANY))
-	{
-		if (command->help)
-			help = command->help;
+	if (command->help)
+		help = command->help;
 		
-		snprintf(name_buf, 64, command->name);
-		strncat(name_buf, indents, 64);
-		command_print(context, "%20s\t%s", name_buf, help);
-	}
+	snprintf(name_buf, 64, command->name);
+	strncat(name_buf, indents, 64);
+	command_print(context, "%20s\t%s", name_buf, help);
 	
 	if (command->children)
 	{
