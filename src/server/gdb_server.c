@@ -524,7 +524,7 @@ int gdb_output_con(connection_t *connection, char* line)
 int gdb_output(struct command_context_s *context, char* line)
 {
 	/* this will be dumped to the log and also sent as an O packet if possible */
-	ERROR(line);
+	USER(line); 
 	return ERROR_OK;
 }
 
@@ -1056,35 +1056,18 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 
 	DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
 
-	switch (len)
-	{
-		case 4:
-			if ((addr % 4) == 0)
-				retval = target->type->read_memory(target, addr, 4, 1, buffer);
-			else
-				retval = target->type->read_memory(target, addr, 1, len, buffer);
-			break;
-		case 2:
-			if ((addr % 2) == 0)
-				retval = target->type->read_memory(target, addr, 2, 1, buffer);
-			else
-				retval = target->type->read_memory(target, addr, 1, len, buffer);
-			break;
-		case 3:
-		case 1:
-			retval = target->type->read_memory(target, addr, 1, len, buffer);
-			break;
-			/* handle bulk reads */
-		default:
-			retval = target_read_buffer(target, addr, len, buffer);
-			break;
-	}
+	retval = target_read_buffer(target, addr, len, buffer);
 
 #if 0
 	if (retval == ERROR_TARGET_DATA_ABORT)
 	{
 		/* TODO : Here we have to lie and send back all zero's lest stack traces won't work.
 		 * At some point this might be fixed in GDB, in which case this code can be removed.
+		 * 
+		 * OpenOCD developers are acutely aware of this problem, but there is nothing
+		 * gained by involving the user in this problem that hopefully will get resolved
+		 * eventually
+		 * 
 		 * http://sourceware.org/cgi-bin/gnatsweb.pl?cmd=view%20audit-trail&database=gdb&pr=2395
 		 */
 		memset(buffer, 0, len);
@@ -1159,31 +1142,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 		buffer[i] = tmp;
 	}
 
-	retval = ERROR_OK;
-	switch (len)
-	{
-		/* handle sized writes */
-		case 4:
-			if ((addr % 4) == 0)
-				retval = target->type->write_memory(target, addr, 4, 1, buffer);
-			else
-				retval = target->type->write_memory(target, addr, 1, len, buffer);
-			break;
-		case 2:
-			if ((addr % 2) == 0)
-				retval = target->type->write_memory(target, addr, 2, 1, buffer);
-			else
-				retval = target->type->write_memory(target, addr, 1, len, buffer);
-			break;
-		case 3:
-		case 1:
-			retval = target->type->write_memory(target, addr, 1, len, buffer);
-			break;
-			/* handle bulk writes */
-		default:
-			retval = target_write_buffer(target, addr, len, buffer);
-			break;
-	}
+	retval = target_write_buffer(target, addr, len, buffer);
 
 	if (retval == ERROR_OK)
 	{
@@ -1206,7 +1165,6 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 	u32 addr = 0;
 	u32 len = 0;
 
-	u8 *buffer;
 	int retval;
 
 	/* skip command character */
@@ -1231,36 +1189,9 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 	retval = ERROR_OK;
 	if( len ) {
 
-		buffer = malloc(len);
-
 		DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
 
-		memcpy( buffer, separator, len );
-
-		switch (len)
-		{
-			case 4:
-				if ((addr % 4) == 0)
-					retval = target->type->write_memory(target, addr, 4, 1, buffer);
-				else
-					retval = target->type->write_memory(target, addr, 1, len, buffer);
-				break;
-			case 2:
-				if ((addr % 2) == 0)
-					retval = target->type->write_memory(target, addr, 2, 1, buffer);
-				else
-					retval = target->type->write_memory(target, addr, 1, len, buffer);
-				break;
-			case 3:
-			case 1:
-				retval = target->type->write_memory(target, addr, 1, len, buffer);
-				break;
-			default:
-				retval = target_write_buffer(target, addr, len, buffer);
-				break;
-		}
-
-		free(buffer);
+		retval = target_write_buffer(target, addr, len, separator);
 	}
 
 	if (retval == ERROR_OK)

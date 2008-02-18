@@ -43,12 +43,13 @@ void log_setCallback(logCallback c, void *p)
 	privData = p;
 }
 
-static char *log_strings[4] = 
+static char *log_strings[5] = 
 {
+	"User:  ",
 	"Error:  ",
 	"Warning:",
 	"Info:   ",
-	"Debug:  ",
+	"Debug:  "
 };
 
 void log_printf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
@@ -68,7 +69,7 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	if (f != NULL)
 		file = f + 1;
 
-	fprintf(log_output, "%s %d %ld %s:%d %s(): %s\n", log_strings[level], count, time(NULL), file, line, function, buffer);
+	fprintf(log_output, "%s %d %ld %s:%d %s(): %s\n", log_strings[level+1], count, time(NULL), file, line, function, buffer);
 	fflush(log_output);
 	
 	va_end(args);

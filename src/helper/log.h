@@ -26,6 +26,9 @@
 #include <stdarg.h>
 
 /* logging priorities 
+ * LOG_USER - user messages. Could be anything from information 
+ *            to progress messags. These messages do not represent
+ *            incorrect or unexpected behaviour, just normal execution. 
  * LOG_ERROR - fatal errors, that are likely to cause program abort
  * LOG_WARNING - non-fatal errors, that may be resolved later
  * LOG_INFO - state information, etc.
@@ -33,6 +36,7 @@
  */
 enum log_levels
 {
+	LOG_USER = -1,
 	LOG_ERROR = 0,
 	LOG_WARNING = 1,
 	LOG_INFO = 2,
@@ -53,13 +57,16 @@ extern void log_setCallback(logCallback callback, void *priv);
 
 extern int debug_level;
 
+/* Avoid fn call and building parameter list if we're not outputting the information.
+ * Matters on feeble CPUs for DEBUG/INFO statements that are involved frequently */
+
 #define DEBUG(expr ...) \
-	do { \
+	do { if (debug_level >= LOG_DEBUG) \
 		log_printf (LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
 #define INFO(expr ...) \
-	do { \
+	do { if (debug_level >= LOG_INFO) \
 		log_printf (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
@@ -72,6 +79,12 @@ extern int debug_level;
 	do { \
 		log_printf (LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
+
+#define USER(expr ...) \
+	do { \
+		log_printf (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr); \
+	} while(0)
+
 
 /* general failures
  * error codes < 100

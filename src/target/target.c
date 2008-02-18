@@ -700,23 +700,24 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "daemon_startup", handle_daemon_startup_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "target_script", handle_target_script_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, NULL);
 
 	return ERROR_OK;
 }
 
+/* Single aligned words are guaranteed to use 16 or 32 bit access 
+ * mode respectively, otherwise data is handled as quickly as 
+ * possible
+ */
 int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer)
 {
 	int retval;
 	
 	DEBUG("writing buffer of %i byte at 0x%8.8x", size, address);
 	
-	/* handle writes of less than 4 byte */
-	if (size < 4)
+	if (((address % 2) == 0) && (size == 2))
 	{
-		if ((retval = target->type->write_memory(target, address, 1, size, buffer)) != ERROR_OK)
-			return retval;
-		return ERROR_OK;
+		return target->type->write_memory(target, address, 2, 1, buffer);
 	}
 	
 	/* handle unaligned head bytes */
@@ -764,18 +765,20 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 	return ERROR_OK;
 }
 
+
+/* Single aligned words are guaranteed to use 16 or 32 bit access 
+ * mode respectively, otherwise data is handled as quickly as 
+ * possible
+ */
 int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer)
 {
 	int retval;
 	
 	DEBUG("reading buffer of %i byte at 0x%8.8x", size, address);
 	
-	/* handle reads of less than 4 byte */
-	if (size < 4)
+	if (((address % 2) == 0) && (size == 2))
 	{
-		if ((retval = target->type->read_memory(target, address, 1, size, buffer)) != ERROR_OK)
-			return retval;
-		return ERROR_OK;
+		return target->type->read_memory(target, address, 2, 1, buffer);
 	}
 	
 	/* handle unaligned head bytes */
@@ -828,9 +831,14 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 		if (buffer == NULL)
 		{
 			ERROR("error allocating buffer for section (%d bytes)", size);
-			return ERROR_OK;
+			return ERROR_INVALID_ARGUMENTS;
 		}
-		target_read_buffer(target, address, size, buffer);
+		retval = target_read_buffer(target, address, size, buffer);
+		if (retval != ERROR_OK)
+		{
+			free(buffer);
+			return retval;
+		}
 
 		/* convert to target endianess */
 		for (i = 0; i < (size/sizeof(u32)); i++)
@@ -1226,6 +1234,7 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		ERROR("target number '%s' not defined", args[0]);
 		exit(-1);
 	}
+	target_free_all_working_areas(target);
 	
 	target->working_area = strtoul(args[1], NULL, 0);
 	target->working_area_size = strtoul(args[2], NULL, 0);
@@ -1450,6 +1459,13 @@ int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return wait_state(cmd_ctx, cmd, TARGET_HALTED, ms); 
 }
 
+static void target_process_events(struct command_context_s *cmd_ctx)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	target->type->poll(target);
+	target_call_timer_callbacks();
+}
+
 static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_state state, int ms)
 {
 	struct timeval timeout, now;
@@ -1634,7 +1650,9 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		}
 	}
 
-	return wait_state(cmd_ctx, cmd, TARGET_RUNNING, 5000);
+	target_process_events(cmd_ctx);
+	
+	return ERROR_OK;
 }
 
 int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -2017,7 +2035,7 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		
 		if( retval != ERROR_OK )
 		{
-			command_print(cmd_ctx, "image verify failed, verify aborted");
+			command_print(cmd_ctx, "could not calculate checksum, verify aborted");
 			free(buffer);
 			image_close(&image);
 			return ERROR_OK;
@@ -2028,7 +2046,7 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			/* failed crc checksum, fall back to a binary compare */
 			u8 *data;
 			
-			command_print(cmd_ctx, "image verify checksum failed - attempting binary compare");
+			command_print(cmd_ctx, "checksum mismatch - attempting binary compare");
 			
 			data = (u8*)malloc(buf_cnt);
 			
