@@ -64,6 +64,10 @@ enum gdb_detach_mode detach_mode = GDB_DETACH_RESUME;
 int gdb_use_memory_map = 0;
 int gdb_flash_program = 0;
 
+/* if set, data aborts cause an error to be reported in memory read packets
+ * see the code in gdb_read_memory_packet() for further explanations */
+int gdb_report_data_abort = 0;
+
 int gdb_last_signal(target_t *target)
 {
 	switch (target->debug_reason)
@@ -1058,8 +1062,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 
 	retval = target_read_buffer(target, addr, len, buffer);
 
-#if 0
-	if (retval == ERROR_TARGET_DATA_ABORT)
+	if ((retval == ERROR_TARGET_DATA_ABORT) && (!gdb_report_data_abort))
 	{
 		/* TODO : Here we have to lie and send back all zero's lest stack traces won't work.
 		 * At some point this might be fixed in GDB, in which case this code can be removed.
@@ -1069,11 +1072,13 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 		 * eventually
 		 * 
 		 * http://sourceware.org/cgi-bin/gnatsweb.pl?cmd=view%20audit-trail&database=gdb&pr=2395
+		 *
+		 * For now, the default is to fix up things to make current GDB versions work.
+		 * This can be overwritten using the gdb_report_data_abort <'enable'|'disable'> command.
 		 */
 		memset(buffer, 0, len);
 		retval = ERROR_OK;
 	}
-#endif
 
 	if (retval == ERROR_OK)
 	{
@@ -1187,11 +1192,11 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 	}
 
 	retval = ERROR_OK;
-	if( len ) {
-
+	if (len)
+	{
 		DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
 
-		retval = target_write_buffer(target, addr, len, separator);
+		retval = target_write_buffer(target, addr, len, (u8*)separator);
 	}
 
 	if (retval == ERROR_OK)
@@ -1391,7 +1396,7 @@ void xml_printf(int *retval, char **xml, int *pos, int *size, const char *fmt, .
 	}
 }
 
-static int decode_xfer_read (char *buf, char **annex, int *ofs, unsigned int *len)
+static int decode_xfer_read(char *buf, char **annex, int *ofs, unsigned int *len)
 {
 	char *separator;
 	
@@ -1465,7 +1470,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		if (packet_size > 5)
 		{
 			int retval;
-			u8 gdb_reply[10];
+			char gdb_reply[10];
 			char *separator;
 			u32 checksum;
 			u32 addr = 0;
@@ -1599,13 +1604,13 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		int retval = ERROR_OK;
 		
 		int offset;
-		int length;
+		unsigned int length;
 		char *annex;
 		
 		/* skip command character */
 		packet += 20;
 		
-		if (decode_xfer_read( packet, &annex, &offset, &length ) < 0)
+		if (decode_xfer_read(packet, &annex, &offset, &length) < 0)
 		{
 			gdb_send_error(connection, 01);
 			return ERROR_OK;
@@ -2071,6 +2076,26 @@ int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
+int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc == 1)
+	{
+		if (strcmp(args[0], "enable") == 0)
+		{
+			gdb_report_data_abort = 1;
+			return ERROR_OK;
+		}
+		else if (strcmp(args[0], "disable") == 0)
+		{
+			gdb_report_data_abort = 0;
+			return ERROR_OK;
+		}
+	}
+	
+	WARNING("invalid gdb_report_data_abort configuration directive: %s", args[0]);
+	return ERROR_OK;
+}
+
 int gdb_register_commands(command_context_t *command_context)
 {
 	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
@@ -2080,6 +2105,8 @@ int gdb_register_commands(command_context_t *command_context)
 	register_command(command_context, NULL, "gdb_memory_map", handle_gdb_memory_map_command,
 			COMMAND_CONFIG, "");
 	register_command(command_context, NULL, "gdb_flash_program", handle_gdb_flash_program_command,
+			COMMAND_CONFIG, "");
+	register_command(command_context, NULL, "gdb_report_data_abort", handle_gdb_report_data_abort_command,
 			COMMAND_CONFIG, "");
 	return ERROR_OK;
 }
