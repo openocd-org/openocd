@@ -89,6 +89,7 @@ cfi_fixup_t cfi_jedec_fixups[] = {
 	{CFI_MFR_SST, 0x00D5, cfi_fixup_non_cfi, NULL},
 	{CFI_MFR_SST, 0x00D6, cfi_fixup_non_cfi, NULL},
 	{CFI_MFR_SST, 0x00D7, cfi_fixup_non_cfi, NULL},
+	{CFI_MFR_SST, 0x2780, cfi_fixup_non_cfi, NULL},
 	{CFI_MFR_ST, 0x00D5, cfi_fixup_non_cfi, NULL},
 	{CFI_MFR_ST, 0x00D6, cfi_fixup_non_cfi, NULL},
 	{CFI_MFR_AMD, 0x2223, cfi_fixup_non_cfi, NULL},
@@ -102,6 +103,7 @@ cfi_fixup_t cfi_0002_fixups[] = {
 	{CFI_MFR_SST, 0x00D5, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x00D6, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x00D7, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
+	{CFI_MFR_SST, 0x2780, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_ATMEL, 0x00C8, cfi_fixup_atmel_reversed_erase_regions, NULL},
 	{CFI_MFR_ANY, CFI_ID_ANY, cfi_fixup_0002_erase_regions, NULL},
 	{0, 0, NULL, NULL}
@@ -590,7 +592,8 @@ int cfi_intel_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 int cfi_register_commands(struct command_context_s *cmd_ctx)
 {
-	/*command_t *cfi_cmd = */register_command(cmd_ctx, NULL, "cfi", NULL, COMMAND_ANY, NULL);
+	/*command_t *cfi_cmd = */
+	register_command(cmd_ctx, NULL, "cfi", NULL, COMMAND_ANY, "flash bank cfi <base> <size> <chip_width> <bus_width> <targetNum> [jedec_probe/x16_as_x8]");
 	/*
 	register_command(cmd_ctx, cfi_cmd, "part_id", cfi_handle_part_id_command, COMMAND_EXEC,
 					 "print part id of cfi flash bank <num>");

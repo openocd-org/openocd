@@ -88,6 +88,20 @@ non_cfi_t non_cfi_flashes[] = {
 		}
 	},
 	{
+		.mfr = CFI_MFR_SST,
+		.id = 0x2780,
+		.pri_id = 0x02,
+		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.interface_desc = 0x2,		/* x8 or x16 device */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 1,
+		.erase_region_info =
+		{
+			0x0010007f,
+			0x00000000
+		}
+	},
+	{
 		.mfr = CFI_MFR_ST,
 		.id = 0xd6,					/* ST29F400BB */
 		.pri_id = 0x02,
@@ -240,4 +254,5 @@ void cfi_fixup_non_cfi(flash_bank_t *bank, void *param)
 		exit(-1);
 	}
 }
+
 
