@@ -275,6 +275,7 @@ void command_print(command_context_t *context, char *format, ...)
 				/* gotta free up */
 				if (buffer)
 					free(buffer);
+				va_end(ap);
 				return;
 			}
 	
