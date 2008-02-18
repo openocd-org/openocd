@@ -44,7 +44,6 @@ enum telnet_states
 typedef struct telnet_connection_s
 {
 	char *prompt;
-	int suppress_prompt;
 	enum telnet_states state;
 	char line[TELNET_LINE_MAX_SIZE];
 	int line_size;
@@ -55,6 +54,7 @@ typedef struct telnet_connection_s
 	char *history[TELNET_LINE_HISTORY_SIZE];
 	int next_history;
 	int current_history;
+	int closed;
 } telnet_connection_t;
 
 typedef struct telnet_service_s
