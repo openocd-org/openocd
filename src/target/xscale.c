@@ -298,7 +298,7 @@ int xscale_read_dcsr(target_t *target)
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while reading DCSR");
-		exit(-1);
+		return retval;
 	}
 
 	xscale->reg_cache->reg_list[XSCALE_DCSR].dirty = 0;
@@ -320,6 +320,7 @@ int xscale_read_dcsr(target_t *target)
 
 int xscale_receive(target_t *target, u32 *buffer, int num_words)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 
@@ -336,7 +337,6 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	int words_scheduled = 0;
 
 	int i;
-	int retval;
 
 	path[0] = TAP_SDS;
 	path[1] = TAP_CD;
@@ -373,6 +373,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	jtag_add_runtest(1, -1);
 
 	/* repeat until all words have been collected */
+	int attempts = 0;
 	while (words_done < num_words)
 	{
 		/* schedule reads */
@@ -391,7 +392,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			ERROR("JTAG error while receiving data from debug handler");
-			exit(-1);
+			break;
 		}
 
 		/* examine results */
@@ -409,6 +410,16 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 				words_scheduled--;
 			}
 		}
+		if (words_scheduled == 0)
+		{
+			if (attempts++ == 1000)
+			{
+				ERROR("Failed to receiving data from debug handler after 1000 attempts");
+				retval = ERROR_JTAG_QUEUE_FAILED;
+				break;
+			}
+		}
+		
 		words_done += words_scheduled;
 	}
 
@@ -417,7 +428,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 
 	free(field1);
 
-	return ERROR_OK;
+	return retval;
 }
 
 int xscale_read_tx(target_t *target, int consume)
@@ -425,6 +436,7 @@ int xscale_read_tx(target_t *target, int consume)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	enum tap_state path[3];
+	enum tap_state noconsume_path[7];
 
 	int retval;
 	struct timeval timeout, now;
@@ -443,6 +455,14 @@ int xscale_read_tx(target_t *target, int consume)
 	path[0] = TAP_SDS;
 	path[1] = TAP_CD;
 	path[2] = TAP_SD;
+
+	noconsume_path[0] = TAP_SDS;
+	noconsume_path[1] = TAP_CD;
+	noconsume_path[2] = TAP_E1D;
+	noconsume_path[3] = TAP_PD;
+	noconsume_path[4] = TAP_E2D;
+	noconsume_path[5] = TAP_CD;
+	noconsume_path[6] = TAP_SD;
 
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
@@ -482,18 +502,18 @@ int xscale_read_tx(target_t *target, int consume)
 		if (consume)
 			jtag_add_pathmove(3, path);
 		else
-			jtag_add_statemove(TAP_PD);
+			jtag_add_pathmove(7, noconsume_path);
 
 		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			ERROR("JTAG error while reading TX");
-			exit(-1);
+			return ERROR_TARGET_TIMEOUT;
 		}
 
 		gettimeofday(&now, NULL);
-		if ((now.tv_sec > timeout.tv_sec) && (now.tv_usec > timeout.tv_usec))
+		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec)&& (now.tv_usec > timeout.tv_usec)))
 		{
 			ERROR("time out reading TX register");
 			return ERROR_TARGET_TIMEOUT;
@@ -557,19 +577,19 @@ int xscale_write_rx(target_t *target)
 	timeval_add_time(&timeout, 5, 0);
 
 	/* poll until rx_read is low */
+	DEBUG("polling RX");
 	do
 	{
-		DEBUG("polling RX");
 		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			ERROR("JTAG error while writing RX");
-			exit(-1);
+			return retval;
 		}
 
 		gettimeofday(&now, NULL);
-		if ((now.tv_sec > timeout.tv_sec) && (now.tv_usec > timeout.tv_usec))
+		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec)&& (now.tv_usec > timeout.tv_usec)))
 		{
 			ERROR("time out writing RX register");
 			return ERROR_TARGET_TIMEOUT;
@@ -583,7 +603,7 @@ int xscale_write_rx(target_t *target)
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while writing RX");
-		exit(-1);
+		return retval;
 	}
 
 	return ERROR_OK;
@@ -667,7 +687,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while sending data to debug handler");
-		exit(-1);
+		return retval;
 	}
 
 	return ERROR_OK;
@@ -740,7 +760,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while writing DCSR");
-		exit(-1);
+		return retval;
 	}
 
 	xscale->reg_cache->reg_list[XSCALE_DCSR].dirty = 0;
@@ -1002,7 +1022,7 @@ enum target_state xscale_poll(target_t *target)
 		else if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 		{
 			ERROR("error while polling TX register");
-			exit(-1);
+			return retval;
 		}
 	}
 
@@ -1590,7 +1610,7 @@ int xscale_deassert_reset(target_t *target)
 		jtag_add_reset(0, 0);
 
 		/* wait 300ms; 150 and 100ms were not enough */
-		jtag_add_sleep(3000000);
+		jtag_add_sleep(300*1000);
 
 		jtag_add_runtest(2030, TAP_RTI);
 		jtag_execute_queue();
@@ -2008,9 +2028,7 @@ int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 
 int xscale_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
 {
-	xscale_write_memory(target, address, 4, count, buffer);
-
-	return ERROR_OK;
+	return xscale_write_memory(target, address, 4, count, buffer);
 }
 
 int xscale_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum)
@@ -3089,7 +3107,7 @@ int xscale_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	if (argc < 5)
 	{
 		ERROR("'target xscale' requires four arguments: <endianess> <startup_mode> <chain_pos> <variant>");
-		exit(-1);
+		return ERROR_OK;
 	}
 
 	chain_pos = strtoul(args[3], NULL, 0);
@@ -3675,7 +3693,7 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 
 	xscale_cmd = register_command(cmd_ctx, NULL, "xscale", NULL, COMMAND_ANY, "xscale specific commands");
 
-	register_command(cmd_ctx, xscale_cmd, "debug_handler", xscale_handle_debug_handler_command, COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, xscale_cmd, "debug_handler", xscale_handle_debug_handler_command, COMMAND_ANY, "'xscale debug_handler <target#> <address>' command takes two required operands");
 	register_command(cmd_ctx, xscale_cmd, "cache_clean_address", xscale_handle_cache_clean_address_command, COMMAND_ANY, NULL);
 
 	register_command(cmd_ctx, xscale_cmd, "cache_info", xscale_handle_cache_info_command, COMMAND_EXEC, NULL);
