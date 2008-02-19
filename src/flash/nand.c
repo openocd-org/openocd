@@ -63,13 +63,20 @@ int nand_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_s
 /* NAND flash controller
  */
 extern nand_flash_controller_t lpc3180_nand_controller;
-/* extern nand_flash_controller_t s3c2410_nand_controller; */
+extern nand_flash_controller_t s3c2410_nand_controller;
+extern nand_flash_controller_t s3c2412_nand_controller;
+extern nand_flash_controller_t s3c2440_nand_controller;
+extern nand_flash_controller_t s3c2443_nand_controller;
+
 /* extern nand_flash_controller_t boundary_scan_nand_controller; */
 
 nand_flash_controller_t *nand_flash_controllers[] =
 {
 	&lpc3180_nand_controller,
-/*	&s3c2410_nand_controller, */
+	&s3c2410_nand_controller,
+	&s3c2412_nand_controller,
+	&s3c2440_nand_controller,
+	&s3c2443_nand_controller,
 /*	&boundary_scan_nand_controller, */
 	NULL
 };
@@ -707,7 +714,7 @@ int nand_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_s
 	if (!device->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
 		
-	if (device->use_raw)
+	if (device->use_raw || device->controller->write_page == NULL)
 		return nand_write_page_raw(device, page, data, data_size, oob, oob_size);
 	else
 		return device->controller->write_page(device, page, data, data_size, oob, oob_size);
@@ -718,7 +725,7 @@ int nand_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_si
 	if (!device->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
 		
-	if (device->use_raw)
+	if (device->use_raw || device->controller->read_page == NULL)
 		return nand_read_page_raw(device, page, data, data_size, oob, oob_size);
 	else
 		return device->controller->read_page(device, page, data, data_size, oob, oob_size);
@@ -782,38 +789,48 @@ int nand_read_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 dat
 	
 	if (data)
 	{
-		for (i = 0; i < data_size;)
+		if (device->controller->read_block_data != NULL)
+			(device->controller->read_block_data)(device, data, data_size);
+		else
 		{
-			if (device->device->options & NAND_BUSWIDTH_16)
+			for (i = 0; i < data_size;)
 			{
-				device->controller->read_data(device, data);
-				data += 2;
-				i += 2;
-			}
-			else
-			{
-				device->controller->read_data(device, data);
-				data += 1;
-				i += 1;
+				if (device->device->options & NAND_BUSWIDTH_16)
+				{
+					device->controller->read_data(device, data);
+					data += 2;
+					i += 2;
+				}
+				else
+				{
+					device->controller->read_data(device, data);
+					data += 1;
+					i += 1;
+				}
 			}
 		}
 	}
 	
 	if (oob)
 	{
-		for (i = 0; i < oob_size;)
+		if (device->controller->read_block_data != NULL)
+			(device->controller->read_block_data)(device, oob, oob_size);
+		else
 		{
-			if (device->device->options & NAND_BUSWIDTH_16)
+			for (i = 0; i < oob_size;)
 			{
-				device->controller->read_data(device, oob);
-				oob += 2;
-				i += 2;
-			}
-			else
-			{
-				device->controller->read_data(device, oob);
-				oob += 1;
-				i += 1;
+				if (device->device->options & NAND_BUSWIDTH_16)
+				{
+					device->controller->read_data(device, oob);
+					oob += 2;
+					i += 2;
+				}
+				else
+				{
+					device->controller->read_data(device, oob);
+					oob += 1;
+					i += 1;
+				}
 			}
 		}
 	}
@@ -868,40 +885,50 @@ int nand_write_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 da
 	
 	if (data)
 	{
-		for (i = 0; i < data_size;)
+		if (device->controller->write_block_data != NULL)
+			(device->controller->write_block_data)(device, data, data_size);
+		else
 		{
-			if (device->device->options & NAND_BUSWIDTH_16)
+			for (i = 0; i < data_size;)
 			{
-				u16 data_buf = le_to_h_u16(data);
-				device->controller->write_data(device, data_buf);
-				data += 2;
-				i += 2;
-			}
-			else
-			{
-				device->controller->write_data(device, *data);
-				data += 1;
-				i += 1;
+				if (device->device->options & NAND_BUSWIDTH_16)
+				{
+					u16 data_buf = le_to_h_u16(data);
+					device->controller->write_data(device, data_buf);
+					data += 2;
+					i += 2;
+				}
+				else
+				{
+					device->controller->write_data(device, *data);
+					data += 1;
+					i += 1;
+				}
 			}
 		}
 	}
 	
 	if (oob)
 	{
-		for (i = 0; i < oob_size;)
+		if (device->controller->write_block_data != NULL)
+			(device->controller->write_block_data)(device, oob, oob_size);
+		else
 		{
-			if (device->device->options & NAND_BUSWIDTH_16)
+			for (i = 0; i < oob_size;)
 			{
-				u16 oob_buf = le_to_h_u16(data);
-				device->controller->write_data(device, oob_buf);
-				oob += 2;
-				i += 2;
-			}
-			else
-			{
-				device->controller->write_data(device, *oob);
-				oob += 1;
-				i += 1;
+				if (device->device->options & NAND_BUSWIDTH_16)
+				{
+					u16 oob_buf = le_to_h_u16(data);
+					device->controller->write_data(device, oob_buf);
+					oob += 2;
+					i += 2;
+				}
+				else
+				{
+					device->controller->write_data(device, *oob);
+					oob += 1;
+					i += 1;
+				}
 			}
 		}
 	}
