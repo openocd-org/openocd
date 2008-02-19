@@ -174,14 +174,14 @@ int armv4_5_mode_to_number(enum armv4_5_mode mode)
 {
 	switch (mode)
 	{
-		case 16: return 0; break;
-		case 17: return 1; break;
-		case 18: return 2; break;
-		case 19: return 3; break;
-		case 23: return 4; break;
-		case 27: return 5; break;
-		case 31: return 6; break;
-		case -1: return 0; break;	/* map MODE_ANY to user mode */
+		case ARMV4_5_MODE_USR: return 0; break;
+		case ARMV4_5_MODE_FIQ: return 1; break;
+		case ARMV4_5_MODE_IRQ: return 2; break;
+		case ARMV4_5_MODE_SVC: return 3; break;
+		case ARMV4_5_MODE_ABT: return 4; break;
+		case ARMV4_5_MODE_UND: return 5; break;
+		case ARMV4_5_MODE_SYS: return 6; break;
+		case ARMV4_5_MODE_ANY: return 0; break;	/* map MODE_ANY to user mode */
 		default: 
 			ERROR("invalid mode value encountered");
 			return -1;

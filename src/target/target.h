@@ -147,6 +147,9 @@ typedef struct target_type_s
 	int (*init_target)(struct command_context_s *cmd_ctx, struct target_s *target);
 	int (*quit)(void);
 	
+	int (*virt2phys)(struct target_s *target, u32 address, u32 *physical);
+	int (*mmu)(struct target_s *target, int *enabled);
+	
 } target_type_t;
 
 typedef struct target_s
@@ -158,7 +161,11 @@ typedef struct target_s
 	char *post_halt_script;				/* script file to execute after the target halted */
 	char *pre_resume_script;			/* script file to execute before the target resumed */
 	char *gdb_program_script;			/* script file to execute before programming vis gdb */
-	u32 working_area;					/* working area (initialized RAM) */
+	u32 working_area;					/* working area (initialized RAM). Evaluated 
+										   upon first allocation from virtual/physical address.
+										  */
+	u32 working_area_virt;				/* virtual address */
+	u32 working_area_phys;				/* physical address */
 	u32 working_area_size;				/* size in bytes */
 	u32 backup_working_area;			/* whether the content of the working area has to be preserved */
 	struct working_area_s *working_areas;/* list of allocated working areas */

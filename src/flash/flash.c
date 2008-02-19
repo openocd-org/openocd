@@ -87,7 +87,7 @@ int flash_register_commands(struct command_context_s *cmd_ctx)
 {
 	flash_cmd = register_command(cmd_ctx, NULL, "flash", NULL, COMMAND_ANY, NULL);
 	
-	register_command(cmd_ctx, flash_cmd, "bank", handle_flash_bank_command, COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, flash_cmd, "bank", handle_flash_bank_command, COMMAND_CONFIG, "flash_bank <driver> <base> <size> <chip_width> <bus_width> <target> [driver_options ...]");
 	register_command(cmd_ctx, flash_cmd, "auto_erase", handle_flash_auto_erase_command, COMMAND_ANY,
 						 "auto erase flash sectors <on|off>");
 	return ERROR_OK;
@@ -160,8 +160,6 @@ flash_bank_t *get_flash_bank_by_num(int num)
 	return p;
 }
 
-/* flash_bank <driver> <base> <size> <chip_width> <bus_width> <target> [driver_options ...]
- */
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
@@ -170,9 +168,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 		
 	if (argc < 6)
 	{
-		WARNING("incomplete flash_bank configuration");
-		WARNING("flash_bank <driver> <base> <size> <chip_width> <bus_width> <target> [driver_options ...]");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	if ((target = get_target_by_num(strtoul(args[5], NULL, 0))) == NULL)

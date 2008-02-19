@@ -37,6 +37,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+void command_print_help_line(command_context_t* context, struct command_s *command, int indent);
+
 int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int build_unique_lengths(command_context_t *context, command_t *commands)
@@ -345,7 +347,13 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 				}
 				else
 				{
-					return c->handler(context, c->name, words + start_word + 1, num_words - start_word - 1);
+					int retval = c->handler(context, c->name, words + start_word + 1, num_words - start_word - 1);
+					if (retval == ERROR_COMMAND_SYNTAX_ERROR)
+					{
+						command_print(context, "Syntax error:");
+						command_print_help_line(context, c, 0);
+					}
+					return retval; 
 				}
 			}
 			else

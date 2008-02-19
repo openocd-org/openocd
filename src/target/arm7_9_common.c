@@ -186,17 +186,33 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		if (breakpoint->length == 4)
 		{
+			u32 verify = 0xffffffff;
 			/* keep the original instruction in target endianness */
 			target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
 			/* write the breakpoint instruction in target endianness (arm7_9->arm_bkpt is host endian) */
 			target_write_u32(target, breakpoint->address, arm7_9->arm_bkpt);
+			
+			target->type->read_memory(target, breakpoint->address, 4, 1, (u8 *)&verify);
+			if (verify != arm7_9->arm_bkpt)
+			{
+				ERROR("Unable to set 32 bit software breakpoint at address %08x", breakpoint->address);
+				return ERROR_OK;
+			}
 		}
 		else
 		{
+			u16 verify = 0xffff;
 			/* keep the original instruction in target endianness */
 			target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
 			/* write the breakpoint instruction in target endianness (arm7_9->thumb_bkpt is host endian) */
 			target_write_u16(target, breakpoint->address, arm7_9->thumb_bkpt);
+			
+			target->type->read_memory(target, breakpoint->address, 2, 1, (u8 *)&verify);
+			if (verify != arm7_9->thumb_bkpt)
+			{
+				ERROR("Unable to set thumb software breakpoint at address %08x", breakpoint->address);
+				return ERROR_OK;
+			}
 		}
 		breakpoint->set = 1;
 	}
@@ -1914,7 +1930,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while reading cpsr");
-		exit(-1);
+		return ERROR_TARGET_DATA_ABORT;
 	}
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
@@ -1943,7 +1959,9 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	int retval;
 	int last_reg = 0;
 
+#ifdef _DEBUG_ARM7_9_
 	DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
+#endif
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2079,7 +2097,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while reading cpsr");
-		exit(-1);
+		return ERROR_TARGET_DATA_ABORT;
 	}
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))

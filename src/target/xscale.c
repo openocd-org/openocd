@@ -84,6 +84,8 @@ int xscale_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 int xscale_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 void xscale_enable_watchpoints(struct target_s *target);
 void xscale_enable_breakpoints(struct target_s *target);
+static int xscale_virt2phys(struct target_s *target, u32 virtual, u32 *physical);
+static int xscale_mmu(struct target_s *target, int *enabled);
 
 int xscale_read_trace(target_t *target);
 
@@ -122,7 +124,10 @@ target_type_t xscale_target =
 	.register_commands = xscale_register_commands,
 	.target_command = xscale_target_command,
 	.init_target = xscale_init_target,
-	.quit = xscale_quit
+	.quit = xscale_quit,
+	
+	.virt2phys = xscale_virt2phys,
+	.mmu = xscale_mmu
 };
 
 char* xscale_reg_list[] =
@@ -189,11 +194,13 @@ int xscale_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, xsc
 
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
+		ERROR("target isn't an XScale target");
 		return -1;
 	}
 
 	if (xscale->common_magic != XSCALE_COMMON_MAGIC)
 	{
+		ERROR("target isn't an XScale target");
 		return -1;
 	}
 
@@ -436,7 +443,7 @@ int xscale_read_tx(target_t *target, int consume)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	enum tap_state path[3];
-	enum tap_state noconsume_path[7];
+	enum tap_state noconsume_path[9];
 
 	int retval;
 	struct timeval timeout, now;
@@ -461,8 +468,10 @@ int xscale_read_tx(target_t *target, int consume)
 	noconsume_path[2] = TAP_E1D;
 	noconsume_path[3] = TAP_PD;
 	noconsume_path[4] = TAP_E2D;
-	noconsume_path[5] = TAP_CD;
-	noconsume_path[6] = TAP_SD;
+	noconsume_path[5] = TAP_UD;
+	noconsume_path[6] = TAP_SDS;
+	noconsume_path[7] = TAP_CD;
+	noconsume_path[8] = TAP_SD;
 
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
@@ -502,7 +511,7 @@ int xscale_read_tx(target_t *target, int consume)
 		if (consume)
 			jtag_add_pathmove(3, path);
 		else
-			jtag_add_pathmove(7, noconsume_path);
+			jtag_add_pathmove(sizeof(noconsume_path)/sizeof(*noconsume_path), noconsume_path);
 
 		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 
@@ -3142,7 +3151,6 @@ int xscale_handle_debug_handler_command(struct command_context_s *cmd_ctx, char 
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an ARM920t target");
 		return ERROR_OK;
 	}
 
@@ -3183,7 +3191,6 @@ int xscale_handle_cache_clean_address_command(struct command_context_s *cmd_ctx,
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
@@ -3209,32 +3216,49 @@ int xscale_handle_cache_info_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
 	return armv4_5_handle_cache_info_command(cmd_ctx, &xscale->armv4_5_mmu.armv4_5_cache);
 }
 
-int xscale_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
+static int xscale_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
 {
-	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
+	int retval;
+	int type;
+	u32 cb;
+	int domain;
+	u32 ap;
+	
+	if ((retval = xscale_get_arch_pointers(target, &armv4_5, &xscale)) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
-		return ERROR_OK;
+		return retval;
 	}
+	u32 ret = armv4_5_mmu_translate_va(target, &xscale->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
+	if (type == -1)
+	{
+		return ret;
+	}
+	
+	*physical = ret;
+	return ERROR_OK;
+}
+
+static int xscale_mmu(struct target_s *target, int *enabled)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	xscale_common_t *xscale = armv4_5->arch_info;
 
 	if (target->state != TARGET_HALTED)
 	{
-		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
-		return ERROR_OK;
+		ERROR("Target not halted");
+		return ERROR_TARGET_INVALID;
 	}
-
-	return armv4_5_mmu_handle_virt2phys_command(cmd_ctx, cmd, args, argc, target, &xscale->armv4_5_mmu);
+	
+	*enabled = xscale->armv4_5_mmu.mmu_enabled;
+	return ERROR_OK;
 }
 
 int xscale_handle_mmu_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
@@ -3245,7 +3269,6 @@ int xscale_handle_mmu_command(command_context_t *cmd_ctx, char *cmd, char **args
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
@@ -3283,7 +3306,6 @@ int xscale_handle_idcache_command(command_context_t *cmd_ctx, char *cmd, char **
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
@@ -3337,7 +3359,6 @@ int xscale_handle_vector_catch_command(command_context_t *cmd_ctx, char *cmd, ch
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
@@ -3365,7 +3386,6 @@ int xscale_handle_force_hw_bkpts_command(struct command_context_s *cmd_ctx, char
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
@@ -3396,7 +3416,6 @@ int xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx, char *
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
@@ -3483,7 +3502,6 @@ int xscale_handle_trace_image_command(struct command_context_s *cmd_ctx, char *c
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
@@ -3530,7 +3548,6 @@ int xscale_handle_dump_trace_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
@@ -3588,7 +3605,6 @@ int xscale_handle_analyze_trace_buffer_command(struct command_context_s *cmd_ctx
 
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 
@@ -3605,7 +3621,6 @@ int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int a
 	
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "target isn't an XScale target");
 		return ERROR_OK;
 	}
 	
@@ -3697,7 +3712,6 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, xscale_cmd, "cache_clean_address", xscale_handle_cache_clean_address_command, COMMAND_ANY, NULL);
 
 	register_command(cmd_ctx, xscale_cmd, "cache_info", xscale_handle_cache_info_command, COMMAND_EXEC, NULL);
-	register_command(cmd_ctx, xscale_cmd, "virt2phys", xscale_handle_virt2phys_command, COMMAND_EXEC, NULL);
 	register_command(cmd_ctx, xscale_cmd, "mmu", xscale_handle_mmu_command, COMMAND_EXEC, "['enable'|'disable'] the MMU");
 	register_command(cmd_ctx, xscale_cmd, "icache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the ICache");
 	register_command(cmd_ctx, xscale_cmd, "dcache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the DCache");

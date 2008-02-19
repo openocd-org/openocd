@@ -74,6 +74,7 @@ int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc);
 
 /* targets
  */
@@ -376,6 +377,19 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	return retval;
 }
 
+static int default_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
+{
+	*physical = virtual;
+	return ERROR_OK;
+}
+
+static int default_mmu(struct target_s *target, int *enabled)
+{
+	USER("No MMU present");
+	*enabled = 0;
+	return ERROR_OK;
+}
+
 int target_init(struct command_context_s *cmd_ctx)
 {
 	target_t *target = targets;
@@ -386,6 +400,16 @@ int target_init(struct command_context_s *cmd_ctx)
 		{
 			ERROR("target '%s' init failed", target->type->name);
 			exit(-1);
+		}
+		
+		/* Set up default functions if none are provided by target */
+		if (target->type->virt2phys == NULL)
+		{
+			target->type->virt2phys = default_virt2phys;
+		}
+		if (target->type->mmu == NULL)
+		{
+			target->type->mmu = default_mmu;
 		}
 		target = target->next;
 	}
@@ -583,6 +607,26 @@ int target_alloc_working_area(struct target_s *target, u32 size, working_area_t 
 	working_area_t *c = target->working_areas;
 	working_area_t *new_wa = NULL;
 	
+	/* Reevaluate working area address based on MMU state*/
+	if (target->working_areas == NULL)
+	{
+		int retval;
+		int enabled;
+		retval = target->type->mmu(target, &enabled);
+		if (retval != ERROR_OK)
+		{
+			return retval;
+		}
+		if (enabled)
+		{
+			target->working_area = target->working_area_virt;
+		}
+		else
+		{
+			target->working_area = target->working_area_phys;
+		}
+	}
+	
 	/* only allocate multiples of 4 byte */
 	if (size % 4)
 	{
@@ -621,7 +665,7 @@ int target_alloc_working_area(struct target_s *target, u32 size, working_area_t 
 		
 		if (free_size < size)
 		{
-			WARNING("not enough working area available");
+			WARNING("not enough working area available(requested %d, free %d)", size, free_size);
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		
@@ -700,7 +744,8 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "daemon_startup", handle_daemon_startup_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "target_script", handle_target_script_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, NULL);
+	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
+	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
 
 	return ERROR_OK;
 }
@@ -1221,10 +1266,9 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 {
 	target_t *target = NULL;
 	
-	if (argc < 4)
+	if ((argc < 4) || (argc > 5))
 	{
-		ERROR("incomplete working_area command. usage: working_area <target#> <address> <size> <'backup'|'nobackup'>");
-		exit(-1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	target = get_target_by_num(strtoul(args[0], NULL, 0));
@@ -1236,7 +1280,11 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	}
 	target_free_all_working_areas(target);
 	
-	target->working_area = strtoul(args[1], NULL, 0);
+	target->working_area_phys = target->working_area_virt = strtoul(args[1], NULL, 0);
+	if (argc == 5)
+	{
+		target->working_area_virt = strtoul(args[4], NULL, 0);
+	}
 	target->working_area_size = strtoul(args[2], NULL, 0);
 	
 	if (strcmp(args[3], "backup") == 0)
@@ -1250,7 +1298,7 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	else
 	{
 		ERROR("unrecognized <backup|nobackup> argument (%s)", args[3]);
-		exit(-1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	return ERROR_OK;
@@ -2246,4 +2294,31 @@ int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 		watchpoint_remove(target, strtoul(args[0], NULL, 0));
 	
 	return ERROR_OK;
+}
+
+int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
+{
+	int retval;
+	target_t *target = get_current_target(cmd_ctx);
+	u32 va;
+	u32 pa;
+
+	if (argc != 1)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	va = strtoul(args[0], NULL, 0);
+
+	retval = target->type->virt2phys(target, va, &pa);
+	if (retval == ERROR_OK)
+	{
+		command_print(cmd_ctx, "Physical address 0x%08x", pa);
+	}
+	else
+	{
+		/* lower levels will have logged a detailed error which is 
+		 * forwarded to telnet/GDB session.  
+		 */
+	}
+	return retval;
 }
