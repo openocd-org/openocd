@@ -224,7 +224,7 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 	{
 		target_unregister_event_callback(target_init_handler, priv);
 
-		script = fopen(target->reset_script, "r");
+		script = open_file_from_path(cmd_ctx, target->reset_script, "r");
 		if (!script)
 		{
 			ERROR("couldn't open script file %s", target->reset_script);

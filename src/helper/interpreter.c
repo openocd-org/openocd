@@ -22,6 +22,7 @@
 #endif
 
 #include "interpreter.h"
+#include "configuration.h"
 
 #include "binarybuffer.h"
 #include <stdlib.h>
@@ -221,7 +222,8 @@ int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	if (argc != 1)
 		command_print(cmd_ctx, "usage: script <file>");
 
-	script_file = fopen(args[0], "r");
+	script_file = open_file_from_path(cmd_ctx, args[0], "r");
+
 	if (!script_file)
 	{
 		command_print(cmd_ctx, "couldn't open script file %s", args[0]);

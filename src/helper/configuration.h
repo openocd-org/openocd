@@ -26,6 +26,6 @@
 extern int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]);
 extern int parse_config_file(struct command_context_s *cmd_ctx);
 extern int configuration_output_handler(struct command_context_s *context, char* line);
+extern FILE *open_file_from_path (command_context_t *cmd_ctx, char *file, char *mode);
 
-extern char* config_file_name;
 #endif /* CONFIGURATION_H */

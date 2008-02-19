@@ -32,6 +32,7 @@
 #include "breakpoints.h"
 #include "flash.h"
 #include "target_request.h"
+#include "configuration.h"
 
 #include <string.h>
 #include <errno.h>
@@ -539,7 +540,7 @@ int gdb_program_handler(struct target_s *target, enum target_event event, void *
 	
 	if (target->gdb_program_script)
 	{
-		script = fopen(target->gdb_program_script, "r");
+		script = open_file_from_path(cmd_ctx, target->gdb_program_script, "r");
 		if (!script)
 		{
 			ERROR("couldn't open script file %s", target->gdb_program_script);

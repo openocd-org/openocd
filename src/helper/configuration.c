@@ -29,8 +29,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <string.h>
 
-char* config_file_name;
+static size_t num_config_files;
+static char** config_file_names;
+
+static size_t num_script_dirs;
+static char** script_search_dirs;
 
 static int help_flag;
 
@@ -40,6 +45,7 @@ static struct option long_options[] =
 
 	{"debug",			optional_argument,	0, 'd'},
 	{"file", 			required_argument,	0, 'f'},
+	{"search",			required_argument,	0, 's'},
 	{"log_output",		required_argument,	0, 'l'},
 	
 	{0, 0, 0, 0}
@@ -52,17 +58,38 @@ int configuration_output_handler(struct command_context_s *context, char* line)
 	return ERROR_OK;
 }
 
+void add_script_search_dir (const char *dir)
+{
+	num_script_dirs++;
+	script_search_dirs = (char **)realloc(script_search_dirs, (num_script_dirs+1) * sizeof (char *));
+
+	script_search_dirs[num_script_dirs-1] = strdup(dir);
+	script_search_dirs[num_script_dirs] = NULL;
+}
+
+void add_config_file_name (const char *cfg)
+{
+	num_config_files++;
+	config_file_names = (char **)realloc(config_file_names, (num_config_files+1) * sizeof (char *));
+
+	config_file_names[num_config_files-1] = strdup(cfg);
+	config_file_names[num_config_files] = NULL;
+}
+
 int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[])
 {
 	int c;
 	char command_buffer[128];
-			
+
+	/* Always search relative to current working dir first. */
+	add_script_search_dir(".");
+
 	while (1)
 	{	
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
 		
-		c = getopt_long(argc, argv, "hd::l:f:", long_options, &option_index);
+		c = getopt_long(argc, argv, "hd::l:f:s:", long_options, &option_index);
 		
 		/* Detect the end of the options. */
 		if (c == -1)
@@ -76,7 +103,10 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 				help_flag = 1;
 				break;
 			case 'f':	/* --file | -f */
-				config_file_name = optarg;
+				add_config_file_name(optarg);
+				break;
+			case 's':	/* --search | -s */
+				add_script_search_dir(optarg);
 				break;
 			case 'd':	/* --debug | -d */
 				if (optarg)
@@ -100,32 +130,68 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		printf("Open On-Chip Debugger\n(c) 2005 by Dominic Rath\n\n");
 		printf("--help       | -h\tdisplay this help\n");
 		printf("--file       | -f\tuse configuration file <name>\n");
+		printf("--search     | -s\tdir to search for config files and scripts.\n");
 		printf("--debug      | -d\tset debug level <0-3>\n");
 		printf("--log_output | -l\tredirect log output to file <name>\n");
 		exit(-1);
 	}	
 
+	/* Add dir for openocd supplied scripts last so that user can over
+	   ride those scripts if desired. */
+	add_script_search_dir(PKGDATADIR);
+
 	return ERROR_OK;
+}
+
+FILE *open_file_from_path (command_context_t *cmd_ctx, char *file, char *mode)
+{
+	FILE *fp = NULL;
+	char **search_dirs = script_search_dirs;
+	char *dir;
+	char full_path[1024];
+
+	while (!fp)
+	{
+		dir = *search_dirs++;
+
+		if (!dir)
+			break;
+
+		snprintf(full_path, 1024, "%s/%s", dir, file);
+		fp = fopen(full_path, mode);
+	}
+
+	if (fp)
+		command_print(cmd_ctx, "opened %s", full_path);
+
+	return fp;
 }
 
 int parse_config_file(struct command_context_s *cmd_ctx)
 {
+	char **cfg;
 	FILE *config_file;
 
-	if (!config_file_name)
-		config_file_name = "openocd.cfg";
+	if (!config_file_names)
+		add_config_file_name ("openocd.cfg");
 
-	config_file = fopen(config_file_name, "r");
-	if (!config_file)
+	cfg = config_file_names;
+
+	while (*cfg)
 	{
-		ERROR("couldn't open config file");
-		return ERROR_NO_CONFIG_FILE;
+		config_file = open_file_from_path(cmd_ctx, *cfg, "r");
+		if (!config_file)
+		{
+			ERROR("couldn't open config file");
+			return ERROR_NO_CONFIG_FILE;
+		}
+
+		command_run_file(cmd_ctx, config_file, COMMAND_CONFIG);
+
+		fclose(config_file);
+
+		cfg++;
 	}
-
-	command_run_file(cmd_ctx, config_file, COMMAND_CONFIG);
-
-	fclose(config_file);
 
 	return ERROR_OK;
 }
-

@@ -159,6 +159,10 @@ locations, i.e. /usr/include, /usr/lib.
 @node Running
 @chapter Running
 @cindex running openocd
+@cindex --configfile
+@cindex --debug_level
+@cindex --logfile
+@cindex --search
 The OpenOCD runs as a daemon, waiting for connections from clients (Telnet or GDB).
 Run with @option{--help} or @option{-h} to view the available command line arguments.
 
@@ -172,7 +176,10 @@ the most information, including debug messages. The default setting is "2", outp
 only informational messages, warnings and errors. You can also change this setting
 from within a telnet or gdb session (@option{debug_level <n>}).
 
-You can redirect all output from the daemon to a file using the @option{-l <logfile>} switch. 
+You can redirect all output from the daemon to a file using the @option{-l <logfile>} switch.
+
+Search paths for config/script files can be added to openocd by using
+the @option{-s <search>} switch.
 
 @node Configuration
 @chapter Configuration
