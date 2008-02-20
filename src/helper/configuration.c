@@ -81,9 +81,6 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 	int c;
 	char command_buffer[128];
 
-	/* Always search relative to current working dir first. */
-	add_script_search_dir(".");
-
 	while (1)
 	{	
 		/* getopt_long stores the option index here. */
@@ -149,6 +146,11 @@ FILE *open_file_from_path (command_context_t *cmd_ctx, char *file, char *mode)
 	char **search_dirs = script_search_dirs;
 	char *dir;
 	char full_path[1024];
+
+	/* Check absolute and relative to current working dir first.
+	 * This keeps full_path reporting belowing working. */
+	snprintf(full_path, 1024, "%s", file);
+	fp = fopen(full_path, mode);
 
 	while (!fp)
 	{
