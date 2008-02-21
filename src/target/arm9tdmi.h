@@ -61,6 +61,7 @@ extern int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 
 extern int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int sysspeed);
 extern int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in);
+extern int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be); 
 extern void arm9tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16]);
 extern void arm9tdmi_write_core_regs(target_t *target, u32 mask, u32 core_regs[16]);
 

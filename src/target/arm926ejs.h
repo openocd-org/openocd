@@ -41,4 +41,10 @@ typedef struct arm926ejs_common_s
 	u32 d_far;
 } arm926ejs_common_t;
 
+extern int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, int chain_pos, char *variant);
+extern int arm926ejs_register_commands(struct command_context_s *cmd_ctx); 
+extern int arm926ejs_arch_state(struct target_s *target, char *buf, int buf_size); 
+extern int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer); 
+extern int arm926ejs_soft_reset_halt(struct target_s *target);
+
 #endif /* ARM926EJS_H */

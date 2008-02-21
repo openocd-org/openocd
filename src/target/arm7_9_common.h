@@ -115,6 +115,7 @@ int arm7_9_prepare_reset_halt(struct target_s *target);
 int arm7_9_halt(target_t *target);
 int arm7_9_debug_entry(target_t *target);
 int arm7_9_full_context(target_t *target);
+int arm7_9_restore_context(target_t *target);
 int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
 int arm7_9_step(struct target_s *target, int current, u32 address, int handle_breakpoints);
 int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mode);
