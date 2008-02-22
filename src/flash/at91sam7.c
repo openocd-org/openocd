@@ -467,8 +467,8 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 	
 	if (at91sam7_info->cidr_arch == 0x72 )
 	{
-		at91sam7_info->num_nvmbits = 2;
-		at91sam7_info->nvmbits = (status>>8)&0x03;
+		at91sam7_info->num_nvmbits = 3;
+		at91sam7_info->nvmbits = (status>>8)&0x07;
 		bank->base = 0x100000;
 		bank->bus_width = 4;
 		if (bank->size==0x80000) /* AT91SAM7SE512 */
@@ -892,7 +892,7 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 }
 
 /* 
-* On AT91SAM7S: When the gpnmv bits are set with 
+* On AT91SAM7S: When the gpnvm bits are set with 
 * > at91sam7 gpnvm 0 bitnr set
 * the changes are not visible in the flash controller status register MC_FSR 
 * until the processor has been reset.
