@@ -69,7 +69,17 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	if (f != NULL)
 		file = f + 1;
 
-	fprintf(log_output, "%s %d %ld %s:%d %s(): %s\n", log_strings[level+1], count, time(NULL), file, line, function, buffer);
+	if (debug_level >= LOG_DEBUG)
+	{
+		/* print with count and time information */
+		fprintf(log_output, "%s %d %ld %s:%d %s(): %s\n", log_strings[level+1], count, time(NULL), file, line, function, buffer);
+	}
+	else
+	{
+		/* do not print count and time */
+		fprintf(log_output, "%s %s:%d %s(): %s\n", log_strings[level+1], file, line, function, buffer);
+	}
+
 	fflush(log_output);
 	
 	va_end(args);
