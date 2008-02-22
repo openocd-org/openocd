@@ -1464,6 +1464,7 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	breakpoint_t *breakpoint = target->breakpoints;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+	int err;
 	
 	DEBUG("-");
 	
@@ -1511,14 +1512,21 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 				
 			buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGACK, 1, 0);
 			embeddedice_write_reg(dbg_ctrl, buf_get_u32(dbg_ctrl->value, 0, dbg_ctrl->size));
-			arm7_9_execute_sys_speed(target);
+			err = arm7_9_execute_sys_speed(target);
 			
 			DEBUG("disable single-step");
 			arm7_9->disable_single_step(target);
-			
+
+			if (err != ERROR_OK)
+			{
+				arm7_9_set_breakpoint(target, breakpoint);
+				target->state = TARGET_UNKNOWN;
+				return err;
+			}
+
 			arm7_9_debug_entry(target);
 			DEBUG("new PC after step: 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-		
+
 			DEBUG("set breakpoint at 0x%8.8x", breakpoint->address);
 			arm7_9_set_breakpoint(target, breakpoint);
 		}
@@ -1614,6 +1622,7 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	breakpoint_t *breakpoint = NULL;
+	int err;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1652,22 +1661,25 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
-	arm7_9_execute_sys_speed(target);
+	err = arm7_9_execute_sys_speed(target);
 	arm7_9->disable_single_step(target);
 	
 	/* registers are now invalid */
 	armv4_5_invalidate_core_regs(target);
 	
-	arm7_9_debug_entry(target);
+	if (err != ERROR_OK)
+	{
+		target->state = TARGET_UNKNOWN;
+	} else {
+		arm7_9_debug_entry(target);
+		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+		DEBUG("target stepped");
+	}
 	
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-
 	if (breakpoint)
 		arm7_9_set_breakpoint(target, breakpoint);
 	
-	DEBUG("target stepped");
-
-	return ERROR_OK;
+	return err;
 
 }
 
