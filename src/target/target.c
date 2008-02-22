@@ -772,6 +772,9 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 	{
 		int unaligned = 4 - (address % 4);
 		
+		if (unaligned > size)
+			unaligned = size;
+
 		if ((retval = target->type->write_memory(target, address, 1, unaligned, buffer)) != ERROR_OK)
 			return retval;
 		
@@ -833,6 +836,9 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	{
 		int unaligned = 4 - (address % 4);
 		
+		if (unaligned > size)
+			unaligned = size;
+
 		if ((retval = target->type->read_memory(target, address, 1, unaligned, buffer)) != ERROR_OK)
 			return retval;
 		
