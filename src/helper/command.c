@@ -29,6 +29,7 @@
 #include "command.h"
 
 #include "log.h"
+#include "time_support.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +41,7 @@
 void command_print_help_line(command_context_t* context, struct command_s *command, int indent);
 
 int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int build_unique_lengths(command_context_t *context, command_t *commands)
 {
@@ -569,6 +571,9 @@ command_context_t* command_init()
 	register_command(context, NULL, "sleep", handle_sleep_command,
 					 COMMAND_ANY, "sleep for <n> milliseconds");
 	
+	register_command(context, NULL, "time", handle_time_command,
+					 COMMAND_ANY, "time <cmd + args> - execute <cmd + args> and print time it took");
+	
 	return context;
 }
 
@@ -586,4 +591,28 @@ int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	}
 
 	return ERROR_OK;
+}
+
+int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc<1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	
+	duration_t duration;
+	char *duration_text;
+	int retval;
+	
+	duration_start_measure(&duration);
+	
+	retval = find_and_run_command(cmd_ctx, cmd_ctx->commands, args, argc, 0);
+	
+	duration_stop_measure(&duration, &duration_text);
+	
+	float t=duration.duration.tv_sec;
+	t+=((float)duration.duration.tv_usec / 1000000.0);
+	command_print(cmd_ctx, "%s took %fs", args[0], t);
+	
+	free(duration_text);
+
+	return retval;
 }

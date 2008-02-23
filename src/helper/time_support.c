@@ -102,8 +102,11 @@ int duration_stop_measure(duration_t *duration, char **text)
 	
 	if (text)
 	{
-		*text = malloc(16);
-		snprintf(*text, 16, "%lis %lius", duration->duration.tv_sec, duration->duration.tv_usec);
+		float t;
+		t=duration->duration.tv_sec;
+		t+=(float)duration->duration.tv_usec/1000000.0;
+		*text = malloc(100);
+		snprintf(*text, 100, "%fs", t);
 	}
 	
 	return ERROR_OK;
