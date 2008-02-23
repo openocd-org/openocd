@@ -54,8 +54,6 @@ int arm926ejs_read_memory(struct target_s *target, u32 address, u32 size, u32 co
 int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm926ejs_soft_reset_halt(struct target_s *target);
 
-#define ARM926EJS_CP15_ADDR(opcode_1, opcode_2, CRn, CRm) ((opcode_1 << 11) | (opcode_2 << 8) | (CRn << 4) | (CRm << 0))
-
 target_type_t arm926ejs_target =
 {
 	.name = "arm926ejs",
@@ -112,11 +110,14 @@ int arm926ejs_catch_broken_irscan(u8 *captured, void *priv, scan_field_t *field)
 	return ERROR_JTAG_QUEUE_FAILED;;
 }
 
-int arm926ejs_read_cp15(target_t *target, u32 address, u32 *value)
+#define ARM926EJS_CP15_ADDR(opcode_1, opcode_2, CRn, CRm) ((opcode_1 << 11) | (opcode_2 << 8) | (CRn << 4) | (CRm << 0))
+
+int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 *value)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	u32 address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	scan_field_t fields[4];
 	u8 address_buf[2];
 	u8 nr_w_buf = 0;
@@ -191,11 +192,12 @@ int arm926ejs_read_cp15(target_t *target, u32 address, u32 *value)
 	return ERROR_OK;
 }
 
-int arm926ejs_write_cp15(target_t *target, u32 address, u32 value)
+int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 value)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	u32 address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	scan_field_t fields[4];
 	u8 value_buf[4];
 	u8 address_buf[2];
@@ -338,10 +340,14 @@ int arm926ejs_examine_debug_reason(target_t *target)
 
 u32 arm926ejs_get_ttb(target_t *target)
 {
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
+	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 	int retval;
 	u32 ttb = 0x0;
 
-	if ((retval = arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 2, 0), &ttb)) != ERROR_OK)
+	if ((retval = arm926ejs->read_cp15(target, 0, 0, 2, 0, &ttb)) != ERROR_OK)
 		return retval;
 
 	return ttb;
@@ -349,16 +355,20 @@ u32 arm926ejs_get_ttb(target_t *target)
 
 void arm926ejs_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache)
 {
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
+	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 	u32 cp15_control;
 
 	/* read cp15 control register */
-	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 1, 0), &cp15_control);
+	arm926ejs->read_cp15(target, 0, 0, 1, 0, &cp15_control);
 	jtag_execute_queue();
 	
 	if (mmu)
 	{
 		/* invalidate TLB */
-		arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 8, 7), 0x0);
+		arm926ejs->write_cp15(target, 0, 0, 8, 7, 0x0);
 		
 		cp15_control &= ~0x1U;
 	}
@@ -368,17 +378,17 @@ void arm926ejs_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int 
 		u32 debug_override;
 		/* read-modify-write CP15 debug override register 
 		 * to enable "test and clean all" */
-		arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 15, 0), &debug_override);
+		arm926ejs->read_cp15(target, 0, 0, 15, 0, &debug_override);
 		debug_override |= 0x80000;
-		arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 15, 0), debug_override);
+		arm926ejs->write_cp15(target, 0, 0, 15, 0, debug_override);
 		
 		/* clean and invalidate DCache */
-		arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 7, 5), 0x0);
+		arm926ejs->write_cp15(target, 0, 0, 7, 5, 0x0);
 
 		/* write CP15 debug override register 
 		 * to disable "test and clean all" */
 		debug_override &= ~0x80000;
-		arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 15, 0), debug_override);
+		arm926ejs->write_cp15(target, 0, 0, 15, 0, debug_override);
 		
 		cp15_control &= ~0x4U;
 	}
@@ -386,20 +396,24 @@ void arm926ejs_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int 
 	if (i_cache)
 	{
 		/* invalidate ICache */
-		arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 7, 5), 0x0);
+		arm926ejs->write_cp15(target, 0, 0, 7, 5, 0x0);
 		
 		cp15_control &= ~0x1000U;
 	}
 	
-	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 1, 0), cp15_control);
+	arm926ejs->write_cp15(target, 0, 0, 1, 0, cp15_control);
 }
 
 void arm926ejs_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache)
 {
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
+	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 	u32 cp15_control;
 
 	/* read cp15 control register */
-	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 1, 0), &cp15_control);
+	arm926ejs->read_cp15(target, 0, 0, 1, 0, &cp15_control);
 	jtag_execute_queue();
 		
 	if (mmu)
@@ -411,7 +425,7 @@ void arm926ejs_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i
 	if (i_cache)
 		cp15_control |= 0x1000U;
 	
-	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 1, 0), cp15_control);
+	arm926ejs->write_cp15(target, 0, 0, 1, 0, cp15_control);
 }
 
 void arm926ejs_post_debug_entry(target_t *target)
@@ -422,7 +436,7 @@ void arm926ejs_post_debug_entry(target_t *target)
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 
 	/* examine cp15 control reg */
-	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 1, 0), &arm926ejs->cp15_control_reg);
+	arm926ejs->read_cp15(target, 0, 0, 1, 0, &arm926ejs->cp15_control_reg);
 	jtag_execute_queue();
 	DEBUG("cp15_control_reg: %8.8x", arm926ejs->cp15_control_reg);
 
@@ -430,7 +444,7 @@ void arm926ejs_post_debug_entry(target_t *target)
 	{
 		u32 cache_type_reg;
 		/* identify caches */
-		arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 1, 0, 0), &cache_type_reg);
+		arm926ejs->read_cp15(target, 0, 1, 0, 0, &cache_type_reg);
 		jtag_execute_queue();
 		armv4_5_identify_cache(cache_type_reg, &arm926ejs->armv4_5_mmu.armv4_5_cache);
 	}
@@ -440,9 +454,9 @@ void arm926ejs_post_debug_entry(target_t *target)
 	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = (arm926ejs->cp15_control_reg & 0x1000U) ? 1 : 0;
 
 	/* save i/d fault status and address register */
-	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 5, 0), &arm926ejs->d_fsr);
-	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 1, 5, 0), &arm926ejs->i_fsr);
-	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 6, 0), &arm926ejs->d_far);
+	arm926ejs->read_cp15(target, 0, 0, 5, 0, &arm926ejs->d_fsr);
+	arm926ejs->read_cp15(target, 0, 1, 5, 0, &arm926ejs->i_fsr);
+	arm926ejs->read_cp15(target, 0, 0, 6, 0, &arm926ejs->d_far);
 	
 	DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x",
 		arm926ejs->d_fsr, arm926ejs->d_far, arm926ejs->i_fsr);  
@@ -452,9 +466,9 @@ void arm926ejs_post_debug_entry(target_t *target)
 	
 	/* read-modify-write CP15 cache debug control register 
 	 * to disable I/D-cache linefills and force WT */
-	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(7, 0, 15, 0), &cache_dbg_ctrl);
+	arm926ejs->read_cp15(target, 7, 0, 15, 0, &cache_dbg_ctrl);
 	cache_dbg_ctrl |= 0x7;
-	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(7, 0, 15, 0), cache_dbg_ctrl);
+	arm926ejs->write_cp15(target, 7, 0, 15, 0, cache_dbg_ctrl);
 }
 
 void arm926ejs_pre_restore_context(target_t *target)
@@ -465,17 +479,17 @@ void arm926ejs_pre_restore_context(target_t *target)
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 
 	/* restore i/d fault status and address register */
-	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 5, 0), arm926ejs->d_fsr);
-	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 1, 5, 0), arm926ejs->i_fsr);
-	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 6, 0), arm926ejs->d_far);
+	arm926ejs->write_cp15(target, 0, 0, 5, 0, arm926ejs->d_fsr);
+	arm926ejs->write_cp15(target, 0, 1, 5, 0, arm926ejs->i_fsr);
+	arm926ejs->write_cp15(target, 0, 0, 6, 0, arm926ejs->d_far);
 	
 	u32 cache_dbg_ctrl;
 	
 	/* read-modify-write CP15 cache debug control register 
 	 * to reenable I/D-cache linefills and disable WT */
-	arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(7, 0, 15, 0), &cache_dbg_ctrl);
+	arm926ejs->read_cp15(target, 7, 0, 15, 0, &cache_dbg_ctrl);
 	cache_dbg_ctrl &= ~0x7;
-	arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(7, 0, 15, 0), cache_dbg_ctrl);
+	arm926ejs->write_cp15(target, 7, 0, 15, 0, cache_dbg_ctrl);
 }
 
 int arm926ejs_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p, arm9tdmi_common_t **arm9tdmi_p, arm926ejs_common_t **arm926ejs_p)
@@ -613,12 +627,12 @@ int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 c
 		if (count <= 1)
 		{
 			/* invalidate ICache single entry with MVA */
-			arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 1, 7, 5), address);
+			arm926ejs->write_cp15(target, 0, 1, 7, 5, address);
 		}
 		else
 		{
 			/* invalidate ICache */
-			arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(0, 0, 7, 5), address);
+			arm926ejs->write_cp15(target, 0, 0, 7, 5, address);
 		}
 	}
 
@@ -654,6 +668,8 @@ int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, in
 	arm7_9->post_debug_entry = arm926ejs_post_debug_entry;
 	arm7_9->pre_restore_context = arm926ejs_pre_restore_context;
 	
+	arm926ejs->read_cp15 = arm926ejs_cp15_read;
+	arm926ejs->write_cp15 = arm926ejs_cp15_write;
 	arm926ejs->armv4_5_mmu.armv4_5_cache.ctype = -1;
 	arm926ejs->armv4_5_mmu.get_ttb = arm926ejs_get_ttb;
 	arm926ejs->armv4_5_mmu.read_memory = arm7_9_read_memory;
@@ -766,7 +782,7 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 	if (argc == 4)
 	{
 		u32 value;
-		if ((retval = arm926ejs_read_cp15(target, ARM926EJS_CP15_ADDR(opcode_1, opcode_2, CRn, CRm), &value)) != ERROR_OK)
+		if ((retval = arm926ejs->read_cp15(target, opcode_1, opcode_2, CRn, CRm, &value)) != ERROR_OK)
 		{
 			command_print(cmd_ctx, "couldn't access register");
 			return ERROR_OK;
@@ -778,7 +794,7 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 	else
 	{
 		u32 value = strtoul(args[4], NULL, 0);
-		if ((retval = arm926ejs_write_cp15(target, ARM926EJS_CP15_ADDR(opcode_1, opcode_2, CRn, CRm), value)) != ERROR_OK)
+		if ((retval = arm926ejs->write_cp15(target, opcode_1, opcode_2, CRn, CRm, value)) != ERROR_OK)
 		{
 			command_print(cmd_ctx, "couldn't access register");
 			return ERROR_OK;

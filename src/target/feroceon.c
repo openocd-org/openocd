@@ -362,6 +362,47 @@ void feroceon_branch_resume_thumb(target_t *target)
 	arm_jtag_set_instr(jtag_info, 0xf, NULL);
 }
 
+int feroceon_read_cp15(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 *value)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+	int err;
+
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_MRC(15, op1, 0, CRn, CRm, op2), 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
+	err = arm7_9_execute_sys_speed(target);
+	if (err != ERROR_OK)
+		return err;
+
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, 1, 0, 0), 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, value, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
+	return jtag_execute_queue();
+}
+
+int feroceon_write_cp15(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 value)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, 1, 0, 0), 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, value, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
+
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_MCR(15, op1, 0, CRn, CRm, op2), 0, NULL, 0);
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
+	return arm7_9_execute_sys_speed(target);
+}
+
 void feroceon_enable_single_step(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -399,7 +440,6 @@ void feroceon_disable_single_step(target_t *target)
 	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK]);
 	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE]);
 }
-
 
 int feroceon_examine_debug_reason(target_t *target)
 {
@@ -605,6 +645,10 @@ int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	/* MOE is not implemented */
 	arm7_9->examine_debug_reason = feroceon_examine_debug_reason;
+
+	/* the standard ARM926 methods don't always work (don't ask...) */
+	arm926ejs->read_cp15 = feroceon_read_cp15;
+	arm926ejs->write_cp15 = feroceon_write_cp15;
 
 	/* asserting DBGRQ won't win over the undef exception */
 	arm7_9->use_dbgrq = 0;
