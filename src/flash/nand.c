@@ -3,7 +3,7 @@
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   partially based on                                                    *
- * 	 drivers/mtd/nand_ids.c                                                *
+ * 	 drivers/mtd/nand_ids.c                                            *
  *                                                                         *
  *   Copyright (C) 2002 Thomas Gleixner (tglx@linutronix.de)               *
  *                                                                         *
@@ -377,6 +377,7 @@ int nand_read_status(struct nand_device_s *device, u8 *status)
 int nand_probe(struct nand_device_s *device)
 {
 	u8 manufacturer_id, device_id;
+	u8 id_buff[5];
 	int retval;
 	int i;
 
@@ -467,12 +468,36 @@ int nand_probe(struct nand_device_s *device)
 		device->bus_width = 16;
 	else
 		device->bus_width = 8;
+
+	/* Do we need extended device probe information? */
+	if (device->device->page_size == 0 ||
+	    device->device->erase_size == 0)
+	{
+		if (device->bus_width == 8)
+		{
+			device->controller->read_data(device, id_buff+3);
+			device->controller->read_data(device, id_buff+4);
+			device->controller->read_data(device, id_buff+5);
+		}
+		else
+		{
+			u16 data_buf;
+
+			device->controller->read_data(device, &data_buf);
+			id_buff[3] = data_buf;
+
+			device->controller->read_data(device, &data_buf);
+			id_buff[4] = data_buf;
+
+			device->controller->read_data(device, &data_buf);
+			id_buff[5] = data_buf >> 8;
+		}
+	}
 		
 	/* page size */
 	if (device->device->page_size == 0)
 	{
-		/* TODO: support reading extended chip id to determine page size */
-		return ERROR_NAND_OPERATION_FAILED;
+		device->page_size = 1 << (10 + (id_buff[4] & 3));
 	}
 	else if (device->device->page_size == 256)
 	{
@@ -515,7 +540,20 @@ int nand_probe(struct nand_device_s *device)
 	/* erase size */
 	if (device->device->erase_size == 0)
 	{
-		/* TODO: support reading extended chip id to determine erase size */
+		switch ((id_buff[4] >> 4) & 3) {
+		case 0:
+			device->erase_size = 64 << 10;
+			break;
+		case 1:
+			device->erase_size = 128 << 10;
+			break;
+		case 2:
+			device->erase_size = 256 << 10;
+			break;
+		case 3:
+			device->erase_size =512 << 10;
+			break;
+		}
 	}
 	else
 	{
