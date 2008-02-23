@@ -1,0 +1,80 @@
+<html>
+<body>
+<h1>Testing</h1>
+A test should be done on code committed to svn. Commit, then test. That way 
+one can know for sure *what* code was actually tested.
+<h1>Release procedure</h1>
+OpenOCD trunk is work in progress. Expect it to change daily and to have
+some work in progress.
+<p>
+If you need the latest released and tested version, look for binary snapshots of 
+OpenOCD. Worst case look up the test result table below for the features 
+that are important to you and extract and build the version that has the right
+cocktail of working features for you. You can also work with the community
+to address the problems you are seing. Testing work and bug reports are
+highly appreciated. 
+<p>
+The OpenOCD community may decide to create release branches. If
+this happens, then a branch will be created from OpenOCD trunk. The particular
+version to create that branch might be an older version rather than the latest
+and greatest. Fixes are then ported to that release branch from OpenOCD trunk.
+<h2>Vocabulary</h2> 
+<table border=1>
+<tr><td>Passed version</td><td>The latest version on which the test is known to pass</td></tr>
+<tr><td>Broken version</td><td>The latest version on which the test is known to fail. n/a when older than passed version.</td></tr>
+<tr><td>ID</td><td>A unqiue ID to refer to a test. The unique numbers are maintained in this file.</td></tr> 
+</table>
+
+<h1>OpenOCD test results</h1>
+These tests can be performed on any JTAG device as long
+as they are executed using the unmodified code from SVN.
+<p>
+The latest version in which the test is known to have
+passed is in the table below. 
+<table border=1>
+	<tr><th>ID</th><th>Synopsis</th><th>Passed version</th><th>Broken version</th></tr>
+	<tr><td>ocd1</td><td>Telnet Windows</td><td>291</td><td>n/a</td></tr>
+	<tr><td>ocd2</td><td>Telnet Linux</td><td>291</td><td>n/a</td></tr>
+	<tr><td>ocd3</td><td>Telnet Cygwin</td><td>291</td><td>n/a</td></tr>
+	<tr><td><a href="#test_ocd4">ocd4</a></td><td>ARM7 debugging</td><td>291</td></tr>
+	<tr><td>xscale1</a></td><td>XScale debugging</td><td>291</td></tr>
+	<tr><td>xscale2</a></td><td>XScale MMU</td><td>291</td></tr>
+</table>
+<h1>OpenOCD JTAG device test results</h1>
+Each JTAG device must be tested 
+<table border=1>
+	<tr><th>ID</th><th>Synopsis</th><th>Passed version</th><th>Broken version</th></tr>
+	<tr><td>jtag1</td><td>Wiggler</td><td>291</td><td>n/a</td></tr>
+	<tr><td>jtag2</td><td>Parport</td><td>291</td><td>n/a</td></tr>
+	<tr><td>jtag3</td><td>...</td><td>291</td><td>n/a</td></tr>
+</table>
+
+<h1>Policy on removing features from OpenOCD</h1>
+If a feature in OpenOCD is known to be broken and nobody has
+submitted a fix and the feature is causing trouble for
+maintainence, it can be removed from OpenOCD trunk. The threshold
+for temporarily removing something from OpenOCD trunk is low to
+ease maintainence and place the burden of maintainence on
+those that care about a feature. 
+<p>
+Note that code is never deleted from OpenOCD svn, it remains
+in svn so if somebody sees a feature removed that they would
+like kept, they have but to port and fix that feature
+back up to main trunk. This document can be helpful in this
+regard in that the latest working version and the known broken
+version may be listed. 
+<h1>Policy on adding features from OpenOCD</h1>
+To add a feature to OpenOCD, generally  it should not break any existing
+features and it should be functional and the code reasonably readable
+and useful to others in the OpenOCD community. The code does not
+have to be completed. Work in progress is fine for OpenOCD trunk.
+<p>
+Also new tests should be defined. Note that the code does not have
+to pass all the tests. In fact it can be helpful to have tests
+to describe facets that really should be working, but aren't
+done yet.
+<a name="test_ocd4">
+<h1>ocd4 - ARM7 debugging</h1>
+Connect to ARM7 device(any), use GDB load to load a program into RAM and single halt, resume and single step.
+</body>
+</html>
