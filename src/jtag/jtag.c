@@ -1120,15 +1120,6 @@ int jtag_execute_queue(void)
 	return retval;
 }
 
-int jtag_cancel_queue(void)
-{
-	cmd_queue_free();
-	jtag_command_queue = NULL;
-	last_comand_pointer = &jtag_command_queue;
-
-	return ERROR_OK;
-}
-
 int jtag_reset_callback(enum jtag_event event, void *priv)
 {
 	jtag_device_t *device = priv;

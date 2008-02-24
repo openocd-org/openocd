@@ -243,19 +243,48 @@ extern enum reset_types jtag_reset_config;
 extern int jtag_init(struct command_context_s *cmd_ctx);
 extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
-/* JTAG interface */
+/* JTAG interface, can be implemented with a software or hardware fifo */
 extern int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
 extern int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
 extern int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
 extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
+/* execute a state transition within the JTAG standard, but nothing is defined
+ * w.r.t. the path that is taken. Many implementations use precisely
+ * 7 clocks to perform a transition, but it could be more or less
+ * than that.
+ */
 extern int jtag_add_statemove(enum tap_state endstate);
+/* A list of unambigious single clock state transitions, not
+ * all drivers can support this, but it is required for e.g.
+ * XScale and Xilinx support
+ */
 extern int jtag_add_pathmove(int num_states, enum tap_state *path);
+/* cycle precisely num_cycles in the TAP_RTI state */
 extern int jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int jtag_add_reset(int trst, int srst);
 extern int jtag_add_end_state(enum tap_state endstate);
 extern int jtag_add_sleep(u32 us);
+/*
+ * For software FIFO implementations, the queued commands can be executed 
+ * during this call or earlier. A sw queue might decide to push out
+ * some of the jtag_add_xxx() operations once the queue is "big enough".
+ * 
+ * This fn will return an error code if any of the prior jtag_add_xxx() 
+ * calls caused a failure, e.g. check failure. Note that it does not
+ * matter if the operation was executed *before* jtag_execute_queue(),
+ * jtag_execute_queue() will still return an error code. 
+ * 
+ * All jtag_add_xxx() calls that have in_handler!=NULL will have been
+ * executed when this fn returns, but if what has been queued only 
+ * clocks data out, without reading anything back, then JTAG could 
+ * be running *after* jtag_execute_queue() returns. The API does 
+ * not define a way to flush a hw FIFO that runs *after* 
+ * jtag_execute_queue() returns. 
+ * 
+ * jtag_add_xxx() commands can either be executed immediately or 
+ * at some time between the jtag_add_xxx() fn call and jtag_execute_queue().  
+ */
 extern int jtag_execute_queue(void);
-extern int jtag_cancel_queue(void);
 
 /* JTAG support functions */
 extern void jtag_set_check_value(scan_field_t *field, u8 *value,  u8 *mask, error_handler_t *in_error_handler);

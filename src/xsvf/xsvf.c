@@ -469,21 +469,18 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	if (tdo_mismatch)
 	{
 		command_print(cmd_ctx, "TDO mismatch, aborting");
-		jtag_cancel_queue();
 		return ERROR_OK;
 	}
 
 	if (unsupported)
 	{
 		command_print(cmd_ctx, "unsupported xsvf command encountered, aborting");
-		jtag_cancel_queue();
 		return ERROR_OK;
 	}
 
 	if (do_abort)
 	{
 		command_print(cmd_ctx, "premature end detected, aborting");
-		jtag_cancel_queue();
 		return ERROR_OK;
 	}
 	
