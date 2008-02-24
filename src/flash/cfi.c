@@ -1745,6 +1745,8 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 				{
 					INFO("Programming at %08x, count %08x bytes remaining", write_p, count);
 				}
+#if 0
+				/* NB! this is broken for spansion! */
 				if ((count > bufferwsize) && !(write_p & buffermask))
 				{
 					retval = cfi_write_words(bank, buffer, bufferwsize, write_p);
@@ -1756,6 +1758,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 					count -= buffersize;
 				}
 				else
+#endif
 				{
 					for (i = 0; i < bank->bus_width; i++)
 						current_word[i] = 0;
