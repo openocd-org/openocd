@@ -49,7 +49,7 @@ int arm926ejs_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *c
 int arm926ejs_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int arm926ejs_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm926ejs_quit();
-int arm926ejs_arch_state(struct target_s *target, char *buf, int buf_size);
+int arm926ejs_arch_state(struct target_s *target);
 int arm926ejs_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm926ejs_soft_reset_halt(struct target_s *target);
@@ -530,7 +530,7 @@ int arm926ejs_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, 
 	return ERROR_OK;
 }
 
-int arm926ejs_arch_state(struct target_s *target, char *buf, int buf_size)
+int arm926ejs_arch_state(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -548,7 +548,7 @@ int arm926ejs_arch_state(struct target_s *target, char *buf, int buf_size)
 		exit(-1);
 	}
 	
-	snprintf(buf, buf_size,
+	USER(
 			"target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s",

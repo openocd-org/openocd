@@ -49,7 +49,7 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 int arm920t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm920t_quit();
-int arm920t_arch_state(struct target_s *target, char *buf, int buf_size);
+int arm920t_arch_state(struct target_s *target);
 int arm920t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm920t_soft_reset_halt(struct target_s *target);
@@ -536,7 +536,7 @@ int arm920t_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, ar
 	return ERROR_OK;
 }
 
-int arm920t_arch_state(struct target_s *target, char *buf, int buf_size)
+int arm920t_arch_state(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -554,8 +554,7 @@ int arm920t_arch_state(struct target_s *target, char *buf, int buf_size)
 		exit(-1);
 	}
 	
-	snprintf(buf, buf_size,
-			"target halted in %s state due to %s, current mode: %s\n"
+	USER(	"target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s",
 			 armv4_5_state_strings[armv4_5->core_state],

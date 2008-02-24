@@ -101,7 +101,7 @@ typedef struct arm7_9_common_s
 
 int arm7_9_register_commands(struct command_context_s *cmd_ctx);
 
-enum target_state arm7_9_poll(target_t *target);
+int arm7_9_poll(target_t *target);
 
 int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer);
 

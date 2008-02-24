@@ -98,9 +98,10 @@ typedef struct target_type_s
 	char *name;
 
 	/* poll current target status */
-	enum target_state (*poll)(struct target_s *target);
-	/* architecture specific status reply */
-	int (*arch_state)(struct target_s *target, char *buf, int buf_size);
+	int (*poll)(struct target_s *target);
+	/* Invoked only from target_arch_state().
+	 * Issue USER() w/architecture specific status.  */
+	int (*arch_state)(struct target_s *target);
 
 	/* target request support */
 	int (*target_request_data)(struct target_s *target, u32 size, u8 *buffer);

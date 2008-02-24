@@ -49,6 +49,8 @@
 
 int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
 
+
+int handle_arch_state_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_daemon_startup_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -387,7 +389,6 @@ static int default_virt2phys(struct target_s *target, u32 virtual, u32 *physical
 
 static int default_mmu(struct target_s *target, int *enabled)
 {
-	USER("No MMU present");
 	*enabled = 0;
 	return ERROR_OK;
 }
@@ -748,8 +749,27 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
+	register_command(cmd_ctx, NULL, "arch_state", handle_arch_state_command, COMMAND_ANY, "prints CPU state information");
 
 	return ERROR_OK;
+}
+
+int target_arch_state(struct target_s *target)
+{
+	int retval;
+	if (target==NULL)
+	{
+		USER("No target has been configured");
+		return ERROR_OK;
+	}
+	
+	USER("target state: %s", target_state_strings[target->state]);
+	
+	if (target->state!=TARGET_HALTED)
+		return ERROR_OK;
+	
+	retval=target->type->arch_state(target);
+	return retval;
 }
 
 /* Single aligned words are guaranteed to use 16 or 32 bit access 
@@ -1325,9 +1345,9 @@ int handle_target(void *priv)
 		if (target->state != TARGET_HALTED)
 		{
 			if (target_continous_poll)
-				if ((retval = target->type->poll(target)) < 0)
+				if ((retval = target->type->poll(target)) != ERROR_OK)
 				{
-					ERROR("couldn't poll target. It's due for a reset.");
+					ERROR("couldn't poll target(%d). It's due for a reset.", retval);
 				}
 		}
 	
@@ -1464,16 +1484,14 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	char buffer[512];
 
 	if (argc == 0)
 	{
-		command_print(cmd_ctx, "target state: %s", target_state_strings[target->type->poll(target)]);
+		target->type->poll(target);
+		command_print(cmd_ctx, "target state: %s", target_state_strings[target->state]);
 		if (target->state == TARGET_HALTED)
 		{
-			target->type->arch_state(target, buffer, 512);
-			buffer[511] = 0;
-			command_print(cmd_ctx, "%s", buffer);
+			target_arch_state(target);
 		}
 	}
 	else
@@ -1524,6 +1542,7 @@ static void target_process_events(struct command_context_s *cmd_ctx)
 
 static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_state state, int ms)
 {
+	int retval;
 	struct timeval timeout, now;
 	
 	gettimeofday(&timeout, NULL);
@@ -1531,8 +1550,10 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 	command_print(cmd_ctx, "waiting for target %s...", target_state_strings[state]);
 	
 	target_t *target = get_current_target(cmd_ctx);
-	while (target->type->poll(target))
+	for (;;)
 	{
+		if ((retval=target->type->poll(target))!=ERROR_OK)
+			return retval;
 		target_call_timer_callbacks();
 		if (target->state == state)
 		{
@@ -2328,5 +2349,15 @@ int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args,
 		 * forwarded to telnet/GDB session.  
 		 */
 	}
+	return retval;
+}
+int handle_arch_state_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
+{
+	int retval;
+	if (argc!=0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	
+	target_t *target = get_target_by_num(cmd_ctx->current_target);
+	retval=target_arch_state(target);
 	return retval;
 }

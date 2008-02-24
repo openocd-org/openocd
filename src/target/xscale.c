@@ -53,8 +53,8 @@ int xscale_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 int xscale_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int xscale_quit();
 
-int xscale_arch_state(struct target_s *target, char *buf, int buf_size);
-enum target_state xscale_poll(target_t *target);
+int xscale_arch_state(struct target_s *target);
+int xscale_poll(target_t *target);
 int xscale_halt(target_t *target);
 int xscale_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
 int xscale_step(struct target_s *target, int current, u32 address, int handle_breakpoints);
@@ -955,7 +955,7 @@ int xscale_update_vectors(target_t *target)
 	return ERROR_OK;
 }
 
-int xscale_arch_state(struct target_s *target, char *buf, int buf_size)
+int xscale_arch_state(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
@@ -976,8 +976,7 @@ int xscale_arch_state(struct target_s *target, char *buf, int buf_size)
 		exit(-1);
 	}
 
-	snprintf(buf, buf_size,
-			"target halted in %s state due to %s, current mode: %s\n"
+	USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s"
 			"%s",
@@ -994,17 +993,17 @@ int xscale_arch_state(struct target_s *target, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-enum target_state xscale_poll(target_t *target)
+int xscale_poll(target_t *target)
 {
-	int retval;
+	int retval=ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 
 	if ((target->state == TARGET_RUNNING) || (target->state == TARGET_DEBUG_RUNNING))
 	{
+		enum target_state previous_state = target->state;
 		if ((retval = xscale_read_tx(target, 0)) == ERROR_OK)
 		{
-			enum target_state previous_state = target->state;
 
 			/* there's data to read from the tx register, we entered debug state */
 			xscale->handler_running = 1;
@@ -1012,30 +1011,29 @@ enum target_state xscale_poll(target_t *target)
 			target->state = TARGET_HALTED;
 
 			/* process debug entry, fetching current mode regs */
-			if ((retval = xscale_debug_entry(target)) != ERROR_OK)
-				return retval;
+			retval = xscale_debug_entry(target);
+		}
+		else if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+		{
+			USER("error while polling TX register, reset CPU");
+			/* here we "lie" so GDB won't get stuck and a reset can be perfomed */
+			target->state = TARGET_HALTED;
+		}
 
 			/* debug_entry could have overwritten target state (i.e. immediate resume)
 			 * don't signal event handlers in that case
 			 */
-			if (target->state != TARGET_HALTED)
-				return target->state;
+		if (target->state != TARGET_HALTED)
+			return ERROR_OK;
 
-			/* if target was running, signal that we halted
-			 * otherwise we reentered from debug execution */
-			if (previous_state == TARGET_RUNNING)
-				target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-			else
-				target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
-		}
-		else if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-		{
-			ERROR("error while polling TX register");
-			return retval;
-		}
+		/* if target was running, signal that we halted
+		 * otherwise we reentered from debug execution */
+		if (previous_state == TARGET_RUNNING)
+			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+		else
+			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 	}
-
-	return target->state;
+	return retval;
 }
 
 int xscale_debug_entry(target_t *target)

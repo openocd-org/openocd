@@ -348,7 +348,7 @@ int cortex_m3_debug_entry(target_t *target)
 	return ERROR_OK;
 }
 
-enum target_state cortex_m3_poll(target_t *target)
+int cortex_m3_poll(target_t *target)
 {
 	int retval;
 	u32 prev_target_state = target->state;
@@ -363,7 +363,7 @@ enum target_state cortex_m3_poll(target_t *target)
 	if (retval != ERROR_OK)
 	{
 		target->state = TARGET_UNKNOWN;
-		return TARGET_UNKNOWN;
+		return retval;
 	}
 	
 	if (cortex_m3->dcb_dhcsr & S_RESET_ST)
@@ -374,7 +374,7 @@ enum target_state cortex_m3_poll(target_t *target)
 		if (cortex_m3->dcb_dhcsr & S_RESET_ST)
 		{
 			target->state = TARGET_RESET;
-			return target->state;
+			return ERROR_OK;
 		}
 	}
 	
@@ -394,7 +394,7 @@ enum target_state cortex_m3_poll(target_t *target)
 		if ((prev_target_state == TARGET_RUNNING) || (prev_target_state == TARGET_RESET))
 		{
 			if ((retval = cortex_m3_debug_entry(target)) != ERROR_OK)
-				return TARGET_UNKNOWN;
+				return retval;
 			
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 		}
@@ -402,7 +402,7 @@ enum target_state cortex_m3_poll(target_t *target)
 		{
 			DEBUG(" ");
 			if ((retval = cortex_m3_debug_entry(target)) != ERROR_OK)
-				return TARGET_UNKNOWN;
+				return retval;
 
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		}
@@ -416,7 +416,7 @@ enum target_state cortex_m3_poll(target_t *target)
     /* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
     ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
 	DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, target_state_strings[target->state]);	
-	return target->state;
+	return ERROR_OK;
 }
 
 int cortex_m3_halt(target_t *target)

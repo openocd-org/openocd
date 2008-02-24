@@ -189,7 +189,7 @@ typedef struct cortex_m3_common_s
 
 extern void cortex_m3_build_reg_cache(target_t *target);
 
-enum target_state cortex_m3_poll(target_t *target);
+int cortex_m3_poll(target_t *target);
 int cortex_m3_halt(target_t *target);
 int cortex_m3_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
 int cortex_m3_step(struct target_s *target, int current, u32 address, int handle_breakpoints);

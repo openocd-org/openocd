@@ -676,7 +676,7 @@ int arm7_9_handle_target_request(void *priv)
 	return ERROR_OK;
 }
 
-enum target_state arm7_9_poll(target_t *target)
+int arm7_9_poll(target_t *target)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -692,24 +692,15 @@ enum target_state arm7_9_poll(target_t *target)
 	embeddedice_read_reg(dbg_stat);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		switch (retval)
-		{
-			case ERROR_JTAG_QUEUE_FAILED:
-				ERROR("JTAG queue failed while reading EmbeddedICE status register");
-				exit(-1);
-				break;
-			default:
-				break;
-		}
+		return retval;
 	}
 	
 	if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1))
 	{
 		DEBUG("DBGACK set, dbg_state->value: 0x%x", buf_get_u32(dbg_stat->value, 0, 32));
-		if ((target->state == TARGET_UNKNOWN))
+		if (target->state == TARGET_UNKNOWN)
 		{
-			WARNING("DBGACK set while target was in unknown state. Reset or initialize target before resuming");
-			target->state = TARGET_RUNNING;
+			WARNING("DBGACK set while target was in unknown state. Reset or initialize target.");
 		}
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
@@ -727,6 +718,10 @@ enum target_state arm7_9_poll(target_t *target)
 			
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		}
+		if (target->state != TARGET_HALTED)
+		{
+			WARNING("DBGACK set, but the target did not end up in the halted stated %d", target->state);
+		}
 	}
 	else
 	{
@@ -734,7 +729,7 @@ enum target_state arm7_9_poll(target_t *target)
 			target->state = TARGET_RUNNING;
 	}
 	
-	return target->state;
+	return ERROR_OK;
 }
 
 int arm7_9_assert_reset(target_t *target)
@@ -1307,7 +1302,6 @@ int arm7_9_restore_context(target_t *target)
 				else
 				{
 					ERROR("BUG: dirty register '%s', but no valid data", reg->name);
-					exit(-1);
 				}
 			}
 		}

@@ -322,7 +322,7 @@ reg_cache_t* armv4_5_build_reg_cache(target_t *target, armv4_5_common_t *armv4_5
 	return cache;
 }
 
-int armv4_5_arch_state(struct target_s *target, char *buf, int buf_size)
+int armv4_5_arch_state(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	
@@ -332,8 +332,7 @@ int armv4_5_arch_state(struct target_s *target, char *buf, int buf_size)
 		exit(-1);
 	}
 	
-	snprintf(buf, buf_size,
-			 "target halted in %s state due to %s, current mode: %s\ncpsr: 0x%8.8x pc: 0x%8.8x",
+	USER("target halted in %s state due to %s, current mode: %s\ncpsr: 0x%8.8x pc: 0x%8.8x",
 			 armv4_5_state_strings[armv4_5->core_state],
 			 target_debug_reason_strings[target->debug_reason],
 			 armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)],

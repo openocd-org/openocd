@@ -49,7 +49,7 @@ int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 int arm7tdmi_quit();
 
 /* target function declarations */
-enum target_state arm7tdmi_poll(struct target_s *target);
+int arm7tdmi_poll(struct target_s *target);
 int arm7tdmi_halt(target_t *target);
 		
 target_type_t arm7tdmi_target =

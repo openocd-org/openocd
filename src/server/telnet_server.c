@@ -93,10 +93,21 @@ void telnet_log_callback(void *priv, const char *file, int line,
 {
 	connection_t *connection = priv;
 	char *t = allocPrintf(format, args);
+	char *t2;
 	if (t == NULL)
 		return;
+	t2=t;
+	char *endline;
+	do 
+	{
+		if ((endline=strchr(t2, '\n'))!=NULL)
+		{
+			*endline=0;
+		}
+		telnet_outputline(connection, t2);
+		t2=endline+1;
+	} while (endline);
 	
-	telnet_outputline(connection, t);
 	
 	free(t);
 }
@@ -106,15 +117,12 @@ int telnet_target_callback_event_handler(struct target_s *target, enum target_ev
 	struct command_context_s *cmd_ctx = priv;
 	connection_t *connection = cmd_ctx->output_handler_priv;
 	telnet_connection_t *t_con = connection->priv;
-	char buffer[512];
 	
 	switch (event)
 	{
 		case TARGET_EVENT_HALTED:
 			command_print(cmd_ctx, "Target %i halted", get_num_by_target(target));
-			target->type->arch_state(target, buffer, 512);
-			buffer[511] = 0;
-			command_print(cmd_ctx, "%s", buffer);
+			target_arch_state(target);
 			if (!t_con->suppress_prompt)
 				telnet_prompt(connection);
 			break;
