@@ -678,6 +678,7 @@ int gdb_connection_closed(connection_t *connection)
 	}
 
 	target_unregister_event_callback(gdb_target_callback_event_handler, connection);
+	log_setCallback(NULL, NULL);
 
 	return ERROR_OK;
 }

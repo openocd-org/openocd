@@ -47,7 +47,7 @@ int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char *
 int add_connection(service_t *service, command_context_t *cmd_ctx)
 {
 	unsigned int address_size;
-	connection_t *c, *p;
+	connection_t *c, **p;
 	int retval;
 	
 	c = malloc(sizeof(connection_t));
@@ -73,16 +73,9 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 		free(c);
 	}
 	
-	if (service->connections)
-	{
-		for (p = service->connections; p && p->next; p = p->next);
-		if (p)
-			p->next = c;
-	}
-	else
-	{
-		service->connections = c;
-	}
+	/* add to the end of linked list */
+	for (p = &service->connections; *p; p = &(*p)->next);
+	*p = c;
 	
 	service->max_connections--;
 	
@@ -91,30 +84,28 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 
 int remove_connection(service_t *service, connection_t *connection)
 {
-	connection_t *c = service->connections;
+	connection_t **p = &service->connections;
+	connection_t *c;
 	
 	/* find connection */
-	while(c)
-	{
-		connection_t *next = c->next;
-		
+	while(c = *p)
+	{		
 		if (c->fd == connection->fd)
 		{	
-			service->connections = next;
 			service->connection_closed(c);
 			close_socket(c->fd);
-			
 			command_done(c->cmd_ctx);
 			
 			/* delete connection */
+			*p = c->next;
 			free(c);
 			
 			service->max_connections++;
 			break;
 		}
 		
-		/* remember the last connection for unlinking */
-		c = next;
+		/* redirect p to next list pointer */
+		p = &(*p)->next;		
 	}
 	
 	return ERROR_OK;
@@ -122,7 +113,7 @@ int remove_connection(service_t *service, connection_t *connection)
 
 int add_service(char *name, enum connection_type type, unsigned short port, int max_connections, new_connection_handler_t new_connection_handler, input_handler_t input_handler, connection_closed_handler_t connection_closed_handler, void *priv)
 {
-	service_t *c, *p;
+	service_t *c, **p;
 	int so_reuseaddr_option = 1;
 	
 	c = malloc(sizeof(service_t));
@@ -166,29 +157,21 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 		exit(-1);
 	}
 	
-	if (services)
-	{
-		for (p = services; p && p->next; p = p->next);
-		if (p)
-			p->next = c;
-	}
-	else
-	{
-		services = c;
-	}
+	/* add to the end of linked list */
+	for (p = &services; *p; p = &(*p)->next);
+	*p = c;
 	
 	return ERROR_OK;
 }
 
 int remove_service(unsigned short port)
 {
-	service_t *c = services;
+	service_t **p = services;
+	service_t *c;
 	
 	/* find service */
-	while(c)
-	{
-		service_t *next = c->next;
-		
+	while(c = *p)
+	{		
 		if (c->port == port)
 		{	
 			if (c->name)
@@ -198,11 +181,12 @@ int remove_service(unsigned short port)
 				free(c->priv);
 			
 			/* delete service */
+			*p = c->next;
 			free(c);
 		}
-		
-		/* remember the last service for unlinking */
-		c = next;
+
+		/* redirect p to next list pointer */
+		p = &(*p)->next;
 	}
 	
 	return ERROR_OK;
