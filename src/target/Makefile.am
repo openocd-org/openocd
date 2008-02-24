@@ -18,5 +18,6 @@ noinst_HEADERS = target.h trace.h register.h armv4_5.h embeddedice.h etm.h arm7t
 	arm_disassembler.h arm966e.h arm926ejs.h etb.h xscale.h arm_simulator.h image.h armv7m.h cortex_m3.h cortex_swjdp.h \
 	etm_dummy.h oocd_trace.h target_request.h trace.h
 
-nobase_dist_pkglib_DATA = xscale/debug_handler.bin
+nobase_dist_pkglib_DATA = xscale/debug_handler.bin event/at91eb40a_reset.cfg target/at91eb40a.cfg
+
 

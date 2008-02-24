@@ -1,6 +1,6 @@
 INCLUDES = $(all_includes)
 METASOURCES = AUTO
-AM_CPPFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" @CPPFLAGS@
+AM_CPPFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" -DPKGLIBDIR=\"$(pkglibdir)\" @CPPFLAGS@
 noinst_LIBRARIES = libhelper.a
 libhelper_a_SOURCES = binarybuffer.c configuration.c log.c interpreter.c command.c time_support.c \
 	replacements.c fileio.c

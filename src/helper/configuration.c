@@ -47,6 +47,7 @@ static struct option long_options[] =
 	{"file", 			required_argument,	0, 'f'},
 	{"search",			required_argument,	0, 's'},
 	{"log_output",		required_argument,	0, 'l'},
+	{"command",			required_argument,	0, 'c'},
 	
 	{0, 0, 0, 0}
 };
@@ -86,7 +87,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
 		
-		c = getopt_long(argc, argv, "hd::l:f:s:", long_options, &option_index);
+		c = getopt_long(argc, argv, "hd::l:f:s:c:", long_options, &option_index);
 		
 		/* Detect the end of the options. */
 		if (c == -1)
@@ -100,7 +101,8 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 				help_flag = 1;
 				break;
 			case 'f':	/* --file | -f */
-				add_config_file_name(optarg);
+				snprintf(command_buffer, 128, "script %s", optarg);
+				add_config_file_name(command_buffer);
 				break;
 			case 's':	/* --search | -s */
 				add_script_search_dir(optarg);
@@ -119,6 +121,13 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 					command_run_line(cmd_ctx, command_buffer);
 				}	
 				break;
+			case 'c':	/* --command | -c */
+				if (optarg)
+				{
+					add_config_file_name(optarg);
+				}	
+				break;
+				
 		}
 	}
 
@@ -130,12 +139,14 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		printf("--search     | -s\tdir to search for config files and scripts.\n");
 		printf("--debug      | -d\tset debug level <0-3>\n");
 		printf("--log_output | -l\tredirect log output to file <name>\n");
+		printf("--command    | -c\trun <command>\n");
 		exit(-1);
 	}	
 
 	/* Add dir for openocd supplied scripts last so that user can over
 	   ride those scripts if desired. */
 	add_script_search_dir(PKGDATADIR);
+	add_script_search_dir(PKGLIBDIR);
 
 	return ERROR_OK;
 }
@@ -175,23 +186,13 @@ int parse_config_file(struct command_context_s *cmd_ctx)
 	FILE *config_file;
 
 	if (!config_file_names)
-		add_config_file_name ("openocd.cfg");
+		add_config_file_name ("script openocd.cfg");
 
 	cfg = config_file_names;
 
 	while (*cfg)
 	{
-		config_file = open_file_from_path(cmd_ctx, *cfg, "r");
-		if (!config_file)
-		{
-			ERROR("couldn't open config file");
-			return ERROR_NO_CONFIG_FILE;
-		}
-
-		command_run_file(cmd_ctx, config_file, COMMAND_CONFIG);
-
-		fclose(config_file);
-
+		command_run_line(cmd_ctx, *cfg);
 		cfg++;
 	}
 
