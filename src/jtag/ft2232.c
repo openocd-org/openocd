@@ -1402,7 +1402,7 @@ static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int *try_more)
 		}
 		else
 		{
-			printf("ListDevices: NONE\n");
+			ERROR("ListDevices: NONE\n");
 		}
 		return ERROR_JTAG_INIT_FAILED;
 	}

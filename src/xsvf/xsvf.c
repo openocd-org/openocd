@@ -327,11 +327,11 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			case 0x0a:	/* XSETDRMASKS */
-				printf("unsupported XSETSDRMASKS\n");
+				ERROR("unsupported XSETSDRMASKS\n");
 				unsupported = 1;
 				break;
 			case 0x0b:	/* XSDRINC */
-				printf("unsupported XSDRINC\n");
+				ERROR("unsupported XSDRINC\n");
 				unsupported = 1;
 				break;
 			case 0x0c:	/* XSDRB */
@@ -458,7 +458,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			default:
-				printf("unknown xsvf command (0x%2.2x)\n", c);
+				ERROR("unknown xsvf command (0x%2.2x)\n", c);
 				unsupported = 1;
 		}
 

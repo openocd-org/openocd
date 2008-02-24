@@ -45,7 +45,7 @@ void log_setCallback(logCallback c, void *p)
 
 static char *log_strings[5] = 
 {
-	"User:  ",
+	"User:   ",
 	"Error:  ",
 	"Warning:",
 	"Info:   ",
