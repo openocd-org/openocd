@@ -36,6 +36,7 @@ static FILE* log_output;
 
 static void *privData;
 static logCallback callback;
+static time_t start;
 
 void log_setCallback(logCallback c, void *p)
 {
@@ -72,7 +73,8 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	if (debug_level >= LOG_DEBUG)
 	{
 		/* print with count and time information */
-		fprintf(log_output, "%s %d %ld %s:%d %s(): %s\n", log_strings[level+1], count, time(NULL), file, line, function, buffer);
+		time_t t=time(NULL)-start;
+		fprintf(log_output, "%s %d %ld %s:%d %s(): %s\n", log_strings[level+1], count, t, file, line, function, buffer);
 	}
 	else
 	{
@@ -133,6 +135,7 @@ int handle_log_output_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 int log_register_commands(struct command_context_s *cmd_ctx)
 {
+	start = time(NULL);
 	register_command(cmd_ctx, NULL, "log_output", handle_log_output_command,
 		COMMAND_ANY, "redirect logging to <file> (default: stderr)");
 	register_command(cmd_ctx, NULL, "debug_level", handle_debug_level_command,
