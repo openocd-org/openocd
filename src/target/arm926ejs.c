@@ -53,6 +53,8 @@ int arm926ejs_arch_state(struct target_s *target);
 int arm926ejs_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm926ejs_soft_reset_halt(struct target_s *target);
+static int arm926ejs_virt2phys(struct target_s *target, u32 virtual, u32 *physical);
+static int arm926ejs_mmu(struct target_s *target, int *enabled);
 
 target_type_t arm926ejs_target =
 {
@@ -89,7 +91,9 @@ target_type_t arm926ejs_target =
 	.register_commands = arm926ejs_register_commands,
 	.target_command = arm926ejs_target_command,
 	.init_target = arm926ejs_init_target,
-	.quit = arm926ejs_quit
+	.quit = arm926ejs_quit,
+	.virt2phys = arm926ejs_virt2phys,
+	.mmu = arm926ejs_mmu
 };
 
 
@@ -898,4 +902,43 @@ int arm926ejs_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char
 	}
 	
 	return armv4_5_mmu_handle_mw_phys_command(cmd_ctx, cmd, args, argc, target, &arm926ejs->armv4_5_mmu);
+}
+static int arm926ejs_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
+{
+	int retval;
+	int type;
+	u32 cb;
+	int domain;
+	u32 ap;
+	
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	arm9tdmi_common_t *arm9tdmi;
+	arm926ejs_common_t *arm926ejs;
+	retval= arm926ejs_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi, &arm926ejs);
+	if (retval != ERROR_OK)
+	{
+		return retval;
+	}
+	u32 ret = armv4_5_mmu_translate_va(target, &arm926ejs->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
+	if (type == -1)
+	{
+		return ret;
+	}
+	*physical = ret;
+	return ERROR_OK;
+}
+
+static int arm926ejs_mmu(struct target_s *target, int *enabled)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm926ejs_common_t *arm926ejs = armv4_5->arch_info;
+	
+	if (target->state != TARGET_HALTED)
+	{
+		ERROR("Target not halted");
+		return ERROR_TARGET_INVALID;
+	}
+	*enabled = arm926ejs->armv4_5_mmu.mmu_enabled;
+	return ERROR_OK;
 }

@@ -143,6 +143,8 @@ typedef struct xscale_common_s
 	
 	/* possible future enhancements that go beyond XScale common stuff */
 	void *arch_info;
+	
+	int fast_memory_access;
 } xscale_common_t;
 
 typedef struct xscale_reg_s

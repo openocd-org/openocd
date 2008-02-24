@@ -631,7 +631,6 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 
 	scan_field_t fields[3];
 	u8 field0_out = 0x0;
-	u8 field0_in = 0x0;
 	u8 field0_check_value = 0x2;
 	u8 field0_check_mask = 0x6;
 	u8 field2 = 0x1;
@@ -646,8 +645,11 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0_out;
 	fields[0].out_mask = NULL;
-	fields[0].in_value = &field0_in;
-	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
+	fields[0].in_handler = NULL;
+	if (!xscale->fast_memory_access)
+	{
+		jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
+	}
 
 	fields[1].device = xscale->jtag_info.chain_pos;
 	fields[1].num_bits = 32;
@@ -666,18 +668,43 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	fields[2].out_value = &field2;
 	fields[2].out_mask = NULL;
 	fields[2].in_value = NULL;
-	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
-
-	while (done_count++ < count)
+	fields[2].in_handler = NULL;
+	if (!xscale->fast_memory_access)
 	{
+		jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
+	}
+
+	if (size==4)
+	{
+		int endianness = target->endianness;
+		while (done_count++ < count)
+		{
+			if (endianness == TARGET_LITTLE_ENDIAN)
+			{
+				output[0]=buffer[0];
+				output[1]=buffer[1];
+				output[2]=buffer[2];
+				output[3]=buffer[3];
+			} else
+			{
+				output[0]=buffer[3];
+				output[1]=buffer[2];
+				output[2]=buffer[1];
+				output[3]=buffer[0];
+			}
+			jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
+			buffer += size;
+		}
+		
+	} else
+	{
+		while (done_count++ < count)
+		{
 		/* extract sized element from target-endian buffer, and put it
 		 * into little-endian output buffer
 		 */
 		switch (size)
 		{
-			case 4:
-				buf_set_u32(output, 0, 32, target_buffer_get_u32(target, buffer));
-				break;
 			case 2:
 				buf_set_u32(output, 0, 32, target_buffer_get_u16(target, buffer));
 				break;
@@ -691,6 +718,8 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 
 		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
 		buffer += size;
+	}
+
 	}
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -3101,6 +3130,8 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	xscale->armv4_5_mmu.has_tiny_pages = 1;
 	xscale->armv4_5_mmu.mmu_enabled = 0;
 
+	xscale->fast_memory_access = 0;
+
 	return ERROR_OK;
 }
 
@@ -3700,6 +3731,41 @@ int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int a
 	return ERROR_OK;
 }
 
+int handle_xscale_fast_memory_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5;
+	xscale_common_t *xscale;
+	
+	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
+	{
+		return ERROR_OK;
+	}
+	
+	if (argc == 1)
+	{
+		if (strcmp("enable", args[0]) == 0)
+		{
+			xscale->fast_memory_access = 1;
+		}
+		else if (strcmp("disable", args[0]) == 0)
+		{
+			xscale->fast_memory_access = 0;
+		}
+		else
+		{
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	} else if (argc!=0)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+		
+	command_print(cmd_ctx, "fast memory access is %s", (xscale->fast_memory_access) ? "enabled" : "disabled");
+
+	return ERROR_OK;
+}
+
 int xscale_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *xscale_cmd;
@@ -3724,6 +3790,8 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_EXEC, "load image from <file> [base address]");
 
 	register_command(cmd_ctx, xscale_cmd, "cp15", xscale_handle_cp15, COMMAND_EXEC, "access coproc 15 <register> [value]");
+	register_command(cmd_ctx, xscale_cmd, "fast_memory_access", handle_xscale_fast_memory_access_command,
+		 COMMAND_ANY, "use fast memory accesses instead of slower but potentially unsafe slow accesses <enable|disable>");
 	
 	armv4_5_register_commands(cmd_ctx);
 
