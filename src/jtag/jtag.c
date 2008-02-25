@@ -204,8 +204,8 @@ jtag_interface_t *jtag_interfaces[] = {
 jtag_interface_t *jtag = NULL;
 
 /* configuration */
-char* jtag_interface = NULL;
-int jtag_speed = -1;
+jtag_interface_t *jtag_interface = NULL;
+int jtag_speed = 0;
 
 
 /* forward declarations */
@@ -1333,28 +1333,33 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
+int jtag_interface_init(struct command_context_s *cmd_ctx)
+{
+	if (!jtag_interface)
+	{
+		/* nothing was previously specified by "interface" command */
+		ERROR("JTAG interface has to be specified, see \"interface\" command");
+		return ERROR_JTAG_INVALID_INTERFACE;
+	}
+	
+	if (jtag_interface->init() != ERROR_OK)
+		return ERROR_JTAG_INIT_FAILED;
+
+	jtag = jtag_interface;
+	return ERROR_OK;
+}
+	
 int jtag_init(struct command_context_s *cmd_ctx)
 {
 	int i, validate_tries = 0;
+				jtag_device_t *device;
 	
 	DEBUG("-");
-
-	if (jtag_speed == -1)
-		jtag_speed = 0;
 	
-	if (jtag_interface && (jtag_interface[0] != 0))
-		/* configuration var 'jtag_interface' is set, and not empty */
-		for (i = 0; jtag_interfaces[i]; i++)
-		{
-			if (strcmp(jtag_interface, jtag_interfaces[i]->name) == 0)
-			{
-				jtag_device_t *device;
-				device = jtag_devices;
-	
-				if (jtag_interfaces[i]->init() != ERROR_OK)
+	if (!jtag && jtag_interface_init(cmd_ctx) != ERROR_OK)
 					return ERROR_JTAG_INIT_FAILED;
-				jtag = jtag_interfaces[i];
 
+	device = jtag_devices;
 				jtag_ir_scan_size = 0;
 				jtag_num_devices = 0;
 				while (device != NULL)
@@ -1386,32 +1391,25 @@ int jtag_init(struct command_context_s *cmd_ctx)
 				}
 
 				return ERROR_OK;
-			}
-		}
-	
-	/* no valid interface was found (i.e. the configuration option,
-	 * didn't match one of the compiled-in interfaces
-	 */
-	ERROR("No valid jtag interface found (%s)", jtag_interface);
-	ERROR("compiled-in jtag interfaces:");
-	for (i = 0; jtag_interfaces[i]; i++)
-	{
-		ERROR("%i: %s", i, jtag_interfaces[i]->name);
-	}
-	
-	jtag = NULL;
-	return ERROR_JTAG_INVALID_INTERFACE;
 }
 
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
 	
-	/* only if the configuration var isn't overwritten from cmdline */
-	if (!jtag_interface)
+	/* check whether the interface is already configured */
+	if (jtag_interface)
 	{
-		if (args[0] && (args[0][0] != 0))
+		WARNING("Interface already configured, ignoring");
+		return ERROR_OK;
+	}
+
+	/* interface name is a mandatory argument */
+	if (argc < 1 || args[0][0] == '\0')
 		{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
 			for (i=0; jtag_interfaces[i]; i++)
 			{
 				if (strcmp(args[0], jtag_interfaces[i]->name) == 0)
@@ -1419,19 +1417,22 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 					if (jtag_interfaces[i]->register_commands(cmd_ctx) != ERROR_OK)
 						exit(-1);
 				
-					jtag_interface = jtag_interfaces[i]->name;
-		
+			jtag_interface = jtag_interfaces[i];
 					return ERROR_OK;
 				}
 			}
-		}
 		
-		/* remember the requested interface name, so we can complain about it later */
-		jtag_interface = strdup(args[0]);
-		DEBUG("'interface' command didn't specify a valid interface");
+	/* no valid interface was found (i.e. the configuration option,
+	 * didn't match one of the compiled-in interfaces
+	 */
+	ERROR("No valid jtag interface found (%s)", args[0]);
+	ERROR("compiled-in jtag interfaces:");
+	for (i = 0; jtag_interfaces[i]; i++)
+	{
+		ERROR("%i: %s", i, jtag_interfaces[i]->name);
 	}
 	
-	return ERROR_OK;
+	return ERROR_JTAG_INVALID_INTERFACE;
 }
 
 int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1635,7 +1636,7 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 	int srst = -1;
 	int retval;
 	
-	if (argc < 1)
+	if (argc < 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -1658,6 +1659,9 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+
+	if (!jtag && jtag_interface_init(cmd_ctx) != ERROR_OK)
+		return ERROR_JTAG_INIT_FAILED;
 
 	if ((retval = jtag_add_reset(trst, srst)) != ERROR_OK)
 	{

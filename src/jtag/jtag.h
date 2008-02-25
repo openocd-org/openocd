@@ -222,7 +222,6 @@ extern jtag_interface_t *jtag;	/* global pointer to configured JTAG interface */
 extern enum tap_state end_state;
 extern enum tap_state cur_state;
 
-extern char* jtag_interface;
 extern int jtag_speed;
 
 enum reset_types
