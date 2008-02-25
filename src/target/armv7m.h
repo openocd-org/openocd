@@ -152,7 +152,7 @@ extern reg_cache_t *armv7m_build_reg_cache(target_t *target);
 extern enum armv7m_mode armv7m_number_to_mode(int number);
 extern int armv7m_mode_to_number(enum armv7m_mode mode);
 
-extern int armv7m_arch_state(struct target_s *target, char *buf, int buf_size);
+extern int armv7m_arch_state(struct target_s *target);
 extern int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size);
 extern int armv7m_invalidate_core_regs(target_t *target);
 

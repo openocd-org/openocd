@@ -471,13 +471,12 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	return retval;
 }
 
-int armv7m_arch_state(struct target_s *target, char *buf, int buf_size)
+int armv7m_arch_state(struct target_s *target)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	
-	snprintf(buf, buf_size,
-		 "target halted in %s state due to %s, current mode: %s %s\nxPSR: 0x%8.8x pc: 0x%8.8x",
+	USER("target halted in %s state due to %s, current mode: %s %s\nxPSR: 0x%8.8x pc: 0x%8.8x",
 		 armv7m_state_strings[armv7m->core_state],
 		 target_debug_reason_strings[target->debug_reason],
 		 armv7m_mode_strings[armv7m->core_mode],
