@@ -36,6 +36,7 @@
  */
 enum log_levels
 {
+	LOG_OUTPUT = -2,
 	LOG_USER = -1,
 	LOG_ERROR = 0,
 	LOG_WARNING = 1,
@@ -50,10 +51,20 @@ extern int log_register_commands(struct command_context_s *cmd_ctx);
 extern int log_init(struct command_context_s *cmd_ctx);
 extern int set_log_output(struct command_context_s *cmd_ctx, FILE *output);
 
-typedef void (*logCallback)(void *priv, const char *file, int line, 
+typedef void (*log_callback_fn)(void *priv, const char *file, int line,
 		const char *function, const char *format, va_list args);
 
-extern void log_setCallback(logCallback callback, void *priv);		
+typedef struct log_callback_s
+{
+    log_callback_fn fn;
+	void *priv;
+    struct log_callback_s *next;
+} log_callback_t;
+
+extern int log_add_callback(log_callback_fn fn, void *priv);
+extern int log_remove_callback(log_callback_fn fn, void *priv);
+
+char *alloc_printf(const char *fmt, va_list ap);
 
 extern int debug_level;
 
@@ -85,6 +96,11 @@ extern int debug_level;
 		log_printf (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
+#define OUTPUT(expr ...) \
+	do { \
+		log_printf (LOG_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr); \
+	} while(0)
+
 
 /* general failures
  * error codes < 100
@@ -93,7 +109,5 @@ extern int debug_level;
 #define ERROR_INVALID_ARGUMENTS		(-1)
 #define ERROR_NO_CONFIG_FILE		(-2)
 #define ERROR_BUF_TOO_SMALL			(-3)
-
-char *allocPrintf(const char *fmt, va_list ap);
 
 #endif /* LOG_H */

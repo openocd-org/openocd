@@ -113,13 +113,13 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 
 	if (help_flag)
 	{
-		printf("Open On-Chip Debugger\n(c) 2005 by Dominic Rath\n\n");
-		printf("--help       | -h\tdisplay this help\n");
-		printf("--file       | -f\tuse configuration file <name>\n");
-		printf("--search     | -s\tdir to search for config files and scripts.\n");
-		printf("--debug      | -d\tset debug level <0-3>\n");
-		printf("--log_output | -l\tredirect log output to file <name>\n");
-		printf("--command    | -c\trun <command>\n");
+		OUTPUT("Open On-Chip Debugger\n(c) 2005 by Dominic Rath\n\n");
+		OUTPUT("--help       | -h\tdisplay this help\n");
+		OUTPUT("--file       | -f\tuse configuration file <name>\n");
+		OUTPUT("--search     | -s\tdir to search for config files and scripts.\n");
+		OUTPUT("--debug      | -d\tset debug level <0-3>\n");
+		OUTPUT("--log_output | -l\tredirect log output to file <name>\n");
+		OUTPUT("--command    | -c\trun <command>\n");
 		exit(-1);
 	}	
 

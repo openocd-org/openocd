@@ -92,7 +92,7 @@ void telnet_log_callback(void *priv, const char *file, int line,
 		const char *function, const char *format, va_list args)
 {
 	connection_t *connection = priv;
-	char *t = allocPrintf(format, args);
+	char *t = alloc_printf(format, args);
 	char *t2;
 	if (t == NULL)
 		return;
@@ -107,7 +107,6 @@ void telnet_log_callback(void *priv, const char *file, int line,
 		telnet_outputline(connection, t2);
 		t2=endline+1;
 	} while (endline);
-	
 	
 	free(t);
 }
@@ -292,18 +291,18 @@ int telnet_input(connection_t *connection)
 								continue;
 							}
 							
-							log_setCallback(telnet_log_callback, connection);
+							log_add_callback(telnet_log_callback, connection);
 							t_con->suppress_prompt = 1;
+
+							retval = command_run_line(command_context, t_con->line);
 							
-							if ((retval = command_run_line(command_context, t_con->line)) != ERROR_OK)
-							{
-								if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
-								{
-									return ERROR_SERVER_REMOTE_CLOSED;
-								}
-							}
-							
+							log_remove_callback(telnet_log_callback, connection);
 							t_con->suppress_prompt = 0;
+
+							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
+							{
+								return ERROR_SERVER_REMOTE_CLOSED;
+							}
 							
 							/* Save only non-blank lines in the history */
 							if (t_con->line_size > 0)

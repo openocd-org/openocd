@@ -303,7 +303,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		else if (reply == '-')
 		{
 			/* Stop sending output packets for now */
-			log_setCallback(NULL, NULL);
+			log_remove_callback(gdb_log_callback, connection);
 			WARNING("negative reply, retrying");
 		}
 		else if (reply == 0x3)
@@ -316,7 +316,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			else if (reply == '-')
 			{
 				/* Stop sending output packets for now */
-				log_setCallback(NULL, NULL);
+				log_remove_callback(gdb_log_callback, connection);
 				WARNING("negative reply, retrying");
 			}
 			else
@@ -579,7 +579,7 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 			if (gdb_connection->frontend_state == TARGET_RUNNING)
 			{
 				/* stop forwarding log packets! */
-				log_setCallback(NULL, NULL);
+				log_remove_callback(gdb_log_callback, connection);
 				
 				if (gdb_connection->ctrl_c)
 				{
@@ -678,7 +678,7 @@ int gdb_connection_closed(connection_t *connection)
 	}
 
 	target_unregister_event_callback(gdb_target_callback_event_handler, connection);
-	log_setCallback(NULL, NULL);
+	log_remove_callback(gdb_log_callback, connection);
 
 	return ERROR_OK;
 }
@@ -1459,7 +1459,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			cmd[(packet_size - 6)/2] = 0x0;
 			
 			/* We want to print all debug output to GDB connection */
-			log_setCallback(gdb_log_callback, connection);
+			log_add_callback(gdb_log_callback, connection);
 			target_call_timer_callbacks();
 			command_run_line(cmd_ctx, cmd);
 			free(cmd);
@@ -1808,7 +1808,7 @@ static void gdb_log_callback(void *priv, const char *file, int line,
 		return;
 	}
 
-	char *t = allocPrintf(format, args);
+	char *t = alloc_printf(format, args);
 	if (t == NULL)
 		return;
 	
@@ -1886,7 +1886,7 @@ int gdb_input_inner(connection_t *connection)
 					 * forward log output until the target is halted */
 						gdb_connection_t *gdb_con = connection->priv;
 						gdb_con->frontend_state = TARGET_RUNNING;
-						log_setCallback(gdb_log_callback, connection);
+						log_add_callback(gdb_log_callback, connection);
 						gdb_step_continue_packet(connection, target, packet, packet_size);
 					}
 					break;

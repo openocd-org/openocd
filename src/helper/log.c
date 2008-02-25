@@ -33,18 +33,11 @@
 int debug_level = -1;
 
 static FILE* log_output;
+static log_callback_t *log_callbacks = NULL;
 
-static void *privData;
-static logCallback callback;
 static time_t start;
 
-void log_setCallback(logCallback c, void *p)
-{
-	callback = c;
-	privData = p;
-}
-
-static char *log_strings[5] = 
+static char *log_strings[5] =
 {
 	"User:   ",
 	"Error:  ",
@@ -59,12 +52,22 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	count++;
 	va_list args;
 	char buffer[512];
+	log_callback_t *cb;
 
 	if (level > debug_level)
 		return;
 
 	va_start(args, format);
 	vsnprintf(buffer, 512, format, args);
+	va_end(args);
+
+	if (level == LOG_OUTPUT)
+	{
+		/* do not prepend any headers, just print out what we were given and return */
+		fputs(buffer, log_output);
+		fflush(log_output);
+		return;
+	}
 
 	char *f = strrchr(file, '/');
 	if (f != NULL)
@@ -84,14 +87,15 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 
 	fflush(log_output);
 	
-	va_end(args);
-
 	/* Never forward LOG_DEBUG, too verbose and they can be found in the log if need be */
-	if (callback && (level <= LOG_INFO))
+	if (level <= LOG_INFO)
 	{
-		va_start(args, format);
-		callback(privData, file, line, function, format, args);
-		va_end(args);
+		for (cb = log_callbacks; cb; cb = cb->next)
+		{
+			va_start(args, format);
+			cb->fn(cb->priv, file, line, function, format, args);
+			va_end(args);
+		}
 	}
 }
 
@@ -164,8 +168,51 @@ int set_log_output(struct command_context_s *cmd_ctx, FILE *output)
 	return ERROR_OK;
 }
 
+/* add/remove log callback handler */
+int log_add_callback(log_callback_fn fn, void *priv)
+{
+	log_callback_t *cb;
+
+	/* prevent the same callback to be registered more than once, just for sure */
+	for (cb = log_callbacks; cb; cb = cb->next)
+	{
+		if (cb->fn == fn && cb->priv == priv)
+			return ERROR_INVALID_ARGUMENTS;
+	}
+
+	/* alloc memory, it is safe just to return in case of an error, no need for the caller to check this */
+	if ((cb = malloc(sizeof(log_callback_t))) == NULL)
+		return ERROR_BUF_TOO_SMALL;
+
+	/* add item to the beginning of the linked list */
+	cb->fn = fn;
+	cb->priv = priv;
+	cb->next = log_callbacks;
+	log_callbacks = cb;
+
+	return ERROR_OK;
+}
+
+int log_remove_callback(log_callback_fn fn, void *priv)
+{
+	log_callback_t *cb, **p;
+
+	for (p = &log_callbacks; cb = *p; p = &(*p)->next)
+	{
+	    if (cb->fn == fn && cb->priv == priv)
+	    {
+	        *p = cb->next;
+			free(cb);
+			return ERROR_OK;
+		}
+	}
+
+	/* no such item */
+	return ERROR_INVALID_ARGUMENTS;
+}
+
 /* return allocated string w/printf() result */
-char *allocPrintf(const char *fmt, va_list ap)
+char *alloc_printf(const char *fmt, va_list ap)
 {
 	char *string = NULL;
 	

@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 
 	register_command(cmd_ctx, NULL, "version", handle_version_command,
 					 COMMAND_EXEC, "show OpenOCD version");
-	
+
 	/* register subsystem commands */
 	server_register_commands(cmd_ctx);
 	telnet_register_commands(cmd_ctx);
@@ -134,24 +134,24 @@ int main(int argc, char *argv[])
 
 	/* initialize tcp server */
 	server_init();
-	
+
 	/* initialize telnet subsystem */
 	telnet_init("Open On-Chip Debugger");
 	gdb_init();
-	
+
 	/* call any target resets */
 	if (target_init_reset(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
 	DEBUG("target init reset complete");
-	
+
 	/* handle network connections */
 	server_loop(cmd_ctx);
-	
+
 	/* shut server down */
 	server_quit();
-	
+
 	/* free commandline interface */
 	command_done(cmd_ctx);
-	
+
 	return EXIT_SUCCESS;
 }
