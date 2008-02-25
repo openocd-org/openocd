@@ -277,7 +277,9 @@ int server_loop(command_context_t *command_context)
 		FD_SET(fileno(stdin), &read_fds);
 #endif
 
-		if ((retval = select(fd_max + 1, &read_fds, NULL, NULL, &tv)) == -1)
+		retval = select(fd_max + 1, &read_fds, NULL, NULL, &tv);
+		
+		if (retval == -1)
 		{
 #ifdef _WIN32
 
@@ -293,7 +295,9 @@ int server_loop(command_context_t *command_context)
 #else
 
 			if (errno == EINTR)
+			{
 				FD_ZERO(&read_fds);
+			}
 			else
 			{
 				ERROR("error during select: %s", strerror(errno));
@@ -309,6 +313,7 @@ int server_loop(command_context_t *command_context)
 			/* do regular tasks after at most 100ms */
 			tv.tv_sec = 0;
 			tv.tv_usec = 10000;
+			FD_ZERO(&read_fds); /* eCos leaves read_fds unchanged in this case!  */
 		}
 		
 		for (service = services; service; service = service->next)
@@ -318,7 +323,9 @@ int server_loop(command_context_t *command_context)
 				&& (FD_ISSET(service->fd, &read_fds))) 
 			{
 				if (service->max_connections > 0)
+				{
 					add_connection(service, command_context);
+				}
 				else
 				{
 					struct sockaddr_in sin;

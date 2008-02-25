@@ -50,7 +50,6 @@
 int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
 
 
-int handle_arch_state_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_daemon_startup_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -749,7 +748,6 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
-	register_command(cmd_ctx, NULL, "arch_state", handle_arch_state_command, COMMAND_ANY, "prints CPU state information");
 
 	return ERROR_OK;
 }
@@ -1488,11 +1486,7 @@ int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	if (argc == 0)
 	{
 		target->type->poll(target);
-		command_print(cmd_ctx, "target state: %s", target_state_strings[target->state]);
-		if (target->state == TARGET_HALTED)
-		{
 			target_arch_state(target);
-		}
 	}
 	else
 	{
@@ -1547,7 +1541,6 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 	
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 0, ms * 1000);
-	command_print(cmd_ctx, "waiting for target %s...", target_state_strings[state]);
 	
 	target_t *target = get_current_target(cmd_ctx);
 	for (;;)
@@ -1557,9 +1550,9 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 		target_call_timer_callbacks();
 		if (target->state == state)
 		{
-			command_print(cmd_ctx, "target %s", target_state_strings[state]);
 			break;
 		}
+		command_print(cmd_ctx, "waiting for target %s...", target_state_strings[state]);
 		
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
@@ -1702,34 +1695,20 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
 	
-	DEBUG("-");
-	
 	if (argc == 0)
 		retval = target->type->resume(target, 1, 0, 1, 0); /* current pc, addr = 0, handle breakpoints, not debugging */
 	else if (argc == 1)
 		retval = target->type->resume(target, 0, strtoul(args[0], NULL, 0), 1, 0); /* addr = args[0], handle breakpoints, not debugging */
 	else
 	{
-		command_print(cmd_ctx, "usage: resume [address]");
-		return ERROR_OK;
-	}
-	
-	if (retval != ERROR_OK)
-	{	
-		switch (retval)
-		{
-			case ERROR_TARGET_NOT_HALTED:
-				command_print(cmd_ctx, "target not halted");
-				break;
-			default:
-				command_print(cmd_ctx, "unknown error... shutting down");
-				exit(-1);
-		}
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	target_process_events(cmd_ctx);
 	
-	return ERROR_OK;
+	target_arch_state(target);
+	
+	return retval;
 }
 
 int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -2349,15 +2328,5 @@ int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args,
 		 * forwarded to telnet/GDB session.  
 		 */
 	}
-	return retval;
-}
-int handle_arch_state_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{
-	int retval;
-	if (argc!=0)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	
-	target_t *target = get_target_by_num(cmd_ctx->current_target);
-	retval=target_arch_state(target);
 	return retval;
 }

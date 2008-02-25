@@ -955,8 +955,7 @@ int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, 
 	}
 	else
 	{
-		command_print(cmd_ctx, "usage: at91sam7 gpnvm <num> <bit> <set|clear>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* Configure the flash controller timing */

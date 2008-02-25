@@ -476,11 +476,6 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	int i;
 	working_area_t *download_area;
 		 
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	/* allocate a working area */
 	if (target_alloc_working_area(target, lpc2000_info->cmd51_max_buffer, &download_area) != ERROR_OK)
 	{
@@ -654,8 +649,7 @@ int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	if (argc < 1)
 	{
-		command_print(cmd_ctx, "usage: lpc2000 part_id <num>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));

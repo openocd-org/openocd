@@ -121,13 +121,11 @@ int telnet_target_callback_event_handler(struct target_s *target, enum target_ev
 	switch (event)
 	{
 		case TARGET_EVENT_HALTED:
-			command_print(cmd_ctx, "Target %i halted", get_num_by_target(target));
 			target_arch_state(target);
 			if (!t_con->suppress_prompt)
 				telnet_prompt(connection);
 			break;
 		case TARGET_EVENT_RESUMED:
-			command_print(cmd_ctx, "Target %i resumed", get_num_by_target(target));
 			if (!t_con->suppress_prompt)
 				telnet_prompt(connection);
 			break;

@@ -48,6 +48,15 @@ static struct option long_options[] =
 };
 
 
+
+int configuration_output_handler(struct command_context_s *context, char* line)
+{
+	INFO(line);
+
+	return ERROR_OK;
+}
+
+
 int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[])
 {
 	int c;

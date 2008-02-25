@@ -36,12 +36,6 @@ static char** config_file_names;
 static size_t num_script_dirs;
 static char** script_search_dirs;
 
-int configuration_output_handler(struct command_context_s *context, char* line)
-{
-	INFO(line);
-	
-	return ERROR_OK;
-}
 
 void add_script_search_dir (const char *dir)
 {

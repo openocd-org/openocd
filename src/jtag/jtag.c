@@ -1610,7 +1610,7 @@ int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	if (argc < 1)
 	{
-		command_print(cmd_ctx, "usage: endstate <tap_state>");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	else
 	{
@@ -1632,13 +1632,12 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 {
 	int trst = -1;
 	int srst = -1;
-	char *usage = "usage: jtag_reset <trst> <srst>";
 	int retval;
 	
 	if (argc < 1)
 	{
-		command_print(cmd_ctx, usage);
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	}
 
 	if (args[0][0] == '1')
@@ -1647,8 +1646,7 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 		trst = 0;
 	else
 	{
-		command_print(cmd_ctx, usage);
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (args[1][0] == '1')
@@ -1657,8 +1655,7 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 		srst = 0;
 	else
 	{
-		command_print(cmd_ctx, usage);
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if ((retval = jtag_add_reset(trst, srst)) != ERROR_OK)
@@ -1684,8 +1681,7 @@ int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **
 {
 	if (argc < 1)
 	{
-		command_print(cmd_ctx, "usage: runtest <num_cycles>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	jtag_add_runtest(strtol(args[0], NULL, 0), -1);
@@ -1725,8 +1721,7 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	
 	if ((argc < 2) || (argc % 2))
 	{
-		command_print(cmd_ctx, "usage: irscan <device> <instr> [dev2] [instr2] ...");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	fields = malloc(sizeof(scan_field_t) * argc / 2);
@@ -1766,8 +1761,7 @@ int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	
 	if ((argc < 2) || (argc % 2))
 	{
-		command_print(cmd_ctx, "usage: drscan <device> <var> [dev2] [var2]");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	for (i = 0; i < argc; i+=2)
@@ -1818,20 +1812,25 @@ int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 
 int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc == 0)
+	if (argc == 1)
 	{
-		command_print(cmd_ctx, "verify Capture-IR is %s", (jtag_verify_capture_ir) ? "enabled": "disabled");
-		return ERROR_OK;
+		if (strcmp(args[0], "enable") == 0)
+		{
+			jtag_verify_capture_ir = 1;
+		}
+		else if (strcmp(args[0], "disable") == 0)
+		{
+			jtag_verify_capture_ir = 0;
+		} else
+		{
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	} else if (argc != 0)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
-	if (strcmp(args[0], "enable") == 0)
-	{
-		jtag_verify_capture_ir = 1;
-	}
-	else if (strcmp(args[0], "disable") == 0)
-	{
-		jtag_verify_capture_ir = 0;
-	}
+	command_print(cmd_ctx, "verify Capture-IR is %s", (jtag_verify_capture_ir) ? "enabled": "disabled");
 	
 	return ERROR_OK;
 }
