@@ -1341,62 +1341,62 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 		ERROR("JTAG interface has to be specified, see \"interface\" command");
 		return ERROR_JTAG_INVALID_INTERFACE;
 	}
-	
+
 	if (jtag_interface->init() != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
 	jtag = jtag_interface;
 	return ERROR_OK;
 }
-	
+
 int jtag_init(struct command_context_s *cmd_ctx)
 {
 	int i, validate_tries = 0;
-				jtag_device_t *device;
-	
+	jtag_device_t *device;
+
 	DEBUG("-");
 	
 	if (!jtag && jtag_interface_init(cmd_ctx) != ERROR_OK)
-					return ERROR_JTAG_INIT_FAILED;
+		return ERROR_JTAG_INIT_FAILED;
 
 	device = jtag_devices;
-				jtag_ir_scan_size = 0;
-				jtag_num_devices = 0;
-				while (device != NULL)
-				{
-					jtag_ir_scan_size += device->ir_length;
-					jtag_num_devices++;
-					device = device->next;
-				}
-				
-				jtag_add_statemove(TAP_TLR);
-				jtag_execute_queue();
+	jtag_ir_scan_size = 0;
+	jtag_num_devices = 0;
+	while (device != NULL)
+	{
+		jtag_ir_scan_size += device->ir_length;
+		jtag_num_devices++;
+		device = device->next;
+	}
+	
+	jtag_add_statemove(TAP_TLR);
+	jtag_execute_queue();
 
-				/* examine chain first, as this could discover the real chain layout */
-				if (jtag_examine_chain() != ERROR_OK)
-				{
-					ERROR("trying to validate configured JTAG chain anyway...");
-				}
-				
-				while (jtag_validate_chain() != ERROR_OK)
-				{
-					validate_tries++;
-					if (validate_tries > 5)
-					{
-						ERROR("Could not validate JTAG chain, exit");
-						jtag = NULL;
-						return ERROR_JTAG_INVALID_INTERFACE;
-					}
-					usleep(10000);
-				}
+	/* examine chain first, as this could discover the real chain layout */
+	if (jtag_examine_chain() != ERROR_OK)
+	{
+		ERROR("trying to validate configured JTAG chain anyway...");
+	}
+	
+	while (jtag_validate_chain() != ERROR_OK)
+	{
+		validate_tries++;
+		if (validate_tries > 5)
+		{
+			ERROR("Could not validate JTAG chain, exit");
+			jtag = NULL;
+			return ERROR_JTAG_INVALID_INTERFACE;
+		}
+		usleep(10000);
+	}
 
-				return ERROR_OK;
+	return ERROR_OK;
 }
 
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
-	
+
 	/* check whether the interface is already configured */
 	if (jtag_interface)
 	{
@@ -1406,22 +1406,22 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 	/* interface name is a mandatory argument */
 	if (argc < 1 || args[0][0] == '\0')
-		{
+	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-			for (i=0; jtag_interfaces[i]; i++)
-			{
-				if (strcmp(args[0], jtag_interfaces[i]->name) == 0)
-				{
-					if (jtag_interfaces[i]->register_commands(cmd_ctx) != ERROR_OK)
-						exit(-1);
-				
+	for (i=0; jtag_interfaces[i]; i++)
+	{
+		if (strcmp(args[0], jtag_interfaces[i]->name) == 0)
+		{
+			if (jtag_interfaces[i]->register_commands(cmd_ctx) != ERROR_OK)
+				exit(-1);
+
 			jtag_interface = jtag_interfaces[i];
-					return ERROR_OK;
-				}
-			}
-		
+			return ERROR_OK;
+		}
+	}
+
 	/* no valid interface was found (i.e. the configuration option,
 	 * didn't match one of the compiled-in interfaces
 	 */
@@ -1431,7 +1431,7 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	{
 		ERROR("%i: %s", i, jtag_interfaces[i]->name);
 	}
-	
+
 	return ERROR_JTAG_INVALID_INTERFACE;
 }
 
