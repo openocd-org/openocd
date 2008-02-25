@@ -1375,11 +1375,11 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 		}
 
 		/* allocate working area */
-		if (target_alloc_working_area(target, 24 * 4,
-			&cfi_info->write_algorithm) != ERROR_OK)
+		retval=target_alloc_working_area(target, 24 * 4,
+				&cfi_info->write_algorithm);
+		if (retval != ERROR_OK)
 		{
-			WARNING("no working area available, can't do block memory writes");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+			return retval;
 		}
 
 		/* write algorithm code to working area */
@@ -1644,11 +1644,6 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u8 current_word[CFI_MAX_BUS_WIDTH * 4];	/* word (bus_width size) currently being programmed */
 	int i;
 	int retval;
-
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	if (offset + count > bank->size)
 		return ERROR_FLASH_DST_OUT_OF_BANK;

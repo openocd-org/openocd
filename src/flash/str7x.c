@@ -314,11 +314,6 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 	u32 retval;
 	u32 b0_sectors = 0, b1_sectors = 0;
 	
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	for (i = first; i <= last; i++)
 	{
 		if (str7x_info->sector_bank[i] == 0)
@@ -572,11 +567,6 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 retval;
 	u32 check_address = offset;
 	int i;
-	
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
 	
 	if (offset & 0x7)
 	{

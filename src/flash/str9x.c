@@ -248,11 +248,6 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 	u32 adr;
 	u8 status;
 	
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-    
 	for (i = first; i <= last; i++)
 	{
 		adr = bank->base + bank->sectors[i].offset;
@@ -442,11 +437,6 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 bank_adr;
 	int i;
 	
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	if (offset & 0x1)
 	{
 		WARNING("offset 0x%x breaks required 2-byte alignment", offset);
@@ -600,8 +590,7 @@ int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *c
 	
 	if (argc < 5)
 	{
-		command_print(cmd_ctx, "usage: str9x flash_config <bank> <bbsize> <nbsize> <bbstart> <nbstart>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));

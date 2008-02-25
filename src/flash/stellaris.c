@@ -514,11 +514,6 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 	
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	if (stellaris_info->did1 == 0)
 	{
 		stellaris_read_part_info(bank);
@@ -817,11 +812,6 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	DEBUG("(bank=%08X buffer=%08X offset=%08X count=%08X)",
 			(unsigned int)bank, (unsigned int)buffer, offset, count);
 
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	if (stellaris_info->did1 == 0)
 	{
 		stellaris_read_part_info(bank);

@@ -254,6 +254,9 @@ int target_write_u32(struct target_s *target, u32 address, u32 value);
 int target_write_u16(struct target_s *target, u32 address, u16 value);
 int target_write_u8(struct target_s *target, u32 address, u8 value);
 
+/* Issues USER() statements with target state information */
+int target_arch_state(struct target_s *target);
+
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)
 #define ERROR_TARGET_TIMEOUT	(-302)

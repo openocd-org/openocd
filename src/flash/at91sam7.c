@@ -738,11 +738,6 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 first_page, last_page, pagen, buffer_pos;
 	u8 flashplane;
 	
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	if (at91sam7_info->cidr == 0)
 	{
 		at91sam7_read_part_info(bank);

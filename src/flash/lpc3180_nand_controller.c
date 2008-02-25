@@ -881,8 +881,7 @@ int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char *cmd, 
 	
 	if ((argc < 1) || (argc > 2))
 	{
-		command_print(cmd_ctx, "usage: lpc3180 select <num> <'mlc'|'slc'>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	device = get_nand_device_by_num(strtoul(args[0], NULL, 0));
@@ -906,7 +905,7 @@ int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char *cmd, 
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: lpc3180 select <'mlc'|'slc'>");
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
 	

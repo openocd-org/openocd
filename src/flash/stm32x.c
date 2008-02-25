@@ -356,11 +356,6 @@ int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 	int i;
 	u32 status;
 	
-	if (target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	/* unlock flash registers */
 	target_write_u32(target, STM32_FLASH_KEYR, KEY1);
 	target_write_u32(target, STM32_FLASH_KEYR, KEY2);
@@ -551,11 +546,6 @@ int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 bytes_written = 0;
 	u8 status;
 	u32 retval;
-	
-	if (target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
 	
 	if (offset & 0x1)
 	{

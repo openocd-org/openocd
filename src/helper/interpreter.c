@@ -184,7 +184,7 @@ int handle_field_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 {
 
 	if (argc < 2)
-		command_print(cmd_ctx, "usage: field <var> <field> [value|'flip']");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (argc >= 2)
 	{
@@ -220,7 +220,7 @@ int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	int echo;
 
 	if (argc != 1)
-		command_print(cmd_ctx, "usage: script <file>");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	script_file = open_file_from_path(cmd_ctx, args[0], "r");
 

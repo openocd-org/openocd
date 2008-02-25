@@ -1024,8 +1024,8 @@ int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		
 	if ((argc < 1) || (argc > 3))
 	{
-		command_print(cmd_ctx, "usage: nand info <num> [<first> <last>]");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	}
 	
 	if (argc == 2)
@@ -1091,8 +1091,7 @@ int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char
 		
 	if (argc != 1)
 	{
-		command_print(cmd_ctx, "usage: nand probe <num>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
@@ -1126,8 +1125,8 @@ int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cmd, char
 		
 	if (argc != 3)
 	{
-		command_print(cmd_ctx, "usage: nand erase <num> <first> <last>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	}
 	
 	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
@@ -1166,8 +1165,8 @@ int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char
 		
 	if ((argc < 1) || (argc > 3) || (argc == 2))
 	{
-		command_print(cmd_ctx, "usage: nand check_bad_blocks <num> [<first> <last>]");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	}
 	
 	if (argc == 3)
@@ -1206,8 +1205,8 @@ int handle_nand_copy_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		
 	if (argc != 4)
 	{
-		command_print(cmd_ctx, "usage: nand copy <num> <offset> <length> <ram-address>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	}
 	
 	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
@@ -1239,8 +1238,8 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 		
 	if (argc < 3)
 	{
-		command_print(cmd_ctx, "usage: nand write <num> <file> <offset> [options]");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	}
 	
 	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
@@ -1353,8 +1352,7 @@ int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			
 	if (argc < 4)
 	{
-		command_print(cmd_ctx, "usage: nand dump <num> <filename> <address> <size> [options]");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
@@ -1475,8 +1473,7 @@ int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd,
 		
 	if ((argc < 1) || (argc > 2))
 	{
-		command_print(cmd_ctx, "usage: nand raw_access <num> ['enable'|'disable']");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
@@ -1496,7 +1493,7 @@ int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd,
 				}
 				else
 				{
-					command_print(cmd_ctx, "usage: nand raw_access ['enable'|disable']");
+					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 			}
 	

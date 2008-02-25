@@ -416,16 +416,6 @@ int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 	u32 result_table[2];
 	int status_code;
 	
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
-	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
-	{
-		return ERROR_FLASH_SECTOR_INVALID;
-	}
-	
 	param_table[0] = first;
 	param_table[1] = last;
 	param_table[2] = lpc2000_info->cclk;

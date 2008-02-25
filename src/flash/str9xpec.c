@@ -881,8 +881,7 @@ int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd
 
 	if (argc < 1)
 	{
-		command_print(cmd_ctx, "usage: str9xpec part_id <num>");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));

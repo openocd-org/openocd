@@ -1744,23 +1744,16 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 	if (!strcmp(packet, "vFlashDone"))
 	{
 		u32 written;
-		char *error_str;
 
 		/* process the flashing buffer. No need to erase as GDB
 		 * always issues a vFlashErase first. */
-		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, &error_str, NULL, 0)) != ERROR_OK)
+		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, 0)) != ERROR_OK)
 		{
 			if (result == ERROR_FLASH_DST_OUT_OF_BANK)
 				gdb_put_packet(connection, "E.memtype", 9);
 			else
 				gdb_send_error(connection, EIO);
-			
-			if (error_str)
-			{
-				ERROR("flash writing failed: %s", error_str);
-				free(error_str);
 			}
-		}
 		else
 		{
 			DEBUG("wrote %u bytes from vFlash image to flash", written);
