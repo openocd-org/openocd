@@ -166,7 +166,7 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 
 int remove_service(unsigned short port)
 {
-	service_t **p = services;
+	service_t **p = &services;
 	service_t *c;
 	
 	/* find service */
