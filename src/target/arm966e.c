@@ -225,12 +225,12 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1, NULL);
+	jtag_add_dr_scan(3, fields, -1);
 
 	fields[0].in_handler_priv = value;
 	fields[0].in_handler = arm_jtag_buf_to_u32;
 
-	jtag_add_dr_scan(3, fields, -1, NULL);
+	jtag_add_dr_scan(3, fields, -1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	jtag_execute_queue();
@@ -286,7 +286,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(3, fields, -1, NULL);
+	jtag_add_dr_scan(3, fields, -1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);

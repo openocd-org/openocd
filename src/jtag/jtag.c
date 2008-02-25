@@ -379,7 +379,7 @@ void cmd_queue_free()
 	cmd_queue_pages = NULL;
 }
 
-int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state, void *dummy_anachronism)
+int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	jtag_command_t **last_cmd;
 	jtag_device_t *device;
@@ -472,7 +472,7 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 	return ERROR_OK;
 }
 
-int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state, void *dummy_anachronism)
+int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	jtag_command_t **last_cmd;
 	int i;
@@ -526,7 +526,7 @@ int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state 
 	return ERROR_OK;
 }
 
-int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state, void *dummy_anachronism)
+int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int i, j;
 	int bypass_devices = 0;
@@ -625,7 +625,8 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state,
 	return ERROR_OK;
 }
 
-int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state, void *dummy_anachronism)
+
+int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int i;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
@@ -1168,7 +1169,7 @@ int jtag_examine_chain()
 		buf_set_u32(idcode_buffer, i * 32, 32, 0x000000FF);
 	}
 	
-	jtag_add_plain_dr_scan(1, &field, TAP_TLR, NULL);
+	jtag_add_plain_dr_scan(1, &field, TAP_TLR);
 	jtag_execute_queue();
 	
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE * 4; i++)
@@ -1264,7 +1265,7 @@ int jtag_validate_chain()
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	
-	jtag_add_plain_ir_scan(1, &field, TAP_TLR, NULL);
+	jtag_add_plain_ir_scan(1, &field, TAP_TLR);
 	jtag_execute_queue();
 	
 	device = jtag_devices;
@@ -1740,7 +1741,7 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		fields[i].in_handler_priv = NULL;
 	}
 
-	jtag_add_ir_scan(argc / 2, fields, -1, NULL);
+	jtag_add_ir_scan(argc / 2, fields, -1);
 	jtag_execute_queue();
 
 	for (i = 0; i < argc / 2; i++)
@@ -1799,7 +1800,7 @@ int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		}
 	}
 
-	jtag_add_dr_scan(num_fields, fields, -1, NULL);
+	jtag_add_dr_scan(num_fields, fields, -1);
 	jtag_execute_queue();
 	
 	for (i = 0; i < argc / 2; i++)

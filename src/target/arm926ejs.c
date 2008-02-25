@@ -173,7 +173,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(4, fields, -1, NULL);
+	jtag_add_dr_scan(4, fields, -1);
 
 	fields[0].in_handler_priv = value;
 	fields[0].in_handler = arm_jtag_buf_to_u32;
@@ -183,7 +183,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
 		nr_w_buf = 0;
-		jtag_add_dr_scan(4, fields, -1, NULL);
+		jtag_add_dr_scan(4, fields, -1);
 		jtag_execute_queue();
 	} while (buf_get_u32(&access, 0, 1) != 1);
 
@@ -255,14 +255,14 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(4, fields, -1, NULL);
+	jtag_add_dr_scan(4, fields, -1);
 
 	do
 	{
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
 		nr_w_buf = 0;
-		jtag_add_dr_scan(4, fields, -1, NULL);
+		jtag_add_dr_scan(4, fields, -1);
 		jtag_execute_queue();
 	} while (buf_get_u32(&access, 0, 1) != 1);
 

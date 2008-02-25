@@ -188,9 +188,9 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						field.in_handler = NULL;
 						field.in_handler_priv = NULL;
 						if (device == -1)
-							jtag_add_plain_ir_scan(1, &field, TAP_PI, NULL);
+							jtag_add_plain_ir_scan(1, &field, TAP_PI);
 						else
-							jtag_add_ir_scan(1, &field, TAP_PI, NULL);
+							jtag_add_ir_scan(1, &field, TAP_PI);
 						if (jtag_execute_queue() != ERROR_OK)
 						{
 							tdo_mismatch = 1;
@@ -228,9 +228,9 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 					field.in_value = NULL;
 					jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
 					if (device == -1)
-						jtag_add_plain_dr_scan(1, &field, TAP_PD, NULL);
+						jtag_add_plain_dr_scan(1, &field, TAP_PD);
 					else
-						jtag_add_dr_scan(1, &field, TAP_PD, NULL);
+						jtag_add_dr_scan(1, &field, TAP_PD);
 					if (jtag_execute_queue() != ERROR_OK)
 					{
 						tdo_mismatch = 1;
@@ -302,9 +302,9 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						field.in_value = NULL;
 						jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
 						if (device == -1)
-							jtag_add_plain_dr_scan(1, &field, TAP_PD, NULL);
+							jtag_add_plain_dr_scan(1, &field, TAP_PD);
 						else
-							jtag_add_dr_scan(1, &field, TAP_PD, NULL);
+							jtag_add_dr_scan(1, &field, TAP_PD);
 						if (jtag_execute_queue() != ERROR_OK)
 						{
 							tdo_mismatch = 1;
@@ -428,9 +428,9 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						field.in_handler = NULL;
 						field.in_handler_priv = NULL;
 						if (device == -1)
-							jtag_add_plain_ir_scan(1, &field, xsvf_to_tap[xendir], NULL);
+							jtag_add_plain_ir_scan(1, &field, xsvf_to_tap[xendir]);
 						else
-							jtag_add_ir_scan(1, &field, xsvf_to_tap[xendir], NULL);
+							jtag_add_ir_scan(1, &field, xsvf_to_tap[xendir]);
 					}
 					free(ir_buf);
 				}

@@ -148,7 +148,7 @@ int str9xpec_set_instr(int chain_pos, u32 new_instr, enum tap_state end_state)
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 		
-		jtag_add_ir_scan(1, &field, end_state, NULL);
+		jtag_add_ir_scan(1, &field, end_state);
 		
 		free(field.out_value);
 	}
@@ -174,7 +174,7 @@ u8 str9xpec_isc_status(int chain_pos)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(1, &field, TAP_RTI, NULL);
+	jtag_add_dr_scan(1, &field, TAP_RTI);
 	jtag_execute_queue();
 	
 	DEBUG("status: 0x%2.2x", status);
@@ -266,7 +266,7 @@ int str9xpec_read_config(struct flash_bank_s *bank)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(1, &field, TAP_RTI, NULL);
+	jtag_add_dr_scan(1, &field, TAP_RTI);
 	jtag_execute_queue();
 	
 	status = str9xpec_isc_status(chain_pos);
@@ -409,7 +409,7 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(1, &field, TAP_RTI, NULL);
+	jtag_add_dr_scan(1, &field, TAP_RTI);
 	jtag_add_sleep(40000);
 	
 	/* read blank check result */
@@ -423,7 +423,7 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(1, &field, TAP_PI, NULL);
+	jtag_add_dr_scan(1, &field, TAP_PI);
 	jtag_execute_queue();
 	
 	status = str9xpec_isc_status(chain_pos);
@@ -525,7 +525,7 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(1, &field, TAP_RTI, NULL);
+	jtag_add_dr_scan(1, &field, TAP_RTI);
 	jtag_execute_queue();
 	
 	jtag_add_sleep(10);
@@ -591,7 +591,7 @@ int str9xpec_lock_device(struct flash_bank_s *bank)
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 		
-		jtag_add_dr_scan(1, &field, -1, NULL);
+		jtag_add_dr_scan(1, &field, -1);
 		jtag_execute_queue();
 		
 	} while(!(status & ISC_STATUS_BUSY));
@@ -677,7 +677,7 @@ int str9xpec_set_address(struct flash_bank_s *bank, u8 sector)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(1, &field, -1, NULL);
+	jtag_add_dr_scan(1, &field, -1);
 		
 	return ERROR_OK;
 }
@@ -766,7 +766,7 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			field.in_handler = NULL;
 			field.in_handler_priv = NULL;
 			
-			jtag_add_dr_scan(1, &field, TAP_RTI, NULL);
+			jtag_add_dr_scan(1, &field, TAP_RTI);
 			
 			/* small delay before polling */
 			jtag_add_sleep(50);
@@ -784,7 +784,7 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 				field.in_handler = NULL;
 				field.in_handler_priv = NULL;
 				
-				jtag_add_dr_scan(1, &field, -1, NULL);
+				jtag_add_dr_scan(1, &field, -1);
 				jtag_execute_queue();
 				
 				status = buf_get_u32(scanbuf, 0, 8);
@@ -826,7 +826,7 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 		
-		jtag_add_dr_scan(1, &field, TAP_RTI, NULL);
+		jtag_add_dr_scan(1, &field, TAP_RTI);
 		
 		/* small delay before polling */
 		jtag_add_sleep(50);
@@ -844,7 +844,7 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			field.in_handler = NULL;
 			field.in_handler_priv = NULL;
 			
-			jtag_add_dr_scan(1, &field, -1, NULL);
+			jtag_add_dr_scan(1, &field, -1);
 			jtag_execute_queue();
 			
 			status = buf_get_u32(scanbuf, 0, 8);
@@ -908,7 +908,7 @@ int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(1, &field, TAP_RTI, NULL);
+	jtag_add_dr_scan(1, &field, TAP_RTI);
 	jtag_execute_queue();
 	
 	idcode = buf_get_u32(buffer, 0, 32);
@@ -1033,7 +1033,7 @@ int str9xpec_write_options(struct flash_bank_s *bank)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	
-	jtag_add_dr_scan(1, &field, TAP_RTI, NULL);
+	jtag_add_dr_scan(1, &field, TAP_RTI);
 	
 	/* small delay before polling */
 	jtag_add_sleep(50);
@@ -1051,7 +1051,7 @@ int str9xpec_write_options(struct flash_bank_s *bank)
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 		
-		jtag_add_dr_scan(1, &field, -1, NULL);
+		jtag_add_dr_scan(1, &field, -1);
 		jtag_execute_queue();
 		
 	} while(!(status & ISC_STATUS_BUSY));

@@ -87,7 +87,7 @@ int swjdp_scan(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u8 *outvalu
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	jtag_add_dr_scan(2, fields, -1, NULL);
+	jtag_add_dr_scan(2, fields, -1);
 
 	return ERROR_OK;
 }
@@ -132,7 +132,7 @@ int swjdp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u32 out
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	jtag_add_dr_scan(2, fields, -1, NULL);
+	jtag_add_dr_scan(2, fields, -1);
 
 	return ERROR_OK;
 }

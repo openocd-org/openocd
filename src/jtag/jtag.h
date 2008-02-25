@@ -244,10 +244,10 @@ extern int jtag_init(struct command_context_s *cmd_ctx);
 extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
 /* JTAG interface, can be implemented with a software or hardware fifo */
-extern int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
-extern int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
-extern int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
-extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate, void *dummy_anachronism);
+extern int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 /* execute a state transition within the JTAG standard, but the exact path
  * path that is taken is undefined. Many implementations use precisely
  * 7 clocks to perform a transition, but it could be more or less

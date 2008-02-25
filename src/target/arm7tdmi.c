@@ -129,7 +129,7 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		arm_jtag_scann(&arm7_9->jtag_info, 0x1);
 		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL);
 
-		jtag_add_dr_scan(2, fields, TAP_PD, NULL);
+		jtag_add_dr_scan(2, fields, TAP_PD);
 		jtag_execute_queue();
 		
 		fields[0].in_value = NULL;
@@ -137,7 +137,7 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		fields[1].in_value = NULL;
 		fields[1].out_value = databus;
 		
-		jtag_add_dr_scan(2, fields, TAP_PD, NULL);
+		jtag_add_dr_scan(2, fields, TAP_PD);
 
 		if (breakpoint & 1)
 			target->debug_reason = DBG_REASON_WATCHPOINT; 
@@ -190,7 +190,7 @@ int arm7tdmi_clock_out(arm_jtag_t *jtag_info, u32 out, u32 *in, int breakpoint)
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	jtag_add_dr_scan(2, fields, -1, NULL);
+	jtag_add_dr_scan(2, fields, -1);
 
 	jtag_add_runtest(0, -1);
 	
@@ -239,7 +239,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	jtag_add_dr_scan(2, fields, -1, NULL);
+	jtag_add_dr_scan(2, fields, -1);
 
 	jtag_add_runtest(0, -1);
 	
@@ -304,7 +304,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	jtag_add_dr_scan(2, fields, -1, NULL);
+	jtag_add_dr_scan(2, fields, -1);
 
 	jtag_add_runtest(0, -1);
 	

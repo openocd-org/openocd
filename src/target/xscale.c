@@ -226,7 +226,7 @@ int xscale_jtag_set_instr(int chain_pos, u32 new_instr)
 		field.in_value = NULL;
 		jtag_set_check_value(&field, device->expected, device->expected_mask, NULL);
 
-		jtag_add_ir_scan(1, &field, -1, NULL);
+		jtag_add_ir_scan(1, &field, -1);
 
 		free(field.out_value);
 	}
@@ -300,7 +300,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[2].in_value = NULL;
 	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
-	jtag_add_dr_scan(3, fields, -1, NULL);
+	jtag_add_dr_scan(3, fields, -1);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -320,7 +320,7 @@ int xscale_read_dcsr(target_t *target)
 
 	jtag_add_end_state(TAP_RTI);
 
-	jtag_add_dr_scan(3, fields, -1, NULL);
+	jtag_add_dr_scan(3, fields, -1);
 
 	return ERROR_OK;
 }
@@ -392,7 +392,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 			fields[1].in_handler_priv = (u8*)&field1[i];
 
 			jtag_add_pathmove(3, path);
-			jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
+			jtag_add_dr_scan(3, fields, TAP_RTI);
 			words_scheduled++;
 		}
 
@@ -513,7 +513,7 @@ int xscale_read_tx(target_t *target, int consume)
 		else
 			jtag_add_pathmove(sizeof(noconsume_path)/sizeof(*noconsume_path), noconsume_path);
 
-		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
+		jtag_add_dr_scan(3, fields, TAP_RTI);
 
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
@@ -589,7 +589,7 @@ int xscale_write_rx(target_t *target)
 	DEBUG("polling RX");
 	do
 	{
-		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
+		jtag_add_dr_scan(3, fields, TAP_RTI);
 
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
@@ -607,7 +607,7 @@ int xscale_write_rx(target_t *target)
 
 	/* set rx_valid */
 	field2 = 0x1;
-	jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
+	jtag_add_dr_scan(3, fields, TAP_RTI);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -692,7 +692,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 				output[2]=buffer[1];
 				output[3]=buffer[0];
 			}
-			jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
+			jtag_add_dr_scan(3, fields, TAP_RTI);
 			buffer += size;
 		}
 		
@@ -716,7 +716,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 				exit(-1);
 		}
 
-		jtag_add_dr_scan(3, fields, TAP_RTI, NULL);
+		jtag_add_dr_scan(3, fields, TAP_RTI);
 		buffer += size;
 	}
 
@@ -793,7 +793,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[2].in_value = NULL;
 	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
-	jtag_add_dr_scan(3, fields, -1, NULL);
+	jtag_add_dr_scan(3, fields, -1);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -865,7 +865,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(2, fields, -1, NULL);
+	jtag_add_dr_scan(2, fields, -1);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = packet;
@@ -877,7 +877,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	{
 		buf_set_u32(packet, 0, 32, buffer[word]);
 		cmd = parity(*((u32*)packet));
-		jtag_add_dr_scan(2, fields, -1, NULL);
+		jtag_add_dr_scan(2, fields, -1);
 	}
 
 	jtag_execute_queue();
@@ -923,7 +923,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(2, fields, -1, NULL);
+	jtag_add_dr_scan(2, fields, -1);
 
 	return ERROR_OK;
 }
