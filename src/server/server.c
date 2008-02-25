@@ -88,7 +88,7 @@ int remove_connection(service_t *service, connection_t *connection)
 	connection_t *c;
 	
 	/* find connection */
-	while(c = *p)
+	while((c = *p))
 	{		
 		if (c->fd == connection->fd)
 		{	
@@ -170,7 +170,7 @@ int remove_service(unsigned short port)
 	service_t *c;
 	
 	/* find service */
-	while(c = *p)
+	while((c = *p))
 	{		
 		if (c->port == port)
 		{	

@@ -197,7 +197,7 @@ int log_remove_callback(log_callback_fn fn, void *priv)
 {
 	log_callback_t *cb, **p;
 
-	for (p = &log_callbacks; cb = *p; p = &(*p)->next)
+	for (p = &log_callbacks; (cb = *p); p = &(*p)->next)
 	{
 	    if (cb->fn == fn && cb->priv == priv)
 	    {

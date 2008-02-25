@@ -36,7 +36,6 @@ static char** config_file_names;
 static size_t num_script_dirs;
 static char** script_search_dirs;
 
-
 void add_script_search_dir (const char *dir)
 {
 	num_script_dirs++;
@@ -87,7 +86,6 @@ FILE *open_file_from_path (command_context_t *cmd_ctx, char *file, char *mode)
 int parse_config_file(struct command_context_s *cmd_ctx)
 {
 	char **cfg;
-	FILE *config_file;
 
 	if (!config_file_names)
 		add_config_file_name ("script openocd.cfg");

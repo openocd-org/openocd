@@ -31,7 +31,6 @@
 #include <getopt.h>
 #include <string.h>
 
-
 static int help_flag;
 
 static struct option long_options[] =
@@ -47,15 +46,12 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 
-
-
 int configuration_output_handler(struct command_context_s *context, char* line)
 {
 	INFO(line);
 
 	return ERROR_OK;
 }
-
 
 int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[])
 {

@@ -1351,7 +1351,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 
 int jtag_init(struct command_context_s *cmd_ctx)
 {
-	int i, validate_tries = 0;
+	int validate_tries = 0;
 	jtag_device_t *device;
 
 	DEBUG("-");
