@@ -50,7 +50,7 @@ unsigned long bitq_in_bufsize=32; /* min. buffer size */
  * input queue processing does not use jtag_read_buffer() to avoid unnecessary overhead
  * also the buffer for incomming data is reallocated only if necessary
  * no parameters, makes use of stored state information
- */ 
+ */
 void bitq_in_proc(void)
 {
 	/* static information preserved between calls to increase performance */
@@ -60,7 +60,7 @@ void bitq_in_proc(void)
 
 	scan_field_t *field;
 	int tdo;
-	
+
 	/* loop through the queue */
 	while (bitq_in_state.cmd) {
 		/* only JTAG_SCAN command may return data */
@@ -88,10 +88,10 @@ void bitq_in_proc(void)
 								/* double the buffer size until it fits */
 								while (field->num_bits>bitq_in_bufsize*8) bitq_in_bufsize*=2;
 							}
-							/* if necessary, allocate buffer and check for malloc error */ 
+							/* if necessary, allocate buffer and check for malloc error */
 							if (bitq_in_buffer==NULL && (bitq_in_buffer=malloc(bitq_in_bufsize))==NULL) {
 								ERROR("malloc error");
-								exit(-1);                
+								exit(-1);
 							}
 							in_buff=(void *)bitq_in_buffer;
 						}
@@ -114,14 +114,14 @@ void bitq_in_proc(void)
 						else in_mask<<=1;
 						bitq_in_state.bit_pos++;
 					}
-					
+
 
 					if (field->in_handler && bitq_in_state.status==ERROR_OK) {
 						bitq_in_state.status=(*field->in_handler)(in_buff, field->in_handler_priv, field);
 					}
 
 				}
-				
+
 				bitq_in_state.field_idx++; /* advance to next field */
 				bitq_in_state.bit_pos=0; /* start next field from the first bit */
 			}
@@ -137,7 +137,7 @@ void bitq_in_proc(void)
 void bitq_io(int tms, int tdi, int tdo_req)
 {
 	bitq_interface->out(tms, tdi, tdo_req);
-	/* check and process the input queue */ 
+	/* check and process the input queue */
 	if (bitq_interface->in_rdy()) bitq_in_proc();
 }
 
@@ -162,7 +162,7 @@ void bitq_state_move(enum tap_state new_state)
 		ERROR("TAP move from or to unstable state");
 		exit(-1);
 	}
-	
+
 	tms_scan=TAP_MOVE(cur_state, new_state);
 
 	for (i=0; i<7; i++) {
@@ -216,7 +216,7 @@ void bitq_scan_field(scan_field_t *field, int pause)
 
 	u8 *out_ptr;
 	u8 out_mask;
-	
+
 	if ( field->in_value || field->in_handler) tdo_req=1;
 	else tdo_req=0;
 
@@ -265,7 +265,7 @@ void bitq_scan(scan_command_t *cmd)
 int bitq_execute_queue(void)
 {
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
-	
+
 	bitq_in_state.cmd = jtag_command_queue;
 	bitq_in_state.field_idx = 0;
 	bitq_in_state.bit_pos = 0;
