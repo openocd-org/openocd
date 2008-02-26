@@ -33,9 +33,9 @@
 #include "string.h"
 #include <unistd.h>
 
-#ifndef INTERFACE
+#ifndef MINIDRIVER
 /* this allows JTAG devices to implement the entire jtag_xxx() layer in hw/sw */
-#define INTERFACE(a) a
+#define MINIDRIVER(a) a
 #endif
 
 
@@ -417,7 +417,7 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 	return retval;
 }
 
-int INTERFACE(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
 {	
 	jtag_command_t **last_cmd;
 	jtag_device_t *device;
@@ -516,7 +516,7 @@ int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state 
 	return interface_jtag_add_plain_ir_scan(num_fields, fields, state);
 }
 
-int INTERFACE(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int i;
 	jtag_command_t **last_cmd;
@@ -575,7 +575,7 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 	return interface_jtag_add_dr_scan(num_fields, fields, state);
 }
 
-int INTERFACE(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int i, j;
 	int bypass_devices = 0;
@@ -681,7 +681,7 @@ int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state 
 	return interface_jtag_add_plain_dr_scan(num_fields, fields, state);
 }
 
-int INTERFACE(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int i;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
@@ -738,7 +738,7 @@ int jtag_add_statemove(enum tap_state state)
 	return interface_jtag_add_statemove(state);
 }
 
-int INTERFACE(interface_jtag_add_statemove)(enum tap_state state)
+int MINIDRIVER(interface_jtag_add_statemove)(enum tap_state state)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	
@@ -782,7 +782,7 @@ int jtag_add_pathmove(int num_states, enum tap_state *path)
 }
 
 
-int INTERFACE(interface_jtag_add_pathmove)(int num_states, enum tap_state *path)
+int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, enum tap_state *path)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	int i;
@@ -803,7 +803,7 @@ int INTERFACE(interface_jtag_add_pathmove)(int num_states, enum tap_state *path)
 	return ERROR_OK;
 }
 
-int INTERFACE(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	
@@ -932,7 +932,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 	
 }
 
-int INTERFACE(interface_jtag_add_reset)(int req_trst, int req_srst)
+int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 
@@ -950,7 +950,7 @@ int INTERFACE(interface_jtag_add_reset)(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-int INTERFACE(interface_jtag_add_end_state)(enum tap_state state)
+int MINIDRIVER(interface_jtag_add_end_state)(enum tap_state state)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	
@@ -974,7 +974,7 @@ int jtag_add_end_state(enum tap_state state)
 	return retval;
 }
 
-int INTERFACE(interface_jtag_add_sleep)(u32 us)
+int MINIDRIVER(interface_jtag_add_sleep)(u32 us)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	
@@ -1178,7 +1178,7 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 	return type;
 }
 
-int INTERFACE(interface_jtag_execute_queue)(void)
+int MINIDRIVER(interface_jtag_execute_queue)(void)
 {
 	int retval;
 
