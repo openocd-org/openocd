@@ -25,17 +25,17 @@
 
 typedef struct tms470_flash_bank_s
 {
-  unsigned ordinal;
+	unsigned ordinal;
 
-  /* device identification register */
-  u32 device_ident_reg;
-  u32 silicon_version;
-  u32 technology_family;
-  u32 rom_flash;
-  u32 part_number;
-  char * part_name;
-  
-  int probed;
+	/* device identification register */
+	u32 device_ident_reg;
+	u32 silicon_version;
+	u32 technology_family;
+	u32 rom_flash;
+	u32 part_number;
+	char * part_name;
+
+	int probed;
 } tms470_flash_bank_t;
 
 #endif /* TMS470_DOT_H */
