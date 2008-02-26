@@ -275,6 +275,8 @@ extern int interface_jtag_add_statemove(enum tap_state endstate);
 /* A list of unambigious single clock state transitions, not
  * all drivers can support this, but it is required for e.g.
  * XScale and Xilinx support
+ * 
+ * Note! TAP_TLR must not be used in the path!
  */
 extern int jtag_add_pathmove(int num_states, enum tap_state *path);
 extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);
@@ -284,7 +286,7 @@ extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int jtag_add_reset(int trst, int srst);
 extern int interface_jtag_add_reset(int trst, int srst);
 extern int jtag_add_end_state(enum tap_state endstate);
-extern int inteface_jtag_add_end_state(enum tap_state endstate);
+extern int interface_jtag_add_end_state(enum tap_state endstate);
 extern int jtag_add_sleep(u32 us);
 extern int interface_jtag_add_sleep(u32 us);
 /*

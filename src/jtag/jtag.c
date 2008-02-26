@@ -496,15 +496,31 @@ int INTERFACE(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, 
 
 int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-	jtag_command_t **last_cmd;
-	int i;
-
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return ERROR_JTAG_TRST_ASSERTED;
+		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
 	}
 
+	if (state != -1)
+		cmd_queue_end_state = state;
+
+	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
+	
+	if (cmd_queue_end_state == TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+		
+	cmd_queue_cur_state = cmd_queue_end_state;
+	
+	return interface_jtag_add_plain_ir_scan(num_fields, fields, state);
+}
+
+int INTERFACE(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+{
+	int i;
+	jtag_command_t **last_cmd;
+	
 	last_cmd = jtag_get_last_command_p();
 	
 	/* allocate memory for a new list member */
@@ -520,17 +536,6 @@ int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state 
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
 
-	if (state != -1)
-		cmd_queue_end_state = state;
-
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-		
-	cmd_queue_cur_state = cmd_queue_end_state;
-	
 	for (i = 0; i < num_fields; i++)
 	{
 		int num_bits = fields[i].num_bits;
@@ -550,18 +555,35 @@ int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state 
 
 int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-	int i, j;
-	int bypass_devices = 0;
-	int field_count = 0;
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	jtag_device_t *device = jtag_devices;
-	int scan_size;
-
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return ERROR_JTAG_TRST_ASSERTED;
+		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
 	}
+
+	if (state != -1)
+		cmd_queue_end_state = state;
+
+	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
+	
+	if (cmd_queue_end_state == TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+			
+	cmd_queue_cur_state = cmd_queue_end_state;
+
+	return interface_jtag_add_dr_scan(num_fields, fields, state);
+}
+
+int INTERFACE(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+{
+	int i, j;
+	int bypass_devices = 0;
+	int field_count = 0;
+	int scan_size;
+
+	jtag_command_t **last_cmd = jtag_get_last_command_p();
+	jtag_device_t *device = jtag_devices;
 
 	/* count devices in bypass */
 	while (device)
@@ -583,17 +605,6 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 	(*last_cmd)->cmd.scan->num_fields = num_fields + bypass_devices;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
-	
-	if (state != -1)
-		cmd_queue_end_state = state;
-
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-			
-	cmd_queue_cur_state = cmd_queue_end_state;
 	
 	for (i = 0; i < jtag_num_devices; i++)
 	{
@@ -650,15 +661,31 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 
 int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-	int i;
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return ERROR_JTAG_TRST_ASSERTED;
+		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
 	}
 
+	if (state != -1)
+		cmd_queue_end_state = state;
+
+	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
+	
+	if (cmd_queue_end_state == TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+			
+	cmd_queue_cur_state = cmd_queue_end_state;
+
+	return interface_jtag_add_plain_dr_scan(num_fields, fields, state);
+}
+
+int INTERFACE(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+{
+	int i;
+	jtag_command_t **last_cmd = jtag_get_last_command_p();
+	
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	last_comand_pointer = &((*last_cmd)->next);
@@ -671,17 +698,6 @@ int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state 
 	(*last_cmd)->cmd.scan->num_fields = num_fields;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
-		
-	if (state != -1)
-		cmd_queue_end_state = state;
-
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-			
-	cmd_queue_cur_state = cmd_queue_end_state;
 	
 	for (i = 0; i < num_fields; i++)
 	{
@@ -741,21 +757,35 @@ int INTERFACE(interface_jtag_add_statemove)(enum tap_state state)
 
 int jtag_add_pathmove(int num_states, enum tap_state *path)
 {
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	int i;
-	
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return ERROR_JTAG_TRST_ASSERTED;
+		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
 	}
 	
 	/* the last state has to be a stable state */
 	if (tap_move_map[path[num_states - 1]] == -1)
 	{
 		ERROR("TAP path doesn't finish in a stable state");
-		return ERROR_JTAG_NOT_IMPLEMENTED;
+		return jtag_error=ERROR_JTAG_NOT_IMPLEMENTED;
 	}
+	
+	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
+	
+	if (cmd_queue_end_state == TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+	
+	cmd_queue_cur_state = path[num_states - 1];
+
+	return interface_jtag_add_pathmove(num_states, path);
+}
+
+
+int INTERFACE(interface_jtag_add_pathmove)(int num_states, enum tap_state *path)
+{
+	jtag_command_t **last_cmd = jtag_get_last_command_p();
+	int i;
 	
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
@@ -769,14 +799,6 @@ int jtag_add_pathmove(int num_states, enum tap_state *path)
 	
 	for (i = 0; i < num_states; i++)
 		(*last_cmd)->cmd.pathmove->path[i] = path[i];
-
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-	
-	cmd_queue_cur_state = path[num_states - 1];
 	
 	return ERROR_OK;
 }
@@ -931,7 +953,7 @@ int INTERFACE(interface_jtag_add_reset)(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-int jtag_add_end_state(enum tap_state state)
+int INTERFACE(interface_jtag_add_end_state)(enum tap_state state)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	
@@ -944,13 +966,18 @@ int jtag_add_end_state(enum tap_state state)
 	(*last_cmd)->cmd.end_state = cmd_queue_alloc(sizeof(end_state_command_t));
 	(*last_cmd)->cmd.end_state->end_state = state;
 
-	if (state != -1)
-		cmd_queue_end_state = state;
-	
 	return ERROR_OK;
 }
 
-int jtag_add_sleep(u32 us)
+int jtag_add_end_state(enum tap_state state)
+{
+	int retval = interface_jtag_add_end_state(state);
+	if (state != -1)
+		cmd_queue_end_state = state;
+	return retval;
+}
+
+int INTERFACE(interface_jtag_add_sleep)(u32 us)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	
@@ -964,6 +991,11 @@ int jtag_add_sleep(u32 us)
 	(*last_cmd)->cmd.sleep->us = us;
 	
 	return ERROR_OK;
+}
+
+int jtag_add_sleep(u32 us)
+{
+	return interface_jtag_add_sleep(us); 
 }
 
 int jtag_scan_size(scan_command_t *cmd)
