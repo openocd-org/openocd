@@ -77,11 +77,12 @@ typedef struct scan_field_s
 	u8 *out_mask;		/* only masked bits care */
 	u8 *in_value;		/* pointer to a 32-bit memory location to take data scanned out */
 	/* in_check_value/mask, in_handler_error_handler, in_handler_priv can be used by the in handler, otherwise they contain garbage  */
-	u8 *in_check_value;		/* used to validate scan results */ 
-	u8 *in_check_mask;		/* check specified bits against check_value */
+	u8 *in_check_value;	/* used to validate scan results */ 
+	u8 *in_check_mask;	/* check specified bits against check_value */
 	in_handler_t in_handler;	    /* process received buffer using this handler */
 	void *in_handler_priv;	/* additional information for the in_handler */
 } scan_field_t;
+
 
 enum scan_type
 {
@@ -244,9 +245,13 @@ extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
 /* JTAG interface, can be implemented with a software or hardware fifo */
 extern int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 /* execute a state transition within the JTAG standard, but the exact path
  * path that is taken is undefined. Many implementations use precisely
  * 7 clocks to perform a transition, but it could be more or less
@@ -266,16 +271,22 @@ extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap
  *   side effects.
  */
 extern int jtag_add_statemove(enum tap_state endstate);
+extern int interface_jtag_add_statemove(enum tap_state endstate);
 /* A list of unambigious single clock state transitions, not
  * all drivers can support this, but it is required for e.g.
  * XScale and Xilinx support
  */
 extern int jtag_add_pathmove(int num_states, enum tap_state *path);
+extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);
 /* cycle precisely num_cycles in the TAP_RTI state */
 extern int jtag_add_runtest(int num_cycles, enum tap_state endstate);
+extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int jtag_add_reset(int trst, int srst);
+extern int interface_jtag_add_reset(int trst, int srst);
 extern int jtag_add_end_state(enum tap_state endstate);
+extern int inteface_jtag_add_end_state(enum tap_state endstate);
 extern int jtag_add_sleep(u32 us);
+extern int interface_jtag_add_sleep(u32 us);
 /*
  * For software FIFO implementations, the queued commands can be executed 
  * during this call or earlier. A sw queue might decide to push out
@@ -297,6 +308,8 @@ extern int jtag_add_sleep(u32 us);
  * at some time between the jtag_add_xxx() fn call and jtag_execute_queue().  
  */
 extern int jtag_execute_queue(void);
+/* can be implemented by hw+sw */
+extern int interface_jtag_execute_queue(void);
 
 /* JTAG support functions */
 extern void jtag_set_check_value(scan_field_t *field, u8 *value,  u8 *mask, error_handler_t *in_error_handler);
@@ -323,4 +336,6 @@ extern int jtag_verify_capture_ir;
 #define ERROR_JTAG_RESET_WOULD_ASSERT_TRST		(-105)
 #define ERROR_JTAG_RESET_CANT_SRST				(-106)
 #define ERROR_JTAG_DEVICE_ERROR			(-107)
+
+
 #endif /* JTAG_H */

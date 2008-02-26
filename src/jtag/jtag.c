@@ -33,6 +33,18 @@
 #include "string.h"
 #include <unistd.h>
 
+#ifndef INTERFACE
+/* this allows JTAG devices to implement the entire jtag_xxx() layer in hw/sw */
+#define INTERFACE(a) a
+#endif
+
+
+/* note that this is not marked as static as it must be available from outside jtag.c for those 
+   that implement the jtag_xxx() minidriver layer 
+*/
+int jtag_error=ERROR_OK; 
+
+
 char* tap_state_strings[16] =
 {
 	"tlr", 
@@ -381,16 +393,37 @@ void cmd_queue_free()
 
 int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
+	if (jtag_trst == 1)
+	{
+		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
+		jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		return ERROR_JTAG_TRST_ASSERTED;
+	}
+
+	if (state != -1)
+		cmd_queue_end_state = state;
+
+	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
+	
+	if (cmd_queue_end_state == TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+	
+	cmd_queue_cur_state = cmd_queue_end_state;
+	
+	int retval=interface_jtag_add_ir_scan(num_fields, fields, state);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
+	return retval;
+}
+
+int INTERFACE(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+{	
 	jtag_command_t **last_cmd;
 	jtag_device_t *device;
 	int i, j;
 	int scan_size = 0;
 
-	if (jtag_trst == 1)
-	{
-		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return ERROR_JTAG_TRST_ASSERTED;
-	}
 
 	last_cmd = jtag_get_last_command_p();
 	
@@ -406,18 +439,7 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 	(*last_cmd)->cmd.scan->num_fields = jtag_num_devices;	/* one field per device */
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(jtag_num_devices * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
-		
-	if (state != -1)
-		cmd_queue_end_state = state;
 
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-	
-	cmd_queue_cur_state = cmd_queue_end_state;
-		
 	for (i = 0; i < jtag_num_devices; i++)
 	{
 		int found = 0;
@@ -680,23 +702,12 @@ int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state 
 }
 int jtag_add_statemove(enum tap_state state)
 {
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return ERROR_JTAG_TRST_ASSERTED;
+		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
 	}
 
-	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->next = NULL;
-	(*last_cmd)->type = JTAG_STATEMOVE;
-
-	(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
-	(*last_cmd)->cmd.statemove->end_state = state;
-	
 	if (state != -1)
 		cmd_queue_end_state = state;
 
@@ -707,6 +718,23 @@ int jtag_add_statemove(enum tap_state state)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 			
 	cmd_queue_cur_state = cmd_queue_end_state;
+
+	return interface_jtag_add_statemove(state);
+}
+
+int INTERFACE(interface_jtag_add_statemove)(enum tap_state state)
+{
+	jtag_command_t **last_cmd = jtag_get_last_command_p();
+	
+	/* allocate memory for a new list member */
+	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	last_comand_pointer = &((*last_cmd)->next);
+	(*last_cmd)->next = NULL;
+	(*last_cmd)->type = JTAG_STATEMOVE;
+
+	(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
+	(*last_cmd)->cmd.statemove->end_state = state;
+	
 	
 	return ERROR_OK;
 }
@@ -753,16 +781,10 @@ int jtag_add_pathmove(int num_states, enum tap_state *path)
 	return ERROR_OK;
 }
 
-int jtag_add_runtest(int num_cycles, enum tap_state state)
+int INTERFACE(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	
-	if (jtag_trst == 1)
-	{
-		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return ERROR_JTAG_TRST_ASSERTED;
-	}
-
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	(*last_cmd)->next = NULL;
@@ -772,6 +794,18 @@ int jtag_add_runtest(int num_cycles, enum tap_state state)
 	(*last_cmd)->cmd.runtest = cmd_queue_alloc(sizeof(runtest_command_t));
 	(*last_cmd)->cmd.runtest->num_cycles = num_cycles;
 	(*last_cmd)->cmd.runtest->end_state = state;
+	
+	return ERROR_OK;
+}
+
+int jtag_add_runtest(int num_cycles, enum tap_state state)
+{
+	if (jtag_trst == 1)
+	{
+		jtag_error=ERROR_JTAG_QUEUE_FAILED;
+		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
+		return ERROR_JTAG_TRST_ASSERTED;
+	}
 	
 	if (state != -1)
 		cmd_queue_end_state = state;
@@ -784,14 +818,14 @@ int jtag_add_runtest(int num_cycles, enum tap_state state)
 			
 	cmd_queue_cur_state = cmd_queue_end_state;
 	
-	return ERROR_OK;
+	/* executed by sw or hw fifo */
+	return interface_jtag_add_runtest(num_cycles, state);
 }
 
 int jtag_add_reset(int req_trst, int req_srst)
 {
 	int trst_with_tms = 0;
-	
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
+	int retval;
 	
 	if (req_trst == -1)
 		req_trst = jtag_trst;
@@ -802,7 +836,9 @@ int jtag_add_reset(int req_trst, int req_srst)
 	/* Make sure that jtag_reset_config allows the requested reset */
 	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
 	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (req_trst == 0))
-		return ERROR_JTAG_RESET_WOULD_ASSERT_TRST;
+	{
+		return jtag_error=ERROR_JTAG_RESET_WOULD_ASSERT_TRST;
+	}
 		
 	/* if TRST pulls SRST, we reset with TAP T-L-R */
 	if (((jtag_reset_config & RESET_TRST_PULLS_SRST) && (req_trst == 1)) && (req_srst == 0))
@@ -814,7 +850,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
 	{
 		ERROR("requested nSRST assertion, but the current configuration doesn't support this");
-		return ERROR_JTAG_RESET_CANT_SRST;
+		return jtag_error=ERROR_JTAG_RESET_CANT_SRST;
 	}
 	
 	if (req_trst && !(jtag_reset_config & RESET_HAS_TRST))
@@ -822,16 +858,6 @@ int jtag_add_reset(int req_trst, int req_srst)
 		req_trst = 0;
 		trst_with_tms = 1;
 	}
-	
-	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	(*last_cmd)->next = NULL;
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->type = JTAG_RESET;
-
-	(*last_cmd)->cmd.reset = cmd_queue_alloc(sizeof(reset_command_t));
-	(*last_cmd)->cmd.reset->trst = req_trst;
-	(*last_cmd)->cmd.reset->srst = req_srst;
 
 	jtag_trst = req_trst;
 	jtag_srst = req_srst;
@@ -849,17 +875,6 @@ int jtag_add_reset(int req_trst, int req_srst)
 	
 	if (trst_with_tms)
 	{
-		last_cmd = &((*last_cmd)->next);
-		
-		/* allocate memory for a new list member */
-		*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-		(*last_cmd)->next = NULL;
-		last_comand_pointer = &((*last_cmd)->next);
-		(*last_cmd)->type = JTAG_STATEMOVE;
-
-		(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
-		(*last_cmd)->cmd.statemove->end_state = TAP_TLR;
-		
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		cmd_queue_cur_state = TAP_TLR;
 		cmd_queue_end_state = TAP_TLR;
@@ -885,7 +900,34 @@ int jtag_add_reset(int req_trst, int req_srst)
 				jtag_add_sleep(jtag_ntrst_delay * 1000);
 		}
 	}
+	retval = interface_jtag_add_reset(req_trst, req_srst);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
+	
+	if (trst_with_tms)
+	{
+		jtag_add_statemove(TAP_TLR);
+	}
+	
+	return retval;
+	
+}
 
+int INTERFACE(interface_jtag_add_reset)(int req_trst, int req_srst)
+{
+	jtag_command_t **last_cmd = jtag_get_last_command_p();
+
+	/* allocate memory for a new list member */
+	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	(*last_cmd)->next = NULL;
+	last_comand_pointer = &((*last_cmd)->next);
+	(*last_cmd)->type = JTAG_RESET;
+
+	(*last_cmd)->cmd.reset = cmd_queue_alloc(sizeof(reset_command_t));
+	(*last_cmd)->cmd.reset->trst = req_trst;
+	(*last_cmd)->cmd.reset->srst = req_srst;
+
+	
 	return ERROR_OK;
 }
 
@@ -1107,7 +1149,7 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 	return type;
 }
 
-int jtag_execute_queue(void)
+int INTERFACE(interface_jtag_execute_queue)(void)
 {
 	int retval;
 
@@ -1118,6 +1160,18 @@ int jtag_execute_queue(void)
 	jtag_command_queue = NULL;
 	last_comand_pointer = &jtag_command_queue;
 
+	jtag_error=ERROR_OK;
+
+	return retval;
+}
+
+int jtag_execute_queue(void)
+{
+	int retval=interface_jtag_execute_queue();
+	if (retval!=ERROR_OK)
+		return retval;
+	retval=jtag_error;
+	jtag_error=ERROR_OK;
 	return retval;
 }
 
