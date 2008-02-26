@@ -905,8 +905,8 @@ int jtag_add_reset(int req_trst, int req_srst)
 	if (trst_with_tms)
 	{
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-		cmd_queue_cur_state = TAP_TLR;
-		cmd_queue_end_state = TAP_TLR;
+		jtag_add_end_state(TAP_TLR);
+		jtag_add_statemove(TAP_TLR);
 		
 		return ERROR_OK;
 	}
@@ -916,7 +916,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 		/* we just asserted nTRST, so we're now in Test-Logic-Reset,
 		 * and inform possible listeners about this
 		 */
-		jtag_add_statemove(TAP_TLR);
+		cmd_queue_cur_state = TAP_TLR;
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 	}
 	else
