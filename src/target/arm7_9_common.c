@@ -700,6 +700,7 @@ int arm7_9_poll(target_t *target)
 		DEBUG("DBGACK set, dbg_state->value: 0x%x", buf_get_u32(dbg_stat->value, 0, 32));
 		if (target->state == TARGET_UNKNOWN)
 		{
+			target->state = TARGET_RUNNING;
 			WARNING("DBGACK set while target was in unknown state. Reset or initialize target.");
 		}
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
