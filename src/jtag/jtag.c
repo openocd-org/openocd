@@ -884,6 +884,13 @@ int jtag_add_reset(int req_trst, int req_srst)
 	jtag_trst = req_trst;
 	jtag_srst = req_srst;
 
+	retval = interface_jtag_add_reset(req_trst, req_srst);
+	if (retval!=ERROR_OK)
+	{
+		jtag_error=retval;
+		return retval;
+	}
+
 	if (jtag_srst)
 	{
 		jtag_call_event_callbacks(JTAG_SRST_ASSERTED);
@@ -903,32 +910,22 @@ int jtag_add_reset(int req_trst, int req_srst)
 		
 		return ERROR_OK;
 	}
+	
+	if (jtag_trst)
+	{
+		/* we just asserted nTRST, so we're now in Test-Logic-Reset,
+		 * and inform possible listeners about this
+		 */
+		jtag_add_statemove(TAP_TLR);
+		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+	}
 	else
 	{
-		if (jtag_trst)
-		{
-			/* we just asserted nTRST, so we're now in Test-Logic-Reset,
-			 * and inform possible listeners about this
-			 */
-			cmd_queue_cur_state = TAP_TLR;
-			jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-		}
-		else
-		{
-			/* the nTRST line got deasserted, so we're still in Test-Logic-Reset,
-			 * but we might want to add a delay to give the TAP time to settle
-			 */
-			if (jtag_ntrst_delay)
-				jtag_add_sleep(jtag_ntrst_delay * 1000);
-		}
-	}
-	retval = interface_jtag_add_reset(req_trst, req_srst);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
-	
-	if (trst_with_tms)
-	{
-		jtag_add_statemove(TAP_TLR);
+		/* the nTRST line got deasserted, so we're still in Test-Logic-Reset,
+		 * but we might want to add a delay to give the TAP time to settle
+		 */
+		if (jtag_ntrst_delay)
+			jtag_add_sleep(jtag_ntrst_delay * 1000);
 	}
 	
 	return retval;
