@@ -111,6 +111,9 @@ Support for Intel XScale CPUs is also included:
 - PXA27x
 - IXP42x
 
+And support for the Marvell Feroceon CPU core as found in the
+Orion SOC family is included as well.
+
 3. Host platforms
 
 OpenOCD was originally developed on x86-Linux, but has since then been ported

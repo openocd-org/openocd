@@ -441,6 +441,7 @@ Defines a target that should be debugged. Currently supported types are:
 @item arm926ejs
 @item arm966e
 @item cortex_m3
+@item feroceon 
 @item xscale 
 @end itemize
 
