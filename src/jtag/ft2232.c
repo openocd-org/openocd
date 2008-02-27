@@ -459,12 +459,14 @@ void ft2232_add_pathmove(pathmove_command_t *cmd)
 		tms_byte = 0x0;
 		int bit_count = 0;
 		
+		int num_states_batch = num_states > 7 ? 7 : num_states;
+
 		/* command "Clock Data to TMS/CS Pin (no Read)" */
 		BUFFER_ADD = 0x4b;
 		/* number of states remaining */
-		BUFFER_ADD = (num_states % 7) - 1;
+		BUFFER_ADD = num_states_batch - 1;
 		
-		while (num_states % 7)
+		while (num_states_batch--)
 		{
 			if (tap_transitions[cur_state].low == cmd->path[state_count])
 				buf_set_u32(&tms_byte, bit_count++, 1, 0x0);
