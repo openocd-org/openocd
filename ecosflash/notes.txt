@@ -1,3 +1,10 @@
+Some of these binaries are build & linked using eCos. 
+
+For source for the flash drivers, see:
+
+http://ecos.sourceware.org/
+
+
 1. GDB startup script for debugging purposes.
 
 # startup script for debugging flash erase
