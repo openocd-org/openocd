@@ -217,7 +217,6 @@ int handle_field_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	FILE *script_file;
-	int echo;
 
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -229,13 +228,8 @@ int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		command_print(cmd_ctx, "couldn't open script file %s", args[0]);
 		return ERROR_OK;
 	}
-
-	echo = cmd_ctx->echo;
-	cmd_ctx->echo = 1;
 	
 	command_run_file(cmd_ctx, script_file, cmd_ctx->mode);
-	
-	cmd_ctx->echo = echo;
 	
 	fclose(script_file);
 

@@ -46,7 +46,10 @@ enum log_levels
 
 extern void log_printf(enum log_levels level, const char *file, int line, 
 	const char *function, const char *format, ...) 
-	__attribute__ ((format (printf, 5, 6)));
+__attribute__ ((format (printf, 5, 6)));
+extern void log_printfnl(enum log_levels level, const char *file, int line, 
+	const char *function, const char *format, ...) 
+__attribute__ ((format (printf, 5, 6)));
 extern int log_register_commands(struct command_context_s *cmd_ctx);
 extern int log_init(struct command_context_s *cmd_ctx);
 extern int set_log_output(struct command_context_s *cmd_ctx, FILE *output);
@@ -71,34 +74,40 @@ extern int debug_level;
 /* Avoid fn call and building parameter list if we're not outputting the information.
  * Matters on feeble CPUs for DEBUG/INFO statements that are involved frequently */
 
+
 #define DEBUG(expr ...) \
 	do { if (debug_level >= LOG_DEBUG) \
-		log_printf (LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr); \
+		log_printfnl (LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
 #define INFO(expr ...) \
 	do { if (debug_level >= LOG_INFO) \
-		log_printf (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr); \
+		log_printfnl (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
 #define WARNING(expr ...) \
 	do { \
-		log_printf (LOG_WARNING, __FILE__, __LINE__, __FUNCTION__, expr); \
+		log_printfnl (LOG_WARNING, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
 #define ERROR(expr ...) \
 	do { \
-		log_printf (LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, expr); \
+		log_printfnl (LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
 #define USER(expr ...) \
+	do { \
+		log_printfnl (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr); \
+	} while(0)
+
+#define USER_SAMELINE(expr ...) \
 	do { \
 		log_printf (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
 #define OUTPUT(expr ...) \
 	do { \
-		log_printf (LOG_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr); \
+		log_printfnl (LOG_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
 

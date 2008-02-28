@@ -34,7 +34,6 @@ typedef struct command_context_s
 	enum command_mode mode;
 	struct command_s *commands;
 	int current_target;
-	int echo;
 	int (*output_handler)(struct command_context_s *context, char* line);
 	void *output_handler_priv;
 } command_context_t;
@@ -58,6 +57,7 @@ extern command_context_t* copy_command_context(command_context_t* context);
 extern command_context_t* command_init();
 extern int command_done(command_context_t *context);
 extern void command_print(command_context_t *context, char *format, ...);
+extern void command_print_sameline(command_context_t *context, char *format, ...);
 extern int command_run_line(command_context_t *context, char *line);
 extern int command_run_file(command_context_t *context, FILE *file, enum command_mode mode);
 

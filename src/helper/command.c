@@ -260,7 +260,7 @@ int parse_line(char *line, char *words[], int max_words)
 	return nwords;
 }
 
-void command_print(command_context_t *context, char *format, ...)
+static void command_printv(command_context_t *context, char *format, va_list ap)
 {
 	char *buffer = NULL;
 	int n, size = 0;
@@ -269,8 +269,6 @@ void command_print(command_context_t *context, char *format, ...)
 	/* process format string */
 	for (;;)
 	{
-		va_list ap;
-		va_start(ap, format);
 		if (!buffer || (n = vsnprintf(buffer, size, format, ap)) >= size)
 		{
 			/* increase buffer until it fits the whole string */
@@ -279,16 +277,13 @@ void command_print(command_context_t *context, char *format, ...)
 				/* gotta free up */
 				if (buffer)
 					free(buffer);
-				va_end(ap);
 				return;
 			}
 	
 			buffer = p;
 			
-			va_end(ap);
 			continue;
 		}
-		va_end(ap);
 		break;
 	}
 	
@@ -300,23 +295,31 @@ void command_print(command_context_t *context, char *format, ...)
 		return;
 	}
 
-	p = buffer;
-	
-	/* process lines in buffer */
-	do {
-		char *next = strchr(p, '\n');
-		
-		if (next)
-			*next++ = 0;
-
-		if (context->output_handler)
-			context->output_handler(context, p);
-
-		p = next;
-	} while (p);
+	context->output_handler(context, buffer);
 	
 	if (buffer)
 		free(buffer);
+}
+
+void command_print_sameline(command_context_t *context, char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	command_printv(context, format, ap); 
+	va_end(ap);
+}
+
+void command_print(command_context_t *context, char *format, ...)
+{
+	char *t=malloc(strlen(format)+2);
+	strcpy(t, format);
+	strcat(t, "\n");
+	va_list ap;
+	va_start(ap, format);
+	command_printv(context, t, ap); 
+	va_end(ap);
+	free(t);
+	
 }
 
 int find_and_run_command(command_context_t *context, command_t *commands, char *words[], int num_words, int start_word)
@@ -396,10 +399,7 @@ int command_run_line(command_context_t *context, char *line)
 	if (*line && (line[0] == '#'))
 		return ERROR_OK;
 	
-	if (context->echo)
-	{
-		command_print(context, "%s", line);
-	}
+	DEBUG("%s", line);
 
 	nwords = parse_line(line, words, sizeof(words) / sizeof(words[0]));
 	
@@ -550,7 +550,6 @@ command_context_t* command_init()
 	context->mode = COMMAND_EXEC;
 	context->commands = NULL;
 	context->current_target = 0;
-	context->echo = 0;
 	context->output_handler = NULL;
 	context->output_handler_priv = NULL;
 	

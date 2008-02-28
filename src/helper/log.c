@@ -46,20 +46,14 @@ static char *log_strings[5] =
 	"Debug:  "
 };
 
-void log_printf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
+static int count = 0;
+
+static void log_printfv(enum log_levels level, const char *file, int line, const char *function, const char *format, va_list args)
 {
-	static int count = 0;
-	count++;
-	va_list args;
 	char buffer[512];
 	log_callback_t *cb;
 
-	if (level > debug_level)
-		return;
-
-	va_start(args, format);
 	vsnprintf(buffer, 512, format, args);
-	va_end(args);
 
 	if (level == LOG_OUTPUT)
 	{
@@ -76,8 +70,8 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	if (debug_level >= LOG_DEBUG)
 	{
 		/* print with count and time information */
-		time_t t=time(NULL)-start;
-		fprintf(log_output, "%s %d %ld %s:%d %s(): %s\n", log_strings[level+1], count, t, file, line, function, buffer);
+		int t=(int)(time(NULL)-start);
+		fprintf(log_output, "%s %d %d %s:%d %s(): %s\n", log_strings[level+1], count, t, file, line, function, buffer);
 	}
 	else
 	{
@@ -92,11 +86,38 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	{
 		for (cb = log_callbacks; cb; cb = cb->next)
 		{
-			va_start(args, format);
 			cb->fn(cb->priv, file, line, function, format, args);
-			va_end(args);
 		}
 	}
+}
+
+void log_printf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
+{
+	count++;
+	if (level > debug_level)
+		return;
+
+	va_list args;
+	va_start(args, format);
+	log_printfv(level, file, line, function, format, args);
+	va_end(args);
+	
+}
+
+void log_printfnl(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
+{
+	count++;
+	if (level > debug_level)
+		return;
+	
+	char *t=malloc(strlen(format)+2);
+	strcpy(t, format);
+	strcat(t, "\n");
+	
+	va_list args;
+	va_start(args, format);
+	log_printfv(level, file, line, function, t, args);
+	va_end(args);
 }
 
 /* change the current debug level on the fly

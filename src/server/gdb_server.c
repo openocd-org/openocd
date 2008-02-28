@@ -511,16 +511,14 @@ int gdb_output_con(connection_t *connection, char* line)
 
 	bin_size = strlen(line);
 
-	hex_buffer = malloc(bin_size*2 + 4);
+	hex_buffer = malloc(bin_size*2 + 2);
 
 	hex_buffer[0] = 'O';
 	for (i=0; i<bin_size; i++)
 		snprintf(hex_buffer + 1 + i*2, 3, "%2.2x", line[i]);
-	hex_buffer[bin_size*2+1] = '0';
-	hex_buffer[bin_size*2+2] = 'a';
-	hex_buffer[bin_size*2+3] = 0x0;
+	hex_buffer[bin_size*2+1] = 0;
 
-	gdb_put_packet(connection, hex_buffer, bin_size*2 + 3);
+	gdb_put_packet(connection, hex_buffer, bin_size*2 + 1);
 
 	free(hex_buffer);
 	return ERROR_OK;
@@ -529,7 +527,7 @@ int gdb_output_con(connection_t *connection, char* line)
 int gdb_output(struct command_context_s *context, char* line)
 {
 	/* this will be dumped to the log and also sent as an O packet if possible */
-	USER(line); 
+	USER_SAMELINE(line); 
 	return ERROR_OK;
 }
 
@@ -605,6 +603,7 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 
 	return ERROR_OK;
 }
+
 
 int gdb_new_connection(connection_t *connection)
 {

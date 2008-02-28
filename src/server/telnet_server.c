@@ -77,8 +77,26 @@ int telnet_prompt(connection_t *connection)
 
 int telnet_outputline(connection_t *connection, char* line)
 {
-	telnet_write(connection, line, strlen(line));
-	return telnet_write(connection, "\r\n\0", 3);
+	
+	/* process lines in buffer */
+	char *p=line;
+	do {
+		char *next = strchr(p, '\n');
+		
+		if (next)
+			*next++ = 0;
+
+		
+		telnet_write(connection, p, strlen(p));
+		if (next)
+		{
+			telnet_write(connection, "\r\n\0", 3);
+		}
+
+		p = next;
+	} while (p);
+	
+	return ERROR_OK;
 }
 
 int telnet_output(struct command_context_s *cmd_ctx, char* line)
@@ -93,20 +111,9 @@ void telnet_log_callback(void *priv, const char *file, int line,
 {
 	connection_t *connection = priv;
 	char *t = alloc_printf(format, args);
-	char *t2;
 	if (t == NULL)
 		return;
-	t2=t;
-	char *endline;
-	do 
-	{
-		if ((endline=strchr(t2, '\n'))!=NULL)
-		{
-			*endline=0;
-		}
-		telnet_outputline(connection, t2);
-		t2=endline+1;
-	} while (endline);
+	telnet_outputline(connection, t);
 	
 	free(t);
 }

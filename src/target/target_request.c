@@ -53,6 +53,13 @@ int target_asciimsg(target_t *target, u32 length)
 	return ERROR_OK;
 }
 
+int target_charmsg(target_t *target, u8 msg)
+{
+	USER_SAMELINE("%c", msg);
+	
+	return ERROR_OK;
+}
+
 int target_hexmsg(target_t *target, int size, u32 length)
 {
 	u8 *data = malloc(CEIL(length * size, 4) * 4);
@@ -121,6 +128,9 @@ int target_request(target_t *target, u32 request)
 			{
 				target_hexmsg(target, (request & 0xff00) >> 8, (request & 0xffff0000) >> 16);
 			}
+			break;
+		case TARGET_REQ_DEBUGCHAR:
+			target_charmsg(target, (request & 0x00ff0000) >> 16);
 			break;
 /*		case TARGET_REQ_SEMIHOSTING:
  *			break;
