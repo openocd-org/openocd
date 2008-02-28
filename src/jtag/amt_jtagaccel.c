@@ -60,7 +60,7 @@
 #include "log.h"
 
 /* configuration */
-unsigned long amt_jtagaccel_port;
+u16 amt_jtagaccel_port;
 
 /* interface variables
  */

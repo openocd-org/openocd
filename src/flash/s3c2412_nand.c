@@ -72,7 +72,6 @@ int s3c2412_init(struct nand_device_s *device)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
-	u32 version;
 
 	target_write_u32(target, S3C2410_NFCONF,
 			 S3C2440_NFCONF_TACLS(3) |

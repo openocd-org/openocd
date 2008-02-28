@@ -82,7 +82,7 @@
 #include "log.h"
 
 /* configuration */
-unsigned long gw16012_port;
+u16 gw16012_port;
 
 /* interface variables
  */
@@ -470,7 +470,6 @@ int gw16012_init(void)
 #if PARPORT_USE_PPDEV == 1
 	char buffer[256];
 	int i = 0;
-	u8 control_port;
 #endif
 	u8 status_port;
 	

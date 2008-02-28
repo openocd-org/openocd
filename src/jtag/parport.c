@@ -121,7 +121,7 @@ cable_t cables[] =
 
 /* configuration */
 char* parport_cable = NULL;
-unsigned long parport_port;
+u16 parport_port;
 static int parport_exit = 0;
 
 /* interface variables
