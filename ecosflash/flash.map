@@ -1,0 +1,390 @@
+Archive member included because of file (symbol)
+
+/tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+                              /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o (flash_init)
+/tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+                              /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o) (flash_hwr_init)
+/tmp/ecosboard/ecos/install/lib/libtarget.a(infra_memcpy.o)
+                              /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o) (memcpy)
+/tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)
+                              /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o) (memcmp)
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/cccPBW5f.o
+LOAD /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+LOAD /tmp/ecosboard/ecos/install/lib/libtarget.a
+                0x00008000                PROVIDE (__executable_start, 0x8000)
+                0x00008000                . = 0x8000
+
+.interp
+ *(.interp)
+
+.hash
+ *(.hash)
+
+.dynsym
+ *(.dynsym)
+
+.dynstr
+ *(.dynstr)
+
+.gnu.version
+ *(.gnu.version)
+
+.gnu.version_d
+ *(.gnu.version_d)
+
+.gnu.version_r
+ *(.gnu.version_r)
+
+.rel.dyn
+ *(.rel.init)
+ *(.rel.text .rel.text.* .rel.gnu.linkonce.t.*)
+ *(.rel.fini)
+ *(.rel.rodata .rel.rodata.* .rel.gnu.linkonce.r.*)
+ *(.rel.data .rel.data.* .rel.gnu.linkonce.d.*)
+ *(.rel.tdata .rel.tdata.* .rel.gnu.linkonce.td.*)
+ *(.rel.tbss .rel.tbss.* .rel.gnu.linkonce.tb.*)
+ *(.rel.ctors)
+ *(.rel.dtors)
+ *(.rel.got)
+ *(.rel.bss .rel.bss.* .rel.gnu.linkonce.b.*)
+
+.rela.dyn
+ *(.rela.init)
+ *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*)
+ *(.rela.fini)
+ *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.*)
+ *(.rela.data .rela.data.* .rela.gnu.linkonce.d.*)
+ *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.*)
+ *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.*)
+ *(.rela.ctors)
+ *(.rela.dtors)
+ *(.rela.got)
+ *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.*)
+
+.rel.plt
+ *(.rel.plt)
+
+.rela.plt
+ *(.rela.plt)
+
+.init
+ *(.init)
+
+.plt
+ *(.plt)
+
+.text           0x00008000      0x6f8
+ *(.text .stub .text.* .gnu.linkonce.t.*)
+ .text          0x00008000       0x34 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/cccPBW5f.o
+                0x00008000                _start
+ .text.myprintf
+                0x00008034       0x10 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+                0x00008034                myprintf
+ .text.init     0x00008044       0x50 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+                0x00008044                init
+ .text.erase    0x00008094       0xc0 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+                0x00008094                erase
+ .text.program  0x00008154       0xc8 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+                0x00008154                program
+ .text.flash_init
+                0x0000821c       0x6c /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+                0x0000821c                flash_init
+ .text.flash_dev_query
+                0x00008288       0x20 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+                0x00008288                flash_dev_query
+ .text.flash_erase
+                0x000082a8      0x140 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+                0x000082a8                flash_erase
+ .text.flash_program
+                0x000083e8      0x154 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+                0x000083e8                flash_program
+ .text.flash_hwr_init
+                0x0000853c       0xa4 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+                0x0000853c                flash_hwr_init
+ .text.flash_hwr_map_error
+                0x000085e0        0x4 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+                0x000085e0                flash_hwr_map_error
+ .text.__memcmp
+                0x000085e4      0x114 /tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)
+                0x000085e4                memcmp
+                0x000085e4                __memcmp
+ *(.gnu.warning)
+ *(.glue_7t)
+ *(.glue_7)
+
+.2ram.flash_query
+                0x000086f8       0x54
+ .2ram.flash_query
+                0x000086f8       0x54 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+                0x000086f8                flash_query
+
+.2ram.flash_erase_block
+                0x0000874c      0x230
+ .2ram.flash_erase_block
+                0x0000874c      0x230 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+                0x0000874c                flash_erase_block
+
+.2ram.flash_program_buf
+                0x0000897c       0xe8
+ .2ram.flash_program_buf
+                0x0000897c       0xe8 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+                0x0000897c                flash_program_buf
+
+.fini
+ *(.fini)
+                0x00008a64                PROVIDE (__etext, .)
+                0x00008a64                PROVIDE (_etext, .)
+                0x00008a64                PROVIDE (etext, .)
+
+.rodata         0x00008a64      0x318
+ *(.rodata .rodata.* .gnu.linkonce.r.*)
+ .rodata.str1.4
+                0x00008a64      0x1fb /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+                                0x1fc (size before relaxing)
+ *fill*         0x00008c5f        0x1 00
+ .rodata.supported_devices
+                0x00008c60      0x11c /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+
+.rodata1
+ *(.rodata1)
+
+.eh_frame_hdr
+ *(.eh_frame_hdr)
+                0x00008e7c                . = (ALIGN (0x100) + (. & 0xff))
+                0x00008e7c                . = ALIGN (0x4)
+                0x00008e7c                PROVIDE (__preinit_array_start, .)
+
+.preinit_array
+ *(.preinit_array)
+                0x00008e7c                PROVIDE (__preinit_array_end, .)
+                0x00008e7c                PROVIDE (__init_array_start, .)
+
+.init_array
+ *(.init_array)
+                0x00008e7c                PROVIDE (__init_array_end, .)
+                0x00008e7c                PROVIDE (__fini_array_start, .)
+
+.fini_array
+ *(.fini_array)
+                0x00008e7c                PROVIDE (__fini_array_end, .)
+
+.data           0x00008e7c        0x0
+                0x00008e7c                __data_start = .
+ *(.data .data.* .gnu.linkonce.d.*)
+
+.data1
+ *(.data1)
+
+.tdata
+ *(.tdata .tdata.* .gnu.linkonce.td.*)
+
+.tbss
+ *(.tbss .tbss.* .gnu.linkonce.tb.*)
+ *(.tcommon)
+
+.eh_frame
+ *(.eh_frame)
+
+.gcc_except_table
+ *(.gcc_except_table)
+
+.dynamic
+ *(.dynamic)
+
+.ctors
+ *crtbegin*.o(.ctors)
+ *(EXCLUDE_FILE(*crtend*.o) .ctors)
+ *(SORT(.ctors.*))
+ *(.ctors)
+
+.dtors
+ *crtbegin*.o(.dtors)
+ *(EXCLUDE_FILE(*crtend*.o) .dtors)
+ *(SORT(.dtors.*))
+ *(.dtors)
+
+.jcr
+ *(.jcr)
+
+.got
+ *(.got.plt)
+ *(.got)
+                0x00008e7c                _edata = .
+                0x00008e7c                PROVIDE (edata, .)
+                0x00008e7c                __bss_start = .
+                0x00008e7c                __bss_start__ = .
+
+.bss            0x00008e7c     0x3024
+ *(.dynbss)
+ *(.bss .bss.* .gnu.linkonce.b.*)
+ .bss           0x00008e7c     0x3000 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/cccPBW5f.o
+                0x00008e7c                _stack_base
+                0x0000be7c                _start_bss_clear
+                0x00009e7c                _workarea
+                0x00009e7c                _stack_start
+ .bss.flash_info
+                0x0000be7c       0x20 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+                0x0000be7c                flash_info
+ .bss.flash_dev_info
+                0x0000be9c        0x4 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+ *(COMMON)
+                0x0000bea0                . = ALIGN (0x4)
+                0x0000bea0                . = ALIGN (0x4)
+                0x0000bea0                _end = .
+                0x0000bea0                _bss_end__ = .
+                0x0000bea0                __bss_end__ = .
+                0x0000bea0                __end__ = .
+                0x0000bea0                PROVIDE (end, .)
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+
+.stab.excl
+ *(.stab.excl)
+
+.stab.exclstr
+ *(.stab.exclstr)
+
+.stab.index
+ *(.stab.index)
+
+.stab.indexstr
+ *(.stab.indexstr)
+
+.comment
+ *(.comment)
+
+.debug
+ *(.debug)
+
+.line
+ *(.line)
+
+.debug_srcinfo
+ *(.debug_srcinfo)
+
+.debug_sfnames
+ *(.debug_sfnames)
+
+.debug_aranges  0x00000000      0x170
+ *(.debug_aranges)
+ .debug_aranges
+                0x00000000       0x20 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/cccPBW5f.o
+ .debug_aranges
+                0x00000020       0x48 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+ .debug_aranges
+                0x00000068       0x68 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+ .debug_aranges
+                0x000000d0       0x50 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+ .debug_aranges
+                0x00000120       0x28 /tmp/ecosboard/ecos/install/lib/libtarget.a(infra_memcpy.o)
+ .debug_aranges
+                0x00000148       0x28 /tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)
+
+.debug_pubnames
+                0x00000000      0x1e5
+ *(.debug_pubnames)
+ .debug_pubnames
+                0x00000000       0x4d /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+ .debug_pubnames
+                0x0000004d       0xca /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+ .debug_pubnames
+                0x00000117       0x91 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+ .debug_pubnames
+                0x000001a8       0x1e /tmp/ecosboard/ecos/install/lib/libtarget.a(infra_memcpy.o)
+ .debug_pubnames
+                0x000001c6       0x1f /tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)
+
+.debug_info     0x00000000     0x1122
+ *(.debug_info .gnu.linkonce.wi.*)
+ .debug_info    0x00000000       0x6e /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/cccPBW5f.o
+ .debug_info    0x0000006e      0x322 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+ .debug_info    0x00000390      0x4f6 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+ .debug_info    0x00000886      0x5b2 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+ .debug_info    0x00000e38      0x1c7 /tmp/ecosboard/ecos/install/lib/libtarget.a(infra_memcpy.o)
+ .debug_info    0x00000fff      0x123 /tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)
+
+.debug_abbrev   0x00000000      0x67c
+ *(.debug_abbrev)
+ .debug_abbrev  0x00000000       0x14 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/cccPBW5f.o
+ .debug_abbrev  0x00000014      0x17d /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+ .debug_abbrev  0x00000191      0x15f /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+ .debug_abbrev  0x000002f0      0x238 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+ .debug_abbrev  0x00000528       0xb4 /tmp/ecosboard/ecos/install/lib/libtarget.a(infra_memcpy.o)
+ .debug_abbrev  0x000005dc       0xa0 /tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)
+
+.debug_line     0x00000000      0x8de
+ *(.debug_line)
+ .debug_line    0x00000000       0x3e /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/cccPBW5f.o
+ .debug_line    0x0000003e       0xf6 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+ .debug_line    0x00000134      0x255 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+ .debug_line    0x00000389      0x287 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+ .debug_line    0x00000610      0x16c /tmp/ecosboard/ecos/install/lib/libtarget.a(infra_memcpy.o)
+ .debug_line    0x0000077c      0x162 /tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)
+
+.debug_frame    0x00000000      0x2c0
+ *(.debug_frame)
+ .debug_frame   0x00000000       0xa4 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+ .debug_frame   0x000000a4      0x110 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+ .debug_frame   0x000001b4       0xac /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+ .debug_frame   0x00000260       0x38 /tmp/ecosboard/ecos/install/lib/libtarget.a(infra_memcpy.o)
+ .debug_frame   0x00000298       0x28 /tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)
+
+.debug_str      0x00000000      0x508
+ *(.debug_str)
+ .debug_str     0x00000000      0x131 /ecos-c/DOCUME~1/oyvind/LOCALS~1/Temp/ccM8Ftqt.o
+                                0x191 (size before relaxing)
+ .debug_str     0x00000131      0x152 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+                                0x24e (size before relaxing)
+ .debug_str     0x00000283      0x194 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+                                0x2c5 (size before relaxing)
+ .debug_str     0x00000417       0x7e /tmp/ecosboard/ecos/install/lib/libtarget.a(infra_memcpy.o)
+                                0x11e (size before relaxing)
+ .debug_str     0x00000495       0x73 /tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)
+                                0x119 (size before relaxing)
+
+.debug_loc
+ *(.debug_loc)
+
+.debug_macinfo
+ *(.debug_macinfo)
+
+.debug_weaknames
+ *(.debug_weaknames)
+
+.debug_funcnames
+ *(.debug_funcnames)
+
+.debug_typenames
+ *(.debug_typenames)
+
+.debug_varnames
+ *(.debug_varnames)
+
+.stack          0x00080000        0x0
+                0x00080000                _stack = .
+ *(.stack)
+
+.note.gnu.arm.ident
+ *(.note.gnu.arm.ident)
+
+/DISCARD/
+ *(.note.GNU-stack)
+OUTPUT(debug_eb40a.elf elf32-littlearm)
+
+.debug_ranges   0x00000000       0xb8
+ .debug_ranges  0x00000000       0x18 /tmp/ecosboard/ecos/install/lib/libtarget.a(io_flash_flash.o)
+ .debug_ranges  0x00000018       0x48 /tmp/ecosboard/ecos/install/lib/libtarget.a(devs_flash_arm_eb40a_eb40a_flash.o)
+ .debug_ranges  0x00000060       0x30 /tmp/ecosboard/ecos/install/lib/libtarget.a(infra_memcpy.o)
+ .debug_ranges  0x00000090       0x28 /tmp/ecosboard/ecos/install/lib/libtarget.a(language_c_libc_string_memcmp.o)

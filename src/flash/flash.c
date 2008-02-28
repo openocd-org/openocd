@@ -64,6 +64,7 @@ extern flash_driver_t stellaris_flash;
 extern flash_driver_t str9xpec_flash;
 extern flash_driver_t stm32x_flash;
 extern flash_driver_t tms470_flash;
+extern flash_driver_t ecosflash_flash;
 
 flash_driver_t *flash_drivers[] =
 {
@@ -76,6 +77,7 @@ flash_driver_t *flash_drivers[] =
 	&str9xpec_flash,
 	&stm32x_flash,
 	&tms470_flash,
+	&ecosflash_flash,
 	NULL,
 };
 
