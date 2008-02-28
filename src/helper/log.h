@@ -112,7 +112,7 @@ extern int debug_level;
 
 #define OUTPUT(expr ...) \
 	do { \
-		log_printfnl (LOG_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr); \
+		log_printf (LOG_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
 
