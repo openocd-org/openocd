@@ -88,7 +88,7 @@ latest version (make sure there is no (non-svn) directory called "openocd" in th
 current directory):
 
 @smallexample
- svn checkout svn://svn.berlios.de/openocd/trunk
+ svn checkout svn://svn.berlios.de/openocd/trunk openocd
 @end smallexample
 
 Building the OpenOCD requires a recent version of the GNU autotools.
@@ -122,31 +122,31 @@ Bootstrap generates the configure script, and prepares building on your system.
 @smallexample
  ./configure 
 @end smallexample
-Configure generates the Makefiles used to build OpenOCD
+Configure generates the Makefiles used to build OpenOCD.
 @smallexample
  make 
 @end smallexample
-Make builds the OpenOCD, and places the final executable in ./src/
+Make builds the OpenOCD, and places the final executable in ./src/.
 
 The configure script takes several options, specifying which JTAG interfaces
 should be included:
 
 @itemize @bullet
 @item
---enable-parport
+@option{--enable-parport}
 @item
---enable-parport_ppdev
+@option{--enable-parport_ppdev}
 @item
---enable-amtjtagaccel
+@option{--enable-amtjtagaccel}
 @item
---enable-ft2232_ftd2xx
+@option{--enable-ft2232_ftd2xx}
 @footnote{Using the latest D2XX drivers from FTDI and following their installation
 instructions, I had to use @option{--enable-ft2232_libftd2xx} for the OpenOCD to
-build properly}
+build properly.}
 @item
---enable-ft2232_libftdi
+@option{--enable-ft2232_libftdi}
 @item
---with-ftd2xx=/path/to/d2xx/
+@option{--with-ftd2xx=/path/to/d2xx/}
 @end itemize
 
 If you want to access the parallel port using the PPDEV interface you have to specify
@@ -1148,7 +1148,7 @@ flash probe 0
 
 @section STR71x Script
 @cindex STR71x Script
-The following script was used with an Amontec JTAGkey and a STR710 / STR711 cpu:
+The following script was used with an Amontec JTAGkey and a STR710 / STR711 CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1184,7 +1184,7 @@ flash bank str7x 0x40000000 0x00040000 0 0 0 STR71x
 
 @section STR750 Script
 @cindex STR750 Script
-The following script was used with an Amontec JTAGkey and a STR750 cpu:
+The following script was used with an Amontec JTAGkey and a STR750 CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1225,7 +1225,7 @@ flash bank str7x 0x20000000 0x000040000 0 0 0 STR75x
 
 @section STR912 Script
 @cindex STR912 Script
-The following script was used with an Amontec JTAGkey and a STR912 cpu:
+The following script was used with an Amontec JTAGkey and a STR912 CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1302,7 +1302,7 @@ flash bank str9x 0x00000000 0x00080000 0 0 0
 
 @section STM32x Script
 @cindex STM32x Script
-The following script was used with an Amontec JTAGkey and a STM32x cpu:
+The following script was used with an Amontec JTAGkey and a STM32x CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1381,7 +1381,7 @@ flash bank stm32x 0x08000000 0x00020000 0 0 0
 
 @section LPC2129 Script
 @cindex LPC2129 Script
-The following script was used with an wiggler PP and a LPC-2129 cpu:
+The following script was used with an wiggler PP and a LPC-2129 CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1416,7 +1416,7 @@ flash bank lpc2000 0x0 0x40000 0 0 0 lpc2000_v1 14765 calc_checksum
 
 @section  LPC2148 Script
 @cindex  LPC2148 Script
-The following script was used with an Amontec JTAGkey and a LPC2148 cpu:
+The following script was used with an Amontec JTAGkey and a LPC2148 CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1452,7 +1452,7 @@ flash bank lpc2000 0x0 0x7d000 0 0 0 lpc2000_v1 14765 calc_checksum
 
 @section  LPC2294 Script
 @cindex  LPC2294 Script
-The following script was used with an Amontec JTAGkey and a LPC2294 cpu:
+The following script was used with an Amontec JTAGkey and a LPC2294 CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1488,7 +1488,7 @@ flash bank lpc2000 0x0 0x40000 0 0 0 lpc2000_v1 14765 calc_checksum
 
 @section AT91R40008 Script
 @cindex AT91R40008 Script
-The following script was used with an Amontec JTAGkey and a AT91R40008 cpu:
+The following script was used with an Amontec JTAGkey and a AT91R40008 CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1521,7 +1521,7 @@ run_and_halt_time 0 30
 
 @section AT91SAM7s Script
 @cindex AT91SAM7s Script
-The following script was used with an Olimex ARM-JTAG-OCD and a AT91SAM7S64 cpu:
+The following script was used with an Olimex ARM-JTAG-OCD and a AT91SAM7S64 CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1567,7 +1567,7 @@ flash bank at91sam7 0 0 0 0 0
 
 @section XSCALE IXP42x Script
 @cindex XSCALE IXP42x Script
-The following script was used with an Amontec JTAGkey-Tiny and a xscale ixp42x cpu:
+The following script was used with an Amontec JTAGkey-Tiny and a xscale ixp42x CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1653,7 +1653,7 @@ flash bank cfi 0x60000000 0x1000000 2 2 0
 @section Hilscher netX 100 / 500 Script
 @cindex Hilscher netX 100 / 500 Script
 The following script was used with an Amontec JTAGkey and a Hilscher
-netX 500 cpu:
+netX 500 CPU:
 @smallexample
 #daemon configuration
 telnet_port 4444
@@ -1777,7 +1777,7 @@ that the openocd option @option{arm7_9 force_hw_bkpts} is not required when
 using a memory map.
 
 To view the configured memory map in gdb, use the gdb command @option{info mem}
-All other unasigned addresses within gdb are treated as ram.
+All other unasigned addresses within gdb are treated as RAM.
 
 If @option{gdb_flash_program enable} is also used, gdb will be able to
 program any flash memory using the vFlash interface.
@@ -1798,7 +1798,7 @@ can be used.
 @chapter FAQ
 @cindex faq
 @enumerate
-@item OpenOCD complains about a missing cygwin1.dll
+@item OpenOCD complains about a missing cygwin1.dll.
 
 Make sure you have Cygwin installed, or at least a version of OpenOCD that
 claims to come with all the necessary dlls. When using Cygwin, try launching
@@ -1811,7 +1811,7 @@ arm7_9_add_breakpoint(): sw breakpoint requested, but software breakpoints not e
 GDB issues software breakpoints when a normal breakpoint is requested, or to implement
 source-line single-stepping. On ARMv4T systems, like ARM7TDMI, ARM720t or ARM920t,
 software breakpoints consume one of the two available hardware breakpoints,
-and are therefor disabled by default. If your code is running from RAM, you
+and are therefore disabled by default. If your code is running from RAM, you
 can enable software breakpoints with the @option{arm7_9 sw_bkpts enable} command. If
 your code resides in Flash, you can't use software breakpoints, but you can force
 OpenOCD to use hardware breakpoints instead: @option{arm7_9 force_hw_bkpts enable}.
@@ -1829,7 +1829,7 @@ I keep getting "Error: amt_jtagaccel.c:184 amt_wait_scan_busy(): amt_jtagaccel t
 out while waiting for end of scan, rtck was disabled".
 
 Make sure your PC's parallel port operates in EPP mode. You might have to try several
-settings in your PC Bios (ECP, EPP, and different versions of those).
+settings in your PC BIOS (ECP, EPP, and different versions of those).
 
 @item When debugging with the OpenOCD and GDB (plain GDB, Insight, or Eclipse),
 I get lots of "Error: arm7_9_common.c:1771 arm7_9_read_memory():
@@ -1855,8 +1855,8 @@ Toolchain (Eclipse, arm-elf-gcc, arm-elf-gdb), the debugging seems to be
 unstable. When single-stepping over large blocks of code, GDB and OpenOCD
 quit with an error message. Is there a stability issue with OpenOCD?
 
-No, this is not a stability issue concering OpenOCD. Most users have solved
-this issue by simply using a self-powered USB Hub, which they connect their
+No, this is not a stability issue concerning OpenOCD. Most users have solved
+this issue by simply using a self-powered USB hub, which they connect their
 Amontec JTAGkey to. Apparently, some computers do not provide a USB power
 supply stable enough for the Amontec JTAGkey to be operated.
 
@@ -1868,7 +1868,7 @@ What does that mean and what might be the reason for this?
 First of all, the reason might be the USB power supply. Try using a self-powered
 hub instead of a direct connection to your computer. Secondly, the error code 4
 corresponds to an FT_IO_ERROR, which means that the driver for the FTDI USB
-Chip ran into some sort of error - this points us to a USB problem.
+chip ran into some sort of error - this points us to a USB problem.
 
 @item When using the Amontec JTAGkey, sometimes OpenOCD crashes with the following
 error message: "Error: gdb_server.c:101 gdb_get_char(): read: 10054".
@@ -1880,8 +1880,8 @@ has closed the connection to OpenOCD. This might be a GDB issue.
 @item In the configuration file in the section where flash device configurations
 are described, there is a parameter for specifying the clock frequency for
 LPC2000 internal flash devices (e.g.
-@option{flash bank lpc2000 0x0 0x40000 0 0 lpc2000_v1 0 14746 calc_checksum}),
-which must be sepcified in kilohertz. However, I do have a quartz crystal of a
+@option{flash bank lpc2000 0x0 0x40000 0 0 0 lpc2000_v1 14746 calc_checksum}),
+which must be specified in kilohertz. However, I do have a quartz crystal of a
 frequency that contains fractions of kilohertz (e.g. 14,745,600 Hz, i.e. 14,745.600 kHz).
 Is it possible to specify real numbers for the clock frequency?
 
@@ -1903,6 +1903,8 @@ banks - a target references a jtag_device and a flash bank references a target).
 @item Sometimes my debugging session terminates with an error. When I look into the
 log file, I can see these error messages: Error: arm7_9_common.c:561
 arm7_9_execute_sys_speed(): timeout waiting for SYSCOMP
+
+TODO.
 							
 @end enumerate
 
