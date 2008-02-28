@@ -1,58 +1,24 @@
-.TH "OPENOCD" "1" "July 26, 2007" "" ""
+.TH "OPENOCD" "1" "February 28, 2008"
 .SH "NAME"
 openocd \- A free and open on\-chip debugging, in\-system programming and
-boundary\-scan testing tool for ARM systems (currently ARM7/9, XScale, and Cortex\-M3)
+boundary\-scan testing tool for ARM systems
 .SH "SYNOPSIS"
-.B openocd \fR[\fB\-fdlh\fR] [\fB\-\-file\fR <filename>] [\fB\-\-debug\fR <debuglevel>] [\fB\-\-log_output\fR <filename>] [\fB\-\-help]
+.B openocd \fR[\fB\-fdlh\fR] [\fB\-\-file\fR <filename>] [\fB\-\-debug\fR <debuglevel>] [\fB\-\-log_output\fR <filename>] [\fB\-\-help\fR]
 .SH "DESCRIPTION"
 .B OpenOCD
 is an on\-chip debugging, in\-system programming and boundary\-scan
 testing tool for ARM systems.
 .PP 
 The debugger uses an IEEE 1149\-1 compliant JTAG TAP bus master to access
-on\-chip debug functionality available on ARM7/9, XScale, and Cortex-M3 based
+on\-chip debug functionality available on ARM7/9, XScale, Cortex-M3, and
+Marvell Feroceon (as found in the Orion SoC family) based
 microcontrollers / system\-on\-chip solutions.
 .PP 
 User interaction is realized through a telnet command line interface and
 a gdb (the GNU debugger) remote protocol server.
 .PP 
-OpenOCD supports various different types of JTAG interfaces/programmers:
-  * Parallel port wigglers, e.g.
-    * Macraigor Wiggler JTAG cable
-    * Gateworks GW16012 JTAG programmer
-    * Xilinx DLC5 JTAG parallel cable III
-    * Ka-Ro TRITON starterkit II JTAG cable
-    * Lattice parallel port JTAG cable
-    * ST FlashLINK programming cable
-  * Amontec JTAG Accelerator
-  * FTDI FT2232 based USB devices
-  * USBJTAG
-  * OOCD\-Link
-  * Amontec JTAGkey
-  * Amontec JTAGkey\-Tiny
-  * Olimex ARM\-USB\-OCD
-  * eVerve Signalyzer
-  * TinCanTools 'Flyswatter'
-  * Turtelizer 2
-  * Hitex STR9-comSTICK
-  * Luminary Micro evb_lm3s811
-  * ASIX PRESTO
-  * usbprog
-.PP 
-It also supports a number of different ARM7/9 cores:
-  * ARM7TDMI(\-s)
-  * ARM720t
-  * ARM9TDMI
-  * ARM920t
-  * ARM922t
-  * ARM926ej\-s
-  * ARM966e
-  * Cortex-M3
-.PP 
-Support for Intel XScale CPUs is also included:
-  * PXA25x
-  * PXA27x
-  * IXP42x
+OpenOCD supports various different types of JTAG interfaces/programmers,
+please check the README for the complete list.
 .SH "OPTIONS"
 .TP 
 .B "\-f, \-\-file <filename>"
@@ -95,19 +61,10 @@ or on the mailing list
 .SH "LICENCE"
 .B OpenOCD
 is covered by the GNU General Public License (GPL), version 2 or later.
-.\"
 .SH "SEE ALSO"
 .BR jtag (1)
 .SH "AUTHORS"
-Dominic Rath <Dominic.Rath@gmx.de>
-.br 
-Magnus Lundin <lundin@mlu.mine.nu>
-.br 
-Michael Fischer <fischermi@t\-online.de>
-.br 
-Spencer Oliver <spen@spen\-soft.co.uk>
-.br 
-and others
+Please see the file AUTHORS.
 .PP 
 This manual page was written by Uwe Hermann <uwe@hermann\-uwe.de>.
-It is licensed under the terms of the GNU GPL (v2 or later).
+It is licensed under the terms of the GNU GPL (version 2 or later).
