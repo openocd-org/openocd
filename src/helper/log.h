@@ -85,6 +85,11 @@ extern int debug_level;
 		log_printfnl (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr); \
 	} while(0)
 
+#define INFO_SAMELINE(expr ...) \
+	do { if (debug_level >= LOG_INFO) \
+		log_printf (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr); \
+	} while(0)
+
 #define WARNING(expr ...) \
 	do { \
 		log_printfnl (LOG_WARNING, __FILE__, __LINE__, __FUNCTION__, expr); \
