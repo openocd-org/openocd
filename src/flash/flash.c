@@ -88,63 +88,40 @@ static int auto_erase = 0;
 /* wafer thin wrapper for invoking the flash driver */
 static int flash_driver_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
-	int retval=ERROR_OK;
-	if (bank->target->state != TARGET_HALTED)
-	{
-		ERROR("target not halted - aborting flash write");
-		retval=ERROR_TARGET_NOT_HALTED;
-	} else
-	{
-		retval=bank->driver->write(bank, buffer, offset, count);
-	}
+	int retval;
+
+	retval=bank->driver->write(bank, buffer, offset, count);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("Writing to flash bank at address 0x%08x at offset 0x%8.8x", bank->base, offset);
+		ERROR("error writing to flash at address 0x%08x at offset 0x%8.8x", bank->base, offset);
 	}
+
 	return retval;
 }
 
 static int flash_driver_erase(struct flash_bank_s *bank, int first, int last)
 {
-	int retval=ERROR_OK;
-	if (bank->target->state != TARGET_HALTED)
-	{
-		ERROR("target not halted - aborting flash erase");
-		retval=ERROR_TARGET_NOT_HALTED;
-	} else if ((first < 0) || (last < first) || (last >= bank->num_sectors))
-	{
-		ERROR("invalid flash sector");
-		retval=ERROR_FLASH_SECTOR_INVALID;
-	} else
-	{
-		retval=bank->driver->erase(bank, first, last);
-	}
+	int retval;
+
+	retval=bank->driver->erase(bank, first, last);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("Failed erasing banks %d to %d", first, last);
+		ERROR("failed erasing banks %d to %d", first, last);
 	}
+
 	return retval;
 }
 
 int flash_driver_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	int retval;
-	if (bank->target->state != TARGET_HALTED)
-	{
-		ERROR("target not halted - aborting flash erase");
-		retval=ERROR_TARGET_NOT_HALTED;
-	} else if ((first < 0) || (last < first) || (last >= bank->num_sectors))
-	{
-		ERROR("invalid flash sector");
-		retval=ERROR_FLASH_SECTOR_INVALID;
-	} else
-	{
-		retval=bank->driver->protect(bank, set, first, last);
-	}
+
+	retval=bank->driver->protect(bank, set, first, last);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("Failed protecting banks %d to %d", first, last);
+		ERROR("failed protecting banks %d to %d", first, last);
 	}
+
 	return retval;
 }
 
