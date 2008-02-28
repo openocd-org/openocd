@@ -101,4 +101,17 @@ extern int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size);
 extern int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size);
 extern int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout);
 
+/* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of 
+ * embeddedice_write_reg
+ */
+static __inline void embeddedice_write_reg_inner(reg_t *reg, u32 value)
+{
+	embeddedice_reg_t *ice_reg = reg->arch_info;
+	u8 reg_addr = ice_reg->addr & 0x1f;
+	jtag_add_shift(TAP_SD, TAP_PD, 32, value);
+	jtag_add_shift(TAP_SD, TAP_PD, 5, reg_addr);
+	jtag_add_shift(TAP_SD, TAP_RTI, 1, 1);
+}
+
+
 #endif /* EMBEDDED_ICE_H */
