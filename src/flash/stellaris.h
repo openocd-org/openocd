@@ -49,8 +49,6 @@ typedef struct stellaris_flash_bank_s
 	u8  mck_valid;
 	u32 mck_freq;
 	
-	int probed;
-	
 } stellaris_flash_bank_t;
 
 /* STELLARIS control registers */

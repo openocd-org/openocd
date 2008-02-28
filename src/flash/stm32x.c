@@ -292,7 +292,7 @@ int stm32x_blank_check(struct flash_bank_s *bank, int first, int last)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	buffer = malloc(256);
 	
 	for (i = first; i <= last; i++)
@@ -356,6 +356,11 @@ int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 	int i;
 	u32 status;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	/* unlock flash registers */
 	target_write_u32(target, STM32_FLASH_KEYR, KEY1);
 	target_write_u32(target, STM32_FLASH_KEYR, KEY2);
@@ -547,6 +552,11 @@ int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u8 status;
 	u32 retval;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	if (offset & 0x1)
 	{
 		WARNING("offset 0x%x breaks required 2-byte alignment", offset);
@@ -636,6 +646,11 @@ int stm32x_probe(struct flash_bank_s *bank)
 	u16 num_sectors;
 	u32 device_id;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	stm32x_info->probed = 0;
 	
 	/* read stm32 device id register */

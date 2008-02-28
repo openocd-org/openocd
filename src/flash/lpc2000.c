@@ -416,6 +416,11 @@ int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 	u32 result_table[2];
 	int status_code;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	param_table[0] = first;
 	param_table[1] = last;
 	param_table[2] = lpc2000_info->cclk;
@@ -476,6 +481,11 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	int i;
 	working_area_t *download_area;
 		 
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	/* allocate a working area */
 	if (target_alloc_working_area(target, lpc2000_info->cmd51_max_buffer, &download_area) != ERROR_OK)
 	{
@@ -645,7 +655,6 @@ int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd,
 	u32 param_table[5];
 	u32 result_table[2];
 	int status_code;
-	lpc2000_flash_bank_t *lpc2000_info;
 
 	if (argc < 1)
 	{
@@ -659,7 +668,6 @@ int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd,
 		return ERROR_OK;
 	}
 
-	lpc2000_info = bank->driver_priv;
 	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;

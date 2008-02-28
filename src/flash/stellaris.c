@@ -391,7 +391,6 @@ u32 stellaris_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout)
 int stellaris_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen) 
 {
 	u32 fmc;
-//	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 
 	fmc = FMC_WRKEY | cmd; 
@@ -428,6 +427,12 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 		return ERROR_FLASH_OPERATION_FAILED;	
 	}
 
+	if (did1 == 0)
+	{
+		WARNING("Cannot identify target as a Stellaris");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
     ver = did1 >> 28;
     fam = (did1 >> 24) & 0xF;
     if(((ver != 0) && (ver != 1)) || (fam != 0))
@@ -435,12 +440,6 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
         WARNING("Unknown did1 version/family, cannot positively identify target as a Stellaris");
 	}
 
-	if (did1 == 0)
-	{
-		WARNING("Cannot identify target as a Stellaris");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-	
 	for (i=0;StellarisParts[i].partno;i++)
 	{
 		if (StellarisParts[i].partno==((did1>>16)&0xFF))
@@ -459,7 +458,7 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	stellaris_info->pages_in_lockregion = 2;
 	target_read_u32(target, SCB_BASE|FMPPE, &stellaris_info->lockbits);
 
-	// Read main and master clock freqency register 
+	/* Read main and master clock freqency register */
 	stellaris_read_clock_info(bank);
 	
 	status = stellaris_get_flash_status(bank);
@@ -490,6 +489,11 @@ int stellaris_protect_check(struct flash_bank_s *bank)
 	
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	if (stellaris_info->did1 == 0)
 	{
 		stellaris_read_part_info(bank);
@@ -514,6 +518,11 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	if (stellaris_info->did1 == 0)
 	{
 		stellaris_read_part_info(bank);
@@ -707,7 +716,6 @@ u8 stellaris_write_code[] =
 
 int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 wcount)
 {
-//	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u32 buffer_size = 8192;
 	working_area_t *source;
@@ -809,6 +817,11 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	u32 flash_cris,flash_fmc;
 	u32 retval;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	DEBUG("(bank=%08X buffer=%08X offset=%08X count=%08X)",
 			(unsigned int)bank, (unsigned int)buffer, offset, count);
 
@@ -879,7 +892,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 		target_write_u32(target, FLASH_FMA, address);
 		target_write_buffer(target, FLASH_FMD, 4, buffer);
 		target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_WRITE);
-		//DEBUG("0x%x 0x%x 0x%x",address,buf_get_u32(buffer, 0, 32),FMC_WRKEY | FMC_WRITE);
+		/* DEBUG("0x%x 0x%x 0x%x",address,buf_get_u32(buffer, 0, 32),FMC_WRKEY | FMC_WRITE); */
 		/* Wait until write complete */
 		do
 		{
@@ -906,30 +919,20 @@ int stellaris_probe(struct flash_bank_s *bank)
 	/* we can't probe on an stellaris
 	 * if this is an stellaris, it has the configured flash
 	 */
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	
-	stellaris_info->probed = 0;
-	
-	if (stellaris_info->did1 == 0)
+	if (bank->target->state != TARGET_HALTED)
 	{
-		stellaris_read_part_info(bank);
+		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (stellaris_info->did1 == 0)
-	{
-		WARNING("Cannot identify target as a LMI Stellaris");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-	
-	stellaris_info->probed = 1;
-	
-	return ERROR_OK;
+	/* stellaris_read_part_info() already takes care about error checking and reporting */
+	return stellaris_read_part_info(bank);
 }
 
 int stellaris_auto_probe(struct flash_bank_s *bank)
 {
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
-	if (stellaris_info->probed)
+	if (stellaris_info->did1)
 		return ERROR_OK;
 	return stellaris_probe(bank);
 }

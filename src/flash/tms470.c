@@ -109,11 +109,10 @@ int tms470_read_part_info(struct flash_bank_s *bank)
 	u32 part_number;
 	char *part_name;
 
-	if (target->state != TARGET_HALTED)
-	{
-		WARNING("Cannot communicate... target not halted.");
-		return ERROR_TARGET_NOT_HALTED;
-	}
+	/* we shall not rely on the caller in this test, this function allocates memory,
+	   thus and executing the code more than once may cause memory leak */
+	if (tms470_info->device_ident_reg)
+	  return ERROR_OK;
 
 	/* read and parse the device identification register */
 	target_read_u32(target, 0xFFFFFFF0, &device_ident_reg);
@@ -773,10 +772,12 @@ int tms470_erase(struct flash_bank_s *bank, int first, int last)
 	tms470_flash_bank_t *tms470_info = bank->driver_priv;
 	int sector, result = ERROR_OK;
 
-	if (!tms470_info->device_ident_reg)
+	if (bank->target->state != TARGET_HALTED)
 	{
-		tms470_read_part_info(bank);
+		return ERROR_TARGET_NOT_HALTED;
 	}
+
+	tms470_read_part_info(bank);
 
 	if ((first < 0) || (first >= bank->num_sectors) || (last < 0) || (last >= bank->num_sectors) || (first > last))
 	{
@@ -819,10 +820,12 @@ int tms470_protect(struct flash_bank_s *bank, int set, int first, int last)
 	u32 fmmac2, fmbsea, fmbseb;
 	int sector;
 
-	if (!tms470_info->device_ident_reg)
+	if (target->state != TARGET_HALTED)
 	{
-		tms470_read_part_info(bank);
+		return ERROR_TARGET_NOT_HALTED;
 	}
+
+	tms470_read_part_info(bank);
 
 	if ((first < 0) || (first >= bank->num_sectors) || (last < 0) || (last >= bank->num_sectors) || (first > last))
 	{
@@ -868,10 +871,12 @@ int tms470_write(struct flash_bank_s *bank, u8 * buffer, u32 offset, u32 count)
 	u32 glbctrl, fmbac2, orig_fmregopt, fmbsea, fmbseb, fmmaxpp, fmmstat;
 	int i, result = ERROR_OK;
 
-	if (!tms470_info->device_ident_reg)
+	if (target->state != TARGET_HALTED)
 	{
-		tms470_read_part_info(bank);
+		return ERROR_TARGET_NOT_HALTED;
 	}
+
+	tms470_read_part_info(bank);
 
 	INFO("Writing %d bytes starting at 0x%08x", count, bank->base + offset);
 
@@ -958,25 +963,20 @@ int tms470_write(struct flash_bank_s *bank, u8 * buffer, u32 offset, u32 count)
 
 int tms470_probe(struct flash_bank_s *bank)
 {
-	tms470_flash_bank_t *tms470_info = bank->driver_priv;
-
-	tms470_info->probed = 0;
-
-	if (!tms470_info->device_ident_reg)
+	if (bank->target->state != TARGET_HALTED)
 	{
-		tms470_read_part_info(bank);
+		WARNING("Cannot communicate... target not halted.");
+		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	tms470_info->probed = 1;
-
-	return ERROR_OK;
+	return tms470_read_part_info(bank);
 }
 
 int tms470_auto_probe(struct flash_bank_s *bank)
 {
 	tms470_flash_bank_t *tms470_info = bank->driver_priv;
 
-	if (tms470_info->probed)
+	if (tms470_info->device_ident_reg)
 		return ERROR_OK;
 	return tms470_probe(bank);
 }
@@ -990,6 +990,11 @@ int tms470_erase_check(struct flash_bank_s *bank)
 	int sector, result = ERROR_OK;
 	u32 fmmac2, fmbac2, glbctrl, orig_fmregopt;
 	static u8 buffer[64 * 1024];
+
+	if (target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	if (!tms470_info->device_ident_reg)
 	{
@@ -1074,6 +1079,11 @@ int tms470_protect_check(struct flash_bank_s *bank)
 	tms470_flash_bank_t *tms470_info = bank->driver_priv;
 	int sector, result = ERROR_OK;
 	u32 fmmac2, fmbsea, fmbseb;
+
+	if (target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	if (!tms470_info->device_ident_reg)
 	{

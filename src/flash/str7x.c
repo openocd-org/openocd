@@ -314,6 +314,11 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 	u32 retval;
 	u32 b0_sectors = 0, b1_sectors = 0;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	for (i = first; i <= last; i++)
 	{
 		if (str7x_info->sector_bank[i] == 0)
@@ -568,6 +573,11 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 check_address = offset;
 	int i;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	if (offset & 0x7)
 	{
 		WARNING("offset 0x%x breaks required 8-byte alignment", offset);
@@ -627,18 +637,18 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 	while (dwords_remaining > 0)
 	{
-		// command
+		/* command */
 		cmd = FLASH_DWPG;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 		
-		// address
+		/* address */
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
 		
-		// data word 1
+		/* data word 1 */
 		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, buffer + bytes_written);
 		bytes_written += 4;
 		
-		// data word 2
+		/* data word 2 */
 		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, buffer + bytes_written);
 		bytes_written += 4;
 		
@@ -674,18 +684,18 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			bytes_written++;
 		}
 		
-		// command
+		/* command */
 		cmd = FLASH_DWPG;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 		
-		// address
+		/* address */
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
 		
-		// data word 1
+		/* data word 1 */
 		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, last_dword);
 		bytes_written += 4;
 		
-		// data word 2
+		/* data word 2 */
 		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, last_dword + 4);
 		bytes_written += 4;
 		

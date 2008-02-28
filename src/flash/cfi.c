@@ -24,6 +24,7 @@
 #include "replacements.h"
 
 #include "cfi.h"
+#include "non_cfi.h"
 
 #include "flash.h"
 #include "target.h"
@@ -78,7 +79,6 @@ cfi_unlock_addresses_t cfi_unlock_addresses[] =
 };
 
 /* CFI fixups foward declarations */
-void cfi_fixup_non_cfi(flash_bank_t *flash, void *param);
 void cfi_fixup_0002_erase_regions(flash_bank_t *flash, void *param);
 void cfi_fixup_0002_unlock_addresses(flash_bank_t *flash, void *param);
 void cfi_fixup_atmel_reversed_erase_regions(flash_bank_t *flash, void *param);
@@ -898,30 +898,35 @@ int cfi_protect(struct flash_bank_s *bank, int set, int first, int last)
 /* FIXME Replace this by a simple memcpy() - still unsure about sideeffects */
 static void cfi_add_byte(struct flash_bank_s *bank, u8 *word, u8 byte)
 {
-	//target_t *target = bank->target;
+	/* target_t *target = bank->target; */
 
 	int i;
 
-	// NOTE:
-	// The data to flash must not be changed in endian! We write a bytestrem in
-	// target byte order already. Only the control and status byte lane of the flash
-	// WSM is interpreted by the CPU in different ways, when read a u16 or u32
-	// word (data seems to be in the upper or lower byte lane for u16 accesses).
+	/* NOTE:
+	 * The data to flash must not be changed in endian! We write a bytestrem in
+	 * target byte order already. Only the control and status byte lane of the flash
+	 * WSM is interpreted by the CPU in different ways, when read a u16 or u32
+	 * word (data seems to be in the upper or lower byte lane for u16 accesses).
+	 */
 
-	//if (target->endianness == TARGET_LITTLE_ENDIAN)
-	//{
+#if 0
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+	{
+#endif
 		/* shift bytes */
 		for (i = 0; i < bank->bus_width - 1; i++)
 			word[i] = word[i + 1];
 		word[bank->bus_width - 1] = byte;
-	//}
-	//else
-	//{
-	//	/* shift bytes */
-	//	for (i = bank->bus_width - 1; i > 0; i--)
-	//		word[i] = word[i - 1];
-	//	word[0] = byte;
-	//}
+#if 0
+	}
+	else
+	{
+		/* shift bytes */
+		for (i = bank->bus_width - 1; i > 0; i--)
+			word[i] = word[i - 1];
+		word[0] = byte;
+	}
+#endif
 }
 
 /* Convert code image to target endian */
@@ -1160,9 +1165,9 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 			cfi_intel_clear_status_register(bank);
 			ERROR("Execution of flash algorythm failed. Can't fall back. Please report.");
 			retval = ERROR_FLASH_OPERATION_FAILED;
-			//retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-			// FIXME To allow fall back or recovery, we must save the actual status
-			//       somewhere, so that a higher level code can start recovery.
+			/* retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE; */
+			/* FIXME To allow fall back or recovery, we must save the actual status
+			   somewhere, so that a higher level code can start recovery. */
 			goto cleanup;
 		}
 
@@ -1622,7 +1627,7 @@ int cfi_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 addr
 			return cfi_intel_write_words(bank, word, wordcount, address);
 			break;
 		case 2:
-			//return cfi_spansion_write_words(bank, word, address);
+			/* return cfi_spansion_write_words(bank, word, address); */
 			ERROR("cfi primary command set %i unimplemented - FIXME", cfi_info->pri_id);
 			break;
 		default:
@@ -1644,6 +1649,9 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u8 current_word[CFI_MAX_BUS_WIDTH * 4];	/* word (bus_width size) currently being programmed */
 	int i;
 	int retval;
+
+	if (bank->target->state != TARGET_HALTED)
+		return ERROR_TARGET_NOT_HALTED;
 
 	if (offset + count > bank->size)
 		return ERROR_FLASH_DST_OUT_OF_BANK;
@@ -1867,6 +1875,11 @@ int cfi_probe(struct flash_bank_s *bank)
 	u32 offset = 0;
 	u32 unlock1 = 0x555;
 	u32 unlock2 = 0x2aa;
+
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	cfi_info->probed = 0;
 
@@ -2098,6 +2111,11 @@ int cfi_erase_check(struct flash_bank_s *bank)
 	int i;
 	int retval;
 
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	if (!cfi_info->erase_check_algorithm)
 	{
 		u32 erase_check_code[] =
@@ -2269,6 +2287,11 @@ int cfi_spansion_protect_check(struct flash_bank_s *bank)
 int cfi_protect_check(struct flash_bank_s *bank)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	if (cfi_info->qry[0] != 'Q')
 		return ERROR_FLASH_BANK_NOT_PROBED;

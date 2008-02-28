@@ -40,20 +40,16 @@ typedef struct flash_driver_s
 	char *name;
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 	int (*flash_bank_command)(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-	/* low level flash erase. Only invoke from flash_driver_erase()
-	 * 
-	 * Will only be invoked when target is halted. 
-	 */
+
+	/* use flash_driver_erase() wrapper to invoke */
 	int (*erase)(struct flash_bank_s *bank, int first, int last);
-	/* invoked only from flash_driver_protect().
-	 *  
-	 * Only invoked if target is halted
-	 */
+
+	/* use flash_driver_protect() wrapper to invoke */
 	int (*protect)(struct flash_bank_s *bank, int set, int first, int last);
-	/* low level flash write. Will only be invoked if the target is halted.
-	 * use the flash_driver_write() wrapper to invoke.
-	 */
+
+	/* use the flash_driver_write() wrapper to invoke. */
 	int (*write)(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+
 	int (*probe)(struct flash_bank_s *bank);
 	int (*erase_check)(struct flash_bank_s *bank);
 	int (*protect_check)(struct flash_bank_s *bank);

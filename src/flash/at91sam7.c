@@ -314,11 +314,6 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 	u32 cidr, status;
 	int sectornum;
 	
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	/* Read and parse chip identification register */
 	target_read_u32(target, DBGU_CIDR, &cidr);
 	
@@ -584,6 +579,11 @@ int at91sam7_protect_check(struct flash_bank_s *bank)
 	
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	if (at91sam7_info->cidr == 0)
 	{
 		at91sam7_read_part_info(bank);
@@ -738,6 +738,11 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 first_page, last_page, pagen, buffer_pos;
 	u8 flashplane;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	if (at91sam7_info->cidr == 0)
 	{
 		at91sam7_read_part_info(bank);
@@ -806,6 +811,11 @@ int at91sam7_probe(struct flash_bank_s *bank)
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	at91sam7_info->probed = 0;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	if (at91sam7_info->cidr == 0)
 	{
 		at91sam7_read_part_info(bank);
@@ -836,6 +846,11 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	int printed, flashplane;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	at91sam7_read_part_info(bank);
 
 	if (at91sam7_info->cidr == 0)

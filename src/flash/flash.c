@@ -200,7 +200,7 @@ flash_bank_t *get_flash_bank_by_num_noprobe(int num)
 			return p;
 		}
 	}
-	ERROR("Flash bank %d does not exist", num);
+	ERROR("flash bank %d does not exist", num);
 	return NULL;
 }
 
