@@ -71,16 +71,16 @@ static void log_printfv(enum log_levels level, const char *file, int line, const
 	{
 		/* print with count and time information */
 		int t=(int)(time(NULL)-start);
-		fprintf(log_output, "%s %d %d %s:%d %s(): %s\n", log_strings[level+1], count, t, file, line, function, buffer);
+		fprintf(log_output, "%s %d %d %s:%d %s(): %s", log_strings[level+1], count, t, file, line, function, buffer);
 	}
 	else
 	{
 		/* do not print count and time */
-		fprintf(log_output, "%s %s:%d %s(): %s\n", log_strings[level+1], file, line, function, buffer);
+		fprintf(log_output, "%s %s:%d %s(): %s", log_strings[level+1], file, line, function, buffer);
 	}
 
 	fflush(log_output);
-
+	
 	/* Never forward LOG_DEBUG, too verbose and they can be found in the log if need be */
 	if (level <= LOG_INFO)
 	{
@@ -101,7 +101,7 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	va_start(args, format);
 	log_printfv(level, file, line, function, format, args);
 	va_end(args);
-
+	
 }
 
 void log_printfnl(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
@@ -109,11 +109,11 @@ void log_printfnl(enum log_levels level, const char *file, int line, const char 
 	count++;
 	if (level > debug_level)
 		return;
-
+	
 	char *t=malloc(strlen(format)+2);
 	strcpy(t, format);
 	strcat(t, "\n");
-
+	
 	va_list args;
 	va_start(args, format);
 	log_printfv(level, file, line, function, t, args);
@@ -148,7 +148,7 @@ int handle_log_output_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if (argc == 1)
 	{
 		FILE* file = fopen(args[0], "w");
-
+		
 		if (file)
 		{
 			log_output = file;
@@ -174,15 +174,15 @@ int log_init(struct command_context_s *cmd_ctx)
 	/* set defaults for daemon configuration, if not set by cmdline or cfgfile */
 	if (debug_level == -1)
 		debug_level = LOG_INFO;
-
+	
 	if (log_output == NULL)
 	{
 		log_output = stderr;
 	}
-
+	
 	return ERROR_OK;
 }
-
+	
 int set_log_output(struct command_context_s *cmd_ctx, FILE *output)
 {
 	log_output = output;
@@ -236,7 +236,7 @@ int log_remove_callback(log_callback_fn fn, void *priv)
 char *alloc_printf(const char *fmt, va_list ap)
 {
 	char *string = NULL;
-
+	
 	/* start by 0 to exercise all the code paths. Need minimum 2 bytes to
 	 * fit 1 char and 0 terminator. */
 	int size = 0;
@@ -255,7 +255,7 @@ char *alloc_printf(const char *fmt, va_list ap)
 				return NULL;
 			}
 		}
-
+	
 	    int ret;
 	    ret = vsnprintf(string, size, fmt, ap);
 	    /* NB! The result of the vsnprintf() might be an *EMPTY* string! */
