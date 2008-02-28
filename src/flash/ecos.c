@@ -78,6 +78,10 @@ typedef struct ecosflash_flash_bank_s
 
 static const int sectorSize=0x10000;
 
+char *
+flash_errmsg(int err);
+
+#ifndef __ECOS
 #define FLASH_ERR_OK              0x00  // No error - operation complete
 #define FLASH_ERR_INVALID         0x01  // Invalid FLASH address
 #define FLASH_ERR_ERASE           0x02  // Error trying to erase
@@ -131,7 +135,7 @@ flash_errmsg(int err)
         return "Unknown error";
     }
 }
-
+#endif
 
 /* flash bank ecosflash <base> <size> <chip_width> <bus_width> <target#> <driverPath>
  */
