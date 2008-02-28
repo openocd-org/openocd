@@ -2,6 +2,10 @@
 @c %**start of header
 @setfilename openocd.info
 @settitle Open On-Chip Debugger (openocd)
+@dircategory Development
+@direntry
+* OpenOCD: (openocd).      Open On-Chip Debugger.
+@end direntry
 @c %**end of header
 
 @include version.texi
