@@ -365,7 +365,6 @@ static __inline int jtag_add_shift(const enum tap_state shift_state, const enum 
 {
 	int retval;
 	retval=interface_jtag_add_shift(shift_state, end_state, bits, value);
-	cmd_queue_end_state = end_state;
 	return retval;
 }
 
