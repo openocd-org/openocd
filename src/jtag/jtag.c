@@ -1898,6 +1898,43 @@ int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	return ERROR_OK;
 }
 
+
+
+int MINIDRIVER(interface_jtag_add_shift)(const enum tap_state shift_state, const enum tap_state end_state, int num_bits, u32 value)
+{
+	u8 out_buf[4];
+	buf_set_u32(out_buf, 0, 32, flip_u32(value, 32));
+
+	/* allocate memory for a new list member */
+	jtag_command_t **last_cmd;
+	last_cmd = jtag_get_last_command_p();
+	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	last_comand_pointer = &((*last_cmd)->next);
+	(*last_cmd)->next = NULL;
+	(*last_cmd)->type = JTAG_SCAN;
+
+	/* allocate memory for scan command */
+	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
+	(*last_cmd)->cmd.scan->ir_scan = (shift_state==TAP_SI);
+	(*last_cmd)->cmd.scan->num_fields = 1;
+	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(1 * sizeof(scan_field_t));
+	(*last_cmd)->cmd.scan->end_state = end_state;
+		
+	int num_bytes = CEIL(num_bits, 8);
+	int i=0;
+	(*last_cmd)->cmd.scan->fields[i].device = 0; /* not used by any drivers */
+	(*last_cmd)->cmd.scan->fields[i].num_bits = num_bits;
+	(*last_cmd)->cmd.scan->fields[i].out_value = buf_cpy(out_buf, cmd_queue_alloc(num_bytes), num_bits);
+	(*last_cmd)->cmd.scan->fields[i].out_mask = NULL;
+	(*last_cmd)->cmd.scan->fields[i].in_value = NULL;
+	(*last_cmd)->cmd.scan->fields[i].in_check_value = NULL;
+	(*last_cmd)->cmd.scan->fields[i].in_check_mask = NULL;
+	(*last_cmd)->cmd.scan->fields[i].in_handler = NULL;
+	(*last_cmd)->cmd.scan->fields[i].in_handler_priv = NULL;
+	
+	return ERROR_OK;
+}
+
 int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 1)

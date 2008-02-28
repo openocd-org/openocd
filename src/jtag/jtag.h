@@ -22,6 +22,7 @@
 
 #include "types.h"
 #include "binarybuffer.h"
+#include "log.h"
 
 #include "command.h"
 
@@ -289,6 +290,9 @@ extern int jtag_add_end_state(enum tap_state endstate);
 extern int interface_jtag_add_end_state(enum tap_state endstate);
 extern int jtag_add_sleep(u32 us);
 extern int interface_jtag_add_sleep(u32 us);
+
+
+
 /*
  * For software FIFO implementations, the queued commands can be executed 
  * during this call or earlier. A sw queue might decide to push out
@@ -338,6 +342,32 @@ extern int jtag_verify_capture_ir;
 #define ERROR_JTAG_RESET_WOULD_ASSERT_TRST		(-105)
 #define ERROR_JTAG_RESET_CANT_SRST				(-106)
 #define ERROR_JTAG_DEVICE_ERROR			(-107)
+
+
+/* Here a #define MINIDRIVER() and an inline version of hw fifo interface_jtag_add_shift can be defined */
+
+#ifndef MINIDRIVER 
+extern int interface_jtag_add_shift(const enum tap_state shift_state, const enum tap_state end_state, int bits, u32 value);
+#endif
+
+/* Enter the shift_state and cycle "bits" times out of that state.
+ * 
+ * So if the end_state!=shift_state, then the transition from shift_state to 
+ * end_state counts as a transition out of shift_state.
+ * 
+ * Legal shift states TAP_SD and TAP_SI
+ * 
+ * Legal end state does not include TAP_TLR
+ * 
+ * Bits are clocked out from value LSB first.
+ */
+static __inline int jtag_add_shift(const enum tap_state shift_state, const enum tap_state end_state, int bits, u32 value)
+{
+	int retval;
+	retval=interface_jtag_add_shift(shift_state, end_state, bits, value);
+	cmd_queue_end_state = end_state;
+	return retval;
+}
 
 
 #endif /* JTAG_H */
