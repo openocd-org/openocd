@@ -118,6 +118,8 @@ void log_printfnl(enum log_levels level, const char *file, int line, const char 
 	va_start(args, format);
 	log_printfv(level, file, line, function, t, args);
 	va_end(args);
+	
+	free(t);
 }
 
 /* change the current debug level on the fly
