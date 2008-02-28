@@ -46,4 +46,14 @@ extern int buf_to_u32_handler(u8 *in_buf, void *priv, struct scan_field_s *field
 
 #define CEIL(m, n)	((m + n - 1) / n)
 
+/* read a u32 from a buffer in target memory endianness */
+static __inline u32 fast_target_buffer_get_u32(u8 *buffer, int little)
+{
+	if (little)
+		return le_to_h_u32(buffer);
+	else
+		return be_to_h_u32(buffer);
+}
+
+
 #endif /* BINARYBUFFER_H */
