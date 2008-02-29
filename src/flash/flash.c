@@ -605,7 +605,6 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	retval = image_open(&image, args[0], (argc == 3) ? args[2] : NULL);
 	if (retval != ERROR_OK)
 	{
-		command_print(cmd_ctx, "image_open error: %s", image.error_str);
 		return retval;
 	}
 
@@ -662,14 +661,12 @@ int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd
 
 	if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "flash write_binary error: %s", fileio.error_str);
 		return ERROR_OK;
 	}
 
 	buffer = malloc(fileio.size);
 	if (fileio_read(&fileio, fileio.size, buffer, &buf_cnt) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "flash write_binary error: %s", fileio.error_str);
 		return ERROR_OK;
 	}
 

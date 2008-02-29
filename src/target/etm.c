@@ -1387,6 +1387,9 @@ int handle_etm_info_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		case 2:
 			max_port_size = 16;
 			break;
+		default:
+			ERROR("Illegal max_port_size");
+			exit(-1);
 	}
 	command_print(cmd_ctx, "max. port size: %i", max_port_size);
 	
@@ -1505,7 +1508,6 @@ int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		
 	if (image_open(etm_ctx->image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "image opening error: %s", etm_ctx->image->error_str);
 		free(etm_ctx->image);
 		etm_ctx->image = NULL;
 		return ERROR_OK;
@@ -1562,7 +1564,6 @@ int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	
 	if (fileio_open(&file, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "file open error: %s", file.error_str);
 		return ERROR_OK;
 	}
 	
@@ -1620,7 +1621,6 @@ int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	
 	if (fileio_open(&file, args[0], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "file open error: %s", file.error_str);
 		return ERROR_OK;
 	}
 	

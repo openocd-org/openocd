@@ -764,7 +764,6 @@ int arm7_9_assert_reset(target_t *target)
 		{
 			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
 			{
-				WARNING("srst resets test logic, too");
 				retval = jtag_add_reset(1, 1);
 			}
 		}
@@ -775,7 +774,6 @@ int arm7_9_assert_reset(target_t *target)
 		{
 			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
 			{
-				WARNING("srst resets test logic, too");
 				retval = jtag_add_reset(1, 1);
 			}
 			

@@ -196,7 +196,6 @@ int loadDriver(ecosflash_flash_bank_t *info)
 	
 	if (image_open(&image, info->driverPath, NULL) != ERROR_OK)
 	{
-		ERROR("load_image error: %s", image.error_str);
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	

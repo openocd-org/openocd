@@ -24,6 +24,7 @@
 #include "types.h"
 #include "replacements.h"
 #include "log.h"
+#include "configuration.h"
 
 #include "fileio.h"
 
@@ -41,7 +42,6 @@ int fileio_dispatch_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
 
 int fileio_open_local(fileio_t *fileio)
 {
-	fileio_local_t *fileio_local = malloc(sizeof(fileio_local_t));
 	char access[4];
 	
 	switch (fileio->access)
@@ -62,11 +62,10 @@ int fileio_open_local(fileio_t *fileio)
 			strcpy(access, "a+");	
 			break;
 		default:
-			free(fileio_local);
 			ERROR("BUG: access neither read, write nor readwrite");
 			return ERROR_INVALID_ARGUMENTS;
 	}
-
+	
 	/* win32 always opens in binary mode */
 #ifndef _WIN32
 	if (fileio->type == FILEIO_BINARY)
@@ -75,10 +74,9 @@ int fileio_open_local(fileio_t *fileio)
 		strcat(access, "b");
 	}
 	
-	if (!(fileio_local->file = fopen(fileio->url, access)))
+	if (!(fileio->file = open_file_from_path (fileio->url, access)))
 	{
-		free(fileio_local);
-		snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "couldn't open %s", fileio->url);
+		ERROR("couldn't open %s", fileio->url);
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	
@@ -89,13 +87,13 @@ int fileio_open_local(fileio_t *fileio)
 		 * that refers to e.g. a tftp client */
 		int result, result2;
 		
-		result = fseek(fileio_local->file, 0, SEEK_END);
+		result = fseek(fileio->file, 0, SEEK_END);
+
+		fileio->size = ftell(fileio->file);
 		
-		fileio->size = ftell(fileio_local->file);
-		
-		result2 = fseek(fileio_local->file, 0, SEEK_SET); 
+		result2 = fseek(fileio->file, 0, SEEK_SET); 
 			
-		if ((fileio->size < 0) || (result < 0) || (result2 < 0))
+		if ((fileio->size<0)||(result<0)||(result2<0))
 		{
 			fileio_close(fileio);
 			return ERROR_FILEIO_OPERATION_FAILED;
@@ -106,77 +104,38 @@ int fileio_open_local(fileio_t *fileio)
 		fileio->size = 0x0;
 	}
 	
-	fileio->location_private = fileio_local;
-	
 	return ERROR_OK;
 }
 
 int fileio_open(fileio_t *fileio, char *url, enum fileio_access access,	enum fileio_type type)
 {
 	int retval = ERROR_OK;
-	char *resource_identifier = NULL;
 
-	/* try to identify file location. We only hijack the file paths we understand, the rest is
-	 * passed on to the OS which might implement e.g. tftp via a mounted tftp device.
-	 */
-	if ((resource_identifier = strstr(url, "bootp://")) && (resource_identifier == url))
-	{
-		ERROR("bootp resource location isn't supported yet");
-		return ERROR_FILEIO_RESOURCE_TYPE_UNKNOWN;
-	}
-	else
-	{
-		/* default to local files */
-		fileio->location = FILEIO_LOCAL;
-	}
-	
 	fileio->type = type;
 	fileio->access = access;
 	fileio->url = strdup(url);
 	
-	switch (fileio->location)
-	{
-		case FILEIO_LOCAL:
-			retval = fileio_open_local(fileio);
-			break;
-		default:
-			ERROR("BUG: should never get here");
-			exit(-1);
-	}
-	
-	if (retval != ERROR_OK)
-		return retval;
-	
-	return ERROR_OK;
+	retval = fileio_open_local(fileio);
+
+	return retval;
 }
 
 int fileio_close_local(fileio_t *fileio)
 {
 	int retval;
-	fileio_local_t *fileio_local = fileio->location_private;
-	
-	if (fileio->location_private == NULL)
-	{
-		snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "couldn't close %s: ", fileio->url);
-		return ERROR_FILEIO_OPERATION_FAILED;
-	}
-	
-	if ((retval = fclose(fileio_local->file)) != 0)
+	if ((retval = fclose(fileio->file)) != 0)
 	{
 		if (retval == EBADF)
 		{
-			snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "BUG: fileio_local->file not a valid file descriptor");
+			ERROR("BUG: fileio_local->file not a valid file descriptor");
 		}
 		else
 		{
-			snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "couldn't close %s: %s", fileio->url, strerror(errno));
+			ERROR("couldn't close %s: %s", fileio->url, strerror(errno));
 		}
 
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
-	
-	free(fileio->location_private);
-	fileio->location_private = NULL;
 	
 	return ERROR_OK;
 }
@@ -185,48 +144,21 @@ int fileio_close(fileio_t *fileio)
 {
 	int retval;
 	
-	switch (fileio->location)
-	{
-		case FILEIO_LOCAL:
-			retval = fileio_close_local(fileio);
-			break;
-		default:
-			ERROR("BUG: should never get here");
-			retval = ERROR_FILEIO_OPERATION_FAILED;
-	}
-	
-	if (retval != ERROR_OK)
-		return retval;
+	retval = fileio_close_local(fileio);
 	
 	free(fileio->url);
 	fileio->url = NULL;
 	
-	return ERROR_OK;
-}
-
-int fileio_seek_local(fileio_t *fileio, u32 position)
-{
-	int retval;
-	fileio_local_t *fileio_local = fileio->location_private;
-	
-	if ((retval = fseek(fileio_local->file, position, SEEK_SET)) != 0)
-	{
-		snprintf(fileio->error_str, FILEIO_MAX_ERROR_STRING, "couldn't seek file %s: %s", fileio->url, strerror(errno));
-		return ERROR_FILEIO_OPERATION_FAILED;
-	}
-	
-	return ERROR_OK;
+	return retval;
 }
 
 int fileio_seek(fileio_t *fileio, u32 position)
 {
-	switch (fileio->location)
+	int retval;
+	if ((retval = fseek(fileio->file, position, SEEK_SET)) != 0)
 	{
-		case FILEIO_LOCAL:
-			return fileio_seek_local(fileio, position);
-			break;
-		default:
-			ERROR("BUG: should never get here");
+		ERROR("couldn't seek file %s: %s", fileio->url, strerror(errno));
+		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	
 	return ERROR_OK;
@@ -234,24 +166,14 @@ int fileio_seek(fileio_t *fileio, u32 position)
 
 int fileio_local_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
 {
-	fileio_local_t *fileio_local = fileio->location_private;
-	
-	*size_read = fread(buffer, 1, size, fileio_local->file);
+	*size_read = fread(buffer, 1, size, fileio->file);
 	
 	return ERROR_OK;
 }
 
 int fileio_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
 {
-	switch (fileio->location)
-	{
-		case FILEIO_LOCAL:
-			return fileio_local_read(fileio, size, buffer, size_read);
-			break;
-		default:
-			ERROR("BUG: should never get here");
-			exit(-1);
-	}
+	return fileio_local_read(fileio, size, buffer, size_read);
 }
 
 int fileio_read_u32(fileio_t *fileio, u32 *data)
@@ -260,26 +182,16 @@ int fileio_read_u32(fileio_t *fileio, u32 *data)
 	u32 size_read;
 	int retval;
 	
-	switch (fileio->location)
-	{
-		case FILEIO_LOCAL:
-			if ((retval = fileio_local_read(fileio, 4, buf, &size_read)) != ERROR_OK)
-				return retval;
-			*data = be_to_h_u32(buf);
-			break;
-		default:
-			ERROR("BUG: should never get here");
-			exit(-1);
-	}
+	if ((retval = fileio_local_read(fileio, 4, buf, &size_read)) != ERROR_OK)
+		return retval;
+	*data = be_to_h_u32(buf);
 	
 	return ERROR_OK;
 }
 
 int fileio_local_fgets(fileio_t *fileio, u32 size, u8 *buffer)
 {
-	fileio_local_t *fileio_local = fileio->location_private;
-	
-	if( fgets(buffer, size, fileio_local->file) == NULL)
+	if( fgets(buffer, size, fileio->file) == NULL)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	
 	return ERROR_OK;
@@ -287,22 +199,12 @@ int fileio_local_fgets(fileio_t *fileio, u32 size, u8 *buffer)
 
 int fileio_fgets(fileio_t *fileio, u32 size, u8 *buffer)
 {
-	switch (fileio->location)
-	{
-		case FILEIO_LOCAL:
-			return fileio_local_fgets(fileio, size, buffer);
-			break;
-		default:
-			ERROR("BUG: should never get here");
-			exit(-1);
-	}
+	return fileio_local_fgets(fileio, size, buffer);
 }
 
 int fileio_local_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
 {
-	fileio_local_t *fileio_local = fileio->location_private;
-	
-	*size_written = fwrite(buffer, 1, size, fileio_local->file);
+	*size_written = fwrite(buffer, 1, size, fileio->file);
 	
 	return ERROR_OK;
 }
@@ -311,15 +213,7 @@ int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
 {
 	int retval;
 	
-	switch (fileio->location)
-	{
-		case FILEIO_LOCAL:
-			retval = fileio_local_write(fileio, size, buffer, size_written);
-			break;
-		default:
-			ERROR("BUG: should never get here");
-			exit(-1);
-	}
+	retval = fileio_local_write(fileio, size, buffer, size_written);
 	
 	if (retval == ERROR_OK)
 		fileio->size += *size_written;
@@ -335,15 +229,8 @@ int fileio_write_u32(fileio_t *fileio, u32 data)
 	
 	h_u32_to_be(buf, data);
 	
-	switch (fileio->location)
-	{
-		case FILEIO_LOCAL:
-			if ((retval = fileio_local_write(fileio, 4, buf, &size_written)) != ERROR_OK)
-				return retval;
-			break;
-		default:
-			ERROR("BUG: should never get here");
-	}
+	if ((retval = fileio_local_write(fileio, 4, buf, &size_written)) != ERROR_OK)
+		return retval;
 	
 	return ERROR_OK;
 }

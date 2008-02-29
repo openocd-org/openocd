@@ -38,18 +38,6 @@ enum fileio_type
 	FILEIO_BINARY,
 };
 
-enum fileio_location
-{
-	FILEIO_LOCAL,
-/*
- * Possible future enhancements:
- * FILEIO_NFS,
- * FILEIO_BOOTP,
- * FILEIO_[XYZ]MODEM,
- * FILEIO_HTTP,
- * FILEIO_FTP,
- */
-};
 
 enum fileio_access
 {
@@ -63,18 +51,11 @@ enum fileio_access
 typedef struct fileio_s
 {
 	char *url;
-	char error_str[FILEIO_MAX_ERROR_STRING];
 	long long size;
 	enum fileio_type type;
-	enum fileio_location location;
 	enum fileio_access access;
-	void *location_private;
-} fileio_t;
-
-typedef struct fileio_local_s
-{
 	FILE *file;
-} fileio_local_t;
+} fileio_t;
 
 extern int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written);
 extern int fileio_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read);

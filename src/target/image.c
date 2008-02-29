@@ -37,13 +37,13 @@
 #include "target.h"
 
 /* convert ELF header field to host endianness */
-#define field16(elf, field)\
-	((elf->endianness == ELFDATA2LSB)? \
-		le_to_h_u16((u8*)&field) : be_to_h_u16((u8*)&field))
+#define field16(elf,field)\
+	((elf->endianness==ELFDATA2LSB)? \
+		le_to_h_u16((u8*)&field):be_to_h_u16((u8*)&field)) 
 
-#define field32(elf, field)\
-	((elf->endianness == ELFDATA2LSB)? \
-		le_to_h_u32((u8*)&field) : be_to_h_u32((u8*)&field))
+#define field32(elf,field)\
+	((elf->endianness==ELFDATA2LSB)? \
+		le_to_h_u32((u8*)&field):be_to_h_u32((u8*)&field)) 
 
 static int autodetect_image_type(image_t *image, char *url)
 {
@@ -51,24 +51,18 @@ static int autodetect_image_type(image_t *image, char *url)
 	fileio_t fileio;
 	u32 read_bytes;
 	u8 buffer[9];
-
+	
 	/* read the first 4 bytes of image */
 	if ((retval = fileio_open(&fileio, url, FILEIO_READ, FILEIO_BINARY)) != ERROR_OK)
 	{
-		snprintf(image->error_str, IMAGE_MAX_ERROR_STRING, "cannot open image: %s", fileio.error_str);
-		ERROR(image->error_str);
 		return retval;
 	}
 	if ((retval = fileio_read(&fileio, 9, buffer, &read_bytes)) != ERROR_OK)
 	{
-		snprintf(image->error_str, IMAGE_MAX_ERROR_STRING, "cannot read image header: %s", fileio.error_str);
-		ERROR(image->error_str);
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	if (read_bytes != 9)
 	{
-		snprintf(image->error_str, IMAGE_MAX_ERROR_STRING, "cannot read image, only partially read");
-		ERROR(image->error_str);
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	fileio_close(&fileio);
@@ -79,15 +73,15 @@ static int autodetect_image_type(image_t *image, char *url)
 		DEBUG("ELF image detected.");
 		image->type = IMAGE_ELF;
 	}
-	else if ((buffer[0] == ':') /* record start byte */
+	else if  ((buffer[0]==':') /* record start byte */
 	        &&(isxdigit(buffer[1]))
 	        &&(isxdigit(buffer[2]))
 	        &&(isxdigit(buffer[3]))
 	        &&(isxdigit(buffer[4]))
 	        &&(isxdigit(buffer[5]))
 	        &&(isxdigit(buffer[6]))
-	        &&(buffer[7] == '0') /* record type : 00 -> 05 */
-	        &&(buffer[8] >= '0') && (buffer[8] < '6'))
+	        &&(buffer[7]=='0') /* record type : 00 -> 05 */
+	        &&(buffer[8]>='0')&&(buffer[8]<'6'))
 	{
 		DEBUG("IHEX image detected.");
 		image->type = IMAGE_IHEX;
@@ -146,7 +140,7 @@ int identify_image_type(image_t *image, char *type_string, char *url)
 	{
 		return autodetect_image_type(image, url);
 	}
-
+	
 	return ERROR_OK;
 }
 
@@ -158,7 +152,7 @@ int image_ihex_buffer_complete(image_t *image)
 	u32 cooked_bytes;
 	int i;
 	char lpszLine[1023];
-
+	
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
 	image_section_t section[IMAGE_MAX_SECTIONS];
@@ -170,7 +164,7 @@ int image_ihex_buffer_complete(image_t *image)
 	section[image->num_sections].base_address = 0x0;
 	section[image->num_sections].size = 0x0;
 	section[image->num_sections].flags = 0;
-
+	
 	while (fileio_fgets(fileio, 1023, lpszLine) == ERROR_OK)
 	{
 		u32 count;
@@ -179,18 +173,18 @@ int image_ihex_buffer_complete(image_t *image)
 		u32 checksum;
 		u8 cal_checksum = 0;
 		u32 bytes_read = 0;
-
+		
 		if (sscanf(&lpszLine[bytes_read], ":%2x%4x%2x", &count, &address, &record_type) != 3)
 		{
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
 		bytes_read += 9;
-
+		
 		cal_checksum += (u8)count;
 		cal_checksum += (u8)(address >> 8);
 		cal_checksum += (u8)address;
 		cal_checksum += (u8)record_type;
-
+		
 		if (record_type == 0) /* Data Record */
 		{
 			if ((full_address & 0xffff) != address)
@@ -210,7 +204,7 @@ int image_ihex_buffer_complete(image_t *image)
 					(full_address & 0xffff0000) | address;
 				full_address = (full_address & 0xffff0000) | address;
 			}
-
+			
 			while (count-- > 0)
 			{
 				sscanf(&lpszLine[bytes_read], "%2x", (u32*)&ihex->buffer[cooked_bytes]);
@@ -225,7 +219,7 @@ int image_ihex_buffer_complete(image_t *image)
 		{
 			/* finish the current section */
 			image->num_sections++;
-
+			
 			/* copy section information */
 			image->sections = malloc(sizeof(image_section_t) * image->num_sections);
 			for (i = 0; i < image->num_sections; i++)
@@ -235,18 +229,18 @@ int image_ihex_buffer_complete(image_t *image)
 				image->sections[i].size = section[i].size;
 				image->sections[i].flags = section[i].flags;
 			}
-
+			
 			return ERROR_OK;
 		}
 		else if (record_type == 2) /* Linear Address Record */
 		{
 			u16 upper_address;
-
+			
 			sscanf(&lpszLine[bytes_read], "%4hx", &upper_address);
 			cal_checksum += (u8)(upper_address >> 8);
 			cal_checksum += (u8)upper_address;
 			bytes_read += 4;
-
+			
 			if ((full_address >> 4) != upper_address)
 			{
 				/* we encountered a nonconsecutive location, create a new section,
@@ -260,7 +254,7 @@ int image_ihex_buffer_complete(image_t *image)
 					section[image->num_sections].flags = 0;
 					section[image->num_sections].private = &ihex->buffer[cooked_bytes];
 				}
-				section[image->num_sections].base_address =
+				section[image->num_sections].base_address = 
 					(full_address & 0xffff) | (upper_address << 4);
 				full_address = (full_address & 0xffff) | (upper_address << 4);
 			}
@@ -268,7 +262,7 @@ int image_ihex_buffer_complete(image_t *image)
 		else if (record_type == 3) /* Start Segment Address Record */
 		{
 			u32 dummy;
-
+			
 			/* "Start Segment Address Record" will not be supported */
 			/* but we must consume it, and do not create an error.  */
 			while (count-- > 0)
@@ -281,12 +275,12 @@ int image_ihex_buffer_complete(image_t *image)
 		else if (record_type == 4) /* Extended Linear Address Record */
 		{
 			u16 upper_address;
-
+			
 			sscanf(&lpszLine[bytes_read], "%4hx", &upper_address);
 			cal_checksum += (u8)(upper_address >> 8);
 			cal_checksum += (u8)upper_address;
 			bytes_read += 4;
-
+			
 			if ((full_address >> 16) != upper_address)
 			{
 				/* we encountered a nonconsecutive location, create a new section,
@@ -300,7 +294,7 @@ int image_ihex_buffer_complete(image_t *image)
 					section[image->num_sections].flags = 0;
 					section[image->num_sections].private = &ihex->buffer[cooked_bytes];
 				}
-				section[image->num_sections].base_address =
+				section[image->num_sections].base_address = 
 					(full_address & 0xffff) | (upper_address << 16);
 				full_address = (full_address & 0xffff) | (upper_address << 16);
 			}
@@ -308,14 +302,14 @@ int image_ihex_buffer_complete(image_t *image)
 		else if (record_type == 5) /* Start Linear Address Record */
 		{
 			u32 start_address;
-
+			
 			sscanf(&lpszLine[bytes_read], "%8x", &start_address);
 			cal_checksum += (u8)(start_address >> 24);
 			cal_checksum += (u8)(start_address >> 16);
 			cal_checksum += (u8)(start_address >> 8);
 			cal_checksum += (u8)start_address;
 			bytes_read += 8;
-
+			
 			image->start_address_set = 1;
 			image->start_address = be_to_h_u32((u8*)&start_address);
 		}
@@ -324,10 +318,10 @@ int image_ihex_buffer_complete(image_t *image)
 			ERROR("unhandled IHEX record type: %i", record_type);
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
-
+		
 		sscanf(&lpszLine[bytes_read], "%2x", &checksum);
 		bytes_read += 2;
-
+		
 		if ((u8)checksum != (u8)(~cal_checksum + 1))
 		{
 			/* checksum failed */
@@ -335,7 +329,7 @@ int image_ihex_buffer_complete(image_t *image)
 			return ERROR_IMAGE_CHECKSUM;
 		}
 	}
-
+	
 	ERROR("premature end of IHEX file, no end-of-file record found");
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
@@ -360,12 +354,12 @@ int image_elf_read_headers(image_t *image)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
-	if (strncmp((char*)elf->header->e_ident,ELFMAG,SELFMAG) != 0)
+	if (strncmp((char*)elf->header->e_ident,ELFMAG,SELFMAG)!=0)
 	{
 		ERROR("invalid ELF file, bad magic number");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
-	if (elf->header->e_ident[EI_CLASS] != ELFCLASS32)
+	if (elf->header->e_ident[EI_CLASS]!=ELFCLASS32)
 	{
 		ERROR("invalid ELF file, only 32bits files are supported");
 		return ERROR_IMAGE_FORMAT_ERROR;
@@ -373,28 +367,28 @@ int image_elf_read_headers(image_t *image)
 
 
 	elf->endianness = elf->header->e_ident[EI_DATA];
-	if ((elf->endianness != ELFDATA2LSB)
-		 &&(elf->endianness != ELFDATA2MSB))
+	if ((elf->endianness!=ELFDATA2LSB)
+		 &&(elf->endianness!=ELFDATA2MSB))
 	{
 		ERROR("invalid ELF file, unknown endianess setting");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 
-	elf->segment_count = field16(elf, elf->header->e_phnum);
-	if (elf->segment_count == 0)
+	elf->segment_count = field16(elf,elf->header->e_phnum);
+	if (elf->segment_count==0)
 	{
 		ERROR("invalid ELF file, no program headers");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 
-	elf->segments = malloc(elf->segment_count * sizeof(Elf32_Phdr));
+	elf->segments = malloc(elf->segment_count*sizeof(Elf32_Phdr));
 
-	if ((retval = fileio_read(&elf->fileio, elf->segment_count * sizeof(Elf32_Phdr), (u8*)elf->segments, &read_bytes)) != ERROR_OK)
+	if ((retval = fileio_read(&elf->fileio, elf->segment_count*sizeof(Elf32_Phdr), (u8*)elf->segments, &read_bytes)) != ERROR_OK)
 	{
 		ERROR("cannot read ELF segment headers, read failed");
 		return retval;
 	}
-	if (read_bytes != elf->segment_count * sizeof(Elf32_Phdr))
+	if (read_bytes != elf->segment_count*sizeof(Elf32_Phdr))
 	{
 		ERROR("cannot read ELF segment headers, only partially read");
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -402,25 +396,25 @@ int image_elf_read_headers(image_t *image)
 
 	/* count useful segments (loadable), ignore BSS section */
 	image->num_sections = 0;
-	for (i = 0; i < elf->segment_count; i++)
+	for (i=0;i<elf->segment_count;i++)
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 			image->num_sections++;
 	/* alloc and fill sections array with loadable segments */
 	image->sections = malloc(image->num_sections * sizeof(image_section_t));
-	for (i = 0, j = 0; i < elf->segment_count; i++)
+	for (i=0,j=0;i<elf->segment_count;i++)
 	{
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 		{
-			image->sections[j].size = field32(elf, elf->segments[i].p_filesz);
-			image->sections[j].base_address = field32(elf, elf->segments[i].p_paddr);
+			image->sections[j].size = field32(elf,elf->segments[i].p_filesz);
+			image->sections[j].base_address = field32(elf,elf->segments[i].p_paddr);
 			image->sections[j].private = &elf->segments[i];
-			image->sections[j].flags = field32(elf, elf->segments[i].p_flags);
+			image->sections[j].flags = field32(elf,elf->segments[i].p_flags);
 			j++;
 		}
 	}
-
+		
 	image->start_address_set = 1;
-	image->start_address = field32(elf, elf->header->e_entry);
+	image->start_address = field32(elf,elf->header->e_entry);
 
 	return ERROR_OK;
 }
@@ -429,22 +423,22 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 {
 	image_elf_t *elf = image->type_private;
 	Elf32_Phdr *segment = (Elf32_Phdr *)image->sections[section].private;
-	u32 read_size, really_read;
+	u32 read_size,really_read;
 	int retval;
 
 	*size_read = 0;
-
-	DEBUG("load segment %d at 0x%x (sz = 0x%x)", section, offset, size);
+	
+	DEBUG("load segment %d at 0x%x (sz=0x%x)",section,offset,size);
 
 	/* read initialized data in current segment if any */
-	if (offset < field32(elf, segment->p_filesz))
+	if (offset<field32(elf,segment->p_filesz))
 	{
 		/* maximal size present in file for the current segment */
-		read_size = MIN(size, field32(elf, segment->p_filesz) - offset);
-		DEBUG("read elf: size = 0x%x at 0x%x", read_size,
-			field32(elf, segment->p_offset) + offset);
+		read_size = MIN(size, field32(elf,segment->p_filesz)-offset);
+		DEBUG("read elf: size = 0x%x at 0x%x",read_size,
+			field32(elf,segment->p_offset)+offset);
 		/* read initialized area of the segment */
-		if ((retval = fileio_seek(&elf->fileio, field32(elf, segment->p_offset) + offset)) != ERROR_OK)
+		if ((retval = fileio_seek(&elf->fileio, field32(elf,segment->p_offset)+offset)) != ERROR_OK)
 		{
 			ERROR("cannot find ELF segment content, seek failed");
 			return retval;
@@ -462,7 +456,7 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 		if (!size)
 			return ERROR_OK;
 	}
-
+	
 	return ERROR_OK;
 }
 
@@ -474,11 +468,11 @@ int image_mot_buffer_complete(image_t *image)
 	u32 cooked_bytes;
 	int i;
 	char lpszLine[1023];
-
+	
 	/* we can't determine the number of sections that we'll have to create ahead of time,
 	 * so we locally hold them until parsing is finished */
 	image_section_t section[IMAGE_MAX_SECTIONS];
-
+	
 	mot->buffer = malloc(fileio->size >> 1);
 	cooked_bytes = 0x0;
 	image->num_sections = 0;
@@ -486,7 +480,7 @@ int image_mot_buffer_complete(image_t *image)
 	section[image->num_sections].base_address = 0x0;
 	section[image->num_sections].size = 0x0;
 	section[image->num_sections].flags = 0;
-
+	
 	while (fileio_fgets(fileio, 1023, lpszLine) == ERROR_OK)
 	{
 		u32 count;
@@ -495,24 +489,24 @@ int image_mot_buffer_complete(image_t *image)
 		u32 checksum;
 		u8 cal_checksum = 0;
 		u32 bytes_read = 0;
-
+		    	
 		/* get record type and record length */
 		if (sscanf(&lpszLine[bytes_read], "S%1x%2x", &record_type, &count) != 2)
 		{
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
-
+		
 		bytes_read += 4;
 		cal_checksum += (u8)count;
-
+		
 		/* skip checksum byte */
 		count -=1;
-
+		
 		if (record_type == 0)
 		{
 			/* S0 - starting record (optional) */
 			int iValue;
-
+			
 			while (count-- > 0) {
 				sscanf(&lpszLine[bytes_read], "%2x", &iValue);
 				cal_checksum += (u8)iValue;
@@ -531,7 +525,7 @@ int image_mot_buffer_complete(image_t *image)
 					bytes_read += 4;
 					count -=2;
 					break;
-
+			
 				case 2:
 					/* S2 - 24 bit address data record */
 					sscanf(&lpszLine[bytes_read], "%6x", &address);
@@ -541,7 +535,7 @@ int image_mot_buffer_complete(image_t *image)
 					bytes_read += 6;
 					count -=3;
 					break;
-
+					
 				case 3:
 					/* S3 - 32 bit address data record */
 					sscanf(&lpszLine[bytes_read], "%8x", &address);
@@ -552,8 +546,9 @@ int image_mot_buffer_complete(image_t *image)
 					bytes_read += 8;
 					count -=4;
 					break;
+			
 			}
-
+			
 			if (full_address != address)
 			{
 				/* we encountered a nonconsecutive location, create a new section,
@@ -570,7 +565,7 @@ int image_mot_buffer_complete(image_t *image)
 				section[image->num_sections].base_address = address;
 				full_address = address;
 			}
-
+			
 			while (count-- > 0)
 			{
 				sscanf(&lpszLine[bytes_read], "%2x", (u32*)&mot->buffer[cooked_bytes]);
@@ -585,7 +580,7 @@ int image_mot_buffer_complete(image_t *image)
 		{
 			/* S5 is the data count record, we ignore it */
 			u32 dummy;
-
+			
 			while (count-- > 0)
 			{
 				sscanf(&lpszLine[bytes_read], "%2x", &dummy);
@@ -597,7 +592,7 @@ int image_mot_buffer_complete(image_t *image)
 		{
 			/* S7, S8, S9 - ending records for 32, 24 and 16bit */
 			image->num_sections++;
-
+			
 			/* copy section information */
 			image->sections = malloc(sizeof(image_section_t) * image->num_sections);
 			for (i = 0; i < image->num_sections; i++)
@@ -607,7 +602,7 @@ int image_mot_buffer_complete(image_t *image)
 				image->sections[i].size = section[i].size;
 				image->sections[i].flags = section[i].flags;
 			}
-
+			
 			return ERROR_OK;
 		}
 		else
@@ -615,12 +610,12 @@ int image_mot_buffer_complete(image_t *image)
 			ERROR("unhandled S19 record type: %i", record_type);
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
-
+		
 		/* account for checksum, will always be 0xFF */
 		sscanf(&lpszLine[bytes_read], "%2x", &checksum);
 		cal_checksum += (u8)checksum;
 		bytes_read += 2;
-
+		
 		if( cal_checksum != 0xFF )
 		{
 			/* checksum failed */
@@ -628,7 +623,7 @@ int image_mot_buffer_complete(image_t *image)
 			return ERROR_IMAGE_CHECKSUM;
 		}
 	}
-
+	
 	ERROR("premature end of S19 file, no end-of-file record found");
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
@@ -636,25 +631,23 @@ int image_mot_buffer_complete(image_t *image)
 int image_open(image_t *image, char *url, char *type_string)
 {
 	int retval = ERROR_OK;
-
+	
 	if ((retval = identify_image_type(image, type_string, url)) != ERROR_OK)
 	{
 		return retval;
 	}
-
+	
 	if (image->type == IMAGE_BINARY)
 	{
 		image_binary_t *image_binary;
-
+		
 		image_binary = image->type_private = malloc(sizeof(image_binary_t));
-
+		
 		if ((retval = fileio_open(&image_binary->fileio, url, FILEIO_READ, FILEIO_BINARY)) != ERROR_OK)
 		{
-			strncpy(image->error_str, image_binary->fileio.error_str, IMAGE_MAX_ERROR_STRING);
-			ERROR(image->error_str);
 			return retval;
 		}
-
+		
 		image->num_sections = 1;
 		image->sections = malloc(sizeof(image_section_t));
 		image->sections[0].base_address = 0x0;
@@ -664,21 +657,17 @@ int image_open(image_t *image, char *url, char *type_string)
 	else if (image->type == IMAGE_IHEX)
 	{
 		image_ihex_t *image_ihex;
-
+		
 		image_ihex = image->type_private = malloc(sizeof(image_ihex_t));
-
+		
 		if ((retval = fileio_open(&image_ihex->fileio, url, FILEIO_READ, FILEIO_TEXT)) != ERROR_OK)
 		{
-			strncpy(image->error_str, image_ihex->fileio.error_str, IMAGE_MAX_ERROR_STRING);
-			ERROR(image->error_str);
 			return retval;
 		}
-
+		
 		if ((retval = image_ihex_buffer_complete(image)) != ERROR_OK)
 		{
-			snprintf(image->error_str, IMAGE_MAX_ERROR_STRING,
-				"failed buffering IHEX image, check daemon output for additional information");
-			ERROR(image->error_str);
+			ERROR("failed buffering IHEX image, check daemon output for additional information");
 			fileio_close(&image_ihex->fileio);
 			return retval;
 		}
@@ -686,21 +675,16 @@ int image_open(image_t *image, char *url, char *type_string)
 	else if (image->type == IMAGE_ELF)
 	{
 		image_elf_t *image_elf;
-
+		
 		image_elf = image->type_private = malloc(sizeof(image_elf_t));
-
+		
 		if ((retval = fileio_open(&image_elf->fileio, url, FILEIO_READ, FILEIO_BINARY)) != ERROR_OK)
 		{
-			strncpy(image->error_str, image_elf->fileio.error_str, IMAGE_MAX_ERROR_STRING);
-			ERROR(image->error_str);
 			return retval;
 		}
-
+		
 		if ((retval = image_elf_read_headers(image)) != ERROR_OK)
 		{
-			snprintf(image->error_str, IMAGE_MAX_ERROR_STRING,
-				"failed to read ELF headers, check daemon output for additional information");
-			ERROR(image->error_str);
 			fileio_close(&image_elf->fileio);
 			return retval;
 		}
@@ -708,15 +692,15 @@ int image_open(image_t *image, char *url, char *type_string)
 	else if (image->type == IMAGE_MEMORY)
 	{
 		image_memory_t *image_memory;
-
+		
 		image->num_sections = 1;
 		image->sections = malloc(sizeof(image_section_t));
 		image->sections[0].base_address = 0x0;
 		image->sections[0].size = 0xffffffff;
 		image->sections[0].flags = 0;
-
+		
 		image_memory = image->type_private = malloc(sizeof(image_memory_t));
-
+		
 		image_memory->target = get_target_by_num(strtoul(url, NULL, 0));;
 		image_memory->cache = NULL;
 		image_memory->cache_address = 0x0;
@@ -724,21 +708,17 @@ int image_open(image_t *image, char *url, char *type_string)
 	else if (image->type == IMAGE_SRECORD)
 	{
 		image_mot_t *image_mot;
-
+		
 		image_mot = image->type_private = malloc(sizeof(image_mot_t));
-
+		
 		if ((retval = fileio_open(&image_mot->fileio, url, FILEIO_READ, FILEIO_TEXT)) != ERROR_OK)
 		{
-			strncpy(image->error_str, image_mot->fileio.error_str, IMAGE_MAX_ERROR_STRING);
-			ERROR(image->error_str);
 			return retval;
 		}
-
+		
 		if ((retval = image_mot_buffer_complete(image)) != ERROR_OK)
 		{
-			snprintf(image->error_str, IMAGE_MAX_ERROR_STRING,
-				"failed buffering S19 image, check daemon output for additional information");
-			ERROR(image->error_str);
+			ERROR("failed buffering S19 image, check daemon output for additional information");
 			fileio_close(&image_mot->fileio);
 			return retval;
 		}
@@ -754,17 +734,17 @@ int image_open(image_t *image, char *url, char *type_string)
 	{
 		/* relocate */
 		int section;
-		for (section = 0; section < image->num_sections; section++)
+		for (section=0; section < image->num_sections; section++)
 		{
-			image->sections[section].base_address += image->base_address;
+			image->sections[section].base_address+=image->base_address;
 		}
 		/* we're done relocating. The two statements below are mainly
 		 * for documenation purposes: stop anyone from empirically
 		 * thinking they should use these values henceforth. */
-		image->base_address = 0;
-		image->base_address_set = 0;
+		image->base_address=0;
+		image->base_address_set=0;
 	}
-
+	
 	return retval;
 };
 
@@ -783,22 +763,20 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	if (image->type == IMAGE_BINARY)
 	{
 		image_binary_t *image_binary = image->type_private;
-
+		
 		/* only one section in a plain binary */
 		if (section != 0)
 			return ERROR_INVALID_ARGUMENTS;
-
+			
 		/* seek to offset */
 		if ((retval = fileio_seek(&image_binary->fileio, offset)) != ERROR_OK)
 		{
-			strncpy(image->error_str, image_binary->fileio.error_str, IMAGE_MAX_ERROR_STRING);
 			return retval;
 		}
-
+		
 		/* return requested bytes */
 		if ((retval = fileio_read(&image_binary->fileio, size, buffer, size_read)) != ERROR_OK)
 		{
-			strncpy(image->error_str, image_binary->fileio.error_str, IMAGE_MAX_ERROR_STRING);
 			return retval;
 		}
 	}
@@ -806,8 +784,7 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	{
 		memcpy(buffer, (u8*)image->sections[section].private + offset, size);
 		*size_read = size;
-		image->error_str[0] = '\0';
-
+		
 		return ERROR_OK;
 	}
 	else if (image->type == IMAGE_ELF)
@@ -818,20 +795,20 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	{
 		image_memory_t *image_memory = image->type_private;
 		u32 address = image->sections[section].base_address + offset;
-
+		
 		*size_read = 0;
-
+		
 		while ((size - *size_read) > 0)
 		{
 			u32 size_in_cache;
-
+			
 			if (!image_memory->cache
 				|| (address < image_memory->cache_address)
 				|| (address >= (image_memory->cache_address + IMAGE_MEMORY_CACHE_SIZE)))
 			{
 				if (!image_memory->cache)
 					image_memory->cache = malloc(IMAGE_MEMORY_CACHE_SIZE);
-
+				
 				if (target_read_buffer(image_memory->target, address & ~(IMAGE_MEMORY_CACHE_SIZE - 1),
 					IMAGE_MEMORY_CACHE_SIZE, image_memory->cache) != ERROR_OK)
 				{
@@ -841,14 +818,14 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 				}
 				image_memory->cache_address = address & ~(IMAGE_MEMORY_CACHE_SIZE - 1);
 			}
-
+			
 			size_in_cache = (image_memory->cache_address + IMAGE_MEMORY_CACHE_SIZE) - address;
-
+			
 			memcpy(buffer + *size_read,
 				image_memory->cache + (address - image_memory->cache_address),
 				(size_in_cache > size) ? size : size_in_cache
 				);
-
+				
 			*size_read += (size_in_cache > size) ? size : size_in_cache;
 			address += (size_in_cache > size) ? size : size_in_cache;
 		}
@@ -857,35 +834,33 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	{
 		memcpy(buffer, (u8*)image->sections[section].private + offset, size);
 		*size_read = size;
-		image->error_str[0] = '\0';
-
+		
 		return ERROR_OK;
 	}
 	else if (image->type == IMAGE_BUILDER)
 	{
 		memcpy(buffer, (u8*)image->sections[section].private + offset, size);
 		*size_read = size;
-		image->error_str[0] = '\0';
-
+		
 		return ERROR_OK;
 	}
-
+	
 	return ERROR_OK;
 }
 
 int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data)
 {
 	image_section_t *section;
-
+	
 	/* only image builder supports adding sections */
 	if (image->type != IMAGE_BUILDER)
 		return ERROR_INVALID_ARGUMENTS;
-
+	
 	/* see if there's a previous section */
 	if (image->num_sections)
 	{
 		section = &image->sections[image->num_sections - 1];
-
+		
 		/* see if it's enough to extend the last section,
 		 * adding data to previous sections or merging is not supported */
 		if (((section->base_address + section->size) == base) && (section->flags == flags))
@@ -896,7 +871,7 @@ int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data)
 			return ERROR_OK;
 		}
 	}
-
+		
 	/* allocate new section */
 	image->num_sections++;
 	image->sections = realloc(image->sections, sizeof(image_section_t) * image->num_sections);
@@ -906,7 +881,7 @@ int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data)
 	section->flags = flags;
 	section->private = malloc(sizeof(u8) * size);
 	memcpy((u8*)section->private, data, size);
-
+	
 	return ERROR_OK;
 }
 
@@ -915,15 +890,15 @@ int image_close(image_t *image)
 	if (image->type == IMAGE_BINARY)
 	{
 		image_binary_t *image_binary = image->type_private;
-
+		
 		fileio_close(&image_binary->fileio);
 	}
 	else if (image->type == IMAGE_IHEX)
 	{
 		image_ihex_t *image_ihex = image->type_private;
-
+		
 		fileio_close(&image_ihex->fileio);
-
+		
 		if (image_ihex->buffer)
 		{
 			free(image_ihex->buffer);
@@ -933,7 +908,7 @@ int image_close(image_t *image)
 	else if (image->type == IMAGE_ELF)
 	{
 		image_elf_t *image_elf = image->type_private;
-
+		
 		fileio_close(&image_elf->fileio);
 
 		if (image_elf->header)
@@ -951,7 +926,7 @@ int image_close(image_t *image)
 	else if (image->type == IMAGE_MEMORY)
 	{
 		image_memory_t *image_memory = image->type_private;
-
+		
 		if (image_memory->cache)
 		{
 			free(image_memory->cache);
@@ -961,9 +936,9 @@ int image_close(image_t *image)
 	else if (image->type == IMAGE_SRECORD)
 	{
 		image_mot_t *image_mot = image->type_private;
-
+		
 		fileio_close(&image_mot->fileio);
-
+		
 		if (image_mot->buffer)
 		{
 			free(image_mot->buffer);
@@ -973,7 +948,7 @@ int image_close(image_t *image)
 	else if (image->type == IMAGE_BUILDER)
 	{
 		int i;
-
+		
 		for (i = 0; i < image->num_sections; i++)
 		{
 			free(image->sections[i].private);
@@ -986,13 +961,13 @@ int image_close(image_t *image)
 		free(image->type_private);
 		image->type_private = NULL;
 	}
-
+	
 	if (image->sections)
 	{
 		free(image->sections);
 		image->sections = NULL;
 	}
-
+	
 	return ERROR_OK;
 }
 
@@ -1001,7 +976,7 @@ static u32 crc32_table[256] = {0, 0};
 int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum)
 {
 	u32 crc = 0xffffffff;
-
+	
 	if (!crc32_table[1])
 	{
 		/* Initialize the CRC table and the decoding table.  */
@@ -1015,16 +990,14 @@ int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum)
 			crc32_table[i] = c;
 		}
 	}
-
+	
 	while (nbytes--)
 	{
 		/* as per gdb */
 		crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ *buffer++) & 255];
 	}
-
+	
 	*checksum = crc;
 	return ERROR_OK;
 }
-
-
 

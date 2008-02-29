@@ -1271,7 +1271,6 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 		
 		if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 		{
-			command_print(cmd_ctx, "file open error: %s", fileio.error_str);
 			return ERROR_OK;
 		}
 	
@@ -1411,7 +1410,6 @@ int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			
 			if (fileio_open(&fileio, args[1], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "dump_image error: %s", fileio.error_str);
 				return ERROR_OK;
 			}
 	

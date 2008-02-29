@@ -64,7 +64,6 @@ typedef struct image_s
 	int base_address;		/* base address, if one is set */
 	int start_address_set;	/* whether the image has a start address (entry point) associated */
 	u32 start_address;		/* start address, if one is set */
-	char error_str[IMAGE_MAX_ERROR_STRING];
 } image_t;
 
 typedef struct image_binary_s

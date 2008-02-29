@@ -327,7 +327,7 @@ int xscale_read_dcsr(target_t *target)
 
 int xscale_receive(target_t *target, u32 *buffer, int num_words)
 {
-	int retval = ERROR_OK;
+	int retval=ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 
@@ -380,7 +380,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	jtag_add_runtest(1, -1);
 
 	/* repeat until all words have been collected */
-	int attempts = 0;
+	int attempts=0;
 	while (words_done < num_words)
 	{
 		/* schedule reads */
@@ -417,12 +417,12 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 				words_scheduled--;
 			}
 		}
-		if (words_scheduled == 0)
+		if (words_scheduled==0)
 		{
-			if (attempts++ == 1000)
+			if (attempts++==1000)
 			{
 				ERROR("Failed to receiving data from debug handler after 1000 attempts");
-				retval = ERROR_JTAG_QUEUE_FAILED;
+				retval=ERROR_JTAG_QUEUE_FAILED;
 				break;
 			}
 		}
@@ -472,7 +472,7 @@ int xscale_read_tx(target_t *target, int consume)
 	noconsume_path[6] = TAP_SDS;
 	noconsume_path[7] = TAP_CD;
 	noconsume_path[8] = TAP_SD;
-
+	
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
 	fields[0].out_value = NULL;
@@ -673,7 +673,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	{
 		jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 	}
-
+	
 	if (size==4)
 	{
 		int endianness = target->endianness;
@@ -700,26 +700,26 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	{
 		while (done_count++ < count)
 		{
-		/* extract sized element from target-endian buffer, and put it
-		 * into little-endian output buffer
-		 */
-		switch (size)
-		{
-			case 2:
-				buf_set_u32(output, 0, 32, target_buffer_get_u16(target, buffer));
-				break;
-			case 1:
-				output[0] = *buffer;
-				break;
-			default:
-				ERROR("BUG: size neither 4, 2 nor 1");
-				exit(-1);
+			/* extract sized element from target-endian buffer, and put it
+			 * into little-endian output buffer
+			 */
+			switch (size)
+			{
+				case 2:
+					buf_set_u32(output, 0, 32, target_buffer_get_u16(target, buffer));
+					break;
+				case 1:
+					output[0] = *buffer;
+					break;
+				default:
+					ERROR("BUG: size neither 4, 2 nor 1");
+					exit(-1);
+			}
+
+			jtag_add_dr_scan(3, fields, TAP_RTI);
+			buffer += size;
 		}
-
-		jtag_add_dr_scan(3, fields, TAP_RTI);
-		buffer += size;
-	}
-
+		
 	}
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -1048,10 +1048,10 @@ int xscale_poll(target_t *target)
 			/* here we "lie" so GDB won't get stuck and a reset can be perfomed */
 			target->state = TARGET_HALTED;
 		}
-
-			/* debug_entry could have overwritten target state (i.e. immediate resume)
-			 * don't signal event handlers in that case
-			 */
+		
+		/* debug_entry could have overwritten target state (i.e. immediate resume)
+		 * don't signal event handlers in that case
+		 */
 		if (target->state != TARGET_HALTED)
 			return ERROR_OK;
 
@@ -1062,6 +1062,7 @@ int xscale_poll(target_t *target)
 		else
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 	}
+
 	return retval;
 }
 
@@ -1657,9 +1658,8 @@ int xscale_deassert_reset(target_t *target)
 		xscale_write_dcsr(target, 1, 0);
 
 		/* Load debug handler */
-		if (fileio_open(&debug_handler, PKGLIBDIR "/xscale/debug_handler.bin", FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
+		if (fileio_open(&debug_handler, "xscale/debug_handler.bin", FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 		{
-			ERROR("file open error: %s", debug_handler.error_str);
 			return ERROR_OK;
 		}
 
@@ -1685,7 +1685,7 @@ int xscale_deassert_reset(target_t *target)
 
 			if ((retval = fileio_read(&debug_handler, 32, buffer, &buf_cnt)) != ERROR_OK)
 			{
-				ERROR("reading debug handler failed: %s", debug_handler.error_str);
+				
 			}
 
 			for (i = 0; i < buf_cnt; i += 4)
@@ -2323,7 +2323,7 @@ int xscale_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	u8 enable = 0;
+	u8 enable=0;
 	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	u32 dbcon_value = buf_get_u32(dbcon->value, 0, 32);
 
@@ -3129,7 +3129,7 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	xscale->armv4_5_mmu.enable_mmu_caches = xscale_enable_mmu_caches;
 	xscale->armv4_5_mmu.has_tiny_pages = 1;
 	xscale->armv4_5_mmu.mmu_enabled = 0;
-
+	
 	xscale->fast_memory_access = 0;
 
 	return ERROR_OK;
@@ -3261,6 +3261,7 @@ static int xscale_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
 	int domain;
 	u32 ap;
 	
+	
 	if ((retval = xscale_get_arch_pointers(target, &armv4_5, &xscale)) != ERROR_OK)
 	{
 		return retval;
@@ -3270,7 +3271,6 @@ static int xscale_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
 	{
 		return ret;
 	}
-	
 	*physical = ret;
 	return ERROR_OK;
 }
@@ -3279,16 +3279,16 @@ static int xscale_mmu(struct target_s *target, int *enabled)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-
+	
 	if (target->state != TARGET_HALTED)
 	{
 		ERROR("Target not halted");
 		return ERROR_TARGET_INVALID;
 	}
-	
 	*enabled = xscale->armv4_5_mmu.mmu_enabled;
 	return ERROR_OK;
 }
+
 
 int xscale_handle_mmu_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -3558,7 +3558,6 @@ int xscale_handle_trace_image_command(struct command_context_s *cmd_ctx, char *c
 
 	if (image_open(xscale->trace.image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "image opening error: %s", xscale->trace.image->error_str);
 		free(xscale->trace.image);
 		xscale->trace.image = NULL;
 		return ERROR_OK;
@@ -3602,7 +3601,6 @@ int xscale_handle_dump_trace_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (fileio_open(&file, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "file open error: %s", file.error_str);
 		return ERROR_OK;
 	}
 
@@ -3792,6 +3790,7 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, xscale_cmd, "cp15", xscale_handle_cp15, COMMAND_EXEC, "access coproc 15 <register> [value]");
 	register_command(cmd_ctx, xscale_cmd, "fast_memory_access", handle_xscale_fast_memory_access_command,
 		 COMMAND_ANY, "use fast memory accesses instead of slower but potentially unsafe slow accesses <enable|disable>");
+
 	
 	armv4_5_register_commands(cmd_ctx);
 
