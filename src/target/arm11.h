@@ -26,10 +26,6 @@
 #include "arm_jtag.h"
 
 
-#define bool	int
-#define true	1
-#define false	0
-
 #define asizeof(x)	(sizeof(x) / sizeof((x)[0]))
 
 #define NEW(type, variable, items) \
@@ -259,7 +255,7 @@ int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state st
  */
 typedef struct arm11_sc7_action_s
 {
-    bool    write;				/**< Access mode: true for write, false for read.	*/
+    int    write;				/**< Access mode: true for write, false for read.	*/
     u8	    address;				/**< Register address mode. Use enum #arm11_sc7		*/
     u32	    value;				/**< If write then set this to value to be written.
 						     In read mode this receives the read value when the

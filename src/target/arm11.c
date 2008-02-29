@@ -48,8 +48,8 @@
 static void arm11_on_enter_debug_state(arm11_common_t * arm11);
 
 
-bool	arm11_config_memwrite_burst		= true;
-bool	arm11_config_memwrite_error_fatal	= true;
+int	arm11_config_memwrite_burst		= 1;
+int	arm11_config_memwrite_error_fatal	= 1;
 u32	arm11_vcr				= 0;
 
 
@@ -727,7 +727,7 @@ int arm11_halt(struct target_s *target)
 
     if (arm11->trst_active)
     {
-	arm11->halt_requested = true;
+	arm11->halt_requested = 1;
 	return ERROR_OK;
     }
 
@@ -971,7 +971,7 @@ int arm11_assert_reset(struct target_s *target)
     jtag_add_sleep(5000);
 
     arm11_common_t * arm11 = target->arch_info;
-    arm11->trst_active = true;
+    arm11->trst_active = 1;
 #endif
 
     return ERROR_OK;
@@ -1517,7 +1517,7 @@ void arm11_build_reg_cache(target_t *target)
 
 
 
-int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, bool * var, char * name)
+int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, int * var, char * name)
 {
     if (argc == 0)
     {
@@ -1535,7 +1535,7 @@ int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args,
     case 'F':
     case 'd':	/* disable */
     case 'D':
-	*var = false;
+	*var = 0;
 	break;
 
     case '1':	/* 1 */
@@ -1543,7 +1543,7 @@ int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args,
     case 'T':
     case 'e':	/* enable */
     case 'E':
-	*var = true;
+	*var = 1;
 	break;
     }
 

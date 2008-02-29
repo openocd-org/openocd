@@ -728,7 +728,7 @@ void arm11_sc7_clear_vbw(arm11_common_t * arm11)
     {size_t i;
     for (i = 0; i < asizeof(clear_bw); i++)
     {
-	clear_bw[i].write	= true;
+	clear_bw[i].write	= 1;
 	clear_bw[i].value	= 0;
     }}
 
