@@ -48,17 +48,15 @@ static char *log_strings[5] =
 
 static int count = 0;
 
-static void log_printfv(enum log_levels level, const char *file, int line, const char *function, const char *format, va_list args)
-{
-	char buffer[512];
-	log_callback_t *cb;
 
-	vsnprintf(buffer, 512, format, args);
+static void log_puts(enum log_levels level, const char *file, int line, const char *function, const char *string)
+{
+	log_callback_t *cb;
 
 	if (level == LOG_OUTPUT)
 	{
 		/* do not prepend any headers, just print out what we were given and return */
-		fputs(buffer, log_output);
+		fputs(string, log_output);
 		fflush(log_output);
 		return;
 	}
@@ -71,12 +69,12 @@ static void log_printfv(enum log_levels level, const char *file, int line, const
 	{
 		/* print with count and time information */
 		int t=(int)(time(NULL)-start);
-		fprintf(log_output, "%s %d %d %s:%d %s(): %s", log_strings[level+1], count, t, file, line, function, buffer);
+		fprintf(log_output, "%s %d %d %s:%d %s(): %s", log_strings[level+1], count, t, file, line, function, string);
 	}
 	else
 	{
 		/* do not print count and time */
-		fprintf(log_output, "%s %s:%d %s(): %s", log_strings[level+1], file, line, function, buffer);
+		fprintf(log_output, "%s %s:%d %s(): %s", log_strings[level+1], file, line, function, string);
 	}
 
 	fflush(log_output);
@@ -84,42 +82,55 @@ static void log_printfv(enum log_levels level, const char *file, int line, const
 	/* Never forward LOG_DEBUG, too verbose and they can be found in the log if need be */
 	if (level <= LOG_INFO)
 	{
+		log_callback_t *cb;
 		for (cb = log_callbacks; cb; cb = cb->next)
 		{
-			cb->fn(cb->priv, file, line, function, format, args);
+			cb->fn(cb->priv, file, line, function, string);
 		}
 	}
 }
 
 void log_printf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
 {
+	char *string;
+
 	count++;
 	if (level > debug_level)
 		return;
 
-	va_list args;
-	va_start(args, format);
-	log_printfv(level, file, line, function, format, args);
-	va_end(args);
-	
+	va_list ap;
+	va_start(ap, format);
+
+	string = alloc_printf(format, ap);
+	if (string != NULL)
+	{
+		log_puts(level, file, line, function, string);
+		free(string);
+	}
+
+	va_end(ap);
 }
 
-void log_printfnl(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
+void log_printf_lf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
 {
+	char *string;
+
 	count++;
 	if (level > debug_level)
 		return;
-	
-	char *t=malloc(strlen(format)+2);
-	strcpy(t, format);
-	strcat(t, "\n");
-	
-	va_list args;
-	va_start(args, format);
-	log_printfv(level, file, line, function, t, args);
-	va_end(args);
-	
-	free(t);
+
+	va_list ap;
+	va_start(ap, format);
+
+	string = alloc_printf(format, ap);
+	if (string != NULL)
+	{
+		strcat(string, "\n"); /* alloc_printf guaranteed the buffer to be at least one char longer */
+		log_puts(level, file, line, function, string);
+		free(string);
+	}
+
+	va_end(ap);
 }
 
 /* change the current debug level on the fly
@@ -237,35 +248,34 @@ int log_remove_callback(log_callback_fn fn, void *priv)
 /* return allocated string w/printf() result */
 char *alloc_printf(const char *fmt, va_list ap)
 {
+	/* no buffer at the beginning, force realloc to do the job */
 	char *string = NULL;
 	
-	/* start by 0 to exercise all the code paths. Need minimum 2 bytes to
-	 * fit 1 char and 0 terminator. */
-	int size = 0;
-	int first = 1;
+	/* start with minimal length to exercise all the code paths */
+	int size = 1;
+
 	for (;;)
 	{
-		if ((string == NULL) || (!first))
+		size *= 2; /* double the buffer size */
+
+		char *t = string;
+		string = realloc(string, size);
+		if (string == NULL)
 		{
-			size = size * 2 + 2;
-			char *t = string;
-			string = realloc(string, size);
-			if (string == NULL)
-			{
-				if (t != NULL)
-					free(t);
-				return NULL;
-			}
+			if (t != NULL)
+				free(t);
+			return NULL;
 		}
-	
+
 	    int ret;
-	    ret = vsnprintf(string, size, fmt, ap);
+		ret = vsnprintf(string, size, fmt, ap);
 	    /* NB! The result of the vsnprintf() might be an *EMPTY* string! */
 	    if ((ret >= 0) && ((ret + 1) < size))
-	    {
-	    	return string;
-	    }
-	    /* there was just enough or not enough space, allocate more. */
-	    first = 0;
+			break;
+
+	    /* there was just enough or not enough space, allocate more in the next round */
 	}
+	
+	/* the returned buffer is by principle guaranteed to be at least one character longer */
+	return string;
 }

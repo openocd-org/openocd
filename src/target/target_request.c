@@ -55,7 +55,7 @@ int target_asciimsg(target_t *target, u32 length)
 
 int target_charmsg(target_t *target, u8 msg)
 {
-	USER_SAMELINE("%c", msg);
+	USER_N("%c", msg);
 	
 	return ERROR_OK;
 }

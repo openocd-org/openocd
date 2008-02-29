@@ -54,7 +54,7 @@ static char *negotiate =
  * we write to it, we will fail. Subsequent write operations will
  * succeed. Shudder!
  */
-int telnet_write(connection_t *connection, void *data, int len)
+int telnet_write(connection_t *connection, const void *data, int len)
 {
 	telnet_connection_t *t_con = connection->priv;
 	if (t_con->closed)
@@ -75,26 +75,30 @@ int telnet_prompt(connection_t *connection)
 	return telnet_write(connection, t_con->prompt, strlen(t_con->prompt));
 }
 
-int telnet_outputline(connection_t *connection, char* line)
+int telnet_outputline(connection_t *connection, const char *line)
 {
+	int len;
 	
 	/* process lines in buffer */
-	char *p=line;
-	do {
-		char *next = strchr(p, '\n');
+	while (*line) {
+		char *line_end = strchr(line, '\n');
 		
-		if (next)
-			*next++ = 0;
+		if (line_end)
+			len = line_end-line;
+		else
+		    len = strlen(line);
 
-		
-		telnet_write(connection, p, strlen(p));
-		if (next)
+		telnet_write(connection, line, len);
+		if (line_end)
 		{
 			telnet_write(connection, "\r\n\0", 3);
+			line += len+1;
 		}
-
-		p = next;
-	} while (p);
+		else
+		{
+		    line += len;
+		}
+	}
 	
 	return ERROR_OK;
 }
@@ -107,15 +111,10 @@ int telnet_output(struct command_context_s *cmd_ctx, char* line)
 }
 
 void telnet_log_callback(void *priv, const char *file, int line, 
-		const char *function, const char *format, va_list args)
+		const char *function, const char *string)
 {
 	connection_t *connection = priv;
-	char *t = alloc_printf(format, args);
-	if (t == NULL)
-		return;
-	telnet_outputline(connection, t);
-	
-	free(t);
+	telnet_outputline(connection, string);
 }
 
 int telnet_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)

@@ -260,66 +260,39 @@ int parse_line(char *line, char *words[], int max_words)
 	return nwords;
 }
 
-static void command_printv(command_context_t *context, char *format, va_list ap)
+void command_print_n(command_context_t *context, char *format, ...)
 {
-	char *buffer = NULL;
-	int n, size = 0;
-	char *p;
-
-	/* process format string */
-	for (;;)
-	{
-		if (!buffer || (n = vsnprintf(buffer, size, format, ap)) >= size)
-		{
-			/* increase buffer until it fits the whole string */
-			if (!(p = realloc(buffer, size += 4096)))
-			{
-				/* gotta free up */
-				if (buffer)
-					free(buffer);
-				return;
-			}
+	char *string;
 	
-			buffer = p;
-			
-			continue;
-		}
-		break;
-	}
-	
-	/* vsnprintf failed */
-	if (n < 0)
-	{
-		if (buffer)
-			free(buffer);
-		return;
-	}
-
-	context->output_handler(context, buffer);
-	
-	if (buffer)
-		free(buffer);
-}
-
-void command_print_sameline(command_context_t *context, char *format, ...)
-{
 	va_list ap;
 	va_start(ap, format);
-	command_printv(context, format, ap); 
+
+	string = alloc_printf(format, ap);
+	if (string != NULL)
+	{
+		context->output_handler(context, string);
+		free(string);
+	}
+
 	va_end(ap);
 }
 
 void command_print(command_context_t *context, char *format, ...)
 {
-	char *t=malloc(strlen(format)+2);
-	strcpy(t, format);
-	strcat(t, "\n");
+	char *string;
+
 	va_list ap;
 	va_start(ap, format);
-	command_printv(context, t, ap); 
+
+	string = alloc_printf(format, ap);
+	if (string != NULL)
+	{
+		strcat(string, "\n"); /* alloc_printf guaranteed the buffer to be at least one char longer */
+		context->output_handler(context, string);
+		free(string);
+	}
+
 	va_end(ap);
-	free(t);
-	
 }
 
 int find_and_run_command(command_context_t *context, command_t *commands, char *words[], int num_words, int start_word)

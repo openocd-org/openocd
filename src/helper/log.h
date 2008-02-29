@@ -47,7 +47,7 @@ enum log_levels
 extern void log_printf(enum log_levels level, const char *file, int line, 
 	const char *function, const char *format, ...) 
 __attribute__ ((format (printf, 5, 6)));
-extern void log_printfnl(enum log_levels level, const char *file, int line, 
+extern void log_printf_lf(enum log_levels level, const char *file, int line,
 	const char *function, const char *format, ...) 
 __attribute__ ((format (printf, 5, 6)));
 extern int log_register_commands(struct command_context_s *cmd_ctx);
@@ -55,13 +55,13 @@ extern int log_init(struct command_context_s *cmd_ctx);
 extern int set_log_output(struct command_context_s *cmd_ctx, FILE *output);
 
 typedef void (*log_callback_fn)(void *priv, const char *file, int line,
-		const char *function, const char *format, va_list args);
+		const char *function, const char *string);
 
 typedef struct log_callback_s
 {
-    log_callback_fn fn;
+	log_callback_fn fn;
 	void *priv;
-    struct log_callback_s *next;
+	struct log_callback_s *next;
 } log_callback_t;
 
 extern int log_add_callback(log_callback_fn fn, void *priv);
@@ -76,44 +76,28 @@ extern int debug_level;
 
 
 #define DEBUG(expr ...) \
-	do { if (debug_level >= LOG_DEBUG) \
-		log_printfnl (LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr); \
-	} while(0)
+		log_printf_lf (LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr)
 
 #define INFO(expr ...) \
-	do { if (debug_level >= LOG_INFO) \
-		log_printfnl (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr); \
-	} while(0)
+		log_printf_lf (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define INFO_SAMELINE(expr ...) \
-	do { if (debug_level >= LOG_INFO) \
-		log_printf (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr); \
-	} while(0)
+#define INFO_N(expr ...) \
+		log_printf (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr)
 
 #define WARNING(expr ...) \
-	do { \
-		log_printfnl (LOG_WARNING, __FILE__, __LINE__, __FUNCTION__, expr); \
-	} while(0)
+		log_printf_lf (LOG_WARNING, __FILE__, __LINE__, __FUNCTION__, expr)
 
 #define ERROR(expr ...) \
-	do { \
-		log_printfnl (LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, expr); \
-	} while(0)
+		log_printf_lf (LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, expr)
 
 #define USER(expr ...) \
-	do { \
-		log_printfnl (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr); \
-	} while(0)
+		log_printf_lf (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define USER_SAMELINE(expr ...) \
-	do { \
-		log_printf (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr); \
-	} while(0)
+#define USER_N(expr ...) \
+		log_printf (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr)
 
 #define OUTPUT(expr ...) \
-	do { \
-		log_printf (LOG_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr); \
-	} while(0)
+		log_printf (LOG_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr)
 
 
 /* general failures

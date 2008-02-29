@@ -47,7 +47,7 @@ static unsigned short gdb_port;
 static const char *DIGITS = "0123456789abcdef";
 
 static void gdb_log_callback(void *priv, const char *file, int line,
-		const char *function, const char *format, va_list args);
+		const char *function, const char *string);
 
 enum gdb_detach_mode
 {
@@ -504,7 +504,7 @@ int gdb_get_packet(connection_t *connection, char *buffer, int *len)
 	return retval;
 }
 
-int gdb_output_con(connection_t *connection, char* line)
+int gdb_output_con(connection_t *connection, const char* line)
 {
 	char *hex_buffer;
 	int i, bin_size;
@@ -512,6 +512,8 @@ int gdb_output_con(connection_t *connection, char* line)
 	bin_size = strlen(line);
 
 	hex_buffer = malloc(bin_size*2 + 2);
+	if (hex_buffer == NULL)
+		return ERROR_GDB_BUFFER_TOO_SMALL;
 
 	hex_buffer[0] = 'O';
 	for (i=0; i<bin_size; i++)
@@ -527,7 +529,7 @@ int gdb_output_con(connection_t *connection, char* line)
 int gdb_output(struct command_context_s *context, char* line)
 {
 	/* this will be dumped to the log and also sent as an O packet if possible */
-	USER_SAMELINE(line);
+	USER_N(line);
 	return ERROR_OK;
 }
 
@@ -1796,7 +1798,7 @@ int gdb_detach(connection_t *connection, target_t *target)
 }
 
 static void gdb_log_callback(void *priv, const char *file, int line,
-		const char *function, const char *format, va_list args)
+		const char *function, const char *string)
 {
 	connection_t *connection = priv;
 	gdb_connection_t *gdb_con = connection->priv;
@@ -1807,13 +1809,7 @@ static void gdb_log_callback(void *priv, const char *file, int line,
 		return;
 	}
 
-	char *t = alloc_printf(format, args);
-	if (t == NULL)
-		return;
-
-	gdb_output_con(connection, t);
-
-	free(t);
+	gdb_output_con(connection, string);
 }
 
 int gdb_input_inner(connection_t *connection)
