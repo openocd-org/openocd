@@ -471,24 +471,27 @@ int command_run_file(command_context_t *context, FILE *file, enum command_mode m
 void command_print_help_line(command_context_t* context, struct command_s *command, int indent)
 {
 	command_t *c;
-	char indents[32] = {0};
+	char indent_text[indent + 2];
 	char *help = "no help available";
 	char name_buf[64];
 	int i;
 	
-	for (i = 0; i < indent; i+=2)
+	if (indent)
 	{
-		indents[i*2] = ' ';
-		indents[i*2+1] = '-';
+	    indent_text[0] = ' ';
+	    memset(indent_text + 1, '-', indent);
+	    indent_text[indent + 1] = 0;
 	}
-	indents[i*2] = 0;
 	
 	if (command->help)
 		help = command->help;
 		
 	snprintf(name_buf, 64, command->name);
-	strncat(name_buf, indents, 64);
-	command_print(context, "%20s\t%s", name_buf, help);
+
+	if (indent)
+	    strncat(name_buf, indent_text, 64);
+
+	command_print(context, "%20s\t%s", name_buf, help, indent);
 	
 	if (command->children)
 	{
@@ -499,26 +502,39 @@ void command_print_help_line(command_context_t* context, struct command_s *comma
 	}
 }
 
-int command_print_help(command_context_t* context, char* name, char** args, int argc)
+int command_print_help_match(command_context_t* context, command_t* c_first, char* name, char** args, int argc)
 {
-	command_t *c;
+	command_t * c;
+	int i;
 
-	for (c = context->commands; c; c = c->next)
+	for (c = c_first; c; c = c->next)
 	{
-		if (argc == 1)
+		if (argc > 0)
 		{
-			 if (strncasecmp(c->name, args[0], c->unique_len))
-				 continue;
+			if (strncasecmp(c->name, args[0], c->unique_len))
+				continue;
 
-			 if (strncasecmp(c->name, args[0], strlen(args[0])))
-				 continue;
-		} 
+			if (strncasecmp(c->name, args[0], strlen(args[0])))
+				continue;
+
+			if (argc > 1)
+			{
+				command_print_help_match(context, c->children, name, args + 1, argc - 1);
+				continue;
+			}
+		}
 
 		command_print_help_line(context, c, 0);
 	}
 	
 	return ERROR_OK;
 }
+
+int command_print_help(command_context_t* context, char* name, char** args, int argc)
+{
+    return command_print_help_match(context, context->commands, name, args, argc);
+}
+
 
 void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, char* line), void *priv)
 {
