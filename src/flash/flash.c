@@ -106,7 +106,7 @@ static int flash_driver_erase(struct flash_bank_s *bank, int first, int last)
 	retval=bank->driver->erase(bank, first, last);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("failed erasing banks %d to %d", first, last);
+		ERROR("failed erasing sectors %d to %d", first, last);
 	}
 
 	return retval;
@@ -119,7 +119,7 @@ int flash_driver_protect(struct flash_bank_s *bank, int set, int first, int last
 	retval=bank->driver->protect(bank, set, first, last);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("failed protecting banks %d to %d", first, last);
+		ERROR("failed setting protection for areas %d to %d", first, last);
 	}
 
 	return retval;
