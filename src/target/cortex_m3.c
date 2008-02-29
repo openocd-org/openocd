@@ -1372,8 +1372,12 @@ int cortex_m3_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
 	
 	/* write ack back to software dcc register
 	 * signify we have read data */
-	dcrdr = 0;
-	ahbap_write_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
+	if (dcrdr & (1 << 0))
+	{
+		dcrdr = 0;
+		ahbap_write_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
+	}
+	
 	return ERROR_OK;
 }
 
@@ -1413,10 +1417,11 @@ int cortex_m3_handle_target_request(void *priv)
 		cortex_m3_dcc_read(swjdp, &data, &ctrl);
 		
 		/* check if we have data */
-		if (ctrl & (1<<0))
+		if (ctrl & (1 << 0))
 		{
 			u32 request;
 			
+			/* we assume target is quick enough */
 			request = data;
 			cortex_m3_dcc_read(swjdp, &data, &ctrl);
 			request |= (data << 8);
