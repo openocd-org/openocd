@@ -291,8 +291,6 @@ int xscale_read_dcsr(target_t *target)
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-
-
 	fields[2].device = xscale->jtag_info.chain_pos;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
@@ -322,11 +320,16 @@ int xscale_read_dcsr(target_t *target)
 
 	jtag_add_dr_scan(3, fields, -1);
 
-	return ERROR_OK;
+	/* DANGER!!! this must be here. It will make sure that the arguments
+	 * to jtag_set_check_value() does not go out of scope! */
+	return jtag_execute_queue();
 }
 
 int xscale_receive(target_t *target, u32 *buffer, int num_words)
 {
+	if (num_words==0)
+		return ERROR_INVALID_ARGUMENTS;
+	
 	int retval=ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
