@@ -48,7 +48,16 @@ static char *log_strings[5] =
 
 static int count = 0;
 
-
+/* The log_printfv() serves to somewhat different goals:
+ * 
+ * - logging
+ * - feeding low-level info to the user in GDB or Telnet
+ * 
+ * The latter dictates that strings without newline are not logged, lest there
+ * will be *MANY log lines when sending one char at the time(e.g. 
+ * target_request.c).
+ * 
+ */
 static void log_puts(enum log_levels level, const char *file, int line, const char *function, const char *string)
 {
 	log_callback_t *cb;
@@ -65,16 +74,23 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 	if (f != NULL)
 		file = f + 1;
 
-	if (debug_level >= LOG_DEBUG)
+	if (strchr(buffer, '\n')!=NULL)
 	{
-		/* print with count and time information */
-		int t=(int)(time(NULL)-start);
+		if (debug_level >= LOG_DEBUG)
+		{
+			/* print with count and time information */
+			int t=(int)(time(NULL)-start);
 		fprintf(log_output, "%s %d %d %s:%d %s(): %s", log_strings[level+1], count, t, file, line, function, string);
-	}
-	else
+		}
+		else
+		{
+			/* do not print count and time */
+			fprintf(log_output, "%s %s:%d %s(): %s", log_strings[level+1], file, line, function, string);
+		}
+	} else
 	{
-		/* do not print count and time */
-		fprintf(log_output, "%s %s:%d %s(): %s", log_strings[level+1], file, line, function, string);
+		/* only entire lines are logged. Otherwise it's 
+		 * single chars intended for the log callbacks. */
 	}
 
 	fflush(log_output);
@@ -107,7 +123,7 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 		log_puts(level, file, line, function, string);
 		free(string);
 	}
-
+	
 	va_end(ap);
 }
 
@@ -118,10 +134,10 @@ void log_printf_lf(enum log_levels level, const char *file, int line, const char
 	count++;
 	if (level > debug_level)
 		return;
-
+	
 	va_list ap;
 	va_start(ap, format);
-
+	
 	string = alloc_printf(format, ap);
 	if (string != NULL)
 	{
@@ -129,7 +145,7 @@ void log_printf_lf(enum log_levels level, const char *file, int line, const char
 		log_puts(level, file, line, function, string);
 		free(string);
 	}
-
+	
 	va_end(ap);
 }
 
@@ -258,17 +274,17 @@ char *alloc_printf(const char *fmt, va_list ap)
 	{
 		size *= 2; /* double the buffer size */
 
-		char *t = string;
-		string = realloc(string, size);
-		if (string == NULL)
-		{
-			if (t != NULL)
-				free(t);
-			return NULL;
-		}
-
+			char *t = string;
+			string = realloc(string, size);
+			if (string == NULL)
+			{
+				if (t != NULL)
+					free(t);
+				return NULL;
+			}
+	
 	    int ret;
-		ret = vsnprintf(string, size, fmt, ap);
+	    ret = vsnprintf(string, size, fmt, ap);
 	    /* NB! The result of the vsnprintf() might be an *EMPTY* string! */
 	    if ((ret >= 0) && ((ret + 1) < size))
 			break;
@@ -277,5 +293,5 @@ char *alloc_printf(const char *fmt, va_list ap)
 	}
 	
 	/* the returned buffer is by principle guaranteed to be at least one character longer */
-	return string;
+	    	return string;
 }
