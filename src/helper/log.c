@@ -48,7 +48,7 @@ static char *log_strings[5] =
 
 static int count = 0;
 
-/* The log_printfv() serves to somewhat different goals:
+/* The log_puts() serves to somewhat different goals:
  * 
  * - logging
  * - feeding low-level info to the user in GDB or Telnet
@@ -80,7 +80,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		{
 			/* print with count and time information */
 			int t=(int)(time(NULL)-start);
-		fprintf(log_output, "%s %d %d %s:%d %s(): %s", log_strings[level+1], count, t, file, line, function, string);
+			fprintf(log_output, "%s %d %d %s:%d %s(): %s", log_strings[level+1], count, t, file, line, function, string);
 		}
 		else
 		{
@@ -249,9 +249,9 @@ int log_remove_callback(log_callback_fn fn, void *priv)
 
 	for (p = &log_callbacks; (cb = *p); p = &(*p)->next)
 	{
-	    if (cb->fn == fn && cb->priv == priv)
-	    {
-	        *p = cb->next;
+		if (cb->fn == fn && cb->priv == priv)
+		{
+			*p = cb->next;
 			free(cb);
 			return ERROR_OK;
 		}
@@ -283,15 +283,15 @@ char *alloc_printf(const char *fmt, va_list ap)
 				return NULL;
 			}
 	
-	    int ret;
-	    ret = vsnprintf(string, size, fmt, ap);
-	    /* NB! The result of the vsnprintf() might be an *EMPTY* string! */
-	    if ((ret >= 0) && ((ret + 1) < size))
+		int ret;
+		ret = vsnprintf(string, size, fmt, ap);
+		/* NB! The result of the vsnprintf() might be an *EMPTY* string! */
+		if ((ret >= 0) && ((ret + 1) < size))
 			break;
 
-	    /* there was just enough or not enough space, allocate more in the next round */
+		/* there was just enough or not enough space, allocate more in the next round */
 	}
 	
 	/* the returned buffer is by principle guaranteed to be at least one character longer */
-	    	return string;
+	return string;
 }

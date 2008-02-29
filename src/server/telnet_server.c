@@ -86,7 +86,7 @@ int telnet_outputline(connection_t *connection, const char *line)
 		if (line_end)
 			len = line_end-line;
 		else
-		    len = strlen(line);
+			len = strlen(line);
 
 		telnet_write(connection, line, len);
 		if (line_end)
@@ -96,7 +96,7 @@ int telnet_outputline(connection_t *connection, const char *line)
 		}
 		else
 		{
-		    line += len;
+			line += len;
 		}
 	}
 	
@@ -193,7 +193,7 @@ void telnet_clear_line(connection_t *connection, telnet_connection_t *t_con)
 	{
 		telnet_write(connection, t_con->line + t_con->line_cursor, t_con->line_size - t_con->line_cursor);
 	}
-							
+
 	/* backspace, overwrite with space, backspace */
 	while (t_con->line_size > 0)
 	{
