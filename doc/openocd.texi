@@ -10,12 +10,25 @@
 
 @include version.texi
 
+@copying
+Copyright @copyright{} 2007-2008 Spen @email{spen@@spen-soft.co.uk}
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the section entitled ``GNU
+Free Documentation License''.
+@end quotation
+@end copying
+
 @titlepage
 @title Open On-Chip Debugger (openocd)
 @subtitle Edition @value{EDITION} for openocd version @value{VERSION}
 @subtitle @value{UPDATED}
 @page
 @vskip 0pt plus 1filll
+@insertcopying
 @end titlepage
 
 @contents
@@ -23,12 +36,14 @@
 @node Top, About, , (dir)
 @top OpenOCD
 
-This is edition @value{EDITION} of the openocd manual for version
-@value{VERSION}, @value{UPDATED}
+This manual documents edition @value{EDITION} of the Open On-Chip Debugger
+(openocd) version @value{VERSION}, @value{UPDATED}.
+
+@insertcopying
 
 @menu
 * About::             About Openocd.
-* Developers::        
+* Developers::        Openocd developers
 * Building::          Building Openocd
 * Running::           Running Openocd
 * Configuration::     Openocd Configuration.
