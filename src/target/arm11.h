@@ -50,7 +50,13 @@ typedef struct arm11_register_history_s
     u8	    valid;
 }arm11_register_history_t;
 
-
+enum arm11_debug_version
+{
+    ARM11_DEBUG_V6	= 0x01,
+    ARM11_DEBUG_V61	= 0x02,
+    ARM11_DEBUG_V7	= 0x03,
+    ARM11_DEBUG_V7_CP14	= 0x04,
+};
 
 typedef struct arm11_common_s
 {
@@ -65,9 +71,11 @@ typedef struct arm11_common_s
     u32		didr;		    /**< DIDR readout (debug capabilities)	*/
     u8		implementor;	    /**< DIDR Implementor readout		*/
 
-    size_t	brp;		    /**< Number of Breakpoint Register Pairs	*/
-    size_t	wrp;		    /**< Number of Watchpoint Register Pairs	*/
+    size_t	brp;		    /**< Number of Breakpoint Register Pairs from DIDR	*/
+    size_t	wrp;		    /**< Number of Watchpoint Register Pairs from DIDR	*/
 
+    enum arm11_debug_version
+		debug_version;	    /**< ARM debug architecture from DIDR	*/
     /*@}*/
 
 
@@ -88,6 +96,9 @@ typedef struct arm11_common_s
     arm11_register_history_t
 		reg_history[ARM11_REGCACHE_COUNT];	/**< register state before last resume */
 
+
+    size_t	free_brps;				/**< keep track of breakpoints allocated by arm11_add_breakpoint() */
+    size_t	free_wrps;				/**< keep track of breakpoints allocated by arm11_add_watchpoint() */
 
 } arm11_common_t;
 
@@ -212,6 +223,9 @@ int arm11_quit(void);
 /* helpers */
 void arm11_build_reg_cache(target_t *target);
 
+void arm11_record_register_history(arm11_common_t * arm11);
+void arm11_dump_reg_changes(arm11_common_t * arm11);
+
 
 /* internals */
 
@@ -229,21 +243,36 @@ void arm11_run_instr_data_finish		(arm11_common_t * arm11);
 void arm11_run_instr_no_data			(arm11_common_t * arm11, u32 * opcode, size_t count);
 void arm11_run_instr_no_data1			(arm11_common_t * arm11, u32 opcode);
 void arm11_run_instr_data_to_core		(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
+void arm11_run_instr_data_to_core_noack		(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
 void arm11_run_instr_data_to_core1		(arm11_common_t * arm11, u32 opcode, u32 data);
 void arm11_run_instr_data_from_core		(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
 void arm11_run_instr_data_from_core_via_r0	(arm11_common_t * arm11, u32 opcode, u32 * data);
 void arm11_run_instr_data_to_core_via_r0	(arm11_common_t * arm11, u32 opcode, u32 data);
 
+int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state);
+int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state);
 
+
+/** Used to make a list of read/write commands for scan chain 7
+ *
+ *  Use with arm11_sc7_run()
+ */
 typedef struct arm11_sc7_action_s
 {
-    bool    write;
-    u8	    address;
-    u32	    value;
+    bool    write;				/**< Access mode: true for write, false for read.	*/
+    u8	    address;				/**< Register address mode. Use enum #arm11_sc7		*/
+    u32	    value;				/**< If write then set this to value to be written.
+						     In read mode this receives the read value when the
+						     function returns.					*/
 } arm11_sc7_action_t;
 
 void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t count);
-void arm11_sc7_clear_bw(arm11_common_t * arm11);
+
+/* Mid-level helper functions */
+void arm11_sc7_clear_vbw(arm11_common_t * arm11);
+void arm11_sc7_set_vcr(arm11_common_t * arm11, u32 value);
+
+void arm11_read_memory_word(arm11_common_t * arm11, u32 address, u32 * result);
 
 
 

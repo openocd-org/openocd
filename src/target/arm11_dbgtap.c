@@ -38,6 +38,34 @@
 	do {} while(0)
 #endif
 
+enum tap_state arm11_move_pi_to_si_via_ci[] =
+{
+    TAP_E2I, TAP_UI, TAP_SDS, TAP_SIS, TAP_CI, TAP_SI
+};
+
+
+int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state)
+{
+    if (cmd_queue_cur_state == TAP_PI)
+	jtag_add_pathmove(asizeof(arm11_move_pi_to_si_via_ci), arm11_move_pi_to_si_via_ci);
+
+    return jtag_add_ir_scan(num_fields, fields, state);
+}
+
+enum tap_state arm11_move_pd_to_sd_via_cd[] =
+{
+    TAP_E2D, TAP_UD, TAP_SDS, TAP_CD, TAP_SD
+};
+
+int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state)
+{
+    if (cmd_queue_cur_state == TAP_PD)
+	jtag_add_pathmove(asizeof(arm11_move_pd_to_sd_via_cd), arm11_move_pd_to_sd_via_cd);
+
+    return jtag_add_dr_scan(num_fields, fields, state);
+}
+
+
 /** Code de-clutter: Construct scan_field_t to write out a value
  *
  * \param arm11		Target state variable.
@@ -87,7 +115,7 @@ void arm11_add_IR(arm11_common_t * arm11, u8 instr, enum tap_state state)
 
     arm11_setup_field(arm11, 5, &instr, NULL, &field);
 
-    jtag_add_ir_scan_vc(1, &field, state == -1 ? TAP_PI : state);
+    arm11_add_ir_scan_vc(1, &field, state == -1 ? TAP_PI : state);
 }
 
 /** Verify shifted out data from Scan Chain Register (SCREG)
@@ -146,7 +174,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, enum tap_state sta
 
     field.in_handler = arm11_in_handler_SCAN_N;
 
-    jtag_add_dr_scan_vc(1, &field, state == -1 ? TAP_PD : state);
+    arm11_add_dr_scan_vc(1, &field, state == -1 ? TAP_PD : state);
 }
 
 /** Write an instruction into the ITR register
@@ -175,7 +203,7 @@ void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, enum tap_
     arm11_setup_field(arm11, 32,    &inst,	NULL, itr + 0);
     arm11_setup_field(arm11, 1,	    NULL,	flag, itr + 1);
 
-    jtag_add_dr_scan_vc(asizeof(itr), itr, state == -1 ? TAP_RTI : state);
+    arm11_add_dr_scan_vc(asizeof(itr), itr, state == -1 ? TAP_RTI : state);
 }
 
 /** Read the Debug Status and Control Register (DSCR)
@@ -198,7 +226,7 @@ u32 arm11_read_DSCR(arm11_common_t * arm11)
 
     arm11_setup_field(arm11, 32, NULL, &dscr, &chain1_field);
 
-    jtag_add_dr_scan_vc(1, &chain1_field, TAP_PD);
+    arm11_add_dr_scan_vc(1, &chain1_field, TAP_PD);
 
     jtag_execute_queue();
 
@@ -229,7 +257,7 @@ void arm11_write_DSCR(arm11_common_t * arm11, u32 dscr)
 
     arm11_setup_field(arm11, 32, &dscr, NULL, &chain1_field);
 
-    jtag_add_dr_scan_vc(1, &chain1_field, TAP_PD);
+    arm11_add_dr_scan_vc(1, &chain1_field, TAP_PD);
 
     jtag_execute_queue();
 
@@ -385,7 +413,7 @@ void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data
 	{
 	    Data	    = *data;
 
-	    jtag_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_RTI);
+	    arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_RTI);
 	    jtag_execute_queue();
 
 	    JTAG_DEBUG("DTR  Ready %d  nRetry %d", Ready, nRetry);
@@ -401,15 +429,105 @@ void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data
     {
 	Data	    = 0;
 
-	jtag_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_PD);
+	arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_PD);
 	jtag_execute_queue();
 
 	JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
     }
     while (!Ready);
-
-
 }
+
+/** JTAG path for arm11_run_instr_data_to_core_noack
+ *
+ *  The repeated TAP_RTI's do not cause a repeated execution
+ *  if passed without leaving the state.
+ *
+ *  Since this is more than 7 bits (adjustable via adding more
+ *  TAP_RTI's) it produces an artificial delay in the lower
+ *  layer (FT2232) that is long enough to finish execution on
+ *  the core but still shorter than any manually inducible delays.
+ *
+ */
+enum tap_state arm11_MOVE_PD_RTI_PD_with_delay[] =
+{
+    TAP_E2D, TAP_UD, TAP_RTI, TAP_RTI, TAP_RTI, TAP_SDS, TAP_CD, TAP_SD
+};
+
+
+
+/** Execute one instruction via ITR repeatedly while
+ *  passing data to the core via DTR on each execution.
+ *
+ *  No Ready check during transmission.
+ *
+ *  The executed instruction \em must read data from DTR.
+ *
+ * \pre arm11_run_instr_data_prepare() /  arm11_run_instr_data_finish() block
+ *
+ * \param arm11		Target state variable.
+ * \param opcode	ARM opcode
+ * \param data		Pointer to the data words to be passed to the core
+ * \param count		Number of data words and instruction repetitions
+ *
+ */
+void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count)
+{
+    arm11_add_IR(arm11, ARM11_ITRSEL, -1);
+
+    arm11_add_debug_INST(arm11, opcode, NULL, TAP_PD);
+
+    arm11_add_IR(arm11, ARM11_EXTEST, -1);
+
+    scan_field_t	chain5_fields[3];
+
+    arm11_setup_field(arm11, 32,    NULL/*&Data*/,  NULL,	chain5_fields + 0);
+    arm11_setup_field(arm11,  1,    NULL,   NULL /*&Ready*/,	chain5_fields + 1);
+    arm11_setup_field(arm11,  1,    NULL,   NULL,	chain5_fields + 2);
+
+    u8			Readies[count + 1];
+    u8	*		ReadyPos	    = Readies;
+
+    while (count--)
+    {
+	chain5_fields[0].out_value	= (void *)(data++);
+	chain5_fields[1].in_value	= ReadyPos++;
+
+	if (count)
+	{
+	    jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, TAP_PD);
+	    jtag_add_pathmove(asizeof(arm11_MOVE_PD_RTI_PD_with_delay),
+		arm11_MOVE_PD_RTI_PD_with_delay); 
+	}
+	else
+	{
+	    jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, TAP_RTI);
+	}
+    }
+
+    arm11_add_IR(arm11, ARM11_INTEST, -1);
+
+    chain5_fields[0].out_value	= 0;
+    chain5_fields[1].in_value   = ReadyPos++;
+
+    arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_PD);
+
+    jtag_execute_queue();
+
+    size_t error_count = 0;
+
+    {size_t i;
+    for (i = 0; i < asizeof(Readies); i++)
+    {
+	if (Readies[i] != 1)
+	{
+	    error_count++;
+	}
+    }}
+
+    if (error_count)
+	ERROR("Transfer errors %d", error_count);
+}
+
 
 /** Execute an instruction via ITR while handing data into the core via DTR.
  *
@@ -463,7 +581,7 @@ void arm11_run_instr_data_from_core(arm11_common_t * arm11, u32 opcode, u32 * da
     {
 	do
 	{
-	    jtag_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, count ? TAP_RTI : TAP_PD);
+	    arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, count ? TAP_RTI : TAP_PD);
 	    jtag_execute_queue();
 
 	    JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
@@ -514,7 +632,15 @@ void arm11_run_instr_data_to_core_via_r0(arm11_common_t * arm11, u32 opcode, u32
     arm11_run_instr_no_data1(arm11, opcode);
 }
 
-
+/** Apply reads and writes to scan chain 7
+ *
+ * \see arm11_sc7_action_t
+ *
+ * \param arm11		Target state variable.
+ * \param actions	A list of read and/or write instructions
+ * \param count		Number of instructions in the list.
+ *
+ */
 void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t count)
 {
     arm11_add_debug_SCAN_N(arm11, 0x07, -1);
@@ -554,7 +680,7 @@ void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t 
 	{
 	    JTAG_DEBUG("SC7 <= Address %02x  Data %08x    nRW %d", AddressOut, DataOut, nRW);
 
-	    jtag_add_dr_scan_vc(asizeof(chain7_fields), chain7_fields, TAP_PD);
+	    arm11_add_dr_scan_vc(asizeof(chain7_fields), chain7_fields, TAP_PD);
 	    jtag_execute_queue();
 
 	    JTAG_DEBUG("SC7 => Address %02x  Data %08x  Ready %d", AddressIn, DataIn, Ready);
@@ -589,23 +715,73 @@ void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t 
     }}
 }
 
-void arm11_sc7_clear_bw(arm11_common_t * arm11)
+/** Clear VCR and all breakpoints and watchpoints via scan chain 7
+ *
+ * \param arm11		Target state variable.
+ *
+ */
+void arm11_sc7_clear_vbw(arm11_common_t * arm11)
 {
-    size_t actions = arm11->brp + arm11->wrp;
-
-    arm11_sc7_action_t		clear_bw[actions];
+    arm11_sc7_action_t		clear_bw[arm11->brp + arm11->wrp + 1];
+    arm11_sc7_action_t *	pos = clear_bw;
 
     {size_t i;
-    for (i = 0; i < actions; i++)
+    for (i = 0; i < asizeof(clear_bw); i++)
     {
 	clear_bw[i].write	= true;
 	clear_bw[i].value	= 0;
-	clear_bw[i].address	=
-	    i < arm11->brp ?
-		ARM11_SC7_BCR0 + i :
-		ARM11_SC7_WCR0 + i - arm11->brp;
     }}
 
-    arm11_sc7_run(arm11, clear_bw, actions);
+    {size_t i;
+    for (i = 0; i < arm11->brp; i++)
+	(pos++)->address = ARM11_SC7_BCR0 + i;
+    }
+
+    {size_t i;
+    for (i = 0; i < arm11->wrp; i++)
+	(pos++)->address = ARM11_SC7_WCR0 + i;
+    }
+
+    (pos++)->address = ARM11_SC7_VCR;
 }
+
+/** Write VCR register
+ *
+ * \param arm11		Target state variable.
+ * \param value		Value to be written
+ */
+void arm11_sc7_set_vcr(arm11_common_t * arm11, u32 value)
+{
+    arm11_sc7_action_t		set_vcr;
+
+    set_vcr.write		= 0;
+    set_vcr.address		= ARM11_SC7_VCR;
+    set_vcr.value		= value;
+
+
+    arm11_sc7_run(arm11, &set_vcr, 1);
+}
+
+
+
+/** Read word from address
+ *
+ * \param arm11		Target state variable.
+ * \param address	Memory address to be read
+ * \param result	Pointer where to store result
+ *
+ */
+void arm11_read_memory_word(arm11_common_t * arm11, u32 address, u32 * result)
+{
+    arm11_run_instr_data_prepare(arm11);
+
+    /* MRC p14,0,r0,c0,c5,0 (r0 = address) */
+    arm11_run_instr_data_to_core1(arm11, 0xee100e15, address);
+
+    /* LDC p14,c5,[R0],#4 (DTR = [r0]) */
+    arm11_run_instr_data_from_core(arm11, 0xecb05e01, result, 1);
+
+    arm11_run_instr_data_finish(arm11);
+}
+
 
