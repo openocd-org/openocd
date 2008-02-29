@@ -76,6 +76,7 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 		field.out_mask = NULL;
 		field.in_value = NULL;
 #ifdef _ARM_JTAG_SCAN_N_CHECK_
+#error FIX!!! this is broken, scan_n_check_value goes out of scope.
 		jtag_set_check_value(&field, &scan_n_check_value, NULL, NULL, NULL);
 #else
 		field.in_handler = NULL;
