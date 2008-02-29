@@ -90,11 +90,8 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	DEBUG("log init complete");
 	
-	printf( OPENOCD_VERSION );
-	printf( "\n$URL$\n");
-  
-	DEBUG( OPENOCD_VERSION );
-	DEBUG( "$URL$");
+	OUTPUT( OPENOCD_VERSION );
+	OUTPUT( "$URL$");
 
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;
