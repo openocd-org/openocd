@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Dominic Rath                              *
+ *   Copyright (C) 2007 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *

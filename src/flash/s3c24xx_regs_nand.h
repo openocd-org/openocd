@@ -1,18 +1,29 @@
-/* linux/include/asm-arm/arch-s3c2410/regs-nand.h
- *
- * Copyright (c) 2004,2005 Simtec Electronics <linux@simtec.co.uk>
- *		      http://www.simtec.co.uk/products/SWLINUX/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
+/***************************************************************************
+ *   Copyright (C) 2004, 2005 by Simtec Electronics                        *
+ *   linux@simtec.co.uk                                                    *
+ *   http://www.simtec.co.uk/products/SWLINUX/                             *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; version 2 of the License.               *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+
+/*
  * S3C2410 NAND register definitions
-*/
+ */
 
 #ifndef __ASM_ARM_REGS_NAND
 #define __ASM_ARM_REGS_NAND "$Id: nand.h,v 1.3 2003/12/09 11:36:29 ben Exp $"
-
 
 #define S3C2410_NFREG(x) (x)
 
@@ -116,8 +127,6 @@
 #define S3C2412_NFECCERR_1BIT		(1)
 #define S3C2412_NFECCERR_MULTIBIT	(2)
 #define S3C2412_NFECCERR_ECCAREA	(3)
-
-
 
 #endif /* __ASM_ARM_REGS_NAND */
 

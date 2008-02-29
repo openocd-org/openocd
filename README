@@ -112,7 +112,7 @@ Support for Intel XScale CPUs is also included:
 - IXP42x
 
 And support for the Marvell Feroceon CPU core as found in the
-Orion SOC family is included as well.
+Orion SoC family is included as well.
 
 3. Host platforms
 
@@ -124,6 +124,9 @@ AMD64-Linux, Alpha-Linux, ARM-Linux, and PowerPC OS-X.
 
 Documentation for the OpenOCD is hosted in the Berlios OpenFacts Wiki at
 http://openfacts.berlios.de/index-en.phtml?title=Open_On-Chip_Debugger.
+
+There is also and openocd(1) manpage, the 'openocd --help' output and
+an OpenOCD info page (type 'info openocd').
 
 5. Licensing
 

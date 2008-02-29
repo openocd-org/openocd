@@ -1,14 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2007 by Benedikt Sauter sauter@ixbat.de                 *
- *   based on Dominic Rath's amt_jtagaccel.c                               *
- *                                                                         *
- *   usbprog is a free programming adapter. You can easily install         *
- *   different firmware versions from an "online pool" over USB.           *
- *   The adapter can be used for programming and debugging AVR and ARM     *
- *   processors, as USB to RS232 converter, as JTAG interface or as        *
- *   simple I/O interface (5 lines).                                       *
- *                                                                         *
- *   http://www.embedded-projects.net/usbprog                              *
+ *   Copyright (C) 2007 by Benedikt Sauter                                 *
+ *   sauter@ixbat.de                                                       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,6 +17,19 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
+/*
+ * This file is based on Dominic Rath's amt_jtagaccel.c.
+ *
+ * usbprog is a free programming adapter. You can easily install
+ * different firmware versions from an "online pool" over USB.
+ * The adapter can be used for programming and debugging AVR and ARM
+ * processors, as USB to RS232 converter, as JTAG interface or as
+ * simple I/O interface (5 lines).
+ *
+ * http://www.embedded-projects.net/usbprog
+ */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

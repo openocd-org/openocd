@@ -2,12 +2,10 @@
  *   Copyright (C) 2007 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   partially based on                                                    *
- * 	 linux/include/linux/mtd/nand.h                                        *
- *                                                                         *
- *   Copyright (c) 2000 David Woodhouse <dwmw2@mvhi.com>                   *
- *                      Steven J. Hill <sjhill@realitydiluted.com>         *
- *                      Thomas Gleixner <tglx@linutronix.de>               *
+ *   Partially based on linux/include/linux/mtd/nand.h                     *
+ *   Copyright (C) 2000 David Woodhouse <dwmw2@mvhi.com>                   *
+ *   Copyright (C) 2000 Steven J. Hill <sjhill@realitydiluted.com>         *
+ *   Copyright (C) 2000 Thomas Gleixner <tglx@linutronix.de>               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *

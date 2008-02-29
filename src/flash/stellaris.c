@@ -1,7 +1,7 @@
 /***************************************************************************
  *   Copyright (C) 2006 by Magnus Lundin                                   *
- *   lundin@mlu.mine.nu                    	                               *
- *									                                       *
+ *   lundin@mlu.mine.nu                                                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -20,10 +20,7 @@
 
 /***************************************************************************
 * STELLARIS is tested on LM3S811
-* 
-*
-*
- ***************************************************************************/
+***************************************************************************/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

@@ -22,7 +22,7 @@
  * CoreSight (Light?) SerialWireJtagDebugPort                              *
  *                                                                         *
  * CoreSight™ DAP-Lite TRM, ARM DDI 0316A                                  *
- * Cortex-M3™ TRM, ARM DDI 0337C                                            *
+ * Cortex-M3™ TRM, ARM DDI 0337C                                           *
  *                                                                         *
 ***************************************************************************/
 #ifdef HAVE_CONFIG_H

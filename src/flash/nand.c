@@ -2,10 +2,8 @@
  *   Copyright (C) 2007 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   partially based on                                                    *
- * 	 drivers/mtd/nand_ids.c                                            *
- *                                                                         *
- *   Copyright (C) 2002 Thomas Gleixner (tglx@linutronix.de)               *
+ *   Partially based on drivers/mtd/nand_ids.c from Linux.                 *
+ *   Copyright (C) 2002 Thomas Gleixner <tglx@linutronix.de>               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
