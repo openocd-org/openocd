@@ -31,18 +31,17 @@
 #include <getopt.h>
 #include <string.h>
 
-static int help_flag;
+static int help_flag, version_flag;
 
 static struct option long_options[] =
 {
-	{"help",			no_argument,	&help_flag, 1},
-
-	{"debug",			optional_argument,	0, 'd'},
-	{"file", 			required_argument,	0, 'f'},
-	{"search",			required_argument,	0, 's'},
-	{"log_output",		required_argument,	0, 'l'},
-	{"command",			required_argument,	0, 'c'},
-	
+	{"help",	no_argument,		&help_flag,	1},
+	{"version",	no_argument,		&version_flag,	1},
+	{"debug",	optional_argument,	0,		'd'},
+	{"file", 	required_argument,	0,		'f'},
+	{"search",	required_argument,	0,		's'},
+	{"log_output",	required_argument,	0,		'l'},
+	{"command",	required_argument,	0,		'c'},
 	{0, 0, 0, 0}
 };
 
@@ -63,7 +62,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
 		
-		c = getopt_long(argc, argv, "hd::l:f:s:c:", long_options, &option_index);
+		c = getopt_long(argc, argv, "hvd::l:f:s:c:", long_options, &option_index);
 		
 		/* Detect the end of the options. */
 		if (c == -1)
@@ -75,6 +74,9 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 				break;
 			case 'h':	/* --help | -h */
 				help_flag = 1;
+				break;
+			case 'v':	/* --version | -v */
+				version_flag = 1;
 				break;
 			case 'f':	/* --file | -f */
 				snprintf(command_buffer, 128, "script %s", optarg);
@@ -109,13 +111,20 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 
 	if (help_flag)
 	{
-		OUTPUT("Open On-Chip Debugger\n(c) 2005 by Dominic Rath\n\n");
+		OUTPUT("Open On-Chip Debugger\n(c) 2005-2008 by Dominic Rath\n\n");
 		OUTPUT("--help       | -h\tdisplay this help\n");
+		OUTPUT("--version    | -v\tdisplay OpenOCD version\n");
 		OUTPUT("--file       | -f\tuse configuration file <name>\n");
 		OUTPUT("--search     | -s\tdir to search for config files and scripts.\n");
 		OUTPUT("--debug      | -d\tset debug level <0-3>\n");
 		OUTPUT("--log_output | -l\tredirect log output to file <name>\n");
 		OUTPUT("--command    | -c\trun <command>\n");
+		exit(-1);
+	}	
+
+	if (version_flag)
+	{
+		/* Nothing to do, version gets printed automatically. */
 		exit(-1);
 	}	
 
