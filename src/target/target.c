@@ -1577,24 +1577,11 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	target_t *target = get_current_target(cmd_ctx);
 
 	DEBUG("-");
-	
-	command_print(cmd_ctx, "requesting target halt...");
 
 	if ((retval = target->type->halt(target)) != ERROR_OK)
-	{	
-		switch (retval)
 		{
-			case ERROR_TARGET_ALREADY_HALTED:
-				command_print(cmd_ctx, "target already halted");
-				break;
-			case ERROR_TARGET_TIMEOUT:
-				command_print(cmd_ctx, "target timed out... shutting down");
-				return retval;
-			default:
-				command_print(cmd_ctx, "unknown error... shutting down");
 				return retval;
 		}
-	}
 	
 	return handle_wait_halt_command(cmd_ctx, cmd, args, argc);
 }
