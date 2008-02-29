@@ -54,8 +54,14 @@ void add_config_file_name (const char *cfg)
 	config_file_names[num_config_files] = NULL;
 }
 
-FILE *open_file_from_path (command_context_t *cmd_ctx, char *file, char *mode)
+FILE *open_file_from_path (char *file, char *mode)
 {
+	if (mode[0]!='r')
+	{
+		return fopen(file, mode);
+	} else
+	{
+		
 	FILE *fp = NULL;
 	char **search_dirs = script_search_dirs;
 	char *dir;
@@ -78,9 +84,10 @@ FILE *open_file_from_path (command_context_t *cmd_ctx, char *file, char *mode)
 	}
 
 	if (fp)
-		command_print(cmd_ctx, "opened %s", full_path);
+			DEBUG("opened %s", full_path);
 
 	return fp;
+	}
 }
 
 int parse_config_file(struct command_context_s *cmd_ctx)

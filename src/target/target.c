@@ -229,7 +229,7 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 	{
 		target_unregister_event_callback(target_init_handler, priv);
 
-		script = open_file_from_path(cmd_ctx, target->reset_script, "r");
+		script = open_file_from_path(target->reset_script, "r");
 		if (!script)
 		{
 			ERROR("couldn't open script file %s", target->reset_script);
@@ -270,11 +270,11 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 			switch (target->reset_mode)
 			{
 				case RESET_HALT:
-					command_print(cmd_ctx, "nSRST pulls nTRST, falling back to RESET_RUN_AND_HALT");
+					command_print(cmd_ctx, "nSRST pulls nTRST, falling back to \"reset run_and_halt\"");
 					target->reset_mode = RESET_RUN_AND_HALT;
 					break;
 				case RESET_INIT:
-					command_print(cmd_ctx, "nSRST pulls nTRST, falling back to RESET_RUN_AND_INIT");
+					command_print(cmd_ctx, "nSRST pulls nTRST, falling back to \"reset run_and_init\"");
 					target->reset_mode = RESET_RUN_AND_INIT;
 					break;
 				default:
@@ -1540,7 +1540,7 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 {
 	int retval;
 	struct timeval timeout, now;
-	
+	int once=1;
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 0, ms * 1000);
 	
@@ -1554,12 +1554,15 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 		{
 			break;
 		}
-		command_print(cmd_ctx, "waiting for target %s...", target_state_strings[state]);
+		if (once)
+		{
+			once=0;
+			command_print(cmd_ctx, "waiting for target %s...", target_state_strings[state]);
+		}
 		
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
-			command_print(cmd_ctx, "timed out while waiting for target %s", target_state_strings[state]);
 			ERROR("timed out while waiting for target %s", target_state_strings[state]);
 			break;
 		}
@@ -1915,7 +1918,6 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	if (image_open(&image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "load_image error: %s", image.error_str);
 		return ERROR_OK;
 	}
 	
@@ -1985,7 +1987,6 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	if (fileio_open(&fileio, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "dump_image error: %s", fileio.error_str);
 		return ERROR_OK;
 	}
 	
@@ -2064,7 +2065,6 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 
 	if (image_open(&image, args[0], (argc == 3) ? args[2] : NULL) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "verify_image error: %s", image.error_str);
 		return ERROR_OK;
 	}
 	

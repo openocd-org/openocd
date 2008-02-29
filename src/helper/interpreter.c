@@ -221,7 +221,7 @@ int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	script_file = open_file_from_path(cmd_ctx, args[0], "r");
+	script_file = open_file_from_path (args[0], "r");
 
 	if (!script_file)
 	{
