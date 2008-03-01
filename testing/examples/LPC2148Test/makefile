@@ -1,3 +1,4 @@
+##############################################################################################
 #
 #       !!!! Do NOT edit this makefile with an editor which replace tabs by spaces !!!!    
 #
@@ -22,7 +23,7 @@ CP   = $(TRGT)objcopy
 AS   = $(TRGT)gcc -x assembler-with-cpp
 BIN  = $(CP) -O ihex 
 
-MCU  = arm9e
+MCU  = arm7tdmi
 
 # List all default C defines here, like -D_DEBUG=1
 DDEFS = 
@@ -51,8 +52,8 @@ DLIBS =
 PROJECT = test
 
 # Define linker script file here
-LDSCRIPT_RAM = ./prj/str912_ram.ld
-LDSCRIPT_ROM = ./prj/str912_rom.ld
+LDSCRIPT_RAM = ./prj/lpc2148_ram.ld
+LDSCRIPT_ROM = ./prj/lpc2148_rom.ld
 
 # List all user C define here, like -D_DEBUG=1
 UDEFS = 
@@ -64,7 +65,7 @@ UADEFS =
 SRC  = ./src/main.c
 
 # List ASM source files here
-ASRC = ./src/startup.s
+ASRC = ./src/crt.s
 
 # List all user directories here
 UINCDIR = ./inc
@@ -117,7 +118,7 @@ ROM: $(OBJS) $(PROJECT)_rom.elf $(PROJECT)_rom.hex
 
 %ram.elf: $(OBJS)
 	$(CC) $(OBJS) $(LDFLAGS_RAM) $(LIBS) -o $@
-
+  
 %rom.elf: $(OBJS)
 	$(CC) $(OBJS) $(LDFLAGS_ROM) $(LIBS) -o $@
 
