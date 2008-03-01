@@ -2164,11 +2164,28 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
 	arm7_9_resume(target, 0, arm7_9->dcc_working_area->address, 1, 1);
-	
-	for (i = 0; i < count; i++)
+
+	int little=target->endianness==TARGET_LITTLE_ENDIAN;
+	if (count>2)
 	{
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], target_buffer_get_u32(target, buffer));
-		buffer += 4;
+		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
+		   core function repeated. 
+		 */
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+		buffer+=4;
+		for (i = 1; i < count - 1; i++)
+		{
+			embeddedice_write_reg_inner(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+			buffer += 4;
+		}
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+	} else
+	{
+		for (i = 0; i < count; i++)
+		{
+			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+			buffer += 4;
+		}
 	}
 	
 	target->type->halt(target);
