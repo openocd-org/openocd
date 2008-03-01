@@ -1,0 +1,14 @@
+This code is an example of using the openocd debug message system.
+
+Before the message output is seen in the debug window, the functionality
+will need enabling:
+
+** GDB **
+From the gdb prompt: monitor target_request debugmsgs enable
+
+** Telnet **
+From the Telnet prompt: target_request debugmsgs enable
+
+Spen
+spen@spen-soft.co.uk
+
