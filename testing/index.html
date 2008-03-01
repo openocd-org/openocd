@@ -3,8 +3,18 @@
 	<meta http-equiv="content-type" content="text/html;charset=iso-8859-1">
 
 	<body>
-		<h1>Testing</h1>
-		A test should be done on code committed to svn. Commit, then test. That way one can know for sure *what* code was actually tested.
+		<h1>Release testing</h1>
+		A release test must be done on code committed to svn. Commit, then test. That way one can know for sure *what* code was actually tested.
+		<p>
+		Note that this testing document does not have anything to do with testing that is done 
+		before committing to svn. It is a test document for released code. Pre-commit testing
+		is done mostly by the developer who has written the change. Release testing is
+		done on code believed to be stable, often a couple of weeks old, and not by
+		the developers, but rather users and community testers who has the requisite hardware
+		and test setup. Also the testing can take place over an extended period of time.
+		<p>
+		All of the above makes it imperative that there can be no doubt about *which* code
+		is tested and thus all tests refer to committed code by subversion number.  
 		<h1>Release procedure</h1>
 		OpenOCD trunk is work in progress. Expect it to change daily and to have some work in progress.
 		<p>If you need the latest released and tested version, look for binary snapshots of OpenOCD. Worst case look up the test result table below for the features that are important to you and extract and build the version that has the right cocktail of working features for you. You can also work with the community to address the problems you are seing. Testing work and bug reports are highly appreciated.</p>
