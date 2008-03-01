@@ -1189,17 +1189,16 @@ int MINIDRIVER(interface_jtag_execute_queue)(void)
 	jtag_command_queue = NULL;
 	last_comand_pointer = &jtag_command_queue;
 
-	jtag_error=ERROR_OK;
-
 	return retval;
 }
 
 int jtag_execute_queue(void)
 {
 	int retval=interface_jtag_execute_queue();
-	if (retval!=ERROR_OK)
-		return retval;
-	retval=jtag_error;
+	if (retval==ERROR_OK)
+	{
+		retval=jtag_error;
+	}
 	jtag_error=ERROR_OK;
 	return retval;
 }
