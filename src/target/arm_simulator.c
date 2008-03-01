@@ -32,7 +32,7 @@
 
 u32 arm_shift(u8 shift, u32 Rm, u32 shift_amount, u8 *carry)
 {
-	u32 return_value;
+	u32 return_value = 0;
 	shift_amount &= 0xff;
 	
 	if (shift == 0x0) /* LSL */
@@ -466,7 +466,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 	/* load register instructions */
 	else if ((instruction.type >= ARM_LDR) && (instruction.type <= ARM_LDRSH))
 	{
-		u32 load_address, modified_address, load_value;
+		u32 load_address = 0, modified_address = 0, load_value;
 		u32 Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store.Rn).value, 0, 32);
 		
 		/* adjust Rn in case the PC is being read */

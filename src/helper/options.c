@@ -115,7 +115,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		OUTPUT("--help       | -h\tdisplay this help\n");
 		OUTPUT("--version    | -v\tdisplay OpenOCD version\n");
 		OUTPUT("--file       | -f\tuse configuration file <name>\n");
-		OUTPUT("--search     | -s\tdir to search for config files and scripts.\n");
+		OUTPUT("--search     | -s\tdir to search for config files and scripts\n");
 		OUTPUT("--debug      | -d\tset debug level <0-3>\n");
 		OUTPUT("--log_output | -l\tredirect log output to file <name>\n");
 		OUTPUT("--command    | -c\trun <command>\n");
