@@ -356,7 +356,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[0].num_bits = 3;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
-	/* fields[0].in_value = field0; */
+	fields[0].in_value = NULL;
 	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
 	fields[1].device = xscale->jtag_info.chain_pos;
@@ -649,6 +649,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	fields[0].out_value = &field0_out;
 	fields[0].out_mask = NULL;
 	fields[0].in_handler = NULL;
+	fields[0].in_value = NULL;
 	if (!xscale->fast_memory_access)
 	{
 		jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
