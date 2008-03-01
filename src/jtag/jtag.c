@@ -1901,7 +1901,7 @@ int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 int MINIDRIVER(interface_jtag_add_shift)(const enum tap_state shift_state, const enum tap_state end_state, int num_bits, u32 value)
 {
 	u8 out_buf[4];
-	buf_set_u32(out_buf, 0, 32, flip_u32(value, 32));
+	buf_set_u32(out_buf, 0, 32, value);
 
 	/* allocate memory for a new list member */
 	jtag_command_t **last_cmd;
