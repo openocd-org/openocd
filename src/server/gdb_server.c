@@ -1463,6 +1463,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			log_add_callback(gdb_log_callback, connection);
 			target_call_timer_callbacks();
 			command_run_line(cmd_ctx, cmd);
+			log_remove_callback(gdb_log_callback, connection);
 			free(cmd);
 		}
 		gdb_put_packet(connection, "OK", 2);
