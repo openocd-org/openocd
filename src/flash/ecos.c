@@ -82,21 +82,21 @@ char *
 flash_errmsg(int err);
 
 #ifndef __ECOS
-#define FLASH_ERR_OK              0x00  // No error - operation complete
-#define FLASH_ERR_INVALID         0x01  // Invalid FLASH address
-#define FLASH_ERR_ERASE           0x02  // Error trying to erase
-#define FLASH_ERR_LOCK            0x03  // Error trying to lock/unlock
-#define FLASH_ERR_PROGRAM         0x04  // Error trying to program
-#define FLASH_ERR_PROTOCOL        0x05  // Generic error
-#define FLASH_ERR_PROTECT         0x06  // Device/region is write-protected
-#define FLASH_ERR_NOT_INIT        0x07  // FLASH info not yet initialized
-#define FLASH_ERR_HWR             0x08  // Hardware (configuration?) problem
-#define FLASH_ERR_ERASE_SUSPEND   0x09  // Device is in erase suspend mode
-#define FLASH_ERR_PROGRAM_SUSPEND 0x0a  // Device is in in program suspend mode
-#define FLASH_ERR_DRV_VERIFY      0x0b  // Driver failed to verify data
-#define FLASH_ERR_DRV_TIMEOUT     0x0c  // Driver timed out waiting for device
-#define FLASH_ERR_DRV_WRONG_PART  0x0d  // Driver does not support device
-#define FLASH_ERR_LOW_VOLTAGE     0x0e  // Not enough juice to complete job
+#define FLASH_ERR_OK              0x00  /* No error - operation complete */
+#define FLASH_ERR_INVALID         0x01  /* Invalid FLASH address */
+#define FLASH_ERR_ERASE           0x02  /* Error trying to erase */
+#define FLASH_ERR_LOCK            0x03  /* Error trying to lock/unlock */
+#define FLASH_ERR_PROGRAM         0x04  /* Error trying to program */
+#define FLASH_ERR_PROTOCOL        0x05  /* Generic error */
+#define FLASH_ERR_PROTECT         0x06  /* Device/region is write-protected */
+#define FLASH_ERR_NOT_INIT        0x07  /* FLASH info not yet initialized */
+#define FLASH_ERR_HWR             0x08  /* Hardware (configuration?) problem */
+#define FLASH_ERR_ERASE_SUSPEND   0x09  /* Device is in erase suspend mode */
+#define FLASH_ERR_PROGRAM_SUSPEND 0x0a  /* Device is in in program suspend mode */
+#define FLASH_ERR_DRV_VERIFY      0x0b  /* Driver failed to verify data */
+#define FLASH_ERR_DRV_TIMEOUT     0x0c  /* Driver timed out waiting for device */
+#define FLASH_ERR_DRV_WRONG_PART  0x0d  /* Driver does not support device */
+#define FLASH_ERR_LOW_VOLTAGE     0x0e  /* Not enough juice to complete job */
 
 
 char *
@@ -158,9 +158,10 @@ int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, c
 	bank->driver_priv = info;
 	info->driverPath=strdup(args[6]);
 
-	// eCos flash sector sizes are not exposed to OpenOCD, use 0x10000 as 
-	// a way to improve impeadance matach between OpenOCD and eCos flash
-	// driver
+	/* eCos flash sector sizes are not exposed to OpenOCD, use 0x10000 as 
+	 * a way to improve impeadance matach between OpenOCD and eCos flash
+	 * driver.
+	 */
 	int i = 0;
 	u32 offset = 0;
 	bank->num_sectors=bank->size/sectorSize;
@@ -238,7 +239,7 @@ static int const OFFSET_GET_WORKAREA_SIZE=0x4;
 int runCode(ecosflash_flash_bank_t *info, 
 		u32 codeStart, u32 codeStop, u32 r0, u32 r1, u32 r2, 
 		u32 *result,
-		// timeout in ms
+		/* timeout in ms */
 		int timeout)
 {
 	target_t *target=info->target;

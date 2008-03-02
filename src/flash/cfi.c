@@ -129,7 +129,8 @@ void cfi_fixup(flash_bank_t *bank, cfi_fixup_t *fixups)
 	}
 }
 
-inline u32 flash_address(flash_bank_t *bank, int sector, u32 offset)
+/* inline u32 flash_address(flash_bank_t *bank, int sector, u32 offset) */
+__inline__ u32 flash_address(flash_bank_t *bank, int sector, u32 offset)
 {
 	/* while the sector list isn't built, only accesses to sector 0 work */
 	if (sector == 0)

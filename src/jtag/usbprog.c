@@ -270,13 +270,13 @@ void usbprog_path_move(pathmove_command_t *cmd)
 	{
 		if (tap_transitions[cur_state].low == cmd->path[state_count])
 		{
-			//INFO("1");
+			/* INFO("1"); */
 			usbprog_write(0, 0, 0);
 			usbprog_write(1, 0, 0);
 		}
 		else if (tap_transitions[cur_state].high == cmd->path[state_count])
 		{
-			//INFO("2");
+			/* INFO("2"); */
 			usbprog_write(0, 1, 0);
 			usbprog_write(1, 1, 0);
 		}
@@ -314,7 +314,7 @@ void usbprog_runtest(int num_cycles)
 	else
 	{
 		usbprog_jtag_tms_send(usbprog_jtag_handle);
-		//INFO("NUM CYCLES %i",num_cycles);
+		/* INFO("NUM CYCLES %i",num_cycles); */
 	}
 
 	for (i = 0; i < num_cycles; i++)
@@ -340,7 +340,7 @@ void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	else
 		usbprog_end_state(TAP_SD);
 
-	//usbprog_jtag_tms_send(usbprog_jtag_handle);
+	/* usbprog_jtag_tms_send(usbprog_jtag_handle); */
 
 	usbprog_state_move();
 	usbprog_end_state(saved_end_state);
@@ -455,7 +455,7 @@ unsigned char usbprog_jtag_message(struct usbprog_jtag *usbprog_jtag, char *msg,
 		return 1;
 	if (res == msglen)
 	{
-		//INFO("HALLLLOOO %i",(int)msg[0]);
+		/* INFO("HALLLLOOO %i",(int)msg[0]); */
 		res =  usb_bulk_read(usbprog_jtag->usb_handle, 0x82, msg, 2, 100);
 		if (res > 0)
 			return (unsigned char)msg[1];
@@ -508,7 +508,7 @@ void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char * buffe
 
 		if (usb_bulk_write(usbprog_jtag->usb_handle, 3, tmp, 64, 1000) == 64)
 		{
-			//INFO("HALLLLOOO2 %i",(int)tmp[0]);
+			/* INFO("HALLLLOOO2 %i",(int)tmp[0]); */
 			usleep(1);
 			int timeout = 0;
 			while (usb_bulk_read(usbprog_jtag->usb_handle, 0x82, tmp, 64, 1000) < 1)
@@ -556,7 +556,7 @@ void usbprog_jtag_read_tdo(struct usbprog_jtag *usbprog_jtag, char * buffer, int
 
 		usb_bulk_write(usbprog_jtag->usb_handle, 3, tmp, 3, 1000);
 
-		//INFO("HALLLLOOO3 %i",(int)tmp[0]);
+		/* INFO("HALLLLOOO3 %i",(int)tmp[0]); */
 		int timeout = 0;
 		usleep(1);
 		while (usb_bulk_read(usbprog_jtag->usb_handle, 0x82, tmp, 64, 10) < 1)
@@ -592,7 +592,7 @@ void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buffer, in
 		{
 			send_bits = size;
 			loops = size/8;
-			//if(loops==0)
+			/* if(loops==0) */
 			loops++;
 			size = 0;
 		}
@@ -672,7 +672,7 @@ void usbprog_jtag_tms_collect(char tms_scan)
 void usbprog_jtag_tms_send(struct usbprog_jtag *usbprog_jtag)
 {
 	int i;
-	//INFO("TMS SEND");
+	/* INFO("TMS SEND"); */
 	if (tms_chain_index > 0)
 	{
 		char tmp[tms_chain_index + 2];

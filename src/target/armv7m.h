@@ -104,9 +104,11 @@ typedef struct armv7m_common_s
 	
 	void (*change_to_arm)(target_t *target, u32 *r0, u32 *pc);
 	
-//	void (*read_core_regs)(target_t *target, u32 mask, u32 *core_regs[16]);
-//	void (*read_core_regs_target_buffer)(target_t *target, u32 mask, void *buffer, int size);
-//	void (*write_core_regs)(target_t *target, u32 mask, u32 core_regs[16]);
+/*
+	void (*read_core_regs)(target_t *target, u32 mask, u32 *core_regs[16]);
+	void (*read_core_regs_target_buffer)(target_t *target, u32 mask, void *buffer, int size);
+	void (*write_core_regs)(target_t *target, u32 mask, u32 core_regs[16]);
+*/
 
 /*
 	void (*write_xpsr_im8)(target_t *target, u8 xpsr_im, int rot, int spsr);

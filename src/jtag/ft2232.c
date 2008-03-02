@@ -513,7 +513,7 @@ void ft2232_add_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size
 			BUFFER_ADD = TAP_MOVE(cur_state, TAP_SD);
 			cur_state = TAP_SD;
 		}
-		//DEBUG("added TMS scan (no read)");
+		/* DEBUG("added TMS scan (no read)"); */
 	}
 	
 	/* add command for complete bytes */
@@ -524,19 +524,19 @@ void ft2232_add_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size
 		{
 			/* Clock Data Bytes In and Out LSB First */
 			BUFFER_ADD = 0x39;
-			//DEBUG("added TDI bytes (io %i)", num_bytes);
+			/* DEBUG("added TDI bytes (io %i)", num_bytes); */
 		}
 		else if (type == SCAN_OUT)
 		{
 			/* Clock Data Bytes Out on -ve Clock Edge LSB First (no Read) */
 			BUFFER_ADD = 0x19;
-			//DEBUG("added TDI bytes (o)");
+			/* DEBUG("added TDI bytes (o)"); */
 		}
 		else if (type == SCAN_IN)
 		{
 			/* Clock Data Bytes In on +ve Clock Edge LSB First (no Write) */
 			BUFFER_ADD = 0x28;
-			//DEBUG("added TDI bytes (i %i)", num_bytes);
+			/* DEBUG("added TDI bytes (i %i)", num_bytes); */
 		}
 		thisrun_bytes = (num_bytes > 65537) ? 65536 : (num_bytes - 1);
 		num_bytes -= thisrun_bytes;
@@ -571,19 +571,19 @@ void ft2232_add_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size
 		{
 			/* Clock Data Bits In and Out LSB First */
 			BUFFER_ADD = 0x3b;
-			//DEBUG("added TDI bits (io) %i", bits_left - 1);
+			/* DEBUG("added TDI bits (io) %i", bits_left - 1); */
 		}
 		else if (type == SCAN_OUT)
 		{
 			/* Clock Data Bits Out on -ve Clock Edge LSB First (no Read) */
 			BUFFER_ADD = 0x1b;
-			//DEBUG("added TDI bits (o)");
+			/* DEBUG("added TDI bits (o)"); */
 		}
 		else if (type == SCAN_IN)
 		{
 			/* Clock Data Bits In on +ve Clock Edge LSB First (no Write) */
 			BUFFER_ADD = 0x2a;
-			//DEBUG("added TDI bits (i %i)", bits_left - 1);
+			/* DEBUG("added TDI bits (i %i)", bits_left - 1); */
 		}
 		BUFFER_ADD = bits_left - 2;
 		if (type != SCAN_IN)
@@ -597,19 +597,19 @@ void ft2232_add_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size
 		{
 			/* Clock Data Bits In and Out LSB First */
 			BUFFER_ADD = 0x3b;
-			//DEBUG("added TDI bits (io) %i", bits_left - 1);
+			/* DEBUG("added TDI bits (io) %i", bits_left - 1); */
 		}
 		else if (type == SCAN_OUT)
 		{
 			/* Clock Data Bits Out on -ve Clock Edge LSB First (no Read) */
 			BUFFER_ADD = 0x1b;
-			//DEBUG("added TDI bits (o)");
+			/* DEBUG("added TDI bits (o)"); */
 		}
 		else if (type == SCAN_IN)
 		{
 			/* Clock Data Bits In on +ve Clock Edge LSB First (no Write) */
 			BUFFER_ADD = 0x2a;
-			//DEBUG("added TDI bits (i %i)", bits_left - 1);
+			/* DEBUG("added TDI bits (i %i)", bits_left - 1); */
 		}
 		BUFFER_ADD = 0x0;
 		BUFFER_ADD = last_bit;
@@ -621,13 +621,13 @@ void ft2232_add_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size
 		{
 			/* Clock Data to TMS/CS Pin with Read */
 			BUFFER_ADD = 0x6b;
-			//DEBUG("added TMS scan (read)");
+			/* DEBUG("added TMS scan (read)"); */
 		}
 		else
 		{
 			/* Clock Data to TMS/CS Pin (no Read) */
 			BUFFER_ADD = 0x4b;
-			//DEBUG("added TMS scan (no read)");
+			/* DEBUG("added TMS scan (no read)"); */
 		}
 		BUFFER_ADD = 0x6;
 		BUFFER_ADD = TAP_MOVE(cur_state, end_state) | (last_bit << 7);
@@ -682,19 +682,19 @@ int ft2232_large_scan(scan_command_t *cmd, enum scan_type type, u8 *buffer, int 
 		{
 			/* Clock Data Bytes In and Out LSB First */
 			BUFFER_ADD = 0x39;
-			//DEBUG("added TDI bytes (io %i)", num_bytes);
+			/* DEBUG("added TDI bytes (io %i)", num_bytes); */
 		}
 		else if (type == SCAN_OUT)
 		{
 			/* Clock Data Bytes Out on -ve Clock Edge LSB First (no Read) */
 			BUFFER_ADD = 0x19;
-			//DEBUG("added TDI bytes (o)");
+			/* DEBUG("added TDI bytes (o)"); */
 		}
 		else if (type == SCAN_IN)
 		{
 			/* Clock Data Bytes In on +ve Clock Edge LSB First (no Write) */
 			BUFFER_ADD = 0x28;
-			//DEBUG("added TDI bytes (i %i)", num_bytes);
+			/* DEBUG("added TDI bytes (i %i)", num_bytes); */
 		}
 		thisrun_bytes = (num_bytes > 65537) ? 65536 : (num_bytes - 1);
 		thisrun_read = thisrun_bytes;
@@ -751,19 +751,19 @@ int ft2232_large_scan(scan_command_t *cmd, enum scan_type type, u8 *buffer, int 
 		{
 			/* Clock Data Bits In and Out LSB First */
 			BUFFER_ADD = 0x3b;
-			//DEBUG("added TDI bits (io) %i", bits_left - 1);
+			/* DEBUG("added TDI bits (io) %i", bits_left - 1); */
 		}
 		else if (type == SCAN_OUT)
 		{
 			/* Clock Data Bits Out on -ve Clock Edge LSB First (no Read) */
 			BUFFER_ADD = 0x1b;
-			//DEBUG("added TDI bits (o)");
+			/* DEBUG("added TDI bits (o)"); */
 		}
 		else if (type == SCAN_IN)
 		{
 			/* Clock Data Bits In on +ve Clock Edge LSB First (no Write) */
 			BUFFER_ADD = 0x2a;
-			//DEBUG("added TDI bits (i %i)", bits_left - 1);
+			/* DEBUG("added TDI bits (i %i)", bits_left - 1); */
 		}
 		BUFFER_ADD = bits_left - 2;
 		if (type != SCAN_IN)
@@ -779,19 +779,19 @@ int ft2232_large_scan(scan_command_t *cmd, enum scan_type type, u8 *buffer, int 
 		{
 			/* Clock Data Bits In and Out LSB First */
 			BUFFER_ADD = 0x3b;
-			//DEBUG("added TDI bits (io) %i", bits_left - 1);
+			/* DEBUG("added TDI bits (io) %i", bits_left - 1); */
 		}
 		else if (type == SCAN_OUT)
 		{
 			/* Clock Data Bits Out on -ve Clock Edge LSB First (no Read) */
 			BUFFER_ADD = 0x1b;
-			//DEBUG("added TDI bits (o)");
+			/* DEBUG("added TDI bits (o)"); */
 		}
 		else if (type == SCAN_IN)
 		{
 			/* Clock Data Bits In on +ve Clock Edge LSB First (no Write) */
 			BUFFER_ADD = 0x2a;
-			//DEBUG("added TDI bits (i %i)", bits_left - 1);
+			/* DEBUG("added TDI bits (i %i)", bits_left - 1); */
 		}
 		BUFFER_ADD = 0x0;
 		BUFFER_ADD = last_bit;
@@ -803,13 +803,13 @@ int ft2232_large_scan(scan_command_t *cmd, enum scan_type type, u8 *buffer, int 
 		{
 			/* Clock Data to TMS/CS Pin with Read */
 			BUFFER_ADD = 0x6b;
-			//DEBUG("added TMS scan (read)");
+			/* DEBUG("added TMS scan (read)"); */
 		}
 		else
 		{
 			/* Clock Data to TMS/CS Pin (no Read) */
 			BUFFER_ADD = 0x4b;
-			//DEBUG("added TMS scan (no read)");
+			/* DEBUG("added TMS scan (no read)"); */
 		}
 		BUFFER_ADD = 0x6;
 		BUFFER_ADD = TAP_MOVE(cur_state, end_state) | (last_bit << 7);
@@ -881,7 +881,7 @@ int ft2232_predict_scan_in(int scan_size, enum scan_type type)
 		predicted_size += 1;
 	}
 	
-	//DEBUG("scan_size: %i, predicted_size: %i", scan_size, predicted_size);
+	/* DEBUG("scan_size: %i, predicted_size: %i", scan_size, predicted_size); */
 
 	return predicted_size;
 }
@@ -1198,7 +1198,7 @@ int ft2232_execute_queue()
 					BUFFER_ADD = 0x0;
 					cur_state = TAP_RTI;
 					i -= (i > 7) ? 7 : i;
-					//DEBUG("added TMS scan (no read)");
+					/* DEBUG("added TMS scan (no read)"); */
 				}
 				if (cmd->cmd.runtest->end_state != -1)
 					ft2232_end_state(cmd->cmd.runtest->end_state);
@@ -1211,7 +1211,7 @@ int ft2232_execute_queue()
 					/* TMS data bits */
 					BUFFER_ADD = TAP_MOVE(cur_state, end_state);
 					cur_state = end_state;
-					//DEBUG("added TMS scan (no read)");
+					/* DEBUG("added TMS scan (no read)"); */
 				}
 				require_send = 1;
 #ifdef _DEBUG_JTAG_IO_				
@@ -1236,7 +1236,7 @@ int ft2232_execute_queue()
 				BUFFER_ADD = 0x6;
 				/* TMS data bits */
 				BUFFER_ADD = TAP_MOVE(cur_state, end_state);
-				//DEBUG("added TMS scan (no read)");
+				/* DEBUG("added TMS scan (no read)"); */
 				cur_state = end_state;
 				require_send = 1;
 #ifdef _DEBUG_JTAG_IO_				
@@ -1290,7 +1290,7 @@ int ft2232_execute_queue()
 					first_unsent = cmd;
 				}
 				ft2232_expect_read += ft2232_predict_scan_in(scan_size, type);
-				//DEBUG("new read size: %i", ft2232_expect_read);
+				/* DEBUG("new read size: %i", ft2232_expect_read); */
 				if (cmd->cmd.scan->end_state != -1)
 					ft2232_end_state(cmd->cmd.scan->end_state);
 				ft2232_add_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);

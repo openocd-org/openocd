@@ -27,7 +27,7 @@
 #include "bitbang.h"
 
 /* system includes */
-// -ino: 060521-1036
+/* -ino: 060521-1036 */
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 
 #include <sys/types.h>
@@ -189,7 +189,7 @@ int parport_read(void)
 		return 0;
 }
 
-static inline void parport_write_data(void)
+static __inline__ void parport_write_data(void)
 {
 	u8 output;
 	output = dataport_value ^ cable->OUTPUT_INVERT;

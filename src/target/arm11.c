@@ -404,14 +404,15 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 
     arm11_write_DSCR(arm11, new_dscr);
 
-//    jtag_execute_queue();
+    /* jtag_execute_queue(); */
 
 
+/*
+    DEBUG("SAVE DSCR %08x", R(DSCR));
 
-//    DEBUG("SAVE DSCR %08x", R(DSCR));
-
-//    if (R(DSCR) & ARM11_DSCR_WDTR_FULL)
-//	DEBUG("SAVE wDTR %08x", R(WDTR));
+    if (R(DSCR) & ARM11_DSCR_WDTR_FULL)
+	DEBUG("SAVE wDTR %08x", R(WDTR));
+*/
 
 
     /* From the spec:
@@ -424,7 +425,7 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
     while (1)
     {
 	/* MRC p14,0,R0,c5,c10,0 */
-//	arm11_run_instr_no_data1(arm11, /*0xee150e1a*/0xe320f000);
+	/* arm11_run_instr_no_data1(arm11, /*0xee150e1a*/0xe320f000); */
 
 	/* mcr     15, 0, r0, cr7, cr10, {4} */
 	arm11_run_instr_no_data1(arm11, 0xee070f9a);
@@ -501,7 +502,7 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 	arm11->reg_values[ARM11_RC_PC] -= 8;
     }
 
-//    DEBUG("SAVE PC   %08x", R(PC));
+    /* DEBUG("SAVE PC   %08x", R(PC)); */
 
     arm11_run_instr_data_finish(arm11);
 
@@ -557,7 +558,7 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 	/* MRC p14,0,r?,c0,c5,0 */
 	arm11_run_instr_data_to_core1(arm11, 0xee100e15 | (i << 12), R(RX + i));
 
-//	DEBUG("RESTORE R%d %08x", i, R(RX + i));
+	/* DEBUG("RESTORE R%d %08x", i, R(RX + i)); */
     }}
 
     arm11_run_instr_data_finish(arm11);
@@ -762,8 +763,10 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 {
     FNC_INFO;
 
-//    DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
-//	current, address, handle_breakpoints, debug_execution);
+/*
+    DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
+	current, address, handle_breakpoints, debug_execution);
+*/
 
     arm11_common_t * arm11 = target->arch_info;
 
@@ -948,7 +951,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 	arm11_on_enter_debug_state(arm11);
     }
 
-//    target->state		= TARGET_HALTED;
+    /* target->state		= TARGET_HALTED; */
     target->debug_reason	= DBG_REASON_SINGLESTEP;
 
     target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -1447,7 +1450,7 @@ int arm11_set_reg(reg_t *reg, u8 *buf)
 
     target_t * target = ((arm11_reg_state_t *)reg->arch_info)->target;
     arm11_common_t *arm11 = target->arch_info;
-//    const arm11_reg_defs_t * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
+    /* const arm11_reg_defs_t * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index; */
 
     arm11->reg_values[((arm11_reg_state_t *)reg->arch_info)->def_index] = buf_get_u32(buf, 0, 32);
     reg->valid	= 1;
@@ -1479,8 +1482,8 @@ void arm11_build_reg_cache(target_t *target)
     reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
     (*cache_p) = cache;
 
-//    armv7m->core_cache = cache;
-//    armv7m->process_context = cache;
+    /* armv7m->core_cache = cache; */
+    /* armv7m->process_context = cache; */
 
     size_t i;
 

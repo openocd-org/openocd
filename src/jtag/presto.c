@@ -161,7 +161,7 @@ int presto_write(u8 *buf, int size, u32* bytes_written)
 	}
 	else
 	{
-		*bytes_written = retval;
+		*bytes_written = presto->retval; /* FIXME: Correct? */
 		return ERROR_OK;	
 	}
 #endif
@@ -197,7 +197,7 @@ int presto_read(u8* buf, int size, u32* bytes_read)
 			ERROR("ftdi_read_data: %s", ftdi_get_error_string(&presto->ftdic));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		*bytes_read += retval;
+		*bytes_read += presto->retval; /* FIXME: Correct? */
 	}
 #endif
 

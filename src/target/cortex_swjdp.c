@@ -327,13 +327,13 @@ int ahbap_setup_accessport(swjdp_common_t *swjdp, u32 csw, u32 tar)
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT;
 	if (csw != swjdp->ap_csw_value)
 	{
-		//DEBUG("swjdp : Set CSW %x",csw);
+		/* DEBUG("swjdp : Set CSW %x",csw); */
 		ahbap_write_reg_u32(swjdp, AHBAP_CSW, csw ); 
 		swjdp->ap_csw_value = csw;
 	}
 	if (tar != swjdp->ap_tar_value)
 	{
-		//DEBUG("swjdp : Set TAR %x",tar);
+		/* DEBUG("swjdp : Set TAR %x",tar); */
 		ahbap_write_reg_u32(swjdp, AHBAP_TAR, tar );
 		swjdp->ap_tar_value = tar;
 	}

@@ -98,9 +98,9 @@ typedef struct swjdp_common_s
 
 /* Internal functions used in the module, partial transactions, use with caution */
 extern int swjdp_write_dpacc(swjdp_common_t *swjdp, u32 value, u8 reg_addr);
-//extern int swjdp_write_apacc(swjdp_common_t *swjdp, u32 value, u8 reg_addr);
+/* extern int swjdp_write_apacc(swjdp_common_t *swjdp, u32 value, u8 reg_addr); */
 extern int swjdp_read_dpacc(swjdp_common_t *swjdp, u32 *value, u8 reg_addr);
-//extern int swjdp_read_apacc(swjdp_common_t *swjdp, u32 *value, u8 reg_addr);
+/* extern int swjdp_read_apacc(swjdp_common_t *swjdp, u32 *value, u8 reg_addr); */
 extern int ahbap_write_reg(swjdp_common_t *swjdp, u32 reg_addr, u8* out_value_buf);
 extern int ahbap_read_reg(swjdp_common_t *swjdp, u32 reg_addr, u8 *in_value_buf);
 

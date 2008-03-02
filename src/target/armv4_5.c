@@ -217,7 +217,7 @@ int armv4_5_get_core_reg(reg_t *reg)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
-	//retval = armv4_5->armv4_5_common->full_context(target);
+	/* retval = armv4_5->armv4_5_common->full_context(target); */
 	retval = armv4_5->armv4_5_common->read_core_reg(target, armv4_5->num, armv4_5->mode);
 	
 	return retval;

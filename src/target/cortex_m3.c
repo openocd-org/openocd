@@ -639,7 +639,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 	return ERROR_OK;
 }
 
-//int irqstepcount=0;
+/* int irqstepcount=0; */
 int cortex_m3_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
@@ -1134,7 +1134,7 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 			ERROR("JTAG failure %i",retval);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		//DEBUG("load from core reg %i  value 0x%x",num,*value);
+		/* DEBUG("load from core reg %i  value 0x%x",num,*value); */
 	}
 	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
 	{
@@ -1468,7 +1468,7 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, in
 	armv7m->arch_info = cortex_m3;
 	armv7m->load_core_reg_u32 = cortex_m3_load_core_reg_u32;
 	armv7m->store_core_reg_u32 = cortex_m3_store_core_reg_u32;
-//	armv7m->full_context = cortex_m3_full_context;
+	/* armv7m->full_context = cortex_m3_full_context; */
 	
 	target_register_timer_callback(cortex_m3_handle_target_request, 1, 1, target);
 	

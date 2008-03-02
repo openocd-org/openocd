@@ -134,7 +134,7 @@ typedef struct  cortex_m3_dwt_comparator_s
 typedef struct cortex_m3_common_s
 {
 	int common_magic;
-//	int (*full_context)(struct target_s *target);
+	/* int (*full_context)(struct target_s *target); */
 
 	arm_jtag_t jtag_info;
 	

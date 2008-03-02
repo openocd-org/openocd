@@ -63,7 +63,7 @@ char* armv7m_core_reg_list[] =
 	"sp", "lr", "pc",
 	"xPSR", "msp", "psp",
 	/* Registers accessed through MSR instructions */
-//	"apsr", "iapsr", "ipsr", "epsr",
+	/* "apsr", "iapsr", "ipsr", "epsr", */
 	"primask", "basepri", "faultmask", "control"
 };
 
@@ -74,7 +74,7 @@ char* armv7m_core_dbgreg_list[] =
 	"sp", "lr", "pc",
 	"xPSR", "msp", "psp",
 	/* Registers accessed through MSR instructions */
-//	"dbg_apsr", "iapsr", "ipsr", "epsr",
+	/* "dbg_apsr", "iapsr", "ipsr", "epsr", */
 	"primask", "basepri", "faultmask", "dbg_control"
 };
 
@@ -110,10 +110,12 @@ armv7m_core_reg_t armv7m_core_reg_list_arch_info[] =
 	{18, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL}, /* PSP */
 
 	/*  CORE_SP are accesible using MSR and MRS instructions */
+#if 0
 //	{0x00, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* APSR */
 //	{0x01, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* IAPSR */
 //	{0x05, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* IPSR */
 //	{0x06, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* EPSR */
+#endif
 
 	{0x10, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* PRIMASK */
 	{0x11, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* BASEPRI */
@@ -332,7 +334,7 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	{
 		if (i < ARMV7NUMCOREREGS)
 			(*reg_list)[i] = &armv7m->process_context->reg_list[i];
-			//(*reg_list)[i] = &armv7m->core_cache->reg_list[i];
+			/* (*reg_list)[i] = &armv7m->core_cache->reg_list[i]; */
 		else
 			(*reg_list)[i] = &armv7m_gdb_dummy_fp_reg;
 	}
@@ -344,7 +346,7 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 
 int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
 {
-	// get pointers to arch-specific information
+	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	armv7m_algorithm_t *armv7m_algorithm_info = arch_info;
 	enum armv7m_state core_state = armv7m->core_state;
