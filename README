@@ -134,7 +134,37 @@ http://openfacts.berlios.de/index-en.phtml?title=Open_On-Chip_Debugger.
 There is also and openocd(1) manpage, the 'openocd --help' output and
 an OpenOCD info page (type 'info openocd').
 
-5. Licensing
+5. Coding Style
+
+The following rules try to describe formatting and naming conventions that 
+should be followed to make the whole OpenOCD code look more consistent.
+The ultimate goal of coding style should be readability, and these rules may 
+be ignored for a particular (small) piece of code if that makes it more 
+readable.
+
+Formatting rules:
+- remove any trailing white space
+- use TAB characters for indentation, not spaces
+- displayed TAB width is 4 characters
+- make sure NOT to use DOS '\r\n' line feeds
+- do not add more than 2 empty lines to source files
+- do not add trailing empty lines to source files
+- do not use C++ style comments (//)
+- lines may be reasonably wide - there's no anachronistic 80 characters limit
+
+Naming rules:
+- identifiers use lower-case letters only
+- identifiers consisting of multiple words use underline characters between 
+consecutive words
+- macros use upper-case letters only
+- structure names shall be appended with '_s'
+- typedefs shall be appended with '_t'
+
+Function calls:
+- function calls have no space between the functions name and the parameter 
+list: my_func(param1, param2, ...)
+
+6. Licensing
 
 OpenOCD is licensed under the terms of the GNU General Public License, see the
 file COPYING for details.
