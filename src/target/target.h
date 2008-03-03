@@ -33,7 +33,16 @@
 
 struct reg_s;
 struct command_context_s;
-
+/*
+TARGET_UNKNOWN = 0: we don't know anything about the target yet
+TARGET_RUNNING = 1: the target is executing user code
+TARGET_HALTED  = 2: the target is not executing code, and ready to talk to the
+debugger. on an xscale it means that the debug handler is executing
+TARGET_RESET   = 3: the target is being held in reset (only a temporary state,
+not sure how this is used with all the recent changes)
+TARGET_DEBUG_RUNNING = 4: the target is running, but it is executing code on
+behalf of the debugger (e.g. algorithm for flashing)
+*/
 enum target_state
 {
 	TARGET_UNKNOWN = 0,
