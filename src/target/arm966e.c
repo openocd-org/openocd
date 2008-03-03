@@ -125,6 +125,7 @@ int arm966e_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	int chain_pos;
 	char *variant = NULL;
 	arm966e_common_t *arm966e = malloc(sizeof(arm966e_common_t));
+	memset(arm966e, 0, sizeof(*arm966e));
 	
 	if (argc < 4)
 	{

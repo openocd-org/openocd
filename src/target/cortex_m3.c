@@ -1481,6 +1481,7 @@ int cortex_m3_target_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	int chain_pos;
 	char *variant = NULL;
 	cortex_m3_common_t *cortex_m3 = malloc(sizeof(cortex_m3_common_t));
+	memset(cortex_m3, 0, sizeof(*cortex_m3));
 
 	if (argc < 4)
 	{

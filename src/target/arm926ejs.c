@@ -702,6 +702,7 @@ int arm926ejs_target_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	int chain_pos;
 	char *variant = NULL;
 	arm926ejs_common_t *arm926ejs = malloc(sizeof(arm926ejs_common_t));
+	memset(arm926ejs, 0, sizeof(*arm926ejs));
 	
 	if (argc < 4)
 	{

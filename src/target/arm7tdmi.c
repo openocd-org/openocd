@@ -845,6 +845,7 @@ int arm7tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	int chain_pos;
 	char *variant = NULL;
 	arm7tdmi_common_t *arm7tdmi = malloc(sizeof(arm7tdmi_common_t));
+	memset(arm7tdmi, 0, sizeof(*arm7tdmi));
 
 	if (argc < 4)
 	{

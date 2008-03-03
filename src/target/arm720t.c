@@ -447,6 +447,7 @@ int arm720t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	int chain_pos;
 	char *variant = NULL;
 	arm720t_common_t *arm720t = malloc(sizeof(arm720t_common_t));
+	memset(arm720t, 0, sizeof(*arm720t));
 	
 	if (argc < 4)
 	{

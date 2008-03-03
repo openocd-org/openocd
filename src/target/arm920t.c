@@ -714,6 +714,7 @@ int arm920t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	int chain_pos;
 	char *variant = NULL;
 	arm920t_common_t *arm920t = malloc(sizeof(arm920t_common_t));
+	memset(arm920t, 0, sizeof(*arm920t));
 	
 	if (argc < 4)
 	{

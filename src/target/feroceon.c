@@ -609,6 +609,7 @@ int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	arm926ejs_common_t *arm926ejs = malloc(sizeof(arm926ejs_common_t));
+	memset(arm926ejs, 0, sizeof(*arm926ejs));
 	
 	if (argc < 4)
 	{

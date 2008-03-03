@@ -3145,6 +3145,7 @@ int xscale_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	int chain_pos;
 	char *variant = NULL;
 	xscale_common_t *xscale = malloc(sizeof(xscale_common_t));
+	memset(xscale, 0, sizeof(*xscale));
 
 	if (argc < 5)
 	{
