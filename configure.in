@@ -5,6 +5,7 @@ AC_SEARCH_LIBS([ioperm], [ioperm])
 
 AC_CANONICAL_HOST
 
+AC_CHECK_HEADERS(jtag_minidriver.h)
 AC_CHECK_HEADERS(sys/param.h)
 AC_CHECK_HEADERS(elf.h)
 
