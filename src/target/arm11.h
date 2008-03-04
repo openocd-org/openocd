@@ -33,15 +33,12 @@
     type * variable = calloc(1, sizeof(type) * items)
 
 
-/* Don't know exactly when %zu was added to glibc (CVS says in 1998).
-   Assume for now that its between GCC versions 3.x.x and 4.x.x .
-   MinGW's GCC 3.4.5 comes with a glibc that doesn't support it.
-*/
+/* For MinGW use 'I' prefix to print size_t (instead of 'z') */
 
-#if __GNUC__ > 3
+#ifndef __MSVCRT__
 #define ZU		"%zu"
 #else
-#define ZU		"%u"
+#define ZU		"%Iu"
 #endif
 
 
