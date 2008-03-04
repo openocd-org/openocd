@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -28,13 +29,9 @@
 #include <string.h>
 
 #if 0
-#define JTAG_DEBUG(expr ...) \
-	do { \
-	    log_printf (LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr); \
-	} while(0)
+#define JTAG_DEBUG(expr ...)	DEBUG(expr)
 #else
-#define JTAG_DEBUG(expr ...) \
-	do {} while(0)
+#define JTAG_DEBUG(expr ...)	do {} while(0)
 #endif
 
 enum tap_state arm11_move_pi_to_si_via_ci[] =
@@ -727,7 +724,7 @@ void arm11_sc7_clear_vbw(arm11_common_t * arm11)
     {size_t i;
     for (i = 0; i < asizeof(clear_bw); i++)
     {
-	clear_bw[i].write	= 1;
+	clear_bw[i].write	= true;
 	clear_bw[i].value	= 0;
     }}
 

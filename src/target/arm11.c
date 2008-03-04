@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -47,8 +48,8 @@
 static void arm11_on_enter_debug_state(arm11_common_t * arm11);
 
 
-int	arm11_config_memwrite_burst		= 1;
-int	arm11_config_memwrite_error_fatal	= 1;
+bool	arm11_config_memwrite_burst		= true;
+bool	arm11_config_memwrite_error_fatal	= true;
 u32	arm11_vcr				= 0;
 
 
@@ -404,16 +405,6 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 
     arm11_write_DSCR(arm11, new_dscr);
 
-    /* jtag_execute_queue(); */
-
-
-/*
-    DEBUG("SAVE DSCR %08x", R(DSCR));
-
-    if (R(DSCR) & ARM11_DSCR_WDTR_FULL)
-	DEBUG("SAVE wDTR %08x", R(WDTR));
-*/
-
 
     /* From the spec:
 	Before executing any instruction in debug state you have to drain the write buffer.
@@ -425,7 +416,7 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
     while (1)
     {
 	/* MRC p14,0,R0,c5,c10,0 */
-	/* arm11_run_instr_no_data1(arm11, /*0xee150e1a*/0xe320f000); */
+//	arm11_run_instr_no_data1(arm11, /*0xee150e1a*/0xe320f000);
 
 	/* mcr     15, 0, r0, cr7, cr10, {4} */
 	arm11_run_instr_no_data1(arm11, 0xee070f9a);
@@ -502,7 +493,20 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 	arm11->reg_values[ARM11_RC_PC] -= 8;
     }
 
-    /* DEBUG("SAVE PC   %08x", R(PC)); */
+    if (arm11->simulate_reset_on_next_halt)
+    {
+	arm11->simulate_reset_on_next_halt = false;
+
+	DEBUG("Reset c1 Control Register");
+
+	/* Write 0 (reset value) to Control register 0 to disable MMU/Cache etc. */
+
+	/* MCR p15,0,R0,c1,c0,0 */
+	arm11_run_instr_data_to_core_via_r0(arm11, 0xee010f10, 0);
+
+    }
+
+
 
     arm11_run_instr_data_finish(arm11);
 
@@ -558,7 +562,7 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 	/* MRC p14,0,r?,c0,c5,0 */
 	arm11_run_instr_data_to_core1(arm11, 0xee100e15 | (i << 12), R(RX + i));
 
-	/* DEBUG("RESTORE R%d %08x", i, R(RX + i)); */
+//	DEBUG("RESTORE R%d %08x", i, R(RX + i));
     }}
 
     arm11_run_instr_data_finish(arm11);
@@ -719,6 +723,11 @@ int arm11_halt(struct target_s *target)
 
     DEBUG("target->state: %s", target_state_strings[target->state]);
 
+    if (target->state == TARGET_UNKNOWN)
+    {
+	arm11->simulate_reset_on_next_halt = true;
+    }
+
     if (target->state == TARGET_HALTED)
     {
 	WARNING("target was already halted");
@@ -727,7 +736,7 @@ int arm11_halt(struct target_s *target)
 
     if (arm11->trst_active)
     {
-	arm11->halt_requested = 1;
+	arm11->halt_requested = true;
 	return ERROR_OK;
     }
 
@@ -763,10 +772,8 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 {
     FNC_INFO;
 
-/*
-    DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
-	current, address, handle_breakpoints, debug_execution);
-*/
+//    DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
+//	current, address, handle_breakpoints, debug_execution);
 
     arm11_common_t * arm11 = target->arch_info;
 
@@ -820,7 +827,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
     
 	    arm11_sc7_run(arm11, brp, asizeof(brp));
 
-	    DEBUG("Add BP %d at %08x", brp_num, bp->address);
+	    DEBUG("Add BP %zd at %08x", brp_num, bp->address);
 
 	    brp_num++;
 	}
@@ -886,13 +893,22 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 
     arm11_read_memory_word(arm11, R(PC), &next_instruction);
 
-    /** skip over BKPT */
+    /* skip over BKPT */
     if ((next_instruction & 0xFFF00070) == 0xe1200070)
     {
 	R(PC) += 4;
 	arm11->reg_list[ARM11_RC_PC].valid = 1;
 	arm11->reg_list[ARM11_RC_PC].dirty = 0;
 	INFO("Skipping BKPT");
+    }
+    /* skip over Wait for interrupt / Standby */
+    /* mcr	15, 0, r?, cr7, cr0, {4} */
+    else if ((next_instruction & 0xFFFF0FFF) == 0xee070f90)
+    {
+	R(PC) += 4;
+	arm11->reg_list[ARM11_RC_PC].valid = 1;
+	arm11->reg_list[ARM11_RC_PC].dirty = 0;
+	INFO("Skipping WFI");
     }
     /* ignore B to self */
     else if ((next_instruction & 0xFEFFFFFF) == 0xeafffffe)
@@ -951,7 +967,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 	arm11_on_enter_debug_state(arm11);
     }
 
-    /* target->state		= TARGET_HALTED; */
+//    target->state		= TARGET_HALTED;
     target->debug_reason	= DBG_REASON_SINGLESTEP;
 
     target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -973,7 +989,7 @@ int arm11_assert_reset(struct target_s *target)
     jtag_add_sleep(5000);
 
     arm11_common_t * arm11 = target->arch_info;
-    arm11->trst_active = 1;
+    arm11->trst_active = true;
 #endif
 
     return ERROR_OK;
@@ -1076,7 +1092,8 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 	/** \todo TODO: check if dirty is the right choice to force a rewrite on arm11_resume() */
 	arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-	while (count--)
+	{size_t i;
+	for (i = 0; i < count; i++)
 	{
 	    /* ldrb    r1, [r0], #1 */
 	    arm11_run_instr_no_data1(arm11, 0xe4d01001);
@@ -1086,7 +1103,8 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 	    arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
 
 	    *buffer++ = res;
-	}
+	}}
+
 	break;
 
     case 2:
@@ -1095,7 +1113,8 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 
 	u16 * buf16 = (u16*)buffer;
 
-	while (count--)
+	{size_t i;
+	for (i = 0; i < count; i++)
 	{
 	    /* ldrh    r1, [r0], #2 */
 	    arm11_run_instr_no_data1(arm11, 0xe0d010b2);
@@ -1106,7 +1125,8 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 	    arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
 
 	    *buf16++ = res;
-	}
+	}}
+
 	break;
     }
 
@@ -1138,17 +1158,21 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
     switch (size)
     {
     case 1:
+    {
 	arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-	while (count--)
+	{size_t i;
+	for (i = 0; i < count; i++)
 	{
 	    /* MRC p14,0,r1,c0,c5,0 */
 	    arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buffer++);
 
 	    /* strb    r1, [r0], #1 */
 	    arm11_run_instr_no_data1(arm11, 0xe4c01001);
-	}
+	}}
+
 	break;
+    }
 
     case 2:
     {
@@ -1156,14 +1180,16 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 
 	u16 * buf16 = (u16*)buffer;
 
-	while (count--)
+	{size_t i;
+	for (i = 0; i < count; i++)
 	{
 	    /* MRC p14,0,r1,c0,c5,0 */
 	    arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buf16++);
 
 	    /* strh    r1, [r0], #2 */
 	    arm11_run_instr_no_data1(arm11, 0xe0c010b2);
-	}
+	}}
+
 	break;
     }
 
@@ -1450,7 +1476,7 @@ int arm11_set_reg(reg_t *reg, u8 *buf)
 
     target_t * target = ((arm11_reg_state_t *)reg->arch_info)->target;
     arm11_common_t *arm11 = target->arch_info;
-    /* const arm11_reg_defs_t * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index; */
+//    const arm11_reg_defs_t * arm11_reg_info = arm11_reg_defs + ((arm11_reg_state_t *)reg->arch_info)->def_index;
 
     arm11->reg_values[((arm11_reg_state_t *)reg->arch_info)->def_index] = buf_get_u32(buf, 0, 32);
     reg->valid	= 1;
@@ -1482,8 +1508,8 @@ void arm11_build_reg_cache(target_t *target)
     reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
     (*cache_p) = cache;
 
-    /* armv7m->core_cache = cache; */
-    /* armv7m->process_context = cache; */
+//    armv7m->core_cache = cache;
+//    armv7m->process_context = cache;
 
     size_t i;
 
@@ -1492,7 +1518,7 @@ void arm11_build_reg_cache(target_t *target)
 	ARM11_REGCACHE_COUNT != asizeof(arm11_reg_defs) ||
 	ARM11_REGCACHE_COUNT != ARM11_RC_MAX)
     {
-	ERROR("arm11->reg_values inconsistent (%d %d %d %d)", ARM11_REGCACHE_COUNT, asizeof(arm11->reg_values), asizeof(arm11_reg_defs), ARM11_RC_MAX);
+	ERROR("arm11->reg_values inconsistent (%d %zd %zd %d)", ARM11_REGCACHE_COUNT, asizeof(arm11->reg_values), asizeof(arm11_reg_defs), ARM11_RC_MAX);
 	exit(-1);
     }
 
@@ -1519,7 +1545,7 @@ void arm11_build_reg_cache(target_t *target)
 
 
 
-int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, int * var, char * name)
+int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, bool * var, char * name)
 {
     if (argc == 0)
     {
@@ -1537,7 +1563,7 @@ int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args,
     case 'F':
     case 'd':	/* disable */
     case 'D':
-	*var = 0;
+	*var = false;
 	break;
 
     case '1':	/* 1 */
@@ -1545,7 +1571,7 @@ int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args,
     case 'T':
     case 'e':	/* enable */
     case 'E':
-	*var = 1;
+	*var = true;
 	break;
     }
 

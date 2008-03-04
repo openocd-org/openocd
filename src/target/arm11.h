@@ -16,6 +16,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifndef ARM11_H
 #define ARM11_H
 
@@ -23,12 +24,13 @@
 #include "register.h"
 #include "embeddedice.h"
 #include "arm_jtag.h"
+#include <stdbool.h>
 
 
 #define asizeof(x)	(sizeof(x) / sizeof((x)[0]))
 
-#define NEW(type, variable, items) \
-    type * variable = malloc(sizeof(type) * items)
+#define NEW(type, variable, items)			\
+    type * variable = calloc(1, sizeof(type) * items)
 
 
 #define ARM11_REGCACHE_MODEREGS		0
@@ -77,8 +79,9 @@ typedef struct arm11_common_s
     u32		last_dscr;	    /**< Last retrieved DSCR value;
 				     *   Can be used to detect changes		*/
 
-    u8		trst_active;
-    u8		halt_requested;
+    bool	trst_active;
+    bool	halt_requested;
+    bool	simulate_reset_on_next_halt;
 
     /** \name Shadow registers to save processor state */
     /*@{*/
@@ -254,7 +257,7 @@ int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state st
  */
 typedef struct arm11_sc7_action_s
 {
-    int    write;				/**< Access mode: true for write, false for read.	*/
+    bool    write;				/**< Access mode: true for write, false for read.	*/
     u8	    address;				/**< Register address mode. Use enum #arm11_sc7		*/
     u32	    value;				/**< If write then set this to value to be written.
 						     In read mode this receives the read value when the
