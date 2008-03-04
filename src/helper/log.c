@@ -60,8 +60,6 @@ static int count = 0;
  */
 static void log_puts(enum log_levels level, const char *file, int line, const char *function, const char *string)
 {
-	log_callback_t *cb;
-
 	if (level == LOG_OUTPUT)
 	{
 		/* do not prepend any headers, just print out what we were given and return */
@@ -98,10 +96,14 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 	/* Never forward LOG_DEBUG, too verbose and they can be found in the log if need be */
 	if (level <= LOG_INFO)
 	{
-		log_callback_t *cb;
-		for (cb = log_callbacks; cb; cb = cb->next)
+		log_callback_t *cb, *next;
+		cb = log_callbacks;
+		/* DANGER!!!! the log callback can remove itself!!!! */
+		while (cb)
 		{
+			next=cb->next;
 			cb->fn(cb->priv, file, line, function, string);
+			cb=next;
 		}
 	}
 }

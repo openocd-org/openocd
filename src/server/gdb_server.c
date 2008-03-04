@@ -529,7 +529,7 @@ int gdb_output_con(connection_t *connection, const char* line)
 int gdb_output(struct command_context_s *context, char* line)
 {
 	/* this will be dumped to the log and also sent as an O packet if possible */
-	USER_N(line);
+	USER_N("%s", line);
 	return ERROR_OK;
 }
 

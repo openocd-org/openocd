@@ -1698,8 +1698,6 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 
 	target_process_events(cmd_ctx);
 	
-	target_arch_state(target);
-	
 	return retval;
 }
 
