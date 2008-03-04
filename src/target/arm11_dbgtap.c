@@ -521,7 +521,7 @@ void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 
     }}
 
     if (error_count)
-	ERROR("Transfer errors %d", error_count);
+	ERROR("Transfer errors " ZU, error_count);
 }
 
 
@@ -739,6 +739,8 @@ void arm11_sc7_clear_vbw(arm11_common_t * arm11)
     }
 
     (pos++)->address = ARM11_SC7_VCR;
+
+    arm11_sc7_run(arm11, clear_bw, asizeof(clear_bw));
 }
 
 /** Write VCR register

@@ -33,6 +33,18 @@
     type * variable = calloc(1, sizeof(type) * items)
 
 
+/* Don't know exactly when %zu was added to glibc (CVS says in 1998).
+   Assume for now that its between GCC versions 3.x.x and 4.x.x .
+   MinGW's GCC 3.4.5 comes with a glibc that doesn't support it.
+*/
+
+#if __GNUC__ > 3
+#define ZU		"%zu"
+#else
+#define ZU		"%u"
+#endif
+
+
 #define ARM11_REGCACHE_MODEREGS		0
 #define ARM11_REGCACHE_FREGS		0
 

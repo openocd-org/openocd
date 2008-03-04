@@ -282,7 +282,6 @@ enum arm11_regcache_ids
     ARM11_RC_WDTR,
     ARM11_RC_RDTR,
 
-
     ARM11_RC_MAX,
 };
 
@@ -562,7 +561,7 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 	/* MRC p14,0,r?,c0,c5,0 */
 	arm11_run_instr_data_to_core1(arm11, 0xee100e15 | (i << 12), R(RX + i));
 
-//	DEBUG("RESTORE R%d %08x", i, R(RX + i));
+//	DEBUG("RESTORE R" ZU " %08x", i, R(RX + i));
     }}
 
     arm11_run_instr_data_finish(arm11);
@@ -788,7 +787,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
     if (!current)
 	R(PC) = address;
 
-    INFO("RESUME PC %08x", R(PC));
+    INFO("RESUME PC %08x%s", R(PC), !current ? "!" : "");
 
     /* clear breakpoints/watchpoints and VCR*/
     arm11_sc7_clear_vbw(arm11);
@@ -827,7 +826,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
     
 	    arm11_sc7_run(arm11, brp, asizeof(brp));
 
-	    DEBUG("Add BP %zd at %08x", brp_num, bp->address);
+	    DEBUG("Add BP " ZU " at %08x", brp_num, bp->address);
 
 	    brp_num++;
 	}
@@ -885,7 +884,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
     if (!current)
 	R(PC) = address;
 
-    INFO("STEP PC %08x", R(PC));
+    INFO("STEP PC %08x%s", R(PC), !current ? "!" : "");
 
     /** \todo TODO: Thumb not supported here */
 
@@ -1518,7 +1517,7 @@ void arm11_build_reg_cache(target_t *target)
 	ARM11_REGCACHE_COUNT != asizeof(arm11_reg_defs) ||
 	ARM11_REGCACHE_COUNT != ARM11_RC_MAX)
     {
-	ERROR("arm11->reg_values inconsistent (%d %zd %zd %d)", ARM11_REGCACHE_COUNT, asizeof(arm11->reg_values), asizeof(arm11_reg_defs), ARM11_RC_MAX);
+	ERROR("arm11->reg_values inconsistent (%d " ZU " " ZU " %d)", ARM11_REGCACHE_COUNT, asizeof(arm11->reg_values), asizeof(arm11_reg_defs), ARM11_RC_MAX);
 	exit(-1);
     }
 
