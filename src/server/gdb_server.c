@@ -1560,8 +1560,8 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 		xml_printf(&retval, &xml, &pos, &size, "<memory-map>\n");
 
-		int i = 0;
-		for (;;)
+		int i;
+		for (i=0; i<flash_get_bank_count(); i++)
 		{
 			p = get_flash_bank_by_num(i);
 			if (p == NULL)
@@ -1575,7 +1575,6 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 				"<property name=\"blocksize\">0x%x</property>\n" \
 				"</memory>\n", \
 				p->base, p->size, blocksize);
-			i++;
 		}
 
 		xml_printf(&retval, &xml, &pos, &size, "</memory-map>\n");

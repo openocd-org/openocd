@@ -181,6 +181,17 @@ flash_bank_t *get_flash_bank_by_num_noprobe(int num)
 	return NULL;
 }
 
+int flash_get_bank_count()
+{
+	flash_bank_t *p;
+	int i = 0;
+	for (p = flash_banks; p; p = p->next)
+	{
+		i++;
+	}
+	return i;
+}
+
 flash_bank_t *get_flash_bank_by_num(int num)
 {
 	flash_bank_t *p = get_flash_bank_by_num_noprobe(num);
