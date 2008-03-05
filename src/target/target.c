@@ -362,11 +362,9 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 						command_print(cmd_ctx, "Timed out waiting for reset");
 						goto done;
 					}
-					/* this will send alive messages on e.g. GDB remote protocol.
-					 * GDB warns me that I'm sending a zero length formatting message,
-					 * which is strange, but in fact what is intended here. */
+					/* this will send alive messages on e.g. GDB remote protocol. */
 					usleep(500*1000); 
-					USER_N(""); 
+					USER_N("%s", ""); /* avoid warning about zero length formatting message*/ 
 					goto again;
 				}
 			}

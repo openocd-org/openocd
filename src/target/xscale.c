@@ -380,7 +380,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 
 	jtag_add_end_state(TAP_RTI);
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgtx);
-	jtag_add_runtest(1, -1);
+	jtag_add_runtest(1, -1); /* ensures that we're in the TAP_RTI state as the above could be a no-op */
 
 	/* repeat until all words have been collected */
 	int attempts=0;
