@@ -43,6 +43,7 @@
 #define _DEBUG_GDB_IO_
 #endif
 
+extern int gdb_error(connection_t *connection, int retval);
 static unsigned short gdb_port;
 static const char *DIGITS = "0123456789abcdef";
 
@@ -84,14 +85,58 @@ int gdb_last_signal(target_t *target)
 		case DBG_REASON_NOTHALTED:
 			return 0x0; /* no signal... shouldn't happen */
 		default:
-			ERROR("BUG: undefined debug reason");
-			exit(-1);
+			USER("undefined debug reason %d - target needs reset", target->debug_reason);
+			return 0x0;
 	}
 }
+
+#ifndef _WIN32
+int check_pending(connection_t *connection, int timeout_s, int *got_data)
+{
+	/* a non-blocking socket will block if there is 0 bytes available on the socket,
+	 * but return with as many bytes as are available immediately
+	 */
+	struct timeval tv;
+	fd_set read_fds;
+	gdb_connection_t *gdb_con = connection->priv;
+	int t;
+	if (got_data==NULL)
+		got_data=&t;
+	*got_data=0;
+
+	if (gdb_con->buf_cnt>0)
+	{
+		*got_data = 1;
+		return ERROR_OK;
+	}
+	
+	FD_ZERO(&read_fds);
+	FD_SET(connection->fd, &read_fds);
+	
+	tv.tv_sec = timeout_s;
+	tv.tv_usec = 0;
+	if (select(connection->fd + 1, &read_fds, NULL, NULL, &tv) == 0)
+	{
+		/* This can typically be because a "monitor" command took too long
+		 * before printing any progress messages
+		 */
+		if (timeout_s>0)
+		{
+			return ERROR_GDB_TIMEOUT;
+		} else
+		{
+			return ERROR_OK;
+		}
+	}
+	*got_data=FD_ISSET(connection->fd, &read_fds)!=0;
+	return ERROR_OK;
+}
+#endif
 
 int gdb_get_char(connection_t *connection, int* next_char)
 {
 	gdb_connection_t *gdb_con = connection->priv;
+	int retval=ERROR_OK;
 
 #ifdef _DEBUG_GDB_IO_
 	char *debug_buffer;
@@ -115,24 +160,9 @@ int gdb_get_char(connection_t *connection, int* next_char)
 	for (;;)
 	{
 #ifndef _WIN32
-		/* a non-blocking socket will block if there is 0 bytes available on the socket,
-		 * but return with as many bytes as are available immediately
-		 */
-		struct timeval tv;
-		fd_set read_fds;
-
-		FD_ZERO(&read_fds);
-		FD_SET(connection->fd, &read_fds);
-
-		tv.tv_sec = 1;
-		tv.tv_usec = 0;
-		if (select(connection->fd + 1, &read_fds, NULL, NULL, &tv) == 0)
-		{
-			/* This can typically be because a "monitor" command took too long
-			 * before printing any progress messages
-			 */
-			return ERROR_GDB_TIMEOUT;
-		}
+		retval=check_pending(connection, 1, NULL);
+		if (retval!=ERROR_OK)
+			return retval;
 #endif
 		gdb_con->buf_cnt = read_socket(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
 		if (gdb_con->buf_cnt > 0)
@@ -154,8 +184,10 @@ int gdb_get_char(connection_t *connection, int* next_char)
 				usleep(1000);
 				break;
 			case WSAECONNABORTED:
+				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			case WSAECONNRESET:
+				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
 				ERROR("read: %d", errno);
@@ -168,11 +200,14 @@ int gdb_get_char(connection_t *connection, int* next_char)
 				usleep(1000);
 				break;
 			case ECONNABORTED:
+				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			case ECONNRESET:
+				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
 				ERROR("read: %s", strerror(errno));
+				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 		}
 #endif
@@ -197,7 +232,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 	DEBUG("returned char '%c' (0x%2.2x)", *next_char, *next_char);
 #endif
 
-	return ERROR_OK;
+	return retval;
 }
 
 int gdb_putback_char(connection_t *connection, int last_char)
@@ -248,6 +283,27 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 	for (i = 0; i < len; i++)
 		my_checksum += buffer[i];
 
+#ifdef _DEBUG_GDB_IO_
+	/* 
+	 * At this point we should have nothing in the input queue from GDB,
+	 * however sometimes '-' is sent even though we've already received
+	 * an ACK (+) for everything we've sent off.
+	 */
+#ifndef _WIN32
+	int gotdata;
+	for (;;)
+	{
+		if ((retval=check_pending(connection, 0, &gotdata))!=ERROR_OK)
+			return retval;
+		if (!gotdata)
+			break;
+		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
+			return retval;
+		WARNING("Discard unexpected char %c", reply);
+	}
+#endif
+#endif
+
 	while (1)
 	{
 #ifdef _DEBUG_GDB_IO_
@@ -257,17 +313,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
 		free(debug_buffer);
 #endif
-#if 0
-		char checksum[3];
-		gdb_write(connection, "$", 1);
-		if (len > 0)
-			gdb_write(connection, buffer, len);
-		gdb_write(connection, "#", 1);
 
-		snprintf(checksum, 3, "%2.2x", my_checksum);
-
-		gdb_write(connection, checksum, 2);
-#else
 		void *allocated = NULL;
 		char stackAlloc[1024];
 		char *t = stackAlloc;
@@ -294,7 +340,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		{
 			free(allocated);
 		}
-#endif
+		
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
 
@@ -322,12 +368,14 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			else
 			{
 				ERROR("unknown character 0x%2.2x in reply, dropping connection", reply);
+				gdb_con->closed=1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 		}
 		else
 		{
 			ERROR("unknown character 0x%2.2x in reply, dropping connection", reply);
+			gdb_con->closed=1;
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 	}
@@ -624,6 +672,9 @@ int gdb_new_connection(connection_t *connection)
 	gdb_connection->vflash_image = NULL;
 	gdb_connection->closed = 0;
 	gdb_connection->busy = 0;
+	
+	/* send ACK to GDB for debug request */
+	gdb_write(connection, "+", 1);
 
 	/* output goes through gdb connection */
 	command_set_output_handler(connection->cmd_ctx, gdb_output, connection);
@@ -631,21 +682,27 @@ int gdb_new_connection(connection_t *connection)
 	/* register callback to be informed about target events */
 	target_register_event_callback(gdb_target_callback_event_handler, connection);
 
-	/* a gdb session just attached, put the target in halt mode */
+	/* a gdb session just attached, try to put the target in halt mode
+	 * or alterantively try to issue a reset.
+	 *
+	 * GDB connection will fail if e.g. register read packets fail,
+	 * otherwise resetting/halting the target could have been left to GDB init
+	 * scripts
+     */
 	if (((retval = gdb_service->target->type->halt(gdb_service->target)) != ERROR_OK) &&
 			(retval != ERROR_TARGET_ALREADY_HALTED))
 	{
-		ERROR("error(%d) when trying to halt target, falling back to \"reset halt\"", retval);
-		command_run_line(connection->cmd_ctx, "reset halt");
+		ERROR("error(%d) when trying to halt target, falling back to \"reset\"", retval);
+		command_run_line(connection->cmd_ctx, "reset");
 	}
-
-	/* This will time out after 1 second */
-	command_run_line(connection->cmd_ctx, "wait_halt 1");
-
+	
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
 		return retval;
 
+	/* FIX!!!??? would we actually ever receive a + here??? 
+	 * Not observed.
+	 */
 	if (initial_ack != '+')
 		gdb_putback_char(connection, initial_ack);
 
@@ -778,16 +835,7 @@ int gdb_get_registers_packet(connection_t *connection, target_t *target, char* p
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
-		switch (retval)
-		{
-			case ERROR_TARGET_NOT_HALTED:
-				ERROR("gdb requested registers but we're not halted, dropping connection");
-				return ERROR_SERVER_REMOTE_CLOSED;
-			default:
-				/* this is a bug condition - get_gdb_reg_list() may not return any other error */
-				ERROR("BUG: unexpected error returned by get_gdb_reg_list()");
-				exit(-1);
-		}
+		return gdb_error(connection, retval);
 	}
 
 	for (i = 0; i < reg_list_size; i++)
@@ -845,16 +893,7 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
-		switch (retval)
-		{
-			case ERROR_TARGET_NOT_HALTED:
-				ERROR("gdb tried to registers but we're not halted, dropping connection");
-				return ERROR_SERVER_REMOTE_CLOSED;
-			default:
-				/* this is a bug condition - get_gdb_reg_list() may not return any other error */
-				ERROR("BUG: unexpected error returned by get_gdb_reg_list()");
-				exit(-1);
-		}
+		return gdb_error(connection, retval);
 	}
 
 	packet_p = packet;
@@ -910,16 +949,7 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
-		switch (retval)
-		{
-			case ERROR_TARGET_NOT_HALTED:
-				ERROR("gdb requested registers but we're not halted, dropping connection");
-				return ERROR_SERVER_REMOTE_CLOSED;
-			default:
-				/* this is a bug condition - get_gdb_reg_list() may not return any other error */
-				ERROR("BUG: unexpected error returned by get_gdb_reg_list()");
-				exit(-1);
-		}
+		return gdb_error(connection, retval);
 	}
 
 	if (reg_list_size <= reg_num)
@@ -955,22 +985,13 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
-		switch (retval)
-		{
-			case ERROR_TARGET_NOT_HALTED:
-				ERROR("gdb tried to set a register but we're not halted, dropping connection");
-				return ERROR_SERVER_REMOTE_CLOSED;
-			default:
-				/* this is a bug condition - get_gdb_reg_list() may not return any other error */
-				ERROR("BUG: unexpected error returned by get_gdb_reg_list()");
-				exit(-1);
-		}
+		return gdb_error(connection, retval);
 	}
 
 	if (reg_list_size < reg_num)
 	{
 		ERROR("gdb requested a non-existing register");
-		return ERROR_SERVER_REMOTE_CLOSED;
+		return ERROR_SERVER_REMOTE_CLOSED;	
 	}
 
 	if (*separator != '=')
@@ -1005,13 +1026,10 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 	return ERROR_OK;
 }
 
-int gdb_memory_packet_error(connection_t *connection, int retval)
+int gdb_error(connection_t *connection, int retval)
 {
 	switch (retval)
 	{
-		case ERROR_TARGET_NOT_HALTED:
-			ERROR("gdb tried to read memory but we're not halted, dropping connection");
-			return ERROR_SERVER_REMOTE_CLOSED;
 		case ERROR_TARGET_DATA_ABORT:
 			gdb_send_error(connection, EIO);
 			break;
@@ -1021,10 +1039,14 @@ int gdb_memory_packet_error(connection_t *connection, int retval)
 		case ERROR_TARGET_UNALIGNED_ACCESS:
 			gdb_send_error(connection, EFAULT);
 			break;
+		case ERROR_TARGET_NOT_HALTED:
+			gdb_send_error(connection, EFAULT);
+			break;
 		default:
 			/* This could be that the target reset itself. */
-			ERROR("unexpected error %i. Dropping connection.", retval);
-			return ERROR_SERVER_REMOTE_CLOSED;
+			ERROR("unexpected error %i", retval);
+			gdb_send_error(connection, EFAULT);
+			break;
 	}
 
 	return ERROR_OK;
@@ -1101,7 +1123,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 	}
 	else
 	{
-		retval = gdb_memory_packet_error(connection, retval);
+		retval = gdb_error(connection, retval);
 	}
 
 	free(buffer);
@@ -1158,7 +1180,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 	}
 	else
 	{
-		if ((retval = gdb_memory_packet_error(connection, retval)) != ERROR_OK)
+		if ((retval = gdb_error(connection, retval)) != ERROR_OK)
 			return retval;
 	}
 
@@ -1208,7 +1230,7 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 	}
 	else
 	{
-		if ((retval = gdb_memory_packet_error(connection, retval)) != ERROR_OK)
+		if ((retval = gdb_error(connection, retval)) != ERROR_OK)
 			return retval;
 	}
 
@@ -1242,25 +1264,6 @@ void gdb_step_continue_packet(connection_t *connection, target_t *target, char *
 		DEBUG("step");
 		target->type->step(target, current, address, 0); /* step at current or address, don't handle breakpoints */
 	}
-}
-
-int gdb_bp_wp_packet_error(connection_t *connection, int retval)
-{
-	switch (retval)
-	{
-		case ERROR_TARGET_NOT_HALTED:
-			ERROR("gdb tried to set a breakpoint but we're not halted, dropping connection");
-			return ERROR_SERVER_REMOTE_CLOSED;
-			break;
-		case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-			gdb_send_error(connection, EBUSY);
-			break;
-		default:
-			ERROR("BUG: unexpected error %i", retval);
-			exit(-1);
-	}
-
-	return ERROR_OK;
 }
 
 int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
@@ -1312,7 +1315,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 			{
 				if ((retval = breakpoint_add(target, address, size, bp_type)) != ERROR_OK)
 				{
-					if ((retval = gdb_bp_wp_packet_error(connection, retval)) != ERROR_OK)
+					if ((retval = gdb_error(connection, retval)) != ERROR_OK)
 						return retval;
 				}
 				else
@@ -1334,7 +1337,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 			{
 				if ((retval = watchpoint_add(target, address, size, type-2, 0, 0xffffffffu)) != ERROR_OK)
 				{
-					if ((retval = gdb_bp_wp_packet_error(connection, retval)) != ERROR_OK)
+					if ((retval = gdb_error(connection, retval)) != ERROR_OK)
 						return retval;
 				}
 				else
@@ -1502,7 +1505,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			}
 			else
 			{
-				if ((retval = gdb_memory_packet_error(connection, retval)) != ERROR_OK)
+				if ((retval = gdb_error(connection, retval)) != ERROR_OK)
 					return retval;
 			}
 
@@ -1939,8 +1942,14 @@ int gdb_input_inner(connection_t *connection)
 int gdb_input(connection_t *connection)
 {
 	int retval = gdb_input_inner(connection);
+	gdb_connection_t *gdb_con = connection->priv;
 	if (retval == ERROR_SERVER_REMOTE_CLOSED)
 		return retval;
+
+	/* logging does not propagate the error, yet can set th gdb_con->closed flag */
+	if (gdb_con->closed)
+		return ERROR_SERVER_REMOTE_CLOSED;
+	
 	/* we'll recover from any other errors(e.g. temporary timeouts, etc.) */
 	return ERROR_OK;
 }

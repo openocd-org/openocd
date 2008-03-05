@@ -447,7 +447,6 @@ void command_print_help_line(command_context_t* context, struct command_s *comma
 	char indent_text[indent + 2];
 	char *help = "no help available";
 	char name_buf[64];
-	int i;
 	
 	if (indent)
 	{
@@ -478,7 +477,6 @@ void command_print_help_line(command_context_t* context, struct command_s *comma
 int command_print_help_match(command_context_t* context, command_t* c_first, char* name, char** args, int argc)
 {
 	command_t * c;
-	int i;
 
 	for (c = c_first; c; c = c->next)
 	{

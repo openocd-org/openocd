@@ -78,7 +78,8 @@ enum target_debug_reason
 	DBG_REASON_WATCHPOINT = 2,
 	DBG_REASON_WPTANDBKPT = 3,
 	DBG_REASON_SINGLESTEP = 4,
-	DBG_REASON_NOTHALTED = 5
+	DBG_REASON_NOTHALTED = 5,
+	DBG_REASON_UNDEFINED = 6
 };
 
 extern char *target_debug_reason_strings[];

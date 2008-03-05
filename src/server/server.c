@@ -71,6 +71,7 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 		close_socket(c->fd);
 		INFO("attempted '%s' connection rejected", service->name);
 		free(c);
+		return retval;
 	}
 	
 	/* add to the end of linked list */

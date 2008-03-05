@@ -122,7 +122,7 @@ char *target_debug_reason_strings[] =
 {
 	"debug request", "breakpoint", "watchpoint",
 	"watchpoint and breakpoint", "single step",
-	"target not halted"
+	"target not halted", "undefined"
 };
 
 char *target_endianess_strings[] =
@@ -362,7 +362,11 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 						command_print(cmd_ctx, "Timed out waiting for reset");
 						goto done;
 					}
-					usleep(100*1000); /* Do not eat all cpu */
+					/* this will send alive messages on e.g. GDB remote protocol.
+					 * GDB warns me that I'm sending a zero length formatting message,
+					 * which is strange, but in fact what is intended here. */
+					usleep(500*1000); 
+					USER_N(""); 
 					goto again;
 				}
 			}
@@ -1178,6 +1182,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				(*last_target_p)->backup_working_area = 0;
 				
 				(*last_target_p)->state = TARGET_UNKNOWN;
+				(*last_target_p)->debug_reason = DBG_REASON_UNDEFINED;
 				(*last_target_p)->reg_cache = NULL;
 				(*last_target_p)->breakpoints = NULL;
 				(*last_target_p)->watchpoints = NULL;
