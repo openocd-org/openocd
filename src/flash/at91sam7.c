@@ -77,7 +77,7 @@ flash_driver_t at91sam7_flash =
 	.protect = at91sam7_protect,
 	.write = at91sam7_write,
 	.probe = at91sam7_probe,
-	.auto_probe = at91sam7_auto_probe,
+	.auto_probe = at91sam7_probe,
 	.erase_check = at91sam7_erase_check,
 	.protect_check = at91sam7_protect_check,
 	.info = at91sam7_info
@@ -145,7 +145,7 @@ u32 at91sam7_get_flash_status(flash_bank_t *bank, u8 flashplane)
 	return fsr;
 }
 
-/** Read clock configuration and set at91sam7_info->usec_clocks*/ 
+/* Read clock configuration and set at91sam7_info->usec_clocks*/
 void at91sam7_read_clock_info(flash_bank_t *bank)
 {
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
@@ -180,7 +180,7 @@ void at91sam7_read_clock_info(flash_bank_t *bank)
 
 		case 2:			/* Reserved */
 			break;
-		case 3:		/* PLL Clock */
+		case 3:			/* PLL Clock */
 			if (mcfr & CKGR_MCFR_MAINRDY) 
 			{
 				target_read_u32(target, CKGR_PLLR, &pllr);
@@ -313,6 +313,9 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 	u32 cidr, status;
 	int sectornum;
+
+	if (at91sam7_info->cidr != 0)
+		return ERROR_OK; /* already probed, multiple probes may cause memory leak, not allowed */
 	
 	/* Read and parse chip identification register */
 	target_read_u32(target, DBGU_CIDR, &cidr);
@@ -553,9 +556,8 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		return ERROR_OK;
 	}
 	
-   WARNING("at91sam7 flash only tested for AT91SAM7Sxx series");
-	
-   return ERROR_OK;
+	WARNING("at91sam7 flash only tested for AT91SAM7Sxx series");
+	return ERROR_OK;
 }
 
 int at91sam7_erase_check(struct flash_bank_s *bank)
@@ -579,20 +581,14 @@ int at91sam7_protect_check(struct flash_bank_s *bank)
 	
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 
+	if (at91sam7_info->cidr == 0)
+	{
+		return ERROR_FLASH_BANK_NOT_PROBED;
+	}
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	if (at91sam7_info->cidr == 0)
-	{
-		at91sam7_read_part_info(bank);
-	}
-
-	if (at91sam7_info->cidr == 0)
-	{
-		WARNING("Cannot identify target as an AT91SAM");
-		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	for (flashplane=0;flashplane<at91sam7_info->num_planes;flashplane++)
@@ -619,7 +615,6 @@ int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	
 	at91sam7_info = malloc(sizeof(at91sam7_flash_bank_t));
 	bank->driver_priv = at91sam7_info;
-	at91sam7_info->probed = 0;
 	
 	/* part wasn't probed for info yet */
 	at91sam7_info->cidr = 0;
@@ -634,21 +629,15 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	u8 flashplane;
 
+	if (at91sam7_info->cidr == 0)
+	{
+		return ERROR_FLASH_BANK_NOT_PROBED;
+	}
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
-	if (at91sam7_info->cidr == 0)
-	{
-		at91sam7_read_part_info(bank);
-	}
-
-	if (at91sam7_info->cidr == 0)
-	{
-		WARNING("Cannot identify target as an AT91SAM");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}	
 	
 	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
 	{
@@ -683,6 +672,11 @@ int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	
+	if (at91sam7_info->cidr == 0)
+	{
+		return ERROR_FLASH_BANK_NOT_PROBED;
+	}
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
@@ -691,17 +685,6 @@ int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 	if ((first < 0) || (last < first) || (last >= at91sam7_info->num_lockbits))
 	{
 		return ERROR_FLASH_SECTOR_INVALID;
-	}
-	
-	if (at91sam7_info->cidr == 0)
-	{
-		at91sam7_read_part_info(bank);
-	}
-
-	if (at91sam7_info->cidr == 0)
-	{
-		WARNING("Cannot identify target as an AT91SAM");
-		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
 	at91sam7_read_clock_info(bank);	
@@ -738,22 +721,16 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 first_page, last_page, pagen, buffer_pos;
 	u8 flashplane;
 	
+	if (at91sam7_info->cidr == 0)
+	{
+		return ERROR_FLASH_BANK_NOT_PROBED;
+	}
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (at91sam7_info->cidr == 0)
-	{
-		at91sam7_read_part_info(bank);
-	}
-
-	if (at91sam7_info->cidr == 0)
-	{
-		WARNING("Cannot identify target as an AT91SAM");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-	
 	if (offset + count > bank->size)
 		return ERROR_FLASH_DST_OUT_OF_BANK;
 	
@@ -809,56 +786,34 @@ int at91sam7_probe(struct flash_bank_s *bank)
 	 * if this is an at91sam7, it has the configured flash
 	 */
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	at91sam7_info->probed = 0;
+	int retval;
 	
+	if (at91sam7_info->cidr != 0)
+	{
+		return ERROR_OK; /* already probed */
+	}
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (at91sam7_info->cidr == 0)
-	{
-		at91sam7_read_part_info(bank);
-	}
-
-	if (at91sam7_info->cidr == 0)
-	{
-		WARNING("Cannot identify target as an AT91SAM");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-	
-	at91sam7_info->probed = 1;
+	retval = at91sam7_read_part_info(bank);
+	if (retval != ERROR_OK)
+		return retval;
 	
 	return ERROR_OK;
 }
 
-
-int at91sam7_auto_probe(struct flash_bank_s *bank)
-{
-	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
-	if (at91sam7_info->probed)
-		return ERROR_OK;
-	return at91sam7_probe(bank);
-}
 
 int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	int printed, flashplane;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	at91sam7_read_part_info(bank);
-
 	if (at91sam7_info->cidr == 0)
 	{
-		printed = snprintf(buf, buf_size, "Cannot identify target as an AT91SAM\n");
-		buf += printed;
-		buf_size -= printed;
-		return ERROR_FLASH_OPERATION_FAILED;
+		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 	
 	printed = snprintf(buf, buf_size, "\nat91sam7 information: Chip is %s\n",at91sam7_info->target_name);
@@ -894,7 +849,7 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		buf_size -= printed;
 	}
 			
-	printed = snprintf(buf, buf_size, "securitybit: %i, nvmbits: 0x%1.1x\n", at91sam7_info->securitybit, at91sam7_info->nvmbits);
+	printed = snprintf(buf, buf_size, "securitybit: %i,  nvmbits(%i): 0x%1.1x\n", at91sam7_info->securitybit, at91sam7_info->num_nvmbits, at91sam7_info->nvmbits);
 	buf += printed;
 	buf_size -= printed;
 
@@ -919,6 +874,7 @@ int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, 
 	u32 status;
 	char *value;
 	at91sam7_flash_bank_t *at91sam7_info;
+	int retval;
 
 	if (argc < 3)
 	{
@@ -926,38 +882,19 @@ int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, 
 		return ERROR_OK;
 	}
 	
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+	bank = get_flash_bank_by_num_noprobe(strtoul(args[0], NULL, 0));
 	bit = atoi(args[1]);
 	value = args[2];
 
-	if (!bank)
+	if (bank ==  NULL)
 	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
+		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	at91sam7_info = bank->driver_priv;
-
-	if (bank->target->state != TARGET_HALTED)
+	if (bank->driver != &at91sam7_flash)
 	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
-	if (at91sam7_info->cidr == 0)
-	{
-		at91sam7_read_part_info(bank);
-	}
-
-	if (at91sam7_info->cidr == 0)
-	{
-		WARNING("Cannot identify target as an AT91SAM");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
-
-	if ((bit<0) || (at91sam7_info->num_nvmbits <= bit))
-	{ 
-		command_print(cmd_ctx, "gpnvm bit '#%s' is out of bounds for target %s", args[1],at91sam7_info->target_name);
-		return ERROR_OK;
+		command_print(cmd_ctx, "not an at91sam7 flash bank '%s'", args[0]);
+		return ERROR_FLASH_BANK_INVALID;
 	}
 
 	if (strcmp(value, "set") == 0)
@@ -971,6 +908,28 @@ int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, 
 	else
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	at91sam7_info = bank->driver_priv;
+
+	if (bank->target->state != TARGET_HALTED)
+	{
+		ERROR("target has to be halted to perform flash operation");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	
+	if (at91sam7_info->cidr == 0)
+	{
+		retval = at91sam7_read_part_info(bank);
+		if (retval != ERROR_OK) {
+			return retval;
+		}
+	}
+
+	if ((bit<0) || (at91sam7_info->num_nvmbits <= bit))
+	{ 
+		command_print(cmd_ctx, "gpnvm bit '#%s' is out of bounds for target %s", args[1],at91sam7_info->target_name);
+		return ERROR_OK;
 	}
 
 	/* Configure the flash controller timing */

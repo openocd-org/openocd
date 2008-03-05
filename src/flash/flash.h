@@ -80,6 +80,7 @@ extern void flash_set_dirty(void);
 extern int flash_get_bank_count();
 
 extern flash_bank_t *get_flash_bank_by_num(int num);
+extern flash_bank_t *get_flash_bank_by_num_noprobe(int num);
 extern flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);
 
 #define		ERROR_FLASH_BANK_INVALID		(-900)

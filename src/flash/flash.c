@@ -93,7 +93,7 @@ static int flash_driver_write(struct flash_bank_s *bank, u8 *buffer, u32 offset,
 	retval=bank->driver->write(bank, buffer, offset, count);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("error writing to flash at address 0x%08x at offset 0x%8.8x", bank->base, offset);
+		ERROR("error writing to flash at address 0x%08x at offset 0x%8.8x (%d)", bank->base, offset, retval);
 	}
 
 	return retval;
@@ -106,7 +106,7 @@ static int flash_driver_erase(struct flash_bank_s *bank, int first, int last)
 	retval=bank->driver->erase(bank, first, last);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("failed erasing sectors %d to %d", first, last);
+		ERROR("failed erasing sectors %d to %d (%d)", first, last, retval);
 	}
 
 	return retval;
@@ -119,7 +119,7 @@ int flash_driver_protect(struct flash_bank_s *bank, int set, int first, int last
 	retval=bank->driver->protect(bank, set, first, last);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("failed setting protection for areas %d to %d", first, last);
+		ERROR("failed setting protection for areas %d to %d (%d)", first, last, retval);
 	}
 
 	return retval;
@@ -311,6 +311,7 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 	flash_bank_t *p;
 	int i = 0;
 	int j = 0;
+	int retval;
 
 	if (argc != 1)
 	{
@@ -351,8 +352,11 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 							erase_state, protect_state);
 			}
 
-			p->driver->info(p, buf, 1024);
+			*buf = '\0'; /* initialize buffer, otherwise it migh contain garbage if driver function fails */
+			retval = p->driver->info(p, buf, sizeof(buf));
 			command_print(cmd_ctx, "%s", buf);
+			if (retval != ERROR_OK)
+				ERROR("error retrieving flash info (%d)", retval);
 		}
 	}
 
@@ -918,7 +922,6 @@ int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd
 	if (argc != 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
 	}
 
 	if (strcmp(args[0], "on") == 0)

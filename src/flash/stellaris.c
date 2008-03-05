@@ -77,7 +77,7 @@ flash_driver_t stellaris_flash =
 
 struct {
 	u32 partno;
-    char *partname;
+	char *partname;
 }	StellarisParts[] =
 {
 	{0x01,"LM3S101"},
@@ -269,9 +269,9 @@ int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	{
 		device_class = 0;
 	}	
-    printed = snprintf(buf, buf_size, "\nLMI Stellaris information: Chip is class %i(%s) %s v%c.%i\n",
-         device_class, StellarisClassname[device_class], stellaris_info->target_name,
-         'A' + (stellaris_info->did0>>8)&0xFF, (stellaris_info->did0)&0xFF);
+	printed = snprintf(buf, buf_size, "\nLMI Stellaris information: Chip is class %i(%s) %s v%c.%i\n",
+	  device_class, StellarisClassname[device_class], stellaris_info->target_name,
+	  'A' + (stellaris_info->did0>>8)&0xFF, (stellaris_info->did0)&0xFF);
 	buf += printed;
 	buf_size -= printed;
 
@@ -352,7 +352,7 @@ void stellaris_read_clock_info(flash_bank_t *bank)
 		stellaris_info->mck_freq = mainfreq;
 	
 	/* Forget old flash timing */
-       stellaris_set_flash_mode(bank,0);
+	stellaris_set_flash_mode(bank,0);
 }
 
 /* Setup the timimg registers */
@@ -407,7 +407,7 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 {
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
-    u32 did0,did1, ver, fam, status;
+	u32 did0,did1, ver, fam, status;
 	int i;
 	
 	/* Read and parse chip identification register */
@@ -417,10 +417,10 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	target_read_u32(target, SCB_BASE|DC1, &stellaris_info->dc1);
 	DEBUG("did0 0x%x, did1 0x%x, dc0 0x%x, dc1 0x%x",did0, did1, stellaris_info->dc0,stellaris_info->dc1);
 
-    ver = did0 >> 28;
-    if((ver != 0) && (ver != 1))
+	ver = did0 >> 28;
+	if((ver != 0) && (ver != 1))
 	{
-        WARNING("Unknown did0 version, cannot identify target");
+		WARNING("Unknown did0 version, cannot identify target");
 		return ERROR_FLASH_OPERATION_FAILED;	
 	}
 
@@ -430,11 +430,11 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-    ver = did1 >> 28;
-    fam = (did1 >> 24) & 0xF;
-    if(((ver != 0) && (ver != 1)) || (fam != 0))
+	ver = did1 >> 28;
+	fam = (did1 >> 24) & 0xF;
+	if(((ver != 0) && (ver != 1)) || (fam != 0))
 	{
-        WARNING("Unknown did1 version/family, cannot positively identify target as a Stellaris");
+		WARNING("Unknown did1 version/family, cannot positively identify target as a Stellaris");
 	}
 
 	for (i=0;StellarisParts[i].partno;i++)
@@ -464,7 +464,7 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 }
 
 /***************************************************************************
-*	flash operations                                         *
+*	flash operations                                                       *
 ***************************************************************************/
 
 int stellaris_erase_check(struct flash_bank_s *bank)
@@ -527,7 +527,7 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 
 	if (stellaris_info->did1 == 0)
 	{
-        WARNING("Cannot identify target as Stellaris");
+		WARNING("Cannot identify target as Stellaris");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}	
 	
@@ -546,7 +546,7 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 
 	if ((first == 0) && (last == (stellaris_info->num_pages-1)))
 	{
-        target_write_u32(target, FLASH_FMA, 0);
+		target_write_u32(target, FLASH_FMA, 0);
 		target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);
 		/* Wait until erase complete */
 		do
@@ -555,18 +555,18 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 		}
 		while(flash_fmc & FMC_MERASE);
 		
-        /* if device has > 128k, then second erase cycle is needed */
-        if(stellaris_info->num_pages * stellaris_info->pagesize > 0x20000)
-        {
-            target_write_u32(target, FLASH_FMA, 0x20000);
-            target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);
-            /* Wait until erase complete */
-            do
-            {
-                target_read_u32(target, FLASH_FMC, &flash_fmc);
-            }
-            while(flash_fmc & FMC_MERASE);
-        }
+		/* if device has > 128k, then second erase cycle is needed */
+		if(stellaris_info->num_pages * stellaris_info->pagesize > 0x20000)
+		{
+			target_write_u32(target, FLASH_FMA, 0x20000);
+			target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);
+			/* Wait until erase complete */
+			do
+			{
+				target_read_u32(target, FLASH_FMC, &flash_fmc);
+			}
+			while(flash_fmc & FMC_MERASE);
+		}
 
 		return ERROR_OK;
 	}
@@ -687,26 +687,26 @@ u8 stellaris_write_code[] =
 	r6 = bytes written
 	r7 = temp reg
 */
-	0x07,0x4B,     		/* ldr r3,pFLASH_CTRL_BASE */
-	0x08,0x4C,     		/* ldr r4,FLASHWRITECMD */
-	0x01,0x25,     		/* movs r5, 1 */
-	0x00,0x26,     		/* movs r6, #0 */
+	0x07,0x4B,			/* ldr r3,pFLASH_CTRL_BASE */
+	0x08,0x4C,			/* ldr r4,FLASHWRITECMD */
+	0x01,0x25,			/* movs r5, 1 */
+	0x00,0x26,			/* movs r6, #0 */
 /* mainloop: */
-	0x19,0x60,     		/* str	r1, [r3, #0] */
-	0x87,0x59,     		/* ldr	r7, [r0, r6] */
-	0x5F,0x60,     		/* str	r7, [r3, #4] */
-	0x9C,0x60,     		/* str	r4, [r3, #8] */
+	0x19,0x60,			/* str	r1, [r3, #0] */
+	0x87,0x59,			/* ldr	r7, [r0, r6] */
+	0x5F,0x60,			/* str	r7, [r3, #4] */
+	0x9C,0x60,			/* str	r4, [r3, #8] */
 /* waitloop: */
-	0x9F,0x68,     		/* ldr	r7, [r3, #8] */
-	0x2F,0x42,     		/* tst	r7, r5 */
-	0xFC,0xD1,     		/* bne	waitloop */
-	0x04,0x31,     		/* adds	r1, r1, #4 */
-	0x04,0x36,     		/* adds	r6, r6, #4 */
-	0x96,0x42,     		/* cmp	r6, r2 */
-	0xF4,0xD1,     		/* bne	mainloop */
-	0x00,0xBE,     		/* bkpt #0 */
+	0x9F,0x68,			/* ldr	r7, [r3, #8] */
+	0x2F,0x42,			/* tst	r7, r5 */
+	0xFC,0xD1,			/* bne	waitloop */
+	0x04,0x31,			/* adds	r1, r1, #4 */
+	0x04,0x36,			/* adds	r6, r6, #4 */
+	0x96,0x42,			/* cmp	r6, r2 */
+	0xF4,0xD1,			/* bne	mainloop */
+	0x00,0xBE,			/* bkpt #0 */
 /* pFLASH_CTRL_BASE: */
-	0x00,0xD0,0x0F,0x40, 	/* .word	0x400FD000 */
+	0x00,0xD0,0x0F,0x40,	/* .word	0x400FD000 */
 /* FLASHWRITECMD: */
 	0x01,0x00,0x42,0xA4 	/* .word	0xA4420001 */
 };
