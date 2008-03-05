@@ -625,13 +625,14 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 		}
 		if (!found)
 		{
+#ifdef _DEBUG_JTAG_IO_
 			/* if a device isn't listed, the BYPASS register should be selected */
 			if (!jtag_get_device(i)->bypass)
 			{
 				ERROR("BUG: no scan data for a device not in BYPASS");
 				exit(-1);
 			}
-	
+#endif	
 			/* program the scan field to 1 bit length, and ignore it's value */
 			(*last_cmd)->cmd.scan->fields[field_count].num_bits = 1;
 			(*last_cmd)->cmd.scan->fields[field_count].out_value = NULL;
@@ -644,11 +645,13 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 		}
 		else
 		{
+#ifdef _DEBUG_JTAG_IO_
 			/* if a device is listed, the BYPASS register must not be selected */
 			if (jtag_get_device(i)->bypass)
 			{
 				WARNING("scan data for a device in BYPASS");
 			}
+#endif
 		}
 	}
 	return ERROR_OK;
@@ -859,6 +862,20 @@ int jtag_add_pathmove(int num_states, enum tap_state *path)
 	
 	if (cmd_queue_end_state == TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+	
+
+	enum tap_state cur_state=cmd_queue_cur_state;
+	int i;
+	for (i=0; i<num_states; i++)
+	{
+		if ((tap_transitions[cur_state].low != path[i])&&
+				(tap_transitions[cur_state].high != path[i]))
+		{
+			ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[path[i]]);
+			exit(-1);
+		}
+		cur_state = path[i];
+	}
 	
 	cmd_queue_cur_state = path[num_states - 1];
 

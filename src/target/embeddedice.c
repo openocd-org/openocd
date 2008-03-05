@@ -382,7 +382,8 @@ int embeddedice_write_reg(reg_t *reg, u32 value)
 	
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
 
-	embeddedice_write_reg_inner(reg, value);
+	u8 reg_addr = ice_reg->addr & 0x1f;
+	embeddedice_write_reg_inner(ice_reg->jtag_info->chain_pos, reg_addr, value);
 	
 	return ERROR_OK;
 }

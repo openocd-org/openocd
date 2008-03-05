@@ -104,10 +104,8 @@ extern int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout);
 /* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of 
  * embeddedice_write_reg
  */
-static __inline__ void embeddedice_write_reg_inner(reg_t *reg, u32 value)
+static __inline__ void embeddedice_write_reg_inner(int chain_pos, int reg_addr, u32 value)
 {
-	embeddedice_reg_t *ice_reg = reg->arch_info;
-	u8 reg_addr = ice_reg->addr & 0x1f;
 #if 1
 	u32 values[3];
 	int num_bits[3];
@@ -119,7 +117,7 @@ static __inline__ void embeddedice_write_reg_inner(reg_t *reg, u32 value)
 	values[2]=1;
 	num_bits[2]=1;
 	
-	jtag_add_dr_out(ice_reg->jtag_info->chain_pos, 
+	jtag_add_dr_out(chain_pos, 
 			3,
 			num_bits,
 			values,

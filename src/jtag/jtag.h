@@ -270,6 +270,9 @@ extern int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields
  *
  *   - Run-Test/Idle must not be entered unless requested, because R-T/I may have 
  *   side effects.
+ * 
+ * NB! a jtag_add_statemove() to the current state is not
+ * a no-operation.
  */
 extern int jtag_add_statemove(enum tap_state endstate);
 extern int interface_jtag_add_statemove(enum tap_state endstate);
@@ -278,6 +281,9 @@ extern int interface_jtag_add_statemove(enum tap_state endstate);
  * XScale and Xilinx support
  * 
  * Note! TAP_TLR must not be used in the path!
+ * 
+ * Note that the first on the list must be reachable 
+ * via a single transition from the current state. 
  */
 extern int jtag_add_pathmove(int num_states, enum tap_state *path);
 extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);

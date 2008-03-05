@@ -2165,10 +2165,44 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 
 	arm7_9_resume(target, 0, arm7_9->dcc_working_area->address, 1, 1);
 	
-	for (i = 0; i < count; i++)
+	int little=target->endianness==TARGET_LITTLE_ENDIAN;
+	if (count>2)
 	{
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], target_buffer_get_u32(target, buffer));
-		buffer += 4;
+		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
+		   core function repeated. 
+		 */
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+		buffer+=4;
+		
+		embeddedice_reg_t *ice_reg = arm7_9->eice_cache->reg_list[EICE_COMMS_DATA].arch_info;
+		u8 reg_addr = ice_reg->addr & 0x1f;
+		int chain_pos = ice_reg->jtag_info->chain_pos;
+		/* we want the compiler to duplicate the code, which it does not
+		 * do automatically.
+		 */
+		if (little)
+		{
+			for (i = 1; i < count - 1; i++)
+			{
+				embeddedice_write_reg_inner(chain_pos, reg_addr, fast_target_buffer_get_u32(buffer, little));
+				buffer += 4;
+			}
+		} else
+		{
+			for (i = 1; i < count - 1; i++)
+			{
+				embeddedice_write_reg_inner(chain_pos, reg_addr, fast_target_buffer_get_u32(buffer, little));
+				buffer += 4;
+			}
+		}
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+	} else
+	{
+		for (i = 0; i < count; i++)
+		{
+			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+			buffer += 4;
+		}
 	}
 	
 	target->type->halt(target);
