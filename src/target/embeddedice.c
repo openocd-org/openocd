@@ -374,11 +374,6 @@ int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf)
 int embeddedice_write_reg(reg_t *reg, u32 value)
 {
 	embeddedice_reg_t *ice_reg = reg->arch_info;
-	u8 reg_addr = ice_reg->addr & 0x1f;
-	scan_field_t fields[3];
-	u8 field0_out[4];
-	u8 field1_out[1];
-	u8 field2_out[1];
 
 	DEBUG("%i: 0x%8.8x", ice_reg->addr, value);
 	
@@ -386,41 +381,8 @@ int embeddedice_write_reg(reg_t *reg, u32 value)
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);
 	
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
-	
-	fields[0].device = ice_reg->jtag_info->chain_pos;
-	fields[0].num_bits = 32;
-	fields[0].out_value = field0_out;
-	buf_set_u32(fields[0].out_value, 0, 32, value);
-	fields[0].out_mask = NULL;
-	fields[0].in_value = NULL;
-	fields[0].in_check_value = NULL;
-	fields[0].in_check_mask = NULL;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
-	
-	fields[1].device = ice_reg->jtag_info->chain_pos;
-	fields[1].num_bits = 5;
-	fields[1].out_value = field1_out;
-	buf_set_u32(fields[1].out_value, 0, 5, reg_addr);
-	fields[1].out_mask = NULL;
-	fields[1].in_value = NULL;
-	fields[1].in_check_value = NULL;
-	fields[1].in_check_mask = NULL;
-	fields[1].in_handler = NULL;
-	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = ice_reg->jtag_info->chain_pos;
-	fields[2].num_bits = 1;
-	fields[2].out_value = field2_out;
-	buf_set_u32(fields[2].out_value, 0, 1, 1);
-	fields[2].out_mask = NULL;
-	fields[2].in_value = NULL;
-	fields[2].in_check_value = NULL;
-	fields[2].in_check_mask = NULL;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
-	
-	jtag_add_dr_scan(3, fields, -1);
+	embeddedice_write_reg_inner(reg, value);
 	
 	return ERROR_OK;
 }

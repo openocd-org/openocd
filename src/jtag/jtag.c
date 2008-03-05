@@ -33,10 +33,6 @@
 #include "string.h"
 #include <unistd.h>
 
-#ifndef MINIDRIVER
-/* this allows JTAG devices to implement the entire jtag_xxx() layer in hw/sw */
-#define MINIDRIVER(a) a
-#endif
 
 
 /* note that this is not marked as static as it must be available from outside jtag.c for those 
@@ -411,7 +407,7 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 	
 	cmd_queue_cur_state = cmd_queue_end_state;
 	
-	int retval=interface_jtag_add_ir_scan(num_fields, fields, state);
+	int retval=interface_jtag_add_ir_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 	return retval;
@@ -513,7 +509,7 @@ int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state 
 		
 	cmd_queue_cur_state = cmd_queue_end_state;
 	
-	return interface_jtag_add_plain_ir_scan(num_fields, fields, state);
+	return interface_jtag_add_plain_ir_scan(num_fields, fields, cmd_queue_end_state);
 }
 
 int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
@@ -572,7 +568,7 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 			
 	cmd_queue_cur_state = cmd_queue_end_state;
 
-	return interface_jtag_add_dr_scan(num_fields, fields, state);
+	return interface_jtag_add_dr_scan(num_fields, fields, cmd_queue_end_state);
 }
 
 int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
@@ -658,6 +654,94 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 	return ERROR_OK;
 }
 
+void MINIDRIVER(interface_jtag_add_dr_out)(int device_num, 
+		int num_fields,
+		int *num_bits,
+		u32 *value,
+		enum tap_state end_state)
+{
+	int i;
+	int field_count = 0;
+	int scan_size;
+	int bypass_devices = 0;
+
+	jtag_command_t **last_cmd = jtag_get_last_command_p();
+	jtag_device_t *device = jtag_devices;
+	/* count devices in bypass */
+	while (device)
+	{
+		if (device->bypass)
+			bypass_devices++;
+		device = device->next;
+	}
+	
+	/* allocate memory for a new list member */
+	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	last_comand_pointer = &((*last_cmd)->next);
+	(*last_cmd)->next = NULL;
+	(*last_cmd)->type = JTAG_SCAN;
+
+	/* allocate memory for dr scan command */
+	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
+	(*last_cmd)->cmd.scan->ir_scan = 0;
+	(*last_cmd)->cmd.scan->num_fields = num_fields + bypass_devices;
+	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
+	(*last_cmd)->cmd.scan->end_state = end_state;
+
+	for (i = 0; i < jtag_num_devices; i++)
+	{
+		(*last_cmd)->cmd.scan->fields[field_count].device = i;
+
+		if (i == device_num)
+		{
+			int j;
+#ifdef _DEBUG_JTAG_IO_
+			/* if a device is listed, the BYPASS register must not be selected */
+			if (jtag_get_device(i)->bypass)
+			{
+				ERROR("scan data for a device in BYPASS");
+				exit(-1);
+			}
+#endif
+			for (j = 0; j < num_fields; j++)
+			{
+				char out_value[4];
+				scan_size = num_bits[j];
+				buf_set_u32(out_value, 0, scan_size, value[j]);
+				(*last_cmd)->cmd.scan->fields[field_count].num_bits = scan_size;
+				(*last_cmd)->cmd.scan->fields[field_count].out_value = buf_cpy(out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+				(*last_cmd)->cmd.scan->fields[field_count].out_mask = NULL;
+				(*last_cmd)->cmd.scan->fields[field_count].in_value = NULL;
+				(*last_cmd)->cmd.scan->fields[field_count].in_check_value = NULL;
+				(*last_cmd)->cmd.scan->fields[field_count].in_check_mask = NULL;
+				(*last_cmd)->cmd.scan->fields[field_count].in_handler = NULL;
+				(*last_cmd)->cmd.scan->fields[field_count++].in_handler_priv = NULL;
+			}
+		} else
+		{
+#ifdef _DEBUG_JTAG_IO_
+			/* if a device isn't listed, the BYPASS register should be selected */
+			if (!jtag_get_device(i)->bypass)
+			{
+				ERROR("BUG: no scan data for a device not in BYPASS");
+				exit(-1);
+			}
+#endif	
+			/* program the scan field to 1 bit length, and ignore it's value */
+			(*last_cmd)->cmd.scan->fields[field_count].num_bits = 1;
+			(*last_cmd)->cmd.scan->fields[field_count].out_value = NULL;
+			(*last_cmd)->cmd.scan->fields[field_count].out_mask = NULL;
+			(*last_cmd)->cmd.scan->fields[field_count].in_value = NULL;
+			(*last_cmd)->cmd.scan->fields[field_count].in_check_value = NULL;
+			(*last_cmd)->cmd.scan->fields[field_count].in_check_mask = NULL;
+			(*last_cmd)->cmd.scan->fields[field_count].in_handler = NULL;
+			(*last_cmd)->cmd.scan->fields[field_count++].in_handler_priv = NULL;
+		}
+	}
+}
+
+
+
 
 int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
@@ -678,7 +762,7 @@ int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state 
 			
 	cmd_queue_cur_state = cmd_queue_end_state;
 
-	return interface_jtag_add_plain_dr_scan(num_fields, fields, state);
+	return interface_jtag_add_plain_dr_scan(num_fields, fields, cmd_queue_end_state);
 }
 
 int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
@@ -735,7 +819,7 @@ int jtag_add_statemove(enum tap_state state)
 			
 	cmd_queue_cur_state = cmd_queue_end_state;
 
-	return interface_jtag_add_statemove(state);
+	return interface_jtag_add_statemove(cmd_queue_end_state);
 }
 
 int MINIDRIVER(interface_jtag_add_statemove)(enum tap_state state)
@@ -841,7 +925,7 @@ int jtag_add_runtest(int num_cycles, enum tap_state state)
 	cmd_queue_cur_state = cmd_queue_end_state;
 	
 	/* executed by sw or hw fifo */
-	return interface_jtag_add_runtest(num_cycles, state);
+	return interface_jtag_add_runtest(num_cycles, cmd_queue_end_state);
 }
 
 int jtag_add_reset(int req_trst, int req_srst)
@@ -968,9 +1052,9 @@ int MINIDRIVER(interface_jtag_add_end_state)(enum tap_state state)
 
 int jtag_add_end_state(enum tap_state state)
 {
-	int retval = interface_jtag_add_end_state(state);
 	if (state != -1)
 		cmd_queue_end_state = state;
+	int retval = interface_jtag_add_end_state(cmd_queue_end_state);
 	return retval;
 }
 
@@ -1197,7 +1281,7 @@ int jtag_execute_queue(void)
 	int retval=interface_jtag_execute_queue();
 	if (retval==ERROR_OK)
 	{
-		retval=jtag_error;
+	retval=jtag_error;
 	}
 	jtag_error=ERROR_OK;
 	return retval;
@@ -1892,43 +1976,6 @@ int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		free(fields[i].out_value);
 
 	free(fields);
-
-	return ERROR_OK;
-}
-
-
-
-int MINIDRIVER(interface_jtag_add_shift)(const enum tap_state shift_state, const enum tap_state end_state, int num_bits, u32 value)
-{
-	u8 out_buf[4];
-	buf_set_u32(out_buf, 0, 32, value);
-
-	/* allocate memory for a new list member */
-	jtag_command_t **last_cmd;
-	last_cmd = jtag_get_last_command_p();
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->next = NULL;
-	(*last_cmd)->type = JTAG_SCAN;
-
-	/* allocate memory for scan command */
-	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	(*last_cmd)->cmd.scan->ir_scan = (shift_state==TAP_SI);
-	(*last_cmd)->cmd.scan->num_fields = 1;
-	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(1 * sizeof(scan_field_t));
-	(*last_cmd)->cmd.scan->end_state = end_state;
-		
-	int num_bytes = CEIL(num_bits, 8);
-	int i=0;
-	(*last_cmd)->cmd.scan->fields[i].device = 0; /* not used by any drivers */
-	(*last_cmd)->cmd.scan->fields[i].num_bits = num_bits;
-	(*last_cmd)->cmd.scan->fields[i].out_value = buf_cpy(out_buf, cmd_queue_alloc(num_bytes), num_bits);
-	(*last_cmd)->cmd.scan->fields[i].out_mask = NULL;
-	(*last_cmd)->cmd.scan->fields[i].in_value = NULL;
-	(*last_cmd)->cmd.scan->fields[i].in_check_value = NULL;
-	(*last_cmd)->cmd.scan->fields[i].in_check_mask = NULL;
-	(*last_cmd)->cmd.scan->fields[i].in_handler = NULL;
-	(*last_cmd)->cmd.scan->fields[i].in_handler_priv = NULL;
 	
 	return ERROR_OK;
 }

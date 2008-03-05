@@ -344,28 +344,51 @@ extern int jtag_verify_capture_ir;
 #define ERROR_JTAG_DEVICE_ERROR			(-107)
 
 
-/* Here a #define MINIDRIVER() and an inline version of hw fifo interface_jtag_add_shift can be defined */
 
-#ifndef MINIDRIVER 
-extern int interface_jtag_add_shift(const enum tap_state shift_state, const enum tap_state end_state, int bits, u32 value);
+/* this allows JTAG devices to implement the entire jtag_xxx() layer in hw/sw */
+#ifdef HAVE_JTAG_MINIDRIVER_H
+/* Here a #define MINIDRIVER() and an inline version of hw fifo interface_jtag_add_dr_out can be defined */
+#include "jtag_minidriver.h"
+#define MINIDRIVER(a) notused ## a 
+#else
+#define MINIDRIVER(a) a
+/* jtag_add_dr_out() is a faster version of jtag_add_dr_scan() 
+ * 
+ * Current or end_state can not be TAP_TLR. end_state can be -1
+ * 
+ * num_bits[i] is the number of bits to clock out from value[i] LSB first.
+ * 
+ * If the device is in bypass, then that is an error condition in
+ * the caller code that is not detected by this fn, whereas jtag_add_dr_scan()
+ * does detect it. Similarly if the device is not in bypass, data must
+ * be passed to it. 
+ * 
+ * If anything fails, then jtag_error will be set and jtag_execute() will
+ * return an error. There is no way to determine if there was a failure
+ * during this function call.
+ * 
+ * Note that this jtag_add_dr_out can be defined as an inline function.
+ */
+extern void interface_jtag_add_dr_out(int device, 
+		int num_fields,
+		int *num_bits,
+		u32 *value,
+		enum tap_state end_state);
 #endif
 
-/* Enter the shift_state and cycle "bits" times out of that state.
- * 
- * So if the end_state!=shift_state, then the transition from shift_state to 
- * end_state counts as a transition out of shift_state.
- * 
- * Legal shift states TAP_SD and TAP_SI
- * 
- * Legal end state does not include TAP_TLR
- * 
- * Bits are clocked out from value LSB first.
- */
-static __inline int jtag_add_shift(const enum tap_state shift_state, const enum tap_state end_state, int bits, u32 value)
+
+
+
+static __inline__ void jtag_add_dr_out(int device, 
+		int num_fields,
+		int *num_bits,
+		u32 *value,
+		enum tap_state end_state)
 {
-	int retval;
-	retval=interface_jtag_add_shift(shift_state, end_state, bits, value);
-	return retval;
+	if (end_state != -1)
+		cmd_queue_end_state=end_state;
+	cmd_queue_cur_state=cmd_queue_end_state;
+	interface_jtag_add_dr_out(device, num_fields, num_bits, value, cmd_queue_end_state);
 }
 
 
