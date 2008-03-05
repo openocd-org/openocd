@@ -624,9 +624,7 @@ int handle_telnet_port_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	if (argc == 0)
 		return ERROR_OK;
 
-	/* only if the port wasn't overwritten by cmdline */
-	if (telnet_port == 0)
-		telnet_port = strtoul(args[0], NULL, 0);
+	telnet_port = strtoul(args[0], NULL, 0);
 
 	return ERROR_OK;
 }
