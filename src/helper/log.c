@@ -269,24 +269,22 @@ char *alloc_printf(const char *fmt, va_list ap)
 	/* no buffer at the beginning, force realloc to do the job */
 	char *string = NULL;
 	
-	/* start with minimal length to exercise all the code paths */
-	int size = 1;
+	/* start with buffer size suitable for typical messages */
+	int size = 128;
 
 	for (;;)
 	{
-		size *= 2; /* double the buffer size */
+		char *t = string;
+		string = realloc(string, size);
+		if (string == NULL)
+		{
+			if (t != NULL)
+				free(t);
+			return NULL;
+		}
 
-			char *t = string;
-			string = realloc(string, size);
-			if (string == NULL)
-			{
-				if (t != NULL)
-					free(t);
-				return NULL;
-			}
-
-	        va_list ap_copy;	        
-	        va_copy(ap_copy, ap);
+		va_list ap_copy;
+		va_copy(ap_copy, ap);
 
 		int ret;
 		ret = vsnprintf(string, size, fmt, ap_copy);
@@ -295,6 +293,7 @@ char *alloc_printf(const char *fmt, va_list ap)
 			break;
 
 		/* there was just enough or not enough space, allocate more in the next round */
+		size *= 2; /* double the buffer size */
 	}
 	
 	/* the returned buffer is by principle guaranteed to be at least one character longer */
