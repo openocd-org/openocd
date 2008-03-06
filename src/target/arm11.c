@@ -331,8 +331,14 @@ void arm11_check_init(arm11_common_t * arm11, u32 * dscr)
 
 	/* add further reset initialization here */
 
+	arm11->simulate_reset_on_next_halt = true;
+
 	if (*dscr & ARM11_DSCR_CORE_HALTED)
 	{
+	    /** \todo TODO: this needs further scrutiny because
+	      * arm11_on_enter_debug_state() never gets properly called
+	      */
+
 	    arm11->target->state	= TARGET_HALTED;
 	    arm11->target->debug_reason	= arm11_get_DSCR_debug_reason(*dscr);
 	}

@@ -274,14 +274,32 @@ enum target_debug_reason arm11_get_DSCR_debug_reason(u32 dscr)
 {
     switch (dscr & ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_MASK)
     {
-    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_HALT:			return DBG_REASON_DBGRQ;
-    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BREAKPOINT:		return DBG_REASON_BREAKPOINT;
-    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_WATCHPOINT:		return DBG_REASON_WATCHPOINT;
-    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BKPT_INSTRUCTION:	return DBG_REASON_BREAKPOINT;
-    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_EDBGRQ:		return DBG_REASON_DBGRQ;
-    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_VECTOR_CATCH:		return DBG_REASON_BREAKPOINT;
+    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_HALT:
+	INFO("Debug entry: JTAG HALT");
+	return DBG_REASON_DBGRQ;
+
+    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BREAKPOINT:
+	INFO("Debug entry: breakpoint");
+	return DBG_REASON_BREAKPOINT;
+
+    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_WATCHPOINT:
+	INFO("Debug entry: watchpoint");
+	return DBG_REASON_WATCHPOINT;
+
+    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BKPT_INSTRUCTION:
+	INFO("Debug entry: BKPT instruction");
+	return DBG_REASON_BREAKPOINT;
+
+    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_EDBGRQ:
+	INFO("Debug entry: EDBGRQ signal");
+	return DBG_REASON_DBGRQ;
+
+    case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_VECTOR_CATCH:
+	INFO("Debug entry: VCR vector catch");
+	return DBG_REASON_BREAKPOINT;
 
     default:
+	INFO("Debug entry: unknown");
 	return DBG_REASON_DBGRQ;
     }
 };
@@ -752,7 +770,7 @@ void arm11_sc7_set_vcr(arm11_common_t * arm11, u32 value)
 {
     arm11_sc7_action_t		set_vcr;
 
-    set_vcr.write		= 0;
+    set_vcr.write		= true;
     set_vcr.address		= ARM11_SC7_VCR;
     set_vcr.value		= value;
 
