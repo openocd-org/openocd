@@ -649,7 +649,8 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 			/* if a device is listed, the BYPASS register must not be selected */
 			if (jtag_get_device(i)->bypass)
 			{
-				WARNING("scan data for a device in BYPASS");
+				ERROR("BUG: scan data for a device in BYPASS");
+				exit(-1);
 			}
 #endif
 		}
@@ -702,7 +703,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 			/* if a device is listed, the BYPASS register must not be selected */
 			if (jtag_get_device(i)->bypass)
 			{
-				ERROR("scan data for a device in BYPASS");
+				ERROR("BUG: scan data for a device in BYPASS");
 				exit(-1);
 			}
 #endif
