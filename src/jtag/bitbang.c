@@ -145,16 +145,6 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 
 	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++)
 	{
-		/* set TMS high on the last bit unless we want to end in TAP_SD/SI */
-		int tms;
-		if ((ir_scan && (end_state == TAP_SI)) ||
-			(!ir_scan && (end_state == TAP_SD)))
-		{
-			tms = 0;
-		} else {
-			tms = (bit_cnt==scan_size-1) ? 1 : 0;
-		}
-		
 		/* if we're just reading the scan, but don't care about the output
 		 * default to outputting 'low', this also makes valgrind traces more readable,
 		 * as it removes the dependency on an uninitialised value
