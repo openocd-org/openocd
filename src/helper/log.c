@@ -284,9 +284,12 @@ char *alloc_printf(const char *fmt, va_list ap)
 					free(t);
 				return NULL;
 			}
-	
+
+	        va_list ap_copy;	        
+	        va_copy(ap_copy, ap);
+
 		int ret;
-		ret = vsnprintf(string, size, fmt, ap);
+		ret = vsnprintf(string, size, fmt, ap_copy);
 		/* NB! The result of the vsnprintf() might be an *EMPTY* string! */
 		if ((ret >= 0) && ((ret + 1) < size))
 			break;
