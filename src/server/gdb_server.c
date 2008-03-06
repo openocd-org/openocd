@@ -314,33 +314,29 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		free(debug_buffer);
 #endif
 
-		void *allocated = NULL;
-		char stackAlloc[1024];
-		char *t = stackAlloc;
-		int totalLen = 1 + len + 1 + 2;
-		if (totalLen > sizeof(stackAlloc))
+		char local_buffer[1024];
+		local_buffer[0] = '$';
+		if (len+4 <= sizeof(local_buffer))
 		{
-			allocated = malloc(totalLen);
-			t = allocated;
-			if (allocated == NULL)
-			{
-				ERROR("Ran out of memory trying to reply packet %d\n", totalLen);
-				exit(-1);
-			}
+			/* performance gain on smaller packets by only a single call to gdb_write() */
+			memcpy(local_buffer+1, buffer, len++);
+			local_buffer[len++] = '#';
+			local_buffer[len++] = DIGITS[(my_checksum >> 4) & 0xf];
+			local_buffer[len++] = DIGITS[my_checksum & 0xf];
+			gdb_write(connection, local_buffer, len);
 		}
-		t[0] = '$';
-		memcpy(t + 1, buffer, len);
-		t[1 + len] = '#';
-		t[1 + len + 1] = DIGITS[(my_checksum >> 4) & 0xf];
-		t[1 + len + 2] = DIGITS[my_checksum & 0xf];
-
-		gdb_write(connection, t, totalLen);
-
-		if (allocated)
+		else
 		{
-			free(allocated);
+			/* larger packets are transmitted directly from caller supplied buffer
+			   by several calls to gdb_write() to avoid dynamic allocation */
+			local_buffer[1] = '#';
+			local_buffer[2] = DIGITS[(my_checksum >> 4) & 0xf];
+			local_buffer[3] = DIGITS[my_checksum & 0xf];
+			gdb_write(connection, local_buffer, 1);
+			gdb_write(connection, buffer, len);
+			gdb_write(connection, local_buffer+1, 3);
 		}
-		
+
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
 
@@ -688,7 +684,7 @@ int gdb_new_connection(connection_t *connection)
 	 * GDB connection will fail if e.g. register read packets fail,
 	 * otherwise resetting/halting the target could have been left to GDB init
 	 * scripts
-     */
+	 */
 	if (((retval = gdb_service->target->type->halt(gdb_service->target)) != ERROR_OK) &&
 			(retval != ERROR_TARGET_ALREADY_HALTED))
 	{
@@ -1387,18 +1383,18 @@ void xml_printf(int *retval, char **xml, int *pos, int *size, const char *fmt, .
 			}
 		}
 
-	    va_list ap;
-	    int ret;
-	    va_start(ap, fmt);
-	    ret = vsnprintf(*xml + *pos, *size - *pos, fmt, ap);
-	    va_end(ap);
-	    if ((ret > 0) && ((ret + 1) < *size - *pos))
-	    {
-	    	*pos += ret;
-	    	return;
-	    }
-	    /* there was just enough or not enough space, allocate more. */
-	    first = 0;
+		va_list ap;
+		int ret;
+		va_start(ap, fmt);
+		ret = vsnprintf(*xml + *pos, *size - *pos, fmt, ap);
+		va_end(ap);
+		if ((ret > 0) && ((ret + 1) < *size - *pos))
+		{
+			*pos += ret;
+			return;
+		}
+		/* there was just enough or not enough space, allocate more. */
+		first = 0;
 	}
 }
 
