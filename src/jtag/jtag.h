@@ -287,7 +287,10 @@ extern int interface_jtag_add_statemove(enum tap_state endstate);
  */
 extern int jtag_add_pathmove(int num_states, enum tap_state *path);
 extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);
-/* cycle precisely num_cycles in the TAP_RTI state */
+/* go to TAP_RTI, if we're not already there and cycle
+ * precisely num_cycles in the TAP_RTI after which move
+ * to the end state, if it is != TAP_RTI
+ */
 extern int jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int jtag_add_reset(int trst, int srst);
