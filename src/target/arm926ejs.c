@@ -337,9 +337,11 @@ int arm926ejs_examine_debug_reason(target_t *target)
 		default:
 			ERROR("BUG: unknown debug reason: 0x%x", debug_reason);
 			target->debug_reason = DBG_REASON_DBGRQ;
+			retval = ERROR_TARGET_FAILURE;
+			break;
 	}
 	
-	return ERROR_OK;
+	return retval;
 }
 
 u32 arm926ejs_get_ttb(target_t *target)
