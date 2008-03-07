@@ -476,6 +476,7 @@ int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list
 	
 	if (target->state != TARGET_HALTED)
 	{
+		ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	

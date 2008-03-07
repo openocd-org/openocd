@@ -1274,7 +1274,7 @@ int xscale_halt(target_t *target)
 	if (target->state == TARGET_HALTED)
 	{
 		WARNING("target was already halted");
-		return ERROR_TARGET_ALREADY_HALTED;
+		return ERROR_OK;
 	}
 	else if (target->state == TARGET_UNKNOWN)
 	{

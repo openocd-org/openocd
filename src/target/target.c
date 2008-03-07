@@ -359,7 +359,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 				{
 					if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 					{
-						command_print(cmd_ctx, "Timed out waiting for reset");
+						USER("Timed out waiting for reset");
 						goto done;
 					}
 					/* this will send alive messages on e.g. GDB remote protocol. */
@@ -1614,22 +1614,10 @@ int handle_daemon_startup_command(struct command_context_s *cmd_ctx, char *cmd, 
 int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	int retval;
 	
-	command_print(cmd_ctx, "requesting target halt and executing a soft reset");
+	USER("requesting target halt and executing a soft reset");
 	
-	if ((retval = target->type->soft_reset_halt(target)) != ERROR_OK)
-	{	
-		switch (retval)
-		{
-			case ERROR_TARGET_TIMEOUT:
-				command_print(cmd_ctx, "target timed out... shutting down");
-				exit(-1);
-			default:
-				command_print(cmd_ctx, "unknown error... shutting down");
-				exit(-1);
-		}
-	}
+	target->type->soft_reset_halt(target);
 	
 	return ERROR_OK;
 }

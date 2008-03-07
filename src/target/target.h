@@ -116,7 +116,7 @@ typedef struct target_type_s
 	/* target request support */
 	int (*target_request_data)(struct target_s *target, u32 size, u8 *buffer);
 
-	/* target execution control */
+	/* halt will log a warning, but return ERROR_OK if the target is already halted. */
 	int (*halt)(struct target_s *target);
 	int (*resume)(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
 	int (*step)(struct target_s *target, int current, u32 address, int handle_breakpoints);
@@ -270,7 +270,6 @@ int target_arch_state(struct target_s *target);
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)
 #define ERROR_TARGET_TIMEOUT	(-302)
-#define ERROR_TARGET_ALREADY_HALTED (-303)
 #define ERROR_TARGET_NOT_HALTED (-304)
 #define ERROR_TARGET_FAILURE	(-305)
 #define ERROR_TARGET_UNALIGNED_ACCESS	(-306)

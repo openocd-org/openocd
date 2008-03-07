@@ -684,13 +684,19 @@ int gdb_new_connection(connection_t *connection)
 	 * GDB connection will fail if e.g. register read packets fail,
 	 * otherwise resetting/halting the target could have been left to GDB init
 	 * scripts
+	 * 
+	 * DANGER!!!! 
+	 * We need a synchronous halt, lest connect will fail.
+	 * Also there is no guarantee that poll() will be invoked
+	 * between here and serving the first packet, so the halt()
+	 * statement above is *NOT* sufficient
 	 */
-	if (((retval = gdb_service->target->type->halt(gdb_service->target)) != ERROR_OK) &&
-			(retval != ERROR_TARGET_ALREADY_HALTED))
+	if ((retval = gdb_service->target->type->halt(gdb_service->target)) != ERROR_OK)
 	{
 		ERROR("error(%d) when trying to halt target, falling back to \"reset\"", retval);
 		command_run_line(connection->cmd_ctx, "reset");
 	}
+	command_run_line(connection->cmd_ctx, "halt");
 	
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
@@ -1462,6 +1468,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			log_add_callback(gdb_log_callback, connection);
 			target_call_timer_callbacks();
 			command_run_line(cmd_ctx, cmd);
+			target_call_timer_callbacks();
 			log_remove_callback(gdb_log_callback, connection);
 			free(cmd);
 		}

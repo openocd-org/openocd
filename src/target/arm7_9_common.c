@@ -860,16 +860,26 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int i;
+	int retval;
 	
-	if (target->state == TARGET_RUNNING)
-	{
-		target->type->halt(target);
-	}
+	if ((retval=target->type->halt(target))!=ERROR_OK)
+		return retval;
 	
-	while (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
+	for (i=0; i<10; i++)
 	{
+		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) != 0)
+			break;
 		embeddedice_read_reg(dbg_stat);
-		jtag_execute_queue();
+		if ((retval=jtag_execute_queue())!=ERROR_OK)
+			return retval;
+		/* do not eat all CPU, time out after 1 se*/
+		usleep(100*1000);
+		
+	}
+	if (i==10)
+	{
+		ERROR("Failed to halt CPU after 1 sec");
+		return ERROR_TARGET_TIMEOUT;
 	}
 	target->state = TARGET_HALTED;
 	
@@ -962,7 +972,7 @@ int arm7_9_halt(target_t *target)
 	if (target->state == TARGET_HALTED)
 	{
 		WARNING("target was already halted");
-		return ERROR_TARGET_ALREADY_HALTED;
+		return ERROR_OK;
 	}
 	
 	if (target->state == TARGET_UNKNOWN)

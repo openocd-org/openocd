@@ -623,10 +623,7 @@ int arm920t_soft_reset_halt(struct target_s *target)
 	arm920t_common_t *arm920t = arm9tdmi->arch_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	
-	if (target->state == TARGET_RUNNING)
-	{
-		target->type->halt(target);
-	}
+	target->type->halt(target);
 	
 	while (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
 	{

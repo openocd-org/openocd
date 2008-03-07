@@ -735,8 +735,8 @@ int arm11_halt(struct target_s *target)
 
     if (target->state == TARGET_HALTED)
     {
-	WARNING("target was already halted");
-	return ERROR_TARGET_ALREADY_HALTED;
+		WARNING("target was already halted");
+		return ERROR_OK;
     }
 
     if (arm11->trst_active)
@@ -1044,7 +1044,8 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
 
     if (target->state != TARGET_HALTED)
     {
-	return ERROR_TARGET_NOT_HALTED;
+    	ERROR("Target not halted");    	
+		return ERROR_TARGET_NOT_HALTED;
     }
 	
     *reg_list_size  = ARM11_GDB_REGISTER_COUNT;
