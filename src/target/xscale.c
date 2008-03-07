@@ -425,7 +425,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 			if (attempts++==1000)
 			{
 				ERROR("Failed to receiving data from debug handler after 1000 attempts");
-				retval=ERROR_JTAG_QUEUE_FAILED;
+				retval=ERROR_TARGET_TIMEOUT;
 				break;
 			}
 		}
@@ -505,7 +505,7 @@ int xscale_read_tx(target_t *target, int consume)
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 5, 0);
 
-	do
+	for (;;)
 	{
 		/* if we want to consume the register content (i.e. clear TX_READY),
 		 * we have to go straight from Capture-DR to Shift-DR
@@ -530,7 +530,12 @@ int xscale_read_tx(target_t *target, int consume)
 			ERROR("time out reading TX register");
 			return ERROR_TARGET_TIMEOUT;
 		}
-	} while ((!(field0_in & 1)) && consume);
+		if (!((!(field0_in & 1)) && consume))
+		{
+			break;
+		}
+		usleep(500*1000); /* avoid flooding the logs */
+	} 
 
 	if (!(field0_in & 1))
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -590,7 +595,7 @@ int xscale_write_rx(target_t *target)
 
 	/* poll until rx_read is low */
 	DEBUG("polling RX");
-	do
+	for (;;)
 	{
 		jtag_add_dr_scan(3, fields, TAP_RTI);
 
@@ -606,7 +611,10 @@ int xscale_write_rx(target_t *target)
 			ERROR("time out writing RX register");
 			return ERROR_TARGET_TIMEOUT;
 		}
-	} while (field0_in & 1);
+		if (!(field0_in & 1))
+			break;
+		usleep(500*1000); /* wait 500ms to avoid flooding the logs */
+	}
 
 	/* set rx_valid */
 	field2 = 0x1;
@@ -937,6 +945,7 @@ int xscale_update_vectors(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	int i;
+	int retval;
 
 	u32 low_reset_branch, high_reset_branch;
 
@@ -949,8 +958,12 @@ int xscale_update_vectors(target_t *target)
 		}
 		else
 		{
-			if (target_read_u32(target, 0xffff0000 + 4*i, &xscale->high_vectors[i]) != ERROR_OK)
+			retval=target_read_u32(target, 0xffff0000 + 4*i, &xscale->high_vectors[i]);
+			if (retval == ERROR_TARGET_TIMEOUT)
+				return retval;
+			if (retval!=ERROR_OK)
 			{
+				/* Some of these reads will fail as part of normal execution */
 				xscale->high_vectors[i] = ARMV4_5_B(0xfffffe, 0);
 			}
 		}
@@ -964,8 +977,12 @@ int xscale_update_vectors(target_t *target)
 		}
 		else
 		{
-			if (target_read_u32(target, 0x0 + 4*i, &xscale->low_vectors[i]) != ERROR_OK)
+			retval=target_read_u32(target, 0x0 + 4*i, &xscale->low_vectors[i]);
+			if (retval == ERROR_TARGET_TIMEOUT)
+				return retval;
+			if (retval!=ERROR_OK)
 			{
+				/* Some of these reads will fail as part of normal execution */
 				xscale->low_vectors[i] = ARMV4_5_B(0xfffffe, 0);
 			}
 		}
@@ -1077,15 +1094,18 @@ int xscale_debug_entry(target_t *target)
 	u32 pc;
 	u32 buffer[10];
 	int i;
+	int retval;
 
 	u32 moe;
 
 	/* clear external dbg break (will be written on next DCSR read) */
 	xscale->external_debug_break = 0;
-	xscale_read_dcsr(target);
-
+	if ((retval=xscale_read_dcsr(target))!=ERROR_OK)
+		return retval;
+	
 	/* get r0, pc, r1 to r7 and cpsr */
-	xscale_receive(target, buffer, 10);
+	if ((retval=xscale_receive(target, buffer, 10))!=ERROR_OK)
+		return retval;
 
 	/* move r0 from buffer to register cache */
 	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, buffer[0]);
@@ -1340,7 +1360,8 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 	}
 
 	/* update vector tables */
-	xscale_update_vectors(target);
+	if ((retval=xscale_update_vectors(target))!=ERROR_OK)
+		return retval;
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
@@ -1929,6 +1950,7 @@ int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	xscale_common_t *xscale = armv4_5->arch_info;
 	u32 *buf32;
 	int i;
+	int retval;
 
 	DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
@@ -1946,17 +1968,21 @@ int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
 	/* send memory read request (command 0x1n, n: access size) */
-	xscale_send_u32(target, 0x10 | size);
+	if ((retval=xscale_send_u32(target, 0x10 | size))!=ERROR_OK)
+		return retval;
 
 	/* send base address for read request */
-	xscale_send_u32(target, address);
+	if ((retval=xscale_send_u32(target, address))!=ERROR_OK)
+		return retval;
 
 	/* send number of requested data words */
-	xscale_send_u32(target, count);
+	if ((retval=xscale_send_u32(target, count))!=ERROR_OK)
+		return retval;
 
 	/* receive data from target (count times 32-bit words in host endianness) */
 	buf32 = malloc(4 * count);
-	xscale_receive(target, buf32, count);
+	if ((retval=xscale_receive(target, buf32, count))!=ERROR_OK)
+		return retval;
 
 	/* extract data from host-endian buffer into byte stream */
 	for (i = 0; i < count; i++)
@@ -1983,11 +2009,13 @@ int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	free(buf32);
 
 	/* examine DCSR, to see if Sticky Abort (SA) got set */
-	xscale_read_dcsr(target);
+	if ((retval=xscale_read_dcsr(target))!=ERROR_OK)
+		return retval;
 	if (buf_get_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 5, 1) == 1)
 	{
 		/* clear SA bit */
-		xscale_send_u32(target, 0x60);
+		if ((retval=xscale_send_u32(target, 0x60))!=ERROR_OK)
+			return retval;
 
 		return ERROR_TARGET_DATA_ABORT;
 	}
@@ -1999,6 +2027,7 @@ int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
+	int retval;
 
 	DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
@@ -2016,13 +2045,16 @@ int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
 	/* send memory write request (command 0x2n, n: access size) */
-	xscale_send_u32(target, 0x20 | size);
+	if ((retval=xscale_send_u32(target, 0x20 | size))!=ERROR_OK)
+		return retval;
 
 	/* send base address for read request */
-	xscale_send_u32(target, address);
+	if ((retval=xscale_send_u32(target, address))!=ERROR_OK)
+		return retval;
 
 	/* send number of requested data words to be written*/
-	xscale_send_u32(target, count);
+	if ((retval=xscale_send_u32(target, count))!=ERROR_OK)
+		return retval;
 
 	/* extract data from host-endian buffer into byte stream */
 #if 0
@@ -2051,14 +2083,17 @@ int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 		}
 	}
 #endif
-	xscale_send(target, buffer, count, size);
+	if ((retval=xscale_send(target, buffer, count, size))!=ERROR_OK)
+		return retval;
 
 	/* examine DCSR, to see if Sticky Abort (SA) got set */
-	xscale_read_dcsr(target);
+	if ((retval=xscale_read_dcsr(target))!=ERROR_OK)
+		return retval;
 	if (buf_get_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 5, 1) == 1)
 	{
 		/* clear SA bit */
-		xscale_send_u32(target, 0x60);
+		if ((retval=xscale_send_u32(target, 0x60))!=ERROR_OK)
+			return retval;
 
 		return ERROR_TARGET_DATA_ABORT;
 	}
