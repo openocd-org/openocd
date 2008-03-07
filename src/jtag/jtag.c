@@ -709,7 +709,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 #endif
 			for (j = 0; j < num_fields; j++)
 			{
-				char out_value[4];
+				u8 out_value[4];
 				scan_size = num_bits[j];
 				buf_set_u32(out_value, 0, scan_size, value[j]);
 				(*last_cmd)->cmd.scan->fields[field_count].num_bits = scan_size;

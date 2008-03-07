@@ -723,13 +723,18 @@ int etmv1_data(etm_context_t *ctx, int size, u32 *data)
 	}
 	
 	if (size == 8)
+	{
 		ERROR("TODO: add support for 64-bit values");
+		return -1;
+	}
 	else if (size == 4)
 		*data = target_buffer_get_u32(ctx->target, buf);
 	else if (size == 2)
 		*data = target_buffer_get_u16(ctx->target, buf);
 	else if (size == 1)
 		*data = buf[0];
+	else
+		return -1;
 		
 	return 0;
 }

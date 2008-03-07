@@ -1729,7 +1729,9 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 		{
 			u32 buffersize = 1UL << cfi_info->max_buf_write_size;
+#if 0
 			u32 buffermask = buffersize-1;
+#endif
 			u32 bufferwsize;
 
 			switch(bank->chip_width)

@@ -189,7 +189,7 @@ int fileio_read_u32(fileio_t *fileio, u32 *data)
 	return ERROR_OK;
 }
 
-int fileio_local_fgets(fileio_t *fileio, u32 size, u8 *buffer)
+int fileio_local_fgets(fileio_t *fileio, u32 size, char *buffer)
 {
 	if( fgets(buffer, size, fileio->file) == NULL)
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -197,7 +197,7 @@ int fileio_local_fgets(fileio_t *fileio, u32 size, u8 *buffer)
 	return ERROR_OK;
 }
 
-int fileio_fgets(fileio_t *fileio, u32 size, u8 *buffer)
+int fileio_fgets(fileio_t *fileio, u32 size, char *buffer)
 {
 	return fileio_local_fgets(fileio, size, buffer);
 }

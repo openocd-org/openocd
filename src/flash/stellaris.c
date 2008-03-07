@@ -271,12 +271,12 @@ int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	}	
 	printed = snprintf(buf, buf_size, "\nLMI Stellaris information: Chip is class %i(%s) %s v%c.%i\n",
 	  device_class, StellarisClassname[device_class], stellaris_info->target_name,
-	  'A' + (stellaris_info->did0>>8)&0xFF, (stellaris_info->did0)&0xFF);
+	  'A' + ((stellaris_info->did0>>8)&0xFF), (stellaris_info->did0)&0xFF);
 	buf += printed;
 	buf_size -= printed;
 
 	printed = snprintf(buf, buf_size, "did1: 0x%8.8x, arch: 0x%4.4x, eproc: %s, ramsize:%ik,  flashsize: %ik\n", 
-	 stellaris_info->did1, stellaris_info->did1, "ARMV7M", (1+(stellaris_info->dc0>>16)&0xFFFF)/4, (1+stellaris_info->dc0&0xFFFF)*2);
+	 stellaris_info->did1, stellaris_info->did1, "ARMV7M", (1+((stellaris_info->dc0>>16)&0xFFFF))/4, (1+(stellaris_info->dc0&0xFFFF))*2);
 	buf += printed;
 	buf_size -= printed;
 
@@ -340,6 +340,10 @@ void stellaris_read_clock_info(flash_bank_t *bank)
 		case 3:
 			WARNING("Invalid oscsrc (3) in rcc register");
 			mainfreq = 6000000;
+			break;
+
+		default: /* NOTREACHED */
+			mainfreq = 0;
 			break;
 	}
 	
@@ -448,8 +452,8 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	stellaris_info->did0 = did0;
 	stellaris_info->did1 = did1;
 
-	stellaris_info->num_lockbits = 1+stellaris_info->dc0&0xFFFF;
-	stellaris_info->num_pages = 2*(1+stellaris_info->dc0&0xFFFF);
+	stellaris_info->num_lockbits = 1+(stellaris_info->dc0&0xFFFF);
+	stellaris_info->num_pages = 2*(1+(stellaris_info->dc0&0xFFFF));
 	stellaris_info->pagesize = 1024;
 	bank->size = 1024*stellaris_info->num_pages;
 	stellaris_info->pages_in_lockregion = 2;
@@ -722,8 +726,8 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 	armv7m_algorithm_t armv7m_info;
 	int retval;
 	
-	DEBUG("(bank=%08X buffer=%08X offset=%08X wcount=%08X)",
-			(unsigned int)bank, (unsigned int)buffer, offset, wcount);
+	DEBUG("(bank=%p buffer=%p offset=%08X wcount=%08X)",
+			bank, buffer, offset, wcount);
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(stellaris_write_code), &write_algorithm) != ERROR_OK)
@@ -737,8 +741,8 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
 	{
-		DEBUG("called target_alloc_working_area(target=%08X buffer_size=%08X source=%08X)",
-				(unsigned int)target, buffer_size, (unsigned int)source); 
+		DEBUG("called target_alloc_working_area(target=%p buffer_size=%08X source=%p)",
+				target, buffer_size, source); 
 		buffer_size /= 2;
 		if (buffer_size <= 256)
 		{
@@ -819,8 +823,8 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	DEBUG("(bank=%08X buffer=%08X offset=%08X count=%08X)",
-			(unsigned int)bank, (unsigned int)buffer, offset, count);
+	DEBUG("(bank=%p buffer=%p offset=%08X count=%08X)",
+			bank, buffer, offset, count);
 
 	if (stellaris_info->did1 == 0)
 	{

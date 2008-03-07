@@ -21,6 +21,8 @@
 #include "config.h"
 #endif
 
+#include <string.h>
+
 #include "replacements.h"
 
 
@@ -342,7 +344,7 @@ int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, u32 address, u32 l
 		}
 		
 		int retval;
-    	retval=target_write_buffer(target, buffer, t, ((char *)data)+i);
+    	retval=target_write_buffer(target, buffer, t, ((u8 *)data)+i);
     	if (retval != ERROR_OK)
     		return retval;
     	
