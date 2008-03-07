@@ -67,7 +67,8 @@ typedef struct log_callback_s
 extern int log_add_callback(log_callback_fn fn, void *priv);
 extern int log_remove_callback(log_callback_fn fn, void *priv);
 
-char *alloc_printf(const char *fmt, va_list ap);
+char *alloc_vprintf(const char *fmt, va_list ap);
+char *alloc_printf(const char *fmt, ...);
 
 extern int debug_level;
 

@@ -119,7 +119,7 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 	va_list ap;
 	va_start(ap, format);
 
-	string = alloc_printf(format, ap);
+	string = alloc_vprintf(format, ap);
 	if (string != NULL)
 	{
 		log_puts(level, file, line, function, string);
@@ -140,10 +140,10 @@ void log_printf_lf(enum log_levels level, const char *file, int line, const char
 	va_list ap;
 	va_start(ap, format);
 	
-	string = alloc_printf(format, ap);
+	string = alloc_vprintf(format, ap);
 	if (string != NULL)
 	{
-		strcat(string, "\n"); /* alloc_printf guaranteed the buffer to be at least one char longer */
+		strcat(string, "\n"); /* alloc_vprintf guaranteed the buffer to be at least one char longer */
 		log_puts(level, file, line, function, string);
 		free(string);
 	}
@@ -264,7 +264,7 @@ int log_remove_callback(log_callback_fn fn, void *priv)
 }
 
 /* return allocated string w/printf() result */
-char *alloc_printf(const char *fmt, va_list ap)
+char *alloc_vprintf(const char *fmt, va_list ap)
 {
 	/* no buffer at the beginning, force realloc to do the job */
 	char *string = NULL;
@@ -288,9 +288,6 @@ char *alloc_printf(const char *fmt, va_list ap)
 
 		int ret;
 		ret = vsnprintf(string, size, fmt, ap_copy);
-		
-		va_end(ap_copy);
-		
 		/* NB! The result of the vsnprintf() might be an *EMPTY* string! */
 		if ((ret >= 0) && ((ret + 1) < size))
 			break;
@@ -300,5 +297,15 @@ char *alloc_printf(const char *fmt, va_list ap)
 	}
 	
 	/* the returned buffer is by principle guaranteed to be at least one character longer */
+	return string;
+}
+
+char *alloc_printf(const char *format, ...)
+{
+	char *string;
+	va_list ap;
+	va_start(ap, format);
+	string = alloc_vprintf(format, ap);
+	va_end(ap);
 	return string;
 }

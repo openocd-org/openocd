@@ -267,7 +267,7 @@ void command_print_n(command_context_t *context, char *format, ...)
 	va_list ap;
 	va_start(ap, format);
 
-	string = alloc_printf(format, ap);
+	string = alloc_vprintf(format, ap);
 	if (string != NULL)
 	{
 		context->output_handler(context, string);
@@ -284,10 +284,10 @@ void command_print(command_context_t *context, char *format, ...)
 	va_list ap;
 	va_start(ap, format);
 
-	string = alloc_printf(format, ap);
+	string = alloc_vprintf(format, ap);
 	if (string != NULL)
 	{
-		strcat(string, "\n"); /* alloc_printf guaranteed the buffer to be at least one char longer */
+		strcat(string, "\n"); /* alloc_vprintf guaranteed the buffer to be at least one char longer */
 		context->output_handler(context, string);
 		free(string);
 	}
