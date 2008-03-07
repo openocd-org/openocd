@@ -119,20 +119,10 @@ void telnet_log_callback(void *priv, const char *file, int line,
 
 int telnet_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
 {
-	struct command_context_s *cmd_ctx = priv;
-	connection_t *connection = cmd_ctx->output_handler_priv;
-	telnet_connection_t *t_con = connection->priv;
-	
 	switch (event)
 	{
 		case TARGET_EVENT_HALTED:
 			target_arch_state(target);
-			if (!t_con->suppress_prompt)
-				telnet_prompt(connection);
-			break;
-		case TARGET_EVENT_RESUMED:
-			if (!t_con->suppress_prompt)
-				telnet_prompt(connection);
 			break;
 		default:
 			break;
@@ -155,7 +145,6 @@ int telnet_new_connection(connection_t *connection)
 	telnet_connection->line_cursor = 0;
 	telnet_connection->option_size = 0;
 	telnet_connection->prompt = strdup("> ");
-	telnet_connection->suppress_prompt = 0;
 	telnet_connection->state = TELNET_STATE_DATA;
 	
 	/* output goes through telnet connection */
@@ -298,12 +287,10 @@ int telnet_input(connection_t *connection)
 							}
 							
 							log_add_callback(telnet_log_callback, connection);
-							t_con->suppress_prompt = 1;
 
 							retval = command_run_line(command_context, t_con->line);
 							
 							log_remove_callback(telnet_log_callback, connection);
-							t_con->suppress_prompt = 0;
 
 							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
 							{
