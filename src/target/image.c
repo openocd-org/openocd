@@ -381,6 +381,14 @@ int image_elf_read_headers(image_t *image)
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 
+
+	if ((retval = fileio_seek(&elf->fileio, elf->header->e_phoff)) != ERROR_OK)
+	{
+		ERROR("cannot seek to ELF program header table, read failed");
+		return retval;
+	}
+
+
 	elf->segments = malloc(elf->segment_count*sizeof(Elf32_Phdr));
 
 	if ((retval = fileio_read(&elf->fileio, elf->segment_count*sizeof(Elf32_Phdr), (u8*)elf->segments, &read_bytes)) != ERROR_OK)
@@ -1000,4 +1008,5 @@ int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum)
 	*checksum = crc;
 	return ERROR_OK;
 }
+
 
