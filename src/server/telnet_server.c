@@ -172,6 +172,10 @@ int telnet_new_connection(connection_t *connection)
 
 	target_register_event_callback(telnet_target_callback_event_handler, connection->cmd_ctx);
 	
+	log_add_callback(telnet_log_callback, connection);
+
+
+	
 	return ERROR_OK;
 }
 
@@ -286,12 +290,8 @@ int telnet_input(connection_t *connection)
 								continue;
 							}
 							
-							log_add_callback(telnet_log_callback, connection);
-
 							retval = command_run_line(command_context, t_con->line);
 							
-							log_remove_callback(telnet_log_callback, connection);
-
 							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
 							{
 								return ERROR_SERVER_REMOTE_CLOSED;
@@ -534,6 +534,8 @@ int telnet_connection_closed(connection_t *connection)
 {
 	telnet_connection_t *t_con = connection->priv;
 	int i;
+	
+	log_remove_callback(telnet_log_callback, connection);
 	
 	if (t_con->prompt)
 	{
