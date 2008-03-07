@@ -217,8 +217,6 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	u8 field1_out[1];
 	u8 field2_out[1];
 
-	DEBUG("%i", ice_reg->addr);
-
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);
 	
