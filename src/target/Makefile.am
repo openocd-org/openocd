@@ -5,7 +5,6 @@ else
 OOCD_TRACE_FILES =
 endif
 
-CFLAGS += -Wall
 INCLUDES = -I$(top_srcdir)/src/gdb -I$(top_srcdir)/src/helper 	-I$(top_srcdir)/src/jtag -I$(top_srcdir)/src/xsvf $(all_includes)
 METASOURCES = AUTO
 AM_CPPFLAGS = -DPKGLIBDIR=\"$(pkglibdir)\" @CPPFLAGS@

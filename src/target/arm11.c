@@ -511,8 +511,6 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 
     }
 
-
-
     arm11_run_instr_data_finish(arm11);
 
     arm11_dump_reg_changes(arm11);
@@ -735,8 +733,8 @@ int arm11_halt(struct target_s *target)
 
     if (target->state == TARGET_HALTED)
     {
-		WARNING("target was already halted");
-		return ERROR_OK;
+	WARNING("target was already halted");
+	return ERROR_OK;
     }
 
     if (arm11->trst_active)
@@ -1044,8 +1042,8 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
 
     if (target->state != TARGET_HALTED)
     {
-    	ERROR("Target not halted");    	
-		return ERROR_TARGET_NOT_HALTED;
+	WARNING("target was not halted");
+	return ERROR_TARGET_NOT_HALTED;
     }
 	
     *reg_list_size  = ARM11_GDB_REGISTER_COUNT;
@@ -1082,6 +1080,12 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
     /** \todo TODO: check if buffer cast to u32* and u16* might cause alignment problems */
 
     FNC_INFO;
+
+    if (target->state != TARGET_HALTED)
+    {
+	WARNING("target was not halted");
+	return ERROR_TARGET_NOT_HALTED;
+    }
 
     DEBUG("ADDR %08x  SIZE %08x  COUNT %08x", address, size, count);
 
@@ -1151,6 +1155,12 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
 {
     FNC_INFO;
+
+    if (target->state != TARGET_HALTED)
+    {
+	WARNING("target was not halted");
+	return ERROR_TARGET_NOT_HALTED;
+    }
 
     DEBUG("ADDR %08x  SIZE %08x  COUNT %08x", address, size, count);
 
@@ -1251,6 +1261,12 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 int arm11_bulk_write_memory(struct target_s *target, u32 address, u32 count, u8 *buffer)
 {
     FNC_INFO;
+
+    if (target->state != TARGET_HALTED)
+    {
+	WARNING("target was not halted");
+	return ERROR_TARGET_NOT_HALTED;
+    }
 
     return arm11_write_memory(target, address, 4, count, buffer);
 }
@@ -1462,6 +1478,7 @@ int arm11_get_reg(reg_t *reg)
 
     if (target->state != TARGET_HALTED)
     {
+	WARNING("target was not halted");
 	return ERROR_TARGET_NOT_HALTED;
     }
 
@@ -1626,6 +1643,129 @@ int arm11_handle_vcr(struct command_context_s *cmd_ctx, char *cmd, char **args, 
     return ERROR_OK;
 }
 
+const u32 arm11_coproc_instruction_limits[] =
+{
+    15,			/* coprocessor */
+    7,			/* opcode 1 */
+    15,			/* CRn */
+    15,			/* CRm */
+    7,			/* opcode 2 */
+    0xFFFFFFFF,		/* value */
+};
+
+const char arm11_mrc_syntax[] = "Syntax: mrc <jtag_target> <coprocessor> <opcode 1> <CRn> <CRm> <opcode 2>. All parameters are numbers only.";
+const char arm11_mcr_syntax[] = "Syntax: mcr <jtag_target> <coprocessor> <opcode 1> <CRn> <CRm> <opcode 2> <32bit value to write>. All parameters are numbers only.";
+
+
+arm11_common_t * arm11_find_target(const char * arg)
+{
+    size_t jtag_target		= strtoul(arg, NULL, 0);
+
+    {target_t * t;
+    for (t = targets; t; t = t->next)
+    {
+	if (t->type != &arm11_target)
+	    continue;
+
+	arm11_common_t * arm11 = t->arch_info;
+
+	if (arm11->jtag_info.chain_pos != jtag_target)
+	    continue;
+
+	return arm11;
+    }}
+
+    return 0;
+}
+
+int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, bool read)
+{
+    if (argc != (read ? 6 : 7))
+    {
+	ERROR("Invalid number of arguments. %s", read ? arm11_mrc_syntax : arm11_mcr_syntax);
+	return -1;
+    }
+
+    arm11_common_t * arm11 = arm11_find_target(args[0]);
+
+    if (!arm11)
+    {
+	ERROR("Parameter 1 is not a the JTAG chain position of an ARM11 device. %s",
+		read ? arm11_mrc_syntax : arm11_mcr_syntax);
+
+	return -1;
+
+    }
+
+    if (arm11->target->state != TARGET_HALTED)
+    {
+	WARNING("target was not halted");
+	return ERROR_TARGET_NOT_HALTED;
+    }
+
+	
+    u32	values[6];
+
+    {size_t i;
+    for (i = 0; i < (read ? 5 : 6); i++)
+    {
+	values[i] = strtoul(args[i + 1], NULL, 0);
+
+	if (values[i] > arm11_coproc_instruction_limits[i])
+	{
+	    ERROR("Parameter %d out of bounds (%d max). %s",
+		i + 2, arm11_coproc_instruction_limits[i],
+		read ? arm11_mrc_syntax : arm11_mcr_syntax);
+	    return -1;
+	}
+    }}
+
+    u32 instr = 0xEE000010  |
+	(values[0] <<  8) |
+	(values[1] << 21) |
+	(values[2] << 16) |
+	(values[3] <<  0) |
+	(values[4] <<  5);
+
+    if (read)
+	instr |= 0x00100000;
+
+
+    arm11_run_instr_data_prepare(arm11);
+
+    if (read)
+    {    
+	u32 result;	
+	arm11_run_instr_data_from_core_via_r0(arm11, instr, &result);
+
+	INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08x (%d)",
+	    values[0], values[1], values[2], values[3], values[4], result, result);
+    }
+    else
+    {
+	arm11_run_instr_data_to_core_via_r0(arm11, instr, values[5]);
+
+	INFO("MRC p%d, %d, R0 (#0x%08x), c%d, c%d, %d",
+	    values[0], values[1], 
+	    values[5],
+	    values[2], values[3], values[4]);
+    }
+
+    arm11_run_instr_data_finish(arm11);
+
+
+    return ERROR_OK;
+}
+
+int arm11_handle_mrc(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+    return arm11_handle_mrc_mcr(cmd_ctx, cmd, args, argc, true);
+}
+
+int arm11_handle_mcr(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+    return arm11_handle_mrc_mcr(cmd_ctx, cmd, args, argc, false);
+}
 
 int arm11_register_commands(struct command_context_s *cmd_ctx)
 {
@@ -1647,6 +1787,12 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
 	RC_FINAL(		"vcr",		"Control (Interrupt) Vector Catch Register",
 						arm11_handle_vcr)
+
+	RC_FINAL(		"mrc",		"Read Coprocessor register",
+						arm11_handle_mrc)
+
+	RC_FINAL(		"mcr",		"Write Coprocessor register",
+						arm11_handle_mcr)
     )
 
     return ERROR_OK;
