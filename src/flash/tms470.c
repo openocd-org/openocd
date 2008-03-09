@@ -436,6 +436,7 @@ int tms470_unlock_flash(struct flash_bank_s *bank)
 
 	if (keysSet)
 	{
+		key_set_count = 5;
 		p_key_sets[0] = flashKeys;
 		p_key_sets[1] = FLASH_KEYS_ALL_ONES;
 		p_key_sets[2] = FLASH_KEYS_ALL_ZEROS;
