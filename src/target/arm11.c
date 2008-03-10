@@ -1040,12 +1040,6 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
 
     arm11_common_t * arm11 = target->arch_info;
 
-    if (target->state != TARGET_HALTED)
-    {
-	WARNING("target was not halted");
-	return ERROR_TARGET_NOT_HALTED;
-    }
-	
     *reg_list_size  = ARM11_GDB_REGISTER_COUNT;
     *reg_list	    = malloc(sizeof(reg_t*) * ARM11_GDB_REGISTER_COUNT);
 

@@ -321,12 +321,6 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	armv7m_common_t *armv7m = target->arch_info;
 	int i;
 	
-	if (target->state != TARGET_HALTED)
-	{
-		ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	*reg_list_size = 26;
 	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
 	

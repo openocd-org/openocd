@@ -28,6 +28,7 @@
 #include "command.h"
 #include "log.h"
 #include "interpreter.h"
+#include "target.h"
 
 #include "stdlib.h"
 #include "string.h"
@@ -1327,11 +1328,10 @@ void jtag_sleep(u32 us)
 
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
-int jtag_examine_chain()
+int jtag_examine_chain(u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4] )
 {
 	jtag_device_t *device = jtag_devices;
 	scan_field_t field;
-	u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
 	int i;
 	int bit_count;
 	int device_count = 0;
@@ -1533,9 +1533,36 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
+extern int jtag_init_chain(struct command_context_s *cmd_ctx);
+
+static int jtag_sense_handler(void *priv)
+{
+	struct command_context_s *cmd_ctx;
+	cmd_ctx=(struct command_context_s *)priv;
+
+	static int scan_complete = 0;
+	if (!scan_complete)
+	{
+		if (jtag_init_chain(cmd_ctx)==ERROR_OK)
+		{
+			scan_complete = 1;
+		}
+		return ERROR_OK;
+	}
+	
+	return ERROR_OK;
+}
+
+/* OpenOCD will start telnet/gdb servers before the JTAG chain has
+ * been enumerated. This is to allow e.g. GDB init script to
+ * run monitor commands to initialize the target so jtag_init_chain()
+ * will succeed.
+ * 
+ * A timer callback is added where sensing is retried once every second
+ * until it succeeds.
+ */
 int jtag_init(struct command_context_s *cmd_ctx)
 {
-	int validate_tries = 0;
 	jtag_device_t *device;
 
 	DEBUG("-");
@@ -1556,24 +1583,76 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	jtag_add_statemove(TAP_TLR);
 	jtag_execute_queue();
 
-	/* examine chain first, as this could discover the real chain layout */
-	if (jtag_examine_chain() != ERROR_OK)
-	{
-		ERROR("trying to validate configured JTAG chain anyway...");
+	target_register_timer_callback(jtag_sense_handler, 1000, 1, cmd_ctx);
+	
+	return ERROR_OK;
 	}
 	
-	while (jtag_validate_chain() != ERROR_OK)
-	{
-		validate_tries++;
-		if (validate_tries > 5)
-		{
-			ERROR("Could not validate JTAG chain, exit");
-			return ERROR_JTAG_INVALID_INTERFACE;
-		}
-		usleep(10000);
-	}
+static int jtag_test_chain(u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4])
+{
+	jtag_add_statemove(TAP_TLR);
+	jtag_execute_queue();
 
-	return ERROR_OK;
+	/* examine chain first, as this could discover the real chain layout */
+	if (jtag_examine_chain(idcode_buffer)!=ERROR_OK)
+	{
+		WARNING("trying to validate configured JTAG chain anyway...");
+	}
+	
+	return jtag_validate_chain();
+}
+
+/* Unless we can do this successfully 10 times, we're not
+ * satisfied with the quality of the JTAG communication.
+ * 
+ * Since we're continously repeating this operation, be a bit
+ * wary of filling the log with megabytes of data.
+ * 
+ * Keep increasing the jtag_divisor until we've got a solid
+ * result.
+ */
+int jtag_init_chain(struct command_context_s *cmd_ctx)
+{
+	int i, j;
+	int retval;
+	for (i=jtag_speed; i<64; i++)
+		{
+		u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
+		jtag_speed=i;
+		if ((retval=jtag->speed(jtag_speed))!=ERROR_OK)
+			continue;
+		for (j=0; j<10; j++)
+		{
+			u8 idcode_current[JTAG_MAX_CHAIN_SIZE * 4];
+			enum log_levels save_log_level=debug_level;
+			/* avoid spamming log */
+			debug_level=LOG_SILENT;
+			retval=jtag_test_chain(idcode_current);
+			if (retval==ERROR_OK)
+			{
+				if (j==0)
+				{
+					memcpy(idcode_buffer, idcode_current, sizeof(idcode_buffer));
+				} else
+				{
+					retval=(memcmp(idcode_buffer, idcode_current, sizeof(idcode_buffer))==0)?ERROR_OK:ERROR_JTAG_INIT_FAILED;
+				}
+			}
+			debug_level = save_log_level;
+			if (retval!=ERROR_OK)
+			{
+				break;
+			}
+		}
+		if (retval==ERROR_OK)
+		{
+			/* Print out result  */
+			INFO("Succeeded jtag chain test jtag_speed=%d", jtag_speed);
+			return jtag_test_chain(idcode_buffer);
+		}
+		DEBUG("Failed jtag chain test, dropping clock rate. Trying jtag_speed=%d\n", i+1);
+	}
+	return retval;
 }
 
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1778,12 +1857,11 @@ int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 	if (argc > 0)
 	{
+		jtag_speed = strtoul(args[0], NULL, 0);
 		/* this command can be called during CONFIG, 
 		 * in which case jtag isn't initialized */
 		if (jtag)
-			jtag->speed(strtoul(args[0], NULL, 0));
-		else
-			jtag_speed = strtoul(args[0], NULL, 0);
+			jtag->speed(jtag_speed);
 	}
 
 	return ERROR_OK;

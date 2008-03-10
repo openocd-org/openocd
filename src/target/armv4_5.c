@@ -474,12 +474,6 @@ int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	int i;
 	
-	if (target->state != TARGET_HALTED)
-	{
-		ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
 	*reg_list_size = 26;
 	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
 	

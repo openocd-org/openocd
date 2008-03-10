@@ -127,7 +127,15 @@ typedef struct target_type_s
 	int (*soft_reset_halt)(struct target_s *target);
 	int (*prepare_reset_halt)(struct target_s *target);
 	
-	/* target register access for gdb */
+	/* target register access for gdb.
+	 * 
+	 * Danger! this function will succeed even if the target is running
+	 * and return a register list with dummy values.
+	 * 
+	 * The reason is that GDB connection will fail without a valid register
+	 * list, however it is after GDB is connected that monitor commands can
+	 * be run to properly initialize the target
+	 */
 	int (*get_gdb_reg_list)(struct target_s *target, struct reg_s **reg_list[], int *reg_list_size);
 	
 	/* target memory access 

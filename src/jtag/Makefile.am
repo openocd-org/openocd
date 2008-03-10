@@ -9,7 +9,7 @@ else
 FTD2XXINC =
 endif
 
-INCLUDES = -I$(top_srcdir)/src/helper $(FTD2XXINC) $(all_includes)
+INCLUDES = -I$(top_srcdir)/src/helper $(FTD2XXINC) $(all_includes) -I$(top_srcdir)/src/target 
 METASOURCES = AUTO
 noinst_LIBRARIES = libjtag.a
 
