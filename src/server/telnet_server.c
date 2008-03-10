@@ -114,7 +114,12 @@ void telnet_log_callback(void *priv, const char *file, int line,
 		const char *function, const char *string)
 {
 	connection_t *connection = priv;
+	
+	telnet_write(connection, "\b\b  \b\b", strlen("\b\b  \b\b"));
+
 	telnet_outputline(connection, string);
+	
+	telnet_prompt(connection);
 }
 
 int telnet_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
