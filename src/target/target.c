@@ -749,7 +749,7 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, NULL);
 	register_command(cmd_ctx, NULL, "daemon_startup", handle_daemon_startup_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "target_script", handle_target_script_command, COMMAND_CONFIG, NULL);
-	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, "<target> <run time ms>");
 	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
 
@@ -1110,8 +1110,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	
 	if (argc < 3)
 	{
-		ERROR("target command requires at least three arguments: <type> <endianess> <reset_mode>");
-		exit(-1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	/* search for the specified target */
@@ -1148,7 +1147,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				else
 				{
 					ERROR("endianness must be either 'little' or 'big', not '%s'", args[1]);
-					exit(-1);
+					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				
 				/* what to do on a target reset */
@@ -1165,7 +1164,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				else
 				{
 					ERROR("unknown target startup mode %s", args[2]);
-					exit(-1);
+					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				(*last_target_p)->run_and_halt_time = 1000; /* default 1s */
 				
@@ -1212,7 +1211,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	if (!found)
 	{
 		ERROR("target '%s' not found", args[0]);
-		exit(-1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -1226,15 +1225,14 @@ int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, c
 	if (argc < 3)
 	{
 		ERROR("incomplete target_script command");
-		exit(-1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	target = get_target_by_num(strtoul(args[0], NULL, 0));
 	
 	if (!target)
 	{
-		ERROR("target number '%s' not defined", args[0]);
-		exit(-1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	if (strcmp(args[1], "reset") == 0)
@@ -1264,7 +1262,7 @@ int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, c
 	else
 	{
 		ERROR("unknown event type: '%s", args[1]);
-		exit(-1);	
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	return ERROR_OK;
@@ -1276,16 +1274,14 @@ int handle_run_and_halt_time_command(struct command_context_s *cmd_ctx, char *cm
 	
 	if (argc < 2)
 	{
-		ERROR("incomplete run_and_halt_time command");
-		exit(-1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	target = get_target_by_num(strtoul(args[0], NULL, 0));
 	
 	if (!target)
 	{
-		ERROR("target number '%s' not defined", args[0]);
-		exit(-1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	target->run_and_halt_time = strtoul(args[1], NULL, 0);
@@ -1306,8 +1302,7 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	
 	if (!target)
 	{
-		ERROR("target number '%s' not defined", args[0]);
-		exit(-1);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	target_free_all_working_areas(target);
 	
@@ -1898,6 +1893,7 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	}
 	
 	image_size = 0x0;
+	retval = ERROR_OK;
 	for (i = 0; i < image.num_sections; i++)
 	{
 		buffer = malloc(image.sections[i].size);
@@ -1909,13 +1905,14 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		
 		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
 		{
-			ERROR("image_read_section failed with error code: %i", retval);
-			command_print(cmd_ctx, "image reading failed, download aborted");
 			free(buffer);
-			image_close(&image);
-			return ERROR_OK;
+			break;
 		}
-		target_write_buffer(target, image.sections[i].base_address, buf_cnt, buffer);
+		if ((retval = target_write_buffer(target, image.sections[i].base_address, buf_cnt, buffer)) != ERROR_OK)
+		{
+			free(buffer);
+			break;
+		}
 		image_size += buf_cnt;
 		command_print(cmd_ctx, "%u byte written at address 0x%8.8x", buf_cnt, image.sections[i].base_address);
 		
@@ -1923,12 +1920,15 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	}
 
 	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "downloaded %u byte in %s", image_size, duration_text);
+	if (retval==ERROR_OK)
+	{
+		command_print(cmd_ctx, "downloaded %u byte in %s", image_size, duration_text);
+	}
 	free(duration_text);
 	
 	image_close(&image);
 
-	return ERROR_OK;
+	return retval;
 
 }
 
@@ -1939,7 +1939,7 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	u32 address;
 	u32 size;
 	u8 buffer[560];
-	int retval;
+	int retval=ERROR_OK;
 	
 	duration_t duration;
 	char *duration_text;
@@ -1976,11 +1976,14 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		retval = target->type->read_memory(target, address, 4, this_run_size / 4, buffer);
 		if (retval != ERROR_OK)
 		{
-			command_print(cmd_ctx, "Reading memory failed %d", retval);
 			break;
 		}
 		
-		fileio_write(&fileio, this_run_size, buffer, &size_written);
+		retval = fileio_write(&fileio, this_run_size, buffer, &size_written);
+		if (retval != ERROR_OK)
+		{
+			break;
+		}
 		
 		size -= this_run_size;
 		address += this_run_size;
@@ -1989,7 +1992,10 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	fileio_close(&fileio);
 
 	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "dumped %"PRIi64" byte in %s", fileio.size, duration_text);
+	if (retval==ERROR_OK)
+	{
+		command_print(cmd_ctx, "dumped %"PRIi64" byte in %s", fileio.size, duration_text);
+	}
 	free(duration_text);
 	
 	return ERROR_OK;
@@ -2045,6 +2051,7 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	}
 	
 	image_size = 0x0;
+	retval=ERROR_OK;
 	for (i = 0; i < image.num_sections; i++)
 	{
 		buffer = malloc(image.sections[i].size);
@@ -2055,11 +2062,8 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		}
 		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
 		{
-			ERROR("image_read_section failed with error code: %i", retval);
-			command_print(cmd_ctx, "image reading failed, verify aborted");
 			free(buffer);
-			image_close(&image);
-			return ERROR_OK;
+			break;
 		}
 		
 		/* calculate checksum of image */
@@ -2069,10 +2073,8 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		
 		if( retval != ERROR_OK )
 		{
-			command_print(cmd_ctx, "could not calculate checksum, verify aborted");
 			free(buffer);
-			image_close(&image);
-			return ERROR_OK;
+			break;
 		}
 		
 		if( checksum != mem_checksum )
@@ -2104,8 +2106,8 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 						command_print(cmd_ctx, "Verify operation failed address 0x%08x. Was 0x%02x instead of 0x%02x\n", t + image.sections[i].base_address, data[t], buffer[t]);
 						free(data);
 						free(buffer);
-						image_close(&image);
-						return ERROR_OK;
+						retval=ERROR_FAIL;
+						goto done;
 					}
 				}
 			}
@@ -2116,14 +2118,17 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		free(buffer);
 		image_size += buf_cnt;
 	}
-	
+done:	
 	duration_stop_measure(&duration, &duration_text);
-	command_print(cmd_ctx, "verified %u bytes in %s", image_size, duration_text);
+	if (retval==ERROR_OK)
+	{
+		command_print(cmd_ctx, "verified %u bytes in %s", image_size, duration_text);
+	}
 	free(duration_text);
 	
 	image_close(&image);
 	
-	return ERROR_OK;
+	return retval;
 }
 
 int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

@@ -678,25 +678,23 @@ int gdb_new_connection(connection_t *connection)
 	/* register callback to be informed about target events */
 	target_register_event_callback(gdb_target_callback_event_handler, connection);
 
-	/* a gdb session just attached, try to put the target in halt mode
-	 * or alterantively try to issue a reset.
-	 *
-	 * GDB connection will fail if e.g. register read packets fail,
-	 * otherwise resetting/halting the target could have been left to GDB init
-	 * scripts
+	/* a gdb session just attached, try to put the target in halt mode.
 	 * 
 	 * DANGER!!!! 
-	 * We need a synchronous halt, lest connect will fail.
-	 * Also there is no guarantee that poll() will be invoked
-	 * between here and serving the first packet, so the halt()
-	 * statement above is *NOT* sufficient
+	 * 
+	 * If the halt fails(e.g. target needs a reset, JTAG communication not
+	 * working, etc.), then the GDB connect will succeed as
+	 * the get_gdb_reg_list() will lie and return a register list with
+	 * dummy values.
+	 * 
+	 * This allows GDB monitor commands to be run from a GDB init script to
+	 * initialize the target
+	 * 
+	 * Also, since the halt() is asynchronous target connect will be
+	 * instantaneous and thus avoiding annoying timeout problems during
+	 * connect. 
 	 */
-	if ((retval = gdb_service->target->type->halt(gdb_service->target)) != ERROR_OK)
-	{
-		ERROR("error(%d) when trying to halt target, falling back to \"reset\"", retval);
-		command_run_line(connection->cmd_ctx, "reset");
-	}
-	command_run_line(connection->cmd_ctx, "halt");
+	gdb_service->target->type->halt(gdb_service->target);
 	
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
@@ -1182,13 +1180,12 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 	}
 	else
 	{
-		if ((retval = gdb_error(connection, retval)) != ERROR_OK)
-			return retval;
+		retval = gdb_error(connection, retval);
 	}
 
 	free(buffer);
 
-	return ERROR_OK;
+	return retval;
 }
 
 int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
