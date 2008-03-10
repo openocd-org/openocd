@@ -26,6 +26,8 @@
 #include <stdarg.h>
 
 /* logging priorities 
+ * LOG_SILENT - turn off all output. In lieu of try+catch this can be used as a 
+ *              feeble ersatz.
  * LOG_USER - user messages. Could be anything from information 
  *            to progress messags. These messages do not represent
  *            incorrect or unexpected behaviour, just normal execution. 
@@ -36,6 +38,7 @@
  */
 enum log_levels
 {
+	LOG_SILENT = -3,
 	LOG_OUTPUT = -2,
 	LOG_USER = -1,
 	LOG_ERROR = 0,
@@ -108,5 +111,9 @@ extern int debug_level;
 #define ERROR_INVALID_ARGUMENTS		(-1)
 #define ERROR_NO_CONFIG_FILE		(-2)
 #define ERROR_BUF_TOO_SMALL			(-3)
+/* see "Error:" message for meaningful message to the user. The caller should 
+ * make no assumptions about what went wrong and try to handle the problem.
+ */
+#define ERROR_FAIL       			(-4)
 
 #endif /* LOG_H */
