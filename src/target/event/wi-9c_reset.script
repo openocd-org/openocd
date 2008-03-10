@@ -54,3 +54,17 @@ mww 0xA0700120 0x00084280   # Enable buffer access
 mww 0xA0700140 0x00084280   # Enable buffer access
 mww 0xA0700160 0x00084280   # Enable buffer access
 
+#Set byte lane state (static mem 1)"
+mww 0xA0700220, 0x00000082
+#Flash Start
+mww 0xA09001F8, 0x50000000
+#Flash Mask Reg
+mww 0xA09001FC, 0xFF000001
+mww 0xA0700028, 0x00000001
+
+#  RAMAddr = 0x00020000
+#  RAMSize = 0x00004000
+
+# Set the processor mode
+reg cpsr 0xd3
+
