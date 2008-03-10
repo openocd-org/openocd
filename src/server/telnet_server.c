@@ -72,6 +72,7 @@ int telnet_prompt(connection_t *connection)
 {
 	telnet_connection_t *t_con = connection->priv;
 
+    telnet_write(connection, "\r", 1); /* the prompt is always placed at the line beginning */
 	return telnet_write(connection, t_con->prompt, strlen(t_con->prompt));
 }
 
@@ -114,12 +115,22 @@ void telnet_log_callback(void *priv, const char *file, int line,
 		const char *function, const char *string)
 {
 	connection_t *connection = priv;
+	telnet_connection_t *t_con = connection->priv;
+	int i;
 	
-	telnet_write(connection, "\b\b  \b\b", strlen("\b\b  \b\b"));
+	/* clear the command line */
+	telnet_write(connection, "\r", 1);
+	for (i = strlen(t_con->prompt) + t_con->line_size; i>0; i-=16)
+		telnet_write(connection, "                ", i>16 ? 16 : i);
 
+	telnet_write(connection, "\r", 1);
 	telnet_outputline(connection, string);
 	
+	/* put the command line to its previous state */
 	telnet_prompt(connection);
+	telnet_write(connection, t_con->line, t_con->line_size);
+	for (i=t_con->line_size; i>t_con->line_cursor; i--)
+		telnet_write(connection, "\b", 1);
 }
 
 int telnet_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
@@ -289,17 +300,9 @@ int telnet_input(connection_t *connection)
 										telnet_write(connection, "\r\n\x00", 3);
 									}
 								}
-								telnet_prompt(connection);
 								t_con->line_size = 0;
 								t_con->line_cursor = 0;
 								continue;
-							}
-							
-							retval = command_run_line(command_context, t_con->line);
-							
-							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
-							{
-								return ERROR_SERVER_REMOTE_CLOSED;
 							}
 							
 							/* Save only non-blank lines in the history */
@@ -327,12 +330,17 @@ int telnet_input(connection_t *connection)
 								t_con->history[t_con->current_history] = strdup("");
 							}
 							
-							int t = telnet_prompt(connection);
-							if (t == ERROR_SERVER_REMOTE_CLOSED)
-								return t;
-							
 							t_con->line_size = 0;
 							t_con->line_cursor = 0;
+
+							retval = command_run_line(command_context, t_con->line);
+							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
+								return ERROR_SERVER_REMOTE_CLOSED;
+
+							retval = telnet_prompt(connection);
+							if (retval == ERROR_SERVER_REMOTE_CLOSED)
+								return ERROR_SERVER_REMOTE_CLOSED;
+							
 						}
 						else if ((*buf_p == 0x7f) || (*buf_p == 0x8)) /* delete character */
 						{
@@ -579,6 +587,9 @@ int telnet_set_prompt(connection_t *connection, char *prompt)
 {
 	telnet_connection_t *t_con = connection->priv;
 
+	if (t_con->prompt != NULL)
+	    free(t_con->prompt);
+	
 	t_con->prompt = strdup(prompt);
 	
 	return ERROR_OK;
