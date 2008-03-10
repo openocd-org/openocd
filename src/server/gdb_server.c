@@ -773,21 +773,10 @@ void gdb_str_to_target(target_t *target, char *tstr, reg_t *reg)
 	buf = reg->value;
 	buf_len = CEIL(reg->size, 8);
 
-	if (target->endianness == TARGET_LITTLE_ENDIAN)
+	for (i = 0; i < buf_len; i++)
 	{
-		for (i = 0; i < buf_len; i++)
-		{
-			tstr[i*2]   = DIGITS[(buf[i]>>4) & 0xf];
-			tstr[i*2+1] = DIGITS[buf[i]&0xf];
-		}
-	}
-	else
-	{
-		for (i = 0; i < buf_len; i++)
-		{
-			tstr[(buf_len-1-i)*2]   = DIGITS[(buf[i]>>4)&0xf];
-			tstr[(buf_len-1-i)*2+1] = DIGITS[buf[i]&0xf];
-		}
+		tstr[i*2]   = DIGITS[(buf[i]>>4) & 0xf];
+		tstr[i*2+1] = DIGITS[buf[i]&0xf];
 	}
 }
 
@@ -802,20 +791,10 @@ void gdb_target_to_str(target_t *target, char *tstr, char *str)
 		exit(-1);
 	}
 
-	if (target->endianness == TARGET_LITTLE_ENDIAN)
+	for (i = 0; i < str_len; i+=2)
 	{
-		for (i = 0; i < str_len; i+=2)
-		{
-			str[str_len - i - 1] = tstr[i + 1];
-			str[str_len - i - 2] = tstr[i];
-		}
-	}
-	else
-	{
-		for (i = 0; i < str_len; i++)
-		{
-			str[i] = tstr[i];
-		}
+		str[str_len - i - 1] = tstr[i + 1];
+		str[str_len - i - 2] = tstr[i];
 	}
 }
 
