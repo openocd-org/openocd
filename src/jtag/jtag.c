@@ -37,7 +37,7 @@
 /* note that this is not marked as static as it must be available from outside jtag.c for those 
    that implement the jtag_xxx() minidriver layer 
 */
-static int jtag_error=ERROR_OK; 
+int jtag_error=ERROR_OK; 
 
 
 char* tap_state_strings[16] =
@@ -141,6 +141,11 @@ jtag_event_callback_t *jtag_event_callbacks;
 
 /* jtag interfaces (parport, FTDI-USB, TI-USB, ...)
  */
+ 
+#if BUILD_ECOSBOARD == 1
+	extern jtag_interface_t eCosBoard_interface;
+#endif
+ 
 #if BUILD_PARPORT == 1
 	extern jtag_interface_t parport_interface;
 #endif
@@ -178,6 +183,9 @@ jtag_event_callback_t *jtag_event_callbacks;
 #endif
 
 jtag_interface_t *jtag_interfaces[] = {
+#if BUILD_ECOSBOARD == 1
+	&eCosBoard_interface,
+#endif
 #if BUILD_PARPORT == 1
 	&parport_interface,
 #endif
@@ -1066,29 +1074,9 @@ int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-int MINIDRIVER(interface_jtag_add_end_state)(enum tap_state state)
-{
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	
-	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	(*last_cmd)->next = NULL;
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->type = JTAG_END_STATE;
-
-	(*last_cmd)->cmd.end_state = cmd_queue_alloc(sizeof(end_state_command_t));
-	(*last_cmd)->cmd.end_state->end_state = state;
-
-	return ERROR_OK;
-}
-
 void jtag_add_end_state(enum tap_state state)
 {
-	if (state != -1)
-		cmd_queue_end_state = state;
-	int retval = interface_jtag_add_end_state(cmd_queue_end_state);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
+	cmd_queue_end_state = state;
 }
 
 int MINIDRIVER(interface_jtag_add_sleep)(u32 us)
