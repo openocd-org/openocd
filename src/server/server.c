@@ -62,14 +62,15 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	address_size = sizeof(c->sin);
 	c->fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
 				
+				
+	INFO("accepting '%s' connection from %i", service->name, c->sin.sin_port);
 	if ((retval = service->new_connection(c)) == ERROR_OK)
 	{
-		INFO("accepted '%s' connection from %i", service->name, c->sin.sin_port);
 	}
 	else
 	{
 		close_socket(c->fd);
-		INFO("attempted '%s' connection rejected", service->name);
+		ERROR("attempted '%s' connection rejected", service->name);
 		free(c);
 		return retval;
 	}
