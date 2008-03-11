@@ -1585,6 +1585,15 @@ int xscale_assert_reset(target_t *target)
 
 	DEBUG("target->state: %s", target_state_strings[target->state]);
 
+	/* TRST every time. We want to be able to support daemon_startup attach */
+	jtag_add_reset(1, 0);
+	jtag_add_sleep(5000);
+	jtag_add_reset(0, 0);
+	jtag_add_sleep(5000);
+	jtag_execute_queue();
+
+	
+	
 	/* select DCSR instruction (set endstate to R-T-I to ensure we don't
 	 * end up in T-L-R, which would reset JTAG
 	 */
@@ -3021,18 +3030,6 @@ void xscale_build_reg_cache(target_t *target)
 
 int xscale_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
-	if (startup_mode != DAEMON_RESET)
-	{
-		ERROR("XScale target requires a reset");
-		ERROR("Reset target to enable debug");
-	}
-
-	/* assert TRST once during startup */
-	jtag_add_reset(1, 0);
-	jtag_add_sleep(5000);
-	jtag_add_reset(0, 0);
-	jtag_execute_queue();
-
 	return ERROR_OK;
 }
 
