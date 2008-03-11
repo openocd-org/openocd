@@ -1,5 +1,13 @@
 bin_PROGRAMS = openocd
-openocd_SOURCES = openocd.c
+
+if ECOSBOARD
+MAINFILE = ecosboard.c
+else
+MAINFILE = openocd.c
+endif
+
+
+openocd_SOURCES = $(MAINFILE)
 
 # set the include path found by configure
 INCLUDES = -I$(top_srcdir)/src/helper \

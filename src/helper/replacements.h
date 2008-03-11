@@ -26,6 +26,12 @@
 
 #include "types.h"
 
+#if BUILD_ECOSBOARD
+#include <pkgconf/system.h>
+#include <stdlib.h>
+#include <sys/select.h>
+#endif
+
 /* include necessary headers for socket functionality */
 #ifdef _WIN32
 #include <winsock2.h>
@@ -112,15 +118,19 @@ extern size_t strnlen(const char *s, size_t maxlen);
 #endif /* HAVE_STRNLEN */
 
 #ifndef HAVE_USLEEP
+#ifdef _WIN32
 static __inline unsigned usleep(unsigned int usecs)
 {
-#ifdef _WIN32
 	Sleep((usecs/1000));
 	return 0;
+}
 #else
+#if BUILD_ECOSBOARD
+void usleep(int us);
+#else 
 #error no usleep defined for your platform
 #endif
-}
+#endif
 #endif /* HAVE_USLEEP */
 
 /* Windows specific */

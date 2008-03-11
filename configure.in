@@ -55,6 +55,10 @@ case "${host_cpu}" in
       AS_HELP_STRING([--enable-ep93xx], [Enable building support for EP93xx based SBCs]), 
       [build_ep93xx=$enableval], [build_ep93xx=no])
 
+AC_ARG_ENABLE(ecosboard,
+  AS_HELP_STRING([--enable-ecosboard], [Enable building support for eCosBoard based JTAG debugger]), 
+  [build_ecosboard=$enableval], [build_ecosboard=no])
+
     AC_ARG_ENABLE(at91rm9200,
       AS_HELP_STRING([--enable-at91rm9200], [Enable building support for AT91RM9200 based SBCs]),
       [build_at91rm9200=$enableval], [build_at91rm9200=no])
@@ -140,6 +144,13 @@ if test $build_ep93xx = yes; then
   AC_DEFINE(BUILD_EP93XX, 1, [1 if you want ep93xx.])
 else
   AC_DEFINE(BUILD_EP93XX, 0, [0 if you don't want ep93xx.])
+fi
+
+if test $build_ecosboard = yes; then
+  build_bitbang=yes
+  AC_DEFINE(BUILD_ECOSBOARD, 1, [1 if you want eCosBoard.])
+else
+  AC_DEFINE(BUILD_ECOSBOARD, 0, [0 if you don't want eCosBoard.])
 fi
 
 if test $build_at91rm9200 = yes; then
@@ -229,6 +240,7 @@ AM_INIT_AUTOMAKE(openocd, 1.0)
 AM_CONDITIONAL(PARPORT, test $build_parport = yes)
 AM_CONDITIONAL(GIVEIO, test $parport_use_giveio = yes)
 AM_CONDITIONAL(EP93XX, test $build_ep93xx = yes)
+AM_CONDITIONAL(ECOSBOARD, test $build_ecosboard = yes)
 AM_CONDITIONAL(AT91RM9200, test $build_at91rm9200 = yes)
 AM_CONDITIONAL(BITBANG, test $build_bitbang = yes)
 AM_CONDITIONAL(FT2232_LIBFTDI, test $build_ft2232_libftdi = yes)
