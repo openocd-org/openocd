@@ -200,10 +200,7 @@ typedef struct jtag_interface_s
 
 enum jtag_event
 {
-	JTAG_SRST_ASSERTED,
-	JTAG_TRST_ASSERTED,
-	JTAG_SRST_RELEASED,
-	JTAG_TRST_RELEASED,
+	JTAG_TRST_ASSERTED
 };
 
 extern char* jtag_event_strings[];

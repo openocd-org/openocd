@@ -106,10 +106,7 @@ tap_transition_t tap_transitions[16] =
 
 char* jtag_event_strings[] =
 {
-	"SRST asserted",
-	"TRST asserted",
-	"SRST released",
-	"TRST released"
+	"JTAG controller reset(tms or TRST)"
 };
 
 enum tap_state end_state = TAP_TLR;
@@ -406,9 +403,6 @@ void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state
 	if (state != -1)
 		cmd_queue_end_state = state;
 
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
 	if (cmd_queue_end_state == TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 	
@@ -508,9 +502,6 @@ void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state
 	if (state != -1)
 		cmd_queue_end_state = state;
 
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
 	if (cmd_queue_end_state == TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		
@@ -570,9 +561,6 @@ void jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state
 	if (state != -1)
 		cmd_queue_end_state = state;
 
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
 	if (cmd_queue_end_state == TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 			
@@ -771,9 +759,6 @@ void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state
 	if (state != -1)
 		cmd_queue_end_state = state;
 
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
 	if (cmd_queue_end_state == TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 			
@@ -831,9 +816,6 @@ void jtag_add_statemove(enum tap_state state)
 	if (state != -1)
 		cmd_queue_end_state = state;
 
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
 	if (cmd_queue_end_state == TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 			
@@ -870,9 +852,6 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 		jtag_error=ERROR_JTAG_TRST_ASSERTED;
 		return;
 	}
-	
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
 	
 	if (cmd_queue_end_state == TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
@@ -956,9 +935,6 @@ void jtag_add_runtest(int num_cycles, enum tap_state state)
 	if (state != -1)
 		cmd_queue_end_state = state;
 
-	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_RELEASED);
-	
 	if (cmd_queue_end_state == TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 			
@@ -1020,20 +996,21 @@ int jtag_add_reset(int req_trst, int req_srst)
 
 	if (jtag_srst)
 	{
-		jtag_call_event_callbacks(JTAG_SRST_ASSERTED);
+		DEBUG("SRST line asserted");
 	}
 	else
 	{
-		jtag_call_event_callbacks(JTAG_SRST_RELEASED);
+		DEBUG("SRST line released");
 		if (jtag_nsrst_delay)
 			jtag_add_sleep(jtag_nsrst_delay * 1000);
 	}
 	
 	if (trst_with_tms)
 	{
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+		DEBUG("JTAG reset with tms instead of TRST");
 		jtag_add_end_state(TAP_TLR);
 		jtag_add_statemove(TAP_TLR);
+		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		return ERROR_OK;
 	}
 	
@@ -1042,6 +1019,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 		/* we just asserted nTRST, so we're now in Test-Logic-Reset,
 		 * and inform possible listeners about this
 		 */
+		DEBUG("TRST line asserted");
 		cmd_queue_cur_state = TAP_TLR;
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 	}
@@ -1050,6 +1028,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 		/* the nTRST line got deasserted, so we're still in Test-Logic-Reset,
 		 * but we might want to add a delay to give the TAP time to settle
 		 */
+		DEBUG("Now in TAP_TLR - Test-Logic-Reset(either due to TRST line asserted or tms reset)");
 		if (jtag_ntrst_delay)
 			jtag_add_sleep(jtag_ntrst_delay * 1000);
 	}
