@@ -234,25 +234,6 @@ int xscale_jtag_set_instr(int chain_pos, u32 new_instr)
 	return ERROR_OK;
 }
 
-int xscale_jtag_callback(enum jtag_event event, void *priv)
-{
-	switch (event)
-	{
-		case JTAG_TRST_ASSERTED:
-			break;
-		case JTAG_TRST_RELEASED:
-			break;
-		case JTAG_SRST_ASSERTED:
-			break;
-		case JTAG_SRST_RELEASED:
-			break;
-		default:
-			WARNING("unhandled JTAG event");
-	}
-
-	return ERROR_OK;
-}
-
 int xscale_read_dcsr(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -3078,7 +3059,6 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 
 	/* prepare JTAG information for the new target */
 	xscale->jtag_info.chain_pos = chain_pos;
-	jtag_register_event_callback(xscale_jtag_callback, target);
 
 	xscale->jtag_info.dbgrx = 0x02;
 	xscale->jtag_info.dbgtx = 0x10;
