@@ -85,46 +85,17 @@ typedef struct armv7m_common_s
 	enum armv7m_mode core_mode;
 	enum armv7m_state core_state;
 	int  exception_number;
-	int (*full_context)(struct target_s *target);
+	
 	/* Direct processor core register read and writes */
 	int (*load_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, u32 num, u32 *value);
 	int (*store_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, u32 num, u32 value);
 	/* register cache to processor synchronization */
 	int (*read_core_reg)(struct target_s *target, int num);
 	int (*write_core_reg)(struct target_s *target, int num);
-	/* get or set register through cache, return error if target is running and synchronisation is impossible */
-	int (*get_core_reg_32)(struct target_s *target, int num, u32* value);
-	int (*set_core_reg_32)(struct target_s *target, int num, u32 value);
-
+	
 	arm_jtag_t jtag_info;
-	reg_cache_t *eice_cache;
-	reg_cache_t *etm_cache;
 
 	int (*examine_debug_reason)(target_t *target);
-	
-	void (*change_to_arm)(target_t *target, u32 *r0, u32 *pc);
-	
-/*
-	void (*read_core_regs)(target_t *target, u32 mask, u32 *core_regs[16]);
-	void (*read_core_regs_target_buffer)(target_t *target, u32 mask, void *buffer, int size);
-	void (*write_core_regs)(target_t *target, u32 mask, u32 core_regs[16]);
-*/
-
-/*
-	void (*write_xpsr_im8)(target_t *target, u8 xpsr_im, int rot, int spsr);
-	
-	void (*load_word_regs)(target_t *target, u32 mask);
-	void (*load_hword_reg)(target_t *target, int num);
-	void (*load_byte_reg)(target_t *target, int num);
-
-	void (*store_word_regs)(target_t *target, u32 mask);
-	void (*store_hword_reg)(target_t *target, int num);
-	void (*store_byte_reg)(target_t *target, int num);
-	
-	void (*write_pc)(target_t *target, u32 pc);
-	void (*branch_resume)(target_t *target);
-*/	
-
 	void (*pre_debug_entry)(target_t *target);
 	void (*post_debug_entry)(target_t *target);
 	

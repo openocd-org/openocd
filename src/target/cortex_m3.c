@@ -144,6 +144,7 @@ int cortex_m3_exec_opcode(target_t *target,u32 opcode, int len /* MODE, r0_inval
 	return retvalue;
 }
 
+#if 0
 /* Enable interrupts */
 int cortex_m3_cpsie(target_t *target, u32 IF)
 {
@@ -155,6 +156,7 @@ int cortex_m3_cpsid(target_t *target, u32 IF)
 {
 	return cortex_m3_exec_opcode(target, ARMV7M_T_CPSID(IF), 2);
 }
+#endif
 
 int cortex_m3_endreset_event(target_t *target)
 {
@@ -324,7 +326,6 @@ int cortex_m3_debug_entry(target_t *target)
 		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = armv7m->core_cache->reg_list[ARMV7M_xPSR].valid;
 		cortex_m3_store_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 16, xPSR &~ 0xff);
 	}
-
 
 	/* Now we can load SP core registers */	
 	for (i = ARMV7M_PRIMASK; i < ARMV7NUMCOREREGS; i++)
@@ -1212,39 +1213,31 @@ int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 co
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	int retval;
 	
 	/* sanitize arguments */
 	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
 		return ERROR_INVALID_ARGUMENTS;
-
-	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
-		return ERROR_TARGET_UNALIGNED_ACCESS;
 	
-	/* Is not optimal, autoincrement of tar should be used (  ahbap_block_read and CSW_ADDRINC_SINGLE ) */
+	/* cortex_m3 handles unaligned memory access */
+		
 	switch (size)
 	{
 		case 4:
-			/* TODOLATER Check error return value ! */
-			{
-				ahbap_read_buf(swjdp, buffer, 4 * count, address);
-			}
+			retval = ahbap_read_buf_u32(swjdp, buffer, 4 * count, address);
 			break;
 		case 2:
-			{
-				ahbap_read_buf_u16(swjdp, buffer, 2 * count, address);
-			}	
+			retval = ahbap_read_buf_u16(swjdp, buffer, 2 * count, address);
 			break;
 		case 1:
-			{
-				ahbap_read_buf(swjdp, buffer, count, address);
-			}	
+			retval = ahbap_read_buf_u8(swjdp, buffer, count, address);
 			break;
 		default:
 			ERROR("BUG: we shouldn't get here");
 			exit(-1);
 	}
 	
-	return ERROR_OK;
+	return retval;
 }
 
 int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
@@ -1253,45 +1246,34 @@ int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 c
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	int retval;
 	
 	/* sanitize arguments */
 	if (((size != 4) && (size != 2) && (size != 1)) || (count == 0) || !(buffer))
 		return ERROR_INVALID_ARGUMENTS;
-
-	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
-		return ERROR_TARGET_UNALIGNED_ACCESS;
-		
+	
 	switch (size)
 	{
 		case 4:
-			/* TODOLATER Check error return value ! */
-			{
-				ahbap_write_buf(swjdp, buffer, 4 * count, address);
-			}
+			retval = ahbap_write_buf_u32(swjdp, buffer, 4 * count, address);
 			break;
 		case 2:
-			{
-				ahbap_write_buf_u16(swjdp, buffer, 2 * count, address);
-			}	
+			retval = ahbap_write_buf_u16(swjdp, buffer, 2 * count, address);
 			break;
 		case 1:
-			{
-				ahbap_write_buf(swjdp, buffer, count, address);
-			}	
+			retval = ahbap_write_buf_u8(swjdp, buffer, count, address);	
 			break;
 		default:
 			ERROR("BUG: we shouldn't get here");
 			exit(-1);
 	}
 	
-	return ERROR_OK;
+	return retval;
 }
 
 int cortex_m3_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
 {
-	cortex_m3_write_memory(target, address, 4, count, buffer);
-	
-	return ERROR_OK;
+	return cortex_m3_write_memory(target, address, 4, count, buffer);
 }
 
 void cortex_m3_build_reg_cache(target_t *target)

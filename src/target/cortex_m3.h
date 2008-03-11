@@ -134,8 +134,7 @@ typedef struct  cortex_m3_dwt_comparator_s
 typedef struct cortex_m3_common_s
 {
 	int common_magic;
-	/* int (*full_context)(struct target_s *target); */
-
+	
 	arm_jtag_t jtag_info;
 	
 	/* Context information */
@@ -159,32 +158,8 @@ typedef struct cortex_m3_common_s
 	int intlinesnum;
 	u32 *intsetenable;
 	
-/*
-	u32 arm_bkpt;
-	u16 thumb_bkpt;
-	int sw_bkpts_use_wp;
-	int wp_available;
-	int wp0_used;
-	int wp1_used;
-	
-	int force_hw_bkpts;
-	int dbgreq_adjust_pc;
-	int use_dbgrq;
-	int has_etm;
-	
-	int reinit_embeddedice;
-	
-	struct working_area_s *dcc_working_area;
-	
-	int fast_memory_access;
-	int dcc_downloads;
-*/
-	/* breakpoint use map */
-	int sw_bkpts_enabled;
-
 	armv7m_common_t armv7m;
 	swjdp_common_t swjdp_info;
-	
 	void *arch_info;
 } cortex_m3_common_t;
 

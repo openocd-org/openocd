@@ -34,25 +34,25 @@
 #define DP_SELECT       0x8
 #define DP_RDBUFF       0xC
 
-#define CORUNDETECT	(1<<0)
-#define SSTICKYORUN	(1<<1)
-#define SSTICKYERR	(1<<5)
-#define CDBGRSTREQ	(1<<26)
-#define CDBGRSTACK	(1<<27)
+#define CORUNDETECT		(1<<0)
+#define SSTICKYORUN		(1<<1)
+#define SSTICKYERR		(1<<5)
+#define CDBGRSTREQ		(1<<26)
+#define CDBGRSTACK		(1<<27)
 #define CDBGPWRUPREQ	(1<<28)
 #define CDBGPWRUPACK	(1<<29)
 #define CSYSPWRUPREQ	(1<<30)
 #define CSYSPWRUPACK	(1<<31)
 
-#define	AHBAP_CSW	0x00
-#define AHBAP_TAR	0x04
-#define AHBAP_DRW	0x0C
-#define AHBAP_BD0	0x10
-#define AHBAP_BD1	0x14
-#define AHBAP_BD2	0x18
-#define AHBAP_BD3	0x1C
+#define	AHBAP_CSW		0x00
+#define AHBAP_TAR		0x04
+#define AHBAP_DRW		0x0C
+#define AHBAP_BD0		0x10
+#define AHBAP_BD1		0x14
+#define AHBAP_BD2		0x18
+#define AHBAP_BD3		0x1C
 #define AHBAP_DBGROMA	0xF8
-#define AHBAP_IDR	0xFC
+#define AHBAP_IDR		0xFC
 
 #define CSW_8BIT		0
 #define CSW_16BIT		1
@@ -67,9 +67,9 @@
 #define CSW_DBGSWENABLE		(1<<31)
 
 /* transaction mode */
-#define TRANS_MODE_NONE		0
+#define TRANS_MODE_NONE			0
 /* Transaction waits for previous to complete */
-#define TRANS_MODE_ATOMIC	1
+#define TRANS_MODE_ATOMIC		1
 /* Freerunning transactions with delays and overrun checking */
 #define TRANS_MODE_COMPOSITE	2
 
@@ -88,12 +88,10 @@ typedef struct swjdp_common_s
 	u32 dp_select_value;
 	u32 ap_csw_value;
 	u32 ap_tar_value;
-	u8  prev_ack;
 	/* information about current pending SWjDP-AHBAP transaction */
 	u8  trans_mode;
 	u8  trans_rw;
 	u8  ack;
-	u32 *trans_value;
 } swjdp_common_t;
 
 /* Internal functions used in the module, partial transactions, use with caution */
@@ -113,17 +111,18 @@ extern int swjdp_transaction_endcheck(swjdp_common_t *swjdp);
 /* Host endian word transfer of single memory and system registers */
 extern int ahbap_read_system_atomic_u32(swjdp_common_t *swjdp, u32 address, u32 *value);
 extern int ahbap_write_system_atomic_u32(swjdp_common_t *swjdp, u32 address, u32 value);
-/* Target endian (u8*) buffer transfers of blocks of memory and system registers */
-extern int ahbap_read_block(swjdp_common_t *swjdp, u8 *buffer, int bytecount, u32 address);
-extern int ahbap_write_block(swjdp_common_t *swjdp, u8 *buffer, int bytecount, u32 address);
+
 /* Host endian word transfers of processor core registers */
 extern int ahbap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum);
 extern int ahbap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum);
 
-extern int ahbap_read_buf(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
+extern int ahbap_read_buf_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
 extern int ahbap_read_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
-extern int ahbap_write_buf(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
+extern int ahbap_read_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
+
+extern int ahbap_write_buf_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
 extern int ahbap_write_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
+extern int ahbap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address);
 
 /* Initialisation of the debug system, power domains and registers */
 extern int ahbap_debugport_init(swjdp_common_t *swjdp);
