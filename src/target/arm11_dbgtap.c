@@ -45,7 +45,8 @@ int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state st
     if (cmd_queue_cur_state == TAP_PI)
 	jtag_add_pathmove(asizeof(arm11_move_pi_to_si_via_ci), arm11_move_pi_to_si_via_ci);
 
-    return jtag_add_ir_scan(num_fields, fields, state);
+    jtag_add_ir_scan(num_fields, fields, state);
+    return ERROR_OK;
 }
 
 enum tap_state arm11_move_pd_to_sd_via_cd[] =
@@ -58,7 +59,8 @@ int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, enum tap_state st
     if (cmd_queue_cur_state == TAP_PD)
 	jtag_add_pathmove(asizeof(arm11_move_pd_to_sd_via_cd), arm11_move_pd_to_sd_via_cd);
 
-    return jtag_add_dr_scan(num_fields, fields, state);
+    jtag_add_dr_scan(num_fields, fields, state);
+    return ERROR_OK;
 }
 
 

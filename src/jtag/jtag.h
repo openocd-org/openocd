@@ -245,13 +245,13 @@ extern int jtag_init(struct command_context_s *cmd_ctx);
 extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
 /* JTAG interface, can be implemented with a software or hardware fifo */
-extern int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
-extern int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern void jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
-extern int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
-extern int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
+extern void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 /* execute a state transition within the JTAG standard, but the exact path
  * path that is taken is undefined. Many implementations use precisely
@@ -274,7 +274,7 @@ extern int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields
  * NB! a jtag_add_statemove() to the current state is not
  * a no-operation.
  */
-extern int jtag_add_statemove(enum tap_state endstate);
+extern void jtag_add_statemove(enum tap_state endstate);
 extern int interface_jtag_add_statemove(enum tap_state endstate);
 /* A list of unambigious single clock state transitions, not
  * all drivers can support this, but it is required for e.g.
@@ -285,19 +285,28 @@ extern int interface_jtag_add_statemove(enum tap_state endstate);
  * Note that the first on the list must be reachable 
  * via a single transition from the current state. 
  */
-extern int jtag_add_pathmove(int num_states, enum tap_state *path);
+extern void jtag_add_pathmove(int num_states, enum tap_state *path);
 extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);
 /* go to TAP_RTI, if we're not already there and cycle
  * precisely num_cycles in the TAP_RTI after which move
  * to the end state, if it is != TAP_RTI
  */
-extern int jtag_add_runtest(int num_cycles, enum tap_state endstate);
+extern void jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
+/* If it fails and one of the error messages below are returned, nothing is 
+ * added to the queue and jtag_execute() won't return an error code.
+ * 
+ * ERROR_JTAG_RESET_WOULD_ASSERT_TRST
+ * ERROR_JTAG_RESET_CANT_SRST
+ * 
+ * All other error codes will result in jtag_execute_queue() returning
+ * an error.
+ */
 extern int jtag_add_reset(int trst, int srst);
 extern int interface_jtag_add_reset(int trst, int srst);
-extern int jtag_add_end_state(enum tap_state endstate);
+extern void jtag_add_end_state(enum tap_state endstate);
 extern int interface_jtag_add_end_state(enum tap_state endstate);
-extern int jtag_add_sleep(u32 us);
+extern void jtag_add_sleep(u32 us);
 extern int interface_jtag_add_sleep(u32 us);
 
 
@@ -338,7 +347,6 @@ extern int jtag_call_event_callbacks(enum jtag_event event);
 extern int jtag_register_event_callback(int (*callback)(enum jtag_event event, void *priv), void *priv);
 
 extern int jtag_verify_capture_ir;
-
 
 /* error codes
  * JTAG subsystem uses codes between -100 and -199 */

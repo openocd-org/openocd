@@ -34,11 +34,10 @@
 #include <unistd.h>
 
 
-
 /* note that this is not marked as static as it must be available from outside jtag.c for those 
    that implement the jtag_xxx() minidriver layer 
 */
-int jtag_error=ERROR_OK; 
+static int jtag_error=ERROR_OK; 
 
 
 char* tap_state_strings[16] =
@@ -217,12 +216,12 @@ int jtag_speed = 0;
 
 
 /* forward declarations */
-int jtag_add_statemove(enum tap_state endstate);
-int jtag_add_pathmove(int num_states, enum tap_state *path);
-int jtag_add_runtest(int num_cycles, enum tap_state endstate);
+void jtag_add_statemove(enum tap_state endstate);
+void jtag_add_pathmove(int num_states, enum tap_state *path);
+void jtag_add_runtest(int num_cycles, enum tap_state endstate);
 int jtag_add_reset(int trst, int srst);
-int jtag_add_end_state(enum tap_state endstate);
-int jtag_add_sleep(u32 us);
+void jtag_add_end_state(enum tap_state endstate);
+void jtag_add_sleep(u32 us);
 int jtag_execute_queue(void);
 int jtag_cancel_queue(void);
 
@@ -387,13 +386,13 @@ void cmd_queue_free()
 	cmd_queue_pages = NULL;
 }
 
-int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
 		jtag_error=ERROR_JTAG_TRST_ASSERTED;
-		return ERROR_JTAG_TRST_ASSERTED;
+		return;
 	}
 
 	if (state != -1)
@@ -410,7 +409,6 @@ int jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 	int retval=interface_jtag_add_ir_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
-	return retval;
 }
 
 int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
@@ -480,7 +478,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 			(*last_cmd)->cmd.scan->fields[i].out_value = buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 			(*last_cmd)->cmd.scan->fields[i].out_mask = NULL;
 			device->bypass = 1;
-		
+			
 		}
 		
 		/* update device information */
@@ -490,12 +488,13 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 	return ERROR_OK;
 }
 
-int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		return;
 	}
 
 	if (state != -1)
@@ -509,7 +508,9 @@ int jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state 
 		
 	cmd_queue_cur_state = cmd_queue_end_state;
 	
-	return interface_jtag_add_plain_ir_scan(num_fields, fields, cmd_queue_end_state);
+	int retval=interface_jtag_add_plain_ir_scan(num_fields, fields, cmd_queue_end_state);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
 }
 
 int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
@@ -549,12 +550,13 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *f
 	return ERROR_OK;
 }
 
-int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+void jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		return;
 	}
 
 	if (state != -1)
@@ -568,7 +570,9 @@ int jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 			
 	cmd_queue_cur_state = cmd_queue_end_state;
 
-	return interface_jtag_add_dr_scan(num_fields, fields, cmd_queue_end_state);
+	int retval=interface_jtag_add_dr_scan(num_fields, fields, cmd_queue_end_state);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
 }
 
 int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
@@ -691,11 +695,11 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 	(*last_cmd)->cmd.scan->num_fields = num_fields + bypass_devices;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = end_state;
-
+	
 	for (i = 0; i < jtag_num_devices; i++)
 	{
 		(*last_cmd)->cmd.scan->fields[field_count].device = i;
-
+	
 		if (i == device_num)
 		{
 			int j;
@@ -747,12 +751,13 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 
 
 
-int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		return;
 	}
 
 	if (state != -1)
@@ -766,7 +771,9 @@ int jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state 
 			
 	cmd_queue_cur_state = cmd_queue_end_state;
 
-	return interface_jtag_add_plain_dr_scan(num_fields, fields, cmd_queue_end_state);
+	int retval=interface_jtag_add_plain_dr_scan(num_fields, fields, cmd_queue_end_state);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
 }
 
 int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
@@ -804,12 +811,13 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 
 	return ERROR_OK;
 }
-int jtag_add_statemove(enum tap_state state)
+void jtag_add_statemove(enum tap_state state)
 {
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		return;
 	}
 
 	if (state != -1)
@@ -823,7 +831,10 @@ int jtag_add_statemove(enum tap_state state)
 			
 	cmd_queue_cur_state = cmd_queue_end_state;
 
-	return interface_jtag_add_statemove(cmd_queue_end_state);
+	int retval;
+	retval=interface_jtag_add_statemove(cmd_queue_end_state);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
 }
 
 int MINIDRIVER(interface_jtag_add_statemove)(enum tap_state state)
@@ -843,19 +854,13 @@ int MINIDRIVER(interface_jtag_add_statemove)(enum tap_state state)
 	return ERROR_OK;
 }
 
-int jtag_add_pathmove(int num_states, enum tap_state *path)
+void jtag_add_pathmove(int num_states, enum tap_state *path)
 {
 	if (jtag_trst == 1)
 	{
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return jtag_error=ERROR_JTAG_TRST_ASSERTED;
-	}
-	
-	/* the last state has to be a stable state */
-	if (tap_move_map[path[num_states - 1]] == -1)
-	{
-		ERROR("TAP path doesn't finish in a stable state");
-		return jtag_error=ERROR_JTAG_NOT_IMPLEMENTED;
+		jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		return;
 	}
 	
 	if (cmd_queue_cur_state == TAP_TLR && cmd_queue_end_state != TAP_TLR)
@@ -864,6 +869,13 @@ int jtag_add_pathmove(int num_states, enum tap_state *path)
 	if (cmd_queue_end_state == TAP_TLR)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 	
+	/* the last state has to be a stable state */
+	if (tap_move_map[path[num_states - 1]] == -1)
+	{
+		ERROR("TAP path doesn't finish in a stable state");
+		jtag_error=ERROR_JTAG_NOT_IMPLEMENTED;
+		return;
+	}
 
 	enum tap_state cur_state=cmd_queue_cur_state;
 	int i;
@@ -880,7 +892,9 @@ int jtag_add_pathmove(int num_states, enum tap_state *path)
 	
 	cmd_queue_cur_state = path[num_states - 1];
 
-	return interface_jtag_add_pathmove(num_states, path);
+	int retval=interface_jtag_add_pathmove(num_states, path);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
 }
 
 
@@ -922,13 +936,13 @@ int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
 	return ERROR_OK;
 }
 
-int jtag_add_runtest(int num_cycles, enum tap_state state)
+void jtag_add_runtest(int num_cycles, enum tap_state state)
 {
 	if (jtag_trst == 1)
 	{
-		jtag_error=ERROR_JTAG_QUEUE_FAILED;
 		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		return ERROR_JTAG_TRST_ASSERTED;
+		jtag_error=ERROR_JTAG_TRST_ASSERTED;
+		return;
 	}
 	
 	if (state != -1)
@@ -943,7 +957,9 @@ int jtag_add_runtest(int num_cycles, enum tap_state state)
 	cmd_queue_cur_state = cmd_queue_end_state;
 	
 	/* executed by sw or hw fifo */
-	return interface_jtag_add_runtest(num_cycles, cmd_queue_end_state);
+	int retval=interface_jtag_add_runtest(num_cycles, cmd_queue_end_state);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
 }
 
 int jtag_add_reset(int req_trst, int req_srst)
@@ -961,7 +977,8 @@ int jtag_add_reset(int req_trst, int req_srst)
 	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
 	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (req_trst == 0))
 	{
-		return jtag_error=ERROR_JTAG_RESET_WOULD_ASSERT_TRST;
+		ERROR("requested reset would assert trst");
+		return ERROR_JTAG_RESET_WOULD_ASSERT_TRST;
 	}
 		
 	/* if TRST pulls SRST, we reset with TAP T-L-R */
@@ -974,7 +991,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
 	{
 		ERROR("requested nSRST assertion, but the current configuration doesn't support this");
-		return jtag_error=ERROR_JTAG_RESET_CANT_SRST;
+		return ERROR_JTAG_RESET_CANT_SRST;
 	}
 	
 	if (req_trst && !(jtag_reset_config & RESET_HAS_TRST))
@@ -1009,7 +1026,6 @@ int jtag_add_reset(int req_trst, int req_srst)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		jtag_add_end_state(TAP_TLR);
 		jtag_add_statemove(TAP_TLR);
-		
 		return ERROR_OK;
 	}
 	
@@ -1029,9 +1045,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 		if (jtag_ntrst_delay)
 			jtag_add_sleep(jtag_ntrst_delay * 1000);
 	}
-	
-	return retval;
-	
+	return ERROR_OK;
 }
 
 int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
@@ -1068,12 +1082,13 @@ int MINIDRIVER(interface_jtag_add_end_state)(enum tap_state state)
 	return ERROR_OK;
 }
 
-int jtag_add_end_state(enum tap_state state)
+void jtag_add_end_state(enum tap_state state)
 {
 	if (state != -1)
 		cmd_queue_end_state = state;
 	int retval = interface_jtag_add_end_state(cmd_queue_end_state);
-	return retval;
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
 }
 
 int MINIDRIVER(interface_jtag_add_sleep)(u32 us)
@@ -1092,9 +1107,12 @@ int MINIDRIVER(interface_jtag_add_sleep)(u32 us)
 	return ERROR_OK;
 }
 
-int jtag_add_sleep(u32 us)
+void jtag_add_sleep(u32 us)
 {
-	return interface_jtag_add_sleep(us); 
+	int retval=interface_jtag_add_sleep(us);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
+	return;
 }
 
 int jtag_scan_size(scan_command_t *cmd)
@@ -1299,7 +1317,7 @@ int jtag_execute_queue(void)
 	int retval=interface_jtag_execute_queue();
 	if (retval==ERROR_OK)
 	{
-	retval=jtag_error;
+		retval=jtag_error;
 	}
 	jtag_error=ERROR_OK;
 	return retval;
@@ -1413,7 +1431,7 @@ int jtag_examine_chain()
 	if (device_count != jtag_num_devices)
 	{
 		ERROR("number of discovered devices in JTAG chain (%i) doesn't match configuration (%i)", 
-			device_count, jtag_num_devices);
+				device_count, jtag_num_devices);
 		ERROR("check the config file and ensure proper JTAG communication (connections, speed, ...)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -1561,7 +1579,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	{
 		ERROR("trying to validate configured JTAG chain anyway...");
 	}
-
+	
 	while (jtag_validate_chain() != ERROR_OK)
 	{
 		validate_tries++;
@@ -1575,6 +1593,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 
 	return ERROR_OK;
 }
+
 
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -1649,7 +1668,7 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	jtag_register_event_callback(jtag_reset_callback, (*last_device_p));
 	
 	jtag_num_devices++;
-
+	
 	return ERROR_OK;
 }
 
@@ -1816,12 +1835,10 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 {
 	int trst = -1;
 	int srst = -1;
-	int retval;
 	
 	if (argc < 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
 	}
 
 	if (args[0][0] == '1')
@@ -1845,20 +1862,7 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if (!jtag && jtag_interface_init(cmd_ctx) != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
-	if ((retval = jtag_add_reset(trst, srst)) != ERROR_OK)
-	{
-		switch (retval)
-		{
-			case ERROR_JTAG_RESET_WOULD_ASSERT_TRST:
-				command_print(cmd_ctx, "requested reset would assert trst\nif this is acceptable, use jtag_reset 1 %c", args[1][0]);
-				break;
-			case ERROR_JTAG_RESET_CANT_SRST:
-				command_print(cmd_ctx, "can't assert srst because the current reset_config doesn't support it");
-				break;
-			default:
-				command_print(cmd_ctx, "unknown error");
-		}
-	}
+	jtag_add_reset(trst, srst);
 	jtag_execute_queue();
 
 	return ERROR_OK;
@@ -1993,7 +1997,7 @@ int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		free(fields[i].out_value);
 
 	free(fields);
-	
+
 	return ERROR_OK;
 }
 
