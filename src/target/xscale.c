@@ -427,7 +427,7 @@ int xscale_read_tx(target_t *target, int consume)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	enum tap_state path[3];
-	enum tap_state noconsume_path[9];
+	enum tap_state noconsume_path[6];
 
 	int retval;
 	struct timeval timeout, now;
@@ -452,10 +452,7 @@ int xscale_read_tx(target_t *target, int consume)
 	noconsume_path[2] = TAP_E1D;
 	noconsume_path[3] = TAP_PD;
 	noconsume_path[4] = TAP_E2D;
-	noconsume_path[5] = TAP_UD;
-	noconsume_path[6] = TAP_SDS;
-	noconsume_path[7] = TAP_CD;
-	noconsume_path[8] = TAP_SD;
+	noconsume_path[5] = TAP_SD;
 	
 	fields[0].device = xscale->jtag_info.chain_pos;
 	fields[0].num_bits = 3;
@@ -495,7 +492,9 @@ int xscale_read_tx(target_t *target, int consume)
 		if (consume)
 			jtag_add_pathmove(3, path);
 		else
+		{
 			jtag_add_pathmove(sizeof(noconsume_path)/sizeof(*noconsume_path), noconsume_path);
+		}
 
 		jtag_add_dr_scan(3, fields, TAP_RTI);
 
