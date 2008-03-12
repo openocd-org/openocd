@@ -75,32 +75,35 @@ void bitbang_path_move(pathmove_command_t *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;
+	int tms;
 
 	state_count = 0;
 	while (num_states)
 	{
 		if (tap_transitions[cur_state].low == cmd->path[state_count])
 		{
-			bitbang_interface->write(0, 0, 0);
-			bitbang_interface->write(1, 0, 0);
+			tms = 0;
 		}
 		else if (tap_transitions[cur_state].high == cmd->path[state_count])
 		{
-			bitbang_interface->write(0, 1, 0);
-			bitbang_interface->write(1, 1, 0);
-		}			
+			tms = 1;
+		}
 		else
 		{
 			ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
 			exit(-1);
 		}
 		
+		bitbang_interface->write(0, tms, 0);
+		bitbang_interface->write(1, tms, 0);
+
 		cur_state = cmd->path[state_count];
 		state_count++;
 		num_states--;
 	}
-	bitbang_interface->write(0, tms, 0);
 	
+	bitbang_interface->write(0, tms, 0);
+
 	end_state = cur_state;
 }
 
@@ -129,8 +132,6 @@ void bitbang_runtest(int num_cycles)
 	bitbang_end_state(saved_end_state);
 	if (cur_state != end_state)
 		bitbang_state_move();
-	else
-		bitbang_interface->write(0, tms, 0);
 }
 
 void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
@@ -176,6 +177,7 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	/* Exit1 -> Pause */
 	bitbang_interface->write(0, 0, 0);
 	bitbang_interface->write(1, 0, 0);
+	bitbang_interface->write(0, 0, 0);
 	
 	if (ir_scan)
 		cur_state = TAP_PI;
@@ -184,8 +186,6 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	
 	if (cur_state != end_state)
 		bitbang_state_move();
-	else
-		bitbang_interface->write(0, tms, 0);
 }
 
 int bitbang_execute_queue(void)
