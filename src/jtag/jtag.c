@@ -391,7 +391,7 @@ void cmd_queue_free()
 	cmd_queue_pages = NULL;
 }
 
-void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+static void jtag_prelude1()
 {
 	if (jtag_trst == 1)
 	{
@@ -400,13 +400,23 @@ void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state
 		return;
 	}
 
+	if (cmd_queue_end_state == TAP_TLR)
+		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+}
+
+static void jtag_prelude(enum tap_state state)
+{
+	jtag_prelude1();
+	
 	if (state != -1)
 		cmd_queue_end_state = state;
 
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-	
 	cmd_queue_cur_state = cmd_queue_end_state;
+}
+
+void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+{
+	jtag_prelude(state);
 	
 	int retval=interface_jtag_add_ir_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
@@ -492,20 +502,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 
 void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-	if (jtag_trst == 1)
-	{
-		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		jtag_error=ERROR_JTAG_TRST_ASSERTED;
-		return;
-	}
-
-	if (state != -1)
-		cmd_queue_end_state = state;
-
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-		
-	cmd_queue_cur_state = cmd_queue_end_state;
+	jtag_prelude(state);
 	
 	int retval=interface_jtag_add_plain_ir_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
@@ -551,20 +548,7 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *f
 
 void jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-	if (jtag_trst == 1)
-	{
-		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		jtag_error=ERROR_JTAG_TRST_ASSERTED;
-		return;
-	}
-
-	if (state != -1)
-		cmd_queue_end_state = state;
-
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-			
-	cmd_queue_cur_state = cmd_queue_end_state;
+	jtag_prelude(state);
 
 	int retval=interface_jtag_add_dr_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
@@ -749,20 +733,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 
 void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-	if (jtag_trst == 1)
-	{
-		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		jtag_error=ERROR_JTAG_TRST_ASSERTED;
-		return;
-	}
-
-	if (state != -1)
-		cmd_queue_end_state = state;
-
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-			
-	cmd_queue_cur_state = cmd_queue_end_state;
+	jtag_prelude(state);
 
 	int retval=interface_jtag_add_plain_dr_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
@@ -806,20 +777,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 }
 void jtag_add_statemove(enum tap_state state)
 {
-	if (jtag_trst == 1)
-	{
-		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		jtag_error=ERROR_JTAG_TRST_ASSERTED;
-		return;
-	}
-
-	if (state != -1)
-		cmd_queue_end_state = state;
-
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-			
-	cmd_queue_cur_state = cmd_queue_end_state;
+	jtag_prelude(state);
 
 	int retval;
 	retval=interface_jtag_add_statemove(cmd_queue_end_state);
@@ -846,22 +804,11 @@ int MINIDRIVER(interface_jtag_add_statemove)(enum tap_state state)
 
 void jtag_add_pathmove(int num_states, enum tap_state *path)
 {
-	if (jtag_trst == 1)
-	{
-		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		jtag_error=ERROR_JTAG_TRST_ASSERTED;
-		return;
-	}
-	
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-	
 	/* the last state has to be a stable state */
 	if (tap_move_map[path[num_states - 1]] == -1)
 	{
-		ERROR("TAP path doesn't finish in a stable state");
-		jtag_error=ERROR_JTAG_NOT_IMPLEMENTED;
-		return;
+		ERROR("BUG: TAP path doesn't finish in a stable state");
+		exit(-1);
 	}
 
 	enum tap_state cur_state=cmd_queue_cur_state;
@@ -876,6 +823,8 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 		}
 		cur_state = path[i];
 	}
+	
+	jtag_prelude1();
 	
 	cmd_queue_cur_state = path[num_states - 1];
 
@@ -925,20 +874,7 @@ int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
 
 void jtag_add_runtest(int num_cycles, enum tap_state state)
 {
-	if (jtag_trst == 1)
-	{
-		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		jtag_error=ERROR_JTAG_TRST_ASSERTED;
-		return;
-	}
-	
-	if (state != -1)
-		cmd_queue_end_state = state;
-
-	if (cmd_queue_end_state == TAP_TLR)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-			
-	cmd_queue_cur_state = cmd_queue_end_state;
+	jtag_prelude(state);
 	
 	/* executed by sw or hw fifo */
 	int retval=interface_jtag_add_runtest(num_cycles, cmd_queue_end_state);
