@@ -41,6 +41,9 @@ bitbang_interface_t *bitbang_interface;
 
 int bitbang_execute_queue(void);
 
+/* The bitbang driver leaves the TCK 0 when in idle */
+
+
 void bitbang_end_state(enum tap_state state)
 {
 	if (tap_move_map[state] != -1)
@@ -96,6 +99,7 @@ void bitbang_path_move(pathmove_command_t *cmd)
 		state_count++;
 		num_states--;
 	}
+	bitbang_interface->write(0, tms, 0);
 	
 	end_state = cur_state;
 }
@@ -125,6 +129,8 @@ void bitbang_runtest(int num_cycles)
 	bitbang_end_state(saved_end_state);
 	if (cur_state != end_state)
 		bitbang_state_move();
+	else
+		bitbang_interface->write(0, tms, 0);
 }
 
 void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
@@ -178,6 +184,8 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	
 	if (cur_state != end_state)
 		bitbang_state_move();
+	else
+		bitbang_interface->write(0, tms, 0);
 }
 
 int bitbang_execute_queue(void)
