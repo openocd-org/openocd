@@ -23,15 +23,15 @@
 		<table border="1">
 			<tr>
 				<td width="100">Passed version</td>
-				<td>The latest version on which the test is known to pass</td>
+				<td>The latest branch and version on which the test is known to pass</td>
 			</tr>
 			<tr>
 				<td width="100">Broken version</td>
-				<td>The latest version on which the test is known to fail. n/a when older than passed version.</td>
+				<td>The latest branch and version on which the test is known to fail. n/a when older than passed version.</td>
 			</tr>
 			<tr>
 				<td width="100">ID</td>
-				<td>A unqiue ID to refer to a test. The unique numbers are maintained in this file.</td>
+				<td>A unqiue ID to refer to a test. The unique numbers are maintained in this file. Note that the same test can be run on different hardware/interface. Each combination yields a unique id. </td>
 			</tr>
 		</table>
 		<p></p>
@@ -41,151 +41,151 @@
 		<p>The latest version in which the test is known to have passed is in the table below.</p>
 		<table border="1">
 			<tr>
-				<th width="65">ID</th>
+				<th width="100">Unique ID</th>
 				<th width="165">Synopsis</th>
 				<th align="center" width="110">JTAG device</th>
 				<th align="center" width="110">Passed version</th>
 				<th align="center" width="110">Broken version</th>
 			</tr>
 			<tr>
-				<td width="65">fill_malloc</td>
+				<td >fill_malloc</td>
 				<td width="165">Fill malloc() memory with garbage</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65">ocd1</td>
+				<td >ocd1</td>
 				<td width="165">Telnet Windows</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65">ocd2</td>
+				<td >ocd2</td>
 				<td width="165">Telnet Linux</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65">ocd3</td>
+				<td >ocd3</td>
 				<td width="165">Telnet Cygwin</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#test_ocd4">ocd4</a></td>
+				<td ><a href="#test_ocd4">ocd4</a></td>
 				<td width="165">ARM7 debugging</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65">xscale1</td>
+				<td >xscale1</td>
 				<td width="165">XScale debugging</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >bitbang</td>
+				<td align="center" >xscale-ipe-be 207</td>
+				<td align="center" >trunk</td>
 			</tr>
 			<tr>
-				<td width="65">xscale2</td>
-				<td width="165">XScale MMU</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
+				<td >xscale2</td>
+				<td width="165">XScale debugging</td>
+				<td align="center" >fs2232</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-ram">bdte-ram</a></td>
+				<td ><a href="#bdte-ram">bdte-ram1</a></td>
 				<td width="165">str710 ram debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-rom">bdte-rom</a></td>
+				<td ><a href="#bdte-rom">bdte-rom2</a></td>
 				<td width="165">str710 rom debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-ram">bdte-ram</a></td>
+				<td ><a href="#bdte-ram">bdte-ram3</a></td>
 				<td width="165">str912 ram debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-rom">bdte-rom</a></td>
+				<td ><a href="#bdte-rom">bdte-rom4</a></td>
 				<td width="165">str912 rom debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-ram">bdte-ram</a></td>
+				<td ><a href="#bdte-ram">bdte-ram5</a></td>
 				<td width="165">lpc2148 ram debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-rom">bdte-rom</a></td>
+				<td ><a href="#bdte-rom">bdte-rom6</a></td>
 				<td width="165">lpc2148 rom debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-ram">bdte-ram</a></td>
+				<td ><a href="#bdte-ram">bdte-ram7</a></td>
 				<td width="165">lpc2294 ram debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-rom">bdte-rom</a></td>
+				<td ><a href="#bdte-rom">bdte-rom8</a></td>
 				<td width="165">lpc2294 rom debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-ram">bdte-ram</a></td>
+				<td ><a href="#bdte-ram">bdte-ram9</a></td>
 				<td width="165">sam7s256 ram debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-rom">bdte-rom</a></td>
+				<td ><a href="#bdte-rom">bdte-rom10</a></td>
 				<td width="165">sam7s256 rom debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-ram">bdte-ram</a></td>
+				<td ><a href="#bdte-ram">bdte-ram11</a></td>
 				<td width="165">sam7x256 ram debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-rom">bdte-rom</a></td>
+				<td ><a href="#bdte-rom">bdte-rom12</a></td>
 				<td width="165">sam7x256 rom debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
-				<td width="65"><a href="#bdte-ram">bdte-ram</a></td>
+				<td ><a href="#bdte-ram">bdte-ram13</a></td>
 				<td width="165">at91r40008 ram debugging</td>
-				<td align="center" width="110">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >JTAGkey</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 		</table>
 		<p></p>
@@ -197,32 +197,32 @@
 			<tr>
 				<th align="center" width="40">ID</th>
 				<th width="90">Synopsis</th>
-				<th width="110">Passed version</th>
-				<th width="110">Broken version</th>
+				<th >Passed version</th>
+				<th >Broken version</th>
 			</tr>
 			<tr>
 				<td width="40">jtag1</td>
 				<td width="90">Parport</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
 				<td width="40">jtag2</td>
 				<td width="90">JTAGkey</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
 				<td width="40">jtag3</td>
 				<td width="90">Turtelizer2</td>
-				<td align="center" width="110">459</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >459</td>
+				<td align="center" >n/a</td>
 			</tr>
 			<tr>
 				<td width="40">jtag4</td>
 				<td width="90">add new one</td>
-				<td align="center" width="110">n/a</td>
-				<td align="center" width="110">n/a</td>
+				<td align="center" >n/a</td>
+				<td align="center" >n/a</td>
 			</tr>
 		</table>
 		<p></p>
