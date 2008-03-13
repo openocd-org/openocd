@@ -273,12 +273,18 @@ Cirrus Logic EP93xx based single-board computer bit-banging (in development)
 @end itemize
 
 @itemize @bullet
-@item @b{jtag_speed} <@var{number}>
+@item @b{jtag_speed} <@var{reset speed}> <@var{post reset speed}>
 @cindex jtag_speed
 Limit the maximum speed of the JTAG interface. Usually, a value of zero means maximum
-speed. The actual effect of this option depends on the JTAG interface used.
-
+speed. The actual effect of this option depends on the JTAG interface used. Reset
+speed is used during reset and post reset speed after reset. post reset speed
+is optional, in which case the reset speed is used.
 @itemize @minus
+
+
+
+
+
 @item wiggler: maximum speed / @var{number}
 @item ft2232: 6MHz / (@var{number}+1)
 @item amt jtagaccel: 8 / 2**@var{number}
@@ -286,6 +292,13 @@ speed. The actual effect of this option depends on the JTAG interface used.
 
 Note: Make sure the jtag clock is no more than @math{1/6th × CPU-Clock}. This is
 especially true for synthesized cores (-S).
+
+@item @b{jtag_khz} <@var{reset speed kHz}>  <@var{post reset speed kHz}>
+@cindex jtag_khz
+Same as jtag_speed, except that the speed is specified in maximum kHz. If
+the device can not support the rate asked for, or can not translate from
+kHz to jtag_speed, then an error is returned. 0 means RTCK. If RTCK
+is not supported, then an error is reported.
 
 @item @b{reset_config} <@var{signals}> [@var{combination}] [@var{trst_type}] [@var{srst_type}]
 @cindex reset_config
