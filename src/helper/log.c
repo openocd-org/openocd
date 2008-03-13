@@ -23,6 +23,7 @@
 
 #include "log.h"
 #include "configuration.h"
+#include "time_support.h"
 
 #include <stdio.h>
 #include <stdlib.h>
