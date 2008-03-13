@@ -111,3 +111,18 @@ int duration_stop_measure(duration_t *duration, char **text)
 	
 	return ERROR_OK;
 }
+
+
+
+
+long long timeval_ms()
+{
+	struct timeval now; 
+	long long t=0;
+	gettimeofday(&now, NULL);
+	
+	t+=now.tv_usec/1000;
+	t+=now.tv_sec*1000;
+	
+	return t;
+}

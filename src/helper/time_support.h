@@ -26,6 +26,8 @@
 extern int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
 extern int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y);
 extern int timeval_add_time(struct timeval *result, int sec, int usec);
+/* gettimeofday() timeval in 64 bit ms */
+extern long long timeval_ms();
 
 typedef struct duration_s
 {

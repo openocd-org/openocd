@@ -35,7 +35,7 @@ int debug_level = -1;
 static FILE* log_output;
 static log_callback_t *log_callbacks = NULL;
 
-static time_t start;
+static long long start;
 
 static char *log_strings[5] =
 {
@@ -77,7 +77,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		if (debug_level >= LOG_DEBUG)
 		{
 			/* print with count and time information */
-			int t=(int)(time(NULL)-start);
+			int t=(int)(timeval_ms()-start);
 			fprintf(log_output, "%s %d %d %s:%d %s(): %s", log_strings[level+1], count, t, file, line, function, string);
 		}
 		else
@@ -191,7 +191,7 @@ int handle_log_output_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 int log_register_commands(struct command_context_s *cmd_ctx)
 {
-	start = time(NULL);
+	start = timeval_ms();
 	register_command(cmd_ctx, NULL, "log_output", handle_log_output_command,
 		COMMAND_ANY, "redirect logging to <file> (default: stderr)");
 	register_command(cmd_ctx, NULL, "debug_level", handle_debug_level_command,
