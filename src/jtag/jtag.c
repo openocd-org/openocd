@@ -234,6 +234,7 @@ int jtag_cancel_queue(void);
 /* jtag commands */
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -1409,6 +1410,8 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "jtag_speed", handle_jtag_speed_command,
 		COMMAND_ANY, "set jtag speed (if supported) <reset speed> [<post reset speed, default value is reset speed>]");
+	register_command(cmd_ctx, NULL, "jtag_khz", handle_jtag_khz_command,
+		COMMAND_ANY, "same as jtag_speed, except it takes khz as arguments");
 	register_command(cmd_ctx, NULL, "jtag_device", handle_jtag_device_command,
 		COMMAND_CONFIG, "jtag_device <ir_length> <ir_expected> <ir_mask>");
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
@@ -1499,6 +1502,12 @@ int jtag_init(struct command_context_s *cmd_ctx)
 }
 
 
+static int default_khz(int khz, int *jtag_speed)
+{
+	ERROR("Translation from khz to jtag_speed not implemented");
+	return ERROR_FAIL;
+}
+
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
@@ -1524,6 +1533,11 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 				exit(-1);
 
 			jtag_interface = jtag_interfaces[i];
+			
+			if (jtag_interface->khz == NULL)
+			{
+				jtag_interface->khz = default_khz;
+			}
 			return ERROR_OK;
 		}
 	}
@@ -1712,6 +1726,42 @@ int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 	return ERROR_OK;
 }
+
+int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	int cur_speed = 0;
+	int speed1, speed2;
+	if ((argc<1) || (argc>2))
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (jtag == NULL)
+	{
+		ERROR("Interface not selected yet");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	
+	if (argc >= 1)
+		speed1 = strtoul(args[0], NULL, 0);
+	if (argc == 2)
+		speed2 = strtoul(args[1], NULL, 0);
+	
+	if (jtag->khz(speed1, &speed1)!=ERROR_OK)
+		return ERROR_OK;
+	
+	if (jtag->khz(speed2, &speed2)!=ERROR_OK)
+		return ERROR_OK;
+	
+	if (argc >= 1)
+		cur_speed = jtag_speed = jtag_speed_post_reset = speed1;
+	
+	if (argc == 2)
+		cur_speed = jtag_speed_post_reset = speed2;
+		
+	jtag->speed(cur_speed);
+
+	return ERROR_OK;
+}
+
 
 int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {

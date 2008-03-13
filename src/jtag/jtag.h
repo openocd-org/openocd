@@ -195,6 +195,8 @@ typedef struct jtag_interface_s
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 	int (*init)(void);
 	int (*quit)(void);
+	/* returns JTAG speed for KHz. */
+	int (*khz)(int khz, int *jtag_speed);
 	
 } jtag_interface_t;
 
