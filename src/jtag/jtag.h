@@ -222,6 +222,7 @@ extern enum tap_state end_state;
 extern enum tap_state cur_state;
 
 extern int jtag_speed;
+extern int jtag_speed_post_reset;
 
 enum reset_types
 {

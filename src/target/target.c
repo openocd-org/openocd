@@ -260,7 +260,9 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	int retval = ERROR_OK;
 	target_t *target;
 	struct timeval timeout, now;
-	
+
+	jtag->speed(jtag_speed);
+
 	/* prepare reset_halt where necessary */
 	target = targets;
 	while (target)
@@ -339,7 +341,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		target = target->next;
 	}
 	jtag_execute_queue();
-
+	
 	/* Wait for reset to complete, maximum 5 seconds. */	
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 5, 0);
@@ -347,7 +349,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	{
 		gettimeofday(&now, NULL);
 		
-		target_call_timer_callbacks();
+		target_call_timer_callbacks_now();
 		
 		target = targets;
 		while (target)
@@ -379,7 +381,9 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	
 	
 	/* We want any events to be processed before the prompt */
-	target_call_timer_callbacks();
+	target_call_timer_callbacks_now();
+
+	jtag->speed(jtag_speed_post_reset);
 	
 	return retval;
 }
@@ -607,6 +611,16 @@ int target_call_timer_callbacks()
 	
 	return ERROR_OK;
 }
+
+int target_call_timer_callbacks_now()
+{
+	/* TODO: this should invoke the timer callbacks now. This is used to ensure that
+	 * any outstanding polls, etc. are in fact invoked before a synchronous command 
+	 * completes. 
+	 */
+	return target_call_timer_callbacks();
+}
+
 
 int target_alloc_working_area(struct target_s *target, u32 size, working_area_t **area)
 {
@@ -1278,7 +1292,6 @@ int handle_run_and_halt_time_command(struct command_context_s *cmd_ctx, char *cm
 	}
 	
 	target = get_target_by_num(strtoul(args[0], NULL, 0));
-	
 	if (!target)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1299,7 +1312,6 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	}
 	
 	target = get_target_by_num(strtoul(args[0], NULL, 0));
-	
 	if (!target)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1531,7 +1543,7 @@ static void target_process_events(struct command_context_s *cmd_ctx)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	target->type->poll(target);
-	target_call_timer_callbacks();
+	target_call_timer_callbacks_now();
 }
 
 static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_state state, int ms)
@@ -1547,7 +1559,7 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 	{
 		if ((retval=target->type->poll(target))!=ERROR_OK)
 			return retval;
-		target_call_timer_callbacks();
+		target_call_timer_callbacks_now();
 		if (target->state == state)
 		{
 			break;
@@ -1577,9 +1589,9 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	DEBUG("-");
 
 	if ((retval = target->type->halt(target)) != ERROR_OK)
-		{
-				return retval;
-		}
+	{
+		return retval;
+	}
 	
 	return handle_wait_halt_command(cmd_ctx, cmd, args, argc);
 }
@@ -1745,51 +1757,37 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 
 	buffer = calloc(count, size);
 	retval  = target->type->read_memory(target, address, size, count, buffer);
-	if (retval != ERROR_OK)
+	if (retval == ERROR_OK)
 	{
-		switch (retval)
+		output_len = 0;
+	
+		for (i = 0; i < count; i++)
 		{
-			case ERROR_TARGET_UNALIGNED_ACCESS:
-				command_print(cmd_ctx, "error: address not aligned");
-				break;
-			case ERROR_TARGET_NOT_HALTED:
-				command_print(cmd_ctx, "error: target must be halted for memory accesses");
-				break;			
-			case ERROR_TARGET_DATA_ABORT:
-				command_print(cmd_ctx, "error: access caused data abort, system possibly corrupted");
-				break;
-			default:
-				command_print(cmd_ctx, "error: unknown error");
-				break;
+			if (i%line_modulo == 0)
+				output_len += snprintf(output + output_len, 128 - output_len, "0x%8.8x: ", address + (i*size));
+			
+			switch (size)
+			{
+				case 4:
+					output_len += snprintf(output + output_len, 128 - output_len, "%8.8x ", target_buffer_get_u32(target, &buffer[i*4]));
+					break;
+				case 2:
+					output_len += snprintf(output + output_len, 128 - output_len, "%4.4x ", target_buffer_get_u16(target, &buffer[i*2]));
+					break;
+				case 1:
+					output_len += snprintf(output + output_len, 128 - output_len, "%2.2x ", buffer[i*1]);
+					break;
+			}
+	
+			if ((i%line_modulo == line_modulo-1) || (i == count - 1))
+			{
+				command_print(cmd_ctx, output);
+				output_len = 0;
+			}
 		}
-		return ERROR_OK;
-	}
-
-	output_len = 0;
-
-	for (i = 0; i < count; i++)
+	} else
 	{
-		if (i%line_modulo == 0)
-			output_len += snprintf(output + output_len, 128 - output_len, "0x%8.8x: ", address + (i*size));
-		
-		switch (size)
-		{
-			case 4:
-				output_len += snprintf(output + output_len, 128 - output_len, "%8.8x ", target_buffer_get_u32(target, &buffer[i*4]));
-				break;
-			case 2:
-				output_len += snprintf(output + output_len, 128 - output_len, "%4.4x ", target_buffer_get_u16(target, &buffer[i*2]));
-				break;
-			case 1:
-				output_len += snprintf(output + output_len, 128 - output_len, "%2.2x ", buffer[i*1]);
-				break;
-		}
-
-		if ((i%line_modulo == line_modulo-1) || (i == count - 1))
-		{
-			command_print(cmd_ctx, output);
-			output_len = 0;
-		}
+		ERROR("Failure examining memory");
 	}
 
 	free(buffer);
@@ -1828,23 +1826,9 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 		default:
 			return ERROR_OK;
 	}
-
-	switch (retval)
+	if (retval!=ERROR_OK)
 	{
-		case ERROR_TARGET_UNALIGNED_ACCESS:
-			command_print(cmd_ctx, "error: address not aligned");
-			break;
-		case ERROR_TARGET_DATA_ABORT:
-			command_print(cmd_ctx, "error: access caused data abort, system possibly corrupted");
-			break;
-		case ERROR_TARGET_NOT_HALTED:
-			command_print(cmd_ctx, "error: target must be halted for memory accesses");
-			break;
-		case ERROR_OK:
-			break;
-		default:
-			command_print(cmd_ctx, "error: unknown error");
-			break;
+		ERROR("Failure examining memory");
 	}
 
 	return ERROR_OK;
@@ -2070,7 +2054,6 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		image_calculate_checksum( buffer, buf_cnt, &checksum );
 		
 		retval = target_checksum_memory(target, image.sections[i].base_address, buf_cnt, &mem_checksum);
-		
 		if( retval != ERROR_OK )
 		{
 			free(buffer);
@@ -2095,7 +2078,6 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				count /= 4;
 			}
 			retval = target->type->read_memory(target, image.sections[i].base_address, size, count, data);
-	
 			if (retval == ERROR_OK)
 			{
 				int t;
@@ -2168,18 +2150,7 @@ int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 
 		if ((retval = breakpoint_add(target, strtoul(args[0], NULL, 0), length, hw)) != ERROR_OK)
 		{
-			switch (retval)
-			{
-				case ERROR_TARGET_NOT_HALTED:
-					command_print(cmd_ctx, "target must be halted to set breakpoints");
-					break;
-				case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-					command_print(cmd_ctx, "no more breakpoints available");
-					break;
-				default:
-					command_print(cmd_ctx, "unknown error, breakpoint not set");
-					break;
-			}
+			ERROR("Failure setting breakpoints");
 		}
 		else
 		{
@@ -2255,18 +2226,7 @@ int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 		if ((retval = watchpoint_add(target, strtoul(args[0], NULL, 0),
 				strtoul(args[1], NULL, 0), type, data_value, data_mask)) != ERROR_OK)
 		{
-			switch (retval)
-			{
-				case ERROR_TARGET_NOT_HALTED:
-					command_print(cmd_ctx, "target must be halted to set watchpoints");
-					break;
-				case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-					command_print(cmd_ctx, "no more watchpoints available");
-					break;
-				default:
-					command_print(cmd_ctx, "unknown error, watchpoint not set");
-					break;
-			}	
+			ERROR("Failure setting breakpoints");
 		}
 	}
 	else

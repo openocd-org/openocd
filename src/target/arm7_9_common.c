@@ -1753,7 +1753,6 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mode, u32 value)
 {
 	u32 reg[16];
-	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	enum armv4_5_mode reg_mode = ((armv4_5_core_reg_t*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info)->mode;
@@ -1805,14 +1804,7 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 	}
 	
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		ERROR("JTAG failure");
-		exit(-1);
-	}
-	
-	return ERROR_OK;
-	
+	return jtag_execute_queue();
 }
 
 int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
@@ -2217,8 +2209,18 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	
 	target->type->halt(target);
 	
-	while (target->state != TARGET_HALTED)
+	for (i=0; i<100; i++)
+	{
 		target->type->poll(target);
+		if (target->state == TARGET_HALTED)
+			break;
+		usleep(1000); /* sleep 1ms */
+	}
+	if (i == 100)
+	{
+		ERROR("bulk write timed out, target not halted");
+		return ERROR_TARGET_TIMEOUT;
+	}
 	
 	/* restore target state */
 	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, r0);
@@ -2378,7 +2380,7 @@ int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cm
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while writing to xpsr");
-		exit(-1);
+		return retval;
 	}
 	
 	return ERROR_OK;
@@ -2420,7 +2422,7 @@ int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		ERROR("JTAG error while writing 8-bit immediate to xpsr");
-		exit(-1);
+		return retval;
 	}
 	
 	return ERROR_OK;

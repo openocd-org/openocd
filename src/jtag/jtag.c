@@ -218,6 +218,7 @@ jtag_interface_t *jtag = NULL;
 /* configuration */
 jtag_interface_t *jtag_interface = NULL;
 int jtag_speed = 0;
+int jtag_speed_post_reset = 0;
 
 
 /* forward declarations */
@@ -1407,7 +1408,7 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "interface", handle_interface_command,
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "jtag_speed", handle_jtag_speed_command,
-		COMMAND_ANY, "set jtag speed (if supported) <speed>");
+		COMMAND_ANY, "set jtag speed (if supported) <reset speed> [<post reset speed, default value is reset speed>]");
 	register_command(cmd_ctx, NULL, "jtag_device", handle_jtag_device_command,
 		COMMAND_CONFIG, "jtag_device <ir_length> <ir_expected> <ir_mask>");
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
@@ -1695,17 +1696,19 @@ int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 
 int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc == 0)
-		command_print(cmd_ctx, "jtag_speed: %i", jtag_speed);
+	int cur_speed = 0;
+	if ((argc<1) || (argc>2))
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc > 0)
-	{
-		jtag_speed = strtoul(args[0], NULL, 0);
-		/* this command can be called during CONFIG, 
-		 * in which case jtag isn't initialized */
-		if (jtag)
-			jtag->speed(jtag_speed);
-	}
+	if (argc >= 1)
+		cur_speed = jtag_speed = jtag_speed_post_reset = strtoul(args[0], NULL, 0);
+	if (argc == 2)
+		cur_speed = jtag_speed_post_reset = strtoul(args[1], NULL, 0);
+		
+	/* this command can be called during CONFIG, 
+	 * in which case jtag isn't initialized */
+	if (jtag)
+		jtag->speed(cur_speed);
 
 	return ERROR_OK;
 }

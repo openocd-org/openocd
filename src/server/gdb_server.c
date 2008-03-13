@@ -1442,9 +1442,9 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 			/* We want to print all debug output to GDB connection */
 			log_add_callback(gdb_log_callback, connection);
-			target_call_timer_callbacks();
+			target_call_timer_callbacks_now();
 			command_run_line(cmd_ctx, cmd);
-			target_call_timer_callbacks();
+			target_call_timer_callbacks_now();
 			log_remove_callback(gdb_log_callback, connection);
 			free(cmd);
 		}
