@@ -75,7 +75,7 @@ void bitbang_path_move(pathmove_command_t *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;
-	int tms;
+	int tms = 0;
 
 	state_count = 0;
 	while (num_states)
