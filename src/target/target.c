@@ -76,6 +76,7 @@ int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc);
+int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* targets
  */
@@ -766,6 +767,7 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, "<target> <run time ms>");
 	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
+	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "PRELIMINARY! - profile <seconds> <gmon.out>");
 
 	return ERROR_OK;
 }
@@ -2273,3 +2275,189 @@ int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args,
 	}
 	return retval;
 }
+static void writeLong(FILE *f, int l)
+{
+	int i;
+	for (i=0; i<4; i++)
+	{
+		char c=(l>>(i*8))&0xff;
+		fwrite(&c, 1, 1, f); 
+	}
+	
+}
+static void writeString(FILE *f, char *s)
+{
+	fwrite(s, 1, strlen(s), f); 
+}
+
+
+
+// Dump a gmon.out histogram file.
+static void writeGmon(u32 *samples, int sampleNum, char *filename)
+{
+	int i;
+	FILE *f=fopen(filename, "w");
+	if (f==NULL)
+		return;
+	fwrite("gmon", 1, 4, f);
+	writeLong(f, 0x00000001); // Version
+	writeLong(f, 0); // padding
+	writeLong(f, 0); // padding
+	writeLong(f, 0); // padding
+				
+	fwrite("", 1, 1, f);  // GMON_TAG_TIME_HIST 
+
+	// figure out bucket size
+	u32 min=samples[0];
+	u32 max=samples[0];
+	for (i=0; i<sampleNum; i++)
+	{
+		if (min>samples[i])
+		{
+			min=samples[i];
+		}
+		if (max<samples[i])
+		{
+			max=samples[i];
+		}
+	}
+
+	int addressSpace=(max-min+1);
+	
+	static int const maxBuckets=256*1024; // maximum buckets.
+	int length=addressSpace;
+	if (length > maxBuckets)
+	{
+		length=maxBuckets; 
+	}
+	int *buckets=malloc(sizeof(int)*length);
+	if (buckets==NULL)
+	{
+		fclose(f);
+		return;
+	}
+	memset(buckets, 0, sizeof(int)*length);
+	for (i=0; i<sampleNum;i++)
+	{
+		u32 address=samples[i];
+		long long a=address-min;
+		long long b=length-1;
+		long long c=addressSpace-1;
+		int index=(a*b)/c; // danger!!!! int32 overflows 
+		buckets[index]++;
+	}
+	
+	//			   append binary memory gmon.out &profile_hist_hdr ((char*)&profile_hist_hdr + sizeof(struct gmon_hist_hdr))
+	writeLong(f, min); 					// low_pc
+	writeLong(f, max);		// high_pc
+	writeLong(f, length);		// # of samples
+	writeLong(f, 64000000); 			// 64MHz
+	writeString(f, "seconds");
+	for (i=0; i<(15-strlen("seconds")); i++)
+	{
+		fwrite("", 1, 1, f);  // padding
+	}
+	writeString(f, "s");
+		
+//			   append binary memory gmon.out profile_hist_data (profile_hist_data + profile_hist_hdr.hist_size)
+	
+	char *data=malloc(2*length);
+	if (data!=NULL)
+	{
+		for (i=0; i<length;i++)
+		{
+			int val;
+			val=buckets[i];
+			if (val>65535)
+			{
+				val=65535;
+			}
+			data[i*2]=val&0xff;
+			data[i*2+1]=(val>>8)&0xff;
+		}
+		free(buckets);
+		fwrite(data, 1, length*2, f);
+		free(data);
+	} else
+	{
+		free(buckets);
+	}
+
+	fclose(f);
+}
+
+/* profiling samples the CPU PC as quickly as OpenOCD is able, which will be used as a random sampling of PC */
+int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	struct timeval timeout, now;
+	
+	gettimeofday(&timeout, NULL);
+	if (argc!=2)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	char *end;
+	timeval_add_time(&timeout, strtoul(args[0], &end, 0), 0);
+	if (*end) 
+	{
+		return ERROR_OK;
+	}
+	
+	command_print(cmd_ctx, "Starting profiling. Halting and resuming the target as often as we can...");
+
+	static const int maxSample=10000;
+	u32 *samples=malloc(sizeof(u32)*maxSample);
+	if (samples==NULL)
+		return ERROR_OK;
+	
+	int numSamples=0;
+	int retval=ERROR_OK;
+	// hopefully it is safe to cache! We want to stop/restart as quickly as possible.
+	reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
+	
+	for (;;)
+	{
+		target->type->poll(target);
+		if (target->state == TARGET_HALTED)
+		{
+			u32 t=*((u32 *)reg->value);
+			samples[numSamples++]=t;
+			retval = target->type->resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
+			target->type->poll(target);
+			usleep(10*1000); // sleep 10ms, i.e. <100 samples/second.
+		} else if (target->state == TARGET_RUNNING)
+		{
+			// We want to quickly sample the PC.
+			target->type->halt(target);
+		} else
+		{
+			command_print(cmd_ctx, "Target not halted or running");
+			retval=ERROR_OK;
+			break;
+		}
+		if (retval!=ERROR_OK)
+		{
+			break;
+		}
+		
+		gettimeofday(&now, NULL);
+		if ((numSamples>=maxSample) || ((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
+		{
+			command_print(cmd_ctx, "Profiling completed. %d samples.", numSamples);
+			target->type->poll(target);
+			if (target->state == TARGET_HALTED)
+			{
+				target->type->resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
+			}
+			target->type->poll(target);
+			writeGmon(samples, numSamples, args[1]);
+			command_print(cmd_ctx, "Wrote %s", args[1]);
+			break;
+		}
+	}
+	free(samples);
+	
+	return ERROR_OK;
+}
+
