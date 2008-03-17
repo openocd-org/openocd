@@ -931,15 +931,38 @@ static void cfi_add_byte(struct flash_bank_s *bank, u8 *word, u8 byte)
 }
 
 /* Convert code image to target endian */
-/* FIXME create general block conversion fcts in target.c?) */ static
-void cfi_fix_code_endian(target_t *target, u32 *dest, const u32 *src, u32 count)
+/* FIXME create general block conversion fcts in target.c?) */
+static void cfi_fix_code_endian(target_t *target, u8 *dest, const u32 *src, u32 count)
 {
 	u32 i;
 	for (i=0; i< count; i++)
 	{
-		target_buffer_set_u32(target, (u8*)dest, *src);
-		dest++;
+		target_buffer_set_u32(target, dest, *src);
+		dest+=4;
 		src++;
+	}
+}
+
+u32 cfi_command_val(flash_bank_t *bank, u8 cmd)
+{
+	target_t *target = bank->target;
+
+	u8 buf[CFI_MAX_BUS_WIDTH];
+	cfi_command(bank, cmd, buf);
+	switch (bank->bus_width)
+	{
+	case 1 :
+		return buf[0];
+		break;
+	case 2 :
+		return target_buffer_get_u16(target, buf);
+		break;
+	case 4 :
+		return target_buffer_get_u32(target, buf);
+		break;
+	default :
+		ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
+		return 0;
 	}
 }
 
@@ -951,9 +974,6 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	armv4_5_algorithm_t armv4_5_info;
 	working_area_t *source;
 	u32 buffer_size = 32768;
-	u8 write_command_buf[CFI_MAX_BUS_WIDTH];
-	u8 busy_pattern_buf[CFI_MAX_BUS_WIDTH];
-	u8 error_pattern_buf[CFI_MAX_BUS_WIDTH];
 	u32 write_command_val, busy_pattern_val, error_pattern_val;
 
 	/* algorithm register usage:
@@ -1016,7 +1036,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		0xeafffff2,   /* 		b loop */
 		0xeafffffe    /* done:	b -2 */
 	};
-	u32 target_code[CFI_MAX_INTEL_CODESIZE];
+	u8 target_code[4*CFI_MAX_INTEL_CODESIZE];
 	const u32 *target_code_src;
 	int target_code_size;
 	int retval = ERROR_OK;
@@ -1063,7 +1083,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 			WARNING("Internal error - target code buffer to small. Increase CFI_MAX_INTEL_CODESIZE and recompile.");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
-		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size);
+		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
 
 		/* Get memory for block write handler */
 		retval = target_alloc_working_area(target, target_code_size, &cfi_info->write_algorithm);
@@ -1074,7 +1094,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		};
 
 		/* write algorithm code to working area */
-		retval = target_write_buffer(target, cfi_info->write_algorithm->address, target_code_size, (u8*)target_code);
+		retval = target_write_buffer(target, cfi_info->write_algorithm->address, target_code_size, target_code);
 		if (retval != ERROR_OK)
 		{
 			ERROR("Unable to write block write code to target");
@@ -1106,32 +1126,9 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	init_reg_param(&reg_params[6], "r6", 32, PARAM_OUT);
 
 	/* prepare command and status register patterns */
-	cfi_command(bank, 0x40, write_command_buf);
-	cfi_command(bank, 0x80, busy_pattern_buf);
-	cfi_command(bank, 0x7e, error_pattern_buf);
-
-	switch (bank->bus_width)
-	{
-	case 1 :
-		write_command_val = write_command_buf[0];
-		busy_pattern_val = busy_pattern_buf[0];
-		error_pattern_val = error_pattern_buf[0];
-		break;
-	case 2 :
-		write_command_val = target_buffer_get_u16(target, write_command_buf);
-		busy_pattern_val = target_buffer_get_u16(target, busy_pattern_buf);
-		error_pattern_val = target_buffer_get_u16(target, error_pattern_buf);
-		break;
-	case 4 :
-		write_command_val = target_buffer_get_u32(target, write_command_buf);
-		busy_pattern_val = target_buffer_get_u32(target, busy_pattern_buf);
-		error_pattern_val = target_buffer_get_u32(target, error_pattern_buf);
-		break;
-	default :
-		ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
-		retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		goto cleanup;
-	}
+	write_command_val = cfi_command_val(bank, 0x40);
+	busy_pattern_val  = cfi_command_val(bank, 0x80);
+	error_pattern_val = cfi_command_val(bank, 0x7e);
 
 	INFO("Using target buffer at 0x%08x and of size 0x%04x", source->address, buffer_size );
 
@@ -1219,9 +1216,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 	armv4_5_algorithm_t armv4_5_info;
 	working_area_t *source;
 	u32 buffer_size = 32768;
-	u8 write_command[CFI_MAX_BUS_WIDTH];
 	u32 status;
-	int i;
 	int retval;
 	int exit_code = ERROR_OK;
 
@@ -1242,7 +1237,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 	/*  R10 = unlock2_addr */
 	/*  R11 = unlock2_cmd */
 
-	u32 word_32_code[] = {
+	static const u32 word_32_code[] = {
 						/* 00008100 <sp_32_code>:		*/
 		0xe4905004,		/* ldr	r5, [r0], #4			*/
 		0xe5889000, 	/* str	r9, [r8]				*/
@@ -1276,7 +1271,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 		0xeafffffe		/* b	8154 <sp_32_done>		*/
 		};
 
-		u32 word_16_code[] = {
+		static const u32 word_16_code[] = {
 				/* 00008158 <sp_16_code>:              */
 		0xe0d050b2, 	/* ldrh	r5, [r0], #2		   */
 		0xe1c890b0, 	/* strh	r9, [r8]				*/
@@ -1310,7 +1305,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 		0xeafffffe 	/* b	81ac <sp_16_done>              */
 		};
 
-		u32 word_8_code[] = {
+		static const u32 word_8_code[] = {
 				/* 000081b0 <sp_16_code_end>:          */
 		0xe4d05001, 	/* ldrb	r5, [r0], #1		       */
 		0xe5c89000, 	/* strb	r9, [r8]				*/
@@ -1351,48 +1346,45 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 	/* flash write code */
 	if (!cfi_info->write_algorithm)
 	{
-		u8 *code_p;
+		u8 *target_code;
+		int target_code_size;
+		const u32 *src;
 
 		/* convert bus-width dependent algorithm code to correct endiannes */
-		if (bank->bus_width == 1)
+		switch (bank->bus_width)
 		{
-			code_p = malloc(24 * 4);
-
-			for (i = 0; i < 24; i++)
-				target_buffer_set_u32(target, code_p + (i*4), word_8_code[i]);
-		}
-		else if (bank->bus_width == 2)
-		{
-			code_p = malloc(24 * 4);
-
-			for (i = 0; i < 24; i++)
-				target_buffer_set_u32(target, code_p + (i*4), word_16_code[i]);
-		}
-		else if (bank->bus_width == 4)
-		{
-			code_p = malloc(24 * 4);
-
-			for (i = 0; i < 24; i++)
-				target_buffer_set_u32(target, code_p + (i*4), word_32_code[i]);
-		}
-		else
-		{
+		case 1:
+			src = word_8_code;
+			target_code_size = sizeof(word_8_code);
+			break;
+		case 2:
+			src = word_16_code;
+			target_code_size = sizeof(word_16_code);
+			break;
+		case 4:
+			src = word_32_code;
+			target_code_size = sizeof(word_32_code);
+			break;
+		default:
+			ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
+		target_code = malloc(target_code_size);
+		cfi_fix_code_endian(target, target_code, src, target_code_size / 4);
 
 		/* allocate working area */
-		retval=target_alloc_working_area(target, 24 * 4,
+		retval=target_alloc_working_area(target, target_code_size,
 				&cfi_info->write_algorithm);
 		if (retval != ERROR_OK)
-		{
 			return retval;
-		}
 
 		/* write algorithm code to working area */
-		target_write_buffer(target, cfi_info->write_algorithm->address, 24 * 4, code_p);
+		target_write_buffer(target, cfi_info->write_algorithm->address,
+		                    target_code_size, target_code);
 
-		free(code_p);
+		free(target_code);
 	}
+	/* the following code still assumes target code is fixed 24*4 bytes */
 
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
 	{
@@ -1428,14 +1420,12 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count / bank->bus_width);
-		cfi_command(bank, 0xA0, write_command);
-		buf_set_u32(reg_params[3].value, 0, 32, buf_get_u32(write_command, 0, 32));
-		cfi_command(bank, 0x80, write_command);
-		buf_set_u32(reg_params[4].value, 0, 32, buf_get_u32(write_command, 0, 32));
+		buf_set_u32(reg_params[3].value, 0, 32, cfi_command_val(bank, 0xA0));
+		buf_set_u32(reg_params[4].value, 0, 32, cfi_command_val(bank, 0x80));
 		buf_set_u32(reg_params[6].value, 0, 32, flash_address(bank, 0, pri_ext->_unlock1));
-		buf_set_u32(reg_params[7].value, 0, 32, 0xaa);
+		buf_set_u32(reg_params[7].value, 0, 32, 0xaaaaaaaa);
 		buf_set_u32(reg_params[8].value, 0, 32, flash_address(bank, 0, pri_ext->_unlock2));
-		buf_set_u32(reg_params[9].value, 0, 32, 0x55);
+		buf_set_u32(reg_params[9].value, 0, 32, 0x55555555);
 
 		retval = target->type->run_algorithm(target, 0, NULL, 10, reg_params,
 						     cfi_info->write_algorithm->address,
@@ -1729,9 +1719,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 		{
 			u32 buffersize = 1UL << cfi_info->max_buf_write_size;
-#if 0
 			u32 buffermask = buffersize-1;
-#endif
 			u32 bufferwsize;
 
 			switch(bank->chip_width)
@@ -1745,15 +1733,13 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			}
 
 			/* fall back to memory writes */
-			while (count > bank->bus_width)
+			while (count >= bank->bus_width)
 			{
 				if ((write_p & 0xff) == 0)
 				{
 					INFO("Programming at %08x, count %08x bytes remaining", write_p, count);
 				}
-#if 0
-				/* NB! this is broken for spansion! */
-				if ((count > bufferwsize) && !(write_p & buffermask))
+				if ((bufferwsize > 0) && (count >= buffersize) && !(write_p & buffermask))
 				{
 					retval = cfi_write_words(bank, buffer, bufferwsize, write_p);
 					if (retval != ERROR_OK)
@@ -1764,7 +1750,6 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 					count -= buffersize;
 				}
 				else
-#endif
 				{
 					for (i = 0; i < bank->bus_width; i++)
 						current_word[i] = 0;
@@ -2327,7 +2312,10 @@ int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		return ERROR_OK;
 	}
 
+	if (cfi_info->not_cfi == 0)
 	printed = snprintf(buf, buf_size, "\ncfi information:\n");
+	else
+		printed = snprintf(buf, buf_size, "\nnon-cfi flash:\n");
 	buf += printed;
 	buf_size -= printed;
 
@@ -2336,30 +2324,40 @@ int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
+	if (cfi_info->not_cfi == 0)
+	{
 	printed = snprintf(buf, buf_size, "qry: '%c%c%c', pri_id: 0x%4.4x, pri_addr: 0x%4.4x, alt_id: 0x%4.4x, alt_addr: 0x%4.4x\n", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2], cfi_info->pri_id, cfi_info->pri_addr, cfi_info->alt_id, cfi_info->alt_addr);
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "Vcc min: %1.1x.%1.1x, Vcc max: %1.1x.%1.1x, Vpp min: %1.1x.%1.1x, Vpp max: %1.1x.%1.1x\n", (cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
+		printed = snprintf(buf, buf_size, "Vcc min: %1.1x.%1.1x, Vcc max: %1.1x.%1.1x, Vpp min: %1.1x.%1.1x, Vpp max: %1.1x.%1.1x\n",
+		                   (cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
 	(cfi_info->vcc_max & 0xf0) >> 4, cfi_info->vcc_max & 0x0f,
 	(cfi_info->vpp_min & 0xf0) >> 4, cfi_info->vpp_min & 0x0f,
 	(cfi_info->vpp_max & 0xf0) >> 4, cfi_info->vpp_max & 0x0f);
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "typ. word write timeout: %u, typ. buf write timeout: %u, typ. block erase timeout: %u, typ. chip erase timeout: %u\n", 1 << cfi_info->word_write_timeout_typ, 1 << cfi_info->buf_write_timeout_typ,
-		  1 << cfi_info->block_erase_timeout_typ, 1 << cfi_info->chip_erase_timeout_typ);
+		printed = snprintf(buf, buf_size, "typ. word write timeout: %u, typ. buf write timeout: %u, typ. block erase timeout: %u, typ. chip erase timeout: %u\n",
+		                   1 << cfi_info->word_write_timeout_typ,
+		                   1 << cfi_info->buf_write_timeout_typ,
+		                   1 << cfi_info->block_erase_timeout_typ,
+		                   1 << cfi_info->chip_erase_timeout_typ);
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "max. word write timeout: %u, max. buf write timeout: %u, max. block erase timeout: %u, max. chip erase timeout: %u\n", (1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
+		printed = snprintf(buf, buf_size, "max. word write timeout: %u, max. buf write timeout: %u, max. block erase timeout: %u, max. chip erase timeout: %u\n",
+		                   (1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
 		  (1 << cfi_info->buf_write_timeout_max) * (1 << cfi_info->buf_write_timeout_typ),
 		  (1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
 		  (1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "size: 0x%x, interface desc: %i, max buffer write size: %x\n", 1 << cfi_info->dev_size, cfi_info->interface_desc, cfi_info->max_buf_write_size);
+		printed = snprintf(buf, buf_size, "size: 0x%x, interface desc: %i, max buffer write size: %x\n",
+		                   1 << cfi_info->dev_size,
+		                   cfi_info->interface_desc,
+		                   cfi_info->max_buf_write_size);
 	buf += printed;
 	buf_size -= printed;
 
@@ -2375,6 +2373,7 @@ int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		default:
 			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 			break;
+	}
 	}
 
 	return ERROR_OK;
