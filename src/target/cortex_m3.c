@@ -188,13 +188,13 @@ int cortex_m3_endreset_event(target_t *target)
 	target_write_u32(target, FP_CTRL, 3);
 
 	/* Restore FPB registers */
-	for ( i = 0; i < cortex_m3->fp_num_code + cortex_m3->fp_num_lit; i++)
+	for (i = 0; i < cortex_m3->fp_num_code + cortex_m3->fp_num_lit; i++)
 	{
 		target_write_u32(target, fp_list[i].fpcr_address, fp_list[i].fpcr_value);
 	}
 	
 	/* Restore DWT registers */
-	for ( i = 0; i < cortex_m3->dwt_num_comp; i++)
+	for (i = 0; i < cortex_m3->dwt_num_comp; i++)
 	{
 		target_write_u32(target, dwt_list[i].dwt_comparator_address, dwt_list[i].comp);
 		target_write_u32(target, dwt_list[i].dwt_comparator_address | 0x4, dwt_list[i].mask);
@@ -311,16 +311,16 @@ int cortex_m3_debug_entry(target_t *target)
 		return retval;
 
 	/* Examine target state and mode */
-	/* First load register acessible through core debug port*/	
+	/* First load register acessible through core debug port*/
 	for (i = 0; i < ARMV7M_PRIMASK; i++)
 	{
 		if (!armv7m->core_cache->reg_list[i].valid)
-			armv7m->read_core_reg(target, i);		
+			armv7m->read_core_reg(target, i);
 	}
 
 	xPSR = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32);
 	
-	/* For IT instructions xPSR must be reloaded on resume and clear on debug exec*/
+	/* For IT instructions xPSR must be reloaded on resume and clear on debug exec */
 	if (xPSR & 0xf00)
 	{
 		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = armv7m->core_cache->reg_list[ARMV7M_xPSR].valid;
@@ -342,7 +342,8 @@ int cortex_m3_debug_entry(target_t *target)
 		cortex_m3_examine_exception_reason(target);
 	}
 
-	DEBUG("entered debug state at PC 0x%x, target->state: %s ", *(u32*)(armv7m->core_cache->reg_list[15].value), target_state_strings[target->state]);
+	DEBUG("entered debug state in core mode: %s at PC 0x%x, target->state: %s", armv7m_mode_strings[armv7m->core_mode], \
+		*(u32*)(armv7m->core_cache->reg_list[15].value), target_state_strings[target->state]);
 
 	if (armv7m->post_debug_entry)
 		armv7m->post_debug_entry(target);
@@ -557,7 +558,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 		/* Check that we are using process_context, or change and print warning */
 		if (armv7m_get_context(target) != ARMV7M_PROCESS_CONTEXT)
 		{
-			WARNING("Incorrect context in resume");
+			DEBUG("Incorrect context in resume");
 			armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
 		}
 		
@@ -565,7 +566,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 		cortex_m3_enable_breakpoints(target);
 		cortex_m3_enable_watchpoints(target);
 
-		/* TODOLATER Interrupt handling/disable for debug execution, cache ... ... */ 
+		/* TODOLATER Interrupt handling/disable for debug execution, cache ... ... */
 	}
 	
 	dcb_dhcsr = DBGKEY | C_DEBUGEN;
@@ -574,7 +575,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 		/* Check that we are using debug_context, or change and print warning */
 		if (armv7m_get_context(target) != ARMV7M_DEBUG_CONTEXT)
 		{
-			WARNING("Incorrect context in debug_exec resume");
+			DEBUG("Incorrect context in debug_exec resume");
 			armv7m_use_context(target, ARMV7M_DEBUG_CONTEXT);
 		}
 		/* Disable interrupts */
@@ -1450,7 +1451,6 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, in
 	armv7m->arch_info = cortex_m3;
 	armv7m->load_core_reg_u32 = cortex_m3_load_core_reg_u32;
 	armv7m->store_core_reg_u32 = cortex_m3_store_core_reg_u32;
-	/* armv7m->full_context = cortex_m3_full_context; */
 	
 	target_register_timer_callback(cortex_m3_handle_target_request, 1, 1, target);
 	

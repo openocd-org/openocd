@@ -169,7 +169,7 @@ int armv7m_use_context(target_t *target, enum armv7m_runcontext new_ctx)
 	} 
 	/* Mark registers in new context as dirty to force reload when run */
 	
-	for (i = 0; i < armv7m->core_cache->num_regs-1; i++) /* EXCLUDE CONTROL TODOLATER : CHECK THIS */
+	for (i = 0; i < armv7m->core_cache->num_regs; i++)
 	{
 		armv7m->core_cache->reg_list[i].dirty = 1;
 	}
@@ -203,11 +203,11 @@ int armv7m_restore_context(target_t *target)
 	return ERROR_OK;		
 }
 
-
 /* Core state functions */
-char enamebuf[32];
 char *armv7m_exception_string(int number)
 {
+	static char enamebuf[32];
+	
 	if ((number < 0) | (number > 511))
 		return "Invalid exception";
 	if (number < 16)
@@ -329,7 +329,6 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	{
 		if (i < ARMV7NUMCOREREGS)
 			(*reg_list)[i] = &armv7m->process_context->reg_list[i];
-			/* (*reg_list)[i] = &armv7m->core_cache->reg_list[i]; */
 		else
 			(*reg_list)[i] = &armv7m_gdb_dummy_fp_reg;
 	}
@@ -344,15 +343,9 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	armv7m_algorithm_t *armv7m_algorithm_info = arch_info;
-	enum armv7m_state core_state = armv7m->core_state;
-	enum armv7m_mode core_mode = armv7m->core_mode;
 	int retval = ERROR_OK;
 	u32 pc;
-	int exit_breakpoint_size = 0;
 	int i;
-		
-	armv7m->core_state = core_state;
-	armv7m->core_mode = core_mode;
 
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC)
 	{
@@ -397,8 +390,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	}
 	
 	/* ARMV7M always runs in Thumb state */
-	exit_breakpoint_size = 2;
-	if ((retval = breakpoint_add(target, exit_point, exit_breakpoint_size, BKPT_SOFT)) != ERROR_OK)
+	if ((retval = breakpoint_add(target, exit_point, 2, BKPT_SOFT)) != ERROR_OK)
 	{
 		ERROR("can't add breakpoint to finish algorithm execution");
 		return ERROR_TARGET_FAILURE;

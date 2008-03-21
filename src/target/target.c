@@ -1500,7 +1500,7 @@ int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	if (argc == 0)
 	{
 		target->type->poll(target);
-			target_arch_state(target);
+		target_arch_state(target);
 	}
 	else
 	{
