@@ -1616,7 +1616,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			return retval;
 		}
 
-		gdb_put_packet(connection, xml, strlen(xml) + 1);
+		gdb_put_packet(connection, xml, strlen(xml));
 
 		free(xml);
 		return ERROR_OK;

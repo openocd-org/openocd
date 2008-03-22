@@ -85,6 +85,13 @@ reg_t armv7m_gdb_dummy_fp_reg =
 	"GDB dummy floating-point register", armv7m_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
 };
 
+u8 armv7m_gdb_dummy_fps_value[] = {0, 0, 0, 0};
+
+reg_t armv7m_gdb_dummy_fps_reg =
+{
+	"GDB dummy floating-point status register", armv7m_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
+};
+
 armv7m_core_reg_t armv7m_core_reg_list_arch_info[] = 
 {
 	/*  CORE_GP are accesible using the core debug registers */
@@ -324,15 +331,20 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	*reg_list_size = 26;
 	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
 	
-	/* TODOLATER correct list of registers, names ? */
-	for (i = 0; i < *reg_list_size; i++)
+	for (i = 0; i < 16; i++)
 	{
-		if (i < ARMV7NUMCOREREGS)
-			(*reg_list)[i] = &armv7m->process_context->reg_list[i];
-		else
-			(*reg_list)[i] = &armv7m_gdb_dummy_fp_reg;
+		(*reg_list)[i] = &armv7m->process_context->reg_list[i];
 	}
-	/* ARMV7M is always in thumb mode, try to make GDB understand this if it does not support this arch */
+	
+	for (i = 16; i < 24; i++)
+	{
+		(*reg_list)[i] = &armv7m_gdb_dummy_fp_reg;
+	}
+	
+	(*reg_list)[24] = &armv7m_gdb_dummy_fps_reg;
+	
+	/* ARMV7M is always in thumb mode, try to make GDB understand this
+	 * if it does not support this arch */
 	armv7m->process_context->reg_list[15].value[0] |= 1;	
 	(*reg_list)[25] = &armv7m->process_context->reg_list[ARMV7M_xPSR];	
 	return ERROR_OK;
