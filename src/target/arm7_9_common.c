@@ -750,7 +750,6 @@ int arm7_9_assert_reset(target_t *target)
 		{
 			if (retval == ERROR_JTAG_RESET_CANT_SRST)
 			{
-				WARNING("can't assert srst");
 				return retval;
 			}
 			else
@@ -779,7 +778,6 @@ int arm7_9_assert_reset(target_t *target)
 			
 			if (retval == ERROR_JTAG_RESET_CANT_SRST)
 			{
-				WARNING("can't assert srst");
 				return retval;
 			}
 			else if (retval != ERROR_OK)

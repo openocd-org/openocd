@@ -899,7 +899,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
 	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (req_trst == 0))
 	{
-		ERROR("requested reset would assert trst");
+		WARNING("requested reset would assert trst");
 		return ERROR_JTAG_RESET_WOULD_ASSERT_TRST;
 	}
 		
@@ -912,7 +912,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 	
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
 	{
-		ERROR("requested nSRST assertion, but the current configuration doesn't support this");
+		WARNING("requested nSRST assertion, but the current configuration doesn't support this");
 		return ERROR_JTAG_RESET_CANT_SRST;
 	}
 	

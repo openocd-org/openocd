@@ -731,7 +731,6 @@ int cortex_m3_assert_reset(target_t *target)
 		{
 			if (retval == ERROR_JTAG_RESET_CANT_SRST)
 			{
-				WARNING("can't assert srst");
 				return retval;
 			}
 			else
@@ -745,7 +744,6 @@ int cortex_m3_assert_reset(target_t *target)
 		{
 			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
 			{
-				WARNING("srst resets test logic, too");
 				retval = jtag_add_reset(1, 1);
 			}
 		}
@@ -756,13 +754,11 @@ int cortex_m3_assert_reset(target_t *target)
 		{
 			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
 			{
-				WARNING("srst resets test logic, too");
 				retval = jtag_add_reset(1, 1);
 			}
 			
 			if (retval == ERROR_JTAG_RESET_CANT_SRST)
 			{
-				WARNING("can't assert srsrt");
 				return retval;
 			}
 			else if (retval != ERROR_OK)
@@ -1136,16 +1132,16 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 			ERROR("JTAG failure %i",retval);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		/* DEBUG("load from core reg %i  value 0x%x",num,*value); */
+		DEBUG("load from core reg %i  value 0x%x",num,*value);
 	}
 	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
 	{
 		/* read other registers */
-		/* cortex_m3_MRS(struct target_s *target, int num, u32* value) */
 		u32 savedram;
 		u32 SYSm;
 		u32 instr;
 		SYSm = num & 0x1F;
+		
 		ahbap_read_system_u32(swjdp, 0x20000000, &savedram);
 		instr = ARMV7M_T_MRS(0, SYSm);
 		ahbap_write_system_u32(swjdp, 0x20000000, ARMV7M_T_MRS(0, SYSm));
@@ -1158,7 +1154,10 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 		swjdp_transaction_endcheck(swjdp);
 		DEBUG("load from special reg %i value 0x%x", SYSm, *value);
 	}
-	else return ERROR_INVALID_ARGUMENTS;
+	else
+	{
+		return ERROR_INVALID_ARGUMENTS;
+	}
 	
 	return ERROR_OK;
 }
@@ -1190,6 +1189,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 		u32 SYSm;
 		u32 instr;
 		SYSm = num & 0x1F;
+		
 		ahbap_read_system_u32(swjdp, 0x20000000, &savedram);
 		instr = ARMV7M_T_MSR(SYSm, 0);
 		ahbap_write_system_u32(swjdp, 0x20000000, ARMV7M_T_MSR(SYSm, 0));
@@ -1203,7 +1203,10 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 		swjdp_transaction_endcheck(swjdp);
 		DEBUG("write special reg %i value 0x%x ", SYSm, value);
 	}
-	else return ERROR_INVALID_ARGUMENTS;
+	else
+	{
+		return ERROR_INVALID_ARGUMENTS;
+	}
 	
 	return ERROR_OK;	
 }
