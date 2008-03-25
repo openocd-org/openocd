@@ -49,19 +49,19 @@ u32 armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu
 		4, 1, (u8*)&first_lvl_descriptor);
 	first_lvl_descriptor = target_buffer_get_u32(target, (u8*)&first_lvl_descriptor);
 
-	DEBUG("1st lvl desc: %8.8x", first_lvl_descriptor);
+	LOG_DEBUG("1st lvl desc: %8.8x", first_lvl_descriptor);
 
 	if ((first_lvl_descriptor & 0x3) == 0)
 	{
 		*type = -1;
-		ERROR("Address translation failure");
+		LOG_ERROR("Address translation failure");
 		return ERROR_TARGET_TRANSLATION_FAULT;
 	}
 
 	if (!armv4_5_mmu->has_tiny_pages && ((first_lvl_descriptor & 0x3) == 3))
 	{
 		*type = -1;
-		ERROR("Address translation failure");
+		LOG_ERROR("Address translation failure");
 		return ERROR_TARGET_TRANSLATION_FAULT;
 	}
 
@@ -94,12 +94,12 @@ u32 armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu
 	
 	second_lvl_descriptor = target_buffer_get_u32(target, (u8*)&second_lvl_descriptor);
 	
-	DEBUG("2nd lvl desc: %8.8x", second_lvl_descriptor);
+	LOG_DEBUG("2nd lvl desc: %8.8x", second_lvl_descriptor);
 
 	if ((second_lvl_descriptor & 0x3) == 0)
 	{
 		*type = -1;
-		ERROR("Address translation failure");
+		LOG_ERROR("Address translation failure");
 		return ERROR_TARGET_TRANSLATION_FAULT;
 	}
 
@@ -132,7 +132,7 @@ u32 armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu
 
 	/* should not happen */
 	*type = -1;
-	ERROR("Address translation failure");
+	LOG_ERROR("Address translation failure");
 	return ERROR_TARGET_TRANSLATION_FAULT;
 }
 

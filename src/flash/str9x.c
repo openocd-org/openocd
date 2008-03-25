@@ -115,7 +115,7 @@ int str9x_build_block_list(struct flash_bank_s *bank)
 			bank1start = bank->base;
 			break;
 		default:
-			ERROR("BUG: unknown bank->size encountered");
+			LOG_ERROR("BUG: unknown bank->size encountered");
 			exit(-1);
 	}
 		
@@ -156,7 +156,7 @@ int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	
 	if (argc < 6)
 	{
-		WARNING("incomplete flash_bank str9x configuration");
+		LOG_WARNING("incomplete flash_bank str9x configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
@@ -279,7 +279,7 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 		
 		if( status & 0x22 )
 		{
-			ERROR("error erasing flash bank, status: 0x%x", status);
+			LOG_ERROR("error erasing flash bank, status: 0x%x", status);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -360,7 +360,7 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 	/* flash write code */
 	if (target_alloc_working_area(target, 4 * 19, &str9x_info->write_algorithm) != ERROR_OK)
 	{
-		WARNING("no working area available, can't do block memory writes");
+		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 		
@@ -376,7 +376,7 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 			if (str9x_info->write_algorithm)
 				target_free_working_area(target, str9x_info->write_algorithm);
 			
-			WARNING("no large enough working area available, can't do block memory writes");
+			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	}
@@ -404,7 +404,7 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 		{
 			target_free_working_area(target, source);
 			target_free_working_area(target, str9x_info->write_algorithm);
-			ERROR("error executing str9x flash write algorithm");
+			LOG_ERROR("error executing str9x flash write algorithm");
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	
@@ -449,7 +449,7 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 	if (offset & 0x1)
 	{
-		WARNING("offset 0x%x breaks required 2-byte alignment", offset);
+		LOG_WARNING("offset 0x%x breaks required 2-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
@@ -482,11 +482,11 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			{
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */ 
-				WARNING("couldn't use block writes, falling back to single memory accesses");
+				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
-				ERROR("flash writing failed with error code: 0x%x", retval);
+				LOG_ERROR("flash writing failed with error code: 0x%x", retval);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 		}

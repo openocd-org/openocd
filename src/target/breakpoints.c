@@ -70,27 +70,27 @@ int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_ty
 		switch (retval)
 		{
 			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				INFO("can't add %s breakpoint, resource not available", breakpoint_type_strings[(*breakpoint_p)->type]);
+				LOG_INFO("can't add %s breakpoint, resource not available", breakpoint_type_strings[(*breakpoint_p)->type]);
 				free((*breakpoint_p)->orig_instr);
 				free(*breakpoint_p);
 				*breakpoint_p = NULL;
 				return retval;
 				break;
 			case ERROR_TARGET_NOT_HALTED:
-				INFO("can't add breakpoint while target is running");
+				LOG_INFO("can't add breakpoint while target is running");
 				free((*breakpoint_p)->orig_instr);
 				free(*breakpoint_p);
 				*breakpoint_p = NULL;
 				return retval;
 				break;
 			default:
-				ERROR("unknown error");
+				LOG_ERROR("unknown error");
 				exit(-1);
 				break;
 		}
 	}
 	
-	DEBUG("added %s breakpoint at 0x%8.8x of length 0x%8.8x", 
+	LOG_DEBUG("added %s breakpoint at 0x%8.8x of length 0x%8.8x", 
 		breakpoint_type_strings[(*breakpoint_p)->type],
 		(*breakpoint_p)->address, (*breakpoint_p)->length);
 	
@@ -118,11 +118,11 @@ int breakpoint_remove(target_t *target, u32 address)
 			switch (retval)
 			{
 				case ERROR_TARGET_NOT_HALTED:
-					INFO("can't remove breakpoint while target is running");
+					LOG_INFO("can't remove breakpoint while target is running");
 					return retval;
 					break;
 				default:
-					ERROR("unknown error");
+					LOG_ERROR("unknown error");
 					exit(-1);
 					break;
 			}
@@ -133,7 +133,7 @@ int breakpoint_remove(target_t *target, u32 address)
 	}
 	else
 	{
-		ERROR("no breakpoint at address 0x%8.8x found", address);
+		LOG_ERROR("no breakpoint at address 0x%8.8x found", address);
 	}
 	
 	return ERROR_OK;
@@ -181,25 +181,25 @@ int watchpoint_add(target_t *target, u32 address, u32 length, enum watchpoint_rw
 		switch (retval)
 		{
 			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				INFO("can't add %s watchpoint, resource not available", watchpoint_rw_strings[(*watchpoint_p)->rw]);
+				LOG_INFO("can't add %s watchpoint, resource not available", watchpoint_rw_strings[(*watchpoint_p)->rw]);
 				free (*watchpoint_p);
 				*watchpoint_p = NULL;
 				return retval;
 				break;
 			case ERROR_TARGET_NOT_HALTED:
-				INFO("can't add watchpoint while target is running");
+				LOG_INFO("can't add watchpoint while target is running");
 				free (*watchpoint_p);
 				*watchpoint_p = NULL;
 				return retval;
 				break;
 			default:
-				ERROR("unknown error");
+				LOG_ERROR("unknown error");
 				exit(-1);
 				break;
 		}
 	}
 	
-	DEBUG("added %s watchpoint at 0x%8.8x of length 0x%8.8x",
+	LOG_DEBUG("added %s watchpoint at 0x%8.8x of length 0x%8.8x",
 		watchpoint_rw_strings[(*watchpoint_p)->rw],
 		(*watchpoint_p)->address, (*watchpoint_p)->length);
 	
@@ -227,11 +227,11 @@ int watchpoint_remove(target_t *target, u32 address)
 			switch (retval)
 			{
 				case ERROR_TARGET_NOT_HALTED:
-					INFO("can't remove watchpoint while target is running");
+					LOG_INFO("can't remove watchpoint while target is running");
 					return retval;
 					break;
 				default:
-					ERROR("unknown error");
+					LOG_ERROR("unknown error");
 					exit(-1);
 					break;
 			}
@@ -241,7 +241,7 @@ int watchpoint_remove(target_t *target, u32 address)
 	}
 	else
 	{
-		ERROR("no watchpoint at address 0x%8.8x found", address);
+		LOG_ERROR("no watchpoint at address 0x%8.8x found", address);
 	}
 	
 	return ERROR_OK;

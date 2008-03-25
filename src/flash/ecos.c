@@ -147,14 +147,14 @@ int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, c
 	
 	if (argc < 7)
 	{
-		WARNING("incomplete flash_bank ecosflash configuration");
+		LOG_WARNING("incomplete flash_bank ecosflash configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
 	info = malloc(sizeof(ecosflash_flash_bank_t));
 	if(info == NULL)
 	{
-		ERROR("no memory for flash bank info");
+		LOG_ERROR("no memory for flash bank info");
 		exit(-1);
 	}
 	bank->driver_priv = info;
@@ -180,7 +180,7 @@ int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, c
 	info->target = get_target_by_num(strtoul(args[5], NULL, 0));
 	if (info->target == NULL)
 	{
-		ERROR("no target '%i' configured", (int)strtoul(args[5], NULL, 0));
+		LOG_ERROR("no target '%i' configured", (int)strtoul(args[5], NULL, 0));
 		exit(-1);
 	}
 	return ERROR_OK;
@@ -212,14 +212,14 @@ int loadDriver(ecosflash_flash_bank_t *info)
 		int retval;
 		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
 		{
-			ERROR("image_read_section failed with error code: %i", retval);
+			LOG_ERROR("image_read_section failed with error code: %i", retval);
 			free(buffer);
 			image_close(&image);
 			return ERROR_FLASH_BANK_INVALID;
 		}
 		target_write_buffer(target, image.sections[i].base_address, buf_cnt, buffer);
 		image_size += buf_cnt;
-		DEBUG("%u byte written at address 0x%8.8x", buf_cnt, image.sections[i].base_address);
+		LOG_DEBUG("%u byte written at address 0x%8.8x", buf_cnt, image.sections[i].base_address);
 		
 		free(buffer);
 	}
@@ -266,7 +266,7 @@ int runCode(ecosflash_flash_bank_t *info,
 			codeStop, timeout, 
 			&armv4_5_info)) != ERROR_OK)
 	{
-		ERROR("error executing eCos flash algorithm");
+		LOG_ERROR("error executing eCos flash algorithm");
 		return retval;
 	}
 	
@@ -303,7 +303,7 @@ int eCosBoard_erase(ecosflash_flash_bank_t *info, u32 address, u32 len)
 	
 	if (flashErr != 0x0)
 	{
-		ERROR("Flash erase failed with %d (%s)\n", flashErr, flash_errmsg(flashErr));
+		LOG_ERROR("Flash erase failed with %d (%s)\n", flashErr, flash_errmsg(flashErr));
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -362,7 +362,7 @@ int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, u32 address, u32 l
 
 		if (flashErr != 0x0)
 		{
-			ERROR("Flash prog failed with %d (%s)\n", flashErr, flash_errmsg(flashErr));
+			LOG_ERROR("Flash prog failed with %d (%s)\n", flashErr, flash_errmsg(flashErr));
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
     }

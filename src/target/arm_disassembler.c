@@ -57,7 +57,7 @@ int evaluate_pld(u32 opcode, u32 address, arm_instruction_t *instruction)
 		return ERROR_OK;
 	}
 	
-	ERROR("should never reach this point");
+	LOG_ERROR("should never reach this point");
 	return -1;
 }
 
@@ -1317,7 +1317,7 @@ int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
 			return evaluate_cdp_mcr_mrc(opcode, address, instruction);
 	}
 	
-	ERROR("should never reach this point");
+	LOG_ERROR("should never reach this point");
 	return -1;
 }
 
@@ -2076,7 +2076,7 @@ int thumb_evaluate_opcode(u16 opcode, u32 address, arm_instruction_t *instructio
 		}
 	}
 
-	ERROR("should never reach this point (opcode=%04x)",opcode);
+	LOG_ERROR("should never reach this point (opcode=%04x)",opcode);
 	return -1;
 }
 
@@ -2110,7 +2110,7 @@ int arm_access_size(arm_instruction_t *instruction)
 	}
 	else
 	{
-		ERROR("BUG: instruction type %i isn't a load/store instruction", instruction->type);
+		LOG_ERROR("BUG: instruction type %i isn't a load/store instruction", instruction->type);
 		return 0;
 	}
 }

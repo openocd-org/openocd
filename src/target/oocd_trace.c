@@ -54,7 +54,7 @@ int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
 		bytes_to_read -= bytes_read;
 	}
 
-	DEBUG("reg #%i: 0x%8.8x\n", reg, *value);
+	LOG_DEBUG("reg #%i: 0x%8.8x\n", reg, *value);
 	
 	return ERROR_OK;
 }
@@ -71,7 +71,7 @@ int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
     data[4] = (value & 0xff000000) >> 24;
 
     bytes_written = write(oocd_trace->tty_fd, data, 5);
-    DEBUG("reg #%i: 0x%8.8x\n", reg, value);
+    LOG_DEBUG("reg #%i: 0x%8.8x\n", reg, value);
 
     return ERROR_OK;
 }
@@ -93,7 +93,7 @@ int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 address, u32 
 		if ((bytes_read = read(oocd_trace->tty_fd,
 				((u8*)data) + (size * 16) - bytes_to_read, bytes_to_read)) < 0)
 		{
-			DEBUG("read() returned %i (%s)", bytes_read, strerror(errno));
+			LOG_DEBUG("read() returned %i (%s)", bytes_read, strerror(errno));
 		}
 		else
 			bytes_to_read -= bytes_read;
@@ -112,7 +112,7 @@ int oocd_trace_init(etm_context_t *etm_ctx)
 
 	if(oocd_trace->tty_fd < 0)
 	{
-		ERROR("can't open tty");
+		LOG_ERROR("can't open tty");
 		return ERROR_ETM_CAPTURE_INIT_FAILED;
 	}
 
@@ -143,7 +143,7 @@ int oocd_trace_init(etm_context_t *etm_ctx)
 	 * read up any leftover characters to ensure communication is in sync */
 	while ((bytes_read = read(oocd_trace->tty_fd, trash, sizeof(trash))) > 0)
 	{
-	    DEBUG("%i bytes read\n", bytes_read);
+	    LOG_DEBUG("%i bytes read\n", bytes_read);
 	};
 	
 	return ERROR_OK;
@@ -248,7 +248,7 @@ int oocd_trace_start_capture(etm_context_t *etm_ctx)
 	if (((etm_ctx->portmode & ETM_PORT_MODE_MASK) != ETM_PORT_NORMAL)
 		|| ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) != ETM_PORT_4BIT))
 	{
-		DEBUG("OpenOCD+trace only supports normal 4-bit ETM mode");
+		LOG_DEBUG("OpenOCD+trace only supports normal 4-bit ETM mode");
 		return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 	}
 	
@@ -303,7 +303,7 @@ int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, char *cm
 	
 	if (argc != 2)
 	{
-		ERROR("incomplete 'oocd_trace config <target> <tty>' command");
+		LOG_ERROR("incomplete 'oocd_trace config <target> <tty>' command");
 		exit(-1);
 	}
 	
@@ -327,7 +327,7 @@ int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, char *cm
 	}
 	else
 	{
-		ERROR("target has no ETM defined, OpenOCD+trace left unconfigured");
+		LOG_ERROR("target has no ETM defined, OpenOCD+trace left unconfigured");
 	}
 
 	return ERROR_OK;
@@ -409,7 +409,7 @@ int handle_oocd_trace_resync_command(struct command_context_s *cmd_ctx, char *cm
 	bytes_written = write(oocd_trace->tty_fd, cmd_array, 1);
 	
 	command_print(cmd_ctx, "requesting traceclock resync");
-	DEBUG("resyncing traceclk pll");
+	LOG_DEBUG("resyncing traceclk pll");
 
 	return ERROR_OK;
 }

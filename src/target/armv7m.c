@@ -143,7 +143,7 @@ enum armv7m_runcontext armv7m_get_context(target_t *target)
 	if (armv7m->debug_context == armv7m->core_cache)
 		return ARMV7M_DEBUG_CONTEXT;
 	
-	ERROR("Invalid runcontext");
+	LOG_ERROR("Invalid runcontext");
 	exit(-1);
 }
 
@@ -155,7 +155,7 @@ int armv7m_use_context(target_t *target, enum armv7m_runcontext new_ctx)
 	
 	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET))
 	{
-		WARNING("target not halted, switch context ");
+		LOG_WARNING("target not halted, switch context ");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -171,7 +171,7 @@ int armv7m_use_context(target_t *target, enum armv7m_runcontext new_ctx)
 			 armv7m->core_cache = armv7m->debug_context;
 			 break;
 		default:
-			ERROR("Invalid runcontext");
+			LOG_ERROR("Invalid runcontext");
 			exit(-1);		
 	} 
 	/* Mark registers in new context as dirty to force reload when run */
@@ -191,7 +191,7 @@ int armv7m_restore_context(target_t *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 
-	DEBUG(" ");
+	LOG_DEBUG(" ");
 
 	if (armv7m->pre_restore_context)
 		armv7m->pre_restore_context(target);
@@ -296,11 +296,11 @@ int armv7m_write_core_reg(struct target_s *target, int num)
 	retval = armv7m->store_core_reg_u32(target, armv7m_core_reg->type, armv7m_core_reg->num, reg_value);
 	if (retval != ERROR_OK)
 	{
-		ERROR("JTAG failure");
+		LOG_ERROR("JTAG failure");
 		armv7m->core_cache->reg_list[num].dirty = armv7m->core_cache->reg_list[num].valid;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
-	DEBUG("write core reg %i value 0x%x", num , reg_value);
+	LOG_DEBUG("write core reg %i value 0x%x", num , reg_value);
 	armv7m->core_cache->reg_list[num].valid = 1;
 	armv7m->core_cache->reg_list[num].dirty = 0;
 	
@@ -361,13 +361,13 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC)
 	{
-		ERROR("current target isn't an ARMV7M target");
+		LOG_ERROR("current target isn't an ARMV7M target");
 		return ERROR_TARGET_INVALID;
 	}
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -387,13 +387,13 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		
 		if (!reg)
 		{
-			ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
 			exit(-1);
 		}
 		
 		if (reg->size != reg_params[i].size)
 		{
-			ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
 			exit(-1);
 		}
 		
@@ -404,7 +404,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	/* ARMV7M always runs in Thumb state */
 	if ((retval = breakpoint_add(target, exit_point, 2, BKPT_SOFT)) != ERROR_OK)
 	{
-		ERROR("can't add breakpoint to finish algorithm execution");
+		LOG_ERROR("can't add breakpoint to finish algorithm execution");
 		return ERROR_TARGET_FAILURE;
 	}
 	
@@ -419,7 +419,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		target->type->poll(target);
 		if ((timeout_ms -= 5) <= 0)
 		{
-			ERROR("timeout waiting for algorithm to complete, trying to halt target");
+			LOG_ERROR("timeout waiting for algorithm to complete, trying to halt target");
 			target->type->halt(target);
 			timeout_ms = 1000;
 			while (target->state != TARGET_HALTED)
@@ -428,12 +428,12 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 				target->type->poll(target);
 				if ((timeout_ms -= 10) <= 0)
 				{
-					ERROR("target didn't reenter debug state, exiting");
+					LOG_ERROR("target didn't reenter debug state, exiting");
 					exit(-1);
 				}
 			}
 			armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
-			DEBUG("failed algoritm halted at 0x%x ", pc); 
+			LOG_DEBUG("failed algoritm halted at 0x%x ", pc); 
 			retval = ERROR_TARGET_TIMEOUT;
 		}
 	}
@@ -456,13 +456,13 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		
 			if (!reg)
 			{
-				ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
 				exit(-1);
 			}
 			
 			if (reg->size != reg_params[i].size)
 			{
-				ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
 				exit(-1);
 			}
 			
@@ -478,7 +478,7 @@ int armv7m_arch_state(struct target_s *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	
-	USER("target halted in %s state due to %s, current mode: %s %s\nxPSR: 0x%8.8x pc: 0x%8.8x",
+	LOG_USER("target halted in %s state due to %s, current mode: %s %s\nxPSR: 0x%8.8x pc: 0x%8.8x",
 		 armv7m_state_strings[armv7m->core_state],
 		 target_debug_reason_strings[target->debug_reason],
 		 armv7m_mode_strings[armv7m->core_mode],
@@ -642,7 +642,7 @@ int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 	if ((retval = target->type->run_algorithm(target, 0, NULL, 2, reg_params,
 		crc_algorithm->address, crc_algorithm->address + (sizeof(cortex_m3_crc_code)-6), 20000, &armv7m_info)) != ERROR_OK)
 	{
-		ERROR("error executing cortex_m3 crc algorithm");
+		LOG_ERROR("error executing cortex_m3 crc algorithm");
 		destroy_reg_param(&reg_params[0]);
 		destroy_reg_param(&reg_params[1]);
 		target_free_working_area(target, crc_algorithm);

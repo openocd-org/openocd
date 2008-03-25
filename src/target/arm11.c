@@ -34,13 +34,13 @@
 
 
 #if 0
-#define FNC_INFO    DEBUG("-")
+#define FNC_INFO    LOG_DEBUG("-")
 #else
 #define FNC_INFO
 #endif
 
 #if 1
-#define FNC_INFO_NOTIMPLEMENTED    do { DEBUG("NOT IMPLEMENTED"); /*exit(-1);*/ } while (0)
+#define FNC_INFO_NOTIMPLEMENTED    do { LOG_DEBUG("NOT IMPLEMENTED"); /*exit(-1);*/ } while (0)
 #else
 #define FNC_INFO_NOTIMPLEMENTED
 #endif
@@ -324,7 +324,7 @@ void arm11_check_init(arm11_common_t * arm11, u32 * dscr)
 
     if (!(*dscr & ARM11_DSCR_MODE_SELECT))
     {
-	DEBUG("Bringing target into debug mode");
+	LOG_DEBUG("Bringing target into debug mode");
 
 	*dscr |= ARM11_DSCR_MODE_SELECT;		/* Halt debug-mode */
 	arm11_write_DSCR(arm11, *dscr);
@@ -428,7 +428,7 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 	        
 	u32 dscr = arm11_read_DSCR(arm11);
 
-	DEBUG("DRAIN, DSCR %08x", dscr);
+	LOG_DEBUG("DRAIN, DSCR %08x", dscr);
 
 	if (dscr & ARM11_DSCR_STICKY_IMPRECISE_DATA_ABORT)
 	{
@@ -436,7 +436,7 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 
 	    dscr = arm11_read_DSCR(arm11);
 
-	    DEBUG("DRAIN, DSCR %08x (DONE)", dscr);
+	    LOG_DEBUG("DRAIN, DSCR %08x (DONE)", dscr);
 
 	    break;
 	}
@@ -502,7 +502,7 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
     {
 	arm11->simulate_reset_on_next_halt = false;
 
-	DEBUG("Reset c1 Control Register");
+	LOG_DEBUG("Reset c1 Control Register");
 
 	/* Write 0 (reset value) to Control register 0 to disable MMU/Cache etc. */
 
@@ -524,18 +524,18 @@ void arm11_dump_reg_changes(arm11_common_t * arm11)
 	if (!arm11->reg_list[i].valid)
 	{
 	    if (arm11->reg_history[i].valid)
-		INFO("%8s INVALID    (%08x)", arm11_reg_defs[i].name, arm11->reg_history[i].value);
+		LOG_INFO("%8s INVALID    (%08x)", arm11_reg_defs[i].name, arm11->reg_history[i].value);
 	}
 	else
 	{
 	    if (arm11->reg_history[i].valid)
 	    {
 		if (arm11->reg_history[i].value != arm11->reg_values[i])
-		    INFO("%8s %08x (%08x)", arm11_reg_defs[i].name, arm11->reg_values[i], arm11->reg_history[i].value);
+		    LOG_INFO("%8s %08x (%08x)", arm11_reg_defs[i].name, arm11->reg_values[i], arm11->reg_history[i].value);
 	    }
 	    else
 	    {
-		INFO("%8s %08x (INVALID)", arm11_reg_defs[i].name, arm11->reg_values[i]);
+		LOG_INFO("%8s %08x (INVALID)", arm11_reg_defs[i].name, arm11->reg_values[i]);
 	    }
 	}
     }}
@@ -565,7 +565,7 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 	/* MRC p14,0,r?,c0,c5,0 */
 	arm11_run_instr_data_to_core1(arm11, 0xee100e15 | (i << 12), R(RX + i));
 
-//	DEBUG("RESTORE R" ZU " %08x", i, R(RX + i));
+//	LOG_DEBUG("RESTORE R" ZU " %08x", i, R(RX + i));
     }}
 
     arm11_run_instr_data_finish(arm11);
@@ -579,7 +579,7 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 
 	if (DSCR & (ARM11_DSCR_RDTR_FULL | ARM11_DSCR_WDTR_FULL))
 	{
-	    ERROR("wDTR/rDTR inconsistent (DSCR %08x)", DSCR);
+	    LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08x)", DSCR);
 	}
     }
 
@@ -667,7 +667,7 @@ int arm11_poll(struct target_s *target)
 
     u32	dscr = arm11_read_DSCR(arm11);
 
-    DEBUG("DSCR %08x", dscr);
+    LOG_DEBUG("DSCR %08x", dscr);
 
     arm11_check_init(arm11, &dscr);
 
@@ -677,7 +677,7 @@ int arm11_poll(struct target_s *target)
 	{
 	    enum target_state old_state = target->state;
 
-	    DEBUG("enter TARGET_HALTED");
+	    LOG_DEBUG("enter TARGET_HALTED");
 	    target->state		= TARGET_HALTED;
 	    target->debug_reason	= arm11_get_DSCR_debug_reason(dscr);
 	    arm11_on_enter_debug_state(arm11);
@@ -690,7 +690,7 @@ int arm11_poll(struct target_s *target)
     {
 	if (target->state != TARGET_RUNNING && target->state != TARGET_DEBUG_RUNNING)
 	{
-	    DEBUG("enter TARGET_RUNNING");
+	    LOG_DEBUG("enter TARGET_RUNNING");
 	    target->state		= TARGET_RUNNING;
 	    target->debug_reason	= DBG_REASON_NOTHALTED;
 	}
@@ -724,7 +724,7 @@ int arm11_halt(struct target_s *target)
 
     arm11_common_t * arm11 = target->arch_info;
 
-    DEBUG("target->state: %s", target_state_strings[target->state]);
+    LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 
     if (target->state == TARGET_UNKNOWN)
     {
@@ -733,7 +733,7 @@ int arm11_halt(struct target_s *target)
 
     if (target->state == TARGET_HALTED)
     {
-	WARNING("target was already halted");
+	LOG_WARNING("target was already halted");
 	return ERROR_OK;
     }
 
@@ -775,23 +775,23 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 {
     FNC_INFO;
 
-//    DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
+//    LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
 //	current, address, handle_breakpoints, debug_execution);
 
     arm11_common_t * arm11 = target->arch_info;
 
-    DEBUG("target->state: %s", target_state_strings[target->state]);
+    LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 
     if (target->state != TARGET_HALTED)
     {
-	WARNING("target was not halted");
+	LOG_WARNING("target was not halted");
 	return ERROR_TARGET_NOT_HALTED;
     }
 
     if (!current)
 	R(PC) = address;
 
-    INFO("RESUME PC %08x%s", R(PC), !current ? "!" : "");
+    LOG_INFO("RESUME PC %08x%s", R(PC), !current ? "!" : "");
 
     /* clear breakpoints/watchpoints and VCR*/
     arm11_sc7_clear_vbw(arm11);
@@ -807,7 +807,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 	{
 	    if (bp->address == R(PC))
 	    {
-		DEBUG("must step over %08x", bp->address);
+		LOG_DEBUG("must step over %08x", bp->address);
 		arm11_step(target, 1, 0, 0);
 		break;
 	    }
@@ -830,7 +830,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
     
 	    arm11_sc7_run(arm11, brp, asizeof(brp));
 
-	    DEBUG("Add BP " ZU " at %08x", brp_num, bp->address);
+	    LOG_DEBUG("Add BP " ZU " at %08x", brp_num, bp->address);
 
 	    brp_num++;
 	}
@@ -849,7 +849,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
     {
 	u32 dscr = arm11_read_DSCR(arm11);
 
-	DEBUG("DSCR %08x", dscr);
+	LOG_DEBUG("DSCR %08x", dscr);
 
 	if (dscr & ARM11_DSCR_CORE_RESTARTED)
 	    break;
@@ -875,11 +875,11 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 {
     FNC_INFO;
 
-    DEBUG("target->state: %s", target_state_strings[target->state]);
+    LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 
     if (target->state != TARGET_HALTED)
     {
-	WARNING("target was not halted");
+	LOG_WARNING("target was not halted");
 	return ERROR_TARGET_NOT_HALTED;
     }
 
@@ -888,7 +888,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
     if (!current)
 	R(PC) = address;
 
-    INFO("STEP PC %08x%s", R(PC), !current ? "!" : "");
+    LOG_INFO("STEP PC %08x%s", R(PC), !current ? "!" : "");
 
     /** \todo TODO: Thumb not supported here */
 
@@ -902,7 +902,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 	R(PC) += 4;
 	arm11->reg_list[ARM11_RC_PC].valid = 1;
 	arm11->reg_list[ARM11_RC_PC].dirty = 0;
-	INFO("Skipping BKPT");
+	LOG_INFO("Skipping BKPT");
     }
     /* skip over Wait for interrupt / Standby */
     /* mcr	15, 0, r?, cr7, cr0, {4} */
@@ -911,12 +911,12 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 	R(PC) += 4;
 	arm11->reg_list[ARM11_RC_PC].valid = 1;
 	arm11->reg_list[ARM11_RC_PC].dirty = 0;
-	INFO("Skipping WFI");
+	LOG_INFO("Skipping WFI");
     }
     /* ignore B to self */
     else if ((next_instruction & 0xFEFFFFFF) == 0xeafffffe)
     {
-	INFO("Not stepping jump to self");
+	LOG_INFO("Not stepping jump to self");
     }
     else
     {
@@ -956,7 +956,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 	{
 	    u32 dscr = arm11_read_DSCR(arm11);
 
-	    DEBUG("DSCR %08x", dscr);
+	    LOG_DEBUG("DSCR %08x", dscr);
 
 	    if ((dscr & (ARM11_DSCR_CORE_RESTARTED | ARM11_DSCR_CORE_HALTED)) ==
 		(ARM11_DSCR_CORE_RESTARTED | ARM11_DSCR_CORE_HALTED))
@@ -1003,7 +1003,7 @@ int arm11_deassert_reset(struct target_s *target)
     FNC_INFO;
 
 #if 0
-    DEBUG("target->state: %s", target_state_strings[target->state]);
+    LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 
     /* deassert reset lines */
     jtag_add_reset(0, 0);
@@ -1077,11 +1077,11 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 
     if (target->state != TARGET_HALTED)
     {
-	WARNING("target was not halted");
+	LOG_WARNING("target was not halted");
 	return ERROR_TARGET_NOT_HALTED;
     }
 
-    DEBUG("ADDR %08x  SIZE %08x  COUNT %08x", address, size, count);
+    LOG_DEBUG("ADDR %08x  SIZE %08x  COUNT %08x", address, size, count);
 
     arm11_common_t * arm11 = target->arch_info;
 
@@ -1152,11 +1152,11 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 
     if (target->state != TARGET_HALTED)
     {
-	WARNING("target was not halted");
+	LOG_WARNING("target was not halted");
 	return ERROR_TARGET_NOT_HALTED;
     }
 
-    DEBUG("ADDR %08x  SIZE %08x  COUNT %08x", address, size, count);
+    LOG_DEBUG("ADDR %08x  SIZE %08x  COUNT %08x", address, size, count);
 
     arm11_common_t * arm11 = target->arch_info;
 
@@ -1230,10 +1230,10 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 
 	if (address + size * count != r0)
 	{
-	    ERROR("Data transfer failed. (%d)", (r0 - address) - size * count);
+	    LOG_ERROR("Data transfer failed. (%d)", (r0 - address) - size * count);
 
 	    if (arm11_config_memwrite_burst)
-		ERROR("use 'arm11 memwrite burst disable' to disable fast burst mode");
+		LOG_ERROR("use 'arm11 memwrite burst disable' to disable fast burst mode");
 
 	    if (arm11_config_memwrite_error_fatal)
 		exit(-1);
@@ -1258,7 +1258,7 @@ int arm11_bulk_write_memory(struct target_s *target, u32 address, u32 count, u8 
 
     if (target->state != TARGET_HALTED)
     {
-	WARNING("target was not halted");
+	LOG_WARNING("target was not halted");
 	return ERROR_TARGET_NOT_HALTED;
     }
 
@@ -1286,20 +1286,20 @@ int arm11_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 #if 0
     if (breakpoint->type == BKPT_SOFT)
     {
-	INFO("sw breakpoint requested, but software breakpoints not enabled");
+	LOG_INFO("sw breakpoint requested, but software breakpoints not enabled");
 	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
     }
 #endif
 
     if (!arm11->free_brps)
     {
-	INFO("no breakpoint unit available for hardware breakpoint");
+	LOG_INFO("no breakpoint unit available for hardware breakpoint");
 	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
     }
 
     if (breakpoint->length != 4)
     {
-	INFO("only breakpoints of four bytes length supported");
+	LOG_INFO("only breakpoints of four bytes length supported");
 	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
     }
 
@@ -1348,7 +1348,7 @@ int arm11_target_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
     if (argc < 4)
     {
-	ERROR("'target arm11' 4th argument <jtag chain pos>");
+	LOG_ERROR("'target arm11' 4th argument <jtag chain pos>");
 	exit(-1);
     }
 
@@ -1368,7 +1368,7 @@ int arm11_target_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
     if (device->ir_length != 5)
     {
-	ERROR("'target arm11' expects 'jtag_device 5 0x01 0x1F 0x1E'");
+	LOG_ERROR("'target arm11' expects 'jtag_device 5 0x01 0x1F 0x1E'");
 	exit(-1);
     }
 
@@ -1411,12 +1411,12 @@ int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target
 
     switch (arm11->device_id & 0x0FFFF000)
     {
-    case 0x07B36000:	INFO("found ARM1136"); break;
-    case 0x07B56000:	INFO("found ARM1156"); break;
-    case 0x07B76000:	INFO("found ARM1176"); break;
+    case 0x07B36000:	LOG_INFO("found ARM1136"); break;
+    case 0x07B56000:	LOG_INFO("found ARM1156"); break;
+    case 0x07B76000:	LOG_INFO("found ARM1176"); break;
     default:
     {
-	ERROR("'target arm11' expects IDCODE 0x*7B*7****");
+	LOG_ERROR("'target arm11' expects IDCODE 0x*7B*7****");
 	exit(-1);
     }
     }
@@ -1426,7 +1426,7 @@ int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target
     if (arm11->debug_version != ARM11_DEBUG_V6 &&
 	arm11->debug_version != ARM11_DEBUG_V61)
     {
-	ERROR("Only ARMv6 v6 and v6.1 architectures supported.");
+	LOG_ERROR("Only ARMv6 v6 and v6.1 architectures supported.");
 	exit(-1);
     }
 
@@ -1438,7 +1438,7 @@ int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target
     arm11->free_brps = arm11->brp;
     arm11->free_wrps = arm11->wrp;
 
-    DEBUG("IDCODE %08x IMPLEMENTOR %02x DIDR %08x",
+    LOG_DEBUG("IDCODE %08x IMPLEMENTOR %02x DIDR %08x",
 	arm11->device_id,
 	arm11->implementor,
 	arm11->didr);
@@ -1472,7 +1472,7 @@ int arm11_get_reg(reg_t *reg)
 
     if (target->state != TARGET_HALTED)
     {
-	WARNING("target was not halted");
+	LOG_WARNING("target was not halted");
 	return ERROR_TARGET_NOT_HALTED;
     }
 
@@ -1535,7 +1535,7 @@ void arm11_build_reg_cache(target_t *target)
 	ARM11_REGCACHE_COUNT != asizeof(arm11_reg_defs) ||
 	ARM11_REGCACHE_COUNT != ARM11_RC_MAX)
     {
-	ERROR("arm11->reg_values inconsistent (%d " ZU " " ZU " %d)", ARM11_REGCACHE_COUNT, asizeof(arm11->reg_values), asizeof(arm11_reg_defs), ARM11_RC_MAX);
+	LOG_ERROR("arm11->reg_values inconsistent (%d " ZU " " ZU " %d)", ARM11_REGCACHE_COUNT, asizeof(arm11->reg_values), asizeof(arm11_reg_defs), ARM11_RC_MAX);
 	exit(-1);
     }
 
@@ -1566,7 +1566,7 @@ int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args,
 {
     if (argc == 0)
     {
-	INFO("%s is %s.", name, *var ? "enabled" : "disabled");
+	LOG_INFO("%s is %s.", name, *var ? "enabled" : "disabled");
 	return ERROR_OK;
     }
 
@@ -1592,7 +1592,7 @@ int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	break;
     }
 
-    INFO("%s %s.", *var ? "Enabled" : "Disabled", name);
+    LOG_INFO("%s %s.", *var ? "Enabled" : "Disabled", name);
 
     return ERROR_OK;
 }
@@ -1633,7 +1633,7 @@ int arm11_handle_vcr(struct command_context_s *cmd_ctx, char *cmd, char **args, 
 	return ERROR_COMMAND_SYNTAX_ERROR;
     }
 
-    INFO("VCR 0x%08X", arm11_vcr);
+    LOG_INFO("VCR 0x%08X", arm11_vcr);
     return ERROR_OK;
 }
 
@@ -1676,7 +1676,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 {
     if (argc != (read ? 6 : 7))
     {
-	ERROR("Invalid number of arguments. %s", read ? arm11_mrc_syntax : arm11_mcr_syntax);
+	LOG_ERROR("Invalid number of arguments. %s", read ? arm11_mrc_syntax : arm11_mcr_syntax);
 	return -1;
     }
 
@@ -1684,7 +1684,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
     if (!arm11)
     {
-	ERROR("Parameter 1 is not a the JTAG chain position of an ARM11 device. %s",
+	LOG_ERROR("Parameter 1 is not a the JTAG chain position of an ARM11 device. %s",
 		read ? arm11_mrc_syntax : arm11_mcr_syntax);
 
 	return -1;
@@ -1693,7 +1693,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
     if (arm11->target->state != TARGET_HALTED)
     {
-	WARNING("target was not halted");
+	LOG_WARNING("target was not halted");
 	return ERROR_TARGET_NOT_HALTED;
     }
 
@@ -1707,7 +1707,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 	if (values[i] > arm11_coproc_instruction_limits[i])
 	{
-	    ERROR("Parameter %d out of bounds (%d max). %s",
+	    LOG_ERROR("Parameter %d out of bounds (%d max). %s",
 		i + 2, arm11_coproc_instruction_limits[i],
 		read ? arm11_mrc_syntax : arm11_mcr_syntax);
 	    return -1;
@@ -1732,14 +1732,14 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	u32 result;	
 	arm11_run_instr_data_from_core_via_r0(arm11, instr, &result);
 
-	INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08x (%d)",
+	LOG_INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08x (%d)",
 	    values[0], values[1], values[2], values[3], values[4], result, result);
     }
     else
     {
 	arm11_run_instr_data_to_core_via_r0(arm11, instr, values[5]);
 
-	INFO("MRC p%d, %d, R0 (#0x%08x), c%d, c%d, %d",
+	LOG_INFO("MRC p%d, %d, R0 (#0x%08x), c%d, c%d, %d",
 	    values[0], values[1], 
 	    values[5],
 	    values[2], values[3], values[4]);

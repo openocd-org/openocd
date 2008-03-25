@@ -149,7 +149,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			arm7_9->has_single_step = 1;
 			break;
 		case 3:
-			ERROR("EmbeddedICE version 3 detected, EmbeddedICE handling might be broken"); 
+			LOG_ERROR("EmbeddedICE version 3 detected, EmbeddedICE handling might be broken"); 
 			reg_list[EICE_DBG_CTRL].size = 6;
 			reg_list[EICE_DBG_STAT].size = 5;
 			arm7_9->has_single_step = 1;
@@ -172,13 +172,13 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			arm7_9->has_monitor_mode = 1;
 			break;
 		case 7:
-			WARNING("EmbeddedICE version 7 detected, EmbeddedICE handling might be broken");
+			LOG_WARNING("EmbeddedICE version 7 detected, EmbeddedICE handling might be broken");
 			reg_list[EICE_DBG_CTRL].size = 6;
 			reg_list[EICE_DBG_STAT].size = 5;
 			arm7_9->has_monitor_mode = 1;
 			break;
 		default:
-			ERROR("unknown EmbeddedICE version (comms ctrl: 0x%8.8x)", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
+			LOG_ERROR("unknown EmbeddedICE version (comms ctrl: 0x%8.8x)", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
 	
 	/* explicitly disable monitor mode */
@@ -197,13 +197,13 @@ int embeddedice_get_reg(reg_t *reg)
 {
 	if (embeddedice_read_reg(reg) != ERROR_OK)
 	{
-		ERROR("BUG: error scheduling EmbeddedICE register read");
+		LOG_ERROR("BUG: error scheduling EmbeddedICE register read");
 		exit(-1);
 	}
 	
 	if (jtag_execute_queue() != ERROR_OK)
 	{
-		ERROR("register read failed");
+		LOG_ERROR("register read failed");
 	}
 	
 	return ERROR_OK;
@@ -346,7 +346,7 @@ int embeddedice_set_reg(reg_t *reg, u32 value)
 {
 	if (embeddedice_write_reg(reg, value) != ERROR_OK)
 	{
-		ERROR("BUG: error scheduling EmbeddedICE register write");
+		LOG_ERROR("BUG: error scheduling EmbeddedICE register write");
 		exit(-1);
 	}
 	
@@ -363,7 +363,7 @@ int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf)
 	
 	if (jtag_execute_queue() != ERROR_OK)
 	{
-		ERROR("register write failed");
+		LOG_ERROR("register write failed");
 		exit(-1);
 	}
 	return ERROR_OK;
@@ -373,7 +373,7 @@ int embeddedice_write_reg(reg_t *reg, u32 value)
 {
 	embeddedice_reg_t *ice_reg = reg->arch_info;
 
-	DEBUG("%i: 0x%8.8x", ice_reg->addr, value);
+	LOG_DEBUG("%i: 0x%8.8x", ice_reg->addr, value);
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);

@@ -35,7 +35,7 @@ int trace_point(target_t *target, int number)
 {
 	trace_t *trace = target->trace_info;
 
-	DEBUG("tracepoint: %i", number);
+	LOG_DEBUG("tracepoint: %i", number);
 	
 	if (number < trace->num_trace_points)
 		trace->trace_points[number].hit_counter++;

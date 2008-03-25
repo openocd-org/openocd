@@ -222,7 +222,7 @@ int at91rm9200_init(void)
 	if (at91rm9200_device == NULL || at91rm9200_device[0] == 0)
 	{
 		at91rm9200_device = "rea_ecr";
-		WARNING("No at91rm9200 device specified, using default 'rea_ecr'");
+		LOG_WARNING("No at91rm9200 device specified, using default 'rea_ecr'");
 	}
 
 	while (cur_device->name)
@@ -237,7 +237,7 @@ int at91rm9200_init(void)
 
 	if (!device)
 	{
-		ERROR("No matching device found for %s", at91rm9200_device);
+		LOG_ERROR("No matching device found for %s", at91rm9200_device);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 

@@ -61,7 +61,7 @@ static int count = 0;
  */
 static void log_puts(enum log_levels level, const char *file, int line, const char *function, const char *string)
 {
-	if (level == LOG_OUTPUT)
+	if (level == LOG_LVL_OUTPUT)
 	{
 		/* do not prepend any headers, just print out what we were given and return */
 		fputs(string, log_output);
@@ -75,7 +75,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 
 	if (strchr(string, '\n')!=NULL)
 	{
-		if (debug_level >= LOG_DEBUG)
+		if (debug_level >= LOG_LVL_DEBUG)
 		{
 			/* print with count and time information */
 			int t=(int)(timeval_ms()-start);
@@ -94,8 +94,8 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 
 	fflush(log_output);
 	
-	/* Never forward LOG_DEBUG, too verbose and they can be found in the log if need be */
-	if (level <= LOG_INFO)
+	/* Never forward LOG_LVL_DEBUG, too verbose and they can be found in the log if need be */
+	if (level <= LOG_LVL_INFO)
 	{
 		log_callback_t *cb, *next;
 		cb = log_callbacks;
@@ -205,7 +205,7 @@ int log_init(struct command_context_s *cmd_ctx)
 {
 	/* set defaults for daemon configuration, if not set by cmdline or cfgfile */
 	if (debug_level == -1)
-		debug_level = LOG_INFO;
+		debug_level = LOG_LVL_INFO;
 	
 	if (log_output == NULL)
 	{

@@ -93,7 +93,7 @@ static int flash_driver_write(struct flash_bank_s *bank, u8 *buffer, u32 offset,
 	retval=bank->driver->write(bank, buffer, offset, count);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("error writing to flash at address 0x%08x at offset 0x%8.8x (%d)", bank->base, offset, retval);
+		LOG_ERROR("error writing to flash at address 0x%08x at offset 0x%8.8x (%d)", bank->base, offset, retval);
 	}
 
 	return retval;
@@ -106,7 +106,7 @@ static int flash_driver_erase(struct flash_bank_s *bank, int first, int last)
 	retval=bank->driver->erase(bank, first, last);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("failed erasing sectors %d to %d (%d)", first, last, retval);
+		LOG_ERROR("failed erasing sectors %d to %d (%d)", first, last, retval);
 	}
 
 	return retval;
@@ -119,7 +119,7 @@ int flash_driver_protect(struct flash_bank_s *bank, int set, int first, int last
 	retval=bank->driver->protect(bank, set, first, last);
 	if (retval!=ERROR_OK)
 	{
-		ERROR("failed setting protection for areas %d to %d (%d)", first, last, retval);
+		LOG_ERROR("failed setting protection for areas %d to %d (%d)", first, last, retval);
 	}
 
 	return retval;
@@ -177,7 +177,7 @@ flash_bank_t *get_flash_bank_by_num_noprobe(int num)
 			return p;
 		}
 	}
-	ERROR("flash bank %d does not exist", num);
+	LOG_ERROR("flash bank %d does not exist", num);
 	return NULL;
 }
 
@@ -204,7 +204,7 @@ flash_bank_t *get_flash_bank_by_num(int num)
 
 	if (retval != ERROR_OK)
 	{
-		ERROR("auto_probe failed %d\n", retval);
+		LOG_ERROR("auto_probe failed %d\n", retval);
 		return NULL;
 	}
 	return p;
@@ -223,7 +223,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 	if ((target = get_target_by_num(strtoul(args[5], NULL, 0))) == NULL)
 	{
-		ERROR("target %lu not defined", strtoul(args[5], NULL, 0));
+		LOG_ERROR("target %lu not defined", strtoul(args[5], NULL, 0));
 		return ERROR_OK;
 	}
 
@@ -236,7 +236,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 			/* register flash specific commands */
 			if (flash_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
 			{
-				ERROR("couldn't register '%s' commands", args[0]);
+				LOG_ERROR("couldn't register '%s' commands", args[0]);
 				exit(-1);
 			}
 
@@ -254,7 +254,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 			if (flash_drivers[i]->flash_bank_command(cmd_ctx, cmd, args, argc, c) != ERROR_OK)
 			{
-				ERROR("'%s' driver rejected flash bank at 0x%8.8x", args[0], c->base);
+				LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8x", args[0], c->base);
 				free(c);
 				return ERROR_OK;
 			}
@@ -279,7 +279,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 	/* no matching flash driver found */
 	if (!found)
 	{
-		ERROR("flash driver '%s' not found", args[0]);
+		LOG_ERROR("flash driver '%s' not found", args[0]);
 		exit(-1);
 	}
 
@@ -356,7 +356,7 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 			retval = p->driver->info(p, buf, sizeof(buf));
 			command_print(cmd_ctx, "%s", buf);
 			if (retval != ERROR_OK)
-				ERROR("error retrieving flash info (%d)", retval);
+				LOG_ERROR("error retrieving flash info (%d)", retval);
 		}
 	}
 
@@ -598,7 +598,7 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (!target)
 	{
-		ERROR("no target selected");
+		LOG_ERROR("no target selected");
 		return ERROR_OK;
 	}
 
@@ -731,14 +731,14 @@ flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr)
 
 		if (retval != ERROR_OK)
 		{
-			ERROR("auto_probe failed %d\n", retval);
+			LOG_ERROR("auto_probe failed %d\n", retval);
 			return NULL;
 		}
 		/* check whether address belongs to this flash bank */
 		if ((addr >= c->base) && (addr < c->base + c->size) && target == c->target)
 			return c;
 	}
-	ERROR("No flash at address 0x%08x\n", addr);
+	LOG_ERROR("No flash at address 0x%08x\n", addr);
 	return NULL;
 }
 
@@ -823,7 +823,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 
 		if (image->sections[section].size ==  0)
 		{
-			WARNING("empty section %d", section);
+			LOG_WARNING("empty section %d", section);
 			section++;
 			section_offset = 0;
 			continue;
@@ -845,7 +845,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 		{
 			if (image->sections[section_last + 1].base_address < (run_address + run_size))
 			{
-				DEBUG("section %d out of order(very slightly surprising, but supported)", section_last + 1);
+				LOG_DEBUG("section %d out of order(very slightly surprising, but supported)", section_last + 1);
 				break;
 			}
 			if (image->sections[section_last + 1].base_address != (run_address + run_size))

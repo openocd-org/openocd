@@ -46,7 +46,7 @@ int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	if (!target)
 	{
-		ERROR("target number '%s' not defined", args[0]);
+		LOG_ERROR("target number '%s' not defined", args[0]);
 		exit(-1);
 	}
 	
@@ -62,7 +62,7 @@ int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd
 	}
 	else
 	{
-		ERROR("target has no ETM defined, ETM dummy left unconfigured");
+		LOG_ERROR("target has no ETM defined, ETM dummy left unconfigured");
 	}
 
 	return ERROR_OK;

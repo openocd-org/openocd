@@ -193,7 +193,7 @@ int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		
 	if (argc < 1)
 	{
-		WARNING("incomplete flash device nand configuration");
+		LOG_WARNING("incomplete flash device nand configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
@@ -206,7 +206,7 @@ int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			/* register flash specific commands */
 			if (nand_flash_controllers[i]->register_commands(cmd_ctx) != ERROR_OK)
 			{
-				ERROR("couldn't register '%s' commands", args[0]);
+				LOG_ERROR("couldn't register '%s' commands", args[0]);
 				exit(-1);
 			}
 	
@@ -224,7 +224,7 @@ int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 			if ((retval = nand_flash_controllers[i]->nand_device_command(cmd_ctx, cmd, args, argc, c)) != ERROR_OK)
 			{
-				ERROR("'%s' driver rejected nand flash", c->controller->name);
+				LOG_ERROR("'%s' driver rejected nand flash", c->controller->name);
 				free(c);
 				return ERROR_OK;
 			}
@@ -249,11 +249,11 @@ int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	/* no valid NAND controller was found (i.e. the configuration option,
 	 * didn't match one of the compiled-in controllers)
 	 */
-	ERROR("No valid NAND flash controller found (%s)", args[0]);
-	ERROR("compiled-in NAND flash controllers:");
+	LOG_ERROR("No valid NAND flash controller found (%s)", args[0]);
+	LOG_ERROR("compiled-in NAND flash controllers:");
 	for (i = 0; nand_flash_controllers[i]; i++)
 	{
-		ERROR("%i: %s", i, nand_flash_controllers[i]->name);
+		LOG_ERROR("%i: %s", i, nand_flash_controllers[i]->name);
 	}
 	
 	return ERROR_OK;
@@ -333,7 +333,7 @@ int nand_build_bbt(struct nand_device_s *device, int first, int last)
 			|| (((device->page_size == 512) && (oob[5] != 0xff)) ||
 				((device->page_size == 2048) && (oob[0] != 0xff))))
 		{
-			WARNING("invalid block: %i", i);
+			LOG_WARNING("invalid block: %i", i);
 			device->blocks[i].is_bad = 1;
 		}
 		else
@@ -395,13 +395,13 @@ int nand_probe(struct nand_device_s *device)
 		switch (retval)
 		{
 			case ERROR_NAND_OPERATION_FAILED:
-				DEBUG("controller initialization failed");
+				LOG_DEBUG("controller initialization failed");
 				return ERROR_NAND_OPERATION_FAILED;
 			case ERROR_NAND_OPERATION_NOT_SUPPORTED:
-				ERROR("BUG: controller reported that it doesn't support default parameters");
+				LOG_ERROR("BUG: controller reported that it doesn't support default parameters");
 				return ERROR_NAND_OPERATION_FAILED;
 			default:
-				ERROR("BUG: unknown controller initialization failure");
+				LOG_ERROR("BUG: unknown controller initialization failure");
 				return ERROR_NAND_OPERATION_FAILED;
 		}
 	}
@@ -452,12 +452,12 @@ int nand_probe(struct nand_device_s *device)
 	
 	if (!device->device)
 	{
-		ERROR("unknown NAND flash device found, manufacturer id: 0x%2.2x device id: 0x%2.2x",
+		LOG_ERROR("unknown NAND flash device found, manufacturer id: 0x%2.2x device id: 0x%2.2x",
 			manufacturer_id, device_id);
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
-	DEBUG("found %s (%s)", device->device->name, device->manufacturer->name);
+	LOG_DEBUG("found %s (%s)", device->device->name, device->manufacturer->name);
 	
 	/* initialize device parameters */
 	
@@ -499,7 +499,7 @@ int nand_probe(struct nand_device_s *device)
 	}
 	else if (device->device->page_size == 256)
 	{
-		ERROR("NAND flashes with 256 byte pagesize are not supported");
+		LOG_ERROR("NAND flashes with 256 byte pagesize are not supported");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	else
@@ -517,7 +517,7 @@ int nand_probe(struct nand_device_s *device)
 			device->address_cycles = 4;
 		else
 		{
-			ERROR("BUG: small page NAND device with more than 8 GiB encountered");
+			LOG_ERROR("BUG: small page NAND device with more than 8 GiB encountered");
 			device->address_cycles = 5;
 		}
 	}
@@ -530,7 +530,7 @@ int nand_probe(struct nand_device_s *device)
 			device->address_cycles = 5;
 		else
 		{
-			ERROR("BUG: small page NAND device with more than 32 GiB encountered");
+			LOG_ERROR("BUG: small page NAND device with more than 32 GiB encountered");
 			device->address_cycles = 6;
 		}
 	}
@@ -564,14 +564,14 @@ int nand_probe(struct nand_device_s *device)
 		switch (retval)
 		{
 			case ERROR_NAND_OPERATION_FAILED:
-				DEBUG("controller initialization failed");
+				LOG_DEBUG("controller initialization failed");
 				return ERROR_NAND_OPERATION_FAILED;
 			case ERROR_NAND_OPERATION_NOT_SUPPORTED:
-				ERROR("controller doesn't support requested parameters (buswidth: %i, address cycles: %i, page size: %i)",
+				LOG_ERROR("controller doesn't support requested parameters (buswidth: %i, address cycles: %i, page size: %i)",
 					device->bus_width, device->address_cycles, device->page_size);
 				return ERROR_NAND_OPERATION_FAILED;
 			default:
-				ERROR("BUG: unknown controller initialization failure");
+				LOG_ERROR("BUG: unknown controller initialization failure");
 				return ERROR_NAND_OPERATION_FAILED;
 		}
 	}
@@ -651,19 +651,19 @@ int nand_erase(struct nand_device_s *device, int first_block, int last_block)
 		
 		if (!device->controller->nand_ready(device, 1000))
 		{
-			ERROR("timeout waiting for NAND flash block erase to complete");
+			LOG_ERROR("timeout waiting for NAND flash block erase to complete");
 			return ERROR_NAND_OPERATION_TIMEOUT;
 		}
 		
 		if ((retval = nand_read_status(device, &status)) != ERROR_OK)
 		{
-			ERROR("couldn't read status");
+			LOG_ERROR("couldn't read status");
 			return ERROR_NAND_OPERATION_FAILED;
 		}
 		
 		if (status & 0x1)
 		{
-			ERROR("erase operation didn't pass, status: 0x%2.2x", status);
+			LOG_ERROR("erase operation didn't pass, status: 0x%2.2x", status);
 			return ERROR_NAND_OPERATION_FAILED;
 		}
 	}
@@ -680,7 +680,7 @@ int nand_read_plain(struct nand_device_s *device, u32 address, u8 *data, u32 dat
 		
 	if (address % device->page_size)
 	{
-		ERROR("reads need to be page aligned");
+		LOG_ERROR("reads need to be page aligned");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
@@ -717,7 +717,7 @@ int nand_write_plain(struct nand_device_s *device, u32 address, u8 *data, u32 da
 		
 	if (address % device->page_size)
 	{
-		ERROR("writes need to be page aligned");
+		LOG_ERROR("writes need to be page aligned");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
@@ -976,13 +976,13 @@ int nand_write_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 da
 	
 	if ((retval = nand_read_status(device, &status)) != ERROR_OK)
 	{
-		ERROR("couldn't read status");
+		LOG_ERROR("couldn't read status");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 		
 	if (status & NAND_STATUS_FAIL)
 	{
-		ERROR("write operation didn't pass, status: 0x%2.2x", status);
+		LOG_ERROR("write operation didn't pass, status: 0x%2.2x", status);
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	

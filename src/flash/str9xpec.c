@@ -129,7 +129,7 @@ int str9xpec_set_instr(int chain_pos, u32 new_instr, enum tap_state end_state)
 	
 	if (device == NULL)
 	{
-		DEBUG("Invalid Target");
+		LOG_DEBUG("Invalid Target");
 		return ERROR_TARGET_INVALID;
 	}
 		
@@ -177,10 +177,10 @@ u8 str9xpec_isc_status(int chain_pos)
 	jtag_add_dr_scan(1, &field, TAP_RTI);
 	jtag_execute_queue();
 	
-	DEBUG("status: 0x%2.2x", status);
+	LOG_DEBUG("status: 0x%2.2x", status);
 	
 	if (status & ISC_STATUS_SECURITY)
-		INFO("Device Security Bit Set");
+		LOG_INFO("Device Security Bit Set");
 	
 	return status;
 }
@@ -206,7 +206,7 @@ int str9xpec_isc_enable(struct flash_bank_s *bank)
 	{
 		/* we have entered isc mode */
 		str9xpec_info->isc_enable = 1;
-		DEBUG("ISC_MODE Enabled");
+		LOG_DEBUG("ISC_MODE Enabled");
 	}
 	
 	return ERROR_OK;
@@ -235,7 +235,7 @@ int str9xpec_isc_disable(struct flash_bank_s *bank)
 	{
 		/* we have left isc mode */
 		str9xpec_info->isc_enable = 0;
-		DEBUG("ISC_MODE Disabled");
+		LOG_DEBUG("ISC_MODE Disabled");
 	}
 	
 	return ERROR_OK;
@@ -251,7 +251,7 @@ int str9xpec_read_config(struct flash_bank_s *bank)
 	
 	chain_pos = str9xpec_info->chain_pos;
 	
-	DEBUG("ISC_CONFIGURATION");
+	LOG_DEBUG("ISC_CONFIGURATION");
 	
 	/* execute ISC_CONFIGURATION command */
 	str9xpec_set_instr(chain_pos, ISC_CONFIGURATION, TAP_PI);
@@ -290,7 +290,7 @@ int str9xpec_build_block_list(struct flash_bank_s *bank)
 			b0_sectors = 8;
 			break;
 		default:
-			ERROR("BUG: unknown bank->size encountered");
+			LOG_ERROR("BUG: unknown bank->size encountered");
 			exit(-1);
 	}
 	
@@ -336,7 +336,7 @@ int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	
 	if (argc < 6)
 	{
-		WARNING("incomplete flash_bank str9x configuration");
+		LOG_WARNING("incomplete flash_bank str9x configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
@@ -345,7 +345,7 @@ int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	
 	if (bank->base != 0x00000000)
 	{
-		WARNING("overriding flash base address for STR91x device with 0x00000000");
+		LOG_WARNING("overriding flash base address for STR91x device with 0x00000000");
 		bank->base = 0x00000000;
 	}
 
@@ -390,7 +390,7 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	
 	buffer = calloc(CEIL(64, 8), 1);
 
-	DEBUG("blank check: first_bank: %i, last_bank: %i", first, last);
+	LOG_DEBUG("blank check: first_bank: %i, last_bank: %i", first, last);
 	
 	for (i = first; i <= last; i++) {
 		buf_set_u32(buffer, str9xpec_info->sector_bits[i], 1, 1);
@@ -489,7 +489,7 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	
 	buffer = calloc(CEIL(64, 8), 1);
 	
-	DEBUG("erase: first_bank: %i, last_bank: %i", first, last);
+	LOG_DEBUG("erase: first_bank: %i, last_bank: %i", first, last);
 	
 	/* last bank: 0xFF signals a full erase (unlock complete device) */
 	/* last bank: 0xFE signals a option byte erase */
@@ -510,7 +510,7 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 		}
 	}
 	
-	DEBUG("ISC_ERASE");
+	LOG_DEBUG("ISC_ERASE");
 	
 	/* execute ISC_ERASE command */
 	str9xpec_set_instr(chain_pos, ISC_ERASE, TAP_PI);
@@ -622,7 +622,7 @@ int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last)
 	if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
 		return ERROR_FLASH_OPERATION_FAILED;
 
-	DEBUG("protect: first_bank: %i, last_bank: %i", first, last);
+	LOG_DEBUG("protect: first_bank: %i, last_bank: %i", first, last);
 	
 	/* last bank: 0xFF signals a full device protect */
 	if (last == 0xFF)
@@ -709,7 +709,7 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	
 	if (offset & 0x7)
 	{
-		WARNING("offset 0x%x breaks required 8-byte alignment", offset);
+		LOG_WARNING("offset 0x%x breaks required 8-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
@@ -740,11 +740,11 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	if (check_address != offset + count)
 		return ERROR_FLASH_DST_OUT_OF_BANK;
 
-	DEBUG("first_sector: %i, last_sector: %i", first_sector, last_sector);
+	LOG_DEBUG("first_sector: %i, last_sector: %i", first_sector, last_sector);
 	
 	scanbuf = calloc(CEIL(64, 8), 1);
 	
-	DEBUG("ISC_PROGRAM");
+	LOG_DEBUG("ISC_PROGRAM");
 	
 	for (i = first_sector; i <= last_sector; i++)
 	{

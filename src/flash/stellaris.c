@@ -219,7 +219,7 @@ int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, c
 	
 	if (argc < 6)
 	{
-		WARNING("incomplete flash_bank stellaris configuration");
+		LOG_WARNING("incomplete flash_bank stellaris configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
@@ -316,9 +316,9 @@ void stellaris_read_clock_info(flash_bank_t *bank)
 	unsigned long mainfreq;
 
 	target_read_u32(target, SCB_BASE|RCC, &rcc);
-	DEBUG("Stellaris RCC %x",rcc);
+	LOG_DEBUG("Stellaris RCC %x",rcc);
 	target_read_u32(target, SCB_BASE|PLLCFG, &pllcfg);
-	DEBUG("Stellaris PLLCFG %x",pllcfg);
+	LOG_DEBUG("Stellaris PLLCFG %x",pllcfg);
 	stellaris_info->rcc = rcc;
 	
 	sysdiv = (rcc>>23)&0xF;
@@ -338,7 +338,7 @@ void stellaris_read_clock_info(flash_bank_t *bank)
 			mainfreq = 5625000;  /* Internal osc. / 4 */
 			break;
 		case 3:
-			WARNING("Invalid oscsrc (3) in rcc register");
+			LOG_WARNING("Invalid oscsrc (3) in rcc register");
 			mainfreq = 6000000;
 			break;
 
@@ -366,7 +366,7 @@ void stellaris_set_flash_mode(flash_bank_t *bank,int mode)
 	target_t *target = bank->target;
 
 	u32 usecrl = (stellaris_info->mck_freq/1000000ul-1);
-	DEBUG("usecrl = %i",usecrl);	
+	LOG_DEBUG("usecrl = %i",usecrl);	
 	target_write_u32(target, SCB_BASE|USECRL , usecrl);
 	
 }
@@ -378,7 +378,7 @@ u32 stellaris_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout)
 	/* Stellaris waits for cmdbit to clear */
 	while (((status = stellaris_get_flash_status(bank)) & waitbits) && (timeout-- > 0))
 	{
-		DEBUG("status: 0x%x", status);
+		LOG_DEBUG("status: 0x%x", status);
 		usleep(1000);
 	}
 	
@@ -396,7 +396,7 @@ int stellaris_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen)
 
 	fmc = FMC_WRKEY | cmd; 
 	target_write_u32(target, FLASH_CONTROL_BASE|FLASH_FMC, fmc);
-	DEBUG("Flash command: 0x%x", fmc);
+	LOG_DEBUG("Flash command: 0x%x", fmc);
 
 	if (stellaris_wait_status_busy(bank, cmd, 100)) 
 	{
@@ -419,18 +419,18 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	target_read_u32(target, SCB_BASE|DID1, &did1);
 	target_read_u32(target, SCB_BASE|DC0, &stellaris_info->dc0);
 	target_read_u32(target, SCB_BASE|DC1, &stellaris_info->dc1);
-	DEBUG("did0 0x%x, did1 0x%x, dc0 0x%x, dc1 0x%x",did0, did1, stellaris_info->dc0,stellaris_info->dc1);
+	LOG_DEBUG("did0 0x%x, did1 0x%x, dc0 0x%x, dc1 0x%x",did0, did1, stellaris_info->dc0,stellaris_info->dc1);
 
 	ver = did0 >> 28;
 	if((ver != 0) && (ver != 1))
 	{
-		WARNING("Unknown did0 version, cannot identify target");
+		LOG_WARNING("Unknown did0 version, cannot identify target");
 		return ERROR_FLASH_OPERATION_FAILED;	
 	}
 
 	if (did1 == 0)
 	{
-		WARNING("Cannot identify target as a Stellaris");
+		LOG_WARNING("Cannot identify target as a Stellaris");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -438,7 +438,7 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	fam = (did1 >> 24) & 0xF;
 	if(((ver != 0) && (ver != 1)) || (fam != 0))
 	{
-		WARNING("Unknown did1 version/family, cannot positively identify target as a Stellaris");
+		LOG_WARNING("Unknown did1 version/family, cannot positively identify target as a Stellaris");
 	}
 
 	for (i=0;StellarisParts[i].partno;i++)
@@ -502,7 +502,7 @@ int stellaris_protect_check(struct flash_bank_s *bank)
 
 	if (stellaris_info->did1 == 0)
 	{
-		WARNING("Cannot identify target as an AT91SAM");
+		LOG_WARNING("Cannot identify target as an AT91SAM");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 		
@@ -531,7 +531,7 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 
 	if (stellaris_info->did1 == 0)
 	{
-		WARNING("Cannot identify target as Stellaris");
+		LOG_WARNING("Cannot identify target as Stellaris");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}	
 	
@@ -592,7 +592,7 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 		target_read_u32(target, FLASH_CRIS, &flash_cris);
 		if(flash_cris & (AMASK))
 		{
-			WARNING("Error erasing flash page %i,  flash_cris 0x%x", banknr, flash_cris);
+			LOG_WARNING("Error erasing flash page %i,  flash_cris 0x%x", banknr, flash_cris);
 			target_write_u32(target, FLASH_CRIS, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
@@ -626,7 +626,7 @@ int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 	if (stellaris_info->did1 == 0)
 	{
-		WARNING("Cannot identify target as an Stellaris MCU");
+		LOG_WARNING("Cannot identify target as an Stellaris MCU");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
@@ -647,13 +647,13 @@ int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last)
 	target_write_u32(target, FLASH_CIM, 0);
 	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
 	
-	DEBUG("fmppe 0x%x",fmppe);
+	LOG_DEBUG("fmppe 0x%x",fmppe);
 	target_write_u32(target, SCB_BASE|FMPPE, fmppe);
 	/* Commit FMPPE */
 	target_write_u32(target, FLASH_FMA, 1);
 	/* Write commit command */
 	/* TODO safety check, sice this cannot be undone */
-	WARNING("Flash protection cannot be removed once commited, commit is NOT executed !");
+	LOG_WARNING("Flash protection cannot be removed once commited, commit is NOT executed !");
 	/* target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_COMT); */
 	/* Wait until erase complete */
 	do
@@ -666,7 +666,7 @@ int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last)
 	target_read_u32(target, FLASH_CRIS, &flash_cris);
 	if(flash_cris & (AMASK))
 	{
-		WARNING("Error setting flash page protection,  flash_cris 0x%x", flash_cris);
+		LOG_WARNING("Error setting flash page protection,  flash_cris 0x%x", flash_cris);
 		target_write_u32(target, FLASH_CRIS, 0);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -726,13 +726,13 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 	armv7m_algorithm_t armv7m_info;
 	int retval;
 	
-	DEBUG("(bank=%p buffer=%p offset=%08X wcount=%08X)",
+	LOG_DEBUG("(bank=%p buffer=%p offset=%08X wcount=%08X)",
 			bank, buffer, offset, wcount);
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(stellaris_write_code), &write_algorithm) != ERROR_OK)
 		{
-			WARNING("no working area available, can't do block memory writes");
+			LOG_WARNING("no working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		};
 
@@ -741,7 +741,7 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
 	{
-		DEBUG("called target_alloc_working_area(target=%p buffer_size=%08X source=%p)",
+		LOG_DEBUG("called target_alloc_working_area(target=%p buffer_size=%08X source=%p)",
 				target, buffer_size, source); 
 		buffer_size /= 2;
 		if (buffer_size <= 256)
@@ -750,7 +750,7 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 			if (write_algorithm)
 				target_free_working_area(target, write_algorithm);
 			
-			WARNING("no large enough working area available, can't do block memory writes");
+			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	};
@@ -777,11 +777,11 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, 4*thisrun_count);
-		WARNING("Algorithm flash write  %i words to 0x%x, %i remaining",thisrun_count,address, wcount);
-		DEBUG("Algorithm flash write  %i words to 0x%x, %i remaining",thisrun_count,address, wcount);
+		LOG_WARNING("Algorithm flash write  %i words to 0x%x, %i remaining",thisrun_count,address, wcount);
+		LOG_DEBUG("Algorithm flash write  %i words to 0x%x, %i remaining",thisrun_count,address, wcount);
 		if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params, write_algorithm->address, write_algorithm->address + sizeof(stellaris_write_code)-10, 10000, &armv7m_info)) != ERROR_OK)
 		{
-			ERROR("error executing stellaris flash write algorithm");
+			LOG_ERROR("error executing stellaris flash write algorithm");
 			target_free_working_area(target, source);
 			destroy_reg_param(&reg_params[0]);
 			destroy_reg_param(&reg_params[1]);
@@ -823,7 +823,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	DEBUG("(bank=%p buffer=%p offset=%08X count=%08X)",
+	LOG_DEBUG("(bank=%p buffer=%p offset=%08X count=%08X)",
 			bank, buffer, offset, count);
 
 	if (stellaris_info->did1 == 0)
@@ -833,13 +833,13 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 
 	if (stellaris_info->did1 == 0)
 	{
-		WARNING("Cannot identify target as a Stellaris processor");
+		LOG_WARNING("Cannot identify target as a Stellaris processor");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
 	if((offset & 3) || (count & 3))
 	{
-		WARNING("offset size must be word aligned");
+		LOG_WARNING("offset size must be word aligned");
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
@@ -865,14 +865,14 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 			{
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */ 
-				WARNING("couldn't use block writes, falling back to single memory accesses");
+				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
 				/* if an error occured, we examine the reason, and quit */
 				target_read_u32(target, FLASH_CRIS, &flash_cris);
 				
-				ERROR("flash writing failed with CRIS: 0x%x", flash_cris);
+				LOG_ERROR("flash writing failed with CRIS: 0x%x", flash_cris);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 		}
@@ -888,12 +888,12 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 
 	while(count>0)
 	{
-		if (!(address&0xff)) DEBUG("0x%x",address);
+		if (!(address&0xff)) LOG_DEBUG("0x%x",address);
 		/* Program one word */
 		target_write_u32(target, FLASH_FMA, address);
 		target_write_buffer(target, FLASH_FMD, 4, buffer);
 		target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_WRITE);
-		/* DEBUG("0x%x 0x%x 0x%x",address,buf_get_u32(buffer, 0, 32),FMC_WRKEY | FMC_WRITE); */
+		/* LOG_DEBUG("0x%x 0x%x 0x%x",address,buf_get_u32(buffer, 0, 32),FMC_WRKEY | FMC_WRITE); */
 		/* Wait until write complete */
 		do
 		{
@@ -908,7 +908,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	target_read_u32(target, FLASH_CRIS, &flash_cris);
 	if(flash_cris & (AMASK))
 	{
-		DEBUG("flash_cris 0x%x", flash_cris);
+		LOG_DEBUG("flash_cris 0x%x", flash_cris);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	return ERROR_OK;

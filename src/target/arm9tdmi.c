@@ -244,10 +244,10 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 		
 		if (in)
 		{
-			DEBUG("instr: 0x%8.8x, out: 0x%8.8x, in: 0x%8.8x", instr, out, *in);
+			LOG_DEBUG("instr: 0x%8.8x, out: 0x%8.8x, in: 0x%8.8x", instr, out, *in);
 		}
 		else
-			DEBUG("instr: 0x%8.8x, out: 0x%8.8x", instr, out);
+			LOG_DEBUG("instr: 0x%8.8x, out: 0x%8.8x", instr, out);
 	}
 #endif
 
@@ -304,11 +304,11 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 			
 		if (in)
 		{
-			DEBUG("in: 0x%8.8x", *in);
+			LOG_DEBUG("in: 0x%8.8x", *in);
 		}
 		else
 		{
-			ERROR("BUG: called with in == NULL");
+			LOG_ERROR("BUG: called with in == NULL");
 		}
 	}
 #endif
@@ -380,11 +380,11 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 			
 		if (in)
 		{
-			DEBUG("in: 0x%8.8x", *in);
+			LOG_DEBUG("in: 0x%8.8x", *in);
 		}
 		else
 		{
-			ERROR("BUG: called with in == NULL");
+			LOG_ERROR("BUG: called with in == NULL");
 		}
 	}
 #endif
@@ -544,7 +544,7 @@ void arm9tdmi_write_xpsr(target_t *target, u32 xpsr, int spsr)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 		
-	DEBUG("xpsr: %8.8x, spsr: %i", xpsr, spsr);
+	LOG_DEBUG("xpsr: %8.8x, spsr: %i", xpsr, spsr);
 
 	/* MSR1 fetched */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MSR_IM(xpsr & 0xff, 0, 1, spsr), 0, NULL, 0);
@@ -580,7 +580,7 @@ void arm9tdmi_write_xpsr_im8(target_t *target, u8 xpsr_im, int rot, int spsr)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 		
-	DEBUG("xpsr_im: %2.2x, rot: %i, spsr: %i", xpsr_im, rot, spsr);
+	LOG_DEBUG("xpsr_im: %2.2x, rot: %i, spsr: %i", xpsr_im, rot, spsr);
 	
 	/* MSR fetched */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MSR_IM(xpsr_im, rot, 1, spsr), 0, NULL, 0);
@@ -745,7 +745,7 @@ void arm9tdmi_branch_resume(target_t *target)
 
 void arm9tdmi_branch_resume_thumb(target_t *target)
 {
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -992,7 +992,7 @@ int arm9tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	if (argc < 4)
 	{
-		ERROR("'target arm9tdmi' requires at least one additional argument");
+		LOG_ERROR("'target arm9tdmi' requires at least one additional argument");
 		exit(-1);
 	}
 	

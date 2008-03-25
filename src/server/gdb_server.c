@@ -85,7 +85,7 @@ int gdb_last_signal(target_t *target)
 		case DBG_REASON_NOTHALTED:
 			return 0x0; /* no signal... shouldn't happen */
 		default:
-			USER("undefined debug reason %d - target needs reset", target->debug_reason);
+			LOG_USER("undefined debug reason %d - target needs reset", target->debug_reason);
 			return 0x0;
 	}
 }
@@ -151,7 +151,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 			connection->input_pending = 0;
 
 #ifdef _DEBUG_GDB_IO_
-		DEBUG("returned char '%c' (0x%2.2x)", *next_char, *next_char);
+		LOG_DEBUG("returned char '%c' (0x%2.2x)", *next_char, *next_char);
 #endif
 
 		return ERROR_OK;
@@ -190,7 +190,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
-				ERROR("read: %d", errno);
+				LOG_ERROR("read: %d", errno);
 				exit(-1);
 		}
 #else
@@ -206,7 +206,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			default:
-				ERROR("read: %s", strerror(errno));
+				LOG_ERROR("read: %s", strerror(errno));
 				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 		}
@@ -217,7 +217,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 	debug_buffer = malloc(gdb_con->buf_cnt + 1);
 	memcpy(debug_buffer, gdb_con->buffer, gdb_con->buf_cnt);
 	debug_buffer[gdb_con->buf_cnt] = 0;
-	DEBUG("received '%s'", debug_buffer);
+	LOG_DEBUG("received '%s'", debug_buffer);
 	free(debug_buffer);
 #endif
 
@@ -229,7 +229,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 	else
 		connection->input_pending = 0;
 #ifdef _DEBUG_GDB_IO_
-	DEBUG("returned char '%c' (0x%2.2x)", *next_char, *next_char);
+	LOG_DEBUG("returned char '%c' (0x%2.2x)", *next_char, *next_char);
 #endif
 
 	return retval;
@@ -246,7 +246,7 @@ int gdb_putback_char(connection_t *connection, int last_char)
 	}
 	else
 	{
-		ERROR("BUG: couldn't put character back");
+		LOG_ERROR("BUG: couldn't put character back");
 	}
 
 	return ERROR_OK;
@@ -299,7 +299,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			break;
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
-		WARNING("Discard unexpected char %c", reply);
+		LOG_WARNING("Discard unexpected char %c", reply);
 	}
 #endif
 #endif
@@ -310,7 +310,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		debug_buffer = malloc(len + 1);
 		memcpy(debug_buffer, buffer, len);
 		debug_buffer[len] = 0;
-		DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
+		LOG_DEBUG("sending packet '$%s#%2.2x'", debug_buffer, my_checksum);
 		free(debug_buffer);
 #endif
 
@@ -346,7 +346,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		{
 			/* Stop sending output packets for now */
 			log_remove_callback(gdb_log_callback, connection);
-			WARNING("negative reply, retrying");
+			LOG_WARNING("negative reply, retrying");
 		}
 		else if (reply == 0x3)
 		{
@@ -359,18 +359,18 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			{
 				/* Stop sending output packets for now */
 				log_remove_callback(gdb_log_callback, connection);
-				WARNING("negative reply, retrying");
+				LOG_WARNING("negative reply, retrying");
 			}
 			else
 			{
-				ERROR("unknown character 0x%2.2x in reply, dropping connection", reply);
+				LOG_ERROR("unknown character 0x%2.2x in reply, dropping connection", reply);
 				gdb_con->closed=1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 		}
 		else
 		{
-			ERROR("unknown character 0x%2.2x in reply, dropping connection", reply);
+			LOG_ERROR("unknown character 0x%2.2x in reply, dropping connection", reply);
 			gdb_con->closed=1;
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
@@ -407,7 +407,7 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 				return retval;
 
 #ifdef _DEBUG_GDB_IO_
-			DEBUG("character: '%c'", character);
+			LOG_DEBUG("character: '%c'", character);
 #endif
 
 			switch (character)
@@ -415,17 +415,17 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 				case '$':
 					break;
 				case '+':
-					WARNING("acknowledgment received, but no packet pending");
+					LOG_WARNING("acknowledgment received, but no packet pending");
 					break;
 				case '-':
-					WARNING("negative acknowledgment, but no packet pending");
+					LOG_WARNING("negative acknowledgment, but no packet pending");
 					break;
 				case 0x3:
 					gdb_con->ctrl_c = 1;
 					*len = 0;
 					return ERROR_OK;
 				default:
-					WARNING("ignoring character 0x%x", character);
+					LOG_WARNING("ignoring character 0x%x", character);
 					break;
 			}
 		} while (character != '$');
@@ -486,7 +486,7 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 			}
 			if (count > *len)
 			{
-				ERROR("packet buffer too small");
+				LOG_ERROR("packet buffer too small");
 				return ERROR_GDB_BUFFER_TOO_SMALL;
 			}
 
@@ -530,7 +530,7 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 			break;
 		}
 
-		WARNING("checksum error, requesting retransmission");
+		LOG_WARNING("checksum error, requesting retransmission");
 		gdb_write(connection, "-", 1);
 	}
 	if (gdb_con->closed)
@@ -573,7 +573,7 @@ int gdb_output_con(connection_t *connection, const char* line)
 int gdb_output(struct command_context_s *context, char* line)
 {
 	/* this will be dumped to the log and also sent as an O packet if possible */
-	USER_N("%s", line);
+	LOG_USER_N("%s", line);
 	return ERROR_OK;
 }
 
@@ -587,11 +587,11 @@ int gdb_program_handler(struct target_s *target, enum target_event event, void *
 		script = open_file_from_path(target->gdb_program_script, "r");
 		if (!script)
 		{
-			ERROR("couldn't open script file %s", target->gdb_program_script);
+			LOG_ERROR("couldn't open script file %s", target->gdb_program_script);
 				return ERROR_OK;
 		}
 
-		INFO("executing gdb_program script '%s'", target->gdb_program_script);
+		LOG_INFO("executing gdb_program script '%s'", target->gdb_program_script);
 		command_run_file(cmd_ctx, script, COMMAND_EXEC);
 		fclose(script);
 
@@ -732,7 +732,7 @@ int gdb_connection_closed(connection_t *connection)
 	}
 	else
 	{
-		ERROR("BUG: connection->priv == NULL");
+		LOG_ERROR("BUG: connection->priv == NULL");
 	}
 
 	target_unregister_event_callback(gdb_target_callback_event_handler, connection);
@@ -787,7 +787,7 @@ void gdb_target_to_str(target_t *target, char *tstr, char *str)
 
 	if (str_len % 2)
 	{
-		ERROR("BUG: gdb value with uneven number of characters encountered");
+		LOG_ERROR("BUG: gdb value with uneven number of characters encountered");
 		exit(-1);
 	}
 
@@ -809,7 +809,7 @@ int gdb_get_registers_packet(connection_t *connection, target_t *target, char* p
 	int i;
 
 #ifdef _DEBUG_GDB_IO_
-	DEBUG("-");
+	LOG_DEBUG("-");
 #endif
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
@@ -835,7 +835,7 @@ int gdb_get_registers_packet(connection_t *connection, target_t *target, char* p
 	{
 		char *reg_packet_p;
 		reg_packet_p = strndup(reg_packet, CEIL(reg_packet_size, 8) * 2);
-		DEBUG("reg_packet: %s", reg_packet_p);
+		LOG_DEBUG("reg_packet: %s", reg_packet_p);
 		free(reg_packet_p);
 	}
 #endif
@@ -857,7 +857,7 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 	char *packet_p;
 
 #ifdef _DEBUG_GDB_IO_
-	DEBUG("-");
+	LOG_DEBUG("-");
 #endif
 
 	/* skip command character */
@@ -866,7 +866,7 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 
 	if (packet_size % 2)
 	{
-		WARNING("GDB set_registers packet with uneven characters received, dropping connection");
+		LOG_WARNING("GDB set_registers packet with uneven characters received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
@@ -894,7 +894,7 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 		arch_type = register_get_arch_type(reg_list[i]->arch_type);
 		if (arch_type == NULL)
 		{
-			ERROR("BUG: encountered unregistered arch type");
+			LOG_ERROR("BUG: encountered unregistered arch type");
 			exit(-1);
 		}
 		arch_type->set(reg_list[i], bin_buf);
@@ -923,7 +923,7 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 	int retval;
 
 #ifdef _DEBUG_GDB_IO_
-	DEBUG("-");
+	LOG_DEBUG("-");
 #endif
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
@@ -933,7 +933,7 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 
 	if (reg_list_size <= reg_num)
 	{
-		ERROR("gdb requested a non-existing register");
+		LOG_ERROR("gdb requested a non-existing register");
 		exit(-1);
 	}
 
@@ -960,7 +960,7 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 	int retval;
 	reg_arch_type_t *arch_type;
 
-	DEBUG("-");
+	LOG_DEBUG("-");
 
 	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
@@ -969,13 +969,13 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 
 	if (reg_list_size < reg_num)
 	{
-		ERROR("gdb requested a non-existing register");
+		LOG_ERROR("gdb requested a non-existing register");
 		return ERROR_SERVER_REMOTE_CLOSED;	
 	}
 
 	if (*separator != '=')
 	{
-		ERROR("GDB 'set register packet', but no '=' following the register number");
+		LOG_ERROR("GDB 'set register packet', but no '=' following the register number");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
@@ -991,7 +991,7 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 	arch_type = register_get_arch_type(reg_list[reg_num]->arch_type);
 	if (arch_type == NULL)
 	{
-		ERROR("BUG: encountered unregistered arch type");
+		LOG_ERROR("BUG: encountered unregistered arch type");
 		exit(-1);
 	}
 	arch_type->set(reg_list[reg_num], bin_buf);
@@ -1023,7 +1023,7 @@ int gdb_error(connection_t *connection, int retval)
 			break;
 		default:
 			/* This could be that the target reset itself. */
-			ERROR("unexpected error %i", retval);
+			LOG_ERROR("unexpected error %i", retval);
 			gdb_send_error(connection, EFAULT);
 			break;
 	}
@@ -1054,7 +1054,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 
 	if (*separator != ',')
 	{
-		ERROR("incomplete read memory packet received, dropping connection");
+		LOG_ERROR("incomplete read memory packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
@@ -1062,7 +1062,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 
 	buffer = malloc(len);
 
-	DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
+	LOG_DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
 
 	retval = target_read_buffer(target, addr, len, buffer);
 
@@ -1128,7 +1128,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 
 	if (*separator != ',')
 	{
-		ERROR("incomplete write memory packet received, dropping connection");
+		LOG_ERROR("incomplete write memory packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
@@ -1136,13 +1136,13 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 
 	if (*(separator++) != ':')
 	{
-		ERROR("incomplete write memory packet received, dropping connection");
+		LOG_ERROR("incomplete write memory packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	buffer = malloc(len);
 
-	DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
+	LOG_DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
 
 	for (i=0; i<len; i++)
 	{
@@ -1182,7 +1182,7 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 
 	if (*separator != ',')
 	{
-		ERROR("incomplete write memory binary packet received, dropping connection");
+		LOG_ERROR("incomplete write memory binary packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
@@ -1190,14 +1190,14 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 
 	if (*(separator++) != ':')
 	{
-		ERROR("incomplete write memory binary packet received, dropping connection");
+		LOG_ERROR("incomplete write memory binary packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	retval = ERROR_OK;
 	if (len)
 	{
-		DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
+		LOG_DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
 
 		retval = target_write_buffer(target, addr, len, (u8*)separator);
 	}
@@ -1220,7 +1220,7 @@ void gdb_step_continue_packet(connection_t *connection, target_t *target, char *
 	int current = 0;
 	u32 address = 0x0;
 
-	DEBUG("-");
+	LOG_DEBUG("-");
 
 	if (packet_size > 1)
 	{
@@ -1234,12 +1234,12 @@ void gdb_step_continue_packet(connection_t *connection, target_t *target, char *
 
 	if (packet[0] == 'c')
 	{
-		DEBUG("continue");
+		LOG_DEBUG("continue");
 		target->type->resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
 	}
 	else if (packet[0] == 's')
 	{
-		DEBUG("step");
+		LOG_DEBUG("step");
 		target->type->step(target, current, address, 0); /* step at current or address, don't handle breakpoints */
 	}
 }
@@ -1254,7 +1254,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 	char *separator;
 	int retval;
 
-	DEBUG("-");
+	LOG_DEBUG("-");
 
 	type = strtoul(packet + 1, &separator, 16);
 
@@ -1271,7 +1271,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 
 	if (*separator != ',')
 	{
-		ERROR("incomplete breakpoint/watchpoint packet received, dropping connection");
+		LOG_ERROR("incomplete breakpoint/watchpoint packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
@@ -1279,7 +1279,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 
 	if (*separator != ',')
 	{
-		ERROR("incomplete breakpoint/watchpoint packet received, dropping connection");
+		LOG_ERROR("incomplete breakpoint/watchpoint packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
@@ -1469,7 +1469,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 			if (*separator != ',')
 			{
-				ERROR("incomplete read memory packet received, dropping connection");
+				LOG_ERROR("incomplete read memory packet received, dropping connection");
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 
@@ -1648,7 +1648,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		char *parse = packet + 12;
 		if (*parse == '\0')
 		{
-			ERROR("incomplete vFlashErase packet received, dropping connection");
+			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 
@@ -1656,7 +1656,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 		if (*(parse++) != ',' || *parse == '\0')
 		{
-			ERROR("incomplete vFlashErase packet received, dropping connection");
+			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 
@@ -1664,7 +1664,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 		if (*parse != '\0')
 		{
-			ERROR("incomplete vFlashErase packet received, dropping connection");
+			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 
@@ -1682,7 +1682,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 			 * treat a failed erase as an I/O error
 			 */
 			gdb_send_error(connection, EIO);
-			ERROR("flash_erase returned %i", result);
+			LOG_ERROR("flash_erase returned %i", result);
 		}
 		else
 			gdb_put_packet(connection, "OK", 2);
@@ -1698,13 +1698,13 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 		if (*parse == '\0')
 		{
-			ERROR("incomplete vFlashErase packet received, dropping connection");
+			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 		addr = strtoul(parse, &parse, 16);
 		if (*(parse++) != ':')
 		{
-			ERROR("incomplete vFlashErase packet received, dropping connection");
+			LOG_ERROR("incomplete vFlashErase packet received, dropping connection");
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 		length = packet_size - (parse - packet);
@@ -1739,7 +1739,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 			}
 		else
 		{
-			DEBUG("wrote %u bytes from vFlash image to flash", written);
+			LOG_DEBUG("wrote %u bytes from vFlash image to flash", written);
 			gdb_put_packet(connection, "OK", 2);
 		}
 
@@ -1816,7 +1816,7 @@ int gdb_input_inner(connection_t *connection)
 		/* terminate with zero */
 		packet[packet_size] = 0;
 
-		DEBUG("received packet: '%s'", packet);
+		LOG_DEBUG("received packet: '%s'", packet);
 
 		if (packet_size > 0)
 		{
@@ -1894,7 +1894,7 @@ int gdb_input_inner(connection_t *connection)
 					break;
 				default:
 					/* ignore unkown packets */
-					DEBUG("ignoring 0x%2.2x packet", packet[0]);
+					LOG_DEBUG("ignoring 0x%2.2x packet", packet[0]);
 					gdb_put_packet(connection, NULL, 0);
 					break;
 			}
@@ -1941,13 +1941,13 @@ int gdb_init()
 
 	if (!target)
 	{
-		WARNING("no gdb ports allocated as no target has been specified");
+		LOG_WARNING("no gdb ports allocated as no target has been specified");
 		return ERROR_OK;
 	}
 
 	if (gdb_port == 0)
 	{
-		WARNING("no gdb port specified, using default port 3333");
+		LOG_WARNING("no gdb port specified, using default port 3333");
 		gdb_port = 3333;
 	}
 
@@ -1962,7 +1962,7 @@ int gdb_init()
 
 		add_service("gdb", CONNECTION_GDB, gdb_port + i, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
 
-		DEBUG("gdb service for target %s at port %i", target->type->name, gdb_port + i);
+		LOG_DEBUG("gdb service for target %s at port %i", target->type->name, gdb_port + i);
 
 		i++;
 		target = target->next;
@@ -2010,7 +2010,7 @@ int handle_gdb_detach_command(struct command_context_s *cmd_ctx, char *cmd, char
 		}
 	}
 
-	WARNING("invalid gdb_detach configuration directive: %s", args[0]);
+	LOG_WARNING("invalid gdb_detach configuration directive: %s", args[0]);
 	return ERROR_OK;
 }
 
@@ -2030,7 +2030,7 @@ int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, 
 		}
 	}
 
-	WARNING("invalid gdb_memory_map configuration directive: %s", args[0]);
+	LOG_WARNING("invalid gdb_memory_map configuration directive: %s", args[0]);
 	return ERROR_OK;
 }
 
@@ -2050,7 +2050,7 @@ int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cm
 		}
 	}
 
-	WARNING("invalid gdb_memory_map configuration directive: %s", args[0]);
+	LOG_WARNING("invalid gdb_memory_map configuration directive: %s", args[0]);
 	return ERROR_OK;
 }
 
@@ -2070,7 +2070,7 @@ int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char
 		}
 	}
 
-	WARNING("invalid gdb_report_data_abort configuration directive: %s", args[0]);
+	LOG_WARNING("invalid gdb_report_data_abort configuration directive: %s", args[0]);
 	return ERROR_OK;
 }
 

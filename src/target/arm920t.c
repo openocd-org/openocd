@@ -157,7 +157,7 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	jtag_execute_queue();
-	DEBUG("addr: 0x%x value: %8.8x", reg_addr, *value);
+	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, *value);
 #endif
 
 	return ERROR_OK;
@@ -223,7 +223,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	jtag_add_dr_scan(4, fields, -1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
+	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
 #endif
 
 	return ERROR_OK;
@@ -294,7 +294,7 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	
 	if (jtag_execute_queue() != ERROR_OK)
 	{
-		ERROR("failed executing JTAG queue, exiting");
+		LOG_ERROR("failed executing JTAG queue, exiting");
 		exit(-1);
 	}
 	
@@ -332,7 +332,7 @@ int arm920t_read_cp15_interpreted(target_t *target, u32 cp15_opcode, u32 address
 	jtag_execute_queue();
 	
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	DEBUG("cp15_opcode: %8.8x, address: %8.8x, value: %8.8x", cp15_opcode, address, *value);
+	LOG_DEBUG("cp15_opcode: %8.8x, address: %8.8x, value: %8.8x", cp15_opcode, address, *value);
 #endif
 
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
@@ -367,7 +367,7 @@ int arm920t_write_cp15_interpreted(target_t *target, u32 cp15_opcode, u32 value,
 	arm920t_write_cp15_physical(target, 0x1e, cp15c15);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	DEBUG("cp15_opcode: %8.8x, value: %8.8x, address: %8.8x", cp15_opcode, value, address);
+	LOG_DEBUG("cp15_opcode: %8.8x, value: %8.8x, address: %8.8x", cp15_opcode, value, address);
 #endif
 
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
@@ -438,7 +438,7 @@ void arm920t_post_debug_entry(target_t *target)
 	/* examine cp15 control reg */
 	arm920t_read_cp15_physical(target, 0x2, &arm920t->cp15_control_reg);
 	jtag_execute_queue();
-	DEBUG("cp15_control_reg: %8.8x", arm920t->cp15_control_reg);
+	LOG_DEBUG("cp15_control_reg: %8.8x", arm920t->cp15_control_reg);
 
 	if (arm920t->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
@@ -459,7 +459,7 @@ void arm920t_post_debug_entry(target_t *target)
 	arm920t_read_cp15_interpreted(target, 0xee160f10, 0x0, &arm920t->d_far);
 	arm920t_read_cp15_interpreted(target, 0xee160f30, 0x0, &arm920t->i_far);
 	
-	DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x, I FAR: 0x%8.8x",
+	LOG_DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x, I FAR: 0x%8.8x",
 		arm920t->d_fsr, arm920t->d_far, arm920t->i_fsr, arm920t->i_far);  
 
 	if (arm920t->preserve_cache)
@@ -550,11 +550,11 @@ int arm920t_arch_state(struct target_s *target)
 	
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
-		ERROR("BUG: called for a non-ARMv4/5 target");
+		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
 		exit(-1);
 	}
 	
-	USER(	"target halted in %s state due to %s, current mode: %s\n"
+	LOG_USER(	"target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s",
 			 armv4_5_state_strings[armv4_5->core_state],
@@ -593,7 +593,7 @@ int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 cou
 	{
 		if (arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
 		{
-			DEBUG("D-Cache enabled, writing through to main memory");
+			LOG_DEBUG("D-Cache enabled, writing through to main memory");
 			u32 pa, cb, ap;
 			int type, domain;
 
@@ -607,7 +607,7 @@ int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 cou
 		
 		if (arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled)
 		{
-			DEBUG("I-Cache enabled, invalidating affected I-Cache line");
+			LOG_DEBUG("I-Cache enabled, invalidating affected I-Cache line");
 			arm920t_write_cp15_interpreted(target, 0xee070f35, 0x0, address);
 		}
 	}
@@ -715,7 +715,7 @@ int arm920t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	
 	if (argc < 4)
 	{
-		ERROR("'target arm920t' requires at least one additional argument");
+		LOG_ERROR("'target arm920t' requires at least one additional argument");
 		exit(-1);
 	}
 	
@@ -724,7 +724,7 @@ int arm920t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	if (argc >= 5)
 		variant = args[4];
 	
-	DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
+	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
 	
 	arm920t_init_arch_info(target, arm920t, chain_pos, variant);
 
@@ -786,7 +786,7 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 	
 	if ((output = fopen(args[0], "w")) == NULL)
 	{
-		DEBUG("error opening cache content file");
+		LOG_DEBUG("error opening cache content file");
 		return ERROR_OK;
 	}
 	
@@ -1027,7 +1027,7 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	if ((output = fopen(args[0], "w")) == NULL)
 	{
-		DEBUG("error opening mmu content file");
+		LOG_DEBUG("error opening mmu content file");
 		return ERROR_OK;
 	}
 	

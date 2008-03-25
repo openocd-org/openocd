@@ -26,25 +26,25 @@
 #include <stdarg.h>
 
 /* logging priorities 
- * LOG_SILENT - turn off all output. In lieu of try+catch this can be used as a 
- *              feeble ersatz.
- * LOG_USER - user messages. Could be anything from information 
- *            to progress messags. These messages do not represent
- *            incorrect or unexpected behaviour, just normal execution. 
- * LOG_ERROR - fatal errors, that are likely to cause program abort
- * LOG_WARNING - non-fatal errors, that may be resolved later
- * LOG_INFO - state information, etc.
- * LOG_DEBUG - debug statements, execution trace
+ * LOG_LVL_SILENT - turn off all output. In lieu of try+catch this can be used as a 
+ *                  feeble ersatz.
+ * LOG_LVL_USER - user messages. Could be anything from information 
+ *                to progress messags. These messages do not represent
+ *                incorrect or unexpected behaviour, just normal execution. 
+ * LOG_LVL_ERROR - fatal errors, that are likely to cause program abort
+ * LOG_LVL_WARNING - non-fatal errors, that may be resolved later
+ * LOG_LVL_INFO - state information, etc.
+ * LOG_LVL_DEBUG - debug statements, execution trace
  */
 enum log_levels
 {
-	LOG_SILENT = -3,
-	LOG_OUTPUT = -2,
-	LOG_USER = -1,
-	LOG_ERROR = 0,
-	LOG_WARNING = 1,
-	LOG_INFO = 2,
-	LOG_DEBUG = 3
+	LOG_LVL_SILENT = -3,
+	LOG_LVL_OUTPUT = -2,
+	LOG_LVL_USER = -1,
+	LOG_LVL_ERROR = 0,
+	LOG_LVL_WARNING = 1,
+	LOG_LVL_INFO = 2,
+	LOG_LVL_DEBUG = 3
 };
 
 extern void log_printf(enum log_levels level, const char *file, int line, 
@@ -79,30 +79,29 @@ extern int debug_level;
  * Matters on feeble CPUs for DEBUG/INFO statements that are involved frequently */
 
 
-#define DEBUG(expr ...) \
-		log_printf_lf (LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr)
+#define LOG_DEBUG(expr ...) \
+		log_printf_lf (LOG_LVL_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define INFO(expr ...) \
-		log_printf_lf (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr)
+#define LOG_INFO(expr ...) \
+		log_printf_lf (LOG_LVL_INFO, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define INFO_N(expr ...) \
-		log_printf (LOG_INFO, __FILE__, __LINE__, __FUNCTION__, expr)
+#define LOG_INFO_N(expr ...) \
+		log_printf (LOG_LVL_INFO, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define WARNING(expr ...) \
-		log_printf_lf (LOG_WARNING, __FILE__, __LINE__, __FUNCTION__, expr)
+#define LOG_WARNING(expr ...) \
+		log_printf_lf (LOG_LVL_WARNING, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define ERROR(expr ...) \
-		log_printf_lf (LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, expr)
+#define LOG_ERROR(expr ...) \
+		log_printf_lf (LOG_LVL_ERROR, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define USER(expr ...) \
-		log_printf_lf (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr)
+#define LOG_USER(expr ...) \
+		log_printf_lf (LOG_LVL_USER, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define USER_N(expr ...) \
-		log_printf (LOG_USER, __FILE__, __LINE__, __FUNCTION__, expr)
+#define LOG_USER_N(expr ...) \
+		log_printf (LOG_LVL_USER, __FILE__, __LINE__, __FUNCTION__, expr)
 
-#define OUTPUT(expr ...) \
-		log_printf (LOG_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr)
-
+#define LOG_OUTPUT(expr ...) \
+		log_printf (LOG_LVL_OUTPUT, __FILE__, __LINE__, __FUNCTION__, expr)
 
 /* general failures
  * error codes < 100

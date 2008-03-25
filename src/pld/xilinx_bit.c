@@ -46,7 +46,7 @@ int read_section(FILE *input_file, int length_size, char section, u32 *buffer_le
 	
 	if ((length_size != 2) && (length_size != 4))
 	{
-		ERROR("BUG: length_size neither 2 nor 4");
+		LOG_ERROR("BUG: length_size neither 2 nor 4");
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
@@ -94,30 +94,30 @@ int xilinx_read_bit_file(xilinx_bit_file_t *bit_file, char *filename)
 	
 	if (stat(filename, &input_stat) == -1)
 	{
-		ERROR("couldn't stat() %s: %s", filename, strerror(errno));
+		LOG_ERROR("couldn't stat() %s: %s", filename, strerror(errno));
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
 	if (S_ISDIR(input_stat.st_mode))
 	{
-		ERROR("%s is a directory", filename);
+		LOG_ERROR("%s is a directory", filename);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 		
 	if (input_stat.st_size == 0){
-		ERROR("Empty file %s", filename);
+		LOG_ERROR("Empty file %s", filename);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 		
 	if (!(input_file = fopen(filename, "rb")))
 	{
-		ERROR("couldn't open %s: %s", filename, strerror(errno));
+		LOG_ERROR("couldn't open %s: %s", filename, strerror(errno));
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 	
 	if ((read_count = fread(bit_file->unknown_header, 1, 13, input_file)) != 13)
 	{
-		ERROR("couldn't read unknown_header from file '%s'", filename);
+		LOG_ERROR("couldn't read unknown_header from file '%s'", filename);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 	
@@ -136,7 +136,7 @@ int xilinx_read_bit_file(xilinx_bit_file_t *bit_file, char *filename)
 	if (read_section(input_file, 4, 'e', &bit_file->length, &bit_file->data) != ERROR_OK)
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	
-	DEBUG("bit_file: %s %s %s,%s %i", bit_file->source_file, bit_file->part_name,
+	LOG_DEBUG("bit_file: %s %s %s,%s %i", bit_file->source_file, bit_file->part_name,
 		bit_file->date, bit_file->time, bit_file->length);
 	
 	fclose(input_file);

@@ -128,7 +128,7 @@ static int arm11_in_handler_SCAN_N(u8 *in_value, void *priv, struct scan_field_s
 
     if (v != 0x10)
     {
-        ERROR("'arm11 target' JTAG communication error SCREG SCAN OUT 0x%02x (expected 0x10)", v);
+        LOG_ERROR("'arm11 target' JTAG communication error SCREG SCAN OUT 0x%02x (expected 0x10)", v);
         exit(-1);
     }
 
@@ -277,31 +277,31 @@ enum target_debug_reason arm11_get_DSCR_debug_reason(u32 dscr)
     switch (dscr & ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_MASK)
     {
     case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_HALT:
-	INFO("Debug entry: JTAG HALT");
+	LOG_INFO("Debug entry: JTAG HALT");
 	return DBG_REASON_DBGRQ;
 
     case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BREAKPOINT:
-	INFO("Debug entry: breakpoint");
+	LOG_INFO("Debug entry: breakpoint");
 	return DBG_REASON_BREAKPOINT;
 
     case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_WATCHPOINT:
-	INFO("Debug entry: watchpoint");
+	LOG_INFO("Debug entry: watchpoint");
 	return DBG_REASON_WATCHPOINT;
 
     case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BKPT_INSTRUCTION:
-	INFO("Debug entry: BKPT instruction");
+	LOG_INFO("Debug entry: BKPT instruction");
 	return DBG_REASON_BREAKPOINT;
 
     case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_EDBGRQ:
-	INFO("Debug entry: EDBGRQ signal");
+	LOG_INFO("Debug entry: EDBGRQ signal");
 	return DBG_REASON_DBGRQ;
 
     case ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_VECTOR_CATCH:
-	INFO("Debug entry: VCR vector catch");
+	LOG_INFO("Debug entry: VCR vector catch");
 	return DBG_REASON_BREAKPOINT;
 
     default:
-	INFO("Debug entry: unknown");
+	LOG_INFO("Debug entry: unknown");
 	return DBG_REASON_DBGRQ;
     }
 };
@@ -541,7 +541,7 @@ void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 
     }}
 
     if (error_count)
-	ERROR("Transfer errors " ZU, error_count);
+	LOG_ERROR("Transfer errors " ZU, error_count);
 }
 
 
@@ -707,7 +707,7 @@ void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t 
 	{
 	    if (actions[i - 1].address != AddressIn)
 	    {
-		WARNING("Scan chain 7 shifted out unexpected address");
+		LOG_WARNING("Scan chain 7 shifted out unexpected address");
 	    }
 
 	    if (!actions[i - 1].write)
@@ -718,7 +718,7 @@ void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t 
 	    {
 		if (actions[i - 1].value != DataIn)
 		{
-		    WARNING("Scan chain 7 shifted out unexpected data");
+		    LOG_WARNING("Scan chain 7 shifted out unexpected data");
 		}
 	    }
 	}

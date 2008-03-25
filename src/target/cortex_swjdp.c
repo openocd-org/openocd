@@ -187,13 +187,13 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			waitcount++;
 			if (waitcount > 100)
 			{
-				WARNING("Timeout waiting for ACK = OK/FAULT in SWJDP transaction");
+				LOG_WARNING("Timeout waiting for ACK = OK/FAULT in SWJDP transaction");
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 		}
 		else
 		{
-			WARNING("Invalid ACK in SWJDP transaction");
+			LOG_WARNING("Invalid ACK in SWJDP transaction");
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
@@ -205,7 +205,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 	/* Check for STICKYERR and STICKYORUN */
 	if (ctrlstat & (SSTICKYORUN | SSTICKYERR))
 	{
-		DEBUG("swjdp: CTRL/STAT error 0x%x", ctrlstat);
+		LOG_DEBUG("swjdp: CTRL/STAT error 0x%x", ctrlstat);
 		/* Check power to debug regions */
 		if ((ctrlstat & 0xf0000000) != 0xf0000000)
 		{
@@ -216,24 +216,24 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			u32 dcb_dhcsr,nvic_shcsr, nvic_bfar, nvic_cfsr;
 			
 			if (ctrlstat & SSTICKYORUN)
-				ERROR("SWJ-DP OVERRUN - check clock or reduce jtag speed");
+				LOG_ERROR("SWJ-DP OVERRUN - check clock or reduce jtag speed");
 			
 			if (ctrlstat & SSTICKYERR)
-				ERROR("SWJ-DP STICKY ERROR");
+				LOG_ERROR("SWJ-DP STICKY ERROR");
 			
 			/* Clear Sticky Error Bits */
 			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_WRITE, swjdp->dp_ctrl_stat | SSTICKYORUN | SSTICKYERR, NULL);
 			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 			jtag_execute_queue();
 
-			DEBUG("swjdp: status 0x%x", ctrlstat);
+			LOG_DEBUG("swjdp: status 0x%x", ctrlstat);
 			
 			/* Can we find out the reason for the error ?? */			
 			ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
 			ahbap_read_system_atomic_u32(swjdp, NVIC_SHCSR, &nvic_shcsr);
 			ahbap_read_system_atomic_u32(swjdp, NVIC_CFSR, &nvic_cfsr);
 			ahbap_read_system_atomic_u32(swjdp, NVIC_BFAR, &nvic_bfar);
-			ERROR("dcb_dhcsr 0x%x, nvic_shcsr 0x%x, nvic_cfsr 0x%x, nvic_bfar 0x%x", dcb_dhcsr, nvic_shcsr, nvic_cfsr, nvic_bfar);
+			LOG_ERROR("dcb_dhcsr 0x%x, nvic_shcsr 0x%x, nvic_cfsr 0x%x, nvic_bfar 0x%x", dcb_dhcsr, nvic_shcsr, nvic_cfsr, nvic_bfar);
 		}
 		jtag_execute_queue();
 		return ERROR_JTAG_DEVICE_ERROR;
@@ -317,13 +317,13 @@ int ahbap_setup_accessport(swjdp_common_t *swjdp, u32 csw, u32 tar)
 	csw = csw | CSW_DBGSWENABLE | CSW_MASTER_DEBUG | CSW_HPROT;
 	if (csw != swjdp->ap_csw_value)
 	{
-		/* DEBUG("swjdp : Set CSW %x",csw); */
+		/* LOG_DEBUG("swjdp : Set CSW %x",csw); */
 		ahbap_write_reg_u32(swjdp, AHBAP_CSW, csw );
 		swjdp->ap_csw_value = csw;
 	}
 	if (tar != swjdp->ap_tar_value)
 	{
-		/* DEBUG("swjdp : Set TAR %x",tar); */
+		/* LOG_DEBUG("swjdp : Set TAR %x",tar); */
 		ahbap_write_reg_u32(swjdp, AHBAP_TAR, tar );
 		swjdp->ap_tar_value = tar;
 	}
@@ -452,7 +452,7 @@ int ahbap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 		
 		if (errorcount > 1)
 		{
-			WARNING("Block write error address 0x%x, wcount 0x%x", address, wcount);
+			LOG_WARNING("Block write error address 0x%x, wcount 0x%x", address, wcount);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
@@ -495,7 +495,7 @@ int ahbap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 			{
 				if (ahbap_write_buf_u16(swjdp, buffer, nbytes, address) != ERROR_OK)
 				{
-					WARNING("Block read error address 0x%x, count 0x%x", address, count);
+					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 				
@@ -516,7 +516,7 @@ int ahbap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 				ahbap_write_reg_u32(swjdp, AHBAP_DRW, outvalue);
 				if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 				{
-					WARNING("Block read error address 0x%x, count 0x%x", address, count);
+					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
@@ -586,7 +586,7 @@ int ahbap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 
 			{
 				if (ahbap_write_buf_u8(swjdp, buffer, nbytes, address) != ERROR_OK)
 				{
-					WARNING("Block read error address 0x%x, count 0x%x", address, count);
+					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 				
@@ -607,7 +607,7 @@ int ahbap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 
 				ahbap_write_reg_u32(swjdp, AHBAP_DRW, outvalue);
 				if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 				{
-					WARNING("Block read error address 0x%x, count 0x%x", address, count);
+					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
@@ -700,7 +700,7 @@ int ahbap_read_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address
 		
 		if (errorcount > 1)
 		{
-			WARNING("Block read error address 0x%x, count 0x%x", address, count);
+			LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
@@ -756,7 +756,7 @@ int ahbap_read_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 
 			ahbap_read_reg_u32(swjdp, AHBAP_DRW, &invalue );
 			if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 			{
-				WARNING("Block read error address 0x%x, count 0x%x", address, count);
+				LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 			
@@ -841,7 +841,7 @@ int ahbap_read_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 a
 			ahbap_read_reg_u32(swjdp, AHBAP_DRW, &invalue );
 			if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 			{
-				WARNING("Block read error address 0x%x, count 0x%x", address, count);
+				LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 			
@@ -942,7 +942,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	u32 ctrlstat;
 	int cnt = 0;
 	
-	DEBUG(" ");
+	LOG_DEBUG(" ");
 	
 	swjdp->ap_csw_value = -1;
 	swjdp->ap_tar_value = -1;
@@ -960,7 +960,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	/* Check that we have debug power domains activated */
 	while (!(ctrlstat & CDBGPWRUPACK) && (cnt++ < 10))
 	{
-		DEBUG("swjdp: wait CDBGPWRUPACK");
+		LOG_DEBUG("swjdp: wait CDBGPWRUPACK");
 		swjdp_read_dpacc(swjdp, &ctrlstat, DP_CTRL_STAT);
 		jtag_execute_queue();
 		usleep(10000);
@@ -968,7 +968,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 
 	while (!(ctrlstat & CSYSPWRUPACK) && (cnt++ < 10))
 	{
-		DEBUG("swjdp: wait CSYSPWRUPACK");
+		LOG_DEBUG("swjdp: wait CSYSPWRUPACK");
 		swjdp_read_dpacc(swjdp, &ctrlstat, DP_CTRL_STAT);
 		jtag_execute_queue();
 		usleep(10000);
@@ -983,7 +983,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	ahbap_read_reg_u32(swjdp, 0xFC, &idreg);
 	ahbap_read_reg_u32(swjdp, 0xF8, &romaddr);
 	
-	DEBUG("AHB-AP ID Register 0x%x, Debug ROM Address 0x%x", idreg, romaddr);
+	LOG_DEBUG("AHB-AP ID Register 0x%x, Debug ROM Address 0x%x", idreg, romaddr);
 	
 	return ERROR_OK;
 }

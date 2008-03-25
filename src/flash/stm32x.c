@@ -92,7 +92,7 @@ int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	if (argc < 6)
 	{
-		WARNING("incomplete flash_bank stm32x configuration");
+		LOG_WARNING("incomplete flash_bank stm32x configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
@@ -122,7 +122,7 @@ u32 stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 	/* wait for busy to clear */
 	while (((status = stm32x_get_flash_status(bank)) & FLASH_BSY) && (timeout-- > 0))
 	{
-		DEBUG("status: 0x%x", status);
+		LOG_DEBUG("status: 0x%x", status);
 		usleep(1000);
 	}
 	
@@ -144,7 +144,7 @@ int stm32x_read_options(struct flash_bank_s *bank)
 	stm32x_info->option_bytes.RDP = (optiondata & (1 << OPT_READOUT)) ? 0xFFFF : 0x5AA5;
 	
 	if (optiondata & (1 << OPT_READOUT))
-		INFO("Device Security Bit Set");
+		LOG_INFO("Device Security Bit Set");
 	
 	/* each bit refers to a 4bank protection */
 	target_read_u32(target, STM32_FLASH_WRPR, &optiondata);
@@ -403,7 +403,7 @@ int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	if ((first && (first % 4)) || ((last + 1) && (last + 1) % 4))
 	{
-		WARNING("sector start/end incorrect - stm32 has 4K sector protection");
+		LOG_WARNING("sector start/end incorrect - stm32 has 4K sector protection");
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 	
@@ -473,7 +473,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(stm32x_flash_write_code), &stm32x_info->write_algorithm) != ERROR_OK)
 	{
-		WARNING("no working area available, can't do block memory writes");
+		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 	
@@ -489,7 +489,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 			if (stm32x_info->write_algorithm)
 				target_free_working_area(target, stm32x_info->write_algorithm);
 			
-			WARNING("no large enough working area available, can't do block memory writes");
+			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	};
@@ -516,7 +516,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 		if ((retval = target->type->run_algorithm(target, 0, NULL, 4, reg_params, stm32x_info->write_algorithm->address, \
 				stm32x_info->write_algorithm->address + (sizeof(stm32x_flash_write_code) - 10), 10000, &armv7m_info)) != ERROR_OK)
 		{
-			ERROR("error executing stm32x flash write algorithm");
+			LOG_ERROR("error executing stm32x flash write algorithm");
 			break;
 		}
 		
@@ -559,7 +559,7 @@ int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 	if (offset & 0x1)
 	{
-		WARNING("offset 0x%x breaks required 2-byte alignment", offset);
+		LOG_WARNING("offset 0x%x breaks required 2-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
@@ -577,11 +577,11 @@ int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			{
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */ 
-				WARNING("couldn't use block writes, falling back to single memory accesses");
+				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
-				ERROR("flash writing failed with error code: 0x%x", retval);
+				LOG_ERROR("flash writing failed with error code: 0x%x", retval);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 		}
@@ -655,11 +655,11 @@ int stm32x_probe(struct flash_bank_s *bank)
 	
 	/* read stm32 device id register */
 	target_read_u32(target, 0xE0042000, &device_id);
-	INFO( "device id = 0x%08x", device_id );
+	LOG_INFO( "device id = 0x%08x", device_id );
 	
 	if (!(device_id & 0x410))
     {
-		WARNING( "Cannot identify target as a STM32 family." );
+		LOG_WARNING( "Cannot identify target as a STM32 family." );
 		return ERROR_FLASH_OPERATION_FAILED;
     }
     
@@ -670,11 +670,11 @@ int stm32x_probe(struct flash_bank_s *bank)
 	if ((device_id >> 16) == 0 )
 	{
 		/* number of sectors incorrect on revA */
-		WARNING( "STM32 Rev A Silicon detected, probe inaccurate - assuming 128k flash" );
+		LOG_WARNING( "STM32 Rev A Silicon detected, probe inaccurate - assuming 128k flash" );
 		num_sectors = 128;
 	}
 	
-	INFO( "flash size = %dkbytes", num_sectors );
+	LOG_INFO( "flash size = %dkbytes", num_sectors );
 	
 	bank->base = 0x08000000;
 	bank->size = num_sectors * 1024;

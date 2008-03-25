@@ -70,7 +70,6 @@
 #if IS_CYGWIN == 1
 #include <windows.h>
 #include <errno.h>
-#undef ERROR
 #endif
 #endif
 
@@ -231,7 +230,7 @@ void parport_write(int tck, int tms, int tdi)
 /* (1) assert or (0) deassert reset lines */
 void parport_reset(int trst, int srst)
 {
-	DEBUG("trst: %i, srst: %i", trst, srst);
+	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 
 	if (trst == 0)
 		dataport_value |= cable->TRST_MASK;
@@ -315,7 +314,7 @@ int parport_init(void)
 	if ((parport_cable == NULL) || (parport_cable[0] == 0))
 	{
 		parport_cable = "wiggler";
-		WARNING("No parport cable specified, using default 'wiggler'");
+		LOG_WARNING("No parport cable specified, using default 'wiggler'");
 	}
 	
 	while (cur_cable->name)
@@ -330,7 +329,7 @@ int parport_init(void)
 
 	if (!cable)
 	{
-		ERROR("No matching cable found for %s", parport_cable);
+		LOG_ERROR("No matching cable found for %s", parport_cable);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	
@@ -339,17 +338,17 @@ int parport_init(void)
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle > 0)
 	{
-		ERROR("device is already opened");
+		LOG_ERROR("device is already opened");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-	DEBUG("opening /dev/ppi%d...", parport_port);
+	LOG_DEBUG("opening /dev/ppi%d...", parport_port);
 
 	snprintf(buffer, 256, "/dev/ppi%d", parport_port);
 	device_handle = open(buffer, O_WRONLY);
 #else /* not __FreeBSD__, __FreeBSD_kernel__ */
-	DEBUG("opening /dev/parport%d...", parport_port);
+	LOG_DEBUG("opening /dev/parport%d...", parport_port);
 
 	snprintf(buffer, 256, "/dev/parport%d", parport_port);
 	device_handle = open(buffer, O_WRONLY);
@@ -357,17 +356,17 @@ int parport_init(void)
 
 	if (device_handle < 0)
 	{
-		ERROR("cannot open device. check it exists and that user read and write rights are set");
+		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	DEBUG("...open");
+	LOG_DEBUG("...open");
 
 #if !defined(__FreeBSD__) && !defined(__FreeBSD_kernel__)
 	i=ioctl(device_handle, PPCLAIM);
 	if (i<0)
 	{
-		ERROR("cannot claim device");
+		LOG_ERROR("cannot claim device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -375,7 +374,7 @@ int parport_init(void)
 	i= ioctl(device_handle, PPSETMODE, & i);
 	if (i<0)
 	{
-		ERROR(" cannot set compatible mode to device");
+		LOG_ERROR(" cannot set compatible mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -383,7 +382,7 @@ int parport_init(void)
 	i = ioctl(device_handle, PPNEGOT, & i);
 	if (i<0)
 	{
-		ERROR("cannot set compatible 1284 mode to device");
+		LOG_ERROR("cannot set compatible 1284 mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 #endif /* not __FreeBSD__, __FreeBSD_kernel__ */
@@ -392,23 +391,23 @@ int parport_init(void)
 	if (parport_port == 0)
 	{
 		parport_port = 0x378;
-		WARNING("No parport port specified, using default '0x378' (LPT1)");
+		LOG_WARNING("No parport port specified, using default '0x378' (LPT1)");
 	}
 	
 	dataport = parport_port;
 	statusport = parport_port + 1;
 	
-	DEBUG("requesting privileges for parallel port 0x%lx...", dataport);
+	LOG_DEBUG("requesting privileges for parallel port 0x%lx...", dataport);
 #if PARPORT_USE_GIVEIO == 1
 	if (parport_get_giveio_access() != 0)
 #else /* PARPORT_USE_GIVEIO */
 	if (ioperm(dataport, 3, 1) != 0)
 #endif /* PARPORT_USE_GIVEIO */
 	{
-		ERROR("missing privileges for direct i/o");
+		LOG_ERROR("missing privileges for direct i/o");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	DEBUG("...privileges granted");
+	LOG_DEBUG("...privileges granted");
 	
 	/* make sure parallel port is in right mode (clear tristate and interrupt */
 	#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)

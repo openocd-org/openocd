@@ -146,7 +146,7 @@ int lpc2000_build_sector_list(struct flash_bank_s *bank)
 		}
 		else
 		{
-			ERROR("BUG: unknown bank->size encountered");
+			LOG_ERROR("BUG: unknown bank->size encountered");
 			exit(-1);
 		}
 	}
@@ -187,7 +187,7 @@ int lpc2000_build_sector_list(struct flash_bank_s *bank)
 				num_sectors = 27;
 				break;
 			default:
-				ERROR("BUG: unknown bank->size encountered");
+				LOG_ERROR("BUG: unknown bank->size encountered");
 				exit(-1);
 				break;
 		}
@@ -225,7 +225,7 @@ int lpc2000_build_sector_list(struct flash_bank_s *bank)
 	}
 	else
 	{
-		ERROR("BUG: unknown lpc2000_info->variant encountered");
+		LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
 		exit(-1);
 	}
 	
@@ -256,7 +256,7 @@ int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u32 resul
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, 172, &lpc2000_info->iap_working_area) != ERROR_OK)
 		{
-			ERROR("no working area specified, can't write LPC2000 internal flash");
+			LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 		
@@ -351,7 +351,7 @@ int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int last)
 				return ERROR_FLASH_BUSY;
 				break;
 			default:
-				ERROR("BUG: unknown LPC2000 status code");
+				LOG_ERROR("BUG: unknown LPC2000 status code");
 				exit(-1);
 		}
 	}
@@ -367,7 +367,7 @@ int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	
 	if (argc < 8)
 	{
-		WARNING("incomplete flash_bank lpc2000 configuration");
+		LOG_WARNING("incomplete flash_bank lpc2000 configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
@@ -390,7 +390,7 @@ int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	}
 	else
 	{
-		ERROR("unknown LPC2000 variant");
+		LOG_ERROR("unknown LPC2000 variant");
 		free(lpc2000_info);
 		return ERROR_FLASH_BANK_INVALID;
 	}
@@ -437,7 +437,7 @@ int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 			return ERROR_FLASH_SECTOR_INVALID;
 			break;
 		default:
-			WARNING("lpc2000 prepare sectors returned %i", status_code);
+			LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
 			return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
@@ -453,7 +453,7 @@ int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 			return ERROR_FLASH_SECTOR_INVALID;
 			break;
 		default:
-			WARNING("lpc2000 erase sectors returned %i", status_code);
+			LOG_WARNING("lpc2000 erase sectors returned %i", status_code);
 			return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
@@ -489,7 +489,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	/* allocate a working area */
 	if (target_alloc_working_area(target, lpc2000_info->cmd51_max_buffer, &download_area) != ERROR_OK)
 	{
-		ERROR("no working area specified, can't write LPC2000 internal flash");
+		LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
@@ -503,7 +503,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	
 	if (offset % dst_min_alignment)
 	{
-		WARNING("offset 0x%x breaks required alignment 0x%x", offset, dst_min_alignment);
+		LOG_WARNING("offset 0x%x breaks required alignment 0x%x", offset, dst_min_alignment);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
@@ -515,7 +515,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			last_sector = i;
 	}
 	
-	DEBUG("first_sector: %i, last_sector: %i", first_sector, last_sector);
+	LOG_DEBUG("first_sector: %i, last_sector: %i", first_sector, last_sector);
 
 	/* check if exception vectors should be flashed */
 	if ((offset == 0) && (count >= 0x20) && lpc2000_info->calc_checksum)
@@ -524,12 +524,12 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		int i = 0;
 		for (i = 0; i < 8; i++)
 		{
-			DEBUG("0x%2.2x: 0x%8.8x", i * 4, buf_get_u32(buffer + (i * 4), 0, 32));
+			LOG_DEBUG("0x%2.2x: 0x%8.8x", i * 4, buf_get_u32(buffer + (i * 4), 0, 32));
 			if (i != 5)
 				checksum += buf_get_u32(buffer + (i * 4), 0, 32);
 		}
 		checksum = 0 - checksum;
-		DEBUG("checksum: 0x%8.8x", checksum);
+		LOG_DEBUG("checksum: 0x%8.8x", checksum);
 		buf_set_u32(buffer + 0x14, 0, 32, checksum);
 	}
 	
@@ -559,7 +559,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 				return ERROR_FLASH_SECTOR_INVALID;
 				break;
 			default:
-				WARNING("lpc2000 prepare sectors returned %i", status_code);
+				LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
 				return ERROR_FLASH_OPERATION_FAILED;
 		}
 		
@@ -582,7 +582,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			free(last_buffer);
 		}
 		
-		DEBUG("writing 0x%x bytes to address 0x%x", thisrun_bytes, bank->base + offset + bytes_written);
+		LOG_DEBUG("writing 0x%x bytes to address 0x%x", thisrun_bytes, bank->base + offset + bytes_written);
 		
 		/* Write data */
 		param_table[0] = bank->base + offset + bytes_written;
@@ -600,7 +600,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 				return ERROR_FLASH_SECTOR_INVALID;
 				break;
 			default:
-				WARNING("lpc2000 returned %i", status_code);
+				LOG_WARNING("lpc2000 returned %i", status_code);
 				return ERROR_FLASH_OPERATION_FAILED;
 		}
 		

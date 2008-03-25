@@ -135,7 +135,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -144,7 +144,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if (breakpoint->set)
 	{
-		WARNING("breakpoint already set");
+		LOG_WARNING("breakpoint already set");
 		return ERROR_OK;
 	}
 
@@ -178,7 +178,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		}
 		else
 		{
-			ERROR("BUG: no hardware comparator available");
+			LOG_ERROR("BUG: no hardware comparator available");
 			return ERROR_OK;
 		}
 	}
@@ -195,7 +195,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			target->type->read_memory(target, breakpoint->address, 4, 1, (u8 *)&verify);
 			if (verify != arm7_9->arm_bkpt)
 			{
-				ERROR("Unable to set 32 bit software breakpoint at address %08x", breakpoint->address);
+				LOG_ERROR("Unable to set 32 bit software breakpoint at address %08x", breakpoint->address);
 				return ERROR_OK;
 			}
 		}
@@ -210,7 +210,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			target->type->read_memory(target, breakpoint->address, 2, 1, (u8 *)&verify);
 			if (verify != arm7_9->thumb_bkpt)
 			{
-				ERROR("Unable to set thumb software breakpoint at address %08x", breakpoint->address);
+				LOG_ERROR("Unable to set thumb software breakpoint at address %08x", breakpoint->address);
 				return ERROR_OK;
 			}
 		}
@@ -228,13 +228,13 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	if (!breakpoint->set)
 	{
-		WARNING("breakpoint not set");
+		LOG_WARNING("breakpoint not set");
 		return ERROR_OK;
 	}
 	
@@ -286,31 +286,31 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
 	if (arm7_9->force_hw_bkpts)
 	{
-		DEBUG("forcing use of hardware breakpoint at address 0x%8.8x", breakpoint->address);
+		LOG_DEBUG("forcing use of hardware breakpoint at address 0x%8.8x", breakpoint->address);
 		breakpoint->type = BKPT_HARD;
 	}
 	
 	if ((breakpoint->type == BKPT_SOFT) && (arm7_9->sw_bkpts_enabled == 0))
 	{
-		INFO("sw breakpoint requested, but software breakpoints not enabled");
+		LOG_INFO("sw breakpoint requested, but software breakpoints not enabled");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
 	if ((breakpoint->type == BKPT_HARD) && (arm7_9->wp_available < 1))
 	{
-		INFO("no watchpoint unit available for hardware breakpoint");
+		LOG_INFO("no watchpoint unit available for hardware breakpoint");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
 	if ((breakpoint->length != 2) && (breakpoint->length != 4))
 	{
-		INFO("only breakpoints of two (Thumb) or four (ARM) bytes length supported");
+		LOG_INFO("only breakpoints of two (Thumb) or four (ARM) bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
@@ -327,7 +327,7 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -353,7 +353,7 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -392,7 +392,7 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	} 
 	else
 	{
-		ERROR("BUG: no hardware comparator available");
+		LOG_ERROR("BUG: no hardware comparator available");
 		return ERROR_OK;
 	}
 	
@@ -406,13 +406,13 @@ int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
 	if (!watchpoint->set)
 	{
-		WARNING("breakpoint not set");
+		LOG_WARNING("breakpoint not set");
 		return ERROR_OK;
 	}
 	
@@ -440,7 +440,7 @@ int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -466,7 +466,7 @@ int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -491,7 +491,7 @@ int arm7_9_enable_sw_bkpts(struct target_s *target)
 	
 	if (arm7_9->wp_available < 1)
 	{
-		WARNING("can't enable sw breakpoints with no watchpoint unit available");
+		LOG_WARNING("can't enable sw breakpoints with no watchpoint unit available");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	arm7_9->wp_available--;
@@ -518,13 +518,13 @@ int arm7_9_enable_sw_bkpts(struct target_s *target)
 	}
 	else
 	{
-		ERROR("BUG: both watchpoints used, but wp_available >= 1");
+		LOG_ERROR("BUG: both watchpoints used, but wp_available >= 1");
 		exit(-1);
 	}
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		ERROR("error writing EmbeddedICE registers to enable sw breakpoints");
+		LOG_ERROR("error writing EmbeddedICE registers to enable sw breakpoints");
 		exit(-1);
 	};
 	
@@ -584,7 +584,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 	}
 	if (timeout == 50)
 	{
-		ERROR("timeout waiting for SYSCOMP & DBGACK, last DBG_STATUS: %x", buf_get_u32(dbg_stat->value, 0, dbg_stat->size));
+		LOG_ERROR("timeout waiting for SYSCOMP & DBGACK, last DBG_STATUS: %x", buf_get_u32(dbg_stat->value, 0, dbg_stat->size));
 		return ERROR_TARGET_TIMEOUT;
 	}
 	
@@ -697,11 +697,11 @@ int arm7_9_poll(target_t *target)
 	
 	if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1))
 	{
-		DEBUG("DBGACK set, dbg_state->value: 0x%x", buf_get_u32(dbg_stat->value, 0, 32));
+		LOG_DEBUG("DBGACK set, dbg_state->value: 0x%x", buf_get_u32(dbg_stat->value, 0, 32));
 		if (target->state == TARGET_UNKNOWN)
 		{
 			target->state = TARGET_RUNNING;
-			WARNING("DBGACK set while target was in unknown state. Reset or initialize target.");
+			LOG_WARNING("DBGACK set while target was in unknown state. Reset or initialize target.");
 		}
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
@@ -721,7 +721,7 @@ int arm7_9_poll(target_t *target)
 		}
 		if (target->state != TARGET_HALTED)
 		{
-			WARNING("DBGACK set, but the target did not end up in the halted stated %d", target->state);
+			LOG_WARNING("DBGACK set, but the target did not end up in the halted stated %d", target->state);
 		}
 	}
 	else
@@ -737,7 +737,7 @@ int arm7_9_assert_reset(target_t *target)
 {
 	int retval;
 	
-	DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
 	if (target->state == TARGET_HALTED || target->state == TARGET_UNKNOWN)
 	{
@@ -754,7 +754,7 @@ int arm7_9_assert_reset(target_t *target)
 			}
 			else
 			{
-				ERROR("unknown error");
+				LOG_ERROR("unknown error");
 				exit(-1);
 			}
 		}
@@ -782,7 +782,7 @@ int arm7_9_assert_reset(target_t *target)
 			}
 			else if (retval != ERROR_OK)
 			{
-				ERROR("unknown error");
+				LOG_ERROR("unknown error");
 				exit(-1);
 			}
 		}
@@ -799,7 +799,7 @@ int arm7_9_assert_reset(target_t *target)
 
 int arm7_9_deassert_reset(target_t *target)
 {
-	DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
@@ -876,7 +876,7 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	}
 	if (i==10)
 	{
-		ERROR("Failed to halt CPU after 1 sec");
+		LOG_ERROR("Failed to halt CPU after 1 sec");
 		return ERROR_TARGET_TIMEOUT;
 	}
 	target->state = TARGET_HALTED;
@@ -895,7 +895,7 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_ITBIT, 1))
 	{
 		u32 r0_thumb, pc_thumb;
-		DEBUG("target entered debug from Thumb state, changing to ARM");
+		LOG_DEBUG("target entered debug from Thumb state, changing to ARM");
 		/* Entered debug from Thumb mode */
 		armv4_5->core_state = ARMV4_5_STATE_THUMB;
 		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
@@ -965,24 +965,24 @@ int arm7_9_halt(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	
-	DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
 	if (target->state == TARGET_HALTED)
 	{
-		WARNING("target was already halted");
+		LOG_WARNING("target was already halted");
 		return ERROR_OK;
 	}
 	
 	if (target->state == TARGET_UNKNOWN)
 	{
-		WARNING("target was in unknown state when halt was requested");
+		LOG_WARNING("target was in unknown state when halt was requested");
 	}
 	
 	if (target->state == TARGET_RESET) 
 	{
 		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) && jtag_srst)
 		{
-			ERROR("can't request a halt while in reset if nSRST pulls nTRST");
+			LOG_ERROR("can't request a halt while in reset if nSRST pulls nTRST");
 			return ERROR_TARGET_FAILURE;
 		}
 		else
@@ -1033,7 +1033,7 @@ int arm7_9_debug_entry(target_t *target)
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 #ifdef _DEBUG_ARM7_9_
-	DEBUG("-");
+	LOG_DEBUG("-");
 #endif
 
 	if (arm7_9->pre_debug_entry)
@@ -1054,7 +1054,7 @@ int arm7_9_debug_entry(target_t *target)
 		switch (retval)
 		{
 			case ERROR_JTAG_QUEUE_FAILED:
-				ERROR("JTAG queue failed while writing EmbeddedICE control register");
+				LOG_ERROR("JTAG queue failed while writing EmbeddedICE control register");
 				exit(-1);
 				break;
 			default:
@@ -1068,22 +1068,22 @@ int arm7_9_debug_entry(target_t *target)
 
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
 	/* if the target is in Thumb state, change to ARM state */
 	if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_ITBIT, 1))
 	{
-		DEBUG("target entered debug from Thumb state");
+		LOG_DEBUG("target entered debug from Thumb state");
 		/* Entered debug from Thumb mode */
 		armv4_5->core_state = ARMV4_5_STATE_THUMB;
 		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
-		DEBUG("r0_thumb: 0x%8.8x, pc_thumb: 0x%8.8x", r0_thumb, pc_thumb);
+		LOG_DEBUG("r0_thumb: 0x%8.8x, pc_thumb: 0x%8.8x", r0_thumb, pc_thumb);
 	}
 	else
 	{
-		DEBUG("target entered debug from ARM state");
+		LOG_DEBUG("target entered debug from ARM state");
 		/* Entered debug from ARM mode */
 		armv4_5->core_state = ARMV4_5_STATE_ARM;
 	}
@@ -1111,15 +1111,15 @@ int arm7_9_debug_entry(target_t *target)
 	if (armv4_5_mode_to_number(armv4_5->core_mode) == -1)
 	{
 		target->state = TARGET_UNKNOWN;
-		ERROR("cpsr contains invalid mode value - communication failure");
+		LOG_ERROR("cpsr contains invalid mode value - communication failure");
 		return ERROR_TARGET_FAILURE;
 	}
 
-	DEBUG("target entered debug state in %s mode", armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)]);
+	LOG_DEBUG("target entered debug state in %s mode", armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)]);
 	
 	if (armv4_5->core_state == ARMV4_5_STATE_THUMB)
 	{
-		DEBUG("thumb state, applying fixups");
+		LOG_DEBUG("thumb state, applying fixups");
 		context[0] = r0_thumb;
 		context[15] = pc_thumb;
 	} else if (armv4_5->core_state == ARMV4_5_STATE_ARM)
@@ -1138,19 +1138,19 @@ int arm7_9_debug_entry(target_t *target)
 		context[15] -= arm7_9->dbgreq_adjust_pc * ((armv4_5->core_state == ARMV4_5_STATE_ARM) ? 4 : 2);
 	else
 	{
-		ERROR("unknown debug reason: %i", target->debug_reason);
+		LOG_ERROR("unknown debug reason: %i", target->debug_reason);
 	}
 
 	
 	for (i=0; i<=15; i++)
 	{
-		DEBUG("r%i: 0x%8.8x", i, context[i]);
+		LOG_DEBUG("r%i: 0x%8.8x", i, context[i]);
 		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).value, 0, 32, context[i]);
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = 0;
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid = 1;
 	}
 	
-	DEBUG("entered debug state at PC 0x%x", context[15]);
+	LOG_DEBUG("entered debug state at PC 0x%x", context[15]);
 
 	/* exceptions other than USR & SYS have a saved program status register */
 	if ((armv4_5_mode_to_number(armv4_5->core_mode) != ARMV4_5_MODE_USR) && (armv4_5_mode_to_number(armv4_5->core_mode) != ARMV4_5_MODE_SYS))
@@ -1183,11 +1183,11 @@ int arm7_9_full_context(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1249,7 +1249,7 @@ int arm7_9_full_context(target_t *target)
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		ERROR("JTAG failure");
+		LOG_ERROR("JTAG failure");
 		exit(-1);
 	}
 	return ERROR_OK;
@@ -1266,11 +1266,11 @@ int arm7_9_restore_context(target_t *target)
 	int dirty;
 	int mode_change;
 	
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -1282,7 +1282,7 @@ int arm7_9_restore_context(target_t *target)
 	 */
 	for (i = 0; i < 6; i++)
 	{
-		DEBUG("examining %s mode", armv4_5_mode_strings[i]);
+		LOG_DEBUG("examining %s mode", armv4_5_mode_strings[i]);
 		dirty = 0;
 		mode_change = 0;
 		/* check if there are dirty registers in the current mode 
@@ -1296,19 +1296,19 @@ int arm7_9_restore_context(target_t *target)
 				if (reg->valid == 1)
 				{
 					dirty = 1;
-					DEBUG("examining dirty reg: %s", reg->name);
+					LOG_DEBUG("examining dirty reg: %s", reg->name);
 					if ((reg_arch_info->mode != ARMV4_5_MODE_ANY)
 						&& (reg_arch_info->mode != current_mode)
 						&& !((reg_arch_info->mode == ARMV4_5_MODE_USR) && (armv4_5->core_mode == ARMV4_5_MODE_SYS)) 
 						&& !((reg_arch_info->mode == ARMV4_5_MODE_SYS) && (armv4_5->core_mode == ARMV4_5_MODE_USR)))
 					{
 						mode_change = 1;
-						DEBUG("require mode change");
+						LOG_DEBUG("require mode change");
 					}
 				}
 				else
 				{
-					ERROR("BUG: dirty register '%s', but no valid data", reg->name);
+					LOG_ERROR("BUG: dirty register '%s', but no valid data", reg->name);
 				}
 			}
 		}
@@ -1344,7 +1344,7 @@ int arm7_9_restore_context(target_t *target)
 					num_regs++;
 					reg->dirty = 0;
 					reg->valid = 1;
-					DEBUG("writing register %i of mode %s with value 0x%8.8x", j, armv4_5_mode_strings[i], regs[j]);
+					LOG_DEBUG("writing register %i of mode %s with value 0x%8.8x", j, armv4_5_mode_strings[i], regs[j]);
 				}
 			}
 			
@@ -1357,7 +1357,7 @@ int arm7_9_restore_context(target_t *target)
 			reg_arch_info = reg->arch_info;
 			if ((reg->dirty) && (reg_arch_info->mode != ARMV4_5_MODE_ANY))
 			{
-				DEBUG("writing SPSR of mode %i with value 0x%8.8x", i, buf_get_u32(reg->value, 0, 32));
+				LOG_DEBUG("writing SPSR of mode %i with value 0x%8.8x", i, buf_get_u32(reg->value, 0, 32));
 				arm7_9->write_xpsr(target, buf_get_u32(reg->value, 0, 32), 1);
 			}
 		}
@@ -1371,20 +1371,20 @@ int arm7_9_restore_context(target_t *target)
 		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
 		tmp_cpsr |= armv4_5_number_to_mode(i);
 		tmp_cpsr &= ~0x20;
-		DEBUG("writing lower 8 bit of cpsr with value 0x%2.2x", tmp_cpsr);
+		LOG_DEBUG("writing lower 8 bit of cpsr with value 0x%2.2x", tmp_cpsr);
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 	}
 	else if (armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty == 1)
 	{
 		/* CPSR has been changed, full restore necessary (mask T bit) */
-		DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
+		LOG_DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
 		arm7_9->write_xpsr(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32) & ~0x20, 0);
 		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 0;
 		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
 	}
 	
 	/* restore PC */
-	DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+	LOG_DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 	arm7_9->write_pc(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 	armv4_5->core_cache->reg_list[15].dirty = 0;
 			
@@ -1467,11 +1467,11 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int err;
 	
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -1489,10 +1489,10 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	{
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
 		{
-			DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
 			arm7_9_unset_breakpoint(target, breakpoint);
 			
-			DEBUG("enable single-step");
+			LOG_DEBUG("enable single-step");
 			arm7_9->enable_single_step(target);
 			
 			target->debug_reason = DBG_REASON_SINGLESTEP;
@@ -1507,7 +1507,7 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 			}
 			else
 			{
-				ERROR("unhandled core state");
+				LOG_ERROR("unhandled core state");
 				exit(-1);
 			}
 				
@@ -1515,7 +1515,7 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 			embeddedice_write_reg(dbg_ctrl, buf_get_u32(dbg_ctrl->value, 0, dbg_ctrl->size));
 			err = arm7_9_execute_sys_speed(target);
 			
-			DEBUG("disable single-step");
+			LOG_DEBUG("disable single-step");
 			arm7_9->disable_single_step(target);
 
 			if (err != ERROR_OK)
@@ -1526,9 +1526,9 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 			}
 
 			arm7_9_debug_entry(target);
-			DEBUG("new PC after step: 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+			LOG_DEBUG("new PC after step: 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 
-			DEBUG("set breakpoint at 0x%8.8x", breakpoint->address);
+			LOG_DEBUG("set breakpoint at 0x%8.8x", breakpoint->address);
 			arm7_9_set_breakpoint(target, breakpoint);
 		}
 	}
@@ -1549,7 +1549,7 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	}
 	else
 	{
-		ERROR("unhandled core state");
+		LOG_ERROR("unhandled core state");
 		exit(-1);
 	}
 	
@@ -1577,7 +1577,7 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
 	}
 	
-	DEBUG("target resumed");
+	LOG_DEBUG("target resumed");
 	
 	return ERROR_OK;
 }
@@ -1627,7 +1627,7 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -1656,7 +1656,7 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	}
 	else
 	{
-		ERROR("unhandled core state");
+		LOG_ERROR("unhandled core state");
 		exit(-1);
 	}
 	
@@ -1674,7 +1674,7 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	} else {
 		arm7_9_debug_entry(target);
 		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-		DEBUG("target stepped");
+		LOG_DEBUG("target stepped");
 	}
 	
 	if (breakpoint)
@@ -1729,7 +1729,7 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		ERROR("JTAG failure");
+		LOG_ERROR("JTAG failure");
 		exit(-1);
 	}
 		
@@ -1818,11 +1818,11 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	int retval;
 	int last_reg = 0;
 	
-	DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
+	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1923,7 +1923,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 			}	
 			break;
 		default:
-			ERROR("BUG: we shouldn't get here");
+			LOG_ERROR("BUG: we shouldn't get here");
 			exit(-1);
 			break;
 	}
@@ -1934,13 +1934,13 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	arm7_9->read_xpsr(target, &cpsr, 0);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		ERROR("JTAG error while reading cpsr");
+		LOG_ERROR("JTAG error while reading cpsr");
 		return ERROR_TARGET_DATA_ABORT;
 	}
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
 	{
-		WARNING("memory read caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
+		LOG_WARNING("memory read caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
 
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
@@ -1965,12 +1965,12 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	int last_reg = 0;
 
 #ifdef _DEBUG_ARM7_9_
-	DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
+	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 #endif
 
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2086,7 +2086,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 			}	
 			break;
 		default:
-			ERROR("BUG: we shouldn't get here");
+			LOG_ERROR("BUG: we shouldn't get here");
 			exit(-1);
 			break;
 	}
@@ -2101,13 +2101,13 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	arm7_9->read_xpsr(target, &cpsr, 0);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		ERROR("JTAG error while reading cpsr");
+		LOG_ERROR("JTAG error while reading cpsr");
 		return ERROR_TARGET_DATA_ABORT;
 	}
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
 	{
-		WARNING("memory write caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
+		LOG_WARNING("memory write caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
 
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
@@ -2144,7 +2144,7 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, 24, &arm7_9->dcc_working_area) != ERROR_OK)
 		{
-			INFO("no working area available, falling back to memory writes");
+			LOG_INFO("no working area available, falling back to memory writes");
 			return target->type->write_memory(target, address, 4, count, buffer);
 		}
 		
@@ -2216,7 +2216,7 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	}
 	if (i == 100)
 	{
-		ERROR("bulk write timed out, target not halted");
+		LOG_ERROR("bulk write timed out, target not halted");
 		return ERROR_TARGET_TIMEOUT;
 	}
 	
@@ -2294,7 +2294,7 @@ int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 	if ((retval = target->type->run_algorithm(target, 0, NULL, 2, reg_params,
 		crc_algorithm->address, crc_algorithm->address + (sizeof(arm7_9_crc_code) - 8), 20000, &armv4_5_info)) != ERROR_OK)
 	{
-		ERROR("error executing arm7_9 crc algorithm");
+		LOG_ERROR("error executing arm7_9 crc algorithm");
 		destroy_reg_param(&reg_params[0]);
 		destroy_reg_param(&reg_params[1]);
 		target_free_working_area(target, crc_algorithm);
@@ -2377,7 +2377,7 @@ int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cm
 	arm7_9->write_xpsr(target, value, spsr);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		ERROR("JTAG error while writing to xpsr");
+		LOG_ERROR("JTAG error while writing to xpsr");
 		return retval;
 	}
 	
@@ -2419,7 +2419,7 @@ int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char
 	arm7_9->write_xpsr_im8(target, value, rotate, spsr);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		ERROR("JTAG error while writing 8-bit immediate to xpsr");
+		LOG_ERROR("JTAG error while writing 8-bit immediate to xpsr");
 		return retval;
 	}
 	

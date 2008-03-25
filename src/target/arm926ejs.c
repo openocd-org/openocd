@@ -108,7 +108,7 @@ int arm926ejs_catch_broken_irscan(u8 *captured, void *priv, scan_field_t *field)
 	}
 	else if ((t == 0x0f) || (t == 0x00))
 	{
-		DEBUG("caught ARM926EJ-S invalid Capture-IR result after CP15 access");
+		LOG_DEBUG("caught ARM926EJ-S invalid Capture-IR result after CP15 access");
 		return ERROR_OK;
 	}
 	return ERROR_JTAG_QUEUE_FAILED;;
@@ -189,7 +189,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	} while (buf_get_u32(&access, 0, 1) != 1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	DEBUG("addr: 0x%x value: %8.8x", address, *value);
+	LOG_DEBUG("addr: 0x%x value: %8.8x", address, *value);
 #endif
 	
 	arm_jtag_set_instr(jtag_info, 0xc, &arm926ejs_catch_broken_irscan);
@@ -268,7 +268,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	} while (buf_get_u32(&access, 0, 1) != 1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	DEBUG("addr: 0x%x value: %8.8x", address, value);
+	LOG_DEBUG("addr: 0x%x value: %8.8x", address, value);
 #endif
 
 	arm_jtag_set_instr(jtag_info, 0xf, &arm926ejs_catch_broken_irscan);
@@ -293,50 +293,50 @@ int arm926ejs_examine_debug_reason(target_t *target)
 	switch (debug_reason)
 	{
 		case 1:
-			DEBUG("breakpoint from EICE unit 0");
+			LOG_DEBUG("breakpoint from EICE unit 0");
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case 2:
-			DEBUG("breakpoint from EICE unit 1");
+			LOG_DEBUG("breakpoint from EICE unit 1");
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case 3:
-			DEBUG("soft breakpoint (BKPT instruction)");
+			LOG_DEBUG("soft breakpoint (BKPT instruction)");
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case 4:
-			DEBUG("vector catch breakpoint");
+			LOG_DEBUG("vector catch breakpoint");
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case 5:
-			DEBUG("external breakpoint");
+			LOG_DEBUG("external breakpoint");
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case 6:
-			DEBUG("watchpoint from EICE unit 0");
+			LOG_DEBUG("watchpoint from EICE unit 0");
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 			break;
 		case 7:
-			DEBUG("watchpoint from EICE unit 1");
+			LOG_DEBUG("watchpoint from EICE unit 1");
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 			break;
 		case 8:
-			DEBUG("external watchpoint");
+			LOG_DEBUG("external watchpoint");
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 			break;
 		case 9:
-			DEBUG("internal debug request");
+			LOG_DEBUG("internal debug request");
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
 		case 10:
-			DEBUG("external debug request");
+			LOG_DEBUG("external debug request");
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
 		case 11:
-			ERROR("BUG: debug re-entry from system speed access shouldn't be handled here");
+			LOG_ERROR("BUG: debug re-entry from system speed access shouldn't be handled here");
 			break;
 		default:
-			ERROR("BUG: unknown debug reason: 0x%x", debug_reason);
+			LOG_ERROR("BUG: unknown debug reason: 0x%x", debug_reason);
 			target->debug_reason = DBG_REASON_DBGRQ;
 			retval = ERROR_TARGET_FAILURE;
 			break;
@@ -445,7 +445,7 @@ void arm926ejs_post_debug_entry(target_t *target)
 	/* examine cp15 control reg */
 	arm926ejs->read_cp15(target, 0, 0, 1, 0, &arm926ejs->cp15_control_reg);
 	jtag_execute_queue();
-	DEBUG("cp15_control_reg: %8.8x", arm926ejs->cp15_control_reg);
+	LOG_DEBUG("cp15_control_reg: %8.8x", arm926ejs->cp15_control_reg);
 
 	if (arm926ejs->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
@@ -465,7 +465,7 @@ void arm926ejs_post_debug_entry(target_t *target)
 	arm926ejs->read_cp15(target, 0, 1, 5, 0, &arm926ejs->i_fsr);
 	arm926ejs->read_cp15(target, 0, 0, 6, 0, &arm926ejs->d_far);
 	
-	DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x",
+	LOG_DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x",
 		arm926ejs->d_fsr, arm926ejs->d_far, arm926ejs->i_fsr);  
 
 
@@ -551,11 +551,11 @@ int arm926ejs_arch_state(struct target_s *target)
 	
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
-		ERROR("BUG: called for a non-ARMv4/5 target");
+		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
 		exit(-1);
 	}
 	
-	USER(
+	LOG_USER(
 			"target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s",
@@ -706,7 +706,7 @@ int arm926ejs_target_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	
 	if (argc < 4)
 	{
-		ERROR("'target arm926ejs' requires at least one additional argument");
+		LOG_ERROR("'target arm926ejs' requires at least one additional argument");
 		exit(-1);
 	}
 	
@@ -715,7 +715,7 @@ int arm926ejs_target_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	if (argc >= 5)
 		variant = args[4];
 	
-	DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
+	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
 	
 	arm926ejs_init_arch_info(target, arm926ejs, chain_pos, variant);
 
@@ -937,7 +937,7 @@ static int arm926ejs_mmu(struct target_s *target, int *enabled)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("Target not halted");
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_INVALID;
 	}
 	*enabled = arm926ejs->armv4_5_mmu.mmu_enabled;

@@ -211,7 +211,7 @@ target_t* get_current_target(command_context_t *cmd_ctx)
 	
 	if (target == NULL)
 	{
-		ERROR("BUG: current_target out of bounds");
+		LOG_ERROR("BUG: current_target out of bounds");
 		exit(-1);
 	}
 	
@@ -233,11 +233,11 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 		script = open_file_from_path(target->reset_script, "r");
 		if (!script)
 		{
-			ERROR("couldn't open script file %s", target->reset_script);
+			LOG_ERROR("couldn't open script file %s", target->reset_script);
 				return ERROR_OK;
 		}
 
-		INFO("executing reset script '%s'", target->reset_script);
+		LOG_INFO("executing reset script '%s'", target->reset_script);
 		command_run_file(cmd_ctx, script, COMMAND_EXEC);
 		fclose(script);
 
@@ -330,7 +330,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 				target_register_event_callback(target_init_handler, cmd_ctx);
 				break;
 			default:
-				ERROR("BUG: unknown target->reset_mode");
+				LOG_ERROR("BUG: unknown target->reset_mode");
 		}
 		target = target->next;
 	}
@@ -362,12 +362,12 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 				{
 					if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 					{
-						USER("Timed out waiting for reset");
+						LOG_USER("Timed out waiting for reset");
 						goto done;
 					}
 					/* this will send alive messages on e.g. GDB remote protocol. */
 					usleep(500*1000); 
-					USER_N("%s", ""); /* avoid warning about zero length formatting message*/ 
+					LOG_USER_N("%s", ""); /* avoid warning about zero length formatting message*/ 
 					goto again;
 				}
 			}
@@ -409,7 +409,7 @@ int target_init(struct command_context_s *cmd_ctx)
 	{
 		if (target->type->init_target(cmd_ctx, target) != ERROR_OK)
 		{
-			ERROR("target '%s' init failed", target->type->name);
+			LOG_ERROR("target '%s' init failed", target->type->name);
 			exit(-1);
 		}
 		
@@ -563,7 +563,7 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 	target_event_callback_t *callback = target_event_callbacks;
 	target_event_callback_t *next_callback;
 	
-	DEBUG("target event %i", event);
+	LOG_DEBUG("target event %i", event);
 	
 	while (callback)
 	{
@@ -651,7 +651,7 @@ int target_alloc_working_area(struct target_s *target, u32 size, working_area_t 
 	/* only allocate multiples of 4 byte */
 	if (size % 4)
 	{
-		ERROR("BUG: code tried to allocate unaligned number of bytes, padding");
+		LOG_ERROR("BUG: code tried to allocate unaligned number of bytes, padding");
 		size = CEIL(size, 4);
 	}
 	
@@ -673,7 +673,7 @@ int target_alloc_working_area(struct target_s *target, u32 size, working_area_t 
 		u32 first_free = target->working_area;
 		u32 free_size = target->working_area_size;
 		
-		DEBUG("allocating new working area");
+		LOG_DEBUG("allocating new working area");
 		
 		c = target->working_areas;
 		while (c)
@@ -686,7 +686,7 @@ int target_alloc_working_area(struct target_s *target, u32 size, working_area_t 
 		
 		if (free_size < size)
 		{
-			WARNING("not enough working area available(requested %d, free %d)", size, free_size);
+			LOG_WARNING("not enough working area available(requested %d, free %d)", size, free_size);
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		
@@ -777,11 +777,11 @@ int target_arch_state(struct target_s *target)
 	int retval;
 	if (target==NULL)
 	{
-		USER("No target has been configured");
+		LOG_USER("No target has been configured");
 		return ERROR_OK;
 	}
 	
-	USER("target state: %s", target_state_strings[target->state]);
+	LOG_USER("target state: %s", target_state_strings[target->state]);
 	
 	if (target->state!=TARGET_HALTED)
 		return ERROR_OK;
@@ -798,7 +798,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 {
 	int retval;
 	
-	DEBUG("writing buffer of %i byte at 0x%8.8x", size, address);
+	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x", size, address);
 	
 	if (((address % 2) == 0) && (size == 2))
 	{
@@ -862,7 +862,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 {
 	int retval;
 	
-	DEBUG("reading buffer of %i byte at 0x%8.8x", size, address);
+	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x", size, address);
 	
 	if (((address % 2) == 0) && (size == 2))
 	{
@@ -921,7 +921,7 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 		buffer = malloc(size);
 		if (buffer == NULL)
 		{
-			ERROR("error allocating buffer for section (%d bytes)", size);
+			LOG_ERROR("error allocating buffer for section (%d bytes)", size);
 			return ERROR_INVALID_ARGUMENTS;
 		}
 		retval = target_read_buffer(target, address, size, buffer);
@@ -957,12 +957,12 @@ int target_read_u32(struct target_s *target, u32 address, u32 *value)
 	if (retval == ERROR_OK)
 	{
 		*value = target_buffer_get_u32(target, value_buf);
-		DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, *value);
+		LOG_DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, *value);
 	}
 	else
 	{
 		*value = 0x0;
-		DEBUG("address: 0x%8.8x failed", address);
+		LOG_DEBUG("address: 0x%8.8x failed", address);
 	}
 	
 	return retval;
@@ -977,12 +977,12 @@ int target_read_u16(struct target_s *target, u32 address, u16 *value)
 	if (retval == ERROR_OK)
 	{
 		*value = target_buffer_get_u16(target, value_buf);
-		DEBUG("address: 0x%8.8x, value: 0x%4.4x", address, *value);
+		LOG_DEBUG("address: 0x%8.8x, value: 0x%4.4x", address, *value);
 	}
 	else
 	{
 		*value = 0x0;
-		DEBUG("address: 0x%8.8x failed", address);
+		LOG_DEBUG("address: 0x%8.8x failed", address);
 	}
 	
 	return retval;
@@ -994,12 +994,12 @@ int target_read_u8(struct target_s *target, u32 address, u8 *value)
 
 	if (retval == ERROR_OK)
 	{
-		DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, *value);
+		LOG_DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, *value);
 	}
 	else
 	{
 		*value = 0x0;
-		DEBUG("address: 0x%8.8x failed", address);
+		LOG_DEBUG("address: 0x%8.8x failed", address);
 	}
 	
 	return retval;
@@ -1010,12 +1010,12 @@ int target_write_u32(struct target_s *target, u32 address, u32 value)
 	int retval;
 	u8 value_buf[4];
 
-	DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
+	LOG_DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
 
 	target_buffer_set_u32(target, value_buf, value);	
 	if ((retval = target->type->write_memory(target, address, 4, 1, value_buf)) != ERROR_OK)
 	{
-		DEBUG("failed: %i", retval);
+		LOG_DEBUG("failed: %i", retval);
 	}
 	
 	return retval;
@@ -1026,12 +1026,12 @@ int target_write_u16(struct target_s *target, u32 address, u16 value)
 	int retval;
 	u8 value_buf[2];
 	
-	DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
+	LOG_DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
 
 	target_buffer_set_u16(target, value_buf, value);	
 	if ((retval = target->type->write_memory(target, address, 2, 1, value_buf)) != ERROR_OK)
 	{
-		DEBUG("failed: %i", retval);
+		LOG_DEBUG("failed: %i", retval);
 	}
 	
 	return retval;
@@ -1041,11 +1041,11 @@ int target_write_u8(struct target_s *target, u32 address, u8 value)
 {
 	int retval;
 	
-	DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, value);
+	LOG_DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, value);
 
 	if ((retval = target->type->read_memory(target, address, 1, 1, &value)) != ERROR_OK)
 	{
-		DEBUG("failed: %i", retval);
+		LOG_DEBUG("failed: %i", retval);
 	}
 	
 	return retval;
@@ -1141,7 +1141,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				/* register target specific commands */
 				if (target_types[i]->register_commands(cmd_ctx) != ERROR_OK)
 				{
-					ERROR("couldn't register '%s' commands", args[0]);
+					LOG_ERROR("couldn't register '%s' commands", args[0]);
 					exit(-1);
 				}
 
@@ -1162,7 +1162,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 					(*last_target_p)->endianness = TARGET_LITTLE_ENDIAN;
 				else
 				{
-					ERROR("endianness must be either 'little' or 'big', not '%s'", args[1]);
+					LOG_ERROR("endianness must be either 'little' or 'big', not '%s'", args[1]);
 					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				
@@ -1179,7 +1179,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 					(*last_target_p)->reset_mode = RESET_RUN_AND_INIT;
 				else
 				{
-					ERROR("unknown target startup mode %s", args[2]);
+					LOG_ERROR("unknown target startup mode %s", args[2]);
 					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				(*last_target_p)->run_and_halt_time = 1000; /* default 1s */
@@ -1226,7 +1226,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	/* no matching target found */
 	if (!found)
 	{
-		ERROR("target '%s' not found", args[0]);
+		LOG_ERROR("target '%s' not found", args[0]);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1240,7 +1240,7 @@ int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, c
 	
 	if (argc < 3)
 	{
-		ERROR("incomplete target_script command");
+		LOG_ERROR("incomplete target_script command");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
@@ -1277,7 +1277,7 @@ int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, c
 	}
 	else
 	{
-		ERROR("unknown event type: '%s", args[1]);
+		LOG_ERROR("unknown event type: '%s", args[1]);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
@@ -1337,7 +1337,7 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	}
 	else
 	{
-		ERROR("unrecognized <backup|nobackup> argument (%s)", args[3]);
+		LOG_ERROR("unrecognized <backup|nobackup> argument (%s)", args[3]);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
@@ -1359,7 +1359,7 @@ int handle_target(void *priv)
 			if (target_continous_poll)
 				if ((retval = target->type->poll(target)) != ERROR_OK)
 				{
-					ERROR("couldn't poll target(%d). It's due for a reset.", retval);
+					LOG_ERROR("couldn't poll target(%d). It's due for a reset.", retval);
 				}
 		}
 	
@@ -1376,7 +1376,7 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	int count = 0;
 	char *value;
 	
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	target = get_current_target(cmd_ctx);
 	
@@ -1451,7 +1451,7 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 			reg_arch_type_t *arch_type = register_get_arch_type(reg->arch_type);
 			if (arch_type == NULL)
 			{
-				ERROR("BUG: encountered unregistered arch type");
+				LOG_ERROR("BUG: encountered unregistered arch type");
 				return ERROR_OK;
 			}
 			arch_type->get(reg);
@@ -1471,7 +1471,7 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 		reg_arch_type_t *arch_type = register_get_arch_type(reg->arch_type);
 		if (arch_type == NULL)
 		{
-			ERROR("BUG: encountered unregistered arch type");
+			LOG_ERROR("BUG: encountered unregistered arch type");
 			return ERROR_OK;
 		}
 		
@@ -1575,7 +1575,7 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
-			ERROR("timed out while waiting for target %s", target_state_strings[state]);
+			LOG_ERROR("timed out while waiting for target %s", target_state_strings[state]);
 			break;
 		}
 	}
@@ -1588,7 +1588,7 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
 
-	DEBUG("-");
+	LOG_DEBUG("-");
 
 	if ((retval = target->type->halt(target)) != ERROR_OK)
 	{
@@ -1615,7 +1615,7 @@ int handle_daemon_startup_command(struct command_context_s *cmd_ctx, char *cmd, 
 		}
 	}
 	
-	WARNING("invalid daemon_startup configuration directive: %s", args[0]);
+	LOG_WARNING("invalid daemon_startup configuration directive: %s", args[0]);
 	return ERROR_OK;
 
 }
@@ -1624,7 +1624,7 @@ int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd,
 {
 	target_t *target = get_current_target(cmd_ctx);
 	
-	USER("requesting target halt and executing a soft reset");
+	LOG_USER("requesting target halt and executing a soft reset");
 	
 	target->type->soft_reset_halt(target);
 	
@@ -1637,7 +1637,7 @@ int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	enum target_reset_mode reset_mode = target->reset_mode;
 	enum target_reset_mode save = target->reset_mode;
 	
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	if (argc >= 1)
 	{
@@ -1705,7 +1705,7 @@ int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 {
 	target_t *target = get_current_target(cmd_ctx);
 	
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	if (argc == 0)
 		target->type->step(target, 1, 0, 1); /* current pc, addr = 0, handle breakpoints */
@@ -1789,7 +1789,7 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 		}
 	} else
 	{
-		ERROR("Failure examining memory");
+		LOG_ERROR("Failure examining memory");
 	}
 
 	free(buffer);
@@ -1830,7 +1830,7 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	}
 	if (retval!=ERROR_OK)
 	{
-		ERROR("Failure examining memory");
+		LOG_ERROR("Failure examining memory");
 	}
 
 	return ERROR_OK;
@@ -2012,7 +2012,7 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	
 	if (!target)
 	{
-		ERROR("no target selected");
+		LOG_ERROR("no target selected");
 		return ERROR_OK;
 	}
 	
@@ -2152,7 +2152,7 @@ int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 
 		if ((retval = breakpoint_add(target, strtoul(args[0], NULL, 0), length, hw)) != ERROR_OK)
 		{
-			ERROR("Failure setting breakpoints");
+			LOG_ERROR("Failure setting breakpoints");
 		}
 		else
 		{
@@ -2228,7 +2228,7 @@ int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 		if ((retval = watchpoint_add(target, strtoul(args[0], NULL, 0),
 				strtoul(args[1], NULL, 0), type, data_value, data_mask)) != ERROR_OK)
 		{
-			ERROR("Failure setting breakpoints");
+			LOG_ERROR("Failure setting breakpoints");
 		}
 	}
 	else

@@ -50,7 +50,7 @@ void bitbang_end_state(enum tap_state state)
 		end_state = state;
 	else
 	{
-		ERROR("BUG: %i is not a valid end state", state);
+		LOG_ERROR("BUG: %i is not a valid end state", state);
 		exit(-1);
 	}
 }
@@ -90,7 +90,7 @@ void bitbang_path_move(pathmove_command_t *cmd)
 		}
 		else
 		{
-			ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
 			exit(-1);
 		}
 		
@@ -234,7 +234,7 @@ int bitbang_execute_queue(void)
 	
 	if (!bitbang_interface)
 	{
-		ERROR("BUG: Bitbang interface called, but not yet initialized");
+		LOG_ERROR("BUG: Bitbang interface called, but not yet initialized");
 		exit(-1);
 	}
 	
@@ -252,14 +252,14 @@ int bitbang_execute_queue(void)
 		{
 			case JTAG_END_STATE:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
+				LOG_DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
 #endif
 				if (cmd->cmd.end_state->end_state != -1)
 					bitbang_end_state(cmd->cmd.end_state->end_state);
 				break;
 			case JTAG_RESET:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+				LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 #endif
 				if (cmd->cmd.reset->trst == 1)
 				{
@@ -269,7 +269,7 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
+				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
 #endif
 				if (cmd->cmd.runtest->end_state != -1)
 					bitbang_end_state(cmd->cmd.runtest->end_state);
@@ -277,7 +277,7 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_STATEMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
+				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif
 				if (cmd->cmd.statemove->end_state != -1)
 					bitbang_end_state(cmd->cmd.statemove->end_state);
@@ -285,13 +285,13 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+				LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 #endif
 				bitbang_path_move(cmd->cmd.pathmove);
 				break;
 			case JTAG_SCAN:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("%s scan end in %i",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", cmd->cmd.scan->end_state);
+				LOG_DEBUG("%s scan end in %i",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", cmd->cmd.scan->end_state);
 #endif
 				if (cmd->cmd.scan->end_state != -1)
 					bitbang_end_state(cmd->cmd.scan->end_state);
@@ -305,12 +305,12 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_SLEEP:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("sleep %i", cmd->cmd.sleep->us);
+				LOG_DEBUG("sleep %i", cmd->cmd.sleep->us);
 #endif
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
 			default:
-				ERROR("BUG: unknown JTAG command type encountered");
+				LOG_ERROR("BUG: unknown JTAG command type encountered");
 				exit(-1);
 		}
 		cmd = cmd->next;

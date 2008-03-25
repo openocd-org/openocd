@@ -103,7 +103,7 @@ int cortex_m3_clear_halt(target_t *target)
     ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
     /* Write Debug Fault Status Register to enable processing to resume ?? Try with and without this !! */
     ahbap_write_system_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
-    DEBUG(" NVIC_DFSR 0x%x", cortex_m3->nvic_dfsr);
+    LOG_DEBUG(" NVIC_DFSR 0x%x", cortex_m3->nvic_dfsr);
 
     return ERROR_OK;
 }
@@ -119,7 +119,7 @@ int cortex_m3_single_step_core(target_t *target)
 		ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_HALT | C_DEBUGEN );
 	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_STEP | C_DEBUGEN );
 	cortex_m3->dcb_dhcsr |= C_MASKINTS;
-	DEBUG(" ");
+	LOG_DEBUG(" ");
 	cortex_m3_clear_halt(target);
 	
 	return ERROR_OK;
@@ -171,7 +171,7 @@ int cortex_m3_endreset_event(target_t *target)
 	cortex_m3_dwt_comparator_t *dwt_list = cortex_m3->dwt_comparator_list;
 
 	ahbap_read_system_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
-	DEBUG("DCB_DEMCR = 0x%8.8x",dcb_demcr);
+	LOG_DEBUG("DCB_DEMCR = 0x%8.8x",dcb_demcr);
 	
 	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
 	
@@ -284,7 +284,7 @@ int cortex_m3_examine_exception_reason(target_t *target)
 			break;
 	}
 	swjdp_transaction_endcheck(swjdp);
-    DEBUG("%s SHCSR 0x%x, SR 0x%x, CFSR 0x%x, AR 0x%x", armv7m_exception_string(armv7m->exception_number), \
+    LOG_DEBUG("%s SHCSR 0x%x, SR 0x%x, CFSR 0x%x, AR 0x%x", armv7m_exception_string(armv7m->exception_number), \
     	shcsr, except_sr, cfsr, except_ar);
 	return ERROR_OK;
 }
@@ -300,7 +300,7 @@ int cortex_m3_debug_entry(target_t *target)
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 
-	DEBUG(" ");
+	LOG_DEBUG(" ");
 	if (armv7m->pre_debug_entry)
 		armv7m->pre_debug_entry(target);
 
@@ -342,7 +342,7 @@ int cortex_m3_debug_entry(target_t *target)
 		cortex_m3_examine_exception_reason(target);
 	}
 
-	DEBUG("entered debug state in core mode: %s at PC 0x%x, target->state: %s", armv7m_mode_strings[armv7m->core_mode], \
+	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%x, target->state: %s", armv7m_mode_strings[armv7m->core_mode], \
 		*(u32*)(armv7m->core_cache->reg_list[15].value), target_state_strings[target->state]);
 
 	if (armv7m->post_debug_entry)
@@ -384,7 +384,7 @@ int cortex_m3_poll(target_t *target)
 	if (target->state == TARGET_RESET)
 	{
 		/* Cannot switch context while running so endreset is called with target->state == TARGET_RESET */
-		DEBUG("Exit from reset with dcb_dhcsr 0x%x", cortex_m3->dcb_dhcsr);
+		LOG_DEBUG("Exit from reset with dcb_dhcsr 0x%x", cortex_m3->dcb_dhcsr);
 		cortex_m3_endreset_event(target);
 		target->state = TARGET_RUNNING;
 		prev_target_state = TARGET_RUNNING;
@@ -403,7 +403,7 @@ int cortex_m3_poll(target_t *target)
 		}
 		if (prev_target_state == TARGET_DEBUG_RUNNING)
 		{
-			DEBUG(" ");
+			LOG_DEBUG(" ");
 			if ((retval = cortex_m3_debug_entry(target)) != ERROR_OK)
 				return retval;
 
@@ -418,7 +418,7 @@ int cortex_m3_poll(target_t *target)
 
     /* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
     ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-	DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, target_state_strings[target->state]);	
+	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, target_state_strings[target->state]);	
 	return ERROR_OK;
 }
 
@@ -429,24 +429,24 @@ int cortex_m3_halt(target_t *target)
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	
-	DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
 	if (target->state == TARGET_HALTED)
 	{
-		WARNING("target was already halted");
+		LOG_WARNING("target was already halted");
 		return ERROR_OK;
 	}
 	
 	if (target->state == TARGET_UNKNOWN)
 	{
-		WARNING("target was in unknown state when halt was requested");
+		LOG_WARNING("target was in unknown state when halt was requested");
 	}
 	
 	if (target->state == TARGET_RESET) 
 	{
 		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) && jtag_srst)
 		{
-			ERROR("can't request a halt while in reset if nSRST pulls nTRST");
+			LOG_ERROR("can't request a halt while in reset if nSRST pulls nTRST");
 			return ERROR_TARGET_FAILURE;
 		}
 		else
@@ -480,7 +480,7 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 	/* Check that we are using process_context, or change and print warning */
 	if (armv7m_get_context(target) != ARMV7M_PROCESS_CONTEXT)
 	{
-		DEBUG("Changing to process contex registers");
+		LOG_DEBUG("Changing to process contex registers");
 		armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
 	}
 
@@ -502,12 +502,12 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 		    ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
 			if ((dcb_dhcsr & S_HALT) && (cortex_m3->nvic_dfsr & DFSR_VCATCH))
 			{
-				DEBUG("system reset-halted, dcb_dhcsr 0x%x, nvic_dfsr 0x%x", dcb_dhcsr, cortex_m3->nvic_dfsr);
+				LOG_DEBUG("system reset-halted, dcb_dhcsr 0x%x, nvic_dfsr 0x%x", dcb_dhcsr, cortex_m3->nvic_dfsr);
 				cortex_m3_poll(target);
 				return ERROR_OK;
 			}
 			else
-				DEBUG("waiting for system reset-halt, dcb_dhcsr 0x%x, %i ms", dcb_dhcsr, timeout);
+				LOG_DEBUG("waiting for system reset-halt, dcb_dhcsr 0x%x, %i ms", dcb_dhcsr, timeout);
 		}
 		timeout++;
 		usleep(1000);
@@ -533,7 +533,7 @@ int cortex_m3_prepare_reset_halt(struct target_s *target)
 	
 	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
 	ahbap_read_system_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
-	DEBUG("dcb_dhcsr 0x%x, dcb_demcr 0x%x, ", dcb_dhcsr, dcb_demcr);
+	LOG_DEBUG("dcb_dhcsr 0x%x, dcb_demcr 0x%x, ", dcb_dhcsr, dcb_demcr);
 	
 	return ERROR_OK;
 }
@@ -549,7 +549,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -558,7 +558,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 		/* Check that we are using process_context, or change and print warning */
 		if (armv7m_get_context(target) != ARMV7M_PROCESS_CONTEXT)
 		{
-			DEBUG("Incorrect context in resume");
+			LOG_DEBUG("Incorrect context in resume");
 			armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
 		}
 		
@@ -575,7 +575,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 		/* Check that we are using debug_context, or change and print warning */
 		if (armv7m_get_context(target) != ARMV7M_DEBUG_CONTEXT)
 		{
-			DEBUG("Incorrect context in debug_exec resume");
+			LOG_DEBUG("Incorrect context in debug_exec resume");
 			armv7m_use_context(target, ARMV7M_DEBUG_CONTEXT);
 		}
 		/* Disable interrupts */
@@ -608,7 +608,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 		/* Single step past breakpoint at current address */
 		if ((breakpoint = breakpoint_find(target, resume_pc)))
 		{
-				DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
+				LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
 				cortex_m3_unset_breakpoint(target, breakpoint);
 				cortex_m3_single_step_core(target);
 				cortex_m3_set_breakpoint(target, breakpoint);
@@ -629,13 +629,13 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 	{
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		DEBUG("target resumed at 0x%x",resume_pc);
+		LOG_DEBUG("target resumed at 0x%x",resume_pc);
 	}
 	else
 	{
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		DEBUG("target debug resumed at 0x%x",resume_pc);
+		LOG_DEBUG("target debug resumed at 0x%x",resume_pc);
 	}
 	
 	return ERROR_OK;
@@ -652,14 +652,14 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
 	/* Check that we are using process_context, or change and print warning */
 	if (armv7m_get_context(target) != ARMV7M_PROCESS_CONTEXT)
 	{
-		WARNING("Incorrect context in step, must be process");
+		LOG_WARNING("Incorrect context in step, must be process");
 		armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
 	}
 
@@ -690,12 +690,12 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);
 
-	DEBUG("target stepped dcb_dhcsr = 0x%x nvic_icsr = 0x%x", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
+	LOG_DEBUG("target stepped dcb_dhcsr = 0x%x nvic_icsr = 0x%x", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
 
 	cortex_m3_debug_entry(target);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	DEBUG("target stepped dcb_dhcsr = 0x%x nvic_icsr = 0x%x", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
+	LOG_DEBUG("target stepped dcb_dhcsr = 0x%x nvic_icsr = 0x%x", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
 	return ERROR_OK;
 }
 
@@ -706,7 +706,7 @@ int cortex_m3_assert_reset(target_t *target)
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	
-	DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
 	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
 	
@@ -735,7 +735,7 @@ int cortex_m3_assert_reset(target_t *target)
 			}
 			else
 			{
-				ERROR("unknown error");
+				LOG_ERROR("unknown error");
 				exit(-1);
 			}
 		}
@@ -763,7 +763,7 @@ int cortex_m3_assert_reset(target_t *target)
 			}
 			else if (retval != ERROR_OK)
 			{
-				ERROR("unknown error");
+				LOG_ERROR("unknown error");
 				exit(-1);
 			}
 		}
@@ -780,7 +780,7 @@ int cortex_m3_assert_reset(target_t *target)
 
 int cortex_m3_deassert_reset(target_t *target)
 {		
-	DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
@@ -819,7 +819,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if (breakpoint->set)
 	{
-		WARNING("breakpoint already set");
+		LOG_WARNING("breakpoint already set");
 		return ERROR_OK;
 	}
 
@@ -834,8 +834,8 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			fp_num++;
 		if (fp_num >= cortex_m3->fp_num_code)
 		{
-			DEBUG("ERROR Can not find free FP Comparator");
-			WARNING("ERROR Can not find free FP Comparator");
+			LOG_DEBUG("ERROR Can not find free FP Comparator");
+			LOG_WARNING("ERROR Can not find free FP Comparator");
 			exit(-1);
 		}
 		breakpoint->set = fp_num + 1;
@@ -843,7 +843,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		comparator_list[fp_num].used = 1;
 		comparator_list[fp_num].fpcr_value = (breakpoint->address & 0x1FFFFFFC) | hilo | 1;
 		target_write_u32(target, comparator_list[fp_num].fpcr_address, comparator_list[fp_num].fpcr_value);
-		DEBUG("fpc_num %i fpcr_value 0x%x", fp_num, comparator_list[fp_num].fpcr_value);
+		LOG_DEBUG("fpc_num %i fpcr_value 0x%x", fp_num, comparator_list[fp_num].fpcr_value);
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
@@ -866,7 +866,7 @@ int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 
 	if (!breakpoint->set)
 	{
-		WARNING("breakpoint not set");
+		LOG_WARNING("breakpoint not set");
 		return ERROR_OK;
 	}
 	
@@ -875,7 +875,7 @@ int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 		int fp_num = breakpoint->set - 1;
 		if ((fp_num < 0) || (fp_num >= cortex_m3->fp_num_code))
 		{
-			DEBUG("Invalid FP Comparator number in breakpoint");
+			LOG_DEBUG("Invalid FP Comparator number in breakpoint");
 			return ERROR_OK;
 		}
 		comparator_list[fp_num].used = 0;
@@ -912,25 +912,25 @@ int cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if ((breakpoint->type == BKPT_HARD) && (breakpoint->address >= 0x20000000))
 	{
-		INFO("flash patch comparator requested outside code memory region");
+		LOG_INFO("flash patch comparator requested outside code memory region");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	if ((breakpoint->type == BKPT_SOFT) && (breakpoint->address < 0x20000000))
 	{
-		INFO("soft breakpoint requested in code (flash) memory region");
+		LOG_INFO("soft breakpoint requested in code (flash) memory region");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	if ((breakpoint->type == BKPT_HARD) && (cortex_m3->fp_code_available < 1))
 	{
-		INFO("no flash patch comparator unit available for hardware breakpoint");
+		LOG_INFO("no flash patch comparator unit available for hardware breakpoint");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	if ((breakpoint->length != 2))
 	{
-		INFO("only breakpoints of two bytes length supported");
+		LOG_INFO("only breakpoints of two bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	
@@ -949,7 +949,7 @@ int cortex_m3_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoin
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -981,7 +981,7 @@ int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 
 	if (watchpoint->set)
 	{
-		WARNING("watchpoint already set");
+		LOG_WARNING("watchpoint already set");
 		return ERROR_OK;
 	}
 
@@ -991,8 +991,8 @@ int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 			dwt_num++;
 		if (dwt_num >= cortex_m3->dwt_num_comp)
 		{
-			DEBUG("ERROR Can not find free DWT Comparator");
-			WARNING("ERROR Can not find free DWT Comparator");
+			LOG_DEBUG("ERROR Can not find free DWT Comparator");
+			LOG_WARNING("ERROR Can not find free DWT Comparator");
 			return -1;
 		}
 		watchpoint->set = dwt_num + 1;
@@ -1010,11 +1010,11 @@ int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address, comparator_list[dwt_num].comp);
 		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address|0x4, comparator_list[dwt_num].mask);
 		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address|0x8, comparator_list[dwt_num].function);
-		DEBUG("dwt_num %i 0x%x 0x%x 0x%x", dwt_num, comparator_list[dwt_num].comp, comparator_list[dwt_num].mask, comparator_list[dwt_num].function);
+		LOG_DEBUG("dwt_num %i 0x%x 0x%x 0x%x", dwt_num, comparator_list[dwt_num].comp, comparator_list[dwt_num].mask, comparator_list[dwt_num].function);
 	}
 	else
 	{
-		WARNING("Cannot watch data values");  /* Move this test to add_watchpoint */
+		LOG_WARNING("Cannot watch data values");  /* Move this test to add_watchpoint */
 		return ERROR_OK;
 	}
 
@@ -1032,7 +1032,7 @@ int cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint
 	
 	if (!watchpoint->set)
 	{
-		WARNING("watchpoint not set");
+		LOG_WARNING("watchpoint not set");
 		return ERROR_OK;
 	}
 
@@ -1040,7 +1040,7 @@ int cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint
 
 	if ((dwt_num < 0) || (dwt_num >= cortex_m3->dwt_num_comp))
 	{
-		DEBUG("Invalid DWT Comparator number in watchpoint");
+		LOG_DEBUG("Invalid DWT Comparator number in watchpoint");
 		return ERROR_OK;
 	}
 	comparator_list[dwt_num].used = 0;
@@ -1060,7 +1060,7 @@ int cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1087,7 +1087,7 @@ int cortex_m3_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoin
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -1129,10 +1129,10 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 		
 		if (retval != ERROR_OK)
 		{
-			ERROR("JTAG failure %i",retval);
+			LOG_ERROR("JTAG failure %i",retval);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		DEBUG("load from core reg %i  value 0x%x",num,*value);
+		LOG_DEBUG("load from core reg %i  value 0x%x",num,*value);
 	}
 	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
 	{
@@ -1152,7 +1152,7 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 		armv7m->core_cache->reg_list[15].dirty = armv7m->core_cache->reg_list[15].valid;
 		ahbap_write_system_u32(swjdp, 0x20000000, savedram);
 		swjdp_transaction_endcheck(swjdp);
-		DEBUG("load from special reg %i value 0x%x", SYSm, *value);
+		LOG_DEBUG("load from special reg %i value 0x%x", SYSm, *value);
 	}
 	else
 	{
@@ -1176,11 +1176,11 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 		retval = ahbap_write_coreregister_u32(swjdp, value, num);
 		if (retval != ERROR_OK)
 		{
-			ERROR("JTAG failure %i", retval);
+			LOG_ERROR("JTAG failure %i", retval);
 			armv7m->core_cache->reg_list[num].dirty = armv7m->core_cache->reg_list[num].valid;
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		DEBUG("write core reg %i value 0x%x", num, value);
+		LOG_DEBUG("write core reg %i value 0x%x", num, value);
 	}
 	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
 	{
@@ -1201,7 +1201,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 		armv7m->core_cache->reg_list[15].dirty = armv7m->core_cache->reg_list[15].valid;
 		ahbap_write_system_u32(swjdp, 0x20000000, savedram);
 		swjdp_transaction_endcheck(swjdp);
-		DEBUG("write special reg %i value 0x%x ", SYSm, value);
+		LOG_DEBUG("write special reg %i value 0x%x ", SYSm, value);
 	}
 	else
 	{
@@ -1237,7 +1237,7 @@ int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 co
 			retval = ahbap_read_buf_u8(swjdp, buffer, count, address);
 			break;
 		default:
-			ERROR("BUG: we shouldn't get here");
+			LOG_ERROR("BUG: we shouldn't get here");
 			exit(-1);
 	}
 	
@@ -1268,7 +1268,7 @@ int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 c
 			retval = ahbap_write_buf_u8(swjdp, buffer, count, address);	
 			break;
 		default:
-			ERROR("BUG: we shouldn't get here");
+			LOG_ERROR("BUG: we shouldn't get here");
 			exit(-1);
 	}
 	
@@ -1301,8 +1301,8 @@ int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 	/* Read from Device Identification Registers */
 	target_read_u32(target, CPUID, &cpuid);
 	if (((cpuid >> 4) & 0xc3f) == 0xc23)
-		DEBUG("CORTEX-M3 processor detected");
-	DEBUG("cpuid: 0x%8.8x", cpuid);
+		LOG_DEBUG("CORTEX-M3 processor detected");
+	LOG_DEBUG("cpuid: 0x%8.8x", cpuid);
 	
 	target_read_u32(target, NVIC_ICTR, &ictr);
 	cortex_m3->intlinesnum = (ictr & 0x1F) + 1;
@@ -1310,7 +1310,7 @@ int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 	for (i = 0; i < cortex_m3->intlinesnum; i++)
 	{
 		target_read_u32(target, NVIC_ISE0 + 4 * i, cortex_m3->intsetenable + i);
-		DEBUG("interrupt enable[%i] = 0x%8.8x", i, cortex_m3->intsetenable[i]);
+		LOG_DEBUG("interrupt enable[%i] = 0x%8.8x", i, cortex_m3->intsetenable[i]);
 	}
 	
 	/* Setup FPB */
@@ -1325,7 +1325,7 @@ int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 		cortex_m3->fp_comparator_list[i].type = (i < cortex_m3->fp_num_code) ? FPCR_CODE : FPCR_LITERAL;
 		cortex_m3->fp_comparator_list[i].fpcr_address = FP_COMP0 + 4 * i;
 	}
-	DEBUG("FPB fpcr 0x%x, numcode %i, numlit %i", fpcr, cortex_m3->fp_num_code, cortex_m3->fp_num_lit);
+	LOG_DEBUG("FPB fpcr 0x%x, numcode %i, numlit %i", fpcr, cortex_m3->fp_num_code, cortex_m3->fp_num_lit);
 		
 	/* Setup DWT */
 	target_read_u32(target, DWT_CTRL, &dwtcr);
@@ -1354,7 +1354,7 @@ int cortex_m3_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
 	*ctrl = (u8)dcrdr;
 	*value = (u8)(dcrdr >> 8);
 	
-	DEBUG("data 0x%x ctrl 0x%x", *value, *ctrl);
+	LOG_DEBUG("data 0x%x ctrl 0x%x", *value, *ctrl);
 	
 	/* write ack back to software dcc register
 	 * signify we have read data */
@@ -1470,7 +1470,7 @@ int cortex_m3_target_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 	if (argc < 4)
 	{
-		ERROR("'target cortex_m3' requires at least one additional argument");
+		LOG_ERROR("'target cortex_m3' requires at least one additional argument");
 		exit(-1);
 	}
 	

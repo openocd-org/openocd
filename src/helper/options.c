@@ -47,7 +47,7 @@ static struct option long_options[] =
 
 int configuration_output_handler(struct command_context_s *context, char* line)
 {
-	INFO_N(line);
+	LOG_INFO_N(line);
 
 	return ERROR_OK;
 }
@@ -111,14 +111,14 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 
 	if (help_flag)
 	{
-		OUTPUT("Open On-Chip Debugger\n(c) 2005-2008 by Dominic Rath\n\n");
-		OUTPUT("--help       | -h\tdisplay this help\n");
-		OUTPUT("--version    | -v\tdisplay OpenOCD version\n");
-		OUTPUT("--file       | -f\tuse configuration file <name>\n");
-		OUTPUT("--search     | -s\tdir to search for config files and scripts\n");
-		OUTPUT("--debug      | -d\tset debug level <0-3>\n");
-		OUTPUT("--log_output | -l\tredirect log output to file <name>\n");
-		OUTPUT("--command    | -c\trun <command>\n");
+		LOG_OUTPUT("Open On-Chip Debugger\n(c) 2005-2008 by Dominic Rath\n\n");
+		LOG_OUTPUT("--help       | -h\tdisplay this help\n");
+		LOG_OUTPUT("--version    | -v\tdisplay OpenOCD version\n");
+		LOG_OUTPUT("--file       | -f\tuse configuration file <name>\n");
+		LOG_OUTPUT("--search     | -s\tdir to search for config files and scripts\n");
+		LOG_OUTPUT("--debug      | -d\tset debug level <0-3>\n");
+		LOG_OUTPUT("--log_output | -l\tredirect log output to file <name>\n");
+		LOG_OUTPUT("--command    | -c\trun <command>\n");
 		exit(-1);
 	}	
 

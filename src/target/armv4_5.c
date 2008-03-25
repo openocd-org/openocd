@@ -183,7 +183,7 @@ int armv4_5_mode_to_number(enum armv4_5_mode mode)
 		case ARMV4_5_MODE_SYS: return 6; break;
 		case ARMV4_5_MODE_ANY: return 0; break;	/* map MODE_ANY to user mode */
 		default: 
-			ERROR("invalid mode value encountered");
+			LOG_ERROR("invalid mode value encountered");
 			return -1;
 	}
 }
@@ -201,7 +201,7 @@ enum armv4_5_mode armv4_5_number_to_mode(int number)
 		case 5: return ARMV4_5_MODE_UND; break;
 		case 6: return ARMV4_5_MODE_SYS; break;
 		default: 
-			ERROR("mode index out of bounds");
+			LOG_ERROR("mode index out of bounds");
 			return -1;
 	}
 };
@@ -243,7 +243,7 @@ int armv4_5_set_core_reg(reg_t *reg, u8 *buf)
 			if (armv4_5_target->core_state == ARMV4_5_STATE_ARM)
 			{
 				/* change state to Thumb */
-				DEBUG("changing to Thumb state");
+				LOG_DEBUG("changing to Thumb state");
 				armv4_5_target->core_state = ARMV4_5_STATE_THUMB;	
 			}
 		}
@@ -253,14 +253,14 @@ int armv4_5_set_core_reg(reg_t *reg, u8 *buf)
 			if (armv4_5_target->core_state == ARMV4_5_STATE_THUMB)
 			{
 				/* change state to ARM */
-				DEBUG("changing to ARM state");
+				LOG_DEBUG("changing to ARM state");
 				armv4_5_target->core_state = ARMV4_5_STATE_ARM;	
 			}
 		}
 		
 		if (armv4_5_target->core_mode != (value & 0x1f))
 		{
-			DEBUG("changing ARM core mode to '%s'", armv4_5_mode_strings[armv4_5_mode_to_number(value & 0x1f)]);
+			LOG_DEBUG("changing ARM core mode to '%s'", armv4_5_mode_strings[armv4_5_mode_to_number(value & 0x1f)]);
 			armv4_5_target->core_mode = value & 0x1f;
 			armv4_5_target->write_core_reg(target, 16, ARMV4_5_MODE_ANY, value);
 		}
@@ -328,11 +328,11 @@ int armv4_5_arch_state(struct target_s *target)
 	
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
-		ERROR("BUG: called for a non-ARMv4/5 target");
+		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
 		exit(-1);
 	}
 	
-	USER("target halted in %s state due to %s, current mode: %s\ncpsr: 0x%8.8x pc: 0x%8.8x",
+	LOG_USER("target halted in %s state due to %s, current mode: %s\ncpsr: 0x%8.8x pc: 0x%8.8x",
 			 armv4_5_state_strings[armv4_5->core_state],
 			 target_debug_reason_strings[target->debug_reason],
 			 armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)],
@@ -507,13 +507,13 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	
 	if (armv4_5_algorithm_info->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
-		ERROR("current target isn't an ARMV4/5 target");
+		LOG_ERROR("current target isn't an ARMV4/5 target");
 		return ERROR_TARGET_INVALID;
 	}
 	
 	if (target->state != TARGET_HALTED)
 	{
-		WARNING("target not halted");
+		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -535,13 +535,13 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 		reg_t *reg = register_get_by_name(armv4_5->core_cache, reg_params[i].reg_name, 0);
 		if (!reg)
 		{
-			ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
 			exit(-1);
 		}
 		
 		if (reg->size != reg_params[i].size)
 		{
-			ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
 			exit(-1);
 		}
 		
@@ -555,13 +555,13 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 		exit_breakpoint_size = 2;
 	else
 	{
-		ERROR("BUG: can't execute algorithms when not in ARM or Thumb state");
+		LOG_ERROR("BUG: can't execute algorithms when not in ARM or Thumb state");
 		exit(-1);
 	}
 	
 	if (armv4_5_algorithm_info->core_mode != ARMV4_5_MODE_ANY)
 	{
-		DEBUG("setting core_mode: 0x%2.2x", armv4_5_algorithm_info->core_mode);
+		LOG_DEBUG("setting core_mode: 0x%2.2x", armv4_5_algorithm_info->core_mode);
 		buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 5, armv4_5_algorithm_info->core_mode);
 		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
 		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
@@ -569,7 +569,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 
 	if ((retval = breakpoint_add(target, exit_point, exit_breakpoint_size, BKPT_HARD)) != ERROR_OK)
 	{
-		ERROR("can't add breakpoint to finish algorithm execution");
+		LOG_ERROR("can't add breakpoint to finish algorithm execution");
 		return ERROR_TARGET_FAILURE;
 	}
 	
@@ -582,7 +582,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 		target->type->poll(target);
 		if ((timeout_ms -= 10) <= 0)
 		{
-			ERROR("timeout waiting for algorithm to complete, trying to halt target");
+			LOG_ERROR("timeout waiting for algorithm to complete, trying to halt target");
 			target->type->halt(target);
 			timeout_ms = 1000;
 			while (target->state != TARGET_HALTED)
@@ -591,7 +591,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 				target->type->poll(target);
 				if ((timeout_ms -= 10) <= 0)
 				{
-					ERROR("target didn't reenter debug state, exiting");
+					LOG_ERROR("target didn't reenter debug state, exiting");
 					exit(-1);
 				}
 			}
@@ -602,7 +602,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	if ((retval != ERROR_TARGET_TIMEOUT) && 
 		(buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != exit_point))
 	{
-		WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
+		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
 			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32)); 
 	}
 	
@@ -622,13 +622,13 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 			reg_t *reg = register_get_by_name(armv4_5->core_cache, reg_params[i].reg_name, 0);
 			if (!reg)
 			{
-				ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
 				exit(-1);
 			}
 			
 			if (reg->size != reg_params[i].size)
 			{
-				ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
 				exit(-1);
 			}
 			
@@ -638,7 +638,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	
 	for (i = 0; i <= 16; i++)
 	{
-		DEBUG("restoring register %s with value 0x%8.8x", ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).name, context[i]);
+		LOG_DEBUG("restoring register %s with value 0x%8.8x", ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).name, context[i]);
 		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32, context[i]);
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).valid = 1;
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).dirty = 1;

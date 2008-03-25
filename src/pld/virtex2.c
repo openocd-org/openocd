@@ -150,7 +150,7 @@ int virtex2_read_stat(struct pld_device_s *pld_device, u32 *status)
 	
 	jtag_execute_queue();
 	
-	DEBUG("status: 0x%8.8x", *status);
+	LOG_DEBUG("status: 0x%8.8x", *status);
 	
 	return ERROR_OK;
 }
@@ -251,7 +251,7 @@ int virtex2_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	
 	if (argc < 2)
 	{
-		WARNING("incomplete pld device 'virtex2' configuration");
+		LOG_WARNING("incomplete pld device 'virtex2' configuration");
 		return ERROR_PLD_DEVICE_INVALID;
 	}
 	

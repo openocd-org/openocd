@@ -42,7 +42,7 @@ int target_asciimsg(target_t *target, u32 length)
 	target->type->target_request_data(target, CEIL(length, 4), (u8*)msg);
 	msg[length] = 0;
 	
-	DEBUG("%s", msg);
+	LOG_DEBUG("%s", msg);
 	
 	while (c)
 	{
@@ -55,7 +55,7 @@ int target_asciimsg(target_t *target, u32 length)
 
 int target_charmsg(target_t *target, u8 msg)
 {
-	USER_N("%c", msg);
+	LOG_USER_N("%c", msg);
 	
 	return ERROR_OK;
 }
@@ -68,7 +68,7 @@ int target_hexmsg(target_t *target, int size, u32 length)
 	debug_msg_receiver_t *c = target->dbgmsg;
 	int i;
 	
-	DEBUG("size: %i, length: %i", size, length);
+	LOG_DEBUG("size: %i, length: %i", size, length);
 
 	target->type->target_request_data(target, CEIL(length * size, 4), (u8*)data);
 
@@ -90,7 +90,7 @@ int target_hexmsg(target_t *target, int size, u32 length)
 		
 		if ((i%8 == 7) || (i == length - 1))
 		{
-			DEBUG("%s", line);
+			LOG_DEBUG("%s", line);
 			
 			while (c)
 			{
@@ -136,7 +136,7 @@ int target_request(target_t *target, u32 request)
  *			break;
  */
  		default:
- 			ERROR("unknown target request: %2.2x", target_req_cmd);
+ 			LOG_ERROR("unknown target request: %2.2x", target_req_cmd);
  			break;
 	}
 	

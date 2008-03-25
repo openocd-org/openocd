@@ -162,13 +162,13 @@ int etb_get_reg(reg_t *reg)
 {
 	if (etb_read_reg(reg) != ERROR_OK)
 	{
-		ERROR("BUG: error scheduling etm register read");
+		LOG_ERROR("BUG: error scheduling etm register read");
 		exit(-1);
 	}
 	
 	if (jtag_execute_queue() != ERROR_OK)
 	{
-		ERROR("register read failed");
+		LOG_ERROR("register read failed");
 	}
 	
 	return ERROR_OK;
@@ -248,7 +248,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	u8 reg_addr = etb_reg->addr & 0x7f;
 	scan_field_t fields[3];
 	
-	DEBUG("%i", etb_reg->addr);
+	LOG_DEBUG("%i", etb_reg->addr);
 
 	jtag_add_end_state(TAP_RTI);
 	etb_scann(etb_reg->etb, 0x0);
@@ -313,7 +313,7 @@ int etb_set_reg(reg_t *reg, u32 value)
 {
 	if (etb_write_reg(reg, value) != ERROR_OK)
 	{
-		ERROR("BUG: error scheduling etm register write");
+		LOG_ERROR("BUG: error scheduling etm register write");
 		exit(-1);
 	}
 	
@@ -330,7 +330,7 @@ int etb_set_reg_w_exec(reg_t *reg, u8 *buf)
 	
 	if (jtag_execute_queue() != ERROR_OK)
 	{
-		ERROR("register write failed");
+		LOG_ERROR("register write failed");
 		exit(-1);
 	}
 	return ERROR_OK;
@@ -342,7 +342,7 @@ int etb_write_reg(reg_t *reg, u32 value)
 	u8 reg_addr = etb_reg->addr & 0x7f;
 	scan_field_t fields[3];
 	
-	DEBUG("%i: 0x%8.8x", etb_reg->addr, value);
+	LOG_DEBUG("%i: 0x%8.8x", etb_reg->addr, value);
 	
 	jtag_add_end_state(TAP_RTI);
 	etb_scann(etb_reg->etb, 0x0);
@@ -415,7 +415,7 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	if (argc != 2)
 	{
-		ERROR("incomplete 'etb config <target> <chain_pos>' command");
+		LOG_ERROR("incomplete 'etb config <target> <chain_pos>' command");
 		exit(-1);
 	}
 	
@@ -423,7 +423,7 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	if (!target)
 	{
-		ERROR("target number '%s' not defined", args[0]);
+		LOG_ERROR("target number '%s' not defined", args[0]);
 		exit(-1);
 	}
 	
@@ -437,7 +437,7 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	if (!jtag_device)
 	{
-		ERROR("jtag device number '%s' not defined", args[1]);
+		LOG_ERROR("jtag device number '%s' not defined", args[1]);
 		exit(-1);
 	}
 	
@@ -455,7 +455,7 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 	}
 	else
 	{
-		ERROR("target has no ETM defined, ETB left unconfigured");
+		LOG_ERROR("target has no ETM defined, ETB left unconfigured");
 	}
 
 	return ERROR_OK;
@@ -516,13 +516,13 @@ trace_status_t etb_status(etm_context_t *etm_ctx)
 			
 			if (etb_timeout == 0)
 			{
-				ERROR("AcqComp set but DFEmpty won't go high, ETB status: 0x%x",
+				LOG_ERROR("AcqComp set but DFEmpty won't go high, ETB status: 0x%x",
 					buf_get_u32(etb_status_reg->value, 0, etb_status_reg->size));
 			}
 			
 			if (!(etm_ctx->capture_status && TRACE_TRIGGERED))
 			{
-				ERROR("trace completed, but no trigger condition detected");
+				LOG_ERROR("trace completed, but no trigger condition detected");
 			}
 			
 			etm_ctx->capture_status &= ~TRACE_RUNNING;
@@ -693,7 +693,7 @@ int etb_start_capture(etm_context_t *etm_ctx)
 	{
 		if ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) != ETM_PORT_8BIT)
 		{
-			ERROR("ETB can't run in demultiplexed mode with a 4 or 16 bit port");
+			LOG_ERROR("ETB can't run in demultiplexed mode with a 4 or 16 bit port");
 			return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 		}
 		etb_ctrl_value |= 0x2;

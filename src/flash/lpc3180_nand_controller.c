@@ -72,7 +72,7 @@ int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		
 	if (argc < 3)
 	{
-		WARNING("incomplete 'lpc3180' nand flash configuration");
+		LOG_WARNING("incomplete 'lpc3180' nand flash configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
@@ -82,14 +82,14 @@ int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	lpc3180_info->target = get_target_by_num(strtoul(args[1], NULL, 0));
 	if (!lpc3180_info->target)
 	{
-		ERROR("no target '%s' configured", args[1]);
+		LOG_ERROR("no target '%s' configured", args[1]);
 		return ERROR_NAND_DEVICE_INVALID;
 	}
 
 	lpc3180_info->osc_freq = strtoul(args[2], NULL, 0);
 	if ((lpc3180_info->osc_freq < 1000) || (lpc3180_info->osc_freq > 20000))
 	{
-		WARNING("LPC3180 oscillator frequency should be between 1000 and 20000 kHz, was %i", lpc3180_info->osc_freq); 
+		LOG_WARNING("LPC3180 oscillator frequency should be between 1000 and 20000 kHz, was %i", lpc3180_info->osc_freq); 
 	}
 	lpc3180_info->selected_controller = LPC3180_NO_CONTROLLER;
 	lpc3180_info->sw_write_protection = 0;
@@ -119,7 +119,7 @@ int lpc3180_pll(int fclkin, u32 pll_ctrl)
 	int lock = (pll_ctrl & 0x1);
 
 	if (!lock)
-		WARNING("PLL is not locked");
+		LOG_WARNING("PLL is not locked");
 	
 	if (!bypass && direct)	/* direct mode */
 		return (m * fclkin) / n;
@@ -179,7 +179,7 @@ float lpc3180_cycle_time(lpc3180_nand_controller_t *lpc3180_info)
 		}
 	}
 	
-	DEBUG("LPC3180 HCLK currently clocked at %i kHz", hclk);
+	LOG_DEBUG("LPC3180 HCLK currently clocked at %i kHz", hclk);
 	
 	cycle = (1.0 / hclk) * 1000000.0;
 	
@@ -196,14 +196,14 @@ int lpc3180_init(struct nand_device_s *device)
 		
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
 	/* sanitize arguments */
 	if ((bus_width != 8) && (bus_width != 16))
 	{
-		ERROR("LPC3180 only supports 8 or 16 bit bus width, not %i", bus_width);
+		LOG_ERROR("LPC3180 only supports 8 or 16 bit bus width, not %i", bus_width);
 		return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 	}
 	
@@ -212,7 +212,7 @@ int lpc3180_init(struct nand_device_s *device)
 	 */
 	if (bus_width == 16)
 	{
-		WARNING("LPC3180 only supports 8 bit bus width");
+		LOG_WARNING("LPC3180 only supports 8 bit bus width");
 	}
 	
 	/* inform calling code about selected bus width */
@@ -220,20 +220,20 @@ int lpc3180_init(struct nand_device_s *device)
 	
 	if ((address_cycles != 3) && (address_cycles != 4))
 	{
-		ERROR("LPC3180 only supports 3 or 4 address cycles, not %i", address_cycles);
+		LOG_ERROR("LPC3180 only supports 3 or 4 address cycles, not %i", address_cycles);
 		return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 	}
 	
 	if ((page_size != 512) && (page_size != 2048))
 	{
-		ERROR("LPC3180 only supports 512 or 2048 byte pages, not %i", page_size);
+		LOG_ERROR("LPC3180 only supports 512 or 2048 byte pages, not %i", page_size);
 		return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 	}
 	
 	/* select MLC controller if none is currently selected */
 	if (lpc3180_info->selected_controller == LPC3180_NO_CONTROLLER)
 	{
-		DEBUG("no LPC3180 NAND flash controller selected, using default 'mlc'");
+		LOG_DEBUG("no LPC3180 NAND flash controller selected, using default 'mlc'");
 		lpc3180_info->selected_controller = LPC3180_MLC_CONTROLLER;
 	}
 	
@@ -323,13 +323,13 @@ int lpc3180_reset(struct nand_device_s *device)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
 	if (lpc3180_info->selected_controller == LPC3180_NO_CONTROLLER)
 	{
-		ERROR("BUG: no LPC3180 NAND flash controller selected");
+		LOG_ERROR("BUG: no LPC3180 NAND flash controller selected");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
@@ -339,7 +339,7 @@ int lpc3180_reset(struct nand_device_s *device)
 
 		if (!lpc3180_controller_ready(device, 100))
 		{
-			ERROR("LPC3180 NAND controller timed out after reset");
+			LOG_ERROR("LPC3180 NAND controller timed out after reset");
 			return ERROR_NAND_OPERATION_TIMEOUT;
 		}
 	}
@@ -350,7 +350,7 @@ int lpc3180_reset(struct nand_device_s *device)
 		
 		if (!lpc3180_controller_ready(device, 100))
 		{
-			ERROR("LPC3180 NAND controller timed out after reset");
+			LOG_ERROR("LPC3180 NAND controller timed out after reset");
 			return ERROR_NAND_OPERATION_TIMEOUT;
 		}
 	}
@@ -365,13 +365,13 @@ int lpc3180_command(struct nand_device_s *device, u8 command)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
 	if (lpc3180_info->selected_controller == LPC3180_NO_CONTROLLER)
 	{
-		ERROR("BUG: no LPC3180 NAND flash controller selected");
+		LOG_ERROR("BUG: no LPC3180 NAND flash controller selected");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
@@ -395,13 +395,13 @@ int lpc3180_address(struct nand_device_s *device, u8 address)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
 	if (lpc3180_info->selected_controller == LPC3180_NO_CONTROLLER)
 	{
-		ERROR("BUG: no LPC3180 NAND flash controller selected");
+		LOG_ERROR("BUG: no LPC3180 NAND flash controller selected");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
@@ -425,13 +425,13 @@ int lpc3180_write_data(struct nand_device_s *device, u16 data)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
 	if (lpc3180_info->selected_controller == LPC3180_NO_CONTROLLER)
 	{
-		ERROR("BUG: no LPC3180 NAND flash controller selected");
+		LOG_ERROR("BUG: no LPC3180 NAND flash controller selected");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
@@ -455,13 +455,13 @@ int lpc3180_read_data(struct nand_device_s *device, void *data)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
 	if (lpc3180_info->selected_controller == LPC3180_NO_CONTROLLER)
 	{
-		ERROR("BUG: no LPC3180 NAND flash controller selected");
+		LOG_ERROR("BUG: no LPC3180 NAND flash controller selected");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
@@ -479,7 +479,7 @@ int lpc3180_read_data(struct nand_device_s *device, void *data)
 		}
 		else
 		{
-			ERROR("BUG: bus_width neither 8 nor 16 bit");
+			LOG_ERROR("BUG: bus_width neither 8 nor 16 bit");
 			return ERROR_NAND_OPERATION_FAILED;
 		}
 	}
@@ -502,7 +502,7 @@ int lpc3180_read_data(struct nand_device_s *device, void *data)
 		}
 		else
 		{
-			ERROR("BUG: bus_width neither 8 nor 16 bit");
+			LOG_ERROR("BUG: bus_width neither 8 nor 16 bit");
 			return ERROR_NAND_OPERATION_FAILED;
 		}
 	}	
@@ -519,13 +519,13 @@ int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 dat
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
 	if (lpc3180_info->selected_controller == LPC3180_NO_CONTROLLER)
 	{
-		ERROR("BUG: no LPC3180 NAND flash controller selected");
+		LOG_ERROR("BUG: no LPC3180 NAND flash controller selected");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
@@ -536,19 +536,19 @@ int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 dat
 		
 		if (!data && oob)
 		{
-			ERROR("LPC3180 MLC controller can't write OOB data only");
+			LOG_ERROR("LPC3180 MLC controller can't write OOB data only");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 		
 		if (oob && (oob_size > 6))
 		{
-			ERROR("LPC3180 MLC controller can't write more than 6 bytes of OOB data");
+			LOG_ERROR("LPC3180 MLC controller can't write more than 6 bytes of OOB data");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 		
 		if (data_size > device->page_size)
 		{
-			ERROR("data size exceeds page size");
+			LOG_ERROR("data size exceeds page size");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 		
@@ -618,7 +618,7 @@ int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 dat
 			
 			if (!lpc3180_controller_ready(device, 1000))
 			{
-				ERROR("timeout while waiting for completion of auto encode cycle");
+				LOG_ERROR("timeout while waiting for completion of auto encode cycle");
 				return ERROR_NAND_OPERATION_FAILED;
 			}
 		}
@@ -628,13 +628,13 @@ int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 dat
 		
 		if ((retval = nand_read_status(device, &status)) != ERROR_OK)
 		{
-			ERROR("couldn't read status");
+			LOG_ERROR("couldn't read status");
 			return ERROR_NAND_OPERATION_FAILED;
 		}
 			
 		if (status & NAND_STATUS_FAIL)
 		{
-			ERROR("write operation didn't pass, status: 0x%2.2x", status);
+			LOG_ERROR("write operation didn't pass, status: 0x%2.2x", status);
 			return ERROR_NAND_OPERATION_FAILED;
 		}
 	
@@ -656,13 +656,13 @@ int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
 	if (lpc3180_info->selected_controller == LPC3180_NO_CONTROLLER)
 	{
-		ERROR("BUG: no LPC3180 NAND flash controller selected");
+		LOG_ERROR("BUG: no LPC3180 NAND flash controller selected");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
@@ -676,14 +676,14 @@ int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data
 #if 0
 		if (oob && (oob_size > 6))
 		{
-			ERROR("LPC3180 MLC controller can't read more than 6 bytes of OOB data");
+			LOG_ERROR("LPC3180 MLC controller can't read more than 6 bytes of OOB data");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 #endif
 		
 		if (data_size > device->page_size)
 		{
-			ERROR("data size exceeds page size");
+			LOG_ERROR("data size exceeds page size");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 		
@@ -748,7 +748,7 @@ int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data
 			
 			if (!lpc3180_controller_ready(device, 1000))
 			{
-				ERROR("timeout while waiting for completion of auto decode cycle");
+				LOG_ERROR("timeout while waiting for completion of auto decode cycle");
 				return ERROR_NAND_OPERATION_FAILED;
 			}
 		
@@ -758,11 +758,11 @@ int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data
 			{
 				if (mlc_isr & 0x40)
 				{
-					ERROR("uncorrectable error detected: 0x%2.2x", mlc_isr);
+					LOG_ERROR("uncorrectable error detected: 0x%2.2x", mlc_isr);
 					return ERROR_NAND_OPERATION_FAILED;
 				}
 				
-				WARNING("%i symbol error detected and corrected", ((mlc_isr & 0x30) >> 4) + 1);
+				LOG_WARNING("%i symbol error detected and corrected", ((mlc_isr & 0x30) >> 4) + 1);
 			}
 			
 			if (data)
@@ -804,7 +804,7 @@ int lpc3180_controller_ready(struct nand_device_s *device, int timeout)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 			
@@ -837,7 +837,7 @@ int lpc3180_nand_ready(struct nand_device_s *device, int timeout)
 	
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("target must be halted to use LPC3180 NAND flash controller");
+		LOG_ERROR("target must be halted to use LPC3180 NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 			

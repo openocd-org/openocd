@@ -140,8 +140,6 @@ void usleep(int us);
 #include <windows.h>
 #include <time.h>
 
-#undef ERROR
-
 #if IS_MINGW == 1
 static __inline unsigned char inb(unsigned short int port)
 {

@@ -139,7 +139,7 @@ __inline__ u32 flash_address(flash_bank_t *bank, int sector, u32 offset)
 	{
 		if (!bank->sectors)
 		{
-			ERROR("BUG: sector list not yet built");
+			LOG_ERROR("BUG: sector list not yet built");
 			exit(-1);
 		}
 		return bank->base + bank->sectors[sector].offset + offset * bank->bus_width;
@@ -253,7 +253,7 @@ void cfi_intel_clear_status_register(flash_bank_t *bank)
 
 	if (target->state != TARGET_HALTED)
 	{
-		ERROR("BUG: attempted to clear status register while target wasn't halted");
+		LOG_ERROR("BUG: attempted to clear status register while target wasn't halted");
 		exit(-1);
 	}
 
@@ -267,34 +267,34 @@ u8 cfi_intel_wait_status_busy(flash_bank_t *bank, int timeout)
 
 	while ((!((status = cfi_get_u8(bank, 0, 0x0)) & 0x80)) && (timeout-- > 0))
 	{
-		DEBUG("status: 0x%x", status);
+		LOG_DEBUG("status: 0x%x", status);
 		usleep(1000);
 	}
 
 	/* mask out bit 0 (reserved) */
 	status = status & 0xfe;
 
-	DEBUG("status: 0x%x", status);
+	LOG_DEBUG("status: 0x%x", status);
 
 	if ((status & 0x80) != 0x80)
 	{
-		ERROR("timeout while waiting for WSM to become ready");
+		LOG_ERROR("timeout while waiting for WSM to become ready");
 	}
 	else if (status != 0x80)
 	{
-		ERROR("status register: 0x%x", status);
+		LOG_ERROR("status register: 0x%x", status);
 		if (status & 0x2)
-			ERROR("Block Lock-Bit Detected, Operation Abort");
+			LOG_ERROR("Block Lock-Bit Detected, Operation Abort");
 		if (status & 0x4)
-			ERROR("Program suspended");
+			LOG_ERROR("Program suspended");
 		if (status & 0x8)
-			ERROR("Low Programming Voltage Detected, Operation Aborted");
+			LOG_ERROR("Low Programming Voltage Detected, Operation Aborted");
 		if (status & 0x10)
-			ERROR("Program Error / Error in Setting Lock-Bit");
+			LOG_ERROR("Program Error / Error in Setting Lock-Bit");
 		if (status & 0x20)
-			ERROR("Error in Block Erasure or Clear Lock-Bits");
+			LOG_ERROR("Error in Block Erasure or Clear Lock-Bits");
 		if (status & 0x40)
-			ERROR("Block Erase Suspended");
+			LOG_ERROR("Block Erase Suspended");
 
 		cfi_intel_clear_status_register(bank);
 	}
@@ -315,15 +315,15 @@ int cfi_spansion_wait_status_busy(flash_bank_t *bank, int timeout)
 				oldstatus = cfi_get_u8(bank, 0, 0x0);
 				status = cfi_get_u8(bank, 0, 0x0);
 				if ((status ^ oldstatus) & 0x40) {
-					ERROR("dq5 timeout, status: 0x%x", status);
+					LOG_ERROR("dq5 timeout, status: 0x%x", status);
 					return(ERROR_FLASH_OPERATION_FAILED);
 				} else {
-					DEBUG("status: 0x%x", status);
+					LOG_DEBUG("status: 0x%x", status);
 					return(ERROR_OK);
 				}
 			}
 		} else {
-			DEBUG("status: 0x%x", status);
+			LOG_DEBUG("status: 0x%x", status);
 			return(ERROR_OK);
 		}
 
@@ -331,7 +331,7 @@ int cfi_spansion_wait_status_busy(flash_bank_t *bank, int timeout)
 		usleep(1000);
 	} while (timeout-- > 0);
 
-	ERROR("timeout, status: 0x%x", status);
+	LOG_ERROR("timeout, status: 0x%x", status);
 
 	return(ERROR_FLASH_BUSY);
 }
@@ -361,32 +361,32 @@ int cfi_read_intel_pri_ext(flash_bank_t *bank)
 	pri_ext->major_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3);
 	pri_ext->minor_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4);
 
-	DEBUG("pri: '%c%c%c', version: %c.%c", pri_ext->pri[0], pri_ext->pri[1], pri_ext->pri[2], pri_ext->major_version, pri_ext->minor_version);
+	LOG_DEBUG("pri: '%c%c%c', version: %c.%c", pri_ext->pri[0], pri_ext->pri[1], pri_ext->pri[2], pri_ext->major_version, pri_ext->minor_version);
 
 	pri_ext->feature_support = cfi_query_u32(bank, 0, cfi_info->pri_addr + 5);
 	pri_ext->suspend_cmd_support = cfi_query_u8(bank, 0, cfi_info->pri_addr + 9);
 	pri_ext->blk_status_reg_mask = cfi_query_u16(bank, 0, cfi_info->pri_addr + 0xa);
 
-	DEBUG("feature_support: 0x%x, suspend_cmd_support: 0x%x, blk_status_reg_mask: 0x%x", pri_ext->feature_support, pri_ext->suspend_cmd_support, pri_ext->blk_status_reg_mask);
+	LOG_DEBUG("feature_support: 0x%x, suspend_cmd_support: 0x%x, blk_status_reg_mask: 0x%x", pri_ext->feature_support, pri_ext->suspend_cmd_support, pri_ext->blk_status_reg_mask);
 
 	pri_ext->vcc_optimal = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xc);
 	pri_ext->vpp_optimal = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xd);
 
-	DEBUG("Vcc opt: %1.1x.%1.1x, Vpp opt: %1.1x.%1.1x",
+	LOG_DEBUG("Vcc opt: %1.1x.%1.1x, Vpp opt: %1.1x.%1.1x",
 		  (pri_ext->vcc_optimal & 0xf0) >> 4, pri_ext->vcc_optimal & 0x0f,
 		  (pri_ext->vpp_optimal & 0xf0) >> 4, pri_ext->vpp_optimal & 0x0f);
 
 	pri_ext->num_protection_fields = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xe);
 	if (pri_ext->num_protection_fields != 1)
 	{
-		WARNING("expected one protection register field, but found %i", pri_ext->num_protection_fields);
+		LOG_WARNING("expected one protection register field, but found %i", pri_ext->num_protection_fields);
 	}
 
 	pri_ext->prot_reg_addr = cfi_query_u16(bank, 0, cfi_info->pri_addr + 0xf);
 	pri_ext->fact_prot_reg_size = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0x11);
 	pri_ext->user_prot_reg_size = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0x12);
 
-	DEBUG("protection_fields: %i, prot_reg_addr: 0x%x, factory pre-programmed: %i, user programmable: %i", pri_ext->num_protection_fields, pri_ext->prot_reg_addr, 1 << pri_ext->fact_prot_reg_size, 1 << pri_ext->user_prot_reg_size);
+	LOG_DEBUG("protection_fields: %i, prot_reg_addr: 0x%x, factory pre-programmed: %i, user programmable: %i", pri_ext->num_protection_fields, pri_ext->prot_reg_addr, 1 << pri_ext->fact_prot_reg_size, 1 << pri_ext->user_prot_reg_size);
 
 	return ERROR_OK;
 }
@@ -414,7 +414,7 @@ int cfi_read_spansion_pri_ext(flash_bank_t *bank)
 	pri_ext->major_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3);
 	pri_ext->minor_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4);
 
-	DEBUG("pri: '%c%c%c', version: %c.%c", pri_ext->pri[0], pri_ext->pri[1], pri_ext->pri[2], pri_ext->major_version, pri_ext->minor_version);
+	LOG_DEBUG("pri: '%c%c%c', version: %c.%c", pri_ext->pri[0], pri_ext->pri[1], pri_ext->pri[2], pri_ext->major_version, pri_ext->minor_version);
 
 	pri_ext->SiliconRevision = cfi_query_u8(bank, 0, cfi_info->pri_addr + 5);
 	pri_ext->EraseSuspend    = cfi_query_u8(bank, 0, cfi_info->pri_addr + 6);
@@ -428,20 +428,20 @@ int cfi_read_spansion_pri_ext(flash_bank_t *bank)
 	pri_ext->VppMax          = cfi_query_u8(bank, 0, cfi_info->pri_addr + 14);
 	pri_ext->TopBottom       = cfi_query_u8(bank, 0, cfi_info->pri_addr + 15);
 
-	DEBUG("Silicon Revision: 0x%x, Erase Suspend: 0x%x, Block protect: 0x%x", pri_ext->SiliconRevision,
+	LOG_DEBUG("Silicon Revision: 0x%x, Erase Suspend: 0x%x, Block protect: 0x%x", pri_ext->SiliconRevision,
 	      pri_ext->EraseSuspend, pri_ext->BlkProt);
 
-	DEBUG("Temporary Unprotect: 0x%x, Block Protect Scheme: 0x%x, Simultaneous Ops: 0x%x", pri_ext->TmpBlkUnprotect,
+	LOG_DEBUG("Temporary Unprotect: 0x%x, Block Protect Scheme: 0x%x, Simultaneous Ops: 0x%x", pri_ext->TmpBlkUnprotect,
 	      pri_ext->BlkProtUnprot, pri_ext->SimultaneousOps);
 
-	DEBUG("Burst Mode: 0x%x, Page Mode: 0x%x, ", pri_ext->BurstMode, pri_ext->PageMode);
+	LOG_DEBUG("Burst Mode: 0x%x, Page Mode: 0x%x, ", pri_ext->BurstMode, pri_ext->PageMode);
 
 
-	DEBUG("Vpp min: %2.2d.%1.1d, Vpp max: %2.2d.%1.1x",
+	LOG_DEBUG("Vpp min: %2.2d.%1.1d, Vpp max: %2.2d.%1.1x",
 		  (pri_ext->VppMin & 0xf0) >> 4, pri_ext->VppMin & 0x0f,
 		  (pri_ext->VppMax & 0xf0) >> 4, pri_ext->VppMax & 0x0f);
 
-	DEBUG("WP# protection 0x%x", pri_ext->TopBottom);
+	LOG_DEBUG("WP# protection 0x%x", pri_ext->TopBottom);
 
 	/* default values for implementation specific workarounds */
 	pri_ext->_unlock1 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock1;
@@ -486,7 +486,7 @@ int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 	atmel_pri_ext.major_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 3);
 	atmel_pri_ext.minor_version = cfi_query_u8(bank, 0, cfi_info->pri_addr + 4);
 
-	DEBUG("pri: '%c%c%c', version: %c.%c", atmel_pri_ext.pri[0], atmel_pri_ext.pri[1], atmel_pri_ext.pri[2], atmel_pri_ext.major_version, atmel_pri_ext.minor_version);
+	LOG_DEBUG("pri: '%c%c%c', version: %c.%c", atmel_pri_ext.pri[0], atmel_pri_ext.pri[1], atmel_pri_ext.pri[2], atmel_pri_ext.major_version, atmel_pri_ext.minor_version);
 
 	pri_ext->major_version = atmel_pri_ext.major_version;
 	pri_ext->minor_version = atmel_pri_ext.minor_version;
@@ -496,7 +496,7 @@ int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 	atmel_pri_ext.burst_mode = cfi_query_u8(bank, 0, cfi_info->pri_addr + 7);
 	atmel_pri_ext.page_mode = cfi_query_u8(bank, 0, cfi_info->pri_addr + 8);
 
-	DEBUG("features: 0x%2.2x, bottom_boot: 0x%2.2x, burst_mode: 0x%2.2x, page_mode: 0x%2.2x",
+	LOG_DEBUG("features: 0x%2.2x, bottom_boot: 0x%2.2x, burst_mode: 0x%2.2x, page_mode: 0x%2.2x",
 		atmel_pri_ext.features, atmel_pri_ext.bottom_boot, atmel_pri_ext.burst_mode, atmel_pri_ext.page_mode);
 
 	if (atmel_pri_ext.features & 0x02)
@@ -611,14 +611,14 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 	if (argc < 6)
 	{
-		WARNING("incomplete flash_bank cfi configuration");
+		LOG_WARNING("incomplete flash_bank cfi configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
 	if ((strtoul(args[4], NULL, 0) > CFI_MAX_CHIP_WIDTH)
 		|| (strtoul(args[3], NULL, 0) > CFI_MAX_BUS_WIDTH))
 	{
-		ERROR("chip and bus width have to specified in bytes");
+		LOG_ERROR("chip and bus width have to specified in bytes");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
@@ -677,7 +677,7 @@ int cfi_intel_erase(struct flash_bank_s *bank, int first, int last)
 			cfi_command(bank, 0xff, command);
 			target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 
-			ERROR("couldn't erase block %i of flash bank at base 0x%x", i, bank->base);
+			LOG_ERROR("couldn't erase block %i of flash bank at base 0x%x", i, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -723,7 +723,7 @@ int cfi_spansion_erase(struct flash_bank_s *bank, int first, int last)
 			cfi_command(bank, 0xf0, command);
 			target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 
-			ERROR("couldn't erase block %i of flash bank at base 0x%x", i, bank->base);
+			LOG_ERROR("couldn't erase block %i of flash bank at base 0x%x", i, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -761,7 +761,7 @@ int cfi_erase(struct flash_bank_s *bank, int first, int last)
 			return cfi_spansion_erase(bank, first, last);
 			break;
 		default:
-			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 			break;
 	}
 
@@ -788,19 +788,19 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 	for (i = first; i <= last; i++)
 	{
 		cfi_command(bank, 0x60, command);
-		DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
+		LOG_DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
 		target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
 		if (set)
 		{
 			cfi_command(bank, 0x01, command);
-			DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
+			LOG_DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
 			target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
 			bank->sectors[i].is_protected = 1;
 		}
 		else
 		{
 			cfi_command(bank, 0xd0, command);
-			DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
+			LOG_DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
 			target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
 			bank->sectors[i].is_protected = 0;
 		}
@@ -821,7 +821,7 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 			if ((block_status & 0x1) != set)
 			{
-				ERROR("couldn't change block lock status (set = %i, block_status = 0x%2.2x)", set, block_status);
+				LOG_ERROR("couldn't change block lock status (set = %i, block_status = 0x%2.2x)", set, block_status);
 				cfi_command(bank, 0x70, command);
 				target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command);
 				cfi_intel_wait_status_busy(bank, 10);
@@ -889,7 +889,7 @@ int cfi_protect(struct flash_bank_s *bank, int set, int first, int last)
 			cfi_intel_protect(bank, set, first, last);
 			break;
 		default:
-			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 			break;
 	}
 
@@ -961,7 +961,7 @@ u32 cfi_command_val(flash_bank_t *bank, u8 cmd)
 		return target_buffer_get_u32(target, buf);
 		break;
 	default :
-		ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
+		LOG_ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
 		return 0;
 	}
 }
@@ -1071,7 +1071,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		target_code_size = sizeof(word_32_code);
 		break;
 	default:
-		ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
+		LOG_ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
@@ -1080,7 +1080,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	{
 		if ( target_code_size > sizeof(target_code) )
 		{
-			WARNING("Internal error - target code buffer to small. Increase CFI_MAX_INTEL_CODESIZE and recompile.");
+			LOG_WARNING("Internal error - target code buffer to small. Increase CFI_MAX_INTEL_CODESIZE and recompile.");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
@@ -1089,7 +1089,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		retval = target_alloc_working_area(target, target_code_size, &cfi_info->write_algorithm);
 		if (retval != ERROR_OK)
 		{
-			WARNING("No working area available, can't do block memory writes");
+			LOG_WARNING("No working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		};
 
@@ -1097,7 +1097,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		retval = target_write_buffer(target, cfi_info->write_algorithm->address, target_code_size, target_code);
 		if (retval != ERROR_OK)
 		{
-			ERROR("Unable to write block write code to target");
+			LOG_ERROR("Unable to write block write code to target");
 			goto cleanup;
 		}
 	}
@@ -1110,7 +1110,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		buffer_size /= 2;
 		if (buffer_size <= 256)
 		{
-			WARNING("no large enough working area available, can't do block memory writes");
+			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 			goto cleanup;
 		}
@@ -1130,7 +1130,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 	busy_pattern_val  = cfi_command_val(bank, 0x80);
 	error_pattern_val = cfi_command_val(bank, 0x7e);
 
-	INFO("Using target buffer at 0x%08x and of size 0x%04x", source->address, buffer_size );
+	LOG_INFO("Using target buffer at 0x%08x and of size 0x%04x", source->address, buffer_size );
 
 	/* Programming main loop */
 	while (count > 0)
@@ -1148,7 +1148,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		buf_set_u32(reg_params[5].value, 0, 32, busy_pattern_val);
 		buf_set_u32(reg_params[6].value, 0, 32, error_pattern_val);
 
-		INFO("Write 0x%04x bytes to flash at 0x%08x", thisrun_count, address );
+		LOG_INFO("Write 0x%04x bytes to flash at 0x%08x", thisrun_count, address );
 
 		/* Execute algorithm, assume breakpoint for last instruction */
 		retval = target->type->run_algorithm(target, 0, NULL, 7, reg_params,
@@ -1161,7 +1161,7 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		if (retval != ERROR_OK)
 		{
 			cfi_intel_clear_status_register(bank);
-			ERROR("Execution of flash algorythm failed. Can't fall back. Please report.");
+			LOG_ERROR("Execution of flash algorythm failed. Can't fall back. Please report.");
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			/* retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE; */
 			/* FIXME To allow fall back or recovery, we must save the actual status
@@ -1366,7 +1366,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 			target_code_size = sizeof(word_32_code);
 			break;
 		default:
-			ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
+			LOG_ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 		target_code = malloc(target_code_size);
@@ -1395,7 +1395,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 			if (cfi_info->write_algorithm)
 				target_free_working_area(target, cfi_info->write_algorithm);
 
-			WARNING("not enough working area available, can't do block memory writes");
+			LOG_WARNING("not enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	};
@@ -1436,7 +1436,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 
 		if ((retval != ERROR_OK) || status != 0x80)
 		{
-			DEBUG("status: 0x%x", status);
+			LOG_DEBUG("status: 0x%x", status);
 			exit_code = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
@@ -1479,7 +1479,7 @@ int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 		cfi_command(bank, 0xff, command);
 		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 
-		ERROR("couldn't write word at base 0x%x, address %x", bank->base, address);
+		LOG_ERROR("couldn't write word at base 0x%x, address %x", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -1500,7 +1500,7 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 	/* Check for valid range */
 	if (address & buffermask)
 	{
-		ERROR("Write address at base 0x%x, address %x not aligned to 2^%d boundary", bank->base, address, cfi_info->max_buf_write_size);
+		LOG_ERROR("Write address at base 0x%x, address %x not aligned to 2^%d boundary", bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	switch(bank->chip_width)
@@ -1509,14 +1509,14 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 	case 2 : bufferwsize = buffersize / 2; break;
 	case 1 : bufferwsize = buffersize; break;
 	default:
-		ERROR("Unsupported chip width %d", bank->chip_width);
+		LOG_ERROR("Unsupported chip width %d", bank->chip_width);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	/* Check for valid size */
 	if (wordcount > bufferwsize)
 	{
-		ERROR("Number of data words %d exceeds available buffersize %d", wordcount, buffersize);
+		LOG_ERROR("Number of data words %d exceeds available buffersize %d", wordcount, buffersize);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -1531,7 +1531,7 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 		cfi_command(bank, 0xff, command);
 		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 
-		ERROR("couldn't start buffer write operation at base 0x%x, address %x", bank->base, address);
+		LOG_ERROR("couldn't start buffer write operation at base 0x%x, address %x", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -1549,7 +1549,7 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 		cfi_command(bank, 0xff, command);
 		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 
-		ERROR("Buffer write at base 0x%x, address %x failed.", bank->base, address);
+		LOG_ERROR("Buffer write at base 0x%x, address %x failed.", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -1579,7 +1579,7 @@ int cfi_spansion_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 		cfi_command(bank, 0xf0, command);
 		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 
-		ERROR("couldn't write word at base 0x%x, address %x", bank->base, address);
+		LOG_ERROR("couldn't write word at base 0x%x, address %x", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -1600,7 +1600,7 @@ int cfi_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 			return cfi_spansion_write_word(bank, word, address);
 			break;
 		default:
-			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 			break;
 	}
 
@@ -1619,10 +1619,10 @@ int cfi_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 addr
 			break;
 		case 2:
 			/* return cfi_spansion_write_words(bank, word, address); */
-			ERROR("cfi primary command set %i unimplemented - FIXME", cfi_info->pri_id);
+			LOG_ERROR("cfi primary command set %i unimplemented - FIXME", cfi_info->pri_id);
 			break;
 		default:
-			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 			break;
 	}
 
@@ -1654,7 +1654,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	write_p = address & ~(bank->bus_width - 1);
 	if ((align = address - write_p) != 0)
 	{
-		INFO("Fixup %d unaligned head bytes", align );
+		LOG_INFO("Fixup %d unaligned head bytes", align );
 
 		for (i = 0; i < bank->bus_width; i++)
 			current_word[i] = 0;
@@ -1703,7 +1703,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			retval = cfi_spansion_write_block(bank, buffer, write_p, blk_count);
 			break;
 		default:
-			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 	}
@@ -1728,7 +1728,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			case 2 : bufferwsize = buffersize / 2; break;
 			case 1 : bufferwsize = buffersize; break;
 			default:
-				ERROR("Unsupported chip width %d", bank->chip_width);
+				LOG_ERROR("Unsupported chip width %d", bank->chip_width);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 
@@ -1737,7 +1737,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			{
 				if ((write_p & 0xff) == 0)
 				{
-					INFO("Programming at %08x, count %08x bytes remaining", write_p, count);
+					LOG_INFO("Programming at %08x, count %08x bytes remaining", write_p, count);
 				}
 				if ((bufferwsize > 0) && (count >= buffersize) && !(write_p & buffermask))
 				{
@@ -1781,7 +1781,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	/* handle unaligned tail bytes */
 	if (count > 0)
 	{
-		INFO("Fixup %d unaligned tail bytes", count );
+		LOG_INFO("Fixup %d unaligned tail bytes", count );
 
 		copy_p = write_p;
 		for (i = 0; i < bank->bus_width; i++)
@@ -1828,7 +1828,7 @@ void cfi_fixup_0002_erase_regions(flash_bank_t *bank, void *param)
 
 	if ((pri_ext->_reversed_geometry) || (pri_ext->TopBottom == 3))
 	{
-		DEBUG("swapping reversed erase region information on cmdset 0002 device");
+		LOG_DEBUG("swapping reversed erase region information on cmdset 0002 device");
 
 		for (i = 0; i < cfi_info->num_erase_regions / 2; i++)
 		{
@@ -1929,7 +1929,7 @@ int cfi_probe(struct flash_bank_s *bank)
 		cfi_info->qry[1] = cfi_query_u8(bank, 0, 0x11);
 		cfi_info->qry[2] = cfi_query_u8(bank, 0, 0x12);
 
-		DEBUG("CFI qry returned: 0x%2.2x 0x%2.2x 0x%2.2x", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2]);
+		LOG_DEBUG("CFI qry returned: 0x%2.2x 0x%2.2x 0x%2.2x", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2]);
 
 		if ((cfi_info->qry[0] != 'Q') || (cfi_info->qry[1] != 'R') || (cfi_info->qry[2] != 'Y'))
 		{
@@ -1945,7 +1945,7 @@ int cfi_probe(struct flash_bank_s *bank)
 		cfi_info->alt_id = cfi_query_u16(bank, 0, 0x17);
 		cfi_info->alt_addr = cfi_query_u16(bank, 0, 0x19);
 
-		DEBUG("qry: '%c%c%c', pri_id: 0x%4.4x, pri_addr: 0x%4.4x, alt_id: 0x%4.4x, alt_addr: 0x%4.4x", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2], cfi_info->pri_id, cfi_info->pri_addr, cfi_info->alt_id, cfi_info->alt_addr);
+		LOG_DEBUG("qry: '%c%c%c', pri_id: 0x%4.4x, pri_addr: 0x%4.4x, alt_id: 0x%4.4x, alt_addr: 0x%4.4x", cfi_info->qry[0], cfi_info->qry[1], cfi_info->qry[2], cfi_info->pri_id, cfi_info->pri_addr, cfi_info->alt_id, cfi_info->alt_addr);
 
 		cfi_info->vcc_min = cfi_query_u8(bank, 0, 0x1b);
 		cfi_info->vcc_max = cfi_query_u8(bank, 0, 0x1c);
@@ -1960,14 +1960,14 @@ int cfi_probe(struct flash_bank_s *bank)
 		cfi_info->block_erase_timeout_max = cfi_query_u8(bank, 0, 0x25);
 		cfi_info->chip_erase_timeout_max = cfi_query_u8(bank, 0, 0x26);
 
-		DEBUG("Vcc min: %1.1x.%1.1x, Vcc max: %1.1x.%1.1x, Vpp min: %1.1x.%1.1x, Vpp max: %1.1x.%1.1x",
+		LOG_DEBUG("Vcc min: %1.1x.%1.1x, Vcc max: %1.1x.%1.1x, Vpp min: %1.1x.%1.1x, Vpp max: %1.1x.%1.1x",
 			(cfi_info->vcc_min & 0xf0) >> 4, cfi_info->vcc_min & 0x0f,
 			(cfi_info->vcc_max & 0xf0) >> 4, cfi_info->vcc_max & 0x0f,
 			(cfi_info->vpp_min & 0xf0) >> 4, cfi_info->vpp_min & 0x0f,
 			(cfi_info->vpp_max & 0xf0) >> 4, cfi_info->vpp_max & 0x0f);
-		DEBUG("typ. word write timeout: %u, typ. buf write timeout: %u, typ. block erase timeout: %u, typ. chip erase timeout: %u", 1 << cfi_info->word_write_timeout_typ, 1 << cfi_info->buf_write_timeout_typ,
+		LOG_DEBUG("typ. word write timeout: %u, typ. buf write timeout: %u, typ. block erase timeout: %u, typ. chip erase timeout: %u", 1 << cfi_info->word_write_timeout_typ, 1 << cfi_info->buf_write_timeout_typ,
 			1 << cfi_info->block_erase_timeout_typ, 1 << cfi_info->chip_erase_timeout_typ);
-		DEBUG("max. word write timeout: %u, max. buf write timeout: %u, max. block erase timeout: %u, max. chip erase timeout: %u", (1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
+		LOG_DEBUG("max. word write timeout: %u, max. buf write timeout: %u, max. block erase timeout: %u, max. chip erase timeout: %u", (1 << cfi_info->word_write_timeout_max) * (1 << cfi_info->word_write_timeout_typ),
 			(1 << cfi_info->buf_write_timeout_max) * (1 << cfi_info->buf_write_timeout_typ),
 			(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
 			(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
@@ -1977,11 +1977,11 @@ int cfi_probe(struct flash_bank_s *bank)
 		cfi_info->max_buf_write_size = cfi_query_u16(bank, 0, 0x2a);
 		cfi_info->num_erase_regions = cfi_query_u8(bank, 0, 0x2c);
 
-		DEBUG("size: 0x%x, interface desc: %i, max buffer write size: %x", 1 << cfi_info->dev_size, cfi_info->interface_desc, (1 << cfi_info->max_buf_write_size));
+		LOG_DEBUG("size: 0x%x, interface desc: %i, max buffer write size: %x", 1 << cfi_info->dev_size, cfi_info->interface_desc, (1 << cfi_info->max_buf_write_size));
 
 		if (((1 << cfi_info->dev_size) * bank->bus_width / bank->chip_width) != bank->size)
 		{
-			WARNING("configuration specifies 0x%x size, but a 0x%x size flash was found", bank->size, 1 << cfi_info->dev_size);
+			LOG_WARNING("configuration specifies 0x%x size, but a 0x%x size flash was found", bank->size, 1 << cfi_info->dev_size);
 		}
 
 		if (cfi_info->num_erase_regions)
@@ -1990,7 +1990,7 @@ int cfi_probe(struct flash_bank_s *bank)
 			for (i = 0; i < cfi_info->num_erase_regions; i++)
 			{
 				cfi_info->erase_region_info[i] = cfi_query_u32(bank, 0, 0x2d + (4 * i));
-				DEBUG("erase region[%i]: %i blocks of size 0x%x", i, (cfi_info->erase_region_info[i] & 0xffff) + 1, (cfi_info->erase_region_info[i] >> 16) * 256);
+				LOG_DEBUG("erase region[%i]: %i blocks of size 0x%x", i, (cfi_info->erase_region_info[i] & 0xffff) + 1, (cfi_info->erase_region_info[i] >> 16) * 256);
 			}
 		}
 		else
@@ -2013,7 +2013,7 @@ int cfi_probe(struct flash_bank_s *bank)
 				cfi_read_0002_pri_ext(bank);
 				break;
 			default:
-				ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+				LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 				break;
 		}
 
@@ -2039,7 +2039,7 @@ int cfi_probe(struct flash_bank_s *bank)
 			cfi_fixup(bank, cfi_0002_fixups);
 			break;
 		default:
-			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 			break;
 	}
 
@@ -2118,7 +2118,7 @@ int cfi_erase_check(struct flash_bank_s *bank)
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, 20, &cfi_info->erase_check_algorithm) != ERROR_OK)
 		{
-			WARNING("no working area available, falling back to slow memory reads");
+			LOG_WARNING("no working area available, falling back to slow memory reads");
 		}
 		else
 		{
@@ -2294,7 +2294,7 @@ int cfi_protect_check(struct flash_bank_s *bank)
 			return cfi_spansion_protect_check(bank);
 			break;
 		default:
-			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 			break;
 	}
 
@@ -2371,7 +2371,7 @@ int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 			cfi_spansion_info(bank, buf, buf_size);
 			break;
 		default:
-			ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
 			break;
 	}
 	}

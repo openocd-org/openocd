@@ -78,7 +78,7 @@ u32 buf_get_u32(u8* buffer, unsigned int first, unsigned int num)
 	
 	if (!buffer)
 	{
-		ERROR("buffer not initialized");
+		LOG_ERROR("buffer not initialized");
 		return 0;
 	}
 

@@ -88,10 +88,10 @@ int main(int argc, char *argv[])
 	
 	if (log_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
-	DEBUG("log init complete");
+	LOG_DEBUG("log init complete");
 	
-	OUTPUT( OPENOCD_VERSION "\n" );
-	OUTPUT( "$URL$\n");
+	LOG_OUTPUT( OPENOCD_VERSION "\n" );
+	LOG_OUTPUT( "$URL$\n");
 
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;
@@ -111,23 +111,23 @@ int main(int argc, char *argv[])
 
 	if (jtag_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
-	DEBUG("jtag init complete");
+	LOG_DEBUG("jtag init complete");
 
 	if (target_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
-	DEBUG("target init complete");
+	LOG_DEBUG("target init complete");
 
 	if (flash_init_drivers(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
-	DEBUG("flash init complete");
+	LOG_DEBUG("flash init complete");
 
 	if (nand_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
-	DEBUG("NAND init complete");
+	LOG_DEBUG("NAND init complete");
 
 	if (pld_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
-	DEBUG("pld init complete");
+	LOG_DEBUG("pld init complete");
 
 	/* initialize tcp server */
 	server_init();
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 	/* call any target resets */
 	if (target_init_reset(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
-	DEBUG("target init reset complete");
+	LOG_DEBUG("target init reset complete");
 
 	/* handle network connections */
 	server_loop(cmd_ctx);

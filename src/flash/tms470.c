@@ -116,11 +116,11 @@ int tms470_read_part_info(struct flash_bank_s *bank)
 	/* read and parse the device identification register */
 	target_read_u32(target, 0xFFFFFFF0, &device_ident_reg);
 
-	INFO("device_ident_reg=0x%08x", device_ident_reg);
+	LOG_INFO("device_ident_reg=0x%08x", device_ident_reg);
 
 	if ((device_ident_reg & 7) == 0)
 	{
-		WARNING("Cannot identify target as a TMS470 family.");
+		LOG_WARNING("Cannot identify target as a TMS470 family.");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -142,7 +142,7 @@ int tms470_read_part_info(struct flash_bank_s *bank)
 
 		if (bank->base >= 0x00040000)
 		{
-			ERROR("No %s flash bank contains base address 0x%08x.", part_name, bank->base);
+			LOG_ERROR("No %s flash bank contains base address 0x%08x.", part_name, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 		tms470_info->ordinal = 0;
@@ -188,13 +188,13 @@ int tms470_read_part_info(struct flash_bank_s *bank)
 		}
 		else
 		{
-			ERROR("No %s flash bank contains base address 0x%08x.", part_name, bank->base);
+			LOG_ERROR("No %s flash bank contains base address 0x%08x.", part_name, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 		break;
 
 	default:
-		WARNING("Could not identify part 0x%02x as a member of the TMS470 family.", part_number);
+		LOG_WARNING("Could not identify part 0x%02x as a member of the TMS470 family.", part_number);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -205,7 +205,7 @@ int tms470_read_part_info(struct flash_bank_s *bank)
 	bank->chip_width = 32;
 	bank->bus_width = 32;
 
-	INFO("Identified %s, ver=%d, core=%s, nvmem=%s.", part_name, silicon_version, (technology_family ? "1.8v" : "3.3v"), (rom_flash ? "rom" : "flash"));
+	LOG_INFO("Identified %s, ver=%d, core=%s, nvmem=%s.", part_name, silicon_version, (technology_family ? "1.8v" : "3.3v"), (rom_flash ? "rom" : "flash"));
 
 	tms470_info->device_ident_reg = device_ident_reg;
 	tms470_info->silicon_version = silicon_version;
@@ -245,7 +245,7 @@ int tms470_handle_flash_keyset_command(struct command_context_s *cmd_ctx, char *
 			if (1 != sscanf(&args[i][start], "%x", &flashKeys[i]))
 			{
 				command_print(cmd_ctx, "could not process flash key %s", args[i]);
-				ERROR("could not process flash key %s", args[i]);
+				LOG_ERROR("could not process flash key %s", args[i]);
 				return ERROR_INVALID_ARGUMENTS;
 			}
 		}
@@ -304,7 +304,7 @@ int tms470_handle_osc_megahertz_command(struct command_context_s *cmd_ctx, char 
 
 	if (oscMHz <= 0)
 	{
-		ERROR("osc_megahertz must be positive and non-zero!");
+		LOG_ERROR("osc_megahertz must be positive and non-zero!");
 		command_print(cmd_ctx, "osc_megahertz must be positive and non-zero!");
 		oscMHz = 12;
 		return ERROR_INVALID_ARGUMENTS;
@@ -344,7 +344,7 @@ int tms470_check_flash_unlocked(target_t * target)
 	u32 fmbbusy;
 
 	target_read_u32(target, 0xFFE89C08, &fmbbusy);
-	INFO("tms470 fmbbusy=0x%08x -> %s", fmbbusy, fmbbusy & 0x8000 ? "unlocked" : "LOCKED");
+	LOG_INFO("tms470 fmbbusy=0x%08x -> %s", fmbbusy, fmbbusy & 0x8000 ? "unlocked" : "LOCKED");
 	return fmbbusy & 0x8000 ? ERROR_OK : ERROR_FLASH_OPERATION_FAILED;
 }
 
@@ -394,7 +394,7 @@ int tms470_try_flash_keys(target_t * target, const u32 * key_set)
 			 */
 			target_read_u32(target, 0x00001FF0 + 4 * i, &tmp);
 
-			INFO("tms470 writing fmpkey=0x%08x", key_set[i]);
+			LOG_INFO("tms470 writing fmpkey=0x%08x", key_set[i]);
 			target_write_u32(target, 0xFFE89C0C, key_set[i]);
 		}
 
@@ -456,12 +456,12 @@ int tms470_unlock_flash(struct flash_bank_s *bank)
 	{
 		if (tms470_try_flash_keys(target, p_key_sets[i]) == ERROR_OK)
 		{
-			INFO("tms470 flash is unlocked");
+			LOG_INFO("tms470 flash is unlocked");
 			return ERROR_OK;
 		}
 	}
 
-	WARNING("tms470 could not unlock flash memory protection level 2");
+	LOG_WARNING("tms470 could not unlock flash memory protection level 2");
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
@@ -482,7 +482,7 @@ int tms470_flash_initialize_internal_state_machine(struct flash_bank_s *bank)
 	fmmac2 &= ~0x0007;
 	fmmac2 |= (tms470_info->ordinal & 7);
 	target_write_u32(target, 0xFFE8BC04, fmmac2);
-	DEBUG("set fmmac2=0x%04x", fmmac2);
+	LOG_DEBUG("set fmmac2=0x%04x", fmmac2);
 
 	/*
 	 * Disable level 1 sector protection by setting bit 15 of FMMAC1.
@@ -490,25 +490,25 @@ int tms470_flash_initialize_internal_state_machine(struct flash_bank_s *bank)
 	target_read_u32(target, 0xFFE8BC00, &fmmac1);
 	fmmac1 |= 0x8000;
 	target_write_u32(target, 0xFFE8BC00, fmmac1);
-	DEBUG("set fmmac1=0x%04x", fmmac1);
+	LOG_DEBUG("set fmmac1=0x%04x", fmmac1);
 
 	/*
 	 * FMTCREG=0x2fc0;
 	 */
 	target_write_u32(target, 0xFFE8BC10, 0x2fc0);
-	DEBUG("set fmtcreg=0x2fc0");
+	LOG_DEBUG("set fmtcreg=0x2fc0");
 
 	/*
 	 * MAXPP=50
 	 */
 	target_write_u32(target, 0xFFE8A07C, 50);
-	DEBUG("set fmmaxpp=50");
+	LOG_DEBUG("set fmmaxpp=50");
 
 	/*
 	 * MAXCP=0xf000+2000
 	 */
 	target_write_u32(target, 0xFFE8A084, 0xf000 + 2000);
-	DEBUG("set fmmaxcp=0x%04x", 0xf000 + 2000);
+	LOG_DEBUG("set fmmaxcp=0x%04x", 0xf000 + 2000);
 
 	/*
 	 * configure VHV
@@ -518,22 +518,22 @@ int tms470_flash_initialize_internal_state_machine(struct flash_bank_s *bank)
 	{
 		fmmaxep = 0xf000 + 4095;
 		target_write_u32(target, 0xFFE8A80C, 0x9964);
-		DEBUG("set fmptr3=0x9964");
+		LOG_DEBUG("set fmptr3=0x9964");
 	}
 	else
 	{
 		fmmaxep = 0xa000 + 4095;
 		target_write_u32(target, 0xFFE8A80C, 0x9b64);
-		DEBUG("set fmptr3=0x9b64");
+		LOG_DEBUG("set fmptr3=0x9b64");
 	}
 	target_write_u32(target, 0xFFE8A080, fmmaxep);
-	DEBUG("set fmmaxep=0x%04x", fmmaxep);
+	LOG_DEBUG("set fmmaxep=0x%04x", fmmaxep);
 
 	/*
 	 * FMPTR4=0xa000
 	 */
 	target_write_u32(target, 0xFFE8A810, 0xa000);
-	DEBUG("set fmptr4=0xa000");
+	LOG_DEBUG("set fmptr4=0xa000");
 
 	/*
 	 * FMPESETUP, delay parameter selected based on clock frequency.
@@ -547,56 +547,56 @@ int tms470_flash_initialize_internal_state_machine(struct flash_bank_s *bank)
 	sysclk = (plldis ? 1 : (glbctrl & 0x08) ? 4 : 8) * oscMHz / (1 + (glbctrl & 7));
 	delay = (sysclk > 10) ? (sysclk + 1) / 2 : 5;
 	target_write_u32(target, 0xFFE8A018, (delay << 4) | (delay << 8));
-	DEBUG("set fmpsetup=0x%04x", (delay << 4) | (delay << 8));
+	LOG_DEBUG("set fmpsetup=0x%04x", (delay << 4) | (delay << 8));
 
 	/*
 	 * FMPVEVACCESS, based on delay.
 	 */
 	k = delay | (delay << 8);
 	target_write_u32(target, 0xFFE8A05C, k);
-	DEBUG("set fmpvevaccess=0x%04x", k);
+	LOG_DEBUG("set fmpvevaccess=0x%04x", k);
 
 	/*
 	 * FMPCHOLD, FMPVEVHOLD, FMPVEVSETUP, based on delay.
 	 */
 	k <<= 1;
 	target_write_u32(target, 0xFFE8A034, k);
-	DEBUG("set fmpchold=0x%04x", k);
+	LOG_DEBUG("set fmpchold=0x%04x", k);
 	target_write_u32(target, 0xFFE8A040, k);
-	DEBUG("set fmpvevhold=0x%04x", k);
+	LOG_DEBUG("set fmpvevhold=0x%04x", k);
 	target_write_u32(target, 0xFFE8A024, k);
-	DEBUG("set fmpvevsetup=0x%04x", k);
+	LOG_DEBUG("set fmpvevsetup=0x%04x", k);
 
 	/*
 	 * FMCVACCESS, based on delay.
 	 */
 	k = delay * 16;
 	target_write_u32(target, 0xFFE8A060, k);
-	DEBUG("set fmcvaccess=0x%04x", k);
+	LOG_DEBUG("set fmcvaccess=0x%04x", k);
 
 	/*
 	 * FMCSETUP, based on delay.
 	 */
 	k = 0x3000 | delay * 20;
 	target_write_u32(target, 0xFFE8A020, k);
-	DEBUG("set fmcsetup=0x%04x", k);
+	LOG_DEBUG("set fmcsetup=0x%04x", k);
 
 	/*
 	 * FMEHOLD, based on delay.
 	 */
 	k = (delay * 20) << 2;
 	target_write_u32(target, 0xFFE8A038, k);
-	DEBUG("set fmehold=0x%04x", k);
+	LOG_DEBUG("set fmehold=0x%04x", k);
 
 	/*
 	 * PWIDTH, CWIDTH, EWIDTH, based on delay.
 	 */
 	target_write_u32(target, 0xFFE8A050, delay * 8);
-	DEBUG("set fmpwidth=0x%04x", delay * 8);
+	LOG_DEBUG("set fmpwidth=0x%04x", delay * 8);
 	target_write_u32(target, 0xFFE8A058, delay * 1000);
-	DEBUG("set fmcwidth=0x%04x", delay * 1000);
+	LOG_DEBUG("set fmcwidth=0x%04x", delay * 1000);
 	target_write_u32(target, 0xFFE8A054, delay * 5400);
-	DEBUG("set fmewidth=0x%04x", delay * 5400);
+	LOG_DEBUG("set fmewidth=0x%04x", delay * 5400);
 
 	return result;
 }
@@ -610,47 +610,47 @@ int tms470_flash_status(struct flash_bank_s *bank)
 	u32 fmmstat;
 
 	target_read_u32(target, 0xFFE8BC0C, &fmmstat);
-	DEBUG("set fmmstat=0x%04x", fmmstat);
+	LOG_DEBUG("set fmmstat=0x%04x", fmmstat);
 
 	if (fmmstat & 0x0080)
 	{
-		WARNING("tms470 flash command: erase still active after busy clear.");
+		LOG_WARNING("tms470 flash command: erase still active after busy clear.");
 		result = ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	if (fmmstat & 0x0040)
 	{
-		WARNING("tms470 flash command: program still active after busy clear.");
+		LOG_WARNING("tms470 flash command: program still active after busy clear.");
 		result = ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	if (fmmstat & 0x0020)
 	{
-		WARNING("tms470 flash command: invalid data command.");
+		LOG_WARNING("tms470 flash command: invalid data command.");
 		result = ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	if (fmmstat & 0x0010)
 	{
-		WARNING("tms470 flash command: program, erase or validate sector failed.");
+		LOG_WARNING("tms470 flash command: program, erase or validate sector failed.");
 		result = ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	if (fmmstat & 0x0008)
 	{
-		WARNING("tms470 flash command: voltage instability detected.");
+		LOG_WARNING("tms470 flash command: voltage instability detected.");
 		result = ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	if (fmmstat & 0x0006)
 	{
-		WARNING("tms470 flash command: command suspend detected.");
+		LOG_WARNING("tms470 flash command: command suspend detected.");
 		result = ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	if (fmmstat & 0x0001)
 	{
-		WARNING("tms470 flash command: sector was locked.");
+		LOG_WARNING("tms470 flash command: sector was locked.");
 		result = ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -672,12 +672,12 @@ int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 	 */
 	target_read_u32(target, 0xFFFFFFDC, &glbctrl);
 	target_write_u32(target, 0xFFFFFFDC, glbctrl | 0x10);
-	DEBUG("set glbctrl=0x%08x", glbctrl | 0x10);
+	LOG_DEBUG("set glbctrl=0x%08x", glbctrl | 0x10);
 
 	/* Force normal read mode. */
 	target_read_u32(target, 0xFFE89C00, &orig_fmregopt);
 	target_write_u32(target, 0xFFE89C00, 0);
-	DEBUG("set fmregopt=0x%08x", 0);
+	LOG_DEBUG("set fmregopt=0x%08x", 0);
 
 	(void)tms470_flash_initialize_internal_state_machine(bank);
 
@@ -689,13 +689,13 @@ int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 	{
 		target_read_u32(target, 0xFFE88008, &fmbsea);
 		target_write_u32(target, 0xFFE88008, fmbsea | (1 << sector));
-		DEBUG("set fmbsea=0x%04x", fmbsea | (1 << sector));
+		LOG_DEBUG("set fmbsea=0x%04x", fmbsea | (1 << sector));
 	}
 	else
 	{
 		target_read_u32(target, 0xFFE8800C, &fmbseb);
 		target_write_u32(target, 0xFFE8800C, fmbseb | (1 << (sector - 16)));
-		DEBUG("set fmbseb=0x%04x", fmbseb | (1 << (sector - 16)));
+		LOG_DEBUG("set fmbseb=0x%04x", fmbseb | (1 << (sector - 16)));
 	}
 	bank->sectors[sector].is_protected = 0;
 
@@ -703,11 +703,11 @@ int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 	 * clear status regiser, sent erase command, kickoff erase 
 	 */
 	target_write_u16(target, flashAddr, 0x0040);
-	DEBUG("write *(u16 *)0x%08x=0x0040", flashAddr);
+	LOG_DEBUG("write *(u16 *)0x%08x=0x0040", flashAddr);
 	target_write_u16(target, flashAddr, 0x0020);
-	DEBUG("write *(u16 *)0x%08x=0x0020", flashAddr);
+	LOG_DEBUG("write *(u16 *)0x%08x=0x0020", flashAddr);
 	target_write_u16(target, flashAddr, 0xffff);
-	DEBUG("write *(u16 *)0x%08x=0xffff", flashAddr);
+	LOG_DEBUG("write *(u16 *)0x%08x=0xffff", flashAddr);
 
 	/*
 	 * Monitor FMMSTAT, busy until clear, then check and other flags for
@@ -728,19 +728,19 @@ int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 	if (sector < 16)
 	{
 		target_write_u32(target, 0xFFE88008, fmbsea);
-		DEBUG("set fmbsea=0x%04x", fmbsea);
+		LOG_DEBUG("set fmbsea=0x%04x", fmbsea);
 		bank->sectors[sector].is_protected = fmbsea & (1 << sector) ? 0 : 1;
 	}
 	else
 	{
 		target_write_u32(target, 0xFFE8800C, fmbseb);
-		DEBUG("set fmbseb=0x%04x", fmbseb);
+		LOG_DEBUG("set fmbseb=0x%04x", fmbseb);
 		bank->sectors[sector].is_protected = fmbseb & (1 << (sector - 16)) ? 0 : 1;
 	}
 	target_write_u32(target, 0xFFE89C00, orig_fmregopt);
-	DEBUG("set fmregopt=0x%08x", orig_fmregopt);
+	LOG_DEBUG("set fmregopt=0x%08x", orig_fmregopt);
 	target_write_u32(target, 0xFFFFFFDC, glbctrl);
-	DEBUG("set glbctrl=0x%08x", glbctrl);
+	LOG_DEBUG("set glbctrl=0x%08x", glbctrl);
 
 	if (result == ERROR_OK)
 	{
@@ -781,7 +781,7 @@ int tms470_erase(struct flash_bank_s *bank, int first, int last)
 
 	if ((first < 0) || (first >= bank->num_sectors) || (last < 0) || (last >= bank->num_sectors) || (first > last))
 	{
-		ERROR("Sector range %d to %d invalid.", first, last);
+		LOG_ERROR("Sector range %d to %d invalid.", first, last);
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
@@ -793,18 +793,18 @@ int tms470_erase(struct flash_bank_s *bank, int first, int last)
 
 	for (sector = first; sector <= last; sector++)
 	{
-		INFO("Erasing tms470 bank %d sector %d...", tms470_info->ordinal, sector);
+		LOG_INFO("Erasing tms470 bank %d sector %d...", tms470_info->ordinal, sector);
 
 		result = tms470_erase_sector(bank, sector);
 
 		if (result != ERROR_OK)
 		{
-			ERROR("tms470 could not erase flash sector.");
+			LOG_ERROR("tms470 could not erase flash sector.");
 			break;
 		}
 		else
 		{
-			INFO("sector erased successfully.");
+			LOG_INFO("sector erased successfully.");
 		}
 	}
 
@@ -829,7 +829,7 @@ int tms470_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 	if ((first < 0) || (first >= bank->num_sectors) || (last < 0) || (last >= bank->num_sectors) || (first > last))
 	{
-		ERROR("Sector range %d to %d invalid.", first, last);
+		LOG_ERROR("Sector range %d to %d invalid.", first, last);
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 
@@ -877,7 +877,7 @@ int tms470_write(struct flash_bank_s *bank, u8 * buffer, u32 offset, u32 count)
 
 	tms470_read_part_info(bank);
 
-	INFO("Writing %d bytes starting at 0x%08x", count, bank->base + offset);
+	LOG_INFO("Writing %d bytes starting at 0x%08x", count, bank->base + offset);
 
 	/* set GLBCTRL.4  */
 	target_read_u32(target, 0xFFFFFFDC, &glbctrl);
@@ -911,7 +911,7 @@ int tms470_write(struct flash_bank_s *bank, u8 * buffer, u32 offset, u32 count)
 
 		if (word != 0xffff)
 		{
-			INFO("writing 0x%04x at 0x%08x", word, addr);
+			LOG_INFO("writing 0x%04x at 0x%08x", word, addr);
 
 			/* clear status register */
 			target_write_u16(target, addr, 0x0040);
@@ -936,15 +936,15 @@ int tms470_write(struct flash_bank_s *bank, u8 * buffer, u32 offset, u32 count)
 
 			if (fmmstat & 0x3ff)
 			{
-				ERROR("fmstat=0x%04x", fmmstat);
-				ERROR("Could not program word 0x%04x at address 0x%08x.", word, addr);
+				LOG_ERROR("fmstat=0x%04x", fmmstat);
+				LOG_ERROR("Could not program word 0x%04x at address 0x%08x.", word, addr);
 				result = ERROR_FLASH_OPERATION_FAILED;
 				break;
 			}
 		}
 		else
 		{
-			INFO("skipping 0xffff at 0x%08x", addr);
+			LOG_INFO("skipping 0xffff at 0x%08x", addr);
 		}
 	}
 
@@ -964,7 +964,7 @@ int tms470_probe(struct flash_bank_s *bank)
 {
 	if (bank->target->state != TARGET_HALTED)
 	{
-		WARNING("Cannot communicate... target not halted.");
+		LOG_WARNING("Cannot communicate... target not halted.");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1033,7 +1033,7 @@ int tms470_erase_check(struct flash_bank_s *bank)
 		{
 			u32 i, addr = bank->base + bank->sectors[sector].offset;
 
-			INFO("checking flash bank %d sector %d", tms470_info->ordinal, sector);
+			LOG_INFO("checking flash bank %d sector %d", tms470_info->ordinal, sector);
 
 			target_read_buffer(target, addr, bank->sectors[sector].size, buffer);
 
@@ -1042,8 +1042,8 @@ int tms470_erase_check(struct flash_bank_s *bank)
 			{
 				if (buffer[i] != 0xff)
 				{
-					WARNING("tms470 bank %d, sector %d, not erased.", tms470_info->ordinal, sector);
-					WARNING("at location 0x%08x: flash data is 0x%02x.", addr + i, buffer[i]);
+					LOG_WARNING("tms470 bank %d, sector %d, not erased.", tms470_info->ordinal, sector);
+					LOG_WARNING("at location 0x%08x: flash data is 0x%02x.", addr + i, buffer[i]);
 
 					bank->sectors[sector].is_erased = 0;
 					break;
@@ -1057,7 +1057,7 @@ int tms470_erase_check(struct flash_bank_s *bank)
 		}
 		else
 		{
-			INFO("sector erased");
+			LOG_INFO("sector erased");
 		}
 	}
 
@@ -1111,7 +1111,7 @@ int tms470_protect_check(struct flash_bank_s *bank)
 			bank->sectors[sector].is_protected = protected;
 		}
 
-		DEBUG("bank %d sector %d is %s", tms470_info->ordinal, sector, protected ? "protected" : "not protected");
+		LOG_DEBUG("bank %d sector %d is %s", tms470_info->ordinal, sector, protected ? "protected" : "not protected");
 	}
 
 	return result;

@@ -47,7 +47,7 @@ s3c24xx_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 	
 	s3c24xx_info = malloc(sizeof(s3c24xx_nand_controller_t));
 	if (s3c24xx_info == NULL) {
-		ERROR("no memory for nand controller\n");
+		LOG_ERROR("no memory for nand controller\n");
 		return NULL;
 	}
 
@@ -55,7 +55,7 @@ s3c24xx_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	s3c24xx_info->target = get_target_by_num(strtoul(args[1], NULL, 0));
 	if (s3c24xx_info->target == NULL) {
-		ERROR("no target '%s' configured", args[1]);
+		LOG_ERROR("no target '%s' configured", args[1]);
 		return NULL;
 	}
 		
@@ -73,7 +73,7 @@ int s3c24xx_reset(struct nand_device_s *device)
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
-		ERROR("target must be halted to use S3C24XX NAND flash controller");
+		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
@@ -88,7 +88,7 @@ int s3c24xx_command(struct nand_device_s *device, u8 command)
 	target_t *target = s3c24xx_info->target;
 	
 	if (target->state != TARGET_HALTED) {
-		ERROR("target must be halted to use S3C24XX NAND flash controller");
+		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
@@ -103,7 +103,7 @@ int s3c24xx_address(struct nand_device_s *device, u8 address)
 	target_t *target = s3c24xx_info->target;
 	
 	if (target->state != TARGET_HALTED) {
-		ERROR("target must be halted to use S3C24XX NAND flash controller");
+		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
@@ -117,7 +117,7 @@ int s3c24xx_write_data(struct nand_device_s *device, u16 data)
 	target_t *target = s3c24xx_info->target;
 
 	if (target->state != TARGET_HALTED) {
-		ERROR("target must be halted to use S3C24XX NAND flash controller");
+		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 	
@@ -131,7 +131,7 @@ int s3c24xx_read_data(struct nand_device_s *device, void *data)
 	target_t *target = s3c24xx_info->target;
 	
 	if (target->state != TARGET_HALTED) {
-		ERROR("target must be halted to use S3C24XX NAND flash controller");
+		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 

@@ -234,7 +234,7 @@ int telnet_input(connection_t *connection)
 		return ERROR_SERVER_REMOTE_CLOSED;
 	else if (bytes_read == -1)
 	{
-		ERROR("error during read: %s", strerror(errno));
+		LOG_ERROR("error during read: %s", strerror(errno));
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
@@ -413,7 +413,7 @@ int telnet_input(connection_t *connection)
 						}
 						else
 						{
-							DEBUG("unhandled nonprintable: %2.2x", *buf_p);
+							LOG_DEBUG("unhandled nonprintable: %2.2x", *buf_p);
 						}
 					}
 				}
@@ -546,13 +546,13 @@ int telnet_input(connection_t *connection)
 				}
 				else
 				{
-					ERROR("BUG: unexpected value in t_con->last_escape");
+					LOG_ERROR("BUG: unexpected value in t_con->last_escape");
 					t_con->state = TELNET_STATE_DATA;
 				}
 
 				break;
 			default:
-				ERROR("unknown telnet state");
+				LOG_ERROR("unknown telnet state");
 				exit(-1);
 		}
 
@@ -595,7 +595,7 @@ int telnet_connection_closed(connection_t *connection)
 	}
 	else
 	{
-		ERROR("BUG: connection->priv == NULL");
+		LOG_ERROR("BUG: connection->priv == NULL");
 	}
 
 	target_unregister_event_callback(telnet_target_callback_event_handler, connection->cmd_ctx);
@@ -621,7 +621,7 @@ int telnet_init(char *banner)
 
 	if (telnet_port == 0)
 	{
-		WARNING("no telnet port specified, using default port 4444");
+		LOG_WARNING("no telnet port specified, using default port 4444");
 		telnet_port = 4444;
 	}
 

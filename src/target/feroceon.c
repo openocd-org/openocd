@@ -229,7 +229,7 @@ void feroceon_write_xpsr(target_t *target, u32 xpsr, int spsr)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 		
-	DEBUG("xpsr: %8.8x, spsr: %i", xpsr, spsr);
+	LOG_DEBUG("xpsr: %8.8x, spsr: %i", xpsr, spsr);
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MSR_IM(xpsr & 0xff, 0, 1, spsr), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -270,7 +270,7 @@ void feroceon_write_xpsr_im8(target_t *target, u8 xpsr_im, int rot, int spsr)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
-	DEBUG("xpsr_im: %2.2x, rot: %i, spsr: %i", xpsr_im, rot, spsr);
+	LOG_DEBUG("xpsr_im: %2.2x, rot: %i, spsr: %i", xpsr_im, rot, spsr);
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MSR_IM(xpsr_im, rot, 1, spsr), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -320,7 +320,7 @@ void feroceon_branch_resume(target_t *target)
 
 void feroceon_branch_resume_thumb(target_t *target)
 {
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -415,7 +415,7 @@ void feroceon_enable_single_step(target_t *target)
 		u32 current_pc, current_opcode;
 		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 		target_read_u32(target, current_pc, &current_opcode);
-		ERROR("BUG: couldn't calculate PC of next instruction, "
+		LOG_ERROR("BUG: couldn't calculate PC of next instruction, "
 		      "current opcode is 0x%8.8x", current_opcode);
 		next_pc = current_pc;
 	}
@@ -501,7 +501,7 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, dcc_size, &arm7_9->dcc_working_area) != ERROR_OK)
 		{
-			INFO("no working area available, falling back to memory writes");
+			LOG_INFO("no working area available, falling back to memory writes");
 			return target->type->write_memory(target, address, 4, count, buffer);
 		}
 
@@ -578,7 +578,7 @@ int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 
 	/* the COMMS_CTRL bits are all contiguous */
 	if (buf_get_u32(arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL].value, 2, 4) != 6)
-		ERROR("unexpected Feroceon EICE version signature");
+		LOG_ERROR("unexpected Feroceon EICE version signature");
 
 	arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].size = 6; 
 	arm7_9->eice_cache->reg_list[EICE_DBG_STAT].size = 5; 
@@ -613,7 +613,7 @@ int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	
 	if (argc < 4)
 	{
-		ERROR("'target arm926ejs' requires at least one additional argument");
+		LOG_ERROR("'target arm926ejs' requires at least one additional argument");
 		exit(-1);
 	}
 	
@@ -622,7 +622,7 @@ int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	if (argc >= 5)
 		variant = args[4];
 	
-	DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
+	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
 	
 	arm926ejs_init_arch_info(target, arm926ejs, chain_pos, variant);
 

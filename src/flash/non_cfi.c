@@ -250,7 +250,7 @@ void cfi_fixup_non_cfi(flash_bank_t *bank, void *param)
 		cfi_info->pri_ext = pri_ext;
 	} else if ((cfi_info->pri_id == 0x1) || (cfi_info->pri_id == 0x3))
 	{
-		ERROR("BUG: non-CFI flashes using the Intel commandset are not yet supported");
+		LOG_ERROR("BUG: non-CFI flashes using the Intel commandset are not yet supported");
 		exit(-1);
 	}
 }

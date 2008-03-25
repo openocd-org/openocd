@@ -70,7 +70,7 @@ static int autodetect_image_type(image_t *image, char *url)
 	/* check header against known signatures */
 	if (strncmp((char*)buffer,ELFMAG,SELFMAG)==0)
 	{
-		DEBUG("ELF image detected.");
+		LOG_DEBUG("ELF image detected.");
 		image->type = IMAGE_ELF;
 	}
 	else if  ((buffer[0]==':') /* record start byte */
@@ -83,7 +83,7 @@ static int autodetect_image_type(image_t *image, char *url)
 	        &&(buffer[7]=='0') /* record type : 00 -> 05 */
 	        &&(buffer[8]>='0')&&(buffer[8]<'6'))
 	{
-		DEBUG("IHEX image detected.");
+		LOG_DEBUG("IHEX image detected.");
 		image->type = IMAGE_IHEX;
 	}
 	else if ((buffer[0] == 'S') /* record start byte */
@@ -92,7 +92,7 @@ static int autodetect_image_type(image_t *image, char *url)
 		&&(isxdigit(buffer[3]))
 		&&(buffer[1] >= '0') && (buffer[1] < '9'))
 	{
-		DEBUG("S19 image detected.");
+		LOG_DEBUG("S19 image detected.");
 		image->type = IMAGE_SRECORD;
 	}
 	else
@@ -315,7 +315,7 @@ int image_ihex_buffer_complete(image_t *image)
 		}
 		else
 		{
-			ERROR("unhandled IHEX record type: %i", record_type);
+			LOG_ERROR("unhandled IHEX record type: %i", record_type);
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
 		
@@ -325,12 +325,12 @@ int image_ihex_buffer_complete(image_t *image)
 		if ((u8)checksum != (u8)(~cal_checksum + 1))
 		{
 			/* checksum failed */
-			ERROR("incorrect record checksum found in IHEX file");
+			LOG_ERROR("incorrect record checksum found in IHEX file");
 			return ERROR_IMAGE_CHECKSUM;
 		}
 	}
 	
-	ERROR("premature end of IHEX file, no end-of-file record found");
+	LOG_ERROR("premature end of IHEX file, no end-of-file record found");
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
 
@@ -345,23 +345,23 @@ int image_elf_read_headers(image_t *image)
 
 	if ((retval = fileio_read(&elf->fileio, sizeof(Elf32_Ehdr), (u8*)elf->header, &read_bytes)) != ERROR_OK)
 	{
-		ERROR("cannot read ELF file header, read failed");
+		LOG_ERROR("cannot read ELF file header, read failed");
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	if (read_bytes != sizeof(Elf32_Ehdr))
 	{
-		ERROR("cannot read ELF file header, only partially read");
+		LOG_ERROR("cannot read ELF file header, only partially read");
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
 	if (strncmp((char*)elf->header->e_ident,ELFMAG,SELFMAG)!=0)
 	{
-		ERROR("invalid ELF file, bad magic number");
+		LOG_ERROR("invalid ELF file, bad magic number");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 	if (elf->header->e_ident[EI_CLASS]!=ELFCLASS32)
 	{
-		ERROR("invalid ELF file, only 32bits files are supported");
+		LOG_ERROR("invalid ELF file, only 32bits files are supported");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 
@@ -370,20 +370,20 @@ int image_elf_read_headers(image_t *image)
 	if ((elf->endianness!=ELFDATA2LSB)
 		 &&(elf->endianness!=ELFDATA2MSB))
 	{
-		ERROR("invalid ELF file, unknown endianess setting");
+		LOG_ERROR("invalid ELF file, unknown endianess setting");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 
 	elf->segment_count = field16(elf,elf->header->e_phnum);
 	if (elf->segment_count==0)
 	{
-		ERROR("invalid ELF file, no program headers");
+		LOG_ERROR("invalid ELF file, no program headers");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
 
 	if ((retval = fileio_seek(&elf->fileio, field32(elf,elf->header->e_phoff))) != ERROR_OK)
 	{
-		ERROR("cannot seek to ELF program header table, read failed");
+		LOG_ERROR("cannot seek to ELF program header table, read failed");
 		return retval;
 	}
 
@@ -391,12 +391,12 @@ int image_elf_read_headers(image_t *image)
 
 	if ((retval = fileio_read(&elf->fileio, elf->segment_count*sizeof(Elf32_Phdr), (u8*)elf->segments, &read_bytes)) != ERROR_OK)
 	{
-		ERROR("cannot read ELF segment headers, read failed");
+		LOG_ERROR("cannot read ELF segment headers, read failed");
 		return retval;
 	}
 	if (read_bytes != elf->segment_count*sizeof(Elf32_Phdr))
 	{
-		ERROR("cannot read ELF segment headers, only partially read");
+		LOG_ERROR("cannot read ELF segment headers, only partially read");
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
@@ -434,24 +434,24 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 
 	*size_read = 0;
 	
-	DEBUG("load segment %d at 0x%x (sz=0x%x)",section,offset,size);
+	LOG_DEBUG("load segment %d at 0x%x (sz=0x%x)",section,offset,size);
 
 	/* read initialized data in current segment if any */
 	if (offset<field32(elf,segment->p_filesz))
 	{
 		/* maximal size present in file for the current segment */
 		read_size = MIN(size, field32(elf,segment->p_filesz)-offset);
-		DEBUG("read elf: size = 0x%x at 0x%x",read_size,
+		LOG_DEBUG("read elf: size = 0x%x at 0x%x",read_size,
 			field32(elf,segment->p_offset)+offset);
 		/* read initialized area of the segment */
 		if ((retval = fileio_seek(&elf->fileio, field32(elf,segment->p_offset)+offset)) != ERROR_OK)
 		{
-			ERROR("cannot find ELF segment content, seek failed");
+			LOG_ERROR("cannot find ELF segment content, seek failed");
 			return retval;
 		}
 		if ((retval = fileio_read(&elf->fileio, read_size, buffer, &really_read)) != ERROR_OK)
 		{
-			ERROR("cannot read ELF segment content, read failed");
+			LOG_ERROR("cannot read ELF segment content, read failed");
 			return retval;
 		}
 		buffer += read_size;
@@ -613,7 +613,7 @@ int image_mot_buffer_complete(image_t *image)
 		}
 		else
 		{
-			ERROR("unhandled S19 record type: %i", record_type);
+			LOG_ERROR("unhandled S19 record type: %i", record_type);
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
 		
@@ -625,12 +625,12 @@ int image_mot_buffer_complete(image_t *image)
 		if( cal_checksum != 0xFF )
 		{
 			/* checksum failed */
-			ERROR("incorrect record checksum found in S19 file");
+			LOG_ERROR("incorrect record checksum found in S19 file");
 			return ERROR_IMAGE_CHECKSUM;
 		}
 	}
 	
-	ERROR("premature end of S19 file, no end-of-file record found");
+	LOG_ERROR("premature end of S19 file, no end-of-file record found");
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
 
@@ -673,7 +673,7 @@ int image_open(image_t *image, char *url, char *type_string)
 		
 		if ((retval = image_ihex_buffer_complete(image)) != ERROR_OK)
 		{
-			ERROR("failed buffering IHEX image, check daemon output for additional information");
+			LOG_ERROR("failed buffering IHEX image, check daemon output for additional information");
 			fileio_close(&image_ihex->fileio);
 			return retval;
 		}
@@ -724,7 +724,7 @@ int image_open(image_t *image, char *url, char *type_string)
 		
 		if ((retval = image_mot_buffer_complete(image)) != ERROR_OK)
 		{
-			ERROR("failed buffering S19 image, check daemon output for additional information");
+			LOG_ERROR("failed buffering S19 image, check daemon output for additional information");
 			fileio_close(&image_mot->fileio);
 			return retval;
 		}
@@ -761,7 +761,7 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	/* don't read past the end of a section */
 	if (offset + size > image->sections[section].size)
 	{
-		DEBUG("read past end of section: 0x%8.8x + 0x%8.8x > 0x%8.8x",
+		LOG_DEBUG("read past end of section: 0x%8.8x + 0x%8.8x > 0x%8.8x",
 				offset, size, image->sections[section].size);
 		return ERROR_INVALID_ARGUMENTS;
 	}

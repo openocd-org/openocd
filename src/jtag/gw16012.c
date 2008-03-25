@@ -75,7 +75,6 @@
 #if IS_CYGWIN == 1
 #include <windows.h>
 #include <errno.h>
-#undef ERROR
 #endif
 #endif
 
@@ -127,7 +126,7 @@ void gw16012_data(u8 value)
 	gw16012_msb ^= 0x80; /* toggle MSB */
 
 #ifdef _DEBUG_GW16012_IO_
-	DEBUG("%2.2x", value);
+	LOG_DEBUG("%2.2x", value);
 #endif
 	
 	#if PARPORT_USE_PPDEV == 1
@@ -148,7 +147,7 @@ void gw16012_control(u8 value)
 		gw16012_control_value = value;
 
 #ifdef _DEBUG_GW16012_IO_
-		DEBUG("%2.2x", gw16012_control_value);
+		LOG_DEBUG("%2.2x", gw16012_control_value);
 #endif
 
 		#if PARPORT_USE_PPDEV == 1
@@ -172,14 +171,14 @@ void gw16012_input(u8 *value)
 	#endif
 
 #ifdef _DEBUG_GW16012_IO_
-	DEBUG("%2.2x", *value);
+	LOG_DEBUG("%2.2x", *value);
 #endif
 }
 
 /* (1) assert or (0) deassert reset lines */
 void gw16012_reset(int trst, int srst)
 {
-	DEBUG("trst: %i, srst: %i", trst, srst);
+	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 
 	if (trst == 0)
 		gw16012_control(0x0d);
@@ -204,7 +203,7 @@ void gw16012_end_state(state)
 		end_state = state;
 	else
 	{
-		ERROR("BUG: %i is not a valid end state", state);
+		LOG_ERROR("BUG: %i is not a valid end state", state);
 		exit(-1);
 	}
 }
@@ -244,7 +243,7 @@ void gw16012_path_move(pathmove_command_t *cmd)
 		}
 		else
 		{
-			ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
 			exit(-1);
 		}
 		
@@ -371,14 +370,14 @@ int gw16012_execute_queue(void)
 		{
 			case JTAG_END_STATE:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
+				LOG_DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
 #endif
 				if (cmd->cmd.end_state->end_state != -1)
 					gw16012_end_state(cmd->cmd.end_state->end_state);
 				break;
 			case JTAG_RESET:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+				LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 #endif
 				if (cmd->cmd.reset->trst == 1)
 				{
@@ -388,7 +387,7 @@ int gw16012_execute_queue(void)
 				break;
 			case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
+				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
 #endif
 				if (cmd->cmd.runtest->end_state != -1)
 					gw16012_end_state(cmd->cmd.runtest->end_state);
@@ -396,7 +395,7 @@ int gw16012_execute_queue(void)
 				break;
 			case JTAG_STATEMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
+				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif
 				if (cmd->cmd.statemove->end_state != -1)
 					gw16012_end_state(cmd->cmd.statemove->end_state);
@@ -404,7 +403,7 @@ int gw16012_execute_queue(void)
 				break;
 			case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+				LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 #endif
 				gw16012_path_move(cmd->cmd.pathmove);
 				break;
@@ -414,7 +413,7 @@ int gw16012_execute_queue(void)
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 				type = jtag_scan_type(cmd->cmd.scan);
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("%s scan (%i) %i bit end in %i", (cmd->cmd.scan->ir_scan) ? "ir" : "dr", 
+				LOG_DEBUG("%s scan (%i) %i bit end in %i", (cmd->cmd.scan->ir_scan) ? "ir" : "dr", 
 					type, scan_size, cmd->cmd.scan->end_state);
 #endif
 				gw16012_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
@@ -425,12 +424,12 @@ int gw16012_execute_queue(void)
 				break;
 			case JTAG_SLEEP:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("sleep %i", cmd->cmd.sleep->us);
+				LOG_DEBUG("sleep %i", cmd->cmd.sleep->us);
 #endif
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
 			default:
-				ERROR("BUG: unknown JTAG command type encountered");
+				LOG_ERROR("BUG: unknown JTAG command type encountered");
 				exit(-1);
 		}
 		cmd = cmd->next;
@@ -476,34 +475,34 @@ int gw16012_init(void)
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle>0)
 	{
-		ERROR("device is already opened");
+		LOG_ERROR("device is already opened");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-	DEBUG("opening /dev/ppi%d...", gw16012_port);
+	LOG_DEBUG("opening /dev/ppi%d...", gw16012_port);
 
 	snprintf(buffer, 256, "/dev/ppi%d", gw16012_port);
 	device_handle = open(buffer, O_WRONLY);
 #else
-	DEBUG("opening /dev/parport%d...", gw16012_port);
+	LOG_DEBUG("opening /dev/parport%d...", gw16012_port);
 
 	snprintf(buffer, 256, "/dev/parport%d", gw16012_port);
 	device_handle = open(buffer, O_WRONLY);
 #endif	
 	if (device_handle<0)
 	{
-		ERROR("cannot open device. check it exists and that user read and write rights are set");
+		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	DEBUG("...open");
+	LOG_DEBUG("...open");
 
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 	i=ioctl(device_handle, PPCLAIM);
 	if (i<0)
 	{
-		ERROR("cannot claim device");
+		LOG_ERROR("cannot claim device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -511,7 +510,7 @@ int gw16012_init(void)
 	i= ioctl(device_handle, PPSETMODE, & i);
 	if (i<0)
 	{
-		ERROR(" cannot set compatible mode to device");
+		LOG_ERROR(" cannot set compatible mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -519,7 +518,7 @@ int gw16012_init(void)
 	i = ioctl(device_handle, PPNEGOT, & i);
 	if (i<0)
 	{
-		ERROR("cannot set compatible 1284 mode to device");
+		LOG_ERROR("cannot set compatible 1284 mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 #endif
@@ -527,20 +526,20 @@ int gw16012_init(void)
 	if (gw16012_port == 0)
 	{
 		gw16012_port = 0x378;
-		WARNING("No gw16012 port specified, using default '0x378' (LPT1)");
+		LOG_WARNING("No gw16012 port specified, using default '0x378' (LPT1)");
 	}
 	
-	DEBUG("requesting privileges for parallel port 0x%lx...", gw16012_port);
+	LOG_DEBUG("requesting privileges for parallel port 0x%lx...", gw16012_port);
 #if PARPORT_USE_GIVEIO == 1
 	if (gw16012_get_giveio_access() != 0)
 #else /* PARPORT_USE_GIVEIO */
 	if (ioperm(gw16012_port, 3, 1) != 0)
 #endif /* PARPORT_USE_GIVEIO */
 	{
-		ERROR("missing privileges for direct i/o");
+		LOG_ERROR("missing privileges for direct i/o");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	DEBUG("...privileges granted");
+	LOG_DEBUG("...privileges granted");
 
 	/* make sure parallel port is in right mode (clear tristate and interrupt */
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)

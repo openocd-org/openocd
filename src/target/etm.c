@@ -278,7 +278,7 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_co
 		
 		if (!etb)
 		{
-			ERROR("etb selected as etm capture driver, but no ETB configured");
+			LOG_ERROR("etb selected as etm capture driver, but no ETB configured");
 			return ERROR_OK;
 		}
 		
@@ -289,7 +289,7 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_co
 	
 	if (etm_ctx->capture_driver->init(etm_ctx) != ERROR_OK)
 	{
-		ERROR("ETM capture driver initialization failed");
+		LOG_ERROR("ETM capture driver initialization failed");
 		exit(-1);
 	}
 	
@@ -300,13 +300,13 @@ int etm_get_reg(reg_t *reg)
 {
 	if (etm_read_reg(reg) != ERROR_OK)
 	{
-		ERROR("BUG: error scheduling etm register read");
+		LOG_ERROR("BUG: error scheduling etm register read");
 		exit(-1);
 	}
 	
 	if (jtag_execute_queue() != ERROR_OK)
 	{
-		ERROR("register read failed");
+		LOG_ERROR("register read failed");
 	}
 	
 	return ERROR_OK;
@@ -318,7 +318,7 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	u8 reg_addr = etm_reg->addr & 0x7f;
 	scan_field_t fields[3];
 	
-	DEBUG("%i", etm_reg->addr);
+	LOG_DEBUG("%i", etm_reg->addr);
 
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(etm_reg->jtag_info, 0x6);
@@ -378,7 +378,7 @@ int etm_set_reg(reg_t *reg, u32 value)
 {
 	if (etm_write_reg(reg, value) != ERROR_OK)
 	{
-		ERROR("BUG: error scheduling etm register write");
+		LOG_ERROR("BUG: error scheduling etm register write");
 		exit(-1);
 	}
 	
@@ -395,7 +395,7 @@ int etm_set_reg_w_exec(reg_t *reg, u8 *buf)
 	
 	if (jtag_execute_queue() != ERROR_OK)
 	{
-		ERROR("register write failed");
+		LOG_ERROR("register write failed");
 		exit(-1);
 	}
 	return ERROR_OK;
@@ -407,7 +407,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	u8 reg_addr = etm_reg->addr & 0x7f;
 	scan_field_t fields[3];
 	
-	DEBUG("%i: 0x%8.8x", etm_reg->addr, value);
+	LOG_DEBUG("%i: 0x%8.8x", etm_reg->addr, value);
 	
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(etm_reg->jtag_info, 0x6);
@@ -526,7 +526,7 @@ int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instruction)
 			ctx->current_pc - ctx->image->sections[section].base_address,
 			4, buf, &size_read)) != ERROR_OK)
 		{
-			ERROR("error while reading instruction: %i", retval);
+			LOG_ERROR("error while reading instruction: %i", retval);
 			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 		}
 		opcode = target_buffer_get_u32(ctx->target, buf);
@@ -539,7 +539,7 @@ int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instruction)
 			ctx->current_pc - ctx->image->sections[section].base_address,
 			2, buf, &size_read)) != ERROR_OK)
 		{
-			ERROR("error while reading instruction: %i", retval);
+			LOG_ERROR("error while reading instruction: %i", retval);
 			return ERROR_TRACE_INSTRUCTION_UNAVAILABLE;
 		}
 		opcode = target_buffer_get_u16(ctx->target, buf);
@@ -547,12 +547,12 @@ int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instruction)
 	}
 	else if (ctx->core_state == ARMV4_5_STATE_JAZELLE)
 	{
-		ERROR("BUG: tracing of jazelle code not supported");
+		LOG_ERROR("BUG: tracing of jazelle code not supported");
 		exit(-1);
 	}
 	else
 	{
-		ERROR("BUG: unknown core state encountered");
+		LOG_ERROR("BUG: unknown core state encountered");
 		exit(-1);
 	}
 	
@@ -724,7 +724,7 @@ int etmv1_data(etm_context_t *ctx, int size, u32 *data)
 	
 	if (size == 8)
 	{
-		ERROR("TODO: add support for 64-bit values");
+		LOG_ERROR("TODO: add support for 64-bit values");
 		return -1;
 	}
 	else if (size == 4)
@@ -808,7 +808,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 				/* a positive return values means the current branch was abandoned,
 				 * and a new branch was encountered in cycle ctx->pipe_index + retval;
 				 */
-				WARNING("abandoned branch encountered, correctnes of analysis uncertain");
+				LOG_WARNING("abandoned branch encountered, correctnes of analysis uncertain");
 				ctx->pipe_index += retval;
 				continue;
 			}
@@ -853,7 +853,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 					}
 					break;
 				default:	/* reserved */
-					ERROR("BUG: branch reason code 0x%x is reserved", ctx->last_branch_reason);		
+					LOG_ERROR("BUG: branch reason code 0x%x is reserved", ctx->last_branch_reason);		
 					exit(-1);
 					break;
 			}
@@ -1223,7 +1223,7 @@ int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	if (argc != 5)
 	{
-		ERROR("incomplete 'etm config <target> <port_width> <port_mode> <clocking> <capture_driver>' command");
+		LOG_ERROR("incomplete 'etm config <target> <port_width> <port_mode> <clocking> <capture_driver>' command");
 		exit(-1);
 	}
 	
@@ -1231,7 +1231,7 @@ int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	if (!target)
 	{
-		ERROR("target number '%s' not defined", args[0]);
+		LOG_ERROR("target number '%s' not defined", args[0]);
 		exit(-1);
 	}
 	
@@ -1309,7 +1309,7 @@ int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 	{
 		/* no supported capture driver found, don't register an ETM */
 		free(etm_ctx);
-		ERROR("trace capture driver '%s' not found", args[4]);
+		LOG_ERROR("trace capture driver '%s' not found", args[4]);
 		return ERROR_OK;
 	}
 	
@@ -1393,7 +1393,7 @@ int handle_etm_info_command(struct command_context_s *cmd_ctx, char *cmd, char *
 			max_port_size = 16;
 			break;
 		default:
-			ERROR("Illegal max_port_size");
+			LOG_ERROR("Illegal max_port_size");
 			exit(-1);
 	}
 	command_print(cmd_ctx, "max. port size: %i", max_port_size);

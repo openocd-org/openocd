@@ -372,7 +372,7 @@ int command_run_line(command_context_t *context, char *line)
 	if (*line && (line[0] == '#'))
 		return ERROR_OK;
 	
-	DEBUG("%s", line);
+	LOG_DEBUG("%s", line);
 
 	nwords = parse_line(line, words, sizeof(words) / sizeof(words[0]));
 	

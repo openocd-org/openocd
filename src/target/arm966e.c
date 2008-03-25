@@ -129,7 +129,7 @@ int arm966e_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	
 	if (argc < 4)
 	{
-		ERROR("'target arm966e' requires at least one additional argument");
+		LOG_ERROR("'target arm966e' requires at least one additional argument");
 		exit(-1);
 	}
 	
@@ -138,7 +138,7 @@ int arm966e_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	if (argc >= 5)
 		variant = args[4];
 	
-	DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
+	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
 	
 	arm966e_init_arch_info(target, arm966e, chain_pos, variant);
 
@@ -235,7 +235,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	jtag_execute_queue();
-	DEBUG("addr: 0x%x value: %8.8x", reg_addr, *value);
+	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, *value);
 #endif
 
 	return ERROR_OK;
@@ -290,7 +290,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	jtag_add_dr_scan(3, fields, -1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
+	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
 #endif
 
 	return ERROR_OK;

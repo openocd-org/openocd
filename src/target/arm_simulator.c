@@ -160,7 +160,7 @@ u32 arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_shifte
 	}
 	else
 	{
-		ERROR("BUG: shifter_operand.variant not 0, 1 or 2");
+		LOG_ERROR("BUG: shifter_operand.variant not 0, 1 or 2");
 		return_value = 0xffffffff;
 	}
 	
@@ -253,7 +253,7 @@ int pass_condition(u32 cpsr, u32 opcode)
 				
 	}
 	
-	ERROR("BUG: should never get here");
+	LOG_ERROR("BUG: should never get here");
 	return 0;
 }
 
@@ -444,7 +444,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		else
 		{
 			buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.data_proc.Rd).value, 0, 32, Rd);
-			WARNING("no updating of flags yet");
+			LOG_WARNING("no updating of flags yet");
 
 			if (instruction.info.data_proc.Rd == 15)  
 				return ERROR_OK;
@@ -460,7 +460,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		}
 		else
 		{
-			WARNING("no updating of flags yet");
+			LOG_WARNING("no updating of flags yet");
 		}
 	}
 	/* load register instructions */
@@ -497,7 +497,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		}
 		else
 		{
-			ERROR("BUG: offset_mode neither 0 (offset) nor 1 (scaled register)");
+			LOG_ERROR("BUG: offset_mode neither 0 (offset) nor 1 (scaled register)");
 		}
 		
 		if (instruction.info.load_store.index_mode == 0)

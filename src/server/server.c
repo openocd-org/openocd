@@ -63,14 +63,14 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	c->fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
 				
 				
-	INFO("accepting '%s' connection from %i", service->name, c->sin.sin_port);
+	LOG_INFO("accepting '%s' connection from %i", service->name, c->sin.sin_port);
 	if ((retval = service->new_connection(c)) == ERROR_OK)
 	{
 	}
 	else
 	{
 		close_socket(c->fd);
-		ERROR("attempted '%s' connection rejected", service->name);
+		LOG_ERROR("attempted '%s' connection rejected", service->name);
 		free(c);
 		return retval;
 	}
@@ -134,7 +134,7 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	
 	if ((c->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	{
-		ERROR("error creating socket: %s", strerror(errno));
+		LOG_ERROR("error creating socket: %s", strerror(errno));
 		exit(-1);
 	}
 	
@@ -149,13 +149,13 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	
 	if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1)
 	{
-		ERROR("couldn't bind to socket: %s", strerror(errno));
+		LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
 		exit(-1);
 	}
 	
 	if (listen(c->fd, 1) == -1)
 	{
-		ERROR("couldn't listen on socket: %s", strerror(errno));
+		LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
 		exit(-1);
 	}
 	
@@ -235,7 +235,7 @@ int server_loop(command_context_t *command_context)
 	
 #ifndef _WIN32
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-		ERROR("couldn't set SIGPIPE to SIG_IGN");
+		LOG_ERROR("couldn't set SIGPIPE to SIG_IGN");
 #endif
 	
 	/* do regular tasks after at most 10ms */
@@ -291,7 +291,7 @@ int server_loop(command_context_t *command_context)
 				FD_ZERO(&read_fds);
 			else
 			{
-				ERROR("error during select: %s", strerror(errno));
+				LOG_ERROR("error during select: %s", strerror(errno));
 				exit(-1);
 			}
 #else
@@ -302,7 +302,7 @@ int server_loop(command_context_t *command_context)
 			}
 			else
 			{
-				ERROR("error during select: %s", strerror(errno));
+				LOG_ERROR("error during select: %s", strerror(errno));
 				exit(-1);
 			}
 #endif
@@ -335,7 +335,7 @@ int server_loop(command_context_t *command_context)
 					int tmp_fd;
 					tmp_fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
 					close_socket(tmp_fd);
-					INFO("rejected '%s' connection, no more connections allowed", service->name);
+					LOG_INFO("rejected '%s' connection, no more connections allowed", service->name);
 				}
 			}
 			
@@ -352,7 +352,7 @@ int server_loop(command_context_t *command_context)
 						{
 							connection_t *next = c->next;
 							remove_connection(service, c);
-							INFO("dropped '%s' connection", service->name);
+							LOG_INFO("dropped '%s' connection", service->name);
 							c = next;
 							continue;
 						}
@@ -405,7 +405,7 @@ int server_init()
 
 	if (WSAStartup(wVersionRequested, &wsaData) != 0)
 	{
-		ERROR("Failed to Open Winsock");
+		LOG_ERROR("Failed to Open Winsock");
 		exit(-1);
 	}
 

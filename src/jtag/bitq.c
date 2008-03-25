@@ -90,7 +90,7 @@ void bitq_in_proc(void)
 							}
 							/* if necessary, allocate buffer and check for malloc error */
 							if (bitq_in_buffer==NULL && (bitq_in_buffer=malloc(bitq_in_bufsize))==NULL) {
-								ERROR("malloc error");
+								LOG_ERROR("malloc error");
 								exit(-1);
 							}
 							in_buff=(void *)bitq_in_buffer;
@@ -101,7 +101,7 @@ void bitq_in_proc(void)
 					while (bitq_in_state.bit_pos<field->num_bits) {
 						if ((tdo=bitq_interface->in())<0) {
 #ifdef _DEBUG_JTAG_IO_
-							DEBUG("bitq in EOF");
+							LOG_DEBUG("bitq in EOF");
 #endif
 							return;
 						}
@@ -146,7 +146,7 @@ void bitq_end_state(enum tap_state state)
 {
 	if (state==-1) return;
 	if (tap_move_map[state]==-1) {
-		ERROR("BUG: %i is not a valid end state", state);
+		LOG_ERROR("BUG: %i is not a valid end state", state);
 		exit(-1);
 	}
 	end_state = state;
@@ -159,7 +159,7 @@ void bitq_state_move(enum tap_state new_state)
 	u8 tms_scan;
 
 	if (tap_move_map[cur_state]==-1 || tap_move_map[new_state]==-1) {
-		ERROR("TAP move from or to unstable state");
+		LOG_ERROR("TAP move from or to unstable state");
 		exit(-1);
 	}
 
@@ -182,7 +182,7 @@ void bitq_path_move(pathmove_command_t *cmd)
 		if (tap_transitions[cur_state].low == cmd->path[i]) bitq_io(0, 0, 0);
 		else if (tap_transitions[cur_state].high == cmd->path[i]) bitq_io(1, 0, 0);
 		else {
-			ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[i]]);
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[i]]);
 			exit(-1);
 		}
 
@@ -277,14 +277,14 @@ int bitq_execute_queue(void)
 
 			case JTAG_END_STATE:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
+				LOG_DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
 #endif
 				bitq_end_state(cmd->cmd.end_state->end_state);
 				break;
 
 			case JTAG_RESET:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+				LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 #endif
 				bitq_interface->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				if (bitq_interface->in_rdy()) bitq_in_proc();
@@ -292,7 +292,7 @@ int bitq_execute_queue(void)
 
 			case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
+				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
 #endif
 				bitq_end_state(cmd->cmd.runtest->end_state);
 				bitq_runtest(cmd->cmd.runtest->num_cycles);
@@ -300,7 +300,7 @@ int bitq_execute_queue(void)
 
 			case JTAG_STATEMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
+				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif
 				bitq_end_state(cmd->cmd.statemove->end_state);
 				bitq_state_move(end_state); /* uncoditional TAP move */
@@ -308,16 +308,16 @@ int bitq_execute_queue(void)
 
 			case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+				LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 #endif
 				bitq_path_move(cmd->cmd.pathmove);
 				break;
 
 			case JTAG_SCAN:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("scan end in %i", cmd->cmd.scan->end_state);
-				if (cmd->cmd.scan->ir_scan) DEBUG("scan ir");
-				else DEBUG("scan dr");
+				LOG_DEBUG("scan end in %i", cmd->cmd.scan->end_state);
+				if (cmd->cmd.scan->ir_scan) LOG_DEBUG("scan ir");
+				else LOG_DEBUG("scan dr");
 #endif
 				bitq_end_state(cmd->cmd.scan->end_state);
 				bitq_scan(cmd->cmd.scan);
@@ -326,14 +326,14 @@ int bitq_execute_queue(void)
 
 			case JTAG_SLEEP:
 #ifdef _DEBUG_JTAG_IO_
-				DEBUG("sleep %i", cmd->cmd.sleep->us);
+				LOG_DEBUG("sleep %i", cmd->cmd.sleep->us);
 #endif
 				bitq_interface->sleep(cmd->cmd.sleep->us);
 				if (bitq_interface->in_rdy()) bitq_in_proc();
 				break;
 
 			default:
-				ERROR("BUG: unknown JTAG command type encountered");
+				LOG_ERROR("BUG: unknown JTAG command type encountered");
 				exit(-1);
 		}
 
@@ -344,11 +344,11 @@ int bitq_execute_queue(void)
 	bitq_in_proc();
 
 	if (bitq_in_state.cmd) {
-		ERROR("missing data from bitq interface");
+		LOG_ERROR("missing data from bitq interface");
 		return ERROR_JTAG_QUEUE_FAILED;
 	}
 	if (bitq_interface->in()>=0) {
-		ERROR("extra data from bitq interface");
+		LOG_ERROR("extra data from bitq interface");
 		return ERROR_JTAG_QUEUE_FAILED;
 	}
 

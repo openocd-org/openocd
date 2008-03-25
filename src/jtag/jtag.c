@@ -302,7 +302,7 @@ int jtag_call_event_callbacks(enum jtag_event event)
 {
 	jtag_event_callback_t *callback = jtag_event_callbacks;
 	
-	DEBUG("jtag event: %s", jtag_event_strings[event]);
+	LOG_DEBUG("jtag event: %s", jtag_event_strings[event]);
 	
 	while (callback)
 	{
@@ -346,7 +346,7 @@ jtag_device_t* jtag_get_device(int num)
 		i++;
 	}
 	
-	ERROR("jtag device number %d not defined", num);
+	LOG_ERROR("jtag device number %d not defined", num);
 	exit(-1);
 }
 
@@ -397,7 +397,7 @@ static void jtag_prelude1()
 {
 	if (jtag_trst == 1)
 	{
-		WARNING("JTAG command queued, while TRST is low (TAP in reset)");
+		LOG_WARNING("JTAG command queued, while TRST is low (TAP in reset)");
 		jtag_error=ERROR_JTAG_TRST_ASSERTED;
 		return;
 	}
@@ -615,7 +615,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 			/* if a device isn't listed, the BYPASS register should be selected */
 			if (!jtag_get_device(i)->bypass)
 			{
-				ERROR("BUG: no scan data for a device not in BYPASS");
+				LOG_ERROR("BUG: no scan data for a device not in BYPASS");
 				exit(-1);
 			}
 #endif	
@@ -635,7 +635,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 			/* if a device is listed, the BYPASS register must not be selected */
 			if (jtag_get_device(i)->bypass)
 			{
-				ERROR("BUG: scan data for a device in BYPASS");
+				LOG_ERROR("BUG: scan data for a device in BYPASS");
 				exit(-1);
 			}
 #endif
@@ -689,7 +689,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 			/* if a device is listed, the BYPASS register must not be selected */
 			if (jtag_get_device(i)->bypass)
 			{
-				ERROR("BUG: scan data for a device in BYPASS");
+				LOG_ERROR("BUG: scan data for a device in BYPASS");
 				exit(-1);
 			}
 #endif
@@ -713,7 +713,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 			/* if a device isn't listed, the BYPASS register should be selected */
 			if (!jtag_get_device(i)->bypass)
 			{
-				ERROR("BUG: no scan data for a device not in BYPASS");
+				LOG_ERROR("BUG: no scan data for a device not in BYPASS");
 				exit(-1);
 			}
 #endif	
@@ -809,7 +809,7 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 	/* the last state has to be a stable state */
 	if (tap_move_map[path[num_states - 1]] == -1)
 	{
-		ERROR("BUG: TAP path doesn't finish in a stable state");
+		LOG_ERROR("BUG: TAP path doesn't finish in a stable state");
 		exit(-1);
 	}
 
@@ -820,7 +820,7 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 		if ((tap_transitions[cur_state].low != path[i])&&
 				(tap_transitions[cur_state].high != path[i]))
 		{
-			ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[path[i]]);
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[path[i]]);
 			exit(-1);
 		}
 		cur_state = path[i];
@@ -899,7 +899,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
 	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (req_trst == 0))
 	{
-		WARNING("requested reset would assert trst");
+		LOG_WARNING("requested reset would assert trst");
 		return ERROR_JTAG_RESET_WOULD_ASSERT_TRST;
 	}
 		
@@ -912,7 +912,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 	
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
 	{
-		WARNING("requested nSRST assertion, but the current configuration doesn't support this");
+		LOG_WARNING("requested nSRST assertion, but the current configuration doesn't support this");
 		return ERROR_JTAG_RESET_CANT_SRST;
 	}
 	
@@ -934,18 +934,18 @@ int jtag_add_reset(int req_trst, int req_srst)
 
 	if (jtag_srst)
 	{
-		DEBUG("SRST line asserted");
+		LOG_DEBUG("SRST line asserted");
 	}
 	else
 	{
-		DEBUG("SRST line released");
+		LOG_DEBUG("SRST line released");
 		if (jtag_nsrst_delay)
 			jtag_add_sleep(jtag_nsrst_delay * 1000);
 	}
 	
 	if (trst_with_tms)
 	{
-		DEBUG("JTAG reset with tms instead of TRST");
+		LOG_DEBUG("JTAG reset with tms instead of TRST");
 		jtag_add_end_state(TAP_TLR);
 		jtag_add_statemove(TAP_TLR);
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
@@ -957,7 +957,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 		/* we just asserted nTRST, so we're now in Test-Logic-Reset,
 		 * and inform possible listeners about this
 		 */
-		DEBUG("TRST line asserted");
+		LOG_DEBUG("TRST line asserted");
 		cmd_queue_cur_state = TAP_TLR;
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 	}
@@ -966,7 +966,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 		/* the nTRST line got deasserted, so we're still in Test-Logic-Reset,
 		 * but we might want to add a delay to give the TAP time to settle
 		 */
-		DEBUG("Now in TAP_TLR - Test-Logic-Reset(either due to TRST line asserted or tms reset)");
+		LOG_DEBUG("Now in TAP_TLR - Test-Logic-Reset(either due to TRST line asserted or tms reset)");
 		if (jtag_ntrst_delay)
 			jtag_add_sleep(jtag_ntrst_delay * 1000);
 	}
@@ -1053,7 +1053,7 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 #endif
 			buf_set_buf(cmd->fields[i].out_value, 0, *buffer, bit_count, cmd->fields[i].num_bits);
 #ifdef _DEBUG_JTAG_IO_
-			DEBUG("fields[%i].out_value: 0x%s", i, char_buf);
+			LOG_DEBUG("fields[%i].out_value: 0x%s", i, char_buf);
 			free(char_buf);
 #endif
 		}
@@ -1088,7 +1088,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			char *char_buf;
 
 			char_buf = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
-			DEBUG("fields[%i].in_value: 0x%s", i, char_buf);
+			LOG_DEBUG("fields[%i].in_value: 0x%s", i, char_buf);
 			free(char_buf);
 #endif
 			
@@ -1100,7 +1100,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 				{
 					if (cmd->fields[i].in_handler(cmd->fields[i].in_value, cmd->fields[i].in_handler_priv, cmd->fields+i) != ERROR_OK)
 					{
-						WARNING("in_handler reported a failed check");
+						LOG_WARNING("in_handler reported a failed check");
 						retval = ERROR_JTAG_QUEUE_FAILED;
 					}
 				}
@@ -1114,7 +1114,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 					/* We're going to call the error:handler later, but if the in_handler
 					 * reported an error we report this failure upstream
 					 */
-					WARNING("in_handler reported a failed check");
+					LOG_WARNING("in_handler reported a failed check");
 					retval = ERROR_JTAG_QUEUE_FAILED;
 				}
 			}
@@ -1154,12 +1154,12 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 			{
 				char *in_check_mask_char;
 				in_check_mask_char = buf_to_str(field->in_check_mask, (num_bits > 64) ? 64 : num_bits, 16);
-				WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s check_mask: 0x%s", captured_char, in_check_value_char, in_check_mask_char);
+				LOG_WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s check_mask: 0x%s", captured_char, in_check_value_char, in_check_mask_char);
 				free(in_check_mask_char);
 			}
 			else
 			{
-				WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s", captured_char, in_check_value_char);
+				LOG_WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s", captured_char, in_check_value_char);
 			}
 
 			free(captured_char);
@@ -1232,7 +1232,7 @@ int jtag_reset_callback(enum jtag_event event, void *priv)
 {
 	jtag_device_t *device = priv;
 
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	if (event == JTAG_TRST_ASSERTED)
 	{
@@ -1288,7 +1288,7 @@ int jtag_examine_chain()
 	/* if there wasn't a single non-zero bit or if all bits were one, the scan isn't valid */
 	if ((zero_check == 0x00) || (one_check == 0xff))
 	{
-		ERROR("JTAG communication failure, check connection, JTAG interface, target power etc.");
+		LOG_ERROR("JTAG communication failure, check connection, JTAG interface, target power etc.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	
@@ -1325,7 +1325,7 @@ int jtag_examine_chain()
 			part = (idcode & 0xffff000) >> 12;
 			version = (idcode & 0xf0000000) >> 28;
 
-			INFO("JTAG device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x)", 
+			LOG_INFO("JTAG device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x)", 
 				idcode, manufacturer, part, version);
 			
 			bit_count += 32;
@@ -1335,9 +1335,9 @@ int jtag_examine_chain()
 	/* see if number of discovered devices matches configuration */
 	if (device_count != jtag_num_devices)
 	{
-		ERROR("number of discovered devices in JTAG chain (%i) doesn't match configuration (%i)", 
+		LOG_ERROR("number of discovered devices in JTAG chain (%i) doesn't match configuration (%i)", 
 				device_count, jtag_num_devices);
-		ERROR("check the config file and ensure proper JTAG communication (connections, speed, ...)");
+		LOG_ERROR("check the config file and ensure proper JTAG communication (connections, speed, ...)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	
@@ -1381,7 +1381,7 @@ int jtag_validate_chain()
 		if (buf_get_u32(ir_test, chain_pos, 2) != 0x1)
 		{
 			char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
-			ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
+			LOG_ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
 			free(cbuf);
 			free(ir_test);
 			return ERROR_JTAG_INIT_FAILED;
@@ -1393,7 +1393,7 @@ int jtag_validate_chain()
 	if (buf_get_u32(ir_test, chain_pos, 2) != 0x3)
 	{
 		char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
-		ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
+		LOG_ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
 		free(cbuf);
 		free(ir_test);
 		return ERROR_JTAG_INIT_FAILED;
@@ -1447,7 +1447,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	if (!jtag_interface)
 	{
 		/* nothing was previously specified by "interface" command */
-		ERROR("JTAG interface has to be specified, see \"interface\" command");
+		LOG_ERROR("JTAG interface has to be specified, see \"interface\" command");
 		return ERROR_JTAG_INVALID_INTERFACE;
 	}
 
@@ -1463,7 +1463,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	int validate_tries = 0;
 	jtag_device_t *device;
 
-	DEBUG("-");
+	LOG_DEBUG("-");
 	
 	if (!jtag && jtag_interface_init(cmd_ctx) != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
@@ -1484,7 +1484,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	/* examine chain first, as this could discover the real chain layout */
 	if (jtag_examine_chain() != ERROR_OK)
 	{
-		ERROR("trying to validate configured JTAG chain anyway...");
+		LOG_ERROR("trying to validate configured JTAG chain anyway...");
 	}
 	
 	while (jtag_validate_chain() != ERROR_OK)
@@ -1492,7 +1492,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 		validate_tries++;
 		if (validate_tries > 5)
 		{
-			ERROR("Could not validate JTAG chain, exit");
+			LOG_ERROR("Could not validate JTAG chain, exit");
 			return ERROR_JTAG_INVALID_INTERFACE;
 		}
 		usleep(10000);
@@ -1504,7 +1504,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 
 static int default_khz(int khz, int *jtag_speed)
 {
-	ERROR("Translation from khz to jtag_speed not implemented");
+	LOG_ERROR("Translation from khz to jtag_speed not implemented");
 	return ERROR_FAIL;
 }
 
@@ -1515,7 +1515,7 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	/* check whether the interface is already configured */
 	if (jtag_interface)
 	{
-		WARNING("Interface already configured, ignoring");
+		LOG_WARNING("Interface already configured, ignoring");
 		return ERROR_OK;
 	}
 
@@ -1545,11 +1545,11 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	/* no valid interface was found (i.e. the configuration option,
 	 * didn't match one of the compiled-in interfaces
 	 */
-	ERROR("No valid jtag interface found (%s)", args[0]);
-	ERROR("compiled-in jtag interfaces:");
+	LOG_ERROR("No valid jtag interface found (%s)", args[0]);
+	LOG_ERROR("compiled-in jtag interfaces:");
 	for (i = 0; jtag_interfaces[i]; i++)
 	{
-		ERROR("%i: %s", i, jtag_interfaces[i]->name);
+		LOG_ERROR("%i: %s", i, jtag_interfaces[i]->name);
 	}
 
 	return ERROR_JTAG_INVALID_INTERFACE;
@@ -1623,7 +1623,7 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			jtag_reset_config = RESET_TRST_AND_SRST;
 		else
 		{
-			ERROR("invalid reset_config argument, defaulting to none");
+			LOG_ERROR("invalid reset_config argument, defaulting to none");
 			jtag_reset_config = RESET_NONE;
 			return ERROR_INVALID_ARGUMENTS;
 		}
@@ -1641,7 +1641,7 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			jtag_reset_config &= ~(RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST);
 		else
 		{
-			ERROR("invalid reset_config argument, defaulting to none");
+			LOG_ERROR("invalid reset_config argument, defaulting to none");
 			jtag_reset_config = RESET_NONE;
 			return ERROR_INVALID_ARGUMENTS;
 		}
@@ -1655,7 +1655,7 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			jtag_reset_config &= ~RESET_TRST_OPEN_DRAIN;
 		else
 		{
-			ERROR("invalid reset_config argument, defaulting to none");
+			LOG_ERROR("invalid reset_config argument, defaulting to none");
 			jtag_reset_config = RESET_NONE;
 			return ERROR_INVALID_ARGUMENTS;
 		}
@@ -1669,7 +1669,7 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			jtag_reset_config &= ~RESET_SRST_PUSH_PULL;
 		else
 		{
-			ERROR("invalid reset_config argument, defaulting to none");
+			LOG_ERROR("invalid reset_config argument, defaulting to none");
 			jtag_reset_config = RESET_NONE;
 			return ERROR_INVALID_ARGUMENTS;
 		}
@@ -1682,7 +1682,7 @@ int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 {
 	if (argc < 1)
 	{
-		ERROR("jtag_nsrst_delay <ms> command takes one required argument");
+		LOG_ERROR("jtag_nsrst_delay <ms> command takes one required argument");
 		exit(-1);
 	}
 	else
@@ -1697,7 +1697,7 @@ int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 {
 	if (argc < 1)
 	{
-		ERROR("jtag_ntrst_delay <ms> command takes one required argument");
+		LOG_ERROR("jtag_ntrst_delay <ms> command takes one required argument");
 		exit(-1);
 	}
 	else
@@ -1736,7 +1736,7 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	if (jtag == NULL)
 	{
-		ERROR("Interface not selected yet");
+		LOG_ERROR("Interface not selected yet");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	

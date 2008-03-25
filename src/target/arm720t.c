@@ -136,11 +136,11 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	jtag_execute_queue();
 
 	if (in)
-		DEBUG("out: %8.8x, in: %8.8x, instruction: %i, clock: %i", out, *in, instruction, clock);
+		LOG_DEBUG("out: %8.8x, in: %8.8x, instruction: %i, clock: %i", out, *in, instruction, clock);
 	else
-		DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock);
+		LOG_DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock);
 #else
-		DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock);
+		LOG_DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock);
 #endif
 
 	return ERROR_OK;
@@ -235,7 +235,7 @@ void arm720t_post_debug_entry(target_t *target)
 	/* examine cp15 control reg */
 	arm720t_read_cp15(target, 0xee110f10, &arm720t->cp15_control_reg);
 	jtag_execute_queue();
-	DEBUG("cp15_control_reg: %8.8x", arm720t->cp15_control_reg);
+	LOG_DEBUG("cp15_control_reg: %8.8x", arm720t->cp15_control_reg);
 
 	arm720t->armv4_5_mmu.mmu_enabled = (arm720t->cp15_control_reg & 0x1U) ? 1 : 0;
 	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = (arm720t->cp15_control_reg & 0x4U) ? 1 : 0;
@@ -311,11 +311,11 @@ int arm720t_arch_state(struct target_s *target)
 	
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
-		ERROR("BUG: called for a non-ARMv4/5 target");
+		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
 		exit(-1);
 	}
 	
-	USER("target halted in %s state due to %s, current mode: %s\n"
+	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
 			"MMU: %s, Cache: %s",
 			 armv4_5_state_strings[armv4_5->core_state],
@@ -448,7 +448,7 @@ int arm720t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	
 	if (argc < 4)
 	{
-		ERROR("'target arm720t' requires at least one additional argument");
+		LOG_ERROR("'target arm720t' requires at least one additional argument");
 		exit(-1);
 	}
 	
@@ -457,7 +457,7 @@ int arm720t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	if (argc >= 5)
 		variant = args[4];
 	
-	DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
+	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
 	
 	arm720t_init_arch_info(target, arm720t, chain_pos, variant);
 

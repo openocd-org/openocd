@@ -95,7 +95,7 @@ int handle_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char
 		
 	if (argc < 1)
 	{
-		WARNING("incomplete 'pld bank' configuration");
+		LOG_WARNING("incomplete 'pld bank' configuration");
 		return ERROR_OK;
 	}
 	
@@ -108,7 +108,7 @@ int handle_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char
 			/* register pld specific commands */
 			if (pld_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
 			{
-				ERROR("couldn't register '%s' commands", args[0]);
+				LOG_ERROR("couldn't register '%s' commands", args[0]);
 				exit(-1);
 			}
 			
@@ -118,7 +118,7 @@ int handle_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char
 			
 			if (pld_drivers[i]->pld_device_command(cmd_ctx, cmd, args, argc, c) != ERROR_OK)
 			{
-				ERROR("'%s' driver rejected pld device", args[0]);
+				LOG_ERROR("'%s' driver rejected pld device", args[0]);
 				free(c);
 				return ERROR_OK;
 			}
@@ -143,7 +143,7 @@ int handle_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char
 	/* no matching pld driver found */
 	if (!found)
 	{
-		ERROR("pld driver '%s' not found", args[0]);
+		LOG_ERROR("pld driver '%s' not found", args[0]);
 		exit(-1);
 	}
 	

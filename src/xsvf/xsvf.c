@@ -96,7 +96,7 @@ int xsvf_read_xstates(int fd, enum tap_state *path, int max_path, int *path_len)
 	{
 		if (*path_len > max_path)
 		{
-			WARNING("XSTATE path longer than max_path");
+			LOG_WARNING("XSTATE path longer than max_path");
 			break;
 		}
 		if (read(fd, &uc, 1) < 0)
@@ -154,7 +154,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		switch (c)
 		{
 			case 0x00:	/* XCOMPLETE */
-				DEBUG("XCOMPLETE");
+				LOG_DEBUG("XCOMPLETE");
 				if (jtag_execute_queue() != ERROR_OK)
 				{
 					tdo_mismatch = 1;
@@ -162,12 +162,12 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			case 0x01:	/* XTDOMASK */
-				DEBUG("XTDOMASK");
+				LOG_DEBUG("XTDOMASK");
 				if (dr_in_mask && (xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_mask) != ERROR_OK))
 					do_abort = 1;
 				break;
 			case 0x02:	/* XSIR */
-				DEBUG("XSIR");
+				LOG_DEBUG("XSIR");
 				if (read(xsvf_fd, &c, 1) < 0)
 					do_abort = 1;
 				else
@@ -215,7 +215,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			case 0x03:	/* XSDR */
-				DEBUG("XSDR");
+				LOG_DEBUG("XSDR");
 				if (xsvf_read_buffer(xsdrsize, xsvf_fd, dr_out_buf) != ERROR_OK)
 					do_abort = 1;
 				else
@@ -252,7 +252,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			case 0x04:	/* XRUNTEST */
-				DEBUG("XRUNTEST");
+				LOG_DEBUG("XRUNTEST");
 				if (read(xsvf_fd, buf4, 4) < 0)
 					do_abort = 1;
 				else
@@ -261,7 +261,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			case 0x07:	/* XREPEAT */
-				DEBUG("XREPEAT");
+				LOG_DEBUG("XREPEAT");
 				if (read(xsvf_fd, &c, 1) < 0)
 					do_abort = 1;
 				else
@@ -270,7 +270,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			case 0x08:	/* XSDRSIZE */
-				DEBUG("XSDRSIZE");
+				LOG_DEBUG("XSDRSIZE");
 				if (read(xsvf_fd, buf4, 4) < 0)
 					do_abort = 1;
 				else
@@ -285,7 +285,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			case 0x09:	/* XSDRTDO */
-				DEBUG("XSDRTDO");
+				LOG_DEBUG("XSDRTDO");
 				if (xsvf_read_buffer(xsdrsize, xsvf_fd, dr_out_buf) != ERROR_OK)
 					do_abort = 1;
 				else
@@ -327,11 +327,11 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			case 0x0a:	/* XSETDRMASKS */
-				ERROR("unsupported XSETSDRMASKS\n");
+				LOG_ERROR("unsupported XSETSDRMASKS\n");
 				unsupported = 1;
 				break;
 			case 0x0b:	/* XSDRINC */
-				ERROR("unsupported XSDRINC\n");
+				LOG_ERROR("unsupported XSDRINC\n");
 				unsupported = 1;
 				break;
 			case 0x0c:	/* XSDRB */
@@ -353,7 +353,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				unsupported = 1;
 				break;
 			case 0x12:	/* XSTATE */
-				DEBUG("XSTATE");
+				LOG_DEBUG("XSTATE");
 				if (read(xsvf_fd, &uc, 1) < 0)
 					do_abort = 1;
 				else
@@ -371,7 +371,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			case 0x13:	/* XENDIR */
-				DEBUG("XENDIR");
+				LOG_DEBUG("XENDIR");
 				if (read(xsvf_fd, &c, 1) < 0)
 					do_abort = 1;
 				else
@@ -382,13 +382,13 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						xendir = 0xd;
 					else
 					{
-						ERROR("unknown XENDIR endstate");
+						LOG_ERROR("unknown XENDIR endstate");
 						unsupported = 1;
 					}
 				}
 				break;
 			case 0x14:	/* XENDDR */
-				DEBUG("XENDDR");
+				LOG_DEBUG("XENDDR");
 				if (read(xsvf_fd, &c, 1) < 0)
 					do_abort = 1;
 				else
@@ -399,13 +399,13 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						xenddr = 0x6;
 					else
 					{
-						ERROR("unknown XENDDR endstate");
+						LOG_ERROR("unknown XENDDR endstate");
 						unsupported = 1;
 					}
 				}
 				break;
 			case 0x15:	/* XSIR2 */
-				DEBUG("XSIR2");
+				LOG_DEBUG("XSIR2");
 				if (read(xsvf_fd, buf2, 2) < 0)
 					do_abort = 1;
 				else
@@ -446,7 +446,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				} while (c != 0);
 				break;
 			case 0x17:	/* XWAIT */
-				DEBUG("XWAIT");
+				LOG_DEBUG("XWAIT");
 				if ((read(xsvf_fd, &uc, 1) < 0) || (read(xsvf_fd, &uc2, 1) < 0) || (read(xsvf_fd, buf4, 4) < 0))
 					do_abort = 1;
 				else
@@ -458,7 +458,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				}
 				break;
 			default:
-				ERROR("unknown xsvf command (0x%2.2x)\n", c);
+				LOG_ERROR("unknown xsvf command (0x%2.2x)\n", c);
 				unsupported = 1;
 		}
 

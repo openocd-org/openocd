@@ -62,7 +62,7 @@ int fileio_open_local(fileio_t *fileio)
 			strcpy(access, "a+");	
 			break;
 		default:
-			ERROR("BUG: access neither read, write nor readwrite");
+			LOG_ERROR("BUG: access neither read, write nor readwrite");
 			return ERROR_INVALID_ARGUMENTS;
 	}
 	
@@ -76,7 +76,7 @@ int fileio_open_local(fileio_t *fileio)
 	
 	if (!(fileio->file = open_file_from_path (fileio->url, access)))
 	{
-		ERROR("couldn't open %s", fileio->url);
+		LOG_ERROR("couldn't open %s", fileio->url);
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	
@@ -127,11 +127,11 @@ int fileio_close_local(fileio_t *fileio)
 	{
 		if (retval == EBADF)
 		{
-			ERROR("BUG: fileio_local->file not a valid file descriptor");
+			LOG_ERROR("BUG: fileio_local->file not a valid file descriptor");
 		}
 		else
 		{
-			ERROR("couldn't close %s: %s", fileio->url, strerror(errno));
+			LOG_ERROR("couldn't close %s: %s", fileio->url, strerror(errno));
 		}
 
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -157,7 +157,7 @@ int fileio_seek(fileio_t *fileio, u32 position)
 	int retval;
 	if ((retval = fseek(fileio->file, position, SEEK_SET)) != 0)
 	{
-		ERROR("couldn't seek file %s: %s", fileio->url, strerror(errno));
+		LOG_ERROR("couldn't seek file %s: %s", fileio->url, strerror(errno));
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 	

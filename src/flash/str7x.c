@@ -113,7 +113,7 @@ int str7x_build_block_list(struct flash_bank_s *bank)
 			b0_sectors = 8;
 			break;
 		default:
-			ERROR("BUG: unknown bank->size encountered");
+			LOG_ERROR("BUG: unknown bank->size encountered");
 			exit(-1);
 	}
 	
@@ -165,7 +165,7 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	
 	if (argc < 7)
 	{
-		WARNING("incomplete flash_bank str7x configuration");
+		LOG_WARNING("incomplete flash_bank str7x configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
@@ -181,7 +181,7 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	{
 		if (bank->base != 0x40000000)
 		{
-			WARNING("overriding flash base address for STR71x device with 0x40000000");
+			LOG_WARNING("overriding flash base address for STR71x device with 0x40000000");
 			bank->base = 0x40000000;
 		}
 	}
@@ -192,7 +192,7 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		
 		if (bank->base != 0x80000000)
 		{
-			WARNING("overriding flash base address for STR73x device with 0x80000000");
+			LOG_WARNING("overriding flash base address for STR73x device with 0x80000000");
 			bank->base = 0x80000000;
 		}
 	}
@@ -202,13 +202,13 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		
 		if (bank->base != 0x20000000)
 		{
-			WARNING("overriding flash base address for STR75x device with 0x20000000");
+			LOG_WARNING("overriding flash base address for STR75x device with 0x20000000");
 			bank->base = 0x20000000;
 		}
 	}
 	else
 	{
-		ERROR("unknown STR7x variant: '%s'", args[6]);
+		LOG_ERROR("unknown STR7x variant: '%s'", args[6]);
 		free(str7x_info);
 		return ERROR_FLASH_BANK_INVALID;
 	}
@@ -326,12 +326,12 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 		else if (str7x_info->sector_bank[i] == 1)
 			b1_sectors |= str7x_info->sector_bits[i];
 		else
-			ERROR("BUG: str7x_info->sector_bank[i] neither 0 nor 1 (%i)", str7x_info->sector_bank[i]);
+			LOG_ERROR("BUG: str7x_info->sector_bank[i] neither 0 nor 1 (%i)", str7x_info->sector_bank[i]);
 	}
 	
 	if (b0_sectors)
 	{
-		DEBUG("b0_sectors: 0x%x", b0_sectors);
+		LOG_DEBUG("b0_sectors: 0x%x", b0_sectors);
 		
 		/* clear FLASH_ER register */	
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
@@ -353,14 +353,14 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 		
 		if (retval)
 		{
-			ERROR("error erasing flash bank, FLASH_ER: 0x%x", retval);
+			LOG_ERROR("error erasing flash bank, FLASH_ER: 0x%x", retval);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
 	
 	if (b1_sectors)
 	{
-		DEBUG("b1_sectors: 0x%x", b1_sectors);
+		LOG_DEBUG("b1_sectors: 0x%x", b1_sectors);
 		
 		/* clear FLASH_ER register */	
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
@@ -382,7 +382,7 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 		
 		if (retval)
 		{
-			ERROR("error erasing flash bank, FLASH_ER: 0x%x", retval);
+			LOG_ERROR("error erasing flash bank, FLASH_ER: 0x%x", retval);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -436,7 +436,7 @@ int str7x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	retval = str7x_result(bank);
 	
-	DEBUG("retval: 0x%8.8x", retval);
+	LOG_DEBUG("retval: 0x%8.8x", retval);
 	
 	if (retval & FLASH_ERER)
 		return ERROR_FLASH_SECTOR_NOT_ERASED;
@@ -486,7 +486,7 @@ int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 	/* flash write code */
 	if (target_alloc_working_area(target, 4 * 20, &str7x_info->write_algorithm) != ERROR_OK)
 	{
-		WARNING("no working area available, can't do block memory writes");
+		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 	
@@ -502,7 +502,7 @@ int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 			if (str7x_info->write_algorithm)
 				target_free_working_area(target, str7x_info->write_algorithm);
 			
-			WARNING("no large enough working area available, can't do block memory writes");
+			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	}
@@ -532,7 +532,7 @@ int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 	
 		if ((retval = target->type->run_algorithm(target, 0, NULL, 6, reg_params, str7x_info->write_algorithm->address, str7x_info->write_algorithm->address + (19 * 4), 10000, &armv4_5_info)) != ERROR_OK)
 		{
-			ERROR("error executing str7x flash write algorithm");
+			LOG_ERROR("error executing str7x flash write algorithm");
 			break;
 		}
 	
@@ -580,7 +580,7 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 	if (offset & 0x7)
 	{
-		WARNING("offset 0x%x breaks required 8-byte alignment", offset);
+		LOG_WARNING("offset 0x%x breaks required 8-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
@@ -616,14 +616,14 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			{
 				/* if block write failed (no sufficient working area),
 				 * we use normal (slow) single dword accesses */ 
-				WARNING("couldn't use block writes, falling back to single memory accesses");
+				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
 				/* if an error occured, we examine the reason, and quit */
 				retval = str7x_result(bank);
 				
-				ERROR("flash writing failed with error code: 0x%x", retval);
+				LOG_ERROR("flash writing failed with error code: 0x%x", retval);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 		}

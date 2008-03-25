@@ -243,7 +243,7 @@ void at91sam7_set_flash_mode(flash_bank_t *bank, u8 flashplane, int mode)
 		if (at91sam7_info->mck_freq > 30000000ul)
 			fws = 1;
 
-		DEBUG("fmcn[%i]: %i", flashplane, fmcn); 
+		LOG_DEBUG("fmcn[%i]: %i", flashplane, fmcn); 
 		fmr = fmcn << 16 | fws << 8;
 		target_write_u32(target, MC_FMR[flashplane], fmr);
 	}
@@ -257,21 +257,21 @@ u32 at91sam7_wait_status_busy(flash_bank_t *bank, u8 flashplane, u32 waitbits, i
 	
 	while ((!((status = at91sam7_get_flash_status(bank,flashplane)) & waitbits)) && (timeout-- > 0))
 	{
-		DEBUG("status[%i]: 0x%x", flashplane, status);
+		LOG_DEBUG("status[%i]: 0x%x", flashplane, status);
 		usleep(1000);
 	}
 	
-	DEBUG("status[%i]: 0x%x", flashplane, status);
+	LOG_DEBUG("status[%i]: 0x%x", flashplane, status);
 
 	if (status & 0x0C)
 	{
-		ERROR("status register: 0x%x", status);
+		LOG_ERROR("status register: 0x%x", status);
 		if (status & 0x4)
-			ERROR("Lock Error Bit Detected, Operation Abort");
+			LOG_ERROR("Lock Error Bit Detected, Operation Abort");
 		if (status & 0x8)
-			ERROR("Invalid command and/or bad keyword, Operation Abort");
+			LOG_ERROR("Invalid command and/or bad keyword, Operation Abort");
 		if (status & 0x10)
-			ERROR("Security Bit Set, Operation Abort");
+			LOG_ERROR("Security Bit Set, Operation Abort");
 	}
 	
 	return status;
@@ -287,7 +287,7 @@ int at91sam7_flash_command(struct flash_bank_s *bank, u8 flashplane, u8 cmd, u16
 
 	fcr = (0x5A<<24) | ((pagen&0x3FF)<<8) | cmd; 
 	target_write_u32(target, MC_FCR[flashplane], fcr);
-	DEBUG("Flash command: 0x%x, flashplane: %i, pagenumber:%u", fcr, flashplane, pagen);
+	LOG_DEBUG("Flash command: 0x%x, flashplane: %i, pagenumber:%u", fcr, flashplane, pagen);
 
 	if ((at91sam7_info->cidr_arch == 0x60)&&((cmd==SLB)|(cmd==CLB)))
 	{
@@ -322,7 +322,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 	
 	if (cidr == 0)
 	{
-		WARNING("Cannot identify target as an AT91SAM");
+		LOG_WARNING("Cannot identify target as an AT91SAM");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
@@ -363,7 +363,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		
 	
 
-	DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x", at91sam7_info->cidr_nvptyp, at91sam7_info->cidr_arch );
+	LOG_DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x", at91sam7_info->cidr_nvptyp, at91sam7_info->cidr_arch );
 
 	/* Read main and master clock freqency register */
 	at91sam7_read_clock_info(bank);
@@ -384,7 +384,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 			at91sam7_info->target_name = "AT91SAM7S512";
 			at91sam7_info->num_planes = 2;
 			if (at91sam7_info->num_planes != bank->num_sectors)
-				WARNING("Internal error: Number of flash planes and erase sectors does not match, please report");;
+				LOG_WARNING("Internal error: Number of flash planes and erase sectors does not match, please report");;
 			at91sam7_info->num_lockbits = 2*16;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -437,7 +437,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 			at91sam7_info->target_name = "AT91SAM7XC512";
 			at91sam7_info->num_planes = 2;
 			if (at91sam7_info->num_planes != bank->num_sectors)
-				WARNING("Internal error: Number of flash planes and erase sectors does not match, please report");;
+				LOG_WARNING("Internal error: Number of flash planes and erase sectors does not match, please report");;
 			at91sam7_info->num_lockbits = 2*16;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -474,7 +474,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 			at91sam7_info->target_name = "AT91SAM7SE512";
 			at91sam7_info->num_planes = 2;
 			if (at91sam7_info->num_planes != bank->num_sectors)
-				WARNING("Internal error: Number of flash planes and erase sectors does not match, please report");;
+				LOG_WARNING("Internal error: Number of flash planes and erase sectors does not match, please report");;
 			at91sam7_info->num_lockbits = 32;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
@@ -511,12 +511,12 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 			at91sam7_info->target_name = "AT91SAM7X512";
 			at91sam7_info->num_planes = 2;
 			if (at91sam7_info->num_planes != bank->num_sectors)
-				WARNING("Internal error: Number of flash planes and erase sectors does not match, please report");;
+				LOG_WARNING("Internal error: Number of flash planes and erase sectors does not match, please report");;
 			at91sam7_info->num_lockbits = 32;
 			at91sam7_info->pagesize = 256;
 			at91sam7_info->pages_in_lockregion = 64;
 			at91sam7_info->num_pages = 2*16*64;
-			DEBUG("Support for AT91SAM7X512 is experimental in this version!");
+			LOG_DEBUG("Support for AT91SAM7X512 is experimental in this version!");
 		}
 		if (bank->size==0x40000)  /* AT91SAM7X256 */
 		{
@@ -556,7 +556,7 @@ int at91sam7_read_part_info(struct flash_bank_s *bank)
 		return ERROR_OK;
 	}
 	
-	WARNING("at91sam7 flash only tested for AT91SAM7Sxx series");
+	LOG_WARNING("at91sam7 flash only tested for AT91SAM7Sxx series");
 	return ERROR_OK;
 }
 
@@ -609,7 +609,7 @@ int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	
 	if (argc < 6)
 	{
-		WARNING("incomplete flash_bank at91sam7 configuration");
+		LOG_WARNING("incomplete flash_bank at91sam7 configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
@@ -643,7 +643,7 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 	{
 		if ((first == 0) && (last == (at91sam7_info->num_lockbits-1)))
 		{
-			WARNING("Sector numbers based on lockbit count, probably a deprecated script");
+			LOG_WARNING("Sector numbers based on lockbit count, probably a deprecated script");
 			last = bank->num_sectors-1;
 		}
 		else return ERROR_FLASH_SECTOR_INVALID;
@@ -738,7 +738,7 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 	if (offset % dst_min_alignment)
 	{
-		WARNING("offset 0x%x breaks required alignment 0x%x", offset, dst_min_alignment);
+		LOG_WARNING("offset 0x%x breaks required alignment 0x%x", offset, dst_min_alignment);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
@@ -748,7 +748,7 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	first_page = offset/dst_min_alignment;
 	last_page = CEIL(offset + count, dst_min_alignment);
 	
-	DEBUG("first_page: %i, last_page: %i, count %i", first_page, last_page, count);
+	LOG_DEBUG("first_page: %i, last_page: %i, count %i", first_page, last_page, count);
 	
 	at91sam7_read_clock_info(bank);	
 
@@ -773,7 +773,7 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		{
 				return ERROR_FLASH_OPERATION_FAILED;
 		}
-		DEBUG("Write flash plane:%i page number:%i", flashplane, pagen);
+		LOG_DEBUG("Write flash plane:%i page number:%i", flashplane, pagen);
 	}
 	
 	return ERROR_OK;
@@ -914,7 +914,7 @@ int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 	if (bank->target->state != TARGET_HALTED)
 	{
-		ERROR("target has to be halted to perform flash operation");
+		LOG_ERROR("target has to be halted to perform flash operation");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -942,7 +942,7 @@ int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, 
 	}	
 
 	status = at91sam7_get_flash_status(bank, 0);
-	DEBUG("at91sam7_handle_gpnvm_command: cmd 0x%x, value 0x%x, status 0x%x \n",flashcmd,bit,status);
+	LOG_DEBUG("at91sam7_handle_gpnvm_command: cmd 0x%x, value 0x%x, status 0x%x \n",flashcmd,bit,status);
 	at91sam7_info->nvmbits = (status>>8)&((1<<at91sam7_info->num_nvmbits)-1);
 
 	return ERROR_OK;
