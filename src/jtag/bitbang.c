@@ -75,7 +75,7 @@ void bitbang_path_move(pathmove_command_t *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;
-	int tms;
+	int tms = 0;
 
 	state_count = 0;
 	while (num_states)
@@ -138,7 +138,6 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	enum tap_state saved_end_state = end_state;
 	int bit_cnt;
-	int last_bit, last_bit_in;
 	
 	if (!((!ir_scan && (cur_state == TAP_SD)) || (ir_scan && (cur_state == TAP_SI))))
 	{
@@ -151,7 +150,7 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 		bitbang_end_state(saved_end_state);
 	}
 
-	for (bit_cnt = 0; bit_cnt < scan_size - 1; bit_cnt++)
+	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++)
 	{
 		/* if we're just reading the scan, but don't care about the output
 		 * default to outputting 'low', this also makes valgrind traces more readable,
@@ -159,69 +158,48 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 		 */ 
 		if ((type != SCAN_IN) && ((buffer[bit_cnt/8] >> (bit_cnt % 8)) & 0x1))
 		{
-			bitbang_interface->write(0, 0, 1);
-			bitbang_interface->write(1, 0, 1);
+			bitbang_interface->write(0, (bit_cnt==scan_size-1) ? 1 : 0, 1);
+			bitbang_interface->write(1, (bit_cnt==scan_size-1) ? 1 : 0, 1);
 		} else {
-			bitbang_interface->write(0, 0, 0);
-			bitbang_interface->write(1, 0, 0);
+			bitbang_interface->write(0, (bit_cnt==scan_size-1) ? 1 : 0, 0);
+			bitbang_interface->write(1, (bit_cnt==scan_size-1) ? 1 : 0, 0);
 		}
 		
 		if (type != SCAN_OUT)
 		{
+			/*
+			TDO should be sampled on the rising edge, and will change 
+			on the falling edge. 
+			
+			Because there is no way to read the signal exactly at the rising edge,
+			read after the rising edge.
+
+			This is plain IEEE 1149 JTAG - nothing specific to the OpenOCD or its JTAG
+			API. 
+			*/
 			if (bitbang_interface->read())
 				buffer[(bit_cnt)/8] |= 1 << ((bit_cnt) % 8);
 			else
 				buffer[(bit_cnt)/8] &= ~(1 << ((bit_cnt) % 8));
 		}
 	}
-
-	if ((type != SCAN_IN) && ((buffer[bit_cnt/8] >> (bit_cnt % 8)) & 0x1))
-		last_bit = 1;
+	
+	/* TAP_SD & TAP_SI are illegal end states, so we always transition to the pause
+	 * state which is a legal stable state from which statemove will work.
+	 *  
+	 * Exit1 -> Pause 
+	 */
+	bitbang_interface->write(0, 0, 0);
+	bitbang_interface->write(1, 0, 0);
+	bitbang_interface->write(0, 0, 0);
+	
+	if (ir_scan)
+		cur_state = TAP_PI;
 	else
-		last_bit = 0;
-
-	if ((ir_scan && (end_state == TAP_SI)) ||
-		(!ir_scan && (end_state == TAP_SD)))
-	{
-		bitbang_interface->write(0, 0, last_bit);
-		bitbang_interface->write(1, 0, last_bit);
-
-		if (type != SCAN_OUT)
-			last_bit_in = bitbang_interface->read();
-
-		bitbang_interface->write(0, 0, last_bit);
-	}
-	else
-	{
-		/* Shift-[ID]R -> Exit1-[ID]R */
-		bitbang_interface->write(0, 1, last_bit);
-		bitbang_interface->write(1, 1, last_bit);
-		
-		if (type != SCAN_OUT)
-			last_bit_in = bitbang_interface->read();
-
-		/* Exit1-[ID]R -> Pause-[ID]R */
-		bitbang_interface->write(0, 0, 0);
-		bitbang_interface->write(1, 0, 0);
-		
-		if (cur_state == TAP_SI)
-			cur_state = TAP_PI;
-		else
-			cur_state = TAP_PD;
-
-		if (cur_state != end_state)
-			bitbang_state_move();
-		else
-			bitbang_interface->write(0, 0, 0);
-	}
-		
-	if (type != SCAN_OUT)
-	{
-		if (last_bit_in)
-			buffer[(bit_cnt)/8] |= 1 << ((bit_cnt) % 8);
-		else
-			buffer[(bit_cnt)/8] &= ~(1 << ((bit_cnt) % 8));
-	}
+		cur_state = TAP_PD;
+	
+	if (cur_state != end_state)
+		bitbang_state_move();
 }
 
 int bitbang_execute_queue(void)

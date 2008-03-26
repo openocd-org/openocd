@@ -225,7 +225,7 @@ int jtag_speed_post_reset = 0;
 void jtag_add_statemove(enum tap_state endstate);
 void jtag_add_pathmove(int num_states, enum tap_state *path);
 void jtag_add_runtest(int num_cycles, enum tap_state endstate);
-int jtag_add_reset(int trst, int srst);
+void jtag_add_reset(int trst, int srst);
 void jtag_add_end_state(enum tap_state endstate);
 void jtag_add_sleep(u32 us);
 int jtag_execute_queue(void);
@@ -411,7 +411,7 @@ static void jtag_prelude(enum tap_state state)
 	jtag_prelude1();
 	
 	if (state != -1)
-		cmd_queue_end_state = state;
+		jtag_add_end_state(state);
 
 	cmd_queue_cur_state = cmd_queue_end_state;
 }
@@ -884,23 +884,18 @@ void jtag_add_runtest(int num_cycles, enum tap_state state)
 		jtag_error=retval;
 }
 
-int jtag_add_reset(int req_trst, int req_srst)
+void jtag_add_reset(int req_trst, int req_srst)
 {
 	int trst_with_tms = 0;
 	int retval;
 	
-	if (req_trst == -1)
-		req_trst = jtag_trst;
-	
-	if (req_srst == -1)
-		req_srst = jtag_srst;
-
 	/* Make sure that jtag_reset_config allows the requested reset */
 	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
 	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (req_trst == 0))
 	{
-		LOG_WARNING("requested reset would assert trst");
-		return ERROR_JTAG_RESET_WOULD_ASSERT_TRST;
+		LOG_ERROR("BUG: requested reset would assert trst");
+		jtag_error=ERROR_FAIL;
+		return;
 	}
 		
 	/* if TRST pulls SRST, we reset with TAP T-L-R */
@@ -912,8 +907,9 @@ int jtag_add_reset(int req_trst, int req_srst)
 	
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
 	{
-		LOG_WARNING("requested nSRST assertion, but the current configuration doesn't support this");
-		return ERROR_JTAG_RESET_CANT_SRST;
+		LOG_ERROR("BUG: requested nSRST assertion, but the current configuration doesn't support this");
+		jtag_error=ERROR_FAIL;
+		return;
 	}
 	
 	if (req_trst && !(jtag_reset_config & RESET_HAS_TRST))
@@ -929,7 +925,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 	if (retval!=ERROR_OK)
 	{
 		jtag_error=retval;
-		return retval;
+		return;
 	}
 
 	if (jtag_srst)
@@ -949,7 +945,7 @@ int jtag_add_reset(int req_trst, int req_srst)
 		jtag_add_end_state(TAP_TLR);
 		jtag_add_statemove(TAP_TLR);
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-		return ERROR_OK;
+		return;
 	}
 	
 	if (jtag_trst)
@@ -970,7 +966,6 @@ int jtag_add_reset(int req_trst, int req_srst)
 		if (jtag_ntrst_delay)
 			jtag_add_sleep(jtag_ntrst_delay * 1000);
 	}
-	return ERROR_OK;
 }
 
 int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
@@ -994,6 +989,10 @@ int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
 void jtag_add_end_state(enum tap_state state)
 {
 	cmd_queue_end_state = state;
+	if ((cmd_queue_end_state == TAP_SD)||(cmd_queue_end_state == TAP_SD))
+	{
+		LOG_ERROR("BUG: TAP_SD/SI can't be end state. Calling code should use a larger scan field");
+	}
 }
 
 int MINIDRIVER(interface_jtag_add_sleep)(u32 us)

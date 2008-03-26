@@ -735,9 +735,13 @@ int arm7_9_poll(target_t *target)
 
 int arm7_9_assert_reset(target_t *target)
 {
-	int retval;
-	
 	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+	
+	if (!(jtag_reset_config & RESET_HAS_SRST))
+	{
+		LOG_ERROR("Can't assert SRST");
+		return ERROR_FAIL;
+	}
 	
 	if (target->state == TARGET_HALTED || target->state == TARGET_UNKNOWN)
 	{
@@ -746,46 +750,18 @@ int arm7_9_assert_reset(target_t *target)
 		
 		/* assert SRST and TRST */
 		/* system would get ouf sync if we didn't reset test-logic, too */
-		if ((retval = jtag_add_reset(1, 1)) != ERROR_OK)
-		{
-			if (retval == ERROR_JTAG_RESET_CANT_SRST)
-			{
-				return retval;
-			}
-			else
-			{
-				LOG_ERROR("unknown error");
-				exit(-1);
-			}
-		}
+		jtag_add_reset(1, 1);
+		
 		jtag_add_sleep(5000);
-		if ((retval = jtag_add_reset(0, 1)) != ERROR_OK)
-		{
-			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
-			{
-				retval = jtag_add_reset(1, 1);
-			}
-		}
+		
 	}
-	else
+	
+	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 	{
-		if ((retval = jtag_add_reset(0, 1)) != ERROR_OK)
-		{
-			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
-			{
-				retval = jtag_add_reset(1, 1);
-			}
-			
-			if (retval == ERROR_JTAG_RESET_CANT_SRST)
-			{
-				return retval;
-			}
-			else if (retval != ERROR_OK)
-			{
-				LOG_ERROR("unknown error");
-				exit(-1);
-			}
-		}
+		jtag_add_reset(1, 1);
+	} else
+	{
+		jtag_add_reset(0, 1);
 	}
 	
 	target->state = TARGET_RESET;

@@ -701,13 +701,18 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 
 int cortex_m3_assert_reset(target_t *target)
 {
-	int retval;
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	
 	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
+	if (!(jtag_reset_config & RESET_HAS_SRST))
+	{
+		LOG_ERROR("Can't assert SRST");
+		return ERROR_FAIL;
+	}
+
 	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
 	
 	if (target->reset_mode == RESET_RUN)
@@ -727,46 +732,16 @@ int cortex_m3_assert_reset(target_t *target)
 	{
 		/* assert SRST and TRST */
 		/* system would get ouf sync if we didn't reset test-logic, too */
-		if ((retval = jtag_add_reset(1, 1)) != ERROR_OK)
-		{
-			if (retval == ERROR_JTAG_RESET_CANT_SRST)
-			{
-				return retval;
-			}
-			else
-			{
-				LOG_ERROR("unknown error");
-				exit(-1);
-			}
-		}
+		jtag_add_reset(1, 1);
 		jtag_add_sleep(5000);
-		if ((retval = jtag_add_reset(0, 1)) != ERROR_OK)
-		{
-			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
-			{
-				retval = jtag_add_reset(1, 1);
-			}
-		}
 	}
-	else
+
+	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 	{
-		if ((retval = jtag_add_reset(0, 1)) != ERROR_OK)
-		{
-			if (retval == ERROR_JTAG_RESET_WOULD_ASSERT_TRST)
-			{
-				retval = jtag_add_reset(1, 1);
-			}
-			
-			if (retval == ERROR_JTAG_RESET_CANT_SRST)
-			{
-				return retval;
-			}
-			else if (retval != ERROR_OK)
-			{
-				LOG_ERROR("unknown error");
-				exit(-1);
-			}
-		}
+		jtag_add_reset(1, 1);
+	} else
+	{
+		jtag_add_reset(0, 1);
 	}
 	
 	target->state = TARGET_RESET;
