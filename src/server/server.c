@@ -37,6 +37,9 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <signal.h>
+#ifndef _WIN32
+#include <netinet/tcp.h>
+#endif
 
 service_t *services = NULL;
 
@@ -49,6 +52,9 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	unsigned int address_size;
 	connection_t *c, **p;
 	int retval;
+#ifndef _WIN32
+	int flag=1;
+#endif
 	
 	c = malloc(sizeof(connection_t));
 	c->fd = -1;
@@ -60,7 +66,32 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	c->next = NULL;
 
 	address_size = sizeof(c->sin);
+#ifndef _WIN32
+	int segsize=65536;
+	setsockopt(service->fd, IPPROTO_TCP, TCP_MAXSEG,  &segsize, sizeof(int));
+	int window_size = 128 * 1024;	
+
+	/* These setsockopt()s must happen before the accept() */
+
+	setsockopt(service->fd, SOL_SOCKET, SO_SNDBUF,
+		 (char *) &window_size, sizeof(window_size));
+
+	setsockopt(service->fd, SOL_SOCKET, SO_RCVBUF,
+		 (char *) &window_size, sizeof(window_size));
+	
+#endif
 	c->fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
+#ifndef _WIN32
+	// This increases performance dramatically for e.g. GDB load which
+	// does not have a sliding window protocol.
+    retval=setsockopt(c->fd,            /* socket affected */
+                            IPPROTO_TCP,     /* set option at TCP level */
+                            TCP_NODELAY,     /* name of option */
+                            (char *) &flag,  /* the cast is historical
+                                                    cruft */
+                            sizeof(int));    /* length of option value */
+    setsockopt(c->fd, IPPROTO_TCP, TCP_MAXSEG,  &segsize, sizeof(int));
+#endif	
 				
 				
 	LOG_INFO("accepting '%s' connection from %i", service->name, c->sin.sin_port);
@@ -221,6 +252,9 @@ int remove_services()
 	return ERROR_OK;
 }
 
+extern void lockBigLock();
+extern void unlockBigLock();
+
 int server_loop(command_context_t *command_context)
 {
 	service_t *service;
@@ -237,6 +271,13 @@ int server_loop(command_context_t *command_context)
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		LOG_ERROR("couldn't set SIGPIPE to SIG_IGN");
 #endif
+
+	// This function is reentrant(workaround for configuration problems)
+	static int lockCount=0;
+	if (lockCount++==0)
+	{
+		lockBigLock();
+	}
 	
 	/* do regular tasks after at most 10ms */
 	tv.tv_sec = 0;
@@ -275,12 +316,17 @@ int server_loop(command_context_t *command_context)
 		}
 		
 #ifndef _WIN32
+#ifndef BUILD_ECOSBOARD
 		/* add STDIN to read_fds */
 		FD_SET(fileno(stdin), &read_fds);
 #endif
+#endif
 
+		// Only while we're sleeping we'll let others run
+		unlockBigLock();
 		retval = select(fd_max + 1, &read_fds, NULL, NULL, &tv);
-		
+		lockBigLock();
+
 		if (retval == -1)
 		{
 #ifdef _WIN32
@@ -363,6 +409,7 @@ int server_loop(command_context_t *command_context)
 		}
 		
 #ifndef _WIN32
+#ifndef BUILD_ECOSBOARD
 		if (FD_ISSET(fileno(stdin), &read_fds))
 		{
 			if (getc(stdin) == 'x')
@@ -370,6 +417,7 @@ int server_loop(command_context_t *command_context)
 				shutdown_openocd = 1;
 			}
 		}
+#endif
 #else
 		MSG msg;
 		while (PeekMessage(&msg,NULL,0,0,PM_REMOVE))
@@ -378,6 +426,10 @@ int server_loop(command_context_t *command_context)
 				shutdown_openocd = 1;
 		}
 #endif
+	}
+	if (--lockCount==0)
+	{
+		unlockBigLock();
 	}
 	
 	return ERROR_OK;

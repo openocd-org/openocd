@@ -64,6 +64,17 @@ void exit_handler(void)
 		jtag->quit();
 }
 
+/* implementations of OpenOCD that uses multithreading needs to lock OpenOCD while calling
+ * OpenOCD fn's. No-op in vanilla OpenOCD
+ */
+void lockBigLock()
+{
+}
+void unlockBigLock()
+{
+}
+
+
 int main(int argc, char *argv[])
 {
 	/* initialize commandline interface */
