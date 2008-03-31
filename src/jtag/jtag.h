@@ -248,7 +248,14 @@ extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 /* JTAG interface, can be implemented with a software or hardware fifo
  * 
  * TAP_SD and TAP_SI are illegal end states. TAP_SD/SI as end states
- * can be emulated by using a larger scan. 
+ * can be emulated by using a larger scan.
+ *
+ * Code that is relatively insensitive to the path(as long
+ * as it is JTAG compliant) taken through state machine can use 
+ * endstate for jtag_add_xxx_scan(). Otherwise the pause state must be 
+ * specified as end state and a subsequent jtag_add_pathmove() must 
+ * be issued. 
+ *
  */
 extern void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
@@ -258,30 +265,24 @@ extern void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum ta
 extern int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
-/* execute a state transition within the JTAG standard, but the exact path
- * path that is taken is undefined. Many implementations use precisely
- * 7 clocks to perform a transition, but it could be more or less
- * than that.
- *
- * The following assertions are made about certain common state moves:
- *
- * - A state move from Pause-[ID]R to Pause-[ID]R should always go through 
- *   Update-[ID]R and Capture-[ID]R before returning to Pause-[ID]R, otherwise 
- *   there's no way force a register update, if you can't go to Run-Test/Idle for 
- *   some reason.
- *
- *   - A state move from Pause-[ID]R to Shift-[ID]R must not go through 
- *   Update-[ID]R.
- *
- *   - Run-Test/Idle must not be entered unless requested, because R-T/I may have 
- *   side effects.
- * 
- * NB! a jtag_add_statemove() to the current state is not
- * a no-operation.
+/* run a TAP_TLR reset. End state is TAP_TLR, regardless
+ * of start state.
  */
-extern void jtag_add_statemove(enum tap_state endstate);
-extern int interface_jtag_add_statemove(enum tap_state endstate);
-/* A list of unambigious single clock state transitions, not
+extern void jtag_add_tms();
+extern int interface_jtag_add_tms();
+/* Do not use jtag_add_pathmove() unless you need to, but do use it
+ * if you have to. 
+ *
+ * DANGER! If the target is dependent upon a particular sequence
+ * of transitions for things to work correctly(e.g. as a workaround 
+ * for an errata that contradicts the JTAG standard), then pathmove 
+ * must be used, even if some jtag interfaces happen to use the 
+ * desired path. Worse, the jtag interface used for testing a 
+ * particular implementation, could happen to use the "desired" 
+ * path when transitioning to/from end
+ * state.
+ *
+ * A list of unambigious single clock state transitions, not
  * all drivers can support this, but it is required for e.g.
  * XScale and Xilinx support
  * 
@@ -289,6 +290,15 @@ extern int interface_jtag_add_statemove(enum tap_state endstate);
  * 
  * Note that the first on the list must be reachable 
  * via a single transition from the current state. 
+ *
+ * All drivers are required to implement jtag_add_pathmove().
+ * However, if the pathmove sequence can not be precisely
+ * executed, an interface_jtag_add_pathmove() or jtag_execute_queue()
+ * must return an error. It is legal, but not recommended, that
+ * a driver returns an error in all cases for a pathmove if it
+ * can only implement a few transitions and therefore
+ * a partial implementation of pathmove would have little practical
+ * application.
  */
 extern void jtag_add_pathmove(int num_states, enum tap_state *path);
 extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);

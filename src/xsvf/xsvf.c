@@ -66,6 +66,37 @@ int tap_to_xsvf[] =
 	0x0, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x1, 0x9, 0xa, 0xb, 0xc, 0xe, 0xf
 };
 
+
+/* xsvf has it's own definition of a statemove. This needs
+ * to be handled according to the specs, which has nothing
+ * to do with the JTAG spec or OpenOCD as such.
+ * 
+ * Implemented via jtag_add_pathmove().
+ */
+void xsvf_add_statemove(enum tap_state state)
+{
+	enum tap_state moves[7]; /* max # of transitions */
+	int i; 
+	enum tap_state curstate=cmd_queue_cur_state;
+	u8 move=tap_move[cmd_queue_cur_state][state];
+	
+	if ((state!=TAP_TLR)&&(state==cmd_queue_cur_state))
+		return;
+	for (i=0; i<7; i++)
+	{
+		int j=(move>>i)&1;
+		if (j)
+		{
+			curstate=tap_transitions[curstate].high;
+		} else
+		{
+			curstate=tap_transitions[curstate].low;
+		}
+		moves[i]=curstate;
+	}
+	jtag_add_pathmove(7, moves);
+}
+
 int xsvf_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "xsvf", handle_xsvf_command,
@@ -203,13 +234,13 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 								jtag_add_runtest(xruntest, xsvf_to_tap[xendir]);
 							else
 							{
-								jtag_add_statemove(TAP_RTI);
+								xsvf_add_statemove(TAP_RTI);
 								jtag_add_sleep(xruntest);
-								jtag_add_statemove(xsvf_to_tap[xendir]);
+								xsvf_add_statemove(xsvf_to_tap[xendir]);
 							}
 						}
 						else if (xendir != 0xd)	/* Pause-IR */
-							jtag_add_statemove(xsvf_to_tap[xendir]);
+							xsvf_add_statemove(xsvf_to_tap[xendir]);
 					}
 					free(ir_buf);
 				}
@@ -242,13 +273,13 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 							jtag_add_runtest(xruntest, xsvf_to_tap[xenddr]);
 						else
 						{
-							jtag_add_statemove(TAP_RTI);
+							xsvf_add_statemove(TAP_RTI);
 							jtag_add_sleep(xruntest);
-							jtag_add_statemove(xsvf_to_tap[xenddr]);
+							xsvf_add_statemove(xsvf_to_tap[xenddr]);
 						}
 					}
 					else if (xendir != 0x6)	/* Pause-DR */
-						jtag_add_statemove(xsvf_to_tap[xenddr]);
+						xsvf_add_statemove(xsvf_to_tap[xenddr]);
 				}
 				break;
 			case 0x04:	/* XRUNTEST */
@@ -316,13 +347,13 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 								jtag_add_runtest(xruntest, xsvf_to_tap[xenddr]);
 							else
 							{
-								jtag_add_statemove(TAP_RTI);
+								xsvf_add_statemove(TAP_RTI);
 								jtag_add_sleep(xruntest);
-								jtag_add_statemove(xsvf_to_tap[xenddr]);
+								xsvf_add_statemove(xsvf_to_tap[xenddr]);
 							}
 						}
 						else if (xendir != 0x6)	/* Pause-DR */
-							jtag_add_statemove(xsvf_to_tap[xenddr]);
+							xsvf_add_statemove(xsvf_to_tap[xenddr]);
 					}
 				}
 				break;
@@ -451,10 +482,10 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 					do_abort = 1;
 				else
 				{
-					jtag_add_statemove(xsvf_to_tap[uc]);
+					xsvf_add_statemove(xsvf_to_tap[uc]);
 					ui = be_to_h_u32(buf4);
 					jtag_add_sleep(ui);
-					jtag_add_statemove(xsvf_to_tap[uc2]);
+					xsvf_add_statemove(xsvf_to_tap[uc2]);
 				}
 				break;
 			default:

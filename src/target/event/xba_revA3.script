@@ -34,6 +34,9 @@ mww 0xCC000008     1 # Mode Select CL3
 #mww 0xc4000020  0xffffee # CFG0: remove expansion bus boot flash
 #mirror at 0x00000000
 
+#big endian
+reg XSCALE_CTRL 0xF8
+
 #
 # detect flash
 #

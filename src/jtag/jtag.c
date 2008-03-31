@@ -222,7 +222,6 @@ int jtag_speed_post_reset = 0;
 
 
 /* forward declarations */
-void jtag_add_statemove(enum tap_state endstate);
 void jtag_add_pathmove(int num_states, enum tap_state *path);
 void jtag_add_runtest(int num_cycles, enum tap_state endstate);
 void jtag_add_reset(int trst, int srst);
@@ -245,7 +244,6 @@ int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char
 int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_statemove_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
@@ -777,18 +775,20 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 
 	return ERROR_OK;
 }
-void jtag_add_statemove(enum tap_state state)
-{
-	jtag_prelude(state);
 
+void jtag_add_tms()
+{
+	jtag_prelude(TAP_TLR);
+	
 	int retval;
-	retval=interface_jtag_add_statemove(cmd_queue_end_state);
+	retval=interface_jtag_add_tms();
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_statemove)(enum tap_state state)
+int MINIDRIVER(interface_jtag_add_tms)()
 {
+	enum tap_state state = TAP_TLR;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	
 	/* allocate memory for a new list member */
@@ -943,7 +943,7 @@ void jtag_add_reset(int req_trst, int req_srst)
 	{
 		LOG_DEBUG("JTAG reset with tms instead of TRST");
 		jtag_add_end_state(TAP_TLR);
-		jtag_add_statemove(TAP_TLR);
+		jtag_add_tms();
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		return;
 	}
@@ -1429,8 +1429,6 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_EXEC, "toggle reset lines <trst> <srst>");
 	register_command(cmd_ctx, NULL, "runtest", handle_runtest_command,
 		COMMAND_EXEC, "move to Run-Test/Idle, and execute <num_cycles>");
-	register_command(cmd_ctx, NULL, "statemove", handle_statemove_command,
-		COMMAND_EXEC, "move to current endstate or [tap_state]");
 	register_command(cmd_ctx, NULL, "irscan", handle_irscan_command,
 		COMMAND_EXEC, "execute IR scan <device> <instr> [dev2] [instr2] ...");
 	register_command(cmd_ctx, NULL, "drscan", handle_drscan_command,
@@ -1477,7 +1475,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 		device = device->next;
 	}
 	
-	jtag_add_statemove(TAP_TLR);
+	jtag_add_tms();
 	jtag_execute_queue();
 
 	/* examine chain first, as this could discover the real chain layout */
@@ -1837,28 +1835,6 @@ int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 }
 
-int handle_statemove_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	enum tap_state state;
-
-	state = -1;
-	if (argc == 1)
-	{
-		for (state = 0; state < 16; state++)
-		{
-			if (strcmp(args[0], tap_state_strings[state]) == 0)
-			{
-				break;
-			}
-		}
-	}
-
-	jtag_add_statemove(state);
-	jtag_execute_queue();
-
-	return ERROR_OK;
-
-}
 
 int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
