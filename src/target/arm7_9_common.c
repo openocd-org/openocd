@@ -519,13 +519,13 @@ int arm7_9_enable_sw_bkpts(struct target_s *target)
 	else
 	{
 		LOG_ERROR("BUG: both watchpoints used, but wp_available >= 1");
-		exit(-1);
+		return ERROR_FAIL;
 	}
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("error writing EmbeddedICE registers to enable sw breakpoints");
-		exit(-1);
+		return ERROR_FAIL;
 	};
 	
 	return ERROR_OK;
@@ -1225,8 +1225,7 @@ int arm7_9_full_context(target_t *target)
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		LOG_ERROR("JTAG failure");
-		exit(-1);
+		return retval;
 	}
 	return ERROR_OK;
 }
@@ -1381,12 +1380,7 @@ int arm7_9_restart_core(struct target_s *target)
 	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 	
 	jtag_add_runtest(1, TAP_RTI);
-	if ((jtag_execute_queue()) != ERROR_OK)
-	{
-		exit(-1);
-	}
-	
-	return ERROR_OK;
+	return jtag_execute_queue();
 }
 
 void arm7_9_enable_watchpoints(struct target_s *target)
@@ -1484,7 +1478,7 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 			else
 			{
 				LOG_ERROR("unhandled core state");
-				exit(-1);
+				return ERROR_FAIL;
 			}
 				
 			buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGACK, 1, 0);
@@ -1526,7 +1520,7 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	else
 	{
 		LOG_ERROR("unhandled core state");
-		exit(-1);
+		return ERROR_FAIL;
 	}
 	
 	/* deassert DBGACK and INTDIS */
@@ -1633,7 +1627,7 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	else
 	{
 		LOG_ERROR("unhandled core state");
-		exit(-1);
+		return ERROR_FAIL;
 	}
 	
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
@@ -1705,8 +1699,7 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		LOG_ERROR("JTAG failure");
-		exit(-1);
+		return retval;
 	}
 		
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).valid = 1;
