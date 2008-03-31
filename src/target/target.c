@@ -575,7 +575,7 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 	return ERROR_OK;
 }
 
-int target_call_timer_callbacks()
+static int target_call_timer_callbacks_check_time(int checktime)
 {
 	target_timer_callback_t *callback = target_timer_callbacks;
 	target_timer_callback_t *next_callback;
@@ -587,8 +587,9 @@ int target_call_timer_callbacks()
 	{
 		next_callback = callback->next;
 		
-		if (((now.tv_sec >= callback->when.tv_sec) && (now.tv_usec >= callback->when.tv_usec))
-			|| (now.tv_sec > callback->when.tv_sec))
+		if ((!checktime&&callback->periodic)||
+				(((now.tv_sec >= callback->when.tv_sec) && (now.tv_usec >= callback->when.tv_usec))
+						|| (now.tv_sec > callback->when.tv_sec)))
 		{
 			callback->callback(callback->priv);
 			if (callback->periodic)
@@ -613,13 +614,15 @@ int target_call_timer_callbacks()
 	return ERROR_OK;
 }
 
+int target_call_timer_callbacks()
+{
+	return target_call_timer_callbacks_check_time(1);
+}
+
+/* invoke periodic callbacks immediately */
 int target_call_timer_callbacks_now()
 {
-	/* TODO: this should invoke the timer callbacks now. This is used to ensure that
-	 * any outstanding polls, etc. are in fact invoked before a synchronous command 
-	 * completes. 
-	 */
-	return target_call_timer_callbacks();
+	return target_call_timer_callbacks(0);
 }
 
 
