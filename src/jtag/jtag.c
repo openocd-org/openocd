@@ -224,7 +224,6 @@ int jtag_speed_post_reset = 0;
 /* forward declarations */
 void jtag_add_pathmove(int num_states, enum tap_state *path);
 void jtag_add_runtest(int num_cycles, enum tap_state endstate);
-void jtag_add_reset(int trst, int srst);
 void jtag_add_end_state(enum tap_state endstate);
 void jtag_add_sleep(u32 us);
 int jtag_execute_queue(void);
@@ -884,14 +883,14 @@ void jtag_add_runtest(int num_cycles, enum tap_state state)
 		jtag_error=retval;
 }
 
-void jtag_add_reset(int req_trst, int req_srst)
+void jtag_add_reset(int req_tms_or_trst, int req_srst)
 {
 	int trst_with_tms = 0;
 	int retval;
 	
 	/* Make sure that jtag_reset_config allows the requested reset */
 	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
-	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (req_trst == 0))
+	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (!req_tms_or_trst))
 	{
 		LOG_ERROR("BUG: requested reset would assert trst");
 		jtag_error=ERROR_FAIL;
@@ -899,29 +898,35 @@ void jtag_add_reset(int req_trst, int req_srst)
 	}
 		
 	/* if TRST pulls SRST, we reset with TAP T-L-R */
-	if (((jtag_reset_config & RESET_TRST_PULLS_SRST) && (req_trst == 1)) && (req_srst == 0))
+	if (((jtag_reset_config & RESET_TRST_PULLS_SRST) && (req_tms_or_trst)) && (req_srst == 0))
 	{
-		req_trst = 0;
 		trst_with_tms = 1;
 	}
 	
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
 	{
-		LOG_ERROR("BUG: requested nSRST assertion, but the current configuration doesn't support this");
+		LOG_ERROR("BUG: requested SRST assertion, but the current configuration doesn't support this");
 		jtag_error=ERROR_FAIL;
 		return;
 	}
 	
-	if (req_trst && !(jtag_reset_config & RESET_HAS_TRST))
+	if (req_tms_or_trst)
 	{
-		req_trst = 0;
-		trst_with_tms = 1;
+		if (!trst_with_tms && (jtag_reset_config & RESET_HAS_TRST))
+		{
+			jtag_trst = 1;
+		} else
+		{
+			trst_with_tms = 1;
+		}
+	} else
+	{
+		jtag_trst = 0;
 	}
-
-	jtag_trst = req_trst;
+	
 	jtag_srst = req_srst;
 
-	retval = interface_jtag_add_reset(req_trst, req_srst);
+	retval = interface_jtag_add_reset(jtag_trst, jtag_srst);
 	if (retval!=ERROR_OK)
 	{
 		jtag_error=retval;
@@ -959,10 +964,6 @@ void jtag_add_reset(int req_trst, int req_srst)
 	}
 	else
 	{
-		/* the nTRST line got deasserted, so we're still in Test-Logic-Reset,
-		 * but we might want to add a delay to give the TAP time to settle
-		 */
-		LOG_DEBUG("Now in TAP_TLR - Test-Logic-Reset(either due to TRST line asserted or tms reset)");
 		if (jtag_ntrst_delay)
 			jtag_add_sleep(jtag_ntrst_delay * 1000);
 	}
@@ -1608,6 +1609,9 @@ int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	if (argc < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	
 	if (argc >= 1)
 	{
 		if (strcmp(args[0], "none") == 0)
@@ -1628,19 +1632,23 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	
 	if (argc >= 2)
 	{
-		if (strcmp(args[1], "srst_pulls_trst") == 0)
-			jtag_reset_config |= RESET_SRST_PULLS_TRST;
-		else if (strcmp(args[1], "trst_pulls_srst") == 0)
-			jtag_reset_config |= RESET_TRST_PULLS_SRST;
-		else if (strcmp(args[1], "combined") == 0)
-			jtag_reset_config |= RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST;
-		else if (strcmp(args[1], "separate") == 0)
-			jtag_reset_config &= ~(RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST);
-		else
+		if (strcmp(args[1], "separate") == 0)
 		{
-			LOG_ERROR("invalid reset_config argument, defaulting to none");
-			jtag_reset_config = RESET_NONE;
-			return ERROR_INVALID_ARGUMENTS;
+			/* seperate reset lines - default */
+		} else
+		{
+			if (strcmp(args[1], "srst_pulls_trst") == 0)
+				jtag_reset_config |= RESET_SRST_PULLS_TRST;
+			else if (strcmp(args[1], "trst_pulls_srst") == 0)
+				jtag_reset_config |= RESET_TRST_PULLS_SRST;
+			else if (strcmp(args[1], "combined") == 0)
+				jtag_reset_config |= RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST;
+			else
+			{
+				LOG_ERROR("invalid reset_config argument, defaulting to none");
+				jtag_reset_config = RESET_NONE;
+				return ERROR_INVALID_ARGUMENTS;
+			}
 		}
 	}
 	

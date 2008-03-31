@@ -239,7 +239,7 @@ int bitbang_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 #endif
-				if (cmd->cmd.reset->trst == 1)
+				if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_reset_config & RESET_SRST_PULLS_TRST)))
 				{
 					cur_state = TAP_TLR;
 				}

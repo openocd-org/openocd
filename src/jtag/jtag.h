@@ -308,13 +308,32 @@ extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);
  */
 extern void jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
-/* Invoking jtag_add_reset() with unsupported combinations is
- * not allowed and constitutes a bug in the calling code.
+/* A reset of the TAP state machine can be requested.
  * 
- * trst & srst must be 0 or 1. There is no way to 
- * read the current reset state.
+ * Whether tms or trst reset is used depends on the capabilities of 
+ * the target and jtag interface(reset_config  command configures this).
+ * 
+ * srst can driver a reset of the TAP state machine and vice
+ * versa
+ * 
+ * Application code may need to examine value of jtag_reset_config
+ * to determine the proper codepath
+ * 
+ * DANGER! Even though srst drives trst, trst might not be connected to
+ * the interface, and it might actually be *harmful* to assert trst in this case.
+ * 
+ * This is why combinations such as "reset_config srst_only srst_pulls_trst"
+ * are supported. 
+ *
  */
-extern void jtag_add_reset(int trst, int srst);
+extern void jtag_add_reset(int req_tms_or_trst, int srst);
+/* this drives the actual srst and trst pins. srst will always be 0
+ * if jtag_reset_config & RESET_SRST_PULLS_TRST != 0 and ditto for
+ * trst.
+ * 
+ * the higher level jtag_add_reset will invoke jtag_add_tms() if 
+ * approperiate
+ */
 extern int interface_jtag_add_reset(int trst, int srst);
 extern void jtag_add_end_state(enum tap_state endstate);
 extern int interface_jtag_add_end_state(enum tap_state endstate);

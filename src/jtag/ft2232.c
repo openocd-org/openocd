@@ -889,7 +889,6 @@ void usbjtag_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
-		cur_state = TAP_TLR;
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 			low_direction |= nTRSTnOE;	/* switch to output pin (output is low) */
 		else
@@ -929,7 +928,6 @@ void jtagkey_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
-		cur_state = TAP_TLR;
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 			high_output &= ~nTRSTnOE;
 		else
@@ -969,7 +967,6 @@ void olimex_jtag_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
-		cur_state = TAP_TLR;
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 			high_output &= ~nTRSTnOE;
 		else
@@ -1003,7 +1000,6 @@ void flyswatter_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
-		cur_state = TAP_TLR;
 		low_output &= ~nTRST;
 	}
 	else if (trst == 0)
@@ -1051,7 +1047,6 @@ void comstick_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
-		cur_state = TAP_TLR;
 		high_output &= ~nTRST;
 	}
 	else if (trst == 0)
@@ -1079,7 +1074,6 @@ void stm32stick_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
-		cur_state = TAP_TLR;
 		high_output &= ~nTRST;
 	}
 	else if (trst == 0)
@@ -1151,6 +1145,10 @@ int ft2232_execute_queue()
 					first_unsent = cmd;
 				}
 
+				if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_reset_config & RESET_SRST_PULLS_TRST)))
+				{
+					cur_state = TAP_TLR;
+				}
 				layout->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				require_send = 1;
 				
