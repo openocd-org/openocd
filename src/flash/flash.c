@@ -49,6 +49,7 @@ int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, cha
 int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);
@@ -154,6 +155,14 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 						 "erase sectors at <bank> <first> <last>");
 		register_command(cmd_ctx, flash_cmd, "erase_address", handle_flash_erase_address_command, COMMAND_EXEC,
 						 "erase address range <address> <length>");
+
+		register_command(cmd_ctx, flash_cmd, "fillw", handle_flash_fill_command, COMMAND_EXEC,
+						 "fill with pattern <address> <word_pattern> <count>");
+		register_command(cmd_ctx, flash_cmd, "fillh", handle_flash_fill_command, COMMAND_EXEC,
+						 "fill with pattern <address> <halfword_pattern> <count>");
+		register_command(cmd_ctx, flash_cmd, "fillb", handle_flash_fill_command, COMMAND_EXEC,
+						 "fill with pattern <address> <byte_pattern> <count>");
+
 		register_command(cmd_ctx, flash_cmd, "write_bank", handle_flash_write_bank_command, COMMAND_EXEC,
 						 "write binary data to <bank> <file> <offset>");
 		register_command(cmd_ctx, flash_cmd, "write_image", handle_flash_write_image_command, COMMAND_EXEC,
@@ -643,6 +652,113 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	image_close(&image);
 
 	return retval;
+}
+
+int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	int err = ERROR_OK;
+	u32 address;
+	u32 pattern;
+	u32 count;
+	u8 chunk[1024];
+	u32 wrote = 0;
+	int chunk_count;
+	char *duration_text;
+	duration_t duration;
+	target_t *target = get_current_target(cmd_ctx);
+	u32 i;
+	int wordsize;
+	
+	if (argc != 3)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	
+	address	= strtoul(args[0], NULL, 0);
+	pattern	= strtoul(args[1], NULL, 0);
+	count 	= strtoul(args[2], NULL, 0);
+	
+	if(count == 0)
+		return ERROR_OK;
+
+
+	switch(cmd[4])
+	{
+	case 'w':
+		wordsize=4;
+		break;
+	case 'h':
+		wordsize=2;
+		break;
+	case 'b':
+		wordsize=1;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	
+	chunk_count = MIN(count, (1024 / wordsize));
+	switch(wordsize)
+	{
+	case 4:
+		for(i = 0; i < chunk_count; i++)
+		{
+			target_buffer_set_u32(target, chunk + i * wordsize, pattern);
+		}
+		break;
+	case 2:
+		for(i = 0; i < chunk_count; i++)
+		{
+			target_buffer_set_u16(target, chunk + i * wordsize, pattern);
+		}
+		break;
+	case 1:
+		memset(chunk, pattern, chunk_count);
+		break;
+	default:
+		LOG_ERROR("BUG: can't happen");
+		exit(-1);
+	}
+	
+	duration_start_measure(&duration);
+
+	flash_set_dirty();
+	err = flash_erase_address_range( target, address, count*wordsize );
+	if (err == ERROR_OK)
+	{
+		for (wrote=0; wrote<(count*wordsize); wrote+=sizeof(chunk))
+		{ 
+			int cur_size = MIN( (count*wordsize - wrote) , 1024 );
+			if (err == ERROR_OK)
+			{
+				flash_bank_t *bank;
+				bank = get_flash_bank_by_addr(target, address);
+				if(bank == NULL)
+				{
+					err = ERROR_FAIL;
+					break;
+				}
+				err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
+				wrote += cur_size;
+			}
+			if (err!=ERROR_OK)
+				break;
+		}
+	}
+	
+	duration_stop_measure(&duration, &duration_text);
+
+	if(err == ERROR_OK)
+	{
+		float speed;
+		speed=wrote / 1024.0;
+		speed/=((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0));
+		command_print(cmd_ctx, "wrote %d bytes to 0x%8.8x in %s (%f kb/s)",
+			count*wordsize, address, duration_text,
+			speed);
+	}
+	free(duration_text);
+	return ERROR_OK;
 }
 
 int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
