@@ -1069,9 +1069,9 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "mdh", handle_md_command, COMMAND_EXEC, "display memory half-words <addr> [count]");
 	register_command(cmd_ctx,  NULL, "mdb", handle_md_command, COMMAND_EXEC, "display memory bytes <addr> [count]");
 	
-	register_command(cmd_ctx,  NULL, "mww", handle_mw_command, COMMAND_EXEC, "write memory word <addr> <value>");
-	register_command(cmd_ctx,  NULL, "mwh", handle_mw_command, COMMAND_EXEC, "write memory half-word <addr> <value>");
-	register_command(cmd_ctx,  NULL, "mwb", handle_mw_command, COMMAND_EXEC, "write memory byte <addr> <value>");
+	register_command(cmd_ctx,  NULL, "mww", handle_mw_command, COMMAND_EXEC, "write memory word <addr> <value> [count]");
+	register_command(cmd_ctx,  NULL, "mwh", handle_mw_command, COMMAND_EXEC, "write memory half-word <addr> <value> [count]");
+	register_command(cmd_ctx,  NULL, "mwb", handle_mw_command, COMMAND_EXEC, "write memory byte <addr> <value> [count]");
 	
 	register_command(cmd_ctx,  NULL, "bp", handle_bp_command, COMMAND_EXEC, "set breakpoint <address> <length> [hw]");	
 	register_command(cmd_ctx,  NULL, "rbp", handle_rbp_command, COMMAND_EXEC, "remove breakpoint <adress>");
@@ -1804,36 +1804,59 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 {
 	u32 address = 0;
 	u32 value = 0;
-	int retval;
+	int count = 1;
+	int i;
+	int wordsize;
 	target_t *target = get_current_target(cmd_ctx);
 	u8 value_buf[4];
 
-	if (argc < 2)
-		return ERROR_OK;
+	 if ((argc < 2) || (argc > 3))
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	address = strtoul(args[0], NULL, 0);
 	value = strtoul(args[1], NULL, 0);
+	if (argc == 3)
+		count = strtoul(args[2], NULL, 0);
+
 
 	switch (cmd[2])
 	{
 		case 'w':
+			wordsize = 4;
 			target_buffer_set_u32(target, value_buf, value);
-			retval = target->type->write_memory(target, address, 4, 1, value_buf);
 			break;
 		case 'h':
+			wordsize = 2;
 			target_buffer_set_u16(target, value_buf, value);
-			retval = target->type->write_memory(target, address, 2, 1, value_buf);
 			break;
 		case 'b':
+			wordsize = 1;
 			value_buf[0] = value;
-			retval = target->type->write_memory(target, address, 1, 1, value_buf);
 			break;
 		default:
-			return ERROR_OK;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	if (retval!=ERROR_OK)
+	for (i=0; i<count; i++)
 	{
-		LOG_ERROR("Failure examining memory");
+		int retval;
+		switch (wordsize)
+		{
+			case 4:
+				retval = target->type->write_memory(target, address + i*wordsize, 4, 1, value_buf);
+				break;
+			case 2:
+				retval = target->type->write_memory(target, address + i*wordsize, 2, 1, value_buf);
+				break;
+			case 1:
+				retval = target->type->write_memory(target, address + i*wordsize, 1, 1, value_buf);
+			break;
+			default:
+			return ERROR_OK;
+		}
+		if (retval!=ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	return ERROR_OK;
