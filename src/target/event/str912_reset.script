@@ -1,0 +1,21 @@
+mww 0xFFFFFD44, 0x00008000 #Disable watchdog
+mww 0xFFFFFC20, 0x00000601 #Enable Main oscillator
+sleep 20
+mww 0xFFFFFC30, 0x00000001 #Switch master clock to CPU clock, write 1 to PMC_MCKR
+sleep 20
+
+
+# -- Remap Flash Bank 0 at address 0x0 and Bank 1 at address 0x80000,
+#    when the bank 0 is the boot bank, then enable the Bank 1. */
+
+mww 0x54000000, 0x4 #BOOT BANK Size = (2^4) * 32 = 512KB
+mww 0x54000004, 0x2 #NON BOOT BANK Size = (2^2) * 8 = 32KB
+mww 0x5400000C, 0x0 #BOOT BANK Address = 0x0
+mww 0x54000010, 0x20000 #NON BOOT BANK Address = 0x80000
+mww 0x54000018, 0x18 #Enable CS on both banks
+
+# -- Enable 96K RAM */
+mww 0x5C002034, 0x0191 # PFQBC enabled / DTCM & AHB wait-states disabled
+arm966e cp15 15, 0x60000 #Set bits 17-18 (DTCM/ITCM order bits) of the Core Configuration Control Register
+
+flash protect 0 0 7 off
