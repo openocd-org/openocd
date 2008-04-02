@@ -78,6 +78,7 @@ extern int flash_erase_address_range(target_t *target, u32 addr, u32 length);
 extern int flash_write(target_t *target, image_t *image, u32 *written, int erase);
 extern void flash_set_dirty(void);
 extern int flash_get_bank_count();
+int default_flash_blank_check(struct flash_bank_s *bank);
 
 extern flash_bank_t *get_flash_bank_by_num(int num);
 extern flash_bank_t *get_flash_bank_by_num_noprobe(int num);

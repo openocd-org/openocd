@@ -334,7 +334,11 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 			char buf[1024];
 
 			/* attempt auto probe */
-			p->driver->auto_probe(p);
+			if ((retval = p->driver->auto_probe(p)) != ERROR_OK)
+				return retval;
+			
+			if ((retval = p->driver->erase_check(p)) != ERROR_OK)
+				return retval;
 
 			command_print(cmd_ctx, "#%i: %s at 0x%8.8x, size 0x%8.8x, buswidth %i, chipwidth %i",
 						i, p->driver->name, p->base, p->size, p->bus_width, p->chip_width);
@@ -1047,5 +1051,53 @@ int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd
 	else
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
+	return ERROR_OK;
+}
+
+
+int default_flash_blank_check(struct flash_bank_s *bank)
+{
+	target_t *target = bank->target;
+	u8 buffer[1024];
+	int buffer_size=sizeof(buffer);
+	int i;
+	int nBytes;
+	
+	if (bank->target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	
+	
+	for (i = 0; i < bank->num_sectors; i++)
+	{
+		int j;
+		bank->sectors[i].is_erased = 1;
+		
+		for (j=0; j<bank->sectors[i].size; j+=buffer_size)
+		{
+			int chunk;
+			int retval;
+			chunk=buffer_size;
+			if (chunk>(j-bank->sectors[i].size))
+			{
+				chunk=(j-bank->sectors[i].size);
+			}
+			
+			retval=target->type->read_memory(target, bank->base + bank->sectors[i].offset, 4, chunk/4, buffer);
+			if (retval!=ERROR_OK)
+				return retval;
+		
+			for (nBytes = 0; nBytes < chunk; nBytes++)
+			{
+				if (buffer[nBytes] != 0xFF)
+				{
+					bank->sectors[i].is_erased = 0;
+					break;
+				}
+			}
+		}
+	}
+	
 	return ERROR_OK;
 }

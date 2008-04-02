@@ -56,7 +56,6 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
 int str7x_probe(struct flash_bank_s *bank);
 int str7x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int str7x_protect_check(struct flash_bank_s *bank);
-int str7x_erase_check(struct flash_bank_s *bank);
 int str7x_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
 int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -71,7 +70,7 @@ flash_driver_t str7x_flash =
 	.write = str7x_write,
 	.probe = str7x_probe,
 	.auto_probe = str7x_probe,
-	.erase_check = str7x_erase_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = str7x_protect_check,
 	.info = str7x_info
 };
@@ -240,43 +239,6 @@ u32 str7x_result(struct flash_bank_s *bank)
 	return retval;
 }
 
-int str7x_blank_check(struct flash_bank_s *bank, int first, int last)
-{
-	target_t *target = bank->target;
-	u8 *buffer;
-	int i;
-	int nBytes;
-	
-	if ((first < 0) || (last > bank->num_sectors))
-		return ERROR_FLASH_SECTOR_INVALID;
-
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
-	buffer = malloc(256);
-	
-	for (i = first; i <= last; i++)
-	{
-		bank->sectors[i].is_erased = 1;
-
-		target->type->read_memory(target, bank->base + bank->sectors[i].offset, 4, 256/4, buffer);
-		
-		for (nBytes = 0; nBytes < 256; nBytes++)
-		{
-			if (buffer[nBytes] != 0xFF)
-			{
-				bank->sectors[i].is_erased = 0;
-				break;
-			}
-		}	
-	}
-	
-	free(buffer);
-
-	return ERROR_OK;
-}
 
 int str7x_protect_check(struct flash_bank_s *bank)
 {
@@ -727,11 +689,6 @@ int str7x_probe(struct flash_bank_s *bank)
 int str7x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	return ERROR_OK;
-}
-
-int str7x_erase_check(struct flash_bank_s *bank)
-{
-	return str7x_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
 int str7x_info(struct flash_bank_s *bank, char *buf, int buf_size)

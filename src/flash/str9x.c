@@ -64,7 +64,6 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
 int str9x_probe(struct flash_bank_s *bank);
 int str9x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int str9x_protect_check(struct flash_bank_s *bank);
-int str9x_erase_check(struct flash_bank_s *bank);
 int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
 int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -79,7 +78,7 @@ flash_driver_t str9x_flash =
 	.write = str9x_write,
 	.probe = str9x_probe,
 	.auto_probe = str9x_probe,
-	.erase_check = str9x_erase_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = str9x_protect_check,
 	.info = str9x_info
 };
@@ -167,44 +166,6 @@ int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	
 	str9x_info->write_algorithm = NULL;
 	
-	return ERROR_OK;
-}
-
-int str9x_blank_check(struct flash_bank_s *bank, int first, int last)
-{
-	target_t *target = bank->target;
-	u8 *buffer;
-	int i;
-	int nBytes;
-	
-	if ((first < 0) || (last > bank->num_sectors))
-		return ERROR_FLASH_SECTOR_INVALID;
-
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
-	buffer = malloc(256);
-	
-	for (i = first; i <= last; i++)
-	{
-		bank->sectors[i].is_erased = 1;
-
-		target->type->read_memory(target, bank->base + bank->sectors[i].offset, 4, 256/4, buffer);
-		
-		for (nBytes = 0; nBytes < 256; nBytes++)
-		{
-			if (buffer[nBytes] != 0xFF)
-			{
-				bank->sectors[i].is_erased = 0;
-				break;
-			}
-		}	
-	}
-	
-	free(buffer);
-
 	return ERROR_OK;
 }
 
@@ -579,11 +540,6 @@ int str9x_probe(struct flash_bank_s *bank)
 int str9x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	return ERROR_OK;
-}
-
-int str9x_erase_check(struct flash_bank_s *bank)
-{
-	return str9x_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
 int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size)

@@ -45,7 +45,6 @@ int ecosflash_erase(struct flash_bank_s *bank, int first, int last);
 int ecosflash_protect(struct flash_bank_s *bank, int set, int first, int last);
 int ecosflash_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
 int ecosflash_probe(struct flash_bank_s *bank);
-int ecosflash_erase_check(struct flash_bank_s *bank);
 int ecosflash_protect_check(struct flash_bank_s *bank);
 int ecosflash_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
@@ -64,7 +63,7 @@ flash_driver_t ecosflash_flash =
 	.write = ecosflash_write,
 	.probe = ecosflash_probe,
 	.auto_probe = ecosflash_probe,
-	.erase_check = ecosflash_erase_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = ecosflash_protect_check,
 	.info = ecosflash_info
 };
@@ -443,11 +442,6 @@ int ecosflash_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	return eCosBoard_flash(info, buffer, c->base+offset, count);
 }
 
-
-int ecosflash_erase_check(struct flash_bank_s *bank)
-{
-	return ERROR_OK;
-}
 
 int ecosflash_protect_check(struct flash_bank_s *bank)
 {
