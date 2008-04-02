@@ -365,14 +365,28 @@ int arm720t_soft_reset_halt(struct target_s *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
 	arm720t_common_t *arm720t = arm7tdmi->arch_info;
+	int i;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	
 	target->type->halt(target);
 	
-	while (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
+	for (i=0; i<10; i++)
 	{
-		embeddedice_read_reg(dbg_stat);
-		jtag_execute_queue();
+		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
+		{
+			embeddedice_read_reg(dbg_stat);
+			jtag_execute_queue();
+		} else
+		{
+			break;
+		}
+		/* do not eat all CPU, time out after 1 se*/
+		usleep(100*1000);
+	}
+	if (i==10)
+	{
+		LOG_ERROR("Failed to halt CPU after 1 sec");
+		return ERROR_TARGET_TIMEOUT;
 	}
 	
 	target->state = TARGET_HALTED;
