@@ -193,7 +193,6 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 int arm11_assert_reset(struct target_s *target);
 int arm11_deassert_reset(struct target_s *target);
 int arm11_soft_reset_halt(struct target_s *target);
-int arm11_prepare_reset_halt(struct target_s *target);
 
 /* target register access for gdb */
 int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], int *reg_list_size);

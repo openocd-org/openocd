@@ -70,7 +70,6 @@ target_type_t cortexm3_target =
 	.assert_reset = cortex_m3_assert_reset,
 	.deassert_reset = cortex_m3_deassert_reset,
 	.soft_reset_halt = cortex_m3_soft_reset_halt,
-	.prepare_reset_halt = cortex_m3_prepare_reset_halt,
 	
 	.get_gdb_reg_list = armv7m_get_gdb_reg_list,
 
@@ -201,9 +200,6 @@ int cortex_m3_endreset_event(target_t *target)
 		target_write_u32(target, dwt_list[i].dwt_comparator_address | 0x8, dwt_list[i].function);
 	}
 	swjdp_transaction_endcheck(swjdp);
-	
-	/* Make sure working_areas are all free */
-	target_free_all_working_areas(target);
 	
 	/* We are in process context */
 	armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
@@ -704,6 +700,7 @@ int cortex_m3_assert_reset(target_t *target)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	int retval;
 	
 	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
@@ -712,7 +709,10 @@ int cortex_m3_assert_reset(target_t *target)
 		LOG_ERROR("Can't assert SRST");
 		return ERROR_FAIL;
 	}
-
+	/* FIX!!! should this be removed as we're asserting trst anyway? */
+	if ((retval=cortex_m3_prepare_reset_halt(target))!=ERROR_OK)
+		return retval;
+	
 	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
 	
 	if (target->reset_mode == RESET_RUN)
@@ -720,7 +720,7 @@ int cortex_m3_assert_reset(target_t *target)
 		/* Set/Clear C_MASKINTS in a separate operation */
 		if (cortex_m3->dcb_dhcsr & C_MASKINTS)
 			ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT );
-		
+	
 		cortex_m3_clear_halt(target);
 							
 		/* Enter debug state on reset, cf. end_reset_event() */	
@@ -730,10 +730,10 @@ int cortex_m3_assert_reset(target_t *target)
 	
 	if (target->state == TARGET_HALTED || target->state == TARGET_UNKNOWN)
 	{
-		/* assert SRST and TRST */
-		/* system would get ouf sync if we didn't reset test-logic, too */
-		jtag_add_reset(1, 1);
-		jtag_add_sleep(5000);
+	/* assert SRST and TRST */
+	/* system would get ouf sync if we didn't reset test-logic, too */
+	jtag_add_reset(1, 1);
+	jtag_add_sleep(5000);
 	}
 
 	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
@@ -747,6 +747,12 @@ int cortex_m3_assert_reset(target_t *target)
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 	
+	#if 0
+	if ((target->reset_mode==RESET_HALT)||(target->reset_mode==RESET_INIT))
+	{
+		cortex_m3_halt(target);
+	}
+	#endif
 	armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
 	armv7m_invalidate_core_regs(target);
 

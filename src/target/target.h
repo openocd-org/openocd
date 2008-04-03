@@ -121,11 +121,19 @@ typedef struct target_type_s
 	int (*resume)(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
 	int (*step)(struct target_s *target, int current, u32 address, int handle_breakpoints);
 	
-	/* target reset control */
+	/* target reset control. assert reset can be invoked when OpenOCD and
+	 * the target is out of sync.
+	 * 
+	 * A typical example is that the target was power cycled while OpenOCD
+	 * thought the target was halted or running.
+	 * 
+	 * assert_reset() can therefore make no assumptions whatsoever about the
+	 * state of the target 
+	 * 
+	 */
 	int (*assert_reset)(struct target_s *target);
 	int (*deassert_reset)(struct target_s *target);
 	int (*soft_reset_halt)(struct target_s *target);
-	int (*prepare_reset_halt)(struct target_s *target);
 	
 	/* target register access for gdb.
 	 * 
@@ -258,9 +266,23 @@ extern int target_write_buffer(struct target_s *target, u32 address, u32 size, u
 extern int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
 extern int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* crc);
 
+/* DANGER!!!!!
+ * 
+ * if "area" passed in to target_alloc_working_area() points to a memory
+ * location that goes out of scope (e.g. a pointer on the stack), then
+ * the caller of target_alloc_working_area() is responsible for invoking
+ * target_free_working_area() before "area" goes out of scope.
+ * 
+ * target_free_all_working_areas() will NULL out the "area" pointer
+ * upon resuming or resetting the CPU.
+ * 
+ */
 extern int target_alloc_working_area(struct target_s *target, u32 size, working_area_t **area);
 extern int target_free_working_area(struct target_s *target, working_area_t *area);
+extern int target_free_working_area_restore(struct target_s *target, working_area_t *area, int restore);
 extern int target_free_all_working_areas(struct target_s *target);
+extern int target_free_all_working_areas_restore(struct target_s *target, int restore);
+
 
 extern target_t *targets;
 

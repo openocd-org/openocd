@@ -742,20 +742,18 @@ int arm7_9_assert_reset(target_t *target)
 		LOG_ERROR("Can't assert SRST");
 		return ERROR_FAIL;
 	}
+
+	/* we can't know what state the target is in as we might e.g.
+	 * be resetting after a power dropout, so we need to issue a tms/srst
+	 */
 	
-	if (target->state == TARGET_HALTED || target->state == TARGET_UNKNOWN)
-	{
-		/* if the target wasn't running, there might be working areas allocated */
-		target_free_all_working_areas(target);
-		
-		/* assert SRST and TRST */
-		/* system would get ouf sync if we didn't reset test-logic, too */
-		jtag_add_reset(1, 1);
-		
-		jtag_add_sleep(5000);
-		
-	}
+	/* assert SRST and TRST */
+	/* system would get ouf sync if we didn't reset test-logic, too */
+	jtag_add_reset(1, 1);
 	
+	jtag_add_sleep(5000);
+
+	/* here we should issue a srst only, but we may have to assert trst as well */
 	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 	{
 		jtag_add_reset(1, 1);
@@ -764,8 +762,13 @@ int arm7_9_assert_reset(target_t *target)
 		jtag_add_reset(0, 1);
 	}
 	
+
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
+
+	/* at this point we TRST *may* be deasserted */
+	arm7_9_prepare_reset_halt(target);
+
 	
 	armv4_5_invalidate_core_regs(target);
 
@@ -908,31 +911,11 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 
 int arm7_9_prepare_reset_halt(target_t *target)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	
-	/* poll the target, and resume if it was currently halted */
-	arm7_9_poll(target);
-	if (target->state == TARGET_HALTED)
+	if ((target->reset_mode!=RESET_HALT)&&(target->reset_mode!=RESET_INIT))
 	{
-		arm7_9_resume(target, 1, 0x0, 0, 1);
+		return ERROR_OK;
 	}
-	
-	if (arm7_9->has_vector_catch)
-	{
-		/* program vector catch register to catch reset vector */
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_VEC_CATCH], 0x1);
-	}
-	else
-	{
-		/* program watchpoint unit to match on reset vector address */
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0x3);
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0x0);
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x100);
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], 0xf7);
-	}
-	
-	return ERROR_OK;
+	return arm7_9_halt(target);
 }
 
 int arm7_9_halt(target_t *target)
@@ -960,15 +943,6 @@ int arm7_9_halt(target_t *target)
 		{
 			LOG_ERROR("can't request a halt while in reset if nSRST pulls nTRST");
 			return ERROR_TARGET_FAILURE;
-		}
-		else
-		{
-			/* we came here in a reset_halt or reset_init sequence
-			 * debug entry was already prepared in arm7_9_prepare_reset_halt()
-			 */
-			target->debug_reason = DBG_REASON_DBGRQ;
-			
-			return ERROR_OK; 
 		}
 	}
 

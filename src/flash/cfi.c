@@ -45,7 +45,6 @@ int cfi_protect(struct flash_bank_s *bank, int set, int first, int last);
 int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
 int cfi_probe(struct flash_bank_s *bank);
 int cfi_auto_probe(struct flash_bank_s *bank);
-int cfi_erase_check(struct flash_bank_s *bank);
 int cfi_protect_check(struct flash_bank_s *bank);
 int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
@@ -67,7 +66,7 @@ flash_driver_t cfi_flash =
 	.write = cfi_write,
 	.probe = cfi_probe,
 	.auto_probe = cfi_auto_probe,
-	.erase_check = cfi_erase_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = cfi_protect_check,
 	.info = cfi_info
 };
@@ -627,7 +626,6 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	bank->driver_priv = cfi_info;
 
 	cfi_info->write_algorithm = NULL;
-	cfi_info->erase_check_algorithm = NULL;
 
 	cfi_info->x16_as_x8 = 0;
 	cfi_info->jedec_probe = 0;
@@ -2092,121 +2090,6 @@ int cfi_auto_probe(struct flash_bank_s *bank)
 	return cfi_probe(bank);
 }
 
-int cfi_erase_check(struct flash_bank_s *bank)
-{
-	cfi_flash_bank_t *cfi_info = bank->driver_priv;
-	target_t *target = bank->target;
-	int i;
-	int retval;
-
-	if (bank->target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	if (!cfi_info->erase_check_algorithm)
-	{
-		u32 erase_check_code[] =
-		{
-			0xe4d03001,	/* ldrb r3, [r0], #1	*/
-			0xe0022003, /* and r2, r2, r3 		*/
-			0xe2511001, /* subs r1, r1, #1		*/
-			0x1afffffb,	/* b -4 				*/
-			0xeafffffe	/* b 0 					*/
-		};
-
-		/* make sure we have a working area */
-		if (target_alloc_working_area(target, 20, &cfi_info->erase_check_algorithm) != ERROR_OK)
-		{
-			LOG_WARNING("no working area available, falling back to slow memory reads");
-		}
-		else
-		{
-			u8 erase_check_code_buf[5 * 4];
-
-			for (i = 0; i < 5; i++)
-				target_buffer_set_u32(target, erase_check_code_buf + (i*4), erase_check_code[i]);
-
-			/* write algorithm code to working area */
-			target->type->write_memory(target, cfi_info->erase_check_algorithm->address, 4, 5, erase_check_code_buf);
-		}
-	}
-
-	if (!cfi_info->erase_check_algorithm)
-	{
-		u32 *buffer = malloc(4096);
-
-		for (i = 0; i < bank->num_sectors; i++)
-		{
-			u32 address = bank->base + bank->sectors[i].offset;
-			u32 size = bank->sectors[i].size;
-			u32 check = 0xffffffffU;
-			int erased = 1;
-
-			while (size > 0)
-			{
-				u32 thisrun_size = (size > 4096) ? 4096 : size;
-				int j;
-
-				target->type->read_memory(target, address, 4, thisrun_size / 4, (u8*)buffer);
-
-				for (j = 0; j < thisrun_size / 4; j++)
-					check &= buffer[j];
-
-				if (check != 0xffffffff)
-				{
-					erased = 0;
-					break;
-				}
-
-				size -= thisrun_size;
-				address += thisrun_size;
-			}
-
-			bank->sectors[i].is_erased = erased;
-		}
-
-		free(buffer);
-	}
-	else
-	{
-		for (i = 0; i < bank->num_sectors; i++)
-		{
-			u32 address = bank->base + bank->sectors[i].offset;
-			u32 size = bank->sectors[i].size;
-
-			reg_param_t reg_params[3];
-			armv4_5_algorithm_t armv4_5_info;
-
-			armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
-			armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
-			armv4_5_info.core_state = ARMV4_5_STATE_ARM;
-
-			init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
-			buf_set_u32(reg_params[0].value, 0, 32, address);
-
-			init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
-			buf_set_u32(reg_params[1].value, 0, 32, size);
-
-			init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
-			buf_set_u32(reg_params[2].value, 0, 32, 0xff);
-
-			if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params, cfi_info->erase_check_algorithm->address, cfi_info->erase_check_algorithm->address + 0x10, 10000, &armv4_5_info)) != ERROR_OK)
-				return ERROR_FLASH_OPERATION_FAILED;
-
-			if (buf_get_u32(reg_params[2].value, 0, 32) == 0xff)
-				bank->sectors[i].is_erased = 1;
-			else
-				bank->sectors[i].is_erased = 0;
-
-			destroy_reg_param(&reg_params[0]);
-			destroy_reg_param(&reg_params[1]);
-			destroy_reg_param(&reg_params[2]);
-		}
-	}
-
-	return ERROR_OK;
-}
 
 int cfi_intel_protect_check(struct flash_bank_s *bank)
 {

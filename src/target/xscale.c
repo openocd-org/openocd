@@ -64,7 +64,6 @@ int xscale_restore_context(target_t *target);
 int xscale_assert_reset(target_t *target);
 int xscale_deassert_reset(target_t *target);
 int xscale_soft_reset_halt(struct target_s *target);
-int xscale_prepare_reset_halt(struct target_s *target);
 
 int xscale_set_reg_u32(reg_t *reg, u32 value);
 
@@ -105,7 +104,6 @@ target_type_t xscale_target =
 	.assert_reset = xscale_assert_reset,
 	.deassert_reset = xscale_deassert_reset,
 	.soft_reset_halt = xscale_soft_reset_halt,
-	.prepare_reset_halt = xscale_prepare_reset_halt,
 
 	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
 
@@ -1777,14 +1775,6 @@ int xscale_deassert_reset(target_t *target)
 int xscale_soft_reset_halt(struct target_s *target)
 {
 
-	return ERROR_OK;
-}
-
-int xscale_prepare_reset_halt(struct target_s *target)
-{
-	/* nothing to be done for reset_halt on XScale targets
-	 * we always halt after a reset to upload the debug handler
-	 */
 	return ERROR_OK;
 }
 

@@ -284,21 +284,16 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 					break;
 			} 
 		}
-		switch (target->reset_mode)
-		{
-			case RESET_HALT:
-			case RESET_INIT:
-				target->type->prepare_reset_halt(target);
-				break;
-			default:
-				break;
-		}
 		target = target->next;
 	}
 	
 	target = targets;
 	while (target)
 	{
+		/* we have no idea what state the target is in, so we
+		 * have to drop working areas
+		 */
+		target_free_all_working_areas_restore(target, 0);
 		target->type->assert_reset(target);
 		target = target->next;
 	}
@@ -343,6 +338,8 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	}
 	jtag_execute_queue();
 	
+	LOG_DEBUG("Waiting for halted stated as approperiate");
+	
 	/* Wait for reset to complete, maximum 5 seconds. */	
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 5, 0);
@@ -355,14 +352,18 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		target = targets;
 		while (target)
 		{
+			LOG_DEBUG("Polling target");
 			target->type->poll(target);
-			if ((target->reset_mode == RESET_RUN_AND_INIT) || (target->reset_mode == RESET_RUN_AND_HALT))
+			if ((target->reset_mode == RESET_RUN_AND_INIT) || 
+					(target->reset_mode == RESET_RUN_AND_HALT) ||
+					(target->reset_mode == RESET_HALT) ||
+					(target->reset_mode == RESET_INIT))
 			{
 				if (target->state != TARGET_HALTED)
 				{
 					if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 					{
-						LOG_USER("Timed out waiting for reset");
+						LOG_USER("Timed out waiting for halt after reset");
 						goto done;
 					}
 					/* this will send alive messages on e.g. GDB remote protocol. */
@@ -384,6 +385,16 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	/* We want any events to be processed before the prompt */
 	target_call_timer_callbacks_now();
 
+	/* if we timed out we need to unregister these handlers */
+	target = targets;
+	while (target)
+	{
+		target_unregister_timer_callback(target_run_and_halt_handler, target);
+		target = target->next;
+	}
+	target_unregister_event_callback(target_init_handler, cmd_ctx);
+				
+	
 	jtag->speed(jtag_speed_post_reset);
 	
 	return retval;
@@ -722,12 +733,12 @@ int target_alloc_working_area(struct target_s *target, u32 size, working_area_t 
 	return ERROR_OK;
 }
 
-int target_free_working_area(struct target_s *target, working_area_t *area)
+int target_free_working_area_restore(struct target_s *target, working_area_t *area, int restore)
 {
 	if (area->free)
 		return ERROR_OK;
 	
-	if (target->backup_working_area)
+	if (restore&&target->backup_working_area)
 		target->type->write_memory(target, area->address, 4, area->size / 4, area->backup);
 	
 	area->free = 1;
@@ -739,14 +750,19 @@ int target_free_working_area(struct target_s *target, working_area_t *area)
 	return ERROR_OK;
 }
 
-int target_free_all_working_areas(struct target_s *target)
+int target_free_working_area(struct target_s *target, working_area_t *area)
+{
+	return target_free_working_area_restore(target, area, 1);
+}
+
+int target_free_all_working_areas_restore(struct target_s *target, int restore)
 {
 	working_area_t *c = target->working_areas;
 
 	while (c)
 	{
 		working_area_t *next = c->next;
-		target_free_working_area(target, c);
+		target_free_working_area_restore(target, c, restore);
 		
 		if (c->backup)
 			free(c->backup);
@@ -759,6 +775,11 @@ int target_free_all_working_areas(struct target_s *target)
 	target->working_areas = NULL;
 	
 	return ERROR_OK;
+}
+
+int target_free_all_working_areas(struct target_s *target)
+{
+	return target_free_all_working_areas_restore(target, 1); 
 }
 
 int target_register_commands(struct command_context_s *cmd_ctx)

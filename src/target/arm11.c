@@ -72,7 +72,6 @@ target_type_t arm11_target =
     ARM11_HANDLER(assert_reset),
     ARM11_HANDLER(deassert_reset),
     ARM11_HANDLER(soft_reset_halt),
-    ARM11_HANDLER(prepare_reset_halt),
 	
     ARM11_HANDLER(get_gdb_reg_list),
 	
@@ -1025,12 +1024,6 @@ int arm11_soft_reset_halt(struct target_s *target)
     return ERROR_OK;
 }
 
-int arm11_prepare_reset_halt(struct target_s *target)
-{
-    FNC_INFO_NOTIMPLEMENTED;
-
-    return ERROR_OK;
-}
 
 
 /* target register access for gdb */
@@ -1707,7 +1700,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 	if (values[i] > arm11_coproc_instruction_limits[i])
 	{
-	    LOG_ERROR("Parameter %d out of bounds (%d max). %s",
+	    LOG_ERROR("Parameter %ld out of bounds (%d max). %s",
 		i + 2, arm11_coproc_instruction_limits[i],
 		read ? arm11_mrc_syntax : arm11_mcr_syntax);
 	    return -1;

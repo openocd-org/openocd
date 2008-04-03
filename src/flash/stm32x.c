@@ -43,7 +43,6 @@ int stm32x_probe(struct flash_bank_s *bank);
 int stm32x_auto_probe(struct flash_bank_s *bank);
 int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int stm32x_protect_check(struct flash_bank_s *bank);
-int stm32x_erase_check(struct flash_bank_s *bank);
 int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
 int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -62,7 +61,7 @@ flash_driver_t stm32x_flash =
 	.write = stm32x_write,
 	.probe = stm32x_probe,
 	.auto_probe = stm32x_auto_probe,
-	.erase_check = stm32x_erase_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = stm32x_protect_check,
 	.info = stm32x_info
 };
@@ -278,43 +277,6 @@ int stm32x_write_options(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int stm32x_blank_check(struct flash_bank_s *bank, int first, int last)
-{
-	target_t *target = bank->target;
-	u8 *buffer;
-	int i;
-	int nBytes;
-	
-	if ((first < 0) || (last > bank->num_sectors))
-		return ERROR_FLASH_SECTOR_INVALID;
-
-	if (target->state != TARGET_HALTED)
-	{
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	buffer = malloc(256);
-	
-	for (i = first; i <= last; i++)
-	{
-		bank->sectors[i].is_erased = 1;
-
-		target->type->read_memory(target, bank->base + bank->sectors[i].offset, 4, 256/4, buffer);
-		
-		for (nBytes = 0; nBytes < 256; nBytes++)
-		{
-			if (buffer[nBytes] != 0xFF)
-			{
-				bank->sectors[i].is_erased = 0;
-				break;
-			}
-		}	
-	}
-	
-	free(buffer);
-
-	return ERROR_OK;
-}
 
 int stm32x_protect_check(struct flash_bank_s *bank)
 {
@@ -477,7 +439,8 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 	
-	target_write_buffer(target, stm32x_info->write_algorithm->address, sizeof(stm32x_flash_write_code), stm32x_flash_write_code);
+	if ((retval=target_write_buffer(target, stm32x_info->write_algorithm->address, sizeof(stm32x_flash_write_code), stm32x_flash_write_code))!=ERROR_OK)
+		return retval;
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -507,7 +470,8 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 	{
 		u32 thisrun_count = (count > (buffer_size / 2)) ? (buffer_size / 2) : count;
 		
-		target_write_buffer(target, source->address, thisrun_count * 2, buffer);
+		if ((retval = target_write_buffer(target, source->address, thisrun_count * 2, buffer))!=ERROR_OK)
+			break;
 		
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
@@ -705,11 +669,6 @@ int stm32x_auto_probe(struct flash_bank_s *bank)
 int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	return ERROR_OK;
-}
-
-int stm32x_erase_check(struct flash_bank_s *bank)
-{
-	return stm32x_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
 int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)

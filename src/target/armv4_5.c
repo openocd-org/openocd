@@ -504,6 +504,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	int exit_breakpoint_size = 0;
 	int i;
 	int retval = ERROR_OK;
+	LOG_DEBUG("Running algorithm");
 	
 	if (armv4_5_algorithm_info->common_magic != ARMV4_5_COMMON_MAGIC)
 	{

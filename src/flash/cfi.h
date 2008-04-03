@@ -26,7 +26,7 @@
 typedef struct cfi_flash_bank_s
 {
 	working_area_t *write_algorithm;
-	working_area_t *erase_check_algorithm;
+	
 
 	int x16_as_x8;
 	int jedec_probe;

@@ -28,6 +28,10 @@
 #include "fileio.h"
 #include "image.h"
 #include "log.h"
+#include "armv4_5.h"
+#include "algorithm.h"
+#include "binarybuffer.h"
+#include "armv7m.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -336,22 +340,12 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 			/* attempt auto probe */
 			if ((retval = p->driver->auto_probe(p)) != ERROR_OK)
 				return retval;
-			
-			if ((retval = p->driver->erase_check(p)) != ERROR_OK)
-				return retval;
 
 			command_print(cmd_ctx, "#%i: %s at 0x%8.8x, size 0x%8.8x, buswidth %i, chipwidth %i",
 						i, p->driver->name, p->base, p->size, p->bus_width, p->chip_width);
 			for (j = 0; j < p->num_sectors; j++)
 			{
-				char *erase_state, *protect_state;
-
-				if (p->sectors[j].is_erased == 0)
-					erase_state = "not erased";
-				else if (p->sectors[j].is_erased == 1)
-					erase_state = "erased";
-				else
-					erase_state = "erase state unknown";
+				char *protect_state;
 
 				if (p->sectors[j].is_protected == 0)
 					protect_state = "not protected";
@@ -360,9 +354,9 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 				else
 					protect_state = "protection state unknown";
 
-				command_print(cmd_ctx, "\t#%i: 0x%8.8x (0x%x %ikB) %s, %s",
+				command_print(cmd_ctx, "\t#%i: 0x%8.8x (0x%x %ikB) %s",
 							j, p->sectors[j].offset, p->sectors[j].size, p->sectors[j].size>>10,
-							erase_state, protect_state);
+							protect_state);
 			}
 
 			*buf = '\0'; /* initialize buffer, otherwise it migh contain garbage if driver function fails */
@@ -425,6 +419,7 @@ int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cm
 	p = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
 	if (p)
 	{
+		int j;
 		if ((retval = p->driver->erase_check(p)) == ERROR_OK)
 		{
 			command_print(cmd_ctx, "successfully checked erase state", p->driver->name, p->base);
@@ -434,6 +429,23 @@ int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cm
 			command_print(cmd_ctx, "unknown error when checking erase state of flash bank #%s at 0x%8.8x",
 				args[0], p->base);
 		}
+		
+		for (j = 0; j < p->num_sectors; j++)
+		{
+			char *erase_state;
+
+			if (p->sectors[j].is_erased == 0)
+				erase_state = "not erased";
+			else if (p->sectors[j].is_erased == 1)
+				erase_state = "erased";
+			else
+				erase_state = "erase state unknown";
+
+			command_print(cmd_ctx, "\t#%i: 0x%8.8x (0x%x %ikB) %s",
+						j, p->sectors[j].offset, p->sectors[j].size, p->sectors[j].size>>10,
+						erase_state);
+		}
+		
 	}
 
 	return ERROR_OK;
@@ -1068,32 +1080,224 @@ int default_flash_blank_check(struct flash_bank_s *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
-	
-	for (i = 0; i < bank->num_sectors; i++)
+	int retval;
+	int fast_check=0;
+	working_area_t *erase_check_algorithm;
+#if 0
+	/* FIX! doesn't work yet... */
+	/*
+	char test(char *a, int len, char t)
 	{
-		int j;
-		bank->sectors[i].is_erased = 1;
-		
-		for (j=0; j<bank->sectors[i].size; j+=buffer_size)
+	  int i=0;
+	
+	  for (i=0; i<len; i++)
 		{
-			int chunk;
-			int retval;
-			chunk=buffer_size;
-			if (chunk>(j-bank->sectors[i].size))
-			{
-				chunk=(j-bank->sectors[i].size);
-			}
-			
-			retval=target->type->read_memory(target, bank->base + bank->sectors[i].offset, 4, chunk/4, buffer);
-			if (retval!=ERROR_OK)
-				return retval;
+		  t&=a[i];
+	
+		}
+	}
+	
+	$ arm-elf-gcc -c -mthumb -O3 test.c
+	
+	$ arm-elf-objdump --disassemble test.o
+	
+	test.o:     file format elf32-littlearm
+	
+	Disassembly of section .text:
+	
+	00000000 <test>:
+	   0:   b510            push    {r4, lr}
+	   2:   0612            lsl     r2, r2, #24
+	   4:   1c04            mov     r4, r0          (add r4, r0, #0)
+	   6:   0e10            lsr     r0, r2, #24
+	   8:   2200            mov     r2, #0
+	   a:   2900            cmp     r1, #0
+	   c:   dd04            ble     18 <test+0x18>
+	   e:   5ca3            ldrb    r3, [r4, r2]
+	  10:   3201            add     r2, #1
+	  12:   4018            and     r0, r3
+	  14:   428a            cmp     r2, r1
+	  16:   dbfa            blt     e <test+0xe>
+	  18:   bd10            pop     {r4, pc}
+	  1a:   46c0            nop                     (mov r8, r8)
+	
+
+	*/
+	u16 erase_check_code[] =
+	{
+		 0x0612,//            lsl     r2, r2, #24
+		 0x1c04,//            mov     r4, r0          (add r4, r0, #0)
+		 0x0e10,//            lsr     r0, r2, #24
+		 0x2200,//            mov     r2, #0
+		 0x2900,//            cmp     r1, #0
+		 0xdd04,//            ble     18 <test+0x18>
+		 0x5ca3,//            ldrb    r3, [r4, r2]
+		 0x3201,//            add     r2, #1
+		 0x4018,//            and     r0, r3
+		 0x428a,//            cmp     r2, r1
+		 0xdbfa,//            blt     e <test+0xe>
+		 0x46c0,//            nop                     (mov r8, r8)
+		 
+	};
+
+
+	
+	/* make sure we have a working area */
+	if (target_alloc_working_area(target, ((sizeof(erase_check_code)+3)/4)*4, &erase_check_algorithm) != ERROR_OK)
+	{
+		erase_check_algorithm = NULL;
+	}
+	
+	if (erase_check_algorithm)
+	{
+		u8 erase_check_code_buf[((sizeof(erase_check_code)+3)/4)*4];
+		LOG_DEBUG("Running fast flash erase check");
 		
-			for (nBytes = 0; nBytes < chunk; nBytes++)
+		for (i = 0; i < sizeof(erase_check_code)/sizeof(*erase_check_code); i++)
+			target_buffer_set_u16(target, erase_check_code_buf + (i*2), erase_check_code[i]);
+
+		/* write algorithm code to working area */
+		if ((retval=target->type->write_memory(target, erase_check_algorithm->address, 2, sizeof(erase_check_code)/sizeof(*erase_check_code), erase_check_code_buf))==ERROR_OK)
+		{
+			for (i = 0; i < bank->num_sectors; i++)
 			{
-				if (buffer[nBytes] != 0xFF)
-				{
-					bank->sectors[i].is_erased = 0;
+				u32 address = bank->base + bank->sectors[i].offset;
+				u32 size = bank->sectors[i].size;
+	
+				reg_param_t reg_params[3];
+				armv7m_algorithm_t arm_info;
+	
+				arm_info.common_magic = ARMV7M_COMMON_MAGIC;
+				arm_info.core_mode = ARMV7M_MODE_ANY;
+				arm_info.core_state = ARMV7M_STATE_THUMB;
+	
+				init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
+				buf_set_u32(reg_params[0].value, 0, 32, address);
+	
+				init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
+				buf_set_u32(reg_params[1].value, 0, 32, size);
+	
+				init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
+				buf_set_u32(reg_params[2].value, 0, 32, 0xff);
+	
+				if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params, erase_check_algorithm->address, 
+						erase_check_algorithm->address + sizeof(erase_check_code) - 2, 10000, &arm_info)) != ERROR_OK)
 					break;
+	
+				if (buf_get_u32(reg_params[2].value, 0, 32) == 0xff)
+					bank->sectors[i].is_erased = 1;
+				else
+					bank->sectors[i].is_erased = 0;
+	
+				destroy_reg_param(&reg_params[0]);
+				destroy_reg_param(&reg_params[1]);
+				destroy_reg_param(&reg_params[2]);
+			}
+			if (i == bank->num_sectors)
+			{
+				fast_check = 1;
+			}
+		} 
+		target_free_working_area(target, erase_check_algorithm);
+	}
+#endif
+	if (!fast_check)
+	{
+		/* try ARM7 instead */
+	
+		u32 erase_check_code[] =
+		{
+			0xe4d03001,	/* ldrb r3, [r0], #1	*/
+			0xe0022003, /* and r2, r2, r3 		*/
+			0xe2511001, /* subs r1, r1, #1		*/
+			0x1afffffb,	/* b -4 				*/
+			0xeafffffe	/* b 0 					*/
+		};
+
+		/* make sure we have a working area */
+		if (target_alloc_working_area(target, 20, &erase_check_algorithm) == ERROR_OK)
+		{
+			u8 erase_check_code_buf[5 * 4];
+
+			for (i = 0; i < 5; i++)
+				target_buffer_set_u32(target, erase_check_code_buf + (i*4), erase_check_code[i]);
+
+			/* write algorithm code to working area */
+			if ((retval=target->type->write_memory(target, erase_check_algorithm->address, 4, 5, erase_check_code_buf))==ERROR_OK)
+			{
+				for (i = 0; i < bank->num_sectors; i++)
+				{
+					u32 address = bank->base + bank->sectors[i].offset;
+					u32 size = bank->sectors[i].size;
+			
+					reg_param_t reg_params[3];
+					armv4_5_algorithm_t armv4_5_info;
+			
+					armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+					armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+					armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+			
+					init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
+					buf_set_u32(reg_params[0].value, 0, 32, address);
+			
+					init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
+					buf_set_u32(reg_params[1].value, 0, 32, size);
+			
+					init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
+					buf_set_u32(reg_params[2].value, 0, 32, 0xff);
+			
+					if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params, 
+							erase_check_algorithm->address, erase_check_algorithm->address + 0x10, 10000, &armv4_5_info)) != ERROR_OK)
+						break;
+			
+					if (buf_get_u32(reg_params[2].value, 0, 32) == 0xff)
+						bank->sectors[i].is_erased = 1;
+					else
+						bank->sectors[i].is_erased = 0;
+			
+					destroy_reg_param(&reg_params[0]);
+					destroy_reg_param(&reg_params[1]);
+					destroy_reg_param(&reg_params[2]);
+				}
+				if (i == bank->num_sectors)
+				{
+					fast_check = 1;
+				}
+			} 
+			target_free_working_area(target, erase_check_algorithm);
+		}
+	}
+
+	
+	if (!fast_check)
+	{
+		LOG_USER("Running slow fallback erase check - add working memory");
+		for (i = 0; i < bank->num_sectors; i++)
+		{
+			int j;
+			bank->sectors[i].is_erased = 1;
+			
+			for (j=0; j<bank->sectors[i].size; j+=buffer_size)
+			{
+				int chunk;
+				int retval;
+				chunk=buffer_size;
+				if (chunk>(j-bank->sectors[i].size))
+				{
+					chunk=(j-bank->sectors[i].size);
+				}
+				
+				retval=target->type->read_memory(target, bank->base + bank->sectors[i].offset + j, 4, chunk/4, buffer);
+				if (retval!=ERROR_OK)
+					return retval;
+			
+				for (nBytes = 0; nBytes < chunk; nBytes++)
+				{
+					if (buffer[nBytes] != 0xFF)
+					{
+						bank->sectors[i].is_erased = 0;
+						break;
+					}
 				}
 			}
 		}

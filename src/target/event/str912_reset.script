@@ -18,4 +18,5 @@ mww 0x54000018, 0x18 #Enable CS on both banks
 mww 0x5C002034, 0x0191 # PFQBC enabled / DTCM & AHB wait-states disabled
 arm966e cp15 15, 0x60000 #Set bits 17-18 (DTCM/ITCM order bits) of the Core Configuration Control Register
 
+str9x flash_config 0 4 2 0 0x80000
 flash protect 0 0 7 off
