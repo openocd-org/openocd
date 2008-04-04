@@ -784,7 +784,7 @@ int target_free_all_working_areas(struct target_s *target)
 
 int target_register_commands(struct command_context_s *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "target", handle_target_command, COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, NULL, "target", handle_target_command, COMMAND_CONFIG, "target <cpu> [reset_init default - DEPRECATED] <chainpos> <endianness> <variant> [cpu type specifc args]");
 	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, NULL);
 	register_command(cmd_ctx, NULL, "daemon_startup", handle_daemon_startup_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "target_script", handle_target_script_command, COMMAND_CONFIG, NULL);
@@ -1191,6 +1191,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				}
 				
 				/* what to do on a target reset */
+				(*last_target_p)->reset_mode = RESET_INIT; /* default */
 				if (strcmp(args[2], "reset_halt") == 0)
 					(*last_target_p)->reset_mode = RESET_HALT;
 				else if (strcmp(args[2], "reset_run") == 0)
@@ -1203,8 +1204,9 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 					(*last_target_p)->reset_mode = RESET_RUN_AND_INIT;
 				else
 				{
-					LOG_ERROR("unknown target startup mode %s", args[2]);
-					return ERROR_COMMAND_SYNTAX_ERROR;
+					/* Kludge! we want to make this reset arg optional while remaining compatible! */
+					args--;
+					argc++;
 				}
 				(*last_target_p)->run_and_halt_time = 1000; /* default 1s */
 				
