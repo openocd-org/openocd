@@ -1733,21 +1733,26 @@ int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int cur_speed = 0;
-	if ((argc<1) || (argc>2))
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	LOG_DEBUG("handle jtag speed");
 	
-	if (argc >= 1)
-		cur_speed = jtag_speed = jtag_speed_post_reset = strtoul(args[0], NULL, 0);
-	if (argc == 2)
-		cur_speed = jtag_speed_post_reset = strtoul(args[1], NULL, 0);
+	if (argc != 0)
+	{
+		if ((argc<1) || (argc>2))
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		
-	/* this command can be called during CONFIG, 
-	 * in which case jtag isn't initialized */
-	if (jtag)
-		jtag->speed(cur_speed);
-
+		LOG_DEBUG("handle jtag speed");
+		
+		if (argc >= 1)
+			cur_speed = jtag_speed = jtag_speed_post_reset = strtoul(args[0], NULL, 0);
+		if (argc == 2)
+			cur_speed = jtag_speed_post_reset = strtoul(args[1], NULL, 0);
+			
+		/* this command can be called during CONFIG, 
+		 * in which case jtag isn't initialized */
+		if (jtag)
+			jtag->speed(cur_speed);
+	}		
+	command_print(cmd_ctx, "jtag_speed: %d, %d", jtag_speed, jtag_speed_post_reset);
+	
 	return ERROR_OK;
 }
 
