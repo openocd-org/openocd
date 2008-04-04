@@ -733,8 +733,18 @@ int arm7_9_poll(target_t *target)
 	return ERROR_OK;
 }
 
+/*
+  Some -S targets (ARM966E-S in the STR912 isn't affected, ARM926EJ-S
+  in the LPC3180 and AT91SAM9260 is affected) completely stop the JTAG clock
+  while the core is held in reset. It isn't possible to program the halt
+  condition once reset was asserted, hence a hook that allows the target to set
+  up its reset-halt condition prior to asserting reset.
+*/
+
 int arm7_9_assert_reset(target_t *target)
 {
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
 	if (!(jtag_reset_config & RESET_HAS_SRST))
@@ -743,9 +753,31 @@ int arm7_9_assert_reset(target_t *target)
 		return ERROR_FAIL;
 	}
 
+	/*
+	 * Some targets do not support communication while TRST is asserted. We need to
+	 * set up the reset vector catch here.
+	 * 
+	 * If TRST is in use, then these settings will be reset anyway, so setting them
+	 * here is harmless.  
+	 */
+	if (arm7_9->has_vector_catch)
+	{
+		/* program vector catch register to catch reset vector */
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_VEC_CATCH], 0x1);
+	}
+	else
+	{
+		/* program watchpoint unit to match on reset vector address */
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0x3);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0x0);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x100);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], 0xf7);
+	}
+
 	/* we can't know what state the target is in as we might e.g.
 	 * be resetting after a power dropout, so we need to issue a tms/srst
 	 */
+	
 	
 	/* assert SRST and TRST */
 	/* system would get ouf sync if we didn't reset test-logic, too */
@@ -766,10 +798,6 @@ int arm7_9_assert_reset(target_t *target)
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 
-	/* at this point we TRST *may* be deasserted */
-	arm7_9_prepare_reset_halt(target);
-
-	
 	armv4_5_invalidate_core_regs(target);
 
 	return ERROR_OK;
@@ -909,15 +937,6 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm7_9_prepare_reset_halt(target_t *target)
-{
-	if ((target->reset_mode!=RESET_HALT)&&(target->reset_mode!=RESET_INIT))
-	{
-		return ERROR_OK;
-	}
-	return arm7_9_halt(target);
-}
-
 int arm7_9_halt(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -928,7 +947,7 @@ int arm7_9_halt(target_t *target)
 	
 	if (target->state == TARGET_HALTED)
 	{
-		LOG_WARNING("target was already halted");
+		LOG_DEBUG("target was already halted");
 		return ERROR_OK;
 	}
 	

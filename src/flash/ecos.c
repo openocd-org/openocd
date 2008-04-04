@@ -211,10 +211,9 @@ int loadDriver(ecosflash_flash_bank_t *info)
 		int retval;
 		if ((retval = image_read_section(&image, i, 0x0, image.sections[i].size, buffer, &buf_cnt)) != ERROR_OK)
 		{
-			LOG_ERROR("image_read_section failed with error code: %i", retval);
 			free(buffer);
 			image_close(&image);
-			return ERROR_FLASH_BANK_INVALID;
+			return retval;
 		}
 		target_write_buffer(target, image.sections[i].base_address, buf_cnt, buffer);
 		image_size += buf_cnt;
@@ -303,7 +302,7 @@ int eCosBoard_erase(ecosflash_flash_bank_t *info, u32 address, u32 len)
 	if (flashErr != 0x0)
 	{
 		LOG_ERROR("Flash erase failed with %d (%s)\n", flashErr, flash_errmsg(flashErr));
-		return ERROR_JTAG_DEVICE_ERROR;
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
@@ -362,7 +361,7 @@ int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, u32 address, u32 l
 		if (flashErr != 0x0)
 		{
 			LOG_ERROR("Flash prog failed with %d (%s)\n", flashErr, flash_errmsg(flashErr));
-			return ERROR_JTAG_DEVICE_ERROR;
+			return ERROR_FAIL;
 		}
     }
 	return ERROR_OK;

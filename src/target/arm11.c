@@ -732,8 +732,8 @@ int arm11_halt(struct target_s *target)
 
     if (target->state == TARGET_HALTED)
     {
-	LOG_WARNING("target was already halted");
-	return ERROR_OK;
+		LOG_DEBUG("target was already halted");
+		return ERROR_OK;
     }
 
     if (arm11->trst_active)

@@ -618,13 +618,12 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	if (argc < 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
 	}
 
 	if (!target)
 	{
 		LOG_ERROR("no target selected");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	duration_start_measure(&duration);
@@ -649,7 +648,6 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	}
 
 	retval = flash_write(target, &image, &written, auto_erase);
-
 	if (retval != ERROR_OK)
 	{
 		image_close(&image);
@@ -659,9 +657,9 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	duration_stop_measure(&duration, &duration_text);
 	if (retval == ERROR_OK)
 	{
-	command_print(cmd_ctx, "wrote %u byte from file %s in %s (%f kb/s)",
-		written, args[0], duration_text,
-		(float)written / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
+		command_print(cmd_ctx, "wrote %u byte from file %s in %s (%f kb/s)",
+				written, args[0], duration_text,
+				(float)written / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
 	}
 	free(duration_text);
 
@@ -923,7 +921,7 @@ int flash_erase_address_range(target_t *target, u32 addr, u32 length)
 /* write (optional verify) an image to flash memory of the given target */
 int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 {
-	int retval;
+	int retval=ERROR_OK;
 
 	int section;
 	u32 section_offset;
@@ -1039,14 +1037,14 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 
 		if (retval != ERROR_OK)
 		{
-				return retval; /* abort operation */
-			}
+			return retval; /* abort operation */
+		}
 
 		if (written != NULL)
 			*written += run_size; /* add run size to total written counter */
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

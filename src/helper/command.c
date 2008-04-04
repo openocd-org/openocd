@@ -298,6 +298,7 @@ void command_print(command_context_t *context, char *format, ...)
 int find_and_run_command(command_context_t *context, command_t *commands, char *words[], int num_words, int start_word)
 {
 	command_t *c;
+	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	
 	if (unique_length_dirty)
 	{
@@ -321,6 +322,7 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 				if (!c->handler)
 				{
 					command_print(context, "No handler for command");
+					retval = ERROR_COMMAND_SYNTAX_ERROR;
 					break;
 				}
 				else
@@ -330,6 +332,12 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 					{
 						command_print(context, "Syntax error:");
 						command_print_help_line(context, c, 0);
+					} else if (retval != ERROR_OK)
+					{
+						/* we do not print out an error message because the command *should*
+						 * have printed out an error
+						 */
+						LOG_DEBUG("Command failed with error code %d", retval); 
 					}
 					return retval; 
 				}
@@ -347,7 +355,7 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 	}
 	
 	command_print(context, "Command %s not found", words[start_word]);
-	return ERROR_OK;
+	return retval;
 }
 
 int command_run_line(command_context_t *context, char *line)

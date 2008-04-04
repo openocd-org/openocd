@@ -429,7 +429,7 @@ int cortex_m3_halt(target_t *target)
 	
 	if (target->state == TARGET_HALTED)
 	{
-		LOG_WARNING("target was already halted");
+		LOG_DEBUG("target was already halted");
 		return ERROR_OK;
 	}
 	

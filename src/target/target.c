@@ -2053,14 +2053,13 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	
 	if (argc < 1)
 	{
-		command_print(cmd_ctx, "usage: verify_image <file> [offset] [type]");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	if (!target)
 	{
 		LOG_ERROR("no target selected");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 	
 	duration_start_measure(&duration);
@@ -2078,9 +2077,9 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 
 	image.start_address_set = 0;
 
-	if (image_open(&image, args[0], (argc == 3) ? args[2] : NULL) != ERROR_OK)
+	if ((retval=image_open(&image, args[0], (argc == 3) ? args[2] : NULL)) != ERROR_OK)
 	{
-		return ERROR_OK;
+		return retval;
 	}
 	
 	image_size = 0x0;

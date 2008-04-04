@@ -34,6 +34,20 @@ typedef struct command_context_s
 	enum command_mode mode;
 	struct command_s *commands;
 	int current_target;
+	/* Execute a command.
+	 * 
+	 * If the command fails, it *MUST* return a value != ERROR_OK
+	 * (many commands break this rule, patches welcome!)
+	 * 
+	 * This is *especially* important for commands such as writing
+	 * to flash or verifying memory. The reason is that those commands
+	 * can be used by programs to determine if the operation succeded
+	 * or not. If the operation failed, then a program can try
+	 * an alternative approach.
+	 * 
+	 * Returning ERROR_COMMAND_SYNTAX_ERROR will have the effect of
+	 * printing out the syntax of the command.
+	 */
 	int (*output_handler)(struct command_context_s *context, char* line);
 	void *output_handler_priv;
 } command_context_t;
