@@ -153,6 +153,8 @@ should be included:
 @item
 @option{--enable-parport_ppdev}
 @item
+@option{--enable-parport_giveio}
+@item
 @option{--enable-amtjtagaccel}
 @item
 @option{--enable-ft2232_ftd2xx}
@@ -1883,6 +1885,12 @@ using a memory map.
 
 To view the configured memory map in gdb, use the gdb command @option{info mem}
 All other unasigned addresses within gdb are treated as RAM.
+
+GDB 6.8 and higher set any memory area not in the memory map as inaccessible,
+this can be changed to the old behaviour by using the following gdb command.
+@smallexample
+set mem inaccessible-by-default off
+@end smallexample
 
 If @option{gdb_flash_program enable} is also used, gdb will be able to
 program any flash memory using the vFlash interface.
