@@ -102,7 +102,19 @@ int main(int argc, char *argv[])
 	LOG_DEBUG("log init complete");
 	
 	LOG_OUTPUT( OPENOCD_VERSION "\n" );
+	
+	
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
 	LOG_OUTPUT( "$URL$\n");
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;
