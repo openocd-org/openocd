@@ -297,7 +297,11 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		target->type->assert_reset(target);
 		target = target->next;
 	}
-	jtag_execute_queue();
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		LOG_WARNING("JTAG communication failed asserting reset.");
+		retval = ERROR_OK;
+	}
 	
 	/* request target halt if necessary, and schedule further action */
 	target = targets;
@@ -330,13 +334,24 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		target = target->next;
 	}
 	
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		LOG_WARNING("JTAG communication failed while reset was asserted. Consider using srst_only for reset_config.");
+		retval = ERROR_OK;		
+	}
+	
 	target = targets;
 	while (target)
 	{
 		target->type->deassert_reset(target);
 		target = target->next;
 	}
-	jtag_execute_queue();
+	
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		LOG_WARNING("JTAG communication failed while deasserting reset.");
+		retval = ERROR_OK;
+	}
 	
 	LOG_DEBUG("Waiting for halted stated as approperiate");
 	
