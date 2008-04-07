@@ -52,9 +52,7 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	unsigned int address_size;
 	connection_t *c, **p;
 	int retval;
-#ifndef _WIN32
 	int flag=1;
-#endif
 	
 	c = malloc(sizeof(connection_t));
 	c->fd = -1;
@@ -66,34 +64,17 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	c->next = NULL;
 
 	address_size = sizeof(c->sin);
-#ifndef _WIN32
-	int segsize=65536;
-	setsockopt(service->fd, IPPROTO_TCP, TCP_MAXSEG,  &segsize, sizeof(int));
-	int window_size = 128 * 1024;	
-
-	/* These setsockopt()s must happen before the accept() */
-
-	setsockopt(service->fd, SOL_SOCKET, SO_SNDBUF,
-		 (char *) &window_size, sizeof(window_size));
-
-	setsockopt(service->fd, SOL_SOCKET, SO_RCVBUF,
-		 (char *) &window_size, sizeof(window_size));
 	
-#endif
 	c->fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
-#ifndef _WIN32
-	// This increases performance dramatically for e.g. GDB load which
-	// does not have a sliding window protocol.
-    retval=setsockopt(c->fd,            /* socket affected */
-                            IPPROTO_TCP,     /* set option at TCP level */
-                            TCP_NODELAY,     /* name of option */
-                            (char *) &flag,  /* the cast is historical
-                                                    cruft */
-                            sizeof(int));    /* length of option value */
-    setsockopt(c->fd, IPPROTO_TCP, TCP_MAXSEG,  &segsize, sizeof(int));
-#endif	
-				
-				
+	
+	/* This increases performance dramatically for e.g. GDB load which
+	 * does not have a sliding window protocol. */
+	retval=setsockopt(c->fd,	/* socket affected */
+			IPPROTO_TCP,		/* set option at TCP level */
+			TCP_NODELAY,		/* name of option */
+			(char *)&flag,		/* the cast is historical cruft */
+			sizeof(int));		/* length of option value */
+		
 	LOG_INFO("accepting '%s' connection from %i", service->name, c->sin.sin_port);
 	if ((retval = service->new_connection(c)) == ERROR_OK)
 	{
@@ -183,6 +164,19 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 		LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
 		exit(-1);
 	}
+	
+#ifndef _WIN32
+	int segsize=65536;
+	setsockopt(c->fd, IPPROTO_TCP, TCP_MAXSEG,  &segsize, sizeof(int));
+#endif
+	int window_size = 128 * 1024;	
+
+	/* These setsockopt()s must happen before the listen() */
+	
+	setsockopt(c->fd, SOL_SOCKET, SO_SNDBUF,
+		(char *)&window_size, sizeof(window_size));
+	setsockopt(c->fd, SOL_SOCKET, SO_RCVBUF,
+		(char *)&window_size, sizeof(window_size));
 	
 	if (listen(c->fd, 1) == -1)
 	{

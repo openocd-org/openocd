@@ -90,7 +90,6 @@ int gdb_last_signal(target_t *target)
 	}
 }
 
-#ifndef _WIN32
 int check_pending(connection_t *connection, int timeout_s, int *got_data)
 {
 	/* a non-blocking socket will block if there is 0 bytes available on the socket,
@@ -131,7 +130,6 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 	*got_data=FD_ISSET(connection->fd, &read_fds)!=0;
 	return ERROR_OK;
 }
-#endif
 
 int gdb_get_char(connection_t *connection, int* next_char)
 {
@@ -159,11 +157,9 @@ int gdb_get_char(connection_t *connection, int* next_char)
 
 	for (;;)
 	{
-#ifndef _WIN32
 		retval=check_pending(connection, 1, NULL);
 		if (retval!=ERROR_OK)
 			return retval;
-#endif
 		gdb_con->buf_cnt = read_socket(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
 		if (gdb_con->buf_cnt > 0)
 		{
