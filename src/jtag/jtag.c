@@ -785,17 +785,17 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 	return ERROR_OK;
 }
 
-void jtag_add_tms()
+void jtag_add_tlr()
 {
 	jtag_prelude(TAP_TLR);
 	
 	int retval;
-	retval=interface_jtag_add_tms();
+	retval=interface_jtag_add_tlr();
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_tms)()
+int MINIDRIVER(interface_jtag_add_tlr)()
 {
 	enum tap_state state = TAP_TLR;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
@@ -893,14 +893,14 @@ void jtag_add_runtest(int num_cycles, enum tap_state state)
 		jtag_error=retval;
 }
 
-void jtag_add_reset(int req_tms_or_trst, int req_srst)
+void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 {
-	int trst_with_tms = 0;
+	int trst_with_tlr = 0;
 	int retval;
 	
 	/* Make sure that jtag_reset_config allows the requested reset */
 	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
-	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (!req_tms_or_trst))
+	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (!req_tlr_or_trst))
 	{
 		LOG_ERROR("BUG: requested reset would assert trst");
 		jtag_error=ERROR_FAIL;
@@ -908,9 +908,9 @@ void jtag_add_reset(int req_tms_or_trst, int req_srst)
 	}
 		
 	/* if TRST pulls SRST, we reset with TAP T-L-R */
-	if (((jtag_reset_config & RESET_TRST_PULLS_SRST) && (req_tms_or_trst)) && (req_srst == 0))
+	if (((jtag_reset_config & RESET_TRST_PULLS_SRST) && (req_tlr_or_trst)) && (req_srst == 0))
 	{
-		trst_with_tms = 1;
+		trst_with_tlr = 1;
 	}
 	
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
@@ -920,14 +920,14 @@ void jtag_add_reset(int req_tms_or_trst, int req_srst)
 		return;
 	}
 	
-	if (req_tms_or_trst)
+	if (req_tlr_or_trst)
 	{
-		if (!trst_with_tms && (jtag_reset_config & RESET_HAS_TRST))
+		if (!trst_with_tlr && (jtag_reset_config & RESET_HAS_TRST))
 		{
 			jtag_trst = 1;
 		} else
 		{
-			trst_with_tms = 1;
+			trst_with_tlr = 1;
 		}
 	} else
 	{
@@ -954,11 +954,11 @@ void jtag_add_reset(int req_tms_or_trst, int req_srst)
 			jtag_add_sleep(jtag_nsrst_delay * 1000);
 	}
 	
-	if (trst_with_tms)
+	if (trst_with_tlr)
 	{
 		LOG_DEBUG("JTAG reset with tms instead of TRST");
 		jtag_add_end_state(TAP_TLR);
-		jtag_add_tms();
+		jtag_add_tlr();
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		return;
 	}
@@ -1427,9 +1427,9 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "jtag_nsrst_delay", handle_jtag_nsrst_delay_command,
-		COMMAND_CONFIG, NULL);
+		COMMAND_ANY, "jtag_nsrst_delay <ms> - delay after deasserting srst in ms");
 	register_command(cmd_ctx, NULL, "jtag_ntrst_delay", handle_jtag_ntrst_delay_command,
-		COMMAND_CONFIG, NULL);
+		COMMAND_ANY, "jtag_ntrst_delay <ms> - delay after deasserting trst in ms");
 		
 	register_command(cmd_ctx, NULL, "scan_chain", handle_scan_chain_command,
 		COMMAND_EXEC, "print current scan chain configuration");
@@ -1497,7 +1497,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 		device = device->next;
 	}
 	
-	jtag_add_tms();
+	jtag_add_tlr();
 	jtag_execute_queue();
 
 	/* examine chain first, as this could discover the real chain layout */

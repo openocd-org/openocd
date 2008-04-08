@@ -268,8 +268,8 @@ extern int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields
 /* run a TAP_TLR reset. End state is TAP_TLR, regardless
  * of start state.
  */
-extern void jtag_add_tms();
-extern int interface_jtag_add_tms();
+extern void jtag_add_tlr();
+extern int interface_jtag_add_tlr();
 /* Do not use jtag_add_pathmove() unless you need to, but do use it
  * if you have to. 
  *
@@ -326,12 +326,12 @@ extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
  * are supported. 
  *
  */
-extern void jtag_add_reset(int req_tms_or_trst, int srst);
+extern void jtag_add_reset(int req_tlr_or_trst, int srst);
 /* this drives the actual srst and trst pins. srst will always be 0
  * if jtag_reset_config & RESET_SRST_PULLS_TRST != 0 and ditto for
  * trst.
  * 
- * the higher level jtag_add_reset will invoke jtag_add_tms() if 
+ * the higher level jtag_add_reset will invoke jtag_add_tlr() if 
  * approperiate
  */
 extern int interface_jtag_add_reset(int trst, int srst);

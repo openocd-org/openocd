@@ -137,7 +137,7 @@ int virtex2_read_stat(struct pld_device_s *pld_device, u32 *status)
 {
 	u32 data[5];
 	
-	jtag_add_tms();
+	jtag_add_tlr();
 	
 	data[0] = 0xaa995566; /* synch word */
 	data[1] = 0x2800E001; /* Type 1, read, address 7, 1 word */
@@ -192,7 +192,7 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	jtag_add_dr_scan(1, &field, TAP_PD);
 	jtag_execute_queue();
 	
-	jtag_add_tms();
+	jtag_add_tlr();
 	
 	jtag_add_end_state(TAP_RTI);
 	virtex2_set_instr(virtex2_info->chain_pos, 0xc); /* JSTART */
