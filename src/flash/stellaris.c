@@ -459,6 +459,17 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	stellaris_info->pages_in_lockregion = 2;
 	target_read_u32(target, SCB_BASE|FMPPE, &stellaris_info->lockbits);
 
+	/* provide this for the benefit of the higher flash driver layers */
+	bank->num_sectors = stellaris_info->num_pages;
+	bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
+	for (i = 0; i < bank->num_sectors; i++)
+	{
+		bank->sectors[i].offset = i*stellaris_info->pagesize;
+		bank->sectors[i].size = stellaris_info->pagesize;
+		bank->sectors[i].is_erased = -1;
+		bank->sectors[i].is_protected = -1;
+	}
+
 	/* Read main and master clock freqency register */
 	stellaris_read_clock_info(bank);
 	
