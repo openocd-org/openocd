@@ -884,7 +884,10 @@ int flash_erase_address_range(target_t *target, u32 addr, u32 length)
 		return ERROR_FLASH_DST_OUT_OF_BANK; /* no corresponding bank found */
 
 	if (c->size == 0 || c->num_sectors == 0)
+	{
+		LOG_ERROR("Bank is invalid");
 		return ERROR_FLASH_BANK_INVALID;
+	}
 
 	if (length == 0)
 	{

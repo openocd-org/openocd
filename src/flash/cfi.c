@@ -354,6 +354,7 @@ int cfi_read_intel_pri_ext(flash_bank_t *bank)
 		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 		cfi_command(bank, 0xff, command);
 		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		LOG_ERROR("Could not read bank flash bank information");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
@@ -407,6 +408,7 @@ int cfi_read_spansion_pri_ext(flash_bank_t *bank)
 	{
 		cfi_command(bank, 0xf0, command);
 		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		LOG_ERROR("Could not read spansion bank information");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
@@ -475,6 +477,7 @@ int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 	{
 		cfi_command(bank, 0xf0, command);
 		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		LOG_ERROR("Could not read atmel bank information");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
@@ -1935,6 +1938,7 @@ int cfi_probe(struct flash_bank_s *bank)
 			target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 			cfi_command(bank, 0xff, command);
 			target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+			LOG_ERROR("Could not probe bank");
 			return ERROR_FLASH_BANK_INVALID;
 		}
 

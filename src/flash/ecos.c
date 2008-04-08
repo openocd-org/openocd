@@ -195,10 +195,11 @@ int loadDriver(ecosflash_flash_bank_t *info)
 	image.base_address_set = 0;
 	image.start_address_set = 0;
 	target_t *target=info->target;
+	int retval;
 	
-	if (image_open(&image, info->driverPath, NULL) != ERROR_OK)
+	if ((retval=image_open(&image, info->driverPath, NULL)) != ERROR_OK)
 	{
-		return ERROR_FLASH_BANK_INVALID;
+		return retval;
 	}
 	
 	info->start_address=image.start_address;
