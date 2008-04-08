@@ -43,9 +43,6 @@ int bitbang_execute_queue(void);
 
 /* The bitbang driver leaves the TCK 0 when in idle */
 
-static enum tap_state end_state;
-static enum tap_state cur_state;
-
 void bitbang_end_state(enum tap_state state)
 {
 	if (tap_move_map[state] != -1)
