@@ -109,6 +109,11 @@ char* jtag_event_strings[] =
 	"JTAG controller reset(tms or TRST)"
 };
 
+/* kludge!!!! these are just global variables that the
+ * interface use internally. They really belong
+ * inside the drivers, but we don't want to break
+ * linking the drivers!!!!
+ */
 enum tap_state end_state = TAP_TLR;
 enum tap_state cur_state = TAP_TLR;
 int jtag_trst = 0;
@@ -1812,7 +1817,7 @@ int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char *
 			}
 		}
 	}
-	command_print(cmd_ctx, "current endstate: %s", tap_state_strings[end_state]);
+	command_print(cmd_ctx, "current endstate: %s", tap_state_strings[cmd_queue_end_state]);
 	
 	return ERROR_OK;
 }
