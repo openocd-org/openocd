@@ -54,14 +54,6 @@ enum target_state
 
 extern char *target_state_strings[];
 
-enum daemon_startup_mode
-{
-	DAEMON_ATTACH,		/* simply attach to the target */
-	DAEMON_RESET,		/* reset target (behaviour defined by reset_mode */
-};
-
-extern enum daemon_startup_mode startup_mode;
-
 enum target_reset_mode
 {
 	RESET_RUN = 0,		/* reset and let target run */
@@ -129,6 +121,11 @@ typedef struct target_type_s
 	 * 
 	 * assert_reset() can therefore make no assumptions whatsoever about the
 	 * state of the target 
+	 * 
+	 * Before assert_reset() for the target is invoked, a TRST/tms and
+	 * chain validation is executed. TRST should not be asserted
+	 * during target assert unless there is no way around it due to
+	 * the way reset's are configured.
 	 * 
 	 */
 	int (*assert_reset)(struct target_s *target);

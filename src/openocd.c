@@ -57,12 +57,74 @@ int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	return ERROR_OK;
 }
 
+static int daemon_startup = 0;
+
+int handle_daemon_startup_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc==0)
+		return ERROR_OK;
+	if (argc > 1 )
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	
+	daemon_startup = strcmp("reset", args[0])==0;
+	
+	command_print(cmd_ctx, OPENOCD_VERSION);
+
+	return ERROR_OK;
+}
+
+
 void exit_handler(void)
 {
 	/* close JTAG interface */
 	if (jtag && jtag->quit)
 		jtag->quit();
 }
+
+
+/* OpenOCD can't really handle failure of this command. Patches welcome! :-) */
+int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	static int initialized=0;
+	if (initialized)
+		return ERROR_OK;
+	
+	initialized=1;
+	
+	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
+
+	atexit(exit_handler);
+
+	if (jtag_init(cmd_ctx) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("jtag init complete");
+
+	if (target_init(cmd_ctx) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("target init complete");
+
+	if (flash_init_drivers(cmd_ctx) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("flash init complete");
+
+	if (nand_init(cmd_ctx) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("NAND init complete");
+
+	if (pld_init(cmd_ctx) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("pld init complete");
+
+	/* initialize tcp server */
+	server_init();
+
+	/* initialize telnet subsystem */
+	telnet_init("Open On-Chip Debugger");
+	gdb_init();
+
+	return ERROR_OK;
+}
+
 
 /* implementations of OpenOCD that uses multithreading needs to lock OpenOCD while calling
  * OpenOCD fn's. No-op in vanilla OpenOCD
@@ -83,7 +145,9 @@ int main(int argc, char *argv[])
 
 	register_command(cmd_ctx, NULL, "version", handle_version_command,
 					 COMMAND_EXEC, "show OpenOCD version");
-
+	register_command(cmd_ctx, NULL, "daemon_startup", handle_daemon_startup_command, COMMAND_CONFIG, 
+			"deprecated - use \"init\" and \"reset\" at end of startup script instead");
+	
 	/* register subsystem commands */
 	server_register_commands(cmd_ctx);
 	telnet_register_commands(cmd_ctx);
@@ -116,6 +180,9 @@ int main(int argc, char *argv[])
 	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 
+	register_command(cmd_ctx, NULL, "init", handle_init_command,
+					 COMMAND_ANY, "initializes target and servers - nop on subsequent invocations");
+
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;
 	command_set_output_handler(cfg_cmd_ctx, configuration_output_handler, NULL);
@@ -128,41 +195,11 @@ int main(int argc, char *argv[])
 	
 	command_done(cfg_cmd_ctx);
 
-	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
-
-	atexit(exit_handler);
-
-	if (jtag_init(cmd_ctx) != ERROR_OK)
+	if (command_run_line(cmd_ctx, "init")!=ERROR_OK)
 		return EXIT_FAILURE;
-	LOG_DEBUG("jtag init complete");
-
-	if (target_init(cmd_ctx) != ERROR_OK)
-		return EXIT_FAILURE;
-	LOG_DEBUG("target init complete");
-
-	if (flash_init_drivers(cmd_ctx) != ERROR_OK)
-		return EXIT_FAILURE;
-	LOG_DEBUG("flash init complete");
-
-	if (nand_init(cmd_ctx) != ERROR_OK)
-		return EXIT_FAILURE;
-	LOG_DEBUG("NAND init complete");
-
-	if (pld_init(cmd_ctx) != ERROR_OK)
-		return EXIT_FAILURE;
-	LOG_DEBUG("pld init complete");
-
-	/* initialize tcp server */
-	server_init();
-
-	/* initialize telnet subsystem */
-	telnet_init("Open On-Chip Debugger");
-	gdb_init();
-
-	/* call any target resets */
-	if (target_init_reset(cmd_ctx) != ERROR_OK)
-		return EXIT_FAILURE;
-	LOG_DEBUG("target init reset complete");
+	
+	if (daemon_startup)
+		command_run_line(cmd_ctx, "reset");
 
 	/* handle network connections */
 	server_loop(cmd_ctx);

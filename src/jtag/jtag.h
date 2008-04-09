@@ -241,8 +241,12 @@ enum reset_types
 
 extern enum reset_types jtag_reset_config;
 
-/* JTAG subsystem */
+/* initialize JTAG chain using only a TLR reset. If init fails,
+ * try reset + init.
+ */
 extern int jtag_init(struct command_context_s *cmd_ctx);
+/* reset, then initialize JTAG chain */
+extern int jtag_init_reset(struct command_context_s *cmd_ctx);
 extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
 /* JTAG interface, can be implemented with a software or hardware fifo
@@ -325,6 +329,10 @@ extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
  * This is why combinations such as "reset_config srst_only srst_pulls_trst"
  * are supported. 
  *
+ * only req_tlr_or_trst and srst can have a transition for a
+ * call as the effects of transitioning both at the "same time" 
+ * are undefined, but when srst_pulls_trst or vice versa,
+ * then trst & srst *must* be asserted together.
  */
 extern void jtag_add_reset(int req_tlr_or_trst, int srst);
 /* this drives the actual srst and trst pins. srst will always be 0

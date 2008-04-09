@@ -898,6 +898,23 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	int trst_with_tlr = 0;
 	int retval;
 	
+	/* FIX!!! there are *many* different cases here. A better
+	 * approach is needed for legal combinations of transitions...
+	*/
+	if ((jtag_reset_config & RESET_HAS_SRST)&&
+			(jtag_reset_config & RESET_HAS_TRST)&& 
+			((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)&&
+			((jtag_reset_config & RESET_TRST_PULLS_SRST)==0))
+	{
+		if (((req_tlr_or_trst&&!jtag_trst)||
+				(!req_tlr_or_trst&&jtag_trst))&&
+				((req_srst&&!jtag_srst)||
+						(!req_srst&&jtag_srst)))
+		{
+			LOG_ERROR("BUG: transition of req_tlr_or_trst and req_srst in the same jtag_add_reset() call is undefined");
+		}
+	}
+	
 	/* Make sure that jtag_reset_config allows the requested reset */
 	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
 	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (!req_tlr_or_trst))
@@ -1477,7 +1494,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int jtag_init(struct command_context_s *cmd_ctx)
+static int jtag_init_inner(struct command_context_s *cmd_ctx)
 {
 	int validate_tries = 0;
 	jtag_device_t *device;
@@ -1519,6 +1536,56 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	}
 	
 	return ERROR_OK;
+}
+
+int jtag_init_reset(struct command_context_s *cmd_ctx)
+{
+	int retval;
+	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / tms");
+
+	/* Reset can happen after a power cycle.
+	 * 
+	 * Ideally we would only assert TRST or run tms before the target reset.
+	 * 
+	 * However w/srst_pulls_trst, trst is asserted together with the target
+	 * reset whether we want it or not.
+	 * 
+	 * NB! Some targets have JTAG circuitry disabled until a 
+	 * trst & srst has been asserted.
+	 * 
+	 * NB! here we assume nsrst/ntrst delay are sufficient!
+	 * 
+	 * NB! order matters!!!! srst *can* disconnect JTAG circuitry
+	 * 
+	 */
+	jtag_add_reset(1, 0); /* TMS or TRST */
+	if (jtag_reset_config & RESET_HAS_SRST)
+	{
+		jtag_add_reset(1, 1);
+		if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
+			jtag_add_reset(0, 1);
+	}
+	jtag_add_reset(0, 0);
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
+		return retval;
+	
+	/* Check that we can communication on the JTAG chain + eventually we want to
+	 * be able to perform enumeration only after OpenOCD has started 
+	 * telnet and GDB server
+	 * 
+	 * That would allow users to more easily perform any magic they need to before
+	 * reset happens.
+	 */
+	return jtag_init_inner(cmd_ctx);
+}
+
+int jtag_init(struct command_context_s *cmd_ctx)
+{
+	if (jtag_init_inner(cmd_ctx)==ERROR_OK)
+	{
+		return ERROR_OK;
+	}
+	return jtag_init_reset(cmd_ctx);
 }
 
 

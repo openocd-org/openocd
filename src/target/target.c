@@ -51,7 +51,6 @@ int cli_target_callback_event_handler(struct target_s *target, enum target_event
 
 
 int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_daemon_startup_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -131,8 +130,6 @@ char *target_endianess_strings[] =
 	"big endian",
 	"little endian",
 };
-
-enum daemon_startup_mode startup_mode = DAEMON_ATTACH;
 
 static int target_continous_poll = 1;
 
@@ -263,6 +260,10 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	struct timeval timeout, now;
 
 	jtag->speed(jtag_speed);
+
+	if ((retval = jtag_init_reset(cmd_ctx)) != ERROR_OK)
+		return retval;
+	
 
 	/* prepare reset_halt where necessary */
 	target = targets;
@@ -457,14 +458,6 @@ int target_init(struct command_context_s *cmd_ctx)
 		target_register_timer_callback(handle_target, 100, 1, NULL);
 	}
 		
-	return ERROR_OK;
-}
-
-int target_init_reset(struct command_context_s *cmd_ctx)
-{
-	if (startup_mode == DAEMON_RESET)
-		target_process_reset(cmd_ctx);
-	
 	return ERROR_OK;
 }
 
@@ -801,7 +794,6 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "target", handle_target_command, COMMAND_CONFIG, "target <cpu> [reset_init default - DEPRECATED] <chainpos> <endianness> <variant> [cpu type specifc args]");
 	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, NULL);
-	register_command(cmd_ctx, NULL, "daemon_startup", handle_daemon_startup_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "target_script", handle_target_script_command, COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, "<target> <run time ms>");
 	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
@@ -1639,27 +1631,6 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	return handle_wait_halt_command(cmd_ctx, cmd, args, argc);
 }
 
-/* what to do on daemon startup */
-int handle_daemon_startup_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc == 1)
-	{
-		if (strcmp(args[0], "attach") == 0)
-		{
-			startup_mode = DAEMON_ATTACH;
-			return ERROR_OK;
-		}
-		else if (strcmp(args[0], "reset") == 0)
-		{
-			startup_mode = DAEMON_RESET;
-			return ERROR_OK;
-		}
-	}
-	
-	LOG_WARNING("invalid daemon_startup configuration directive: %s", args[0]);
-	return ERROR_OK;
-
-}
 		
 int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {

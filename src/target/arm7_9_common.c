@@ -755,6 +755,14 @@ int arm7_9_assert_reset(target_t *target)
 
 	if ((target->reset_mode == RESET_HALT) || (target->reset_mode == RESET_INIT))
 	{
+		reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+		
+		/* program EmbeddedICE Debug Control Register to deassert DBGRQ
+		 * i.e. resume.
+		 */
+		buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGRQ, 1, 0);	
+		embeddedice_store_reg(dbg_ctrl);
+
 		/*
 		 * Some targets do not support communication while SRST is asserted. We need to
 		 * set up the reset vector catch here.
@@ -776,16 +784,6 @@ int arm7_9_assert_reset(target_t *target)
 			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], 0xf7);
 		}
 	}
-
-	/* we can't know what state the target is in as we might e.g.
-	 * be resetting after a power dropout, so we need to issue a tms/srst
-	 */
-	
-	/* assert SRST and TRST */
-	/* system would get ouf sync if we didn't reset test-logic, too */
-	jtag_add_reset(1, 1);
-	
-	jtag_add_sleep(5000);
 
 	/* here we should issue a srst only, but we may have to assert trst as well */
 	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
@@ -964,6 +962,15 @@ int arm7_9_halt(target_t *target)
 		{
 			LOG_ERROR("can't request a halt while in reset if nSRST pulls nTRST");
 			return ERROR_TARGET_FAILURE;
+		}
+		else
+		{
+			/* we came here in a reset_halt or reset_init sequence
+			 * debug entry was already prepared in arm7_9_prepare_reset_halt()
+			 */
+			target->debug_reason = DBG_REASON_DBGRQ;
+			
+			return ERROR_OK; 
 		}
 	}
 
