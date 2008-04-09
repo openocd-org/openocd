@@ -40,9 +40,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <sys/time.h>
-#include <time.h>
-
 /* PRESTO access library includes */
 #if BUILD_PRESTO_FTD2XX == 1
 #include <ftd2xx.h>

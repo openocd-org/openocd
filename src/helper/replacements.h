@@ -187,7 +187,7 @@ static __inline int close_socket(int sock)
 static __inline void socket_nonblock(int fd)
 {
 #ifdef _WIN32
-	long nonblock = 1;
+	unsigned long nonblock = 1;
 	ioctlsocket(fd, FIONBIO, &nonblock );
 #else
 	int oldopts = fcntl(fd, F_GETFL, 0);

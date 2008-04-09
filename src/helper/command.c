@@ -142,9 +142,9 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 
 int unregister_command(command_context_t *context, char *name)
 {
-	unique_length_dirty = 1;
-	
 	command_t *c, *p = NULL, *c2;
+	
+	unique_length_dirty = 1;
 	
 	if ((!context) || (!name))
 		return ERROR_INVALID_ARGUMENTS;
@@ -452,7 +452,11 @@ int command_run_file(command_context_t *context, FILE *file, enum command_mode m
 void command_print_help_line(command_context_t* context, struct command_s *command, int indent)
 {
 	command_t *c;
+	#ifdef HAVE_C_VARRAYS
 	char indent_text[indent + 2];
+	#else
+	char indent_text[68];
+	#endif
 	char *help = "no help available";
 	char name_buf[64];
 	
@@ -578,12 +582,13 @@ int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc<1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	
 	duration_t duration;
 	char *duration_text;
 	int retval;
+	float t;
+	
+	if (argc<1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	
 	duration_start_measure(&duration);
 	
@@ -591,7 +596,7 @@ int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	
 	duration_stop_measure(&duration, &duration_text);
 	
-	float t=duration.duration.tv_sec;
+	t=duration.duration.tv_sec;
 	t+=((float)duration.duration.tv_usec / 1000000.0);
 	command_print(cmd_ctx, "%s took %fs", args[0], t);
 	

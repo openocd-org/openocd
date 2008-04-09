@@ -361,6 +361,7 @@ void* cmd_queue_alloc(size_t size)
 {
 	cmd_queue_page_t **p_page = &cmd_queue_pages;
 	int offset;
+	u8 *t;
 
 	if (*p_page)
 	{
@@ -381,7 +382,7 @@ void* cmd_queue_alloc(size_t size)
 	offset = (*p_page)->used;
 	(*p_page)->used += size;
 	
-	u8 *t=(u8 *)((*p_page)->address);
+	t=(u8 *)((*p_page)->address);
 	return t + offset;
 }
 
@@ -425,9 +426,11 @@ static void jtag_prelude(enum tap_state state)
 
 void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
+	int retval;
+	
 	jtag_prelude(state);
 	
-	int retval=interface_jtag_add_ir_scan(num_fields, fields, cmd_queue_end_state);
+	retval=interface_jtag_add_ir_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -511,9 +514,11 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 
 void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
+	int retval;
+	
 	jtag_prelude(state);
 	
-	int retval=interface_jtag_add_plain_ir_scan(num_fields, fields, cmd_queue_end_state);
+	retval=interface_jtag_add_plain_ir_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -557,9 +562,11 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *f
 
 void jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
+	int retval;
+	
 	jtag_prelude(state);
 
-	int retval=interface_jtag_add_dr_scan(num_fields, fields, cmd_queue_end_state);
+	retval=interface_jtag_add_dr_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -742,9 +749,11 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 
 void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
+	int retval;
+	
 	jtag_prelude(state);
 
-	int retval=interface_jtag_add_plain_dr_scan(num_fields, fields, cmd_queue_end_state);
+	retval=interface_jtag_add_plain_dr_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -815,6 +824,10 @@ int MINIDRIVER(interface_jtag_add_tlr)()
 
 void jtag_add_pathmove(int num_states, enum tap_state *path)
 {
+	enum tap_state cur_state=cmd_queue_cur_state;
+	int i;
+	int retval;
+
 	/* the last state has to be a stable state */
 	if (tap_move_map[path[num_states - 1]] == -1)
 	{
@@ -822,8 +835,6 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 		exit(-1);
 	}
 
-	enum tap_state cur_state=cmd_queue_cur_state;
-	int i;
 	for (i=0; i<num_states; i++)
 	{
 		if ((tap_transitions[cur_state].low != path[i])&&
@@ -839,7 +850,7 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 	
 	cmd_queue_cur_state = path[num_states - 1];
 
-	int retval=interface_jtag_add_pathmove(num_states, path);
+	retval=interface_jtag_add_pathmove(num_states, path);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -885,10 +896,12 @@ int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
 
 void jtag_add_runtest(int num_cycles, enum tap_state state)
 {
+	int retval;
+	
 	jtag_prelude(state);
 	
 	/* executed by sw or hw fifo */
-	int retval=interface_jtag_add_runtest(num_cycles, cmd_queue_end_state);
+	retval=interface_jtag_add_runtest(num_cycles, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -1275,6 +1288,8 @@ void jtag_sleep(u32 us)
 	usleep(us);
 }
 
+int cwvx_device_num = -1, cwvx_version_num, cwvx_part_num;
+
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
 int jtag_examine_chain()
@@ -1354,6 +1369,13 @@ int jtag_examine_chain()
 
 			LOG_INFO("JTAG device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x)", 
 				idcode, manufacturer, part, version);
+			
+			/* Total hacky hack!	PORGES */
+			if (manufacturer == 0x1a2) {
+			    cwvx_device_num = device_count-1;
+			    cwvx_part_num = part;
+			    cwvx_version_num = version;
+			}
 			
 			bit_count += 32;
 		}

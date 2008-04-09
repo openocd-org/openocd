@@ -34,9 +34,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <sys/time.h>
-#include <time.h>
-
 
 bitq_interface_t *bitq_interface; /* low level bit queue interface */
 

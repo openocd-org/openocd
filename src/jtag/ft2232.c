@@ -46,9 +46,6 @@
 #include <ftdi.h>
 #endif
 
-#include <sys/time.h>
-#include <time.h>
-
 /* enable this to debug io latency
  */
 #if 0
@@ -455,11 +452,11 @@ void ft2232_add_pathmove(pathmove_command_t *cmd)
 	state_count = 0;
 	while (num_states)
 	{
-		tms_byte = 0x0;
 		int bit_count = 0;
 		
 		int num_states_batch = num_states > 7 ? 7 : num_states;
 
+		tms_byte = 0x0;
 		/* command "Clock Data to TMS/CS Pin (no Read)" */
 		BUFFER_ADD = 0x4b;
 		/* number of states remaining */

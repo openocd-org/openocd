@@ -20,8 +20,16 @@
 #ifndef TIME_SUPPORT_H
 #define TIME_SUPPORT_H
 
-#include <sys/time.h>
-#include <time.h>
+#ifdef TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# ifdef HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
 
 extern int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
 extern int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y);

@@ -50,9 +50,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <sys/time.h>
-#include <time.h>
-
 #if PARPORT_USE_PPDEV == 1
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 #include <dev/ppbus/ppi.h>

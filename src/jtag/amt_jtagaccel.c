@@ -34,9 +34,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <sys/time.h>
-#include <time.h>
-
 #if PARPORT_USE_PPDEV == 1
 #include <linux/parport.h>
 #include <linux/ppdev.h>

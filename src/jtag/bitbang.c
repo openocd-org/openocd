@@ -34,9 +34,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <sys/time.h>
-#include <time.h>
-
 bitbang_interface_t *bitbang_interface;
 
 int bitbang_execute_queue(void);

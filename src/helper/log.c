@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include <time.h>
 
 int debug_level = -1;
 
@@ -61,6 +60,7 @@ static int count = 0;
  */
 static void log_puts(enum log_levels level, const char *file, int line, const char *function, const char *string)
 {
+	char *f;
 	if (level == LOG_LVL_OUTPUT)
 	{
 		/* do not prepend any headers, just print out what we were given and return */
@@ -69,7 +69,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		return;
 	}
 
-	char *f = strrchr(file, '/');
+	f = strrchr(file, '/');
 	if (f != NULL)
 		file = f + 1;
 
@@ -112,12 +112,12 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 void log_printf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
 {
 	char *string;
+	va_list ap;
 
 	count++;
 	if (level > debug_level)
 		return;
 
-	va_list ap;
 	va_start(ap, format);
 
 	string = alloc_vprintf(format, ap);
@@ -133,12 +133,12 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 void log_printf_lf(enum log_levels level, const char *file, int line, const char *function, const char *format, ...)
 {
 	char *string;
+	va_list ap;
 
 	count++;
 	if (level > debug_level)
 		return;
 	
-	va_list ap;
 	va_start(ap, format);
 	
 	string = alloc_vprintf(format, ap);
@@ -276,6 +276,8 @@ char *alloc_vprintf(const char *fmt, va_list ap)
 	for (;;)
 	{
 		char *t = string;
+		va_list ap_copy;
+		int ret;
 		string = realloc(string, size);
 		if (string == NULL)
 		{
@@ -284,10 +286,8 @@ char *alloc_vprintf(const char *fmt, va_list ap)
 			return NULL;
 		}
 
-		va_list ap_copy;
 		va_copy(ap_copy, ap);
 
-		int ret;
 		ret = vsnprintf(string, size, fmt, ap_copy);
 		/* NB! The result of the vsnprintf() might be an *EMPTY* string! */
 		if ((ret >= 0) && ((ret + 1) < size))

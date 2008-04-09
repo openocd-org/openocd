@@ -26,8 +26,6 @@
 #include "log.h"
 
 #include <stdlib.h>
-#include <sys/time.h>
-#include <time.h>
 
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
 int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y);
