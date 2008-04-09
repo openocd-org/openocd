@@ -1288,8 +1288,6 @@ void jtag_sleep(u32 us)
 	usleep(us);
 }
 
-int cwvx_device_num = -1, cwvx_version_num, cwvx_part_num;
-
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
 int jtag_examine_chain()
@@ -1369,13 +1367,6 @@ int jtag_examine_chain()
 
 			LOG_INFO("JTAG device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x)", 
 				idcode, manufacturer, part, version);
-			
-			/* Total hacky hack!	PORGES */
-			if (manufacturer == 0x1a2) {
-			    cwvx_device_num = device_count-1;
-			    cwvx_part_num = part;
-			    cwvx_version_num = version;
-			}
 			
 			bit_count += 32;
 		}
