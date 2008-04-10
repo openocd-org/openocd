@@ -1,4 +1,4 @@
-AC_PREREQ(2.61)
+AC_PREREQ(2.59)
 AC_INIT(configure.in)
 
 AC_SEARCH_LIBS([ioperm], [ioperm])
@@ -14,7 +14,6 @@ AC_CHECK_HEADERS(strings.h)
 AC_HEADER_TIME
 
 AC_C_BIGENDIAN
-AC_C_VARARRAYS
 
 AC_CHECK_FUNCS(strndup)
 AC_CHECK_FUNCS(strnlen)
