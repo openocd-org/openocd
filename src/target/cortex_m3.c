@@ -43,10 +43,8 @@
 int cortex_m3_register_commands(struct command_context_s *cmd_ctx);
 
 /* forward declarations */
-void cortex_m3_unset_all_breakpoints_and_watchpoints(struct target_s *target);
 void cortex_m3_enable_breakpoints(struct target_s *target);
 void cortex_m3_enable_watchpoints(struct target_s *target);
-void cortex_m3_disable_bkpts_and_wpts(struct target_s *target);
 int cortex_m3_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int cortex_m3_quit();
@@ -201,8 +199,6 @@ int cortex_m3_endreset_event(target_t *target)
 	}
 	swjdp_transaction_endcheck(swjdp);
 	
-	/* We are in process context */
-	armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
 	armv7m_invalidate_core_regs(target);
 	return ERROR_OK;
 }
@@ -323,16 +319,25 @@ int cortex_m3_debug_entry(target_t *target)
 		cortex_m3_store_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 16, xPSR &~ 0xff);
 	}
 
-	/* Now we can load SP core registers */	
+	/* Now we can load SP core registers */
 	for (i = ARMV7M_PRIMASK; i < ARMV7NUMCOREREGS; i++)
 	{
 		if (!armv7m->core_cache->reg_list[i].valid)
-			armv7m->read_core_reg(target, i);		
+			armv7m->read_core_reg(target, i);
 	}
 
 	/* Are we in an exception handler */
-    armv7m->core_mode = (xPSR & 0x1FF) ? ARMV7M_MODE_HANDLER : ARMV7M_MODE_THREAD;
-    armv7m->exception_number = xPSR & 0x1FF;
+	if (xPSR & 0x1FF)
+	{
+		armv7m->core_mode = ARMV7M_MODE_HANDLER;
+		armv7m->exception_number = (xPSR & 0x1FF);
+	}
+	else
+	{
+		armv7m->core_mode = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 1);
+		armv7m->exception_number = 0;
+	}
+	
 	if (armv7m->exception_number)
 	{
 		cortex_m3_examine_exception_reason(target);
@@ -412,9 +417,12 @@ int cortex_m3_poll(target_t *target)
 		target->state = TARGET_SLEEP;
 	*/
 
+#if 0
     /* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
-    ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, target_state_strings[target->state]);	
+	ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
+	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, target_state_strings[target->state]);
+#endif
+	
 	return ERROR_OK;
 }
 
@@ -472,13 +480,6 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	u32 dcb_dhcsr = 0;
 	int retval, timeout = 0;
-	
-	/* Check that we are using process_context, or change and print warning */
-	if (armv7m_get_context(target) != ARMV7M_PROCESS_CONTEXT)
-	{
-		LOG_DEBUG("Changing to process contex registers");
-		armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
-	}
 
 	/* Enter debug state on reset, cf. end_reset_event() */
 	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
@@ -512,28 +513,6 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-int cortex_m3_prepare_reset_halt(struct target_s *target)
-{
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
-	u32 dcb_demcr, dcb_dhcsr;
-	
-	/* Enable debug requests */
-	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
-	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
-		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN );
-	
-	/* Enter debug state on reset, cf. end_reset_event() */
-	ahbap_write_system_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
-	
-	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
-	ahbap_read_system_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
-	LOG_DEBUG("dcb_dhcsr 0x%x, dcb_demcr 0x%x, ", dcb_dhcsr, dcb_demcr);
-	
-	return ERROR_OK;
-}
-
 int cortex_m3_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
 {
 	/* get pointers to arch-specific information */
@@ -551,13 +530,6 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 	
 	if (!debug_execution)
 	{
-		/* Check that we are using process_context, or change and print warning */
-		if (armv7m_get_context(target) != ARMV7M_PROCESS_CONTEXT)
-		{
-			LOG_DEBUG("Incorrect context in resume");
-			armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
-		}
-		
 		target_free_all_working_areas(target);
 		cortex_m3_enable_breakpoints(target);
 		cortex_m3_enable_watchpoints(target);
@@ -568,12 +540,6 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 	dcb_dhcsr = DBGKEY | C_DEBUGEN;
 	if (debug_execution)
 	{
-		/* Check that we are using debug_context, or change and print warning */
-		if (armv7m_get_context(target) != ARMV7M_DEBUG_CONTEXT)
-		{
-			LOG_DEBUG("Incorrect context in debug_exec resume");
-			armv7m_use_context(target, ARMV7M_DEBUG_CONTEXT);
-		}
 		/* Disable interrupts */
 		/* 
 		   We disable interrupts in the PRIMASK register instead of masking with C_MASKINTS,
@@ -604,10 +570,10 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 		/* Single step past breakpoint at current address */
 		if ((breakpoint = breakpoint_find(target, resume_pc)))
 		{
-				LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
-				cortex_m3_unset_breakpoint(target, breakpoint);
-				cortex_m3_single_step_core(target);
-				cortex_m3_set_breakpoint(target, breakpoint);
+			LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
+			cortex_m3_unset_breakpoint(target, breakpoint);
+			cortex_m3_single_step_core(target);
+			cortex_m3_set_breakpoint(target, breakpoint);
 		}
 	}
 
@@ -651,13 +617,6 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
-	/* Check that we are using process_context, or change and print warning */
-	if (armv7m_get_context(target) != ARMV7M_PROCESS_CONTEXT)
-	{
-		LOG_WARNING("Incorrect context in step, must be process");
-		armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
-	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
@@ -679,9 +638,8 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY| C_STEP | C_DEBUGEN);
 	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 
-	/* If we run in process context then registers are now invalid */
-	if (armv7m_get_context(target) == ARMV7M_PROCESS_CONTEXT)
-		armv7m_invalidate_core_regs(target);
+	/* registers are now invalid */
+	armv7m_invalidate_core_regs(target);
 	
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);
@@ -700,7 +658,6 @@ int cortex_m3_assert_reset(target_t *target)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
-	int retval;
 	
 	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
@@ -709,10 +666,12 @@ int cortex_m3_assert_reset(target_t *target)
 		LOG_ERROR("Can't assert SRST");
 		return ERROR_FAIL;
 	}
-	/* FIX!!! should this be removed as we're asserting trst anyway? */
-	if ((retval=cortex_m3_prepare_reset_halt(target))!=ERROR_OK)
-		return retval;
 	
+	/* Enable debug requests */
+	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
+		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN );
+		
 	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
 	
 	if (target->reset_mode == RESET_RUN)
@@ -724,22 +683,27 @@ int cortex_m3_assert_reset(target_t *target)
 		cortex_m3_clear_halt(target);
 							
 		/* Enter debug state on reset, cf. end_reset_event() */	
-		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN );
 		ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
+	}
+	else
+	{
+		/* Enter debug state on reset, cf. end_reset_event() */
+		ahbap_write_system_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
 	}
 	
 	if (target->state == TARGET_HALTED || target->state == TARGET_UNKNOWN)
 	{
-	/* assert SRST and TRST */
-	/* system would get ouf sync if we didn't reset test-logic, too */
-	jtag_add_reset(1, 1);
-	jtag_add_sleep(5000);
+		/* assert SRST and TRST */
+		/* system would get ouf sync if we didn't reset test-logic, too */
+		jtag_add_reset(1, 1);
+		jtag_add_sleep(5000);
 	}
 
 	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 	{
 		jtag_add_reset(1, 1);
-	} else
+	}
+	else
 	{
 		jtag_add_reset(0, 1);
 	}
@@ -747,13 +711,6 @@ int cortex_m3_assert_reset(target_t *target)
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 	
-	#if 0
-	if ((target->reset_mode==RESET_HALT)||(target->reset_mode==RESET_INIT))
-	{
-		cortex_m3_halt(target);
-	}
-	#endif
-	armv7m_use_context(target, ARMV7M_PROCESS_CONTEXT);
 	armv7m_invalidate_core_regs(target);
 
 	return ERROR_OK;
@@ -767,11 +724,6 @@ int cortex_m3_deassert_reset(target_t *target)
 	jtag_add_reset(0, 0);
 		
 	return ERROR_OK;
-}
-
-void cortex_m3_unset_all_breakpoints_and_watchpoints(struct target_s *target)
-{
-
 }
 
 void cortex_m3_enable_breakpoints(struct target_s *target)
@@ -1118,22 +1070,28 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
 	{
 		/* read other registers */
-		u32 savedram;
-		u32 SYSm;
-		u32 instr;
-		SYSm = num & 0x1F;
+		ahbap_read_coreregister_u32(swjdp, value, 20);
 		
-		ahbap_read_system_u32(swjdp, 0x20000000, &savedram);
-		instr = ARMV7M_T_MRS(0, SYSm);
-		ahbap_write_system_u32(swjdp, 0x20000000, ARMV7M_T_MRS(0, SYSm));
-		ahbap_write_coreregister_u32(swjdp, 0x20000000, 15);
-		cortex_m3_single_step_core(target);
-		ahbap_read_coreregister_u32(swjdp, value, 0);
-		armv7m->core_cache->reg_list[0].dirty = armv7m->core_cache->reg_list[0].valid;
-		armv7m->core_cache->reg_list[15].dirty = armv7m->core_cache->reg_list[15].valid;
-		ahbap_write_system_u32(swjdp, 0x20000000, savedram);
-		swjdp_transaction_endcheck(swjdp);
-		LOG_DEBUG("load from special reg %i value 0x%x", SYSm, *value);
+		switch (num)
+		{
+			case 19:
+				*value = buf_get_u32((u8*)value, 0, 8);
+				break;
+				
+			case 20:
+				*value = buf_get_u32((u8*)value, 8, 8);
+				break;
+				
+			case 21:
+				*value = buf_get_u32((u8*)value, 16, 8);
+				break;
+				
+			case 22:
+				*value = buf_get_u32((u8*)value, 24, 8);
+				break;
+		}
+		
+		LOG_DEBUG("load from special reg %i value 0x%x", num, *value);
 	}
 	else
 	{
@@ -1146,6 +1104,7 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype type, u32 num, u32 value)
 {
 	int retval;
+	u32 reg;
 	
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -1166,23 +1125,31 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
 	{
 		/* write other registers */
-		u32 savedram , tempr0;
-		u32 SYSm;
-		u32 instr;
-		SYSm = num & 0x1F;
 		
-		ahbap_read_system_u32(swjdp, 0x20000000, &savedram);
-		instr = ARMV7M_T_MSR(SYSm, 0);
-		ahbap_write_system_u32(swjdp, 0x20000000, ARMV7M_T_MSR(SYSm, 0));
-		ahbap_read_coreregister_u32(swjdp, &tempr0, 0);
-		ahbap_write_coreregister_u32(swjdp, value, 0);
-		ahbap_write_coreregister_u32(swjdp, 0x20000000, 15);
-		cortex_m3_single_step_core(target);
-		ahbap_write_coreregister_u32(swjdp, tempr0, 0);
-		armv7m->core_cache->reg_list[15].dirty = armv7m->core_cache->reg_list[15].valid;
-		ahbap_write_system_u32(swjdp, 0x20000000, savedram);
-		swjdp_transaction_endcheck(swjdp);
-		LOG_DEBUG("write special reg %i value 0x%x ", SYSm, value);
+		ahbap_read_coreregister_u32(swjdp, &reg, 20);
+		
+		switch (num)
+		{
+			case 19:
+				buf_set_u32((u8*)&reg, 0, 8, value);
+				break;
+				
+			case 20:
+				buf_set_u32((u8*)&reg, 8, 8, value);
+				break;
+				
+			case 21:
+				buf_set_u32((u8*)&reg, 16, 8, value);
+				break;
+				
+			case 22:
+				buf_set_u32((u8*)&reg, 24, 8, value);
+				break;
+		}
+		
+		ahbap_write_coreregister_u32(swjdp, reg, 20);
+		
+		LOG_DEBUG("write special reg %i value 0x%x ", num, value);
 	}
 	else
 	{

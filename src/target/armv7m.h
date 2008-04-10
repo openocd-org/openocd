@@ -29,18 +29,13 @@
 
 enum armv7m_mode
 {
-	ARMV7M_MODE_HANDLER = 0, 
-	ARMV7M_MODE_THREAD = 1, 
+	ARMV7M_MODE_THREAD = 0,
+	ARMV7M_MODE_USER_THREAD = 1,
+	ARMV7M_MODE_HANDLER = 2,
 	ARMV7M_MODE_ANY = -1
 };
 
 extern char* armv7m_mode_strings[];
-
-enum armv7m_state
-{
-	ARMV7M_STATE_THUMB,
-	ARMV7M_STATE_DEBUG,
-};
 
 enum armv7m_regtype
 {
@@ -49,13 +44,6 @@ enum armv7m_regtype
 	ARMV7M_REGISTER_MEMMAP
 };
 
-enum armv7m_runcontext
-{
-	ARMV7M_PROCESS_CONTEXT,
-	ARMV7M_DEBUG_CONTEXT
-};
-
-extern char* armv7m_state_strings[];
 extern char* armv7m_exception_strings[];
 
 extern char *armv7m_exception_string(int number);
@@ -80,11 +68,8 @@ typedef struct armv7m_common_s
 {
 	int common_magic;
 	reg_cache_t *core_cache;
-	reg_cache_t *process_context;
-	reg_cache_t *debug_context;
 	enum armv7m_mode core_mode;
-	enum armv7m_state core_state;
-	int  exception_number;
+	int exception_number;
 	
 	/* Direct processor core register read and writes */
 	int (*load_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, u32 num, u32 *value);
@@ -108,9 +93,8 @@ typedef struct armv7m_common_s
 typedef struct armv7m_algorithm_s
 {
 	int common_magic;
-		
+	
 	enum armv7m_mode core_mode;
-	enum armv7m_state core_state;
 } armv7m_algorithm_t;
 
 typedef struct armv7m_core_reg_s
@@ -137,9 +121,6 @@ extern int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem
 
 extern int armv7m_invalidate_core_regs(target_t *target);
 
-extern enum armv7m_runcontext armv7m_get_context(target_t *target);
-extern int armv7m_use_context(target_t *target, enum armv7m_runcontext new_ctx);
-extern enum armv7m_runcontext armv7m_get_context(target_t *target);
 extern int armv7m_restore_context(target_t *target);
 
 extern int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum);

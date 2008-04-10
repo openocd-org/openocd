@@ -29,10 +29,6 @@
 
 #include "binarybuffer.h"
 
-int buf_set_u32(u8* buffer, unsigned int first, unsigned int num, u32 value);
-u32 buf_get_u32(u8* buffer, unsigned int first, unsigned int num);
-u32 flip_u32(u32 value, unsigned int num);
-
 const unsigned char bit_reverse_table256[] = 
 {
   0x00, 0x80, 0x40, 0xC0, 0x20, 0xA0, 0x60, 0xE0, 0x10, 0x90, 0x50, 0xD0, 0x30, 0xB0, 0x70, 0xF0, 
