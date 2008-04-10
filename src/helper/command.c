@@ -452,11 +452,8 @@ int command_run_file(command_context_t *context, FILE *file, enum command_mode m
 void command_print_help_line(command_context_t* context, struct command_s *command, int indent)
 {
 	command_t *c;
-	#ifdef HAVE_C_VARRAYS
-	char indent_text[indent + 2];
-	#else
-	char indent_text[68];
-	#endif
+	char *indent_text=malloc(indent + 2);
+	
 	char *help = "no help available";
 	char name_buf[64];
 	
@@ -484,6 +481,7 @@ void command_print_help_line(command_context_t* context, struct command_s *comma
 			command_print_help_line(context, c, indent + 1);
 		}
 	}
+	free(indent_text);
 }
 
 int command_print_help_match(command_context_t* context, command_t* c_first, char* name, char** args, int argc)
