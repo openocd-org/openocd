@@ -862,6 +862,7 @@ void arm9tdmi_build_reg_cache(target_t *target)
 
 int arm9tdmi_examine(struct command_context_s *cmd_ctx, struct target_s *target)
 {
+	target->type->examined = 1;
 	return ERROR_OK;
 }
 
