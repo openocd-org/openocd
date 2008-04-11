@@ -624,6 +624,8 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
+	u32 t[3];
+	int bits[3];
 
 	int retval;
 
@@ -678,47 +680,46 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	
 	if (size==4)
 	{
+		bits[0]=3;
+		t[0]=0;
+		bits[1]=32;
+		t[2]=1;
+		bits[2]=1;
 		int endianness = target->endianness;
 		while (done_count++ < count)
 		{
-			if (endianness == TARGET_LITTLE_ENDIAN)
-			{
-				output[0]=buffer[0];
-				output[1]=buffer[1];
-				output[2]=buffer[2];
-				output[3]=buffer[3];
-			} else
-			{
-				output[0]=buffer[3];
-				output[1]=buffer[2];
-				output[2]=buffer[1];
-				output[3]=buffer[0];
-			}
-			jtag_add_dr_scan(3, fields, TAP_RTI);
-			buffer += size;
-		}
-		
-	} else
-	{
-		while (done_count++ < count)
-		{
-			/* extract sized element from target-endian buffer, and put it
-			 * into little-endian output buffer
-			 */
 			switch (size)
 			{
-				case 2:
-					buf_set_u32(output, 0, 32, target_buffer_get_u16(target, buffer));
-					break;
-				case 1:
-					output[0] = *buffer;
-					break;
-				default:
-					LOG_ERROR("BUG: size neither 4, 2 nor 1");
-					exit(-1);
+			case 4:
+				if (endianness == TARGET_LITTLE_ENDIAN)
+				{
+					t[1]=le_to_h_u32(buffer);
+				} else
+				{
+					t[1]=be_to_h_u32(buffer);
+				}
+				break;
+			case 2:
+				if (endianness == TARGET_LITTLE_ENDIAN)
+				{
+					t[1]=le_to_h_u16(buffer);
+				} else
+				{
+					t[1]=be_to_h_u16(buffer);
+				}
+				break;
+			case 1:
+				t[1]=buffer[0];
+				break;
+			default:
+				LOG_ERROR("BUG: size neither 4, 2 nor 1");
+				exit(-1);
 			}
-
-			jtag_add_dr_scan(3, fields, TAP_RTI);
+			jtag_add_dr_out(xscale->jtag_info.chain_pos, 
+					3,
+					bits,
+					t,
+					TAP_RTI);
 			buffer += size;
 		}
 		
