@@ -436,6 +436,11 @@ static int default_examine(struct command_context_s *cmd_ctx, struct target_s *t
 }
 
 
+/* Targets that correctly implement init+examine, i.e.
+ * no communication with target during init:
+ * 
+ * XScale 
+ */
 int target_examine(struct command_context_s *cmd_ctx)
 {
 	int retval = ERROR_OK;
@@ -448,6 +453,8 @@ int target_examine(struct command_context_s *cmd_ctx)
 	}
 	return retval;
 }
+
+
 int target_init(struct command_context_s *cmd_ctx)
 {
 	target_t *target = targets;

@@ -81,6 +81,7 @@ target_type_t arm966e_target =
 	.register_commands = arm966e_register_commands,
 	.target_command = arm966e_target_command,
 	.init_target = arm966e_init_target,
+	.examine = arm9tdmi_examine,
 	.quit = arm966e_quit,
 };
 

@@ -94,6 +94,7 @@ target_type_t feroceon_target =
 	.register_commands = arm926ejs_register_commands,
 	.target_command = feroceon_target_command,
 	.init_target = feroceon_init_target,
+	.examine = arm9tdmi_examine,
 	.quit = feroceon_quit
 };
 

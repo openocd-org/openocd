@@ -90,6 +90,7 @@ target_type_t arm926ejs_target =
 	.register_commands = arm926ejs_register_commands,
 	.target_command = arm926ejs_target_command,
 	.init_target = arm926ejs_init_target,
+	.examine = arm9tdmi_examine,
 	.quit = arm926ejs_quit,
 	.virt2phys = arm926ejs_virt2phys,
 	.mmu = arm926ejs_mmu

@@ -81,6 +81,7 @@ target_type_t arm720t_target =
 	.register_commands = arm720t_register_commands,
 	.target_command = arm720t_target_command,
 	.init_target = arm720t_init_target,
+	.examine = arm7tdmi_examine,
 	.quit = arm720t_quit
 };
 

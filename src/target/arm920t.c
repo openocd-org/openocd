@@ -90,6 +90,7 @@ target_type_t arm920t_target =
 	.register_commands = arm920t_register_commands,
 	.target_command = arm920t_target_command,
 	.init_target = arm920t_init_target,
+	.examine = arm9tdmi_examine,
 	.quit = arm920t_quit
 };
 

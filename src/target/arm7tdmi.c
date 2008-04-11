@@ -86,6 +86,7 @@ target_type_t arm7tdmi_target =
 	.register_commands = arm7tdmi_register_commands,
 	.target_command = arm7tdmi_target_command,
 	.init_target = arm7tdmi_init_target,
+	.examine = arm7tdmi_examine,
 	.quit = arm7tdmi_quit
 };
 
@@ -751,6 +752,11 @@ void arm7tdmi_build_reg_cache(target_t *target)
 		(*cache_p)->next->next = etm_build_reg_cache(target, jtag_info, arm7_9->etm_ctx);
 		arm7_9->etm_ctx->reg_cache = (*cache_p)->next->next;
 	}
+}
+
+int arm7tdmi_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+{
+	return ERROR_OK;
 }
 
 int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
