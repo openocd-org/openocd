@@ -264,7 +264,9 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	if ((retval = jtag_init_reset(cmd_ctx)) != ERROR_OK)
 		return retval;
 	
-
+	if ((retval = target_examine(cmd_ctx)) != ERROR_OK)
+		return retval;
+	
 	/* prepare reset_halt where necessary */
 	target = targets;
 	while (target)
@@ -428,12 +430,36 @@ static int default_mmu(struct target_s *target, int *enabled)
 	return ERROR_OK;
 }
 
+static int default_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+{
+	return ERROR_OK;
+}
+
+
+int target_examine(struct command_context_s *cmd_ctx)
+{
+	int retval = ERROR_OK;
+	target_t *target = targets;
+	while (target)
+	{
+		if ((retval = target->type->examine(cmd_ctx, target))!=ERROR_OK)
+			return retval;
+		target = target->next;
+	}
+	return retval;
+}
 int target_init(struct command_context_s *cmd_ctx)
 {
 	target_t *target = targets;
 	
 	while (target)
 	{
+		target->type->examined = 0;
+		if (target->type->examine == NULL)
+		{
+			target->type->examine = default_examine;
+		}
+		
 		if (target->type->init_target(cmd_ctx, target) != ERROR_OK)
 		{
 			LOG_ERROR("target '%s' init failed", target->type->name);

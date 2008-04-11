@@ -95,6 +95,10 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 	atexit(exit_handler);
 
+	/* FIX!!! this should happen *after* target_init(), but
+	 * for now there are target initialisations that talk
+	 * to JTAG whereas that *should* happen during target_examine()
+	 */
 	if (jtag_init(cmd_ctx) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("jtag init complete");
@@ -103,6 +107,10 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		return ERROR_FAIL;
 	LOG_DEBUG("target init complete");
 
+	if (target_examine(cmd_ctx) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("target examine complete");
+	
 	if (flash_init_drivers(cmd_ctx) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("flash init complete");

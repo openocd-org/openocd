@@ -98,6 +98,8 @@ typedef struct working_area_s
 typedef struct target_type_s
 {
 	char *name;
+	
+	int examined;
 
 	/* poll current target status */
 	int (*poll)(struct target_s *target);
@@ -168,6 +170,18 @@ typedef struct target_type_s
 	
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 	int (*target_command)(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+	/* invoked after JTAG chain has been examined & validated. During
+	 * this stage the target is examined and any additional setup is
+	 * performed.
+	 * 
+	 * invoked every time after the jtag chain has been validated/examined
+	 */
+	int (*examine)(struct command_context_s *cmd_ctx, struct target_s *target);
+	/* Set up structures for target.
+	 *  
+	 * It is illegal to talk to the target at this stage as this fn is invoked
+	 * before the JTAG chain has been examined/verified
+     */
 	int (*init_target)(struct command_context_s *cmd_ctx, struct target_s *target);
 	int (*quit)(void);
 	
@@ -236,7 +250,7 @@ typedef struct target_timer_callback_s
 extern int target_register_commands(struct command_context_s *cmd_ctx);
 extern int target_register_user_commands(struct command_context_s *cmd_ctx);
 extern int target_init(struct command_context_s *cmd_ctx);
-extern int target_init_reset(struct command_context_s *cmd_ctx);
+extern int target_examine(struct command_context_s *cmd_ctx);
 extern int handle_target(void *priv);
 extern int target_process_reset(struct command_context_s *cmd_ctx);
 
