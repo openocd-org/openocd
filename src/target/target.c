@@ -466,6 +466,7 @@ static int default_mmu(struct target_s *target, int *enabled)
 
 static int default_examine(struct command_context_s *cmd_ctx, struct target_s *target)
 {
+	target->type->examined = 1;
 	return ERROR_OK;
 }
 
