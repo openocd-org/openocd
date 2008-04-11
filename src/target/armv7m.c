@@ -349,22 +349,22 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	
 	/* This code relies on the target specific  resume() and  poll()->debug_entry() 
 	sequence to write register values to the processor and the read them back */
-	target->type->resume(target, 0, entry_point, 1, 1);
-	target->type->poll(target);
+	target_resume(target, 0, entry_point, 1, 1);
+	target_poll(target);
 	
 	while (target->state != TARGET_HALTED)
 	{
 		usleep(5000);
-		target->type->poll(target);
+		target_poll(target);
 		if ((timeout_ms -= 5) <= 0)
 		{
 			LOG_ERROR("timeout waiting for algorithm to complete, trying to halt target");
-			target->type->halt(target);
+			target_halt(target);
 			timeout_ms = 1000;
 			while (target->state != TARGET_HALTED)
 			{
 				usleep(10000);
-				target->type->poll(target);
+				target_poll(target);
 				if ((timeout_ms -= 10) <= 0)
 				{
 					LOG_ERROR("target didn't reenter debug state, exiting");

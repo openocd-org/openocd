@@ -241,6 +241,10 @@ enum reset_types
 
 extern enum reset_types jtag_reset_config;
 
+/* initialize interface upon startup. A successful no-op 
+ * upon subsequent invocations
+ */
+extern int jtag_interface_init(struct command_context_s *cmd_ctx);
 /* initialize JTAG chain using only a TLR reset. If init fails,
  * try reset + init.
  */

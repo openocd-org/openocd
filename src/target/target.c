@@ -248,10 +248,44 @@ int target_run_and_halt_handler(void *priv)
 {
 	target_t *target = priv;
 	
-	target->type->halt(target);
+	target_halt(target);
 	
 	return ERROR_OK;
 }
+
+int target_poll(struct target_s *target)
+{
+	/* We can't poll until after examine */
+	if (!target->type->examined)
+	{
+		/* Fail silently lest we pollute the log */
+		return ERROR_FAIL;
+	}
+	return target->type->poll(target);
+}
+
+int target_halt(struct target_s *target)
+{
+	/* We can't poll until after examine */
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+	return target->type->halt(target);
+}
+
+int target_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
+{
+	/* We can't poll until after examine */
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+	return target->type->resume(target, current, address, handle_breakpoints, debug_execution);
+}
+
 
 int target_process_reset(struct command_context_s *cmd_ctx)
 {
@@ -325,10 +359,10 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 				target_register_event_callback(target_init_handler, cmd_ctx);
 				break;
 			case RESET_HALT:
-				target->type->halt(target);
+				target_halt(target);
 				break;
 			case RESET_INIT:
-				target->type->halt(target);
+				target_halt(target);
 				target_register_event_callback(target_init_handler, cmd_ctx);
 				break;
 			default:
@@ -371,7 +405,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		while (target)
 		{
 			LOG_DEBUG("Polling target");
-			target->type->poll(target);
+			target_poll(target);
 			if ((target->reset_mode == RESET_RUN_AND_INIT) || 
 					(target->reset_mode == RESET_RUN_AND_HALT) ||
 					(target->reset_mode == RESET_HALT) ||
@@ -1414,19 +1448,14 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 /* process target state changes */
 int handle_target(void *priv)
 {
-	int retval;
 	target_t *target = targets;
 	
 	while (target)
 	{
-		/* only poll if target isn't already halted */
-		if (target->state != TARGET_HALTED)
+		if (target_continous_poll)
 		{
-			if (target_continous_poll)
-				if ((retval = target->type->poll(target)) != ERROR_OK)
-				{
-					LOG_ERROR("couldn't poll target(%d). It's due for a reset.", retval);
-				}
+			/* polling may fail silently until the target has been examined */
+			target_poll(target);
 		}
 	
 		target = target->next;
@@ -1565,7 +1594,7 @@ int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 	if (argc == 0)
 	{
-		target->type->poll(target);
+		target_poll(target);
 		target_arch_state(target);
 	}
 	else
@@ -1610,7 +1639,7 @@ int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char 
 static void target_process_events(struct command_context_s *cmd_ctx)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	target->type->poll(target);
+	target_poll(target);
 	target_call_timer_callbacks_now();
 }
 
@@ -1625,7 +1654,7 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 	target_t *target = get_current_target(cmd_ctx);
 	for (;;)
 	{
-		if ((retval=target->type->poll(target))!=ERROR_OK)
+		if ((retval=target_poll(target))!=ERROR_OK)
 			return retval;
 		target_call_timer_callbacks_now();
 		if (target->state == state)
@@ -1656,7 +1685,7 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 	LOG_DEBUG("-");
 
-	if ((retval = target->type->halt(target)) != ERROR_OK)
+	if ((retval = target_halt(target)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -1733,9 +1762,9 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	target_t *target = get_current_target(cmd_ctx);
 	
 	if (argc == 0)
-		retval = target->type->resume(target, 1, 0, 1, 0); /* current pc, addr = 0, handle breakpoints, not debugging */
+		retval = target_resume(target, 1, 0, 1, 0); /* current pc, addr = 0, handle breakpoints, not debugging */
 	else if (argc == 1)
-		retval = target->type->resume(target, 0, strtoul(args[0], NULL, 0), 1, 0); /* addr = args[0], handle breakpoints, not debugging */
+		retval = target_resume(target, 0, strtoul(args[0], NULL, 0), 1, 0); /* addr = args[0], handle breakpoints, not debugging */
 	else
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2485,18 +2514,18 @@ int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	
 	for (;;)
 	{
-		target->type->poll(target);
+		target_poll(target);
 		if (target->state == TARGET_HALTED)
 		{
 			u32 t=*((u32 *)reg->value);
 			samples[numSamples++]=t;
-			retval = target->type->resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
-			target->type->poll(target);
+			retval = target_resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
+			target_poll(target);
 			usleep(10*1000); // sleep 10ms, i.e. <100 samples/second.
 		} else if (target->state == TARGET_RUNNING)
 		{
 			// We want to quickly sample the PC.
-			target->type->halt(target);
+			target_halt(target);
 		} else
 		{
 			command_print(cmd_ctx, "Target not halted or running");
@@ -2512,12 +2541,12 @@ int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **
 		if ((numSamples>=maxSample) || ((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
 			command_print(cmd_ctx, "Profiling completed. %d samples.", numSamples);
-			target->type->poll(target);
+			target_poll(target);
 			if (target->state == TARGET_HALTED)
 			{
-				target->type->resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
+				target_resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
 			}
-			target->type->poll(target);
+			target_poll(target);
 			writeGmon(samples, numSamples, args[1]);
 			command_print(cmd_ctx, "Wrote %s", args[1]);
 			break;

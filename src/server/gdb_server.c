@@ -690,7 +690,7 @@ int gdb_new_connection(connection_t *connection)
 	 * instantaneous and thus avoiding annoying timeout problems during
 	 * connect. 
 	 */
-	gdb_service->target->type->halt(gdb_service->target);
+	target_halt(gdb_service->target);
 	
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
@@ -1231,7 +1231,7 @@ void gdb_step_continue_packet(connection_t *connection, target_t *target, char *
 	if (packet[0] == 'c')
 	{
 		LOG_DEBUG("continue");
-		target->type->resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
+		target_resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
 	}
 	else if (packet[0] == 's')
 	{
@@ -1755,7 +1755,7 @@ int gdb_detach(connection_t *connection, target_t *target)
 	switch( detach_mode )
 	{
 		case GDB_DETACH_RESUME:
-			target->type->resume(target, 1, 0, 1, 0);
+			target_resume(target, 1, 0, 1, 0);
 			break;
 
 		case GDB_DETACH_RESET:
@@ -1763,7 +1763,7 @@ int gdb_detach(connection_t *connection, target_t *target)
 			break;
 
 		case GDB_DETACH_HALT:
-			target->type->halt(target);
+			target_halt(target);
 			break;
 
 		case GDB_DETACH_NOTHING:
@@ -1904,7 +1904,7 @@ int gdb_input_inner(connection_t *connection)
 		{
 			if (target->state == TARGET_RUNNING)
 			{
-				target->type->halt(target);
+				target_halt(target);
 				gdb_con->ctrl_c = 0;
 			}
 		}

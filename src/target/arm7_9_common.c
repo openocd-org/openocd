@@ -755,14 +755,6 @@ int arm7_9_assert_reset(target_t *target)
 
 	if ((target->reset_mode == RESET_HALT) || (target->reset_mode == RESET_INIT))
 	{
-		reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
-		
-		/* program EmbeddedICE Debug Control Register to deassert DBGRQ
-		 * i.e. resume.
-		 */
-		buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGRQ, 1, 0);	
-		embeddedice_store_reg(dbg_ctrl);
-
 		/*
 		 * Some targets do not support communication while SRST is asserted. We need to
 		 * set up the reset vector catch here.
@@ -867,7 +859,7 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	int i;
 	int retval;
 	
-	if ((retval=target->type->halt(target))!=ERROR_OK)
+	if ((retval=target_halt(target))!=ERROR_OK)
 		return retval;
 	
 	for (i=0; i<10; i++)
@@ -2176,11 +2168,11 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 		}
 	}
 	
-	target->type->halt(target);
+	target_halt(target);
 	
 	for (i=0; i<100; i++)
 	{
-		target->type->poll(target);
+		target_poll(target);
 		if (target->state == TARGET_HALTED)
 			break;
 		usleep(1000); /* sleep 1ms */

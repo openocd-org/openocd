@@ -368,7 +368,7 @@ int arm720t_soft_reset_halt(struct target_s *target)
 	int i;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	
-	target->type->halt(target);
+	target_halt(target);
 	
 	for (i=0; i<10; i++)
 	{

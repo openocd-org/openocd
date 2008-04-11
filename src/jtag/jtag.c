@@ -1482,6 +1482,9 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 
 int jtag_interface_init(struct command_context_s *cmd_ctx)
 {
+	if (jtag)
+		return ERROR_OK;
+	
 	if (!jtag_interface)
 	{
 		/* nothing was previously specified by "interface" command */
@@ -1511,11 +1514,12 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 {
 	int validate_tries = 0;
 	jtag_device_t *device;
+	int retval;
 
 	LOG_DEBUG("-");
 	
-	if (!jtag && jtag_interface_init(cmd_ctx) != ERROR_OK)
-		return ERROR_JTAG_INIT_FAILED;
+	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
+		return retval;
 
 	device = jtag_devices;
 	jtag_ir_scan_size = 0;
@@ -1528,7 +1532,8 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	}
 	
 	jtag_add_tlr();
-	jtag_execute_queue();
+	if ((retval=jtag_execute_queue())==ERROR_OK)
+		return retval;
 
 	/* examine chain first, as this could discover the real chain layout */
 	if (jtag_examine_chain() != ERROR_OK)
@@ -1930,7 +1935,7 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if (!jtag && jtag_interface_init(cmd_ctx) != ERROR_OK)
+	if (jtag_interface_init(cmd_ctx) != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
 	jtag_add_reset(trst, srst);

@@ -256,6 +256,9 @@ extern int target_process_reset(struct command_context_s *cmd_ctx);
 
 extern int target_register_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv);
 extern int target_unregister_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv);
+extern int target_poll(target_t *target);
+extern int target_resume(target_t *target, int current, u32 address, int handle_breakpoints, int debug_execution);
+extern int target_halt(target_t *target);
 extern int target_call_event_callbacks(target_t *target, enum target_event event);
 
 /* The period is very approximate, the callback can happen much more often 

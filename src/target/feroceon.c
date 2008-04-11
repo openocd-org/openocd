@@ -547,9 +547,9 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 		buffer += 4;
 	}
 
-	target->type->halt(target);
+	target_halt(target);
 	while (target->state != TARGET_HALTED)
-		target->type->poll(target);
+		target_poll(target);
 
 	/* restore target state */
 	for (i = 0; i <= 5; i++)
