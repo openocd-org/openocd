@@ -91,6 +91,7 @@ typedef struct embeddedice_reg_s
 } embeddedice_reg_t;
 
 extern reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9);
+extern int embeddedice_setup(target_t *target);
 extern int embeddedice_read_reg(reg_t *reg);
 extern int embeddedice_write_reg(reg_t *reg, u32 value);
 extern int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask);
