@@ -649,10 +649,13 @@ int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer)
 int arm7_9_handle_target_request(void *priv)
 {
 	target_t *target = priv;
+	if (!target->type->examined)
+		return ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info; 
 	reg_t *dcc_control = &arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL];
+	
 	
 	if (!target->dbg_msg_enabled)
 		return ERROR_OK;

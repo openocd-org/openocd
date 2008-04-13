@@ -1336,6 +1336,8 @@ int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer)
 int cortex_m3_handle_target_request(void *priv)
 {
 	target_t *target = priv;
+	if (!target->type->examined)
+		return ERROR_OK;
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
