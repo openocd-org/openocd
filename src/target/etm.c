@@ -223,7 +223,6 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_co
 	etm_reg_t *arch_info = NULL;
 	int num_regs = sizeof(etm_reg_arch_info)/sizeof(int);
 	int i;
-	u32 etm_ctrl_value;
 	
 	/* register a register arch-type for etm registers only once */
 	if (etm_reg_arch_type == -1)
@@ -256,21 +255,6 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_co
 		arch_info[i].jtag_info = jtag_info;
 	}
 
-	/* initialize some ETM control register settings */	
-	etm_get_reg(&reg_list[ETM_CTRL]);
-	etm_ctrl_value = buf_get_u32(reg_list[ETM_CTRL].value, 0, reg_list[ETM_CTRL].size);
-	
-	/* clear the ETM powerdown bit (0) */
-	etm_ctrl_value &= ~0x1;
-		
-	/* configure port width (6:4), mode (17:16) and clocking (13) */
-	etm_ctrl_value = (etm_ctrl_value & 
-		~ETM_PORT_WIDTH_MASK & ~ETM_PORT_MODE_MASK & ~ETM_PORT_CLOCK_MASK)
-		| etm_ctx->portmode;
-	
-	buf_set_u32(reg_list[ETM_CTRL].value, 0, reg_list[ETM_CTRL].size, etm_ctrl_value);
-	etm_store_reg(&reg_list[ETM_CTRL]);
-	
 	/* the ETM might have an ETB connected */
 	if (strcmp(etm_ctx->capture_driver->name, "etb") == 0)
 	{
@@ -287,13 +271,42 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_co
 		etb->reg_cache = reg_cache->next;
 	}
 	
-	if (etm_ctx->capture_driver->init(etm_ctx) != ERROR_OK)
-	{
-		LOG_ERROR("ETM capture driver initialization failed");
-		exit(-1);
-	}
 	
 	return reg_cache;
+}
+
+int etm_setup(target_t *target)
+{
+	int retval;
+	u32 etm_ctrl_value;
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	etm_context_t *etm_ctx = arm7_9->etm_ctx;
+	reg_t *etm_ctrl_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CTRL];
+	/* initialize some ETM control register settings */	
+	etm_get_reg(etm_ctrl_reg);
+	etm_ctrl_value = buf_get_u32(etm_ctrl_reg->value, 0, etm_ctrl_reg->size);
+	
+	/* clear the ETM powerdown bit (0) */
+	etm_ctrl_value &= ~0x1;
+		
+	/* configure port width (6:4), mode (17:16) and clocking (13) */
+	etm_ctrl_value = (etm_ctrl_value & 
+		~ETM_PORT_WIDTH_MASK & ~ETM_PORT_MODE_MASK & ~ETM_PORT_CLOCK_MASK)
+		| etm_ctx->portmode;
+	
+	buf_set_u32(etm_ctrl_reg->value, 0, etm_ctrl_reg->size, etm_ctrl_value);
+	etm_store_reg(etm_ctrl_reg);
+	
+	if ((retval=jtag_execute_queue())!=ERROR_OK)
+		return retval;
+	
+	if ((retval=etm_ctx->capture_driver->init(etm_ctx)) != ERROR_OK)
+	{
+		LOG_ERROR("ETM capture driver initialization failed");
+		return retval;
+	}
+	return ERROR_OK;
 }
 
 int etm_get_reg(reg_t *reg)

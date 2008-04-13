@@ -88,6 +88,7 @@ int embeddedice_read_reg(reg_t *reg);
 
 reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
 {
+	int retval;
 	reg_cache_t *reg_cache = malloc(sizeof(reg_cache_t));
 	reg_t *reg_list = NULL;
 	embeddedice_reg_t *arch_info = NULL;
@@ -133,7 +134,16 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 	
 	/* identify EmbeddedICE version by reading DCC control register */
 	embeddedice_read_reg(&reg_list[EICE_COMMS_CTRL]);
-	jtag_execute_queue();
+	if ((retval=jtag_execute_queue())!=ERROR_OK)
+	{
+		for (i = 0; i < num_regs; i++)
+		{
+			free(reg_list[i].value);
+		}
+		free(reg_list);
+		free(arch_info);
+		return NULL;
+	}
 	
 	eice_version = buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 28, 4);
 	
@@ -181,16 +191,27 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			LOG_ERROR("unknown EmbeddedICE version (comms ctrl: 0x%8.8x)", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
 	
+	return reg_cache;
+}
+
+int embeddedice_setup(target_t *target)
+{
+	int retval;
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	
 	/* explicitly disable monitor mode */
 	if (arm7_9->has_monitor_mode)
 	{
-		embeddedice_read_reg(&reg_list[EICE_DBG_CTRL]);
-		jtag_execute_queue();
-		buf_set_u32(reg_list[EICE_DBG_CTRL].value, 4, 1, 0);
-		embeddedice_set_reg_w_exec(&reg_list[EICE_DBG_CTRL], reg_list[EICE_DBG_CTRL].value);
+		reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+		
+		embeddedice_read_reg(dbg_ctrl);
+		if ((retval=jtag_execute_queue())!=ERROR_OK)
+			return retval;
+		buf_set_u32(dbg_ctrl->value, 4, 1, 0);
+		embeddedice_set_reg_w_exec(dbg_ctrl, dbg_ctrl->value);
 	}
-	
-	return reg_cache;
+	return jtag_execute_queue();
 }
 
 int embeddedice_get_reg(reg_t *reg)

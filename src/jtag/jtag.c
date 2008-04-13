@@ -1518,9 +1518,6 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 
 	LOG_DEBUG("-");
 	
-	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
-		return retval;
-
 	device = jtag_devices;
 	jtag_ir_scan_size = 0;
 	jtag_num_devices = 0;
@@ -1559,6 +1556,10 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 int jtag_init_reset(struct command_context_s *cmd_ctx)
 {
 	int retval;
+
+	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
+		return retval;
+
 	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / tms");
 
 	/* Reset can happen after a power cycle.
@@ -1599,6 +1600,9 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 
 int jtag_init(struct command_context_s *cmd_ctx)
 {
+	int retval;
+	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
+		return retval;
 	if (jtag_init_inner(cmd_ctx)==ERROR_OK)
 	{
 		return ERROR_OK;

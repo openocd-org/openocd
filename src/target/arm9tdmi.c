@@ -843,26 +843,44 @@ void arm9tdmi_build_reg_cache(target_t *target)
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	(*cache_p) = armv4_5_build_reg_cache(target, armv4_5);
 	armv4_5->core_cache = (*cache_p);
-	
-	/* one extra register (vector catch) */
-	(*cache_p)->next = embeddedice_build_reg_cache(target, arm7_9);
-	arm7_9->eice_cache = (*cache_p)->next;
-
-	if (arm7_9->etm_ctx)
-	{
-		(*cache_p)->next->next = etm_build_reg_cache(target, jtag_info, arm7_9->etm_ctx);
-		arm7_9->etm_ctx->reg_cache = (*cache_p)->next->next;
-	}
 }
+
 
 int arm9tdmi_examine(struct command_context_s *cmd_ctx, struct target_s *target)
 {
-	target->type->examined = 1;
+	/* get pointers to arch-specific information */
+	int retval;
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	if (!target->type->examined)
+	{
+		reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
+		reg_cache_t *t;
+		/* one extra register (vector catch) */
+		t=embeddedice_build_reg_cache(target, arm7_9);
+		if (t==NULL)
+			return ERROR_FAIL;
+		(*cache_p) = t;
+		arm7_9->eice_cache = (*cache_p);
+	
+		if (arm7_9->etm_ctx)
+		{
+			arm_jtag_t *jtag_info = &arm7_9->jtag_info;
+			(*cache_p)->next = etm_build_reg_cache(target, jtag_info, arm7_9->etm_ctx);
+			arm7_9->etm_ctx->reg_cache = (*cache_p)->next;
+		}
+		target->type->examined = 1;
+	}
+	if ((retval=embeddedice_setup(target))!=ERROR_OK)
+		return retval;
+	if (arm7_9->etm_ctx)
+	{
+		if ((retval=etm_setup(target))!=ERROR_OK)
+			return retval;
+	}
 	return ERROR_OK;
 }
 
