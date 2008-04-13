@@ -1855,12 +1855,24 @@ int gdb_input_inner(connection_t *connection)
 				case 'c':
 				case 's':
 					{
-					/* We're running/stepping, in which case we can
-					 * forward log output until the target is halted */
-						gdb_connection_t *gdb_con = connection->priv;
-						gdb_con->frontend_state = TARGET_RUNNING;
-						log_add_callback(gdb_log_callback, connection);
-						gdb_step_continue_packet(connection, target, packet, packet_size);
+						if (target->state != TARGET_HALTED)
+						{
+							/* If the target isn't in the halted state, then we can't
+							 * step/continue. This might be early setup, etc.
+							 */
+							char sig_reply[4];
+							snprintf(sig_reply, 4, "T%2.2x", 2);
+							gdb_put_packet(connection, sig_reply, 3);
+						} else
+						{
+							/* We're running/stepping, in which case we can
+							 * forward log output until the target is halted 
+							 */
+							gdb_connection_t *gdb_con = connection->priv;
+							gdb_con->frontend_state = TARGET_RUNNING;
+							log_add_callback(gdb_log_callback, connection);
+							gdb_step_continue_packet(connection, target, packet, packet_size);
+						}
 					}
 					break;
 				case 'v':
