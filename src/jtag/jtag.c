@@ -156,7 +156,11 @@ static int hasKHz = 0;
 #if BUILD_PARPORT == 1
 	extern jtag_interface_t parport_interface;
 #endif
-
+	 
+#if BUILD_DUMMY == 1
+	extern jtag_interface_t dummy_interface;
+#endif
+	
 #if BUILD_FT2232_FTD2XX == 1
 	extern jtag_interface_t ft2232_interface;
 #endif
@@ -195,6 +199,9 @@ jtag_interface_t *jtag_interfaces[] = {
 #endif
 #if BUILD_PARPORT == 1
 	&parport_interface,
+#endif
+#if BUILD_DUMMY == 1
+	&dummy_interface,
 #endif
 #if BUILD_FT2232_FTD2XX == 1
 	&ft2232_interface,
