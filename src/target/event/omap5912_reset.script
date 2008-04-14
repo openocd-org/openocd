@@ -1,0 +1,21 @@
+#
+# halt target
+#
+poll
+sleep 1
+halt
+wait_halt
+#
+# disable wdt
+#
+mww 0xfffec808 0x000000f5
+mww 0xfffec808 0x000000a0
+
+mww 0xfffeb048 0x0000aaaa
+sleep 500
+mww 0xfffeb048 0x00005555
+sleep 500
+#
+# detect flash
+#
+flash probe 0

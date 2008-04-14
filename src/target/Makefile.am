@@ -24,4 +24,8 @@ nobase_dist_pkglib_DATA = xscale/debug_handler.bin event/at91eb40a_reset.script 
 	target/sam7x256.cfg target/str710.cfg target/str912.cfg target/nslu2.cfg target/pxa255_sst.cfg \
 	target/pxa255.cfg  target/zy1000.cfg event/zy1000_reset.script event/at91sam9260_reset.script target/at91sam9260.cfg \
 	target/wi-9c.cfg event/wi-9c_reset.script event/pxa255_reset.script target/stm32.cfg  target/xba_revA3.cfg event/xba_revA3.script \
-	ecos/at91eb40a.elf target/lm3s6965.cfg interface/parport.cfg
+	ecos/at91eb40a.elf target/lm3s6965.cfg interface/parport.cfg \
+	event/omap5912_reset.script interface/amontec-tiny.cfg interface/str9-comstick.cfg \
+	target/epc9301.cfg target/ipx42x.cfg target/lpc2129.cfg target/netx500.cfg \
+	target/omap5912.cfg target/pxa270.cfg target/str750.cfg target/str9comstick.cfg
+  
