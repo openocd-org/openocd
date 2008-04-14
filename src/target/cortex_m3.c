@@ -691,14 +691,6 @@ int cortex_m3_assert_reset(target_t *target)
 		ahbap_write_system_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
 	}
 	
-	if (target->state == TARGET_HALTED || target->state == TARGET_UNKNOWN)
-	{
-		/* assert SRST and TRST */
-		/* system would get ouf sync if we didn't reset test-logic, too */
-		jtag_add_reset(1, 1);
-		jtag_add_sleep(5000);
-	}
-
 	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 	{
 		jtag_add_reset(1, 1);

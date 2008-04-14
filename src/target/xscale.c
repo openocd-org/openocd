@@ -1595,15 +1595,6 @@ int xscale_assert_reset(target_t *target)
 
 	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 
-	/* TRST every time. We want to be able to support daemon_startup attach */
-	jtag_add_reset(1, 0);
-	jtag_add_sleep(5000);
-	jtag_add_reset(0, 0);
-	jtag_add_sleep(5000);
-	jtag_execute_queue();
-
-	
-	
 	/* select DCSR instruction (set endstate to R-T-I to ensure we don't
 	 * end up in T-L-R, which would reset JTAG
 	 */
