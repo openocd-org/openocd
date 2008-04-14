@@ -198,7 +198,10 @@ Run with @option{--help} or @option{-h} to view the available command line argum
 
 It reads its configuration by default from the file openocd.cfg located in the current
 working directory. This may be overwritten with the @option{-f <configfile>} command line
-switch.
+switch.  @option{-f} can be specified multiple times, in which case the config files
+are executed in order. 
+
+Also it is possible to interleave commands w/config scripts using the @option{-c}. 
 
 To enable debug output (when reporting problems or working on OpenOCD itself), use
 the @option{-d} command line switch. This sets the debug_level to "3", outputting
@@ -209,7 +212,12 @@ from within a telnet or gdb session (@option{debug_level <n>}).
 You can redirect all output from the daemon to a file using the @option{-l <logfile>} switch.
 
 Search paths for config/script files can be added to openocd by using
-the @option{-s <search>} switch.
+the @option{-s <search>} switch. The current directory and the OpenOCD target library 
+is in the search path by default.
+
+NB! OpenOCD will launch the GDB & telnet server even if it can not establish a connection
+with the target. In general, it is possible for the JTAG controller to be unresponsive until 
+the target is set up correctly via e.g. GDB monitor commands in a GDB init script.
 
 @node Configuration
 @chapter Configuration
@@ -225,6 +233,10 @@ chain, the targets that should be debugged, and connected flashes.
 @section Daemon configuration
 
 @itemize @bullet
+@item @b{init} This command terminates the configuration stage and enters the normal
+command mode. This can be useful to add commands to the startup scripts and commands
+such as resetting the target, programming flash, etc.
+@cindex init
 @item @b{telnet_port} <@var{number}>
 @cindex telnet_port
 Port on which to listen for incoming telnet connections 
@@ -668,6 +680,40 @@ stellaris flash plugin only require the @var{target#}.
 
 @b{flash bank stm32x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
 stm32x flash plugin only require the @var{target#}. 
+
+@node Target library
+@chapter Target library
+@cindex Target library
+
+OpenOCD comes with a target configuration script library. These scripts can be
+used as-is or serve as a starting point.
+
+The target library is published together with the openocd executable and 
+the path to the target library is in the OpenOCD script search path.
+Similarly there are example scripts for configuring the JTAG interface. 
+
+The command line below uses the example parport configuration scripts
+that ships with OpenOCD, then configures the str710.cfg target and
+finally issues the init and reset command. The communication speed
+is set to 10kHz for reset and 8MHz for post reset.
+
+
+@smallexample
+openocd -f interface/parport.cfg -c "jtag_khz 10 8000" -f target/str710.cfg -c "init" -c "reset"
+@end smallexample
+
+
+To list the target scripts available:
+
+@smallexample
+$ ls  /usr/local/lib/openocd/target
+
+arm7_fast.cfg    lm3s6965.cfg  pxa255.cfg      stm32.cfg   xba_revA3.cfg
+at91eb40a.cfg    lpc2148.cfg   pxa255_sst.cfg  str710.cfg  zy1000.cfg
+at91r40008.cfg   lpc2294.cfg   sam7s256.cfg    str912.cfg
+at91sam9260.cfg  nslu2.cfg     sam7x256.cfg    wi-9c.cfg
+@end smallexample
+
 
 @node Commands
 @chapter Commands
