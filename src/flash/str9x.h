@@ -26,6 +26,8 @@
 typedef struct str9x_flash_bank_s
 {
 	u32 *sector_bits;
+	int variant;
+	int bank1;
 	working_area_t *write_algorithm;
 } str9x_flash_bank_t;
 
@@ -54,12 +56,6 @@ enum str9x_status_codes
 #define FLASH_CR		0x54000018		/* Control Register                       */
 #define FLASH_SR		0x5400001C		/* Status Register                        */
 #define FLASH_BCE5ADDR	0x54000020		/* BC Fifth Entry Target Address Register */
-
-typedef struct str9x_mem_layout_s {
-	u32 sector_start;
-	u32 sector_size;
-	u32 sector_bit;
-} str9x_mem_layout_t;
 
 #endif /* STR9X_H */
 

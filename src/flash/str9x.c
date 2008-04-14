@@ -36,24 +36,6 @@
 #include <string.h>
 #include <unistd.h>
 
-str9x_mem_layout_t mem_layout_str9bank0[] = {
-	{0x00000000, 0x10000, 0x01},
-	{0x00010000, 0x10000, 0x02},
-	{0x00020000, 0x10000, 0x04},
-	{0x00030000, 0x10000, 0x08},
-	{0x00040000, 0x10000, 0x10},
-	{0x00050000, 0x10000, 0x20},
-	{0x00060000, 0x10000, 0x40},
-	{0x00070000, 0x10000, 0x80},
-};
-
-str9x_mem_layout_t mem_layout_str9bank1[] = {
-	{0x00000000, 0x02000, 0x100},
-	{0x00002000, 0x02000, 0x200},
-	{0x00004000, 0x02000, 0x400},
-	{0x00006000, 0x02000, 0x800}
-};
-
 static u32 bank1start = 0x00080000;
 
 int str9x_register_commands(struct command_context_s *cmd_ctx);
@@ -98,9 +80,14 @@ int str9x_build_block_list(struct flash_bank_s *bank)
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
 	
 	int i;
-	int num_sectors = 0;
+	int num_sectors;
 	int b0_sectors = 0, b1_sectors = 0;
-		
+	u32 offset = 0;
+	
+	/* set if we have large flash str9 */
+	str9x_info->variant = 0;
+	str9x_info->bank1 = 0;
+	
 	switch (bank->size)
 	{
 		case (256 * 1024):
@@ -109,7 +96,24 @@ int str9x_build_block_list(struct flash_bank_s *bank)
 		case (512 * 1024):
 			b0_sectors = 8;
 			break;
+		case (1024 * 1024):
+			bank1start = 0x00100000;
+			str9x_info->variant = 1;
+			b0_sectors = 16;
+			break;
+		case (2048 * 1024):
+			bank1start = 0x00200000;
+			str9x_info->variant = 1;
+			b0_sectors = 32;
+			break;
+		case (128 * 1024):
+			str9x_info->variant = 1;
+			str9x_info->bank1 = 1;
+			b1_sectors = 8;
+			bank1start = bank->base;
+			break;
 		case (32 * 1024):
+			str9x_info->bank1 = 1;
 			b1_sectors = 4;
 			bank1start = bank->base;
 			break;
@@ -128,20 +132,25 @@ int str9x_build_block_list(struct flash_bank_s *bank)
 	
 	for (i = 0; i < b0_sectors; i++)
 	{
-		bank->sectors[num_sectors].offset = mem_layout_str9bank0[i].sector_start;
-		bank->sectors[num_sectors].size = mem_layout_str9bank0[i].sector_size;
+		bank->sectors[num_sectors].offset = offset;
+		bank->sectors[num_sectors].size = 0x10000;
+		offset += bank->sectors[i].size;
 		bank->sectors[num_sectors].is_erased = -1;
 		bank->sectors[num_sectors].is_protected = 1;
-		str9x_info->sector_bits[num_sectors++] = mem_layout_str9bank0[i].sector_bit;
+		str9x_info->sector_bits[num_sectors++] = (1<<i);
 	}
 
 	for (i = 0; i < b1_sectors; i++)
 	{
-		bank->sectors[num_sectors].offset = mem_layout_str9bank1[i].sector_start;
-		bank->sectors[num_sectors].size = mem_layout_str9bank1[i].sector_size;
+		bank->sectors[num_sectors].offset = offset;
+		bank->sectors[num_sectors].size = str9x_info->variant == 0 ? 0x2000 : 0x4000;
+		offset += bank->sectors[i].size;
 		bank->sectors[num_sectors].is_erased = -1;
 		bank->sectors[num_sectors].is_protected = 1;
-		str9x_info->sector_bits[num_sectors++] = mem_layout_str9bank1[i].sector_bit;
+		if (str9x_info->variant)
+			str9x_info->sector_bits[num_sectors++] = (1<<i);
+		else
+			str9x_info->sector_bits[num_sectors++] = (1<<(i+8));
 	}
 	
 	return ERROR_OK;
@@ -176,7 +185,7 @@ int str9x_protect_check(struct flash_bank_s *bank)
 	
 	int i;
 	u32 adr;
-	u16 status;
+	u32 status = 0;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -185,10 +194,28 @@ int str9x_protect_check(struct flash_bank_s *bank)
 
 	/* read level one protection */
 	
-	adr = bank1start + 0x10;
+	if (str9x_info->variant)
+	{
+		if (str9x_info->bank1)
+		{
+			adr = bank1start + 0x18;
+			target_write_u16(target, adr, 0x90);
+			target_read_u16(target, adr, (u16*)&status);
+		}
+		else
+		{
+			adr = bank1start + 0x14;
+			target_write_u16(target, adr, 0x90);
+			target_read_u32(target, adr, &status);
+		}
+	}
+	else
+	{
+		adr = bank1start + 0x10;
+		target_write_u16(target, adr, 0x90);
+		target_read_u16(target, adr, (u16*)&status);
+	}
 	
-	target_write_u16(target, adr, 0x90);
-	target_read_u16(target, adr, &status);
 	target_write_u16(target, adr, 0xFF);
 	
 	for (i = 0; i < bank->num_sectors; i++)

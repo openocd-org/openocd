@@ -25,11 +25,10 @@
 
 typedef struct str7x_flash_bank_s
 {
-	int bank1;
-	u32 *sector_bank;
 	u32 *sector_bits;
 	u32 disable_bit;
 	u32 busy_bits;
+	u32 register_base;
 	working_area_t *write_algorithm;
 } str7x_flash_bank_t;
 
@@ -51,15 +50,15 @@ enum str7x_status_codes
 
 /*  Flash registers */
 
-#define FLASH_CR0		0x00100000
-#define FLASH_CR1		0x00100004
-#define FLASH_DR0		0x00100008
-#define FLASH_DR1		0x0010000C
-#define FLASH_AR		0x00100010
-#define FLASH_ER		0x00100014
-#define FLASH_NVWPAR	0x0010DFB0
-#define FLASH_NVAPR0 	0x0010DFB8
-#define FLASH_NVAPR1 	0x0010DFBC
+#define FLASH_CR0		0x00000000
+#define FLASH_CR1		0x00000004
+#define FLASH_DR0		0x00000008
+#define FLASH_DR1		0x0000000C
+#define FLASH_AR		0x00000010
+#define FLASH_ER		0x00000014
+#define FLASH_NVWPAR	0x0000DFB0
+#define FLASH_NVAPR0 	0x0000DFB8
+#define FLASH_NVAPR1 	0x0000DFBC
 
 /* FLASH_CR0 register bits */
 

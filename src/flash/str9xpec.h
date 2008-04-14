@@ -66,12 +66,6 @@ enum str9xpec_status_codes
 #define ISC_STATUS_BUSY			0x04
 #define ISC_STATUS_ERROR		0x03
 
-typedef struct mem_layout_str9pec {
-	u32 sector_start;
-	u32 sector_size;
-	u32 sector_bit;
-} str9xpec_mem_layout_t;
-
 /* Option bytes definitions */
 
 #define STR9XPEC_OPT_CSMAPBIT		48

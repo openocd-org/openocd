@@ -37,21 +37,6 @@
 #include <unistd.h>
 #include <getopt.h>
 
-str9xpec_mem_layout_t mem_layout_str9pec[] = {
-	{0x00000000, 0x10000, 0},
-	{0x00010000, 0x10000, 1},
-	{0x00020000, 0x10000, 2},
-	{0x00030000, 0x10000, 3},
-	{0x00040000, 0x10000, 4},
-	{0x00050000, 0x10000, 5},
-	{0x00060000, 0x10000, 6},
-	{0x00070000, 0x10000, 7},
-	{0x00080000, 0x02000, 32},
-	{0x00082000, 0x02000, 33},
-	{0x00084000, 0x02000, 34},
-	{0x00086000, 0x02000, 35}
-};
-
 int str9xpec_register_commands(struct command_context_s *cmd_ctx);
 int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 int str9xpec_erase(struct flash_bank_s *bank, int first, int last);
@@ -279,8 +264,11 @@ int str9xpec_build_block_list(struct flash_bank_s *bank)
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 	
 	int i;
-	int num_sectors = 0, b0_sectors = 0;
-		
+	int num_sectors;
+	int b0_sectors = 0, b1_sectors = 0;
+	u32 offset = 0;
+	int b1_size = 0x2000;
+	
 	switch (bank->size)
 	{
 		case (256 * 1024):
@@ -289,14 +277,25 @@ int str9xpec_build_block_list(struct flash_bank_s *bank)
 		case (512 * 1024):
 			b0_sectors = 8;
 			break;
+		case (1024 * 1024):
+			b0_sectors = 16;
+			break;
+		case (2048 * 1024):
+			b0_sectors = 32;
+			break;
+		case (128 * 1024):
+			b1_size = 0x4000;
+			b1_sectors = 8;
+			break;
+		case (32 * 1024):
+			b1_sectors = 4;
+			break;
 		default:
 			LOG_ERROR("BUG: unknown bank->size encountered");
 			exit(-1);
 	}
 	
-	/* include bank 1 sectors */
-	num_sectors = b0_sectors + 4;
-	bank->size += (32 * 1024);
+	num_sectors = b0_sectors + b1_sectors;
 	
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
@@ -306,22 +305,24 @@ int str9xpec_build_block_list(struct flash_bank_s *bank)
 	
 	for (i = 0; i < b0_sectors; i++)
 	{
-		bank->sectors[num_sectors].offset = mem_layout_str9pec[i].sector_start;
-		bank->sectors[num_sectors].size = mem_layout_str9pec[i].sector_size;
+		bank->sectors[num_sectors].offset = offset;
+		bank->sectors[num_sectors].size = 0x10000;
+		offset += bank->sectors[i].size;
 		bank->sectors[num_sectors].is_erased = -1;
 		bank->sectors[num_sectors].is_protected = 1;
-		str9xpec_info->sector_bits[num_sectors++] = mem_layout_str9pec[i].sector_bit;
+		str9xpec_info->sector_bits[num_sectors++] = i;
 	}
-	
-	for (i = 8; i < 12; i++)
+
+	for (i = 0; i < b1_sectors; i++)
 	{
-		bank->sectors[num_sectors].offset = mem_layout_str9pec[i].sector_start;
-		bank->sectors[num_sectors].size = mem_layout_str9pec[i].sector_size;
+		bank->sectors[num_sectors].offset = offset;
+		bank->sectors[num_sectors].size = b1_size;
+		offset += bank->sectors[i].size;
 		bank->sectors[num_sectors].is_erased = -1;
 		bank->sectors[num_sectors].is_protected = 1;
-		str9xpec_info->sector_bits[num_sectors++] = mem_layout_str9pec[i].sector_bit;
+		str9xpec_info->sector_bits[num_sectors++] = i + 32;
 	}
-	
+		
 	return ERROR_OK;
 }
 
@@ -343,12 +344,6 @@ int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	str9xpec_info = malloc(sizeof(str9xpec_flash_controller_t));
 	bank->driver_priv = str9xpec_info;
 	
-	if (bank->base != 0x00000000)
-	{
-		LOG_WARNING("overriding flash base address for STR91x device with 0x00000000");
-		bank->base = 0x00000000;
-	}
-
 	/* find out jtag position of flash controller
 	 * it is always after the arm966 core */
 	

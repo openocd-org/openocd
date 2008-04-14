@@ -35,7 +35,7 @@
 #include <string.h>
 #include <unistd.h>
 
-str7x_mem_layout_t mem_layout[] = {
+str7x_mem_layout_t mem_layout_str7bank0[] = {
 	{0x00000000, 0x02000, 0x01},
 	{0x00002000, 0x02000, 0x02},
 	{0x00004000, 0x02000, 0x04},
@@ -43,9 +43,12 @@ str7x_mem_layout_t mem_layout[] = {
 	{0x00008000, 0x08000, 0x10},
 	{0x00010000, 0x10000, 0x20},
 	{0x00020000, 0x10000, 0x40},
-	{0x00030000, 0x10000, 0x80},
-	{0x000C0000, 0x02000, 0x10000},
-	{0x000C2000, 0x02000, 0x20000},
+	{0x00030000, 0x10000, 0x80}
+};
+
+str7x_mem_layout_t mem_layout_str7bank1[] = {
+	{0x00000000, 0x02000, 0x10000},
+	{0x00002000, 0x02000, 0x20000}
 };
 
 int str7x_register_commands(struct command_context_s *cmd_ctx);
@@ -87,7 +90,8 @@ int str7x_register_commands(struct command_context_s *cmd_ctx)
 
 int str7x_get_flash_adr(struct flash_bank_s *bank, u32 reg)
 {
-	return (bank->base | reg);
+	str7x_flash_bank_t *str7x_info = bank->driver_priv;
+	return (str7x_info->register_base | reg);
 }
 
 int str7x_build_block_list(struct flash_bank_s *bank)
@@ -95,12 +99,13 @@ int str7x_build_block_list(struct flash_bank_s *bank)
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
 
 	int i;
-	int num_sectors = 0, b0_sectors = 0, b1_sectors = 0;
+	int num_sectors;
+	int b0_sectors = 0, b1_sectors = 0;
 		
 	switch (bank->size)
 	{
 		case 16 * 1024:
-			b0_sectors = 2;
+			b1_sectors = 2;
 			break;
 		case 64 * 1024:
 			b0_sectors = 5;
@@ -115,42 +120,31 @@ int str7x_build_block_list(struct flash_bank_s *bank)
 			LOG_ERROR("BUG: unknown bank->size encountered");
 			exit(-1);
 	}
-	
-	if( str7x_info->bank1 == 1 )
-	{
-		b1_sectors += 2;
-	}
-	
+		
 	num_sectors = b0_sectors + b1_sectors;
 	
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
 	str7x_info->sector_bits = malloc(sizeof(u32) * num_sectors);
-	str7x_info->sector_bank = malloc(sizeof(u32) * num_sectors);
 	
 	num_sectors = 0;
 	
 	for (i = 0; i < b0_sectors; i++)
 	{
-		bank->sectors[num_sectors].offset = mem_layout[i].sector_start;
-		bank->sectors[num_sectors].size = mem_layout[i].sector_size;
+		bank->sectors[num_sectors].offset = mem_layout_str7bank0[i].sector_start;
+		bank->sectors[num_sectors].size = mem_layout_str7bank0[i].sector_size;
 		bank->sectors[num_sectors].is_erased = -1;
 		bank->sectors[num_sectors].is_protected = 1;
-		str7x_info->sector_bank[num_sectors] = 0;
-		str7x_info->sector_bits[num_sectors++] = mem_layout[i].sector_bit;
+		str7x_info->sector_bits[num_sectors++] = mem_layout_str7bank0[i].sector_bit;
 	}
 	
-	if (b1_sectors)
+	for (i = 0; i < b1_sectors; i++)
 	{
-		for (i = 8; i < 10; i++)
-		{
-			bank->sectors[num_sectors].offset = mem_layout[i].sector_start;
-			bank->sectors[num_sectors].size = mem_layout[i].sector_size;
-			bank->sectors[num_sectors].is_erased = -1;
-			bank->sectors[num_sectors].is_protected = 1;
-			str7x_info->sector_bank[num_sectors] = 1;
-			str7x_info->sector_bits[num_sectors++] = mem_layout[i].sector_bit;
-		}
+		bank->sectors[num_sectors].offset = mem_layout_str7bank1[i].sector_start;
+		bank->sectors[num_sectors].size = mem_layout_str7bank1[i].sector_size;
+		bank->sectors[num_sectors].is_erased = -1;
+		bank->sectors[num_sectors].is_protected = 1;
+		str7x_info->sector_bits[num_sectors++] = mem_layout_str7bank1[i].sector_bit;
 	}
 	
 	return ERROR_OK;
@@ -172,38 +166,22 @@ int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	bank->driver_priv = str7x_info;
 	
 	/* set default bits for str71x flash */
-	str7x_info->bank1 = 1;
 	str7x_info->busy_bits = (FLASH_LOCK|FLASH_BSYA1|FLASH_BSYA0);
 	str7x_info->disable_bit = (1<<1);
 	
 	if (strcmp(args[6], "STR71x") == 0)
 	{
-		if (bank->base != 0x40000000)
-		{
-			LOG_WARNING("overriding flash base address for STR71x device with 0x40000000");
-			bank->base = 0x40000000;
-		}
+		str7x_info->register_base = 0x40100000;
 	}
 	else if (strcmp(args[6], "STR73x") == 0)
 	{
-		str7x_info->bank1 = 0;
+		str7x_info->register_base = 0x80100000;
 		str7x_info->busy_bits = (FLASH_LOCK|FLASH_BSYA0);
-		
-		if (bank->base != 0x80000000)
-		{
-			LOG_WARNING("overriding flash base address for STR73x device with 0x80000000");
-			bank->base = 0x80000000;
-		}
 	}
 	else if (strcmp(args[6], "STR75x") == 0)
 	{
+		str7x_info->register_base = 0x20100000;
 		str7x_info->disable_bit = (1<<0);
-		
-		if (bank->base != 0x20000000)
-		{
-			LOG_WARNING("overriding flash base address for STR75x device with 0x20000000");
-			bank->base = 0x20000000;
-		}
 	}
 	else
 	{
@@ -239,7 +217,6 @@ u32 str7x_result(struct flash_bank_s *bank)
 	return retval;
 }
 
-
 int str7x_protect_check(struct flash_bank_s *bank)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
@@ -274,7 +251,7 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 	int i;
 	u32 cmd;
 	u32 retval;
-	u32 b0_sectors = 0, b1_sectors = 0;
+	u32 sectors = 0;
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -283,70 +260,33 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 
 	for (i = first; i <= last; i++)
 	{
-		if (str7x_info->sector_bank[i] == 0)
-			b0_sectors |= str7x_info->sector_bits[i];
-		else if (str7x_info->sector_bank[i] == 1)
-			b1_sectors |= str7x_info->sector_bits[i];
-		else
-			LOG_ERROR("BUG: str7x_info->sector_bank[i] neither 0 nor 1 (%i)", str7x_info->sector_bank[i]);
+		sectors |= str7x_info->sector_bits[i];
 	}
 	
-	if (b0_sectors)
-	{
-		LOG_DEBUG("b0_sectors: 0x%x", b0_sectors);
-		
-		/* clear FLASH_ER register */	
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
-		
-		cmd = FLASH_SER;
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-		
-		cmd = b0_sectors;
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR1), cmd);
-		
-		cmd = FLASH_SER|FLASH_WMS;
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-		
-		while (((retval = str7x_status(bank)) & str7x_info->busy_bits)){
-			usleep(1000);
-		}
-		
-		retval = str7x_result(bank);
-		
-		if (retval)
-		{
-			LOG_ERROR("error erasing flash bank, FLASH_ER: 0x%x", retval);
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
+	LOG_DEBUG("sectors: 0x%x", sectors);
+	
+	/* clear FLASH_ER register */	
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
+	
+	cmd = FLASH_SER;
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	
+	cmd = sectors;
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR1), cmd);
+	
+	cmd = FLASH_SER|FLASH_WMS;
+	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
+	
+	while (((retval = str7x_status(bank)) & str7x_info->busy_bits)){
+		usleep(1000);
 	}
 	
-	if (b1_sectors)
+	retval = str7x_result(bank);
+	
+	if (retval)
 	{
-		LOG_DEBUG("b1_sectors: 0x%x", b1_sectors);
-		
-		/* clear FLASH_ER register */	
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
-		
-		cmd = FLASH_SER;
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-		
-		cmd = b1_sectors;
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR1), cmd);
-		
-		cmd = FLASH_SER|FLASH_WMS;
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-		
-		while (((retval = str7x_status(bank)) & str7x_info->busy_bits)){
-			usleep(1000);
-		}
-		
-		retval = str7x_result(bank);
-		
-		if (retval)
-		{
-			LOG_ERROR("error erasing flash bank, FLASH_ER: 0x%x", retval);
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
+		LOG_ERROR("error erasing flash bank, FLASH_ER: 0x%x", retval);
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
 	for (i = first; i <= last; i++)
