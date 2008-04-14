@@ -630,99 +630,52 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 	int retval;
 
 	int done_count = 0;
-	u8 output[4] = {0, 0, 0, 0};
-
-	scan_field_t fields[3];
-	u8 field0_out = 0x0;
-	u8 field0_check_value = 0x2;
-	u8 field0_check_mask = 0x6;
-	u8 field2 = 0x1;
-	u8 field2_check_value = 0x0;
-	u8 field2_check_mask = 0x1;
-
+	
 	jtag_add_end_state(TAP_RTI);
 
 	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgrx);
 
-	fields[0].device = xscale->jtag_info.chain_pos;
-	fields[0].num_bits = 3;
-	fields[0].out_value = &field0_out;
-	fields[0].out_mask = NULL;
-	fields[0].in_handler = NULL;
-	fields[0].in_value = NULL;
-	if (!xscale->fast_memory_access)
+	bits[0]=3;
+	t[0]=0;
+	bits[1]=32;
+	t[2]=1;
+	bits[2]=1;
+	int endianness = target->endianness;
+	while (done_count++ < count)
 	{
-		jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
-	}
-
-	fields[1].device = xscale->jtag_info.chain_pos;
-	fields[1].num_bits = 32;
-	fields[1].out_value = output;
-	fields[1].out_mask = NULL;
-	fields[1].in_value = NULL;
-	fields[1].in_handler = NULL;
-	fields[1].in_handler_priv = NULL;
-	fields[1].in_check_value = NULL;
-	fields[1].in_check_mask = NULL;
-
-
-
-	fields[2].device = xscale->jtag_info.chain_pos;
-	fields[2].num_bits = 1;
-	fields[2].out_value = &field2;
-	fields[2].out_mask = NULL;
-	fields[2].in_value = NULL;
-	fields[2].in_handler = NULL;
-	if (!xscale->fast_memory_access)
-	{
-		jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
-	}
-	
-	if (size==4)
-	{
-		bits[0]=3;
-		t[0]=0;
-		bits[1]=32;
-		t[2]=1;
-		bits[2]=1;
-		int endianness = target->endianness;
-		while (done_count++ < count)
+		switch (size)
 		{
-			switch (size)
+		case 4:
+			if (endianness == TARGET_LITTLE_ENDIAN)
 			{
-			case 4:
-				if (endianness == TARGET_LITTLE_ENDIAN)
-				{
-					t[1]=le_to_h_u32(buffer);
-				} else
-				{
-					t[1]=be_to_h_u32(buffer);
-				}
-				break;
-			case 2:
-				if (endianness == TARGET_LITTLE_ENDIAN)
-				{
-					t[1]=le_to_h_u16(buffer);
-				} else
-				{
-					t[1]=be_to_h_u16(buffer);
-				}
-				break;
-			case 1:
-				t[1]=buffer[0];
-				break;
-			default:
-				LOG_ERROR("BUG: size neither 4, 2 nor 1");
-				exit(-1);
+				t[1]=le_to_h_u32(buffer);
+			} else
+			{
+				t[1]=be_to_h_u32(buffer);
 			}
-			jtag_add_dr_out(xscale->jtag_info.chain_pos, 
-					3,
-					bits,
-					t,
-					TAP_RTI);
-			buffer += size;
+			break;
+		case 2:
+			if (endianness == TARGET_LITTLE_ENDIAN)
+			{
+				t[1]=le_to_h_u16(buffer);
+			} else
+			{
+				t[1]=be_to_h_u16(buffer);
+			}
+			break;
+		case 1:
+			t[1]=buffer[0];
+			break;
+		default:
+			LOG_ERROR("BUG: size neither 4, 2 nor 1");
+			exit(-1);
 		}
-		
+		jtag_add_dr_out(xscale->jtag_info.chain_pos, 
+				3,
+				bits,
+				t,
+				TAP_RTI);
+		buffer += size;
 	}
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -3139,8 +3092,6 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	xscale->armv4_5_mmu.has_tiny_pages = 1;
 	xscale->armv4_5_mmu.mmu_enabled = 0;
 	
-	xscale->fast_memory_access = 0;
-
 	return ERROR_OK;
 }
 
@@ -3739,41 +3690,6 @@ int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int a
 	return ERROR_OK;
 }
 
-int handle_xscale_fast_memory_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
-	
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
-	
-	if (argc == 1)
-	{
-		if (strcmp("enable", args[0]) == 0)
-		{
-			xscale->fast_memory_access = 1;
-		}
-		else if (strcmp("disable", args[0]) == 0)
-		{
-			xscale->fast_memory_access = 0;
-		}
-		else
-		{
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-	} else if (argc!=0)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-		
-	command_print(cmd_ctx, "fast memory access is %s", (xscale->fast_memory_access) ? "enabled" : "disabled");
-
-	return ERROR_OK;
-}
-
 int xscale_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *xscale_cmd;
@@ -3798,9 +3714,6 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_EXEC, "load image from <file> [base address]");
 
 	register_command(cmd_ctx, xscale_cmd, "cp15", xscale_handle_cp15, COMMAND_EXEC, "access coproc 15 <register> [value]");
-	register_command(cmd_ctx, xscale_cmd, "fast_memory_access", handle_xscale_fast_memory_access_command,
-		 COMMAND_ANY, "use fast memory accesses instead of slower but potentially unsafe slow accesses <enable|disable>");
-
 	
 	armv4_5_register_commands(cmd_ctx);
 
