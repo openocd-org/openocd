@@ -2434,6 +2434,12 @@ int handle_arm7_9_sw_bkpts_command(struct command_context_s *cmd_ctx, char *cmd,
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_ERROR("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");

@@ -54,7 +54,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-
+int feroceon_examine(struct command_context_s *cmd_ctx, struct target_s *target);
 int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
 int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
@@ -94,7 +94,7 @@ target_type_t feroceon_target =
 	.register_commands = arm926ejs_register_commands,
 	.target_command = feroceon_target_command,
 	.init_target = feroceon_init_target,
-	.examine = arm9tdmi_examine,
+	.examine = feroceon_examine,
 	.quit = feroceon_quit
 };
 
@@ -568,32 +568,7 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 
 int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-
 	arm9tdmi_init_target(cmd_ctx, target);
-
-	armv4_5 = target->arch_info;
-	arm7_9 = armv4_5->arch_info;
-
-	/* the COMMS_CTRL bits are all contiguous */
-	if (buf_get_u32(arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL].value, 2, 4) != 6)
-		LOG_ERROR("unexpected Feroceon EICE version signature");
-
-	arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].size = 6; 
-	arm7_9->eice_cache->reg_list[EICE_DBG_STAT].size = 5; 
-	arm7_9->has_monitor_mode = 1;
-
-	/* vector catch reg is not initialized on reset */
-	embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_VEC_CATCH], 0);
-
-	/* clear monitor mode, enable comparators */
-	embeddedice_read_reg(&arm7_9->eice_cache->reg_list[EICE_DBG_CTRL]);
-	jtag_execute_queue(); 
-	buf_set_u32(arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].value, 4, 1, 0);
-	buf_set_u32(arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].value, 5, 1, 0); 
-	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_DBG_CTRL]);
-
 	return ERROR_OK;
 }
 
@@ -658,5 +633,41 @@ int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	arm7_9->wp_available = 1; 
 	arm7_9->wp1_used = -1; 
 
+	return ERROR_OK;
+}
+
+
+int feroceon_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+{
+	int retval;
+
+	retval=feroceon_examine(cmd_ctx, target);
+	if (retval!=ERROR_OK)
+		return retval;
+			
+	armv4_5_common_t *armv4_5;
+	arm7_9_common_t *arm7_9;
+	
+	armv4_5 = target->arch_info;
+	arm7_9 = armv4_5->arch_info;
+	
+	/* the COMMS_CTRL bits are all contiguous */
+	if (buf_get_u32(arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL].value, 2, 4) != 6)
+		LOG_ERROR("unexpected Feroceon EICE version signature");
+	
+	arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].size = 6; 
+	arm7_9->eice_cache->reg_list[EICE_DBG_STAT].size = 5; 
+	arm7_9->has_monitor_mode = 1;
+	
+	/* vector catch reg is not initialized on reset */
+	embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_VEC_CATCH], 0);
+	
+	/* clear monitor mode, enable comparators */
+	embeddedice_read_reg(&arm7_9->eice_cache->reg_list[EICE_DBG_CTRL]);
+	jtag_execute_queue(); 
+	buf_set_u32(arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].value, 4, 1, 0);
+	buf_set_u32(arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].value, 5, 1, 0); 
+	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_DBG_CTRL]);
+	
 	return ERROR_OK;
 }
