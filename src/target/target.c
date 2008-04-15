@@ -896,6 +896,11 @@ int target_arch_state(struct target_s *target)
 int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer)
 {
 	int retval;
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 	
 	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x", size, address);
 	
@@ -960,7 +965,12 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer)
 {
 	int retval;
-	
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+
 	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x", size, address);
 	
 	if (((address % 2) == 0) && (size == 2))
@@ -1013,6 +1023,11 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 	int retval;
 	int i;
 	u32 checksum = 0;
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 	
 	if ((retval = target->type->checksum_memory(target, address,
 		size, &checksum)) == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
@@ -1050,6 +1065,11 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 int target_read_u32(struct target_s *target, u32 address, u32 *value)
 {
 	u8 value_buf[4];
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 
 	int retval = target->type->read_memory(target, address, 4, 1, value_buf);
 	
@@ -1070,7 +1090,12 @@ int target_read_u32(struct target_s *target, u32 address, u32 *value)
 int target_read_u16(struct target_s *target, u32 address, u16 *value)
 {
 	u8 value_buf[2];
-	
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+
 	int retval = target->type->read_memory(target, address, 2, 1, value_buf);
 	
 	if (retval == ERROR_OK)
@@ -1090,6 +1115,11 @@ int target_read_u16(struct target_s *target, u32 address, u16 *value)
 int target_read_u8(struct target_s *target, u32 address, u8 *value)
 {
 	int retval = target->type->read_memory(target, address, 1, 1, value);
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 
 	if (retval == ERROR_OK)
 	{
@@ -1108,6 +1138,11 @@ int target_write_u32(struct target_s *target, u32 address, u32 value)
 {
 	int retval;
 	u8 value_buf[4];
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
 
 	LOG_DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
 
@@ -1124,7 +1159,12 @@ int target_write_u16(struct target_s *target, u32 address, u16 value)
 {
 	int retval;
 	u8 value_buf[2];
-	
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+
 	LOG_DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
 
 	target_buffer_set_u16(target, value_buf, value);	
@@ -1139,7 +1179,12 @@ int target_write_u16(struct target_s *target, u32 address, u16 value)
 int target_write_u8(struct target_s *target, u32 address, u8 value)
 {
 	int retval;
-	
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+
 	LOG_DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, value);
 
 	if ((retval = target->type->read_memory(target, address, 1, 1, &value)) != ERROR_OK)
