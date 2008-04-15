@@ -132,6 +132,7 @@ typedef struct target_type_s
 	 */
 	int (*assert_reset)(struct target_s *target);
 	int (*deassert_reset)(struct target_s *target);
+	int (*soft_reset_halt_imp)(struct target_s *target);
 	int (*soft_reset_halt)(struct target_s *target);
 	
 	/* target register access for gdb.
@@ -149,7 +150,9 @@ typedef struct target_type_s
 	* size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 	* count: number of items of <size>
 	*/
+	int (*read_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 	int (*read_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+	int (*write_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 	int (*write_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 	
 	/* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
@@ -166,6 +169,7 @@ typedef struct target_type_s
 	int (*remove_watchpoint)(struct target_s *target, watchpoint_t *watchpoint);
 
 	/* target algorithm support */
+	int (*run_algorithm_imp)(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
 	int (*run_algorithm)(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
 	
 	int (*register_commands)(struct command_context_s *cmd_ctx);

@@ -489,6 +489,45 @@ int target_examine(struct command_context_s *cmd_ctx)
 	return retval;
 }
 
+static int target_write_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+{
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+	return target->type->write_memory_imp(target, address, size, count, buffer);
+}
+
+static int target_read_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+{
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+	return target->type->read_memory_imp(target, address, size, count, buffer);
+}
+
+static int target_soft_reset_halt_imp(struct target_s *target)
+{
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+	return target->type->soft_reset_halt_imp(target);
+}
+
+static int target_run_algorithm_imp(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
+{
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+	return target->type->run_algorithm_imp(target, num_mem_params, mem_params, num_reg_params, reg_param, entry_point, exit_point, timeout_ms, arch_info);
+}
 
 int target_init(struct command_context_s *cmd_ctx)
 {
@@ -513,6 +552,20 @@ int target_init(struct command_context_s *cmd_ctx)
 		{
 			target->type->virt2phys = default_virt2phys;
 		}
+		target->type->virt2phys = default_virt2phys;
+		/* a non-invasive way(in terms of patches) to add some code that
+		 * runs before the type->write/read_memory implementation
+		 */
+		target->type->write_memory_imp = target->type->write_memory;
+		target->type->write_memory = target_write_memory_imp;
+		target->type->read_memory_imp = target->type->read_memory;
+		target->type->read_memory = target_read_memory_imp;
+		target->type->soft_reset_halt_imp = target->type->soft_reset_halt;
+		target->type->soft_reset_halt = target_soft_reset_halt_imp;
+		target->type->run_algorithm_imp = target->type->run_algorithm;
+		target->type->run_algorithm = target_run_algorithm_imp;
+
+		
 		if (target->type->mmu == NULL)
 		{
 			target->type->mmu = default_mmu;
