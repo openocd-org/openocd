@@ -53,7 +53,6 @@ typedef struct arm7_9_common_s
 	int has_monitor_mode;
 	int has_vector_catch;
 	
-	int reinit_embeddedice;
 	int debug_entry_from_reset;
 	
 	struct working_area_s *dcc_working_area;
@@ -105,6 +104,7 @@ int arm7_9_poll(target_t *target);
 
 int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer);
 
+int arm7_9_setup(target_t *target);
 int arm7_9_assert_reset(target_t *target);
 int arm7_9_deassert_reset(target_t *target);
 int arm7_9_reset_request_halt(target_t *target);

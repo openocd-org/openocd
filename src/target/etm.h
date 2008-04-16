@@ -201,6 +201,7 @@ extern int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask);
 extern int etm_store_reg(reg_t *reg);
 extern int etm_set_reg(reg_t *reg, u32 value);
 extern int etm_set_reg_w_exec(reg_t *reg, u8 *buf);
+extern int etm_setup(target_t *target);
 
 int etm_register_commands(struct command_context_s *cmd_ctx);
 int etm_register_user_commands(struct command_context_s *cmd_ctx);

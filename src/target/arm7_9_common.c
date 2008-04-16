@@ -84,27 +84,17 @@ int arm7_9_reinit_embeddedice(target_t *target)
 		arm7_9_enable_sw_bkpts(target);
 	}
 	
-	arm7_9->reinit_embeddedice = 0;
-	
 	return ERROR_OK;
 }
 
-int arm7_9_jtag_callback(enum jtag_event event, void *priv)
+/* set things up after a reset / on startup */
+int arm7_9_setup(target_t *target)
 {
-	target_t *target = priv;
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	
-	/* a test-logic reset occured
+	/* a test-logic reset have occured
 	 * the EmbeddedICE registers have been reset
 	 * hardware breakpoints have been cleared
 	 */
-	if (event == JTAG_TRST_ASSERTED)
-	{
-		arm7_9->reinit_embeddedice = 1;
-	}
-	
-	return ERROR_OK;
+	return arm7_9_reinit_embeddedice(target);
 }
 
 int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p)
@@ -686,11 +676,6 @@ int arm7_9_poll(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
-	if (arm7_9->reinit_embeddedice)
-	{
-		arm7_9_reinit_embeddedice(target);
-	}
-	
 	/* read debug status register */
 	embeddedice_read_reg(dbg_stat);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -2635,16 +2620,12 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	arm7_9->has_monitor_mode = 0;
 	arm7_9->has_vector_catch = 0;
 	
-	arm7_9->reinit_embeddedice = 0;
-	
 	arm7_9->debug_entry_from_reset = 0;
 	
 	arm7_9->dcc_working_area = NULL;
 	
 	arm7_9->fast_memory_access = 0;
 	arm7_9->dcc_downloads = 0;
-
-	jtag_register_event_callback(arm7_9_jtag_callback, target);
 
 	armv4_5->arch_info = arm7_9;
 	armv4_5->read_core_reg = arm7_9_read_core_reg;

@@ -769,6 +769,8 @@ int arm7tdmi_examine(struct command_context_s *cmd_ctx, struct target_s *target)
 	}
 	if ((retval=embeddedice_setup(target))!=ERROR_OK)
 		return retval;
+	if ((retval=arm7_9_setup(target))!=ERROR_OK)
+		return retval;
 	if (arm7_9->etm_ctx)
 	{
 		if ((retval=etm_setup(target))!=ERROR_OK)
