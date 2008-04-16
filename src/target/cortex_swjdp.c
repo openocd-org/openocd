@@ -941,6 +941,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	u32 idreg, romaddr, dummy;
 	u32 ctrlstat;
 	int cnt = 0;
+	int retval;
 	
 	LOG_DEBUG(" ");
 	
@@ -955,14 +956,16 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 
 	swjdp_write_dpacc(swjdp, swjdp->dp_ctrl_stat, DP_CTRL_STAT);
 	swjdp_read_dpacc(swjdp, &ctrlstat, DP_CTRL_STAT);
-	jtag_execute_queue();
+	if ((retval=jtag_execute_queue())!=ERROR_OK)
+		return retval;
 
 	/* Check that we have debug power domains activated */
 	while (!(ctrlstat & CDBGPWRUPACK) && (cnt++ < 10))
 	{
 		LOG_DEBUG("swjdp: wait CDBGPWRUPACK");
 		swjdp_read_dpacc(swjdp, &ctrlstat, DP_CTRL_STAT);
-		jtag_execute_queue();
+		if ((retval=jtag_execute_queue())!=ERROR_OK)
+			return retval;
 		usleep(10000);
 	}
 
@@ -970,7 +973,8 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	{
 		LOG_DEBUG("swjdp: wait CSYSPWRUPACK");
 		swjdp_read_dpacc(swjdp, &ctrlstat, DP_CTRL_STAT);
-		jtag_execute_queue();
+		if ((retval=jtag_execute_queue())!=ERROR_OK)
+			return retval;
 		usleep(10000);
 	}
 

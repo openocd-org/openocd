@@ -51,6 +51,7 @@ int cortex_m3_quit();
 int cortex_m3_load_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 *value);
 int cortex_m3_store_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 value);
 int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer);
+int cortex_m3_examine(struct command_context_s *cmd_ctx, struct target_s *target);
 
 target_type_t cortexm3_target =
 {
@@ -86,6 +87,7 @@ target_type_t cortexm3_target =
 	.register_commands = cortex_m3_register_commands,
 	.target_command = cortex_m3_target_command,
 	.init_target = cortex_m3_init_target,
+	.examine = cortex_m3_examine,
 	.quit = cortex_m3_quit
 };
 
@@ -1227,6 +1229,13 @@ void cortex_m3_build_reg_cache(target_t *target)
 
 int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
+	cortex_m3_build_reg_cache(target);
+	return ERROR_OK;
+}
+
+int cortex_m3_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+{
+	int retval;
 	u32 cpuid, fpcr, dwtcr, ictr;
 	int i;
 	
@@ -1234,12 +1243,16 @@ int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	
+	target->type->examined = 1;
 
-	cortex_m3_build_reg_cache(target);
-	ahbap_debugport_init(swjdp);
+	if ((retval=ahbap_debugport_init(swjdp))!=ERROR_OK)
+		return retval;
 
 	/* Read from Device Identification Registers */
-	target_read_u32(target, CPUID, &cpuid);
+	if ((retval=target_read_u32(target, CPUID, &cpuid))!=ERROR_OK)
+		return retval;
+	
 	if (((cpuid >> 4) & 0xc3f) == 0xc23)
 		LOG_DEBUG("CORTEX-M3 processor detected");
 	LOG_DEBUG("cpuid: 0x%8.8x", cpuid);
@@ -1279,6 +1292,7 @@ int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 	
 	return ERROR_OK;
 }
+
 
 int cortex_m3_quit()
 {
