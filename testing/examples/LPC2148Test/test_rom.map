@@ -1,0 +1,170 @@
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+rom              0x00000000         0x00080000
+ram              0x40000000         0x00008000
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD ./src/crt.o
+LOAD ./src/main.o
+START GROUP
+LOAD d:/compiler/yagarto/bin/../lib/gcc/arm-elf/4.2.2\libgcc.a
+LOAD d:/compiler/yagarto/bin/../lib/gcc/arm-elf/4.2.2/../../../../arm-elf/lib\libc.a
+END GROUP
+                0x00000100                FIQ_STACK_SIZE = 0x100
+                0x00000100                IRQ_STACK_SIZE = 0x100
+                0x00000100                ABT_STACK_SIZE = 0x100
+                0x00000100                UND_STACK_SIZE = 0x100
+                0x00000400                SVC_STACK_SIZE = 0x400
+
+.text           0x00000000      0x16c
+ *(.vectors)
+ .vectors       0x00000000       0x40 ./src/crt.o
+                0x00000040                . = ALIGN (0x4)
+ *(.init)
+ .init          0x00000040       0xc8 ./src/crt.o
+                0x000000e4                FIQHandler
+                0x000000d8                PAbortHandler
+                0x000000c0                ExitFunction
+                0x00000040                ResetHandler
+                0x000000dc                DAbortHandler
+                0x000000e0                IRQHandler
+                0x000000d0                UndefHandler
+                0x00000108                . = ALIGN (0x4)
+ *(.text)
+ .text          0x00000108        0x0 ./src/crt.o
+ .text          0x00000108       0x60 ./src/main.o
+                0x00000108                main
+                0x00000168                . = ALIGN (0x4)
+ *(.rodata)
+ .rodata        0x00000168        0x4 ./src/main.o
+                0x0000016c                . = ALIGN (0x4)
+ *(.rodata*)
+                0x0000016c                . = ALIGN (0x4)
+ *(.glue_7t)
+ .glue_7t       0x0000016c        0x0 ./src/crt.o
+ .glue_7t       0x0000016c        0x0 ./src/main.o
+                0x0000016c                . = ALIGN (0x4)
+ *(.glue_7)
+ .glue_7        0x0000016c        0x0 ./src/crt.o
+ .glue_7        0x0000016c        0x0 ./src/main.o
+                0x0000016c                . = ALIGN (0x4)
+                0x0000016c                etext = .
+
+.vfp11_veneer   0x00000000        0x0
+ .vfp11_veneer  0x00000000        0x0 ./src/crt.o
+ .vfp11_veneer  0x00000000        0x0 ./src/main.o
+
+.data           0x40000000        0x0
+                0x40000000                PROVIDE (__data_start, .)
+ *(.data)
+ .data          0x40000000        0x0 ./src/crt.o
+ .data          0x40000000        0x0 ./src/main.o
+                0x40000000                . = ALIGN (0x4)
+                0x40000000                edata = .
+                0x40000000                _edata = .
+                0x40000000                PROVIDE (__data_end, .)
+
+.bss            0x40000000      0x800
+                0x40000000                PROVIDE (__bss_start, .)
+ *(.bss)
+ .bss           0x40000000        0x0 ./src/crt.o
+ .bss           0x40000000        0x0 ./src/main.o
+ *(COMMON)
+                0x40000000                . = ALIGN (0x4)
+                0x40000000                PROVIDE (__bss_end, .)
+                0x40000000                . = ALIGN (0x100)
+                0x40000000                PROVIDE (__stack_start, .)
+                0x40000000                PROVIDE (__stack_fiq_start, .)
+                0x40000100                . = (. + FIQ_STACK_SIZE)
+ *fill*         0x40000000      0x100 00
+                0x40000100                . = ALIGN (0x4)
+                0x40000100                PROVIDE (__stack_fiq_end, .)
+                0x40000100                PROVIDE (__stack_irq_start, .)
+                0x40000200                . = (. + IRQ_STACK_SIZE)
+ *fill*         0x40000100      0x100 00
+                0x40000200                . = ALIGN (0x4)
+                0x40000200                PROVIDE (__stack_irq_end, .)
+                0x40000200                PROVIDE (__stack_abt_start, .)
+                0x40000300                . = (. + ABT_STACK_SIZE)
+ *fill*         0x40000200      0x100 00
+                0x40000300                . = ALIGN (0x4)
+                0x40000300                PROVIDE (__stack_abt_end, .)
+                0x40000300                PROVIDE (__stack_und_start, .)
+                0x40000400                . = (. + UND_STACK_SIZE)
+ *fill*         0x40000300      0x100 00
+                0x40000400                . = ALIGN (0x4)
+                0x40000400                PROVIDE (__stack_und_end, .)
+                0x40000400                PROVIDE (__stack_svc_start, .)
+                0x40000800                . = (. + SVC_STACK_SIZE)
+ *fill*         0x40000400      0x400 00
+                0x40000800                . = ALIGN (0x4)
+                0x40000800                PROVIDE (__stack_svc_end, .)
+                0x40000800                PROVIDE (__stack_end, .)
+                0x40000800                PROVIDE (__heap_start, .)
+OUTPUT(test_rom.elf elf32-littlearm)
+
+.ARM.attributes
+                0x00000000       0x10
+ .ARM.attributes
+                0x00000000       0x10 ./src/crt.o
+ .ARM.attributes
+                0x00000010       0x10 ./src/main.o
+
+.debug_line     0x00000000       0xd0
+ .debug_line    0x00000000       0x79 ./src/crt.o
+ .debug_line    0x00000079       0x57 ./src/main.o
+
+.debug_info     0x00000000      0x202
+ .debug_info    0x00000000       0x74 ./src/crt.o
+ .debug_info    0x00000074      0x18e ./src/main.o
+
+.debug_abbrev   0x00000000       0x76
+ .debug_abbrev  0x00000000       0x12 ./src/crt.o
+ .debug_abbrev  0x00000012       0x64 ./src/main.o
+
+.debug_aranges  0x00000000       0x48
+ .debug_aranges
+                0x00000000       0x28 ./src/crt.o
+ .debug_aranges
+                0x00000028       0x20 ./src/main.o
+
+.debug_ranges   0x00000000       0x20
+ .debug_ranges  0x00000000       0x20 ./src/crt.o
+
+.debug_frame    0x00000000       0x24
+ .debug_frame   0x00000000       0x24 ./src/main.o
+
+.debug_loc      0x00000000       0x1f
+ .debug_loc     0x00000000       0x1f ./src/main.o
+
+.debug_pubnames
+                0x00000000       0x1b
+ .debug_pubnames
+                0x00000000       0x1b ./src/main.o
+
+.comment        0x00000000       0x12
+ .comment       0x00000000       0x12 ./src/main.o
+
+Cross Reference Table
+
+Symbol                                            File
+DAbortHandler                                     ./src/crt.o
+ExitFunction                                      ./src/crt.o
+FIQHandler                                        ./src/crt.o
+IRQHandler                                        ./src/crt.o
+PAbortHandler                                     ./src/crt.o
+ResetHandler                                      ./src/crt.o
+UndefHandler                                      ./src/crt.o
+__bss_end                                         ./src/crt.o
+__bss_start                                       ./src/crt.o
+__stack_abt_end                                   ./src/crt.o
+__stack_fiq_end                                   ./src/crt.o
+__stack_irq_end                                   ./src/crt.o
+__stack_svc_end                                   ./src/crt.o
+__stack_und_end                                   ./src/crt.o
+main                                              ./src/main.o
+                                                  ./src/crt.o

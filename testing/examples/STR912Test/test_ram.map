@@ -1,0 +1,255 @@
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+DATA             0x04000000         0x00018000         rw
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD ./src/startup.o
+LOAD ./src/main.o
+START GROUP
+LOAD d:/compiler/yagarto/bin/../lib/gcc/arm-elf/4.2.2\libgcc.a
+LOAD d:/compiler/yagarto/bin/../lib/gcc/arm-elf/4.2.2/../../../../arm-elf/lib\libc.a
+END GROUP
+                0x00000400                _STACKSIZE = 0x400
+                0x00000100                _STACKSIZE_IRQ = 0x100
+                0x00000000                _STACKSIZE_FIQ = 0x0
+                0x00000400                _STACKSIZE_SVC = 0x400
+                0x00000000                _STACKSIZE_ABT = 0x0
+                0x00000000                _STACKSIZE_UND = 0x0
+                0x00000400                _HEAPSIZE = 0x400
+
+.text           0x04000000      0x1a0
+ *(.vectors)
+ *(.init)
+ .init          0x04000000      0x140 ./src/startup.o
+                0x040000fc                _Main_Crystal
+                0x04000000                _start
+                0x040000f8                libdebug
+ *(.text .text.*)
+ .text          0x04000140        0x0 ./src/startup.o
+ .text          0x04000140       0x60 ./src/main.o
+                0x04000140                main
+ *(.gnu.linkonce.t.*)
+ *(.glue_7t .glue_7)
+ .glue_7        0x040001a0        0x0 ./src/startup.o
+ .glue_7t       0x040001a0        0x0 ./src/startup.o
+ .glue_7        0x040001a0        0x0 ./src/main.o
+ .glue_7t       0x040001a0        0x0 ./src/main.o
+ *(.fini)
+ *(.gcc_except_table)
+
+.vfp11_veneer   0x040001a0        0x0
+ .vfp11_veneer  0x040001a0        0x0 ./src/startup.o
+ .vfp11_veneer  0x040001a0        0x0 ./src/main.o
+                0x040001a0                . = ALIGN (0x4)
+
+.ctors          0x040001a0        0x0
+                0x040001a0                PROVIDE (__ctors_start__, .)
+ *(SORT(.ctors.*))
+ *(.ctors)
+                0x040001a0                PROVIDE (__ctors_end__, .)
+
+.dtors          0x040001a0        0x0
+                0x040001a0                PROVIDE (__dtors_start__, .)
+ *(SORT(.dtors.*))
+ *(.dtors)
+                0x040001a0                PROVIDE (__dtors_end__, .)
+
+.rodata         0x040001a0        0x4
+ *(.rodata .rodata.*)
+ .rodata        0x040001a0        0x4 ./src/main.o
+ *(.gnu.linkonce.r.*)
+                0x040001a4                . = ALIGN (0x4)
+                0x040001a4                _etext = .
+                0x040001a4                PROVIDE (etext, .)
+
+.data           0x040001a4        0x0
+ *(.data .data.*)
+ .data          0x040001a4        0x0 ./src/startup.o
+ .data          0x040001a4        0x0 ./src/main.o
+ *(.gnu.linkonce.d.*)
+                0x040001a4                . = ALIGN (0x4)
+                0x040001a4                __data_start = .
+                0x040001a4                _edata = .
+                0x040001a4                PROVIDE (edata, .)
+
+.bss            0x040001a4        0x0
+                0x040001a4                __bss_start = .
+                0x040001a4                __bss_start__ = .
+ *(.bss .bss.*)
+ .bss           0x040001a4        0x0 ./src/startup.o
+ .bss           0x040001a4        0x0 ./src/main.o
+ *(.gnu.linkonce.b.*)
+ *(COMMON)
+                0x040001a4                . = ALIGN (0x4)
+                0x040001a4                . = ALIGN (0x4)
+                0x040001a4                __bss_end__ = .
+                0x040001a4                _end = .
+                0x040001a4                PROVIDE (end, .)
+
+.heap           0x040001a4      0x400
+                0x040001a4                __heap_start__ = .
+ *(.heap)
+                0x040005a4                . = ((__heap_start__ + _HEAPSIZE) MAX_K .)
+ *fill*         0x040001a4      0x400 00
+                0x040005a4                __heap_end__ = (__heap_start__ + SIZEOF (.heap))
+
+.stack          0x040005a4      0x400
+                0x040005a4                __stack_start__ = .
+ *(.stack)
+                0x040009a4                . = ((__stack_start__ + _STACKSIZE) MAX_K .)
+ *fill*         0x040005a4      0x400 00
+                0x040009a4                __stack_end__ = (__stack_start__ + SIZEOF (.stack))
+
+.stack_irq      0x040009a4      0x100
+                0x040009a4                __stack_irq_start__ = .
+ *(.stack_irq)
+                0x04000aa4                . = ((__stack_irq_start__ + _STACKSIZE_IRQ) MAX_K .)
+ *fill*         0x040009a4      0x100 00
+                0x04000aa4                __stack_irq_end__ = (__stack_irq_start__ + SIZEOF (.stack_irq))
+
+.stack_fiq      0x04000aa4        0x0
+                0x04000aa4                __stack_fiq_start__ = .
+ *(.stack_fiq)
+                0x04000aa4                . = ((__stack_fiq_start__ + _STACKSIZE_FIQ) MAX_K .)
+                0x04000aa4                __stack_fiq_end__ = (__stack_fiq_start__ + SIZEOF (.stack_fiq))
+
+.stack_svc      0x04000aa4      0x400
+                0x04000aa4                __stack_svc_start__ = .
+ *(.stack_svc)
+                0x04000ea4                . = ((__stack_svc_start__ + _STACKSIZE_SVC) MAX_K .)
+ *fill*         0x04000aa4      0x400 00
+                0x04000ea4                __stack_svc_end__ = (__stack_svc_start__ + SIZEOF (.stack_svc))
+
+.stack_abt      0x04000ea4        0x0
+                0x04000ea4                __stack_abt_start__ = .
+ *(.stack_abt)
+                0x04000ea4                . = ((__stack_abt_start__ + _STACKSIZE_ABT) MAX_K .)
+                0x04000ea4                __stack_abt_end__ = (__stack_abt_start__ + SIZEOF (.stack_abt))
+
+.stack_und      0x04000ea4        0x0
+                0x04000ea4                __stack_und_start__ = .
+ *(.stack_und)
+                0x04000ea4                . = ((__stack_und_start__ + _STACKSIZE_UND) MAX_K .)
+                0x04000ea4                __stack_und_end__ = (__stack_und_start__ + SIZEOF (.stack_und))
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+
+.stab.excl
+ *(.stab.excl)
+
+.stab.exclstr
+ *(.stab.exclstr)
+
+.stab.index
+ *(.stab.index)
+
+.stab.indexstr
+ *(.stab.indexstr)
+
+.comment        0x00000000       0x12
+ *(.comment)
+ .comment       0x00000000       0x12 ./src/main.o
+
+.debug
+ *(.debug)
+
+.line
+ *(.line)
+
+.debug_srcinfo
+ *(.debug_srcinfo)
+
+.debug_sfnames
+ *(.debug_sfnames)
+
+.debug_aranges  0x00000000       0x40
+ *(.debug_aranges)
+ .debug_aranges
+                0x00000000       0x20 ./src/startup.o
+ .debug_aranges
+                0x00000020       0x20 ./src/main.o
+
+.debug_pubnames
+                0x00000000       0x1b
+ *(.debug_pubnames)
+ .debug_pubnames
+                0x00000000       0x1b ./src/main.o
+
+.debug_info     0x00000000      0x1ae
+ *(.debug_info .gnu.linkonce.wi.*)
+ .debug_info    0x00000000       0x7b ./src/startup.o
+ .debug_info    0x0000007b      0x133 ./src/main.o
+
+.debug_abbrev   0x00000000       0x6f
+ *(.debug_abbrev)
+ .debug_abbrev  0x00000000       0x14 ./src/startup.o
+ .debug_abbrev  0x00000014       0x5b ./src/main.o
+
+.debug_line     0x00000000       0xd7
+ *(.debug_line)
+ .debug_line    0x00000000       0x80 ./src/startup.o
+ .debug_line    0x00000080       0x57 ./src/main.o
+
+.debug_frame    0x00000000       0x24
+ *(.debug_frame)
+ .debug_frame   0x00000000       0x24 ./src/main.o
+
+.debug_str
+ *(.debug_str)
+
+.debug_loc      0x00000000       0x1f
+ *(.debug_loc)
+ .debug_loc     0x00000000       0x1f ./src/main.o
+
+.debug_macinfo
+ *(.debug_macinfo)
+
+.debug_weaknames
+ *(.debug_weaknames)
+
+.debug_funcnames
+ *(.debug_funcnames)
+
+.debug_typenames
+ *(.debug_typenames)
+
+.debug_varnames
+ *(.debug_varnames)
+OUTPUT(test_ram.elf elf32-littlearm)
+
+.ARM.attributes
+                0x00000000       0x10
+ .ARM.attributes
+                0x00000000       0x10 ./src/startup.o
+ .ARM.attributes
+                0x00000010       0x10 ./src/main.o
+
+Cross Reference Table
+
+Symbol                                            File
+_Main_Crystal                                     ./src/startup.o
+__bss_end__                                       ./src/startup.o
+__bss_start__                                     ./src/startup.o
+__ctors_end__                                     ./src/startup.o
+__ctors_start__                                   ./src/startup.o
+__data_start                                      ./src/startup.o
+__stack_abt_end__                                 ./src/startup.o
+__stack_end__                                     ./src/startup.o
+__stack_fiq_end__                                 ./src/startup.o
+__stack_irq_end__                                 ./src/startup.o
+__stack_svc_end__                                 ./src/startup.o
+__stack_und_end__                                 ./src/startup.o
+_edata                                            ./src/startup.o
+_etext                                            ./src/startup.o
+_start                                            ./src/startup.o
+libdebug                                          ./src/startup.o
+main                                              ./src/main.o
+                                                  ./src/startup.o
