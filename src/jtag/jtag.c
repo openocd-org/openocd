@@ -1523,7 +1523,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	jtag_device_t *device;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_DEBUG("Init JTAG chain");
 	
 	device = jtag_devices;
 	jtag_ir_scan_size = 0;
@@ -1536,7 +1536,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	}
 	
 	jtag_add_tlr();
-	if ((retval=jtag_execute_queue())==ERROR_OK)
+	if ((retval=jtag_execute_queue())!=ERROR_OK)
 		return retval;
 
 	/* examine chain first, as this could discover the real chain layout */
