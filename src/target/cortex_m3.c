@@ -749,7 +749,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		LOG_WARNING("breakpoint already set");
 		return ERROR_OK;
 	}
-
+    
 	if (cortex_m3->auto_bp_type)
 	{
 		breakpoint->type = (breakpoint->address < 0x20000000) ? BKPT_HARD : BKPT_SOFT;
@@ -831,10 +831,16 @@ int cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	
+
 	if (cortex_m3->auto_bp_type)
 	{
 		breakpoint->type = (breakpoint->address < 0x20000000) ? BKPT_HARD : BKPT_SOFT;
+        if (breakpoint->length != 2) {
+            // XXX Hack: Replace all breakpoints with length != 2 with
+            // a hardware breakpoint. 
+            breakpoint->type = BKPT_HARD;
+            breakpoint->length = 2;
+        }
 	}
 
 	if ((breakpoint->type == BKPT_HARD) && (breakpoint->address >= 0x20000000))
@@ -1104,6 +1110,14 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+
+    // If the LR register is being modified, make sure it will put us
+    // in "thumb" mode, or an INVSTATE exception will occur. This is a
+    // hack to deal with the fact that gdb will sometimes "forge"
+    // return addresses, and doesn't set the LSB correctly (i.e., when
+    // printing expressions containing function calls, it sets LR=0.)
+    if (num==14)
+        value |= 0x01;
 
 	if ((type == ARMV7M_REGISTER_CORE_GP) && (num <= ARMV7M_PSP))
 	{
@@ -1449,3 +1463,4 @@ int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 	
 	return retval;
 }
+
