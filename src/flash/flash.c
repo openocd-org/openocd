@@ -88,7 +88,8 @@ flash_driver_t *flash_drivers[] =
 
 flash_bank_t *flash_banks;
 static 	command_t *flash_cmd;
-static int auto_erase = 0;
+/* enabled by default*/
+static int auto_erase = 1;
 
 /* wafer thin wrapper for invoking the flash driver */
 static int flash_driver_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)

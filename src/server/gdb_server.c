@@ -63,8 +63,10 @@ enum gdb_detach_mode detach_mode = GDB_DETACH_RESUME;
 
 /* set if we are sending a memory map to gdb
  * via qXfer:memory-map:read packet */
-int gdb_use_memory_map = 0;
-int gdb_flash_program = 0;
+/* enabled by default*/
+int gdb_use_memory_map = 1;
+/* enabled by default*/
+int gdb_flash_program = 1;
 
 /* if set, data aborts cause an error to be reported in memory read packets
  * see the code in gdb_read_memory_packet() for further explanations */
