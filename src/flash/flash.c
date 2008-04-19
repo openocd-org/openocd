@@ -619,7 +619,7 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	/* flash auto-erase is disabled by default*/
 	int auto_erase = 0;
 	
-	if (stricmp(args[0], "erase")==0)
+	if (strcmp(args[0], "erase")==0)
 	{
 		auto_erase = 1;
 		args++;
