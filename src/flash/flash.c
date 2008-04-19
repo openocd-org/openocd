@@ -55,7 +55,6 @@ int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd
 int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);
 
 /* flash drivers
@@ -88,9 +87,6 @@ flash_driver_t *flash_drivers[] =
 
 flash_bank_t *flash_banks;
 static 	command_t *flash_cmd;
-
-/* flash auto-erase is disabled by default*/
-static int auto_erase = 0;
 
 /* wafer thin wrapper for invoking the flash driver */
 static int flash_driver_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
@@ -138,8 +134,6 @@ int flash_register_commands(struct command_context_s *cmd_ctx)
 	flash_cmd = register_command(cmd_ctx, NULL, "flash", NULL, COMMAND_ANY, NULL);
 
 	register_command(cmd_ctx, flash_cmd, "bank", handle_flash_bank_command, COMMAND_CONFIG, "flash_bank <driver> <base> <size> <chip_width> <bus_width> <target> [driver_options ...]");
-	register_command(cmd_ctx, flash_cmd, "auto_erase", handle_flash_auto_erase_command, COMMAND_ANY,
-						 "auto erase flash sectors <on|off>");
 	return ERROR_OK;
 }
 
@@ -172,7 +166,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 		register_command(cmd_ctx, flash_cmd, "write_bank", handle_flash_write_bank_command, COMMAND_EXEC,
 						 "write binary data to <bank> <file> <offset>");
 		register_command(cmd_ctx, flash_cmd, "write_image", handle_flash_write_image_command, COMMAND_EXEC,
-						 "write_image <file> [offset] [type]");
+						 "write_image [erase] <file> [offset] [type]");
 		register_command(cmd_ctx, flash_cmd, "protect", handle_flash_protect_command, COMMAND_EXEC,
 						 "set protection of sectors at <bank> <first> <last> <on|off>");
 	}
@@ -621,7 +615,24 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+	
+	/* flash auto-erase is disabled by default*/
+	int auto_erase = 0;
+	
+	if (stricmp(args[0], "erase")==0)
+	{
+		auto_erase = 1;
+		args++;
+		argc--;
+		command_print(cmd_ctx, "auto erase enabled");
+	}
+	
 
+	if (argc < 1)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	
 	if (!target)
 	{
 		LOG_ERROR("no target selected");
@@ -1051,24 +1062,6 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 
 	return retval;
 }
-
-int handle_flash_auto_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc != 1)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	if (strcmp(args[0], "on") == 0)
-		auto_erase = 1;
-	else if (strcmp(args[0], "off") == 0)
-		auto_erase = 0;
-	else
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	return ERROR_OK;
-}
-
 
 int default_flash_blank_check(struct flash_bank_s *bank)
 {
