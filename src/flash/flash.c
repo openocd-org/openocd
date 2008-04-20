@@ -69,6 +69,7 @@ extern flash_driver_t str9xpec_flash;
 extern flash_driver_t stm32x_flash;
 extern flash_driver_t tms470_flash;
 extern flash_driver_t ecosflash_flash;
+extern flash_driver_t lpc288x_flash;
 
 flash_driver_t *flash_drivers[] =
 {
@@ -82,6 +83,7 @@ flash_driver_t *flash_drivers[] =
 	&stm32x_flash,
 	&tms470_flash,
 	&ecosflash_flash,
+	&lpc288x_flash,
 	NULL,
 };
 
