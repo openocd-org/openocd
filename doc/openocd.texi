@@ -610,11 +610,6 @@ Supported variants are @option{ixp42x}, @option{ixp45x}, @option{ixp46x},
 @cindex flash bank
 Configures a flash bank at <@var{base}> of <@var{size}> bytes and <@var{chip_width}>
 and <@var{bus_width}> bytes using the selected flash <driver>.
-
-@item @b{flash auto_erase} <@option{on}|@option{off}>
-@cindex flash auto_erase
-auto erase flash banks prior to writing. Currently only works when using
-@option{flash write_image} command. Default is @option{off}.
 @end itemize
 
 @subsection lpc2000 options
@@ -884,20 +879,17 @@ Erase sectors starting at <@var{address}> for <@var{length}> number of bytes
 @cindex flash write_bank
 Write the binary <@var{file}> to flash bank <@var{num}>, starting at
 <@option{offset}> bytes from the beginning of the bank.
-@item @b{flash write_image} <@var{file}> [@var{offset}] [@var{type}]
+@item @b{flash write_image} [@var{erase}] <@var{file}> [@var{offset}] [@var{type}]
 @cindex flash write_image
 Write the image <@var{file}> to the current target's flash bank(s). A relocation
 [@var{offset}] can be specified and the file [@var{type}] can be specified
 explicitly as @option{bin} (binary), @option{ihex} (Intel hex), @option{elf}
-(ELF file) or @option{s19} (Motorola s19).
+(ELF file) or @option{s19} (Motorola s19). Flash memory will be erased prior to programming
+if the @option{erase} parameter is given.
 @item @b{flash protect} <@var{num}> <@var{first}> <@var{last}> <@option{on}|@option{off}>
 @cindex flash protect
 Enable (@var{on}) or disable (@var{off}) protection of flash sectors <@var{first}> to
-<@var{last}> of @option{flash bank} <@var{num}>. 
-@item @b{flash auto_erase} <@var{on}|@var{off}>
-@cindex flash auto_erase
-Enable (@option{on}) to erase flash banks prior to writing using the flash @option{write_image} command
-only. Default is (@option{off}), flash banks have to be erased using @option{flash erase} command. 
+<@var{last}> of @option{flash bank} <@var{num}>.
 @end itemize
 
 @page
@@ -1340,6 +1332,9 @@ use @option{flash write_bank} command with same args
 @item @b{arm7_9 fast_writes}
 @cindex arm7_9 fast_writes
 use @option{arm7_9 fast_memory_access} command with same args
+@item @b{flash auto_erase}
+@cindex flash auto_erase
+use @option{flash write_image} command passing @option{erase} as the first parameter.
 @end itemize
 
 @node FAQ
