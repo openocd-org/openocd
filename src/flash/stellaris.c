@@ -425,7 +425,7 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	if((ver != 0) && (ver != 1))
 	{
 		LOG_WARNING("Unknown did0 version, cannot identify target");
-		return ERROR_FLASH_OPERATION_FAILED;	
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	if (did1 == 0)
@@ -607,6 +607,8 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 			target_write_u32(target, FLASH_CRIS, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
+		
+		bank->sectors[banknr].is_erased = 1;
 	}
 
 	return ERROR_OK;
@@ -642,11 +644,11 @@ int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last)
 	}
 	
 	/* Configure the flash controller timing */
-	stellaris_read_clock_info(bank);	
+	stellaris_read_clock_info(bank);
 	stellaris_set_flash_mode(bank,0);
 
-	fmppe = stellaris_info->lockbits;	
-	for (lockregion=first;lockregion<=last;lockregion++) 
+	fmppe = stellaris_info->lockbits;
+	for (lockregion=first;lockregion<=last;lockregion++)
 	{
 		if (set)
 			 fmppe &= ~(1<<lockregion); 
