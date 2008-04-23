@@ -1287,7 +1287,7 @@ This is now handled in the @option{qSupported} PacketSize.
 @section Programming using gdb
 @cindex Programming using gdb
 
-By default the target memory map is sent to gdb, this can be diabled by
+By default the target memory map is sent to gdb, this can be disabled by
 the following openocd config option:
 @smallexample
 gdb_memory_map disable
