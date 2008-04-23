@@ -1419,6 +1419,24 @@ int gdb_calc_blocksize(flash_bank_t *bank)
 	return block_size;
 }
 
+static int compare_bank (const void * a, const void * b)
+{
+	flash_bank_t *b1, *b2;
+	b1=*((flash_bank_t **)a);
+	b2=*((flash_bank_t **)b);
+	
+	if (b1->base==b2->base)
+	{
+		return 0;
+	} else if (b1->base>b2->base)
+	{
+		return 1;
+	} else
+	{
+		return -1;
+	}
+}
+
 int gdb_query_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	command_context_t *cmd_ctx = connection->cmd_ctx;
@@ -1539,22 +1557,59 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		length = strtoul(separator + 1, &separator, 16);
 
 		xml_printf(&retval, &xml, &pos, &size, "<memory-map>\n");
-
+	
+		/* 
+		sort banks in ascending order, we need to make non-flash memory be ram(or rather
+		read/write) by default for GDB.
+		GDB does not have a concept of non-cacheable read/write memory.
+		 */
+		flash_bank_t **banks=malloc(sizeof(flash_bank_t *)*flash_get_bank_count());
 		int i;
+		
 		for (i=0; i<flash_get_bank_count(); i++)
 		{
 			p = get_flash_bank_by_num(i);
 			if (p == NULL)
-				break;
-
+			{
+				free(banks);
+				retval = ERROR_FAIL;
+				gdb_send_error(connection, retval);
+				return retval;
+			}
+			banks[i]=p;
+		}
+		
+		qsort(banks, flash_get_bank_count(), sizeof(flash_bank_t *), compare_bank);
+		
+		u32 ram_start=0;
+		for (i=0; i<flash_get_bank_count(); i++)
+		{
+			p = banks[i];
+			
+			if (ram_start<p->base)
+			{
+				xml_printf(&retval, &xml, &pos, &size, "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>\n",
+					ram_start, p->base-ram_start);
+			}
+			
 			/* if device has uneven sector sizes, eg. str7, lpc
 			 * we pass the smallest sector size to gdb memory map */
 			blocksize = gdb_calc_blocksize(p);
-
+	
 			xml_printf(&retval, &xml, &pos, &size, "<memory type=\"flash\" start=\"0x%x\" length=\"0x%x\">\n" \
 				"<property name=\"blocksize\">0x%x</property>\n" \
 				"</memory>\n", \
 				p->base, p->size, blocksize);
+			ram_start=p->base+p->size;			
+		}
+		if (ram_start!=0)
+		{
+			xml_printf(&retval, &xml, &pos, &size, "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>\n",
+				ram_start, 0-ram_start);
+		} else
+		{
+			/* a flash chip could be at the very end of the 32 bit address space, in which case
+			ram_start will be precisely 0 */
 		}
 
 		xml_printf(&retval, &xml, &pos, &size, "</memory-map>\n");
