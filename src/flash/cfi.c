@@ -93,6 +93,7 @@ cfi_fixup_t cfi_jedec_fixups[] = {
 	{CFI_MFR_ST, 0x00D6, cfi_fixup_non_cfi, NULL},
 	{CFI_MFR_AMD, 0x2223, cfi_fixup_non_cfi, NULL},
 	{CFI_MFR_AMD, 0x22ab, cfi_fixup_non_cfi, NULL},
+	{CFI_MFR_FUJITSU, 0x226b, cfi_fixup_non_cfi, NULL},
 	{0, 0, NULL, NULL}
 };
 
@@ -104,6 +105,7 @@ cfi_fixup_t cfi_0002_fixups[] = {
 	{CFI_MFR_SST, 0x00D7, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_SST, 0x2780, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_ATMEL, 0x00C8, cfi_fixup_atmel_reversed_erase_regions, NULL},
+	{CFI_MFR_FUJITSU, 0x226b, cfi_fixup_0002_unlock_addresses, &cfi_unlock_addresses[CFI_UNLOCK_5555_2AAA]},
 	{CFI_MFR_ANY, CFI_ID_ANY, cfi_fixup_0002_erase_regions, NULL},
 	{0, 0, NULL, NULL}
 };
