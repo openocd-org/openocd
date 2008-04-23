@@ -262,7 +262,7 @@ Default behaviour is <@var{disable}>
 @cindex gdb_flash_program
 Set to <@var{enable}> so that openocd will program the flash memory when a
 vFlash packet is received.
-Default behaviour is <@var{disable}>
+Default behaviour is <@var{enable}>
 @item @b{daemon_startup} <@var{mode}>
 @cindex daemon_startup
 @option{mode} can either @option{attach} or @option{reset}
@@ -1287,10 +1287,10 @@ This is now handled in the @option{qSupported} PacketSize.
 @section Programming using gdb
 @cindex Programming using gdb
 
-By default the target memory map is not sent to gdb, this can be enabled by
+By default the target memory map is sent to gdb, this can be diabled by
 the following openocd config option:
 @smallexample
-gdb_memory_map enable
+gdb_memory_map disable
 @end smallexample
 For this to function correctly a valid flash config must also be configured
 in openocd. For speed also configure a valid working area.
