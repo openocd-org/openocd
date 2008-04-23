@@ -741,6 +741,22 @@ Close the OpenOCD daemon, disconnecting all clients (GDB, Telnet).
 @cindex debug_level
 Display or adjust debug level to n<0-3> 
 
+@item @b{fast} [@var{enable/disable}]
+@cindex fast
+Default disabled. Set default behaviour of OpenOCD to be "fast and dangerous". For instance ARM7/9 DCC memory
+downloads and fast memory access will work if the JTAG interface isn't too fast and
+the core doesn't run at a too low frequency. Note that this option only changes the default
+and that the indvidual options, like DCC memory downloads, can be enabled and disabled
+individually. 
+
+The target specific "dangerous" optimisation tweaking options may come and go
+as more robust and user friendly ways are found to ensure maximum throughput
+and robustness with a minimum of configuration. 
+
+Typically the "fast enable" is specified first on the command line:
+
+openocd -c "fast enable" -c "interface dummy" -f target/str710.cfg
+
 @item @b{log_output} <@var{file}>
 @cindex log_output
 Redirect logging to <file> (default: stderr) 

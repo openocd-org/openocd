@@ -2624,8 +2624,8 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	
 	arm7_9->dcc_working_area = NULL;
 	
-	arm7_9->fast_memory_access = 0;
-	arm7_9->dcc_downloads = 0;
+	arm7_9->fast_memory_access = fast_and_dangerous;
+	arm7_9->dcc_downloads = fast_and_dangerous;
 
 	armv4_5->arch_info = arm7_9;
 	armv4_5->read_core_reg = arm7_9_read_core_reg;

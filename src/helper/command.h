@@ -79,4 +79,7 @@ extern int command_run_file(command_context_t *context, FILE *file, enum command
 #define		ERROR_COMMAND_CLOSE_CONNECTION		(-600)
 #define		ERROR_COMMAND_SYNTAX_ERROR			(-601)
 
+
+extern int fast_and_dangerous;
+
 #endif /* COMMAND_H */

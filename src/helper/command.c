@@ -38,10 +38,13 @@
 #include <stdio.h>
 #include <unistd.h>
 
+int fast_and_dangerous = 0;
+
 void command_print_help_line(command_context_t* context, struct command_s *command, int indent);
 
 int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int build_unique_lengths(command_context_t *context, command_t *commands)
 {
@@ -559,6 +562,9 @@ command_context_t* command_init()
 	register_command(context, NULL, "time", handle_time_command,
 					 COMMAND_ANY, "time <cmd + args> - execute <cmd + args> and print time it took");
 	
+	register_command(context, NULL, "fast", handle_fast_command,
+					 COMMAND_ANY, "fast <enable/disable> - place at beginning of config files. Sets defaults to fast and dangerous.");
+	
 	return context;
 }
 
@@ -577,6 +583,17 @@ int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 	return ERROR_OK;
 }
+
+int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc!=1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	
+	fast_and_dangerous = strcmp("enable", args[0])==0;
+	
+	return ERROR_OK;
+}
+
 
 int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
