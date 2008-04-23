@@ -256,8 +256,6 @@ int ft2232_speed(int speed)
 		return retval;
 	}
 
-	jtag_speed = speed;
-	
 	return ERROR_OK;
 }
 

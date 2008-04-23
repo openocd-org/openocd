@@ -258,8 +258,6 @@ void parport_led(int on)
 
 int parport_speed(int speed)
 {
-	jtag_speed = speed;
-	
 	return ERROR_OK;
 }
 

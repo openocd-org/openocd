@@ -714,7 +714,6 @@ int presto_jtag_speed(int speed)
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	jtag_speed = speed;
 	LOG_INFO("setting speed to %d, max. TCK freq. is %s", speed, presto_speed_text[speed]);
 	return presto_sendbyte(0xA8 | speed);
 }
