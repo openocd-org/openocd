@@ -1,0 +1,4 @@
+soft_reset_halt
+load_image at91sam7x_ocl.bin 0x200000
+resume 0x200000
+flash probe 0

@@ -331,5 +331,6 @@ int target_arch_state(struct target_s *target);
 #define ERROR_TARGET_DATA_ABORT	(-307)
 #define ERROR_TARGET_RESOURCE_NOT_AVAILABLE	(-308)
 #define ERROR_TARGET_TRANSLATION_FAULT	(-309)
+#define ERROR_TARGET_NOT_RUNNING (-310)
 
 #endif /* TARGET_H */
