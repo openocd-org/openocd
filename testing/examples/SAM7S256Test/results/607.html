@@ -1,0 +1,698 @@
+<html>
+<head>
+<title>Test results for revision 607</title>
+</head>
+
+<body>
+<H1>Test cases</H1>
+<H2>Test case results</H2>
+The test results are stored in seperate documents. One document for
+each subversion number.
+<table border="1">
+       <tr><td>Test results</td><td>comment</td></tr>
+       <tr><td>607</a></td><td></td></tr>
+       <tr><td><a href="results/template.html">template</a></td><td>Test results template</td></tr>
+</table>
+
+<H1>SAM7S64</H1>
+
+<H2>Connectivity</H2>
+<table border=1>
+       <tr>
+               <td>ID</td>
+               <td>Target</td>
+               <td>Interface</td>
+               <td>Description</td>
+               <td>Initial state</td>
+               <td>Input</td>
+               <td>Expected output</td>
+               <td>Actual output</td>
+               <td>Pass/Fail</td>
+       </tr>
+       <tr>
+               <td><a name="CON001"/>CON001</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Telnet connection</td>
+               <td>Power on, jtag target attached</td>
+               <td>On console, type<br><code>telnet ip port</code></td>
+               <td><code>Open On-Chip Debugger<br>></code></td>
+               <td><code>Open On-Chip Debugger<br>></code></td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="CON002"/>CON002</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>GDB server connection</td>
+               <td>Power on, jtag target attached</td>
+               <td>On GDB console, type<br><code>target remote ip:port</code></td>
+               <td><code>Remote debugging using 10.0.0.73:3333</code></td>
+               <td><code>Remote debugging using 10.0.0.73:3333</code></td>
+               <td>PASS</td>
+       </tr>
+</table>
+
+<H2>Reset</H2>
+<table border=1>
+       <tr>
+               <td>ID</td>
+               <td>Target</td>
+               <td>Interface</td>
+               <td>Description</td>
+               <td>Initial state</td>
+               <td>Input</td>
+               <td>Expected output</td>
+               <td>Actual output</td>
+               <td>Pass/Fail</td>
+       </tr>
+       <tr>
+               <td><a name="RES001"/>RES001</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Reset halt on a blank target</td>
+               <td>Erase all the content of the flash</td>
+               <td>Connect via the telnet interface and type <br><code>reset halt</code></td>
+               <td>Reset should return without error and the output should contain<br><code>target state: halted<br>pc = 0</code></td>
+               <td>
+                       <code>
+                               JTAG device found: 0x3f0f0f0f (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)<br>
+                               nSRST pulls nTRST, falling back to "reset run_and_halt"<br>
+                               target state: halted<br>
+                               target halted in ARM state due to debug request, current mode: Supervisor<br>
+                               cpsr: 0x60000013 pc: 0x00100178
+                       </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="RES002"/>RES002</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Reset init on a blank target</td>
+               <td>Erase all the content of the flash</td>
+               <td>Connect via the telnet interface and type <br><code>reset init</code></td>
+               <td>Reset should return without error and the output should contain <br><code>executing reset script 'name_of_the_script'</code></td>
+               <td>
+                       <code>
+                               JTAG device found: 0x3f0f0f0f (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)<br>
+                               nSRST pulls nTRST, falling back to "reset run_and_init"<br>
+                               target state: halted<br>
+                               target halted in ARM state due to debug request, current mode: Supervisor<br>
+                               cpsr: 0x600000d3 pc: 0x00003e24<br>
+                               executing reset script 'event/sam7s256_reset.script'
+                       </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="RES003"/>RES003</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Reset after a power cycle of the target</td>
+               <td>Reset the target then power cycle the target</td>
+               <td>Connect via the telnet interface and type <br><code>reset halt</code> after the power was detected</td>
+               <td>Reset should return without error and the output should contain<br><code>target state: halted</code></td>
+               <td>
+                       <code>
+                               JTAG device found: 0x3f0f0f0f (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)<br>
+                               nSRST pulls nTRST, falling back to "reset run_and_halt"<br>
+                               target state: halted<br>
+                               target halted in ARM state due to debug request, current mode: Supervisor<br>
+                               cpsr: 0x300000d3 pc: 0x00003a38
+                       </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+</table>
+
+<H2>JTAG Speed</H2>
+<table border=1>
+       <tr>
+               <td>ID</td>
+               <td>Target</td>
+               <td>ZY1000</td>
+               <td>Description</td>
+               <td>Initial state</td>
+               <td>Input</td>
+               <td>Expected output</td>
+               <td>Actual output</td>
+               <td>Pass/Fail</td>
+       </tr>
+       <tr>
+               <td><a name="SPD001"/>RES001</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>16MHz on normal operation</td>
+               <td>Reset init the target according to RES002 </td>
+               <td>Exercise a memory access over the JTAG, for example <br><code>mdw 0x0 32</code></td>
+               <td>The command should run without any errors. If any JTAG checking errors happen, the test failed</td>
+               <td>
+                       <code>
+                               > jtag_khz 16000<br>
+                               > mdw 0 32<br>
+                               0x00000000: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                               0x00000020: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                               0x00000040: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                               0x00000060: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff
+                       </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+</table>
+
+<H2>Debugging</H2>
+<table border=1>
+       <tr>
+               <td>ID</td>
+               <td>Target</td>
+               <td>Interface</td>
+               <td>Description</td>
+               <td>Initial state</td>
+               <td>Input</td>
+               <td>Expected output</td>
+               <td>Actual output</td>
+               <td>Pass/Fail</td>
+       </tr>
+       <tr>
+               <td><a name="DBG001"/>DBG001</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Load is working</td>
+               <td>Reset init is working, RAM is accesible, GDB server is started</td>
+               <td>On the console of the OS: <br>
+                       <code>arm-elf-gdb test_ram.elf</code><br>
+                       <code>(gdb) target remote ip:port</code><br>
+                       <code>(gdb) load</load>
+               </td>
+               <td>Load should return without error, typical output looks like:<br>
+                       <code>
+                               Loading section .text, size 0x14c lma 0x0<br>
+                               Start address 0x40, load size 332<br>
+                               Transfer rate: 180 bytes/sec, 332 bytes/write.<br>
+                       </code>
+               </td>
+               <td><code>
+                       (gdb) load<br>
+                       Loading section .text, size 0x194 lma 0x200000<br>
+                       Start address 0x200040, load size 404<br>
+                       Transfer rate: 17470 bits/sec, 404 bytes/write.
+               </code></td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="DBG002"/>DBG002</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Software breakpoint</td>
+               <td>Load the test_ram.elf application, use instructions from GDB001</td>
+               <td>In the GDB console:<br>
+                       <code>
+                               (gdb) monitor arm7_9 sw_bkpts enable<br>
+                               software breakpoints enabled<br>
+                               (gdb) break main<br>
+                               Breakpoint 1 at 0xec: file src/main.c, line 71.<br>
+                               (gdb) continue<br>
+                               Continuing.
+                       </code>
+               </td>
+               <td>The software breakpoint should be reached, a typical output looks like:<br>
+                       <code>
+                               target state: halted<br>
+                               target halted in ARM state due to breakpoint, current mode: Supervisor<br>
+                               cpsr: 0x000000d3 pc: 0x000000ec<br>
+                               <br>
+                               Breakpoint 1, main () at src/main.c:71<br>
+                               71        DWORD a = 1;
+                       </code>
+               </td>
+               <td>
+                       <code>
+                               (gdb) break main<br>
+                               Breakpoint 2 at 0x200134: file src/main.c, line 69.<br>
+                               (gdb) c<br>
+                               Continuing.<br>
+                               target state: halted<br>
+                               target halted in ARM state due to breakpoint, current mode: Supervisor<br>
+                               cpsr: 0x60000013 pc: 0x00200134<br>
+                               <br>
+                               Breakpoint 2, main () at src/main.c:69<br>
+                               69        DWORD a = 1;
+                       </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="DBG003"/>DBG003</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Single step in a RAM application</td>
+               <td>Load the test_ram.elf application, use instructions from GDB001, break in main using the instructions from GDB002</td>
+               <td>In GDB, type <br><code>(gdb) step</code></td>
+               <td>The next instruction should be reached, typical output:<br>
+                       <code>
+                               (gdb) step<br>
+                               target state: halted<br>
+                               target halted in ARM state due to single step, current mode: Abort<br>
+                               cpsr: 0x20000097 pc: 0x000000f0<br>
+                               target state: halted<br>
+                               target halted in ARM state due to single step, current mode: Abort<br>
+                               cpsr: 0x20000097 pc: 0x000000f4<br>
+                               72        DWORD b = 2;
+                       </code>
+               </td>
+               <td>
+                               <code>
+                               (gdb) step<br>
+                               target state: halted<br>
+                               target halted in ARM state due to single step, current mode: Abort<br>
+                               cpsr: 0x20000097 pc: 0x000000f0<br>
+                               target state: halted<br>
+                               target halted in ARM state due to single step, current mode: Abort<br>
+                               cpsr: 0x20000097 pc: 0x000000f4<br>
+                               72        DWORD b = 2;
+                       </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="DBG004"/>DBG004</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Software break points are working after a reset</td>
+               <td>Load the test_ram.elf application, use instructions from GDB001, break in main using the instructions from GDB002</td>
+               <td>In GDB, type <br><code>
+                       (gdb) monitor reset<br>
+                       (gdb) load<br>
+                       (gdb) continue<br>
+                       </code></td>
+               <td>The breakpoint should be reached, typical output:<br>
+                       <code>
+                               target state: halted<br>
+                               target halted in ARM state due to breakpoint, current mode: Supervisor<br>
+                               cpsr: 0x000000d3 pc: 0x000000ec<br>
+                               <br>
+                               Breakpoint 1, main () at src/main.c:71<br>
+                               71        DWORD a = 1;
+                       </code>
+               </td>
+               <td><code>
+                       (gdb) moni reset<br>
+                       JTAG device found: 0x3f0f0f0f (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)<br>
+                       target state: halted<br>
+                       target halted in ARM state due to debug request, current mode: Supervisor<br>
+                       cpsr: 0x600000d3 pc: 0x00003e28<br>
+                       executing reset script 'event/sam7s256_reset.script'<br>
+                       (gdb) load<br>
+                       Loading section .text, size 0x194 lma 0x200000<br>
+                       Start address 0x200040, load size 404<br>
+                       Transfer rate: 20455 bits/sec, 404 bytes/write.<br>
+                       (gdb) continue<br>
+                       Continuing.<br>
+                       target state: halted<br>
+                       target halted in ARM state due to breakpoint, current mode: Supervisor<br>
+                       cpsr: 0x60000013 pc: 0x00200134<br>
+                       <br>
+                       Breakpoint 2, main () at src/main.c:69<br>
+                       69        DWORD a = 1;
+               </code></td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="DBG005"/>DBG005</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Hardware breakpoint</td>
+               <td>Flash the test_rom.elf application. Make this test after FLA004 has passed</td>
+               <td>Be sure that <code>gdb_memory_map</code> and <code>gdb_flash_program</code> are enabled. In GDB, type <br>
+                       <code>
+                               (gdb) monitor reset<br>
+                               (gdb) load<br>
+                               Loading section .text, size 0x194 lma 0x100000<br>
+                               Start address 0x100040, load size 404<br>
+                               Transfer rate: 179 bytes/sec, 404 bytes/write.<br>
+                               (gdb) monitor arm7_9  force_hw_bkpts enable<br>
+                               force hardware breakpoints enabled<br>
+                               (gdb) break main<br>
+                               Breakpoint 1 at 0x100134: file src/main.c, line 69.<br>
+                               (gdb) continue<br>
+                       </code>
+               </td>
+               <td>The breakpoint should be reached, typical output:<br>
+                       <code>
+                               Continuing.<br>
+                               <br>
+                               Breakpoint 1, main () at src/main.c:69<br>
+                               69        DWORD a = 1;<br>
+                       </code>
+               </td>
+               <td>
+               <code>
+                       (gdb) break main<br>
+                       Breakpoint 1 at 0x100134: file src/main.c, line 69.<br>
+                       (gdb) c<br>
+                       Continuing.<br>
+                       target state: halted<br>
+                       target halted in ARM state due to breakpoint, current mode: Supervisor<br>
+                       cpsr: 0x60000013 pc: 0x00100134<br>
+                       <br>
+                       Breakpoint 1, main () at src/main.c:69<br>
+                       69        DWORD a = 1;
+               </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="DBG006"/>DBG006</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Hardware breakpoint is set after a reset</td>
+               <td>Follow the instructions to flash and insert a hardware breakpoint from DBG005</td>
+               <td>In GDB, type <br>
+                       <code>
+                               (gdb) monitor reset<br>
+                               (gdb) monitor reg pc 0x100000<br>
+                               pc (/32): 0x00100000<br>
+                               (gdb) continue
+                       </code><br>
+                       where the value inserted in PC is the start address of the application
+               </td>
+               <td>The breakpoint should be reached, typical output:<br>
+                       <code>
+                               Continuing.<br>
+                               <br>
+                               Breakpoint 1, main () at src/main.c:69<br>
+                               69        DWORD a = 1;<br>
+                       </code>
+               </td>
+               <td>
+               <code>
+                       Continuing.<br>
+                       target state: halted<br>
+                       target halted in ARM state due to single step, current mode: Supervisor<br>
+                       cpsr: 0x60000013 pc: 0x00100040<br>
+                       target state: halted<br>
+                       target halted in ARM state due to breakpoint, current mode: Supervisor<br>
+                       cpsr: 0x60000013 pc: 0x00100134<br>
+                       <br>
+                       Breakpoint 1, main () at src/main.c:69<br>
+                       69        DWORD a = 1;
+               </code><br>
+               <b>Aren't there too many "halted" signs?</b>
+               </td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="DBG007"/>DBG007</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Single step in ROM</td>
+               <td>Flash the test_rom.elf application and set a breakpoint in main, use DBG005. Make this test after FLA004 has passed</td>
+               <td>Be sure that <code>gdb_memory_map</code> and <code>gdb_flash_program</code> are enabled. In GDB, type <br>
+                       <code>
+                               (gdb) monitor reset<br>
+                               (gdb) load<br>
+                               Loading section .text, size 0x194 lma 0x100000<br>
+                               Start address 0x100040, load size 404<br>
+                               Transfer rate: 179 bytes/sec, 404 bytes/write.<br>
+                               (gdb) monitor arm7_9  force_hw_bkpts enable<br>
+                               force hardware breakpoints enabled<br>
+                               (gdb) break main<br>
+                               Breakpoint 1 at 0x100134: file src/main.c, line 69.<br>
+                               (gdb) continue<br>
+                               Continuing.<br>
+                               <br>
+                               Breakpoint 1, main () at src/main.c:69<br>
+                               69        DWORD a = 1;<br>
+                               (gdb) step
+                       </code>
+               </td>
+               <td>The breakpoint should be reached, typical output:<br>
+                       <code>
+                               target state: halted<br>
+                               target halted in ARM state due to single step, current mode: Supervisor<br>
+                               cpsr: 0x60000013 pc: 0x0010013c<br>
+                               70        DWORD b = 2;<br>
+                       </code>
+               </td>
+               <td><code>
+                       (gdb) step<br>
+                       target state: halted<br>
+                       target halted in ARM state due to single step, current mode: Supervisor<br>
+                       cpsr: 0x60000013 pc: 0x00100138<br>
+                       target state: halted<br>
+                       target halted in ARM state due to single step, current mode: Supervisor<br>
+                       cpsr: 0x60000013 pc: 0x0010013c<br>
+                       70        DWORD b = 2;
+               </code></td>
+               <td>PASS</td>
+       </tr>
+</table>
+
+<H2>RAM access</H2>
+Note: these tests are not designed to test/debug the target, but to test functionalities!
+<table border=1>
+       <tr>
+               <td>ID</td>
+               <td>Target</td>
+               <td>Interface</td>
+               <td>Description</td>
+               <td>Initial state</td>
+               <td>Input</td>
+               <td>Expected output</td>
+               <td>Actual output</td>
+               <td>Pass/Fail</td>
+       </tr>
+       <tr>
+               <td><a name="RAM001"/>RAM001</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>32 bit Write/read RAM</td>
+               <td>Reset init is working</td>
+               <td>On the telnet interface<br>
+                       <code>  > mww ram_address 0xdeadbeef 16<br>
+                                       > mdw ram_address 32
+                       </code>
+               </td>
+               <td>The commands should execute without error. A clear failure is a memory access exception. The result of running the commands should be a list of 16 locations 32bit long containing 0xdeadbeef.<br>
+                       <code>
+                               > mww 0x0 0xdeadbeef 16<br>
+                               > mdw 0x0 32<br>
+                               0x00000000: deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef<br>
+                               0x00000020: deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef<br>
+                               0x00000040: e1a00000 e59fa51c e59f051c e04aa000 00080017 00009388 00009388 00009388<br>
+                               0x00000060: 00009388 0002c2c0 0002c2c0 000094f8 000094f4 00009388 00009388 00009388<br>
+                       </code>
+               </td>
+               <td>
+               <code>
+                       > mww 0x00200000 0xdeadbeef 16<br>
+                       > mdw 0x00200000 32<br>
+                       0x00200000: deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef<br>
+                       0x00200020: deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef<br>
+                       0x00200040: e59f10b4 e3a00902 e5810004 e59f00ac e59f10ac e5810000 e3e010ff e59f00a4<br>
+                       0x00200060: e5810060 e59f10a0 e3e00000 e5810130 e5810124 e321f0db e59fd090 e321f0d7
+               </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="RAM002"/>RAM002</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>16 bit Write/read RAM</td>
+               <td>Reset init is working</td>
+               <td>On the telnet interface<br>
+                       <code>  > mwh ram_address 0xbeef 16<br>
+                                       > mdh ram_address 32
+                       </code>
+               </td>
+               <td>The commands should execute without error. A clear failure is a memory access exception. The result of running the commands should be a list of 16 locations 16bit long containing 0xbeef.<br>
+                       <code>
+                               > mwh 0x0 0xbeef 16<br>
+                               > mdh 0x0 32<br>
+                               0x00000000: beef beef beef beef beef beef beef beef beef beef beef beef beef beef beef beef<br>
+                               0x00000020: 00e0 0000 021c 0000 0240 0000 026c 0000 0288 0000 0000 0000 0388 0000 0350 0000<br>
+                               >
+                       </code>
+               </td>
+               <td><code>
+                       > mwh 0x00200000 0xbeef 16<br>
+                       > mdh 0x00200000 32<br>
+                       0x00200000: beef beef beef beef beef beef beef beef beef beef beef beef beef beef beef beef<br>
+                       0x00200020: 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
+               </code></td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="RAM003"/>RAM003</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>8 bit Write/read RAM</td>
+               <td>Reset init is working</td>
+               <td>On the telnet interface<br>
+                       <code>  > mwb ram_address 0xab 16<br>
+                                       > mdb ram_address 32
+                       </code>
+               </td>
+               <td>The commands should execute without error. A clear failure is a memory access exception. The result of running the commands should be a list of 16 locations 8bit long containing 0xab.<br>
+                       <code>
+                               > mwb ram_address 0xab 16<br>
+                               > mdb ram_address 32<br>
+                               0x00000000: ab ab ab ab ab ab ab ab ab ab ab ab ab ab ab ab 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00<br>
+                               >
+                       </code>
+               </td>
+               <td><code>
+                       > mwb 0x00200000 0xab 16<br>
+                       > mdb 0x00200000 32<br>
+                       0x00200000: ab ab ab ab ab ab ab ab ab ab ab ab ab ab ab ab 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+               </code></td>
+               <td>PASS</td>
+       </tr>
+</table>
+
+
+
+<H2>Flash access</H2>
+<table border=1>
+       <tr>
+               <td>ID</td>
+               <td>Target</td>
+               <td>Interface</td>
+               <td>Description</td>
+               <td>Initial state</td>
+               <td>Input</td>
+               <td>Expected output</td>
+               <td>Actual output</td>
+               <td>Pass/Fail</td>
+       </tr>
+       <tr>
+               <td><a name="FLA001"/>FLA001</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Flash probe</td>
+               <td>Reset init is working</td>
+               <td>On the telnet interface:<br>
+                       <code>  > flash probe 0</code>
+               </td>
+               <td>The command should execute without error. The output should state the name of the flash and the starting address. An example of output:<br>
+                       <code>flash 'ecosflash' found at 0x01000000</code>
+               </td>
+               <td>
+               <code>
+                       > flash probe 0<br>
+                       flash 'at91sam7' found at 0x00100000
+               </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="FLA002"/>FLA002</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>flash fillw</td>
+               <td>Reset init is working, flash is probed</td>
+               <td>On the telnet interface<br>
+                       <code>  > flash fillw 0x1000000 0xdeadbeef 16
+                       </code>
+               </td>
+               <td>The commands should execute without error. The output looks like:<br>
+                       <code>
+                               wrote 64 bytes to 0x01000000 in 11.610000s (0.091516 kb/s)
+                       </code><br>
+                       To verify the contents of the flash:<br>
+                       <code>
+                               > mdw 0x1000000 32<br>
+                               0x01000000: deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef<br>
+                               0x01000020: deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef<br>
+                               0x01000040: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                               0x01000060: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff
+                       </code>
+               </td>
+               <td><code>
+                       > flash fillw 0x100000 0xdeadbeef 16<br>
+                       wrote 64 bytes to 0x00100000 in 1.110000s (0.957207 kb/s)<br>
+                       > mdw 0x100000 32<br>
+                       0x00100000: deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef<br>
+                       0x00100020: deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef deadbeef<br>
+                       0x00100040: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                       0x00100060: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff
+               </code></td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="FLA003"/>FLA003</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Flash erase</td>
+               <td>Reset init is working, flash is probed</td>
+               <td>On the telnet interface<br>
+                       <code>  >  flash erase_address 0x1000000 0x2000
+                       </code>
+               </td>
+               <td>The commands should execute without error.<br>
+                       <code>
+                               erased address 0x01000000 length 8192 in 4.970000s
+                       </code>
+                       To check that the flash has been erased, read at different addresses. The result should always be 0xff.
+                       <code>
+                               > mdw 0x1000000 32<br>
+                               0x01000000: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                               0x01000020: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                               0x01000040: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                               0x01000060: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff
+                       </code>
+               </td>
+               <td><code>
+                       > flash erase_address 0x100000 0x2000<br>
+                       erased address 0x00100000 length 8192 in 0.510000s<br>
+                       > mdw 0x100000 32<br>
+                       0x00100000: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                       0x00100020: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                       0x00100040: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                       0x00100060: ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff<br>
+                       >
+               </code></td>
+               <td>PASS</td>
+       </tr>
+       <tr>
+               <td><a name="FLA004"/>FLA004</td>
+               <td>SAM7S64</td>
+               <td>ZY1000</td>
+               <td>Loading to flash from GDB</td>
+               <td>Reset init is working, flash is probed, connectivity to GDB server is working</td>
+               <td>Start GDB using a ROM elf image, eg: arm-elf-gdb test_rom.elf. <br>
+                               <code>
+                                       (gdb) target remote ip:port<br>
+                                       (gdb) monitor reset<br>
+                                       (gdb) load<br>
+                                       Loading section .text, size 0x194 lma 0x100000<br>
+                                       Start address 0x100040, load size 404<br>
+                                       Transfer rate: 179 bytes/sec, 404 bytes/write.
+                                       (gdb) monitor verify_image path_to_elf_file
+                               </code>
+               </td>
+               <td>The output should look like:<br>
+                       <code>
+                               verified 404 bytes in 5.060000s
+                       </code><br>
+                       The failure message is something like:<br>
+                       <code>Verify operation failed address 0x00200000. Was 0x00 instead of 0x18</code>
+               </td>
+               <td>
+                       <code>
+                               (gdb) load<br>
+                               Loading section .text, size 0x194 lma 0x100000<br>
+                               Start address 0x100040, load size 404<br>
+                               Transfer rate: 1540 bits/sec, 404 bytes/write.<br>
+                               (gdb) monitor verify_image /tftp/10.0.0.9/c:\workspace/ecosboard/ecosboard/phi/openocd/rep/testing/examples/SAM7S256Test/test_rom.elf<br>
+                               verified 404 bytes in 4.860000s
+                       </code>
+               </td>
+               <td>PASS</td>
+       </tr>
+</table>
+
+</body>
+</html>
