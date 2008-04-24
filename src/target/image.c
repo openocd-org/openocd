@@ -57,15 +57,19 @@ static int autodetect_image_type(image_t *image, char *url)
 	{
 		return retval;
 	}
-	if ((retval = fileio_read(&fileio, 9, buffer, &read_bytes)) != ERROR_OK)
+	retval = fileio_read(&fileio, 9, buffer, &read_bytes);
+	
+	if (retval==ERROR_OK)
 	{
-		return ERROR_FILEIO_OPERATION_FAILED;
-	}
-	if (read_bytes != 9)
-	{
-		return ERROR_FILEIO_OPERATION_FAILED;
+		if (read_bytes != 9)
+		{
+			retval=ERROR_FILEIO_OPERATION_FAILED;
+		}
 	}
 	fileio_close(&fileio);
+	
+	if (retval!=ERROR_OK)
+		return retval;
 
 	/* check header against known signatures */
 	if (strncmp((char*)buffer,ELFMAG,SELFMAG)==0)

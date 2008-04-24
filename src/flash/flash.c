@@ -478,7 +478,7 @@ int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *
 	p = get_flash_bank_by_addr(target, address);
 	if (p == NULL)
 	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_FAIL;
 	}
 
 	/* We can't know if we did a resume + halt, in which case we no longer know the erased state */
