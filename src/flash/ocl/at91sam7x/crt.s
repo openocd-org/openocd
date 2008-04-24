@@ -220,6 +220,4 @@ FIQHandler:
    .weak IRQHandler, FIQHandler
 
    .ltorg
-/*** EOF ***/   
-  
-Index: src/flash/ocl/at91sam7x/dcc.c
+/*** EOF ***/
