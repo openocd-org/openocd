@@ -685,7 +685,7 @@ int arm7_9_poll(target_t *target)
 	
 	if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1))
 	{
-		LOG_DEBUG("DBGACK set, dbg_state->value: 0x%x", buf_get_u32(dbg_stat->value, 0, 32));
+/*		LOG_DEBUG("DBGACK set, dbg_state->value: 0x%x", buf_get_u32(dbg_stat->value, 0, 32)); */
 		if (target->state == TARGET_UNKNOWN)
 		{
 			target->state = TARGET_RUNNING;
