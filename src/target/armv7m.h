@@ -27,6 +27,11 @@
 #include "target.h"
 #include "arm_jtag.h"
 
+/* define for enabling armv7 gdb workarounds */
+#if 1
+#define ARMV7_GDB_HACKS
+#endif
+
 enum armv7m_mode
 {
 	ARMV7M_MODE_THREAD = 0,

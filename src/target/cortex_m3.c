@@ -53,6 +53,11 @@ int cortex_m3_store_core_reg_u32(target_t *target, enum armv7m_regtype type, u32
 int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer);
 int cortex_m3_examine(struct command_context_s *cmd_ctx, struct target_s *target);
 
+#ifdef ARMV7_GDB_HACKS
+extern u8 armv7m_gdb_dummy_cpsr_value[];
+extern reg_t armv7m_gdb_dummy_cpsr_reg;
+#endif
+
 target_type_t cortexm3_target =
 {
 	.name = "cortex_m3",
@@ -313,7 +318,15 @@ int cortex_m3_debug_entry(target_t *target)
 	}
 
 	xPSR = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32);
-	
+
+#ifdef ARMV7_GDB_HACKS
+	/* copy real xpsr reg for gdb, setting thumb bit */
+	buf_set_u32(armv7m_gdb_dummy_cpsr_value, 0, 32, xPSR);
+	buf_set_u32(armv7m_gdb_dummy_cpsr_value, 5, 1, 1);
+	armv7m_gdb_dummy_cpsr_reg.valid = armv7m->core_cache->reg_list[ARMV7M_xPSR].valid;
+	armv7m_gdb_dummy_cpsr_reg.dirty = armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty;
+#endif
+
 	/* For IT instructions xPSR must be reloaded on resume and clear on debug exec */
 	if (xPSR & 0xf00)
 	{
@@ -835,12 +848,14 @@ int cortex_m3_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	if (cortex_m3->auto_bp_type)
 	{
 		breakpoint->type = (breakpoint->address < 0x20000000) ? BKPT_HARD : BKPT_SOFT;
-        if (breakpoint->length != 2) {
-            // XXX Hack: Replace all breakpoints with length != 2 with
-            // a hardware breakpoint. 
-            breakpoint->type = BKPT_HARD;
-            breakpoint->length = 2;
-        }
+#ifdef ARMV7_GDB_HACKS
+		if (breakpoint->length != 2) {
+			/* XXX Hack: Replace all breakpoints with length != 2 with
+			 * a hardware breakpoint. */ 
+			breakpoint->type = BKPT_HARD;
+			breakpoint->length = 2;
+		}
+#endif
 	}
 
 	if ((breakpoint->type == BKPT_HARD) && (breakpoint->address >= 0x20000000))
@@ -1111,14 +1126,17 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 
-    // If the LR register is being modified, make sure it will put us
-    // in "thumb" mode, or an INVSTATE exception will occur. This is a
-    // hack to deal with the fact that gdb will sometimes "forge"
-    // return addresses, and doesn't set the LSB correctly (i.e., when
-    // printing expressions containing function calls, it sets LR=0.)
-    if (num==14)
-        value |= 0x01;
-
+#ifdef ARMV7_GDB_HACKS
+	/* If the LR register is being modified, make sure it will put us
+	 * in "thumb" mode, or an INVSTATE exception will occur. This is a
+	 * hack to deal with the fact that gdb will sometimes "forge"
+	 * return addresses, and doesn't set the LSB correctly (i.e., when
+	 * printing expressions containing function calls, it sets LR=0.) */
+	
+	if (num == 14)
+		value |= 0x01;
+#endif
+	 
 	if ((type == ARMV7M_REGISTER_CORE_GP) && (num <= ARMV7M_PSP))
 	{
 		retval = ahbap_write_coreregister_u32(swjdp, value, num);

@@ -75,6 +75,15 @@ reg_t armv7m_gdb_dummy_fps_reg =
 	"GDB dummy floating-point status register", armv7m_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
 };
 
+#ifdef ARMV7_GDB_HACKS
+u8 armv7m_gdb_dummy_cpsr_value[] = {0, 0, 0, 0};
+
+reg_t armv7m_gdb_dummy_cpsr_reg =
+{
+	"GDB dummy cpsr register", armv7m_gdb_dummy_cpsr_value, 0, 1, 32, NULL, 0, NULL, 0
+};
+#endif
+
 armv7m_core_reg_t armv7m_core_reg_list_arch_info[] = 
 {
 	/*  CORE_GP are accesible using the core debug registers */
@@ -199,7 +208,7 @@ int armv7m_read_core_reg(struct target_s *target, int num)
 	buf_set_u32(armv7m->core_cache->reg_list[num].value, 0, 32, reg_value);
 	armv7m->core_cache->reg_list[num].valid = 1;
 	armv7m->core_cache->reg_list[num].dirty = 0;
-		
+	
 	return ERROR_OK;	
 }
 
@@ -266,11 +275,18 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	}
 	
 	(*reg_list)[24] = &armv7m_gdb_dummy_fps_reg;
+
+#ifdef ARMV7_GDB_HACKS
+	/* use dummy cpsr reg otherwise gdb may try and set the thumb bit */
+	(*reg_list)[25] = &armv7m_gdb_dummy_cpsr_reg;
 	
 	/* ARMV7M is always in thumb mode, try to make GDB understand this
 	 * if it does not support this arch */
 	armv7m->core_cache->reg_list[15].value[0] |= 1;
+#else
 	(*reg_list)[25] = &armv7m->core_cache->reg_list[ARMV7M_xPSR];
+#endif
+
 	return ERROR_OK;
 }
 
