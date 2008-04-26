@@ -216,6 +216,7 @@ int str9x_protect_check(struct flash_bank_s *bank)
 		target_read_u16(target, adr, (u16*)&status);
 	}
 	
+	/* read array command */
 	target_write_u16(target, adr, 0xFF);
 	
 	for (i = 0; i < bank->num_sectors; i++)
@@ -304,6 +305,12 @@ int str9x_protect(struct flash_bank_s *bank, int set, int first, int last)
 		
 		/* query status */
 		target_read_u8(target, adr, &status);
+		
+		/* clear status, also clear read array */
+		target_write_u16(target, adr, 0x50);
+		
+		/* read array command */
+		target_write_u16(target, adr, 0xFF);
 	}
 	
 	return ERROR_OK;
