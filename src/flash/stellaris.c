@@ -74,7 +74,6 @@ flash_driver_t stellaris_flash =
 	.info = stellaris_info
 };
 
-
 struct {
 	u32 partno;
 	char *partname;
@@ -386,7 +385,6 @@ u32 stellaris_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout)
 
 	return status;
 }
-
 
 /* Send one command to the flash controller */
 int stellaris_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen) 
@@ -721,7 +719,8 @@ u8 stellaris_write_code[] =
 	0x04,0x36,			/* adds	r6, r6, #4 */
 	0x96,0x42,			/* cmp	r6, r2 */
 	0xF4,0xD1,			/* bne	mainloop */
-	0x00,0xBE,			/* bkpt #0 */
+						/* exit: */
+	0xFE,0xE7,			/* b exit */
 /* pFLASH_CTRL_BASE: */
 	0x00,0xD0,0x0F,0x40,	/* .word	0x400FD000 */
 /* FLASHWRITECMD: */
@@ -895,9 +894,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 			count = 0;
 		}
 	}
-
-
-
+	
 	while(count>0)
 	{
 		if (!(address&0xff)) LOG_DEBUG("0x%x",address);
@@ -925,7 +922,6 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	}
 	return ERROR_OK;
 }
-
 
 int stellaris_probe(struct flash_bank_s *bank)
 {
