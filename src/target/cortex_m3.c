@@ -706,13 +706,26 @@ int cortex_m3_assert_reset(target_t *target)
 		ahbap_write_system_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
 	}
 	
-	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
+	/* following hack is to handle luminary reset
+	 * when srst is asserted the luminary device seesm to also clear the debug registers
+	 * which does not match the armv7 debug TRM */
+		
+	if (strcmp(cortex_m3->variant, "luminary") == 0)
 	{
-		jtag_add_reset(1, 1);
+		/* this causes the luminary device to reset using the watchdog */
+		ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ );
+		LOG_DEBUG("Using Luminary Reset: SYSRESETREQ");
 	}
 	else
 	{
-		jtag_add_reset(0, 1);
+		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
+		{
+			jtag_add_reset(1, 1);
+		}
+		else
+		{
+			jtag_add_reset(0, 1);
+		}
 	}
 	
 	target->state = TARGET_RESET;
@@ -1437,6 +1450,15 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, in
 	
 	armv7m->pre_restore_context = NULL;
 	armv7m->post_restore_context = NULL;
+	
+	if (variant)
+	{
+		cortex_m3->variant = strdup(variant);
+	}
+	else
+	{
+		cortex_m3->variant = strdup("");
+	}
 	
 	armv7m_init_arch_info(target, armv7m);	
 	armv7m->arch_info = cortex_m3;
