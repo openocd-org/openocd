@@ -710,7 +710,7 @@ int cortex_m3_assert_reset(target_t *target)
 	 * when srst is asserted the luminary device seesm to also clear the debug registers
 	 * which does not match the armv7 debug TRM */
 		
-	if (strcmp(cortex_m3->variant, "luminary") == 0)
+	if (strcmp(cortex_m3->variant, "lm3s") == 0)
 	{
 		/* this causes the luminary device to reset using the watchdog */
 		ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ );

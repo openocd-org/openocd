@@ -596,6 +596,13 @@ ARM920t options are similar to ARM9TDMI options.
 @cindex arm966e options
 ARM966e options are similar to ARM9TDMI options.
 
+@subsection cortex_m3 options
+@cindex cortex_m3 options
+use variant <@var{variant}> @option{lm3s} when debugging luminary lm3s targets. This will cause
+openocd to use a software reset rather than asserting SRST to avoid a issue with clearing
+the debug registers. This is fixed in Fury Rev B, DustDevil Rev B, Tempest, these revisions will
+be detected and the normal reset behaviour used.
+
 @subsection xscale options
 @cindex xscale options
 Supported variants are @option{ixp42x}, @option{ixp45x}, @option{ixp46x},
