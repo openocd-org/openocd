@@ -16,3 +16,9 @@ in the configuration file).
  
 2. If the target is correctly configured, flash must be writable without any other helper commands. It is 
 assumed that all write-protect mechanisms should be disabled.
+
+3. The configuration scripts should be defined such as the binary that was written to flash verifies
+(turn off remapping, checksums, etc...) 
+
+flash write_image [file] <parameters>
+verify_image [file] <parameters>
