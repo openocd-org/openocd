@@ -627,7 +627,12 @@ int stm32x_probe(struct flash_bank_s *bank)
     }
     
 	/* get flash size from target */
-	target_read_u16(target, 0x1FFFF7E0, &num_sectors);
+	if (target_read_u16(target, 0x1FFFF7E0, &num_sectors) != ERROR_OK)
+	{
+		/* failed reading flash size, default to 128k */
+		LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 128k flash" );
+		num_sectors = 128;
+	}
 	
 	/* check for early silicon rev A */
 	if ((device_id >> 16) == 0 )
