@@ -673,6 +673,7 @@ int cortex_m3_assert_reset(target_t *target)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	int assert_srst = TRUE;
 	
 	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
@@ -712,12 +713,33 @@ int cortex_m3_assert_reset(target_t *target)
 		
 	if (strcmp(cortex_m3->variant, "lm3s") == 0)
 	{
-		/* this causes the luminary device to reset using the watchdog */
-		ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ );
-		LOG_DEBUG("Using Luminary Reset: SYSRESETREQ");
+		/* get revision of lm3s target, only early silicon has this issue
+		 * Fury Rev B, DustDevil Rev B, Tempest all ok */
+		
+		u32 did0;
+		
+		if (target_read_u32(target, 0x400fe000, &did0) == ERROR_OK)
+		{
+			switch ((did0 >> 16) & 0xff)
+			{
+				case 0:
+					/* all Sandstorm suffer issue */
+					assert_srst = FALSE;
+					break;
+				
+				case 1:
+				case 3:
+					/* only Fury/DustDevil rev A suffer reset problems */
+					if (((did0 >> 8) & 0xff) == 0)
+						assert_srst = FALSE;
+					break;
+			}
+		}
 	}
-	else
+	
+	if (assert_srst == TRUE)
 	{
+		/* default to asserting srst */
 		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 		{
 			jtag_add_reset(1, 1);
@@ -726,6 +748,12 @@ int cortex_m3_assert_reset(target_t *target)
 		{
 			jtag_add_reset(0, 1);
 		}
+	}
+	else
+	{
+		/* this causes the luminary device to reset using the watchdog */
+		ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ );
+		LOG_DEBUG("Using Luminary Reset: SYSRESETREQ");
 	}
 	
 	target->state = TARGET_RESET;
