@@ -673,7 +673,7 @@ int cortex_m3_assert_reset(target_t *target)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
-	int assert_srst = TRUE;
+	int assert_srst = 1;
 	
 	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 	
@@ -724,20 +724,20 @@ int cortex_m3_assert_reset(target_t *target)
 			{
 				case 0:
 					/* all Sandstorm suffer issue */
-					assert_srst = FALSE;
+					assert_srst = 0;
 					break;
 				
 				case 1:
 				case 3:
 					/* only Fury/DustDevil rev A suffer reset problems */
 					if (((did0 >> 8) & 0xff) == 0)
-						assert_srst = FALSE;
+						assert_srst = 0;
 					break;
 			}
 		}
 	}
 	
-	if (assert_srst == TRUE)
+	if (assert_srst)
 	{
 		/* default to asserting srst */
 		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
