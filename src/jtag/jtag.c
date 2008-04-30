@@ -1622,9 +1622,8 @@ static int default_khz(int khz, int *jtag_speed)
 	return ERROR_FAIL;
 }
 
-static int default_speedDiv(int speed, int *khz)
+static int default_speed_div(int speed, int *khz)
 {
-	LOG_ERROR("Translation from jtag_speed to khz not implemented");
 	return ERROR_FAIL;	
 }
 
@@ -1658,9 +1657,9 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			{
 				jtag_interface->khz = default_khz;
 			}
-			if (jtag_interface->speedDiv == NULL)
+			if (jtag_interface->speed_div == NULL)
 			{
-				jtag_interface->speedDiv = default_speedDiv;
+				jtag_interface->speed_div = default_speed_div;
 			}
 			return ERROR_OK;
 		}
@@ -1859,8 +1858,8 @@ int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char
 		 * in which case jtag isn't initialized */
 		if (jtag)
 		{
-			jtag->speedDiv(jtag_speed, &speed1);
-			jtag->speedDiv(jtag_speed_post_reset, &speed2);
+			jtag->speed_div(jtag_speed, &speed1);
+			jtag->speed_div(jtag_speed_post_reset, &speed2);
 			jtag->speed(cur_speed);
 		}
 	}		
@@ -1890,9 +1889,15 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 			LOG_DEBUG("have interface set up");
 			int speed_div1, speed_div2;
 			if (jtag->khz(speed1, &speed_div1)!=ERROR_OK)
+			{
+				speed1 = speed2 = 0;
 				return ERROR_OK;
+			}
 			if (jtag->khz(speed2, &speed_div2)!=ERROR_OK)
+			{
+				speed1 = speed2 = 0;
 				return ERROR_OK;
+			}
 	
 			if (argc >= 1)
 				cur_speed = jtag_speed = jtag_speed_post_reset = speed_div1;

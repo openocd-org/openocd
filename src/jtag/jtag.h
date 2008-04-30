@@ -200,7 +200,7 @@ typedef struct jtag_interface_s
 	int (*khz)(int khz, int *jtag_speed);
 	/* returns the KHz for the provided JTAG speed. 0=RTCK. The function returns
 	a failure if it can't support the KHz/RTCK. */
-	int (*speedDiv)(int speed, int *khz);
+	int (*speed_div)(int speed, int *khz);
 	
 } jtag_interface_t;
 
