@@ -1,0 +1,2 @@
+#do not remap 0x0000-0x0020 to anything but the flash
+mwb 0xE01FC040 0x01 
