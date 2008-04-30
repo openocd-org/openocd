@@ -1501,10 +1501,8 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	if(hasKHz)
 	{
 		/*stay on "reset speed"*/
-		if (jtag_interface->khz(speed1, &speed1) == ERROR_OK)
-			jtag_speed = speed1;
-		if (jtag_interface->khz(speed2, &speed2) == ERROR_OK)
-			jtag_speed_post_reset = speed2;
+		jtag_interface->khz(speed1, &jtag_speed);
+		jtag_interface->khz(speed2, &jtag_speed_post_reset);
 		hasKHz = 0;
 	}
 
@@ -1624,6 +1622,12 @@ static int default_khz(int khz, int *jtag_speed)
 	return ERROR_FAIL;
 }
 
+static int default_speedDiv(int speed, int *khz)
+{
+	LOG_ERROR("Translation from jtag_speed to khz not implemented");
+	return ERROR_FAIL;	
+}
+
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
@@ -1653,6 +1657,10 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			if (jtag_interface->khz == NULL)
 			{
 				jtag_interface->khz = default_khz;
+			}
+			if (jtag_interface->speedDiv == NULL)
+			{
+				jtag_interface->speedDiv = default_speedDiv;
 			}
 			return ERROR_OK;
 		}
@@ -1850,7 +1858,11 @@ int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char
 		/* this command can be called during CONFIG, 
 		 * in which case jtag isn't initialized */
 		if (jtag)
+		{
+			jtag->speedDiv(jtag_speed, &speed1);
+			jtag->speedDiv(jtag_speed_post_reset, &speed2);
 			jtag->speed(cur_speed);
+		}
 	}		
 	command_print(cmd_ctx, "jtag_speed: %d, %d", jtag_speed, jtag_speed_post_reset);
 	
@@ -1861,34 +1873,39 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 {
 	LOG_DEBUG("handle jtag khz");
 	
-	if ((argc<1) || (argc>2))
+	if (argc>2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc >= 1)
-		speed1 = speed2 = strtoul(args[0], NULL, 0);
-	if (argc == 2)
-		speed2 = strtoul(args[1], NULL, 0);
-
-	if (jtag != NULL)
+	if(argc != 0)
 	{
-		int cur_speed = 0;
-		LOG_DEBUG("have interface set up");
-		int speed_div1, speed_div2;
-		if (jtag->khz(speed1, &speed_div1)!=ERROR_OK)
-			return ERROR_OK;
-		if (jtag->khz(speed2, &speed_div2)!=ERROR_OK)
-			return ERROR_OK;
-
+		
 		if (argc >= 1)
-			cur_speed = jtag_speed = jtag_speed_post_reset = speed_div1;
+			speed1 = speed2 = strtoul(args[0], NULL, 0);
 		if (argc == 2)
-			cur_speed = jtag_speed_post_reset = speed_div2;
-
-		jtag->speed(cur_speed);
-	} else
-	{
-		hasKHz = 1;
+			speed2 = strtoul(args[1], NULL, 0);
+	
+		if (jtag != NULL)
+		{
+			int cur_speed = 0;
+			LOG_DEBUG("have interface set up");
+			int speed_div1, speed_div2;
+			if (jtag->khz(speed1, &speed_div1)!=ERROR_OK)
+				return ERROR_OK;
+			if (jtag->khz(speed2, &speed_div2)!=ERROR_OK)
+				return ERROR_OK;
+	
+			if (argc >= 1)
+				cur_speed = jtag_speed = jtag_speed_post_reset = speed_div1;
+			if (argc == 2)
+				cur_speed = jtag_speed_post_reset = speed_div2;
+	
+			jtag->speed(cur_speed);
+		} else
+		{
+			hasKHz = 1;
+		}
 	}
+	command_print(cmd_ctx, "jtag_khz: %d, %d", speed1, speed2);
 	
 	return ERROR_OK;
 }
