@@ -1,7 +1,7 @@
 \input texinfo	@c -*-texinfo-*-
 @c %**start of header
 @setfilename openocd.info
-@settitle Open On-Chip Debugger (openocd)
+@settitle Open On-Chip Debugger (OpenOCD)
 @dircategory Development
 @direntry
 * OpenOCD: (openocd).      Open On-Chip Debugger.
@@ -23,8 +23,8 @@ Free Documentation License''.
 @end copying
 
 @titlepage
-@title Open On-Chip Debugger (openocd)
-@subtitle Edition @value{EDITION} for openocd version @value{VERSION}
+@title Open On-Chip Debugger (OpenOCD)
+@subtitle Edition @value{EDITION} for OpenOCD version @value{VERSION}
 @subtitle @value{UPDATED}
 @page
 @vskip 0pt plus 1filll
@@ -37,20 +37,20 @@ Free Documentation License''.
 @top OpenOCD
 
 This manual documents edition @value{EDITION} of the Open On-Chip Debugger
-(openocd) version @value{VERSION}, @value{UPDATED}.
+(OpenOCD) version @value{VERSION}, @value{UPDATED}.
 
 @insertcopying
 
 @menu
-* About::             About Openocd.
-* Developers::        Openocd developers
-* Building::          Building Openocd
-* Running::           Running Openocd
-* Configuration::     Openocd Configuration.
+* About::             About OpenOCD.
+* Developers::        OpenOCD developers
+* Building::          Building OpenOCD
+* Running::           Running OpenOCD
+* Configuration::     OpenOCD Configuration.
 * Target library::    Target library
-* Commands::          Openocd Commands
+* Commands::          OpenOCD Commands
 * Sample Scripts::    Sample Target Scripts
-* GDB and Openocd::   Using GDB and Openocd
+* GDB and OpenOCD::   Using GDB and OpenOCD
 * Upgrading::         Deprecated/Removed Commands
 * FAQ::               Frequently Asked Questions
 * License::           GNU Free Documentation License
@@ -61,12 +61,12 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 @unnumbered About
 @cindex about
 
-The Open On-Chip Debugger (openocd) aims to provide debugging, in-system programming
+The Open On-Chip Debugger (OpenOCD) aims to provide debugging, in-system programming
 and boundary-scan testing for embedded target devices. The targets are interfaced
 using JTAG (IEEE 1149.1) compliant hardware, but this may be extended to other
 connection types in the future.
 
-Openocd currently supports Wiggler (clones), FTDI FT2232 based JTAG interfaces, the
+OpenOCD currently supports Wiggler (clones), FTDI FT2232 based JTAG interfaces, the
 Amontec JTAG Accelerator, and the Gateworks GW1602. It allows ARM7 (ARM7TDMI and ARM720t),
 ARM9 (ARM920t, ARM922t, ARM926ej--s, ARM966e--s), XScale (PXA25x, IXP42x) and
 Cortex-M3 (Luminary Stellaris LM3 and ST STM32) based cores to be debugged.
@@ -79,7 +79,7 @@ and STM32x). Preliminary support for using the LPC3180's NAND flash controller i
 @chapter Developers
 @cindex developers
 
-Openocd has been created by Dominic Rath as part of a diploma thesis written at the
+OpenOCD was created by Dominic Rath as part of a diploma thesis written at the
 University of Applied Sciences Augsburg (@uref{http://www.fh-augsburg.de}).
 Others interested in improving the state of free and open debug and testing technology
 are welcome to participate.
@@ -87,9 +87,11 @@ are welcome to participate.
 Other developers have contributed support for additional targets and flashes as well
 as numerous bugfixes and enhancements. See the AUTHORS file for regular contributors. 
 
+The main OpenOCD web site is available at @uref{http://openocd.berlios.de/web/}
+
 @node Building
 @chapter Building
-@cindex building openocd
+@cindex building OpenOCD
 
 You can download the current SVN version with SVN client of your choice from the
 following repositories:
@@ -100,7 +102,7 @@ or
 
  (@uref{http://svn.berlios.de/svnroot/repos/openocd/trunk})
 
-Using the SVN command line client, you could use the following command to fetch the
+Using the SVN command line client, you can use the following command to fetch the
 latest version (make sure there is no (non-svn) directory called "openocd" in the
 current directory):
 
@@ -108,7 +110,7 @@ current directory):
  svn checkout svn://svn.berlios.de/openocd/trunk openocd
 @end smallexample
 
-Building the OpenOCD requires a recent version of the GNU autotools.
+Building OpenOCD requires a recent version of the GNU autotools.
 On my build system, I'm using autoconf 2.13 and automake 1.9. For building on Windows,
 you have to use Cygwin. Make sure that your @env{PATH} environment variable contains no
 other locations with Unix utils (like UnxUtils) - these can't handle the Cygwin
@@ -128,7 +130,7 @@ Please note that the ftdi2232 variant (using libftdi) isn't supported under Cygw
 You have to use the ftd2xx variant (using FTDI's D2XX) on Cygwin.
 
 In general, the D2XX driver provides superior performance (several times as fast),
-but has the draw-back of being binary-only - though that isn't as worse, as it isn't
+but has the draw-back of being binary-only - though that isn't that bad, as it isn't
 a kernel module, only a user space library.
 
 To build OpenOCD (on both Linux and Cygwin), use the following commands:
@@ -143,7 +145,7 @@ Configure generates the Makefiles used to build OpenOCD.
 @smallexample
  make 
 @end smallexample
-Make builds the OpenOCD, and places the final executable in ./src/.
+Make builds OpenOCD, and places the final executable in ./src/.
 
 The configure script takes several options, specifying which JTAG interfaces
 should be included:
@@ -160,7 +162,7 @@ should be included:
 @item
 @option{--enable-ft2232_ftd2xx}
 @footnote{Using the latest D2XX drivers from FTDI and following their installation
-instructions, I had to use @option{--enable-ft2232_libftd2xx} for the OpenOCD to
+instructions, I had to use @option{--enable-ft2232_libftd2xx} for OpenOCD to
 build properly.}
 @item
 @option{--enable-ft2232_libftdi}
@@ -189,20 +191,20 @@ locations, i.e. /usr/include, /usr/lib.
 
 @node Running
 @chapter Running
-@cindex running openocd
+@cindex running OpenOCD
 @cindex --configfile
 @cindex --debug_level
 @cindex --logfile
 @cindex --search
-The OpenOCD runs as a daemon, waiting for connections from clients (Telnet or GDB).
-Run with @option{--help} or @option{-h} to view the available command line arguments.
+OpenOCD runs as a daemon, waiting for connections from clients (Telnet or GDB).
+Run with @option{--help} or @option{-h} to view the available command line switches.
 
 It reads its configuration by default from the file openocd.cfg located in the current
 working directory. This may be overwritten with the @option{-f <configfile>} command line
-switch.  @option{-f} can be specified multiple times, in which case the config files
+switch.  The @option{-f} command line switch can be specified multiple times, in which case the config files
 are executed in order. 
 
-Also it is possible to interleave commands w/config scripts using the @option{-c}. 
+Also it is possible to interleave commands w/config scripts using the @option{-c} command line switch. 
 
 To enable debug output (when reporting problems or working on OpenOCD itself), use
 the @option{-d} command line switch. This sets the debug_level to "3", outputting
@@ -212,20 +214,20 @@ from within a telnet or gdb session (@option{debug_level <n>}).
 
 You can redirect all output from the daemon to a file using the @option{-l <logfile>} switch.
 
-Search paths for config/script files can be added to openocd by using
+Search paths for config/script files can be added to OpenOCD by using
 the @option{-s <search>} switch. The current directory and the OpenOCD target library 
 is in the search path by default.
 
-NB! OpenOCD will launch the GDB & telnet server even if it can not establish a connection
+Note! OpenOCD will launch the GDB & telnet server even if it can not establish a connection
 with the target. In general, it is possible for the JTAG controller to be unresponsive until 
 the target is set up correctly via e.g. GDB monitor commands in a GDB init script.
 
 @node Configuration
 @chapter Configuration
 @cindex configuration
-The Open On-Chip Debugger (OpenOCD) runs as a daemon, and reads it current configuration
+OpenOCD runs as a daemon, and reads it current configuration
 by default from the file openocd.cfg in the current directory. A different configuration
-file can be specified with the  @option{-f <conf.file>} given at the openocd command line.
+file can be specified with the  @option{-f <conf.file>} command line switch specified when starting OpenOCD.
 
 The configuration file is used to specify on which ports the daemon listens for new
 connections, the JTAG interface used to connect to the target, the layout of the JTAG
@@ -238,7 +240,7 @@ chain, the targets that should be debugged, and connected flashes.
 command mode. This can be useful to add commands to the startup scripts and commands
 such as resetting the target, programming flash, etc. To reset the CPU upon startup,
 add "init" and "reset" at the end of the config script or at the end of the
-openocd command line using the -c option.
+OpenOCD command line using the @option{-c} command line switch.
 @cindex init
 @item @b{telnet_port} <@var{number}>
 @cindex telnet_port
@@ -249,18 +251,18 @@ First port on which to listen for incoming GDB connections. The GDB port for the
 first target will be gdb_port, the second target will listen on gdb_port + 1, and so on. 
 @item @b{gdb_detach} <@var{resume|reset|halt|nothing}>
 @cindex gdb_detach
-Configures what openocd will do when gdb detaches from the daeman.
+Configures what OpenOCD will do when gdb detaches from the daeman.
 Default behaviour is <@var{resume}>
 @item @b{gdb_memory_map} <@var{enable|disable}>
 @cindex gdb_memory_map
-Set to <@var{enable}> so that openocd will send the memory configuration to gdb when
+Set to <@var{enable}> to cause OpenOCD to send the memory configuration to gdb when
 requested. gdb will then know when to set hardware breakpoints, and program flash
 using the gdb load command. @option{gdb_flash_program enable} will also need enabling
 for flash programming to work.
 Default behaviour is <@var{disable}>
 @item @b{gdb_flash_program} <@var{enable|disable}>
 @cindex gdb_flash_program
-Set to <@var{enable}> so that openocd will program the flash memory when a
+Set to <@var{enable}> to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
 Default behaviour is <@var{enable}>
 @item @b{daemon_startup} <@var{mode}>
@@ -268,7 +270,7 @@ Default behaviour is <@var{enable}>
 @option{mode} can either @option{attach} or @option{reset}
 This is equivalent to adding "init" and "reset" to the end of the config script.
 
-It is availble as a command mainly for backwards compatibility.
+It is available as a command mainly for backwards compatibility.
 @end itemize
 
 @section JTAG interface configuration
@@ -376,11 +378,11 @@ The IDCODE instruction is 0xfe.
 
 @item @b{jtag_nsrst_delay} <@var{ms}>
 @cindex jtag_nsrst_delay
-How long (in miliseconds) the OpenOCD should wait after deasserting nSRST before
+How long (in milliseconds) OpenOCD should wait after deasserting nSRST before
 starting new JTAG operations. 
 @item @b{jtag_ntrst_delay} <@var{ms}>
 @cindex jtag_ntrst_delay
-How long (in miliseconds) the OpenOCD should wait after deasserting nTRST before
+How long (in milliseconds) OpenOCD should wait after deasserting nTRST before
 starting new JTAG operations. 
 
 The jtag_n[st]rst_delay options are useful if reset circuitry (like a reset supervisor,
@@ -406,7 +408,7 @@ Currently supported cables are
 @itemize @minus
 @item @b{wiggler}
 @cindex wiggler
-Original Wiggler layout, also supported by several clones, such
+The original Wiggler layout, also supported by several clones, such
 as the Olimex ARM-JTAG
 @item @b{old_amt_wiggler}
 @cindex old_amt_wiggler
@@ -414,12 +416,10 @@ The Wiggler configuration that comes with Amontec's Chameleon Programmer. The ne
 version available from the website uses the original Wiggler layout ('@var{wiggler}')
 @item @b{chameleon}
 @cindex chameleon
-Describes the connection of the Amontec Chameleon's CPLD when operated in
-configuration mode. This is only used to program the Chameleon itself, not
-a connected target.
+The Amontec Chameleon's CPLD when operated in configuration mode. This is only used to program the Chameleon itself, not a connected target.
 @item @b{dlc5}
 @cindex dlc5
-Xilinx Parallel cable III.
+The Xilinx Parallel cable III.
 @item @b{triton}
 @cindex triton
 The parallel port adapter found on the 'Karo Triton 1 Development Board'.
@@ -427,12 +427,12 @@ This is also the layout used by the HollyGates design
 (see @uref{http://www.lartmaker.nl/projects/jtag/}).
 @item @b{flashlink}
 @cindex flashlink
-ST Parallel cable. 
+The ST Parallel cable. 
 @end itemize
 @item @b{parport_write_on_exit} <@var{on|off}>
 @cindex parport_write_on_exit
 This will configure the parallel driver to write a known value to the parallel
-interface on exiting openocd
+interface on exiting OpenOCD
 @end itemize
 
 @section amt_jtagaccel options
@@ -455,7 +455,7 @@ The layout of the FT2232 GPIO signals used to control output-enables and reset
 signals. Valid layouts are
 @itemize @minus
 @item @b{usbjtag}
-The "USBJTAG-1" layout described in the original OpenOCD diploma thesis
+"USBJTAG-1" layout described in the original OpenOCD diploma thesis
 @item @b{jtagkey}
 Amontec JTAGkey and JTAGkey-tiny
 @item @b{signalyzer}
@@ -566,8 +566,8 @@ reset modes.
 Specifies a working area for the debugger to use. This may be used to speed-up
 downloads to target memory and flash operations, or to perform otherwise unavailable
 operations (some coprocessor operations on ARM7/9 systems, for example). The last
-parameter decides whether the memory should be preserved <@var{backup}>. If possible, use
-a working_area that doesn't need to be backed up, as that slows down operation. 
+parameter decides whether the memory should be preserved (<@var{backup}>) or can simply be overwritten (<@var{nobackup}>). If possible, use
+a working_area that doesn't need to be backed up, as performing a backup slows down operation. 
 @end itemize
 
 @subsection arm7tdmi options
@@ -699,7 +699,7 @@ the path to the target library is in the OpenOCD script search path.
 Similarly there are example scripts for configuring the JTAG interface. 
 
 The command line below uses the example parport configuration scripts
-that ships with OpenOCD, then configures the str710.cfg target and
+that ship with OpenOCD, then configures the str710.cfg target and
 finally issues the init and reset command. The communication speed
 is set to 10kHz for reset and 8MHz for post reset.
 
@@ -725,7 +725,7 @@ at91sam9260.cfg  nslu2.cfg     sam7x256.cfg    wi-9c.cfg
 @chapter Commands
 @cindex commands
 
-The Open On-Chip Debugger (OpenOCD) allows user interaction through a telnet interface
+OpenOCD allows user interaction through a telnet interface
 (default: port 4444) and a GDB server (default: port 3333). The command line interpreter
 is available from both the telnet interface and a GDB session. To issue commands to the
 interpreter from within a GDB session, use the @option{monitor} command, e.g. use
@@ -762,7 +762,9 @@ and robustness with a minimum of configuration.
 
 Typically the "fast enable" is specified first on the command line:
 
+@smallexample
 openocd -c "fast enable" -c "interface dummy" -f target/str710.cfg
+@end smallexample
 
 @item @b{log_output} <@var{file}>
 @cindex log_output
@@ -779,15 +781,15 @@ Execute commands from <file>
 @item @b{poll} [@option{on}|@option{off}]
 @cindex poll
 Poll the target for its current state. If the target is in debug mode, architecture
-specific information about the current state are printed. An optional parameter
+specific information about the current state is printed. An optional parameter
 allows continuous polling to be enabled and disabled.
 
 @item @b{halt} [@option{ms}]
 @cindex halt
-Send a halt request to the target and waits for it to halt for [@option{ms}].
+Send a halt request to the target and wait for it to halt for up to [@option{ms}] milliseconds.
 Default [@option{ms}] is 5 seconds if no arg given.
 Optional arg @option{ms} is a timeout in milliseconds. Using 0 as the [@option{ms}]
-will stop openocd from waiting.
+will stop OpenOCD from waiting.
 
 @item @b{wait_halt} [@option{ms}]
 @cindex wait_halt
@@ -798,7 +800,7 @@ arg given.
 @item @b{resume} [@var{address}]
 @cindex resume
 Resume the target at its current code position, or at an optional address.
-Openocd will wait 5 seconds for the target to resume.
+OpenOCD will wait 5 seconds for the target to resume.
 
 @item @b{step} [@var{address}]
 @cindex step
@@ -807,8 +809,8 @@ Single-step the target at its current code position, or at an optional address.
 @item @b{reset} [@option{run}|@option{halt}|@option{init}|@option{run_and_halt}
 |@option{run_and_init}]
 @cindex reset
-Do a hard-reset. The optional parameter specifies what should happen after the reset.
-This optional parameter overwrites the setting specified in the configuration file,
+Perform a hard-reset. The optional parameter specifies what should happen after the reset.
+This optional parameter overrides the setting specified in the configuration file,
 making the new behaviour the default for the @option{reset} command.
 @itemize @minus
 @item @b{run}
@@ -827,7 +829,7 @@ Let the target run for a certain amount of time, then request a halt.
 @item @b{run_and_init}
 @cindex reset run_and_init
 Let the target run for a certain amount of time, then request a halt. Execute the
-reset script once the target entered debug mode.
+reset script once the target enters debug mode.
 @end itemize
 @end itemize
 
@@ -862,8 +864,8 @@ Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
 (binary) <@var{file}>.
 @item @b{verify_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
 @cindex verify_image
-Verify <@var{file}> to target memory starting at <@var{address}>.
-This will first attempt using a crc checksum, if this fails it will try a binary compare.
+Verify <@var{file}> against target memory starting at <@var{address}>.
+This will first attempt comparison using a crc checksum, if this fails it will try a binary compare.
 @end itemize
 
 @subsection Flash commands
@@ -892,12 +894,12 @@ Check protection state of sectors in flash bank <num>.
 @item @b{flash erase_sector} <@var{num}> <@var{first}> <@var{last}>
 @cindex flash erase_sector
 Erase sectors at bank <@var{num}>, starting at sector <@var{first}> up to and including
-<@var{last}>. Sector numbering starts at 0. Depending on the flash type, erasing might
+<@var{last}>. Sector numbering starts at 0. Depending on the flash type, erasing may
 require the protection to be disabled first (e.g. Intel Advanced Bootblock flash using
 the CFI driver).
 @item @b{flash erase_address} <@var{address}> <@var{length}>
 @cindex flash erase_address
-Erase sectors starting at <@var{address}> for <@var{length}> number of bytes
+Erase sectors starting at <@var{address}> for <@var{length}> bytes
 @item @b{flash write_bank} <@var{num}> <@var{file}> <@var{offset}>
 @cindex flash write_bank
 Write the binary <@var{file}> to flash bank <@var{num}>, starting at
@@ -925,7 +927,7 @@ The flash configuration is deduced from the chip identification register. The fl
 controller handles erases automatically on a page (128/265 byte) basis so erase is
 not necessary for flash programming. AT91SAM7 processors with less than 512K flash
 only have a single flash bank embedded on chip. AT91SAM7xx512 have two flash planes
-that can be erased separatly.Only an EraseAll command is supported by the controller
+that can be erased separatly. Only an EraseAll command is supported by the controller
 for each flash plane and this is called with
 @itemize @bullet
 @item @b{flash erase} <@var{num}> @var{first_plane} @var{last_plane}
@@ -1060,7 +1062,7 @@ Enable use of the DBGRQ bit to force entry into debug mode. This should be
 safe for all but ARM7TDMI--S cores (like Philips LPC). 
 @item @b{arm7_9 fast_memory_access} <@var{enable}|@var{disable}>
 @cindex arm7_9 fast_memory_access
-Allow the OpenOCD to read and write memory without checking completion of
+Allow OpenOCD to read and write memory without checking completion of
 the operation. This provides a huge speed increase, especially with USB JTAG
 cables (FT2232), but might be unsafe if used with targets running at a very low
 speed, like the 32kHz startup clock of an AT91RM9200. 
@@ -1168,7 +1170,7 @@ Translate a virtual address to a physical address.
 @section Debug commands
 @cindex Debug commands
 The following commands give direct access to the core, and are most likely
-only useful while debugging the OpenOCD.
+only useful while debugging OpenOCD.
 @itemize @bullet
 @item @b{arm7_9 write_xpsr} <@var{32-bit value}> <@option{0=cpsr}, @option{1=spsr}>
 @cindex arm7_9 write_xpsr
@@ -1226,7 +1228,7 @@ Display/modify variable field <@var{var}> <@var{field}> [@var{value}|@var{flip}]
 @page
 @section Target Requests
 @cindex Target Requests
-Openocd can handle certain target requests, currently debugmsg are only supported for arm7_9 and cortex_m3.
+OpenOCD can handle certain target requests, currently debugmsg are only supported for arm7_9 and cortex_m3.
 See libdcc in the contrib dir for more details.
 @itemize @bullet
 @item @b{target_request debugmsgs} <@var{enable}|@var{disable}>
@@ -1260,10 +1262,10 @@ openocd -f interface/parport.cfg -f target/at91r40008.cfg -c init -c reset
 @end smallexample
 
 
-@node GDB and Openocd
-@chapter GDB and Openocd
-@cindex GDB and Openocd
-Openocd complies with the remote gdbserver protocol, and as such can be used
+@node GDB and OpenOCD
+@chapter GDB and OpenOCD
+@cindex GDB and OpenOCD
+OpenOCD complies with the remote gdbserver protocol, and as such can be used
 to debug remote targets.
 
 @section Connecting to gdb
@@ -1274,14 +1276,14 @@ target remote localhost:3333
 @end smallexample
 This would cause gdb to connect to the gdbserver on the local pc using port 3333.
 
-To see a list of available openocd commands type @option{monitor help} on the
+To see a list of available OpenOCD commands type @option{monitor help} on the
 gdb commandline.
 
-Openocd supports the gdb @option{qSupported} packet, this enables information
+OpenOCD supports the gdb @option{qSupported} packet, this enables information
 to be sent by the gdb server (openocd) to gdb. Typical information includes
 packet size and device memory map.
 
-Previous versions of openocd required the following gdb options to increase
+Previous versions of OpenOCD required the following gdb options to increase
 the packet size and speed up gdb communication.
 @smallexample
 set remote memory-write-packet-size 1024
@@ -1295,16 +1297,17 @@ This is now handled in the @option{qSupported} PacketSize.
 @cindex Programming using gdb
 
 By default the target memory map is sent to gdb, this can be disabled by
-the following openocd config option:
+the following OpenOCD config option:
 @smallexample
 gdb_memory_map disable
 @end smallexample
 For this to function correctly a valid flash config must also be configured
-in openocd. For speed also configure a valid working area.
+in OpenOCD. For faster performance you should also configure a valid 
+working area.
 
 Informing gdb of the memory map of the target will enable gdb to protect any
 flash area of the target and use hardware breakpoints by default. This means
-that the openocd option @option{arm7_9 force_hw_bkpts} is not required when
+that the OpenOCD option @option{arm7_9 force_hw_bkpts} is not required when
 using a memory map.
 
 To view the configured memory map in gdb, use the gdb command @option{info mem}
@@ -1323,7 +1326,7 @@ gdb will look at the target memory map when a load command is given, if any
 areas to be programmed lie within the target flash area the vFlash packets
 will be used.
 
-Incase the target needs configuring before gdb programming, a script can be executed.
+If the target needs configuring before gdb programming, a script can be executed.
 @smallexample
 target_script 0 gdb_program_config config.script
 @end smallexample
@@ -1334,7 +1337,7 @@ can be used.
 @node Upgrading
 @chapter Deprecated/Removed Commands
 @cindex Deprecated/Removed Commands
-Certain openocd commands have been deprecated/removed during the various revisions.
+Certain OpenOCD commands have been deprecated/removed during the various revisions.
 
 @itemize @bullet
 @item @b{load_binary}
@@ -1368,7 +1371,7 @@ use @option{flash write_image} command passing @option{erase} as the first param
 
 Make sure you have Cygwin installed, or at least a version of OpenOCD that
 claims to come with all the necessary dlls. When using Cygwin, try launching
-the OpenOCD from the Cygwin shell.
+OpenOCD from the Cygwin shell.
 
 @item I'm trying to set a breakpoint using GDB (or a frontend like Insight or
 Eclipse), but OpenOCD complains that "Info: arm7_9_common.c:213
@@ -1397,7 +1400,7 @@ out while waiting for end of scan, rtck was disabled".
 Make sure your PC's parallel port operates in EPP mode. You might have to try several
 settings in your PC BIOS (ECP, EPP, and different versions of those).
 
-@item When debugging with the OpenOCD and GDB (plain GDB, Insight, or Eclipse),
+@item When debugging with OpenOCD and GDB (plain GDB, Insight, or Eclipse),
 I get lots of "Error: arm7_9_common.c:1771 arm7_9_read_memory():
 memory read caused data abort". 
 
@@ -1411,7 +1414,7 @@ be done, feel free to add this here.
 
 This warning doesn't indicate any serious problem, as long as you don't want to
 debug your core right out of reset. Your .cfg file specified @option{jtag_reset
-trst_and_srst srst_pulls_trst} to tell the OpenOCD that either your board,
+trst_and_srst srst_pulls_trst} to tell OpenOCD that either your board,
 your debugger or your target uC (e.g. LPC2000) can't assert the two reset signals
 independently. With this setup, it's not possible to halt the core right out of
 reset, everything else should work fine.
