@@ -32,10 +32,10 @@ MINGWLDADD =
 endif
 
 if FT2232_LIBFTDI
-FTDI2232LIB = -lftdi
+FTDI2232LIB = -lftdi -lusb
 else
 if PRESTO_LIBFTDI
-FTDI2232LIB = -lftdi
+FTDI2232LIB = -lftdi -lusb
 else
 FTDI2232LIB =
 endif
