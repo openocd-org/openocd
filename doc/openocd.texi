@@ -126,8 +126,8 @@ a FTDI FT2232 based interface:
 homepage (@uref{www.amontec.com}), as the JTAGkey uses a non-standard VID/PID. 
 @end itemize
 
-Please note that the ftdi2232 variant (using libftdi) isn't supported under Cygwin.
-You have to use the ftd2xx variant (using FTDI's D2XX) on Cygwin.
+libftdi is supported under windows. Versions earlier than 0.13 will require patching.
+see contrib/libftdi for more details.
 
 In general, the D2XX driver provides superior performance (several times as fast),
 but has the draw-back of being binary-only - though that isn't that bad, as it isn't

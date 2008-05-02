@@ -1,0 +1,20 @@
+--- src/ftdi.c.orig	Wed Apr 16 16:24:30 2008
++++ src/ftdi.c	Thu May 01 20:19:46 2008
+@@ -358,6 +358,17 @@
+     if (usb_detach_kernel_driver_np(ftdi->usb_dev, ftdi->interface) != 0 && errno != ENODATA)
+         detach_errno = errno;
+ #endif
++
++#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
++	if (usb_set_configuration(ftdi->usb_dev, 1) != 0) {
++		usb_close (ftdi->usb_dev);
++        if (detach_errno == EPERM) {
++            ftdi_error_return(-8, "inappropriate permissions on device!");
++        } else {
++            ftdi_error_return(-5, "unable to set configuration");
++        }
++	}
++#endif
+ 
+     if (usb_claim_interface(ftdi->usb_dev, ftdi->interface) != 0) {
+         usb_close (ftdi->usb_dev);
