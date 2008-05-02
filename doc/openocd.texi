@@ -481,7 +481,10 @@ OOCDLink
 
 @item @b{ft2232_vid_pid} <@var{vid}> <@var{pid}>
 The vendor ID and product ID of the FTDI FT2232 device. If not specified, the FTDI
-default values are used. This command is not available on Windows. 
+default values are used. Multiple <@var{vid}>, <@var{pid}> pairs may be given, eg.
+@smallexample
+ft2232_vid_pid 0x0403 0xcff8 0x15ba 0x0003
+@end smallexample
 @item @b{ft2232_latency} <@var{ms}>
 On some systems using ft2232 based JTAG interfaces the FT_Read function call in
 ft2232_read() fails to return the expected number of bytes. This can be caused by
