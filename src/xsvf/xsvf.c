@@ -77,23 +77,25 @@ void xsvf_add_statemove(enum tap_state state)
 {
 	enum tap_state moves[7]; /* max # of transitions */
 	int i; 
-	enum tap_state curstate=cmd_queue_cur_state;
-	u8 move=tap_move[cmd_queue_cur_state][state];
+	enum tap_state curstate = cmd_queue_cur_state;
+	u8 move = TAP_MOVE(cmd_queue_cur_state, state);
 	
-	if ((state!=TAP_TLR)&&(state==cmd_queue_cur_state))
+	if ((state != TAP_TLR) && (state == cmd_queue_cur_state))
 		return;
+
 	for (i=0; i<7; i++)
 	{
-		int j=(move>>i)&1;
+		int j = (move >> i) & 1;
 		if (j)
 		{
-			curstate=tap_transitions[curstate].high;
+			curstate = tap_transitions[curstate].high;
 		} else
 		{
-			curstate=tap_transitions[curstate].low;
+			curstate = tap_transitions[curstate].low;
 		}
-		moves[i]=curstate;
+		moves[i] = curstate;
 	}
+
 	jtag_add_pathmove(7, moves);
 }
 
