@@ -1611,6 +1611,9 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			/* a flash chip could be at the very end of the 32 bit address space, in which case
 			ram_start will be precisely 0 */
 		}
+		
+		free(banks);
+		banks = NULL;
 
 		xml_printf(&retval, &xml, &pos, &size, "</memory-map>\n");
 
