@@ -1,9 +1,0 @@
-# Resets and unlocks the MSM of TMS470R1A288 (an others with an MSM).
-# Assumes default MSM keys (all 0xFFFFFFFF).
-#
-resume
-jtag_reset 0 1
-halt
-jtag_reset 0 0
-poll               	# hack-ish, but effective version of 'reset halt'
-mdw 0x1fe0 4		# unlock MSM
