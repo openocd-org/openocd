@@ -24,7 +24,7 @@
 #include "server.h"
 #include "image.h"
 
-#define GDB_BUFFER_SIZE	2048
+#define GDB_BUFFER_SIZE	16384
 
 typedef struct gdb_connection_s
 {
