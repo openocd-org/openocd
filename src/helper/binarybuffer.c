@@ -49,43 +49,6 @@ const unsigned char bit_reverse_table256[] =
   0x0F, 0x8F, 0x4F, 0xCF, 0x2F, 0xAF, 0x6F, 0xEF, 0x1F, 0x9F, 0x5F, 0xDF, 0x3F, 0xBF, 0x7F, 0xFF
 };
 
-int buf_set_u32(u8* buffer, unsigned int first, unsigned int num, u32 value)
-{
-	unsigned int i;
-	
-	if (!buffer)
-		return ERROR_INVALID_ARGUMENTS;
-
-	for (i=first; i<first+num; i++)
-	{
-		if (((value >> (i-first))&1) == 1)
-			buffer[i/8] |= 1 << (i%8);
-		else
-			buffer[i/8] &= ~(1 << (i%8));
-	}
-	
-	return ERROR_OK;
-}
-
-u32 buf_get_u32(u8* buffer, unsigned int first, unsigned int num)
-{
-	u32 result = 0;
-	unsigned int i;
-	
-	if (!buffer)
-	{
-		LOG_ERROR("buffer not initialized");
-		return 0;
-	}
-
-	for (i=first; i<first+num; i++)
-	{
-		if (((buffer[i/8]>>(i%8))&1) == 1)
-			result |= 1 << (i-first);
-	}
-	
-	return result;
-}
 
 u8* buf_cpy(u8 *from, u8 *to, int size)
 {

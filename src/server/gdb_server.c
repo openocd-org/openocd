@@ -1850,11 +1850,14 @@ static void gdb_log_callback(void *priv, const char *file, int line,
 	gdb_output_con(connection, string);
 }
 
+/* Do not allocate this on the stack */
+char gdb_packet_buffer[GDB_BUFFER_SIZE];
+
 int gdb_input_inner(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
 	target_t *target = gdb_service->target;
-	char packet[GDB_BUFFER_SIZE];
+	char *packet=gdb_packet_buffer;
 	int packet_size;
 	int retval;
 	gdb_connection_t *gdb_con = connection->priv;

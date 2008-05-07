@@ -26,8 +26,47 @@
  * flip_u32 inverses the bit order inside a 32-bit word (31..0 -> 0..31)
  */
 
-extern int buf_set_u32(u8* buffer, unsigned int first, unsigned int num, u32 value);
-extern u32 buf_get_u32(u8* buffer, unsigned int first, unsigned int num);
+/* inlining this will help show what fn that is taking time during profiling. */
+static __inline void buf_set_u32(u8* buffer, unsigned int first, unsigned int num, u32 value)
+{
+	if ((num==32)&&(first==0))
+	{
+		buffer[3]=(value>>24)&0xff;
+		buffer[2]=(value>>16)&0xff;
+		buffer[1]=(value>>8)&0xff;
+		buffer[0]=(value>>0)&0xff;
+	} else
+	{
+		unsigned int i;
+		
+		for (i=first; i<first+num; i++)
+		{
+			if (((value >> (i-first))&1) == 1)
+				buffer[i/8] |= 1 << (i%8);
+			else
+				buffer[i/8] &= ~(1 << (i%8));
+		}
+	}
+}
+static __inline u32 buf_get_u32(u8* buffer, unsigned int first, unsigned int num)
+{
+	if ((num==32)&&(first==0))
+	{
+		return (((u32)buffer[3])<<24)|(((u32)buffer[2])<<16)|(((u32)buffer[1])<<8)|(((u32)buffer[0])<<0);
+	} else
+	{
+		u32 result = 0;
+		unsigned int i;
+		
+		for (i=first; i<first+num; i++)
+		{
+			if (((buffer[i/8]>>(i%8))&1) == 1)
+				result |= 1 << (i-first);
+		}
+	
+		return result;
+	}
+}
 
 extern u32 flip_u32(u32 value, unsigned int num);
 

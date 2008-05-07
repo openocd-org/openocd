@@ -685,7 +685,7 @@ int arm7_9_poll(target_t *target)
 	
 	if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1))
 	{
-/*		LOG_DEBUG("DBGACK set, dbg_state->value: 0x%x", buf_get_u32(dbg_stat->value, 0, 32)); */
+/*		LOG_DEBUG("DBGACK set, dbg_state->value: 0x%x", buf_get_u32(dbg_stat->value, 0, 32));*/
 		if (target->state == TARGET_UNKNOWN)
 		{
 			target->state = TARGET_RUNNING;
@@ -1009,15 +1009,7 @@ int arm7_9_debug_entry(target_t *target)
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		switch (retval)
-		{
-			case ERROR_JTAG_QUEUE_FAILED:
-				LOG_ERROR("JTAG queue failed while writing EmbeddedICE control register");
-				exit(-1);
-				break;
-			default:
-				break;
-		}
+		return retval;
 	}
 
 	if ((retval = arm7_9->examine_debug_reason(target)) != ERROR_OK)
@@ -2068,6 +2060,12 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	return ERROR_OK;
 }
 
+static const u32 dcc_code[] = 
+{
+	/* MRC      TST         BNE         MRC         STR         B */
+	0xee101e10, 0xe3110001, 0x0afffffc, 0xee111e10, 0xe4801004, 0xeafffff9
+};
+
 int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -2077,12 +2075,6 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	u32 r1 = buf_get_u32(armv4_5->core_cache->reg_list[1].value, 0, 32);
 	u32 pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 	int i;
-	
-	u32 dcc_code[] = 
-	{
-		/* MRC      TST         BNE         MRC         STR         B */
-		0xee101e10, 0xe3110001, 0x0afffffc, 0xee111e10, 0xe4801004, 0xeafffff9
-	};
 	
 	if (!arm7_9->dcc_downloads)
 		return target->type->write_memory(target, address, 4, count, buffer);

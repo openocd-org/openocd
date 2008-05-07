@@ -105,66 +105,20 @@ extern int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout);
 /* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of 
  * embeddedice_write_reg
  */
+static const int embeddedice_num_bits[]={32,5,1};
 static __inline__ void embeddedice_write_reg_inner(int chain_pos, int reg_addr, u32 value)
 {
-#if 1
 	u32 values[3];
-	int num_bits[3];
 	
 	values[0]=value;
-	num_bits[0]=32;
 	values[1]=reg_addr;
-	num_bits[1]=5;
 	values[2]=1;
-	num_bits[2]=1;
 	
 	jtag_add_dr_out(chain_pos, 
 			3,
-			num_bits,
+			embeddedice_num_bits,
 			values,
 			-1);
-#else
-	scan_field_t fields[3];
-	u8 field0_out[4];
-	u8 field1_out[1];
-	u8 field2_out[1];
-
-	fields[0].device = ice_reg->jtag_info->chain_pos;
-	fields[0].num_bits = 32;
-	fields[0].out_value = field0_out;
-	buf_set_u32(fields[0].out_value, 0, 32, value);
-	fields[0].out_mask = NULL;
-	fields[0].in_value = NULL;
-	fields[0].in_check_value = NULL;
-	fields[0].in_check_mask = NULL;
-	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
-	
-	fields[1].device = ice_reg->jtag_info->chain_pos;
-	fields[1].num_bits = 5;
-	fields[1].out_value = field1_out;
-	buf_set_u32(fields[1].out_value, 0, 5, reg_addr);
-	fields[1].out_mask = NULL;
-	fields[1].in_value = NULL;
-	fields[1].in_check_value = NULL;
-	fields[1].in_check_mask = NULL;
-	fields[1].in_handler = NULL;
-	fields[1].in_handler_priv = NULL;
-
-	fields[2].device = ice_reg->jtag_info->chain_pos;
-	fields[2].num_bits = 1;
-	fields[2].out_value = field2_out;
-	buf_set_u32(fields[2].out_value, 0, 1, 1);
-	fields[2].out_mask = NULL;
-	fields[2].in_value = NULL;
-	fields[2].in_check_value = NULL;
-	fields[2].in_check_mask = NULL;
-	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
-	
-	jtag_add_dr_scan(3, fields, -1);
-	
-#endif
 }
 
 

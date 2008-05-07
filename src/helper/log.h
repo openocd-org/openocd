@@ -80,7 +80,7 @@ extern int debug_level;
 
 
 #define LOG_DEBUG(expr ...) \
-		log_printf_lf (LOG_LVL_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr)
+		if (debug_level >= LOG_LVL_DEBUG) { log_printf_lf (LOG_LVL_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr); }
 
 #define LOG_INFO(expr ...) \
 		log_printf_lf (LOG_LVL_INFO, __FILE__, __LINE__, __FUNCTION__, expr)

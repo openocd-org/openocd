@@ -40,10 +40,11 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handl
 	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
 	{
 		scan_field_t field;
+		u8 t[4];
 	
 		field.device = jtag_info->chain_pos;
 		field.num_bits = device->ir_length;
-		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
+		field.out_value = t;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.out_mask = NULL;
 		field.in_value = NULL;
@@ -52,9 +53,6 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handl
 		field.in_handler = handler;
 		field.in_handler_priv = NULL;
 		jtag_add_ir_scan(1, &field, -1);
-		
-		
-		free(field.out_value);
 	}
 	
 	return ERROR_OK;
@@ -64,32 +62,20 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 {
 	if(jtag_info->cur_scan_chain != new_scan_chain)
 	{
-#ifdef _ARM_JTAG_SCAN_N_CHECK_
-		u8 scan_n_check_value = 1 << (jtag_info->scann_size - 1);
-#endif
-		scan_field_t field;
+		u32 values[1];
+		int num_bits[1];
 		
-		field.device = jtag_info->chain_pos;
-		field.num_bits = jtag_info->scann_size;
-		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
-		buf_set_u32(field.out_value, 0, field.num_bits, new_scan_chain);
-		field.out_mask = NULL;
-		field.in_value = NULL;
-#ifdef _ARM_JTAG_SCAN_N_CHECK_
-#error FIX!!! this is broken, scan_n_check_value goes out of scope.
-		jtag_set_check_value(&field, &scan_n_check_value, NULL, NULL, NULL);
-#else
-		field.in_handler = NULL;
-		field.in_handler_priv = NULL;
-#endif 
-		
+		values[0]=new_scan_chain;
+		num_bits[0]=jtag_info->scann_size;
 		
 		arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL);
-		jtag_add_dr_scan(1, &field, -1);
+		jtag_add_dr_out(jtag_info->chain_pos, 
+				1,
+				num_bits,
+				values,
+				-1);
 		
 		jtag_info->cur_scan_chain = new_scan_chain;
-		
-		free(field.out_value);
 	}
 	
 	return ERROR_OK;

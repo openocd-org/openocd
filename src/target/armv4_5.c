@@ -169,42 +169,6 @@ reg_t armv4_5_gdb_dummy_fps_reg =
 	"GDB dummy floating-point status register", armv4_5_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
 };
 
-/* map psr mode bits to linear number */
-int armv4_5_mode_to_number(enum armv4_5_mode mode)
-{
-	switch (mode)
-	{
-		case ARMV4_5_MODE_USR: return 0; break;
-		case ARMV4_5_MODE_FIQ: return 1; break;
-		case ARMV4_5_MODE_IRQ: return 2; break;
-		case ARMV4_5_MODE_SVC: return 3; break;
-		case ARMV4_5_MODE_ABT: return 4; break;
-		case ARMV4_5_MODE_UND: return 5; break;
-		case ARMV4_5_MODE_SYS: return 6; break;
-		case ARMV4_5_MODE_ANY: return 0; break;	/* map MODE_ANY to user mode */
-		default: 
-			LOG_ERROR("invalid mode value encountered");
-			return -1;
-	}
-}
-
-/* map linear number to mode bits */
-enum armv4_5_mode armv4_5_number_to_mode(int number)
-{
-	switch(number)
-	{
-		case 0: return ARMV4_5_MODE_USR; break;
-		case 1: return ARMV4_5_MODE_FIQ; break;
-		case 2: return ARMV4_5_MODE_IRQ; break;
-		case 3: return ARMV4_5_MODE_SVC; break;
-		case 4: return ARMV4_5_MODE_ABT; break;
-		case 5: return ARMV4_5_MODE_UND; break;
-		case 6: return ARMV4_5_MODE_SYS; break;
-		default: 
-			LOG_ERROR("mode index out of bounds");
-			return -1;
-	}
-};
 
 int armv4_5_get_core_reg(reg_t *reg)
 {

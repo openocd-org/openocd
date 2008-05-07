@@ -432,8 +432,8 @@ extern int jtag_verify_capture_ir;
  */
 extern void interface_jtag_add_dr_out(int device, 
 		int num_fields,
-		int *num_bits,
-		u32 *value,
+		const int *num_bits,
+		const u32 *value,
 		enum tap_state end_state);
 #endif
 
@@ -442,8 +442,8 @@ extern void interface_jtag_add_dr_out(int device,
 
 static __inline__ void jtag_add_dr_out(int device, 
 		int num_fields,
-		int *num_bits,
-		u32 *value,
+		const int *num_bits,
+		const u32 *value,
 		enum tap_state end_state)
 {
 	if (end_state != -1)

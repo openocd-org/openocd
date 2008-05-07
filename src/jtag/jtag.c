@@ -667,8 +667,8 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 
 void MINIDRIVER(interface_jtag_add_dr_out)(int device_num, 
 		int num_fields,
-		int *num_bits,
-		u32 *value,
+		const int *num_bits,
+		const u32 *value,
 		enum tap_state end_state)
 {
 	int i;
