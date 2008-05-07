@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <malloc.h>
 
 int debug_level = -1;
 
@@ -79,7 +80,11 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		{
 			/* print with count and time information */
 			int t=(int)(timeval_ms()-start);
-			fprintf(log_output, "%s %d %d %s:%d %s(): %s", log_strings[level+1], count, t, file, line, function, string);
+			
+			struct mallinfo info;
+			info = mallinfo();
+			
+			fprintf(log_output, "%s %d %d %s:%d %s() %d: %s", log_strings[level+1], count, t, file, line, function, info.fordblks, string);
 		}
 		else
 		{
