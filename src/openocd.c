@@ -225,6 +225,8 @@ int main(int argc, char *argv[])
 	/* shut server down */
 	server_quit();
 
+	unregister_all_commands(cmd_ctx);
+	
 	/* free commandline interface */
 	command_done(cmd_ctx);
 

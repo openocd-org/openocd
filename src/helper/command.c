@@ -143,6 +143,45 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	return c;
 }
 
+int unregister_all_commands(command_context_t *context)
+{
+	command_t *c, *c2;
+	
+	unique_length_dirty = 1;
+	
+	if (context == NULL)
+		return ERROR_OK;
+	
+	
+	while(NULL != context->commands)
+	{
+		c = context->commands;
+		
+		while(NULL != c->children)
+		{
+			c2 = c->children;
+			c->children = c->children->next;
+			free(c2->name);
+			c2->name = NULL;
+			free(c2->help);
+			c2->help = NULL;
+			free(c2);
+			c2 = NULL;
+		}
+		
+		context->commands = context->commands->next;
+		
+		free(c->name);
+		c->name = NULL;
+		free(c->help);
+		c->help = NULL;
+		free(c);
+		c = NULL;		
+	}
+	
+	return ERROR_OK;
+}
+
 int unregister_command(command_context_t *context, char *name)
 {
 	command_t *c, *p = NULL, *c2;

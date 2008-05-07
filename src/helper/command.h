@@ -66,6 +66,7 @@ typedef struct command_s
 
 extern command_t* register_command(command_context_t *context, command_t *parent, char *name, int (*handler)(struct command_context_s *context, char* name, char** args, int argc), enum command_mode mode, char *help);
 extern int unregister_command(command_context_t *context, char *name);
+extern int unregister_all_commands(command_context_t *context);
 extern void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, char* line), void *priv);
 extern command_context_t* copy_command_context(command_context_t* context);
 extern command_context_t* command_init();
