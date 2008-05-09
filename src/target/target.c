@@ -298,6 +298,16 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	if ((retval = jtag_init_reset(cmd_ctx)) != ERROR_OK)
 		return retval;
 	
+	/* First time this is executed after launching OpenOCD, it will read out 
+	 * the type of CPU, etc. and init Embedded ICE registers in host
+	 * memory. 
+	 * 
+	 * It will also set up ICE registers in the target.
+	 * 
+	 * However, if we assert TRST later, we need to set up the registers again. 
+	 * 
+	 * For the "reset halt/init" case we must only set up the registers here.
+	 */
 	if ((retval = target_examine(cmd_ctx)) != ERROR_OK)
 		return retval;
 	
@@ -382,6 +392,13 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	{
 		target->type->deassert_reset(target);
 		target = target->next;
+	}
+	
+	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
+	{
+		/* If TRST was asserted we need to set up registers again */
+		if ((retval = target_examine(cmd_ctx)) != ERROR_OK)
+			return retval;
 	}
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
