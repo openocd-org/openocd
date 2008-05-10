@@ -287,11 +287,12 @@ int ft2232_khz(int khz, int *jtag_speed)
    * of 10 for better rounding later.
    */
    
-  /* Calc speed, (6000 / khz) - 1 */ 
+  /* Calc speed, (6000 / khz) - 1 */
+  /* Use 65000 for better rounding */ 
   *jtag_speed = (60000 / khz) - 10;
   
-  /* Add 0.5 for rounding */
-  *jtag_speed += 5;
+  /* Add 0.9 for rounding */
+  *jtag_speed += 9;
   
   /* Calc real speed */
   *jtag_speed = *jtag_speed / 10;
