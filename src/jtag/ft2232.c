@@ -61,6 +61,8 @@
 int ft2232_execute_queue(void);
 
 int ft2232_speed(int speed);
+int ft2232_speed_div(int speed, int *khz);
+int ft2232_khz(int khz, int *jtag_speed);
 int ft2232_register_commands(struct command_context_s *cmd_ctx);
 int ft2232_init(void);
 int ft2232_quit(void);
@@ -157,6 +159,9 @@ jtag_interface_t ft2232_interface =
 	.execute_queue = ft2232_execute_queue,
 	
 	.speed = ft2232_speed,
+  .speed_div = ft2232_speed_div,
+  .khz = ft2232_khz,
+  
 	.register_commands = ft2232_register_commands,
 	.init = ft2232_init,
 	.quit = ft2232_quit,
@@ -258,6 +263,49 @@ int ft2232_speed(int speed)
 
 	return ERROR_OK;
 }
+
+int ft2232_speed_div(int speed, int *khz)
+{
+  /*
+   * Take a look in the FT2232 manual, 
+   * AN2232C-01 Command Processor for
+   * MPSSE and MCU Host Bus. Chapter 3.8
+   */
+  *khz = 6000 / (1+speed);
+  
+	return ERROR_OK;
+}
+
+int ft2232_khz(int khz, int *jtag_speed)
+{
+  /*
+   * Take a look in the FT2232 manual, 
+   * AN2232C-01 Command Processor for
+   * MPSSE and MCU Host Bus. Chapter 3.8
+   *
+   * We will calc here with a multiplier
+   * of 10 for better rounding later.
+   */
+   
+  /* Calc speed, (6000 / khz) - 1 */ 
+  *jtag_speed = (60000 / khz) - 10;
+  
+  /* Add 0.5 for rounding */
+  *jtag_speed += 5;
+  
+  /* Calc real speed */
+  *jtag_speed = *jtag_speed / 10;
+  
+  /* Check if speed is greater than 0 */
+  if (*jtag_speed < 0)
+  {
+    *jtag_speed = 0;
+  }    
+  
+	return ERROR_OK;
+}
+
+
 
 int ft2232_register_commands(struct command_context_s *cmd_ctx)
 {
