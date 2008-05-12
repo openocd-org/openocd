@@ -29,7 +29,8 @@ nobase_dist_pkglib_DATA = xscale/debug_handler.bin event/at91eb40a_reset.script 
 	target/epc9301.cfg target/ipx42x.cfg target/lpc2129.cfg target/netx500.cfg \
 	target/omap5912.cfg target/pxa270.cfg target/str750.cfg target/str9comstick.cfg \
 	target/str730.cfg target/stm32stick.cfg event/str912_reset.script event/str710_program.script \
-       target/lm3s811.cfg interface/luminary.cfg interface/luminary-lm3s811.cfg interface/stm32-stick.cfg \
-       interface/calao-usb-a9260-c01.cfg interface/calao-usb-a9260-c02.cfg \
-       interface/calao-usb-a9260.cfg target/at91sam9260minimal.cfg  event/lpc2148_reset.script \
-       interface/chameleon.cfg interface/at91rm9200.cfg
+	target/lm3s811.cfg interface/luminary.cfg interface/luminary-lm3s811.cfg interface/stm32-stick.cfg \
+	interface/calao-usb-a9260-c01.cfg interface/calao-usb-a9260-c02.cfg \
+	interface/calao-usb-a9260.cfg target/at91sam9260minimal.cfg  event/lpc2148_reset.script \
+	interface/chameleon.cfg interface/at91rm9200.cfg
+

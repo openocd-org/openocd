@@ -153,15 +153,11 @@ static int ft2232_expect_read = 0;
 
 jtag_interface_t ft2232_interface = 
 {
-	
 	.name = "ft2232",
-	
 	.execute_queue = ft2232_execute_queue,
-	
 	.speed = ft2232_speed,
-  .speed_div = ft2232_speed_div,
-  .khz = ft2232_khz,
-  
+	.speed_div = ft2232_speed_div,
+	.khz = ft2232_khz, 
 	.register_commands = ft2232_register_commands,
 	.init = ft2232_init,
 	.quit = ft2232_quit,
@@ -266,47 +262,42 @@ int ft2232_speed(int speed)
 
 int ft2232_speed_div(int speed, int *khz)
 {
-  /*
-   * Take a look in the FT2232 manual, 
-   * AN2232C-01 Command Processor for
-   * MPSSE and MCU Host Bus. Chapter 3.8
-   */
-  *khz = 6000 / (1+speed);
-  
+	/* Take a look in the FT2232 manual, 
+	 * AN2232C-01 Command Processor for
+	 * MPSSE and MCU Host Bus. Chapter 3.8 */
+	
+	*khz = 6000 / (1+speed);
+	
 	return ERROR_OK;
 }
 
 int ft2232_khz(int khz, int *jtag_speed)
 {
-  /*
-   * Take a look in the FT2232 manual, 
-   * AN2232C-01 Command Processor for
-   * MPSSE and MCU Host Bus. Chapter 3.8
-   *
-   * We will calc here with a multiplier
-   * of 10 for better rounding later.
-   */
-   
-  /* Calc speed, (6000 / khz) - 1 */
-  /* Use 65000 for better rounding */ 
-  *jtag_speed = (60000 / khz) - 10;
-  
-  /* Add 0.9 for rounding */
-  *jtag_speed += 9;
-  
-  /* Calc real speed */
-  *jtag_speed = *jtag_speed / 10;
-  
-  /* Check if speed is greater than 0 */
-  if (*jtag_speed < 0)
-  {
-    *jtag_speed = 0;
-  }    
-  
+	/* Take a look in the FT2232 manual, 
+	 * AN2232C-01 Command Processor for
+	 * MPSSE and MCU Host Bus. Chapter 3.8
+	 * 
+	 * We will calc here with a multiplier
+	 * of 10 for better rounding later. */
+	
+	/* Calc speed, (6000 / khz) - 1 */
+	/* Use 65000 for better rounding */
+	*jtag_speed = (60000 / khz) - 10;
+	
+	/* Add 0.9 for rounding */
+	*jtag_speed += 9;
+	
+	/* Calc real speed */
+	*jtag_speed = *jtag_speed / 10;
+	
+	/* Check if speed is greater than 0 */
+	if (*jtag_speed < 0)
+	{
+		*jtag_speed = 0;
+	}
+	
 	return ERROR_OK;
 }
-
-
 
 int ft2232_register_commands(struct command_context_s *cmd_ctx)
 {
@@ -1024,20 +1015,20 @@ void olimex_jtag_reset(int trst, int srst)
 			high_output |= nTRST;
 	}
 
-    if (srst == 1)
-    {
-        high_output |= nSRST;
-    }
-    else if (srst == 0)
-    {
-        high_output &= ~nSRST;
-    }
+	if (srst == 1)
+	{
+		high_output |= nSRST;
+	}
+	else if (srst == 0)
+	{
+		high_output &= ~nSRST;
+	}
 
-    /* command "set data bits high byte" */
-    BUFFER_ADD = 0x82;
-    BUFFER_ADD = high_output;
-    BUFFER_ADD = high_direction;
-    LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
+	/* command "set data bits high byte" */
+	BUFFER_ADD = 0x82;
+	BUFFER_ADD = high_output;
+	BUFFER_ADD = high_direction;
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
 
 void flyswatter_reset(int trst, int srst)
@@ -1051,20 +1042,20 @@ void flyswatter_reset(int trst, int srst)
 		low_output |= nTRST;
 	}
 
-    if (srst == 1)
-    {
-        low_output |= nSRST;
-    }
-    else if (srst == 0)
-    {
-        low_output &= ~nSRST;
-    }
+	if (srst == 1)
+	{
+		low_output |= nSRST;
+	}
+	else if (srst == 0)
+	{
+		low_output &= ~nSRST;
+	}
 
-    /* command "set data bits low byte" */
-    BUFFER_ADD = 0x80;
-    BUFFER_ADD = low_output;
-    BUFFER_ADD = low_direction;
-    LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
+	/* command "set data bits low byte" */
+	BUFFER_ADD = 0x80;
+	BUFFER_ADD = low_output;
+	BUFFER_ADD = low_direction;
+	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
 }
 
 void turtle_reset(int trst, int srst)
@@ -1098,14 +1089,14 @@ void comstick_reset(int trst, int srst)
 		high_output |= nTRST;
 	}
 
-    if (srst == 1)
-    {
-        high_output &= ~nSRST;
-    }
-    else if (srst == 0)
-    {
-        high_output |= nSRST;
-    }
+	if (srst == 1)
+	{
+		high_output &= ~nSRST;
+	}
+	else if (srst == 0)
+	{
+		high_output |= nSRST;
+	}
 	
 	/* command "set data bits high byte" */
 	BUFFER_ADD = 0x82;
@@ -1125,14 +1116,14 @@ void stm32stick_reset(int trst, int srst)
 		high_output |= nTRST;
 	}
 
-    if (srst == 1)
-    {
-        low_output &= ~nSRST;
-    }
-    else if (srst == 0)
-    {
-        low_output |= nSRST;
-    }
+	if (srst == 1)
+	{
+		low_output &= ~nSRST;
+	}
+	else if (srst == 0)
+	{
+		low_output |= nSRST;
+	}
 	
 	/* command "set data bits low byte" */
 	BUFFER_ADD = 0x80;
@@ -1501,17 +1492,17 @@ static int ft2232_init_libftdi(u16 vid, u16 pid, int more, int *try_more)
 	u8 latency_timer;
 
 	LOG_DEBUG("'ft2232' interface using libftdi with '%s' layout (%4.4x:%4.4x)",
-	    ft2232_layout, vid, pid);
+		ft2232_layout, vid, pid);
 
 	if (ftdi_init(&ftdic) < 0)
 		return ERROR_JTAG_INIT_FAILED;
 
 	/* context, vendor id, product id */
 	if (ftdi_usb_open_desc(&ftdic, vid, pid, ft2232_device_desc,
-	    ft2232_serial) < 0) {
+		ft2232_serial) < 0) {
 		if (more)
 			LOG_WARNING("unable to open ftdi device (trying more): %s",
-			     ftdic.error_str);
+				ftdic.error_str);
 		else
 			LOG_ERROR("unable to open ftdi device: %s", ftdic.error_str);
 		*try_more = 1;
@@ -1608,10 +1599,10 @@ int ft2232_init(void)
 
 #if BUILD_FT2232_FTD2XX == 1
 		retval = ft2232_init_ftd2xx(ft2232_vid[i], ft2232_pid[i],
-		    more, &try_more);
+			more, &try_more);
 #elif BUILD_FT2232_LIBFTDI == 1
 		retval = ft2232_init_libftdi(ft2232_vid[i], ft2232_pid[i],
-		    more, &try_more);
+			more, &try_more);
 #endif	
 		if (retval >= 0)
 			break;
@@ -2076,7 +2067,6 @@ void turtle_jtag_blink(void)
 	BUFFER_ADD = high_direction;
 }
 
-
 int ft2232_quit(void)
 {
 #if BUILD_FT2232_FTD2XX == 1
@@ -2142,7 +2132,7 @@ int ft2232_handle_vid_pid_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 	if (argc > MAX_USB_IDS*2) {
 		LOG_WARNING("ignoring extra IDs in ft2232_vid_pid "
-		    "(maximum is %d pairs)", MAX_USB_IDS);
+			"(maximum is %d pairs)", MAX_USB_IDS);
 		argc = MAX_USB_IDS*2;
 	}
 	if (argc < 2 || (argc & 1))
@@ -2178,5 +2168,3 @@ int ft2232_handle_latency_command(struct command_context_s *cmd_ctx, char *cmd, 
 	
 	return ERROR_OK;
 }
-
-
