@@ -44,7 +44,11 @@ endif
 if USBPROG
 LIBUSB = -lusb
 else
+if JLINK
+LIBUSB = -lusb
+else
 LIBUSB =
+endif
 endif
 
 if IS_WIN32

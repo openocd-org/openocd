@@ -176,6 +176,8 @@ build properly.}
 @option{--enable-presto_libftdi}
 @item
 @option{--enable-presto_ftd2xx}
+@item
+@option{--enable-jlink}
 @end itemize
 
 If you want to access the parallel port using the PPDEV interface you have to specify
@@ -259,7 +261,7 @@ Set to <@var{enable}> to cause OpenOCD to send the memory configuration to gdb w
 requested. gdb will then know when to set hardware breakpoints, and program flash
 using the gdb load command. @option{gdb_flash_program enable} will also need enabling
 for flash programming to work.
-Default behaviour is <@var{disable}>
+Default behaviour is <@var{enable}>
 @item @b{gdb_flash_program} <@var{enable|disable}>
 @cindex gdb_flash_program
 Set to <@var{enable}> to cause OpenOCD to program the flash memory when a
@@ -312,6 +314,10 @@ usbprog is a freely programmable USB adapter.
 @item @b{gw16012}
 Gateworks GW16012 JTAG programmer.
 @end itemize
+@itemize @minus
+@item @b{jlink}
+Segger jlink usb adapter
+@end itemize
 @end itemize
 
 @itemize @bullet
@@ -326,6 +332,7 @@ is optional, in which case the reset speed is used.
 @item wiggler: maximum speed / @var{number}
 @item ft2232: 6MHz / (@var{number}+1)
 @item amt jtagaccel: 8 / 2**@var{number}
+@item jlink: maximum speed in kHz (0-12000), 0 will use RTCK
 @end itemize
 
 Note: Make sure the jtag clock is no more than @math{1/6th × CPU-Clock}. This is
