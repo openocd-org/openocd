@@ -22,3 +22,17 @@ assumed that all write-protect mechanisms should be disabled.
 
 flash write_image [file] <parameters>
 verify_image [file] <parameters>
+
+4. jtag_khz sets the maximum speed (or alternatively RCLK). If invoked
+multiple times only the last setting is used.
+
+interface/xxx.cfg files are always executed *before* target/xxx.cfg
+files, so any jtag_khz in interface/xxx.cfg will be overridden by
+target/xxx.cfg. jtag_khz in interface/xxx.cfg would then, effectively,
+set the default JTAG speed.
+
+Note that a target/xxx.cfg file can invoke another target/yyy.cfg file,
+so one can create target subtype configurations where e.g. only
+amount of DRAM, oscilator speeds differ and having a single
+config file for the default/common settings.
+
