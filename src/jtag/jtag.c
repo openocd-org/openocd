@@ -930,8 +930,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	*/
 	if ((jtag_reset_config & RESET_HAS_SRST)&&
 			(jtag_reset_config & RESET_HAS_TRST)&& 
-			((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)&&
-			((jtag_reset_config & RESET_TRST_PULLS_SRST)==0))
+			((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
 	{
 		if (((req_tlr_or_trst&&!jtag_trst)||
 				(!req_tlr_or_trst&&jtag_trst))&&
@@ -1593,8 +1592,7 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	if (jtag_reset_config & RESET_HAS_SRST)
 	{
 		jtag_add_reset(1, 1);
-		if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
-			jtag_add_reset(0, 1);
+		jtag_add_reset(0, 1);
 	}
 	jtag_add_reset(0, 0);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
