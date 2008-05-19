@@ -748,21 +748,24 @@ static int target_call_timer_callbacks_check_time(int checktime)
 				(((now.tv_sec >= callback->when.tv_sec) && (now.tv_usec >= callback->when.tv_usec))
 						|| (now.tv_sec > callback->when.tv_sec)))
 		{
-			callback->callback(callback->priv);
-			if (callback->periodic)
+			if(callback->callback != NULL)
 			{
-				int time_ms = callback->time_ms;
-				callback->when.tv_usec = now.tv_usec + (time_ms % 1000) * 1000;
-				time_ms -= (time_ms % 1000);
-				callback->when.tv_sec = now.tv_sec + time_ms / 1000;
-				if (callback->when.tv_usec > 1000000)
+				callback->callback(callback->priv);
+				if (callback->periodic)
 				{
-					callback->when.tv_usec = callback->when.tv_usec - 1000000;
-					callback->when.tv_sec += 1;
+					int time_ms = callback->time_ms;
+					callback->when.tv_usec = now.tv_usec + (time_ms % 1000) * 1000;
+					time_ms -= (time_ms % 1000);
+					callback->when.tv_sec = now.tv_sec + time_ms / 1000;
+					if (callback->when.tv_usec > 1000000)
+					{
+						callback->when.tv_usec = callback->when.tv_usec - 1000000;
+						callback->when.tv_sec += 1;
+					}
 				}
+				else
+					target_unregister_timer_callback(callback->callback, callback->priv);
 			}
-			else
-				target_unregister_timer_callback(callback->callback, callback->priv);
 		}
 			
 		callback = next_callback;
