@@ -70,10 +70,13 @@ char* armv4_5_core_reg_list[] =
 	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und"
 };
 
-char* armv4_5_mode_strings[] =
+char * armv4_5_mode_strings_list[] =
 {
-	"User", "FIQ", "IRQ", "Supervisor", "Abort", "Undefined", "System"
+	"Illegal mode value", "User", "FIQ", "IRQ", "Supervisor", "Abort", "Undefined", "System"
 };
+
+/* Hack! Yuk! allow -1 index, which simplifies codepaths elsewhere in the code */
+char** armv4_5_mode_strings = armv4_5_mode_strings_list+1;
 
 char* armv4_5_state_strings[] =
 {

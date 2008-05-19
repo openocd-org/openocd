@@ -36,7 +36,7 @@ typedef enum armv4_5_mode
 	ARMV4_5_MODE_ANY = -1
 } armv4_5_mode_t;
 
-extern char* armv4_5_mode_strings[];
+extern char** armv4_5_mode_strings;
 
 typedef enum armv4_5_state
 {
