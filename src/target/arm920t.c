@@ -335,6 +335,9 @@ int arm920t_read_cp15_interpreted(target_t *target, u32 cp15_opcode, u32 address
 	LOG_DEBUG("cp15_opcode: %8.8x, address: %8.8x, value: %8.8x", cp15_opcode, address, *value);
 #endif
 
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = 1;
 
@@ -370,6 +373,9 @@ int arm920t_write_cp15_interpreted(target_t *target, u32 cp15_opcode, u32 value,
 	LOG_DEBUG("cp15_opcode: %8.8x, value: %8.8x, address: %8.8x", cp15_opcode, value, address);
 #endif
 
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+	
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = 1;
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = 1;
 	
@@ -1000,6 +1006,9 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 	
 	fclose(output);
 	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+
 	/* mark registers dirty. */
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).valid;
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).valid;
@@ -1261,6 +1270,9 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	fclose(output);
 	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+
 	/* mark registers dirty */
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 0).valid;
 	ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 1).valid;

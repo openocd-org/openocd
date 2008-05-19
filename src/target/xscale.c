@@ -1091,6 +1091,10 @@ int xscale_debug_entry(target_t *target)
 	else
 		armv4_5->core_state = ARMV4_5_STATE_ARM;
 
+	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+	
 	/* get banked registers, r8 to r14, and spsr if not in USR/SYS mode */
 	if ((armv4_5->core_mode != ARMV4_5_MODE_USR) && (armv4_5->core_mode != ARMV4_5_MODE_SYS))
 	{

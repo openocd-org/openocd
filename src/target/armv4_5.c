@@ -329,6 +329,9 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_OK;
 	}
 	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+
 	for (num = 0; num <= 15; num++)
 	{
 		output_len = 0;
@@ -441,6 +444,9 @@ int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	int i;
 	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+	
 	*reg_list_size = 26;
 	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
 	
@@ -485,6 +491,9 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+
 	for (i = 0; i <= 16; i++)
 	{
 		if (!ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).valid)

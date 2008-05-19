@@ -903,6 +903,9 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	
 	armv4_5->core_mode = ARMV4_5_MODE_SVC;
 	armv4_5->core_state = ARMV4_5_STATE_ARM;
+
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
 	
 	/* reset registers */
 	for (i = 0; i <= 14; i++)
@@ -1091,6 +1094,8 @@ int arm7_9_debug_entry(target_t *target)
 		LOG_ERROR("unknown debug reason: %i", target->debug_reason);
 	}
 
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
 	
 	for (i=0; i<=15; i++)
 	{
@@ -1101,6 +1106,9 @@ int arm7_9_debug_entry(target_t *target)
 	}
 	
 	LOG_DEBUG("entered debug state at PC 0x%x", context[15]);
+	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
 
 	/* exceptions other than USR & SYS have a saved program status register */
 	if ((armv4_5_mode_to_number(armv4_5->core_mode) != ARMV4_5_MODE_USR) && (armv4_5_mode_to_number(armv4_5->core_mode) != ARMV4_5_MODE_SYS))
@@ -1140,6 +1148,9 @@ int arm7_9_full_context(target_t *target)
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
+	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
 
 	/* iterate through processor modes (User, FIQ, IRQ, SVC, ABT, UND)
 	 * SYS shares registers with User, so we don't touch SYS
@@ -1226,6 +1237,9 @@ int arm7_9_restore_context(target_t *target)
 	if (arm7_9->pre_restore_context)
 		arm7_9->pre_restore_context(target);
 	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+		
 	/* iterate through processor modes (User, FIQ, IRQ, SVC, ABT, UND)
 	 * SYS shares registers with User, so we don't touch SYS
 	 */
@@ -1635,6 +1649,10 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+	
 	enum armv4_5_mode reg_mode = ((armv4_5_core_reg_t*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info)->mode;
 	
 	if ((num < 0) || (num > 16))
@@ -1696,6 +1714,10 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 	u32 reg[16];
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+	
 	enum armv4_5_mode reg_mode = ((armv4_5_core_reg_t*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, num).arch_info)->mode;
 
 	if ((num < 0) || (num > 16))
@@ -1871,6 +1893,9 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 			break;
 	}
 	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+
 	for (i=0; i<=last_reg; i++)
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid;
 
@@ -2038,6 +2063,9 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGACK, 1, 1);
 	embeddedice_store_reg(dbg_ctrl);
 	
+	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
+		return ERROR_FAIL;
+
 	for (i=0; i<=last_reg; i++)
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid;
 
