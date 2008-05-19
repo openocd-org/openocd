@@ -937,7 +937,8 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 				((req_srst&&!jtag_srst)||
 						(!req_srst&&jtag_srst)))
 		{
-			LOG_ERROR("BUG: transition of req_tlr_or_trst and req_srst in the same jtag_add_reset() call is undefined");
+			// FIX!!! srst_pulls_trst allows 1,1 => 0,0 transition....
+			//LOG_ERROR("BUG: transition of req_tlr_or_trst and req_srst in the same jtag_add_reset() call is undefined");
 		}
 	}
 	
@@ -1592,7 +1593,8 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	if (jtag_reset_config & RESET_HAS_SRST)
 	{
 		jtag_add_reset(1, 1);
-		jtag_add_reset(0, 1);
+		if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
+			jtag_add_reset(0, 1);
 	}
 	jtag_add_reset(0, 0);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
