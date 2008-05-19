@@ -22,6 +22,12 @@ that caused the regression. This can be done via a binary
 search. E.g. if version 550 worked and 600 failed, then try
 575, etc.
 
+- If OpenOCD is crashing, you can use GDB to get a trace:
+
+gdb --args openocd ....
+(gdb) run
+(gdb) bt
+=> here a stack trace is dumped.
 
 attach files directly to the posting. The mailing list knows to 
 transform attachments to links so you will not be bloating anyones
