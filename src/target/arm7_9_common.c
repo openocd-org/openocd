@@ -1111,7 +1111,7 @@ int arm7_9_debug_entry(target_t *target)
 		return ERROR_FAIL;
 
 	/* exceptions other than USR & SYS have a saved program status register */
-	if ((armv4_5_mode_to_number(armv4_5->core_mode) != ARMV4_5_MODE_USR) && (armv4_5_mode_to_number(armv4_5->core_mode) != ARMV4_5_MODE_SYS))
+	if ((armv4_5->core_mode != ARMV4_5_MODE_USR) && (armv4_5->core_mode != ARMV4_5_MODE_SYS))
 	{
 		u32 spsr;
 		arm7_9->read_xpsr(target, &spsr, 1);

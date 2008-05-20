@@ -1292,6 +1292,9 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 		if (offset % p->page_size)
 		{
 			command_print(cmd_ctx, "only page size aligned offsets and sizes are supported");
+			fileio_close(&fileio);
+			free(oob);
+			free(page);
 			return ERROR_OK;
 		}
 		
@@ -1299,7 +1302,7 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 		{
 			u32 size_read;
 			
-			if (page)
+			if (NULL != page)
 			{
 				fileio_read(&fileio, page_size, page, &size_read);
 				buf_cnt -= size_read;
@@ -1309,7 +1312,7 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 				}
 			}
 				
-			if (oob)
+			if (NULL != oob)
 			{
 				fileio_read(&fileio, oob_size, oob, &size_read);
 				buf_cnt -= size_read;
@@ -1323,17 +1326,26 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 			{
 				command_print(cmd_ctx, "failed writing file %s to NAND flash %s at offset 0x%8.8x",
 					args[1], args[0], offset);
+
+				fileio_close(&fileio);
+				free(oob);
+				free(page);
+
 				return ERROR_OK;
 			}
 			offset += page_size;
 		}
 
 		fileio_close(&fileio);
-		
+		free(oob);
+		free(page);
+		oob = NULL;
+		page = NULL;
 		duration_stop_measure(&duration, &duration_text);
 		command_print(cmd_ctx, "wrote file %s to NAND flash %s at offset 0x%8.8x in %s",
 			args[1], args[0], offset, duration_text);
 		free(duration_text);
+		duration_text = NULL;
 	}
 	else
 	{
@@ -1419,16 +1431,19 @@ int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char 
 				if ((retval = nand_read_page(p, address / p->page_size, page, page_size, oob, oob_size)) != ERROR_OK)
 				{
 					command_print(cmd_ctx, "reading NAND flash page failed");
+					free(page);
+					free(oob);								
+					fileio_close(&fileio);
 					return ERROR_OK;
 				}
 				
-				if (page)
+				if (NULL != page)
 				{
 					fileio_write(&fileio, page_size, page, &size_written);
 					bytes_done += page_size;
 				}
 					
-				if (oob)
+				if (NULL != oob)
 				{
 					fileio_write(&fileio, oob_size, oob, &size_written);
 					bytes_done += oob_size;
@@ -1438,17 +1453,16 @@ int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char 
 				address += p->page_size;
 			}
 			
-			if (page)
-				free(page);
-				
-			if (oob)
-				free(oob);
-			
+			free(page);
+			page = NULL;
+			free(oob);
+			oob = NULL;
 			fileio_close(&fileio);
 
 			duration_stop_measure(&duration, &duration_text);
 			command_print(cmd_ctx, "dumped %"PRIi64" byte in %s", fileio.size, duration_text);
 			free(duration_text);
+			duration_text = NULL;
 		}
 		else
 		{

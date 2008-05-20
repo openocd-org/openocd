@@ -829,12 +829,15 @@ int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	buffer = malloc(fileio.size);
 	if (fileio_read(&fileio, fileio.size, buffer, &buf_cnt) != ERROR_OK)
 	{
+		free(buffer);
+		fileio_close(&fileio);
 		return ERROR_OK;
 	}
 
 	retval = flash_driver_write(p, buffer, offset, buf_cnt);
 
 	free(buffer);
+	buffer = NULL;
 
 	duration_stop_measure(&duration, &duration_text);
 	if (retval!=ERROR_OK)

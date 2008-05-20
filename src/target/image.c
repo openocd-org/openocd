@@ -347,6 +347,12 @@ int image_elf_read_headers(image_t *image)
 
 	elf->header = malloc(sizeof(Elf32_Ehdr));
 
+	if(elf->header == NULL)
+	{
+		LOG_ERROR("insufficient memory to perform operation ");
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
+
 	if ((retval = fileio_read(&elf->fileio, sizeof(Elf32_Ehdr), (u8*)elf->header, &read_bytes)) != ERROR_OK)
 	{
 		LOG_ERROR("cannot read ELF file header, read failed");
@@ -392,6 +398,11 @@ int image_elf_read_headers(image_t *image)
 	}
 
 	elf->segments = malloc(elf->segment_count*sizeof(Elf32_Phdr));
+	if(elf->segments == NULL)
+	{
+		LOG_ERROR("insufficient memory to perform operation ");
+		return ERROR_FILEIO_OPERATION_FAILED;
+	}
 
 	if ((retval = fileio_read(&elf->fileio, elf->segment_count*sizeof(Elf32_Phdr), (u8*)elf->segments, &read_bytes)) != ERROR_OK)
 	{

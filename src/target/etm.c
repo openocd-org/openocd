@@ -1645,12 +1645,14 @@ int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	if (file.size % 4)
 	{
 		command_print(cmd_ctx, "size isn't a multiple of 4, no valid trace data");
+		fileio_close(&file);
 		return ERROR_OK;
 	}
 	
 	if (etm_ctx->trace_depth > 0)
 	{
 		free(etm_ctx->trace_data);
+		etm_ctx->trace_data = NULL;
 	}
 	
 	fileio_read_u32(&file, &etm_ctx->capture_status);
@@ -1659,6 +1661,12 @@ int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	fileio_read_u32(&file, &etm_ctx->trace_depth);
 	
 	etm_ctx->trace_data = malloc(sizeof(etmv1_trace_data_t) * etm_ctx->trace_depth);
+	if(etm_ctx->trace_data == NULL)
+	{
+		command_print(cmd_ctx, "not enough memory to perform operation");
+		fileio_close(&file);
+		return ERROR_OK;
+	}
 	
 	for (i = 0; i < etm_ctx->trace_depth; i++)
 	{
