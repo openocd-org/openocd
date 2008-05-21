@@ -225,16 +225,6 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 	
 	if ((event == TARGET_EVENT_HALTED) && (target->reset_script))
 	{
-		if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
-		{
-			reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
-			u32 t=*((u32 *)reg->value);
-			if (t!=0)
-			{
-				LOG_ERROR("PC was not 0. Does this target does target need srst_pulls_trst?");
-			}
-		}
-
 		target_unregister_event_callback(target_init_handler, priv);
 
 		script = open_file_from_path(target->reset_script, "r");

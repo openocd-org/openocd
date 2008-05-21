@@ -693,9 +693,32 @@ int arm7_9_poll(target_t *target)
 		}
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
+			int check_pc=0;
 			target->state = TARGET_HALTED;
+			
+			if (target->state == TARGET_RESET)
+			{
+				if ((target->reset_mode == RESET_HALT) || (target->reset_mode == RESET_INIT))
+				{
+					if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
+					{
+						check_pc = 1;
+					}
+				}
+			}
+			
 			if ((retval = arm7_9_debug_entry(target)) != ERROR_OK)
 				return retval;
+			
+			if (check_pc)
+			{
+				reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
+				u32 t=*((u32 *)reg->value);
+				if (t!=0)
+				{
+					LOG_ERROR("PC was not 0. Does this target does target need srst_pulls_trst?");
+				}
+			}
 			
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 		}
