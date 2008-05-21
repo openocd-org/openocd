@@ -316,6 +316,9 @@ extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);
 /* go to TAP_RTI, if we're not already there and cycle
  * precisely num_cycles in the TAP_RTI after which move
  * to the end state, if it is != TAP_RTI
+ * 
+ * nb! num_cycles can be 0, in which case the fn will navigate
+ * to endstate via TAP_RTI
  */
 extern void jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
