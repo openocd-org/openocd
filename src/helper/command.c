@@ -374,7 +374,12 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 					{
 						command_print(context, "Syntax error:");
 						command_print_help_line(context, c, 0);
-					} else if (retval != ERROR_OK)
+					}
+					else if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
+					{
+						/* just fall through for a shutdown request */
+					}
+					else if (retval != ERROR_OK)
 					{
 						/* we do not print out an error message because the command *should*
 						 * have printed out an error
@@ -557,7 +562,6 @@ int command_print_help(command_context_t* context, char* name, char** args, int 
 {
     return command_print_help_match(context, context->commands, name, args, argc);
 }
-
 
 void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, char* line), void *priv)
 {
