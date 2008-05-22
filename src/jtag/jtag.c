@@ -1260,7 +1260,13 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 int MINIDRIVER(interface_jtag_execute_queue)(void)
 {
 	int retval;
-
+	
+	if (jtag==NULL)
+	{
+		LOG_ERROR("No JTAG interface configured yet. Issue 'init' command in startup scripts before communicating with targets.");
+		return ERROR_FAIL;
+	}
+	
 	retval = jtag->execute_queue();
 	
 	cmd_queue_free();
