@@ -277,25 +277,27 @@ int stm32x_write_options(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-
 int stm32x_protect_check(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
+	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
 	
 	u32 protection;
 	int i, s;
 	int num_bits;
-
+	
 	if (target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
-
-	/* each bit refers to a 4bank protection */
+	
+	/* medium density - each bit refers to a 4bank protection 
+	 * high density - each bit refers to a 2bank protection */
 	target_read_u32(target, STM32_FLASH_WRPR, &protection);
 	
-	/* each protection bit is for 4 1K pages */
-	num_bits = (bank->num_sectors / 4);
+	/* medium density - each protection bit is for 4 * 1K pages
+	 * high density - each protection bit is for 2 * 2K pages */
+	num_bits = (bank->num_sectors / stm32x_info->ppage_size);
 	
 	for (i = 0; i < num_bits; i++)
 	{
@@ -304,8 +306,8 @@ int stm32x_protect_check(struct flash_bank_s *bank)
 		if( protection & (1 << i))
 			set = 0;
 		
-		for (s = 0; s < 4; s++)
-			bank->sectors[(i * 4) + s].is_protected = set;
+		for (s = 0; s < stm32x_info->ppage_size; s++)
+			bank->sectors[(i * stm32x_info->ppage_size) + s].is_protected = set;
 	}
 
 	return ERROR_OK;
@@ -363,13 +365,14 @@ int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
-	if ((first && (first % 4)) || ((last + 1) && (last + 1) % 4))
+	if ((first && (first % stm32x_info->ppage_size)) || ((last + 1) && (last + 1) % stm32x_info->ppage_size))
 	{
-		LOG_WARNING("sector start/end incorrect - stm32 has 4K sector protection");
+		LOG_WARNING("sector start/end incorrect - stm32 has %dK sector protection", stm32x_info->ppage_size);
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 	
-	/* each bit refers to a 4bank protection */
+	/* medium density - each bit refers to a 4bank protection 
+	 * high density - each bit refers to a 2bank protection */
 	target_read_u32(target, STM32_FLASH_WRPR, &protection);
 	
 	prot_reg[0] = (u16)protection;
@@ -379,8 +382,8 @@ int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	for (i = first; i <= last; i++)
 	{
-		reg = (i / 4) / 8;
-		bit = (i / 4) - (reg * 8);
+		reg = (i / stm32x_info->ppage_size) / 8;
+		bit = (i / stm32x_info->ppage_size) - (reg * 8);
 		
 		if( set )
 			prot_reg[reg] &= ~(1 << bit);
@@ -606,8 +609,9 @@ int stm32x_probe(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
 	int i;
-	u16 num_sectors;
+	u16 num_pages;
 	u32 device_id;
+	int page_size;
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -620,18 +624,33 @@ int stm32x_probe(struct flash_bank_s *bank)
 	target_read_u32(target, 0xE0042000, &device_id);
 	LOG_INFO( "device id = 0x%08x", device_id );
 	
-	if (!(device_id & 0x410))
-    {
-		LOG_WARNING( "Cannot identify target as a STM32 family." );
-		return ERROR_FLASH_OPERATION_FAILED;
-    }
-    
+	switch (device_id & 0x7ff)
+	{
+		case 0x410:
+			/* medium density - we have 1k pages
+			 * 4 pages for a protection area */
+			page_size = 1024;
+			stm32x_info->ppage_size = 4;
+			break;
+		
+		case 0x414:
+			/* high density - we have 2k pages
+			 * 2 pages for a protection area */
+			page_size = 2048;
+			stm32x_info->ppage_size = 2;
+			break;
+		
+		default:
+			LOG_WARNING( "Cannot identify target as a STM32 family." );
+			return ERROR_FLASH_OPERATION_FAILED;
+	}
+	
 	/* get flash size from target */
-	if (target_read_u16(target, 0x1FFFF7E0, &num_sectors) != ERROR_OK)
+	if (target_read_u16(target, 0x1FFFF7E0, &num_pages) != ERROR_OK)
 	{
 		/* failed reading flash size, default to 128k */
 		LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 128k flash" );
-		num_sectors = 128;
+		num_pages = 128;
 	}
 	
 	/* check for early silicon rev A */
@@ -639,20 +658,23 @@ int stm32x_probe(struct flash_bank_s *bank)
 	{
 		/* number of sectors incorrect on revA */
 		LOG_WARNING( "STM32 Rev A Silicon detected, probe inaccurate - assuming 128k flash" );
-		num_sectors = 128;
+		num_pages = 128;
 	}
 	
-	LOG_INFO( "flash size = %dkbytes", num_sectors );
+	LOG_INFO( "flash size = %dkbytes", num_pages );
+	
+	/* calculate numbers of pages */
+	num_pages /= (page_size - 1024);
 	
 	bank->base = 0x08000000;
-	bank->size = num_sectors * 1024;
-	bank->num_sectors = num_sectors;
-	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
+	bank->size = (num_pages * page_size);
+	bank->num_sectors = num_pages;
+	bank->sectors = malloc(sizeof(flash_sector_t) * num_pages);
 	
-	for (i = 0; i < num_sectors; i++)
+	for (i = 0; i < num_pages; i++)
 	{
-		bank->sectors[i].offset = i * 1024;
-		bank->sectors[i].size = 1024;
+		bank->sectors[i].offset = i * page_size;
+		bank->sectors[i].size = page_size;
 		bank->sectors[i].is_erased = -1;
 		bank->sectors[i].is_protected = 1;
 	}
