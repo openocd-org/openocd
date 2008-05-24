@@ -1030,6 +1030,16 @@ write stm32 option bytes.
 mass erase flash memory. 
 @end itemize
 
+@subsection Stellaris specific commands
+@cindex Stellaris specific commands
+ 
+These are flash specific commands when using the Stellaris driver.
+@itemize @bullet
+@item @b{stellaris mass_erase} <@var{num}>
+@cindex stellaris mass_erase
+mass erase flash memory. 
+@end itemize
+
 @page
 @section Architecture Specific Commands
 @cindex Architecture Specific Commands
