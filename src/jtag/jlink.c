@@ -60,8 +60,8 @@ static u8 usb_out_buffer[JLINK_OUT_BUFFER_SIZE];
 
 /* Constants for JLink command */
 
-/* The JLINK_TAP_SEQUENCE_COMMAND is obsolete *
-/* and we should use EMU_CMD_HW_JTAG instead */
+/* The JLINK_TAP_SEQUENCE_COMMAND is obsolete
+ * and we should use EMU_CMD_HW_JTAG instead */
 #define JLINK_TAP_SEQUENCE_COMMAND		0xcd
 
 #define EMU_CMD_VERSION     0x01
@@ -115,6 +115,9 @@ void jlink_usb_close(jlink_jtag_t *jlink_jtag);
 int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length);
 int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length);
 int jlink_usb_read(jlink_jtag_t *jlink_jtag);
+
+/* helper functions */
+int jlink_get_version_info(void);
 
 #ifdef _DEBUG_USB_COMMS_
 void jlink_debug_buffer(u8 *buffer, int length);
@@ -179,7 +182,7 @@ int jlink_execute_queue(void)
 				break;
 	
 			case JTAG_PATHMOVE:
-			    DEBUG_JTAG_IO("pathmove: %i states, end in %i",
+				DEBUG_JTAG_IO("pathmove: %i states, end in %i",
 				cmd->cmd.pathmove->num_states,
 				cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 			
@@ -191,7 +194,7 @@ int jlink_execute_queue(void)
 			
 				if (cmd->cmd.scan->end_state != -1)
 				{
-				    jlink_end_state(cmd->cmd.scan->end_state);
+					jlink_end_state(cmd->cmd.scan->end_state);
 				}
 			
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
@@ -224,15 +227,14 @@ int jlink_execute_queue(void)
 				jtag_sleep(cmd->cmd.sleep->us);
 				break;
 	
-		default:
-			LOG_ERROR("BUG: unknown JTAG command type encountered");
-			exit(-1);
+			default:
+				LOG_ERROR("BUG: unknown JTAG command type encountered");
+				exit(-1);
 		}
 		cmd = cmd->next;
 	}
-	jlink_tap_execute();
 	
-	return ERROR_OK;
+	return jlink_tap_execute();
 }
 
 /* Sets speed in kHz. */
@@ -240,7 +242,6 @@ int jlink_speed(int speed)
 {
 	int result;
 	
-//	if ((speed == -1) || ((1 <= speed) && (speed <= JLINK_MAX_SPEED)))
 	if (speed <= JLINK_MAX_SPEED)
 	{
 		/* check for RTCK setting */
@@ -287,9 +288,7 @@ int jlink_register_commands(struct command_context_s *cmd_ctx)
 
 int jlink_init(void)
 {
-	int result;
-  int len;
-  int check_cnt;  
+	int check_cnt;  
 	
 	jlink_jtag_handle = jlink_usb_open();
 	
@@ -299,46 +298,29 @@ int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 		
-  check_cnt = 0;
-  while (check_cnt < 3)
-  {    
-	  /* query hardware version */
-	  jlink_simple_command(EMU_CMD_VERSION);
-	  result = jlink_usb_read(jlink_jtag_handle);
-  
-	  if (result == 2)
-	  {
-      /* Get length */
-		  len = buf_get_u32(usb_in_buffer, 0, 16);
-      
-      /* Get version */
-		  result = jlink_usb_read(jlink_jtag_handle);
+	check_cnt = 0;
+	while (check_cnt < 3)
+	{
+		if (jlink_get_version_info() == ERROR_OK)
+		{
+			/* attempt to get status */
+			jlink_get_status();
+			break;
+		}
 		
-		  if(result == len)
-		  {
-			  usb_in_buffer[result] = 0;
-			  LOG_INFO(usb_in_buffer);
-      
-  		  /* attempt to get status */
-	  	  jlink_get_status();
-        
-        break;
-		  }
-    }    
-    
-    check_cnt++;
-  }    
-  
-  if (check_cnt == 3)
-  {
-	  LOG_INFO("J-Link initial read failed, don't worry");
-  }
+		check_cnt++;
+	}
+
+	if (check_cnt == 3)
+	{
+		LOG_INFO("J-Link initial read failed, don't worry");
+	}
 	
 	LOG_INFO("J-Link JTAG Interface ready");
 	
 	jlink_reset(0, 0);
 	jlink_tap_init();
-		
+	
 	return ERROR_OK;
 }
 
@@ -528,7 +510,7 @@ int jlink_get_status(void)
 	return ERROR_OK;
 }
 
-int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int jlink_get_version_info(void)
 {
 	int result;
 	int len = 0;
@@ -546,14 +528,20 @@ int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd
 		{
 			usb_in_buffer[result] = 0;
 			LOG_INFO(usb_in_buffer);
+			return ERROR_OK;
 		}
-		
+	}
+	
+	LOG_ERROR("J-Link command EMU_CMD_VERSION failed (%d)\n", result);
+	return ERROR_JTAG_DEVICE_ERROR;
+}
+
+int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (jlink_get_version_info() == ERROR_OK)
+	{
 		/* attempt to get status */
 		jlink_get_status();
-	}
-	else
-	{
-		LOG_ERROR("J-Link command EMU_CMD_VERSION failed (%d)\n", result);
 	}
 	
 	return ERROR_OK;
@@ -684,13 +672,13 @@ int jlink_tap_execute()
 		tms_offset = 3;
 		for (i = 0; i < byte_length; i++)
 		{
-		    usb_out_buffer[tms_offset + i] = tms_buffer[i];
+			usb_out_buffer[tms_offset + i] = tms_buffer[i];
 		}
 		
 		tdi_offset = tms_offset + byte_length;
 		for (i = 0; i < byte_length; i++)
 		{
-		    usb_out_buffer[tdi_offset + i] = tdi_buffer[i];
+			usb_out_buffer[tdi_offset + i] = tdi_buffer[i];
 		}
 	
 		result = jlink_usb_message(jlink_jtag_handle, 3 + 2 * byte_length, byte_length);
@@ -719,17 +707,17 @@ int jlink_tap_execute()
 				jlink_debug_buffer(buffer, byte_length);
 #endif
 	
-		        if (jtag_read_buffer(buffer, command) != ERROR_OK)
-		        {
-		        	jlink_tap_init();
+				if (jtag_read_buffer(buffer, command) != ERROR_OK)
+				{
+					jlink_tap_init();
 					return ERROR_JTAG_QUEUE_FAILED;
-		        }
+				}
 		
-		        if (pending_scan_result->buffer != NULL)
-		        {
+				if (pending_scan_result->buffer != NULL)
+				{
 					free(pending_scan_result->buffer);
-		        }
-	    	}
+				}
+			}
 		}
 		else
 		{
@@ -804,16 +792,16 @@ int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
 		{
 			return result;
 		}
-	    else
-	    {
+		else
+		{
 			LOG_ERROR("usb_bulk_read failed (requested=%d, result=%d)", in_length, result);
 			return -1;
-	    }
+		}
 	}
 	else
 	{
 		LOG_ERROR("usb_bulk_write failed (requested=%d, result=%d)", out_length, result);
-	    return -1;
+		return -1;
 	}
 }
 
@@ -850,7 +838,7 @@ int jlink_usb_read(jlink_jtag_t *jlink_jtag)
 #ifdef _DEBUG_USB_COMMS_
 	jlink_debug_buffer(usb_in_buffer, result);
 #endif
-    return result;
+	return result;
 }
 
 #ifdef _DEBUG_USB_COMMS_
