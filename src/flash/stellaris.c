@@ -48,7 +48,6 @@ int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last);
 int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
 int stellaris_auto_probe(struct flash_bank_s *bank);
 int stellaris_probe(struct flash_bank_s *bank);
-int stellaris_erase_check(struct flash_bank_s *bank);
 int stellaris_protect_check(struct flash_bank_s *bank);
 int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
@@ -58,6 +57,8 @@ void stellaris_set_flash_mode(flash_bank_t *bank,int mode);
 u32 stellaris_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout);
 
 int stellaris_read_part_info(struct flash_bank_s *bank);
+int stellaris_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int stellaris_mass_erase(struct flash_bank_s *bank);
 
 flash_driver_t stellaris_flash =
 {
@@ -69,7 +70,7 @@ flash_driver_t stellaris_flash =
 	.write = stellaris_write,
 	.probe = stellaris_probe,
 	.auto_probe = stellaris_auto_probe,
-	.erase_check = stellaris_erase_check,
+	.erase_check = default_flash_blank_check,
 	.protect_check = stellaris_protect_check,
 	.info = stellaris_info
 };
@@ -255,7 +256,7 @@ int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, c
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	
-	stellaris_info = calloc(sizeof(stellaris_flash_bank_t),1);
+	stellaris_info = calloc(sizeof(stellaris_flash_bank_t), 1);
 	bank->base = 0x0;
 	bank->driver_priv = stellaris_info;
 	
@@ -270,11 +271,9 @@ int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, c
 
 int stellaris_register_commands(struct command_context_s *cmd_ctx)
 {
-/*
-	command_t *stellaris_cmd = register_command(cmd_ctx, NULL, "stellaris", NULL, COMMAND_ANY, NULL);
-	register_command(cmd_ctx, stellaris_cmd, "gpnvm", stellaris_handle_gpnvm_command, COMMAND_EXEC,
-			"stellaris gpnvm <num> <bit> set|clear, set or clear stellaris gpnvm bit");
-*/
+	command_t *stm32x_cmd = register_command(cmd_ctx, NULL, "stellaris", NULL, COMMAND_ANY, "stellaris flash specific commands");
+	
+	register_command(cmd_ctx, stm32x_cmd, "mass_erase", stellaris_handle_mass_erase_command, COMMAND_EXEC, "mass erase device");
 	return ERROR_OK;
 }
 
@@ -293,9 +292,9 @@ int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
-	if (DID0_VER(stellaris_info->did0)>0)
+	if (DID0_VER(stellaris_info->did0) > 0)
 	{
-		device_class = (stellaris_info->did0>>16)&0xFF;
+		device_class = (stellaris_info->did0>>16) & 0xFF;
 	}
 	else
 	{
@@ -303,12 +302,12 @@ int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	}	
 	printed = snprintf(buf, buf_size, "\nLMI Stellaris information: Chip is class %i(%s) %s v%c.%i\n",
 	  device_class, StellarisClassname[device_class], stellaris_info->target_name,
-	  'A' + ((stellaris_info->did0>>8)&0xFF), (stellaris_info->did0)&0xFF);
+	  'A' + ((stellaris_info->did0>>8) & 0xFF), (stellaris_info->did0) & 0xFF);
 	buf += printed;
 	buf_size -= printed;
 
 	printed = snprintf(buf, buf_size, "did1: 0x%8.8x, arch: 0x%4.4x, eproc: %s, ramsize:%ik,  flashsize: %ik\n", 
-	 stellaris_info->did1, stellaris_info->did1, "ARMV7M", (1+((stellaris_info->dc0>>16)&0xFFFF))/4, (1+(stellaris_info->dc0&0xFFFF))*2);
+	 stellaris_info->did1, stellaris_info->did1, "ARMV7M", (1+((stellaris_info->dc0>>16) & 0xFFFF))/4, (1+(stellaris_info->dc0 & 0xFFFF))*2);
 	buf += printed;
 	buf_size -= printed;
 
@@ -348,15 +347,15 @@ void stellaris_read_clock_info(flash_bank_t *bank)
 	unsigned long mainfreq;
 
 	target_read_u32(target, SCB_BASE|RCC, &rcc);
-	LOG_DEBUG("Stellaris RCC %x",rcc);
+	LOG_DEBUG("Stellaris RCC %x", rcc);
 	target_read_u32(target, SCB_BASE|PLLCFG, &pllcfg);
-	LOG_DEBUG("Stellaris PLLCFG %x",pllcfg);
+	LOG_DEBUG("Stellaris PLLCFG %x", pllcfg);
 	stellaris_info->rcc = rcc;
 	
-	sysdiv = (rcc>>23)&0xF;
-	usesysdiv = (rcc>>22)&0x1;
-	bypass = (rcc>>11)&0x1;
-	oscsrc = (rcc>>4)&0x3;
+	sysdiv = (rcc>>23) & 0xF;
+	usesysdiv = (rcc>>22) & 0x1;
+	bypass = (rcc>>11) & 0x1;
+	oscsrc = (rcc>>4) & 0x3;
 	/* xtal = (rcc>>6)&0xF; */
 	switch (oscsrc)
 	{
@@ -388,7 +387,7 @@ void stellaris_read_clock_info(flash_bank_t *bank)
 		stellaris_info->mck_freq = mainfreq;
 	
 	/* Forget old flash timing */
-	stellaris_set_flash_mode(bank,0);
+	stellaris_set_flash_mode(bank, 0);
 }
 
 /* Setup the timimg registers */
@@ -399,8 +398,7 @@ void stellaris_set_flash_mode(flash_bank_t *bank,int mode)
 
 	u32 usecrl = (stellaris_info->mck_freq/1000000ul-1);
 	LOG_DEBUG("usecrl = %i",usecrl);	
-	target_write_u32(target, SCB_BASE|USECRL , usecrl);
-	
+	target_write_u32(target, SCB_BASE|USECRL, usecrl);
 }
 
 u32 stellaris_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout)
@@ -442,7 +440,7 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 {
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u32 did0,did1, ver, fam, status;
+	u32 did0, did1, ver, fam, status;
 	int i;
 	
 	/* Read and parse chip identification register */
@@ -450,7 +448,7 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	target_read_u32(target, SCB_BASE|DID1, &did1);
 	target_read_u32(target, SCB_BASE|DC0, &stellaris_info->dc0);
 	target_read_u32(target, SCB_BASE|DC1, &stellaris_info->dc1);
-	LOG_DEBUG("did0 0x%x, did1 0x%x, dc0 0x%x, dc1 0x%x",did0, did1, stellaris_info->dc0,stellaris_info->dc1);
+	LOG_DEBUG("did0 0x%x, did1 0x%x, dc0 0x%x, dc1 0x%x", did0, did1, stellaris_info->dc0, stellaris_info->dc1);
 
 	ver = did0 >> 28;
 	if((ver != 0) && (ver != 1))
@@ -472,9 +470,9 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 		LOG_WARNING("Unknown did1 version/family, cannot positively identify target as a Stellaris");
 	}
 
-	for (i=0;StellarisParts[i].partno;i++)
+	for (i = 0; StellarisParts[i].partno; i++)
 	{
-		if (StellarisParts[i].partno==((did1>>16)&0xFF))
+		if (StellarisParts[i].partno == ((did1 >> 16) & 0xFF))
 			break;
 	}
 	
@@ -483,10 +481,10 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	stellaris_info->did0 = did0;
 	stellaris_info->did1 = did1;
 
-	stellaris_info->num_lockbits = 1+(stellaris_info->dc0&0xFFFF);
-	stellaris_info->num_pages = 2*(1+(stellaris_info->dc0&0xFFFF));
+	stellaris_info->num_lockbits = 1 + (stellaris_info->dc0 & 0xFFFF);
+	stellaris_info->num_pages = 2 *(1+(stellaris_info->dc0 & 0xFFFF));
 	stellaris_info->pagesize = 1024;
-	bank->size = 1024*stellaris_info->num_pages;
+	bank->size = 1024 * stellaris_info->num_pages;
 	stellaris_info->pages_in_lockregion = 2;
 	target_read_u32(target, SCB_BASE|FMPPE, &stellaris_info->lockbits);
 
@@ -495,7 +493,7 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 	bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		bank->sectors[i].offset = i*stellaris_info->pagesize;
+		bank->sectors[i].offset = i * stellaris_info->pagesize;
 		bank->sectors[i].size = stellaris_info->pagesize;
 		bank->sectors[i].is_erased = -1;
 		bank->sectors[i].is_protected = -1;
@@ -512,19 +510,6 @@ int stellaris_read_part_info(struct flash_bank_s *bank)
 /***************************************************************************
 *	flash operations                                                       *
 ***************************************************************************/
-
-int stellaris_erase_check(struct flash_bank_s *bank)
-{
-	/* 
-	
-	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
-	target_t *target = bank->target;
-	int i;
-	
-	*/
-	
-	return ERROR_OK;
-}
 
 int stellaris_protect_check(struct flash_bank_s *bank)
 {
@@ -581,7 +566,12 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 	{
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
-
+	
+	if ((first == 0) && (last == (stellaris_info->num_pages-1)))
+	{
+		return stellaris_mass_erase(bank);
+	}
+	
 	/* Configure the flash controller timing */
 	stellaris_read_clock_info(bank);	
 	stellaris_set_flash_mode(bank,0);
@@ -589,34 +579,7 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
 	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
-
-	if ((first == 0) && (last == (stellaris_info->num_pages-1)))
-	{
-		target_write_u32(target, FLASH_FMA, 0);
-		target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);
-		/* Wait until erase complete */
-		do
-		{
-			target_read_u32(target, FLASH_FMC, &flash_fmc);
-		}
-		while(flash_fmc & FMC_MERASE);
-		
-		/* if device has > 128k, then second erase cycle is needed */
-		if(stellaris_info->num_pages * stellaris_info->pagesize > 0x20000)
-		{
-			target_write_u32(target, FLASH_FMA, 0x20000);
-			target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);
-			/* Wait until erase complete */
-			do
-			{
-				target_read_u32(target, FLASH_FMC, &flash_fmc);
-			}
-			while(flash_fmc & FMC_MERASE);
-		}
-
-		return ERROR_OK;
-	}
-
+	
 	for (banknr=first;banknr<=last;banknr++)
 	{
 		/* Address is first word in page */
@@ -676,15 +639,15 @@ int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	/* Configure the flash controller timing */
 	stellaris_read_clock_info(bank);
-	stellaris_set_flash_mode(bank,0);
+	stellaris_set_flash_mode(bank, 0);
 
 	fmppe = stellaris_info->lockbits;
-	for (lockregion=first;lockregion<=last;lockregion++)
+	for (lockregion = first; lockregion <= last; lockregion++)
 	{
 		if (set)
-			 fmppe &= ~(1<<lockregion); 
+			fmppe &= ~(1<<lockregion); 
 		else
-			 fmppe |= (1<<lockregion); 
+			fmppe |= (1<<lockregion); 
 	}
 
 	/* Clear and disable flash programming interrupts */
@@ -716,7 +679,7 @@ int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last)
 	}
 	
 	target_read_u32(target, SCB_BASE|FMPPE, &stellaris_info->lockbits);
-		
+	
 	return ERROR_OK;
 }
 
@@ -838,7 +801,6 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 		wcount -= thisrun_count;
 	}
 	
-
 	target_free_working_area(target, write_algorithm);
 	target_free_working_area(target, source);
 	
@@ -892,7 +854,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 
 	/* Configure the flash controller timing */	
 	stellaris_read_clock_info(bank);	
-	stellaris_set_flash_mode(bank,0);
+	stellaris_set_flash_mode(bank, 0);
 
 	
 	/* Clear and disable flash programming interrupts */
@@ -930,7 +892,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	
 	while(count>0)
 	{
-		if (!(address&0xff)) LOG_DEBUG("0x%x",address);
+		if (!(address & 0xff)) LOG_DEBUG("0x%x", address);
 		/* Program one word */
 		target_write_u32(target, FLASH_FMA, address);
 		target_write_buffer(target, FLASH_FMD, 4, buffer);
@@ -948,7 +910,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	}
 	/* Check acess violations */
 	target_read_u32(target, FLASH_CRIS, &flash_cris);
-	if(flash_cris & (AMASK))
+	if (flash_cris & (AMASK))
 	{
 		LOG_DEBUG("flash_cris 0x%x", flash_cris);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -977,4 +939,94 @@ int stellaris_auto_probe(struct flash_bank_s *bank)
 	if (stellaris_info->did1)
 		return ERROR_OK;
 	return stellaris_probe(bank);
+}
+
+int stellaris_mass_erase(struct flash_bank_s *bank)
+{
+	target_t *target = NULL;
+	stellaris_flash_bank_t *stellaris_info = NULL;
+	u32 flash_fmc;
+	
+	stellaris_info = bank->driver_priv;
+	target = bank->target;
+	
+	if (target->state != TARGET_HALTED)
+	{
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	
+	if (stellaris_info->did1 == 0)
+	{
+		stellaris_read_part_info(bank);
+	}
+	
+	if (stellaris_info->did1 == 0)
+	{
+		LOG_WARNING("Cannot identify target as Stellaris");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+	
+	/* Configure the flash controller timing */
+	stellaris_read_clock_info(bank);	
+	stellaris_set_flash_mode(bank, 0);
+
+	/* Clear and disable flash programming interrupts */
+	target_write_u32(target, FLASH_CIM, 0);
+	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
+	
+	target_write_u32(target, FLASH_FMA, 0);
+	target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);
+	/* Wait until erase complete */
+	do
+	{
+		target_read_u32(target, FLASH_FMC, &flash_fmc);
+	}
+	while(flash_fmc & FMC_MERASE);
+	
+	/* if device has > 128k, then second erase cycle is needed
+	 * this is only valid for older devices, but will not hurt */
+	if(stellaris_info->num_pages * stellaris_info->pagesize > 0x20000)
+	{
+		target_write_u32(target, FLASH_FMA, 0x20000);
+		target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);
+		/* Wait until erase complete */
+		do
+		{
+			target_read_u32(target, FLASH_FMC, &flash_fmc);
+		}
+		while(flash_fmc & FMC_MERASE);
+	}
+	
+	return ERROR_OK;
+}
+
+int stellaris_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	flash_bank_t *bank;
+	int i;
+	
+	if (argc < 1)
+	{
+		command_print(cmd_ctx, "stellaris mass_erase <bank>");
+		return ERROR_OK;	
+	}
+	
+	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+	if (!bank)
+	{
+		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
+		return ERROR_OK;
+	}
+	
+	stellaris_mass_erase(bank);
+	
+	/* set all sectors as erased */
+	for (i = 0; i < bank->num_sectors; i++)
+	{
+		bank->sectors[i].is_erased = 1;
+	}
+	
+	command_print(cmd_ctx, "stellaris mass erase complete");
+	
+	return ERROR_OK;
 }
