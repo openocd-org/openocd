@@ -59,16 +59,19 @@ static u8 usb_in_buffer[JLINK_IN_BUFFER_SIZE];
 static u8 usb_out_buffer[JLINK_OUT_BUFFER_SIZE];
 
 /* Constants for JLink command */
-#define JLINK_FIRMWARE_VERSION			0x01
-#define JLINK_SPEED_COMMAND				0x05
-#define JLINK_GET_STATUS_COMMAND		0x07
+
+/* The JLINK_TAP_SEQUENCE_COMMAND is obsolete *
+/* and we should use EMU_CMD_HW_JTAG instead */
 #define JLINK_TAP_SEQUENCE_COMMAND		0xcd
-#define JLINK_GET_SERIAL				0xe6
-#define JLINK_SET_SRST_LOW_COMMAND		0xdc
-#define JLINK_SET_SRST_HIGH_COMMAND		0xdd
-#define JLINK_SET_TRST_LOW_COMMAND		0xde
-#define JLINK_SET_TRST_HIGH_COMMAND		0xdf
-#define JLINK_HARDWARE_VERSION			0xe8
+
+#define EMU_CMD_VERSION     0x01
+#define EMU_CMD_SET_SPEED   0x05
+#define EMU_CMD_GET_STATE   0x07
+#define EMU_CMD_HW_JTAG     0xcf
+#define EMU_CMD_HW_RESET0   0xdc
+#define EMU_CMD_HW_RESET1   0xdd
+#define EMU_CMD_HW_TRST0    0xde
+#define EMU_CMD_HW_TRST1    0xdf
 
 /* max speed 12MHz v5.0 jlink */
 #define JLINK_MAX_SPEED 12000
@@ -244,7 +247,7 @@ int jlink_speed(int speed)
 		if (speed == 0)
 			speed = -1;
 		
-		usb_out_buffer[0] = JLINK_SPEED_COMMAND;
+		usb_out_buffer[0] = EMU_CMD_SET_SPEED;
 		usb_out_buffer[1] = (speed >> 0) & 0xff;
 		usb_out_buffer[2] = (speed >> 8) & 0xff;
 		
@@ -285,6 +288,8 @@ int jlink_register_commands(struct command_context_s *cmd_ctx)
 int jlink_init(void)
 {
 	int result;
+  int len;
+  int check_cnt;  
 	
 	jlink_jtag_handle = jlink_usb_open();
 	
@@ -294,20 +299,46 @@ int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 		
-	result = jlink_usb_read(jlink_jtag_handle);
-	if (result != 2 || usb_in_buffer[0] != 0x07 || usb_in_buffer[1] != 0x00)
-	{
-		LOG_INFO("J-Link initial read failed, don't worry");
-	}
+  check_cnt = 0;
+  while (check_cnt < 3)
+  {    
+	  /* query hardware version */
+	  jlink_simple_command(EMU_CMD_VERSION);
+	  result = jlink_usb_read(jlink_jtag_handle);
+  
+	  if (result == 2)
+	  {
+      /* Get length */
+		  len = buf_get_u32(usb_in_buffer, 0, 16);
+      
+      /* Get version */
+		  result = jlink_usb_read(jlink_jtag_handle);
+		
+		  if(result == len)
+		  {
+			  usb_in_buffer[result] = 0;
+			  LOG_INFO(usb_in_buffer);
+      
+  		  /* attempt to get status */
+	  	  jlink_get_status();
+        
+        break;
+		  }
+    }    
+    
+    check_cnt++;
+  }    
+  
+  if (check_cnt == 3)
+  {
+	  LOG_INFO("J-Link initial read failed, don't worry");
+  }
 	
 	LOG_INFO("J-Link JTAG Interface ready");
 	
 	jlink_reset(0, 0);
 	jlink_tap_init();
-	
-	/* query jlink status */
-	jlink_get_status();
-	
+		
 	return ERROR_OK;
 }
 
@@ -437,20 +468,20 @@ void jlink_reset(int trst, int srst)
 	/* Signals are active low */
 	if (trst == 0)
 	{
-		jlink_simple_command(JLINK_SET_TRST_HIGH_COMMAND);
+		jlink_simple_command(EMU_CMD_HW_TRST1);
 	}
 	else if (trst == 1)
 	{
-		jlink_simple_command(JLINK_SET_TRST_LOW_COMMAND);
+		jlink_simple_command(EMU_CMD_HW_TRST0);
 	}
 	
 	if (srst == 0)
 	{
-		jlink_simple_command(JLINK_SET_SRST_HIGH_COMMAND);
+		jlink_simple_command(EMU_CMD_HW_RESET1);
 	}
 	else if (srst == 1)
 	{
-		jlink_simple_command(JLINK_SET_SRST_LOW_COMMAND);
+		jlink_simple_command(EMU_CMD_HW_RESET0);
 	}
 }
 
@@ -473,7 +504,7 @@ int jlink_get_status(void)
 {
 	int result;
 	
-	jlink_simple_command(JLINK_GET_STATUS_COMMAND);
+	jlink_simple_command(EMU_CMD_GET_STATE);
 	result = jlink_usb_read(jlink_jtag_handle);
 	
 	if(result == 8)
@@ -491,7 +522,7 @@ int jlink_get_status(void)
 	}
 	else
 	{
-		LOG_ERROR("J-Link command JLINK_GET_STATUS_COMMAND failed (%d)\n", result);
+		LOG_ERROR("J-Link command EMU_CMD_GET_STATE failed (%d)\n", result);
 	}
 	
 	return ERROR_OK;
@@ -503,7 +534,7 @@ int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd
 	int len = 0;
 	
 	/* query hardware version */
-	jlink_simple_command(JLINK_FIRMWARE_VERSION);
+	jlink_simple_command(EMU_CMD_VERSION);
 	result = jlink_usb_read(jlink_jtag_handle);
 	
 	if (result == 2)
@@ -522,7 +553,7 @@ int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd
 	}
 	else
 	{
-		LOG_ERROR("J-Link command JLINK_FIRMWARE_VERSION failed (%d)\n", result);
+		LOG_ERROR("J-Link command EMU_CMD_VERSION failed (%d)\n", result);
 	}
 	
 	return ERROR_OK;
