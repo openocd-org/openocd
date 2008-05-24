@@ -935,6 +935,7 @@ int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cm
 	stm32x_flash_bank_t *stm32x_info = NULL;
 	flash_bank_t *bank;
 	u32 status;
+	int i;
 	
 	if (argc < 1)
 	{
@@ -980,6 +981,12 @@ int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cm
 	{
 		command_print(cmd_ctx, "stm32x device programming failed");
 		return ERROR_OK;
+	}
+	
+	/* set all sectors as erased */
+	for (i = 0; i < bank->num_sectors; i++)
+	{
+		bank->sectors[i].is_erased = 1;
 	}
 	
 	command_print(cmd_ctx, "stm32x mass erase complete");
