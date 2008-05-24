@@ -63,7 +63,6 @@ flash_driver_t ocl_flash =
 	.auto_probe = ocl_auto_probe
 };
 
-
 typedef struct ocl_priv_s
 {
 	arm_jtag_t *jtag_info;
@@ -71,24 +70,20 @@ typedef struct ocl_priv_s
 	int bufalign;
 } ocl_priv_t;
 
-
 int ocl_register_commands(struct command_context_s *cmd_ctx)
 {
 	return ERROR_OK;
 }
-
 
 int ocl_erase_check(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
 
-
 int ocl_protect_check(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
-
 
 /* flash_bank ocl 0 0 0 0 <target#> */
 int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
@@ -114,7 +109,6 @@ int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 	return ERROR_OK;
 }
-
 
 int ocl_erase(struct flash_bank_s *bank, int first, int last)
 {
@@ -162,21 +156,19 @@ int ocl_erase(struct flash_bank_s *bank, int first, int last)
 	if (dcc_buffer[1] != OCL_CMD_DONE)
 	{
 		if (dcc_buffer[0] == OCL_ERASE_ALL)
-			LOG_ERROR("loader response to OCL_ERASE_ALL 0x%08lX", dcc_buffer[1]);
+			LOG_ERROR("loader response to OCL_ERASE_ALL 0x%08X", dcc_buffer[1]);
 		else
-			LOG_ERROR("loader response to OCL_ERASE_BLOCK 0x%08lX", dcc_buffer[1]);
+			LOG_ERROR("loader response to OCL_ERASE_BLOCK 0x%08X", dcc_buffer[1]);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	return ERROR_OK;
 }
 
-
 int ocl_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	return ERROR_OK;
 }
-
 
 int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
@@ -272,7 +264,7 @@ int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 		if (dcc_buffer[0] != OCL_CMD_DONE)
 		{
-			LOG_ERROR("loader response to OCL_FLASH_BLOCK 0x%08lX", dcc_buffer[0]);
+			LOG_ERROR("loader response to OCL_FLASH_BLOCK 0x%08X", dcc_buffer[0]);
 			free(dcc_buffer);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
@@ -284,7 +276,6 @@ int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	free(dcc_buffer);
 	return ERROR_OK;
 }
-
 
 int ocl_probe(struct flash_bank_s *bank)
 {
@@ -315,7 +306,7 @@ int ocl_probe(struct flash_bank_s *bank)
 		
 	if (dcc_buffer[0] != OCL_CMD_DONE)
 	{
-		LOG_ERROR("loader response to OCL_PROBE 0x%08lX", dcc_buffer[0]);
+		LOG_ERROR("loader response to OCL_PROBE 0x%08X", dcc_buffer[0]);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -384,12 +375,10 @@ int ocl_probe(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-
 int ocl_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	return ERROR_OK;
 }
-
 
 int ocl_auto_probe(struct flash_bank_s *bank)
 {
