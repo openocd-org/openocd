@@ -113,7 +113,7 @@ void jlink_usb_close(jlink_jtag_t *jlink_jtag);
 int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length);
 int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length);
 int jlink_usb_read(jlink_jtag_t *jlink_jtag);
-int jlink_usb_read_result(jlink_jtag_t *jlink_jtag);
+int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag);
 
 /* helper functions */
 int jlink_get_version_info(void);
@@ -792,7 +792,7 @@ int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
 		if (result == in_length)
 		{
 			/* Must read the result from the EMU too */
-			result2 = jlink_usb_read_result(jlink_jtag);
+			result2 = jlink_usb_read_emu_result(jlink_jtag);
 			if (1 == result2)
 			{
 				/* Check the result itself */
@@ -802,13 +802,13 @@ int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
 				}
 				else
 				{
-					LOG_ERROR("jlink_usb_read_result len (requested=0, result=%d)", usb_emu_result_buffer[0]);
+					LOG_ERROR("jlink_usb_read_emu_result (requested=0, result=%d)", usb_emu_result_buffer[0]);
 					return -1;				
 				}
 			}
 			else
 			{
-				LOG_ERROR("jlink_usb_read_result len (requested=1, result=%d)", result2);
+				LOG_ERROR("jlink_usb_read_emu_result len (requested=1, result=%d)", result2);
 				return -1;
 			}
 		}
@@ -862,7 +862,7 @@ int jlink_usb_read(jlink_jtag_t *jlink_jtag)
 }
 
 /* Read the result from the previous EMU cmd into result_buffer. */
-int jlink_usb_read_result(jlink_jtag_t *jlink_jtag)
+int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag)
 {
 	int result = usb_bulk_read(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT, \
 		usb_emu_result_buffer, JLINK_EMU_RESULT_BUFFER_SIZE, JLINK_USB_TIMEOUT);
