@@ -763,7 +763,14 @@ jlink_jtag_t* jlink_usb_open()
 				/* usb_set_configuration required under win32 */
 				usb_set_configuration(result->usb_handle, dev->config[0].bConfigurationValue);
 				usb_claim_interface(result->usb_handle, 0);
+				
+#if 0
+				/* 
+				 * This makes problems under Mac OS X. And is not needed
+				 * under Windows. Hopefully this will not break a linux build
+				 */
 				usb_set_altinterface(result->usb_handle, 0);
+#endif				
 				return result;
 			}
 		}
