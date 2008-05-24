@@ -447,15 +447,6 @@ void jlink_reset(int trst, int srst)
 	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 	
 	/* Signals are active low */
-	if (trst == 0)
-	{
-		jlink_simple_command(EMU_CMD_HW_TRST1);
-	}
-	else if (trst == 1)
-	{
-		jlink_simple_command(EMU_CMD_HW_TRST0);
-	}
-	
 	if (srst == 0)
 	{
 		jlink_simple_command(EMU_CMD_HW_RESET1);
@@ -463,6 +454,15 @@ void jlink_reset(int trst, int srst)
 	else if (srst == 1)
 	{
 		jlink_simple_command(EMU_CMD_HW_RESET0);
+	}
+	
+	if (trst == 0)
+	{
+		jlink_simple_command(EMU_CMD_HW_TRST1);
+	}
+	else if (trst == 1)
+	{
+		jlink_simple_command(EMU_CMD_HW_TRST0);
 	}
 }
 
