@@ -51,8 +51,8 @@
 
 #define JLINK_USB_TIMEOUT		100
 
-#define JLINK_IN_BUFFER_SIZE					2064
-#define JLINK_OUT_BUFFER_SIZE					2064
+#define JLINK_IN_BUFFER_SIZE					8192
+#define JLINK_OUT_BUFFER_SIZE					8192
 #define JLINK_EMU_RESULT_BUFFER_SIZE	64
 
 
@@ -549,8 +549,8 @@ int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd
 /***************************************************************************/
 /* J-Link tap functions */
 
-/* We use the maximal value observed */
-#define JLINK_TAP_BUFFER_SIZE 390
+/* 2048 is the max value we can use here */
+#define JLINK_TAP_BUFFER_SIZE 2048
 
 static int tap_length;
 static u8 tms_buffer[JLINK_TAP_BUFFER_SIZE];
@@ -565,7 +565,7 @@ typedef struct
 	u8 *buffer;
 } pending_scan_result_t;
 
-#define MAX_PENDING_SCAN_RESULTS 16
+#define MAX_PENDING_SCAN_RESULTS 256
 
 static int pending_scan_results_length;
 static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
