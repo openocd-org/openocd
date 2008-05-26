@@ -37,7 +37,24 @@
 bitbang_interface_t *bitbang_interface;
 
 
-/* should the clock be high or low in idle? */
+/* DANGER!!!! clock absolutely *MUST* be 0 in idle or reset won't work!
+ * 
+ * Set this to 1 and str912 reset halt will fail.
+ * 
+ * If someone can submit a patch with an explanation it will be greatly
+ * appreciated, but as far as I can tell (ØH) DCLK is generated upon
+ * clk=0 in TAP_RTI. Good luck deducing that from the ARM documentation!
+ * The ARM documentation uses the term "DCLK is asserted while in the TAP_RTI 
+ * state". With hardware there is no such thing as *while* in a state. There
+ * are only edges. So clk => 0 is in fact a very subtle state transition that
+ * happens *while* in the TAP_RTI state. "#&¤"#¤&"#&"#&
+ * 
+ * For "reset halt" the last thing that happens before srst is asserted
+ * is that the breakpoint is set up. If DCLK is not wiggled one last
+ * time before the reset, then the breakpoint is not set up and
+ * "reset halt" will fail to halt.
+ * 
+ */
 #define CLOCK_IDLE() 0 
 
 int bitbang_execute_queue(void);
