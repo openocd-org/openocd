@@ -296,6 +296,12 @@ int ft2232_khz(int khz, int *jtag_speed)
 		*jtag_speed = 0;
 	}
 	
+	/* Check max value */
+	if (*jtag_speed > 0xFFFF)
+	{
+		*jtag_speed = 0xFFFF;
+	}
+	
 	return ERROR_OK;
 }
 
