@@ -36,6 +36,10 @@
 
 bitbang_interface_t *bitbang_interface;
 
+
+/* should the clock be high or low in idle? */
+#define CLOCK_IDLE() 0 
+
 int bitbang_execute_queue(void);
 
 /* The bitbang driver leaves the TCK 0 when in idle */
@@ -62,7 +66,7 @@ void bitbang_state_move(void) {
 		bitbang_interface->write(0, tms, 0);
 		bitbang_interface->write(1, tms, 0);
 	}
-	bitbang_interface->write(0, tms, 0);
+	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
 	
 	cur_state = end_state;
 }
@@ -98,7 +102,7 @@ void bitbang_path_move(pathmove_command_t *cmd)
 		num_states--;
 	}
 	
-	bitbang_interface->write(0, tms, 0);
+	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
 
 	end_state = cur_state;
 }
@@ -117,12 +121,12 @@ void bitbang_runtest(int num_cycles)
 	}
 	
 	/* execute num_cycles */
-	bitbang_interface->write(0, 0, 0);
 	for (i = 0; i < num_cycles; i++)
 	{
-		bitbang_interface->write(1, 0, 0);
 		bitbang_interface->write(0, 0, 0);
+		bitbang_interface->write(1, 0, 0);
 	}
+	bitbang_interface->write(CLOCK_IDLE(), 0, 0);
 	
 	/* finish in end_state */
 	bitbang_end_state(saved_end_state);
@@ -187,7 +191,7 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	 */
 	bitbang_interface->write(0, 0, 0);
 	bitbang_interface->write(1, 0, 0);
-	bitbang_interface->write(0, 0, 0);
+	bitbang_interface->write(CLOCK_IDLE(), 0, 0);
 	
 	if (ir_scan)
 		cur_state = TAP_PI;
