@@ -664,7 +664,8 @@ int stm32x_probe(struct flash_bank_s *bank)
 	LOG_INFO( "flash size = %dkbytes", num_pages );
 	
 	/* calculate numbers of pages */
-	num_pages /= (page_size - 1024);
+	if (page_size - 1024)
+		num_pages /= (page_size - 1024);
 	
 	bank->base = 0x08000000;
 	bank->size = (num_pages * page_size);
