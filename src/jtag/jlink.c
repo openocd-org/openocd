@@ -65,7 +65,7 @@ static u8 usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 #define EMU_CMD_VERSION     0x01
 #define EMU_CMD_SET_SPEED   0x05
 #define EMU_CMD_GET_STATE   0x07
-#define EMU_CMD_HW_JTAG     0xcf
+#define EMU_CMD_HW_JTAG3    0xcf
 #define EMU_CMD_HW_RESET0   0xdc
 #define EMU_CMD_HW_RESET1   0xdd
 #define EMU_CMD_HW_TRST0    0xde
@@ -664,7 +664,7 @@ int jlink_tap_execute()
 	
 		byte_length = tap_length / 8;
 	
-		usb_out_buffer[0] = EMU_CMD_HW_JTAG;
+		usb_out_buffer[0] = EMU_CMD_HW_JTAG3;
 		usb_out_buffer[1] = 0;
 		usb_out_buffer[2] = (tap_length >> 0) & 0xff;
 		usb_out_buffer[3] = (tap_length >> 8) & 0xff;
