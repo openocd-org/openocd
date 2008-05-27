@@ -132,7 +132,6 @@ int flash_driver_protect(struct flash_bank_s *bank, int set, int first, int last
 	return retval;
 }
 
-
 int flash_register_commands(struct command_context_s *cmd_ctx)
 {
 	flash_cmd = register_command(cmd_ctx, NULL, "flash", NULL, COMMAND_ANY, NULL);
@@ -949,7 +948,8 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 	int section;
 	u32 section_offset;
 	flash_bank_t *c;
-
+	int *padding;
+	
 	section = 0;
 	section_offset = 0;
 
@@ -963,7 +963,10 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 
 		flash_set_dirty();
 	}
-
+	
+	/* allocate padding array */
+	padding = malloc(image->num_sections * sizeof(padding));
+	
 	/* loop until we reach end of the image */
 	while (section < image->num_sections)
 	{
@@ -973,7 +976,8 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 		int section_last;
 		u32 run_address = image->sections[section].base_address + section_offset;
 		u32 run_size = image->sections[section].size - section_offset;
-
+		int pad_bytes = 0;
+		
 		if (image->sections[section].size ==  0)
 		{
 			LOG_WARNING("empty section %d", section);
@@ -993,6 +997,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 		/* collect consecutive sections which fall into the same bank */
 		section_first = section;
 		section_last = section;
+		padding[section] = 0;
 		while ((run_address + run_size < c->base + c->size)
 				&& (section_last + 1 < image->num_sections))
 		{
@@ -1001,9 +1006,17 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 				LOG_DEBUG("section %d out of order(very slightly surprising, but supported)", section_last + 1);
 				break;
 			}
-			if (image->sections[section_last + 1].base_address != (run_address + run_size))
+			/* if we have multiple sections within our image, flash programming could fail due to alignment issues
+			 * attempt to rebuild a consecutive buffer for the flash loader */
+			pad_bytes = (image->sections[section_last + 1].base_address) - (run_address + run_size);
+			if ((run_address + run_size + pad_bytes) > (c->base + c->size))
 				break;
+			padding[section_last] = pad_bytes;
 			run_size += image->sections[++section_last].size;
+			run_size += pad_bytes;
+			padding[section_last] = 0;
+			
+			LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes );
 		}
 
 		/* fit the run into bank constraints */
@@ -1028,10 +1041,14 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 					size_read, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
 			{
 				free(buffer);
-
+				free(padding);
 				return retval;
 			}
-
+			
+			/* see if we need to pad the section */
+			while (padding[section]--)
+				buffer[size_read++] = 0xff;
+			
 			buffer_size += size_read;
 			section_offset += size_read;
 
@@ -1060,13 +1077,16 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 
 		if (retval != ERROR_OK)
 		{
+			free(padding);
 			return retval; /* abort operation */
 		}
 
 		if (written != NULL)
 			*written += run_size; /* add run size to total written counter */
 	}
-
+	
+	free(padding);
+	
 	return retval;
 }
 
