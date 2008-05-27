@@ -159,6 +159,7 @@ typedef struct target_type_s
 	int (*bulk_write_memory)(struct target_s *target, u32 address, u32 count, u8 *buffer);
 	
 	int (*checksum_memory)(struct target_s *target, u32 address, u32 count, u32* checksum);
+	int (*blank_check_memory)(struct target_s *target, u32 address, u32 count, u32* blank);
 	
 	/* target break-/watchpoint control 
 	* rw: 0 = write, 1 = read, 2 = access
@@ -283,6 +284,7 @@ extern target_t* get_target_by_num(int num);
 extern int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
 extern int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
 extern int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* crc);
+extern int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u32* blank);
 
 /* DANGER!!!!!
  * 

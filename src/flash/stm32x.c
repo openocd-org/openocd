@@ -61,7 +61,7 @@ flash_driver_t stm32x_flash =
 	.write = stm32x_write,
 	.probe = stm32x_probe,
 	.auto_probe = stm32x_auto_probe,
-	.erase_check = default_flash_blank_check,
+	.erase_check = default_flash_mem_blank_check,
 	.protect_check = stm32x_protect_check,
 	.info = stm32x_info
 };

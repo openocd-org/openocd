@@ -129,6 +129,7 @@ extern int armv7m_invalidate_core_regs(target_t *target);
 extern int armv7m_restore_context(target_t *target);
 
 extern int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum);
+extern int armv7m_blank_check_memory(struct target_s *target, u32 address, u32 count, u32* blank);
 
 /* Thumb mode instructions
  */

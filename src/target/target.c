@@ -1136,6 +1136,23 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 	return retval;
 }
 
+int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u32* blank)
+{
+	int retval;
+	if (!target->type->examined)
+	{
+		LOG_ERROR("Target not examined yet");
+		return ERROR_FAIL;
+	}
+	
+	if (target->type->blank_check_memory == 0)
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	
+	retval = target->type->blank_check_memory(target, address, size, blank);
+			
+	return retval;
+}
+
 int target_read_u32(struct target_s *target, u32 address, u32 *value)
 {
 	u8 value_buf[4];

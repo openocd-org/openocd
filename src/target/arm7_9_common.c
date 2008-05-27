@@ -2305,6 +2305,69 @@ int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 	return ERROR_OK;
 }
 
+int arm7_9_blank_check_memory(struct target_s *target, u32 address, u32 count, u32* blank)
+{
+	working_area_t *erase_check_algorithm;
+	reg_param_t reg_params[3];
+	armv4_5_algorithm_t armv4_5_info;
+	int retval;
+	int i;
+	
+	u32 erase_check_code[] =
+	{
+						/* loop: */
+		0xe4d03001,		/* ldrb r3, [r0], #1	*/
+		0xe0022003,		/* and r2, r2, r3 		*/
+		0xe2511001, 	/* subs r1, r1, #1		*/
+		0x1afffffb,		/* bne loop				*/
+						/* end: */
+		0xeafffffe		/* b end				*/
+	};
+
+	/* make sure we have a working area */
+	if (target_alloc_working_area(target, sizeof(erase_check_code), &erase_check_algorithm) != ERROR_OK)
+	{
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	
+	/* convert flash writing code into a buffer in target endianness */
+	for (i = 0; i < (sizeof(erase_check_code)/sizeof(u32)); i++)
+		target_write_u32(target, erase_check_algorithm->address + i*sizeof(u32), erase_check_code[i]);
+	
+	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+
+	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
+	buf_set_u32(reg_params[1].value, 0, 32, count);
+
+	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
+	buf_set_u32(reg_params[2].value, 0, 32, 0xff);
+	
+	if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params, 
+			erase_check_algorithm->address, erase_check_algorithm->address + (sizeof(erase_check_code) - 4), 10000, &armv4_5_info)) != ERROR_OK)
+	{
+		destroy_reg_param(&reg_params[0]);
+		destroy_reg_param(&reg_params[1]);
+		destroy_reg_param(&reg_params[2]);
+		target_free_working_area(target, erase_check_algorithm);
+		return 0;
+	}
+	
+	*blank = buf_get_u32(reg_params[2].value, 0, 32);
+	
+	destroy_reg_param(&reg_params[0]);
+	destroy_reg_param(&reg_params[1]);
+	destroy_reg_param(&reg_params[2]);
+	
+	target_free_working_area(target, erase_check_algorithm);
+	
+	return ERROR_OK;
+}
+
 int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *arm7_9_cmd;

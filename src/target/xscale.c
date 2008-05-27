@@ -111,7 +111,8 @@ target_type_t xscale_target =
 	.write_memory = xscale_write_memory,
 	.bulk_write_memory = xscale_bulk_write_memory,
 	.checksum_memory = xscale_checksum_memory,
-
+	.blank_check_memory = NULL,
+	
 	.run_algorithm = armv4_5_run_algorithm,
 
 	.add_breakpoint = xscale_add_breakpoint,

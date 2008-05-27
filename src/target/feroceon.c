@@ -83,6 +83,7 @@ target_type_t feroceon_target =
 	.write_memory = arm926ejs_write_memory,
 	.bulk_write_memory = feroceon_bulk_write_memory,
 	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
 	
 	.run_algorithm = armv4_5_run_algorithm,
 

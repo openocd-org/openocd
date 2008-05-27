@@ -70,7 +70,7 @@ flash_driver_t stellaris_flash =
 	.write = stellaris_write,
 	.probe = stellaris_probe,
 	.auto_probe = stellaris_auto_probe,
-	.erase_check = default_flash_blank_check,
+	.erase_check = default_flash_mem_blank_check,
 	.protect_check = stellaris_protect_check,
 	.info = stellaris_info
 };
