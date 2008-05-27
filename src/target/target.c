@@ -2404,7 +2404,7 @@ int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 
 		while (watchpoint)
 		{
-			command_print(cmd_ctx, "address: 0x%8.8x, mask: 0x%8.8x, r/w/a: %i, value: 0x%8.8x, mask: 0x%8.8x", watchpoint->address, watchpoint->length, watchpoint->rw, watchpoint->value, watchpoint->mask);
+			command_print(cmd_ctx, "address: 0x%8.8x, len: 0x%8.8x, r/w/a: %i, value: 0x%8.8x, mask: 0x%8.8x", watchpoint->address, watchpoint->length, watchpoint->rw, watchpoint->value, watchpoint->mask);
 			watchpoint = watchpoint->next;
 		}
 	} 
