@@ -170,8 +170,7 @@ int jlink_execute_queue(void)
 				break;
 	
 			case JTAG_STATEMOVE:
-				DEBUG_JTAG_IO("statemove end in %i",
-				cmd->cmd.statemove->end_state);
+				DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 			
 				if (cmd->cmd.statemove->end_state != -1)
 				{
@@ -181,9 +180,9 @@ int jlink_execute_queue(void)
 				break;
 	
 			case JTAG_PATHMOVE:
-				DEBUG_JTAG_IO("pathmove: %i states, end in %i",
-				cmd->cmd.pathmove->num_states,
-				cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+				DEBUG_JTAG_IO("pathmove: %i states, end in %i", \
+					cmd->cmd.pathmove->num_states, \
+					cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 			
 				jlink_path_move(cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path);
 				break;
@@ -207,9 +206,7 @@ int jlink_execute_queue(void)
 				break;
 	
 			case JTAG_RESET:
-				DEBUG_JTAG_IO("reset trst: %i srst %i",
-				cmd->cmd.reset->trst,
-				cmd->cmd.reset->srst);
+				DEBUG_JTAG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 			
 				jlink_tap_execute();
 			
@@ -796,27 +793,43 @@ int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
 	if (result == out_length)
 	{
 		result = jlink_usb_read(jlink_jtag);
-		if (result == in_length)
+		if (result == in_length || result == in_length+1)
 		{
-			/* Must read the result from the EMU too */
-			result2 = jlink_usb_read_emu_result(jlink_jtag);
-			if (1 == result2)
+			if (result == in_length)
 			{
-				/* Check the result itself */
-				if (0 == usb_emu_result_buffer[0])
+				/* Must read the result from the EMU too */
+				result2 = jlink_usb_read_emu_result(jlink_jtag);
+				if (1 == result2)
 				{
-					return result;
+					/* Check the result itself */
+					if (0 == usb_emu_result_buffer[0])
+					{
+						return result;
+					}
+					else
+					{
+						LOG_ERROR("jlink_usb_read_emu_result (requested=0, result=%d)", usb_emu_result_buffer[0]);
+						return -1;				
+					}
 				}
 				else
 				{
-					LOG_ERROR("jlink_usb_read_emu_result (requested=0, result=%d)", usb_emu_result_buffer[0]);
-					return -1;				
+					LOG_ERROR("jlink_usb_read_emu_result len (requested=1, result=%d)", result2);
+					return -1;
 				}
 			}
 			else
 			{
-				LOG_ERROR("jlink_usb_read_emu_result len (requested=1, result=%d)", result2);
-				return -1;
+				/* Check the result itself */
+				if (0 == usb_in_buffer[result])
+				{
+					return result-1;
+				}
+				else
+				{
+					LOG_ERROR("jlink_usb_read_emu_result (requested=0, result=%d)", usb_in_buffer[result]);
+					return -1;				
+				}
 			}
 		}
 		else
@@ -881,7 +894,6 @@ int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag)
 #endif
 	return result;
 }
-
 
 #ifdef _DEBUG_USB_COMMS_
 #define BYTES_PER_LINE  16
