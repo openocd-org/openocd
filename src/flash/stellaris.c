@@ -306,12 +306,12 @@ int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "did1: 0x%8.8x, arch: 0x%4.4x, eproc: %s, ramsize:%ik,  flashsize: %ik\n", 
+	printed = snprintf(buf, buf_size, "did1: 0x%8.8x, arch: 0x%4.4x, eproc: %s, ramsize:%ik, flashsize: %ik\n", 
 	 stellaris_info->did1, stellaris_info->did1, "ARMV7M", (1+((stellaris_info->dc0>>16) & 0xFFFF))/4, (1+(stellaris_info->dc0 & 0xFFFF))*2);
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "master clock(estimated): %ikHz,  rcc is 0x%x \n", stellaris_info->mck_freq / 1000, stellaris_info->rcc);
+	printed = snprintf(buf, buf_size, "master clock(estimated): %ikHz, rcc is 0x%x \n", stellaris_info->mck_freq / 1000, stellaris_info->rcc);
 	buf += printed;
 	buf_size -= printed;
 
@@ -784,8 +784,8 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, 4*thisrun_count);
-		LOG_WARNING("Algorithm flash write  %i words to 0x%x, %i remaining",thisrun_count,address, wcount);
-		LOG_DEBUG("Algorithm flash write  %i words to 0x%x, %i remaining",thisrun_count,address, wcount);
+		LOG_INFO("Algorithm flash write %i words to 0x%x, %i remaining", thisrun_count, address, wcount);
+		LOG_DEBUG("Algorithm flash write %i words to 0x%x, %i remaining", thisrun_count, address, wcount);
 		if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params, write_algorithm->address, write_algorithm->address + sizeof(stellaris_write_code)-10, 10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing stellaris flash write algorithm");
