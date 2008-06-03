@@ -325,7 +325,7 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 	u32 address = bank->base + offset;
 	reg_param_t reg_params[4];
 	armv4_5_algorithm_t armv4_5_info;
-	int retval;
+	int retval = ERROR_OK;
 	
 	u32 str9x_flash_write_code[] = {
 					/* write:				*/
@@ -400,12 +400,13 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 			target_free_working_area(target, source);
 			target_free_working_area(target, str9x_info->write_algorithm);
 			LOG_ERROR("error executing str9x flash write algorithm");
-			return ERROR_FLASH_OPERATION_FAILED;
+			break;
 		}
 	
 		if (buf_get_u32(reg_params[3].value, 0, 32) != 0x80)
 		{
-			return ERROR_FLASH_OPERATION_FAILED;
+			retval = ERROR_FLASH_OPERATION_FAILED;
+                        break;
 		}
 		
 		buffer += thisrun_count * 2;
@@ -421,7 +422,7 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 	destroy_reg_param(&reg_params[2]);
 	destroy_reg_param(&reg_params[3]);
 	
-	return ERROR_OK;
+	return retval;
 }
 
 int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
