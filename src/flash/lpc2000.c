@@ -480,6 +480,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	int status_code;
 	int i;
 	working_area_t *download_area;
+        int retval = ERROR_OK;
 		 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -494,8 +495,11 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	}
 	
 	if (offset + count > bank->size)
-		return ERROR_FLASH_DST_OUT_OF_BANK;
-	
+        {
+		retval = ERROR_FLASH_DST_OUT_OF_BANK;
+                goto cleanup_working_area;
+	}
+
 	if (lpc2000_info->cmd51_can_256b)
 		dst_min_alignment = 256;
 	else
@@ -504,7 +508,8 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	if (offset % dst_min_alignment)
 	{
 		LOG_WARNING("offset 0x%x breaks required alignment 0x%x", offset, dst_min_alignment);
-		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+		retval = ERROR_FLASH_DST_BREAKS_ALIGNMENT;
+                goto cleanup_working_area;
 	}
 	
 	for (i = 0; i < bank->num_sectors; i++)
@@ -552,23 +557,28 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		switch (status_code)
 		{
 			case ERROR_FLASH_OPERATION_FAILED:
-				return ERROR_FLASH_OPERATION_FAILED;
+				retval = ERROR_FLASH_OPERATION_FAILED;
+                                break;
 			case LPC2000_CMD_SUCCESS:
 				break;
 			case LPC2000_INVALID_SECTOR:
-				return ERROR_FLASH_SECTOR_INVALID;
+				retval = ERROR_FLASH_SECTOR_INVALID;
 				break;
 			default:
 				LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
-				return ERROR_FLASH_OPERATION_FAILED;
+				retval = ERROR_FLASH_OPERATION_FAILED;
+                                break;
 		}
+
+                /* Exit if error occured */
+                if (retval != ERROR_OK)
+                  goto cleanup_working_area;
 		
 		if (bytes_remaining >= thisrun_bytes)
-		{
-			if (target_write_buffer(bank->target, download_area->address, thisrun_bytes, buffer + bytes_written) != ERROR_OK)
+		{                      
+			if (retval = target_write_buffer(bank->target, download_area->address, thisrun_bytes, buffer + bytes_written) != ERROR_OK)
 			{
-				target_free_working_area(target, download_area);
-				return ERROR_FLASH_OPERATION_FAILED;
+                                goto cleanup_working_area;
 			}
 		}
 		else
@@ -593,27 +603,34 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		switch (status_code)
 		{
 			case ERROR_FLASH_OPERATION_FAILED:
-				return ERROR_FLASH_OPERATION_FAILED;
+				retval = ERROR_FLASH_OPERATION_FAILED;
+                                break;
 			case LPC2000_CMD_SUCCESS:
 				break;
 			case LPC2000_INVALID_SECTOR:
-				return ERROR_FLASH_SECTOR_INVALID;
+				retval = ERROR_FLASH_SECTOR_INVALID;
 				break;
 			default:
 				LOG_WARNING("lpc2000 returned %i", status_code);
-				return ERROR_FLASH_OPERATION_FAILED;
+				retval = ERROR_FLASH_OPERATION_FAILED;
+                                break;
 		}
 		
+                /* Exit if error occured */
+                if (retval != ERROR_OK)
+                  goto cleanup_working_area;
+
 		if (bytes_remaining > thisrun_bytes)
 			bytes_remaining -= thisrun_bytes;
 		else
 			bytes_remaining = 0;
 		bytes_written += thisrun_bytes;
 	}
-	
+
+ cleanup_working_area:
 	target_free_working_area(target, download_area);
 	
-	return ERROR_OK;
+	return retval;
 }
 
 int lpc2000_probe(struct flash_bank_s *bank)
