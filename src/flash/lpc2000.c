@@ -480,26 +480,16 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	int status_code;
 	int i;
 	working_area_t *download_area;
-        int retval = ERROR_OK;
+	int retval = ERROR_OK;
 		 
 	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
-
-	/* allocate a working area */
-	if (target_alloc_working_area(target, lpc2000_info->cmd51_max_buffer, &download_area) != ERROR_OK)
-	{
-		LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
-		return ERROR_FLASH_OPERATION_FAILED;
-	}
 	
 	if (offset + count > bank->size)
-        {
-		retval = ERROR_FLASH_DST_OUT_OF_BANK;
-                goto cleanup_working_area;
-	}
-
+		return ERROR_FLASH_DST_OUT_OF_BANK;
+		
 	if (lpc2000_info->cmd51_can_256b)
 		dst_min_alignment = 256;
 	else
@@ -508,8 +498,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	if (offset % dst_min_alignment)
 	{
 		LOG_WARNING("offset 0x%x breaks required alignment 0x%x", offset, dst_min_alignment);
-		retval = ERROR_FLASH_DST_BREAKS_ALIGNMENT;
-                goto cleanup_working_area;
+		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
 	for (i = 0; i < bank->num_sectors; i++)
@@ -538,6 +527,13 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		buf_set_u32(buffer + 0x14, 0, 32, checksum);
 	}
 	
+	/* allocate a working area */
+	if (target_alloc_working_area(target, lpc2000_info->cmd51_max_buffer, &download_area) != ERROR_OK)
+	{
+		LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+	
 	while (bytes_remaining > 0)
 	{
 		u32 thisrun_bytes;
@@ -558,7 +554,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		{
 			case ERROR_FLASH_OPERATION_FAILED:
 				retval = ERROR_FLASH_OPERATION_FAILED;
-                                break;
+				break;
 			case LPC2000_CMD_SUCCESS:
 				break;
 			case LPC2000_INVALID_SECTOR:
@@ -567,18 +563,19 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			default:
 				LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
 				retval = ERROR_FLASH_OPERATION_FAILED;
-                                break;
+				break;
 		}
 
-                /* Exit if error occured */
-                if (retval != ERROR_OK)
-                  goto cleanup_working_area;
+		/* Exit if error occured */
+		if (retval != ERROR_OK)
+			break;
 		
 		if (bytes_remaining >= thisrun_bytes)
 		{                      
-			if (retval = target_write_buffer(bank->target, download_area->address, thisrun_bytes, buffer + bytes_written) != ERROR_OK)
+			if ((retval = target_write_buffer(bank->target, download_area->address, thisrun_bytes, buffer + bytes_written)) != ERROR_OK)
 			{
-                                goto cleanup_working_area;
+				retval = ERROR_FLASH_OPERATION_FAILED;
+				break;
 			}
 		}
 		else
@@ -604,7 +601,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		{
 			case ERROR_FLASH_OPERATION_FAILED:
 				retval = ERROR_FLASH_OPERATION_FAILED;
-                                break;
+				break;
 			case LPC2000_CMD_SUCCESS:
 				break;
 			case LPC2000_INVALID_SECTOR:
@@ -613,21 +610,20 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			default:
 				LOG_WARNING("lpc2000 returned %i", status_code);
 				retval = ERROR_FLASH_OPERATION_FAILED;
-                                break;
+				break;
 		}
 		
-                /* Exit if error occured */
-                if (retval != ERROR_OK)
-                  goto cleanup_working_area;
-
+		/* Exit if error occured */
+		if (retval != ERROR_OK)
+			break;
+		
 		if (bytes_remaining > thisrun_bytes)
 			bytes_remaining -= thisrun_bytes;
 		else
 			bytes_remaining = 0;
 		bytes_written += thisrun_bytes;
 	}
-
- cleanup_working_area:
+	
 	target_free_working_area(target, download_area);
 	
 	return retval;
