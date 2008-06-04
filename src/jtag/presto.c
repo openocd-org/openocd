@@ -573,10 +573,10 @@ int presto_bitq_out(int tms, int tdi, int tdo_req)
 
 	if (presto->jtag_tck == 0)
 	{
-		presto_sendbyte(0xA4);
-		presto->jtag_tck = 1;
+		presto_sendbyte(0xA4); /* jtag activity */
+		presto->jtag_tck = 1; /* clock remains high after the function returns */
+		/* do just a single tick first, accelerated shifting needs TCK=1 */
 	}
-
 	else if (!tdo_req && tms == presto->jtag_tms)
 	{
 		if (presto->jtag_tdi_count == 0)
@@ -617,7 +617,7 @@ int presto_bitq_out(int tms, int tdi, int tdo_req)
 	}
 
 	if (tdo_req)
-		presto_sendbyte(0xD4 | cmdparam);
+		presto_sendbyte(0xD4|cmdparam);
 	else
 		presto_sendbyte(0xC4|cmdparam);
 
@@ -634,8 +634,11 @@ int presto_bitq_flush(void)
 		presto->jtag_tdi_count = 0;
 	}
 
-	presto_sendbyte(0xCA);
-	presto->jtag_tck = 0;
+	if (presto->jtag_tck == 1) 
+	{
+		presto_sendbyte(0xCA);
+		presto->jtag_tck = 0;
+	}
 
 	presto_sendbyte(0xA0);
 
@@ -664,6 +667,12 @@ int presto_bitq_sleep(unsigned long us)
 {
 	long waits;
 
+	if (presto->jtag_tck == 1) 
+	{
+		presto_sendbyte(0xCA);
+		presto->jtag_tck = 0;
+	}
+
 	if (us > 100000)
 	{
 		presto_bitq_flush();
@@ -682,6 +691,12 @@ int presto_bitq_sleep(unsigned long us)
 int presto_bitq_reset(int trst, int srst)
 {
 	unsigned char cmd;
+
+	if (presto->jtag_tck == 1) 
+	{
+		presto_sendbyte(0xCA);
+		presto->jtag_tck = 0;
+	}
 
 	cmd = 0xE8;
 	if (presto->jtag_tms)
