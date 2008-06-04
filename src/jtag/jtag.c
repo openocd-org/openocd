@@ -1236,7 +1236,7 @@ void jtag_set_check_value(scan_field_t *field, u8 *value, u8 *mask, error_handle
 		field->in_handler = jtag_check_value;
 	else
 		field->in_handler = NULL;	/* No check, e.g. embeddedice uses value==NULL to indicate no check */
-	field->in_handler_priv = NULL;	/* this will be filled in at the invocation site to point to the field duplicate */ 
+	field->in_handler_priv = NULL;
 	field->in_check_value = value;
 	field->in_check_mask = mask;
 }

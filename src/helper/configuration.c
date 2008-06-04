@@ -84,7 +84,7 @@ FILE *open_file_from_path (char *file, char *mode)
 	}
 
 	if (fp)
-			LOG_DEBUG("opened %s", full_path);
+		LOG_DEBUG("opened %s", full_path);
 
 	return fp;
 	}
