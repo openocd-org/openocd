@@ -435,6 +435,7 @@ int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 		if ((retval = target->type->run_algorithm(target, 0, NULL, 6, reg_params, str7x_info->write_algorithm->address, str7x_info->write_algorithm->address + (19 * 4), 10000, &armv4_5_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing str7x flash write algorithm");
+			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 	

@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 /***************************************************************************
-* STELLARIS is tested on LM3S811
+* STELLARIS is tested on LM3S811, LM3S6965
 ***************************************************************************/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -315,7 +315,8 @@ int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	if (stellaris_info->num_lockbits>0) {		
+	if (stellaris_info->num_lockbits>0)
+	{
 		printed = snprintf(buf, buf_size, "pagesize: %i, lockbits: %i 0x%4.4x, pages in lock region: %i \n", stellaris_info->pagesize, stellaris_info->num_lockbits, stellaris_info->lockbits,stellaris_info->num_pages/stellaris_info->num_lockbits);
 		buf += printed;
 		buf_size -= printed;
@@ -580,10 +581,10 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 	target_write_u32(target, FLASH_CIM, 0);
 	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
 	
-	for (banknr=first;banknr<=last;banknr++)
+	for (banknr = first; banknr <= last; banknr++)
 	{
 		/* Address is first word in page */
-		target_write_u32(target, FLASH_FMA, banknr*stellaris_info->pagesize);
+		target_write_u32(target, FLASH_FMA, banknr * stellaris_info->pagesize);
 		/* Write erase command */
 		target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_ERASE);
 		/* Wait until erase complete */
@@ -730,19 +731,19 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 	working_area_t *source;
 	working_area_t *write_algorithm;
 	u32 address = bank->base + offset;
-	reg_param_t reg_params[8];
+	reg_param_t reg_params[3];
 	armv7m_algorithm_t armv7m_info;
-	int retval;
+	int retval = ERROR_OK;
 	
 	LOG_DEBUG("(bank=%p buffer=%p offset=%08X wcount=%08X)",
 			bank, buffer, offset, wcount);
 
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(stellaris_write_code), &write_algorithm) != ERROR_OK)
-		{
-			LOG_WARNING("no working area available, can't do block memory writes");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		};
+	{
+		LOG_WARNING("no working area available, can't do block memory writes");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	};
 
 	target_write_buffer(target, write_algorithm->address, sizeof(stellaris_write_code), stellaris_write_code);
 
@@ -769,12 +770,7 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
-	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);
-	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
-	init_reg_param(&reg_params[5], "r5", 32, PARAM_OUT);
-	init_reg_param(&reg_params[6], "r6", 32, PARAM_OUT);
-	init_reg_param(&reg_params[7], "r7", 32, PARAM_OUT);
-
+	
 	while (wcount > 0)
 	{
 		u32 thisrun_count = (wcount > (buffer_size / 4)) ? (buffer_size / 4) : wcount;
@@ -789,11 +785,8 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 		if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params, write_algorithm->address, write_algorithm->address + sizeof(stellaris_write_code)-10, 10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing stellaris flash write algorithm");
-			target_free_working_area(target, source);
-			destroy_reg_param(&reg_params[0]);
-			destroy_reg_param(&reg_params[1]);
-			destroy_reg_param(&reg_params[2]);
-			return ERROR_FLASH_OPERATION_FAILED;
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
 		}
 	
 		buffer += thisrun_count * 4;
@@ -807,13 +800,8 @@ int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
-	destroy_reg_param(&reg_params[3]);
-	destroy_reg_param(&reg_params[4]);
-	destroy_reg_param(&reg_params[5]);
-	destroy_reg_param(&reg_params[6]);
-	destroy_reg_param(&reg_params[7]);
 	
-	return ERROR_OK;
+	return retval;
 }
 
 int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
@@ -855,7 +843,6 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	/* Configure the flash controller timing */	
 	stellaris_read_clock_info(bank);	
 	stellaris_set_flash_mode(bank, 0);
-
 	
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
@@ -890,9 +877,11 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 		}
 	}
 	
-	while(count>0)
+	while (count > 0)
 	{
-		if (!(address & 0xff)) LOG_DEBUG("0x%x", address);
+		if (!(address & 0xff))
+			LOG_DEBUG("0x%x", address);
+		
 		/* Program one word */
 		target_write_u32(target, FLASH_FMA, address);
 		target_write_buffer(target, FLASH_FMD, 4, buffer);
@@ -903,7 +892,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 		{
 			target_read_u32(target, FLASH_FMC, &flash_fmc);
 		}
-		while(flash_fmc & FMC_WRITE);
+		while (flash_fmc & FMC_WRITE);
 		buffer += 4;
 		address += 4;
 		count -= 4;
@@ -981,11 +970,11 @@ int stellaris_mass_erase(struct flash_bank_s *bank)
 	{
 		target_read_u32(target, FLASH_FMC, &flash_fmc);
 	}
-	while(flash_fmc & FMC_MERASE);
+	while (flash_fmc & FMC_MERASE);
 	
 	/* if device has > 128k, then second erase cycle is needed
 	 * this is only valid for older devices, but will not hurt */
-	if(stellaris_info->num_pages * stellaris_info->pagesize > 0x20000)
+	if (stellaris_info->num_pages * stellaris_info->pagesize > 0x20000)
 	{
 		target_write_u32(target, FLASH_FMA, 0x20000);
 		target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);
@@ -994,7 +983,7 @@ int stellaris_mass_erase(struct flash_bank_s *bank)
 		{
 			target_read_u32(target, FLASH_FMC, &flash_fmc);
 		}
-		while(flash_fmc & FMC_MERASE);
+		while (flash_fmc & FMC_MERASE);
 	}
 	
 	return ERROR_OK;

@@ -483,6 +483,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 				stm32x_info->write_algorithm->address + (sizeof(stm32x_flash_write_code) - 10), 10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing stm32x flash write algorithm");
+			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 		
