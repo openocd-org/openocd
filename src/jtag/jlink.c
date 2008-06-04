@@ -821,7 +821,7 @@ int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
 			else
 			{
 				/* Check the result itself */
-				if (0 == usb_in_buffer[result])
+				if (0 == usb_in_buffer[result-1])
 				{
 					return result-1;
 				}
