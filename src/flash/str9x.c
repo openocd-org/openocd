@@ -236,18 +236,31 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 	int i;
 	u32 adr;
 	u8 status;
+	u8 erase_cmd;
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
+	/* Check if we erase whole bank */
+	if ((first == 0) && (last == (bank->num_sectors - 1)))
+	{
+		/* Optimize to run erase bank command instead of sector */
+		erase_cmd = 0x80;
+	}
+	else
+	{
+		/* Erase sector command */
+		erase_cmd = 0x20;
+	}
+	
 	for (i = first; i <= last; i++)
 	{
 		adr = bank->base + bank->sectors[i].offset;
 		
 		/* erase sectors */
-		target_write_u16(target, adr, 0x20);
+		target_write_u16(target, adr, erase_cmd);
 		target_write_u16(target, adr, 0xD0);
 		
 		/* get status */
@@ -271,6 +284,10 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 			LOG_ERROR("error erasing flash bank, status: 0x%x", status);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
+		
+		/* If we ran erase bank command, we are finished */
+		if (erase_cmd == 0x80)
+			break;
 	}
 	
 	for (i = first; i <= last; i++)
