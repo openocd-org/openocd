@@ -559,6 +559,10 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 				
 	/* set RESTART instruction */
 	jtag_add_end_state(TAP_RTI);
+	if (arm7_9->need_bypass_before_restart) {
+		arm7_9->need_bypass_before_restart = 0;
+		arm_jtag_set_instr(jtag_info, 0xf, NULL);
+	}
 	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 	
 	for (timeout=0; timeout<50; timeout++)
@@ -593,6 +597,10 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 				
 	/* set RESTART instruction */
 	jtag_add_end_state(TAP_RTI);
+	if (arm7_9->need_bypass_before_restart) {
+		arm7_9->need_bypass_before_restart = 0;
+		arm_jtag_set_instr(jtag_info, 0xf, NULL);
+	}
 	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 	
 	if (!set)
@@ -984,8 +992,12 @@ int arm7_9_halt(target_t *target)
 	{
 		/* program EmbeddedICE Debug Control Register to assert DBGRQ
 		 */
-		buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGRQ, 1, 1);	
-		embeddedice_store_reg(dbg_ctrl);
+		if (arm7_9->set_special_dbgrq) {
+			arm7_9->set_special_dbgrq(target);
+		} else {
+			buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_DBGRQ, 1, 1);	
+			embeddedice_store_reg(dbg_ctrl);
+		}
 	}
 	else
 	{
@@ -1388,6 +1400,10 @@ int arm7_9_restart_core(struct target_s *target)
 	
 	/* set RESTART instruction */
 	jtag_add_end_state(TAP_RTI);
+	if (arm7_9->need_bypass_before_restart) {
+		arm7_9->need_bypass_before_restart = 0;
+		arm_jtag_set_instr(jtag_info, 0xf, NULL);
+	}
 	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 	
 	jtag_add_runtest(1, TAP_RTI);
@@ -2732,7 +2748,9 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	
 	arm7_9->fast_memory_access = fast_and_dangerous;
 	arm7_9->dcc_downloads = fast_and_dangerous;
-
+	
+	arm7_9->need_bypass_before_restart = 0;
+	
 	armv4_5->arch_info = arm7_9;
 	armv4_5->read_core_reg = arm7_9_read_core_reg;
 	armv4_5->write_core_reg = arm7_9_write_core_reg;

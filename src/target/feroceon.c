@@ -100,6 +100,60 @@ target_type_t feroceon_target =
 };
 
 
+int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
+{
+	scan_field_t fields[3];
+	u8 out_buf[4];
+	u8 instr_buf[4];
+	u8 sysspeed_buf = 0x0;
+	
+	/* prepare buffer */
+	buf_set_u32(out_buf, 0, 32, 0);
+	
+	buf_set_u32(instr_buf, 0, 32, flip_u32(instr, 32));
+	
+	jtag_add_end_state(TAP_PD);
+	arm_jtag_scann(jtag_info, 0x1);
+	
+	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
+		
+	fields[0].device = jtag_info->chain_pos;
+	fields[0].num_bits = 32;
+	fields[0].out_value = out_buf;
+	fields[0].out_mask = NULL;
+	fields[0].in_value = NULL;
+	fields[0].in_handler = NULL;
+	fields[0].in_handler_priv = NULL;
+	fields[0].in_check_value = NULL;
+	fields[0].in_check_mask = NULL;
+	
+	fields[1].device = jtag_info->chain_pos;
+	fields[1].num_bits = 3;
+	fields[1].out_value = &sysspeed_buf;
+	fields[1].out_mask = NULL;
+	fields[1].in_value = NULL;
+	fields[1].in_check_value = NULL;
+	fields[1].in_check_mask = NULL;
+	fields[1].in_handler = NULL;
+	fields[1].in_handler_priv = NULL;
+		
+	fields[2].device = jtag_info->chain_pos;
+	fields[2].num_bits = 32;
+	fields[2].out_value = instr_buf;
+	fields[2].out_mask = NULL;
+	fields[2].in_value = NULL;
+	fields[2].in_check_value = NULL;
+	fields[2].in_check_mask = NULL;
+	fields[2].in_handler = NULL;
+	fields[2].in_handler_priv = NULL;
+
+	jtag_add_dr_scan(3, fields, -1);
+
+	/* no jtag_add_runtest(0, -1) here */
+	
+	return ERROR_OK;
+}
+
 void feroceon_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -111,9 +165,10 @@ void feroceon_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 	 * to allow common handling of ARM and THUMB debugging
 	 */
 
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
+	feroceon_dummy_clock_out(jtag_info, ARMV4_5_T_NOP);
+	feroceon_dummy_clock_out(jtag_info, ARMV4_5_T_NOP);
+	feroceon_dummy_clock_out(jtag_info, ARMV4_5_T_NOP);
+
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_STR(0, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
@@ -139,10 +194,10 @@ void feroceon_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 
 	/*
 	 * fix program counter:
-	 * MOV R0, PC was the 10th instruction (+18)
+	 * MOV R0, PC was the 7th instruction (+12)
 	 * reading PC in Thumb state gives address of instruction + 4
 	 */
-	*pc -= 22;
+	*pc -= (12 + 4);
 }
 
 void feroceon_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
@@ -314,9 +369,7 @@ void feroceon_branch_resume(target_t *target)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_B(0xfffff9, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
 
-	/* need BYPASS before RESTART */
-	jtag_add_end_state(TAP_RTI);
-	arm_jtag_set_instr(jtag_info, 0xf, NULL);
+	arm7_9->need_bypass_before_restart = 1;
 }
 
 void feroceon_branch_resume_thumb(target_t *target)
@@ -329,28 +382,21 @@ void feroceon_branch_resume_thumb(target_t *target)
 	u32 r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
 	u32 pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, 0x8000, 0, 0), 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, pc & ~3, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
-
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 
-	arm9tdmi_clock_out(jtag_info, 0xE28F0001, 0, NULL, 0); /* add r0,r15,#1 */
+	arm9tdmi_clock_out(jtag_info, 0xE28F0001, 0, NULL, 0); // add r0,pc,#1
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_BX(0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
-	
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_LDMIA(0, 1), 0, NULL, 0);
+
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_LDMIA(0, 0x1), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
-	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, r0, NULL, 0);
+ 
+	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, pc, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 
@@ -358,9 +404,7 @@ void feroceon_branch_resume_thumb(target_t *target)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_B(0x7e9 + pc), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 1);
 
-	/* need BYPASS before RESTART */
-	jtag_add_end_state(TAP_RTI);
-	arm_jtag_set_instr(jtag_info, 0xf, NULL);
+	arm7_9->need_bypass_before_restart = 1;
 }
 
 int feroceon_read_cp15(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 *value)
@@ -402,6 +446,16 @@ int feroceon_write_cp15(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MCR(15, op1, 0, CRn, CRm, op2), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
 	return arm7_9_execute_sys_speed(target);
+}
+
+void feroceon_set_dbgrq(target_t *target)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
+
+	buf_set_u32(dbg_ctrl->value, 0, 8, 2);
+	embeddedice_store_reg(dbg_ctrl);
 }
 
 void feroceon_enable_single_step(target_t *target)
@@ -627,8 +681,10 @@ int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	arm926ejs->read_cp15 = feroceon_read_cp15;
 	arm926ejs->write_cp15 = feroceon_write_cp15;
 
-	/* asserting DBGRQ won't win over the undef exception */
-	arm7_9->use_dbgrq = 0;
+	/* Note: asserting DBGRQ might not win over the undef exception.
+	   If that happens then just use "arm7_9 dbgrq disable". */
+	arm7_9->use_dbgrq = 1;
+	arm7_9->set_special_dbgrq = feroceon_set_dbgrq;
 
 	/* only one working comparator */
 	arm7_9->wp_available = 1; 

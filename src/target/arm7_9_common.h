@@ -46,6 +46,7 @@ typedef struct arm7_9_common_s
 	int force_hw_bkpts;
 	int dbgreq_adjust_pc;
 	int use_dbgrq;
+	int need_bypass_before_restart;
 	
 	etm_context_t *etm_ctx;
 	
@@ -87,6 +88,8 @@ typedef struct arm7_9_common_s
 	void (*enable_single_step)(target_t *target);
 	void (*disable_single_step)(target_t *target);
 	
+	void (*set_special_dbgrq)(target_t *target);
+
 	void (*pre_debug_entry)(target_t *target);
 	void (*post_debug_entry)(target_t *target);
 	
