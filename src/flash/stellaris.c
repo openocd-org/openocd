@@ -1007,15 +1007,20 @@ int stellaris_handle_mass_erase_command(struct command_context_s *cmd_ctx, char 
 		return ERROR_OK;
 	}
 	
-	stellaris_mass_erase(bank);
-	
-	/* set all sectors as erased */
-	for (i = 0; i < bank->num_sectors; i++)
+	if (stellaris_mass_erase(bank) == ERROR_OK)
 	{
-		bank->sectors[i].is_erased = 1;
+		/* set all sectors as erased */
+		for (i = 0; i < bank->num_sectors; i++)
+		{
+			bank->sectors[i].is_erased = 1;
+		}
+		
+		command_print(cmd_ctx, "stellaris mass erase complete");
 	}
-	
-	command_print(cmd_ctx, "stellaris mass erase complete");
+	else
+	{
+		command_print(cmd_ctx, "stellaris mass erase failed");
+	}
 	
 	return ERROR_OK;
 }

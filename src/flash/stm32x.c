@@ -50,6 +50,7 @@ int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, c
 int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int stm32x_mass_erase(struct flash_bank_s *bank);
 
 flash_driver_t stm32x_flash =
 {
@@ -316,7 +317,6 @@ int stm32x_protect_check(struct flash_bank_s *bank)
 int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 {
 	target_t *target = bank->target;
-	
 	int i;
 	u32 status;
 	
@@ -324,7 +324,12 @@ int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
-
+	
+	if ((first == 0) && (last == (bank->num_sectors - 1)))
+	{
+		return stm32x_mass_erase(bank);
+	}
+	
 	/* unlock flash registers */
 	target_write_u32(target, STM32_FLASH_KEYR, KEY1);
 	target_write_u32(target, STM32_FLASH_KEYR, KEY2);
@@ -931,30 +936,10 @@ int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char 
 	return ERROR_OK;
 }
 
-int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int stm32x_mass_erase(struct flash_bank_s *bank)
 {
-	target_t *target = NULL;
-	stm32x_flash_bank_t *stm32x_info = NULL;
-	flash_bank_t *bank;
+	target_t *target = bank->target;
 	u32 status;
-	int i;
-	
-	if (argc < 1)
-	{
-		command_print(cmd_ctx, "stm32x mass_erase <bank>");
-		return ERROR_OK;	
-	}
-	
-	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
-	if (!bank)
-	{
-		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
-		return ERROR_OK;
-	}
-	
-	stm32x_info = bank->driver_priv;
-	
-	target = bank->target;
 	
 	if (target->state != TARGET_HALTED)
 	{
@@ -975,23 +960,51 @@ int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cm
 	
 	if( status & FLASH_WRPRTERR )
 	{
-		command_print(cmd_ctx, "stm32x device protected");
+		LOG_ERROR("stm32x device protected");
 		return ERROR_OK;
 	}
 	
 	if( status & FLASH_PGERR )
 	{
-		command_print(cmd_ctx, "stm32x device programming failed");
+		LOG_ERROR("stm32x device programming failed");
 		return ERROR_OK;
 	}
 	
-	/* set all sectors as erased */
-	for (i = 0; i < bank->num_sectors; i++)
+	return ERROR_OK;
+}
+
+int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	flash_bank_t *bank;
+	int i;
+	
+	if (argc < 1)
 	{
-		bank->sectors[i].is_erased = 1;
+		command_print(cmd_ctx, "stm32x mass_erase <bank>");
+		return ERROR_OK;	
 	}
 	
-	command_print(cmd_ctx, "stm32x mass erase complete");
+	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
+	if (!bank)
+	{
+		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
+		return ERROR_OK;
+	}
+	
+	if (stm32x_mass_erase(bank) == ERROR_OK)
+	{
+		/* set all sectors as erased */
+		for (i = 0; i < bank->num_sectors; i++)
+		{
+			bank->sectors[i].is_erased = 1;
+		}
+		
+		command_print(cmd_ctx, "stm32x mass erase complete");
+	}
+	else
+	{
+		command_print(cmd_ctx, "stm32x mass erase failed");
+	}
 	
 	return ERROR_OK;
 }
