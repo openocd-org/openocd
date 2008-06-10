@@ -51,10 +51,9 @@
 
 #define JLINK_USB_TIMEOUT		100
 
-#define JLINK_IN_BUFFER_SIZE					8192
-#define JLINK_OUT_BUFFER_SIZE					8192
+#define JLINK_IN_BUFFER_SIZE			8192
+#define JLINK_OUT_BUFFER_SIZE			8192
 #define JLINK_EMU_RESULT_BUFFER_SIZE	64
-
 
 /* Global USB buffers */
 static u8 usb_in_buffer[JLINK_IN_BUFFER_SIZE];
@@ -290,7 +289,7 @@ int jlink_init(void)
 	
 	if (jlink_jtag_handle == 0)
 	{
-		LOG_ERROR("Can't find USB JTAG Interface! Please check connection and permissions.");
+		LOG_ERROR("Cannot find jlink Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 		
@@ -485,17 +484,17 @@ int jlink_get_status(void)
 	jlink_simple_command(EMU_CMD_GET_STATE);
 	result = jlink_usb_read(jlink_jtag_handle);
 	
-	if(result == 8)
+	if (result == 8)
 	{
 		int vref = usb_in_buffer[0] + (usb_in_buffer[1] << 8);
-		LOG_INFO("Vref = %d.%d TCK=%d TDI=%d TDO=%d TMS=%d SRST=%d TRST=%d\n", \
+		LOG_INFO("Vref = %d.%d TCK = %d TDI = %d TDO = %d TMS = %d SRST = %d TRST = %d\n", \
 			vref / 1000, vref % 1000, \
 			usb_in_buffer[2], usb_in_buffer[3], usb_in_buffer[4], \
 			usb_in_buffer[5], usb_in_buffer[6], usb_in_buffer[7]);
 		
-		if(vref < 1500)
+		if (vref < 1500)
 		{
-			LOG_ERROR("Vref too low. Eventually the target isn't powered or disconnected?\n");
+			LOG_ERROR("Vref too low. Check Target Power\n");
 		}
 	}
 	else
@@ -520,7 +519,7 @@ int jlink_get_version_info(void)
 		len = buf_get_u32(usb_in_buffer, 0, 16);
 		result = jlink_usb_read(jlink_jtag_handle);
 		
-		if(result == len)
+		if (result == len)
 		{
 			usb_in_buffer[result] = 0;
 			LOG_INFO(usb_in_buffer);
