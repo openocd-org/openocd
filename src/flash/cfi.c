@@ -1738,21 +1738,25 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			/* fall back to memory writes */
 			while (count >= bank->bus_width)
 			{
+				int fallback;
 				if ((write_p & 0xff) == 0)
 				{
 					LOG_INFO("Programming at %08x, count %08x bytes remaining", write_p, count);
 				}
+				fallback = 1;
 				if ((bufferwsize > 0) && (count >= buffersize) && !(write_p & buffermask))
 				{
 					retval = cfi_write_words(bank, buffer, bufferwsize, write_p);
-					if (retval != ERROR_OK)
-						return retval;
-
-					buffer += buffersize;
-					write_p += buffersize;
-					count -= buffersize;
+					if (retval == ERROR_OK)
+					{
+						buffer += buffersize;
+						write_p += buffersize;
+						count -= buffersize;
+						fallback=0;
+					}
 				}
-				else
+				/* try the slow way? */
+				if (fallback)
 				{
 					for (i = 0; i < bank->bus_width; i++)
 						current_word[i] = 0;
