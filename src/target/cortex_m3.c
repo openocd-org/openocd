@@ -1367,7 +1367,6 @@ int cortex_m3_examine(struct command_context_s *cmd_ctx, struct target_s *target
 	return ERROR_OK;
 }
 
-
 int cortex_m3_quit()
 {
 	
@@ -1519,7 +1518,6 @@ int cortex_m3_target_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		variant = args[4];
 	
 	cortex_m3_init_arch_info(target, cortex_m3, chain_pos, variant);
-	cortex_m3_register_commands(cmd_ctx);
 	
 	return ERROR_OK;
 }
@@ -1532,4 +1530,3 @@ int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 	
 	return retval;
 }
-
