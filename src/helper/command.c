@@ -411,6 +411,8 @@ int command_run_line(command_context_t *context, char *line)
 	char *words[128] = {0};
 	int retval;
 	int i;
+
+	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/ 
 	
 	if ((!context) || (!line))
 		return ERROR_INVALID_ARGUMENTS;
