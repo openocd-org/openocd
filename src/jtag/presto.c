@@ -51,6 +51,8 @@
 
 
 int presto_jtag_speed(int speed);
+int presto_jtag_khz(int khz, int *jtag_speed);
+int presto_jtag_speed_div(int speed, int *khz);
 int presto_jtag_register_commands(struct command_context_s *cmd_ctx);
 int presto_jtag_init(void);
 int presto_jtag_quit(void);
@@ -60,6 +62,8 @@ jtag_interface_t presto_interface =
 	.name = "presto",
 	.execute_queue = bitq_execute_queue,
 	.speed = presto_jtag_speed,
+	.khz = presto_jtag_khz,
+	.speed_div = presto_jtag_speed_div,
 	.register_commands = presto_jtag_register_commands,
 	.init = presto_jtag_init,
 	.quit = presto_jtag_quit,
@@ -121,10 +125,13 @@ typedef struct presto_s
 
 	int jtag_tms; /* last tms state */
 	int jtag_tck; /* last tck state */
+	int jtag_rst; /* last trst state */
 
 	int jtag_tdi_data;
 	int jtag_tdi_count;
 
+	int jtag_speed;
+	
 } presto_t;
 
 presto_t presto_state;
@@ -422,9 +429,12 @@ int presto_open(char *req_serial)
 
 	presto->jtag_tms=0;
 	presto->jtag_tck=0;
+	presto->jtag_rst=0;
 	presto->jtag_tdi_data=0;
 	presto->jtag_tdi_count=0;
 
+	presto->jtag_speed=0;
+	
 #if BUILD_PRESTO_FTD2XX == 1
 	return presto_open_ftd2xx(req_serial);
 #elif BUILD_PRESTO_LIBFTDI == 1
@@ -567,59 +577,83 @@ int presto_getbyte(void)
 /* -------------------------------------------------------------------------- */
 
 
-int presto_bitq_out(int tms, int tdi, int tdo_req)
+int presto_tdi_flush(void)
 {
-	unsigned char cmdparam;
+	if (presto->jtag_tdi_count == 0)
+		return 0;
 
 	if (presto->jtag_tck == 0)
 	{
-		presto_sendbyte(0xA4); /* jtag activity */
-		presto->jtag_tck = 1; /* clock remains high after the function returns */
-		/* do just a single tick first, accelerated shifting needs TCK=1 */
+		LOG_ERROR("BUG: unexpected TAP condition, TCK low");
+		return -1;
 	}
-	else if (!tdo_req && tms == presto->jtag_tms)
+
+	presto->jtag_tdi_data |= (presto->jtag_tdi_count - 1) << 4;
+	presto_sendbyte(presto->jtag_tdi_data);
+	presto->jtag_tdi_count = 0;
+	presto->jtag_tdi_data = 0;
+	
+	return 0;
+}
+
+
+int presto_tck_idle(void)
+{
+	if (presto->jtag_tck == 1)
 	{
-		if (presto->jtag_tdi_count == 0)
-			presto->jtag_tdi_data = (tdi != 0);
-		else
-			presto->jtag_tdi_data |= (tdi != 0) << presto->jtag_tdi_count;
+		presto_sendbyte(0xCA);
+		presto->jtag_tck = 0;
+	}
+	
+	return 0;
+}
+
+
+/* -------------------------------------------------------------------------- */
+
+
+int presto_bitq_out(int tms, int tdi, int tdo_req)
+{
+	int i;
+	unsigned char cmd;
+
+	if (presto->jtag_tck == 0)
+	{
+		presto_sendbyte(0xA4); /* LED idicator - JTAG active */
+	}
+	else if (presto->jtag_speed == 0 && !tdo_req && tms == presto->jtag_tms)
+	{
+		presto->jtag_tdi_data |= (tdi != 0) << presto->jtag_tdi_count;
 
 		if (++presto->jtag_tdi_count == 4)
-		{
-			presto->jtag_tdi_data |= (presto->jtag_tdi_count - 1) << 4;
-			presto_sendbyte(presto->jtag_tdi_data);
-			presto->jtag_tdi_count = 0;
-		}
+			presto_tdi_flush();
+
 		return 0;
 	}
 
-	if (presto->jtag_tdi_count)
-	{
-		presto->jtag_tdi_data |= (presto->jtag_tdi_count - 1) << 4;
-		presto_sendbyte(presto->jtag_tdi_data);
-		presto->jtag_tdi_count = 0;
-	}
+	presto_tdi_flush();
 
-	if (tdi)
-		cmdparam = 0x0B;
-	else
-		cmdparam = 0x0A;
-
-	presto_sendbyte( 0xC0 | cmdparam);
+	cmd = tdi ? 0xCB : 0xCA;
+	presto_sendbyte(cmd);
 
 	if (tms != presto->jtag_tms)
 	{
-		if (tms)
-			presto_sendbyte(0xEC);
-		else
-			presto_sendbyte(0xE8);
+		presto_sendbyte((tms ? 0xEC : 0xE8) | (presto->jtag_rst ? 0x02 : 0));
 		presto->jtag_tms = tms;
 	}
 
-	if (tdo_req)
-		presto_sendbyte(0xD4|cmdparam);
-	else
-		presto_sendbyte(0xC4|cmdparam);
+	/* delay with TCK low */
+	for (i=presto->jtag_speed; i>1; i--)
+		presto_sendbyte(cmd);
+
+	cmd |= 0x04;
+	presto_sendbyte(cmd | (tdo_req ? 0x10 : 0));
+
+	/* delay with TCK high */
+	for (i=presto->jtag_speed; i>1; i--)
+		presto_sendbyte(cmd);
+
+	presto->jtag_tck = 1;
 
 	return 0;
 }
@@ -627,20 +661,10 @@ int presto_bitq_out(int tms, int tdi, int tdo_req)
 
 int presto_bitq_flush(void)
 {
-	if (presto->jtag_tdi_count)
-	{
-		presto->jtag_tdi_data |= (presto->jtag_tdi_count - 1) << 4;
-		presto_sendbyte(presto->jtag_tdi_data);
-		presto->jtag_tdi_count = 0;
-	}
+	presto_tdi_flush();
+	presto_tck_idle();
 
-	if (presto->jtag_tck == 1) 
-	{
-		presto_sendbyte(0xCA);
-		presto->jtag_tck = 0;
-	}
-
-	presto_sendbyte(0xA0);
+	presto_sendbyte(0xA0); /* LED idicator - JTAG idle */
 
 	return presto_flush();
 }
@@ -667,11 +691,8 @@ int presto_bitq_sleep(unsigned long us)
 {
 	long waits;
 
-	if (presto->jtag_tck == 1) 
-	{
-		presto_sendbyte(0xCA);
-		presto->jtag_tck = 0;
-	}
+	presto_tdi_flush();
+	presto_tck_idle();
 
 	if (us > 100000)
 	{
@@ -690,47 +711,70 @@ int presto_bitq_sleep(unsigned long us)
 
 int presto_bitq_reset(int trst, int srst)
 {
-	unsigned char cmd;
+	presto_tdi_flush();
+	presto_tck_idle();
 
-	if (presto->jtag_tck == 1) 
-	{
-		presto_sendbyte(0xCA);
-		presto->jtag_tck = 0;
-	}
+	/* add a delay after possible TCK transition */
+	presto_sendbyte(0x80);
+	presto_sendbyte(0x80);
 
-	cmd = 0xE8;
-	if (presto->jtag_tms)
-		cmd |= 0x04;
+	presto->jtag_rst = trst || srst;
+	presto_sendbyte((presto->jtag_rst ? 0xEA : 0xE8) | (presto->jtag_tms ? 0x04 : 0));
 
-	if (trst || srst)
-		cmd |= 0x02;
-
-	presto_sendbyte(cmd);
 	return 0;
 }
 
 
 /* -------------------------------------------------------------------------- */
 
-char *presto_speed_text[4] =
-{
-	"3 MHz",
-	"1.5 MHz",
-	"750 kHz",
-	"93.75 kHz"
-};
 
-int presto_jtag_speed(int speed)
+int presto_jtag_khz(int khz, int *jtag_speed)
 {
-
-	if ((speed < 0) || (speed > 3))
+	if (khz < 0)
 	{
-		LOG_INFO("valid speed values: 0 (3 MHz), 1 (1.5 MHz), 2 (750 kHz) and 3 (93.75 kHz)");
+		*jtag_speed=0;
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	LOG_INFO("setting speed to %d, max. TCK freq. is %s", speed, presto_speed_text[speed]);
-	return presto_sendbyte(0xA8 | speed);
+	if (khz >= 3000) *jtag_speed = 0;
+	else *jtag_speed = (1000+khz-1)/khz;
+	
+	return 0;
+}
+
+
+int presto_jtag_speed_div(int speed, int *khz)
+{
+	if ((speed < 0) || (speed > 1000))
+	{
+		*khz=0;
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	if (speed == 0) *khz = 3000;
+	else *khz = 1000/speed;
+	
+	return 0;
+}
+
+
+int presto_jtag_speed(int speed)
+{
+	int khz;
+	
+	if (presto_jtag_speed_div(speed, &khz))
+	{
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	presto->jtag_speed = speed;
+	
+	if (khz%1000 == 0)
+		LOG_INFO("setting speed to %d, max. TCK freq. is %d MHz", speed, khz/1000);
+	else
+		LOG_INFO("setting speed to %d, max. TCK freq. is %d kHz", speed, khz);
+	
+	return 0;
 }
 
 
