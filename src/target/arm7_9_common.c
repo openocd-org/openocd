@@ -702,8 +702,6 @@ int arm7_9_poll(target_t *target)
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
 			int check_pc=0;
-			target->state = TARGET_HALTED;
-			
 			if (target->state == TARGET_RESET)
 			{
 				if ((target->reset_mode == RESET_HALT) || (target->reset_mode == RESET_INIT))
@@ -715,6 +713,8 @@ int arm7_9_poll(target_t *target)
 				}
 			}
 			
+			target->state = TARGET_HALTED;
+			
 			if ((retval = arm7_9_debug_entry(target)) != ERROR_OK)
 				return retval;
 			
@@ -724,7 +724,7 @@ int arm7_9_poll(target_t *target)
 				u32 t=*((u32 *)reg->value);
 				if (t!=0)
 				{
-					LOG_ERROR("PC was not 0. Does this target does target need srst_pulls_trst?");
+					LOG_ERROR("PC was not 0. Does this target need srst_pulls_trst?");
 				}
 			}
 			
