@@ -106,7 +106,7 @@ tap_transition_t tap_transitions[16] =
 
 char* jtag_event_strings[] =
 {
-	"JTAG controller reset(tms or TRST)"
+	"JTAG controller reset (TLR or TRST)"
 };
 
 /* kludge!!!! these are just global variables that the
@@ -927,7 +927,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	
 	/* FIX!!! there are *many* different cases here. A better
 	 * approach is needed for legal combinations of transitions...
-	*/
+	 */
 	if ((jtag_reset_config & RESET_HAS_SRST)&&
 			(jtag_reset_config & RESET_HAS_TRST)&& 
 			((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
@@ -937,7 +937,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 				((req_srst&&!jtag_srst)||
 						(!req_srst&&jtag_srst)))
 		{
-			// FIX!!! srst_pulls_trst allows 1,1 => 0,0 transition....
+			/* FIX!!! srst_pulls_trst allows 1,1 => 0,0 transition.... */
 			//LOG_ERROR("BUG: transition of req_tlr_or_trst and req_srst in the same jtag_add_reset() call is undefined");
 		}
 	}
@@ -1000,7 +1000,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	
 	if (trst_with_tlr)
 	{
-		LOG_DEBUG("JTAG reset with tms instead of TRST");
+		LOG_DEBUG("JTAG reset with TLR instead of TRST");
 		jtag_add_end_state(TAP_TLR);
 		jtag_add_tlr();
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
@@ -1578,11 +1578,11 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / tms");
+	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / TLR");
 
 	/* Reset can happen after a power cycle.
 	 * 
-	 * Ideally we would only assert TRST or run tms before the target reset.
+	 * Ideally we would only assert TRST or run TLR before the target reset.
 	 * 
 	 * However w/srst_pulls_trst, trst is asserted together with the target
 	 * reset whether we want it or not.
@@ -1595,7 +1595,7 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	 * NB! order matters!!!! srst *can* disconnect JTAG circuitry
 	 * 
 	 */
-	jtag_add_reset(1, 0); /* TMS or TRST */
+	jtag_add_reset(1, 0); /* TLR or TRST */
 	if (jtag_reset_config & RESET_HAS_SRST)
 	{
 		jtag_add_reset(1, 1);
