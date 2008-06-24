@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if 1
+#if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 

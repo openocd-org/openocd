@@ -279,7 +279,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 			
 		if (in)
 		{
-			LOG_DEBUG("in: 0x%8.8x", *in);
+			LOG_DEBUG("in: 0x%8.8x", *(u32*)in);
 		}
 		else
 		{
