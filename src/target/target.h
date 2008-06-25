@@ -200,6 +200,7 @@ typedef struct target_s
 	target_type_t *type;				/* target type definition (name, access functions) */
 	enum target_reset_mode reset_mode;	/* what to do after a reset */
 	int run_and_halt_time;				/* how long the target should run after a run_and_halt reset */
+	char *pre_reset_script;					/* script file to initialize the target before a reset */
 	char *reset_script;					/* script file to initialize the target after a reset */
 	char *post_halt_script;				/* script file to execute after the target halted */
 	char *pre_resume_script;			/* script file to execute before the target resumed */

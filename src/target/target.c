@@ -215,28 +215,33 @@ target_t* get_current_target(command_context_t *cmd_ctx)
 	return target;
 }
 
+static void execute_script(struct command_context_s *cmd_ctx, char *reset_script)
+{
+	FILE *script;
+	script = open_file_from_path(reset_script, "r");
+	if (!script)
+	{
+		LOG_ERROR("couldn't open script file %s", reset_script);
+		return;
+	}
+	
+	LOG_INFO("executing script '%s'", reset_script);
+	command_run_file(cmd_ctx, script, COMMAND_EXEC);
+	fclose(script);
+}
+
 /* Process target initialization, when target entered debug out of reset
  * the handler is unregistered at the end of this function, so it's only called once
  */
 int target_init_handler(struct target_s *target, enum target_event event, void *priv)
 {
-	FILE *script;
 	struct command_context_s *cmd_ctx = priv;
 	
 	if ((event == TARGET_EVENT_HALTED) && (target->reset_script))
 	{
 		target_unregister_event_callback(target_init_handler, priv);
 
-		script = open_file_from_path(target->reset_script, "r");
-		if (!script)
-		{
-			LOG_ERROR("couldn't open script file %s", target->reset_script);
-				return ERROR_OK;
-		}
-
-		LOG_INFO("executing reset script '%s'", target->reset_script);
-		command_run_file(cmd_ctx, script, COMMAND_EXEC);
-		fclose(script);
+		execute_script(cmd_ctx, target->reset_script);
 
 		jtag_execute_queue();
 	}
@@ -295,6 +300,13 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 
 	jtag->speed(jtag_speed);
 
+	target = targets;
+	while (target)
+	{
+		execute_script(cmd_ctx, target->pre_reset_script);
+		target = target->next;
+	}
+	
 	if ((retval = jtag_init_reset(cmd_ctx)) != ERROR_OK)
 		return retval;
 	
@@ -1422,6 +1434,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				(*last_target_p)->run_and_halt_time = 1000; /* default 1s */
 				
 				(*last_target_p)->reset_script = NULL;
+				(*last_target_p)->pre_reset_script = NULL;
 				(*last_target_p)->post_halt_script = NULL;
 				(*last_target_p)->pre_resume_script = NULL;
 				(*last_target_p)->gdb_program_script = NULL;
@@ -1488,11 +1501,17 @@ int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, c
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
-	if (strcmp(args[1], "reset") == 0)
+	if ((strcmp(args[1], "reset") == 0)||(strcmp(args[1], "post_reset") == 0))
 	{
 		if (target->reset_script)
 			free(target->reset_script);
 		target->reset_script = strdup(args[2]);
+	}
+	else if (strcmp(args[1], "pre_reset") == 0)
+	{
+		if (target->pre_reset_script)
+			free(target->pre_reset_script);
+		target->pre_reset_script = strdup(args[2]);
 	}
 	else if (strcmp(args[1], "post_halt") == 0)
 	{
