@@ -217,6 +217,8 @@ target_t* get_current_target(command_context_t *cmd_ctx)
 
 static void execute_script(struct command_context_s *cmd_ctx, char *reset_script)
 {
+	if (reset_script==NULL)
+		return;
 	FILE *script;
 	script = open_file_from_path(reset_script, "r");
 	if (!script)
@@ -237,7 +239,7 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 {
 	struct command_context_s *cmd_ctx = priv;
 	
-	if ((event == TARGET_EVENT_HALTED) && (target->reset_script))
+	if (event == TARGET_EVENT_HALTED)
 	{
 		target_unregister_event_callback(target_init_handler, priv);
 
