@@ -337,10 +337,9 @@ void command_print(command_context_t *context, char *format, ...)
 	va_end(ap);
 }
 
-int find_and_run_command(command_context_t *context, command_t *commands, char *words[], int num_words, int start_word)
+command_t *find_command(command_context_t *context, command_t *commands, char *words[], int num_words, int start_word, int *new_start_word)
 {
 	command_t *c;
-	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 	
 	if (unique_length_dirty)
 	{
@@ -363,60 +362,67 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 			{
 				if (!c->handler)
 				{
-					command_print(context, "No handler for command");
-					retval = ERROR_COMMAND_SYNTAX_ERROR;
-					break;
+					return NULL;
 				}
 				else
 				{
-					int retval = c->handler(context, c->name, words + start_word + 1, num_words - start_word - 1);
-					if (retval == ERROR_COMMAND_SYNTAX_ERROR)
-					{
-						command_print(context, "Syntax error:");
-						command_print_help_line(context, c, 0);
-					}
-					else if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
-					{
-						/* just fall through for a shutdown request */
-					}
-					else if (retval != ERROR_OK)
-					{
-						/* we do not print out an error message because the command *should*
-						 * have printed out an error
-						 */
-						LOG_DEBUG("Command failed with error code %d", retval); 
-					}
-					return retval; 
+					*new_start_word=start_word;
+					return c;
 				}
 			}
 			else
 			{
 				if (start_word == num_words - 1)
 				{
-					command_print(context, "Incomplete command");
-					break;
+					return NULL;
 				}
-				return find_and_run_command(context, c->children, words, num_words, start_word + 1);
+				return find_command(context, c->children, words, num_words, start_word + 1, new_start_word);
 			}
 		}
 	}
-	
-	command_print(context, "Command %s not found", words[start_word]);
-	return retval;
+	return NULL;
 }
 
-int command_run_line(command_context_t *context, char *line)
+int find_and_run_command(command_context_t *context, command_t *commands, char *words[], int num_words)
 {
+	int start_word=0;
+	command_t *c;
+	c=find_command(context, commands, words, num_words, start_word, &start_word);
+	if (c==NULL)
+	{
+		command_print(context, "Command %s not found", words[start_word]);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	
+	int retval = c->handler(context, c->name, words + start_word + 1, num_words - start_word - 1);
+	if (retval == ERROR_COMMAND_SYNTAX_ERROR)
+	{
+		command_print(context, "Syntax error:");
+		command_print_help_line(context, c, 0);
+	}
+	else if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
+	{
+		/* just fall through for a shutdown request */
+	}
+	else if (retval != ERROR_OK)
+	{
+		/* we do not print out an error message because the command *should*
+		 * have printed out an error
+		 */
+		LOG_DEBUG("Command failed with error code %d", retval); 
+	}
+	return retval; 
+}
+
+int command_run_line_internal_op(command_context_t *context, char *line, int run)
+{
+	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/ 
+	
 	int nwords;
 	char *words[128] = {0};
 	int retval;
 	int i;
 
-	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/ 
-	
-	if ((!context) || (!line))
-		return ERROR_INVALID_ARGUMENTS;
-	
 	/* skip preceding whitespace */
 	while (isspace(*line))
 		line++;
@@ -434,7 +440,14 @@ int command_run_line(command_context_t *context, char *line)
 	nwords = parse_line(line, words, sizeof(words) / sizeof(words[0]));
 	
 	if (nwords > 0)
-		retval = find_and_run_command(context, context->commands, words, nwords, 0);
+		if (run)
+		{
+			retval = find_and_run_command(context, context->commands, words, nwords);
+		} else
+		{
+			int t;
+			return (find_command(context, context->commands, words, nwords, 0, &t)!=NULL)?ERROR_OK:ERROR_FAIL;
+		}
 	else
 		return ERROR_INVALID_ARGUMENTS;
 	
@@ -442,6 +455,32 @@ int command_run_line(command_context_t *context, char *line)
 		free(words[i]);
 	
 	return retval;
+}
+
+int command_run_line_internal(command_context_t *context, char *line)
+{
+	return command_run_line_internal_op(context, line, 1);
+}
+
+int command_run_line(command_context_t *context, char *line)
+{
+	int retval;
+	if ((!context) || (!line))
+		return ERROR_INVALID_ARGUMENTS;
+
+	if (command_run_line_internal_op(context, line, 0)!=ERROR_OK)
+	{
+		/* If we can't find a command, then try the interpreter. 
+		 * If there is no interpreter implemented, then this will
+		 * simply print a syntax error.
+		 * 
+		 * These hooks were left in to reduce patch size for 
+		 * wip to add scripting language.
+		 */
+		return jim_command(context, line);
+	}
+
+	return command_run_line_internal(context, line);
 }
 
 int command_run_file(command_context_t *context, FILE *file, enum command_mode mode)
@@ -652,7 +691,7 @@ int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	
 	duration_start_measure(&duration);
 	
-	retval = find_and_run_command(cmd_ctx, cmd_ctx->commands, args, argc, 0);
+	retval = find_and_run_command(cmd_ctx, cmd_ctx->commands, args, argc);
 	
 	duration_stop_measure(&duration, &duration_text);
 	

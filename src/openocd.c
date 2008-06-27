@@ -154,6 +154,12 @@ void unlockBigLock()
 {
 }
 
+/* Hook to add scripting language */
+int jim_command(command_context_t *context, char *line)
+{
+	LOG_ERROR("Syntax error");
+	return ERROR_COMMAND_SYNTAX_ERROR;
+}
 
 int main(int argc, char *argv[])
 {
