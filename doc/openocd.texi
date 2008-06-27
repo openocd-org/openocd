@@ -562,9 +562,11 @@ unavailable for some time during startup (like the STR7 series), you can't use
 
 @item @b{target_script} <@var{target#}> <@var{event}> <@var{script_file}>
 @cindex target_script
-Event is either @option{reset}, @option{post_halt}, @option{pre_resume} or @option{gdb_program_config}
+Event is one of the following:
+@option{pre_reset}, @option{reset}, @option{post_reset}, @option{post_halt},
+@option{pre_resume} or @option{gdb_program_config}.
+@option{post_reset} and @option{reset} will produce the same results.
 
-TODO: describe exact semantic of events
 @item @b{run_and_halt_time} <@var{target#}> <@var{time_in_ms}>
 @cindex run_and_halt_time
 The amount of time the debugger should wait after releasing reset before it asserts
