@@ -54,17 +54,13 @@ void add_config_file_name (const char *cfg)
 	config_file_names[num_config_files] = NULL;
 }
 
-FILE *open_file_from_path (char *file, char *mode)
+/* return full path or NULL according to search rules */
+char *find_file(char *file)
 {
-	if (mode[0]!='r')
-	{
-		return fopen(file, mode);
-	} else
-	{
-		
 	FILE *fp = NULL;
 	char **search_dirs = script_search_dirs;
 	char *dir;
+	char const *mode="r";
 	char full_path[1024];
 
 	/* Check absolute and relative to current working dir first.
@@ -82,11 +78,29 @@ FILE *open_file_from_path (char *file, char *mode)
 		snprintf(full_path, 1024, "%s/%s", dir, file);
 		fp = fopen(full_path, mode);
 	}
-
+	
 	if (fp)
-		LOG_DEBUG("opened %s", full_path);
+	{
+		fclose(fp);
+		LOG_DEBUG("found %s", full_path);
+		return strdup(full_path);
+	}
+	return NULL;
+}
 
-	return fp;
+
+FILE *open_file_from_path (char *file, char *mode)
+{
+	if (mode[0]!='r')
+	{
+		return fopen(file, mode);
+	} else
+	{
+		char *full_path=find_file(file);
+		FILE *fp = NULL;
+		fp = fopen(full_path, mode);
+		free(full_path);
+		return fp;
 	}
 }
 
