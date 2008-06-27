@@ -806,7 +806,10 @@ int nand_read_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 dat
 		 * or 2048 for the beginning of OOB area)
 		 */
 		device->controller->address(device, 0x0);
-		device->controller->address(device, 0x8);
+		if (data)
+			device->controller->address(device, 0x0);
+		else
+			device->controller->address(device, 0x8);
 		
 		/* row */
 		device->controller->address(device, page & 0xff);
