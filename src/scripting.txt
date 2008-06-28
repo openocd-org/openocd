@@ -11,15 +11,38 @@ only Jim Tcl has been forwarded as a patch.
 Tcl is also backwards syntax compatible with OpenOCD 
 commands.
 
+What scripting will not do
+==========================
+It is not the intention that normal OpenOCD users will
+use tcl scripting extensively, write lots of clever scripts,
+or contribute back to OpenOCD. 
+
+The scripting support is intended for developers of OpenOCD.
+
+Target scripts can contain new procedures that end users may
+tinker to their needs without really understanding tcl.
+
+Since end users are not expected to mess with the scripting
+language, the choice of language is not terribly important
+to those same end users.
+
 Uses of scripting
 =================
-
 Default implementation of procedures in tcl/procedures.tcl.
 
 - Polymorphic commands for target scripts.
-  - produce <file> <serialnumber>. Default implementation
+  - there will be added some commands in Tcl that the target
+    scripts can replace.
+  - produce <productionfile> <serialnumber>. Default implementation
     is to ignore serial number and write a raw binary file
-    to beginning of first flash. 
+    to beginning of first flash. Target script can dictate
+    file format and structure of serialnumber. Tcl allows
+    an argument to consit of e.g. a list so the structure of
+    the serial number is not limited to a single string.
   - reset handling. Precise control of how srst, trst & 
-    tms is handled and when.
-  
+    tms is handled.
+- replace some parts of the current command line handler.
+  This is only to simplify the implementation of OpenOCD
+  and will have no externally visible consequences.
+  Tcl has an advantage in that it's syntax is backwards
+  compatible with the current OpenOCD syntax.
