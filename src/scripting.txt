@@ -1,0 +1,25 @@
+Plan for hosted scripting support in OpenOCD
+============================================
+Jim Tcl support in OpenOCD currently exists as a patch.
+
+There has been some discussion on the list as to what
+purpose scripting support might serve in OpenOCD.
+
+Also Lua was proposed as a scripting language, but 
+only Jim Tcl has been forwarded as a patch.
+
+Tcl is also backwards syntax compatible with OpenOCD 
+commands.
+
+Uses of scripting
+=================
+
+Default implementation of procedures in tcl/procedures.tcl.
+
+- Polymorphic commands for target scripts.
+  - produce <file> <serialnumber>. Default implementation
+    is to ignore serial number and write a raw binary file
+    to beginning of first flash. 
+  - reset handling. Precise control of how srst, trst & 
+    tms is handled and when.
+  
