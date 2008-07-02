@@ -1403,7 +1403,9 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 
 				*last_target_p = malloc(sizeof(target_t));
 				
-				(*last_target_p)->type = target_types[i];
+				/* allocate memory for each unique target type */
+				(*last_target_p)->type = (target_type_t*)malloc(sizeof(target_type_t));
+				*((*last_target_p)->type) = *target_types[i]; 
 				
 				if (strcmp(args[1], "big") == 0)
 					(*last_target_p)->endianness = TARGET_BIG_ENDIAN;
