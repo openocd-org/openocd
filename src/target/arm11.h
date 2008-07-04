@@ -188,6 +188,7 @@ int arm11_target_request_data(struct target_s *target, u32 size, u8 *buffer);
 int arm11_halt(struct target_s *target);
 int arm11_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
 int arm11_step(struct target_s *target, int current, u32 address, int handle_breakpoints);
+int arm11_examine(struct command_context_s *cmd_ctx, struct target_s *target);
 
 /* target reset control */
 int arm11_assert_reset(struct target_s *target);

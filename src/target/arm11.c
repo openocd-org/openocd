@@ -92,6 +92,7 @@ target_type_t arm11_target =
     ARM11_HANDLER(register_commands),
     ARM11_HANDLER(target_command),
     ARM11_HANDLER(init_target),
+    ARM11_HANDLER(examine),
     ARM11_HANDLER(quit),
 };
 
@@ -1371,6 +1372,13 @@ int arm11_target_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 }
 
 int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
+{
+	/* Initialize anything we can set up without talking to the target */
+	return ERROR_OK;
+}
+
+/* talk to the target and set things up */
+int arm11_examine(struct command_context_s *cmd_ctx, struct target_s *target)
 {
     FNC_INFO;
 
