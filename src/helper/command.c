@@ -537,6 +537,21 @@ int command_run_file(command_context_t *context, FILE *file, enum command_mode m
 	return retval;
 }
 
+int command_run_linef(command_context_t *context, char *format, ...)
+{
+	int retval=ERROR_FAIL;
+	char *string;
+	va_list ap;
+	va_start(ap, format);
+	string = alloc_vprintf(format, ap);
+	if (string!=NULL)
+	{
+		retval=command_run_line(context, string);
+	}
+	va_end(ap);
+	return retval;
+}
+
 void command_print_help_line(command_context_t* context, struct command_s *command, int indent)
 {
 	command_t *c;
