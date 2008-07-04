@@ -182,9 +182,11 @@ static void tcl_output(void *privData, const char *file, int line,
 int jim_command(command_context_t *context, char *line)
 {
 	int retval=ERROR_OK;
+	/* FIX!!!! in reality there is only one cmd_ctx handler, but consider
+	what might happen here if there are multiple handlers w/reentrant callback
+	fn's... shudder!  */
 	active_cmd_ctx=context;
 	int retcode=Jim_Eval(interp, line);
-	active_cmd_ctx=NULL;
 	
 	const char *result;
 	int reslen;
