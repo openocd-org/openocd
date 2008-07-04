@@ -79,9 +79,19 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 				version_flag = 1;
 				break;
 			case 'f':	/* --file | -f */
-				snprintf(command_buffer, 128, "script %s", optarg);
-				add_config_file_name(command_buffer);
+			{
+				char *t=strrchr(optarg, '.');
+				if (strcmp(t, ".tcl")==0)
+				{
+					/* Files ending in .tcl are executed as Tcl files */
+					snprintf(command_buffer, 128, "source [find {%s}]", optarg);
+				} else
+				{
+					snprintf(command_buffer, 128, "script %s", optarg);
+				}
+				add_config_command(command_buffer);
 				break;
+			}
 			case 's':	/* --search | -s */
 				add_script_search_dir(optarg);
 				break;
@@ -102,7 +112,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 			case 'c':	/* --command | -c */
 				if (optarg)
 				{
-					add_config_file_name(optarg);
+					add_config_command(optarg);
 				}	
 				break;
 				

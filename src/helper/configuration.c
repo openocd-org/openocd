@@ -45,7 +45,7 @@ void add_script_search_dir (const char *dir)
 	script_search_dirs[num_script_dirs] = NULL;
 }
 
-void add_config_file_name (const char *cfg)
+void add_config_command (const char *cfg)
 {
 	num_config_files++;
 	config_file_names = (char **)realloc(config_file_names, (num_config_files+1) * sizeof (char *));
@@ -109,7 +109,7 @@ int parse_config_file(struct command_context_s *cmd_ctx)
 	char **cfg;
 
 	if (!config_file_names)
-		add_config_file_name ("script openocd.cfg");
+		add_config_command ("script openocd.cfg");
 
 	cfg = config_file_names;
 
