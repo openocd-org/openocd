@@ -20,9 +20,6 @@ openocd {target arm7tdmi little 0 arm7tdmi-s_r4}
 openocd {arm7 fast_memory_access enable}
 openocd {arm7_9 dcc_downloads enable}
 
-# OpenOCD does not have a flash driver for for AT91FR40162S 
-openocd {target_script 0 reset event/at91eb40a_reset.script}
-
 #flash driver
 openocd {flash bank ecosflash 0x01000000 0x200000 2 2 0 ecos/at91eb40a.elf}
 
