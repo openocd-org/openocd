@@ -4,6 +4,8 @@ proc peek {address} {
 }
 
 # Production command
+# FIX!!! need to figure out how to feed back relevant output
+# from e.g. "flash banks" command...
 proc board_produce {filename serialnumber} {
 	openocd "reset init"
 	openocd "flash write_image erase $filename [flash] bin"]]

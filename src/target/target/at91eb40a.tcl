@@ -45,5 +45,11 @@ proc target_reset_0 {} {
 	openocd {mww 0xffff0010 0x100}
 	openocd {mww 0xffff0034 0x100}
 	set reset_count [expr $reset_count+1]
-	puts "Testing reset $reset_count !"
+	echo "Testing reset $reset_count !"
+}
+
+proc target_pre_reset_0 {} {
+	global reset_count
+	set reset_count [expr $reset_count+1]
+	echo "Testing pre_reset $reset_count !"
 }
