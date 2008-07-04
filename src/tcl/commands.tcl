@@ -1,6 +1,6 @@
 # implements Tcl procedures/functions
 proc peek {address} {
-	return [openocd mdw $address]
+	return [openocd_throw "mdw $address"]
 }
 
 # Production command
