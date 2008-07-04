@@ -311,6 +311,17 @@ Jim_Command_find(Jim_Interp *interp,
 	return JIM_OK;
 }
 
+static int
+Jim_Command_echo(Jim_Interp *interp, 
+                                   int argc,
+                                   Jim_Obj *const *argv)
+{
+	if (argc!=2)
+		return JIM_ERR;
+	char *str = (char*)Jim_GetString(argv[1], NULL);
+	LOG_USER("%s", str);
+	return JIM_OK;
+}
 
 void initJim(void)
 {
@@ -323,6 +334,7 @@ void initJim(void)
     Jim_CreateCommand(interp, "openocd", Jim_Command_openocd, NULL, NULL);
     Jim_CreateCommand(interp, "openocd_throw", Jim_Command_openocd_throw, NULL, NULL);
     Jim_CreateCommand(interp, "find", Jim_Command_find, NULL, NULL);
+    Jim_CreateCommand(interp, "echo", Jim_Command_echo, NULL, NULL);
 }
 
 int main(int argc, char *argv[])
