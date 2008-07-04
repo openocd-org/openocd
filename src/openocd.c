@@ -49,6 +49,10 @@
 #include <unistd.h>
 #include <errno.h>
 
+#define JIM_EMBEDDED
+#include "jim.h"
+
+
 /* Give TELNET a way to find out what version this is */
 int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -154,15 +158,175 @@ void unlockBigLock()
 {
 }
 
-/* Hook to add scripting language */
+
+
+
+
+Jim_Interp *interp;
+command_context_t *active_cmd_ctx;
+
+static void tcl_output(void *privData, const char *file, int line, 
+		const char *function, const char *string)
+{		
+	Jim_Obj *tclOutput=(Jim_Obj *)privData;
+
+	Jim_AppendString(interp, tclOutput, string, strlen(string));
+}
+
+/* try to execute as Jim command, otherwise fall back to standard command.
+
+	Note that even if the Jim command caused an error, then we succeeded
+	to execute it, hence this fn pretty much always returns ERROR_OK. 
+
+ */
 int jim_command(command_context_t *context, char *line)
 {
-	LOG_ERROR("Syntax error");
-	return ERROR_COMMAND_SYNTAX_ERROR;
+	int retval=ERROR_OK;
+	active_cmd_ctx=context;
+	int retcode=Jim_Eval(interp, line);
+	active_cmd_ctx=NULL;
+	
+	const char *result;
+	int reslen;
+    result = Jim_GetString(Jim_GetResult(interp), &reslen);
+    if (retcode == JIM_ERR) {
+	    int len, i;
+	
+	    LOG_USER_N("Runtime error, file \"%s\", line %d:" JIM_NL,
+	            interp->errorFileName, interp->errorLine);
+	    LOG_USER_N("    %s" JIM_NL,
+	            Jim_GetString(interp->result, NULL));
+	    Jim_ListLength(interp, interp->stackTrace, &len);
+	    for (i = 0; i < len; i+= 3) {
+	        Jim_Obj *objPtr;
+	        const char *proc, *file, *line;
+	
+	        Jim_ListIndex(interp, interp->stackTrace, i, &objPtr, JIM_NONE);
+	        proc = Jim_GetString(objPtr, NULL);
+	        Jim_ListIndex(interp, interp->stackTrace, i+1, &objPtr,
+	                JIM_NONE);
+	        file = Jim_GetString(objPtr, NULL);
+	        Jim_ListIndex(interp, interp->stackTrace, i+2, &objPtr,
+	                JIM_NONE);
+	        line = Jim_GetString(objPtr, NULL);
+	        LOG_USER_N("In procedure '%s' called at file \"%s\", line %s" JIM_NL,
+	                proc, file, line);
+	    }
+    } else if (retcode == JIM_EXIT) {
+    	// ignore.
+        //exit(Jim_GetExitCode(interp));
+    } else {
+        if (reslen) {
+        	int i;
+        	char buff[256+1];
+        	for (i=0; i<reslen; i+=256)
+        	{
+        		int chunk;
+        		chunk=reslen-i;
+        		if (chunk>256)
+        			chunk=256;
+        		strncpy(buff, result, chunk);
+        		buff[chunk]=0; 
+            	LOG_USER_N("%s", buff);
+        	}
+        	LOG_USER_N("%s", "\n");
+        }
+    }
+	return retval;
+}
+
+static int startLoop=0;
+
+static int
+Jim_Command_openocd_ignore(Jim_Interp *interp, 
+                                   int argc,
+                                   Jim_Obj *const *argv,
+                                   int ignore)
+{
+	int retval;
+    char *cmd = (char*)Jim_GetString(argv[1], NULL);
+
+	lockBigLock();
+	
+    Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
+    
+    if (startLoop)
+    {
+    	// We don't know whether or not the telnet/gdb server is running...
+    	target_call_timer_callbacks_now();
+    }
+	
+	log_add_callback(tcl_output, tclOutput);
+    retval=command_run_line_internal(active_cmd_ctx, cmd);
+    
+    if (startLoop)
+    {
+    	target_call_timer_callbacks_now();
+    }
+	log_remove_callback(tcl_output, tclOutput);
+    
+	Jim_SetResult(interp, tclOutput);
+    unlockBigLock();
+        
+    return (ignore||(retval==ERROR_OK))?JIM_OK:JIM_ERR;
+}
+
+static int
+Jim_Command_openocd(Jim_Interp *interp, 
+                                   int argc,
+                                   Jim_Obj *const *argv)
+{
+	return Jim_Command_openocd_ignore(interp, argc, argv, 1); 
+}
+
+static int
+Jim_Command_openocd_throw(Jim_Interp *interp, 
+                                   int argc,
+                                   Jim_Obj *const *argv)
+{
+	return Jim_Command_openocd_ignore(interp, argc, argv, 0); 
+}
+  
+
+
+
+/* find full path to file */
+static int
+Jim_Command_find(Jim_Interp *interp, 
+                                   int argc,
+                                   Jim_Obj *const *argv)
+{
+	if (argc!=2)
+		return JIM_ERR;
+	char *file = (char*)Jim_GetString(argv[1], NULL);
+	char *full_path=find_file(file);
+	if (full_path==NULL)
+		return JIM_ERR;
+    Jim_Obj *result = Jim_NewStringObj(interp, full_path, strlen(full_path));
+    free(full_path);
+    
+	Jim_SetResult(interp, result);
+	return JIM_OK;
+}
+
+
+void initJim(void)
+{
+    Jim_InitEmbedded();
+  
+    /* Create an interpreter */
+    interp = Jim_CreateInterp();
+    /* Add all the Jim core commands */
+    Jim_RegisterCoreCommands(interp);
+    Jim_CreateCommand(interp, "openocd", Jim_Command_openocd, NULL, NULL);
+    Jim_CreateCommand(interp, "openocd_throw", Jim_Command_openocd_throw, NULL, NULL);
+    Jim_CreateCommand(interp, "find", Jim_Command_find, NULL, NULL);
 }
 
 int main(int argc, char *argv[])
 {
+	initJim();
+	
 	/* initialize commandline interface */
 	command_context_t *cmd_ctx, *cfg_cmd_ctx;
 	cmd_ctx = command_init();
@@ -188,7 +352,7 @@ int main(int argc, char *argv[])
 	if (log_init(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
 	LOG_DEBUG("log init complete");
-	
+
 	LOG_OUTPUT( OPENOCD_VERSION "\n" );
 	
 	
@@ -214,6 +378,8 @@ int main(int argc, char *argv[])
 	if (parse_cmdline_args(cfg_cmd_ctx, argc, argv) != ERROR_OK)
 		return EXIT_FAILURE;
 
+    Jim_Eval(interp, "source [find tcl/commands.tcl]");
+
 	if (parse_config_file(cfg_cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
 	
@@ -224,6 +390,9 @@ int main(int argc, char *argv[])
 	
 	if (daemon_startup)
 		command_run_line(cmd_ctx, "reset");
+
+
+	startLoop=1;
 
 	/* handle network connections */
 	server_loop(cmd_ctx);

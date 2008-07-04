@@ -7,7 +7,7 @@ MAINFILE = openocd.c
 endif
 
 
-openocd_SOURCES = $(MAINFILE)
+openocd_SOURCES = $(MAINFILE) jim.c
 
 # set the include path found by configure
 INCLUDES = -I$(top_srcdir)/src/helper \
@@ -78,3 +78,7 @@ openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
 	$(top_builddir)/src/flash/libflash.a $(top_builddir)/src/target/libtarget.a \
 	$(top_builddir)/src/pld/libpld.a \
 	$(FTDI2232LIB) $(FTD2XXLIB) $(MINGWLDADD) $(LIBUSB)
+
+	
+	
+nobase_dist_pkglib_DATA = tcl/commands.tcl
