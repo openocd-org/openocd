@@ -46,6 +46,9 @@ int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
+/* forward declaration of jim_command */
+extern int jim_command(command_context_t *context, char *line);
+
 int build_unique_lengths(command_context_t *context, command_t *commands)
 {
 	command_t *c, *p;
@@ -464,7 +467,6 @@ int command_run_line_internal(command_context_t *context, char *line)
 
 int command_run_line(command_context_t *context, char *line)
 {
-	int retval;
 	if ((!context) || (!line))
 		return ERROR_INVALID_ARGUMENTS;
 

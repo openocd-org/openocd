@@ -1,9 +1,10 @@
 AC_PREREQ(2.59)
 AC_INIT(configure.in)
 
-AC_SEARCH_LIBS([ioperm], [ioperm])
-
 AC_CANONICAL_HOST
+
+AC_SEARCH_LIBS([ioperm], [ioperm])
+AC_SEARCH_LIBS([dlopen], [dl])
 
 AC_CHECK_HEADERS(jtag_minidriver.h)
 AC_CHECK_HEADERS(sys/param.h)
