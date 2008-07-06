@@ -445,11 +445,15 @@ int command_run_line_internal_op(command_context_t *context, char *line, int run
 	if (*line && (line[0] == '#'))
 		return ERROR_OK;
 	
-	LOG_DEBUG("%s", line);
+	if (run)
+	{
+		LOG_DEBUG("%s", line);
+	}
 
 	nwords = parse_line(line, words, sizeof(words) / sizeof(words[0]));
 	
 	if (nwords > 0)
+	{
 		if (run)
 		{
 			retval = find_and_run_command(context, context->commands, words, nwords);
@@ -458,6 +462,7 @@ int command_run_line_internal_op(command_context_t *context, char *line, int run
 			int t;
 			return (find_command(context, context->commands, words, nwords, 0, &t)!=NULL)?ERROR_OK:ERROR_FAIL;
 		}
+	}
 	else
 		return ERROR_INVALID_ARGUMENTS;
 	
