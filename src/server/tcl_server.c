@@ -21,6 +21,7 @@
 #include "config.h"
 #endif
 
+#include <stdarg.h>
 #include "tcl_server.h"
 
 #include "../jim.h"

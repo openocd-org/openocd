@@ -625,7 +625,12 @@ void initJim(void)
 	interp->cb_fgets      = openocd_jim_fgets;
 }
 
-int main(int argc, char *argv[])
+/*
+normally this is the main() function entry, but if OpenOCD is linked
+into application, then this fn will not be invoked, but rather that
+application will have it's own implementation of main().
+*/
+int openocd_main(int argc, char *argv[])
 {
 	initJim();
 	

@@ -30,6 +30,7 @@ enum connection_type
 {
 	CONNECTION_GDB,
 	CONNECTION_TELNET,
+	CONNECTION_TCL,
 };
 
 typedef struct connection_s
