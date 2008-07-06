@@ -2671,4 +2671,3 @@ int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	
 	return ERROR_OK;
 }
-

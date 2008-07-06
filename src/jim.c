@@ -38,6 +38,8 @@
 #include <errno.h>
 #include <time.h>
 
+#include "replacements.h"
+
 /* Include the platform dependent libraries for
  * dynamic loading of libraries. */
 #ifdef JIM_DYNLIB
@@ -45,7 +47,9 @@
 #ifndef WIN32
 #define WIN32 1
 #endif
+#ifndef STRICT
 #define STRICT
+#endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #if _MSC_VER >= 1000
@@ -12027,8 +12031,7 @@ out:
  * Jim's idea of STDIO..
  * ---------------------------------------------------------------------------*/
 
-int
-Jim_fprintf( Jim_Interp *interp, void *cookie, const char *fmt, ... )
+int Jim_fprintf( Jim_Interp *interp, void *cookie, const char *fmt, ... )
 {
 	int r;
 
@@ -12038,10 +12041,8 @@ Jim_fprintf( Jim_Interp *interp, void *cookie, const char *fmt, ... )
 	va_end(ap);
 	return r;
 }
-	
 
-int 
-Jim_vfprintf( Jim_Interp *interp, void *cookie, const char *fmt, va_list ap )
+int Jim_vfprintf( Jim_Interp *interp, void *cookie, const char *fmt, va_list ap )
 {
 	if( (interp == NULL) || (interp->cb_vfprintf == NULL) ){
 		errno = ENOTSUP;
@@ -12050,8 +12051,7 @@ Jim_vfprintf( Jim_Interp *interp, void *cookie, const char *fmt, va_list ap )
 	return (*(interp->cb_vfprintf))( cookie, fmt, ap );
 }
 
-size_t
-Jim_fwrite( Jim_Interp *interp, const void *ptr, size_t size, size_t n, void *cookie )
+size_t Jim_fwrite( Jim_Interp *interp, const void *ptr, size_t size, size_t n, void *cookie )
 {
 	if( (interp == NULL) || (interp->cb_fwrite == NULL) ){
 		errno = ENOTSUP;
@@ -12060,8 +12060,7 @@ Jim_fwrite( Jim_Interp *interp, const void *ptr, size_t size, size_t n, void *co
 	return (*(interp->cb_fwrite))( ptr, size, n, cookie);
 }
 
-size_t
-Jim_fread( Jim_Interp *interp, void *ptr, size_t size, size_t n, void *cookie )
+size_t Jim_fread( Jim_Interp *interp, void *ptr, size_t size, size_t n, void *cookie )
 {
 	if( (interp == NULL) || (interp->cb_fread == NULL) ){
 		errno = ENOTSUP;
@@ -12070,8 +12069,7 @@ Jim_fread( Jim_Interp *interp, void *ptr, size_t size, size_t n, void *cookie )
 	return (*(interp->cb_fread))( ptr, size, n, cookie);
 }
 
-int
-Jim_fflush( Jim_Interp *interp, void *cookie )
+int Jim_fflush( Jim_Interp *interp, void *cookie )
 {
 	if( (interp == NULL) || (interp->cb_fflush == NULL) ){
 		/* pretend all is well */
@@ -12080,8 +12078,7 @@ Jim_fflush( Jim_Interp *interp, void *cookie )
 	return (*(interp->cb_fflush))( cookie );
 }
 
-char *  
-Jim_fgets( Jim_Interp *interp, char *s, int size, void *cookie )
+char* Jim_fgets( Jim_Interp *interp, char *s, int size, void *cookie )
 {
 	if( (interp == NULL) || (interp->cb_fgets == NULL) ){
 		errno = ENOTSUP;
@@ -12089,16 +12086,3 @@ Jim_fgets( Jim_Interp *interp, char *s, int size, void *cookie )
 	}
 	return (*(interp->cb_fgets))( s, size, cookie );
 }
-
-	
-
-
-
-
-/*
- * Local Variables: **
- * tab-width: 4 **
- * c-basic-offset: 4 **
- * End: **
- */
-

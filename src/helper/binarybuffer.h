@@ -94,5 +94,4 @@ static __inline u32 fast_target_buffer_get_u32(u8 *buffer, int little)
 		return be_to_h_u32(buffer);
 }
 
-
 #endif /* BINARYBUFFER_H */

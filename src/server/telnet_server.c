@@ -658,11 +658,3 @@ int handle_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 {
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
-
-/*
- * Local Variables: **
- * tab-width: 4 **
- * c-basic-offset: 4 **
- * End: **
- */
-

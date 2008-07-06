@@ -305,13 +305,12 @@ int parse_line(char *line, char *words[], int max_words)
 	return nwords;
 }
 
-void command_output_text( command_context_t *context, const char *data )
+void command_output_text(command_context_t *context, const char *data)
 {
 	if( context && context->output_handler && data  ){
 		context->output_handler( context, data );
 	}
 }
-
 
 void command_print_n(command_context_t *context, char *format, ...)
 {
@@ -728,10 +727,3 @@ int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 	return retval;
 }
-/*
- * Local Variables: **
- * tab-width: 4 **
- * c-basic-offset: 4 **
- * End: **
- */
-

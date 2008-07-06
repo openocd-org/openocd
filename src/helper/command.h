@@ -77,20 +77,11 @@ extern int command_run_line(command_context_t *context, char *line);
 extern int command_run_linef(command_context_t *context, char *format, ...);
 extern int command_run_line_internal(command_context_t *context, char *line);
 extern int command_run_file(command_context_t *context, FILE *file, enum command_mode mode);
-
+extern void command_output_text(command_context_t *context, const char *data);
 
 #define		ERROR_COMMAND_CLOSE_CONNECTION		(-600)
 #define		ERROR_COMMAND_SYNTAX_ERROR			(-601)
 
-
 extern int fast_and_dangerous;
 
 #endif /* COMMAND_H */
-
-/*
- * Local Variables: **
- * tab-width: 4 **
- * c-basic-offset: 4 **
- * End: **
- */
-

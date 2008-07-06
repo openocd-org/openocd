@@ -983,11 +983,3 @@ static void Jim_InitEmbedded(void) {
 #endif
 
 #endif /* __JIM__H */
-
-/*
- * Local Variables: **
- * tab-width: 4 **
- * c-basic-offset: 4 **
- * End: **
- */
-

@@ -54,7 +54,13 @@
 #ifndef MAX
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
-																 
+
+/* for systems that do not support ENOTSUP
+ * win32 being one of them */
+#ifndef ENOTSUP
+#define ENOTSUP 134		/* Not supported */
+#endif
+
 /* gettimeofday() */
 #ifndef HAVE_GETTIMEOFDAY
 

@@ -50,6 +50,12 @@
 #include <unistd.h>
 #include <errno.h>
 
+#ifdef _WIN32
+#include <malloc.h>
+#else
+#include <alloca.h>
+#endif
+
 #ifdef __ECOS
 /* Jim is provied by eCos */
 #include <cyg/jimtcl/jim.h>
@@ -58,8 +64,7 @@
 #include "jim.h"
 #endif
 
-
-
+#include "replacements.h"
 
 int launchTarget(struct command_context_s *cmd_ctx)
 {
@@ -113,14 +118,12 @@ int handle_daemon_startup_command(struct command_context_s *cmd_ctx, char *cmd, 
 	return ERROR_OK;
 }
 
-
 void exit_handler(void)
 {
 	/* close JTAG interface */
 	if (jtag && jtag->quit)
 		jtag->quit();
 }
-
 
 /* OpenOCD can't really handle failure of this command. Patches welcome! :-) */
 int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -135,7 +138,6 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 
 	atexit(exit_handler);
-
 	
 	if (target_init(cmd_ctx) != ERROR_OK)
 		return ERROR_FAIL;
@@ -159,7 +161,6 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 			LOG_DEBUG("jtag examine complete");
 		}
 	}
-
 	
 	if (flash_init_drivers(cmd_ctx) != ERROR_OK)
 		return ERROR_FAIL;
@@ -184,28 +185,20 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	return ERROR_OK;
 }
 
-
 void lockBigLock();
 void unlockBigLock();
-
-
 
 Jim_Interp *interp;
 command_context_t *active_cmd_ctx;
 
-static int
-new_int_array_element( Jim_Interp * interp, 
-					   const char *varname, 
-					   int idx, 
-					   u32 val )
+static int new_int_array_element(Jim_Interp * interp, const char *varname, int idx, u32 val)
 {
 	char *namebuf;
 	Jim_Obj *nameObjPtr, *valObjPtr;
 	int result;
 
 	namebuf = alloc_printf("%s(%d)", varname, idx );
-
-
+	
     nameObjPtr = Jim_NewStringObj(interp, namebuf, -1);
     valObjPtr = Jim_NewIntObj(interp, val );
     Jim_IncrRefCount(nameObjPtr);
@@ -218,8 +211,7 @@ new_int_array_element( Jim_Interp * interp,
     return result;
 }
 
-static int
-Jim_Command_mem2array( Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int Jim_Command_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	target_t *target;
 	long l;
@@ -232,7 +224,6 @@ Jim_Command_mem2array( Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	u8 buffer[4096];
 	int  i,n,e,retval;
 
-
 	/* argv[1] = name of array to receive the data
 	 * argv[2] = desired width
 	 * argv[3] = memory address 
@@ -244,7 +235,6 @@ Jim_Command_mem2array( Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 	varname = Jim_GetString( argv[1], &len );
 	/* given "foo" get space for worse case "foo(%d)" .. add 20 */
-
 
 	e = Jim_GetLong( interp, argv[2], &l );
 	width = l;
@@ -377,8 +367,7 @@ Jim_Command_mem2array( Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-static void tcl_output(void *privData, const char *file, int line, 
-		const char *function, const char *string)
+static void tcl_output(void *privData, const char *file, int line, const char *function, const char *string)
 {		
 	Jim_Obj *tclOutput=(Jim_Obj *)privData;
 
@@ -451,11 +440,7 @@ int jim_command(command_context_t *context, char *line)
 
 int startLoop=0;
 
-static int
-Jim_Command_openocd_ignore(Jim_Interp *interp, 
-                                   int argc,
-                                   Jim_Obj *const *argv,
-                                   int ignore)
+static int Jim_Command_openocd_ignore(Jim_Interp *interp, int argc, Jim_Obj *const *argv, int ignore)
 {
 	int retval;
     char *cmd = (char*)Jim_GetString(argv[1], NULL);
@@ -485,30 +470,18 @@ Jim_Command_openocd_ignore(Jim_Interp *interp,
     return (ignore||(retval==ERROR_OK))?JIM_OK:JIM_ERR;
 }
 
-static int
-Jim_Command_openocd(Jim_Interp *interp, 
-                                   int argc,
-                                   Jim_Obj *const *argv)
+static int Jim_Command_openocd(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	return Jim_Command_openocd_ignore(interp, argc, argv, 1); 
 }
 
-static int
-Jim_Command_openocd_throw(Jim_Interp *interp, 
-                                   int argc,
-                                   Jim_Obj *const *argv)
+static int Jim_Command_openocd_throw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	return Jim_Command_openocd_ignore(interp, argc, argv, 0); 
 }
-  
-
-
 
 /* find full path to file */
-static int
-Jim_Command_find(Jim_Interp *interp, 
-                                   int argc,
-                                   Jim_Obj *const *argv)
+static int Jim_Command_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc!=2)
 		return JIM_ERR;
@@ -523,10 +496,7 @@ Jim_Command_find(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-static int
-Jim_Command_echo(Jim_Interp *interp, 
-                                   int argc,
-                                   Jim_Obj *const *argv)
+static int Jim_Command_echo(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc!=2)
 		return JIM_ERR;
@@ -535,10 +505,7 @@ Jim_Command_echo(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-void command_output_text( command_context_t *context, const char *data );
-
-static size_t
-openocd_jim_fwrite( const void *_ptr, size_t size, size_t n, void *cookie )
+static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *cookie)
 {
 	size_t nbytes;
 	const char *ptr;
@@ -556,7 +523,6 @@ openocd_jim_fwrite( const void *_ptr, size_t size, size_t n, void *cookie )
 		return n;
 	}
 
-	
 	/* do we have to chunk it? */
 	if( ptr[ nbytes ] == 0 ){
 		/* no it is a C style string */
@@ -585,16 +551,13 @@ openocd_jim_fwrite( const void *_ptr, size_t size, size_t n, void *cookie )
 	return n;
 }
 
-static size_t
-openocd_jim_fread(void *ptr, size_t size, size_t n, void *cookie )
+static size_t openocd_jim_fread(void *ptr, size_t size, size_t n, void *cookie )
 {
 	/* TCL wants to read... tell him no */
 	return 0;
 }
 
-
-static int
-openocd_jim_vfprintf( void *cookie, const char *fmt, va_list ap )
+static int openocd_jim_vfprintf(void *cookie, const char *fmt, va_list ap)
 {
 	char *cp;
 	int n;
@@ -611,22 +574,18 @@ openocd_jim_vfprintf( void *cookie, const char *fmt, va_list ap )
 	return n;
 }
 
-static int
-openocd_jim_fflush( void *cookie )
+static int openocd_jim_fflush(void *cookie)
 {
 	/* nothing to flush */
 	return 0;
 }
 
-static char  *
-openocd_jim_fgets( char *s, int size, void *cookie )
+static char* openocd_jim_fgets(char *s, int size, void *cookie)
 {
 	/* not supported */
 	errno = ENOTSUP;
 	return NULL;
 }
-
-
 
 void initJim(void)
 {
@@ -746,8 +705,7 @@ int openocd_main(int argc, char *argv[])
 	
 	if (daemon_startup)
 		command_run_line(cmd_ctx, "reset");
-
-
+	
 	startLoop=1;
 
 	/* handle network connections */
@@ -763,12 +721,3 @@ int openocd_main(int argc, char *argv[])
 
 	return EXIT_SUCCESS;
 }
-
-
-/*
- * Local Variables: **
- * tab-width: 4 **
- * c-basic-offset: 4 **
- * End: **
- */
-
