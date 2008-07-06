@@ -143,6 +143,7 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	/* initialize telnet subsystem */
 	telnet_init("Open On-Chip Debugger");
 	gdb_init();
+	tcl_init(); /* allows tcl to just connect without going thru telnet */
 
 	return ERROR_OK;
 }
@@ -641,6 +642,7 @@ int main(int argc, char *argv[])
 	server_register_commands(cmd_ctx);
 	telnet_register_commands(cmd_ctx);
 	gdb_register_commands(cmd_ctx);
+	tcl_register_commands(cmd_ctx); /* tcl server commands */
 	log_register_commands(cmd_ctx);
 	jtag_register_commands(cmd_ctx);
 	interpreter_register_commands(cmd_ctx);
