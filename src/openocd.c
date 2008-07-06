@@ -39,6 +39,7 @@
 #include "server.h"
 #include "telnet_server.h"
 #include "gdb_server.h"
+#include "tcl_server.h"
 
 #include <sys/time.h>
 #include <sys/types.h>
@@ -49,9 +50,44 @@
 #include <unistd.h>
 #include <errno.h>
 
+#ifdef __ECOS
+/* Jim is provied by eCos */
+#include <cyg/jimtcl/jim.h>
+#else
 #define JIM_EMBEDDED
 #include "jim.h"
+#endif
 
+
+
+
+int launchTarget(struct command_context_s *cmd_ctx)
+{
+	int retval;
+	/* Try to examine & validate jtag chain, though this may require a reset first
+	 * in which case we continue setup */
+	jtag_init(cmd_ctx);
+
+	/* try to examine target at this point. If it fails, perhaps a reset will
+	 * bring it up later on via a telnet/gdb session */
+	target_examine(cmd_ctx);
+
+	retval=flash_init_drivers(cmd_ctx);
+	if (retval!=ERROR_OK)
+		return retval;
+	LOG_DEBUG("flash init complete");
+
+	retval=nand_init(cmd_ctx);
+	if (retval!=ERROR_OK)
+		return retval;
+	LOG_DEBUG("NAND init complete");
+
+	retval=pld_init(cmd_ctx);
+	if (retval!=ERROR_OK)
+		return retval;
+	LOG_DEBUG("pld init complete");
+	return retval;
+}
 
 /* Give TELNET a way to find out what version this is */
 int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -149,17 +185,8 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 }
 
 
-/* implementations of OpenOCD that uses multithreading needs to lock OpenOCD while calling
- * OpenOCD fn's. No-op in vanilla OpenOCD
- */
-void lockBigLock()
-{
-}
-void unlockBigLock()
-{
-}
-
-
+void lockBigLock();
+void unlockBigLock();
 
 
 
@@ -176,8 +203,7 @@ new_int_array_element( Jim_Interp * interp,
 	Jim_Obj *nameObjPtr, *valObjPtr;
 	int result;
 
-	namebuf = alloca( strlen(varname) + 30 );
-	sprintf( namebuf, "%s(%d)", varname, idx );
+	namebuf = alloc_printf("%s(%d)", varname, idx );
 
 
     nameObjPtr = Jim_NewStringObj(interp, namebuf, -1);
@@ -187,6 +213,7 @@ new_int_array_element( Jim_Interp * interp,
     result = Jim_SetVariable(interp, nameObjPtr, valObjPtr);
     Jim_DecrRefCount(interp, nameObjPtr);
     Jim_DecrRefCount(interp, valObjPtr);
+    free(namebuf);
 	// printf( "%s = 0%08x\n", namebuf, val );
     return result;
 }
@@ -197,7 +224,6 @@ Jim_Command_mem2array( Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	target_t *target;
 	long l;
 	u32 width;
-	u32 endian;
 	u32 len;
 	u32 addr;
 	u32 count;
@@ -423,7 +449,7 @@ int jim_command(command_context_t *context, char *line)
 	return retval;
 }
 
-static int startLoop=0;
+int startLoop=0;
 
 static int
 Jim_Command_openocd_ignore(Jim_Interp *interp, 
@@ -509,6 +535,8 @@ Jim_Command_echo(Jim_Interp *interp,
 	return JIM_OK;
 }
 
+void command_output_text( command_context_t *context, const char *data );
+
 static size_t
 openocd_jim_fwrite( const void *_ptr, size_t size, size_t n, void *cookie )
 {
@@ -533,7 +561,7 @@ openocd_jim_fwrite( const void *_ptr, size_t size, size_t n, void *cookie )
 	if( ptr[ nbytes ] == 0 ){
 		/* no it is a C style string */
 		command_output_text( active_cmd_ctx, ptr );
-		return;
+		return strlen(ptr);
 	}
 	/* GRR we must chunk - not null terminated */
 	while( nbytes ){
@@ -602,12 +630,6 @@ openocd_jim_fgets( char *s, int size, void *cookie )
 
 void initJim(void)
 {
-    Jim_InitEmbedded();
-  
-    /* Create an interpreter */
-    interp = Jim_CreateInterp();
-    /* Add all the Jim core commands */
-    Jim_RegisterCoreCommands(interp);
     Jim_CreateCommand(interp, "openocd", Jim_Command_openocd, NULL, NULL);
     Jim_CreateCommand(interp, "openocd_throw", Jim_Command_openocd_throw, NULL, NULL);
     Jim_CreateCommand(interp, "find", Jim_Command_find, NULL, NULL);
@@ -625,17 +647,16 @@ void initJim(void)
 	interp->cb_fgets      = openocd_jim_fgets;
 }
 
-/*
-normally this is the main() function entry, but if OpenOCD is linked
-into application, then this fn will not be invoked, but rather that
-application will have it's own implementation of main().
-*/
-int openocd_main(int argc, char *argv[])
+/* after command line parsing */
+void initJim2(void)
 {
-	initJim();
+	Jim_Eval(interp, "source [find tcl/commands.tcl]");
+}
+
+command_context_t *setup_command_handler()
+{
+	command_context_t *cmd_ctx;
 	
-	/* initialize commandline interface */
-	command_context_t *cmd_ctx, *cfg_cmd_ctx;
 	cmd_ctx = command_init();
 
 	register_command(cmd_ctx, NULL, "version", handle_version_command,
@@ -658,7 +679,9 @@ int openocd_main(int argc, char *argv[])
 	pld_register_commands(cmd_ctx);
 	
 	if (log_init(cmd_ctx) != ERROR_OK)
-		return EXIT_FAILURE;
+	{
+		exit(-1);
+	}
 	LOG_DEBUG("log init complete");
 
 	LOG_OUTPUT( OPENOCD_VERSION "\n" );
@@ -679,6 +702,31 @@ int openocd_main(int argc, char *argv[])
 	register_command(cmd_ctx, NULL, "init", handle_init_command,
 					 COMMAND_ANY, "initializes target and servers - nop on subsequent invocations");
 
+	return cmd_ctx;
+}
+
+/*
+normally this is the main() function entry, but if OpenOCD is linked
+into application, then this fn will not be invoked, but rather that
+application will have it's own implementation of main().
+*/
+int openocd_main(int argc, char *argv[])
+{
+#ifdef JIM_EMBEDDED
+	Jim_InitEmbedded();
+    /* Create an interpreter */
+    interp = Jim_CreateInterp();
+    /* Add all the Jim core commands */
+    Jim_RegisterCoreCommands(interp);
+#endif
+    
+	initJim();
+	
+	/* initialize commandline interface */
+	command_context_t *cmd_ctx;
+	cmd_ctx=setup_command_handler();
+	
+	command_context_t *cfg_cmd_ctx;
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;
 	command_set_output_handler(cfg_cmd_ctx, configuration_output_handler, NULL);
@@ -686,7 +734,7 @@ int openocd_main(int argc, char *argv[])
 	if (parse_cmdline_args(cfg_cmd_ctx, argc, argv) != ERROR_OK)
 		return EXIT_FAILURE;
 
-    Jim_Eval(interp, "source [find tcl/commands.tcl]");
+	initJim2();
 
 	if (parse_config_file(cfg_cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;

@@ -75,7 +75,7 @@ int tcl_output(connection_t *connection, const void *data, ssize_t len)
        if (wlen == len)
                return ERROR_OK;
 
-       LOG_ERROR("error during write: %d != %d", wlen, len);
+       LOG_ERROR("error during write: %d != %d", (int)wlen, (int)len);
        tclc->tc_outerror = 1;
        return ERROR_SERVER_REMOTE_CLOSED;
 }
@@ -84,7 +84,6 @@ int tcl_output(connection_t *connection, const void *data, ssize_t len)
 /* connections */
 static int tcl_new_connection(connection_t *connection)
 {
-       int i;
        tcl_connection_t *tclc;
 
        tclc = malloc(sizeof(tcl_connection_t));
@@ -177,8 +176,8 @@ int tcl_init(void)
 
        if (tcl_port == 0)
        {
-               LOG_WARNING("no tcl port specified, using default port 5555");
-               tcl_port = 5555;
+               LOG_WARNING("no tcl port specified, using default port 6666");
+               tcl_port = 6666;
        }
 
        retval = add_service("tcl", CONNECTION_TCL, tcl_port, 1, tcl_new_connection, tcl_input, tcl_closed, NULL);
