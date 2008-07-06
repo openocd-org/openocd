@@ -1,0 +1,430 @@
+****************************************
+****************************************
+
+This is a short introduction to 'un-scare' you about the language
+known as TCL. It is structured as a guided tour through the files
+written by me [Duane Ellis] - in early July 2008 for OpenOCD.
+
+Which uses the "JIM" embedded Tcl clone-ish language.
+
+Thing described here are *totally* TCL generic... not Jim specific.
+
+The goal of this document is to encourage you to add your own set of
+chips to the TCL package - and most importantly you should know where
+you should put them - so they end up in an orginized way.
+
+--Duane Ellis.
+	duane@duaneellis.com
+
+****************************************
+****************************************
+
+Adding "chip" support - Duane Ellis July 5 - 2008.
+
+The concept is this:
+  In your "openocd.cfg" file add something like this:
+
+     source [find tcl/chip/VENDOR/FAMILY/NAME.tcl]
+
+  For example...
+     source [find tcl/chip/atmel/at91/at91sam7x256.tcl]
+
+  You'll notice that it makes use of:
+
+       tcl/cpu/arm/<NAME>.tcl.
+
+  Yes, that is where you should put "core" specific things.
+  Be carefull and learn the difference:
+
+  THE "CORE" - is not the entire chip!
+
+Definition:
+   That "file" listed above is called a "CHIP FILE".
+
+   It may be standalone, or may need to "source" other "helper" files.
+
+   The reference [7/5/2008] is the at91sam7x256.tcl file.
+
+****************************************
+****************************************
+=== TCL TOUR ===
+Open:  at91sam7x256.tcl
+=== TCL TOUR ===
+
+A walk through --- For those who are new to TCL.
+
+Examine the file: at91sam7x256.tcl
+
+It starts with:
+	source [find path/filename.tcl]
+
+In TCL - this is very important.
+
+	Rule #1 Everything is a string.
+	Rule #2 If you think other wise See #1.
+Reminds you of:
+	Rule #1: The wife is correct.
+	Rule #2: If you think otherwise, See #1
+
+Any text contained inside of [square-brackets]
+is just like `back-ticks` in BASH.
+
+Hence, the [find FILENAME] executes the command find with a single
+parameter the filename.
+
+========================================
+
+Next you see a series of:
+
+set  NAME    VALUE
+
+It is mostly "obious" what is going on.
+
+Execption: The arrays.
+
+  You would *THINK* Tcl supports arrays.
+  In fact, multi-dim arrays. That is false.
+
+  For the index for"FLASH(0,CHIPSELECT)" is actually the string
+  "0,CHIPSELECT".  This is problematic. In the normal world, you think
+  of array indexes as integers.
+
+  For example these are different:
+
+       set foo(0x0c)  123
+       set foo(12)    444
+
+  Why? Because 0x0c {lowercase} is a string.
+  Don't forget UPPER CASE.
+
+  You must be careful - always... always...  use simple decimal
+  numbers. When in doubt use 'expr' the evaluator. These are all the
+  same.
+
+       set x 0x0c
+       set foo([expr $x])  "twelve"
+
+       set x 12
+       set foo([expr $x])  "twelve"
+
+       set x "2 * 6"
+       set foo([expr $x])  "twelve"
+       
+**************************************************
+***************************************************
+=== TCL TOUR ===
+Open the file: "bitsbytes.tcl"
+
+There is some tricky things going on.
+===============
+
+First, there is a "for" loop - at level 0
+{level 0 means: out side of a proc/function}
+
+This means it is evaluated when the file is parsed.
+
+== SIDEBAR: About The FOR command ==
+In TCL, "FOR" is a funny thing, it is not what you think it is.
+
+Syntatically - FOR is a just a command, it is not language
+construct like for(;;) in C... 
+
+The "for" command takes 4 parameters.
+   (1) The "initial command" to execute.
+   (2) the test "expression"
+   (3) the "next command"
+   (4) the "body command" of the FOR loop.
+
+Notice I used the words "command" and "expresion" above.
+
+The FOR command:
+1)  executes the "initial command"
+2)  evaluates the expression if 0 it stops.
+3)  executes the "body command"
+4)  executes the "next command"
+5)  Goto Step 2.
+
+As show, each of these items are in {curly-braces}.  This means they
+are passed as they are - KEY-POINT: un evaluated to the FOR
+command. Think of it like escaping the backticks in Bash so that the
+"under-lying" command can evaluate the contents. In this case, the FOR
+COMMAND.
+
+== END: SIDEBAR: About The FOR command ==
+
+You'll see two lines:
+
+LINE1:
+       set vn [format "BIT%d" $x]
+
+Format is like "sprintf". Because of the [brackets], it becomes what
+you think.  But here's how:
+
+First - the line is parsed - for {braces}.  In this case, there are
+none.  The, the parser looks for [brackets] and finds them.  The,
+parser then evaluates the contents of the [brackets], and replaces
+them. It is alot this bash statement.
+
+       EXPORT vn=`date`
+
+LINE 2 & 3
+       set $vn [expr (1024 * $x)]
+       global $vn
+
+In line 1, we dynamically created a variable name.  Here, we are
+assigning it a value. Lastly Line 3 we force the variable to be
+global, not "local" the the "for command body"
+
+===============
+The PROCS
+
+proc create_mask { MSB LSB } {
+     ... body ....
+}
+
+Like "for" - PROC is really just a command that takes 3 parameters.
+The (1) NAME of the function, a (2) LIST of parameters, and a (3) BODY
+
+Again, this is at "level 0" so it is a global function.  (Yes, TCL
+supports local functions, you put them inside of a function}
+
+You'll see in some cases, I nest [brackets] alot and in others I'm
+lazy or wanted it to be more clear... it is a matter of choice.
+===============
+
+
+**************************************************
+***************************************************
+=== TCL TOUR ===
+Open the file: "memory.tcl"
+===============
+
+Here is where I setup some 'memory definitions' that various targets can use.
+
+For example - there is an "unknown" memory region.
+
+All memory regions must have 2 things:
+
+ (1)  N_<name>
+ (2)  NAME( array )
+      And the array must have some specific names:
+          ( <idx>, THING )
+	    Where: THING is one of: 
+		   CHIPSELECT
+		   BASE
+		   LEN
+		   HUMAN
+		   TYPE
+		   RWX - the access ablity.
+		   WIDTH - the accessable width.
+
+        ie: Some regions of memory are not 'word' 
+	accessable.
+
+The function "address_info" - given an address should
+tell you about the address.
+
+     [as of this writing: 7/5/2008 I have done
+     only a little bit with this -Duane]
+
+===
+MAJOR FUNCTION:
+==
+
+proc memread32 { ADDR } 
+proc memread16 { ADDR } 
+proc memread8 { ADDR } 
+
+All read memory - and return the contents.
+
+[ fixme: 7/5/2008 - I need to create "memwrite" functions]
+		 
+**************************************************
+***************************************************
+=== TCL TOUR ===
+Open the file: "mmr_helpers.tcl"
+===============
+
+This file is used to display and work with "memory mapped registers"
+
+For example - 'show_mmr32_reg' is given the NAME of the register to
+display. The assumption is - the NAME is a global variable holding the
+address of that MMR.
+
+The code does some tricks. The [set [set NAME]] is the TCL way
+of doing double variable interpolation - like makefiles...
+
+In a makefile or shell script you may have seen this:
+
+     FOO_linux = "Penguins rule"
+     FOO_winXP = "Broken Glass"
+     FOO_mac   = "I like cat names"
+     
+     # Pick one
+     BUILD  = linux
+     #BUILD = winXP
+     #BUILD = mac
+     FOO = ${FOO_${BUILD}}
+				
+The "double [set] square bracket" thing is the TCL way, nothing more.
+
+----
+
+The IF statement - and "CATCH" .
+
+Notice this IF COMMAND - (not statement) is like this:
+[7/5/2008 it is this way]
+
+       if ![catch { command } msg ] {
+	  ...something...
+       } else {
+          error [format string...]
+       }
+
+The "IF" command expects either 2 params, or 4 params.
+
+ === Sidebar: About "commands" ===
+  
+     Take a look at the internals of "jim.c"
+     Look for the function: Jim_IfCoreCommand()
+     And all those other "CoreCommands"
+
+     You'll notice - they all have "argc" and "argv"
+
+     Yea, the entire thing is done that way.
+     
+     IF is a command. SO is "FOR" and "WHILE" and "DO" and the
+     others. That is why I keep using the prhase it is a "command"
+     
+ === END: Sidebar: About "commands" ===
+
+Paramter 1 to the IF command is expected to be an expression.
+
+As such, I do not need to wrap it in {braces}.
+
+In this case, the "expression" is the resul of the "CATCH" command.
+
+CATCH - is an error catcher.
+
+You give CATCH 1 or 2 parameters.
+    The first 1st parameter is the "code to execute"
+    The 2nd (optional) is where to put the error message.
+    
+    CATCH returns 0 on success, 1 for failure.
+    The "![catch command]" is self explaintory.
+
+
+The 3rd parameter to IF must be exacty "else" or "elseif" [I lied
+above, the IF command can take many parameters they just have to
+be joined by exactly the words "else" or "elseif".
+
+The 4th parameter contains:
+    
+    "error [format STRING....]"
+
+This lets me modify the previous lower level error by tacking more
+text onto the end of it. In this case, i want to add the MMR register
+name to make my error message look better.
+
+---------
+Back to something inside show_mmr32_reg{}.
+
+You'll see something 'set fn show_${NAME}_helper' Here I am
+constructing a 'function name' Then - I look it up to see if it
+exists.  {the function: "proc_exists" does this}
+
+And - if it does - I call the function.
+
+In "C" it is alot like using: 'sprintf()' to construct a function name
+string, then using "dlopen()" and "dlsym()" to look it up - and get a
+function pointer - and calling the function pointer.
+
+In this case - I execute a dynamic command. You can do some cool
+tricks with interpretors. 
+
+----------
+
+Function:   show_mmr32_bits()
+
+In this case, we use the special TCL command "upvar" which tcl's way
+of passing things by reference. In this case, we want to reach up into
+the callers lexical scope and find the array named "NAMES"
+
+The rest of the function is pretty straight forward.
+
+First - we figure out the longest name.
+Then print 4 rows of 8bits - with names.
+
+
+**************************************************
+***************************************************
+=== TCL TOUR ===
+Open the file: "chips/atmel/at91/usarts.tcl"
+===============
+
+First - about the AT91SAM series - all of the usarts
+are basically identical...
+
+Second - there can be many of them.
+
+In this case - I do some more TCL tricks to dynamically
+create functions out of thin air.
+
+Some assumptions:
+
+The "CHIP" file has defined some variables in a proper form.
+
+ie:   AT91C_BASE_US0 - for usart0, 
+      AT91C_BASE_US1 - for usart1
+      ... And so on ...
+
+Near the end of the file - look for a large "foreach" loop that
+looks like this:
+
+      foreach WHO { US0 US1 US2 US3 US4 .... } {
+
+      }
+
+In this case, I'm trying to figure out what USARTs exist.
+
+Step 1 - is to determine if the NAME has been defined.
+ie: Does AT91C_BASE_USx - where X is some number exist?
+
+The "info exists VARNAME" tells you if the variable exists.  Then -
+inside the IF statement... There is another loop. This loop is the
+name of various "sub-registers" within the USART.
+
+Some more trick are played with the [set VAR] backtick evaluation stuff.
+And we create two variables
+
+We calculate and create the global variable name for every subregister in the USART.
+And - declare that variable as GLOBAL so the world can find it.
+
+Then - we dynamically create a function - based on the register name.
+
+Look carefully at how that is done. You'll notice the FUNCTION BODY is
+a string - not something in {braces}. Why? This is because we need TCL
+to evaluate the contents of that string "*NOW*" - when $vn exists not
+later, when the function "show_FOO" is invoked.
+
+Lastly - we build a "str" of commands - and create a single function -
+with the generated list of commands for the entire USART.
+
+With that little bit of code - I now have a bunch of functions like:
+
+   show_US0, show_US1, show_US2, .... etc ...
+   
+   And show_US0_MR, show_US0_IMR ... etc...
+  
+And - I have this for every USART... without having to create tons of
+boiler plate yucky code.
+
+****************************************
+****************************************
+END of the Tcl Intro and Walk Through
+****************************************
+****************************************
+
+FUTURE PLANS
+
+       Some "GPIO" functions...

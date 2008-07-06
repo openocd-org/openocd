@@ -363,7 +363,7 @@ int Jim_StringToWide(const char *str, jim_wide *widePtr, int base)
 #else
     *widePtr = strtol(str, &endptr, base);
 #endif
-    if (str[0] == '\0')
+    if ((str[0] == '\0') || (str == endptr) )
         return JIM_ERR;
     if (endptr[0] != '\0') {
         while(*endptr) {
@@ -380,7 +380,7 @@ int Jim_StringToIndex(const char *str, int *intPtr)
     char *endptr;
 
     *intPtr = strtol(str, &endptr, 10);
-    if (str[0] == '\0')
+    if ( (str[0] == '\0') || (str == endptr) )
         return JIM_ERR;
     if (endptr[0] != '\0') {
         while(*endptr) {
@@ -437,7 +437,7 @@ int Jim_StringToDouble(const char *str, double *doublePtr)
     char *endptr;
 
     *doublePtr = strtod(str, &endptr);
-    if (str[0] == '\0' || endptr[0] != '\0')
+    if (str[0] == '\0' || endptr[0] != '\0' || (str == endptr) )
         return JIM_ERR;
     return JIM_OK;
 }
@@ -460,13 +460,16 @@ static jim_wide JimPowWide(jim_wide b, jim_wide e)
 void Jim_Panic(Jim_Interp *interp, const char *fmt, ...)
 {
     va_list ap;
-    FILE *fp = interp ? interp->stderr_ : stderr;
 
     va_start(ap, fmt);
-    fprintf(fp, JIM_NL "JIM INTERPRETER PANIC: ");
-    vfprintf(fp, fmt, ap);
-    fprintf(fp, JIM_NL JIM_NL);
+	/* 
+	 * Send it here first.. Assuming STDIO still works
+	 */
+    fprintf(stderr, JIM_NL "JIM INTERPRETER PANIC: ");
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, JIM_NL JIM_NL);
     va_end(ap);
+
 #ifdef HAVE_BACKTRACE
     {
         void *array[40];
@@ -481,6 +484,13 @@ void Jim_Panic(Jim_Interp *interp, const char *fmt, ...)
         fprintf(fp,"[backtrace] of 'nm <executable>' in the bug report." JIM_NL);
     }
 #endif
+	
+	/* This may actually crash... we do it last */
+	if( interp && interp->cookie_stderr ){
+		Jim_fprintf(  interp, interp->cookie_stderr, JIM_NL "JIM INTERPRETER PANIC: ");
+		Jim_vfprintf( interp, interp->cookie_stderr, fmt, ap );
+		Jim_fprintf(  interp, interp->cookie_stderr, JIM_NL JIM_NL );
+	}
     abort();
 }
 
@@ -2136,21 +2146,36 @@ static Jim_Obj *JimStringToUpper(Jim_Interp *interp, Jim_Obj *strObjPtr)
 }
 
 /* This is the core of the [format] command.
- * TODO: Export it, make it real... for now only %s and %%
- * specifiers supported. */
+ * TODO: Lots of things work - via a hack
+ *       However, no format item can be >= JIM_MAX_FMT 
+ */
 Jim_Obj *Jim_FormatString(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
         int objc, Jim_Obj *const *objv)
 {
-    const char *fmt;
+    const char *fmt, *_fmt;
     int fmtLen;
     Jim_Obj *resObjPtr;
+    
 
     fmt = Jim_GetString(fmtObjPtr, &fmtLen);
+	_fmt = fmt;
     resObjPtr = Jim_NewStringObj(interp, "", 0);
     while (fmtLen) {
         const char *p = fmt;
         char spec[2], c;
         jim_wide wideValue;
+		double doubleValue;
+		/* we cheat and use Sprintf()! */
+#define JIM_MAX_FMT 2048
+		char sprintf_buf[JIM_MAX_FMT];
+		char fmt_str[100];
+		char *cp;
+		int width;
+		int ljust;
+		int zpad;
+		int spad;
+		int altfm;
+		int forceplus;
 
         while (*fmt != '%' && fmtLen) {
             fmt++; fmtLen--;
@@ -2159,38 +2184,191 @@ Jim_Obj *Jim_FormatString(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
         if (fmtLen == 0)
             break;
         fmt++; fmtLen--; /* skip '%' */
-        if (*fmt != '%') {
+		zpad = 0;
+		spad = 0;
+		width = -1;
+		ljust = 0;
+		altfm = 0;
+		forceplus = 0;
+    next_fmt:
+		if( fmtLen <= 0 ){
+			break;
+		}
+		switch( *fmt ){
+			/* terminals */
+        case 'b': /* binary - not all printfs() do this */
+		case 's': /* string */
+		case 'i': /* integer */
+		case 'd': /* decimal */
+		case 'x': /* hex */
+		case 'X': /* CAP hex */
+		case 'c': /* char */
+		case 'o': /* octal */
+		case 'u': /* unsigned */
+		case 'f': /* float */
+			break;
+			
+			/* non-terminals */
+		case '0': /* zero pad */
+			zpad = 1;
+			*fmt++;  fmtLen--;
+			goto next_fmt;
+			break;
+		case '+':
+			forceplus = 1;
+			*fmt++;  fmtLen--;
+			goto next_fmt;
+			break;
+		case ' ': /* sign space */
+			spad = 1;
+			*fmt++;  fmtLen--;
+			goto next_fmt;
+			break;
+		case '-':
+			ljust = 1;
+			*fmt++;  fmtLen--;
+			goto next_fmt;
+			break;
+		case '#':
+			altfm = 1;
+			*fmt++; fmtLen--;
+ 			goto next_fmt;
+			
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			width = 0;
+			while( isdigit(*fmt) && (fmtLen > 0) ){
+				width = (width * 10) + (*fmt - '0');
+				fmt++;  fmtLen--;
+			}
+			goto next_fmt;
+		case '*':
+			/* suck up the next item as an integer */
+			*fmt++;  fmtLen--;
+			objc--;
+			if( objc <= 0 ){
+				goto not_enough_args;
+			}
+			if( Jim_GetWide(interp,objv[0],&wideValue )== JIM_ERR ){
+				Jim_FreeNewObj(interp, resObjPtr );
+				return NULL;
+			}
+			width = wideValue;
+			if( width < 0 ){
+				ljust = 1;
+				width = -width;
+			}
+			objv++;
+			goto next_fmt;
+			break;
+		}
+		
+		
+		if (*fmt != '%') {
             if (objc == 0) {
+			not_enough_args:
                 Jim_FreeNewObj(interp, resObjPtr);
                 Jim_SetResultString(interp,
-                        "not enough arguments for all format specifiers", -1);
+									"not enough arguments for all format specifiers", -1);
                 return NULL;
             } else {
                 objc--;
             }
         }
+		
+		/*
+		 * Create the formatter
+		 * cause we cheat and use sprintf()
+		 */
+		cp = fmt_str;
+		*cp++ = '%';
+		if( altfm ){
+			*cp++ = '#';
+		}
+		if( forceplus ){
+			*cp++ = '+';
+		} else if( spad ){
+			/* PLUS overrides */
+			*cp++ = ' ';
+		}
+		if( ljust ){
+			*cp++ = '-';
+		}
+		if( zpad  ){
+			*cp++ = '0';
+		}
+		if( width > 0 ){
+			sprintf( cp, "%d", width );
+			/* skip ahead */
+			cp = strchr(cp,0);
+		}
+		*cp = 0;
+
+		/* here we do the work */
+		/* actually - we make sprintf() do it for us */
         switch(*fmt) {
         case 's':
-            Jim_AppendObj(interp, resObjPtr, objv[0]);
-            objv++;
+			*cp++ = 's';
+			*cp   = 0;
+			/* BUG: we do not handled embeded NULLs */
+			snprintf( sprintf_buf, JIM_MAX_FMT, fmt_str, Jim_GetString( objv[0], NULL ));
             break;
         case 'c':
+			*cp++ = 'c';
+			*cp   = 0;
             if (Jim_GetWide(interp, objv[0], &wideValue) == JIM_ERR) {
                 Jim_FreeNewObj(interp, resObjPtr);
                 return NULL;
             }
             c = (char) wideValue;
-            Jim_AppendString(interp, resObjPtr, &c, 1);
+			snprintf( sprintf_buf, JIM_MAX_FMT, fmt_str, c );
             break;
+		case 'f':
+		case 'F':
+		case 'g':
+		case 'G':
+		case 'e':
+		case 'E':
+			*cp++ = *fmt;
+			*cp   = 0;
+			if( Jim_GetDouble( interp, objv[0], &doubleValue ) == JIM_ERR ){
+				Jim_FreeNewObj( interp, resObjPtr );
+				return NULL;
+			}
+			snprintf( sprintf_buf, JIM_MAX_FMT, fmt_str, doubleValue );
+			break;
+        case 'b':
         case 'd':
+		case 'i':
+		case 'u':
+		case 'x':
+		case 'X':
+			/* jim widevaluse are 64bit */
+			if( sizeof(jim_wide) == sizeof(long long) ){
+				*cp++ = 'l'; 
+				*cp++ = 'l';
+			} else {
+				*cp++ = 'l';
+			}
+			*cp++ = *fmt;
+			*cp   = 0;
             if (Jim_GetWide(interp, objv[0], &wideValue) == JIM_ERR) {
                 Jim_FreeNewObj(interp, resObjPtr);
                 return NULL;
             }
-            Jim_AppendObj(interp, resObjPtr, objv[0]);
+			snprintf(sprintf_buf, JIM_MAX_FMT, fmt_str, wideValue );
             break;
         case '%':
-            Jim_AppendString(interp, resObjPtr, "%" , 1);
+			sprintf_buf[0] = '%';
+			sprintf_buf[1] = 0;
+			objv--; /* undo the objv++ below */
             break;
         default:
             spec[0] = *fmt; spec[1] = '\0';
@@ -2200,6 +2378,16 @@ Jim_Obj *Jim_FormatString(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
                     "bad field specifier \"",  spec, "\"", NULL);
             return NULL;
         }
+		/* force terminate */
+#if 0
+		printf("FMT was: %s\n", fmt_str );
+		printf("RES was: |%s|\n", sprintf_buf );
+#endif
+		
+		sprintf_buf[ JIM_MAX_FMT - 1] = 0;
+		Jim_AppendString( interp, resObjPtr, sprintf_buf, strlen(sprintf_buf) );
+		/* next obj */
+		objv++;
         fmt++;
         fmtLen--;
     }
@@ -3910,7 +4098,7 @@ int Jim_Collect(Jim_Interp *interp)
                 Jim_AddHashEntry(&marks,
                     &objPtr->internalRep.refValue.id, NULL);
 #ifdef JIM_DEBUG_GC
-                fprintf(interp->stdout_,
+                Jim_fprintf(interp,interp->cookie_stdout,
                     "MARK (reference): %d refcount: %d" JIM_NL, 
                     (int) objPtr->internalRep.refValue.id,
                     objPtr->refCount);
@@ -3949,7 +4137,7 @@ int Jim_Collect(Jim_Interp *interp)
                  * was found. Mark it. */
                 Jim_AddHashEntry(&marks, &id, NULL);
 #ifdef JIM_DEBUG_GC
-                fprintf(interp->stdout_,"MARK: %d" JIM_NL, (int)id);
+                Jim_fprintf(interp,interp->cookie_stdout,"MARK: %d" JIM_NL, (int)id);
 #endif
                 p += JIM_REFERENCE_SPACE;
             }
@@ -3969,7 +4157,7 @@ int Jim_Collect(Jim_Interp *interp)
          * this reference. */
         if (Jim_FindHashEntry(&marks, refId) == NULL) {
 #ifdef JIM_DEBUG_GC
-            fprintf(interp->stdout_,"COLLECTING %d" JIM_NL, (int)*refId);
+            Jim_fprintf(interp,interp->cookie_stdout,"COLLECTING %d" JIM_NL, (int)*refId);
 #endif
             collected++;
             /* Drop the reference, but call the
@@ -4057,9 +4245,14 @@ Jim_Interp *Jim_CreateInterp(void)
     i->freeFramesList = NULL;
     i->prngState = NULL;
     i->evalRetcodeLevel = -1;
-    i->stdin_ = stdin;
-    i->stdout_ = stdout;
-    i->stderr_ = stderr;
+    i->cookie_stdin = stdin;
+    i->cookie_stdout = stdout;
+    i->cookie_stderr = stderr;
+	i->cb_fwrite   = ((size_t (*)( const void *, size_t, size_t, void *))(fwrite));
+	i->cb_fread    = ((size_t (*)(       void *, size_t, size_t, void *))(fread));
+	i->cb_vfprintf = ((int    (*)( void *, const char *fmt, va_list ))(vfprintf));
+	i->cb_fflush   = ((int    (*)( void *))(fflush));
+	i->cb_fgets    = ((char * (*)( char *, int, void *))(fgets));
 
     /* Note that we can create objects only after the
      * interpreter liveList and freeList pointers are
@@ -4128,23 +4321,23 @@ void Jim_FreeInterp(Jim_Interp *i)
     if (i->liveList != NULL) {
         Jim_Obj *objPtr = i->liveList;
     
-        fprintf(i->stdout_,JIM_NL "-------------------------------------" JIM_NL);
-        fprintf(i->stdout_,"Objects still in the free list:" JIM_NL);
+        Jim_fprintf( i, i->cookie_stdout,JIM_NL "-------------------------------------" JIM_NL);
+        Jim_fprintf( i, i->cookie_stdout,"Objects still in the free list:" JIM_NL);
         while(objPtr) {
             const char *type = objPtr->typePtr ?
                 objPtr->typePtr->name : "";
-            fprintf(i->stdout_,"%p \"%-10s\": '%.20s' (refCount: %d)" JIM_NL,
+            Jim_fprintf( i, i->cookie_stdout,"%p \"%-10s\": '%.20s' (refCount: %d)" JIM_NL,
                     objPtr, type,
                     objPtr->bytes ? objPtr->bytes
                     : "(null)", objPtr->refCount);
             if (objPtr->typePtr == &sourceObjType) {
-                fprintf(i->stdout_, "FILE %s LINE %d" JIM_NL,
+                Jim_fprintf( i, i->cookie_stdout, "FILE %s LINE %d" JIM_NL,
                 objPtr->internalRep.sourceValue.fileName,
                 objPtr->internalRep.sourceValue.lineNumber);
             }
             objPtr = objPtr->nextObjPtr;
         }
-        fprintf(stdout, "-------------------------------------" JIM_NL JIM_NL);
+        Jim_fprintf( i, i->cookie_stdout, "-------------------------------------" JIM_NL JIM_NL);
         Jim_Panic(i,"Live list non empty freeing the interpreter! Leak?");
     }
     /* Free all the freed objects. */
@@ -4330,22 +4523,22 @@ int Jim_GetExitCode(Jim_Interp *interp) {
     return interp->exitCode;
 }
 
-FILE *Jim_SetStdin(Jim_Interp *interp, FILE *fp)
+void *Jim_SetStdin(Jim_Interp *interp, void *fp)
 {
-    if (fp != NULL) interp->stdin_ = fp;
-    return interp->stdin_;
+    if (fp != NULL) interp->cookie_stdin = fp;
+    return interp->cookie_stdin;
 }
 
-FILE *Jim_SetStdout(Jim_Interp *interp, FILE *fp)
+void *Jim_SetStdout(Jim_Interp *interp, void *fp)
 {
-    if (fp != NULL) interp->stdout_ = fp;
-    return interp->stdout_;
+    if (fp != NULL) interp->cookie_stdout = fp;
+    return interp->cookie_stdout;
 }
 
-FILE *Jim_SetStderr(Jim_Interp *interp, FILE *fp)
+void *Jim_SetStderr(Jim_Interp *interp, void  *fp)
 {
-    if (fp != NULL) interp->stderr_ = fp;
-    return interp->stderr_;
+    if (fp != NULL) interp->cookie_stderr = fp;
+    return interp->cookie_stderr;
 }
 
 /* -----------------------------------------------------------------------------
@@ -8478,7 +8671,7 @@ int Jim_EvalObjBackground(Jim_Interp *interp, Jim_Obj *scriptObjPtr)
         Jim_IncrRefCount(objv[1]);
         if (Jim_EvalObjVector(interp, 2, objv) != JIM_OK) {
             /* Report the error to stderr. */
-            fprintf(interp->stderr_, "Background error:" JIM_NL);
+            Jim_fprintf( interp, interp->cookie_stderr, "Background error:" JIM_NL);
             Jim_PrintErrorMessage(interp);
         }
         Jim_DecrRefCount(interp, objv[0]);
@@ -8509,10 +8702,12 @@ int Jim_EvalFile(Jim_Interp *interp, const char *filename)
             maxlen = totread+buflen+1;
             prg = Jim_Realloc(prg, maxlen);
         }
+		/* do not use Jim_fread() - this is really a file */
         if ((nread = fread(prg+totread, 1, buflen, fp)) == 0) break;
         totread += nread;
     }
     prg[totread] = '\0';
+	/* do not use Jim_fclose() - this is really a file */
     fclose(fp);
 
     scriptObjPtr = Jim_NewStringObjNoAlloc(interp, prg, totread);
@@ -9011,8 +9206,8 @@ static int Jim_PutsCoreCommand(Jim_Interp *interp, int argc,
         }
     }
     str = Jim_GetString(argv[1], &len);
-    fwrite(str, 1, len, interp->stdout_);
-    if (!nonewline) fprintf(interp->stdout_, JIM_NL);
+    Jim_fwrite(interp, str, 1, len, interp->cookie_stdout);
+    if (!nonewline) Jim_fprintf( interp, interp->cookie_stdout, JIM_NL);
     return JIM_OK;
 }
 
@@ -11744,9 +11939,9 @@ void Jim_PrintErrorMessage(Jim_Interp *interp)
 {
     int len, i;
 
-    fprintf(interp->stderr_, "Runtime error, file \"%s\", line %d:" JIM_NL,
-            interp->errorFileName, interp->errorLine);
-    fprintf(interp->stderr_, "    %s" JIM_NL,
+    Jim_fprintf(interp, interp->cookie_stderr, "Runtime error, file \"%s\", line %d:" JIM_NL,
+				interp->errorFileName, interp->errorLine);
+    Jim_fprintf(interp,interp->cookie_stderr, "    %s" JIM_NL,
             Jim_GetString(interp->result, NULL));
     Jim_ListLength(interp, interp->stackTrace, &len);
     for (i = 0; i < len; i+= 3) {
@@ -11761,7 +11956,7 @@ void Jim_PrintErrorMessage(Jim_Interp *interp)
         Jim_ListIndex(interp, interp->stackTrace, i+2, &objPtr,
                 JIM_NONE);
         line = Jim_GetString(objPtr, NULL);
-        fprintf(interp->stderr_,
+		Jim_fprintf( interp, interp->cookie_stderr,
                 "In procedure '%s' called at file \"%s\", line %s" JIM_NL,
                 proc, file, line);
     }
@@ -11772,7 +11967,7 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
     int retcode = JIM_OK;
     Jim_Obj *scriptObjPtr;
 
-    fprintf(interp->stdout_, "Welcome to Jim version %d.%d, "
+    Jim_fprintf(interp,interp->cookie_stdout, "Welcome to Jim version %d.%d, "
            "Copyright (c) 2005-8 Salvatore Sanfilippo" JIM_NL,
            JIM_VERSION / 100, JIM_VERSION % 100);
      Jim_SetVariableStrWithStr(interp, "jim_interactive", "1");
@@ -11786,12 +11981,12 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
 
         if (retcode != 0) {
             if (retcode >= 2 && retcode <= 6)
-                fprintf(interp->stdout_, "[%s] . ", retcodestr[retcode]);
+                Jim_fprintf(interp,interp->cookie_stdout, "[%s] . ", retcodestr[retcode]);
             else
-                fprintf(interp->stdout_, "[%d] . ", retcode);
+                Jim_fprintf(interp,interp->cookie_stdout, "[%d] . ", retcode);
         } else
-            fprintf(interp->stdout_, ". ");
-        fflush(interp->stdout_);
+            Jim_fprintf( interp, interp->cookie_stdout, ". ");
+        Jim_fflush( interp, interp->cookie_stdout);
         scriptObjPtr = Jim_NewStringObj(interp, "", 0);
         Jim_IncrRefCount(scriptObjPtr);
         while(1) {
@@ -11799,7 +11994,7 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
             char state;
             int len;
 
-            if (fgets(buf, 1024, interp->stdin_) == NULL) {
+            if ( Jim_fgets(interp, buf, 1024, interp->cookie_stdin) == NULL) {
                 Jim_DecrRefCount(interp, scriptObjPtr);
                 goto out;
             }
@@ -11807,8 +12002,8 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
             str = Jim_GetString(scriptObjPtr, &len);
             if (Jim_ScriptIsComplete(str, len, &state))
                 break;
-            fprintf(interp->stdout_, "%c> ", state);
-            fflush(stdout);
+            Jim_fprintf( interp, interp->cookie_stdout, "%c> ", state);
+            Jim_fflush( interp, interp->cookie_stdout);
         }
         retcode = Jim_EvalObj(interp, scriptObjPtr);
         Jim_DecrRefCount(interp, scriptObjPtr);
@@ -11819,11 +12014,91 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
             exit(Jim_GetExitCode(interp));
         } else {
             if (reslen) {
-                fwrite(result, 1, reslen, interp->stdout_);
-                fprintf(interp->stdout_, JIM_NL);
+				Jim_fwrite( interp, result, 1, reslen, interp->cookie_stdout);
+				Jim_fprintf( interp,interp->cookie_stdout, JIM_NL);
             }
         }
     }
 out:
     return 0;
 }
+
+/* -----------------------------------------------------------------------------
+ * Jim's idea of STDIO..
+ * ---------------------------------------------------------------------------*/
+
+int
+Jim_fprintf( Jim_Interp *interp, void *cookie, const char *fmt, ... )
+{
+	int r;
+
+	va_list ap;
+	va_start(ap,fmt);
+	r = Jim_vfprintf( interp, cookie, fmt,ap );
+	va_end(ap);
+	return r;
+}
+	
+
+int 
+Jim_vfprintf( Jim_Interp *interp, void *cookie, const char *fmt, va_list ap )
+{
+	if( (interp == NULL) || (interp->cb_vfprintf == NULL) ){
+		errno = ENOTSUP;
+		return -1;
+	}
+	return (*(interp->cb_vfprintf))( cookie, fmt, ap );
+}
+
+size_t
+Jim_fwrite( Jim_Interp *interp, const void *ptr, size_t size, size_t n, void *cookie )
+{
+	if( (interp == NULL) || (interp->cb_fwrite == NULL) ){
+		errno = ENOTSUP;
+		return 0;
+	}
+	return (*(interp->cb_fwrite))( ptr, size, n, cookie);
+}
+
+size_t
+Jim_fread( Jim_Interp *interp, void *ptr, size_t size, size_t n, void *cookie )
+{
+	if( (interp == NULL) || (interp->cb_fread == NULL) ){
+		errno = ENOTSUP;
+		return 0;
+	}
+	return (*(interp->cb_fread))( ptr, size, n, cookie);
+}
+
+int
+Jim_fflush( Jim_Interp *interp, void *cookie )
+{
+	if( (interp == NULL) || (interp->cb_fflush == NULL) ){
+		/* pretend all is well */
+		return 0;
+	}
+	return (*(interp->cb_fflush))( cookie );
+}
+
+char *  
+Jim_fgets( Jim_Interp *interp, char *s, int size, void *cookie )
+{
+	if( (interp == NULL) || (interp->cb_fgets == NULL) ){
+		errno = ENOTSUP;
+		return NULL;
+	}
+	return (*(interp->cb_fgets))( s, size, cookie );
+}
+
+	
+
+
+
+
+/*
+ * Local Variables: **
+ * tab-width: 4 **
+ * c-basic-offset: 4 **
+ * End: **
+ */
+

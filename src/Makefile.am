@@ -81,4 +81,20 @@ openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
 
 	
 	
-nobase_dist_pkglib_DATA = tcl/commands.tcl
+nobase_dist_pkglib_DATA = \
+	tcl/commands.tcl  \
+	tcl/bitsbytes.tcl  \
+	tcl/chip/atmel/at91/aic.tcl  \
+	tcl/chip/atmel/at91/at91sam7x128.tcl  \
+	tcl/chip/atmel/at91/at91sam7x256.tcl  \
+	tcl/chip/atmel/at91/pmc.tcl  \
+	tcl/chip/atmel/at91/rtt.tcl  \
+	tcl/chip/atmel/at91/usarts.tcl  \
+	tcl/cpu/arm/arm7tdmi.tcl  \
+	tcl/cpu/arm/arm920.tcl  \
+	tcl/cpu/arm/arm946.tcl  \
+	tcl/cpu/arm/arm966.tcl  \
+	tcl/memory.tcl  \
+	tcl/mmr_helpers.tcl  \
+	tcl/readable.tcl  
+

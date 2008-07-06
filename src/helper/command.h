@@ -48,7 +48,7 @@ typedef struct command_context_s
 	 * Returning ERROR_COMMAND_SYNTAX_ERROR will have the effect of
 	 * printing out the syntax of the command.
 	 */
-	int (*output_handler)(struct command_context_s *context, char* line);
+	int (*output_handler)(struct command_context_s *context, const char* line);
 	void *output_handler_priv;
 } command_context_t;
 
@@ -67,7 +67,7 @@ typedef struct command_s
 extern command_t* register_command(command_context_t *context, command_t *parent, char *name, int (*handler)(struct command_context_s *context, char* name, char** args, int argc), enum command_mode mode, char *help);
 extern int unregister_command(command_context_t *context, char *name);
 extern int unregister_all_commands(command_context_t *context);
-extern void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, char* line), void *priv);
+extern void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, const char* line), void *priv);
 extern command_context_t* copy_command_context(command_context_t* context);
 extern command_context_t* command_init();
 extern int command_done(command_context_t *context);
@@ -86,3 +86,11 @@ extern int command_run_file(command_context_t *context, FILE *file, enum command
 extern int fast_and_dangerous;
 
 #endif /* COMMAND_H */
+
+/*
+ * Local Variables: **
+ * tab-width: 4 **
+ * c-basic-offset: 4 **
+ * End: **
+ */
+

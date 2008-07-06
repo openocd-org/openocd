@@ -497,9 +497,14 @@ typedef struct Jim_Interp {
     struct Jim_HashTable assocData; /* per-interp storage for use by packages */
     Jim_PrngState *prngState; /* per interpreter Random Number Gen. state. */
     struct Jim_HashTable packages; /* Provided packages hash table */
-    FILE *stdin_; /* input file pointer, 'stdin' by default */
-    FILE *stdout_; /* output file pointer, 'stdout' by default */
-    FILE *stderr_; /* errors file pointer, 'stderr' by default */
+    void *cookie_stdin; /* input file pointer, 'stdin' by default */
+    void *cookie_stdout; /* output file pointer, 'stdout' by default */
+    void *cookie_stderr; /* errors file pointer, 'stderr' by default */
+    size_t (*cb_fwrite  )( const void *ptr, size_t size, size_t n, void *cookie );
+	size_t (*cb_fread   )( void *ptr, size_t size, size_t n, void *cookie );
+	int    (*cb_vfprintf)( void *cookie, const char *fmt, va_list ap );
+	int    (*cb_fflush  )( void *cookie );
+	char  *(*cb_fgets   )( char *s, int size, void *cookie );
 } Jim_Interp;
 
 /* Currently provided as macro that performs the increment.
@@ -662,9 +667,9 @@ JIM_STATIC int JIM_API(Jim_GetFinalizer) (Jim_Interp *interp, Jim_Obj *objPtr, J
 JIM_STATIC Jim_Interp * JIM_API(Jim_CreateInterp) (void);
 JIM_STATIC void JIM_API(Jim_FreeInterp) (Jim_Interp *i);
 JIM_STATIC int JIM_API(Jim_GetExitCode) (Jim_Interp *interp);
-JIM_STATIC FILE * JIM_API(Jim_SetStdin) (Jim_Interp *interp, FILE *fp);
-JIM_STATIC FILE * JIM_API(Jim_SetStdout) (Jim_Interp *interp, FILE *fp);
-JIM_STATIC FILE * JIM_API(Jim_SetStderr) (Jim_Interp *interp, FILE *fp);
+JIM_STATIC void * JIM_API(Jim_SetStdin) (Jim_Interp *interp, void *fp);
+JIM_STATIC void * JIM_API(Jim_SetStdout) (Jim_Interp *interp, void *fp);
+JIM_STATIC void * JIM_API(Jim_SetStderr) (Jim_Interp *interp, void *fp);
 
 /* commands */
 JIM_STATIC void JIM_API(Jim_RegisterCoreCommands) (Jim_Interp *interp);
@@ -815,6 +820,15 @@ JIM_STATIC int JIM_API(Jim_InteractivePrompt) (Jim_Interp *interp);
 /* Misc */
 JIM_STATIC void JIM_API(Jim_Panic) (Jim_Interp *interp, const char *fmt, ...);
 
+/* Jim's STDIO */
+JIM_STATIC int     JIM_API( Jim_fprintf  )( Jim_Interp *interp, void *cookie, const char *fmt, ... );
+JIM_STATIC int     JIM_API( Jim_vfprintf )( Jim_Interp *interp, void *cookie, const char *fmt, va_list ap );
+JIM_STATIC size_t  JIM_API( Jim_fwrite   )( Jim_Interp *interp, const void *ptr, size_t size, size_t nmeb, void *cookie );
+JIM_STATIC size_t  JIM_API( Jim_fread    )( Jim_Interp *interp, void *ptr, size_t size, size_t nmeb, void *cookie );
+JIM_STATIC int     JIM_API( Jim_fflush   )( Jim_Interp *interp, void *cookie );
+JIM_STATIC char *  JIM_API( Jim_fgets    )( Jim_Interp *interp, char *s, int size, void *cookie );
+
+
 #undef JIM_STATIC
 #undef JIM_API
 
@@ -942,6 +956,13 @@ static void Jim_InitExtension(Jim_Interp *interp)
   JIM_GET_API(StackPop);
   JIM_GET_API(StackPeek);
   JIM_GET_API(FreeStackElements);
+  JIM_GET_API(fprintf  );
+  JIM_GET_API(vfprintf );
+  JIM_GET_API(fwrite   );
+  JIM_GET_API(fread    );
+  JIM_GET_API(fflush   );
+  JIM_GET_API(fgets    );
+  
 }
 #endif /* defined JIM_EXTENSION || defined JIM_EMBEDDED */
 
@@ -962,3 +983,11 @@ static void Jim_InitEmbedded(void) {
 #endif
 
 #endif /* __JIM__H */
+
+/*
+ * Local Variables: **
+ * tab-width: 4 **
+ * c-basic-offset: 4 **
+ * End: **
+ */
+

@@ -215,23 +215,6 @@ target_t* get_current_target(command_context_t *cmd_ctx)
 	return target;
 }
 
-static void execute_script(struct command_context_s *cmd_ctx, char *reset_script)
-{
-	if (reset_script==NULL)
-		return;
-	FILE *script;
-	script = open_file_from_path(reset_script, "r");
-	if (!script)
-	{
-		LOG_ERROR("couldn't open script file %s", reset_script);
-		return;
-	}
-	
-	LOG_INFO("executing script '%s'", reset_script);
-	command_run_file(cmd_ctx, script, COMMAND_EXEC);
-	fclose(script);
-}
-
 /* Process target initialization, when target entered debug out of reset
  * the handler is unregistered at the end of this function, so it's only called once
  */
@@ -243,7 +226,7 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 	{
 		target_unregister_event_callback(target_init_handler, priv);
 
-		execute_script(cmd_ctx, target->reset_script);
+		target_invoke_script(cmd_ctx, target, "reset");
 
 		jtag_execute_queue();
 	}
@@ -305,7 +288,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	target = targets;
 	while (target)
 	{
-		execute_script(cmd_ctx, target->pre_reset_script);
+		target_invoke_script(cmd_ctx, target, "pre_reset");
 		target = target->next;
 	}
 	
@@ -950,7 +933,8 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "target", handle_target_command, COMMAND_CONFIG, "target <cpu> [reset_init default - DEPRECATED] <chainpos> <endianness> <variant> [cpu type specifc args]");
 	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, NULL);
-	register_command(cmd_ctx, NULL, "target_script", handle_target_script_command, COMMAND_CONFIG, NULL);
+	register_command(cmd_ctx, NULL, "target_script", handle_target_script_command, COMMAND_CONFIG, 
+	"target_script <target#> <event=reset/pre_reset/post_halt/pre_resume/gdb_program_config> <script_file>");
 	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, "<target> <run time ms>");
 	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
@@ -1437,12 +1421,6 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				}
 				(*last_target_p)->run_and_halt_time = 1000; /* default 1s */
 				
-				(*last_target_p)->reset_script = NULL;
-				(*last_target_p)->pre_reset_script = NULL;
-				(*last_target_p)->post_halt_script = NULL;
-				(*last_target_p)->pre_resume_script = NULL;
-				(*last_target_p)->gdb_program_script = NULL;
-				
 				(*last_target_p)->working_area = 0x0;
 				(*last_target_p)->working_area_size = 0x0;
 				(*last_target_p)->working_areas = NULL;
@@ -1487,7 +1465,14 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	return ERROR_OK;
 }
 
-/* usage: target_script <target#> <event> <script_file> */
+int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, char *name)
+{
+	return command_run_linef(cmd_ctx, " if {[catch {info body target_%s_%d} t]==0} {target_%s_%d}", 
+	name, get_num_by_target(target),
+	name, get_num_by_target(target));
+}
+
+
 int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = NULL;
@@ -1505,41 +1490,14 @@ int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, c
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
-	if ((strcmp(args[1], "reset") == 0)||(strcmp(args[1], "post_reset") == 0))
-	{
-		if (target->reset_script)
-			free(target->reset_script);
-		target->reset_script = strdup(args[2]);
-	}
-	else if (strcmp(args[1], "pre_reset") == 0)
-	{
-		if (target->pre_reset_script)
-			free(target->pre_reset_script);
-		target->pre_reset_script = strdup(args[2]);
-	}
-	else if (strcmp(args[1], "post_halt") == 0)
-	{
-		if (target->post_halt_script)
-			free(target->post_halt_script);
-		target->post_halt_script = strdup(args[2]);
-	}
-	else if (strcmp(args[1], "pre_resume") == 0)
-	{
-		if (target->pre_resume_script)
-			free(target->pre_resume_script);
-		target->pre_resume_script = strdup(args[2]);
-	}
-	else if (strcmp(args[1], "gdb_program_config") == 0)
-	{
-		if (target->gdb_program_script)
-			free(target->gdb_program_script);
-		target->gdb_program_script = strdup(args[2]);
-	}
-	else
-	{
-		LOG_ERROR("unknown event type: '%s", args[1]);
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+	/* Define a tcl procedure which we'll invoke upon some event */
+	command_run_linef(cmd_ctx, 
+	"proc target_%s_%d {} {"
+	"openocd {script %s}" 
+	"}",
+	args[1],
+	get_num_by_target(target),
+	args[2]);
 	
 	return ERROR_OK;
 }
@@ -2021,14 +1979,11 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 				output_len = 0;
 			}
 		}
-	} else
-	{
-		LOG_ERROR("Failure examining memory");
 	}
 
 	free(buffer);
 	
-	return ERROR_OK;
+	return retval;
 }
 
 int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

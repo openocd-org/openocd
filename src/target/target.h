@@ -200,11 +200,6 @@ typedef struct target_s
 	target_type_t *type;				/* target type definition (name, access functions) */
 	enum target_reset_mode reset_mode;	/* what to do after a reset */
 	int run_and_halt_time;				/* how long the target should run after a run_and_halt reset */
-	char *pre_reset_script;					/* script file to initialize the target before a reset */
-	char *reset_script;					/* script file to initialize the target after a reset */
-	char *post_halt_script;				/* script file to execute after the target halted */
-	char *pre_resume_script;			/* script file to execute before the target resumed */
-	char *gdb_program_script;			/* script file to execute before programming vis gdb */
 	u32 working_area;					/* working area (initialized RAM). Evaluated 
 										   upon first allocation from virtual/physical address.
 										  */
@@ -324,6 +319,9 @@ int target_write_u8(struct target_s *target, u32 address, u8 value);
 
 /* Issues USER() statements with target state information */
 int target_arch_state(struct target_s *target);
+
+int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, char *name);
+
 
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)

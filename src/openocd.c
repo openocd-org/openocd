@@ -165,6 +165,191 @@ void unlockBigLock()
 Jim_Interp *interp;
 command_context_t *active_cmd_ctx;
 
+static int
+new_int_array_element( Jim_Interp * interp, 
+					   const char *varname, 
+					   int idx, 
+					   u32 val )
+{
+	char *namebuf;
+	Jim_Obj *nameObjPtr, *valObjPtr;
+	int result;
+
+	namebuf = alloca( strlen(varname) + 30 );
+	sprintf( namebuf, "%s(%d)", varname, idx );
+
+
+    nameObjPtr = Jim_NewStringObj(interp, namebuf, -1);
+    valObjPtr = Jim_NewIntObj(interp, val );
+    Jim_IncrRefCount(nameObjPtr);
+    Jim_IncrRefCount(valObjPtr);
+    result = Jim_SetVariable(interp, nameObjPtr, valObjPtr);
+    Jim_DecrRefCount(interp, nameObjPtr);
+    Jim_DecrRefCount(interp, valObjPtr);
+	// printf( "%s = 0%08x\n", namebuf, val );
+    return result;
+}
+
+static int
+Jim_Command_mem2array( Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	target_t *target;
+	long l;
+	u32 width;
+	u32 endian;
+	u32 len;
+	u32 addr;
+	u32 count;
+	u32 v;
+	const char *varname;
+	u8 buffer[4096];
+	int  i,n,e,retval;
+
+
+	/* argv[1] = name of array to receive the data
+	 * argv[2] = desired width
+	 * argv[3] = memory address 
+	 * argv[4] = length in bytes to read
+	 */
+	if( argc != 5 ){
+		Jim_WrongNumArgs( interp, 1, argv, "varname width addr nelems" );
+		return JIM_ERR;
+	}
+	varname = Jim_GetString( argv[1], &len );
+	/* given "foo" get space for worse case "foo(%d)" .. add 20 */
+
+
+	e = Jim_GetLong( interp, argv[2], &l );
+	width = l;
+	if( e != JIM_OK ){
+		return e;
+	}
+	
+	e = Jim_GetLong( interp, argv[3], &l );
+	addr = l;
+	if( e != JIM_OK ){
+		return e;
+	}
+	e = Jim_GetLong( interp, argv[4], &l );
+	len = l;
+	if( e != JIM_OK ){
+		return e;
+	}
+	switch(width){
+	case 8:
+		width = 1;
+		break;
+	case 16:
+		width = 2;
+		break;
+	case 32:
+		width = 4;
+		break;
+	default:
+		Jim_SetResult(interp, 
+					  Jim_NewEmptyStringObj(interp));
+		Jim_AppendStrings( interp, Jim_GetResult(interp),
+						   "Invalid width param, must be 8/16/32", NULL );
+		return JIM_ERR;
+	}
+	if( len == 0 ){
+		Jim_SetResult(interp, 
+					  Jim_NewEmptyStringObj(interp));
+		Jim_AppendStrings( interp, Jim_GetResult(interp),
+						   "mem2array: zero width read?", NULL );
+		return JIM_ERR;
+	}
+	if( (addr + (len * width)) < addr ){
+		Jim_SetResult(interp, 
+					  Jim_NewEmptyStringObj(interp));
+		Jim_AppendStrings( interp, Jim_GetResult(interp),
+						   "mem2array: addr + len - wraps to zero?", NULL );
+		return JIM_ERR;
+	}
+	/* absurd transfer size? */
+	if( len > 65536 ){
+		Jim_SetResult(interp, 
+					  Jim_NewEmptyStringObj(interp));
+		Jim_AppendStrings( interp, Jim_GetResult(interp),
+						   "mem2array: absurd > 64K item request", NULL );
+		return JIM_ERR;
+	}		
+		
+	if( (width == 1) ||
+		((width == 2) && ((addr & 1) == 0)) ||
+		((width == 4) && ((addr & 3) == 0)) ){
+		/* all is well */
+	} else {
+		char buf[100];
+		Jim_SetResult(interp, 
+					  Jim_NewEmptyStringObj(interp));
+		sprintf( buf, 
+				 "mem2array address: 0x%08x is not aligned for %d byte reads",
+				 addr, width );
+				 
+		Jim_AppendStrings( interp, Jim_GetResult(interp),
+						   buf , NULL );
+		return JIM_ERR;
+	}
+
+	target = get_current_target( active_cmd_ctx );
+	
+	/* Transfer loop */
+
+	/* index counter */
+	n = 0;
+	/* assume ok */
+	e = JIM_OK;
+	while( len ){
+
+		/* Slurp... in buffer size chunks */
+		
+		count = len; /* in objects.. */
+		if( count > (sizeof(buffer)/width)){
+			count = (sizeof(buffer)/width);
+		}
+		
+		retval = target->type->read_memory( target, 
+											addr, 
+											width, 
+											count,
+											buffer );
+
+		if( retval != ERROR_OK ){
+			/* BOO !*/
+			LOG_ERROR("mem2array: Read @ 0x%08x, w=%d, cnt=%d, failed",
+					  addr, width, count );
+			Jim_SetResult(interp, 
+						  Jim_NewEmptyStringObj(interp));
+			Jim_AppendStrings( interp, Jim_GetResult(interp),
+						   "mem2array: cannot read memory", NULL );
+			e = JIM_ERR;
+			len = 0;
+		} else {
+			v = 0; /* shut up gcc */
+			for( i = 0 ; i < count ; i++, n++ ){
+				switch(width){
+				case 4:
+					v = target_buffer_get_u32( target, &buffer[i*width] );
+					break;
+				case 2:
+					v = target_buffer_get_u16( target, &buffer[i*width] );
+					break;
+				case 1:
+					v = buffer[i] & 0x0ff;
+					break;
+				}
+				new_int_array_element( interp, varname, n, v );
+			}
+			len -= count;
+		}
+	}
+	Jim_SetResult(interp, 
+				  Jim_NewEmptyStringObj(interp));
+
+	return JIM_OK;
+}
+
 static void tcl_output(void *privData, const char *file, int line, 
 		const char *function, const char *string)
 {		
@@ -323,6 +508,97 @@ Jim_Command_echo(Jim_Interp *interp,
 	return JIM_OK;
 }
 
+static size_t
+openocd_jim_fwrite( const void *_ptr, size_t size, size_t n, void *cookie )
+{
+	size_t nbytes;
+	const char *ptr;
+
+	/* make it a char easier to read code */
+	ptr = _ptr;
+
+	nbytes = size * n;
+	if( nbytes == 0 ){
+		return 0;
+	}
+
+	if( !active_cmd_ctx ){
+		/* FIXME: Where should this go? */		
+		return n;
+	}
+
+	
+	/* do we have to chunk it? */
+	if( ptr[ nbytes ] == 0 ){
+		/* no it is a C style string */
+		command_output_text( active_cmd_ctx, ptr );
+		return;
+	}
+	/* GRR we must chunk - not null terminated */
+	while( nbytes ){
+		char chunk[128+1];
+		int x;
+
+		x = nbytes;
+		if( x > 128 ){
+			x = 128;
+		}
+		/* copy it */
+		memcpy( chunk, ptr, x );
+		/* terminate it */
+		chunk[n] = 0;
+		/* output it */
+		command_output_text( active_cmd_ctx, chunk );
+		ptr += x;
+		nbytes -= x;
+	}
+	
+	return n;
+}
+
+static size_t
+openocd_jim_fread(void *ptr, size_t size, size_t n, void *cookie )
+{
+	/* TCL wants to read... tell him no */
+	return 0;
+}
+
+
+static int
+openocd_jim_vfprintf( void *cookie, const char *fmt, va_list ap )
+{
+	char *cp;
+	int n;
+	
+	n = -1;
+	if( active_cmd_ctx ){
+		cp = alloc_vprintf( fmt, ap );
+		if( cp ){
+			command_output_text( active_cmd_ctx, cp );
+			n = strlen(cp);
+			free(cp);
+		}
+	}
+	return n;
+}
+
+static int
+openocd_jim_fflush( void *cookie )
+{
+	/* nothing to flush */
+	return 0;
+}
+
+static char  *
+openocd_jim_fgets( char *s, int size, void *cookie )
+{
+	/* not supported */
+	errno = ENOTSUP;
+	return NULL;
+}
+
+
+
 void initJim(void)
 {
     Jim_InitEmbedded();
@@ -335,6 +611,17 @@ void initJim(void)
     Jim_CreateCommand(interp, "openocd_throw", Jim_Command_openocd_throw, NULL, NULL);
     Jim_CreateCommand(interp, "find", Jim_Command_find, NULL, NULL);
     Jim_CreateCommand(interp, "echo", Jim_Command_echo, NULL, NULL);
+    Jim_CreateCommand(interp, "mem2array", Jim_Command_mem2array, NULL, NULL );
+
+	/* Set Jim's STDIO */
+	interp->cookie_stdin  = NULL;
+	interp->cookie_stdout = NULL;
+	interp->cookie_stderr = NULL;
+	interp->cb_fwrite     = openocd_jim_fwrite;
+	interp->cb_fread      = openocd_jim_fread ;
+	interp->cb_vfprintf   = openocd_jim_vfprintf;
+	interp->cb_fflush     = openocd_jim_fflush;
+	interp->cb_fgets      = openocd_jim_fgets;
 }
 
 int main(int argc, char *argv[])
@@ -421,4 +708,12 @@ int main(int argc, char *argv[])
 
 	return EXIT_SUCCESS;
 }
+
+
+/*
+ * Local Variables: **
+ * tab-width: 4 **
+ * c-basic-offset: 4 **
+ * End: **
+ */
 

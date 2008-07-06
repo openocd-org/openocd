@@ -27,7 +27,7 @@ extern int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char 
 extern int parse_config_file(struct command_context_s *cmd_ctx);
 extern void add_config_command (const char *cfg);
 extern void add_script_search_dir (const char *dir);
-extern int configuration_output_handler(struct command_context_s *context, char* line);
+extern int configuration_output_handler(struct command_context_s *context, const char* line);
 extern FILE *open_file_from_path (char *file, char *mode);
 extern char *find_file(char *name);
 

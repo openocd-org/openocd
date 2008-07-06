@@ -92,7 +92,7 @@ int telnet_outputline(connection_t *connection, const char *line)
 		telnet_write(connection, line, len);
 		if (line_end)
 		{
-			telnet_write(connection, "\r\n\0", 3);
+			telnet_write(connection, "\r\n", 2);
 			line += len+1;
 		}
 		else
@@ -104,7 +104,7 @@ int telnet_outputline(connection_t *connection, const char *line)
 	return ERROR_OK;
 }
 
-int telnet_output(struct command_context_s *cmd_ctx, char* line)
+int telnet_output(struct command_context_s *cmd_ctx, const char* line)
 {
 	connection_t *connection = cmd_ctx->output_handler_priv;
 
@@ -181,7 +181,7 @@ int telnet_new_connection(connection_t *connection)
 	if (telnet_service->banner)
 	{
 		telnet_write(connection, telnet_service->banner, strlen(telnet_service->banner));
-		telnet_write(connection, "\r\n\0", 3);
+		telnet_write(connection, "\r\n", 2);
 	}
 
 	telnet_prompt(connection);
@@ -658,3 +658,11 @@ int handle_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 {
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
+
+/*
+ * Local Variables: **
+ * tab-width: 4 **
+ * c-basic-offset: 4 **
+ * End: **
+ */
+

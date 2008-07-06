@@ -621,7 +621,7 @@ int command_print_help(command_context_t* context, char* name, char** args, int 
     return command_print_help_match(context, context->commands, name, args, argc);
 }
 
-void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, char* line), void *priv)
+void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, const char* line), void *priv)
 {
 	context->output_handler = output_handler;
 	context->output_handler_priv = priv;
@@ -720,3 +720,10 @@ int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 	return retval;
 }
+/*
+ * Local Variables: **
+ * tab-width: 4 **
+ * c-basic-offset: 4 **
+ * End: **
+ */
+

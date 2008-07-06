@@ -45,7 +45,7 @@ static struct option long_options[] =
 	{0, 0, 0, 0}
 };
 
-int configuration_output_handler(struct command_context_s *context, char* line)
+int configuration_output_handler(struct command_context_s *context, const char* line)
 {
 	LOG_INFO_N(line);
 

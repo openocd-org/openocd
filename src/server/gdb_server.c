@@ -568,7 +568,7 @@ int gdb_output_con(connection_t *connection, const char* line)
 	return ERROR_OK;
 }
 
-int gdb_output(struct command_context_s *context, char* line)
+int gdb_output(struct command_context_s *context, const char* line)
 {
 	/* this will be dumped to the log and also sent as an O packet if possible */
 	LOG_USER_N("%s", line);
@@ -577,24 +577,10 @@ int gdb_output(struct command_context_s *context, char* line)
 
 int gdb_program_handler(struct target_s *target, enum target_event event, void *priv)
 {
-	FILE *script;
 	struct command_context_s *cmd_ctx = priv;
 
-	if (target->gdb_program_script)
-	{
-		script = open_file_from_path(target->gdb_program_script, "r");
-		if (!script)
-		{
-			LOG_ERROR("couldn't open script file %s", target->gdb_program_script);
-				return ERROR_OK;
-		}
-
-		LOG_INFO("executing gdb_program script '%s'", target->gdb_program_script);
-		command_run_file(cmd_ctx, script, COMMAND_EXEC);
-		fclose(script);
-
-		jtag_execute_queue();
-	}
+	target_invoke_script(cmd_ctx, target, "gdb_program");
+	jtag_execute_queue();
 
 	return ERROR_OK;
 }
