@@ -96,7 +96,7 @@ proc memread16 {ADDR } {
     }
 }    
 
-proc memread82 {ADDR } {
+proc memread8 {ADDR } {
     set foo(0) 0
     if ![ catch { mem2array foo 8 $ADDR 1  } msg ] {
 	return $foo(0)
