@@ -226,7 +226,7 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 	{
 		target_unregister_event_callback(target_init_handler, priv);
 
-		target_invoke_script(cmd_ctx, target, "reset");
+		target_invoke_script(cmd_ctx, target, "post_reset");
 
 		jtag_execute_queue();
 	}
@@ -1490,12 +1490,19 @@ int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, c
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
+	const char *event=args[1];
+	if (strcmp("reset", event)==0)
+	{
+		/* synonymous */
+		event="post_reset";
+	}
+			
 	/* Define a tcl procedure which we'll invoke upon some event */
 	command_run_linef(cmd_ctx, 
 	"proc target_%s_%d {} {"
 	"openocd {script %s}" 
 	"}",
-	args[1],
+	event,
 	get_num_by_target(target),
 	args[2]);
 	
