@@ -1,9 +1,4 @@
 
-# implements Tcl procedures/functions
-proc peek {address} {
-	return [openocd_throw "mdw $address"]
-}
-
 # Production command
 # FIX!!! need to figure out how to feed back relevant output
 # from e.g. "flash banks" command...

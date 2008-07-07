@@ -381,10 +381,6 @@ static void tcl_output(void *privData, const char *file, int line, const char *f
 int jim_command(command_context_t *context, char *line)
 {
 	int retval=ERROR_OK;
-	/* FIX!!!! in reality there is only one cmd_ctx handler, but consider
-	what might happen here if there are multiple handlers w/reentrant callback
-	fn's... shudder!  */
-	active_cmd_ctx=context;
 	int retcode=Jim_Eval(interp, line);
 	
 	const char *result;
@@ -685,6 +681,8 @@ int openocd_main(int argc, char *argv[])
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;
 	command_set_output_handler(cfg_cmd_ctx, configuration_output_handler, NULL);
 	
+	active_cmd_ctx=cfg_cmd_ctx;
+	
 	if (parse_cmdline_args(cfg_cmd_ctx, argc, argv) != ERROR_OK)
 		return EXIT_FAILURE;
 
@@ -692,6 +690,8 @@ int openocd_main(int argc, char *argv[])
 
 	if (parse_config_file(cfg_cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
+	
+	active_cmd_ctx=cmd_ctx;
 	
 	command_done(cfg_cmd_ctx);
 
