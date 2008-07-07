@@ -51,6 +51,7 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 * Commands::          OpenOCD Commands
 * Sample Scripts::    Sample Target Scripts
 * GDB and OpenOCD::   Using GDB and OpenOCD
+* TCL and OpenOCD::   Using TCL and OpenOCD
 * Upgrading::         Deprecated/Removed Commands
 * FAQ::               Frequently Asked Questions
 * License::           GNU Free Documentation License
@@ -198,7 +199,7 @@ locations, i.e. /usr/include, /usr/lib.
 @cindex --debug_level
 @cindex --logfile
 @cindex --search
-OpenOCD runs as a daemon, waiting for connections from clients (Telnet or GDB).
+OpenOCD runs as a daemon, waiting for connections from clients (Telnet, GDB, Other).
 Run with @option{--help} or @option{-h} to view the available command line switches.
 
 It reads its configuration by default from the file openocd.cfg located in the current
@@ -267,6 +268,11 @@ Default behaviour is <@var{enable}>
 Set to <@var{enable}> to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
 Default behaviour is <@var{enable}>
+ at item @b{tcl_port} <@var{number}>
+ at cindex tcl_port
+Port on which to listen for incoming TCL syntax. This port is intended as
+a simplified RPC connection that can be used by clients to issue commands
+and get the output from the TCL engine.
 @item @b{daemon_startup} <@var{mode}>
 @cindex daemon_startup
 @option{mode} can either @option{attach} or @option{reset}
@@ -737,12 +743,16 @@ at91sam9260.cfg  nslu2.cfg     sam7x256.cfg    wi-9c.cfg
 @chapter Commands
 @cindex commands
 
-OpenOCD allows user interaction through a telnet interface
-(default: port 4444) and a GDB server (default: port 3333). The command line interpreter
+OpenOCD allows user interaction through a GDB server (default: port 3333),
+a telnet interface (default: port 4444), and a TCL interface (default: port 5555). The command line interpreter
 is available from both the telnet interface and a GDB session. To issue commands to the
 interpreter from within a GDB session, use the @option{monitor} command, e.g. use
 @option{monitor poll} to issue the @option{poll} command. All output is relayed through the
 GDB session.
+
+The TCL interface is used as a simplified RPC mechanism that feeds all the
+input into the TCL interpreter and returns the output from the evaluation of
+the commands.
 
 @section Daemon
 
@@ -754,7 +764,7 @@ Wait for n milliseconds before resuming. Useful in connection with script files
 
 @item @b{shutdown}
 @cindex shutdown
-Close the OpenOCD daemon, disconnecting all clients (GDB, Telnet). 
+Close the OpenOCD daemon, disconnecting all clients (GDB, Telnet, Other). 
 
 @item @b{debug_level} [@var{n}]
 @cindex debug_level
@@ -1355,6 +1365,39 @@ target_script 0 gdb_program_config config.script
 
 To verify any flash programming the gdb command @option{compare-sections}
 can be used.
+
+ at node TCL and OpenOCD
+ at chapter TCL and OpenOCD
+ at cindex TCL and OpenOCD
+OpenOCD embeds a TCL interpreter (see JIM) for command parsing and scripting
+support.
+
+The TCL interpreter can be invoked from the interactive command line, files, and a network port.
+
+The command and file interfaces are fairly straightforward, while the network
+port is geared toward intergration with external clients. A small example
+of an external TCL script that can connect to openocd is shown below.
+
+ at verbatim
+# Simple tcl client to connect to openocd
+puts "Use empty line to exit"
+set fo [socket 127.0.0.1 5555]
+puts -nonewline stdout "> "
+flush stdout
+while {[gets stdin line] >= 0} {
+    if {$line eq {}} break
+    puts $fo $line
+    flush $fo
+    gets $fo line
+    puts $line
+    puts -nonewline stdout "> "
+    flush stdout
+}
+close $fo
+ at end verbatim
+
+This script can easily be modified to front various GUIs or be a sub
+component of a larger framework for control and interaction.
 
 @node Upgrading
 @chapter Deprecated/Removed Commands
