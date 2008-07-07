@@ -397,11 +397,11 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 {
 	int start_word=0;
 	command_t *c;
-	c=find_command(context, commands, words, num_words, start_word, &start_word);
-	if (c==NULL)
+	c = find_command(context, commands, words, num_words, start_word, &start_word);
+	if (c == NULL)
 	{
-		command_print(context, "Command %s not found", words[start_word]);
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		/* just return command not found */
+		return ERROR_COMMAND_NOTFOUND;
 	}
 	
 	int retval = c->handler(context, c->name, words + start_word + 1, num_words - start_word - 1);
@@ -421,10 +421,11 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 		 */
 		LOG_DEBUG("Command failed with error code %d", retval); 
 	}
+	
 	return retval; 
 }
 
-int command_run_line_internal_op(command_context_t *context, char *line, int run)
+int command_run_line_internal(command_context_t *context, char *line)
 {
 	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/ 
 	
@@ -445,23 +446,13 @@ int command_run_line_internal_op(command_context_t *context, char *line, int run
 	if (*line && (line[0] == '#'))
 		return ERROR_OK;
 	
-	if (run)
-	{
-		LOG_DEBUG("%s", line);
-	}
+	LOG_DEBUG("%s", line);
 
 	nwords = parse_line(line, words, sizeof(words) / sizeof(words[0]));
 	
 	if (nwords > 0)
 	{
-		if (run)
-		{
-			retval = find_and_run_command(context, context->commands, words, nwords);
-		} else
-		{
-			int t;
-			return (find_command(context, context->commands, words, nwords, 0, &t)!=NULL)?ERROR_OK:ERROR_FAIL;
-		}
+		retval = find_and_run_command(context, context->commands, words, nwords);
 	}
 	else
 		return ERROR_INVALID_ARGUMENTS;
@@ -472,17 +463,14 @@ int command_run_line_internal_op(command_context_t *context, char *line, int run
 	return retval;
 }
 
-int command_run_line_internal(command_context_t *context, char *line)
-{
-	return command_run_line_internal_op(context, line, 1);
-}
-
 int command_run_line(command_context_t *context, char *line)
 {
+	int retval;
+	
 	if ((!context) || (!line))
 		return ERROR_INVALID_ARGUMENTS;
-
-	if (command_run_line_internal_op(context, line, 0)!=ERROR_OK)
+	
+	if ((retval = command_run_line_internal(context, line)) == ERROR_COMMAND_NOTFOUND)
 	{
 		/* If we can't find a command, then try the interpreter. 
 		 * If there is no interpreter implemented, then this will
@@ -491,10 +479,11 @@ int command_run_line(command_context_t *context, char *line)
 		 * These hooks were left in to reduce patch size for 
 		 * wip to add scripting language.
 		 */
+		
 		return jim_command(context, line);
 	}
-
-	return command_run_line_internal(context, line);
+	
+	return retval;
 }
 
 int command_run_file(command_context_t *context, FILE *file, enum command_mode mode)
@@ -721,6 +710,10 @@ int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	duration_start_measure(&duration);
 	
 	retval = find_and_run_command(cmd_ctx, cmd_ctx->commands, args, argc);
+	if (retval == ERROR_COMMAND_NOTFOUND)
+	{
+		command_print(cmd_ctx, "Command %s not found", args[0]);
+	}
 	
 	duration_stop_measure(&duration, &duration_text);
 	

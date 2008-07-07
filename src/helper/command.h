@@ -81,6 +81,7 @@ extern void command_output_text(command_context_t *context, const char *data);
 
 #define		ERROR_COMMAND_CLOSE_CONNECTION		(-600)
 #define		ERROR_COMMAND_SYNTAX_ERROR			(-601)
+#define		ERROR_COMMAND_NOTFOUND				(-602)
 
 extern int fast_and_dangerous;
 
