@@ -1366,9 +1366,9 @@ target_script 0 gdb_program_config config.script
 To verify any flash programming the gdb command @option{compare-sections}
 can be used.
 
- at node TCL and OpenOCD
- at chapter TCL and OpenOCD
- at cindex TCL and OpenOCD
+@node TCL and OpenOCD
+@chapter TCL and OpenOCD
+@cindex TCL and OpenOCD
 OpenOCD embeds a TCL interpreter (see JIM) for command parsing and scripting
 support.
 
@@ -1378,7 +1378,7 @@ The command and file interfaces are fairly straightforward, while the network
 port is geared toward intergration with external clients. A small example
 of an external TCL script that can connect to openocd is shown below.
 
- at verbatim
+@verbatim
 # Simple tcl client to connect to openocd
 puts "Use empty line to exit"
 set fo [socket 127.0.0.1 5555]
@@ -1394,7 +1394,7 @@ while {[gets stdin line] >= 0} {
     flush stdout
 }
 close $fo
- at end verbatim
+@end verbatim
 
 This script can easily be modified to front various GUIs or be a sub
 component of a larger framework for control and interaction.
