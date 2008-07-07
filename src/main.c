@@ -18,15 +18,17 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-/* implementations of OpenOCD that uses multithreading needs to lock OpenOCD while calling
- * OpenOCD fn's. No-op in vanilla OpenOCD
+/* implementations of OpenOCD that uses multithreading needs to know when
+ * OpenOCD is sleeping. No-op in vanilla OpenOCD
  */
-void lockBigLock()
+void openocd_sleep_prelude()
 {
 }
-void unlockBigLock()
+
+void openocd_sleep_postlude()
 {
 }
+
 
 /* 
 	This is the main entry for developer PC hosted OpenOCD.
@@ -46,4 +48,5 @@ int main(int argc, char *argv[])
 {
 	return openocd_main(argc, argv);
 }
+
 

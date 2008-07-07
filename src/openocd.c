@@ -185,8 +185,6 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	return ERROR_OK;
 }
 
-void lockBigLock();
-void unlockBigLock();
 
 Jim_Interp *interp;
 command_context_t *active_cmd_ctx;
@@ -445,8 +443,6 @@ static int Jim_Command_openocd_ignore(Jim_Interp *interp, int argc, Jim_Obj *con
 	int retval;
     char *cmd = (char*)Jim_GetString(argv[1], NULL);
 
-	lockBigLock();
-	
     Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
     
     if (startLoop)
@@ -465,7 +461,6 @@ static int Jim_Command_openocd_ignore(Jim_Interp *interp, int argc, Jim_Obj *con
 	log_remove_callback(tcl_output, tclOutput);
     
 	Jim_SetResult(interp, tclOutput);
-    unlockBigLock();
         
     return (ignore||(retval==ERROR_OK))?JIM_OK:JIM_ERR;
 }

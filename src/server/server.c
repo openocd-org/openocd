@@ -246,8 +246,8 @@ int remove_services()
 	return ERROR_OK;
 }
 
-extern void lockBigLock();
-extern void unlockBigLock();
+extern void openocd_sleep_prelude();
+extern void openocd_sleep_postlude();
 
 int server_loop(command_context_t *command_context)
 {
@@ -266,13 +266,6 @@ int server_loop(command_context_t *command_context)
 		LOG_ERROR("couldn't set SIGPIPE to SIG_IGN");
 #endif
 
-	// This function is reentrant(workaround for configuration problems)
-	static int lockCount=0;
-	if (lockCount++==0)
-	{
-		lockBigLock();
-	}
-	
 	/* do regular tasks after at most 10ms */
 	tv.tv_sec = 0;
 	tv.tv_usec = 10000;
@@ -316,10 +309,10 @@ int server_loop(command_context_t *command_context)
 #endif
 #endif
 
+		openocd_sleep_prelude();
 		// Only while we're sleeping we'll let others run
-		unlockBigLock();
 		retval = select(fd_max + 1, &read_fds, NULL, NULL, &tv);
-		lockBigLock();
+		openocd_sleep_postlude();
 
 		if (retval == -1)
 		{
@@ -421,10 +414,6 @@ int server_loop(command_context_t *command_context)
 		}
 #endif
 	}
-	if (--lockCount==0)
-	{
-		unlockBigLock();
-	}
 	
 	return ERROR_OK;
 }
@@ -462,6 +451,7 @@ int server_init()
 	signal(SIGBREAK, sig_handler);
 	signal(SIGABRT, sig_handler);
 #endif
+
 	
 	return ERROR_OK;
 }
@@ -493,3 +483,5 @@ int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
+
+
