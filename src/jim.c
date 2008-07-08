@@ -10033,7 +10033,10 @@ static int Jim_IfCoreCommand(Jim_Interp *interp, int argc,
             if (boolean)
                 return Jim_EvalObj(interp, argv[current]);
              /* Ok: no else-clause follows */
-            if (++current >= argc) return JIM_OK;
+            if (++current >= argc) {
+            	Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));            	
+            	return JIM_OK;
+            }
             falsebody = current++;
             if (Jim_CompareStringImmediate(interp, argv[falsebody],
                         "else")) {
