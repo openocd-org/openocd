@@ -392,7 +392,7 @@ int jim_command(command_context_t *context, char *line)
 				chunk = reslen - i;
 				if (chunk > 256)
 					chunk = 256;
-				strncpy(buff, result, chunk);
+        		strncpy(buff, result+i, chunk);
 				buff[chunk] = 0; 
 				LOG_USER_N("%s", buff);
 			}
@@ -607,18 +607,6 @@ command_context_t *setup_command_handler(void)
 	LOG_OUTPUT( OPENOCD_VERSION "\n" );
 	
 	
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	LOG_OUTPUT( "$URL$\n");
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-
 	register_command(cmd_ctx, NULL, "init", handle_init_command,
 					 COMMAND_ANY, "initializes target and servers - nop on subsequent invocations");
 
@@ -644,6 +632,18 @@ int openocd_main(int argc, char *argv[])
 	command_context_t *cmd_ctx;
 	cmd_ctx=setup_command_handler();
 	
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	LOG_OUTPUT( "$URL$\n");
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+
 	command_context_t *cfg_cmd_ctx;
 	cfg_cmd_ctx = copy_command_context(cmd_ctx);
 	cfg_cmd_ctx->mode = COMMAND_CONFIG;

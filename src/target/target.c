@@ -1494,7 +1494,7 @@ int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, c
 	/* Define a tcl procedure which we'll invoke upon some event */
 	command_run_linef(cmd_ctx, 
 	"proc target_%s_%d {} {"
-	"openocd {script %s}" 
+	"openocd {script %s} ; return \"\"" 
 	"}",
 	event,
 	get_num_by_target(target),
