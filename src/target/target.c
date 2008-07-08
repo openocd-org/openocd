@@ -49,7 +49,6 @@
 
 int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
 
-
 int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
@@ -225,9 +224,7 @@ int target_init_handler(struct target_s *target, enum target_event event, void *
 	if (event == TARGET_EVENT_HALTED)
 	{
 		target_unregister_event_callback(target_init_handler, priv);
-
 		target_invoke_script(cmd_ctx, target, "post_reset");
-
 		jtag_execute_queue();
 	}
 	
@@ -273,9 +270,9 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
+	
 	return target->type->resume(target, current, address, handle_breakpoints, debug_execution);
 }
-
 
 int target_process_reset(struct command_context_s *cmd_ctx)
 {
@@ -460,7 +457,6 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		target = target->next;
 	}
 	target_unregister_event_callback(target_init_handler, cmd_ctx);
-				
 	
 	jtag->speed(jtag_speed_post_reset);
 	
@@ -782,7 +778,6 @@ int target_call_timer_callbacks_now()
 {
 	return target_call_timer_callbacks(0);
 }
-
 
 int target_alloc_working_area(struct target_s *target, u32 size, working_area_t **area)
 {
@@ -1472,7 +1467,6 @@ int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, ch
 	name, get_num_by_target(target));
 }
 
-
 int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = NULL;
@@ -1818,7 +1812,6 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	return handle_wait_halt_command(cmd_ctx, cmd, args, argc);
 }
 
-		
 int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
@@ -1885,6 +1878,8 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
+	
+	target_invoke_script(cmd_ctx, target, "pre_resume");
 	
 	if (argc == 0)
 		retval = target_resume(target, 1, 0, 1, 0); /* current pc, addr = 0, handle breakpoints, not debugging */
@@ -2010,8 +2005,7 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	value = strtoul(args[1], NULL, 0);
 	if (argc == 3)
 		count = strtoul(args[2], NULL, 0);
-
-
+	
 	switch (cmd[2])
 	{
 		case 'w':

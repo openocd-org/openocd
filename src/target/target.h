@@ -201,8 +201,7 @@ typedef struct target_s
 	enum target_reset_mode reset_mode;	/* what to do after a reset */
 	int run_and_halt_time;				/* how long the target should run after a run_and_halt reset */
 	u32 working_area;					/* working area (initialized RAM). Evaluated 
-										   upon first allocation from virtual/physical address.
-										  */
+										   upon first allocation from virtual/physical address. */
 	u32 working_area_virt;				/* virtual address */
 	u32 working_area_phys;				/* physical address */
 	u32 working_area_size;				/* size in bytes */
@@ -299,7 +298,6 @@ extern int target_free_working_area_restore(struct target_s *target, working_are
 extern int target_free_all_working_areas(struct target_s *target);
 extern int target_free_all_working_areas_restore(struct target_s *target, int restore);
 
-
 extern target_t *targets;
 
 extern target_event_callback_t *target_event_callbacks;
@@ -321,7 +319,6 @@ int target_write_u8(struct target_s *target, u32 address, u8 value);
 int target_arch_state(struct target_s *target);
 
 int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, char *name);
-
 
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)

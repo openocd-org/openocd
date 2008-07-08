@@ -1219,6 +1219,7 @@ void gdb_step_continue_packet(connection_t *connection, target_t *target, char *
 	if (packet[0] == 'c')
 	{
 		LOG_DEBUG("continue");
+		target_invoke_script(connection->cmd_ctx, target, "pre_resume");
 		target_resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
 	}
 	else if (packet[0] == 's')
@@ -1801,6 +1802,7 @@ int gdb_detach(connection_t *connection, target_t *target)
 	switch( detach_mode )
 	{
 		case GDB_DETACH_RESUME:
+			target_invoke_script(connection->cmd_ctx, target, "pre_resume");
 			target_resume(target, 1, 0, 1, 0);
 			break;
 
