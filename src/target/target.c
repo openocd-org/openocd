@@ -1755,13 +1755,6 @@ int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return wait_state(cmd_ctx, cmd, TARGET_HALTED, ms); 
 }
 
-static void target_process_events(struct command_context_s *cmd_ctx)
-{
-	target_t *target = get_current_target(cmd_ctx);
-	target_poll(target);
-	target_call_timer_callbacks_now();
-}
-
 static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_state state, int ms)
 {
 	int retval;
@@ -1889,8 +1882,6 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-
-	target_process_events(cmd_ctx);
 	
 	return retval;
 }
