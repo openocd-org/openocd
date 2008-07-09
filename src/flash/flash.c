@@ -48,7 +48,6 @@ extern Jim_Interp *interp;
 
 /* command handlers */
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_banks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -186,8 +185,6 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 	{
 		Jim_CreateCommand(interp, "flash_banks", Jim_Command_flash_banks, NULL, NULL );
 		
-		register_command(cmd_ctx, flash_cmd, "banks", handle_flash_banks_command, COMMAND_EXEC,
-						 "list configured flash banks ");
 		register_command(cmd_ctx, flash_cmd, "info", handle_flash_info_command, COMMAND_EXEC,
 						 "print info about flash bank <num>");
 		register_command(cmd_ctx, flash_cmd, "probe", handle_flash_probe_command, COMMAND_EXEC,
@@ -335,26 +332,6 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 	{
 		LOG_ERROR("flash driver '%s' not found", args[0]);
 		exit(-1);
-	}
-
-	return ERROR_OK;
-}
-
-int handle_flash_banks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	flash_bank_t *p;
-	int i = 0;
-
-	if (!flash_banks)
-	{
-		command_print(cmd_ctx, "no flash banks configured");
-		return ERROR_OK;
-	}
-
-	for (p = flash_banks; p; p = p->next)
-	{
-		command_print(cmd_ctx, "#%i: %s at 0x%8.8x, size 0x%8.8x, buswidth %i, chipwidth %i",
-					  i++, p->driver->name, p->base, p->size, p->bus_width, p->chip_width);
 	}
 
 	return ERROR_OK;

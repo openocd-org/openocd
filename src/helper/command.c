@@ -465,25 +465,13 @@ int command_run_line_internal(command_context_t *context, char *line)
 
 int command_run_line(command_context_t *context, char *line)
 {
-	int retval;
-	
-	if ((!context) || (!line))
-		return ERROR_INVALID_ARGUMENTS;
-	
-	if ((retval = command_run_line_internal(context, line)) == ERROR_COMMAND_NOTFOUND)
-	{
-		/* If we can't find a command, then try the interpreter. 
-		 * If there is no interpreter implemented, then this will
-		 * simply print a syntax error.
-		 * 
-		 * These hooks were left in to reduce patch size for 
-		 * wip to add scripting language.
-		 */
-		
-		return jim_command(context, line);
-	}
-	
-	return retval;
+	/* if a command is unknown to the "unknown" proc in tcl/commands.tcl will
+	 * redirect it to OpenOCD.
+	 * 
+	 * This avoids having to type the "openocd" prefix and makes OpenOCD
+	 * commands "native" to Tcl.
+	 */
+	return jim_command(context, line);
 }
 
 int command_run_file(command_context_t *context, FILE *file, enum command_mode mode)

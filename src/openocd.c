@@ -379,6 +379,12 @@ int jim_command(command_context_t *context, char *line)
 			line = Jim_GetString(objPtr, NULL);
 			LOG_USER_N("In procedure '%s' called at file \"%s\", line %s" JIM_NL, proc, file, line);
 	    }
+	    long t;
+	    if (Jim_GetLong(interp, Jim_GetVariableStr(interp, "openocd_result", JIM_ERRMSG), &t)==JIM_OK)
+	    {
+	    	return t;
+	    }
+	    return ERROR_FAIL;
 	} else if (retcode == JIM_EXIT) {
 		/* ignore. */
 	/* exit(Jim_GetExitCode(interp)); */
@@ -419,6 +425,13 @@ static int Jim_Command_openocd_ignore(Jim_Interp *interp, int argc, Jim_Obj *con
 	
 	log_add_callback(tcl_output, tclOutput);
 	retval=command_run_line_internal(active_cmd_ctx, cmd);
+
+	/* we need to be able to get at the retval, so we store in a variable
+	 */
+	Jim_Obj *resultvar=Jim_NewIntObj(interp, retval);
+	Jim_IncrRefCount(resultvar);
+	Jim_SetGlobalVariableStr(interp, "openocd_result", resultvar);
+	Jim_DecrRefCount(interp, resultvar);
 	
 	if (startLoop)
 	{
