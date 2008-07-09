@@ -41,6 +41,11 @@
 #include <errno.h>
 #include <inttypes.h>
 
+#include "../jim.h"
+
+extern Jim_Interp *interp;
+
+
 /* command handlers */
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_banks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -140,10 +145,47 @@ int flash_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
+static int Jim_Command_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 1) {
+		Jim_WrongNumArgs(interp, 1, argv, "no arguments to flash_banks command");
+		return JIM_ERR;
+	}
+	flash_bank_t *p;
+	int i = 0;
+
+	if (!flash_banks)
+	{
+		return JIM_ERR;
+	}
+
+	Jim_Obj *list=Jim_NewListObj(interp, NULL, 0);
+	for (p = flash_banks; p; p = p->next)
+	{
+		Jim_Obj *elem=Jim_NewListObj(interp, NULL, 0);
+		
+
+		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, p->driver->name, -1));
+		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->base));
+		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->size));
+		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->bus_width));
+		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->chip_width));
+		
+	    Jim_ListAppendElement(interp, list, elem);
+	}
+
+	Jim_SetResult(interp, list);
+
+	return JIM_OK;
+}
+
+
 int flash_init_drivers(struct command_context_s *cmd_ctx)
 {
 	if (flash_banks)
 	{
+		Jim_CreateCommand(interp, "flash_banks", Jim_Command_flash_banks, NULL, NULL );
+		
 		register_command(cmd_ctx, flash_cmd, "banks", handle_flash_banks_command, COMMAND_EXEC,
 						 "list configured flash banks ");
 		register_command(cmd_ctx, flash_cmd, "info", handle_flash_info_command, COMMAND_EXEC,
