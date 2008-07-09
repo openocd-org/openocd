@@ -8245,10 +8245,10 @@ int Jim_EvalObjVector(Jim_Interp *interp, int objc, Jim_Obj *const *objv)
             retcode = cmdPtr->cmdProc(interp, objc, objv);
         } else {
             retcode = JimCallProcedure(interp, cmdPtr, objc, objv);
-            if (retcode == JIM_ERR) {
-                JimAppendStackTrace(interp,
-                    Jim_GetString(objv[0], NULL), "?", 1);
-            }
+    if (retcode == JIM_ERR) {
+        JimAppendStackTrace(interp,
+            Jim_GetString(objv[0], NULL), "?", 1);
+    }
         }
     }
     /* Decr refcount of arguments and return the retcode */
@@ -8540,6 +8540,11 @@ int Jim_EvalObj(Jim_Interp *interp, Jim_Obj *scriptObjPtr)
         } else {
             /* Call [unknown] */
             retcode = JimUnknown(interp, argc, argv);
+            if (retcode == JIM_ERR) {
+                JimAppendStackTrace(interp,
+                    Jim_GetString(argv[0], NULL), script->fileName,
+                    token[i-argc*2].linenr);
+            }
         }
         if (retcode != JIM_OK) {
             i -= argc*2; /* point to the command name. */

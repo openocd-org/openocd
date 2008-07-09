@@ -357,35 +357,20 @@ int jim_command(command_context_t *context, char *line)
 	int retval=ERROR_OK;
 	int retcode=Jim_Eval(interp, line);
 	
-	const char *result;
-	int reslen;
-	result = Jim_GetString(Jim_GetResult(interp), &reslen);
 	if (retcode == JIM_ERR) {
-		int len, i;
-		
-		LOG_USER_N("Runtime error, file \"%s\", line %d:" JIM_NL, interp->errorFileName, interp->errorLine);
-		LOG_USER_N("    %s" JIM_NL,
-		Jim_GetString(interp->result, NULL));
-		Jim_ListLength(interp, interp->stackTrace, &len);
-		for (i = 0; i < len; i += 3) {
-			Jim_Obj *objPtr;
-			const char *proc, *file, *line;
-			
-			Jim_ListIndex(interp, interp->stackTrace, i, &objPtr, JIM_NONE);
-			proc = Jim_GetString(objPtr, NULL);
-			Jim_ListIndex(interp, interp->stackTrace, i+1, &objPtr, JIM_NONE);
-			file = Jim_GetString(objPtr, NULL);
-			Jim_ListIndex(interp, interp->stackTrace, i+2, &objPtr, JIM_NONE);
-			line = Jim_GetString(objPtr, NULL);
-			LOG_USER_N("In procedure '%s' called at file \"%s\", line %s" JIM_NL, proc, file, line);
-	    }
+		Jim_PrintErrorMessage(interp);
 	    long t;
 	    if (Jim_GetLong(interp, Jim_GetVariableStr(interp, "openocd_result", JIM_ERRMSG), &t)==JIM_OK)
 	    {
 	    	return t;
 	    }
 	    return ERROR_FAIL;
-	} else if (retcode == JIM_EXIT) {
+	} 
+	const char *result;
+	int reslen;
+	result = Jim_GetString(Jim_GetResult(interp), &reslen);
+		
+	if (retcode == JIM_EXIT) {
 		/* ignore. */
 	/* exit(Jim_GetExitCode(interp)); */
 	} else {
