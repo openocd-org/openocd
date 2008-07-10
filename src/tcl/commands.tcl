@@ -45,7 +45,13 @@ proc flash args {
 # If a fn is unknown to Tcl, we try to execute it as an OpenOCD command
 proc unknown {args} {
 	if {[string length $args]>0} {
-		openocd_throw $args
+		set cmd ""
+		# We need to add back quotes for arguments w/space
+		# for args without space, we can add quotes anyway
+		foreach {a} $args {
+			set cmd "$cmd \"$a\""
+		}
+		openocd_throw $cmd
 	}
 	# openocd_throw outputs while running and also sets the
 	# primary return value to the output of the command
