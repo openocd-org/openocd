@@ -360,10 +360,14 @@ int jim_command(command_context_t *context, char *line)
 	if (retcode == JIM_ERR) {
 		Jim_PrintErrorMessage(interp);
 	    long t;
-	    if (Jim_GetLong(interp, Jim_GetVariableStr(interp, "openocd_result", JIM_ERRMSG), &t)==JIM_OK)
+	    Jim_Obj *openocd_result=Jim_GetVariableStr(interp, "openocd_result", JIM_ERRMSG);
+	    if (openocd_result)
 	    {
-	    	return t;
-	    }
+		    if (Jim_GetLong(interp, openocd_result, &t)==JIM_OK)
+		    {
+		    	return t;
+		    }
+		}
 	    return ERROR_FAIL;
 	} 
 	const char *result;
