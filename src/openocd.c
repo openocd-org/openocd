@@ -572,7 +572,11 @@ void initJim(void)
 /* after command line parsing */
 void initJim2(void)
 {
-	Jim_Eval(interp, "source [find tcl/commands.tcl]");
+	if (Jim_Eval(interp, "source [find tcl/commands.tcl]")==JIM_ERR)
+	{
+		LOG_ERROR("Can not find tcl/commands.tcl - check installation");
+		exit(-1);
+	}
 }
 
 command_context_t *setup_command_handler(void)
@@ -653,11 +657,13 @@ int openocd_main(int argc, char *argv[])
 	
 	active_cmd_ctx=cfg_cmd_ctx;
 	
-	if (parse_cmdline_args(cfg_cmd_ctx, argc, argv) != ERROR_OK)
-		return EXIT_FAILURE;
+	add_default_dirs();
 
 	initJim2();
-
+	
+	if (parse_cmdline_args(cfg_cmd_ctx, argc, argv) != ERROR_OK)
+		return EXIT_FAILURE;
+	
 	if (parse_config_file(cfg_cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
 	

@@ -52,6 +52,36 @@ int configuration_output_handler(struct command_context_s *context, const char* 
 	return ERROR_OK;
 }
 
+int add_default_dirs(void)
+{
+#ifdef _WIN32
+	/* Add the parent of the directory where openocd.exe resides to the
+	 * config script search path.
+	 * Directory layout: 
+	 * bin\openocd.exe
+	 * lib\openocd
+	 * event\at91eb40a_reset.cfg
+	 * target\at91eb40a.cfg
+	 */
+	{
+		char strExePath [MAX_PATH];
+		GetModuleFileName (NULL, strExePath, MAX_PATH);
+		/* Either this code will *always* work or it will SEGFAULT giving
+		 * excellent information on the culprit. 
+		 */
+		*strrchr(strExePath, '\\')=0;
+		strcat(strExePath, "\\..");
+		add_script_search_dir(strExePath);
+	}
+#else
+	/* Add dir for openocd supplied scripts last so that user can over
+	   ride those scripts if desired. */
+	add_script_search_dir(PKGDATADIR);
+	add_script_search_dir(PKGLIBDIR);
+#endif
+	return ERROR_OK;
+}
+
 int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[])
 {
 	int c;
@@ -138,31 +168,6 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		exit(-1);
 	}	
 
-#ifdef _WIN32
-	/* Add the parent of the directory where openocd.exe resides to the
-	 * config script search path.
-	 * Directory layout: 
-	 * bin\openocd.exe
-	 * lib\openocd
-	 * event\at91eb40a_reset.cfg
-	 * target\at91eb40a.cfg
-	 */
-	{
-		char strExePath [MAX_PATH];
-		GetModuleFileName (NULL, strExePath, MAX_PATH);
-		/* Either this code will *always* work or it will SEGFAULT giving
-		 * excellent information on the culprit. 
-		 */
-		*strrchr(strExePath, '\\')=0;
-		strcat(strExePath, "\\..");
-		add_script_search_dir(strExePath);
-	}
-#else
-	/* Add dir for openocd supplied scripts last so that user can over
-	   ride those scripts if desired. */
-	add_script_search_dir(PKGDATADIR);
-	add_script_search_dir(PKGLIBDIR);
-#endif
 
 	return ERROR_OK;
 }
