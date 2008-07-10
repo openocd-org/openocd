@@ -1,15 +1,5 @@
 Plan for hosted scripting support in OpenOCD
 ============================================
-Jim Tcl support in OpenOCD currently exists as a patch.
-
-There has been some discussion on the list as to what
-purpose scripting support might serve in OpenOCD.
-
-Also Lua was proposed as a scripting language, but 
-only Jim Tcl has been forwarded as a patch.
-
-Tcl is also backwards syntax compatible with OpenOCD 
-commands.
 
 What scripting will not do
 ==========================
@@ -25,6 +15,10 @@ tinker to their needs without really understanding tcl.
 Since end users are not expected to mess with the scripting
 language, the choice of language is not terribly important
 to those same end users.
+
+Jim Tcl was chosen as it was easy to integrate, works
+great in an embedded environment and Øyvind Harboe
+had experience with it.
 
 Uses of scripting
 =================
@@ -46,3 +40,15 @@ Default implementation of procedures in tcl/procedures.tcl.
   and will have no externally visible consequences.
   Tcl has an advantage in that it's syntax is backwards
   compatible with the current OpenOCD syntax.
+- external scripting. Low level tcl functions will be defined
+  that return machine readable output. These low level tcl
+  functions constitute the tcl api. flash_banks is such
+  a low level tcl proc. "flash banks" is an example of
+  a command that has human readable output. The human 
+  readable output is expected to change inbetween versions
+  of OpenOCD. The output from flash_banks may not be
+  in the preferred form for the client. The client then
+  has two choices a) parse the output from flash_banks
+  or b) write a small piece of tcl to output the
+  flash_banks output to a more suitable form. The latter may
+  be simpler.
