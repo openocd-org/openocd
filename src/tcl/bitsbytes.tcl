@@ -7,30 +7,28 @@
 
 for { set x 0  } { $x < 32 } { set x [expr $x + 1]} {
     set vn [format "BIT%d" $x]
-    set $vn   [expr (1 << $x)]
     global $vn
-
+    set $vn   [expr (1 << $x)]
 }
 
 # Create K bytes values
 #    __1K ... to __2048K
 for { set x 1  } { $x < 2048 } { set x [expr $x * 2]} {
     set vn [format "__%dK" $x]
-    set $vn   [expr (1024 * $x)]
     global $vn
+    set $vn   [expr (1024 * $x)]
 }
 
 # Create M bytes values
 #    __1M ... to __2048K
 for { set x 1  } { $x < 2048 } { set x [expr $x * 2]} {
     set vn [format "__%dM" $x] 
-    set $vn [expr (1024 * 1024 * $x)]
     global $vn
+    set $vn [expr (1024 * 1024 * $x)]
 }
 
 proc create_mask { MSB LSB } {
     return [expr (((1 << ($MSB - $LSB + 1))-1) << $LSB)]
-
 }
 
 # Cut Bits $MSB to $LSB out of this value.

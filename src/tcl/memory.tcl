@@ -78,31 +78,56 @@ proc address_info { ADDRESS } {
     return "UNKNOWN 0"
 }
 
-proc memread32 {ADDR } {
+proc memread32 {ADDR} {
     set foo(0) 0
     if ![ catch { mem2array foo 32 $ADDR 1  } msg ] {
 	return $foo(0)
     } else {
-	error "memead32: $msg"
+	error "memread32: $msg"
     }
 }    
 
-proc memread16 {ADDR } {
+proc memread16 {ADDR} {
     set foo(0) 0
     if ![ catch { mem2array foo 16 $ADDR 1  } msg ] {
 	return $foo(0)
     } else {
-	error "memead16: $msg"
+	error "memread16: $msg"
     }
 }    
 
-proc memread8 {ADDR } {
+proc memread8 {ADDR} {
     set foo(0) 0
     if ![ catch { mem2array foo 8 $ADDR 1  } msg ] {
 	return $foo(0)
     } else {
-	error "memead8: $msg"
+	error "memread8: $msg"
     }
 }    
 
+proc memwrite32 {ADDR DATA} {
+    set foo(0) $DATA
+    if ![ catch { array2mem foo 32 $ADDR 1  } msg ] {
+	return $foo(0)
+    } else {
+	error "memwrite32: $msg"
+    }
+}    
 
+proc memwrite16 {ADDR DATA} {
+    set foo(0) $DATA
+    if ![ catch { array2mem foo 16 $ADDR 1  } msg ] {
+	return $foo(0)
+    } else {
+	error "memwrite16: $msg"
+    }
+}    
+
+proc memwrite8 {ADDR DATA} {
+    set foo(0) $DATA
+    if ![ catch { array2mem foo 8 $ADDR 1  } msg ] {
+	return $foo(0)
+    } else {
+	error "memwrite8: $msg"
+    }
+}    
