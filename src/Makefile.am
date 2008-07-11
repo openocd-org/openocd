@@ -7,7 +7,7 @@ MAINFILE = main.c jim.c
 endif
 
 
-openocd_SOURCES = $(MAINFILE) openocd.c
+openocd_SOURCES = $(MAINFILE) openocd.c startup.c
 
 # set the include path found by configure
 INCLUDES = -I$(top_srcdir)/src/helper \
@@ -82,7 +82,6 @@ openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
 	
 	
 nobase_dist_pkglib_DATA = \
-	tcl/commands.tcl  \
 	tcl/bitsbytes.tcl  \
 	tcl/chip/atmel/at91/aic.tcl  \
 	tcl/chip/atmel/at91/at91sam7x128.tcl  \
@@ -98,3 +97,6 @@ nobase_dist_pkglib_DATA = \
 	tcl/mmr_helpers.tcl  \
 	tcl/readable.tcl  
 
+# Convert .tcl to .c file
+startup.c: $(top_srcdir)/src/startup.tcl Makefile  $(top_srcdir)/src/file2c.tcl
+	tclsh $(top_srcdir)/src/file2c.tcl $(top_srcdir)/src/startup.tcl startup.c

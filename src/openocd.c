@@ -742,12 +742,15 @@ void initJim(void)
 	interp->cb_fgets = openocd_jim_fgets;
 }
 
+extern const unsigned char filedata_startup[];
+
 /* after command line parsing */
 void initJim2(void)
 {
-	if (Jim_Eval(interp, "source [find tcl/commands.tcl]")==JIM_ERR)
+	if (Jim_Eval(interp, filedata_startup)==JIM_ERR)
 	{
-		LOG_ERROR("Can not find tcl/commands.tcl - check installation");
+		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD compile time)");
+		Jim_PrintErrorMessage(interp);
 		exit(-1);
 	}
 }
