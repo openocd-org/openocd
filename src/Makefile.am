@@ -6,7 +6,6 @@ else
 MAINFILE = main.c jim.c
 endif
 
-
 openocd_SOURCES = $(MAINFILE) openocd.c startup.c
 
 # set the include path found by configure
@@ -99,4 +98,7 @@ nobase_dist_pkglib_DATA = \
 
 # Convert .tcl to .c file
 startup.c: $(top_srcdir)/src/startup.tcl Makefile  $(top_srcdir)/src/file2c.tcl
-	tclsh $(top_srcdir)/src/file2c.tcl $(top_srcdir)/src/startup.tcl startup.c
+	${TCLSH} $(top_srcdir)/src/file2c.tcl $(top_srcdir)/src/startup.tcl startup.c
+
+# add startup.c to make clean list
+CLEANFILES = startup.c
