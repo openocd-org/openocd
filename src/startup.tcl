@@ -5,6 +5,20 @@
 # Embedded into OpenOCD executable
 #
 
+
+# Help text list. A list of command + help text pairs.
+#
+# Commands can be more than one word and they are stored
+# as "flash banks" "help text x x x"
+
+global ocd_helptext
+set ocd_helptext {}
+
+proc add_help_text {cmd cmd_help} {
+	global ocd_helptext
+	lappend ocd_helptext [list $cmd $cmd_help]
+}
+
 # Production command
 # FIX!!! need to figure out how to feed back relevant output
 # from e.g. "flash banks" command...
@@ -47,6 +61,20 @@ proc flash args {
 	}
 	openocd_throw "flash $args"
 }
+
+#Print help text for a command
+proc tcl_help {args} {
+	global ocd_helptext
+	set cmd $args
+	foreach a [lsort $ocd_helptext] {
+		if {[string length $cmd]==0||[string first $cmd $a]!=-1} {
+			puts [format "%18s - %s" [lindex $a 0] [lindex $a 1]]
+		}
+	}
+}
+
+add_help_text tcl_help "Tcl implementation of help command"
+
 
 # If a fn is unknown to Tcl, we try to execute it as an OpenOCD command
 proc unknown {args} {

@@ -697,9 +697,21 @@ static char* openocd_jim_fgets(char *s, int size, void *cookie)
 void add_jim(const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help)
 {
 	Jim_CreateCommand(interp, name, cmd, NULL, NULL);
-	/* FIX!!! add scheme to accumulate help! */
 	
+	/* FIX!!! it would be prettier to invoke add_help_text... 
+	accumulate help text in Tcl helptext list.  */
+    Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
+	Jim_Obj *cmd_entry=Jim_NewListObj(interp, NULL, 0);
+	
+	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);
+	Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, name, -1));
+	
+	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
+	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, help, -1));
+	Jim_ListAppendElement(interp, helptext, cmd_entry);
 }
+
+extern const unsigned char filedata_startup[];
 
 void initJim(void)
 {
@@ -719,13 +731,9 @@ void initJim(void)
 	interp->cb_vfprintf = openocd_jim_vfprintf;
 	interp->cb_fflush = openocd_jim_fflush;
 	interp->cb_fgets = openocd_jim_fgets;
-}
-
-extern const unsigned char filedata_startup[];
-
-/* after command line parsing */
-void initJim2(void)
-{
+	
+	add_default_dirs();
+	
 	if (Jim_Eval(interp, filedata_startup)==JIM_ERR)
 	{
 		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD compile time)");
@@ -733,6 +741,7 @@ void initJim2(void)
 		exit(-1);
 	}
 }
+
 
 
 int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -752,7 +761,7 @@ command_context_t *setup_command_handler(void)
 	command_context_t *cmd_ctx;
 	
 	cmd_ctx = command_init();
-
+	
 	register_command(cmd_ctx, NULL, "version", handle_version_command,
 					 COMMAND_EXEC, "show OpenOCD version");
 	register_command(cmd_ctx, NULL, "daemon_startup", handle_daemon_startup_command, COMMAND_CONFIG, 
@@ -825,10 +834,7 @@ int openocd_main(int argc, char *argv[])
 	
 	active_cmd_ctx=cfg_cmd_ctx;
 	
-	add_default_dirs();
 
-	initJim2();
-	
 	if (parse_cmdline_args(cfg_cmd_ctx, argc, argv) != ERROR_OK)
 		return EXIT_FAILURE;
 	

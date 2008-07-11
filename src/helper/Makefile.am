@@ -1,4 +1,4 @@
-INCLUDES = $(all_includes)
+INCLUDES = -I$(top_srcdir)/src $(all_includes)
 METASOURCES = AUTO
 AM_CPPFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" -DPKGLIBDIR=\"$(pkglibdir)\" @CPPFLAGS@
 noinst_LIBRARIES = libhelper.a

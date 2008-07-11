@@ -38,6 +38,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <openocd_tcl.h>
+
 int fast_and_dangerous = 0;
 
 void command_print_help_line(command_context_t* context, struct command_s *command, int indent);
@@ -65,10 +67,9 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	c->children = NULL;
 	c->handler = handler;
 	c->mode = mode;
-	if (help)
-		c->help = strdup(help);
-	else
-		c->help = NULL;
+	if (!help)
+		help="";
+	c->help = strdup(help);
 	c->next = NULL;
 	
 	/* place command in tree */
@@ -100,7 +101,22 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 			context->commands = c;
 		}
 	}
+	/* accumulate help text in Tcl helptext list.  */
+    Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
+	Jim_Obj *cmd_entry=Jim_NewListObj(interp, NULL, 0);
 	
+	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);
+
+	/* maximum of two levels :-) */
+	if (c->parent!=NULL)
+	{
+		Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, c->parent->name, -1));
+	} 
+	Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, c->name, -1));
+	
+	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
+	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, c->help, -1));
+	Jim_ListAppendElement(interp, helptext, cmd_entry);
 	return c;
 }
 

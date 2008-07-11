@@ -106,6 +106,7 @@ FILE *open_file_from_path (char *file, char *mode)
 
 int parse_config_file(struct command_context_s *cmd_ctx)
 {
+	int retval;
 	char **cfg;
 
 	if (!config_file_names)
@@ -115,7 +116,9 @@ int parse_config_file(struct command_context_s *cmd_ctx)
 
 	while (*cfg)
 	{
-		command_run_line(cmd_ctx, *cfg);
+		retval=command_run_line(cmd_ctx, *cfg);
+		if (retval!=ERROR_OK)
+			return retval;
 		cfg++;
 	}
 
