@@ -77,8 +77,8 @@ extern u8* buf_cpy(u8 *from, u8 *to, int size);
 extern u8* buf_set_ones(u8 *buf, int count);
 extern u8* buf_set_buf(u8 *src, int src_start, u8 *dst, int dst_start, int len);
 
-extern int str_to_buf(char* str, int len, u8 *bin_buf, int buf_size, int radix);
-extern char* buf_to_str(u8 *buf, int size, int radix);
+extern int str_to_buf(const char *str, int len, u8 *bin_buf, int buf_size, int radix);
+extern char* buf_to_str(const u8 *buf, int size, int radix);
 
 struct scan_field_s;
 extern int buf_to_u32_handler(u8 *in_buf, void *priv, struct scan_field_s *field);

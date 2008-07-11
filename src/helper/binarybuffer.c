@@ -188,7 +188,7 @@ int ceil_f_to_u32(float x)
 	return y;
 }
 
-char* buf_to_str(u8 *buf, int buf_len, int radix)
+char* buf_to_str(const u8 *buf, int buf_len, int radix)
 {
 	const char *DIGITS = "0123456789abcdef";
 	float factor;
@@ -238,7 +238,7 @@ char* buf_to_str(u8 *buf, int buf_len, int radix)
 	return str;
 }
 
-int str_to_buf(char* str, int str_len, u8 *buf, int buf_len, int radix)
+int str_to_buf(const char *str, int str_len, u8 *buf, int buf_len, int radix)
 {
 	char *charbuf;
 	u32 tmp;

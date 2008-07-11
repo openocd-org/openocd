@@ -603,6 +603,11 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 			bypass_devices++;
 		device = device->next;
 	}
+	if (bypass_devices >= jtag_num_devices)
+	{
+		LOG_ERROR("all devices in bypass");
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
 	
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
@@ -1493,7 +1498,6 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_EXEC, "move to Run-Test/Idle, and execute <num_cycles>");
 	register_command(cmd_ctx, NULL, "irscan", handle_irscan_command,
 		COMMAND_EXEC, "execute IR scan <device> <instr> [dev2] [instr2] ...");
-	
 	add_jim("drscan", Jim_Command_drscan, "execute DR scan <device> <num_bits> <value> <num_bits1> <value2> ...");
 
 	register_command(cmd_ctx, NULL, "verify_ircapture", handle_verify_ircapture_command,
@@ -2043,47 +2047,54 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	return ERROR_OK;
 }
 
-/* FIX!!! this command is busted for > 32 bits */
 int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 {
 	int retval;
 	scan_field_t *fields;
 	int num_fields;
 	int field_count = 0;
-	int i, j;
-	
+	int i, j, e;
+	long device;
+
+	/* args[1] = device
+	 * args[2] = num_bits
+	 * args[3] = hex string
+	 * ... repeat num bits and hex string ...
+	 */
 	if ((argc < 4) || ((argc % 2)!=0))
 	{
+		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
 		return JIM_ERR;
 	}
 
 	for (i = 2; i < argc; i+=2)
 	{
 		long bits;
-		Jim_GetLong(interp, args[i], &bits);
-		if ((bits<=0)||(bits>32))
-		{
-//			LOG_ERROR("minimum 1/maximum 32 bit fields - patches gratefully accepted!");
-			return JIM_ERR;
-		}
+
+		e = Jim_GetLong(interp, args[i], &bits);
+		if (e != JIM_OK)
+			return e;
 	}
-	long device;
-	Jim_GetLong(interp, args[1], &device);
+
+	e = Jim_GetLong(interp, args[1], &device);
+	if (e != JIM_OK)
+		return e;
+
 	num_fields=(argc-2)/2;
-
 	fields = malloc(sizeof(scan_field_t) * num_fields);
-
 	for (i = 2; i < argc; i+=2)
 	{
 		long bits;
+		int len;
+		const char *str;
+
 		Jim_GetLong(interp, args[i], &bits);
-		long val;
-		Jim_GetLong(interp, args[i+1], &val);
+		str = Jim_GetString(args[i+1], &len);
 		
 		fields[field_count].device = device;
 		fields[field_count].num_bits = bits;
 		fields[field_count].out_value = malloc(CEIL(bits, 8));
-		buf_set_u32(fields[field_count].out_value, 0, bits, val);
+		str_to_buf(str, len, fields[field_count].out_value, bits, 0);
 		fields[field_count].out_mask = NULL;
 		fields[field_count].in_value = fields[field_count].out_value;
 		fields[field_count].in_check_mask = NULL;
@@ -2093,28 +2104,35 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 	}
 
 	jtag_add_dr_scan(num_fields, fields, -1);
-	retval=jtag_execute_queue();
-	
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+	{
+		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
+		Jim_AppendStrings(interp, Jim_GetResult(interp), "drscan: jtag execute failed", NULL);
+		return JIM_ERR;
+	}
+
 	field_count=0;
-	Jim_Obj *list=Jim_NewListObj(interp, NULL, 0);
+	Jim_Obj *list = Jim_NewListObj(interp, NULL, 0);
 	for (i = 2; i < argc; i+=2)
 	{
 		long bits;
-		Jim_GetLong(interp, args[i], &bits);
-		
-		u32 val = buf_get_u32(fields[field_count].in_value, 0, bits);
+		char *str;
 
-		Jim_ListAppendElement(interp, list, Jim_NewIntObj(interp, val));
-		
+		Jim_GetLong(interp, args[i], &bits);
+		str = buf_to_str(fields[field_count].in_value, bits, 16);
 		free(fields[field_count].out_value);
+
+		Jim_ListAppendElement(interp, list, Jim_NewStringObj(interp, str, strlen(str)));
+		free(str);
 		field_count++;
 	}
-	
+
 	Jim_SetResult(interp, list);
 	
 	free(fields);
 
-	return retval?JIM_OK:JIM_ERR;
+	return JIM_OK;
 }
 
 int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
