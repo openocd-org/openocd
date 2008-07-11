@@ -52,3 +52,29 @@ Default implementation of procedures in tcl/procedures.tcl.
   or b) write a small piece of tcl to output the
   flash_banks output to a more suitable form. The latter may
   be simpler.
+  
+  
+External scripting
+==================
+The embedded Jim Tcl interpreter in OpenOCD is very limited
+compared to any full scale PC hosted scripting language.
+
+The goal is to keep the internal Jim Tcl interpreter as
+small as possible and allow any advanced scripting,
+especially scripting that interacts with the host,
+run on the host and talk to OpenOCD via the TCP/IP
+scripting connection.
+
+Another problem with Jim Tcl is that there is no debugger
+for it.
+
+With a bit of trickery it should be possible to run Jim
+Tcl scripts under a Tcl interpreter on a PC. The advantage
+would be that the Jim Tcl scripts could be debugged using
+a standard PC Tcl debugger.
+
+The rough idea is to write an unknown proc that sends
+unknown commands to OpenOCD.
+
+Basically a PC version of startup.tcl. Patches most
+gratefully accepted! :-)
