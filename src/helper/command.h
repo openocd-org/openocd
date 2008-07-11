@@ -76,7 +76,6 @@ extern void command_print_sameline(command_context_t *context, char *format, ...
 extern int command_run_line(command_context_t *context, char *line);
 extern int command_run_linef(command_context_t *context, char *format, ...);
 extern int command_run_line_internal(command_context_t *context, char *line);
-extern int command_run_file(command_context_t *context, FILE *file, enum command_mode mode);
 extern void command_output_text(command_context_t *context, const char *data);
 
 #define		ERROR_COMMAND_CLOSE_CONNECTION		(-600)

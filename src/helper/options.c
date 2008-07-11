@@ -110,15 +110,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 				break;
 			case 'f':	/* --file | -f */
 			{
-				char *t=strrchr(optarg, '.');
-				if (strcmp(t, ".tcl")==0)
-				{
-					/* Files ending in .tcl are executed as Tcl files */
-					snprintf(command_buffer, 128, "source [find {%s}]", optarg);
-				} else
-				{
-					snprintf(command_buffer, 128, "script %s", optarg);
-				}
+				snprintf(command_buffer, 128, "script %s", optarg);
 				add_config_command(command_buffer);
 				break;
 			}

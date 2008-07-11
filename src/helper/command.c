@@ -474,59 +474,6 @@ int command_run_line(command_context_t *context, char *line)
 	return jim_command(context, line);
 }
 
-int command_run_file(command_context_t *context, FILE *file, enum command_mode mode)
-{
-	int retval = ERROR_OK;
-	int old_command_mode;
-	char *buffer=malloc(4096);
-	if (buffer==NULL)
-	{
-		return ERROR_INVALID_ARGUMENTS;
-	}
-	
-	old_command_mode = context->mode;
-	context->mode = mode;
-	
-	while (fgets(buffer, 4096, file))
-	{
-		char *p;
-		char *cmd, *end;
-		
-		/* stop processing line after a comment (#, !) or a LF, CR were encountered */
-		if ((p = strpbrk(buffer, "#!\r\n")))
-			*p = 0;
-
-		/* skip over leading whitespace */
-		cmd = buffer;
-		while (isspace(*cmd))
-			cmd++;
-
-		/* empty (all whitespace) line? */
-		if (!*cmd)
-			continue;
-		
-		/* search the end of the current line, ignore trailing whitespace */
-		for (p = end = cmd; *p; p++)
-			if (!isspace(*p))
-				end = p;
-		
-		/* terminate end */
-		*++end = 0;
-		if (strcasecmp(cmd, "quit") == 0)
-			break;
-
-		/* run line */
-		if ((retval = command_run_line(context, cmd)) == ERROR_COMMAND_CLOSE_CONNECTION)
-			break;
-	}
-	
-	context->mode = old_command_mode;
-
-	
-	free(buffer);
-	
-	return retval;
-}
 
 int command_run_linef(command_context_t *context, char *format, ...)
 {

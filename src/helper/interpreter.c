@@ -221,17 +221,7 @@ int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	script_file = open_file_from_path (args[0], "r");
-
-	if (!script_file)
-	{
-		command_print(cmd_ctx, "couldn't open script file %s", args[0]);
-		return ERROR_OK;
-	}
 	
-	command_run_file(cmd_ctx, script_file, cmd_ctx->mode);
-	
-	fclose(script_file);
-
-	return ERROR_OK;
+	/* Run a tcl script file */
+	return command_run_linef(cmd_ctx, "source [find {%s}]", args[0]);
 }
