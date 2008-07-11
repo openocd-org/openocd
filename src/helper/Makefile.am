@@ -9,7 +9,7 @@ else
 CONFIGFILES = options.c
 endif
 
-libhelper_a_SOURCES = binarybuffer.c $(CONFIGFILES) configuration.c log.c interpreter.c command.c time_support.c \
+libhelper_a_SOURCES = binarybuffer.c $(CONFIGFILES) configuration.c log.c command.c time_support.c \
 	replacements.c fileio.c
 noinst_HEADERS = binarybuffer.h configuration.h types.h log.h command.h \
-	interpreter.h time_support.h replacements.h fileio.h
+	time_support.h replacements.h fileio.h

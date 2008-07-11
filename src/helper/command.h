@@ -60,7 +60,6 @@ typedef struct command_s
 	int (*handler)(struct command_context_s *context, char* name, char** args, int argc);
 	enum command_mode mode;
 	char *help;
-	int unique_len;
 	struct command_s *next;
 } command_t;
 

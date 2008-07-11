@@ -27,11 +27,12 @@
 
 #include "command.h"
 #include "log.h"
-#include "interpreter.h"
 
 #include "stdlib.h"
 #include "string.h"
 #include <unistd.h>
+
+#include "openocd_tcl.h"
 
 
 /* note that this is not marked as static as it must be available from outside jtag.c for those 
@@ -268,7 +269,7 @@ int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char *
 int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
@@ -1492,8 +1493,8 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_EXEC, "move to Run-Test/Idle, and execute <num_cycles>");
 	register_command(cmd_ctx, NULL, "irscan", handle_irscan_command,
 		COMMAND_EXEC, "execute IR scan <device> <instr> [dev2] [instr2] ...");
-	register_command(cmd_ctx, NULL, "drscan", handle_drscan_command,
-		COMMAND_EXEC, "execute DR scan <device> <var> [dev2] [var2] ...");
+	
+	add_jim("drscan", Jim_Command_drscan, "execute DR scan <device> <num_bits> <value> <num_bits1> <value2> ...");
 
 	register_command(cmd_ctx, NULL, "verify_ircapture", handle_verify_ircapture_command,
 		COMMAND_ANY, "verify value captured during Capture-IR <enable|disable>");
@@ -2042,63 +2043,78 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	return ERROR_OK;
 }
 
-int handle_drscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+/* FIX!!! this command is busted for > 32 bits */
+int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 {
+	int retval;
 	scan_field_t *fields;
-	int num_fields = 0;
+	int num_fields;
 	int field_count = 0;
-	var_t *var;
 	int i, j;
 	
-	if ((argc < 2) || (argc % 2))
+	if ((argc < 4) || ((argc % 2)!=0))
 	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		return JIM_ERR;
 	}
 
-	for (i = 0; i < argc; i+=2)
+	for (i = 2; i < argc; i+=2)
 	{
-		var = get_var_by_namenum(args[i+1]);
-		if (var)
+		long bits;
+		Jim_GetLong(interp, args[i], &bits);
+		if ((bits<=0)||(bits>32))
 		{
-			num_fields += var->num_fields;
-		}
-		else
-		{
-			command_print(cmd_ctx, "variable %s doesn't exist", args[i+1]);
-			return ERROR_OK;
+//			LOG_ERROR("minimum 1/maximum 32 bit fields - patches gratefully accepted!");
+			return JIM_ERR;
 		}
 	}
+	long device;
+	Jim_GetLong(interp, args[1], &device);
+	num_fields=(argc-2)/2;
 
 	fields = malloc(sizeof(scan_field_t) * num_fields);
 
-	for (i = 0; i < argc; i+=2)
+	for (i = 2; i < argc; i+=2)
 	{
-		var = get_var_by_namenum(args[i+1]);
-	
-		for (j = 0; j < var->num_fields; j++)
-		{
-			fields[field_count].device = strtol(args[i], NULL, 0);
-			fields[field_count].num_bits = var->fields[j].num_bits;
-			fields[field_count].out_value = malloc(CEIL(var->fields[j].num_bits, 8));
-			buf_set_u32(fields[field_count].out_value, 0, var->fields[j].num_bits, var->fields[j].value);
-			fields[field_count].out_mask = NULL;
-			fields[field_count].in_value = fields[field_count].out_value;
-			fields[field_count].in_check_mask = NULL;
-			fields[field_count].in_check_value = NULL;
-			fields[field_count].in_handler = field_le_to_host;
-			fields[field_count++].in_handler_priv = &(var->fields[j]);
-		}
+		long bits;
+		Jim_GetLong(interp, args[i], &bits);
+		long val;
+		Jim_GetLong(interp, args[i+1], &val);
+		
+		fields[field_count].device = device;
+		fields[field_count].num_bits = bits;
+		fields[field_count].out_value = malloc(CEIL(bits, 8));
+		buf_set_u32(fields[field_count].out_value, 0, bits, val);
+		fields[field_count].out_mask = NULL;
+		fields[field_count].in_value = fields[field_count].out_value;
+		fields[field_count].in_check_mask = NULL;
+		fields[field_count].in_check_value = NULL;
+		fields[field_count].in_handler = NULL;
+		fields[field_count++].in_handler_priv = NULL;
 	}
 
 	jtag_add_dr_scan(num_fields, fields, -1);
-	jtag_execute_queue();
+	retval=jtag_execute_queue();
 	
-	for (i = 0; i < argc / 2; i++)
-		free(fields[i].out_value);
+	field_count=0;
+	Jim_Obj *list=Jim_NewListObj(interp, NULL, 0);
+	for (i = 2; i < argc; i+=2)
+	{
+		long bits;
+		Jim_GetLong(interp, args[i], &bits);
+		
+		u32 val = buf_get_u32(fields[field_count].in_value, 0, bits);
 
+		Jim_ListAppendElement(interp, list, Jim_NewIntObj(interp, val));
+		
+		free(fields[field_count].out_value);
+		field_count++;
+	}
+	
+	Jim_SetResult(interp, list);
+	
 	free(fields);
 
-	return ERROR_OK;
+	return retval?JIM_OK:JIM_ERR;
 }
 
 int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

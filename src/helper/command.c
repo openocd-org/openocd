@@ -49,52 +49,11 @@ int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 /* forward declaration of jim_command */
 extern int jim_command(command_context_t *context, char *line);
 
-int build_unique_lengths(command_context_t *context, command_t *commands)
-{
-	command_t *c, *p;
 
-	/* iterate through all commands */
-	for (c = commands; c; c = c->next)
-	{
-		/* find out how many characters are required to uniquely identify a command */
-		for (c->unique_len = 1; c->unique_len <= strlen(c->name); c->unique_len++)
-		{
-			int foundmatch = 0;
-			
-			/* for every command, see if the current length is enough */
-			for (p = commands; p; p = p->next)
-			{
-				/* ignore the command itself */
-				if (c == p)
-					continue;
-				
-				/* compare commands up to the current length */
-				if (strncmp(p->name, c->name, c->unique_len) == 0)
-					foundmatch++;
-			}
-			
-			/* when none of the commands matched, we've found the minimum length required */
-			if (!foundmatch)
-				break;
-		}
-		
-		/* if the current command has children, build the unique lengths for them */
-		if (c->children)
-			build_unique_lengths(context, c->children);
-	}
-	
-	return ERROR_OK;
-}
-
-/* Avoid evaluating this each time we add a command. Reduces overhead from O(n^2) to O(n). 
- * Makes a difference on ARM7 types machines and is not observable on GHz machines.
- */
-static int unique_length_dirty = 1; 
 
 command_t* register_command(command_context_t *context, command_t *parent, char *name, int (*handler)(struct command_context_s *context, char* name, char** args, int argc), enum command_mode mode, char *help)
 {
 	command_t *c, *p;
-	unique_length_dirty = 1;
 	
 	if (!context || !name)
 		return NULL;
@@ -110,7 +69,6 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 		c->help = strdup(help);
 	else
 		c->help = NULL;
-	c->unique_len = 0;
 	c->next = NULL;
 	
 	/* place command in tree */
@@ -150,8 +108,6 @@ int unregister_all_commands(command_context_t *context)
 {
 	command_t *c, *c2;
 	
-	unique_length_dirty = 1;
-	
 	if (context == NULL)
 		return ERROR_OK;
 	
@@ -188,8 +144,6 @@ int unregister_all_commands(command_context_t *context)
 int unregister_command(command_context_t *context, char *name)
 {
 	command_t *c, *p = NULL, *c2;
-	
-	unique_length_dirty = 1;
 	
 	if ((!context) || (!name))
 		return ERROR_INVALID_ARGUMENTS;
@@ -351,21 +305,11 @@ command_t *find_command(command_context_t *context, command_t *commands, char *w
 {
 	command_t *c;
 	
-	if (unique_length_dirty)
-	{
-		unique_length_dirty = 0;
-		/* update unique lengths */
-		build_unique_lengths(context, context->commands);
-	}
-	
 	for (c = commands; c; c = c->next)
 	{
-		if (strncasecmp(c->name, words[start_word], c->unique_len))
+		if (strcasecmp(c->name, words[start_word]))
 			continue;
 
-		if (strncasecmp(c->name, words[start_word], strlen(words[start_word])))
-			continue;
-		
 		if ((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode) )
 		{
 			if (!c->children)
@@ -533,10 +477,7 @@ int command_print_help_match(command_context_t* context, command_t* c_first, cha
 	{
 		if (argc > 0)
 		{
-			if (strncasecmp(c->name, args[0], c->unique_len))
-				continue;
-
-			if (strncasecmp(c->name, args[0], strlen(args[0])))
+			if (strcasecmp(c->name, args[0]))
 				continue;
 
 			if (argc > 1)

@@ -10,7 +10,7 @@ endif
 openocd_SOURCES = $(MAINFILE) openocd.c startup.c
 
 # set the include path found by configure
-INCLUDES = -I$(top_srcdir)/src/helper \
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/helper \
 	-I$(top_srcdir)/src/jtag -I$(top_srcdir)/src/target -I$(top_srcdir)/src/xsvf -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/flash -I$(top_srcdir)/src/pld $(all_includes)
 

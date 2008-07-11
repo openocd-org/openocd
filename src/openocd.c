@@ -28,7 +28,6 @@
 #include "types.h"
 #include "jtag.h"
 #include "configuration.h"
-#include "interpreter.h"
 #include "xsvf.h"
 #include "target.h"
 #include "flash.h"
@@ -66,33 +65,6 @@
 
 #include "replacements.h"
 
-int launchTarget(struct command_context_s *cmd_ctx)
-{
-	int retval;
-	/* Try to examine & validate jtag chain, though this may require a reset first
-	 * in which case we continue setup */
-	jtag_init(cmd_ctx);
-
-	/* try to examine target at this point. If it fails, perhaps a reset will
-	 * bring it up later on via a telnet/gdb session */
-	target_examine(cmd_ctx);
-
-	retval=flash_init_drivers(cmd_ctx);
-	if (retval!=ERROR_OK)
-		return retval;
-	LOG_DEBUG("flash init complete");
-
-	retval=nand_init(cmd_ctx);
-	if (retval!=ERROR_OK)
-		return retval;
-	LOG_DEBUG("NAND init complete");
-
-	retval=pld_init(cmd_ctx);
-	if (retval!=ERROR_OK)
-		return retval;
-	LOG_DEBUG("pld init complete");
-	return retval;
-}
 
 /* Give TELNET a way to find out what version this is */
 int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -722,6 +694,13 @@ static char* openocd_jim_fgets(char *s, int size, void *cookie)
 	return NULL;
 }
 
+void add_jim(const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help)
+{
+	Jim_CreateCommand(interp, name, cmd, NULL, NULL);
+	/* FIX!!! add scheme to accumulate help! */
+	
+}
+
 void initJim(void)
 {
 	Jim_CreateCommand(interp, "openocd", Jim_Command_openocd, NULL, NULL);
@@ -755,6 +734,19 @@ void initJim2(void)
 	}
 }
 
+
+int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	FILE *script_file;
+
+	if (argc != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	
+	/* Run a tcl script file */
+	return command_run_linef(cmd_ctx, "source [find {%s}]", args[0]);
+}
+
 command_context_t *setup_command_handler(void)
 {
 	command_context_t *cmd_ctx;
@@ -773,7 +765,7 @@ command_context_t *setup_command_handler(void)
 	tcl_register_commands(cmd_ctx); /* tcl server commands */
 	log_register_commands(cmd_ctx);
 	jtag_register_commands(cmd_ctx);
-	interpreter_register_commands(cmd_ctx);
+	register_command(cmd_ctx, NULL, "script", handle_script_command, COMMAND_ANY, "execute commands from <file>");
 	xsvf_register_commands(cmd_ctx);
 	target_register_commands(cmd_ctx);
 	flash_register_commands(cmd_ctx);
