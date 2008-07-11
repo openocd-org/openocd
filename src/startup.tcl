@@ -68,7 +68,7 @@ proc tcl_help {args} {
 	global ocd_helptext
 	set cmd $args
 	foreach a [lsort $ocd_helptext] {
-		if {[string length $cmd]==0||[string first $cmd $a]!=-1} {
+		if {[string length $cmd]==0||[string first $cmd $a]!=-1||[string first $cmd [lindex $a 1]]!=-1} {
 			set w 40
 			set cmdname [lindex $a 0]
 			set h [lindex $a 1]
