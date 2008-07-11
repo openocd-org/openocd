@@ -42,8 +42,6 @@
 
 int fast_and_dangerous = 0;
 
-void command_print_help_line(command_context_t* context, struct command_s *command, int indent);
-
 int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -69,7 +67,6 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	c->mode = mode;
 	if (!help)
 		help="";
-	c->help = strdup(help);
 	c->next = NULL;
 	
 	/* place command in tree */
@@ -115,7 +112,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, c->name, -1));
 	
 	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
-	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, c->help, -1));
+	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, help, -1));
 	Jim_ListAppendElement(interp, helptext, cmd_entry);
 	return c;
 }
@@ -138,8 +135,6 @@ int unregister_all_commands(command_context_t *context)
 			c->children = c->children->next;
 			free(c2->name);
 			c2->name = NULL;
-			free(c2->help);
-			c2->help = NULL;
 			free(c2);
 			c2 = NULL;
 		}
@@ -148,8 +143,6 @@ int unregister_all_commands(command_context_t *context)
 		
 		free(c->name);
 		c->name = NULL;
-		free(c->help);
-		c->help = NULL;
 		free(c);
 		c = NULL;		
 	}
@@ -185,16 +178,12 @@ int unregister_command(command_context_t *context, char *name)
 				for (c2 = c->children; c2; c2 = c2->next)
 				{
 					free(c2->name);
-					if (c2->help)
-						free(c2->help);
 					free(c2);
 				}
 			}
 			
 			/* delete command */
 			free(c->name);
-			if (c->help)
-				free(c->help);
 			free(c);
 		}
 		
@@ -367,8 +356,7 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 	int retval = c->handler(context, c->name, words + start_word + 1, num_words - start_word - 1);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR)
 	{
-		command_print(context, "Syntax error:");
-		command_print_help_line(context, c, 0);
+		
 	}
 	else if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
 	{
@@ -450,69 +438,7 @@ int command_run_linef(command_context_t *context, char *format, ...)
 	return retval;
 }
 
-void command_print_help_line(command_context_t* context, struct command_s *command, int indent)
-{
-	command_t *c;
-	char *indent_text=malloc(indent + 2);
-	
-	char *help = "no help available";
-	char name_buf[64];
-	
-	if (indent)
-	{
-	    indent_text[0] = ' ';
-	    memset(indent_text + 1, '-', indent);
-	    indent_text[indent + 1] = 0;
-	}
-	
-	if (command->help)
-		help = command->help;
-		
-	snprintf(name_buf, 64, command->name);
 
-	if (indent)
-	    strncat(name_buf, indent_text, 64);
-
-	command_print(context, "%20s\t%s", name_buf, help, indent);
-	
-	if (command->children)
-	{
-		for (c = command->children; c; c = c->next)
-		{
-			command_print_help_line(context, c, indent + 1);
-		}
-	}
-	free(indent_text);
-}
-
-int command_print_help_match(command_context_t* context, command_t* c_first, char* name, char** args, int argc)
-{
-	command_t * c;
-
-	for (c = c_first; c; c = c->next)
-	{
-		if (argc > 0)
-		{
-			if (strcasecmp(c->name, args[0]))
-				continue;
-
-			if (argc > 1)
-			{
-				command_print_help_match(context, c->children, name, args + 1, argc - 1);
-				continue;
-			}
-		}
-
-		command_print_help_line(context, c, 0);
-	}
-	
-	return ERROR_OK;
-}
-
-int command_print_help(command_context_t* context, char* name, char** args, int argc)
-{
-    return command_print_help_match(context, context->commands, name, args, argc);
-}
 
 void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, const char* line), void *priv)
 {
@@ -546,9 +472,6 @@ command_context_t* command_init()
 	context->current_target = 0;
 	context->output_handler = NULL;
 	context->output_handler_priv = NULL;
-	
-	register_command(context, NULL, "help", command_print_help,
-					 COMMAND_EXEC, "display this help");
 	
 	register_command(context, NULL, "sleep", handle_sleep_command,
 					 COMMAND_ANY, "sleep for <n> milliseconds");

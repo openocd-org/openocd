@@ -64,12 +64,12 @@ proc flash args {
 
 #Print help text for a command. Word wrap
 #help text that is too wide inside column.
-proc tcl_help {args} {
+proc help {args} {
 	global ocd_helptext
 	set cmd $args
 	foreach a [lsort $ocd_helptext] {
 		if {[string length $cmd]==0||[string first $cmd $a]!=-1||[string first $cmd [lindex $a 1]]!=-1} {
-			set w 40
+			set w 50
 			set cmdname [lindex $a 0]
 			set h [lindex $a 1]
 			set n 0
@@ -96,7 +96,7 @@ proc tcl_help {args} {
 	}
 }
 
-add_help_text tcl_help "Tcl implementation of help command"
+add_help_text help "Tcl implementation of help command"
 
 
 # If a fn is unknown to Tcl, we try to execute it as an OpenOCD command
