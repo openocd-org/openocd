@@ -711,10 +711,14 @@ void add_jim(const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj 
 	Jim_ListAppendElement(interp, helptext, cmd_entry);
 }
 
-extern const unsigned char filedata_startup[];
+extern char binary_startup_tcl_start;
+extern char binary_startup_tcl_size;
 
 void initJim(void)
 {
+	char *script;
+	int script_len;
+	
 	Jim_CreateCommand(interp, "openocd", Jim_Command_openocd, NULL, NULL);
 	Jim_CreateCommand(interp, "openocd_throw", Jim_Command_openocd_throw, NULL, NULL);
 	Jim_CreateCommand(interp, "find", Jim_Command_find, NULL, NULL);
@@ -734,23 +738,27 @@ void initJim(void)
 	
 	add_default_dirs();
 	
-	if (Jim_Eval(interp, filedata_startup)==JIM_ERR)
+	script_len = (int)&binary_startup_tcl_size;
+	script = malloc(script_len + sizeof(char));
+	memcpy(script, &binary_startup_tcl_start, script_len);
+	
+	/* null terminate */
+	script[script_len] = 0;
+	
+	if (Jim_Eval(interp, script)==JIM_ERR)
 	{
 		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD compile time)");
 		Jim_PrintErrorMessage(interp);
 		exit(-1);
 	}
+	
+	free(script);
 }
-
-
 
 int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	FILE *script_file;
-
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
 	
 	/* Run a tcl script file */
 	return command_run_linef(cmd_ctx, "source [find {%s}]", args[0]);

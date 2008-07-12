@@ -6,7 +6,7 @@ else
 MAINFILE = main.c jim.c
 endif
 
-openocd_SOURCES = $(MAINFILE) openocd.c startup.c
+openocd_SOURCES = $(MAINFILE) openocd.c
 
 # set the include path found by configure
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/helper \
@@ -70,7 +70,7 @@ FTD2XXLIB =
 endif
 endif
 
-openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
+openocd_LDADD = $(top_builddir)/src/startup.o $(top_builddir)/src/xsvf/libxsvf.a \
 	$(top_builddir)/src/target/libtarget.a $(top_builddir)/src/jtag/libjtag.a \
 	$(top_builddir)/src/helper/libhelper.a \
 	$(top_builddir)/src/server/libserver.a $(top_builddir)/src/helper/libhelper.a \
@@ -96,9 +96,7 @@ nobase_dist_pkglib_DATA = \
 	tcl/mmr_helpers.tcl  \
 	tcl/readable.tcl  
 
-# Convert .tcl to .c file
-startup.c: $(top_srcdir)/src/startup.tcl Makefile  $(top_srcdir)/src/file2c.tcl
-	${TCLSH} $(top_srcdir)/src/file2c.tcl $(top_srcdir)/src/startup.tcl startup.c
+# Convert .tcl to object
 
-# add startup.c to make clean list
-CLEANFILES = startup.c
+$(top_builddir)/src/startup.o: $(top_srcdir)/src/startup.tcl
+	${OBJCOPY} -I binary -O ${OBJCOPY_FORMAT} -B ${OBJCOPY_ARCH} startup.tcl startup.o
