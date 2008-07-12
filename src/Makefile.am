@@ -78,8 +78,6 @@ openocd_LDADD = $(top_builddir)/src/startup.o $(top_builddir)/src/xsvf/libxsvf.a
 	$(top_builddir)/src/pld/libpld.a \
 	$(FTDI2232LIB) $(FTD2XXLIB) $(MINGWLDADD) $(LIBUSB)
 
-	
-	
 nobase_dist_pkglib_DATA = \
 	tcl/bitsbytes.tcl  \
 	tcl/chip/atmel/at91/aic.tcl  \
@@ -99,4 +97,6 @@ nobase_dist_pkglib_DATA = \
 # Convert .tcl to object
 
 $(top_builddir)/src/startup.o: $(top_srcdir)/src/startup.tcl
-	${OBJCOPY} -I binary -O ${OBJCOPY_FORMAT} -B ${OBJCOPY_ARCH} startup.tcl startup.o
+	abs_builddir=`cd $(top_builddir) && pwd` && \
+	cd $(top_srcdir)/src &&  \
+	${OBJCOPY} -I binary -O ${OBJCOPY_FORMAT} -B ${OBJCOPY_ARCH} startup.tcl $$abs_builddir/src/startup.o
