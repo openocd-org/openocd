@@ -19,6 +19,11 @@ proc add_help_text {cmd cmd_help} {
 	lappend ocd_helptext [list $cmd $cmd_help]
 }
 
+proc get_help_text {} {
+	global ocd_helptext
+	return $ocd_helptext
+}
+
 # Production command
 # FIX!!! need to figure out how to feed back relevant output
 # from e.g. "flash banks" command...
