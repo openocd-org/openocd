@@ -1,4 +1,6 @@
-bin_PROGRAMS = openocd
+bin_PROGRAMS = openocd bin2char
+
+bin2char_SOURCES = bin2char.c
 
 if ECOSBOARD
 MAINFILE = ecosboard.c
@@ -6,7 +8,7 @@ else
 MAINFILE = main.c jim.c
 endif
 
-openocd_SOURCES = $(MAINFILE) openocd.c
+openocd_SOURCES = $(MAINFILE) openocd.c startup_tcl.c
 
 # set the include path found by configure
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/helper \
@@ -70,7 +72,7 @@ FTD2XXLIB =
 endif
 endif
 
-openocd_LDADD = $(top_builddir)/src/startup.o $(top_builddir)/src/xsvf/libxsvf.a \
+openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
 	$(top_builddir)/src/target/libtarget.a $(top_builddir)/src/jtag/libjtag.a \
 	$(top_builddir)/src/helper/libhelper.a \
 	$(top_builddir)/src/server/libserver.a $(top_builddir)/src/helper/libhelper.a \
@@ -94,9 +96,6 @@ nobase_dist_pkglib_DATA = \
 	tcl/mmr_helpers.tcl  \
 	tcl/readable.tcl  
 
-# Convert .tcl to object
-
-$(top_builddir)/src/startup.o: $(top_srcdir)/src/startup.tcl
-	abs_builddir=`cd $(top_builddir) && pwd` && \
-	cd $(top_srcdir)/src &&  \
-	${OBJCOPY} -I binary -O ${OBJCOPY_FORMAT} -B ${OBJCOPY_ARCH} startup.tcl $$abs_builddir/src/startup.o
+# Convert .tcl to cfile
+startup_tcl.c: bin2char startup.tcl
+	./bin2char startup_tcl < $(srcdir)/startup.tcl > startup_tcl.c

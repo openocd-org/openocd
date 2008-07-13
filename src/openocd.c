@@ -714,8 +714,8 @@ void add_jim(const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj 
 	Jim_ListAppendElement(interp, helptext, cmd_entry);
 }
 
-extern char binary_startup_tcl_start;
-extern char binary_startup_tcl_size;
+extern unsigned const char startup_tcl[];
+extern unsigned int startup_tcl_len;
 
 void initJim(void)
 {
@@ -741,10 +741,10 @@ void initJim(void)
 	
 	add_default_dirs();
 	
-	script_len = (int)&binary_startup_tcl_size;
+	script_len = startup_tcl_len;
 	script = malloc(script_len + sizeof(char));
-	memcpy(script, &binary_startup_tcl_start, script_len);
-	
+	memcpy(script, startup_tcl, script_len);
+
 	/* null terminate */
 	script[script_len] = 0;
 	
