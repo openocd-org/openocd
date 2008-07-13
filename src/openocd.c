@@ -499,7 +499,10 @@ static void tcl_output(void *privData, const char *file, int line, const char *f
 int jim_command(command_context_t *context, char *line)
 {
 	int retval=ERROR_OK;
-	int retcode=Jim_Eval(interp, line);
+	int retcode;
+
+	active_cmd_ctx = context;
+	retcode = Jim_Eval(interp, line);
 	
 	if (retcode == JIM_ERR) {
 		Jim_PrintErrorMessage(interp);
