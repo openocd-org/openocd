@@ -1,4 +1,4 @@
-bin_PROGRAMS = openocd bin2char
+bin_PROGRAMS = bin2char openocd
 
 bin2char_SOURCES = bin2char.c
 
@@ -99,3 +99,6 @@ nobase_dist_pkglib_DATA = \
 # Convert .tcl to cfile
 startup_tcl.c: bin2char startup.tcl
 	./bin2char startup_tcl < $(srcdir)/startup.tcl > startup_tcl.c
+
+# add startup_tcl.c to make clean list
+CLEANFILES = startup_tcl.c
