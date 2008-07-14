@@ -55,7 +55,7 @@ void add_config_command (const char *cfg)
 }
 
 /* return full path or NULL according to search rules */
-char *find_file(char *file)
+char *find_file(const char *file)
 {
 	FILE *fp = NULL;
 	char **search_dirs = script_search_dirs;

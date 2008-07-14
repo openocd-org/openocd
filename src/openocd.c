@@ -595,7 +595,7 @@ static int Jim_Command_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc != 2)
 		return JIM_ERR;
-	char *file = (char*)Jim_GetString(argv[1], NULL);
+	const char *file = Jim_GetString(argv[1], NULL);
 	char *full_path = find_file(file);
 	if (full_path == NULL)
 		return JIM_ERR;
@@ -614,6 +614,36 @@ static int Jim_Command_echo(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	LOG_USER("%s", str);
 	return JIM_OK;
 }
+
+static int Jim_Command_script(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	int retval;
+	const char *file;
+	char *full_path;
+
+	if (argc != 2)
+	{
+		Jim_WrongNumArgs(interp, 1, argv, "file name missing");
+		return JIM_ERR;
+	}
+
+	/* Run a tcl script file */
+	file = Jim_GetString(argv[1], NULL);
+	full_path = find_file(file);
+	if (full_path == NULL)
+	{
+		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
+		Jim_AppendStrings(interp, Jim_GetResult(interp), "script: could not open file", file, NULL);
+		return JIM_ERR;
+	}
+	retval = Jim_EvalFile(interp, full_path);
+	free(full_path);
+	/* convert a return to ok */
+	if (retval == JIM_RETURN)
+		return JIM_OK;
+	return retval;
+}
+
 
 static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *cookie)
 {
@@ -722,6 +752,7 @@ void initJim(void)
 	Jim_CreateCommand(interp, "openocd_throw", Jim_Command_openocd_throw, NULL, NULL);
 	Jim_CreateCommand(interp, "find", Jim_Command_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", Jim_Command_echo, NULL, NULL);
+	Jim_CreateCommand(interp, "script", Jim_Command_script, NULL, NULL);
 	Jim_CreateCommand(interp, "mem2array", Jim_Command_mem2array, NULL, NULL );
 	Jim_CreateCommand(interp, "array2mem", Jim_Command_array2mem, NULL, NULL );
 
@@ -745,15 +776,6 @@ void initJim(void)
 	}
 }
 
-int handle_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc != 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	
-	/* Run a tcl script file */
-	return command_run_linef(cmd_ctx, "source [find {%s}]", args[0]);
-}
-
 command_context_t *setup_command_handler(void)
 {
 	command_context_t *cmd_ctx;
@@ -772,7 +794,6 @@ command_context_t *setup_command_handler(void)
 	tcl_register_commands(cmd_ctx); /* tcl server commands */
 	log_register_commands(cmd_ctx);
 	jtag_register_commands(cmd_ctx);
-	register_command(cmd_ctx, NULL, "script", handle_script_command, COMMAND_ANY, "execute commands from <file>");
 	xsvf_register_commands(cmd_ctx);
 	target_register_commands(cmd_ctx);
 	flash_register_commands(cmd_ctx);
