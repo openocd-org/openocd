@@ -630,41 +630,47 @@ int stm32x_probe(struct flash_bank_s *bank)
 	target_read_u32(target, 0xE0042000, &device_id);
 	LOG_INFO( "device id = 0x%08x", device_id );
 	
-	switch (device_id & 0x7ff)
-	{
-		case 0x410:
-			/* medium density - we have 1k pages
-			 * 4 pages for a protection area */
-			page_size = 1024;
-			stm32x_info->ppage_size = 4;
-			break;
-		
-		case 0x414:
-			/* high density - we have 2k pages
-			 * 2 pages for a protection area */
-			page_size = 2048;
-			stm32x_info->ppage_size = 2;
-			break;
-		
-		default:
-			LOG_WARNING( "Cannot identify target as a STM32 family." );
-			return ERROR_FLASH_OPERATION_FAILED;
-	}
-	
 	/* get flash size from target */
 	if (target_read_u16(target, 0x1FFFF7E0, &num_pages) != ERROR_OK)
 	{
-		/* failed reading flash size, default to 128k */
-		LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 128k flash" );
-		num_pages = 128;
+		/* failed reading flash size, default to max target family */
+		num_pages = 0xffff;
 	}
 	
-	/* check for early silicon rev A */
-	if ((device_id >> 16) == 0 )
+	if ((device_id & 0x7ff) == 0x410)
 	{
-		/* number of sectors incorrect on revA */
-		LOG_WARNING( "STM32 Rev A Silicon detected, probe inaccurate - assuming 128k flash" );
-		num_pages = 128;
+		/* medium density - we have 1k pages
+		 * 4 pages for a protection area */
+		page_size = 1024;
+		stm32x_info->ppage_size = 4;
+		
+		/* check for early silicon */
+		if (num_pages == 0xffff)
+		{
+			/* number of sectors incorrect on revA */
+			LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 128k flash" );
+			num_pages = 128;
+		}
+	}
+	else if ((device_id & 0x7ff) == 0x414)
+	{
+		/* high density - we have 2k pages
+		 * 2 pages for a protection area */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+		
+		/* check for early silicon */
+		if (num_pages == 0xffff)
+		{
+			/* number of sectors incorrect on revZ */
+			LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 512k flash" );
+			num_pages = 512;
+		}
+	}
+	else
+	{
+		LOG_WARNING( "Cannot identify target as a STM32 family." );
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
 	LOG_INFO( "flash size = %dkbytes", num_pages );
