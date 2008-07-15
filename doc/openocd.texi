@@ -52,6 +52,7 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 * Sample Scripts::    Sample Target Scripts
 * GDB and OpenOCD::   Using GDB and OpenOCD
 * TCL and OpenOCD::   Using TCL and OpenOCD
+* TCL scripting API:: Tcl scripting API
 * Upgrading::         Deprecated/Removed Commands
 * FAQ::               Frequently Asked Questions
 * License::           GNU Free Documentation License
@@ -1398,6 +1399,49 @@ close $fo
 
 This script can easily be modified to front various GUIs or be a sub
 component of a larger framework for control and interaction.
+
+
+@node TCL scripting API
+@chapter TCL scripting API
+@cindex TCL scripting API
+API rules
+
+The commands are stateless. E.g. the telnet command line has a concept
+of currently active target, the Tcl API proc's take this sort of state
+information as an argument to each proc.
+
+There are three main types of return values: single value, name value
+pair list and lists. 
+
+Name value pair. The proc 'foo' below returns a name/value pair
+list. 
+
+@verbatim
+
+ >  set foo(me)  Duane
+ >  set foo(you) Oyvind
+ >  set foo(mouse) Micky
+ >  set foo(duck) Donald
+
+If one does this:
+
+ >  set foo
+
+The result is:
+
+    me Duane you Oyvind mouse Micky duck Donald
+
+Thus, to get the names of the associative array is easy:
+
+     foreach  { name value }   [set foo]   {
+                puts "Name: $name, Value: $value"
+     }
+@end verbatim
+ 
+Lists returned must be relatively small. Otherwise a range
+should be passed in to the proc in question.
+
+
 
 @node Upgrading
 @chapter Deprecated/Removed Commands
