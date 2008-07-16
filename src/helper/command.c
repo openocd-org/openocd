@@ -358,6 +358,19 @@ int find_and_run_command(command_context_t *context, command_t *commands, char *
 	int retval = c->handler(context, c->name, words + start_word + 1, num_words - start_word - 1);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR)
 	{
+		/* Print help for command */
+		const char *t1="";
+		const char *t2="";
+		const char *t3="";
+		/* maximum of two levels :-) */
+		if (c->parent!=NULL)
+		{
+			t1=c->parent->name;
+			t2=" ";
+		}
+		t3=c->name;
+		command_run_linef(context, "help {%s%s%s}", t1, t2, t3);
+		
 		
 	}
 	else if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
