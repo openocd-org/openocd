@@ -493,6 +493,8 @@ static void tcl_output(void *privData, const char *file, int line, const char *f
 	Jim_AppendString(interp, tclOutput, string, strlen(string));
 }
 
+static int openocd_retval; 
+
 /* try to execute as Jim command, otherwise fall back to standard command.
  * Note that even if the Jim command caused an error, then we succeeded
  * to execute it, hence this fn pretty much always returns ERROR_OK. */
@@ -502,20 +504,21 @@ int jim_command(command_context_t *context, char *line)
 	int retcode;
 
 	active_cmd_ctx = context;
+	openocd_retval=ERROR_OK;
 	retcode = Jim_Eval(interp, line);
 	
 	if (retcode == JIM_ERR) {
-		Jim_PrintErrorMessage(interp);
-	    long t;
-	    Jim_Obj *openocd_result=Jim_GetVariableStr(interp, "openocd_result", JIM_ERRMSG);
-	    if (openocd_result)
-	    {
-		    if (Jim_GetLong(interp, openocd_result, &t)==JIM_OK)
-		    {
-		    	return t;
-		    }
+		if (openocd_retval!=ERROR_COMMAND_CLOSE_CONNECTION)
+		{
+			/* We do not print the connection closed error message */
+			Jim_PrintErrorMessage(interp);
 		}
-	    return ERROR_FAIL;
+		if (openocd_retval==ERROR_OK)
+		{
+			/* It wasn't a low level OpenOCD command that failed */
+			return ERROR_FAIL; 
+		}
+	    return openocd_retval;
 	} 
 	const char *result;
 	int reslen;
@@ -562,12 +565,8 @@ static int Jim_Command_openocd_ignore(Jim_Interp *interp, int argc, Jim_Obj *con
 	log_add_callback(tcl_output, tclOutput);
 	retval=command_run_line_internal(active_cmd_ctx, cmd);
 
-	/* we need to be able to get at the retval, so we store in a variable
-	 */
-	Jim_Obj *resultvar=Jim_NewIntObj(interp, retval);
-	Jim_IncrRefCount(resultvar);
-	Jim_SetGlobalVariableStr(interp, "openocd_result", resultvar);
-	Jim_DecrRefCount(interp, resultvar);
+	/* we need to be able to get at the retval, so we store in a global variable */
+	openocd_retval=retval;
 	
 	if (startLoop)
 	{
