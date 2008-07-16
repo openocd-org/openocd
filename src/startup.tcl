@@ -46,7 +46,7 @@ proc flash_banks_pretty {} {
 		if {$i > 0} {
 			set result "$result\n"
 		}
-		set result [format "$result#%d: %s at 0x%08x, size 0x%08x, buswidth %d, chipwidth %d" $i [lindex $a 0] [lindex $a 1] [lindex $a 2] [lindex $a 3] [lindex $a 4]]
+		set result [format "$result#%d: %s at 0x%08x, size 0x%08x, buswidth %d, chipwidth %d" $i $a(name) $a(base) $a(size) $a(bus_width) $a(chip_width)]
 		set i [expr $i+1]	
 	}	
 	return $result
