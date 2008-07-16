@@ -110,7 +110,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 				break;
 			case 'f':	/* --file | -f */
 			{
-				snprintf(command_buffer, 128, "script %s", optarg);
+				snprintf(command_buffer, 128, "script {%s}", optarg);
 				add_config_command(command_buffer);
 				break;
 			}

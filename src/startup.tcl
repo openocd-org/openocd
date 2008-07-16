@@ -134,6 +134,29 @@ proc target_script {target_num eventname scriptname} {
 	
 }
 
-#add_help_text target_script "xxx"
+# Try flipping / and \ to find file if the filename does not
+# match the precise spelling
+proc find {filename} {
+	if {[catch {openocd_find $filename} t]==0} {
+		return $t
+	}  
+	if {[catch {openocd_find [string map {\ /} $filename} t]==0} {
+		return $t
+	}  
+	if {[catch {openocd_find [string map {/ \\} $filename} t]==0} {
+		return $t
+	}  
+	# make sure error message matches original input string
+	return [openocd_find $filename]
+}
+add_help_text find "<file> - print full path to file according to OpenOCD search rules"
+
+# Run script
+proc script {filename} {
+	source [find $filename]
+}
+
+add_help_text script "<filename> - filename of OpenOCD script (tcl) to run"
+
 add_help_text target_script "<target#> <event=reset/pre_reset/post_halt/pre_resume/gdb_program_config> <script_file>"
 

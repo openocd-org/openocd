@@ -614,34 +614,6 @@ static int Jim_Command_echo(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-static int Jim_Command_script(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	int retval;
-	const char *file;
-	char *full_path;
-
-	if (argc != 2)
-	{
-		Jim_WrongNumArgs(interp, 1, argv, "file name missing");
-		return JIM_ERR;
-	}
-
-	/* Run a tcl script file */
-	file = Jim_GetString(argv[1], NULL);
-	full_path = find_file(file);
-	if (full_path == NULL)
-	{
-		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-		Jim_AppendStrings(interp, Jim_GetResult(interp), "script: could not open file", file, NULL);
-		return JIM_ERR;
-	}
-	retval = Jim_EvalFile(interp, full_path);
-	free(full_path);
-	/* convert a return to ok */
-	if (retval == JIM_RETURN)
-		return JIM_OK;
-	return retval;
-}
 
 
 static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *cookie)
@@ -752,9 +724,8 @@ void initJim(void)
 {	
 	Jim_CreateCommand(interp, "openocd", Jim_Command_openocd, NULL, NULL);
 	Jim_CreateCommand(interp, "openocd_throw", Jim_Command_openocd_throw, NULL, NULL);
-	Jim_CreateCommand(interp, "find", Jim_Command_find, NULL, NULL);
+	Jim_CreateCommand(interp, "openocd_find", Jim_Command_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", Jim_Command_echo, NULL, NULL);
-	Jim_CreateCommand(interp, "script", Jim_Command_script, NULL, NULL);
 	Jim_CreateCommand(interp, "mem2array", Jim_Command_mem2array, NULL, NULL );
 	Jim_CreateCommand(interp, "array2mem", Jim_Command_array2mem, NULL, NULL );
 
