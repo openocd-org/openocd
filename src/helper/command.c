@@ -100,6 +100,8 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	}
 	/* accumulate help text in Tcl helptext list.  */
     Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
+    if (Jim_IsShared(helptext))
+        helptext = Jim_DuplicateObj(interp, helptext);
 	Jim_Obj *cmd_entry=Jim_NewListObj(interp, NULL, 0);
 	
 	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);

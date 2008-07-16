@@ -52,7 +52,6 @@ int cli_target_callback_event_handler(struct target_s *target, enum target_event
 int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_run_and_halt_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
@@ -952,8 +951,6 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "target", handle_target_command, COMMAND_CONFIG, "target <cpu> [reset_init default - DEPRECATED] <chainpos> <endianness> <variant> [cpu type specifc args]");
 	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, NULL);
-	register_command(cmd_ctx, NULL, "target_script", handle_target_script_command, COMMAND_CONFIG, 
-	"target_script <target#> <event=reset/pre_reset/post_halt/pre_resume/gdb_program_config> <script_file>");
 	register_command(cmd_ctx, NULL, "run_and_halt_time", handle_run_and_halt_time_command, COMMAND_CONFIG, "<target> <run time ms>");
 	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
@@ -1489,42 +1486,6 @@ int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, ch
 	return command_run_linef(cmd_ctx, " if {[catch {info body target_%s_%d} t]==0} {target_%s_%d}", 
 	name, get_num_by_target(target),
 	name, get_num_by_target(target));
-}
-
-int handle_target_script_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	target_t *target = NULL;
-	
-	if (argc < 3)
-	{
-		LOG_ERROR("incomplete target_script command");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	
-	target = get_target_by_num(strtoul(args[0], NULL, 0));
-	
-	if (!target)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	
-	const char *event=args[1];
-	if (strcmp("reset", event)==0)
-	{
-		/* synonymous */
-		event="post_reset";
-	}
-			
-	/* Define a tcl procedure which we'll invoke upon some event */
-	command_run_linef(cmd_ctx, 
-	"proc target_%s_%d {} {"
-	"openocd {script %s} ; return \"\"" 
-	"}",
-	event,
-	get_num_by_target(target),
-	args[2]);
-	
-	return ERROR_OK;
 }
 
 int handle_run_and_halt_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

@@ -11,7 +11,6 @@
 # Commands can be more than one word and they are stored
 # as "flash banks" "help text x x x"
 
-global ocd_helptext
 set ocd_helptext {}
 
 proc add_help_text {cmd cmd_help} {
@@ -123,3 +122,18 @@ proc unknown {args} {
 	# the command twice.
 	return ""
 }
+
+
+proc target_script {target_num eventname scriptname} {
+	if {[string compare $eventname reset]==0} {
+		set eventname post_reset
+	}
+
+	# This is the script we invoke
+	proc "target_[set eventname]_[set target_num]" {} "script $scriptname" 
+	
+}
+
+#add_help_text target_script "xxx"
+add_help_text target_script "<target#> <event=reset/pre_reset/post_halt/pre_resume/gdb_program_config> <script_file>"
+
