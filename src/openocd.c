@@ -485,59 +485,6 @@ static int Jim_Command_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *a
 }
 
 
-static int openocd_retval; 
-
-/* try to execute as Jim command, otherwise fall back to standard command.
- * Note that even if the Jim command caused an error, then we succeeded
- * to execute it, hence this fn pretty much always returns ERROR_OK. */
-int jim_command(command_context_t *context, char *line)
-{
-	int retval=ERROR_OK;
-	int retcode;
-
-	active_cmd_ctx = context;
-	openocd_retval=ERROR_OK;
-	retcode = Jim_Eval(interp, line);
-	
-	if (retcode == JIM_ERR) {
-		if (openocd_retval!=ERROR_COMMAND_CLOSE_CONNECTION)
-		{
-			/* We do not print the connection closed error message */
-			Jim_PrintErrorMessage(interp);
-		}
-		if (openocd_retval==ERROR_OK)
-		{
-			/* It wasn't a low level OpenOCD command that failed */
-			return ERROR_FAIL; 
-		}
-	    return openocd_retval;
-	} 
-	const char *result;
-	int reslen;
-	result = Jim_GetString(Jim_GetResult(interp), &reslen);
-		
-	if (retcode == JIM_EXIT) {
-		/* ignore. */
-	/* exit(Jim_GetExitCode(interp)); */
-	} else {
-		if (reslen) {
-			int i;
-			char buff[256+1];
-			for (i = 0; i < reslen; i += 256)
-			{
-				int chunk;
-				chunk = reslen - i;
-				if (chunk > 256)
-					chunk = 256;
-        		strncpy(buff, result+i, chunk);
-				buff[chunk] = 0; 
-				LOG_USER_N("%s", buff);
-			}
-			LOG_USER_N("%s", "\n");
-		}
-	}
-	return retval;
-}
 
 /* find full path to file */
 static int Jim_Command_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)

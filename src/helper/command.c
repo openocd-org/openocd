@@ -94,8 +94,9 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		*retval = run_command(context, c, words, nwords);
 		
 		log_remove_callback(tcl_output, tclOutput);
-		Jim_SetResult(interp, tclOutput);
 		
+		/* We dump output into this local variable */
+		Jim_SetVariableStr(interp, "openocd_output", tclOutput);
 	}
 
 	for (i = 0; i < nwords; i++)
@@ -295,7 +296,14 @@ void command_print_n(command_context_t *context, char *format, ...)
 	string = alloc_vprintf(format, ap);
 	if (string != NULL)
 	{
-		context->output_handler(context, string);
+		/* we want this collected in the log + we also want to pick it up as a tcl return
+		 * value.
+		 * 
+		 * The latter bit isn't precisely neat, but will do for now.
+		 */
+		LOG_USER_N("%s", string);
+		// We already printed it above
+		//command_output_text(context, string);
 		free(string);
 	}
 
@@ -313,7 +321,14 @@ void command_print(command_context_t *context, char *format, ...)
 	if (string != NULL)
 	{
 		strcat(string, "\n"); /* alloc_vprintf guaranteed the buffer to be at least one char longer */
-		context->output_handler(context, string);
+		/* we want this collected in the log + we also want to pick it up as a tcl return
+		 * value.
+		 * 
+		 * The latter bit isn't precisely neat, but will do for now.
+		 */
+		LOG_USER_N("%s", string);
+		// We already printed it above
+		//command_output_text(context, string);
 		free(string);
 	}
 
@@ -369,7 +384,6 @@ int command_run_line(command_context_t *context, char *line)
 	/* run the line thru a script engine */
 	int retval;
 	int retcode;
-
 	Jim_DeleteAssocData(interp, "context"); /* remove existing */
 	retcode = Jim_SetAssocData(interp, "context", NULL, context);
 	if (retcode != JIM_OK)
@@ -382,9 +396,20 @@ int command_run_line(command_context_t *context, char *line)
 	if (retcode != JIM_OK)
 		return ERROR_FAIL;
 
+	active_cmd_ctx = context;
 	retcode = Jim_Eval(interp, line);	
 	if (retcode == JIM_ERR) {
-		Jim_PrintErrorMessage(interp);
+		if (retval!=ERROR_COMMAND_CLOSE_CONNECTION)
+		{
+			/* We do not print the connection closed error message */
+			Jim_PrintErrorMessage(interp);
+		}
+		if (retval==ERROR_OK)
+		{
+			/* It wasn't a low level OpenOCD command that failed */
+			return ERROR_FAIL; 
+		}
+		return retval;
 	} else if (retcode == JIM_EXIT) {
 		/* ignore. */
 		/* exit(Jim_GetExitCode(interp)); */

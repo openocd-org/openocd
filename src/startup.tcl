@@ -95,12 +95,16 @@ add_help_text help "Tcl implementation of help command"
 
 #a bit of backwards compatibility
 proc openocd_throw {cmd} {
-	return [eval $cmd]
+	set openocd_output ""
+	eval $cmd
+	return $openocd_output
 }
 
 #a bit of backwards compatibility
 proc openocd {cmd} {
-	return [eval $cmd]
+	set openocd_output ""
+	eval $cmd
+	return $openocd_output
 }
 
 # If a fn is unknown to Tcl, we try to execute it as an OpenOCD command
