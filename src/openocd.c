@@ -107,8 +107,6 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	
 	initialized=1;
 	
-	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
-
 	atexit(exit_handler);
 	
 	if (target_init(cmd_ctx) != ERROR_OK)
@@ -769,24 +767,16 @@ int openocd_main(int argc, char *argv[])
 	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 
-	command_context_t *cfg_cmd_ctx;
-	cfg_cmd_ctx = copy_command_context(cmd_ctx);
-	cfg_cmd_ctx->mode = COMMAND_CONFIG;
-	command_set_output_handler(cfg_cmd_ctx, configuration_output_handler, NULL);
-	
-	active_cmd_ctx=cfg_cmd_ctx;
-	
+	command_context_mode(cmd_ctx, COMMAND_CONFIG);
+	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 
-	if (parse_cmdline_args(cfg_cmd_ctx, argc, argv) != ERROR_OK)
+	if (parse_cmdline_args(cmd_ctx, argc, argv) != ERROR_OK)
 		return EXIT_FAILURE;
 	
-	if (parse_config_file(cfg_cmd_ctx) != ERROR_OK)
+	if (parse_config_file(cmd_ctx) != ERROR_OK)
 		return EXIT_FAILURE;
-	
-	active_cmd_ctx=cmd_ctx;
-	
-	command_done(cfg_cmd_ctx);
 
+	command_context_mode(cmd_ctx, COMMAND_EXEC);
 	if (command_run_line(cmd_ctx, "init")!=ERROR_OK)
 		return EXIT_FAILURE;
 	
