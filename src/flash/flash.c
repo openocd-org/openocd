@@ -188,7 +188,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 {
 	if (flash_banks)
 	{
-		Jim_CreateCommand(interp, "flash_banks", Jim_Command_flash_banks, NULL, NULL );
+		Jim_CreateCommand(interp, "openocd_flash_banks", Jim_Command_flash_banks, NULL, NULL );
 		
 		register_command(cmd_ctx, flash_cmd, "info", handle_flash_info_command, COMMAND_EXEC,
 						 "print info about flash bank <num>");

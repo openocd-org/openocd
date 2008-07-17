@@ -11,8 +11,6 @@
 # Commands can be more than one word and they are stored
 # as "flash banks" "help text x x x"
 
-set ocd_helptext {}
-
 proc add_help_text {cmd cmd_help} {
 	global ocd_helptext
 	lappend ocd_helptext [list $cmd $cmd_help]
@@ -39,10 +37,10 @@ proc board_test {} {
 
 # Show flash in human readable form
 # This is an example of a human readable form of a low level fn
-proc flash_banks_pretty {} { 
+proc flash_banks {} { 
 	set i 0 	
 	set result ""
-	foreach {a} [flash_banks] {
+	foreach {a} [openocd_flash_banks] {
 		if {$i > 0} {
 			set result "$result\n"
 		}
@@ -56,14 +54,6 @@ proc flash_banks_pretty {} {
 # as Tcl defines the exit proc
 proc exit {} {
 	openocd_throw exit
-}
-
-# We have currently converted only "flash banks" to tcl.
-proc flash args {
-	if {[string compare [lindex $args 0] banks]==0} {
-		return [flash_banks_pretty]
-	}
-	openocd_throw "flash $args"
 }
 
 #Print help text for a command. Word wrap
@@ -103,24 +93,30 @@ proc help {args} {
 add_help_text help "Tcl implementation of help command"
 
 
+#a bit of backwards compatibility
+proc openocd_throw {cmd} {
+	return [eval $cmd]
+}
+
+#a bit of backwards compatibility
+proc openocd {cmd} {
+	return [eval $cmd]
+}
+
 # If a fn is unknown to Tcl, we try to execute it as an OpenOCD command
+#
+# We also support two level commands. "flash banks" is translated to
+# flash_banks
 proc unknown {args} {
-	if {[string length $args]>0} {
-		set cmd ""
-		# We need to add back quotes for arguments w/space
-		# for args without space, we can add quotes anyway
-		foreach {a} $args {
-			set cmd "$cmd \"$a\""
-		}
-		openocd_throw $cmd
+	# do the name mangling from "flash banks" to "flash_banks"
+	if {[llength $args]>=2} {
+		set cmd_name "[lindex $args 0]_[lindex $args 1]"
+		# Fix?? add a check here if this is a command?
+		# we'll strip away args until we fail anyway...
+		return [eval "$cmd_name [lrange $args 2 end]"]
 	}
-	# openocd_throw outputs while running and also sets the
-	# primary return value to the output of the command
-	#
-	# The primary return value have been set by "openocd" above,
-	# so we need to clear it, lest we print out the output from
-	# the command twice.
-	return ""
+	# This really is an unknown command.
+	puts "Unknown command: $args"
 }
 
 

@@ -1441,6 +1441,12 @@ Thus, to get the names of the associative array is easy:
 Lists returned must be relatively small. Otherwise a range
 should be passed in to the proc in question.
 
+Low level commands are prefixed with "openocd_", e.g. openocd_flash_banks
+is the low level API upon which "flash banks" is implemented.
+
+OpenOCD commands can consist of two words, e.g. "flash banks". The
+startup.tcl "unknown" proc will translate this into a tcl proc
+called "flash_banks".
 
 
 @node Upgrading

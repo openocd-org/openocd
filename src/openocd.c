@@ -486,12 +486,6 @@ static int Jim_Command_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *a
 	return JIM_OK;
 }
 
-static void tcl_output(void *privData, const char *file, int line, const char *function, const char *string)
-{		
-	Jim_Obj *tclOutput=(Jim_Obj *)privData;
-
-	Jim_AppendString(interp, tclOutput, string, strlen(string));
-}
 
 static int openocd_retval; 
 
@@ -545,48 +539,6 @@ int jim_command(command_context_t *context, char *line)
 		}
 	}
 	return retval;
-}
-
-int startLoop = 0;
-
-static int Jim_Command_openocd_ignore(Jim_Interp *interp, int argc, Jim_Obj *const *argv, int ignore)
-{
-	int retval;
-	char *cmd = (char*)Jim_GetString(argv[1], NULL);
-	
-	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
-	
-	if (startLoop)
-	{
-		/* We don't know whether or not the telnet/gdb server is running... */
-		target_call_timer_callbacks_now();
-	}
-	
-	log_add_callback(tcl_output, tclOutput);
-	retval=command_run_line_internal(active_cmd_ctx, cmd);
-
-	/* we need to be able to get at the retval, so we store in a global variable */
-	openocd_retval=retval;
-	
-	if (startLoop)
-	{
-		target_call_timer_callbacks_now();
-	}
-	log_remove_callback(tcl_output, tclOutput);
-	
-	Jim_SetResult(interp, tclOutput);
-	
-	return (ignore||(retval==ERROR_OK))?JIM_OK:JIM_ERR;
-}
-
-static int Jim_Command_openocd(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	return Jim_Command_openocd_ignore(interp, argc, argv, 1); 
-}
-
-static int Jim_Command_openocd_throw(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	return Jim_Command_openocd_ignore(interp, argc, argv, 0); 
 }
 
 /* find full path to file */
@@ -722,8 +674,6 @@ extern unsigned const char startup_tcl[];
 
 void initJim(void)
 {	
-	Jim_CreateCommand(interp, "openocd", Jim_Command_openocd, NULL, NULL);
-	Jim_CreateCommand(interp, "openocd_throw", Jim_Command_openocd_throw, NULL, NULL);
 	Jim_CreateCommand(interp, "openocd_find", Jim_Command_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", Jim_Command_echo, NULL, NULL);
 	Jim_CreateCommand(interp, "mem2array", Jim_Command_mem2array, NULL, NULL );
@@ -843,8 +793,6 @@ int openocd_main(int argc, char *argv[])
 	if (daemon_startup)
 		command_run_line(cmd_ctx, "reset");
 	
-	startLoop=1;
-
 	/* handle network connections */
 	server_loop(cmd_ctx);
 
