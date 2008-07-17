@@ -1,6 +1,4 @@
-bin_PROGRAMS = bin2char openocd
-
-bin2char_SOURCES = bin2char.c
+bin_PROGRAMS = openocd
 
 if ECOSBOARD
 MAINFILE = ecosboard.c
@@ -95,6 +93,10 @@ nobase_dist_pkglib_DATA = \
 	tcl/memory.tcl  \
 	tcl/mmr_helpers.tcl  \
 	tcl/readable.tcl  
+
+noinst_PROGRAMS = bin2char
+
+bin2char_SOURCES = bin2char.c
 
 # Convert .tcl to cfile
 startup_tcl.c: bin2char startup.tcl
