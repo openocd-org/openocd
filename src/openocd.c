@@ -155,7 +155,6 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 }
 
 Jim_Interp *interp;
-command_context_t *active_cmd_ctx;
 
 static int new_int_array_element(Jim_Interp * interp, const char *varname, int idx, u32 val)
 {
@@ -188,6 +187,7 @@ static int new_int_array_element(Jim_Interp * interp, const char *varname, int i
 static int Jim_Command_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	target_t *target;
+	command_context_t *context;
 	long l;
 	u32 width;
 	u32 len;
@@ -270,7 +270,18 @@ static int Jim_Command_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *a
 		return JIM_ERR;
 	}
 
-	target = get_current_target(active_cmd_ctx);
+	context = Jim_GetAssocData(interp, "context");
+	if (context == NULL)
+	{
+		LOG_ERROR("mem2array: no command context");
+		return JIM_ERR;
+	}
+	target = get_current_target(context);
+	if (target == NULL)
+	{
+		LOG_ERROR("mem2array: no current target");
+		return JIM_ERR;
+	}
 	
 	/* Transfer loop */
 
@@ -353,6 +364,7 @@ static int get_int_array_element(Jim_Interp * interp, const char *varname, int i
 static int Jim_Command_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	target_t *target;
+	command_context_t *context;
 	long l;
 	u32 width;
 	u32 len;
@@ -435,7 +447,18 @@ static int Jim_Command_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *a
 		return JIM_ERR;
 	}
 
-	target = get_current_target(active_cmd_ctx);
+	context = Jim_GetAssocData(interp, "context");
+	if (context == NULL)
+	{
+		LOG_ERROR("array2mem: no command context");
+		return JIM_ERR;
+	}
+	target = get_current_target(context);
+	if (target == NULL)
+	{
+		LOG_ERROR("array2mem: no current target");
+		return JIM_ERR;
+	}
 	
 	/* Transfer loop */
 
@@ -506,7 +529,7 @@ static int Jim_Command_echo(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc != 2)
 		return JIM_ERR;
-	char *str = (char*)Jim_GetString(argv[1], NULL);
+	const char *str = Jim_GetString(argv[1], NULL);
 	LOG_USER("%s", str);
 	return JIM_OK;
 }
@@ -517,24 +540,30 @@ static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *
 {
 	size_t nbytes;
 	const char *ptr;
+	Jim_Interp *interp;
+	command_context_t *context;
 
 	/* make it a char easier to read code */
 	ptr = _ptr;
-
+	interp = cookie;
 	nbytes = size * n;
-	if (nbytes == 0) {
+	if (ptr == NULL || interp == NULL || nbytes == 0) {
 		return 0;
 	}
 
-	if (!active_cmd_ctx) {
+	context = Jim_GetAssocData(interp, "context");
+	if (context == NULL)
+	{
+		LOG_ERROR("openocd_jim_fwrite: no command context");
 		/* TODO: Where should this go? */		
 		return n;
 	}
 
 	/* do we have to chunk it? */
-	if (ptr[nbytes] == 0) {
+	if (ptr[nbytes] == 0)
+	{
 		/* no it is a C style string */
-		command_output_text(active_cmd_ctx, ptr);
+		command_output_text(context, ptr);
 		return strlen(ptr);
 	}
 	/* GRR we must chunk - not null terminated */
@@ -551,7 +580,7 @@ static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *
 		/* terminate it */
 		chunk[n] = 0;
 		/* output it */
-		command_output_text(active_cmd_ctx, chunk);
+		command_output_text(context, chunk);
 		ptr += x;
 		nbytes -= x;
 	}
@@ -559,7 +588,7 @@ static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *
 	return n;
 }
 
-static size_t openocd_jim_fread(void *ptr, size_t size, size_t n, void *cookie )
+static size_t openocd_jim_fread(void *ptr, size_t size, size_t n, void *cookie)
 {
 	/* TCL wants to read... tell him no */
 	return 0;
@@ -569,15 +598,27 @@ static int openocd_jim_vfprintf(void *cookie, const char *fmt, va_list ap)
 {
 	char *cp;
 	int n;
-	
+	Jim_Interp *interp;
+	command_context_t *context;
+
 	n = -1;
-	if (active_cmd_ctx) {
-		cp = alloc_vprintf(fmt, ap);
-		if (cp) {
-			command_output_text(active_cmd_ctx, cp);
-			n = strlen(cp);
-			free(cp);
-		}
+	interp = cookie;
+	if (interp == NULL)
+		return n;
+
+	context = Jim_GetAssocData(interp, "context");
+	if (context == NULL)
+	{
+		LOG_ERROR("openocd_jim_vfprintf: no command context");
+		return n;
+	}
+
+	cp = alloc_vprintf(fmt, ap);
+	if (cp)
+	{
+		command_output_text(context, cp);
+		n = strlen(cp);
+		free(cp);
 	}
 	return n;
 }
@@ -618,16 +659,16 @@ void add_jim(const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj 
 extern unsigned const char startup_tcl[];
 
 void initJim(void)
-{	
+{
 	Jim_CreateCommand(interp, "openocd_find", Jim_Command_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", Jim_Command_echo, NULL, NULL);
 	Jim_CreateCommand(interp, "mem2array", Jim_Command_mem2array, NULL, NULL );
 	Jim_CreateCommand(interp, "array2mem", Jim_Command_array2mem, NULL, NULL );
 
 	/* Set Jim's STDIO */
-	interp->cookie_stdin = NULL;
-	interp->cookie_stdout = NULL;
-	interp->cookie_stderr = NULL;
+	interp->cookie_stdin = interp;
+	interp->cookie_stdout = interp;
+	interp->cookie_stderr = interp;
 	interp->cb_fwrite = openocd_jim_fwrite;
 	interp->cb_fread = openocd_jim_fread ;
 	interp->cb_vfprintf = openocd_jim_vfprintf;
@@ -675,7 +716,6 @@ command_context_t *setup_command_handler(void)
 	LOG_DEBUG("log init complete");
 
 	LOG_OUTPUT( OPENOCD_VERSION "\n" );
-	
 	
 	register_command(cmd_ctx, NULL, "init", handle_init_command,
 					 COMMAND_ANY, "initializes target and servers - nop on subsequent invocations");

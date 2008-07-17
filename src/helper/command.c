@@ -41,7 +41,6 @@
 #include <openocd_tcl.h>
 
 int fast_and_dangerous = 0;
-extern command_context_t *active_cmd_ctx;
 
 int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -396,7 +395,6 @@ int command_run_line(command_context_t *context, char *line)
 	if (retcode != JIM_OK)
 		return ERROR_FAIL;
 
-	active_cmd_ctx = context;
 	retcode = Jim_Eval(interp, line);	
 	if (retcode == JIM_ERR) {
 		if (retval!=ERROR_COMMAND_CLOSE_CONNECTION)
