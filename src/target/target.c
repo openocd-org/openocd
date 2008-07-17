@@ -264,7 +264,6 @@ int target_halt(struct target_s *target)
 int target_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
 {
 	int retval;
-	int timeout_ms = 5000;
 	
 	/* We can't poll until after examine */
 	if (!target->type->examined)
@@ -275,24 +274,6 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 	
 	if ((retval = target->type->resume(target, current, address, handle_breakpoints, debug_execution)) != ERROR_OK)
 		return retval;
-	
-	/* only check for resume event if normal resume */
-	if (!debug_execution)
-	{
-		/* wait for target to exit halted mode - not debug resume*/
-		target_poll(target);
-		
-		while (target->state != TARGET_RUNNING)
-		{
-			usleep(10000);
-			target_poll(target);
-			if ((timeout_ms -= 10) <= 0)
-			{
-				LOG_ERROR("timeout waiting for target resume");
-				return ERROR_TARGET_TIMEOUT;
-			}
-		}
-	}
 	
 	return retval;
 }
