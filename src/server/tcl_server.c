@@ -24,7 +24,7 @@
 #include <stdarg.h>
 #include "tcl_server.h"
 
-#include "../jim.h"
+#include "jim.h"
 #include "log.h"
 #include "command.h"
 

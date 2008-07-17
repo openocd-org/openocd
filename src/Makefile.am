@@ -3,10 +3,10 @@ bin_PROGRAMS = openocd
 if ECOSBOARD
 MAINFILE = ecosboard.c
 else
-MAINFILE = main.c jim.c
+MAINFILE = main.c
 endif
 
-openocd_SOURCES = $(MAINFILE) openocd.c startup_tcl.c
+openocd_SOURCES = $(MAINFILE) openocd.c
 
 # set the include path found by configure
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/helper \
@@ -94,13 +94,3 @@ nobase_dist_pkglib_DATA = \
 	tcl/mmr_helpers.tcl  \
 	tcl/readable.tcl  
 
-noinst_PROGRAMS = bin2char
-
-bin2char_SOURCES = bin2char.c
-
-# Convert .tcl to cfile
-startup_tcl.c: bin2char startup.tcl
-	./bin2char startup_tcl < $(srcdir)/startup.tcl > startup_tcl.c
-
-# add startup_tcl.c to make clean list
-CLEANFILES = startup_tcl.c

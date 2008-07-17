@@ -41,8 +41,7 @@
 #include <errno.h>
 #include <inttypes.h>
 
-#include "../jim.h"
-
+#include "jim.h"
 extern Jim_Interp *interp;
 
 
