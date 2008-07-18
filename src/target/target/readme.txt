@@ -10,6 +10,9 @@ Rules to follow when writing scripts:
 and
 	reset 
 	flash erase_address <start> <len>
+and
+	reset
+	load
 	
 In most cases this can be accomplished by specifying the default startup mode as reset_init (target command 
 in the configuration file).
