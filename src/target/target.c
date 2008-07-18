@@ -266,6 +266,9 @@ int target_halt(struct target_s *target)
 int target_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
 {
 	int retval;
+	int timeout_ms = 5000;
+	
+	enum target_state resume_state = debug_execution ? TARGET_DEBUG_RUNNING : TARGET_RUNNING;
 	
 	/* We can't poll until after examine */
 	if (!target->type->examined)
@@ -277,6 +280,21 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 	if ((retval = target->type->resume(target, current, address, handle_breakpoints, debug_execution)) != ERROR_OK)
 		return retval;
 	
+	/* wait for target to exit halted mode */
+	target_poll(target);
+	
+	while (target->state != resume_state)
+	{
+		target_call_timer_callbacks();
+		usleep(10000);
+		target_poll(target);
+		if ((timeout_ms -= 10) <= 0)
+		{
+			LOG_ERROR("timeout waiting for target resume");
+			return ERROR_TARGET_TIMEOUT;
+		}
+	}
+
 	return retval;
 }
 
@@ -407,6 +425,11 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 			return retval;
 	}		
 	
+	/* post reset scripts can be quite long, increase speed now. If post
+	 * reset scripts needs a different speed, they can set the speed to
+	 * whatever they need.
+	 */
+	jtag->speed(jtag_speed_post_reset);
 	
 	LOG_DEBUG("Waiting for halted stated as approperiate");
 	
@@ -464,7 +487,6 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	}
 	target_unregister_event_callback(target_init_handler, cmd_ctx);
 	
-	jtag->speed(jtag_speed_post_reset);
 	
 	return retval;
 }
@@ -738,6 +760,8 @@ static int target_call_timer_callbacks_check_time(int checktime)
 	target_timer_callback_t *next_callback;
 	struct timeval now;
 
+	keep_alive();
+	
 	gettimeofday(&now, NULL);
 	
 	while (callback)

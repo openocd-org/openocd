@@ -310,6 +310,7 @@ int server_loop(command_context_t *command_context)
 #endif
 
 		openocd_sleep_prelude();
+		kept_alive();
 		// Only while we're sleeping we'll let others run
 		retval = select(fd_max + 1, &read_fds, NULL, NULL, &tv);
 		openocd_sleep_postlude();

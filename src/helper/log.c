@@ -40,6 +40,9 @@ int debug_level = -1;
 static FILE* log_output;
 static log_callback_t *log_callbacks = NULL;
 
+static long long last_time;
+static long long current_time;
+
 static long long start;
 
 static char *log_strings[5] =
@@ -229,6 +232,8 @@ int log_init(struct command_context_s *cmd_ctx)
 		log_output = stderr;
 	}
 	
+	start=last_time=timeval_ms();
+	
 	return ERROR_OK;
 }
 	
@@ -326,4 +331,44 @@ char *alloc_printf(const char *format, ...)
 	string = alloc_vprintf(format, ap);
 	va_end(ap);
 	return string;
+}
+
+/* Code must return to the server loop before 1000ms has returned or invoke
+ * this function.
+ * 
+ * The GDB connection will time out if it spends >2000ms and you'll get nasty
+ * error messages from GDB:
+ * 
+ * Ignoring packet error, continuing...
+ * Reply contains invalid hex digit 116
+ *
+ * While it is possible use "set remotetimeout" to more than the default 2000ms
+ * in GDB, OpenOCD guarantees that it sends keep-alive packages on the
+ * GDB protocol and it is a bug in OpenOCD not to either return to the server
+ * loop or invoke keep_alive() every 1000ms.
+ * 
+ * This function will send a keep alive packet if >500ms has passed since last time
+ * it was invoked.
+ * 
+ */
+void keep_alive()
+{
+	current_time=timeval_ms();
+	if (current_time-last_time>1000)
+	{
+		LOG_WARNING("keep_alive() was not invoked in the 1000ms timelimit. GDB alive packet not sent! (%d)", current_time-last_time); 
+		last_time=current_time;
+	} else if (current_time-last_time>500)
+	{
+		/* this will keep the GDB connection alive */
+		LOG_USER_N("%s", "");
+		last_time=current_time;
+	}
+}
+
+/* reset keep alive timer without sending message */
+void kept_alive()
+{
+	current_time=timeval_ms();
+	last_time=current_time;
 }
