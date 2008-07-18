@@ -1071,6 +1071,7 @@ int MINIDRIVER(interface_jtag_add_sleep)(u32 us)
 
 void jtag_add_sleep(u32 us)
 {
+	keep_alive(); /* we might be running on a very slow JTAG clk */
 	int retval=interface_jtag_add_sleep(us);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
