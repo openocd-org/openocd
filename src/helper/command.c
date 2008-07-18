@@ -37,10 +37,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
-
-#include <openocd_tcl.h>
+#include <errno.h>
 
 int fast_and_dangerous = 0;
+Jim_Interp *interp = NULL;
 
 int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -476,16 +476,175 @@ int command_done(command_context_t *context)
 	return ERROR_OK;
 }
 
+
+/* find full path to file */
+static int jim_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 2)
+		return JIM_ERR;
+	const char *file = Jim_GetString(argv[1], NULL);
+	char *full_path = find_file(file);
+	if (full_path == NULL)
+		return JIM_ERR;
+	Jim_Obj *result = Jim_NewStringObj(interp, full_path, strlen(full_path));
+	free(full_path);
+	
+	Jim_SetResult(interp, result);
+	return JIM_OK;
+}
+
+static int jim_echo(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 2)
+		return JIM_ERR;
+	const char *str = Jim_GetString(argv[1], NULL);
+	LOG_USER("%s", str);
+	return JIM_OK;
+}
+
+
+
+static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *cookie)
+{
+	size_t nbytes;
+	const char *ptr;
+	Jim_Interp *interp;
+	command_context_t *context;
+
+	/* make it a char easier to read code */
+	ptr = _ptr;
+	interp = cookie;
+	nbytes = size * n;
+	if (ptr == NULL || interp == NULL || nbytes == 0) {
+		return 0;
+	}
+
+	context = Jim_GetAssocData(interp, "context");
+	if (context == NULL)
+	{
+		LOG_ERROR("openocd_jim_fwrite: no command context");
+		/* TODO: Where should this go? */		
+		return n;
+	}
+
+	/* do we have to chunk it? */
+	if (ptr[nbytes] == 0)
+	{
+		/* no it is a C style string */
+		command_output_text(context, ptr);
+		return strlen(ptr);
+	}
+	/* GRR we must chunk - not null terminated */
+	while (nbytes) {
+		char chunk[128+1];
+		int x;
+
+		x = nbytes;
+		if (x > 128) {
+			x = 128;
+		}
+		/* copy it */
+		memcpy(chunk, ptr, x);
+		/* terminate it */
+		chunk[n] = 0;
+		/* output it */
+		command_output_text(context, chunk);
+		ptr += x;
+		nbytes -= x;
+	}
+	
+	return n;
+}
+
+static size_t openocd_jim_fread(void *ptr, size_t size, size_t n, void *cookie)
+{
+	/* TCL wants to read... tell him no */
+	return 0;
+}
+
+static int openocd_jim_vfprintf(void *cookie, const char *fmt, va_list ap)
+{
+	char *cp;
+	int n;
+	Jim_Interp *interp;
+	command_context_t *context;
+
+	n = -1;
+	interp = cookie;
+	if (interp == NULL)
+		return n;
+
+	context = Jim_GetAssocData(interp, "context");
+	if (context == NULL)
+	{
+		LOG_ERROR("openocd_jim_vfprintf: no command context");
+		return n;
+	}
+
+	cp = alloc_vprintf(fmt, ap);
+	if (cp)
+	{
+		command_output_text(context, cp);
+		n = strlen(cp);
+		free(cp);
+	}
+	return n;
+}
+
+static int openocd_jim_fflush(void *cookie)
+{
+	/* nothing to flush */
+	return 0;
+}
+
+static char* openocd_jim_fgets(char *s, int size, void *cookie)
+{
+	/* not supported */
+	errno = ENOTSUP;
+	return NULL;
+}
+
 command_context_t* command_init()
 {
 	command_context_t* context = malloc(sizeof(command_context_t));
-	
+	extern unsigned const char startup_tcl[];
+
 	context->mode = COMMAND_EXEC;
 	context->commands = NULL;
 	context->current_target = 0;
 	context->output_handler = NULL;
 	context->output_handler_priv = NULL;
+
+#ifdef JIM_EMBEDDED
+	Jim_InitEmbedded();
+	/* Create an interpreter */
+	interp = Jim_CreateInterp();
+	/* Add all the Jim core commands */
+	Jim_RegisterCoreCommands(interp);
+#endif
+
+	Jim_CreateCommand(interp, "openocd_find", jim_find, NULL, NULL);
+	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);
+
+	/* Set Jim's STDIO */
+	interp->cookie_stdin = interp;
+	interp->cookie_stdout = interp;
+	interp->cookie_stderr = interp;
+	interp->cb_fwrite = openocd_jim_fwrite;
+	interp->cb_fread = openocd_jim_fread ;
+	interp->cb_vfprintf = openocd_jim_vfprintf;
+	interp->cb_fflush = openocd_jim_fflush;
+	interp->cb_fgets = openocd_jim_fgets;
 	
+	add_default_dirs();
+
+	if (Jim_Eval(interp, startup_tcl)==JIM_ERR)
+	{
+		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD compile time)");
+		Jim_PrintErrorMessage(interp);
+		exit(-1);
+	}
+
 	register_command(context, NULL, "sleep", handle_sleep_command,
 					 COMMAND_ANY, "sleep for <n> milliseconds");
 	
@@ -528,4 +687,24 @@ int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	fast_and_dangerous = strcmp("enable", args[0])==0;
 	
 	return ERROR_OK;
+}
+
+void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help)
+{
+	Jim_CreateCommand(interp, name, cmd, NULL, NULL);
+
+	/* FIX!!! it would be prettier to invoke add_help_text... 
+	   accumulate help text in Tcl helptext list.  */
+	Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
+	if (Jim_IsShared(helptext))
+		helptext = Jim_DuplicateObj(interp, helptext);
+    
+	Jim_Obj *cmd_entry=Jim_NewListObj(interp, NULL, 0);
+	
+	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);
+	Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, name, -1));
+	
+	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
+	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, help, -1));
+	Jim_ListAppendElement(interp, helptext, cmd_entry);
 }

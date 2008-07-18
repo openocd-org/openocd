@@ -83,4 +83,19 @@ extern void command_output_text(command_context_t *context, const char *data);
 
 extern int fast_and_dangerous;
 
+
+/* Integrate the JIM TCL interpretor into the command processing. */
+#include <stdarg.h>
+#ifdef __ECOS
+/* Jim is provied by eCos */
+#include <cyg/jimtcl/jim.h>
+#else
+#define JIM_EMBEDDED
+#include "jim.h"
+#endif
+
+extern Jim_Interp *interp;
+
+void register_jim(command_context_t *context, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help);
+
 #endif /* COMMAND_H */

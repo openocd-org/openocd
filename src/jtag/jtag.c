@@ -32,9 +32,6 @@
 #include "string.h"
 #include <unistd.h>
 
-#include "openocd_tcl.h"
-
-
 /* note that this is not marked as static as it must be available from outside jtag.c for those 
    that implement the jtag_xxx() minidriver layer 
 */
@@ -1498,7 +1495,7 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_EXEC, "move to Run-Test/Idle, and execute <num_cycles>");
 	register_command(cmd_ctx, NULL, "irscan", handle_irscan_command,
 		COMMAND_EXEC, "execute IR scan <device> <instr> [dev2] [instr2] ...");
-	add_jim("drscan", Jim_Command_drscan, "execute DR scan <device> <num_bits> <value> <num_bits1> <value2> ...");
+	register_jim(cmd_ctx, "drscan", Jim_Command_drscan, "execute DR scan <device> <num_bits> <value> <num_bits1> <value2> ...");
 
 	register_command(cmd_ctx, NULL, "verify_ircapture", handle_verify_ircapture_command,
 		COMMAND_ANY, "verify value captured during Capture-IR <enable|disable>");

@@ -41,10 +41,6 @@
 #include <errno.h>
 #include <inttypes.h>
 
-#include "jim.h"
-extern Jim_Interp *interp;
-
-
 /* command handlers */
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -143,7 +139,7 @@ int flash_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int Jim_Command_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc != 1) {
 		Jim_WrongNumArgs(interp, 1, argv, "no arguments to flash_banks command");
@@ -174,7 +170,7 @@ static int Jim_Command_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const 
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "chip_width", -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->chip_width));
 		
-	    Jim_ListAppendElement(interp, list, elem);
+		Jim_ListAppendElement(interp, list, elem);
 	}
 
 	Jim_SetResult(interp, list);
@@ -187,7 +183,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 {
 	if (flash_banks)
 	{
-		Jim_CreateCommand(interp, "openocd_flash_banks", Jim_Command_flash_banks, NULL, NULL );
+		register_jim(cmd_ctx, "openocd_flash_banks", jim_flash_banks, "return information about the flash banks");
 		
 		register_command(cmd_ctx, flash_cmd, "info", handle_flash_info_command, COMMAND_EXEC,
 						 "print info about flash bank <num>");
