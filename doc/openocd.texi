@@ -516,7 +516,7 @@ Currently, there are no options available for the ep93xx interface.
 @section Target configuration
 
 @itemize @bullet
-@item @b{target} <@var{type}> <@var{endianess}> <@var{reset_mode}> <@var{JTAG pos}>
+@item @b{target} <@var{type}> <@var{endianess}> <@var{JTAG pos}>
 <@var{variant}>
 @cindex target
 Defines a target that should be debugged. Currently supported types are:
@@ -538,29 +538,6 @@ target board
 
 Endianess may be @option{little} or @option{big}.
 
-The reset_mode specifies what should happen to the target when a reset occurs:
-@itemize @minus
-@item @b{reset_halt}
-@cindex reset_halt
-Immediately request a target halt after reset. This allows targets to be debugged
-from the very first instruction. This is only possible with targets and JTAG
-interfaces that correctly implement the reset signals.
-@item @b{reset_init}
-@cindex reset_init
-Similar to @option{reset_halt}, but executes the script file defined to handle the
-'reset' event for the target. Like @option{reset_halt} this only works with
-correct reset implementations.
-@item @b{reset_run}
-@cindex reset_run
-Simply let the target run after a reset.
-@item @b{run_and_halt}
-@cindex run_and_halt
-Let the target run for some time (default: 1s), and then request halt.
-@item @b{run_and_init}
-@cindex run_and_init
-A combination of @option{reset_init} and @option{run_and_halt}. The target is allowed
-to run for some time, then halted, and the @option{reset} event script is executed. 
-@end itemize
 
 On JTAG interfaces / targets where system reset and test-logic reset can't be driven
 completely independent (like the LPC2000 series), or where the JTAG interface is
@@ -591,7 +568,7 @@ a working_area that doesn't need to be backed up, as performing a backup slows d
 
 @subsection arm7tdmi options
 @cindex arm7tdmi options
-target arm7tdmi <@var{endianess}> <@var{reset_mode}> <@var{jtag#}>
+target arm7tdmi <@var{endianess}> <@var{jtag#}>
 The arm7tdmi target definition requires at least one additional argument, specifying
 the position of the target in the JTAG daisy-chain. The first JTAG device is number 0.
 The optional [@var{variant}] parameter has been removed in recent versions.
@@ -829,12 +806,15 @@ OpenOCD will wait 5 seconds for the target to resume.
 @cindex step
 Single-step the target at its current code position, or at an optional address. 
 
+
 @item @b{reset} [@option{run}|@option{halt}|@option{init}|@option{run_and_halt}
 |@option{run_and_init}]
 @cindex reset
 Perform a hard-reset. The optional parameter specifies what should happen after the reset.
 This optional parameter overrides the setting specified in the configuration file,
 making the new behaviour the default for the @option{reset} command.
+
+With no arguments a "reset run" is executed
 @itemize @minus
 @item @b{run}
 @cindex reset run

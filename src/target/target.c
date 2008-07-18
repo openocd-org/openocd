@@ -302,6 +302,8 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	if ((retval = jtag_init_reset(cmd_ctx)) != ERROR_OK)
 		return retval;
 	
+	keep_alive(); /* we might be running on a very slow JTAG clk */
+	
 	/* First time this is executed after launching OpenOCD, it will read out 
 	 * the type of CPU, etc. and init Embedded ICE registers in host
 	 * memory. 
@@ -314,6 +316,8 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	 */
 	if ((retval = target_examine(cmd_ctx)) != ERROR_OK)
 		return retval;
+	
+	keep_alive(); /* we might be running on a very slow JTAG clk */
 	
 	/* prepare reset_halt where necessary */
 	target = targets;
@@ -949,6 +953,7 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
 	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "PRELIMINARY! - profile <seconds> <gmon.out>");
 
+
 	/* script procedures */
 	register_jim(cmd_ctx, "openocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing");
 	register_jim(cmd_ctx, "openocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values");
@@ -1413,18 +1418,26 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				
-				/* what to do on a target reset */
-				(*last_target_p)->reset_mode = RESET_INIT; /* default */
 				if (strcmp(args[2], "reset_halt") == 0)
-					(*last_target_p)->reset_mode = RESET_HALT;
+				{
+					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+				}
 				else if (strcmp(args[2], "reset_run") == 0)
-					(*last_target_p)->reset_mode = RESET_RUN;
+				{
+					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+				}
 				else if (strcmp(args[2], "reset_init") == 0)
-					(*last_target_p)->reset_mode = RESET_INIT;
+				{
+					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+				}
 				else if (strcmp(args[2], "run_and_halt") == 0)
-					(*last_target_p)->reset_mode = RESET_RUN_AND_HALT;
+				{
+					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+				}
 				else if (strcmp(args[2], "run_and_init") == 0)
-					(*last_target_p)->reset_mode = RESET_RUN_AND_INIT;
+				{
+					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+				}
 				else
 				{
 					/* Kludge! we want to make this reset arg optional while remaining compatible! */
@@ -1800,8 +1813,7 @@ int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd,
 int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	enum target_reset_mode reset_mode = target->reset_mode;
-	enum target_reset_mode save = target->reset_mode;
+	enum target_reset_mode reset_mode = RESET_RUN;
 	
 	LOG_DEBUG("-");
 	
@@ -1841,9 +1853,6 @@ int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 	/* reset *all* targets */
 	target_process_reset(cmd_ctx);
-	
-	/* Restore default reset mode for this target */
-    target->reset_mode = save;
 	
 	return ERROR_OK;
 }
@@ -2862,7 +2871,7 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	u32 v;
 	const char *varname;
 	u8 buffer[4096];
-	int i, n, e, retval;
+	int  i, n, e, retval;
 
 	/* argv[1] = name of array to get the data
 	 * argv[2] = desired width
