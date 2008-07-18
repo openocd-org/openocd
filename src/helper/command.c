@@ -178,9 +178,14 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 		t2="_";
 	}
 	t3=c->name;
-	const char *full_name=alloc_printf("%s%s%s", t1, t2, t3);
+	const char *full_name=alloc_printf("ocd_%s%s%s", t1, t2, t3);
 	Jim_CreateCommand(interp, full_name, script_command, c, NULL);
 	free((void *)full_name);
+	
+	/* we now need to add an overrideable proc */
+	const char *override_name=alloc_printf("proc %s%s%s {args} {return [eval \"ocd_%s%s%s $args\"]}", t1, t2, t3, t1, t2, t3);
+	Jim_Eval(interp, override_name);	
+	free((void *)override_name);
 	
 	/* accumulate help text in Tcl helptext list.  */
     Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
