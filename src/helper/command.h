@@ -76,13 +76,11 @@ extern int command_run_line(command_context_t *context, char *line);
 extern int command_run_linef(command_context_t *context, char *format, ...);
 extern void command_output_text(command_context_t *context, const char *data);
 
-
 #define		ERROR_COMMAND_CLOSE_CONNECTION		(-600)
 #define		ERROR_COMMAND_SYNTAX_ERROR			(-601)
 #define		ERROR_COMMAND_NOTFOUND				(-602)
 
 extern int fast_and_dangerous;
-
 
 /* Integrate the JIM TCL interpretor into the command processing. */
 #include <stdarg.h>

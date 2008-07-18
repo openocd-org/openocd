@@ -970,7 +970,7 @@ static void Jim_InitExtension(Jim_Interp *interp)
 
 #ifdef JIM_EMBEDDED
 Jim_Interp *ExportedJimCreateInterp(void);
-static void Jim_InitEmbedded(void) {
+static inline void Jim_InitEmbedded(void) {
     Jim_Interp *i = ExportedJimCreateInterp();
     Jim_InitExtension(i);
     Jim_FreeInterp(i);

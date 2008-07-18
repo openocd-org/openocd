@@ -141,12 +141,12 @@ int flash_register_commands(struct command_context_s *cmd_ctx)
 
 static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
+	flash_bank_t *p;
+	
 	if (argc != 1) {
 		Jim_WrongNumArgs(interp, 1, argv, "no arguments to flash_banks command");
 		return JIM_ERR;
 	}
-	flash_bank_t *p;
-	int i = 0;
 
 	if (!flash_banks)
 	{
@@ -158,7 +158,6 @@ static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	{
 		Jim_Obj *elem=Jim_NewListObj(interp, NULL, 0);
 		
-
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "name", -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, p->driver->name, -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "base", -1));
@@ -177,7 +176,6 @@ static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	return JIM_OK;
 }
-
 
 int flash_init_drivers(struct command_context_s *cmd_ctx)
 {

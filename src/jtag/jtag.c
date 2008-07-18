@@ -761,9 +761,6 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 	}
 }
 
-
-
-
 void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int retval;
@@ -871,7 +868,6 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
-
 
 int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, enum tap_state *path)
 {
@@ -1040,7 +1036,6 @@ int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
 	(*last_cmd)->cmd.reset->trst = req_trst;
 	(*last_cmd)->cmd.reset->srst = req_srst;
 
-	
 	return ERROR_OK;
 }
 
@@ -1120,7 +1115,6 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 	}
 
 	return bit_count;
-
 }
 
 int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
@@ -1631,7 +1625,6 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	return jtag_init_reset(cmd_ctx);
 }
 
-
 static int default_khz(int khz, int *jtag_speed)
 {
 	LOG_ERROR("Translation from khz to jtag_speed not implemented");
@@ -1931,7 +1924,6 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
-
 int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	enum tap_state state;
@@ -2007,7 +1999,6 @@ int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 }
 
-
 int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
@@ -2051,7 +2042,7 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 	scan_field_t *fields;
 	int num_fields;
 	int field_count = 0;
-	int i, j, e;
+	int i, e;
 	long device;
 
 	/* args[1] = device

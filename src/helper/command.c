@@ -25,8 +25,9 @@
 #endif
 
 #include "replacements.h"
-
+#include "target.h"
 #include "command.h"
+#include "configuration.h"
 
 #include "log.h"
 #include "time_support.h"
@@ -44,6 +45,9 @@ Jim_Interp *interp = NULL;
 
 int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+
+int run_command(command_context_t *context, command_t *c, char *words[], int num_words);
+
 static void tcl_output(void *privData, const char *file, int line, const char *function, const char *string)
 {		
 	Jim_Obj *tclOutput=(Jim_Obj *)privData;
@@ -178,7 +182,6 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	Jim_CreateCommand(interp, full_name, script_command, c, NULL);
 	free((void *)full_name);
 	
-	
 	/* accumulate help text in Tcl helptext list.  */
     Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
     if (Jim_IsShared(helptext))
@@ -206,7 +209,6 @@ int unregister_all_commands(command_context_t *context)
 	
 	if (context == NULL)
 		return ERROR_OK;
-	
 	
 	while(NULL != context->commands)
 	{
@@ -276,7 +278,6 @@ int unregister_command(command_context_t *context, char *name)
 	
 	return ERROR_OK;
 }
-
 
 void command_output_text(command_context_t *context, const char *data)
 {
@@ -435,7 +436,6 @@ int command_run_line(command_context_t *context, char *line)
 	return retval;
 }
 
-
 int command_run_linef(command_context_t *context, char *format, ...)
 {
 	int retval=ERROR_FAIL;
@@ -450,8 +450,6 @@ int command_run_linef(command_context_t *context, char *format, ...)
 	va_end(ap);
 	return retval;
 }
-
-
 
 void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, const char* line), void *priv)
 {
@@ -475,7 +473,6 @@ int command_done(command_context_t *context)
 	
 	return ERROR_OK;
 }
-
 
 /* find full path to file */
 static int jim_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -501,8 +498,6 @@ static int jim_echo(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	LOG_USER("%s", str);
 	return JIM_OK;
 }
-
-
 
 static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *cookie)
 {

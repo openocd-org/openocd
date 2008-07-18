@@ -949,10 +949,9 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
 	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "PRELIMINARY! - profile <seconds> <gmon.out>");
 
-
 	/* script procedures */
 	register_jim(cmd_ctx, "openocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing");
-	register_jim(cmd_ctx, "openocd_array2mem", jim_mem2array, "convert a TCL array to memory locations and write the values");
+	register_jim(cmd_ctx, "openocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values");
 	return ERROR_OK;
 }
 
@@ -2863,7 +2862,7 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	u32 v;
 	const char *varname;
 	u8 buffer[4096];
-	int  i, n, e, retval;
+	int i, n, e, retval;
 
 	/* argv[1] = name of array to get the data
 	 * argv[2] = desired width

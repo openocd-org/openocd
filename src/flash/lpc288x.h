@@ -26,16 +26,15 @@
 
 typedef struct lpc288x_flash_bank_s
 {
-    u32 working_area;
-    u32 working_area_size;
+	u32 working_area;
+	u32 working_area_size;
 
-    /* chip id register */
-    u32 cidr;
-    char * target_name;
-    u32 cclk;
+	/* chip id register */
+	u32 cidr;
+	char * target_name;
+	u32 cclk;
 
-    u32 sector_size_break;
+	u32 sector_size_break;
 } lpc288x_flash_bank_t;
 
 #endif /* lpc288x_H */
-
