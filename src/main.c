@@ -29,24 +29,18 @@ void openocd_sleep_postlude()
 {
 }
 
-
-/* 
-	This is the main entry for developer PC hosted OpenOCD.
-	
-	OpenOCD can also be used as a library that is linked with
-	another application(not mainstream yet, but possible), e.g.
-	w/as an embedded application.
-	
-	Those applications will have their own main() implementation
-	and use bits and pieces from openocd.c.
-	
-*/
-
+/* This is the main entry for developer PC hosted OpenOCD.
+ *
+ * OpenOCD can also be used as a library that is linked with
+ * another application(not mainstream yet, but possible), e.g.
+ * w/as an embedded application.
+ * 
+ * Those applications will have their own main() implementation
+ * and use bits and pieces from openocd.c. */
 
 extern int openocd_main(int argc, char *argv[]);
+
 int main(int argc, char *argv[])
 {
 	return openocd_main(argc, argv);
 }
-
-

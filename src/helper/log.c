@@ -356,7 +356,7 @@ void keep_alive()
 	current_time=timeval_ms();
 	if (current_time-last_time>1000)
 	{
-		LOG_WARNING("keep_alive() was not invoked in the 1000ms timelimit. GDB alive packet not sent! (%d)", current_time-last_time); 
+		LOG_WARNING("keep_alive() was not invoked in the 1000ms timelimit. GDB alive packet not sent! (%lld)", current_time-last_time); 
 		last_time=current_time;
 	} else if (current_time-last_time>500)
 	{

@@ -110,9 +110,6 @@ int duration_stop_measure(duration_t *duration, char **text)
 	return ERROR_OK;
 }
 
-
-
-
 long long timeval_ms()
 {
 	struct timeval now; 
