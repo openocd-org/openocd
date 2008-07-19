@@ -532,12 +532,6 @@ target board
 
 Endianess may be @option{little} or @option{big}.
 
-
-On JTAG interfaces / targets where system reset and test-logic reset can't be driven
-completely independent (like the LPC2000 series), or where the JTAG interface is
-unavailable for some time during startup (like the STR7 series), you can't use
-@option{reset_halt} or @option{reset_init}.
-
 @item @b{target_script} <@var{target#}> <@var{event}> <@var{script_file}>
 @cindex target_script
 Event is one of the following:
@@ -804,8 +798,6 @@ Single-step the target at its current code position, or at an optional address.
 |@option{run_and_init}]
 @cindex reset
 Perform a hard-reset. The optional parameter specifies what should happen after the reset.
-This optional parameter overrides the setting specified in the configuration file,
-making the new behaviour the default for the @option{reset} command.
 
 With no arguments a "reset run" is executed
 @itemize @minus
@@ -827,6 +819,7 @@ Let the target run for a certain amount of time, then request a halt.
 Let the target run for a certain amount of time, then request a halt. Execute the
 reset script once the target enters debug mode.
 @end itemize
+The runtime can be set using the @option{run_and_halt_time} command.
 @end itemize
 
 @subsection Memory access commands
@@ -1449,6 +1442,11 @@ use @option{arm7_9 fast_memory_access} command with same args
 @item @b{flash auto_erase}
 @cindex flash auto_erase
 use @option{flash write_image} command passing @option{erase} as the first parameter.
+@item @b{daemon_startup}
+@cindex daemon_startup
+this config option has been removed, simply adding @option{init} and @option{reset halt} to
+the end of your config script will give the same behaviour as using @option{daemon_startup reset}
+and @option{target cortex_m3 little reset_halt 0}.
 @end itemize
 
 @node FAQ
