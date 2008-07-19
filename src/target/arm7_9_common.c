@@ -185,7 +185,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			target->type->read_memory(target, breakpoint->address, 4, 1, (u8 *)&verify);
 			if (verify != arm7_9->arm_bkpt)
 			{
-				LOG_ERROR("Unable to set 32 bit software breakpoint at address %08x", breakpoint->address);
+				LOG_ERROR("Unable to set 32 bit software breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
 		}
@@ -200,7 +200,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			target->type->read_memory(target, breakpoint->address, 2, 1, (u8 *)&verify);
 			if (verify != arm7_9->thumb_bkpt)
 			{
-				LOG_ERROR("Unable to set thumb software breakpoint at address %08x", breakpoint->address);
+				LOG_ERROR("Unable to set thumb software breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
 		}
