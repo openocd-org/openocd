@@ -120,7 +120,7 @@ proc unknown {args} {
 		return [eval "$cmd_name [lrange $args 2 end]"]
 	}
 	# This really is an unknown command.
-	puts "Unknown command: $args"
+	return -code error "Unknown command: $args"
 }
 
 
