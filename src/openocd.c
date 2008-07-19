@@ -66,21 +66,6 @@ int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	return ERROR_OK;
 }
 
-static int daemon_startup = 0;
-
-int handle_daemon_startup_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc==0)
-		return ERROR_OK;
-	if (argc > 1 )
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	
-	daemon_startup = strcmp("reset", args[0])==0;
-	
-	command_print(cmd_ctx, OPENOCD_VERSION);
-
-	return ERROR_OK;
-}
 
 void exit_handler(void)
 {
@@ -154,8 +139,6 @@ command_context_t *setup_command_handler(void)
 	
 	register_command(cmd_ctx, NULL, "version", handle_version_command,
 					 COMMAND_EXEC, "show OpenOCD version");
-	register_command(cmd_ctx, NULL, "daemon_startup", handle_daemon_startup_command, COMMAND_CONFIG, 
-			"deprecated - use \"init\" and \"reset\" at end of startup script instead");
 	
 	/* register subsystem commands */
 	server_register_commands(cmd_ctx);
@@ -218,9 +201,6 @@ int openocd_main(int argc, char *argv[])
 	command_context_mode(cmd_ctx, COMMAND_EXEC);
 	if (command_run_line(cmd_ctx, "init")!=ERROR_OK)
 		return EXIT_FAILURE;
-	
-	if (daemon_startup)
-		command_run_line(cmd_ctx, "reset");
 	
 	/* handle network connections */
 	server_loop(cmd_ctx);

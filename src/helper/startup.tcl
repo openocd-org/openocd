@@ -156,6 +156,10 @@ proc script {filename} {
 	source [find $filename]
 }
 
+#proc daemon_reset {} {
+#	puts "Daemon reset is obsolete. Use -c init -c \"reset halt\" at end of openocd command line instead");
+#}
+
 add_help_text script "<filename> - filename of OpenOCD script (tcl) to run"
 
 add_help_text target_script "<target#> <event=reset/pre_reset/post_halt/pre_resume/gdb_program_config> <script_file>"

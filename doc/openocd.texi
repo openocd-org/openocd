@@ -274,12 +274,6 @@ Default behaviour is <@var{enable}>
 Port on which to listen for incoming TCL syntax. This port is intended as
 a simplified RPC connection that can be used by clients to issue commands
 and get the output from the TCL engine.
-@item @b{daemon_startup} <@var{mode}>
-@cindex daemon_startup
-@option{mode} can either @option{attach} or @option{reset}
-This is equivalent to adding "init" and "reset" to the end of the config script.
-
-It is available as a command mainly for backwards compatibility.
 @end itemize
 
 @section JTAG interface configuration
@@ -805,7 +799,6 @@ OpenOCD will wait 5 seconds for the target to resume.
 @item @b{step} [@var{address}]
 @cindex step
 Single-step the target at its current code position, or at an optional address. 
-
 
 @item @b{reset} [@option{run}|@option{halt}|@option{init}|@option{run_and_halt}
 |@option{run_and_init}]
