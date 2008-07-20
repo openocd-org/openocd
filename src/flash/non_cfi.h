@@ -38,4 +38,3 @@ extern non_cfi_t non_cfi_flashes[];
 extern void cfi_fixup_non_cfi(flash_bank_t *bank, void *param);
 
 #endif /* NON_CFI_H */
-

@@ -179,29 +179,29 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-                        0x00400000,             /* 1x 16KB */
-                        0x00200001,             /* 2x 8KB */
-                        0x00800000,             /* 1x 32KB */
-                        0x0100000e,             /* 15x 64KB */
+			0x00400000,				/* 1x 16KB */
+			0x00200001,				/* 2x 8KB */
+			0x00800000,				/* 1x 32KB */
+			0x0100000e,				/* 15x 64KB */
 			0x00000000
 		}
 	},
 	{
 		.mfr = CFI_MFR_AMIC,
-	    .id = 0xb31a,               /* A29L800A */
+		.id = 0xb31a,				/* A29L800A */
 		.pri_id = 0x02,
-	    .dev_size = 0x14,
-	    .interface_desc = 0x2,
-	    .max_buf_write_size = 0x0,
-	    .num_erase_regions = 4,
-	    .erase_region_info =
+		.dev_size = 0x14,
+		.interface_desc = 0x2,
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 4,
+		.erase_region_info =
 		{
-			0x00400000,             /* 1x 16KB */
-			0x00200001,             /* 2x 8KB */
-			0x00800000,             /* 1x 32KB */
-			0x0100000e,             /* 15x 64KB */
+			0x00400000,				/* 1x 16KB */
+			0x00200001,				/* 2x 8KB */
+			0x00800000,				/* 1x 32KB */
+			0x0100000e,				/* 15x 64KB */
 			0x00000000
-	    }
+		}
 	},
 	{
 		.mfr = 0,
@@ -288,5 +288,3 @@ void cfi_fixup_non_cfi(flash_bank_t *bank, void *param)
 		exit(-1);
 	}
 }
-
-
