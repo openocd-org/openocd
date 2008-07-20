@@ -151,6 +151,7 @@ typedef struct cfi_fixup_s
 #define CFI_MFR_FUJITSU		0x0004
 #define CFI_MFR_ATMEL	0x001F
 #define CFI_MFR_ST		0x0020	/* STMicroelectronics */
+#define CFI_MFR_AMIC		0x0037
 #define CFI_MFR_SST		0x00BF
 
 #define CFI_MFR_ANY		0xffff
