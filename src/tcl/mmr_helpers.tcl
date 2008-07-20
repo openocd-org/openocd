@@ -13,7 +13,7 @@ proc show_mmr32_reg { NAME } {
     set a [set [set NAME]]
 
     if ![catch { set v [memread32 $a] } msg ] {
-	puts [format "%10s: (0x%08x): 0x%08x" $NAME $a $v]
+	puts [format "%15s: (0x%08x): 0x%08x" $NAME $a $v]
 
 	# Was a helper defined?
 	set fn show_${NAME}_helper
@@ -36,7 +36,7 @@ proc show_mmr32_bits { NAMES VAL } {
 
     upvar $NAMES MYNAMES
 
-    set w 0
+    set w 5
     foreach {IDX N} $MYNAMES {
 	set l [string length $N]
 	if { $l > $w } { set w $l }
@@ -56,4 +56,17 @@ proc show_mmr32_bits { NAMES VAL } {
 	}
 	puts ""
     }
+}
+
+
+proc show_mmr_bitfield { MSB LSB VAL FIELDNAME FIELDVALUES } {
+    set width [expr (($MSB - $LSB + 1) + 7) / 4]
+    set nval [show_normalize_bitfield $VAL $MSB $LSB ]
+    set name0 [lindex $FIELDVALUES 0 ]
+    if [ string compare $name0 _NUMBER_ ] {
+	set sval [lindex $FIELDVALUES $nval]
+    } else {
+	set sval ""
+    }
+    puts [format "%-15s: %d (0x%0*x) %s" $FIELDNAME $nval $width $nval $sval ]
 }
