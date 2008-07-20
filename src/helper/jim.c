@@ -8734,12 +8734,15 @@ int Jim_EvalFile(Jim_Interp *interp, const char *filename)
     int nread, totread, maxlen, buflen;
     int retval;
     Jim_Obj *scriptObjPtr;
+    char cwd[ 2048 ];
     
     if ((fp = fopen(filename, "r")) == NULL) {
         Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
+	getcwd( cwd, sizeof(cwd) );
         Jim_AppendStrings(interp, Jim_GetResult(interp),
-            "Error loading script \"", filename, "\": ",
-            strerror(errno), NULL);
+	"Error loading script \"", filename, "\"",
+	    " cwd: ", cwd,
+	    " err: ", strerror(errno), NULL);
         return JIM_ERR;
     }
     buflen = 1024;
