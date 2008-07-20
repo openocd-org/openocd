@@ -54,7 +54,7 @@ proc show_AIC_IMR_helper { NAME ADDR VAL } {
 
 proc show_AIC { } {
     global AIC_SMR
-    if [catch { mem2array aaa 32 $AIC_SMR [expr 32 * 4] } msg ] {
+    if [catch { ocd_mem2array aaa 32 $AIC_SMR [expr 32 * 4] } msg ] {
 	error [format "%s (%s)" $msg AIC_SMR]
     }
     puts "AIC_SMR: Mode & Type"
@@ -71,7 +71,7 @@ proc show_AIC { } {
 	incr x
     }
     global AIC_SVR
-    if [catch { mem2array aaa 32 $AIC_SVR [expr 32 * 4] } msg ] {
+    if [catch { ocd_mem2array aaa 32 $AIC_SVR [expr 32 * 4] } msg ] {
 	error [format "%s (%s)" $msg AIC_SVR]
     }
     puts "AIC_SVR: Vectors"

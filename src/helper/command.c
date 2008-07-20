@@ -99,7 +99,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		log_remove_callback(tcl_output, tclOutput);
 		
 		/* We dump output into this local variable */
-		Jim_SetVariableStr(interp, "openocd_output", tclOutput);
+		Jim_SetVariableStr(interp, "ocd_output", tclOutput);
 	}
 
 	for (i = 0; i < nwords; i++)
@@ -623,7 +623,7 @@ command_context_t* command_init()
 	Jim_RegisterCoreCommands(interp);
 #endif
 
-	Jim_CreateCommand(interp, "openocd_find", jim_find, NULL, NULL);
+	Jim_CreateCommand(interp, "ocd_find", jim_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);
 
 	/* Set Jim's STDIO */

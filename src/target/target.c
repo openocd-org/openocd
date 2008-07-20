@@ -955,8 +955,8 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 
 
 	/* script procedures */
-	register_jim(cmd_ctx, "openocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing");
-	register_jim(cmd_ctx, "openocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values");
+	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing");
+	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values");
 	return ERROR_OK;
 }
 

@@ -40,7 +40,7 @@ proc board_test {} {
 proc flash_banks {} { 
 	set i 0 	
 	set result ""
-	foreach {a} [openocd_flash_banks] {
+	foreach {a} [ocd_flash_banks] {
 		if {$i > 0} {
 			set result "$result\n"
 		}
@@ -53,7 +53,7 @@ proc flash_banks {} {
 # We need to explicitly redirect this to the OpenOCD command
 # as Tcl defines the exit proc
 proc exit {} {
-	openocd_throw exit
+	ocd_throw exit
 }
 
 #Print help text for a command. Word wrap
@@ -94,17 +94,17 @@ add_help_text help "Tcl implementation of help command"
 
 
 #a bit of backwards compatibility
-proc openocd_throw {cmd} {
-	set openocd_output ""
+proc ocd_throw {cmd} {
+	set ocd_output ""
 	eval $cmd
-	return $openocd_output
+	return $ocd_output
 }
 
 #a bit of backwards compatibility
 proc openocd {cmd} {
-	set openocd_output ""
+	set ocd_output ""
 	eval $cmd
-	return $openocd_output
+	return $ocd_output
 }
 
 # If a fn is unknown to Tcl, we try to execute it as an OpenOCD command
@@ -137,17 +137,17 @@ proc target_script {target_num eventname scriptname} {
 # Try flipping / and \ to find file if the filename does not
 # match the precise spelling
 proc find {filename} {
-	if {[catch {openocd_find $filename} t]==0} {
+	if {[catch {ocd_find $filename} t]==0} {
 		return $t
 	}  
-	if {[catch {openocd_find [string map {\ /} $filename} t]==0} {
+	if {[catch {ocd_find [string map {\ /} $filename} t]==0} {
 		return $t
 	}  
-	if {[catch {openocd_find [string map {/ \\} $filename} t]==0} {
+	if {[catch {ocd_find [string map {/ \\} $filename} t]==0} {
 		return $t
 	}  
 	# make sure error message matches original input string
-	return [openocd_find $filename]
+	return [ocd_find $filename]
 }
 add_help_text find "<file> - print full path to file according to OpenOCD search rules"
 

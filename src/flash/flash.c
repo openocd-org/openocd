@@ -181,7 +181,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 {
 	if (flash_banks)
 	{
-		register_jim(cmd_ctx, "openocd_flash_banks", jim_flash_banks, "return information about the flash banks");
+		register_jim(cmd_ctx, "ocd_flash_banks", jim_flash_banks, "return information about the flash banks");
 		
 		register_command(cmd_ctx, flash_cmd, "info", handle_flash_info_command, COMMAND_EXEC,
 						 "print info about flash bank <num>");
