@@ -1950,7 +1950,7 @@ int gdb_input_inner(connection_t *connection)
 					break;
 				case 'R':
 					/* handle extended restart packet */
-					command_run_linef(connection->cmd_ctx, "gdb_restart");
+					command_run_linef(connection->cmd_ctx, "ocd_gdb_restart %d", get_num_by_target(target));
 					break;
 				default:
 					/* ignore unkown packets */
