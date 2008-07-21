@@ -322,12 +322,13 @@ Segger jlink usb adapter
 @end itemize
 
 @itemize @bullet
-@item @b{jtag_speed} <@var{reset speed}> <@var{post reset speed}>
+@item @b{jtag_speed} <@var{reset speed}>
 @cindex jtag_speed
 Limit the maximum speed of the JTAG interface. Usually, a value of zero means maximum
-speed. The actual effect of this option depends on the JTAG interface used. Reset
-speed is used during reset and post reset speed after reset. post reset speed
-is optional, in which case the reset speed is used.
+speed. The actual effect of this option depends on the JTAG interface used. 
+
+The speed used during reset can be adjusted using setting jtag_speed during
+pre_reset and post_reset events.
 @itemize @minus
 
 @item wiggler: maximum speed / @var{number}
@@ -339,7 +340,7 @@ is optional, in which case the reset speed is used.
 Note: Make sure the jtag clock is no more than @math{1/6th × CPU-Clock}. This is
 especially true for synthesized cores (-S).
 
-@item @b{jtag_khz} <@var{reset speed kHz}>  <@var{post reset speed kHz}>
+@item @b{jtag_khz} <@var{reset speed kHz}>
 @cindex jtag_khz
 Same as jtag_speed, except that the speed is specified in maximum kHz. If
 the device can not support the rate asked for, or can not translate from
@@ -689,7 +690,7 @@ is set to 10kHz for reset and 8MHz for post reset.
 
 
 @smallexample
-openocd -f interface/parport.cfg -c "jtag_khz 10 8000" -f target/str710.cfg -c "init" -c "reset"
+openocd -f interface/parport.cfg -f target/str710.cfg -c "init" -c "reset"
 @end smallexample
 
 
