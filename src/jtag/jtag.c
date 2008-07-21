@@ -140,7 +140,7 @@ int jtag_ntrst_delay = 0; /* default to no nTRST delay */
 jtag_event_callback_t *jtag_event_callbacks;
 
 /* speed in kHz*/
-static int speed1 = 0, speed2 = 0;
+static int speed_khz = 0;
 /* flag if the kHz speed was defined */
 static int hasKHz = 0;
 
@@ -240,7 +240,7 @@ jtag_interface_t *jtag = NULL;
 /* configuration */
 jtag_interface_t *jtag_interface = NULL;
 int jtag_speed = 0;
-int jtag_speed_post_reset = 0;
+
 
 
 /* forward declarations */
@@ -1467,7 +1467,7 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "interface", handle_interface_command,
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "jtag_speed", handle_jtag_speed_command,
-		COMMAND_ANY, "set jtag speed (if supported) <reset speed> [<post reset speed, default value is reset speed>]");
+		COMMAND_ANY, "set jtag speed (if supported)");
 	register_command(cmd_ctx, NULL, "jtag_khz", handle_jtag_khz_command,
 		COMMAND_ANY, "same as jtag_speed, except it takes maximum khz as arguments. 0 KHz = RTCK.");
 	register_command(cmd_ctx, NULL, "jtag_device", handle_jtag_device_command,
@@ -1510,9 +1510,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	}
 	if(hasKHz)
 	{
-		/*stay on "reset speed"*/
-		jtag_interface->khz(speed1, &jtag_speed);
-		jtag_interface->khz(speed2, &jtag_speed_post_reset);
+		jtag_interface->khz(speed_khz, &jtag_speed);
 		hasKHz = 0;
 	}
 
@@ -1849,79 +1847,67 @@ int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 
 int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int cur_speed = 0;
+	int retval=ERROR_OK;
 	
-	if (argc != 0)
+	if (argc == 1)
 	{
-		if ((argc<1) || (argc>2))
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		
 		LOG_DEBUG("handle jtag speed");
-		
-		if (argc >= 1)
-			cur_speed = jtag_speed = jtag_speed_post_reset = strtoul(args[0], NULL, 0);
-		if (argc == 2)
-			cur_speed = jtag_speed_post_reset = strtoul(args[1], NULL, 0);
+
+		int cur_speed = 0;
+		cur_speed = jtag_speed = strtoul(args[0], NULL, 0);
 			
 		/* this command can be called during CONFIG, 
 		 * in which case jtag isn't initialized */
 		if (jtag)
 		{
-			jtag->speed_div(jtag_speed, &speed1);
-			jtag->speed_div(jtag_speed_post_reset, &speed2);
-			jtag->speed(cur_speed);
+			retval=jtag->speed(cur_speed);
 		}
-	}		
-	command_print(cmd_ctx, "jtag_speed: %d, %d", jtag_speed, jtag_speed_post_reset);
+	} else if (argc == 0)
+	{
+	} else
+	{
+		retval=ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	command_print(cmd_ctx, "jtag_speed: %d", jtag_speed);
 	
-	return ERROR_OK;
+	return retval;
 }
 
 int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	int retval=ERROR_OK;
 	LOG_DEBUG("handle jtag khz");
 	
-	if (argc>2)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	if(argc != 0)
+	if(argc == 1)
 	{
-		
-		if (argc >= 1)
-			speed1 = speed2 = strtoul(args[0], NULL, 0);
-		if (argc == 2)
-			speed2 = strtoul(args[1], NULL, 0);
-	
+		speed_khz = strtoul(args[0], NULL, 0);
 		if (jtag != NULL)
 		{
 			int cur_speed = 0;
 			LOG_DEBUG("have interface set up");
-			int speed_div1, speed_div2;
-			if (jtag->khz(speed1, &speed_div1)!=ERROR_OK)
+			int speed_div1;
+			if ((retval=jtag->khz(speed_khz, &speed_div1))!=ERROR_OK)
 			{
-				speed1 = speed2 = 0;
-				return ERROR_OK;
-			}
-			if (jtag->khz(speed2, &speed_div2)!=ERROR_OK)
-			{
-				speed1 = speed2 = 0;
-				return ERROR_OK;
+				speed_khz = 0;
+				return retval;
 			}
 	
-			if (argc >= 1)
-				cur_speed = jtag_speed = jtag_speed_post_reset = speed_div1;
-			if (argc == 2)
-				cur_speed = jtag_speed_post_reset = speed_div2;
+			cur_speed = jtag_speed = speed_div1;
 	
-			jtag->speed(cur_speed);
+			retval=jtag->speed(cur_speed);
 		} else
 		{
 			hasKHz = 1;
 		}
+	} else if (argc==0)
+	{
+	} else
+	{
+		retval=ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	command_print(cmd_ctx, "jtag_khz: %d, %d", speed1, speed2);
-	
-	return ERROR_OK;
+	command_print(cmd_ctx, "jtag_khz: %d", speed_khz);
+	return retval;
+
 }
 
 int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

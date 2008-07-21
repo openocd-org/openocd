@@ -1699,7 +1699,7 @@ int xscale_deassert_reset(target_t *target)
 		xscale_write_dcsr(target, 0, 1);
 		target->state = TARGET_RUNNING;
 
-		if ((target->reset_mode != RESET_HALT) && (target->reset_mode != RESET_INIT))
+		if (!target->reset_halt)
 		{
 			jtag_add_sleep(10000);
 

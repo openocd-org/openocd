@@ -1,5 +1,0 @@
-# -- Enable 96K RAM */
-mww 0x5C002034, 0x0191 # PFQBC enabled / DTCM & AHB wait-states disabled
-
-str9x flash_config 0 4 2 0 0x80000
-flash protect 0 0 7 off

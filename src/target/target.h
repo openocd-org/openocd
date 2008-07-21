@@ -198,7 +198,7 @@ typedef struct target_type_s
 typedef struct target_s
 {
 	target_type_t *type;				/* target type definition (name, access functions) */
-	enum target_reset_mode reset_mode;	/* what to do after a reset */
+	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
 	int run_and_halt_time;				/* how long the target should run after a run_and_halt reset */
 	u32 working_area;					/* working area (initialized RAM). Evaluated 
 										   upon first allocation from virtual/physical address. */
@@ -252,7 +252,7 @@ extern int target_register_user_commands(struct command_context_s *cmd_ctx);
 extern int target_init(struct command_context_s *cmd_ctx);
 extern int target_examine(struct command_context_s *cmd_ctx);
 extern int handle_target(void *priv);
-extern int target_process_reset(struct command_context_s *cmd_ctx);
+extern int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode);
 
 extern int target_register_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv);
 extern int target_unregister_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv);

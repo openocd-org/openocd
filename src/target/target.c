@@ -284,13 +284,11 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 	return retval;
 }
 
-int target_process_reset(struct command_context_s *cmd_ctx)
+int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
 {
 	int retval = ERROR_OK;
 	target_t *target;
 	struct timeval timeout, now;
-
-	jtag->speed(jtag_speed);
 
 	target = targets;
 	while (target)
@@ -318,30 +316,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		return retval;
 	
 	keep_alive(); /* we might be running on a very slow JTAG clk */
-	
-	/* prepare reset_halt where necessary */
-	target = targets;
-	while (target)
-	{
-		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
-		{
-			switch (target->reset_mode)
-			{
-				case RESET_HALT:
-					command_print(cmd_ctx, "nSRST pulls nTRST, falling back to \"reset run_and_halt\"");
-					target->reset_mode = RESET_RUN_AND_HALT;
-					break;
-				case RESET_INIT:
-					command_print(cmd_ctx, "nSRST pulls nTRST, falling back to \"reset run_and_init\"");
-					target->reset_mode = RESET_RUN_AND_INIT;
-					break;
-				default:
-					break;
-			} 
-		}
-		target = target->next;
-	}
-	
+		
 	target = targets;
 	while (target)
 	{
@@ -349,6 +324,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		 * have to drop working areas
 		 */
 		target_free_all_working_areas_restore(target, 0);
+		target->reset_halt=((reset_mode==RESET_HALT)||(reset_mode==RESET_INIT));
 		target->type->assert_reset(target);
 		target = target->next;
 	}
@@ -362,7 +338,7 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	target = targets;
 	while (target)
 	{
-		switch (target->reset_mode)
+		switch (reset_mode)
 		{
 			case RESET_RUN:
 				/* nothing to do if target just wants to be run */
@@ -377,10 +353,12 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 				target_register_event_callback(target_init_handler, cmd_ctx);
 				break;
 			case RESET_HALT:
-				target_halt(target);
+				if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
+					target_halt(target);
 				break;
 			case RESET_INIT:
-				target_halt(target);
+				if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
+					target_halt(target);
 				target_register_event_callback(target_init_handler, cmd_ctx);
 				break;
 			default:
@@ -399,6 +377,14 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 	while (target)
 	{
 		target->type->deassert_reset(target);
+		/* We can fail to bring the target into the halted state  */
+		target_poll(target);
+		if (target->reset_halt&&((target->state != TARGET_HALTED)))
+		{
+			LOG_WARNING("Failed to reset target into halted mode - issuing halt");
+			target->type->halt(target);
+		}
+		
 		target = target->next;
 	}
 	
@@ -414,12 +400,6 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		if ((retval = target_examine(cmd_ctx)) != ERROR_OK)
 			return retval;
 	}		
-	
-	/* post reset scripts can be quite long, increase speed now. If post
-	 * reset scripts needs a different speed, they can set the speed to
-	 * whatever they need.
-	 */
-	jtag->speed(jtag_speed_post_reset);
 	
 	LOG_DEBUG("Waiting for halted stated as approperiate");
 	
@@ -437,10 +417,10 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		{
 			LOG_DEBUG("Polling target");
 			target_poll(target);
-			if ((target->reset_mode == RESET_RUN_AND_INIT) || 
-					(target->reset_mode == RESET_RUN_AND_HALT) ||
-					(target->reset_mode == RESET_HALT) ||
-					(target->reset_mode == RESET_INIT))
+			if ((reset_mode == RESET_RUN_AND_INIT) || 
+					(reset_mode == RESET_RUN_AND_HALT) ||
+					(reset_mode == RESET_HALT) ||
+					(reset_mode == RESET_INIT))
 			{
 				if (target->state != TARGET_HALTED)
 				{
@@ -476,7 +456,6 @@ int target_process_reset(struct command_context_s *cmd_ctx)
 		target = target->next;
 	}
 	target_unregister_event_callback(target_init_handler, cmd_ctx);
-	
 	
 	return retval;
 }
@@ -1420,23 +1399,28 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				
 				if (strcmp(args[2], "reset_halt") == 0)
 				{
-					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+					LOG_WARNING("reset_mode argument is obsolete.");
+					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				else if (strcmp(args[2], "reset_run") == 0)
 				{
-					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+					LOG_WARNING("reset_mode argument is obsolete.");
+					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				else if (strcmp(args[2], "reset_init") == 0)
 				{
-					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+					LOG_WARNING("reset_mode argument is obsolete.");
+					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				else if (strcmp(args[2], "run_and_halt") == 0)
 				{
-					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+					LOG_WARNING("reset_mode argument is obsolete.");
+					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				else if (strcmp(args[2], "run_and_init") == 0)
 				{
-					LOG_WARNING("reset_mode argument is deprecated. reset_mode = reset_run");
+					LOG_WARNING("reset_mode argument is obsolete.");
+					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 				else
 				{
@@ -1492,9 +1476,9 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 
 int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, char *name)
 {
-	return command_run_linef(cmd_ctx, " if {[catch {info body target_%s_%d} t]==0} {target_%s_%d}", 
-	name, get_num_by_target(target),
-	name, get_num_by_target(target));
+	return command_run_linef(cmd_ctx, " if {[catch {info body target_%d_%s} t]==0} {target_%d_%s}", 
+			get_num_by_target(target), name, 
+			get_num_by_target(target), name);
 }
 
 int handle_run_and_halt_time_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1848,11 +1832,8 @@ int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 		}
 	}
 	
-	/* temporarily modify mode of current reset target */
-	target->reset_mode = reset_mode;
-
 	/* reset *all* targets */
-	target_process_reset(cmd_ctx);
+	target_process_reset(cmd_ctx, reset_mode);
 	
 	return ERROR_OK;
 }

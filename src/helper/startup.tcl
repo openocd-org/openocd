@@ -93,20 +93,6 @@ proc help {args} {
 add_help_text help "Tcl implementation of help command"
 
 
-#a bit of backwards compatibility
-proc ocd_throw {cmd} {
-	set ocd_output ""
-	eval $cmd
-	return $ocd_output
-}
-
-#a bit of backwards compatibility
-proc openocd {cmd} {
-	set ocd_output ""
-	eval $cmd
-	return $ocd_output
-}
-
 # If a fn is unknown to Tcl, we try to execute it as an OpenOCD command
 #
 # We also support two level commands. "flash banks" is translated to
@@ -130,9 +116,12 @@ proc target_script {target_num eventname scriptname} {
 	}
 
 	# This is the script we invoke
-	proc "target_[set eventname]_[set target_num]" {} "script $scriptname" 
+	proc "target_[set target_num]_[set eventname]" {} "script $scriptname" 
 	
 }
+
+add_help_text target_script "<target#> <event=reset/pre_reset/post_halt/pre_resume/gdb_program_config> <script_file>"
+
 
 # Try flipping / and \ to find file if the filename does not
 # match the precise spelling
@@ -162,5 +151,4 @@ proc script {filename} {
 
 add_help_text script "<filename> - filename of OpenOCD script (tcl) to run"
 
-add_help_text target_script "<target#> <event=reset/pre_reset/post_halt/pre_resume/gdb_program_config> <script_file>"
 

@@ -704,7 +704,7 @@ int arm7_9_poll(target_t *target)
 			int check_pc=0;
 			if (target->state == TARGET_RESET)
 			{
-				if ((target->reset_mode == RESET_HALT) || (target->reset_mode == RESET_INIT))
+				if (target->reset_halt)
 				{
 					if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
 					{
@@ -772,7 +772,7 @@ int arm7_9_assert_reset(target_t *target)
 		return ERROR_FAIL;
 	}
 
-	if ((target->reset_mode == RESET_HALT) || (target->reset_mode == RESET_INIT))
+	if (target->reset_halt)
 	{
 		/*
 		 * Some targets do not support communication while SRST is asserted. We need to

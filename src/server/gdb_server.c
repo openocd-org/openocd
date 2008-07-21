@@ -1807,7 +1807,8 @@ int gdb_detach(connection_t *connection, target_t *target)
 			break;
 
 		case GDB_DETACH_RESET:
-			target_process_reset(connection->cmd_ctx);
+			/* FIX?? make this configurable?? */
+			target_process_reset(connection->cmd_ctx, RESET_HALT);
 			break;
 
 		case GDB_DETACH_HALT:
@@ -1949,7 +1950,8 @@ int gdb_input_inner(connection_t *connection)
 					break;
 				case 'R':
 					/* handle extended restart packet */
-					target_process_reset(connection->cmd_ctx);
+					/* fix?? make this configurable? */
+					target_process_reset(connection->cmd_ctx, RESET_HALT);
 					break;
 				default:
 					/* ignore unkown packets */

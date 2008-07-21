@@ -5,13 +5,19 @@
 #
 # http://www.siwawi.arubi.uni-kl.de/avr_projects/arm_projects/openocd_intro/index.html
 #
-mww 0xfffffd44 0x00008000	# disable watchdog
-mww 0xfffffd08 0xa5000001	# enable user reset
-mww 0xfffffc20 0x00000601	# CKGR_MOR : enable the main oscillator
+# disable watchdog
+mww 0xfffffd44 0x00008000
+# enable user reset
+mww 0xfffffd08 0xa5000001
+# CKGR_MOR : enable the main oscillator
+mww 0xfffffc20 0x00000601	
 sleep 10
-mww 0xfffffc2c 0x00481c0e 	# CKGR_PLLR: 96.1097 MHz
+# CKGR_PLLR: 96.1097 MHz
+mww 0xfffffc2c 0x00481c0e 	
 sleep 10
-mww 0xfffffc30 0x00000007	# PMC_MCKR : MCK = PLL / 2 ~= 48 MHz
+# PMC_MCKR : MCK = PLL / 2 ~= 48 MHz
+mww 0xfffffc30 0x00000007	
 sleep 10
-mww 0xffffff60 0x003c0100	# MC_FMR: flash mode (FWS=1,FMCN=60)
+# MC_FMR: flash mode (FWS=1,FMCN=60)
+mww 0xffffff60 0x003c0100	
 sleep 100

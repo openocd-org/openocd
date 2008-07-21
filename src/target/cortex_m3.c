@@ -691,7 +691,7 @@ int cortex_m3_assert_reset(target_t *target)
 		
 	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
 	
-	if (target->reset_mode == RESET_RUN)
+	if (!target->reset_halt)
 	{
 		/* Set/Clear C_MASKINTS in a separate operation */
 		if (cortex_m3->dcb_dhcsr & C_MASKINTS)
