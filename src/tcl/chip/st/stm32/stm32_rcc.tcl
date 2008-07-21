@@ -42,7 +42,7 @@ proc show_RCC_CFGR { } {
     show_mmr_bitfield 15 14 $val  ADCPRE { pclk2_div1 pclk2_div1 pclk2_div1 pclk2_div1 pclk2_div2 pclk2_div4 pclk2_div8 pclk2_div16 }
     show_mmr_bitfield 16 16 $val  PLLSRC { HSI_div_2 HSE }
     show_mmr_bitfield 17 17 $val  PLLXTPRE { hse_div1 hse_div2 }
-    show_mmr_bitfield 21 18 $val  PLLMUL { x2 x3 x4 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x16 }
+    show_mmr_bitfield 21 18 $val  PLLMUL { x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x16 }
     show_mmr_bitfield 22 22 $val  USBPRE { div1 div1_5 }
     show_mmr_bitfield 26 24 $val  MCO    { none none none none SysClk HSI HSE PLL_div2 }
 }

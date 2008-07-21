@@ -93,6 +93,7 @@ nobase_dist_pkglib_DATA = \
 	tcl/cpu/arm/arm920.tcl			\
 	tcl/cpu/arm/arm946.tcl			\
 	tcl/cpu/arm/arm966.tcl			\
+	tcl/cpu/arm/cortex_m3.tcl               \
 	tcl/memory.tcl				\
 	tcl/mmr_helpers.tcl			\
 	tcl/readable.tcl
