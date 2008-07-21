@@ -84,7 +84,7 @@ extern int fast_and_dangerous;
 
 /* Integrate the JIM TCL interpretor into the command processing. */
 #include <stdarg.h>
-#ifdef __ECOS
+#if BUILD_ECOSBOARD
 /* Jim is provied by eCos */
 #include <cyg/jimtcl/jim.h>
 #else

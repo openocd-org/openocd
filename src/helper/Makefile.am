@@ -15,13 +15,14 @@ libhelper_a_SOURCES = binarybuffer.c $(CONFIGFILES) configuration.c log.c comman
 noinst_HEADERS = binarybuffer.h configuration.h types.h log.h command.h \
 	time_support.h replacements.h fileio.h jim.h
 
-noinst_PROGRAMS = bin2char
-
-bin2char_SOURCES = bin2char.c
 
 # Convert .tcl to cfile
-startup_tcl.c: startup.tcl bin2char$(EXEEXT)
-	./bin2char$(EXEEXT) startup_tcl < $(srcdir)/$< > $@
+#
+# Fix!!! how do we make this more automake friendly?
+# 
+startup_tcl.c: startup.tcl
+	gcc -o bin2char $(srcdir)/bin2char.c 
+	./bin2char startup_tcl < $(srcdir)/startup.tcl > $@
 
 # add startup_tcl.c to make clean list
 CLEANFILES = startup_tcl.c
