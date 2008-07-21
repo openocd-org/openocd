@@ -11,7 +11,7 @@ and
 	reset 
 	flash erase_address <start> <len>
 and
-	reset
+	reset init
 	load
 	
 In most cases this can be accomplished by specifying the default startup mode as reset_init (target command 
