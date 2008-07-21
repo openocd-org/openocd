@@ -1950,8 +1950,7 @@ int gdb_input_inner(connection_t *connection)
 					break;
 				case 'R':
 					/* handle extended restart packet */
-					/* fix?? make this configurable? */
-					target_process_reset(connection->cmd_ctx, RESET_HALT);
+					command_run_linef(connection->cmd_ctx, "gdb_restart");
 					break;
 				default:
 					/* ignore unkown packets */

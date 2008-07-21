@@ -152,3 +152,8 @@ proc script {filename} {
 add_help_text script "<filename> - filename of OpenOCD script (tcl) to run"
 
 
+
+# Handle GDB 'R' packet. Can be overriden by configuration script
+proc gdb_restart {} {
+	reset halt
+}
