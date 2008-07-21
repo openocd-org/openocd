@@ -153,6 +153,7 @@ typedef struct cfi_fixup_s
 #define CFI_MFR_ST		0x0020	/* STMicroelectronics */
 #define CFI_MFR_AMIC		0x0037
 #define CFI_MFR_SST		0x00BF
+#define CFI_MFR_MX		0x00C2
 
 #define CFI_MFR_ANY		0xffff
 #define CFI_ID_ANY		0xffff

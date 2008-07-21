@@ -204,6 +204,23 @@ non_cfi_t non_cfi_flashes[] = {
 		}
 	},
 	{
+		.mfr = CFI_MFR_MX,
+		.id = 0x225b,				/* MX29LV800B */
+		.pri_id = 0x02,
+		.dev_size = 0x14,			/* 2^20 = 1MB */
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 4,
+		.erase_region_info =
+		{
+                        0x00400000,             /* 1x 16KB */
+                        0x00200001,             /* 2x 8KB */
+                        0x00800000,             /* 1x 32KB */
+                        0x0100000e,             /* 15x 64KB */
+			0x00000000
+		}
+	},
+	{
 		.mfr = 0,
 		.id = 0,
 	}
