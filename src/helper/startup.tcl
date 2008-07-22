@@ -136,7 +136,7 @@ proc find {filename} {
 		return $t
 	}  
 	# make sure error message matches original input string
-	return [ocd_find $filename]
+	return -code error "Can't find $filename"
 }
 add_help_text find "<file> - print full path to file according to OpenOCD search rules"
 
