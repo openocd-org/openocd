@@ -47,7 +47,7 @@ static struct option long_options[] =
 
 int configuration_output_handler(struct command_context_s *context, const char* line)
 {
-	LOG_INFO_N(line);
+	LOG_USER_N(line);
 
 	return ERROR_OK;
 }

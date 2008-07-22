@@ -103,8 +103,9 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		}
 		else
 		{
-			/* do not print count and time */
-			fprintf(log_output, "%s %s:%d %s(): %s", log_strings[level+1], file, line, function, string);
+			/* print human readable output */
+			fprintf(log_output, "%s%s",
+					(level > LOG_LVL_USER)?log_strings[level+1]:"", string);
 		}
 	} else
 	{
