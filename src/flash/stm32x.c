@@ -385,15 +385,43 @@ int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	prot_reg[2] = (u16)(protection >> 16);
 	prot_reg[3] = (u16)(protection >> 24);
 	
-	for (i = first; i <= last; i++)
+	if (stm32x_info->ppage_size == 2)
 	{
-		reg = (i / stm32x_info->ppage_size) / 8;
-		bit = (i / stm32x_info->ppage_size) - (reg * 8);
+		/* high density flash */
 		
-		if( set )
-			prot_reg[reg] &= ~(1 << bit);
-		else
-			prot_reg[reg] |= (1 << bit);
+		/* bit 7 controls sector 62 - 255 protection */
+		if (first > 61 || last <= 255)
+			prot_reg[3] |= (1 << 7);
+		
+		if (first > 61)
+			first = 61;
+		if (last > 61)
+			last = 61;
+		
+		for (i = first; i <= last; i++)
+		{
+			reg = (i / stm32x_info->ppage_size) / 8;
+			bit = (i / stm32x_info->ppage_size) - (reg * 8);
+			
+			if( set )
+				prot_reg[reg] &= ~(1 << bit);
+			else
+				prot_reg[reg] |= (1 << bit);
+		}
+	}
+	else
+	{
+		/* medium density flash */
+		for (i = first; i <= last; i++)
+		{
+			reg = (i / stm32x_info->ppage_size) / 8;
+			bit = (i / stm32x_info->ppage_size) - (reg * 8);
+			
+			if( set )
+				prot_reg[reg] &= ~(1 << bit);
+			else
+				prot_reg[reg] |= (1 << bit);
+		}
 	}
 	
 	if ((status = stm32x_erase_options(bank)) != ERROR_OK)
