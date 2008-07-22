@@ -15,14 +15,12 @@ libhelper_a_SOURCES = binarybuffer.c $(CONFIGFILES) configuration.c log.c comman
 noinst_HEADERS = binarybuffer.h configuration.h types.h log.h command.h \
 	time_support.h replacements.h fileio.h jim.h
 
+bin2char$(EXEEXT_FOR_BUILD): bin2char.c
+	${CC_FOR_BUILD} ${CFLAGS_FOR_BUILD} $(srcdir)/bin2char.c -o $@
 
 # Convert .tcl to cfile
-#
-# Fix!!! how do we make this more automake friendly?
-# 
-startup_tcl.c: startup.tcl
-	gcc -o bin2char $(srcdir)/bin2char.c 
-	./bin2char startup_tcl < $(srcdir)/startup.tcl > $@
+startup_tcl.c: startup.tcl bin2char$(EXEEXT_FOR_BUILD)
+	./bin2char$(EXEEXT_FOR_BUILD) startup_tcl < $(srcdir)/startup.tcl > $@
 
 # add startup_tcl.c to make clean list
-CLEANFILES = startup_tcl.c
+CLEANFILES = startup_tcl.c bin2char$(EXEEXT_FOR_BUILD)
