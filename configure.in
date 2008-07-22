@@ -295,7 +295,7 @@ AC_PROG_RANLIB
 AC_MSG_CHECKING([for a C compiler for build tools])
 if test $cross_compiling = yes; then
 	AC_CHECK_PROGS(CC_FOR_BUILD, gcc cc)
-	CFLAGS_FOR_BUILD=-g -O2
+	CFLAGS_FOR_BUILD="-g -O2"
 else
 	CC_FOR_BUILD=$CC
 	CFLAGS_FOR_BUILD=$CFLAGS
