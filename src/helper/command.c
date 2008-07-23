@@ -71,19 +71,24 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	c = interp->cmdPrivData;
 	LOG_DEBUG("script_command - %s", c->name);
 
-	nwords = argc;
-	words = malloc(sizeof(char *) * nwords);
-	for (i = 0; i < nwords; i++)
+	words = malloc(sizeof(char *) * argc);
+	for (i = 0; i < argc; i++)
 	{
 		int len;
-
-		words[i] = strdup(Jim_GetString(argv[i], &len));
+		char *w=Jim_GetString(argv[i], &len);
+		if (*w=='#')
+		{
+			/* hit an end of line comment */
+			break;
+		}
+		words[i] = strdup(w);
 		if (words[i] == NULL) 
 		{
 			return JIM_ERR;
 		}
 		LOG_DEBUG("script_command - %s, argv[%u]=%s", c->name, i, words[i]);
 	}
+	nwords = i;
 
 	/* grab the command context from the associated data */
 	context = Jim_GetAssocData(interp, "context");
