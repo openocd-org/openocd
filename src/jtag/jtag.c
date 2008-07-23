@@ -1042,7 +1042,7 @@ int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
 void jtag_add_end_state(enum tap_state state)
 {
 	cmd_queue_end_state = state;
-	if ((cmd_queue_end_state == TAP_SD)||(cmd_queue_end_state == TAP_SD))
+	if ((cmd_queue_end_state == TAP_SD)||(cmd_queue_end_state == TAP_SI))
 	{
 		LOG_ERROR("BUG: TAP_SD/SI can't be end state. Calling code should use a larger scan field");
 	}
