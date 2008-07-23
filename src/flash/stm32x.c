@@ -2,6 +2,9 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   Copyright (C) 2008 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -286,6 +289,7 @@ int stm32x_protect_check(struct flash_bank_s *bank)
 	u32 protection;
 	int i, s;
 	int num_bits;
+	int set;
 	
 	if (target->state != TARGET_HALTED)
 	{
@@ -300,17 +304,50 @@ int stm32x_protect_check(struct flash_bank_s *bank)
 	 * high density - each protection bit is for 2 * 2K pages */
 	num_bits = (bank->num_sectors / stm32x_info->ppage_size);
 	
-	for (i = 0; i < num_bits; i++)
+	if (stm32x_info->ppage_size == 2)
 	{
-		int set = 1;
+		/* high density flash */
 		
-		if( protection & (1 << i))
+		set = 1;
+		
+		if (protection & (1 << 31))
 			set = 0;
 		
-		for (s = 0; s < stm32x_info->ppage_size; s++)
-			bank->sectors[(i * stm32x_info->ppage_size) + s].is_protected = set;
+		/* bit 31 controls sector 62 - 255 protection */	
+		for (s = 62; s < bank->num_sectors; s++)
+		{
+			bank->sectors[s].is_protected = set;
+		}
+		
+		if (bank->num_sectors > 61)
+			num_bits = 31;
+		
+		for (i = 0; i < num_bits; i++)
+		{
+			set = 1;
+			
+			if (protection & (1 << i))
+				set = 0;
+			
+			for (s = 0; s < stm32x_info->ppage_size; s++)
+				bank->sectors[(i * stm32x_info->ppage_size) + s].is_protected = set;
+		}
 	}
-
+	else
+	{		
+		/* medium density flash */
+		for (i = 0; i < num_bits; i++)
+		{
+			set = 1;
+			
+			if( protection & (1 << i))
+				set = 0;
+			
+			for (s = 0; s < stm32x_info->ppage_size; s++)
+				bank->sectors[(i * stm32x_info->ppage_size) + s].is_protected = set;
+		}
+	}
+	
 	return ERROR_OK;
 }
 
@@ -390,11 +427,16 @@ int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 		/* high density flash */
 		
 		/* bit 7 controls sector 62 - 255 protection */
-		if (first > 61 || last <= 255)
-			prot_reg[3] |= (1 << 7);
+		if (last > 61)
+		{
+			if (set)
+				prot_reg[3] &= ~(1 << 7);
+			else
+				prot_reg[3] |= (1 << 7);
+		}
 		
 		if (first > 61)
-			first = 61;
+			first = 62;
 		if (last > 61)
 			last = 61;
 		
@@ -739,7 +781,69 @@ int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
-	snprintf(buf, buf_size, "stm32x flash driver info" );
+	target_t *target = bank->target;
+	u32 device_id;
+	int printed;
+	
+	/* read stm32 device id register */
+	target_read_u32(target, 0xE0042000, &device_id);
+	
+	if ((device_id & 0x7ff) == 0x410)
+	{
+		printed = snprintf(buf, buf_size, "stm32x (Medium Density) - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+		
+		switch(device_id >> 16)
+		{
+			case 0x0000:
+				snprintf(buf, buf_size, "A");
+				break;
+			
+			case 0x2000:
+				snprintf(buf, buf_size, "B");
+				break;
+			
+			case 0x2001:
+				snprintf(buf, buf_size, "Z");
+				break;
+			
+			case 0x2003:
+				snprintf(buf, buf_size, "Y");
+				break;
+			
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
+	}
+	else if ((device_id & 0x7ff) == 0x414)
+	{
+		printed = snprintf(buf, buf_size, "stm32x (High Density) - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+		
+		switch(device_id >> 16)
+		{
+			case 0x1000:
+				snprintf(buf, buf_size, "A");
+				break;
+			
+			case 0x1001:
+				snprintf(buf, buf_size, "Z");
+				break;
+			
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
+	}
+	else
+	{
+		snprintf(buf, buf_size, "Cannot identify target as a stm32x\n");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+	
 	return ERROR_OK;
 }
 
