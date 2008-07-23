@@ -287,7 +287,6 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 	 * however sometimes '-' is sent even though we've already received
 	 * an ACK (+) for everything we've sent off.
 	 */
-#ifndef _WIN32
 	int gotdata;
 	for (;;)
 	{
@@ -299,7 +298,6 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			return retval;
 		LOG_WARNING("Discard unexpected char %c", reply);
 	}
-#endif
 #endif
 
 	while (1)
@@ -413,6 +411,8 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 				case '$':
 					break;
 				case '+':
+					/* gdb sends a dummy ack '+' at every remote connect - see remote_start_remote (remote.c)
+					 * incase anyone tries to debug why they receive this warning every time */
 					LOG_WARNING("acknowledgment received, but no packet pending");
 					break;
 				case '-':
@@ -509,7 +509,6 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 				my_checksum += character & 0xff;
 				buffer[count++] = character & 0xff;
 			}
-
 		}
 
 		*len = count;
