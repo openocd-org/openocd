@@ -1505,7 +1505,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 		xml_printf(&retval, &buffer, &pos, &size,
 				"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-",
-				(GDB_BUFFER_SIZE - 1), gdb_use_memory_map == 1 ? '+' : '-');
+				(GDB_BUFFER_SIZE - 1), ((gdb_use_memory_map == 1)&&(flash_get_bank_count()>0)) ? '+' : '-');
 
 		if (retval != ERROR_OK)
 		{
@@ -1518,7 +1518,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 		return ERROR_OK;
 	}
-	else if (strstr(packet, "qXfer:memory-map:read::"))
+	else if (strstr(packet, "qXfer:memory-map:read::")&&(flash_get_bank_count()>0))
 	{
 		/* We get away with only specifying flash here. Regions that are not
 		 * specified are treated as if we provided no memory map(if not we
