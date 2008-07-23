@@ -401,7 +401,7 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 			return retval;
 	}		
 	
-	LOG_DEBUG("Waiting for halted stated as approperiate");
+	LOG_DEBUG("Waiting for halted stated as appropriate");
 	
 	/* Wait for reset to complete, maximum 5 seconds. */	
 	gettimeofday(&timeout, NULL);
