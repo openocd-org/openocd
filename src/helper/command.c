@@ -78,7 +78,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	for (i = 0; i < argc; i++)
 	{
 		int len;
-		char *w=Jim_GetString(argv[i], &len);
+		const char *w=Jim_GetString(argv[i], &len);
 		if (*w=='#')
 		{
 			/* hit an end of line comment */
@@ -539,7 +539,6 @@ static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *
 	size_t nbytes;
 	const char *ptr;
 	Jim_Interp *interp;
-	command_context_t *context;
 
 	/* make it a char easier to read code */
 	ptr = _ptr;
@@ -549,19 +548,11 @@ static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *
 		return 0;
 	}
 
-	context = Jim_GetAssocData(interp, "context");
-	if (context == NULL)
-	{
-		LOG_ERROR("openocd_jim_fwrite: no command context");
-		/* TODO: Where should this go? */		
-		return n;
-	}
-
 	/* do we have to chunk it? */
 	if (ptr[nbytes] == 0)
 	{
 		/* no it is a C style string */
-		command_output_text(context, ptr);
+		LOG_USER_N("%s", ptr);
 		return strlen(ptr);
 	}
 	/* GRR we must chunk - not null terminated */
@@ -578,7 +569,7 @@ static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *
 		/* terminate it */
 		chunk[n] = 0;
 		/* output it */
-		command_output_text(context, chunk);
+		LOG_USER_N("%s", chunk);
 		ptr += x;
 		nbytes -= x;
 	}
@@ -597,24 +588,16 @@ static int openocd_jim_vfprintf(void *cookie, const char *fmt, va_list ap)
 	char *cp;
 	int n;
 	Jim_Interp *interp;
-	command_context_t *context;
 
 	n = -1;
 	interp = cookie;
 	if (interp == NULL)
 		return n;
 
-	context = Jim_GetAssocData(interp, "context");
-	if (context == NULL)
-	{
-		LOG_ERROR("openocd_jim_vfprintf: no command context");
-		return n;
-	}
-
 	cp = alloc_vprintf(fmt, ap);
 	if (cp)
 	{
-		command_output_text(context, cp);
+		LOG_USER_N("%s", cp);
 		n = strlen(cp);
 		free(cp);
 	}
