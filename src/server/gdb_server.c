@@ -509,6 +509,7 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 				my_checksum += character & 0xff;
 				buffer[count++] = character & 0xff;
 			}
+
 		}
 
 		*len = count;
@@ -678,6 +679,12 @@ int gdb_new_connection(connection_t *connection)
 	 * connect. 
 	 */
 	target_halt(gdb_service->target);
+	/* FIX!!!! could extended-remote work better here?
+	 * 
+	 *  wait a tiny bit for halted state or we just continue. The
+	 * GDB register packet will then contain garbage 
+	 */
+	target_wait_state(gdb_service->target, TARGET_HALTED, 500);
 	
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)

@@ -1683,7 +1683,6 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	return ERROR_OK;
 }
 
-static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_state state, int ms);
 
 int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -1729,11 +1728,12 @@ int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			return ERROR_OK;
 		}
 	}
+	target_t *target = get_current_target(cmd_ctx);
 
-	return wait_state(cmd_ctx, cmd, TARGET_HALTED, ms); 
+	return target_wait_state(target, TARGET_HALTED, ms); 
 }
 
-static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_state state, int ms)
+int target_wait_state(target_t *target, enum target_state state, int ms)
 {
 	int retval;
 	struct timeval timeout, now;
@@ -1741,7 +1741,6 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, 0, ms * 1000);
 	
-	target_t *target = get_current_target(cmd_ctx);
 	for (;;)
 	{
 		if ((retval=target_poll(target))!=ERROR_OK)
@@ -1754,7 +1753,7 @@ static int wait_state(struct command_context_s *cmd_ctx, char *cmd, enum target_
 		if (once)
 		{
 			once=0;
-			command_print(cmd_ctx, "waiting for target %s...", target_state_strings[state]);
+			LOG_USER("waiting for target %s...", target_state_strings[state]);
 		}
 		
 		gettimeofday(&now, NULL);

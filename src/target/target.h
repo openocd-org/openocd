@@ -280,6 +280,7 @@ extern int target_write_buffer(struct target_s *target, u32 address, u32 size, u
 extern int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
 extern int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* crc);
 extern int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u32* blank);
+extern int target_wait_state(target_t *target, enum target_state state, int ms);
 
 /* DANGER!!!!!
  * 
