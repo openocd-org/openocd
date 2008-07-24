@@ -131,11 +131,13 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	return ERROR_OK;
 }
 
+command_context_t *global_cmd_ctx;
+
 command_context_t *setup_command_handler(void)
 {
 	command_context_t *cmd_ctx;
 	
-	cmd_ctx = command_init();
+	global_cmd_ctx = cmd_ctx = command_init();
 	
 	register_command(cmd_ctx, NULL, "version", handle_version_command,
 					 COMMAND_EXEC, "show OpenOCD version");

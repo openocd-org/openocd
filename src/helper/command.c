@@ -55,12 +55,15 @@ static void tcl_output(void *privData, const char *file, int line, const char *f
 	Jim_AppendString(interp, tclOutput, string, strlen(string));
 }
 
+extern command_context_t *global_cmd_ctx;
+
+
 static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	/* the private data is stashed in the interp structure */
 	command_t *c;
 	command_context_t *context;
-	int *retval;
+	int retval;
 	int i;
 	int nwords;
 	char **words;
@@ -92,26 +95,40 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	/* grab the command context from the associated data */
 	context = Jim_GetAssocData(interp, "context");
-	retval = Jim_GetAssocData(interp, "retval"); 
-	if (context != NULL && retval != NULL)
+	if (context == NULL)
 	{
-		/* capture log output and return it */
-		Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
-		log_add_callback(tcl_output, tclOutput);
-		
-		*retval = run_command(context, c, words, nwords);
-		
-		log_remove_callback(tcl_output, tclOutput);
-		
-		/* We dump output into this local variable */
-		Jim_SetVariableStr(interp, "ocd_output", tclOutput);
+		/* Tcl can invoke commands directly instead of via command_run_line(). This would
+		 * happen when the Jim Tcl interpreter is provided by eCos.
+		 */
+		context = global_cmd_ctx;
 	}
+	
+	/* capture log output and return it */
+	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
+	/* a garbage collect can happen, so we need a reference count to this object */
+	Jim_IncrRefCount(tclOutput);
+	
+	log_add_callback(tcl_output, tclOutput);
+	
+	retval = run_command(context, c, words, nwords);
+	
+	log_remove_callback(tcl_output, tclOutput);
+
+	/* We dump output into this local variable */
+	Jim_SetVariableStr(interp, "ocd_output", tclOutput);
+	Jim_DecrRefCount(interp, tclOutput);
 
 	for (i = 0; i < nwords; i++)
 		free(words[i]);
 	free(words);
 
-	return (*retval==ERROR_OK)?JIM_OK:JIM_ERR;
+	int *return_retval = Jim_GetAssocData(interp, "retval");
+	if (return_retval != NULL)
+	{
+		*return_retval = retval;
+	}
+	
+	return (retval==ERROR_OK)?JIM_OK:JIM_ERR;
 }
 
 command_t* register_command(command_context_t *context, command_t *parent, char *name, int (*handler)(struct command_context_s *context, char* name, char** args, int argc), enum command_mode mode, char *help)
@@ -393,21 +410,28 @@ int command_run_line(command_context_t *context, char *line)
 	 * results
 	 */
 	/* run the line thru a script engine */
-	int retval;
+	int retval=ERROR_FAIL;
 	int retcode;
-	Jim_DeleteAssocData(interp, "context"); /* remove existing */
+	/* Beware! This code needs to be reentrant. It is also possible
+	 * for OpenOCD commands to be invoked directly from Tcl. This would
+	 * happen when the Jim Tcl interpreter is provided by eCos for
+	 * instance.
+	 */
+	Jim_DeleteAssocData(interp, "context");
 	retcode = Jim_SetAssocData(interp, "context", NULL, context);
-	if (retcode != JIM_OK)
-		return ERROR_FAIL;
-
-	/* associated the return value */
-	retval = ERROR_OK;
-	Jim_DeleteAssocData(interp, "retval"); /* remove existing */
-	retcode = Jim_SetAssocData(interp, "retval", NULL, &retval);
-	if (retcode != JIM_OK)
-		return ERROR_FAIL;
-
-	retcode = Jim_Eval(interp, line);	
+	if (retcode == JIM_OK)
+	{
+		/* associated the return value */
+		Jim_DeleteAssocData(interp, "retval");
+		retcode = Jim_SetAssocData(interp, "retval", NULL, &retval);
+		if (retcode == JIM_OK)
+		{
+			retcode = Jim_Eval(interp, line);
+			
+			Jim_DeleteAssocData(interp, "retval");
+		}	
+		Jim_DeleteAssocData(interp, "context");
+	}
 	if (retcode == JIM_ERR) {
 		if (retval!=ERROR_COMMAND_CLOSE_CONNECTION)
 		{
