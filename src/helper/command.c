@@ -115,7 +115,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	log_remove_callback(tcl_output, tclOutput);
 
 	/* We dump output into this local variable */
-	Jim_SetVariableStr(interp, "ocd_output", tclOutput);
+	Jim_SetResult(interp, tclOutput);
 	Jim_DecrRefCount(interp, tclOutput);
 
 	for (i = 0; i < nwords; i++)
@@ -205,7 +205,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	free((void *)full_name);
 	
 	/* we now need to add an overrideable proc */
-	const char *override_name=alloc_printf("proc %s%s%s {args} {return [eval \"ocd_%s%s%s $args\"]}", t1, t2, t3, t1, t2, t3);
+	const char *override_name=alloc_printf("proc %s%s%s {args} {eval \"ocd_%s%s%s $args\";return \"\"}", t1, t2, t3, t1, t2, t3);
 	Jim_Eval(interp, override_name);	
 	free((void *)override_name);
 	
