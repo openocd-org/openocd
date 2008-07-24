@@ -862,9 +862,9 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 	
 	jtag_prelude1();
 	
-	cmd_queue_cur_state = path[num_states - 1];
 
 	retval=interface_jtag_add_pathmove(num_states, path);
+	cmd_queue_cur_state = path[num_states - 1];
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
