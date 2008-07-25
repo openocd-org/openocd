@@ -2,6 +2,9 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                      *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   part of this file is taken from libcli (libcli.sourceforge.net)       *
  *   Copyright (C) David Parrish (david@dparrish.com)                      *
  *                                                                         *
