@@ -1307,11 +1307,9 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "wp", handle_wp_command, COMMAND_EXEC, "set watchpoint <address> <length> <r/w/a> [value] [mask]");	
 	register_command(cmd_ctx,  NULL, "rwp", handle_rwp_command, COMMAND_EXEC, "remove watchpoint <adress>");
 	
-	register_command(cmd_ctx,  NULL, "load_image", handle_load_image_command, COMMAND_EXEC, "load_image <file> <address> ['bin'|'ihex'|'elf'|'s19']");
+	register_command(cmd_ctx,  NULL, "load_image", handle_load_image_command, COMMAND_EXEC, "load_image <file> <address> ['bin'|'ihex'|'elf'|'s19'] [min_address] [max_length]");
 	register_command(cmd_ctx,  NULL, "dump_image", handle_dump_image_command, COMMAND_EXEC, "dump_image <file> <address> <size>");
 	register_command(cmd_ctx,  NULL, "verify_image", handle_verify_image_command, COMMAND_EXEC, "verify_image <file> [offset] [type]");
-	register_command(cmd_ctx,  NULL, "load_binary", handle_load_image_command, COMMAND_EXEC, "[DEPRECATED] load_binary <file> <address>");
-	register_command(cmd_ctx,  NULL, "dump_binary", handle_dump_image_command, COMMAND_EXEC, "[DEPRECATED] dump_binary <file> <address> <size>");
 	
 	target_request_register_commands(cmd_ctx);
 	trace_register_commands(cmd_ctx);
@@ -2019,6 +2017,8 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	u8 *buffer;
 	u32 buf_cnt;
 	u32 image_size;
+	u32 min_address=0;
+	u32 max_address=0xffffffff;
 	int i;
 	int retval;
 
@@ -2029,10 +2029,9 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	
 	target_t *target = get_current_target(cmd_ctx);
 
-	if (argc < 1)
+	if ((argc < 1)||(argc > 5))
 	{
-		command_print(cmd_ctx, "usage: load_image <filename> [address] [type]");
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
 	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
@@ -2046,7 +2045,23 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		image.base_address_set = 0;
 	}
 	
+	
 	image.start_address_set = 0;
+	
+	if (argc>=4)
+	{
+		min_address=strtoul(args[3], NULL, 0);
+	}
+	if (argc>=5)
+	{
+		max_address=strtoul(args[4], NULL, 0)+min_address;
+	}
+	
+	if (min_address>max_address)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	
 
 	duration_start_measure(&duration);
 	
@@ -2071,13 +2086,36 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 			free(buffer);
 			break;
 		}
-		if ((retval = target_write_buffer(target, image.sections[i].base_address, buf_cnt, buffer)) != ERROR_OK)
+		
+		u32 offset=0;
+		u32 length=buf_cnt;
+		
+		
+		/* DANGER!!! beware of unsigned comparision here!!! */
+		
+		if ((image.sections[i].base_address+buf_cnt>=min_address)&&
+				(image.sections[i].base_address<max_address))
 		{
-			free(buffer);
-			break;
+			if (image.sections[i].base_address<min_address)
+			{
+				/* clip addresses below */
+				offset+=min_address-image.sections[i].base_address;
+				length-=offset;
+			}
+			
+			if (image.sections[i].base_address+buf_cnt>max_address)
+			{
+				length-=(image.sections[i].base_address+buf_cnt)-max_address;
+			}
+			
+			if ((retval = target_write_buffer(target, image.sections[i].base_address+offset, length, buffer+offset)) != ERROR_OK)
+			{
+				free(buffer);
+				break;
+			}
+			image_size += length;
+			command_print(cmd_ctx, "%u byte written at address 0x%8.8x", length, image.sections[i].base_address+offset);
 		}
-		image_size += buf_cnt;
-		command_print(cmd_ctx, "%u byte written at address 0x%8.8x", buf_cnt, image.sections[i].base_address);
 		
 		free(buffer);
 	}
