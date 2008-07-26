@@ -92,6 +92,7 @@ extern target_type_t feroceon_target;
 extern target_type_t xscale_target;
 extern target_type_t cortexm3_target;
 extern target_type_t arm11_target;
+extern target_type_t mips_m4k_target;
 
 target_type_t *target_types[] =
 {
@@ -105,6 +106,7 @@ target_type_t *target_types[] =
 	&xscale_target,
 	&cortexm3_target,
 	&arm11_target,
+	&mips_m4k_target,
 	NULL,
 };
 
