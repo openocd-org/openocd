@@ -969,13 +969,20 @@ int target_arch_state(struct target_s *target)
 int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer)
 {
 	int retval;
+	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x", size, address);
+
 	if (!target->type->examined)
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
 	
-	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x", size, address);
+	if (address+size<address)
+	{
+		/* GDB can request this when e.g. PC is 0xfffffffc*/
+		LOG_ERROR("address+size wrapped(0x%08x, 0x%08x)", address, size);
+		return ERROR_FAIL;
+	}
 	
 	if (((address % 2) == 0) && (size == 2))
 	{
@@ -1038,13 +1045,20 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer)
 {
 	int retval;
+	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x", size, address);
+
 	if (!target->type->examined)
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
-
-	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x", size, address);
+	
+	if (address+size<address)
+	{
+		/* GDB can request this when e.g. PC is 0xfffffffc*/
+		LOG_ERROR("address+size wrapped(0x%08x, 0x%08x)", address, size);
+		return ERROR_FAIL;
+	}
 	
 	if (((address % 2) == 0) && (size == 2))
 	{
