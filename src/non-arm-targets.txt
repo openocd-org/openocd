@@ -1,0 +1,76 @@
+Some outstanding issues w.r.t. non-ARM32 targets
+================================================
+This file describes outstanding issues w.r.t.
+non-ARM32 targets.
+
+Ideas & patches welcome!
+
+
+
+
+Flash drivers
+-------------
+The flash drivers contain ARM32 code that is used
+to execute code on the target.
+
+This needs to be handled in some CPU independent
+manner.
+
+The ocl and ecos flash drivers compile the flash
+driver code to run on the target on the developer
+machine.
+
+The ocl and ecos flash drivers should be unified
+and instructions should be written on how to
+compile the target flash drivers. Perhaps
+using automake?
+
+
+
+eCos has CFI driver that could probably be compiled
+for all targets. The trick is to figure out a
+way to make the compiled flash drivers work
+on all target memory maps + sort out all the
+little details
+
+32 vs. 64 bit
+-------------
+Currently OpenOCD only supports 32 bit targets.
+
+Adding 64 bit support would be nice but there
+hasn't been any call for it in the openocd development
+mailing list
+
+target support
+--------------
+target.h is relatively CPU agnostic and
+the intention is to move in the direction of less 
+instruction set specific.
+
+Non-CPU targets are also supported, but there isn't
+a lot of activity on it in the mailing list currently.
+An example is FPGA programming support via JTAG,
+but also flash chips can be programmed directly
+using JTAG.
+
+non-JTAG physical layer
+-----------------------
+JTAG is not the only physical protocol used to talk to
+CPUs.
+
+OpenOCD does not today have targets that use non-JTAG.
+
+The actual physical layer is a relatively modest part
+of the total OpenOCD system.
+
+ 
+PowerPC
+-------
+there exists open source implementations of powerpc
+target manipulation, but there hasn't been a lot
+of activity in the mailing list.
+
+MIPS
+----
+Currently OpenOCD has a MIPS target defined. This is the
+first non-ARM example of a CPU target
