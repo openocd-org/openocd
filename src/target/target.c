@@ -267,7 +267,6 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 {
 	int retval = ERROR_OK;
 	target_t *target;
-	struct timeval timeout, now;
 
 	target = targets;
 	while (target)
@@ -363,11 +362,16 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 
 	if ((reset_mode == RESET_HALT) || (reset_mode == RESET_INIT))
 	{
-		/* Wait for reset to complete, maximum 5 seconds. */
-		if (((retval=target_wait_state(target, TARGET_HALTED, 5000)))==ERROR_OK)
+		target = targets;
+		while (target)
 		{
-			if (reset_mode == RESET_INIT)
-				target_invoke_script(cmd_ctx, target, "post_reset");
+			/* Wait for reset to complete, maximum 5 seconds. */
+			if (((retval=target_wait_state(target, TARGET_HALTED, 5000)))==ERROR_OK)
+			{
+				if (reset_mode == RESET_INIT)
+					target_invoke_script(cmd_ctx, target, "post_reset");
+			}
+			target = target->next;
 		}
 	}
 
@@ -1702,7 +1706,6 @@ int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd,
 
 int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	target_t *target = get_current_target(cmd_ctx);
 	enum target_reset_mode reset_mode = RESET_RUN;
 
 	if (argc >= 1)
