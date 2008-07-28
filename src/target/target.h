@@ -62,8 +62,6 @@ enum target_reset_mode
 	RESET_RUN = 0,		/* reset and let target run */
 	RESET_HALT = 1,		/* reset and halt target out of reset */
 	RESET_INIT = 2,		/* reset and halt target out of reset, then run init script */
-	RESET_RUN_AND_HALT = 3, /* reset and let target run, halt after n milliseconds */
-	RESET_RUN_AND_INIT = 4, /* reset and let target run, halt after n milliseconds, then run init script */
 };
 
 enum target_debug_reason
@@ -202,7 +200,6 @@ typedef struct target_s
 {
 	target_type_t *type;				/* target type definition (name, access functions) */
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
-	int run_and_halt_time;				/* how long the target should run after a run_and_halt reset */
 	u32 working_area;					/* working area (initialized RAM). Evaluated 
 										   upon first allocation from virtual/physical address. */
 	u32 working_area_virt;				/* virtual address */

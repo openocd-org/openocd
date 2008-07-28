@@ -540,11 +540,6 @@ Event is one of the following:
 @option{pre_resume} or @option{gdb_program_config}.
 @option{post_reset} and @option{reset} will produce the same results.
 
-@item @b{run_and_halt_time} <@var{target#}> <@var{time_in_ms}>
-@cindex run_and_halt_time
-The amount of time the debugger should wait after releasing reset before it asserts
-a debug request. This is used by the @option{run_and_halt} and @option{run_and_init}
-reset modes. 
 @item @b{working_area} <@var{target#}> <@var{address}> <@var{size}>
 <@var{backup}|@var{nobackup}>
 @cindex working_area
@@ -795,8 +790,7 @@ OpenOCD will wait 5 seconds for the target to resume.
 @cindex step
 Single-step the target at its current code position, or at an optional address. 
 
-@item @b{reset} [@option{run}|@option{halt}|@option{init}|@option{run_and_halt}
-|@option{run_and_init}]
+@item @b{reset} [@option{run}|@option{halt}|@option{init}]
 @cindex reset
 Perform a hard-reset. The optional parameter specifies what should happen after the reset.
 
@@ -812,15 +806,7 @@ Immediately halt the target (works only with certain configurations).
 @cindex reset init
 Immediately halt the target, and execute the reset script (works only with certain
 configurations)
-@item @b{run_and_halt}
-@cindex reset run_and_halt
-Let the target run for a certain amount of time, then request a halt.
-@item @b{run_and_init}
-@cindex reset run_and_init
-Let the target run for a certain amount of time, then request a halt. Execute the
-reset script once the target enters debug mode.
 @end itemize
-The runtime can be set using the @option{run_and_halt_time} command.
 @end itemize
 
 @subsection Memory access commands
