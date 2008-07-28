@@ -39,7 +39,7 @@
 
 #include <stdlib.h>
 
-bitfield_desc_t embeddedice_comms_ctrl_bitfield_desc[] = 
+bitfield_desc_t embeddedice_comms_ctrl_bitfield_desc[] =
 {
 	{"R", 1},
 	{"W", 1},
@@ -59,24 +59,24 @@ char* embeddedice_reg_list[] =
 {
 	"debug_ctrl",
 	"debug_status",
-	
+
 	"comms_ctrl",
 	"comms_data",
-	
+
 	"watch 0 addr value",
 	"watch 0 addr mask",
 	"watch 0 data value",
 	"watch 0 data mask",
 	"watch 0 control value",
 	"watch 0 control mask",
-	
+
 	"watch 1 addr value",
 	"watch 1 addr mask",
 	"watch 1 data value",
 	"watch 1 data mask",
 	"watch 1 control value",
 	"watch 1 control mask",
-	
+
 	"vector catch"
 };
 
@@ -99,26 +99,26 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 	int num_regs;
 	int i;
 	int eice_version = 0;
-	
+
 	/* register a register arch-type for EmbeddedICE registers only once */
 	if (embeddedice_reg_arch_type == -1)
 		embeddedice_reg_arch_type = register_reg_arch_type(embeddedice_get_reg, embeddedice_set_reg_w_exec);
-	
+
 	if (arm7_9->has_vector_catch)
 		num_regs = 17;
 	else
 		num_regs = 16;
-		
+
 	/* the actual registers are kept in two arrays */
 	reg_list = calloc(num_regs, sizeof(reg_t));
 	arch_info = calloc(num_regs, sizeof(embeddedice_reg_t));
-	
+
 	/* fill in values for the reg cache */
 	reg_cache->name = "EmbeddedICE registers";
 	reg_cache->next = NULL;
 	reg_cache->reg_list = reg_list;
 	reg_cache->num_regs = num_regs;
-	
+
 	/* set up registers */
 	for (i = 0; i < num_regs; i++)
 	{
@@ -134,7 +134,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 		arch_info[i].addr = embeddedice_reg_arch_info[i];
 		arch_info[i].jtag_info = jtag_info;
 	}
-	
+
 	/* identify EmbeddedICE version by reading DCC control register */
 	embeddedice_read_reg(&reg_list[EICE_COMMS_CTRL]);
 	if ((retval=jtag_execute_queue())!=ERROR_OK)
@@ -147,9 +147,9 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 		free(arch_info);
 		return NULL;
 	}
-	
+
 	eice_version = buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 28, 4);
-	
+
 	switch (eice_version)
 	{
 		case 1:
@@ -162,7 +162,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			arm7_9->has_single_step = 1;
 			break;
 		case 3:
-			LOG_ERROR("EmbeddedICE version 3 detected, EmbeddedICE handling might be broken"); 
+			LOG_ERROR("EmbeddedICE version 3 detected, EmbeddedICE handling might be broken");
 			reg_list[EICE_DBG_CTRL].size = 6;
 			reg_list[EICE_DBG_STAT].size = 5;
 			arm7_9->has_single_step = 1;
@@ -193,7 +193,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 		default:
 			LOG_ERROR("unknown EmbeddedICE version (comms ctrl: 0x%8.8x)", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
-	
+
 	return reg_cache;
 }
 
@@ -202,12 +202,12 @@ int embeddedice_setup(target_t *target)
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	
+
 	/* explicitly disable monitor mode */
 	if (arm7_9->has_monitor_mode)
 	{
 		reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
-		
+
 		embeddedice_read_reg(dbg_ctrl);
 		if ((retval=jtag_execute_queue())!=ERROR_OK)
 			return retval;
@@ -224,12 +224,12 @@ int embeddedice_get_reg(reg_t *reg)
 		LOG_ERROR("BUG: error scheduling EmbeddedICE register read");
 		exit(-1);
 	}
-	
+
 	if (jtag_execute_queue() != ERROR_OK)
 	{
 		LOG_ERROR("register read failed");
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -243,9 +243,9 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);
-	
+
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
-	
+
 	fields[0].device = ice_reg->jtag_info->chain_pos;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
@@ -255,7 +255,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].in_check_mask = NULL;
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
-	
+
 	fields[1].device = ice_reg->jtag_info->chain_pos;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
@@ -277,18 +277,18 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].in_check_mask = NULL;
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
-	
+
 	jtag_add_dr_scan(3, fields, -1);
-	
+
 	fields[0].in_value = reg->value;
 	jtag_set_check_value(fields+0, check_value, check_mask, NULL);
-	
+
 	/* when reading the DCC data register, leaving the address field set to
 	 * EICE_COMMS_DATA would read the register twice
 	 * reading the control register is safe
 	 */
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
-	
+
 	jtag_add_dr_scan(3, fields, -1);
 
 	return ERROR_OK;
@@ -307,7 +307,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
-	
+
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
@@ -317,7 +317,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	fields[0].in_check_mask = NULL;
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
-	
+
 	fields[1].device = jtag_info->chain_pos;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
@@ -339,9 +339,9 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	fields[2].in_check_mask = NULL;
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
-	
+
 	jtag_add_dr_scan(3, fields, -1);
-	
+
 	while (size > 0)
 	{
 		/* when reading the last item, set the register address to the DCC control reg,
@@ -349,21 +349,21 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 		 */
 		if (size == 1)
 			buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
-		
+
 		fields[0].in_handler = arm_jtag_buf_to_u32;
 		fields[0].in_handler_priv = data;
 		jtag_add_dr_scan(3, fields, -1);
-		
+
 		data++;
 		size--;
 	}
-	
+
 	return jtag_execute_queue();
 }
 
 int embeddedice_read_reg(reg_t *reg)
 {
-	return embeddedice_read_reg_w_check(reg, NULL, NULL);	
+	return embeddedice_read_reg_w_check(reg, NULL, NULL);
 }
 
 int embeddedice_set_reg(reg_t *reg, u32 value)
@@ -373,18 +373,18 @@ int embeddedice_set_reg(reg_t *reg, u32 value)
 		LOG_ERROR("BUG: error scheduling EmbeddedICE register write");
 		exit(-1);
 	}
-	
+
 	buf_set_u32(reg->value, 0, reg->size, value);
 	reg->valid = 1;
 	reg->dirty = 0;
-	
+
 	return ERROR_OK;
 }
 
 int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf)
 {
 	embeddedice_set_reg(reg, buf_get_u32(buf, 0, reg->size));
-	
+
 	if (jtag_execute_queue() != ERROR_OK)
 	{
 		LOG_ERROR("register write failed");
@@ -398,15 +398,15 @@ int embeddedice_write_reg(reg_t *reg, u32 value)
 	embeddedice_reg_t *ice_reg = reg->arch_info;
 
 	LOG_DEBUG("%i: 0x%8.8x", ice_reg->addr, value);
-	
+
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);
-	
+
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
 
 	u8 reg_addr = ice_reg->addr & 0x1f;
 	embeddedice_write_reg_inner(ice_reg->jtag_info->chain_pos, reg_addr, value);
-	
+
 	return ERROR_OK;
 }
 
@@ -547,4 +547,15 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	while ((now.tv_sec-lap.tv_sec)*1000 + (now.tv_usec-lap.tv_usec)/1000 <= timeout);
 
 	return ERROR_TARGET_TIMEOUT;
+}
+
+/* this is the inner loop of the open loop DCC write of data to target */
+void MINIDRIVER(embeddedice_write_dcc)(int chain_pos, int reg_addr, u8 *buffer, int little, int count)
+{
+	int i;
+	for (i = 0; i < count; i++)
+	{
+		embeddedice_write_reg_inner(chain_pos, reg_addr, fast_target_buffer_get_u32(buffer, little));
+		buffer += 4;
+	}
 }

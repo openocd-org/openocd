@@ -52,7 +52,7 @@ enum
 enum
 {
 	EICE_DBG_CONTROL_ICEDIS = 5,
-	EICE_DBG_CONTROL_MONEN = 4,	
+	EICE_DBG_CONTROL_MONEN = 4,
 	EICE_DBG_CONTROL_INTDIS = 2,
 	EICE_DBG_CONTROL_DBGRQ = 1,
 	EICE_DBG_CONTROL_DBGACK = 0,
@@ -105,24 +105,26 @@ extern int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size);
 extern int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size);
 extern int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout);
 
-/* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of 
+/* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of
  * embeddedice_write_reg
  */
 static const int embeddedice_num_bits[]={32,5,1};
 static __inline__ void embeddedice_write_reg_inner(int chain_pos, int reg_addr, u32 value)
 {
 	u32 values[3];
-	
+
 	values[0]=value;
 	values[1]=reg_addr;
 	values[2]=1;
-	
-	jtag_add_dr_out(chain_pos, 
+
+	jtag_add_dr_out(chain_pos,
 			3,
 			embeddedice_num_bits,
 			values,
 			-1);
 }
+
+void embeddedice_write_dcc(int chain_pos, int reg_addr, u8 *buffer, int little, int count);
 
 
 #endif /* EMBEDDED_ICE_H */
