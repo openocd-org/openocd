@@ -1434,6 +1434,15 @@ use @option{flash write_image} command passing @option{erase} as the first param
 this config option has been removed, simply adding @option{init} and @option{reset halt} to
 the end of your config script will give the same behaviour as using @option{daemon_startup reset}
 and @option{target cortex_m3 little reset_halt 0}.
+@item @b{run_and_halt_time}
+@cindex run_and_halt_time
+This command has been removed for simpler reset behaviour, it can be simulated with the
+following commands:
+@smallexample
+reset run
+sleep 100
+halt
+@end smallexample
 @end itemize
 
 @node FAQ
