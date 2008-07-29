@@ -1371,7 +1371,26 @@ int jtag_examine_chain()
 			
 			if (idcode == 0x000000FF)
 			{
-				/* End of chain (invalid manufacturer ID) */
+				/* End of chain (invalid manufacturer ID) 
+				 * 
+				 * The JTAG examine is the very first thing that happens
+				 * 
+				 * A single JTAG device requires only 64 bits to be read back correctly.
+				 * 
+				 * The code below adds a check that the rest of the data scanned (640 bits)
+				 * are all as expected. This helps diagnose/catch problems with the JTAG chain
+				 * 
+				 * earlier and gives more helpful/explicit error messages.
+				 */
+				for (bit_count += 32; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;bit_count += 32) 
+				{
+					idcode = buf_get_u32(idcode_buffer, bit_count, 32);
+					if (idcode != 0x000000FF)
+					{
+						LOG_WARNING("Unexpected idcode after end of chain! 0x%08x", idcode);
+					}
+				}
+				
 				break;
 			}
 			
