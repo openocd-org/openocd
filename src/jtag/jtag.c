@@ -1361,6 +1361,8 @@ int jtag_examine_chain()
 			/* LSB must not be 0, this indicates a device in bypass */
 			device_count++;
 			
+			LOG_WARNING("Device was in bypass after TRST/TMS reset");
+			
 			bit_count += 1;
 		}
 		else
@@ -1371,6 +1373,7 @@ int jtag_examine_chain()
 			
 			if (idcode == 0x000000FF)
 			{
+				int unexpected=0;
 				/* End of chain (invalid manufacturer ID) 
 				 * 
 				 * The JTAG examine is the very first thing that happens
@@ -1385,9 +1388,10 @@ int jtag_examine_chain()
 				for (bit_count += 32; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;bit_count += 32) 
 				{
 					idcode = buf_get_u32(idcode_buffer, bit_count, 32);
-					if (idcode != 0x000000FF)
+					if (unexpected||(idcode != 0x000000FF))
 					{
-						LOG_WARNING("Unexpected idcode after end of chain! 0x%08x", idcode);
+						LOG_WARNING("Unexpected idcode after end of chain! %d 0x%08x", bit_count, idcode);
+						unexpected = 1;
 					}
 				}
 				
