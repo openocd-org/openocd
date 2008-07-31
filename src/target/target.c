@@ -335,11 +335,15 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	{
 		target->type->deassert_reset(target);
 		/* We can fail to bring the target into the halted state  */
-		target_poll(target);
-		if (target->reset_halt&&((target->state != TARGET_HALTED)))
+		if (target->reset_halt)
 		{
-			LOG_WARNING("Failed to reset target into halted mode - issuing halt");
-			target->type->halt(target);
+			/* wait up to 1 second for halt. */
+			target_wait_state(target, TARGET_HALTED, 1000);
+			if (target->state != TARGET_HALTED)
+			{
+				LOG_WARNING("Failed to reset target into halted mode - issuing halt");
+				target->type->halt(target);
+			}
 		}
 
 		target = target->next;
