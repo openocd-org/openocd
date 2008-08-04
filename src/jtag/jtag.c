@@ -854,6 +854,11 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 
 	for (i=0; i<num_states; i++)
 	{
+		if (path[i] == TAP_TLR)
+		{
+			LOG_ERROR("BUG: TAP_TLR is not a valid state for pathmove sequences");
+			exit(-1);
+		}
 		if ((tap_transitions[cur_state].low != path[i])&&
 				(tap_transitions[cur_state].high != path[i]))
 		{
