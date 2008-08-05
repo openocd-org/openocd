@@ -266,6 +266,14 @@ int mips_m4k_assert_reset(target_t *target)
 
 	mips32_invalidate_core_regs(target);
 
+    if (target->reset_halt)
+    {
+    	int retval;
+		if ((retval = target_halt(target))!=ERROR_OK)
+			return retval;
+    }
+	
+	
 	return ERROR_OK;
 }
 

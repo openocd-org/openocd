@@ -308,18 +308,6 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 		target = target->next;
 	}
 
-	/* request target halt if necessary, and schedule further action */
-	target = targets;
-	while (target)
-	{
-		if (reset_mode!=RESET_RUN)
-		{
-			if ((retval = target_halt(target))!=ERROR_OK)
-				return retval;
-		}
-		target = target->next;
-	}
-
 	target = targets;
 	while (target)
 	{

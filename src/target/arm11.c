@@ -995,6 +995,13 @@ int arm11_assert_reset(struct target_s *target)
     arm11->trst_active = true;
 #endif
 
+    if (target->reset_halt)
+    {
+    	int retval;
+		if ((retval = target_halt(target))!=ERROR_OK)
+			return retval;
+    }
+
     return ERROR_OK;
 }
 

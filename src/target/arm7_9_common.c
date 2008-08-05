@@ -815,6 +815,12 @@ int arm7_9_assert_reset(target_t *target)
 
 	armv4_5_invalidate_core_regs(target);
 
+    if ((target->reset_halt)&&((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
+	{
+		/* debug entry was already prepared in arm7_9_assert_reset() */
+		target->debug_reason = DBG_REASON_DBGRQ;
+	}
+	
 	return ERROR_OK;
 
 }
@@ -832,13 +838,6 @@ int arm7_9_deassert_reset(target_t *target)
 		/* set up embedded ice registers again */
 		if ((retval=target->type->examine(target))!=ERROR_OK)
 			return retval;
-		
-		if (target->reset_halt)
-		{
-			/* halt the CPU as embedded ice was not set up in reset */
-			if ((retval=target->type->halt(target))!=ERROR_OK)
-				return retval;
-		}
 	}
 	return retval;
 }
@@ -975,9 +974,9 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 
 int arm7_9_halt(target_t *target)
 {
-	if ((target->state==TARGET_RESET)&&((jtag_reset_config & RESET_SRST_PULLS_TRST)!=0))
+	if (target->state==TARGET_RESET)
 	{
-		LOG_WARNING("arm7/9 can't halt a target in reset if srst pulls trst - halting after reset");
+		LOG_ERROR("BUG: arm7/9 does not support halt during reset. This is handled in arm7_9_assert_reset()");
 		return ERROR_OK;
 	}
 
@@ -996,24 +995,6 @@ int arm7_9_halt(target_t *target)
 	if (target->state == TARGET_UNKNOWN)
 	{
 		LOG_WARNING("target was in unknown state when halt was requested");
-	}
-
-	if (target->state == TARGET_RESET)
-	{
-		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) && jtag_srst)
-		{
-			LOG_ERROR("can't request a halt while in reset if nSRST pulls nTRST");
-			return ERROR_TARGET_FAILURE;
-		}
-		else
-		{
-			/* we came here in a reset_halt or reset_init sequence
-			 * debug entry was already prepared in arm7_9_assert_reset()
-			 */
-			target->debug_reason = DBG_REASON_DBGRQ;
-
-			return ERROR_OK;
-		}
 	}
 
 	if (arm7_9->use_dbgrq)

@@ -1579,6 +1579,13 @@ int xscale_assert_reset(target_t *target)
 	jtag_execute_queue();
 
 	target->state = TARGET_RESET;
+	
+    if (target->reset_halt)
+    {
+    	int retval;
+		if ((retval = target_halt(target))!=ERROR_OK)
+			return retval;
+    }
 
 	return ERROR_OK;
 }

@@ -762,6 +762,13 @@ int cortex_m3_assert_reset(target_t *target)
 	
 	armv7m_invalidate_core_regs(target);
 
+    if (target->reset_halt)
+    {
+    	int retval;
+		if ((retval = target_halt(target))!=ERROR_OK)
+			return retval;
+    }
+	
 	return ERROR_OK;
 }
 
