@@ -833,7 +833,7 @@ int arm7_9_deassert_reset(target_t *target)
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
 
-	if ((jtag_reset_config & RESET_SRST_PULLS_TRST)!=0)
+	if (target->reset_halt&&(jtag_reset_config & RESET_SRST_PULLS_TRST)!=0)
 	{
 		LOG_WARNING("srst pulls trst - can not reset into halted mode. Issuing halt after reset.");
 		/* set up embedded ice registers again */
