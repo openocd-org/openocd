@@ -821,12 +821,26 @@ int arm7_9_assert_reset(target_t *target)
 
 int arm7_9_deassert_reset(target_t *target)
 {
+	int retval=ERROR_OK;
 	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
 
-	return ERROR_OK;
+	if ((jtag_reset_config & RESET_SRST_PULLS_TRST)!=0)
+	{
+		/* set up embedded ice registers again */
+		if ((retval=target->type->examine(target))!=ERROR_OK)
+			return retval;
+		
+		if (target->reset_halt)
+		{
+			/* halt the CPU as embedded ice was not set up in reset */
+			if ((retval=target->type->halt(target))!=ERROR_OK)
+				return retval;
+		}
+	}
+	return retval;
 }
 
 int arm7_9_clear_halt(target_t *target)
@@ -961,6 +975,12 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 
 int arm7_9_halt(target_t *target)
 {
+	if ((target->state==TARGET_RESET)&&((jtag_reset_config & RESET_SRST_PULLS_TRST)!=0))
+	{
+		LOG_WARNING("arm7/9 can't halt a target in reset if srst pulls trst - halting after reset");
+		return ERROR_OK;
+	}
+
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];

@@ -708,7 +708,7 @@ void arm7tdmi_build_reg_cache(target_t *target)
 	armv4_5->core_cache = (*cache_p);
 }
 
-int arm7tdmi_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+int arm7tdmi_examine(struct target_s *target)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;

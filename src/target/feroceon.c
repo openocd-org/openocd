@@ -54,7 +54,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int feroceon_examine(struct command_context_s *cmd_ctx, struct target_s *target);
+int feroceon_examine(struct target_s *target);
 int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
 int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
@@ -694,13 +694,13 @@ int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 }
 
 
-int feroceon_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+int feroceon_examine(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	int retval;
 
-	retval = arm9tdmi_examine(cmd_ctx, target);
+	retval = arm9tdmi_examine(target);
 	if (retval!=ERROR_OK)
 		return retval;
 			

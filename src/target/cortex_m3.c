@@ -51,7 +51,7 @@ int cortex_m3_quit();
 int cortex_m3_load_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 *value);
 int cortex_m3_store_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 value);
 int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer);
-int cortex_m3_examine(struct command_context_s *cmd_ctx, struct target_s *target);
+int cortex_m3_examine(struct target_s *target);
 
 #ifdef ARMV7_GDB_HACKS
 extern u8 armv7m_gdb_dummy_cpsr_value[];
@@ -1307,7 +1307,7 @@ int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 	return ERROR_OK;
 }
 
-int cortex_m3_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+int cortex_m3_examine(struct target_s *target)
 {
 	int retval;
 	u32 cpuid, fpcr, dwtcr, ictr;

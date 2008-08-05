@@ -1378,7 +1378,7 @@ int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target
 }
 
 /* talk to the target and set things up */
-int arm11_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+int arm11_examine(struct target_s *target)
 {
     FNC_INFO;
 

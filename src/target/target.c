@@ -290,7 +290,7 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	 *
 	 * For the "reset halt/init" case we must only set up the registers here.
 	 */
-	if ((retval = target_examine(cmd_ctx)) != ERROR_OK)
+	if ((retval = target_examine()) != ERROR_OK)
 		return retval;
 
 	keep_alive(); /* we might be running on a very slow JTAG clk */
@@ -303,13 +303,9 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 		 */
 		target_free_all_working_areas_restore(target, 0);
 		target->reset_halt=((reset_mode==RESET_HALT)||(reset_mode==RESET_INIT));
-		target->type->assert_reset(target);
+		if ((retval = target->type->assert_reset(target))!=ERROR_OK)
+			return retval;
 		target = target->next;
-	}
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		LOG_WARNING("JTAG communication failed asserting reset.");
-		retval = ERROR_OK;
 	}
 
 	/* request target halt if necessary, and schedule further action */
@@ -318,23 +314,24 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	{
 		if (reset_mode!=RESET_RUN)
 		{
-			if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
-				target_halt(target);
+			if ((retval = target_halt(target))!=ERROR_OK)
+				return retval;
 		}
 		target = target->next;
-	}
-
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		LOG_WARNING("JTAG communication failed while reset was asserted. Consider using srst_only for reset_config.");
-		retval = ERROR_OK;
 	}
 
 	target = targets;
 	while (target)
 	{
-		target->type->deassert_reset(target);
-		/* We can fail to bring the target into the halted state  */
+		if ((retval = target->type->deassert_reset(target))!=ERROR_OK)
+			return retval;
+		target = target->next;
+	}
+
+	target = targets;
+	while (target)
+	{
+		/* We can fail to bring the target into the halted state, try after reset has been deasserted  */
 		if (target->reset_halt)
 		{
 			/* wait up to 1 second for halt. */
@@ -342,25 +339,14 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 			if (target->state != TARGET_HALTED)
 			{
 				LOG_WARNING("Failed to reset target into halted mode - issuing halt");
-				target->type->halt(target);
+				if ((retval = target->type->halt(target))!=ERROR_OK)
+					return retval;
 			}
 		}
 
 		target = target->next;
 	}
 
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		LOG_WARNING("JTAG communication failed while deasserting reset.");
-		retval = ERROR_OK;
-	}
-
-	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
-	{
-		/* If TRST was asserted we need to set up registers again */
-		if ((retval = target_examine(cmd_ctx)) != ERROR_OK)
-			return retval;
-	}
 
 	LOG_DEBUG("Waiting for halted stated as appropriate");
 
@@ -397,7 +383,7 @@ static int default_mmu(struct target_s *target, int *enabled)
 	return ERROR_OK;
 }
 
-static int default_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+static int default_examine(struct target_s *target)
 {
 	target->type->examined = 1;
 	return ERROR_OK;
@@ -415,7 +401,7 @@ int target_examine(struct command_context_s *cmd_ctx)
 	target_t *target = targets;
 	while (target)
 	{
-		if ((retval = target->type->examine(cmd_ctx, target))!=ERROR_OK)
+		if ((retval = target->type->examine(target))!=ERROR_OK)
 			return retval;
 		target = target->next;
 	}

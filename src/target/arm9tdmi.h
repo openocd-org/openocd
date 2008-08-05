@@ -56,7 +56,7 @@ enum arm9tdmi_vector
 };
 
 extern int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm9tdmi_examine(struct command_context_s *cmd_ctx, struct target_s *target);
+int arm9tdmi_examine(struct target_s *target);
 extern int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int chain_pos, char *variant);
 extern int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 

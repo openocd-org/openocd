@@ -850,7 +850,7 @@ void arm9tdmi_build_reg_cache(target_t *target)
 }
 
 
-int arm9tdmi_examine(struct command_context_s *cmd_ctx, struct target_s *target)
+int arm9tdmi_examine(struct target_s *target)
 {
 	/* get pointers to arch-specific information */
 	int retval;

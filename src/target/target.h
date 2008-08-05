@@ -182,7 +182,7 @@ typedef struct target_type_s
 	 * 
 	 * invoked every time after the jtag chain has been validated/examined
 	 */
-	int (*examine)(struct command_context_s *cmd_ctx, struct target_s *target);
+	int (*examine)(struct target_s *target);
 	/* Set up structures for target.
 	 *  
 	 * It is illegal to talk to the target at this stage as this fn is invoked
@@ -250,7 +250,7 @@ typedef struct target_timer_callback_s
 extern int target_register_commands(struct command_context_s *cmd_ctx);
 extern int target_register_user_commands(struct command_context_s *cmd_ctx);
 extern int target_init(struct command_context_s *cmd_ctx);
-extern int target_examine(struct command_context_s *cmd_ctx);
+extern int target_examine();
 extern int handle_target(void *priv);
 extern int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode);
 
