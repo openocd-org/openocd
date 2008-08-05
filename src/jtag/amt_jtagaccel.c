@@ -166,7 +166,7 @@ void amt_jtagaccel_end_state(state)
 	}
 }
 
-void amt_wait_scan_busy()
+void amt_wait_scan_busy(void)
 {
 	int timeout = 4096;
 	u8 ar_status;

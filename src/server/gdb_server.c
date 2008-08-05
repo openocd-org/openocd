@@ -2002,7 +2002,7 @@ int gdb_input(connection_t *connection)
 	return ERROR_OK;
 }
 
-int gdb_init()
+int gdb_init(void)
 {
 	gdb_service_t *gdb_service;
 	target_t *target = targets;

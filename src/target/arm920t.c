@@ -48,7 +48,7 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 /* forward declarations */
 int arm920t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm920t_quit();
+int arm920t_quit(void);
 int arm920t_arch_state(struct target_s *target);
 int arm920t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
@@ -685,7 +685,7 @@ int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *targ
 	
 }
 
-int arm920t_quit()
+int arm920t_quit(void)
 {
 	
 	return ERROR_OK;

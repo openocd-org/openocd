@@ -233,7 +233,7 @@ flash_bank_t *get_flash_bank_by_num_noprobe(int num)
 	return NULL;
 }
 
-int flash_get_bank_count()
+int flash_get_bank_count(void)
 {
 	flash_bank_t *p;
 	int i = 0;

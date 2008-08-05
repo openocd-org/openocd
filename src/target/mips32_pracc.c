@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 
+#include <string.h>
 #include "log.h"
 #include "mips32.h"
 #include "mips32_pracc.h"

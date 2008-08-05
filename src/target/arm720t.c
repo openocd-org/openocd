@@ -43,7 +43,7 @@ int arm720t_handle_mw_phys_command(struct command_context_s *cmd_ctx, char *cmd,
 /* forward declarations */
 int arm720t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm720t_quit();
+int arm720t_quit(void);
 int arm720t_arch_state(struct target_s *target);
 int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 int arm720t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
@@ -423,7 +423,7 @@ int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *targ
 	
 }
 
-int arm720t_quit()
+int arm720t_quit(void)
 {
 	
 	return ERROR_OK;

@@ -55,7 +55,7 @@ int xscale_register_commands(struct command_context_s *cmd_ctx);
 /* forward declarations */
 int xscale_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int xscale_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int xscale_quit();
+int xscale_quit(void);
 
 int xscale_arch_state(struct target_s *target);
 int xscale_poll(target_t *target);
@@ -1579,7 +1579,7 @@ int xscale_assert_reset(target_t *target)
 	jtag_execute_queue();
 
 	target->state = TARGET_RESET;
-	
+
     if (target->reset_halt)
     {
     	int retval;
@@ -2989,7 +2989,7 @@ int xscale_init_target(struct command_context_s *cmd_ctx, struct target_s *targe
 	return ERROR_OK;
 }
 
-int xscale_quit()
+int xscale_quit(void)
 {
 
 	return ERROR_OK;

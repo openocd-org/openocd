@@ -46,7 +46,7 @@ typedef struct gdb_service_s
 	struct target_s *target;
 } gdb_service_t;
 
-extern int gdb_init();
+extern int gdb_init(void);
 extern int gdb_register_commands(command_context_t *command_context);
 
 #define ERROR_GDB_BUFFER_TOO_SMALL (-800)

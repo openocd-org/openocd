@@ -71,7 +71,7 @@ extern int unregister_all_commands(command_context_t *context);
 extern void command_set_output_handler(command_context_t* context, int (*output_handler)(struct command_context_s *context, const char* line), void *priv);
 extern command_context_t* copy_command_context(command_context_t* context);
 extern int command_context_mode(command_context_t *context, enum command_mode mode);
-extern command_context_t* command_init();
+extern command_context_t* command_init(void);
 extern int command_done(command_context_t *context);
 extern void command_print(command_context_t *context, char *format, ...);
 extern void command_print_sameline(command_context_t *context, char *format, ...);

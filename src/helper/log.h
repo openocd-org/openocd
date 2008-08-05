@@ -59,8 +59,8 @@ __attribute__ ((format (printf, 5, 6)));
 extern int log_register_commands(struct command_context_s *cmd_ctx);
 extern int log_init(struct command_context_s *cmd_ctx);
 extern int set_log_output(struct command_context_s *cmd_ctx, FILE *output);
-extern void keep_alive();
-extern void kept_alive();
+extern void keep_alive(void);
+extern void kept_alive(void);
 
 typedef void (*log_callback_fn)(void *priv, const char *file, int line,
 		const char *function, const char *string);

@@ -266,11 +266,11 @@ extern int target_call_event_callbacks(target_t *target, enum target_event event
  */
 extern int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int periodic, void *priv);
 extern int target_unregister_timer_callback(int (*callback)(void *priv), void *priv);
-extern int target_call_timer_callbacks();
+extern int target_call_timer_callbacks(void);
 /* invoke this to ensure that e.g. polling timer callbacks happen before
  * a syncrhonous command completes.
  */
-extern int target_call_timer_callbacks_now();
+extern int target_call_timer_callbacks_now(void);
 
 extern target_t* get_current_target(struct command_context_s *cmd_ctx);
 extern int get_num_by_target(target_t *query_target);

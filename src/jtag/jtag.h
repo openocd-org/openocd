@@ -282,8 +282,8 @@ extern int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields
 /* run a TAP_TLR reset. End state is TAP_TLR, regardless
  * of start state.
  */
-extern void jtag_add_tlr();
-extern int interface_jtag_add_tlr();
+extern void jtag_add_tlr(void);
+extern int interface_jtag_add_tlr(void);
 /* Do not use jtag_add_pathmove() unless you need to, but do use it
  * if you have to. 
  *

@@ -222,7 +222,7 @@ int remove_service(unsigned short port)
 	return ERROR_OK;
 }
 
-int remove_services()
+int remove_services(void)
 {
 	service_t *c = services;
 
@@ -249,8 +249,8 @@ int remove_services()
 	return ERROR_OK;
 }
 
-extern void openocd_sleep_prelude();
-extern void openocd_sleep_postlude();
+extern void openocd_sleep_prelude(void);
+extern void openocd_sleep_postlude(void);
 
 int server_loop(command_context_t *command_context)
 {
@@ -434,7 +434,7 @@ void sig_handler(int sig) {
 }
 #endif
 
-int server_init()
+int server_init(void)
 {
 #ifdef _WIN32
 	WORD wVersionRequested;
@@ -460,7 +460,7 @@ int server_init()
 	return ERROR_OK;
 }
 
-int server_quit()
+int server_quit(void)
 {
 	remove_services();
 

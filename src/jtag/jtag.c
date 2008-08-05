@@ -401,7 +401,7 @@ void* cmd_queue_alloc(size_t size)
 	return t + offset;
 }
 
-void cmd_queue_free()
+void cmd_queue_free(void)
 {
 	cmd_queue_page_t *page = cmd_queue_pages;
 
@@ -416,7 +416,7 @@ void cmd_queue_free()
 	cmd_queue_pages = NULL;
 }
 
-static void jtag_prelude1()
+static void jtag_prelude1(void)
 {
 	if (jtag_trst == 1)
 	{
@@ -1433,7 +1433,7 @@ int jtag_examine_chain()
 	return ERROR_OK;
 }
 
-int jtag_validate_chain()
+int jtag_validate_chain(void)
 {
 	jtag_device_t *device = jtag_devices;
 	int total_ir_length = 0;

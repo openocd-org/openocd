@@ -46,7 +46,7 @@ int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 int mips_m4k_quit();
 int mips_m4k_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 
-int mips_m4k_examine(struct target_s *target);
+int mips_m4k_examine(struct command_context_s *cmd_ctx, struct target_s *target);
 int mips_m4k_assert_reset(target_t *target);
 int mips_m4k_deassert_reset(target_t *target);
 
@@ -569,7 +569,7 @@ int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 	return ERROR_OK;
 }
 
-int mips_m4k_quit()
+int mips_m4k_quit(void)
 {
 	return ERROR_OK;
 }
@@ -618,7 +618,7 @@ int mips_m4k_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
-int mips_m4k_examine(struct target_s *target)
+int mips_m4k_examine(struct command_context_s *cmd_ctx, struct target_s *target)
 {
 	int retval;
 	mips32_common_t *mips32 = target->arch_info;

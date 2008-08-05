@@ -46,7 +46,7 @@ int arm7tdmi_register_commands(struct command_context_s *cmd_ctx);
 /* forward declarations */
 int arm7tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int arm7tdmi_quit();
+int arm7tdmi_quit(void);
 
 /* target function declarations */
 int arm7tdmi_poll(struct target_s *target);
@@ -753,7 +753,7 @@ int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 	
 }
 
-int arm7tdmi_quit()
+int arm7tdmi_quit(void)
 {
 	
 	return ERROR_OK;

@@ -27,6 +27,12 @@ is_cygwin=no
 is_mingw=no
 is_win32=no
 
+
+AC_ARG_ENABLE(gccwarnings,
+	AS_HELP_STRING([--enable-gccwarnings], [Enable compiler warnings, default yes]),
+	[gcc_warnings=$enablevalue], [gcc_warnings=yes])
+
+
 AC_ARG_ENABLE(parport,
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]), 
   [build_parport=$enableval], [build_parport=no])
@@ -298,11 +304,17 @@ if test $cross_compiling = yes; then
 	CFLAGS_FOR_BUILD="-g -O2"
 else
 	CC_FOR_BUILD=$CC
-	CFLAGS_FOR_BUILD=$CFLAGS
+	CFLAGS_FOR_BUILD="$CFLAGS $GCC_WARNINGS"
 fi
+
+if test $gcc_warnings = yes; then
+   CFLAGS_FOR_BUILD="$CFLAGS_FOR_BUILD -Wall -Wmissing-prototypes -Wstrict-prototypes"
+fi
+
 AC_MSG_RESULT([$CC_FOR_BUILD])
 AC_SUBST(CC_FOR_BUILD)
 AC_SUBST(CFLAGS_FOR_BUILD)
+AC_MSG_NOTICE([CFLAGS_FOR_BUILD = $CFLAGS_FOR_BUILD])
 
 AC_MSG_CHECKING([for suffix of executable build tools])
 if test $cross_compiling = yes; then

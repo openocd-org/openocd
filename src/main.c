@@ -21,11 +21,11 @@
 /* implementations of OpenOCD that uses multithreading needs to know when
  * OpenOCD is sleeping. No-op in vanilla OpenOCD
  */
-void openocd_sleep_prelude()
+void openocd_sleep_prelude(void)
 {
 }
 
-void openocd_sleep_postlude()
+void openocd_sleep_postlude(void)
 {
 }
 

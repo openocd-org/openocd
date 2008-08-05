@@ -47,7 +47,7 @@ void cortex_m3_enable_breakpoints(struct target_s *target);
 void cortex_m3_enable_watchpoints(struct target_s *target);
 int cortex_m3_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int cortex_m3_quit();
+int cortex_m3_quit(void);
 int cortex_m3_load_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 *value);
 int cortex_m3_store_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 value);
 int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer);
@@ -1374,7 +1374,7 @@ int cortex_m3_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-int cortex_m3_quit()
+int cortex_m3_quit(void)
 {
 	
 	return ERROR_OK;

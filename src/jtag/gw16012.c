@@ -194,7 +194,7 @@ int gw16012_speed(int speed)
 	return ERROR_OK;
 }
 
-void gw16012_end_state(state)
+void gw16012_end_state(int state)
 {
 	if (tap_move_map[state] != -1)
 		end_state = state;
@@ -526,7 +526,7 @@ int gw16012_init(void)
 		LOG_WARNING("No gw16012 port specified, using default '0x378' (LPT1)");
 	}
 	
-	LOG_DEBUG("requesting privileges for parallel port 0x%lx...", gw16012_port);
+	LOG_DEBUG("requesting privileges for parallel port 0x%lx...", (long unsigned)(gw16012_port) );
 #if PARPORT_USE_GIVEIO == 1
 	if (gw16012_get_giveio_access() != 0)
 #else /* PARPORT_USE_GIVEIO */

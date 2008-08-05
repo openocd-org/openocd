@@ -1716,7 +1716,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	if (values[i] > arm11_coproc_instruction_limits[i])
 	{
 	    LOG_ERROR("Parameter %ld out of bounds (%d max). %s",
-		i + 2, arm11_coproc_instruction_limits[i],
+		      (long)(i + 2), arm11_coproc_instruction_limits[i],
 		read ? arm11_mrc_syntax : arm11_mcr_syntax);
 	    return -1;
 	}

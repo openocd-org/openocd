@@ -58,7 +58,7 @@ int feroceon_examine(struct target_s *target);
 int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
 int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int feroceon_quit();
+int feroceon_quit(void);
 
 target_type_t feroceon_target =
 {
@@ -381,6 +381,7 @@ void feroceon_branch_resume_thumb(target_t *target)
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	u32 r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
 	u32 pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	(void)(r0); // use R0... 
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -627,7 +628,7 @@ int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 	return ERROR_OK;
 }
 
-int feroceon_quit()
+int feroceon_quit(void)
 {
 	return ERROR_OK;
 }

@@ -80,7 +80,7 @@ extern int flash_init_drivers(struct command_context_s *cmd_ctx);
 extern int flash_erase_address_range(target_t *target, u32 addr, u32 length);
 extern int flash_write(target_t *target, image_t *image, u32 *written, int erase);
 extern void flash_set_dirty(void);
-extern int flash_get_bank_count();
+extern int flash_get_bank_count(void);
 extern int default_flash_blank_check(struct flash_bank_s *bank);
 extern int default_flash_mem_blank_check(struct flash_bank_s *bank);
 
