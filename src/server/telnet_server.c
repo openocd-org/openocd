@@ -144,20 +144,6 @@ void telnet_log_callback(void *priv, const char *file, int line,
 		telnet_write(connection, "\b", 1);
 }
 
-int telnet_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
-{
-	switch (event)
-	{
-		case TARGET_EVENT_HALTED:
-			target_arch_state(target);
-			break;
-		default:
-			break;
-	}
-
-	return ERROR_OK;
-}
-
 int telnet_new_connection(connection_t *connection)
 {
 	telnet_connection_t *telnet_connection = malloc(sizeof(telnet_connection_t));
@@ -196,8 +182,6 @@ int telnet_new_connection(connection_t *connection)
 	}
 	telnet_connection->next_history = 0;
 	telnet_connection->current_history = 0;
-
-	target_register_event_callback(telnet_target_callback_event_handler, connection->cmd_ctx);
 
 	log_add_callback(telnet_log_callback, connection);
 
@@ -600,8 +584,6 @@ int telnet_connection_closed(connection_t *connection)
 	{
 		LOG_ERROR("BUG: connection->priv == NULL");
 	}
-
-	target_unregister_event_callback(telnet_target_callback_event_handler, connection->cmd_ctx);
 
 	return ERROR_OK;
 }
