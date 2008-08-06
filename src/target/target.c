@@ -383,7 +383,7 @@ static int default_examine(struct target_s *target)
  *
  * XScale
  */
-int target_examine(struct command_context_s *cmd_ctx)
+int target_examine(void)
 {
 	int retval = ERROR_OK;
 	target_t *target = targets;

@@ -250,7 +250,7 @@ typedef struct target_timer_callback_s
 extern int target_register_commands(struct command_context_s *cmd_ctx);
 extern int target_register_user_commands(struct command_context_s *cmd_ctx);
 extern int target_init(struct command_context_s *cmd_ctx);
-extern int target_examine();
+extern int target_examine(void);
 extern int handle_target(void *priv);
 extern int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode);
 

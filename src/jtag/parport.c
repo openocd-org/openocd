@@ -274,7 +274,7 @@ int parport_register_commands(struct command_context_s *cmd_ctx)
 }
 
 #if PARPORT_USE_GIVEIO == 1
-int parport_get_giveio_access()
+int parport_get_giveio_access(void)
 {
 	HANDLE h;
 	OSVERSIONINFO version;

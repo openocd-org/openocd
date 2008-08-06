@@ -193,6 +193,13 @@ absolute path containing no spaces.
 Linux users should copy the various parts of the D2XX package to the appropriate
 locations, i.e. /usr/include, /usr/lib. 
 
+Miscellaneous configure options
+
+@itemize @bullet
+@item
+@option{--enable-gccwarnings} - enable extra gcc warnings during build
+@end itemize
+
 @node Running
 @chapter Running
 @cindex running OpenOCD

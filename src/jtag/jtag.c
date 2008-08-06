@@ -1316,7 +1316,7 @@ void jtag_sleep(u32 us)
 
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
-int jtag_examine_chain()
+int jtag_examine_chain(void)
 {
 	jtag_device_t *device = jtag_devices;
 	scan_field_t field;

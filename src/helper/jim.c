@@ -7760,7 +7760,7 @@ void *dlsym(void *handle, const char *symbol)
     return GetProcAddress((HMODULE)handle, symbol);
 }
 static char win32_dlerror_string[121];
-const char *dlerror()
+const char *dlerror(void)
 {
     FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(),
                    LANG_NEUTRAL, win32_dlerror_string, 120, NULL);

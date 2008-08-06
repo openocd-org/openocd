@@ -95,8 +95,8 @@ void jlink_simple_command(u8 command);
 int jlink_get_status(void);
 
 /* J-Link tap buffer functions */
-void jlink_tap_init();
-int jlink_tap_execute();
+void jlink_tap_init(void);
+int jlink_tap_execute(void);
 void jlink_tap_ensure_space(int scans, int bits);
 void jlink_tap_append_step(int tms, int tdi);
 void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *command);
@@ -568,7 +568,7 @@ static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULT
 
 static int last_tms;
 
-void jlink_tap_init()
+void jlink_tap_init(void)
 {
 	tap_length = 0;
 	pending_scan_results_length = 0;
@@ -640,7 +640,7 @@ void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *command)
 
 /* Pad and send a tap sequence to the device, and receive the answer.
  * For the purpose of padding we assume that we are in idle or pause state. */
-int jlink_tap_execute()
+int jlink_tap_execute(void)
 {
 	int byte_length;
 	int tms_offset;

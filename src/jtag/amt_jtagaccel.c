@@ -402,7 +402,7 @@ int amt_jtagaccel_execute_queue(void)
 }
 
 #if PARPORT_USE_GIVEIO == 1
-int amt_jtagaccel_get_giveio_access()
+int amt_jtagaccel_get_giveio_access(void)
 {
     HANDLE h;
     OSVERSIONINFO version;

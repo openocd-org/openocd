@@ -118,7 +118,7 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	if (jtag_init(cmd_ctx) == ERROR_OK)
 	{
 		LOG_DEBUG("jtag init complete");
-		if (target_examine(cmd_ctx) == ERROR_OK)
+		if (target_examine() == ERROR_OK)
 		{
 			LOG_DEBUG("jtag examine complete");
 		}
