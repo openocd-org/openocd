@@ -306,7 +306,7 @@ int server_loop(command_context_t *command_context)
 		}
 		
 #ifndef _WIN32
-#ifndef BUILD_ECOSBOARD
+#if BUILD_ECOSBOARD == 0
 		/* add STDIN to read_fds */
 		FD_SET(fileno(stdin), &read_fds);
 #endif
@@ -400,7 +400,7 @@ int server_loop(command_context_t *command_context)
 		}
 		
 #ifndef _WIN32
-#ifndef BUILD_ECOSBOARD
+#if BUILD_ECOSBOARD == 0
 		if (FD_ISSET(fileno(stdin), &read_fds))
 		{
 			if (getc(stdin) == 'x')
@@ -455,7 +455,6 @@ int server_init(void)
 	signal(SIGBREAK, sig_handler);
 	signal(SIGABRT, sig_handler);
 #endif
-
 	
 	return ERROR_OK;
 }
@@ -487,5 +486,3 @@ int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
-
-
