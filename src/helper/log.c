@@ -27,6 +27,7 @@
 #include "log.h"
 #include "configuration.h"
 #include "time_support.h"
+#include "command.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -368,6 +369,11 @@ void keep_alive()
 		LOG_USER_N("%s", "");
 		last_time=current_time;
 	}
+
+	/* also process TCL events (we have to do this from 'log.c' since its
+	 * keep_alive() is the only routine guaranteed to be called at least
+	 * once per second :( */
+	process_jim_events ();
 }
 
 /* reset keep alive timer without sending message */

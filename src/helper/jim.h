@@ -50,6 +50,7 @@ extern "C" {
 #include <limits.h>
 #include <stdio.h>  /* for the FILE typedef definition */
 #include <stdlib.h> /* In order to export the Jim_Free() macro */
+#include <stdarg.h> /* In order to get type va_list */
 
 /* -----------------------------------------------------------------------------
 * Some /very/ old compiler maybe do not know how to

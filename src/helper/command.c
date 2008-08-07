@@ -34,6 +34,7 @@
 
 #include "log.h"
 #include "time_support.h"
+#include "jim-eventloop.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -654,6 +655,8 @@ command_context_t* command_init()
 	
 	add_default_dirs();
 
+	Jim_EventLoopOnLoad(interp);
+
 	if (Jim_Eval(interp, startup_tcl)==JIM_ERR)
 	{
 		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD compile time)");
@@ -703,6 +706,18 @@ int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	fast_and_dangerous = strcmp("enable", args[0])==0;
 	
 	return ERROR_OK;
+}
+
+void process_jim_events() 
+{
+	static int recursion = 0;
+
+	if (!recursion) 
+	{
+		recursion++;
+		Jim_ProcessEvents (interp, JIM_ALL_EVENTS|JIM_DONT_WAIT);
+		recursion--;
+	}
 }
 
 void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help)

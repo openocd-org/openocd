@@ -346,6 +346,7 @@ int server_loop(command_context_t *command_context)
 		}
 		
 		target_call_timer_callbacks();
+		process_jim_events ();
 
 		if (retval == 0)
 		{
@@ -455,6 +456,7 @@ int server_init(void)
 	signal(SIGBREAK, sig_handler);
 	signal(SIGABRT, sig_handler);
 #endif
+
 	
 	return ERROR_OK;
 }
@@ -486,3 +488,5 @@ int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
+
+
