@@ -21,7 +21,7 @@ noinst_HEADERS = target.h trace.h register.h armv4_5.h embeddedice.h etm.h arm7t
 
 nobase_dist_pkglib_DATA = xscale/debug_handler.bin event/at91eb40a_reset.script target/at91eb40a.cfg \
 	event/at91r40008_reset.script event/sam7s256_reset.script event/sam7x256_reset.script \
-	target/at91r40008.cfg target/lpc2148.cfg target/lpc2294.cfg target/sam7s256.cfg \
+	target/at91r40008.cfg target/lpc2148.cfg target/lpc2148_rclk.cfg target/lpc2148_2mhz.cfg target/lpc2294.cfg target/sam7s256.cfg \
 	target/sam7x256.cfg target/str710.cfg target/str912.cfg target/nslu2.cfg target/pxa255_sst.cfg \
 	target/pxa255.cfg  target/zy1000.cfg event/zy1000_reset.script event/at91sam9260_reset.script target/at91sam9260.cfg \
 	target/wi-9c.cfg event/wi-9c_reset.script event/pxa255_reset.script target/stm32.cfg  target/xba_revA3.cfg event/xba_revA3.script \
@@ -32,7 +32,7 @@ nobase_dist_pkglib_DATA = xscale/debug_handler.bin event/at91eb40a_reset.script 
 	target/str730.cfg target/stm32stick.cfg event/str710_program.script \
 	target/lm3s811.cfg interface/luminary.cfg interface/luminary-libftdi.cfg interface/luminary-lm3s811.cfg \
 	interface/stm32-stick.cfg interface/calao-usb-a9260-c01.cfg interface/calao-usb-a9260-c02.cfg \
-	interface/calao-usb-a9260.cfg target/at91sam9260minimal.cfg  event/lpc2148_reset.script \
+	interface/calao-usb-a9260.cfg target/at91sam9260minimal.cfg  \
 	interface/chameleon.cfg interface/at91rm9200.cfg interface/jlink.cfg interface/arm-usb-ocd.cfg \
 	interface/signalyzer.cfg event/eir-sam7se512_reset.script target/eir-sam7se512.cfg \
 	event/hammer_reset.script interface/flyswatter.cfg target/hammer.cfg target/mx31.cfg  \
