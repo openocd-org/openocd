@@ -62,9 +62,11 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <sys/select.h>
 #include <errno.h>
-	extern int errno;
+
+#include "replacements.h"
+
+extern int errno;
 /* --- */
 
 /* File event structure */
@@ -269,7 +271,7 @@ int Jim_ProcessEvents(Jim_Interp *interp, int flags)
 
     /* Check file events */
     while (fe != NULL) {
-        int fd = fileno(fe->handle);
+        int fd = fileno((FILE*)fe->handle);
 
         if (fe->mask & JIM_EVENT_READABLE) 
 		FD_SET(fd, &rfds);
@@ -320,7 +322,7 @@ int Jim_ProcessEvents(Jim_Interp *interp, int flags)
 	} else if (retval > 0) {
             fe = eventLoop->fileEventHead;
             while(fe != NULL) {
-                int fd = fileno(fe->handle);
+                int fd = fileno((FILE*)fe->handle);
 
 		// fprintf(stderr,"fd: %d mask: %02x \n",fd,fe->mask);
 
