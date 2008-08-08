@@ -623,12 +623,16 @@ vector table.
 @cindex cfi options
 
 @b{flash bank cfi} <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}>
-<@var{target#}>
+<@var{target#}> [@var{jedec_probe}|@var{x16_as_x8}]
 CFI flashes require the number of the target they're connected to as an additional
 argument. The CFI driver makes use of a working area (specified for the target)
 to significantly speed up operation. 
 
 @var{chip_width} and @var{bus_width} are specified in bytes.
+
+The @var{jedec_probe} option is used to detect certain non-CFI flash roms, like AM29LV010 and similar types.
+
+@var{x16_as_x8} ???
 
 @subsection at91sam7 options
 @cindex at91sam7 options
