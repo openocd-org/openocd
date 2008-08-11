@@ -6,11 +6,11 @@ noinst_LIBRARIES = libhelper.a
 if ECOSBOARD
 CONFIGFILES = 
 else
-CONFIGFILES = options.c jim.c
+CONFIGFILES = options.c jim.c jim-eventloop.c 
 endif
 
 libhelper_a_SOURCES = binarybuffer.c $(CONFIGFILES) configuration.c log.c command.c time_support.c \
-	replacements.c fileio.c jim-eventloop.c startup_tcl.c
+	replacements.c fileio.c startup_tcl.c
 
 noinst_HEADERS = binarybuffer.h configuration.h types.h log.h command.h \
 	time_support.h replacements.h fileio.h jim.h

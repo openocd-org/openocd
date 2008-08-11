@@ -655,8 +655,9 @@ command_context_t* command_init()
 	
 	add_default_dirs();
 
+#ifdef JIM_EMBEDDED
 	Jim_EventLoopOnLoad(interp);
-
+#endif
 	if (Jim_Eval(interp, startup_tcl)==JIM_ERR)
 	{
 		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD compile time)");
@@ -710,6 +711,7 @@ int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 void process_jim_events() 
 {
+#ifdef JIM_EMBEDDED
 	static int recursion = 0;
 
 	if (!recursion) 
@@ -718,6 +720,7 @@ void process_jim_events()
 		Jim_ProcessEvents (interp, JIM_ALL_EVENTS|JIM_DONT_WAIT);
 		recursion--;
 	}
+#endif
 }
 
 void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd)(Jim_Interp *interp, int argc, Jim_Obj *const *argv), const char *help)

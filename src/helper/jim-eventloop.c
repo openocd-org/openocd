@@ -242,6 +242,12 @@ static Jim_TimeEvent *JimSearchNearestTimer(Jim_EventLoop *eventLoop)
     return nearest;
 }
 
+/* --- POSIX version of Jim_ProcessEvents, for now the only available --- */
+#define JIM_FILE_EVENTS 1
+#define JIM_TIME_EVENTS 2
+#define JIM_ALL_EVENTS (JIM_FILE_EVENTS|JIM_TIME_EVENTS)
+#define JIM_DONT_WAIT 4
+
 /* Process every pending time event, then every pending file event
  * (that may be registered by time event callbacks just processed).
  * Without special flags the function sleeps until some file event
