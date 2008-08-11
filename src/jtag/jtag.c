@@ -1662,6 +1662,7 @@ static int default_khz(int khz, int *jtag_speed)
 
 static int default_speed_div(int speed, int *khz)
 {
+	LOG_ERROR("Translation from jtag_speed to khz not implemented");
 	return ERROR_FAIL;	
 }
 
@@ -1897,7 +1898,7 @@ int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char
 	{
 	} else
 	{
-		retval=ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	command_print(cmd_ctx, "jtag_speed: %d", jtag_speed);
 	
@@ -1934,8 +1935,16 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	{
 	} else
 	{
-		retval=ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+
+	if (jtag!=NULL)	
+	{
+		int what_speed;
+		if ((retval=jtag->speed_div(jtag_speed, &speed_khz))!=ERROR_OK)
+			return retval;
+	}
+	
 	command_print(cmd_ctx, "jtag_khz: %d", speed_khz);
 	return retval;
 
