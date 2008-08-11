@@ -1588,7 +1588,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 		
 		if (validate_tries > 5)
 		{
-			LOG_ERROR("Could not validate JTAG chain, exit");
+			LOG_ERROR("Could not validate JTAG chain");
 			return ERROR_JTAG_INVALID_INTERFACE;
 		}
 		usleep(10000);
