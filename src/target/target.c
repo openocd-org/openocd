@@ -1701,9 +1701,7 @@ int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	}
 
 	/* reset *all* targets */
-	target_process_reset(cmd_ctx, reset_mode);
-
-	return ERROR_OK;
+	return target_process_reset(cmd_ctx, reset_mode);
 }
 
 int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
