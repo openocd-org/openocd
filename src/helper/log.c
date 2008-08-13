@@ -107,9 +107,12 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		}
 		else
 		{
-			/* print human readable output */
-			fprintf(log_output, "%s%s",
-					(level > LOG_LVL_USER)?log_strings[level+1]:"", string);
+			if (strcmp(string, "\n")!=0)
+			{
+				/* print human readable output - but skip empty lines */
+				fprintf(log_output, "%s%s",
+						(level > LOG_LVL_USER)?log_strings[level+1]:"", string);
+			}
 		}
 	} else
 	{
