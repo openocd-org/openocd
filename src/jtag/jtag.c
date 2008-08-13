@@ -1940,7 +1940,6 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	if (jtag!=NULL)	
 	{
-		int what_speed;
 		if ((retval=jtag->speed_div(jtag_speed, &speed_khz))!=ERROR_OK)
 			return retval;
 	}
