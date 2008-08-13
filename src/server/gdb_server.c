@@ -588,44 +588,50 @@ int gdb_program_handler(struct target_s *target, enum target_event event, void *
 	return ERROR_OK;
 }
 
+static void gdb_frontend_halted(struct target_s *target, connection_t *connection)
+{
+	gdb_connection_t *gdb_connection = connection->priv;
+	
+	/* In the GDB protocol when we are stepping or coninuing execution,
+	 * we have a lingering reply. Upon receiving a halted event
+	 * when we have that lingering packet, we reply to the original
+	 * step or continue packet.
+	 *
+	 * Executing monitor commands can bring the target in and
+	 * out of the running state so we'll see lots of TARGET_EVENT_XXX
+	 * that are to be ignored.
+	 */
+	if (gdb_connection->frontend_state == TARGET_RUNNING)
+	{
+		char sig_reply[4];
+		int signal;
+		/* stop forwarding log packets! */
+		log_remove_callback(gdb_log_callback, connection);
+
+		if (gdb_connection->ctrl_c)
+		{
+			signal = 0x2;
+			gdb_connection->ctrl_c = 0;
+		}
+		else
+		{
+			signal = gdb_last_signal(target);
+		}
+
+		snprintf(sig_reply, 4, "T%2.2x", signal);
+		gdb_put_packet(connection, sig_reply, 3);
+		gdb_connection->frontend_state = TARGET_HALTED;
+	}
+}
+
 int gdb_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
 {
 	connection_t *connection = priv;
-	gdb_connection_t *gdb_connection = connection->priv;
-	char sig_reply[4];
-	int signal;
 
 	switch (event)
 	{
 		case TARGET_EVENT_HALTED:
-			/* In the GDB protocol when we are stepping or coninuing execution,
-			 * we have a lingering reply. Upon receiving a halted event
-			 * when we have that lingering packet, we reply to the original
-			 * step or continue packet.
-			 *
-			 * Executing monitor commands can bring the target in and
-			 * out of the running state so we'll see lots of TARGET_EVENT_XXX
-			 * that are to be ignored.
-			 */
-			if (gdb_connection->frontend_state == TARGET_RUNNING)
-			{
-				/* stop forwarding log packets! */
-				log_remove_callback(gdb_log_callback, connection);
-
-				if (gdb_connection->ctrl_c)
-				{
-					signal = 0x2;
-					gdb_connection->ctrl_c = 0;
-				}
-				else
-				{
-					signal = gdb_last_signal(target);
-				}
-
-				snprintf(sig_reply, 4, "T%2.2x", signal);
-				gdb_put_packet(connection, sig_reply, 3);
-				gdb_connection->frontend_state = TARGET_HALTED;
-			}
+			gdb_frontend_halted(target, connection);
 			break;
 		case TARGET_EVENT_GDB_PROGRAM:
 			gdb_program_handler(target, event, connection->cmd_ctx);
@@ -1208,10 +1214,11 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 	return ERROR_OK;
 }
 
-void gdb_step_continue_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
+int gdb_step_continue_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	int current = 0;
 	u32 address = 0x0;
+	int retval=ERROR_OK;
 
 	LOG_DEBUG("-");
 
@@ -1229,13 +1236,14 @@ void gdb_step_continue_packet(connection_t *connection, target_t *target, char *
 	{
 		LOG_DEBUG("continue");
 		target_invoke_script(connection->cmd_ctx, target, "pre_resume");
-		target_resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
+		retval=target_resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
 	}
 	else if (packet[0] == 's')
 	{
 		LOG_DEBUG("step");
-		target->type->step(target, current, address, 0); /* step at current or address, don't handle breakpoints */
+		retval=target->type->step(target, current, address, 0); /* step at current or address, don't handle breakpoints */
 	}
+	return retval;
 }
 
 int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
@@ -1851,6 +1859,14 @@ static void gdb_log_callback(void *priv, const char *file, int line,
 /* Do not allocate this on the stack */
 char gdb_packet_buffer[GDB_BUFFER_SIZE];
 
+static void gdb_sig_halted(connection_t *connection)
+{
+	char sig_reply[4];
+	snprintf(sig_reply, 4, "T%2.2x", 2);
+	gdb_put_packet(connection, sig_reply, 3);
+
+}
+
 int gdb_input_inner(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
@@ -1921,9 +1937,7 @@ int gdb_input_inner(connection_t *connection)
 							/* If the target isn't in the halted state, then we can't
 							 * step/continue. This might be early setup, etc.
 							 */
-							char sig_reply[4];
-							snprintf(sig_reply, 4, "T%2.2x", 2);
-							gdb_put_packet(connection, sig_reply, 3);
+							gdb_sig_halted(connection);
 						} else
 						{
 							/* We're running/stepping, in which case we can
@@ -1932,7 +1946,12 @@ int gdb_input_inner(connection_t *connection)
 							gdb_connection_t *gdb_con = connection->priv;
 							gdb_con->frontend_state = TARGET_RUNNING;
 							log_add_callback(gdb_log_callback, connection);
-							gdb_step_continue_packet(connection, target, packet, packet_size);
+							int retval=gdb_step_continue_packet(connection, target, packet, packet_size);
+							if (retval!=ERROR_OK)
+							{
+								/* we'll never receive a halted condition... issue a false one.. */
+								gdb_frontend_halted(target, connection); 
+							}
 						}
 					}
 					break;
