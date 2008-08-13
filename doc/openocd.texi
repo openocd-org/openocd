@@ -260,6 +260,16 @@ Port on which to listen for incoming telnet connections
 @cindex gdb_port
 First port on which to listen for incoming GDB connections. The GDB port for the
 first target will be gdb_port, the second target will listen on gdb_port + 1, and so on. 
+@item @b{gdb_breakpoint_override} <@var{hard/soft/disabled}>
+@cindex gdb_breakpoint_override
+hard/soft/disabled - force breakpoint type for gdb 'break' commands.
+The raison d'etre for this option is to support GDB GUI's without 
+a hard/soft breakpoint concept where the default OpenOCD and
+GDB behaviour is not sufficient. Note that GDB will use hardware
+breakpoints if the memory map has been set up for flash regions.
+
+This option replaces older arm7_9 target commands that addressed
+the same issue.
 @item @b{gdb_detach} <@var{resume|reset|halt|nothing}>
 @cindex gdb_detach
 Configures what OpenOCD will do when gdb detaches from the daeman.
