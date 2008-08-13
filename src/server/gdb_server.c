@@ -668,6 +668,13 @@ int gdb_new_connection(connection_t *connection)
 	/* output goes through gdb connection */
 	command_set_output_handler(connection->cmd_ctx, gdb_output, connection);
 
+	/* we must remove all breakpoints registered to the target as a previous
+	 * GDB session could leave dangling breakpoints if e.g. communication 
+	 * timed out.
+	 */
+	breakpoint_clear_target(gdb_service->target);
+	watchpoint_clear_target(gdb_service->target);
+	
 	/* register callback to be informed about target events */
 	target_register_event_callback(gdb_target_callback_event_handler, connection);
 

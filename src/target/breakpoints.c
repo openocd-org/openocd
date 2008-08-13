@@ -48,7 +48,7 @@ int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_ty
 	breakpoint_t *breakpoint = target->breakpoints;
 	breakpoint_t **breakpoint_p = &target->breakpoints;
 	int retval;
-		
+	
 	while (breakpoint)
 	{
 		if (breakpoint->address == address)
@@ -84,8 +84,6 @@ int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_ty
 				return retval;
 				break;
 			default:
-				LOG_ERROR("unknown error");
-				exit(-1);
 				break;
 		}
 	}
@@ -97,11 +95,34 @@ int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_ty
 	return ERROR_OK;
 }
 
+/* free up a breakpoint */
+static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
+{
+	breakpoint_t *breakpoint = target->breakpoints;
+	breakpoint_t **breakpoint_p = &target->breakpoints;
+	
+	while (breakpoint)
+	{
+		if (breakpoint==breakpoint_remove)
+			break;
+		breakpoint_p = &breakpoint->next;
+		breakpoint = breakpoint->next;
+	}
+	
+	if (breakpoint==NULL)
+		return;
+	
+	target->type->remove_breakpoint(target, breakpoint);
+	
+	(*breakpoint_p) = breakpoint->next;
+	free(breakpoint->orig_instr);
+	free(breakpoint);
+}
+
 int breakpoint_remove(target_t *target, u32 address)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
 	breakpoint_t **breakpoint_p = &target->breakpoints;
-	int retval;
 	
 	while (breakpoint)
 	{
@@ -113,23 +134,7 @@ int breakpoint_remove(target_t *target, u32 address)
 	
 	if (breakpoint)
 	{
-		if ((retval = target->type->remove_breakpoint(target, breakpoint)) != ERROR_OK)
-		{
-			switch (retval)
-			{
-				case ERROR_TARGET_NOT_HALTED:
-					LOG_INFO("can't remove breakpoint while target is running");
-					return retval;
-					break;
-				default:
-					LOG_ERROR("unknown error");
-					exit(-1);
-					break;
-			}
-		}
-		(*breakpoint_p) = breakpoint->next;
-		free(breakpoint->orig_instr);
-		free(breakpoint);
+		breakpoint_free(target, breakpoint);
 	}
 	else
 	{
@@ -137,6 +142,15 @@ int breakpoint_remove(target_t *target, u32 address)
 	}
 	
 	return ERROR_OK;
+}
+
+void breakpoint_clear_target(target_t *target)
+{
+	breakpoint_t *breakpoint;
+	while ((breakpoint = target->breakpoints)!=NULL)
+	{
+		breakpoint_free(target, breakpoint);
+	}
 }
 
 breakpoint_t* breakpoint_find(target_t *target, u32 address)
@@ -206,11 +220,32 @@ int watchpoint_add(target_t *target, u32 address, u32 length, enum watchpoint_rw
 	return ERROR_OK;
 }
 
+static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
+{
+	watchpoint_t *watchpoint = target->watchpoints;
+	watchpoint_t **watchpoint_p = &target->watchpoints;
+
+	while (watchpoint)
+	{
+		if (watchpoint == watchpoint_remove)
+			break;
+		watchpoint_p = &watchpoint->next;
+		watchpoint = watchpoint->next;
+	}
+	
+	if (watchpoint==NULL)
+		return;
+	target->type->remove_watchpoint(target, watchpoint);
+	(*watchpoint_p) = watchpoint->next;
+	free(watchpoint);
+}
+
+
+
 int watchpoint_remove(target_t *target, u32 address)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
 	watchpoint_t **watchpoint_p = &target->watchpoints;
-	int retval;
 	
 	while (watchpoint)
 	{
@@ -222,22 +257,7 @@ int watchpoint_remove(target_t *target, u32 address)
 	
 	if (watchpoint)
 	{
-		if ((retval = target->type->remove_watchpoint(target, watchpoint)) != ERROR_OK)
-		{
-			switch (retval)
-			{
-				case ERROR_TARGET_NOT_HALTED:
-					LOG_INFO("can't remove watchpoint while target is running");
-					return retval;
-					break;
-				default:
-					LOG_ERROR("unknown error");
-					exit(-1);
-					break;
-			}
-		}
-		(*watchpoint_p) = watchpoint->next;
-		free(watchpoint);
+		watchpoint_free(target, watchpoint);
 	}
 	else
 	{
@@ -245,4 +265,14 @@ int watchpoint_remove(target_t *target, u32 address)
 	}
 	
 	return ERROR_OK;
+}
+
+
+void watchpoint_clear_target(target_t *target)
+{
+	watchpoint_t *watchpoint;
+	while ((watchpoint = target->watchpoints)!=NULL)
+	{
+		watchpoint_free(target, watchpoint);
+	}
 }
