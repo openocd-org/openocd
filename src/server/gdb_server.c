@@ -46,6 +46,9 @@
 #define _DEBUG_GDB_IO_
 #endif
 
+static int gdb_breakpoint_override;
+static enum breakpoint_type gdb_breakpoint_override_type;
+
 extern int gdb_error(connection_t *connection, int retval);
 static unsigned short gdb_port;
 static const char *DIGITS = "0123456789abcdef";
@@ -1277,6 +1280,11 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 		wp_type = WPT_READ;
 	else if (type == 4) /* access watchpoint */
 		wp_type = WPT_ACCESS;
+	
+	if (gdb_breakpoint_override&&((bp_type==BKPT_SOFT)||(bp_type==BKPT_SOFT)))
+	{
+		bp_type=gdb_breakpoint_override_type;
+	}
 
 	if (*separator != ',')
 	{
@@ -2169,6 +2177,41 @@ int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char
 	return ERROR_OK;
 }
 
+/* daemon configuration command gdb_port */
+int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc == 0)
+	{
+		
+	} else if (argc==1)
+	{
+		gdb_breakpoint_override = 1;
+		if (strcmp(args[0], "hard")==0)
+		{
+			gdb_breakpoint_override_type=BKPT_HARD;
+		} else if (strcmp(args[0], "soft")==0)
+		{
+			gdb_breakpoint_override_type=BKPT_SOFT;
+		} else if (strcmp(args[0], "disable") == 0)
+		{
+			gdb_breakpoint_override = 0;
+		}
+	} else
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	if (gdb_breakpoint_override)
+	{
+		LOG_USER("force %s breakpoints", (gdb_breakpoint_override_type==BKPT_HARD)?"hard":"soft");
+	} else
+	{
+		LOG_USER("breakpoint type is not overriden");
+	}
+	
+	return ERROR_OK;
+}
+
+
 int gdb_register_commands(command_context_t *command_context)
 {
 	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
@@ -2181,5 +2224,10 @@ int gdb_register_commands(command_context_t *command_context)
 			COMMAND_CONFIG, "");
 	register_command(command_context, NULL, "gdb_report_data_abort", handle_gdb_report_data_abort_command,
 			COMMAND_CONFIG, "");
+	register_command(command_context, NULL, "gdb_breakpoint_override", handle_gdb_breakpoint_override_command,
+			COMMAND_EXEC, "hard/soft/disabled - force breakpoint type for gdb 'break' commands."
+			"The raison d'etre for this option is to support GDB GUI's without "
+			"a hard/soft breakpoint concept where the default OpenOCD behaviour "
+			"is not sufficient");
 	return ERROR_OK;
 }
