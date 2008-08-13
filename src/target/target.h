@@ -162,12 +162,27 @@ typedef struct target_type_s
 	int (*checksum_memory)(struct target_s *target, u32 address, u32 count, u32* checksum);
 	int (*blank_check_memory)(struct target_s *target, u32 address, u32 count, u32* blank);
 	
-	/* target break-/watchpoint control 
-	* rw: 0 = write, 1 = read, 2 = access
-	*/
+	/* 
+	 * target break-/watchpoint control 
+	 * rw: 0 = write, 1 = read, 2 = access
+	 * 
+	 * Target must be halted while this is invoked as this
+	 * will actually set up breakpoints on target.
+	 * 
+	 * The breakpoint hardware will be set up upon adding the first breakpoint.
+	 * 
+	 * Upon GDB connection all breakpoints/watchpoints are cleared.
+	 */
 	int (*add_breakpoint)(struct target_s *target, breakpoint_t *breakpoint);
+	
+	/* remove breakpoint. hw will only be updated if the target is currently halted.
+	 * However, this method can be invoked on unresponsive targets.
+	 */
 	int (*remove_breakpoint)(struct target_s *target, breakpoint_t *breakpoint);
 	int (*add_watchpoint)(struct target_s *target, watchpoint_t *watchpoint);
+	/* remove watchpoint. hw will only be updated if the target is currently halted.
+	 * However, this method can be invoked on unresponsive targets.
+	 */
 	int (*remove_watchpoint)(struct target_s *target, watchpoint_t *watchpoint);
 
 	/* target algorithm support */
