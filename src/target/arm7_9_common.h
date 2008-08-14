@@ -44,8 +44,10 @@ typedef struct arm7_9_common_s
 	int sw_breakpoints_added;
 	int breakpoint_count;
 	int wp_available;
+	int wp_available_max;
 	int wp0_used;
 	int wp1_used;
+	int wp1_used_default;
 	int force_hw_bkpts;
 	int dbgreq_adjust_pc;
 	int use_dbgrq;

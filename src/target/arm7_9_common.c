@@ -59,15 +59,14 @@ int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char 
 int handle_arm7_9_etm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 
-/* FIX!!! this needs to be overrideable by e.g. fereceon*/
 static int arm7_9_clear_watchpoints(arm7_9_common_t *arm7_9)
 {
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
 	arm7_9->sw_breakpoints_added = 0;
 	arm7_9->wp0_used = 0;
-	arm7_9->wp1_used = 0;
-	arm7_9->wp_available = 2;
+	arm7_9->wp1_used = arm7_9->wp1_used_default;
+	arm7_9->wp_available = arm7_9->wp_available_max;
 
 	return jtag_execute_queue();
 }
@@ -2586,11 +2585,13 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	arm7_9->common_magic = ARM7_9_COMMON_MAGIC;
 
 	arm_jtag_setup_connection(&arm7_9->jtag_info);
-	arm7_9->wp_available = 2;
+	arm7_9->wp_available = 0; /* this is set up in arm7_9_clear_watchpoints() */
+	arm7_9->wp_available_max = 2;
 	arm7_9->sw_breakpoints_added = 0;
 	arm7_9->breakpoint_count = 0;
 	arm7_9->wp0_used = 0;
 	arm7_9->wp1_used = 0;
+	arm7_9->wp1_used_default = 0;
 	arm7_9->use_dbgrq = 0;
 
 	arm7_9->etm_ctx = NULL;

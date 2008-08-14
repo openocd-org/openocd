@@ -688,8 +688,8 @@ int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	arm7_9->set_special_dbgrq = feroceon_set_dbgrq;
 
 	/* only one working comparator */
-	arm7_9->wp_available = 1; 
-	arm7_9->wp1_used = -1; 
+	arm7_9->wp_available_max = 1; 
+	arm7_9->wp1_used_default = -1; 
 
 	return ERROR_OK;
 }
