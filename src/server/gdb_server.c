@@ -1281,7 +1281,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 	else if (type == 4) /* access watchpoint */
 		wp_type = WPT_ACCESS;
 	
-	if (gdb_breakpoint_override&&((bp_type==BKPT_SOFT)||(bp_type==BKPT_SOFT)))
+	if (gdb_breakpoint_override&&((bp_type==BKPT_SOFT)||(bp_type==BKPT_HARD)))
 	{
 		bp_type=gdb_breakpoint_override_type;
 	}
