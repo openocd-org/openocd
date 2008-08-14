@@ -12,6 +12,7 @@
 
 @copying
 Copyright @copyright{} 2007-2008 Spen @email{spen@@spen-soft.co.uk}
+Copyright @copyright{} 2008 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
 @quotation
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.2 or
@@ -1054,15 +1055,6 @@ The target is resumed in the currently set @option{core_mode}.
 These commands are specific to ARM7 and ARM9 targets, like ARM7TDMI, ARM720t,
 ARM920t or ARM926EJ-S.
 @itemize @bullet
-@item @b{arm7_9 sw_bkpts} <@var{enable}|@var{disable}>
-@cindex arm7_9 sw_bkpts
-Enable/disable use of software breakpoints. On ARMv4 systems, this reserves
-one of the watchpoint registers to implement software breakpoints. Disabling
-SW Bkpts frees that register again. 
-@item @b{arm7_9 force_hw_bkpts} <@var{enable}|@var{disable}>
-@cindex arm7_9 force_hw_bkpts
-When @option{force_hw_bkpts} is enabled, the @option{sw_bkpts} support is disabled, and all
-breakpoints are turned into hardware breakpoints.
 @item @b{arm7_9 dbgrq} <@var{enable}|@var{disable}>
 @cindex arm7_9 dbgrq
 Enable use of the DBGRQ bit to force entry into debug mode. This should be
@@ -1314,7 +1306,7 @@ working area.
 
 Informing gdb of the memory map of the target will enable gdb to protect any
 flash area of the target and use hardware breakpoints by default. This means
-that the OpenOCD option @option{arm7_9 force_hw_bkpts} is not required when
+that the OpenOCD option @option{gdb_breakpoint_override} is not required when
 using a memory map.
 
 To view the configured memory map in gdb, use the gdb command @option{info mem}
@@ -1455,6 +1447,14 @@ use @option{flash write_image} command passing @option{erase} as the first param
 this config option has been removed, simply adding @option{init} and @option{reset halt} to
 the end of your config script will give the same behaviour as using @option{daemon_startup reset}
 and @option{target cortex_m3 little reset_halt 0}.
+@item @b{arm7_9 sw_bkpts}
+@cindex arm7_9 sw_bkpts
+On by default. See also @option{gdb_breakpoint_override}. 
+@item @b{arm7_9 force_hw_bkpts}
+@cindex arm7_9 force_hw_bkpts
+Use @option{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
+for flash if the gdb memory map has been set up(default when flash is declared in
+target configuration).
 @item @b{run_and_halt_time}
 @cindex run_and_halt_time
 This command has been removed for simpler reset behaviour, it can be simulated with the
@@ -1482,11 +1482,7 @@ arm7_9_add_breakpoint(): sw breakpoint requested, but software breakpoints not e
 
 GDB issues software breakpoints when a normal breakpoint is requested, or to implement
 source-line single-stepping. On ARMv4T systems, like ARM7TDMI, ARM720t or ARM920t,
-software breakpoints consume one of the two available hardware breakpoints,
-and are therefore disabled by default. If your code is running from RAM, you
-can enable software breakpoints with the @option{arm7_9 sw_bkpts enable} command. If
-your code resides in Flash, you can't use software breakpoints, but you can force
-OpenOCD to use hardware breakpoints instead: @option{arm7_9 force_hw_bkpts enable}.
+software breakpoints consume one of the two available hardware breakpoints.  
 
 @item When erasing or writing LPC2000 on-chip flash, the operation fails sometimes
 and works sometimes fine.
