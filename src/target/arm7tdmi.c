@@ -807,8 +807,6 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, int c
 	arm7_9->arm_bkpt = 0xdeeedeee;
 	arm7_9->thumb_bkpt = 0xdeee;
 	
-	arm7_9->sw_bkpts_use_wp = 1;
-	arm7_9->sw_bkpts_enabled = 0;
 	arm7_9->dbgreq_adjust_pc = 2;
 	arm7_9->arch_info = arm7tdmi;
 

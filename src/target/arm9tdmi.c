@@ -950,8 +950,6 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int c
 	arm7_9->arm_bkpt = 0xdeeedeee;
 	arm7_9->thumb_bkpt = 0xdeee;
 	
-	arm7_9->sw_bkpts_use_wp = 1;
-	arm7_9->sw_bkpts_enabled = 0;
 	arm7_9->dbgreq_adjust_pc = 3;
 	arm7_9->arch_info = arm9tdmi;
 	

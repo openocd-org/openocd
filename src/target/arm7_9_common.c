@@ -53,52 +53,89 @@ int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cm
 int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_read_core_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_sw_bkpts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_arm7_9_force_hw_bkpts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_etm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int arm7_9_reinit_embeddedice(target_t *target)
+
+/* FIX!!! this needs to be overrideable by e.g. fereceon*/
+static int arm7_9_clear_watchpoints(arm7_9_common_t *arm7_9)
 {
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-
-	breakpoint_t *breakpoint = target->breakpoints;
-
-	arm7_9->wp_available = 2;
+	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
+	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
+	arm7_9->sw_breakpoints_added = 0;
 	arm7_9->wp0_used = 0;
 	arm7_9->wp1_used = 0;
+	arm7_9->wp_available = 2;
 
-	/* mark all hardware breakpoints as unset */
-	while (breakpoint)
+	return jtag_execute_queue();
+}
+
+/* set up embedded ice registers */
+static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
+{
+	if (arm7_9->sw_breakpoints_added)
 	{
-		if (breakpoint->type == BKPT_HARD)
-		{
-			breakpoint->set = 0;
-		}
-		breakpoint = breakpoint->next;
+		return ERROR_OK;
+	}
+	if (arm7_9->wp_available < 1)
+	{
+		LOG_WARNING("can't enable sw breakpoints with no watchpoint unit available");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	arm7_9->wp_available--;
+	
+	/* pick a breakpoint unit */
+	if (!arm7_9->wp0_used)
+	{
+		arm7_9->sw_breakpoints_added=1;
+		arm7_9->wp0_used = 3;
+	} else if (!arm7_9->wp1_used)
+	{
+		arm7_9->sw_breakpoints_added=2;
+		arm7_9->wp1_used = 3;
+	}
+	else
+	{
+		LOG_ERROR("BUG: both watchpoints used, but wp_available >= 1");
+		return ERROR_FAIL;
 	}
 
-	if (arm7_9->sw_bkpts_enabled && arm7_9->sw_bkpts_use_wp)
+	if (arm7_9->sw_breakpoints_added==1)
 	{
-		arm7_9->sw_bkpts_enabled = 0;
-		arm7_9_enable_sw_bkpts(target);
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_VALUE], arm7_9->arm_bkpt);
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0x0);
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0xffffffffu);
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
+	}
+	else if (arm7_9->sw_breakpoints_added==2)
+	{
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_VALUE], arm7_9->arm_bkpt);
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], 0x0);
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], 0xffffffffu);
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
+		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
+	}
+	else
+	{
+		LOG_ERROR("BUG: both watchpoints used, but wp_available >= 1");
+		return ERROR_FAIL;
 	}
 
-	return ERROR_OK;
+	return jtag_execute_queue();
 }
 
 /* set things up after a reset / on startup */
 int arm7_9_setup(target_t *target)
 {
-	/* a test-logic reset have occured
-	 * the EmbeddedICE registers have been reset
-	 * hardware breakpoints have been cleared
-	 */
-	return arm7_9_reinit_embeddedice(target);
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+
+	return arm7_9_clear_watchpoints(arm7_9);
 }
+
 
 int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p)
 {
@@ -121,10 +158,14 @@ int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm
 	return ERROR_OK;
 }
 
+/* we set up the breakpoint even if it is already set. Some action, e.g. reset
+ * might have erased the values in embedded ice
+ */
 int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	int retval=ERROR_OK;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -132,51 +173,43 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (arm7_9->force_hw_bkpts)
-		breakpoint->type = BKPT_HARD;
-
-	if (breakpoint->set)
-	{
-		LOG_WARNING("breakpoint already set");
-		return ERROR_OK;
-	}
-
 	if (breakpoint->type == BKPT_HARD)
 	{
 		/* either an ARM (4 byte) or Thumb (2 byte) breakpoint */
 		u32 mask = (breakpoint->length == 4) ? 0x3u : 0x1u;
-		if (!arm7_9->wp0_used)
+		if (breakpoint->set==1)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_VALUE], breakpoint->address);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], mask);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0xffffffffu);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
-
-			jtag_execute_queue();
-			arm7_9->wp0_used = 1;
-			breakpoint->set = 1;
 		}
-		else if (!arm7_9->wp1_used)
+		else if (breakpoint->set==2)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_VALUE], breakpoint->address);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], mask);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], 0xffffffffu);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
-
-			jtag_execute_queue();
-			arm7_9->wp1_used = 1;
-			breakpoint->set = 2;
 		}
 		else
 		{
 			LOG_ERROR("BUG: no hardware comparator available");
 			return ERROR_OK;
 		}
+
+		retval=jtag_execute_queue();
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
+		if ((retval=arm7_9_set_software_breakpoints(arm7_9))!=ERROR_OK)
+			return retval;
+		
+		/* did we already set this breakpoint? */
+		if (breakpoint->set)
+			return ERROR_OK;
+		
 		if (breakpoint->length == 4)
 		{
 			u32 verify = 0xffffffff;
@@ -210,7 +243,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		breakpoint->set = 1;
 	}
 
-	return ERROR_OK;
+	return retval;
 
 }
 
@@ -218,12 +251,6 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	if (!breakpoint->set)
 	{
@@ -236,15 +263,14 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		if (breakpoint->set == 1)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
-			jtag_execute_queue();
 			arm7_9->wp0_used = 0;
 		}
 		else if (breakpoint->set == 2)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
-			jtag_execute_queue();
 			arm7_9->wp1_used = 0;
 		}
+		jtag_execute_queue();
 		breakpoint->set = 0;
 	}
 	else
@@ -282,17 +308,13 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-
-	if (arm7_9->force_hw_bkpts)
+	
+	if (arm7_9->breakpoint_count==0)
 	{
-		LOG_DEBUG("forcing use of hardware breakpoint at address 0x%8.8x", breakpoint->address);
-		breakpoint->type = BKPT_HARD;
-	}
-
-	if ((breakpoint->type == BKPT_SOFT) && (arm7_9->sw_bkpts_enabled == 0))
-	{
-		LOG_INFO("sw breakpoint requested, but software breakpoints not enabled");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		/* make sure we don't have any dangling breakpoints. This is vital upon 
+		 * GDB connect/disconnect 
+		 */
+		arm7_9_clear_watchpoints(arm7_9);	
 	}
 
 	if ((breakpoint->type == BKPT_HARD) && (arm7_9->wp_available < 1))
@@ -308,9 +330,29 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	}
 
 	if (breakpoint->type == BKPT_HARD)
+	{
 		arm7_9->wp_available--;
+		
+		if (!arm7_9->wp0_used)
+		{
+			arm7_9->wp0_used = 1;
+			breakpoint->set = 1;
+		}
+		else if (!arm7_9->wp1_used)
+		{
+			arm7_9->wp1_used = 1;
+			breakpoint->set = 2;
+		}
+		else
+		{
+			LOG_ERROR("BUG: no hardware comparator available");
+		}
+	}
+	
 
-	return ERROR_OK;
+	arm7_9->breakpoint_count++;
+	
+	return arm7_9_set_breakpoint(target, breakpoint);
 }
 
 int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
@@ -318,19 +360,17 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	if (breakpoint->set)
-	{
-		arm7_9_unset_breakpoint(target, breakpoint);
-	}
+	arm7_9_unset_breakpoint(target, breakpoint);
 
 	if (breakpoint->type == BKPT_HARD)
 		arm7_9->wp_available++;
+	
+	arm7_9->breakpoint_count--;
+	if (arm7_9->breakpoint_count==0)
+	{
+		/* make sure we don't have any dangling breakpoints */
+		arm7_9_clear_watchpoints(arm7_9);	
+	}
 
 	return ERROR_OK;
 }
@@ -457,12 +497,6 @@ int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_WARNING("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	if (watchpoint->set)
 	{
 		arm7_9_unset_watchpoint(target, watchpoint);
@@ -473,82 +507,8 @@ int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
-int arm7_9_enable_sw_bkpts(struct target_s *target)
-{
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	int retval;
 
-	if (arm7_9->sw_bkpts_enabled)
-		return ERROR_OK;
 
-	if (arm7_9->wp_available < 1)
-	{
-		LOG_WARNING("can't enable sw breakpoints with no watchpoint unit available");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-	arm7_9->wp_available--;
-
-	if (!arm7_9->wp0_used)
-	{
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_VALUE], arm7_9->arm_bkpt);
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0x0);
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0xffffffffu);
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
-		arm7_9->sw_bkpts_enabled = 1;
-		arm7_9->wp0_used = 3;
-	}
-	else if (!arm7_9->wp1_used)
-	{
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_VALUE], arm7_9->arm_bkpt);
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], 0x0);
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], 0xffffffffu);
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
-		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
-		arm7_9->sw_bkpts_enabled = 2;
-		arm7_9->wp1_used = 3;
-	}
-	else
-	{
-		LOG_ERROR("BUG: both watchpoints used, but wp_available >= 1");
-		return ERROR_FAIL;
-	}
-
-	if ((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		LOG_ERROR("error writing EmbeddedICE registers to enable sw breakpoints");
-		return ERROR_FAIL;
-	};
-
-	return ERROR_OK;
-}
-
-int arm7_9_disable_sw_bkpts(struct target_s *target)
-{
-	armv4_5_common_t *armv4_5 = target->arch_info;
-	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-
-	if (!arm7_9->sw_bkpts_enabled)
-		return ERROR_OK;
-
-	if (arm7_9->sw_bkpts_enabled == 1)
-	{
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
-		arm7_9->sw_bkpts_enabled = 0;
-		arm7_9->wp0_used = 0;
-		arm7_9->wp_available++;
-	}
-	else if (arm7_9->sw_bkpts_enabled == 2)
-	{
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
-		arm7_9->sw_bkpts_enabled = 0;
-		arm7_9->wp1_used = 0;
-		arm7_9->wp_available++;
-	}
-
-	return ERROR_OK;
-}
 
 int arm7_9_execute_sys_speed(struct target_s *target)
 {
@@ -1450,32 +1410,11 @@ void arm7_9_enable_breakpoints(struct target_s *target)
 	/* set any pending breakpoints */
 	while (breakpoint)
 	{
-		if (breakpoint->set == 0)
-			arm7_9_set_breakpoint(target, breakpoint);
+		arm7_9_set_breakpoint(target, breakpoint);
 		breakpoint = breakpoint->next;
 	}
 }
 
-void arm7_9_disable_bkpts_and_wpts(struct target_s *target)
-{
-	breakpoint_t *breakpoint = target->breakpoints;
-	watchpoint_t *watchpoint = target->watchpoints;
-
-	/* set any pending breakpoints */
-	while (breakpoint)
-	{
-		if (breakpoint->set != 0)
-			arm7_9_unset_breakpoint(target, breakpoint);
-		breakpoint = breakpoint->next;
-	}
-
-	while (watchpoint)
-	{
-		if (watchpoint->set != 0)
-			arm7_9_unset_watchpoint(target, watchpoint);
-		watchpoint = watchpoint->next;
-	}
-}
 
 int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
 {
@@ -2402,8 +2341,6 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 
 	register_command(cmd_ctx, arm7_9_cmd, "write_core_reg", handle_arm7_9_write_core_reg_command, COMMAND_EXEC, "write core register <num> <mode> <value>");
 
-	register_command(cmd_ctx, arm7_9_cmd, "sw_bkpts", handle_arm7_9_sw_bkpts_command, COMMAND_EXEC, "support for software breakpoints <enable|disable>");
-	register_command(cmd_ctx, arm7_9_cmd, "force_hw_bkpts", handle_arm7_9_force_hw_bkpts_command, COMMAND_EXEC, "use hardware breakpoints for all breakpoints (disables sw breakpoint support) <enable|disable>");
 	register_command(cmd_ctx, arm7_9_cmd, "dbgrq", handle_arm7_9_dbgrq_command,
 		COMMAND_ANY, "use EmbeddedICE dbgrq instead of breakpoint for target halt requests <enable|disable>");
 	register_command(cmd_ctx, arm7_9_cmd, "fast_writes", handle_arm7_9_fast_memory_access_command,
@@ -2542,95 +2479,6 @@ int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char
 	return ERROR_OK;
 }
 
-int handle_arm7_9_sw_bkpts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-
-	if (target->state != TARGET_HALTED)
-	{
-		LOG_ERROR("target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-	
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
-	}
-
-	if (argc == 0)
-	{
-		command_print(cmd_ctx, "software breakpoints %s", (arm7_9->sw_bkpts_enabled) ? "enabled" : "disabled");
-		return ERROR_OK;
-	}
-
-	if (strcmp("enable", args[0]) == 0)
-	{
-		if (arm7_9->sw_bkpts_use_wp)
-		{
-			arm7_9_enable_sw_bkpts(target);
-		}
-		else
-		{
-			arm7_9->sw_bkpts_enabled = 1;
-		}
-	}
-	else if (strcmp("disable", args[0]) == 0)
-	{
-		if (arm7_9->sw_bkpts_use_wp)
-		{
-			arm7_9_disable_sw_bkpts(target);
-		}
-		else
-		{
-			arm7_9->sw_bkpts_enabled = 0;
-		}
-	}
-	else
-	{
-		command_print(cmd_ctx, "usage: arm7_9 sw_bkpts <enable|disable>");
-	}
-
-	command_print(cmd_ctx, "software breakpoints %s", (arm7_9->sw_bkpts_enabled) ? "enabled" : "disabled");
-
-	return ERROR_OK;
-}
-
-int handle_arm7_9_force_hw_bkpts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-
-	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
-	{
-		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
-	}
-
-	if ((argc >= 1) && (strcmp("enable", args[0]) == 0))
-	{
-		arm7_9->force_hw_bkpts = 1;
-		if (arm7_9->sw_bkpts_use_wp)
-		{
-			arm7_9_disable_sw_bkpts(target);
-		}
-	}
-	else if ((argc >= 1) && (strcmp("disable", args[0]) == 0))
-	{
-		arm7_9->force_hw_bkpts = 0;
-	}
-	else
-	{
-		command_print(cmd_ctx, "usage: arm7_9 force_hw_bkpts <enable|disable>");
-	}
-
-	command_print(cmd_ctx, "force hardware breakpoints %s", (arm7_9->force_hw_bkpts) ? "enabled" : "disabled");
-
-	return ERROR_OK;
-}
 
 int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -2739,9 +2587,10 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 
 	arm_jtag_setup_connection(&arm7_9->jtag_info);
 	arm7_9->wp_available = 2;
+	arm7_9->sw_breakpoints_added = 0;
+	arm7_9->breakpoint_count = 0;
 	arm7_9->wp0_used = 0;
 	arm7_9->wp1_used = 0;
-	arm7_9->force_hw_bkpts = 0;
 	arm7_9->use_dbgrq = 0;
 
 	arm7_9->etm_ctx = NULL;
