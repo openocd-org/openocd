@@ -783,10 +783,10 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
     LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
 
     if (target->state != TARGET_HALTED)
-    {
-	LOG_WARNING("target was not halted");
-	return ERROR_TARGET_NOT_HALTED;
-    }
+	{
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
     if (!current)
 	R(PC) = address;

@@ -747,6 +747,7 @@ int cfi_erase(struct flash_bank_s *bank, int first, int last)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -878,6 +879,7 @@ int cfi_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1649,7 +1651,10 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	int retval;
 
 	if (bank->target->state != TARGET_HALTED)
+	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	if (offset + count > bank->size)
 		return ERROR_FLASH_DST_OUT_OF_BANK;
@@ -1877,6 +1882,7 @@ int cfi_probe(struct flash_bank_s *bank)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2175,6 +2181,7 @@ int cfi_protect_check(struct flash_bank_s *bank)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

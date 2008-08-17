@@ -1119,6 +1119,7 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -1165,6 +1166,7 @@ int default_flash_blank_check(struct flash_bank_s *bank)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 		

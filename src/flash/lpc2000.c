@@ -418,6 +418,7 @@ int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -484,6 +485,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -641,6 +643,7 @@ int lpc2000_erase_check(struct flash_bank_s *bank)
 {
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -683,6 +686,7 @@ int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	

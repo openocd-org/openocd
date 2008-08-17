@@ -270,6 +270,7 @@ u32 lpc288x_system_ready(struct flash_bank_s *bank)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	return ERROR_OK;
@@ -456,6 +457,7 @@ int lpc288x_probe(struct flash_bank_s *bank)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	

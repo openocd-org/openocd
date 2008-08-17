@@ -588,6 +588,7 @@ int at91sam7_protect_check(struct flash_bank_s *bank)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -636,6 +637,7 @@ int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -679,6 +681,7 @@ int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -728,6 +731,7 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -795,6 +799,7 @@ int at91sam7_probe(struct flash_bank_s *bank)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

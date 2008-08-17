@@ -520,6 +520,7 @@ int stellaris_protect_check(struct flash_bank_s *bank)
 
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -549,6 +550,7 @@ int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -619,6 +621,7 @@ int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -814,6 +817,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -915,6 +919,7 @@ int stellaris_probe(struct flash_bank_s *bank)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -941,6 +946,7 @@ int stellaris_mass_erase(struct flash_bank_s *bank)
 	
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	

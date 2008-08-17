@@ -181,6 +181,7 @@ int armv4_5_get_core_reg(reg_t *reg)
 	
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	

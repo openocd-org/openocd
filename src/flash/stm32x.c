@@ -293,6 +293,7 @@ int stm32x_protect_check(struct flash_bank_s *bank)
 	
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -359,6 +360,7 @@ int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -404,6 +406,7 @@ int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -596,6 +599,7 @@ int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -691,6 +695,7 @@ int stm32x_probe(struct flash_bank_s *bank)
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -872,6 +877,7 @@ int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -920,6 +926,7 @@ int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, c
 	
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 		
@@ -966,6 +973,7 @@ int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *
 	
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -1024,6 +1032,7 @@ int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char 
 	
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
@@ -1080,6 +1089,7 @@ int stm32x_mass_erase(struct flash_bank_s *bank)
 	
 	if (target->state != TARGET_HALTED)
 	{
+		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	
