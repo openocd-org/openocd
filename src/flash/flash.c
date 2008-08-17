@@ -1052,10 +1052,9 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 		{
 			u32 size_read;
 
-			if (buffer_size - run_size <= image->sections[section].size - section_offset)
-				size_read = buffer_size - run_size;
-			else
-				size_read = image->sections[section].size - section_offset;
+			size_read = run_size - buffer_size;
+			if (size_read > image->sections[section].size - section_offset)
+			    size_read = image->sections[section].size - section_offset;
 
 			if ((retval = image_read_section(image, section, section_offset,
 					size_read, buffer + buffer_size, &size_read)) != ERROR_OK || size_read == 0)
@@ -1067,7 +1066,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 			
 			/* see if we need to pad the section */
 			while (padding[section]--)
-				buffer[size_read++] = 0xff;
+				 (buffer+buffer_size)[size_read++] = 0xff;
 			
 			buffer_size += size_read;
 			section_offset += size_read;
