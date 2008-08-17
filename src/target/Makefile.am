@@ -20,8 +20,8 @@ noinst_HEADERS = target.h trace.h register.h armv4_5.h embeddedice.h etm.h arm7t
 	etm_dummy.h oocd_trace.h target_request.h trace.h arm11.h mips32.h mips_m4k.h mips_ejtag.h mips32_pracc.h
 
 nobase_dist_pkglib_DATA = xscale/debug_handler.bin target/at91eb40a.cfg \
-	event/at91r40008_reset.script event/sam7s256_reset.script event/sam7x256_reset.script \
-	target/at91r40008.cfg target/lpc2148.cfg target/lpc2148_rclk.cfg target/lpc2148_2mhz.cfg target/lpc2294.cfg target/sam7s256.cfg \
+	event/at91r40008_reset.script event/sam7x256_reset.script \
+	target/at91r40008.cfg target/lpc2148.cfg target/lpc2148_rclk.cfg target/lpc2148_2mhz.cfg target/lpc2294.cfg \
 	target/sam7x256.cfg target/str710.cfg target/str912.cfg target/nslu2.cfg target/pxa255_sst.cfg \
 	target/pxa255.cfg  target/zy1000.cfg event/zy1000_reset.script event/at91sam9260_reset.script target/at91sam9260.cfg \
 	target/wi-9c.cfg event/wi-9c_reset.script event/pxa255_reset.script target/stm32.cfg  target/xba_revA3.cfg event/xba_revA3.script \
