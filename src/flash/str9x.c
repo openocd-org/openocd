@@ -4,6 +4,9 @@
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
+ *
+ *   Copyright (C) 2008 by Oyvind Harboe                                   *
+ *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -183,6 +186,7 @@ int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 int str9x_protect_check(struct flash_bank_s *bank)
 {
+	int retval;
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
 	target_t *target = bank->target;
 	
@@ -203,25 +207,46 @@ int str9x_protect_check(struct flash_bank_s *bank)
 		if (str9x_info->bank1)
 		{
 			adr = bank1start + 0x18;
-			target_write_u16(target, adr, 0x90);
-			target_read_u16(target, adr, (u16*)&status);
+			if ((retval=target_write_u16(target, adr, 0x90))!=ERROR_OK)
+			{
+				return retval;
+			}
+			if ((retval=target_read_u16(target, adr, (u16*)&status))!=ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		else
 		{
 			adr = bank1start + 0x14;
-			target_write_u16(target, adr, 0x90);
-			target_read_u32(target, adr, &status);
+			if ((retval=target_write_u16(target, adr, 0x90))!=ERROR_OK)
+			{
+				return retval;
+			}
+			if ((retval=target_read_u32(target, adr, &status))!=ERROR_OK)
+			{
+				return retval;
+			}
 		}
 	}
 	else
 	{
 		adr = bank1start + 0x10;
-		target_write_u16(target, adr, 0x90);
-		target_read_u16(target, adr, (u16*)&status);
+		if ((retval=target_write_u16(target, adr, 0x90))!=ERROR_OK)
+		{
+			return retval;
+		}
+		if ((retval=target_read_u16(target, adr, (u16*)&status))!=ERROR_OK)
+		{
+			return retval;
+		}
 	}
 	
 	/* read array command */
-	target_write_u16(target, adr, 0xFF);
+	if ((retval=target_write_u16(target, adr, 0xFF))!=ERROR_OK)
+	{
+		return retval;
+	}
 	
 	for (i = 0; i < bank->num_sectors; i++)
 	{
