@@ -709,7 +709,7 @@ int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	return ERROR_OK;
 }
 
-void process_jim_events() 
+void process_jim_events(void) 
 {
 #ifdef JIM_EMBEDDED
 	static int recursion = 0;
