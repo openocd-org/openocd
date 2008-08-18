@@ -262,27 +262,46 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 	
 	for (i = first; i <= last; i++)
 	{
+		int retval;
 		adr = bank->base + bank->sectors[i].offset;
 		
 		/* erase sectors */
-		target_write_u16(target, adr, erase_cmd);
-		target_write_u16(target, adr, 0xD0);
+		if ((retval=target_write_u16(target, adr, erase_cmd))!=ERROR_OK)
+		{
+			return retval;
+		}
+		if ((retval=target_write_u16(target, adr, 0xD0))!=ERROR_OK)
+		{
+			return retval;
+		}
 		
 		/* get status */
-		target_write_u16(target, adr, 0x70);
+		if ((retval=target_write_u16(target, adr, 0x70))!=ERROR_OK)
+		{
+			return retval;
+		}
 		
 		while (1) {
-			target_read_u8(target, adr, &status);
+			if ((retval=target_read_u8(target, adr, &status))!=ERROR_OK)
+			{
+				return retval;
+			}
 			if( status & 0x80 )
 				break;
 			usleep(1000);
 		}
 		
 		/* clear status, also clear read array */
-		target_write_u16(target, adr, 0x50);
+		if ((retval=target_write_u16(target, adr, 0x50))!=ERROR_OK)
+		{
+			return retval;
+		}
 		
 		/* read array command */
-		target_write_u16(target, adr, 0xFF);
+		if ((retval=target_write_u16(target, adr, 0xFF))!=ERROR_OK)
+		{
+			return retval;
+		}
 		
 		if( status & 0x22 )
 		{
