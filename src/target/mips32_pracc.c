@@ -266,7 +266,7 @@ int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 *
 		MIPS32_NOP,
 	};
 	
-	int retval;
+	int retval=ERROR_OK;
 	int blocksize;
 	int bytesread;
 	u32 param_in[2];
@@ -282,9 +282,11 @@ int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 *
 		param_in[0] = addr;
 		param_in[1] = blocksize;
 		
-		if ((retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
+		if ((retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, 
 			sizeof(param_in)/sizeof(param_in[0]), param_in, blocksize, &buf[bytesread], 1)) != ERROR_OK)
+		{
 			return retval;
+		}
 		
 		count -= blocksize;
 		addr += blocksize;
