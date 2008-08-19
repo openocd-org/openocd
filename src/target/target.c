@@ -1642,7 +1642,7 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 		if (once)
 		{
 			once=0;
-			LOG_USER("waiting for target %s...", target_state_strings[state]);
+			LOG_DEBUG("waiting for target %s...", target_state_strings[state]);
 		}
 
 		gettimeofday(&now, NULL);
