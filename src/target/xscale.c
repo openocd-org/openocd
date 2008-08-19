@@ -487,41 +487,40 @@ int xscale_read_tx(target_t *target, int consume)
 
 	for (;;)
 	{
-		int i;
-		for (i=0; i<100; i++)
+		/* if we want to consume the register content (i.e. clear TX_READY),
+		 * we have to go straight from Capture-DR to Shift-DR
+		 * otherwise, we go from Capture-DR to Exit1-DR to Pause-DR
+		*/
+		if (consume)
+			jtag_add_pathmove(3, path);
+		else
 		{
-			/* if we want to consume the register content (i.e. clear TX_READY),
-			 * we have to go straight from Capture-DR to Shift-DR
-			 * otherwise, we go from Capture-DR to Exit1-DR to Pause-DR
-			*/
-			if (consume)
-				jtag_add_pathmove(3, path);
-			else
-			{
-				jtag_add_pathmove(sizeof(noconsume_path)/sizeof(*noconsume_path), noconsume_path);
-			}
-	
-			jtag_add_dr_scan(3, fields, TAP_RTI);
-	
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
-			{
-				LOG_ERROR("JTAG error while reading TX");
-				return ERROR_TARGET_TIMEOUT;
-			}
-	
-			gettimeofday(&now, NULL);
-			if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec)&& (now.tv_usec > timeout.tv_usec)))
-			{
-				LOG_ERROR("time out reading TX register");
-				return ERROR_TARGET_TIMEOUT;
-			}
-			if (!((!(field0_in & 1)) && consume))
-			{
-				goto done;
-			}
+			jtag_add_pathmove(sizeof(noconsume_path)/sizeof(*noconsume_path), noconsume_path);
 		}
-		LOG_DEBUG("waiting 10ms");
-		usleep(10*1000); /* avoid flooding the logs */
+
+		jtag_add_dr_scan(3, fields, TAP_RTI);
+
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			LOG_ERROR("JTAG error while reading TX");
+			return ERROR_TARGET_TIMEOUT;
+		}
+
+		gettimeofday(&now, NULL);
+		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec)&& (now.tv_usec > timeout.tv_usec)))
+		{
+			LOG_ERROR("time out reading TX register");
+			return ERROR_TARGET_TIMEOUT;
+		}
+		if (!((!(field0_in & 1)) && consume))
+		{
+			goto done;
+		}
+		if (debug_level>=3)
+		{
+			LOG_DEBUG("waiting 10ms");
+			usleep(10*1000); /* avoid flooding the logs */
+		}
 	} 
 	done:
 
@@ -585,28 +584,27 @@ int xscale_write_rx(target_t *target)
 	LOG_DEBUG("polling RX");
 	for (;;)
 	{
-		int i;
-		for (i=0; i<100; i++)
+		jtag_add_dr_scan(3, fields, TAP_RTI);
+
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
-			jtag_add_dr_scan(3, fields, TAP_RTI);
-	
-			if ((retval = jtag_execute_queue()) != ERROR_OK)
-			{
-				LOG_ERROR("JTAG error while writing RX");
-				return retval;
-			}
-	
-			gettimeofday(&now, NULL);
-			if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec)&& (now.tv_usec > timeout.tv_usec)))
-			{
-				LOG_ERROR("time out writing RX register");
-				return ERROR_TARGET_TIMEOUT;
-			}
-			if (!(field0_in & 1))
-				goto done;
+			LOG_ERROR("JTAG error while writing RX");
+			return retval;
 		}
-		LOG_DEBUG("waiting 10ms");
-		usleep(10*1000); /* wait 10ms to avoid flooding the logs */
+
+		gettimeofday(&now, NULL);
+		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec)&& (now.tv_usec > timeout.tv_usec)))
+		{
+			LOG_ERROR("time out writing RX register");
+			return ERROR_TARGET_TIMEOUT;
+		}
+		if (!(field0_in & 1))
+			goto done;
+		if (debug_level>=3)
+		{
+			LOG_DEBUG("waiting 10ms");
+			usleep(10*1000); /* avoid flooding the logs */
+		}
 	}
 	done:
 	
