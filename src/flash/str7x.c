@@ -283,7 +283,7 @@ int str7x_erase(struct flash_bank_s *bank, int first, int last)
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 	
 	while (((retval = str7x_status(bank)) & str7x_info->busy_bits)){
-		usleep(1000);
+		alive_sleep(1);
 	}
 	
 	retval = str7x_result(bank);
@@ -339,7 +339,7 @@ int str7x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 	
 	while (((retval = str7x_status(bank)) & str7x_info->busy_bits)){
-		usleep(1000);
+		alive_sleep(1);
 	}
 	
 	retval = str7x_result(bank);
@@ -568,7 +568,7 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		
 		while (((retval = str7x_status(bank)) & str7x_info->busy_bits))
 		{
-			usleep(1000);
+			alive_sleep(1);
 		}
 		
 		retval = str7x_result(bank);
@@ -615,7 +615,7 @@ int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		
 		while (((retval = str7x_status(bank)) & str7x_info->busy_bits))
 		{
-			usleep(1000);
+			alive_sleep(1);
 		}
 		
 		retval = str7x_result(bank);

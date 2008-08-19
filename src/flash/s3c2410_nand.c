@@ -138,7 +138,7 @@ int s3c2410_nand_ready(struct nand_device_s *device, int timeout)
 		if (status & S3C2410_NFSTAT_BUSY)
 			return 1;
 
-		usleep(1000);		
+		alive_sleep(1);		
 	} while (timeout-- > 0);
 
 	return 0;

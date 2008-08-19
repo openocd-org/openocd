@@ -372,7 +372,7 @@ int tms470_try_flash_keys(target_t * target, const u32 * key_set)
 		do
 		{
 			target_read_u32(target, 0xFFE8A814, &fmbptr);
-			usleep(1000);
+			alive_sleep(1);
 		}
 		while (!(fmbptr & 0x0200));
 
@@ -718,7 +718,7 @@ int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 		target_read_u32(target, 0xFFE8BC0C, &fmmstat);
 		if (fmmstat & 0x0100)
 		{
-			usleep(1000);
+			alive_sleep(1);
 		}
 	}
 	while (fmmstat & 0x0100);
@@ -932,7 +932,7 @@ int tms470_write(struct flash_bank_s *bank, u8 * buffer, u32 offset, u32 count)
 				target_read_u32(target, 0xFFE8BC0C, &fmmstat);
 				if (fmmstat & 0x0100)
 				{
-					usleep(1000);
+					alive_sleep(1);
 				}
 			}
 			while (fmmstat & 0x0100);

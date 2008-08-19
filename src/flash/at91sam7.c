@@ -258,7 +258,7 @@ u32 at91sam7_wait_status_busy(flash_bank_t *bank, u8 flashplane, u32 waitbits, i
 	while ((!((status = at91sam7_get_flash_status(bank,flashplane)) & waitbits)) && (timeout-- > 0))
 	{
 		LOG_DEBUG("status[%i]: 0x%x", flashplane, status);
-		usleep(1000);
+		alive_sleep(1);
 	}
 	
 	LOG_DEBUG("status[%i]: 0x%x", flashplane, status);

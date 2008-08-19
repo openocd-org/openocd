@@ -138,7 +138,7 @@ u32 lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 	target_t *target = bank->target;
 	do
 	{
-		usleep(1000);
+		alive_sleep(1);
 		timeout--;
 		target_read_u32(target, F_STAT, &status);
 	}while (((status & FS_DONE) == 0) && timeout);

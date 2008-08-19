@@ -824,7 +824,7 @@ int lpc3180_controller_ready(struct nand_device_s *device, int timeout)
 			return 1;
 		}
 
-		usleep(1000);
+		alive_sleep(1);
 	} while (timeout-- > 0);
 	
 	return 0;
@@ -864,7 +864,7 @@ int lpc3180_nand_ready(struct nand_device_s *device, int timeout)
 				return 1;
 		}
 		
-		usleep(1000);
+		alive_sleep(1);
 	} while (timeout-- > 0);
 	
 	return 0;	

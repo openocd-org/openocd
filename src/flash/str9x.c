@@ -313,7 +313,7 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 			}
 			if( status & 0x80 )
 				break;
-			usleep(1000);
+			alive_sleep(1);
 		}
 		
 		/* clear status, also clear read array */
@@ -576,7 +576,7 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			target_read_u8(target, bank_adr, &status);
 			if( status & 0x80 )
 				break;
-			usleep(1000);
+			alive_sleep(1);
 		}
 		
 		/* clear status reg and read array */
@@ -618,7 +618,7 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			target_read_u8(target, bank_adr, &status);
 			if( status & 0x80 )
 				break;
-			usleep(1000);
+			alive_sleep(1);
 		}
 		
 		/* clear status reg and read array */

@@ -410,7 +410,7 @@ u32 stellaris_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout)
 	while (((status = stellaris_get_flash_status(bank)) & waitbits) && (timeout-- > 0))
 	{
 		LOG_DEBUG("status: 0x%x", status);
-		usleep(1000);
+		alive_sleep(1);
 	}
 	
 	/* Flash errors are reflected in the FLASH_CRIS register */

@@ -530,7 +530,7 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	
 	/* wait for erase completion */
 	while (!((status = str9xpec_isc_status(chain_pos)) & ISC_STATUS_BUSY)) {
-		usleep(1000);
+		alive_sleep(1);
 	}
 	
 	free(buffer);

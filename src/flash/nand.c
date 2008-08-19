@@ -355,7 +355,7 @@ int nand_read_status(struct nand_device_s *device, u8 *status)
 	/* Send read status command */
 	device->controller->command(device, NAND_CMD_STATUS);
 	
-	usleep(1000);
+	alive_sleep(1);
 	
 	/* read status */
 	if (device->device->options & NAND_BUSWIDTH_16)

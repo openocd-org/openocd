@@ -126,7 +126,7 @@ u32 stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 	while (((status = stm32x_get_flash_status(bank)) & FLASH_BSY) && (timeout-- > 0))
 	{
 		LOG_DEBUG("status: 0x%x", status);
-		usleep(1000);
+		alive_sleep(1);
 	}
 	
 	return status;

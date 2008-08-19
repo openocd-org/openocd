@@ -273,7 +273,7 @@ u8 cfi_intel_wait_status_busy(flash_bank_t *bank, int timeout)
 	while ((!((status = cfi_get_u8(bank, 0, 0x0)) & 0x80)) && (timeout-- > 0))
 	{
 		LOG_DEBUG("status: 0x%x", status);
-		usleep(1000);
+		alive_sleep(1);
 	}
 
 	/* mask out bit 0 (reserved) */
@@ -333,7 +333,7 @@ int cfi_spansion_wait_status_busy(flash_bank_t *bank, int timeout)
 		}
 
 		oldstatus = status;
-		usleep(1000);
+		alive_sleep(1);
 	} while (timeout-- > 0);
 
 	LOG_ERROR("timeout, status: 0x%x", status);
