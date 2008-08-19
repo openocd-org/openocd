@@ -966,7 +966,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 		swjdp_read_dpacc(swjdp, &ctrlstat, DP_CTRL_STAT);
 		if ((retval=jtag_execute_queue())!=ERROR_OK)
 			return retval;
-		usleep(10000);
+		alive_sleep(10);
 	}
 
 	while (!(ctrlstat & CSYSPWRUPACK) && (cnt++ < 10))
@@ -975,7 +975,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 		swjdp_read_dpacc(swjdp, &ctrlstat, DP_CTRL_STAT);
 		if ((retval=jtag_execute_queue())!=ERROR_OK)
 			return retval;
-		usleep(10000);
+		alive_sleep(10);
 	}
 
 	swjdp_read_dpacc(swjdp, &dummy, DP_CTRL_STAT);

@@ -523,7 +523,7 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 				LOG_DEBUG("waiting for system reset-halt, dcb_dhcsr 0x%x, %i ms", dcb_dhcsr, timeout);
 		}
 		timeout++;
-		usleep(1000);
+		alive_sleep(1);
 	}
 		
 	return ERROR_OK;
