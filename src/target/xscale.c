@@ -518,8 +518,11 @@ int xscale_read_tx(target_t *target, int consume)
 		}
 		if (debug_level>=3)
 		{
-			LOG_DEBUG("waiting 10ms");
-			usleep(10*1000); /* avoid flooding the logs */
+			LOG_DEBUG("waiting 100ms");
+			alive_sleep(100); /* avoid flooding the logs */
+		} else
+		{
+			keep_alive();
 		}
 	} 
 	done:
@@ -602,8 +605,11 @@ int xscale_write_rx(target_t *target)
 			goto done;
 		if (debug_level>=3)
 		{
-			LOG_DEBUG("waiting 10ms");
-			usleep(10*1000); /* avoid flooding the logs */
+			LOG_DEBUG("waiting 100ms");
+			alive_sleep(100); /* avoid flooding the logs */
+		} else
+		{
+			keep_alive();
 		}
 	}
 	done:
