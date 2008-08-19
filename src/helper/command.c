@@ -693,7 +693,7 @@ int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	if (argc == 1)
 	{
 		duration = strtoul(args[0], NULL, 0);
-		usleep(duration * 1000);
+		alive_sleep(duration);
 	}
 
 	return ERROR_OK;
