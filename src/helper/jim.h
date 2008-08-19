@@ -37,6 +37,31 @@
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
  * official policies, either expressed or implied, of the Jim Tcl Project.
+ *
+ *--- Inline Header File Documentation --- 
+ *    [By Duane Ellis, openocd@duaneellis.com, 8/18/8]
+ *
+ * Belief is "Jim" would greatly benifit if Jim Internals where
+ * documented in some way - form whatever, and perhaps - the package:
+ * 'doxygen' is the correct approach to do that.
+ *
+ *   Details, see: http://www.stack.nl/~dimitri/doxygen/
+ *
+ * To that end please follow these guide lines:
+ *
+ *    (A) Document the PUBLIC api in the .H file.
+ *
+ *    (B) Document JIM Internals, in the .C file.
+ *
+ *    (C) Remember JIM is embedded in other packages, to that end do
+ *    not assume that your way of documenting is the right way, Jim's
+ *    public documentation should be agnostic, such that it is some
+ *    what agreeable with the "package" that is embedding JIM inside
+ *    of it's own doxygen documentation.
+ *
+ *    (D) Use minimal Doxygen tags.
+ *
+ * This will be an "ongoing work in progress" for some time.
  **/
 
 #ifndef __JIM__H
@@ -557,6 +582,47 @@ typedef struct Jim_Reference {
     char tag[JIM_REFERENCE_TAGLEN+1];
 } Jim_Reference;
 
+/** Name Value Pairs, aka: NVP
+ *   -  Given a string - return the associated int.
+ *   -  Given a number - return the associated string.
+ *   .
+ *
+ * Very useful when the number is not a simple index into an array of
+ * known string, or there may be multiple strings (aliases) that mean then same
+ * thing.
+ *
+ * An NVP Table is terminated with ".name=NULL".
+ *
+ * During the 'name2value' operation, if no matching string is found
+ * the pointer to the terminal element (with p->name==NULL) is returned.
+ *
+ * Example:
+ * \code
+ *      const Jim_Nvp yn[] = {
+ *          { "yes", 1 },
+ *          { "no" , 0 },
+ *          { "yep", 1 },
+ *          { "nope", 0 },
+ *          { NULL, -1 },
+ *      };
+ *
+ *  Jim_Nvp *result
+ *  e = Jim_Nvp_name2value( interp, yn, "y", &result ); 
+ *         returns &yn[0];
+ *  e = Jim_Nvp_name2value( interp, yn, "n", &result );
+ *         returns &yn[1];
+ *  e = Jim_Nvp_name2value( interp, yn, "Blah", &result );
+ *         returns &yn[4];
+ * \endcode
+ *
+ * During the number2name operation, the first matching value is returned.
+ */
+typedef struct {
+	const char *name;
+	int         value;
+} Jim_Nvp;
+    
+
 /* -----------------------------------------------------------------------------
  * Exported API prototypes.
  * ---------------------------------------------------------------------------*/
@@ -577,6 +643,10 @@ typedef struct Jim_Reference {
 /* Macros are common for core and extensions */
 #define Jim_FreeHashTableIterator(iter) Jim_Free(iter)
 
+#ifdef DOXYGEN
+#define JIM_STATIC 
+#define JIM_API( X )  X
+#else
 #ifndef __JIM_CORE__
 # if defined JIM_EXTENSION || defined JIM_EMBEDDED
 #  define JIM_API(x) (*x)
@@ -593,6 +663,10 @@ typedef struct Jim_Reference {
 #   define JIM_STATIC static
 # endif
 #endif /* __JIM_CORE__ */
+#endif /* DOXYGEN */
+
+/** Set the result - printf() style */
+JIM_STATIC int JIM_API( Jim_SetResult_sprintf )( Jim_Interp *p, const char *fmt, ... );
 
 /* Memory allocation */
 JIM_STATIC void * JIM_API(Jim_Alloc) (int size);
@@ -790,6 +864,7 @@ JIM_STATIC int JIM_API(Jim_GetLong) (Jim_Interp *interp, Jim_Obj *objPtr,
         long *longPtr);
 JIM_STATIC void JIM_API(Jim_SetWide) (Jim_Interp *interp, Jim_Obj *objPtr,
         jim_wide wideValue);
+#define Jim_NewWideObj  Jim_NewIntObj
 JIM_STATIC Jim_Obj * JIM_API(Jim_NewIntObj) (Jim_Interp *interp,
         jim_wide wideValue);
 
@@ -810,7 +885,11 @@ JIM_STATIC void JIM_API(Jim_ReleaseSharedString) (Jim_Interp *interp,
 JIM_STATIC void JIM_API(Jim_WrongNumArgs) (Jim_Interp *interp, int argc,
         Jim_Obj *const *argv, const char *msg);
 JIM_STATIC int JIM_API(Jim_GetEnum) (Jim_Interp *interp, Jim_Obj *objPtr,
-        const char **tablePtr, int *indexPtr, const char *name, int flags);
+        const char * const *tablePtr, int *indexPtr, const char *name, int flags);
+JIM_STATIC int JIM_API(Jim_GetNvp) (Jim_Interp *interp, 
+									Jim_Obj *objPtr,
+									const Jim_Nvp *nvp_table, 
+									const Jim_Nvp **result);
 JIM_STATIC int JIM_API(Jim_ScriptIsComplete) (const char *s, int len,
         char *stateCharPtr);
 
@@ -849,6 +928,228 @@ JIM_STATIC size_t  JIM_API( Jim_fwrite   )( Jim_Interp *interp, const void *ptr,
 JIM_STATIC size_t  JIM_API( Jim_fread    )( Jim_Interp *interp, void *ptr, size_t size, size_t nmeb, void *cookie );
 JIM_STATIC int     JIM_API( Jim_fflush   )( Jim_Interp *interp, void *cookie );
 JIM_STATIC char *  JIM_API( Jim_fgets    )( Jim_Interp *interp, char *s, int size, void *cookie );
+
+/* Name Value Pairs Operations */
+JIM_STATIC Jim_Nvp *JIM_API(Jim_Nvp_name2value_simple)( const Jim_Nvp *nvp_table, const char *name );
+JIM_STATIC Jim_Nvp *JIM_API(Jim_Nvp_name2value_nocase_simple)( const Jim_Nvp *nvp_table, const char *name );
+JIM_STATIC Jim_Nvp *JIM_API(Jim_Nvp_value2name_simple)( const Jim_Nvp *nvp_table, int v );
+
+JIM_STATIC int JIM_API(Jim_Nvp_name2value)( Jim_Interp *interp, const Jim_Nvp *nvp_table, const char *name, Jim_Nvp **result );
+JIM_STATIC int JIM_API(Jim_Nvp_name2value_nocase)( Jim_Interp *interp, const Jim_Nvp *nvp_table, const char *name, Jim_Nvp **result);
+JIM_STATIC int JIM_API(Jim_Nvp_value2name)( Jim_Interp *interp, const Jim_Nvp *nvp_table, int value, Jim_Nvp **result );
+
+JIM_STATIC int JIM_API(Jim_Nvp_name2value_obj)( Jim_Interp *interp, const Jim_Nvp *nvp_table, Jim_Obj *name_obj, Jim_Nvp **result );
+JIM_STATIC int JIM_API(Jim_Nvp_name2value_obj_nocase)( Jim_Interp *interp, const Jim_Nvp *nvp_table, Jim_Obj *name_obj, Jim_Nvp **result );
+JIM_STATIC int JIM_API(Jim_Nvp_value2name_obj)( Jim_Interp *interp, const Jim_Nvp *nvp_table, Jim_Obj *value_obj, Jim_Nvp **result );
+
+/** prints a nice 'unknown' parameter error message to the 'result' */
+JIM_STATIC void JIM_API(Jim_SetResult_NvpUnknown)( Jim_Interp *interp, 
+												   Jim_Obj *param_name,
+												   Jim_Obj *param_value,
+												   const Jim_Nvp *nvp_table );
+
+
+/** Debug: convert argc/argv into a printable string for printf() debug
+ * 
+ * \param interp - the interpeter
+ * \param argc   - arg count
+ * \param argv   - the objects
+ *
+ * \returns string pointer holding the text.
+ * 
+ * Note, next call to this function will free the old (last) string.
+ *
+ * For example might want do this:
+ * \code
+ *     fp = fopen("some.file.log", "a" );
+ *     fprintf( fp, "PARAMS are: %s\n", Jim_DebugArgvString( interp, argc, argv ) );
+ *     fclose(fp);
+ * \endcode
+ */
+JIM_STATIC const char *JIM_API( Jim_Debug_ArgvString )( Jim_Interp *interp, int argc, Jim_Obj *const *argv );
+
+
+/** A TCL -ish GetOpt like code. 
+ *
+ * Some TCL objects have various "configuration" values.
+ * For example - in Tcl/Tk the "buttons" have many options.
+ * 
+ * Usefull when dealing with command options.
+ * that may come in any order...
+ *
+ * Does not support "-foo=123" type options.
+ * Only supports tcl type options, like "-foo 123"
+ */
+
+typedef struct jim_getopt {
+	Jim_Interp     *interp;
+	int            argc; 
+	Jim_Obj        * const * argv;
+	int            isconfigure; /* non-zero if configure */
+} Jim_GetOptInfo;
+
+/** GetOpt - how to.
+ *
+ * Example (short and incomplete):
+ * \code
+ *   Jim_GetOptInfo goi; 
+ *
+ *   Jim_GetOpt_Setup( &goi, interp, argc, argv );
+ *
+ *   while( goi.argc ){
+ *         e = Jim_GetOpt_Nvp( &goi, nvp_options, &n );
+ *         if( e != JIM_OK ){
+ *               Jim_GetOpt_NvpUnknown( &goi, nvp_options, 0 );
+ *               return e;
+ *         }
+ *
+ *         switch( n->value ){
+ *         case ALIVE:
+ *             printf("Option ALIVE specified\n");
+ *             break;
+ *         case FIRST:
+ *             if( goi.argc < 1 ){
+ *                     .. not enough args error ..
+ *             }
+ *             Jim_GetOpt_String( &goi, &cp, NULL );
+ *             printf("FIRSTNAME: %s\n", cp );
+ *         case AGE:
+ *             Jim_GetOpt_Wide( &goi, &w );
+ *             printf("AGE: %d\n", (int)(w) );
+ *             break;
+ *         case POLITICS:
+ *             e = Jim_GetOpt_Nvp( &goi, nvp_politics, &n );
+ *             if( e != JIM_OK ){
+ *                 Jim_GetOpt_NvpUnknown( &goi, nvp_politics, 1 );
+ *                 return e;
+ *             }
+ *         }
+ *  }
+ *
+ * \endcode
+ *    
+ */
+
+/** Setup GETOPT 
+ *
+ * \param goi    - get opt info to be initialized
+ * \param interp - jim interp
+ * \param argc   - argc count.
+ * \param argv   - argv (will be copied)
+ *
+ * \code
+ *     Jim_GetOptInfo  goi;
+ *   
+ *     Jim_GetOptSetup( &goi, interp, argc, argv );
+ * \endcode
+ */
+
+JIM_STATIC int JIM_API( Jim_GetOpt_Setup )( Jim_GetOptInfo *goi, 
+											Jim_Interp *interp, 
+											int argc, 
+											Jim_Obj * const *  argv );
+
+
+/** Debug - Dump parameters to stderr
+ * \param goi - current parameters
+ */
+JIM_STATIC void JIM_API( Jim_GetOpt_Debug )( Jim_GetOptInfo *goi);
+
+
+
+/** Remove argv[0] from the list.
+ *
+ * \param goi - get opt info
+ * \param puthere - where param is put
+ * 
+ */
+JIM_STATIC int JIM_API( Jim_GetOpt_Obj)( Jim_GetOptInfo *goi, Jim_Obj **puthere );
+
+/** Remove argv[0] as string.
+ *
+ * \param goi     - get opt info
+ * \param puthere - where param is put
+ */
+JIM_STATIC int JIM_API( Jim_GetOpt_String )( Jim_GetOptInfo *goi, char **puthere, int *len );
+
+/** Remove argv[0] as double.
+ *
+ * \param goi     - get opt info
+ * \param puthere - where param is put.
+ *
+ */
+JIM_STATIC int JIM_API( Jim_GetOpt_Double )( Jim_GetOptInfo *goi, double *puthere );
+
+/** Remove argv[0] as wide.
+ *
+ * \param goi     - get opt info
+ * \param puthere - where param is put.
+ */
+JIM_STATIC int JIM_API( Jim_GetOpt_Wide )( Jim_GetOptInfo *goi, jim_wide *puthere );
+
+/** Remove argv[0] as NVP.
+ *
+ * \param goi     - get opt info
+ * \param lookup  - nvp lookup table
+ * \param puthere - where param is put.
+ *
+ */
+JIM_STATIC int JIM_API( Jim_GetOpt_Nvp)( Jim_GetOptInfo *goi, const Jim_Nvp *lookup, Jim_Nvp **puthere );
+
+/** Create an appropriate error message for an NVP.
+ *
+ * \param goi - options info
+ * \param lookup - the NVP table that was used.
+ * \param hadprefix - 0 or 1 if the option had a prefix.
+ *
+ * This function will set the "interp->result" to a human readable
+ * error message listing the available options.
+ *
+ * This function assumes the previous option argv[-1] is the unknown string.
+ *
+ * If this option had some prefix, then pass "hadprefix=1" else pass "hadprefix=0"
+ *
+ * Example:
+ * \code
+ *
+ *  while( goi.argc ){
+ *     // Get the next option 
+ *     e = Jim_GetOpt_Nvp( &goi, cmd_options, &n );
+ *     if( e != JIM_OK ){
+ *          // option was not recognized
+ *          // pass 'hadprefix=0' because there is no prefix
+ *          Jim_GetOpt_NvpUnknown( &goi, cmd_options, 0 );
+ *          return e;
+ *     }
+ *
+ *     switch( n->value ){
+ *     case OPT_SEX:
+ *          // handle:  --sex male|female|lots|needmore
+ *          e = Jim_GetOpt_Nvp( &goi, &nvp_sex, &n );
+ *          if( e != JIM_OK ){
+ *               Jim_GetOpt_NvpUnknown( &ogi, nvp_sex, 1 );
+ *               return e;
+ *          }
+ *          printf("Code: (%d) is %s\n", n->value, n->name );
+ *          break;
+ *     case ...:
+ *          [snip]
+ *     }
+ * }
+ * \endcode
+ *
+ */
+JIM_STATIC void JIM_API( Jim_GetOpt_NvpUnknown)( Jim_GetOptInfo *goi, const Jim_Nvp *lookup, int hadprefix );
+
+
+/** Remove argv[0] as Enum
+ *
+ * \param goi     - get opt info
+ * \param lookup  - lookup table.
+ * \param puthere - where param is put.
+ *
+ */
+JIM_STATIC int JIM_API( Jim_GetOpt_Enum)( Jim_GetOptInfo *goi, const char * const *  lookup, int *puthere );
 
 
 #undef JIM_STATIC
@@ -968,6 +1269,7 @@ static void Jim_InitExtension(Jim_Interp *interp)
   JIM_GET_API(SetAssocData);
   JIM_GET_API(DeleteAssocData);
   JIM_GET_API(GetEnum);
+  JIM_GET_API(GetNvp);
   JIM_GET_API(ScriptIsComplete);
   JIM_GET_API(PackageProvide);
   JIM_GET_API(PackageRequire);
@@ -984,7 +1286,30 @@ static void Jim_InitExtension(Jim_Interp *interp)
   JIM_GET_API(fread    );
   JIM_GET_API(fflush   );
   JIM_GET_API(fgets    );
-  
+  JIM_GET_API(Nvp_name2value);
+  JIM_GET_API(Nvp_name2value_nocase);
+  JIM_GET_API(Nvp_name2value_simple);
+
+  JIM_GET_API(Nvp_value2name);
+  JIM_GET_API(Nvp_value2name_simple);
+
+
+  JIM_GET_API(Nvp_name2value_obj);
+  JIM_GET_API(Nvp_value2name_obj);
+  JIM_GET_API(Nvp_name2value_obj_nocase);
+
+  JIM_GET_API(GetOpt_Setup);
+  JIM_GET_API(GetOpt_Obj);
+  JIM_GET_API(GetOpt_String);
+  JIM_GET_API(GetOpt_Double);
+  JIM_GET_API(GetOpt_Wide);
+  JIM_GET_API(GetOpt_Nvp);
+  JIM_GET_API(GetOpt_NvpUnknown);
+  JIM_GET_API(GetOpt_Enum);
+  JIM_GET_API(GetOpt_Debug);
+  JIM_GET_API(SetResult_sprintf);
+  JIM_GET_API(SetResult_NvpUnknown);
+  JIM_GET_API(Debug_ArgvString);
 }
 #endif /* defined JIM_EXTENSION || defined JIM_EMBEDDED */
 
@@ -1005,3 +1330,11 @@ static __inline__ void Jim_InitEmbedded(void) {
 #endif
 
 #endif /* __JIM__H */
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */
