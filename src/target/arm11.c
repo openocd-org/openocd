@@ -1,5 +1,7 @@
 /***************************************************************************
  *   Copyright (C) 2008 digenius technology GmbH.                          *
+ *   
+ *   Copyright (C) 2008 Oyvind Harboe oyvind.harboe@zylin.com              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -1237,7 +1239,7 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 		LOG_ERROR("use 'arm11 memwrite burst disable' to disable fast burst mode");
 
 	    if (arm11_config_memwrite_error_fatal)
-		exit(-1);
+	    	return ERROR_FAIL;
 	}
     }
 #endif
@@ -1349,8 +1351,7 @@ int arm11_target_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
     if (argc < 4)
     {
-	LOG_ERROR("'target arm11' 4th argument <jtag chain pos>");
-	exit(-1);
+    	return ERROR_COMMAND_SYNTAX_ERROR;
     }
 
     int chain_pos = strtoul(args[3], NULL, 0);
@@ -1369,8 +1370,8 @@ int arm11_target_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
     if (device->ir_length != 5)
     {
-	LOG_ERROR("'target arm11' expects 'jtag_device 5 0x01 0x1F 0x1E'");
-	exit(-1);
+		LOG_ERROR("'target arm11' expects 'jtag_device 5 0x01 0x1F 0x1E'");
+		return ERROR_COMMAND_SYNTAX_ERROR;
     }
 
     target->arch_info = arm11;
@@ -1424,8 +1425,8 @@ int arm11_examine(struct target_s *target)
     case 0x07B76000:	LOG_INFO("found ARM1176"); break;
     default:
     {
-	LOG_ERROR("'target arm11' expects IDCODE 0x*7B*7****");
-	exit(-1);
+		LOG_ERROR("'target arm11' expects IDCODE 0x*7B*7****");
+		return ERROR_FAIL;
     }
     }
 
@@ -1435,7 +1436,7 @@ int arm11_examine(struct target_s *target)
 	arm11->debug_version != ARM11_DEBUG_V61)
     {
 	LOG_ERROR("Only ARMv6 v6 and v6.1 architectures supported.");
-	exit(-1);
+	return ERROR_FAIL;
     }
 
 
@@ -1543,7 +1544,7 @@ void arm11_build_reg_cache(target_t *target)
 	ARM11_REGCACHE_COUNT != asizeof(arm11_reg_defs) ||
 	ARM11_REGCACHE_COUNT != ARM11_RC_MAX)
     {
-	LOG_ERROR("arm11->reg_values inconsistent (%d " ZU " " ZU " %d)", ARM11_REGCACHE_COUNT, asizeof(arm11->reg_values), asizeof(arm11_reg_defs), ARM11_RC_MAX);
+	LOG_ERROR("BUG: arm11->reg_values inconsistent (%d " ZU " " ZU " %d)", ARM11_REGCACHE_COUNT, asizeof(arm11->reg_values), asizeof(arm11_reg_defs), ARM11_RC_MAX);
 	exit(-1);
     }
 

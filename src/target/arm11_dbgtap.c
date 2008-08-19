@@ -1,6 +1,8 @@
 /***************************************************************************
  *   Copyright (C) 2008 digenius technology GmbH.                          *
  *                                                                         *
+ *   Copyright (C) 2008 Oyvind Harboe oyvind.harboe@zylin.com              *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -129,7 +131,7 @@ static int arm11_in_handler_SCAN_N(u8 *in_value, void *priv, struct scan_field_s
     if (v != 0x10)
     {
         LOG_ERROR("'arm11 target' JTAG communication error SCREG SCAN OUT 0x%02x (expected 0x10)", v);
-        exit(-1);
+        return ERROR_FAIL;
     }
 
     JTAG_DEBUG("SCREG SCAN OUT 0x%02x", v);
