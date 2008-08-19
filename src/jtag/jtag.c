@@ -1311,7 +1311,7 @@ int jtag_reset_callback(enum jtag_event event, void *priv)
 
 void jtag_sleep(u32 us)
 {
-	usleep(us);
+	alive_sleep(us/1000);
 }
 
 /* Try to examine chain layout according to IEEE 1149.1 §12
@@ -1364,9 +1364,8 @@ int jtag_examine_chain(void)
 		if ((idcode & 1) == 0)
 		{
 			/* LSB must not be 0, this indicates a device in bypass */
-			device_count++;
-			
-			LOG_WARNING("Device was in bypass after TRST/TMS reset");
+			LOG_WARNING("Device does not have IDCODE");
+			idcode=0;
 			
 			bit_count += 1;
 		}
@@ -1403,13 +1402,6 @@ int jtag_examine_chain(void)
 				break;
 			}
 			
-			if (device)
-			{
-				device->idcode = idcode;
-				device = device->next;
-			}
-			device_count++;
-			
 			manufacturer = (idcode & 0xffe) >> 1;
 			part = (idcode & 0xffff000) >> 12;
 			version = (idcode & 0xf0000000) >> 28;
@@ -1419,6 +1411,12 @@ int jtag_examine_chain(void)
 			
 			bit_count += 32;
 		}
+		if (device)
+		{
+			device->idcode = idcode;
+			device = device->next;
+		}
+		device_count++;
 	}
 	
 	/* see if number of discovered devices matches configuration */
@@ -1591,7 +1589,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 			LOG_ERROR("Could not validate JTAG chain");
 			return ERROR_JTAG_INVALID_INTERFACE;
 		}
-		usleep(10000);
+		alive_sleep(10);
 	}
 	
 	return ERROR_OK;
