@@ -264,6 +264,7 @@ flash_bank_t *get_flash_bank_by_num(int num)
 
 int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	int retval;
 	int i;
 	int found = 0;
 	target_t *target;
@@ -276,7 +277,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if ((target = get_target_by_num(strtoul(args[5], NULL, 0))) == NULL)
 	{
 		LOG_ERROR("target %lu not defined", strtoul(args[5], NULL, 0));
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	for (i = 0; flash_drivers[i]; i++)
@@ -289,7 +290,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 			if (flash_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
 			{
 				LOG_ERROR("couldn't register '%s' commands", args[0]);
-				exit(-1);
+				return ERROR_FAIL;
 			}
 
 			c = malloc(sizeof(flash_bank_t));
@@ -304,11 +305,11 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 			c->sectors = NULL;
 			c->next = NULL;
 
-			if (flash_drivers[i]->flash_bank_command(cmd_ctx, cmd, args, argc, c) != ERROR_OK)
+			if ((retval=flash_drivers[i]->flash_bank_command(cmd_ctx, cmd, args, argc, c)) != ERROR_OK)
 			{
 				LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8x", args[0], c->base);
 				free(c);
-				return ERROR_OK;
+				return retval;
 			}
 
 			/* put flash bank in linked list */
@@ -332,7 +333,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if (!found)
 	{
 		LOG_ERROR("flash driver '%s' not found", args[0]);
-		exit(-1);
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
