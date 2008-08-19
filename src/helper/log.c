@@ -385,3 +385,20 @@ void kept_alive()
 	current_time=timeval_ms();
 	last_time=current_time;
 }
+
+/* if we sleep for extended periods of time, we must invoke keep_alive() intermittantly */
+void alive_sleep(int ms)
+{
+	int i;
+	for (i=0; i<ms; i+=500)
+	{
+		int sleep_a_bit=ms-i;
+		if (sleep_a_bit>500)
+		{
+			sleep_a_bit=500;
+		}
+		keep_alive();
+		usleep(sleep_a_bit*1000);
+		keep_alive();
+	}
+}
