@@ -556,7 +556,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	
 	while (target->state != TARGET_HALTED)
 	{
-		usleep(10000);
+		alive_sleep(10);
 		target_poll(target);
 		if ((timeout_ms -= 10) <= 0)
 		{
@@ -565,7 +565,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 			timeout_ms = 1000;
 			while (target->state != TARGET_HALTED)
 			{
-				usleep(10000);
+				alive_sleep(10);
 				target_poll(target);
 				if ((timeout_ms -= 10) <= 0)
 				{

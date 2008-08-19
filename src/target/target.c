@@ -2505,7 +2505,7 @@ int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **
 			samples[numSamples++]=t;
 			retval = target_resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
 			target_poll(target);
-			usleep(10*1000); // sleep 10ms, i.e. <100 samples/second.
+			alive_sleep(10); // sleep 10ms, i.e. <100 samples/second.
 		} else if (target->state == TARGET_RUNNING)
 		{
 			// We want to quickly sample the PC.

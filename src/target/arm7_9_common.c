@@ -536,7 +536,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 		if ((buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1))
 				   && (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_SYSCOMP, 1)))
 			break;
-		usleep(100000);
+		alive_sleep(100);
 	}
 	if (timeout == 50)
 	{

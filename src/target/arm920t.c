@@ -644,7 +644,7 @@ int arm920t_soft_reset_halt(struct target_s *target)
 			break;
 		}
 		/* do not eat all CPU, time out after 1 se*/
-		usleep(100*1000);
+		alive_sleep(100);
 	}
 	if (i==10)
 	{
