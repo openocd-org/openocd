@@ -586,7 +586,7 @@ int xscale_write_rx(target_t *target)
 	for (;;)
 	{
 		int i;
-		for (i=0; i<10; i++)
+		for (i=0; i<100; i++)
 		{
 			jtag_add_dr_scan(3, fields, TAP_RTI);
 	
