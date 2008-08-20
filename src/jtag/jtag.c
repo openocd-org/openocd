@@ -1554,7 +1554,6 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 
 static int jtag_init_inner(struct command_context_s *cmd_ctx)
 {
-	int validate_tries = 0;
 	jtag_device_t *device;
 	int retval;
 
@@ -1580,16 +1579,9 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 		LOG_ERROR("trying to validate configured JTAG chain anyway...");
 	}
 	
-	while (jtag_validate_chain() != ERROR_OK)
+	if (jtag_validate_chain() != ERROR_OK)
 	{
-		validate_tries++;
-		
-		if (validate_tries > 5)
-		{
-			LOG_ERROR("Could not validate JTAG chain");
-			return ERROR_JTAG_INVALID_INTERFACE;
-		}
-		alive_sleep(10);
+		LOG_ERROR("Could not validate JTAG chain, continuing anyway...");
 	}
 	
 	return ERROR_OK;
