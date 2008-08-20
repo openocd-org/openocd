@@ -437,13 +437,20 @@ Currently supported cables are
 @cindex wiggler
 The original Wiggler layout, also supported by several clones, such
 as the Olimex ARM-JTAG
+@item @b{wiggler2}
+@cindex wiggler2
+Same as original wiggler except an led is fitted on D5.
+@item @b{wiggler_ntrst_inverted}
+@cindex wiggler_ntrst_inverted
+Same as original wiggler except TRST is inverted.
 @item @b{old_amt_wiggler}
 @cindex old_amt_wiggler
 The Wiggler configuration that comes with Amontec's Chameleon Programmer. The new
 version available from the website uses the original Wiggler layout ('@var{wiggler}')
 @item @b{chameleon}
 @cindex chameleon
-The Amontec Chameleon's CPLD when operated in configuration mode. This is only used to program the Chameleon itself, not a connected target.
+The Amontec Chameleon's CPLD when operated in configuration mode. This is only used to
+program the Chameleon itself, not a connected target.
 @item @b{dlc5}
 @cindex dlc5
 The Xilinx Parallel cable III.
@@ -454,7 +461,14 @@ This is also the layout used by the HollyGates design
 (see @uref{http://www.lartmaker.nl/projects/jtag/}).
 @item @b{flashlink}
 @cindex flashlink
-The ST Parallel cable. 
+The ST Parallel cable.
+@item @b{arm-jtag}
+@cindex arm-jtag
+Same as original wiggler except SRST and TRST connections reversed and
+TRST is also inverted.
+@item @b{altium}
+@cindex altium
+Altium Universal JTAG cable.
 @end itemize
 @item @b{parport_write_on_exit} <@var{on|off}>
 @cindex parport_write_on_exit
