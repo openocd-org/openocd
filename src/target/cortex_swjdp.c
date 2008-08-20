@@ -171,12 +171,16 @@ int scan_inout_check_u32(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u
 
 int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 {
+	int retval;
 	int waitcount = 0;
 	u32 ctrlstat;
 
+	keep_alive();
+	
 	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-	jtag_execute_queue();
+	if ((retval=jtag_execute_queue())!=ERROR_OK)
+		return retval;
 	
 	swjdp->ack = swjdp->ack & 0x7;
 	
@@ -198,7 +202,8 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 		}
 
 		scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-		jtag_execute_queue();
+		if ((retval=jtag_execute_queue())!=ERROR_OK)
+			return retval;
 		swjdp->ack = swjdp->ack & 0x7;
 	}
 
@@ -224,7 +229,8 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			/* Clear Sticky Error Bits */
 			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_WRITE, swjdp->dp_ctrl_stat | SSTICKYORUN | SSTICKYERR, NULL);
 			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-			jtag_execute_queue();
+			if ((retval=jtag_execute_queue())!=ERROR_OK)
+				return retval;
 
 			LOG_DEBUG("swjdp: status 0x%x", ctrlstat);
 			
@@ -235,7 +241,8 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			ahbap_read_system_atomic_u32(swjdp, NVIC_BFAR, &nvic_bfar);
 			LOG_ERROR("dcb_dhcsr 0x%x, nvic_shcsr 0x%x, nvic_cfsr 0x%x, nvic_bfar 0x%x", dcb_dhcsr, nvic_shcsr, nvic_cfsr, nvic_bfar);
 		}
-		jtag_execute_queue();
+		if ((retval=jtag_execute_queue())!=ERROR_OK)
+			return retval;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
