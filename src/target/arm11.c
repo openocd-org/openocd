@@ -1389,6 +1389,7 @@ int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target
 int arm11_examine(struct target_s *target)
 {
     FNC_INFO;
+    int retval;
 
     arm11_common_t * arm11 = target->arch_info;
 
@@ -1415,7 +1416,8 @@ int arm11_examine(struct target_s *target)
 
     arm11_add_dr_scan_vc(asizeof(chain0_fields), chain0_fields, TAP_RTI);
 
-    jtag_execute_queue();
+    if ((retval=jtag_execute_queue())!=ERROR_OK) 
+    	return retval;
 
 
     switch (arm11->device_id & 0x0FFFF000)
