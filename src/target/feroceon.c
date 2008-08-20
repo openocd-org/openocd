@@ -60,6 +60,19 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int feroceon_quit(void);
 
+int feroceon_assert_reset(target_t *target)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	int ud = arm7_9->use_dbgrq;
+
+	arm7_9->use_dbgrq = 0;
+	if (target->reset_halt)
+		arm7_9_halt(target);
+	arm7_9->use_dbgrq = ud;
+	return arm7_9_assert_reset(target);
+}
+
 target_type_t feroceon_target =
 {
 	.name = "feroceon",
@@ -73,7 +86,7 @@ target_type_t feroceon_target =
 	.resume = arm7_9_resume,
 	.step = arm7_9_step,
 
-	.assert_reset = arm7_9_assert_reset,
+	.assert_reset = feroceon_assert_reset,
 	.deassert_reset = arm7_9_deassert_reset,
 	.soft_reset_halt = arm926ejs_soft_reset_halt,
 	
