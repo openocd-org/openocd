@@ -35,6 +35,7 @@
 #include "log.h"
 #include "arm7_9_common.h"
 #include "breakpoints.h"
+#include "time_support.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -511,7 +512,6 @@ int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 
 int arm7_9_execute_sys_speed(struct target_s *target)
 {
-	int timeout;
 	int retval;
 
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -527,7 +527,9 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 	}
 	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 
-	for (timeout=0; timeout<50; timeout++)
+	long long then=timeval_ms();
+	int timeout;
+	while (!(timeout=((timeval_ms()-then)>1000)))
 	{
 		/* read debug status register */
 		embeddedice_read_reg(dbg_stat);
@@ -536,9 +538,15 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 		if ((buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1))
 				   && (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_SYSCOMP, 1)))
 			break;
-		alive_sleep(100);
+		if (debug_level>=3)
+		{
+			alive_sleep(100);
+		} else
+		{
+			keep_alive();
+		}
 	}
-	if (timeout == 50)
+	if (timeout)
 	{
 		LOG_ERROR("timeout waiting for SYSCOMP & DBGACK, last DBG_STATUS: %x", buf_get_u32(dbg_stat->value, 0, dbg_stat->size));
 		return ERROR_TARGET_TIMEOUT;
@@ -873,18 +881,24 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	if ((retval=target_halt(target))!=ERROR_OK)
 		return retval;
 
-	for (i=0; i<10; i++)
+	long long then=timeval_ms();
+	int timeout;
+	while (!(timeout=((timeval_ms()-then)>1000)))
 	{
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) != 0)
 			break;
 		embeddedice_read_reg(dbg_stat);
 		if ((retval=jtag_execute_queue())!=ERROR_OK)
 			return retval;
-		/* do not eat all CPU, time out after 1 se*/
-		usleep(100*1000);
-
+		if (debug_level>=3)
+		{
+			alive_sleep(100);
+		} else
+		{
+			keep_alive();
+		}
 	}
-	if (i==10)
+	if (timeout)
 	{
 		LOG_ERROR("Failed to halt CPU after 1 sec");
 		return ERROR_TARGET_TIMEOUT;
@@ -2162,14 +2176,22 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 
 	target_halt(target);
 
-	for (i=0; i<100; i++)
+	long long then=timeval_ms();
+	int timeout;
+	while (!(timeout=((timeval_ms()-then)>100)))
 	{
 		target_poll(target);
 		if (target->state == TARGET_HALTED)
 			break;
-		usleep(1000); /* sleep 1ms */
+		if (debug_level>=3)
+		{
+			alive_sleep(100);
+		} else
+		{
+			keep_alive();
+		}
 	}
-	if (i == 100)
+	if (timeout)
 	{
 		LOG_ERROR("bulk write timed out, target not halted");
 		return ERROR_TARGET_TIMEOUT;

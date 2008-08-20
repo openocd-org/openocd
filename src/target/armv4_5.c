@@ -552,36 +552,24 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	}
 	
 	target_resume(target, 0, entry_point, 1, 1);
-	target_poll(target);
 	
-	while (target->state != TARGET_HALTED)
+	target_wait_state(target, TARGET_HALTED, timeout_ms);
+	if (target->state != TARGET_HALTED)
 	{
-		alive_sleep(10);
-		target_poll(target);
-		if ((timeout_ms -= 10) <= 0)
+		if ((retval=target_halt(target))!=ERROR_OK)
+			return retval;
+		if ((retval=target_wait_state(target, TARGET_HALTED, 500))!=ERROR_OK)
 		{
-			LOG_ERROR("timeout waiting for algorithm to complete, trying to halt target");
-			target_halt(target);
-			timeout_ms = 1000;
-			while (target->state != TARGET_HALTED)
-			{
-				alive_sleep(10);
-				target_poll(target);
-				if ((timeout_ms -= 10) <= 0)
-				{
-					LOG_ERROR("target didn't reenter debug state, exiting");
-					exit(-1);
-				}
-			}
-			retval = ERROR_TARGET_TIMEOUT;
+			return retval;
 		}
+		return ERROR_TARGET_TIMEOUT;
 	}
 	
-	if ((retval != ERROR_TARGET_TIMEOUT) && 
-		(buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != exit_point))
+	if (buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != exit_point)
 	{
 		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
 			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32)); 
+		return ERROR_TARGET_TIMEOUT;
 	}
 	
 	breakpoint_remove(target, exit_point);

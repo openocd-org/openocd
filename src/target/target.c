@@ -1634,7 +1634,7 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 	{
 		if ((retval=target_poll(target))!=ERROR_OK)
 			return retval;
-		target_call_timer_callbacks_now();
+		keep_alive();
 		if (target->state == state)
 		{
 			break;

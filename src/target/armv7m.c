@@ -368,29 +368,24 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	target_resume(target, 0, entry_point, 1, 1);
 	target_poll(target);
 	
-	while (target->state != TARGET_HALTED)
+	target_wait_state(target, TARGET_HALTED, timeout_ms);
+	if (target->state != TARGET_HALTED)
 	{
-		usleep(5000);
-		target_poll(target);
-		if ((timeout_ms -= 5) <= 0)
+		if ((retval=target_halt(target))!=ERROR_OK)
+			return retval;
+		if ((retval=target_wait_state(target, TARGET_HALTED, 500))!=ERROR_OK)
 		{
-			LOG_ERROR("timeout waiting for algorithm to complete, trying to halt target");
-			target_halt(target);
-			timeout_ms = 1000;
-			while (target->state != TARGET_HALTED)
-			{
-				usleep(10000);
-				target_poll(target);
-				if ((timeout_ms -= 10) <= 0)
-				{
-					LOG_ERROR("target didn't reenter debug state, exiting");
-					exit(-1);
-				}
-			}
-			armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
-			LOG_DEBUG("failed algoritm halted at 0x%x ", pc); 
-			retval = ERROR_TARGET_TIMEOUT;
+			return retval;
 		}
+		return ERROR_TARGET_TIMEOUT;
+	}
+	
+	
+	armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
+	if (pc != exit_point)
+	{
+		LOG_DEBUG("failed algoritm halted at 0x%x ", pc); 
+		return ERROR_TARGET_TIMEOUT;
 	}
 	
 	breakpoint_remove(target, exit_point);
