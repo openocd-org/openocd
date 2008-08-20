@@ -155,7 +155,7 @@ int amt_jtagaccel_speed(int speed)
 	return ERROR_OK;
 }
 
-void amt_jtagaccel_end_state(state)
+void amt_jtagaccel_end_state(int state)
 {
 	if (tap_move_map[state] != -1)
 		end_state = state;
