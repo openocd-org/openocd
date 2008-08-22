@@ -12526,7 +12526,7 @@ int
 Jim_SetResult_sprintf( Jim_Interp *interp, const char *fmt,... )
 {
 	va_list ap;
-#if 0
+#ifndef HAVE_VASPRINTF
 	/* yucky way */
 	char buf[2048];
 
