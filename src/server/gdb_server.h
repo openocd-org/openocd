@@ -39,6 +39,7 @@ typedef struct gdb_connection_s
 	image_t *vflash_image;
 	int closed;
 	int busy;
+	int noack_mode;
 } gdb_connection_t;
 
 typedef struct gdb_service_s

@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                      *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -338,7 +338,10 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			gdb_write(connection, buffer, len);
 			gdb_write(connection, local_buffer+1, 3);
 		}
-
+		
+		if (gdb_con->noack_mode)
+			break;
+		
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
 
@@ -477,7 +480,8 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 						i++;
 						my_checksum += character & 0xff;
 						buffer[count++] = (character ^ 0x20) & 0xff;
-					} else
+					}
+					else
 					{
 						my_checksum += character & 0xff;
 						buffer[count++] = character & 0xff;
@@ -515,7 +519,6 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 				my_checksum += character & 0xff;
 				buffer[count++] = character & 0xff;
 			}
-
 		}
 
 		*len = count;
@@ -530,12 +533,22 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 
 		if (my_checksum == strtoul(checksum, NULL, 16))
 		{
+			if (gdb_con->noack_mode)
+				break;
 			gdb_write(connection, "+", 1);
 			break;
 		}
 
-		LOG_WARNING("checksum error, requesting retransmission");
-		gdb_write(connection, "-", 1);
+		if (!gdb_con->noack_mode)
+		{
+			LOG_WARNING("checksum error, requesting retransmission");
+			gdb_write(connection, "-", 1);
+		}
+		else
+		{
+			LOG_WARNING("checksum error, no-ack-mode");
+			break;
+		}
 	}
 	if (gdb_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
@@ -664,6 +677,7 @@ int gdb_new_connection(connection_t *connection)
 	gdb_connection->vflash_image = NULL;
 	gdb_connection->closed = 0;
 	gdb_connection->busy = 0;
+	gdb_connection->noack_mode = 0;
 	
 	/* send ACK to GDB for debug request */
 	gdb_write(connection, "+", 1);
@@ -1459,7 +1473,8 @@ static int compare_bank (const void * a, const void * b)
 int gdb_query_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	command_context_t *cmd_ctx = connection->cmd_ctx;
-
+	gdb_connection_t *gdb_connection = connection->priv;
+	
 	if (strstr(packet, "qRcmd,"))
 	{
 		if (packet_size > 6)
@@ -1536,7 +1551,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		int size = 0;
 
 		xml_printf(&retval, &buffer, &pos, &size,
-				"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-",
+				"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-;QStartNoAckMode+",
 				(GDB_BUFFER_SIZE - 1), ((gdb_use_memory_map == 1)&&(flash_get_bank_count()>0)) ? '+' : '-');
 
 		if (retval != ERROR_OK)
@@ -1694,6 +1709,12 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		gdb_put_packet(connection, xml, strlen(xml));
 
 		free(xml);
+		return ERROR_OK;
+	}
+	else if (strstr(packet, "QStartNoAckMode"))
+	{
+		gdb_connection->noack_mode = 1;
+		gdb_put_packet(connection, "OK", 2);
 		return ERROR_OK;
 	}
 
@@ -1917,6 +1938,7 @@ int gdb_input_inner(connection_t *connection)
 					gdb_put_packet(connection, NULL, 0);
 					break;
 				case 'q':
+				case 'Q':
 					retval = gdb_query_packet(connection, target, packet, packet_size);
 					break;
 				case 'g':
