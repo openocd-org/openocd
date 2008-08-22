@@ -870,7 +870,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 		return ERROR_FAIL;
 	}
 
-	if (address+size<address)
+	if ((address + size - 1) < address)
 	{
 		/* GDB can request this when e.g. PC is 0xfffffffc*/
 		LOG_ERROR("address+size wrapped(0x%08x, 0x%08x)", address, size);
@@ -946,7 +946,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 		return ERROR_FAIL;
 	}
 
-	if (address+size<address)
+	if ((address + size - 1) < address)
 	{
 		/* GDB can request this when e.g. PC is 0xfffffffc*/
 		LOG_ERROR("address+size wrapped(0x%08x, 0x%08x)", address, size);
