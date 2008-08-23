@@ -2015,6 +2015,8 @@ int gdb_input_inner(connection_t *connection)
 					break;
 				case 'R':
 					/* handle extended restart packet */
+					breakpoint_clear_target(gdb_service->target);
+					watchpoint_clear_target(gdb_service->target);
 					command_run_linef(connection->cmd_ctx, "ocd_gdb_restart %d", get_num_by_target(target));
 					break;
 				default:
