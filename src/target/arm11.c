@@ -726,7 +726,8 @@ int arm11_halt(struct target_s *target)
 
     arm11_common_t * arm11 = target->arch_info;
 
-    LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+    LOG_DEBUG("target->state: %s", 
+	      Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 
     if (target->state == TARGET_UNKNOWN)
     {
@@ -782,7 +783,9 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
     arm11_common_t * arm11 = target->arch_info;
 
-    LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+    LOG_DEBUG("target->state: %s", 
+	      Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+
 
     if (target->state != TARGET_HALTED)
 	{
@@ -877,7 +880,8 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 {
     FNC_INFO;
 
-    LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+    LOG_DEBUG("target->state: %s", 
+	      Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 
     if (target->state != TARGET_HALTED)
     {
@@ -1012,7 +1016,9 @@ int arm11_deassert_reset(struct target_s *target)
     FNC_INFO;
 
 #if 0
-    LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+    LOG_DEBUG("target->state: %s", 
+	      Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+
 
     /* deassert reset lines */
     jtag_add_reset(0, 0);
@@ -1667,7 +1673,7 @@ arm11_common_t * arm11_find_target(const char * arg)
     size_t jtag_target		= strtoul(arg, NULL, 0);
 
     {target_t * t;
-    for (t = targets; t; t = t->next)
+    for (t = all_targets; t; t = t->next)
     {
 	if (t->type != &arm11_target)
 	    continue;

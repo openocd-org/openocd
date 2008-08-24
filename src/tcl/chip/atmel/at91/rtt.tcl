@@ -15,7 +15,9 @@ proc show_RTTC_RTMR_helper { NAME ADDR VAL } {
 	set rtpres 65536;
     } 
     global AT91C_SLOWOSC_FREQ
-    set f [expr double($AT91C_SLOWOSC_FREQ) / double($rtpres)]
+    # Nasty hack, make this a float by tacking a .0 on the end
+    # otherwise, jim makes the value an integer
+    set f [expr $AT91C_SLOWOSC_FREQ.0 / $rtpres.0]
     puts [format "\tPrescale value: 0x%04x (%5d) => %f Hz" $rtpres $rtpres $f]
     if { $VAL & $BIT16 } {
 	puts "\tBit16 -> Alarm IRQ Enabled"

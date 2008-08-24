@@ -80,6 +80,11 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 
+static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv);
+static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv);
+
+
+
 /* targets */
 extern target_type_t arm7tdmi_target;
 extern target_type_t arm720t_target;
@@ -109,31 +114,104 @@ target_type_t *target_types[] =
 	NULL,
 };
 
-target_t *targets = NULL;
+target_t *all_targets = NULL;
 target_event_callback_t *target_event_callbacks = NULL;
 target_timer_callback_t *target_timer_callbacks = NULL;
 
-char *target_state_strings[] =
-{
-	"unknown",
-	"running",
-	"halted",
-	"reset",
-	"debug_running",
+const Jim_Nvp nvp_assert[] = {
+	{ .name = "assert", NVP_ASSERT },
+	{ .name = "deassert", NVP_DEASSERT },
+	{ .name = "T", NVP_ASSERT },
+	{ .name = "F", NVP_DEASSERT },
+	{ .name = "t", NVP_ASSERT },
+	{ .name = "f", NVP_DEASSERT },
+	{ .name = NULL, .value = -1 }
 };
 
-char *target_debug_reason_strings[] =
-{
-	"debug request", "breakpoint", "watchpoint",
-	"watchpoint and breakpoint", "single step",
-	"target not halted", "undefined"
+const Jim_Nvp nvp_target_event[] = {
+	{ .value = TARGET_EVENT_HALTED, .name = "halted" },
+	{ .value = TARGET_EVENT_RESUMED, .name = "resumed" },
+	{ .value = TARGET_EVENT_RESUME_START, .name = "resume-start" },
+	{ .value = TARGET_EVENT_RESUME_END, .name = "resume-end" },
+
+	/* historical name */
+	{ .value = TARGET_EVENT_RESET_START  , .name = "pre_reset" },
+	{ .value = TARGET_EVENT_RESET_START, .name = "reset-start" },
+	/* historical name */
+	{ .value = TARGET_EVENT_RESET      , .name = "reset" },
+	{ .value = TARGET_EVENT_RESET_INIT , .name = "reset-init" },
+	{ .value = TARGET_EVENT_RESET_END, .name = "reset-end" },
+
+	{ .value = TARGET_EVENT_DEBUG_HALTED, .name = "debug-halted" },
+	{ .value = TARGET_EVENT_DEBUG_RESUMED, .name = "debug-resumed" },
+
+	{ .value = TARGET_EVENT_GDB_ATTACH, .name = "gdb-attach" },
+	{ .value = TARGET_EVENT_GDB_DETACH, .name = "gdb-detach" },
+
+	{ .value = TARGET_EVENT_GDB_FLASH_WRITE_START, .name = "gdb-flash-write-start" },
+	{ .value = TARGET_EVENT_GDB_FLASH_WRITE_END  , .name = "gdb-flash-write-end"   },
+
+	{ .value = TARGET_EVENT_GDB_FLASH_ERASE_START , .name = "gdb_program_config" },
+
+	{ .value = TARGET_EVENT_GDB_FLASH_ERASE_START, .name = "gdb-flash-erase-start" },
+	{ .value = TARGET_EVENT_GDB_FLASH_ERASE_END  , .name = "gdb-flash-erase-end" },
+
+	{ .value = TARGET_EVENT_RESUME_START, .name = "resume-start" },
+	{ .value = TARGET_EVENT_RESUMED     , .name = "resume-ok" },
+	{ .value = TARGET_EVENT_RESUME_END  , .name = "resume-end" },
+
+	{ .name = NULL, .value = -1 }
 };
 
-char *target_endianess_strings[] =
-{
-	"big endian",
-	"little endian",
+const Jim_Nvp nvp_target_state[] = {
+	{ .name = "unknown", .value = TARGET_UNKNOWN },
+	{ .name = "running", .value = TARGET_RUNNING },
+	{ .name = "halted",  .value = TARGET_HALTED },
+	{ .name = "reset",   .value = TARGET_RESET },
+	{ .name = "debug-running", .value = TARGET_DEBUG_RUNNING },
+	{ .name = NULL, .value = -1 },
 };
+
+
+const Jim_Nvp nvp_target_debug_reason [] = {
+	{ .name = "debug-request"            , .value = DBG_REASON_DBGRQ },
+	{ .name = "breakpoint"               , .value = DBG_REASON_BREAKPOINT },
+	{ .name = "watchpoint"               , .value = DBG_REASON_WATCHPOINT },
+	{ .name = "watchpoint-and-breakpoint", .value = DBG_REASON_WPTANDBKPT },
+	{ .name = "single-step"              , .value = DBG_REASON_SINGLESTEP },
+	{ .name = "target-not-halted"        , .value = DBG_REASON_NOTHALTED  },
+	{ .name = "undefined"                , .value = DBG_REASON_UNDEFINED },
+	{ .name = NULL, .value = -1 },
+};
+
+
+const Jim_Nvp nvp_target_endian[] = {
+	{ .name = "big",    .value = TARGET_BIG_ENDIAN },
+	{ .name = "little", .value = TARGET_LITTLE_ENDIAN },
+	{ .name = "be",     .value = TARGET_BIG_ENDIAN },
+        { .name = "le",     .value = TARGET_LITTLE_ENDIAN },
+	{ .name = NULL,     .value = -1 },
+};
+
+
+/* determine the number of the new target */
+static int
+new_target_number( void )
+{
+	target_t *t;
+	int x;
+
+	/* number is 0 based */
+	x = -1;
+	t = all_targets;
+	while(t){
+		if( x < t->target_number ){
+			x = t->target_number;
+		}
+		t = t->next;
+	}
+	return x+1;
+}
 
 static int target_continous_poll = 1;
 
@@ -155,6 +233,12 @@ u16 target_buffer_get_u16(target_t *target, u8 *buffer)
 		return be_to_h_u16(buffer);
 }
 
+/* read a u8 from a buffer in target memory endianness */
+u8 target_buffer_get_u8(target_t *target, u8 *buffer)
+{
+	return *buffer & 0x0ff;
+}
+
 /* write a u32 to a buffer in target memory endianness */
 void target_buffer_set_u32(target_t *target, u8 *buffer, u32 value)
 {
@@ -173,18 +257,22 @@ void target_buffer_set_u16(target_t *target, u8 *buffer, u16 value)
 		h_u16_to_be(buffer, value);
 }
 
+/* write a u8 to a buffer in target memory endianness */
+void target_buffer_set_u8(target_t *target, u8 *buffer, u8 value)
+{
+	*buffer = value;
+}
+
 /* returns a pointer to the n-th configured target */
 target_t* get_target_by_num(int num)
 {
-	target_t *target = targets;
-	int i = 0;
+	target_t *target = all_targets;
 
-	while (target)
-	{
-		if (num == i)
+	while (target){
+		if( target->target_number == num ){
 			return target;
+		} 
 		target = target->next;
-		i++;
 	}
 
 	return NULL;
@@ -192,18 +280,7 @@ target_t* get_target_by_num(int num)
 
 int get_num_by_target(target_t *query_target)
 {
-	target_t *target = targets;
-	int i = 0;
-
-	while (target)
-	{
-		if (target == query_target)
-			return i;
-		target = target->next;
-		i++;
-	}
-
-	return -1;
+	return query_target->target_number;
 }
 
 target_t* get_current_target(command_context_t *cmd_ctx)
@@ -268,7 +345,7 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	int retval = ERROR_OK;
 	target_t *target;
 
-	target = targets;
+	target = all_targets;
 	while (target)
 	{
 		target_invoke_script(cmd_ctx, target, "pre_reset");
@@ -295,7 +372,7 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 
 	keep_alive(); /* we might be running on a very slow JTAG clk */
 
-	target = targets;
+	target = all_targets;
 	while (target)
 	{
 		/* we have no idea what state the target is in, so we
@@ -308,7 +385,7 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 		target = target->next;
 	}
 
-	target = targets;
+	target = all_targets;
 	while (target)
 	{
 		if ((retval = target->type->deassert_reset(target))!=ERROR_OK)
@@ -316,7 +393,7 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 		target = target->next;
 	}
 
-	target = targets;
+	target = all_targets;
 	while (target)
 	{
 		/* We can fail to bring the target into the halted state, try after reset has been deasserted  */
@@ -340,14 +417,15 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 
 	if ((reset_mode == RESET_HALT) || (reset_mode == RESET_INIT))
 	{
-		target = targets;
+		target = all_targets;
 		while (target)
 		{
 			/* Wait for reset to complete, maximum 5 seconds. */
 			if (((retval=target_wait_state(target, TARGET_HALTED, 5000)))==ERROR_OK)
 			{
-				if (reset_mode == RESET_INIT)
+			  if (reset_mode == RESET_INIT)
 					target_invoke_script(cmd_ctx, target, "post_reset");
+
 			}
 			target = target->next;
 		}
@@ -386,7 +464,7 @@ static int default_examine(struct target_s *target)
 int target_examine(void)
 {
 	int retval = ERROR_OK;
-	target_t *target = targets;
+	target_t *target = all_targets;
 	while (target)
 	{
 		if ((retval = target->type->examine(target))!=ERROR_OK)
@@ -438,7 +516,7 @@ static int target_run_algorithm_imp(struct target_s *target, int num_mem_params,
 
 int target_init(struct command_context_s *cmd_ctx)
 {
-	target_t *target = targets;
+	target_t *target = all_targets;
 
 	while (target)
 	{
@@ -480,7 +558,7 @@ int target_init(struct command_context_s *cmd_ctx)
 		target = target->next;
 	}
 
-	if (targets)
+	if (all_targets)
 	{
 		target_register_user_commands(cmd_ctx);
 		target_register_timer_callback(handle_target, 100, 1, NULL);
@@ -611,6 +689,7 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 	target_event_callback_t *next_callback;
 
 	LOG_DEBUG("target event %i", event);
+
 
 	while (callback)
 	{
@@ -831,6 +910,7 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "PRELIMINARY! - profile <seconds> <gmon.out>");
 
 
+
 	/* script procedures */
 	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing");
 	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values");
@@ -846,7 +926,8 @@ int target_arch_state(struct target_s *target)
 		return ERROR_OK;
 	}
 
-	LOG_USER("target state: %s", target_state_strings[target->state]);
+	LOG_USER("target state: %s", 
+		 Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name);
 
 	if (target->state!=TARGET_HALTED)
 		return ERROR_OK;
@@ -1228,30 +1309,51 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	target_t *target = targets;
-	int count = 0;
+	char *cp;
+	target_t *target = all_targets;
 
 	if (argc == 1)
 	{
-		int num = strtoul(args[0], NULL, 0);
-
-		while (target)
-		{
-			count++;
-			target = target->next;
+		/* try as tcltarget name */
+		for( target = all_targets ; target ; target++ ){
+		  if( target->cmd_name ){
+			if( 0 == strcmp( args[0], target->cmd_name ) ){
+				/* MATCH */
+				goto Match;
+			} 
+		  }
 		}
-
-		if (num < count)
-			cmd_ctx->current_target = num;
-		else
-			command_print(cmd_ctx, "%i is out of bounds, only %i targets are configured", num, count);
-
+		/* no match, try as number */
+		
+		int num = strtoul(args[0], &cp, 0 );
+		if( *cp != 0 ){
+			/* then it was not a number */
+			command_print( cmd_ctx, "Target: %s unknown, try one of:\n", args[0] );
+			goto DumpTargets;
+		}
+			
+		target = get_target_by_num( num );
+		if( target == NULL ){
+			command_print(cmd_ctx,"Target: %s is unknown, try one of:\n", args[0] );
+			goto DumpTargets;
+		}
+	Match:
+		cmd_ctx->current_target = target->target_number;
 		return ERROR_OK;
 	}
+ DumpTargets:
 
+	command_print(cmd_ctx, "    CmdName    Type       Endian     State     ");
+	command_print(cmd_ctx, "--  ---------- ---------- ---------- ----------");
 	while (target)
 	{
-		command_print(cmd_ctx, "%i: %s (%s), state: %s", count++, target->type->name, target_endianess_strings[target->endianness], target_state_strings[target->state]);
+		/* XX: abcdefghij abcdefghij abcdefghij abcdefghij */
+		command_print(cmd_ctx, "%2d: %-10s %-10s %-10s %s", 
+					  target->target_number,
+					  "", // future: target->cmd_name
+					  target->type->name, 
+					  Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness )->name, 
+					  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 		target = target->next;
 	}
 
@@ -1275,7 +1377,7 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		{
 			if (strcmp(args[0], target_types[i]->name) == 0)
 			{
-				target_t **last_target_p = &targets;
+				target_t **last_target_p = &all_targets;
 
 				/* register target specific commands */
 				if (target_types[i]->register_commands(cmd_ctx) != ERROR_OK)
@@ -1291,7 +1393,13 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 					last_target_p = &((*last_target_p)->next);
 				}
 
-				*last_target_p = malloc(sizeof(target_t));
+				// get target number *before* adding new target to the list */
+				i = new_target_number();
+				// calloc will init the memory to zero for us
+				*last_target_p = calloc(1,sizeof(target_t));
+				// save target number.
+				(*last_target_p)->cmd_name = NULL;
+				(*last_target_p)->target_number = i;
 
 				/* allocate memory for each unique target type */
 				(*last_target_p)->type = (target_type_t*)malloc(sizeof(target_type_t));
@@ -1434,7 +1542,7 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 /* process target state changes */
 int handle_target(void *priv)
 {
-	target_t *target = targets;
+	target_t *target = all_targets;
 
 	while (target)
 	{
@@ -1642,13 +1750,15 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 		if (once)
 		{
 			once=0;
-			LOG_DEBUG("waiting for target %s...", target_state_strings[state]);
+			LOG_DEBUG("waiting for target %s...", 
+			      Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
 		}
 
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
-			LOG_ERROR("timed out while waiting for target %s", target_state_strings[state]);
+			LOG_ERROR("timed out while waiting for target %s", 
+			      Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
 			return ERROR_FAIL;
 		}
 	}
@@ -2571,8 +2681,27 @@ static int new_int_array_element(Jim_Interp * interp, const char *varname, int i
 
 static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	target_t *target;
 	command_context_t *context;
+	target_t *target;
+
+	context = Jim_GetAssocData(interp, "context");
+	if (context == NULL)
+	{
+		LOG_ERROR("mem2array: no command context");
+		return JIM_ERR;
+	}
+	target = get_current_target(context);
+	if (target == NULL)
+	{
+		LOG_ERROR("mem2array: no current target");
+		return JIM_ERR;
+	}
+
+	return 	target_mem2array(interp, target, argc,argv);
+}
+
+static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
+{
 	long l;
 	u32 width;
 	u32 len;
@@ -2652,19 +2781,6 @@ static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 		sprintf(buf, "mem2array address: 0x%08x is not aligned for %d byte reads", addr, width);
 		Jim_AppendStrings(interp, Jim_GetResult(interp), buf , NULL);
-		return JIM_ERR;
-	}
-
-	context = Jim_GetAssocData(interp, "context");
-	if (context == NULL)
-	{
-		LOG_ERROR("mem2array: no command context");
-		return JIM_ERR;
-	}
-	target = get_current_target(context);
-	if (target == NULL)
-	{
-		LOG_ERROR("mem2array: no current target");
 		return JIM_ERR;
 	}
 
@@ -2748,8 +2864,26 @@ static int get_int_array_element(Jim_Interp * interp, const char *varname, int i
 
 static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	target_t *target;
 	command_context_t *context;
+	target_t *target;
+	
+	context = Jim_GetAssocData(interp, "context");
+	if (context == NULL){
+		LOG_ERROR("array2mem: no command context");
+		return JIM_ERR;
+	}
+	target = get_current_target(context);
+	if (target == NULL){
+		LOG_ERROR("array2mem: no current target");
+		return JIM_ERR;
+	}
+	
+	return target_array2mem( interp,target, argc, argv );
+}
+			   
+
+static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
+{
 	long l;
 	u32 width;
 	u32 len;
@@ -2832,18 +2966,6 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 
-	context = Jim_GetAssocData(interp, "context");
-	if (context == NULL)
-	{
-		LOG_ERROR("array2mem: no command context");
-		return JIM_ERR;
-	}
-	target = get_current_target(context);
-	if (target == NULL)
-	{
-		LOG_ERROR("array2mem: no current target");
-		return JIM_ERR;
-	}
 
 	/* Transfer loop */
 
@@ -2881,7 +3003,7 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			/* BOO !*/
 			LOG_ERROR("array2mem: Write @ 0x%08x, w=%d, cnt=%d, failed", addr, width, count);
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-			Jim_AppendStrings(interp, Jim_GetResult(interp), "mem2array: cannot read memory", NULL);
+			Jim_AppendStrings(interp, Jim_GetResult(interp), "array2mem: cannot read memory", NULL);
 			e = JIM_ERR;
 			len = 0;
 		}
@@ -2891,3 +3013,11 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	return JIM_OK;
 }
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

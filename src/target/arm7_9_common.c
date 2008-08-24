@@ -734,7 +734,8 @@ int arm7_9_assert_reset(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", 
+		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
 
 	if (!(jtag_reset_config & RESET_HAS_SRST))
 	{
@@ -795,7 +796,9 @@ int arm7_9_assert_reset(target_t *target)
 int arm7_9_deassert_reset(target_t *target)
 {
 	int retval=ERROR_OK;
-	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", 
+		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
+
 
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
@@ -969,7 +972,8 @@ int arm7_9_halt(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
-	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", 
+		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
 
 	if (target->state == TARGET_HALTED)
 	{

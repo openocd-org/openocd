@@ -176,18 +176,18 @@ int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 
 debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 {
-	int all_targets = 0;
+	int do_all_targets = 0;
 	debug_msg_receiver_t **p = &target->dbgmsg;
 	
 	/* if no target has been specified search all of them */
 	if (target == NULL)
 	{
 		/* if no targets haven been specified */
-		if (targets == NULL)
+		if (all_targets == NULL)
 			return NULL;
 
-		target = targets;
-		all_targets = 1;
+		target = all_targets;
+		do_all_targets = 1;
 	}
 	
 	do
@@ -202,7 +202,7 @@ debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *cmd_ctx,
 		}
 		
 		target = target->next;
-	} while (target && all_targets);
+	} while (target && do_all_targets);
 	
 	return NULL;
 }
@@ -211,17 +211,17 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 {
 	debug_msg_receiver_t **p;
 	debug_msg_receiver_t *c;
-	int all_targets = 0;
+	int do_all_targets = 0;
 	
 	/* if no target has been specified search all of them */
 	if (target == NULL)
 	{
 		/* if no targets haven been specified */
-		if (targets == NULL)
+		if (all_targets == NULL)
 			return ERROR_OK;
 		
-		target = targets;
-		all_targets = 1;
+		target = all_targets;
+		do_all_targets = 1;
 	}
 
 	do
@@ -248,7 +248,7 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 		}
 	
 		target = target->next;
-	} while (target && all_targets);
+	} while (target && do_all_targets);
 	
 	return ERROR_OK;
 }

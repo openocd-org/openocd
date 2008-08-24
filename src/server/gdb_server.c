@@ -649,7 +649,7 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 		case TARGET_EVENT_HALTED:
 			gdb_frontend_halted(target, connection);
 			break;
-		case TARGET_EVENT_GDB_PROGRAM:
+		case TARGET_EVENT_GDB_FLASH_ERASE_START:
 			gdb_program_handler(target, event, connection->cmd_ctx);
 			break;
 		default:
@@ -1769,7 +1769,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		flash_set_dirty();
 
 		/* perform any target specific operations before the erase */
-		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_PROGRAM);
+		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_ERASE_START);
 
 		/* perform erase */
 		if ((result = flash_erase_address_range(gdb_service->target, addr, length)) != ERROR_OK)
@@ -2063,8 +2063,7 @@ int gdb_input(connection_t *connection)
 int gdb_init(void)
 {
 	gdb_service_t *gdb_service;
-	target_t *target = targets;
-	int i = 0;
+	target_t *target = all_targets;
 
 	if (!target)
 	{
@@ -2082,16 +2081,21 @@ int gdb_init(void)
 	{
 		char service_name[8];
 
-		snprintf(service_name, 8, "gdb-%2.2i", i);
+		snprintf(service_name, 8, "gdb-%2.2i", target->target_number);
 
 		gdb_service = malloc(sizeof(gdb_service_t));
 		gdb_service->target = target;
 
-		add_service("gdb", CONNECTION_GDB, gdb_port + i, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
+		add_service("gdb", CONNECTION_GDB, 
+			    gdb_port + target->target_number, 
+			    1, gdb_new_connection, gdb_input, 
+			    gdb_connection_closed, 
+			    gdb_service);
 
-		LOG_DEBUG("gdb service for target %s at port %i", target->type->name, gdb_port + i);
+		LOG_DEBUG("gdb service for target %s at port %i", 
+			  target->type->name, 
+			  gdb_port + target->target_number);
 
-		i++;
 		target = target->next;
 	}
 

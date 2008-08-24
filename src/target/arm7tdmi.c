@@ -45,6 +45,7 @@ int arm7tdmi_register_commands(struct command_context_s *cmd_ctx);
 
 /* forward declarations */
 int arm7tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int arm7tdmi_target_create(Jim_Interp *interp, struct target_s *target);
 int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm7tdmi_quit(void);
 
@@ -86,6 +87,7 @@ target_type_t arm7tdmi_target =
 
 	.register_commands = arm7tdmi_register_commands,
 	.target_command = arm7tdmi_target_command,
+	// .target_create    = arm7tdmi_target_create,
 	.init_target = arm7tdmi_init_target,
 	.examine = arm7tdmi_examine,
 	.quit = arm7tdmi_quit
@@ -759,7 +761,7 @@ int arm7tdmi_quit(void)
 	return ERROR_OK;
 }
 
-int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, int chain_pos, char *variant)
+int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, int chain_pos, const char *variant)
 {
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -851,6 +853,20 @@ int arm7tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
+int arm7tdmi_target_create(Jim_Interp *interp,
+						   struct target_s *target)
+{
+	arm7tdmi_common_t *arm7tdmi;
+	
+	arm7tdmi = calloc(1,sizeof(arm7tdmi_common_t));
+	
+	arm7tdmi_init_arch_info(target, arm7tdmi, target->chain_position, target->variant);
+	
+	return ERROR_OK;
+}
+
+
+
 int arm7tdmi_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
@@ -861,3 +877,10 @@ int arm7tdmi_register_commands(struct command_context_s *cmd_ctx)
 
 }
 
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

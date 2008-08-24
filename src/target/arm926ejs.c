@@ -562,7 +562,7 @@ int arm926ejs_arch_state(struct target_s *target)
 			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s",
 			 armv4_5_state_strings[armv4_5->core_state],
-			 target_debug_reason_strings[target->debug_reason],
+			 Jim_Nvp_value2name_simple( nvp_target_debug_reason,target->debug_reason)->name,
 			 armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)],
 			 buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),

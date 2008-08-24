@@ -55,14 +55,24 @@ enum target_state
 	TARGET_DEBUG_RUNNING = 4,
 };
 
-extern char *target_state_strings[];
+extern const Jim_Nvp nvp_target_state[];
+
+enum nvp_assert {
+	NVP_DEASSERT,
+	NVP_ASSERT,
+};
+
+extern const Jim_Nvp nvp_assert[];
 
 enum target_reset_mode
 {
-	RESET_RUN = 0,		/* reset and let target run */
-	RESET_HALT = 1,		/* reset and halt target out of reset */
-	RESET_INIT = 2,		/* reset and halt target out of reset, then run init script */
+	RESET_UNKNOWN = 0,
+	RESET_RUN = 1,		/* reset and let target run */
+	RESET_HALT = 2,		/* reset and halt target out of reset */
+	RESET_INIT = 3,		/* reset and halt target out of reset, then run init script */
 };
+
+extern const Jim_Nvp nvp_reset_mode[];
 
 enum target_debug_reason
 {
@@ -75,14 +85,15 @@ enum target_debug_reason
 	DBG_REASON_UNDEFINED = 6
 };
 
-extern char *target_debug_reason_strings[];
+extern const Jim_Nvp nvp_target_debug_reason[];
 
 enum target_endianess
 {
-	TARGET_BIG_ENDIAN = 0, TARGET_LITTLE_ENDIAN = 1
+	TARGET_ENDIAN_UNKNOWN=0,
+	TARGET_BIG_ENDIAN = 1, TARGET_LITTLE_ENDIAN = 2
 };
 
-extern char *target_endianess_strings[];
+extern const Jim_Nvp nvp_target_endian[];
 
 struct target_s;
 
@@ -190,6 +201,19 @@ typedef struct target_type_s
 	int (*run_algorithm)(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
 	
 	int (*register_commands)(struct command_context_s *cmd_ctx);
+	/* called when target is created */
+	int (*target_jim_create)( struct target_s *target, Jim_Interp *interp );
+
+	/* called for various config parameters */
+	/* returns JIM_CONTINUE - if option not understood */
+	/* otherwise: JIM_OK, or JIM_ERR, */
+	int (*target_jim_configure)( struct target_s *target, Jim_GetOptInfo *goi );
+
+	/* target commands specifically handled by the target */
+	/* returns JIM_OK, or JIM_ERR, or JIM_CONTINUE - if option not understood */
+	int (*target_jim_commands)( struct target_s *target, Jim_GetOptInfo *goi );
+
+	/* old init function */
 	int (*target_command)(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 	/* invoked after JTAG chain has been examined & validated. During
 	 * this stage the target is examined and any additional setup is
@@ -211,9 +235,19 @@ typedef struct target_type_s
 	
 } target_type_t;
 
+// forward decloration
+typedef struct target_event_action_s target_event_action_t;
+
 typedef struct target_s
 {
 	target_type_t *type;				/* target type definition (name, access functions) */
+	const char *cmd_name;               /* tcl Name of target */
+	int target_number;                  /* generaly, target index but may not be in order */
+	int chain_position;                 /* where on the jtag chain is this */
+	const char *variant;                /* what varient of this chip is it? */
+	enum target_reset_mode reset_mode;  /* how should this target be reset */
+	target_event_action_t *event_action;
+
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
 	u32 working_area;					/* working area (initialized RAM). Evaluated 
 										   upon first allocation from virtual/physical address. */
@@ -237,13 +271,35 @@ typedef struct target_s
 
 enum target_event
 {
-	TARGET_EVENT_HALTED,		/* target entered debug state from normal execution or reset */
-	TARGET_EVENT_RESUMED,		/* target resumed to normal execution */
-	TARGET_EVENT_RESET,			/* target entered reset */
-	TARGET_EVENT_DEBUG_HALTED,	/* target entered debug state, but was executing on behalf of the debugger */
-	TARGET_EVENT_DEBUG_RESUMED, /* target resumed to execute on behalf of the debugger */
-	TARGET_EVENT_GDB_PROGRAM	/* target about to be be programmed by gdb */
+ 	TARGET_EVENT_HALTED,		/* target entered debug state from normal execution or reset */
+ 	TARGET_EVENT_RESUMED,		/* target resumed to normal execution */
+	TARGET_EVENT_RESUME_START,
+	TARGET_EVENT_RESUME_END,
+
+	TARGET_EVENT_RESET_START,
+ 	TARGET_EVENT_RESET,			/* target entered reset */
+	TARGET_EVENT_RESET_INIT,
+	TARGET_EVENT_RESET_END,
+
+ 	TARGET_EVENT_DEBUG_HALTED,	/* target entered debug state, but was executing on behalf of the debugger */
+ 	TARGET_EVENT_DEBUG_RESUMED, /* target resumed to execute on behalf of the debugger */
+
+	TARGET_EVENT_GDB_ATTACH,
+	TARGET_EVENT_GDB_DETACH,
+
+	TARGET_EVENT_GDB_FLASH_ERASE_START,
+	TARGET_EVENT_GDB_FLASH_ERASE_END,
+	TARGET_EVENT_GDB_FLASH_WRITE_START,
+	TARGET_EVENT_GDB_FLASH_WRITE_END,
 };
+
+extern const Jim_Nvp nvp_target_event[];
+
+struct target_event_action_s {
+	enum target_event event;
+	Jim_Obj *body;
+	target_event_action_t *next;
+ };
 
 typedef struct target_event_callback_s
 {
@@ -314,15 +370,17 @@ extern int target_free_working_area_restore(struct target_s *target, working_are
 extern int target_free_all_working_areas(struct target_s *target);
 extern int target_free_all_working_areas_restore(struct target_s *target, int restore);
 
-extern target_t *targets;
+extern target_t *all_targets;
 
 extern target_event_callback_t *target_event_callbacks;
 extern target_timer_callback_t *target_timer_callbacks;
 
 extern u32 target_buffer_get_u32(target_t *target, u8 *buffer);
 extern u16 target_buffer_get_u16(target_t *target, u8 *buffer);
+extern u8  target_buffer_get_u8 (target_t *target, u8 *buffer);
 extern void target_buffer_set_u32(target_t *target, u8 *buffer, u32 value);
 extern void target_buffer_set_u16(target_t *target, u8 *buffer, u16 value);
+extern void target_buffer_set_u8 (target_t *target, u8 *buffer, u8  value);
 
 int target_read_u32(struct target_s *target, u32 address, u32 *value);
 int target_read_u16(struct target_s *target, u32 address, u16 *value);
@@ -336,6 +394,7 @@ int target_arch_state(struct target_s *target);
 
 int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, char *name);
 
+
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)
 #define ERROR_TARGET_TIMEOUT	(-302)
@@ -346,5 +405,14 @@ int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, ch
 #define ERROR_TARGET_RESOURCE_NOT_AVAILABLE	(-308)
 #define ERROR_TARGET_TRANSLATION_FAULT	(-309)
 #define ERROR_TARGET_NOT_RUNNING (-310)
+#define ERROR_TARGET_NOT_EXAMINED (-311)
 
 #endif /* TARGET_H */
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

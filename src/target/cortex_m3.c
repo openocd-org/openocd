@@ -359,8 +359,10 @@ int cortex_m3_debug_entry(target_t *target)
 		cortex_m3_examine_exception_reason(target);
 	}
 
-	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%x, target->state: %s", armv7m_mode_strings[armv7m->core_mode], \
-		*(u32*)(armv7m->core_cache->reg_list[15].value), target_state_strings[target->state]);
+	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%x, target->state: %s", 
+		  armv7m_mode_strings[armv7m->core_mode],
+		  *(u32*)(armv7m->core_cache->reg_list[15].value), 
+		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
 
 	if (armv7m->post_debug_entry)
 		armv7m->post_debug_entry(target);
@@ -436,7 +438,7 @@ int cortex_m3_poll(target_t *target)
 #if 0
     /* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
 	ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, target_state_strings[target->state]);
+	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, Jim_Nvp_value2name( nvp_target_state, target->state )->name );
 #endif
 	
 	return ERROR_OK;
@@ -449,7 +451,8 @@ int cortex_m3_halt(target_t *target)
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	
-	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", 
+		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 	
 	if (target->state == TARGET_HALTED)
 	{
@@ -676,7 +679,8 @@ int cortex_m3_assert_reset(target_t *target)
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	int assert_srst = 1;
 	
-	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", 
+		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 	
 	if (!(jtag_reset_config & RESET_HAS_SRST))
 	{
@@ -774,7 +778,8 @@ int cortex_m3_assert_reset(target_t *target)
 
 int cortex_m3_deassert_reset(target_t *target)
 {		
-	LOG_DEBUG("target->state: %s", target_state_strings[target->state]);
+	LOG_DEBUG("target->state: %s", 
+		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
 	
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
