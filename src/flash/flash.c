@@ -905,7 +905,7 @@ flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr)
 			return NULL;
 		}
 		/* check whether address belongs to this flash bank */
-		if ((addr >= c->base) && (addr < c->base + c->size) && target == c->target)
+		if ((addr >= c->base) && (addr <= c->base + (c->size - 1)) && target == c->target)
 			return c;
 	}
 	LOG_ERROR("No flash at address 0x%08x\n", addr);
