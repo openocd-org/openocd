@@ -66,7 +66,7 @@
 
 #include "replacements.h"
 
-extern int errno;
+
 /* --- */
 
 /* File event structure */
