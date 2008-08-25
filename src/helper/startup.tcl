@@ -161,3 +161,13 @@ proc ocd_gdb_restart {target_num} {
 	# one target
 	reset halt
 }
+
+
+# If RCLK is not supported, use fallback_speed_khz
+proc jtag_rclk {fallback_speed_khz} {
+	if {[catch {jtag_khz 0}]!=0} {
+		jtag_khz $fallback_speed_khz
+	}
+}
+
+add_help_text jtag_rclk "fallback_speed_khz - set JTAG speed to RCLK or use fallback speed"
