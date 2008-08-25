@@ -2173,8 +2173,9 @@ static Jim_Obj *JimStringToUpper(Jim_Interp *interp, Jim_Obj *strObjPtr)
  * TODO: Lots of things work - via a hack
  *       However, no format item can be >= JIM_MAX_FMT 
  */
-Jim_Obj *Jim_FormatString(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
-        int objc, Jim_Obj *const *objv)
+#define JIM_MAX_FMT 2048
+static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
+        int objc, Jim_Obj *const *objv, char *sprintf_buf)
 {
     const char *fmt, *_fmt;
     int fmtLen;
@@ -2190,8 +2191,6 @@ Jim_Obj *Jim_FormatString(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
         jim_wide wideValue;
 		double doubleValue;
 		/* we cheat and use Sprintf()! */
-#define JIM_MAX_FMT 2048
-		char sprintf_buf[JIM_MAX_FMT];
 		char fmt_str[100];
 		char *cp;
 		int width;
@@ -2454,6 +2453,15 @@ Jim_Obj *Jim_FormatString(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
         fmtLen--;
     }
     return resObjPtr;
+}
+
+Jim_Obj *Jim_FormatString(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
+        int objc, Jim_Obj *const *objv)
+{
+	char *sprintf_buf=malloc(JIM_MAX_FMT);
+	Jim_Obj *t=Jim_FormatString_Inner(interp, fmtObjPtr, objc, objv, sprintf_buf);
+	free(sprintf_buf);
+	return t; 
 }
 
 /* -----------------------------------------------------------------------------
@@ -8777,15 +8785,17 @@ int Jim_EvalFile(Jim_Interp *interp, const char *filename)
     int nread, totread, maxlen, buflen;
     int retval;
     Jim_Obj *scriptObjPtr;
-    char cwd[ 2048 ];
     
     if ((fp = fopen(filename, "r")) == NULL) {
+    	const int cwd_len=2048;
+		char *cwd=malloc(cwd_len);
         Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-	getcwd( cwd, sizeof(cwd) );
+	getcwd( cwd, cwd_len );
         Jim_AppendStrings(interp, Jim_GetResult(interp),
 	"Error loading script \"", filename, "\"",
 	    " cwd: ", cwd,
 	    " err: ", strerror(errno), NULL);
+	    free(cwd);
         return JIM_ERR;
     }
     buflen = 1024;
