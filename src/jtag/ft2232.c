@@ -273,6 +273,11 @@ int ft2232_speed_div(int speed, int *khz)
 
 int ft2232_khz(int khz, int *jtag_speed)
 {
+	if (khz==0)
+	{
+		LOG_ERROR("RCLK not supported");
+		return ERROR_FAIL;
+	}
 	/* Take a look in the FT2232 manual, 
 	 * AN2232C-01 Command Processor for
 	 * MPSSE and MCU Host Bus. Chapter 3.8
