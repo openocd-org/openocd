@@ -1394,12 +1394,12 @@ int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 				}
 
 				// get target number *before* adding new target to the list */
-				i = new_target_number();
+				int n = new_target_number();
 				// calloc will init the memory to zero for us
 				*last_target_p = calloc(1,sizeof(target_t));
 				// save target number.
 				(*last_target_p)->cmd_name = NULL;
-				(*last_target_p)->target_number = i;
+				(*last_target_p)->target_number = n;
 
 				/* allocate memory for each unique target type */
 				(*last_target_p)->type = (target_type_t*)malloc(sizeof(target_type_t));
