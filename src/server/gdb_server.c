@@ -395,13 +395,119 @@ int gdb_put_packet(connection_t *connection, char *buffer, int len)
 	return retval;
 }
 
+static __inline__ int fetch_packet(connection_t *connection, int *checksum_ok, int noack, int *len, char *buffer)
+{
+	unsigned char my_checksum = 0;
+	char checksum[3];
+	int character;
+	int retval;
+	
+	gdb_connection_t *gdb_con = connection->priv;
+	my_checksum = 0;
+	int count = 0;
+	count = 0;
+	for (;;)
+	{
+		/* The common case is that we have an entire packet with no escape chars.
+		 * We need to leave at least 2 bytes in the buffer to have
+		 * gdb_get_char() update various bits and bobs correctly.
+		 */
+		if ((gdb_con->buf_cnt > 2) && ((gdb_con->buf_cnt+count) < *len))
+		{
+			/* The compiler will struggle a bit with constant propagation and
+			 * aliasing, so we help it by showing that these values do not
+			 * change inside the loop
+			 */
+			int i;
+			char *buf = gdb_con->buf_p;
+			int run = gdb_con->buf_cnt - 2;
+			i = 0;
+			int done = 0;
+			while (i < run)
+			{
+				character = *buf++;
+				i++;
+				if (character == '#')
+				{
+					/* Danger! character can be '#' when esc is
+					 * used so we need an explicit boolean for done here.
+					 */
+					done = 1;
+					break;
+				}
+
+				if (character == '}')
+				{
+					/* data transmitted in binary mode (X packet)
+					 * uses 0x7d as escape character */
+					my_checksum += character & 0xff;
+					character = *buf++;
+					i++;
+					my_checksum += character & 0xff;
+					buffer[count++] = (character ^ 0x20) & 0xff;
+				}
+				else
+				{
+					my_checksum += character & 0xff;
+					buffer[count++] = character & 0xff;
+				}
+			}
+			gdb_con->buf_p += i;
+			gdb_con->buf_cnt -= i;
+			if (done)
+				break;
+		}
+		if (count > *len)
+		{
+			LOG_ERROR("packet buffer too small");
+			return ERROR_GDB_BUFFER_TOO_SMALL;
+		}
+
+		if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
+			return retval;
+
+		if (character == '#')
+			break;
+
+		if (character == '}')
+		{
+			/* data transmitted in binary mode (X packet)
+			 * uses 0x7d as escape character */
+			my_checksum += character & 0xff;
+			if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
+				return retval;
+			my_checksum += character & 0xff;
+			buffer[count++] = (character ^ 0x20) & 0xff;
+		}
+		else
+		{
+			my_checksum += character & 0xff;
+			buffer[count++] = character & 0xff;
+		}
+	}
+
+	*len = count;
+
+	if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
+		return retval;
+	checksum[0] = character;
+	if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
+		return retval;
+	checksum[1] = character;
+	checksum[2] = 0;
+	
+	if (!noack)
+	{
+		*checksum_ok=(my_checksum == strtoul(checksum, NULL, 16));
+	}
+	
+	return ERROR_OK;
+}
+
 int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 {
 	int character;
-	int count = 0;
 	int retval;
-	char checksum[3];
-	unsigned char my_checksum = 0;
 	gdb_connection_t *gdb_con = connection->priv;
 
 	while (1)
@@ -437,116 +543,30 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 			}
 		} while (character != '$');
 
-		my_checksum = 0;
 
-		count = 0;
-		gdb_connection_t *gdb_con = connection->priv;
-		for (;;)
+
+		int checksum_ok;
+		/* explicit code expansion here to get faster inlined code in -O3 by not
+		 * calculating checksum
+		 */
+		if (gdb_con->noack_mode)
 		{
-			/* The common case is that we have an entire packet with no escape chars.
-			 * We need to leave at least 2 bytes in the buffer to have
-			 * gdb_get_char() update various bits and bobs correctly.
-			 */
-			if ((gdb_con->buf_cnt > 2) && ((gdb_con->buf_cnt+count) < *len))
-			{
-				/* The compiler will struggle a bit with constant propagation and
-				 * aliasing, so we help it by showing that these values do not
-				 * change inside the loop
-				 */
-				int i;
-				char *buf = gdb_con->buf_p;
-				int run = gdb_con->buf_cnt - 2;
-				i = 0;
-				int done = 0;
-				while (i < run)
-				{
-					character = *buf++;
-					i++;
-					if (character == '#')
-					{
-						/* Danger! character can be '#' when esc is
-						 * used so we need an explicit boolean for done here.
-						 */
-						done = 1;
-						break;
-					}
-
-					if (character == '}')
-					{
-						/* data transmitted in binary mode (X packet)
-						 * uses 0x7d as escape character */
-						my_checksum += character & 0xff;
-						character = *buf++;
-						i++;
-						my_checksum += character & 0xff;
-						buffer[count++] = (character ^ 0x20) & 0xff;
-					}
-					else
-					{
-						my_checksum += character & 0xff;
-						buffer[count++] = character & 0xff;
-					}
-				}
-				gdb_con->buf_p += i;
-				gdb_con->buf_cnt -= i;
-				if (done)
-					break;
-			}
-			if (count > *len)
-			{
-				LOG_ERROR("packet buffer too small");
-				return ERROR_GDB_BUFFER_TOO_SMALL;
-			}
-
-			if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
+			if ((retval=fetch_packet(connection, &checksum_ok, 1, len, buffer))!=ERROR_OK)
 				return retval;
-
-			if (character == '#')
-				break;
-
-			if (character == '}')
-			{
-				/* data transmitted in binary mode (X packet)
-				 * uses 0x7d as escape character */
-				my_checksum += character & 0xff;
-				if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
-					return retval;
-				my_checksum += character & 0xff;
-				buffer[count++] = (character ^ 0x20) & 0xff;
-			}
-			else
-			{
-				my_checksum += character & 0xff;
-				buffer[count++] = character & 0xff;
-			}
+		} else
+		{
+			if ((retval=fetch_packet(connection, &checksum_ok, 0, len, buffer))!=ERROR_OK)
+				return retval;
 		}
 
-		*len = count;
-
-		if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
-			return retval;
-		checksum[0] = character;
-		if ((retval = gdb_get_char(connection, &character)) != ERROR_OK)
-			return retval;
-		checksum[1] = character;
-		checksum[2] = 0;
-
-		if (my_checksum == strtoul(checksum, NULL, 16))
+		if (gdb_con->noack_mode)
 		{
-			if (gdb_con->noack_mode)
-				break;
-			gdb_write(connection, "+", 1);
+			/* checksum is not checked in noack mode */
 			break;
 		}
-
-		if (!gdb_con->noack_mode)
+		if (checksum_ok)
 		{
-			LOG_WARNING("checksum error, requesting retransmission");
-			gdb_write(connection, "-", 1);
-		}
-		else
-		{
-			LOG_WARNING("checksum error, no-ack-mode");
+			gdb_write(connection, "+", 1);
 			break;
 		}
 	}
