@@ -305,8 +305,9 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 		{
 			return retval;
 		}
-		
-		while (1) {
+
+		int i;		
+		for (i=0; i<1000; i++) {
 			if ((retval=target_read_u8(target, adr, &status))!=ERROR_OK)
 			{
 				return retval;
@@ -314,6 +315,11 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 			if( status & 0x80 )
 				break;
 			alive_sleep(1);
+		}
+		if (i==1000)
+		{
+			LOG_ERROR("erase timed out");
+			return ERROR_FAIL;
 		}
 		
 		/* clear status, also clear read array */
@@ -571,12 +577,19 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		
 		/* get status command */
 		target_write_u16(target, bank_adr, 0x70);
-		
-		while (1) {
+	
+		int i;
+		for (i=0; i<1000; i++)
+		{	
 			target_read_u8(target, bank_adr, &status);
 			if( status & 0x80 )
 				break;
 			alive_sleep(1);
+		}
+		if (i==1000)
+		{
+			LOG_ERROR("write timed out");
+			return ERROR_FAIL;
 		}
 		
 		/* clear status reg and read array */
@@ -614,11 +627,18 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		/* query status command */
 		target_write_u16(target, bank_adr, 0x70);
 		
-		while (1) {
+		int i;
+		for (i=0; i<1000; i++)
+		{	
 			target_read_u8(target, bank_adr, &status);
 			if( status & 0x80 )
 				break;
 			alive_sleep(1);
+		}
+		if (i==1000)
+		{
+			LOG_ERROR("write timed out");
+			return ERROR_FAIL;
 		}
 		
 		/* clear status reg and read array */
