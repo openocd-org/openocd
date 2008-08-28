@@ -1438,6 +1438,10 @@ Certain OpenOCD commands have been deprecated/removed during the various revisio
 @item @b{load_binary}
 @cindex load_binary
 use @option{load_image} command with same args
+@item @b{target}
+@cindex target
+@option{target} no longer take the reset_init, reset_run, run_and_halt, run_and_init. The @option{reset} command
+always does a @option{reset run} when passed no arguments.
 @item @b{dump_binary}
 @cindex dump_binary
 use @option{dump_image} command with same args
