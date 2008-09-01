@@ -160,7 +160,7 @@ const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_OLD_gdb_program_config , .name = "old-gdb_program_config" },
 	{ .value = TARGET_EVENT_OLD_post_reset         , .name = "old-post_reset" },
 	{ .value = TARGET_EVENT_OLD_pre_resume         , .name = "old-pre_resume" },
-	
+
 
 	{ .value = TARGET_EVENT_HALTED, .name = "halted" },
 	{ .value = TARGET_EVENT_RESUMED, .name = "resumed" },
@@ -188,7 +188,7 @@ const Jim_Nvp nvp_target_event[] = {
 
 	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-start" },
 	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-end" },
-	
+
 
 	{ .value = TARGET_EVENT_DEBUG_HALTED, .name = "debug-halted" },
 	{ .value = TARGET_EVENT_DEBUG_RESUMED, .name = "debug-resumed" },
@@ -342,7 +342,7 @@ target_t* get_target_by_num(int num)
 	while (target){
 		if( target->target_number == num ){
 			return target;
-		} 
+		}
 		target = target->next;
 	}
 
@@ -758,8 +758,8 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 	target_event_callback_t *callback = target_event_callbacks;
 	target_event_callback_t *next_callback;
 
-	LOG_DEBUG("target event %i (%s)", 
-			  event, 
+	LOG_DEBUG("target event %i (%s)",
+			  event,
 			  Jim_Nvp_value2name_simple( nvp_target_event, event )->name );
 
 	target_handle_event( target, event );
@@ -1000,7 +1000,7 @@ int target_arch_state(struct target_s *target)
 		return ERROR_OK;
 	}
 
-	LOG_USER("target state: %s", 
+	LOG_USER("target state: %s",
 		 Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name);
 
 	if (target->state!=TARGET_HALTED)
@@ -1394,18 +1394,18 @@ int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **
 			if( 0 == strcmp( args[0], target->cmd_name ) ){
 				/* MATCH */
 				goto Match;
-			} 
+			}
 		  }
 		}
 		/* no match, try as number */
-		
+
 		int num = strtoul(args[0], &cp, 0 );
 		if( *cp != 0 ){
 			/* then it was not a number */
 			command_print( cmd_ctx, "Target: %s unknown, try one of:\n", args[0] );
 			goto DumpTargets;
 		}
-			
+
 		target = get_target_by_num( num );
 		if( target == NULL ){
 			command_print(cmd_ctx,"Target: %s is unknown, try one of:\n", args[0] );
@@ -1422,11 +1422,11 @@ int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	while (target)
 	{
 		/* XX: abcdefghij abcdefghij abcdefghij abcdefghij */
-		command_print(cmd_ctx, "%2d: %-10s %-10s %-10s %8d %s", 
+		command_print(cmd_ctx, "%2d: %-10s %-10s %-10s %8d %s",
 					  target->target_number,
 					  target->cmd_name,
-					  target->type->name, 
-					  Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness )->name, 
+					  target->type->name,
+					  Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness )->name,
 					  target->chain_position,
 					  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 		target = target->next;
@@ -1689,14 +1689,14 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 		if (once)
 		{
 			once=0;
-			LOG_DEBUG("waiting for target %s...", 
+			LOG_DEBUG("waiting for target %s...",
 			      Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
 		}
 
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
-			LOG_ERROR("timed out while waiting for target %s", 
+			LOG_ERROR("timed out while waiting for target %s",
 			      Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
 			return ERROR_FAIL;
 		}
@@ -2801,7 +2801,7 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	command_context_t *context;
 	target_t *target;
-	
+
 	context = Jim_GetAssocData(interp, "context");
 	if (context == NULL){
 		LOG_ERROR("array2mem: no command context");
@@ -2812,10 +2812,10 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		LOG_ERROR("array2mem: no current target");
 		return JIM_ERR;
 	}
-	
+
 	return target_array2mem( interp,target, argc, argv );
 }
-			   
+
 
 static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
 {
@@ -2955,7 +2955,7 @@ target_all_handle_event( enum target_event e )
 	target_t *target;
 
 
-	LOG_DEBUG( "**all*targets: event: %d, %s", 
+	LOG_DEBUG( "**all*targets: event: %d, %s",
 		   e,
 		   Jim_Nvp_value2name_simple( nvp_target_event, e )->name );
 
@@ -2990,7 +2990,7 @@ target_handle_event( target_t *target, enum target_event e )
 		teap = teap->next;
 	}
 	if( !done ){
-		LOG_DEBUG( "event: %d %s - no action", 
+		LOG_DEBUG( "event: %d %s - no action",
 				   e,
 				   Jim_Nvp_value2name_simple( nvp_target_event, e )->name );
 	}
@@ -2998,7 +2998,7 @@ target_handle_event( target_t *target, enum target_event e )
 
 enum target_cfg_param {
 	TCFG_TYPE,
-	TCFG_EVENT, 
+	TCFG_EVENT,
 	TCFG_RESET,
 	TCFG_WORK_AREA_VIRT,
 	TCFG_WORK_AREA_PHYS,
@@ -3021,10 +3021,10 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-endian" ,          .value = TCFG_ENDIAN },
 	{ .name = "-variant",          .value = TCFG_VARIANT },
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
-	
+
 	{ .name = NULL, .value = -1 }
 };
-	  
+
 
 static int
 target_configure( Jim_GetOptInfo *goi,
@@ -3093,7 +3093,7 @@ target_configure( Jim_GetOptInfo *goi,
 				if( goi->argc == 0 ){
 					Jim_WrongNumArgs( goi->interp, goi->argc, goi->argv, "-event ?event-name? ?EVENT-BODY?");
 					return JIM_ERR;
-				}  
+				}
 			} else {
 				if( goi->argc != 0 ){
 					Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event ?event-name?");
@@ -3101,10 +3101,10 @@ target_configure( Jim_GetOptInfo *goi,
 				}
 			}
 
-	
-			{ 
+
+			{
 				target_event_action_t *teap;
-				
+
 				teap = target->event_action;
 				/* replace existing? */
 				while( teap ){
@@ -3113,7 +3113,7 @@ target_configure( Jim_GetOptInfo *goi,
 					}
 					teap = teap->next;
 				}
-				
+
 				if( goi->isconfigure ){
 					if( teap == NULL ){
 						/* create new */
@@ -3126,7 +3126,7 @@ target_configure( Jim_GetOptInfo *goi,
 					}
 					teap->body  = Jim_DuplicateObj( goi->interp, o );
 					/*
-					 * FIXME: 
+					 * FIXME:
 					 *     Tcl/TK - "tk events" have a nice feature.
 					 *     See the "BIND" command.
 					 *    We should support that here.
@@ -3153,32 +3153,6 @@ target_configure( Jim_GetOptInfo *goi,
 			/* loop for more */
 			break;
 
-		case TCFG_RESET:
-			if( goi->isconfigure ){
-				e = Jim_GetOpt_Nvp( goi, nvp_reset_modes, &n );
-				if( e != JIM_OK ){
-					Jim_GetOpt_NvpUnknown( goi, nvp_reset_modes, 1 );
-					return e;
-				}
-				if( n->value == RESET_UNKNOWN ){
-					Jim_SetResultString( interp, "'unknown' is not a valid selection",-1);
-					return JIM_ERR;
-				}
-				target->reset_mode = n->value;
-			} else {
-				if( goi->argc != 0 ){
-					goto no_params;
-				}
-			}
-			n = Jim_Nvp_value2name_simple( nvp_reset_modes, target->reset_mode );
-			if( n->name == NULL ){
-				target->reset_mode = RESET_HALT;
-				n = Jim_Nvp_value2name_simple( nvp_reset_modes, target->reset_mode );
-			}
-			Jim_SetResultString( goi->interp, n->name, -1 );
-			/* loop for more */
-			break;
-			
 		case TCFG_WORK_AREA_VIRT:
 			if( goi->isconfigure ){
 				target_free_all_working_areas(target);
@@ -3191,11 +3165,11 @@ target_configure( Jim_GetOptInfo *goi,
 				if( goi->argc != 0 ){
 					goto no_params;
 				}
-			} 
+			}
 			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->working_area_virt ) );
 			/* loop for more */
 			break;
-				
+
 		case TCFG_WORK_AREA_PHYS:
 			if( goi->isconfigure ){
 				target_free_all_working_areas(target);
@@ -3208,7 +3182,7 @@ target_configure( Jim_GetOptInfo *goi,
 				if( goi->argc != 0 ){
 					goto no_params;
 				}
-			} 
+			}
 			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->working_area_phys ) );
 			/* loop for more */
 			break;
@@ -3225,7 +3199,7 @@ target_configure( Jim_GetOptInfo *goi,
 				if( goi->argc != 0 ){
 					goto no_params;
 				}
-			} 
+			}
 			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->working_area_size ) );
 			/* loop for more */
 			break;
@@ -3243,7 +3217,7 @@ target_configure( Jim_GetOptInfo *goi,
 				if( goi->argc != 0 ){
 					goto no_params;
 				}
-			} 
+			}
 			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->working_area_size ) );
 			/* loop for more e*/
 			break;
@@ -3265,7 +3239,7 @@ target_configure( Jim_GetOptInfo *goi,
 			if( n->name == NULL ){
 				target->endianness = TARGET_LITTLE_ENDIAN;
 				n = Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness );
-			} 
+			}
 			Jim_SetResultString( goi->interp, n->name, -1 );
 			/* loop for more */
 			break;
@@ -3287,7 +3261,7 @@ target_configure( Jim_GetOptInfo *goi,
 				if( goi->argc != 0 ){
 					goto no_params;
 				}
-			} 
+			}
 			Jim_SetResultString( goi->interp, target->variant,-1 );
 			/* loop for more */
 			break;
@@ -3304,7 +3278,7 @@ target_configure( Jim_GetOptInfo *goi,
 				if( goi->argc != 0 ){
 					goto no_params;
 				}
-			} 
+			}
 			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->chain_position ) );
 			/* loop for more e*/
 			break;
@@ -3318,7 +3292,7 @@ target_configure( Jim_GetOptInfo *goi,
 /** this is the 'tcl' handler for the target specific command */
 static int
 tcl_target_func( Jim_Interp *interp,
-				 int argc, 
+				 int argc,
 				 Jim_Obj *const *argv )
 {
 	Jim_GetOptInfo goi;
@@ -3334,12 +3308,12 @@ tcl_target_func( Jim_Interp *interp,
 	enum {
 		TS_CMD_CONFIGURE,
 		TS_CMD_CGET,
-		
+
 		TS_CMD_MWW, TS_CMD_MWH, TS_CMD_MWB,
 		TS_CMD_MDW, TS_CMD_MDH, TS_CMD_MDB,
 		TS_CMD_MRW, TS_CMD_MRH, TS_CMD_MRB,
 		TS_CMD_MEM2ARRAY, TS_CMD_ARRAY2MEM,
-		TS_CMD_EXAMINE, 
+		TS_CMD_EXAMINE,
 		TS_CMD_POLL,
 		TS_CMD_RESET,
 		TS_CMD_HALT,
@@ -3347,7 +3321,7 @@ tcl_target_func( Jim_Interp *interp,
 		TS_CMD_EVENTLIST,
 		TS_CMD_CURSTATE,
 	};
-	
+
 	static const Jim_Nvp target_options[] = {
 		{ .name = "configure", .value = TS_CMD_CONFIGURE },
 		{ .name = "cget", .value = TS_CMD_CGET },
@@ -3412,7 +3386,7 @@ tcl_target_func( Jim_Interp *interp,
 		 * argv[2] = data
 		 * argv[3] = optional count.
 		 */
-		  
+
 		if( (goi.argc == 3) || (goi.argc == 4) ){
 			/* all is well */
 		} else {
@@ -3420,7 +3394,7 @@ tcl_target_func( Jim_Interp *interp,
 			Jim_SetResult_sprintf( goi.interp, "expected: %s ADDR DATA [COUNT]", n->name );
 			return JIM_ERR;
 		}
-		
+
 		e = Jim_GetOpt_Wide( &goi, &a );
 		if( e != JIM_OK ){
 			goto mwx_error;
@@ -3438,7 +3412,7 @@ tcl_target_func( Jim_Interp *interp,
 		} else {
 			c = 1;
 		}
-			
+
 		switch( n->value ){
 		case TS_CMD_MWW:
 			target_buffer_set_u32( target, target_buf, b );
@@ -3515,7 +3489,7 @@ tcl_target_func( Jim_Interp *interp,
 				Jim_SetResult_sprintf( interp, "error reading target @ 0x%08lx", (int)(a) );
 				return JIM_ERR;
 			}
-			
+
 			Jim_fprintf( interp, interp->cookie_stdout, "0x%08x ", (int)(a) );
 			switch( b ){
 			case 4:
@@ -3549,7 +3523,7 @@ tcl_target_func( Jim_Interp *interp,
 			}
 			/* ascii-ify the bytes */
 			for( x = 0 ; x < y ; x++ ){
-				if( (target_buf[x] >= 0x20) && 
+				if( (target_buf[x] >= 0x20) &&
 					(target_buf[x] <= 0x7e) ){
 					/* good */
 				} else {
@@ -3633,7 +3607,7 @@ tcl_target_func( Jim_Interp *interp,
 		target->type->halt( target );
 		return JIM_OK;
 	case TS_CMD_WAITSTATE:
-		// params:  <name>  statename timeoutmsecs 
+		// params:  <name>  statename timeoutmsecs
 		if( goi.argc != 2 ){
 			Jim_SetResult_sprintf( goi.interp, "%s STATENAME TIMEOUTMSECS", n->name );
 			return JIM_ERR;
@@ -3650,7 +3624,7 @@ tcl_target_func( Jim_Interp *interp,
 		e = target_wait_state( target, n->value, a );
 		if( e == ERROR_OK ){
 			Jim_SetResult_sprintf( goi.interp,
-								   "target: %s wait %s fails %d", 
+								   "target: %s wait %s fails %d",
 								   target->cmd_name,
 								   n->name,
 								   target_strerror_safe(e) );
@@ -3666,12 +3640,12 @@ tcl_target_func( Jim_Interp *interp,
 			target_event_action_t *teap;
 			teap = target->event_action;
 			command_print( cmd_ctx, "Event actions for target (%d) %s\n",
-						   target->target_number, 
+						   target->target_number,
 						   target->cmd_name );
 			command_print( cmd_ctx, "%-25s | Body", "Event");
 			command_print( cmd_ctx, "------------------------- | ----------------------------------------");
 			while( teap ){
-				command_print( cmd_ctx, 
+				command_print( cmd_ctx,
 							   "%-25s | %s",
 							   Jim_Nvp_value2name_simple( nvp_target_event, teap->event )->name,
 							   Jim_GetString( teap->body, NULL ) );
@@ -3685,7 +3659,7 @@ tcl_target_func( Jim_Interp *interp,
 			Jim_WrongNumArgs( goi.interp, 0, argv, "[no parameters]");
 			return JIM_ERR;
 		}
-		Jim_SetResultString( goi.interp, 
+		Jim_SetResultString( goi.interp,
 							 Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name,-1);
 		return JIM_OK;
 	}
@@ -3695,8 +3669,8 @@ tcl_target_func( Jim_Interp *interp,
 
 static int
 target_create( Jim_GetOptInfo *goi )
-{	
-	
+{
+
 	Jim_Obj *new_cmd;
 	Jim_Cmd *cmd;
 	const char *cp;
@@ -3721,7 +3695,7 @@ target_create( Jim_GetOptInfo *goi )
 		Jim_SetResult_sprintf(goi->interp, "Command/target: %s Exists", cp);
 		return JIM_ERR;
 	}
-	
+
 	/* TYPE */
 	e = Jim_GetOpt_String( goi, &cp2, NULL );
 	cp = cp2;
@@ -3736,12 +3710,12 @@ target_create( Jim_GetOptInfo *goi )
 		Jim_SetResult_sprintf( goi->interp, "Unknown target type %s, try one of ", cp );
 		for( x = 0 ; target_types[x] ; x++ ){
 			if( target_types[x+1] ){
-				Jim_AppendStrings( goi->interp, 
+				Jim_AppendStrings( goi->interp,
 								   Jim_GetResult(goi->interp),
 								   target_types[x]->name,
 								   ", ", NULL);
 			} else {
-				Jim_AppendStrings( goi->interp, 
+				Jim_AppendStrings( goi->interp,
 								   Jim_GetResult(goi->interp),
 								   " or ",
 								   target_types[x]->name,NULL );
@@ -3750,7 +3724,7 @@ target_create( Jim_GetOptInfo *goi )
 		return JIM_ERR;
 	}
 
-		
+
 	/* Create it */
 	target = calloc(1,sizeof(target_t));
 	/* set target number */
@@ -3760,7 +3734,7 @@ target_create( Jim_GetOptInfo *goi )
 	target->type = (target_type_t*)calloc(1,sizeof(target_type_t));
 
 	memcpy( target->type, target_types[x], sizeof(target_type_t));
-	
+
 	/* will be set by "-endian" */
 	target->endianness = TARGET_ENDIAN_UNKNOWN;
 
@@ -3768,7 +3742,7 @@ target_create( Jim_GetOptInfo *goi )
 	target->working_area_size   = 0x0;
 	target->working_areas       = NULL;
 	target->backup_working_area = 0;
-	
+
 	target->state               = TARGET_UNKNOWN;
 	target->debug_reason        = DBG_REASON_UNDEFINED;
 	target->reg_cache           = NULL;
@@ -3776,7 +3750,7 @@ target_create( Jim_GetOptInfo *goi )
 	target->watchpoints         = NULL;
 	target->next                = NULL;
 	target->arch_info           = NULL;
-	
+
 	/* initialize trace information */
 	target->trace_info = malloc(sizeof(trace_t));
 	target->trace_info->num_trace_points         = 0;
@@ -3786,7 +3760,7 @@ target_create( Jim_GetOptInfo *goi )
 	target->trace_info->trace_history            = NULL;
 	target->trace_info->trace_history_pos        = 0;
 	target->trace_info->trace_history_overflowed = 0;
-	
+
 	target->dbgmsg          = NULL;
 	target->dbg_msg_enabled = 0;
 
@@ -3858,9 +3832,9 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		TG_CMD_COUNT,
 	};
 	const char *target_cmds[] = {
-		"create", "types", "names", "current", "number", 
+		"create", "types", "names", "current", "number",
 		"count",
-		NULL // terminate 
+		NULL // terminate
 	};
 
 	LOG_DEBUG("Target command params:");
@@ -3887,9 +3861,9 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		/* YES IT IS OLD SYNTAX */
 		Jim_Obj *new_argv[10];
 		int      new_argc;
-		
-		/* target_old_syntax 
-		 * 
+
+		/* target_old_syntax
+		 *
 		 * argv[0] typename (above)
 		 * argv[1] endian
 		 * argv[2] reset method, deprecated/ignored
@@ -3936,14 +3910,14 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		 *   argv[8] = -variant
 		 *   argv[9] = "somestring"
 		 */
-		
+
 		/* don't let these be released */
 		for( x = 0 ; x < new_argc ; x++ ){
 			Jim_IncrRefCount( new_argv[x]);
 		}
 		/* call our self */
 		LOG_DEBUG("Target OLD SYNTAX - converted to new syntax");
-		
+
 		r = jim_target( goi.interp, new_argc, new_argv );
 
 		/* release? these items */
@@ -3995,7 +3969,7 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 								   Jim_NewStringObj( goi.interp, target->cmd_name, -1 ) );
 			target = target->next;
 		}
-		return JIM_OK;		
+		return JIM_OK;
 	case TG_CMD_CREATE:
 		if( goi.argc < 3 ){
 			Jim_WrongNumArgs( goi.interp, goi.argc, goi.argv, "?name  ... config options ...");
@@ -4027,7 +4001,7 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			Jim_WrongNumArgs( goi.interp, 0, goi.argv, "<no parameters>");
 			return JIM_ERR;
 		}
-		Jim_SetResult( goi.interp, 
+		Jim_SetResult( goi.interp,
 					   Jim_NewIntObj( goi.interp, max_target_number()));
 		return JIM_OK;
 	}
