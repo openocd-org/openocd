@@ -4,6 +4,9 @@
  *                                                                         *
  *   Copyright (C) 2007,2008 Øyvind Harboe                                      *
  *   oyvind.harboe@zylin.com                                               *
+ * 
+ *   Copyright (C) 2008, Duane Ellis                                       *
+ *   openocd@duaneeellis.com                                               *
  *                                                                         *
  *   part of this file is taken from libcli (libcli.sourceforge.net)       *
  *   Copyright (C) David Parrish (david@dparrish.com)                      *
