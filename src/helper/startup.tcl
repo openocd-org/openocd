@@ -109,18 +109,40 @@ proc unknown {args} {
 	return -code error "Unknown command: $args"
 }
 
-
-proc target_script {target_num eventname scriptname} {
-	if {[string compare $eventname reset]==0} {
-		set eventname post_reset
-	}
-
-	# This is the script we invoke
-	proc "target_[set target_num]_[set eventname]" {} "script $scriptname" 
-	
+proc new_target_name { } {
+    return [target number [expr [target count] - 1 ]]
 }
 
-add_help_text target_script "<target#> <event=reset/pre_reset/post_halt/pre_resume/gdb_program_config> <script_file>"
+
+proc target_script {target_num eventname scriptname} {
+
+    set tname [target number $target_num]
+    
+    if { 0 == [string compare $eventname "reset"] } {
+	$tname configure -event old-post_reset "script $scriptname"
+	return
+    }
+
+    if { 0 == [string compare $eventname "post_reset"] } {
+	$tname configure -event old-post_reset "script $scriptname"
+	return
+    }
+
+    if { 0 == [string compare $eventname "pre_reset"] } {
+	$tname configure -event old-pre_reset "script $scriptname"
+	return
+    }
+
+    if { 0 == [string compare $eventname "gdb_program_config"] } {
+	$tname configure -event old-gdb_program_config "script $scriptname"
+	return
+    }
+
+    return -code error "Unknown target (old) event: $eventname (try $tname configure -event NAME)"
+
+}
+
+add_help_text target_script "DEPRECATED please see the new TARGETNAME configure -event interface"
 
 
 # Try flipping / and \ to find file if the filename does not

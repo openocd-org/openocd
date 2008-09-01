@@ -53,7 +53,7 @@
 int xscale_register_commands(struct command_context_s *cmd_ctx);
 
 /* forward declarations */
-int xscale_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int xscale_target_create(struct target_s *target, Jim_Interp *interp);
 int xscale_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int xscale_quit(void);
 
@@ -124,7 +124,7 @@ target_type_t xscale_target =
 	.remove_watchpoint = xscale_remove_watchpoint,
 
 	.register_commands = xscale_register_commands,
-	.target_command = xscale_target_command,
+	.target_create = xscale_target_create,
 	.init_target = xscale_init_target,
 	.quit = xscale_quit,
 	
@@ -3001,7 +3001,7 @@ int xscale_quit(void)
 	return ERROR_OK;
 }
 
-int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_pos, char *variant)
+int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_pos, const char *variant)
 {
 	armv4_5_common_t *armv4_5;
 	u32 high_reset_branch, low_reset_branch;
@@ -3112,24 +3112,11 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 }
 
 /* target xscale <endianess> <startup_mode> <chain_pos> <variant> */
-int xscale_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
+int xscale_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	int chain_pos;
-	char *variant = NULL;
-	xscale_common_t *xscale = malloc(sizeof(xscale_common_t));
-	memset(xscale, 0, sizeof(*xscale));
+	xscale_common_t *xscale = calloc(1,sizeof(xscale_common_t));
 
-	if (argc < 5)
-	{
-		LOG_ERROR("'target xscale' requires four arguments: <endianess> <startup_mode> <chain_pos> <variant>");
-		return ERROR_OK;
-	}
-
-	chain_pos = strtoul(args[3], NULL, 0);
-
-	variant = args[4];
-
-	xscale_init_arch_info(target, xscale, chain_pos, variant);
+	xscale_init_arch_info(target, xscale, target->chain_position, target->variant);
 	xscale_build_reg_cache(target);
 
 	return ERROR_OK;
@@ -3735,3 +3722,11 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 
 	return ERROR_OK;
 }
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

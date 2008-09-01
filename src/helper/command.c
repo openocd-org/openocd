@@ -210,7 +210,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	
 	/* we now need to add an overrideable proc */
 	const char *override_name=alloc_printf("proc %s%s%s {args} {if {[catch {eval \"ocd_%s%s%s $args\"}]==0} {return \"\"} else { return -code error }", t1, t2, t3, t1, t2, t3);
-	Jim_Eval(interp, override_name);	
+	Jim_Eval_Named(interp, override_name, __FILE__, __LINE__ );	
 	free((void *)override_name);
 	
 	/* accumulate help text in Tcl helptext list.  */
@@ -430,7 +430,7 @@ int command_run_line(command_context_t *context, char *line)
 		retcode = Jim_SetAssocData(interp, "retval", NULL, &retval);
 		if (retcode == JIM_OK)
 		{
-			retcode = Jim_Eval(interp, line);
+			retcode = Jim_Eval_Named(interp, line, __FILE__, __LINE__ );
 			
 			Jim_DeleteAssocData(interp, "retval");
 		}	
@@ -658,7 +658,7 @@ command_context_t* command_init()
 #ifdef JIM_EMBEDDED
 	Jim_EventLoopOnLoad(interp);
 #endif
-	if (Jim_Eval(interp, startup_tcl)==JIM_ERR)
+	if (Jim_Eval_Named(interp, startup_tcl, "embedded:startup.tcl",1)==JIM_ERR)
 	{
 		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD compile time)");
 		Jim_PrintErrorMessage(interp);

@@ -45,7 +45,7 @@ int cortex_m3_register_commands(struct command_context_s *cmd_ctx);
 /* forward declarations */
 void cortex_m3_enable_breakpoints(struct target_s *target);
 void cortex_m3_enable_watchpoints(struct target_s *target);
-int cortex_m3_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp);
 int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int cortex_m3_quit(void);
 int cortex_m3_load_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 *value);
@@ -91,7 +91,7 @@ target_type_t cortexm3_target =
 	.remove_watchpoint = cortex_m3_remove_watchpoint,
 
 	.register_commands = cortex_m3_register_commands,
-	.target_command = cortex_m3_target_command,
+	.target_create = cortex_m3_target_create,
 	.init_target = cortex_m3_init_target,
 	.examine = cortex_m3_examine,
 	.quit = cortex_m3_quit
@@ -1463,7 +1463,7 @@ int cortex_m3_handle_target_request(void *priv)
 	return ERROR_OK;
 }
 
-int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, int chain_pos, char *variant)
+int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, int chain_pos, const char *variant)
 {
 	armv7m_common_t *armv7m;
 	armv7m = &cortex_m3->armv7m;
@@ -1510,26 +1510,11 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, in
 	return ERROR_OK;
 }
 
-/* target cortex_m3 <endianess> <startup_mode> <chain_pos> <variant>*/
-int cortex_m3_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
+int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	int chain_pos;
-	char *variant = NULL;
-	cortex_m3_common_t *cortex_m3 = malloc(sizeof(cortex_m3_common_t));
-	memset(cortex_m3, 0, sizeof(*cortex_m3));
-
-	if (argc < 4)
-	{
-		LOG_ERROR("'target cortex_m3' requires at least one additional argument");
-		exit(-1);
-	}
+	cortex_m3_common_t *cortex_m3 = calloc(1,sizeof(cortex_m3_common_t));
 	
-	chain_pos = strtoul(args[3], NULL, 0);
-	
-	if (argc >= 5)
-		variant = args[4];
-	
-	cortex_m3_init_arch_info(target, cortex_m3, chain_pos, variant);
+	cortex_m3_init_arch_info(target, cortex_m3, target->chain_position, target->variant);
 	
 	return ERROR_OK;
 }
@@ -1542,3 +1527,11 @@ int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 	
 	return retval;
 }
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

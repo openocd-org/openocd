@@ -52,7 +52,7 @@
 
 int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
 
-int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -78,7 +78,7 @@ int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args,
 int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
-
+static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv);
 static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv);
@@ -128,19 +128,67 @@ const Jim_Nvp nvp_assert[] = {
 	{ .name = NULL, .value = -1 }
 };
 
+const Jim_Nvp nvp_error_target[] = {
+	{ .value = ERROR_TARGET_INVALID, .name = "err-invalid" },
+	{ .value = ERROR_TARGET_INIT_FAILED, .name = "err-init-failed" },
+	{ .value = ERROR_TARGET_TIMEOUT, .name = "err-timeout" },
+	{ .value = ERROR_TARGET_NOT_HALTED, .name = "err-not-halted" },
+	{ .value = ERROR_TARGET_FAILURE, .name = "err-failure" },
+	{ .value = ERROR_TARGET_UNALIGNED_ACCESS   , .name = "err-unaligned-access" },
+	{ .value = ERROR_TARGET_DATA_ABORT , .name = "err-data-abort" },
+	{ .value = ERROR_TARGET_RESOURCE_NOT_AVAILABLE , .name = "err-resource-not-available" },
+	{ .value = ERROR_TARGET_TRANSLATION_FAULT  , .name = "err-translation-fault" },
+	{ .value = ERROR_TARGET_NOT_RUNNING, .name = "err-not-running" },
+	{ .value = ERROR_TARGET_NOT_EXAMINED, .name = "err-not-examined" },
+	{ .value = -1, .name = NULL }
+};
+
+const char *target_strerror_safe( int err )
+{
+	const Jim_Nvp *n;
+
+	n = Jim_Nvp_value2name_simple( nvp_error_target, err );
+	if( n->name == NULL ){
+		return "unknown";
+	} else {
+		return n->name;
+	}
+}
+
 const Jim_Nvp nvp_target_event[] = {
+	{ .value = TARGET_EVENT_OLD_pre_reset          , .name = "old-pre_reset" },
+	{ .value = TARGET_EVENT_OLD_gdb_program_config , .name = "old-gdb_program_config" },
+	{ .value = TARGET_EVENT_OLD_post_reset         , .name = "old-post_reset" },
+	{ .value = TARGET_EVENT_OLD_pre_resume         , .name = "old-pre_resume" },
+	
+
 	{ .value = TARGET_EVENT_HALTED, .name = "halted" },
 	{ .value = TARGET_EVENT_RESUMED, .name = "resumed" },
 	{ .value = TARGET_EVENT_RESUME_START, .name = "resume-start" },
 	{ .value = TARGET_EVENT_RESUME_END, .name = "resume-end" },
 
 	/* historical name */
-	{ .value = TARGET_EVENT_RESET_START  , .name = "pre_reset" },
+
 	{ .value = TARGET_EVENT_RESET_START, .name = "reset-start" },
-	/* historical name */
-	{ .value = TARGET_EVENT_RESET      , .name = "reset" },
+
+	{ .value = TARGET_EVENT_RESET_ASSERT_PRE,    .name = "reset-assert-pre" },
+	{ .value = TARGET_EVENT_RESET_ASSERT_POST,   .name = "reset-assert-post" },
+	{ .value = TARGET_EVENT_RESET_DEASSERT_PRE,  .name = "reset-deassert-pre" },
+	{ .value = TARGET_EVENT_RESET_DEASSERT_POST, .name = "reset-deassert-post" },
+	{ .value = TARGET_EVENT_RESET_HALT_PRE,      .name = "reset-halt-pre" },
+	{ .value = TARGET_EVENT_RESET_HALT_POST,     .name = "reset-halt-post" },
+	{ .value = TARGET_EVENT_RESET_WAIT_PRE,      .name = "reset-wait-pre" },
+	{ .value = TARGET_EVENT_RESET_WAIT_POST,     .name = "reset-wait-post" },
 	{ .value = TARGET_EVENT_RESET_INIT , .name = "reset-init" },
 	{ .value = TARGET_EVENT_RESET_END, .name = "reset-end" },
+
+
+
+
+
+	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-start" },
+	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-end" },
+	
 
 	{ .value = TARGET_EVENT_DEBUG_HALTED, .name = "debug-halted" },
 	{ .value = TARGET_EVENT_DEBUG_RESUMED, .name = "debug-resumed" },
@@ -148,10 +196,9 @@ const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_GDB_ATTACH, .name = "gdb-attach" },
 	{ .value = TARGET_EVENT_GDB_DETACH, .name = "gdb-detach" },
 
+
 	{ .value = TARGET_EVENT_GDB_FLASH_WRITE_START, .name = "gdb-flash-write-start" },
 	{ .value = TARGET_EVENT_GDB_FLASH_WRITE_END  , .name = "gdb-flash-write-end"   },
-
-	{ .value = TARGET_EVENT_GDB_FLASH_ERASE_START , .name = "gdb_program_config" },
 
 	{ .value = TARGET_EVENT_GDB_FLASH_ERASE_START, .name = "gdb-flash-erase-start" },
 	{ .value = TARGET_EVENT_GDB_FLASH_ERASE_END  , .name = "gdb-flash-erase-end" },
@@ -193,6 +240,30 @@ const Jim_Nvp nvp_target_endian[] = {
 	{ .name = NULL,     .value = -1 },
 };
 
+const Jim_Nvp nvp_reset_modes[] = {
+	{ .name = "unknown", .value = RESET_UNKNOWN },
+	{ .name = "run"    , .value = RESET_RUN },
+	{ .name = "halt"   , .value = RESET_HALT },
+	{ .name = "init"   , .value = RESET_INIT },
+	{ .name = NULL     , .value = -1 },
+};
+
+static int
+max_target_number( void )
+{
+	target_t *t;
+	int x;
+
+	x = -1;
+	t = all_targets;
+	while( t ){
+		if( x < t->target_number ){
+			x = (t->target_number)+1;
+		}
+		t = t->next;
+	}
+	return x;
+}
 
 /* determine the number of the new target */
 static int
@@ -340,17 +411,15 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 	return retval;
 }
 
+// Next patch - this turns into TCL...
 int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
 {
 	int retval = ERROR_OK;
 	target_t *target;
 
 	target = all_targets;
-	while (target)
-	{
-		target_invoke_script(cmd_ctx, target, "pre_reset");
-		target = target->next;
-	}
+
+	target_all_handle_event( TARGET_EVENT_OLD_pre_reset );
 
 	if ((retval = jtag_init_reset(cmd_ctx)) != ERROR_OK)
 		return retval;
@@ -423,8 +492,9 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 			/* Wait for reset to complete, maximum 5 seconds. */
 			if (((retval=target_wait_state(target, TARGET_HALTED, 5000)))==ERROR_OK)
 			{
-			  if (reset_mode == RESET_INIT)
-					target_invoke_script(cmd_ctx, target, "post_reset");
+				if (reset_mode == RESET_INIT){
+					target_handle_event( target, TARGET_EVENT_OLD_post_reset );
+				}
 
 			}
 			target = target->next;
@@ -688,8 +758,11 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 	target_event_callback_t *callback = target_event_callbacks;
 	target_event_callback_t *next_callback;
 
-	LOG_DEBUG("target event %i", event);
+	LOG_DEBUG("target event %i (%s)", 
+			  event, 
+			  Jim_Nvp_value2name_simple( nvp_target_event, event )->name );
 
+	target_handle_event( target, event );
 
 	while (callback)
 	{
@@ -903,12 +976,13 @@ int target_free_all_working_areas(struct target_s *target)
 
 int target_register_commands(struct command_context_s *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "target", handle_target_command, COMMAND_CONFIG, "target <cpu> [reset_init default - DEPRECATED] <chainpos> <endianness> <variant> [cpu type specifc args]");
+
 	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, NULL);
 	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
 	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "PRELIMINARY! - profile <seconds> <gmon.out>");
 
+	register_jim(cmd_ctx, "target", jim_target, "configure target" );
 
 
 	/* script procedures */
@@ -1343,16 +1417,17 @@ int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	}
  DumpTargets:
 
-	command_print(cmd_ctx, "    CmdName    Type       Endian     State     ");
-	command_print(cmd_ctx, "--  ---------- ---------- ---------- ----------");
+	command_print(cmd_ctx, "    CmdName    Type       Endian     ChainPos State     ");
+	command_print(cmd_ctx, "--  ---------- ---------- ---------- -------- ----------");
 	while (target)
 	{
 		/* XX: abcdefghij abcdefghij abcdefghij abcdefghij */
-		command_print(cmd_ctx, "%2d: %-10s %-10s %-10s %s", 
+		command_print(cmd_ctx, "%2d: %-10s %-10s %-10s %8d %s", 
 					  target->target_number,
-					  "", // future: target->cmd_name
+					  target->cmd_name,
 					  target->type->name, 
 					  Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness )->name, 
+					  target->chain_position,
 					  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 		target = target->next;
 	}
@@ -1360,143 +1435,7 @@ int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	return ERROR_OK;
 }
 
-int handle_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	int i;
-	int found = 0;
 
-	if (argc < 3)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	/* search for the specified target */
-	if (args[0] && (args[0][0] != 0))
-	{
-		for (i = 0; target_types[i]; i++)
-		{
-			if (strcmp(args[0], target_types[i]->name) == 0)
-			{
-				target_t **last_target_p = &all_targets;
-
-				/* register target specific commands */
-				if (target_types[i]->register_commands(cmd_ctx) != ERROR_OK)
-				{
-					LOG_ERROR("couldn't register '%s' commands", args[0]);
-					exit(-1);
-				}
-
-				if (*last_target_p)
-				{
-					while ((*last_target_p)->next)
-						last_target_p = &((*last_target_p)->next);
-					last_target_p = &((*last_target_p)->next);
-				}
-
-				// get target number *before* adding new target to the list */
-				int n = new_target_number();
-				// calloc will init the memory to zero for us
-				*last_target_p = calloc(1,sizeof(target_t));
-				// save target number.
-				(*last_target_p)->cmd_name = NULL;
-				(*last_target_p)->target_number = n;
-
-				/* allocate memory for each unique target type */
-				(*last_target_p)->type = (target_type_t*)malloc(sizeof(target_type_t));
-				*((*last_target_p)->type) = *target_types[i];
-
-				if (strcmp(args[1], "big") == 0)
-					(*last_target_p)->endianness = TARGET_BIG_ENDIAN;
-				else if (strcmp(args[1], "little") == 0)
-					(*last_target_p)->endianness = TARGET_LITTLE_ENDIAN;
-				else
-				{
-					LOG_ERROR("endianness must be either 'little' or 'big', not '%s'", args[1]);
-					return ERROR_COMMAND_SYNTAX_ERROR;
-				}
-
-				if (strcmp(args[2], "reset_halt") == 0)
-				{
-					LOG_WARNING("reset_mode argument is obsolete.");
-					return ERROR_COMMAND_SYNTAX_ERROR;
-				}
-				else if (strcmp(args[2], "reset_run") == 0)
-				{
-					LOG_WARNING("reset_mode argument is obsolete.");
-					return ERROR_COMMAND_SYNTAX_ERROR;
-				}
-				else if (strcmp(args[2], "reset_init") == 0)
-				{
-					LOG_WARNING("reset_mode argument is obsolete.");
-					return ERROR_COMMAND_SYNTAX_ERROR;
-				}
-				else if (strcmp(args[2], "run_and_halt") == 0)
-				{
-					LOG_WARNING("reset_mode argument is obsolete.");
-					return ERROR_COMMAND_SYNTAX_ERROR;
-				}
-				else if (strcmp(args[2], "run_and_init") == 0)
-				{
-					LOG_WARNING("reset_mode argument is obsolete.");
-					return ERROR_COMMAND_SYNTAX_ERROR;
-				}
-				else
-				{
-					/* Kludge! we want to make this reset arg optional while remaining compatible! */
-					args--;
-					argc++;
-				}
-
-				(*last_target_p)->working_area = 0x0;
-				(*last_target_p)->working_area_size = 0x0;
-				(*last_target_p)->working_areas = NULL;
-				(*last_target_p)->backup_working_area = 0;
-
-				(*last_target_p)->state = TARGET_UNKNOWN;
-				(*last_target_p)->debug_reason = DBG_REASON_UNDEFINED;
-				(*last_target_p)->reg_cache = NULL;
-				(*last_target_p)->breakpoints = NULL;
-				(*last_target_p)->watchpoints = NULL;
-				(*last_target_p)->next = NULL;
-				(*last_target_p)->arch_info = NULL;
-
-				/* initialize trace information */
-				(*last_target_p)->trace_info = malloc(sizeof(trace_t));
-				(*last_target_p)->trace_info->num_trace_points = 0;
-				(*last_target_p)->trace_info->trace_points_size = 0;
-				(*last_target_p)->trace_info->trace_points = NULL;
-				(*last_target_p)->trace_info->trace_history_size = 0;
-				(*last_target_p)->trace_info->trace_history = NULL;
-				(*last_target_p)->trace_info->trace_history_pos = 0;
-				(*last_target_p)->trace_info->trace_history_overflowed = 0;
-
-				(*last_target_p)->dbgmsg = NULL;
-				(*last_target_p)->dbg_msg_enabled = 0;
-
-				(*last_target_p)->type->target_command(cmd_ctx, cmd, args, argc, *last_target_p);
-
-				found = 1;
-				break;
-			}
-		}
-	}
-
-	/* no matching target found */
-	if (!found)
-	{
-		LOG_ERROR("target '%s' not found", args[0]);
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return ERROR_OK;
-}
-
-int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, char *name)
-{
-	return command_run_linef(cmd_ctx, " if {[catch {info body target_%d_%s} t]==0} {target_%d_%s}",
-			get_num_by_target(target), name,
-			get_num_by_target(target), name);
-}
 
 int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -1794,20 +1733,16 @@ int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd,
 
 int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	const Jim_Nvp *n;
 	enum target_reset_mode reset_mode = RESET_RUN;
 
 	if (argc >= 1)
 	{
-		if (strcmp("run", args[0]) == 0)
-			reset_mode = RESET_RUN;
-		else if (strcmp("halt", args[0]) == 0)
-			reset_mode = RESET_HALT;
-		else if (strcmp("init", args[0]) == 0)
-			reset_mode = RESET_INIT;
-		else
-		{
+		n = Jim_Nvp_name2value_simple( nvp_reset_modes, args[0] );
+		if( (n->name == NULL) || (n->value == RESET_UNKNOWN) ){
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
+		reset_mode = n->value;
 	}
 
 	/* reset *all* targets */
@@ -1819,7 +1754,7 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
 
-	target_invoke_script(cmd_ctx, target, "pre_resume");
+	target_handle_event( target, TARGET_EVENT_OLD_pre_resume );
 
 	if (argc == 0)
 		retval = target_resume(target, 1, 0, 1, 0); /* current pc, addr = 0, handle breakpoints, not debugging */
@@ -1827,7 +1762,7 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		retval = target_resume(target, 0, strtoul(args[0], NULL, 0), 1, 0); /* addr = args[0], handle breakpoints, not debugging */
 	else
 	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		retval = ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return retval;
@@ -3013,6 +2948,1091 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 
 	return JIM_OK;
 }
+
+void
+target_all_handle_event( enum target_event e )
+{
+	target_t *target;
+
+
+	LOG_DEBUG( "**all*targets: event: %d, %s", 
+		   e,
+		   Jim_Nvp_value2name_simple( nvp_target_event, e )->name );
+
+	target = all_targets;
+	while (target){
+		target_handle_event( target, e );
+		target = target->next;
+	}
+}
+
+void
+target_handle_event( target_t *target, enum target_event e )
+{
+	target_event_action_t *teap;
+	int done;
+
+	teap = target->event_action;
+
+	done = 0;
+	while( teap ){
+		if( teap->event == e ){
+			done = 1;
+			LOG_DEBUG( "target: (%d) %s (%s) event: %d (%s) action: %s\n",
+					   target->target_number,
+					   target->cmd_name,
+					   target->type->name,
+					   e,
+					   Jim_Nvp_value2name_simple( nvp_target_event, e )->name,
+					   Jim_GetString( teap->body, NULL ) );
+			Jim_EvalObj( interp, teap->body );
+		}
+		teap = teap->next;
+	}
+	if( !done ){
+		LOG_DEBUG( "event: %d %s - no action", 
+				   e,
+				   Jim_Nvp_value2name_simple( nvp_target_event, e )->name );
+	}
+}
+
+enum target_cfg_param {
+	TCFG_TYPE,
+	TCFG_EVENT, 
+	TCFG_RESET,
+	TCFG_WORK_AREA_VIRT,
+	TCFG_WORK_AREA_PHYS,
+	TCFG_WORK_AREA_SIZE,
+	TCFG_WORK_AREA_BACKUP,
+	TCFG_ENDIAN,
+	TCFG_VARIANT,
+	TCFG_CHAIN_POSITION,
+};
+
+
+static Jim_Nvp nvp_config_opts[] = {
+	{ .name = "-type",             .value = TCFG_TYPE },
+	{ .name = "-event",            .value = TCFG_EVENT },
+	{ .name = "-reset",            .value = TCFG_RESET },
+	{ .name = "-work-area-virt",   .value = TCFG_WORK_AREA_VIRT },
+	{ .name = "-work-area-phys",   .value = TCFG_WORK_AREA_PHYS },
+	{ .name = "-work-area-size",   .value = TCFG_WORK_AREA_SIZE },
+	{ .name = "-work-area-backup", .value = TCFG_WORK_AREA_BACKUP },
+	{ .name = "-endian" ,          .value = TCFG_ENDIAN },
+	{ .name = "-variant",          .value = TCFG_VARIANT },
+	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
+	
+	{ .name = NULL, .value = -1 }
+};
+	  
+
+static int
+target_configure( Jim_GetOptInfo *goi,
+				  target_t *target )
+{
+	Jim_Nvp *n;
+	Jim_Obj *o;
+	jim_wide w;
+	char *cp;
+	int e;
+
+
+	/* parse config or cget options ... */
+	while( goi->argc ){
+		Jim_SetEmptyResult( goi->interp );
+		//Jim_GetOpt_Debug( goi );
+
+		if( target->type->target_jim_configure ){
+			/* target defines a configure function */
+			/* target gets first dibs on parameters */
+			e = (*(target->type->target_jim_configure))( target, goi );
+			if( e == JIM_OK ){
+				/* more? */
+				continue;
+			}
+			if( e == JIM_ERR ){
+				/* An error */
+				return e;
+			}
+			/* otherwise we 'continue' below */
+		}
+		e = Jim_GetOpt_Nvp( goi, nvp_config_opts, &n );
+		if( e != JIM_OK ){
+			Jim_GetOpt_NvpUnknown( goi, nvp_config_opts, 0 );
+			return e;
+		}
+		switch( n->value ){
+		case TCFG_TYPE:
+			/* not setable */
+			if( goi->isconfigure ){
+				Jim_SetResult_sprintf( goi->interp, "not setable: %s", n->name );
+				return JIM_ERR;
+			} else {
+			no_params:
+				if( goi->argc != 0 ){
+					Jim_WrongNumArgs( goi->interp, goi->argc, goi->argv, "NO PARAMS");
+					return JIM_ERR;
+				}
+			}
+			Jim_SetResultString( goi->interp, target->type->name, -1 );
+			/* loop for more */
+			break;
+		case TCFG_EVENT:
+			if( goi->argc == 0 ){
+				Jim_WrongNumArgs( goi->interp, goi->argc, goi->argv, "-event ?event-name? ...");
+				return JIM_ERR;
+			}
+
+			e = Jim_GetOpt_Nvp( goi, nvp_target_event, &n );
+			if( e != JIM_OK ){
+				Jim_GetOpt_NvpUnknown( goi, nvp_target_event, 1 );
+				return e;
+			}
+
+			if( goi->isconfigure ){
+				if( goi->argc == 0 ){
+					Jim_WrongNumArgs( goi->interp, goi->argc, goi->argv, "-event ?event-name? ?EVENT-BODY?");
+					return JIM_ERR;
+				}  
+			} else {
+				if( goi->argc != 0 ){
+					Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event ?event-name?");
+					return JIM_ERR;
+				}
+			}
+
+	
+			{ 
+				target_event_action_t *teap;
+				
+				teap = target->event_action;
+				/* replace existing? */
+				while( teap ){
+					if( teap->event == n->value ){
+						break;
+					}
+					teap = teap->next;
+				}
+				
+				if( goi->isconfigure ){
+					if( teap == NULL ){
+						/* create new */
+						teap = calloc( 1, sizeof(*teap) );
+					}
+					teap->event = n->value;
+					Jim_GetOpt_Obj( goi, &o );
+					if( teap->body ){
+						Jim_DecrRefCount( interp, teap->body );
+					}
+					teap->body  = Jim_DuplicateObj( goi->interp, o );
+					/*
+					 * FIXME: 
+					 *     Tcl/TK - "tk events" have a nice feature.
+					 *     See the "BIND" command.
+					 *    We should support that here.
+					 *     You can specify %X and %Y in the event code.
+					 *     The idea is: %T - target name.
+					 *     The idea is: %N - target number
+					 *     The idea is: %E - event name.
+					 */
+					Jim_IncrRefCount( teap->body );
+
+					/* add to head of event list */
+					teap->next = target->event_action;
+					target->event_action = teap;
+					Jim_SetEmptyResult(goi->interp);
+				} else {
+					/* get */
+					if( teap == NULL ){
+						Jim_SetEmptyResult( goi->interp );
+					} else {
+						Jim_SetResult( goi->interp, Jim_DuplicateObj( goi->interp, teap->body ) );
+					}
+				}
+			}
+			/* loop for more */
+			break;
+
+		case TCFG_RESET:
+			if( goi->isconfigure ){
+				e = Jim_GetOpt_Nvp( goi, nvp_reset_modes, &n );
+				if( e != JIM_OK ){
+					Jim_GetOpt_NvpUnknown( goi, nvp_reset_modes, 1 );
+					return e;
+				}
+				if( n->value == RESET_UNKNOWN ){
+					Jim_SetResultString( interp, "'unknown' is not a valid selection",-1);
+					return JIM_ERR;
+				}
+				target->reset_mode = n->value;
+			} else {
+				if( goi->argc != 0 ){
+					goto no_params;
+				}
+			}
+			n = Jim_Nvp_value2name_simple( nvp_reset_modes, target->reset_mode );
+			if( n->name == NULL ){
+				target->reset_mode = RESET_HALT;
+				n = Jim_Nvp_value2name_simple( nvp_reset_modes, target->reset_mode );
+			}
+			Jim_SetResultString( goi->interp, n->name, -1 );
+			/* loop for more */
+			break;
+			
+		case TCFG_WORK_AREA_VIRT:
+			if( goi->isconfigure ){
+				target_free_all_working_areas(target);
+				e = Jim_GetOpt_Wide( goi, &w );
+				if( e != JIM_OK ){
+					return e;
+				}
+				target->working_area_virt = w;
+			} else {
+				if( goi->argc != 0 ){
+					goto no_params;
+				}
+			} 
+			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->working_area_virt ) );
+			/* loop for more */
+			break;
+				
+		case TCFG_WORK_AREA_PHYS:
+			if( goi->isconfigure ){
+				target_free_all_working_areas(target);
+				e = Jim_GetOpt_Wide( goi, &w );
+				if( e != JIM_OK ){
+					return e;
+				}
+				target->working_area_phys = w;
+			} else {
+				if( goi->argc != 0 ){
+					goto no_params;
+				}
+			} 
+			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->working_area_phys ) );
+			/* loop for more */
+			break;
+
+		case TCFG_WORK_AREA_SIZE:
+			if( goi->isconfigure ){
+				target_free_all_working_areas(target);
+				e = Jim_GetOpt_Wide( goi, &w );
+				if( e != JIM_OK ){
+					return e;
+				}
+				target->working_area_size = w;
+			} else {
+				if( goi->argc != 0 ){
+					goto no_params;
+				}
+			} 
+			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->working_area_size ) );
+			/* loop for more */
+			break;
+
+		case TCFG_WORK_AREA_BACKUP:
+			if( goi->isconfigure ){
+				target_free_all_working_areas(target);
+				e = Jim_GetOpt_Wide( goi, &w );
+				if( e != JIM_OK ){
+					return e;
+				}
+				/* make this exactly 1 or 0 */
+				target->backup_working_area = (!!w);
+			} else {
+				if( goi->argc != 0 ){
+					goto no_params;
+				}
+			} 
+			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->working_area_size ) );
+			/* loop for more e*/
+			break;
+
+		case TCFG_ENDIAN:
+			if( goi->isconfigure ){
+				e = Jim_GetOpt_Nvp( goi, nvp_target_endian, &n );
+				if( e != JIM_OK ){
+					Jim_GetOpt_NvpUnknown( goi, nvp_target_endian, 1 );
+					return e;
+				}
+				target->endianness = n->value;
+			} else {
+				if( goi->argc != 0 ){
+					goto no_params;
+				}
+			}
+			n = Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness );
+			if( n->name == NULL ){
+				target->endianness = TARGET_LITTLE_ENDIAN;
+				n = Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness );
+			} 
+			Jim_SetResultString( goi->interp, n->name, -1 );
+			/* loop for more */
+			break;
+
+		case TCFG_VARIANT:
+			if( goi->isconfigure ){
+				if( goi->argc < 1 ){
+					Jim_SetResult_sprintf( goi->interp,
+										   "%s ?STRING?",
+										   n->name );
+					return JIM_ERR;
+				}
+				if( target->variant ){
+					free((void *)(target->variant));
+				}
+				e = Jim_GetOpt_String( goi, &cp, NULL );
+				target->variant = strdup(cp);
+			} else {
+				if( goi->argc != 0 ){
+					goto no_params;
+				}
+			} 
+			Jim_SetResultString( goi->interp, target->variant,-1 );
+			/* loop for more */
+			break;
+		case TCFG_CHAIN_POSITION:
+			if( goi->isconfigure ){
+				target_free_all_working_areas(target);
+				e = Jim_GetOpt_Wide( goi, &w );
+				if( e != JIM_OK ){
+					return e;
+				}
+				/* make this exactly 1 or 0 */
+				target->chain_position = w;
+			} else {
+				if( goi->argc != 0 ){
+					goto no_params;
+				}
+			} 
+			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->chain_position ) );
+			/* loop for more e*/
+			break;
+		}
+	}
+	/* done - we return */
+	return JIM_OK;
+}
+
+
+/** this is the 'tcl' handler for the target specific command */
+static int
+tcl_target_func( Jim_Interp *interp,
+				 int argc, 
+				 Jim_Obj *const *argv )
+{
+	Jim_GetOptInfo goi;
+	jim_wide a,b,c;
+	int x,y,z;
+	u8  target_buf[32];
+	Jim_Nvp *n;
+	target_t *target;
+	struct command_context_s *cmd_ctx;
+	int e;
+
+
+	enum {
+		TS_CMD_CONFIGURE,
+		TS_CMD_CGET,
+		
+		TS_CMD_MWW, TS_CMD_MWH, TS_CMD_MWB,
+		TS_CMD_MDW, TS_CMD_MDH, TS_CMD_MDB,
+		TS_CMD_MRW, TS_CMD_MRH, TS_CMD_MRB,
+		TS_CMD_MEM2ARRAY, TS_CMD_ARRAY2MEM,
+		TS_CMD_EXAMINE, 
+		TS_CMD_POLL,
+		TS_CMD_RESET,
+		TS_CMD_HALT,
+		TS_CMD_WAITSTATE,
+		TS_CMD_EVENTLIST,
+		TS_CMD_CURSTATE,
+	};
+	
+	static const Jim_Nvp target_options[] = {
+		{ .name = "configure", .value = TS_CMD_CONFIGURE },
+		{ .name = "cget", .value = TS_CMD_CGET },
+		{ .name = "mww", .value = TS_CMD_MWW },
+		{ .name = "mwh", .value = TS_CMD_MWH },
+		{ .name = "mwb", .value = TS_CMD_MWB },
+		{ .name = "mdw", .value = TS_CMD_MDW },
+		{ .name = "mdh", .value = TS_CMD_MDH },
+		{ .name = "mdb", .value = TS_CMD_MDB },
+		{ .name = "mem2array", .value = TS_CMD_MEM2ARRAY },
+		{ .name = "array2mem", .value = TS_CMD_ARRAY2MEM },
+		{ .name = "eventlist", .value = TS_CMD_EVENTLIST },
+		{ .name = "curstate",  .value = TS_CMD_CURSTATE },
+
+		{ .name = "arp_examine", .value = TS_CMD_EXAMINE },
+		{ .name = "arp_poll", .value = TS_CMD_POLL },
+		{ .name = "arp_reset", .value = TS_CMD_RESET },
+		{ .name = "arp_halt", .value = TS_CMD_HALT },
+		{ .name = "arp_waitstate", .value = TS_CMD_WAITSTATE },
+
+		{ .name = NULL, .value = -1 },
+	};
+
+
+	/* go past the "command" */
+	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
+
+	target = Jim_CmdPrivData( goi.interp );
+	cmd_ctx = Jim_GetAssocData(goi.interp, "context");
+
+	/* commands here are in an NVP table */
+	e = Jim_GetOpt_Nvp( &goi, target_options, &n );
+	if( e != JIM_OK ){
+		Jim_GetOpt_NvpUnknown( &goi, target_options, 0 );
+		return e;
+	}
+	// Assume blank result
+	Jim_SetEmptyResult( goi.interp );
+
+	switch( n->value ){
+	case TS_CMD_CONFIGURE:
+		if( goi.argc < 2 ){
+			Jim_WrongNumArgs( goi.interp, goi.argc, goi.argv, "missing: -option VALUE ...");
+			return JIM_ERR;
+		}
+		goi.isconfigure = 1;
+		return target_configure( &goi, target );
+	case TS_CMD_CGET:
+		// some things take params
+		if( goi.argc < 1 ){
+			Jim_WrongNumArgs( goi.interp, 0, goi.argv, "missing: ?-option?");
+			return JIM_ERR;
+		}
+		goi.isconfigure = 0;
+		return target_configure( &goi, target );
+		break;
+	case TS_CMD_MWW:
+	case TS_CMD_MWH:
+	case TS_CMD_MWB:
+		/* argv[0] = cmd
+		 * argv[1] = address
+		 * argv[2] = data
+		 * argv[3] = optional count.
+		 */
+		  
+		if( (goi.argc == 3) || (goi.argc == 4) ){
+			/* all is well */
+		} else {
+		mwx_error:
+			Jim_SetResult_sprintf( goi.interp, "expected: %s ADDR DATA [COUNT]", n->name );
+			return JIM_ERR;
+		}
+		
+		e = Jim_GetOpt_Wide( &goi, &a );
+		if( e != JIM_OK ){
+			goto mwx_error;
+		}
+
+		e = Jim_GetOpt_Wide( &goi, &b );
+		if( e != JIM_OK ){
+			goto mwx_error;
+		}
+		if( goi.argc ){
+			e = Jim_GetOpt_Wide( &goi, &c );
+			if( e != JIM_OK ){
+				goto mwx_error;
+			}
+		} else {
+			c = 1;
+		}
+			
+		switch( n->value ){
+		case TS_CMD_MWW:
+			target_buffer_set_u32( target, target_buf, b );
+			b = 4;
+			break;
+		case TS_CMD_MWH:
+			target_buffer_set_u16( target, target_buf, b );
+			b = 2;
+			break;
+		case TS_CMD_MWB:
+			target_buffer_set_u8( target, target_buf, b );
+			b = 1;
+			break;
+		}
+		for( x = 0 ; x < c ; x++ ){
+			e = target->type->write_memory( target, a, b, 1, target_buf );
+			if( e != ERROR_OK ){
+				Jim_SetResult_sprintf( interp, "Error writing @ 0x%08x: %d\n", (int)(a), e );
+				return JIM_ERR;
+			}
+			/* b = width */
+			a = a + b;
+		}
+		return JIM_OK;
+		break;
+
+		/* display */
+	case TS_CMD_MDW:
+	case TS_CMD_MDH:
+	case TS_CMD_MDB:
+		/* argv[0] = command
+		 * argv[1] = address
+		 * argv[2] = optional count
+		 */
+		if( (goi.argc == 2) || (goi.argc == 3) ){
+			Jim_SetResult_sprintf( goi.interp, "expected: %s ADDR [COUNT]", n->name );
+			return JIM_ERR;
+		}
+		e = Jim_GetOpt_Wide( &goi, &a );
+		if( e != JIM_OK ){
+			return JIM_ERR;
+		}
+		if( goi.argc ){
+			e = Jim_GetOpt_Wide( &goi, &c );
+			if( e != JIM_OK ){
+				return JIM_ERR;
+			}
+		} else {
+			c = 1;
+		}
+		b = 1; /* shut up gcc */
+		switch( n->value ){
+		case TS_CMD_MDW:
+			b =  4;
+			break;
+		case TS_CMD_MDH:
+			b = 2;
+			break;
+		case TS_CMD_MDB:
+			b = 1;
+			break;
+		}
+
+		/* convert to "bytes" */
+		c = c * b;
+		/* count is now in 'BYTES' */
+		while( c > 0 ){
+			y = c;
+			if( y > 16 ){
+				y = 16;
+			}
+			e = target->type->read_memory( target, a, b, y / b, target_buf );
+			if( e != ERROR_OK ){
+				Jim_SetResult_sprintf( interp, "error reading target @ 0x%08lx", (int)(a) );
+				return JIM_ERR;
+			}
+			
+			Jim_fprintf( interp, interp->cookie_stdout, "0x%08x ", (int)(a) );
+			switch( b ){
+			case 4:
+				for( x = 0 ; (x < 16) && (x < y) ; x += 4 ){
+					z = target_buffer_get_u32( target, &(target_buf[ x * 4 ]) );
+					Jim_fprintf( interp, interp->cookie_stdout, "%08x ", (int)(z) );
+				}
+				for( ; (x < 16) ; x += 4 ){
+					Jim_fprintf( interp, interp->cookie_stdout, "         " );
+				}
+				break;
+			case 2:
+				for( x = 0 ; (x < 16) && (x < y) ; x += 2 ){
+					z = target_buffer_get_u16( target, &(target_buf[ x * 2 ]) );
+					Jim_fprintf( interp, interp->cookie_stdout, "%04x ", (int)(z) );
+				}
+				for( ; (x < 16) ; x += 2 ){
+					Jim_fprintf( interp, interp->cookie_stdout, "     " );
+				}
+				break;
+			case 1:
+			default:
+				for( x = 0 ; (x < 16) && (x < y) ; x += 1 ){
+					z = target_buffer_get_u8( target, &(target_buf[ x * 4 ]) );
+					Jim_fprintf( interp, interp->cookie_stdout, "%02x ", (int)(z) );
+				}
+				for( ; (x < 16) ; x += 1 ){
+					Jim_fprintf( interp, interp->cookie_stdout, "   " );
+				}
+				break;
+			}
+			/* ascii-ify the bytes */
+			for( x = 0 ; x < y ; x++ ){
+				if( (target_buf[x] >= 0x20) && 
+					(target_buf[x] <= 0x7e) ){
+					/* good */
+				} else {
+					/* smack it */
+					target_buf[x] = '.';
+				}
+			}
+			/* space pad  */
+			while( x < 16 ){
+				target_buf[x] = ' ';
+				x++;
+			}
+			/* terminate */
+			target_buf[16] = 0;
+			/* print - with a newline */
+			Jim_fprintf( interp, interp->cookie_stdout, "%s\n", target_buf );
+			/* NEXT... */
+			c -= 16;
+			a += 16;
+		}
+		return JIM_OK;
+	case TS_CMD_MEM2ARRAY:
+		return target_mem2array( goi.interp, target, goi.argc, goi.argv );
+		break;
+	case TS_CMD_ARRAY2MEM:
+		return target_array2mem( goi.interp, target, goi.argc, goi.argv );
+		break;
+	case TS_CMD_EXAMINE:
+		if( goi.argc ){
+			Jim_WrongNumArgs( goi.interp, 0, argv, "[no parameters]");
+			return JIM_ERR;
+		}
+		e = target->type->examine( target );
+		if( e != ERROR_OK ){
+			Jim_SetResult_sprintf( interp, "examine-fails: %d", e );
+			return JIM_ERR;
+		}
+		return JIM_OK;
+	case TS_CMD_POLL:
+		if( goi.argc ){
+			Jim_WrongNumArgs( goi.interp, 0, argv, "[no parameters]");
+			return JIM_ERR;
+		}
+		if( !(target->type->examined) ){
+			e = ERROR_TARGET_NOT_EXAMINED;
+		} else {
+			e = target->type->poll( target );
+		}
+		if( e != ERROR_OK ){
+			Jim_SetResult_sprintf( interp, "poll-fails: %d", e );
+			return JIM_ERR;
+		} else {
+			return JIM_OK;
+		}
+		break;
+	case TS_CMD_RESET:
+		if( goi.argc != 1 ){
+			Jim_WrongNumArgs( interp, 1, argv, "reset t|f|assert|deassert");
+			return JIM_ERR;
+		}
+		e = Jim_GetOpt_Nvp( &goi, nvp_assert, &n );
+		if( e != JIM_OK ){
+			Jim_GetOpt_NvpUnknown( &goi, nvp_assert, 1 );
+			return e;
+		}
+		// When this happens - all workareas are invalid.
+		target_free_all_working_areas_restore(target, 0);
+
+		// do the assert
+		if( n->value == NVP_ASSERT ){
+			target->type->assert_reset( target );
+		} else {
+			target->type->deassert_reset( target );
+		}
+		return JIM_OK;
+	case TS_CMD_HALT:
+		if( goi.argc ){
+			Jim_WrongNumArgs( goi.interp, 0, argv, "halt [no parameters]");
+			return JIM_ERR;
+		}
+		target->type->halt( target );
+		return JIM_OK;
+	case TS_CMD_WAITSTATE:
+		// params:  <name>  statename timeoutmsecs 
+		if( goi.argc != 2 ){
+			Jim_SetResult_sprintf( goi.interp, "%s STATENAME TIMEOUTMSECS", n->name );
+			return JIM_ERR;
+		}
+		e = Jim_GetOpt_Nvp( &goi, nvp_target_state, &n );
+		if( e != JIM_OK ){
+			Jim_GetOpt_NvpUnknown( &goi, nvp_target_state,1 );
+			return e;
+		}
+		e = Jim_GetOpt_Wide( &goi, &a );
+		if( e != JIM_OK ){
+			return e;
+		}
+		e = target_wait_state( target, n->value, a );
+		if( e == ERROR_OK ){
+			Jim_SetResult_sprintf( goi.interp,
+								   "target: %s wait %s fails %d", 
+								   target->cmd_name,
+								   n->name,
+								   target_strerror_safe(e) );
+			return JIM_ERR;
+		} else {
+			return JIM_OK;
+		}
+	case TS_CMD_EVENTLIST:
+		/* List for human, Events defined for this target.
+		 * scripts/programs should use 'name cget -event NAME'
+		 */
+		{
+			target_event_action_t *teap;
+			teap = target->event_action;
+			command_print( cmd_ctx, "Event actions for target (%d) %s\n",
+						   target->target_number, 
+						   target->cmd_name );
+			command_print( cmd_ctx, "%-25s | Body", "Event");
+			command_print( cmd_ctx, "------------------------- | ----------------------------------------");
+			while( teap ){
+				command_print( cmd_ctx, 
+							   "%-25s | %s",
+							   Jim_Nvp_value2name_simple( nvp_target_event, teap->event )->name,
+							   Jim_GetString( teap->body, NULL ) );
+				teap = teap->next;
+			}
+			command_print( cmd_ctx, "***END***");
+			return JIM_OK;
+		}
+	case TS_CMD_CURSTATE:
+		if( goi.argc != 0 ){
+			Jim_WrongNumArgs( goi.interp, 0, argv, "[no parameters]");
+			return JIM_ERR;
+		}
+		Jim_SetResultString( goi.interp, 
+							 Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name,-1);
+		return JIM_OK;
+	}
+	return JIM_ERR;
+}
+
+
+static int
+target_create( Jim_GetOptInfo *goi )
+{	
+	
+	Jim_Obj *new_cmd;
+	Jim_Cmd *cmd;
+	const char *cp;
+	char *cp2;
+	int e;
+	int x;
+	target_t *target;
+	struct command_context_s *cmd_ctx;
+
+	cmd_ctx = Jim_GetAssocData(goi->interp, "context");
+	if( goi->argc < 3 ){
+		Jim_WrongNumArgs( goi->interp, 1, goi->argv, "?name? ?type? ..options...");
+		return JIM_ERR;
+	}
+
+	/* COMMAND */
+	Jim_GetOpt_Obj( goi, &new_cmd );
+	/* does this command exist? */
+	cmd = Jim_GetCommand( goi->interp, new_cmd, JIM_ERRMSG );
+	if( cmd ){
+		cp = Jim_GetString( new_cmd, NULL );
+		Jim_SetResult_sprintf(goi->interp, "Command/target: %s Exists", cp);
+		return JIM_ERR;
+	}
+	
+	/* TYPE */
+	e = Jim_GetOpt_String( goi, &cp2, NULL );
+	cp = cp2;
+	/* now does target type exist */
+	for( x = 0 ; target_types[x] ; x++ ){
+		if( 0 == strcmp( cp, target_types[x]->name ) ){
+			/* found */
+			break;
+		}
+	}
+	if( target_types[x] == NULL ){
+		Jim_SetResult_sprintf( goi->interp, "Unknown target type %s, try one of ", cp );
+		for( x = 0 ; target_types[x] ; x++ ){
+			if( target_types[x+1] ){
+				Jim_AppendStrings( goi->interp, 
+								   Jim_GetResult(goi->interp),
+								   target_types[x]->name,
+								   ", ", NULL);
+			} else {
+				Jim_AppendStrings( goi->interp, 
+								   Jim_GetResult(goi->interp),
+								   " or ",
+								   target_types[x]->name,NULL );
+			}
+		}
+		return JIM_ERR;
+	}
+
+		
+	/* Create it */
+	target = calloc(1,sizeof(target_t));
+	/* set target number */
+	target->target_number = new_target_number();
+
+	/* allocate memory for each unique target type */
+	target->type = (target_type_t*)calloc(1,sizeof(target_type_t));
+
+	memcpy( target->type, target_types[x], sizeof(target_type_t));
+	
+	/* will be set by "-endian" */
+	target->endianness = TARGET_ENDIAN_UNKNOWN;
+
+	target->working_area        = 0x0;
+	target->working_area_size   = 0x0;
+	target->working_areas       = NULL;
+	target->backup_working_area = 0;
+	
+	target->state               = TARGET_UNKNOWN;
+	target->debug_reason        = DBG_REASON_UNDEFINED;
+	target->reg_cache           = NULL;
+	target->breakpoints         = NULL;
+	target->watchpoints         = NULL;
+	target->next                = NULL;
+	target->arch_info           = NULL;
+	
+	/* initialize trace information */
+	target->trace_info = malloc(sizeof(trace_t));
+	target->trace_info->num_trace_points         = 0;
+	target->trace_info->trace_points_size        = 0;
+	target->trace_info->trace_points             = NULL;
+	target->trace_info->trace_history_size       = 0;
+	target->trace_info->trace_history            = NULL;
+	target->trace_info->trace_history_pos        = 0;
+	target->trace_info->trace_history_overflowed = 0;
+	
+	target->dbgmsg          = NULL;
+	target->dbg_msg_enabled = 0;
+
+	target->endianness = TARGET_ENDIAN_UNKNOWN;
+
+	/* Do the rest as "configure" options */
+	goi->isconfigure = 1;
+	e = target_configure( goi, target);
+	if( e != JIM_OK ){
+		free( target->type );
+		free( target );
+		return e;
+	}
+
+	if( target->endianness == TARGET_ENDIAN_UNKNOWN ){
+		/* default endian to little if not specified */
+		target->endianness = TARGET_LITTLE_ENDIAN;
+	}
+
+	/* create the target specific commands */
+	if( target->type->register_commands ){
+		(*(target->type->register_commands))( cmd_ctx );
+	}
+	if( target->type->target_create ){
+		(*(target->type->target_create))( target, goi->interp );
+	}
+
+	/* append to end of list */
+	{
+		target_t **tpp;
+		tpp = &(all_targets);
+		while( *tpp ){
+			tpp = &( (*tpp)->next );
+		}
+		*tpp = target;
+	}
+
+	cp = Jim_GetString( new_cmd, NULL );
+	target->cmd_name = strdup(cp);
+
+	/* now - create the new target name command */
+	e = Jim_CreateCommand( goi->interp,
+						   /* name */
+						   cp,
+						   tcl_target_func, /* C function */
+						   target, /* private data */
+						   NULL ); /* no del proc */
+
+	(*(target->type->target_create))( target, goi->interp );
+	return e;
+}
+
+static int
+jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
+{
+	int x,r,e;
+	jim_wide w;
+	struct command_context_s *cmd_ctx;
+	const char *cp;
+	target_t *target;
+	Jim_GetOptInfo goi;
+	enum tcmd {
+		/* TG = target generic */
+		TG_CMD_CREATE,
+		TG_CMD_TYPES,
+		TG_CMD_NAMES,
+		TG_CMD_CURRENT,
+		TG_CMD_NUMBER,
+		TG_CMD_COUNT,
+	};
+	const char *target_cmds[] = {
+		"create", "types", "names", "current", "number", 
+		"count",
+		NULL // terminate 
+	};
+
+	LOG_DEBUG("Target command params:");
+	LOG_DEBUG(Jim_Debug_ArgvString( interp, argc, argv) );
+
+	cmd_ctx = Jim_GetAssocData( interp, "context" );
+
+	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
+
+	if( goi.argc == 0 ){
+		Jim_WrongNumArgs(interp, 1, argv, "missing: command ...");
+		return JIM_ERR;
+	}
+
+	/* is this old syntax? */
+	/* To determine: We have to peek at argv[0]*/
+	cp = Jim_GetString( goi.argv[0], NULL );
+	for( x = 0 ; target_types[x] ; x++ ){
+		if( 0 == strcmp(cp,target_types[x]->name) ){
+			break;
+		}
+	}
+	if( target_types[x] ){
+		/* YES IT IS OLD SYNTAX */
+		Jim_Obj *new_argv[10];
+		int      new_argc;
+		
+		/* target_old_syntax 
+		 * 
+		 * argv[0] typename (above)
+		 * argv[1] endian
+		 * argv[2] reset method, deprecated/ignored
+		 * argv[3] = old param
+		 * argv[4] = old param
+		 *
+		 * We will combine all "old params" into a single param.
+		 * Then later, split them again.
+		 */
+		if( argc < 4 ){
+			Jim_WrongNumArgs( interp, 1, argv, "[OLDSYNTAX] ?TYPE? ?ENDIAN? ?RESET? ?old-params?");
+			return JIM_ERR;
+		}
+		/* the command */
+		new_argv[0] = argv[0];
+		new_argv[1] = Jim_NewStringObj( interp, "create", -1 );
+		{
+			char buf[ 30 ];
+			sprintf( buf, "target%d", new_target_number() );
+			new_argv[2] = Jim_NewStringObj( interp, buf , -1 );
+		}
+		new_argv[3] = goi.argv[0]; /* typename */
+		new_argv[4] = Jim_NewStringObj( interp, "-endian", -1 );
+		new_argv[5] = goi.argv[1];
+		new_argv[6] = Jim_NewStringObj( interp, "-chain-position", -1 );
+		new_argv[7] = goi.argv[2];
+		new_argv[8] = Jim_NewStringObj( interp, "-variant", -1 );
+		new_argv[9] = goi.argv[3];
+		new_argc = 10;
+		/*
+		 * new arg syntax:
+		 *   argv[0] = command
+		 *   argv[1] = create
+		 *   argv[2] = cmdname
+		 *   argv[3] = typename
+		 *   argv[4] = **FIRST** "configure" option.
+		 *
+		 * Here, we make them:
+		 *
+		 *   argv[4] = -endian
+		 *   argv[5] = little
+		 *   argv[6] = -position
+		 *   argv[7] = NUMBER
+		 *   argv[8] = -variant
+		 *   argv[9] = "somestring"
+		 */
+		
+		/* don't let these be released */
+		for( x = 0 ; x < new_argc ; x++ ){
+			Jim_IncrRefCount( new_argv[x]);
+		}
+		/* call our self */
+		LOG_DEBUG("Target OLD SYNTAX - converted to new syntax");
+		
+		r = jim_target( goi.interp, new_argc, new_argv );
+
+		/* release? these items */
+		for( x = 0 ; x < new_argc ; x++ ){
+			Jim_DecrRefCount( interp, new_argv[x] );
+		}
+		return r;
+	}
+
+	//Jim_GetOpt_Debug( &goi );
+	r = Jim_GetOpt_Enum( &goi, target_cmds, &x   );
+	if( r != JIM_OK ){
+		return r;
+	}
+
+	switch(x){
+	default:
+		Jim_Panic(goi.interp,"Why am I here?");
+		return JIM_ERR;
+	case TG_CMD_CURRENT:
+		if( goi.argc != 0 ){
+			Jim_WrongNumArgs( goi.interp, 1, goi.argv, "Too many parameters");
+			return JIM_ERR;
+		}
+		Jim_SetResultString( goi.interp, get_current_target( cmd_ctx )->cmd_name, -1 );
+		return JIM_OK;
+	case TG_CMD_TYPES:
+		if( goi.argc != 0 ){
+			Jim_WrongNumArgs( goi.interp, 1, goi.argv, "Too many parameters" );
+			return JIM_ERR;
+		}
+		Jim_SetResult( goi.interp, Jim_NewListObj( goi.interp, NULL, 0 ) );
+		for( x = 0 ; target_types[x] ; x++ ){
+			Jim_ListAppendElement( goi.interp,
+								   Jim_GetResult(goi.interp),
+								   Jim_NewStringObj( goi.interp, target_types[x]->name, -1 ) );
+		}
+		return JIM_OK;
+	case TG_CMD_NAMES:
+		if( goi.argc != 0 ){
+			Jim_WrongNumArgs( goi.interp, 1, goi.argv, "Too many parameters" );
+			return JIM_ERR;
+		}
+		Jim_SetResult( goi.interp, Jim_NewListObj( goi.interp, NULL, 0 ) );
+		target = all_targets;
+		while( target ){
+			Jim_ListAppendElement( goi.interp,
+								   Jim_GetResult(goi.interp),
+								   Jim_NewStringObj( goi.interp, target->cmd_name, -1 ) );
+			target = target->next;
+		}
+		return JIM_OK;		
+	case TG_CMD_CREATE:
+		if( goi.argc < 3 ){
+			Jim_WrongNumArgs( goi.interp, goi.argc, goi.argv, "?name  ... config options ...");
+			return JIM_ERR;
+		}
+		return target_create( &goi );
+		break;
+	case TG_CMD_NUMBER:
+		if( goi.argc != 1 ){
+			Jim_SetResult_sprintf( goi.interp, "expected: target number ?NUMBER?");
+			return JIM_ERR;
+		}
+		e = Jim_GetOpt_Wide( &goi, &w );
+		if( e != JIM_OK ){
+			return JIM_ERR;
+		}
+		{
+			target_t *t;
+			t = get_target_by_num(w);
+			if( t == NULL ){
+				Jim_SetResult_sprintf( goi.interp,"Target: number %d does not exist", (int)(w));
+				return JIM_ERR;
+			}
+			Jim_SetResultString( goi.interp, t->cmd_name, -1 );
+			return JIM_OK;
+		}
+	case TG_CMD_COUNT:
+		if( goi.argc != 0 ){
+			Jim_WrongNumArgs( goi.interp, 0, goi.argv, "<no parameters>");
+			return JIM_ERR;
+		}
+		Jim_SetResult( goi.interp, 
+					   Jim_NewIntObj( goi.interp, max_target_number()));
+		return JIM_OK;
+	}
+}
+
 
 
 /*

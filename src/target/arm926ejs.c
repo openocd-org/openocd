@@ -47,7 +47,7 @@ int arm926ejs_handle_read_cache_command(struct command_context_s *cmd_ctx, char 
 int arm926ejs_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* forward declarations */
-int arm926ejs_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp);
 int arm926ejs_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm926ejs_quit(void);
 int arm926ejs_arch_state(struct target_s *target);
@@ -90,7 +90,7 @@ target_type_t arm926ejs_target =
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
 	.register_commands = arm926ejs_register_commands,
-	.target_command = arm926ejs_target_command,
+	.target_create = arm926ejs_target_create,
 	.init_target = arm926ejs_init_target,
 	.examine = arm9tdmi_examine,
 	.quit = arm926ejs_quit,
@@ -680,7 +680,7 @@ int arm926ejs_quit(void)
 	return ERROR_OK;
 }
 
-int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, int chain_pos, char *variant)
+int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, int chain_pos, const char *variant)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm926ejs->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
@@ -717,27 +717,11 @@ int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, in
 	return ERROR_OK;
 }
 
-int arm926ejs_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
+int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	int chain_pos;
-	char *variant = NULL;
-	arm926ejs_common_t *arm926ejs = malloc(sizeof(arm926ejs_common_t));
-	memset(arm926ejs, 0, sizeof(*arm926ejs));
+	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
 	
-	if (argc < 4)
-	{
-		LOG_ERROR("'target arm926ejs' requires at least one additional argument");
-		exit(-1);
-	}
-	
-	chain_pos = strtoul(args[3], NULL, 0);
-	
-	if (argc >= 5)
-		variant = args[4];
-	
-	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
-	
-	arm926ejs_init_arch_info(target, arm926ejs, chain_pos, variant);
+	arm926ejs_init_arch_info(target, arm926ejs, target->chain_position, target->variant);
 
 	return ERROR_OK;
 }
@@ -963,3 +947,10 @@ static int arm926ejs_mmu(struct target_s *target, int *enabled)
 	*enabled = arm926ejs->armv4_5_mmu.mmu_enabled;
 	return ERROR_OK;
 }
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

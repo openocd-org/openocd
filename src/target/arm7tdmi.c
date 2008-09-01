@@ -44,8 +44,8 @@
 int arm7tdmi_register_commands(struct command_context_s *cmd_ctx);
 
 /* forward declarations */
-int arm7tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
-int arm7tdmi_target_create(Jim_Interp *interp, struct target_s *target);
+
+int arm7tdmi_target_create(struct target_s *target,Jim_Interp *interp);
 int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm7tdmi_quit(void);
 
@@ -85,9 +85,8 @@ target_type_t arm7tdmi_target =
 	.add_watchpoint = arm7_9_add_watchpoint,
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
-	.register_commands = arm7tdmi_register_commands,
-	.target_command = arm7tdmi_target_command,
-	// .target_create    = arm7tdmi_target_create,
+	.register_commands  = arm7tdmi_register_commands,
+	.target_create  = arm7tdmi_target_create,
 	.init_target = arm7tdmi_init_target,
 	.examine = arm7tdmi_examine,
 	.quit = arm7tdmi_quit
@@ -829,32 +828,9 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, int c
 	return ERROR_OK;
 }
 
-/* target arm7tdmi <endianess> <startup_mode> <chain_pos> <variant> */
-int arm7tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
-{
-	int chain_pos;
-	char *variant = NULL;
-	arm7tdmi_common_t *arm7tdmi = malloc(sizeof(arm7tdmi_common_t));
-	memset(arm7tdmi, 0, sizeof(*arm7tdmi));
 
-	if (argc < 4)
-	{
-		LOG_ERROR("'target arm7tdmi' requires at least one additional argument");
-		exit(-1);
-	}
-	
-	chain_pos = strtoul(args[3], NULL, 0);
-	
-	if (argc >= 5)
-		variant = args[4];
-	
-	arm7tdmi_init_arch_info(target, arm7tdmi, chain_pos, variant);
-	
-	return ERROR_OK;
-}
 
-int arm7tdmi_target_create(Jim_Interp *interp,
-						   struct target_s *target)
+int arm7tdmi_target_create( struct target_s *target, Jim_Interp *interp )
 {
 	arm7tdmi_common_t *arm7tdmi;
 	
@@ -866,7 +842,6 @@ int arm7tdmi_target_create(Jim_Interp *interp,
 }
 
 
-
 int arm7tdmi_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
@@ -876,6 +851,8 @@ int arm7tdmi_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 
 }
+
+
 
 
 /*

@@ -43,7 +43,7 @@
 int arm966e_register_commands(struct command_context_s *cmd_ctx);
 
 /* forward declarations */
-int arm966e_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int arm966e_target_create(struct target_s *target, Jim_Interp *interp);
 int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm966e_quit(void);
 
@@ -80,7 +80,7 @@ target_type_t arm966e_target =
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
 	.register_commands = arm966e_register_commands,
-	.target_command = arm966e_target_command,
+	.target_create = arm966e_target_create,
 	.init_target = arm966e_init_target,
 	.examine = arm9tdmi_examine,
 	.quit = arm966e_quit,
@@ -99,7 +99,7 @@ int arm966e_quit(void)
 	return ERROR_OK;
 }
 
-int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, int chain_pos, char *variant)
+int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, int chain_pos, const char *variant)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
@@ -118,27 +118,11 @@ int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, int chai
 	return ERROR_OK;
 }
 
-int arm966e_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
+int arm966e_target_create( struct target_s *target, Jim_Interp *interp )
 {
-	int chain_pos;
-	char *variant = NULL;
-	arm966e_common_t *arm966e = malloc(sizeof(arm966e_common_t));
-	memset(arm966e, 0, sizeof(*arm966e));
+	arm966e_common_t *arm966e = calloc(1,sizeof(arm966e_common_t));
 	
-	if (argc < 4)
-	{
-		LOG_ERROR("'target arm966e' requires at least one additional argument");
-		exit(-1);
-	}
-	
-	chain_pos = strtoul(args[3], NULL, 0);
-	
-	if (argc >= 5)
-		variant = args[4];
-	
-	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
-	
-	arm966e_init_arch_info(target, arm966e, chain_pos, variant);
+	arm966e_init_arch_info(target, arm966e, target->chain_position, target->variant);
 
 	return ERROR_OK;
 }
@@ -361,3 +345,10 @@ int arm966e_register_commands(struct command_context_s *cmd_ctx)
 	
 	return ERROR_OK;
 }
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

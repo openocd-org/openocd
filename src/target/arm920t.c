@@ -47,7 +47,7 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* forward declarations */
-int arm920t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int arm920t_target_create(struct target_s *target, Jim_Interp *interp);
 int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm920t_quit(void);
 int arm920t_arch_state(struct target_s *target);
@@ -90,7 +90,7 @@ target_type_t arm920t_target =
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
 	.register_commands = arm920t_register_commands,
-	.target_command = arm920t_target_command,
+	.target_create = arm920t_target_create,
 	.init_target = arm920t_init_target,
 	.examine = arm9tdmi_examine,
 	.quit = arm920t_quit
@@ -699,7 +699,7 @@ int arm920t_quit(void)
 	return ERROR_OK;
 }
 
-int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, int chain_pos, char *variant)
+int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, int chain_pos, const char *variant)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
@@ -735,27 +735,11 @@ int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, int chai
 	return ERROR_OK;
 }
 
-int arm920t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
+int arm920t_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	int chain_pos;
-	char *variant = NULL;
-	arm920t_common_t *arm920t = malloc(sizeof(arm920t_common_t));
-	memset(arm920t, 0, sizeof(*arm920t));
+	arm920t_common_t *arm920t = calloc(1,sizeof(arm920t_common_t));
 	
-	if (argc < 4)
-	{
-		LOG_ERROR("'target arm920t' requires at least one additional argument");
-		exit(-1);
-	}
-	
-	chain_pos = strtoul(args[3], NULL, 0);
-	
-	if (argc >= 5)
-		variant = args[4];
-	
-	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
-	
-	arm920t_init_arch_info(target, arm920t, chain_pos, variant);
+	arm920t_init_arch_info(target, arm920t, target->chain_position, target->variant);
 
 	return ERROR_OK;
 }
@@ -1516,3 +1500,12 @@ int arm920t_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char *
 	
 	return armv4_5_mmu_handle_mw_phys_command(cmd_ctx, cmd, args, argc, target, &arm920t->armv4_5_mmu);
 }
+
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

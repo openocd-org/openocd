@@ -314,7 +314,7 @@ reg_cache_t *mips32_build_reg_cache(target_t *target)
 	return cache;
 }
 
-int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, int chain_pos, char *variant)
+int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, int chain_pos, const char *variant)
 {
 	target->arch_info = mips32;
 	mips32->common_magic = MIPS32_COMMON_MAGIC;

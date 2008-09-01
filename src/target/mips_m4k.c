@@ -44,7 +44,7 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 int mips_m4k_register_commands(struct command_context_s *cmd_ctx);
 int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int mips_m4k_quit(void);
-int mips_m4k_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int mips_m4k_target_create(struct target_s *target, Jim_Interp *interp);
 
 int mips_m4k_examine(struct target_s *target);
 int mips_m4k_assert_reset(target_t *target);
@@ -83,7 +83,7 @@ target_type_t mips_m4k_target =
 	.remove_watchpoint = mips_m4k_remove_watchpoint,
 
 	.register_commands = mips_m4k_register_commands,
-	.target_command = mips_m4k_target_command,
+	.target_create = mips_m4k_target_create,
 	.init_target = mips_m4k_init_target,
 	.examine = mips_m4k_examine,
 	.quit = mips_m4k_quit
@@ -578,7 +578,7 @@ int mips_m4k_quit(void)
 	return ERROR_OK;
 }
 
-int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, int chain_pos, char *variant)
+int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, int chain_pos, const char *variant)
 {
 	mips32_common_t *mips32 = &mips_m4k->mips32_common;
 	
@@ -600,24 +600,11 @@ int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, int c
 	return ERROR_OK;
 }
 
-int mips_m4k_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
+int mips_m4k_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	int chain_pos;
-	char *variant = NULL;
-	mips_m4k_common_t *mips_m4k = malloc(sizeof(mips_m4k_common_t));
+	mips_m4k_common_t *mips_m4k = calloc(1,sizeof(mips_m4k_common_t));
 	
-	if (argc < 4)
-	{
-		LOG_ERROR("'target mips4k' requires at least one additional argument");
-		exit(-1);
-	}
-	
-	chain_pos = strtoul(args[3], NULL, 0);
-	
-	if (argc >= 5)
-		variant = args[4];
-	
-	mips_m4k_init_arch_info(target, mips_m4k, chain_pos, variant);
+	mips_m4k_init_arch_info(target, mips_m4k, target->chain_position, target->variant);
 	
 	return ERROR_OK;
 }
@@ -652,3 +639,11 @@ int mips_m4k_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 {
 	return mips_m4k_write_memory(target, address, 4, count, buffer);
 }
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

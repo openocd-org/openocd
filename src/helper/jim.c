@@ -111,6 +111,33 @@ static Jim_HashTableType JimVariablesHashTableType;
  * Utility functions
  * ---------------------------------------------------------------------------*/
 
+static char *
+jim_vasprintf( const char *fmt, va_list ap )
+{
+#ifndef HAVE_VASPRINTF
+	/* yucky way */
+static char buf[2048];
+	vsnprintf( buf, sizeof(buf), fmt, ap );
+	/* garentee termination */
+	buf[sizeof(buf)-1] = 0;
+#else
+	char *buf;
+	vasprintf( &buf, fmt, ap );
+#endif
+	return buf;
+}
+
+static void
+jim_vasprintf_done( void *buf )
+{
+#ifndef HAVE_VASPRINTF
+	(void)(buf);
+#else
+	free(buf);
+#endif
+}
+	
+
 /*
  * Convert a string to a jim_wide INTEGER.
  * This function originates from BSD.
@@ -2018,6 +2045,22 @@ void Jim_AppendString(Jim_Interp *interp, Jim_Obj *objPtr, const char *str,
         SetStringFromAny(interp, objPtr);
     StringAppendString(objPtr, str, len);
 }
+
+void Jim_AppendString_sprintf( Jim_Interp *interp, Jim_Obj *objPtr, const char *fmt, ... )
+{
+	char *buf;
+	va_list ap;
+
+	va_start( ap, fmt );
+	buf = jim_vasprintf( fmt, ap );
+	va_end(ap);
+
+	if( buf ){
+		Jim_AppendString( interp, objPtr, buf, -1 );
+		jim_vasprintf_done(buf);
+	}
+}
+
 
 void Jim_AppendObj(Jim_Interp *interp, Jim_Obj *objPtr,
         Jim_Obj *appendObjPtr)
@@ -8726,16 +8769,30 @@ int JimCallProcedure(Jim_Interp *interp, Jim_Cmd *cmd, int argc,
     return retcode;
 }
 
-int Jim_Eval(Jim_Interp *interp, const char *script)
+int Jim_Eval_Named(Jim_Interp *interp, const char *script, const char *filename, int lineno)
 {
-    Jim_Obj *scriptObjPtr = Jim_NewStringObj(interp, script, -1);
     int retval;
+    Jim_Obj *scriptObjPtr;
 
+	scriptObjPtr = Jim_NewStringObj(interp, script, -1);
     Jim_IncrRefCount(scriptObjPtr);
+
+
+	if( filename ){
+		JimSetSourceInfo( interp, scriptObjPtr, filename, lineno );
+	}
+
     retval = Jim_EvalObj(interp, scriptObjPtr);
     Jim_DecrRefCount(interp, scriptObjPtr);
     return retval;
 }
+
+int Jim_Eval(Jim_Interp *interp, const char *script)
+{
+	return Jim_Eval_Named( interp, script, NULL, 0 );
+}
+
+
 
 /* Execute script in the scope of the global level */
 int Jim_EvalGlobal(Jim_Interp *interp, const char *script)
@@ -9076,6 +9133,7 @@ void JimRegisterCoreApi(Jim_Interp *interp)
   JIM_REGISTER_API(Alloc);
   JIM_REGISTER_API(Free);
   JIM_REGISTER_API(Eval);
+  JIM_REGISTER_API(Eval_Named);
   JIM_REGISTER_API(EvalGlobal);
   JIM_REGISTER_API(EvalFile);
   JIM_REGISTER_API(EvalObj);
@@ -9102,6 +9160,7 @@ void JimRegisterCoreApi(Jim_Interp *interp)
   JIM_REGISTER_API(NewStringObj);
   JIM_REGISTER_API(NewStringObjNoAlloc);
   JIM_REGISTER_API(AppendString);
+  JIM_REGISTER_API(AppendString_sprintf);
   JIM_REGISTER_API(AppendObj);
   JIM_REGISTER_API(AppendStrings);
   JIM_REGISTER_API(StringEqObj);
@@ -12536,27 +12595,15 @@ int
 Jim_SetResult_sprintf( Jim_Interp *interp, const char *fmt,... )
 {
 	va_list ap;
-#ifndef HAVE_VASPRINTF
-	/* yucky way */
-	char buf[2048];
-
-	va_start(ap,fmt);
-	vsnprintf( buf, sizeof(buf), fmt, ap );
-	va_end(ap);
-	/* garentee termination */
-	buf[2047] = 0;
-	Jim_SetResultString( interp, buf, -1 );
-
-#else
 	char *buf;
+	
 	va_start(ap,fmt);
-	vasprintf( &buf, fmt, ap );
+	buf = jim_vasprintf( fmt, ap );
 	va_end(ap);
 	if( buf ){
 		Jim_SetResultString( interp, buf, -1 );
-		free(buf);
+		jim_vasprintf_done(buf);
 	}
-#endif
 	return JIM_OK;
 }
 	

@@ -46,7 +46,8 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* forward declarations */
-int arm9tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int arm9tdmi_target_create( struct target_s *target, Jim_Interp *interp );
+
 int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm9tdmi_quit(void);
 		
@@ -83,7 +84,7 @@ target_type_t arm9tdmi_target =
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
 	.register_commands = arm9tdmi_register_commands,
-	.target_command = arm9tdmi_target_command,
+	.target_create = arm9tdmi_target_create,
 	.init_target = arm9tdmi_init_target,
 	.examine = arm9tdmi_examine,
 	.quit = arm9tdmi_quit
@@ -902,7 +903,7 @@ int arm9tdmi_quit(void)
 	return ERROR_OK;
 }
 
-int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int chain_pos, char *variant)
+int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int chain_pos, const char *variant)
 {
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -1007,26 +1008,12 @@ int arm9tdmi_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, a
 }
 
 
-/* target arm9tdmi <endianess> <startup_mode> <chain_pos> <variant>*/
-int arm9tdmi_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
-{
-	int chain_pos;
-	char *variant = NULL;
-	arm9tdmi_common_t *arm9tdmi = malloc(sizeof(arm9tdmi_common_t));
-	memset(arm9tdmi, 0, sizeof(*arm9tdmi));
 
-	if (argc < 4)
-	{
-		LOG_ERROR("'target arm9tdmi' requires at least one additional argument");
-		exit(-1);
-	}
-	
-	chain_pos = strtoul(args[3], NULL, 0);
-	
-	if (argc >= 5)
-		variant = args[4];
-	
-	arm9tdmi_init_arch_info(target, arm9tdmi, chain_pos, variant);
+int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp)
+{
+	arm9tdmi_common_t *arm9tdmi = calloc(1,sizeof(arm9tdmi_common_t));
+
+	arm9tdmi_init_arch_info(target, arm9tdmi, target->chain_position, target->variant);
 	
 	return ERROR_OK;
 }
@@ -1129,3 +1116,12 @@ int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, cha
 
 	return ERROR_OK;
 }
+
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

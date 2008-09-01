@@ -614,15 +614,6 @@ int gdb_output(struct command_context_s *context, const char* line)
 	return ERROR_OK;
 }
 
-int gdb_program_handler(struct target_s *target, enum target_event event, void *priv)
-{
-	struct command_context_s *cmd_ctx = priv;
-
-	target_invoke_script(cmd_ctx, target, "gdb_program");
-	jtag_execute_queue();
-
-	return ERROR_OK;
-}
 
 static void gdb_frontend_halted(struct target_s *target, connection_t *connection)
 {
@@ -664,13 +655,15 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 {
 	connection_t *connection = priv;
 
+	target_handle_event( target, event );
 	switch (event)
 	{
 		case TARGET_EVENT_HALTED:
 			gdb_frontend_halted(target, connection);
 			break;
 		case TARGET_EVENT_GDB_FLASH_ERASE_START:
-			gdb_program_handler(target, event, connection->cmd_ctx);
+			target_handle_event( target, TARGET_EVENT_OLD_gdb_program_config );
+			jtag_execute_queue();
 			break;
 		default:
 			break;
@@ -748,7 +741,7 @@ int gdb_new_connection(connection_t *connection)
 	 */
 	if (initial_ack != '+')
 		gdb_putback_char(connection, initial_ack);
-
+	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_ATTACH );
 	return ERROR_OK;
 }
 
@@ -781,6 +774,7 @@ int gdb_connection_closed(connection_t *connection)
 	target_unregister_event_callback(gdb_target_callback_event_handler, connection);
 	log_remove_callback(gdb_log_callback, connection);
 
+	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH );
 	return ERROR_OK;
 }
 
@@ -1279,7 +1273,7 @@ int gdb_step_continue_packet(connection_t *connection, target_t *target, char *p
 	if (packet[0] == 'c')
 	{
 		LOG_DEBUG("continue");
-		target_invoke_script(connection->cmd_ctx, target, "pre_resume");
+		target_handle_event( target, TARGET_EVENT_OLD_pre_resume );
 		retval=target_resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
 	}
 	else if (packet[0] == 's')
@@ -1790,9 +1784,11 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 		/* perform any target specific operations before the erase */
 		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_ERASE_START);
+		result = flash_erase_address_range(gdb_service->target, addr, length );
+		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_ERASE_END);
 
 		/* perform erase */
-		if ((result = flash_erase_address_range(gdb_service->target, addr, length)) != ERROR_OK)
+		if (result != ERROR_OK)
 		{
 			/* GDB doesn't evaluate the actual error number returned,
 			 * treat a failed erase as an I/O error
@@ -1846,7 +1842,10 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 		/* process the flashing buffer. No need to erase as GDB
 		 * always issues a vFlashErase first. */
-		if ((result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, 0)) != ERROR_OK)
+		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_WRITE_START);
+		result = flash_write(gdb_service->target, gdb_connection->vflash_image, &written, 0);
+		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_WRITE_END);
+		if ( result != ERROR_OK)
 		{
 			if (result == ERROR_FLASH_DST_OUT_OF_BANK)
 				gdb_put_packet(connection, "E.memtype", 9);
@@ -1872,10 +1871,11 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 int gdb_detach(connection_t *connection, target_t *target)
 {
+
 	switch( detach_mode )
 	{
 		case GDB_DETACH_RESUME:
-			target_invoke_script(connection->cmd_ctx, target, "pre_resume");
+			target_handle_event( target, TARGET_EVENT_OLD_pre_resume );
 			target_resume(target, 1, 0, 1, 0);
 			break;
 
@@ -1893,7 +1893,6 @@ int gdb_detach(connection_t *connection, target_t *target)
 	}
 
 	gdb_put_packet(connection, "OK", 2);
-
 	return ERROR_OK;
 }
 
@@ -2279,3 +2278,12 @@ int gdb_register_commands(command_context_t *command_context)
 			"is not sufficient");
 	return ERROR_OK;
 }
+
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

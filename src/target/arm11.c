@@ -92,7 +92,7 @@ target_type_t arm11_target =
     ARM11_HANDLER(run_algorithm),
 	
     ARM11_HANDLER(register_commands),
-    ARM11_HANDLER(target_command),
+    ARM11_HANDLER(target_create),
     ARM11_HANDLER(init_target),
     ARM11_HANDLER(examine),
     ARM11_HANDLER(quit),
@@ -1351,28 +1351,21 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
     return ERROR_OK;
 }
 
-int arm11_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
+int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 {
     FNC_INFO;
-
-    if (argc < 4)
-    {
-    	return ERROR_COMMAND_SYNTAX_ERROR;
-    }
-
-    int chain_pos = strtoul(args[3], NULL, 0);
 
     NEW(arm11_common_t, arm11, 1);
 
     arm11->target = target;
 
     /* prepare JTAG information for the new target */
-    arm11->jtag_info.chain_pos	= chain_pos;
+    arm11->jtag_info.chain_pos	= target->chain_position;
     arm11->jtag_info.scann_size	= 5;
 
     arm_jtag_setup_connection(&arm11->jtag_info);
 
-    jtag_device_t *device = jtag_get_device(chain_pos);
+    jtag_device_t *device = jtag_get_device(target->chain_position);
 
     if (device->ir_length != 5)
     {
@@ -1810,3 +1803,11 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
     return ERROR_OK;
 }
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

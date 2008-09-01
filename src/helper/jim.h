@@ -675,6 +675,9 @@ JIM_STATIC char * JIM_API(Jim_StrDup) (const char *s);
 
 /* evaluation */
 JIM_STATIC int JIM_API(Jim_Eval)(Jim_Interp *interp, const char *script);
+/* in C code, you can do this and get better error messages */
+/*   Jim_Eval_Named( interp, "some tcl commands", __FILE__, __LINE__ ); */
+JIM_STATIC int JIM_API(Jim_Eval_Named)(Jim_Interp *interp, const char *script,const char *filename, int lineno);
 JIM_STATIC int JIM_API(Jim_EvalGlobal)(Jim_Interp *interp, const char *script);
 JIM_STATIC int JIM_API(Jim_EvalFile)(Jim_Interp *interp, const char *filename);
 JIM_STATIC int JIM_API(Jim_EvalObj) (Jim_Interp *interp, Jim_Obj *scriptObjPtr);
@@ -733,6 +736,8 @@ JIM_STATIC Jim_Obj * JIM_API(Jim_NewStringObjNoAlloc) (Jim_Interp *interp,
         char *s, int len);
 JIM_STATIC void JIM_API(Jim_AppendString) (Jim_Interp *interp, Jim_Obj *objPtr,
         const char *str, int len);
+JIM_STATIC void JIM_API(Jim_AppendString_sprintf) (Jim_Interp *interp, Jim_Obj *objPtr,
+												   const char *fmt, ... );
 JIM_STATIC void JIM_API(Jim_AppendObj) (Jim_Interp *interp, Jim_Obj *objPtr,
         Jim_Obj *appendObjPtr);
 JIM_STATIC void JIM_API(Jim_AppendStrings) (Jim_Interp *interp,
@@ -1169,6 +1174,7 @@ static void Jim_InitExtension(Jim_Interp *interp)
   JIM_GET_API(Alloc);
   JIM_GET_API(Free);
   JIM_GET_API(Eval);
+  JIM_GET_API(Eval_Named);
   JIM_GET_API(EvalGlobal);
   JIM_GET_API(EvalFile);
   JIM_GET_API(EvalObj);
@@ -1195,6 +1201,7 @@ static void Jim_InitExtension(Jim_Interp *interp)
   JIM_GET_API(NewStringObj);
   JIM_GET_API(NewStringObjNoAlloc);
   JIM_GET_API(AppendString);
+  JIM_GET_API(AppendString_sprintf);
   JIM_GET_API(AppendObj);
   JIM_GET_API(AppendStrings);
   JIM_GET_API(StringEqObj);

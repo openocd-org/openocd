@@ -42,7 +42,7 @@ int arm720t_handle_md_phys_command(struct command_context_s *cmd_ctx, char *cmd,
 int arm720t_handle_mw_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* forward declarations */
-int arm720t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int arm720t_target_create(struct target_s *target,Jim_Interp *interp);
 int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm720t_quit(void);
 int arm720t_arch_state(struct target_s *target);
@@ -81,7 +81,7 @@ target_type_t arm720t_target =
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
 	.register_commands = arm720t_register_commands,
-	.target_command = arm720t_target_command,
+	.target_create = arm720t_target_create,
 	.init_target = arm720t_init_target,
 	.examine = arm7tdmi_examine,
 	.quit = arm720t_quit
@@ -436,7 +436,7 @@ int arm720t_quit(void)
 	return ERROR_OK;
 }
 
-int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, int chain_pos, char *variant)
+int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, int chain_pos, const char *variant)
 {
 	arm7tdmi_common_t *arm7tdmi = &arm720t->arm7tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm7tdmi->arm7_9_common;
@@ -461,27 +461,11 @@ int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, int chai
 	return ERROR_OK;
 }
 
-int arm720t_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
+int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	int chain_pos;
-	char *variant = NULL;
-	arm720t_common_t *arm720t = malloc(sizeof(arm720t_common_t));
-	memset(arm720t, 0, sizeof(*arm720t));
+	arm720t_common_t *arm720t = calloc(1,sizeof(arm720t_common_t));
 	
-	if (argc < 4)
-	{
-		LOG_ERROR("'target arm720t' requires at least one additional argument");
-		exit(-1);
-	}
-	
-	chain_pos = strtoul(args[3], NULL, 0);
-	
-	if (argc >= 5)
-		variant = args[4];
-	
-	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
-	
-	arm720t_init_arch_info(target, arm720t, chain_pos, variant);
+	arm720t_init_arch_info(target, arm720t, target->chain_position, target->variant);
 
 	return ERROR_OK;
 }
@@ -644,3 +628,10 @@ int arm720t_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char *
 	return armv4_5_mmu_handle_mw_phys_command(cmd_ctx, cmd, args, argc, target, &arm720t->armv4_5_mmu);
 }
 
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

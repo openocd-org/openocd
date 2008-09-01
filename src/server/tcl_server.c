@@ -143,7 +143,7 @@ static int tcl_input(connection_t *connection)
 		}
 		else {
 			tclc->tc_line[tclc->tc_lineoffset-1] = '\0';
-			retval = Jim_Eval(interp, tclc->tc_line);
+			retval = Jim_Eval_Named(interp, tclc->tc_line, "remote:connection",1);
 			result = Jim_GetString(Jim_GetResult(interp), &reslen);
 			retval = tcl_output(connection, result, reslen);
 			if (retval != ERROR_OK)

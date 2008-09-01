@@ -199,10 +199,11 @@ typedef struct target_type_s
 	/* target algorithm support */
 	int (*run_algorithm_imp)(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
 	int (*run_algorithm)(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
-	
-	int (*register_commands)(struct command_context_s *cmd_ctx);
+
+	int (*register_commands)(struct command_context_s *cmd_ctx);	
+
 	/* called when target is created */
-	int (*target_jim_create)( struct target_s *target, Jim_Interp *interp );
+	int (*target_create)( struct target_s *target, Jim_Interp *interp );
 
 	/* called for various config parameters */
 	/* returns JIM_CONTINUE - if option not understood */
@@ -213,8 +214,6 @@ typedef struct target_type_s
 	/* returns JIM_OK, or JIM_ERR, or JIM_CONTINUE - if option not understood */
 	int (*target_jim_commands)( struct target_s *target, Jim_GetOptInfo *goi );
 
-	/* old init function */
-	int (*target_command)(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
 	/* invoked after JTAG chain has been examined & validated. During
 	 * this stage the target is examined and any additional setup is
 	 * performed.
@@ -271,18 +270,39 @@ typedef struct target_s
 
 enum target_event
 {
+	// OLD historical names
+	//  - Prior to the great TCL change
+	//  - June/July/Aug 2008
+	//  - Duane Ellis
+	TARGET_EVENT_OLD_gdb_program_config,
+	TARGET_EVENT_OLD_pre_reset,
+	TARGET_EVENT_OLD_post_reset,
+	TARGET_EVENT_OLD_pre_resume,
+
  	TARGET_EVENT_HALTED,		/* target entered debug state from normal execution or reset */
  	TARGET_EVENT_RESUMED,		/* target resumed to normal execution */
 	TARGET_EVENT_RESUME_START,
 	TARGET_EVENT_RESUME_END,
 
 	TARGET_EVENT_RESET_START,
- 	TARGET_EVENT_RESET,			/* target entered reset */
+	TARGET_EVENT_RESET_ASSERT_PRE,
+	TARGET_EVENT_RESET_ASSERT_POST,
+	TARGET_EVENT_RESET_DEASSERT_PRE,
+	TARGET_EVENT_RESET_DEASSERT_POST,
+	TARGET_EVENT_RESET_HALT_PRE,
+	TARGET_EVENT_RESET_HALT_POST,
+	TARGET_EVENT_RESET_WAIT_PRE,
+	TARGET_EVENT_RESET_WAIT_POST,
 	TARGET_EVENT_RESET_INIT,
 	TARGET_EVENT_RESET_END,
 
+
  	TARGET_EVENT_DEBUG_HALTED,	/* target entered debug state, but was executing on behalf of the debugger */
  	TARGET_EVENT_DEBUG_RESUMED, /* target resumed to execute on behalf of the debugger */
+
+	TARGET_EVENT_EXAMINE_START,
+	TARGET_EVENT_EXAMINE_END,
+	
 
 	TARGET_EVENT_GDB_ATTACH,
 	TARGET_EVENT_GDB_DETACH,
@@ -298,6 +318,7 @@ extern const Jim_Nvp nvp_target_event[];
 struct target_event_action_s {
 	enum target_event event;
 	Jim_Obj *body;
+	int      has_percent;
 	target_event_action_t *next;
  };
 
@@ -392,7 +413,8 @@ int target_write_u8(struct target_s *target, u32 address, u8 value);
 /* Issues USER() statements with target state information */
 int target_arch_state(struct target_s *target);
 
-int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, char *name);
+void target_handle_event( target_t *t, enum target_event e);
+void target_all_handle_event( enum target_event e );
 
 
 #define ERROR_TARGET_INVALID	(-300)
@@ -406,6 +428,9 @@ int target_invoke_script(struct command_context_s *cmd_ctx, target_t *target, ch
 #define ERROR_TARGET_TRANSLATION_FAULT	(-309)
 #define ERROR_TARGET_NOT_RUNNING (-310)
 #define ERROR_TARGET_NOT_EXAMINED (-311)
+
+extern const Jim_Nvp nvp_error_target[];
+extern const char *target_strerror_safe( int err );
 
 #endif /* TARGET_H */
 

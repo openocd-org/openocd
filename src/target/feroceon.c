@@ -55,7 +55,7 @@
 #include <string.h>
 
 int feroceon_examine(struct target_s *target);
-int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int feroceon_target_create(struct target_s *target, Jim_Interp *interp);
 int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
 int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int feroceon_quit(void);
@@ -106,7 +106,7 @@ target_type_t feroceon_target =
 	.remove_watchpoint = arm7_9_remove_watchpoint,
 
 	.register_commands = arm926ejs_register_commands,
-	.target_command = feroceon_target_command,
+	.target_create = feroceon_target_create,
 	.init_target = feroceon_init_target,
 	.examine = feroceon_examine,
 	.quit = feroceon_quit
@@ -646,29 +646,13 @@ int feroceon_quit(void)
 	return ERROR_OK;
 }
 
-int feroceon_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target)
+int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	int chain_pos;
-	char *variant = NULL;
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
-	arm926ejs_common_t *arm926ejs = malloc(sizeof(arm926ejs_common_t));
-	memset(arm926ejs, 0, sizeof(*arm926ejs));
-	
-	if (argc < 4)
-	{
-		LOG_ERROR("'target arm926ejs' requires at least one additional argument");
-		exit(-1);
-	}
-	
-	chain_pos = strtoul(args[3], NULL, 0);
-	
-	if (argc >= 5)
-		variant = args[4];
-	
-	LOG_DEBUG("chain_pos: %i, variant: %s", chain_pos, variant);
-	
-	arm926ejs_init_arch_info(target, arm926ejs, chain_pos, variant);
+	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
+  
+	arm926ejs_init_arch_info(target, arm926ejs, target->chain_position, target->variant);
 
 	armv4_5 = target->arch_info;
 	arm7_9 = armv4_5->arch_info;
@@ -741,3 +725,10 @@ int feroceon_examine(struct target_s *target)
 	
 	return ERROR_OK;
 }
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

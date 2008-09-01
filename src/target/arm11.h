@@ -222,7 +222,7 @@ int arm11_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
 
 int arm11_register_commands(struct command_context_s *cmd_ctx);
-int arm11_target_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct target_s *target);
+int arm11_target_create(struct target_s *target, Jim_Interp *interp);
 int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm11_quit(void);
 
