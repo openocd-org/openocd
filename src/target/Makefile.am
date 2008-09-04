@@ -38,5 +38,6 @@ nobase_dist_pkglib_DATA = xscale/debug_handler.bin target/at91eb40a.cfg \
 	interface/signalyzer.cfg event/eir-sam7se512_reset.script target/eir-sam7se512.cfg \
 	event/hammer_reset.script interface/flyswatter.cfg target/hammer.cfg target/mx31.cfg  \
 	event/str730_program.script event/str750_program.script interface/olimex-jtag-tiny-a.cfg \
-	target/pic32mx.cfg target/aduc702x.cfg interface/dummy.cfg interface/olimex-arm-usb-ocd.cfg
+	target/pic32mx.cfg target/aduc702x.cfg interface/dummy.cfg interface/olimex-arm-usb-ocd.cfg target/s3c2440.cfg
+	
 
