@@ -177,7 +177,19 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 
 	keep_alive();
 	
+	/* Danger!!!! BROKEN!!!! */
 	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
+	/* Danger!!!! BROKEN!!!! Why will jtag_execute_queue() fail here???? 
+	R956 introduced the check on return value here and now Michael Schwingen reports
+	that this code no longer works....
+
+	https://lists.berlios.de/pipermail/openocd-development/2008-September/003107.html
+	*/
+	if ((retval=jtag_execute_queue())!=ERROR_OK)
+	{
+		LOG_ERROR("BUG: Why does this fail the first time????");
+	}
+	/* Why??? second time it works??? */
 	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	if ((retval=jtag_execute_queue())!=ERROR_OK)
 		return retval;
