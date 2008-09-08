@@ -57,6 +57,11 @@
 #include <assert.h>
 #include <errno.h>
 #include <time.h>
+#if defined(WIN32)
+/* sys/time - need is different */
+#else
+#include <sys/time.h> // for gettimeofday()
+#endif
 
 #include "replacements.h"
 
@@ -12039,6 +12044,108 @@ static int Jim_PackageCoreCommand(Jim_Interp *interp, int argc,
     return JIM_OK;
 }
 
+
+static void
+jim_get_s_us( jim_wide *s, jim_wide *us )
+{
+#if defined(WIN32)
+	/* 
+	 * Sorry - I do not have, or use Win32.
+	 * This concept is from 
+	 * 
+	 * Method is from: 
+	 *    http://www.openasthra.com/c-tidbits/gettimeofday-function-for-windows/
+	 *
+	 * I have no method to test/verify.
+	 *  - Duane 6-sep-2008.
+	 * (once verified, please somebody remove this comment)
+	 */
+#if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
+  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
+#else
+  #define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
+#endif
+
+	FILETIME ft;
+	unsigned __int64 tmpres;
+	tmpres = 0;
+	GetSystemTimeAsFileTime( &ft );
+
+	tmpres |= ft.dwHighDateTime;
+	tmpres <<= 32;
+	tmpres |= ft.dwLowDateTime;
+	/* convert to unix representation */
+	tmpres /= 10;
+	tmpres -= DELTA_EPOC_IN_MICROSECS;
+	
+	*s  = (tmpres / 1000000ULL);
+	*us = (tmpres % 1000000ULL);
+	
+#undef DELTA_EPOCH_IN_MICROSECS
+
+#else
+	/* LINUX/CYGWIN */
+	struct timeval tv;
+	struct timezone tz;
+	gettimeofday( &tv, &tz );
+	*s  = tv.tv_sec;
+	*us = tv.tv_usec;
+#endif
+}
+
+
+/* [clock] */
+static int Jim_ClockCoreCommand( Jim_Interp *interp, int argc,
+								   Jim_Obj *const *argv)
+{
+	/*
+	 *  See: TCL man page for 'clock'
+	 *  we do not impliment all features.
+	 */
+	jim_wide r,s,us;
+	int option;
+	const char *options[] = {
+		"clicks",
+		"microseconds",
+		"milliseconds",
+		"seconds",
+		NULL 
+	};
+	enum { OPT_CLICKS, OPT_USEC, OPT_MSEC, OPT_SEC };
+
+	if( argc < 2 ){
+		Jim_WrongNumArgs( interp, 1, argv, "option ?arguments ...?");
+		return JIM_ERR;
+	}
+
+	if( Jim_GetEnum(interp, argv[1], options, &option, "option",
+					JIM_ERRMSG) != JIM_OK ){
+		return JIM_ERR;
+	}
+
+	// platform independent get time.
+	jim_get_s_us( &s, &us );
+
+	r = 0;
+	switch(option){
+	case OPT_CLICKS:
+	case OPT_USEC:
+		/* clicks & usecs are the same */
+		r = (s * 1000000) + us;
+		break;
+	case OPT_MSEC:
+		r = (s * 1000) + (us / 1000);
+		break;
+	case OPT_SEC:
+		r = s;
+		break;
+	}
+		
+	Jim_SetResult( interp, Jim_NewWideObj( interp, r ) );
+	return JIM_OK;
+}
+	 
+
 static struct {
     const char *name;
     Jim_CmdProc cmdProc;
@@ -12103,6 +12210,7 @@ static struct {
     {"rand", Jim_RandCoreCommand},
     {"package", Jim_PackageCoreCommand},
     {"tailcall", Jim_TailcallCoreCommand},
+	{"clock", Jim_ClockCoreCommand},
     {NULL, NULL},
 };
 
@@ -12447,7 +12555,7 @@ Jim_GetOpt_Obj( Jim_GetOptInfo *goi, Jim_Obj **puthere )
 	Jim_Obj *o;
 	
 	o = NULL; // failure 
-	if( goi->argc ){
+	if( goi->argc > 0 ){
 		// success 
 		o = goi->argv[0];
 		goi->argc -= 1;
