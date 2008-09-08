@@ -12076,7 +12076,7 @@ jim_get_s_us( jim_wide *s, jim_wide *us )
 	tmpres |= ft.dwLowDateTime;
 	/* convert to unix representation */
 	tmpres /= 10;
-	tmpres -= DELTA_EPOC_IN_MICROSECS;
+	tmpres -= DELTA_EPOCH_IN_MICROSECS;
 	
 	*s  = (tmpres / 1000000ULL);
 	*us = (tmpres % 1000000ULL);
