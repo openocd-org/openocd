@@ -358,6 +358,9 @@ char *alloc_printf(const char *format, ...)
  * This function will send a keep alive packet if >500ms has passed since last time
  * it was invoked.
  * 
+ * Note that this function can be invoked often, so it needs to be relatively
+ * fast when invoked more often than every 500ms.
+ * 
  */
 void keep_alive()
 {
@@ -365,18 +368,22 @@ void keep_alive()
 	if (current_time-last_time>1000)
 	{
 		LOG_WARNING("BUG: keep_alive() was not invoked in the 1000ms timelimit. GDB alive packet not sent! (%lld)", current_time-last_time); 
-		last_time=current_time;
-	} else if (current_time-last_time>500)
+	} 
+	if (current_time-last_time>500)
 	{
 		/* this will keep the GDB connection alive */
 		LOG_USER_N("%s", "");
+
+		/* also process TCL events (we have to do this from 'log.c' since its
+		 * keep_alive() is the only routine guaranteed to be called at least
+		 * once per second :( */
+		process_jim_events ();
+
+        /* process any timer events now */		
+		target_call_timer_callbacks_now();
+		
 		last_time=current_time;
 	}
-
-	/* also process TCL events (we have to do this from 'log.c' since its
-	 * keep_alive() is the only routine guaranteed to be called at least
-	 * once per second :( */
-	process_jim_events ();
 }
 
 /* reset keep alive timer without sending message */
