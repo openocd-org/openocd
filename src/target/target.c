@@ -783,8 +783,6 @@ static int target_call_timer_callbacks_check_time(int checktime)
 	target_timer_callback_t *next_callback;
 	struct timeval now;
 
-	keep_alive();
-
 	gettimeofday(&now, NULL);
 
 	while (callback)
