@@ -430,6 +430,10 @@ static int NEW_target_process_reset(struct command_context_s *cmd_ctx, enum targ
 
 	sprintf( buf, "ocd_process_reset %s", n->name );
 	Jim_Eval( interp, buf );
+
+	/* We want any events to be processed before the prompt */
+	target_call_timer_callbacks_now();
+
 	return ERROR_OK;
 }
 
