@@ -193,3 +193,90 @@ proc jtag_rclk {fallback_speed_khz} {
 }
 
 add_help_text jtag_rclk "fallback_speed_khz - set JTAG speed to RCLK or use fallback speed"
+
+proc ocd_process_reset { MODE } {
+
+    # If this target must be halted...
+    set halt -1
+    if { 0 == [string compare $MODE halt] } {
+	set halt 1
+    }
+    if { 0 == [string compare $MODE init] } {
+	set halt 1;
+    }
+    if { 0 == [string compare $MODE run ] } {
+	set halt 0;
+    }
+    if { $halt < 0 } {
+	return -error "Invalid mode: $MODE, must be one of: halt, init, or run";
+    }
+
+    foreach t [ target names ] {
+	# For compatiblity with 'old scripts'
+	$t invoke-event old-pre_reset
+
+	# New event script.
+	$t invoke-event reset-start
+    }
+
+    # Init the tap controller.
+    jtag arp_init-reset
+
+    # Examine all targets.
+    foreach t [ target names ] {
+	$t arp_examine
+    }
+
+    # Let the C code know we are asserting reset.
+    foreach t [ target names ] {
+	$t invoke-event reset-assert-pre
+	# C code needs to know if we expect to 'halt'
+	$t arp_reset assert $halt
+	$t invoke-event reset-assert-post
+    }
+
+    # Now de-assert reset.
+    foreach t [ target names ] {
+	$t invoke-event reset-deassert-pre
+	# Again, de-assert code needs to know..
+	$t arp_reset deassert $halt
+	$t invoke-event reset-deassert-post
+    }
+
+
+    # Pass 1 - Now try to halt.
+    if { $halt } {
+	foreach t [target names] {
+
+	    # Wait upto 1 second for target to halt.  Why 1sec? Cause
+	    # the JTAG tap reset signal might be hooked to a slow
+	    # resistor/capacitor circuit - and it might take a while
+	    # to charge
+	    
+	    # Catch, but ignore any errors.
+	    catch { $t arp_waitstate halted 1000 }
+	    
+	    # Did we succeed?
+	    set s [$t curstate]
+	    
+	    if { 0 != [string compare $s "halted" ] } {
+		return -error [format "TARGET: %s - Not halted" $t]
+	    }
+	}
+    }
+
+    #Pass 2 - if needed "init"
+    if { 0 == [string compare init $MODE] } {
+	foreach t [target names] {
+	    set err [catch "$t arp_waitstate halted 5000"]
+	    # Did it halt?
+	    if { $err == 0 } {
+		$t invoke-event old-post_reset
+	    }
+	}
+    }
+
+    foreach t [ target names ] {
+	$t invoke-event reset-end
+    }
+}

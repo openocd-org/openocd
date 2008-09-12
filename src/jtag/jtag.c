@@ -252,7 +252,7 @@ void jtag_add_runtest(int num_cycles, enum tap_state endstate);
 void jtag_add_end_state(enum tap_state endstate);
 void jtag_add_sleep(u32 us);
 int jtag_execute_queue(void);
-int jtag_cancel_queue(void);
+
 
 /* jtag commands */
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -811,7 +811,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 	return ERROR_OK;
 }
 
-void jtag_add_tlr()
+void jtag_add_tlr(void)
 {
 	jtag_prelude(TAP_TLR);
 	
@@ -1491,8 +1491,69 @@ int jtag_validate_chain(void)
 	return ERROR_OK;
 }
 
+
+static int
+jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
+{
+	Jim_GetOptInfo goi;
+	int e;
+	Jim_Nvp *n;
+	struct command_context_s *context;
+
+	enum {
+		JTAG_CMD_INTERFACE,
+		JTAG_CMD_INIT_RESET,
+	};
+	
+	const Jim_Nvp jtag_cmds[] = {
+		{ .name = "interface"     , .value = JTAG_CMD_INTERFACE },
+		{ .name = "arp_init-reset", .value = JTAG_CMD_INIT_RESET },
+		
+		{ .name = NULL, .value = -1 },
+	};
+
+	context = Jim_GetAssocData(interp, "context");
+	// go past the command 
+	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
+
+	e = Jim_GetOpt_Nvp( &goi, jtag_cmds, &n );
+	if( e != JIM_OK ){
+		Jim_GetOpt_NvpUnknown( &goi, jtag_cmds, 0 );
+		return e;
+	}
+		Jim_SetEmptyResult( goi.interp );
+	switch( n->value ){
+	case JTAG_CMD_INTERFACE:
+		// return the name of the interface
+		// TCL code might need to know the exact type...
+		// FUTURE: we allow this as a means to "set" the interface.
+		if( goi.argc != 0 ){
+			Jim_WrongNumArgs( goi.interp, 1, goi.argv-1, "(no params)");
+			return JIM_ERR;
+		}
+		Jim_SetResultString( goi.interp, jtag_interface->name, -1 );
+		return JIM_OK;
+	case JTAG_CMD_INIT_RESET:
+		if( goi.argc != 0 ){
+			Jim_WrongNumArgs( goi.interp, 1, goi.argv-1, "(no params)");
+			return JIM_ERR;
+		}
+		e = jtag_init_reset(context);
+		if( e != ERROR_OK ){
+			Jim_SetResult_sprintf( goi.interp, "error: %d", e);
+			return JIM_ERR;
+		}
+		return JIM_OK;
+	}
+		
+
+	return JIM_ERR;
+}
+
 int jtag_register_commands(struct command_context_s *cmd_ctx)
 {
+	register_jim( cmd_ctx, "jtag", jim_jtag_command, "perform jtag tap actions");
+
 	register_command(cmd_ctx, NULL, "interface", handle_interface_command,
 		COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "jtag_speed", handle_jtag_speed_command,
@@ -2163,3 +2224,12 @@ int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	return ERROR_OK;
 }
+
+
+
+/*
+ * Local Variables: ***
+ * c-basic-offset: 4 ***
+ * tab-width: 4 ***
+ * End: ***
+ */

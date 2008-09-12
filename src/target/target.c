@@ -53,6 +53,8 @@
 #include <fileio.h>
 #include <image.h>
 
+static int USE_OLD_RESET = 0; // temp
+
 int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
 
 
@@ -64,6 +66,7 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_NEWreset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -414,8 +417,24 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 	return retval;
 }
 
+
+static int NEW_target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
+{
+	char buf[100];
+	Jim_Nvp *n;
+	n = Jim_Nvp_value2name_simple( nvp_reset_modes, reset_mode );
+	if( n->name == NULL ){
+		LOG_ERROR("invalid reset mode");
+		return ERROR_FAIL;
+	}
+
+	sprintf( buf, "ocd_process_reset %s", n->name );
+	Jim_Eval( interp, buf );
+	return ERROR_OK;
+}
+
 // Next patch - this turns into TCL...
-int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
+static int OLD_target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
 {
 	int retval = ERROR_OK;
 	target_t *target;
@@ -509,6 +528,16 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 
 	return retval;
 }
+
+int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
+{
+	if( USE_OLD_RESET ){
+		return OLD_target_process_reset( cmd_ctx, reset_mode );
+	} else {
+		return NEW_target_process_reset( cmd_ctx, reset_mode );
+	}
+}
+
 
 static int default_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
 {
@@ -1356,7 +1385,8 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "halt", handle_halt_command, COMMAND_EXEC, "halt target");
 	register_command(cmd_ctx,  NULL, "resume", handle_resume_command, COMMAND_EXEC, "resume target [addr]");
 	register_command(cmd_ctx,  NULL, "step", handle_step_command, COMMAND_EXEC, "step one instruction from current PC or [addr]");
-	register_command(cmd_ctx,  NULL, "reset", handle_reset_command, COMMAND_EXEC, "reset target [run|halt|init] - default is run");
+	register_command(cmd_ctx,  NULL, "NEWreset", handle_NEWreset_command, COMMAND_EXEC, "reset target [run|halt|init] - default is run");
+	register_command(cmd_ctx,  NULL, "reset", handle_reset_command, COMMAND_EXEC, "OLDreset target [run|halt|init] - default is run");
 	register_command(cmd_ctx,  NULL, "soft_reset_halt", handle_soft_reset_halt_command, COMMAND_EXEC, "halt the target and do a soft reset");
 
 	register_command(cmd_ctx,  NULL, "mdw", handle_md_command, COMMAND_EXEC, "display memory words <addr> [count]");
@@ -1748,6 +1778,25 @@ int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 	/* reset *all* targets */
 	return target_process_reset(cmd_ctx, reset_mode);
+}
+
+int handle_NEWreset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	int x;
+	char *cp;
+
+	if (argc >= 1){
+		x = strtol( args[0], &cp, 0 );
+		if( *cp != 0 ){
+			command_print( cmd_ctx, "Not numeric: %s\n", args[0] );
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		USE_OLD_RESET = !!x;
+	}
+	command_print( cmd_ctx, "reset method: %d (%s)\n",
+				   USE_OLD_RESET,
+				   USE_OLD_RESET ? "old-method" : "new-method" );
+	return ERROR_OK;
 }
 
 int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -3000,7 +3049,6 @@ target_handle_event( target_t *target, enum target_event e )
 enum target_cfg_param {
 	TCFG_TYPE,
 	TCFG_EVENT,
-	TCFG_RESET,
 	TCFG_WORK_AREA_VIRT,
 	TCFG_WORK_AREA_PHYS,
 	TCFG_WORK_AREA_SIZE,
@@ -3014,7 +3062,6 @@ enum target_cfg_param {
 static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-type",             .value = TCFG_TYPE },
 	{ .name = "-event",            .value = TCFG_EVENT },
-	{ .name = "-reset",            .value = TCFG_RESET },
 	{ .name = "-work-area-virt",   .value = TCFG_WORK_AREA_VIRT },
 	{ .name = "-work-area-phys",   .value = TCFG_WORK_AREA_PHYS },
 	{ .name = "-work-area-size",   .value = TCFG_WORK_AREA_SIZE },
@@ -3039,7 +3086,7 @@ target_configure( Jim_GetOptInfo *goi,
 
 
 	/* parse config or cget options ... */
-	while( goi->argc ){
+	while( goi->argc > 0 ){
 		Jim_SetEmptyResult( goi->interp );
 		//Jim_GetOpt_Debug( goi );
 
@@ -3284,8 +3331,8 @@ target_configure( Jim_GetOptInfo *goi,
 			/* loop for more e*/
 			break;
 		}
-	}
-	/* done - we return */
+	} /* while( goi->argc ) */
+		/* done - we return */
 	return JIM_OK;
 }
 
@@ -3321,6 +3368,7 @@ tcl_target_func( Jim_Interp *interp,
 		TS_CMD_WAITSTATE,
 		TS_CMD_EVENTLIST,
 		TS_CMD_CURSTATE,
+		TS_CMD_INVOKE_EVENT,
 	};
 
 	static const Jim_Nvp target_options[] = {
@@ -3342,6 +3390,7 @@ tcl_target_func( Jim_Interp *interp,
 		{ .name = "arp_reset", .value = TS_CMD_RESET },
 		{ .name = "arp_halt", .value = TS_CMD_HALT },
 		{ .name = "arp_waitstate", .value = TS_CMD_WAITSTATE },
+		{ .name = "invoke-event", .value = TS_CMD_INVOKE_EVENT },
 
 		{ .name = NULL, .value = -1 },
 	};
@@ -3554,7 +3603,7 @@ tcl_target_func( Jim_Interp *interp,
 		break;
 	case TS_CMD_EXAMINE:
 		if( goi.argc ){
-			Jim_WrongNumArgs( goi.interp, 0, argv, "[no parameters]");
+			Jim_WrongNumArgs( goi.interp, 2, argv, "[no parameters]");
 			return JIM_ERR;
 		}
 		e = target->type->examine( target );
@@ -3565,7 +3614,7 @@ tcl_target_func( Jim_Interp *interp,
 		return JIM_OK;
 	case TS_CMD_POLL:
 		if( goi.argc ){
-			Jim_WrongNumArgs( goi.interp, 0, argv, "[no parameters]");
+			Jim_WrongNumArgs( goi.interp, 2, argv, "[no parameters]");
 			return JIM_ERR;
 		}
 		if( !(target->type->examined) ){
@@ -3581,8 +3630,8 @@ tcl_target_func( Jim_Interp *interp,
 		}
 		break;
 	case TS_CMD_RESET:
-		if( goi.argc != 1 ){
-			Jim_WrongNumArgs( interp, 1, argv, "reset t|f|assert|deassert");
+		if( goi.argc != 2 ){
+			Jim_WrongNumArgs( interp, 2, argv, "t|f|assert|deassert BOOL");
 			return JIM_ERR;
 		}
 		e = Jim_GetOpt_Nvp( &goi, nvp_assert, &n );
@@ -3590,6 +3639,13 @@ tcl_target_func( Jim_Interp *interp,
 			Jim_GetOpt_NvpUnknown( &goi, nvp_assert, 1 );
 			return e;
 		}
+		// the halt or not param
+		e = Jim_GetOpt_Wide( &goi, &a);
+		if( e != JIM_OK ){
+			return e;
+		}
+		// determine if we should halt or not.
+		target->reset_halt = !!a;
 		// When this happens - all workareas are invalid.
 		target_free_all_working_areas_restore(target, 0);
 
@@ -3623,12 +3679,12 @@ tcl_target_func( Jim_Interp *interp,
 			return e;
 		}
 		e = target_wait_state( target, n->value, a );
-		if( e == ERROR_OK ){
+		if( e != ERROR_OK ){
 			Jim_SetResult_sprintf( goi.interp,
-								   "target: %s wait %s fails %d",
+								   "target: %s wait %s fails (%d) %s",
 								   target->cmd_name,
 								   n->name,
-								   target_strerror_safe(e) );
+					       e, target_strerror_safe(e) );
 			return JIM_ERR;
 		} else {
 			return JIM_OK;
@@ -3662,6 +3718,18 @@ tcl_target_func( Jim_Interp *interp,
 		}
 		Jim_SetResultString( goi.interp,
 							 Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name,-1);
+		return JIM_OK;
+	case TS_CMD_INVOKE_EVENT:
+		if( goi.argc != 1 ){
+			Jim_SetResult_sprintf( goi.interp, "%s ?EVENTNAME?",n->name);
+			return JIM_ERR;
+		}
+		e = Jim_GetOpt_Nvp( &goi, nvp_target_event, &n );
+		if( e != JIM_OK ){
+			Jim_GetOpt_NvpUnknown( &goi, nvp_target_event, 1 );
+			return e;
+		}
+		target_handle_event( target, n->value );
 		return JIM_OK;
 	}
 	return JIM_ERR;
@@ -4006,6 +4074,8 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 					   Jim_NewIntObj( goi.interp, max_target_number()));
 		return JIM_OK;
 	}
+
+	return JIM_ERR;
 }
 
 
