@@ -61,14 +61,14 @@ static char *log_strings[5] =
 static int count = 0;
 
 /* The log_puts() serves to somewhat different goals:
- * 
+ *
  * - logging
  * - feeding low-level info to the user in GDB or Telnet
- * 
+ *
  * The latter dictates that strings without newline are not logged, lest there
- * will be *MANY log lines when sending one char at the time(e.g. 
+ * will be *MANY log lines when sending one char at the time(e.g.
  * target_request.c).
- * 
+ *
  */
 static void log_puts(enum log_levels level, const char *file, int line, const char *function, const char *string)
 {
@@ -91,7 +91,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		{
 			/* print with count and time information */
 			int t=(int)(timeval_ms()-start);
-#if PRINT_MEM()	
+#if PRINT_MEM()
 			struct mallinfo info;
 			info = mallinfo();
 #endif
@@ -99,7 +99,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 #if PRINT_MEM()
 					" %d"
 #endif
-					": %s", log_strings[level+1], count, t, file, line, function, 
+					": %s", log_strings[level+1], count, t, file, line, function,
 #if PRINT_MEM()
 					info.fordblks,
 #endif
@@ -116,12 +116,12 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		}
 	} else
 	{
-		/* only entire lines are logged. Otherwise it's 
+		/* only entire lines are logged. Otherwise it's
 		 * single chars intended for the log callbacks. */
 	}
 
 	fflush(log_output);
-	
+
 	/* Never forward LOG_LVL_DEBUG, too verbose and they can be found in the log if need be */
 	if (level <= LOG_LVL_INFO)
 	{
@@ -154,7 +154,7 @@ void log_printf(enum log_levels level, const char *file, int line, const char *f
 		log_puts(level, file, line, function, string);
 		free(string);
 	}
-	
+
 	va_end(ap);
 }
 
@@ -166,9 +166,9 @@ void log_printf_lf(enum log_levels level, const char *file, int line, const char
 	count++;
 	if (level > debug_level)
 		return;
-	
+
 	va_start(ap, format);
-	
+
 	string = alloc_vprintf(format, ap);
 	if (string != NULL)
 	{
@@ -176,7 +176,7 @@ void log_printf_lf(enum log_levels level, const char *file, int line, const char
 		log_puts(level, file, line, function, string);
 		free(string);
 	}
-	
+
 	va_end(ap);
 }
 
@@ -208,7 +208,7 @@ int handle_log_output_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if (argc == 1)
 	{
 		FILE* file = fopen(args[0], "w");
-		
+
 		if (file)
 		{
 			log_output = file;
@@ -234,17 +234,17 @@ int log_init(struct command_context_s *cmd_ctx)
 	/* set defaults for daemon configuration, if not set by cmdline or cfgfile */
 	if (debug_level == -1)
 		debug_level = LOG_LVL_INFO;
-	
+
 	if (log_output == NULL)
 	{
 		log_output = stderr;
 	}
-	
+
 	start=last_time=timeval_ms();
-	
+
 	return ERROR_OK;
 }
-	
+
 int set_log_output(struct command_context_s *cmd_ctx, FILE *output)
 {
 	log_output = output;
@@ -299,7 +299,7 @@ char *alloc_vprintf(const char *fmt, va_list ap)
 {
 	/* no buffer at the beginning, force realloc to do the job */
 	char *string = NULL;
-	
+
 	/* start with buffer size suitable for typical messages */
 	int size = 128;
 
@@ -326,7 +326,7 @@ char *alloc_vprintf(const char *fmt, va_list ap)
 		/* there was just enough or not enough space, allocate more in the next round */
 		size *= 2; /* double the buffer size */
 	}
-	
+
 	/* the returned buffer is by principle guaranteed to be at least one character longer */
 	return string;
 }
@@ -343,10 +343,10 @@ char *alloc_printf(const char *format, ...)
 
 /* Code must return to the server loop before 1000ms has returned or invoke
  * this function.
- * 
+ *
  * The GDB connection will time out if it spends >2000ms and you'll get nasty
  * error messages from GDB:
- * 
+ *
  * Ignoring packet error, continuing...
  * Reply contains invalid hex digit 116
  *
@@ -354,34 +354,34 @@ char *alloc_printf(const char *format, ...)
  * in GDB, OpenOCD guarantees that it sends keep-alive packages on the
  * GDB protocol and it is a bug in OpenOCD not to either return to the server
  * loop or invoke keep_alive() every 1000ms.
- * 
+ *
  * This function will send a keep alive packet if >500ms has passed since last time
  * it was invoked.
- * 
+ *
  * Note that this function can be invoked often, so it needs to be relatively
  * fast when invoked more often than every 500ms.
- * 
+ *
  */
 void keep_alive()
 {
 	current_time=timeval_ms();
 	if (current_time-last_time>1000)
 	{
-		LOG_WARNING("BUG: keep_alive() was not invoked in the 1000ms timelimit. GDB alive packet not sent! (%lld)", current_time-last_time); 
-	} 
+		LOG_WARNING("BUG: keep_alive() was not invoked in the 1000ms timelimit. GDB alive packet not sent! (%lld)", current_time-last_time);
+	}
 	if (current_time-last_time>500)
 	{
 		/* this will keep the GDB connection alive */
 		LOG_USER_N("%s", "");
 
-		/* also process TCL events (we have to do this from 'log.c' since its
-		 * keep_alive() is the only routine guaranteed to be called at least
-		 * once per second :( */
-		process_jim_events ();
+		/* DANGER!!!! do not add code to invoke e.g. target event processing,
+		 * jim timer processing, etc. it can cause infinite recursion +
+		 * jim event callbacks need to happen at a well defined time,
+		 * not anywhere keep_alive() is invoked.
+		 *
+		 * These functions should be invoked at a well defined spot in server.c
+		 */
 
-        /* process any timer events now */		
-		target_call_timer_callbacks_now();
-		
 		last_time=current_time;
 	}
 }

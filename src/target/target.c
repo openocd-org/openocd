@@ -812,6 +812,8 @@ static int target_call_timer_callbacks_check_time(int checktime)
 	target_timer_callback_t *next_callback;
 	struct timeval now;
 
+	keep_alive();
+
 	gettimeofday(&now, NULL);
 
 	while (callback)
@@ -856,7 +858,7 @@ int target_call_timer_callbacks(void)
 /* invoke periodic callbacks immediately */
 int target_call_timer_callbacks_now(void)
 {
-	return target_call_timer_callbacks();
+	return target_call_timer_callbacks_check_time(0);
 }
 
 int target_alloc_working_area(struct target_s *target, u32 size, working_area_t **area)
