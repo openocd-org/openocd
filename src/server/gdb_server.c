@@ -5,6 +5,9 @@
  *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
+ *   Copyright (C) 2008 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -2278,12 +2281,3 @@ int gdb_register_commands(command_context_t *command_context)
 			"is not sufficient");
 	return ERROR_OK;
 }
-
-
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

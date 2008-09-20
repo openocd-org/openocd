@@ -639,11 +639,3 @@ int mips_m4k_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 {
 	return mips_m4k_write_memory(target, address, 4, count, buffer);
 }
-
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

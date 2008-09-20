@@ -12773,12 +12773,3 @@ Jim_Debug_ArgvString( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 
 	return Jim_GetString( debug_string_obj, NULL );
 }
-
-	
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

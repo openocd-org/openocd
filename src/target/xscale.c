@@ -2,7 +2,7 @@
  *   Copyright (C) 2006, 2007 by Dominic Rath                              *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                      *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -3722,11 +3722,3 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 
 	return ERROR_OK;
 }
-
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

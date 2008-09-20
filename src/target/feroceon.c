@@ -725,10 +725,3 @@ int feroceon_examine(struct target_s *target)
 	
 	return ERROR_OK;
 }
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

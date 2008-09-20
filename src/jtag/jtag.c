@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                      *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -2224,12 +2224,3 @@ int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	return ERROR_OK;
 }
-
-
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

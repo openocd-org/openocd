@@ -5,6 +5,9 @@
  *   Copyright (C) 2006 by Magnus Lundin                                   *
  *   lundin@mlu.mine.nu                                                    *
  *                                                                         *
+ *   Copyright (C) 2008 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -1527,11 +1530,3 @@ int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 	
 	return retval;
 }
-
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

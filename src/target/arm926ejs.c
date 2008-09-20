@@ -947,10 +947,3 @@ static int arm926ejs_mmu(struct target_s *target, int *enabled)
 	*enabled = arm926ejs->armv4_5_mmu.mmu_enabled;
 	return ERROR_OK;
 }
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

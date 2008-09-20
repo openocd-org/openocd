@@ -627,11 +627,3 @@ int arm720t_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char *
 	
 	return armv4_5_mmu_handle_mw_phys_command(cmd_ctx, cmd, args, argc, target, &arm720t->armv4_5_mmu);
 }
-
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

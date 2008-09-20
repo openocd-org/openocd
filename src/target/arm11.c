@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 digenius technology GmbH.                          *
- *   
+ *                                                                         *
  *   Copyright (C) 2008 Oyvind Harboe oyvind.harboe@zylin.com              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -1803,11 +1803,3 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
     return ERROR_OK;
 }
-
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */

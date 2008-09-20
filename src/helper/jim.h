@@ -1337,11 +1337,3 @@ static __inline__ void Jim_InitEmbedded(void) {
 #endif
 
 #endif /* __JIM__H */
-
-
-/*
- * Local Variables: ***
- * c-basic-offset: 4 ***
- * tab-width: 4 ***
- * End: ***
- */
