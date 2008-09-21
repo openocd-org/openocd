@@ -2,6 +2,9 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -198,6 +201,8 @@ int openocd_main(int argc, char *argv[])
 	command_context_t *cmd_ctx;
 
 	cmd_ctx = setup_command_handler();
+	
+	LOG_OUTPUT( "\n\nBUGS? Read http://svn.berlios.de/svnroot/repos/openocd/trunk/BUGS\n\n\n");
 
 	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
