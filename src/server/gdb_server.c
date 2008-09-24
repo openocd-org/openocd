@@ -119,10 +119,10 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 		*got_data = 1;
 		return ERROR_OK;
 	}
-	
+
 	FD_ZERO(&read_fds);
 	FD_SET(connection->fd, &read_fds);
-	
+
 	tv.tv_sec = timeout_s;
 	tv.tv_usec = 0;
 	if (select(connection->fd + 1, &read_fds, NULL, NULL, &tv) == 0)
@@ -291,7 +291,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		my_checksum += buffer[i];
 
 #ifdef _DEBUG_GDB_IO_
-	/* 
+	/*
 	 * At this point we should have nothing in the input queue from GDB,
 	 * however sometimes '-' is sent even though we've already received
 	 * an ACK (+) for everything we've sent off.
@@ -341,10 +341,10 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			gdb_write(connection, buffer, len);
 			gdb_write(connection, local_buffer+1, 3);
 		}
-		
+
 		if (gdb_con->noack_mode)
 			break;
-		
+
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
 
@@ -395,6 +395,10 @@ int gdb_put_packet(connection_t *connection, char *buffer, int len)
 	gdb_con->busy = 1;
 	int retval = gdb_put_packet_inner(connection, buffer, len);
 	gdb_con->busy = 0;
+
+	/* we sent some data, reset timer for keep alive messages */
+	kept_alive();
+
 	return retval;
 }
 
@@ -404,7 +408,7 @@ static __inline__ int fetch_packet(connection_t *connection, int *checksum_ok, i
 	char checksum[3];
 	int character;
 	int retval;
-	
+
 	gdb_connection_t *gdb_con = connection->priv;
 	my_checksum = 0;
 	int count = 0;
@@ -498,12 +502,12 @@ static __inline__ int fetch_packet(connection_t *connection, int *checksum_ok, i
 		return retval;
 	checksum[1] = character;
 	checksum[2] = 0;
-	
+
 	if (!noack)
 	{
 		*checksum_ok=(my_checksum == strtoul(checksum, NULL, 16));
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -621,7 +625,7 @@ int gdb_output(struct command_context_s *context, const char* line)
 static void gdb_frontend_halted(struct target_s *target, connection_t *connection)
 {
 	gdb_connection_t *gdb_connection = connection->priv;
-	
+
 	/* In the GDB protocol when we are stepping or coninuing execution,
 	 * we have a lingering reply. Upon receiving a halted event
 	 * when we have that lingering packet, we reply to the original
@@ -694,7 +698,7 @@ int gdb_new_connection(connection_t *connection)
 	gdb_connection->closed = 0;
 	gdb_connection->busy = 0;
 	gdb_connection->noack_mode = 0;
-	
+
 	/* send ACK to GDB for debug request */
 	gdb_write(connection, "+", 1);
 
@@ -702,44 +706,44 @@ int gdb_new_connection(connection_t *connection)
 	command_set_output_handler(connection->cmd_ctx, gdb_output, connection);
 
 	/* we must remove all breakpoints registered to the target as a previous
-	 * GDB session could leave dangling breakpoints if e.g. communication 
+	 * GDB session could leave dangling breakpoints if e.g. communication
 	 * timed out.
 	 */
 	breakpoint_clear_target(gdb_service->target);
 	watchpoint_clear_target(gdb_service->target);
-	
+
 	/* register callback to be informed about target events */
 	target_register_event_callback(gdb_target_callback_event_handler, connection);
 
 	/* a gdb session just attached, try to put the target in halt mode.
-	 * 
-	 * DANGER!!!! 
-	 * 
+	 *
+	 * DANGER!!!!
+	 *
 	 * If the halt fails(e.g. target needs a reset, JTAG communication not
 	 * working, etc.), then the GDB connect will succeed as
 	 * the get_gdb_reg_list() will lie and return a register list with
 	 * dummy values.
-	 * 
+	 *
 	 * This allows GDB monitor commands to be run from a GDB init script to
 	 * initialize the target
-	 * 
+	 *
 	 * Also, since the halt() is asynchronous target connect will be
 	 * instantaneous and thus avoiding annoying timeout problems during
-	 * connect. 
+	 * connect.
 	 */
 	target_halt(gdb_service->target);
 	/* FIX!!!! could extended-remote work better here?
-	 * 
+	 *
 	 *  wait a tiny bit for halted state or we just continue. The
-	 * GDB register packet will then contain garbage 
+	 * GDB register packet will then contain garbage
 	 */
 	target_wait_state(gdb_service->target, TARGET_HALTED, 500);
-	
+
 	/* remove the initial ACK from the incoming buffer */
 	if ((retval = gdb_get_char(connection, &initial_ack)) != ERROR_OK)
 		return retval;
 
-	/* FIX!!!??? would we actually ever receive a + here??? 
+	/* FIX!!!??? would we actually ever receive a + here???
 	 * Not observed.
 	 */
 	if (initial_ack != '+')
@@ -1010,7 +1014,7 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 	if (reg_list_size < reg_num)
 	{
 		LOG_ERROR("gdb requested a non-existing register");
-		return ERROR_SERVER_REMOTE_CLOSED;	
+		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
 	if (*separator != '=')
@@ -1311,7 +1315,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 		wp_type = WPT_READ;
 	else if (type == 4) /* access watchpoint */
 		wp_type = WPT_ACCESS;
-	
+
 	if (gdb_breakpoint_override&&((bp_type==BKPT_SOFT)||(bp_type==BKPT_HARD)))
 	{
 		bp_type=gdb_breakpoint_override_type;
@@ -1474,7 +1478,7 @@ static int compare_bank (const void * a, const void * b)
 	flash_bank_t *b1, *b2;
 	b1=*((flash_bank_t **)a);
 	b2=*((flash_bank_t **)b);
-	
+
 	if (b1->base==b2->base)
 	{
 		return 0;
@@ -1491,7 +1495,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 {
 	command_context_t *cmd_ctx = connection->cmd_ctx;
 	gdb_connection_t *gdb_connection = connection->priv;
-	
+
 	if (strstr(packet, "qRcmd,"))
 	{
 		if (packet_size > 6)
@@ -1608,15 +1612,15 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		length = strtoul(separator + 1, &separator, 16);
 
 		xml_printf(&retval, &xml, &pos, &size, "<memory-map>\n");
-	
-		/* 
+
+		/*
 		sort banks in ascending order, we need to make non-flash memory be ram(or rather
 		read/write) by default for GDB.
 		GDB does not have a concept of non-cacheable read/write memory.
 		 */
 		flash_bank_t **banks=malloc(sizeof(flash_bank_t *)*flash_get_bank_count());
 		int i;
-		
+
 		for (i=0; i<flash_get_bank_count(); i++)
 		{
 			p = get_flash_bank_by_num(i);
@@ -1629,29 +1633,29 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			}
 			banks[i]=p;
 		}
-		
+
 		qsort(banks, flash_get_bank_count(), sizeof(flash_bank_t *), compare_bank);
-		
+
 		u32 ram_start=0;
 		for (i=0; i<flash_get_bank_count(); i++)
 		{
 			p = banks[i];
-			
+
 			if (ram_start<p->base)
 			{
 				xml_printf(&retval, &xml, &pos, &size, "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>\n",
 					ram_start, p->base-ram_start);
 			}
-			
+
 			/* if device has uneven sector sizes, eg. str7, lpc
 			 * we pass the smallest sector size to gdb memory map */
 			blocksize = gdb_calc_blocksize(p);
-	
+
 			xml_printf(&retval, &xml, &pos, &size, "<memory type=\"flash\" start=\"0x%x\" length=\"0x%x\">\n" \
 				"<property name=\"blocksize\">0x%x</property>\n" \
 				"</memory>\n", \
 				p->base, p->size, blocksize);
-			ram_start=p->base+p->size;			
+			ram_start=p->base+p->size;
 		}
 		if (ram_start!=0)
 		{
@@ -1662,7 +1666,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			/* a flash chip could be at the very end of the 32 bit address space, in which case
 			ram_start will be precisely 0 */
 		}
-		
+
 		free(banks);
 		banks = NULL;
 
@@ -2000,7 +2004,7 @@ int gdb_input_inner(connection_t *connection)
 						} else
 						{
 							/* We're running/stepping, in which case we can
-							 * forward log output until the target is halted 
+							 * forward log output until the target is halted
 							 */
 							gdb_connection_t *gdb_con = connection->priv;
 							gdb_con->frontend_state = TARGET_RUNNING;
@@ -2009,7 +2013,7 @@ int gdb_input_inner(connection_t *connection)
 							if (retval!=ERROR_OK)
 							{
 								/* we'll never receive a halted condition... issue a false one.. */
-								gdb_frontend_halted(target, connection); 
+								gdb_frontend_halted(target, connection);
 							}
 						}
 					}
@@ -2077,7 +2081,7 @@ int gdb_input(connection_t *connection)
 	/* logging does not propagate the error, yet can set th gdb_con->closed flag */
 	if (gdb_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
-	
+
 	/* we'll recover from any other errors(e.g. temporary timeouts, etc.) */
 	return ERROR_OK;
 }
@@ -2108,14 +2112,14 @@ int gdb_init(void)
 		gdb_service = malloc(sizeof(gdb_service_t));
 		gdb_service->target = target;
 
-		add_service("gdb", CONNECTION_GDB, 
-			    gdb_port + target->target_number, 
-			    1, gdb_new_connection, gdb_input, 
-			    gdb_connection_closed, 
+		add_service("gdb", CONNECTION_GDB,
+			    gdb_port + target->target_number,
+			    1, gdb_new_connection, gdb_input,
+			    gdb_connection_closed,
 			    gdb_service);
 
-		LOG_DEBUG("gdb service for target %s at port %i", 
-			  target->type->name, 
+		LOG_DEBUG("gdb service for target %s at port %i",
+			  target->type->name,
 			  gdb_port + target->target_number);
 
 		target = target->next;
@@ -2232,7 +2236,7 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 {
 	if (argc == 0)
 	{
-		
+
 	} else if (argc==1)
 	{
 		gdb_breakpoint_override = 1;
@@ -2257,7 +2261,7 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 	{
 		LOG_USER("breakpoint type is not overriden");
 	}
-	
+
 	return ERROR_OK;
 }
 
