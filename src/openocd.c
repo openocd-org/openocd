@@ -60,7 +60,6 @@
 
 #include "replacements.h"
 
-
 /* Give TELNET a way to find out what version this is */
 int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -68,7 +67,6 @@ int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 	return ERROR_OK;
 }
-
 
 void exit_handler(void)
 {
@@ -90,8 +88,6 @@ static int log_target_callback_event_handler(struct target_s *target, enum targe
 
 	return ERROR_OK;
 }
-
-
 
 /* OpenOCD can't really handle failure of this command. Patches welcome! :-) */
 int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -148,8 +144,6 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	tcl_init(); /* allows tcl to just connect without going thru telnet */
 
 	target_register_event_callback(log_target_callback_event_handler, cmd_ctx);
-
-	
 	
 	return ERROR_OK;
 }

@@ -69,7 +69,7 @@ extern flash_driver_t cfi_flash;
 extern flash_driver_t at91sam7_flash;
 extern flash_driver_t str7x_flash;
 extern flash_driver_t str9x_flash;
-extern flash_driver_t x7026_flash;
+extern flash_driver_t aduc702x_flash;
 extern flash_driver_t stellaris_flash;
 extern flash_driver_t str9xpec_flash;
 extern flash_driver_t stm32x_flash;
@@ -85,7 +85,7 @@ flash_driver_t *flash_drivers[] =
 	&at91sam7_flash,
 	&str7x_flash,
 	&str9x_flash,
-	&x7026_flash,
+	&aduc702x_flash,
 	&stellaris_flash,
 	&str9xpec_flash,
 	&stm32x_flash,
