@@ -171,6 +171,7 @@ const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_OLD_pre_resume         , .name = "old-pre_resume" },
 
 
+	{ .value = TARGET_EVENT_EARLY_HALTED, .name = "early-halted" },
 	{ .value = TARGET_EVENT_HALTED, .name = "halted" },
 	{ .value = TARGET_EVENT_RESUMED, .name = "resumed" },
 	{ .value = TARGET_EVENT_RESUME_START, .name = "resume-start" },
@@ -796,6 +797,13 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 {
 	target_event_callback_t *callback = target_event_callbacks;
 	target_event_callback_t *next_callback;
+
+	if (event == TARGET_EVENT_HALTED)
+	{
+		/* execute early halted first */
+		target_call_event_callbacks(target, TARGET_EVENT_EARLY_HALTED);
+	}
+
 
 	LOG_DEBUG("target event %i (%s)",
 			  event,

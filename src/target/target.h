@@ -281,6 +281,10 @@ enum target_event
 	TARGET_EVENT_OLD_post_reset,
 	TARGET_EVENT_OLD_pre_resume,
 
+	/* allow GDB to do stuff before others handle the halted event,
+ 	this is in lieu of defining ordering of invocation of events,
+ 	which would be more complicated */
+ 	TARGET_EVENT_EARLY_HALTED,
  	TARGET_EVENT_HALTED,		/* target entered debug state from normal execution or reset */
  	TARGET_EVENT_RESUMED,		/* target resumed to normal execution */
 	TARGET_EVENT_RESUME_START,

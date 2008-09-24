@@ -665,7 +665,7 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 	target_handle_event( target, event );
 	switch (event)
 	{
-		case TARGET_EVENT_HALTED:
+		case TARGET_EVENT_EARLY_HALTED:
 			gdb_frontend_halted(target, connection);
 			break;
 		case TARGET_EVENT_GDB_FLASH_ERASE_START:
