@@ -69,6 +69,7 @@ extern flash_driver_t cfi_flash;
 extern flash_driver_t at91sam7_flash;
 extern flash_driver_t str7x_flash;
 extern flash_driver_t str9x_flash;
+extern flash_driver_t x7026_flash;
 extern flash_driver_t stellaris_flash;
 extern flash_driver_t str9xpec_flash;
 extern flash_driver_t stm32x_flash;
@@ -84,6 +85,7 @@ flash_driver_t *flash_drivers[] =
 	&at91sam7_flash,
 	&str7x_flash,
 	&str9x_flash,
+	&x7026_flash,
 	&stellaris_flash,
 	&str9xpec_flash,
 	&stm32x_flash,
@@ -148,7 +150,7 @@ int flash_register_commands(struct command_context_s *cmd_ctx)
 static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	flash_bank_t *p;
-	
+
 	if (argc != 1) {
 		Jim_WrongNumArgs(interp, 1, argv, "no arguments to flash_banks command");
 		return JIM_ERR;
@@ -163,7 +165,7 @@ static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	for (p = flash_banks; p; p = p->next)
 	{
 		Jim_Obj *elem=Jim_NewListObj(interp, NULL, 0);
-		
+
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "name", -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, p->driver->name, -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "base", -1));
@@ -174,7 +176,7 @@ static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->bus_width));
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "chip_width", -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->chip_width));
-		
+
 		Jim_ListAppendElement(interp, list, elem);
 	}
 
@@ -188,7 +190,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 	if (flash_banks)
 	{
 		register_jim(cmd_ctx, "ocd_flash_banks", jim_flash_banks, "return information about the flash banks");
-		
+
 		register_command(cmd_ctx, flash_cmd, "info", handle_flash_info_command, COMMAND_EXEC,
 						 "print info about flash bank <num>");
 		register_command(cmd_ctx, flash_cmd, "probe", handle_flash_probe_command, COMMAND_EXEC,
@@ -452,7 +454,7 @@ int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cm
 			command_print(cmd_ctx, "unknown error when checking erase state of flash bank #%s at 0x%8.8x",
 				args[0], p->base);
 		}
-		
+
 		for (j = 0; j < p->num_sectors; j++)
 		{
 			char *erase_state;
@@ -468,7 +470,7 @@ int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cm
 						j, p->sectors[j].offset, p->sectors[j].size, p->sectors[j].size>>10,
 						erase_state);
 		}
-		
+
 	}
 
 	return ERROR_OK;
@@ -642,10 +644,10 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	
+
 	/* flash auto-erase is disabled by default*/
 	int auto_erase = 0;
-	
+
 	if (strcmp(args[0], "erase")==0)
 	{
 		auto_erase = 1;
@@ -653,13 +655,13 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 		argc--;
 		command_print(cmd_ctx, "auto erase enabled");
 	}
-	
+
 
 	if (argc < 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	
+
 	if (!target)
 	{
 		LOG_ERROR("no target selected");
@@ -722,16 +724,16 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 	target_t *target = get_current_target(cmd_ctx);
 	u32 i;
 	int wordsize;
-	
+
 	if (argc != 3)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	
+
 	address	= strtoul(args[0], NULL, 0);
 	pattern	= strtoul(args[1], NULL, 0);
 	count 	= strtoul(args[2], NULL, 0);
-	
+
 	if(count == 0)
 		return ERROR_OK;
 
@@ -750,7 +752,7 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	
+
 	chunk_count = MIN(count, (1024 / wordsize));
 	switch(wordsize)
 	{
@@ -773,7 +775,7 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 		LOG_ERROR("BUG: can't happen");
 		exit(-1);
 	}
-	
+
 	duration_start_measure(&duration);
 
 	flash_set_dirty();
@@ -781,7 +783,7 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if (err == ERROR_OK)
 	{
 		for (wrote=0; wrote<(count*wordsize); wrote+=sizeof(chunk))
-		{ 
+		{
 			int cur_size = MIN( (count*wordsize - wrote) , 1024 );
 			if (err == ERROR_OK)
 			{
@@ -799,7 +801,7 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 				break;
 		}
 	}
-	
+
 	duration_stop_measure(&duration, &duration_text);
 
 	if(err == ERROR_OK)
@@ -973,7 +975,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 	u32 section_offset;
 	flash_bank_t *c;
 	int *padding;
-	
+
 	section = 0;
 	section_offset = 0;
 
@@ -987,10 +989,10 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 
 		flash_set_dirty();
 	}
-	
+
 	/* allocate padding array */
 	padding = malloc(image->num_sections * sizeof(padding));
-	
+
 	/* loop until we reach end of the image */
 	while (section < image->num_sections)
 	{
@@ -1001,7 +1003,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 		u32 run_address = image->sections[section].base_address + section_offset;
 		u32 run_size = image->sections[section].size - section_offset;
 		int pad_bytes = 0;
-		
+
 		if (image->sections[section].size ==  0)
 		{
 			LOG_WARNING("empty section %d", section);
@@ -1039,7 +1041,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 			run_size += image->sections[++section_last].size;
 			run_size += pad_bytes;
 			padding[section_last] = 0;
-			
+
 			LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes );
 		}
 
@@ -1067,11 +1069,11 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 				free(padding);
 				return retval;
 			}
-			
+
 			/* see if we need to pad the section */
 			while (padding[section]--)
 				 (buffer+buffer_size)[size_read++] = 0xff;
-			
+
 			buffer_size += size_read;
 			section_offset += size_read;
 
@@ -1107,9 +1109,9 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 		if (written != NULL)
 			*written += run_size; /* add run size to total written counter */
 	}
-	
+
 	free(padding);
-	
+
 	return retval;
 }
 
@@ -1120,18 +1122,18 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 	int buffer_size = sizeof(buffer);
 	int i;
 	int nBytes;
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	for (i = 0; i < bank->num_sectors; i++)
 	{
 		int j;
 		bank->sectors[i].is_erased = 1;
-		
+
 		for (j = 0; j < bank->sectors[i].size; j += buffer_size)
 		{
 			int chunk;
@@ -1141,11 +1143,11 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 			{
 				chunk = (j - bank->sectors[i].size);
 			}
-			
+
 			retval = target->type->read_memory(target, bank->base + bank->sectors[i].offset + j, 4, chunk/4, buffer);
 			if (retval != ERROR_OK)
 				return retval;
-		
+
 			for (nBytes = 0; nBytes < chunk; nBytes++)
 			{
 				if (buffer[nBytes] != 0xFF)
@@ -1156,7 +1158,7 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 			}
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1167,18 +1169,18 @@ int default_flash_blank_check(struct flash_bank_s *bank)
 	int retval;
 	int fast_check = 0;
 	int blank;
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-		
+
 	for (i = 0; i < bank->num_sectors; i++)
 	{
 		u32 address = bank->base + bank->sectors[i].offset;
 		u32 size = bank->sectors[i].size;
-		
+
 		if ((retval = target_blank_check_memory(target, address, size, &blank)) != ERROR_OK)
 		{
 			fast_check = 0;
@@ -1190,12 +1192,12 @@ int default_flash_blank_check(struct flash_bank_s *bank)
 			bank->sectors[i].is_erased = 0;
 		fast_check = 1;
 	}
-		
+
 	if (!fast_check)
 	{
 		LOG_USER("Running slow fallback erase check - add working memory");
 		return default_flash_mem_blank_check(bank);
 	}
-	
+
 	return ERROR_OK;
 }
