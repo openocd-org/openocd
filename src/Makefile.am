@@ -1,7 +1,7 @@
 bin_PROGRAMS = openocd
 
 if ECOSBOARD
-MAINFILE = $(ECOS_SOURCE_FILES)/ecosboard.c
+MAINFILE = ecosboard.c
 else
 MAINFILE = main.c
 endif
