@@ -708,7 +708,6 @@ stm32x flash plugin only require the @var{target#}.
 
 @b{flash bank aduc702x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
 aduc702x flash plugin require the flash @var{base}, @var{size} and @var{target#}.
-currently only the aduc7206 is supported.
 
 @node Target library
 @chapter Target library
