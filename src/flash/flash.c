@@ -67,6 +67,7 @@ flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);
 extern flash_driver_t lpc2000_flash;
 extern flash_driver_t cfi_flash;
 extern flash_driver_t at91sam7_flash;
+extern flash_driver_t at91sam7_old_flash;
 extern flash_driver_t str7x_flash;
 extern flash_driver_t str9x_flash;
 extern flash_driver_t aduc702x_flash;
@@ -78,23 +79,25 @@ extern flash_driver_t ecosflash_flash;
 extern flash_driver_t lpc288x_flash;
 extern flash_driver_t ocl_flash;
 
-flash_driver_t *flash_drivers[] =
-{
-	&lpc2000_flash,
-	&cfi_flash,
-	&at91sam7_flash,
-	&str7x_flash,
-	&str9x_flash,
-	&aduc702x_flash,
-	&stellaris_flash,
-	&str9xpec_flash,
-	&stm32x_flash,
-	&tms470_flash,
-	&ecosflash_flash,
-	&lpc288x_flash,
-	&ocl_flash,
-	NULL,
+flash_driver_t *flash_drivers[] = {
+        &lpc2000_flash,
+        &cfi_flash,
+        &at91sam7_flash,
+        &at91sam7_old_flash,
+        &str7x_flash,
+        &str9x_flash,
+        &aduc702x_flash,
+        &stellaris_flash,
+        &str9xpec_flash,
+        &stm32x_flash,
+        &tms470_flash,
+        &ecosflash_flash,
+        &lpc288x_flash,
+        &ocl_flash,
+        NULL,
 };
+
+
 
 flash_bank_t *flash_banks;
 static 	command_t *flash_cmd;
@@ -379,7 +382,7 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 				else
 					protect_state = "protection state unknown";
 
-				command_print(cmd_ctx, "\t#%i: 0x%8.8x (0x%x %ikB) %s",
+				command_print(cmd_ctx, "\t#%3i: 0x%8.8x (0x%x %ikB) %s",
 							j, p->sectors[j].offset, p->sectors[j].size, p->sectors[j].size>>10,
 							protect_state);
 			}
@@ -466,7 +469,7 @@ int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cm
 			else
 				erase_state = "erase state unknown";
 
-			command_print(cmd_ctx, "\t#%i: 0x%8.8x (0x%x %ikB) %s",
+			command_print(cmd_ctx, "\t#%3i: 0x%8.8x (0x%x %ikB) %s",
 						j, p->sectors[j].offset, p->sectors[j].size, p->sectors[j].size>>10,
 						erase_state);
 		}
