@@ -96,10 +96,12 @@ struct tftpd_fileops fileops =
 
 #endif
 
-#define ZYLIN_VERSION "1.42"
+#define ZYLIN_VERSION "1.43"
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
-#define ZYLIN_OPENOCD 921
+/* hmmm....  we can't pick up the right # during build if we've checked this out
+ * in Eclipse... arrggghh...*/
+#define ZYLIN_OPENOCD 1005
 #define ZYLIN_OPENOCD_VERSION "Zylin JTAG ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE " " ZYLIN_TIME
 #define ZYLIN_CONFIG_DIR "/config/settings"
 
