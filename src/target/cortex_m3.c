@@ -376,7 +376,7 @@ int cortex_m3_debug_entry(target_t *target)
 int cortex_m3_poll(target_t *target)
 {
 	int retval;
-	u32 prev_target_state = target->state;
+	enum target_state prev_target_state = target->state;
 	
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -762,6 +762,13 @@ int cortex_m3_assert_reset(target_t *target)
 		/* this causes the luminary device to reset using the watchdog */
 		ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ );
 		LOG_DEBUG("Using Luminary Reset: SYSRESETREQ");
+
+		{
+			/* I do not know why this is necessary, but it fixes strange effects
+		       (step/resume cause a NMI after reset) on LM3S6918 -- Michael Schwingen */
+			u32 tmp;
+			ahbap_read_system_atomic_u32(swjdp, NVIC_AIRCR, &tmp );
+	}
 	}
 	
 	target->state = TARGET_RESET;
