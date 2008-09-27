@@ -80,24 +80,22 @@ extern flash_driver_t lpc288x_flash;
 extern flash_driver_t ocl_flash;
 
 flash_driver_t *flash_drivers[] = {
-        &lpc2000_flash,
-        &cfi_flash,
-        &at91sam7_flash,
-        &at91sam7_old_flash,
-        &str7x_flash,
-        &str9x_flash,
-        &aduc702x_flash,
-        &stellaris_flash,
-        &str9xpec_flash,
-        &stm32x_flash,
-        &tms470_flash,
-        &ecosflash_flash,
-        &lpc288x_flash,
-        &ocl_flash,
-        NULL,
+	&lpc2000_flash,
+	&cfi_flash,
+	&at91sam7_flash,
+	&at91sam7_old_flash,
+	&str7x_flash,
+	&str9x_flash,
+	&aduc702x_flash,
+	&stellaris_flash,
+	&str9xpec_flash,
+	&stm32x_flash,
+	&tms470_flash,
+	&ecosflash_flash,
+	&lpc288x_flash,
+	&ocl_flash,
+	NULL,
 };
-
-
 
 flash_bank_t *flash_banks;
 static 	command_t *flash_cmd;

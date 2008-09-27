@@ -106,14 +106,14 @@ int cortex_m3_clear_halt(target_t *target)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
-    
-    /* Read Debug Fault Status Register */
-    ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-    /* Write Debug Fault Status Register to enable processing to resume ?? Try with and without this !! */
-    ahbap_write_system_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
-    LOG_DEBUG(" NVIC_DFSR 0x%x", cortex_m3->nvic_dfsr);
+	
+	/* Read Debug Fault Status Register */
+	ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
+	/* Write Debug Fault Status Register to enable processing to resume ?? Try with and without this !! */
+	ahbap_write_system_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
+	LOG_DEBUG(" NVIC_DFSR 0x%x", cortex_m3->nvic_dfsr);
 
-    return ERROR_OK;
+	return ERROR_OK;
 }
 
 int cortex_m3_single_step_core(target_t *target)
@@ -287,8 +287,8 @@ int cortex_m3_examine_exception_reason(target_t *target)
 			break;
 	}
 	swjdp_transaction_endcheck(swjdp);
-    LOG_DEBUG("%s SHCSR 0x%x, SR 0x%x, CFSR 0x%x, AR 0x%x", armv7m_exception_string(armv7m->exception_number), \
-    	shcsr, except_sr, cfsr, except_ar);
+	LOG_DEBUG("%s SHCSR 0x%x, SR 0x%x, CFSR 0x%x, AR 0x%x", armv7m_exception_string(armv7m->exception_number), \
+		shcsr, except_sr, cfsr, except_ar);
 	return ERROR_OK;
 }
 
@@ -363,9 +363,9 @@ int cortex_m3_debug_entry(target_t *target)
 	}
 
 	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%x, target->state: %s", 
-		  armv7m_mode_strings[armv7m->core_mode],
-		  *(u32*)(armv7m->core_cache->reg_list[15].value), 
-		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
+		armv7m_mode_strings[armv7m->core_mode],
+		*(u32*)(armv7m->core_cache->reg_list[15].value), 
+		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
 
 	if (armv7m->post_debug_entry)
 		armv7m->post_debug_entry(target);
@@ -439,7 +439,7 @@ int cortex_m3_poll(target_t *target)
 	*/
 
 #if 0
-    /* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
+	/* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
 	ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
 	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, Jim_Nvp_value2name( nvp_target_state, target->state )->name );
 #endif
@@ -455,7 +455,7 @@ int cortex_m3_halt(target_t *target)
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	
 	LOG_DEBUG("target->state: %s", 
-		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 	
 	if (target->state == TARGET_HALTED)
 	{
@@ -518,7 +518,7 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 		retval = ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
 		if (retval == ERROR_OK)
 		{
-		    ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
+			ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
 			if ((dcb_dhcsr & S_HALT) && (cortex_m3->nvic_dfsr & DFSR_VCATCH))
 			{
 				LOG_DEBUG("system reset-halted, dcb_dhcsr 0x%x, nvic_dfsr 0x%x", dcb_dhcsr, cortex_m3->nvic_dfsr);
@@ -563,11 +563,9 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 	if (debug_execution)
 	{
 		/* Disable interrupts */
-		/* 
-		   We disable interrupts in the PRIMASK register instead of masking with C_MASKINTS,
-		   This is probably the same inssue as Cortex-M3 Errata	377493: 
-		   C_MASKINTS in parallel with disabled interrupts can cause local faults to not be taken.
-		*/
+		/* We disable interrupts in the PRIMASK register instead of masking with C_MASKINTS,
+		 * This is probably the same inssue as Cortex-M3 Errata	377493: 
+		 * C_MASKINTS in parallel with disabled interrupts can cause local faults to not be taken. */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_PRIMASK].value, 0, 32, 1);
 		/* Make sure we are in Thumb mode */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32, 
@@ -654,7 +652,7 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 	armv7m_restore_context(target);
 	
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-    
+	
 	if (cortex_m3->dcb_dhcsr & C_MASKINTS)
 		ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN );
 	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY| C_STEP | C_DEBUGEN);
@@ -683,7 +681,7 @@ int cortex_m3_assert_reset(target_t *target)
 	int assert_srst = 1;
 	
 	LOG_DEBUG("target->state: %s", 
-		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 	
 	if (!(jtag_reset_config & RESET_HAS_SRST))
 	{
@@ -765,10 +763,10 @@ int cortex_m3_assert_reset(target_t *target)
 
 		{
 			/* I do not know why this is necessary, but it fixes strange effects
-		       (step/resume cause a NMI after reset) on LM3S6918 -- Michael Schwingen */
+			 * (step/resume cause a NMI after reset) on LM3S6918 -- Michael Schwingen */
 			u32 tmp;
 			ahbap_read_system_atomic_u32(swjdp, NVIC_AIRCR, &tmp );
-	}
+		}
 	}
 	
 	target->state = TARGET_RESET;
@@ -776,12 +774,12 @@ int cortex_m3_assert_reset(target_t *target)
 	
 	armv7m_invalidate_core_regs(target);
 
-    if (target->reset_halt)
-    {
-    	int retval;
+	if (target->reset_halt)
+	{
+		int retval;
 		if ((retval = target_halt(target))!=ERROR_OK)
 			return retval;
-    }
+	}
 	
 	return ERROR_OK;
 }
@@ -789,7 +787,7 @@ int cortex_m3_assert_reset(target_t *target)
 int cortex_m3_deassert_reset(target_t *target)
 {		
 	LOG_DEBUG("target->state: %s", 
-		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
+		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
 	
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
@@ -826,7 +824,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		LOG_WARNING("breakpoint already set");
 		return ERROR_OK;
 	}
-    
+	
 	if (cortex_m3->auto_bp_type)
 	{
 		breakpoint->type = (breakpoint->address < 0x20000000) ? BKPT_HARD : BKPT_SOFT;
