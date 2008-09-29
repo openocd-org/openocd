@@ -1091,7 +1091,7 @@ int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf_size -= printed;
 
 	printed = snprintf(buf, buf_size,
-		" Master clock (estimated): %li KHz | External clock: %li KHz\n",
+		" Master clock (estimated): %u KHz | External clock: %u KHz\n",
 		at91sam7_info->mck_freq / 1000, at91sam7_info->ext_freq / 1000);
 
 	buf += printed;
