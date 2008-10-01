@@ -1,4 +1,5 @@
-reg cpsr 0x000000D3
+# disable interrupts
+reg cpsr 0x00000053
  		
 mww 0xFFE00000 0x0100273D
 mww 0xFFE00004 0x08002125
