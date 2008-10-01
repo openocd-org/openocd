@@ -271,7 +271,8 @@ proc ocd_process_reset { MODE } {
 	    set err [catch "$t arp_waitstate halted 5000"]
 	    # Did it halt?
 	    if { $err == 0 } {
-		$t invoke-event old-post_reset
+			$t invoke-event old-post_reset
+			$t invoke-event reset-init		
 	    }
 	}
     }
