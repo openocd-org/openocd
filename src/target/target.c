@@ -2285,6 +2285,10 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 						retval=ERROR_FAIL;
 						goto done;
 					}
+					if ((t%16384)==0)
+					{
+						keep_alive();
+					}
 				}
 			}
 

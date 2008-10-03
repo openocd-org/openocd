@@ -88,7 +88,7 @@ static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	arm7_9->wp_available--;
-	
+
 	/* pick a breakpoint unit */
 	if (!arm7_9->wp0_used)
 	{
@@ -208,11 +208,11 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		if ((retval=arm7_9_set_software_breakpoints(arm7_9))!=ERROR_OK)
 			return retval;
-		
+
 		/* did we already set this breakpoint? */
 		if (breakpoint->set)
 			return ERROR_OK;
-		
+
 		if (breakpoint->length == 4)
 		{
 			u32 verify = 0xffffffff;
@@ -311,13 +311,13 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (arm7_9->breakpoint_count==0)
 	{
-		/* make sure we don't have any dangling breakpoints. This is vital upon 
-		 * GDB connect/disconnect 
+		/* make sure we don't have any dangling breakpoints. This is vital upon
+		 * GDB connect/disconnect
 		 */
-		arm7_9_clear_watchpoints(arm7_9);	
+		arm7_9_clear_watchpoints(arm7_9);
 	}
 
 	if ((breakpoint->type == BKPT_HARD) && (arm7_9->wp_available < 1))
@@ -335,7 +335,7 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	if (breakpoint->type == BKPT_HARD)
 	{
 		arm7_9->wp_available--;
-		
+
 		if (!arm7_9->wp0_used)
 		{
 			arm7_9->wp0_used = 1;
@@ -351,10 +351,10 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			LOG_ERROR("BUG: no hardware comparator available");
 		}
 	}
-	
+
 
 	arm7_9->breakpoint_count++;
-	
+
 	return arm7_9_set_breakpoint(target, breakpoint);
 }
 
@@ -367,12 +367,12 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if (breakpoint->type == BKPT_HARD)
 		arm7_9->wp_available++;
-	
+
 	arm7_9->breakpoint_count--;
 	if (arm7_9->breakpoint_count==0)
 	{
 		/* make sure we don't have any dangling breakpoints */
-		arm7_9_clear_watchpoints(arm7_9);	
+		arm7_9_clear_watchpoints(arm7_9);
 	}
 
 	return ERROR_OK;
@@ -737,7 +737,7 @@ int arm7_9_assert_reset(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	LOG_DEBUG("target->state: %s", 
+	LOG_DEBUG("target->state: %s",
 		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
 
 	if (!(jtag_reset_config & RESET_HAS_SRST))
@@ -791,7 +791,7 @@ int arm7_9_assert_reset(target_t *target)
 		/* debug entry was already prepared in arm7_9_assert_reset() */
 		target->debug_reason = DBG_REASON_DBGRQ;
 	}
-	
+
 	return ERROR_OK;
 
 }
@@ -799,7 +799,7 @@ int arm7_9_assert_reset(target_t *target)
 int arm7_9_deassert_reset(target_t *target)
 {
 	int retval=ERROR_OK;
-	LOG_DEBUG("target->state: %s", 
+	LOG_DEBUG("target->state: %s",
 		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
 
 
@@ -817,12 +817,12 @@ int arm7_9_deassert_reset(target_t *target)
 		{
 			return retval;
 		}
-		
+
 		if ((retval=target_halt(target))!=ERROR_OK)
 		{
 			return retval;
 		}
-		
+
 	}
 	return retval;
 }
@@ -975,7 +975,7 @@ int arm7_9_halt(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
-	LOG_DEBUG("target->state: %s", 
+	LOG_DEBUG("target->state: %s",
 		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
 
 	if (target->state == TARGET_HALTED)
@@ -1821,6 +1821,8 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	reg[0] = address;
 	arm7_9->write_core_regs(target, 0x1, reg);
 
+	int j=0;
+
 	switch (size)
 	{
 		case 4:
@@ -1848,6 +1850,11 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 				/* advance buffer, count number of accesses */
 				buffer += thisrun_accesses * 4;
 				num_accesses += thisrun_accesses;
+
+				if ((j++%1024)==0)
+				{
+					keep_alive();
+				}
 			}
 			break;
 		case 2:
@@ -1876,6 +1883,11 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 				/* advance buffer, count number of accesses */
 				buffer += thisrun_accesses * 2;
 				num_accesses += thisrun_accesses;
+
+				if ((j++%1024)==0)
+				{
+					keep_alive();
+				}
 			}
 			break;
 		case 1:
@@ -1904,6 +1916,11 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 				/* advance buffer, count number of accesses */
 				buffer += thisrun_accesses * 1;
 				num_accesses += thisrun_accesses;
+
+				if ((j++%1024)==0)
+				{
+					keep_alive();
+				}
 			}
 			break;
 		default:

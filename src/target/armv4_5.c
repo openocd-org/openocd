@@ -5,6 +5,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2008 by Oyvind Harboe                                   *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -40,7 +43,7 @@
 #include <string.h>
 #include <unistd.h>
 
-bitfield_desc_t armv4_5_psr_bitfield_desc[] = 
+bitfield_desc_t armv4_5_psr_bitfield_desc[] =
 {
 	{"M[4:0]", 5},
 	{"T", 1},
@@ -59,17 +62,17 @@ bitfield_desc_t armv4_5_psr_bitfield_desc[] =
 char* armv4_5_core_reg_list[] =
 {
 	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "r13_usr", "lr_usr", "pc",
-	
+
 	"r8_fiq", "r9_fiq", "r10_fiq", "r11_fiq", "r12_fiq", "r13_fiq", "lr_fiq",
-	
+
 	"r13_irq", "lr_irq",
-	
+
 	"r13_svc", "lr_svc",
-	
+
 	"r13_abt", "lr_abt",
-	
+
 	"r13_und", "lr_und",
-	
+
 	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und"
 };
 
@@ -88,7 +91,7 @@ char* armv4_5_state_strings[] =
 
 int armv4_5_core_reg_arch_type = -1;
 
-armv4_5_core_reg_t armv4_5_core_reg_list_arch_info[] = 
+armv4_5_core_reg_t armv4_5_core_reg_list_arch_info[] =
 {
 	{0, ARMV4_5_MODE_ANY, NULL, NULL},
 	{1, ARMV4_5_MODE_ANY, NULL, NULL},
@@ -106,7 +109,7 @@ armv4_5_core_reg_t armv4_5_core_reg_list_arch_info[] =
 	{13, ARMV4_5_MODE_USR, NULL, NULL},
 	{14, ARMV4_5_MODE_USR, NULL, NULL},
 	{15, ARMV4_5_MODE_ANY, NULL, NULL},
-	
+
 	{8, ARMV4_5_MODE_FIQ, NULL, NULL},
 	{9, ARMV4_5_MODE_FIQ, NULL, NULL},
 	{10, ARMV4_5_MODE_FIQ, NULL, NULL},
@@ -114,7 +117,7 @@ armv4_5_core_reg_t armv4_5_core_reg_list_arch_info[] =
 	{12, ARMV4_5_MODE_FIQ, NULL, NULL},
 	{13, ARMV4_5_MODE_FIQ, NULL, NULL},
 	{14, ARMV4_5_MODE_FIQ, NULL, NULL},
-	
+
 	{13, ARMV4_5_MODE_IRQ, NULL, NULL},
 	{14, ARMV4_5_MODE_IRQ, NULL, NULL},
 
@@ -123,10 +126,10 @@ armv4_5_core_reg_t armv4_5_core_reg_list_arch_info[] =
 
 	{13, ARMV4_5_MODE_ABT, NULL, NULL},
 	{14, ARMV4_5_MODE_ABT, NULL, NULL},
-	
+
 	{13, ARMV4_5_MODE_UND, NULL, NULL},
 	{14, ARMV4_5_MODE_UND, NULL, NULL},
-	
+
 	{16, ARMV4_5_MODE_ANY, NULL, NULL},
 	{16, ARMV4_5_MODE_FIQ, NULL, NULL},
 	{16, ARMV4_5_MODE_IRQ, NULL, NULL},
@@ -181,16 +184,16 @@ int armv4_5_get_core_reg(reg_t *reg)
 	int retval;
 	armv4_5_core_reg_t *armv4_5 = reg->arch_info;
 	target_t *target = armv4_5->target;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	/* retval = armv4_5->armv4_5_common->full_context(target); */
 	retval = armv4_5->armv4_5_common->read_core_reg(target, armv4_5->num, armv4_5->mode);
-	
+
 	return retval;
 }
 
@@ -200,12 +203,12 @@ int armv4_5_set_core_reg(reg_t *reg, u8 *buf)
 	target_t *target = armv4_5->target;
 	armv4_5_common_t *armv4_5_target = target->arch_info;
 	u32 value = buf_get_u32(buf, 0, 32);
-		
+
 	if (target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (reg == &armv4_5_target->core_cache->reg_list[ARMV4_5_CPSR])
 	{
 		if (value & 0x20)
@@ -215,7 +218,7 @@ int armv4_5_set_core_reg(reg_t *reg, u8 *buf)
 			{
 				/* change state to Thumb */
 				LOG_DEBUG("changing to Thumb state");
-				armv4_5_target->core_state = ARMV4_5_STATE_THUMB;	
+				armv4_5_target->core_state = ARMV4_5_STATE_THUMB;
 			}
 		}
 		else
@@ -225,10 +228,10 @@ int armv4_5_set_core_reg(reg_t *reg, u8 *buf)
 			{
 				/* change state to ARM */
 				LOG_DEBUG("changing to ARM state");
-				armv4_5_target->core_state = ARMV4_5_STATE_ARM;	
+				armv4_5_target->core_state = ARMV4_5_STATE_ARM;
 			}
 		}
-		
+
 		if (armv4_5_target->core_mode != (value & 0x1f))
 		{
 			LOG_DEBUG("changing ARM core mode to '%s'", armv4_5_mode_strings[armv4_5_mode_to_number(value & 0x1f)]);
@@ -236,7 +239,7 @@ int armv4_5_set_core_reg(reg_t *reg, u8 *buf)
 			armv4_5_target->write_core_reg(target, 16, ARMV4_5_MODE_ANY, value);
 		}
 	}
-	
+
 	buf_set_u32(reg->value, 0, 32, value);
 	reg->dirty = 1;
 	reg->valid = 1;
@@ -248,13 +251,13 @@ int armv4_5_invalidate_core_regs(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	int i;
-	
+
 	for (i = 0; i < 37; i++)
 	{
 		armv4_5->core_cache->reg_list[i].valid = 0;
 		armv4_5->core_cache->reg_list[i].dirty = 0;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -265,15 +268,15 @@ reg_cache_t* armv4_5_build_reg_cache(target_t *target, armv4_5_common_t *armv4_5
 	reg_t *reg_list = malloc(sizeof(reg_t) * num_regs);
 	armv4_5_core_reg_t *arch_info = malloc(sizeof(armv4_5_core_reg_t) * num_regs);
 	int i;
-	
+
 	cache->name = "arm v4/5 registers";
 	cache->next = NULL;
 	cache->reg_list = reg_list;
 	cache->num_regs = num_regs;
-	
+
 	if (armv4_5_core_reg_arch_type == -1)
 		armv4_5_core_reg_arch_type = register_reg_arch_type(armv4_5_get_core_reg, armv4_5_set_core_reg);
-		
+
 	for (i = 0; i < 37; i++)
 	{
 		arch_info[i] = armv4_5_core_reg_list_arch_info[i];
@@ -289,27 +292,27 @@ reg_cache_t* armv4_5_build_reg_cache(target_t *target, armv4_5_common_t *armv4_5
 		reg_list[i].arch_type = armv4_5_core_reg_arch_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}
-	
+
 	return cache;
 }
 
 int armv4_5_arch_state(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	
+
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
 		exit(-1);
 	}
-	
+
 	LOG_USER("target halted in %s state due to %s, current mode: %s\ncpsr: 0x%8.8x pc: 0x%8.8x",
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple( nvp_target_debug_reason, target->debug_reason )->name,
 			 armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)],
 			 buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-	
+
 	return ERROR_OK;
 }
 
@@ -320,19 +323,19 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	int mode, num;
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5 = target->arch_info;
-		
+
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		command_print(cmd_ctx, "current target isn't an ARMV4/5 target");
 		return ERROR_OK;
 	}
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "error: target must be halted for register accesses");
 		return ERROR_OK;
 	}
-	
+
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
 
@@ -345,7 +348,7 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			{
 				armv4_5->full_context(target);
 			}
-			output_len += snprintf(output + output_len, 128 - output_len, "%8s: %8.8x ", ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).name, 
+			output_len += snprintf(output + output_len, 128 - output_len, "%8s: %8.8x ", ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).name,
 				buf_get_u32(ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).value, 0, 32));
 		}
 		command_print(cmd_ctx, output);
@@ -357,7 +360,7 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_SVC].value, 0, 32),
 			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_ABT].value, 0, 32),
 			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_UND].value, 0, 32));
-	
+
 	return ERROR_OK;
 }
 
@@ -365,13 +368,13 @@ int handle_armv4_5_core_state_command(struct command_context_s *cmd_ctx, char *c
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5 = target->arch_info;
-		
+
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		command_print(cmd_ctx, "current target isn't an ARMV4/5 target");
 		return ERROR_OK;
 	}
-	
+
 	if (argc > 0)
 	{
 		if (strcmp(args[0], "arm") == 0)
@@ -383,9 +386,9 @@ int handle_armv4_5_core_state_command(struct command_context_s *cmd_ctx, char *c
 			armv4_5->core_state = ARMV4_5_STATE_THUMB;
 		}
 	}
-	
+
 	command_print(cmd_ctx, "core state: %s", armv4_5_state_strings[armv4_5->core_state]);
-	
+
 	return ERROR_OK;
 }
 
@@ -399,26 +402,26 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 	arm_instruction_t cur_instruction;
 	u32 opcode;
 	int thumb = 0;
-	
+
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		command_print(cmd_ctx, "current target isn't an ARMV4/5 target");
 		return ERROR_OK;
 	}
-	
+
 	if (argc < 2)
 	{
 		command_print(cmd_ctx, "usage: armv4_5 disassemble <address> <count> ['thumb']");
 		return ERROR_OK;
 	}
-	
+
 	address = strtoul(args[0], NULL, 0);
 	count = strtoul(args[1], NULL, 0);
-	
+
 	if (argc >= 3)
 		if (strcmp(args[2], "thumb") == 0)
 			thumb = 1;
-	
+
 	for (i = 0; i < count; i++)
 	{
 		target_read_u32(target, address, &opcode);
@@ -426,7 +429,7 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 		command_print(cmd_ctx, "%s", cur_instruction.text);
 		address += (thumb) ? 2 : 4;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -435,10 +438,10 @@ int armv4_5_register_commands(struct command_context_s *cmd_ctx)
 	command_t *armv4_5_cmd;
 
 	armv4_5_cmd = register_command(cmd_ctx, NULL, "armv4_5", NULL, COMMAND_ANY, "armv4/5 specific commands");
-	
+
 	register_command(cmd_ctx, armv4_5_cmd, "reg", handle_armv4_5_reg_command, COMMAND_EXEC, "display ARM core registers");
 	register_command(cmd_ctx, armv4_5_cmd, "core_state", handle_armv4_5_core_state_command, COMMAND_EXEC, "display/change ARM core state <arm|thumb>");
-	
+
 	register_command(cmd_ctx, armv4_5_cmd, "disassemble", handle_armv4_5_disassemble_command, COMMAND_EXEC, "disassemble instructions <address> <count> ['thumb']");
 	return ERROR_OK;
 }
@@ -447,26 +450,26 @@ int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	int i;
-	
+
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
-	
+
 	*reg_list_size = 26;
 	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
-	
+
 	for (i = 0; i < 16; i++)
 	{
 		(*reg_list)[i] = &ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i);
 	}
-	
+
 	for (i = 16; i < 24; i++)
 	{
 		(*reg_list)[i] = &armv4_5_gdb_dummy_fp_reg;
 	}
-	
+
 	(*reg_list)[24] = &armv4_5_gdb_dummy_fps_reg;
 	(*reg_list)[25] = &armv4_5->core_cache->reg_list[ARMV4_5_CPSR];
-	
+
 	return ERROR_OK;
 }
 
@@ -482,19 +485,19 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	int i;
 	int retval = ERROR_OK;
 	LOG_DEBUG("Running algorithm");
-	
+
 	if (armv4_5_algorithm_info->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		LOG_ERROR("current target isn't an ARMV4/5 target");
 		return ERROR_TARGET_INVALID;
 	}
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
 
@@ -505,12 +508,12 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 		context[i] = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32);
 	}
 	cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32);
-	
+
 	for (i = 0; i < num_mem_params; i++)
 	{
 		target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
 	}
-	
+
 	for (i = 0; i < num_reg_params; i++)
 	{
 		reg_t *reg = register_get_by_name(armv4_5->core_cache, reg_params[i].reg_name, 0);
@@ -519,16 +522,16 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
 			exit(-1);
 		}
-		
+
 		if (reg->size != reg_params[i].size)
 		{
 			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
 			exit(-1);
 		}
-		
+
 		armv4_5_set_core_reg(reg, reg_params[i].value);
 	}
-	
+
 	armv4_5->core_state = armv4_5_algorithm_info->core_state;
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 		exit_breakpoint_size = 4;
@@ -539,7 +542,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 		LOG_ERROR("BUG: can't execute algorithms when not in ARM or Thumb state");
 		exit(-1);
 	}
-	
+
 	if (armv4_5_algorithm_info->core_mode != ARMV4_5_MODE_ANY)
 	{
 		LOG_DEBUG("setting core_mode: 0x%2.2x", armv4_5_algorithm_info->core_mode);
@@ -553,9 +556,9 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 		LOG_ERROR("can't add breakpoint to finish algorithm execution");
 		return ERROR_TARGET_FAILURE;
 	}
-	
+
 	target_resume(target, 0, entry_point, 1, 1);
-	
+
 	target_wait_state(target, TARGET_HALTED, timeout_ms);
 	if (target->state != TARGET_HALTED)
 	{
@@ -567,44 +570,44 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 		}
 		return ERROR_TARGET_TIMEOUT;
 	}
-	
+
 	if (buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != exit_point)
 	{
 		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
-			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32)); 
+			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 		return ERROR_TARGET_TIMEOUT;
 	}
-	
+
 	breakpoint_remove(target, exit_point);
-	
+
 	for (i = 0; i < num_mem_params; i++)
 	{
 		if (mem_params[i].direction != PARAM_OUT)
 			target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
 	}
-	
+
 	for (i = 0; i < num_reg_params; i++)
 	{
 		if (reg_params[i].direction != PARAM_OUT)
 		{
-				
+
 			reg_t *reg = register_get_by_name(armv4_5->core_cache, reg_params[i].reg_name, 0);
 			if (!reg)
 			{
 				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
 				exit(-1);
 			}
-			
+
 			if (reg->size != reg_params[i].size)
 			{
 				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
 				exit(-1);
 			}
-			
+
 			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
 		}
 	}
-	
+
 	for (i = 0; i <= 16; i++)
 	{
 		LOG_DEBUG("restoring register %s with value 0x%8.8x", ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).name, context[i]);
@@ -615,7 +618,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, cpsr);
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
-	
+
 	armv4_5->core_state = core_state;
 	armv4_5->core_mode = core_mode;
 
@@ -623,12 +626,12 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 }
 
 int armv4_5_init_arch_info(target_t *target, armv4_5_common_t *armv4_5)
-{	
+{
 	target->arch_info = armv4_5;
 
 	armv4_5->common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5->core_state = ARMV4_5_STATE_ARM;
 	armv4_5->core_mode = ARMV4_5_MODE_USR;
-	
+
 	return ERROR_OK;
 }
