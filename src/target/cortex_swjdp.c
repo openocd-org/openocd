@@ -175,7 +175,6 @@ int scan_inout_check_u32(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u
 int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 {
 	int retval;
-	int waitcount = 0;
 	u32 ctrlstat;
 
 	keep_alive();
@@ -199,14 +198,14 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 	
 	swjdp->ack = swjdp->ack & 0x7;
 	
+	long long then=timeval_ms();
 	while (swjdp->ack != 2)
 	{
 		if (swjdp->ack == 1)
 		{
-			waitcount++;
-			if (waitcount > 100)
+			if ((timeval_ms()-then) > 1000)
 			{
-				LOG_WARNING("Timeout waiting for ACK = OK/FAULT in SWJDP transaction");
+				LOG_WARNING("Timeout (1000ms) waiting for ACK = OK/FAULT in SWJDP transaction");
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 		}
