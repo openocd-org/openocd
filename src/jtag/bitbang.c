@@ -172,35 +172,33 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 
 	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++)
 	{
+		int val=0;
+		int tms=(bit_cnt==scan_size-1) ? 1 : 0;
+		int tdi;
+		int bytec=bit_cnt/8;
+		int bcval=1<<(bit_cnt % 8);
+
 		/* if we're just reading the scan, but don't care about the output
 		 * default to outputting 'low', this also makes valgrind traces more readable,
 		 * as it removes the dependency on an uninitialised value
 		 */ 
-		if ((type != SCAN_IN) && ((buffer[bit_cnt/8] >> (bit_cnt % 8)) & 0x1))
-		{
-			bitbang_interface->write(0, (bit_cnt==scan_size-1) ? 1 : 0, 1);
-			bitbang_interface->write(1, (bit_cnt==scan_size-1) ? 1 : 0, 1);
-		} else {
-			bitbang_interface->write(0, (bit_cnt==scan_size-1) ? 1 : 0, 0);
-			bitbang_interface->write(1, (bit_cnt==scan_size-1) ? 1 : 0, 0);
-		}
+		tdi=0;
+		if ((type != SCAN_IN) && (buffer[bytec] & bcval))
+			tdi=1;
+
+		bitbang_interface->write(0, tms, tdi);
+
+		if (type!=SCAN_OUT)
+			val=bitbang_interface->read();
+
+		bitbang_interface->write(1, tms, tdi);
 		
 		if (type != SCAN_OUT)
 		{
-			/*
-			TDO should be sampled on the rising edge, and will change 
-			on the falling edge. 
-			
-			Because there is no way to read the signal exactly at the rising edge,
-			read after the rising edge.
-
-			This is plain IEEE 1149 JTAG - nothing specific to the OpenOCD or its JTAG
-			API. 
-			*/
-			if (bitbang_interface->read())
-				buffer[(bit_cnt)/8] |= 1 << ((bit_cnt) % 8);
+			if (val)
+				buffer[bytec] |= bcval;
 			else
-				buffer[(bit_cnt)/8] &= ~(1 << ((bit_cnt) % 8));
+				buffer[bytec] &= ~bcval;
 		}
 	}
 	
