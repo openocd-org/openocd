@@ -1600,7 +1600,6 @@ int cfi_spansion_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount,
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u8 command[8];
-	int sector;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 
 	/* Calculate buffer size and boundary mask */

@@ -38,6 +38,7 @@
 #include "cortex_swjdp.h"
 #include "jtag.h"
 #include "log.h"
+#include "time_support.h"
 #include <stdlib.h>
 
 /*
