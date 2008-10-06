@@ -1595,6 +1595,75 @@ int cfi_spansion_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 	return ERROR_OK;
 }
 
+int cfi_spansion_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 address)
+{
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
+	target_t *target = bank->target;
+	u8 command[8];
+	int sector;
+	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+
+	/* Calculate buffer size and boundary mask */
+	u32 buffersize = 1UL << cfi_info->max_buf_write_size;
+	u32 buffermask = buffersize-1;
+	u32 bufferwsize;
+
+	/* Check for valid range */
+	if (address & buffermask)
+	{
+		LOG_ERROR("Write address at base 0x%x, address %x not aligned to 2^%d boundary", bank->base, address, cfi_info->max_buf_write_size);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+	switch(bank->chip_width)
+	{
+	case 4 : bufferwsize = buffersize / 4; break;
+	case 2 : bufferwsize = buffersize / 2; break;
+	case 1 : bufferwsize = buffersize; break;
+	default:
+		LOG_ERROR("Unsupported chip width %d", bank->chip_width);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	/* Check for valid size */
+	if (wordcount > bufferwsize)
+	{
+		LOG_ERROR("Number of data words %d exceeds available buffersize %d", wordcount, buffersize);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	// Unlock
+	cfi_command(bank, 0xaa, command);
+	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command);
+
+	cfi_command(bank, 0x55, command);
+	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command);
+
+	// Buffer load command
+	cfi_command(bank, 0x25, command);
+	target->type->write_memory(target, address, bank->bus_width, 1, command);
+
+	/* Write buffer wordcount-1 and data words */
+	cfi_command(bank, bufferwsize-1, command);
+	target->type->write_memory(target, address, bank->bus_width, 1, command);
+
+	target->type->write_memory(target, address, bank->bus_width, bufferwsize, word);
+
+	/* Commit write operation */
+	cfi_command(bank, 0x29, command);
+	target->type->write_memory(target, address, bank->bus_width, 1, command);
+
+	if (cfi_spansion_wait_status_busy(bank, 1000 * (1 << cfi_info->word_write_timeout_max)) != ERROR_OK)
+	{
+		cfi_command(bank, 0xf0, command);
+		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+
+		LOG_ERROR("couldn't write block at base 0x%x, address %x, size %x", bank->base, address, bufferwsize);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
 int cfi_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
@@ -1627,8 +1696,7 @@ int cfi_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 addr
 			return cfi_intel_write_words(bank, word, wordcount, address);
 			break;
 		case 2:
-			/* return cfi_spansion_write_words(bank, word, address); */
-			LOG_ERROR("cfi primary command set %i unimplemented - FIXME", cfi_info->pri_id);
+			return cfi_spansion_write_words(bank, word, wordcount, address); 
 			break;
 		default:
 			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
@@ -2261,7 +2329,7 @@ int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		printed = snprintf(buf, buf_size, "size: 0x%x, interface desc: %i, max buffer write size: %x\n",
 		                   1 << cfi_info->dev_size,
 		                   cfi_info->interface_desc,
-		                   cfi_info->max_buf_write_size);
+		                   1 << cfi_info->max_buf_write_size);
 	buf += printed;
 	buf_size -= printed;
 
