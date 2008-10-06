@@ -998,35 +998,41 @@ int image_close(image_t *image)
 	return ERROR_OK;
 }
 
-static u32 crc32_table[256] = {0, 0};
-
 int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum)
 {
 	u32 crc = 0xffffffff;
+	LOG_DEBUG("Calculating checksum");
 
-	if (!crc32_table[1])
-	{
-		/* Initialize the CRC table and the decoding table.  */
-		int i, j;
-		unsigned int c;
-		for (i = 0; i < 256; i++)
-		{
-			/* as per gdb */
-			for (c = i << 24, j = 8; j > 0; --j)
-				c = c & 0x80000000 ? (c << 1) ^ 0x04c11db7 : (c << 1);
-			crc32_table[i] = c;
-		}
-	}
+	u32 crc32_table[256];
 
-	while (nbytes--)
+	/* Initialize the CRC table and the decoding table.  */
+	int i, j;
+	unsigned int c;
+	for (i = 0; i < 256; i++)
 	{
 		/* as per gdb */
-		crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ *buffer++) & 255];
-		if ((nbytes%16384)==0)
-		{
-			keep_alive();
-		}
+		for (c = i << 24, j = 8; j > 0; --j)
+			c = c & 0x80000000 ? (c << 1) ^ 0x04c11db7 : (c << 1);
+		crc32_table[i] = c;
 	}
+
+	while (nbytes>0)
+	{
+		int run=nbytes;
+		if (run>32768)
+		{
+			run=32768;
+		}
+		nbytes-=run;
+		while (run--)
+		{
+			/* as per gdb */
+			crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ *buffer++) & 255];
+		}
+		keep_alive();
+	}
+
+	LOG_DEBUG("Calculating checksum done");
 
 	*checksum = crc;
 	return ERROR_OK;
