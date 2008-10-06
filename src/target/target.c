@@ -1212,7 +1212,7 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 	}
 
 	if ((retval = target->type->checksum_memory(target, address,
-		size, &checksum)) == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+		size, &checksum)) != ERROR_OK)
 	{
 		buffer = malloc(size);
 		if (buffer == NULL)
@@ -1625,11 +1625,6 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 		if (reg->valid == 0)
 		{
 			reg_arch_type_t *arch_type = register_get_arch_type(reg->arch_type);
-			if (arch_type == NULL)
-			{
-				LOG_ERROR("BUG: encountered unregistered arch type");
-				return ERROR_OK;
-			}
 			arch_type->get(reg);
 		}
 		value = buf_to_str(reg->value, reg->size, 16);
@@ -1645,12 +1640,6 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 		str_to_buf(args[1], strlen(args[1]), buf, reg->size, 0);
 
 		reg_arch_type_t *arch_type = register_get_arch_type(reg->arch_type);
-		if (arch_type == NULL)
-		{
-			LOG_ERROR("BUG: encountered unregistered arch type");
-			return ERROR_OK;
-		}
-
 		arch_type->set(reg, buf);
 
 		value = buf_to_str(reg->value, reg->size, 16);

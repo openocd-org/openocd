@@ -936,11 +936,7 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 
 		/* get register arch_type, and call set method */
 		arch_type = register_get_arch_type(reg_list[i]->arch_type);
-		if (arch_type == NULL)
-		{
-			LOG_ERROR("BUG: encountered unregistered arch type");
-			exit(-1);
-		}
+
 		arch_type->set(reg_list[i], bin_buf);
 
 		/* advance packet pointer */
@@ -1033,11 +1029,6 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 
 	/* get register arch_type, and call set method */
 	arch_type = register_get_arch_type(reg_list[reg_num]->arch_type);
-	if (arch_type == NULL)
-	{
-		LOG_ERROR("BUG: encountered unregistered arch type");
-		exit(-1);
-	}
 	arch_type->set(reg_list[reg_num], bin_buf);
 
 	gdb_put_packet(connection, "OK", 2);

@@ -35,7 +35,7 @@ reg_t* register_get_by_name(reg_cache_t *first, char *name, int search_all)
 {
 	int i;
 	reg_cache_t *cache = first;
-	
+
 	while (cache)
 	{
 		for (i = 0; i < cache->num_regs; i++)
@@ -43,26 +43,26 @@ reg_t* register_get_by_name(reg_cache_t *first, char *name, int search_all)
 			if (strcmp(cache->reg_list[i].name, name) == 0)
 				return &(cache->reg_list[i]);
 		}
-		
+
 		if (search_all)
 			cache = cache->next;
 		else
 			break;
 	}
-	
+
 	return NULL;
 }
 
 reg_cache_t** register_get_last_cache_p(reg_cache_t **first)
 {
 	reg_cache_t **cache_p = first;
-	
+
 	if (*cache_p)
 		while (*cache_p)
 			cache_p = &((*cache_p)->next);
 	else
 		return first;
-	
+
 	return cache_p;
 }
 
@@ -70,7 +70,7 @@ int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, u8 *bu
 {
 	reg_arch_type_t** arch_type_p = &reg_arch_types;
 	int id = 0;
-	
+
 	if (*arch_type_p)
 	{
 		while (*arch_type_p)
@@ -79,26 +79,27 @@ int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, u8 *bu
 			arch_type_p = &((*arch_type_p)->next);
 		}
 	}
-	
+
 	(*arch_type_p) = malloc(sizeof(reg_arch_type_t));
 	(*arch_type_p)->id = id + 1;
 	(*arch_type_p)->set = set;
 	(*arch_type_p)->get = get;
 	(*arch_type_p)->next = NULL;
-			
+
 	return id + 1;
 }
 
 reg_arch_type_t* register_get_arch_type(int id)
 {
 	reg_arch_type_t *arch_type = reg_arch_types;
-	
+
 	while (arch_type)
 	{
 		if (arch_type->id == id)
 			return arch_type;
 		arch_type = arch_type->next;
 	}
-	
+	LOG_ERROR("BUG: encountered unregistered arch type 0x%08x", id);
+	exit(-1);
 	return NULL;
 }
