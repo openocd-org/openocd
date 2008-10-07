@@ -2,6 +2,9 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -64,6 +67,7 @@ extern reg_t* register_get_by_name(reg_cache_t *first, char *name, int search_al
 extern reg_cache_t** register_get_last_cache_p(reg_cache_t **first);
 extern int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, u8 *buf));
 extern reg_arch_type_t* register_get_arch_type(int id);
+extern void register_init_dummy(reg_t *reg);
 
 #endif /* REGISTER_H */
 

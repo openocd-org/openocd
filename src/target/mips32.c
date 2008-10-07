@@ -4,6 +4,9 @@
  *                                                                         *
  *   Copyright (C) 2008 by David T.L. Wong                                 *
  *                                                                         *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -286,7 +289,10 @@ reg_cache_t *mips32_build_reg_cache(target_t *target)
 	
 	if (mips32_core_reg_arch_type == -1)
 		mips32_core_reg_arch_type = register_reg_arch_type(mips32_get_core_reg, mips32_set_core_reg);
-		
+
+	register_init_dummy(&mips32_gdb_dummy_fsr_reg);
+	register_init_dummy(&mips32_gdb_dummy_fir_reg);
+
 	/* Build the process context cache */ 
 	cache->name = "mips32 registers";
 	cache->next = NULL;

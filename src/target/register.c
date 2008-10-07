@@ -2,6 +2,9 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -102,4 +105,28 @@ reg_arch_type_t* register_get_arch_type(int id)
 	LOG_ERROR("BUG: encountered unregistered arch type 0x%08x", id);
 	exit(-1);
 	return NULL;
+}
+
+
+
+static int register_get_dummy_core_reg(reg_t *reg)
+{
+	return ERROR_OK;
+}
+
+static int register_set_dummy_core_reg(reg_t *reg, u8 *buf)
+{
+	reg->dirty = 1;
+	reg->valid = 1;
+
+	return ERROR_OK;
+}
+
+void register_init_dummy(reg_t *reg)
+{
+	static int dummy_arch_type = -1;
+	if (dummy_arch_type == -1 )
+		register_reg_arch_type(register_get_dummy_core_reg, register_set_dummy_core_reg);
+	
+	reg->arch_type = dummy_arch_type;
 }

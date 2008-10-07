@@ -198,21 +198,6 @@ int armv7m_set_core_reg(reg_t *reg, u8 *buf)
 	return ERROR_OK;
 }
 
-int armv7m_get_dummy_core_reg(reg_t *reg)
-{
-	return ERROR_OK;
-}
-
-int armv7m_set_dummy_core_reg(reg_t *reg, u8 *buf)
-{
-	u32 value = buf_get_u32(buf, 0, 32);
-	buf_set_u32(reg->value, 0, 32, value);
-	reg->dirty = 1;
-	reg->valid = 1;
-
-	return ERROR_OK;
-}
-
 int armv7m_read_core_reg(struct target_s *target, int num)
 {
 	u32 reg_value;
@@ -485,12 +470,11 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 	if (armv7m_core_reg_arch_type == -1)
 	{
 		armv7m_core_reg_arch_type = register_reg_arch_type(armv7m_get_core_reg, armv7m_set_core_reg);
-		armv7m_dummy_core_reg_arch_type = register_reg_arch_type(armv7m_get_dummy_core_reg, armv7m_set_dummy_core_reg);
-
-		armv7m_gdb_dummy_fp_reg.arch_type=armv7m_dummy_core_reg_arch_type;
-		armv7m_gdb_dummy_fps_reg.arch_type=armv7m_dummy_core_reg_arch_type;
-		armv7m_gdb_dummy_cpsr_reg.arch_type=armv7m_dummy_core_reg_arch_type;
 	}
+	
+	register_init_dummy(&armv7m_gdb_dummy_fps_reg);
+	register_init_dummy(&armv7m_gdb_dummy_cpsr_reg);
+	register_init_dummy(&armv7m_gdb_dummy_fp_reg);
 		
 	/* Build the process context cache */ 
 	cache->name = "arm v7m registers";

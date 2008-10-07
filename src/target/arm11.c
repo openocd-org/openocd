@@ -1683,7 +1683,10 @@ void arm11_build_reg_cache(target_t *target)
     NEW(arm11_reg_state_t,	arm11_reg_states,	ARM11_REGCACHE_COUNT);
 
     if (arm11_regs_arch_type == -1)
-	arm11_regs_arch_type = register_reg_arch_type(arm11_get_reg, arm11_set_reg);
+    	arm11_regs_arch_type = register_reg_arch_type(arm11_get_reg, arm11_set_reg);
+   
+	register_init_dummy(&arm11_gdb_dummy_fp_reg);
+	register_init_dummy(&arm11_gdb_dummy_fps_reg);
 
     arm11->reg_list	= reg_list;
 

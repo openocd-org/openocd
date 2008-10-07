@@ -277,6 +277,9 @@ reg_cache_t* armv4_5_build_reg_cache(target_t *target, armv4_5_common_t *armv4_5
 	if (armv4_5_core_reg_arch_type == -1)
 		armv4_5_core_reg_arch_type = register_reg_arch_type(armv4_5_get_core_reg, armv4_5_set_core_reg);
 
+	register_init_dummy(&armv4_5_gdb_dummy_fp_reg);
+	register_init_dummy(&armv4_5_gdb_dummy_fps_reg);
+
 	for (i = 0; i < 37; i++)
 	{
 		arch_info[i] = armv4_5_core_reg_list_arch_info[i];
