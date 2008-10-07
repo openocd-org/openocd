@@ -1,6 +1,8 @@
 /***************************************************************************
  *   Copyright (C) 2008 digenius technology GmbH.                          *
  *                                                                         *
+ *   Copyright (C) 2008 Georg Acher <acher@in.tum.de>                      *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -107,6 +109,8 @@ typedef struct arm11_common_s
     size_t	free_brps;				/**< keep track of breakpoints allocated by arm11_add_breakpoint() */
     size_t	free_wrps;				/**< keep track of breakpoints allocated by arm11_add_watchpoint() */
 
+	// GA
+	reg_cache_t *core_cache;
 } arm11_common_t;
 
 

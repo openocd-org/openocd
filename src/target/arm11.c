@@ -3,6 +3,8 @@
  *                                                                         *
  *   Copyright (C) 2008 Oyvind Harboe oyvind.harboe@zylin.com              *
  *                                                                         *
+ *   Copyright (C) 2008 Georg Acher <acher@in.tum.de>                      *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -74,14 +76,14 @@ target_type_t arm11_target =
     ARM11_HANDLER(assert_reset),
     ARM11_HANDLER(deassert_reset),
     ARM11_HANDLER(soft_reset_halt),
-	
+
     ARM11_HANDLER(get_gdb_reg_list),
-	
+
     ARM11_HANDLER(read_memory),
     ARM11_HANDLER(write_memory),
-	
+
     ARM11_HANDLER(bulk_write_memory),
-	
+
     ARM11_HANDLER(checksum_memory),
 
     ARM11_HANDLER(add_breakpoint),
@@ -90,7 +92,7 @@ target_type_t arm11_target =
     ARM11_HANDLER(remove_watchpoint),
 
     ARM11_HANDLER(run_algorithm),
-	
+
     ARM11_HANDLER(register_commands),
     ARM11_HANDLER(target_create),
     ARM11_HANDLER(init_target),
@@ -408,7 +410,7 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 
     u32 new_dscr = R(DSCR) | ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE;
 
-    /* this executes JTAG queue: */ 
+    /* this executes JTAG queue: */
 
     arm11_write_DSCR(arm11, new_dscr);
 
@@ -427,7 +429,7 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 
 	/* mcr     15, 0, r0, cr7, cr10, {4} */
 	arm11_run_instr_no_data1(arm11, 0xee070f9a);
-	        
+
 	u32 dscr = arm11_read_DSCR(arm11);
 
 	LOG_DEBUG("DRAIN, DSCR %08x", dscr);
@@ -621,7 +623,7 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 
 
     /* restore rDTR */
-    
+
     if (R(DSCR) & ARM11_DSCR_RDTR_FULL || arm11->reg_list[ARM11_RC_RDTR].dirty)
     {
 	arm11_add_debug_SCAN_N(arm11, 0x05, -1);
@@ -726,7 +728,7 @@ int arm11_halt(struct target_s *target)
 
     arm11_common_t * arm11 = target->arch_info;
 
-    LOG_DEBUG("target->state: %s", 
+    LOG_DEBUG("target->state: %s",
 	      Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 
     if (target->state == TARGET_UNKNOWN)
@@ -783,7 +785,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
     arm11_common_t * arm11 = target->arch_info;
 
-    LOG_DEBUG("target->state: %s", 
+    LOG_DEBUG("target->state: %s",
 	      Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 
 
@@ -821,7 +823,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 	/* set all breakpoints */
 
 	size_t		brp_num = 0;
-	
+
 	for (bp = target->breakpoints; bp; bp = bp->next)
 	{
 	    arm11_sc7_action_t	brp[2];
@@ -832,7 +834,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 	    brp[1].write	= 1;
 	    brp[1].address	= ARM11_SC7_BCR0 + brp_num;
 	    brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (0 << 21);
-    
+
 	    arm11_sc7_run(arm11, brp, asizeof(brp));
 
 	    LOG_DEBUG("Add BP " ZU " at %08x", brp_num, bp->address);
@@ -880,7 +882,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 {
     FNC_INFO;
 
-    LOG_DEBUG("target->state: %s", 
+    LOG_DEBUG("target->state: %s",
 	      Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 
     if (target->state != TARGET_HALTED)
@@ -1016,7 +1018,7 @@ int arm11_deassert_reset(struct target_s *target)
     FNC_INFO;
 
 #if 0
-    LOG_DEBUG("target->state: %s", 
+    LOG_DEBUG("target->state: %s",
 	      Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 
 
@@ -1074,7 +1076,7 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
 }
 
 
-/* target memory access 
+/* target memory access
 * size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 * count: number of items of <size>
 */
@@ -1283,7 +1285,7 @@ int arm11_checksum_memory(struct target_s *target, u32 address, u32 count, u32* 
 }
 
 
-/* target break-/watchpoint control 
+/* target break-/watchpoint control
 * rw: 0 = write, 1 = read, 2 = access
 */
 int arm11_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
@@ -1322,7 +1324,7 @@ int arm11_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
     FNC_INFO;
 
     arm11_common_t * arm11 = target->arch_info;
-	
+
     arm11->free_brps++;
 
     return ERROR_OK;
@@ -1342,13 +1344,170 @@ int arm11_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
     return ERROR_OK;
 }
 
-
+// HACKHACKHACK - FIXME mode/state
 /* target algorithm support */
-int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
+int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params,
+			int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point,
+			int timeout_ms, void *arch_info)
 {
-    FNC_INFO_NOTIMPLEMENTED;
+        arm11_common_t *arm11 = target->arch_info;
+	armv4_5_algorithm_t *arm11_algorithm_info = arch_info;
+//	enum armv4_5_state core_state = arm11->core_state;
+//	enum armv4_5_mode core_mode = arm11->core_mode;
+	u32 context[16];
+	u32 cpsr;
+	int exit_breakpoint_size = 0;
+	int i;
+	int retval = ERROR_OK;
+        LOG_DEBUG("Running algorithm");
 
-    return ERROR_OK;
+	if (arm11_algorithm_info->common_magic != ARMV4_5_COMMON_MAGIC)
+	{
+		LOG_ERROR("current target isn't an ARMV4/5 target");
+		return ERROR_TARGET_INVALID;
+	}
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	// FIXME
+//	if (armv4_5_mode_to_number(arm11->core_mode)==-1)
+//		return ERROR_FAIL;
+
+	// Save regs
+	for (i = 0; i < 16; i++)
+	{
+		context[i] = buf_get_u32((u8*)(&arm11->reg_values[i]),0,32);
+		LOG_DEBUG("Save %i: 0x%x",i,context[i]);
+	}
+
+	cpsr = buf_get_u32((u8*)(arm11->reg_values+ARM11_RC_CPSR),0,32);
+	LOG_DEBUG("Save CPSR: 0x%x",i,cpsr);
+
+	for (i = 0; i < num_mem_params; i++)
+	{
+		target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
+	}
+
+	// Set register parameters
+	for (i = 0; i < num_reg_params; i++)
+	{
+		reg_t *reg = register_get_by_name(arm11->core_cache, reg_params[i].reg_name, 0);
+		u32 val;
+		if (!reg)
+		{
+			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+			exit(-1);
+		}
+
+		if (reg->size != reg_params[i].size)
+		{
+			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+			exit(-1);
+		}
+		arm11_set_reg(reg,reg_params[i].value);
+//		printf("%i: Set %s =%08x\n", i, reg_params[i].reg_name,val);
+	}
+
+	exit_breakpoint_size = 4;
+
+/*	arm11->core_state = arm11_algorithm_info->core_state;
+	if (arm11->core_state == ARMV4_5_STATE_ARM)
+                exit_breakpoint_size = 4;
+	else if (arm11->core_state == ARMV4_5_STATE_THUMB)
+		exit_breakpoint_size = 2;
+	else
+	{
+		LOG_ERROR("BUG: can't execute algorithms when not in ARM or Thumb state");
+		exit(-1);
+	}
+*/
+	if (arm11_algorithm_info->core_mode != ARMV4_5_MODE_ANY)
+	{
+		LOG_DEBUG("setting core_mode: 0x%2.2x", arm11_algorithm_info->core_mode);
+		buf_set_u32(arm11->reg_list[ARM11_RC_CPSR].value, 0, 5, arm11_algorithm_info->core_mode);
+		arm11->reg_list[ARM11_RC_CPSR].dirty = 1;
+		arm11->reg_list[ARM11_RC_CPSR].valid = 1;
+	}
+
+	if ((retval = breakpoint_add(target, exit_point, exit_breakpoint_size, BKPT_HARD)) != ERROR_OK)
+	{
+		LOG_ERROR("can't add breakpoint to finish algorithm execution");
+		retval = ERROR_TARGET_FAILURE;
+		goto restore;
+	}
+
+	target_resume(target, 0, entry_point, 1, 0);  // no debug, otherwise breakpoint is not set
+
+	target_wait_state(target, TARGET_HALTED, timeout_ms);
+	if (target->state != TARGET_HALTED)
+	{
+		if ((retval=target_halt(target))!=ERROR_OK)
+			return retval;
+		if ((retval=target_wait_state(target, TARGET_HALTED, 500))!=ERROR_OK)
+		{
+			return retval;
+		}
+		retval = ERROR_TARGET_TIMEOUT;
+		goto del_breakpoint;
+	}
+
+	if (buf_get_u32(arm11->reg_list[15].value, 0, 32) != exit_point)
+	{
+		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
+			buf_get_u32(arm11->reg_list[15].value, 0, 32));
+		retval = ERROR_TARGET_TIMEOUT;
+		goto del_breakpoint;
+	}
+
+	for (i = 0; i < num_mem_params; i++)
+	{
+		if (mem_params[i].direction != PARAM_OUT)
+			target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
+	}
+
+	for (i = 0; i < num_reg_params; i++)
+	{
+		if (reg_params[i].direction != PARAM_OUT)
+		{
+			reg_t *reg = register_get_by_name(arm11->core_cache, reg_params[i].reg_name, 0);
+			if (!reg)
+			{
+				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+				exit(-1);
+			}
+
+			if (reg->size != reg_params[i].size)
+			{
+				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+				exit(-1);
+			}
+
+			buf_set_u32(reg_params[i].value, 0, 32, buf_get_u32(reg->value, 0, 32));
+		}
+	}
+
+del_breakpoint:
+	breakpoint_remove(target, exit_point);
+
+restore:
+	// Restore context
+	for (i = 0; i < 16; i++)
+	{
+		LOG_DEBUG("restoring register %s with value 0x%8.8x",
+			 arm11->reg_list[i].name, context[i]);
+		arm11_set_reg(&arm11->reg_list[i], &context[i]);
+	}
+	LOG_DEBUG("restoring CPSR with value 0x%8.8x", cpsr);
+	arm11_set_reg(&arm11->reg_list[ARM11_RC_CPSR], &cpsr);
+
+//	arm11->core_state = core_state;
+//	arm11->core_mode = core_mode;
+
+	return retval;
 }
 
 int arm11_target_create(struct target_s *target, Jim_Interp *interp)
@@ -1415,7 +1574,7 @@ int arm11_examine(struct target_s *target)
 
     arm11_add_dr_scan_vc(asizeof(chain0_fields), chain0_fields, TAP_RTI);
 
-    if ((retval=jtag_execute_queue())!=ERROR_OK) 
+    if ((retval=jtag_execute_queue())!=ERROR_OK)
     	return retval;
 
 
@@ -1464,7 +1623,7 @@ int arm11_examine(struct target_s *target)
     arm11_check_init(arm11, NULL);
 
     target->type->examined = 1;
-    
+
     return ERROR_OK;
 }
 
@@ -1528,7 +1687,7 @@ void arm11_build_reg_cache(target_t *target)
 
     arm11->reg_list	= reg_list;
 
-    /* Build the process context cache */ 
+    /* Build the process context cache */
     cache->name		= "arm11 registers";
     cache->next		= NULL;
     cache->reg_list	= reg_list;
@@ -1537,7 +1696,7 @@ void arm11_build_reg_cache(target_t *target)
     reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
     (*cache_p) = cache;
 
-//    armv7m->core_cache = cache;
+    arm11->core_cache = cache;
 //    armv7m->process_context = cache;
 
     size_t i;
@@ -1670,7 +1829,7 @@ arm11_common_t * arm11_find_target(const char * arg)
     {target_t * t;
     for (t = all_targets; t; t = t->next)
     {
-	if (t->type != &arm11_target)
+	    if (strcmp(t->type->name,"arm11"))
 	    continue;
 
 	arm11_common_t * arm11 = t->arch_info;
@@ -1709,7 +1868,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	return ERROR_TARGET_NOT_HALTED;
     }
 
-	
+
     u32	values[6];
 
     {size_t i;
@@ -1740,8 +1899,8 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
     arm11_run_instr_data_prepare(arm11);
 
     if (read)
-    {    
-	u32 result;	
+    {
+	u32 result;
 	arm11_run_instr_data_from_core_via_r0(arm11, instr, &result);
 
 	LOG_INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08x (%d)",
@@ -1752,7 +1911,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	arm11_run_instr_data_to_core_via_r0(arm11, instr, values[5]);
 
 	LOG_INFO("MRC p%d, %d, R0 (#0x%08x), c%d, c%d, %d",
-	    values[0], values[1], 
+	    values[0], values[1],
 	    values[5],
 	    values[2], values[3], values[4]);
     }
