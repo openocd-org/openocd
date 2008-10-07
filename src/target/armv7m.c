@@ -8,6 +8,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -119,6 +122,7 @@ armv7m_core_reg_t armv7m_core_reg_list_arch_info[] =
 };
 
 int armv7m_core_reg_arch_type = -1;
+int armv7m_dummy_core_reg_arch_type = -1;
 
 int armv7m_restore_context(target_t *target)
 {
@@ -187,6 +191,21 @@ int armv7m_set_core_reg(reg_t *reg, u8 *buf)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 		
+	buf_set_u32(reg->value, 0, 32, value);
+	reg->dirty = 1;
+	reg->valid = 1;
+
+	return ERROR_OK;
+}
+
+int armv7m_get_dummy_core_reg(reg_t *reg)
+{
+	return ERROR_OK;
+}
+
+int armv7m_set_dummy_core_reg(reg_t *reg, u8 *buf)
+{
+	u32 value = buf_get_u32(buf, 0, 32);
 	buf_set_u32(reg->value, 0, 32, value);
 	reg->dirty = 1;
 	reg->valid = 1;
@@ -464,7 +483,14 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 	int i;
 	
 	if (armv7m_core_reg_arch_type == -1)
+	{
 		armv7m_core_reg_arch_type = register_reg_arch_type(armv7m_get_core_reg, armv7m_set_core_reg);
+		armv7m_dummy_core_reg_arch_type = register_reg_arch_type(armv7m_get_dummy_core_reg, armv7m_set_dummy_core_reg);
+
+		armv7m_gdb_dummy_fp_reg.arch_type=armv7m_dummy_core_reg_arch_type;
+		armv7m_gdb_dummy_fps_reg.arch_type=armv7m_dummy_core_reg_arch_type;
+		armv7m_gdb_dummy_cpsr_reg.arch_type=armv7m_dummy_core_reg_arch_type;
+	}
 		
 	/* Build the process context cache */ 
 	cache->name = "arm v7m registers";
