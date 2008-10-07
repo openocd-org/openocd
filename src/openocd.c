@@ -60,6 +60,34 @@
 
 #include "replacements.h"
 
+
+
+
+
+
+void print_version()
+{
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
+	LOG_OUTPUT( "$URL$\n");
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
+}
+
+
+
+
+
+
+
+
+
 /* Give TELNET a way to find out what version this is */
 int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -198,18 +226,8 @@ int openocd_main(int argc, char *argv[])
 	
 	LOG_OUTPUT( "\n\nBUGS? Read http://svn.berlios.de/svnroot/repos/openocd/trunk/BUGS\n\n\n");
 
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	LOG_OUTPUT( "$URL$\n");
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
-
+	print_version();
+	
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 
