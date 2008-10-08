@@ -5,6 +5,9 @@
  *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
+ *   Copyright (C) 2008 Richard Missenden                                  *
+ *   richard.missenden@googlemail.com                                      *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -219,6 +222,8 @@ command_context_t *setup_command_handler(void)
  * application will have it's own implementation of main(). */
 int openocd_main(int argc, char *argv[])
 {
+	int ret;
+
 	/* initialize commandline interface */
 	command_context_t *cmd_ctx;
 
@@ -234,15 +239,19 @@ int openocd_main(int argc, char *argv[])
 	if (parse_cmdline_args(cmd_ctx, argc, argv) != ERROR_OK)
 		return EXIT_FAILURE;
 	
-	if (parse_config_file(cmd_ctx) != ERROR_OK)
+	ret = parse_config_file(cmd_ctx);
+	if ( (ret != ERROR_OK) && (ret != ERROR_COMMAND_CLOSE_CONNECTION) )
 		return EXIT_FAILURE;
 
-	command_context_mode(cmd_ctx, COMMAND_EXEC);
-	if (command_run_line(cmd_ctx, "init")!=ERROR_OK)
-		return EXIT_FAILURE;
+	if (ret != ERROR_COMMAND_CLOSE_CONNECTION) 
+	{
+		command_context_mode(cmd_ctx, COMMAND_EXEC);
+		if (command_run_line(cmd_ctx, "init")!=ERROR_OK)
+			return EXIT_FAILURE;
 	
-	/* handle network connections */
-	server_loop(cmd_ctx);
+		/* handle network connections */
+		server_loop(cmd_ctx);
+	}
 
 	/* shut server down */
 	server_quit();
