@@ -204,6 +204,9 @@ int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 	/* break bit will be cleared by hardware */
 	ejtag_info->ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_info->ejtag_ctrl);
+	LOG_DEBUG("ejtag_ctrl: 0x%8.8x", ejtag_info->ejtag_ctrl);
+	if((ejtag_info->ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
+		LOG_DEBUG("Failed to enter Debug Mode!");
 	
 	return ERROR_OK;
 }
@@ -275,6 +278,17 @@ int mips_ejtag_init(mips_ejtag_t *ejtag_info)
 			LOG_DEBUG("EJTAG: Unknown Version Detected");
 			break;
 	}
+	LOG_DEBUG("EJTAG: features:%s%s%s%s%s%s%s",
+		ejtag_info->impcode & (1<<28) ? " R3k":    " R4k",
+		ejtag_info->impcode & (1<<24) ? " DINT":   "",
+		ejtag_info->impcode & (1<<22) ? " ASID_8": "",
+		ejtag_info->impcode & (1<<21) ? " ASID_6": "",
+		ejtag_info->impcode & (1<<16) ? " MIPS16": "",
+		ejtag_info->impcode & (1<<14) ? " noDMA":  " DMA",
+		ejtag_info->impcode & (1<<0)  ? " MIPS64": " MIPS32"
+	);
+	if((ejtag_info->impcode & (1<<14)) == 0)
+		LOG_DEBUG("EJTAG: DMA Access Mode Support Enabled");
 	
 	/* set initial state for ejtag control reg */
 	ejtag_info->ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;

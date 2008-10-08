@@ -512,7 +512,11 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 		case 4:
 		case 2:
 		case 1:
-			return mips32_pracc_read_mem(ejtag_info, address, size, count, (void *)buffer);
+			/* if noDMA off, use DMAACC mode for memory read */
+			if(ejtag_info->impcode & (1<<14))
+				return mips32_pracc_read_mem(ejtag_info, address, size, count, (void *)buffer);
+			else
+				return mips32_dmaacc_read_mem(ejtag_info, address, size, count, (void *)buffer);
 		default:
 			LOG_ERROR("BUG: we shouldn't get here");
 			exit(-1);
@@ -547,7 +551,11 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 		case 4:
 		case 2:
 		case 1:
-			mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+			/* if noDMA off, use DMAACC mode for memory write */
+			if(ejtag_info->impcode & (1<<14))
+				mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+			else
+				mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 			break;
 		default:
 			LOG_ERROR("BUG: we shouldn't get here");
