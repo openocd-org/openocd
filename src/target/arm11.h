@@ -28,12 +28,10 @@
 #include "arm_jtag.h"
 #include <stdbool.h>
 
-
 #define asizeof(x)	(sizeof(x) / sizeof((x)[0]))
 
 #define NEW(type, variable, items)			\
-    type * variable = calloc(1, sizeof(type) * items)
-
+	type * variable = calloc(1, sizeof(type) * items)
 
 /* For MinGW use 'I' prefix to print size_t (instead of 'z') */
 
@@ -43,7 +41,6 @@
 #define ZU		"%Iu"
 #endif
 
-
 #define ARM11_REGCACHE_MODEREGS		0
 #define ARM11_REGCACHE_FREGS		0
 
@@ -51,63 +48,60 @@
 					 23 * ARM11_REGCACHE_MODEREGS +		\
 					  9 * ARM11_REGCACHE_FREGS)
 
-
 typedef struct arm11_register_history_s
 {
-    u32	    value;
-    u8	    valid;
+	u32		value;
+	u8		valid;
 }arm11_register_history_t;
 
 enum arm11_debug_version
 {
-    ARM11_DEBUG_V6	= 0x01,
-    ARM11_DEBUG_V61	= 0x02,
-    ARM11_DEBUG_V7	= 0x03,
-    ARM11_DEBUG_V7_CP14	= 0x04,
+	ARM11_DEBUG_V6	= 0x01,
+	ARM11_DEBUG_V61	= 0x02,
+	ARM11_DEBUG_V7	= 0x03,
+	ARM11_DEBUG_V7_CP14	= 0x04,
 };
 
 typedef struct arm11_common_s
 {
-    target_t *	target;
+	target_t *	target;
 
-    arm_jtag_t	jtag_info;
+	arm_jtag_t	jtag_info;
 
-    /** \name Processor type detection */
-    /*@{*/
+	/** \name Processor type detection */
+	/*@{*/
 
-    u32		device_id;	    /**< IDCODE readout				*/
-    u32		didr;		    /**< DIDR readout (debug capabilities)	*/
-    u8		implementor;	    /**< DIDR Implementor readout		*/
+	u32		device_id;		/**< IDCODE readout				*/
+	u32		didr;			/**< DIDR readout (debug capabilities)	*/
+	u8		implementor;	/**< DIDR Implementor readout		*/
 
-    size_t	brp;		    /**< Number of Breakpoint Register Pairs from DIDR	*/
-    size_t	wrp;		    /**< Number of Watchpoint Register Pairs from DIDR	*/
+	size_t	brp;			/**< Number of Breakpoint Register Pairs from DIDR	*/
+	size_t	wrp;			/**< Number of Watchpoint Register Pairs from DIDR	*/
+	
+	enum arm11_debug_version
+		debug_version;		/**< ARM debug architecture from DIDR	*/
+	/*@}*/
 
-    enum arm11_debug_version
-		debug_version;	    /**< ARM debug architecture from DIDR	*/
-    /*@}*/
+	u32		last_dscr;		/**< Last retrieved DSCR value;
+							 * Can be used to detect changes		*/
 
+	bool	trst_active;
+	bool	halt_requested;
+	bool	simulate_reset_on_next_halt;
 
-    u32		last_dscr;	    /**< Last retrieved DSCR value;
-				     *   Can be used to detect changes		*/
+	/** \name Shadow registers to save processor state */
+	/*@{*/
 
-    bool	trst_active;
-    bool	halt_requested;
-    bool	simulate_reset_on_next_halt;
+	reg_t *	reg_list;							/**< target register list */
+	u32		reg_values[ARM11_REGCACHE_COUNT];	/**< data for registers */
 
-    /** \name Shadow registers to save processor state */
-    /*@{*/
+	/*@}*/
 
-    reg_t *	reg_list;				/**< target register list */
-    u32		reg_values[ARM11_REGCACHE_COUNT];	/**< data for registers */
-
-    /*@}*/
-
-    arm11_register_history_t
+	arm11_register_history_t
 		reg_history[ARM11_REGCACHE_COUNT];	/**< register state before last resume */
 
-
-    size_t	free_brps;				/**< keep track of breakpoints allocated by arm11_add_breakpoint() */
-    size_t	free_wrps;				/**< keep track of breakpoints allocated by arm11_add_watchpoint() */
+	size_t	free_brps;				/**< keep track of breakpoints allocated by arm11_add_breakpoint() */
+	size_t	free_wrps;				/**< keep track of breakpoints allocated by arm11_add_watchpoint() */
 
 	// GA
 	reg_cache_t *core_cache;
@@ -121,64 +115,59 @@ typedef struct arm11_common_s
  */
 enum arm11_instructions
 {
-    ARM11_EXTEST    = 0x00,
-    ARM11_SCAN_N    = 0x02,
-    ARM11_RESTART   = 0x04,
-    ARM11_HALT	    = 0x08,
-    ARM11_INTEST    = 0x0C,
-    ARM11_ITRSEL    = 0x1D,
-    ARM11_IDCODE    = 0x1E,
-    ARM11_BYPASS    = 0x1F,
+	ARM11_EXTEST    = 0x00,
+	ARM11_SCAN_N    = 0x02,
+	ARM11_RESTART   = 0x04,
+	ARM11_HALT	    = 0x08,
+	ARM11_INTEST    = 0x0C,
+	ARM11_ITRSEL    = 0x1D,
+	ARM11_IDCODE    = 0x1E,
+	ARM11_BYPASS    = 0x1F,
 };
 
 enum arm11_dscr
 {
-    ARM11_DSCR_CORE_HALTED				= 1 << 0,
-    ARM11_DSCR_CORE_RESTARTED				= 1 << 1,
+	ARM11_DSCR_CORE_HALTED				= 1 << 0,
+	ARM11_DSCR_CORE_RESTARTED				= 1 << 1,
 
-    ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_MASK		= 0x0F << 2,
-    ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_HALT		= 0x00 << 2,
-    ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BREAKPOINT		= 0x01 << 2,
-    ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_WATCHPOINT		= 0x02 << 2,
-    ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BKPT_INSTRUCTION	= 0x03 << 2,
-    ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_EDBGRQ		= 0x04 << 2,
-    ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_VECTOR_CATCH	= 0x05 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_MASK		= 0x0F << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_HALT		= 0x00 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BREAKPOINT		= 0x01 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_WATCHPOINT		= 0x02 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BKPT_INSTRUCTION	= 0x03 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_EDBGRQ		= 0x04 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_VECTOR_CATCH	= 0x05 << 2,
 
-    ARM11_DSCR_STICKY_PRECISE_DATA_ABORT		= 1 << 6,
-    ARM11_DSCR_STICKY_IMPRECISE_DATA_ABORT		= 1 << 7,
-    ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE		= 1 << 13,
-    ARM11_DSCR_MODE_SELECT				= 1 << 14,
-    ARM11_DSCR_WDTR_FULL				= 1 << 29,
-    ARM11_DSCR_RDTR_FULL				= 1 << 30,
+	ARM11_DSCR_STICKY_PRECISE_DATA_ABORT		= 1 << 6,
+	ARM11_DSCR_STICKY_IMPRECISE_DATA_ABORT		= 1 << 7,
+	ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE		= 1 << 13,
+	ARM11_DSCR_MODE_SELECT				= 1 << 14,
+	ARM11_DSCR_WDTR_FULL				= 1 << 29,
+	ARM11_DSCR_RDTR_FULL				= 1 << 30,
 };
 
 enum arm11_cpsr
 {
-    ARM11_CPSR_T				= 1 << 5,
-    ARM11_CPSR_J				= 1 << 24,
+	ARM11_CPSR_T				= 1 << 5,
+	ARM11_CPSR_J				= 1 << 24,
 };
 
 enum arm11_sc7
 {
-    ARM11_SC7_NULL				= 0,
-    ARM11_SC7_VCR				= 7,
-    ARM11_SC7_PC				= 8,
-    ARM11_SC7_BVR0				= 64,
-    ARM11_SC7_BCR0				= 80,
-    ARM11_SC7_WVR0				= 96,
-    ARM11_SC7_WCR0				= 112,
+	ARM11_SC7_NULL				= 0,
+	ARM11_SC7_VCR				= 7,
+	ARM11_SC7_PC				= 8,
+	ARM11_SC7_BVR0				= 64,
+	ARM11_SC7_BCR0				= 80,
+	ARM11_SC7_WVR0				= 96,
+	ARM11_SC7_WCR0				= 112,
 };
-
-
 
 typedef struct arm11_reg_state_s
 {
-    u32				def_index;
-    target_t *			target;
+	u32				def_index;
+	target_t *			target;
 } arm11_reg_state_t;
-
-
-
 
 /* poll current target status */
 int arm11_poll(struct target_s *target);
@@ -230,13 +219,13 @@ int arm11_target_create(struct target_s *target, Jim_Interp *interp);
 int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm11_quit(void);
 
-
 /* helpers */
 void arm11_build_reg_cache(target_t *target);
+int arm11_set_reg(reg_t *reg, u8 *buf);
+int arm11_get_reg(reg_t *reg);
 
 void arm11_record_register_history(arm11_common_t * arm11);
 void arm11_dump_reg_changes(arm11_common_t * arm11);
-
 
 /* internals */
 
@@ -263,18 +252,17 @@ void arm11_run_instr_data_to_core_via_r0	(arm11_common_t * arm11, u32 opcode, u3
 int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state);
 int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state);
 
-
 /** Used to make a list of read/write commands for scan chain 7
  *
  *  Use with arm11_sc7_run()
  */
 typedef struct arm11_sc7_action_s
 {
-    bool    write;				/**< Access mode: true for write, false for read.	*/
-    u8	    address;				/**< Register address mode. Use enum #arm11_sc7		*/
-    u32	    value;				/**< If write then set this to value to be written.
-						     In read mode this receives the read value when the
-						     function returns.					*/
+	bool	write;				/**< Access mode: true for write, false for read.	*/
+	u8		address;				/**< Register address mode. Use enum #arm11_sc7		*/
+	u32		value;				/**< If write then set this to value to be written.
+								In read mode this receives the read value when the
+								function returns.					*/
 } arm11_sc7_action_t;
 
 void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t count);
@@ -284,7 +272,5 @@ void arm11_sc7_clear_vbw(arm11_common_t * arm11);
 void arm11_sc7_set_vcr(arm11_common_t * arm11, u32 value);
 
 void arm11_read_memory_word(arm11_common_t * arm11, u32 address, u32 * result);
-
-
 
 #endif /* ARM11_H */

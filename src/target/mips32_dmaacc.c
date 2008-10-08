@@ -331,7 +331,6 @@ begin_ejtag_dma_write_b:
 	return ERROR_OK;
 }
 
-
 int mips32_dmaacc_read_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int count, void *buf)
 {
 	switch (size)
