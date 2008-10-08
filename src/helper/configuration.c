@@ -81,7 +81,7 @@ char *find_file(const char *file)
 		snprintf(full_path, 1024, "%s/%s", dir, file);
 		fp = fopen(full_path, mode);
 	}
-	
+
 	if (fp)
 	{
 		fclose(fp);
@@ -100,6 +100,8 @@ FILE *open_file_from_path (char *file, char *mode)
 	} else
 	{
 		char *full_path=find_file(file);
+		if (full_path==NULL)
+			return NULL;
 		FILE *fp = NULL;
 		fp = fopen(full_path, mode);
 		free(full_path);

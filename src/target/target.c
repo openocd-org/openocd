@@ -1969,6 +1969,8 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 			default:
 			return ERROR_OK;
 		}
+		keep_alive();
+
 		if (retval!=ERROR_OK)
 		{
 			return retval;
