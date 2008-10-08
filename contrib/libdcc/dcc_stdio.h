@@ -23,15 +23,13 @@
 #ifndef DCC_STDIO_H
 #define DCC_STDIO_H
 
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned long u32;
+void dbg_trace_point(unsigned long number);
 
-void dbg_write_u32(u32 *val, u32 len);
-void dbg_write_u16(u16 *val, u32 len);
-void dbg_write_u8(u8 *val, u32 len);
+void dbg_write_u32(const unsigned long *val, long len);
+void dbg_write_u16(const unsigned short *val, long len);
+void dbg_write_u8(const unsigned char *val, long len);
 
-void dbg_write_str(u8 *msg);
-void dbg_write_char(u8 msg);
+void dbg_write_str(const char *msg);
+void dbg_write_char(char msg);
 
 #endif	/* DCC_STDIO_H */

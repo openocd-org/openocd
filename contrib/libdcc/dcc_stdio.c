@@ -3,6 +3,8 @@
  *   Dominic.Rath@gmx.de                                                   *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
+ *   Copyright (C) 2008 by Frederik Kriewtz                                *
+ *   frederik@kriewitz.eu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,33 +32,35 @@
  * DCRDR[23:16] is used for by host for status
  * DCRDR[31:24] is used for by host for write buffer */
 
-#define DCRDR_WRSTS	*((volatile u8*)0xE000EDF8)
-#define DCRDR_WRDAT	*((volatile u8*)0xE000EDF9)
+#define NVIC_DBG_DATA_R         (*((volatile unsigned short *)0xE000EDF8))
+
+#define TARGET_REQ_TRACEMSG                 0x00
+#define TARGET_REQ_DEBUGMSG_ASCII           0x01
+#define TARGET_REQ_DEBUGMSG_HEXMSG(size)    (0x01 | ((size & 0xff)  << 8))
+#define TARGET_REQ_DEBUGCHAR                0x02
 
 #define	BUSY	1
 
-void dbg_write(u32 dcc_data)
+void dbg_write(unsigned long dcc_data)
 {
 	int len = 4;
 	
 	while (len--)
 	{
 		/* wait for data ready */
-		while (DCRDR_WRSTS & BUSY);
+		while (NVIC_DBG_DATA_R & BUSY);
 		
-		/* write our data */
-		DCRDR_WRDAT = (u8)(dcc_data & 0xff);
-		/* set write flag - tell host there is data */
-		DCRDR_WRSTS = BUSY;
+		/* write our data and set write flag - tell host there is data*/
+		NVIC_DBG_DATA_R = (unsigned short)(((dcc_data & 0xff) << 8) | BUSY);
 		dcc_data >>= 8;
 	}
 }
 
 #elif defined(__ARM_ARCH_4T__) || defined(__ARM_ARCH_5TE__)
 					
-void dbg_write(u32 dcc_data)
+void dbg_write(unsigned long dcc_data)
 {
-	u32 dcc_status;
+	unsigned long dcc_status;
 	
 	do {
 		asm volatile("mrc p14, 0, %0, c0, c0" : "=r" (dcc_status));
@@ -69,10 +73,14 @@ void dbg_write(u32 dcc_data)
  #error unsupported target
 #endif
 
-
-void dbg_write_u32(u32 *val, u32 len)
+void dbg_trace_point(unsigned long number)
 {	
-	dbg_write(0x01 | 0x0400 | ((len & 0xffff) << 16));
+	dbg_write(TARGET_REQ_TRACEMSG | (number << 8));
+}
+
+void dbg_write_u32(const unsigned long *val, long len)
+{	
+	dbg_write(TARGET_REQ_DEBUGMSG_HEXMSG(4) | ((len & 0xffff) << 16));
 
 	while (len > 0)
 	{
@@ -83,16 +91,16 @@ void dbg_write_u32(u32 *val, u32 len)
 	}
 }
 
-void dbg_write_u16(u16 *val, u32 len)
+void dbg_write_u16(const unsigned short *val, long len)
 {
-	u32 dcc_data;
+	unsigned long dcc_data;
 		
-	dbg_write(0x01 | 0x0200 | ((len & 0xffff) << 16));
+	dbg_write(TARGET_REQ_DEBUGMSG_HEXMSG(2) | ((len & 0xffff) << 16));
 
 	while (len > 0)
 	{
-		dcc_data = val[0] | (val[1] << 8)
-			| ((len > 1) ? (val[2] | (val[3] << 8)) << 16 : 0x00);
+		dcc_data = val[0] 
+			| ((len > 1) ? val[1] << 16: 0x0000);
 		
 		dbg_write(dcc_data);
 		
@@ -101,11 +109,11 @@ void dbg_write_u16(u16 *val, u32 len)
 	}
 }
 
-void dbg_write_u8(u8 *val, u32 len)
+void dbg_write_u8(const unsigned char *val, long len)
 {	
-	u32 dcc_data;
+	unsigned long dcc_data;
 
-	dbg_write(0x01 | 0x0100 | ((len & 0xffff) << 16));
+	dbg_write(TARGET_REQ_DEBUGMSG_HEXMSG(1) | ((len & 0xffff) << 16));
 
 	while (len > 0)
 	{
@@ -116,22 +124,22 @@ void dbg_write_u8(u8 *val, u32 len)
 		
 		dbg_write(dcc_data);
 		
-		val += 2;
-		len -= 2;
+		val += 4;
+		len -= 4;
 	}
 }
 
-void dbg_write_str(u8 *msg)
+void dbg_write_str(const char *msg)
 {
-	int len;
-	u32 dcc_data;
+	long len;
+	unsigned long dcc_data;
 	
 	for (len = 0; msg[len] && (len < 65536); len++);
 	
-	dbg_write(0x01 | ((len & 0xffff) << 16));
+	dbg_write(TARGET_REQ_DEBUGMSG_ASCII | ((len & 0xffff) << 16));
 	
 	while (len > 0)
-	{		
+	{
 		dcc_data = msg[0]
 			| ((len > 1) ? msg[1] << 8 : 0x00)
 			| ((len > 2) ? msg[2] << 16 : 0x00)
@@ -143,7 +151,7 @@ void dbg_write_str(u8 *msg)
 	}
 }
 
-void dbg_write_char(u8 msg)
+void dbg_write_char(char msg)
 {	
-	dbg_write(0x02 | ((msg & 0xff) << 16));
+	dbg_write(TARGET_REQ_DEBUGCHAR | ((msg & 0xff) << 16));
 }
