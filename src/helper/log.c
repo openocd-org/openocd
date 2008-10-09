@@ -412,3 +412,14 @@ void alive_sleep(int ms)
 		keep_alive();
 	}
 }
+
+
+void busy_sleep(int ms)
+{
+	long long then;
+	then=timeval_ms();
+	while ((timeval_ms()-then)<ms)
+	{
+		/* busy wait */
+	}
+}

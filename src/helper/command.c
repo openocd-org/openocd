@@ -56,7 +56,7 @@ int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 int run_command(command_context_t *context, command_t *c, char *words[], int num_words);
 
 static void tcl_output(void *privData, const char *file, int line, const char *function, const char *string)
-{		
+{
 	Jim_Obj *tclOutput=(Jim_Obj *)privData;
 
 	Jim_AppendString(interp, tclOutput, string, strlen(string));
@@ -76,8 +76,8 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	char **words;
 
 	target_call_timer_callbacks_now();
-	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/ 
-	
+	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/
+
 	c = interp->cmdPrivData;
 	LOG_DEBUG("script_command - %s", c->name);
 
@@ -92,7 +92,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			break;
 		}
 		words[i] = strdup(w);
-		if (words[i] == NULL) 
+		if (words[i] == NULL)
 		{
 			return JIM_ERR;
 		}
@@ -109,16 +109,16 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		 */
 		context = global_cmd_ctx;
 	}
-	
+
 	/* capture log output and return it */
 	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
 	/* a garbage collect can happen, so we need a reference count to this object */
 	Jim_IncrRefCount(tclOutput);
-	
+
 	log_add_callback(tcl_output, tclOutput);
-	
+
 	retval = run_command(context, c, words, nwords);
-	
+
 	log_remove_callback(tcl_output, tclOutput);
 
 	/* We dump output into this local variable */
@@ -134,19 +134,19 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	{
 		*return_retval = retval;
 	}
-	
+
 	return (retval==ERROR_OK)?JIM_OK:JIM_ERR;
 }
 
 command_t* register_command(command_context_t *context, command_t *parent, char *name, int (*handler)(struct command_context_s *context, char* name, char** args, int argc), enum command_mode mode, char *help)
 {
 	command_t *c, *p;
-	
+
 	if (!context || !name)
 		return NULL;
-				
+
 	c = malloc(sizeof(command_t));
-	
+
 	c->name = strdup(name);
 	c->parent = parent;
 	c->children = NULL;
@@ -155,7 +155,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	if (!help)
 		help="";
 	c->next = NULL;
-	
+
 	/* place command in tree */
 	if (parent)
 	{
@@ -185,14 +185,14 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 			context->commands = c;
 		}
 	}
-	
+
 	/* just a placeholder, no handler */
 	if (c->handler==NULL)
 		return c;
 
 	/* If this is a two level command, e.g. "flash banks", then the
 	 * "unknown" proc in startup.tcl must redirect to  this command.
-	 * 
+	 *
 	 * "flash banks" is translated by "unknown" to "flash_banks"
 	 * if such a proc exists
 	 */
@@ -210,27 +210,27 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	const char *full_name=alloc_printf("ocd_%s%s%s", t1, t2, t3);
 	Jim_CreateCommand(interp, full_name, script_command, c, NULL);
 	free((void *)full_name);
-	
+
 	/* we now need to add an overrideable proc */
 	const char *override_name=alloc_printf("proc %s%s%s {args} {if {[catch {eval \"ocd_%s%s%s $args\"}]==0} {return \"\"} else { return -code error }", t1, t2, t3, t1, t2, t3);
-	Jim_Eval_Named(interp, override_name, __FILE__, __LINE__ );	
+	Jim_Eval_Named(interp, override_name, __FILE__, __LINE__ );
 	free((void *)override_name);
-	
+
 	/* accumulate help text in Tcl helptext list.  */
     Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
     if (Jim_IsShared(helptext))
         helptext = Jim_DuplicateObj(interp, helptext);
 	Jim_Obj *cmd_entry=Jim_NewListObj(interp, NULL, 0);
-	
+
 	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);
 
 	/* maximum of two levels :-) */
 	if (c->parent!=NULL)
 	{
 		Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, c->parent->name, -1));
-	} 
+	}
 	Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, c->name, -1));
-	
+
 	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
 	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, help, -1));
 	Jim_ListAppendElement(interp, helptext, cmd_entry);
@@ -240,14 +240,14 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 int unregister_all_commands(command_context_t *context)
 {
 	command_t *c, *c2;
-	
+
 	if (context == NULL)
 		return ERROR_OK;
-	
+
 	while(NULL != context->commands)
 	{
 		c = context->commands;
-		
+
 		while(NULL != c->children)
 		{
 			c2 = c->children;
@@ -257,25 +257,25 @@ int unregister_all_commands(command_context_t *context)
 			free(c2);
 			c2 = NULL;
 		}
-		
+
 		context->commands = context->commands->next;
-		
+
 		free(c->name);
 		c->name = NULL;
 		free(c);
-		c = NULL;		
+		c = NULL;
 	}
-	
+
 	return ERROR_OK;
 }
 
 int unregister_command(command_context_t *context, char *name)
 {
 	command_t *c, *p = NULL, *c2;
-	
+
 	if ((!context) || (!name))
 		return ERROR_INVALID_ARGUMENTS;
-	
+
 	/* find command */
 	for (c = context->commands; c; c = c->next)
 	{
@@ -290,7 +290,7 @@ int unregister_command(command_context_t *context, char *name)
 			{
 				context->commands = c->next;
 			}
-			
+
 			/* unregister children */
 			if (c->children)
 			{
@@ -300,16 +300,16 @@ int unregister_command(command_context_t *context, char *name)
 					free(c2);
 				}
 			}
-			
+
 			/* delete command */
 			free(c->name);
 			free(c);
 		}
-		
+
 		/* remember the last command for unlinking */
 		p = c;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -323,7 +323,7 @@ void command_output_text(command_context_t *context, const char *data)
 void command_print_n(command_context_t *context, char *format, ...)
 {
 	char *string;
-	
+
 	va_list ap;
 	va_start(ap, format);
 
@@ -332,7 +332,7 @@ void command_print_n(command_context_t *context, char *format, ...)
 	{
 		/* we want this collected in the log + we also want to pick it up as a tcl return
 		 * value.
-		 * 
+		 *
 		 * The latter bit isn't precisely neat, but will do for now.
 		 */
 		LOG_USER_N("%s", string);
@@ -357,7 +357,7 @@ void command_print(command_context_t *context, char *format, ...)
 		strcat(string, "\n"); /* alloc_vprintf guaranteed the buffer to be at least one char longer */
 		/* we want this collected in the log + we also want to pick it up as a tcl return
 		 * value.
-		 * 
+		 *
 		 * The latter bit isn't precisely neat, but will do for now.
 		 */
 		LOG_USER_N("%s", string);
@@ -378,7 +378,7 @@ int run_command(command_context_t *context, command_t *c, char *words[], int num
 		LOG_ERROR("Illegal mode for command");
 		return ERROR_FAIL;
 	}
-	
+
 	int retval = c->handler(context, c->name, words + start_word + 1, num_words - start_word - 1);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR)
 	{
@@ -404,10 +404,10 @@ int run_command(command_context_t *context, command_t *c, char *words[], int num
 		/* we do not print out an error message because the command *should*
 		 * have printed out an error
 		 */
-		LOG_DEBUG("Command failed with error code %d", retval); 
+		LOG_DEBUG("Command failed with error code %d", retval);
 	}
-	
-	return retval; 
+
+	return retval;
 }
 
 int command_run_line(command_context_t *context, char *line)
@@ -434,9 +434,9 @@ int command_run_line(command_context_t *context, char *line)
 		if (retcode == JIM_OK)
 		{
 			retcode = Jim_Eval_Named(interp, line, __FILE__, __LINE__ );
-			
+
 			Jim_DeleteAssocData(interp, "retval");
-		}	
+		}
 		Jim_DeleteAssocData(interp, "context");
 	}
 	if (retcode == JIM_ERR) {
@@ -448,7 +448,7 @@ int command_run_line(command_context_t *context, char *line)
 		if (retval==ERROR_OK)
 		{
 			/* It wasn't a low level OpenOCD command that failed */
-			return ERROR_FAIL; 
+			return ERROR_FAIL;
 		}
 		return retval;
 	} else if (retcode == JIM_EXIT) {
@@ -469,7 +469,7 @@ int command_run_line(command_context_t *context, char *line)
 				if (chunk > 256)
 					chunk = 256;
 				strncpy(buff, result+i, chunk);
-				buff[chunk] = 0; 
+				buff[chunk] = 0;
 				LOG_USER_N("%s", buff);
 			}
 			LOG_USER_N("%s", "\n");
@@ -512,7 +512,7 @@ int command_done(command_context_t *context)
 {
 	free(context);
 	context = NULL;
-	
+
 	return ERROR_OK;
 }
 
@@ -527,7 +527,7 @@ static int jim_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	Jim_Obj *result = Jim_NewStringObj(interp, full_path, strlen(full_path));
 	free(full_path);
-	
+
 	Jim_SetResult(interp, result);
 	return JIM_OK;
 }
@@ -580,7 +580,7 @@ static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *
 		ptr += x;
 		nbytes -= x;
 	}
-	
+
 	return n;
 }
 
@@ -655,7 +655,7 @@ command_context_t* command_init()
 	interp->cb_vfprintf = openocd_jim_vfprintf;
 	interp->cb_fflush = openocd_jim_fflush;
 	interp->cb_fgets = openocd_jim_fgets;
-	
+
 	add_default_dirs();
 
 #ifdef JIM_EMBEDDED
@@ -669,11 +669,11 @@ command_context_t* command_init()
 	}
 
 	register_command(context, NULL, "sleep", handle_sleep_command,
-					 COMMAND_ANY, "sleep for <n> milliseconds");
-	
+					 COMMAND_ANY, "<n> [busy] - sleep for n milliseconds. \"busy\" means busy wait");
+
 	register_command(context, NULL, "fast", handle_fast_command,
 					 COMMAND_ANY, "fast <enable/disable> - place at beginning of config files. Sets defaults to fast and dangerous.");
-	
+
 	return context;
 }
 
@@ -692,10 +692,28 @@ int command_context_mode(command_context_t *cmd_ctx, enum command_mode mode)
 int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	unsigned long duration = 0;
-	
-	if (argc == 1)
+	int busy = 0;
+
+	if (argc==1)
 	{
-		duration = strtoul(args[0], NULL, 0);
+
+	} else if (argc==2)
+	{
+		if (strcmp(args[1], "busy")!=0)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		busy = 1;
+	} else
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	duration = strtoul(args[0], NULL, 0);
+
+	if (busy)
+	{
+		busy_sleep(duration);
+	} else
+	{
 		alive_sleep(duration);
 	}
 
@@ -706,18 +724,18 @@ int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 {
 	if (argc!=1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	
+
 	fast_and_dangerous = strcmp("enable", args[0])==0;
-	
+
 	return ERROR_OK;
 }
 
-void process_jim_events(void) 
+void process_jim_events(void)
 {
 #ifdef JIM_EMBEDDED
 	static int recursion = 0;
 
-	if (!recursion) 
+	if (!recursion)
 	{
 		recursion++;
 		Jim_ProcessEvents (interp, JIM_ALL_EVENTS|JIM_DONT_WAIT);
@@ -730,17 +748,17 @@ void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd
 {
 	Jim_CreateCommand(interp, name, cmd, NULL, NULL);
 
-	/* FIX!!! it would be prettier to invoke add_help_text... 
+	/* FIX!!! it would be prettier to invoke add_help_text...
 	   accumulate help text in Tcl helptext list.  */
 	Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
 	if (Jim_IsShared(helptext))
 		helptext = Jim_DuplicateObj(interp, helptext);
-    
+
 	Jim_Obj *cmd_entry=Jim_NewListObj(interp, NULL, 0);
-	
+
 	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);
 	Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, name, -1));
-	
+
 	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
 	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, help, -1));
 	Jim_ListAppendElement(interp, helptext, cmd_entry);
