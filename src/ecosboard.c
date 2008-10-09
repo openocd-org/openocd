@@ -934,6 +934,72 @@ zylinjtag_Jim_Command_rm(Jim_Interp *interp,
 	return del ? JIM_OK : JIM_ERR;
 }
 
+static int zylinjtag_Jim_Command_threads(Jim_Interp *interp, int argc,
+		Jim_Obj * const *argv)
+{
+	cyg_handle_t thread = 0;
+	cyg_uint16 id = 0;
+	Jim_Obj *threads = Jim_NewListObj(interp, NULL, 0);
+
+	/* Loop over the threads, and generate a table row for
+	 * each.
+	 */
+	while (cyg_thread_get_next(&thread, &id))
+	{
+		Jim_Obj *threadObj = Jim_NewListObj(interp, NULL, 0);
+
+		cyg_thread_info info;
+		char *state_string;
+
+		cyg_thread_get_info(thread, id, &info);
+
+		if (info.name == NULL)
+			info.name = "<no name>";
+
+		Jim_ListAppendElement(interp, threadObj, Jim_NewStringObj(interp,
+				info.name, strlen(info.name)));
+
+		/* Translate the state into a string.
+		 */
+		if (info.state == 0)
+			state_string = "RUN";
+		else if (info.state & 0x04)
+			state_string = "SUSP";
+		else
+			switch (info.state & 0x1b)
+			{
+			case 0x01:
+				state_string = "SLEEP";
+				break;
+			case 0x02:
+				state_string = "CNTSLEEP";
+				break;
+			case 0x08:
+				state_string = "CREATE";
+				break;
+			case 0x10:
+				state_string = "EXIT";
+				break;
+			default:
+				state_string = "????";
+				break;
+			}
+
+		Jim_ListAppendElement(interp, threadObj, Jim_NewStringObj(interp,
+				state_string, strlen(state_string)));
+
+		Jim_ListAppendElement	(interp, threadObj, Jim_NewIntObj(interp, id));
+		Jim_ListAppendElement(interp, threadObj, Jim_NewIntObj(interp, info.set_pri));
+		Jim_ListAppendElement(interp, threadObj, Jim_NewIntObj(interp, info.cur_pri));
+
+		Jim_ListAppendElement(interp, threads, threadObj);
+	}
+	Jim_SetResult( interp, threads);
+
+	return JIM_OK;
+}
+
+
 static int
 zylinjtag_Jim_Command_ls(Jim_Interp *interp,
                                    int argc,
@@ -1245,6 +1311,7 @@ static void zylinjtag_startNetwork()
     Jim_CreateCommand(httpstate.jim_interp, "zy1000_flash", zylinjtag_Jim_Command_flash, NULL, NULL);
     Jim_CreateCommand(httpstate.jim_interp, "poke", zylinjtag_Jim_Command_poke, NULL, NULL);
     Jim_CreateCommand(httpstate.jim_interp, "ls", zylinjtag_Jim_Command_ls, NULL, NULL);
+    Jim_CreateCommand(httpstate.jim_interp, "threads", zylinjtag_Jim_Command_threads, NULL, NULL);
     Jim_CreateCommand(httpstate.jim_interp, "getmem", zylinjtag_Jim_Command_getmem, NULL, NULL);
     Jim_CreateCommand(httpstate.jim_interp, "mac", zylinjtag_Jim_Command_mac, NULL, NULL);
     Jim_CreateCommand(httpstate.jim_interp, "ip", zylinjtag_Jim_Command_ip, NULL, NULL);
