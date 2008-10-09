@@ -2280,7 +2280,12 @@ int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 
 	/* convert flash writing code into a buffer in target endianness */
 	for (i = 0; i < (sizeof(arm7_9_crc_code)/sizeof(u32)); i++)
-		target_write_u32(target, crc_algorithm->address + i*sizeof(u32), arm7_9_crc_code[i]);
+	{
+		if ((retval=target_write_u32(target, crc_algorithm->address + i*sizeof(u32), arm7_9_crc_code[i]))!=ERROR_OK)
+		{
+			return retval;
+		}
+	}
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
