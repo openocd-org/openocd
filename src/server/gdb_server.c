@@ -305,6 +305,13 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			break;
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
+        if( reply == '$' ){
+			// fix a problem with some IAR tools
+			gdb_putback_char( connection, reply );
+			LOG_DEBUG("Unexpected start of new packet");
+			break;
+		}
+
 		LOG_WARNING("Discard unexpected char %c", reply);
 	}
 #endif
@@ -369,16 +376,25 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 				log_remove_callback(gdb_log_callback, connection);
 				LOG_WARNING("negative reply, retrying");
 			}
-			else
-			{
-				LOG_ERROR("unknown character 0x%2.2x in reply, dropping connection", reply);
+			else if( reply == '$' ){
+				LOG_ERROR("GDB missing ack(1) - assumed good");
+				gdb_putback_char( connection, reply );
+				return ERROR_OK;
+			} else {
+					
+				LOG_ERROR("unknown character(1) 0x%2.2x in reply, dropping connection", reply);
 				gdb_con->closed=1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
-		}
+		} 
+		else if( reply == '$' ){
+			LOG_ERROR("GDB missing ack(2) - assumed good");
+			gdb_putback_char( connection, reply );
+			return ERROR_OK;
+		} 
 		else
 		{
-			LOG_ERROR("unknown character 0x%2.2x in reply, dropping connection", reply);
+			LOG_ERROR("unknown character(2) 0x%2.2x in reply, dropping connection", reply);
 			gdb_con->closed=1;
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
@@ -1942,7 +1958,20 @@ int gdb_input_inner(connection_t *connection)
 		/* terminate with zero */
 		packet[packet_size] = 0;
 
-		LOG_DEBUG("received packet: '%s'", packet);
+		if( LOG_LEVEL_IS( LOG_LVL_DEBUG ) ){
+			if( packet[0] == 'X' ){
+				// binary packets spew junk into the debug log stream 
+				char buf[ 50 ];
+				int x;
+				for( x = 0 ; (x < 49) && (packet[x] != ':') ; x++ ){
+					buf[x] = packet[x];
+				}
+				buf[x] = 0;
+				LOG_DEBUG("received packet: '%s:<binary-data>'", buf );
+			} else {
+				LOG_DEBUG("received packet: '%s'", packet );
+			}
+		}
 
 		if (packet_size > 0)
 		{

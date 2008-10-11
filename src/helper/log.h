@@ -88,6 +88,7 @@ extern int debug_level;
 /* Avoid fn call and building parameter list if we're not outputting the information.
  * Matters on feeble CPUs for DEBUG/INFO statements that are involved frequently */
 
+#define LOG_LEVEL_IS( FOO )  ((debug_level) >= (FOO))
 
 #define LOG_DEBUG(expr ...) \
 		((debug_level >= LOG_LVL_DEBUG) ? log_printf_lf (LOG_LVL_DEBUG, __FILE__, __LINE__, __FUNCTION__, expr) , 0 : 0)
