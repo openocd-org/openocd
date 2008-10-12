@@ -2124,20 +2124,61 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	return ERROR_OK;
 }
 
+static int dcc_count;
+static u8 *dcc_buffer;
+
+
+static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	int little=target->endianness==TARGET_LITTLE_ENDIAN;
+	int count=dcc_count;
+	u8 *buffer=dcc_buffer;
+	if (count>2)
+	{
+		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
+		   core function repeated.
+		 */
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+		buffer+=4;
+
+		embeddedice_reg_t *ice_reg = arm7_9->eice_cache->reg_list[EICE_COMMS_DATA].arch_info;
+		u8 reg_addr = ice_reg->addr & 0x1f;
+		int chain_pos = ice_reg->jtag_info->chain_pos;
+
+		embeddedice_write_dcc(chain_pos, reg_addr, buffer, little, count-2);
+		buffer += (count-2)*4;
+
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+	} else
+	{
+		int i;
+		for (i = 0; i < count; i++)
+		{
+			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
+			buffer += 4;
+		}
+	}
+
+	target_halt(target);
+	return target_wait_state(target, TARGET_HALTED, 500);
+}
+
+
 static const u32 dcc_code[] =
 {
 	/* MRC      TST         BNE         MRC         STR         B */
 	0xee101e10, 0xe3110001, 0x0afffffc, 0xee111e10, 0xe4801004, 0xeafffff9
 };
 
+int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info));
+
+
 int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	enum armv4_5_state core_state = armv4_5->core_state;
-	u32 r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
-	u32 r1 = buf_get_u32(armv4_5->core_cache->reg_list[1].value, 0, 32);
-	u32 pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 	int i;
 
 	if (!arm7_9->dcc_downloads)
@@ -2165,75 +2206,38 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 		target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, 6, dcc_code_buf);
 	}
 
-	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, address);
-	armv4_5->core_cache->reg_list[0].valid = 1;
-	armv4_5->core_cache->reg_list[0].dirty = 1;
-	armv4_5->core_state = ARMV4_5_STATE_ARM;
+	armv4_5_algorithm_t armv4_5_info;
+	reg_param_t reg_params[1];
 
-	arm7_9_resume(target, 0, arm7_9->dcc_working_area->address, 1, 1);
+	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
 
-	int little=target->endianness==TARGET_LITTLE_ENDIAN;
-	if (count>2)
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);
+
+	buf_set_u32(reg_params[0].value, 0, 32, address);
+
+	//armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params,
+	// int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info))
+	int retval;
+	dcc_count=count;
+	dcc_buffer=buffer;
+	retval = armv4_5_run_algorithm_inner(target, 0, NULL, 1, reg_params,
+			arm7_9->dcc_working_area->address, arm7_9->dcc_working_area->address+6*4, 20*1000, &armv4_5_info, arm7_9_dcc_completion);
+
+	if (retval==ERROR_OK)
 	{
-		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
-		   core function repeated.
-		 */
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
-		buffer+=4;
-
-		embeddedice_reg_t *ice_reg = arm7_9->eice_cache->reg_list[EICE_COMMS_DATA].arch_info;
-		u8 reg_addr = ice_reg->addr & 0x1f;
-		int chain_pos = ice_reg->jtag_info->chain_pos;
-
-		embeddedice_write_dcc(chain_pos, reg_addr, buffer, little, count-2);
-		buffer += (count-2)*4;
-
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
-	} else
-	{
-		for (i = 0; i < count; i++)
+		u32 endaddress=buf_get_u32(reg_params[0].value, 0, 32);
+		if (endaddress!=(address+count*4))
 		{
-			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
-			buffer += 4;
+			LOG_ERROR("DCC write failed, expected end address 0x%08x got 0x%0x", (address+count*4), endaddress);
+			retval=ERROR_FAIL;
 		}
 	}
 
-	target_halt(target);
+	destroy_reg_param(&reg_params[0]);
 
-	long long then=timeval_ms();
-	int timeout;
-	while (!(timeout=((timeval_ms()-then)>100)))
-	{
-		target_poll(target);
-		if (target->state == TARGET_HALTED)
-			break;
-		if (debug_level>=3)
-		{
-			alive_sleep(100);
-		} else
-		{
-			keep_alive();
-		}
-	}
-	if (timeout)
-	{
-		LOG_ERROR("bulk write timed out, target not halted");
-		return ERROR_TARGET_TIMEOUT;
-	}
-
-	/* restore target state */
-	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, r0);
-	armv4_5->core_cache->reg_list[0].valid = 1;
-	armv4_5->core_cache->reg_list[0].dirty = 1;
-	buf_set_u32(armv4_5->core_cache->reg_list[1].value, 0, 32, r1);
-	armv4_5->core_cache->reg_list[1].valid = 1;
-	armv4_5->core_cache->reg_list[1].dirty = 1;
-	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, pc);
-	armv4_5->core_cache->reg_list[15].valid = 1;
-	armv4_5->core_cache->reg_list[15].dirty = 1;
-	armv4_5->core_state = core_state;
-
-	return ERROR_OK;
+	return retval;
 }
 
 int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum)

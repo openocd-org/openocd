@@ -476,7 +476,34 @@ int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list
 	return ERROR_OK;
 }
 
-int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
+/* wait for execution to complete and check exit point */
+static int armv4_5_run_algorithm_completion(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info)
+{
+	int retval;
+	armv4_5_common_t *armv4_5 = target->arch_info;
+
+	target_wait_state(target, TARGET_HALTED, timeout_ms);
+	if (target->state != TARGET_HALTED)
+	{
+		if ((retval=target_halt(target))!=ERROR_OK)
+			return retval;
+		if ((retval=target_wait_state(target, TARGET_HALTED, 500))!=ERROR_OK)
+		{
+			return retval;
+		}
+		return ERROR_TARGET_TIMEOUT;
+	}
+	if (buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != exit_point)
+	{
+		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
+			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+		return ERROR_TARGET_TIMEOUT;
+	}
+
+	return ERROR_OK;
+}
+
+int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info))
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv4_5_algorithm_t *armv4_5_algorithm_info = arch_info;
@@ -562,24 +589,7 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 
 	target_resume(target, 0, entry_point, 1, 1);
 
-	target_wait_state(target, TARGET_HALTED, timeout_ms);
-	if (target->state != TARGET_HALTED)
-	{
-		if ((retval=target_halt(target))!=ERROR_OK)
-			return retval;
-		if ((retval=target_wait_state(target, TARGET_HALTED, 500))!=ERROR_OK)
-		{
-			return retval;
-		}
-		return ERROR_TARGET_TIMEOUT;
-	}
-
-	if (buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != exit_point)
-	{
-		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
-			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-		return ERROR_TARGET_TIMEOUT;
-	}
+	retval=run_it(target, exit_point, timeout_ms, arch_info);
 
 	breakpoint_remove(target, exit_point);
 
@@ -626,6 +636,12 @@ int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param
 	armv4_5->core_mode = core_mode;
 
 	return retval;
+}
+
+
+int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
+{
+	return armv4_5_run_algorithm_inner(target, num_mem_params, mem_params, num_reg_params, reg_params, entry_point, exit_point, timeout_ms, arch_info, armv4_5_run_algorithm_completion);
 }
 
 int armv4_5_init_arch_info(target_t *target, armv4_5_common_t *armv4_5)
