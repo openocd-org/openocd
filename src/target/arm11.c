@@ -1511,7 +1511,8 @@ int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
 	/* Initialize anything we can set up without talking to the target */
-	return ERROR_OK;
+	return arm11_build_reg_cache(target);
+
 }
 
 /* talk to the target and set things up */
@@ -1582,8 +1583,6 @@ int arm11_examine(struct target_s *target)
 	arm11->device_id,
 	arm11->implementor,
 	arm11->didr);
-
-	arm11_build_reg_cache(target);
 
 	/* as a side-effect this reads DSCR and thus
 	 * clears the ARM11_DSCR_STICKY_PRECISE_DATA_ABORT / Sticky Precise Data Abort Flag
