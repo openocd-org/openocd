@@ -436,7 +436,8 @@ static int NEW_target_process_reset(struct command_context_s *cmd_ctx, enum targ
 	sprintf( buf, "ocd_process_reset %s", n->name );
 	retval = Jim_Eval( interp, buf );
 
-	if(retval != JIM_ERR){
+	if(retval != JIM_OK) {
+		Jim_PrintErrorMessage(interp);
 		return ERROR_FAIL;
 	}
 
@@ -3112,7 +3113,10 @@ target_handle_event( target_t *target, enum target_event e )
 					   e,
 					   Jim_Nvp_value2name_simple( nvp_target_event, e )->name,
 					   Jim_GetString( teap->body, NULL ) );
-			Jim_EvalObj( interp, teap->body );
+			if (Jim_EvalObj( interp, teap->body )!=JIM_OK)
+			{
+				Jim_PrintErrorMessage(interp);
+			}
 		}
 		teap = teap->next;
 	}
@@ -3215,7 +3219,7 @@ target_configure( Jim_GetOptInfo *goi,
 			}
 
 			if( goi->isconfigure ){
-				if( goi->argc == 0 ){
+				if( goi->argc != 1 ){
 					Jim_WrongNumArgs( goi->interp, goi->argc, goi->argv, "-event ?event-name? ?EVENT-BODY?");
 					return JIM_ERR;
 				}
