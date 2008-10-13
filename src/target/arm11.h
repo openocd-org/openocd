@@ -77,7 +77,7 @@ typedef struct arm11_common_s
 
 	size_t	brp;			/**< Number of Breakpoint Register Pairs from DIDR	*/
 	size_t	wrp;			/**< Number of Watchpoint Register Pairs from DIDR	*/
-	
+
 	enum arm11_debug_version
 		debug_version;		/**< ARM debug architecture from DIDR	*/
 	/*@}*/
@@ -109,8 +109,8 @@ typedef struct arm11_common_s
 
 
 /**
- * ARM11 DBGTAP instructions 
- * 
+ * ARM11 DBGTAP instructions
+ *
  * http://infocenter.arm.com/help/topic/com.arm.doc.ddi0301f/I1006229.html
  */
 enum arm11_instructions
@@ -191,7 +191,7 @@ int arm11_soft_reset_halt(struct target_s *target);
 /* target register access for gdb */
 int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], int *reg_list_size);
 
-/* target memory access 
+/* target memory access
 * size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 * count: number of items of <size>
 */
@@ -203,7 +203,7 @@ int arm11_bulk_write_memory(struct target_s *target, u32 address, u32 count, u8 
 
 int arm11_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum);
 
-/* target break-/watchpoint control 
+/* target break-/watchpoint control
 * rw: 0 = write, 1 = read, 2 = access
 */
 int arm11_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
@@ -220,7 +220,7 @@ int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target
 int arm11_quit(void);
 
 /* helpers */
-void arm11_build_reg_cache(target_t *target);
+int arm11_build_reg_cache(target_t *target);
 int arm11_set_reg(reg_t *reg, u8 *buf);
 int arm11_get_reg(reg_t *reg);
 

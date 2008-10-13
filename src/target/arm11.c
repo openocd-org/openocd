@@ -1642,7 +1642,7 @@ int arm11_set_reg(reg_t *reg, u8 *buf)
 	return ERROR_OK;
 }
 
-void arm11_build_reg_cache(target_t *target)
+int arm11_build_reg_cache(target_t *target)
 {
 	arm11_common_t *arm11 = target->arch_info;
 
@@ -1700,6 +1700,7 @@ void arm11_build_reg_cache(target_t *target)
 	rs->def_index		= i;
 	rs->target		= target;
 	}
+	return ERROR_OK;
 }
 
 int arm11_handle_bool(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, bool * var, char * name)
