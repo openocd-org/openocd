@@ -56,8 +56,6 @@
 #include <fileio.h>
 #include <image.h>
 
-static int USE_OLD_RESET = 0; // temp
-
 int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
 
 
@@ -69,7 +67,6 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_NEWreset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -422,7 +419,7 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 }
 
 
-static int NEW_target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
+static int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
 {
 	char buf[100];
 	int retval;
@@ -445,113 +442,6 @@ static int NEW_target_process_reset(struct command_context_s *cmd_ctx, enum targ
 	retval = target_call_timer_callbacks_now();
 
 	return retval;
-}
-
-// Next patch - this turns into TCL...
-static int OLD_target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
-{
-	int retval = ERROR_OK;
-	target_t *target;
-
-	target = all_targets;
-
-	target_all_handle_event( TARGET_EVENT_OLD_pre_reset );
-
-	if ((retval = jtag_init_reset(cmd_ctx)) != ERROR_OK)
-		return retval;
-
-	keep_alive(); /* we might be running on a very slow JTAG clk */
-
-	/* First time this is executed after launching OpenOCD, it will read out
-	 * the type of CPU, etc. and init Embedded ICE registers in host
-	 * memory.
-	 *
-	 * It will also set up ICE registers in the target.
-	 *
-	 * However, if we assert TRST later, we need to set up the registers again.
-	 *
-	 * For the "reset halt/init" case we must only set up the registers here.
-	 */
-	if ((retval = target_examine()) != ERROR_OK)
-		return retval;
-
-	keep_alive(); /* we might be running on a very slow JTAG clk */
-
-	target = all_targets;
-	while (target)
-	{
-		/* we have no idea what state the target is in, so we
-		 * have to drop working areas
-		 */
-		target_free_all_working_areas_restore(target, 0);
-		target->reset_halt=((reset_mode==RESET_HALT)||(reset_mode==RESET_INIT));
-		if ((retval = target->type->assert_reset(target))!=ERROR_OK)
-			return retval;
-		target = target->next;
-	}
-
-	target = all_targets;
-	while (target)
-	{
-		if ((retval = target->type->deassert_reset(target))!=ERROR_OK)
-			return retval;
-		target = target->next;
-	}
-
-	target = all_targets;
-	while (target)
-	{
-		/* We can fail to bring the target into the halted state, try after reset has been deasserted  */
-		if (target->reset_halt)
-		{
-			/* wait up to 1 second for halt. */
-			if ((retval = target_wait_state(target, TARGET_HALTED, 1000)) != ERROR_OK)
-				return retval;
-			if (target->state != TARGET_HALTED)
-			{
-				LOG_WARNING("Failed to reset target into halted mode - issuing halt");
-				if ((retval = target->type->halt(target))!=ERROR_OK)
-					return retval;
-			}
-		}
-
-		target = target->next;
-	}
-
-
-	LOG_DEBUG("Waiting for halted stated as appropriate");
-
-	if ((reset_mode == RESET_HALT) || (reset_mode == RESET_INIT))
-	{
-		target = all_targets;
-		while (target)
-		{
-			/* Wait for reset to complete, maximum 5 seconds. */
-			if (((retval=target_wait_state(target, TARGET_HALTED, 5000)))==ERROR_OK)
-			{
-				if (reset_mode == RESET_INIT){
-					target_handle_event( target, TARGET_EVENT_OLD_post_reset );
-				}
-
-			}
-			target = target->next;
-		}
-	}
-
-	/* We want any events to be processed before the prompt */
-	if ((retval = target_call_timer_callbacks_now()) != ERROR_OK)
-		return retval;
-
-	return retval;
-}
-
-int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
-{
-	if( USE_OLD_RESET ){
-		return OLD_target_process_reset( cmd_ctx, reset_mode );
-	} else {
-		return NEW_target_process_reset( cmd_ctx, reset_mode );
-	}
 }
 
 
@@ -1429,8 +1319,7 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "halt", handle_halt_command, COMMAND_EXEC, "halt target");
 	register_command(cmd_ctx,  NULL, "resume", handle_resume_command, COMMAND_EXEC, "resume target [addr]");
 	register_command(cmd_ctx,  NULL, "step", handle_step_command, COMMAND_EXEC, "step one instruction from current PC or [addr]");
-	register_command(cmd_ctx,  NULL, "NEWreset", handle_NEWreset_command, COMMAND_EXEC, "reset target [run|halt|init] - default is run");
-	register_command(cmd_ctx,  NULL, "reset", handle_reset_command, COMMAND_EXEC, "OLDreset target [run|halt|init] - default is run");
+	register_command(cmd_ctx,  NULL, "reset", handle_reset_command, COMMAND_EXEC, "reset target [run|halt|init] - default is run");
 	register_command(cmd_ctx,  NULL, "soft_reset_halt", handle_soft_reset_halt_command, COMMAND_EXEC, "halt the target and do a soft reset");
 
 	register_command(cmd_ctx,  NULL, "mdw", handle_md_command, COMMAND_EXEC, "display memory words <addr> [count]");
@@ -1826,24 +1715,6 @@ int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 	return target_process_reset(cmd_ctx, reset_mode);
 }
 
-int handle_NEWreset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	int x;
-	char *cp;
-
-	if (argc >= 1){
-		x = strtol( args[0], &cp, 0 );
-		if( *cp != 0 ){
-			command_print( cmd_ctx, "Not numeric: %s\n", args[0] );
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-		USE_OLD_RESET = !!x;
-	}
-	command_print( cmd_ctx, "reset method: %d (%s)\n",
-				   USE_OLD_RESET,
-				   USE_OLD_RESET ? "old-method" : "new-method" );
-	return ERROR_OK;
-}
 
 int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
