@@ -394,8 +394,8 @@ extern int target_wait_state(target_t *target, enum target_state state, int ms);
 extern int target_alloc_working_area(struct target_s *target, u32 size, working_area_t **area);
 extern int target_free_working_area(struct target_s *target, working_area_t *area);
 extern int target_free_working_area_restore(struct target_s *target, working_area_t *area, int restore);
-extern int target_free_all_working_areas(struct target_s *target);
-extern int target_free_all_working_areas_restore(struct target_s *target, int restore);
+extern void target_free_all_working_areas(struct target_s *target);
+extern void target_free_all_working_areas_restore(struct target_s *target, int restore);
 
 extern target_t *all_targets;
 

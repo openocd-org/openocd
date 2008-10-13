@@ -425,6 +425,7 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 static int NEW_target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
 {
 	char buf[100];
+	int retval;
 	Jim_Nvp *n;
 	n = Jim_Nvp_value2name_simple( nvp_reset_modes, reset_mode );
 	if( n->name == NULL ){
@@ -433,12 +434,16 @@ static int NEW_target_process_reset(struct command_context_s *cmd_ctx, enum targ
 	}
 
 	sprintf( buf, "ocd_process_reset %s", n->name );
-	Jim_Eval( interp, buf );
+	retval = Jim_Eval( interp, buf );
+
+	if(retval != JIM_ERR){
+		return ERROR_FAIL;
+	}
 
 	/* We want any events to be processed before the prompt */
-	target_call_timer_callbacks_now();
+	retval = target_call_timer_callbacks_now();
 
-	return ERROR_OK;
+	return retval;
 }
 
 // Next patch - this turns into TCL...
@@ -499,7 +504,8 @@ static int OLD_target_process_reset(struct command_context_s *cmd_ctx, enum targ
 		if (target->reset_halt)
 		{
 			/* wait up to 1 second for halt. */
-			target_wait_state(target, TARGET_HALTED, 1000);
+			if ((retval = target_wait_state(target, TARGET_HALTED, 1000)) != ERROR_OK)
+				return retval;
 			if (target->state != TARGET_HALTED)
 			{
 				LOG_WARNING("Failed to reset target into halted mode - issuing halt");
@@ -532,7 +538,8 @@ static int OLD_target_process_reset(struct command_context_s *cmd_ctx, enum targ
 	}
 
 	/* We want any events to be processed before the prompt */
-	target_call_timer_callbacks_now();
+	if ((retval = target_call_timer_callbacks_now()) != ERROR_OK)
+		return retval;
 
 	return retval;
 }
@@ -627,6 +634,7 @@ static int target_run_algorithm_imp(struct target_s *target, int num_mem_params,
 int target_init(struct command_context_s *cmd_ctx)
 {
 	target_t *target = all_targets;
+	int retval;
 
 	while (target)
 	{
@@ -670,8 +678,10 @@ int target_init(struct command_context_s *cmd_ctx)
 
 	if (all_targets)
 	{
-		target_register_user_commands(cmd_ctx);
-		target_register_timer_callback(handle_target, 100, 1, NULL);
+		if((retval = target_register_user_commands(cmd_ctx)) != ERROR_OK)
+			return retval;
+		if((retval = target_register_timer_callback(handle_target, 100, 1, NULL)) != ERROR_OK)
+			return retval;
 	}
 
 	return ERROR_OK;
@@ -855,7 +865,11 @@ static int target_call_timer_callbacks_check_time(int checktime)
 					}
 				}
 				else
-					target_unregister_timer_callback(callback->callback, callback->priv);
+				{
+					int retval;
+					if((retval = target_unregister_timer_callback(callback->callback, callback->priv)) != ERROR_OK)
+						return retval;
+				}
 			}
 		}
 
@@ -950,8 +964,14 @@ int target_alloc_working_area(struct target_s *target, u32 size, working_area_t 
 
 		if (target->backup_working_area)
 		{
+			int retval;
 			new_wa->backup = malloc(new_wa->size);
-			target->type->read_memory(target, new_wa->address, 4, new_wa->size / 4, new_wa->backup);
+			if((retval = target->type->read_memory(target, new_wa->address, 4, new_wa->size / 4, new_wa->backup)) != ERROR_OK)
+			{
+				free(new_wa->backup);
+				free(new_wa);
+				return retval;
+			}
 		}
 		else
 		{
@@ -978,7 +998,11 @@ int target_free_working_area_restore(struct target_s *target, working_area_t *ar
 		return ERROR_OK;
 
 	if (restore&&target->backup_working_area)
-		target->type->write_memory(target, area->address, 4, area->size / 4, area->backup);
+	{
+		int retval;
+		if((retval = target->type->write_memory(target, area->address, 4, area->size / 4, area->backup)) != ERROR_OK)
+			return retval;
+	}
 
 	area->free = 1;
 
@@ -994,7 +1018,10 @@ int target_free_working_area(struct target_s *target, working_area_t *area)
 	return target_free_working_area_restore(target, area, 1);
 }
 
-int target_free_all_working_areas_restore(struct target_s *target, int restore)
+/* free resources and restore memory, if restoring memory fails,
+ * free up resources anyway
+ */
+void target_free_all_working_areas_restore(struct target_s *target, int restore)
 {
 	working_area_t *c = target->working_areas;
 
@@ -1012,13 +1039,11 @@ int target_free_all_working_areas_restore(struct target_s *target, int restore)
 	}
 
 	target->working_areas = NULL;
-
-	return ERROR_OK;
 }
 
-int target_free_all_working_areas(struct target_s *target)
+void target_free_all_working_areas(struct target_s *target)
 {
-	return target_free_all_working_areas_restore(target, 1);
+	target_free_all_working_areas_restore(target, 1);
 }
 
 int target_register_commands(struct command_context_s *cmd_ctx)
@@ -1396,6 +1421,7 @@ int target_write_u8(struct target_s *target, u32 address, u8 value)
 
 int target_register_user_commands(struct command_context_s *cmd_ctx)
 {
+	int retval = ERROR_OK;
 	register_command(cmd_ctx,  NULL, "reg", handle_reg_command, COMMAND_EXEC, NULL);
 	register_command(cmd_ctx,  NULL, "poll", handle_poll_command, COMMAND_EXEC, "poll target state");
 	register_command(cmd_ctx,  NULL, "wait_halt", handle_wait_halt_command, COMMAND_EXEC, "wait for target halt [time (s)]");
@@ -1423,10 +1449,13 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "dump_image", handle_dump_image_command, COMMAND_EXEC, "dump_image <file> <address> <size>");
 	register_command(cmd_ctx,  NULL, "verify_image", handle_verify_image_command, COMMAND_EXEC, "verify_image <file> [offset] [type]");
 
-	target_request_register_commands(cmd_ctx);
-	trace_register_commands(cmd_ctx);
+	if((retval = target_request_register_commands(cmd_ctx)) != ERROR_OK)
+		return retval;
+	if((retval = trace_register_commands(cmd_ctx)) != ERROR_OK)
+		return retval;
 
-	return ERROR_OK;
+
+	return retval;
 }
 
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1487,6 +1516,7 @@ int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	int retval = ERROR_OK;
 	target_t *target = NULL;
 
 	if ((argc < 4) || (argc > 5))
@@ -1522,13 +1552,14 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 
 /* process target state changes */
 int handle_target(void *priv)
 {
+	int retval = ERROR_OK;
 	target_t *target = all_targets;
 
 	while (target)
@@ -1536,13 +1567,14 @@ int handle_target(void *priv)
 		if (target_continous_poll)
 		{
 			/* polling may fail silently until the target has been examined */
-			target_poll(target);
+			if((retval = target_poll(target)) != ERROR_OK)
+				return retval;
 		}
 
 		target = target->next;
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1659,14 +1691,18 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 
 int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
 
 	if (argc == 0)
 	{
-		target_poll(target);
-		target_arch_state(target);
+		if((retval = target_poll(target)) != ERROR_OK)
+			return retval;
+		if((retval = target_arch_state(target)) != ERROR_OK)
+			return retval;
+
 	}
-	else
+	else if (argc==1)
 	{
 		if (strcmp(args[0], "on") == 0)
 		{
@@ -1680,10 +1716,13 @@ int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		{
 			command_print(cmd_ctx, "arg is \"on\" or \"off\"");
 		}
+	} else
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 
-	return ERROR_OK;
+	return retval;
 }
 
 int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1989,7 +2028,7 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	u32 min_address=0;
 	u32 max_address=0xffffffff;
 	int i;
-	int retval;
+	int retval, retvaltemp;
 
 	image_t image;
 
@@ -2089,7 +2128,12 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		free(buffer);
 	}
 
-	duration_stop_measure(&duration, &duration_text);
+	if((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	{
+		image_close(&image);
+		return retvaltemp;
+	}
+
 	if (retval==ERROR_OK)
 	{
 		command_print(cmd_ctx, "downloaded %u byte in %s", image_size, duration_text);
@@ -2109,7 +2153,7 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	u32 address;
 	u32 size;
 	u8 buffer[560];
-	int retval=ERROR_OK;
+	int retval=ERROR_OK, retvaltemp;
 
 	duration_t duration;
 	char *duration_text;
@@ -2159,9 +2203,12 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		address += this_run_size;
 	}
 
-	fileio_close(&fileio);
+	if((retvaltemp = fileio_close(&fileio)) != ERROR_OK)
+		return retvaltemp;
 
-	duration_stop_measure(&duration, &duration_text);
+	if((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+		return retvaltemp;
+
 	if (retval==ERROR_OK)
 	{
 		command_print(cmd_ctx, "dumped %"PRIi64" byte in %s", fileio.size, duration_text);
@@ -2177,7 +2224,7 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	u32 buf_cnt;
 	u32 image_size;
 	int i;
-	int retval;
+	int retval, retvaltemp;
 	u32 checksum = 0;
 	u32 mem_checksum = 0;
 
@@ -2290,7 +2337,13 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		image_size += buf_cnt;
 	}
 done:
-	duration_stop_measure(&duration, &duration_text);
+
+	if((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	{
+		image_close(&image);
+		return retvaltemp;
+	}
+
 	if (retval==ERROR_OK)
 	{
 		command_print(cmd_ctx, "verified %u bytes in %s", image_size, duration_text);
@@ -2616,7 +2669,11 @@ int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **
 		} else if (target->state == TARGET_RUNNING)
 		{
 			// We want to quickly sample the PC.
-			target_halt(target);
+			if((retval = target_halt(target)) != ERROR_OK)
+			{
+				free(samples);
+				return retval;
+			}
 		} else
 		{
 			command_print(cmd_ctx, "Target not halted or running");
@@ -2632,12 +2689,20 @@ int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **
 		if ((numSamples>=maxSample) || ((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
 			command_print(cmd_ctx, "Profiling completed. %d samples.", numSamples);
-			target_poll(target);
+			if((retval = target_poll(target)) != ERROR_OK)
+			{
+				free(samples);
+				return retval;
+			}
 			if (target->state == TARGET_HALTED)
 			{
 				target_resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
 			}
-			target_poll(target);
+			if((retval = target_poll(target)) != ERROR_OK)
+			{
+				free(samples);
+				return retval;
+			}
 			writeGmon(samples, numSamples, args[1]);
 			command_print(cmd_ctx, "Wrote %s", args[1]);
 			break;

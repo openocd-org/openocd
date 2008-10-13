@@ -107,7 +107,7 @@ typedef struct image_mot_s
 
 extern int image_open(image_t *image, char *url, char *type_string);
 extern int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read);
-extern int image_close(image_t *image);
+extern void image_close(image_t *image);
 extern int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data);
 
 extern int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum);

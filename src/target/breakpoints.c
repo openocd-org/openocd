@@ -119,7 +119,7 @@ static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
 	free(breakpoint);
 }
 
-int breakpoint_remove(target_t *target, u32 address)
+void breakpoint_remove(target_t *target, u32 address)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
 	breakpoint_t **breakpoint_p = &target->breakpoints;
@@ -140,8 +140,6 @@ int breakpoint_remove(target_t *target, u32 address)
 	{
 		LOG_ERROR("no breakpoint at address 0x%8.8x found", address);
 	}
-	
-	return ERROR_OK;
 }
 
 void breakpoint_clear_target(target_t *target)
@@ -242,7 +240,7 @@ static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
 
 
 
-int watchpoint_remove(target_t *target, u32 address)
+void watchpoint_remove(target_t *target, u32 address)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
 	watchpoint_t **watchpoint_p = &target->watchpoints;
@@ -263,8 +261,6 @@ int watchpoint_remove(target_t *target, u32 address)
 	{
 		LOG_ERROR("no watchpoint at address 0x%8.8x found", address);
 	}
-	
-	return ERROR_OK;
 }
 
 

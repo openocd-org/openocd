@@ -49,7 +49,7 @@ typedef struct duration_s
 	struct timeval duration;
 } duration_t;
 
-extern int duration_start_measure(duration_t *duration);
+extern void duration_start_measure(duration_t *duration);
 extern int duration_stop_measure(duration_t *duration, char **text);
 
 #endif /* TIME_SUPPORT_H */

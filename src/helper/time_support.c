@@ -89,11 +89,9 @@ int timeval_add_time(struct timeval *result, int sec, int usec)
 	return 0;
 }
 
-int duration_start_measure(duration_t *duration)
+void duration_start_measure(duration_t *duration)
 {
 	gettimeofday(&duration->start, NULL);
-	
-	return ERROR_OK;
 }
 
 int duration_stop_measure(duration_t *duration, char **text)

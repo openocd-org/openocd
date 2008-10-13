@@ -912,7 +912,7 @@ int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data)
 	return ERROR_OK;
 }
 
-int image_close(image_t *image)
+void image_close(image_t *image)
 {
 	if (image->type == IMAGE_BINARY)
 	{
@@ -994,8 +994,6 @@ int image_close(image_t *image)
 		free(image->sections);
 		image->sections = NULL;
 	}
-
-	return ERROR_OK;
 }
 
 int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum)
