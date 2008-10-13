@@ -126,7 +126,7 @@ void register_init_dummy(reg_t *reg)
 {
 	static int dummy_arch_type = -1;
 	if (dummy_arch_type == -1 )
-		register_reg_arch_type(register_get_dummy_core_reg, register_set_dummy_core_reg);
-	
+		dummy_arch_type = register_reg_arch_type(register_get_dummy_core_reg, register_set_dummy_core_reg);
+
 	reg->arch_type = dummy_arch_type;
 }
