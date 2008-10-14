@@ -119,17 +119,17 @@ proc target_script {target_num eventname scriptname} {
     set tname [target number $target_num]
     
     if { 0 == [string compare $eventname "reset"] } {
-	$tname configure -event old-post_reset "script $scriptname"
+	$tname configure -event reset-init "script $scriptname"
 	return
     }
 
     if { 0 == [string compare $eventname "post_reset"] } {
-	$tname configure -event old-post_reset "script $scriptname"
+	$tname configure -event reset-init "script $scriptname"
 	return
     }
 
     if { 0 == [string compare $eventname "pre_reset"] } {
-	$tname configure -event old-pre_reset "script $scriptname"
+	$tname configure -event reset-start "script $scriptname"
 	return
     }
 
@@ -212,9 +212,6 @@ proc ocd_process_reset { MODE } {
     }
 
     foreach t [ target names ] {
-		# For compatiblity with 'old scripts'
-		$t invoke-event old-pre_reset
-	
 		# New event script.
 		$t invoke-event reset-start
     }
@@ -271,7 +268,6 @@ proc ocd_process_reset { MODE } {
 		    set err [catch "$t arp_waitstate halted 5000"]
 		    # Did it halt?
 		    if { $err == 0 } {
-				$t invoke-event old-post_reset
 				$t invoke-event reset-init		
 		    }
 		}
