@@ -415,8 +415,7 @@ How long (in milliseconds) OpenOCD should wait after deasserting nSRST before
 starting new JTAG operations. 
 @item @b{jtag_ntrst_delay} <@var{ms}>
 @cindex jtag_ntrst_delay
-How long (in milliseconds) OpenOCD should wait after deasserting nTRST before
-starting new JTAG operations. 
+Same @b{jtag_nsrst_delay}, but for nTRST  
 
 The jtag_n[st]rst_delay options are useful if reset circuitry (like a reset supervisor,
 or on-chip features) keep a reset line asserted for some time after the external reset
