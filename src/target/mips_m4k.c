@@ -256,14 +256,21 @@ int mips_m4k_assert_reset(target_t *target)
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT, NULL);
 	}
 	
-	/* here we should issue a srst only, but we may have to assert trst as well */
-	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
-	{
-		jtag_add_reset(1, 1);
-	}
-	else
-	{
-		jtag_add_reset(0, 1);
+	if (strcmp(target->variant, "ejtag_srst") == 0) {
+		u32 ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
+		LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
+		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
+		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+	} else {
+		/* here we should issue a srst only, but we may have to assert trst as well */
+		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
+		{
+			jtag_add_reset(1, 1);
+		}
+		else
+		{
+			jtag_add_reset(0, 1);
+		}
 	}
 	
 	target->state = TARGET_RESET;
