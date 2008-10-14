@@ -1289,6 +1289,11 @@ to debug remote targets.
 
 @section Connecting to gdb
 @cindex Connecting to gdb
+Use GDB 6.7 or newer with OpenOCD if you run into trouble. For instance 6.3 has a 
+known bug where it produces bogus memory access errors, which has since
+been fixed: look up 1836 in http://sourceware.org/cgi-bin/gnatsweb.pl?database=gdb 
+
+
 A connection is typically started as follows:
 @smallexample
 target remote localhost:3333
