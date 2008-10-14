@@ -47,7 +47,7 @@ static int wait_for_pracc_rw(mips_ejtag_t *ejtag_info, u32 *ctrl)
 	while (1) 
 	{
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
-		ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
+		ejtag_ctrl = ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 		if (ejtag_ctrl & EJTAG_CTRL_PRACC)
 			break;
@@ -61,8 +61,9 @@ static int wait_for_pracc_rw(mips_ejtag_t *ejtag_info, u32 *ctrl)
 
 static int mips32_pracc_exec_read(mips32_pracc_context *ctx, u32 address)
 {
+	mips_ejtag_t *ejtag_info = ctx->ejtag_info;
 	int offset;
-	u32 ctrl, data;
+	u32 ejtag_ctrl, data;
 
 	if ((address >= MIPS32_PRACC_PARAM_IN)
 		&& (address <= MIPS32_PRACC_PARAM_IN + ctx->num_iparam * 4))
@@ -102,25 +103,26 @@ static int mips32_pracc_exec_read(mips32_pracc_context *ctx, u32 address)
 	mips_ejtag_drscan_32(ctx->ejtag_info, &data);
 
 	/* Clear the access pending bit (let the processor eat!) */
-	ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
+	ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
 	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_CONTROL, NULL);
-	mips_ejtag_drscan_32(ctx->ejtag_info, &ctrl);
+	mips_ejtag_drscan_32(ctx->ejtag_info, &ejtag_ctrl);
 	
 	return ERROR_OK;
 }
 
 static int mips32_pracc_exec_write(mips32_pracc_context *ctx, u32 address)
 {
-	u32 ctrl,data;
+	u32 ejtag_ctrl,data;
 	int offset;
+	mips_ejtag_t *ejtag_info = ctx->ejtag_info;
 	
 	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_DATA, NULL);
 	mips_ejtag_drscan_32(ctx->ejtag_info, &data);
 	
 	/* Clear access pending bit */
-	ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
+	ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
 	mips_ejtag_set_instr(ctx->ejtag_info, EJTAG_INST_CONTROL, NULL);
-	mips_ejtag_drscan_32(ctx->ejtag_info, &ctrl);
+	mips_ejtag_drscan_32(ctx->ejtag_info, &ejtag_ctrl);
 	
 	if ((address >= MIPS32_PRACC_PARAM_IN)
 		&& (address <= MIPS32_PRACC_PARAM_IN + ctx->num_iparam * 4))
@@ -150,7 +152,7 @@ static int mips32_pracc_exec_write(mips32_pracc_context *ctx, u32 address)
 
 int mips32_pracc_exec( mips_ejtag_t *ejtag_info, int code_len, u32 *code, int num_param_in, u32 *param_in, int num_param_out, u32 *param_out, int cycle)
 {
-	u32 ctrl;
+	u32 ejtag_ctrl;
 	u32 address, data;
 	mips32_pracc_context ctx;
 	int retval;
@@ -167,7 +169,7 @@ int mips32_pracc_exec( mips_ejtag_t *ejtag_info, int code_len, u32 *code, int nu
 	
 	while (1)
 	{
-		if ((retval = wait_for_pracc_rw(ejtag_info, &ctrl)) != ERROR_OK)
+		if ((retval = wait_for_pracc_rw(ejtag_info, &ejtag_ctrl)) != ERROR_OK)
 			return retval;
 		
 		address = data = 0;
@@ -175,7 +177,7 @@ int mips32_pracc_exec( mips_ejtag_t *ejtag_info, int code_len, u32 *code, int nu
 		mips_ejtag_drscan_32(ejtag_info, &address);
 		
 		/* Check for read or write */
-		if (ctrl & EJTAG_CTRL_PRNW)
+		if (ejtag_ctrl & EJTAG_CTRL_PRNW)
 		{
 			if ((retval = mips32_pracc_exec_write(&ctx, address)) != ERROR_OK)
 				return retval;

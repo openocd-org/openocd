@@ -132,13 +132,14 @@ int mips_m4k_poll(target_t *target)
 	int retval;
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	u32 ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	
 	/* read ejtag control reg */
 	jtag_add_end_state(TAP_RTI);
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
-	mips_ejtag_drscan_32(ejtag_info, &ejtag_info->ejtag_ctrl);
+	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	
-	if (ejtag_info->ejtag_ctrl & EJTAG_CTRL_BRKST)
+	if (ejtag_ctrl & EJTAG_CTRL_BRKST)
 	{
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
@@ -167,19 +168,19 @@ int mips_m4k_poll(target_t *target)
 		target->state = TARGET_RUNNING;
 	}
 	
-	if (ejtag_info->ejtag_ctrl & EJTAG_CTRL_ROCC)
+	if (ejtag_ctrl & EJTAG_CTRL_ROCC)
 	{
 		/* we have detected a reset, clear flag
 		 * otherwise ejtag will not work */
 		jtag_add_end_state(TAP_RTI);
-		ejtag_info->ejtag_ctrl &= ~EJTAG_CTRL_ROCC;
+		ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_ROCC;
 		
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
-		mips_ejtag_drscan_32(ejtag_info, &ejtag_info->ejtag_ctrl);
+		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 		LOG_DEBUG("Reset Detected");
 	}
 	
-//	LOG_DEBUG("ctrl=0x%08X", ejtag_info->ejtag_ctrl);
+//	LOG_DEBUG("ctrl=0x%08X", ejtag_ctrl);
 	
 	return ERROR_OK;
 }

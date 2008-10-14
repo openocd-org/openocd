@@ -194,18 +194,19 @@ int mips_ejtag_config_step(mips_ejtag_t *ejtag_info, int enable_step)
 
 int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 {
+	u32 ejtag_ctrl;
 	jtag_add_end_state(TAP_RTI);
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	
 	/* set debug break bit */
-	ejtag_info->ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV | EJTAG_CTRL_JTAGBRK;
-	mips_ejtag_drscan_32(ejtag_info, &ejtag_info->ejtag_ctrl);
+	ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_JTAGBRK;
+	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	
 	/* break bit will be cleared by hardware */
-	ejtag_info->ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
-	mips_ejtag_drscan_32(ejtag_info, &ejtag_info->ejtag_ctrl);
-	LOG_DEBUG("ejtag_ctrl: 0x%8.8x", ejtag_info->ejtag_ctrl);
-	if((ejtag_info->ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
+	ejtag_ctrl = ejtag_info->ejtag_ctrl;
+	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+	LOG_DEBUG("ejtag_ctrl: 0x%8.8x", ejtag_ctrl);
+	if((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
 		LOG_DEBUG("Failed to enter Debug Mode!");
 	
 	return ERROR_OK;

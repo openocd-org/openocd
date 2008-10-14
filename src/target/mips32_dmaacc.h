@@ -32,7 +32,7 @@
 #define EJTAG_CTRL_DMA_WORD        0x00000100
 #define EJTAG_CTRL_DMA_TRIPLEBYTE  0x00000180
 
-#define RETRY_ATTEMPTS	4
+#define RETRY_ATTEMPTS	0
 
 extern int mips32_dmaacc_read_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int count, void *buf);
 extern int mips32_dmaacc_write_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int count, void *buf);
