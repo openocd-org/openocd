@@ -419,7 +419,7 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 }
 
 
-static int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
+int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
 {
 	char buf[100];
 	int retval;
