@@ -335,7 +335,10 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			local_buffer[len++] = '#';
 			local_buffer[len++] = DIGITS[(my_checksum >> 4) & 0xf];
 			local_buffer[len++] = DIGITS[my_checksum & 0xf];
-			gdb_write(connection, local_buffer, len);
+			if((retval = gdb_write(connection, local_buffer, len)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		else
 		{
@@ -344,9 +347,18 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			local_buffer[1] = '#';
 			local_buffer[2] = DIGITS[(my_checksum >> 4) & 0xf];
 			local_buffer[3] = DIGITS[my_checksum & 0xf];
-			gdb_write(connection, local_buffer, 1);
-			gdb_write(connection, buffer, len);
-			gdb_write(connection, local_buffer+1, 3);
+			if((retval = gdb_write(connection, local_buffer, 1)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if((retval = gdb_write(connection, buffer, len)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if((retval = gdb_write(connection, local_buffer+1, 3)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 
 		if (gdb_con->noack_mode)
@@ -589,7 +601,10 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 		}
 		if (checksum_ok)
 		{
-			gdb_write(connection, "+", 1);
+			if ((retval = gdb_write(connection, "+", 1)) != ERROR_OK)
+			{
+				return retval;
+			}
 			break;
 		}
 	}
@@ -624,10 +639,10 @@ int gdb_output_con(connection_t *connection, const char* line)
 		snprintf(hex_buffer + 1 + i*2, 3, "%2.2x", line[i]);
 	hex_buffer[bin_size*2+1] = 0;
 
-	gdb_put_packet(connection, hex_buffer, bin_size*2 + 1);
+	int retval = gdb_put_packet(connection, hex_buffer, bin_size*2 + 1);
 
 	free(hex_buffer);
-	return ERROR_OK;
+	return retval;
 }
 
 int gdb_output(struct command_context_s *context, const char* line)
@@ -676,6 +691,7 @@ static void gdb_frontend_halted(struct target_s *target, connection_t *connectio
 
 int gdb_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
 {
+	int retval;
 	connection_t *connection = priv;
 
 	target_handle_event( target, event );
@@ -686,7 +702,10 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 			break;
 		case TARGET_EVENT_GDB_FLASH_ERASE_START:
 			target_handle_event( target, TARGET_EVENT_OLD_gdb_program_config );
-			jtag_execute_queue();
+			if((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
 			break;
 		default:
 			break;
@@ -768,7 +787,7 @@ int gdb_new_connection(connection_t *connection)
 	return ERROR_OK;
 }
 
-int gdb_connection_closed(connection_t *connection)
+void gdb_connection_closed(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
 	gdb_connection_t *gdb_connection = connection->priv;
@@ -798,7 +817,6 @@ int gdb_connection_closed(connection_t *connection)
 	log_remove_callback(gdb_log_callback, connection);
 
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH );
-	return ERROR_OK;
 }
 
 void gdb_send_error(connection_t *connection, u8 the_error)
@@ -1818,6 +1836,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 	if (strstr(packet, "vFlashWrite:"))
 	{
+		int retval;
 		unsigned long addr;
 		unsigned long length;
 		char *parse = packet + 12;
@@ -1843,7 +1862,10 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		}
 
 		/* create new section with content from packet buffer */
-		image_add_section(gdb_connection->vflash_image, addr, length, 0x0, (u8*)parse);
+		if((retval = image_add_section(gdb_connection->vflash_image, addr, length, 0x0, (u8*)parse)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		gdb_put_packet(connection, "OK", 2);
 

@@ -514,7 +514,11 @@ int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *
 
 	if ((retval = flash_erase_address_range(target, address, length)) == ERROR_OK)
 	{
-		duration_stop_measure(&duration, &duration_text);
+		if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+		{
+			free(duration_text);
+			return retval;
+		}
 		command_print(cmd_ctx, "erased address 0x%8.8x length %i in %s", address, length, duration_text);
 		free(duration_text);
 	}
@@ -576,7 +580,11 @@ int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 		if ((retval = flash_driver_erase(p, first, last)) == ERROR_OK)
 		{
-			duration_stop_measure(&duration, &duration_text);
+			if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+			{
+				free(duration_text);
+				return retval;
+			}
 
 			command_print(cmd_ctx, "erased sectors %i through %i on flash bank %i in %s", first, last, strtoul(args[0], 0, 0), duration_text);
 			free(duration_text);
@@ -639,7 +647,7 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	duration_t duration;
 	char *duration_text;
 
-	int retval;
+	int retval, retvaltemp;
 
 	if (argc < 1)
 	{
@@ -697,7 +705,12 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 		return retval;
 	}
 
-	duration_stop_measure(&duration, &duration_text);
+	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	{
+		free(duration_text);
+		image_close(&image);
+		return retvaltemp;
+	}
 	if (retval == ERROR_OK)
 	{
 		command_print(cmd_ctx, "wrote %u byte from file %s in %s (%f kb/s)",
@@ -713,7 +726,7 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 
 int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int err = ERROR_OK;
+	int err = ERROR_OK, retval;
 	u32 address;
 	u32 pattern;
 	u32 count;
@@ -803,7 +816,12 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 		}
 	}
 
-	duration_stop_measure(&duration, &duration_text);
+	if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	{
+		free(duration_text);
+		return retval;
+	}
+
 
 	if(err == ERROR_OK)
 	{
@@ -829,7 +847,7 @@ int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	duration_t duration;
 	char *duration_text;
 
-	int retval;
+	int retval, retvaltemp;
 	flash_bank_t *p;
 
 	if (argc != 3)
@@ -865,7 +883,12 @@ int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	free(buffer);
 	buffer = NULL;
 
-	duration_stop_measure(&duration, &duration_text);
+	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
+	{
+		free(duration_text);
+		fileio_close(&fileio);
+		return retvaltemp;
+	}
 	if (retval!=ERROR_OK)
 	{
 	command_print(cmd_ctx, "wrote  %"PRIi64" byte from file %s to flash bank %i at offset 0x%8.8x in %s (%f kb/s)",

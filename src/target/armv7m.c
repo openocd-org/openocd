@@ -216,7 +216,7 @@ int armv7m_read_core_reg(struct target_s *target, int num)
 	armv7m->core_cache->reg_list[num].valid = 1;
 	armv7m->core_cache->reg_list[num].dirty = 0;
 
-	return ERROR_OK;
+	return retval;
 }
 
 int armv7m_write_core_reg(struct target_s *target, int num)
@@ -372,10 +372,19 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 
 	/* This code relies on the target specific  resume() and  poll()->debug_entry()
 	sequence to write register values to the processor and the read them back */
-	target_resume(target, 0, entry_point, 1, 1);
-	target_poll(target);
+	if((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
+	{
+		return retval;
+	}
+	if((retval = target_poll(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 
-	target_wait_state(target, TARGET_HALTED, timeout_ms);
+	if((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
+	{
+		return retval;
+	}
 	if (target->state != TARGET_HALTED)
 	{
 		if ((retval=target_halt(target))!=ERROR_OK)
@@ -401,7 +410,10 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	for (i = 0; i < num_mem_params; i++)
 	{
 		if (mem_params[i].direction != PARAM_OUT)
-			target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
+			if((retval = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
+			{
+				return retval;
+			}
 	}
 
 	/* Copy core register values to reg_params[] */
@@ -575,7 +587,10 @@ int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 
 	/* convert flash writing code into a buffer in target endianness */
 	for (i = 0; i < (sizeof(cortex_m3_crc_code)/sizeof(u16)); i++)
-		target_write_u16(target, crc_algorithm->address + i*sizeof(u16), cortex_m3_crc_code[i]);
+		if((retval = target_write_u16(target, crc_algorithm->address + i*sizeof(u16), cortex_m3_crc_code[i])) != ERROR_OK)
+		{
+			return retval;
+		}
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARMV7M_MODE_ANY;
