@@ -470,7 +470,7 @@ void arm9tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 	
 	if((retval = jtag_execute_queue()) != ERROR_OK)
 	{
-		return retval;
+		return;
 	}
 	
 	/* fix program counter:

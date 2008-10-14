@@ -37,6 +37,7 @@
 #include "jtag.h"
 #include "breakpoints.h"
 #include "flash.h"
+#include "target.h"
 #include "target_request.h"
 #include "configuration.h"
 
@@ -305,7 +306,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			break;
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
-        if( reply == '$' ){
+		if( reply == '$' ){
 			// fix a problem with some IAR tools
 			gdb_putback_char( connection, reply );
 			LOG_DEBUG("Unexpected start of new packet");
@@ -787,7 +788,7 @@ int gdb_new_connection(connection_t *connection)
 	return ERROR_OK;
 }
 
-void gdb_connection_closed(connection_t *connection)
+int gdb_connection_closed(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
 	gdb_connection_t *gdb_connection = connection->priv;
@@ -817,6 +818,8 @@ void gdb_connection_closed(connection_t *connection)
 	log_remove_callback(gdb_log_callback, connection);
 
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH );
+
+	return ERROR_OK;
 }
 
 void gdb_send_error(connection_t *connection, u8 the_error)

@@ -632,12 +632,12 @@ int armv7m_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 	u16 erase_check_code[] =
 	{
 							/* loop: */
-		 0xF810, 0x3B01,	/* ldrb 	r3, [r0], #1 */
-		 0xEA02, 0x0203,	/* and 	r2, r2, r3 */
-		 0x3901,			/* subs 	r1, r1, #1 */
-		 0xD1F9,			/* bne		loop */
-		 					/* end: */
-		 0xE7FE,			/* b		end */
+		0xF810, 0x3B01,		/* ldrb 	r3, [r0], #1 */
+		0xEA02, 0x0203,		/* and 	r2, r2, r3 */
+		0x3901,				/* subs 	r1, r1, #1 */
+		0xD1F9,				/* bne		loop */
+							/* end: */
+		0xE7FE,				/* b		end */
 	};
 
 	/* make sure we have a working area */

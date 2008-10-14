@@ -236,7 +236,7 @@ int mips_m4k_assert_reset(target_t *target)
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	
 	LOG_DEBUG("target->state: %s", 
-		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
+		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
 	
 	if (!(jtag_reset_config & RESET_HAS_SRST))
 	{
@@ -278,12 +278,12 @@ int mips_m4k_assert_reset(target_t *target)
 
 	mips32_invalidate_core_regs(target);
 
-    if (target->reset_halt)
-    {
-    	int retval;
+	if (target->reset_halt)
+	{
+		int retval;
 		if ((retval = target_halt(target))!=ERROR_OK)
 			return retval;
-    }
+	}
 	
 	
 	return ERROR_OK;
@@ -292,7 +292,7 @@ int mips_m4k_assert_reset(target_t *target)
 int mips_m4k_deassert_reset(target_t *target)
 {
 	LOG_DEBUG("target->state: %s", 
-		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
+		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
 	
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
@@ -327,7 +327,7 @@ int mips_m4k_resume(struct target_s *target, int current, u32 address, int handl
 	}
 	
 	/* current = 1: continue on current pc, otherwise continue at <address> */
-	if (!current) 
+	if (!current)
 	{
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
 		mips32->core_cache->reg_list[MIPS32_PC].dirty = 1;
@@ -613,7 +613,7 @@ int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, int c
 	/* initialize mips4k specific info */
 	mips32_init_arch_info(target, mips32, chain_pos, variant);
 	mips32->arch_info = mips_m4k;
-		
+	
 	return ERROR_OK;
 }
 
