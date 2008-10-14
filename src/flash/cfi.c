@@ -1149,7 +1149,10 @@ int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u3
 		u32 thisrun_count = (count > buffer_size) ? buffer_size : count;
 		u32 wsm_error;
 
-		target_write_buffer(target, source->address, thisrun_count, buffer);
+		if((retval = target_write_buffer(target, source->address, thisrun_count, buffer)) != ERROR_OK)
+		{
+			goto cleanup;
+		}
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
@@ -1228,7 +1231,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 	working_area_t *source;
 	u32 buffer_size = 32768;
 	u32 status;
-	int retval;
+	int retval, retvaltemp;
 	int exit_code = ERROR_OK;
 
 	/* input parameters - */
@@ -1387,11 +1390,18 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 		retval=target_alloc_working_area(target, target_code_size,
 				&cfi_info->write_algorithm);
 		if (retval != ERROR_OK)
+		{
+			free(target_code);
 			return retval;
+		}
 
 		/* write algorithm code to working area */
-		target_write_buffer(target, cfi_info->write_algorithm->address,
-		                    target_code_size, target_code);
+		if((retval = target_write_buffer(target, cfi_info->write_algorithm->address,
+		                    target_code_size, target_code)) != ERROR_OK)
+		{
+			free(target_code);
+			return retval;
+		}
 
 		free(target_code);
 	}
@@ -1426,7 +1436,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 	{
 		u32 thisrun_count = (count > buffer_size) ? buffer_size : count;
 
-		target_write_buffer(target, source->address, thisrun_count, buffer);
+		retvaltemp = target_write_buffer(target, source->address, thisrun_count, buffer);
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
@@ -1445,7 +1455,7 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 
 		status = buf_get_u32(reg_params[5].value, 0, 32);
 
-		if ((retval != ERROR_OK) || status != 0x80)
+		if ((retval != ERROR_OK) || (retvaltemp != ERROR_OK) || status != 0x80)
 		{
 			LOG_DEBUG("status: 0x%x", status);
 			exit_code = ERROR_FLASH_OPERATION_FAILED;
@@ -1948,6 +1958,7 @@ int cfi_probe(struct flash_bank_s *bank)
 	u32 offset = 0;
 	u32 unlock1 = 0x555;
 	u32 unlock2 = 0x2aa;
+	int retval;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -1977,15 +1988,27 @@ int cfi_probe(struct flash_bank_s *bank)
 	if (bank->chip_width == 1)
 	{
 		u8 manufacturer, device_id;
-		target_read_u8(target, bank->base + 0x0, &manufacturer);
-		target_read_u8(target, bank->base + 0x1, &device_id);
+		if((retval = target_read_u8(target, bank->base + 0x0, &manufacturer)) != ERROR_OK)
+		{
+			return retval;
+		}
+		if((retval = target_read_u8(target, bank->base + 0x1, &device_id)) != ERROR_OK)
+		{
+			return retval;
+		}
 		cfi_info->manufacturer = manufacturer;
 		cfi_info->device_id = device_id;
 	}
 	else if (bank->chip_width == 2)
 	{
-		target_read_u16(target, bank->base + 0x0, &cfi_info->manufacturer);
-		target_read_u16(target, bank->base + 0x2, &cfi_info->device_id);
+		if((retval = target_read_u16(target, bank->base + 0x0, &cfi_info->manufacturer)) != ERROR_OK)
+		{
+			return retval;
+		}
+		if((retval = target_read_u16(target, bank->base + 0x2, &cfi_info->device_id)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	/* switch back to read array mode */
