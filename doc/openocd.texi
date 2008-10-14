@@ -96,6 +96,12 @@ The main OpenOCD web site is available at @uref{http://openocd.berlios.de/web/}
 @chapter Building
 @cindex building OpenOCD
 
+If you are interested in getting actual work done rather than building
+OpenOCD, then check if your interface supplier provides binaries for
+you. Chances are that that binary is from some SVN version that is more
+stable than SVN trunk where bleeding edge development takes place.
+
+
 You can download the current SVN version with SVN client of your choice from the
 following repositories:
 
