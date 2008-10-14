@@ -219,7 +219,10 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			/* keep the original instruction in target endianness */
 			target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
 			/* write the breakpoint instruction in target endianness (arm7_9->arm_bkpt is host endian) */
-			target_write_u32(target, breakpoint->address, arm7_9->arm_bkpt);
+			if ((retval = target_write_u32(target, breakpoint->address, arm7_9->arm_bkpt)) != ERROR_OK)
+			{
+				return retval;
+			}
 
 			target->type->read_memory(target, breakpoint->address, 4, 1, (u8 *)&verify);
 			if (verify != arm7_9->arm_bkpt)
@@ -234,7 +237,10 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			/* keep the original instruction in target endianness */
 			target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
 			/* write the breakpoint instruction in target endianness (arm7_9->thumb_bkpt is host endian) */
-			target_write_u16(target, breakpoint->address, arm7_9->thumb_bkpt);
+			if ((retval = target_write_u16(target, breakpoint->address, arm7_9->thumb_bkpt)) != ERROR_OK)
+			{
+				return retval;
+			}
 
 			target->type->read_memory(target, breakpoint->address, 2, 1, (u8 *)&verify);
 			if (verify != arm7_9->thumb_bkpt)
@@ -252,6 +258,8 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
+	int retval = ERROR_OK;
+
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
@@ -273,7 +281,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
 			arm7_9->wp1_used = 0;
 		}
-		jtag_execute_queue();
+		retval = jtag_execute_queue();
 		breakpoint->set = 0;
 	}
 	else
@@ -298,7 +306,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		breakpoint->set = 0;
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
@@ -360,10 +368,14 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	arm7_9_unset_breakpoint(target, breakpoint);
+	if((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	if (breakpoint->type == BKPT_HARD)
 		arm7_9->wp_available++;
@@ -372,7 +384,10 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	if (arm7_9->breakpoint_count==0)
 	{
 		/* make sure we don't have any dangling breakpoints */
-		arm7_9_clear_watchpoints(arm7_9);
+		if((retval = arm7_9_clear_watchpoints(arm7_9)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	return ERROR_OK;
@@ -380,6 +395,7 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	int rw_mask = 1;
@@ -408,7 +424,10 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], 0xff & ~EICE_W_CTRL_nOPC & ~rw_mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE | EICE_W_CTRL_nOPC | (watchpoint->rw & 1));
 
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		watchpoint->set = 1;
 		arm7_9->wp0_used = 2;
 	}
@@ -422,7 +441,10 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK], 0xff & ~EICE_W_CTRL_nOPC & ~rw_mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], EICE_W_CTRL_ENABLE | EICE_W_CTRL_nOPC | (watchpoint->rw & 1));
 
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		watchpoint->set = 2;
 		arm7_9->wp1_used = 2;
 	}
@@ -437,6 +459,7 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 
 int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
@@ -455,13 +478,19 @@ int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	if (watchpoint->set == 1)
 	{
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		arm7_9->wp0_used = 0;
 	}
 	else if (watchpoint->set == 2)
 	{
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		arm7_9->wp1_used = 0;
 	}
 	watchpoint->set = 0;
@@ -497,12 +526,16 @@ int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 
 int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
 	if (watchpoint->set)
 	{
-		arm7_9_unset_watchpoint(target, watchpoint);
+		if((retval = arm7_9_unset_watchpoint(target, watchpoint)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	arm7_9->wp_available++;
@@ -601,11 +634,11 @@ int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	u32 *data;
-	int i;
+	int i, retval = ERROR_OK;
 
 	data = malloc(size * (sizeof(u32)));
 
-	embeddedice_receive(jtag_info, data, size);
+	retval = embeddedice_receive(jtag_info, data, size);
 
 	for (i = 0; i < size; i++)
 	{
@@ -614,11 +647,12 @@ int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer)
 
 	free(data);
 
-	return ERROR_OK;
+	return retval;
 }
 
 int arm7_9_handle_target_request(void *priv)
 {
+	int retval = ERROR_OK;
 	target_t *target = priv;
 	if (!target->type->examined)
 		return ERROR_OK;
@@ -635,15 +669,24 @@ int arm7_9_handle_target_request(void *priv)
 	{
 		/* read DCC control register */
 		embeddedice_read_reg(dcc_control);
-		jtag_execute_queue();
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		/* check W bit */
 		if (buf_get_u32(dcc_control->value, 1, 1) == 1)
 		{
 			u32 request;
 
-			embeddedice_receive(jtag_info, &request, 1);
-			target_request(target, request);
+			if ((retval = embeddedice_receive(jtag_info, &request, 1)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if ((retval = target_request(target, request)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 	}
 
@@ -701,7 +744,10 @@ int arm7_9_poll(target_t *target)
 				}
 			}
 
-			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+			if ((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		if (target->state == TARGET_DEBUG_RUNNING)
 		{
@@ -709,7 +755,10 @@ int arm7_9_poll(target_t *target)
 			if ((retval = arm7_9_debug_entry(target)) != ERROR_OK)
 				return retval;
 
-			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
+			if ((retval = target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		if (target->state != TARGET_HALTED)
 		{
@@ -919,7 +968,10 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_INTDIS, 1, 1);
 	embeddedice_store_reg(dbg_ctrl);
 
-	arm7_9_clear_halt(target);
+	if ((retval = arm7_9_clear_halt(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	/* if the target is in Thumb state, change to ARM state */
 	if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_ITBIT, 1))
@@ -932,7 +984,10 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	}
 
 	/* all register content is now invalid */
-	armv4_5_invalidate_core_regs(target);
+	if ((retval = armv4_5_invalidate_core_regs(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	/* SVC, ARM state, IRQ and FIQ disabled */
 	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8, 0xd3);
@@ -958,7 +1013,10 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid = 1;
 	}
 
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+	if ((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	return ERROR_OK;
 }
@@ -1044,7 +1102,10 @@ int arm7_9_debug_entry(target_t *target)
 	buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_INTDIS, 1, 1);
 	embeddedice_store_reg(dbg_ctrl);
 
-	arm7_9_clear_halt(target);
+	if ((retval = arm7_9_clear_halt(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -1151,7 +1212,10 @@ int arm7_9_debug_entry(target_t *target)
 	{
 		u32 spsr;
 		arm7_9->read_xpsr(target, &spsr, 1);
-		jtag_execute_queue();
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).value, 0, 32, spsr);
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).dirty = 0;
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).valid = 1;
@@ -1442,7 +1506,7 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	breakpoint_t *breakpoint = target->breakpoints;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
-	int err;
+	int err, retval = ERROR_OK;
 
 	LOG_DEBUG("-");
 
@@ -1467,14 +1531,20 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
 		{
 			LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
-			arm7_9_unset_breakpoint(target, breakpoint);
+			if ((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
+			{
+				return retval;
+			}
 
 			LOG_DEBUG("enable single-step");
 			arm7_9->enable_single_step(target);
 
 			target->debug_reason = DBG_REASON_SINGLESTEP;
 
-			arm7_9_restore_context(target);
+			if ((retval = arm7_9_restore_context(target)) != ERROR_OK)
+			{
+				return retval;
+			}
 
 			if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 				arm7_9->branch_resume(target);
@@ -1497,7 +1567,10 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 
 			if (err != ERROR_OK)
 			{
-				arm7_9_set_breakpoint(target, breakpoint);
+				if ((retval = arm7_9_set_breakpoint(target, breakpoint)) != ERROR_OK)
+				{
+					return retval;
+				}
 				target->state = TARGET_UNKNOWN;
 				return err;
 			}
@@ -1506,7 +1579,10 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 			LOG_DEBUG("new PC after step: 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 
 			LOG_DEBUG("set breakpoint at 0x%8.8x", breakpoint->address);
-			arm7_9_set_breakpoint(target, breakpoint);
+			if ((retval = arm7_9_set_breakpoint(target, breakpoint)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 	}
 
@@ -1514,7 +1590,10 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	arm7_9_enable_breakpoints(target);
 	arm7_9_enable_watchpoints(target);
 
-	arm7_9_restore_context(target);
+	if ((retval = arm7_9_restore_context(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 	{
@@ -1537,7 +1616,10 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 		buf_set_u32(dbg_ctrl->value, EICE_DBG_CONTROL_INTDIS, 1, 0);
 	embeddedice_write_reg(dbg_ctrl, buf_get_u32(dbg_ctrl->value, 0, dbg_ctrl->size));
 
-	arm7_9_restart_core(target);
+	if ((retval = arm7_9_restart_core(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
 
@@ -1546,12 +1628,18 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 		/* registers are now invalid */
 		armv4_5_invalidate_core_regs(target);
 		target->state = TARGET_RUNNING;
-		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+		if ((retval = target_call_event_callbacks(target, TARGET_EVENT_RESUMED)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 	else
 	{
 		target->state = TARGET_DEBUG_RUNNING;
-		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
+		if ((retval = target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	LOG_DEBUG("target resumed");
@@ -1600,7 +1688,7 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	breakpoint_t *breakpoint = NULL;
-	int err;
+	int err, retval;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1615,11 +1703,17 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
-			arm7_9_unset_breakpoint(target, breakpoint);
+			if ((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
+			{
+				return retval;
+			}
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
-	arm7_9_restore_context(target);
+	if ((retval = arm7_9_restore_context(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	arm7_9->enable_single_step(target);
 
@@ -1637,7 +1731,10 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 		return ERROR_FAIL;
 	}
 
-	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+	if ((retval = target_call_event_callbacks(target, TARGET_EVENT_RESUMED)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	err = arm7_9_execute_sys_speed(target);
 	arm7_9->disable_single_step(target);
@@ -1650,12 +1747,18 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 		target->state = TARGET_UNKNOWN;
 	} else {
 		arm7_9_debug_entry(target);
-		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+		if ((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
+		{
+			return retval;
+		}
 		LOG_DEBUG("target stepped");
 	}
 
 	if (breakpoint)
-		arm7_9_set_breakpoint(target, breakpoint);
+		if ((retval = arm7_9_set_breakpoint(target, breakpoint)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 	return err;
 
@@ -1873,9 +1976,14 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 					 * from a sufficiently high clock (32 kHz is usually too slow)
 					 */
 					if (arm7_9->fast_memory_access)
-						arm7_9_execute_fast_sys_speed(target);
+						retval = arm7_9_execute_fast_sys_speed(target);
 					else
-						arm7_9_execute_sys_speed(target);
+						retval = arm7_9_execute_sys_speed(target);
+					if(retval != ERROR_OK)
+					{
+						return retval;
+					}
+
 				}
 
 				arm7_9->read_core_regs_target_buffer(target, reg_list, buffer, 2);
@@ -1906,9 +2014,13 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 					 * from a sufficiently high clock (32 kHz is usually too slow)
 					 */
 					if (arm7_9->fast_memory_access)
-						arm7_9_execute_fast_sys_speed(target);
+						retval = arm7_9_execute_fast_sys_speed(target);
 					else
-						arm7_9_execute_sys_speed(target);
+						retval = arm7_9_execute_sys_speed(target);
+					if(retval != ERROR_OK)
+					{
+						return retval;
+					}
 				}
 
 				arm7_9->read_core_regs_target_buffer(target, reg_list, buffer, 1);
@@ -2018,9 +2130,13 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 				 * from a sufficiently high clock (32 kHz is usually too slow)
 				 */
 				if (arm7_9->fast_memory_access)
-					arm7_9_execute_fast_sys_speed(target);
+					retval = arm7_9_execute_fast_sys_speed(target);
 				else
-					arm7_9_execute_sys_speed(target);
+					retval = arm7_9_execute_sys_speed(target);
+				if(retval != ERROR_OK)
+				{
+					return retval;
+				}
 
 				num_accesses += thisrun_accesses;
 			}
@@ -2050,9 +2166,13 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 					 * from a sufficiently high clock (32 kHz is usually too slow)
 					 */
 					if (arm7_9->fast_memory_access)
-						arm7_9_execute_fast_sys_speed(target);
+						retval = arm7_9_execute_fast_sys_speed(target);
 					else
-						arm7_9_execute_sys_speed(target);
+						retval = arm7_9_execute_sys_speed(target);
+					if(retval != ERROR_OK)
+					{
+						return retval;
+					}
 				}
 
 				num_accesses += thisrun_accesses;
@@ -2081,9 +2201,14 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 					 * from a sufficiently high clock (32 kHz is usually too slow)
 					 */
 					if (arm7_9->fast_memory_access)
-						arm7_9_execute_fast_sys_speed(target);
+						retval = arm7_9_execute_fast_sys_speed(target);
 					else
-						arm7_9_execute_sys_speed(target);
+						retval = arm7_9_execute_sys_speed(target);
+					if(retval != ERROR_OK)
+					{
+						return retval;
+					}
+
 				}
 
 				num_accesses += thisrun_accesses;
@@ -2130,6 +2255,7 @@ static u8 *dcc_buffer;
 
 static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	int little=target->endianness==TARGET_LITTLE_ENDIAN;
@@ -2161,7 +2287,10 @@ static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int ti
 		}
 	}
 
-	target_halt(target);
+	if((retval = target_halt(target))!= ERROR_OK)
+	{
+		return retval;
+	}
 	return target_wait_state(target, TARGET_HALTED, 500);
 }
 
@@ -2348,7 +2477,10 @@ int arm7_9_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 
 	/* convert flash writing code into a buffer in target endianness */
 	for (i = 0; i < (sizeof(erase_check_code)/sizeof(u32)); i++)
-		target_write_u32(target, erase_check_algorithm->address + i*sizeof(u32), erase_check_code[i]);
+		if ((retval = target_write_u32(target, erase_check_algorithm->address + i*sizeof(u32), erase_check_code[i])) != ERROR_OK)
+		{
+			return retval;
+		}
 
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
@@ -2528,9 +2660,8 @@ int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char
 	mode = strtoul(args[1], NULL, 0);
 	value = strtoul(args[2], NULL, 0);
 
-	arm7_9_write_core_reg(target, num, mode, value);
+	return arm7_9_write_core_reg(target, num, mode, value);
 
-	return ERROR_OK;
 }
 
 
@@ -2635,11 +2766,16 @@ int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char 
 
 int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = &arm7_9->armv4_5_common;
 
 	arm7_9->common_magic = ARM7_9_COMMON_MAGIC;
 
-	arm_jtag_setup_connection(&arm7_9->jtag_info);
+	if((retval = arm_jtag_setup_connection(&arm7_9->jtag_info)) != ERROR_OK)
+	{
+		return retval;
+	}
+
 	arm7_9->wp_available = 0; /* this is set up in arm7_9_clear_watchpoints() */
 	arm7_9->wp_available_max = 2;
 	arm7_9->sw_breakpoints_added = 0;
@@ -2668,9 +2804,15 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	armv4_5->write_core_reg = arm7_9_write_core_reg;
 	armv4_5->full_context = arm7_9_full_context;
 
-	armv4_5_init_arch_info(target, armv4_5);
+	if((retval = armv4_5_init_arch_info(target, armv4_5)) != ERROR_OK)
+	{
+		return retval;
+	}
 
-	target_register_timer_callback(arm7_9_handle_target_request, 1, 1, target);
+	if((retval = target_register_timer_callback(arm7_9_handle_target_request, 1, 1, target)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	return ERROR_OK;
 }

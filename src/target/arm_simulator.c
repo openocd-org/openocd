@@ -272,14 +272,21 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 	u32 current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 	arm_instruction_t instruction;
 	int instruction_size;
+	int retval = ERROR_OK;
 	
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 	{
 		u32 opcode;
 		
 		/* get current instruction, and identify it */
-		target_read_u32(target, current_pc, &opcode);
-		arm_evaluate_opcode(opcode, current_pc, &instruction);
+		if((retval = target_read_u32(target, current_pc, &opcode)) != ERROR_OK)
+		{
+			return retval;
+		}
+		if((retval = arm_evaluate_opcode(opcode, current_pc, &instruction)) != ERROR_OK)
+		{
+			return retval;
+		}
 		instruction_size = 4;
 		
 		/* check condition code (for all instructions) */
@@ -301,8 +308,14 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 	{
 		u16 opcode;
 		
-		target_read_u16(target, current_pc, &opcode);
-		thumb_evaluate_opcode(opcode, current_pc, &instruction);
+		if((retval = target_read_u16(target, current_pc, &opcode)) != ERROR_OK)
+		{
+			return retval;
+		}
+		if((retval = thumb_evaluate_opcode(opcode, current_pc, &instruction)) != ERROR_OK)
+		{
+			return retval;
+			}
 		instruction_size = 2;
 		
 		/* check condition code (only for branch instructions) */
@@ -520,7 +533,10 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 			 load_address = Rn;
 		}
 		
-		target_read_u32(target, load_address, &load_value);
+		if((retval = target_read_u32(target, load_address, &load_value)) != ERROR_OK)
+		{
+			return retval;
+		}
 		
 		if (dry_run_pc)
 		{

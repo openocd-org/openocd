@@ -86,10 +86,10 @@ char* embeddedice_reg_list[] =
 int embeddedice_reg_arch_type = -1;
 
 int embeddedice_get_reg(reg_t *reg);
-int embeddedice_set_reg(reg_t *reg, u32 value);
+void embeddedice_set_reg(reg_t *reg, u32 value);
 int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf);
 
-int embeddedice_write_reg(reg_t *reg, u32 value);
+void embeddedice_write_reg(reg_t *reg, u32 value);
 int embeddedice_read_reg(reg_t *reg);
 
 reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
@@ -369,19 +369,14 @@ int embeddedice_read_reg(reg_t *reg)
 	return embeddedice_read_reg_w_check(reg, NULL, NULL);
 }
 
-int embeddedice_set_reg(reg_t *reg, u32 value)
+void embeddedice_set_reg(reg_t *reg, u32 value)
 {
-	if (embeddedice_write_reg(reg, value) != ERROR_OK)
-	{
-		LOG_ERROR("BUG: error scheduling EmbeddedICE register write");
-		exit(-1);
-	}
+	embeddedice_write_reg(reg, value);
 
 	buf_set_u32(reg->value, 0, reg->size, value);
 	reg->valid = 1;
 	reg->dirty = 0;
 
-	return ERROR_OK;
 }
 
 int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf)
@@ -396,7 +391,7 @@ int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf)
 	return ERROR_OK;
 }
 
-int embeddedice_write_reg(reg_t *reg, u32 value)
+void embeddedice_write_reg(reg_t *reg, u32 value)
 {
 	embeddedice_reg_t *ice_reg = reg->arch_info;
 
@@ -410,12 +405,11 @@ int embeddedice_write_reg(reg_t *reg, u32 value)
 	u8 reg_addr = ice_reg->addr & 0x1f;
 	embeddedice_write_reg_inner(ice_reg->jtag_info->chain_pos, reg_addr, value);
 
-	return ERROR_OK;
 }
 
-int embeddedice_store_reg(reg_t *reg)
+void embeddedice_store_reg(reg_t *reg)
 {
-	return embeddedice_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
+	embeddedice_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
 }
 
 /* send <size> words of 32 bit to the DCC

@@ -108,6 +108,7 @@ arm9tdmi_vector_t arm9tdmi_vectors[] =
 
 int arm9tdmi_examine_debug_reason(target_t *target)
 {
+	int retval = ERROR_OK;
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -153,11 +154,17 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		fields[2].in_handler = NULL;
 		fields[2].in_handler_priv = NULL;
 		
-		arm_jtag_scann(&arm7_9->jtag_info, 0x1);
+		if((retval = arm_jtag_scann(&arm7_9->jtag_info, 0x1)) != ERROR_OK)
+		{
+			return retval;
+		}
 		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL);
 
 		jtag_add_dr_scan(3, fields, TAP_PD);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		
 		fields[0].in_value = NULL;
 		fields[0].out_value = databus;
@@ -183,6 +190,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 /* put an instruction in the ARM9TDMI pipeline or write the data bus, and optionally read data */
 int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int sysspeed)
 {
+	int retval = ERROR_OK;
 	scan_field_t fields[3];
 	u8 out_buf[4];
 	u8 instr_buf[4];
@@ -197,7 +205,10 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 		buf_set_u32(&sysspeed_buf, 2, 1, 1);
 	
 	jtag_add_end_state(TAP_PD);
-	arm_jtag_scann(jtag_info, 0x1);
+	if((retval = arm_jtag_scann(jtag_info, 0x1)) != ERROR_OK)
+	{
+		return retval;
+	}
 	
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 		
@@ -245,7 +256,10 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 	
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	{
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		
 		if (in)
 		{
@@ -262,10 +276,14 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 /* just read data (instruction and data-out = don't care) */
 int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 {
+	int retval = ERROR_OK;;
 	scan_field_t fields[3];
 
 	jtag_add_end_state(TAP_PD);
-	arm_jtag_scann(jtag_info, 0x1);
+	if((retval = arm_jtag_scann(jtag_info, 0x1)) != ERROR_OK)
+	{
+		return retval;
+	}
 	
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 		
@@ -305,8 +323,11 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	{
-		jtag_execute_queue();
-			
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
+		
 		if (in)
 		{
 			LOG_DEBUG("in: 0x%8.8x", *in);
@@ -327,10 +348,14 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
  */
 int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be)
 {
+	int retval = ERROR_OK;
 	scan_field_t fields[3];
 	
 	jtag_add_end_state(TAP_PD);
-	arm_jtag_scann(jtag_info, 0x1);
+	if((retval = arm_jtag_scann(jtag_info, 0x1)) != ERROR_OK)
+	{
+		return retval;
+	}
 	
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 		
@@ -381,8 +406,11 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	{
-		jtag_execute_queue();
-			
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
+		
 		if (in)
 		{
 			LOG_DEBUG("in: 0x%8.8x", *(u32*)in);
@@ -399,6 +427,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 
 void arm9tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 {
+	int retval = ERROR_OK;
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -439,7 +468,10 @@ void arm9tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 	/* NOP fetched, BX in Execute (1) */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 	
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 	
 	/* fix program counter:
 	 * MOV r0, r15 was the 5th instruction (+8)
@@ -1035,7 +1067,7 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch", handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC, "catch arm920t vectors ['all'|'none'|'<vec1 vec2 ...>']");
 	
 	
-	return ERROR_OK;
+	return retval;
 
 }
 

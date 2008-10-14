@@ -397,6 +397,7 @@ int handle_armv4_5_core_state_command(struct command_context_s *cmd_ctx, char *c
 
 int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	u32 address;
@@ -427,8 +428,14 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 
 	for (i = 0; i < count; i++)
 	{
-		target_read_u32(target, address, &opcode);
-		arm_evaluate_opcode(opcode, address, &cur_instruction);
+		if((retval = target_read_u32(target, address, &opcode)) != ERROR_OK)
+		{
+			return retval;
+		}
+		if((retval = arm_evaluate_opcode(opcode, address, &cur_instruction)) != ERROR_OK)
+		{
+			return retval;
+		}
 		command_print(cmd_ctx, "%s", cur_instruction.text);
 		address += (thumb) ? 2 : 4;
 	}
@@ -482,7 +489,10 @@ static int armv4_5_run_algorithm_completion(struct target_s *target, u32 exit_po
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 
-	target_wait_state(target, TARGET_HALTED, timeout_ms);
+	if((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
+	{
+		return retval;
+	}
 	if (target->state != TARGET_HALTED)
 	{
 		if ((retval=target_halt(target))!=ERROR_OK)
@@ -541,7 +551,10 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 
 	for (i = 0; i < num_mem_params; i++)
 	{
-		target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
+		if((retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	for (i = 0; i < num_reg_params; i++)
@@ -559,7 +572,10 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 			exit(-1);
 		}
 
-		armv4_5_set_core_reg(reg, reg_params[i].value);
+		if((retval = armv4_5_set_core_reg(reg, reg_params[i].value)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	armv4_5->core_state = armv4_5_algorithm_info->core_state;
@@ -587,8 +603,11 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 		return ERROR_TARGET_FAILURE;
 	}
 
-	target_resume(target, 0, entry_point, 1, 1);
-
+	if((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
+	{
+		return retval;
+	}
+	int retvaltemp;
 	retval=run_it(target, exit_point, timeout_ms, arch_info);
 
 	breakpoint_remove(target, exit_point);
@@ -596,7 +615,10 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 	for (i = 0; i < num_mem_params; i++)
 	{
 		if (mem_params[i].direction != PARAM_OUT)
-			target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
+			if((retvaltemp = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
+			{
+					retval = retvaltemp;
+			}
 	}
 
 	for (i = 0; i < num_reg_params; i++)

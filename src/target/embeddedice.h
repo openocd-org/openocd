@@ -99,10 +99,10 @@ typedef struct embeddedice_reg_s
 extern reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9);
 extern int embeddedice_setup(target_t *target);
 extern int embeddedice_read_reg(reg_t *reg);
-extern int embeddedice_write_reg(reg_t *reg, u32 value);
+extern void embeddedice_write_reg(reg_t *reg, u32 value);
 extern int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask);
-extern int embeddedice_store_reg(reg_t *reg);
-extern int embeddedice_set_reg(reg_t *reg, u32 value);
+extern void embeddedice_store_reg(reg_t *reg);
+extern void embeddedice_set_reg(reg_t *reg, u32 value);
 extern int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf);
 extern int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size);
 extern int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size);

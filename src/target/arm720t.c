@@ -89,6 +89,7 @@ target_type_t arm720t_target =
 
 int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int clock)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
@@ -99,8 +100,14 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
 	
 	jtag_add_end_state(TAP_PD);
-	arm_jtag_scann(jtag_info, 0xf);
-	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
+	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	{
+		return retval;
+	}
+	if((retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL)) != ERROR_OK)
+	{
+		return retval;
+	}
 		
 	fields[0].device = jtag_info->chain_pos;
 	fields[0].num_bits = 1;
@@ -135,7 +142,10 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 		jtag_add_runtest(0, -1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	if (in)
 		LOG_DEBUG("out: %8.8x, in: %8.8x, instruction: %i, clock: %i", out, *in, instruction, clock);
@@ -363,13 +373,17 @@ int arm720t_write_memory(struct target_s *target, u32 address, u32 size, u32 cou
 
 int arm720t_soft_reset_halt(struct target_s *target)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
 	arm720t_common_t *arm720t = arm7tdmi->arch_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	
-	target_halt(target);
+	if ((retval = target_halt(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 	
 	long long then=timeval_ms();
 	int timeout;
@@ -378,7 +392,10 @@ int arm720t_soft_reset_halt(struct target_s *target)
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
 		{
 			embeddedice_read_reg(dbg_stat);
-			jtag_execute_queue();
+			if ((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
 		} else
 		{
 			break;
@@ -417,7 +434,10 @@ int arm720t_soft_reset_halt(struct target_s *target)
 	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+	if ((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
+	{
+		return retval;
+	}
 	
 	return ERROR_OK;
 }
@@ -531,7 +551,11 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8x", opcode);
 				return ERROR_OK;
 			}
-			jtag_execute_queue();
+
+			if ((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
 			
 			command_print(cmd_ctx, "0x%8.8x: 0x%8.8x", opcode, value);
 		}

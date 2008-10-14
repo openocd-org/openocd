@@ -625,13 +625,17 @@ int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 cou
 
 int arm920t_soft_reset_halt(struct target_s *target)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm920t_common_t *arm920t = arm9tdmi->arch_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	
-	target_halt(target);
+	if((retval = target_halt(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 	
 	long long then=timeval_ms();
 	int timeout;
@@ -640,7 +644,10 @@ int arm920t_soft_reset_halt(struct target_s *target)
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
 		{
 			embeddedice_read_reg(dbg_stat);
-			jtag_execute_queue();
+			if((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
 		} else
 		{
 			break;
@@ -680,7 +687,10 @@ int arm920t_soft_reset_halt(struct target_s *target)
 	arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 	arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+	if((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
+	{
+		return retval;
+	}
 	
 	return ERROR_OK;
 }
@@ -770,11 +780,12 @@ int arm920t_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, arm920t_cmd, "read_cache", arm920t_handle_read_cache_command, COMMAND_EXEC, "display I/D cache content");
 	register_command(cmd_ctx, arm920t_cmd, "read_mmu", arm920t_handle_read_mmu_command, COMMAND_EXEC, "display I/D mmu content");
 
-	return ERROR_OK;
+	return retval;
 }
 
 int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -816,7 +827,10 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 	
 	/* disable MMU and Caches */
 	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), &cp15_ctrl);
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 	cp15_ctrl_saved = cp15_ctrl;
 	cp15_ctrl &= ~(ARMV4_5_MMU_ENABLED | ARMV4_5_D_U_CACHE_ENABLED | ARMV4_5_I_CACHE_ENABLED);
 	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl);
@@ -876,7 +890,10 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 
 			/* read D RAM and CAM content */
 			arm9tdmi_read_core_regs(target, 0x3fe, regs_p);
-			jtag_execute_queue();
+			if((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
 
 			d_cache[segment][index].cam = regs[9];
 			
@@ -959,7 +976,10 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 
 			/* read I RAM and CAM content */
 			arm9tdmi_read_core_regs(target, 0x3fe, regs_p);
-			jtag_execute_queue();
+			if((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
 
 			i_cache[segment][index].cam = regs[9];
 			
@@ -1019,6 +1039,7 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 
 int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -1060,14 +1081,20 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	/* disable MMU and Caches */
 	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), &cp15_ctrl);
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 	cp15_ctrl_saved = cp15_ctrl;
 	cp15_ctrl &= ~(ARMV4_5_MMU_ENABLED | ARMV4_5_D_U_CACHE_ENABLED | ARMV4_5_I_CACHE_ENABLED);
 	arm920t_write_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0x1, 0), cp15_ctrl);
 
 	/* read CP15 test state register */ 
 	arm920t_read_cp15_physical(target, ARM920T_CP15_PHYS_ADDR(0, 0xf, 0), &cp15c15);
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	/* prepare reading D TLB content 
 	 * */
@@ -1085,7 +1112,10 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	/* read D TLB lockdown stored to r1 */
 	arm9tdmi_read_core_regs(target, 0x2, regs_p);
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 	Dlockdown = regs[1];
 	
 	for (victim = 0; victim < 64; victim += 8)
@@ -1111,7 +1141,10 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 		
 		/* read D TLB CAM content stored to r2-r9 */
 		arm9tdmi_read_core_regs(target, 0x3fc, regs_p);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		
 		for (i = 0; i < 8; i++)
 			d_tlb[victim + i].cam = regs[i + 2]; 
@@ -1143,7 +1176,10 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 		
 		/* read D TLB RAM content stored to r2 and r3 */
 		arm9tdmi_read_core_regs(target, 0xc, regs_p);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		d_tlb[victim].ram1 = regs[2]; 
 		d_tlb[victim].ram2 = regs[3]; 
@@ -1172,7 +1208,10 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	/* read I TLB lockdown stored to r1 */
 	arm9tdmi_read_core_regs(target, 0x2, regs_p);
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 	Ilockdown = regs[1];
 	
 	for (victim = 0; victim < 64; victim += 8)
@@ -1198,7 +1237,10 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 		
 		/* read I TLB CAM content stored to r2-r9 */
 		arm9tdmi_read_core_regs(target, 0x3fc, regs_p);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		
 		for (i = 0; i < 8; i++)
 			i_tlb[i + victim].cam = regs[i + 2]; 
@@ -1230,7 +1272,10 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 		
 		/* read I TLB RAM content stored to r2 and r3 */
 		arm9tdmi_read_core_regs(target, 0xc, regs_p);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		i_tlb[victim].ram1 = regs[2]; 
 		i_tlb[victim].ram2 = regs[3]; 
@@ -1317,7 +1362,10 @@ int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				command_print(cmd_ctx, "couldn't access reg %i", address);
 				return ERROR_OK;
 			}
-			jtag_execute_queue();
+			if((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
 			
 			command_print(cmd_ctx, "%i: %8.8x", address, value);
 		}

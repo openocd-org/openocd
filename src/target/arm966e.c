@@ -170,6 +170,7 @@ int arm966e_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, ar
 
 int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
@@ -178,7 +179,10 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	u8 nr_w_buf = 0;
 	
 	jtag_add_end_state(TAP_RTI);
-	arm_jtag_scann(jtag_info, 0xf);
+	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	{
+		return retval;
+	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
@@ -219,7 +223,10 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	jtag_add_dr_scan(3, fields, -1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, *value);
 #endif
 
@@ -228,6 +235,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 
 int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
@@ -239,7 +247,10 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	buf_set_u32(value_buf, 0, 32, value);
 	
 	jtag_add_end_state(TAP_RTI);
-	arm_jtag_scann(jtag_info, 0xf);
+	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	{
+		return retval;
+	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
@@ -318,7 +329,10 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				command_print(cmd_ctx, "couldn't access reg %i", address);
 				return ERROR_OK;
 			}
-			jtag_execute_queue();
+			if((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
 			
 			command_print(cmd_ctx, "%i: %8.8x", address, value);
 		}
@@ -346,5 +360,5 @@ int arm966e_register_commands(struct command_context_s *cmd_ctx)
 	arm966e_cmd = register_command(cmd_ctx, NULL, "arm966e", NULL, COMMAND_ANY, "arm966e specific commands");
 	register_command(cmd_ctx, arm966e_cmd, "cp15", arm966e_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <num> [value]");
 	
-	return ERROR_OK;
+	return retval;
 }

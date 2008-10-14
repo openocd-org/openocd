@@ -97,6 +97,7 @@ target_type_t arm7tdmi_target =
 
 int arm7tdmi_examine_debug_reason(target_t *target)
 {
+	int retval = ERROR_OK;
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -131,11 +132,17 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		fields[1].in_handler = NULL;
 		fields[1].in_handler_priv = NULL;
 		
-		arm_jtag_scann(&arm7_9->jtag_info, 0x1);
+		if((retval = arm_jtag_scann(&arm7_9->jtag_info, 0x1)) != ERROR_OK)
+		{
+			return retval;
+		}
 		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL);
 
 		jtag_add_dr_scan(2, fields, TAP_PD);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		
 		fields[0].in_value = NULL;
 		fields[0].out_value = &breakpoint;
@@ -182,10 +189,14 @@ static __inline int arm7tdmi_clock_out(arm_jtag_t *jtag_info, u32 out, u32 *depr
 /* clock the target, reading the databus */
 int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 {
+	int retval = ERROR_OK;
 	scan_field_t fields[2];
 
 	jtag_add_end_state(TAP_PD);
-	arm_jtag_scann(jtag_info, 0x1);
+	if((retval = arm_jtag_scann(jtag_info, 0x1)) != ERROR_OK)
+	{
+		return retval;
+	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 	
 	fields[0].device = jtag_info->chain_pos;
@@ -214,7 +225,10 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 {
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 			
 		if (in)
 		{
@@ -236,10 +250,14 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
  */ 
 int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be)
 {
+	int retval = ERROR_OK;
 	scan_field_t fields[2];
 
 	jtag_add_end_state(TAP_PD);
-	arm_jtag_scann(jtag_info, 0x1);
+	if((retval = arm_jtag_scann(jtag_info, 0x1)) != ERROR_OK)
+	{
+		return retval;
+	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 	
 	fields[0].device = jtag_info->chain_pos;
@@ -279,7 +297,10 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 {
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 			
 		if (in)
 		{
@@ -851,6 +872,6 @@ int arm7tdmi_register_commands(struct command_context_s *cmd_ctx)
 	
 	retval = arm7_9_register_commands(cmd_ctx);
 	
-	return ERROR_OK;
+	return retval;
 
 }

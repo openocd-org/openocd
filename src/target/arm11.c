@@ -709,6 +709,8 @@ int arm11_target_request_data(struct target_s *target, u32 size, u8 *buffer)
 /* target execution control */
 int arm11_halt(struct target_s *target)
 {
+	int retval = ERROR_OK;
+	
 	FNC_INFO;
 
 	arm11_common_t * arm11 = target->arch_info;
@@ -735,7 +737,10 @@ int arm11_halt(struct target_s *target)
 
 	arm11_add_IR(arm11, ARM11_HALT, TAP_RTI);
 
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	u32 dscr;
 
@@ -754,14 +759,19 @@ int arm11_halt(struct target_s *target)
 	target->state		= TARGET_HALTED;
 	target->debug_reason	= arm11_get_DSCR_debug_reason(dscr);
 
-	target_call_event_callbacks(target,
-	old_state == TARGET_DEBUG_RUNNING ? TARGET_EVENT_DEBUG_HALTED : TARGET_EVENT_HALTED);
+	if((retval = target_call_event_callbacks(target,
+			old_state == TARGET_DEBUG_RUNNING ? TARGET_EVENT_DEBUG_HALTED : TARGET_EVENT_HALTED)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	return ERROR_OK;
 }
 
 int arm11_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
 {
+	int retval = ERROR_OK;
+
 	FNC_INFO;
 
 //	  LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
@@ -833,7 +843,10 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
 	arm11_add_IR(arm11, ARM11_RESTART, TAP_RTI);
 
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	while (1)
 	{
@@ -847,15 +860,21 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
 	if (!debug_execution)
 	{
-	target->state		= TARGET_RUNNING;
-	target->debug_reason	= DBG_REASON_NOTHALTED;
-	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+		target->state		= TARGET_RUNNING;
+		target->debug_reason	= DBG_REASON_NOTHALTED;
+		if((retval = target_call_event_callbacks(target, TARGET_EVENT_RESUMED)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 	else
 	{
-	target->state		= TARGET_DEBUG_RUNNING;
-	target->debug_reason	= DBG_REASON_NOTHALTED;
-	target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
+		target->state		= TARGET_DEBUG_RUNNING;
+		target->debug_reason	= DBG_REASON_NOTHALTED;
+		if((retval = target_call_event_callbacks(target, TARGET_EVENT_RESUMED)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	return ERROR_OK;
@@ -863,6 +882,8 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
 int arm11_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
 {
+	int retval = ERROR_OK;
+
 	FNC_INFO;
 
 	LOG_DEBUG("target->state: %s",
@@ -937,7 +958,10 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 
 	arm11_add_IR(arm11, ARM11_RESTART, TAP_RTI);
 
-	jtag_execute_queue();
+	if((retval = jtag_execute_queue()) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	/** \todo TODO: add a timeout */
 
@@ -964,7 +988,10 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 //	  target->state		= TARGET_HALTED;
 	target->debug_reason	= DBG_REASON_SINGLESTEP;
 
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+	if((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	return ERROR_OK;
 }
@@ -1411,9 +1438,17 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 		goto restore;
 	}
 
-	target_resume(target, 0, entry_point, 1, 0);  // no debug, otherwise breakpoint is not set
+	// no debug, otherwise breakpoint is not set
+	if((retval = target_resume(target, 0, entry_point, 1, 0)) != ERROR_OK)
+	{
+		return retval;
+	}
 
-	target_wait_state(target, TARGET_HALTED, timeout_ms);
+	if((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
+	{
+		return retval;
+	}
+
 	if (target->state != TARGET_HALTED)
 	{
 		if ((retval=target_halt(target))!=ERROR_OK)
@@ -1483,6 +1518,7 @@ restore:
 
 int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 {
+	int retval = ERROR_OK;
 	FNC_INFO;
 
 	NEW(arm11_common_t, arm11, 1);
@@ -1493,7 +1529,10 @@ int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 	arm11->jtag_info.chain_pos	= target->chain_position;
 	arm11->jtag_info.scann_size	= 5;
 
-	arm_jtag_setup_connection(&arm11->jtag_info);
+	if((retval = arm_jtag_setup_connection(&arm11->jtag_info)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	jtag_device_t *device = jtag_get_device(target->chain_position);
 

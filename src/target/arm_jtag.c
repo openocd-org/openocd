@@ -63,6 +63,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handl
 
 int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 {
+	int retval = ERROR_OK;
 	if(jtag_info->cur_scan_chain != new_scan_chain)
 	{
 		u32 values[1];
@@ -70,9 +71,13 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 		
 		values[0]=new_scan_chain;
 		num_bits[0]=jtag_info->scann_size;
-		
-		arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL);
-		jtag_add_dr_out(jtag_info->chain_pos, 
+
+		if((retval = arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL)) != ERROR_OK)
+		{
+			return retval;
+		}
+
+		jtag_add_dr_out(jtag_info->chain_pos,
 				1,
 				num_bits,
 				values,
@@ -80,8 +85,8 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 		
 		jtag_info->cur_scan_chain = new_scan_chain;
 	}
-	
-	return ERROR_OK;
+
+	return retval;
 }
 
 int arm_jtag_reset_callback(enum jtag_event event, void *priv)
@@ -102,9 +107,7 @@ int arm_jtag_setup_connection(arm_jtag_t *jtag_info)
 	jtag_info->cur_scan_chain = 0;
 	jtag_info->intest_instr = 0xc;
 
-	jtag_register_event_callback(arm_jtag_reset_callback, jtag_info);
-	
-	return ERROR_OK;
+	return jtag_register_event_callback(arm_jtag_reset_callback, jtag_info);
 }
 
 /* read JTAG buffer into host-endian u32, flipping bit-order */

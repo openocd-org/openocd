@@ -120,6 +120,7 @@ int arm926ejs_catch_broken_irscan(u8 *captured, void *priv, scan_field_t *field)
 
 int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 *value)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
@@ -132,7 +133,10 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	buf_set_u32(address_buf, 0, 14, address);
 	
 	jtag_add_end_state(TAP_RTI);
-	arm_jtag_scann(jtag_info, 0xf);
+	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	{
+		return retval;
+	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
@@ -187,7 +191,10 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 		access = 0;
 		nr_w_buf = 0;
 		jtag_add_dr_scan(4, fields, -1);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 	} while (buf_get_u32(&access, 0, 1) != 1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
@@ -201,6 +208,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 
 int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 value)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
@@ -215,7 +223,10 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	buf_set_u32(value_buf, 0, 32, value);
 	
 	jtag_add_end_state(TAP_RTI);
-	arm_jtag_scann(jtag_info, 0xf);
+	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	{
+		return retval;
+	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
 	fields[0].device = jtag_info->chain_pos;
@@ -266,7 +277,10 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 		access = 0;
 		nr_w_buf = 0;
 		jtag_add_dr_scan(4, fields, -1);
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 	} while (buf_get_u32(&access, 0, 1) != 1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
@@ -575,13 +589,17 @@ int arm926ejs_arch_state(struct target_s *target)
 
 int arm926ejs_soft_reset_halt(struct target_s *target)
 {
+	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 	
-	target_halt(target);
+	if((retval = target_halt(target)) != ERROR_OK)
+	{
+		return retval;
+	}
 	
 	long long then=timeval_ms();
 	int timeout;
@@ -590,7 +608,10 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
 		{
 			embeddedice_read_reg(dbg_stat);
-			jtag_execute_queue();
+			if((retval = jtag_execute_queue()) != ERROR_OK)
+			{
+				return retval;
+			}
 		}  else
 		{
 			break;
@@ -629,10 +650,9 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 	arm926ejs->armv4_5_mmu.mmu_enabled = 0;
 	arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
-
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	
-	return ERROR_OK;
+	return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+
 }
 
 int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
@@ -749,7 +769,7 @@ int arm926ejs_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, arm926ejs_cmd, "mwh_phys", arm926ejs_handle_mw_phys_command, COMMAND_EXEC, "write memory half-word <physical addr> <value>");
 	register_command(cmd_ctx, arm926ejs_cmd, "mwb_phys", arm926ejs_handle_mw_phys_command, COMMAND_EXEC, "write memory byte <physical addr> <value>");
 
-	return ERROR_OK;
+	return retval;
 }
 
 int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -796,7 +816,10 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 			command_print(cmd_ctx, "couldn't access register");
 			return ERROR_OK;
 		}
-		jtag_execute_queue();
+		if((retval = jtag_execute_queue()) != ERROR_OK)
+		{
+			return retval;
+		}
 		
 		command_print(cmd_ctx, "%i %i %i %i: %8.8x", opcode_1, opcode_2, CRn, CRm, value);
 	}
