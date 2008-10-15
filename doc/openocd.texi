@@ -263,6 +263,11 @@ OpenOCD command line using the @option{-c} command line switch.
 @item @b{telnet_port} <@var{number}>
 @cindex telnet_port
 Port on which to listen for incoming telnet connections 
+@item @b{tcl_port} <@var{number}>
+@cindex tcl_port
+Port on which to listen for incoming TCL syntax. This port is intended as
+a simplified RPC connection that can be used by clients to issue commands
+and get the output from the TCL engine.
 @item @b{gdb_port} <@var{number}>
 @cindex gdb_port
 First port on which to listen for incoming GDB connections. The GDB port for the
@@ -293,11 +298,6 @@ Default behaviour is <@var{enable}>
 Set to <@var{enable}> to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
 Default behaviour is <@var{enable}>
- at item @b{tcl_port} <@var{number}>
- at cindex tcl_port
-Port on which to listen for incoming TCL syntax. This port is intended as
-a simplified RPC connection that can be used by clients to issue commands
-and get the output from the TCL engine.
 @end itemize
 
 @section JTAG interface configuration
