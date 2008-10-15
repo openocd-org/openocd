@@ -983,6 +983,7 @@ int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
+	int retval;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u32 dst_min_alignment, wcount, bytes_remaining = count;
@@ -1033,7 +1034,10 @@ int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		/* Write one block to the PageWriteBuffer */
 		buffer_pos = (pagen-first_page)*dst_min_alignment;
 		wcount = CEIL(count,4);
-		target->type->write_memory(target, bank->base+pagen*dst_min_alignment, 4, wcount, buffer+buffer_pos);
+		if((retval = target->type->write_memory(target, bank->base+pagen*dst_min_alignment, 4, wcount, buffer+buffer_pos)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		/* Send Write Page command to Flash Controller */
 		if (at91sam7_flash_command(bank, WP, pagen) != ERROR_OK)

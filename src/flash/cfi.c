@@ -345,6 +345,7 @@ int cfi_spansion_wait_status_busy(flash_bank_t *bank, int timeout)
 
 int cfi_read_intel_pri_ext(flash_bank_t *bank)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_intel_pri_ext_t *pri_ext = malloc(sizeof(cfi_intel_pri_ext_t));
 	target_t *target = bank->target;
@@ -359,9 +360,15 @@ int cfi_read_intel_pri_ext(flash_bank_t *bank)
 	if ((pri_ext->pri[0] != 'P') || (pri_ext->pri[1] != 'R') || (pri_ext->pri[2] != 'I'))
 	{
 		cfi_command(bank, 0xf0, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 		cfi_command(bank, 0xff, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 		LOG_ERROR("Could not read bank flash bank information");
 		return ERROR_FLASH_BANK_INVALID;
 	}
@@ -401,6 +408,7 @@ int cfi_read_intel_pri_ext(flash_bank_t *bank)
 
 int cfi_read_spansion_pri_ext(flash_bank_t *bank)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
 	target_t *target = bank->target;
@@ -415,7 +423,10 @@ int cfi_read_spansion_pri_ext(flash_bank_t *bank)
 	if ((pri_ext->pri[0] != 'P') || (pri_ext->pri[1] != 'R') || (pri_ext->pri[2] != 'I'))
 	{
 		cfi_command(bank, 0xf0, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 		LOG_ERROR("Could not read spansion bank information");
 		return ERROR_FLASH_BANK_INVALID;
 	}
@@ -462,6 +473,7 @@ int cfi_read_spansion_pri_ext(flash_bank_t *bank)
 
 int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 {
+	int retval;
 	cfi_atmel_pri_ext_t atmel_pri_ext;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
@@ -484,7 +496,10 @@ int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 	if ((atmel_pri_ext.pri[0] != 'P') || (atmel_pri_ext.pri[1] != 'R') || (atmel_pri_ext.pri[2] != 'I'))
 	{
 		cfi_command(bank, 0xf0, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 		LOG_ERROR("Could not read atmel bank information");
 		return ERROR_FLASH_BANK_INVALID;
 	}
@@ -664,6 +679,7 @@ int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 int cfi_intel_erase(struct flash_bank_s *bank, int first, int last)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u8 command[8];
@@ -674,17 +690,26 @@ int cfi_intel_erase(struct flash_bank_s *bank, int first, int last)
 	for (i = first; i <= last; i++)
 	{
 		cfi_command(bank, 0x20, command);
-		target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		cfi_command(bank, 0xd0, command);
-		target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->block_erase_timeout_typ)) == 0x80)
 			bank->sectors[i].is_erased = 1;
 		else
 		{
 			cfi_command(bank, 0xff, command);
-			target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+			if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+			{
+				return retval;
+			}
 
 			LOG_ERROR("couldn't erase block %i of flash bank at base 0x%x", i, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -692,13 +717,13 @@ int cfi_intel_erase(struct flash_bank_s *bank, int first, int last)
 	}
 
 	cfi_command(bank, 0xff, command);
-	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+	return target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 
-	return ERROR_OK;
 }
 
 int cfi_spansion_erase(struct flash_bank_s *bank, int first, int last)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
@@ -708,29 +733,50 @@ int cfi_spansion_erase(struct flash_bank_s *bank, int first, int last)
 	for (i = first; i <= last; i++)
 	{
 		cfi_command(bank, 0xaa, command);
-		target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		cfi_command(bank, 0x55, command);
-		target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		cfi_command(bank, 0x80, command);
-		target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		cfi_command(bank, 0xaa, command);
-		target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		cfi_command(bank, 0x55, command);
-		target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		cfi_command(bank, 0x30, command);
-		target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		if (cfi_spansion_wait_status_busy(bank, 1000 * (1 << cfi_info->block_erase_timeout_typ)) == ERROR_OK)
 			bank->sectors[i].is_erased = 1;
 		else
 		{
 			cfi_command(bank, 0xf0, command);
-			target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+			if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+			{
+				return retval;
+			}
 
 			LOG_ERROR("couldn't erase block %i of flash bank at base 0x%x", i, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -738,9 +784,7 @@ int cfi_spansion_erase(struct flash_bank_s *bank, int first, int last)
 	}
 
 	cfi_command(bank, 0xf0, command);
-	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
-
-	return ERROR_OK;
+	return target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 }
 
 int cfi_erase(struct flash_bank_s *bank, int first, int last)
@@ -780,6 +824,7 @@ int cfi_erase(struct flash_bank_s *bank, int first, int last)
 
 int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
@@ -799,19 +844,28 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 	{
 		cfi_command(bank, 0x60, command);
 		LOG_DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
-		target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 		if (set)
 		{
 			cfi_command(bank, 0x01, command);
 			LOG_DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
-			target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+			if((retval = target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+			{
+				return retval;
+			}
 			bank->sectors[i].is_protected = 1;
 		}
 		else
 		{
 			cfi_command(bank, 0xd0, command);
 			LOG_DEBUG("address: 0x%4.4x, command: 0x%4.4x", flash_address(bank, i, 0x0), target_buffer_get_u32(target, command));
-			target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+			if((retval = target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+			{
+				return retval;
+			}
 			bank->sectors[i].is_protected = 0;
 		}
 
@@ -826,14 +880,20 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 			u8 block_status;
 			/* read block lock bit, to verify status */
 			cfi_command(bank, 0x90, command);
-			target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command);
+			if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command)) != ERROR_OK)
+			{
+				return retval;
+			}
 			block_status = cfi_get_u8(bank, i, 0x2);
 
 			if ((block_status & 0x1) != set)
 			{
 				LOG_ERROR("couldn't change block lock status (set = %i, block_status = 0x%2.2x)", set, block_status);
 				cfi_command(bank, 0x70, command);
-				target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command);
+				if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command)) != ERROR_OK)
+				{
+					return retval;
+				}
 				cfi_intel_wait_status_busy(bank, 10);
 
 				if (retry > 10)
@@ -859,10 +919,16 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 				cfi_intel_clear_status_register(bank);
 
 				cfi_command(bank, 0x60, command);
-				target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+				if((retval = target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+				{
+					return retval;
+				}
 
 				cfi_command(bank, 0x01, command);
-				target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command);
+				if((retval = target->type->write_memory(target, flash_address(bank, i, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+				{
+					return retval;
+				}
 
 				cfi_intel_wait_status_busy(bank, 100);
 			}
@@ -870,9 +936,7 @@ int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int last)
 	}
 
 	cfi_command(bank, 0xff, command);
-	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
-
-	return ERROR_OK;
+	return target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 }
 
 int cfi_protect(struct flash_bank_s *bank, int set, int first, int last)
@@ -1485,20 +1549,30 @@ int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address,
 
 int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u8 command[8];
 
 	cfi_intel_clear_status_register(bank);
 	cfi_command(bank, 0x40, command);
-	target->type->write_memory(target, address, bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
-	target->type->write_memory(target, address, bank->bus_width, 1, word);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, 1, word)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->word_write_timeout_max)) != 0x80)
 	{
 		cfi_command(bank, 0xff, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		LOG_ERROR("couldn't write word at base 0x%x, address %x", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -1509,6 +1583,7 @@ int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 
 int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 address)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u8 command[8];
@@ -1546,11 +1621,17 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 
 	/* Initiate buffer operation _*/
 	cfi_command(bank, 0xE8, command);
-	target->type->write_memory(target, address, bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 	if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->buf_write_timeout_max)) != 0x80)
 	{
 		cfi_command(bank, 0xff, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		LOG_ERROR("couldn't start buffer write operation at base 0x%x, address %x", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -1558,17 +1639,29 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 
 	/* Write buffer wordcount-1 and data words */
 	cfi_command(bank, bufferwsize-1, command);
-	target->type->write_memory(target, address, bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
-	target->type->write_memory(target, address, bank->bus_width, bufferwsize, word);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, bufferwsize, word)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	/* Commit write operation */
 	cfi_command(bank, 0xd0, command);
-	target->type->write_memory(target, address, bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 	if (cfi_intel_wait_status_busy(bank, 1000 * (1 << cfi_info->buf_write_timeout_max)) != 0x80)
 	{
 		cfi_command(bank, 0xff, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		LOG_ERROR("Buffer write at base 0x%x, address %x failed.", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -1579,26 +1672,42 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 
 int cfi_spansion_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
 	u8 command[8];
 
 	cfi_command(bank, 0xaa, command);
-	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	cfi_command(bank, 0x55, command);
-	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	cfi_command(bank, 0xa0, command);
-	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
-	target->type->write_memory(target, address, bank->bus_width, 1, word);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, 1, word)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	if (cfi_spansion_wait_status_busy(bank, 1000 * (1 << cfi_info->word_write_timeout_max)) != ERROR_OK)
 	{
 		cfi_command(bank, 0xf0, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		LOG_ERROR("couldn't write word at base 0x%x, address %x", bank->base, address);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -1609,6 +1718,7 @@ int cfi_spansion_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 
 int cfi_spansion_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 address)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u8 command[8];
@@ -1644,29 +1754,50 @@ int cfi_spansion_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount,
 
 	// Unlock
 	cfi_command(bank, 0xaa, command);
-	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	cfi_command(bank, 0x55, command);
-	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	// Buffer load command
 	cfi_command(bank, 0x25, command);
-	target->type->write_memory(target, address, bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	/* Write buffer wordcount-1 and data words */
 	cfi_command(bank, bufferwsize-1, command);
-	target->type->write_memory(target, address, bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
-	target->type->write_memory(target, address, bank->bus_width, bufferwsize, word);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, bufferwsize, word)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	/* Commit write operation */
 	cfi_command(bank, 0x29, command);
-	target->type->write_memory(target, address, bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, address, bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	if (cfi_spansion_wait_status_busy(bank, 1000 * (1 << cfi_info->word_write_timeout_max)) != ERROR_OK)
 	{
 		cfi_command(bank, 0xf0, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		LOG_ERROR("couldn't write block at base 0x%x, address %x, size %x", bank->base, address, bufferwsize);
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -1755,7 +1886,10 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		for (i = 0; i < align; ++i, ++copy_p)
 		{
 			u8 byte;
-			target->type->read_memory(target, copy_p, 1, 1, &byte);
+			if((retval = target->type->read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
+			{
+				return retval;
+			}
 			cfi_add_byte(bank, current_word, byte);
 		}
 
@@ -1771,7 +1905,10 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		for (; (count == 0) && (i < bank->bus_width); ++i, ++copy_p)
 		{
 			u8 byte;
-			target->type->read_memory(target, copy_p, 1, 1, &byte);
+			if((retval = target->type->read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
+			{
+				return retval;
+			}
 			cfi_add_byte(bank, current_word, byte);
 		}
 
@@ -1869,9 +2006,15 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 	/* return to read array mode, so we can read from flash again for padding */
 	cfi_command(bank, 0xf0, current_word);
-	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word)) != ERROR_OK)
+	{
+		return retval;
+	}
 	cfi_command(bank, 0xff, current_word);
-	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	/* handle unaligned tail bytes */
 	if (count > 0)
@@ -1890,7 +2033,10 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		for (; i < bank->bus_width; ++i, ++copy_p)
 		{
 			u8 byte;
-			target->type->read_memory(target, copy_p, 1, 1, &byte);
+			if((retval = target->type->read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
+			{
+				return retval;
+			}
 			cfi_add_byte(bank, current_word, byte);
 		}
 		retval = cfi_write_word(bank, current_word, write_p);
@@ -1900,11 +2046,12 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 	/* return to read array mode */
 	cfi_command(bank, 0xf0, current_word);
-	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word)) != ERROR_OK)
+	{
+		return retval;
+	}
 	cfi_command(bank, 0xff, current_word);
-	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word);
-
-	return ERROR_OK;
+	return target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, current_word);
 }
 
 void cfi_fixup_atmel_reversed_erase_regions(flash_bank_t *bank, void *param)
@@ -1979,11 +2126,20 @@ int cfi_probe(struct flash_bank_s *bank)
 
 	/* switch to read identifier codes mode ("AUTOSELECT") */
 	cfi_command(bank, 0xaa, command);
-	target->type->write_memory(target, flash_address(bank, 0, unlock1), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 	cfi_command(bank, 0x55, command);
-	target->type->write_memory(target, flash_address(bank, 0, unlock2), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, unlock2), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 	cfi_command(bank, 0x90, command);
-	target->type->write_memory(target, flash_address(bank, 0, unlock1), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	if (bank->chip_width == 1)
 	{
@@ -2013,9 +2169,15 @@ int cfi_probe(struct flash_bank_s *bank)
 
 	/* switch back to read array mode */
 	cfi_command(bank, 0xf0, command);
-	target->type->write_memory(target, flash_address(bank, 0, 0x00), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x00), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 	cfi_command(bank, 0xff, command);
-	target->type->write_memory(target, flash_address(bank, 0, 0x00), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x00), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	cfi_fixup(bank, cfi_jedec_fixups);
 
@@ -2032,7 +2194,10 @@ int cfi_probe(struct flash_bank_s *bank)
 		 * SST flashes clearly violate this, and we will consider them incompatbile for now
 		 */
 		cfi_command(bank, 0x98, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 
 		cfi_info->qry[0] = cfi_query_u8(bank, 0, 0x10);
 		cfi_info->qry[1] = cfi_query_u8(bank, 0, 0x11);
@@ -2043,9 +2208,15 @@ int cfi_probe(struct flash_bank_s *bank)
 		if ((cfi_info->qry[0] != 'Q') || (cfi_info->qry[1] != 'R') || (cfi_info->qry[2] != 'Y'))
 		{
 			cfi_command(bank, 0xf0, command);
-			target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+			if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+			{
+				return retval;
+			}
 			cfi_command(bank, 0xff, command);
-			target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+			if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+			{
+				return retval;
+			}
 			LOG_ERROR("Could not probe bank");
 			return ERROR_FLASH_BANK_INVALID;
 		}
@@ -2131,9 +2302,15 @@ int cfi_probe(struct flash_bank_s *bank)
 		 * we use both reset commands, as some Intel flashes fail to recognize the 0xF0 command
 		 */
 		cfi_command(bank, 0xf0, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 		cfi_command(bank, 0xff, command);
-		target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
+		if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	/* apply fixups depending on the primary command set */
@@ -2205,6 +2382,7 @@ int cfi_auto_probe(struct flash_bank_s *bank)
 
 int cfi_intel_protect_check(struct flash_bank_s *bank)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
@@ -2216,7 +2394,10 @@ int cfi_intel_protect_check(struct flash_bank_s *bank)
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	cfi_command(bank, 0x90, command);
-	target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
@@ -2229,13 +2410,12 @@ int cfi_intel_protect_check(struct flash_bank_s *bank)
 	}
 
 	cfi_command(bank, 0xff, command);
-	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
-
-	return ERROR_OK;
+	return target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 }
 
 int cfi_spansion_protect_check(struct flash_bank_s *bank)
 {
+	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
@@ -2243,13 +2423,22 @@ int cfi_spansion_protect_check(struct flash_bank_s *bank)
 	int i;
 
 	cfi_command(bank, 0xaa, command);
-	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	cfi_command(bank, 0x55, command);
-	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock2), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	cfi_command(bank, 0x90, command);
-	target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command);
+	if((retval = target->type->write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
@@ -2262,9 +2451,7 @@ int cfi_spansion_protect_check(struct flash_bank_s *bank)
 	}
 
 	cfi_command(bank, 0xf0, command);
-	target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
-
-	return ERROR_OK;
+	return target->type->write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 }
 
 int cfi_protect_check(struct flash_bank_s *bank)

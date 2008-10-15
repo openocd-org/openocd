@@ -311,15 +311,17 @@ int etm_setup(target_t *target)
 
 int etm_get_reg(reg_t *reg)
 {
-	if (etm_read_reg(reg) != ERROR_OK)
+	int retval;
+	if ((retval = etm_read_reg(reg)) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: error scheduling etm register read");
-		exit(-1);
+		return retval;
 	}
 
-	if (jtag_execute_queue() != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("register read failed");
+		return retval;
 	}
 
 	return ERROR_OK;
@@ -389,10 +391,11 @@ int etm_read_reg(reg_t *reg)
 
 int etm_set_reg(reg_t *reg, u32 value)
 {
-	if (etm_write_reg(reg, value) != ERROR_OK)
+	int retval;
+	if ((retval = etm_write_reg(reg, value)) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: error scheduling etm register write");
-		exit(-1);
+		return retval;
 	}
 
 	buf_set_u32(reg->value, 0, reg->size, value);
@@ -404,12 +407,13 @@ int etm_set_reg(reg_t *reg, u32 value)
 
 int etm_set_reg_w_exec(reg_t *reg, u8 *buf)
 {
+	int retval;
 	etm_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 
-	if (jtag_execute_queue() != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("register write failed");
-		exit(-1);
+		return retval;
 	}
 	return ERROR_OK;
 }

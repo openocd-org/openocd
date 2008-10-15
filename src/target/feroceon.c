@@ -523,6 +523,7 @@ int feroceon_examine_debug_reason(target_t *target)
 
 int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
 {
+	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	enum armv4_5_state core_state = armv4_5->core_state;
@@ -579,7 +580,10 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 			target_buffer_set_u32(target, dcc_code_buf + i*4, dcc_code[i]);
 
 		/* write DCC code to working area */
-		target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, dcc_size, dcc_code_buf);
+		if((retval = target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, dcc_size, dcc_code_buf)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	/* backup clobbered processor state */

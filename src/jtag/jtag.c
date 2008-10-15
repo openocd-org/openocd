@@ -1720,6 +1720,7 @@ static int default_speed_div(int speed, int *khz)
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
+	int retval;
 
 	/* check whether the interface is already configured */
 	if (jtag_interface)
@@ -1738,8 +1739,10 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	{
 		if (strcmp(args[0], jtag_interfaces[i]->name) == 0)
 		{
-			if (jtag_interfaces[i]->register_commands(cmd_ctx) != ERROR_OK)
-				exit(-1);
+			if ((retval = jtag_interfaces[i]->register_commands(cmd_ctx)) != ERROR_OK)
+			{
+				return retval;
+			}
 
 			jtag_interface = jtag_interfaces[i];
 			

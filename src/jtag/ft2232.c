@@ -410,7 +410,7 @@ int ft2232_send_and_recv(jtag_command_t *first, jtag_command_t *last)
 	if ((retval = ft2232_write(ft2232_buffer, ft2232_buffer_size, &bytes_written)) != ERROR_OK)
 	{
 		LOG_ERROR("couldn't write MPSSE commands to FT2232");
-		exit(-1);
+		return retval;
 	}
 	
 #ifdef _DEBUG_USB_IO_
@@ -429,7 +429,7 @@ int ft2232_send_and_recv(jtag_command_t *first, jtag_command_t *last)
 		if ((retval = ft2232_read(ft2232_buffer, ft2232_expect_read, &bytes_read)) != ERROR_OK)
 		{
 			LOG_ERROR("couldn't read from FT2232");
-			exit(-1);
+			return retval;
 		}
 		
 #ifdef _DEBUG_USB_IO_

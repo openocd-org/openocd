@@ -241,6 +241,7 @@ int lpc2000_build_sector_list(struct flash_bank_s *bank)
  */
 int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u32 result_table[2])
 {
+	int retval;
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
 	target_t *target = bank->target;
 	mem_param_t mem_params[2];
@@ -263,7 +264,10 @@ int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u32 resul
 		/* write IAP code to working area */
 		target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
 		target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
-		target->type->write_memory(target, lpc2000_info->iap_working_area->address, 4, 2, jump_gate);
+		if((retval = target->type->write_memory(target, lpc2000_info->iap_working_area->address, 4, 2, jump_gate)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 	
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;

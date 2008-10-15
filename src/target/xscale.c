@@ -2142,6 +2142,7 @@ void xscale_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_ca
 
 int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
+	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 
@@ -2186,16 +2187,28 @@ int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		if (breakpoint->length == 4)
 		{
 			/* keep the original instruction in target endianness */
-			target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
+			if((retval = target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
-			target_write_u32(target, breakpoint->address, xscale->arm_bkpt);
+			if((retval = target_write_u32(target, breakpoint->address, xscale->arm_bkpt)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		else
 		{
 			/* keep the original instruction in target endianness */
-			target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
+			if((retval = target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
-			target_write_u32(target, breakpoint->address, xscale->thumb_bkpt);
+			if((retval = target_write_u32(target, breakpoint->address, xscale->thumb_bkpt)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		breakpoint->set = 1;
 	}
@@ -2242,6 +2255,7 @@ int xscale_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 int xscale_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
+	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 
@@ -2276,11 +2290,17 @@ int xscale_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4)
 		{
-			target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
+			if((retval = target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		else
 		{
-			target->type->write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
+			if((retval = target->type->write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		breakpoint->set = 0;
 	}

@@ -160,15 +160,17 @@ reg_cache_t* etb_build_reg_cache(etb_t *etb)
 
 int etb_get_reg(reg_t *reg)
 {
-	if (etb_read_reg(reg) != ERROR_OK)
+	int retval;
+	if ((retval = etb_read_reg(reg)) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: error scheduling etm register read");
-		exit(-1);
+		return retval;
 	}
 	
-	if (jtag_execute_queue() != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("register read failed");
+		return retval;
 	}
 	
 	return ERROR_OK;
@@ -311,10 +313,11 @@ int etb_read_reg(reg_t *reg)
 
 int etb_set_reg(reg_t *reg, u32 value)
 {
-	if (etb_write_reg(reg, value) != ERROR_OK)
+	int retval;
+	if ((retval = etb_write_reg(reg, value)) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: error scheduling etm register write");
-		exit(-1);
+		return retval;
 	}
 	
 	buf_set_u32(reg->value, 0, reg->size, value);
@@ -326,12 +329,13 @@ int etb_set_reg(reg_t *reg, u32 value)
 
 int etb_set_reg_w_exec(reg_t *reg, u8 *buf)
 {
+	int retval;
 	etb_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 	
-	if (jtag_execute_queue() != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("register write failed");
-		exit(-1);
+		return retval;
 	}
 	return ERROR_OK;
 }

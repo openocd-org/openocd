@@ -233,6 +233,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 
 int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 {
+	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
@@ -294,10 +295,10 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
 	arm7_9_execute_sys_speed(target);
 	
-	if (jtag_execute_queue() != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("failed executing JTAG queue, exiting");
-		exit(-1);
+		return retval;
 	}
 	
 	return ERROR_OK;

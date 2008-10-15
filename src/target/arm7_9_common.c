@@ -217,14 +217,20 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			u32 verify = 0xffffffff;
 			/* keep the original instruction in target endianness */
-			target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
+			if ((retval = target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 			/* write the breakpoint instruction in target endianness (arm7_9->arm_bkpt is host endian) */
 			if ((retval = target_write_u32(target, breakpoint->address, arm7_9->arm_bkpt)) != ERROR_OK)
 			{
 				return retval;
 			}
 
-			target->type->read_memory(target, breakpoint->address, 4, 1, (u8 *)&verify);
+			if ((retval = target->type->read_memory(target, breakpoint->address, 4, 1, (u8 *)&verify)) != ERROR_OK)
+			{
+				return retval;
+			}
 			if (verify != arm7_9->arm_bkpt)
 			{
 				LOG_ERROR("Unable to set 32 bit software breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
@@ -235,14 +241,20 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			u16 verify = 0xffff;
 			/* keep the original instruction in target endianness */
-			target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
+			if ((retval = target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 			/* write the breakpoint instruction in target endianness (arm7_9->thumb_bkpt is host endian) */
 			if ((retval = target_write_u16(target, breakpoint->address, arm7_9->thumb_bkpt)) != ERROR_OK)
 			{
 				return retval;
 			}
 
-			target->type->read_memory(target, breakpoint->address, 2, 1, (u8 *)&verify);
+			if ((retval = target->type->read_memory(target, breakpoint->address, 2, 1, (u8 *)&verify)) != ERROR_OK)
+			{
+				return retval;
+			}
 			if (verify != arm7_9->thumb_bkpt)
 			{
 				LOG_ERROR("Unable to set thumb software breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
@@ -291,17 +303,29 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			u32 current_instr;
 			/* check that user program as not modified breakpoint instruction */
-			target->type->read_memory(target, breakpoint->address, 4, 1, (u8*)&current_instr);
+			if ((retval = target->type->read_memory(target, breakpoint->address, 4, 1, (u8*)&current_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 			if (current_instr==arm7_9->arm_bkpt)
-				target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr);
+				if ((retval = target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+				{
+					return retval;
+				}
 		}
 		else
 		{
 			u16 current_instr;
 			/* check that user program as not modified breakpoint instruction */
-			target->type->read_memory(target, breakpoint->address, 2, 1, (u8*)&current_instr);
+			if ((retval = target->type->read_memory(target, breakpoint->address, 2, 1, (u8*)&current_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 			if (current_instr==arm7_9->thumb_bkpt)
-				target->type->write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr);
+				if ((retval = target->type->write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+				{
+					return retval;
+				}
 		}
 		breakpoint->set = 0;
 	}
@@ -2306,6 +2330,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 
 int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
 {
+	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	int i;
@@ -2332,7 +2357,10 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 		}
 
 		/* write DCC code to working area */
-		target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, 6, dcc_code_buf);
+		if ((retval = target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, 6, dcc_code_buf)) != ERROR_OK)
+		{
+			return retval;
+		}
 	}
 
 	armv4_5_algorithm_t armv4_5_info;
@@ -2348,7 +2376,6 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 
 	//armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params,
 	// int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info))
-	int retval;
 	dcc_count=count;
 	dcc_buffer=buffer;
 	retval = armv4_5_run_algorithm_inner(target, 0, NULL, 1, reg_params,

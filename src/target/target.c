@@ -533,10 +533,10 @@ int target_init(struct command_context_s *cmd_ctx)
 			target->type->examine = default_examine;
 		}
 
-		if (target->type->init_target(cmd_ctx, target) != ERROR_OK)
+		if ((retval = target->type->init_target(cmd_ctx, target)) != ERROR_OK)
 		{
 			LOG_ERROR("target '%s' init failed", target->type->name);
-			exit(-1);
+			return retval;
 		}
 
 		/* Set up default functions if none are provided by target */

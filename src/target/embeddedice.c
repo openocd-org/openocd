@@ -222,15 +222,17 @@ int embeddedice_setup(target_t *target)
 
 int embeddedice_get_reg(reg_t *reg)
 {
-	if (embeddedice_read_reg(reg) != ERROR_OK)
+	int retval;
+	if ((retval = embeddedice_read_reg(reg)) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: error scheduling EmbeddedICE register read");
-		exit(-1);
+		return retval;
 	}
 
-	if (jtag_execute_queue() != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("register read failed");
+		return retval;
 	}
 
 	return ERROR_OK;
@@ -381,12 +383,13 @@ void embeddedice_set_reg(reg_t *reg, u32 value)
 
 int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf)
 {
+	int retval;
 	embeddedice_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 
-	if (jtag_execute_queue() != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("register write failed");
-		exit(-1);
+		return retval;
 	}
 	return ERROR_OK;
 }

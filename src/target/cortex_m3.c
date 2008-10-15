@@ -810,6 +810,7 @@ void cortex_m3_enable_breakpoints(struct target_s *target)
 
 int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
+	int retval;
 	int fp_num=0;
 	u32 hilo;
 	
@@ -851,8 +852,14 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		u8 code[4];
 		buf_set_u32(code, 0, 32, ARMV7M_T_BKPT(0x11));
-		target->type->read_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, breakpoint->orig_instr);
-		target->type->write_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, code);
+		if((retval = target->type->read_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
+		{
+			return retval;
+		}
+		if((retval = target->type->write_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, code)) != ERROR_OK)
+		{
+			return retval;
+		}
 		breakpoint->set = 0x11; /* Any nice value but 0 */
 	}
 
@@ -861,6 +868,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
+	int retval;
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
@@ -889,11 +897,17 @@ int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4)
 		{
-			target->type->write_memory(target, breakpoint->address & 0xFFFFFFFE, 4, 1, breakpoint->orig_instr);
+			if((retval = target->type->write_memory(target, breakpoint->address & 0xFFFFFFFE, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		else
 		{
-			target->type->write_memory(target, breakpoint->address & 0xFFFFFFFE, 2, 1, breakpoint->orig_instr);
+			if((retval = target->type->write_memory(target, breakpoint->address & 0xFFFFFFFE, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 	}
 	breakpoint->set = 0;

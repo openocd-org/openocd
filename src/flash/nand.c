@@ -204,10 +204,10 @@ int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		if (strcmp(args[0], nand_flash_controllers[i]->name) == 0)
 		{
 			/* register flash specific commands */
-			if (nand_flash_controllers[i]->register_commands(cmd_ctx) != ERROR_OK)
+			if ((retval = nand_flash_controllers[i]->register_commands(cmd_ctx)) != ERROR_OK)
 			{
 				LOG_ERROR("couldn't register '%s' commands", args[0]);
-				exit(-1);
+				return retval;
 			}
 	
 			c = malloc(sizeof(nand_device_t));
