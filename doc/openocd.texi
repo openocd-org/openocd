@@ -11,7 +11,7 @@
 @include version.texi
 
 @copying
-Copyright @copyright{} 2007-2008 Spen @email{spen@@spen-soft.co.uk}
+Copyright @copyright{} 2007-2008 Spen @email{spen@@spen-soft.co.uk}@*
 Copyright @copyright{} 2008 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -225,10 +225,10 @@ are executed in order.
 Also it is possible to interleave commands w/config scripts using the @option{-c} command line switch. 
 
 To enable debug output (when reporting problems or working on OpenOCD itself), use
-the @option{-d} command line switch. This sets the debug_level to "3", outputting
+the @option{-d} command line switch. This sets the @option{debug_level} to "3", outputting
 the most information, including debug messages. The default setting is "2", outputting
 only informational messages, warnings and errors. You can also change this setting
-from within a telnet or gdb session (@option{debug_level <n>}).
+from within a telnet or gdb session using @option{debug_level <n>} @xref{debug_level}.
 
 You can redirect all output from the daemon to a file using the @option{-l <logfile>} switch.
 
@@ -254,7 +254,8 @@ chain, the targets that should be debugged, and connected flashes.
 @section Daemon configuration
 
 @itemize @bullet
-@item @b{init} This command terminates the configuration stage and enters the normal
+@item @b{init}
+@*This command terminates the configuration stage and enters the normal
 command mode. This can be useful to add commands to the startup scripts and commands
 such as resetting the target, programming flash, etc. To reset the CPU upon startup,
 add "init" and "reset" at the end of the config script or at the end of the
@@ -262,19 +263,19 @@ OpenOCD command line using the @option{-c} command line switch.
 @cindex init
 @item @b{telnet_port} <@var{number}>
 @cindex telnet_port
-Port on which to listen for incoming telnet connections 
+@*Port on which to listen for incoming telnet connections 
 @item @b{tcl_port} <@var{number}>
 @cindex tcl_port
-Port on which to listen for incoming TCL syntax. This port is intended as
+@*Port on which to listen for incoming TCL syntax. This port is intended as
 a simplified RPC connection that can be used by clients to issue commands
 and get the output from the TCL engine.
 @item @b{gdb_port} <@var{number}>
 @cindex gdb_port
-First port on which to listen for incoming GDB connections. The GDB port for the
+@*First port on which to listen for incoming GDB connections. The GDB port for the
 first target will be gdb_port, the second target will listen on gdb_port + 1, and so on. 
-@item @b{gdb_breakpoint_override} <@var{hard/soft/disabled}>
+@item @b{gdb_breakpoint_override} <@var{hard|soft|disabled}>
 @cindex gdb_breakpoint_override
-hard/soft/disabled - force breakpoint type for gdb 'break' commands.
+@*Force breakpoint type for gdb 'break' commands.
 The raison d'etre for this option is to support GDB GUI's without 
 a hard/soft breakpoint concept where the default OpenOCD and
 GDB behaviour is not sufficient. Note that GDB will use hardware
@@ -284,18 +285,19 @@ This option replaces older arm7_9 target commands that addressed
 the same issue.
 @item @b{gdb_detach} <@var{resume|reset|halt|nothing}>
 @cindex gdb_detach
-Configures what OpenOCD will do when gdb detaches from the daeman.
+@*Configures what OpenOCD will do when gdb detaches from the daeman.
 Default behaviour is <@var{resume}>
 @item @b{gdb_memory_map} <@var{enable|disable}>
 @cindex gdb_memory_map
-Set to <@var{enable}> to cause OpenOCD to send the memory configuration to gdb when
+@*Set to <@var{enable}> to cause OpenOCD to send the memory configuration to gdb when
 requested. gdb will then know when to set hardware breakpoints, and program flash
-using the gdb load command. @option{gdb_flash_program enable} will also need enabling
-for flash programming to work.
+using the gdb load command. @option{gdb_flash_program enable} (@xref{gdb_flash_program})
+will also need enabling for flash programming to work.
 Default behaviour is <@var{enable}>
 @item @b{gdb_flash_program} <@var{enable|disable}>
 @cindex gdb_flash_program
-Set to <@var{enable}> to cause OpenOCD to program the flash memory when a
+@anchor{gdb_flash_program}
+@*Set to <@var{enable}> to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
 Default behaviour is <@var{enable}>
 @end itemize
@@ -305,7 +307,7 @@ Default behaviour is <@var{enable}>
 @itemize @bullet
 @item @b{interface} <@var{name}>
 @cindex interface
-Use the interface driver <@var{name}> to connect to the target. Currently supported
+@*Use the interface driver <@var{name}> to connect to the target. Currently supported
 interfaces are
 @itemize @minus
 @item @b{parport}
@@ -348,7 +350,7 @@ Segger jlink usb adapter
 @itemize @bullet
 @item @b{jtag_speed} <@var{reset speed}>
 @cindex jtag_speed
-Limit the maximum speed of the JTAG interface. Usually, a value of zero means maximum
+@*Limit the maximum speed of the JTAG interface. Usually, a value of zero means maximum
 speed. The actual effect of this option depends on the JTAG interface used. 
 
 The speed used during reset can be adjusted using setting jtag_speed during
@@ -366,14 +368,14 @@ especially true for synthesized cores (-S).
 
 @item @b{jtag_khz} <@var{reset speed kHz}>
 @cindex jtag_khz
-Same as jtag_speed, except that the speed is specified in maximum kHz. If
+@*Same as jtag_speed, except that the speed is specified in maximum kHz. If
 the device can not support the rate asked for, or can not translate from
 kHz to jtag_speed, then an error is returned. 0 means RTCK. If RTCK
 is not supported, then an error is reported.
 
 @item @b{reset_config} <@var{signals}> [@var{combination}] [@var{trst_type}] [@var{srst_type}]
 @cindex reset_config
-The configuration of the reset signals available on the JTAG interface AND the target.
+@*The configuration of the reset signals available on the JTAG interface AND the target.
 If the JTAG interface provides SRST, but the target doesn't connect that signal properly,
 then OpenOCD can't use it. <@var{signals}> can be @option{none}, @option{trst_only},
 @option{srst_only} or @option{trst_and_srst}.
@@ -394,7 +396,7 @@ JTAG interfaces with support for different drivers, like the Amontec JTAGkey and
 
 @item @b{jtag_device} <@var{IR length}> <@var{IR capture}> <@var{IR mask}> <@var{IDCODE instruction}>
 @cindex jtag_device
-Describes the devices that form the JTAG daisy chain, with the first device being
+@*Describes the devices that form the JTAG daisy chain, with the first device being
 the one closest to TDO. The parameters are the length of the instruction register
 (4 for all ARM7/9s), the value captured during Capture-IR (0x1 for ARM7/9), and a mask
 of bits that should be validated when doing IR scans (all four bits (0xf) for ARM7/9).
@@ -411,11 +413,11 @@ The IDCODE instruction is 0xfe.
 
 @item @b{jtag_nsrst_delay} <@var{ms}>
 @cindex jtag_nsrst_delay
-How long (in milliseconds) OpenOCD should wait after deasserting nSRST before
+@*How long (in milliseconds) OpenOCD should wait after deasserting nSRST before
 starting new JTAG operations. 
 @item @b{jtag_ntrst_delay} <@var{ms}>
 @cindex jtag_ntrst_delay
-Same @b{jtag_nsrst_delay}, but for nTRST  
+@*Same @b{jtag_nsrst_delay}, but for nTRST  
 
 The jtag_n[st]rst_delay options are useful if reset circuitry (like a reset supervisor,
 or on-chip features) keep a reset line asserted for some time after the external reset
@@ -427,7 +429,7 @@ got deasserted.
 @itemize @bullet
 @item @b{parport_port} <@var{number}>
 @cindex parport_port
-Either the address of the I/O port (default: 0x378 for LPT1) or the number of
+@*Either the address of the I/O port (default: 0x378 for LPT1) or the number of
 the @file{/dev/parport} device
 
 When using PPDEV to access the parallel port, use the number of the parallel port:
@@ -435,7 +437,7 @@ When using PPDEV to access the parallel port, use the number of the parallel por
 you may encounter a problem.
 @item @b{parport_cable} <@var{name}>
 @cindex parport_cable
-The layout of the parallel port cable used to connect to the target.
+@*The layout of the parallel port cable used to connect to the target.
 Currently supported cables are 
 @itemize @minus
 @item @b{wiggler}
@@ -477,7 +479,7 @@ Altium Universal JTAG cable.
 @end itemize
 @item @b{parport_write_on_exit} <@var{on|off}>
 @cindex parport_write_on_exit
-This will configure the parallel driver to write a known value to the parallel
+@*This will configure the parallel driver to write a known value to the parallel
 interface on exiting OpenOCD
 @end itemize
 
@@ -485,7 +487,7 @@ interface on exiting OpenOCD
 @itemize @bullet
 @item @b{parport_port} <@var{number}>
 @cindex parport_port
-Either the address of the I/O port (default: 0x378 for LPT1) or the number of the
+@*Either the address of the I/O port (default: 0x378 for LPT1) or the number of the
 @file{/dev/parport} device 
 @end itemize
 @section ft2232 options
@@ -493,11 +495,11 @@ Either the address of the I/O port (default: 0x378 for LPT1) or the number of th
 @itemize @bullet
 @item @b{ft2232_device_desc} <@var{description}>
 @cindex ft2232_device_desc
-The USB device description of the FTDI FT2232 device. If not specified, the FTDI
+@*The USB device description of the FTDI FT2232 device. If not specified, the FTDI
 default value is used. This setting is only valid if compiled with FTD2XX support.
 @item @b{ft2232_layout} <@var{name}>
 @cindex ft2232_layout
-The layout of the FT2232 GPIO signals used to control output-enables and reset
+@*The layout of the FT2232 GPIO signals used to control output-enables and reset
 signals. Valid layouts are
 @itemize @minus
 @item @b{usbjtag}
@@ -526,13 +528,13 @@ OOCDLink
 @end itemize
 
 @item @b{ft2232_vid_pid} <@var{vid}> <@var{pid}>
-The vendor ID and product ID of the FTDI FT2232 device. If not specified, the FTDI
+@*The vendor ID and product ID of the FTDI FT2232 device. If not specified, the FTDI
 default values are used. Multiple <@var{vid}>, <@var{pid}> pairs may be given, eg.
 @smallexample
 ft2232_vid_pid 0x0403 0xcff8 0x15ba 0x0003
 @end smallexample
 @item @b{ft2232_latency} <@var{ms}>
-On some systems using ft2232 based JTAG interfaces the FT_Read function call in
+@*On some systems using ft2232 based JTAG interfaces the FT_Read function call in
 ft2232_read() fails to return the expected number of bytes. This can be caused by
 USB communication delays and has proved hard to reproduce and debug. Setting the
 FT2232 latency timer to a larger value increases delays for short USB packages but it
@@ -551,7 +553,7 @@ Currently, there are no options available for the ep93xx interface.
 @item @b{target} <@var{type}> <@var{endianess}> <@var{JTAG pos}>
 <@var{variant}>
 @cindex target
-Defines a target that should be debugged. Currently supported types are:
+@*Defines a target that should be debugged. Currently supported types are:
 @itemize @minus
 @item @b{arm7tdmi}
 @item @b{arm720t}
@@ -563,6 +565,7 @@ Defines a target that should be debugged. Currently supported types are:
 @item @b{cortex_m3}
 @item @b{feroceon}
 @item @b{xscale}
+@item @b{mips_m4k}
 @end itemize
 
 If you want to use a target board that is not on this list, see Adding a new
@@ -572,7 +575,7 @@ Endianess may be @option{little} or @option{big}.
 
 @item @b{target_script} <@var{target#}> <@var{event}> <@var{script_file}>
 @cindex target_script
-Event is one of the following:
+@*Event is one of the following:
 @option{pre_reset}, @option{reset}, @option{post_reset}, @option{post_halt},
 @option{pre_resume} or @option{gdb_program_config}.
 @option{post_reset} and @option{reset} will produce the same results.
@@ -580,7 +583,7 @@ Event is one of the following:
 @item @b{working_area} <@var{target#}> <@var{address}> <@var{size}>
 <@var{backup}|@var{nobackup}>
 @cindex working_area
-Specifies a working area for the debugger to use. This may be used to speed-up
+@*Specifies a working area for the debugger to use. This may be used to speed-up
 downloads to target memory and flash operations, or to perform otherwise unavailable
 operations (some coprocessor operations on ARM7/9 systems, for example). The last
 parameter decides whether the memory should be preserved (<@var{backup}>) or can simply be overwritten (<@var{nobackup}>). If possible, use
@@ -590,7 +593,7 @@ a working_area that doesn't need to be backed up, as performing a backup slows d
 @subsection arm7tdmi options
 @cindex arm7tdmi options
 target arm7tdmi <@var{endianess}> <@var{jtag#}>
-The arm7tdmi target definition requires at least one additional argument, specifying
+@*The arm7tdmi target definition requires at least one additional argument, specifying
 the position of the target in the JTAG daisy-chain. The first JTAG device is number 0.
 The optional [@var{variant}] parameter has been removed in recent versions.
 The correct feature set is determined at runtime. 
@@ -632,7 +635,7 @@ Supported variants are @option{ixp42x}, @option{ixp45x}, @option{ixp46x},
 @item @b{flash bank} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}>
 <@var{bus_width}> <@var{target#}> [@var{driver_options ...}]
 @cindex flash bank
-Configures a flash bank at <@var{base}> of <@var{size}> bytes and <@var{chip_width}>
+@*Configures a flash bank at <@var{base}> of <@var{size}> bytes and <@var{chip_width}>
 and <@var{bus_width}> bytes using the selected flash <driver>.
 @end itemize
 
@@ -641,7 +644,7 @@ and <@var{bus_width}> bytes using the selected flash <driver>.
 
 @b{flash bank lpc2000} <@var{base}> <@var{size}> 0 0 <@var{target#}> <@var{variant}>
 <@var{clock}> [@var{calc_checksum}]
-LPC flashes don't require the chip and bus width to be specified. Additional
+@*LPC flashes don't require the chip and bus width to be specified. Additional
 parameters are the <@var{variant}>, which may be @var{lpc2000_v1} (older LPC21xx and LPC22xx)
 or @var{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx), the number
 of the target this flash belongs to (first is 0), the frequency at which the core
@@ -654,7 +657,7 @@ vector table.
 
 @b{flash bank cfi} <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}>
 <@var{target#}> [@var{jedec_probe}|@var{x16_as_x8}]
-CFI flashes require the number of the target they're connected to as an additional
+@*CFI flashes require the number of the target they're connected to as an additional
 argument. The CFI driver makes use of a working area (specified for the target)
 to significantly speed up operation. 
 
@@ -668,20 +671,20 @@ The @var{jedec_probe} option is used to detect certain non-CFI flash roms, like 
 @cindex at91sam7 options
 
 @b{flash bank at91sam7} 0 0 0 0 <@var{target#}>
-AT91SAM7 flashes only require the @var{target#}, all other values are looked up after
+@*AT91SAM7 flashes only require the @var{target#}, all other values are looked up after
 reading the chip-id and type. 
 
 @subsection str7 options
 @cindex str7 options
 
 @b{flash bank str7x} <@var{base}> <@var{size}> 0 0 <@var{target#}> <@var{variant}>
-variant can be either STR71x, STR73x or STR75x. 
+@*variant can be either STR71x, STR73x or STR75x. 
 
 @subsection str9 options
 @cindex str9 options
 
 @b{flash bank str9x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
-The str9 needs the flash controller to be configured prior to Flash programming, eg.
+@*The str9 needs the flash controller to be configured prior to Flash programming, eg.
 @smallexample
 str9x flash_config 0 4 2 0 0x80000
 @end smallexample
@@ -690,7 +693,7 @@ This will setup the BBSR, NBBSR, BBADR and NBBADR registers respectively.
 @subsection str9 options (str9xpec driver)
 
 @b{flash bank str9xpec} <@var{base}> <@var{size}> 0 0 <@var{target#}>
-Before using the flash commands the turbo mode will need enabling using str9xpec
+@*Before using the flash commands the turbo mode will need enabling using str9xpec
 @option{enable_turbo} <@var{num>.}
 
 Only use this driver for locking/unlocking the device or configuring the option bytes.
@@ -700,19 +703,19 @@ Use the standard str9 driver for programming.
 @cindex stellaris (LM3Sxxx) options
 
 @b{flash bank stellaris} <@var{base}> <@var{size}> 0 0 <@var{target#}>
-stellaris flash plugin only require the @var{target#}. 
+@*stellaris flash plugin only require the @var{target#}. 
 
 @subsection stm32x options
 @cindex stm32x options
 
 @b{flash bank stm32x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
-stm32x flash plugin only require the @var{target#}. 
+@*stm32x flash plugin only require the @var{target#}. 
 
 @subsection aduc702x options
 @cindex aduc702x options
 
 @b{flash bank aduc702x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
-aduc702x flash plugin require the flash @var{base}, @var{size} and @var{target#}.
+@*aduc702x flash plugin require the flash @var{base}, @var{size} and @var{target#}.
 
 @node Target library
 @chapter Target library
@@ -768,20 +771,21 @@ the commands.
 @itemize @bullet
 @item @b{sleep} <@var{msec}>
 @cindex sleep
-Wait for n milliseconds before resuming. Useful in connection with script files
+@*Wait for n milliseconds before resuming. Useful in connection with script files
 (@var{script} command and @var{target_script} configuration). 
 
 @item @b{shutdown}
 @cindex shutdown
-Close the OpenOCD daemon, disconnecting all clients (GDB, Telnet, Other). 
+@*Close the OpenOCD daemon, disconnecting all clients (GDB, Telnet, Other). 
 
 @item @b{debug_level} [@var{n}]
 @cindex debug_level
-Display or adjust debug level to n<0-3> 
+@anchor{debug_level}
+@*Display or adjust debug level to n<0-3> 
 
-@item @b{fast} [@var{enable/disable}]
+@item @b{fast} [@var{enable|disable}]
 @cindex fast
-Default disabled. Set default behaviour of OpenOCD to be "fast and dangerous". For instance ARM7/9 DCC memory
+@*Default disabled. Set default behaviour of OpenOCD to be "fast and dangerous". For instance ARM7/9 DCC memory
 downloads and fast memory access will work if the JTAG interface isn't too fast and
 the core doesn't run at a too low frequency. Note that this option only changes the default
 and that the indvidual options, like DCC memory downloads, can be enabled and disabled
@@ -799,11 +803,11 @@ openocd -c "fast enable" -c "interface dummy" -f target/str710.cfg
 
 @item @b{log_output} <@var{file}>
 @cindex log_output
-Redirect logging to <file> (default: stderr) 
+@*Redirect logging to <file> (default: stderr) 
 
 @item @b{script} <@var{file}>
 @cindex script
-Execute commands from <file> 
+@*Execute commands from <file> 
 
 @end itemize
 
@@ -811,47 +815,47 @@ Execute commands from <file>
 @itemize @bullet
 @item @b{poll} [@option{on}|@option{off}]
 @cindex poll
-Poll the target for its current state. If the target is in debug mode, architecture
+@*Poll the target for its current state. If the target is in debug mode, architecture
 specific information about the current state is printed. An optional parameter
 allows continuous polling to be enabled and disabled.
 
 @item @b{halt} [@option{ms}]
 @cindex halt
-Send a halt request to the target and wait for it to halt for up to [@option{ms}] milliseconds.
+@*Send a halt request to the target and wait for it to halt for up to [@option{ms}] milliseconds.
 Default [@option{ms}] is 5 seconds if no arg given.
 Optional arg @option{ms} is a timeout in milliseconds. Using 0 as the [@option{ms}]
 will stop OpenOCD from waiting.
 
 @item @b{wait_halt} [@option{ms}]
 @cindex wait_halt
-Wait for the target to enter debug mode. Optional [@option{ms}] is
+@*Wait for the target to enter debug mode. Optional [@option{ms}] is
 a timeout in milliseconds. Default [@option{ms}] is 5 seconds if no
 arg given.
 
 @item @b{resume} [@var{address}]
 @cindex resume
-Resume the target at its current code position, or at an optional address.
+@*Resume the target at its current code position, or at an optional address.
 OpenOCD will wait 5 seconds for the target to resume.
 
 @item @b{step} [@var{address}]
 @cindex step
-Single-step the target at its current code position, or at an optional address. 
+@*Single-step the target at its current code position, or at an optional address. 
 
 @item @b{reset} [@option{run}|@option{halt}|@option{init}]
 @cindex reset
-Perform a hard-reset. The optional parameter specifies what should happen after the reset.
+@*Perform a hard-reset. The optional parameter specifies what should happen after the reset.
 
 With no arguments a "reset run" is executed
 @itemize @minus
 @item @b{run}
 @cindex reset run
-Let the target run.
+@*Let the target run.
 @item @b{halt}
 @cindex reset halt
-Immediately halt the target (works only with certain configurations).
+@*Immediately halt the target (works only with certain configurations).
 @item @b{init}
 @cindex reset init
-Immediately halt the target, and execute the reset script (works only with certain
+@*Immediately halt the target, and execute the reset script (works only with certain
 configurations)
 @end itemize
 @end itemize
@@ -861,33 +865,33 @@ These commands allow accesses of a specific size to the memory system:
 @itemize @bullet
 @item @b{mdw} <@var{addr}> [@var{count}]
 @cindex mdw
-display memory words 
+@*display memory words 
 @item @b{mdh} <@var{addr}> [@var{count}]
 @cindex mdh
-display memory half-words 
+@*display memory half-words 
 @item @b{mdb} <@var{addr}> [@var{count}]
 @cindex mdb
-display memory bytes 
+@*display memory bytes 
 @item @b{mww} <@var{addr}> <@var{value}>
 @cindex mww
-write memory word 
+@*write memory word 
 @item @b{mwh} <@var{addr}> <@var{value}>
 @cindex mwh
-write memory half-word 
+@*write memory half-word 
 @item @b{mwb} <@var{addr}> <@var{value}>
 @cindex mwb
-write memory byte 
+@*write memory byte 
 
 @item @b{load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
 @cindex load_image
-Load image <@var{file}> to target memory at <@var{address}> 
+@*Load image <@var{file}> to target memory at <@var{address}> 
 @item @b{dump_image} <@var{file}> <@var{address}> <@var{size}>
 @cindex dump_image
-Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
+@*Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
 (binary) <@var{file}>.
 @item @b{verify_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
 @cindex verify_image
-Verify <@var{file}> against target memory starting at <@var{address}>.
+@*Verify <@var{file}> against target memory starting at <@var{address}>.
 This will first attempt comparison using a crc checksum, if this fails it will try a binary compare.
 @end itemize
 
@@ -896,47 +900,47 @@ This will first attempt comparison using a crc checksum, if this fails it will t
 @itemize @bullet
 @item @b{flash banks}
 @cindex flash banks
-List configured flash banks 
+@*List configured flash banks 
 @item @b{flash info} <@var{num}>
 @cindex flash info
-Print info about flash bank <@option{num}> 
+@*Print info about flash bank <@option{num}> 
 @item @b{flash probe} <@var{num}>
 @cindex flash probe
-Identify the flash, or validate the parameters of the configured flash. Operation
+@*Identify the flash, or validate the parameters of the configured flash. Operation
 depends on the flash type. 
 @item @b{flash erase_check} <@var{num}>
 @cindex flash erase_check
-Check erase state of sectors in flash bank <@var{num}>. This is the only operation that
+@*Check erase state of sectors in flash bank <@var{num}>. This is the only operation that
 updates the erase state information displayed by @option{flash info}. That means you have
 to issue an @option{erase_check} command after erasing or programming the device to get
 updated information. 
 @item @b{flash protect_check} <@var{num}>
 @cindex flash protect_check
-Check protection state of sectors in flash bank <num>. 
+@*Check protection state of sectors in flash bank <num>. 
 @option{flash erase_sector} using the same syntax. 
 @item @b{flash erase_sector} <@var{num}> <@var{first}> <@var{last}>
 @cindex flash erase_sector
-Erase sectors at bank <@var{num}>, starting at sector <@var{first}> up to and including
+@*Erase sectors at bank <@var{num}>, starting at sector <@var{first}> up to and including
 <@var{last}>. Sector numbering starts at 0. Depending on the flash type, erasing may
 require the protection to be disabled first (e.g. Intel Advanced Bootblock flash using
 the CFI driver).
 @item @b{flash erase_address} <@var{address}> <@var{length}>
 @cindex flash erase_address
-Erase sectors starting at <@var{address}> for <@var{length}> bytes
+@*Erase sectors starting at <@var{address}> for <@var{length}> bytes
 @item @b{flash write_bank} <@var{num}> <@var{file}> <@var{offset}>
 @cindex flash write_bank
-Write the binary <@var{file}> to flash bank <@var{num}>, starting at
+@*Write the binary <@var{file}> to flash bank <@var{num}>, starting at
 <@option{offset}> bytes from the beginning of the bank.
 @item @b{flash write_image} [@var{erase}] <@var{file}> [@var{offset}] [@var{type}]
 @cindex flash write_image
-Write the image <@var{file}> to the current target's flash bank(s). A relocation
+@*Write the image <@var{file}> to the current target's flash bank(s). A relocation
 [@var{offset}] can be specified and the file [@var{type}] can be specified
 explicitly as @option{bin} (binary), @option{ihex} (Intel hex), @option{elf}
 (ELF file) or @option{s19} (Motorola s19). Flash memory will be erased prior to programming
 if the @option{erase} parameter is given.
 @item @b{flash protect} <@var{num}> <@var{first}> <@var{last}> <@option{on}|@option{off}>
 @cindex flash protect
-Enable (@var{on}) or disable (@var{off}) protection of flash sectors <@var{first}> to
+@*Enable (@var{on}) or disable (@var{off}) protection of flash sectors <@var{first}> to
 <@var{last}> of @option{flash bank} <@var{num}>.
 @end itemize
 
@@ -954,10 +958,10 @@ that can be erased separatly. Only an EraseAll command is supported by the contr
 for each flash plane and this is called with
 @itemize @bullet
 @item @b{flash erase} <@var{num}> @var{first_plane} @var{last_plane}
-bulk erase flash planes first_plane to last_plane. 
+@*bulk erase flash planes first_plane to last_plane. 
 @item @b{at91sam7 gpnvm} <@var{num}> <@var{bit}> <@option{set}|@option{clear}>
 @cindex at91sam7 gpnvm
-set or clear a gpnvm bit for the processor 
+@*set or clear a gpnvm bit for the processor 
 @end itemize
 
 @subsection STR9 specific commands
@@ -966,24 +970,24 @@ These are flash specific commands when using the str9xpec driver.
 @itemize @bullet
 @item @b{str9xpec enable_turbo} <@var{num}>
 @cindex str9xpec enable_turbo
-enable turbo mode, simply this will remove the str9 from the chain and talk
+@*enable turbo mode, simply this will remove the str9 from the chain and talk
 directly to the embedded flash controller. 
 @item @b{str9xpec disable_turbo} <@var{num}>
 @cindex str9xpec disable_turbo
-restore the str9 into jtag chain. 
+@*restore the str9 into jtag chain. 
 @item @b{str9xpec lock} <@var{num}>
 @cindex str9xpec lock
-lock str9 device. The str9 will only respond to an unlock command that will
+@*lock str9 device. The str9 will only respond to an unlock command that will
 erase the device. 
 @item @b{str9xpec unlock} <@var{num}>
 @cindex str9xpec unlock
-unlock str9 device. 
+@*unlock str9 device. 
 @item @b{str9xpec options_read} <@var{num}>
 @cindex str9xpec options_read
-read str9 option bytes. 
+@*read str9 option bytes. 
 @item @b{str9xpec options_write} <@var{num}>
 @cindex str9xpec options_write
-write str9 option bytes. 
+@*write str9 option bytes. 
 @end itemize
 
 @subsection STR9 configuration
@@ -992,7 +996,7 @@ write str9 option bytes.
 @item @b{str9x flash_config} <@var{bank}> <@var{BBSR}> <@var{NBBSR}>
 <@var{BBADR}> <@var{NBBADR}>
 @cindex str9x flash_config
-Configure str9 flash controller.
+@*Configure str9 flash controller.
 @smallexample
 eg. str9x flash_config 0 4 2 0 0x80000
 This will setup
@@ -1008,16 +1012,16 @@ NBBADR - Boot Bank Start Address register
 @itemize @bullet
 @item @b{str9xpec options_cmap} <@var{num}> <@option{bank0}|@option{bank1}>
 @cindex str9xpec options_cmap
-configure str9 boot bank. 
+@*configure str9 boot bank. 
 @item @b{str9xpec options_lvdthd} <@var{num}> <@option{2.4v}|@option{2.7v}>
 @cindex str9xpec options_lvdthd
-configure str9 lvd threshold. 
+@*configure str9 lvd threshold. 
 @item @b{str9xpec options_lvdsel} <@var{num}> <@option{vdd}|@option{vdd_vddq}>
 @cindex str9xpec options_lvdsel
-configure str9 lvd source. 
+@*configure str9 lvd source. 
 @item @b{str9xpec options_lvdwarn} <@var{bank}> <@option{vdd}|@option{vdd_vddq}>
 @cindex str9xpec options_lvdwarn
-configure str9 lvd reset warning source. 
+@*configure str9 lvd reset warning source. 
 @end itemize
 
 @subsection STM32x specific commands
@@ -1027,30 +1031,30 @@ These are flash specific commands when using the stm32x driver.
 @itemize @bullet
 @item @b{stm32x lock} <@var{num}>
 @cindex stm32x lock
-lock stm32 device. 
+@*lock stm32 device. 
 @item @b{stm32x unlock} <@var{num}>
 @cindex stm32x unlock
-unlock stm32 device. 
+@*unlock stm32 device. 
 @item @b{stm32x options_read} <@var{num}>
 @cindex stm32x options_read
-read stm32 option bytes. 
+@*read stm32 option bytes. 
 @item @b{stm32x options_write} <@var{num}> <@option{SWWDG}|@option{HWWDG}>
 <@option{RSTSTNDBY}|@option{NORSTSTNDBY}> <@option{RSTSTOP}|@option{NORSTSTOP}>
 @cindex stm32x options_write
-write stm32 option bytes. 
+@*write stm32 option bytes. 
 @item @b{stm32x mass_erase} <@var{num}>
 @cindex stm32x mass_erase
-mass erase flash memory. 
+@*mass erase flash memory. 
 @end itemize
 
 @subsection Stellaris specific commands
 @cindex Stellaris specific commands
- 
+
 These are flash specific commands when using the Stellaris driver.
 @itemize @bullet
 @item @b{stellaris mass_erase} <@var{num}>
 @cindex stellaris mass_erase
-mass erase flash memory. 
+@*mass erase flash memory. 
 @end itemize
 
 @page
@@ -1065,12 +1069,12 @@ or Intel XScale (XScale isn't supported yet).
 @itemize @bullet
 @item @b{armv4_5 reg}
 @cindex armv4_5 reg
-Display a list of all banked core registers, fetching the current value from every
+@*Display a list of all banked core registers, fetching the current value from every
 core mode if necessary. OpenOCD versions before rev. 60 didn't fetch the current
 register value. 
 @item @b{armv4_5 core_mode} [@var{arm}|@var{thumb}]
 @cindex armv4_5 core_mode
-Displays the core_mode, optionally changing it to either ARM or Thumb mode.
+@*Displays the core_mode, optionally changing it to either ARM or Thumb mode.
 The target is resumed in the currently set @option{core_mode}. 
 @end itemize
 
@@ -1082,17 +1086,17 @@ ARM920t or ARM926EJ-S.
 @itemize @bullet
 @item @b{arm7_9 dbgrq} <@var{enable}|@var{disable}>
 @cindex arm7_9 dbgrq
-Enable use of the DBGRQ bit to force entry into debug mode. This should be
+@*Enable use of the DBGRQ bit to force entry into debug mode. This should be
 safe for all but ARM7TDMI--S cores (like Philips LPC). 
 @item @b{arm7_9 fast_memory_access} <@var{enable}|@var{disable}>
 @cindex arm7_9 fast_memory_access
-Allow OpenOCD to read and write memory without checking completion of
+@*Allow OpenOCD to read and write memory without checking completion of
 the operation. This provides a huge speed increase, especially with USB JTAG
 cables (FT2232), but might be unsafe if used with targets running at a very low
 speed, like the 32kHz startup clock of an AT91RM9200. 
 @item @b{arm7_9 dcc_downloads} <@var{enable}|@var{disable}>
 @cindex arm7_9 dcc_downloads
-Enable the use of the debug communications channel (DCC) to write larger (>128 byte)
+@*Enable the use of the debug communications channel (DCC) to write larger (>128 byte)
 amounts of memory. DCC downloads offer a huge speed increase, but might be potentially
 unsafe, especially with targets running at a very low speed. This command was introduced
 with OpenOCD rev. 60. 
@@ -1104,16 +1108,16 @@ with OpenOCD rev. 60.
 @itemize @bullet
 @item @b{arm720t cp15} <@var{num}> [@var{value}]
 @cindex arm720t cp15
-display/modify cp15 register <@option{num}> [@option{value}].
+@*display/modify cp15 register <@option{num}> [@option{value}].
 @item @b{arm720t md<bhw>_phys} <@var{addr}> [@var{count}]
 @cindex arm720t md<bhw>_phys
-Display memory at physical address addr. 
+@*Display memory at physical address addr. 
 @item @b{arm720t mw<bhw>_phys} <@var{addr}> <@var{value}>
 @cindex arm720t mw<bhw>_phys
-Write memory at physical address addr.
+@*Write memory at physical address addr.
 @item @b{arm720t virt2phys} <@var{va}>
 @cindex arm720t virt2phys
-Translate a virtual address to a physical address. 
+@*Translate a virtual address to a physical address. 
 @end itemize
 
 @subsection ARM9TDMI specific commands
@@ -1122,7 +1126,7 @@ Translate a virtual address to a physical address.
 @itemize @bullet
 @item @b{arm9tdmi vector_catch} <@var{all}|@var{none}>
 @cindex arm9tdmi vector_catch
-Catch arm9 interrupt vectors, can be @option{all} @option{none} or any of the following:
+@*Catch arm9 interrupt vectors, can be @option{all} @option{none} or any of the following:
 @option{reset} @option{undef} @option{swi} @option{pabt} @option{dabt} @option{reserved}
 @option{irq} @option{fiq}.
 
@@ -1135,7 +1139,7 @@ Can also be used on other arm9 based cores, arm966, arm920t and arm926ejs.
 @itemize @bullet
 @item @b{arm966e cp15} <@var{num}> [@var{value}]
 @cindex arm966e cp15
-display/modify cp15 register <@option{num}> [@option{value}].
+@*display/modify cp15 register <@option{num}> [@option{value}].
 @end itemize
 
 @subsection ARM920T specific commands
@@ -1144,29 +1148,29 @@ display/modify cp15 register <@option{num}> [@option{value}].
 @itemize @bullet
 @item @b{arm920t cp15} <@var{num}> [@var{value}]
 @cindex arm920t cp15
-display/modify cp15 register <@option{num}> [@option{value}].
+@*display/modify cp15 register <@option{num}> [@option{value}].
 @item @b{arm920t cp15i} <@var{num}> [@var{value}] [@var{address}]
 @cindex arm920t cp15i
-display/modify cp15 (interpreted access) <@option{opcode}> [@option{value}] [@option{address}]
+@*display/modify cp15 (interpreted access) <@option{opcode}> [@option{value}] [@option{address}]
 @item @b{arm920t cache_info}
 @cindex arm920t cache_info
-Print information about the caches found. This allows you to see if your target
+@*Print information about the caches found. This allows you to see if your target
 is a ARM920T (2x16kByte cache) or ARM922T (2x8kByte cache). 
 @item @b{arm920t md<bhw>_phys} <@var{addr}> [@var{count}]
 @cindex arm920t md<bhw>_phys
-Display memory at physical address addr. 
+@*Display memory at physical address addr. 
 @item @b{arm920t mw<bhw>_phys} <@var{addr}> <@var{value}>
 @cindex arm920t mw<bhw>_phys
-Write memory at physical address addr. 
+@*Write memory at physical address addr. 
 @item @b{arm920t read_cache} <@var{filename}>
 @cindex arm920t read_cache
-Dump the content of ICache and DCache to a file. 
+@*Dump the content of ICache and DCache to a file. 
 @item @b{arm920t read_mmu} <@var{filename}>
 @cindex arm920t read_mmu
-Dump the content of the ITLB and DTLB to a file. 
+@*Dump the content of the ITLB and DTLB to a file. 
 @item @b{arm920t virt2phys} <@var{va}>
 @cindex arm920t virt2phys
-Translate a virtual address to a physical address. 
+@*Translate a virtual address to a physical address. 
 @end itemize
 
 @subsection ARM926EJS specific commands
@@ -1175,19 +1179,19 @@ Translate a virtual address to a physical address.
 @itemize @bullet
 @item @b{arm926ejs cp15} <@var{num}> [@var{value}]
 @cindex arm926ejs cp15
-display/modify cp15 register <@option{num}> [@option{value}].
+@*display/modify cp15 register <@option{num}> [@option{value}].
 @item @b{arm926ejs cache_info}
 @cindex arm926ejs cache_info
-Print information about the caches found.
+@*Print information about the caches found.
 @item @b{arm926ejs md<bhw>_phys} <@var{addr}> [@var{count}]
 @cindex arm926ejs md<bhw>_phys
-Display memory at physical address addr. 
+@*Display memory at physical address addr. 
 @item @b{arm926ejs mw<bhw>_phys} <@var{addr}> <@var{value}>
 @cindex arm926ejs mw<bhw>_phys
-Write memory at physical address addr. 
+@*Write memory at physical address addr. 
 @item @b{arm926ejs virt2phys} <@var{va}>
 @cindex arm926ejs virt2phys
-Translate a virtual address to a physical address. 
+@*Translate a virtual address to a physical address. 
 @end itemize
 
 @page
@@ -1198,17 +1202,17 @@ only useful while debugging OpenOCD.
 @itemize @bullet
 @item @b{arm7_9 write_xpsr} <@var{32-bit value}> <@option{0=cpsr}, @option{1=spsr}>
 @cindex arm7_9 write_xpsr
-Immediately write either the current program status register (CPSR) or the saved
+@*Immediately write either the current program status register (CPSR) or the saved
 program status register (SPSR), without changing the register cache (as displayed
 by the @option{reg} and @option{armv4_5 reg} commands). 
 @item @b{arm7_9 write_xpsr_im8} <@var{8-bit value}> <@var{rotate 4-bit}>
 <@var{0=cpsr},@var{1=spsr}>
 @cindex arm7_9 write_xpsr_im8
-Write the 8-bit value rotated right by 2*rotate bits, using an immediate write
+@*Write the 8-bit value rotated right by 2*rotate bits, using an immediate write
 operation (similar to @option{write_xpsr}). 
 @item @b{arm7_9 write_core_reg} <@var{num}> <@var{mode}> <@var{value}>
 @cindex arm7_9 write_core_reg
-Write a core register, without changing the register cache (as displayed by the
+@*Write a core register, without changing the register cache (as displayed by the
 @option{reg} and @option{armv4_5 reg} commands). The <@var{mode}> argument takes the
 encoding of the [M4:M0] bits of the PSR. 
 @end itemize
@@ -1219,31 +1223,31 @@ encoding of the [M4:M0] bits of the PSR.
 @itemize @bullet
 @item @b{scan_chain}
 @cindex scan_chain
-Print current scan chain configuration. 
+@*Print current scan chain configuration. 
 @item @b{jtag_reset} <@var{trst}> <@var{srst}>
 @cindex jtag_reset
-Toggle reset lines. 
+@*Toggle reset lines. 
 @item @b{endstate} <@var{tap_state}>
 @cindex endstate
-Finish JTAG operations in <@var{tap_state}>. 
+@*Finish JTAG operations in <@var{tap_state}>. 
 @item @b{runtest} <@var{num_cycles}>
 @cindex runtest
-Move to Run-Test/Idle, and execute <@var{num_cycles}> 
+@*Move to Run-Test/Idle, and execute <@var{num_cycles}> 
 @item @b{statemove} [@var{tap_state}]
 @cindex statemove
-Move to current endstate or [@var{tap_state}] 
+@*Move to current endstate or [@var{tap_state}] 
 @item @b{irscan} <@var{device}> <@var{instr}> [@var{dev2}] [@var{instr2}] ...
 @cindex irscan
-Execute IR scan <@var{device}> <@var{instr}> [@var{dev2}] [@var{instr2}] ... 
+@*Execute IR scan <@var{device}> <@var{instr}> [@var{dev2}] [@var{instr2}] ... 
 @item @b{drscan} <@var{device}> [@var{dev2}] [@var{var2}] ...
 @cindex drscan
-Execute DR scan <@var{device}> [@var{dev2}] [@var{var2}] ... 
+@*Execute DR scan <@var{device}> [@var{dev2}] [@var{var2}] ... 
 @item @b{verify_ircapture} <@option{enable}|@option{disable}>
 @cindex verify_ircapture
-Verify value captured during Capture-IR. Default is enabled.
+@*Verify value captured during Capture-IR. Default is enabled.
 @item @b{var} <@var{name}> [@var{num_fields}|@var{del}] [@var{size1}] ... 
 @cindex var
-Allocate, display or delete variable <@var{name}> [@var{num_fields}|@var{del}] [@var{size1}] ... 
+@*Allocate, display or delete variable <@var{name}> [@var{num_fields}|@var{del}] [@var{size1}] ... 
 @item @b{field} <@var{var}> <@var{field}> [@var{value}|@var{flip}]
 @cindex field
 Display/modify variable field <@var{var}> <@var{field}> [@var{value}|@var{flip}].
@@ -1257,7 +1261,7 @@ See libdcc in the contrib dir for more details.
 @itemize @bullet
 @item @b{target_request debugmsgs} <@var{enable}|@var{disable}>
 @cindex target_request debugmsgs
-Enable/disable target debugmsgs requests. debugmsgs enable messages to be sent to the debugger while the target is running.
+@*Enable/disable target debugmsgs requests. debugmsgs enable messages to be sent to the debugger while the target is running.
 @end itemize
 
 @node Sample Scripts
@@ -1453,45 +1457,45 @@ Certain OpenOCD commands have been deprecated/removed during the various revisio
 @itemize @bullet
 @item @b{load_binary}
 @cindex load_binary
-use @option{load_image} command with same args
+@*use @option{load_image} command with same args
 @item @b{target}
 @cindex target
-@option{target} no longer take the reset_init, reset_run, run_and_halt, run_and_init. The @option{reset} command
+@*@option{target} no longer take the reset_init, reset_run, run_and_halt, run_and_init. The @option{reset} command
 always does a @option{reset run} when passed no arguments.
 @item @b{dump_binary}
 @cindex dump_binary
-use @option{dump_image} command with same args
+@*use @option{dump_image} command with same args
 @item @b{flash erase}
 @cindex flash erase
-use @option{flash erase_sector} command with same args
+@*use @option{flash erase_sector} command with same args
 @item @b{flash write}
 @cindex flash write
-use @option{flash write_bank} command with same args
+@*use @option{flash write_bank} command with same args
 @item @b{flash write_binary}
 @cindex flash write_binary
-use @option{flash write_bank} command with same args
+@*use @option{flash write_bank} command with same args
 @item @b{arm7_9 fast_writes}
 @cindex arm7_9 fast_writes
-use @option{arm7_9 fast_memory_access} command with same args
+@*use @option{arm7_9 fast_memory_access} command with same args
 @item @b{flash auto_erase}
 @cindex flash auto_erase
-use @option{flash write_image} command passing @option{erase} as the first parameter.
+@*use @option{flash write_image} command passing @option{erase} as the first parameter.
 @item @b{daemon_startup}
 @cindex daemon_startup
-this config option has been removed, simply adding @option{init} and @option{reset halt} to
+@*this config option has been removed, simply adding @option{init} and @option{reset halt} to
 the end of your config script will give the same behaviour as using @option{daemon_startup reset}
 and @option{target cortex_m3 little reset_halt 0}.
 @item @b{arm7_9 sw_bkpts}
 @cindex arm7_9 sw_bkpts
-On by default. See also @option{gdb_breakpoint_override}. 
+@*On by default. See also @option{gdb_breakpoint_override}. 
 @item @b{arm7_9 force_hw_bkpts}
 @cindex arm7_9 force_hw_bkpts
-Use @option{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
+@*Use @option{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
 for flash if the gdb memory map has been set up(default when flash is declared in
 target configuration).
 @item @b{run_and_halt_time}
 @cindex run_and_halt_time
-This command has been removed for simpler reset behaviour, it can be simulated with the
+@*This command has been removed for simpler reset behaviour, it can be simulated with the
 following commands:
 @smallexample
 reset run
