@@ -1300,7 +1300,7 @@ int target_write_u8(struct target_s *target, u32 address, u8 value)
 
 	LOG_DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, value);
 
-	if ((retval = target->type->read_memory(target, address, 1, 1, &value)) != ERROR_OK)
+	if ((retval = target->type->write_memory(target, address, 1, 1, &value)) != ERROR_OK)
 	{
 		LOG_DEBUG("failed: %i", retval);
 	}
