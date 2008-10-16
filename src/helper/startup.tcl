@@ -277,3 +277,23 @@ proc ocd_process_reset { MODE } {
 		$t invoke-event reset-end
     }
 }
+
+
+# stubs for targets scripts that do not have production procedure
+proc production_info {} {
+	return "Imagine an explanation here..."
+}
+add_help_text production_info "Displays informationo on production procedure for target script"
+
+proc production {firmwarefile serialnumber} {
+	puts "Imagine production procedure running successfully. Programmed $firmwarefile with serial number $serialnumber"
+} 
+
+add_help_text production "Runs production procedure. Throws exception if procedure failed. Prints progress messages."
+
+proc production_test {} {
+	puts "Imagine nifty test procedure having run to completion here."
+}
+add_help_text production "Runs test procedure. Throws exception if procedure failed. Prints progress messages."
+
+
