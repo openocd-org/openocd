@@ -792,20 +792,16 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 	for (wrote=0; wrote<(count*wordsize); wrote+=sizeof(chunk))
 	{
 		int cur_size = MIN( (count*wordsize - wrote) , 1024 );
-		if (err == ERROR_OK)
+		flash_bank_t *bank;
+		bank = get_flash_bank_by_addr(target, address);
+		if(bank == NULL)
 		{
-			flash_bank_t *bank;
-			bank = get_flash_bank_by_addr(target, address);
-			if(bank == NULL)
-			{
-				err = ERROR_FAIL;
-				break;
-			}
-			err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
-			wrote += cur_size;
+			return ERROR_FAIL;
 		}
+		err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
 		if (err!=ERROR_OK)
-			break;
+			return err;
+		wrote += cur_size;
 	}
 
 	if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
