@@ -400,14 +400,14 @@ void kept_alive()
 void alive_sleep(int ms)
 {
 	int i;
-	for (i=0; i<ms; i+=500)
+	int napTime=10;
+	for (i=0; i<ms; i+=napTime)
 	{
 		int sleep_a_bit=ms-i;
-		if (sleep_a_bit>500)
+		if (sleep_a_bit>napTime)
 		{
-			sleep_a_bit=500;
+			sleep_a_bit=napTime;
 		}
-		keep_alive();
 		usleep(sleep_a_bit*1000);
 		keep_alive();
 	}

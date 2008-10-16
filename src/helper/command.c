@@ -741,7 +741,12 @@ int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 		busy_sleep(duration);
 	} else
 	{
-		alive_sleep(duration);
+		long long then=timeval_ms();
+		while ((timeval_ms()-then)<duration)
+		{
+			target_call_timer_callbacks_now();
+			usleep(1000);
+		}
 	}
 
 	return ERROR_OK;
