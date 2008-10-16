@@ -612,6 +612,9 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 
 	breakpoint_remove(target, exit_point);
 
+	if (retval!=ERROR_OK)
+		return retval;
+
 	for (i = 0; i < num_mem_params; i++)
 	{
 		if (mem_params[i].direction != PARAM_OUT)

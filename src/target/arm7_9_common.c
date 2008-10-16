@@ -2282,6 +2282,10 @@ static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int ti
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+
+	if ((retval=target_wait_state(target, TARGET_DEBUG_RUNNING, 500))!=ERROR_OK)
+		return retval;
+
 	int little=target->endianness==TARGET_LITTLE_ENDIAN;
 	int count=dcc_count;
 	u8 *buffer=dcc_buffer;
