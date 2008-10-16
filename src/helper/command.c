@@ -624,6 +624,32 @@ static char* openocd_jim_fgets(char *s, int size, void *cookie)
 	return NULL;
 }
 
+
+static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 2)
+		return JIM_ERR;
+	int retcode;
+	const char *str = Jim_GetString(argv[1], NULL);
+
+	/* capture log output and return it */
+	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
+	/* a garbage collect can happen, so we need a reference count to this object */
+	Jim_IncrRefCount(tclOutput);
+
+	log_add_callback(tcl_output, tclOutput);
+
+	retcode = Jim_Eval_Named(interp, str, __FILE__, __LINE__ );
+
+	log_remove_callback(tcl_output, tclOutput);
+
+	/* We dump output into this local variable */
+	Jim_SetResult(interp, tclOutput);
+	Jim_DecrRefCount(interp, tclOutput);
+
+	return retcode;
+}
+
 command_context_t* command_init()
 {
 	command_context_t* context = malloc(sizeof(command_context_t));
@@ -645,6 +671,7 @@ command_context_t* command_init()
 
 	Jim_CreateCommand(interp, "ocd_find", jim_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);
+	Jim_CreateCommand(interp, "capture", jim_capture, NULL, NULL);
 
 	/* Set Jim's STDIO */
 	interp->cookie_stdin = interp;
