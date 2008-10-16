@@ -39,6 +39,7 @@
 #include "flash.h"
 #include "nand.h"
 #include "pld.h"
+#include "mflash.h"
 
 #include "command.h"
 #include "server.h"
@@ -70,13 +71,21 @@ void print_version(void)
 	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
-	LOG_OUTPUT("$URL$\n");
+	LOG_OUTPUT( "$URL$\n");
 	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line above does not appear in a patch, do not remove */
 }
+
+
+
+
+
+
+
+
 
 /* Give TELNET a way to find out what version this is */
 int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -145,6 +154,10 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		return ERROR_FAIL;
 	LOG_DEBUG("flash init complete");
 
+	if (mflash_init_drivers(cmd_ctx) != ERROR_OK)
+		return ERROR_FAIL;
+	LOG_DEBUG("mflash init complete");
+
 	if (nand_init(cmd_ctx) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("NAND init complete");
@@ -189,7 +202,8 @@ command_context_t *setup_command_handler(void)
 	flash_register_commands(cmd_ctx);
 	nand_register_commands(cmd_ctx);
 	pld_register_commands(cmd_ctx);
-	
+	mflash_register_commands(cmd_ctx);
+
 	if (log_init(cmd_ctx) != ERROR_OK)
 	{
 		exit(-1);
@@ -216,7 +230,7 @@ int openocd_main(int argc, char *argv[])
 
 	cmd_ctx = setup_command_handler();
 	
-	LOG_OUTPUT("\n\nBUGS? Read http://svn.berlios.de/svnroot/repos/openocd/trunk/BUGS\n\n\n");
+	LOG_OUTPUT( "\n\nBUGS? Read http://svn.berlios.de/svnroot/repos/openocd/trunk/BUGS\n\n\n");
 
 	print_version();
 	

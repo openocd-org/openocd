@@ -717,6 +717,26 @@ Use the standard str9 driver for programming.
 @b{flash bank aduc702x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
 @*aduc702x flash plugin require the flash @var{base}, @var{size} and @var{target#}.
 
+@section mFlash configuration
+@cindex mFlash configuration
+
+@itemize @bullet
+@item @b{mflash bank} <@var{soc}> <@var{base}> <@var{chip_width}> <@var{bus_width}>
+<@var{RST pin}> <@var{WP pin}> <@var{DPD pin}> <@var{target #}>
+@cindex mflash bank
+Configures a mflash for <@var{soc}> host bank at <@var{base}>. <@var{chip_width}> and
+<@var{bus_width}> are bytes order. Pin number format is dependent on host GPIO calling convention.
+If WP or DPD pin was not used, write -1. Currently, mflash bank support s3c2440 and pxa270.
+@end itemize
+(ex. of s3c2440) mflash <@var{RST pin}> is GPIO B1, <@var{WP pin}> and <@var{DPD pin}> are not used.
+@smallexample
+mflash bank s3c2440 0x10000000 2 2 1b -1 -1 0
+@end smallexample
+(ex. of pxa270) mflash <@var{RST pin}> is GPIO 43, <@var{DPD pin}> is not used and <@var{DPD pin}> is GPIO 51.
+@smallexample
+mflash bank pxa270 0x08000000 2 2 43 -1 51 0  
+@end smallexample
+ 
 @node Target library
 @chapter Target library
 @cindex Target library
@@ -944,6 +964,22 @@ if the @option{erase} parameter is given.
 <@var{last}> of @option{flash bank} <@var{num}>.
 @end itemize
 
+@subsection mFlash commands
+@cindex mFlash commands
+@itemize @bullet
+@item @b{mflash probe} 
+@cindex mflash probe
+Probe mflash.
+@item @b{mflash write} <@var{num}> <@var{file}> <@var{offset}>
+@cindex mflash write
+Write the binary <@var{file}> to mflash bank <@var{num}>, starting at
+<@var{offset}> bytes from the beginning of the bank.
+@item @b{mflash dump} <@var{num}> <@var{file}> <@var{offset}> <@var{size}>
+@cindex mflash dump
+Dump <size> bytes, starting at <@var{offset}> bytes from the beginning of the <@var{num}> bank 
+to a <@var{file}>.
+@end itemize
+
 @page
 @section Target Specific Commands
 @cindex Target Specific Commands
@@ -1049,7 +1085,7 @@ These are flash specific commands when using the stm32x driver.
 
 @subsection Stellaris specific commands
 @cindex Stellaris specific commands
-
+ 
 These are flash specific commands when using the Stellaris driver.
 @itemize @bullet
 @item @b{stellaris mass_erase} <@var{num}>
