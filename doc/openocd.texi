@@ -275,6 +275,7 @@ and get the output from the TCL engine.
 first target will be gdb_port, the second target will listen on gdb_port + 1, and so on. 
 @item @b{gdb_breakpoint_override} <@var{hard|soft|disabled}>
 @cindex gdb_breakpoint_override
+@anchor{gdb_breakpoint_override}
 @*Force breakpoint type for gdb 'break' commands.
 The raison d'etre for this option is to support GDB GUI's without 
 a hard/soft breakpoint concept where the default OpenOCD and
@@ -724,7 +725,7 @@ Use the standard str9 driver for programming.
 @item @b{mflash bank} <@var{soc}> <@var{base}> <@var{chip_width}> <@var{bus_width}>
 <@var{RST pin}> <@var{WP pin}> <@var{DPD pin}> <@var{target #}>
 @cindex mflash bank
-Configures a mflash for <@var{soc}> host bank at <@var{base}>. <@var{chip_width}> and
+@*Configures a mflash for <@var{soc}> host bank at <@var{base}>. <@var{chip_width}> and
 <@var{bus_width}> are bytes order. Pin number format is dependent on host GPIO calling convention.
 If WP or DPD pin was not used, write -1. Currently, mflash bank support s3c2440 and pxa270.
 @end itemize
@@ -904,9 +905,11 @@ These commands allow accesses of a specific size to the memory system:
 
 @item @b{load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
 @cindex load_image
+@anchor{load_image}
 @*Load image <@var{file}> to target memory at <@var{address}> 
 @item @b{dump_image} <@var{file}> <@var{address}> <@var{size}>
 @cindex dump_image
+@anchor{dump_image}
 @*Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
 (binary) <@var{file}>.
 @item @b{verify_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
@@ -940,6 +943,7 @@ updated information.
 @option{flash erase_sector} using the same syntax. 
 @item @b{flash erase_sector} <@var{num}> <@var{first}> <@var{last}>
 @cindex flash erase_sector
+@anchor{flash erase_sector}
 @*Erase sectors at bank <@var{num}>, starting at sector <@var{first}> up to and including
 <@var{last}>. Sector numbering starts at 0. Depending on the flash type, erasing may
 require the protection to be disabled first (e.g. Intel Advanced Bootblock flash using
@@ -949,10 +953,12 @@ the CFI driver).
 @*Erase sectors starting at <@var{address}> for <@var{length}> bytes
 @item @b{flash write_bank} <@var{num}> <@var{file}> <@var{offset}>
 @cindex flash write_bank
+@anchor{flash write_bank}
 @*Write the binary <@var{file}> to flash bank <@var{num}>, starting at
 <@option{offset}> bytes from the beginning of the bank.
 @item @b{flash write_image} [@var{erase}] <@var{file}> [@var{offset}] [@var{type}]
 @cindex flash write_image
+@anchor{flash write_image}
 @*Write the image <@var{file}> to the current target's flash bank(s). A relocation
 [@var{offset}] can be specified and the file [@var{type}] can be specified
 explicitly as @option{bin} (binary), @option{ihex} (Intel hex), @option{elf}
@@ -1569,6 +1575,7 @@ ARM920t or ARM926EJ-S.
 safe for all but ARM7TDMI--S cores (like Philips LPC). 
 @item @b{arm7_9 fast_memory_access} <@var{enable}|@var{disable}>
 @cindex arm7_9 fast_memory_access
+@anchor{arm7_9 fast_memory_access}
 @*Allow OpenOCD to read and write memory without checking completion of
 the operation. This provides a huge speed increase, especially with USB JTAG
 cables (FT2232), but might be unsafe if used with targets running at a very low
@@ -1820,7 +1827,7 @@ working area.
 Informing gdb of the memory map of the target will enable gdb to protect any
 flash area of the target and use hardware breakpoints by default. This means
 that the OpenOCD option @option{gdb_breakpoint_override} is not required when
-using a memory map.
+using a memory map. @xref{gdb_breakpoint_override}
 
 To view the configured memory map in gdb, use the gdb command @option{info mem}
 All other unasigned addresses within gdb are treated as RAM.
@@ -1936,29 +1943,29 @@ Certain OpenOCD commands have been deprecated/removed during the various revisio
 @itemize @bullet
 @item @b{load_binary}
 @cindex load_binary
-@*use @option{load_image} command with same args
+@*use @option{load_image} command with same args. @xref{load_image}
 @item @b{target}
 @cindex target
 @*@option{target} no longer take the reset_init, reset_run, run_and_halt, run_and_init. The @option{reset} command
 always does a @option{reset run} when passed no arguments.
 @item @b{dump_binary}
 @cindex dump_binary
-@*use @option{dump_image} command with same args
+@*use @option{dump_image} command with same args. @xref{dump_image}
 @item @b{flash erase}
 @cindex flash erase
-@*use @option{flash erase_sector} command with same args
+@*use @option{flash erase_sector} command with same args. @xref{flash erase_sector}
 @item @b{flash write}
 @cindex flash write
-@*use @option{flash write_bank} command with same args
+@*use @option{flash write_bank} command with same args. @xref{flash write_bank}
 @item @b{flash write_binary}
 @cindex flash write_binary
 @*use @option{flash write_bank} command with same args
 @item @b{arm7_9 fast_writes}
 @cindex arm7_9 fast_writes
-@*use @option{arm7_9 fast_memory_access} command with same args
+@*use @option{arm7_9 fast_memory_access} command with same args. @xref{arm7_9 fast_memory_access}
 @item @b{flash auto_erase}
 @cindex flash auto_erase
-@*use @option{flash write_image} command passing @option{erase} as the first parameter.
+@*use @option{flash write_image} command passing @option{erase} as the first parameter. @xref{flash write_image}
 @item @b{daemon_startup}
 @cindex daemon_startup
 @*this config option has been removed, simply adding @option{init} and @option{reset halt} to
@@ -1966,12 +1973,12 @@ the end of your config script will give the same behaviour as using @option{daem
 and @option{target cortex_m3 little reset_halt 0}.
 @item @b{arm7_9 sw_bkpts}
 @cindex arm7_9 sw_bkpts
-@*On by default. See also @option{gdb_breakpoint_override}. 
+@*On by default. See also @option{gdb_breakpoint_override}. @xref{gdb_breakpoint_override}
 @item @b{arm7_9 force_hw_bkpts}
 @cindex arm7_9 force_hw_bkpts
 @*Use @option{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
 for flash if the gdb memory map has been set up(default when flash is declared in
-target configuration).
+target configuration). @xref{gdb_breakpoint_override}
 @item @b{run_and_halt_time}
 @cindex run_and_halt_time
 @*This command has been removed for simpler reset behaviour, it can be simulated with the
