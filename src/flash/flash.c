@@ -206,7 +206,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 						 "erase address range <address> <length>");
 
 		register_command(cmd_ctx, flash_cmd, "fillw", handle_flash_fill_command, COMMAND_EXEC,
-						 "fill with pattern <address> <word_pattern> <count>");
+						 "fill with pattern (no autoerase) <address> <word_pattern> <count>");
 		register_command(cmd_ctx, flash_cmd, "fillh", handle_flash_fill_command, COMMAND_EXEC,
 						 "fill with pattern <address> <halfword_pattern> <count>");
 		register_command(cmd_ctx, flash_cmd, "fillb", handle_flash_fill_command, COMMAND_EXEC,
@@ -516,7 +516,6 @@ int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *
 	{
 		if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
 		{
-			free(duration_text);
 			return retval;
 		}
 		command_print(cmd_ctx, "erased address 0x%8.8x length %i in %s", address, length, duration_text);
@@ -582,7 +581,6 @@ int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		{
 			if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
 			{
-				free(duration_text);
 				return retval;
 			}
 
@@ -707,7 +705,6 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 
 	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
 	{
-		free(duration_text);
 		image_close(&image);
 		return retvaltemp;
 	}
@@ -792,33 +789,27 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 	duration_start_measure(&duration);
 
-	flash_set_dirty();
-	err = flash_erase_address_range( target, address, count*wordsize );
-	if (err == ERROR_OK)
+	for (wrote=0; wrote<(count*wordsize); wrote+=sizeof(chunk))
 	{
-		for (wrote=0; wrote<(count*wordsize); wrote+=sizeof(chunk))
+		int cur_size = MIN( (count*wordsize - wrote) , 1024 );
+		if (err == ERROR_OK)
 		{
-			int cur_size = MIN( (count*wordsize - wrote) , 1024 );
-			if (err == ERROR_OK)
+			flash_bank_t *bank;
+			bank = get_flash_bank_by_addr(target, address);
+			if(bank == NULL)
 			{
-				flash_bank_t *bank;
-				bank = get_flash_bank_by_addr(target, address);
-				if(bank == NULL)
-				{
-					err = ERROR_FAIL;
-					break;
-				}
-				err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
-				wrote += cur_size;
-			}
-			if (err!=ERROR_OK)
+				err = ERROR_FAIL;
 				break;
+			}
+			err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
+			wrote += cur_size;
 		}
+		if (err!=ERROR_OK)
+			break;
 	}
 
 	if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
 	{
-		free(duration_text);
 		return retval;
 	}
 
@@ -885,7 +876,6 @@ int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd
 
 	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
 	{
-		free(duration_text);
 		fileio_close(&fileio);
 		return retvaltemp;
 	}
