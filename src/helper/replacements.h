@@ -67,8 +67,7 @@
 #define ENOTSUP 134		/* Not supported */
 #endif
 
-/* gettimeofday() */
-#ifndef HAVE_GETTIMEOFDAY
+#ifndef HAVE_SYS_TIME_H
 
 #ifndef _TIMEVAL_DEFINED
 #define _TIMEVAL_DEFINED
@@ -77,13 +76,18 @@ struct timeval {
 	long tv_sec;
 	long tv_usec;
 };
-#endif /* _TIMEVAL_DEFINED */
 
 struct timezone {
     int tz_minuteswest;
 	int tz_dsttime;
 };
 
+#endif /* _TIMEVAL_DEFINED */
+
+#endif
+
+/* gettimeofday() */
+#ifndef HAVE_GETTIMEOFDAY
 extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 #endif
 
@@ -106,17 +110,17 @@ void *fill_malloc(size_t size);
  *
  * We have figured out that there could exist some malloc problems
  * where variables are using without to be initialise. To find this
- * places, use the fill_malloc function. With this function we want 
- * to initialize memory to some known bad state. This is quite easily 
- * spotted in the debugger and will trap to an invalid address. 
+ * places, use the fill_malloc function. With this function we want
+ * to initialize memory to some known bad state. This is quite easily
+ * spotted in the debugger and will trap to an invalid address.
  *
- * clear_malloc can be used if you want to set not initialise 
+ * clear_malloc can be used if you want to set not initialise
  * variable to 0.
  *
  * If you do not want to change the malloc function, to not use one of
  * the following macros. Which is the default way.
  */
- 
+
 /* #define malloc(_a) clear_malloc(_a) */
 /* #define malloc(_a) fill_malloc(_a) */
 
@@ -139,7 +143,7 @@ static __inline unsigned usleep(unsigned int usecs)
 #else
 #if BUILD_ECOSBOARD
 void usleep(int us);
-#else 
+#else
 #error no usleep defined for your platform
 #endif
 #endif
