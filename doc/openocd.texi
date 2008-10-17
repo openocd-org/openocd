@@ -835,6 +835,13 @@ openocd -c "fast enable" -c "interface dummy" -f target/str710.cfg
 
 @subsection Target state handling
 @itemize @bullet
+@item @b{reg} [@option{#}|@option{name}] [value]
+@cindex reg
+@*Access a single register by its number[@option{#}] or by its [@option{name}].
+No arguments: list all available registers for the current target.
+Number or name argument: display a register
+Number or name and value arguments: set register value
+
 @item @b{poll} [@option{on}|@option{off}]
 @cindex poll
 @*Poll the target for its current state. If the target is in debug mode, architecture
@@ -880,6 +887,10 @@ With no arguments a "reset run" is executed
 @*Immediately halt the target, and execute the reset script (works only with certain
 configurations)
 @end itemize
+
+@item @b{soft_reset_halt}
+@cindex reset
+@*Requesting target halt and executing a soft reset.
 @end itemize
 
 @subsection Memory access commands
@@ -917,6 +928,23 @@ These commands allow accesses of a specific size to the memory system:
 @cindex verify_image
 @*Verify <@var{file}> against target memory starting at <@var{address}>.
 This will first attempt comparison using a crc checksum, if this fails it will try a binary compare.
+@end itemize
+
+@subsection Breakpoint commands
+@cindex Breakpoint commands
+@itemize @bullet
+@item @b{bp} <@var{addr}> <@var{len}> [@var{hw}]
+@cindex bp
+@*set breakpoint <address> <length> [hw]
+@item @b{rbp} <@var{addr}>
+@cindex rbp
+@*remove breakpoint <adress>
+@item @b{wp} <@var{addr}> <@var{len}> <@var{r}|@var{w}|@var{a}> [@var{value}] [@var{mask}]
+@cindex wp
+@*set watchpoint <address> <length> <r/w/a> [value] [mask]
+@item @b{rwp} <@var{addr}>
+@cindex rwp
+@*remove watchpoint <adress>
 @end itemize
 
 @subsection Flash commands
