@@ -292,9 +292,10 @@ Default behaviour is <@var{resume}>
 @cindex gdb_memory_map
 @*Set to <@var{enable}> to cause OpenOCD to send the memory configuration to gdb when
 requested. gdb will then know when to set hardware breakpoints, and program flash
-using the gdb load command. @option{gdb_flash_program enable} (@xref{gdb_flash_program})
-will also need enabling for flash programming to work.
+using the gdb load command. @option{gdb_flash_program enable} will also need enabling
+for flash programming to work.
 Default behaviour is <@var{enable}>
+@xref{gdb_flash_program}.
 @item @b{gdb_flash_program} <@var{enable|disable}>
 @cindex gdb_flash_program
 @anchor{gdb_flash_program}
@@ -1827,7 +1828,7 @@ working area.
 Informing gdb of the memory map of the target will enable gdb to protect any
 flash area of the target and use hardware breakpoints by default. This means
 that the OpenOCD option @option{gdb_breakpoint_override} is not required when
-using a memory map. @xref{gdb_breakpoint_override}
+using a memory map. @xref{gdb_breakpoint_override}.
 
 To view the configured memory map in gdb, use the gdb command @option{info mem}
 All other unasigned addresses within gdb are treated as RAM.
@@ -1943,29 +1944,29 @@ Certain OpenOCD commands have been deprecated/removed during the various revisio
 @itemize @bullet
 @item @b{load_binary}
 @cindex load_binary
-@*use @option{load_image} command with same args. @xref{load_image}
+@*use @option{load_image} command with same args. @xref{load_image}.
 @item @b{target}
 @cindex target
 @*@option{target} no longer take the reset_init, reset_run, run_and_halt, run_and_init. The @option{reset} command
 always does a @option{reset run} when passed no arguments.
 @item @b{dump_binary}
 @cindex dump_binary
-@*use @option{dump_image} command with same args. @xref{dump_image}
+@*use @option{dump_image} command with same args. @xref{dump_image}.
 @item @b{flash erase}
 @cindex flash erase
-@*use @option{flash erase_sector} command with same args. @xref{flash erase_sector}
+@*use @option{flash erase_sector} command with same args. @xref{flash erase_sector}.
 @item @b{flash write}
 @cindex flash write
-@*use @option{flash write_bank} command with same args. @xref{flash write_bank}
+@*use @option{flash write_bank} command with same args. @xref{flash write_bank}.
 @item @b{flash write_binary}
 @cindex flash write_binary
 @*use @option{flash write_bank} command with same args
 @item @b{arm7_9 fast_writes}
 @cindex arm7_9 fast_writes
-@*use @option{arm7_9 fast_memory_access} command with same args. @xref{arm7_9 fast_memory_access}
+@*use @option{arm7_9 fast_memory_access} command with same args. @xref{arm7_9 fast_memory_access}.
 @item @b{flash auto_erase}
 @cindex flash auto_erase
-@*use @option{flash write_image} command passing @option{erase} as the first parameter. @xref{flash write_image}
+@*use @option{flash write_image} command passing @option{erase} as the first parameter. @xref{flash write_image}.
 @item @b{daemon_startup}
 @cindex daemon_startup
 @*this config option has been removed, simply adding @option{init} and @option{reset halt} to
@@ -1973,12 +1974,12 @@ the end of your config script will give the same behaviour as using @option{daem
 and @option{target cortex_m3 little reset_halt 0}.
 @item @b{arm7_9 sw_bkpts}
 @cindex arm7_9 sw_bkpts
-@*On by default. See also @option{gdb_breakpoint_override}. @xref{gdb_breakpoint_override}
+@*On by default. See also @option{gdb_breakpoint_override}. @xref{gdb_breakpoint_override}.
 @item @b{arm7_9 force_hw_bkpts}
 @cindex arm7_9 force_hw_bkpts
 @*Use @option{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
 for flash if the gdb memory map has been set up(default when flash is declared in
-target configuration). @xref{gdb_breakpoint_override}
+target configuration). @xref{gdb_breakpoint_override}.
 @item @b{run_and_halt_time}
 @cindex run_and_halt_time
 @*This command has been removed for simpler reset behaviour, it can be simulated with the
