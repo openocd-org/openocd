@@ -1960,7 +1960,7 @@ always does a @option{reset run} when passed no arguments.
 @*use @option{flash write_bank} command with same args. @xref{flash write_bank}.
 @item @b{flash write_binary}
 @cindex flash write_binary
-@*use @option{flash write_bank} command with same args
+@*use @option{flash write_bank} command with same args. @xref{flash write_bank}.
 @item @b{arm7_9 fast_writes}
 @cindex arm7_9 fast_writes
 @*use @option{arm7_9 fast_memory_access} command with same args. @xref{arm7_9 fast_memory_access}.
