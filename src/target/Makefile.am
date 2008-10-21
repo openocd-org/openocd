@@ -36,7 +36,7 @@ nobase_dist_pkglib_DATA = xscale/debug_handler.bin target/at91eb40a.cfg \
 	interface/calao-usb-a9260.cfg target/at91sam9260minimal.cfg  \
 	interface/chameleon.cfg interface/at91rm9200.cfg interface/jlink.cfg interface/arm-usb-ocd.cfg \
 	interface/signalyzer.cfg event/eir-sam7se512_reset.script target/eir-sam7se512.cfg \
-	event/hammer_reset.script interface/flyswatter.cfg target/hammer.cfg target/mx31.cfg  \
+	event/hammer_reset.script interface/flyswatter.cfg target/hammer.cfg   \
 	event/str730_program.script event/str750_program.script interface/olimex-jtag-tiny-a.cfg \
 	target/pic32mx.cfg target/aduc702x.cfg interface/dummy.cfg interface/olimex-arm-usb-ocd.cfg target/s3c2440.cfg \
 	interface/openocd-usb.cfg target/test_syntax_error.cfg target/test_reset_syntax_error.cfg
