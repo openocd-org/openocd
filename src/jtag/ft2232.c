@@ -316,15 +316,15 @@ int ft2232_khz(int khz, int *jtag_speed)
 int ft2232_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "ft2232_device_desc", ft2232_handle_device_desc_command,
-		COMMAND_CONFIG, NULL);
+		COMMAND_CONFIG, "the USB device description of the FTDI FT2232 device");
 	register_command(cmd_ctx, NULL, "ft2232_serial", ft2232_handle_serial_command,
-		COMMAND_CONFIG, NULL);
+		COMMAND_CONFIG, "the serial number of the FTDI FT2232 device");
 	register_command(cmd_ctx, NULL, "ft2232_layout", ft2232_handle_layout_command,
-		COMMAND_CONFIG, NULL);
+		COMMAND_CONFIG, "the layout of the FT2232 GPIO signals used to control output-enables and reset signals");
 	register_command(cmd_ctx, NULL, "ft2232_vid_pid", ft2232_handle_vid_pid_command,
-					 COMMAND_CONFIG, NULL);
+					 COMMAND_CONFIG, "the vendor ID and product ID of the FTDI FT2232 device");
 	register_command(cmd_ctx, NULL, "ft2232_latency", ft2232_handle_latency_command,
-					 COMMAND_CONFIG, NULL);
+					 COMMAND_CONFIG, "set the FT2232 latency timer to a new value");
 	return ERROR_OK;
 }
 

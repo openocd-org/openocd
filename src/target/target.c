@@ -938,10 +938,10 @@ void target_free_all_working_areas(struct target_s *target)
 int target_register_commands(struct command_context_s *cmd_ctx)
 {
 
-	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, NULL);
-	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "working_area <target#> <address> <size> <'backup'|'nobackup'> [virtual address]");
-	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "virt2phys <virtual address>");
-	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "PRELIMINARY! - profile <seconds> <gmon.out>");
+	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, "change the current command line target (one parameter) or lists targets (with no parameter)");
+	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "set a new working space");
+	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "translate a virtual address into a physical address");
+	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "profiling samples the CPU PC");
 
 	register_jim(cmd_ctx, "target", jim_target, "configure target" );
 
@@ -1311,7 +1311,7 @@ int target_write_u8(struct target_s *target, u32 address, u8 value)
 int target_register_user_commands(struct command_context_s *cmd_ctx)
 {
 	int retval = ERROR_OK;
-	register_command(cmd_ctx,  NULL, "reg", handle_reg_command, COMMAND_EXEC, NULL);
+	register_command(cmd_ctx,  NULL, "reg", handle_reg_command, COMMAND_EXEC, "display or set a register");
 	register_command(cmd_ctx,  NULL, "poll", handle_poll_command, COMMAND_EXEC, "poll target state");
 	register_command(cmd_ctx,  NULL, "wait_halt", handle_wait_halt_command, COMMAND_EXEC, "wait for target halt [time (s)]");
 	register_command(cmd_ctx,  NULL, "halt", handle_halt_command, COMMAND_EXEC, "halt target");

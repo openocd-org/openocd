@@ -415,7 +415,7 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 	 */
 	if ((argc < 4) || ((argc % 2)!=0))
 	{
-		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
+		Jim_WrongNumArgs(interp, 1, args, "<device> <num_bits1> <value1> <num_bits2> <value2> ...");
 		return JIM_ERR;
 	}
 

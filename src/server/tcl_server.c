@@ -185,7 +185,7 @@ int tcl_init(void)
 
 int tcl_register_commands(command_context_t *cmd_ctx)
 {
-	register_command(cmd_ctx, NULL, "tcl_port", handle_tcl_port_command, COMMAND_CONFIG, "");
+	register_command(cmd_ctx, NULL, "tcl_port", handle_tcl_port_command, COMMAND_CONFIG, "port on which to listen for incoming TCL syntax");
 	return ERROR_OK;
 }
 

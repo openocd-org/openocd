@@ -1555,7 +1555,7 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_jim( cmd_ctx, "jtag", jim_jtag_command, "perform jtag tap actions");
 
 	register_command(cmd_ctx, NULL, "interface", handle_interface_command,
-		COMMAND_CONFIG, NULL);
+		COMMAND_CONFIG, "try to configure interface");
 	register_command(cmd_ctx, NULL, "jtag_speed", handle_jtag_speed_command,
 		COMMAND_ANY, "set jtag speed (if supported)");
 	register_command(cmd_ctx, NULL, "jtag_khz", handle_jtag_khz_command,

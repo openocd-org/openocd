@@ -1884,7 +1884,7 @@ int main(int argc, char *argv[])
 			COMMAND_EXEC, "show zy1000 version numbers");
 
 	register_command(cmd_ctx, NULL, "rm", handle_rm_command, COMMAND_ANY,
-			"rm <filname>");
+			"remove file");
 
 	register_command(cmd_ctx, NULL, "fast_load_image", handle_fast_load_image_command, COMMAND_ANY,
 			"same args as load_image, image stored in memory");
@@ -1893,22 +1893,22 @@ int main(int argc, char *argv[])
 			"loads active fast load image to current target");
 
 	register_command(cmd_ctx, NULL, "cat", handle_cat_command, COMMAND_ANY,
-			"cat <filname>");
+			"display file content");
 
 	register_command(cmd_ctx, NULL, "trunc", handle_trunc_command, COMMAND_ANY,
-			"trunc <filname>");
+			"truncate a file to 0 size");
 
 	register_command(cmd_ctx, NULL, "append_file", handle_append_command,
-			COMMAND_ANY, "append <filname>");
+			COMMAND_ANY, "append a variable number of strings to a file");
 
 	register_command(cmd_ctx, NULL, "power", handle_power_command, COMMAND_ANY,
 			"power <on/off> - turn power switch to target on/off. No arguments - print status.");
 
 	register_command(cmd_ctx, NULL, "meminfo", handle_meminfo_command,
-			COMMAND_ANY, "meminfo");
+			COMMAND_ANY, "display available ram memory");
 
 	register_command(cmd_ctx, NULL, "cp", handle_cp_command,
-					 COMMAND_ANY, "cp <from> <to>");
+					 COMMAND_ANY, "copy a file <from> <to>");
 
 #ifdef CYGPKG_PROFILE_GPROF
 	register_command(cmd_ctx, NULL, "ecosboard_profile", eCosBoard_handle_eCosBoard_profile_command,

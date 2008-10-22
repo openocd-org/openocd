@@ -394,17 +394,17 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 				gdb_putback_char( connection, reply );
 				return ERROR_OK;
 			} else {
-					
+
 				LOG_ERROR("unknown character(1) 0x%2.2x in reply, dropping connection", reply);
 				gdb_con->closed=1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
-		} 
+		}
 		else if( reply == '$' ){
 			LOG_ERROR("GDB missing ack(2) - assumed good");
 			gdb_putback_char( connection, reply );
 			return ERROR_OK;
-		} 
+		}
 		else
 		{
 			LOG_ERROR("unknown character(2) 0x%2.2x in reply, dropping connection", reply);
@@ -1985,7 +1985,7 @@ int gdb_input_inner(connection_t *connection)
 
 		if( LOG_LEVEL_IS( LOG_LVL_DEBUG ) ){
 			if( packet[0] == 'X' ){
-				// binary packets spew junk into the debug log stream 
+				// binary packets spew junk into the debug log stream
 				char buf[ 50 ];
 				int x;
 				for( x = 0 ; (x < 49) && (packet[x] != ':') ; x++ ){
@@ -2177,7 +2177,10 @@ int gdb_init(void)
 int handle_gdb_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
+	{
+		command_print(cmd_ctx, "gdb_port: %ld", gdb_port);
 		return ERROR_OK;
+	}
 
 	/* only if the port wasn't overwritten by cmdline */
 	if (gdb_port == 0)
@@ -2210,9 +2213,11 @@ int handle_gdb_detach_command(struct command_context_s *cmd_ctx, char *cmd, char
 			detach_mode = GDB_DETACH_NOTHING;
 			return ERROR_OK;
 		}
+		else
+			LOG_WARNING("invalid gdb_detach configuration directive: %s", args[0]);
 	}
 
-	LOG_WARNING("invalid gdb_detach configuration directive: %s", args[0]);
+	LOG_WARNING("gdb_detach take a single argument");
 	return ERROR_OK;
 }
 
@@ -2230,9 +2235,11 @@ int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, 
 			gdb_use_memory_map = 0;
 			return ERROR_OK;
 		}
+		else
+			LOG_WARNING("invalid gdb_memory_map configuration directive %s", args[0]);
 	}
 
-	LOG_WARNING("invalid gdb_memory_map configuration directive: %s", args[0]);
+	LOG_WARNING("gdb_memory_map take a single argument");
 	return ERROR_OK;
 }
 
@@ -2250,9 +2257,11 @@ int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cm
 			gdb_flash_program = 0;
 			return ERROR_OK;
 		}
+		else
+			LOG_WARNING("invalid gdb_flash_program configuration directive: %s", args[0]);
 	}
 
-	LOG_WARNING("invalid gdb_memory_map configuration directive: %s", args[0]);
+	LOG_WARNING("gdb_flash_program take a single argument");
 	return ERROR_OK;
 }
 
@@ -2270,13 +2279,15 @@ int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char
 			gdb_report_data_abort = 0;
 			return ERROR_OK;
 		}
+		else
+			LOG_WARNING("invalid gdb_report_data_abort configuration directive: %s", args[0]);
 	}
 
-	LOG_WARNING("invalid gdb_report_data_abort configuration directive: %s", args[0]);
+	LOG_WARNING("gdb_report_data_abort take a single argument");
 	return ERROR_OK;
 }
 
-/* daemon configuration command gdb_port */
+/* gdb_breakpoint_override */
 int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
@@ -2314,15 +2325,15 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 int gdb_register_commands(command_context_t *command_context)
 {
 	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
-			COMMAND_CONFIG, "");
+			COMMAND_CONFIG, "daemon configuration command gdb_port");
 	register_command(command_context, NULL, "gdb_detach", handle_gdb_detach_command,
 			COMMAND_CONFIG, "");
 	register_command(command_context, NULL, "gdb_memory_map", handle_gdb_memory_map_command,
-			COMMAND_CONFIG, "");
+			COMMAND_CONFIG, "enable or disable memory map");
 	register_command(command_context, NULL, "gdb_flash_program", handle_gdb_flash_program_command,
-			COMMAND_CONFIG, "");
+			COMMAND_CONFIG, "enable or disable flash program");
 	register_command(command_context, NULL, "gdb_report_data_abort", handle_gdb_report_data_abort_command,
-			COMMAND_CONFIG, "");
+			COMMAND_CONFIG, "enable or disable report data");
 	register_command(command_context, NULL, "gdb_breakpoint_override", handle_gdb_breakpoint_override_command,
 			COMMAND_EXEC, "hard/soft/disabled - force breakpoint type for gdb 'break' commands."
 			"The raison d'etre for this option is to support GDB GUI's without "
