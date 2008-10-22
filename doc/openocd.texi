@@ -479,7 +479,7 @@ TRST is also inverted.
 @cindex altium
 Altium Universal JTAG cable.
 @end itemize
-@item @b{parport_write_on_exit} <@var{on|off}>
+@item @b{parport_write_on_exit} <@var{on}|@var{off}>
 @cindex parport_write_on_exit
 @*This will configure the parallel driver to write a known value to the parallel
 interface on exiting OpenOCD
@@ -499,6 +499,10 @@ interface on exiting OpenOCD
 @cindex ft2232_device_desc
 @*The USB device description of the FTDI FT2232 device. If not specified, the FTDI
 default value is used. This setting is only valid if compiled with FTD2XX support.
+@item @b{ft2232_serial} <@var{serial-number}>
+@cindex ft2232_serial
+@*The serial number of the FTDI FT2232 device. If not specified, the FTDI default 
+values are used.
 @item @b{ft2232_layout} <@var{name}>
 @cindex ft2232_layout
 @*The layout of the FT2232 GPIO signals used to control output-enables and reset
@@ -582,8 +586,7 @@ Endianess may be @option{little} or @option{big}.
 @option{pre_resume} or @option{gdb_program_config}.
 @option{post_reset} and @option{reset} will produce the same results.
 
-@item @b{working_area} <@var{target#}> <@var{address}> <@var{size}>
-<@var{backup}|@var{nobackup}>
+@item @b{working_area} <@var{target#}> <@var{address}> <@var{size}> <@var{backup}|@var{nobackup}> [@option{virtual address}]
 @cindex working_area
 @*Specifies a working area for the debugger to use. This may be used to speed-up
 downloads to target memory and flash operations, or to perform otherwise unavailable
@@ -835,6 +838,12 @@ openocd -c "fast enable" -c "interface dummy" -f target/str710.cfg
 
 @subsection Target state handling
 @itemize @bullet
+@item @b{power} <@var{on}|@var{off}>
+@cindex reg
+@*Turn power switch to target on/off. 
+No arguments: print status.
+
+
 @item @b{reg} [@option{#}|@option{name}] [value]
 @cindex reg
 @*Access a single register by its number[@option{#}] or by its [@option{name}].
@@ -894,6 +903,11 @@ configurations)
 @end itemize
 
 @subsection Memory access commands
+@itemize @bullet
+@item @b{meminfo}
+
+display available ram memory.
+@end itemize
 These commands allow accesses of a specific size to the memory system:
 @itemize @bullet
 @item @b{mdw} <@var{addr}> [@var{count}]
@@ -919,6 +933,14 @@ These commands allow accesses of a specific size to the memory system:
 @cindex load_image
 @anchor{load_image}
 @*Load image <@var{file}> to target memory at <@var{address}> 
+@item @b{fast_load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
+@cindex fast_load_image
+@anchor{fast_load_image}
+@*Same functionality and arguments as load_image, but image is stored in memory
+@item @b{fast_load}
+@cindex fast_image
+@anchor{fast_image}
+@*Load active fast load image to current target
 @item @b{dump_image} <@var{file}> <@var{address}> <@var{size}>
 @cindex dump_image
 @anchor{dump_image}
@@ -1327,6 +1349,14 @@ The "-reset" option specifies what should happen when the chip is reset, for exa
 or what.
 
 The "-event" option less you specify a TCL command to occur when a specific event occurs.
+
+@subsubsection Other Target Commands
+@cindex Other Target Commands
+@itemize
+@item @b{profile} <@var{seconds}> <@var{gmon.out}>
+
+Profiling samples the CPU PC as quickly as OpenOCD is able, which will be used as a random sampling of PC.
+@end itemize
 
 @subsection Target Events
 @cindex Target Events
@@ -1958,6 +1988,18 @@ should be passed in to the proc in question.
 
 Low level commands are prefixed with "openocd_", e.g. openocd_flash_banks
 is the low level API upon which "flash banks" is implemented.
+
+@itemize @bullet
+@item @b{ocd_mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
+
+Read memory and return as a TCL array for script processing
+@item @b{ocd_array2mem} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
+
+Convert a TCL array to memory locations and write the values
+@item @b{ocd_flash_banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
+
+Return information about the flash banks
+@end itemize
 
 OpenOCD commands can consist of two words, e.g. "flash banks". The
 startup.tcl "unknown" proc will translate this into a tcl proc
