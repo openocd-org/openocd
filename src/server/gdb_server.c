@@ -2217,8 +2217,7 @@ int handle_gdb_detach_command(struct command_context_s *cmd_ctx, char *cmd, char
 			LOG_WARNING("invalid gdb_detach configuration directive: %s", args[0]);
 	}
 
-	LOG_WARNING("gdb_detach take a single argument");
-	return ERROR_OK;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -2239,8 +2238,7 @@ int handle_gdb_memory_map_command(struct command_context_s *cmd_ctx, char *cmd, 
 			LOG_WARNING("invalid gdb_memory_map configuration directive %s", args[0]);
 	}
 
-	LOG_WARNING("gdb_memory_map take a single argument");
-	return ERROR_OK;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -2261,8 +2259,7 @@ int handle_gdb_flash_program_command(struct command_context_s *cmd_ctx, char *cm
 			LOG_WARNING("invalid gdb_flash_program configuration directive: %s", args[0]);
 	}
 
-	LOG_WARNING("gdb_flash_program take a single argument");
-	return ERROR_OK;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -2283,8 +2280,7 @@ int handle_gdb_report_data_abort_command(struct command_context_s *cmd_ctx, char
 			LOG_WARNING("invalid gdb_report_data_abort configuration directive: %s", args[0]);
 	}
 
-	LOG_WARNING("gdb_report_data_abort take a single argument");
-	return ERROR_OK;
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 /* gdb_breakpoint_override */
