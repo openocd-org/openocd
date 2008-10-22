@@ -88,6 +88,8 @@ struct timezone {
 
 /* gettimeofday() */
 #ifndef HAVE_GETTIMEOFDAY
+struct timeval;
+struct timezone;
 extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 #endif
 
