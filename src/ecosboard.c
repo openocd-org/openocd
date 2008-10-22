@@ -101,7 +101,7 @@ struct tftpd_fileops fileops =
 #define ZYLIN_TIME __TIME__
 /* hmmm....  we can't pick up the right # during build if we've checked this out
  * in Eclipse... arrggghh...*/
-#define ZYLIN_OPENOCD $Revision$
+#define ZYLIN_OPENOCD "$Revision$"
 #define ZYLIN_OPENOCD_VERSION "Zylin JTAG ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE " " ZYLIN_TIME
 #define ZYLIN_CONFIG_DIR "/config/settings"
 
@@ -321,7 +321,9 @@ int handle_zy1000_version_command(struct command_context_s *cmd_ctx, char *cmd,
 		command_print(cmd_ctx, ZYLIN_OPENOCD_VERSION);
 	} else if (strcmp("openocd", args[0])==0)
 	{
-		command_print(cmd_ctx, "%d", ZYLIN_OPENOCD);
+		int revision;
+		revision=atol(ZYLIN_OPENOCD+strlen("XRevision: "));
+		command_print(cmd_ctx, "%d", revision);
 	} else if (strcmp("zy1000", args[0])==0)
 	{
 		command_print(cmd_ctx, "%s", ZYLIN_VERSION);
