@@ -51,6 +51,7 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 * Target library::    Target library
 * Commands::          OpenOCD Commands
 * Sample Scripts::    Sample Target Scripts
+* TFTP::              TFTP
 * GDB and OpenOCD::   Using GDB and OpenOCD
 * TCL and OpenOCD::   Using TCL and OpenOCD
 * TCL scripting API:: Tcl scripting API
@@ -936,11 +937,18 @@ These commands allow accesses of a specific size to the memory system:
 @item @b{fast_load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
 @cindex fast_load_image
 @anchor{fast_load_image}
-@*Same functionality and arguments as load_image, but image is stored in memory
+@*Normally you should be using @b{load_image} or GDB load. However, for
+testing purposes or when IO overhead is significant(OpenOCD running on embedded
+host), then storing the image in memory and uploading the image to the target
+can be a way to upload e.g. multiple debug sessions when the binary does not change.
+Arguments as @b{load_image}, but image is stored in OpenOCD host
+memory, i.e. does not affect target.  This approach is also useful when profiling
+target programming performance as IO and target programming can easily be profiled
+seperately.
 @item @b{fast_load}
 @cindex fast_image
 @anchor{fast_image}
-@*Load active fast load image to current target
+@*Loads image stored in memory by @b{fast_load_image} to current target. Must be preceeded by fast_load_image.
 @item @b{dump_image} <@var{file}> <@var{address}> <@var{size}>
 @cindex dump_image
 @anchor{dump_image}
@@ -1808,6 +1816,22 @@ See libdcc in the contrib dir for more details.
 @cindex target_request debugmsgs
 @*Enable/disable target debugmsgs requests. debugmsgs enable messages to be sent to the debugger while the target is running.
 @end itemize
+
+@node TFTP
+@chapter TFTP
+@cindex TFTP
+If OpenOCD runs on an embedded host(as ZY1000 does), then tftp can
+be used to access files on PCs(either developer PC or some other PC).
+
+The way this works is to prefix a filename by "/tftp/ip/" and append
+the tftp path on the tftp server(tftpd). E.g. "load_image /tftp/10.0.0.96/c:\temp\abc.elf"
+will load c:\temp\abc.elf from the developer pc (10.0.0.96) into memory as
+if the file was hosted on the embedded host.
+
+In order to achieve decent performance, you must choose a tftp server
+that supports a packet size bigger than the default packet size(512 bytes). There
+are numerous tftp servers out there(free and commercial) and you will have to do
+a bit of googling to find something that fits your requirements.
 
 @node Sample Scripts
 @chapter Sample Scripts

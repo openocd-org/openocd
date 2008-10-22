@@ -266,7 +266,8 @@ int handle_fast_load_image_command(struct command_context_s *cmd_ctx, char *cmd,
 	duration_stop_measure(&duration, &duration_text);
 	if (retval==ERROR_OK)
 	{
-		command_print(cmd_ctx, "downloaded %u byte in %s", image_size, duration_text);
+		command_print(cmd_ctx, "Loaded %u bytes in %s", image_size, duration_text);
+		command_print(cmd_ctx, "NB!!! image has not been loaded to target, issue a subsequent 'fast_load' to do so.");
 	}
 	free(duration_text);
 
