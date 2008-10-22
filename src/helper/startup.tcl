@@ -296,4 +296,13 @@ proc production_test {} {
 }
 add_help_text production "Runs test procedure. Throws exception if procedure failed. Prints progress messages."
 
+proc load {args} {
+	return [eval "load_image $args"]
+}
+add_help_text load "synonym to load_image"
 
+proc verify {args} {
+	return [eval "verify_image $args"]
+}
+
+add_help_text verify "synonym to verify_image"
