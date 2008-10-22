@@ -1,0 +1,28 @@
+Please mail patches to:
+
+openocd-development@lists.berlios.de
+
+The patch should be against svn trunk using an SVN
+diff. 
+
+Attach the patch to the email as a .txt file and
+also write a short change log entry that maintainers
+can copy and paste into the commit message
+
+Add yourself to the GPL copyright for non-trivial changes.
+
+To create a patch from the command line:
+ 
+svn diff >mypatch.txt
+
+http://svnbook.red-bean.com/en/1.0/re09.html
+
+NB! remember to use "svn add" on new files first!
+
+http://svnbook.red-bean.com/en/1.0/re01.html
+
+
+
+If you have a decent SVN GUI, then that should be
+able to create and apply patches as well...
+ 
