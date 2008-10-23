@@ -350,11 +350,11 @@ int arm926ejs_examine_debug_reason(target_t *target)
 			break;
 		case 11:
 			LOG_ERROR("BUG: debug re-entry from system speed access shouldn't be handled here");
+			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
 		default:
 			LOG_ERROR("BUG: unknown debug reason: 0x%x", debug_reason);
 			target->debug_reason = DBG_REASON_DBGRQ;
-			retval = ERROR_TARGET_FAILURE;
 			break;
 	}
 
