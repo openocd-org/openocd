@@ -533,9 +533,12 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 			 load_address = Rn;
 		}
 		
-		if((retval = target_read_u32(target, load_address, &load_value)) != ERROR_OK)
+		if((!dry_run_pc) || (instruction.info.load_store.Rd == 15))
 		{
-			return retval;
+			if((retval = target_read_u32(target, load_address, &load_value)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		
 		if (dry_run_pc)
@@ -599,7 +602,10 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		{
 			if (instruction.info.load_store_multiple.register_list & (1 << i))
 			{
-				target_read_u32(target, Rn, &load_values[i]);
+				if((!dry_run_pc) || (i == 15))
+				{
+					target_read_u32(target, Rn, &load_values[i]);
+				}
 				Rn += 4;
 			}
 		}
