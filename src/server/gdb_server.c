@@ -1138,7 +1138,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 
 	retval = target_read_buffer(target, addr, len, buffer);
 
-	if ((retval == ERROR_TARGET_DATA_ABORT) && (!gdb_report_data_abort))
+	if ((retval!=ERROR_OK)&&!gdb_report_data_abort)
 	{
 		/* TODO : Here we have to lie and send back all zero's lest stack traces won't work.
 		 * At some point this might be fixed in GDB, in which case this code can be removed.

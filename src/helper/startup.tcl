@@ -119,23 +119,23 @@ proc target_script {target_num eventname scriptname} {
     set tname [target number $target_num]
     
     if { 0 == [string compare $eventname "reset"] } {
-	$tname configure -event reset-init "script $scriptname"
-	return
+		$tname configure -event reset-init "script $scriptname"
+		return
     }
 
     if { 0 == [string compare $eventname "post_reset"] } {
-	$tname configure -event reset-init "script $scriptname"
-	return
+		$tname configure -event reset-init "script $scriptname"
+		return
     }
 
     if { 0 == [string compare $eventname "pre_reset"] } {
-	$tname configure -event reset-start "script $scriptname"
-	return
+		$tname configure -event reset-start "script $scriptname"
+		return
     }
 
     if { 0 == [string compare $eventname "gdb_program_config"] } {
-	$tname configure -event old-gdb_program_config "script $scriptname"
-	return
+		$tname configure -event old-gdb_program_config "script $scriptname"
+		return
     }
 
     return -code error "Unknown target (old) event: $eventname (try $tname configure -event NAME)"
