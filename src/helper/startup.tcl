@@ -110,53 +110,52 @@ proc unknown {args} {
 }
 
 proc new_target_name { } {
-    return [target number [expr [target count] - 1 ]]
+	return [target number [expr [target count] - 1 ]]
 }
 
 
 proc target_script {target_num eventname scriptname} {
 
-    set tname [target number $target_num]
-    
-    if { 0 == [string compare $eventname "reset"] } {
+	set tname [target number $target_num]
+	
+	if { 0 == [string compare $eventname "reset"] } {
 		$tname configure -event reset-init "script $scriptname"
 		return
-    }
+	}
 
-    if { 0 == [string compare $eventname "post_reset"] } {
+	if { 0 == [string compare $eventname "post_reset"] } {
 		$tname configure -event reset-init "script $scriptname"
 		return
-    }
+	}
 
-    if { 0 == [string compare $eventname "pre_reset"] } {
+	if { 0 == [string compare $eventname "pre_reset"] } {
 		$tname configure -event reset-start "script $scriptname"
 		return
-    }
+	}
 
-    if { 0 == [string compare $eventname "gdb_program_config"] } {
+	if { 0 == [string compare $eventname "gdb_program_config"] } {
 		$tname configure -event old-gdb_program_config "script $scriptname"
 		return
-    }
+	}
 
-    return -code error "Unknown target (old) event: $eventname (try $tname configure -event NAME)"
+	return -code error "Unknown target (old) event: $eventname (try $tname configure -event NAME)"
 
 }
 
 add_help_text target_script "DEPRECATED please see the new TARGETNAME configure -event interface"
-
 
 # Try flipping / and \ to find file if the filename does not
 # match the precise spelling
 proc find {filename} {
 	if {[catch {ocd_find $filename} t]==0} {
 		return $t
-	}  
+	}
 	if {[catch {ocd_find [string map {\ /} $filename} t]==0} {
 		return $t
-	}  
+	}
 	if {[catch {ocd_find [string map {/ \\} $filename} t]==0} {
 		return $t
-	}  
+	}
 	# make sure error message matches original input string
 	return -code error "Can't find $filename"
 }
@@ -173,8 +172,6 @@ proc script {filename} {
 
 add_help_text script "<filename> - filename of OpenOCD script (tcl) to run"
 
-
-
 # Handle GDB 'R' packet. Can be overriden by configuration script,
 # but it's not something one would expect target scripts to do
 # normally
@@ -183,7 +180,6 @@ proc ocd_gdb_restart {target_num} {
 	# one target
 	reset halt
 }
-
 
 # If RCLK is not supported, use fallback_speed_khz
 proc jtag_rclk {fallback_speed_khz} {
@@ -196,88 +192,86 @@ add_help_text jtag_rclk "fallback_speed_khz - set JTAG speed to RCLK or use fall
 
 proc ocd_process_reset { MODE } {
 
-    # If this target must be halted...
-    set halt -1
-    if { 0 == [string compare $MODE halt] } {
-	set halt 1
-    }
-    if { 0 == [string compare $MODE init] } {
-	set halt 1;
-    }
-    if { 0 == [string compare $MODE run ] } {
-	set halt 0;
-    }
-    if { $halt < 0 } {
-	return -error "Invalid mode: $MODE, must be one of: halt, init, or run";
-    }
+	# If this target must be halted...
+	set halt -1
+	if { 0 == [string compare $MODE halt] } {
+		set halt 1
+	}
+	if { 0 == [string compare $MODE init] } {
+		set halt 1;
+	}
+	if { 0 == [string compare $MODE run ] } {
+		set halt 0;
+	}
+	if { $halt < 0 } {
+		return -error "Invalid mode: $MODE, must be one of: halt, init, or run";
+	}
 
-    foreach t [ target names ] {
+	foreach t [ target names ] {
 		# New event script.
 		$t invoke-event reset-start
-    }
+	}
 
-    # Init the tap controller.
-    jtag arp_init-reset
+	# Init the tap controller.
+	jtag arp_init-reset
 
-    # Examine all targets.
-    foreach t [ target names ] {
+	# Examine all targets.
+	foreach t [ target names ] {
 		$t arp_examine
-    }
+	}
 
-    # Let the C code know we are asserting reset.
-    foreach t [ target names ] {
+	# Let the C code know we are asserting reset.
+	foreach t [ target names ] {
 		$t invoke-event reset-assert-pre
 		# C code needs to know if we expect to 'halt'
 		$t arp_reset assert $halt
 		$t invoke-event reset-assert-post
-    }
+	}
 
-    # Now de-assert reset.
-    foreach t [ target names ] {
+	# Now de-assert reset.
+	foreach t [ target names ] {
 		$t invoke-event reset-deassert-pre
 		# Again, de-assert code needs to know..
 		$t arp_reset deassert $halt
 		$t invoke-event reset-deassert-post
-    }
+	}
 
-
-    # Pass 1 - Now try to halt.
-    if { $halt } {
+	# Pass 1 - Now try to halt.
+	if { $halt } {
 		foreach t [target names] {
 	
-		    # Wait upto 1 second for target to halt.  Why 1sec? Cause
-		    # the JTAG tap reset signal might be hooked to a slow
-		    # resistor/capacitor circuit - and it might take a while
-		    # to charge
-		    
-		    # Catch, but ignore any errors.
-		    catch { $t arp_waitstate halted 1000 }
-		    
-		    # Did we succeed?
-		    set s [$t curstate]
-		    
-		    if { 0 != [string compare $s "halted" ] } {
+			# Wait upto 1 second for target to halt.  Why 1sec? Cause
+			# the JTAG tap reset signal might be hooked to a slow
+			# resistor/capacitor circuit - and it might take a while
+			# to charge
+			
+			# Catch, but ignore any errors.
+			catch { $t arp_waitstate halted 1000 }
+			
+			# Did we succeed?
+			set s [$t curstate]
+			
+			if { 0 != [string compare $s "halted" ] } {
 				return -error [format "TARGET: %s - Not halted" $t]
-		    }
+			}
 		}
-    }
+	}
 
-    #Pass 2 - if needed "init"
-    if { 0 == [string compare init $MODE] } {
+	#Pass 2 - if needed "init"
+	if { 0 == [string compare init $MODE] } {
 		foreach t [target names] {
-		    set err [catch "$t arp_waitstate halted 5000"]
-		    # Did it halt?
-		    if { $err == 0 } {
+			set err [catch "$t arp_waitstate halted 5000"]
+			# Did it halt?
+			if { $err == 0 } {
 				$t invoke-event reset-init		
-		    }
+			}
 		}
-    }
+	}
 
-    foreach t [ target names ] {
+	foreach t [ target names ] {
 		$t invoke-event reset-end
-    }
+	}
 }
-
 
 # stubs for targets scripts that do not have production procedure
 proc production_info {} {
@@ -287,7 +281,7 @@ add_help_text production_info "Displays informationo on production procedure for
 
 proc production {firmwarefile serialnumber} {
 	puts "Imagine production procedure running successfully. Programmed $firmwarefile with serial number $serialnumber"
-} 
+}
 
 add_help_text production "Runs production procedure. Throws exception if procedure failed. Prints progress messages."
 

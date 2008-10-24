@@ -77,19 +77,17 @@ struct timeval {
 	long tv_usec;
 };
 
-struct timezone {
-    int tz_minuteswest;
-	int tz_dsttime;
-};
-
 #endif /* _TIMEVAL_DEFINED */
 
 #endif
 
 /* gettimeofday() */
 #ifndef HAVE_GETTIMEOFDAY
-struct timeval;
-struct timezone;
+struct timezone {
+    int tz_minuteswest;
+	int tz_dsttime;
+};
+
 extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 #endif
 
