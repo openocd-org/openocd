@@ -3908,9 +3908,9 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		new_argv[4] = Jim_NewStringObj( interp, "-endian", -1 );
 		new_argv[5] = goi.argv[1];
 		new_argv[6] = Jim_NewStringObj( interp, "-chain-position", -1 );
-		new_argv[7] = goi.argv[2];
+		new_argv[7] = goi.argv[3];
 		new_argv[8] = Jim_NewStringObj( interp, "-variant", -1 );
-		new_argv[9] = goi.argv[3];
+		new_argv[9] = goi.argv[4];
 		new_argc = 10;
 		/*
 		 * new arg syntax:
