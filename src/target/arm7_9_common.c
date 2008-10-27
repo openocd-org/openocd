@@ -8,6 +8,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2008 by Hongtao Zheng                                   *
+ *   hontor@126.com                                                        *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -39,6 +42,7 @@
 #include "arm7_9_common.h"
 #include "breakpoints.h"
 #include "time_support.h"
+#include "arm_simulator.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -1549,6 +1553,9 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	if (!current)
 		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
 
+	u32 current_pc;
+	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 	{
@@ -1560,8 +1567,17 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 				return retval;
 			}
 
+			u32 next_pc;
+			if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
+			{
+				u32 current_opcode;
+				target_read_u32(target, current_pc, &current_opcode);
+				LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
+				return retval;
+			}
+
 			LOG_DEBUG("enable single-step");
-			arm7_9->enable_single_step(target);
+			arm7_9->enable_single_step(target, next_pc);
 
 			target->debug_reason = DBG_REASON_SINGLESTEP;
 
@@ -1671,24 +1687,42 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	return ERROR_OK;
 }
 
-void arm7_9_enable_eice_step(target_t *target)
+void arm7_9_enable_eice_step(target_t *target, u32 next_pc)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	/* setup an inverse breakpoint on the current PC
-	* - comparator 1 matches the current address
-	* - rangeout from comparator 1 is connected to comparator 0 rangein
-	* - comparator 0 matches any address, as long as rangein is low */
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0xffffffff);
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0xffffffff);
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~(EICE_W_CTRL_RANGE|EICE_W_CTRL_nOPC) & 0xff);
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_VALUE], buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], 0);
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], 0xffffffff);
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
+	u32 current_pc;
+	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+
+	if(next_pc != current_pc)
+	{
+		/* setup an inverse breakpoint on the current PC
+		* - comparator 1 matches the current address
+		* - rangeout from comparator 1 is connected to comparator 0 rangein
+		* - comparator 0 matches any address, as long as rangein is low */
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0xffffffff);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0xffffffff);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~(EICE_W_CTRL_RANGE|EICE_W_CTRL_nOPC) & 0xff);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_VALUE], current_pc);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], 0);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], 0xffffffff);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
+	}
+	else
+	{
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0xffffffff);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0xffffffff);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], 0xff);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_VALUE], next_pc);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], 0);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], 0xffffffff);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
+	}
 }
 
 void arm7_9_disable_eice_step(target_t *target)
@@ -1724,6 +1758,9 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	if (!current)
 		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
 
+	u32 current_pc;
+	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
@@ -1734,12 +1771,21 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
+	u32 next_pc;
+	if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
+	{
+		u32 current_opcode;
+		target_read_u32(target, current_pc, &current_opcode);
+		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
+		return retval;
+	}
+
 	if ((retval = arm7_9_restore_context(target)) != ERROR_OK)
 	{
 		return retval;
 	}
 
-	arm7_9->enable_single_step(target);
+	arm7_9->enable_single_step(target, next_pc);
 
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 	{
