@@ -277,7 +277,7 @@ proc ocd_process_reset { MODE } {
 proc production_info {} {
 	return "Imagine an explanation here..."
 }
-add_help_text production_info "Displays informationo on production procedure for target script"
+add_help_text production_info "Displays information on production procedure for target script"
 
 proc production {firmwarefile serialnumber} {
 	puts "Imagine production procedure running successfully. Programmed $firmwarefile with serial number $serialnumber"
