@@ -83,10 +83,15 @@ struct timeval {
 
 /* gettimeofday() */
 #ifndef HAVE_GETTIMEOFDAY
+
+
+#ifdef _WIN32
 struct timezone {
     int tz_minuteswest;
 	int tz_dsttime;
 };
+#endif
+struct timezone;
 
 extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 #endif
