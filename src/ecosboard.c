@@ -840,12 +840,19 @@ static void copyfile(char *name2, char *name1)
     if( err < 0 ) SHOW_RESULT( close, err );
 
 }
-static void copydir(char *name)
+static void copydir(char *name, char *destdir)
 {
 	int err;
 	DIR *dirp;
 
-	mkdir("/ram/cgi", 0777);
+	dirp = opendir(destdir);
+	if (dirp==NULL)
+	{
+		mkdir(destdir, 0777);
+	} else
+	{
+		err = closedir(dirp);
+	}
 
 	dirp = opendir(name);
     if( dirp == NULL ) SHOW_RESULT( opendir, -1 );
@@ -884,9 +891,11 @@ static void copydir(char *name)
 		char fullname2[PATH_MAX];
 
 		strcpy(fullname, name);
+		strcat(fullname, "/");
 		strcat(fullname, entry->d_name);
 
-		strcpy(fullname2, "/ram/cgi/");
+		strcpy(fullname2, destdir);
+		strcat(fullname2, "/");
 		strcat(fullname2, entry->d_name);
 		//        diag_printf("from %s to %s\n", fullname, fullname2);
 		copyfile(fullname, fullname2);
@@ -1791,8 +1800,16 @@ int add_default_dirs(void)
 	return ERROR_OK;
 }
 
+static cyg_uint8 *ramblockdevice;
+static const int ramblockdevice_size=4096*1024;
 int main(int argc, char *argv[])
 {
+	/* ramblockdevice will be the same address every time. The deflate app uses a buffer 16mBytes out, so we
+	 * need to allocate towards the end of the heap.  */
+
+	ramblockdevice=(cyg_uint8 *)malloc(ramblockdevice_size);
+	memset(ramblockdevice, 0xff, ramblockdevice_size);
+
 	setHandler(CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION);
 	setHandler(CYGNUM_HAL_VECTOR_ABORT_PREFETCH);
 	setHandler(CYGNUM_HAL_VECTOR_ABORT_DATA);
@@ -1849,12 +1866,53 @@ int main(int argc, char *argv[])
 	diag_printf("Zylin ZY1000. Copyright Zylin AS 2007-2008.\n");
 	diag_printf("%s\n", ZYLIN_OPENOCD_VERSION);
 
-	copydir("/rom/");
+	copydir("/rom", "/ram/cgi");
 
 	err = mount("/dev/flash1", "/config", "jffs2");
 	if (err < 0)
 	{
 		diag_printf("unable to mount jffs\n");
+		reboot();
+	}
+
+	/* are we using a ram disk instead of a flash disk? This is used
+	 * for ZY1000 live demo...
+	 *
+	 * copy over flash disk to ram block device
+	 */
+	if (boolParam("ramdisk"))
+	{
+		diag_printf("Unmounting /config from flash and using ram instead\n");
+		err=umount("/config");
+		if (err < 0)
+		{
+			diag_printf("unable to unmount jffs\n");
+			reboot();
+		}
+
+		err = mount("/dev/flash1", "/config2", "jffs2");
+		if (err < 0)
+		{
+			diag_printf("unable to mount jffs\n");
+			reboot();
+		}
+
+		err = mount("/dev/ram", "/config", "jffs2");
+		if (err < 0)
+		{
+			diag_printf("unable to mount ram block device\n");
+			reboot();
+		}
+
+//		copydir("/config2", "/config");
+		copyfile("/config2/ip", "/config/ip");
+		copydir("/config2/settings", "/config/settings");
+
+		umount("/config2");
+	} else
+	{
+		/* we're not going to use a ram block disk */
+		free(ramblockdevice);
 	}
 
 
@@ -2370,6 +2428,8 @@ logfs_fo_write(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio);
 static int logfs_fo_fsync(struct CYG_FILE_TAG *fp, int mode);
 static int logfs_fo_close(struct CYG_FILE_TAG *fp);
 
+#include <cyg/io/devtab.h>
+
 //==========================================================================
 // Filesystem table entries
 
@@ -2473,3 +2533,123 @@ static int logfs_fo_close(struct CYG_FILE_TAG *fp)
 {
 	return ENOERR;
 }
+
+static bool
+ramiodev_init( struct cyg_devtab_entry *tab )
+{
+	return true;
+}
+
+static Cyg_ErrNo
+ramiodev_bread( cyg_io_handle_t handle, void *buf, cyg_uint32 *len,
+                  cyg_uint32 pos)
+{
+	if (*len+pos>ramblockdevice_size)
+	{
+		*len=ramblockdevice_size-pos;
+	}
+	memcpy(buf, ramblockdevice+pos, *len);
+	return ENOERR;
+}
+
+static Cyg_ErrNo
+ramiodev_bwrite( cyg_io_handle_t handle, const void *buf, cyg_uint32 *len,
+                   cyg_uint32 pos )
+{
+	if (((pos%4)!=0)||(((*len)%4)!=0))
+	{
+		diag_printf("Unaligned write %d %d!", pos, *len);
+	}
+
+	memcpy(ramblockdevice+pos, buf, *len);
+	return ENOERR;
+}
+
+static Cyg_ErrNo
+ramiodev_get_config( cyg_io_handle_t handle,
+                       cyg_uint32 key,
+                       void* buf,
+                       cyg_uint32* len)
+{
+    switch (key) {
+    case CYG_IO_GET_CONFIG_FLASH_ERASE:
+    {
+        if ( *len != sizeof( cyg_io_flash_getconfig_erase_t ) )
+             return -EINVAL;
+        {
+            cyg_io_flash_getconfig_erase_t *e = (cyg_io_flash_getconfig_erase_t *)buf;
+            char *startpos = ramblockdevice + e->offset;
+
+            if (((e->offset%(64*1024))!=0)||((e->len%(64*1024))!=0))
+            {
+            	diag_printf("Erease is not aligned %d %d\n", e->offset, e->len);
+            }
+
+            memset(startpos, 0xff, e->len);
+
+            e->flasherr = 0;
+        }
+        return ENOERR;
+    }
+    case CYG_IO_GET_CONFIG_FLASH_DEVSIZE:
+    {
+        if ( *len != sizeof( cyg_io_flash_getconfig_devsize_t ) )
+             return -EINVAL;
+        {
+            cyg_io_flash_getconfig_devsize_t *d =
+                (cyg_io_flash_getconfig_devsize_t *)buf;
+
+			d->dev_size = ramblockdevice_size;
+        }
+        return ENOERR;
+    }
+
+    case CYG_IO_GET_CONFIG_FLASH_BLOCKSIZE:
+    {
+        cyg_io_flash_getconfig_blocksize_t *b =
+            (cyg_io_flash_getconfig_blocksize_t *)buf;
+        if ( *len != sizeof( cyg_io_flash_getconfig_blocksize_t ) )
+             return -EINVAL;
+
+        // offset unused for now
+		b->block_size = 64*1024;
+        return ENOERR;
+    }
+
+    default:
+        return -EINVAL;
+    }
+}
+
+static Cyg_ErrNo
+ramiodev_set_config( cyg_io_handle_t handle,
+                       cyg_uint32 key,
+                       const void* buf,
+                       cyg_uint32* len)
+{
+
+    switch (key) {
+    default:
+        return -EINVAL;
+    }
+} // ramiodev_set_config()
+
+// get_config/set_config should be added later to provide the other flash
+// operations possible, like erase etc.
+
+BLOCK_DEVIO_TABLE( cyg_io_ramdev1_ops,
+                   &ramiodev_bwrite,
+                   &ramiodev_bread,
+                   0, // no select
+                   &ramiodev_get_config,
+                   &ramiodev_set_config
+    );
+
+
+BLOCK_DEVTAB_ENTRY( cyg_io_ramdev1,
+                    "/dev/ram",
+                    0,
+                    &cyg_io_ramdev1_ops,
+                    &ramiodev_init,
+                    0, // No lookup required
+                    NULL );
