@@ -3878,24 +3878,36 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	}
 	if( target_types[x] ){
 		/* YES IT IS OLD SYNTAX */
+		int      chain_position_offset;
 		Jim_Obj *new_argv[10];
 		int      new_argc;
 
 		/* target_old_syntax
 		 *
-		 * argv[0] typename (above)
-		 * argv[1] endian
-		 * argv[2] reset method, deprecated/ignored
-		 * argv[3] = old param
-		 * argv[4] = old param
+		 * It appears that there are 2 old syntaxes:
 		 *
-		 * We will combine all "old params" into a single param.
-		 * Then later, split them again.
+		 * target <typename> <endian> <chain position> <variant>
+		 * 
+		 * and
+		 *
+		 * target <typename> <endian> <reset mode> <chain position> <variant>
+		 *
+		 * The following uses the number of arguments to switch between them.
 		 */
-		if( argc < 4 ){
-			Jim_WrongNumArgs( interp, 1, argv, "[OLDSYNTAX] ?TYPE? ?ENDIAN? ?RESET? ?old-params?");
+		if( argc < 5 ){
+			Jim_WrongNumArgs( interp, 1, argv, "[OLDSYNTAX] ?TYPE? ?ENDIAN? ?CHAIN-POSITION? ?VARIANT?");
 			return JIM_ERR;
 		}
+
+		/* Use the correct argument offset for the chain position */
+		if (argc < 6) {
+			/* target <type> <endian> <chain position> <variant> */
+			chain_position_offset = 2;
+		} else {
+			chain_position_offset = 3;
+			/* target <type> <endian> <reset mode> <chain position> <variant> */
+		}
+
 		/* the command */
 		new_argv[0] = argv[0];
 		new_argv[1] = Jim_NewStringObj( interp, "create", -1 );
@@ -3908,10 +3920,11 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		new_argv[4] = Jim_NewStringObj( interp, "-endian", -1 );
 		new_argv[5] = goi.argv[1];
 		new_argv[6] = Jim_NewStringObj( interp, "-chain-position", -1 );
-		new_argv[7] = goi.argv[3];
+		new_argv[7] = goi.argv[chain_position_offset];
 		new_argv[8] = Jim_NewStringObj( interp, "-variant", -1 );
-		new_argv[9] = goi.argv[4];
+		new_argv[9] = goi.argv[chain_position_offset + 1];
 		new_argc = 10;
+
 		/*
 		 * new arg syntax:
 		 *   argv[0] = command
