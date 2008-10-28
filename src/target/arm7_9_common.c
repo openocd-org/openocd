@@ -1690,7 +1690,7 @@ void arm7_9_enable_eice_step(target_t *target)
 		u32 current_opcode;
 		target_read_u32(target, current_pc, &current_opcode);
 		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
-		return retval;
+		return;
 	}
 
 	if(next_pc != current_pc)
