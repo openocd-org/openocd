@@ -2,6 +2,9 @@
  *   Copyright (C) 2006 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   Copyright (C) 2008 by Hongtao Zheng                                   *
+ *   hontor@126.com                                                        *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -349,6 +352,10 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		else
 		{
 			target = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.b_bl_bx_blx.reg_operand).value, 0, 32); 
+			if(instruction.info.b_bl_bx_blx.reg_operand == 15)
+			{
+				target += 2 * instruction_size;
+			}
 		}
 		
 		if (dry_run_pc)
