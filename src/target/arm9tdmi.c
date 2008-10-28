@@ -5,9 +5,6 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
- *   Copyright (C) 2008 by Hongtao Zheng                                   *
- *   hontor@126.com                                                        *
- *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -844,7 +841,7 @@ void arm9tdmi_branch_resume_thumb(target_t *target)
 
 }
 
-void arm9tdmi_enable_single_step(target_t *target, u32 next_pc)
+void arm9tdmi_enable_single_step(target_t *target)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -857,7 +854,7 @@ void arm9tdmi_enable_single_step(target_t *target, u32 next_pc)
 	}
 	else
 	{
-		arm7_9_enable_eice_step(target, next_pc);
+		arm7_9_enable_eice_step(target);
 	}
 }
 

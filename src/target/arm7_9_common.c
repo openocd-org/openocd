@@ -1553,9 +1553,6 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	if (!current)
 		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
 
-	u32 current_pc;
-	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 	{
@@ -1567,17 +1564,8 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 				return retval;
 			}
 
-			u32 next_pc;
-			if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
-			{
-				u32 current_opcode;
-				target_read_u32(target, current_pc, &current_opcode);
-				LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
-				return retval;
-			}
-
 			LOG_DEBUG("enable single-step");
-			arm7_9->enable_single_step(target, next_pc);
+			arm7_9->enable_single_step(target);
 
 			target->debug_reason = DBG_REASON_SINGLESTEP;
 
@@ -1687,13 +1675,23 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	return ERROR_OK;
 }
 
-void arm7_9_enable_eice_step(target_t *target, u32 next_pc)
+void arm7_9_enable_eice_step(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
+	int retval;
 
 	u32 current_pc;
 	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	
+	u32 next_pc;
+	if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
+	{
+		u32 current_opcode;
+		target_read_u32(target, current_pc, &current_opcode);
+		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
+		return retval;
+	}
 
 	if(next_pc != current_pc)
 	{
@@ -1758,9 +1756,6 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	if (!current)
 		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
 
-	u32 current_pc;
-	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
@@ -1771,21 +1766,12 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
-	u32 next_pc;
-	if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
-	{
-		u32 current_opcode;
-		target_read_u32(target, current_pc, &current_opcode);
-		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
-		return retval;
-	}
-
 	if ((retval = arm7_9_restore_context(target)) != ERROR_OK)
 	{
 		return retval;
 	}
 
-	arm7_9->enable_single_step(target, next_pc);
+	arm7_9->enable_single_step(target);
 
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 	{
