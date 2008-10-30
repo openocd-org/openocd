@@ -8,6 +8,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2008 by Hongtao Zheng                                   *
+ *   hontor@126.com                                                        *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -93,7 +96,7 @@ typedef struct arm7_9_common_s
 	void (*branch_resume)(target_t *target);
 	void (*branch_resume_thumb)(target_t *target);
 	
-	void (*enable_single_step)(target_t *target);
+	void (*enable_single_step)(target_t *target, u32 next_pc);
 	void (*disable_single_step)(target_t *target);
 	
 	void (*set_special_dbgrq)(target_t *target);
@@ -143,7 +146,7 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 
-void arm7_9_enable_eice_step(target_t *target);
+void arm7_9_enable_eice_step(target_t *target, u32 next_pc);
 void arm7_9_disable_eice_step(target_t *target);
 
 int arm7_9_execute_sys_speed(struct target_s *target);

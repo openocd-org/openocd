@@ -2,6 +2,9 @@
  *   Copyright (C) 2008 by Marvell Semiconductors, Inc.                    *
  *   Written by Nicolas Pitre <nico@marvell.com>                           *
  *                                                                         *
+ *   Copyright (C) 2008 by Hongtao Zheng                                   *
+ *   hontor@126.com                                                        *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -49,7 +52,6 @@
 #include "arm926ejs.h"
 #include "jtag.h"
 #include "log.h"
-#include "arm_simulator.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -472,23 +474,10 @@ void feroceon_set_dbgrq(target_t *target)
 	embeddedice_store_reg(dbg_ctrl);
 }
 
-void feroceon_enable_single_step(target_t *target)
+void feroceon_enable_single_step(target_t *target, u32 next_pc)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	u32 next_pc;
-
-        /* calculate PC of next instruction */
-	if (arm_simulate_step(target, &next_pc) != ERROR_OK)
-	{
-		u32 current_pc, current_opcode;
-		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-		target_read_u32(target, current_pc, &current_opcode);
-		LOG_ERROR("BUG: couldn't calculate PC of next instruction, "
-		      "current opcode is 0x%8.8x", current_opcode);
-		next_pc = current_pc;
-	}
-	arm7_9_restore_context(target);
 
 	/* set a breakpoint there */
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_VALUE], next_pc);
