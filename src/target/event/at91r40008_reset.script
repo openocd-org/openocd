@@ -1,7 +1,0 @@
-wait_halt
-sleep 10
-poll
-# Ethernut 3 remapping is required to access external flash memory.
-mww 0xffe00000 0x1000213d
-mww 0xffe00004 0x20003e3d
-mww 0xffe00020 0x00000001
