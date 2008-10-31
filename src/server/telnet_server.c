@@ -48,6 +48,11 @@ static unsigned short telnet_port = 0;
 int handle_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_telnet_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
+static int telnet_async()
+{
+	return jim_global_long("telnet_async_state");
+}
+
 static char *negotiate =
 		"\xFF\xFB\x03"		/* IAC WILL Suppress Go Ahead */
 		"\xFF\xFB\x01"		/* IAC WILL Echo */
@@ -186,7 +191,8 @@ int telnet_new_connection(connection_t *connection)
 	telnet_connection->next_history = 0;
 	telnet_connection->current_history = 0;
 
-	log_add_callback(telnet_log_callback, connection);
+	if (telnet_async())
+		log_add_callback(telnet_log_callback, connection);
 
 
 
@@ -341,7 +347,15 @@ int telnet_input(connection_t *connection)
 							t_con->line_size = 0;
 
 							t_con->line_cursor = -1; /* to supress prompt in log callback during command execution */
+
+							if (!telnet_async())
+								log_add_callback(telnet_log_callback, connection);
+
 							retval = command_run_line(command_context, t_con->line);
+
+							if (!telnet_async())
+								log_remove_callback(telnet_log_callback, connection);
+
 							t_con->line_cursor = 0;
 
 							if (retval == ERROR_COMMAND_CLOSE_CONNECTION)

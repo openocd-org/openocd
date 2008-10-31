@@ -300,3 +300,19 @@ proc verify {args} {
 }
 
 add_help_text verify "synonym to verify_image"
+
+
+add_help_text telnet_async "<enable/disable> - enable/disable async messages. Default 0."
+
+global telnet_async_state
+set telnet_async_state 0
+proc telnet_async {state} {
+	global telnet_async_state
+	if {[string compare $state enable]==0} {
+		set telnet_async_state 1 
+	} elseif {[string compare $state disable]==0} {
+		set telnet_async_state 0 
+	} else {
+		return -code error "Illegal option $state"		
+	}
+}

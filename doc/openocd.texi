@@ -265,6 +265,10 @@ OpenOCD command line using the @option{-c} command line switch.
 @item @b{telnet_port} <@var{number}>
 @cindex telnet_port
 @*Port on which to listen for incoming telnet connections 
+@item @b{telnet_async} <@var{enable/disable}>
+@cindex telnet_async
+@*Enable/disable asynchronous messages. Default off. Slows down debugging
+if enabled and telnet session is open while stepping.
 @item @b{tcl_port} <@var{number}>
 @cindex tcl_port
 @*Port on which to listen for incoming TCL syntax. This port is intended as

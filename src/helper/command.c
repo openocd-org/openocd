@@ -795,3 +795,16 @@ void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd
 	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, help, -1));
 	Jim_ListAppendElement(interp, helptext, cmd_entry);
 }
+
+
+/* return global variable long value or 0 upon failure */
+long jim_global_long(const char *variable)
+{
+	Jim_Obj *objPtr=Jim_GetGlobalVariableStr(interp, variable, JIM_ERRMSG);
+	long t;
+	if (Jim_GetLong(interp, objPtr, &t)==JIM_OK)
+	{
+		return t;
+	}
+	return 0;
+}
