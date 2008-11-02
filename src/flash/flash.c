@@ -875,7 +875,7 @@ int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd
 		fileio_close(&fileio);
 		return retvaltemp;
 	}
-	if (retval!=ERROR_OK)
+	if (retval==ERROR_OK)
 	{
 	command_print(cmd_ctx, "wrote  %"PRIi64" byte from file %s to flash bank %i at offset 0x%8.8x in %s (%f kb/s)",
 		fileio.size, args[1], strtoul(args[0], NULL, 0), offset, duration_text,
