@@ -38,7 +38,8 @@ nobase_dist_pkglib_DATA = xscale/debug_handler.bin target/at91eb40a.cfg \
 	interface/flyswatter.cfg target/hammer.cfg   \
 	interface/olimex-jtag-tiny-a.cfg \
 	target/pic32mx.cfg target/aduc702x.cfg interface/dummy.cfg interface/olimex-arm-usb-ocd.cfg target/s3c2440.cfg \
-	interface/openocd-usb.cfg target/test_syntax_error.cfg target/test_reset_syntax_error.cfg
+	interface/openocd-usb.cfg target/test_syntax_error.cfg target/test_reset_syntax_error.cfg \
+	target/imx27.cfg
 	
 	
 
