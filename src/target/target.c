@@ -1740,10 +1740,10 @@ int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	LOG_DEBUG("-");
 
 	if (argc == 0)
-		target->type->step(target, 1, 0, 1); /* current pc, addr = 0, handle breakpoints */
+		return target->type->step(target, 1, 0, 1); /* current pc, addr = 0, handle breakpoints */
 
 	if (argc == 1)
-		target->type->step(target, 0, strtoul(args[0], NULL, 0), 1); /* addr = args[0], handle breakpoints */
+		return target->type->step(target, 0, strtoul(args[0], NULL, 0), 1); /* addr = args[0], handle breakpoints */
 
 	return ERROR_OK;
 }
@@ -3887,7 +3887,7 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		 * It appears that there are 2 old syntaxes:
 		 *
 		 * target <typename> <endian> <chain position> <variant>
-		 * 
+		 *
 		 * and
 		 *
 		 * target <typename> <endian> <reset mode> <chain position> <variant>
