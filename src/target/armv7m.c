@@ -297,6 +297,42 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	return ERROR_OK;
 }
 
+/* run to exit point. return error if exit point was not reached. */
+static int armv7m_run_and_wait(struct target_s *target, u32 entry_point, int timeout_ms, u32 exit_point, armv7m_common_t *armv7m)
+{
+	u32 pc;
+	int retval;
+	/* This code relies on the target specific  resume() and  poll()->debug_entry()
+	sequence to write register values to the processor and the read them back */
+	if((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
+	{
+		return retval;
+	}
+
+	retval = target_wait_state(target, TARGET_HALTED, timeout_ms);
+	// If the target fails to halt due to the breakpoint, force a halt
+	if (retval != ERROR_OK || target->state != TARGET_HALTED)
+	{
+		if ((retval=target_halt(target))!=ERROR_OK)
+			return retval;
+		if ((retval=target_wait_state(target, TARGET_HALTED, 500))!=ERROR_OK)
+		{
+			return retval;
+		}
+		return ERROR_TARGET_TIMEOUT;
+	}
+
+
+	armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
+	if (pc != exit_point)
+	{
+		LOG_DEBUG("failed algoritm halted at 0x%x ", pc);
+		return ERROR_TARGET_TIMEOUT;
+	}
+
+	return ERROR_OK;
+}
+
 int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
 {
 	/* get pointers to arch-specific information */
@@ -331,7 +367,8 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 
 	for (i = 0; i < num_mem_params; i++)
 	{
-		target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
+		if ((retval=target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value))!=ERROR_OK)
+			return retval;
 	}
 
 	for (i = 0; i < num_reg_params; i++)
@@ -370,41 +407,14 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		return ERROR_TARGET_FAILURE;
 	}
 
-	/* This code relies on the target specific  resume() and  poll()->debug_entry()
-	sequence to write register values to the processor and the read them back */
-	if((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
-	{
-		return retval;
-	}
-	if((retval = target_poll(target)) != ERROR_OK)
-	{
-		return retval;
-	}
-
-	if((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
-	{
-		return retval;
-	}
-	if (target->state != TARGET_HALTED)
-	{
-		if ((retval=target_halt(target))!=ERROR_OK)
-			return retval;
-		if ((retval=target_wait_state(target, TARGET_HALTED, 500))!=ERROR_OK)
-		{
-			return retval;
-		}
-		return ERROR_TARGET_TIMEOUT;
-	}
-
-
-	armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
-	if (pc != exit_point)
-	{
-		LOG_DEBUG("failed algoritm halted at 0x%x ", pc);
-		return ERROR_TARGET_TIMEOUT;
-	}
+	retval = armv7m_run_and_wait(target, entry_point, timeout_ms, exit_point, armv7m);
 
 	breakpoint_remove(target, exit_point);
+
+	if (retval != ERROR_OK)
+	{
+		return retval;
+	}
 
 	/* Read memory values to mem_params[] */
 	for (i = 0; i < num_mem_params; i++)
