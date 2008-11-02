@@ -121,7 +121,6 @@ typedef struct xscale_common_s
 	int external_debug_break;
 	
 	/* breakpoint / watchpoint handling */
-	int force_hw_bkpts;
 	int dbr_available;
 	int dbr0_used;
 	int dbr1_used;

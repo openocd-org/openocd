@@ -1260,6 +1260,7 @@ int xscale_enable_single_step(struct target_s *target, u32 next_pc)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale= armv4_5->arch_info;
 	reg_t *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
+	int retval;
 
 	if (xscale->ibcr0_used)
 	{
@@ -1276,7 +1277,8 @@ int xscale_enable_single_step(struct target_s *target, u32 next_pc)
 		}
 	}
 
-	xscale_set_reg_u32(ibcr0, next_pc | 0x1);
+	if ((retval=xscale_set_reg_u32(ibcr0, next_pc | 0x1))!=ERROR_OK)
+		return retval;
 
 	return ERROR_OK;
 }
@@ -1286,8 +1288,10 @@ int xscale_disable_single_step(struct target_s *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale= armv4_5->arch_info;
 	reg_t *ibcr0 = &xscale->reg_cache->reg_list[XSCALE_IBCR0];
+	int retval;
 
-	xscale_set_reg_u32(ibcr0, 0x0);
+	if ((retval=xscale_set_reg_u32(ibcr0, 0x0))!=ERROR_OK)
+		return retval;
 
 	return ERROR_OK;
 }
@@ -1448,14 +1452,91 @@ int xscale_resume(struct target_s *target, int current, u32 address, int handle_
 	return ERROR_OK;
 }
 
-int xscale_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
+static int xscale_step_inner(struct target_s *target, int current, u32 address, int handle_breakpoints)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	breakpoint_t *breakpoint = target->breakpoints;
 
 	u32 current_pc, next_pc;
+	int retval;
 	int i;
+
+
+	target->debug_reason = DBG_REASON_SINGLESTEP;
+
+	/* calculate PC of next instruction */
+	if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
+	{
+		u32 current_opcode;
+		target_read_u32(target, current_pc, &current_opcode);
+		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
+		return retval;
+	}
+
+	LOG_DEBUG("enable single-step");
+	if ((retval=xscale_enable_single_step(target, next_pc))!=ERROR_OK)
+		return retval;
+
+	/* restore banked registers */
+	if ((retval=xscale_restore_context(target))!=ERROR_OK)
+		return retval;
+
+	/* send resume request (command 0x30 or 0x31)
+	 * clean the trace buffer if it is to be enabled (0x62) */
+	if (xscale->trace.buffer_enabled)
+	{
+		if ((retval=xscale_send_u32(target, 0x62))!=ERROR_OK)
+			return retval;
+		if ((retval=xscale_send_u32(target, 0x31))!=ERROR_OK)
+			return retval;
+	}
+	else
+		if ((retval=xscale_send_u32(target, 0x30))!=ERROR_OK)
+			return retval;
+
+	/* send CPSR */
+	if ((retval=xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32)))!=ERROR_OK)
+		return retval;
+	LOG_DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
+
+	for (i = 7; i >= 0; i--)
+	{
+		/* send register */
+		if ((retval=xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32)))!=ERROR_OK)
+			return retval;
+		LOG_DEBUG("writing r%i with value 0x%8.8x", i, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
+	}
+
+	/* send PC */
+	if ((retval=xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32)))!=ERROR_OK)
+		return retval;
+	LOG_DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+
+	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+
+	/* registers are now invalid */
+	if ((retval=armv4_5_invalidate_core_regs(target))!=ERROR_OK)
+		return retval;
+
+	/* wait for and process debug entry */
+	if ((retval=xscale_debug_entry(target))!=ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("disable single-step");
+	if ((retval=xscale_disable_single_step(target))!=ERROR_OK)
+		return retval;
+
+	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+
+	return ERROR_OK;
+}
+
+int xscale_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
+{
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	breakpoint_t *breakpoint = target->breakpoints;
+
+	u32 current_pc;
 	int retval;
 
 	if (target->state != TARGET_HALTED)
@@ -1473,7 +1554,8 @@ int xscale_step(struct target_s *target, int current, u32 address, int handle_br
 	/* if we're at the reset vector, we have to simulate the step */
 	if (current_pc == 0x0)
 	{
-		arm_simulate_step(target, NULL);
+		if ((retval=arm_simulate_step(target, NULL))!=ERROR_OK)
+			return retval;
 		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 
 		target->debug_reason = DBG_REASON_SINGLESTEP;
@@ -1486,62 +1568,11 @@ int xscale_step(struct target_s *target, int current, u32 address, int handle_br
 	if (handle_breakpoints)
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
 		{
-			xscale_unset_breakpoint(target, breakpoint);
+			if ((retval=xscale_unset_breakpoint(target, breakpoint))!=ERROR_OK)
+				return retval;
 		}
 
-	target->debug_reason = DBG_REASON_SINGLESTEP;
-
-	/* calculate PC of next instruction */
-	if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
-	{
-		u32 current_opcode;
-		target_read_u32(target, current_pc, &current_opcode);
-		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
-	}
-
-	LOG_DEBUG("enable single-step");
-	xscale_enable_single_step(target, next_pc);
-
-	/* restore banked registers */
-	xscale_restore_context(target);
-
-	/* send resume request (command 0x30 or 0x31)
-	 * clean the trace buffer if it is to be enabled (0x62) */
-	if (xscale->trace.buffer_enabled)
-	{
-		xscale_send_u32(target, 0x62);
-		xscale_send_u32(target, 0x31);
-	}
-	else
-		xscale_send_u32(target, 0x30);
-
-	/* send CPSR */
-	xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-	LOG_DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-
-	for (i = 7; i >= 0; i--)
-	{
-		/* send register */
-		xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
-		LOG_DEBUG("writing r%i with value 0x%8.8x", i, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
-	}
-
-	/* send PC */
-	xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-	LOG_DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-
-	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-
-	/* registers are now invalid */
-	armv4_5_invalidate_core_regs(target);
-
-	/* wait for and process debug entry */
-	xscale_debug_entry(target);
-
-	LOG_DEBUG("disable single-step");
-	xscale_disable_single_step(target);
-
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+	retval = xscale_step_inner(target, current, address, handle_breakpoints);
 
 	if (breakpoint)
 	{
@@ -2152,9 +2183,6 @@ int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (xscale->force_hw_bkpts)
-		breakpoint->type = BKPT_HARD;
-
 	if (breakpoint->set)
 	{
 		LOG_WARNING("breakpoint already set");
@@ -2226,12 +2254,6 @@ int xscale_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	if (xscale->force_hw_bkpts)
-	{
-		LOG_DEBUG("forcing use of hardware breakpoint at address 0x%8.8x", breakpoint->address);
-		breakpoint->type = BKPT_HARD;
 	}
 
 	if ((breakpoint->type == BKPT_HARD) && (xscale->ibcr_available < 1))
@@ -3090,8 +3112,6 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	xscale->hold_rst = 0;
 	xscale->external_debug_break = 0;
 
-	xscale->force_hw_bkpts = 1;
-
 	xscale->ibcr_available = 2;
 	xscale->ibcr0_used = 0;
 	xscale->ibcr1_used = 0;
@@ -3391,34 +3411,6 @@ int xscale_handle_vector_catch_command(command_context_t *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-int xscale_handle_force_hw_bkpts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	target_t *target = get_current_target(cmd_ctx);
-	armv4_5_common_t *armv4_5;
-	xscale_common_t *xscale;
-
-	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
-	{
-		return ERROR_OK;
-	}
-
-	if ((argc >= 1) && (strcmp("enable", args[0]) == 0))
-	{
-		xscale->force_hw_bkpts = 1;
-	}
-	else if ((argc >= 1) && (strcmp("disable", args[0]) == 0))
-	{
-		xscale->force_hw_bkpts = 0;
-	}
-	else
-	{
-		command_print(cmd_ctx, "usage: xscale force_hw_bkpts <enable|disable>");
-	}
-
-	command_print(cmd_ctx, "force hardware breakpoints %s", (xscale->force_hw_bkpts) ? "enabled" : "disabled");
-
-	return ERROR_OK;
-}
 
 int xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -3629,12 +3621,12 @@ int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int a
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	xscale_common_t *xscale;
-	
+
 	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
 	{
 		return ERROR_OK;
 	}
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
