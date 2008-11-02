@@ -567,9 +567,14 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 		 * This is probably the same inssue as Cortex-M3 Errata	377493: 
 		 * C_MASKINTS in parallel with disabled interrupts can cause local faults to not be taken. */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_PRIMASK].value, 0, 32, 1);
+		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].dirty = 1;
+		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].valid = 1;
+
 		/* Make sure we are in Thumb mode */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32, 
 			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32) | (1<<24));
+		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = 1;
+		armv7m->core_cache->reg_list[ARMV7M_xPSR].valid = 1;
 	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
