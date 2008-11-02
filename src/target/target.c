@@ -3828,7 +3828,6 @@ target_create( Jim_GetOptInfo *goi )
 						   target, /* private data */
 						   NULL ); /* no del proc */
 
-	(*(target->type->target_create))( target, goi->interp );
 	return e;
 }
 
