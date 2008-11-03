@@ -66,6 +66,8 @@ typedef void Jim_EventFinalizerProc(Jim_Interp *interp, void *clientData);
 #define JIM_API(x) x
 #define JIM_STATIC 
 
+JIM_STATIC int Jim_EventLoopOnLoad(Jim_Interp *interp);
+
 /* --- POSIX version of Jim_ProcessEvents, for now the only available --- */
 #define JIM_FILE_EVENTS 1
 #define JIM_TIME_EVENTS 2

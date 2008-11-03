@@ -2636,7 +2636,7 @@ static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_
 {
 	long l;
 	u32 width;
-	u32 len;
+	int len;
 	u32 addr;
 	u32 count;
 	u32 v;
@@ -2818,7 +2818,7 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 {
 	long l;
 	u32 width;
-	u32 len;
+	int len;
 	u32 addr;
 	u32 count;
 	u32 v;

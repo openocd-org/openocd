@@ -653,7 +653,7 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 command_context_t* command_init()
 {
 	command_context_t* context = malloc(sizeof(command_context_t));
-	extern unsigned const char startup_tcl[];
+	extern const char startup_tcl[];
 
 	context->mode = COMMAND_EXEC;
 	context->commands = NULL;

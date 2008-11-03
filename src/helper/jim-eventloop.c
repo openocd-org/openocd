@@ -524,9 +524,7 @@ static int JimELAfterCommand(Jim_Interp *interp, int argc,
 
 /* This extension is not dynamically loaded, instead it's linked statically,
    which is why we shouldn't use the unspecific 'Jim_OnLoad' name */
-#define Jim_OnLoad Jim_EventLoopOnLoad
-
-int Jim_OnLoad(Jim_Interp *interp)
+int Jim_EventLoopOnLoad(Jim_Interp *interp)
 {
     Jim_EventLoop *eventLoop;
 

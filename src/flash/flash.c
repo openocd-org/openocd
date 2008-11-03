@@ -1178,7 +1178,7 @@ int default_flash_blank_check(struct flash_bank_s *bank)
 	int i;
 	int retval;
 	int fast_check = 0;
-	int blank;
+	u32 blank;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
