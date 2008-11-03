@@ -5,6 +5,9 @@
  *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
+ *   Copyright (C) 2008 Peter Hettkamp                                     *
+ *   peter.hettkamp@htp-tel.de                                             *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -86,6 +89,11 @@ void xsvf_add_statemove(enum tap_state state)
 	if ((state != TAP_TLR) && (state == cmd_queue_cur_state))
 		return;
 
+	if(state==TAP_TLR) 
+	{
+		jtag_add_tlr(); 
+		return; 
+	}
 	for (i=0; i<7; i++)
 	{
 		int j = (move >> i) & 1;
@@ -401,7 +409,27 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						do_abort = 1;
 					else
 					{
-						jtag_add_pathmove(path_len, path);
+						int i,lasti;
+						/* here the trick is that jtag_add_pathmove() must end in a stable
+						state, so we must only invoke jtag_add_tlr() when we absolutely 
+						have to
+						*/
+						for(i=0,lasti=0;i<path_len;i++) 
+						{
+							if(path[i]==TAP_TLR) 
+							{
+								if(i>lasti)  
+								{
+									jtag_add_pathmove(i-lasti,path+lasti);
+								}
+								lasti=i+1;
+								jtag_add_tlr();
+							}
+						}
+						if(i>=lasti) 
+						{
+							jtag_add_pathmove(i-lasti, path+lasti);
+						}
 					}
 					free(path);
 				}
