@@ -316,3 +316,42 @@ proc telnet_async {state} {
 		return -code error "Illegal option $state"		
 	}
 }
+
+
+add_help_text cpu "<name> - prints out target options and a comment on CPU which matches name"
+
+# A list of names of CPU and options required
+set ocd_cpu_list {
+	{
+		name IXP42x 
+		options {xscale -variant IXP42x} 
+		comment {IXP42x cpu}
+	}
+	{
+		name arm7 
+		options {arm7tdmi -variant arm7tdmi} 
+		comment {vanilla ARM7}
+	}
+}
+
+# Invoked from Tcl code
+proc ocd_cpu {args} {
+	set name $args
+	set result ""
+	global ocd_cpu_list
+	foreach a [lsort $ocd_cpu_list] {
+		if {[string length $args]==0||[string first [string toupper $name] [string toupper "$a(name)$a(options)$a(comment)"]]!=-1} {
+			lappend result $a 
+		}
+	}
+	return $result
+}
+
+proc cpu {args} {
+    #     0123456789012345678901234567890123456789012345678901234567890123456789
+	puts "CPU                 Options                                 Comment"
+	foreach a [lsort [ocd_cpu $args]] {
+		puts [format "%-20s%-40s%s" $a(name) $a(options) $a(comment)]
+	}
+}
+
