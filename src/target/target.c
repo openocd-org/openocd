@@ -11,6 +11,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2008 by Rick Altherr                                    *
+ *   kc8apf@kc8apf.net>                                                    *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -3877,7 +3880,6 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	}
 	if( target_types[x] ){
 		/* YES IT IS OLD SYNTAX */
-		int      chain_position_offset;
 		Jim_Obj *new_argv[10];
 		int      new_argc;
 
@@ -3891,20 +3893,12 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		 *
 		 * target <typename> <endian> <reset mode> <chain position> <variant>
 		 *
-		 * The following uses the number of arguments to switch between them.
 		 */
-		if( argc < 5 ){
+
+		/* The minimum number of arguments is 4 */
+		if( argc < 4 ){
 			Jim_WrongNumArgs( interp, 1, argv, "[OLDSYNTAX] ?TYPE? ?ENDIAN? ?CHAIN-POSITION? ?VARIANT?");
 			return JIM_ERR;
-		}
-
-		/* Use the correct argument offset for the chain position */
-		if (argc < 6) {
-			/* target <type> <endian> <chain position> <variant> */
-			chain_position_offset = 2;
-		} else {
-			chain_position_offset = 3;
-			/* target <type> <endian> <reset mode> <chain position> <variant> */
 		}
 
 		/* the command */
@@ -3919,10 +3913,29 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		new_argv[4] = Jim_NewStringObj( interp, "-endian", -1 );
 		new_argv[5] = goi.argv[1];
 		new_argv[6] = Jim_NewStringObj( interp, "-chain-position", -1 );
-		new_argv[7] = goi.argv[chain_position_offset];
-		new_argv[8] = Jim_NewStringObj( interp, "-variant", -1 );
-		new_argv[9] = goi.argv[chain_position_offset + 1];
-		new_argc = 10;
+
+		/* If goi.argv[2] is not a number, we need to skip it since it is the reset mode. */
+		jim_wide w;
+		int chain_position_argv = 2;
+		if (JIM_ERR == Jim_GetWide(interp, goi.argv[chain_position_argv], &w)) {
+			if (chain_position_argv + 1 < goi.argc) {
+				chain_position_argv += 1;
+			} else {
+				Jim_WrongNumArgs( interp, 1, argv, "[OLDSYNTAX] ?TYPE? ?ENDIAN? ?RESET? ?CHAIN-POSITION? ?VARIANT?");
+				return JIM_ERR;
+			}
+		}
+
+		new_argv[7] = goi.argv[chain_position_argv];
+
+		/* Only provide a variant configure option if there was a variant specified */
+		if (chain_position_argv + 1 < goi.argc) {
+			new_argv[8] = Jim_NewStringObj( interp, "-variant", -1 );
+			new_argv[9] = goi.argv[chain_position_argv + 1];
+			new_argc = 10;
+		} else {
+			new_argc = 8;
+		}
 
 		/*
 		 * new arg syntax:
@@ -3930,10 +3943,6 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		 *   argv[1] = create
 		 *   argv[2] = cmdname
 		 *   argv[3] = typename
-		 *   argv[4] = **FIRST** "configure" option.
-		 *
-		 * Here, we make them:
-		 *
 		 *   argv[4] = -endian
 		 *   argv[5] = little
 		 *   argv[6] = -position
