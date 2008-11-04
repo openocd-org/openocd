@@ -2093,6 +2093,22 @@ halt
 @chapter FAQ
 @cindex faq
 @enumerate
+@item Why does not backslashes in paths under Windows doesn't work?
+
+OpenOCD uses Tcl and a backslash is an escape char. Use @{ and @}
+around Windows filenames. 
+
+@smallexample
+> echo \a
+
+> echo @{\a@}
+\a
+> echo "\a"
+
+>
+@end smallexample
+To 
+
 @item OpenOCD complains about a missing cygwin1.dll.
 
 Make sure you have Cygwin installed, or at least a version of OpenOCD that
