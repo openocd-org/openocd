@@ -293,7 +293,9 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 
 	arm9tdmi_clock_out(jtag_info, arm_opcode, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
-	arm7_9_execute_sys_speed(target);
+	retval = arm7_9_execute_sys_speed(target);
+	if (retval != ERROR_OK)
+		return retval;
 	
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{

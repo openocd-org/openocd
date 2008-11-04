@@ -2016,9 +2016,11 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 				 * from a sufficiently high clock (32 kHz is usually too slow)
 				 */
 				if (arm7_9->fast_memory_access)
-					arm7_9_execute_fast_sys_speed(target);
+					retval = arm7_9_execute_fast_sys_speed(target);
 				else
-					arm7_9_execute_sys_speed(target);
+					retval = arm7_9_execute_sys_speed(target);
+				if (retval != ERROR_OK)
+					return retval;
 
 				arm7_9->read_core_regs_target_buffer(target, reg_list, buffer, 4);
 
