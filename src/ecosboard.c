@@ -1336,90 +1336,7 @@ static void zylinjtag_startNetwork()
 	diag_printf("Web server running\n");
 }
 
-static bool readPowerDropout()
-{
-	cyg_uint32 state;
-	// sample and clear power dropout
-	HAL_WRITE_UINT32(0x08000010, 0x80);
-	HAL_READ_UINT32(0x08000010, state);
-	bool powerDropout;
-	powerDropout = (state & 0x80) != 0;
-	return powerDropout;
-}
 
-bool readSRST()
-{
-	cyg_uint32 state;
-	// sample and clear SRST sensing
-	HAL_WRITE_UINT32(0x08000010, 0x00000040);
-	HAL_READ_UINT32(0x08000010, state);
-	bool srstAsserted;
-	srstAsserted = (state & 0x40) != 0;
-	return srstAsserted;
-}
-
-// every 300ms we check for reset & powerdropout and issue a "reset halt" if
-// so.
-
-
-static int sense_handler(void *priv)
-{
-	struct command_context_s *cmd_ctx;
-	cmd_ctx = (struct command_context_s *) priv;
-
-	static bool prevSrstAsserted = false;
-	static bool prevPowerdropout = false;
-
-	bool powerDropout;
-	powerDropout = readPowerDropout();
-
-	bool powerRestored;
-	powerRestored = prevPowerdropout && !powerDropout;
-	if (powerRestored)
-	{
-		LOG_USER("Sensed power restore.");
-	}
-
-	cyg_tick_count_t current = cyg_current_time();
-	static cyg_tick_count_t lastPower = 0;
-	bool waitMore = lastPower + 200 > current;
-	if (powerDropout && !waitMore)
-	{
-		LOG_USER("Sensed power dropout.");
-		lastPower = current;
-	}
-
-	bool srstAsserted = readSRST();
-
-	bool srstDeasserted;
-	srstDeasserted = prevSrstAsserted && !srstAsserted;
-
-	static cyg_tick_count_t lastSrst = 0;
-	waitMore = lastSrst + 200 > current;
-	if (srstDeasserted && !waitMore)
-	{
-		LOG_USER("Sensed nSRST deasserted");
-		lastSrst = current;
-	}
-
-	if (!prevSrstAsserted && srstAsserted)
-	{
-		LOG_USER("Sensed nSRST asserted");
-	}
-
-	prevSrstAsserted = srstAsserted;
-	prevPowerdropout = powerDropout;
-
-	if (srstDeasserted || powerRestored)
-	{
-		/* Other than logging the event we can't do anything here.
-		 * Issuing a reset is a particularly bad idea as we might
-		 * be inside a reset already.
-		 */
-	}
-
-	return ERROR_OK;
-}
 
 
 
@@ -1998,8 +1915,6 @@ int main(int argc, char *argv[])
 	}
 
 	zylinjtag_parse_config_file(cmd_ctx, "/rom/openocd.cfg");
-
-	target_register_timer_callback(sense_handler, 200, 1, cmd_ctx);
 
 	// FIX!!!  Yuk!
 	// diag_printf() is really invoked from many more places than we trust it

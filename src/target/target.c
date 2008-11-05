@@ -1447,6 +1447,71 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 }
 
 
+// every 300ms we check for reset & powerdropout and issue a "reset halt" if
+// so.
+
+static int powerDropout;
+static int srstAsserted;
+
+static int sense_handler()
+{
+	static int prevSrstAsserted = 0;
+	static int prevPowerdropout = 0;
+
+	int retval;
+	if ((retval=jtag_power_dropout(&powerDropout))!=ERROR_OK)
+		return retval;
+
+	int powerRestored;
+	powerRestored = prevPowerdropout && !powerDropout;
+	if (powerRestored)
+	{
+		LOG_USER("Sensed power restore.");
+	}
+
+	long long current = timeval_ms();
+	static long long lastPower = 0;
+	int waitMore = lastPower + 2000 > current;
+	if (powerDropout && !waitMore)
+	{
+		LOG_USER("Sensed power dropout.");
+		lastPower = current;
+	}
+
+	if ((retval=jtag_srst_asserted(&srstAsserted))!=ERROR_OK)
+		return retval;
+
+	int srstDeasserted;
+	srstDeasserted = prevSrstAsserted && !srstAsserted;
+
+	static long long lastSrst = 0;
+	waitMore = lastSrst + 2000 > current;
+	if (srstDeasserted && !waitMore)
+	{
+		LOG_USER("Sensed nSRST deasserted");
+		lastSrst = current;
+	}
+
+	if (!prevSrstAsserted && srstAsserted)
+	{
+		LOG_USER("Sensed nSRST asserted");
+	}
+
+	prevSrstAsserted = srstAsserted;
+	prevPowerdropout = powerDropout;
+
+	if (srstDeasserted || powerRestored)
+	{
+		/* Other than logging the event we can't do anything here.
+		 * Issuing a reset is a particularly bad idea as we might
+		 * be inside a reset already.
+		 */
+	}
+
+	return ERROR_OK;
+}
+
+
 /* process target state changes */
 int handle_target(void *priv)
 {
@@ -1455,7 +1520,10 @@ int handle_target(void *priv)
 
 	while (target)
 	{
-		if (target_continous_poll)
+		sense_handler();
+
+		/* only poll target if we've got power and srst isn't asserted */
+		if (target_continous_poll&&!powerDropout&&!srstAsserted)
 		{
 			/* polling may fail silently until the target has been examined */
 			if((retval = target_poll(target)) != ERROR_OK)

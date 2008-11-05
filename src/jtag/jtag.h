@@ -34,16 +34,16 @@
 #endif
 
 /* Tap States
- * TLR - Test-Logic-Reset, RTI - Run-Test/Idle, 
+ * TLR - Test-Logic-Reset, RTI - Run-Test/Idle,
  * SDS - Select-DR-Scan, CD - Capture-DR, SD - Shift-DR, E1D - Exit1-DR,
  * PD - Pause-DR, E2D - Exit2-DR, UD - Update-DR,
  * SIS - Select-IR-Scan, CI - Capture-IR, SI - Shift-IR, E1I - Exit1-IR,
- * PI - Pause-IR, E2I - Exit2-IR, UI - Update-IR 
+ * PI - Pause-IR, E2I - Exit2-IR, UI - Update-IR
  */
 enum tap_state
 {
-	TAP_TLR = 0x0, TAP_RTI = 0x8, 
-	TAP_SDS = 0x1, TAP_CD = 0x2, TAP_SD = 0x3, TAP_E1D = 0x4, 
+	TAP_TLR = 0x0, TAP_RTI = 0x8,
+	TAP_SDS = 0x1, TAP_CD = 0x2, TAP_SD = 0x3, TAP_E1D = 0x4,
 	TAP_PD = 0x5, TAP_E2D = 0x6, TAP_UD = 0x7,
 	TAP_SIS = 0x9, TAP_CI = 0xa, TAP_SI = 0xb, TAP_E1I = 0xc,
 	TAP_PI = 0xd, TAP_E2I = 0xe, TAP_UI = 0xf
@@ -81,7 +81,7 @@ typedef struct scan_field_s
 	u8 *out_mask;		/* only masked bits care */
 	u8 *in_value;		/* pointer to a 32-bit memory location to take data scanned out */
 	/* in_check_value/mask, in_handler_error_handler, in_handler_priv can be used by the in handler, otherwise they contain garbage  */
-	u8 *in_check_value;	/* used to validate scan results */ 
+	u8 *in_check_value;	/* used to validate scan results */
 	u8 *in_check_mask;	/* check specified bits against check_value */
 	in_handler_t in_handler;	    /* process received buffer using this handler */
 	void *in_handler_priv;	/* additional information for the in_handler */
@@ -187,11 +187,11 @@ enum reset_line_mode
 typedef struct jtag_interface_s
 {
 	char* name;
-	
+
 	/* queued command execution
 	 */
 	int (*execute_queue)(void);
-	
+
 	/* interface initalization
 	 */
 	int (*speed)(int speed);
@@ -199,8 +199,8 @@ typedef struct jtag_interface_s
 	int (*init)(void);
 	int (*quit)(void);
 	/* returns JTAG maxium speed for KHz. 0=RTCK. The function returns
-	a failure if it can't support the KHz/RTCK. 
-	
+	a failure if it can't support the KHz/RTCK.
+
 	WARNING!!!! if RTCK is *slow* then think carefully about
 	whether you actually want to support this in the driver.
 	Many target scripts are written to handle the absence of RTCK
@@ -210,7 +210,25 @@ typedef struct jtag_interface_s
 	/* returns the KHz for the provided JTAG speed. 0=RTCK. The function returns
 	a failure if it can't support the KHz/RTCK. */
 	int (*speed_div)(int speed, int *khz);
-	
+
+	/* Read and clear the power dropout flag. Note that a power dropout
+	   can be transitionary, easily much less than a ms.
+
+	   So to find out if the power is *currently* on, you must invoke
+	   this method twice. Once to clear the power dropout flag and a
+	   second time to read the current state.
+
+	   Currently the default implementation is never to detect power dropout.
+	*/
+	int (*power_dropout)(int *power_dropout);
+	/* Read and clear the srst asserted detection flag.
+	 *
+	 * NB!!!! like power_dropout this does *not* read the current
+	 * state. srst assertion is transitionary and *can* be much
+	 * less than 1ms.
+	 */
+	int (*srst_asserted)(int *srst_asserted);
+
 } jtag_interface_t;
 
 enum jtag_event
@@ -241,10 +259,10 @@ extern int jtag_speed_post_reset;
 
 enum reset_types
 {
-	RESET_NONE = 0x0, 
-	RESET_HAS_TRST = 0x1, 
-	RESET_HAS_SRST = 0x2, 
-	RESET_TRST_AND_SRST = 0x3, 
+	RESET_NONE = 0x0,
+	RESET_HAS_TRST = 0x1,
+	RESET_HAS_SRST = 0x2,
+	RESET_TRST_AND_SRST = 0x3,
 	RESET_SRST_PULLS_TRST = 0x4,
 	RESET_TRST_PULLS_SRST = 0x8,
 	RESET_TRST_OPEN_DRAIN = 0x10,
@@ -253,7 +271,7 @@ enum reset_types
 
 extern enum reset_types jtag_reset_config;
 
-/* initialize interface upon startup. A successful no-op 
+/* initialize interface upon startup. A successful no-op
  * upon subsequent invocations
  */
 extern int jtag_interface_init(struct command_context_s *cmd_ctx);
@@ -266,15 +284,15 @@ extern int jtag_init_reset(struct command_context_s *cmd_ctx);
 extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
 /* JTAG interface, can be implemented with a software or hardware fifo
- * 
+ *
  * TAP_SD and TAP_SI are illegal end states. TAP_SD/SI as end states
  * can be emulated by using a larger scan.
  *
  * Code that is relatively insensitive to the path(as long
- * as it is JTAG compliant) taken through state machine can use 
- * endstate for jtag_add_xxx_scan(). Otherwise the pause state must be 
- * specified as end state and a subsequent jtag_add_pathmove() must 
- * be issued. 
+ * as it is JTAG compliant) taken through state machine can use
+ * endstate for jtag_add_xxx_scan(). Otherwise the pause state must be
+ * specified as end state and a subsequent jtag_add_pathmove() must
+ * be issued.
  *
  */
 extern void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
@@ -291,25 +309,25 @@ extern int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields
 extern void jtag_add_tlr(void);
 extern int interface_jtag_add_tlr(void);
 /* Do not use jtag_add_pathmove() unless you need to, but do use it
- * if you have to. 
+ * if you have to.
  *
  * DANGER! If the target is dependent upon a particular sequence
- * of transitions for things to work correctly(e.g. as a workaround 
- * for an errata that contradicts the JTAG standard), then pathmove 
- * must be used, even if some jtag interfaces happen to use the 
- * desired path. Worse, the jtag interface used for testing a 
- * particular implementation, could happen to use the "desired" 
+ * of transitions for things to work correctly(e.g. as a workaround
+ * for an errata that contradicts the JTAG standard), then pathmove
+ * must be used, even if some jtag interfaces happen to use the
+ * desired path. Worse, the jtag interface used for testing a
+ * particular implementation, could happen to use the "desired"
  * path when transitioning to/from end
  * state.
  *
  * A list of unambigious single clock state transitions, not
  * all drivers can support this, but it is required for e.g.
  * XScale and Xilinx support
- * 
+ *
  * Note! TAP_TLR must not be used in the path!
- * 
- * Note that the first on the list must be reachable 
- * via a single transition from the current state. 
+ *
+ * Note that the first on the list must be reachable
+ * via a single transition from the current state.
  *
  * All drivers are required to implement jtag_add_pathmove().
  * However, if the pathmove sequence can not be precisely
@@ -325,31 +343,31 @@ extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);
 /* go to TAP_RTI, if we're not already there and cycle
  * precisely num_cycles in the TAP_RTI after which move
  * to the end state, if it is != TAP_RTI
- * 
+ *
  * nb! num_cycles can be 0, in which case the fn will navigate
  * to endstate via TAP_RTI
  */
 extern void jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
 /* A reset of the TAP state machine can be requested.
- * 
- * Whether tms or trst reset is used depends on the capabilities of 
+ *
+ * Whether tms or trst reset is used depends on the capabilities of
  * the target and jtag interface(reset_config  command configures this).
- * 
+ *
  * srst can driver a reset of the TAP state machine and vice
  * versa
- * 
+ *
  * Application code may need to examine value of jtag_reset_config
  * to determine the proper codepath
- * 
+ *
  * DANGER! Even though srst drives trst, trst might not be connected to
  * the interface, and it might actually be *harmful* to assert trst in this case.
- * 
+ *
  * This is why combinations such as "reset_config srst_only srst_pulls_trst"
- * are supported. 
+ * are supported.
  *
  * only req_tlr_or_trst and srst can have a transition for a
- * call as the effects of transitioning both at the "same time" 
+ * call as the effects of transitioning both at the "same time"
  * are undefined, but when srst_pulls_trst or vice versa,
  * then trst & srst *must* be asserted together.
  */
@@ -357,8 +375,8 @@ extern void jtag_add_reset(int req_tlr_or_trst, int srst);
 /* this drives the actual srst and trst pins. srst will always be 0
  * if jtag_reset_config & RESET_SRST_PULLS_TRST != 0 and ditto for
  * trst.
- * 
- * the higher level jtag_add_reset will invoke jtag_add_tlr() if 
+ *
+ * the higher level jtag_add_reset will invoke jtag_add_tlr() if
  * approperiate
  */
 extern int interface_jtag_add_reset(int trst, int srst);
@@ -370,28 +388,31 @@ extern int interface_jtag_add_sleep(u32 us);
 
 
 /*
- * For software FIFO implementations, the queued commands can be executed 
+ * For software FIFO implementations, the queued commands can be executed
  * during this call or earlier. A sw queue might decide to push out
  * some of the jtag_add_xxx() operations once the queue is "big enough".
- * 
- * This fn will return an error code if any of the prior jtag_add_xxx() 
+ *
+ * This fn will return an error code if any of the prior jtag_add_xxx()
  * calls caused a failure, e.g. check failure. Note that it does not
  * matter if the operation was executed *before* jtag_execute_queue(),
- * jtag_execute_queue() will still return an error code. 
- * 
+ * jtag_execute_queue() will still return an error code.
+ *
  * All jtag_add_xxx() calls that have in_handler!=NULL will have been
- * executed when this fn returns, but if what has been queued only 
- * clocks data out, without reading anything back, then JTAG could 
- * be running *after* jtag_execute_queue() returns. The API does 
- * not define a way to flush a hw FIFO that runs *after* 
- * jtag_execute_queue() returns. 
- * 
- * jtag_add_xxx() commands can either be executed immediately or 
- * at some time between the jtag_add_xxx() fn call and jtag_execute_queue().  
+ * executed when this fn returns, but if what has been queued only
+ * clocks data out, without reading anything back, then JTAG could
+ * be running *after* jtag_execute_queue() returns. The API does
+ * not define a way to flush a hw FIFO that runs *after*
+ * jtag_execute_queue() returns.
+ *
+ * jtag_add_xxx() commands can either be executed immediately or
+ * at some time between the jtag_add_xxx() fn call and jtag_execute_queue().
  */
 extern int jtag_execute_queue(void);
 /* can be implemented by hw+sw */
 extern int interface_jtag_execute_queue(void);
+extern int jtag_power_dropout(int *dropout);
+extern int jtag_srst_asserted(int *srst_asserted);
+
 
 /* JTAG support functions */
 extern void jtag_set_check_value(scan_field_t *field, u8 *value,  u8 *mask, error_handler_t *in_error_handler);
@@ -422,27 +443,27 @@ extern int jtag_verify_capture_ir;
 #ifdef HAVE_JTAG_MINIDRIVER_H
 /* Here a #define MINIDRIVER() and an inline version of hw fifo interface_jtag_add_dr_out can be defined */
 #include "jtag_minidriver.h"
-#define MINIDRIVER(a) notused ## a 
+#define MINIDRIVER(a) notused ## a
 #else
 #define MINIDRIVER(a) a
-/* jtag_add_dr_out() is a faster version of jtag_add_dr_scan() 
- * 
+/* jtag_add_dr_out() is a faster version of jtag_add_dr_scan()
+ *
  * Current or end_state can not be TAP_TLR. end_state can be -1
- * 
+ *
  * num_bits[i] is the number of bits to clock out from value[i] LSB first.
- * 
+ *
  * If the device is in bypass, then that is an error condition in
  * the caller code that is not detected by this fn, whereas jtag_add_dr_scan()
  * does detect it. Similarly if the device is not in bypass, data must
- * be passed to it. 
- * 
+ * be passed to it.
+ *
  * If anything fails, then jtag_error will be set and jtag_execute() will
  * return an error. There is no way to determine if there was a failure
  * during this function call.
- * 
+ *
  * Note that this jtag_add_dr_out can be defined as an inline function.
  */
-extern void interface_jtag_add_dr_out(int device, 
+extern void interface_jtag_add_dr_out(int device,
 		int num_fields,
 		const int *num_bits,
 		const u32 *value,
@@ -452,7 +473,7 @@ extern void interface_jtag_add_dr_out(int device,
 
 
 
-static __inline__ void jtag_add_dr_out(int device, 
+static __inline__ void jtag_add_dr_out(int device,
 		int num_fields,
 		const int *num_bits,
 		const u32 *value,

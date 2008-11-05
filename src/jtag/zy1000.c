@@ -39,20 +39,20 @@ extern int jtag_error;
 
 /* low level command set
  */
-int eCosBoard_read(void);
-static void eCosBoard_write(int tck, int tms, int tdi);
-void eCosBoard_reset(int trst, int srst);
+int zy1000_read(void);
+static void zy1000_write(int tck, int tms, int tdi);
+void zy1000_reset(int trst, int srst);
 
 
-int eCosBoard_speed(int speed);
-int eCosBoard_register_commands(struct command_context_s *cmd_ctx);
-int eCosBoard_init(void);
-int eCosBoard_quit(void);
+int zy1000_speed(int speed);
+int zy1000_register_commands(struct command_context_s *cmd_ctx);
+int zy1000_init(void);
+int zy1000_quit(void);
 
 /* interface commands */
-int eCosBoard_handle_eCosBoard_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int zy1000_handle_zy1000_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-static int eCosBoard_khz(int khz, int *jtag_speed)
+static int zy1000_khz(int khz, int *jtag_speed)
 {
 	if (khz==0)
 	{
@@ -65,7 +65,7 @@ static int eCosBoard_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-static int eCosBoard_speed_div(int speed, int *khz)
+static int zy1000_speed_div(int speed, int *khz)
 {
 	if (speed==0)
 	{
@@ -79,41 +79,71 @@ static int eCosBoard_speed_div(int speed, int *khz)
 	return ERROR_OK;
 }
 
+static bool readPowerDropout()
+{
+	cyg_uint32 state;
+	// sample and clear power dropout
+	HAL_WRITE_UINT32(0x08000010, 0x80);
+	HAL_READ_UINT32(0x08000010, state);
+	bool powerDropout;
+	powerDropout = (state & 0x80) != 0;
+	return powerDropout;
+}
 
-jtag_interface_t eCosBoard_interface =
+
+static bool readSRST()
+{
+	cyg_uint32 state;
+	// sample and clear SRST sensing
+	HAL_WRITE_UINT32(0x08000010, 0x00000040);
+	HAL_READ_UINT32(0x08000010, state);
+	bool srstAsserted;
+	srstAsserted = (state & 0x40) != 0;
+	return srstAsserted;
+}
+
+static int zy1000_power_dropout(int *dropout)
+{
+	*dropout=readPowerDropout(); /* by default we can't detect power dropout */
+	return ERROR_OK;
+}
+
+
+jtag_interface_t zy1000_interface =
 {
 	.name = "ZY1000",
 	.execute_queue = bitbang_execute_queue,
-	.speed = eCosBoard_speed,
-	.register_commands = eCosBoard_register_commands,
-	.init = eCosBoard_init,
-	.quit = eCosBoard_quit,
-	.khz = eCosBoard_khz,
-	.speed_div = eCosBoard_speed_div,
+	.speed = zy1000_speed,
+	.register_commands = zy1000_register_commands,
+	.init = zy1000_init,
+	.quit = zy1000_quit,
+	.khz = zy1000_khz,
+	.speed_div = zy1000_speed_div,
+	.power_dropout = zy1000_power_dropout,
 };
 
-bitbang_interface_t eCosBoard_bitbang =
+bitbang_interface_t zy1000_bitbang =
 {
-	.read = eCosBoard_read,
-	.write = eCosBoard_write,
-	.reset = eCosBoard_reset
+	.read = zy1000_read,
+	.write = zy1000_write,
+	.reset = zy1000_reset
 };
 
 
 
-static void eCosBoard_write(int tck, int tms, int tdi)
+static void zy1000_write(int tck, int tms, int tdi)
 {
 
 }
 
-int eCosBoard_read(void)
+int zy1000_read(void)
 {
 	return -1;
 }
 
 extern bool readSRST();
 
-void eCosBoard_reset(int trst, int srst)
+void zy1000_reset(int trst, int srst)
 {
 	LOG_DEBUG("zy1000 trst=%d, srst=%d", trst, srst);
 	if(!srst)
@@ -137,7 +167,7 @@ void eCosBoard_reset(int trst, int srst)
 		/* assert reset */
 		ZY1000_POKE(0x08000010, 0x00000002);
 	}
-	
+
 	if (trst||(srst&&(jtag_reset_config & RESET_SRST_PULLS_TRST)))
 	{
 		waitIdle();
@@ -146,7 +176,7 @@ void eCosBoard_reset(int trst, int srst)
 	} else
 	{
 		/* We'll get RCLK failure when we assert TRST, so clear any false positives here */
-		ZY1000_POKE(0x08000014, 0x400);		
+		ZY1000_POKE(0x08000014, 0x400);
 	}
 
 	/* wait for srst to float back up */
@@ -175,7 +205,7 @@ void eCosBoard_reset(int trst, int srst)
 	}
 }
 
-int eCosBoard_speed(int speed)
+int zy1000_speed(int speed)
 {
 	if(speed == 0)
 	{
@@ -199,26 +229,26 @@ int eCosBoard_speed(int speed)
 	return ERROR_OK;
 }
 
-int eCosBoard_register_commands(struct command_context_s *cmd_ctx)
+int zy1000_register_commands(struct command_context_s *cmd_ctx)
 {
 	return ERROR_OK;
 }
 
 
-int eCosBoard_init(void)
+int zy1000_init(void)
 {
 	ZY1000_POKE(0x08000010, 0x30); // Turn on LED1 & LED2
 
 	 /* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
-	eCosBoard_reset(0, 0);
-	eCosBoard_speed(jtag_speed);
+	zy1000_reset(0, 0);
+	zy1000_speed(jtag_speed);
 
-	bitbang_interface = &eCosBoard_bitbang;
+	bitbang_interface = &zy1000_bitbang;
 
 	return ERROR_OK;
 }
 
-int eCosBoard_quit(void)
+int zy1000_quit(void)
 {
 
 	return ERROR_OK;
@@ -605,7 +635,7 @@ extern int jtag_ntrst_delay;
 
 int interface_jtag_add_reset(int req_trst, int req_srst)
 {
-	eCosBoard_reset(req_trst, req_srst);
+	zy1000_reset(req_trst, req_srst);
 	return ERROR_OK;
 }
 
@@ -635,7 +665,7 @@ int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
 	/* test manual drive code on any target */
 	int tms;
 	u8 tms_scan = TAP_MOVE(t, state);
-	
+
 	for (i = 0; i < 7; i++)
 	{
 		tms = (tms_scan >> i) & 1;
@@ -643,7 +673,7 @@ int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
 		ZY1000_POKE(0x08000028,  tms);
 	}
 	waitIdle();
-	ZY1000_POKE(0x08000020, state);	
+	ZY1000_POKE(0x08000020, state);
 #endif
 
 

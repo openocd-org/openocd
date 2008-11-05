@@ -35,15 +35,15 @@
 #include "string.h"
 #include <unistd.h>
 
-/* note that this is not marked as static as it must be available from outside jtag.c for those 
-   that implement the jtag_xxx() minidriver layer 
+/* note that this is not marked as static as it must be available from outside jtag.c for those
+   that implement the jtag_xxx() minidriver layer
 */
-int jtag_error=ERROR_OK; 
+int jtag_error=ERROR_OK;
 
 
 char* tap_state_strings[16] =
 {
-	"tlr", 
+	"tlr",
 	"sds", "cd", "sd", "e1d", "pd", "e2d", "ud",
 	"rti",
 	"sis", "ci", "si", "e1i", "pi", "e2i", "ui"
@@ -66,7 +66,7 @@ static cmd_queue_page_t *cmd_queue_pages = NULL;
  * 3: Pause-DR
  * 4: Shift-IR
  * 5: Pause-IR
- * 
+ *
  * SD->SD and SI->SI have to be caught in interface specific code
  */
 u8 tap_move[6][6] =
@@ -133,11 +133,11 @@ int jtag_verify_capture_ir = 1;
 
 /* how long the OpenOCD should wait before attempting JTAG communication after reset lines deasserted (in ms) */
 int jtag_nsrst_delay = 0; /* default to no nSRST delay */
-int jtag_ntrst_delay = 0; /* default to no nTRST delay */ 
+int jtag_ntrst_delay = 0; /* default to no nTRST delay */
 
 /* maximum number of JTAG devices expected in the chain
  */
-#define JTAG_MAX_CHAIN_SIZE 20 
+#define JTAG_MAX_CHAIN_SIZE 20
 
 /* callbacks to inform high-level handlers about JTAG state changes */
 jtag_event_callback_t *jtag_event_callbacks;
@@ -149,19 +149,19 @@ static int hasKHz = 0;
 
 /* jtag interfaces (parport, FTDI-USB, TI-USB, ...)
  */
- 
+
 #if BUILD_ECOSBOARD == 1
-	extern jtag_interface_t eCosBoard_interface;
+	extern jtag_interface_t zy1000_interface;
 #endif
- 
+
 #if BUILD_PARPORT == 1
 	extern jtag_interface_t parport_interface;
 #endif
-	 
+
 #if BUILD_DUMMY == 1
 	extern jtag_interface_t dummy_interface;
 #endif
-	
+
 #if BUILD_FT2232_FTD2XX == 1
 	extern jtag_interface_t ft2232_interface;
 #endif
@@ -200,7 +200,7 @@ static int hasKHz = 0;
 
 jtag_interface_t *jtag_interfaces[] = {
 #if BUILD_ECOSBOARD == 1
-	&eCosBoard_interface,
+	&zy1000_interface,
 #endif
 #if BUILD_PARPORT == 1
 	&parport_interface,
@@ -276,36 +276,36 @@ int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd
 int jtag_register_event_callback(int (*callback)(enum jtag_event event, void *priv), void *priv)
 {
 	jtag_event_callback_t **callbacks_p = &jtag_event_callbacks;
-	
+
 	if (callback == NULL)
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
-	
+
 	if (*callbacks_p)
 	{
 		while ((*callbacks_p)->next)
 			callbacks_p = &((*callbacks_p)->next);
 		callbacks_p = &((*callbacks_p)->next);
 	}
-	
+
 	(*callbacks_p) = malloc(sizeof(jtag_event_callback_t));
 	(*callbacks_p)->callback = callback;
 	(*callbacks_p)->priv = priv;
 	(*callbacks_p)->next = NULL;
-	
+
 	return ERROR_OK;
 }
 
 int jtag_unregister_event_callback(int (*callback)(enum jtag_event event, void *priv))
 {
 	jtag_event_callback_t **callbacks_p = &jtag_event_callbacks;
-	
+
 	if (callback == NULL)
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
-		
+
 	while (*callbacks_p)
 	{
 		jtag_event_callback_t **next = &((*callbacks_p)->next);
@@ -316,22 +316,22 @@ int jtag_unregister_event_callback(int (*callback)(enum jtag_event event, void *
 		}
 		callbacks_p = next;
 	}
-	
+
 	return ERROR_OK;
 }
 
 int jtag_call_event_callbacks(enum jtag_event event)
 {
 	jtag_event_callback_t *callback = jtag_event_callbacks;
-	
+
 	LOG_DEBUG("jtag event: %s", jtag_event_strings[event]);
-	
+
 	while (callback)
 	{
 		callback->callback(event, callback->priv);
 		callback = callback->next;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -342,15 +342,15 @@ int jtag_call_event_callbacks(enum jtag_event event)
 jtag_command_t** jtag_get_last_command_p(void)
 {
 /*	jtag_command_t *cmd = jtag_command_queue;
-	
+
 	if (cmd)
 		while (cmd->next)
 			cmd = cmd->next;
 	else
 		return &jtag_command_queue;
-	
+
 	return &cmd->next;*/
-	
+
 	return last_comand_pointer;
 }
 
@@ -367,7 +367,7 @@ jtag_device_t* jtag_get_device(int num)
 		device = device->next;
 		i++;
 	}
-	
+
 	LOG_ERROR("jtag device number %d not defined", num);
 	exit(-1);
 }
@@ -396,7 +396,7 @@ void* cmd_queue_alloc(size_t size)
 
 	offset = (*p_page)->used;
 	(*p_page)->used += size;
-	
+
 	t=(u8 *)((*p_page)->address);
 	return t + offset;
 }
@@ -432,7 +432,7 @@ static void jtag_prelude1(void)
 static void jtag_prelude(enum tap_state state)
 {
 	jtag_prelude1();
-	
+
 	if (state != -1)
 		jtag_add_end_state(state);
 
@@ -442,16 +442,16 @@ static void jtag_prelude(enum tap_state state)
 void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int retval;
-	
+
 	jtag_prelude(state);
-	
+
 	retval=interface_jtag_add_ir_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
 
 int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
-{	
+{
 	jtag_command_t **last_cmd;
 	jtag_device_t *device;
 	int i, j;
@@ -459,7 +459,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 
 
 	last_cmd = jtag_get_last_command_p();
-	
+
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	(*last_cmd)->next = NULL;
@@ -491,7 +491,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 				found = 1;
 				(*last_cmd)->cmd.scan->fields[i].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 				(*last_cmd)->cmd.scan->fields[i].out_mask = buf_cpy(fields[j].out_mask, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-			
+
 				if (jtag_verify_capture_ir)
 				{
 					if (fields[j].in_handler==NULL)
@@ -501,38 +501,38 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 					{
 						(*last_cmd)->cmd.scan->fields[i].in_handler = fields[j].in_handler;
 						(*last_cmd)->cmd.scan->fields[i].in_handler_priv = fields[j].in_handler_priv;
-						(*last_cmd)->cmd.scan->fields[i].in_check_value = device->expected; 
+						(*last_cmd)->cmd.scan->fields[i].in_check_value = device->expected;
 						(*last_cmd)->cmd.scan->fields[i].in_check_mask = device->expected_mask;
 					}
 				}
-				
+
 				device->bypass = 0;
 				break;
 			}
 		}
-	
+
 		if (!found)
 		{
 			/* if a device isn't listed, set it to BYPASS */
 			(*last_cmd)->cmd.scan->fields[i].out_value = buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 			(*last_cmd)->cmd.scan->fields[i].out_mask = NULL;
 			device->bypass = 1;
-			
+
 		}
-		
+
 		/* update device information */
 		buf_cpy((*last_cmd)->cmd.scan->fields[i].out_value, jtag_get_device(i)->cur_instr, scan_size);
 	}
-	
+
 	return ERROR_OK;
 }
 
 void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int retval;
-	
+
 	jtag_prelude(state);
-	
+
 	retval=interface_jtag_add_plain_ir_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
@@ -542,9 +542,9 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *f
 {
 	int i;
 	jtag_command_t **last_cmd;
-	
+
 	last_cmd = jtag_get_last_command_p();
-	
+
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	(*last_cmd)->next = NULL;
@@ -578,7 +578,7 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *f
 void jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int retval;
-	
+
 	jtag_prelude(state);
 
 	retval=interface_jtag_add_dr_scan(num_fields, fields, cmd_queue_end_state);
@@ -608,7 +608,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 		LOG_ERROR("all devices in bypass");
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
-	
+
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	last_comand_pointer = &((*last_cmd)->next);
@@ -621,12 +621,12 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 	(*last_cmd)->cmd.scan->num_fields = num_fields + bypass_devices;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
-	
+
 	for (i = 0; i < jtag_num_devices; i++)
 	{
 		int found = 0;
 		(*last_cmd)->cmd.scan->fields[field_count].device = i;
-	
+
 		for (j = 0; j < num_fields; j++)
 		{
 			if (i == fields[j].device)
@@ -652,7 +652,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 				LOG_ERROR("BUG: no scan data for a device not in BYPASS");
 				exit(-1);
 			}
-#endif	
+#endif
 			/* program the scan field to 1 bit length, and ignore it's value */
 			(*last_cmd)->cmd.scan->fields[field_count].num_bits = 1;
 			(*last_cmd)->cmd.scan->fields[field_count].out_value = NULL;
@@ -678,7 +678,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 	return ERROR_OK;
 }
 
-void MINIDRIVER(interface_jtag_add_dr_out)(int device_num, 
+void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 		int num_fields,
 		const int *num_bits,
 		const u32 *value,
@@ -698,7 +698,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 			bypass_devices++;
 		device = device->next;
 	}
-	
+
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	last_comand_pointer = &((*last_cmd)->next);
@@ -711,11 +711,11 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 	(*last_cmd)->cmd.scan->num_fields = num_fields + bypass_devices;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = end_state;
-	
+
 	for (i = 0; i < jtag_num_devices; i++)
 	{
 		(*last_cmd)->cmd.scan->fields[field_count].device = i;
-	
+
 		if (i == device_num)
 		{
 			int j;
@@ -750,7 +750,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 				LOG_ERROR("BUG: no scan data for a device not in BYPASS");
 				exit(-1);
 			}
-#endif	
+#endif
 			/* program the scan field to 1 bit length, and ignore it's value */
 			(*last_cmd)->cmd.scan->fields[field_count].num_bits = 1;
 			(*last_cmd)->cmd.scan->fields[field_count].out_value = NULL;
@@ -767,7 +767,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(int device_num,
 void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 	int retval;
-	
+
 	jtag_prelude(state);
 
 	retval=interface_jtag_add_plain_dr_scan(num_fields, fields, cmd_queue_end_state);
@@ -779,7 +779,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 {
 	int i;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	
+
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	last_comand_pointer = &((*last_cmd)->next);
@@ -792,7 +792,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 	(*last_cmd)->cmd.scan->num_fields = num_fields;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
-	
+
 	for (i = 0; i < num_fields; i++)
 	{
 		int num_bits = fields[i].num_bits;
@@ -814,7 +814,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 void jtag_add_tlr(void)
 {
 	jtag_prelude(TAP_TLR);
-	
+
 	int retval;
 	retval=interface_jtag_add_tlr();
 	if (retval!=ERROR_OK)
@@ -825,7 +825,7 @@ int MINIDRIVER(interface_jtag_add_tlr)()
 {
 	enum tap_state state = TAP_TLR;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	
+
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	last_comand_pointer = &((*last_cmd)->next);
@@ -834,8 +834,8 @@ int MINIDRIVER(interface_jtag_add_tlr)()
 
 	(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
 	(*last_cmd)->cmd.statemove->end_state = state;
-	
-	
+
+
 	return ERROR_OK;
 }
 
@@ -867,9 +867,9 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 		}
 		cur_state = path[i];
 	}
-	
+
 	jtag_prelude1();
-	
+
 
 	retval=interface_jtag_add_pathmove(num_states, path);
 	cmd_queue_cur_state = path[num_states - 1];
@@ -881,7 +881,7 @@ int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, enum tap_state *path
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	int i;
-	
+
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	last_comand_pointer = &((*last_cmd)->next);
@@ -891,17 +891,17 @@ int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, enum tap_state *path
 	(*last_cmd)->cmd.pathmove = cmd_queue_alloc(sizeof(pathmove_command_t));
 	(*last_cmd)->cmd.pathmove->num_states = num_states;
 	(*last_cmd)->cmd.pathmove->path = cmd_queue_alloc(sizeof(enum tap_state) * num_states);
-	
+
 	for (i = 0; i < num_states; i++)
 		(*last_cmd)->cmd.pathmove->path[i] = path[i];
-	
+
 	return ERROR_OK;
 }
 
 int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	
+
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	(*last_cmd)->next = NULL;
@@ -911,16 +911,16 @@ int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
 	(*last_cmd)->cmd.runtest = cmd_queue_alloc(sizeof(runtest_command_t));
 	(*last_cmd)->cmd.runtest->num_cycles = num_cycles;
 	(*last_cmd)->cmd.runtest->end_state = state;
-	
+
 	return ERROR_OK;
 }
 
 void jtag_add_runtest(int num_cycles, enum tap_state state)
 {
 	int retval;
-	
+
 	jtag_prelude(state);
-	
+
 	/* executed by sw or hw fifo */
 	retval=interface_jtag_add_runtest(num_cycles, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
@@ -931,12 +931,12 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 {
 	int trst_with_tlr = 0;
 	int retval;
-	
+
 	/* FIX!!! there are *many* different cases here. A better
 	 * approach is needed for legal combinations of transitions...
 	 */
 	if ((jtag_reset_config & RESET_HAS_SRST)&&
-			(jtag_reset_config & RESET_HAS_TRST)&& 
+			(jtag_reset_config & RESET_HAS_TRST)&&
 			((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
 	{
 		if (((req_tlr_or_trst&&!jtag_trst)||
@@ -948,7 +948,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 			//LOG_ERROR("BUG: transition of req_tlr_or_trst and req_srst in the same jtag_add_reset() call is undefined");
 		}
 	}
-	
+
 	/* Make sure that jtag_reset_config allows the requested reset */
 	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
 	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (!req_tlr_or_trst))
@@ -957,20 +957,20 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		jtag_error=ERROR_FAIL;
 		return;
 	}
-		
+
 	/* if TRST pulls SRST, we reset with TAP T-L-R */
 	if (((jtag_reset_config & RESET_TRST_PULLS_SRST) && (req_tlr_or_trst)) && (req_srst == 0))
 	{
 		trst_with_tlr = 1;
 	}
-	
+
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
 	{
 		LOG_ERROR("BUG: requested SRST assertion, but the current configuration doesn't support this");
 		jtag_error=ERROR_FAIL;
 		return;
 	}
-	
+
 	if (req_tlr_or_trst)
 	{
 		if (!trst_with_tlr && (jtag_reset_config & RESET_HAS_TRST))
@@ -984,7 +984,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	{
 		jtag_trst = 0;
 	}
-	
+
 	jtag_srst = req_srst;
 
 	retval = interface_jtag_add_reset(jtag_trst, jtag_srst);
@@ -1004,7 +1004,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		if (jtag_nsrst_delay)
 			jtag_add_sleep(jtag_nsrst_delay * 1000);
 	}
-	
+
 	if (trst_with_tlr)
 	{
 		LOG_DEBUG("JTAG reset with TLR instead of TRST");
@@ -1013,7 +1013,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		return;
 	}
-	
+
 	if (jtag_trst)
 	{
 		/* we just asserted nTRST, so we're now in Test-Logic-Reset,
@@ -1059,7 +1059,7 @@ void jtag_add_end_state(enum tap_state state)
 int MINIDRIVER(interface_jtag_add_sleep)(u32 us)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	
+
 	/* allocate memory for a new list member */
 	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 	(*last_cmd)->next = NULL;
@@ -1068,7 +1068,7 @@ int MINIDRIVER(interface_jtag_add_sleep)(u32 us)
 
 	(*last_cmd)->cmd.sleep = cmd_queue_alloc(sizeof(sleep_command_t));
 	(*last_cmd)->cmd.sleep->us = us;
-	
+
 	return ERROR_OK;
 }
 
@@ -1099,10 +1099,10 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 {
 	int bit_count = 0;
 	int i;
-	
+
 	bit_count = jtag_scan_size(cmd);
 	*buffer = malloc(CEIL(bit_count, 8));
-	
+
 	bit_count = 0;
 
 	for (i = 0; i < cmd->num_fields; i++)
@@ -1118,7 +1118,7 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 			free(char_buf);
 #endif
 		}
-		
+
 		bit_count += cmd->fields[i].num_bits;
 	}
 
@@ -1130,10 +1130,10 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 	int i;
 	int bit_count = 0;
 	int retval;
-	
+
 	/* we return ERROR_OK, unless a check fails, or a handler reports a problem */
 	retval = ERROR_OK;
-	
+
 	for (i = 0; i < cmd->num_fields; i++)
 	{
 		/* if neither in_value nor in_handler
@@ -1143,7 +1143,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 		{
 			int num_bits = cmd->fields[i].num_bits;
 			u8 *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
-			
+
 #ifdef _DEBUG_JTAG_IO_
 			char *char_buf;
 
@@ -1151,11 +1151,11 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			LOG_DEBUG("fields[%i].in_value: 0x%s", i, char_buf);
 			free(char_buf);
 #endif
-			
+
 			if (cmd->fields[i].in_value)
 			{
 				buf_cpy(captured, cmd->fields[i].in_value, num_bits);
-				
+
 				if (cmd->fields[i].in_handler)
 				{
 					if (cmd->fields[i].in_handler(cmd->fields[i].in_value, cmd->fields[i].in_handler_priv, cmd->fields+i) != ERROR_OK)
@@ -1165,7 +1165,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 					}
 				}
 			}
-			
+
 			/* no in_value specified, but a handler takes care of the scanned data */
 			if (cmd->fields[i].in_handler && (!cmd->fields[i].in_value))
 			{
@@ -1191,20 +1191,20 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 {
 	int retval = ERROR_OK;
 	int num_bits = field->num_bits;
-	
+
 	int compare_failed = 0;
-	
+
 	if (field->in_check_mask)
 		compare_failed = buf_cmp_mask(captured, field->in_check_value, field->in_check_mask, num_bits);
 	else
 		compare_failed = buf_cmp(captured, field->in_check_value, num_bits);
-	
+
 	if (compare_failed)
 		{
 		/* An error handler could have caught the failing check
 		 * only report a problem when there wasn't a handler, or if the handler
 		 * acknowledged the error
-		 */ 
+		 */
 		if (compare_failed)
 		{
 			char *captured_char = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
@@ -1224,15 +1224,15 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 
 			free(captured_char);
 			free(in_check_value_char);
-			
+
 			retval = ERROR_JTAG_QUEUE_FAILED;
 		}
-		
+
 	}
 	return retval;
 }
 
-/* 
+/*
   set up checking of this field using the in_handler. The values passed in must be valid until
   after jtag_execute() has completed.
  */
@@ -1251,7 +1251,7 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 {
 	int i;
 	int type = 0;
-	
+
 	for (i = 0; i < cmd->num_fields; i++)
 	{
 		if (cmd->fields[i].in_value || cmd->fields[i].in_handler)
@@ -1266,15 +1266,15 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 int MINIDRIVER(interface_jtag_execute_queue)(void)
 {
 	int retval;
-	
+
 	if (jtag==NULL)
 	{
 		LOG_ERROR("No JTAG interface configured yet. Issue 'init' command in startup scripts before communicating with targets.");
 		return ERROR_FAIL;
 	}
-	
+
 	retval = jtag->execute_queue();
-	
+
 	cmd_queue_free();
 
 	jtag_command_queue = NULL;
@@ -1299,13 +1299,13 @@ int jtag_reset_callback(enum jtag_event event, void *priv)
 	jtag_device_t *device = priv;
 
 	LOG_DEBUG("-");
-	
+
 	if (event == JTAG_TRST_ASSERTED)
 	{
 		buf_set_ones(device->cur_instr, device->ir_length);
 		device->bypass = 1;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1326,7 +1326,7 @@ int jtag_examine_chain(void)
 	int device_count = 0;
 	u8 zero_check = 0x0;
 	u8 one_check = 0xff;
-	
+
 	field.device = 0;
 	field.num_bits = sizeof(idcode_buffer) * 8;
 	field.out_value = idcode_buffer;
@@ -1336,28 +1336,28 @@ int jtag_examine_chain(void)
 	field.in_check_mask = NULL;
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
-	
+
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
 	{
 		buf_set_u32(idcode_buffer, i * 32, 32, 0x000000FF);
 	}
-	
+
 	jtag_add_plain_dr_scan(1, &field, TAP_TLR);
 	jtag_execute_queue();
-	
+
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE * 4; i++)
 	{
 		zero_check |= idcode_buffer[i];
 		one_check &= idcode_buffer[i];
 	}
-	
+
 	/* if there wasn't a single non-zero bit or if all bits were one, the scan isn't valid */
 	if ((zero_check == 0x00) || (one_check == 0xff))
 	{
 		LOG_ERROR("JTAG communication failure, check connection, JTAG interface, target power etc.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	
+
 	for (bit_count = 0; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;)
 	{
 		u32 idcode = buf_get_u32(idcode_buffer, bit_count, 32);
@@ -1366,7 +1366,7 @@ int jtag_examine_chain(void)
 			/* LSB must not be 0, this indicates a device in bypass */
 			LOG_WARNING("Device does not have IDCODE");
 			idcode=0;
-			
+
 			bit_count += 1;
 		}
 		else
@@ -1374,22 +1374,22 @@ int jtag_examine_chain(void)
 			u32 manufacturer;
 			u32 part;
 			u32 version;
-			
+
 			if (idcode == 0x000000FF)
 			{
 				int unexpected=0;
-				/* End of chain (invalid manufacturer ID) 
-				 * 
+				/* End of chain (invalid manufacturer ID)
+				 *
 				 * The JTAG examine is the very first thing that happens
-				 * 
+				 *
 				 * A single JTAG device requires only 64 bits to be read back correctly.
-				 * 
+				 *
 				 * The code below adds a check that the rest of the data scanned (640 bits)
 				 * are all as expected. This helps diagnose/catch problems with the JTAG chain
-				 * 
+				 *
 				 * earlier and gives more helpful/explicit error messages.
 				 */
-				for (bit_count += 32; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;bit_count += 32) 
+				for (bit_count += 32; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;bit_count += 32)
 				{
 					idcode = buf_get_u32(idcode_buffer, bit_count, 32);
 					if (unexpected||(idcode != 0x000000FF))
@@ -1398,17 +1398,17 @@ int jtag_examine_chain(void)
 						unexpected = 1;
 					}
 				}
-				
+
 				break;
 			}
-			
+
 			manufacturer = (idcode & 0xffe) >> 1;
 			part = (idcode & 0xffff000) >> 12;
 			version = (idcode & 0xf0000000) >> 28;
 
-			LOG_INFO("JTAG device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x)", 
+			LOG_INFO("JTAG device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x)",
 				idcode, manufacturer, part, version);
-			
+
 			bit_count += 32;
 		}
 		if (device)
@@ -1418,16 +1418,16 @@ int jtag_examine_chain(void)
 		}
 		device_count++;
 	}
-	
+
 	/* see if number of discovered devices matches configuration */
 	if (device_count != jtag_num_devices)
 	{
-		LOG_ERROR("number of discovered devices in JTAG chain (%i) doesn't match configuration (%i)", 
+		LOG_ERROR("number of discovered devices in JTAG chain (%i) doesn't match configuration (%i)",
 				device_count, jtag_num_devices);
 		LOG_ERROR("check the config file and ensure proper JTAG communication (connections, speed, ...)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1438,17 +1438,17 @@ int jtag_validate_chain(void)
 	u8 *ir_test = NULL;
 	scan_field_t field;
 	int chain_pos = 0;
-	
+
 	while (device)
 	{
 		total_ir_length += device->ir_length;
 		device = device->next;
 	}
-	
+
 	total_ir_length += 2;
 	ir_test = malloc(CEIL(total_ir_length, 8));
 	buf_set_ones(ir_test, total_ir_length);
-	
+
 	field.device = 0;
 	field.num_bits = total_ir_length;
 	field.out_value = ir_test;
@@ -1458,10 +1458,10 @@ int jtag_validate_chain(void)
 	field.in_check_mask = NULL;
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
-	
+
 	jtag_add_plain_ir_scan(1, &field, TAP_TLR);
 	jtag_execute_queue();
-	
+
 	device = jtag_devices;
 	while (device)
 	{
@@ -1476,7 +1476,7 @@ int jtag_validate_chain(void)
 		chain_pos += device->ir_length;
 		device = device->next;
 	}
-	
+
 	if (buf_get_u32(ir_test, chain_pos, 2) != 0x3)
 	{
 		char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
@@ -1485,9 +1485,9 @@ int jtag_validate_chain(void)
 		free(ir_test);
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	
+
 	free(ir_test);
-	
+
 	return ERROR_OK;
 }
 
@@ -1504,16 +1504,16 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		JTAG_CMD_INTERFACE,
 		JTAG_CMD_INIT_RESET,
 	};
-	
+
 	const Jim_Nvp jtag_cmds[] = {
 		{ .name = "interface"     , .value = JTAG_CMD_INTERFACE },
 		{ .name = "arp_init-reset", .value = JTAG_CMD_INIT_RESET },
-		
+
 		{ .name = NULL, .value = -1 },
 	};
 
 	context = Jim_GetAssocData(interp, "context");
-	// go past the command 
+	// go past the command
 	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
 
 	e = Jim_GetOpt_Nvp( &goi, jtag_cmds, &n );
@@ -1545,7 +1545,7 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		}
 		return JIM_OK;
 	}
-		
+
 
 	return JIM_ERR;
 }
@@ -1568,7 +1568,7 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_ANY, "jtag_nsrst_delay <ms> - delay after deasserting srst in ms");
 	register_command(cmd_ctx, NULL, "jtag_ntrst_delay", handle_jtag_ntrst_delay_command,
 		COMMAND_ANY, "jtag_ntrst_delay <ms> - delay after deasserting trst in ms");
-		
+
 	register_command(cmd_ctx, NULL, "scan_chain", handle_scan_chain_command,
 		COMMAND_EXEC, "print current scan chain configuration");
 
@@ -1591,7 +1591,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 {
 	if (jtag)
 		return ERROR_OK;
-	
+
 	if (!jtag_interface)
 	{
 		/* nothing was previously specified by "interface" command */
@@ -1607,8 +1607,8 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	if (jtag_interface->init() != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
-	
-	
+
+
 	jtag = jtag_interface;
 	return ERROR_OK;
 }
@@ -1619,7 +1619,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	int retval;
 
 	LOG_DEBUG("Init JTAG chain");
-	
+
 	device = jtag_devices;
 	jtag_ir_scan_size = 0;
 	jtag_num_devices = 0;
@@ -1629,7 +1629,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 		jtag_num_devices++;
 		device = device->next;
 	}
-	
+
 	jtag_add_tlr();
 	if ((retval=jtag_execute_queue())!=ERROR_OK)
 		return retval;
@@ -1639,12 +1639,12 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	{
 		LOG_ERROR("trying to validate configured JTAG chain anyway...");
 	}
-	
+
 	if (jtag_validate_chain() != ERROR_OK)
 	{
 		LOG_ERROR("Could not validate JTAG chain, continuing anyway...");
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1658,19 +1658,19 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / TLR");
 
 	/* Reset can happen after a power cycle.
-	 * 
+	 *
 	 * Ideally we would only assert TRST or run TLR before the target reset.
-	 * 
+	 *
 	 * However w/srst_pulls_trst, trst is asserted together with the target
 	 * reset whether we want it or not.
-	 * 
-	 * NB! Some targets have JTAG circuitry disabled until a 
+	 *
+	 * NB! Some targets have JTAG circuitry disabled until a
 	 * trst & srst has been asserted.
-	 * 
+	 *
 	 * NB! here we assume nsrst/ntrst delay are sufficient!
-	 * 
+	 *
 	 * NB! order matters!!!! srst *can* disconnect JTAG circuitry
-	 * 
+	 *
 	 */
 	jtag_add_reset(1, 0); /* TLR or TRST */
 	if (jtag_reset_config & RESET_HAS_SRST)
@@ -1682,11 +1682,11 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	jtag_add_reset(0, 0);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
-	
+
 	/* Check that we can communication on the JTAG chain + eventually we want to
-	 * be able to perform enumeration only after OpenOCD has started 
+	 * be able to perform enumeration only after OpenOCD has started
 	 * telnet and GDB server
-	 * 
+	 *
 	 * That would allow users to more easily perform any magic they need to before
 	 * reset happens.
 	 */
@@ -1714,7 +1714,19 @@ static int default_khz(int khz, int *jtag_speed)
 static int default_speed_div(int speed, int *khz)
 {
 	LOG_ERROR("Translation from jtag_speed to khz not implemented");
-	return ERROR_FAIL;	
+	return ERROR_FAIL;
+}
+
+static int default_power_dropout(int *dropout)
+{
+	*dropout=0; /* by default we can't detect power dropout */
+	return ERROR_OK;
+}
+
+static int default_srst_asserted(int *srst_asserted)
+{
+	*srst_asserted=0; /* by default we can't detect srst asserted */
+	return ERROR_OK;
 }
 
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1745,7 +1757,7 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			}
 
 			jtag_interface = jtag_interfaces[i];
-			
+
 			if (jtag_interface->khz == NULL)
 			{
 				jtag_interface->khz = default_khz;
@@ -1754,6 +1766,15 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			{
 				jtag_interface->speed_div = default_speed_div;
 			}
+			if (jtag_interface->power_dropout == NULL)
+			{
+				jtag_interface->power_dropout = default_power_dropout;
+			}
+			if (jtag_interface->srst_asserted == NULL)
+			{
+				jtag_interface->srst_asserted = default_srst_asserted;
+			}
+
 			return ERROR_OK;
 		}
 	}
@@ -1796,13 +1817,13 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	(*last_device_p)->cur_instr = malloc((*last_device_p)->ir_length);
 	(*last_device_p)->bypass = 1;
 	buf_set_ones((*last_device_p)->cur_instr, (*last_device_p)->ir_length);
-	
+
 	(*last_device_p)->next = NULL;
-	
+
 	jtag_register_event_callback(jtag_reset_callback, (*last_device_p));
-	
+
 	jtag_num_devices++;
-	
+
 	return ERROR_OK;
 }
 
@@ -1810,7 +1831,7 @@ int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char
 {
 	jtag_device_t *device = jtag_devices;
 	int device_count = 0;
-	
+
 	while (device)
 	{
 		u32 expected, expected_mask, cur_instr;
@@ -1829,7 +1850,7 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 {
 	if (argc < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	
+
 	if (argc >= 1)
 	{
 		if (strcmp(args[0], "none") == 0)
@@ -1847,7 +1868,7 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			return ERROR_INVALID_ARGUMENTS;
 		}
 	}
-	
+
 	if (argc >= 2)
 	{
 		if (strcmp(args[1], "separate") == 0)
@@ -1869,7 +1890,7 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			}
 		}
 	}
-	
+
 	if (argc >= 3)
 	{
 		if (strcmp(args[2], "trst_open_drain") == 0)
@@ -1897,7 +1918,7 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			return ERROR_INVALID_ARGUMENTS;
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1912,7 +1933,7 @@ int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 	{
 		jtag_nsrst_delay = strtoul(args[0], NULL, 0);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -1927,22 +1948,22 @@ int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 	{
 		jtag_ntrst_delay = strtoul(args[0], NULL, 0);
 	}
-	
+
 	return ERROR_OK;
 }
 
 int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval=ERROR_OK;
-	
+
 	if (argc == 1)
 	{
 		LOG_DEBUG("handle jtag speed");
 
 		int cur_speed = 0;
 		cur_speed = jtag_speed = strtoul(args[0], NULL, 0);
-			
-		/* this command can be called during CONFIG, 
+
+		/* this command can be called during CONFIG,
 		 * in which case jtag isn't initialized */
 		if (jtag)
 		{
@@ -1955,7 +1976,7 @@ int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	command_print(cmd_ctx, "jtag_speed: %d", jtag_speed);
-	
+
 	return retval;
 }
 
@@ -1963,7 +1984,7 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 {
 	int retval=ERROR_OK;
 	LOG_DEBUG("handle jtag khz");
-	
+
 	if(argc == 1)
 	{
 		speed_khz = strtoul(args[0], NULL, 0);
@@ -1977,9 +1998,9 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 				speed_khz = 0;
 				return retval;
 			}
-	
+
 			cur_speed = jtag_speed = speed_div1;
-	
+
 			retval=jtag->speed(cur_speed);
 		} else
 		{
@@ -1992,12 +2013,12 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if (jtag!=NULL)	
+	if (jtag!=NULL)
 	{
 		if ((retval=jtag->speed_div(jtag_speed, &speed_khz))!=ERROR_OK)
 			return retval;
 	}
-	
+
 	command_print(cmd_ctx, "jtag_khz: %d", speed_khz);
 	return retval;
 
@@ -2023,7 +2044,7 @@ int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		}
 	}
 	command_print(cmd_ctx, "current endstate: %s", tap_state_strings[cmd_queue_end_state]);
-	
+
 	return ERROR_OK;
 }
 
@@ -2031,7 +2052,7 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 {
 	int trst = -1;
 	int srst = -1;
-	
+
 	if (argc < 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2082,14 +2103,14 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 {
 	int i;
 	scan_field_t *fields;
-	
+
 	if ((argc < 2) || (argc % 2))
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	fields = malloc(sizeof(scan_field_t) * argc / 2);
-	
+
 	for (i = 0; i < argc / 2; i++)
 	{
 		int device = strtoul(args[i*2], NULL, 0);
@@ -2158,7 +2179,7 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 
 		Jim_GetLong(interp, args[i], &bits);
 		str = Jim_GetString(args[i+1], &len);
-		
+
 		fields[field_count].device = device;
 		fields[field_count].num_bits = bits;
 		fields[field_count].out_value = malloc(CEIL(bits, 8));
@@ -2197,7 +2218,7 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 	}
 
 	Jim_SetResult(interp, list);
-	
+
 	free(fields);
 
 	return JIM_OK;
@@ -2222,8 +2243,19 @@ int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	
+
 	command_print(cmd_ctx, "verify Capture-IR is %s", (jtag_verify_capture_ir) ? "enabled": "disabled");
-	
+
 	return ERROR_OK;
+}
+
+
+int jtag_power_dropout(int *dropout)
+{
+	return jtag->power_dropout(dropout);
+}
+
+int jtag_srst_asserted(int *srst_asserted)
+{
+	return jtag->srst_asserted(srst_asserted);
 }
