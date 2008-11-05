@@ -350,11 +350,25 @@ int arm926ejs_examine_debug_reason(target_t *target)
 			break;
 		case 11:
 			LOG_ERROR("BUG: debug re-entry from system speed access shouldn't be handled here");
+			break;
+		case 12:
+			/* FIX!!!! here be dragons!!! We need to fail here so
+			 * the target will interpreted as halted but we won't
+			 * try to talk to it right now... a resume + halt seems
+			 * to sync things up again. Please send an email to
+			 * openocd development mailing list if you have hardware
+			 * to donate to look into this problem....
+			 */
+			LOG_ERROR("mystery debug reason MOE=0xc. Try issuing a resume + halt.");
 			target->debug_reason = DBG_REASON_DBGRQ;
+			retval = ERROR_TARGET_FAILURE;
 			break;
 		default:
 			LOG_ERROR("BUG: unknown debug reason: 0x%x", debug_reason);
 			target->debug_reason = DBG_REASON_DBGRQ;
+			/* if we fail here, we won't talk to the target and it will 
+			 * be reported to be in the halted state */
+			retval = ERROR_TARGET_FAILURE;
 			break;
 	}
 
