@@ -113,7 +113,7 @@ typedef struct working_area_s
 typedef struct target_type_s
 {
 	char *name;
-	
+
 	int examined;
 
 	/* poll current target status */
@@ -129,39 +129,39 @@ typedef struct target_type_s
 	int (*halt)(struct target_s *target);
 	int (*resume)(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
 	int (*step)(struct target_s *target, int current, u32 address, int handle_breakpoints);
-	
+
 	/* target reset control. assert reset can be invoked when OpenOCD and
 	 * the target is out of sync.
-	 * 
+	 *
 	 * A typical example is that the target was power cycled while OpenOCD
 	 * thought the target was halted or running.
-	 * 
+	 *
 	 * assert_reset() can therefore make no assumptions whatsoever about the
-	 * state of the target 
-	 * 
+	 * state of the target
+	 *
 	 * Before assert_reset() for the target is invoked, a TRST/tms and
 	 * chain validation is executed. TRST should not be asserted
 	 * during target assert unless there is no way around it due to
 	 * the way reset's are configured.
-	 * 
+	 *
 	 */
 	int (*assert_reset)(struct target_s *target);
 	int (*deassert_reset)(struct target_s *target);
 	int (*soft_reset_halt_imp)(struct target_s *target);
 	int (*soft_reset_halt)(struct target_s *target);
-	
+
 	/* target register access for gdb.
-	 * 
+	 *
 	 * Danger! this function will succeed even if the target is running
 	 * and return a register list with dummy values.
-	 * 
+	 *
 	 * The reason is that GDB connection will fail without a valid register
 	 * list, however it is after GDB is connected that monitor commands can
 	 * be run to properly initialize the target
 	 */
 	int (*get_gdb_reg_list)(struct target_s *target, struct reg_s **reg_list[], int *reg_list_size);
-	
-	/* target memory access 
+
+	/* target memory access
 	* size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 	* count: number of items of <size>
 	*/
@@ -169,26 +169,26 @@ typedef struct target_type_s
 	int (*read_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 	int (*write_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 	int (*write_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-	
+
 	/* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
 	int (*bulk_write_memory)(struct target_s *target, u32 address, u32 count, u8 *buffer);
-	
+
 	int (*checksum_memory)(struct target_s *target, u32 address, u32 count, u32* checksum);
 	int (*blank_check_memory)(struct target_s *target, u32 address, u32 count, u32* blank);
-	
-	/* 
-	 * target break-/watchpoint control 
+
+	/*
+	 * target break-/watchpoint control
 	 * rw: 0 = write, 1 = read, 2 = access
-	 * 
+	 *
 	 * Target must be halted while this is invoked as this
 	 * will actually set up breakpoints on target.
-	 * 
+	 *
 	 * The breakpoint hardware will be set up upon adding the first breakpoint.
-	 * 
+	 *
 	 * Upon GDB connection all breakpoints/watchpoints are cleared.
 	 */
 	int (*add_breakpoint)(struct target_s *target, breakpoint_t *breakpoint);
-	
+
 	/* remove breakpoint. hw will only be updated if the target is currently halted.
 	 * However, this method can be invoked on unresponsive targets.
 	 */
@@ -203,7 +203,7 @@ typedef struct target_type_s
 	int (*run_algorithm_imp)(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
 	int (*run_algorithm)(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
 
-	int (*register_commands)(struct command_context_s *cmd_ctx);	
+	int (*register_commands)(struct command_context_s *cmd_ctx);
 
 	/* called when target is created */
 	int (*target_create)( struct target_s *target, Jim_Interp *interp );
@@ -220,21 +220,21 @@ typedef struct target_type_s
 	/* invoked after JTAG chain has been examined & validated. During
 	 * this stage the target is examined and any additional setup is
 	 * performed.
-	 * 
+	 *
 	 * invoked every time after the jtag chain has been validated/examined
 	 */
 	int (*examine)(struct target_s *target);
 	/* Set up structures for target.
-	 *  
+	 *
 	 * It is illegal to talk to the target at this stage as this fn is invoked
 	 * before the JTAG chain has been examined/verified
      */
 	int (*init_target)(struct command_context_s *cmd_ctx, struct target_s *target);
 	int (*quit)(void);
-	
+
 	int (*virt2phys)(struct target_s *target, u32 address, u32 *physical);
 	int (*mmu)(struct target_s *target, int *enabled);
-	
+
 } target_type_t;
 
 // forward decloration
@@ -250,7 +250,7 @@ typedef struct target_s
 	target_event_action_t *event_action;
 
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
-	u32 working_area;					/* working area (initialized RAM). Evaluated 
+	u32 working_area;					/* working area (initialized RAM). Evaluated
 										   upon first allocation from virtual/physical address. */
 	u32 working_area_virt;				/* virtual address */
 	u32 working_area_phys;				/* physical address */
@@ -268,6 +268,9 @@ typedef struct target_s
 	u32 dbg_msg_enabled;				/* debug message status */
 	void *arch_info;					/* architecture specific information */
 	struct target_s *next;				/* next target in list */
+
+	int display; 						/* display async info in telnet session. Do not display
+										   lots of halted/resumed info when stepping in debugger. */
 } target_t;
 
 enum target_event
@@ -290,6 +293,9 @@ enum target_event
 	TARGET_EVENT_RESUME_START,
 	TARGET_EVENT_RESUME_END,
 
+	TARGET_EVENT_GDB_START, /* debugger started execution (step/run) */
+	TARGET_EVENT_GDB_END, /* debugger stopped execution (step/run) */
+
 	TARGET_EVENT_RESET_START,
 	TARGET_EVENT_RESET_ASSERT_PRE,
 	TARGET_EVENT_RESET_ASSERT_POST,
@@ -308,7 +314,7 @@ enum target_event
 
 	TARGET_EVENT_EXAMINE_START,
 	TARGET_EVENT_EXAMINE_END,
-	
+
 
 	TARGET_EVENT_GDB_ATTACH,
 	TARGET_EVENT_GDB_DETACH,
@@ -359,7 +365,7 @@ extern int target_resume(target_t *target, int current, u32 address, int handle_
 extern int target_halt(target_t *target);
 extern int target_call_event_callbacks(target_t *target, enum target_event event);
 
-/* The period is very approximate, the callback can happen much more often 
+/* The period is very approximate, the callback can happen much more often
  * or much more rarely than specified
  */
 extern int target_register_timer_callback(int (*callback)(void *priv), int time_ms, int periodic, void *priv);
@@ -381,15 +387,15 @@ extern int target_blank_check_memory(struct target_s *target, u32 address, u32 s
 extern int target_wait_state(target_t *target, enum target_state state, int ms);
 
 /* DANGER!!!!!
- * 
+ *
  * if "area" passed in to target_alloc_working_area() points to a memory
  * location that goes out of scope (e.g. a pointer on the stack), then
  * the caller of target_alloc_working_area() is responsible for invoking
  * target_free_working_area() before "area" goes out of scope.
- * 
+ *
  * target_free_all_working_areas() will NULL out the "area" pointer
  * upon resuming or resetting the CPU.
- * 
+ *
  */
 extern int target_alloc_working_area(struct target_s *target, u32 size, working_area_t **area);
 extern int target_free_working_area(struct target_s *target, working_area_t *area);

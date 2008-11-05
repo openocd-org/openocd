@@ -106,8 +106,18 @@ static int log_target_callback_event_handler(struct target_s *target, enum targe
 {
 	switch (event)
 	{
+		case TARGET_EVENT_GDB_START:
+			target->display=0;
+			break;
+		case TARGET_EVENT_GDB_END:
+			target->display=1;
+			break;
 		case TARGET_EVENT_HALTED:
-			target_arch_state(target);
+			if (target->display)
+			{
+				/* do not display information when debugger caused the halt */
+				target_arch_state(target);
+			}
 			break;
 		default:
 			break;
@@ -123,11 +133,11 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	static int initialized=0;
 	if (initialized)
 		return ERROR_OK;
-	
+
 	initialized=1;
-	
+
 	atexit(exit_handler);
-	
+
 	if (target_init(cmd_ctx) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("target init complete");
@@ -149,7 +159,7 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 			LOG_DEBUG("jtag examine complete");
 		}
 	}
-	
+
 	if (flash_init_drivers(cmd_ctx) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("flash init complete");
@@ -175,7 +185,7 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	tcl_init(); /* allows tcl to just connect without going thru telnet */
 
 	target_register_event_callback(log_target_callback_event_handler, cmd_ctx);
-	
+
 	return ERROR_OK;
 }
 
@@ -184,12 +194,12 @@ command_context_t *global_cmd_ctx;
 command_context_t *setup_command_handler(void)
 {
 	command_context_t *cmd_ctx;
-	
+
 	global_cmd_ctx = cmd_ctx = command_init();
-	
+
 	register_command(cmd_ctx, NULL, "version", handle_version_command,
 					 COMMAND_EXEC, "show OpenOCD version");
-	
+
 	/* register subsystem commands */
 	server_register_commands(cmd_ctx);
 	telnet_register_commands(cmd_ctx);
@@ -211,7 +221,7 @@ command_context_t *setup_command_handler(void)
 	LOG_DEBUG("log init complete");
 
 	LOG_OUTPUT( OPENOCD_VERSION "\n" );
-	
+
 	register_command(cmd_ctx, NULL, "init", handle_init_command,
 					 COMMAND_ANY, "initializes target and servers - nop on subsequent invocations");
 
@@ -229,27 +239,27 @@ int openocd_main(int argc, char *argv[])
 	command_context_t *cmd_ctx;
 
 	cmd_ctx = setup_command_handler();
-	
+
 	LOG_OUTPUT( "\n\nBUGS? Read http://svn.berlios.de/svnroot/repos/openocd/trunk/BUGS\n\n\n");
 
 	print_version();
-	
+
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 
 	if (parse_cmdline_args(cmd_ctx, argc, argv) != ERROR_OK)
 		return EXIT_FAILURE;
-	
+
 	ret = parse_config_file(cmd_ctx);
 	if ( (ret != ERROR_OK) && (ret != ERROR_COMMAND_CLOSE_CONNECTION) )
 		return EXIT_FAILURE;
 
-	if (ret != ERROR_COMMAND_CLOSE_CONNECTION) 
+	if (ret != ERROR_COMMAND_CLOSE_CONNECTION)
 	{
 		command_context_mode(cmd_ctx, COMMAND_EXEC);
 		if (command_run_line(cmd_ctx, "init")!=ERROR_OK)
 			return EXIT_FAILURE;
-	
+
 		/* handle network connections */
 		server_loop(cmd_ctx);
 	}
@@ -258,7 +268,7 @@ int openocd_main(int argc, char *argv[])
 	server_quit();
 
 	unregister_all_commands(cmd_ctx);
-	
+
 	/* free commandline interface */
 	command_done(cmd_ctx);
 

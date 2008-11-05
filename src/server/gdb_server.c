@@ -671,6 +671,7 @@ static void gdb_frontend_halted(struct target_s *target, connection_t *connectio
 	{
 		char sig_reply[4];
 		int signal;
+
 		/* stop forwarding log packets! */
 		log_remove_callback(gdb_log_callback, connection);
 
@@ -700,6 +701,9 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 	{
 		case TARGET_EVENT_EARLY_HALTED:
 			gdb_frontend_halted(target, connection);
+			break;
+		case TARGET_EVENT_HALTED:
+			target_call_event_callbacks(target, TARGET_EVENT_GDB_END);
 			break;
 		case TARGET_EVENT_GDB_FLASH_ERASE_START:
 			target_handle_event( target, TARGET_EVENT_OLD_gdb_program_config );
@@ -815,6 +819,7 @@ int gdb_connection_closed(connection_t *connection)
 	}
 
 	target_unregister_event_callback(gdb_target_callback_event_handler, connection);
+	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_END);
 	log_remove_callback(gdb_log_callback, connection);
 
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH );
@@ -2054,6 +2059,7 @@ int gdb_input_inner(connection_t *connection)
 							gdb_connection_t *gdb_con = connection->priv;
 							gdb_con->frontend_state = TARGET_RUNNING;
 							log_add_callback(gdb_log_callback, connection);
+							target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
 							int retval=gdb_step_continue_packet(connection, target, packet, packet_size);
 							if (retval!=ERROR_OK)
 							{

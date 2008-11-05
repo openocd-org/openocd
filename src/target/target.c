@@ -175,6 +175,11 @@ const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_RESUME_START, .name = "resume-start" },
 	{ .value = TARGET_EVENT_RESUME_END, .name = "resume-end" },
 
+
+	{ .name = "gdb-start", .value = TARGET_EVENT_GDB_START },
+	{ .name = "gdb-end", .value = TARGET_EVENT_GDB_END },
+
+
 	/* historical name */
 
 	{ .value = TARGET_EVENT_RESET_START, .name = "reset-start" },
@@ -3840,6 +3845,8 @@ target_create( Jim_GetOptInfo *goi )
 	target->watchpoints         = NULL;
 	target->next                = NULL;
 	target->arch_info           = NULL;
+
+	target->display             = 1;
 
 	/* initialize trace information */
 	target->trace_info = malloc(sizeof(trace_t));
