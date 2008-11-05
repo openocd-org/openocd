@@ -2019,7 +2019,13 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 			return retval;
 	}
 
-	command_print(cmd_ctx, "jtag_khz: %d", speed_khz);
+	if (speed_khz==0)
+	{
+		command_print(cmd_ctx, "RCLK - adaptive");
+	} else
+	{
+		command_print(cmd_ctx, "%d kHz", speed_khz);
+	}
 	return retval;
 
 }
