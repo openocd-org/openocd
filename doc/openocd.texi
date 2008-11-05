@@ -576,11 +576,13 @@ Currently, there are no options available for the ep93xx interface.
 @item @b{cortex_m3}
 @item @b{feroceon}
 @item @b{xscale}
+@item @b{arm11}
 @item @b{mips_m4k}
 @end itemize
 
 If you want to use a target board that is not on this list, see Adding a new
-target board
+target board.
+The @option{target types} command can be used to get the list of targets supported from within openocd.
 
 Endianess may be @option{little} or @option{big}.
 
@@ -637,6 +639,16 @@ be detected and the normal reset behaviour used.
 @cindex xscale options
 Supported variants are @option{ixp42x}, @option{ixp45x}, @option{ixp46x},
 @option{pxa250}, @option{pxa255}, @option{pxa26x}.
+
+@subsection arm11 options
+@cindex arm11 options
+
+@subsection mips_m4k options
+@cindex mips_m4k options
+Use variant @option{ejtag_srst} when debugging targets that
+do not provide a functional SRST line on the EJTAG connector.
+This causes openocd to instead use an EJTAG software reset command to reset the processor.
+You still need to enable @option{srst} on the reset configuration command to enable openocd hardware reset functionality.
 
 @section Flash configuration
 @cindex Flash configuration
