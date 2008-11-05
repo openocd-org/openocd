@@ -96,7 +96,7 @@ struct tftpd_fileops fileops =
 
 #endif
 
-#define ZYLIN_VERSION "1.45"
+#define ZYLIN_VERSION "1.46"
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
 /* hmmm....  we can't pick up the right # during build if we've checked this out
