@@ -340,7 +340,6 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	armv7m_algorithm_t *armv7m_algorithm_info = arch_info;
 	enum armv7m_mode core_mode = armv7m->core_mode;
 	int retval = ERROR_OK;
-	u32 pc;
 	int i;
 	u32 context[ARMV7NUMCOREREGS];
 
