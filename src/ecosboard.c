@@ -59,6 +59,7 @@
 #include <cyg/athttpd/handler.h>
 #include <cyg/athttpd/cgi.h>
 #include <cyg/athttpd/forms.h>
+#include <cyg/discover/discover.h>
 #include <cyg/hal/hal_diag.h>
 #include <cyg/kernel/kapi.h>
 #include <cyg/io/serialio.h>
@@ -79,6 +80,7 @@
 #include <stdio.h>
 #include <ifaddrs.h>
 #include <string.h>
+
 
 #include <unistd.h>
 #include <stdio.h>
@@ -1334,6 +1336,8 @@ static void zylinjtag_startNetwork()
 	webRunning = true;
 
 	diag_printf("Web server running\n");
+
+	discover_launch();
 }
 
 
