@@ -157,11 +157,6 @@ static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 
-	if (!flash_banks)
-	{
-		return JIM_ERR;
-	}
-
 	Jim_Obj *list=Jim_NewListObj(interp, NULL, 0);
 	for (p = flash_banks; p; p = p->next)
 	{
