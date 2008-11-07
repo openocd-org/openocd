@@ -188,10 +188,10 @@ static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 int flash_init_drivers(struct command_context_s *cmd_ctx)
 {
+	register_jim(cmd_ctx, "ocd_flash_banks", jim_flash_banks, "return information about the flash banks");
+
 	if (flash_banks)
 	{
-		register_jim(cmd_ctx, "ocd_flash_banks", jim_flash_banks, "return information about the flash banks");
-
 		register_command(cmd_ctx, flash_cmd, "info", handle_flash_info_command, COMMAND_EXEC,
 						 "print info about flash bank <num>");
 		register_command(cmd_ctx, flash_cmd, "probe", handle_flash_probe_command, COMMAND_EXEC,
