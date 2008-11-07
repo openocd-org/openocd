@@ -11,7 +11,7 @@ Thing described here are *totally* TCL generic... not Jim specific.
 
 The goal of this document is to encourage you to add your own set of
 chips to the TCL package - and most importantly you should know where
-you should put them - so they end up in an orginized way.
+you should put them - so they end up in an organized way.
 
 --Duane Ellis.
 	duane@duaneellis.com
@@ -34,7 +34,7 @@ The concept is this:
        tcl/cpu/arm/<NAME>.tcl.
 
   Yes, that is where you should put "core" specific things.
-  Be carefull and learn the difference:
+  Be careful and learn the difference:
 
   THE "CORE" - is not the entire chip!
 
@@ -78,9 +78,9 @@ Next you see a series of:
 
 set  NAME    VALUE
 
-It is mostly "obious" what is going on.
+It is mostly "obvious" what is going on.
 
-Execption: The arrays.
+Exception: The arrays.
 
   You would *THINK* Tcl supports arrays.
   In fact, multi-dim arrays. That is false.
@@ -126,7 +126,7 @@ This means it is evaluated when the file is parsed.
 == SIDEBAR: About The FOR command ==
 In TCL, "FOR" is a funny thing, it is not what you think it is.
 
-Syntatically - FOR is a just a command, it is not language
+Syntactically - FOR is a just a command, it is not language
 construct like for(;;) in C... 
 
 The "for" command takes 4 parameters.
@@ -135,7 +135,7 @@ The "for" command takes 4 parameters.
    (3) the "next command"
    (4) the "body command" of the FOR loop.
 
-Notice I used the words "command" and "expresion" above.
+Notice I used the words "command" and "expression" above.
 
 The FOR command:
 1)  executes the "initial command"
@@ -219,7 +219,7 @@ All memory regions must have 2 things:
 		   WIDTH - the accessable width.
 
         ie: Some regions of memory are not 'word' 
-	accessable.
+	accessible.
 
 The function "address_info" - given an address should
 tell you about the address.
@@ -237,7 +237,7 @@ proc memread8 { ADDR }
 
 All read memory - and return the contents.
 
-[ fixme: 7/5/2008 - I need to create "memwrite" functions]
+[ FIXME: 7/5/2008 - I need to create "memwrite" functions]
 		 
 **************************************************
 ***************************************************
@@ -294,15 +294,15 @@ The "IF" command expects either 2 params, or 4 params.
      Yea, the entire thing is done that way.
      
      IF is a command. SO is "FOR" and "WHILE" and "DO" and the
-     others. That is why I keep using the prhase it is a "command"
+     others. That is why I keep using the phase it is a "command"
      
  === END: Sidebar: About "commands" ===
 
-Paramter 1 to the IF command is expected to be an expression.
+Parameter 1 to the IF command is expected to be an expression.
 
 As such, I do not need to wrap it in {braces}.
 
-In this case, the "expression" is the resul of the "CATCH" command.
+In this case, the "expression" is the result of the "CATCH" command.
 
 CATCH - is an error catcher.
 
@@ -314,7 +314,7 @@ You give CATCH 1 or 2 parameters.
     The "![catch command]" is self explaintory.
 
 
-The 3rd parameter to IF must be exacty "else" or "elseif" [I lied
+The 3rd parameter to IF must be exactly "else" or "elseif" [I lied
 above, the IF command can take many parameters they just have to
 be joined by exactly the words "else" or "elseif".
 
