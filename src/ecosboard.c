@@ -1631,15 +1631,20 @@ void startUart(void)
 
 int handle_uart_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc != 1)
+	static int current_baud = 38400;
+	if (argc == 0)
 	{
-		command_print(cmd_ctx, "usage: uart <baudrate>");
+		command_print(cmd_ctx, "%d", current_baud);
+		return ERROR_OK;
+	} else if (argc != 1)
+	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	int baud = atol(args[0]);
+	current_baud = atol(args[0]);
 
-	switch (baud)
+	int baud;
+	switch (current_baud)
 	{
 	case 9600:
 		baud = CYGNUM_SERIAL_BAUD_9600;
