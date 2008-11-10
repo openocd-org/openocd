@@ -21,19 +21,6 @@ proc get_help_text {} {
 	return $ocd_helptext
 }
 
-# Production command
-# FIX!!! need to figure out how to feed back relevant output
-# from e.g. "flash banks" command...
-proc board_produce {filename serialnumber} {
-	openocd "reset init"
-	openocd "flash write_image erase $filename [flash] bin"]]
-	openocd "verify_image $filename [flash] bin"]]
-	echo "Successfully ran production procedure"
-}
-
-proc board_test {} {
-	echo "Production test not implemented"
-}
 
 # Show flash in human readable form
 # This is an example of a human readable form of a low level fn
@@ -277,18 +264,18 @@ proc ocd_process_reset { MODE } {
 proc production_info {} {
 	return "Imagine an explanation here..."
 }
-add_help_text production_info "Displays information on production procedure for target script"
+add_help_text production_info "Displays information on production procedure for target script. Implement this procedure in target script."
 
 proc production {firmwarefile serialnumber} {
 	puts "Imagine production procedure running successfully. Programmed $firmwarefile with serial number $serialnumber"
 }
 
-add_help_text production "Runs production procedure. Throws exception if procedure failed. Prints progress messages."
+add_help_text production "<serialnumber> - Runs production procedure. Throws exception if procedure failed. Prints progress messages. Implement this procedure in the target script."
 
 proc production_test {} {
 	puts "Imagine nifty test procedure having run to completion here."
 }
-add_help_text production "Runs test procedure. Throws exception if procedure failed. Prints progress messages."
+add_help_text production "Runs test procedure. Throws exception if procedure failed. Prints progress messages. Implement in target script."
 
 proc load {args} {
 	return [eval "load_image $args"]

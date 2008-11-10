@@ -637,7 +637,10 @@ int telnet_register_commands(command_context_t *command_context)
 int handle_telnet_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
+	{
+		command_print(cmd_ctx, "%d", telnet_port);
 		return ERROR_OK;
+	}
 
 	telnet_port = strtoul(args[0], NULL, 0);
 

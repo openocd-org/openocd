@@ -2184,7 +2184,7 @@ int handle_gdb_port_command(struct command_context_s *cmd_ctx, char *cmd, char *
 {
 	if (argc == 0)
 	{
-		command_print(cmd_ctx, "gdb_port: %ld", gdb_port);
+		command_print(cmd_ctx, "%d", gdb_port);
 		return ERROR_OK;
 	}
 
