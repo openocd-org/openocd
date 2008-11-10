@@ -119,6 +119,7 @@ void diag_write(char *buf, int len)
 static bool serialLog = true;
 static bool writeLog = true;
 
+char hwaddr[512];
 
 struct FastLoad
 {
@@ -1215,32 +1216,8 @@ zylinjtag_Jim_Command_mac(Jim_Interp *interp,
                                    int argc,
 		Jim_Obj * const *argv)
 {
-	int s;
-	struct ifreq ifr;
-	s = socket(AF_INET, SOCK_DGRAM, 0);
-	if (s >= 0)
-	{
-		strcpy(ifr.ifr_name, "eth0");
-		int res;
-		res = ioctl(s, SIOCGIFHWADDR, &ifr);
-		close(s);
-
-		if (res < 0)
-		{
-			return JIM_OK;
-		}
-	}
 
 	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
-
-	char hwaddr[512];
-	sprintf(hwaddr, "%02x:%02x:%02x:%02x:%02x:%02x",
-			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[0],
-			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[1],
-			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[2],
-			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[3],
-			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[4],
-			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[5]);
 
 	Jim_AppendString(httpstate.jim_interp, tclOutput, hwaddr, strlen(hwaddr));
 
@@ -1295,6 +1272,7 @@ zylinjtag_Jim_Command_ip(Jim_Interp *interp,
 
 extern Jim_Interp *interp;
 
+
 static void zylinjtag_startNetwork()
 {
 	// Bring TCP/IP up immediately before we're ready to accept commands.
@@ -1336,6 +1314,34 @@ static void zylinjtag_startNetwork()
 	webRunning = true;
 
 	diag_printf("Web server running\n");
+
+	int s;
+	struct ifreq ifr;
+	s = socket(AF_INET, SOCK_DGRAM, 0);
+	if (s >= 0)
+	{
+		strcpy(ifr.ifr_name, "eth0");
+		int res;
+		res = ioctl(s, SIOCGIFHWADDR, &ifr);
+		close(s);
+
+		if (res < 0)
+		{
+			diag_printf("Can't obtain MAC address\n");
+			reboot();
+		}
+	}
+
+	sprintf(hwaddr, "%02x:%02x:%02x:%02x:%02x:%02x",
+			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[0],
+			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[1],
+			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[2],
+			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[3],
+			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[4],
+			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[5]);
+
+
+	discover_message=alloc_printf("ZY1000 Zylin JTAG debugger MAC %s", hwaddr);
 
 	discover_launch();
 }
