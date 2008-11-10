@@ -327,3 +327,23 @@ proc cpu {args} {
 	}
 }
 
+proc power_restore {} {
+	puts "Sensed power restore."
+	reset init
+}
+
+add_help_text power_restore "Overridable procedure run when power restore is detected. Runs 'reset init' by default."
+
+proc power_dropout {} {
+	puts "Sensed power dropout."
+}
+
+proc srst_deasserted {} {
+	puts "Sensed nSRST deasserted."
+	reset init
+}
+add_help_text srst_deasserted "Overridable procedure run when srst deassert is detected. Runs 'reset init' by default."
+
+proc srst_asserted {} {
+	puts "Sensed nSRST asserted."
+}

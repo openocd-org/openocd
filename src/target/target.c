@@ -1458,6 +1458,11 @@ int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, ch
 static int powerDropout;
 static int srstAsserted;
 
+static int runPowerRestore;
+static int runPowerDropout;
+static int runSrstAsserted;
+static int runSrstDeasserted;
+
 static int sense_handler()
 {
 	static int prevSrstAsserted = 0;
@@ -1471,7 +1476,7 @@ static int sense_handler()
 	powerRestored = prevPowerdropout && !powerDropout;
 	if (powerRestored)
 	{
-		LOG_USER("Sensed power restore.");
+		runPowerRestore = 1;
 	}
 
 	long long current = timeval_ms();
@@ -1479,7 +1484,7 @@ static int sense_handler()
 	int waitMore = lastPower + 2000 > current;
 	if (powerDropout && !waitMore)
 	{
-		LOG_USER("Sensed power dropout.");
+		runPowerDropout = 1;
 		lastPower = current;
 	}
 
@@ -1493,13 +1498,13 @@ static int sense_handler()
 	waitMore = lastSrst + 2000 > current;
 	if (srstDeasserted && !waitMore)
 	{
-		LOG_USER("Sensed nSRST deasserted");
+		runSrstDeasserted = 1;
 		lastSrst = current;
 	}
 
 	if (!prevSrstAsserted && srstAsserted)
 	{
-		LOG_USER("Sensed nSRST asserted");
+		runSrstAsserted = 1;
 	}
 
 	prevSrstAsserted = srstAsserted;
@@ -1521,11 +1526,59 @@ static int sense_handler()
 int handle_target(void *priv)
 {
 	int retval = ERROR_OK;
+
+	/* we do not want to recurse here... */
+	static int recursive = 0;
+	if (! recursive)
+	{
+		recursive = 1;
+		sense_handler();
+		/* danger! running these procedures can trigger srst assertions and power dropouts.
+		 * We need to avoid an infinite loop/recursion here and we do that by
+		 * clearing the flags after running these events.
+		 */
+		int did_something = 0;
+		if (runSrstAsserted)
+		{
+			Jim_Eval( interp, "srst_asserted");
+			did_something = 1;
+		}
+		if (runSrstDeasserted)
+		{
+			Jim_Eval( interp, "srst_deasserted");
+			did_something = 1;
+		}
+		if (runPowerDropout)
+		{
+			Jim_Eval( interp, "power_dropout");
+			did_something = 1;
+		}
+		if (runPowerRestore)
+		{
+			Jim_Eval( interp, "power_restore");
+			did_something = 1;
+		}
+
+		if (did_something)
+		{
+			/* clear detect flags */
+			sense_handler();
+		}
+
+		/* clear action flags */
+
+		runSrstAsserted=0;
+		runSrstDeasserted=0;
+		runPowerRestore=0;
+		runPowerDropout=0;
+
+		recursive = 0;
+	}
+
 	target_t *target = all_targets;
 
 	while (target)
 	{
-		sense_handler();
 
 		/* only poll target if we've got power and srst isn't asserted */
 		if (target_continous_poll&&!powerDropout&&!srstAsserted)
@@ -1537,6 +1590,7 @@ int handle_target(void *priv)
 
 		target = target->next;
 	}
+
 
 	return retval;
 }
