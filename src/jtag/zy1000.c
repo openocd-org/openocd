@@ -102,9 +102,15 @@ static bool readSRST()
 	return srstAsserted;
 }
 
+static int zy1000_srst_asserted(int *srst_asserted)
+{
+	*srst_asserted=readSRST();
+	return ERROR_OK;
+}
+
 static int zy1000_power_dropout(int *dropout)
 {
-	*dropout=readPowerDropout(); /* by default we can't detect power dropout */
+	*dropout=readPowerDropout();
 	return ERROR_OK;
 }
 
@@ -120,6 +126,7 @@ jtag_interface_t zy1000_interface =
 	.khz = zy1000_khz,
 	.speed_div = zy1000_speed_div,
 	.power_dropout = zy1000_power_dropout,
+	.srst_asserted = zy1000_srst_asserted,
 };
 
 bitbang_interface_t zy1000_bitbang =
