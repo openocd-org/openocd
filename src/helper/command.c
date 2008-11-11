@@ -64,7 +64,6 @@ static void tcl_output(void *privData, const char *file, int line, const char *f
 
 extern command_context_t *global_cmd_ctx;
 
-
 static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	/* the private data is stashed in the interp structure */
@@ -75,10 +74,20 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int nwords;
 	char **words;
 
+	/* DANGER!!!! be careful what we invoke here, since interp->cmdPrivData might
+	 * get overwritten by running other Jim commands! Treat it as an
+	 * emphemeral global variable that is used in lieu of an argument
+	 * to the fn and fish it out manually.
+	 */
+	c = interp->cmdPrivData;
+	if (c==NULL)
+	{
+		LOG_ERROR("BUG: interp->cmdPrivData==NULL");
+		return JIM_ERR;
+	}
 	target_call_timer_callbacks_now();
 	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/
 
-	c = interp->cmdPrivData;
 	LOG_DEBUG("script_command - %s", c->name);
 
 	words = malloc(sizeof(char *) * argc);
