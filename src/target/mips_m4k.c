@@ -234,6 +234,7 @@ int mips_m4k_assert_reset(target_t *target)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	mips_m4k_common_t *mips_m4k = mips32->arch_info;
 	
 	LOG_DEBUG("target->state: %s", 
 		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
@@ -256,7 +257,7 @@ int mips_m4k_assert_reset(target_t *target)
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT, NULL);
 	}
 	
-	if (strcmp(target->variant, "ejtag_srst") == 0)
+	if (strcmp(mips_m4k->variant, "ejtag_srst") == 0)
 	{
 		u32 ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
 		LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
