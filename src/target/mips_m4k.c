@@ -256,12 +256,15 @@ int mips_m4k_assert_reset(target_t *target)
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT, NULL);
 	}
 	
-	if (strcmp(target->variant, "ejtag_srst") == 0) {
+	if (strcmp(target->variant, "ejtag_srst") == 0)
+	{
 		u32 ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
 		LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} else {
+	}
+	else
+	{
 		/* here we should issue a srst only, but we may have to assert trst as well */
 		if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 		{
@@ -522,7 +525,7 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 		case 2:
 		case 1:
 			/* if noDMA off, use DMAACC mode for memory read */
-			if(ejtag_info->impcode & (1<<14))
+			if(ejtag_info->impcode & EJTAG_IMP_NODMA)
 				return mips32_pracc_read_mem(ejtag_info, address, size, count, (void *)buffer);
 			else
 				return mips32_dmaacc_read_mem(ejtag_info, address, size, count, (void *)buffer);
@@ -561,7 +564,7 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 		case 2:
 		case 1:
 			/* if noDMA off, use DMAACC mode for memory write */
-			if(ejtag_info->impcode & (1<<14))
+			if(ejtag_info->impcode & EJTAG_IMP_NODMA)
 				mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 			else
 				mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);

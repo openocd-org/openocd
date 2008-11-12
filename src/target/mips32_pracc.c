@@ -234,7 +234,7 @@ int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 *
 		MIPS32_SW(8,0,15), 									/* sw $8,($15) */
 		MIPS32_SW(9,0,15), 									/* sw $9,($15) */
 		MIPS32_SW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_SW(11,0,15), 								/* sw $10,($15) */
+		MIPS32_SW(11,0,15), 								/* sw $11,($15) */
 			
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
@@ -308,7 +308,7 @@ int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 *
 		MIPS32_SW(8,0,15), 									/* sw $8,($15) */
 		MIPS32_SW(9,0,15), 									/* sw $9,($15) */
 		MIPS32_SW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_SW(11,0,15), 								/* sw $10,($15) */
+		MIPS32_SW(11,0,15), 								/* sw $11,($15) */
 			
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
@@ -387,7 +387,7 @@ int mips32_pracc_read_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *bu
 		MIPS32_SW(8,0,15), 									/* sw $8,($15) */
 		MIPS32_SW(9,0,15), 									/* sw $9,($15) */
 		MIPS32_SW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_SW(11,0,15), 								/* sw $10,($15) */
+		MIPS32_SW(11,0,15), 								/* sw $11,($15) */
 			
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)), 		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
@@ -481,7 +481,7 @@ int mips32_pracc_write_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 
 		MIPS32_SW(8,0,15), 									/* sw $8,($15) */
 		MIPS32_SW(9,0,15), 									/* sw $9,($15) */
 		MIPS32_SW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_SW(11,0,15), 								/* sw $10,($15) */
+		MIPS32_SW(11,0,15), 								/* sw $11,($15) */
 		
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)), 		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
@@ -536,7 +536,7 @@ int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 
 		MIPS32_SW(8,0,15), 									/* sw $8,($15) */
 		MIPS32_SW(9,0,15), 									/* sw $9,($15) */
 		MIPS32_SW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_SW(11,0,15), 								/* sw $10,($15) */
+		MIPS32_SW(11,0,15), 								/* sw $11,($15) */
 		
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)), 		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
@@ -596,7 +596,7 @@ int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *b
 		MIPS32_SW(8,0,15), 									/* sw $8,($15) */
 		MIPS32_SW(9,0,15), 									/* sw $9,($15) */
 		MIPS32_SW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_SW(11,0,15), 								/* sw $10,($15) */
+		MIPS32_SW(11,0,15), 								/* sw $11,($15) */
 		
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)), 		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),

@@ -45,40 +45,42 @@ static int ejtag_dma_read(mips_ejtag_t *ejtag_info, u32 addr, u32 *data)
 {
 	u32 v;
 	u32 ejtag_ctrl;
-	int   retries = RETRY_ATTEMPTS;
+	int retries = RETRY_ATTEMPTS;
 
 begin_ejtag_dma_read:
 
-	// Setup Address
+	/* Setup Address */
 	v = addr;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Initiate DMA Read & set DSTRT
+	/* Initiate DMA Read & set DSTRT */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DRWN | EJTAG_CTRL_DMA_WORD | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
-	// Wait for DSTRT to Clear
+	/* Wait for DSTRT to Clear */
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
-	// Read Data
+	/* Read Data */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
 	mips_ejtag_drscan_32(ejtag_info, data);
 
-	// Clear DMA & Check DERR
+	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			printf("DMA Read Addr = %08x  Data = ERROR ON READ (retrying)\n", addr);
+			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ (retrying)\n", addr);
 			goto begin_ejtag_dma_read;
-		} else	printf("DMA Read Addr = %08x  Data = ERROR ON READ\n", addr);
+		}
+		else
+			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -89,46 +91,50 @@ static int ejtag_dma_read_h(mips_ejtag_t *ejtag_info, u32 addr, u16 *data)
 {
 	u32 v;
 	u32 ejtag_ctrl;
-	int   retries = RETRY_ATTEMPTS;
+	int retries = RETRY_ATTEMPTS;
 
 begin_ejtag_dma_read_h:
 
-	// Setup Address
+	/* Setup Address */
 	v = addr;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Initiate DMA Read & set DSTRT
+	/* Initiate DMA Read & set DSTRT */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DRWN | EJTAG_CTRL_DMA_HALFWORD | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
-	// Wait for DSTRT to Clear
+	/* Wait for DSTRT to Clear */
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
-	// Read Data
+	/* Read Data */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Clear DMA & Check DERR
+	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			printf("DMA Read Addr = %08x  Data = ERROR ON READ (retrying)\n", addr);
+			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ (retrying)\n", addr);
 			goto begin_ejtag_dma_read_h;
-		} else	printf("DMA Read Addr = %08x  Data = ERROR ON READ\n", addr);
+		}
+		else
+			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	// Handle the bigendian/littleendian
-	if ( addr & 0x2 )  *data = (v>>16)&0xffff ;
-	else               *data = (v&0x0000ffff) ;
+	/* Handle the bigendian/littleendian */
+	if (addr & 0x2)
+		*data = (v >> 16) & 0xffff;
+	else
+		*data = (v & 0x0000ffff);
 
 	return ERROR_OK;
 }
@@ -137,49 +143,59 @@ static int ejtag_dma_read_b(mips_ejtag_t *ejtag_info, u32 addr, u8 *data)
 {
 	u32 v;
 	u32 ejtag_ctrl;
-	int   retries = RETRY_ATTEMPTS;
+	int retries = RETRY_ATTEMPTS;
 
 begin_ejtag_dma_read_b:
 
-	// Setup Address
+	/* Setup Address */
 	v = addr;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Initiate DMA Read & set DSTRT
+	/* Initiate DMA Read & set DSTRT */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DRWN | EJTAG_CTRL_DMA_BYTE | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
-	// Wait for DSTRT to Clear
+	/* Wait for DSTRT to Clear */
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
-	// Read Data
+	/* Read Data */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Clear DMA & Check DERR
+	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			printf("DMA Read Addr = %08x  Data = ERROR ON READ (retrying)\n", addr);
+			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ (retrying)\n", addr);
 			goto begin_ejtag_dma_read_b;
-		} else	printf("DMA Read Addr = %08x  Data = ERROR ON READ\n", addr);
+		}
+		else
+			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	// Handle the bigendian/littleendian
-	switch(addr & 0x3) {
-	case 0:  *data =  v      & 0xff; break;
-	case 1:  *data = (v>>8)  & 0xff; break;
-	case 2:  *data = (v>>16) & 0xff; break;
-	case 3:  *data = (v>>24) & 0xff; break;
+	switch (addr & 0x3) {
+		case 0:
+			*data = v & 0xff;
+			break;
+		case 1:
+			*data = (v >> 8) & 0xff;
+			break;
+		case 2:
+			*data = (v >> 16) & 0xff;
+			break;
+		case 3: 
+			*data = (v >> 24) & 0xff;
+			break;
 	}
 
 	return ERROR_OK;
@@ -189,41 +205,43 @@ static int ejtag_dma_write(mips_ejtag_t *ejtag_info, u32 addr, u32 data)
 {
 	u32 v;
 	u32 ejtag_ctrl;
-	int   retries = RETRY_ATTEMPTS;
+	int retries = RETRY_ATTEMPTS;
 
 begin_ejtag_dma_write:
 
-	// Setup Address
+	/* Setup Address */
 	v = addr;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Setup Data
+	/* Setup Data */
 	v = data;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Initiate DMA Write & set DSTRT
+	/* Initiate DMA Write & set DSTRT */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DMA_WORD | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
-	// Wait for DSTRT to Clear
+	/* Wait for DSTRT to Clear */
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
-	// Clear DMA & Check DERR
+	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			printf("DMA Write Addr = %08x  Data = ERROR ON WRITE (retrying)\n", addr);
+			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE (retrying)\n", addr);
 			goto begin_ejtag_dma_write;
-		} else	printf("DMA Write Addr = %08x  Data = ERROR ON WRITE\n", addr);
+		}
+		else
+			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -234,46 +252,47 @@ static int ejtag_dma_write_h(mips_ejtag_t *ejtag_info, u32 addr, u32 data)
 {
 	u32 v;
 	u32 ejtag_ctrl;
-	int   retries = RETRY_ATTEMPTS;
+	int retries = RETRY_ATTEMPTS;
 
-
-	// Handle the bigendian/littleendian
+	/* Handle the bigendian/littleendian */
 	data &= 0xffff;
-	data |= data<<16;
+	data |= data << 16;
 
 begin_ejtag_dma_write_h:
 
-	// Setup Address
+	/* Setup Address */
 	v = addr;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Setup Data
+	/* Setup Data */
 	v = data;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Initiate DMA Write & set DSTRT
+	/* Initiate DMA Write & set DSTRT */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DMA_HALFWORD | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
-	// Wait for DSTRT to Clear
+	/* Wait for DSTRT to Clear */
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
-	// Clear DMA & Check DERR
+	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			printf("DMA Write Addr = %08x  Data = ERROR ON WRITE (retrying)\n", addr);
+			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE (retrying)\n", addr);
 			goto begin_ejtag_dma_write_h;
-		} else	printf("DMA Write Addr = %08x  Data = ERROR ON WRITE\n", addr);
+		}
+		else
+			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -284,47 +303,48 @@ static int ejtag_dma_write_b(mips_ejtag_t *ejtag_info, u32 addr, u32 data)
 {
 	u32 v;
 	u32 ejtag_ctrl;
-	int   retries = RETRY_ATTEMPTS;
+	int retries = RETRY_ATTEMPTS;
 
-
-	// Handle the bigendian/littleendian
+	/* Handle the bigendian/littleendian */
 	data &= 0xff;
-	data |= data<<8;
-	data |= data<<16;
+	data |= data << 8;
+	data |= data << 16;
 
 begin_ejtag_dma_write_b:
 
-	// Setup Address
+	/*  Setup Address*/
 	v = addr;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Setup Data
+	/* Setup Data */
 	v = data;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &v);
 
-	// Initiate DMA Write & set DSTRT
+	/* Initiate DMA Write & set DSTRT */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = EJTAG_CTRL_DMAACC | EJTAG_CTRL_DMA_BYTE | EJTAG_CTRL_DSTRT | ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 
-	// Wait for DSTRT to Clear
+	/* Wait for DSTRT to Clear */
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
-	// Clear DMA & Check DERR
+	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
+	if (ejtag_ctrl & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			printf("DMA Write Addr = %08x  Data = ERROR ON WRITE (retrying)\n", addr);
+			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE (retrying)\n", addr);
 			goto begin_ejtag_dma_write_b;
-		} else	printf("DMA Write Addr = %08x  Data = ERROR ON WRITE\n", addr);
+		}
+		else
+			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -351,8 +371,8 @@ int mips32_dmaacc_read_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 
 	int i;
 	int	retval;
 
-	for(i=0; i<count; i++) {
-		if((retval=ejtag_dma_read(ejtag_info, addr+i*sizeof(*buf), &buf[i])) != ERROR_OK)
+	for (i=0; i<count; i++) {
+		if ((retval = ejtag_dma_read(ejtag_info, addr+i*sizeof(*buf), &buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -364,8 +384,8 @@ int mips32_dmaacc_read_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 
 	int i;
 	int retval;
 
-	for(i=0; i<count; i++) {
-		if((retval=ejtag_dma_read_h(ejtag_info, addr+i*sizeof(*buf), &buf[i])) != ERROR_OK)
+	for (i=0; i<count; i++) {
+		if ((retval = ejtag_dma_read_h(ejtag_info, addr+i*sizeof(*buf), &buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -377,8 +397,8 @@ int mips32_dmaacc_read_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *b
 	int i;
 	int retval;
 
-	for(i=0; i<count; i++) {
-		if((retval=ejtag_dma_read_b(ejtag_info, addr+i*sizeof(*buf), &buf[i])) != ERROR_OK)
+	for (i=0; i<count; i++) {
+		if ((retval = ejtag_dma_read_b(ejtag_info, addr+i*sizeof(*buf), &buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -405,8 +425,8 @@ int mips32_dmaacc_write_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32
 	int i;
 	int retval;
 
-	for(i=0; i<count; i++) {
-		if((retval=ejtag_dma_write(ejtag_info, addr+i*sizeof(*buf), buf[i])) != ERROR_OK)
+	for (i=0; i<count; i++) {
+		if ((retval = ejtag_dma_write(ejtag_info, addr+i*sizeof(*buf), buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -418,8 +438,8 @@ int mips32_dmaacc_write_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16
 	int i;
 	int retval;
 
-	for(i=0; i<count; i++) {
-		if((retval=ejtag_dma_write_h(ejtag_info, addr+i*sizeof(*buf), buf[i])) != ERROR_OK)
+	for (i=0; i<count; i++) {
+		if ((retval = ejtag_dma_write_h(ejtag_info, addr+i*sizeof(*buf), buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -431,8 +451,8 @@ int mips32_dmaacc_write_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *
 	int i;
 	int retval;
 
-	for(i=0; i<count; i++) {
-		if((retval=ejtag_dma_write_b(ejtag_info, addr+i*sizeof(*buf), buf[i])) != ERROR_OK)
+	for (i=0; i<count; i++) {
+		if ((retval = ejtag_dma_write_b(ejtag_info, addr+i*sizeof(*buf), buf[i])) != ERROR_OK)
 			return retval;
 	}
 

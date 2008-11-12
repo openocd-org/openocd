@@ -26,6 +26,7 @@
 #include "types.h"
 #include "jtag.h"
 
+/* tap instructions */
 #define EJTAG_INST_IDCODE		0x01
 #define EJTAG_INST_IMPCODE		0x03
 #define EJTAG_INST_ADDRESS		0x08
@@ -40,6 +41,7 @@
 #define EJTAG_INST_TCBDATA		0x12
 #define EJTAG_INST_BYPASS		0xFF
 
+/* debug control register bits */
 #define EJTAG_CTRL_TOF			(1 << 1)
 #define EJTAG_CTRL_TIF			(1 << 2)
 #define EJTAG_CTRL_BRKST		(1 << 3)
@@ -85,11 +87,15 @@
 #define EJTAG_DEBUG_DM			(1 << 30)
 #define EJTAG_DEBUG_DBD			(1 << 31)
 
+/* implementaion register bits */
+#define EJTAG_IMP_NODMA			(1 << 14)
+#define EJTAG_IMP_MIPS16		(1 << 16)
+
 typedef struct mips_ejtag_s
 {
 	int chain_pos;
 	u32 impcode;
-//	int use_dma;
+	/*int use_dma;*/
 	u32 ejtag_ctrl;
 } mips_ejtag_t;
 
