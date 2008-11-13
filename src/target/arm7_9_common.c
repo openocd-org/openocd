@@ -231,7 +231,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 				return retval;
 			}
 
-			if ((retval = target->type->read_memory(target, breakpoint->address, 4, 1, (u8 *)&verify)) != ERROR_OK)
+			if ((retval = target_read_u32(target, breakpoint->address, &verify)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -255,7 +255,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 				return retval;
 			}
 
-			if ((retval = target->type->read_memory(target, breakpoint->address, 2, 1, (u8 *)&verify)) != ERROR_OK)
+			if ((retval = target_read_u16(target, breakpoint->address, &verify)) != ERROR_OK)
 			{
 				return retval;
 			}
