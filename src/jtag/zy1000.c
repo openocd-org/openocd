@@ -28,8 +28,6 @@
 
 
 #include <cyg/hal/hal_io.h>             // low level i/o
-#include <cyg/hal/var_io.h>             // common registers
-#include <cyg/hal/plf_io.h>             // platform registers
 #include <cyg/hal/hal_diag.h>
 
 #include <stdlib.h>

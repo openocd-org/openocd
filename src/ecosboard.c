@@ -797,7 +797,9 @@ void _zylinjtag_diag_write_char(char c, void **param)
 		HAL_DIAG_WRITE_CHAR(c);
 	}
 
+#ifdef CYGPKG_HAL_ZYLIN_PHI
 	printDccChar(c);
+#endif
 }
 
 #define SHOW_RESULT(a, b) diag_printf(#a " failed %d\n", (int)b)
@@ -1358,6 +1360,7 @@ print_exception_handler(cyg_addrword_t data, cyg_code_t exception, cyg_addrword_
 	char *infoStr = "unknown";
 	switch (exception)
 	{
+#ifdef CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION
 	case CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION:
 		infoStr = "undefined instruction";
 		break;
@@ -1370,6 +1373,7 @@ print_exception_handler(cyg_addrword_t data, cyg_code_t exception, cyg_addrword_
 	case CYGNUM_HAL_VECTOR_ABORT_DATA:
 		infoStr = "abort data";
 		break;
+#endif
 	default:
 		break;
 	}
@@ -1493,7 +1497,9 @@ zylinjtag_uart(cyg_addrword_t data)
 			continue;
 		}
 
+#ifdef CYGPKG_PROFILE_GPROF
 		start_profile();
+#endif
 		int actual = 0;
 		int actual2 = 0;
 		int pos, pos2;
@@ -1742,9 +1748,11 @@ int main(int argc, char *argv[])
 	ramblockdevice=(cyg_uint8 *)malloc(ramblockdevice_size);
 	memset(ramblockdevice, 0xff, ramblockdevice_size);
 
+#ifdef CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION
 	setHandler(CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION);
 	setHandler(CYGNUM_HAL_VECTOR_ABORT_PREFETCH);
 	setHandler(CYGNUM_HAL_VECTOR_ABORT_DATA);
+#endif
 
 	int err;
 	err = cyg_io_lookup("/dev/ser0", &serial_handle);
