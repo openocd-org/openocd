@@ -258,17 +258,17 @@ int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 *
 		MIPS32_B(NEG16(9)),									/* b loop */
 		MIPS32_NOP,
 															/* end: */
-		MIPS32_LW(11,0,15), 								/* sw $11,($15) */
-		MIPS32_LW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_LW(9,0,15), 									/* sw $9,($15) */
-		MIPS32_LW(8,0,15), 									/* sw $8,($15) */
+		MIPS32_LW(11,0,15), 								/* lw $11,($15) */
+		MIPS32_LW(10,0,15), 								/* lw $10,($15) */
+		MIPS32_LW(9,0,15), 									/* lw $9,($15) */
+		MIPS32_LW(8,0,15), 									/* lw $8,($15) */
 		MIPS32_MFC0(15,31,0),								/* move COP0 DeSave to $15 */
 		MIPS32_NOP,
 		MIPS32_B(NEG16(31)),								/* b start */
 		MIPS32_NOP,
 	};
 	
-	int retval=ERROR_OK;
+	int retval = ERROR_OK;
 	int blocksize;
 	int bytesread;
 	u32 param_in[2];
@@ -331,10 +331,10 @@ int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 *
 		MIPS32_B(NEG16(9)),									/* b loop */
 		MIPS32_NOP,
 
-		MIPS32_LW(11,0,15), 								/* sw $11,($15) */
-		MIPS32_LW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_LW(9,0,15), 									/* sw $9,($15) */
-		MIPS32_LW(8,0,15), 									/* sw $8,($15) */
+		MIPS32_LW(11,0,15), 								/* lw $11,($15) */
+		MIPS32_LW(10,0,15), 								/* lw $10,($15) */
+		MIPS32_LW(9,0,15), 									/* lw $9,($15) */
+		MIPS32_LW(8,0,15), 									/* lw $8,($15) */
 		MIPS32_MFC0(15,31,0),								/* move COP0 DeSave to $15 */
 		MIPS32_NOP,
 		MIPS32_B(NEG16(31)),								/* b start */
@@ -410,10 +410,10 @@ int mips32_pracc_read_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *bu
 		MIPS32_B(NEG16(9)),									/* b loop */
 		MIPS32_NOP,
 															/* end: */
-		MIPS32_LW(11,0,15), 								/* sw $11,($15) */
-		MIPS32_LW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_LW(9,0,15), 									/* sw $9,($15) */
-		MIPS32_LW(8,0,15), 									/* sw $8,($15) */
+		MIPS32_LW(11,0,15), 								/* lw $11,($15) */
+		MIPS32_LW(10,0,15), 								/* lw $10,($15) */
+		MIPS32_LW(9,0,15), 									/* lw $9,($15) */
+		MIPS32_LW(8,0,15), 									/* lw $8,($15) */
 		MIPS32_MFC0(15,31,0),								/* move COP0 DeSave to $15 */
 		MIPS32_NOP,
 		MIPS32_B(NEG16(31)),								/* b start */
@@ -503,10 +503,10 @@ int mips32_pracc_write_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 
 		MIPS32_B(NEG16(9)),									/* b loop */
 		MIPS32_NOP,
 															/* end: */
-		MIPS32_LW(11,0,15), 								/* sw $11,($15) */
-		MIPS32_LW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_LW(9,0,15), 									/* sw $9,($15) */
-		MIPS32_LW(8,0,15), 									/* sw $8,($15) */
+		MIPS32_LW(11,0,15), 								/* lw $11,($15) */
+		MIPS32_LW(10,0,15), 								/* lw $10,($15) */
+		MIPS32_LW(9,0,15), 									/* lw $9,($15) */
+		MIPS32_LW(8,0,15), 									/* lw $8,($15) */
 		MIPS32_MFC0(15,31,0),								/* move COP0 DeSave to $15 */
 		MIPS32_NOP,
 		MIPS32_B(NEG16(30)),								/* b start */
@@ -559,10 +559,10 @@ int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 
 		MIPS32_B(NEG16(9)),									/* b loop */
 		MIPS32_NOP,
 															/* end: */
-		MIPS32_LW(11,0,15), 								/* sw $11,($15) */
-		MIPS32_LW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_LW(9,0,15), 									/* sw $9,($15) */
-		MIPS32_LW(8,0,15), 									/* sw $8,($15) */
+		MIPS32_LW(11,0,15), 								/* lw $11,($15) */
+		MIPS32_LW(10,0,15), 								/* lw $10,($15) */
+		MIPS32_LW(9,0,15), 									/* lw $9,($15) */
+		MIPS32_LW(8,0,15), 									/* lw $8,($15) */
 		MIPS32_MFC0(15,31,0),								/* move COP0 DeSave to $15 */
 		MIPS32_NOP,
 		MIPS32_B(NEG16(30)),								/* b start */
@@ -619,10 +619,10 @@ int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *b
 		MIPS32_B(NEG16(9)),									/* b loop */
 		MIPS32_NOP,
 															/* end: */
-		MIPS32_LW(11,0,15), 								/* sw $11,($15) */
-		MIPS32_LW(10,0,15), 								/* sw $10,($15) */
-		MIPS32_LW(9,0,15), 									/* sw $9,($15) */
-		MIPS32_LW(8,0,15), 									/* sw $8,($15) */
+		MIPS32_LW(11,0,15), 								/* lw $11,($15) */
+		MIPS32_LW(10,0,15), 								/* lw $10,($15) */
+		MIPS32_LW(9,0,15), 									/* lw $9,($15) */
+		MIPS32_LW(8,0,15), 									/* lw $8,($15) */
 		MIPS32_MFC0(15,31,0),								/* move COP0 DeSave to $15 */
 		MIPS32_NOP,
 		MIPS32_B(NEG16(30)),								/* b start */
@@ -649,21 +649,18 @@ int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *b
 
 int mips32_pracc_write_regs(mips_ejtag_t *ejtag_info, u32 *regs)
 {
-	/* TODO restore all core registers */
-	
 	u32 code[] = {
 														/* start: */
-		MIPS32_MTC0(2,31,0),							/* move $2 to COP0 DeSave */
 		MIPS32_LUI(2,UPPER16(MIPS32_PRACC_PARAM_IN)), 	/* $2 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(2,2,LOWER16(MIPS32_PRACC_PARAM_IN)),
-		/*MIPS32_LW(0,0*4,2),*/ 						/* lw $0,0*4($2) */
 		MIPS32_LW(1,1*4,2), 							/* lw $1,1*4($2) */
-		MIPS32_MFC0(2,31,0),							/* move COP0 DeSave to $2 */
-		
-		MIPS32_MTC0(1,31,0),							/* move $1 to COP0 DeSave */
+		MIPS32_LW(15,15*4,2), 							/* lw $15,15*4($2) */
+		MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
+		MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)), 	/* $15 = MIPS32_PRACC_STACK */
+		MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
+		MIPS32_SW(1,0,15), 								/* sw $1,($15) */
 		MIPS32_LUI(1,UPPER16(MIPS32_PRACC_PARAM_IN)), 	/* $1 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(1,1,LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(2,2*4,1), 							/* lw $2,2*4($1) */
 		MIPS32_LW(3,3*4,1), 							/* lw $3,3*4($1) */
 		MIPS32_LW(4,4*4,1), 							/* lw $4,4*4($1) */
 		MIPS32_LW(5,5*4,1), 							/* lw $5,5*4($1) */
@@ -676,7 +673,6 @@ int mips32_pracc_write_regs(mips_ejtag_t *ejtag_info, u32 *regs)
 		MIPS32_LW(12,12*4,1), 							/* lw $12,12*4($1) */
 		MIPS32_LW(13,13*4,1), 							/* lw $13,13*4($1) */
 		MIPS32_LW(14,14*4,1), 							/* lw $14,14*4($1) */
-		MIPS32_LW(15,15*4,1), 							/* lw $15,15*4($1) */
 		MIPS32_LW(16,16*4,1), 							/* lw $16,16*4($1) */
 		MIPS32_LW(17,17*4,1), 							/* lw $17,17*4($1) */
 		MIPS32_LW(18,18*4,1), 							/* lw $18,18*4($1) */
@@ -694,16 +690,31 @@ int mips32_pracc_write_regs(mips_ejtag_t *ejtag_info, u32 *regs)
 		MIPS32_LW(30,30*4,1), 							/* lw $30,30*4($1) */
 		MIPS32_LW(31,31*4,1), 							/* lw $31,31*4($1) */
 		
-		MIPS32_MFC0(1,31,0),							/* move COP0 DeSave to $1 */
+		MIPS32_LW(2,32*4,1), 							/* lw $2,32*4($1) */
+		MIPS32_MTC0(2,12,0),							/* move $2 to status */
+		MIPS32_LW(2,33*4,1), 							/* lw $2,33*4($1) */
+		MIPS32_MTLO(2),									/* move $2 to lo */
+		MIPS32_LW(2,34*4,1), 							/* lw $2,34*4($1) */
+		MIPS32_MTHI(2),									/* move $2 to hi */
+		MIPS32_LW(2,35*4,1), 							/* lw $2,35*4($1) */
+		MIPS32_MTC0(2,8,0),								/* move $2 to badvaddr */
+		MIPS32_LW(2,36*4,1), 							/* lw $2,36*4($1) */
+		MIPS32_MTC0(2,13,0),							/* move $2 to cause*/
+		MIPS32_LW(2,37*4,1), 							/* lw $2,37*4($1) */
+		MIPS32_MTC0(2,24,0),							/* move $2 to pc */
+		
+		MIPS32_LW(2,2*4,1), 							/* lw $2,2*4($1) */
+		MIPS32_LW(1,0,15), 								/* lw $1,($15) */
+		MIPS32_MFC0(15,31,0),							/* move COP0 DeSave to $15 */
 		MIPS32_NOP,
-		MIPS32_B(NEG16(41)),							/* b start */
+		MIPS32_B(NEG16(55)),							/* b start */
 		MIPS32_NOP,
 	};
 	
 	int retval;
 	
 	retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
-		32, regs, 0, NULL, 1);
+		38, regs, 0, NULL, 1);
 	
 	return retval;
 }
@@ -758,9 +769,9 @@ int mips32_pracc_read_regs(mips_ejtag_t *ejtag_info, u32 *regs)
 		
 		MIPS32_MFC0(2,12,0),							/* move status to $2 */
 		MIPS32_SW(2,32*4,1), 							/* sw $2,32*4($1) */
-		MIPS32_LO(2),									/* move lo to $2 */
+		MIPS32_MFLO(2),									/* move lo to $2 */
 		MIPS32_SW(2,33*4,1), 							/* sw $2,33*4($1) */
-		MIPS32_HI(2),									/* move hi to $2 */
+		MIPS32_MFHI(2),									/* move hi to $2 */
 		MIPS32_SW(2,34*4,1), 							/* sw $2,34*4($1) */
 		MIPS32_MFC0(2,8,0),								/* move badvaddr to $2 */
 		MIPS32_SW(2,35*4,1), 							/* sw $2,35*4($1) */
@@ -769,8 +780,8 @@ int mips32_pracc_read_regs(mips_ejtag_t *ejtag_info, u32 *regs)
 		MIPS32_MFC0(2,24,0),							/* move pc to $2 */
 		MIPS32_SW(2,37*4,1), 							/* sw $2,37*4($1) */
 		
-		MIPS32_LW(2,0,15), 								/* sw $2,($15) */
-		MIPS32_LW(1,0,15), 								/* sw $1,($15) */
+		MIPS32_LW(2,0,15), 								/* lw $2,($15) */
+		MIPS32_LW(1,0,15), 								/* lw $1,($15) */
 		MIPS32_MFC0(15,31,0),							/* move COP0 DeSave to $15 */
 		MIPS32_NOP,
 		MIPS32_B(NEG16(60)),							/* b start */

@@ -66,7 +66,9 @@ typedef struct mips32_core_reg_s
 #define MIPS32_OP_LBU	0x24
 #define MIPS32_OP_LHU	0x25
 #define MIPS32_OP_MFHI	0x10
+#define MIPS32_OP_MTHI	0x11
 #define MIPS32_OP_MFLO	0x12
+#define MIPS32_OP_MTLO	0x13
 #define MIPS32_OP_SB	0x28
 #define MIPS32_OP_SH	0x29
 #define MIPS32_OP_SW	0x2B
@@ -90,8 +92,10 @@ typedef struct mips32_core_reg_s
 #define MIPS32_LHU(reg, off, base)	MIPS32_I_INST(MIPS32_OP_LHU, base, reg, off)
 #define MIPS32_LUI(reg, val)		MIPS32_I_INST(MIPS32_OP_LUI, 0, reg, val)
 #define MIPS32_LW(reg, off, base)	MIPS32_I_INST(MIPS32_OP_LW, base, reg, off)
-#define MIPS32_LO(reg)				MIPS32_R_INST(0, 0, 0, reg, 0, MIPS32_OP_MFHI)
-#define MIPS32_HI(reg)				MIPS32_R_INST(0, 0, 0, reg, 0, MIPS32_OP_MFLO)
+#define MIPS32_MFLO(reg)			MIPS32_R_INST(0, 0, 0, reg, 0, MIPS32_OP_MFLO)
+#define MIPS32_MFHI(reg)			MIPS32_R_INST(0, 0, 0, reg, 0, MIPS32_OP_MFHI)
+#define MIPS32_MTLO(reg)			MIPS32_R_INST(0, 0, 0, reg, 0, MIPS32_OP_MTLO)
+#define MIPS32_MTHI(reg)			MIPS32_R_INST(0, 0, 0, reg, 0, MIPS32_OP_MTHI)
 #define MIPS32_ORI(src, tar, val)	MIPS32_I_INST(MIPS32_OP_ORI, src, tar, val)
 #define MIPS32_SB(reg, off, base)	MIPS32_I_INST(MIPS32_OP_SB, base, reg, off)
 #define MIPS32_SH(reg, off, base)	MIPS32_I_INST(MIPS32_OP_SH, base, reg, off)

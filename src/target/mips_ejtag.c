@@ -164,8 +164,8 @@ int mips_ejtag_step_disable(mips_ejtag_t *ejtag_info)
 			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
 			MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)), 	/* $15 = MIPS32_PRACC_STACK */
 			MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
-			MIPS32_SW(1,0,15), 								/* sw $2,($15) */
-			MIPS32_SW(2,0,15), 								/* sw $3,($15) */
+			MIPS32_SW(1,0,15), 								/* sw $1,($15) */
+			MIPS32_SW(2,0,15), 								/* sw $2,($15) */
 			MIPS32_MFC0(1,23,0),							/* move COP0 Debug to $1 */
 			MIPS32_LUI(2,0xFFFF), 							/* $2 = 0xfffffeff */
 			MIPS32_ORI(2,2,0xFEFF),
@@ -235,7 +235,7 @@ int mips_ejtag_read_debug(mips_ejtag_t *ejtag_info, u32* debug_reg)
 			MIPS32_SW(2,0,15), 								/* sw $2,($15) */
 			MIPS32_LUI(1,UPPER16(MIPS32_PRACC_PARAM_OUT)), 	/* $1 = MIPS32_PRACC_PARAM_OUT */
 			MIPS32_ORI(1,1,LOWER16(MIPS32_PRACC_PARAM_OUT)),
-			MIPS32_MFC0(2,23,0),							/* move COP0 Debug to $1 */
+			MIPS32_MFC0(2,23,0),							/* move COP0 Debug to $2 */
 			MIPS32_SW(2,0,1),
 			MIPS32_LW(2,0,15),
 			MIPS32_LW(1,0,15),
