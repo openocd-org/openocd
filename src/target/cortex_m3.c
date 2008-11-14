@@ -1357,50 +1357,53 @@ int cortex_m3_examine(struct target_s *target)
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	
-	target->type->examined = 1;
-
-	if ((retval=ahbap_debugport_init(swjdp))!=ERROR_OK)
-		return retval;
-
-	/* Read from Device Identification Registers */
-	if ((retval=target_read_u32(target, CPUID, &cpuid))!=ERROR_OK)
+	if ((retval = ahbap_debugport_init(swjdp)) != ERROR_OK)
 		return retval;
 	
-	if (((cpuid >> 4) & 0xc3f) == 0xc23)
-		LOG_DEBUG("CORTEX-M3 processor detected");
-	LOG_DEBUG("cpuid: 0x%8.8x", cpuid);
-	
-	target_read_u32(target, NVIC_ICTR, &ictr);
-	cortex_m3->intlinesnum = (ictr & 0x1F) + 1;
-	cortex_m3->intsetenable = calloc(cortex_m3->intlinesnum, 4);
-	for (i = 0; i < cortex_m3->intlinesnum; i++)
+	if (!target->type->examined)
 	{
-		target_read_u32(target, NVIC_ISE0 + 4 * i, cortex_m3->intsetenable + i);
-		LOG_DEBUG("interrupt enable[%i] = 0x%8.8x", i, cortex_m3->intsetenable[i]);
-	}
-	
-	/* Setup FPB */
-	target_read_u32(target, FP_CTRL, &fpcr);
-	cortex_m3->auto_bp_type = 1;
-	cortex_m3->fp_num_code = (fpcr >> 4) & 0xF;
-	cortex_m3->fp_num_lit = (fpcr >> 8) & 0xF;
-	cortex_m3->fp_code_available = cortex_m3->fp_num_code;
-	cortex_m3->fp_comparator_list = calloc(cortex_m3->fp_num_code + cortex_m3->fp_num_lit, sizeof(cortex_m3_fp_comparator_t));
-	for (i = 0; i < cortex_m3->fp_num_code + cortex_m3->fp_num_lit; i++)
-	{
-		cortex_m3->fp_comparator_list[i].type = (i < cortex_m3->fp_num_code) ? FPCR_CODE : FPCR_LITERAL;
-		cortex_m3->fp_comparator_list[i].fpcr_address = FP_COMP0 + 4 * i;
-	}
-	LOG_DEBUG("FPB fpcr 0x%x, numcode %i, numlit %i", fpcr, cortex_m3->fp_num_code, cortex_m3->fp_num_lit);
+		target->type->examined = 1;
 		
-	/* Setup DWT */
-	target_read_u32(target, DWT_CTRL, &dwtcr);
-	cortex_m3->dwt_num_comp = (dwtcr >> 28) & 0xF;
-	cortex_m3->dwt_comp_available = cortex_m3->dwt_num_comp;
-	cortex_m3->dwt_comparator_list=calloc(cortex_m3->dwt_num_comp, sizeof(cortex_m3_dwt_comparator_t));
-	for (i = 0; i < cortex_m3->dwt_num_comp; i++)
-	{
-		cortex_m3->dwt_comparator_list[i].dwt_comparator_address = DWT_COMP0 + 0x10 * i;
+		/* Read from Device Identification Registers */
+		if ((retval = target_read_u32(target, CPUID, &cpuid)) != ERROR_OK)
+			return retval;
+		
+		if (((cpuid >> 4) & 0xc3f) == 0xc23)
+			LOG_DEBUG("CORTEX-M3 processor detected");
+		LOG_DEBUG("cpuid: 0x%8.8x", cpuid);
+		
+		target_read_u32(target, NVIC_ICTR, &ictr);
+		cortex_m3->intlinesnum = (ictr & 0x1F) + 1;
+		cortex_m3->intsetenable = calloc(cortex_m3->intlinesnum, 4);
+		for (i = 0; i < cortex_m3->intlinesnum; i++)
+		{
+			target_read_u32(target, NVIC_ISE0 + 4 * i, cortex_m3->intsetenable + i);
+			LOG_DEBUG("interrupt enable[%i] = 0x%8.8x", i, cortex_m3->intsetenable[i]);
+		}
+		
+		/* Setup FPB */
+		target_read_u32(target, FP_CTRL, &fpcr);
+		cortex_m3->auto_bp_type = 1;
+		cortex_m3->fp_num_code = (fpcr >> 4) & 0xF;
+		cortex_m3->fp_num_lit = (fpcr >> 8) & 0xF;
+		cortex_m3->fp_code_available = cortex_m3->fp_num_code;
+		cortex_m3->fp_comparator_list = calloc(cortex_m3->fp_num_code + cortex_m3->fp_num_lit, sizeof(cortex_m3_fp_comparator_t));
+		for (i = 0; i < cortex_m3->fp_num_code + cortex_m3->fp_num_lit; i++)
+		{
+			cortex_m3->fp_comparator_list[i].type = (i < cortex_m3->fp_num_code) ? FPCR_CODE : FPCR_LITERAL;
+			cortex_m3->fp_comparator_list[i].fpcr_address = FP_COMP0 + 4 * i;
+		}
+		LOG_DEBUG("FPB fpcr 0x%x, numcode %i, numlit %i", fpcr, cortex_m3->fp_num_code, cortex_m3->fp_num_lit);
+			
+		/* Setup DWT */
+		target_read_u32(target, DWT_CTRL, &dwtcr);
+		cortex_m3->dwt_num_comp = (dwtcr >> 28) & 0xF;
+		cortex_m3->dwt_comp_available = cortex_m3->dwt_num_comp;
+		cortex_m3->dwt_comparator_list = calloc(cortex_m3->dwt_num_comp, sizeof(cortex_m3_dwt_comparator_t));
+		for (i = 0; i < cortex_m3->dwt_num_comp; i++)
+		{
+			cortex_m3->dwt_comparator_list[i].dwt_comparator_address = DWT_COMP0 + 0x10 * i;
+		}
 	}
 	
 	return ERROR_OK;
