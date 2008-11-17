@@ -37,6 +37,14 @@ enum
 	MIPS32NUMCOREREGS
 };
 
+typedef struct mips32_comparator_s
+{
+	int used;
+	//int type;
+	u32 bp_value;
+	u32 reg_address;
+} mips32_comparator_t;
+
 typedef struct mips32_common_s
 {
 	int common_magic;
@@ -44,6 +52,14 @@ typedef struct mips32_common_s
 	reg_cache_t *core_cache;
 	mips_ejtag_t ejtag_info;
 	u32 core_regs[MIPS32NUMCOREREGS];
+	
+	int bp_scanned;
+	int num_inst_bpoints;
+	int num_data_bpoints;
+	int num_inst_bpoints_avail;
+	int num_data_bpoints_avail;
+	mips32_comparator_t *inst_break_list;
+	mips32_comparator_t *data_break_list;
 	
 	/* register cache to processor synchronization */
 	int (*read_core_reg)(struct target_s *target, int num);
@@ -108,6 +124,8 @@ extern int mips32_restore_context(target_t *target);
 extern int mips32_save_context(target_t *target);
 extern reg_cache_t *mips32_build_reg_cache(target_t *target);
 extern int mips32_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
+extern int mips32_configure_break_unit(struct target_s *target);
+extern int mips32_examine(struct target_s *target);
 
 extern int mips32_register_commands(struct command_context_s *cmd_ctx);
 extern int mips32_invalidate_core_regs(target_t *target);

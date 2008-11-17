@@ -227,6 +227,7 @@ int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info, int enable_interrupts)
 
 int mips_ejtag_read_debug(mips_ejtag_t *ejtag_info, u32* debug_reg)
 {
+	/* read ejtag ECR */
 	u32 code[] = {
 			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
 			MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)), 	/* $15 = MIPS32_PRACC_STACK */
@@ -288,6 +289,7 @@ int mips_ejtag_init(mips_ejtag_t *ejtag_info)
 		ejtag_info->impcode & (1<<14) ? " noDMA":  " DMA",
 		ejtag_info->impcode & (1<<0)  ? " MIPS64": " MIPS32"
 	);
+	
 	if((ejtag_info->impcode & (1<<14)) == 0)
 		LOG_DEBUG("EJTAG: DMA Access Mode Support Enabled");
 	

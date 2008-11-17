@@ -325,6 +325,10 @@ int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, int chain_p
 	target->arch_info = mips32;
 	mips32->common_magic = MIPS32_COMMON_MAGIC;
 	
+	/* has breakpoint/watchpint unit been scanned */
+	mips32->bp_scanned = 0;
+	mips32->data_break_list = NULL;
+	
 	mips32->ejtag_info.chain_pos = chain_pos;
 	mips32->read_core_reg = mips32_read_core_reg;
 	mips32->write_core_reg = mips32_write_core_reg;
@@ -340,5 +344,84 @@ int mips32_register_commands(struct command_context_s *cmd_ctx)
 int mips32_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
 {
 	/*TODO*/
+	return ERROR_OK;
+}
+
+int mips32_examine(struct target_s *target)
+{
+	mips32_common_t *mips32 = target->arch_info;
+	
+	if (!target->type->examined)
+	{
+		target->type->examined = 1;
+	
+		/* we will configure later */
+		mips32->bp_scanned = 0;
+		mips32->num_inst_bpoints = 0;
+		mips32->num_data_bpoints = 0;
+		mips32->num_inst_bpoints_avail = 0;
+		mips32->num_data_bpoints_avail = 0;
+	}
+		
+	return ERROR_OK;
+}
+
+int mips32_configure_break_unit(struct target_s *target)
+{
+	/* get pointers to arch-specific information */
+	mips32_common_t *mips32 = target->arch_info;
+	int retval;
+	u32 dcr, bpinfo;
+	int i;
+	
+	if (mips32->bp_scanned)
+		return ERROR_OK;
+	
+	/* get info about breakpoint support */
+	if ((retval = target_read_u32(target, EJTAG_DCR, &dcr)) != ERROR_OK)
+		return retval;
+	
+	if (dcr & (1 << 16))
+	{
+		/* get number of inst breakpoints */
+		if ((retval = target_read_u32(target, EJTAG_IBS, &bpinfo)) != ERROR_OK)
+			return retval;
+		
+		mips32->num_inst_bpoints = (bpinfo >> 24) & 0x0F;
+		mips32->num_inst_bpoints_avail = mips32->num_inst_bpoints;
+		mips32->inst_break_list = calloc(mips32->num_inst_bpoints, sizeof(mips32_comparator_t));
+		for (i = 0; i < mips32->num_inst_bpoints; i++)
+		{
+			mips32->inst_break_list[i].reg_address = EJTAG_IBA1 + (0x100 * i);
+		}
+		
+		/* clear IBIS reg */
+		if ((retval = target_write_u32(target, EJTAG_IBS, 0)) != ERROR_OK)
+			return retval;
+	}
+	
+	if (dcr & (1 << 17))
+	{
+		/* get number of data breakpoints */
+		if ((retval = target_read_u32(target, EJTAG_DBS, &bpinfo)) != ERROR_OK)
+			return retval;
+		
+		mips32->num_data_bpoints = (bpinfo >> 24) & 0x0F;
+		mips32->num_data_bpoints_avail = mips32->num_data_bpoints;
+		mips32->data_break_list = calloc(mips32->num_data_bpoints, sizeof(mips32_comparator_t));
+		for (i = 0; i < mips32->num_data_bpoints; i++)
+		{
+			mips32->data_break_list[i].reg_address = EJTAG_DBA1 + (0x100 * i);
+		}
+		
+		/* clear DBIS reg */
+		if ((retval = target_write_u32(target, EJTAG_DBS, 0)) != ERROR_OK)
+			return retval;
+	}
+	
+	LOG_DEBUG("DCR 0x%x numinst %i numdata %i", dcr, mips32->num_inst_bpoints, mips32->num_data_bpoints);
+	
+	mips32->bp_scanned = 1;
+	
 	return ERROR_OK;
 }

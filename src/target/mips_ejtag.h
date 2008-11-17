@@ -41,7 +41,7 @@
 #define EJTAG_INST_TCBDATA		0x12
 #define EJTAG_INST_BYPASS		0xFF
 
-/* debug control register bits */
+/* debug control register bits ECR */
 #define EJTAG_CTRL_TOF			(1 << 1)
 #define EJTAG_CTRL_TIF			(1 << 2)
 #define EJTAG_CTRL_BRKST		(1 << 3)
@@ -90,6 +90,13 @@
 /* implementaion register bits */
 #define EJTAG_IMP_NODMA			(1 << 14)
 #define EJTAG_IMP_MIPS16		(1 << 16)
+
+/* breakpoint support */
+#define EJTAG_DCR				0xFF300000
+#define EJTAG_IBS				0xFF301000
+#define EJTAG_IBA1				0xFF301100
+#define EJTAG_DBS				0xFF302000
+#define EJTAG_DBA1				0xFF302100
 
 typedef struct mips_ejtag_s
 {

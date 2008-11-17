@@ -90,28 +90,56 @@ target_type_t mips_m4k_target =
 	.quit = mips_m4k_quit
 };
 
-int mips_m4k_debug_entry(target_t *target)
-{
-	u32 debug_reg;
-	mips32_common_t *mips32 = target->arch_info;
-	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	
-	/* read debug register */
-	mips_ejtag_read_debug(ejtag_info, &debug_reg);
+int mips_m4k_examine_debug_reason(target_t *target)
+{	
+	int break_status;
+	int retval;
 	
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 		&& (target->debug_reason != DBG_REASON_SINGLESTEP))
 	{
-//		if (cortex_m3->nvic_dfsr & DFSR_BKPT)
-//		{
-//			target->debug_reason = DBG_REASON_BREAKPOINT;
-//			if (cortex_m3->nvic_dfsr & DFSR_DWTTRAP)
-//				target->debug_reason = DBG_REASON_WPTANDBKPT;
-//		}
-//		else if (cortex_m3->nvic_dfsr & DFSR_DWTTRAP)
-//			target->debug_reason = DBG_REASON_WATCHPOINT;
+		/* get info about inst breakpoint support */
+		if ((retval = target_read_u32(target, EJTAG_IBS, &break_status)) != ERROR_OK)
+			return retval;
+		if (break_status & 0x1f)
+		{
+			/* we have halted on a  breakpoint */
+			if ((retval = target_write_u32(target, EJTAG_IBS, 0)) != ERROR_OK)
+				return retval;
+			target->debug_reason = DBG_REASON_BREAKPOINT;
+		}
+		
+		/* get info about data breakpoint support */
+		if ((retval = target_read_u32(target, 0xFF302000, &break_status)) != ERROR_OK)
+			return retval;
+		if (break_status & 0x1f)
+		{
+			/* we have halted on a  breakpoint */
+			if ((retval = target_write_u32(target, 0xFF302000, 0)) != ERROR_OK)
+				return retval;
+			target->debug_reason = DBG_REASON_WATCHPOINT;
+		}
 	}
 	
+	return ERROR_OK;
+}
+
+int mips_m4k_debug_entry(target_t *target)
+{
+	mips32_common_t *mips32 = target->arch_info;
+	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	u32 debug_reg;
+	
+	/* read debug register */
+	mips_ejtag_read_debug(ejtag_info, &debug_reg);
+	
+	/* make sure break uit configured */
+	mips32_configure_break_unit(target);
+	
+	/* attempt to find halt reason */
+	mips_m4k_examine_debug_reason(target);
+	
+	/* clear single step if active */
 	if (debug_reg & EJTAG_DEBUG_DSS)
 	{
 		/* stopped due to single step - clear step bit */
@@ -312,6 +340,22 @@ int mips_m4k_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
+int mips_m4k_single_step_core(target_t *target)
+{
+	mips32_common_t *mips32 = target->arch_info;
+	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	
+	/* configure single step mode */
+	mips_ejtag_config_step(ejtag_info, 1);
+	
+	/* exit debug mode */
+	mips_ejtag_exit_debug(ejtag_info, 1);
+	
+	mips_m4k_debug_entry(target);
+	
+	return ERROR_OK;
+}
+
 int mips_m4k_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
 {
 	mips32_common_t *mips32 = target->arch_info;
@@ -352,13 +396,14 @@ int mips_m4k_resume(struct target_s *target, int current, u32 address, int handl
 		{
 			LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
 			mips_m4k_unset_breakpoint(target, breakpoint);
-			//mips_m4k_single_step_core(target);
+			mips_m4k_single_step_core(target);
 			mips_m4k_set_breakpoint(target, breakpoint);
 		}
 	}
 	
 	/* exit debug mode - enable interrupts if required */
 	mips_ejtag_exit_debug(ejtag_info, !debug_execution);
+	target->debug_reason = DBG_REASON_NOTHALTED;
 	
 	/* registers are now invalid */
 	mips32_invalidate_core_regs(target);
@@ -443,25 +488,114 @@ void mips_m4k_enable_breakpoints(struct target_s *target)
 
 int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	/* TODO */
+	mips32_common_t *mips32 = target->arch_info;
+	mips32_comparator_t * comparator_list = mips32->inst_break_list;
+	
+	if (breakpoint->set)
+	{
+		LOG_WARNING("breakpoint already set");
+		return ERROR_OK;
+	}
+	
+	if (breakpoint->type == BKPT_HARD)
+	{
+		int bp_num = 0;
+		
+		while(comparator_list[bp_num].used && (bp_num < mips32->num_inst_bpoints))
+			bp_num++;
+		if (bp_num >= mips32->num_inst_bpoints)
+		{
+			LOG_DEBUG("ERROR Can not find free FP Comparator");
+			LOG_WARNING("ERROR Can not find free FP Comparator");
+			exit(-1);
+		}
+		breakpoint->set = bp_num + 1;
+		comparator_list[bp_num].used = 1;
+		comparator_list[bp_num].bp_value = breakpoint->address;
+		target_write_u32(target, comparator_list[bp_num].reg_address, comparator_list[bp_num].bp_value);
+		target_write_u32(target, comparator_list[bp_num].reg_address + 0x08, 0x00000000);
+		target_write_u32(target, comparator_list[bp_num].reg_address + 0x18, 1);
+		LOG_DEBUG("bp_num %i bp_value 0x%x", bp_num, comparator_list[bp_num].bp_value);
+	}
+	else if (breakpoint->type == BKPT_SOFT)
+	{
+
+	}
+	
 	return ERROR_OK;
 }
 
 int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	/* TODO */
+	/* get pointers to arch-specific information */
+	mips32_common_t *mips32 = target->arch_info;
+	mips32_comparator_t * comparator_list = mips32->inst_break_list;
+
+	if (!breakpoint->set)
+	{
+		LOG_WARNING("breakpoint not set");
+		return ERROR_OK;
+	}
+	
+	if (breakpoint->type == BKPT_HARD)
+	{
+		int bp_num = breakpoint->set - 1;
+		if ((bp_num < 0) || (bp_num >= mips32->num_inst_bpoints))
+		{
+			LOG_DEBUG("Invalid FP Comparator number in breakpoint");
+			return ERROR_OK;
+		}
+		comparator_list[bp_num].used = 0;
+		comparator_list[bp_num].bp_value = 0;
+		target_write_u32(target, comparator_list[bp_num].reg_address + 0x18, 0);
+	}
+	else
+	{
+
+	}
+	breakpoint->set = 0;
+	
 	return ERROR_OK;
 }
 
 int mips_m4k_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	/* TODO */
+	mips32_common_t *mips32 = target->arch_info;
+	
+	if (mips32->num_inst_bpoints_avail < 1)
+	{
+		LOG_INFO("no hardware breakpoint available");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+	
+	/* default to hardware for now */
+	breakpoint->type = BKPT_HARD;
+	
+	mips32->num_inst_bpoints_avail--;
+	mips_m4k_set_breakpoint(target, breakpoint);
+	
 	return ERROR_OK;
 }
 
 int mips_m4k_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
-	/* TODO */
+	/* get pointers to arch-specific information */
+	mips32_common_t *mips32 = target->arch_info;
+	
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+	
+	if (breakpoint->set)
+	{
+		mips_m4k_unset_breakpoint(target, breakpoint);
+	}
+	
+	if (breakpoint->type == BKPT_HARD)
+		mips32->num_inst_bpoints_avail++;
+	
 	return ERROR_OK;
 }
 
@@ -639,20 +773,24 @@ int mips_m4k_examine(struct target_s *target)
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	u32 idcode = 0;
 	
-	target->type->examined = 1;
-	
-	mips_ejtag_get_idcode(ejtag_info, &idcode, NULL);
-	
-	if (((idcode >> 1) & 0x7FF) == 0x29)
+	if (!target->type->examined)
 	{
-		/* we are using a pic32mx so select ejtag port
-		 * as it is not selected by default */
-		mips_ejtag_set_instr(ejtag_info, 0x05, NULL);
-		LOG_DEBUG("PIC32MX Detected - using EJTAG Interface");
+		mips_ejtag_get_idcode(ejtag_info, &idcode, NULL);
+		
+		if (((idcode >> 1) & 0x7FF) == 0x29)
+		{
+			/* we are using a pic32mx so select ejtag port
+			 * as it is not selected by default */
+			mips_ejtag_set_instr(ejtag_info, 0x05, NULL);
+			LOG_DEBUG("PIC32MX Detected - using EJTAG Interface");
+		}
 	}
 	
 	/* init rest of ejtag interface */
 	if ((retval = mips_ejtag_init(ejtag_info)) != ERROR_OK)
+		return retval;
+	
+	if ((retval = mips32_examine(target)) != ERROR_OK)
 		return retval;
 	
 	return ERROR_OK;
