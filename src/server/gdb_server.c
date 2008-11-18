@@ -847,9 +847,24 @@ int gdb_last_signal_packet(connection_t *connection, target_t *target, char* pac
 	return ERROR_OK;
 }
 
-/* Convert register to string of bits. NB! The # of bits in the
+
+static int gdb_reg_pos(target_t *target, int pos, int len)
+{
+	if (target->endianness == TARGET_LITTLE_ENDIAN)
+		return pos;
+	else
+		return len - 1 - pos;
+}
+
+/* Convert register to string of bytes. NB! The # of bits in the
  * register might be non-divisible by 8(a byte), in which
- * case an entire byte is shown. */
+ * case an entire byte is shown.
+ *
+ * NB! the format on the wire is the target endianess
+ *
+ * The format of reg->value is little endian
+ *
+ */
 void gdb_str_to_target(target_t *target, char *tstr, reg_t *reg)
 {
 	int i;
@@ -861,26 +876,44 @@ void gdb_str_to_target(target_t *target, char *tstr, reg_t *reg)
 
 	for (i = 0; i < buf_len; i++)
 	{
-		tstr[i*2]   = DIGITS[(buf[i]>>4) & 0xf];
-		tstr[i*2+1] = DIGITS[buf[i]&0xf];
+		int j = gdb_reg_pos(target, i, buf_len);
+		tstr[i*2]   = DIGITS[(buf[j]>>4) & 0xf];
+		tstr[i*2+1] = DIGITS[buf[j]&0xf];
 	}
 }
 
-void gdb_target_to_str(target_t *target, char *tstr, char *str)
+static int hextoint(char c)
 {
-	int str_len = strlen(tstr);
-	int i;
+	if (c>='0'&&c<='9')
+	{
+		return c-'0';
+	}
+	c=toupper(c);
+	if (c>='A'&&c<='F')
+	{
+		return c-'A'+10;
+	}
+	LOG_ERROR("BUG: invalid register value %08x", c);
+	return 0;
+}
 
+/* copy over in register buffer */
+void gdb_target_to_reg(target_t *target, char *tstr, int str_len, u8 *bin)
+{
 	if (str_len % 2)
 	{
 		LOG_ERROR("BUG: gdb value with uneven number of characters encountered");
 		exit(-1);
 	}
 
+	int i;
 	for (i = 0; i < str_len; i+=2)
 	{
-		str[str_len - i - 1] = tstr[i + 1];
-		str[str_len - i - 2] = tstr[i];
+		u8 t = hextoint(tstr[i])<<4;
+		t |= hextoint(tstr[i]);
+
+		int j = gdb_reg_pos(target, i/2, str_len/2);
+		bin[j] = t;
 	}
 }
 
@@ -965,16 +998,16 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 	for (i = 0; i < reg_list_size; i++)
 	{
 		u8 *bin_buf;
-		char *hex_buf;
+		int chars = (CEIL(reg_list[i]->size, 8) * 2);
+
+		if (packet_p + chars > packet + packet_size)
+		{
+			LOG_ERROR("BUG: register packet is too small for registers");
+		}
+
 		reg_arch_type_t *arch_type;
-
-		/* convert from GDB-string (target-endian) to hex-string (big-endian) */
-		hex_buf = malloc(CEIL(reg_list[i]->size, 8) * 2);
-		gdb_target_to_str(target, packet_p, hex_buf);
-
-		/* convert hex-string to binary buffer */
 		bin_buf = malloc(CEIL(reg_list[i]->size, 8));
-		str_to_buf(hex_buf, CEIL(reg_list[i]->size, 8) * 2, bin_buf, reg_list[i]->size, 16);
+		gdb_target_to_reg(target, packet_p, chars, bin_buf);
 
 		/* get register arch_type, and call set method */
 		arch_type = register_get_arch_type(reg_list[i]->arch_type);
@@ -982,10 +1015,10 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 		arch_type->set(reg_list[i], bin_buf);
 
 		/* advance packet pointer */
-		packet_p += (CEIL(reg_list[i]->size, 8) * 2);
+		packet_p += chars;
+
 
 		free(bin_buf);
-		free(hex_buf);
 	}
 
 	/* free reg_t *reg_list[] array allocated by get_gdb_reg_list */
@@ -1034,7 +1067,6 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 int gdb_set_register_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
-	char *hex_buf;
 	u8 *bin_buf;
 	int reg_num = strtoul(packet + 1, &separator, 16);
 	reg_t **reg_list;
@@ -1062,21 +1094,20 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 	}
 
 	/* convert from GDB-string (target-endian) to hex-string (big-endian) */
-	hex_buf = malloc(CEIL(reg_list[reg_num]->size, 8) * 2);
-	gdb_target_to_str(target, separator + 1, hex_buf);
-
-	/* convert hex-string to binary buffer */
 	bin_buf = malloc(CEIL(reg_list[reg_num]->size, 8));
-	str_to_buf(hex_buf, CEIL(reg_list[reg_num]->size, 8) * 2, bin_buf, reg_list[reg_num]->size, 16);
+	int chars = (CEIL(reg_list[reg_num]->size, 8) * 2);
 
-	/* get register arch_type, and call set method */
+	/* fix!!! add some sanity checks on packet size here */
+
+	gdb_target_to_reg(target, separator + 1, chars, bin_buf);
+
+		/* get register arch_type, and call set method */
 	arch_type = register_get_arch_type(reg_list[reg_num]->arch_type);
 	arch_type->set(reg_list[reg_num], bin_buf);
 
 	gdb_put_packet(connection, "OK", 2);
 
 	free(bin_buf);
-	free(hex_buf);
 	free(reg_list);
 
 	return ERROR_OK;
