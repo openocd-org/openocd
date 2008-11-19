@@ -215,6 +215,8 @@ int xscale_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, xsc
 int xscale_jtag_set_instr(int chain_pos, u32 new_instr)
 {
 	jtag_device_t *device = jtag_get_device(chain_pos);
+	if (device==NULL)
+		return ERROR_FAIL;
 
 	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
 	{

@@ -501,6 +501,11 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_st
 		int pause=i==(jtag_num_devices-1);
 		int found = 0;
 		device = jtag_get_device(i);
+		if (device==NULL)
+		{
+			return ERROR_FAIL;
+		}
+
 		scan_size = device->ir_length;
 
 		/* search the list */
@@ -521,7 +526,7 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_st
 
 				scanFields(1, fields+j, TAP_SI, pause);
 				/* update device information */
-				buf_cpy(fields[j].out_value, jtag_get_device(i)->cur_instr, scan_size);
+				buf_cpy(fields[j].out_value, device->cur_instr, scan_size);
 
 				device->bypass = 0;
 				break;
@@ -539,7 +544,7 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_st
 			tmp.num_bits = scan_size;
 			scanFields(1, &tmp, TAP_SI, pause);
 			/* update device information */
-			buf_cpy(tmp.out_value, jtag_get_device(i)->cur_instr, scan_size);
+			buf_cpy(tmp.out_value, device->cur_instr, scan_size);
 			device->bypass = 1;
 		}
 	}

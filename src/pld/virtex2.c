@@ -46,11 +46,13 @@ pld_driver_t virtex2_pld =
 int virtex2_set_instr(int chain_pos, u32 new_instr)
 {
 	jtag_device_t *device = jtag_get_device(chain_pos);
-	
+	if (device==NULL)
+		return ERROR_FAIL;
+
 	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
 	{
 		scan_field_t field;
-	
+
 		field.device = chain_pos;
 		field.num_bits = device->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
@@ -61,12 +63,12 @@ int virtex2_set_instr(int chain_pos, u32 new_instr)
 		field.in_check_mask = NULL;
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
-		
+
 		jtag_add_ir_scan(1, &field, TAP_RTI);
-		
+
 		free(field.out_value);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -76,7 +78,7 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 	scan_field_t scan_field;
 	u8 *values;
 	int i;
-	
+
 	values = malloc(num_words * 4);
 
 	scan_field.device = virtex2_info->chain_pos;
@@ -88,16 +90,16 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 	scan_field.in_check_mask = NULL;
 	scan_field.in_handler = NULL;
 	scan_field.in_handler_priv = NULL;
-	
+
 	for (i = 0; i < num_words; i++)
 		buf_set_u32(values + 4 * i, 0, 32, flip_u32(*words++, 32));
-	
+
 	virtex2_set_instr(virtex2_info->chain_pos, 0x5); /* CFG_IN */
-	
+
 	jtag_add_dr_scan(1, &scan_field, TAP_PD);
-	
+
 	free(values);
-	
+
 	return ERROR_OK;
 }
 
@@ -112,7 +114,7 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 {
 	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
 	scan_field_t scan_field;
-	
+
 	scan_field.device = virtex2_info->chain_pos;
 	scan_field.num_bits = 32;
 	scan_field.out_value = NULL;
@@ -121,37 +123,37 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	scan_field.in_check_value = NULL;
 	scan_field.in_check_mask = NULL;
 	scan_field.in_handler = virtex2_jtag_buf_to_u32;
-	
+
 	virtex2_set_instr(virtex2_info->chain_pos, 0x4); /* CFG_OUT */
-	
+
 	while (num_words--)
 	{
 		scan_field.in_handler_priv = words++;
 		jtag_add_dr_scan(1, &scan_field, TAP_PD);
 	}
-	
+
 	return ERROR_OK;
 }
 
 int virtex2_read_stat(struct pld_device_s *pld_device, u32 *status)
 {
 	u32 data[5];
-	
+
 	jtag_add_tlr();
-	
+
 	data[0] = 0xaa995566; /* synch word */
 	data[1] = 0x2800E001; /* Type 1, read, address 7, 1 word */
 	data[2] = 0x20000000; /* NOOP (Type 1, read, address 0, 0 words */
 	data[3] = 0x20000000; /* NOOP */
 	data[4] = 0x20000000; /* NOOP */
 	virtex2_send_32(pld_device, 5, data);
-	
+
 	virtex2_receive_32(pld_device, 1, status);
-	
+
 	jtag_execute_queue();
-	
+
 	LOG_DEBUG("status: 0x%8.8x", *status);
-	
+
 	return ERROR_OK;
 }
 
@@ -171,29 +173,29 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	field.in_check_mask = NULL;
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
-	
+
 	if ((retval = xilinx_read_bit_file(&bit_file, filename)) != ERROR_OK)
 		return retval;
-	
+
 	jtag_add_end_state(TAP_RTI);
 	virtex2_set_instr(virtex2_info->chain_pos, 0xb); /* JPROG_B */
 	jtag_execute_queue();
 	jtag_add_sleep(1000);
-	
+
 	virtex2_set_instr(virtex2_info->chain_pos, 0x5); /* CFG_IN */
 	jtag_execute_queue();
-	
+
 	for (i = 0; i < bit_file.length; i++)
 		bit_file.data[i] = flip_u32(bit_file.data[i], 8);
-	
+
 	field.num_bits = bit_file.length * 8;
 	field.out_value = bit_file.data;
 
 	jtag_add_dr_scan(1, &field, TAP_PD);
 	jtag_execute_queue();
-	
+
 	jtag_add_tlr();
-	
+
 	jtag_add_end_state(TAP_RTI);
 	virtex2_set_instr(virtex2_info->chain_pos, 0xc); /* JSTART */
 	jtag_add_runtest(13, TAP_RTI);
@@ -212,13 +214,13 @@ int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx, char *cm
 	pld_device_t *device;
 	virtex2_pld_device_t *virtex2_info;
 	u32 status;
-	
+
 	if (argc < 1)
 	{
 		command_print(cmd_ctx, "usage: virtex2 read_stat <num>");
 		return ERROR_OK;
 	}
-	
+
 	device = get_pld_device_by_num(strtoul(args[0], NULL, 0));
 	if (!device)
 	{
@@ -227,11 +229,11 @@ int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx, char *cm
 	}
 
 	virtex2_info = device->driver_priv;
-	
+
 	virtex2_read_stat(device, &status);
-	
+
 	command_print(cmd_ctx, "virtex2 status register: 0x%8.8x", status);
-	
+
 	return ERROR_OK;
 }
 
@@ -248,17 +250,17 @@ int virtex2_register_commands(struct command_context_s *cmd_ctx)
 int virtex2_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct pld_device_s *pld_device)
 {
 	virtex2_pld_device_t *virtex2_info;
-	
+
 	if (argc < 2)
 	{
 		LOG_WARNING("incomplete pld device 'virtex2' configuration");
 		return ERROR_PLD_DEVICE_INVALID;
 	}
-	
+
 	virtex2_info = malloc(sizeof(virtex2_pld_device_t));
 	pld_device->driver_priv = virtex2_info;
-	
+
 	virtex2_info->chain_pos = strtoul(args[1], NULL, 0);
-	
+
 	return ERROR_OK;
 }

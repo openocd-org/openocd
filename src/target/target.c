@@ -3400,6 +3400,9 @@ target_configure( Jim_GetOptInfo *goi,
 				if( e != JIM_OK ){
 					return e;
 				}
+				if (jtag_get_device(w)==NULL)
+					return JIM_ERR;
+
 				/* make this exactly 1 or 0 */
 				target->chain_position = w;
 			} else {

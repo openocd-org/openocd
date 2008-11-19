@@ -102,6 +102,10 @@ void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, vo
 void arm11_add_IR(arm11_common_t * arm11, u8 instr, enum tap_state state)
 {
     jtag_device_t *device = jtag_get_device(arm11->jtag_info.chain_pos);
+    if (device==NULL)
+    {
+    	/* FIX!!!! error is logged, but not propagated back up the call stack... */
+    }
 
     if (buf_get_u32(device->cur_instr, 0, 5) == instr)
     {
@@ -139,7 +143,7 @@ static int arm11_in_handler_SCAN_N(u8 *in_value, void *priv, struct scan_field_s
 }
 
 /** Select and write to Scan Chain Register (SCREG)
- * 
+ *
  * This function sets the instruction register to SCAN_N and writes
  * the data register with the selected chain number.
  *
@@ -178,11 +182,11 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, enum tap_state sta
 }
 
 /** Write an instruction into the ITR register
- * 
+ *
  * \param arm11	Target state variable.
  * \param inst	An ARM11 processor instruction/opcode.
  * \param flag	Optional parameter to retrieve the InstCompl flag
- *		(this will be written when the JTAG chain is executed). 
+ *		(this will be written when the JTAG chain is executed).
  * \param state	Pass the final TAP state or -1 for the default
  *		value (Run-Test/Idle).
  *
@@ -212,7 +216,7 @@ void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, enum tap_
  *
  * \param arm11 Target state variable.
  * \return DSCR content
- * 
+ *
  * \remarks This is a stand-alone function that executes the JTAG command queue.
  */
 u32 arm11_read_DSCR(arm11_common_t * arm11)
@@ -244,7 +248,7 @@ u32 arm11_read_DSCR(arm11_common_t * arm11)
  *
  * \param arm11 Target state variable.
  * \param dscr DSCR content
- * 
+ *
  * \remarks This is a stand-alone function that executes the JTAG command queue.
  */
 void arm11_write_DSCR(arm11_common_t * arm11, u32 dscr)
@@ -272,7 +276,7 @@ void arm11_write_DSCR(arm11_common_t * arm11, u32 dscr)
  *
  * \param dscr DSCR value to analyze
  * \return Debug reason
- * 
+ *
  */
 enum target_debug_reason arm11_get_DSCR_debug_reason(u32 dscr)
 {
@@ -514,7 +518,7 @@ void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 
 	{
 	    jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, TAP_PD);
 	    jtag_add_pathmove(asizeof(arm11_MOVE_PD_RTI_PD_with_delay),
-		arm11_MOVE_PD_RTI_PD_with_delay); 
+		arm11_MOVE_PD_RTI_PD_with_delay);
 	}
 	else
 	{

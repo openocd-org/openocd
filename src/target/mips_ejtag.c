@@ -35,12 +35,14 @@
 int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, in_handler_t handler)
 {
 	jtag_device_t *device = jtag_get_device(ejtag_info->chain_pos);
-	
+	if (device==NULL)
+		return ERROR_FAIL;
+
 	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
 	{
 		scan_field_t field;
 		u8 t[4];
-		
+
 		field.device = ejtag_info->chain_pos;
 		field.num_bits = device->ir_length;
 		field.out_value = t;
@@ -53,18 +55,18 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, in_handler_t h
 		field.in_handler_priv = NULL;
 		jtag_add_ir_scan(1, &field, -1);
 	}
-	
+
 	return ERROR_OK;
 }
 
 int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode, in_handler_t handler)
 {
 	scan_field_t field;
-	
+
 	jtag_add_end_state(TAP_RTI);
-	
+
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IDCODE, NULL);
-	
+
 	field.device = ejtag_info->chain_pos;
 	field.num_bits = 32;
 	field.out_value = NULL;
@@ -75,23 +77,23 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode, in_handler_t ha
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	jtag_add_dr_scan(1, &field, -1);
-	
+
 	if (jtag_execute_queue() != ERROR_OK)
 	{
 		LOG_ERROR("register read failed");
 	}
-	
+
 	return ERROR_OK;
 }
 
 int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode, in_handler_t handler)
 {
 	scan_field_t field;
-	
+
 	jtag_add_end_state(TAP_RTI);
-	
+
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IMPCODE, NULL);
-	
+
 	field.device = ejtag_info->chain_pos;
 	field.num_bits = 32;
 	field.out_value = NULL;
@@ -102,12 +104,12 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode, in_handler_t 
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	jtag_add_dr_scan(1, &field, -1);
-	
+
 	if (jtag_execute_queue() != ERROR_OK)
 	{
 		LOG_ERROR("register read failed");
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -115,10 +117,13 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 {
 	jtag_device_t *device;
 	device = jtag_get_device(ejtag_info->chain_pos);
+
+	if (device==NULL)
+		return ERROR_FAIL;
 	scan_field_t field;
 	u8 t[4];
 	int retval;
-	
+
 	field.device = ejtag_info->chain_pos;
 	field.num_bits = 32;
 	field.out_value = t;
@@ -130,18 +135,18 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 	jtag_add_dr_scan(1, &field, -1);
-	
+
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("register read failed");
 		return retval;
 	}
-	
+
 	return ERROR_OK;
 }
 
 int mips_ejtag_step_enable(mips_ejtag_t *ejtag_info)
-{	
+{
 	u32 code[] = {
 			MIPS32_MTC0(1,31,0),			/* move $1 to COP0 DeSave */
 			MIPS32_MFC0(1,23,0),			/* move COP0 Debug to $1 */
@@ -152,10 +157,10 @@ int mips_ejtag_step_enable(mips_ejtag_t *ejtag_info)
 			MIPS32_B(NEG16(7)),
 			MIPS32_NOP,
 	};
-	
+
 	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
 		0, NULL, 0, NULL, 1);
-	
+
 	return ERROR_OK;
 }
 int mips_ejtag_step_disable(mips_ejtag_t *ejtag_info)
@@ -178,17 +183,17 @@ int mips_ejtag_step_disable(mips_ejtag_t *ejtag_info)
 			MIPS32_B(NEG16(15)),
 			MIPS32_NOP,
 	};
-	
+
 	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
 		0, NULL, 0, NULL, 1);
-	
+
 	return ERROR_OK;
 }
 
 int mips_ejtag_config_step(mips_ejtag_t *ejtag_info, int enable_step)
-{	
+{
 	if (enable_step)
-		return mips_ejtag_step_enable(ejtag_info);	
+		return mips_ejtag_step_enable(ejtag_info);
 	return mips_ejtag_step_disable(ejtag_info);
 }
 
@@ -197,18 +202,18 @@ int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 	u32 ejtag_ctrl;
 	jtag_add_end_state(TAP_RTI);
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
-	
+
 	/* set debug break bit */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_JTAGBRK;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	
+
 	/* break bit will be cleared by hardware */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	LOG_DEBUG("ejtag_ctrl: 0x%8.8x", ejtag_ctrl);
 	if((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
 		LOG_DEBUG("Failed to enter Debug Mode!");
-	
+
 	return ERROR_OK;
 }
 
@@ -216,12 +221,12 @@ int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info, int enable_interrupts)
 {
 	u32 inst;
 	inst = MIPS32_DRET;
-	
+
 	/* TODO : enable/disable interrrupts */
-	
+
 	/* execute our dret instruction */
 	mips32_pracc_exec(ejtag_info, 1, &inst, 0, NULL, 0, NULL, 0);
-	
+
 	return ERROR_OK;
 }
 
@@ -245,23 +250,23 @@ int mips_ejtag_read_debug(mips_ejtag_t *ejtag_info, u32* debug_reg)
 			MIPS32_B(NEG16(14)),
 			MIPS32_NOP,
 	};
-	
+
 	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
 		0, NULL, 1, debug_reg, 1);
-	
+
 	return ERROR_OK;
 }
 
 int mips_ejtag_init(mips_ejtag_t *ejtag_info)
 {
 	u32 ejtag_version;
-	
+
 	mips_ejtag_get_impcode(ejtag_info, &ejtag_info->impcode, NULL);
 	LOG_DEBUG("impcode: 0x%8.8x", ejtag_info->impcode);
-	
+
 	/* get ejtag version */
 	ejtag_version = ((ejtag_info->impcode >> 29) & 0x07);
-	
+
 	switch (ejtag_version)
 	{
 		case 0:
@@ -289,12 +294,12 @@ int mips_ejtag_init(mips_ejtag_t *ejtag_info)
 		ejtag_info->impcode & (1<<14) ? " noDMA":  " DMA",
 		ejtag_info->impcode & (1<<0)  ? " MIPS64": " MIPS32"
 	);
-	
+
 	if((ejtag_info->impcode & (1<<14)) == 0)
 		LOG_DEBUG("EJTAG: DMA Access Mode Support Enabled");
-	
+
 	/* set initial state for ejtag control reg */
 	ejtag_info->ejtag_ctrl = EJTAG_CTRL_ROCC | EJTAG_CTRL_PRACC | EJTAG_CTRL_PROBEN | EJTAG_CTRL_SETDEV;
-	
+
 	return ERROR_OK;
 }

@@ -63,6 +63,8 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 int etb_set_instr(etb_t *etb, u32 new_instr)
 {
 	jtag_device_t *device = jtag_get_device(etb->chain_pos);
+	if (device==NULL)
+		return ERROR_FAIL;
 
 	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
 	{
@@ -440,7 +442,6 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 	if (!jtag_device)
 	{
-		LOG_ERROR("jtag device number '%s' not defined", args[1]);
 		return ERROR_FAIL;
 	}
 

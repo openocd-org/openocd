@@ -369,7 +369,7 @@ jtag_device_t* jtag_get_device(int num)
 	}
 
 	LOG_ERROR("jtag device number %d not defined", num);
-	exit(-1);
+	return NULL;
 }
 
 void* cmd_queue_alloc(size_t size)
@@ -477,6 +477,10 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 	{
 		int found = 0;
 		device = jtag_get_device(i);
+		if (device == NULL)
+		{
+			exit(-1);
+		}
 		scan_size = device->ir_length;
 		(*last_cmd)->cmd.scan->fields[i].device = i;
 		(*last_cmd)->cmd.scan->fields[i].num_bits = scan_size;
@@ -2120,7 +2124,12 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	for (i = 0; i < argc / 2; i++)
 	{
 		int device = strtoul(args[i*2], NULL, 0);
-		int field_size = jtag_get_device(device)->ir_length;
+		jtag_device_t *device_ptr=jtag_get_device(device);
+		if (device==NULL)
+		{
+			return ERROR_FAIL;
+		}
+		int field_size = device_ptr->ir_length;
 		fields[i].device = device;
 		fields[i].out_value = malloc(CEIL(field_size, 8));
 		buf_set_u32(fields[i].out_value, 0, field_size, strtoul(args[i*2+1], NULL, 0));

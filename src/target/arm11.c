@@ -710,7 +710,7 @@ int arm11_target_request_data(struct target_s *target, u32 size, u8 *buffer)
 int arm11_halt(struct target_s *target)
 {
 	int retval = ERROR_OK;
-	
+
 	FNC_INFO;
 
 	arm11_common_t * arm11 = target->arch_info;
@@ -1535,6 +1535,8 @@ int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 	}
 
 	jtag_device_t *device = jtag_get_device(target->chain_position);
+	if (device==NULL)
+		return ERROR_FAIL;
 
 	if (device->ir_length != 5)
 	{

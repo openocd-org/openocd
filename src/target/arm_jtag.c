@@ -39,12 +39,14 @@
 int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handler)
 {
 	jtag_device_t *device = jtag_get_device(jtag_info->chain_pos);
-	
+	if (device==NULL)
+		return ERROR_FAIL;
+
 	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
 	{
 		scan_field_t field;
 		u8 t[4];
-	
+
 		field.device = jtag_info->chain_pos;
 		field.num_bits = device->ir_length;
 		field.out_value = t;
@@ -57,7 +59,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handl
 		field.in_handler_priv = NULL;
 		jtag_add_ir_scan(1, &field, -1);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -68,7 +70,7 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 	{
 		u32 values[1];
 		int num_bits[1];
-		
+
 		values[0]=new_scan_chain;
 		num_bits[0]=jtag_info->scann_size;
 
@@ -82,7 +84,7 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 				num_bits,
 				values,
 				-1);
-		
+
 		jtag_info->cur_scan_chain = new_scan_chain;
 	}
 
@@ -92,12 +94,12 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 int arm_jtag_reset_callback(enum jtag_event event, void *priv)
 {
 	arm_jtag_t *jtag_info = priv;
-	
+
 	if (event == JTAG_TRST_ASSERTED)
 	{
 		jtag_info->cur_scan_chain = 0;
 	}
-	
+
 	return ERROR_OK;
 }
 
