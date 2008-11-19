@@ -41,21 +41,21 @@ int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd
 	target_t *target;
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
-	
+
 	target = get_target_by_num(strtoul(args[0], NULL, 0));
-	
+
 	if (!target)
 	{
 		LOG_ERROR("target number '%s' not defined", args[0]);
-		exit(-1);
+		return ERROR_FAIL;
 	}
-	
+
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
-	
+
 	if (arm7_9->etm_ctx)
 	{
 		arm7_9->etm_ctx->capture_driver_priv = NULL;
@@ -63,6 +63,7 @@ int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd
 	else
 	{
 		LOG_ERROR("target has no ETM defined, ETM dummy left unconfigured");
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
@@ -71,9 +72,9 @@ int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd
 int etm_dummy_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *etm_dummy_cmd;
-	
+
 	etm_dummy_cmd = register_command(cmd_ctx, NULL, "etm_dummy", NULL, COMMAND_ANY, "Dummy ETM capture driver");
-	
+
 	register_command(cmd_ctx, etm_dummy_cmd, "config", handle_etm_dummy_config_command, COMMAND_CONFIG, NULL);
 
 	return ERROR_OK;

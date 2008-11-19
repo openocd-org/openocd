@@ -718,6 +718,13 @@ int image_open(image_t *image, char *url, char *type_string)
 	}
 	else if (image->type == IMAGE_MEMORY)
 	{
+		target_t *target = get_target_by_num(strtoul(url, NULL, 0));
+		if (target==NULL)
+		{
+			LOG_ERROR("Target '%s' does not exist", url);
+			return ERROR_FAIL;
+		}
+
 		image_memory_t *image_memory;
 
 		image->num_sections = 1;
@@ -728,7 +735,7 @@ int image_open(image_t *image, char *url, char *type_string)
 
 		image_memory = image->type_private = malloc(sizeof(image_memory_t));
 
-		image_memory->target = get_target_by_num(strtoul(url, NULL, 0));;
+		image_memory->target = target;
 		image_memory->cache = NULL;
 		image_memory->cache_address = 0x0;
 	}
