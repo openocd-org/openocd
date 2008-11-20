@@ -303,14 +303,14 @@ static int armv7m_run_and_wait(struct target_s *target, u32 entry_point, int tim
 	u32 pc;
 	int retval;
 	/* This code relies on the target specific  resume() and  poll()->debug_entry()
-	sequence to write register values to the processor and the read them back */
+	 * sequence to write register values to the processor and the read them back */
 	if((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
 	{
 		return retval;
 	}
 
 	retval = target_wait_state(target, TARGET_HALTED, timeout_ms);
-	// If the target fails to halt due to the breakpoint, force a halt
+	/* If the target fails to halt due to the breakpoint, force a halt */
 	if (retval != ERROR_OK || target->state != TARGET_HALTED)
 	{
 		if ((retval=target_halt(target))!=ERROR_OK)
@@ -321,7 +321,6 @@ static int armv7m_run_and_wait(struct target_s *target, u32 entry_point, int tim
 		}
 		return ERROR_TARGET_TIMEOUT;
 	}
-
 
 	armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
 	if (pc != exit_point)

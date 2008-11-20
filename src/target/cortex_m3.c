@@ -100,12 +100,30 @@ target_type_t cortexm3_target =
 	.quit = cortex_m3_quit
 };
 
+int cortex_m3_write_debug_halt_mask(target_t *target, u32 mask_on, u32 mask_off)
+{
+	/* get pointers to arch-specific information */
+	armv7m_common_t *armv7m = target->arch_info;
+	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	
+	/* mask off status bits */
+	cortex_m3->dcb_dhcsr &= ~((0xFFFF << 16) | mask_off);
+	/* create new register mask */
+	cortex_m3->dcb_dhcsr |= DBGKEY | C_DEBUGEN | mask_on;
+	
+	return ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, cortex_m3->dcb_dhcsr);
+}
+
 int cortex_m3_clear_halt(target_t *target)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	
+	/* clear step if any */
+	cortex_m3_write_debug_halt_mask(target, C_HALT, C_STEP);
 	
 	/* Read Debug Fault Status Register */
 	ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
@@ -122,12 +140,19 @@ int cortex_m3_single_step_core(target_t *target)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
-
+	u32 dhcsr_save;
+	
+	/* backup dhcsr reg */
+	dhcsr_save = cortex_m3->dcb_dhcsr;
+	
+	/* mask interrupts if not done already */
 	if (!(cortex_m3->dcb_dhcsr & C_MASKINTS))
-		ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_HALT | C_DEBUGEN );
-	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_STEP | C_DEBUGEN );
-	cortex_m3->dcb_dhcsr |= C_MASKINTS;
+		ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_HALT | C_DEBUGEN);
+	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_STEP | C_DEBUGEN);
 	LOG_DEBUG(" ");
+	
+	/* restore dhcsr reg */
+	cortex_m3->dcb_dhcsr = dhcsr_save;	
 	cortex_m3_clear_halt(target);
 	
 	return ERROR_OK;
@@ -147,7 +172,7 @@ int cortex_m3_exec_opcode(target_t *target,u32 opcode, int len /* MODE, r0_inval
 	ahbap_write_coreregister_u32(swjdp, 0x20000000, 15);
 	cortex_m3_single_step_core(target);
 	armv7m->core_cache->reg_list[15].dirty = armv7m->core_cache->reg_list[15].valid;
-	retvalue = ahbap_write_system_atomic_u32(swjdp, 0x20000000, savedram);		
+	retvalue = ahbap_write_system_atomic_u32(swjdp, 0x20000000, savedram);
 	
 	return retvalue;
 }
@@ -181,16 +206,21 @@ int cortex_m3_endreset_event(target_t *target)
 	ahbap_read_system_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
 	LOG_DEBUG("DCB_DEMCR = 0x%8.8x",dcb_demcr);
 	
-	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
+	/* this regsiter is used for emulated dcc channel */
+	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0);
 	
 	/* Enable debug requests */
 	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
-		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN );
+		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+	
+	/* clear any interrupt masking */
+	cortex_m3_write_debug_halt_mask(target, 0, C_MASKINTS);
+	
 	/* Enable trace and dwt */
-	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR );
+	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
 	/* Monitor bus faults */
-	ahbap_write_system_u32(swjdp, NVIC_SHCSR, SHCSR_BUSFAULTENA );
+	ahbap_write_system_u32(swjdp, NVIC_SHCSR, SHCSR_BUSFAULTENA);
 
 	/* Enable FPB */
 	target_write_u32(target, FP_CTRL, 3);
@@ -441,7 +471,7 @@ int cortex_m3_poll(target_t *target)
 #if 0
 	/* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
 	ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, Jim_Nvp_value2name( nvp_target_state, target->state )->name );
+	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 #endif
 	
 	return ERROR_OK;
@@ -449,13 +479,8 @@ int cortex_m3_poll(target_t *target)
 
 int cortex_m3_halt(target_t *target)
 {
-	/* get pointers to arch-specific information */
-	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
-	
 	LOG_DEBUG("target->state: %s", 
-		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name);
 	
 	if (target->state == TARGET_HALTED)
 	{
@@ -487,7 +512,7 @@ int cortex_m3_halt(target_t *target)
 	}
 
 	/* Write to Debug Halting Control and Status Register */
-	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT );
+	cortex_m3_write_debug_halt_mask(target, C_HALT, 0);
 
 	target->debug_reason = DBG_REASON_DBGRQ;
 	
@@ -504,10 +529,10 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 	int retval, timeout = 0;
 
 	/* Enter debug state on reset, cf. end_reset_event() */
-	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
+	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 	
 	/* Request a reset */ 
-	ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_VECTRESET );
+	ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_VECTRESET);
 	target->state = TARGET_RESET;
 
 	/* registers are now invalid */
@@ -539,10 +564,8 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	breakpoint_t *breakpoint = NULL;
-	u32 dcb_dhcsr, resume_pc;
+	u32 resume_pc;
 	
 	if (target->state != TARGET_HALTED)
 	{
@@ -555,16 +578,13 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 		target_free_all_working_areas(target);
 		cortex_m3_enable_breakpoints(target);
 		cortex_m3_enable_watchpoints(target);
-
-		/* TODOLATER Interrupt handling/disable for debug execution, cache ... ... */
 	}
 	
-	dcb_dhcsr = DBGKEY | C_DEBUGEN;
 	if (debug_execution)
 	{
 		/* Disable interrupts */
 		/* We disable interrupts in the PRIMASK register instead of masking with C_MASKINTS,
-		 * This is probably the same inssue as Cortex-M3 Errata	377493: 
+		 * This is probably the same issue as Cortex-M3 Errata	377493: 
 		 * C_MASKINTS in parallel with disabled interrupts can cause local faults to not be taken. */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_PRIMASK].value, 0, 32, 1);
 		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].dirty = 1;
@@ -601,13 +621,10 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 			cortex_m3_set_breakpoint(target, breakpoint);
 		}
 	}
-
-	/* Set/Clear C_MASKINTS in a separate operation */
-	if ((cortex_m3->dcb_dhcsr & C_MASKINTS) != (dcb_dhcsr & C_MASKINTS))
-		ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, dcb_dhcsr | C_HALT );
 	
 	/* Restart core */
-	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, dcb_dhcsr );
+	cortex_m3_write_debug_halt_mask(target, 0, C_HALT);
+	
 	target->debug_reason = DBG_REASON_NOTHALTED;
 
 	/* registers are now invalid */
@@ -616,13 +633,13 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 	{
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%x",resume_pc);
+		LOG_DEBUG("target resumed at 0x%x", resume_pc);
 	}
 	else
 	{
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%x",resume_pc);
+		LOG_DEBUG("target debug resumed at 0x%x", resume_pc);
 	}
 	
 	return ERROR_OK;
@@ -658,9 +675,8 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 	
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 	
-	if (cortex_m3->dcb_dhcsr & C_MASKINTS)
-		ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_HALT | C_DEBUGEN );
-	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY| C_STEP | C_DEBUGEN);
+	/* set step and clear halt */
+	cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
 	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 
 	/* registers are now invalid */
@@ -697,7 +713,7 @@ int cortex_m3_assert_reset(target_t *target)
 	/* Enable debug requests */
 	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
-		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN );
+		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
 		
 	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
 	
@@ -705,7 +721,7 @@ int cortex_m3_assert_reset(target_t *target)
 	{
 		/* Set/Clear C_MASKINTS in a separate operation */
 		if (cortex_m3->dcb_dhcsr & C_MASKINTS)
-			ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT );
+			ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT);
 	
 		cortex_m3_clear_halt(target);
 							
@@ -715,7 +731,7 @@ int cortex_m3_assert_reset(target_t *target)
 	else
 	{
 		/* Enter debug state on reset, cf. end_reset_event() */
-		ahbap_write_system_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET );
+		ahbap_write_system_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 	}
 	
 	/* following hack is to handle luminary reset
@@ -763,14 +779,14 @@ int cortex_m3_assert_reset(target_t *target)
 	else
 	{
 		/* this causes the luminary device to reset using the watchdog */
-		ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ );
+		ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
 		LOG_DEBUG("Using Luminary Reset: SYSRESETREQ");
 
 		{
 			/* I do not know why this is necessary, but it fixes strange effects
 			 * (step/resume cause a NMI after reset) on LM3S6918 -- Michael Schwingen */
 			u32 tmp;
-			ahbap_read_system_atomic_u32(swjdp, NVIC_AIRCR, &tmp );
+			ahbap_read_system_atomic_u32(swjdp, NVIC_AIRCR, &tmp);
 		}
 	}
 	
@@ -792,7 +808,7 @@ int cortex_m3_assert_reset(target_t *target)
 int cortex_m3_deassert_reset(target_t *target)
 {		
 	LOG_DEBUG("target->state: %s", 
-		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name);
 	
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
