@@ -2125,7 +2125,7 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	{
 		int device = strtoul(args[i*2], NULL, 0);
 		jtag_device_t *device_ptr=jtag_get_device(device);
-		if (device==NULL)
+		if (device_ptr==NULL)
 		{
 			return ERROR_FAIL;
 		}
