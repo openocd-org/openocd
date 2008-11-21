@@ -1759,6 +1759,15 @@ is a ARM920T (2x16kByte cache) or ARM922T (2x8kByte cache).
 @*Translate a virtual address to a physical address. 
 @end itemize
 
+@subsection CORTEX_M3 specific commands
+@cindex CORTEX_M3 specific commands
+
+@itemize @bullet
+@item @b{cortex_m3 maskisr} <@var{on}|@var{off}>
+@cindex cortex_m3 maskisr
+@*Enable masking (disabling) interrupts during target step/resume.
+@end itemize
+
 @page
 @section Debug commands
 @cindex Debug commands

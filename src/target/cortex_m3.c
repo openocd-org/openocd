@@ -44,6 +44,7 @@
 
 /* cli handling */
 int cortex_m3_register_commands(struct command_context_s *cmd_ctx);
+int handle_cortex_m3_mask_interrupts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* forward declarations */
 void cortex_m3_enable_breakpoints(struct target_s *target);
@@ -1568,8 +1569,46 @@ int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp)
 int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
+	command_t *cortex_m3_cmd;
 	
 	retval = armv7m_register_commands(cmd_ctx);
 	
+	cortex_m3_cmd = register_command(cmd_ctx, NULL, "cortex_m3", NULL, COMMAND_ANY, "cortex_m3 specific commands");		
+	register_command(cmd_ctx, cortex_m3_cmd, "maskisr", handle_cortex_m3_mask_interrupts_command, COMMAND_EXEC, "mask cortex_m3 interrupts ['on'|'off']");
+	
 	return retval;
+}
+
+int handle_cortex_m3_mask_interrupts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv7m_common_t *armv7m = target->arch_info;
+	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
+		
+	if (target->state != TARGET_HALTED)
+	{
+		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
+		return ERROR_OK;
+	}
+	
+	if (argc > 0)
+	{
+		if (!strcmp(args[0], "on"))
+		{
+			cortex_m3_write_debug_halt_mask(target, C_HALT|C_MASKINTS, 0);
+		}
+		else if (!strcmp(args[0], "off"))
+		{
+			cortex_m3_write_debug_halt_mask(target, C_HALT, C_MASKINTS);
+		}
+		else
+		{
+			command_print(cmd_ctx, "usage: cortex_m3 maskisr ['on'|'off']");
+		}
+	}
+	
+	command_print(cmd_ctx, "cortex_m3 interrupt mask %s",
+			(cortex_m3->dcb_dhcsr & C_MASKINTS) ? "on" : "off");
+	
+	return ERROR_OK;
 }
