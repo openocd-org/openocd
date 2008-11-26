@@ -147,6 +147,9 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return (retval==ERROR_OK)?JIM_OK:JIM_ERR;
 }
 
+/* nice short description of source file */
+#define __THIS__FILE__ "command.c"
+
 command_t* register_command(command_context_t *context, command_t *parent, char *name, int (*handler)(struct command_context_s *context, char* name, char** args, int argc), enum command_mode mode, char *help)
 {
 	command_t *c, *p;
@@ -222,7 +225,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 
 	/* we now need to add an overrideable proc */
 	const char *override_name=alloc_printf("proc %s%s%s {args} {if {[catch {eval \"ocd_%s%s%s $args\"}]==0} {return \"\"} else { return -code error }", t1, t2, t3, t1, t2, t3);
-	Jim_Eval_Named(interp, override_name, __FILE__, __LINE__ );
+	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__ );
 	free((void *)override_name);
 
 	/* accumulate help text in Tcl helptext list.  */
@@ -442,7 +445,7 @@ int command_run_line(command_context_t *context, char *line)
 		retcode = Jim_SetAssocData(interp, "retval", NULL, &retval);
 		if (retcode == JIM_OK)
 		{
-			retcode = Jim_Eval_Named(interp, line, __FILE__, __LINE__ );
+			retcode = Jim_Eval_Named(interp, line, __THIS__FILE__, __LINE__ );
 
 			Jim_DeleteAssocData(interp, "retval");
 		}
@@ -648,7 +651,7 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	log_add_callback(tcl_output, tclOutput);
 
-	retcode = Jim_Eval_Named(interp, str, __FILE__, __LINE__ );
+	retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__ );
 
 	log_remove_callback(tcl_output, tclOutput);
 
