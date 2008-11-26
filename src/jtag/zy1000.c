@@ -81,8 +81,8 @@ static bool readPowerDropout()
 {
 	cyg_uint32 state;
 	// sample and clear power dropout
-	HAL_WRITE_UINT32(0x08000010, 0x80);
-	HAL_READ_UINT32(0x08000010, state);
+	HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x10, 0x80);
+	HAL_READ_UINT32(ZY1000_JTAG_BASE+0x10, state);
 	bool powerDropout;
 	powerDropout = (state & 0x80) != 0;
 	return powerDropout;
@@ -93,8 +93,8 @@ static bool readSRST()
 {
 	cyg_uint32 state;
 	// sample and clear SRST sensing
-	HAL_WRITE_UINT32(0x08000010, 0x00000040);
-	HAL_READ_UINT32(0x08000010, state);
+	HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x10, 0x00000040);
+	HAL_READ_UINT32(ZY1000_JTAG_BASE+0x10, state);
 	bool srstAsserted;
 	srstAsserted = (state & 0x40) != 0;
 	return srstAsserted;
@@ -153,35 +153,35 @@ void zy1000_reset(int trst, int srst)
 	LOG_DEBUG("zy1000 trst=%d, srst=%d", trst, srst);
 	if(!srst)
 	{
-		ZY1000_POKE(0x08000014, 0x00000001);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x00000001);
 	}
 	else
 	{
 		/* Danger!!! if clk!=0 when in
 		 * idle in TAP_RTI, reset halt on str912 will fail.
 		 */
-		ZY1000_POKE(0x08000010, 0x00000001);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x00000001);
 	}
 
 	if(!trst)
 	{
-		ZY1000_POKE(0x08000014, 0x00000002);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x00000002);
 	}
 	else
 	{
 		/* assert reset */
-		ZY1000_POKE(0x08000010, 0x00000002);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x00000002);
 	}
 
 	if (trst||(srst&&(jtag_reset_config & RESET_SRST_PULLS_TRST)))
 	{
 		waitIdle();
 		/* we're now in the TLR state until trst is deasserted */
-		ZY1000_POKE(0x08000020, TAP_TLR);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x20, TAP_TLR);
 	} else
 	{
 		/* We'll get RCLK failure when we assert TRST, so clear any false positives here */
-		ZY1000_POKE(0x08000014, 0x400);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x400);
 	}
 
 	/* wait for srst to float back up */
@@ -216,7 +216,7 @@ int zy1000_speed(int speed)
 	{
 		/*0 means RCLK*/
 		speed = 0;
-		ZY1000_POKE(0x08000010, 0x100);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x100);
 		LOG_DEBUG("jtag_speed using RCLK");
 	}
 	else
@@ -228,8 +228,8 @@ int zy1000_speed(int speed)
 		}
 
 		LOG_USER("jtag_speed %d => JTAG clk=%f", speed, 64.0/(float)speed);
-		ZY1000_POKE(0x08000014, 0x100);
-		ZY1000_POKE(0x0800001c, speed&~1);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x100);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x1c, speed&~1);
 	}
 	return ERROR_OK;
 }
@@ -242,7 +242,7 @@ int zy1000_register_commands(struct command_context_s *cmd_ctx)
 
 int zy1000_init(void)
 {
-	ZY1000_POKE(0x08000010, 0x30); // Turn on LED1 & LED2
+	ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x30); // Turn on LED1 & LED2
 
 	 /* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
 	zy1000_reset(0, 0);
@@ -324,9 +324,9 @@ int interface_jtag_execute_queue(void)
 	cyg_uint32 empty;
 
 	waitIdle();
-	ZY1000_PEEK(0x08000010, empty);
+	ZY1000_PEEK(ZY1000_JTAG_BASE+0x10, empty);
 	/* clear JTAG error register */
-	ZY1000_POKE(0x08000014, 0x400);
+	ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x400);
 
 	if ((empty&0x400)!=0)
 	{
@@ -347,7 +347,7 @@ static cyg_uint32 getShiftValue()
 {
 	cyg_uint32 value;
 	waitIdle();
-	ZY1000_PEEK(0x0800000c, value);
+	ZY1000_PEEK(ZY1000_JTAG_BASE+0xc, value);
 	VERBOSE(LOG_INFO("getShiftValue %08x", value));
 	return value;
 }
@@ -356,7 +356,7 @@ static cyg_uint32 getShiftValueFlip()
 {
 	cyg_uint32 value;
 	waitIdle();
-	ZY1000_PEEK(0x08000018, value);
+	ZY1000_PEEK(ZY1000_JTAG_BASE+0x18, value);
 	VERBOSE(LOG_INFO("getShiftValue %08x (flipped)", value));
 	return value;
 }
@@ -369,8 +369,8 @@ static void shiftValueInnerFlip(const enum tap_state state, const enum tap_state
 	cyg_uint32 a,b;
 	a=state;
 	b=endState;
-	ZY1000_POKE(0x0800000c, value);
-	ZY1000_POKE(0x08000008, (1<<15)|(repeat<<8)|(a<<4)|b);
+	ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value);
+	ZY1000_POKE(ZY1000_JTAG_BASE+0x8, (1<<15)|(repeat<<8)|(a<<4)|b);
 	VERBOSE(getShiftValueFlip());
 }
 #endif
@@ -680,10 +680,10 @@ int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
 	{
 		tms = (tms_scan >> i) & 1;
 		waitIdle();
-		ZY1000_POKE(0x08000028,  tms);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x28,  tms);
 	}
 	waitIdle();
-	ZY1000_POKE(0x08000020, state);
+	ZY1000_POKE(ZY1000_JTAG_BASE+0x20, state);
 #endif
 
 
@@ -725,7 +725,7 @@ int interface_jtag_add_pathmove(int num_states, enum tap_state *path)
 		}
 
 		waitIdle();
-		ZY1000_POKE(0x08000028,  tms);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x28,  tms);
 
 		cur_state = path[state_count];
 		state_count++;
@@ -733,7 +733,7 @@ int interface_jtag_add_pathmove(int num_states, enum tap_state *path)
 	}
 
 	waitIdle();
-	ZY1000_POKE(0x08000020,  cur_state);
+	ZY1000_POKE(ZY1000_JTAG_BASE+0x20,  cur_state);
 	return ERROR_OK;
 }
 

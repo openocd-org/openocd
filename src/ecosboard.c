@@ -543,10 +543,10 @@ static void setPower(bool power)
 	savePower = power;
 	if (power)
 	{
-		HAL_WRITE_UINT32(0x08000014, 0x8);
+		HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x14, 0x8);
 	} else
 	{
-		HAL_WRITE_UINT32(0x08000010, 0x8);
+		HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x10, 0x8);
 	}
 }
 
@@ -1413,7 +1413,6 @@ static char uart_stack[4096];
 static char forwardBuffer[1024]; // NB! must be smaller than a TCP/IP packet!!!!!
 static char backwardBuffer[1024];
 
-static cyg_io_handle_t serial_handle;
 
 void setNoDelay(int session, int flag)
 {
@@ -1686,6 +1685,16 @@ int handle_uart_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	//get existing serial configuration
 	len = sizeof(cyg_serial_info_t);
 	int err;
+	cyg_io_handle_t serial_handle;
+
+	err = cyg_io_lookup("/dev/ser0", &serial_handle);
+	if (err != ENOERR)
+	{
+		LOG_ERROR("/dev/ser0 not found\n");
+		return ERROR_FAIL;
+	}
+
+
 	err = cyg_io_get_config(serial_handle, CYG_IO_GET_CONFIG_SERIAL_OUTPUT_DRAIN, &buf, &len);
 	err = cyg_io_get_config(serial_handle, CYG_IO_GET_CONFIG_SERIAL_INFO, &buf, &len);
 	if (err != ENOERR)
@@ -1748,6 +1757,8 @@ int main(int argc, char *argv[])
 	ramblockdevice=(cyg_uint8 *)malloc(ramblockdevice_size);
 	memset(ramblockdevice, 0xff, ramblockdevice_size);
 
+
+
 #ifdef CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION
 	setHandler(CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION);
 	setHandler(CYGNUM_HAL_VECTOR_ABORT_PREFETCH);
@@ -1755,12 +1766,6 @@ int main(int argc, char *argv[])
 #endif
 
 	int err;
-	err = cyg_io_lookup("/dev/ser0", &serial_handle);
-	if (err != ENOERR)
-	{
-		diag_printf("/dev/ser0 not found\n");
-		reboot();
-	}
 
 	setPower(true); // on by default
 
@@ -1811,48 +1816,54 @@ int main(int argc, char *argv[])
 	err = mount("/dev/flash1", "/config", "jffs2");
 	if (err < 0)
 	{
-		diag_printf("unable to mount jffs\n");
-		reboot();
-	}
-
-	/* are we using a ram disk instead of a flash disk? This is used
-	 * for ZY1000 live demo...
-	 *
-	 * copy over flash disk to ram block device
-	 */
-	if (boolParam("ramdisk"))
-	{
-		diag_printf("Unmounting /config from flash and using ram instead\n");
-		err=umount("/config");
-		if (err < 0)
+		diag_printf("unable to mount jffs2, falling back to ram disk..\n");
+		err = mount("", "/config", "ramfs");
+		if (err<0)
 		{
-			diag_printf("unable to unmount jffs\n");
+			diag_printf("unable to mount /config as ramdisk.\n");
 			reboot();
 		}
-
-		err = mount("/dev/flash1", "/config2", "jffs2");
-		if (err < 0)
-		{
-			diag_printf("unable to mount jffs\n");
-			reboot();
-		}
-
-		err = mount("/dev/ram", "/config", "jffs2");
-		if (err < 0)
-		{
-			diag_printf("unable to mount ram block device\n");
-			reboot();
-		}
-
-//		copydir("/config2", "/config");
-		copyfile("/config2/ip", "/config/ip");
-		copydir("/config2/settings", "/config/settings");
-
-		umount("/config2");
 	} else
 	{
-		/* we're not going to use a ram block disk */
-		free(ramblockdevice);
+		/* are we using a ram disk instead of a flash disk? This is used
+		 * for ZY1000 live demo...
+		 *
+		 * copy over flash disk to ram block device
+		 */
+		if (boolParam("ramdisk"))
+		{
+			diag_printf("Unmounting /config from flash and using ram instead\n");
+			err=umount("/config");
+			if (err < 0)
+			{
+				diag_printf("unable to unmount jffs\n");
+				reboot();
+			}
+
+			err = mount("/dev/flash1", "/config2", "jffs2");
+			if (err < 0)
+			{
+				diag_printf("unable to mount jffs\n");
+				reboot();
+			}
+
+			err = mount("/dev/ram", "/config", "jffs2");
+			if (err < 0)
+			{
+				diag_printf("unable to mount ram block device\n");
+				reboot();
+			}
+
+	//		copydir("/config2", "/config");
+			copyfile("/config2/ip", "/config/ip");
+			copydir("/config2/settings", "/config/settings");
+
+			umount("/config2");
+		} else
+		{
+			/* we're not going to use a ram block disk */
+			free(ramblockdevice);
+		}
 	}
 
 
