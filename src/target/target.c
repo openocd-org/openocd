@@ -1362,7 +1362,7 @@ int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	if (argc == 1)
 	{
 		/* try as tcltarget name */
-		for( target = all_targets ; target ; target++ ){
+		for( target = all_targets ; target ; target = target->next ){
 		  if( target->cmd_name ){
 			if( 0 == strcmp( args[0], target->cmd_name ) ){
 				/* MATCH */
@@ -1388,8 +1388,9 @@ int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **
 		cmd_ctx->current_target = target->target_number;
 		return ERROR_OK;
 	}
- DumpTargets:
+DumpTargets:
 
+	target = all_targets;
 	command_print(cmd_ctx, "    CmdName    Type       Endian     ChainPos State     ");
 	command_print(cmd_ctx, "--  ---------- ---------- ---------- -------- ----------");
 	while (target)
