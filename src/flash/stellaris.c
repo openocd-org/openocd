@@ -815,7 +815,10 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u32 address = offset;
-	u32 flash_cris,flash_fmc;
+	u32 flash_cris, flash_fmc;
+	u32 words_remaining = (count / 4);
+	u32 bytes_remaining = (count & 0x00000003);
+	u32 bytes_written = 0;
 	u32 retval;
 	
 	if (bank->target->state != TARGET_HALTED)
@@ -838,7 +841,7 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
-	if((offset & 3) || (count & 3))
+	if (offset & 0x3)
 	{
 		LOG_WARNING("offset size must be word aligned");
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
@@ -856,10 +859,10 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
 
 	/* multiple words to be programmed? */
-	if (count > 0) 
+	if (words_remaining > 0) 
 	{
 		/* try using a block write */
-		if ((retval = stellaris_write_block(bank, buffer, offset, count/4)) != ERROR_OK)
+		if ((retval = stellaris_write_block(bank, buffer, offset, words_remaining)) != ERROR_OK)
 		{
 			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			{
@@ -878,13 +881,13 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 		}
 		else
 		{
-			buffer += count * 4;
-			address += count * 4;
-			count = 0;
+			buffer += words_remaining * 4;
+			address += words_remaining * 4;
+			words_remaining = 0;
 		}
 	}
 	
-	while (count > 0)
+	while (words_remaining > 0)
 	{
 		if (!(address & 0xff))
 			LOG_DEBUG("0x%x", address);
@@ -898,13 +901,41 @@ int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count
 		do
 		{
 			target_read_u32(target, FLASH_FMC, &flash_fmc);
-		}
-		while (flash_fmc & FMC_WRITE);
+		} while (flash_fmc & FMC_WRITE);
+		
 		buffer += 4;
 		address += 4;
-		count -= 4;
+		words_remaining--;
 	}
-	/* Check acess violations */
+	
+	if (bytes_remaining)
+	{
+		u8 last_word[4] = {0xff, 0xff, 0xff, 0xff};
+		int i = 0;
+				
+		while(bytes_remaining > 0)
+		{
+			last_word[i++] = *(buffer + bytes_written); 
+			bytes_remaining--;
+			bytes_written++;
+		}
+		
+		if (!(address & 0xff))
+			LOG_DEBUG("0x%x", address);
+		
+		/* Program one word */
+		target_write_u32(target, FLASH_FMA, address);
+		target_write_buffer(target, FLASH_FMD, 4, last_word);
+		target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_WRITE);
+		/* LOG_DEBUG("0x%x 0x%x 0x%x",address,buf_get_u32(buffer, 0, 32),FMC_WRKEY | FMC_WRITE); */
+		/* Wait until write complete */
+		do
+		{
+			target_read_u32(target, FLASH_FMC, &flash_fmc);
+		} while (flash_fmc & FMC_WRITE);
+	}
+	
+	/* Check access violations */
 	target_read_u32(target, FLASH_CRIS, &flash_cris);
 	if (flash_cris & (AMASK))
 	{
