@@ -727,6 +727,21 @@ int stm32x_probe(struct flash_bank_s *bank)
 			num_pages = 128;
 		}
 	}
+	else if ((device_id & 0x7ff) == 0x412)
+	{
+		/* low density - we have 1k pages
+		 * 4 pages for a protection area */
+		page_size = 1024;
+		stm32x_info->ppage_size = 4;
+		
+		/* check for early silicon */
+		if (num_pages == 0xffff)
+		{
+			/* number of sectors incorrect on revA */
+			LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 32k flash" );
+			num_pages = 32;
+		}
+	}
 	else if ((device_id & 0x7ff) == 0x414)
 	{
 		/* high density - we have 2k pages
@@ -815,6 +830,23 @@ int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 			
 			case 0x2003:
 				snprintf(buf, buf_size, "Y");
+				break;
+			
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
+	}
+	else if ((device_id & 0x7ff) == 0x412)
+	{
+		printed = snprintf(buf, buf_size, "stm32x (Low Density) - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+		
+		switch(device_id >> 16)
+		{
+			case 0x1000:
+				snprintf(buf, buf_size, "A");
 				break;
 			
 			default:
@@ -1016,7 +1048,7 @@ int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char 
 	if (argc < 4)
 	{
 		command_print(cmd_ctx, "stm32x options_write <bank> <SWWDG|HWWDG> <RSTSTNDBY|NORSTSTNDBY> <RSTSTOP|NORSTSTOP>");
-		return ERROR_OK;	
+		return ERROR_OK;
 	}
 	
 	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
