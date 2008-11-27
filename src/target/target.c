@@ -64,8 +64,6 @@ int cli_target_callback_event_handler(struct target_s *target, enum target_event
 
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
 int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -947,7 +945,6 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 {
 
 	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, "change the current command line target (one parameter) or lists targets (with no parameter)");
-	register_command(cmd_ctx, NULL, "working_area", handle_working_area_command, COMMAND_ANY, "set a new working space");
 	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "translate a virtual address into a physical address");
 	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "profiling samples the CPU PC");
 
@@ -1408,50 +1405,6 @@ DumpTargets:
 
 	return ERROR_OK;
 }
-
-
-
-int handle_working_area_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	int retval = ERROR_OK;
-	target_t *target = NULL;
-
-	if ((argc < 4) || (argc > 5))
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	target = get_target_by_num(strtoul(args[0], NULL, 0));
-	if (!target)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	target_free_all_working_areas(target);
-
-	target->working_area_phys = target->working_area_virt = strtoul(args[1], NULL, 0);
-	if (argc == 5)
-	{
-		target->working_area_virt = strtoul(args[4], NULL, 0);
-	}
-	target->working_area_size = strtoul(args[2], NULL, 0);
-
-	if (strcmp(args[3], "backup") == 0)
-	{
-		target->backup_working_area = 1;
-	}
-	else if (strcmp(args[3], "nobackup") == 0)
-	{
-		target->backup_working_area = 0;
-	}
-	else
-	{
-		LOG_ERROR("unrecognized <backup|nobackup> argument (%s)", args[3]);
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return retval;
-}
-
 
 // every 300ms we check for reset & powerdropout and issue a "reset halt" if
 // so.
@@ -3973,7 +3926,6 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	int x,r,e;
 	jim_wide w;
 	struct command_context_s *cmd_ctx;
-	const char *cp;
 	target_t *target;
 	Jim_GetOptInfo goi;
 	enum tcmd {
@@ -4001,103 +3953,6 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	if( goi.argc == 0 ){
 		Jim_WrongNumArgs(interp, 1, argv, "missing: command ...");
 		return JIM_ERR;
-	}
-
-	/* is this old syntax? */
-	/* To determine: We have to peek at argv[0]*/
-	cp = Jim_GetString( goi.argv[0], NULL );
-	for( x = 0 ; target_types[x] ; x++ ){
-		if( 0 == strcmp(cp,target_types[x]->name) ){
-			break;
-		}
-	}
-	if( target_types[x] ){
-		/* YES IT IS OLD SYNTAX */
-		Jim_Obj *new_argv[10];
-		int      new_argc;
-
-		/* target_old_syntax
-		 *
-		 * It appears that there are 2 old syntaxes:
-		 *
-		 * target <typename> <endian> <chain position> <variant>
-		 *
-		 * and
-		 *
-		 * target <typename> <endian> <reset mode> <chain position> <variant>
-		 *
-		 */
-
-		/* The minimum number of arguments is 4 */
-		if( argc < 4 ){
-			Jim_WrongNumArgs( interp, 1, argv, "[OLDSYNTAX] ?TYPE? ?ENDIAN? ?CHAIN-POSITION? ?VARIANT?");
-			return JIM_ERR;
-		}
-
-		/* the command */
-		new_argv[0] = argv[0];
-		new_argv[1] = Jim_NewStringObj( interp, "create", -1 );
-		{
-			char buf[ 30 ];
-			sprintf( buf, "target%d", new_target_number() );
-			new_argv[2] = Jim_NewStringObj( interp, buf , -1 );
-		}
-		new_argv[3] = goi.argv[0]; /* typename */
-		new_argv[4] = Jim_NewStringObj( interp, "-endian", -1 );
-		new_argv[5] = goi.argv[1];
-		new_argv[6] = Jim_NewStringObj( interp, "-chain-position", -1 );
-
-		/* If goi.argv[2] is not a number, we need to skip it since it is the reset mode. */
-		jim_wide w;
-		int chain_position_argv = 2;
-		if (JIM_ERR == Jim_GetWide(interp, goi.argv[chain_position_argv], &w)) {
-			if (chain_position_argv + 1 < goi.argc) {
-				chain_position_argv += 1;
-			} else {
-				Jim_WrongNumArgs( interp, 1, argv, "[OLDSYNTAX] ?TYPE? ?ENDIAN? ?RESET? ?CHAIN-POSITION? ?VARIANT?");
-				return JIM_ERR;
-			}
-		}
-
-		new_argv[7] = goi.argv[chain_position_argv];
-
-		/* Only provide a variant configure option if there was a variant specified */
-		if (chain_position_argv + 1 < goi.argc) {
-			new_argv[8] = Jim_NewStringObj( interp, "-variant", -1 );
-			new_argv[9] = goi.argv[chain_position_argv + 1];
-			new_argc = 10;
-		} else {
-			new_argc = 8;
-		}
-
-		/*
-		 * new arg syntax:
-		 *   argv[0] = command
-		 *   argv[1] = create
-		 *   argv[2] = cmdname
-		 *   argv[3] = typename
-		 *   argv[4] = -endian
-		 *   argv[5] = little
-		 *   argv[6] = -position
-		 *   argv[7] = NUMBER
-		 *   argv[8] = -variant
-		 *   argv[9] = "somestring"
-		 */
-
-		/* don't let these be released */
-		for( x = 0 ; x < new_argc ; x++ ){
-			Jim_IncrRefCount( new_argv[x]);
-		}
-		/* call our self */
-		LOG_DEBUG("Target OLD SYNTAX - converted to new syntax");
-
-		r = jim_target( goi.interp, new_argc, new_argv );
-
-		/* release? these items */
-		for( x = 0 ; x < new_argc ; x++ ){
-			Jim_DecrRefCount( interp, new_argv[x] );
-		}
-		return r;
 	}
 
 	//Jim_GetOpt_Debug( &goi );

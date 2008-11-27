@@ -100,37 +100,6 @@ proc new_target_name { } {
 	return [target number [expr [target count] - 1 ]]
 }
 
-
-proc target_script {target_num eventname scriptname} {
-
-	set tname [target number $target_num]
-	
-	if { 0 == [string compare $eventname "reset"] } {
-		$tname configure -event reset-init "script $scriptname"
-		return
-	}
-
-	if { 0 == [string compare $eventname "post_reset"] } {
-		$tname configure -event reset-init "script $scriptname"
-		return
-	}
-
-	if { 0 == [string compare $eventname "pre_reset"] } {
-		$tname configure -event reset-start "script $scriptname"
-		return
-	}
-
-	if { 0 == [string compare $eventname "gdb_program_config"] } {
-		$tname configure -event old-gdb_program_config "script $scriptname"
-		return
-	}
-
-	return -code error "Unknown target (old) event: $eventname (try $tname configure -event NAME)"
-
-}
-
-add_help_text target_script "DEPRECATED please see the new TARGETNAME configure -event interface"
-
 # Try flipping / and \ to find file if the filename does not
 # match the precise spelling
 proc find {filename} {
@@ -276,19 +245,6 @@ proc production_test {} {
 	puts "Imagine nifty test procedure having run to completion here."
 }
 add_help_text production "Runs test procedure. Throws exception if procedure failed. Prints progress messages. Implement in target script."
-
-proc load {args} {
-	return [eval "load_image $args"]
-}
-add_help_text load "synonym to load_image"
-
-proc verify {args} {
-	return [eval "verify_image $args"]
-}
-
-add_help_text verify "synonym to verify_image"
-
-
 
 add_help_text cpu "<name> - prints out target options and a comment on CPU which matches name"
 

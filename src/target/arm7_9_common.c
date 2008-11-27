@@ -2610,8 +2610,6 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 
 	register_command(cmd_ctx, arm7_9_cmd, "dbgrq", handle_arm7_9_dbgrq_command,
 		COMMAND_ANY, "use EmbeddedICE dbgrq instead of breakpoint for target halt requests <enable|disable>");
-	register_command(cmd_ctx, arm7_9_cmd, "fast_writes", handle_arm7_9_fast_memory_access_command,
-		 COMMAND_ANY, "(deprecated, see: arm7_9 fast_memory_access)");
 	register_command(cmd_ctx, arm7_9_cmd, "fast_memory_access", handle_arm7_9_fast_memory_access_command,
 		 COMMAND_ANY, "use fast memory accesses instead of slower but potentially unsafe slow accesses <enable|disable>");
 	register_command(cmd_ctx, arm7_9_cmd, "dcc_downloads", handle_arm7_9_dcc_downloads_command,
