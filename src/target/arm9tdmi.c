@@ -127,7 +127,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 
 		jtag_add_end_state(TAP_PD);
 
-		fields[0].device = arm7_9->jtag_info.chain_pos;
+		fields[0].tap = arm7_9->jtag_info.tap;
 		fields[0].num_bits = 32;
 		fields[0].out_value = NULL;
 		fields[0].out_mask = NULL;
@@ -137,7 +137,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		fields[0].in_handler = NULL;
 		fields[0].in_handler_priv = NULL;
 		
-		fields[1].device = arm7_9->jtag_info.chain_pos;
+		fields[1].tap = arm7_9->jtag_info.tap;
 		fields[1].num_bits = 3;
 		fields[1].out_value = NULL;
 		fields[1].out_mask = NULL;
@@ -147,7 +147,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		fields[1].in_handler = NULL;
 		fields[1].in_handler_priv = NULL;
 		
-		fields[2].device = arm7_9->jtag_info.chain_pos;
+		fields[2].tap = arm7_9->jtag_info.tap;
 		fields[2].num_bits = 32;
 		fields[2].out_value = NULL;
 		fields[2].out_mask = NULL;
@@ -215,7 +215,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 	
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 		
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = out_buf;
 	fields[0].out_mask = NULL;
@@ -233,7 +233,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
 	
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = &sysspeed_buf;
 	fields[1].out_mask = NULL;
@@ -243,7 +243,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 		
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = instr_buf;
 	fields[2].out_mask = NULL;
@@ -290,7 +290,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 		
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
@@ -300,7 +300,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
 	
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = NULL;
 	fields[1].out_mask = NULL;
@@ -310,7 +310,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = NULL;
 	fields[2].out_mask = NULL;
@@ -362,7 +362,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 		
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
@@ -383,7 +383,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
 	
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = NULL;
 	fields[1].out_mask = NULL;
@@ -393,7 +393,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = NULL;
 	fields[2].out_mask = NULL;
@@ -941,7 +941,7 @@ int arm9tdmi_quit(void)
 	return ERROR_OK;
 }
 
-int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int chain_pos, const char *variant)
+int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap, const char *variant)
 {
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -950,7 +950,7 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, int c
 	armv4_5 = &arm7_9->armv4_5_common;
 	
 	/* prepare JTAG information for the new target */
-	arm7_9->jtag_info.chain_pos = chain_pos;
+	arm7_9->jtag_info.tap = tap;
 	arm7_9->jtag_info.scann_size = 5;
 	
 	/* register arch-specific functions */
@@ -1051,7 +1051,7 @@ int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm9tdmi_common_t *arm9tdmi = calloc(1,sizeof(arm9tdmi_common_t));
 
-	arm9tdmi_init_arch_info(target, arm9tdmi, target->chain_position, target->variant);
+	arm9tdmi_init_arch_info(target, arm9tdmi, target->tap, target->variant);
 	
 	return ERROR_OK;
 }

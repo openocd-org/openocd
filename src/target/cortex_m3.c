@@ -1510,13 +1510,13 @@ int cortex_m3_handle_target_request(void *priv)
 	return ERROR_OK;
 }
 
-int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, int chain_pos, const char *variant)
+int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jtag_tap_t *tap, const char *variant)
 {
 	armv7m_common_t *armv7m;
 	armv7m = &cortex_m3->armv7m;
 
 	/* prepare JTAG information for the new target */
-	cortex_m3->jtag_info.chain_pos = chain_pos;
+	cortex_m3->jtag_info.tap = tap;
 	cortex_m3->jtag_info.scann_size = 4;
 	
 	cortex_m3->swjdp_info.dp_select_value = -1;
@@ -1561,7 +1561,7 @@ int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	cortex_m3_common_t *cortex_m3 = calloc(1,sizeof(cortex_m3_common_t));
 	
-	cortex_m3_init_arch_info(target, cortex_m3, target->chain_position, target->variant);
+	cortex_m3_init_arch_info(target, cortex_m3, target->tap, target->variant);
 	
 	return ERROR_OK;
 }

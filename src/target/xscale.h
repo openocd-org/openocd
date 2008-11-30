@@ -35,7 +35,7 @@
 typedef struct xscale_jtag_s
 {
 	/* position in JTAG scan chain */
-	int chain_pos;
+	jtag_tap_t *tap;
 
 	/* IR length and instructions */	
 	int ir_length;

@@ -24,8 +24,8 @@
  *                                                                         *
  * CoreSight (Light?) SerialWireJtagDebugPort                              *
  *                                                                         *
- * CoreSight™ DAP-Lite TRM, ARM DDI 0316A                                *
- * Cortex-M3™ TRM, ARM DDI 0337C                                         *
+ * CoreSight(tm) DAP-Lite TRM, ARM DDI 0316A                                *
+ * Cortex-M3(tm) TRM, ARM DDI 0337C                                         *
  *                                                                         *
 ***************************************************************************/
 #ifdef HAVE_CONFIG_H
@@ -67,7 +67,7 @@ int swjdp_scan(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u8 *outvalu
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
@@ -78,7 +78,7 @@ int swjdp_scan(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u8 *outvalu
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = outvalue;
 	fields[1].out_mask = NULL;
@@ -103,7 +103,7 @@ int swjdp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u32 out
 	jtag_add_end_state(TAP_RTI);
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
@@ -114,7 +114,7 @@ int swjdp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u32 out
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	buf_set_u32(out_value_buf, 0, 32, outvalue);
 	fields[1].out_value = out_value_buf;

@@ -75,7 +75,7 @@ typedef int (*in_handler_t)(u8 *in_value, void *priv, struct scan_field_s *field
 
 typedef struct scan_field_s
 {
-	int device;			/* ordinal device number this instruction refers to */
+	jtag_tap_t *tap;	/* tap pointer this instruction refers to */
 	int num_bits;		/* number of bits this field specifies (up to 32) */
 	u8 *out_value;		/* value to be scanned into the device */
 	u8 *out_mask;		/* only masked bits care */
@@ -163,20 +163,39 @@ typedef struct jtag_command_s
 
 extern jtag_command_t *jtag_command_queue;
 
-typedef struct jtag_device_s
+// this is really: typedef jtag_tap_t
+// But - the typedef is done in "types.h"
+// due to "forward decloration reasons"
+struct jtag_tap_s
 {
+	const char *chip;
+	const char *tapname;
+	const char *dotted_name;
+	int         abs_chain_position;
+	int enabled;
 	int ir_length;		/* size of instruction register */
+	u32 ir_capture_value;
 	u8 *expected;		/* Capture-IR expected value */
+	u32 ir_capture_mask;
 	u8 *expected_mask;	/* Capture-IR expected mask */
 	u32 idcode;			/* device identification code */
+	u32 expected_id;
 	u8 *cur_instr;		/* current instruction */
 	int bypass;			/* bypass register selected */
-	struct jtag_device_s *next;
-} jtag_device_t;
+	jtag_tap_t *next_tap;
+};
+extern jtag_tap_t *jtag_AllTaps(void);
+extern jtag_tap_t *jtag_TapByPosition(int n);
+extern jtag_tap_t *jtag_NextEnabledTap( jtag_tap_t * );
+extern jtag_tap_t *jtag_TapByPosition( int n );
+extern jtag_tap_t *jtag_TapByString( const char *dotted_name );
+extern jtag_tap_t *jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *obj );
+extern jtag_tap_t *jtag_TapByAbsPosition( int abs_position );
+extern int         jtag_NumEnabledTaps(void);
+extern int         jtag_NumTotalTaps(void);
 
-extern jtag_device_t *jtag_devices;
-extern int jtag_num_devices;
-extern int jtag_ir_scan_size;
+
+
 
 enum reset_line_mode
 {
@@ -420,7 +439,7 @@ extern enum scan_type jtag_scan_type(scan_command_t *cmd);
 extern int jtag_scan_size(scan_command_t *cmd);
 extern int jtag_read_buffer(u8 *buffer, scan_command_t *cmd);
 extern int jtag_build_buffer(scan_command_t *cmd, u8 **buffer);
-extern jtag_device_t* jtag_get_device(int num);
+
 extern void jtag_sleep(u32 us);
 extern int jtag_call_event_callbacks(enum jtag_event event);
 extern int jtag_register_event_callback(int (*callback)(enum jtag_event event, void *priv), void *priv);
@@ -463,7 +482,7 @@ extern int jtag_verify_capture_ir;
  *
  * Note that this jtag_add_dr_out can be defined as an inline function.
  */
-extern void interface_jtag_add_dr_out(int device,
+extern void interface_jtag_add_dr_out(jtag_tap_t *tap,
 		int num_fields,
 		const int *num_bits,
 		const u32 *value,
@@ -473,7 +492,7 @@ extern void interface_jtag_add_dr_out(int device,
 
 
 
-static __inline__ void jtag_add_dr_out(int device,
+static __inline__ void jtag_add_dr_out(jtag_tap_t *tap,
 		int num_fields,
 		const int *num_bits,
 		const u32 *value,
@@ -482,7 +501,7 @@ static __inline__ void jtag_add_dr_out(int device,
 	if (end_state != -1)
 		cmd_queue_end_state=end_state;
 	cmd_queue_cur_state=cmd_queue_end_state;
-	interface_jtag_add_dr_out(device, num_fields, num_bits, value, cmd_queue_end_state);
+	interface_jtag_add_dr_out(tap, num_fields, num_bits, value, cmd_queue_end_state);
 }
 
 

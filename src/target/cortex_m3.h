@@ -189,6 +189,6 @@ int cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 int cortex_m3_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 
 extern int cortex_m3_register_commands(struct command_context_s *cmd_ctx);
-extern int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, int chain_pos, const char *variant);
+extern int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jtag_tap_t *tap, const char *variant);
 
 #endif /* CORTEX_M3_H */

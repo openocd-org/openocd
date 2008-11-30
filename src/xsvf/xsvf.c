@@ -169,7 +169,10 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	
 	int runtest_requires_tck = 0;
 	
-	int device = -1;	/* use -1 to indicate a "plain" xsvf file which accounts for additional devices in the scan chain, otherwise the device that should be affected */
+	jtag_tap_t *tap = NULL;
+	/* use NULL to indicate a "plain" xsvf file which accounts for
+	   additional devices in the scan chain, otherwise the device
+	   that should be affected */
 
 	if (argc < 2)
 	{
@@ -179,7 +182,11 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 	if (strcmp(args[0], "plain") != 0)
 	{
-		device = strtoul(args[0], NULL, 0);
+	  tap = jtag_TapByString( args[0] );
+	  if( !tap ){
+	    command_print( cmd_ctx, "Tap: %s unknown", args[0] );
+	    return ERROR_OK;
+	  }
 	}
 
 	if ((xsvf_fd = open(args[1], O_RDONLY)) < 0)
@@ -222,7 +229,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 					else
 					{
 						scan_field_t field;
-						field.device = device;
+						field.tap = tap;
 						field.num_bits = c;
 						field.out_value = ir_buf;
 						field.out_mask = NULL;
@@ -231,7 +238,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						field.in_check_mask = NULL;
 						field.in_handler = NULL;
 						field.in_handler_priv = NULL;
-						if (device == -1)
+						if (tap == NULL)
 							jtag_add_plain_ir_scan(1, &field, TAP_PI);
 						else
 							jtag_add_ir_scan(1, &field, TAP_PI);
@@ -265,13 +272,13 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				else
 				{
 					scan_field_t field;
-					field.device = device;
+					field.tap = tap;
 					field.num_bits = xsdrsize;
 					field.out_value = dr_out_buf;
 					field.out_mask = NULL;
 					field.in_value = NULL;
 					jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
-					if (device == -1)
+					if (tap == NULL)
 						jtag_add_plain_dr_scan(1, &field, TAP_PD);
 					else
 						jtag_add_dr_scan(1, &field, TAP_PD);
@@ -339,13 +346,13 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 					else
 					{
 						scan_field_t field;
-						field.device = device;
+						field.tap = tap;
 						field.num_bits = xsdrsize;
 						field.out_value = dr_out_buf;
 						field.out_mask = NULL;
 						field.in_value = NULL;
 						jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
-						if (device == -1)
+						if (tap == NULL)
 							jtag_add_plain_dr_scan(1, &field, TAP_PD);
 						else
 							jtag_add_dr_scan(1, &field, TAP_PD);
@@ -482,7 +489,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 					else
 					{
 						scan_field_t field;
-						field.device = device;
+						field.tap = tap;
 						field.num_bits = us;
 						field.out_value = ir_buf;
 						field.out_mask = NULL;
@@ -491,7 +498,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						field.in_check_mask = NULL;
 						field.in_handler = NULL;
 						field.in_handler_priv = NULL;
-						if (device == -1)
+						if (tap == NULL)
 							jtag_add_plain_ir_scan(1, &field, xsvf_to_tap[xendir]);
 						else
 							jtag_add_ir_scan(1, &field, xsvf_to_tap[xendir]);

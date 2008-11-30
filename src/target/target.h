@@ -245,7 +245,7 @@ typedef struct target_s
 	target_type_t *type;				/* target type definition (name, access functions) */
 	const char *cmd_name;               /* tcl Name of target */
 	int target_number;                  /* generaly, target index but may not be in order */
-	int chain_position;                 /* where on the jtag chain is this */
+	jtag_tap_t *tap;                 /* where on the jtag chain is this */
 	const char *variant;                /* what varient of this chip is it? */
 	target_event_action_t *event_action;
 

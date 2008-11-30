@@ -735,7 +735,7 @@ int mips_m4k_quit(void)
 	return ERROR_OK;
 }
 
-int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, int chain_pos, const char *variant)
+int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, jtag_tap_t *tap, const char *variant)
 {
 	mips32_common_t *mips32 = &mips_m4k->mips32_common;
 	
@@ -751,7 +751,7 @@ int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, int c
 	mips_m4k->common_magic = MIPSM4K_COMMON_MAGIC;
 	
 	/* initialize mips4k specific info */
-	mips32_init_arch_info(target, mips32, chain_pos, variant);
+	mips32_init_arch_info(target, mips32, tap, variant);
 	mips32->arch_info = mips_m4k;
 	
 	return ERROR_OK;
@@ -761,7 +761,7 @@ int mips_m4k_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	mips_m4k_common_t *mips_m4k = calloc(1,sizeof(mips_m4k_common_t));
 	
-	mips_m4k_init_arch_info(target, mips_m4k, target->chain_position, target->variant);
+	mips_m4k_init_arch_info(target, mips_m4k, target->tap, target->variant);
 	
 	return ERROR_OK;
 }

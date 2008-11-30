@@ -20,12 +20,13 @@
 #ifndef VIRTEX2_H
 #define VIRTEX2_H
 
+#include "types.h"
 #include "pld.h"
 #include "xilinx_bit.h"
 
 typedef struct virtex2_pld_device_s
 {
-	int chain_pos;
+  jtag_tap_t *tap;
 } virtex2_pld_device_t;
 
 #endif /* VIRTEX2_H */

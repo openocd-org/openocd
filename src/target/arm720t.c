@@ -109,7 +109,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 		return retval;
 	}
 		
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = &instruction_buf;
 	fields[0].out_mask = NULL;
@@ -119,7 +119,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = out_buf;
 	fields[1].out_mask = NULL;
@@ -456,12 +456,12 @@ int arm720t_quit(void)
 	return ERROR_OK;
 }
 
-int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, int chain_pos, const char *variant)
+int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, jtag_tap_t *tap, const char *variant)
 {
 	arm7tdmi_common_t *arm7tdmi = &arm720t->arm7tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm7tdmi->arm7_9_common;
 	
-	arm7tdmi_init_arch_info(target, arm7tdmi, chain_pos, variant);
+	arm7tdmi_init_arch_info(target, arm7tdmi, tap, variant);
 
 	arm7tdmi->arch_info = arm720t;
 	arm720t->common_magic = ARM720T_COMMON_MAGIC;
@@ -485,7 +485,7 @@ int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm720t_common_t *arm720t = calloc(1,sizeof(arm720t_common_t));
 	
-	arm720t_init_arch_info(target, arm720t, target->chain_position, target->variant);
+	arm720t_init_arch_info(target, arm720t, target->tap, target->variant);
 
 	return ERROR_OK;
 }

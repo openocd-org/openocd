@@ -1526,7 +1526,7 @@ int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 	arm11->target = target;
 
 	/* prepare JTAG information for the new target */
-	arm11->jtag_info.chain_pos	= target->chain_position;
+	arm11->jtag_info.tap	= target->tap;
 	arm11->jtag_info.scann_size	= 5;
 
 	if((retval = arm_jtag_setup_connection(&arm11->jtag_info)) != ERROR_OK)
@@ -1534,13 +1534,12 @@ int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 		return retval;
 	}
 
-	jtag_device_t *device = jtag_get_device(target->chain_position);
-	if (device==NULL)
+	if (target->tap==NULL)
 		return ERROR_FAIL;
 
-	if (device->ir_length != 5)
+	if (target->tap->ir_length != 5)
 	{
-		LOG_ERROR("'target arm11' expects 'jtag_device 5 0x01 0x1F 0x1E'");
+		LOG_ERROR("'target arm11' expects IR LENGTH = 5");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1831,22 +1830,22 @@ const char arm11_mcr_syntax[] = "Syntax: mcr <jtag_target> <coprocessor> <opcode
 
 arm11_common_t * arm11_find_target(const char * arg)
 {
-	size_t jtag_target		= strtoul(arg, NULL, 0);
+	jtag_tap_t *tap;
+	target_t * t;
+	
+	tap = jtag_TapByString( arg );
+	if( !tap ){
+		return NULL;
+	}
 
-	{target_t * t;
-	for (t = all_targets; t; t = t->next)
-	{
-		if (strcmp(t->type->name,"arm11"))
-		continue;
-
-	arm11_common_t * arm11 = t->arch_info;
-
-	if (arm11->jtag_info.chain_pos != jtag_target)
-		continue;
-
-	return arm11;
-	}}
-
+	for (t = all_targets; t; t = t->next){
+		if( t->tap == tap ){
+			if( 0 == strcmp(t->type->name,"arm11")){
+				arm11_common_t * arm11 = t->arch_info;
+				return arm11;
+			}
+		}
+	}
 	return 0;
 }
 

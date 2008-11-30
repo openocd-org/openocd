@@ -112,7 +112,7 @@ extern int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout);
  * embeddedice_write_reg
  */
 static const int embeddedice_num_bits[]={32,5,1};
-static __inline__ void embeddedice_write_reg_inner(int chain_pos, int reg_addr, u32 value)
+static __inline__ void embeddedice_write_reg_inner( jtag_tap_t *tap, int reg_addr, u32 value)
 {
 	u32 values[3];
 
@@ -120,14 +120,14 @@ static __inline__ void embeddedice_write_reg_inner(int chain_pos, int reg_addr, 
 	values[1]=reg_addr;
 	values[2]=1;
 
-	jtag_add_dr_out(chain_pos,
+	jtag_add_dr_out( tap,
 			3,
 			embeddedice_num_bits,
 			values,
 			-1);
 }
 
-void embeddedice_write_dcc(int chain_pos, int reg_addr, u8 *buffer, int little, int count);
+void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count);
 
 
 #endif /* EMBEDDED_ICE_H */

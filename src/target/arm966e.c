@@ -102,12 +102,12 @@ int arm966e_quit(void)
 	return ERROR_OK;
 }
 
-int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, int chain_pos, const char *variant)
+int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap_t *tap, const char *variant)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
 	
-	arm9tdmi_init_arch_info(target, arm9tdmi, chain_pos, variant);
+	arm9tdmi_init_arch_info(target, arm9tdmi, tap, variant);
 
 	arm9tdmi->arch_info = arm966e;
 	arm966e->common_magic = ARM966E_COMMON_MAGIC;
@@ -125,7 +125,7 @@ int arm966e_target_create( struct target_s *target, Jim_Interp *interp )
 {
 	arm966e_common_t *arm966e = calloc(1,sizeof(arm966e_common_t));
 	
-	arm966e_init_arch_info(target, arm966e, target->chain_position, target->variant);
+	arm966e_init_arch_info(target, arm966e, target->tap, target->variant);
 
 	return ERROR_OK;
 }
@@ -185,7 +185,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
@@ -195,7 +195,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 6;
 	fields[1].out_value = &reg_addr_buf;
 	fields[1].out_mask = NULL;
@@ -205,7 +205,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &nr_w_buf;
 	fields[2].out_mask = NULL;
@@ -253,7 +253,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;
 	fields[0].out_mask = NULL;
@@ -263,7 +263,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 6;
 	fields[1].out_value = &reg_addr_buf;
 	fields[1].out_mask = NULL;
@@ -273,7 +273,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &nr_w_buf;
 	fields[2].out_mask = NULL;

@@ -132,7 +132,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 		
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = out_buf;
 	fields[0].out_mask = NULL;
@@ -142,7 +142,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
 	
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = &sysspeed_buf;
 	fields[1].out_mask = NULL;
@@ -152,7 +152,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 		
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = instr_buf;
 	fields[2].out_mask = NULL;
@@ -645,7 +645,7 @@ int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 	arm7_9_common_t *arm7_9;
 	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
   
-	arm926ejs_init_arch_info(target, arm926ejs, target->chain_position, target->variant);
+	arm926ejs_init_arch_info(target, arm926ejs, target->tap, target->variant);
 
 	armv4_5 = target->arch_info;
 	arm7_9 = armv4_5->arch_info;

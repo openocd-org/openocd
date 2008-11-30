@@ -78,7 +78,7 @@ int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, enum tap_state st
  */
 void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, void * in_data, scan_field_t * field)
 {
-    field->device		= arm11->jtag_info.chain_pos;
+    field->tap   		= arm11->jtag_info.tap;
     field->num_bits		= num_bits;
     field->out_mask		= NULL;
     field->in_check_mask	= NULL;
@@ -101,16 +101,17 @@ void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, vo
  */
 void arm11_add_IR(arm11_common_t * arm11, u8 instr, enum tap_state state)
 {
-    jtag_device_t *device = jtag_get_device(arm11->jtag_info.chain_pos);
-    if (device==NULL)
-    {
+	jtag_tap_t *tap;
+	tap = arm11->jtag_info.tap;
+	if(  tap == NULL ){
     	/* FIX!!!! error is logged, but not propagated back up the call stack... */
+		LOG_ERROR( "tap is null here! This is bad!");
+		return;
     }
 
-    if (buf_get_u32(device->cur_instr, 0, 5) == instr)
-    {
-	JTAG_DEBUG("IR <= 0x%02x SKIPPED", instr);
-	return;
+    if (buf_get_u32(tap->cur_instr, 0, 5) == instr){
+		JTAG_DEBUG("IR <= 0x%02x SKIPPED", instr);
+		return;
     }
 
     JTAG_DEBUG("IR <= 0x%02x", instr);

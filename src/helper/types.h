@@ -44,6 +44,8 @@ typedef unsigned long long u64;
 #endif
 
 
+typedef struct jtag_tap_s jtag_tap_t;
+
 
 /* DANGER!!!! here be dragons! Note that the pointer in 
  * memory might be unaligned. On some CPU's, i.e. ARM7,

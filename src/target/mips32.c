@@ -320,7 +320,7 @@ reg_cache_t *mips32_build_reg_cache(target_t *target)
 	return cache;
 }
 
-int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, int chain_pos, const char *variant)
+int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, jtag_tap_t *tap, const char *variant)
 {
 	target->arch_info = mips32;
 	mips32->common_magic = MIPS32_COMMON_MAGIC;
@@ -329,7 +329,7 @@ int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, int chain_p
 	mips32->bp_scanned = 0;
 	mips32->data_break_list = NULL;
 	
-	mips32->ejtag_info.chain_pos = chain_pos;
+	mips32->ejtag_info.tap = tap;
 	mips32->read_core_reg = mips32_read_core_reg;
 	mips32->write_core_reg = mips32_write_core_reg;
 	

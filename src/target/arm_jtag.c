@@ -38,17 +38,18 @@
 
 int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handler)
 {
-	jtag_device_t *device = jtag_get_device(jtag_info->chain_pos);
-	if (device==NULL)
+	jtag_tap_t *tap;
+	tap = jtag_info->tap;
+	if (tap==NULL)
 		return ERROR_FAIL;
 
-	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
 		scan_field_t field;
 		u8 t[4];
 
-		field.device = jtag_info->chain_pos;
-		field.num_bits = device->ir_length;
+		field.tap = tap;
+		field.num_bits = tap->ir_length;
 		field.out_value = t;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.out_mask = NULL;
@@ -79,7 +80,7 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 			return retval;
 		}
 
-		jtag_add_dr_out(jtag_info->chain_pos,
+		jtag_add_dr_out(jtag_info->tap,
 				1,
 				num_bits,
 				values,

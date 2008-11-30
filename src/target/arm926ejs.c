@@ -139,7 +139,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
@@ -149,7 +149,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
 	fields[1].out_mask = NULL;
@@ -159,7 +159,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
 	fields[2].out_mask = NULL;
@@ -169,7 +169,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	fields[3].device = jtag_info->chain_pos;
+	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	fields[3].out_mask = NULL;
@@ -229,7 +229,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	}
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;
 	fields[0].out_mask = NULL;
@@ -239,7 +239,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
 	fields[1].out_mask = NULL;
@@ -249,7 +249,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
 	fields[2].out_mask = NULL;
@@ -259,7 +259,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	fields[3].device = jtag_info->chain_pos;
+	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	fields[3].out_mask = NULL;
@@ -714,14 +714,14 @@ int arm926ejs_quit(void)
 	return ERROR_OK;
 }
 
-int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, int chain_pos, const char *variant)
+int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, jtag_tap_t *tap, const char *variant)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm926ejs->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
 
 	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
 	 */
-	arm9tdmi_init_arch_info(target, arm9tdmi, chain_pos, variant);
+	arm9tdmi_init_arch_info(target, arm9tdmi, tap, variant);
 
 	arm9tdmi->arch_info = arm926ejs;
 	arm926ejs->common_magic = ARM926EJS_COMMON_MAGIC;
@@ -755,7 +755,7 @@ int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
 
-	arm926ejs_init_arch_info(target, arm926ejs, target->chain_position, target->variant);
+	arm926ejs_init_arch_info(target, arm926ejs, target->tap, target->variant);
 
 	return ERROR_OK;
 }

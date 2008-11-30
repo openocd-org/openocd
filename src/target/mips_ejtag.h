@@ -100,7 +100,7 @@
 
 typedef struct mips_ejtag_s
 {
-	int chain_pos;
+	jtag_tap_t *tap;
 	u32 impcode;
 	/*int use_dma;*/
 	u32 ejtag_ctrl;

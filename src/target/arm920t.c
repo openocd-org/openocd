@@ -110,7 +110,7 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	arm_jtag_scann(jtag_info, 0xf);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = &access_type_buf;
 	fields[0].out_mask = NULL;
@@ -120,7 +120,7 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].out_mask = NULL;
@@ -130,7 +130,7 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 6;
 	fields[2].out_value = &reg_addr_buf;
 	fields[2].out_mask = NULL;
@@ -140,7 +140,7 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	fields[3].device = jtag_info->chain_pos;
+	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	fields[3].out_mask = NULL;
@@ -182,7 +182,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	arm_jtag_scann(jtag_info, 0xf);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = &access_type_buf;
 	fields[0].out_mask = NULL;
@@ -192,7 +192,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = value_buf;
 	fields[1].out_mask = NULL;
@@ -202,7 +202,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 6;
 	fields[2].out_value = &reg_addr_buf;
 	fields[2].out_mask = NULL;
@@ -212,7 +212,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	fields[3].device = jtag_info->chain_pos;
+	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	fields[3].out_mask = NULL;
@@ -249,7 +249,7 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	
 	buf_set_u32(cp15_opcode_buf, 0, 32, cp15_opcode);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = &access_type_buf;
 	fields[0].out_mask = NULL;
@@ -259,7 +259,7 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = cp15_opcode_buf;
 	fields[1].out_mask = NULL;
@@ -269,7 +269,7 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 6;
 	fields[2].out_value = &reg_addr_buf;
 	fields[2].out_mask = NULL;
@@ -279,7 +279,7 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	fields[3].device = jtag_info->chain_pos;
+	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	fields[3].out_mask = NULL;
@@ -712,14 +712,14 @@ int arm920t_quit(void)
 	return ERROR_OK;
 }
 
-int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, int chain_pos, const char *variant)
+int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, jtag_tap_t *tap, const char *variant)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
 	
 	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
 	 */
-	arm9tdmi_init_arch_info(target, arm9tdmi, chain_pos, variant);
+	arm9tdmi_init_arch_info(target, arm9tdmi, tap, variant);
 
 	arm9tdmi->arch_info = arm920t;
 	arm920t->common_magic = ARM920T_COMMON_MAGIC;
@@ -752,7 +752,7 @@ int arm920t_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm920t_common_t *arm920t = calloc(1,sizeof(arm920t_common_t));
 	
-	arm920t_init_arch_info(target, arm920t, target->chain_position, target->variant);
+	arm920t_init_arch_info(target, arm920t, target->tap, target->variant);
 
 	return ERROR_OK;
 }

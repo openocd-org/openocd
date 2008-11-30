@@ -28,7 +28,7 @@
 
 typedef struct arm_jtag_s
 {
-	int chain_pos;
+	jtag_tap_t *tap;
 	
 	int scann_size;
 	u32 scann_instr;

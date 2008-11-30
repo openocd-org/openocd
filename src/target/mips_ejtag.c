@@ -34,17 +34,19 @@
 
 int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, in_handler_t handler)
 {
-	jtag_device_t *device = jtag_get_device(ejtag_info->chain_pos);
-	if (device==NULL)
+	jtag_tap_t *tap;
+
+	tap = ejtag_info->tap;
+	if (tap==NULL)
 		return ERROR_FAIL;
 
-	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
 		scan_field_t field;
 		u8 t[4];
 
-		field.device = ejtag_info->chain_pos;
-		field.num_bits = device->ir_length;
+		field.tap = tap;
+		field.num_bits = tap->ir_length;
 		field.out_value = t;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.out_mask = NULL;
@@ -67,7 +69,7 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode, in_handler_t ha
 
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IDCODE, NULL);
 
-	field.device = ejtag_info->chain_pos;
+	field.tap = ejtag_info->tap;
 	field.num_bits = 32;
 	field.out_value = NULL;
 	field.out_mask = NULL;
@@ -94,7 +96,7 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode, in_handler_t 
 
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IMPCODE, NULL);
 
-	field.device = ejtag_info->chain_pos;
+	field.tap = ejtag_info->tap;
 	field.num_bits = 32;
 	field.out_value = NULL;
 	field.out_mask = NULL;
@@ -115,16 +117,16 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode, in_handler_t 
 
 int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 {
-	jtag_device_t *device;
-	device = jtag_get_device(ejtag_info->chain_pos);
+	jtag_tap_t *tap;
+	tap  = ejtag_info->tap;
 
-	if (device==NULL)
+	if (tap==NULL)
 		return ERROR_FAIL;
 	scan_field_t field;
 	u8 t[4];
 	int retval;
 
-	field.device = ejtag_info->chain_pos;
+	field.tap = tap;
 	field.num_bits = 32;
 	field.out_value = t;
 	buf_set_u32(field.out_value, 0, field.num_bits, *data);

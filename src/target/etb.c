@@ -62,16 +62,17 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 int etb_set_instr(etb_t *etb, u32 new_instr)
 {
-	jtag_device_t *device = jtag_get_device(etb->chain_pos);
-	if (device==NULL)
+	jtag_tap_t *tap;
+	tap = etb->tap;
+	if (tap==NULL)
 		return ERROR_FAIL;
 
-	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
 		scan_field_t field;
 
-		field.device = etb->chain_pos;
-		field.num_bits = device->ir_length;
+		field.tap = tap;
+		field.num_bits = tap->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.out_mask = NULL;
@@ -95,7 +96,7 @@ int etb_scann(etb_t *etb, u32 new_scan_chain)
 	{
 		scan_field_t field;
 
-		field.device = etb->chain_pos;
+		field.tap = etb->tap;
 		field.num_bits = 5;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_scan_chain);
@@ -187,7 +188,7 @@ int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	etb_scann(etb, 0x0);
 	etb_set_instr(etb, 0xc);
 
-	fields[0].device = etb->chain_pos;
+	fields[0].tap = etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
@@ -197,7 +198,7 @@ int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = etb->chain_pos;
+	fields[1].tap = etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, 4);
@@ -208,7 +209,7 @@ int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = etb->chain_pos;
+	fields[2].tap = etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
@@ -258,7 +259,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	etb_scann(etb_reg->etb, 0x0);
 	etb_set_instr(etb_reg->etb, 0xc);
 
-	fields[0].device = etb_reg->etb->chain_pos;
+	fields[0].tap = etb_reg->etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
 	fields[0].out_mask = NULL;
@@ -268,7 +269,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = etb_reg->etb->chain_pos;
+	fields[1].tap = etb_reg->etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
@@ -279,7 +280,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = etb_reg->etb->chain_pos;
+	fields[2].tap = etb_reg->etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
@@ -354,7 +355,7 @@ int etb_write_reg(reg_t *reg, u32 value)
 	etb_scann(etb_reg->etb, 0x0);
 	etb_set_instr(etb_reg->etb, 0xc);
 
-	fields[0].device = etb_reg->etb->chain_pos;
+	fields[0].tap = etb_reg->etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = malloc(4);
 	buf_set_u32(fields[0].out_value, 0, 32, value);
@@ -365,7 +366,7 @@ int etb_write_reg(reg_t *reg, u32 value)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = etb_reg->etb->chain_pos;
+	fields[1].tap = etb_reg->etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
@@ -376,7 +377,7 @@ int etb_write_reg(reg_t *reg, u32 value)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = etb_reg->etb->chain_pos;
+	fields[2].tap = etb_reg->etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 1);
@@ -415,7 +416,7 @@ int etb_register_commands(struct command_context_s *cmd_ctx)
 int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
-	jtag_device_t *jtag_device;
+	jtag_tap_t *tap;
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 
@@ -438,12 +439,12 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_FAIL;
 	}
 
-	jtag_device = jtag_get_device(strtoul(args[1], NULL, 0));
-
-	if (!jtag_device)
-	{
+	tap = jtag_TapByString( args[1] );
+	if( tap == NULL ){
+		command_print(cmd_ctx, "Tap: %s does not exist", args[1] );
 		return ERROR_FAIL;
 	}
+
 
 	if (arm7_9->etm_ctx)
 	{
@@ -451,7 +452,7 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 		arm7_9->etm_ctx->capture_driver_priv = etb;
 
-		etb->chain_pos = strtoul(args[1], NULL, 0);
+		etb->tap  = tap;
 		etb->cur_scan_chain = -1;
 		etb->reg_cache = NULL;
 		etb->ram_width = 0;

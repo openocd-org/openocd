@@ -251,7 +251,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
 
-	fields[0].device = ice_reg->jtag_info->chain_pos;
+	fields[0].tap = ice_reg->jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
 	fields[0].out_mask = NULL;
@@ -261,7 +261,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = ice_reg->jtag_info->chain_pos;
+	fields[1].tap = ice_reg->jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	buf_set_u32(fields[1].out_value, 0, 5, reg_addr);
@@ -272,7 +272,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = ice_reg->jtag_info->chain_pos;
+	fields[2].tap = ice_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
@@ -313,7 +313,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
@@ -323,7 +323,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_DATA]);
@@ -334,7 +334,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
@@ -406,7 +406,7 @@ void embeddedice_write_reg(reg_t *reg, u32 value)
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
 
 	u8 reg_addr = ice_reg->addr & 0x1f;
-	embeddedice_write_reg_inner(ice_reg->jtag_info->chain_pos, reg_addr, value);
+	embeddedice_write_reg_inner(ice_reg->jtag_info->tap, reg_addr, value);
 
 }
 
@@ -430,7 +430,7 @@ int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = field0_out;
 	fields[0].out_mask = NULL;
@@ -440,7 +440,7 @@ int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_DATA]);
@@ -451,7 +451,7 @@ int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	buf_set_u32(fields[2].out_value, 0, 1, 1);
@@ -499,7 +499,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
-	fields[0].device = jtag_info->chain_pos;
+	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
@@ -509,7 +509,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = jtag_info->chain_pos;
+	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
@@ -520,7 +520,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = jtag_info->chain_pos;
+	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
@@ -550,12 +550,12 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 }
 
 /* this is the inner loop of the open loop DCC write of data to target */
-void MINIDRIVER(embeddedice_write_dcc)(int chain_pos, int reg_addr, u8 *buffer, int little, int count)
+void MINIDRIVER(embeddedice_write_dcc)(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count)
 {
 	int i;
 	for (i = 0; i < count; i++)
 	{
-		embeddedice_write_reg_inner(chain_pos, reg_addr, fast_target_buffer_get_u32(buffer, little));
+		embeddedice_write_reg_inner(tap, reg_addr, fast_target_buffer_get_u32(buffer, little));
 		buffer += 4;
 	}
 }

@@ -111,20 +111,18 @@ int str9xpec_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int str9xpec_set_instr(int chain_pos, u32 new_instr, enum tap_state end_state)
+int str9xpec_set_instr(jtag_tap_t *tap, u32 new_instr, enum tap_state end_state)
 {
-	jtag_device_t *device = jtag_get_device(chain_pos);
-	if (device == NULL)
-	{
+	if( tap == NULL ){
 		return ERROR_TARGET_INVALID;
 	}
 
-	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
 		scan_field_t field;
 
-		field.device = chain_pos;
-		field.num_bits = device->ir_length;
+		field.tap = tap;
+		field.num_bits = tap->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.out_mask = NULL;
@@ -142,15 +140,15 @@ int str9xpec_set_instr(int chain_pos, u32 new_instr, enum tap_state end_state)
 	return ERROR_OK;
 }
 
-u8 str9xpec_isc_status(int chain_pos)
+u8 str9xpec_isc_status(jtag_tap_t *tap)
 {
 	scan_field_t field;
 	u8 status;
 
-	if (str9xpec_set_instr(chain_pos, ISC_NOOP, TAP_PI) != ERROR_OK)
+	if (str9xpec_set_instr(tap, ISC_NOOP, TAP_PI) != ERROR_OK)
 		return ISC_STATUS_ERROR;
 
-	field.device = chain_pos;
+	field.tap = tap;
 	field.num_bits = 8;
 	field.out_value = NULL;
 	field.out_mask = NULL;
@@ -174,20 +172,20 @@ u8 str9xpec_isc_status(int chain_pos)
 int str9xpec_isc_enable(struct flash_bank_s *bank)
 {
 	u8 status;
-	u32 chain_pos;
+	jtag_tap_t *tap;
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	if (str9xpec_info->isc_enable)
 		return ERROR_OK;
 
 	/* enter isc mode */
-	if (str9xpec_set_instr(chain_pos, ISC_ENABLE, TAP_RTI) != ERROR_OK)
+	if (str9xpec_set_instr(tap, ISC_ENABLE, TAP_RTI) != ERROR_OK)
 		return ERROR_TARGET_INVALID;
 
 	/* check ISC status */
-	status = str9xpec_isc_status(chain_pos);
+	status = str9xpec_isc_status(tap);
 	if (status & ISC_STATUS_MODE)
 	{
 		/* we have entered isc mode */
@@ -201,22 +199,22 @@ int str9xpec_isc_enable(struct flash_bank_s *bank)
 int str9xpec_isc_disable(struct flash_bank_s *bank)
 {
 	u8 status;
-	u32 chain_pos;
+	jtag_tap_t *tap;
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	if (!str9xpec_info->isc_enable)
 		return ERROR_OK;
 
-	if (str9xpec_set_instr(chain_pos, ISC_DISABLE, TAP_RTI) != ERROR_OK)
+	if (str9xpec_set_instr(tap, ISC_DISABLE, TAP_RTI) != ERROR_OK)
 		return ERROR_TARGET_INVALID;
 
 	/* delay to handle aborts */
 	jtag_add_sleep(50);
 
 	/* check ISC status */
-	status = str9xpec_isc_status(chain_pos);
+	status = str9xpec_isc_status(tap);
 	if (!(status & ISC_STATUS_MODE))
 	{
 		/* we have left isc mode */
@@ -231,18 +229,18 @@ int str9xpec_read_config(struct flash_bank_s *bank)
 {
 	scan_field_t field;
 	u8 status;
-	u32 chain_pos;
+	jtag_tap_t *tap;
 
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	LOG_DEBUG("ISC_CONFIGURATION");
 
 	/* execute ISC_CONFIGURATION command */
-	str9xpec_set_instr(chain_pos, ISC_CONFIGURATION, TAP_PI);
+	str9xpec_set_instr(tap, ISC_CONFIGURATION, TAP_PI);
 
-	field.device = chain_pos;
+	field.tap = tap;
 	field.num_bits = 64;
 	field.out_value = NULL;
 	field.out_mask = NULL;
@@ -255,7 +253,7 @@ int str9xpec_read_config(struct flash_bank_s *bank)
 	jtag_add_dr_scan(1, &field, TAP_RTI);
 	jtag_execute_queue();
 
-	status = str9xpec_isc_status(chain_pos);
+	status = str9xpec_isc_status(tap);
 
 	return status;
 }
@@ -352,9 +350,11 @@ int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	arm7_9 = armv4_5->arch_info;
 	jtag_info = &arm7_9->jtag_info;
 
-	str9xpec_info->chain_pos = (jtag_info->chain_pos - 1);
+	
+
+	str9xpec_info->tap = jtag_TapByAbsPosition( jtag_info->tap->abs_chain_position - 1);
 	str9xpec_info->isc_enable = 0;
-	str9xpec_info->devarm = NULL;
+
 
 	str9xpec_build_block_list(bank);
 
@@ -368,13 +368,13 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 {
 	scan_field_t field;
 	u8 status;
-	u32 chain_pos;
+	jtag_tap_t *tap;
 	int i;
 	u8 *buffer = NULL;
 
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	if (!str9xpec_info->isc_enable) {
 		str9xpec_isc_enable( bank );
@@ -393,9 +393,9 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	}
 
 	/* execute ISC_BLANK_CHECK command */
-	str9xpec_set_instr(chain_pos, ISC_BLANK_CHECK, TAP_PI);
+	str9xpec_set_instr(tap, ISC_BLANK_CHECK, TAP_PI);
 
-	field.device = chain_pos;
+	field.tap = tap;
 	field.num_bits = 64;
 	field.out_value = buffer;
 	field.out_mask = NULL;
@@ -409,7 +409,7 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	jtag_add_sleep(40000);
 
 	/* read blank check result */
-	field.device = chain_pos;
+	field.tap = tap;
 	field.num_bits = 64;
 	field.out_value = NULL;
 	field.out_mask = NULL;
@@ -422,7 +422,7 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	jtag_add_dr_scan(1, &field, TAP_PI);
 	jtag_execute_queue();
 
-	status = str9xpec_isc_status(chain_pos);
+	status = str9xpec_isc_status(tap);
 
 	for (i = first; i <= last; i++)
 	{
@@ -467,13 +467,13 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 {
 	scan_field_t field;
 	u8 status;
-	u32 chain_pos;
+	jtag_tap_t *tap;
 	int i;
 	u8 *buffer = NULL;
 
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	if (!str9xpec_info->isc_enable) {
 		str9xpec_isc_enable( bank );
@@ -509,9 +509,9 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	LOG_DEBUG("ISC_ERASE");
 
 	/* execute ISC_ERASE command */
-	str9xpec_set_instr(chain_pos, ISC_ERASE, TAP_PI);
+	str9xpec_set_instr(tap, ISC_ERASE, TAP_PI);
 
-	field.device = chain_pos;
+	field.tap = tap;
 	field.num_bits = 64;
 	field.out_value = buffer;
 	field.out_mask = NULL;
@@ -527,7 +527,7 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	jtag_add_sleep(10);
 
 	/* wait for erase completion */
-	while (!((status = str9xpec_isc_status(chain_pos)) & ISC_STATUS_BUSY)) {
+	while (!((status = str9xpec_isc_status(tap)) & ISC_STATUS_BUSY)) {
 		alive_sleep(1);
 	}
 
@@ -554,11 +554,11 @@ int str9xpec_lock_device(struct flash_bank_s *bank)
 {
 	scan_field_t field;
 	u8 status;
-	u32 chain_pos;
+	jtag_tap_t *tap;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	str9xpec_info = bank->driver_priv;
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	if (!str9xpec_info->isc_enable) {
 		str9xpec_isc_enable( bank );
@@ -572,12 +572,12 @@ int str9xpec_lock_device(struct flash_bank_s *bank)
 	str9xpec_set_address(bank, 0x80);
 
 	/* execute ISC_PROGRAM command */
-	str9xpec_set_instr(chain_pos, ISC_PROGRAM_SECURITY, TAP_RTI);
+	str9xpec_set_instr(tap, ISC_PROGRAM_SECURITY, TAP_RTI);
 
-	str9xpec_set_instr(chain_pos, ISC_NOOP, TAP_PI);
+	str9xpec_set_instr(tap, ISC_NOOP, TAP_PI);
 
 	do {
-		field.device = chain_pos;
+		field.tap = tap;
 		field.num_bits = 8;
 		field.out_value = NULL;
 		field.out_mask = NULL;
@@ -654,16 +654,16 @@ int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last)
 
 int str9xpec_set_address(struct flash_bank_s *bank, u8 sector)
 {
-	u32 chain_pos;
+	jtag_tap_t *tap;
 	scan_field_t field;
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	/* set flash controller address */
-	str9xpec_set_instr(chain_pos, ISC_ADDRESS_SHIFT, TAP_PI);
+	str9xpec_set_instr(tap, ISC_ADDRESS_SHIFT, TAP_PI);
 
-	field.device = chain_pos;
+	field.tap = tap;
 	field.num_bits = 8;
 	field.out_value = &sector;
 	field.out_mask = NULL;
@@ -686,14 +686,14 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 bytes_written = 0;
 	u8 status;
 	u32 check_address = offset;
-	u32 chain_pos;
+	jtag_tap_t *tap;
 	scan_field_t field;
 	u8 *scanbuf;
 	int i;
 	u32 first_sector = 0;
 	u32 last_sector = 0;
 
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	if (!str9xpec_info->isc_enable) {
 		str9xpec_isc_enable(bank);
@@ -750,9 +750,9 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 		while (dwords_remaining > 0)
 		{
-			str9xpec_set_instr(chain_pos, ISC_PROGRAM, TAP_PI);
+			str9xpec_set_instr(tap, ISC_PROGRAM, TAP_PI);
 
-			field.device = chain_pos;
+			field.tap = tap;
 			field.num_bits = 64;
 			field.out_value = (buffer + bytes_written);
 			field.out_mask = NULL;
@@ -767,10 +767,10 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			/* small delay before polling */
 			jtag_add_sleep(50);
 
-			str9xpec_set_instr(chain_pos, ISC_NOOP, TAP_PI);
+			str9xpec_set_instr(tap, ISC_NOOP, TAP_PI);
 
 			do {
-				field.device = chain_pos;
+				field.tap = tap;
 				field.num_bits = 8;
 				field.out_value = NULL;
 				field.out_mask = NULL;
@@ -810,9 +810,9 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			bytes_written++;
 		}
 
-		str9xpec_set_instr(chain_pos, ISC_PROGRAM, TAP_PI);
+		str9xpec_set_instr(tap, ISC_PROGRAM, TAP_PI);
 
-		field.device = chain_pos;
+		field.tap = tap;
 		field.num_bits = 64;
 		field.out_value = last_dword;
 		field.out_mask = NULL;
@@ -827,10 +827,10 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		/* small delay before polling */
 		jtag_add_sleep(50);
 
-		str9xpec_set_instr(chain_pos, ISC_NOOP, TAP_PI);
+		str9xpec_set_instr(tap, ISC_NOOP, TAP_PI);
 
 		do {
-			field.device = chain_pos;
+			field.tap = tap;
 			field.num_bits = 8;
 			field.out_value = NULL;
 			field.out_mask = NULL;
@@ -871,7 +871,7 @@ int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd
 	flash_bank_t *bank;
 	scan_field_t field;
 	u8 *buffer = NULL;
-	u32 chain_pos;
+	jtag_tap_t *tap;
 	u32 idcode;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
@@ -888,13 +888,13 @@ int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd
 	}
 
 	str9xpec_info = bank->driver_priv;
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	buffer = calloc(CEIL(32, 8), 1);
 
-	str9xpec_set_instr(chain_pos, ISC_IDCODE, TAP_PI);
+	str9xpec_set_instr(tap, ISC_IDCODE, TAP_PI);
 
-	field.device = chain_pos;
+	field.tap = tap;
 	field.num_bits = 32;
 	field.out_value = NULL;
 	field.out_mask = NULL;
@@ -990,11 +990,11 @@ int str9xpec_write_options(struct flash_bank_s *bank)
 {
 	scan_field_t field;
 	u8 status;
-	u32 chain_pos;
+	jtag_tap_t *tap;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	str9xpec_info = bank->driver_priv;
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
 	/* erase config options first */
 	status = str9xpec_erase_area( bank, 0xFE, 0xFE );
@@ -1017,9 +1017,9 @@ int str9xpec_write_options(struct flash_bank_s *bank)
 	str9xpec_set_address(bank, 0x50);
 
 	/* execute ISC_PROGRAM command */
-	str9xpec_set_instr(chain_pos, ISC_PROGRAM, TAP_PI);
+	str9xpec_set_instr(tap, ISC_PROGRAM, TAP_PI);
 
-	field.device = chain_pos;
+	field.tap = tap;
 	field.num_bits = 64;
 	field.out_value = str9xpec_info->options;
 	field.out_mask = NULL;
@@ -1034,10 +1034,10 @@ int str9xpec_write_options(struct flash_bank_s *bank)
 	/* small delay before polling */
 	jtag_add_sleep(50);
 
-	str9xpec_set_instr(chain_pos, ISC_NOOP, TAP_PI);
+	str9xpec_set_instr(tap, ISC_NOOP, TAP_PI);
 
 	do {
-		field.device = chain_pos;
+		field.tap = tap;
 		field.num_bits = 8;
 		field.out_value = NULL;
 		field.out_mask = NULL;
@@ -1265,11 +1265,16 @@ int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ctx, char
 
 int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+#if 1
+	command_print( cmd_ctx, "**STR9FLASH is currently broken :-( **");
+	return ERROR_OK;
+#else
 	int retval;
 	flash_bank_t *bank;
-	u32 chain_pos;
-	jtag_device_t* dev0;
-	jtag_device_t* dev2;
+	jtag_tap_t *tapX;
+	jtag_tap_t *tap0;
+	jtag_tap_t *tap1;
+	jtag_tap_t *tap2;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	if (argc < 1)
@@ -1287,33 +1292,46 @@ int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx
 
 	str9xpec_info = bank->driver_priv;
 
-	chain_pos = str9xpec_info->chain_pos;
+	tapX = str9xpec_info->tap;
 
 	/* remove arm core from chain - enter turbo mode */
+	//
+	// At postion +2 in the chain, 
+	// I do not think this is right..
+	// I have not tested it...
+	// and it is a bit wacky right now.
+	// -- Duane 25/nov/2008
+	tap0 = tapX;
+	tap1 = tap0->next_tap;
+	if( tap1 == NULL ){
+		// things are *WRONG*
+		command_print(cmd_ctx,"**STR9FLASH** (tap1) invalid chain?");
+		return ERROR_OK;
+	}
+	tap2 = tap1->next_tap;
+	if( tap2 == NULL ){
+		// things are *WRONG*
+		command_print(cmd_ctx,"**STR9FLASH** (tap2) invalid chain?");
+		return ERROR_OK;
+	}
 
-	str9xpec_set_instr(chain_pos+2, 0xD, TAP_RTI);
+	// this instruction disables the arm9 tap
+	str9xpec_set_instr(tap2, 0xD, TAP_RTI);
 	if ((retval=jtag_execute_queue())!=ERROR_OK)
 		return retval;
 
 	/* modify scan chain - str9 core has been removed */
-	dev0 = jtag_get_device(chain_pos);
-	if (dev0 == NULL)
-		return ERROR_FAIL;
-	str9xpec_info->devarm = jtag_get_device(chain_pos+1);
-	dev2 = jtag_get_device(chain_pos+2);
-	if (dev2 == NULL)
-		return ERROR_FAIL;
-	dev0->next = dev2;
-	jtag_num_devices--;
+	str9xpec_info->devarm = tap1;
+	tap1->enabled = 0;
 
 	return ERROR_OK;
+#endif
 }
 
 int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
-	u32 chain_pos;
-	jtag_device_t* dev0;
+	jtag_tap_t *tap;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	if (argc < 1)
@@ -1331,22 +1349,18 @@ int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ct
 
 	str9xpec_info = bank->driver_priv;
 
-	chain_pos = str9xpec_info->chain_pos;
+	tap = str9xpec_info->tap;
 
-	dev0 = jtag_get_device(chain_pos);
-	if (dev0 == NULL)
+	if (tap == NULL)
 		return ERROR_FAIL;
 
 
 	/* exit turbo mode via TLR */
-	str9xpec_set_instr(chain_pos, ISC_NOOP, TAP_TLR);
+	str9xpec_set_instr(tap, ISC_NOOP, TAP_TLR);
 	jtag_execute_queue();
-
 	/* restore previous scan chain */
-	if( str9xpec_info->devarm ) {
-		dev0->next = str9xpec_info->devarm;
-		jtag_num_devices++;
-		str9xpec_info->devarm = NULL;
+	if( tap->next_tap ){
+		tap->next_tap->enabled = 1;
 	}
 
 	return ERROR_OK;

@@ -2349,9 +2349,10 @@ static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int ti
 
 		embeddedice_reg_t *ice_reg = arm7_9->eice_cache->reg_list[EICE_COMMS_DATA].arch_info;
 		u8 reg_addr = ice_reg->addr & 0x1f;
-		int chain_pos = ice_reg->jtag_info->chain_pos;
+		jtag_tap_t *tap;
+		tap = ice_reg->jtag_info->tap;
 
-		embeddedice_write_dcc(chain_pos, reg_addr, buffer, little, count-2);
+		embeddedice_write_dcc(tap, reg_addr, buffer, little, count-2);
 		buffer += (count-2)*4;
 
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));

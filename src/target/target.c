@@ -198,7 +198,7 @@ const Jim_Nvp nvp_target_event[] = {
 
 
 	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-start" },
-	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-end" },
+	{ .value = TARGET_EVENT_EXAMINE_END, .name = "examine-end" },
 
 
 	{ .value = TARGET_EVENT_DEBUG_HALTED, .name = "debug-halted" },
@@ -1387,18 +1387,19 @@ int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	}
 DumpTargets:
 
-	target = all_targets;
-	command_print(cmd_ctx, "    CmdName    Type       Endian     ChainPos State     ");
-	command_print(cmd_ctx, "--  ---------- ---------- ---------- -------- ----------");
+  target = all_targets;
+	command_print(cmd_ctx, "    CmdName    Type       Endian     AbsChainPos Name          State     ");
+	command_print(cmd_ctx, "--  ---------- ---------- ---------- ----------- ------------- ----------");
 	while (target)
 	{
 		/* XX: abcdefghij abcdefghij abcdefghij abcdefghij */
-		command_print(cmd_ctx, "%2d: %-10s %-10s %-10s %8d %s",
+		command_print(cmd_ctx, "%2d: %-10s %-10s %-10s %10d %14s %s",
 					  target->target_number,
 					  target->cmd_name,
 					  target->type->name,
 					  Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness )->name,
-					  target->chain_position,
+					  target->tap->abs_chain_position,
+					  target->tap->dotted_name,
 					  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 		target = target->next;
 	}
@@ -1417,7 +1418,7 @@ static int runPowerDropout;
 static int runSrstAsserted;
 static int runSrstDeasserted;
 
-static int sense_handler()
+static int sense_handler(void)
 {
 	static int prevSrstAsserted = 0;
 	static int prevPowerdropout = 0;
@@ -3349,22 +3350,25 @@ target_configure( Jim_GetOptInfo *goi,
 			break;
 		case TCFG_CHAIN_POSITION:
 			if( goi->isconfigure ){
+				Jim_Obj *o;
+				jtag_tap_t *tap;
 				target_free_all_working_areas(target);
-				e = Jim_GetOpt_Wide( goi, &w );
+				e = Jim_GetOpt_Obj( goi, &o );
 				if( e != JIM_OK ){
 					return e;
 				}
-				if (jtag_get_device(w)==NULL)
+				tap = jtag_TapByJimObj( goi->interp, o );
+				if( tap == NULL ){
 					return JIM_ERR;
-
+				}
 				/* make this exactly 1 or 0 */
-				target->chain_position = w;
+				target->tap = tap;
 			} else {
 				if( goi->argc != 0 ){
 					goto no_params;
 				}
 			}
-			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->chain_position ) );
+			Jim_SetResultString( interp, target->tap->dotted_name, -1 );
 			/* loop for more e*/
 			break;
 		}

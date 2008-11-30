@@ -339,7 +339,7 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	arm_jtag_scann(etm_reg->jtag_info, 0x6);
 	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL);
 
-	fields[0].device = etm_reg->jtag_info->chain_pos;
+	fields[0].tap = etm_reg->jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
 	fields[0].out_mask = NULL;
@@ -349,7 +349,7 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = etm_reg->jtag_info->chain_pos;
+	fields[1].tap = etm_reg->jtag_info->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
@@ -360,7 +360,7 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = etm_reg->jtag_info->chain_pos;
+	fields[2].tap = etm_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
@@ -430,7 +430,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	arm_jtag_scann(etm_reg->jtag_info, 0x6);
 	arm_jtag_set_instr(etm_reg->jtag_info, etm_reg->jtag_info->intest_instr, NULL);
 
-	fields[0].device = etm_reg->jtag_info->chain_pos;
+	fields[0].tap = etm_reg->jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = malloc(4);
 	buf_set_u32(fields[0].out_value, 0, 32, value);
@@ -441,7 +441,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = etm_reg->jtag_info->chain_pos;
+	fields[1].tap = etm_reg->jtag_info->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
@@ -452,7 +452,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	fields[2].device = etm_reg->jtag_info->chain_pos;
+	fields[2].tap = etm_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 1);

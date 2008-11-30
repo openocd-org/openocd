@@ -19,27 +19,12 @@ noinst_HEADERS = target.h trace.h register.h armv4_5.h embeddedice.h etm.h arm7t
 	arm_disassembler.h arm966e.h arm926ejs.h etb.h xscale.h arm_simulator.h image.h armv7m.h cortex_m3.h cortex_swjdp.h \
 	etm_dummy.h oocd_trace.h target_request.h trace.h arm11.h mips32.h mips_m4k.h mips_ejtag.h mips32_pracc.h mips32_dmaacc.h
 
-nobase_dist_pkglib_DATA = xscale/debug_handler.bin target/at91eb40a.cfg \
-	target/at91r40008.cfg target/lpc2148.cfg target/lpc2148_rclk.cfg target/lpc2148_2mhz.cfg target/lpc2294.cfg \
-	target/sam7x256.cfg target/str710.cfg target/str912.cfg target/nslu2.cfg target/pxa255_sst.cfg \
-	target/pxa255.cfg  target/zy1000.cfg target/at91sam9260.cfg \
-	target/wi-9c.cfg target/stm32.cfg  target/xba_revA3.cfg \
-	ecos/at91eb40a.elf target/lm3s6965.cfg interface/parport.cfg \
-	interface/jtagkey-tiny.cfg interface/jtagkey.cfg interface/str9-comstick.cfg \
-	target/epc9301.cfg target/ipx42x.cfg target/lpc2129.cfg target/netx500.cfg \
-	target/omap5912.cfg target/pxa270.cfg target/str750.cfg target/str9comstick.cfg \
-	target/str730.cfg target/stm32stick.cfg \
-	target/lm3s811.cfg interface/luminary.cfg interface/luminary-libftdi.cfg interface/luminary-lm3s811.cfg \
-	target/imx31.cfg target/lm3s3748.cfg \
-	interface/stm32-stick.cfg interface/calao-usb-a9260-c01.cfg interface/calao-usb-a9260-c02.cfg \
-	interface/calao-usb-a9260.cfg target/at91sam9260minimal.cfg  \
-	interface/chameleon.cfg interface/at91rm9200.cfg interface/jlink.cfg interface/arm-usb-ocd.cfg \
-	interface/signalyzer.cfg target/eir-sam7se512.cfg \
-	interface/flyswatter.cfg target/hammer.cfg   \
-	interface/olimex-jtag-tiny-a.cfg \
-	target/pic32mx.cfg target/aduc702x.cfg interface/dummy.cfg interface/olimex-arm-usb-ocd.cfg target/s3c2440.cfg \
-	interface/openocd-usb.cfg target/test_syntax_error.cfg target/test_reset_syntax_error.cfg \
-	target/imx27.cfg
-	
-	
-
+nobase_dist_pkglib_DATA =
+nobase_dist_pkglib_DATA += xscale/debug_handler.bin 
+nobase_dist_pkglib_DATA += ecos/at91eb40a.elf
+# Various chip targets
+nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/target/*.cfg)
+# Various jtag interfaces
+nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/interface/*.cfg)
+# Various preconfigured boards
+nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/board/*.cfg)

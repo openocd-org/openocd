@@ -212,23 +212,22 @@ int xscale_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, xsc
 	return ERROR_OK;
 }
 
-int xscale_jtag_set_instr(int chain_pos, u32 new_instr)
+int xscale_jtag_set_instr(jtag_tap_t *tap, u32 new_instr)
 {
-	jtag_device_t *device = jtag_get_device(chain_pos);
-	if (device==NULL)
+	if (tap==NULL)
 		return ERROR_FAIL;
 
-	if (buf_get_u32(device->cur_instr, 0, device->ir_length) != new_instr)
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
 	{
 		scan_field_t field;
 
-		field.device = chain_pos;
-		field.num_bits = device->ir_length;
+		field.tap = tap;
+		field.num_bits = tap->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.out_mask = NULL;
 		field.in_value = NULL;
-		jtag_set_check_value(&field, device->expected, device->expected_mask, NULL);
+		jtag_set_check_value(&field, tap->expected, tap->expected_mask, NULL);
 
 		jtag_add_ir_scan(1, &field, -1);
 
@@ -254,19 +253,19 @@ int xscale_read_dcsr(target_t *target)
 	u8 field2_check_mask = 0x1;
 
 	jtag_add_end_state(TAP_PD);
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dcsr);
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
 
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
 
-	fields[0].device = xscale->jtag_info.chain_pos;
+	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = NULL;
 	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
-	fields[1].device = xscale->jtag_info.chain_pos;
+	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].out_mask = NULL;
@@ -276,7 +275,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	fields[2].device = xscale->jtag_info.chain_pos;
+	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	fields[2].out_mask = NULL;
@@ -337,14 +336,14 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	path[1] = TAP_CD;
 	path[2] = TAP_SD;
 
-	fields[0].device = xscale->jtag_info.chain_pos;
+	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = NULL;
 	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
-	fields[1].device = xscale->jtag_info.chain_pos;
+	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].out_mask = NULL;
@@ -356,7 +355,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 
 
 
-	fields[2].device = xscale->jtag_info.chain_pos;
+	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
 	fields[2].out_mask = NULL;
@@ -364,7 +363,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
 	jtag_add_end_state(TAP_RTI);
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgtx);
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgtx);
 	jtag_add_runtest(1, -1); /* ensures that we're in the TAP_RTI state as the above could be a no-op */
 
 	/* repeat until all words have been collected */
@@ -445,7 +444,7 @@ int xscale_read_tx(target_t *target, int consume)
 
 	jtag_add_end_state(TAP_RTI);
 
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgtx);
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgtx);
 
 	path[0] = TAP_SDS;
 	path[1] = TAP_CD;
@@ -458,14 +457,14 @@ int xscale_read_tx(target_t *target, int consume)
 	noconsume_path[4] = TAP_E2D;
 	noconsume_path[5] = TAP_SD;
 
-	fields[0].device = xscale->jtag_info.chain_pos;
+	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = &field0_in;
 	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
-	fields[1].device = xscale->jtag_info.chain_pos;
+	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].out_mask = NULL;
@@ -477,7 +476,7 @@ int xscale_read_tx(target_t *target, int consume)
 
 
 
-	fields[2].device = xscale->jtag_info.chain_pos;
+	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
 	fields[2].out_mask = NULL;
@@ -554,16 +553,16 @@ int xscale_write_rx(target_t *target)
 
 	jtag_add_end_state(TAP_RTI);
 
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgrx);
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgrx);
 
-	fields[0].device = xscale->jtag_info.chain_pos;
+	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0_out;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = &field0_in;
 	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
-	fields[1].device = xscale->jtag_info.chain_pos;
+	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_RX].value;
 	fields[1].out_mask = NULL;
@@ -575,7 +574,7 @@ int xscale_write_rx(target_t *target)
 
 
 
-	fields[2].device = xscale->jtag_info.chain_pos;
+	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	fields[2].out_mask = NULL;
@@ -643,7 +642,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 
 	jtag_add_end_state(TAP_RTI);
 
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dbgrx);
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgrx);
 
 	bits[0]=3;
 	t[0]=0;
@@ -680,7 +679,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 			LOG_ERROR("BUG: size neither 4, 2 nor 1");
 			exit(-1);
 		}
-		jtag_add_dr_out(xscale->jtag_info.chain_pos,
+		jtag_add_dr_out(xscale->jtag_info.tap,
 				3,
 				bits,
 				t,
@@ -728,19 +727,19 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 		xscale->external_debug_break = ext_dbg_brk;
 
 	jtag_add_end_state(TAP_RTI);
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dcsr);
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
 
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
 	buf_set_u32(&field0, 2, 1, xscale->external_debug_break);
 
-	fields[0].device = xscale->jtag_info.chain_pos;
+	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = NULL;
 	jtag_set_check_value(fields+0, &field0_check_value, &field0_check_mask, NULL);
 
-	fields[1].device = xscale->jtag_info.chain_pos;
+	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 	fields[1].out_mask = NULL;
@@ -752,7 +751,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 
 
 
-	fields[2].device = xscale->jtag_info.chain_pos;
+	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
 	fields[2].out_mask = NULL;
@@ -798,7 +797,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	LOG_DEBUG("loading miniIC at 0x%8.8x", va);
 
 	jtag_add_end_state(TAP_RTI);
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.ldic); /* LDIC */
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.ldic); /* LDIC */
 
 	/* CMD is b010 for Main IC and b011 for Mini IC */
 	if (mini)
@@ -811,7 +810,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
 
-	fields[0].device = xscale->jtag_info.chain_pos;
+	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
 	fields[0].out_mask = NULL;
@@ -821,7 +820,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = xscale->jtag_info.chain_pos;
+	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
 	fields[1].out_mask = NULL;
@@ -861,7 +860,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	scan_field_t fields[2];
 
 	jtag_add_end_state(TAP_RTI);
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.ldic); /* LDIC */
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.ldic); /* LDIC */
 
 	/* CMD for invalidate IC line b000, bits [6:4] b000 */
 	buf_set_u32(&cmd, 0, 6, 0x0);
@@ -869,7 +868,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	/* virtual address of desired cache line */
 	buf_set_u32(packet, 0, 27, va >> 5);
 
-	fields[0].device = xscale->jtag_info.chain_pos;
+	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 6;
 	fields[0].out_value = &cmd;
 	fields[0].out_mask = NULL;
@@ -879,7 +878,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	fields[0].in_handler = NULL;
 	fields[0].in_handler_priv = NULL;
 
-	fields[1].device = xscale->jtag_info.chain_pos;
+	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 27;
 	fields[1].out_value = packet;
 	fields[1].out_mask = NULL;
@@ -1599,7 +1598,7 @@ int xscale_assert_reset(target_t *target)
 	 * end up in T-L-R, which would reset JTAG
 	 */
 	jtag_add_end_state(TAP_RTI);
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, xscale->jtag_info.dcsr);
+	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
 
 	/* set Hold reset, Halt mode and Trap Reset */
 	buf_set_u32(xscale->reg_cache->reg_list[XSCALE_DCSR].value, 30, 1, 0x1);
@@ -1607,7 +1606,7 @@ int xscale_assert_reset(target_t *target)
 	xscale_write_dcsr(target, 1, 0);
 
 	/* select BYPASS, because having DCSR selected caused problems on the PXA27x */
-	xscale_jtag_set_instr(xscale->jtag_info.chain_pos, 0x7f);
+	xscale_jtag_set_instr(xscale->jtag_info.tap, 0x7f);
 	jtag_execute_queue();
 
 	/* assert reset */
@@ -3045,7 +3044,7 @@ int xscale_quit(void)
 	return ERROR_OK;
 }
 
-int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_pos, const char *variant)
+int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, jtag_tap_t *tap, const char *variant)
 {
 	armv4_5_common_t *armv4_5;
 	u32 high_reset_branch, low_reset_branch;
@@ -3061,7 +3060,7 @@ int xscale_init_arch_info(target_t *target, xscale_common_t *xscale, int chain_p
 	xscale->variant = strdup(variant);
 
 	/* prepare JTAG information for the new target */
-	xscale->jtag_info.chain_pos = chain_pos;
+	xscale->jtag_info.tap = tap;
 
 	xscale->jtag_info.dbgrx = 0x02;
 	xscale->jtag_info.dbgtx = 0x10;
@@ -3158,7 +3157,7 @@ int xscale_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	xscale_common_t *xscale = calloc(1,sizeof(xscale_common_t));
 
-	xscale_init_arch_info(target, xscale, target->chain_position, target->variant);
+	xscale_init_arch_info(target, xscale, target->tap, target->variant);
 	xscale_build_reg_cache(target);
 
 	return ERROR_OK;
