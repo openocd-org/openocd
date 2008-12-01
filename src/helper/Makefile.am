@@ -13,7 +13,8 @@ libhelper_a_SOURCES = binarybuffer.c $(CONFIGFILES) configuration.c log.c comman
 	replacements.c fileio.c startup_tcl.c
 
 noinst_HEADERS = binarybuffer.h configuration.h types.h log.h command.h \
-	time_support.h replacements.h fileio.h jim.h
+	time_support.h replacements.h fileio.h jim.h jim-eventloop.h \
+	startup.tcl bin2char.c
 
 bin2char$(EXEEXT_FOR_BUILD): bin2char.c
 	${CC_FOR_BUILD} ${CFLAGS_FOR_BUILD} $(srcdir)/bin2char.c -o $@
