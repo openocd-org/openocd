@@ -342,6 +342,9 @@ int handle_zy1000_version_command(struct command_context_s *cmd_ctx, char *cmd,
 	return ERROR_OK;
 }
 
+
+
+
 extern flash_driver_t *flash_drivers[];
 extern target_type_t *target_types[];
 
@@ -930,6 +933,72 @@ void openocd_sleep_postlude()
 	cyg_mutex_lock(&httpstate.jim_lock);
 }
 
+
+void format(void)
+{
+	diag_printf("Formatting JFFS2...\n");
+
+	cyg_io_handle_t handle;
+
+	Cyg_ErrNo err;
+	err = cyg_io_lookup(CYGDAT_IO_FLASH_BLOCK_DEVICE_NAME_1, &handle);
+	if (err != ENOERR)
+	{
+		diag_printf("Flash Error cyg_io_lookup: %d\n", err);
+		reboot();
+	}
+
+
+	cyg_uint32 len;
+	cyg_io_flash_getconfig_devsize_t ds;
+	len = sizeof (ds);
+	err = cyg_io_get_config(handle,
+				CYG_IO_GET_CONFIG_FLASH_DEVSIZE, &ds, &len);
+	if (err != ENOERR)
+	{
+		diag_printf("Flash error cyg_io_get_config %d\n", err);
+		reboot();
+	}
+
+	cyg_io_flash_getconfig_erase_t e;
+	void *err_addr;
+	len = sizeof (e);
+
+	e.offset = 0;
+	e.len = ds.dev_size;
+	e.err_address = &err_addr;
+
+	diag_printf("Formatting 0x%08x bytes\n", ds.dev_size);
+	err = cyg_io_get_config(handle, CYG_IO_GET_CONFIG_FLASH_ERASE,
+				&e, &len);
+	if (err != ENOERR)
+	{
+		diag_printf("Flash erase error %d offset 0x%p\n", err, err_addr);
+		reboot();
+	}
+
+	diag_printf("Flash formatted successfully\n");
+
+	reboot();
+}
+
+
+
+static int
+zylinjtag_Jim_Command_format_jffs2(Jim_Interp *interp,
+                                   int argc,
+		Jim_Obj * const *argv)
+{
+	int del;
+	if (argc != 1)
+	{
+		return JIM_ERR;
+	}
+
+	format();
+}
+
+
 static int
 zylinjtag_Jim_Command_rm(Jim_Interp *interp,
                                    int argc,
@@ -1310,6 +1379,7 @@ static void zylinjtag_startNetwork()
     Jim_CreateCommand(httpstate.jim_interp, "mac", zylinjtag_Jim_Command_mac, NULL, NULL);
     Jim_CreateCommand(httpstate.jim_interp, "ip", zylinjtag_Jim_Command_ip, NULL, NULL);
     Jim_CreateCommand(httpstate.jim_interp, "rm", zylinjtag_Jim_Command_rm, NULL, NULL);
+    Jim_CreateCommand(httpstate.jim_interp, "format_jffs2", zylinjtag_Jim_Command_format_jffs2, NULL, NULL);
 
 	cyg_httpd_start();
 
