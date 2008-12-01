@@ -492,43 +492,39 @@ int interface_jtag_add_end_state(enum tap_state state)
 int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
 
-	int i, j;
+	int j;
 	int scan_size = 0;
-	jtag_device_t *device;
-
-	for (i=0; i < jtag_num_devices; i++)
+	jtag_tap_t *tap, *nextTap;
+	for(tap = jtag_NextEnabledTap(NULL); tap!= NULL; tap=nextTap)
 	{
-		int pause=i==(jtag_num_devices-1);
-		int found = 0;
-		device = jtag_get_device(i);
-		if (device==NULL)
-		{
-			return ERROR_FAIL;
-		}
+		nextTap=jtag_NextEnabledTap(tap);
+		int pause=(nextTap==NULL);
 
-		scan_size = device->ir_length;
+		int found = 0;
+
+		scan_size = tap->ir_length;
 
 		/* search the list */
 		for (j=0; j < num_fields; j++)
 		{
-			if (i == fields[j].device)
+			if (tap == fields[j].tap)
 			{
 				found = 1;
 
 				if ((jtag_verify_capture_ir)&&(fields[j].in_handler==NULL))
 				{
-					jtag_set_check_value(fields+j, device->expected, device->expected_mask, NULL);
+					jtag_set_check_value(fields+j, tap->expected, tap->expected_mask, NULL);
 				} else if (jtag_verify_capture_ir)
 				{
-					fields[j].in_check_value = device->expected;
-					fields[j].in_check_mask = device->expected_mask;
+					fields[j].in_check_value = tap->expected;
+					fields[j].in_check_mask = tap->expected_mask;
 				}
 
 				scanFields(1, fields+j, TAP_SI, pause);
 				/* update device information */
-				buf_cpy(fields[j].out_value, device->cur_instr, scan_size);
+				buf_cpy(fields[j].out_value, tap->cur_instr, scan_size);
 
-				device->bypass = 0;
+				tap->bypass = 0;
 				break;
 			}
 		}
@@ -544,8 +540,8 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_st
 			tmp.num_bits = scan_size;
 			scanFields(1, &tmp, TAP_SI, pause);
 			/* update device information */
-			buf_cpy(tmp.out_value, device->cur_instr, scan_size);
-			device->bypass = 1;
+			buf_cpy(tmp.out_value, tap->cur_instr, scan_size);
+			tap->bypass = 1;
 		}
 	}
 	gotoEndState();
@@ -569,15 +565,18 @@ int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum 
 
 int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-	int i, j;
-	for (i=0; i < jtag_num_devices; i++)
+
+	int j;
+	jtag_tap_t *tap, *nextTap;
+	for(tap = jtag_NextEnabledTap(NULL); tap!= NULL; tap=nextTap)
 	{
-		int found = 0;
-		int pause = (i==(jtag_num_devices-1));
+		nextTap=jtag_NextEnabledTap(tap);
+		int found=0;
+		int pause=(nextTap==NULL);
 
 		for (j=0; j < num_fields; j++)
 		{
-			if (i == fields[j].device)
+			if (tap == fields[j].tap)
 			{
 				found = 1;
 
@@ -586,15 +585,6 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_st
 		}
 		if (!found)
 		{
-#ifdef _DEBUG_JTAG_IO_
-			/* if a device isn't listed, the BYPASS register should be selected */
-			if (!jtag_get_device(i)->bypass)
-			{
-				LOG_ERROR("BUG: no scan data for a device not in BYPASS");
-				exit(-1);
-			}
-#endif
-
 			scan_field_t tmp;
 			/* program the scan field to 1 bit length, and ignore it's value */
 			tmp.num_bits = 1;
@@ -610,13 +600,6 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_st
 		}
 		else
 		{
-#ifdef _DEBUG_JTAG_IO_
-			/* if a device is listed, the BYPASS register must not be selected */
-			if (jtag_get_device(i)->bypass)
-			{
-				LOG_WARNING("scan data for a device in BYPASS");
-			}
-#endif
 		}
 	}
 	gotoEndState();
@@ -739,11 +722,11 @@ int interface_jtag_add_pathmove(int num_states, enum tap_state *path)
 
 
 
-void embeddedice_write_dcc(int chain_pos, int reg_addr, u8 *buffer, int little, int count)
+void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count)
 {
 //	static int const reg_addr=0x5;
 	enum tap_state end_state=cmd_queue_end_state;
-	if (jtag_num_devices==1)
+	if (jtag_NextEnabledTap(jtag_NextEnabledTap(NULL))==NULL)
 	{
 		/* better performance via code duplication */
 		if (little)
@@ -771,7 +754,7 @@ void embeddedice_write_dcc(int chain_pos, int reg_addr, u8 *buffer, int little, 
 		int i;
 		for (i = 0; i < count; i++)
 		{
-			embeddedice_write_reg_inner(chain_pos, reg_addr, fast_target_buffer_get_u32(buffer, little));
+			embeddedice_write_reg_inner(tap, reg_addr, fast_target_buffer_get_u32(buffer, little));
 			buffer += 4;
 		}
 	}

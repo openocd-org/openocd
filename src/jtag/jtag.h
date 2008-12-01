@@ -186,13 +186,33 @@ struct jtag_tap_s
 };
 extern jtag_tap_t *jtag_AllTaps(void);
 extern jtag_tap_t *jtag_TapByPosition(int n);
-extern jtag_tap_t *jtag_NextEnabledTap( jtag_tap_t * );
 extern jtag_tap_t *jtag_TapByPosition( int n );
 extern jtag_tap_t *jtag_TapByString( const char *dotted_name );
 extern jtag_tap_t *jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *obj );
 extern jtag_tap_t *jtag_TapByAbsPosition( int abs_position );
 extern int         jtag_NumEnabledTaps(void);
 extern int         jtag_NumTotalTaps(void);
+
+
+static __inline__ jtag_tap_t *
+jtag_NextEnabledTap( jtag_tap_t *p )
+{
+	if( p == NULL ){
+		// start at the head of list
+		p = jtag_AllTaps();
+	} else {
+		// start *after* this one
+		p = p->next_tap;
+	}
+	while( p ){
+		if( p->enabled ){
+			break;
+		} else {
+			p = p->next_tap;
+		}
+	}
+	return p;
+}
 
 
 

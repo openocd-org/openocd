@@ -989,13 +989,13 @@ zylinjtag_Jim_Command_format_jffs2(Jim_Interp *interp,
                                    int argc,
 		Jim_Obj * const *argv)
 {
-	int del;
 	if (argc != 1)
 	{
 		return JIM_ERR;
 	}
 
 	format();
+	for(;;);
 }
 
 

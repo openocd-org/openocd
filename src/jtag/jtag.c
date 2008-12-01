@@ -273,12 +273,12 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 
-jtag_tap_t *jtag_AllTaps(void) 
-{ 
-  return jtag_all_taps; 
+jtag_tap_t *jtag_AllTaps(void)
+{
+  return jtag_all_taps;
 };
 
-int 
+int
 jtag_NumTotalTaps(void)
 {
 	jtag_tap_t *t;
@@ -310,25 +310,6 @@ jtag_NumEnabledTaps(void)
 	return n;
 }
 
-jtag_tap_t *
-jtag_NextEnabledTap( jtag_tap_t *p )
-{
-	if( p == NULL ){
-		// start at the head of list
-		p = jtag_AllTaps();
-	} else {
-		// start *after* this one
-		p = p->next_tap;
-	}
-	while( p ){
-		if( p->enabled ){
-			break;
-		} else {
-			p = p->next_tap;
-		}
-	}
-	return p;
-}
 
 jtag_tap_t *jtag_TapByString( const char *s )
 {
@@ -369,7 +350,7 @@ jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *o )
 		t = NULL;
 	}  else {
 		t = jtag_TapByString( cp );
-	} 
+	}
 	if( t == NULL ){
 		Jim_SetResult_sprintf(interp,"Tap: %s is unknown", cp );
 	}
@@ -385,7 +366,7 @@ jtag_TapByAbsPosition( int n )
 
 	orig_n = n;
 	t = jtag_AllTaps();
-	
+
 	while( t && (n > 0)) {
 		n--;
 		t = t->next_tap;
@@ -1348,7 +1329,7 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 				char *in_check_mask_char;
 				in_check_mask_char = buf_to_str(field->in_check_mask, (num_bits > 64) ? 64 : num_bits, 16);
 				LOG_WARNING("value captured during scan didn't pass the requested check:");
-				LOG_WARNING("captured: 0x%s check_value: 0x%s check_mask: 0x%s", 
+				LOG_WARNING("captured: 0x%s check_value: 0x%s check_mask: 0x%s",
 							captured_char, in_check_value_char, in_check_mask_char);
 				free(in_check_mask_char);
 			}
@@ -1499,7 +1480,7 @@ int jtag_examine_chain(void)
 		LOG_ERROR("JTAG: No taps enabled?");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	
+
 	for (bit_count = 0; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;)
 	{
 		u32 idcode = buf_get_u32(idcode_buffer, bit_count, 32);
@@ -1579,7 +1560,7 @@ int jtag_examine_chain(void)
 				}
 			} else {
 #if 0
-				LOG_INFO("JTAG TAP ID: 0x%08x - Unknown - please report (A) chipname and (B) idcode to the openocd project", 
+				LOG_INFO("JTAG TAP ID: 0x%08x - Unknown - please report (A) chipname and (B) idcode to the openocd project",
 						 tap->idcode);
 #endif
 			}
@@ -1642,7 +1623,7 @@ int jtag_validate_chain(void)
 		if( tap == NULL ){
 			break;
 		}
-		
+
 
 		if (buf_get_u32(ir_test, chain_pos, 2) != 0x1)
 		{
@@ -1697,7 +1678,7 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 		{ .name = NULL				,   .value = -1 },
 	};
 
-		
+
 	pTap = malloc( sizeof(jtag_tap_t) );
 	memset( pTap, 0, sizeof(*pTap) );
 	if( !pTap ){
@@ -1706,7 +1687,7 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 	}
 	//
 	// we expect CHIP + TAP + OPTIONS
-	// 
+	//
 	if( goi->argc < 3 ){
 		Jim_SetResult_sprintf(goi->interp, "Missing CHIP TAP OPTIONS ....");
 		return JIM_ERR;
@@ -1716,17 +1697,17 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 
 	Jim_GetOpt_String( goi, &cp, NULL );
 	pTap->tapname = strdup(cp);
-	
+
 	// name + dot + name + null
 	x = strlen(pTap->chip) + 1 + strlen(pTap->tapname) + 1;
 	cp = malloc( x );
 	sprintf( cp, "%s.%s", pTap->chip, pTap->tapname );
 	pTap->dotted_name = cp;
 
-	LOG_DEBUG("Creating New Tap, Chip: %s, Tap: %s, Dotted: %s, %d params", 
+	LOG_DEBUG("Creating New Tap, Chip: %s, Tap: %s, Dotted: %s, %d params",
 			  pTap->chip, pTap->tapname, pTap->dotted_name, goi->argc);
 
-	
+
 	// default is enabled
 	pTap->enabled = 1;
 
@@ -1737,7 +1718,7 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 
 	// clear them as we find them
 	reqbits = (NTREQ_IRLEN | NTREQ_IRCAPTURE | NTREQ_IRMASK);
-	
+
 	while( goi->argc ){
 		e = Jim_GetOpt_Nvp( goi, opts, &n );
 		if( e != JIM_OK ){
@@ -1766,7 +1747,7 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 			}
 			if( (w < 0) || (w > 0xffff) ){
 				// wacky value
-				Jim_SetResult_sprintf( goi->interp, "option: %s - wacky value: %d (0x%x)", 
+				Jim_SetResult_sprintf( goi->interp, "option: %s - wacky value: %d (0x%x)",
 									   n->name, (int)(w), (int)(w));
 				return JIM_ERR;
 			}
@@ -1789,9 +1770,9 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 
 	// Did we get all the options?
 	if( reqbits ){
-		// no 
+		// no
 		Jim_SetResult_sprintf( goi->interp,
-							   "newtap: %s missing required parameters", 
+							   "newtap: %s missing required parameters",
 							   pTap->dotted_name);
 		// fixme: Tell user what is missing :-(
 		// no memory leaks pelase
@@ -1811,23 +1792,23 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 				 pTap->ir_length,
 				 pTap->ir_capture_value );
 	buf_set_u32( pTap->expected_mask,
-				 0, 
+				 0,
 				 pTap->ir_length,
 				 pTap->ir_capture_mask );
-	buf_set_ones( pTap->cur_instr, 
+	buf_set_ones( pTap->cur_instr,
 				  pTap->ir_length );
 
 	pTap->bypass = 1;
 
 
 	jtag_register_event_callback(jtag_reset_callback, pTap );
-	
+
 	ppTap = &(jtag_all_taps);
 	while( (*ppTap) != NULL ){
 		ppTap = &((*ppTap)->next_tap);
 	}
 	*ppTap = pTap;
-	{ 
+	{
 		static int n_taps = 0;
 		pTap->abs_chain_position = n_taps++;
 	}
@@ -1913,8 +1894,8 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			Jim_SetResultString( goi.interp, "Too many parameters",-1 );
 			return JIM_ERR;
 		}
-		
-		{ 
+
+		{
 			jtag_tap_t *t;
 			t = jtag_TapByJimObj( goi.interp, goi.argv[0] );
 			if( t == NULL ){
@@ -2194,7 +2175,7 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	//   argv[ 1] = ir capture
 	//   argv[ 2] = ir mask
 	//   argv[ 3] = not actually used by anything but in the docs
-	
+
 	if( argc < 4 ){
 		command_print( cmd_ctx, "OLD DEPRECATED SYNTAX: Please use the NEW syntax");
 		return ERROR_OK;
@@ -2208,7 +2189,7 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	command_print( cmd_ctx, "jtag newtap stm32 cortexm3  ....., thus creating the tap: \"stm32.cortexm3\"");
 	command_print( cmd_ctx, "jtag newtap stm32 boundry  ....., and the tap: \"stm32.boundery\"");
 	command_print( cmd_ctx, "And then refer to the taps by the dotted name.");
-	
+
 
 
 	newargs[0] = Jim_NewStringObj( interp, "jtag", -1   );
@@ -2237,7 +2218,7 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			 Jim_GetString( newargs[8], NULL ),
 			 Jim_GetString( newargs[9], NULL ) );
 
-		
+
 
 	e = jim_jtag_command( interp, 10, newargs );
 	if( e != JIM_OK ){
@@ -2265,11 +2246,11 @@ int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char
 					  tap->abs_chain_position,
 					  tap->dotted_name,
 					  tap->enabled ? 'Y' : 'n',
-					  tap->idcode, 
+					  tap->idcode,
 					  tap->expected_id,
-					  tap->ir_length, 
-					  expected, 
-					  expected_mask, 
+					  tap->ir_length,
+					  expected,
+					  expected_mask,
 					  cur_instr);
 		tap = tap->next_tap;
 	}
