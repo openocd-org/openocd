@@ -24,6 +24,11 @@
 
 #include "dcc_stdio.h"
 
+#define TARGET_REQ_TRACEMSG					0x00
+#define TARGET_REQ_DEBUGMSG_ASCII			0x01
+#define TARGET_REQ_DEBUGMSG_HEXMSG(size)	(0x01 | ((size & 0xff) << 8))
+#define TARGET_REQ_DEBUGCHAR				0x02
+
 #if defined(__ARM_ARCH_7M__)
 
 /* we use the cortex_m3 DCRDR reg to simulate a arm7_9 dcc channel
@@ -33,11 +38,6 @@
  * DCRDR[31:24] is used for by host for write buffer */
 
 #define NVIC_DBG_DATA_R		(*((volatile unsigned short *)0xE000EDF8))
-
-#define TARGET_REQ_TRACEMSG					0x00
-#define TARGET_REQ_DEBUGMSG_ASCII			0x01
-#define TARGET_REQ_DEBUGMSG_HEXMSG(size)	(0x01 | ((size & 0xff) << 8))
-#define TARGET_REQ_DEBUGCHAR				0x02
 
 #define	BUSY	1
 
@@ -56,7 +56,7 @@ void dbg_write(unsigned long dcc_data)
 	}
 }
 
-#elif defined(__ARM_ARCH_4T__) || defined(__ARM_ARCH_5TE__)
+#elif defined(__ARM_ARCH_4T__) || defined(__ARM_ARCH_5TE__) || defined(__ARM_ARCH_5T__)
 
 void dbg_write(unsigned long dcc_data)
 {
