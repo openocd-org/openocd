@@ -37,6 +37,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -90,20 +91,20 @@ void ep93xx_write(int tck, int tms, int tdi)
 	if (tck)
 		output_value |= TCK_BIT;
 	else
-		output_value &= TCK_BIT;
+		output_value &= ~TCK_BIT;
 	
 	if (tms)
 		output_value |= TMS_BIT;
 	else
-		output_value &= TMS_BIT;
+		output_value &= ~TMS_BIT;
 	
 	if (tdi)
 		output_value |= TDI_BIT;
 	else
-		output_value &= TDI_BIT;
+		output_value &= ~TDI_BIT;
 
 	*gpio_data_register = output_value;
-	nanosleep(ep93xx_zzzz);
+	nanosleep(&ep93xx_zzzz, NULL);
 }
 
 /* (1) assert or (0) deassert reset lines */
@@ -112,15 +113,15 @@ void ep93xx_reset(int trst, int srst)
 	if (trst == 0)
 		output_value |= TRST_BIT;
 	else if (trst == 1)
-		output_value &= TRST_BIT;
+		output_value &= ~TRST_BIT;
 
 	if (srst == 0)
 		output_value |= SRST_BIT;
 	else if (srst == 1)
-		output_value &= SRST_BIT;
+		output_value &= ~SRST_BIT;
 	
 	*gpio_data_register = output_value;
-	nanosleep(ep93xx_zzzz);
+	nanosleep(&ep93xx_zzzz, NULL);
 }
 
 int ep93xx_speed(int speed)
@@ -218,7 +219,7 @@ int ep93xx_init(void)
 	 */
 	output_value = TMS_BIT | TRST_BIT | SRST_BIT | VCC_BIT;
 	*gpio_data_register = output_value;
-	nanosleep(ep93xx_zzzz);
+	nanosleep(&ep93xx_zzzz, NULL);
 
 	/*
 	 * Configure the direction register.  1 = output, 0 = input.
@@ -226,7 +227,7 @@ int ep93xx_init(void)
 	*gpio_data_direction_register =
 		TDI_BIT | TCK_BIT | TMS_BIT | TRST_BIT | SRST_BIT | VCC_BIT;
 
-	nanosleep(ep93xx_zzzz);
+	nanosleep(&ep93xx_zzzz, NULL);
 	return ERROR_OK;
 }
 
