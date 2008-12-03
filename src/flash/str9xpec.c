@@ -349,13 +349,10 @@ int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	armv4_5 = bank->target->arch_info;
 	arm7_9 = armv4_5->arch_info;
 	jtag_info = &arm7_9->jtag_info;
-
 	
-
 	str9xpec_info->tap = jtag_TapByAbsPosition( jtag_info->tap->abs_chain_position - 1);
 	str9xpec_info->isc_enable = 0;
-
-
+	
 	str9xpec_build_block_list(bank);
 
 	/* clear option byte register */
@@ -1265,13 +1262,8 @@ int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ctx, char
 
 int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-#if 1
-	command_print( cmd_ctx, "**STR9FLASH is currently broken :-( **");
-	return ERROR_OK;
-#else
 	int retval;
 	flash_bank_t *bank;
-	jtag_tap_t *tapX;
 	jtag_tap_t *tap0;
 	jtag_tap_t *tap1;
 	jtag_tap_t *tap2;
@@ -1292,40 +1284,33 @@ int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx
 
 	str9xpec_info = bank->driver_priv;
 
-	tapX = str9xpec_info->tap;
+	tap0 = str9xpec_info->tap;
 
 	/* remove arm core from chain - enter turbo mode */
-	//
-	// At postion +2 in the chain, 
-	// I do not think this is right..
-	// I have not tested it...
-	// and it is a bit wacky right now.
-	// -- Duane 25/nov/2008
-	tap0 = tapX;
 	tap1 = tap0->next_tap;
-	if( tap1 == NULL ){
-		// things are *WRONG*
+	if (tap1 == NULL)
+	{
+		/* things are *WRONG* */
 		command_print(cmd_ctx,"**STR9FLASH** (tap1) invalid chain?");
 		return ERROR_OK;
 	}
 	tap2 = tap1->next_tap;
-	if( tap2 == NULL ){
-		// things are *WRONG*
+	if (tap2 == NULL)
+	{
+		/* things are *WRONG* */
 		command_print(cmd_ctx,"**STR9FLASH** (tap2) invalid chain?");
 		return ERROR_OK;
 	}
 
-	// this instruction disables the arm9 tap
+	/* enable turbo mode - TURBO-PROG-ENABLE */
 	str9xpec_set_instr(tap2, 0xD, TAP_RTI);
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	/* modify scan chain - str9 core has been removed */
-	str9xpec_info->devarm = tap1;
 	tap1->enabled = 0;
-
+	
 	return ERROR_OK;
-#endif
 }
 
 int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1348,18 +1333,17 @@ int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ct
 	}
 
 	str9xpec_info = bank->driver_priv;
-
 	tap = str9xpec_info->tap;
 
 	if (tap == NULL)
 		return ERROR_FAIL;
-
-
+	
 	/* exit turbo mode via TLR */
 	str9xpec_set_instr(tap, ISC_NOOP, TAP_TLR);
 	jtag_execute_queue();
+	
 	/* restore previous scan chain */
-	if( tap->next_tap ){
+	if (tap->next_tap) {
 		tap->next_tap->enabled = 1;
 	}
 

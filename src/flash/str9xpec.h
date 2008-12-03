@@ -78,4 +78,3 @@ enum str9xpec_status_codes
 #define STR9XPEC_OPT_OTPBIT			63
 
 #endif /* STR9XPEC_H */
-
