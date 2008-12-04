@@ -319,7 +319,6 @@ AT91SAM764 internally.
 @* Link: @url{http://www.segger.com/jlink.html}
 @item @b{IAR J-Link}
 @* Link: @url{http://www.iar.com/website1/1.0.1.0/369/1/index.php}
-@item @b{TODO [28/nov/2008]: Confirm if the IAR version works.}
 @end itemize
 
 @section USB Other
