@@ -463,6 +463,39 @@ void* cmd_queue_alloc(size_t size)
 	int offset;
 	u8 *t;
 
+	/*
+	 * WARNING:
+	 *    We align/round the *SIZE* per below
+	 *    so that all pointers returned by
+	 *    this function are reasonably well
+	 *    aligned.
+	 *
+	 * If we did not, then an "odd-length" request would cause the
+	 * *next* allocation to be at an *odd* address, and because
+	 * this function has the same type of api as malloc() - we
+	 * must also return pointers that have the same type of
+	 * alignment.
+	 *
+	 * What I do not/have is a reasonable portable means
+	 * to align by... 
+	 *
+	 * The solution here, is based on these suggestions.
+	 * http://gcc.gnu.org/ml/gcc-help/2008-12/msg00041.html
+	 *
+	 */
+	union worse_case_align {
+	  int i;
+	  long l;
+	  float f;
+	  void *v;
+	};
+#define ALIGN_SIZE  (sizeof(union worse_case_align))
+
+	// The alignment process.
+	size = (size + ALIGN_SIZE -1) & (~(ALIGN_SIZE-1));
+	// Done... 
+	
+
 	if (*p_page)
 	{
 		while ((*p_page)->next)
