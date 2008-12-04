@@ -353,6 +353,9 @@ extern target_type_t *target_types[];
 
 extern char _stext, _etext; // Defined by the linker
 
+static char *start_of_code=&_stext;
+static char *end_of_code=&_etext;
+
 void start_profile(void)
 {
 	// This starts up the system-wide profiling, gathering
@@ -370,9 +373,9 @@ void start_profile(void)
 	//       too large, the usefulness of the profile is reduced.
 
 	// no more interrupts than 1/10ms.
-	//    profile_on(&_stext, &_etext, 16, 10000); // DRAM
 	//profile_on((void *)0, (void *)0x40000, 16, 10000); // SRAM
-	profile_on(0, &_etext, 16, 10000); // SRAM & DRAM
+//	profile_on(0, &_etext, 16, 10000); // SRAM & DRAM
+	profile_on(start_of_code, end_of_code, 16, 10000); // Nios DRAM
 }
 #endif
 
@@ -1917,7 +1920,7 @@ int main(int argc, char *argv[])
 				reboot();
 			}
 
-			err = mount("/dev/ram", "/config", "jffs2");
+			err = mount("", "/config", "ramfs");
 			if (err < 0)
 			{
 				diag_printf("unable to mount ram block device\n");
@@ -2553,122 +2556,3 @@ static int logfs_fo_close(struct CYG_FILE_TAG *fp)
 	return ENOERR;
 }
 
-static bool
-ramiodev_init( struct cyg_devtab_entry *tab )
-{
-	return true;
-}
-
-static Cyg_ErrNo
-ramiodev_bread( cyg_io_handle_t handle, void *buf, cyg_uint32 *len,
-                  cyg_uint32 pos)
-{
-	if (*len+pos>ramblockdevice_size)
-	{
-		*len=ramblockdevice_size-pos;
-	}
-	memcpy(buf, ramblockdevice+pos, *len);
-	return ENOERR;
-}
-
-static Cyg_ErrNo
-ramiodev_bwrite( cyg_io_handle_t handle, const void *buf, cyg_uint32 *len,
-                   cyg_uint32 pos )
-{
-	if (((pos%4)!=0)||(((*len)%4)!=0))
-	{
-		diag_printf("Unaligned write %d %d!", pos, *len);
-	}
-
-	memcpy(ramblockdevice+pos, buf, *len);
-	return ENOERR;
-}
-
-static Cyg_ErrNo
-ramiodev_get_config( cyg_io_handle_t handle,
-                       cyg_uint32 key,
-                       void* buf,
-                       cyg_uint32* len)
-{
-    switch (key) {
-    case CYG_IO_GET_CONFIG_FLASH_ERASE:
-    {
-        if ( *len != sizeof( cyg_io_flash_getconfig_erase_t ) )
-             return -EINVAL;
-        {
-            cyg_io_flash_getconfig_erase_t *e = (cyg_io_flash_getconfig_erase_t *)buf;
-            char *startpos = ramblockdevice + e->offset;
-
-            if (((e->offset%(64*1024))!=0)||((e->len%(64*1024))!=0))
-            {
-            	diag_printf("Erease is not aligned %d %d\n", e->offset, e->len);
-            }
-
-            memset(startpos, 0xff, e->len);
-
-            e->flasherr = 0;
-        }
-        return ENOERR;
-    }
-    case CYG_IO_GET_CONFIG_FLASH_DEVSIZE:
-    {
-        if ( *len != sizeof( cyg_io_flash_getconfig_devsize_t ) )
-             return -EINVAL;
-        {
-            cyg_io_flash_getconfig_devsize_t *d =
-                (cyg_io_flash_getconfig_devsize_t *)buf;
-
-			d->dev_size = ramblockdevice_size;
-        }
-        return ENOERR;
-    }
-
-    case CYG_IO_GET_CONFIG_FLASH_BLOCKSIZE:
-    {
-        cyg_io_flash_getconfig_blocksize_t *b =
-            (cyg_io_flash_getconfig_blocksize_t *)buf;
-        if ( *len != sizeof( cyg_io_flash_getconfig_blocksize_t ) )
-             return -EINVAL;
-
-        // offset unused for now
-		b->block_size = 64*1024;
-        return ENOERR;
-    }
-
-    default:
-        return -EINVAL;
-    }
-}
-
-static Cyg_ErrNo
-ramiodev_set_config( cyg_io_handle_t handle,
-                       cyg_uint32 key,
-                       const void* buf,
-                       cyg_uint32* len)
-{
-
-    switch (key) {
-    default:
-        return -EINVAL;
-    }
-} // ramiodev_set_config()
-
-// get_config/set_config should be added later to provide the other flash
-// operations possible, like erase etc.
-
-BLOCK_DEVIO_TABLE( cyg_io_ramdev1_ops,
-                   &ramiodev_bwrite,
-                   &ramiodev_bread,
-                   0, // no select
-                   &ramiodev_get_config,
-                   &ramiodev_set_config
-    );
-
-
-BLOCK_DEVTAB_ENTRY( cyg_io_ramdev1,
-                    "/dev/ram",
-                    0,
-                    &cyg_io_ramdev1_ops,
-                    &ramiodev_init,
-                    0, // No lookup required
-                    NULL );
