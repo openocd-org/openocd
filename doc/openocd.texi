@@ -290,7 +290,7 @@ As of 28/Nov/2008, the following are supported:
 @item @b{jtagkey}
 @* See: @url{http://www.amontec.com/jtagkey.shtml}
 @item @b{oocdlink}
-@* Link Unknown [not easily verified]
+@* See: @url{http://www.oocdlink.com} By Joern Kaipf
 @item @b{signalyzer}
 @* See: @url{http://www.signalyzer.com}
 @item @b{evb_lm3s811}
