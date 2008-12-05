@@ -2262,15 +2262,16 @@ int xscale_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		LOG_INFO("no breakpoint unit available for hardware breakpoint");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-	else
-	{
-		xscale->ibcr_available--;
-	}
 
 	if ((breakpoint->length != 2) && (breakpoint->length != 4))
 	{
 		LOG_INFO("only breakpoints of two (Thumb) or four (ARM) bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	if (breakpoint->type == BKPT_HARD)
+	{
+		xscale->ibcr_available--;
 	}
 
 	return ERROR_OK;
