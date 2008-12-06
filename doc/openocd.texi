@@ -2080,7 +2080,7 @@ This will setup the BBSR, NBBSR, BBADR and NBBADR registers respectively.
 @option{enable_turbo} <@var{num>.}
 
 Only use this driver for locking/unlocking the device or configuring the option bytes.
-Use the standard str9 driver for programming.
+Use the standard str9 driver for programming. @xref{STR9 specific commands}.
 
 @subsubsection stellaris (LM3Sxxx) options
 @cindex stellaris (LM3Sxxx) options
@@ -2140,6 +2140,7 @@ for each flash plane and this is called with
 
 @subsection STR9 specific commands
 @cindex STR9 specific commands
+@anchor{STR9 specific commands}
 These are flash specific commands when using the str9xpec driver.
 @itemize @bullet
 @item @b{str9xpec enable_turbo} <@var{num}>
@@ -2163,6 +2164,43 @@ erase the device.
 @cindex str9xpec options_write
 @*write str9 option bytes. 
 @end itemize
+
+Note: Before using the str9xpec driver here is some background info to help
+you better understand how the drivers works. Openocd has two flash drivers for
+the str9.
+@enumerate
+@item
+Standard driver @option{str9x} programmed via the str9 core. Normally used for
+flash programming as it is faster than the @option{str9xpec} driver.
+@item
+Direct programming @option{str9xpec} using the flash controller, this is
+ISC compilant (IEEE 1532) tap connected in series with the str9 core. The str9
+core does not need to be running to program using this flash driver. Typical use
+for this driver is locking/unlocking the target and programming the option bytes.
+@end enumerate
+
+Before we run any cmds using the @option{str9xpec} driver we must first disable
+the str9 core. This example assumes the @option{str9xpec} driver has been
+configured for flash bank 0.
+@example
+# assert srst, we do not want core running
+# while accessing str9xpec flash driver
+jtag_reset 0 1
+# turn off target polling
+poll off
+# disable str9 core
+str9xpec enable_turbo 0
+# read option bytes
+str9xpec options_read 0
+# re-enable str9 core
+str9xpec disable_turbo 0
+poll on
+reset halt
+@end example
+The above example will read the str9 option bytes.
+When performing a unlock remember that you will not be able to halt the str9 - it
+has been locked. Halting the core is not required for the @option{str9xpec} driver
+as mentioned above, just issue the cmds above manually or from a telnet prompt.
 
 @subsection STR9 configuration
 @cindex STR9 configuration
