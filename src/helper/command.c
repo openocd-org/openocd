@@ -289,8 +289,10 @@ int unregister_command(command_context_t *context, char *name)
 		return ERROR_INVALID_ARGUMENTS;
 
 	/* find command */
-	for (c = context->commands; c; c = c->next)
-	{
+	c = context->commands;
+	
+	while(NULL != c)
+	{		
 		if (strcmp(name, c->name) == 0)
 		{
 			/* unlink command */
@@ -300,26 +302,32 @@ int unregister_command(command_context_t *context, char *name)
 			}
 			else
 			{
+				/* first element in command list */
 				context->commands = c->next;
 			}
-
+			
 			/* unregister children */
-			if (c->children)
+			while(NULL != c->children)
 			{
-				for (c2 = c->children; c2; c2 = c2->next)
-				{
-					free(c2->name);
-					free(c2);
-				}
+				c2 = c->children;
+				c->children = c->children->next;
+				free(c2->name);
+				c2->name = NULL;
+				free(c2);
+				c2 = NULL;
 			}
-
+			
 			/* delete command */
 			free(c->name);
+			c->name = NULL;
 			free(c);
+			c = NULL;
+			return ERROR_OK;
 		}
-
+		
 		/* remember the last command for unlinking */
 		p = c;
+		c = c->next;
 	}
 
 	return ERROR_OK;
