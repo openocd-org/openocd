@@ -286,7 +286,7 @@ As of 28/Nov/2008, the following are supported:
 
 @itemize @bullet
 @item @b{usbjtag}
-@* Link @url{www.ixo.de/info/usb_jtag}
+@* Link @url{http://www.hs-augsburg.de/~hhoegl/proj/usbjtag/usbjtag.html}
 @item @b{jtagkey}
 @* See: @url{http://www.amontec.com/jtagkey.shtml}
 @item @b{oocdlink}
@@ -1179,6 +1179,8 @@ Tin Can Tools Flyswatter
 egnite Software turtelizer2
 @item @b{oocdlink}
 OOCDLink
+@item @b{axm0432_jtag}
+Axiom AXM-0432
 @end itemize
 
 @item @b{ft2232_vid_pid} <@var{vid}> <@var{pid}>
