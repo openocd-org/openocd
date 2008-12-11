@@ -286,7 +286,7 @@ As of 28/Nov/2008, the following are supported:
 
 @itemize @bullet
 @item @b{usbjtag}
-@* Link Unknown [not easily verified]
+@* Link @url{www.ixo.de/info/usb_jtag}
 @item @b{jtagkey}
 @* See: @url{http://www.amontec.com/jtagkey.shtml}
 @item @b{oocdlink}
@@ -304,7 +304,9 @@ As of 28/Nov/2008, the following are supported:
 @item @b{comstick}
 @* Link: @url{http://www.hitex.com/index.php?id=383}
 @item @b{stm32stick}
-@* Link Unknown [not easily verified]
+@* Link @url{http://www.hitex.com/stm32-stick}
+@item @b{axm0432_jtag}
+@* Axiom AXM-0432 Link @url{http://www.axman.com}
 @end itemize
 
 @section USB JLINK based
@@ -370,7 +372,7 @@ produced, PDF schematics are easily found and it is easy to make.
 @* Unknown.
 
 @item @b{Lattice}
-@* From Lattice Semiconductor [link unknown]
+@* ispDownload from Lattice Semiconductor @url{http://www.latticesemi.com/lit/docs/devtools/dlcable.pdf}
 
 @item @b{flashlink}
 @* From ST Microsystems, link:

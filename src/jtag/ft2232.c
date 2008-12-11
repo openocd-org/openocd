@@ -114,7 +114,6 @@ void comstick_reset(int trst, int srst);
 void stm32stick_reset(int trst, int srst);
 void axm0432_jtag_reset(int trst, int srst);
 
-
 /* blink procedures for layouts that support a blinking led */
 void olimex_jtag_blink(void);
 void turtle_jtag_blink(void);
@@ -1049,7 +1048,6 @@ void olimex_jtag_reset(int trst, int srst)
 	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
 
-
 void axm0432_jtag_reset(int trst, int srst)
 {
 	if (trst == 1)
@@ -1062,24 +1060,21 @@ void axm0432_jtag_reset(int trst, int srst)
 		high_output |= nTRST;
 	}
 
-    if (srst == 1)
-    {
-            high_output &= ~nSRST;
-    }
-    else if (srst == 0)
-    {
-            high_output |= nSRST;
-    }
+	if (srst == 1)
+	{
+		high_output &= ~nSRST;
+	}
+	else if (srst == 0)
+	{
+		high_output |= nSRST;
+	}
 
-    /* command "set data bits low byte" */
-    BUFFER_ADD = 0x82;
-    BUFFER_ADD = high_output;
-    BUFFER_ADD = high_direction;
-    LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
+	/* command "set data bits low byte" */
+	BUFFER_ADD = 0x82;
+	BUFFER_ADD = high_output;
+	BUFFER_ADD = high_direction;
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
-
-
-
 
 void flyswatter_reset(int trst, int srst)
 {
@@ -1414,15 +1409,13 @@ static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int *try_more)
 	char *openex_string = NULL;
 	u8 latency_timer;
 
-	LOG_DEBUG("'ft2232' interface using FTD2XX with '%s' layout (%4.4x:%4.4x)",
-	    ft2232_layout, vid, pid);
+	LOG_DEBUG("'ft2232' interface using FTD2XX with '%s' layout (%4.4x:%4.4x)",ft2232_layout, vid, pid);
 
 #if IS_WIN32 == 0
 	/* Add non-standard Vid/Pid to the linux driver */
 	if ((status = FT_SetVIDPID(vid, pid)) != FT_OK)
 	{
-		LOG_WARNING("couldn't add %4.4x:%4.4x",
-		    vid, pid);
+		LOG_WARNING("couldn't add %4.4x:%4.4x", vid, pid);
 	}
 #endif
 
@@ -1455,8 +1448,7 @@ static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int *try_more)
 		DWORD num_devices;
 		
 		if (more) {
-			LOG_WARNING("unable to open ftdi device (trying more): %lu",
-			    status);
+			LOG_WARNING("unable to open ftdi device (trying more): %lu", status);
 			*try_more = 1;
 			return ERROR_JTAG_INIT_FAILED;
 		}
@@ -1758,13 +1750,10 @@ int usbjtag_init(void)
 	return ERROR_OK;
 }
 
-
 int axm0432_jtag_init(void)
 {
 	u8 buf[3];
-        u8 buf_read[1];
 	u32 bytes_written;
-        u32 bytes_read;
 	
 	low_output = 0x08;
 	low_direction = 0x2b;
@@ -1781,7 +1770,6 @@ int axm0432_jtag_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-      
 	if (strcmp(layout->name, "axm0432_jtag") == 0)
 	{
 		nTRST = 0x08;
@@ -1798,16 +1786,16 @@ int axm0432_jtag_init(void)
 	high_output = 0x0;
 	high_direction = 0x0c;
 
-        if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
+	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 	{
-                LOG_ERROR("can't set nTRSTOE to push-pull on the Dicarlo jtag");
-        }
+		LOG_ERROR("can't set nTRSTOE to push-pull on the Dicarlo jtag");
+	}
 	else
 	{
 		high_output |= nTRST;
 	}
 
-        if (jtag_reset_config & RESET_SRST_PUSH_PULL)
+	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 	{
 		LOG_ERROR("can't set nSRST to push-pull on the Dicarlo jtag");
 	}
@@ -1830,9 +1818,6 @@ int axm0432_jtag_init(void)
 	
 	return ERROR_OK;
 }
-
-
-
 
 int jtagkey_init(void)
 {
@@ -2048,7 +2033,7 @@ int turtle_init(void)
 	}
 	
 	nSRST = 0x40;
-  	
+	
 	high_output = 0x00;
 	high_direction = 0x0C;
 	
@@ -2091,7 +2076,7 @@ int comstick_init(void)
 	nTRSTnOE = 0x00; /* no output enable for nTRST */
 	nSRST = 0x02;
 	nSRSTnOE = 0x00; /* no output enable for nSRST */
-  	
+	
 	high_output = 0x03;
 	high_direction = 0x03;
 	
@@ -2134,7 +2119,7 @@ int stm32stick_init(void)
 	nTRSTnOE = 0x00; /* no output enable for nTRST */
 	nSRST = 0x80;
 	nSRSTnOE = 0x00; /* no output enable for nSRST */
-  	
+	
 	high_output = 0x01;
 	high_direction = 0x03;
 	
