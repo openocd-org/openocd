@@ -144,7 +144,7 @@ int flash_register_commands(struct command_context_s *cmd_ctx)
 {
 	flash_cmd = register_command(cmd_ctx, NULL, "flash", NULL, COMMAND_ANY, NULL);
 
-	register_command(cmd_ctx, flash_cmd, "bank", handle_flash_bank_command, COMMAND_CONFIG, "flash_bank <driver> <base> <size> <chip_width> <bus_width> <target> [driver_options ...]");
+	register_command(cmd_ctx, flash_cmd, "bank", handle_flash_bank_command, COMMAND_CONFIG, "flash bank <driver> <base> <size> <chip_width> <bus_width> <target> [driver_options ...]");
 	return ERROR_OK;
 }
 

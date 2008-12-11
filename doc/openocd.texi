@@ -1950,7 +1950,7 @@ updated information.
 @cindex flash protect_check
 @*Check protection state of sectors in flash bank <num>. 
 @option{flash erase_sector} using the same syntax. 
-@subsection fash erase_sector
+@subsection flash erase_sector
 @b{flash erase_sector} <@var{num}> <@var{first}> <@var{last}>
 @cindex flash erase_sector
 @anchor{flash erase_sector}
