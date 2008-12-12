@@ -179,7 +179,8 @@ struct jtag_tap_s
 	u32 ir_capture_mask;
 	u8 *expected_mask;	/* Capture-IR expected mask */
 	u32 idcode;			/* device identification code */
-	u32 expected_id;
+	u32 *expected_ids;	/* Array of expected identification codes */
+	u8 expected_ids_cnt;/* Number of expected identification codes */
 	u8 *cur_instr;		/* current instruction */
 	int bypass;			/* bypass register selected */
 	jtag_tap_t *next_tap;

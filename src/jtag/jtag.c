@@ -1574,20 +1574,36 @@ int jtag_examine_chain(void)
 		if (tap)
 		{
 			tap->idcode = idcode;
-			if( tap->expected_id ){
-				if( tap->idcode != tap->expected_id ){
-					LOG_ERROR("ERROR: Tap: %s - Expected id: 0x%08x, Got: 0x%08x",
+
+			if (tap->expected_ids_cnt > 0) {
+				/* Loop over the expected identification codes and test for a match */
+				u8 ii;
+				for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
+					if( tap->idcode == tap->expected_ids[ii] ){
+						break;
+					}
+				}
+			
+				/* If none of the expected ids matched, log an error */
+				if (ii == tap->expected_ids_cnt) {
+					LOG_ERROR("JTAG tap: %s             got: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
 							  tap->dotted_name,
-							  tap->expected_id,
-							  idcode );
-					LOG_ERROR("ERROR: expected: mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x",
-							  EXTRACT_MFG( tap->expected_id ),
-							  EXTRACT_PART( tap->expected_id ),
-							  EXTRACT_VER( tap->expected_id ) );
-					LOG_ERROR("ERROR:      got: mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x",
+							  idcode,
 							  EXTRACT_MFG( tap->idcode ),
 							  EXTRACT_PART( tap->idcode ),
 							  EXTRACT_VER( tap->idcode ) );
+					for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
+						LOG_ERROR("JTAG tap: %s expected %hhu of %hhu: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
+								  tap->dotted_name,
+								  ii + 1,
+								  tap->expected_ids_cnt,
+								  tap->expected_ids[ii],
+								  EXTRACT_MFG( tap->expected_ids[ii] ),
+								  EXTRACT_PART( tap->expected_ids[ii] ),
+								  EXTRACT_VER( tap->expected_ids[ii] ) );
+					}
+
+					return ERROR_JTAG_INIT_FAILED;
 				} else {
 					LOG_INFO("JTAG Tap/device matched");
 				}
@@ -1767,9 +1783,30 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 			pTap->enabled = 0;
 			break;
 		case NTAP_OPT_EXPECTED_ID:
+		{
+			u32 *new_expected_ids;
+
 			e = Jim_GetOpt_Wide( goi, &w );
-			pTap->expected_id = w;
+			if( e != JIM_OK) {
+				Jim_SetResult_sprintf(goi->interp, "option: %s bad parameter", n->name);
+				return e;
+			}
+
+			new_expected_ids = malloc(sizeof(u32) * (pTap->expected_ids_cnt + 1));
+			if (new_expected_ids == NULL) {
+				Jim_SetResult_sprintf( goi->interp, "no memory");
+				return JIM_ERR;
+			}
+
+			memcpy(new_expected_ids, pTap->expected_ids, sizeof(u32) * pTap->expected_ids_cnt);
+
+			new_expected_ids[pTap->expected_ids_cnt] = w;
+		
+			free(pTap->expected_ids);	
+			pTap->expected_ids = new_expected_ids;
+			pTap->expected_ids_cnt++;
 			break;
+		}
 		case NTAP_OPT_IRLEN:
 		case NTAP_OPT_IRMASK:
 		case NTAP_OPT_IRCAPTURE:
@@ -1809,6 +1846,7 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 							   pTap->dotted_name);
 		// fixme: Tell user what is missing :-(
 		// no memory leaks pelase
+		free(((void *)(pTap->expected_ids)));
 		free(((void *)(pTap->chip)));
 		free(((void *)(pTap->tapname)));
 		free(((void *)(pTap->dotted_name)));
@@ -2270,21 +2308,28 @@ int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char
 	command_print(cmd_ctx, "---|--------------------|---------|------------|------------|------|------|------|---------");
 
 	while( tap ){
-		u32 expected, expected_mask, cur_instr;
+		u32 expected, expected_mask, cur_instr, ii;
 		expected = buf_get_u32(tap->expected, 0, tap->ir_length);
 		expected_mask = buf_get_u32(tap->expected_mask, 0, tap->ir_length);
 		cur_instr = buf_get_u32(tap->cur_instr, 0, tap->ir_length);
+
 		command_print(cmd_ctx,
 					  "%2d | %-18s |    %c    | 0x%08x | 0x%08x | 0x%02x | 0x%02x | 0x%02x | 0x%02x",
 					  tap->abs_chain_position,
 					  tap->dotted_name,
 					  tap->enabled ? 'Y' : 'n',
 					  tap->idcode,
-					  tap->expected_id,
+					  (tap->expected_ids_cnt > 0 ? tap->expected_ids[0] : 0),
 					  tap->ir_length,
 					  expected,
 					  expected_mask,
 					  cur_instr);
+
+		for (ii = 1; ii < tap->expected_ids_cnt; ii++) {
+			command_print(cmd_ctx, "   |                    |         |            | 0x%08x |      |      |      |         ",
+						  tap->expected_ids[ii]);
+		}
+
 		tap = tap->next_tap;
 	}
 
