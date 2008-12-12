@@ -225,6 +225,7 @@ int cortex_m3_endreset_event(target_t *target)
 
 	/* Enable FPB */
 	target_write_u32(target, FP_CTRL, 3);
+	cortex_m3->fpb_enabled = 1;
 
 	/* Restore FPB registers */
 	for (i = 0; i < cortex_m3->fp_num_code + cortex_m3->fp_num_lit; i++)
@@ -869,6 +870,11 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		comparator_list[fp_num].fpcr_value = (breakpoint->address & 0x1FFFFFFC) | hilo | 1;
 		target_write_u32(target, comparator_list[fp_num].fpcr_address, comparator_list[fp_num].fpcr_value);
 		LOG_DEBUG("fpc_num %i fpcr_value 0x%x", fp_num, comparator_list[fp_num].fpcr_value);
+		if (!cortex_m3->fpb_enabled)
+		{
+			LOG_DEBUG("FPB wasn't enabled, do it now");
+			target_write_u32(target, FP_CTRL, 3);
+		}
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
@@ -1401,10 +1407,11 @@ int cortex_m3_examine(struct target_s *target)
 		/* Setup FPB */
 		target_read_u32(target, FP_CTRL, &fpcr);
 		cortex_m3->auto_bp_type = 1;
-		cortex_m3->fp_num_code = (fpcr >> 4) & 0xF;
+		cortex_m3->fp_num_code = (fpcr >> 8) & 0x70 | (fpcr >> 4) & 0xF; /* bits [14:12] and [7:4] */
 		cortex_m3->fp_num_lit = (fpcr >> 8) & 0xF;
 		cortex_m3->fp_code_available = cortex_m3->fp_num_code;
 		cortex_m3->fp_comparator_list = calloc(cortex_m3->fp_num_code + cortex_m3->fp_num_lit, sizeof(cortex_m3_fp_comparator_t));
+		cortex_m3->fpb_enabled = fpcr & 1;
 		for (i = 0; i < cortex_m3->fp_num_code + cortex_m3->fp_num_lit; i++)
 		{
 			cortex_m3->fp_comparator_list[i].type = (i < cortex_m3->fp_num_code) ? FPCR_CODE : FPCR_LITERAL;

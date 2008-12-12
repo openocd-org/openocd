@@ -145,14 +145,15 @@ typedef struct cortex_m3_common_s
 	u32 nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
 	u32 nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
 	
-	/* Flash Patch and Breakpoint */
+	/* Flash Patch and Breakpoint (FPB) */
 	int fp_num_lit;
 	int fp_num_code;
 	int fp_code_available;
+	int fpb_enabled;
 	int auto_bp_type;
 	cortex_m3_fp_comparator_t *fp_comparator_list;
 	
-	/* DWT */
+	/* Data Watchpoint and Trace (DWT) */
 	int dwt_num_comp;
 	int dwt_comp_available;
 	cortex_m3_dwt_comparator_t *dwt_comparator_list;
