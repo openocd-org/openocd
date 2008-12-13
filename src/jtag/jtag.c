@@ -87,22 +87,22 @@ int tap_move_map[16] = {
 
 tap_transition_t tap_transitions[16] =
 {
-	{TAP_TLR, TAP_RTI},		/* TLR */
-	{TAP_SIS, TAP_CD},		/* SDS */
-	{TAP_E1D, TAP_SD},		/* CD  */
-	{TAP_E1D, TAP_SD},		/* SD  */
-	{TAP_UD,  TAP_PD}, 		/* E1D */
-	{TAP_E2D, TAP_PD},		/* PD  */
-	{TAP_UD,  TAP_SD},		/* E2D */
-	{TAP_SDS, TAP_RTI},		/* UD  */
-	{TAP_SDS, TAP_RTI},		/* RTI */
-	{TAP_TLR, TAP_CI},		/* SIS */
-	{TAP_E1I, TAP_SI},		/* CI  */
-	{TAP_E1I, TAP_SI},		/* SI  */
-	{TAP_UI,  TAP_PI}, 		/* E1I */
-	{TAP_E2I, TAP_PI},		/* PI  */
-	{TAP_UI,  TAP_SI},		/* E2I */
-	{TAP_SDS, TAP_RTI}		/* UI  */
+	{TAP_RESET, TAP_IDLE},		/* TLR */
+	{TAP_IRSELECT, TAP_DRCAPTURE},		/* SDS */
+	{TAP_DREXIT1, TAP_DRSHIFT},		/* CD  */
+	{TAP_DREXIT1, TAP_DRSHIFT},		/* SD  */
+	{TAP_DRUPDATE,  TAP_DRPAUSE}, 		/* E1D */
+	{TAP_DREXIT2, TAP_DRPAUSE},		/* PD  */
+	{TAP_DRUPDATE,  TAP_DRSHIFT},		/* E2D */
+	{TAP_DRSELECT, TAP_IDLE},		/* UD  */
+	{TAP_DRSELECT, TAP_IDLE},		/* RTI */
+	{TAP_RESET, TAP_IRCAPTURE},		/* SIS */
+	{TAP_IREXIT1, TAP_IRSHIFT},		/* CI  */
+	{TAP_IREXIT1, TAP_IRSHIFT},		/* SI  */
+	{TAP_IRUPDATE,  TAP_IRPAUSE}, 		/* E1I */
+	{TAP_IREXIT2, TAP_IRPAUSE},		/* PI  */
+	{TAP_IRUPDATE,  TAP_IRSHIFT},		/* E2I */
+	{TAP_DRSELECT, TAP_IDLE}		/* UI  */
 };
 
 char* jtag_event_strings[] =
@@ -115,8 +115,8 @@ char* jtag_event_strings[] =
  * inside the drivers, but we don't want to break
  * linking the drivers!!!!
  */
-enum tap_state end_state = TAP_TLR;
-enum tap_state cur_state = TAP_TLR;
+enum tap_state end_state = TAP_RESET;
+enum tap_state cur_state = TAP_RESET;
 int jtag_trst = 0;
 int jtag_srst = 0;
 
@@ -125,8 +125,8 @@ jtag_command_t **last_comand_pointer = &jtag_command_queue;
 static jtag_tap_t *jtag_all_taps = NULL;
 
 enum reset_types jtag_reset_config = RESET_NONE;
-enum tap_state cmd_queue_end_state = TAP_TLR;
-enum tap_state cmd_queue_cur_state = TAP_TLR;
+enum tap_state cmd_queue_end_state = TAP_RESET;
+enum tap_state cmd_queue_cur_state = TAP_RESET;
 
 int jtag_verify_capture_ir = 1;
 
@@ -477,7 +477,7 @@ void* cmd_queue_alloc(size_t size)
 	 * alignment.
 	 *
 	 * What I do not/have is a reasonable portable means
-	 * to align by... 
+	 * to align by...
 	 *
 	 * The solution here, is based on these suggestions.
 	 * http://gcc.gnu.org/ml/gcc-help/2008-12/msg00041.html
@@ -493,8 +493,8 @@ void* cmd_queue_alloc(size_t size)
 
 	// The alignment process.
 	size = (size + ALIGN_SIZE -1) & (~(ALIGN_SIZE-1));
-	// Done... 
-	
+	// Done...
+
 
 	if (*p_page)
 	{
@@ -543,7 +543,7 @@ static void jtag_prelude1(void)
 		return;
 	}
 
-	if (cmd_queue_end_state == TAP_TLR)
+	if (cmd_queue_end_state == TAP_RESET)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 }
 
@@ -959,7 +959,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 
 void jtag_add_tlr(void)
 {
-	jtag_prelude(TAP_TLR);
+	jtag_prelude(TAP_RESET);
 
 	int retval;
 	retval=interface_jtag_add_tlr();
@@ -969,7 +969,7 @@ void jtag_add_tlr(void)
 
 int MINIDRIVER(interface_jtag_add_tlr)()
 {
-	enum tap_state state = TAP_TLR;
+	enum tap_state state = TAP_RESET;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 
 	/* allocate memory for a new list member */
@@ -1000,9 +1000,9 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 
 	for (i=0; i<num_states; i++)
 	{
-		if (path[i] == TAP_TLR)
+		if (path[i] == TAP_RESET)
 		{
-			LOG_ERROR("BUG: TAP_TLR is not a valid state for pathmove sequences");
+			LOG_ERROR("BUG: TAP_RESET is not a valid state for pathmove sequences");
 			exit(-1);
 		}
 		if ((tap_transitions[cur_state].low != path[i])&&
@@ -1154,7 +1154,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	if (trst_with_tlr)
 	{
 		LOG_DEBUG("JTAG reset with TLR instead of TRST");
-		jtag_add_end_state(TAP_TLR);
+		jtag_add_end_state(TAP_RESET);
 		jtag_add_tlr();
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		return;
@@ -1166,7 +1166,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		 * and inform possible listeners about this
 		 */
 		LOG_DEBUG("TRST line asserted");
-		cmd_queue_cur_state = TAP_TLR;
+		cmd_queue_cur_state = TAP_RESET;
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 	}
 	else
@@ -1196,9 +1196,9 @@ int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
 void jtag_add_end_state(enum tap_state state)
 {
 	cmd_queue_end_state = state;
-	if ((cmd_queue_end_state == TAP_SD)||(cmd_queue_end_state == TAP_SI))
+	if ((cmd_queue_end_state == TAP_DRSHIFT)||(cmd_queue_end_state == TAP_IRSHIFT))
 	{
-		LOG_ERROR("BUG: TAP_SD/SI can't be end state. Calling code should use a larger scan field");
+		LOG_ERROR("BUG: TAP_DRSHIFT/SI can't be end state. Calling code should use a larger scan field");
 	}
 }
 
@@ -1491,7 +1491,7 @@ int jtag_examine_chain(void)
 		buf_set_u32(idcode_buffer, i * 32, 32, 0x000000FF);
 	}
 
-	jtag_add_plain_dr_scan(1, &field, TAP_TLR);
+	jtag_add_plain_dr_scan(1, &field, TAP_RESET);
 	jtag_execute_queue();
 
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE * 4; i++)
@@ -1583,7 +1583,7 @@ int jtag_examine_chain(void)
 						break;
 					}
 				}
-			
+
 				/* If none of the expected ids matched, log an error */
 				if (ii == tap->expected_ids_cnt) {
 					LOG_ERROR("JTAG tap: %s             got: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
@@ -1662,7 +1662,7 @@ int jtag_validate_chain(void)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 
-	jtag_add_plain_ir_scan(1, &field, TAP_TLR);
+	jtag_add_plain_ir_scan(1, &field, TAP_RESET);
 	jtag_execute_queue();
 
 	tap = NULL;
@@ -1801,8 +1801,8 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 			memcpy(new_expected_ids, pTap->expected_ids, sizeof(u32) * pTap->expected_ids_cnt);
 
 			new_expected_ids[pTap->expected_ids_cnt] = w;
-		
-			free(pTap->expected_ids);	
+
+			free(pTap->expected_ids);
 			pTap->expected_ids = new_expected_ids;
 			pTap->expected_ids_cnt++;
 			break;

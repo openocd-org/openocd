@@ -74,9 +74,9 @@ target_type_t arm966e_target =
 	.bulk_write_memory = arm7_9_bulk_write_memory,
 	.checksum_memory = arm7_9_checksum_memory,
 	.blank_check_memory = arm7_9_blank_check_memory,
-	
+
 	.run_algorithm = armv4_5_run_algorithm,
-	
+
 	.add_breakpoint = arm7_9_add_breakpoint,
 	.remove_breakpoint = arm7_9_remove_breakpoint,
 	.add_watchpoint = arm7_9_add_watchpoint,
@@ -92,13 +92,13 @@ target_type_t arm966e_target =
 int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
 	arm9tdmi_init_target(cmd_ctx, target);
-		
+
 	return ERROR_OK;
 }
 
 int arm966e_quit(void)
 {
-	
+
 	return ERROR_OK;
 }
 
@@ -106,25 +106,25 @@ int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap
 {
 	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
-	
+
 	arm9tdmi_init_arch_info(target, arm9tdmi, tap, variant);
 
 	arm9tdmi->arch_info = arm966e;
 	arm966e->common_magic = ARM966E_COMMON_MAGIC;
-	
+
 	/* The ARM966E-S implements the ARMv5TE architecture which
 	 * has the BKPT instruction, so we don't have to use a watchpoint comparator
 	 */
 	arm7_9->arm_bkpt = ARMV5_BKPT(0x0);
 	arm7_9->thumb_bkpt = ARMV5_T_BKPT(0x0) & 0xffff;
-	
+
 	return ERROR_OK;
 }
 
 int arm966e_target_create( struct target_s *target, Jim_Interp *interp )
 {
 	arm966e_common_t *arm966e = calloc(1,sizeof(arm966e_common_t));
-	
+
 	arm966e_init_arch_info(target, arm966e, target->tap, target->variant);
 
 	return ERROR_OK;
@@ -136,35 +136,35 @@ int arm966e_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, ar
 	arm7_9_common_t *arm7_9;
 	arm9tdmi_common_t *arm9tdmi;
 	arm966e_common_t *arm966e;
-	
+
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	arm7_9 = armv4_5->arch_info;
 	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	arm9tdmi = arm7_9->arch_info;
 	if (arm9tdmi->common_magic != ARM9TDMI_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	arm966e = arm9tdmi->arch_info;
 	if (arm966e->common_magic != ARM966E_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	*armv4_5_p = armv4_5;
 	*arm7_9_p = arm7_9;
 	*arm9tdmi_p = arm9tdmi;
 	*arm966e_p = arm966e;
-	
+
 	return ERROR_OK;
 }
 
@@ -177,8 +177,8 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	scan_field_t fields[3];
 	u8 reg_addr_buf = reg_addr & 0x3f;
 	u8 nr_w_buf = 0;
-	
-	jtag_add_end_state(TAP_RTI);
+
+	jtag_add_end_state(TAP_IDLE);
 	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
@@ -214,7 +214,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	fields[2].in_check_mask = NULL;
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
-	
+
 	jtag_add_dr_scan(3, fields, -1);
 
 	fields[0].in_handler_priv = value;
@@ -243,10 +243,10 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	u8 reg_addr_buf = reg_addr & 0x3f;
 	u8 nr_w_buf = 1;
 	u8 value_buf[4];
-	
+
 	buf_set_u32(value_buf, 0, 32, value);
-	
-	jtag_add_end_state(TAP_RTI);
+
+	jtag_add_end_state(TAP_IDLE);
 	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
@@ -282,7 +282,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[2].in_check_mask = NULL;
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
-	
+
 	jtag_add_dr_scan(3, fields, -1);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
@@ -307,9 +307,9 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		command_print(cmd_ctx, "current target isn't an ARM966e target");
 		return ERROR_OK;
 	}
-	
+
 	jtag_info = &arm7_9->jtag_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
@@ -333,7 +333,7 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			{
 				return retval;
 			}
-			
+
 			command_print(cmd_ctx, "%i: %8.8x", address, value);
 		}
 		else if (argc == 2)
@@ -355,10 +355,10 @@ int arm966e_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
 	command_t *arm966e_cmd;
-	
+
 	retval = arm9tdmi_register_commands(cmd_ctx);
 	arm966e_cmd = register_command(cmd_ctx, NULL, "arm966e", NULL, COMMAND_ANY, "arm966e specific commands");
 	register_command(cmd_ctx, arm966e_cmd, "cp15", arm966e_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <num> [value]");
-	
+
 	return retval;
 }

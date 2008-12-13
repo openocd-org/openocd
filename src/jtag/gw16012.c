@@ -97,13 +97,13 @@ int gw16012_quit(void);
 
 int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-jtag_interface_t gw16012_interface = 
+jtag_interface_t gw16012_interface =
 {
 	.name = "gw16012",
-	
+
 	.execute_queue = gw16012_execute_queue,
 
-	.speed = gw16012_speed,	
+	.speed = gw16012_speed,
 	.register_commands = gw16012_register_commands,
 	.init = gw16012_init,
 	.quit = gw16012_quit,
@@ -113,7 +113,7 @@ int gw16012_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "parport_port", gw16012_handle_parport_port_command,
 					 COMMAND_CONFIG, NULL);
-	
+
 	return ERROR_OK;
 }
 
@@ -125,7 +125,7 @@ void gw16012_data(u8 value)
 #ifdef _DEBUG_GW16012_IO_
 	LOG_DEBUG("%2.2x", value);
 #endif
-	
+
 	#if PARPORT_USE_PPDEV == 1
 		ioctl(device_handle, PPWDATA, &value);
 	#else
@@ -134,7 +134,7 @@ void gw16012_data(u8 value)
 		#else
 			outb(value, gw16012_port);
 		#endif
-	#endif	
+	#endif
 }
 
 void gw16012_control(u8 value)
@@ -209,15 +209,15 @@ void gw16012_state_move(void)
 {
 	int i=0, tms=0;
 	u8 tms_scan = TAP_MOVE(cur_state, end_state);
-	
+
 	gw16012_control(0x0); /* single-bit mode */
-	
+
 	for (i = 0; i < 7; i++)
 	{
 		tms = (tms_scan >> i) & 1;
 		gw16012_data(tms << 1); /* output next TMS bit */
 	}
-	
+
 	cur_state = end_state;
 }
 
@@ -243,12 +243,12 @@ void gw16012_path_move(pathmove_command_t *cmd)
 			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
 			exit(-1);
 		}
-		
+
 		cur_state = cmd->path[state_count];
 		state_count++;
 		num_states--;
 	}
-	
+
 	end_state = cur_state;
 }
 
@@ -256,20 +256,20 @@ void gw16012_runtest(int num_cycles)
 {
 	enum tap_state saved_end_state = end_state;
 	int i;
-	
+
 	/* only do a state_move when we're not already in RTI */
-	if (cur_state != TAP_RTI)
+	if (cur_state != TAP_IDLE)
 	{
-		gw16012_end_state(TAP_RTI);
+		gw16012_end_state(TAP_IDLE);
 		gw16012_state_move();
 	}
-	
+
 	for (i = 0; i < num_cycles; i++)
 	{
 		gw16012_control(0x0); /* single-bit mode */
 		gw16012_data(0x0); /* TMS cycle with TMS low */
 	}
-	
+
 	gw16012_end_state(saved_end_state);
 	if (cur_state != end_state)
 		gw16012_state_move();
@@ -283,12 +283,12 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	u8 scan_out, scan_in;
 
 	/* only if we're not already in the correct Shift state */
-	if (!((!ir_scan && (cur_state == TAP_SD)) || (ir_scan && (cur_state == TAP_SI))))
+	if (!((!ir_scan && (cur_state == TAP_DRSHIFT)) || (ir_scan && (cur_state == TAP_IRSHIFT))))
 	{
 		if (ir_scan)
-			gw16012_end_state(TAP_SI);
+			gw16012_end_state(TAP_IRSHIFT);
 		else
-			gw16012_end_state(TAP_SD);
+			gw16012_end_state(TAP_DRSHIFT);
 
 		gw16012_state_move();
 		gw16012_end_state(saved_end_state);
@@ -302,20 +302,20 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 		bit_count += 7;
 		bits_left -= 7;
 	}
-	
+
 	gw16012_control(0x0); /* single-bit mode */
 	while (bits_left-- > 0)
 	{
 		u8 tms = 0;
-		
+
 		scan_out = buf_get_u32(buffer, bit_count, 1);
-		
+
 		if (bits_left == 0) /* last bit */
 		{
-			if ((ir_scan && (end_state == TAP_SI))
-				|| (!ir_scan && (end_state == TAP_SD)))
+			if ((ir_scan && (end_state == TAP_IRSHIFT))
+				|| (!ir_scan && (end_state == TAP_DRSHIFT)))
 			{
-				tms = 0; 
+				tms = 0;
 			}
 			else
 			{
@@ -329,20 +329,20 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 		{
 			gw16012_input(&scan_in);
 			buf_set_u32(buffer, bit_count, 1, ((scan_in & 0x08) >> 3));
-		}		
+		}
 
 		bit_count++;
 	}
 
-	if (!((ir_scan && (end_state == TAP_SI)) ||
-		(!ir_scan && (end_state == TAP_SD))))
+	if (!((ir_scan && (end_state == TAP_IRSHIFT)) ||
+		(!ir_scan && (end_state == TAP_DRSHIFT))))
 	{
 		gw16012_data(0x0);
 		if (ir_scan)
-			cur_state = TAP_PI;
+			cur_state = TAP_IRPAUSE;
 		else
-			cur_state = TAP_PD;
-			
+			cur_state = TAP_DRPAUSE;
+
 		if (cur_state != end_state)
 			gw16012_state_move();
 	}
@@ -355,12 +355,12 @@ int gw16012_execute_queue(void)
 	enum scan_type type;
 	u8 *buffer;
 	int retval;
-	
+
 	/* return ERROR_OK, unless a jtag_read_buffer returns a failed check
 	 * that wasn't handled by a caller-provided error handler
-	 */ 
+	 */
 	retval = ERROR_OK;
-		
+
 	while (cmd)
 	{
 		switch (cmd->type)
@@ -378,7 +378,7 @@ int gw16012_execute_queue(void)
 #endif
 				if (cmd->cmd.reset->trst == 1)
 				{
-					cur_state = TAP_TLR;
+					cur_state = TAP_RESET;
 				}
 				gw16012_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
@@ -410,7 +410,7 @@ int gw16012_execute_queue(void)
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 				type = jtag_scan_type(cmd->cmd.scan);
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("%s scan (%i) %i bit end in %i", (cmd->cmd.scan->ir_scan) ? "ir" : "dr", 
+				LOG_DEBUG("%s scan (%i) %i bit end in %i", (cmd->cmd.scan->ir_scan) ? "ir" : "dr",
 					type, scan_size, cmd->cmd.scan->end_state);
 #endif
 				gw16012_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
@@ -431,7 +431,7 @@ int gw16012_execute_queue(void)
 		}
 		cmd = cmd->next;
 	}
-	
+
 	return retval;
 }
 
@@ -443,16 +443,16 @@ int gw16012_get_giveio_access()
 
     version.dwOSVersionInfoSize = sizeof version;
     if (!GetVersionEx( &version )) {
-        errno = EINVAL;
-        return -1;
+	errno = EINVAL;
+	return -1;
     }
     if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
-        return 0;
+	return 0;
 
     h = CreateFile( "\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
     if (h == INVALID_HANDLE_VALUE) {
-        errno = ENODEV;
-        return -1;
+	errno = ENODEV;
+	return -1;
     }
 
     CloseHandle( h );
@@ -468,7 +468,7 @@ int gw16012_init(void)
 	int i = 0;
 #endif
 	u8 status_port;
-	
+
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle>0)
 	{
@@ -486,7 +486,7 @@ int gw16012_init(void)
 
 	snprintf(buffer, 256, "/dev/parport%d", gw16012_port);
 	device_handle = open(buffer, O_WRONLY);
-#endif	
+#endif
 	if (device_handle<0)
 	{
 		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set");
@@ -525,7 +525,7 @@ int gw16012_init(void)
 		gw16012_port = 0x378;
 		LOG_WARNING("No gw16012 port specified, using default '0x378' (LPT1)");
 	}
-	
+
 	LOG_DEBUG("requesting privileges for parallel port 0x%lx...", (long unsigned)(gw16012_port) );
 #if PARPORT_USE_GIVEIO == 1
 	if (gw16012_get_giveio_access() != 0)
@@ -545,19 +545,19 @@ int gw16012_init(void)
 	outb(0x0, gw16012_port + 2);
 #endif
 #endif /* PARPORT_USE_PPDEV */
-	
+
 	gw16012_input(&status_port);
 	gw16012_msb = (status_port & 0x80) ^ 0x80;
-	
+
 	gw16012_speed(jtag_speed);
 	gw16012_reset(0, 0);
-	
+
 	return ERROR_OK;
 }
 
 int gw16012_quit(void)
 {
-	
+
 	return ERROR_OK;
 }
 

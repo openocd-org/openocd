@@ -41,24 +41,24 @@ bitbang_interface_t *bitbang_interface;
 
 
 /* DANGER!!!! clock absolutely *MUST* be 0 in idle or reset won't work!
- * 
+ *
  * Set this to 1 and str912 reset halt will fail.
- * 
+ *
  * If someone can submit a patch with an explanation it will be greatly
  * appreciated, but as far as I can tell (ØH) DCLK is generated upon
- * clk=0 in TAP_RTI. Good luck deducing that from the ARM documentation!
- * The ARM documentation uses the term "DCLK is asserted while in the TAP_RTI 
+ * clk=0 in TAP_IDLE. Good luck deducing that from the ARM documentation!
+ * The ARM documentation uses the term "DCLK is asserted while in the TAP_IDLE
  * state". With hardware there is no such thing as *while* in a state. There
  * are only edges. So clk => 0 is in fact a very subtle state transition that
- * happens *while* in the TAP_RTI state. "#&¤"#¤&"#&"#&
- * 
+ * happens *while* in the TAP_IDLE state. "#&¤"#¤&"#&"#&
+ *
  * For "reset halt" the last thing that happens before srst is asserted
  * is that the breakpoint is set up. If DCLK is not wiggled one last
  * time before the reset, then the breakpoint is not set up and
  * "reset halt" will fail to halt.
- * 
+ *
  */
-#define CLOCK_IDLE() 0 
+#define CLOCK_IDLE() 0
 
 int bitbang_execute_queue(void);
 
@@ -76,10 +76,10 @@ void bitbang_end_state(enum tap_state state)
 }
 
 void bitbang_state_move(void) {
-	
+
 	int i=0, tms=0;
 	u8 tms_scan = TAP_MOVE(cur_state, end_state);
-	
+
 	for (i = 0; i < 7; i++)
 	{
 		tms = (tms_scan >> i) & 1;
@@ -87,7 +87,7 @@ void bitbang_state_move(void) {
 		bitbang_interface->write(1, tms, 0);
 	}
 	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
-	
+
 	cur_state = end_state;
 }
 
@@ -113,7 +113,7 @@ void bitbang_path_move(pathmove_command_t *cmd)
 			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
 			exit(-1);
 		}
-		
+
 		bitbang_interface->write(0, tms, 0);
 		bitbang_interface->write(1, tms, 0);
 
@@ -121,7 +121,7 @@ void bitbang_path_move(pathmove_command_t *cmd)
 		state_count++;
 		num_states--;
 	}
-	
+
 	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
 
 	end_state = cur_state;
@@ -130,16 +130,16 @@ void bitbang_path_move(pathmove_command_t *cmd)
 void bitbang_runtest(int num_cycles)
 {
 	int i;
-	
+
 	enum tap_state saved_end_state = end_state;
-	
+
 	/* only do a state_move when we're not already in RTI */
-	if (cur_state != TAP_RTI)
+	if (cur_state != TAP_IDLE)
 	{
-		bitbang_end_state(TAP_RTI);
+		bitbang_end_state(TAP_IDLE);
 		bitbang_state_move();
 	}
-	
+
 	/* execute num_cycles */
 	for (i = 0; i < num_cycles; i++)
 	{
@@ -147,7 +147,7 @@ void bitbang_runtest(int num_cycles)
 		bitbang_interface->write(1, 0, 0);
 	}
 	bitbang_interface->write(CLOCK_IDLE(), 0, 0);
-	
+
 	/* finish in end_state */
 	bitbang_end_state(saved_end_state);
 	if (cur_state != end_state)
@@ -158,13 +158,13 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	enum tap_state saved_end_state = end_state;
 	int bit_cnt;
-	
-	if (!((!ir_scan && (cur_state == TAP_SD)) || (ir_scan && (cur_state == TAP_SI))))
+
+	if (!((!ir_scan && (cur_state == TAP_DRSHIFT)) || (ir_scan && (cur_state == TAP_IRSHIFT))))
 	{
 		if (ir_scan)
-			bitbang_end_state(TAP_SI);
+			bitbang_end_state(TAP_IRSHIFT);
 		else
-			bitbang_end_state(TAP_SD);
+			bitbang_end_state(TAP_DRSHIFT);
 
 		bitbang_state_move();
 		bitbang_end_state(saved_end_state);
@@ -181,7 +181,7 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 		/* if we're just reading the scan, but don't care about the output
 		 * default to outputting 'low', this also makes valgrind traces more readable,
 		 * as it removes the dependency on an uninitialised value
-		 */ 
+		 */
 		tdi=0;
 		if ((type != SCAN_IN) && (buffer[bytec] & bcval))
 			tdi=1;
@@ -192,7 +192,7 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 			val=bitbang_interface->read();
 
 		bitbang_interface->write(1, tms, tdi);
-		
+
 		if (type != SCAN_OUT)
 		{
 			if (val)
@@ -201,21 +201,21 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 				buffer[bytec] &= ~bcval;
 		}
 	}
-	
-	/* TAP_SD & TAP_SI are illegal end states, so we always transition to the pause
+
+	/* TAP_DRSHIFT & TAP_IRSHIFT are illegal end states, so we always transition to the pause
 	 * state which is a legal stable state from which statemove will work.
-	 *  
-	 * Exit1 -> Pause 
+	 *
+	 * Exit1 -> Pause
 	 */
 	bitbang_interface->write(0, 0, 0);
 	bitbang_interface->write(1, 0, 0);
 	bitbang_interface->write(CLOCK_IDLE(), 0, 0);
-	
+
 	if (ir_scan)
-		cur_state = TAP_PI;
+		cur_state = TAP_IRPAUSE;
 	else
-		cur_state = TAP_PD;
-	
+		cur_state = TAP_DRPAUSE;
+
 	if (cur_state != end_state)
 		bitbang_state_move();
 }
@@ -227,18 +227,18 @@ int bitbang_execute_queue(void)
 	enum scan_type type;
 	u8 *buffer;
 	int retval;
-	
+
 	if (!bitbang_interface)
 	{
 		LOG_ERROR("BUG: Bitbang interface called, but not yet initialized");
 		exit(-1);
 	}
-	
+
 	/* return ERROR_OK, unless a jtag_read_buffer returns a failed check
 	 * that wasn't handled by a caller-provided error handler
-	 */ 
+	 */
 	retval = ERROR_OK;
-		
+
 	if(bitbang_interface->blink)
 		bitbang_interface->blink(1);
 
@@ -259,7 +259,7 @@ int bitbang_execute_queue(void)
 #endif
 				if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_reset_config & RESET_SRST_PULLS_TRST)))
 				{
-					cur_state = TAP_TLR;
+					cur_state = TAP_RESET;
 				}
 				bitbang_interface->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
@@ -313,7 +313,7 @@ int bitbang_execute_queue(void)
 	}
 	if(bitbang_interface->blink)
 		bitbang_interface->blink(0);
-	
+
 	return retval;
 }
 

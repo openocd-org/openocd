@@ -584,7 +584,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* set RESTART instruction */
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	if (arm7_9->need_bypass_before_restart) {
 		arm7_9->need_bypass_before_restart = 0;
 		arm_jtag_set_instr(jtag_info, 0xf, NULL);
@@ -630,7 +630,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
 	/* set RESTART instruction */
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	if (arm7_9->need_bypass_before_restart) {
 		arm7_9->need_bypass_before_restart = 0;
 		arm_jtag_set_instr(jtag_info, 0xf, NULL);
@@ -1492,14 +1492,14 @@ int arm7_9_restart_core(struct target_s *target)
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
 	/* set RESTART instruction */
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	if (arm7_9->need_bypass_before_restart) {
 		arm7_9->need_bypass_before_restart = 0;
 		arm_jtag_set_instr(jtag_info, 0xf, NULL);
 	}
 	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 
-	jtag_add_runtest(1, TAP_RTI);
+	jtag_add_runtest(1, TAP_IDLE);
 	return jtag_execute_queue();
 }
 

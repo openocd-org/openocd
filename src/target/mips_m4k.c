@@ -67,7 +67,7 @@ target_type_t mips_m4k_target =
 	.assert_reset = mips_m4k_assert_reset,
 	.deassert_reset = mips_m4k_deassert_reset,
 	.soft_reset_halt = mips_m4k_soft_reset_halt,
-	
+
 	.get_gdb_reg_list = mips32_get_gdb_reg_list,
 
 	.read_memory = mips_m4k_read_memory,
@@ -75,7 +75,7 @@ target_type_t mips_m4k_target =
 	.bulk_write_memory = mips_m4k_bulk_write_memory,
 	.checksum_memory = NULL,
 	.blank_check_memory = NULL,
-	
+
 	.run_algorithm = mips32_run_algorithm,
 
 	.add_breakpoint = mips_m4k_add_breakpoint,
@@ -91,10 +91,10 @@ target_type_t mips_m4k_target =
 };
 
 int mips_m4k_examine_debug_reason(target_t *target)
-{	
+{
 	int break_status;
 	int retval;
-	
+
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 		&& (target->debug_reason != DBG_REASON_SINGLESTEP))
 	{
@@ -108,7 +108,7 @@ int mips_m4k_examine_debug_reason(target_t *target)
 				return retval;
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 		}
-		
+
 		/* get info about data breakpoint support */
 		if ((retval = target_read_u32(target, 0xFF302000, &break_status)) != ERROR_OK)
 			return retval;
@@ -120,7 +120,7 @@ int mips_m4k_examine_debug_reason(target_t *target)
 			target->debug_reason = DBG_REASON_WATCHPOINT;
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -129,29 +129,29 @@ int mips_m4k_debug_entry(target_t *target)
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	u32 debug_reg;
-	
+
 	/* read debug register */
 	mips_ejtag_read_debug(ejtag_info, &debug_reg);
-	
+
 	/* make sure break uit configured */
 	mips32_configure_break_unit(target);
-	
+
 	/* attempt to find halt reason */
 	mips_m4k_examine_debug_reason(target);
-	
+
 	/* clear single step if active */
 	if (debug_reg & EJTAG_DEBUG_DSS)
 	{
 		/* stopped due to single step - clear step bit */
 		mips_ejtag_config_step(ejtag_info, 0);
 	}
-	
+
 	mips32_save_context(target);
-	
-	LOG_DEBUG("entered debug state at PC 0x%x, target->state: %s", 
-		*(u32*)(mips32->core_cache->reg_list[MIPS32_PC].value), 
+
+	LOG_DEBUG("entered debug state at PC 0x%x, target->state: %s",
+		*(u32*)(mips32->core_cache->reg_list[MIPS32_PC].value),
 		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
-	
+
 	return ERROR_OK;
 }
 
@@ -161,48 +161,48 @@ int mips_m4k_poll(target_t *target)
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	u32 ejtag_ctrl = ejtag_info->ejtag_ctrl;
-	
+
 	/* read ejtag control reg */
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	
+
 	/* clear this bit before handling polling
 	 * as after reset registers will read zero */
 	if (ejtag_ctrl & EJTAG_CTRL_ROCC)
 	{
 		/* we have detected a reset, clear flag
 		 * otherwise ejtag will not work */
-		jtag_add_end_state(TAP_RTI);
+		jtag_add_end_state(TAP_IDLE);
 		ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_ROCC;
-		
+
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 		LOG_DEBUG("Reset Detected");
 	}
-	
+
 	/* check for processor halted */
 	if (ejtag_ctrl & EJTAG_CTRL_BRKST)
 	{
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
-			jtag_add_end_state(TAP_RTI);
+			jtag_add_end_state(TAP_IDLE);
 			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT, NULL);
-			
+
 			target->state = TARGET_HALTED;
-			
+
 			if ((retval = mips_m4k_debug_entry(target)) != ERROR_OK)
 				return retval;
-			
+
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 		}
 		else if (target->state == TARGET_DEBUG_RUNNING)
 		{
 			target->state = TARGET_HALTED;
-			
+
 			if ((retval = mips_m4k_debug_entry(target)) != ERROR_OK)
 				return retval;
-			
+
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		}
 	}
@@ -210,9 +210,9 @@ int mips_m4k_poll(target_t *target)
 	{
 		target->state = TARGET_RUNNING;
 	}
-	
+
 //	LOG_DEBUG("ctrl=0x%08X", ejtag_ctrl);
-	
+
 	return ERROR_OK;
 }
 
@@ -220,22 +220,22 @@ int mips_m4k_halt(struct target_s *target)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	
-	LOG_DEBUG("target->state: %s", 
+
+	LOG_DEBUG("target->state: %s",
 		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
-	
+
 	if (target->state == TARGET_HALTED)
 	{
 		LOG_DEBUG("target was already halted");
 		return ERROR_OK;
 	}
-	
+
 	if (target->state == TARGET_UNKNOWN)
 	{
 		LOG_WARNING("target was in unknown state when halt was requested");
 	}
-	
-	if (target->state == TARGET_RESET) 
+
+	if (target->state == TARGET_RESET)
 	{
 		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) && jtag_srst)
 		{
@@ -248,16 +248,16 @@ int mips_m4k_halt(struct target_s *target)
 			 * debug entry was already prepared in mips32_prepare_reset_halt()
 			 */
 			target->debug_reason = DBG_REASON_DBGRQ;
-			
+
 			return ERROR_OK;
 		}
 	}
-	
+
 	/* break processor */
 	mips_ejtag_enter_debug(ejtag_info);
-	
+
 	target->debug_reason = DBG_REASON_DBGRQ;
-	
+
 	return ERROR_OK;
 }
 
@@ -266,28 +266,28 @@ int mips_m4k_assert_reset(target_t *target)
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	mips_m4k_common_t *mips_m4k = mips32->arch_info;
-	
-	LOG_DEBUG("target->state: %s", 
+
+	LOG_DEBUG("target->state: %s",
 		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
-	
+
 	if (!(jtag_reset_config & RESET_HAS_SRST))
 	{
 		LOG_ERROR("Can't assert SRST");
 		return ERROR_FAIL;
 	}
-	
+
 	if (target->reset_halt)
 	{
 		/* use hardware to catch reset */
-		jtag_add_end_state(TAP_RTI);
+		jtag_add_end_state(TAP_IDLE);
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_EJTAGBOOT, NULL);
 	}
 	else
 	{
-		jtag_add_end_state(TAP_RTI);
+		jtag_add_end_state(TAP_IDLE);
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT, NULL);
 	}
-	
+
 	if (strcmp(mips_m4k->variant, "ejtag_srst") == 0)
 	{
 		u32 ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
@@ -307,7 +307,7 @@ int mips_m4k_assert_reset(target_t *target)
 			jtag_add_reset(0, 1);
 		}
 	}
-	
+
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 
@@ -319,18 +319,18 @@ int mips_m4k_assert_reset(target_t *target)
 		if ((retval = target_halt(target))!=ERROR_OK)
 			return retval;
 	}
-	
+
 	return ERROR_OK;
 }
 
 int mips_m4k_deassert_reset(target_t *target)
 {
-	LOG_DEBUG("target->state: %s", 
+	LOG_DEBUG("target->state: %s",
 		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
-	
+
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
-	
+
 	return ERROR_OK;
 }
 
@@ -344,15 +344,15 @@ int mips_m4k_single_step_core(target_t *target)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	
+
 	/* configure single step mode */
 	mips_ejtag_config_step(ejtag_info, 1);
-	
+
 	/* exit debug mode */
 	mips_ejtag_exit_debug(ejtag_info, 1);
-	
+
 	mips_m4k_debug_entry(target);
-	
+
 	return ERROR_OK;
 }
 
@@ -362,20 +362,20 @@ int mips_m4k_resume(struct target_s *target, int current, u32 address, int handl
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	breakpoint_t *breakpoint = NULL;
 	u32 resume_pc;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (!debug_execution)
 	{
 		target_free_all_working_areas(target);
 		mips_m4k_enable_breakpoints(target);
 		mips_m4k_enable_watchpoints(target);
 	}
-	
+
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
 	{
@@ -383,11 +383,11 @@ int mips_m4k_resume(struct target_s *target, int current, u32 address, int handl
 		mips32->core_cache->reg_list[MIPS32_PC].dirty = 1;
 		mips32->core_cache->reg_list[MIPS32_PC].valid = 1;
 	}
-	
+
 	resume_pc = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32);
-	
+
 	mips32_restore_context(target);
-	
+
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 	{
@@ -400,14 +400,14 @@ int mips_m4k_resume(struct target_s *target, int current, u32 address, int handl
 			mips_m4k_set_breakpoint(target, breakpoint);
 		}
 	}
-	
+
 	/* exit debug mode - enable interrupts if required */
 	mips_ejtag_exit_debug(ejtag_info, !debug_execution);
 	target->debug_reason = DBG_REASON_NOTHALTED;
-	
+
 	/* registers are now invalid */
 	mips32_invalidate_core_regs(target);
-	
+
 	if (!debug_execution)
 	{
 		target->state = TARGET_RUNNING;
@@ -420,7 +420,7 @@ int mips_m4k_resume(struct target_s *target, int current, u32 address, int handl
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
 		LOG_DEBUG("target debug resumed at 0x%x", resume_pc);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -440,43 +440,43 @@ int mips_m4k_step(struct target_s *target, int current, u32 address, int handle_
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current)
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
-	
+
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints)
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32))))
 			mips_m4k_unset_breakpoint(target, breakpoint);
-	
+
 	/* restore context */
 	mips32_restore_context(target);
-	
+
 	/* configure single step mode */
 	mips_ejtag_config_step(ejtag_info, 1);
-	
+
 	target->debug_reason = DBG_REASON_SINGLESTEP;
-	
+
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-	
+
 	/* exit debug mode */
 	mips_ejtag_exit_debug(ejtag_info, 1);
-	
+
 	/* registers are now invalid */
 	mips32_invalidate_core_regs(target);
-	
+
 	if (breakpoint)
 		mips_m4k_set_breakpoint(target, breakpoint);
 
 	LOG_DEBUG("target stepped ");
-	
+
 	mips_m4k_debug_entry(target);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-	
+
 	return ERROR_OK;
 }
 
 void mips_m4k_enable_breakpoints(struct target_s *target)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
-	
+
 	/* set any pending breakpoints */
 	while (breakpoint)
 	{
@@ -490,17 +490,17 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips32_comparator_t * comparator_list = mips32->inst_break_list;
-	
+
 	if (breakpoint->set)
 	{
 		LOG_WARNING("breakpoint already set");
 		return ERROR_OK;
 	}
-	
+
 	if (breakpoint->type == BKPT_HARD)
 	{
 		int bp_num = 0;
-		
+
 		while(comparator_list[bp_num].used && (bp_num < mips32->num_inst_bpoints))
 			bp_num++;
 		if (bp_num >= mips32->num_inst_bpoints)
@@ -521,7 +521,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -536,7 +536,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		LOG_WARNING("breakpoint not set");
 		return ERROR_OK;
 	}
-	
+
 	if (breakpoint->type == BKPT_HARD)
 	{
 		int bp_num = breakpoint->set - 1;
@@ -554,26 +554,26 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	}
 	breakpoint->set = 0;
-	
+
 	return ERROR_OK;
 }
 
 int mips_m4k_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	mips32_common_t *mips32 = target->arch_info;
-	
+
 	if (mips32->num_inst_bpoints_avail < 1)
 	{
 		LOG_INFO("no hardware breakpoint available");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-	
+
 	/* default to hardware for now */
 	breakpoint->type = BKPT_HARD;
-	
+
 	mips32->num_inst_bpoints_avail--;
 	mips_m4k_set_breakpoint(target, breakpoint);
-	
+
 	return ERROR_OK;
 }
 
@@ -581,21 +581,21 @@ int mips_m4k_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 {
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (breakpoint->set)
 	{
 		mips_m4k_unset_breakpoint(target, breakpoint);
 	}
-	
+
 	if (breakpoint->type == BKPT_HARD)
 		mips32->num_inst_bpoints_avail++;
-	
+
 	return ERROR_OK;
 }
 
@@ -626,7 +626,7 @@ int mips_m4k_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint
 void mips_m4k_enable_watchpoints(struct target_s *target)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
-	
+
 	/* set any pending watchpoints */
 	while (watchpoint)
 	{
@@ -640,7 +640,7 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	
+
 	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
 	if (target->state != TARGET_HALTED)
@@ -655,7 +655,7 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
-	
+
 	switch (size)
 	{
 		case 4:
@@ -679,7 +679,7 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	
+
 	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
 	if (target->state != TARGET_HALTED)
@@ -694,7 +694,7 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
-	
+
 	switch (size)
 	{
 		case 4:
@@ -711,14 +711,14 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 			exit(-1);
 			break;
 	}
-	
+
 	return ERROR_OK;
 }
 
 int mips_m4k_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
-	
+
 	retval = mips32_register_commands(cmd_ctx);
 	return retval;
 }
@@ -726,7 +726,7 @@ int mips_m4k_register_commands(struct command_context_s *cmd_ctx)
 int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
 	mips32_build_reg_cache(target);
-	
+
 	return ERROR_OK;
 }
 
@@ -738,7 +738,7 @@ int mips_m4k_quit(void)
 int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, jtag_tap_t *tap, const char *variant)
 {
 	mips32_common_t *mips32 = &mips_m4k->mips32_common;
-	
+
 	if (variant)
 	{
 		mips_m4k->variant = strdup(variant);
@@ -747,22 +747,22 @@ int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, jtag_
 	{
 		mips_m4k->variant = strdup("");
 	}
-	
+
 	mips_m4k->common_magic = MIPSM4K_COMMON_MAGIC;
-	
+
 	/* initialize mips4k specific info */
 	mips32_init_arch_info(target, mips32, tap, variant);
 	mips32->arch_info = mips_m4k;
-	
+
 	return ERROR_OK;
 }
 
 int mips_m4k_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	mips_m4k_common_t *mips_m4k = calloc(1,sizeof(mips_m4k_common_t));
-	
+
 	mips_m4k_init_arch_info(target, mips_m4k, target->tap, target->variant);
-	
+
 	return ERROR_OK;
 }
 
@@ -772,11 +772,11 @@ int mips_m4k_examine(struct target_s *target)
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	u32 idcode = 0;
-	
+
 	if (!target->type->examined)
 	{
 		mips_ejtag_get_idcode(ejtag_info, &idcode, NULL);
-		
+
 		if (((idcode >> 1) & 0x7FF) == 0x29)
 		{
 			/* we are using a pic32mx so select ejtag port
@@ -785,14 +785,14 @@ int mips_m4k_examine(struct target_s *target)
 			LOG_DEBUG("PIC32MX Detected - using EJTAG Interface");
 		}
 	}
-	
+
 	/* init rest of ejtag interface */
 	if ((retval = mips_ejtag_init(ejtag_info)) != ERROR_OK)
 		return retval;
-	
+
 	if ((retval = mips32_examine(target)) != ERROR_OK)
 		return retval;
-	
+
 	return ERROR_OK;
 }
 

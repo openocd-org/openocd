@@ -151,7 +151,7 @@ int usbprog_execute_queue(void)
 #endif
 				if (cmd->cmd.reset->trst == 1)
 				{
-					cur_state = TAP_TLR;
+					cur_state = TAP_RESET;
 				}
 				usbprog_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
@@ -299,9 +299,9 @@ void usbprog_runtest(int num_cycles)
 	int i;
 
 	/* only do a state_move when we're not already in RTI */
-	if (cur_state != TAP_RTI)
+	if (cur_state != TAP_IDLE)
 	{
-		usbprog_end_state(TAP_RTI);
+		usbprog_end_state(TAP_IDLE);
 		usbprog_state_move();
 	}
 
@@ -336,9 +336,9 @@ void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	enum tap_state saved_end_state = end_state;
 
 	if (ir_scan)
-		usbprog_end_state(TAP_SI);
+		usbprog_end_state(TAP_IRSHIFT);
 	else
-		usbprog_end_state(TAP_SD);
+		usbprog_end_state(TAP_DRSHIFT);
 
 	/* usbprog_jtag_tms_send(usbprog_jtag_handle); */
 
@@ -361,9 +361,9 @@ void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	}
 
 	if (ir_scan)
-		cur_state = TAP_PI;
+		cur_state = TAP_IRPAUSE;
 	else
-		cur_state = TAP_PD;
+		cur_state = TAP_DRPAUSE;
 
 	if (cur_state != end_state)
 		usbprog_state_move();

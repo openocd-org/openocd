@@ -246,7 +246,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	u8 field1_out[1];
 	u8 field2_out[1];
 
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);
 
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
@@ -309,7 +309,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	u8 field1_out[1];
 	u8 field2_out[1];
 
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
@@ -400,7 +400,7 @@ void embeddedice_write_reg(reg_t *reg, u32 value)
 
 	LOG_DEBUG("%i: 0x%8.8x", ice_reg->addr, value);
 
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);
 
 	arm_jtag_set_instr(ice_reg->jtag_info, ice_reg->jtag_info->intest_instr, NULL);
@@ -426,7 +426,7 @@ int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	u8 field1_out[1];
 	u8 field2_out[1];
 
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
@@ -495,7 +495,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	else
 		return ERROR_INVALID_ARGUMENTS;
 
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0x2);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 

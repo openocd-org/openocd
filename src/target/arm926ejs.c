@@ -132,7 +132,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 
 	buf_set_u32(address_buf, 0, 14, address);
 
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
@@ -222,7 +222,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	buf_set_u32(address_buf, 0, 14, address);
 	buf_set_u32(value_buf, 0, 32, value);
 
-	jtag_add_end_state(TAP_RTI);
+	jtag_add_end_state(TAP_IDLE);
 	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
@@ -366,7 +366,7 @@ int arm926ejs_examine_debug_reason(target_t *target)
 		default:
 			LOG_ERROR("BUG: unknown debug reason: 0x%x", debug_reason);
 			target->debug_reason = DBG_REASON_DBGRQ;
-			/* if we fail here, we won't talk to the target and it will 
+			/* if we fail here, we won't talk to the target and it will
 			 * be reported to be in the halted state */
 			retval = ERROR_TARGET_FAILURE;
 			break;

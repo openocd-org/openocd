@@ -64,7 +64,7 @@ target_type_t arm720t_target =
 	.assert_reset = arm7_9_assert_reset,
 	.deassert_reset = arm7_9_deassert_reset,
 	.soft_reset_halt = arm720t_soft_reset_halt,
-	
+
 	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
 
 	.read_memory = arm720t_read_memory,
@@ -72,7 +72,7 @@ target_type_t arm720t_target =
 	.bulk_write_memory = arm7_9_bulk_write_memory,
 	.checksum_memory = arm7_9_checksum_memory,
 	.blank_check_memory = arm7_9_blank_check_memory,
-	
+
 	.run_algorithm = armv4_5_run_algorithm,
 
 	.add_breakpoint = arm7_9_add_breakpoint,
@@ -96,10 +96,10 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	scan_field_t fields[2];
 	u8 out_buf[4];
 	u8 instruction_buf = instruction;
-	
+
 	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
-	
-	jtag_add_end_state(TAP_PD);
+
+	jtag_add_end_state(TAP_DRPAUSE);
 	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
@@ -108,7 +108,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	{
 		return retval;
 	}
-		
+
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = &instruction_buf;
@@ -135,7 +135,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	}
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
-	
+
 	jtag_add_dr_scan(2, fields, -1);
 
 	if (clock)
@@ -171,7 +171,7 @@ int arm720t_read_cp15(target_t *target, u32 opcode, u32 *value)
 	arm720t_scan_cp15(target, 0x0, NULL, 0, 1);
 	/* "EXECUTE" stage (3), CDATA is read */
 	arm720t_scan_cp15(target, ARMV4_5_NOP, value, 1, 1);
-	
+
 	return ERROR_OK;
 }
 
@@ -197,9 +197,9 @@ u32 arm720t_get_ttb(target_t *target)
 
 	arm720t_read_cp15(target, 0xee120f10, &ttb);
 	jtag_execute_queue();
-	
+
 	ttb &= 0xffffc000;
-	
+
 	return ttb;
 }
 
@@ -210,10 +210,10 @@ void arm720t_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_
 	/* read cp15 control register */
 	arm720t_read_cp15(target, 0xee110f10, &cp15_control);
 	jtag_execute_queue();
-		
+
 	if (mmu)
 		cp15_control &= ~0x1U;
-	
+
 	if (d_u_cache || i_cache)
 		cp15_control &= ~0x4U;
 
@@ -227,13 +227,13 @@ void arm720t_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_c
 	/* read cp15 control register */
 	arm720t_read_cp15(target, 0xee110f10, &cp15_control);
 	jtag_execute_queue();
-		
+
 	if (mmu)
 		cp15_control |= 0x1U;
-	
+
 	if (d_u_cache || i_cache)
 		cp15_control |= 0x4U;
-	
+
 	arm720t_write_cp15(target, 0xee010f10, cp15_control);
 }
 
@@ -243,7 +243,7 @@ void arm720t_post_debug_entry(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
 	arm720t_common_t *arm720t = arm7tdmi->arch_info;
-	
+
 	/* examine cp15 control reg */
 	arm720t_read_cp15(target, 0xee110f10, &arm720t->cp15_control_reg);
 	jtag_execute_queue();
@@ -265,7 +265,7 @@ void arm720t_pre_restore_context(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
 	arm720t_common_t *arm720t = arm7tdmi->arch_info;
-	
+
 	/* restore i/d fault status and address register */
 	arm720t_write_cp15(target, 0xee050f10, arm720t->fsr_reg);
 	arm720t_write_cp15(target, 0xee060f10, arm720t->far_reg);
@@ -277,35 +277,35 @@ int arm720t_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, ar
 	arm7_9_common_t *arm7_9;
 	arm7tdmi_common_t *arm7tdmi;
 	arm720t_common_t *arm720t;
-	
+
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	arm7_9 = armv4_5->arch_info;
 	if (arm7_9->common_magic != ARM7_9_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	arm7tdmi = arm7_9->arch_info;
 	if (arm7tdmi->common_magic != ARM7TDMI_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	arm720t = arm7tdmi->arch_info;
 	if (arm720t->common_magic != ARM720T_COMMON_MAGIC)
 	{
 		return -1;
 	}
-	
+
 	*armv4_5_p = armv4_5;
 	*arm7_9_p = arm7_9;
 	*arm7tdmi_p = arm7tdmi;
 	*arm720t_p = arm720t;
-	
+
 	return ERROR_OK;
 }
 
@@ -315,18 +315,18 @@ int arm720t_arch_state(struct target_s *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
 	arm720t_common_t *arm720t = arm7tdmi->arch_info;
-	
-	char *state[] = 
+
+	char *state[] =
 	{
 		"disabled", "enabled"
 	};
-	
+
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
 		exit(-1);
 	}
-	
+
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
 			"MMU: %s, Cache: %s",
@@ -337,7 +337,7 @@ int arm720t_arch_state(struct target_s *target)
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
 			 state[arm720t->armv4_5_mmu.mmu_enabled],
 			 state[arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled]);
-	
+
 	return ERROR_OK;
 }
 
@@ -348,23 +348,23 @@ int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
 	arm720t_common_t *arm720t = arm7tdmi->arch_info;
-	
+
 	/* disable cache, but leave MMU enabled */
 	if (arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
 		arm720t_disable_mmu_caches(target, 0, 1, 0);
-	
+
 	retval = arm7_9_read_memory(target, address, size, count, buffer);
-	
+
 	if (arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled)
 		arm720t_enable_mmu_caches(target, 0, 1, 0);
-	
+
 	return retval;
 }
 
 int arm720t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
 {
 	int retval;
-	
+
 	if ((retval = arm7_9_write_memory(target, address, size, count, buffer)) != ERROR_OK)
 		return retval;
 
@@ -379,12 +379,12 @@ int arm720t_soft_reset_halt(struct target_s *target)
 	arm7tdmi_common_t *arm7tdmi = arm7_9->arch_info;
 	arm720t_common_t *arm720t = arm7tdmi->arch_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
-	
+
 	if ((retval = target_halt(target)) != ERROR_OK)
 	{
 		return retval;
 	}
-	
+
 	long long then=timeval_ms();
 	int timeout;
 	while (!(timeout=((timeval_ms()-then)>1000)))
@@ -413,22 +413,22 @@ int arm720t_soft_reset_halt(struct target_s *target)
 		LOG_ERROR("Failed to halt CPU after 1 sec");
 		return ERROR_TARGET_TIMEOUT;
 	}
-	
+
 	target->state = TARGET_HALTED;
-	
+
 	/* SVC, ARM state, IRQ and FIQ disabled */
 	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8, 0xd3);
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
-	
+
 	/* start fetching from 0x0 */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, 0x0);
 	armv4_5->core_cache->reg_list[15].dirty = 1;
 	armv4_5->core_cache->reg_list[15].valid = 1;
-	
+
 	armv4_5->core_mode = ARMV4_5_MODE_SVC;
 	armv4_5->core_state = ARMV4_5_STATE_ARM;
-	
+
 	arm720t_disable_mmu_caches(target, 1, 1, 1);
 	arm720t->armv4_5_mmu.mmu_enabled = 0;
 	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
@@ -438,21 +438,21 @@ int arm720t_soft_reset_halt(struct target_s *target)
 	{
 		return retval;
 	}
-	
+
 	return ERROR_OK;
 }
 
 int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
 	arm7tdmi_init_target(cmd_ctx, target);
-		
+
 	return ERROR_OK;
-	
+
 }
 
 int arm720t_quit(void)
 {
-	
+
 	return ERROR_OK;
 }
 
@@ -460,15 +460,15 @@ int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, jtag_tap
 {
 	arm7tdmi_common_t *arm7tdmi = &arm720t->arm7tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm7tdmi->arm7_9_common;
-	
+
 	arm7tdmi_init_arch_info(target, arm7tdmi, tap, variant);
 
 	arm7tdmi->arch_info = arm720t;
 	arm720t->common_magic = ARM720T_COMMON_MAGIC;
-	
+
 	arm7_9->post_debug_entry = arm720t_post_debug_entry;
 	arm7_9->pre_restore_context = arm720t_pre_restore_context;
-	
+
 	arm720t->armv4_5_mmu.armv4_5_cache.ctype = -1;
 	arm720t->armv4_5_mmu.get_ttb = arm720t_get_ttb;
 	arm720t->armv4_5_mmu.read_memory = arm7_9_read_memory;
@@ -477,14 +477,14 @@ int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, jtag_tap
 	arm720t->armv4_5_mmu.enable_mmu_caches = arm720t_enable_mmu_caches;
 	arm720t->armv4_5_mmu.has_tiny_pages = 0;
 	arm720t->armv4_5_mmu.mmu_enabled = 0;
-	
+
 	return ERROR_OK;
 }
 
 int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm720t_common_t *arm720t = calloc(1,sizeof(arm720t_common_t));
-	
+
 	arm720t_init_arch_info(target, arm720t, target->tap, target->variant);
 
 	return ERROR_OK;
@@ -494,10 +494,10 @@ int arm720t_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
 	command_t *arm720t_cmd;
-	
-		
+
+
 	retval = arm7tdmi_register_commands(cmd_ctx);
-	
+
 	arm720t_cmd = register_command(cmd_ctx, NULL, "arm720t", NULL, COMMAND_ANY, "arm720t specific commands");
 
 	register_command(cmd_ctx, arm720t_cmd, "cp15", arm720t_handle_cp15_command, COMMAND_EXEC, "display/modify cp15 register <opcode> [value]");
@@ -510,7 +510,7 @@ int arm720t_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, arm720t_cmd, "mww_phys", arm720t_handle_mw_phys_command, COMMAND_EXEC, "write memory word <physical addr> <value>");
 	register_command(cmd_ctx, arm720t_cmd, "mwh_phys", arm720t_handle_mw_phys_command, COMMAND_EXEC, "write memory half-word <physical addr> <value>");
 	register_command(cmd_ctx, arm720t_cmd, "mwb_phys", arm720t_handle_mw_phys_command, COMMAND_EXEC, "write memory byte <physical addr> <value>");
-	
+
 	return ERROR_OK;
 }
 
@@ -529,9 +529,9 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		command_print(cmd_ctx, "current target isn't an ARM720t target");
 		return ERROR_OK;
 	}
-	
+
 	jtag_info = &arm7_9->jtag_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
@@ -556,7 +556,7 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			{
 				return retval;
 			}
-			
+
 			command_print(cmd_ctx, "0x%8.8x: 0x%8.8x", opcode, value);
 		}
 		else if (argc == 2)
@@ -575,7 +575,7 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 }
 
 int arm720t_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{	
+{
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -588,20 +588,20 @@ int arm720t_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char
 		command_print(cmd_ctx, "current target isn't an ARM720t target");
 		return ERROR_OK;
 	}
-	
+
 	jtag_info = &arm7_9->jtag_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
 		return ERROR_OK;
 	}
-		
+
 	return armv4_5_mmu_handle_virt2phys_command(cmd_ctx, cmd, args, argc, target, &arm720t->armv4_5_mmu);
 }
 
 int arm720t_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{	
+{
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -614,20 +614,20 @@ int arm720t_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, char *
 		command_print(cmd_ctx, "current target isn't an ARM720t target");
 		return ERROR_OK;
 	}
-	
+
 	jtag_info = &arm7_9->jtag_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
 		return ERROR_OK;
 	}
-	
+
 	return armv4_5_mmu_handle_md_phys_command(cmd_ctx, cmd, args, argc, target, &arm720t->armv4_5_mmu);
 }
 
 int arm720t_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
-{	
+{
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -640,14 +640,14 @@ int arm720t_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char *
 		command_print(cmd_ctx, "current target isn't an ARM720t target");
 		return ERROR_OK;
 	}
-	
+
 	jtag_info = &arm7_9->jtag_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"%s\" command", cmd);
 		return ERROR_OK;
 	}
-	
+
 	return armv4_5_mmu_handle_mw_phys_command(cmd_ctx, cmd, args, argc, target, &arm720t->armv4_5_mmu);
 }

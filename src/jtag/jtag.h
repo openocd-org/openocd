@@ -33,20 +33,15 @@
 #define _DEBUG_JTAG_IO_
 #endif
 
-/* Tap States
- * TLR - Test-Logic-Reset, RTI - Run-Test/Idle,
- * SDS - Select-DR-Scan, CD - Capture-DR, SD - Shift-DR, E1D - Exit1-DR,
- * PD - Pause-DR, E2D - Exit2-DR, UD - Update-DR,
- * SIS - Select-IR-Scan, CI - Capture-IR, SI - Shift-IR, E1I - Exit1-IR,
- * PI - Pause-IR, E2I - Exit2-IR, UI - Update-IR
+/* 16 Tap States, from page 21 of ASSET InterTech, Inc.'s svf.pdf
  */
 enum tap_state
 {
-	TAP_TLR = 0x0, TAP_RTI = 0x8,
-	TAP_SDS = 0x1, TAP_CD = 0x2, TAP_SD = 0x3, TAP_E1D = 0x4,
-	TAP_PD = 0x5, TAP_E2D = 0x6, TAP_UD = 0x7,
-	TAP_SIS = 0x9, TAP_CI = 0xa, TAP_SI = 0xb, TAP_E1I = 0xc,
-	TAP_PI = 0xd, TAP_E2I = 0xe, TAP_UI = 0xf
+	TAP_RESET = 0x0, TAP_IDLE = 0x8,
+	TAP_DRSELECT = 0x1, TAP_DRCAPTURE = 0x2, TAP_DRSHIFT = 0x3, TAP_DREXIT1 = 0x4,
+	TAP_DRPAUSE = 0x5, TAP_DREXIT2 = 0x6, TAP_DRUPDATE = 0x7,
+	TAP_IRSELECT = 0x9, TAP_IRCAPTURE = 0xa, TAP_IRSHIFT = 0xb, TAP_IREXIT1 = 0xc,
+	TAP_IRPAUSE = 0xd, TAP_IREXIT2 = 0xe, TAP_IRUPDATE = 0xf
 };
 
 typedef struct tap_transition_s
@@ -325,7 +320,7 @@ extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
 /* JTAG interface, can be implemented with a software or hardware fifo
  *
- * TAP_SD and TAP_SI are illegal end states. TAP_SD/SI as end states
+ * TAP_DRSHIFT and TAP_IRSHIFT are illegal end states. TAP_DRSHIFT/SI as end states
  * can be emulated by using a larger scan.
  *
  * Code that is relatively insensitive to the path(as long
@@ -343,7 +338,7 @@ extern void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum ta
 extern int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
 extern int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state endstate);
-/* run a TAP_TLR reset. End state is TAP_TLR, regardless
+/* run a TAP_RESET reset. End state is TAP_RESET, regardless
  * of start state.
  */
 extern void jtag_add_tlr(void);
@@ -364,7 +359,7 @@ extern int interface_jtag_add_tlr(void);
  * all drivers can support this, but it is required for e.g.
  * XScale and Xilinx support
  *
- * Note! TAP_TLR must not be used in the path!
+ * Note! TAP_RESET must not be used in the path!
  *
  * Note that the first on the list must be reachable
  * via a single transition from the current state.
@@ -380,12 +375,12 @@ extern int interface_jtag_add_tlr(void);
  */
 extern void jtag_add_pathmove(int num_states, enum tap_state *path);
 extern int interface_jtag_add_pathmove(int num_states, enum tap_state *path);
-/* go to TAP_RTI, if we're not already there and cycle
- * precisely num_cycles in the TAP_RTI after which move
- * to the end state, if it is != TAP_RTI
+/* go to TAP_IDLE, if we're not already there and cycle
+ * precisely num_cycles in the TAP_IDLE after which move
+ * to the end state, if it is != TAP_IDLE
  *
  * nb! num_cycles can be 0, in which case the fn will navigate
- * to endstate via TAP_RTI
+ * to endstate via TAP_IDLE
  */
 extern void jtag_add_runtest(int num_cycles, enum tap_state endstate);
 extern int interface_jtag_add_runtest(int num_cycles, enum tap_state endstate);
@@ -488,7 +483,7 @@ extern int jtag_verify_capture_ir;
 #define MINIDRIVER(a) a
 /* jtag_add_dr_out() is a faster version of jtag_add_dr_scan()
  *
- * Current or end_state can not be TAP_TLR. end_state can be -1
+ * Current or end_state can not be TAP_RESET. end_state can be -1
  *
  * num_bits[i] is the number of bits to clock out from value[i] LSB first.
  *

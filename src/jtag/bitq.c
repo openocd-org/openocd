@@ -195,7 +195,7 @@ void bitq_runtest(int num_cycles)
 	int i;
 
 	/* only do a state_move when we're not already in RTI */
-	if (cur_state != TAP_RTI) bitq_state_move(TAP_RTI);
+	if (cur_state != TAP_IDLE) bitq_state_move(TAP_IDLE);
 
 	/* execute num_cycles */
 	for (i = 0; i < num_cycles; i++)
@@ -240,8 +240,8 @@ void bitq_scan_field(scan_field_t *field, int pause)
 
 	if (pause) {
 		bitq_io(0,0,0);
-		if (cur_state==TAP_SI) cur_state=TAP_PI;
-		else if (cur_state==TAP_SD) cur_state=TAP_PD;
+		if (cur_state==TAP_IRSHIFT) cur_state=TAP_IRPAUSE;
+		else if (cur_state==TAP_DRSHIFT) cur_state=TAP_DRPAUSE;
 	}
 }
 
@@ -250,8 +250,8 @@ void bitq_scan(scan_command_t *cmd)
 {
 	int i;
 
-	if (cmd->ir_scan) bitq_state_move(TAP_SI);
-	else bitq_state_move(TAP_SD);
+	if (cmd->ir_scan) bitq_state_move(TAP_IRSHIFT);
+	else bitq_state_move(TAP_DRSHIFT);
 
 	for (i=0; i < cmd->num_fields-1; i++)
 		bitq_scan_field(&cmd->fields[i], 0);
@@ -285,7 +285,7 @@ int bitq_execute_queue(void)
 #endif
 				if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_reset_config & RESET_SRST_PULLS_TRST)))
 				{
-					cur_state = TAP_TLR;
+					cur_state = TAP_RESET;
 				}
 				bitq_interface->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				if (bitq_interface->in_rdy()) bitq_in_proc();

@@ -91,7 +91,7 @@ target_type_t feroceon_target =
 	.assert_reset = feroceon_assert_reset,
 	.deassert_reset = arm7_9_deassert_reset,
 	.soft_reset_halt = arm926ejs_soft_reset_halt,
-	
+
 	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
 
 	.read_memory = arm7_9_read_memory,
@@ -99,7 +99,7 @@ target_type_t feroceon_target =
 	.bulk_write_memory = feroceon_bulk_write_memory,
 	.checksum_memory = arm7_9_checksum_memory,
 	.blank_check_memory = arm7_9_blank_check_memory,
-	
+
 	.run_algorithm = armv4_5_run_algorithm,
 
 	.add_breakpoint = arm7_9_add_breakpoint,
@@ -121,17 +121,17 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	u8 out_buf[4];
 	u8 instr_buf[4];
 	u8 sysspeed_buf = 0x0;
-	
+
 	/* prepare buffer */
 	buf_set_u32(out_buf, 0, 32, 0);
-	
+
 	buf_set_u32(instr_buf, 0, 32, flip_u32(instr, 32));
-	
-	jtag_add_end_state(TAP_PD);
+
+	jtag_add_end_state(TAP_DRPAUSE);
 	arm_jtag_scann(jtag_info, 0x1);
-	
+
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
-		
+
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = out_buf;
@@ -141,7 +141,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	fields[0].in_handler_priv = NULL;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
-	
+
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = &sysspeed_buf;
@@ -151,7 +151,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	fields[1].in_check_mask = NULL;
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
-		
+
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = instr_buf;
@@ -165,7 +165,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	jtag_add_dr_scan(3, fields, -1);
 
 	/* no jtag_add_runtest(0, -1) here */
-	
+
 	return ERROR_OK;
 }
 
@@ -174,9 +174,9 @@ void feroceon_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-	
+
 	/*
-	 * save r0 before using it and put system in ARM state 
+	 * save r0 before using it and put system in ARM state
 	 * to allow common handling of ARM and THUMB debugging
 	 */
 
@@ -221,7 +221,7 @@ void feroceon_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-		
+
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask & 0xffff, 0, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -276,7 +276,7 @@ void feroceon_read_xpsr(target_t *target, u32 *xpsr, int spsr)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-		
+
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MRS(0, spsr & 1), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -299,7 +299,7 @@ void feroceon_write_xpsr(target_t *target, u32 xpsr, int spsr)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-		
+
 	LOG_DEBUG("xpsr: %8.8x, spsr: %i", xpsr, spsr);
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MSR_IM(xpsr & 0xff, 0, 1, spsr), 0, NULL, 0);
@@ -358,7 +358,7 @@ void feroceon_write_core_regs(target_t *target, u32 mask, u32 core_regs[16])
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-		
+
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, mask & 0xffff, 0, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -390,13 +390,13 @@ void feroceon_branch_resume(target_t *target)
 void feroceon_branch_resume_thumb(target_t *target)
 {
 	LOG_DEBUG("-");
-	
+
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	u32 r0 = buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
 	u32 pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
-	(void)(r0); // use R0... 
+	(void)(r0); // use R0...
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -411,7 +411,7 @@ void feroceon_branch_resume_thumb(target_t *target)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_LDMIA(0, 0x1), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
- 
+
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, pc, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
@@ -523,7 +523,7 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 	 * We can't use the dcc flow control bits, so let's transfer data
 	 * with 31 bits and flip the MSB each time a new data word is sent.
 	 */
-	static u32 dcc_code[] = 
+	static u32 dcc_code[] =
 	{
 		0xee115e10,	/* 3:	mrc	p14, 0, r5, c1, c0, 0	*/
 		0xe3a0301e,	/* 1:	mov	r3, #30			*/
@@ -586,7 +586,7 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 	armv4_5->core_cache->reg_list[0].dirty = 1;
 	armv4_5->core_state = ARMV4_5_STATE_ARM;
 
-	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], 0); 
+	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], 0);
 	arm7_9_resume(target, 0, arm7_9->dcc_working_area->address, 1, 1);
 
 	/* send data over */
@@ -597,12 +597,12 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 	{
 		u32 y = target_buffer_get_u32(target, buffer);
 		u32 z = (x >> 1) | (y >> shift) | (flip ^= 0x80000000);
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], z); 
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], z);
 		x = y << (32 - shift);
 		if (++shift >= 32 || i + 1 >= count)
 		{
 			z = (x >> 1) | (flip ^= 0x80000000);
-			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], z); 
+			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], z);
 			x = 0;
 			shift = 1;
 		}
@@ -644,7 +644,7 @@ int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
-  
+
 	arm926ejs_init_arch_info(target, arm926ejs, target->tap, target->variant);
 
 	armv4_5 = target->arch_info;
@@ -678,8 +678,8 @@ int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 	arm7_9->set_special_dbgrq = feroceon_set_dbgrq;
 
 	/* only one working comparator */
-	arm7_9->wp_available_max = 1; 
-	arm7_9->wp1_used_default = -1; 
+	arm7_9->wp_available_max = 1;
+	arm7_9->wp1_used_default = -1;
 
 	return ERROR_OK;
 }
@@ -694,27 +694,27 @@ int feroceon_examine(struct target_s *target)
 	retval = arm9tdmi_examine(target);
 	if (retval!=ERROR_OK)
 		return retval;
-			
+
 	armv4_5 = target->arch_info;
 	arm7_9 = armv4_5->arch_info;
-	
+
 	/* the COMMS_CTRL bits are all contiguous */
 	if (buf_get_u32(arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL].value, 2, 4) != 6)
 		LOG_ERROR("unexpected Feroceon EICE version signature");
-	
-	arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].size = 6; 
-	arm7_9->eice_cache->reg_list[EICE_DBG_STAT].size = 5; 
+
+	arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].size = 6;
+	arm7_9->eice_cache->reg_list[EICE_DBG_STAT].size = 5;
 	arm7_9->has_monitor_mode = 1;
-	
+
 	/* vector catch reg is not initialized on reset */
 	embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_VEC_CATCH], 0);
-	
+
 	/* clear monitor mode, enable comparators */
 	embeddedice_read_reg(&arm7_9->eice_cache->reg_list[EICE_DBG_CTRL]);
-	jtag_execute_queue(); 
+	jtag_execute_queue();
 	buf_set_u32(arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].value, 4, 1, 0);
-	buf_set_u32(arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].value, 5, 1, 0); 
+	buf_set_u32(arm7_9->eice_cache->reg_list[EICE_DBG_CTRL].value, 5, 1, 0);
 	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_DBG_CTRL]);
-	
+
 	return ERROR_OK;
 }

@@ -44,7 +44,7 @@
 /*
  * Transaction Mode:
  * swjdp->trans_mode = TRANS_MODE_COMPOSITE;
- * Uses Overrun checking mode and does not do actual JTAG send/receive or transaction 
+ * Uses Overrun checking mode and does not do actual JTAG send/receive or transaction
  * result checking until swjdp_end_transaction()
  * This must be done before using or deallocating any return variables.
  * swjdp->trans_mode == TRANS_MODE_ATOMIC
@@ -63,8 +63,8 @@ int swjdp_scan(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u8 *outvalu
 {
 	scan_field_t fields[2];
 	u8 out_addr_buf;
-	
-	jtag_add_end_state(TAP_RTI);
+
+	jtag_add_end_state(TAP_IDLE);
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
 	fields[0].tap = jtag_info->tap;
@@ -99,8 +99,8 @@ int swjdp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u32 out
 	scan_field_t fields[2];
 	u8 out_value_buf[4];
 	u8 out_addr_buf;
-	
-	jtag_add_end_state(TAP_RTI);
+
+	jtag_add_end_state(TAP_IDLE);
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
 	fields[0].tap = jtag_info->tap;
@@ -138,7 +138,7 @@ int swjdp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u32 out
 	return ERROR_OK;
 }
 
-/* scan_inout_check adds one extra inscan for DPAP_READ commands to read variables */ 
+/* scan_inout_check adds one extra inscan for DPAP_READ commands to read variables */
 int scan_inout_check(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u8 *outvalue, u8 *invalue)
 {
 	swjdp_scan(swjdp->jtag_info, instr, reg_addr, RnW, outvalue, NULL, NULL);
@@ -146,7 +146,7 @@ int scan_inout_check(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u8 *o
 	{
 		swjdp_scan(swjdp->jtag_info, SWJDP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
 	}
-	
+
 	/* In TRANS_MODE_ATOMIC all SWJDP_IR_APACC transactions wait for ack=OK/FAULT and the check CTRL_STAT */
 	if ((instr == SWJDP_IR_APACC) && (swjdp->trans_mode == TRANS_MODE_ATOMIC))
 	{
@@ -163,7 +163,7 @@ int scan_inout_check_u32(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u
 	{
 		swjdp_scan_u32(swjdp->jtag_info, SWJDP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
 	}
-	
+
 	/* In TRANS_MODE_ATOMIC all SWJDP_IR_APACC transactions wait for ack=OK/FAULT and then check CTRL_STAT */
 	if ((instr == SWJDP_IR_APACC) && (swjdp->trans_mode == TRANS_MODE_ATOMIC))
 	{
@@ -179,10 +179,10 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 	u32 ctrlstat;
 
 	keep_alive();
-	
+
 	/* Danger!!!! BROKEN!!!! */
 	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-	/* Danger!!!! BROKEN!!!! Why will jtag_execute_queue() fail here???? 
+	/* Danger!!!! BROKEN!!!! Why will jtag_execute_queue() fail here????
 	R956 introduced the check on return value here and now Michael Schwingen reports
 	that this code no longer works....
 
@@ -196,9 +196,9 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	if ((retval=jtag_execute_queue())!=ERROR_OK)
 		return retval;
-	
+
 	swjdp->ack = swjdp->ack & 0x7;
-	
+
 	long long then=timeval_ms();
 	while (swjdp->ack != 2)
 	{
@@ -234,13 +234,13 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 		else
 		{
 			u32 dcb_dhcsr,nvic_shcsr, nvic_bfar, nvic_cfsr;
-			
+
 			if (ctrlstat & SSTICKYORUN)
 				LOG_ERROR("SWJ-DP OVERRUN - check clock or reduce jtag speed");
-			
+
 			if (ctrlstat & SSTICKYERR)
 				LOG_ERROR("SWJ-DP STICKY ERROR");
-			
+
 			/* Clear Sticky Error Bits */
 			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_WRITE, swjdp->dp_ctrl_stat | SSTICKYORUN | SSTICKYERR, NULL);
 			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
@@ -248,8 +248,8 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 				return retval;
 
 			LOG_DEBUG("swjdp: status 0x%x", ctrlstat);
-			
-			/* Can we find out the reason for the error ?? */			
+
+			/* Can we find out the reason for the error ?? */
 			ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
 			ahbap_read_system_atomic_u32(swjdp, NVIC_SHCSR, &nvic_shcsr);
 			ahbap_read_system_atomic_u32(swjdp, NVIC_CFSR, &nvic_cfsr);
@@ -312,7 +312,7 @@ int ahbap_read_reg(swjdp_common_t *swjdp, u32 reg_addr, u8 *in_value_buf)
 int ahbap_write_reg_u32(swjdp_common_t *swjdp, u32 reg_addr, u32 value)
 {
 	u8 out_value_buf[4];
-	
+
 	buf_set_u32(out_value_buf, 0, 32, value);
 	swjdp_bankselect_apacc(swjdp, reg_addr);
 	scan_inout_check(swjdp, SWJDP_IR_APACC, reg_addr, DPAP_WRITE, out_value_buf, NULL);
@@ -350,7 +350,7 @@ int ahbap_setup_accessport(swjdp_common_t *swjdp, u32 csw, u32 tar)
 		swjdp->ap_tar_value = tar;
 	}
 	if (csw & CSW_ADDRINC_MASK)
-	{ 	
+	{
 		/* Do not cache TAR value when autoincrementing */
 		swjdp->ap_tar_value = -1;
 	}
@@ -371,14 +371,14 @@ int ahbap_read_system_u32(swjdp_common_t *swjdp, u32 address, u32 *value)
 
 	ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, address & 0xFFFFFFF0);
 	ahbap_read_reg_u32(swjdp, AHBAP_BD0 | (address & 0xC), value );
-	
+
 	return ERROR_OK;
 }
 
 int ahbap_read_system_atomic_u32(swjdp_common_t *swjdp, u32 address, u32 *value)
 {
 	ahbap_read_system_u32(swjdp, address, value);
-	
+
 	return swjdp_transaction_endcheck(swjdp);
 }
 
@@ -402,7 +402,7 @@ int ahbap_write_system_u32(swjdp_common_t *swjdp, u32 address, u32 value)
 int ahbap_write_system_atomic_u32(swjdp_common_t *swjdp, u32 address, u32 value)
 {
 	ahbap_write_system_u32(swjdp, address, value);
-	
+
 	return swjdp_transaction_endcheck(swjdp);
 }
 
@@ -419,12 +419,12 @@ int ahbap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
 	u32 adr = address;
 	u8* pBuffer = buffer;
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	count >>= 2;
 	wcount = count;
-	
+
 	/* if we have an unaligned access - reorder data */
 	if (adr & 0x3u)
 	{
@@ -432,7 +432,7 @@ int ahbap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 		{
 			int i;
 			outvalue = *((u32*)pBuffer);
-			
+
 			for (i = 0; i < 4; i++ )
 			{
 				*((u8*)pBuffer + (adr & 0x3)) = outvalue;
@@ -442,25 +442,25 @@ int ahbap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 			pBuffer += 4;
 		}
 	}
-	
+
 	while (wcount > 0)
 	{
 		/* Adjust to write blocks within 4K aligned boundaries */
 		blocksize = (0x1000 - (0xFFF & address)) >> 2;
 		if (wcount < blocksize)
 			blocksize = wcount;
-		
+
 		/* handle unaligned data at 4k boundary */
 		if (blocksize == 0)
 			blocksize = 1;
-			
+
 		ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_SINGLE, address);
-		
+
 		for (writecount = 0; writecount < blocksize; writecount++)
 		{
 			ahbap_write_reg(swjdp, AHBAP_DRW, buffer + 4 * writecount );
 		}
-		
+
 		if (swjdp_transaction_endcheck(swjdp) == ERROR_OK)
 		{
 			wcount = wcount - blocksize;
@@ -471,14 +471,14 @@ int ahbap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 		{
 			errorcount++;
 		}
-		
+
 		if (errorcount > 1)
 		{
 			LOG_WARNING("Block write error address 0x%x, wcount 0x%x", address, wcount);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
-	
+
 	return retval;
 }
 
@@ -487,32 +487,32 @@ int ahbap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 	u32 outvalue;
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-		
+
 	wcount = count >> 1;
-	
+
 	while (wcount > 0)
 	{
 		int nbytes;
-		
+
 		/* Adjust to read within 4K block boundaries */
 		blocksize = (0x1000 - (0xFFF & address)) >> 1;
-		
+
 		if (wcount < blocksize)
 			blocksize = wcount;
-		
+
 		/* handle unaligned data at 4k boundary */
 		if (blocksize == 0)
 			blocksize = 1;
-		
+
 		ahbap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_PACKED, address);
 		writecount = blocksize;
-		
+
 		do
 		{
 			nbytes = MIN((writecount << 1), 4);
-			
+
 			if (nbytes < 4 )
 			{
 				if (ahbap_write_buf_u16(swjdp, buffer, nbytes, address) != ERROR_OK)
@@ -520,20 +520,20 @@ int ahbap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
-				
+
 				address += nbytes >> 1;
 			}
 			else
 			{
 				outvalue = *((u32*)buffer);
-				
+
 				for (i = 0; i < nbytes; i++ )
 				{
 					*((u8*)buffer + (address & 0x3)) = outvalue;
 					outvalue >>= 8;
 					address++;
 				}
-				
+
 				outvalue = *((u32*)buffer);
 				ahbap_write_reg_u32(swjdp, AHBAP_DRW, outvalue);
 				if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
@@ -542,14 +542,14 @@ int ahbap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
-			
+
 			buffer += nbytes >> 1;
 			writecount -= nbytes >> 1;
-			
+
 		} while (writecount);
 		wcount -= blocksize;
 	}
-	
+
 	return retval;
 }
 
@@ -557,12 +557,12 @@ int ahbap_write_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 {
 	u32 outvalue;
 	int retval = ERROR_OK;
-	
+
 	if (count >= 4)
 		return ahbap_write_buf_packed_u16(swjdp, buffer, count, address);
-		
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	while (count > 0)
 	{
 		ahbap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
@@ -582,28 +582,28 @@ int ahbap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 
 	u32 outvalue;
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	wcount = count;
-	
+
 	while (wcount > 0)
 	{
 		int nbytes;
-		
+
 		/* Adjust to read within 4K block boundaries */
 		blocksize = (0x1000 - (0xFFF & address));
-		
+
 		if (wcount < blocksize)
 			blocksize = wcount;
-				
+
 		ahbap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_PACKED, address);
 		writecount = blocksize;
-		
+
 		do
 		{
 			nbytes = MIN(writecount, 4);
-			
+
 			if (nbytes < 4 )
 			{
 				if (ahbap_write_buf_u8(swjdp, buffer, nbytes, address) != ERROR_OK)
@@ -611,20 +611,20 @@ int ahbap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 
 					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
-				
+
 				address += nbytes;
 			}
 			else
 			{
 				outvalue = *((u32*)buffer);
-				
+
 				for (i = 0; i < nbytes; i++ )
 				{
 					*((u8*)buffer + (address & 0x3)) = outvalue;
 					outvalue >>= 8;
 					address++;
 				}
-				
+
 				outvalue = *((u32*)buffer);
 				ahbap_write_reg_u32(swjdp, AHBAP_DRW, outvalue);
 				if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
@@ -633,14 +633,14 @@ int ahbap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
-			
+
 			buffer += nbytes;
 			writecount -= nbytes;
-			
+
 		} while (writecount);
 		wcount -= blocksize;
 	}
-	
+
 	return retval;
 }
 
@@ -648,12 +648,12 @@ int ahbap_write_buf_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address
 {
 	u32 outvalue;
 	int retval = ERROR_OK;
-	
+
 	if (count >= 4)
 		return ahbap_write_buf_packed_u8(swjdp, buffer, count, address);
-		
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	while (count > 0)
 	{
 		ahbap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
@@ -664,7 +664,7 @@ int ahbap_write_buf_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address
 		address++;
 		buffer++;
 	}
-	
+
 	return retval;
 }
 
@@ -680,25 +680,25 @@ int ahbap_read_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address
 	int wcount, blocksize, readcount, errorcount = 0, retval = ERROR_OK;
 	u32 adr = address;
 	u8* pBuffer = buffer;
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	count >>= 2;
 	wcount = count;
-	
+
 	while (wcount > 0)
 	{
 		/* Adjust to read within 4K block boundaries */
 		blocksize = (0x1000 - (0xFFF & address)) >> 2;
 		if (wcount < blocksize)
 			blocksize = wcount;
-		
+
 		/* handle unaligned data at 4k boundary */
 		if (blocksize == 0)
 			blocksize = 1;
-		
+
 		ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_SINGLE, address);
-		
+
 		/* Scan out first read */
 		swjdp_scan(swjdp->jtag_info, SWJDP_IR_APACC, AHBAP_DRW, DPAP_READ, 0, NULL, NULL);
 		for (readcount = 0; readcount < blocksize - 1; readcount++)
@@ -706,27 +706,27 @@ int ahbap_read_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address
 			/* Scan out read instruction and scan in previous value */
 			swjdp_scan(swjdp->jtag_info, SWJDP_IR_APACC, AHBAP_DRW, DPAP_READ, 0, buffer + 4 * readcount, &swjdp->ack);
 		}
-		
+
 		/* Scan in last value */
 		swjdp_scan(swjdp->jtag_info, SWJDP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, buffer + 4 * readcount, &swjdp->ack);
 		if (swjdp_transaction_endcheck(swjdp) == ERROR_OK)
 		{
 			wcount = wcount - blocksize;
 			address += 4 * blocksize;
-			buffer += 4 * blocksize; 
+			buffer += 4 * blocksize;
 		}
 		else
 		{
 			errorcount++;
 		}
-		
+
 		if (errorcount > 1)
 		{
 			LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
-	
+
 	/* if we have an unaligned access - reorder data */
 	if (adr & 0x3u)
 	{
@@ -734,7 +734,7 @@ int ahbap_read_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address
 		{
 			int i;
 			u32 data = *((u32*)pBuffer);
-			
+
 			for (i = 0; i < 4; i++ )
 			{
 				*((u8*)pBuffer) = (data >> 8 * (adr & 0x3));
@@ -743,7 +743,7 @@ int ahbap_read_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address
 			}
 		}
 	}
-	
+
 	return retval;
 }
 
@@ -752,27 +752,27 @@ int ahbap_read_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 
 	u32 invalue;
 	int retval = ERROR_OK;
 	int wcount, blocksize, readcount, i;
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	wcount = count >> 1;
-	
+
 	while (wcount > 0)
 	{
 		int nbytes;
-		
+
 		/* Adjust to read within 4K block boundaries */
 		blocksize = (0x1000 - (0xFFF & address)) >> 1;
 		if (wcount < blocksize)
 			blocksize = wcount;
-				
+
 		ahbap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_PACKED, address);
-		
+
 		/* handle unaligned data at 4k boundary */
 		if (blocksize == 0)
 			blocksize = 1;
 		readcount = blocksize;
-		
+
 		do
 		{
 			ahbap_read_reg_u32(swjdp, AHBAP_DRW, &invalue );
@@ -781,21 +781,21 @@ int ahbap_read_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 
 				LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
-			
+
 			nbytes = MIN((readcount << 1), 4);
-			
+
 			for (i = 0; i < nbytes; i++ )
 			{
 				*((u8*)buffer) = (invalue >> 8 * (address & 0x3));
 				buffer++;
 				address++;
 			}
-			
+
 			readcount -= (nbytes >> 1);
 		} while (readcount);
 		wcount -= blocksize;
 	}
-	
+
 	return retval;
 }
 
@@ -803,12 +803,12 @@ int ahbap_read_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address
 {
 	u32 invalue, i;
 	int retval = ERROR_OK;
-	
+
 	if (count >= 4)
 		return ahbap_read_buf_packed_u16(swjdp, buffer, count, address);
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	while (count > 0)
 	{
 		ahbap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
@@ -840,24 +840,24 @@ int ahbap_read_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 a
 	u32 invalue;
 	int retval = ERROR_OK;
 	int wcount, blocksize, readcount, i;
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	wcount = count;
-	
+
 	while (wcount > 0)
 	{
 		int nbytes;
-		
+
 		/* Adjust to read within 4K block boundaries */
 		blocksize = (0x1000 - (0xFFF & address));
-		
+
 		if (wcount < blocksize)
 			blocksize = wcount;
-				
+
 		ahbap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_PACKED, address);
 		readcount = blocksize;
-		
+
 		do
 		{
 			ahbap_read_reg_u32(swjdp, AHBAP_DRW, &invalue );
@@ -866,21 +866,21 @@ int ahbap_read_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 a
 				LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
-			
+
 			nbytes = MIN(readcount, 4);
-			
+
 			for (i = 0; i < nbytes; i++ )
 			{
 				*((u8*)buffer) = (invalue >> 8 * (address & 0x3));
 				buffer++;
 				address++;
 			}
-			
+
 			readcount -= nbytes;
 		} while (readcount);
 		wcount -= blocksize;
 	}
-	
+
 	return retval;
 }
 
@@ -888,12 +888,12 @@ int ahbap_read_buf_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address)
 {
 	u32 invalue;
 	int retval = ERROR_OK;
-	
+
 	if (count >= 4)
 		return ahbap_read_buf_packed_u8(swjdp, buffer, count, address);
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	while (count > 0)
 	{
 		ahbap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
@@ -912,12 +912,12 @@ int ahbap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum)
 {
 	int retval;
 	u32 dcrdr;
-	
+
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we gave to save/restore the DCB_DCRDR when used */
-	
+
 	ahbap_read_system_atomic_u32(swjdp, DCB_DCRDR, &dcrdr);
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	/* ahbap_write_system_u32(swjdp, DCB_DCRSR, regnum); */
@@ -927,7 +927,7 @@ int ahbap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum)
 	/* ahbap_read_system_u32(swjdp, DCB_DCRDR, value); */
 	ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
 	ahbap_read_reg_u32(swjdp, AHBAP_BD0 | (DCB_DCRDR & 0xC), value );
-	
+
 	retval = swjdp_transaction_endcheck(swjdp);
 	ahbap_write_system_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
 	return retval;
@@ -937,14 +937,14 @@ int ahbap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum)
 {
 	int retval;
 	u32 dcrdr;
-	
+
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we gave to save/restore the DCB_DCRDR when used */
-	 
+
 	ahbap_read_system_atomic_u32(swjdp, DCB_DCRDR, &dcrdr);
-	
+
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
-	
+
 	/* ahbap_write_system_u32(swjdp, DCB_DCRDR, core_regs[i]); */
 	ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
 	ahbap_write_reg_u32(swjdp, AHBAP_BD0 | (DCB_DCRDR & 0xC), value );
@@ -952,7 +952,7 @@ int ahbap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum)
 	/* ahbap_write_system_u32(swjdp, DCB_DCRSR, i | DCRSR_WnR	); */
 	ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
 	ahbap_write_reg_u32(swjdp, AHBAP_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR );
-	
+
 	retval = swjdp_transaction_endcheck(swjdp);
 	ahbap_write_system_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
 	return retval;
@@ -964,16 +964,16 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	u32 ctrlstat;
 	int cnt = 0;
 	int retval;
-	
+
 	LOG_DEBUG(" ");
-	
+
 	swjdp->ap_csw_value = -1;
 	swjdp->ap_tar_value = -1;
 	swjdp->trans_mode = TRANS_MODE_ATOMIC;
 	swjdp_read_dpacc(swjdp, &dummy, DP_CTRL_STAT);
 	swjdp_write_dpacc(swjdp, SSTICKYERR, DP_CTRL_STAT);
 	swjdp_read_dpacc(swjdp, &dummy, DP_CTRL_STAT);
-	
+
 	swjdp->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
 
 	swjdp_write_dpacc(swjdp, swjdp->dp_ctrl_stat, DP_CTRL_STAT);
@@ -1005,11 +1005,11 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	swjdp->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ | CORUNDETECT;
 	swjdp_write_dpacc(swjdp, swjdp->dp_ctrl_stat, DP_CTRL_STAT);
 	swjdp_read_dpacc(swjdp, &dummy, DP_CTRL_STAT);
-	
+
 	ahbap_read_reg_u32(swjdp, 0xFC, &idreg);
 	ahbap_read_reg_u32(swjdp, 0xF8, &romaddr);
-	
+
 	LOG_DEBUG("AHB-AP ID Register 0x%x, Debug ROM Address 0x%x", idreg, romaddr);
-	
+
 	return ERROR_OK;
 }

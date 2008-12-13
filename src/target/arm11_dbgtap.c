@@ -38,13 +38,13 @@
 
 enum tap_state arm11_move_pi_to_si_via_ci[] =
 {
-    TAP_E2I, TAP_UI, TAP_SDS, TAP_SIS, TAP_CI, TAP_SI
+    TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IRSHIFT
 };
 
 
 int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-    if (cmd_queue_cur_state == TAP_PI)
+    if (cmd_queue_cur_state == TAP_IRPAUSE)
 	jtag_add_pathmove(asizeof(arm11_move_pi_to_si_via_ci), arm11_move_pi_to_si_via_ci);
 
     jtag_add_ir_scan(num_fields, fields, state);
@@ -53,12 +53,12 @@ int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state st
 
 enum tap_state arm11_move_pd_to_sd_via_cd[] =
 {
-    TAP_E2D, TAP_UD, TAP_SDS, TAP_CD, TAP_SD
+    TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
 
 int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-    if (cmd_queue_cur_state == TAP_PD)
+    if (cmd_queue_cur_state == TAP_DRPAUSE)
 	jtag_add_pathmove(asizeof(arm11_move_pd_to_sd_via_cd), arm11_move_pd_to_sd_via_cd);
 
     jtag_add_dr_scan(num_fields, fields, state);
@@ -104,7 +104,7 @@ void arm11_add_IR(arm11_common_t * arm11, u8 instr, enum tap_state state)
 	jtag_tap_t *tap;
 	tap = arm11->jtag_info.tap;
 	if(  tap == NULL ){
-    	/* FIX!!!! error is logged, but not propagated back up the call stack... */
+	/* FIX!!!! error is logged, but not propagated back up the call stack... */
 		LOG_ERROR( "tap is null here! This is bad!");
 		return;
     }
@@ -120,7 +120,7 @@ void arm11_add_IR(arm11_common_t * arm11, u8 instr, enum tap_state state)
 
     arm11_setup_field(arm11, 5, &instr, NULL, &field);
 
-    arm11_add_ir_scan_vc(1, &field, state == -1 ? TAP_PI : state);
+    arm11_add_ir_scan_vc(1, &field, state == -1 ? TAP_IRPAUSE : state);
 }
 
 /** Verify shifted out data from Scan Chain Register (SCREG)
@@ -135,8 +135,8 @@ static int arm11_in_handler_SCAN_N(u8 *in_value, void *priv, struct scan_field_s
 
     if (v != 0x10)
     {
-        LOG_ERROR("'arm11 target' JTAG communication error SCREG SCAN OUT 0x%02x (expected 0x10)", v);
-        return ERROR_FAIL;
+	LOG_ERROR("'arm11 target' JTAG communication error SCREG SCAN OUT 0x%02x (expected 0x10)", v);
+	return ERROR_FAIL;
     }
 
     JTAG_DEBUG("SCREG SCAN OUT 0x%02x", v);
@@ -179,7 +179,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, enum tap_state sta
 
     field.in_handler = arm11_in_handler_SCAN_N;
 
-    arm11_add_dr_scan_vc(1, &field, state == -1 ? TAP_PD : state);
+    arm11_add_dr_scan_vc(1, &field, state == -1 ? TAP_DRPAUSE : state);
 }
 
 /** Write an instruction into the ITR register
@@ -194,7 +194,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, enum tap_state sta
  * \remarks By default this ends with Run-Test/Idle state
  * and causes the instruction to be executed. If
  * a subsequent write to DTR is needed before
- * executing the instruction then TAP_PD should be
+ * executing the instruction then TAP_DRPAUSE should be
  * passed to \p state.
  *
  * \remarks This adds to the JTAG command queue but does \em not execute it.
@@ -208,7 +208,7 @@ void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, enum tap_
     arm11_setup_field(arm11, 32,    &inst,	NULL, itr + 0);
     arm11_setup_field(arm11, 1,	    NULL,	flag, itr + 1);
 
-    arm11_add_dr_scan_vc(asizeof(itr), itr, state == -1 ? TAP_RTI : state);
+    arm11_add_dr_scan_vc(asizeof(itr), itr, state == -1 ? TAP_IDLE : state);
 }
 
 /** Read the Debug Status and Control Register (DSCR)
@@ -231,12 +231,12 @@ u32 arm11_read_DSCR(arm11_common_t * arm11)
 
     arm11_setup_field(arm11, 32, NULL, &dscr, &chain1_field);
 
-    arm11_add_dr_scan_vc(1, &chain1_field, TAP_PD);
+    arm11_add_dr_scan_vc(1, &chain1_field, TAP_DRPAUSE);
 
     jtag_execute_queue();
 
     if (arm11->last_dscr != dscr)
-        JTAG_DEBUG("DSCR  = %08x (OLD %08x)", dscr, arm11->last_dscr);
+	JTAG_DEBUG("DSCR  = %08x (OLD %08x)", dscr, arm11->last_dscr);
 
     arm11->last_dscr = dscr;
 
@@ -262,7 +262,7 @@ void arm11_write_DSCR(arm11_common_t * arm11, u32 dscr)
 
     arm11_setup_field(arm11, 32, &dscr, NULL, &chain1_field);
 
-    arm11_add_dr_scan_vc(1, &chain1_field, TAP_PD);
+    arm11_add_dr_scan_vc(1, &chain1_field, TAP_DRPAUSE);
 
     jtag_execute_queue();
 
@@ -369,13 +369,13 @@ void arm11_run_instr_no_data(arm11_common_t * arm11, u32 * opcode, size_t count)
 
     while (count--)
     {
-	arm11_add_debug_INST(arm11, *opcode++, NULL, TAP_RTI);
+	arm11_add_debug_INST(arm11, *opcode++, NULL, TAP_IDLE);
 
 	while (1)
 	{
 	    u8 flag;
 
-	    arm11_add_debug_INST(arm11, 0, &flag, count ? TAP_RTI : TAP_PD);
+	    arm11_add_debug_INST(arm11, 0, &flag, count ? TAP_IDLE : TAP_DRPAUSE);
 
 	    jtag_execute_queue();
 
@@ -416,7 +416,7 @@ void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data
 {
     arm11_add_IR(arm11, ARM11_ITRSEL, -1);
 
-    arm11_add_debug_INST(arm11, opcode, NULL, TAP_PD);
+    arm11_add_debug_INST(arm11, opcode, NULL, TAP_DRPAUSE);
 
     arm11_add_IR(arm11, ARM11_EXTEST, -1);
 
@@ -436,7 +436,7 @@ void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data
 	{
 	    Data	    = *data;
 
-	    arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_RTI);
+	    arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_IDLE);
 	    jtag_execute_queue();
 
 	    JTAG_DEBUG("DTR  Ready %d  nRetry %d", Ready, nRetry);
@@ -452,7 +452,7 @@ void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data
     {
 	Data	    = 0;
 
-	arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_PD);
+	arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	jtag_execute_queue();
 
 	JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
@@ -462,18 +462,18 @@ void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data
 
 /** JTAG path for arm11_run_instr_data_to_core_noack
  *
- *  The repeated TAP_RTI's do not cause a repeated execution
+ *  The repeated TAP_IDLE's do not cause a repeated execution
  *  if passed without leaving the state.
  *
  *  Since this is more than 7 bits (adjustable via adding more
- *  TAP_RTI's) it produces an artificial delay in the lower
+ *  TAP_IDLE's) it produces an artificial delay in the lower
  *  layer (FT2232) that is long enough to finish execution on
  *  the core but still shorter than any manually inducible delays.
  *
  */
 enum tap_state arm11_MOVE_PD_RTI_PD_with_delay[] =
 {
-    TAP_E2D, TAP_UD, TAP_RTI, TAP_RTI, TAP_RTI, TAP_SDS, TAP_CD, TAP_SD
+    TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
 
 
@@ -497,7 +497,7 @@ void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 
 {
     arm11_add_IR(arm11, ARM11_ITRSEL, -1);
 
-    arm11_add_debug_INST(arm11, opcode, NULL, TAP_PD);
+    arm11_add_debug_INST(arm11, opcode, NULL, TAP_DRPAUSE);
 
     arm11_add_IR(arm11, ARM11_EXTEST, -1);
 
@@ -517,13 +517,13 @@ void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 
 
 	if (count)
 	{
-	    jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, TAP_PD);
+	    jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	    jtag_add_pathmove(asizeof(arm11_MOVE_PD_RTI_PD_with_delay),
 		arm11_MOVE_PD_RTI_PD_with_delay);
 	}
 	else
 	{
-	    jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, TAP_RTI);
+	    jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, TAP_IDLE);
 	}
     }
 
@@ -532,7 +532,7 @@ void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 
     chain5_fields[0].out_value	= 0;
     chain5_fields[1].in_value   = ReadyPos++;
 
-    arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_PD);
+    arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
 
     jtag_execute_queue();
 
@@ -586,7 +586,7 @@ void arm11_run_instr_data_from_core(arm11_common_t * arm11, u32 opcode, u32 * da
 {
     arm11_add_IR(arm11, ARM11_ITRSEL, -1);
 
-    arm11_add_debug_INST(arm11, opcode, NULL, TAP_RTI);
+    arm11_add_debug_INST(arm11, opcode, NULL, TAP_IDLE);
 
     arm11_add_IR(arm11, ARM11_INTEST, -1);
 
@@ -604,7 +604,7 @@ void arm11_run_instr_data_from_core(arm11_common_t * arm11, u32 opcode, u32 * da
     {
 	do
 	{
-	    arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, count ? TAP_RTI : TAP_PD);
+	    arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, count ? TAP_IDLE : TAP_DRPAUSE);
 	    jtag_execute_queue();
 
 	    JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
@@ -699,11 +699,11 @@ void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t 
 	    AddressOut	= 0;
 	}
 
-        do
+	do
 	{
 	    JTAG_DEBUG("SC7 <= Address %02x  Data %08x    nRW %d", AddressOut, DataOut, nRW);
 
-	    arm11_add_dr_scan_vc(asizeof(chain7_fields), chain7_fields, TAP_PD);
+	    arm11_add_dr_scan_vc(asizeof(chain7_fields), chain7_fields, TAP_DRPAUSE);
 	    jtag_execute_queue();
 
 	    JTAG_DEBUG("SC7 => Address %02x  Data %08x  Ready %d", AddressIn, DataIn, Ready);

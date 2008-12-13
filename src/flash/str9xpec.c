@@ -145,7 +145,7 @@ u8 str9xpec_isc_status(jtag_tap_t *tap)
 	scan_field_t field;
 	u8 status;
 
-	if (str9xpec_set_instr(tap, ISC_NOOP, TAP_PI) != ERROR_OK)
+	if (str9xpec_set_instr(tap, ISC_NOOP, TAP_IRPAUSE) != ERROR_OK)
 		return ISC_STATUS_ERROR;
 
 	field.tap = tap;
@@ -158,7 +158,7 @@ u8 str9xpec_isc_status(jtag_tap_t *tap)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 
-	jtag_add_dr_scan(1, &field, TAP_RTI);
+	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_execute_queue();
 
 	LOG_DEBUG("status: 0x%2.2x", status);
@@ -181,7 +181,7 @@ int str9xpec_isc_enable(struct flash_bank_s *bank)
 		return ERROR_OK;
 
 	/* enter isc mode */
-	if (str9xpec_set_instr(tap, ISC_ENABLE, TAP_RTI) != ERROR_OK)
+	if (str9xpec_set_instr(tap, ISC_ENABLE, TAP_IDLE) != ERROR_OK)
 		return ERROR_TARGET_INVALID;
 
 	/* check ISC status */
@@ -207,7 +207,7 @@ int str9xpec_isc_disable(struct flash_bank_s *bank)
 	if (!str9xpec_info->isc_enable)
 		return ERROR_OK;
 
-	if (str9xpec_set_instr(tap, ISC_DISABLE, TAP_RTI) != ERROR_OK)
+	if (str9xpec_set_instr(tap, ISC_DISABLE, TAP_IDLE) != ERROR_OK)
 		return ERROR_TARGET_INVALID;
 
 	/* delay to handle aborts */
@@ -238,7 +238,7 @@ int str9xpec_read_config(struct flash_bank_s *bank)
 	LOG_DEBUG("ISC_CONFIGURATION");
 
 	/* execute ISC_CONFIGURATION command */
-	str9xpec_set_instr(tap, ISC_CONFIGURATION, TAP_PI);
+	str9xpec_set_instr(tap, ISC_CONFIGURATION, TAP_IRPAUSE);
 
 	field.tap = tap;
 	field.num_bits = 64;
@@ -250,7 +250,7 @@ int str9xpec_read_config(struct flash_bank_s *bank)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 
-	jtag_add_dr_scan(1, &field, TAP_RTI);
+	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_execute_queue();
 
 	status = str9xpec_isc_status(tap);
@@ -349,10 +349,10 @@ int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	armv4_5 = bank->target->arch_info;
 	arm7_9 = armv4_5->arch_info;
 	jtag_info = &arm7_9->jtag_info;
-	
+
 	str9xpec_info->tap = jtag_TapByAbsPosition( jtag_info->tap->abs_chain_position - 1);
 	str9xpec_info->isc_enable = 0;
-	
+
 	str9xpec_build_block_list(bank);
 
 	/* clear option byte register */
@@ -390,7 +390,7 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	}
 
 	/* execute ISC_BLANK_CHECK command */
-	str9xpec_set_instr(tap, ISC_BLANK_CHECK, TAP_PI);
+	str9xpec_set_instr(tap, ISC_BLANK_CHECK, TAP_IRPAUSE);
 
 	field.tap = tap;
 	field.num_bits = 64;
@@ -402,7 +402,7 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 
-	jtag_add_dr_scan(1, &field, TAP_RTI);
+	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_add_sleep(40000);
 
 	/* read blank check result */
@@ -416,7 +416,7 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 
-	jtag_add_dr_scan(1, &field, TAP_PI);
+	jtag_add_dr_scan(1, &field, TAP_IRPAUSE);
 	jtag_execute_queue();
 
 	status = str9xpec_isc_status(tap);
@@ -506,7 +506,7 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	LOG_DEBUG("ISC_ERASE");
 
 	/* execute ISC_ERASE command */
-	str9xpec_set_instr(tap, ISC_ERASE, TAP_PI);
+	str9xpec_set_instr(tap, ISC_ERASE, TAP_IRPAUSE);
 
 	field.tap = tap;
 	field.num_bits = 64;
@@ -518,7 +518,7 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 
-	jtag_add_dr_scan(1, &field, TAP_RTI);
+	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_execute_queue();
 
 	jtag_add_sleep(10);
@@ -569,9 +569,9 @@ int str9xpec_lock_device(struct flash_bank_s *bank)
 	str9xpec_set_address(bank, 0x80);
 
 	/* execute ISC_PROGRAM command */
-	str9xpec_set_instr(tap, ISC_PROGRAM_SECURITY, TAP_RTI);
+	str9xpec_set_instr(tap, ISC_PROGRAM_SECURITY, TAP_IDLE);
 
-	str9xpec_set_instr(tap, ISC_NOOP, TAP_PI);
+	str9xpec_set_instr(tap, ISC_NOOP, TAP_IRPAUSE);
 
 	do {
 		field.tap = tap;
@@ -658,7 +658,7 @@ int str9xpec_set_address(struct flash_bank_s *bank, u8 sector)
 	tap = str9xpec_info->tap;
 
 	/* set flash controller address */
-	str9xpec_set_instr(tap, ISC_ADDRESS_SHIFT, TAP_PI);
+	str9xpec_set_instr(tap, ISC_ADDRESS_SHIFT, TAP_IRPAUSE);
 
 	field.tap = tap;
 	field.num_bits = 8;
@@ -747,7 +747,7 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 		while (dwords_remaining > 0)
 		{
-			str9xpec_set_instr(tap, ISC_PROGRAM, TAP_PI);
+			str9xpec_set_instr(tap, ISC_PROGRAM, TAP_IRPAUSE);
 
 			field.tap = tap;
 			field.num_bits = 64;
@@ -759,12 +759,12 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			field.in_handler = NULL;
 			field.in_handler_priv = NULL;
 
-			jtag_add_dr_scan(1, &field, TAP_RTI);
+			jtag_add_dr_scan(1, &field, TAP_IDLE);
 
 			/* small delay before polling */
 			jtag_add_sleep(50);
 
-			str9xpec_set_instr(tap, ISC_NOOP, TAP_PI);
+			str9xpec_set_instr(tap, ISC_NOOP, TAP_IRPAUSE);
 
 			do {
 				field.tap = tap;
@@ -807,7 +807,7 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			bytes_written++;
 		}
 
-		str9xpec_set_instr(tap, ISC_PROGRAM, TAP_PI);
+		str9xpec_set_instr(tap, ISC_PROGRAM, TAP_IRPAUSE);
 
 		field.tap = tap;
 		field.num_bits = 64;
@@ -819,12 +819,12 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 
-		jtag_add_dr_scan(1, &field, TAP_RTI);
+		jtag_add_dr_scan(1, &field, TAP_IDLE);
 
 		/* small delay before polling */
 		jtag_add_sleep(50);
 
-		str9xpec_set_instr(tap, ISC_NOOP, TAP_PI);
+		str9xpec_set_instr(tap, ISC_NOOP, TAP_IRPAUSE);
 
 		do {
 			field.tap = tap;
@@ -889,7 +889,7 @@ int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd
 
 	buffer = calloc(CEIL(32, 8), 1);
 
-	str9xpec_set_instr(tap, ISC_IDCODE, TAP_PI);
+	str9xpec_set_instr(tap, ISC_IDCODE, TAP_IRPAUSE);
 
 	field.tap = tap;
 	field.num_bits = 32;
@@ -901,7 +901,7 @@ int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 
-	jtag_add_dr_scan(1, &field, TAP_RTI);
+	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_execute_queue();
 
 	idcode = buf_get_u32(buffer, 0, 32);
@@ -1014,7 +1014,7 @@ int str9xpec_write_options(struct flash_bank_s *bank)
 	str9xpec_set_address(bank, 0x50);
 
 	/* execute ISC_PROGRAM command */
-	str9xpec_set_instr(tap, ISC_PROGRAM, TAP_PI);
+	str9xpec_set_instr(tap, ISC_PROGRAM, TAP_IRPAUSE);
 
 	field.tap = tap;
 	field.num_bits = 64;
@@ -1026,12 +1026,12 @@ int str9xpec_write_options(struct flash_bank_s *bank)
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
 
-	jtag_add_dr_scan(1, &field, TAP_RTI);
+	jtag_add_dr_scan(1, &field, TAP_IDLE);
 
 	/* small delay before polling */
 	jtag_add_sleep(50);
 
-	str9xpec_set_instr(tap, ISC_NOOP, TAP_PI);
+	str9xpec_set_instr(tap, ISC_NOOP, TAP_IRPAUSE);
 
 	do {
 		field.tap = tap;
@@ -1303,13 +1303,13 @@ int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx
 	}
 
 	/* enable turbo mode - TURBO-PROG-ENABLE */
-	str9xpec_set_instr(tap2, 0xD, TAP_RTI);
+	str9xpec_set_instr(tap2, 0xD, TAP_IDLE);
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	/* modify scan chain - str9 core has been removed */
 	tap1->enabled = 0;
-	
+
 	return ERROR_OK;
 }
 
@@ -1337,11 +1337,11 @@ int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ct
 
 	if (tap == NULL)
 		return ERROR_FAIL;
-	
+
 	/* exit turbo mode via TLR */
-	str9xpec_set_instr(tap, ISC_NOOP, TAP_TLR);
+	str9xpec_set_instr(tap, ISC_NOOP, TAP_RESET);
 	jtag_execute_queue();
-	
+
 	/* restore previous scan chain */
 	if (tap->next_tap) {
 		tap->next_tap->enabled = 1;

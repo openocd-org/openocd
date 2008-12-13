@@ -158,7 +158,7 @@ void zy1000_reset(int trst, int srst)
 	else
 	{
 		/* Danger!!! if clk!=0 when in
-		 * idle in TAP_RTI, reset halt on str912 will fail.
+		 * idle in TAP_IDLE, reset halt on str912 will fail.
 		 */
 		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x00000001);
 	}
@@ -177,7 +177,7 @@ void zy1000_reset(int trst, int srst)
 	{
 		waitIdle();
 		/* we're now in the TLR state until trst is deasserted */
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x20, TAP_TLR);
+		ZY1000_POKE(ZY1000_JTAG_BASE+0x20, TAP_RESET);
 	} else
 	{
 		/* We'll get RCLK failure when we assert TRST, so clear any false positives here */
@@ -303,7 +303,7 @@ int loadFile(const char *fileName, void **data, int *len)
     if (fread(*data, 1, *len, pFile)!=*len)
     {
 		fclose(pFile);
-    	free(*data);
+	free(*data);
 		LOG_ERROR("Can't open %s\n", fileName);
 		return ERROR_JTAG_DEVICE_ERROR;
     }
@@ -429,7 +429,7 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, enum tap_s
 			enum tap_state pause_state;
 			int l;
 			k=num_bits-j;
-			pause_state=(shiftState==TAP_SD)?TAP_SD:TAP_SI;
+			pause_state=(shiftState==TAP_DRSHIFT)?TAP_DRSHIFT:TAP_IRSHIFT;
 			if (k>32)
 			{
 				k=32;
@@ -437,7 +437,7 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, enum tap_s
 			} else if (pause&&(i == num_fields-1))
 			{
 				/* this was the last to shift out this time */
-				pause_state=(shiftState==TAP_SD)?TAP_PD:TAP_PI;
+				pause_state=(shiftState==TAP_DRSHIFT)?TAP_DRPAUSE:TAP_IRPAUSE;
 			}
 
 			// we have (num_bits+7)/8 bytes of bits to toggle out.
@@ -520,7 +520,7 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_st
 					fields[j].in_check_mask = tap->expected_mask;
 				}
 
-				scanFields(1, fields+j, TAP_SI, pause);
+				scanFields(1, fields+j, TAP_IRSHIFT, pause);
 				/* update device information */
 				buf_cpy(fields[j].out_value, tap->cur_instr, scan_size);
 
@@ -538,7 +538,7 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_st
 			memset(&tmp, 0, sizeof(tmp));
 			tmp.out_value = ones;
 			tmp.num_bits = scan_size;
-			scanFields(1, &tmp, TAP_SI, pause);
+			scanFields(1, &tmp, TAP_IRSHIFT, pause);
 			/* update device information */
 			buf_cpy(tmp.out_value, tap->cur_instr, scan_size);
 			tap->bypass = 1;
@@ -555,7 +555,7 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_st
 
 int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-	scanFields(num_fields, fields, TAP_SI, 1);
+	scanFields(num_fields, fields, TAP_IRSHIFT, 1);
 	gotoEndState();
 
 	return ERROR_OK;
@@ -580,7 +580,7 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_st
 			{
 				found = 1;
 
-				scanFields(1, fields+j, TAP_SD, pause);
+				scanFields(1, fields+j, TAP_DRSHIFT, pause);
 			}
 		}
 		if (!found)
@@ -596,7 +596,7 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_st
 			tmp.in_handler = NULL;
 			tmp.in_handler_priv = NULL;
 
-			scanFields(1, &tmp, TAP_SD, pause);
+			scanFields(1, &tmp, TAP_DRSHIFT, pause);
 		}
 		else
 		{
@@ -608,7 +608,7 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_st
 
 int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
 {
-	scanFields(num_fields, fields, TAP_SD, 1);
+	scanFields(num_fields, fields, TAP_DRSHIFT, 1);
 	gotoEndState();
 	return ERROR_OK;
 }
@@ -616,7 +616,7 @@ int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum 
 
 int interface_jtag_add_tlr()
 {
-	setCurrentState(TAP_TLR);
+	setCurrentState(TAP_RESET);
 	return ERROR_OK;
 }
 
@@ -635,7 +635,7 @@ int interface_jtag_add_reset(int req_trst, int req_srst)
 int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
 {
 	/* num_cycles can be 0 */
-	setCurrentState(TAP_RTI);
+	setCurrentState(TAP_IDLE);
 
 	/* execute num_cycles, 32 at the time. */
 	int i;
@@ -647,14 +647,14 @@ int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
 		{
 			num=num_cycles-i;
 		}
-		shiftValueInner(TAP_RTI, TAP_RTI, num, 0);
+		shiftValueInner(TAP_IDLE, TAP_IDLE, num, 0);
 	}
 
 #if !TEST_MANUAL()
 	/* finish in end_state */
 	setCurrentState(state);
 #else
-	enum tap_state t=TAP_RTI;
+	enum tap_state t=TAP_IDLE;
 	/* test manual drive code on any target */
 	int tms;
 	u8 tms_scan = TAP_MOVE(t, state);
@@ -734,8 +734,8 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little
 			int i;
 			for (i = 0; i < count; i++)
 			{
-				shiftValueInner(TAP_SD, TAP_SD, 32, fast_target_buffer_get_u32(buffer, 1));
-				shiftValueInner(TAP_SD, end_state, 6, reg_addr|(1<<5));
+				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, 1));
+				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr|(1<<5));
 				buffer+=4;
 			}
 		} else
@@ -743,8 +743,8 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little
 			int i;
 			for (i = 0; i < count; i++)
 			{
-				shiftValueInner(TAP_SD, TAP_SD, 32, fast_target_buffer_get_u32(buffer, 0));
-				shiftValueInner(TAP_SD, end_state, 6, reg_addr|(1<<5));
+				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, 0));
+				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr|(1<<5));
 				buffer+=4;
 			}
 		}

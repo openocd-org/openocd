@@ -62,9 +62,9 @@ int xenddr = 0;
 
 enum tap_state xsvf_to_tap[] =
 {
-	TAP_TLR, TAP_RTI,
-	TAP_SDS, TAP_CD, TAP_SD, TAP_E1D, TAP_PD, TAP_E2D, TAP_UD,
-	TAP_SIS, TAP_CI, TAP_SI, TAP_E1I, TAP_PI, TAP_E2I, TAP_UI,
+	TAP_RESET, TAP_IDLE,
+	TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT, TAP_DREXIT1, TAP_DRPAUSE, TAP_DREXIT2, TAP_DRUPDATE,
+	TAP_IRSELECT, TAP_IRCAPTURE, TAP_IRSHIFT, TAP_IREXIT1, TAP_IRPAUSE, TAP_IREXIT2, TAP_IRUPDATE,
 };
 
 int tap_to_xsvf[] =
@@ -76,23 +76,23 @@ int tap_to_xsvf[] =
 /* xsvf has it's own definition of a statemove. This needs
  * to be handled according to the specs, which has nothing
  * to do with the JTAG spec or OpenOCD as such.
- * 
+ *
  * Implemented via jtag_add_pathmove().
  */
 void xsvf_add_statemove(enum tap_state state)
 {
 	enum tap_state moves[7]; /* max # of transitions */
-	int i; 
+	int i;
 	enum tap_state curstate = cmd_queue_cur_state;
 	u8 move = TAP_MOVE(cmd_queue_cur_state, state);
-	
-	if ((state != TAP_TLR) && (state == cmd_queue_cur_state))
+
+	if ((state != TAP_RESET) && (state == cmd_queue_cur_state))
 		return;
 
-	if(state==TAP_TLR) 
+	if(state==TAP_RESET)
 	{
-		jtag_add_tlr(); 
-		return; 
+		jtag_add_tlr();
+		return;
 	}
 	for (i=0; i<7; i++)
 	{
@@ -135,7 +135,7 @@ int xsvf_read_xstates(int fd, enum tap_state *path, int max_path, int *path_len)
 {
 	char c;
 	unsigned char uc;
-	
+
 	while ((read(fd, &c, 1) > 0) && (c == 0x12))
 	{
 		if (*path_len > max_path)
@@ -149,9 +149,9 @@ int xsvf_read_xstates(int fd, enum tap_state *path, int max_path, int *path_len)
 		}
 		path[(*path_len)++] = xsvf_to_tap[uc];
 	}
-	
+
 	lseek(fd, -1, SEEK_CUR);
-	
+
 	return ERROR_OK;
 }
 
@@ -166,9 +166,9 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	int do_abort = 0;
 	int unsupported = 0;
 	int tdo_mismatch = 0;
-	
+
 	int runtest_requires_tck = 0;
-	
+
 	jtag_tap_t *tap = NULL;
 	/* use NULL to indicate a "plain" xsvf file which accounts for
 	   additional devices in the scan chain, otherwise the device
@@ -194,7 +194,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		command_print(cmd_ctx, "file %s not found", args[0]);
 		return ERROR_OK;
 	}
-	
+
 	if ((argc > 2) && (strcmp(args[2], "virt2") == 0))
 	{
 		runtest_requires_tck = 1;
@@ -209,7 +209,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 				if (jtag_execute_queue() != ERROR_OK)
 				{
 					tdo_mismatch = 1;
-					break;	
+					break;
 				}
 				break;
 			case 0x01:	/* XTDOMASK */
@@ -239,9 +239,9 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						field.in_handler = NULL;
 						field.in_handler_priv = NULL;
 						if (tap == NULL)
-							jtag_add_plain_ir_scan(1, &field, TAP_PI);
+							jtag_add_plain_ir_scan(1, &field, TAP_IRPAUSE);
 						else
-							jtag_add_ir_scan(1, &field, TAP_PI);
+							jtag_add_ir_scan(1, &field, TAP_IRPAUSE);
 						if (jtag_execute_queue() != ERROR_OK)
 						{
 							tdo_mismatch = 1;
@@ -254,7 +254,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 								jtag_add_runtest(xruntest, xsvf_to_tap[xendir]);
 							else
 							{
-								xsvf_add_statemove(TAP_RTI);
+								xsvf_add_statemove(TAP_IDLE);
 								jtag_add_sleep(xruntest);
 								xsvf_add_statemove(xsvf_to_tap[xendir]);
 							}
@@ -279,13 +279,13 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 					field.in_value = NULL;
 					jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
 					if (tap == NULL)
-						jtag_add_plain_dr_scan(1, &field, TAP_PD);
+						jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
 					else
-						jtag_add_dr_scan(1, &field, TAP_PD);
+						jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
 					if (jtag_execute_queue() != ERROR_OK)
 					{
 						tdo_mismatch = 1;
-						break;	
+						break;
 					}
 					if (xruntest)
 					{
@@ -293,7 +293,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 							jtag_add_runtest(xruntest, xsvf_to_tap[xenddr]);
 						else
 						{
-							xsvf_add_statemove(TAP_RTI);
+							xsvf_add_statemove(TAP_IDLE);
 							jtag_add_sleep(xruntest);
 							xsvf_add_statemove(xsvf_to_tap[xenddr]);
 						}
@@ -353,13 +353,13 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 						field.in_value = NULL;
 						jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
 						if (tap == NULL)
-							jtag_add_plain_dr_scan(1, &field, TAP_PD);
+							jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
 						else
-							jtag_add_dr_scan(1, &field, TAP_PD);
+							jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
 						if (jtag_execute_queue() != ERROR_OK)
 						{
 							tdo_mismatch = 1;
-							break;	
+							break;
 						}
 						if (xruntest)
 						{
@@ -367,7 +367,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 								jtag_add_runtest(xruntest, xsvf_to_tap[xenddr]);
 							else
 							{
-								xsvf_add_statemove(TAP_RTI);
+								xsvf_add_statemove(TAP_IDLE);
 								jtag_add_sleep(xruntest);
 								xsvf_add_statemove(xsvf_to_tap[xenddr]);
 							}
@@ -418,14 +418,14 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 					{
 						int i,lasti;
 						/* here the trick is that jtag_add_pathmove() must end in a stable
-						state, so we must only invoke jtag_add_tlr() when we absolutely 
+						state, so we must only invoke jtag_add_tlr() when we absolutely
 						have to
 						*/
-						for(i=0,lasti=0;i<path_len;i++) 
+						for(i=0,lasti=0;i<path_len;i++)
 						{
-							if(path[i]==TAP_TLR) 
+							if(path[i]==TAP_RESET)
 							{
-								if(i>lasti)  
+								if(i>lasti)
 								{
 									jtag_add_pathmove(i-lasti,path+lasti);
 								}
@@ -433,7 +433,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 								jtag_add_tlr();
 							}
 						}
-						if(i>=lasti) 
+						if(i>=lasti)
 						{
 							jtag_add_pathmove(i-lasti, path+lasti);
 						}
@@ -536,7 +536,7 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		if (do_abort || unsupported || tdo_mismatch)
 			break;
 	}
-	
+
 	if (tdo_mismatch)
 	{
 		command_print(cmd_ctx, "TDO mismatch, aborting");
@@ -554,18 +554,18 @@ int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		command_print(cmd_ctx, "premature end detected, aborting");
 		return ERROR_OK;
 	}
-	
+
 	if (dr_out_buf)
 		free(dr_out_buf);
-	
+
 	if (dr_in_buf)
 		free(dr_in_buf);
-	
+
 	if (dr_in_mask)
 		free(dr_in_mask);
 
 	close(xsvf_fd);
-	
+
 	command_print(cmd_ctx, "XSVF file programmed successfully");
 
 	return ERROR_OK;

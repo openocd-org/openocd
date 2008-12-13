@@ -393,7 +393,7 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 	arm11_setup_field(arm11,  1, NULL, NULL,	chain5_fields + 1);
 	arm11_setup_field(arm11,  1, NULL, NULL,	chain5_fields + 2);
 
-	arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_PD);
+	arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	}
 	else
 	{
@@ -627,7 +627,7 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 	arm11_setup_field(arm11,  1, &Ready,	NULL, chain5_fields + 1);
 	arm11_setup_field(arm11,  1, &Valid,	NULL, chain5_fields + 2);
 
-	arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_PD);
+	arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	}
 
 	arm11_record_register_history(arm11);
@@ -735,7 +735,7 @@ int arm11_halt(struct target_s *target)
 	return ERROR_OK;
 	}
 
-	arm11_add_IR(arm11, ARM11_HALT, TAP_RTI);
+	arm11_add_IR(arm11, ARM11_HALT, TAP_IDLE);
 
 	if((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -841,7 +841,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
 	arm11_leave_debug_state(arm11);
 
-	arm11_add_IR(arm11, ARM11_RESTART, TAP_RTI);
+	arm11_add_IR(arm11, ARM11_RESTART, TAP_IDLE);
 
 	if((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -956,7 +956,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 
 	arm11_leave_debug_state(arm11);
 
-	arm11_add_IR(arm11, ARM11_RESTART, TAP_RTI);
+	arm11_add_IR(arm11, ARM11_RESTART, TAP_IDLE);
 
 	if((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -1571,7 +1571,7 @@ int arm11_examine(struct target_s *target)
 
 	arm11_setup_field(arm11, 32, NULL, &arm11->device_id, &idcode_field);
 
-	arm11_add_dr_scan_vc(1, &idcode_field, TAP_PD);
+	arm11_add_dr_scan_vc(1, &idcode_field, TAP_DRPAUSE);
 
 	/* check DIDR */
 
@@ -1584,7 +1584,7 @@ int arm11_examine(struct target_s *target)
 	arm11_setup_field(arm11, 32, NULL,	&arm11->didr,		chain0_fields + 0);
 	arm11_setup_field(arm11,  8, NULL,	&arm11->implementor,	chain0_fields + 1);
 
-	arm11_add_dr_scan_vc(asizeof(chain0_fields), chain0_fields, TAP_RTI);
+	arm11_add_dr_scan_vc(asizeof(chain0_fields), chain0_fields, TAP_IDLE);
 
 	if ((retval=jtag_execute_queue())!=ERROR_OK)
 		return retval;
@@ -1832,7 +1832,7 @@ arm11_common_t * arm11_find_target(const char * arg)
 {
 	jtag_tap_t *tap;
 	target_t * t;
-	
+
 	tap = jtag_TapByString( arg );
 	if( !tap ){
 		return NULL;

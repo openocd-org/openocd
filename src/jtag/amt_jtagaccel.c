@@ -109,13 +109,13 @@ u8 amt_jtagaccel_tap_move[6][6][2] =
 	{{0x1f, 0x00}, {0x0c, 0x00}, {0x07, 0x00}, {0x97, 0x00}, {0x08, 0x00}, {0x00, 0x00}},	/* PI  */
 };
 
-jtag_interface_t amt_jtagaccel_interface = 
+jtag_interface_t amt_jtagaccel_interface =
 {
 	.name = "amt_jtagaccel",
-	
+
 	.execute_queue = amt_jtagaccel_execute_queue,
 
-	.speed = amt_jtagaccel_speed,	
+	.speed = amt_jtagaccel_speed,
 	.register_commands = amt_jtagaccel_register_commands,
 	.init = amt_jtagaccel_init,
 	.quit = amt_jtagaccel_quit,
@@ -127,7 +127,7 @@ int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx)
 					 COMMAND_CONFIG, NULL);
 	register_command(cmd_ctx, NULL, "rtck", amt_jtagaccel_handle_rtck_command,
 					 COMMAND_CONFIG, NULL);
-	
+
 	return ERROR_OK;
 }
 
@@ -142,7 +142,7 @@ void amt_jtagaccel_reset(int trst, int srst)
 		aw_control_rst |= 0x1;
 	else if (srst == 0)
 		aw_control_rst &= ~0x1;
-	
+
 	AMT_AW(aw_control_rst);
 }
 
@@ -151,7 +151,7 @@ int amt_jtagaccel_speed(int speed)
 	aw_control_baudrate &= 0xf0;
 	aw_control_baudrate |= speed & 0x0f;
 	AMT_AW(aw_control_baudrate);
-	
+
 	return ERROR_OK;
 }
 
@@ -170,11 +170,11 @@ void amt_wait_scan_busy(void)
 {
 	int timeout = 4096;
 	u8 ar_status;
-	
+
 	AMT_AR(ar_status);
 	while (((ar_status) & 0x80) && (timeout-- > 0))
 		AMT_AR(ar_status);
-	
+
 	if (ar_status & 0x80)
 	{
 		LOG_ERROR("amt_jtagaccel timed out while waiting for end of scan, rtck was %s, last AR_STATUS: 0x%2.2x", (rtck_enabled) ? "enabled" : "disabled", ar_status);
@@ -186,15 +186,15 @@ void amt_jtagaccel_state_move(void)
 {
 	u8 aw_scan_tms_5;
 	u8 tms_scan[2];
-	 
+
 	tms_scan[0] = amt_jtagaccel_tap_move[tap_move_map[cur_state]][tap_move_map[end_state]][0];
 	tms_scan[1] = amt_jtagaccel_tap_move[tap_move_map[cur_state]][tap_move_map[end_state]][1];
-	
+
 	aw_scan_tms_5 = 0x40 | (tms_scan[0] & 0x1f);
 	AMT_AW(aw_scan_tms_5);
 	if (jtag_speed > 3 || rtck_enabled)
 		amt_wait_scan_busy();
-		
+
 	if (tms_scan[0] & 0x80)
 	{
 		aw_scan_tms_5 = 0x40 | (tms_scan[1] & 0x1f);
@@ -202,7 +202,7 @@ void amt_jtagaccel_state_move(void)
 		if (jtag_speed > 3 || rtck_enabled)
 			amt_wait_scan_busy();
 	}
-	
+
 	cur_state = end_state;
 }
 
@@ -213,27 +213,27 @@ void amt_jtagaccel_runtest(int num_cycles)
 	u8 aw_scan_tms_1to4;
 
 	enum tap_state saved_end_state = end_state;
-	
+
 	/* only do a state_move when we're not already in RTI */
-	if (cur_state != TAP_RTI)
+	if (cur_state != TAP_IDLE)
 	{
-		amt_jtagaccel_end_state(TAP_RTI);
+		amt_jtagaccel_end_state(TAP_IDLE);
 		amt_jtagaccel_state_move();
 	}
-	
+
 	while (num_cycles - i >= 5)
 	{
 		aw_scan_tms_5 = 0x40;
 		AMT_AW(aw_scan_tms_5);
 		i += 5;
 	}
-	
+
 	if (num_cycles - i > 0)
 	{
 		aw_scan_tms_1to4 = 0x80 | ((num_cycles - i - 1) & 0x3) << 4;
 		AMT_AW(aw_scan_tms_1to4);
 	}
-	
+
 	amt_jtagaccel_end_state(saved_end_state);
 	if (cur_state != end_state)
 		amt_jtagaccel_state_move();
@@ -251,9 +251,9 @@ void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_s
 	u8 tms_scan[2];
 
 	if (ir_scan)
-		amt_jtagaccel_end_state(TAP_SI);
+		amt_jtagaccel_end_state(TAP_IRSHIFT);
 	else
-		amt_jtagaccel_end_state(TAP_SD);
+		amt_jtagaccel_end_state(TAP_DRSHIFT);
 
 	amt_jtagaccel_state_move();
 	amt_jtagaccel_end_state(saved_end_state);
@@ -263,7 +263,7 @@ void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_s
 	{
 		aw_tdi_option = 0x30 | (((scan_size - 1) % 8) - 1);
 		AMT_AW(aw_tdi_option);
-		
+
 		dw_tdi_scan = buf_get_u32(buffer, bit_count, (scan_size - 1) % 8) & 0xff;
 		AMT_DW(dw_tdi_scan);
 		if (jtag_speed > 3 || rtck_enabled)
@@ -275,11 +275,11 @@ void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_s
 			dr_tdo = dr_tdo >> (8 - ((scan_size - 1) % 8));
 			buf_set_u32(buffer, bit_count, (scan_size - 1) % 8, dr_tdo);
 		}
-		
+
 		bit_count += (scan_size - 1) % 8;
 		bits_left -= (scan_size - 1) % 8;
 	}
-	
+
 	while (bits_left - 1 >= 8)
 	{
 		dw_tdi_scan = buf_get_u32(buffer, bit_count, 8) & 0xff;
@@ -292,11 +292,11 @@ void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_s
 			AMT_DR(dr_tdo);
 			buf_set_u32(buffer, bit_count, 8, dr_tdo);
 		}
-				
+
 		bit_count += 8;
 		bits_left -= 8;
 	}
-		
+
 	tms_scan[0] = amt_jtagaccel_tap_move[tap_move_map[cur_state]][tap_move_map[end_state]][0];
 	tms_scan[1] = amt_jtagaccel_tap_move[tap_move_map[cur_state]][tap_move_map[end_state]][1];
 	aw_tms_scan = 0x40 | (tms_scan[0] & 0x1f) | (buf_get_u32(buffer, bit_count, 1) << 5);
@@ -310,7 +310,7 @@ void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_s
 		dr_tdo = dr_tdo >> 7;
 		buf_set_u32(buffer, bit_count, 1, dr_tdo);
 	}
-	
+
 	if (tms_scan[0] & 0x80)
 	{
 		aw_tms_scan = 0x40 | (tms_scan[1] & 0x1f);
@@ -328,12 +328,12 @@ int amt_jtagaccel_execute_queue(void)
 	enum scan_type type;
 	u8 *buffer;
 	int retval;
-	
+
 	/* return ERROR_OK, unless a jtag_read_buffer returns a failed check
 	 * that wasn't handled by a caller-provided error handler
-	 */ 
+	 */
 	retval = ERROR_OK;
-		
+
 	while (cmd)
 	{
 		switch (cmd->type)
@@ -351,7 +351,7 @@ int amt_jtagaccel_execute_queue(void)
 #endif
 				if (cmd->cmd.reset->trst == 1)
 				{
-					cur_state = TAP_TLR;
+					cur_state = TAP_RESET;
 				}
 				amt_jtagaccel_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
@@ -397,7 +397,7 @@ int amt_jtagaccel_execute_queue(void)
 		}
 		cmd = cmd->next;
 	}
-	
+
 	return retval;
 }
 
@@ -409,16 +409,16 @@ int amt_jtagaccel_get_giveio_access(void)
 
     version.dwOSVersionInfoSize = sizeof version;
     if (!GetVersionEx( &version )) {
-        errno = EINVAL;
-        return -1;
+	errno = EINVAL;
+	return -1;
     }
     if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
-        return 0;
+	return 0;
 
     h = CreateFile( "\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
     if (h == INVALID_HANDLE_VALUE) {
-        errno = ENODEV;
-        return -1;
+	errno = ENODEV;
+	return -1;
     }
 
     CloseHandle( h );
@@ -437,7 +437,7 @@ int amt_jtagaccel_init(void)
 	u8 status_port;
 #endif
 	u8 ar_status;
-	
+
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle > 0)
 	{
@@ -447,7 +447,7 @@ int amt_jtagaccel_init(void)
 
 	snprintf(buffer, 256, "/dev/parport%d", amt_jtagaccel_port);
 	device_handle = open(buffer, O_RDWR);
-	
+
 	if (device_handle < 0)
 	{
 		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set");
@@ -468,7 +468,7 @@ int amt_jtagaccel_init(void)
 		LOG_ERROR(" cannot set compatible mode to device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	
+
 	control_port = 0x00;
 	i = ioctl(device_handle, PPWCONTROL, &control_port);
 
@@ -484,57 +484,57 @@ int amt_jtagaccel_init(void)
 
 #if PARPORT_USE_GIVEIO == 1
 	if (amt_jtagaccel_get_giveio_access() != 0) {
-#else /* PARPORT_USE_GIVEIO */	
+#else /* PARPORT_USE_GIVEIO */
 	if (ioperm(amt_jtagaccel_port, 5, 1) != 0) {
 #endif /* PARPORT_USE_GIVEIO */
 		LOG_ERROR("missing privileges for direct i/o");
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	
+
 	/* prepare epp port */
 	/* clear timeout */
 	status_port = inb(amt_jtagaccel_port + 1);
 	outb(status_port | 0x1, amt_jtagaccel_port + 1);
-	
+
 	/* reset epp port */
 	outb(0x00, amt_jtagaccel_port + 2);
 	outb(0x04, amt_jtagaccel_port + 2);
 #endif
-	
+
 	if (rtck_enabled)
-	{	
+	{
 		/* set RTCK enable bit */
 		aw_control_fsm |= 0x02;
 	}
-	
+
 	/* enable JTAG port */
 	aw_control_fsm |= 0x04;
 	AMT_AW(aw_control_fsm);
-	
+
 	amt_jtagaccel_speed(jtag_speed);
-	
+
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 		aw_control_rst &= ~0x8;
 	else
 		aw_control_rst |= 0x8;
-	
+
 	if (jtag_reset_config & RESET_SRST_PUSH_PULL)
 		aw_control_rst &= ~0x2;
 	else
 		aw_control_rst |= 0x2;
-	
+
 	amt_jtagaccel_reset(0, 0);
-	
+
 	/* read status register */
 	AMT_AR(ar_status);
 	LOG_DEBUG("AR_STATUS: 0x%2.2x", ar_status);
-	
+
 	return ERROR_OK;
 }
 
 int amt_jtagaccel_quit(void)
 {
-	
+
 	return ERROR_OK;
 }
 
@@ -568,6 +568,6 @@ int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, char *c
 			rtck_enabled = 0;
 		}
 	}
-	
+
 	return ERROR_OK;
 }
