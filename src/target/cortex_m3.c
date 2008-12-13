@@ -740,7 +740,7 @@ int cortex_m3_assert_reset(target_t *target)
 	 * when srst is asserted the luminary device seesm to also clear the debug registers
 	 * which does not match the armv7 debug TRM */
 		
-	if (strcmp(cortex_m3->variant, "lm3s") == 0)
+	if (strcmp(target->variant, "lm3s") == 0)
 	{
 		/* get revision of lm3s target, only early silicon has this issue
 		 * Fury Rev B, DustDevil Rev B, Tempest all ok */
@@ -1407,7 +1407,7 @@ int cortex_m3_examine(struct target_s *target)
 		/* Setup FPB */
 		target_read_u32(target, FP_CTRL, &fpcr);
 		cortex_m3->auto_bp_type = 1;
-		cortex_m3->fp_num_code = (fpcr >> 8) & 0x70 | (fpcr >> 4) & 0xF; /* bits [14:12] and [7:4] */
+		cortex_m3->fp_num_code = ((fpcr >> 8) & 0x70) | ((fpcr >> 4) & 0xF); /* bits [14:12] and [7:4] */
 		cortex_m3->fp_num_lit = (fpcr >> 8) & 0xF;
 		cortex_m3->fp_code_available = cortex_m3->fp_num_code;
 		cortex_m3->fp_comparator_list = calloc(cortex_m3->fp_num_code + cortex_m3->fp_num_lit, sizeof(cortex_m3_fp_comparator_t));
@@ -1517,7 +1517,7 @@ int cortex_m3_handle_target_request(void *priv)
 	return ERROR_OK;
 }
 
-int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jtag_tap_t *tap, const char *variant)
+int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jtag_tap_t *tap)
 {
 	armv7m_common_t *armv7m;
 	armv7m = &cortex_m3->armv7m;
@@ -1545,15 +1545,6 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jt
 	armv7m->pre_restore_context = NULL;
 	armv7m->post_restore_context = NULL;
 	
-	if (variant)
-	{
-		cortex_m3->variant = strdup(variant);
-	}
-	else
-	{
-		cortex_m3->variant = strdup("");
-	}
-	
 	armv7m_init_arch_info(target, armv7m);	
 	armv7m->arch_info = cortex_m3;
 	armv7m->load_core_reg_u32 = cortex_m3_load_core_reg_u32;
@@ -1568,7 +1559,7 @@ int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	cortex_m3_common_t *cortex_m3 = calloc(1,sizeof(cortex_m3_common_t));
 	
-	cortex_m3_init_arch_info(target, cortex_m3, target->tap, target->variant);
+	cortex_m3_init_arch_info(target, cortex_m3, target->tap);
 	
 	return ERROR_OK;
 }

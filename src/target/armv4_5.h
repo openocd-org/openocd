@@ -137,7 +137,6 @@ static __inline enum armv4_5_mode armv4_5_number_to_mode(int number)
 	}
 };
 
-
 extern int armv4_5_arch_state(struct target_s *target);
 extern int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_size);
 extern int armv4_5_invalidate_core_regs(target_t *target);

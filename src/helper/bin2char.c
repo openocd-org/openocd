@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 	if (argc == 1) {
 		fprintf(stderr, "bin2char <varname>\n");
 		fprintf(stderr, "read from standard input and write a char"
-		    " array out to standard output\n");
+			" array out to standard output\n");
 		exit(1);
 	}
 

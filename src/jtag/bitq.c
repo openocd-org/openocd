@@ -34,14 +34,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-
 bitq_interface_t *bitq_interface; /* low level bit queue interface */
 
 bitq_state_t bitq_in_state; /* state of input queue */
 
 u8 *bitq_in_buffer; /* buffer dynamically reallocated as needed */
 unsigned long bitq_in_bufsize=32; /* min. buffer size */
-
 
 /*
  * input queue processing does not use jtag_read_buffer() to avoid unnecessary overhead
@@ -129,15 +127,12 @@ void bitq_in_proc(void)
 	}
 }
 
-
-
 void bitq_io(int tms, int tdi, int tdo_req)
 {
 	bitq_interface->out(tms, tdi, tdo_req);
 	/* check and process the input queue */
 	if (bitq_interface->in_rdy()) bitq_in_proc();
 }
-
 
 void bitq_end_state(enum tap_state state)
 {
@@ -148,7 +143,6 @@ void bitq_end_state(enum tap_state state)
 	}
 	end_state = state;
 }
-
 
 void bitq_state_move(enum tap_state new_state)
 {
@@ -170,7 +164,6 @@ void bitq_state_move(enum tap_state new_state)
 	cur_state = new_state;
 }
 
-
 void bitq_path_move(pathmove_command_t *cmd)
 {
 	int i;
@@ -189,7 +182,6 @@ void bitq_path_move(pathmove_command_t *cmd)
 	end_state = cur_state;
 }
 
-
 void bitq_runtest(int num_cycles)
 {
 	int i;
@@ -204,7 +196,6 @@ void bitq_runtest(int num_cycles)
 	/* finish in end_state */
 	if (cur_state != end_state) bitq_state_move(end_state);
 }
-
 
 void bitq_scan_field(scan_field_t *field, int pause)
 {
@@ -245,7 +236,6 @@ void bitq_scan_field(scan_field_t *field, int pause)
 	}
 }
 
-
 void bitq_scan(scan_command_t *cmd)
 {
 	int i;
@@ -257,7 +247,6 @@ void bitq_scan(scan_command_t *cmd)
 		bitq_scan_field(&cmd->fields[i], 0);
 	bitq_scan_field(&cmd->fields[i], 1);
 }
-
 
 int bitq_execute_queue(void)
 {
@@ -355,7 +344,6 @@ int bitq_execute_queue(void)
 
 	return bitq_in_state.status;
 }
-
 
 void bitq_cleanup(void)
 {

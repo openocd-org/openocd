@@ -40,15 +40,15 @@
 struct reg_s;
 struct command_context_s;
 /*
-TARGET_UNKNOWN = 0: we don't know anything about the target yet
-TARGET_RUNNING = 1: the target is executing user code
-TARGET_HALTED  = 2: the target is not executing code, and ready to talk to the
-debugger. on an xscale it means that the debug handler is executing
-TARGET_RESET   = 3: the target is being held in reset (only a temporary state,
-not sure how this is used with all the recent changes)
-TARGET_DEBUG_RUNNING = 4: the target is running, but it is executing code on
-behalf of the debugger (e.g. algorithm for flashing)
-*/
+ * TARGET_UNKNOWN = 0: we don't know anything about the target yet
+ * TARGET_RUNNING = 1: the target is executing user code
+ * TARGET_HALTED  = 2: the target is not executing code, and ready to talk to the
+ * debugger. on an xscale it means that the debug handler is executing
+ * TARGET_RESET   = 3: the target is being held in reset (only a temporary state,
+ * not sure how this is used with all the recent changes)
+ * TARGET_DEBUG_RUNNING = 4: the target is running, but it is executing code on
+ * behalf of the debugger (e.g. algorithm for flashing) */
+
 enum target_state
 {
 	TARGET_UNKNOWN = 0,
@@ -228,7 +228,7 @@ typedef struct target_type_s
 	 *
 	 * It is illegal to talk to the target at this stage as this fn is invoked
 	 * before the JTAG chain has been examined/verified
-     */
+	 * */
 	int (*init_target)(struct command_context_s *cmd_ctx, struct target_s *target);
 	int (*quit)(void);
 
@@ -237,21 +237,21 @@ typedef struct target_type_s
 
 } target_type_t;
 
-// forward decloration
+/* forward decloration */
 typedef struct target_event_action_s target_event_action_t;
 
 typedef struct target_s
 {
 	target_type_t *type;				/* target type definition (name, access functions) */
-	const char *cmd_name;               /* tcl Name of target */
-	int target_number;                  /* generaly, target index but may not be in order */
-	jtag_tap_t *tap;                 /* where on the jtag chain is this */
-	const char *variant;                /* what varient of this chip is it? */
+	const char *cmd_name;				/* tcl Name of target */
+	int target_number;					/* generaly, target index but may not be in order */
+	jtag_tap_t *tap;					/* where on the jtag chain is this */
+	const char *variant;				/* what varient of this chip is it? */
 	target_event_action_t *event_action;
 
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
 	u32 working_area;					/* working area (initialized RAM). Evaluated
-										   upon first allocation from virtual/physical address. */
+										 * upon first allocation from virtual/physical address. */
 	u32 working_area_virt;				/* virtual address */
 	u32 working_area_phys;				/* physical address */
 	u32 working_area_size;				/* size in bytes */
@@ -269,27 +269,27 @@ typedef struct target_s
 	void *arch_info;					/* architecture specific information */
 	struct target_s *next;				/* next target in list */
 
-	int display; 						/* display async info in telnet session. Do not display
-										   lots of halted/resumed info when stepping in debugger. */
+	int display;						/* display async info in telnet session. Do not display
+										 * lots of halted/resumed info when stepping in debugger. */
 } target_t;
 
 enum target_event
 {
-	// OLD historical names
-	//  - Prior to the great TCL change
-	//  - June/July/Aug 2008
-	//  - Duane Ellis
+	/* LD historical names
+	 * - Prior to the great TCL change
+	 * - June/July/Aug 2008
+	 * - Duane Ellis */
 	TARGET_EVENT_OLD_gdb_program_config,
 	TARGET_EVENT_OLD_pre_reset,
 	TARGET_EVENT_OLD_post_reset,
 	TARGET_EVENT_OLD_pre_resume,
 
 	/* allow GDB to do stuff before others handle the halted event,
- 	this is in lieu of defining ordering of invocation of events,
- 	which would be more complicated */
- 	TARGET_EVENT_EARLY_HALTED,
- 	TARGET_EVENT_HALTED,		/* target entered debug state from normal execution or reset */
- 	TARGET_EVENT_RESUMED,		/* target resumed to normal execution */
+	 * this is in lieu of defining ordering of invocation of events,
+	 * which would be more complicated */
+	TARGET_EVENT_EARLY_HALTED,
+	TARGET_EVENT_HALTED,		/* target entered debug state from normal execution or reset */
+	TARGET_EVENT_RESUMED,		/* target resumed to normal execution */
 	TARGET_EVENT_RESUME_START,
 	TARGET_EVENT_RESUME_END,
 
@@ -308,13 +308,11 @@ enum target_event
 	TARGET_EVENT_RESET_INIT,
 	TARGET_EVENT_RESET_END,
 
-
- 	TARGET_EVENT_DEBUG_HALTED,	/* target entered debug state, but was executing on behalf of the debugger */
- 	TARGET_EVENT_DEBUG_RESUMED, /* target resumed to execute on behalf of the debugger */
+	TARGET_EVENT_DEBUG_HALTED,	/* target entered debug state, but was executing on behalf of the debugger */
+	TARGET_EVENT_DEBUG_RESUMED, /* target resumed to execute on behalf of the debugger */
 
 	TARGET_EVENT_EXAMINE_START,
 	TARGET_EVENT_EXAMINE_END,
-
 
 	TARGET_EVENT_GDB_ATTACH,
 	TARGET_EVENT_GDB_DETACH,
@@ -330,7 +328,7 @@ extern const Jim_Nvp nvp_target_event[];
 struct target_event_action_s {
 	enum target_event event;
 	Jim_Obj *body;
-	int      has_percent;
+	int has_percent;
 	target_event_action_t *next;
  };
 
@@ -427,7 +425,6 @@ int target_arch_state(struct target_s *target);
 
 void target_handle_event( target_t *t, enum target_event e);
 void target_all_handle_event( enum target_event e );
-
 
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)

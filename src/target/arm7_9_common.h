@@ -154,5 +154,4 @@ int arm7_9_execute_sys_speed(struct target_s *target);
 int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9);
 int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p);
 
-
 #endif /* ARM7_9_COMMON_H */

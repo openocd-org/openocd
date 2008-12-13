@@ -182,7 +182,7 @@ begin_ejtag_dma_read_b:
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	// Handle the bigendian/littleendian
+	/* Handle the bigendian/littleendian */
 	switch (addr & 0x3) {
 		case 0:
 			*data = v & 0xff;

@@ -73,7 +73,7 @@ const flash_sector_t TMS470R1A256_SECTORS[] = {
 };
 
 #define TMS470R1A256_NUM_SECTORS \
-  (sizeof(TMS470R1A256_SECTORS)/sizeof(TMS470R1A256_SECTORS[0]))
+	(sizeof(TMS470R1A256_SECTORS)/sizeof(TMS470R1A256_SECTORS[0]))
 
 const flash_sector_t TMS470R1A288_BANK0_SECTORS[] = {
 	{0x00000000, 0x00002000, -1, -1},
@@ -83,7 +83,7 @@ const flash_sector_t TMS470R1A288_BANK0_SECTORS[] = {
 };
 
 #define TMS470R1A288_BANK0_NUM_SECTORS \
-  (sizeof(TMS470R1A288_BANK0_SECTORS)/sizeof(TMS470R1A288_BANK0_SECTORS[0]))
+	(sizeof(TMS470R1A288_BANK0_SECTORS)/sizeof(TMS470R1A288_BANK0_SECTORS[0]))
 
 const flash_sector_t TMS470R1A288_BANK1_SECTORS[] = {
 	{0x00040000, 0x00010000, -1, -1},
@@ -93,43 +93,43 @@ const flash_sector_t TMS470R1A288_BANK1_SECTORS[] = {
 };
 
 #define TMS470R1A288_BANK1_NUM_SECTORS \
-  (sizeof(TMS470R1A288_BANK1_SECTORS)/sizeof(TMS470R1A288_BANK1_SECTORS[0]))
+	(sizeof(TMS470R1A288_BANK1_SECTORS)/sizeof(TMS470R1A288_BANK1_SECTORS[0]))
 
 const flash_sector_t TMS470R1A384_BANK0_SECTORS[] = {
-    {0x00000000, 0x00002000, -1, -1},
-    {0x00002000, 0x00002000, -1, -1},
-    {0x00004000, 0x00004000, -1, -1},
-    {0x00008000, 0x00004000, -1, -1},
-    {0x0000C000, 0x00004000, -1, -1},
-    {0x00010000, 0x00004000, -1, -1},
-    {0x00014000, 0x00004000, -1, -1},
-    {0x00018000, 0x00002000, -1, -1},
-    {0x0001C000, 0x00002000, -1, -1},
-    {0x0001E000, 0x00002000, -1, -1},
+	{0x00000000, 0x00002000, -1, -1},
+	{0x00002000, 0x00002000, -1, -1},
+	{0x00004000, 0x00004000, -1, -1},
+	{0x00008000, 0x00004000, -1, -1},
+	{0x0000C000, 0x00004000, -1, -1},
+	{0x00010000, 0x00004000, -1, -1},
+	{0x00014000, 0x00004000, -1, -1},
+	{0x00018000, 0x00002000, -1, -1},
+	{0x0001C000, 0x00002000, -1, -1},
+	{0x0001E000, 0x00002000, -1, -1},
 };
 
 #define TMS470R1A384_BANK0_NUM_SECTORS \
-  (sizeof(TMS470R1A384_BANK0_SECTORS)/sizeof(TMS470R1A384_BANK0_SECTORS[0]))
+	(sizeof(TMS470R1A384_BANK0_SECTORS)/sizeof(TMS470R1A384_BANK0_SECTORS[0]))
 
 const flash_sector_t TMS470R1A384_BANK1_SECTORS[] = {
-    {0x00020000, 0x00008000, -1, -1},
-    {0x00028000, 0x00008000, -1, -1},
-    {0x00030000, 0x00008000, -1, -1},
-    {0x00038000, 0x00008000, -1, -1},
+	{0x00020000, 0x00008000, -1, -1},
+	{0x00028000, 0x00008000, -1, -1},
+	{0x00030000, 0x00008000, -1, -1},
+	{0x00038000, 0x00008000, -1, -1},
 };
 
 #define TMS470R1A384_BANK1_NUM_SECTORS \
-  (sizeof(TMS470R1A384_BANK1_SECTORS)/sizeof(TMS470R1A384_BANK1_SECTORS[0]))
+	(sizeof(TMS470R1A384_BANK1_SECTORS)/sizeof(TMS470R1A384_BANK1_SECTORS[0]))
 
 const flash_sector_t TMS470R1A384_BANK2_SECTORS[] = {
-    {0x00040000, 0x00008000, -1, -1},
-    {0x00048000, 0x00008000, -1, -1},
-    {0x00050000, 0x00008000, -1, -1},
-    {0x00058000, 0x00008000, -1, -1},
+	{0x00040000, 0x00008000, -1, -1},
+	{0x00048000, 0x00008000, -1, -1},
+	{0x00050000, 0x00008000, -1, -1},
+	{0x00058000, 0x00008000, -1, -1},
 };
 
 #define TMS470R1A384_BANK2_NUM_SECTORS \
-  (sizeof(TMS470R1A384_BANK2_SECTORS)/sizeof(TMS470R1A384_BANK2_SECTORS[0]))
+	(sizeof(TMS470R1A384_BANK2_SECTORS)/sizeof(TMS470R1A384_BANK2_SECTORS[0]))
 
 /* ---------------------------------------------------------------------- */
 
@@ -229,56 +229,56 @@ int tms470_read_part_info(struct flash_bank_s *bank)
 		}
 		break;
 
-    case 0x2d:
-        part_name = "TMS470R1A384";
+	case 0x2d:
+		part_name = "TMS470R1A384";
 
-        if ((bank->base >= 0x00000000) && (bank->base < 0x00020000))
-        {
-            tms470_info->ordinal = 0;
-            bank->base = 0x00000000;
-            bank->size = 128 * 1024;
-            bank->num_sectors = TMS470R1A384_BANK0_NUM_SECTORS;
-            bank->sectors = malloc(sizeof(TMS470R1A384_BANK0_SECTORS));
-            if (!bank->sectors)
-            {
-                return ERROR_FLASH_OPERATION_FAILED;
-            }
-            (void)memcpy(bank->sectors, TMS470R1A384_BANK0_SECTORS, sizeof(TMS470R1A384_BANK0_SECTORS));
-        }
-        else if ((bank->base >= 0x00020000) && (bank->base < 0x00040000))
-        {
-            tms470_info->ordinal = 1;
-            bank->base = 0x00020000;
-            bank->size = 128 * 1024;
-            bank->num_sectors = TMS470R1A384_BANK1_NUM_SECTORS;
-            bank->sectors = malloc(sizeof(TMS470R1A384_BANK1_SECTORS));
-            if (!bank->sectors)
-            {
-                return ERROR_FLASH_OPERATION_FAILED;
-            }
-            (void)memcpy(bank->sectors, TMS470R1A384_BANK1_SECTORS, sizeof(TMS470R1A384_BANK1_SECTORS));
-        }
-        else if ((bank->base >= 0x00040000) && (bank->base < 0x00060000))
-        {
-            tms470_info->ordinal = 2;
-            bank->base = 0x00040000;
-            bank->size = 128 * 1024;
-            bank->num_sectors = TMS470R1A384_BANK2_NUM_SECTORS;
-            bank->sectors = malloc(sizeof(TMS470R1A384_BANK2_SECTORS));
-            if (!bank->sectors)
-            {
-                return ERROR_FLASH_OPERATION_FAILED;
-            }
-            (void)memcpy(bank->sectors, TMS470R1A384_BANK2_SECTORS, sizeof(TMS470R1A384_BANK2_SECTORS));
-        }
-        else
-        {
-            LOG_ERROR("No %s flash bank contains base address 0x%08x.", part_name, bank->base);
-            return ERROR_FLASH_OPERATION_FAILED;
-        }
-        break;
+		if ((bank->base >= 0x00000000) && (bank->base < 0x00020000))
+		{
+			tms470_info->ordinal = 0;
+			bank->base = 0x00000000;
+			bank->size = 128 * 1024;
+			bank->num_sectors = TMS470R1A384_BANK0_NUM_SECTORS;
+			bank->sectors = malloc(sizeof(TMS470R1A384_BANK0_SECTORS));
+			if (!bank->sectors)
+			{
+				return ERROR_FLASH_OPERATION_FAILED;
+			}
+			(void)memcpy(bank->sectors, TMS470R1A384_BANK0_SECTORS, sizeof(TMS470R1A384_BANK0_SECTORS));
+		}
+		else if ((bank->base >= 0x00020000) && (bank->base < 0x00040000))
+		{
+			tms470_info->ordinal = 1;
+			bank->base = 0x00020000;
+			bank->size = 128 * 1024;
+			bank->num_sectors = TMS470R1A384_BANK1_NUM_SECTORS;
+			bank->sectors = malloc(sizeof(TMS470R1A384_BANK1_SECTORS));
+			if (!bank->sectors)
+			{
+				return ERROR_FLASH_OPERATION_FAILED;
+			}
+			(void)memcpy(bank->sectors, TMS470R1A384_BANK1_SECTORS, sizeof(TMS470R1A384_BANK1_SECTORS));
+		}
+		else if ((bank->base >= 0x00040000) && (bank->base < 0x00060000))
+		{
+			tms470_info->ordinal = 2;
+			bank->base = 0x00040000;
+			bank->size = 128 * 1024;
+			bank->num_sectors = TMS470R1A384_BANK2_NUM_SECTORS;
+			bank->sectors = malloc(sizeof(TMS470R1A384_BANK2_SECTORS));
+			if (!bank->sectors)
+			{
+				return ERROR_FLASH_OPERATION_FAILED;
+			}
+			(void)memcpy(bank->sectors, TMS470R1A384_BANK2_SECTORS, sizeof(TMS470R1A384_BANK2_SECTORS));
+		}
+		else
+		{
+			LOG_ERROR("No %s flash bank contains base address 0x%08x.", part_name, bank->base);
+			return ERROR_FLASH_OPERATION_FAILED;
+		}
+		break;
 
-    default:
+	default:
 		LOG_WARNING("Could not identify part 0x%02x as a member of the TMS470 family.", part_number);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}

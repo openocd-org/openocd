@@ -78,10 +78,9 @@ typedef struct scan_field_s
 	/* in_check_value/mask, in_handler_error_handler, in_handler_priv can be used by the in handler, otherwise they contain garbage  */
 	u8 *in_check_value;	/* used to validate scan results */
 	u8 *in_check_mask;	/* check specified bits against check_value */
-	in_handler_t in_handler;	    /* process received buffer using this handler */
+	in_handler_t in_handler;/* process received buffer using this handler */
 	void *in_handler_priv;	/* additional information for the in_handler */
 } scan_field_t;
-
 
 enum scan_type
 {
@@ -158,12 +157,12 @@ typedef struct jtag_command_s
 
 extern jtag_command_t *jtag_command_queue;
 
-// forward declaration
+/* forward declaration */
 typedef struct jtag_tap_event_action_s jtag_tap_event_action_t;
 
-// this is really: typedef jtag_tap_t
-// But - the typedef is done in "types.h"
-// due to "forward decloration reasons"
+/* this is really: typedef jtag_tap_t */
+/* But - the typedef is done in "types.h" */
+/* due to "forward decloration reasons" */
 struct jtag_tap_s
 {
 	const char *chip;
@@ -188,22 +187,21 @@ struct jtag_tap_s
 };
 extern jtag_tap_t *jtag_AllTaps(void);
 extern jtag_tap_t *jtag_TapByPosition(int n);
-extern jtag_tap_t *jtag_TapByPosition( int n );
-extern jtag_tap_t *jtag_TapByString( const char *dotted_name );
-extern jtag_tap_t *jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *obj );
-extern jtag_tap_t *jtag_TapByAbsPosition( int abs_position );
-extern int         jtag_NumEnabledTaps(void);
-extern int         jtag_NumTotalTaps(void);
-
+extern jtag_tap_t *jtag_TapByPosition(int n);
+extern jtag_tap_t *jtag_TapByString(const char *dotted_name);
+extern jtag_tap_t *jtag_TapByJimObj(Jim_Interp *interp, Jim_Obj *obj);
+extern jtag_tap_t *jtag_TapByAbsPosition(int abs_position);
+extern int jtag_NumEnabledTaps(void);
+extern int jtag_NumTotalTaps(void);
 
 static __inline__ jtag_tap_t *
 jtag_NextEnabledTap( jtag_tap_t *p )
 {
 	if( p == NULL ){
-		// start at the head of list
+		/* start at the head of list */
 		p = jtag_AllTaps();
 	} else {
-		// start *after* this one
+		/* start *after* this one */
 		p = p->next_tap;
 	}
 	while( p ){
@@ -215,9 +213,6 @@ jtag_NextEnabledTap( jtag_tap_t *p )
 	}
 	return p;
 }
-
-
-
 
 enum reset_line_mode
 {
@@ -440,8 +435,6 @@ extern int interface_jtag_add_end_state(enum tap_state endstate);
 extern void jtag_add_sleep(u32 us);
 extern int interface_jtag_add_sleep(u32 us);
 
-
-
 /*
  * For software FIFO implementations, the queued commands can be executed
  * during this call or earlier. A sw queue might decide to push out
@@ -468,7 +461,6 @@ extern int interface_jtag_execute_queue(void);
 extern int jtag_power_dropout(int *dropout);
 extern int jtag_srst_asserted(int *srst_asserted);
 
-
 /* JTAG support functions */
 extern void jtag_set_check_value(scan_field_t *field, u8 *value,  u8 *mask, error_handler_t *in_error_handler);
 extern enum scan_type jtag_scan_type(scan_command_t *cmd);
@@ -493,8 +485,6 @@ void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e);
 #define ERROR_JTAG_TRST_ASSERTED		(-103)
 #define ERROR_JTAG_QUEUE_FAILED			(-104)
 #define ERROR_JTAG_DEVICE_ERROR			(-107)
-
-
 
 /* this allows JTAG devices to implement the entire jtag_xxx() layer in hw/sw */
 #ifdef HAVE_JTAG_MINIDRIVER_H
@@ -527,9 +517,6 @@ extern void interface_jtag_add_dr_out(jtag_tap_t *tap,
 		enum tap_state end_state);
 #endif
 
-
-
-
 static __inline__ void jtag_add_dr_out(jtag_tap_t *tap,
 		int num_fields,
 		const int *num_bits,
@@ -541,6 +528,5 @@ static __inline__ void jtag_add_dr_out(jtag_tap_t *tap,
 	cmd_queue_cur_state=cmd_queue_end_state;
 	interface_jtag_add_dr_out(tap, num_fields, num_bits, value, cmd_queue_end_state);
 }
-
 
 #endif /* JTAG_H */

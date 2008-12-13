@@ -447,21 +447,19 @@ int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *targ
 	arm7tdmi_init_target(cmd_ctx, target);
 
 	return ERROR_OK;
-
 }
 
 int arm720t_quit(void)
 {
-
 	return ERROR_OK;
 }
 
-int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, jtag_tap_t *tap, const char *variant)
+int arm720t_init_arch_info(target_t *target, arm720t_common_t *arm720t, jtag_tap_t *tap)
 {
 	arm7tdmi_common_t *arm7tdmi = &arm720t->arm7tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm7tdmi->arm7_9_common;
 
-	arm7tdmi_init_arch_info(target, arm7tdmi, tap, variant);
+	arm7tdmi_init_arch_info(target, arm7tdmi, tap);
 
 	arm7tdmi->arch_info = arm720t;
 	arm720t->common_magic = ARM720T_COMMON_MAGIC;
@@ -485,7 +483,7 @@ int arm720t_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm720t_common_t *arm720t = calloc(1,sizeof(arm720t_common_t));
 
-	arm720t_init_arch_info(target, arm720t, target->tap, target->variant);
+	arm720t_init_arch_info(target, arm720t, target->tap);
 
 	return ERROR_OK;
 }

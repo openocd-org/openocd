@@ -265,7 +265,6 @@ int mips_m4k_assert_reset(target_t *target)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	mips_m4k_common_t *mips_m4k = mips32->arch_info;
 
 	LOG_DEBUG("target->state: %s",
 		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
@@ -288,7 +287,7 @@ int mips_m4k_assert_reset(target_t *target)
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_NORMALBOOT, NULL);
 	}
 
-	if (strcmp(mips_m4k->variant, "ejtag_srst") == 0)
+	if (strcmp(target->variant, "ejtag_srst") == 0)
 	{
 		u32 ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
 		LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
@@ -735,23 +734,14 @@ int mips_m4k_quit(void)
 	return ERROR_OK;
 }
 
-int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, jtag_tap_t *tap, const char *variant)
+int mips_m4k_init_arch_info(target_t *target, mips_m4k_common_t *mips_m4k, jtag_tap_t *tap)
 {
 	mips32_common_t *mips32 = &mips_m4k->mips32_common;
-
-	if (variant)
-	{
-		mips_m4k->variant = strdup(variant);
-	}
-	else
-	{
-		mips_m4k->variant = strdup("");
-	}
 
 	mips_m4k->common_magic = MIPSM4K_COMMON_MAGIC;
 
 	/* initialize mips4k specific info */
-	mips32_init_arch_info(target, mips32, tap, variant);
+	mips32_init_arch_info(target, mips32, tap);
 	mips32->arch_info = mips_m4k;
 
 	return ERROR_OK;
@@ -761,7 +751,7 @@ int mips_m4k_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	mips_m4k_common_t *mips_m4k = calloc(1,sizeof(mips_m4k_common_t));
 
-	mips_m4k_init_arch_info(target, mips_m4k, target->tap, target->variant);
+	mips_m4k_init_arch_info(target, mips_m4k, target->tap);
 
 	return ERROR_OK;
 }

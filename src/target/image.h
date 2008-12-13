@@ -44,12 +44,12 @@
 
 typedef enum image_type
 {
-    IMAGE_BINARY,	/* plain binary */
-    IMAGE_IHEX,		/* intel hex-record format */
-    IMAGE_MEMORY,	/* target-memory pseudo-image */
-    IMAGE_ELF,		/* ELF binary */
-    IMAGE_SRECORD,	/* motorola s19 */
-    IMAGE_BUILDER,	/* when building a new image */
+	IMAGE_BINARY,	/* plain binary */
+	IMAGE_IHEX,		/* intel hex-record format */
+	IMAGE_MEMORY,	/* target-memory pseudo-image */
+	IMAGE_ELF,		/* ELF binary */
+	IMAGE_SRECORD,	/* motorola s19 */
+	IMAGE_BUILDER,	/* when building a new image */
 } image_type_t;
 
 typedef struct image_section_s

@@ -138,7 +138,6 @@ typedef struct cortex_m3_common_s
 {
 	int common_magic;
 	arm_jtag_t jtag_info;
-	char *variant;
 	
 	/* Context information */
 	u32 dcb_dhcsr;
@@ -190,6 +189,6 @@ int cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 int cortex_m3_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 
 extern int cortex_m3_register_commands(struct command_context_s *cmd_ctx);
-extern int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jtag_tap_t *tap, const char *variant);
+extern int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jtag_tap_t *tap);
 
 #endif /* CORTEX_M3_H */

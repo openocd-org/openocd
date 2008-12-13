@@ -47,10 +47,10 @@
 #define PID 0x0c63
 
 /* Pins at usbprog */
-#define TDO_BIT         0
-#define TDI_BIT         3
-#define TCK_BIT         2
-#define TMS_BIT         1
+#define TDO_BIT			0
+#define TDI_BIT			3
+#define TCK_BIT			2
+#define TMS_BIT			1
 
 int usbprog_execute_queue(void);
 int usbprog_speed(int speed);
@@ -74,17 +74,17 @@ jtag_interface_t usbprog_interface =
 	.quit = usbprog_quit
 };
 
-#define UNKOWN_COMMAND  0x00
-#define PORT_DIRECTION  0x01
-#define PORT_SET        0x02
-#define PORT_GET        0x03
-#define PORT_SETBIT     0x04
-#define PORT_GETBIT     0x05
-#define WRITE_TDI     	0x06
-#define READ_TDO     	0x07
-#define WRITE_AND_READ 	0x08
-#define WRITE_TMS     	0x09
-#define WRITE_TMS_CHAIN 0x0A
+#define UNKOWN_COMMAND	0x00
+#define PORT_DIRECTION	0x01
+#define PORT_SET		0x02
+#define PORT_GET		0x03
+#define PORT_SETBIT		0x04
+#define PORT_GETBIT		0x05
+#define WRITE_TDI		0x06
+#define READ_TDO		0x07
+#define WRITE_AND_READ	0x08
+#define WRITE_TMS		0x09
+#define WRITE_TMS_CHAIN	0x0A
 
 struct usbprog_jtag
 {

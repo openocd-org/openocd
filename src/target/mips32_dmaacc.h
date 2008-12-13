@@ -27,10 +27,10 @@
 
 #include "mips_ejtag.h"
 
-#define EJTAG_CTRL_DMA_BYTE        0x00000000
-#define EJTAG_CTRL_DMA_HALFWORD    0x00000080
-#define EJTAG_CTRL_DMA_WORD        0x00000100
-#define EJTAG_CTRL_DMA_TRIPLEBYTE  0x00000180
+#define EJTAG_CTRL_DMA_BYTE			0x00000000
+#define EJTAG_CTRL_DMA_HALFWORD		0x00000080
+#define EJTAG_CTRL_DMA_WORD			0x00000100
+#define EJTAG_CTRL_DMA_TRIPLEBYTE	0x00000180
 
 #define RETRY_ATTEMPTS	0
 
@@ -44,10 +44,5 @@ extern int mips32_dmaacc_read_mem32(mips_ejtag_t *ejtag_info, u32 addr, int coun
 extern int mips32_dmaacc_write_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *buf);
 extern int mips32_dmaacc_write_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 *buf);
 extern int mips32_dmaacc_write_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 *buf);
-
-#if 0
-extern int mips32_dmaacc_read_regs(mips_ejtag_t *ejtag_info, u32 *regs);
-extern int mips32_dmaacc_write_regs(mips_ejtag_t *ejtag_info, u32 *regs);
-#endif
 
 #endif

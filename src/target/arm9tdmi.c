@@ -507,7 +507,6 @@ void arm9tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
 			/* nothing fetched, STM in MEMORY (i'th cycle) */
 			arm9tdmi_clock_data_in(jtag_info, core_regs[i]);
 	}
-
 }
 
 void arm9tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buffer, int size)
@@ -549,7 +548,6 @@ void arm9tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 					break;
 			}
 	}
-
 }
 
 void arm9tdmi_read_xpsr(target_t *target, u32 *xpsr, int spsr)
@@ -574,7 +572,6 @@ void arm9tdmi_read_xpsr(target_t *target, u32 *xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	/* nothing fetched, STR in MEMORY */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, xpsr, 0);
-
 }
 
 void arm9tdmi_write_xpsr(target_t *target, u32 xpsr, int spsr)
@@ -664,7 +661,6 @@ void arm9tdmi_write_core_regs(target_t *target, u32 mask, u32 core_regs[16])
 			arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, core_regs[i], NULL, 0);
 	}
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
-
 }
 
 void arm9tdmi_load_word_regs(target_t *target, u32 mask)
@@ -677,7 +673,6 @@ void arm9tdmi_load_word_regs(target_t *target, u32 mask)
 	/* put system-speed load-multiple into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, mask & 0xffff, 0, 1), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
-
 }
 
 void arm9tdmi_load_hword_reg(target_t *target, int num)
@@ -702,7 +697,6 @@ void arm9tdmi_load_byte_reg(target_t *target, int num)
 	/* put system-speed load byte into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_LDRB_IP(num, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
-
 }
 
 void arm9tdmi_store_word_regs(target_t *target, u32 mask)
@@ -715,7 +709,6 @@ void arm9tdmi_store_word_regs(target_t *target, u32 mask)
 	/* put system-speed store-multiple into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask, 0, 1), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
-
 }
 
 void arm9tdmi_store_hword_reg(target_t *target, int num)
@@ -728,7 +721,6 @@ void arm9tdmi_store_hword_reg(target_t *target, int num)
 	/* put system-speed store half-word into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STRH_IP(num, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
-
 }
 
 void arm9tdmi_store_byte_reg(target_t *target, int num)
@@ -741,7 +733,6 @@ void arm9tdmi_store_byte_reg(target_t *target, int num)
 	/* put system-speed store byte into the pipeline */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STRB_IP(num, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
-
 }
 
 void arm9tdmi_write_pc(target_t *target, u32 pc)
@@ -768,7 +759,6 @@ void arm9tdmi_write_pc(target_t *target, u32 pc)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 	/* fetch NOP, LDM in EXECUTE stage (5th cycle) */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
-
 }
 
 void arm9tdmi_branch_resume(target_t *target)
@@ -780,7 +770,6 @@ void arm9tdmi_branch_resume(target_t *target)
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_B(0xfffffc, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
-
 }
 
 void arm9tdmi_branch_resume_thumb(target_t *target)
@@ -841,7 +830,6 @@ void arm9tdmi_branch_resume_thumb(target_t *target)
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_B(0x7f7), 0, NULL, 1);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
-
 }
 
 void arm9tdmi_enable_single_step(target_t *target, u32 next_pc)
@@ -888,7 +876,6 @@ void arm9tdmi_build_reg_cache(target_t *target)
 	armv4_5->core_cache = (*cache_p);
 }
 
-
 int arm9tdmi_examine(struct target_s *target)
 {
 	/* get pointers to arch-specific information */
@@ -932,16 +919,14 @@ int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *tar
 	arm9tdmi_build_reg_cache(target);
 
 	return ERROR_OK;
-
 }
 
 int arm9tdmi_quit(void)
 {
-
 	return ERROR_OK;
 }
 
-int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap, const char *variant)
+int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap)
 {
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -995,15 +980,6 @@ int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_
 	arm9tdmi->common_magic = ARM9TDMI_COMMON_MAGIC;
 	arm9tdmi->arch_info = NULL;
 
-	if (variant)
-	{
-		arm9tdmi->variant = strdup(variant);
-	}
-	else
-	{
-		arm9tdmi->variant = strdup("");
-	}
-
 	arm7_9_init_arch_info(target, arm7_9);
 
 	/* override use of DBGRQ, this is safe on ARM9TDMI */
@@ -1045,13 +1021,11 @@ int arm9tdmi_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, a
 	return ERROR_OK;
 }
 
-
-
 int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm9tdmi_common_t *arm9tdmi = calloc(1,sizeof(arm9tdmi_common_t));
 
-	arm9tdmi_init_arch_info(target, arm9tdmi, target->tap, target->variant);
+	arm9tdmi_init_arch_info(target, arm9tdmi, target->tap);
 
 	return ERROR_OK;
 }
@@ -1059,19 +1033,13 @@ int arm9tdmi_target_create(struct target_s *target, Jim_Interp *interp)
 int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
-
 	command_t *arm9tdmi_cmd;
-
-
+	
 	retval = arm7_9_register_commands(cmd_ctx);
-
 	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9tdmi", NULL, COMMAND_ANY, "arm9tdmi specific commands");
-
 	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch", handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC, "catch arm920t vectors ['all'|'none'|'<vec1 vec2 ...>']");
-
-
+	
 	return retval;
-
 }
 
 int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

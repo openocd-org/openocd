@@ -109,4 +109,3 @@ typedef struct str7x_mem_layout_s {
 } str7x_mem_layout_t;
 
 #endif /* STR7X_H */
-

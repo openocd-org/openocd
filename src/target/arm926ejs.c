@@ -98,7 +98,6 @@ target_type_t arm926ejs_target =
 	.mmu = arm926ejs_mmu
 };
 
-
 int arm926ejs_catch_broken_irscan(u8 *captured, void *priv, scan_field_t *field)
 {
 	/* The ARM926EJ-S' instruction register is 4 bits wide */
@@ -498,7 +497,6 @@ void arm926ejs_post_debug_entry(target_t *target)
 	LOG_DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x",
 		arm926ejs->d_fsr, arm926ejs->d_far, arm926ejs->i_fsr);
 
-
 	u32 cache_dbg_ctrl;
 
 	/* read-modify-write CP15 cache debug control register
@@ -666,7 +664,6 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
 	return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-
 }
 
 int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
@@ -705,23 +702,21 @@ int arm926ejs_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 	arm9tdmi_init_target(cmd_ctx, target);
 
 	return ERROR_OK;
-
 }
 
 int arm926ejs_quit(void)
 {
-
 	return ERROR_OK;
 }
 
-int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, jtag_tap_t *tap, const char *variant)
+int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, jtag_tap_t *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm926ejs->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
 
 	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
 	 */
-	arm9tdmi_init_arch_info(target, arm9tdmi, tap, variant);
+	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
 
 	arm9tdmi->arch_info = arm926ejs;
 	arm926ejs->common_magic = ARM926EJS_COMMON_MAGIC;
@@ -755,7 +750,7 @@ int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
 
-	arm926ejs_init_arch_info(target, arm926ejs, target->tap, target->variant);
+	arm926ejs_init_arch_info(target, arm926ejs, target->tap);
 
 	return ERROR_OK;
 }
@@ -945,6 +940,7 @@ int arm926ejs_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char
 
 	return armv4_5_mmu_handle_mw_phys_command(cmd_ctx, cmd, args, argc, target, &arm926ejs->armv4_5_mmu);
 }
+
 static int arm926ejs_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
 {
 	int retval;

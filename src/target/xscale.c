@@ -353,8 +353,6 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-
-
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
@@ -474,8 +472,6 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-
-
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
@@ -571,8 +567,6 @@ int xscale_write_rx(target_t *target)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
-
-
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -748,8 +742,6 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[1].in_handler_priv = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
-
-
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -1718,7 +1710,7 @@ int xscale_deassert_reset(target_t *target)
 
 			for (; buf_cnt < 32; buf_cnt += 4)
 			{
-					cache_line[buf_cnt / 4] = 0xe1a08008;
+				cache_line[buf_cnt / 4] = 0xe1a08008;
 			}
 
 			/* only load addresses other than the reset vectors */
@@ -1766,19 +1758,16 @@ int xscale_deassert_reset(target_t *target)
 		jtag_add_reset(0, 0);
 	}
 
-
 	return ERROR_OK;
 }
 
 int xscale_soft_reset_halt(struct target_s *target)
 {
-
 	return ERROR_OK;
 }
 
 int xscale_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mode)
 {
-
 	return ERROR_OK;
 }
 
@@ -2243,7 +2232,6 @@ int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	}
 
 	return ERROR_OK;
-
 }
 
 int xscale_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
@@ -3041,7 +3029,6 @@ int xscale_init_target(struct command_context_s *cmd_ctx, struct target_s *targe
 
 int xscale_quit(void)
 {
-
 	return ERROR_OK;
 }
 
@@ -3267,7 +3254,6 @@ static int xscale_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
 	int domain;
 	u32 ap;
 
-
 	if ((retval = xscale_get_arch_pointers(target, &armv4_5, &xscale)) != ERROR_OK)
 	{
 		return retval;
@@ -3294,7 +3280,6 @@ static int xscale_mmu(struct target_s *target, int *enabled)
 	*enabled = xscale->armv4_5_mmu.mmu_enabled;
 	return ERROR_OK;
 }
-
 
 int xscale_handle_mmu_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
 {

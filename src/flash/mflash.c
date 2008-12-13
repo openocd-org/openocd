@@ -80,7 +80,7 @@ static int pxa270_set_gpio_to_output (mflash_gpio_num_t gpio)
 	target_t *target = mflash_bank->target;
 	int ret;
 
-	// remove alternate function.
+	/* remove alternate function. */
 	mask = 0x3u << (gpio.num & 0xF)*2;
 
 	addr = PXA270_GAFR0_L + (gpio.num >> 4) * 4;
@@ -95,7 +95,7 @@ static int pxa270_set_gpio_to_output (mflash_gpio_num_t gpio)
 	if ((ret = target_write_u32(target, addr, value)) != ERROR_OK)
 		return ret;
 
-	// set direction to output
+	/* set direction to output */
 	mask = 0x1u << (gpio.num & 0x1F);
 
 	addr = PXA270_GPDR0 + (gpio.num >> 5) * 4;
@@ -261,75 +261,75 @@ static int mg_dsk_wait(mg_io_type_wait wait, u32 time)
 
 	duration_start_measure(&duration);
 
-    while (time) {
+	while (time) {
 
-    	target_read_u8(target, mg_task_reg + MG_REG_STATUS, &status);
+		target_read_u8(target, mg_task_reg + MG_REG_STATUS, &status);
 
-    	if (status & mg_io_rbit_status_busy)
-	    {
-    		if (wait == mg_io_wait_bsy)
-	               return ERROR_OK;
-	    } else {
-	        switch(wait)
-	        {
-	            case mg_io_wait_not_bsy:
-	                return ERROR_OK;
-	            case mg_io_wait_rdy_noerr:
-	                if (status & mg_io_rbit_status_ready)
-	                    return ERROR_OK;
-	                break;
-	            case mg_io_wait_drq_noerr:
-	                if (status & mg_io_rbit_status_data_req)
-	                    return ERROR_OK;
-	                break;
-	            default:
-	                break;
-	        }
+		if (status & mg_io_rbit_status_busy)
+		{
+			if (wait == mg_io_wait_bsy)
+				return ERROR_OK;
+		} else {
+			switch(wait)
+			{
+				case mg_io_wait_not_bsy:
+					return ERROR_OK;
+				case mg_io_wait_rdy_noerr:
+					if (status & mg_io_rbit_status_ready)
+						return ERROR_OK;
+					break;
+				case mg_io_wait_drq_noerr:
+					if (status & mg_io_rbit_status_data_req)
+						return ERROR_OK;
+					break;
+				default:
+					break;
+			}
 
-	        // Now we check the error condition!
-	        if (status & mg_io_rbit_status_error)
-	        {
-	            target_read_u8(target, mg_task_reg + MG_REG_ERROR, &error);
+			/* Now we check the error condition! */
+			if (status & mg_io_rbit_status_error)
+			{
+				target_read_u8(target, mg_task_reg + MG_REG_ERROR, &error);
 
-                if (error & mg_io_rbit_err_bad_sect_num) {
-                	LOG_ERROR("sector not found");
-                    return ERROR_FAIL;
-                }
-                else if (error & (mg_io_rbit_err_bad_block | mg_io_rbit_err_uncorrectable)) {
-                	LOG_ERROR("bad block");
-                    return ERROR_FAIL;
-                } else {
-                	LOG_ERROR("disk operation fail");
-	                return ERROR_FAIL;
-	            }
-	        }
+				if (error & mg_io_rbit_err_bad_sect_num) {
+					LOG_ERROR("sector not found");
+					return ERROR_FAIL;
+				}
+				else if (error & (mg_io_rbit_err_bad_block | mg_io_rbit_err_uncorrectable)) {
+					LOG_ERROR("bad block");
+					return ERROR_FAIL;
+				} else {
+					LOG_ERROR("disk operation fail");
+					return ERROR_FAIL;
+				}
+			}
 
-	        switch (wait)
-	        {
-	            case mg_io_wait_rdy:
-	                if (status & mg_io_rbit_status_ready)
-	                    return ERROR_OK;
+			switch (wait)
+			{
+				case mg_io_wait_rdy:
+					if (status & mg_io_rbit_status_ready)
+						return ERROR_OK;
 
-	            case mg_io_wait_drq:
-	                if (status & mg_io_rbit_status_data_req)
-	                    return ERROR_OK;
+				case mg_io_wait_drq:
+					if (status & mg_io_rbit_status_data_req)
+						return ERROR_OK;
 
-	            default:
-	            	break;
-	        }
-	    }
+				default:
+					break;
+			}
+		}
 
-    	duration_stop_measure(&duration, NULL);
+		duration_stop_measure(&duration, NULL);
 
-  		t=duration.duration.tv_usec/1000;
-   		t+=duration.duration.tv_sec*1000;
+		t=duration.duration.tv_usec/1000;
+		t+=duration.duration.tv_sec*1000;
 
 		if (t > time)
-            break;
-    }
+			break;
+	}
 
-    LOG_ERROR("timeout occured");
-    return ERROR_FAIL;
+	LOG_ERROR("timeout occured");
+	return ERROR_FAIL;
 }
 
 static int mg_dsk_srst(u8 on)
@@ -634,7 +634,6 @@ static int mg_mflash_read (u32 addr, u8 *buff, u32 len)
 			LOG_DEBUG("copies %u byte", end_addr - cur_addr);
 
 		}
-
 	}
 
 	free(sect_buff);
@@ -671,7 +670,6 @@ static int mg_mflash_write(u32 addr, u8 *buff, u32 len)
 		}
 
 		mg_mflash_write_sects(sect_buff, sect_num, 1);
-
 	}
 
 	if (cur_addr < end_addr) {
@@ -697,9 +695,7 @@ static int mg_mflash_write(u32 addr, u8 *buff, u32 len)
 			memcpy(sect_buff, buff_ptr, end_addr - cur_addr);
 			LOG_DEBUG("copies %u byte", end_addr - cur_addr);
 			mg_mflash_write_sects(sect_buff, sect_num, 1);
-
 		}
-
 	}
 
 	free(sect_buff);
@@ -711,7 +707,7 @@ static int mflash_write_command(struct command_context_s *cmd_ctx, char *cmd, ch
 {
 	u32 address, buf_cnt;
 	u8 *buffer;
-	// TODO : multi-bank support, large file support
+	/* TODO : multi-bank support, large file support */
 	fileio_t fileio;
 	duration_t duration;
 	char *duration_text;
@@ -726,7 +722,6 @@ static int mflash_write_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	if (! mflash_bank->proved ) {
 		mg_mflash_probe();
 	}
-
 
 	if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK) {
 		return ERROR_FAIL;
@@ -764,7 +759,7 @@ static int mflash_dump_command(struct command_context_s *cmd_ctx, char *cmd, cha
 {
 	u32 address, size_written, size;
 	u8 *buffer;
-	// TODO : multi-bank support
+	/* TODO : multi-bank support */
 	fileio_t fileio;
 	duration_t duration;
 	char *duration_text;

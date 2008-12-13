@@ -61,7 +61,6 @@
 
 int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
 
-
 int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -89,8 +88,6 @@ static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv);
 static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv);
-
-
 
 /* targets */
 extern target_type_t arm7tdmi_target;
@@ -166,17 +163,14 @@ const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_OLD_gdb_program_config , .name = "old-gdb_program_config" },
 	{ .value = TARGET_EVENT_OLD_pre_resume         , .name = "old-pre_resume" },
 
-
 	{ .value = TARGET_EVENT_EARLY_HALTED, .name = "early-halted" },
 	{ .value = TARGET_EVENT_HALTED, .name = "halted" },
 	{ .value = TARGET_EVENT_RESUMED, .name = "resumed" },
 	{ .value = TARGET_EVENT_RESUME_START, .name = "resume-start" },
 	{ .value = TARGET_EVENT_RESUME_END, .name = "resume-end" },
 
-
 	{ .name = "gdb-start", .value = TARGET_EVENT_GDB_START },
 	{ .name = "gdb-end", .value = TARGET_EVENT_GDB_END },
-
 
 	/* historical name */
 
@@ -193,20 +187,14 @@ const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_RESET_INIT , .name = "reset-init" },
 	{ .value = TARGET_EVENT_RESET_END, .name = "reset-end" },
 
-
-
-
-
 	{ .value = TARGET_EVENT_EXAMINE_START, .name = "examine-start" },
 	{ .value = TARGET_EVENT_EXAMINE_END, .name = "examine-end" },
-
 
 	{ .value = TARGET_EVENT_DEBUG_HALTED, .name = "debug-halted" },
 	{ .value = TARGET_EVENT_DEBUG_RESUMED, .name = "debug-resumed" },
 
 	{ .value = TARGET_EVENT_GDB_ATTACH, .name = "gdb-attach" },
 	{ .value = TARGET_EVENT_GDB_DETACH, .name = "gdb-detach" },
-
 
 	{ .value = TARGET_EVENT_GDB_FLASH_WRITE_START, .name = "gdb-flash-write-start" },
 	{ .value = TARGET_EVENT_GDB_FLASH_WRITE_END  , .name = "gdb-flash-write-end"   },
@@ -230,7 +218,6 @@ const Jim_Nvp nvp_target_state[] = {
 	{ .name = NULL, .value = -1 },
 };
 
-
 const Jim_Nvp nvp_target_debug_reason [] = {
 	{ .name = "debug-request"            , .value = DBG_REASON_DBGRQ },
 	{ .name = "breakpoint"               , .value = DBG_REASON_BREAKPOINT },
@@ -247,7 +234,7 @@ const Jim_Nvp nvp_target_endian[] = {
 	{ .name = "big",    .value = TARGET_BIG_ENDIAN },
 	{ .name = "little", .value = TARGET_LITTLE_ENDIAN },
 	{ .name = "be",     .value = TARGET_BIG_ENDIAN },
-        { .name = "le",     .value = TARGET_LITTLE_ENDIAN },
+	{ .name = "le",     .value = TARGET_LITTLE_ENDIAN },
 	{ .name = NULL,     .value = -1 },
 };
 
@@ -378,7 +365,6 @@ target_t* get_current_target(command_context_t *cmd_ctx)
 	return target;
 }
 
-
 int target_poll(struct target_s *target)
 {
 	/* We can't poll until after examine */
@@ -422,7 +408,6 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 	return retval;
 }
 
-
 int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mode reset_mode)
 {
 	char buf[100];
@@ -448,7 +433,6 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	return retval;
 }
 
-
 static int default_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
 {
 	*physical = virtual;
@@ -466,7 +450,6 @@ static int default_examine(struct target_s *target)
 	target->type->examined = 1;
 	return ERROR_OK;
 }
-
 
 /* Targets that correctly implement init+examine, i.e.
  * no communication with target during init:
@@ -562,7 +545,6 @@ int target_init(struct command_context_s *cmd_ctx)
 		target->type->soft_reset_halt = target_soft_reset_halt_imp;
 		target->type->run_algorithm_imp = target->type->run_algorithm;
 		target->type->run_algorithm = target_run_algorithm_imp;
-
 
 		if (target->type->mmu == NULL)
 		{
@@ -708,7 +690,6 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 		/* execute early halted first */
 		target_call_event_callbacks(target, TARGET_EVENT_EARLY_HALTED);
 	}
-
 
 	LOG_DEBUG("target event %i (%s)",
 			  event,
@@ -1051,7 +1032,6 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 	return ERROR_OK;
 }
 
-
 /* Single aligned words are guaranteed to use 16 or 32 bit access
  * mode respectively, otherwise data is handled as quickly as
  * possible
@@ -1347,7 +1327,6 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	if((retval = trace_register_commands(cmd_ctx)) != ERROR_OK)
 		return retval;
 
-
 	return retval;
 }
 
@@ -1387,7 +1366,7 @@ int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	}
 DumpTargets:
 
-  target = all_targets;
+	target = all_targets;
 	command_print(cmd_ctx, "    CmdName    Type       Endian     AbsChainPos Name          State     ");
 	command_print(cmd_ctx, "--  ---------- ---------- ---------- ----------- ------------- ----------");
 	while (target)
@@ -1407,8 +1386,7 @@ DumpTargets:
 	return ERROR_OK;
 }
 
-// every 300ms we check for reset & powerdropout and issue a "reset halt" if
-// so.
+/* every 300ms we check for reset & powerdropout and issue a "reset halt" if so. */
 
 static int powerDropout;
 static int srstAsserted;
@@ -1475,7 +1453,6 @@ static int sense_handler(void)
 
 	return ERROR_OK;
 }
-
 
 /* process target state changes */
 int handle_target(void *priv)
@@ -1545,7 +1522,6 @@ int handle_target(void *priv)
 
 		target = target->next;
 	}
-
 
 	return retval;
 }
@@ -1661,7 +1637,6 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	return ERROR_OK;
 }
 
-
 int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval = ERROR_OK;
@@ -1693,7 +1668,6 @@ int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-
 
 	return retval;
 }
@@ -1739,14 +1713,14 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 		{
 			once=0;
 			LOG_DEBUG("waiting for target %s...",
-			      Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
+				Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
 		}
 
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
 			LOG_ERROR("timed out while waiting for target %s",
-			      Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
+				Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
 			return ERROR_FAIL;
 		}
 	}
@@ -1857,7 +1831,6 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 		count = strtoul(args[1], NULL, 0);
 
 	address = strtoul(args[0], NULL, 0);
-
 
 	switch (cmd[2])
 	{
@@ -2025,7 +1998,6 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-
 	duration_start_measure(&duration);
 
 	if (image_open(&image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
@@ -2052,7 +2024,6 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 		u32 offset=0;
 		u32 length=buf_cnt;
-
 
 		/* DANGER!!! beware of unsigned comparision here!!! */
 
@@ -2470,6 +2441,7 @@ int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args,
 	}
 	return retval;
 }
+
 static void writeLong(FILE *f, int l)
 {
 	int i;
@@ -2480,14 +2452,13 @@ static void writeLong(FILE *f, int l)
 	}
 
 }
+
 static void writeString(FILE *f, char *s)
 {
 	fwrite(s, 1, strlen(s), f);
 }
 
-
-
-// Dump a gmon.out histogram file.
+/* Dump a gmon.out histogram file. */
 static void writeGmon(u32 *samples, int sampleNum, char *filename)
 {
 	int i;
@@ -2495,14 +2466,14 @@ static void writeGmon(u32 *samples, int sampleNum, char *filename)
 	if (f==NULL)
 		return;
 	fwrite("gmon", 1, 4, f);
-	writeLong(f, 0x00000001); // Version
-	writeLong(f, 0); // padding
-	writeLong(f, 0); // padding
-	writeLong(f, 0); // padding
+	writeLong(f, 0x00000001); /* Version */
+	writeLong(f, 0); /* padding */
+	writeLong(f, 0); /* padding */
+	writeLong(f, 0); /* padding */
 
-	fwrite("", 1, 1, f);  // GMON_TAG_TIME_HIST
+	fwrite("", 1, 1, f);  /* GMON_TAG_TIME_HIST */
 
-	// figure out bucket size
+	/* figure out bucket size */
 	u32 min=samples[0];
 	u32 max=samples[0];
 	for (i=0; i<sampleNum; i++)
@@ -2519,7 +2490,7 @@ static void writeGmon(u32 *samples, int sampleNum, char *filename)
 
 	int addressSpace=(max-min+1);
 
-	static int const maxBuckets=256*1024; // maximum buckets.
+	static int const maxBuckets=256*1024; /* maximum buckets. */
 	int length=addressSpace;
 	if (length > maxBuckets)
 	{
@@ -2538,23 +2509,23 @@ static void writeGmon(u32 *samples, int sampleNum, char *filename)
 		long long a=address-min;
 		long long b=length-1;
 		long long c=addressSpace-1;
-		int index=(a*b)/c; // danger!!!! int32 overflows
+		int index=(a*b)/c; /* danger!!!! int32 overflows */
 		buckets[index]++;
 	}
 
-	//			   append binary memory gmon.out &profile_hist_hdr ((char*)&profile_hist_hdr + sizeof(struct gmon_hist_hdr))
-	writeLong(f, min); 					// low_pc
-	writeLong(f, max);		// high_pc
-	writeLong(f, length);		// # of samples
-	writeLong(f, 64000000); 			// 64MHz
+	/* append binary memory gmon.out &profile_hist_hdr ((char*)&profile_hist_hdr + sizeof(struct gmon_hist_hdr)) */
+	writeLong(f, min); 			/* low_pc */
+	writeLong(f, max);			/* high_pc */
+	writeLong(f, length);		/* # of samples */
+	writeLong(f, 64000000); 	/* 64MHz */
 	writeString(f, "seconds");
 	for (i=0; i<(15-strlen("seconds")); i++)
 	{
-		fwrite("", 1, 1, f);  // padding
+		fwrite("", 1, 1, f);	/* padding */
 	}
 	writeString(f, "s");
 
-//			   append binary memory gmon.out profile_hist_data (profile_hist_data + profile_hist_hdr.hist_size)
+	/*append binary memory gmon.out profile_hist_data (profile_hist_data + profile_hist_hdr.hist_size) */
 
 	char *data=malloc(2*length);
 	if (data!=NULL)
@@ -2608,7 +2579,7 @@ int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 	int numSamples=0;
 	int retval=ERROR_OK;
-	// hopefully it is safe to cache! We want to stop/restart as quickly as possible.
+	/* hopefully it is safe to cache! We want to stop/restart as quickly as possible. */
 	reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
 
 	for (;;)
@@ -2620,10 +2591,10 @@ int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **
 			samples[numSamples++]=t;
 			retval = target_resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
 			target_poll(target);
-			alive_sleep(10); // sleep 10ms, i.e. <100 samples/second.
+			alive_sleep(10); /* sleep 10ms, i.e. <100 samples/second. */
 		} else if (target->state == TARGET_RUNNING)
 		{
-			// We want to quickly sample the PC.
+			/* We want to quickly sample the PC. */
 			if((retval = target_halt(target)) != ERROR_OK)
 			{
 				free(samples);
@@ -2898,7 +2869,6 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return target_array2mem( interp,target, argc, argv );
 }
 
-
 static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
 {
 	long l;
@@ -2983,7 +2953,6 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 		return JIM_ERR;
 	}
 
-
 	/* Transfer loop */
 
 	/* index counter */
@@ -3031,15 +3000,13 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 	return JIM_OK;
 }
 
-void
-target_all_handle_event( enum target_event e )
+void target_all_handle_event( enum target_event e )
 {
 	target_t *target;
 
-
 	LOG_DEBUG( "**all*targets: event: %d, %s",
-		   e,
-		   Jim_Nvp_value2name_simple( nvp_target_event, e )->name );
+			e,
+			Jim_Nvp_value2name_simple( nvp_target_event, e )->name );
 
 	target = all_targets;
 	while (target){
@@ -3048,8 +3015,7 @@ target_all_handle_event( enum target_event e )
 	}
 }
 
-void
-target_handle_event( target_t *target, enum target_event e )
+void target_handle_event( target_t *target, enum target_event e )
 {
 	target_event_action_t *teap;
 	int done;
@@ -3093,7 +3059,6 @@ enum target_cfg_param {
 	TCFG_CHAIN_POSITION,
 };
 
-
 static Jim_Nvp nvp_config_opts[] = {
 	{ .name = "-type",             .value = TCFG_TYPE },
 	{ .name = "-event",            .value = TCFG_EVENT },
@@ -3108,10 +3073,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-
-static int
-target_configure( Jim_GetOptInfo *goi,
-				  target_t *target )
+static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 {
 	Jim_Nvp *n;
 	Jim_Obj *o;
@@ -3119,11 +3081,10 @@ target_configure( Jim_GetOptInfo *goi,
 	char *cp;
 	int e;
 
-
 	/* parse config or cget options ... */
 	while( goi->argc > 0 ){
 		Jim_SetEmptyResult( goi->interp );
-		//Jim_GetOpt_Debug( goi );
+		/* Jim_GetOpt_Debug( goi ); */
 
 		if( target->type->target_jim_configure ){
 			/* target defines a configure function */
@@ -3183,7 +3144,6 @@ target_configure( Jim_GetOptInfo *goi,
 					return JIM_ERR;
 				}
 			}
-
 
 			{
 				target_event_action_t *teap;
@@ -3377,12 +3337,8 @@ target_configure( Jim_GetOptInfo *goi,
 	return JIM_OK;
 }
 
-
 /** this is the 'tcl' handler for the target specific command */
-static int
-tcl_target_func( Jim_Interp *interp,
-				 int argc,
-				 Jim_Obj *const *argv )
+static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 {
 	Jim_GetOptInfo goi;
 	jim_wide a,b,c;
@@ -3392,7 +3348,6 @@ tcl_target_func( Jim_Interp *interp,
 	target_t *target;
 	struct command_context_s *cmd_ctx;
 	int e;
-
 
 	enum {
 		TS_CMD_CONFIGURE,
@@ -3436,7 +3391,6 @@ tcl_target_func( Jim_Interp *interp,
 		{ .name = NULL, .value = -1 },
 	};
 
-
 	/* go past the "command" */
 	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
 
@@ -3449,7 +3403,7 @@ tcl_target_func( Jim_Interp *interp,
 		Jim_GetOpt_NvpUnknown( &goi, target_options, 0 );
 		return e;
 	}
-	// Assume blank result
+	/* Assume blank result */
 	Jim_SetEmptyResult( goi.interp );
 
 	switch( n->value ){
@@ -3680,17 +3634,17 @@ tcl_target_func( Jim_Interp *interp,
 			Jim_GetOpt_NvpUnknown( &goi, nvp_assert, 1 );
 			return e;
 		}
-		// the halt or not param
+		/* the halt or not param */
 		e = Jim_GetOpt_Wide( &goi, &a);
 		if( e != JIM_OK ){
 			return e;
 		}
-		// determine if we should halt or not.
+		/* determine if we should halt or not. */
 		target->reset_halt = !!a;
-		// When this happens - all workareas are invalid.
+		/* When this happens - all workareas are invalid. */
 		target_free_all_working_areas_restore(target, 0);
 
-		// do the assert
+		/* do the assert */
 		if( n->value == NVP_ASSERT ){
 			target->type->assert_reset( target );
 		} else {
@@ -3705,7 +3659,7 @@ tcl_target_func( Jim_Interp *interp,
 		target->type->halt( target );
 		return JIM_OK;
 	case TS_CMD_WAITSTATE:
-		// params:  <name>  statename timeoutmsecs
+		/* params:  <name>  statename timeoutmsecs */
 		if( goi.argc != 2 ){
 			Jim_SetResult_sprintf( goi.interp, "%s STATENAME TIMEOUTMSECS", n->name );
 			return JIM_ERR;
@@ -3725,7 +3679,7 @@ tcl_target_func( Jim_Interp *interp,
 								   "target: %s wait %s fails (%d) %s",
 								   target->cmd_name,
 								   n->name,
-					       e, target_strerror_safe(e) );
+								   e, target_strerror_safe(e) );
 			return JIM_ERR;
 		} else {
 			return JIM_OK;
@@ -3776,11 +3730,8 @@ tcl_target_func( Jim_Interp *interp,
 	return JIM_ERR;
 }
 
-
-static int
-target_create( Jim_GetOptInfo *goi )
+static int target_create( Jim_GetOptInfo *goi )
 {
-
 	Jim_Obj *new_cmd;
 	Jim_Cmd *cmd;
 	const char *cp;
@@ -3833,7 +3784,6 @@ target_create( Jim_GetOptInfo *goi )
 		}
 		return JIM_ERR;
 	}
-
 
 	/* Create it */
 	target = calloc(1,sizeof(target_t));
@@ -3892,6 +3842,10 @@ target_create( Jim_GetOptInfo *goi )
 		target->endianness = TARGET_LITTLE_ENDIAN;
 	}
 
+	/* incase variant is not set */
+	if (!target->variant)
+		target->variant = strdup("");
+	
 	/* create the target specific commands */
 	if( target->type->register_commands ){
 		(*(target->type->register_commands))( cmd_ctx );
@@ -3924,8 +3878,7 @@ target_create( Jim_GetOptInfo *goi )
 	return e;
 }
 
-static int
-jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
+static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 {
 	int x,r,e;
 	jim_wide w;
@@ -3944,7 +3897,7 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	const char *target_cmds[] = {
 		"create", "types", "names", "current", "number",
 		"count",
-		NULL // terminate
+		NULL /* terminate */
 	};
 
 	LOG_DEBUG("Target command params:");
@@ -3959,7 +3912,7 @@ jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		return JIM_ERR;
 	}
 
-	//Jim_GetOpt_Debug( &goi );
+	/* Jim_GetOpt_Debug( &goi ); */
 	r = Jim_GetOpt_Enum( &goi, target_cmds, &x   );
 	if( r != JIM_OK ){
 		return r;

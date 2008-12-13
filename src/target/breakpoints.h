@@ -69,4 +69,3 @@ extern void watchpoint_remove(struct target_s *target, u32 address);
 extern void watchpoint_clear_target(struct target_s *target);
 
 #endif /* BREAKPOINTS_H */
-

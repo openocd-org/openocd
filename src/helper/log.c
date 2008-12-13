@@ -413,7 +413,6 @@ void alive_sleep(int ms)
 	}
 }
 
-
 void busy_sleep(int ms)
 {
 	long long then;

@@ -70,4 +70,3 @@ extern reg_arch_type_t* register_get_arch_type(int id);
 extern void register_init_dummy(reg_t *reg);
 
 #endif /* REGISTER_H */
-

@@ -124,6 +124,6 @@ extern int debug_level;
 /* see "Error:" log entry for meaningful message to the user. The caller should 
  * make no assumptions about what went wrong and try to handle the problem.
  */
-#define ERROR_FAIL       			(-4)
+#define ERROR_FAIL					(-4)
 
 #endif /* LOG_H */

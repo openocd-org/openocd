@@ -229,9 +229,9 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	free((void *)override_name);
 
 	/* accumulate help text in Tcl helptext list.  */
-    Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
-    if (Jim_IsShared(helptext))
-        helptext = Jim_DuplicateObj(interp, helptext);
+	Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
+	if (Jim_IsShared(helptext))
+		helptext = Jim_DuplicateObj(interp, helptext);
 	Jim_Obj *cmd_entry=Jim_NewListObj(interp, NULL, 0);
 
 	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);
@@ -356,8 +356,8 @@ void command_print_n(command_context_t *context, char *format, ...)
 		 * The latter bit isn't precisely neat, but will do for now.
 		 */
 		LOG_USER_N("%s", string);
-		// We already printed it above
-		//command_output_text(context, string);
+		/* We already printed it above */
+		/* command_output_text(context, string); */
 		free(string);
 	}
 
@@ -381,8 +381,8 @@ void command_print(command_context_t *context, char *format, ...)
 		 * The latter bit isn't precisely neat, but will do for now.
 		 */
 		LOG_USER_N("%s", string);
-		// We already printed it above
-		//command_output_text(context, string);
+		/* We already printed it above */
+		/* command_output_text(context, string); */
 		free(string);
 	}
 
@@ -644,7 +644,6 @@ static char* openocd_jim_fgets(char *s, int size, void *cookie)
 	return NULL;
 }
 
-
 static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	if (argc != 2)
@@ -801,7 +800,7 @@ void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd
 	Jim_CreateCommand(interp, name, cmd, NULL, NULL);
 
 	/* FIX!!! it would be prettier to invoke add_help_text...
-	   accumulate help text in Tcl helptext list.  */
+	 * accumulate help text in Tcl helptext list.  */
 	Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
 	if (Jim_IsShared(helptext))
 		helptext = Jim_DuplicateObj(interp, helptext);
@@ -815,7 +814,6 @@ void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd
 	Jim_ListAppendElement(interp, cmd_entry, Jim_NewStringObj(interp, help, -1));
 	Jim_ListAppendElement(interp, helptext, cmd_entry);
 }
-
 
 /* return global variable long value or 0 upon failure */
 long jim_global_long(const char *variable)

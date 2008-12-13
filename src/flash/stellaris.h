@@ -83,7 +83,6 @@ typedef struct stellaris_flash_bank_s
 #define AMASK	1
 #define PMASK	2
 
-
 /* Flash Controller Command bits */
 #define FMC_WRKEY	(0xA442<<16)
 #define FMC_COMT	(1<<3)

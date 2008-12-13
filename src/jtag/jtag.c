@@ -250,8 +250,6 @@ jtag_interface_t *jtag = NULL;
 jtag_interface_t *jtag_interface = NULL;
 int jtag_speed = 0;
 
-
-
 /* forward declarations */
 void jtag_add_pathmove(int num_states, enum tap_state *path);
 void jtag_add_runtest(int num_cycles, enum tap_state endstate);
@@ -279,14 +277,12 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-
 jtag_tap_t *jtag_AllTaps(void)
 {
-  return jtag_all_taps;
+	return jtag_all_taps;
 };
 
-int
-jtag_NumTotalTaps(void)
+int jtag_NumTotalTaps(void)
 {
 	jtag_tap_t *t;
 	int n;
@@ -300,8 +296,7 @@ jtag_NumTotalTaps(void)
 	return n;
 }
 
-int
-jtag_NumEnabledTaps(void)
+int jtag_NumEnabledTaps(void)
 {
 	jtag_tap_t *t;
 	int n;
@@ -345,8 +340,7 @@ jtag_tap_t *jtag_TapByString( const char *s )
 	return t;
 }
 
-jtag_tap_t *
-jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *o )
+jtag_tap_t * jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *o )
 {
 	jtag_tap_t *t;
 	const char *cp;
@@ -365,8 +359,7 @@ jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *o )
 }
 
 /* returns a pointer to the n-th device in the scan chain */
-jtag_tap_t *
-jtag_TapByAbsPosition( int n )
+jtag_tap_t * jtag_TapByAbsPosition( int n )
 {
 	int orig_n;
 	jtag_tap_t *t;
@@ -377,10 +370,9 @@ jtag_TapByAbsPosition( int n )
 	while( t && (n > 0)) {
 		n--;
 		t = t->next_tap;
-    }
+	}
 	return t;
 }
-
 
 int jtag_register_event_callback(int (*callback)(enum jtag_event event, void *priv), void *priv)
 {
@@ -463,7 +455,6 @@ jtag_command_t** jtag_get_last_command_p(void)
 	return last_comand_pointer;
 }
 
-
 void* cmd_queue_alloc(size_t size)
 {
 	cmd_queue_page_t **p_page = &cmd_queue_pages;
@@ -491,17 +482,16 @@ void* cmd_queue_alloc(size_t size)
 	 *
 	 */
 	union worse_case_align {
-	  int i;
-	  long l;
-	  float f;
-	  void *v;
+		int i;
+		long l;
+		float f;
+		void *v;
 	};
 #define ALIGN_SIZE  (sizeof(union worse_case_align))
 
-	// The alignment process.
+	/* The alignment process. */
 	size = (size + ALIGN_SIZE -1) & (~(ALIGN_SIZE-1));
-	// Done...
-
+	/* Done... */
 
 	if (*p_page)
 	{
@@ -652,7 +642,6 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 			(*last_cmd)->cmd.scan->fields[nth_tap].out_value = buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 			(*last_cmd)->cmd.scan->fields[nth_tap].out_mask = NULL;
 			tap->bypass = 1;
-
 		}
 
 		/* update device information */
@@ -1022,7 +1011,6 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 	}
 
 	jtag_prelude1();
-
 
 	retval=interface_jtag_add_pathmove(num_states, path);
 	cmd_queue_cur_state = path[num_states - 1];
@@ -1805,8 +1793,7 @@ jtag_tap_configure_cmd( Jim_GetOptInfo *goi,
 	return JIM_OK;
 }
 
-static int
-jim_newtap_cmd( Jim_GetOptInfo *goi )
+static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 {
 	jtag_tap_t *pTap;
 	jtag_tap_t **ppTap;
@@ -1824,14 +1811,13 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 #define NTAP_OPT_IRCAPTURE 2
 		{ .name = "-ircapture"		,	.value = NTAP_OPT_IRCAPTURE },
 #define NTAP_OPT_ENABLED   3
-		{ .name = "-enable"			,   .value = NTAP_OPT_ENABLED },
+		{ .name = "-enable"			,	.value = NTAP_OPT_ENABLED },
 #define NTAP_OPT_DISABLED  4
-		{ .name = "-disable"		,   .value = NTAP_OPT_DISABLED },
+		{ .name = "-disable"		,	.value = NTAP_OPT_DISABLED },
 #define NTAP_OPT_EXPECTED_ID 5
-		{ .name = "-expected-id"	,   .value = NTAP_OPT_EXPECTED_ID },
-		{ .name = NULL				,   .value = -1 },
+		{ .name = "-expected-id"	,	.value = NTAP_OPT_EXPECTED_ID },
+		{ .name = NULL				,	.value = -1 },
 	};
-
 
 	pTap = malloc( sizeof(jtag_tap_t) );
 	memset( pTap, 0, sizeof(*pTap) );
@@ -1839,9 +1825,9 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 		Jim_SetResult_sprintf( goi->interp, "no memory");
 		return JIM_ERR;
 	}
-	//
-	// we expect CHIP + TAP + OPTIONS
-	//
+	/*
+	 * we expect CHIP + TAP + OPTIONS
+	 * */
 	if( goi->argc < 3 ){
 		Jim_SetResult_sprintf(goi->interp, "Missing CHIP TAP OPTIONS ....");
 		return JIM_ERR;
@@ -1852,7 +1838,7 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 	Jim_GetOpt_String( goi, &cp, NULL );
 	pTap->tapname = strdup(cp);
 
-	// name + dot + name + null
+	/* name + dot + name + null */
 	x = strlen(pTap->chip) + 1 + strlen(pTap->tapname) + 1;
 	cp = malloc( x );
 	sprintf( cp, "%s.%s", pTap->chip, pTap->tapname );
@@ -1861,16 +1847,15 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 	LOG_DEBUG("Creating New Tap, Chip: %s, Tap: %s, Dotted: %s, %d params",
 			  pTap->chip, pTap->tapname, pTap->dotted_name, goi->argc);
 
-
-	// default is enabled
+	/* default is enabled */
 	pTap->enabled = 1;
 
-	// deal with options
+	/* deal with options */
 #define NTREQ_IRLEN      1
 #define NTREQ_IRCAPTURE  2
 #define NTREQ_IRMASK     4
 
-	// clear them as we find them
+	/* clear them as we find them */
 	reqbits = (NTREQ_IRLEN | NTREQ_IRCAPTURE | NTREQ_IRMASK);
 
 	while( goi->argc ){
@@ -1921,7 +1906,7 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 				return e;
 			}
 			if( (w < 0) || (w > 0xffff) ){
-				// wacky value
+				/* wacky value */
 				Jim_SetResult_sprintf( goi->interp, "option: %s - wacky value: %d (0x%x)",
 									   n->name, (int)(w), (int)(w));
 				return JIM_ERR;
@@ -1940,17 +1925,17 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 				reqbits &= (~(NTREQ_IRCAPTURE));
 				break;
 			}
-		} // switch(n->value)
-	} // while( goi->argc )
+		} /* switch(n->value) */
+	} /* while( goi->argc ) */
 
-	// Did we get all the options?
+	/* Did we get all the options? */
 	if( reqbits ){
 		// no
 		Jim_SetResult_sprintf( goi->interp,
 							   "newtap: %s missing required parameters",
 							   pTap->dotted_name);
-		// fixme: Tell user what is missing :-(
-		// no memory leaks pelase
+		/* TODO: Tell user what is missing :-( */
+		/* no memory leaks pelase */
 		free(((void *)(pTap->expected_ids)));
 		free(((void *)(pTap->chip)));
 		free(((void *)(pTap->tapname)));
@@ -1976,7 +1961,6 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 
 	pTap->bypass = 1;
 
-
 	jtag_register_event_callback(jtag_reset_callback, pTap );
 
 	ppTap = &(jtag_all_taps);
@@ -1989,19 +1973,16 @@ jim_newtap_cmd( Jim_GetOptInfo *goi )
 		pTap->abs_chain_position = n_taps++;
 	}
 	LOG_DEBUG( "Created Tap: %s @ abs position %d, irlen %d, capture: 0x%x mask: 0x%x",
-			   (*ppTap)->dotted_name,
-			   (*ppTap)->abs_chain_position,
-			   (*ppTap)->ir_length,
-			   (*ppTap)->ir_capture_value,
-			   (*ppTap)->ir_capture_mask );
-
+				(*ppTap)->dotted_name,
+				(*ppTap)->abs_chain_position,
+				(*ppTap)->ir_length,
+				(*ppTap)->ir_capture_value,
+				(*ppTap)->ir_capture_mask );
 
 	return ERROR_OK;
 }
 
-
-static int
-jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
+static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 {
 	Jim_GetOptInfo goi;
 	int e;
@@ -2034,7 +2015,7 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	};
 
 	context = Jim_GetAssocData(interp, "context");
-	// go past the command
+	/* go past the command */
 	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
 
 	e = Jim_GetOpt_Nvp( &goi, jtag_cmds, &n );
@@ -2045,9 +2026,9 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		Jim_SetEmptyResult( goi.interp );
 	switch( n->value ){
 	case JTAG_CMD_INTERFACE:
-		// return the name of the interface
-		// TCL code might need to know the exact type...
-		// FUTURE: we allow this as a means to "set" the interface.
+		/* return the name of the interface */
+		/* TCL code might need to know the exact type... */
+		/* FUTURE: we allow this as a means to "set" the interface. */
 		if( goi.argc != 0 ){
 			Jim_WrongNumArgs( goi.interp, 1, goi.argv-1, "(no params)");
 			return JIM_ERR;
@@ -2142,7 +2123,6 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		}
 	}
 
-
 	return JIM_ERR;
 }
 
@@ -2203,8 +2183,6 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	if (jtag_interface->init() != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
-
-
 	jtag = jtag_interface;
 	return ERROR_OK;
 }
@@ -2215,7 +2193,6 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	int retval;
 
 	LOG_DEBUG("Init JTAG chain");
-
 
 	tap = jtag_NextEnabledTap(NULL);
 	if( tap == NULL ){
@@ -2390,14 +2367,14 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	int e;
 	char buf[1024];
 	Jim_Obj *newargs[ 10 ];
-	//
-	// CONVERT SYNTAX
-	//
-	//   argv[-1] = command
-	//   argv[ 0] = ir length
-	//   argv[ 1] = ir capture
-	//   argv[ 2] = ir mask
-	//   argv[ 3] = not actually used by anything but in the docs
+	/*
+	 * CONVERT SYNTAX
+	 * argv[-1] = command
+	 * argv[ 0] = ir length
+	 * argv[ 1] = ir capture
+	 * argv[ 2] = ir mask
+	 * argv[ 3] = not actually used by anything but in the docs
+	 */
 
 	if( argc < 4 ){
 		command_print( cmd_ctx, "OLD DEPRECATED SYNTAX: Please use the NEW syntax");
@@ -2412,8 +2389,6 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	command_print( cmd_ctx, "jtag newtap stm32 cortexm3  ....., thus creating the tap: \"stm32.cortexm3\"");
 	command_print( cmd_ctx, "jtag newtap stm32 boundry  ....., and the tap: \"stm32.boundery\"");
 	command_print( cmd_ctx, "And then refer to the taps by the dotted name.");
-
-
 
 	newargs[0] = Jim_NewStringObj( interp, "jtag", -1   );
 	newargs[1] = Jim_NewStringObj( interp, "newtap", -1 );
@@ -2441,15 +2416,12 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			 Jim_GetString( newargs[8], NULL ),
 			 Jim_GetString( newargs[9], NULL ) );
 
-
-
 	e = jim_jtag_command( interp, 10, newargs );
 	if( e != JIM_OK ){
 		command_print( cmd_ctx, "%s", Jim_GetString( Jim_GetResult(interp), NULL ) );
 	}
 	return e;
 }
-
 
 int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -2835,7 +2807,6 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 		Jim_GetLong(interp, args[i], &bits);
 		str = Jim_GetString(args[i+1], &len);
 
-
 		fields[field_count].tap = tap;
 		fields[field_count].num_bits = bits;
 		fields[field_count].out_value = malloc(CEIL(bits, 8));
@@ -2904,7 +2875,6 @@ int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-
 int jtag_power_dropout(int *dropout)
 {
 	return jtag->power_dropout(dropout);
@@ -2945,4 +2915,3 @@ void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
 				Jim_Nvp_value2name_simple( nvp_jtag_tap_event, e)->name);
 	}
 }
-

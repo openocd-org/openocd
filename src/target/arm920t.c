@@ -703,23 +703,21 @@ int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *targ
 	arm9tdmi_init_target(cmd_ctx, target);
 
 	return ERROR_OK;
-
 }
 
 int arm920t_quit(void)
 {
-
 	return ERROR_OK;
 }
 
-int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, jtag_tap_t *tap, const char *variant)
+int arm920t_init_arch_info(target_t *target, arm920t_common_t *arm920t, jtag_tap_t *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm920t->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
 
 	/* initialize arm9tdmi specific info (including arm7_9 and armv4_5)
 	 */
-	arm9tdmi_init_arch_info(target, arm9tdmi, tap, variant);
+	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
 
 	arm9tdmi->arch_info = arm920t;
 	arm920t->common_magic = ARM920T_COMMON_MAGIC;
@@ -752,7 +750,7 @@ int arm920t_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm920t_common_t *arm920t = calloc(1,sizeof(arm920t_common_t));
 
-	arm920t_init_arch_info(target, arm920t, target->tap, target->variant);
+	arm920t_init_arch_info(target, arm920t, target->tap);
 
 	return ERROR_OK;
 }
@@ -995,9 +993,7 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 				 i_cache[segment][index].data[i] = regs[i];
 				 fprintf(output, "%i: 0x%8.8x\n", i-1, regs[i]);
 			}
-
 		}
-
 
 		/* Ra: r0 = index(31:26):SBZ(25:8):segment(7:5):SBZ(4:0) */
 		regs[0] = 0x0 | (segment << 5) | (C15_C_D_Ind << 26);

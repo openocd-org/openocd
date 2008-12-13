@@ -1524,4 +1524,3 @@ int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd,
 	
 	return ERROR_OK;
 }
-

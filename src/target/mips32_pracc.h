@@ -34,7 +34,7 @@
 #define UPPER16(u32) (u32 >> 16)
 #define LOWER16(u32) (u32 & 0xFFFF)
 #define NEG16(v) (((~(v)) + 1) & 0xFFFF)
-//#define NEG18(v) ( ((~(v)) + 1) & 0x3FFFF )
+/*#define NEG18(v) ( ((~(v)) + 1) & 0x3FFFF )*/
 
 extern int mips32_pracc_read_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int count, void *buf);
 extern int mips32_pracc_write_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int count, void *buf);

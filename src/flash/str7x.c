@@ -717,4 +717,3 @@ int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, char *c
 	
 	return ERROR_OK;
 }
-

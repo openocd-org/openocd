@@ -44,7 +44,6 @@ enum fileio_type
 	FILEIO_BINARY,
 };
 
-
 enum fileio_access
 {
 	FILEIO_READ,		/* open for reading, position at beginning */
@@ -71,7 +70,7 @@ extern int fileio_close(fileio_t *fileio);
 extern int fileio_open(fileio_t *fileio, char *url, enum fileio_access access, enum fileio_type type);
 extern int fileio_read_u32(fileio_t *fileio, u32 *data);
 extern int fileio_write_u32(fileio_t *fileio, u32 data);
-	
+
 #define ERROR_FILEIO_LOCATION_UNKNOWN	(-1200)
 #define ERROR_FILEIO_NOT_FOUND			(-1201)
 #define ERROR_FILEIO_OPERATION_FAILED		(-1202)

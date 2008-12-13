@@ -525,7 +525,6 @@ static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-
 int tclapi_register_commands()
 {
 	register_jim("ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing");

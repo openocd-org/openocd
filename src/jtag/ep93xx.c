@@ -64,7 +64,7 @@ struct timespec ep93xx_zzzz;
 jtag_interface_t ep93xx_interface = 
 {
 	.name = "ep93xx",
-	
+
 	.execute_queue = bitbang_execute_queue,
 
 	.speed = ep93xx_speed,	
@@ -126,7 +126,7 @@ void ep93xx_reset(int trst, int srst)
 
 int ep93xx_speed(int speed)
 {
-	
+
 	return ERROR_OK;
 }
 

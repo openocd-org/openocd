@@ -163,6 +163,5 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		exit(-1);
 	}	
 
-
 	return ERROR_OK;
 }

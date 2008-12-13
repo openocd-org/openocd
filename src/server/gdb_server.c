@@ -307,7 +307,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
 		if( reply == '$' ){
-			// fix a problem with some IAR tools
+			/* fix a problem with some IAR tools */
 			gdb_putback_char( connection, reply );
 			LOG_DEBUG("Unexpected start of new packet");
 			break;
@@ -719,7 +719,6 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 	return ERROR_OK;
 }
 
-
 int gdb_new_connection(connection_t *connection)
 {
 	gdb_connection_t *gdb_connection = malloc(sizeof(gdb_connection_t));
@@ -846,7 +845,6 @@ int gdb_last_signal_packet(connection_t *connection, target_t *target, char* pac
 
 	return ERROR_OK;
 }
-
 
 static int gdb_reg_pos(target_t *target, int pos, int len)
 {
@@ -2353,7 +2351,6 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 
 	return ERROR_OK;
 }
-
 
 int gdb_register_commands(command_context_t *command_context)
 {

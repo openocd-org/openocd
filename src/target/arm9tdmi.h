@@ -35,7 +35,6 @@
 typedef struct arm9tdmi_common_s
 {
 	int common_magic;
-	char *variant;
 	void *arch_info;
 	arm7_9_common_t arm7_9_common;
 } arm9tdmi_common_t;
@@ -60,7 +59,7 @@ enum arm9tdmi_vector
 
 extern int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm9tdmi_examine(struct target_s *target);
-extern int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap, const char *variant);
+extern int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap);
 extern int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 
 extern int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int sysspeed);

@@ -83,15 +83,15 @@ static int autodetect_image_type(image_t *image, char *url)
 		LOG_DEBUG("ELF image detected.");
 		image->type = IMAGE_ELF;
 	}
-	else if  ((buffer[0]==':') /* record start byte */
-	        &&(isxdigit(buffer[1]))
-	        &&(isxdigit(buffer[2]))
-	        &&(isxdigit(buffer[3]))
-	        &&(isxdigit(buffer[4]))
-	        &&(isxdigit(buffer[5]))
-	        &&(isxdigit(buffer[6]))
-	        &&(buffer[7]=='0') /* record type : 00 -> 05 */
-	        &&(buffer[8]>='0')&&(buffer[8]<'6'))
+	else if ((buffer[0]==':') /* record start byte */
+		&&(isxdigit(buffer[1]))
+		&&(isxdigit(buffer[2]))
+		&&(isxdigit(buffer[3]))
+		&&(isxdigit(buffer[4]))
+		&&(isxdigit(buffer[5]))
+		&&(isxdigit(buffer[6]))
+		&&(buffer[7]=='0') /* record type : 00 -> 05 */
+		&&(buffer[8]>='0')&&(buffer[8]<'6'))
 	{
 		LOG_DEBUG("IHEX image detected.");
 		image->type = IMAGE_IHEX;
@@ -380,7 +380,6 @@ int image_elf_read_headers(image_t *image)
 		LOG_ERROR("invalid ELF file, only 32bits files are supported");
 		return ERROR_IMAGE_FORMAT_ERROR;
 	}
-
 
 	elf->endianness = elf->header->e_ident[EI_DATA];
 	if ((elf->endianness!=ELFDATA2LSB)
@@ -1042,5 +1041,3 @@ int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum)
 	*checksum = crc;
 	return ERROR_OK;
 }
-
-

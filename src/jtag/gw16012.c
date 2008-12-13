@@ -438,26 +438,26 @@ int gw16012_execute_queue(void)
 #if PARPORT_USE_GIVEIO == 1
 int gw16012_get_giveio_access()
 {
-    HANDLE h;
-    OSVERSIONINFO version;
+	HANDLE h;
+	OSVERSIONINFO version;
 
-    version.dwOSVersionInfoSize = sizeof version;
-    if (!GetVersionEx( &version )) {
-	errno = EINVAL;
-	return -1;
-    }
-    if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
+	version.dwOSVersionInfoSize = sizeof version;
+	if (!GetVersionEx( &version )) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
+		return 0;
+
+	h = CreateFile( "\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+	if (h == INVALID_HANDLE_VALUE) {
+		errno = ENODEV;
+		return -1;
+	}
+
+	CloseHandle( h );
+
 	return 0;
-
-    h = CreateFile( "\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
-    if (h == INVALID_HANDLE_VALUE) {
-	errno = ENODEV;
-	return -1;
-    }
-
-    CloseHandle( h );
-
-    return 0;
 }
 #endif
 

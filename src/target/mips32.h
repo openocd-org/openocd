@@ -119,7 +119,7 @@ typedef struct mips32_core_reg_s
 #define MIPS32_DRET					0x4200001F
 
 extern int mips32_arch_state(struct target_s *target);
-extern int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, jtag_tap_t *tap, const char *variant);
+extern int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, jtag_tap_t *tap);
 extern int mips32_restore_context(target_t *target);
 extern int mips32_save_context(target_t *target);
 extern reg_cache_t *mips32_build_reg_cache(target_t *target);

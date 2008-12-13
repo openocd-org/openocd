@@ -50,7 +50,7 @@ enum str9x_status_codes
 	STR9X_BUSY = 11
 };
 
-/*  Flash registers */
+/* Flash registers */
 
 #define FLASH_BBSR		0x54000000		/* Boot Bank Size Register                */
 #define FLASH_NBBSR		0x54000004		/* Non-Boot Bank Size Register            */
@@ -61,4 +61,3 @@ enum str9x_status_codes
 #define FLASH_BCE5ADDR	0x54000020		/* BC Fifth Entry Target Address Register */
 
 #endif /* STR9X_H */
-

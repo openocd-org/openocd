@@ -429,12 +429,12 @@ int server_loop(command_context_t *command_context)
 #ifdef _WIN32
 BOOL WINAPI ControlHandler(DWORD dwCtrlType)
 {
-    shutdown_openocd = 1;
-    return TRUE;
+	shutdown_openocd = 1;
+	return TRUE;
 }
 
 void sig_handler(int sig) {
-    shutdown_openocd = 1;
+	shutdown_openocd = 1;
 }
 #endif
 
@@ -491,5 +491,3 @@ int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
-
-

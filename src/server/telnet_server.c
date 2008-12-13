@@ -188,8 +188,6 @@ int telnet_new_connection(connection_t *connection)
 
 	log_add_callback(telnet_log_callback, connection);
 
-
-
 	return ERROR_OK;
 }
 

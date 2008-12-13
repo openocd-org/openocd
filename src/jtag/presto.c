@@ -49,7 +49,6 @@
 #error "BUG: either FTD2XX and LIBFTDI has to be used"
 #endif
 
-
 int presto_jtag_speed(int speed);
 int presto_jtag_khz(int khz, int *jtag_speed);
 int presto_jtag_speed_div(int speed, int *khz);
@@ -69,7 +68,6 @@ jtag_interface_t presto_interface =
 	.quit = presto_jtag_quit,
 };
 
-
 int presto_bitq_out(int tms, int tdi, int tdo_req);
 int presto_bitq_flush(void);
 int presto_bitq_sleep(unsigned long us);
@@ -87,9 +85,7 @@ bitq_interface_t presto_bitq =
 	.in = presto_bitq_in,
 };
 
-
 /* -------------------------------------------------------------------------- */
-
 
 #define FT_DEVICE_NAME_LEN 64
 #define FT_DEVICE_SERNUM_LEN 64
@@ -486,7 +482,6 @@ int presto_close(void)
 	return result;
 }
 
-
 int presto_flush(void)
 {
 	if (presto->buff_out_pos == 0)
@@ -530,7 +525,6 @@ int presto_flush(void)
 	return ERROR_OK;
 }
 
-
 int presto_sendbyte(int data)
 {
 	if (data == EOF) return presto_flush();
@@ -555,7 +549,6 @@ int presto_sendbyte(int data)
 	return ERROR_OK;
 }
 
-
 int presto_getbyte(void)
 {
 	if (presto->buff_in_pos < presto->buff_in_len)
@@ -573,9 +566,7 @@ int presto_getbyte(void)
 	return -1;
 }
 
-
 /* -------------------------------------------------------------------------- */
-
 
 int presto_tdi_flush(void)
 {
@@ -596,7 +587,6 @@ int presto_tdi_flush(void)
 	return 0;
 }
 
-
 int presto_tck_idle(void)
 {
 	if (presto->jtag_tck == 1)
@@ -608,9 +598,7 @@ int presto_tck_idle(void)
 	return 0;
 }
 
-
 /* -------------------------------------------------------------------------- */
-
 
 int presto_bitq_out(int tms, int tdi, int tdo_req)
 {
@@ -658,7 +646,6 @@ int presto_bitq_out(int tms, int tdi, int tdo_req)
 	return 0;
 }
 
-
 int presto_bitq_flush(void)
 {
 	presto_tdi_flush();
@@ -669,14 +656,12 @@ int presto_bitq_flush(void)
 	return presto_flush();
 }
 
-
 int presto_bitq_in_rdy(void)
 {
 	if (presto->buff_in_pos>=presto->buff_in_len)
 		return 0;
 	return presto->buff_in_len-presto->buff_in_pos;
 }
-
 
 int presto_bitq_in(void)
 {
@@ -685,7 +670,6 @@ int presto_bitq_in(void)
 	if (presto->buff_in[presto->buff_in_pos++]&0x08) return 1;
 	return 0;
 }
-
 
 int presto_bitq_sleep(unsigned long us)
 {
@@ -708,7 +692,6 @@ int presto_bitq_sleep(unsigned long us)
 	return 0;
 }
 
-
 int presto_bitq_reset(int trst, int srst)
 {
 	presto_tdi_flush();
@@ -724,9 +707,7 @@ int presto_bitq_reset(int trst, int srst)
 	return 0;
 }
 
-
 /* -------------------------------------------------------------------------- */
-
 
 int presto_jtag_khz(int khz, int *jtag_speed)
 {
@@ -742,7 +723,6 @@ int presto_jtag_khz(int khz, int *jtag_speed)
 	return 0;
 }
 
-
 int presto_jtag_speed_div(int speed, int *khz)
 {
 	if ((speed < 0) || (speed > 1000))
@@ -756,7 +736,6 @@ int presto_jtag_speed_div(int speed, int *khz)
 	
 	return 0;
 }
-
 
 int presto_jtag_speed(int speed)
 {
@@ -777,7 +756,6 @@ int presto_jtag_speed(int speed)
 	return 0;
 }
 
-
 char *presto_serial;
 
 int presto_handle_serial_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -796,14 +774,12 @@ int presto_handle_serial_command(struct command_context_s *cmd_ctx, char *cmd, c
 	return ERROR_OK;
 }
 
-
 int presto_jtag_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "presto_serial", presto_handle_serial_command,
 		COMMAND_CONFIG, NULL);
 	return ERROR_OK;
 }
-
 
 int presto_jtag_init(void)
 {
@@ -824,7 +800,6 @@ int presto_jtag_init(void)
 	bitq_interface = &presto_bitq;
 	return ERROR_OK;
 }
-
 
 int presto_jtag_quit(void)
 {

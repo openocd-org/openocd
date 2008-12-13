@@ -210,7 +210,7 @@ char* buf_to_str(const u8 *buf, int buf_len, int radix)
 	else if (radix == 10)
 	{
 		factor = 2.40824;   /* log(256) / log(10) = 2.40824 */
-    }
+	}
 	else if (radix == 8)
 	{
 		factor = 2.66667;	/* log(256) / log(8) = 2.66667 */
@@ -222,20 +222,20 @@ char* buf_to_str(const u8 *buf, int buf_len, int radix)
 	str = calloc(str_len + 1, 1);
 	
 	for (i = b256_len - 1; i >= 0; i--)
-    {
-        tmp = buf[i];
-    	if ((i == (buf_len / 8)) && (buf_len % 8))
-    		tmp &= (0xff >> (8 - (buf_len % 8)));
+	{
+		tmp = buf[i];
+		if ((i == (buf_len / 8)) && (buf_len % 8))
+			tmp &= (0xff >> (8 - (buf_len % 8)));
 
-        for (j = str_len; j > 0; j--)
-        {
-            tmp += (u32)str[j-1] * 256;
-            str[j-1] = (u8)(tmp % radix);
-            tmp /= radix;
-        }
-    }
-    
-    for (j = 0; j < str_len; j++)
+		for (j = str_len; j > 0; j--)
+		{
+			tmp += (u32)str[j-1] * 256;
+			str[j-1] = (u8)(tmp % radix);
+			tmp /= radix;
+		}
+	}
+
+	for (j = 0; j < str_len; j++)
 		str[j] = DIGITS[(int)str[j]];
 	
 	return str;
@@ -295,23 +295,23 @@ int str_to_buf(const char *str, int str_len, u8 *buf, int buf_len, int radix)
 	for (i = 0; charbuf[i]; i++)
 	{ 
 		tmp = charbuf[i];
-        if ((tmp >= '0') && (tmp <= '9'))
-        	tmp = (tmp - '0');
-        else if ((tmp >= 'a') && (tmp <= 'f'))
-        	tmp = (tmp - 'a' + 10);
-        else if ((tmp >= 'A') && (tmp <= 'F'))
-        	tmp = (tmp - 'A' + 10);
-        else continue;	/* skip characters other than [0-9,a-f,A-F] */
+		if ((tmp >= '0') && (tmp <= '9'))
+			tmp = (tmp - '0');
+		else if ((tmp >= 'a') && (tmp <= 'f'))
+			tmp = (tmp - 'a' + 10);
+		else if ((tmp >= 'A') && (tmp <= 'F'))
+			tmp = (tmp - 'A' + 10);
+		else continue;	/* skip characters other than [0-9,a-f,A-F] */
 		
 		if (tmp >= radix)
 			continue;	/* skip digits invalid for the current radix */ 
 		
 		for (j = 0; j < b256_len; j++)
-        {
-            tmp += (u32)b256_buf[j] * radix;
-            b256_buf[j] = (u8)(tmp & 0xFF);
-            tmp >>= 8;
-        }
+		{
+			tmp += (u32)b256_buf[j] * radix;
+			b256_buf[j] = (u8)(tmp & 0xFF);
+			tmp >>= 8;
+		}
 		
 	}
 	

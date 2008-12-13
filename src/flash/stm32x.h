@@ -100,4 +100,3 @@ typedef struct stm32x_mem_layout_s {
 } stm32x_mem_layout_t;
 
 #endif /* STM32X_H */
-

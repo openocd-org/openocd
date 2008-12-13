@@ -107,8 +107,6 @@ reg_arch_type_t* register_get_arch_type(int id)
 	return NULL;
 }
 
-
-
 static int register_get_dummy_core_reg(reg_t *reg)
 {
 	return ERROR_OK;

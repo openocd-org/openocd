@@ -645,7 +645,7 @@ int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 	arm7_9_common_t *arm7_9;
 	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
 
-	arm926ejs_init_arch_info(target, arm926ejs, target->tap, target->variant);
+	arm926ejs_init_arch_info(target, arm926ejs, target->tap);
 
 	armv4_5 = target->arch_info;
 	arm7_9 = armv4_5->arch_info;
@@ -683,7 +683,6 @@ int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 
 	return ERROR_OK;
 }
-
 
 int feroceon_examine(struct target_s *target)
 {

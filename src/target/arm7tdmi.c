@@ -364,7 +364,6 @@ void arm7tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 	 * reading PC in Thumb state gives address of instruction + 4
 	 */
 	*pc -= 0xa;
-
 }
 
 void arm7tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
@@ -391,7 +390,6 @@ void arm7tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
 			/* nothing fetched, STM still in EXECUTE (1+i cycle) */
 			arm7tdmi_clock_data_in(jtag_info, core_regs[i]);
 	}
-
 }
 
 void arm7tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buffer, int size)
@@ -435,7 +433,6 @@ void arm7tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 			}
 		}
 	}
-
 }
 
 void arm7tdmi_read_xpsr(target_t *target, u32 *xpsr, int spsr)
@@ -456,7 +453,6 @@ void arm7tdmi_read_xpsr(target_t *target, u32 *xpsr, int spsr)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 	/* nothing fetched, STR still in EXECUTE (2nd cycle) */
 	arm7tdmi_clock_data_in(jtag_info, xpsr);
-
 }
 
 void arm7tdmi_write_xpsr(target_t *target, u32 xpsr, int spsr)
@@ -507,7 +503,6 @@ void arm7tdmi_write_xpsr_im8(target_t *target, u8 xpsr_im, int rot, int spsr)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 	/* nothing fetched, MSR in EXECUTE (2) */
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
-
 }
 
 void arm7tdmi_write_core_regs(target_t *target, u32 mask, u32 core_regs[16])
@@ -535,7 +530,6 @@ void arm7tdmi_write_core_regs(target_t *target, u32 mask, u32 core_regs[16])
 			arm7tdmi_clock_out_inner(jtag_info, core_regs[i], 0);
 	}
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_NOP, 0);
-
 }
 
 void arm7tdmi_load_word_regs(target_t *target, u32 mask)
@@ -549,7 +543,6 @@ void arm7tdmi_load_word_regs(target_t *target, u32 mask)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 1);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDMIA(0, mask & 0xffff, 0, 1), NULL, 0);
-
 }
 
 void arm7tdmi_load_hword_reg(target_t *target, int num)
@@ -563,7 +556,6 @@ void arm7tdmi_load_hword_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 1);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDRH_IP(num, 0), NULL, 0);
-
 }
 
 void arm7tdmi_load_byte_reg(target_t *target, int num)
@@ -577,7 +569,6 @@ void arm7tdmi_load_byte_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 1);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDRB_IP(num, 0), NULL, 0);
-
 }
 
 void arm7tdmi_store_word_regs(target_t *target, u32 mask)
@@ -591,7 +582,6 @@ void arm7tdmi_store_word_regs(target_t *target, u32 mask)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 1);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask, 0, 1), NULL, 0);
-
 }
 
 void arm7tdmi_store_hword_reg(target_t *target, int num)
@@ -605,7 +595,6 @@ void arm7tdmi_store_hword_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 1);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STRH_IP(num, 0), NULL, 0);
-
 }
 
 void arm7tdmi_store_byte_reg(target_t *target, int num)
@@ -619,7 +608,6 @@ void arm7tdmi_store_byte_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 1);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STRB_IP(num, 0), NULL, 0);
-
 }
 
 void arm7tdmi_write_pc(target_t *target, u32 pc)
@@ -658,7 +646,6 @@ void arm7tdmi_branch_resume(target_t *target)
 
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 1);
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_B(0xfffffa, 0), 0);
-
 }
 
 void arm7tdmi_branch_resume_thumb(target_t *target)
@@ -720,7 +707,6 @@ void arm7tdmi_branch_resume_thumb(target_t *target)
 
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, NULL, 1);
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_T_B(0x7f8), NULL, 0);
-
 }
 
 void arm7tdmi_build_reg_cache(target_t *target)
@@ -771,20 +757,17 @@ int arm7tdmi_examine(struct target_s *target)
 
 int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
 {
-
 	arm7tdmi_build_reg_cache(target);
 
 	return ERROR_OK;
-
 }
 
 int arm7tdmi_quit(void)
 {
-
 	return ERROR_OK;
 }
 
-int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, jtag_tap_t *tap, const char *variant)
+int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, jtag_tap_t *tap)
 {
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -838,33 +821,20 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, jtag_
 	arm7tdmi->arch_info = NULL;
 	arm7tdmi->common_magic = ARM7TDMI_COMMON_MAGIC;
 
-	if (variant)
-	{
-		arm7tdmi->variant = strdup(variant);
-	}
-	else
-	{
-		arm7tdmi->variant = strdup("");
-	}
-
 	arm7_9_init_arch_info(target, arm7_9);
 
 	return ERROR_OK;
 }
-
-
 
 int arm7tdmi_target_create( struct target_s *target, Jim_Interp *interp )
 {
 	arm7tdmi_common_t *arm7tdmi;
 
 	arm7tdmi = calloc(1,sizeof(arm7tdmi_common_t));
-
-	arm7tdmi_init_arch_info(target, arm7tdmi, target->tap, target->variant);
+	arm7tdmi_init_arch_info(target, arm7tdmi, target->tap);
 
 	return ERROR_OK;
 }
-
 
 int arm7tdmi_register_commands(struct command_context_s *cmd_ctx)
 {
@@ -873,5 +843,4 @@ int arm7tdmi_register_commands(struct command_context_s *cmd_ctx)
 	retval = arm7_9_register_commands(cmd_ctx);
 
 	return retval;
-
 }

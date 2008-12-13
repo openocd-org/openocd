@@ -43,9 +43,7 @@ typedef unsigned int u32;
 typedef unsigned long long u64;
 #endif
 
-
 typedef struct jtag_tap_s jtag_tap_t;
-
 
 /* DANGER!!!! here be dragons! Note that the pointer in 
  * memory might be unaligned. On some CPU's, i.e. ARM7,
@@ -59,26 +57,25 @@ typedef struct jtag_tap_s jtag_tap_t;
 #define be_to_h_u16(x) ((u16)((x)[1] | (x)[0] << 8))
 
 #define h_u32_to_le(buf, val) do {\
-(buf)[3] = ((val) & 0xff000000) >> 24;\
-(buf)[2] = ((val) & 0x00ff0000) >> 16;\
-(buf)[1] = ((val) & 0x0000ff00) >> 8;\
-(buf)[0] = ((val) & 0x000000ff);\
+	(buf)[3] = ((val) & 0xff000000) >> 24;\
+	(buf)[2] = ((val) & 0x00ff0000) >> 16;\
+	(buf)[1] = ((val) & 0x0000ff00) >> 8;\
+	(buf)[0] = ((val) & 0x000000ff);\
 } while (0)
 #define h_u32_to_be(buf, val) do {\
-(buf)[0] = ((val) & 0xff000000) >> 24;\
-(buf)[1] = ((val) & 0x00ff0000) >> 16;\
-(buf)[2] = ((val) & 0x0000ff00) >> 8;\
-(buf)[3] = ((val) & 0x000000ff);\
+	(buf)[0] = ((val) & 0xff000000) >> 24;\
+	(buf)[1] = ((val) & 0x00ff0000) >> 16;\
+	(buf)[2] = ((val) & 0x0000ff00) >> 8;\
+	(buf)[3] = ((val) & 0x000000ff);\
 } while (0)
 
 #define h_u16_to_le(buf, val) do {\
-(buf)[1] = ((val) & 0xff00) >> 8;\
-(buf)[0] = ((val) & 0x00ff) >> 0;\
+	(buf)[1] = ((val) & 0xff00) >> 8;\
+	(buf)[0] = ((val) & 0x00ff) >> 0;\
 } while (0)
 #define h_u16_to_be(buf, val) do {\
-(buf)[0] = ((val) & 0xff00) >> 8;\
-(buf)[1] = ((val) & 0x00ff) >> 0;\
+	(buf)[0] = ((val) & 0xff00) >> 8;\
+	(buf)[1] = ((val) & 0x00ff) >> 0;\
 } while (0)
-
 
 #endif /* TYPES_H */

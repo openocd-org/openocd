@@ -577,7 +577,7 @@ int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			break;
 		
 		if (bytes_remaining >= thisrun_bytes)
-		{                      
+		{
 			if ((retval = target_write_buffer(bank->target, download_area->address, thisrun_bytes, buffer + bytes_written)) != ERROR_OK)
 			{
 				retval = ERROR_FLASH_OPERATION_FAILED;

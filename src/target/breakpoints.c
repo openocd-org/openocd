@@ -238,8 +238,6 @@ static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
 	free(watchpoint);
 }
 
-
-
 void watchpoint_remove(target_t *target, u32 address)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
@@ -262,7 +260,6 @@ void watchpoint_remove(target_t *target, u32 address)
 		LOG_ERROR("no watchpoint at address 0x%8.8x found", address);
 	}
 }
-
 
 void watchpoint_clear_target(target_t *target)
 {

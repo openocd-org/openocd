@@ -33,9 +33,9 @@
 #define DPAP_WRITE		0
 #define DPAP_READ		1
 #define DP_ZERO			0
-#define DP_CTRL_STAT    0x4
-#define DP_SELECT       0x8
-#define DP_RDBUFF       0xC
+#define DP_CTRL_STAT	0x4
+#define DP_SELECT		0x8
+#define DP_RDBUFF		0xC
 
 #define CORUNDETECT		(1<<0)
 #define SSTICKYORUN		(1<<1)

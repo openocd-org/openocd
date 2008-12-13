@@ -98,16 +98,15 @@ int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *targ
 
 int arm966e_quit(void)
 {
-
 	return ERROR_OK;
 }
 
-int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap_t *tap, const char *variant)
+int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap_t *tap)
 {
 	arm9tdmi_common_t *arm9tdmi = &arm966e->arm9tdmi_common;
 	arm7_9_common_t *arm7_9 = &arm9tdmi->arm7_9_common;
 
-	arm9tdmi_init_arch_info(target, arm9tdmi, tap, variant);
+	arm9tdmi_init_arch_info(target, arm9tdmi, tap);
 
 	arm9tdmi->arch_info = arm966e;
 	arm966e->common_magic = ARM966E_COMMON_MAGIC;
@@ -125,7 +124,7 @@ int arm966e_target_create( struct target_s *target, Jim_Interp *interp )
 {
 	arm966e_common_t *arm966e = calloc(1,sizeof(arm966e_common_t));
 
-	arm966e_init_arch_info(target, arm966e, target->tap, target->variant);
+	arm966e_init_arch_info(target, arm966e, target->tap);
 
 	return ERROR_OK;
 }

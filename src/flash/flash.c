@@ -466,7 +466,6 @@ int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cm
 						j, p->sectors[j].offset, p->sectors[j].size, p->sectors[j].size>>10,
 						erase_state);
 		}
-
 	}
 
 	return ERROR_OK;
@@ -658,7 +657,6 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 		command_print(cmd_ctx, "auto erase enabled");
 	}
 
-
 	if (argc < 1)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -743,7 +741,6 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if(count == 0)
 		return ERROR_OK;
 
-
 	switch(cmd[4])
 	{
 	case 'w':
@@ -803,7 +800,6 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 	{
 		return retval;
 	}
-
 
 	if(err == ERROR_OK)
 	{

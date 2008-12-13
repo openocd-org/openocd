@@ -87,7 +87,7 @@ struct timeval {
 
 #ifdef _WIN32
 struct timezone {
-    int tz_minuteswest;
+	int tz_minuteswest;
 	int tz_dsttime;
 };
 #endif
@@ -181,27 +181,27 @@ static __inline void outb(unsigned char value, unsigned short int port)
 static __inline int write_socket( int handle, const void *buffer, unsigned int count )
 {
 #ifdef _WIN32
-    return send(handle, buffer, count, 0);
+	return send(handle, buffer, count, 0);
 #else
-    return write(handle, buffer, count);
+	return write(handle, buffer, count);
 #endif
 }
 
 static __inline int read_socket( int handle, void *buffer, unsigned int count )
 {
 #ifdef _WIN32
-    return recv(handle, buffer, count, 0);
+	return recv(handle, buffer, count, 0);
 #else
-    return read(handle, buffer, count);
+	return read(handle, buffer, count);
 #endif
 }
 
 static __inline int close_socket(int sock)
 {
 #ifdef _WIN32
-    return closesocket(sock);
+	return closesocket(sock);
 #else
-    return close(sock);
+	return close(sock);
 #endif
 }
 
@@ -229,9 +229,9 @@ typedef struct
 	u32	e_shoff;		/* Section header table file offset */
 	u32	e_flags;		/* Processor-specific flags */
 	u16	e_ehsize;		/* ELF header size in bytes */
-	u16	e_phentsize;		/* Program header table entry size */
+	u16	e_phentsize;	/* Program header table entry size */
 	u16	e_phnum;		/* Program header table entry count */
-	u16	e_shentsize;		/* Section header table entry size */
+	u16	e_shentsize;	/* Section header table entry size */
 	u16	e_shnum;		/* Section header table entry count */
 	u16	e_shstrndx;		/* Section header string table index */
 } Elf32_Ehdr;

@@ -69,7 +69,7 @@ nand_flash_controller_t lpc3180_nand_controller =
 int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device)
 {
 	lpc3180_nand_controller_t *lpc3180_info;
-		
+	
 	if (argc < 3)
 	{
 		LOG_WARNING("incomplete 'lpc3180' nand flash configuration");
@@ -126,7 +126,7 @@ int lpc3180_pll(int fclkin, u32 pll_ctrl)
 	
 	if (bypass && !direct)	/* bypass mode */
 		return fclkin / (2 * p);
-		
+	
 	if (bypass & direct)	/* direct bypass mode */
 		return fclkin;
 	
@@ -273,7 +273,7 @@ int lpc3180_init(struct nand_device_s *device)
 		trhz = ((30 / cycle) + 1);
 		trbwb = ((100 / cycle) + 1);
 		tcea = ((45 / cycle) + 1);
-				
+		
 		/* MLC_LOCK = 0xa25e (unlock protected registers) */
 		target_write_u32(target, 0x200b8044, 0xa25e);
 	

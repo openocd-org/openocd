@@ -178,7 +178,6 @@ reg_t armv4_5_gdb_dummy_fps_reg =
 	"GDB dummy floating-point status register", armv4_5_gdb_dummy_fps_value, 0, 1, 32, NULL, 0, NULL, 0
 };
 
-
 int armv4_5_get_core_reg(reg_t *reg)
 {
 	int retval;
@@ -662,7 +661,6 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 
 	return retval;
 }
-
 
 int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
 {

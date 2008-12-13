@@ -39,7 +39,6 @@
 
 bitbang_interface_t *bitbang_interface;
 
-
 /* DANGER!!!! clock absolutely *MUST* be 0 in idle or reset won't work!
  *
  * Set this to 1 and str912 reset halt will fail.
@@ -316,4 +315,3 @@ int bitbang_execute_queue(void)
 
 	return retval;
 }
-

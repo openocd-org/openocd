@@ -26,7 +26,6 @@
 #include "jtag.h"
 #include "bitbang.h"
 
-
 int dummy_speed(int speed);
 int dummy_register_commands(struct command_context_s *cmd_ctx);
 int dummy_init(void);
@@ -65,7 +64,6 @@ int dummy_read(void)
 	return 1;
 }
 
-
 void dummy_write(int tck, int tms, int tdi)
 {
 }
@@ -73,7 +71,6 @@ void dummy_write(int tck, int tms, int tdi)
 void dummy_reset(int trst, int srst)
 {
 }
-	
 
 int dummy_speed(int speed)
 {
@@ -84,7 +81,6 @@ int dummy_register_commands(struct command_context_s *cmd_ctx)
 {
 	return ERROR_OK;
 }
-
 
 int dummy_init(void)
 {
@@ -98,8 +94,6 @@ int dummy_quit(void)
 	return ERROR_OK;
 }
 
-
 void dummy_led(int on)
 {
 }
-

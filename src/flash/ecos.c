@@ -25,7 +25,6 @@
 
 #include "replacements.h"
 
-
 #include "flash.h"
 
 #include "target.h"
@@ -36,8 +35,6 @@
 #include "binarybuffer.h"
 #include "../target/embeddedice.h"
 #include "types.h"
-
-
 
 int ecosflash_register_commands(struct command_context_s *cmd_ctx);
 int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
@@ -99,42 +96,41 @@ flash_errmsg(int err);
 #define FLASH_ERR_DRV_WRONG_PART  0x0d  /* Driver does not support device */
 #define FLASH_ERR_LOW_VOLTAGE     0x0e  /* Not enough juice to complete job */
 
-
 char *
 flash_errmsg(int err)
 {
-    switch (err) {
-    case FLASH_ERR_OK:
-        return "No error - operation complete";
-    case FLASH_ERR_ERASE_SUSPEND:
-        return "Device is in erase suspend state";
-    case FLASH_ERR_PROGRAM_SUSPEND:
-        return "Device is in program suspend state";
-    case FLASH_ERR_INVALID:
-        return "Invalid FLASH address";
-    case FLASH_ERR_ERASE:
-        return "Error trying to erase";
-    case FLASH_ERR_LOCK:
-        return "Error trying to lock/unlock";
-    case FLASH_ERR_PROGRAM:
-        return "Error trying to program";
-    case FLASH_ERR_PROTOCOL:
-        return "Generic error";
-    case FLASH_ERR_PROTECT:
-        return "Device/region is write-protected";
-    case FLASH_ERR_NOT_INIT:
-        return "FLASH sub-system not initialized";
-    case FLASH_ERR_DRV_VERIFY:
-        return "Data verify failed after operation";
-    case FLASH_ERR_DRV_TIMEOUT:
-        return "Driver timed out waiting for device";
-    case FLASH_ERR_DRV_WRONG_PART:
-        return "Driver does not support device";
-    case FLASH_ERR_LOW_VOLTAGE:
-        return "Device reports low voltage";
-    default:
-        return "Unknown error";
-    }
+	switch (err) {
+	case FLASH_ERR_OK:
+		return "No error - operation complete";
+	case FLASH_ERR_ERASE_SUSPEND:
+		return "Device is in erase suspend state";
+	case FLASH_ERR_PROGRAM_SUSPEND:
+		return "Device is in program suspend state";
+	case FLASH_ERR_INVALID:
+		return "Invalid FLASH address";
+	case FLASH_ERR_ERASE:
+		return "Error trying to erase";
+	case FLASH_ERR_LOCK:
+		return "Error trying to lock/unlock";
+	case FLASH_ERR_PROGRAM:
+		return "Error trying to program";
+	case FLASH_ERR_PROTOCOL:
+		return "Generic error";
+	case FLASH_ERR_PROTECT:
+		return "Device/region is write-protected";
+	case FLASH_ERR_NOT_INIT:
+		return "FLASH sub-system not initialized";
+	case FLASH_ERR_DRV_VERIFY:
+		return "Data verify failed after operation";
+	case FLASH_ERR_DRV_TIMEOUT:
+		return "Driver timed out waiting for device";
+	case FLASH_ERR_DRV_WRONG_PART:
+		return "Driver does not support device";
+	case FLASH_ERR_LOW_VOLTAGE:
+		return "Device reports low voltage";
+	default:
+		return "Unknown error";
+	}
 }
 #endif
 
@@ -185,7 +181,6 @@ int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, c
 	return ERROR_OK;
 }
 
-
 int loadDriver(ecosflash_flash_bank_t *info)
 {
 	u32 buf_cnt;
@@ -228,14 +223,12 @@ int loadDriver(ecosflash_flash_bank_t *info)
 	return ERROR_OK;
 }
 
-
 static int const OFFSET_ERASE=0x0;
 static int const OFFSET_ERASE_SIZE=0x8;
 static int const OFFSET_FLASH=0xc;
 static int const OFFSET_FLASH_SIZE=0x8;
 static int const OFFSET_GET_WORKAREA=0x18;
 static int const OFFSET_GET_WORKAREA_SIZE=0x4;
-
 
 int runCode(ecosflash_flash_bank_t *info,
 		u32 codeStart, u32 codeStop, u32 r0, u32 r1, u32 r2,
@@ -334,8 +327,8 @@ int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, u32 address, u32 l
 
 
 	int i;
-    for (i=0; i<len; i+=chunk)
-    {
+	for (i=0; i<len; i+=chunk)
+	{
 		int t=len-i;
 		if (t>chunk)
 		{
@@ -343,37 +336,35 @@ int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, u32 address, u32 l
 		}
 
 		int retval;
-    	retval=target_write_buffer(target, buffer, t, ((u8 *)data)+i);
-    	if (retval != ERROR_OK)
-    		return retval;
+		retval=target_write_buffer(target, buffer, t, ((u8 *)data)+i);
+		if (retval != ERROR_OK)
+			return retval;
 
-    	u32 flashErr;
-    	retval=runCode(info,
-    			info->start_address+OFFSET_FLASH,
-    			info->start_address+OFFSET_FLASH+OFFSET_FLASH_SIZE,
-    			buffer,
-    			address+i,
-    			t,
-    			&flashErr,
-    			timeout);
-    	if (retval != ERROR_OK)
-    		return retval;
+		u32 flashErr;
+		retval=runCode(info,
+				info->start_address+OFFSET_FLASH,
+				info->start_address+OFFSET_FLASH+OFFSET_FLASH_SIZE,
+				buffer,
+				address+i,
+				t,
+				&flashErr,
+				timeout);
+		if (retval != ERROR_OK)
+			return retval;
 
 		if (flashErr != 0x0)
 		{
 			LOG_ERROR("Flash prog failed with %d (%s)\n", flashErr, flash_errmsg(flashErr));
 			return ERROR_FAIL;
 		}
-    }
+	}
 	return ERROR_OK;
 }
-
 
 int ecosflash_probe(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
-
 
 int ecosflash_register_commands(struct command_context_s *cmd_ctx)
 {
@@ -382,7 +373,7 @@ int ecosflash_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-/*
+#if 0
 static void command(flash_bank_t *bank, u8 cmd, u8 *cmd_buf)
 {
 	ecosflash_flash_bank_t *info = bank->driver_priv;
@@ -403,7 +394,7 @@ static void command(flash_bank_t *bank, u8 cmd, u8 *cmd_buf)
 		}
 	}
 }
-*/
+#endif
 
 u32 ecosflash_address(struct flash_bank_s *bank, u32 address)
 {
@@ -421,7 +412,6 @@ u32 ecosflash_address(struct flash_bank_s *bank, u32 address)
 	return retval + bank->base;
 }
 
-
 int ecosflash_erase(struct flash_bank_s *bank, int first, int last)
 {
 	struct flash_bank_s *c=bank;
@@ -434,14 +424,12 @@ int ecosflash_protect(struct flash_bank_s *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-
 int ecosflash_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	ecosflash_flash_bank_t *info = bank->driver_priv;
 	struct flash_bank_s *c=bank;
 	return eCosBoard_flash(info, buffer, c->base+offset, count);
 }
-
 
 int ecosflash_protect_check(struct flash_bank_s *bank)
 {
@@ -454,7 +442,6 @@ int ecosflash_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	snprintf(buf, buf_size, "eCos flash driver: %s", info->driverPath);
 	return ERROR_OK;
 }
-
 
 u32 ecosflash_get_flash_status(flash_bank_t *bank)
 {
@@ -475,7 +462,3 @@ int ecosflash_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd,
 {
 	return ERROR_OK;
 }
-
-
-
-

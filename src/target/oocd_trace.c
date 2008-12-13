@@ -61,19 +61,19 @@ int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
 
 int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
 {
-    size_t bytes_written;
-    u8 data[5];
+	size_t bytes_written;
+	u8 data[5];
 
-    data[0] = 0x18 | (reg & 0x7);
-    data[1] = value & 0xff;
-    data[2] = (value & 0xff00) >> 8;
-    data[3] = (value & 0xff0000) >> 16;
-    data[4] = (value & 0xff000000) >> 24;
+	data[0] = 0x18 | (reg & 0x7);
+	data[1] = value & 0xff;
+	data[2] = (value & 0xff00) >> 8;
+	data[3] = (value & 0xff0000) >> 16;
+	data[4] = (value & 0xff000000) >> 24;
 
-    bytes_written = write(oocd_trace->tty_fd, data, 5);
-    LOG_DEBUG("reg #%i: 0x%8.8x\n", reg, value);
+	bytes_written = write(oocd_trace->tty_fd, data, 5);
+	LOG_DEBUG("reg #%i: 0x%8.8x\n", reg, value);
 
-    return ERROR_OK;
+	return ERROR_OK;
 }
 
 int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 address, u32 size)
@@ -143,7 +143,7 @@ int oocd_trace_init(etm_context_t *etm_ctx)
 	 * read up any leftover characters to ensure communication is in sync */
 	while ((bytes_read = read(oocd_trace->tty_fd, trash, sizeof(trash))) > 0)
 	{
-	    LOG_DEBUG("%i bytes read\n", bytes_read);
+		LOG_DEBUG("%i bytes read\n", bytes_read);
 	};
 	
 	return ERROR_OK;
@@ -190,8 +190,8 @@ int oocd_trace_read_trace(etm_context_t *etm_ctx)
 	u8 *trace_data;
 	int i;
 
-    oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
-    oocd_trace_read_reg(oocd_trace, OOCD_TRACE_ADDRESS, &address);
+	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
+	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_ADDRESS, &address);
 
 	/* check if we overflowed, and adjust first frame of the trace accordingly
 	 * if we didn't overflow, read only up to the frame that would be written next,

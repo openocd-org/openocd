@@ -66,7 +66,6 @@ int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, 
 int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_etm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-
 static int arm7_9_clear_watchpoints(arm7_9_common_t *arm7_9)
 {
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
@@ -142,7 +141,6 @@ int arm7_9_setup(target_t *target)
 
 	return arm7_9_clear_watchpoints(arm7_9);
 }
-
 
 int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p)
 {
@@ -269,7 +267,6 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	}
 
 	return retval;
-
 }
 
 int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
@@ -387,7 +384,6 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			LOG_ERROR("BUG: no hardware comparator available");
 		}
 	}
-
 
 	arm7_9->breakpoint_count++;
 
@@ -571,9 +567,6 @@ int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
-
-
-
 int arm7_9_execute_sys_speed(struct target_s *target)
 {
 	int retval;
@@ -642,9 +635,9 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 		/* check for DBGACK and SYSCOMP set (others don't care) */
 
 		/* NB! These are constants that must be available until after next jtag_execute() and
-		   we evaluate the values upon first execution in lieu of setting up these constants
-		   during early setup.
-		*/
+		 * we evaluate the values upon first execution in lieu of setting up these constants
+		 * during early setup.
+		 * */
 		buf_set_u32(check_value, 0, 32, 0x9);
 		buf_set_u32(check_mask, 0, 32, 0x9);
 		set=1;
@@ -688,7 +681,6 @@ int arm7_9_handle_target_request(void *priv)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	reg_t *dcc_control = &arm7_9->eice_cache->reg_list[EICE_COMMS_CTRL];
-
 
 	if (!target->dbg_msg_enabled)
 		return ERROR_OK;
@@ -857,28 +849,25 @@ int arm7_9_assert_reset(target_t *target)
 		jtag_add_reset(0, 1);
 	}
 
-
 	target->state = TARGET_RESET;
 	jtag_add_sleep(50000);
 
 	armv4_5_invalidate_core_regs(target);
 
-    if ((target->reset_halt)&&((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
+	if ((target->reset_halt)&&((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
 	{
 		/* debug entry was already prepared in arm7_9_assert_reset() */
 		target->debug_reason = DBG_REASON_DBGRQ;
 	}
 
 	return ERROR_OK;
-
 }
 
 int arm7_9_deassert_reset(target_t *target)
 {
 	int retval=ERROR_OK;
 	LOG_DEBUG("target->state: %s",
-		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
-
+		Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
 
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
@@ -1527,7 +1516,6 @@ void arm7_9_enable_breakpoints(struct target_s *target)
 	}
 }
 
-
 int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -1833,7 +1821,6 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 		}
 
 	return err;
-
 }
 
 int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mode)
@@ -1900,7 +1887,6 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	}
 
 	return ERROR_OK;
-
 }
 
 int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mode, u32 value)
@@ -2326,7 +2312,6 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 static int dcc_count;
 static u8 *dcc_buffer;
 
-
 static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info)
 {
 	int retval = ERROR_OK;
@@ -2342,8 +2327,7 @@ static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int ti
 	if (count>2)
 	{
 		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
-		   core function repeated.
-		 */
+		 * core function repeated. */
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
 		buffer+=4;
 
@@ -2373,7 +2357,6 @@ static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int ti
 	return target_wait_state(target, TARGET_HALTED, 500);
 }
 
-
 static const u32 dcc_code[] =
 {
 	/* MRC      TST         BNE         MRC         STR         B */
@@ -2381,7 +2364,6 @@ static const u32 dcc_code[] =
 };
 
 int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info));
-
 
 int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
 {
@@ -2429,8 +2411,6 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 
 	buf_set_u32(reg_params[0].value, 0, 32, address);
 
-	//armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params,
-	// int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info))
 	dcc_count=count;
 	dcc_buffer=buffer;
 	retval = armv4_5_run_algorithm_inner(target, 0, NULL, 1, reg_params,
@@ -2741,9 +2721,7 @@ int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char
 	value = strtoul(args[2], NULL, 0);
 
 	return arm7_9_write_core_reg(target, num, mode, value);
-
 }
-
 
 int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {

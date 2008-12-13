@@ -32,8 +32,6 @@ typedef struct mips_m4k_common_s
 {
 	int common_magic;
 	mips32_common_t mips32_common;
-	
-	char *variant;
 } mips_m4k_common_t;
 
 extern int mips_m4k_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
