@@ -110,6 +110,13 @@ char* jtag_event_strings[] =
 	"JTAG controller reset (RESET or TRST)"
 };
 
+const Jim_Nvp nvp_jtag_tap_event[] = {
+	{ .value = JTAG_TAP_EVENT_ENABLE,       .name = "tap-enable" },
+	{ .value = JTAG_TAP_EVENT_DISABLE,      .name = "tap-disable" },
+
+	{ .name = NULL, .value = -1 }
+};
+
 /* kludge!!!! these are just global variables that the
  * interface use internally. They really belong
  * inside the drivers, but we don't want to break
@@ -1699,6 +1706,104 @@ int jtag_validate_chain(void)
 	return ERROR_OK;
 }
 
+enum jtag_tap_cfg_param {
+	JCFG_EVENT
+};
+
+static Jim_Nvp nvp_config_opts[] = {
+	{ .name = "-event",      .value = JCFG_EVENT },
+
+	{ .name = NULL,          .value = -1 }
+};
+
+static int
+jtag_tap_configure_cmd( Jim_GetOptInfo *goi,
+		jtag_tap_t * tap)
+{
+	Jim_Nvp *n;
+	Jim_Obj *o;
+	int e;
+
+	/* parse config or cget options */
+	while (goi->argc > 0) {
+		Jim_SetEmptyResult (goi->interp);
+
+		e = Jim_GetOpt_Nvp(goi, nvp_config_opts, &n);
+		if (e != JIM_OK) {
+			Jim_GetOpt_NvpUnknown(goi, nvp_config_opts, 0);
+			return e;
+		}
+
+		switch (n->value) {
+			case JCFG_EVENT:
+				if (goi->argc == 0) {
+					Jim_WrongNumArgs( goi->interp, goi->argc, goi->argv, "-event ?event-name? ..." );
+					return JIM_ERR;
+				}
+
+				e = Jim_GetOpt_Nvp( goi, nvp_jtag_tap_event, &n );
+				if (e != JIM_OK) {
+					Jim_GetOpt_NvpUnknown(goi, nvp_jtag_tap_event, 1);
+					return e;
+				}
+
+				if (goi->isconfigure) {
+					if (goi->argc != 1) {
+						Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event ?event-name? ?EVENT-BODY?");
+						return JIM_ERR;
+					}
+				} else {
+					if (goi->argc != 0) {
+						Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event ?event-name?");
+						return JIM_ERR;
+					}
+				}
+
+				{
+					jtag_tap_event_action_t *jteap;
+
+					jteap = tap->event_action;
+					/* replace existing? */
+					while (jteap) {
+						if (jteap->event == n->value) {
+							break;
+						}
+						jteap = jteap->next;
+					}
+
+					if (goi->isconfigure) {
+						if (jteap == NULL) {
+							/* create new */
+							jteap = calloc(1, sizeof (*jteap));
+						}
+						jteap->event = n->value;
+						Jim_GetOpt_Obj( goi, &o);
+						if (jteap->body) {
+							Jim_DecrRefCount(interp, jteap->body);
+						}
+						jteap->body = Jim_DuplicateObj(goi->interp, o);
+						Jim_IncrRefCount(jteap->body);
+
+						/* add to head of event list */
+						jteap->next = tap->event_action;
+						tap->event_action = jteap;
+						Jim_SetEmptyResult(goi->interp);
+					} else {
+						/* get */
+						if (jteap == NULL) {
+							Jim_SetEmptyResult(goi->interp);
+						} else {
+							Jim_SetResult(goi->interp, Jim_DuplicateObj(goi->interp, jteap->body));
+						}
+					}
+				}
+				/* loop for more */
+				break;
+		}
+	} /* while (goi->argc) */
+
+	return JIM_OK;
+}
 
 static int
 jim_newtap_cmd( Jim_GetOptInfo *goi )
@@ -1901,6 +2006,7 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	Jim_GetOptInfo goi;
 	int e;
 	Jim_Nvp *n;
+	Jim_Obj *o;
 	struct command_context_s *context;
 
 	enum {
@@ -1909,7 +2015,9 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		JTAG_CMD_NEWTAP,
 		JTAG_CMD_TAPENABLE,
 		JTAG_CMD_TAPDISABLE,
-		JTAG_CMD_TAPISENABLED
+		JTAG_CMD_TAPISENABLED,
+		JTAG_CMD_CONFIGURE,
+		JTAG_CMD_CGET
 	};
 
 	const Jim_Nvp jtag_cmds[] = {
@@ -1919,6 +2027,8 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		{ .name = "tapisenabled"     , .value = JTAG_CMD_TAPISENABLED },
 		{ .name = "tapenable"     , .value = JTAG_CMD_TAPENABLE },
 		{ .name = "tapdisable"    , .value = JTAG_CMD_TAPDISABLE },
+		{ .name = "configure"     , .value = JTAG_CMD_CONFIGURE },
+		{ .name = "cget"          , .value = JTAG_CMD_CGET },
 
 		{ .name = NULL, .value = -1 },
 	};
@@ -1977,16 +2087,58 @@ jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 				// below
 				break;
 			case JTAG_CMD_TAPENABLE:
+				jtag_tap_handle_event( t, JTAG_TAP_EVENT_ENABLE);
 				e = 1;
 				t->enabled = e;
 				break;
 			case JTAG_CMD_TAPDISABLE:
+				jtag_tap_handle_event( t, JTAG_TAP_EVENT_DISABLE);
 				e = 0;
 				t->enabled = e;
 				break;
 			}
 			Jim_SetResult( goi.interp, Jim_NewIntObj( goi.interp, e ) );
 			return JIM_OK;
+		}
+		break;
+
+	case JTAG_CMD_CGET:
+		if( goi.argc < 2 ){
+			Jim_WrongNumArgs( goi.interp, 0, NULL, "?tap-name? -option ...");
+			return JIM_ERR;
+		}
+
+		{
+			jtag_tap_t *t;
+
+			Jim_GetOpt_Obj(&goi, &o);
+			t = jtag_TapByJimObj( goi.interp, o );
+			if( t == NULL ){
+				return JIM_ERR;
+			}
+
+			goi.isconfigure = 0;
+			return jtag_tap_configure_cmd( &goi, t);
+		}
+		break;
+
+	case JTAG_CMD_CONFIGURE:
+		if( goi.argc < 3 ){
+			Jim_WrongNumArgs( goi.interp, 0, NULL, "?tap-name? -option ?VALUE? ...");
+			return JIM_ERR;
+		}
+
+		{
+			jtag_tap_t *t;
+
+			Jim_GetOpt_Obj(&goi, &o);
+			t = jtag_TapByJimObj( goi.interp, o );
+			if( t == NULL ){
+				return JIM_ERR;
+			}
+
+			goi.isconfigure = 1;
+			return jtag_tap_configure_cmd( &goi, t);
 		}
 	}
 
@@ -2761,5 +2913,36 @@ int jtag_power_dropout(int *dropout)
 int jtag_srst_asserted(int *srst_asserted)
 {
 	return jtag->srst_asserted(srst_asserted);
+}
+
+void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
+{
+	jtag_tap_event_action_t * jteap;
+	int done;
+
+	jteap = tap->event_action;
+
+	done = 0;
+	while (jteap) {
+		if (jteap->event == e) {
+			done = 1;
+			LOG_DEBUG( "JTAG tap: %s event: %d (%s) action: %s\n",
+					tap->dotted_name,
+					e,
+					Jim_Nvp_value2name_simple(nvp_jtag_tap_event, e)->name,
+					Jim_GetString(jteap->body, NULL) );
+			if (Jim_EvalObj(interp, jteap->body) != JIM_OK) {
+				Jim_PrintErrorMessage(interp);
+			}
+		}
+
+		jteap = jteap->next;
+	}
+
+	if (!done) {
+		LOG_DEBUG( "event %d %s - no action",
+				e,
+				Jim_Nvp_value2name_simple( nvp_jtag_tap_event, e)->name);
+	}
 }
 

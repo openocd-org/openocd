@@ -158,6 +158,9 @@ typedef struct jtag_command_s
 
 extern jtag_command_t *jtag_command_queue;
 
+// forward declaration
+typedef struct jtag_tap_event_action_s jtag_tap_event_action_t;
+
 // this is really: typedef jtag_tap_t
 // But - the typedef is done in "types.h"
 // due to "forward decloration reasons"
@@ -178,6 +181,9 @@ struct jtag_tap_s
 	u8 expected_ids_cnt;/* Number of expected identification codes */
 	u8 *cur_instr;		/* current instruction */
 	int bypass;			/* bypass register selected */
+
+	jtag_tap_event_action_t *event_action;
+
 	jtag_tap_t *next_tap;
 };
 extern jtag_tap_t *jtag_AllTaps(void);
@@ -271,7 +277,21 @@ enum jtag_event
 	JTAG_TRST_ASSERTED
 };
 
-extern char* jtag_event_strings[];
+extern char * jtag_event_strings[];
+
+enum jtag_tap_event
+{
+	JTAG_TAP_EVENT_ENABLE,
+	JTAG_TAP_EVENT_DISABLE
+};
+
+extern const Jim_Nvp nvp_jtag_tap_event[];
+
+struct jtag_tap_event_action_s {
+	enum jtag_tap_event event;
+	Jim_Obj *body;
+	jtag_tap_event_action_t *next;
+};
 
 extern int jtag_trst;
 extern int jtag_srst;
@@ -461,6 +481,8 @@ extern int jtag_call_event_callbacks(enum jtag_event event);
 extern int jtag_register_event_callback(int (*callback)(enum jtag_event event, void *priv), void *priv);
 
 extern int jtag_verify_capture_ir;
+
+void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e);
 
 /* error codes
  * JTAG subsystem uses codes between -100 and -199 */
