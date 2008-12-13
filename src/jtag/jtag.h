@@ -310,7 +310,7 @@ extern enum reset_types jtag_reset_config;
  * upon subsequent invocations
  */
 extern int jtag_interface_init(struct command_context_s *cmd_ctx);
-/* initialize JTAG chain using only a TLR reset. If init fails,
+/* initialize JTAG chain using only a RESET reset. If init fails,
  * try reset + init.
  */
 extern int jtag_init(struct command_context_s *cmd_ctx);
@@ -320,7 +320,7 @@ extern int jtag_register_commands(struct command_context_s *cmd_ctx);
 
 /* JTAG interface, can be implemented with a software or hardware fifo
  *
- * TAP_DRSHIFT and TAP_IRSHIFT are illegal end states. TAP_DRSHIFT/SI as end states
+ * TAP_DRSHIFT and TAP_IRSHIFT are illegal end states. TAP_DRSHIFT/IRSHIFT as end states
  * can be emulated by using a larger scan.
  *
  * Code that is relatively insensitive to the path(as long

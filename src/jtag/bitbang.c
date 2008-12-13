@@ -133,7 +133,7 @@ void bitbang_runtest(int num_cycles)
 
 	enum tap_state saved_end_state = end_state;
 
-	/* only do a state_move when we're not already in RTI */
+	/* only do a state_move when we're not already in IDLE */
 	if (cur_state != TAP_IDLE)
 	{
 		bitbang_end_state(TAP_IDLE);

@@ -176,7 +176,7 @@ void zy1000_reset(int trst, int srst)
 	if (trst||(srst&&(jtag_reset_config & RESET_SRST_PULLS_TRST)))
 	{
 		waitIdle();
-		/* we're now in the TLR state until trst is deasserted */
+		/* we're now in the RESET state until trst is deasserted */
 		ZY1000_POKE(ZY1000_JTAG_BASE+0x20, TAP_RESET);
 	} else
 	{

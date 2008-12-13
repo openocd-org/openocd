@@ -340,10 +340,10 @@ void arm11_run_instr_data_prepare(arm11_common_t * arm11)
  * Put arm11_run_instr_data_prepare() and arm11_run_instr_data_finish()
  * around a block of arm11_run_instr_... calls.
  *
- * Any RTI can lead to an instruction execution when
+ * Any IDLE can lead to an instruction execution when
  * scan chains 4 or 5 are selected and the IR holds
  * INTEST or EXTEST. So we must disable that before
- * any following activities lead to an RTI.
+ * any following activities lead to an IDLE.
  *
  * \param arm11 Target state variable.
  *
@@ -471,7 +471,7 @@ void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data
  *  the core but still shorter than any manually inducible delays.
  *
  */
-enum tap_state arm11_MOVE_PD_RTI_PD_with_delay[] =
+enum tap_state arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
 {
     TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
@@ -518,8 +518,8 @@ void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 
 	if (count)
 	{
 	    jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
-	    jtag_add_pathmove(asizeof(arm11_MOVE_PD_RTI_PD_with_delay),
-		arm11_MOVE_PD_RTI_PD_with_delay);
+	    jtag_add_pathmove(asizeof(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
+		arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
 	}
 	else
 	{

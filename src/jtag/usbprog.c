@@ -298,7 +298,7 @@ void usbprog_runtest(int num_cycles)
 {
 	int i;
 
-	/* only do a state_move when we're not already in RTI */
+	/* only do a state_move when we're not already in IDLE */
 	if (cur_state != TAP_IDLE)
 	{
 		usbprog_end_state(TAP_IDLE);

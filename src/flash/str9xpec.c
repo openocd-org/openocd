@@ -1338,7 +1338,7 @@ int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ct
 	if (tap == NULL)
 		return ERROR_FAIL;
 
-	/* exit turbo mode via TLR */
+	/* exit turbo mode via RESET */
 	str9xpec_set_instr(tap, ISC_NOOP, TAP_RESET);
 	jtag_execute_queue();
 

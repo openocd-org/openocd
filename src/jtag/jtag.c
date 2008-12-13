@@ -67,17 +67,17 @@ static cmd_queue_page_t *cmd_queue_pages = NULL;
  * 4: Shift-IR
  * 5: Pause-IR
  *
- * SD->SD and SI->SI have to be caught in interface specific code
+ * DRSHIFT->DRSHIFT and IRSHIFT->IRSHIFT have to be caught in interface specific code
  */
 u8 tap_move[6][6] =
 {
-/*	  TLR   RTI   SD    PD    SI    PI             */
-	{0x7f, 0x00, 0x17, 0x0a, 0x1b, 0x16},	/* TLR */
-	{0x7f, 0x00, 0x25, 0x05, 0x2b, 0x0b},	/* RTI */
-	{0x7f, 0x31, 0x00, 0x01, 0x0f, 0x2f},	/* SD  */
-	{0x7f, 0x30, 0x20, 0x17, 0x1e, 0x2f},	/* PD  */
-	{0x7f, 0x31, 0x07, 0x17, 0x00, 0x01},	/* SI  */
-	{0x7f, 0x30, 0x1c, 0x17, 0x20, 0x2f}	/* PI  */
+/*	  RESET  IDLE  DRSHIFT  DRPAUSE  IRSHIFT  IRPAUSE             */
+	{  0x7f, 0x00,    0x17,    0x0a,    0x1b,    0x16},	/* RESET */
+	{  0x7f, 0x00,    0x25,    0x05,    0x2b,    0x0b},	/* IDLE */
+	{  0x7f, 0x31,    0x00,    0x01,    0x0f,    0x2f},	/* DRSHIFT  */
+	{  0x7f, 0x30,    0x20,    0x17,    0x1e,    0x2f},	/* DRPAUSE  */
+	{  0x7f, 0x31,    0x07,    0x17,    0x00,    0x01},	/* IRSHIFT  */
+	{  0x7f, 0x30,    0x1c,    0x17,    0x20,    0x2f}	/* IRPAUSE  */
 };
 
 int tap_move_map[16] = {
@@ -87,27 +87,27 @@ int tap_move_map[16] = {
 
 tap_transition_t tap_transitions[16] =
 {
-	{TAP_RESET, TAP_IDLE},		/* TLR */
-	{TAP_IRSELECT, TAP_DRCAPTURE},		/* SDS */
-	{TAP_DREXIT1, TAP_DRSHIFT},		/* CD  */
-	{TAP_DREXIT1, TAP_DRSHIFT},		/* SD  */
-	{TAP_DRUPDATE,  TAP_DRPAUSE}, 		/* E1D */
-	{TAP_DREXIT2, TAP_DRPAUSE},		/* PD  */
-	{TAP_DRUPDATE,  TAP_DRSHIFT},		/* E2D */
-	{TAP_DRSELECT, TAP_IDLE},		/* UD  */
-	{TAP_DRSELECT, TAP_IDLE},		/* RTI */
-	{TAP_RESET, TAP_IRCAPTURE},		/* SIS */
-	{TAP_IREXIT1, TAP_IRSHIFT},		/* CI  */
-	{TAP_IREXIT1, TAP_IRSHIFT},		/* SI  */
-	{TAP_IRUPDATE,  TAP_IRPAUSE}, 		/* E1I */
-	{TAP_IREXIT2, TAP_IRPAUSE},		/* PI  */
-	{TAP_IRUPDATE,  TAP_IRSHIFT},		/* E2I */
-	{TAP_DRSELECT, TAP_IDLE}		/* UI  */
+	{TAP_RESET, TAP_IDLE},		/* RESET */
+	{TAP_IRSELECT, TAP_DRCAPTURE},		/* DRSELECT */
+	{TAP_DREXIT1, TAP_DRSHIFT},		/* DRCAPTURE  */
+	{TAP_DREXIT1, TAP_DRSHIFT},		/* DRSHIFT  */
+	{TAP_DRUPDATE,  TAP_DRPAUSE}, 		/* DREXIT1 */
+	{TAP_DREXIT2, TAP_DRPAUSE},		/* DRPAUSE  */
+	{TAP_DRUPDATE,  TAP_DRSHIFT},		/* DREXIT2 */
+	{TAP_DRSELECT, TAP_IDLE},		/* DRUPDATE  */
+	{TAP_DRSELECT, TAP_IDLE},		/* IDLE */
+	{TAP_RESET, TAP_IRCAPTURE},		/* IRSELECT */
+	{TAP_IREXIT1, TAP_IRSHIFT},		/* IRCAPTURE  */
+	{TAP_IREXIT1, TAP_IRSHIFT},		/* IRSHIFT  */
+	{TAP_IRUPDATE,  TAP_IRPAUSE}, 		/* IREXIT1 */
+	{TAP_IREXIT2, TAP_IRPAUSE},		/* IRPAUSE  */
+	{TAP_IRUPDATE,  TAP_IRSHIFT},		/* IREXIT2 */
+	{TAP_DRSELECT, TAP_IDLE}		/* IRUPDATE  */
 };
 
 char* jtag_event_strings[] =
 {
-	"JTAG controller reset (TLR or TRST)"
+	"JTAG controller reset (RESET or TRST)"
 };
 
 /* kludge!!!! these are just global variables that the
@@ -1153,7 +1153,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 
 	if (trst_with_tlr)
 	{
-		LOG_DEBUG("JTAG reset with TLR instead of TRST");
+		LOG_DEBUG("JTAG reset with RESET instead of TRST");
 		jtag_add_end_state(TAP_RESET);
 		jtag_add_tlr();
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
@@ -1198,7 +1198,7 @@ void jtag_add_end_state(enum tap_state state)
 	cmd_queue_end_state = state;
 	if ((cmd_queue_end_state == TAP_DRSHIFT)||(cmd_queue_end_state == TAP_IRSHIFT))
 	{
-		LOG_ERROR("BUG: TAP_DRSHIFT/SI can't be end state. Calling code should use a larger scan field");
+		LOG_ERROR("BUG: TAP_DRSHIFT/IRSHIFT can't be end state. Calling code should use a larger scan field");
 	}
 }
 
@@ -2096,11 +2096,11 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / TLR");
+	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / RESET");
 
 	/* Reset can happen after a power cycle.
 	 *
-	 * Ideally we would only assert TRST or run TLR before the target reset.
+	 * Ideally we would only assert TRST or run RESET before the target reset.
 	 *
 	 * However w/srst_pulls_trst, trst is asserted together with the target
 	 * reset whether we want it or not.
@@ -2113,7 +2113,7 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	 * NB! order matters!!!! srst *can* disconnect JTAG circuitry
 	 *
 	 */
-	jtag_add_reset(1, 0); /* TLR or TRST */
+	jtag_add_reset(1, 0); /* RESET or TRST */
 	if (jtag_reset_config & RESET_HAS_SRST)
 	{
 		jtag_add_reset(1, 1);
