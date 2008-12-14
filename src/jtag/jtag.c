@@ -41,14 +41,6 @@
 int jtag_error=ERROR_OK;
 
 
-char* tap_state_strings[16] =
-{
-	"tlr",
-	"sds", "cd", "sd", "e1d", "pd", "e2d", "ud",
-	"rti",
-	"sis", "ci", "si", "e1i", "pi", "e2i", "ui"
-};
-
 typedef struct cmd_queue_page_s
 {
 	void *address;
@@ -1004,7 +996,7 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 		if ((tap_transitions[cur_state].low != path[i])&&
 				(tap_transitions[cur_state].high != path[i]))
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[path[i]]);
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(path[i]));
 			exit(-1);
 		}
 		cur_state = path[i];
@@ -2656,14 +2648,14 @@ int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	{
 		for (state = 0; state < 16; state++)
 		{
-			if (strcmp(args[0], tap_state_strings[state]) == 0)
+			if (strcmp(args[0], jtag_state_name(state)) == 0)
 			{
 				jtag_add_end_state(state);
 				jtag_execute_queue();
 			}
 		}
 	}
-	command_print(cmd_ctx, "current endstate: %s", tap_state_strings[cmd_queue_end_state]);
+	command_print(cmd_ctx, "current endstate: %s", jtag_state_name(cmd_queue_end_state));
 
 	return ERROR_OK;
 }
@@ -2915,3 +2907,34 @@ void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
 				Jim_Nvp_value2name_simple( nvp_jtag_tap_event, e)->name);
 	}
 }
+
+
+/* map state number to SVF state string */
+const char* jtag_state_name(enum tap_state state)
+{
+	const char* ret;
+
+	switch( state )
+	{
+	case TAP_RESET:		ret = "RESET";			break;
+	case TAP_IDLE:		ret = "IDLE";			break;
+	case TAP_DRSELECT:	ret = "DRSELECT";		break;
+	case TAP_DRCAPTURE: ret = "DRCAPTURE";		break;
+	case TAP_DRSHIFT:	ret = "DRSHIFT";			break;
+	case TAP_DREXIT1:	ret = "DREXIT1";			break;
+	case TAP_DRPAUSE:	ret = "DRPAUSE";			break;
+	case TAP_DREXIT2:	ret = "DREXIT2";			break;
+	case TAP_DRUPDATE:	ret = "DRUPDATE";		break;
+	case TAP_IRSELECT:	ret = "IRSELECT";		break;
+	case TAP_IRCAPTURE: ret = "IRCAPTURE";		break;
+	case TAP_IRSHIFT:	ret = "IRSHIFT";			break;
+	case TAP_IREXIT1:	ret = "IREXIT1";			break;
+	case TAP_IRPAUSE:	ret = "IRPAUSE";			break;
+	case TAP_IREXIT2:	ret = "IREXIT2";			break;
+	case TAP_IRUPDATE:	ret = "IRUPDATE";		break;
+	default:				ret = "???";
+	}
+
+	return ret;
+}
+

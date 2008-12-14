@@ -50,7 +50,6 @@ typedef struct tap_transition_s
 	enum tap_state low;
 } tap_transition_t;
 
-extern char* tap_state_strings[16];
 extern int tap_move_map[16];	/* map 16 TAP states to 6 stable states */
 extern u8 tap_move[6][6];		/* value scanned to TMS to move from one of six stable states to another */
 extern tap_transition_t tap_transitions[16];	/* describe the TAP state diagram */
@@ -528,5 +527,12 @@ static __inline__ void jtag_add_dr_out(jtag_tap_t *tap,
 	cmd_queue_cur_state=cmd_queue_end_state;
 	interface_jtag_add_dr_out(tap, num_fields, num_bits, value, cmd_queue_end_state);
 }
+
+/**
+ * Function jtag_state_name
+ * Returns a string suitable for display representing the JTAG tap_state 
+ */
+const char* jtag_state_name(enum tap_state state);
+
 
 #endif /* JTAG_H */

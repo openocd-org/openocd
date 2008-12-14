@@ -525,7 +525,7 @@ void ft2232_add_pathmove(pathmove_command_t *cmd)
 				buf_set_u32(&tms_byte, bit_count++, 1, 0x1);
 			else
 			{
-				LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[cmd->path[state_count]]);
+				LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(cmd->path[state_count]));
 				exit(-1);
 			}
 

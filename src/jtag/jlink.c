@@ -376,7 +376,7 @@ void jlink_path_move(int num_states, enum tap_state *path)
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[path[i]]);
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(path[i]));
 			exit(-1);
 		}
 

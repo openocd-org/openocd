@@ -266,51 +266,51 @@ int zy1000_quit(void)
 int loadFile(const char *fileName, void **data, int *len)
 {
 	FILE * pFile;
-	pFile = fopen (fileName,"rb");
+	pFile = fopen(fileName,"rb");
 	if (pFile==NULL)
 	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
-    if (fseek (pFile, 0, SEEK_END)!=0)
-    {
+	if (fseek(pFile, 0, SEEK_END)!=0)
+	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		fclose(pFile);
 		return ERROR_JTAG_DEVICE_ERROR;
-    }
-    *len=ftell (pFile);
-    if (*len==-1)
-    {
+	}
+	*len=ftell(pFile);
+	if (*len==-1)
+	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		fclose(pFile);
 		return ERROR_JTAG_DEVICE_ERROR;
-    }
+	}
 
-    if (fseek (pFile, 0, SEEK_SET)!=0)
-    {
+	if (fseek(pFile, 0, SEEK_SET)!=0)
+	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		fclose(pFile);
 		return ERROR_JTAG_DEVICE_ERROR;
-    }
-    *data=malloc(*len+1);
-    if (*data==NULL)
-    {
+	}
+	*data=malloc(*len+1);
+	if (*data==NULL)
+	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		fclose(pFile);
 		return ERROR_JTAG_DEVICE_ERROR;
-    }
+	}
 
-    if (fread(*data, 1, *len, pFile)!=*len)
-    {
+	if (fread(*data, 1, *len, pFile)!=*len)
+	{
 		fclose(pFile);
 	free(*data);
 		LOG_ERROR("Can't open %s\n", fileName);
 		return ERROR_JTAG_DEVICE_ERROR;
-    }
-    fclose (pFile);
-    *(((char *)(*data))+*len)=0; /* sentinel */
+	}
+	fclose(pFile);
+	*(((char *)(*data))+*len)=0; /* sentinel */
 
-    return ERROR_OK;
+	return ERROR_OK;
 
 
 
@@ -365,7 +365,7 @@ static cyg_uint32 getShiftValueFlip()
 #if 0
 static void shiftValueInnerFlip(const enum tap_state state, const enum tap_state endState, int repeat, cyg_uint32 value)
 {
-	VERBOSE(LOG_INFO("shiftValueInner %s %s %d %08x (flipped)", tap_state_strings[state], tap_state_strings[endState], repeat, value));
+	VERBOSE(LOG_INFO("shiftValueInner %s %s %d %08x (flipped)", jtag_state_name(state), jtag_state_name(endState), repeat, value));
 	cyg_uint32 a,b;
 	a=state;
 	b=endState;
@@ -476,7 +476,7 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, enum tap_s
 			int r=fields[i].in_handler(inBuffer, fields[i].in_handler_priv, fields+i);
 			if (r!=ERROR_OK)
 			{
-			    /* this will cause jtag_execute_queue() to return an error */
+				/* this will cause jtag_execute_queue() to return an error */
 				jtag_error=r;
 			}
 		}
@@ -703,7 +703,7 @@ int interface_jtag_add_pathmove(int num_states, enum tap_state *path)
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_strings[cur_state], tap_state_strings[path[state_count]]);
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(path[state_count)]);
 			exit(-1);
 		}
 
