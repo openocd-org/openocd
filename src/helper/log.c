@@ -31,6 +31,7 @@
 #include "configuration.h"
 #include "time_support.h"
 #include "command.h"
+#include "server.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,9 +109,11 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 #endif
 					string);
 		}
-		else
+		else if(server_use_pipes == 0)
 		{
-			if (strcmp(string, "\n")!=0)
+			/* if we are using gdb through pipes then we do not want any output
+			 * to the pipe otherwise we get repeated strings */
+			if (strcmp(string, "\n") != 0)
 			{
 				/* print human readable output - but skip empty lines */
 				fprintf(log_output, "%s%s",
@@ -203,6 +206,18 @@ int handle_debug_level_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	if (debug_level > 3)
 		debug_level = 3;
 
+	if (debug_level >= LOG_LVL_DEBUG && server_use_pipes == 1)
+	{
+		/* if we are enabling debug info then we need to write to a log file
+		 * otherwise the pipe will get full and cause issues with gdb */
+		FILE* file = fopen("openocd.log", "w");
+		if (file)
+		{
+			log_output = file;
+			LOG_WARNING("enabling log output as we are using pipes");
+		}
+	}
+	
 	return ERROR_OK;
 }
 

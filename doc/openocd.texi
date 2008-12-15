@@ -15,7 +15,7 @@
 
 @itemize @bullet
 @item Copyright @copyright{} 2008 The OpenOCD Project
-@item Copyright @copyright{} 2007-2008 Spen @email{spen@@spen-soft.co.uk}
+@item Copyright @copyright{} 2007-2008 Spencer Oliver @email{spen@@spen-soft.co.uk}
 @item Copyright @copyright{} 2008 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
 @item Copyright @copyright{} 2008 Duane Ellis @email{openocd@@duaneellis.com}
 @end itemize
@@ -411,9 +411,10 @@ bash$ openocd --help
 --debug      | -d       set debug level <0-3>
 --log_output | -l       redirect log output to file <name>
 --command    | -c       run <command>
+--pipe       | -p       use pipes when talking to gdb
 @end verbatim
 
-By default openocd reads the file configuration file ``openocd.cfg''
+By default OpenOCD reads the file configuration file ``openocd.cfg''
 in the current directory.  To specify a different (or multiple)
 configuration file, you can use the ``-f'' option. For example:
 
@@ -445,6 +446,9 @@ Search paths for config/script files can be added to OpenOCD by using
 the @option{-s <search>} switch. The current directory and the OpenOCD
 target library is in the search path by default.
 
+For details on the @option{-p} option. @xref{Connecting to GDB}.
+Option @option{-p} is not currently supported under native win32.
+
 Note! OpenOCD will launch the GDB & telnet server even if it can not
 establish a connection with the target. In general, it is possible for
 the JTAG controller to be unresponsive until the target is set up
@@ -455,7 +459,7 @@ correctly via e.g. GDB monitor commands in a GDB init script.
 @cindex configuration
 
 @section Outline
-There are 4 basic ways of ``configurating'' openocd to run, they are:
+There are 4 basic ways of ``configurating'' OpenOCD to run, they are:
 
 @enumerate
 @item A small openocd.cfg file which ``sources'' other configuration files
@@ -671,7 +675,7 @@ tap identifier dotted name.
 every chip. If the @t{-expected-id} is nonzero, OpenOCD attempts
 to verify the tap id number verses configuration file and may issue an
 error or warning like this. The hope is this will help pin point
-problem openocd configurations.
+problem OpenOCD configurations.
 
 @example
 Info:   JTAG tap: sam7x256.cpu tap/device found: 0x3f0f0f0f (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)
@@ -904,7 +908,7 @@ command interpretor today (28/nov/2008) is a mixture of (newer)
 JIM-Tcl commands, and (older) the orginal command interpretor.
 
 @item @b{Commands}
-@* At the openocd telnet command line (or via the GDB mon command) one
+@* At the OpenOCD telnet command line (or via the GDB mon command) one
 can type a Tcl for() loop, set variables, etc.
 
 @item @b{Historical Note}
@@ -1145,7 +1149,7 @@ if compiled with FTD2XX support.
 @b{TODO:} Confirm the following: On windows the name needs to end with
 a ``space A''? Or not? It has to do with the FTD2xx driver. When must
 this be added and when must it not be added? Why can't the code in the
-interface or in openocd automatically add this if needed? -- Duane.
+interface or in OpenOCD automatically add this if needed? -- Duane.
 
 @item @b{ft2232_serial} <@var{serial-number}>
 @cindex ft2232_serial
@@ -1527,7 +1531,7 @@ then ``bypass'' the tap, the tap is completely removed from the
 circuit and skipped.
 
 
-From OpenOCDs view point, a JTAG TAP is in one of 3 states:
+From OpenOCD's view point, a JTAG TAP is in one of 3 states:
 
 @itemize @bullet
 @item @b{Enabled - Not In ByPass} and has a variable bit length
@@ -1640,7 +1644,7 @@ configure it like this:
     puts [format "The button is %s" $x]
 @end example
     
-In OpenOCDs terms, the ``target'' is an object just like a Tcl/Tk
+In OpenOCD's terms, the ``target'' is an object just like a Tcl/Tk
 button. Commands avaialble as a ``target object'' are:
 
 @comment START targetobj commands.
@@ -1841,7 +1845,7 @@ via the configure option or to query the target via cget.
 @item @b{-work-area-size [ADDRESS]} specify/set the work area
 @item @b{-work-area-backup [0|1]} does the work area get backed up
 @item @b{-endian  [big|little]} 
-@item @b{-variant [NAME]} some chips have varients openocd needs to know about
+@item @b{-variant [NAME]} some chips have varients OpenOCD needs to know about
 @item @b{-chain-position DOTTED.NAME} the tap name this target refers to.
 @end itemize
 Example:
@@ -1870,7 +1874,7 @@ cores.
 @* None (this is also used as the ARM946)
 @item @b{cortex_m3}
 @* use variant <@var{-variant lm3s}> when debugging luminary lm3s targets. This will cause
-openocd to use a software reset rather than asserting SRST to avoid a issue with clearing
+OpenOCD to use a software reset rather than asserting SRST to avoid a issue with clearing
 the debug registers. This is fixed in Fury Rev B, DustDevil Rev B, Tempest, these revisions will
 be detected and the normal reset behaviour used.
 @item @b{xscale}
@@ -1880,9 +1884,9 @@ be detected and the normal reset behaviour used.
 @item @b{mips_m4k}
 @* Use variant @option{ejtag_srst} when debugging targets that do not
 provide a functional SRST line on the EJTAG connector.  This causes
-openocd to instead use an EJTAG software reset command to reset the
+OpenOCD to instead use an EJTAG software reset command to reset the
 processor.  You still need to enable @option{srst} on the reset
-configuration command to enable openocd hardware reset functionality.
+configuration command to enable OpenOCD hardware reset functionality.
 @comment END varients
 @end itemize
 @section working_area - Command Removed
@@ -2004,7 +2008,7 @@ to a <@var{file}>.
 @end itemize
 
 @section flash bank command
-The @b{flash bank} command is used to configure one or more flash chips (or banks in openocd terms)
+The @b{flash bank} command is used to configure one or more flash chips (or banks in OpenOCD terms)
 
 @example
 @b{flash bank} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}>
@@ -2170,7 +2174,7 @@ erase the device.
 @end itemize
 
 Note: Before using the str9xpec driver here is some background info to help
-you better understand how the drivers works. Openocd has two flash drivers for
+you better understand how the drivers works. OpenOCD has two flash drivers for
 the str9.
 @enumerate
 @item
@@ -2793,41 +2797,52 @@ openocd -f interface/parport.cfg -f target/at91r40008.cfg -c init -c reset
 OpenOCD complies with the remote gdbserver protocol, and as such can be used
 to debug remote targets.
 
-@section Connecting to gdb
-@cindex Connecting to gdb
+@section Connecting to GDB
+@cindex Connecting to GDB
+@anchor{Connecting to GDB}
 Use GDB 6.7 or newer with OpenOCD if you run into trouble. For
 instance 6.3 has a known bug where it produces bogus memory access
 errors, which has since been fixed: look up 1836 in
 @url{http://sourceware.org/cgi-bin/gnatsweb.pl?database=gdb}
 
-
-A connection is typically started as follows:
+@*OpenOCD can communicate with GDB in two ways:
+@enumerate
+@item
+A socket (tcp) connection is typically started as follows:
 @example
 target remote localhost:3333
 @end example
-This would cause gdb to connect to the gdbserver on the local pc using port 3333.
+This would cause GDB to connect to the gdbserver on the local pc using port 3333.
+@item
+A pipe connection is typically started as follows:
+@example
+target remote openocd --pipe
+@end example
+This would cause GDB to run OpenOCD and communicate using pipes (stdin/stdout).
+Using this method has the advantage of GDB starting/stopping OpenOCD for debug session.
+@end enumerate
 
-To see a list of available OpenOCD commands type @option{monitor help} on the
-gdb commandline.
+@*To see a list of available OpenOCD commands type @option{monitor help} on the
+GDB commandline.
 
 OpenOCD supports the gdb @option{qSupported} packet, this enables information
-to be sent by the gdb server (openocd) to gdb. Typical information includes
+to be sent by the gdb server (OpenOCD) to GDB. Typical information includes
 packet size and device memory map.
 
-Previous versions of OpenOCD required the following gdb options to increase
-the packet size and speed up gdb communication.
+Previous versions of OpenOCD required the following GDB options to increase
+the packet size and speed up GDB communication.
 @example
 set remote memory-write-packet-size 1024
 set remote memory-write-packet-size fixed
 set remote memory-read-packet-size 1024
 set remote memory-read-packet-size fixed
 @end example
-This is now handled in the @option{qSupported} PacketSize.
+This is now handled in the @option{qSupported} PacketSize and should not be required.
 
-@section Programming using gdb
-@cindex Programming using gdb
+@section Programming using GDB
+@cindex Programming using GDB
 
-By default the target memory map is sent to gdb, this can be disabled by
+By default the target memory map is sent to GDB, this can be disabled by
 the following OpenOCD config option:
 @example
 gdb_memory_map disable
@@ -2836,34 +2851,34 @@ For this to function correctly a valid flash config must also be configured
 in OpenOCD. For faster performance you should also configure a valid 
 working area.
 
-Informing gdb of the memory map of the target will enable gdb to protect any
+Informing GDB of the memory map of the target will enable GDB to protect any
 flash area of the target and use hardware breakpoints by default. This means
 that the OpenOCD option @option{gdb_breakpoint_override} is not required when
 using a memory map. @xref{gdb_breakpoint_override}.
 
-To view the configured memory map in gdb, use the gdb command @option{info mem}
-All other unasigned addresses within gdb are treated as RAM.
+To view the configured memory map in GDB, use the gdb command @option{info mem}
+All other unasigned addresses within GDB are treated as RAM.
 
 GDB 6.8 and higher set any memory area not in the memory map as inaccessible,
-this can be changed to the old behaviour by using the following gdb command.
+this can be changed to the old behaviour by using the following GDB command.
 @example
 set mem inaccessible-by-default off
 @end example
 
-If @option{gdb_flash_program enable} is also used, gdb will be able to
+If @option{gdb_flash_program enable} is also used, GDB will be able to
 program any flash memory using the vFlash interface.
 
-gdb will look at the target memory map when a load command is given, if any
+GDB will look at the target memory map when a load command is given, if any
 areas to be programmed lie within the target flash area the vFlash packets
 will be used.
 
-If the target needs configuring before gdb programming, an event
+If the target needs configuring before GDB programming, an event
 script can be executed.
 @example
 $_TARGETNAME configure -event EVENTNAME BODY
 @end example
 
-To verify any flash programming the gdb command @option{compare-sections}
+To verify any flash programming the GDB command @option{compare-sections}
 can be used.
 
 @node TCL scripting API
@@ -3598,7 +3613,7 @@ foreach who @{A B C D E@}
 OpenOCD comes with a target configuration script library. These scripts can be
 used as-is or serve as a starting point.
 
-The target library is published together with the openocd executable and 
+The target library is published together with the OpenOCD executable and 
 the path to the target library is in the OpenOCD script search path.
 Similarly there are example scripts for configuring the JTAG interface. 
 

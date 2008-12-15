@@ -24,10 +24,13 @@
 #include "config.h"
 #endif
 
+#include "replacements.h"
+
 #include "types.h"
 #include "command.h"
 #include "configuration.h"
 #include "log.h"
+#include "server.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,8 +46,9 @@ static struct option long_options[] =
 	{"debug",	optional_argument,	0,		'd'},
 	{"file", 	required_argument,	0,		'f'},
 	{"search",	required_argument,	0,		's'},
-	{"log_output",	required_argument,	0,		'l'},
+	{"log_output",	required_argument,	0,	'l'},
 	{"command",	required_argument,	0,		'c'},
+	{"pipe",	no_argument,		0,		'p'},
 	{0, 0, 0, 0}
 };
 
@@ -95,7 +99,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
 		
-		c = getopt_long(argc, argv, "hvd::l:f:s:c:", long_options, &option_index);
+		c = getopt_long(argc, argv, "hvd::l:f:s:c:p", long_options, &option_index);
 		
 		/* Detect the end of the options. */
 		if (c == -1)
@@ -140,7 +144,20 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 					add_config_command(optarg);
 				}	
 				break;
-				
+			case 'p':	/* --pipe | -p */
+#if BUILD_ECOSBOARD == 1
+				/* pipes unsupported on hosted platforms */
+				LOG_WARNING("pipes not supported on this platform");
+#else
+#ifdef IS_MINGW
+				/* pipes currently unsupported on win32 */
+				LOG_WARNING("pipes currently unsupported on win32");
+				exit(1);
+#else
+				server_use_pipes = 1;
+#endif
+#endif
+				break;
 		}
 	}
 
@@ -154,6 +171,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		LOG_OUTPUT("--debug      | -d\tset debug level <0-3>\n");
 		LOG_OUTPUT("--log_output | -l\tredirect log output to file <name>\n");
 		LOG_OUTPUT("--command    | -c\trun <command>\n");
+		LOG_OUTPUT("--pipe       | -p\tuse pipes for gdb communication\n");
 		exit(-1);
 	}	
 
@@ -161,7 +179,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 	{
 		/* Nothing to do, version gets printed automatically. */
 		exit(-1);
-	}	
-
+	}
+	
 	return ERROR_OK;
 }

@@ -53,6 +53,9 @@ service_t *services = NULL;
 static int shutdown_openocd = 0;
 int handle_shutdown_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
+/* set when using pipes rather than tcp */
+int server_use_pipes = 0;
+
 int add_connection(service_t *service, command_context_t *cmd_ctx)
 {
 	unsigned int address_size;
@@ -69,28 +72,44 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	c->priv = NULL;
 	c->next = NULL;
 
-	address_size = sizeof(c->sin);
-	
-	c->fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
-	
-	/* This increases performance dramatically for e.g. GDB load which
-	 * does not have a sliding window protocol. */
-	retval=setsockopt(c->fd,	/* socket affected */
-			IPPROTO_TCP,		/* set option at TCP level */
-			TCP_NODELAY,		/* name of option */
-			(char *)&flag,		/* the cast is historical cruft */
-			sizeof(int));		/* length of option value */
+	if (service->type == CONNECTION_TCP)
+	{
+		address_size = sizeof(c->sin);
 		
-	LOG_INFO("accepting '%s' connection from %i", service->name, c->sin.sin_port);
-	if ((retval = service->new_connection(c)) == ERROR_OK)
-	{
+		c->fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
+		
+		/* This increases performance dramatically for e.g. GDB load which
+		 * does not have a sliding window protocol. */
+		retval=setsockopt(c->fd,	/* socket affected */
+				IPPROTO_TCP,		/* set option at TCP level */
+				TCP_NODELAY,		/* name of option */
+				(char *)&flag,		/* the cast is historical cruft */
+				sizeof(int));		/* length of option value */
+			
+		LOG_INFO("accepting '%s' connection from %i", service->name, c->sin.sin_port);
+		if ((retval = service->new_connection(c)) != ERROR_OK)
+		{
+			close_socket(c->fd);
+			LOG_ERROR("attempted '%s' connection rejected", service->name);
+			free(c);
+			return retval;
+		}
 	}
-	else
+	else if (service->type == CONNECTION_PIPE)
 	{
-		close_socket(c->fd);
-		LOG_ERROR("attempted '%s' connection rejected", service->name);
-		free(c);
-		return retval;
+#ifndef _WIN32
+		c->fd = service->fd;
+		
+		/* do not check for new connections again on stdin */
+		service->fd = -1;
+#endif
+		LOG_INFO("accepting '%s' connection from pipe", service->name);
+		if ((retval = service->new_connection(c)) != ERROR_OK)
+		{
+			LOG_ERROR("attempted '%s' connection rejected", service->name);
+			free(c);
+			return retval;
+		}
 	}
 	
 	/* add to the end of linked list */
@@ -113,7 +132,8 @@ int remove_connection(service_t *service, connection_t *connection)
 		if (c->fd == connection->fd)
 		{	
 			service->connection_closed(c);
-			close_socket(c->fd);
+			if (service->type == CONNECTION_TCP)
+				close_socket(c->fd);
 			command_done(c->cmd_ctx);
 			
 			/* delete connection */
@@ -150,44 +170,67 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	c->priv = priv;
 	c->next = NULL;
 	
-	if ((c->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	if (type == CONNECTION_TCP)
 	{
-		LOG_ERROR("error creating socket: %s", strerror(errno));
-		exit(-1);
-	}
-	
-	setsockopt(c->fd, SOL_SOCKET, SO_REUSEADDR, (void*)&so_reuseaddr_option, sizeof(int));
-	
-	socket_nonblock(c->fd);
-	
-	memset(&c->sin, 0, sizeof(c->sin));
-	c->sin.sin_family = AF_INET;
-	c->sin.sin_addr.s_addr = INADDR_ANY;
-	c->sin.sin_port = htons(port);
-	
-	if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1)
-	{
-		LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
-		exit(-1);
-	}
-	
+		if ((c->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+		{
+			LOG_ERROR("error creating socket: %s", strerror(errno));
+			exit(-1);
+		}
+		
+		setsockopt(c->fd, SOL_SOCKET, SO_REUSEADDR, (void*)&so_reuseaddr_option, sizeof(int));
+		
+		socket_nonblock(c->fd);
+		
+		memset(&c->sin, 0, sizeof(c->sin));
+		c->sin.sin_family = AF_INET;
+		c->sin.sin_addr.s_addr = INADDR_ANY;
+		c->sin.sin_port = htons(port);
+		
+		if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1)
+		{
+			LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
+			exit(-1);
+		}
+		
 #ifndef _WIN32
-	int segsize=65536;
-	setsockopt(c->fd, IPPROTO_TCP, TCP_MAXSEG,  &segsize, sizeof(int));
+		int segsize=65536;
+		setsockopt(c->fd, IPPROTO_TCP, TCP_MAXSEG,  &segsize, sizeof(int));
 #endif
-	int window_size = 128 * 1024;	
-
-	/* These setsockopt()s must happen before the listen() */
+		int window_size = 128 * 1024;	
 	
-	setsockopt(c->fd, SOL_SOCKET, SO_SNDBUF,
-		(char *)&window_size, sizeof(window_size));
-	setsockopt(c->fd, SOL_SOCKET, SO_RCVBUF,
-		(char *)&window_size, sizeof(window_size));
-	
-	if (listen(c->fd, 1) == -1)
+		/* These setsockopt()s must happen before the listen() */
+		
+		setsockopt(c->fd, SOL_SOCKET, SO_SNDBUF,
+			(char *)&window_size, sizeof(window_size));
+		setsockopt(c->fd, SOL_SOCKET, SO_RCVBUF,
+			(char *)&window_size, sizeof(window_size));
+		
+		if (listen(c->fd, 1) == -1)
+		{
+			LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
+			exit(-1);
+		}
+	}
+	else if (type == CONNECTION_PIPE)
 	{
-		LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
-		exit(-1);
+		/* use stdin */
+		c->fd = STDIN_FILENO;
+		
+#ifdef _WIN32
+		/* for win32 set stdin/stdout to binary mode */
+		if (_setmode(_fileno(stdout), _O_BINARY) < 0)
+			LOG_WARNING("cannot change stdout mode to binary");
+		if (_setmode(_fileno(stdin), _O_BINARY) < 0)
+			LOG_WARNING("cannot change stdin mode to binary");
+#else
+		socket_nonblock(c->fd);
+#endif
+	}
+	else
+	{
+		LOG_ERROR("unknown connection type: %d", type);
+		exit(1);
 	}
 	
 	/* add to the end of linked list */
@@ -310,14 +353,18 @@ int server_loop(command_context_t *command_context)
 		
 #ifndef _WIN32
 #if BUILD_ECOSBOARD == 0
-		/* add STDIN to read_fds */
-		FD_SET(fileno(stdin), &read_fds);
+		if (server_use_pipes == 0)
+		{
+			/* add STDIN to read_fds */
+			FD_SET(fileno(stdin), &read_fds);
+		}
 #endif
 #endif
 
 		openocd_sleep_prelude();
 		kept_alive();
-		// Only while we're sleeping we'll let others run
+		
+		/* Only while we're sleeping we'll let others run */
 		retval = select(fd_max + 1, &read_fds, NULL, NULL, &tv);
 		openocd_sleep_postlude();
 
@@ -371,11 +418,14 @@ int server_loop(command_context_t *command_context)
 				}
 				else
 				{
-					struct sockaddr_in sin;
-					unsigned int address_size = sizeof(sin);
-					int tmp_fd;
-					tmp_fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
-					close_socket(tmp_fd);
+					if (service->type != CONNECTION_PIPE)
+					{
+						struct sockaddr_in sin;
+						unsigned int address_size = sizeof(sin);
+						int tmp_fd;
+						tmp_fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
+						close_socket(tmp_fd);
+					}
 					LOG_INFO("rejected '%s' connection, no more connections allowed", service->name);
 				}
 			}
@@ -389,11 +439,16 @@ int server_loop(command_context_t *command_context)
 				{
 					if ((FD_ISSET(c->fd, &read_fds)) || c->input_pending)
 					{
-						if (service->input(c) != ERROR_OK)
+						if ((retval = service->input(c)) != ERROR_OK)
 						{
 							connection_t *next = c->next;
+							if (service->type == CONNECTION_PIPE)
+							{
+								/* if connection uses a pipe then shutdown openocd on error */
+								shutdown_openocd = 1;
+							}
 							remove_connection(service, c);
-							LOG_INFO("dropped '%s' connection", service->name);
+							LOG_INFO("dropped '%s' connection - error %d", service->name, retval);
 							c = next;
 							continue;
 						}
@@ -405,11 +460,15 @@ int server_loop(command_context_t *command_context)
 		
 #ifndef _WIN32
 #if BUILD_ECOSBOARD == 0
-		if (FD_ISSET(fileno(stdin), &read_fds))
+		/* check for data on stdin if not using pipes */
+		if (server_use_pipes == 0)
 		{
-			if (getc(stdin) == 'x')
+			if (FD_ISSET(fileno(stdin), &read_fds))
 			{
-				shutdown_openocd = 1;
+				if (getc(stdin) == 'x')
+				{
+					shutdown_openocd = 1;
+				}
 			}
 		}
 #endif
@@ -459,7 +518,6 @@ int server_init(void)
 	signal(SIGBREAK, sig_handler);
 	signal(SIGABRT, sig_handler);
 #endif
-
 	
 	return ERROR_OK;
 }

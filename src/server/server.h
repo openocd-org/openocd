@@ -34,9 +34,8 @@
 
 enum connection_type
 {
-	CONNECTION_GDB,
-	CONNECTION_TELNET,
-	CONNECTION_TCL,
+	CONNECTION_TCP,
+	CONNECTION_PIPE
 };
 
 typedef struct connection_s
@@ -75,6 +74,8 @@ extern int server_init(void);
 extern int server_quit(void);
 extern int server_loop(command_context_t *command_context);
 extern int server_register_commands(command_context_t *context);
+
+extern int server_use_pipes;
 
 #define ERROR_SERVER_REMOTE_CLOSED	(-400)
 #define ERROR_CONNECTION_REJECTED	(-401)

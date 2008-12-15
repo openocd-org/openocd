@@ -232,7 +232,6 @@ const Jim_Nvp nvp_target_debug_reason [] = {
 	{ .name = NULL, .value = -1 },
 };
 
-
 const Jim_Nvp nvp_target_endian[] = {
 	{ .name = "big",    .value = TARGET_BIG_ENDIAN },
 	{ .name = "little", .value = TARGET_LITTLE_ENDIAN },
@@ -249,8 +248,7 @@ const Jim_Nvp nvp_reset_modes[] = {
 	{ .name = NULL     , .value = -1 },
 };
 
-static int
-max_target_number( void )
+static int max_target_number(void)
 {
 	target_t *t;
 	int x;
@@ -267,8 +265,7 @@ max_target_number( void )
 }
 
 /* determine the number of the new target */
-static int
-new_target_number( void )
+static int new_target_number(void)
 {
 	target_t *t;
 	int x;

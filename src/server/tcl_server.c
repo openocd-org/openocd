@@ -179,7 +179,7 @@ int tcl_init(void)
 		tcl_port = 6666;
 	}
 
-	retval = add_service("tcl", CONNECTION_TCL, tcl_port, 1, tcl_new_connection, tcl_input, tcl_closed, NULL);
+	retval = add_service("tcl", CONNECTION_TCP, tcl_port, 1, tcl_new_connection, tcl_input, tcl_closed, NULL);
 	return retval;
 }
 

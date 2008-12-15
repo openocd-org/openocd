@@ -615,7 +615,7 @@ int telnet_init(char *banner)
 
 	telnet_service->banner = banner;
 
-	add_service("telnet", CONNECTION_TELNET, telnet_port, 1, telnet_new_connection, telnet_input, telnet_connection_closed, telnet_service);
+	add_service("telnet", CONNECTION_TCP, telnet_port, 1, telnet_new_connection, telnet_input, telnet_connection_closed, telnet_service);
 
 	return ERROR_OK;
 }

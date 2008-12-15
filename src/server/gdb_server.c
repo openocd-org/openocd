@@ -169,10 +169,18 @@ int gdb_get_char(connection_t *connection, int* next_char)
 
 	for (;;)
 	{
-		retval=check_pending(connection, 1, NULL);
-		if (retval!=ERROR_OK)
-			return retval;
-		gdb_con->buf_cnt = read_socket(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
+		if (connection->service->type == CONNECTION_PIPE)
+		{
+			gdb_con->buf_cnt = read(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
+		}
+		else
+		{
+			retval = check_pending(connection, 1, NULL);
+			if (retval != ERROR_OK)
+				return retval;
+			gdb_con->buf_cnt = read_socket(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
+		}
+		
 		if (gdb_con->buf_cnt > 0)
 		{
 			break;
@@ -268,10 +276,21 @@ int gdb_write(connection_t *connection, void *data, int len)
 	gdb_connection_t *gdb_con = connection->priv;
 	if (gdb_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
-
-	if (write_socket(connection->fd, data, len) == len)
+	
+	if (connection->service->type == CONNECTION_PIPE)
 	{
-		return ERROR_OK;
+		/* write to stdout */
+		if (write(STDOUT_FILENO, data, len) == len)
+		{
+			return ERROR_OK;
+		}
+	}
+	else
+	{
+		if (write_socket(connection->fd, data, len) == len)
+		{
+			return ERROR_OK;
+		}
 	}
 	gdb_con->closed = 1;
 	return ERROR_SERVER_REMOTE_CLOSED;
@@ -2158,7 +2177,7 @@ int gdb_input(connection_t *connection)
 	if (retval == ERROR_SERVER_REMOTE_CLOSED)
 		return retval;
 
-	/* logging does not propagate the error, yet can set th gdb_con->closed flag */
+	/* logging does not propagate the error, yet can set the gdb_con->closed flag */
 	if (gdb_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
 
@@ -2177,34 +2196,37 @@ int gdb_init(void)
 		return ERROR_OK;
 	}
 
-	if (gdb_port == 0)
+	if (gdb_port == 0 && server_use_pipes == 0)
 	{
 		LOG_WARNING("no gdb port specified, using default port 3333");
 		gdb_port = 3333;
 	}
 
-	while (target)
+	if (server_use_pipes)
 	{
-		char service_name[8];
-
-		snprintf(service_name, 8, "gdb-%2.2i", target->target_number);
-
+		/* only a single gdb connection when using a pipe */
+		
 		gdb_service = malloc(sizeof(gdb_service_t));
 		gdb_service->target = target;
 
-		add_service("gdb", CONNECTION_GDB,
-			    gdb_port + target->target_number,
-			    1, gdb_new_connection, gdb_input,
-			    gdb_connection_closed,
-			    gdb_service);
+		add_service("gdb", CONNECTION_PIPE, 0, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
 
-		LOG_DEBUG("gdb service for target %s at port %i",
-			  target->type->name,
-			  gdb_port + target->target_number);
-
-		target = target->next;
+		LOG_DEBUG("gdb service for target %s using pipes", target->type->name);
 	}
+	else
+	{
+		while (target)
+		{
+			gdb_service = malloc(sizeof(gdb_service_t));
+			gdb_service->target = target;
 
+			add_service("gdb", CONNECTION_TCP, gdb_port + target->target_number, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
+			
+			LOG_DEBUG("gdb service for target %s at port %i", target->type->name, gdb_port + target->target_number);
+			target = target->next;
+		}
+	}
+	
 	return ERROR_OK;
 }
 
