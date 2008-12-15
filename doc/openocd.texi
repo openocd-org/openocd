@@ -96,8 +96,7 @@ with the JTAG (IEEE 1149.1) complient taps on your target board.
 
 @b{Dongles:} OpenOCD currently many types of hardware dongles: USB
 Based, Parallel Port Based, and other standalone boxes that run
-OpenOCD internally. See the section titled: @xref{JTAG Hardware
-Dongles}.
+OpenOCD internally. See the section titled: @xref{JTAG Hardware Dongles}.
 
 @b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920t,
 ARM922t, ARM926ej--s, ARM966e--s), XScale (PXA25x, IXP42x) and
