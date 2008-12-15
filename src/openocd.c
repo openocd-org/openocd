@@ -118,6 +118,8 @@ static int log_target_callback_event_handler(struct target_s *target, enum targe
 	return ERROR_OK;
 }
 
+int ioutil_init(struct command_context_s *cmd_ctx);
+
 /* OpenOCD can't really handle failure of this command. Patches welcome! :-) */
 int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -129,6 +131,13 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	initialized=1;
 
 	atexit(exit_handler);
+
+#if BUILD_IOUTIL
+	if (ioutil_init(cmd_ctx) != ERROR_OK)
+	{
+		return ERROR_FAIL;
+	}
+#endif
 
 	if (target_init(cmd_ctx) != ERROR_OK)
 		return ERROR_FAIL;

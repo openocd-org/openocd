@@ -81,7 +81,6 @@
 #include <ifaddrs.h>
 #include <string.h>
 
-
 #include <unistd.h>
 #include <stdio.h>
 #define MAX_IFS 64
@@ -98,14 +97,6 @@ struct tftpd_fileops fileops =
 
 #endif
 
-#define ZYLIN_VERSION "1.48"
-#define ZYLIN_DATE __DATE__
-#define ZYLIN_TIME __TIME__
-/* hmmm....  we can't pick up the right # during build if we've checked this out
- * in Eclipse... arrggghh...*/
-#define ZYLIN_OPENOCD "$Revision$"
-#define ZYLIN_OPENOCD_VERSION "Zylin JTAG ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE " " ZYLIN_TIME
-#define ZYLIN_CONFIG_DIR "/config/settings"
 
 void diag_write(char *buf, int len)
 {
@@ -120,39 +111,6 @@ static bool serialLog = true;
 static bool writeLog = true;
 
 char hwaddr[512];
-
-
-/* Give TELNET a way to find out what version this is */
-int handle_zy1000_version_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
-{
-	if (argc > 1)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	if (argc == 0)
-	{
-		command_print(cmd_ctx, ZYLIN_OPENOCD_VERSION);
-	} else if (strcmp("openocd", args[0])==0)
-	{
-		int revision;
-		revision=atol(ZYLIN_OPENOCD+strlen("XRevision: "));
-		command_print(cmd_ctx, "%d", revision);
-	} else if (strcmp("zy1000", args[0])==0)
-	{
-		command_print(cmd_ctx, "%s", ZYLIN_VERSION);
-	} else if (strcmp("date", args[0])==0)
-	{
-		command_print(cmd_ctx, "%s", ZYLIN_DATE);
-	} else
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return ERROR_OK;
-}
-
-
 
 
 extern flash_driver_t *flash_drivers[];
@@ -184,48 +142,17 @@ void start_profile(void)
 
 	// no more interrupts than 1/10ms.
 	//profile_on((void *)0, (void *)0x40000, 16, 10000); // SRAM
-//	profile_on(0, &_etext, 16, 10000); // SRAM & DRAM
+	//	profile_on(0, &_etext, 16, 10000); // SRAM & DRAM
 	profile_on(start_of_code, end_of_code, 16, 10000); // Nios DRAM
 }
 #endif
-
-// launch GDB server if a config file exists
-bool zylinjtag_parse_config_file(struct command_context_s *cmd_ctx, const char *config_file_name)
-{
-	bool foundFile = false;
-	FILE *config_file = NULL;
-	command_print(cmd_ctx, "executing config file %s", config_file_name);
-	config_file = fopen(config_file_name, "r");
-	if (config_file)
-	{
-		fclose(config_file);
-		int retval;
-		retval = command_run_linef(cmd_ctx, "script %s", config_file_name);
-		if (retval == ERROR_OK)
-		{
-			foundFile = true;
-		}
-		else
-		{
-			command_print(cmd_ctx, "Failed executing %s %d", config_file_name, retval);
-		}
-	}
-	else
-	{
-		command_print(cmd_ctx, "No %s found", config_file_name);
-	}
-
-	return foundFile;
-}
 
 extern int eth0_up;
 static FILE *log;
 
 static char reboot_stack[2048];
 
-
-static void
-zylinjtag_reboot(cyg_addrword_t data)
+static void zylinjtag_reboot(cyg_addrword_t data)
 {
 	serialLog = true;
 	diag_printf("Rebooting in 100 ticks..\n");
@@ -240,322 +167,26 @@ static cyg_handle_t zylinjtag_thread_handle;
 
 void reboot(void)
 {
-    cyg_thread_create(1,
-                      zylinjtag_reboot,
-                      (cyg_addrword_t)0,
-                      "reboot Thread",
-                      (void *)reboot_stack,
-                      sizeof(reboot_stack),
-                      &zylinjtag_thread_handle,
-                      &zylinjtag_thread_object);
+	cyg_thread_create(1, zylinjtag_reboot, (cyg_addrword_t) 0, "reboot Thread",
+			(void *) reboot_stack, sizeof(reboot_stack),
+			&zylinjtag_thread_handle, &zylinjtag_thread_object);
 	cyg_thread_resume(zylinjtag_thread_handle);
 }
 
-int configuration_output_handler(struct command_context_s *context, const char* line)
+int configuration_output_handler(struct command_context_s *context,
+		const char* line)
 {
 	diag_printf("%s", line);
 
 	return ERROR_OK;
 }
 
-int zy1000_configuration_output_handler_log(struct command_context_s *context, const char* line)
+int zy1000_configuration_output_handler_log(struct command_context_s *context,
+		const char* line)
 {
 	LOG_USER_N("%s", line);
 
 	return ERROR_OK;
-}
-
-int handle_rm_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
-{
-	if (argc != 1)
-	{
-		command_print(cmd_ctx, "rm <filename>");
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	if (unlink(args[0]) != 0)
-	{
-		command_print(cmd_ctx, "failed: %d", errno);
-	}
-
-	return ERROR_OK;
-}
-
-int loadFile(const char *fileName, void **data, int *len);
-
-int handle_cat_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
-{
-	if (argc != 1)
-	{
-		command_print(cmd_ctx, "cat <filename>");
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	// NOTE!!! we only have line printing capability so we print the entire file as a single line.
-	void *data;
-	int len;
-
-	int retval = loadFile(args[0], &data, &len);
-	if (retval == ERROR_OK)
-	{
-		command_print(cmd_ctx, "%s", data);
-		free(data);
-	}
-	else
-	{
-		command_print(cmd_ctx, "%s not found %d", args[0], retval);
-	}
-
-	return ERROR_OK;
-}
-int handle_trunc_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
-{
-	if (argc != 1)
-	{
-		command_print(cmd_ctx, "trunc <filename>");
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	FILE *config_file = NULL;
-	config_file = fopen(args[0], "w");
-	if (config_file != NULL)
-		fclose(config_file);
-
-	return ERROR_OK;
-}
-
-
-int handle_meminfo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	static int prev = 0;
-	struct mallinfo info;
-
-	if (argc != 0)
-	{
-		command_print(cmd_ctx, "meminfo");
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	info = mallinfo();
-
-	if (prev > 0)
-	{
-		command_print(cmd_ctx, "Diff:            %d", prev - info.fordblks);
-	}
-	prev = info.fordblks;
-
-	command_print(cmd_ctx, "Available ram:   %d", info.fordblks );
-
-	return ERROR_OK;
-}
-
-static bool savePower;
-
-static void setPower(bool power)
-{
-	savePower = power;
-	if (power)
-	{
-		HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x14, 0x8);
-	} else
-	{
-		HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x10, 0x8);
-	}
-}
-
-int handle_power_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc > 1)
-	{
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	if (argc == 1)
-	{
-		if (strcmp(args[0], "on") == 0)
-		{
-			setPower(1);
-		}
-		else if (strcmp(args[0], "off") == 0)
-		{
-			setPower(0);
-		} else
-		{
-			command_print(cmd_ctx, "arg is \"on\" or \"off\"");
-			return ERROR_INVALID_ARGUMENTS;
-		}
-	}
-
-	command_print(cmd_ctx, "Target power %s", savePower ? "on" : "off");
-
-	return ERROR_OK;
-}
-
-int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
-{
-	if (argc < 1)
-	{
-		command_print(cmd_ctx,
-				"append <filename> [<string1>, [<string2>, ...]]");
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	FILE *config_file = NULL;
-	config_file = fopen(args[0], "a");
-	if (config_file != NULL)
-	{
-		int i;
-		fseek(config_file, 0, SEEK_END);
-
-		for (i = 1; i < argc; i++)
-		{
-			fwrite(args[i], strlen(args[i]), 1, config_file);
-			if (i != argc - 1)
-			{
-				fwrite(" ", 1, 1, config_file);
-			}
-		}
-		fwrite("\n", 1, 1, config_file);
-		fclose(config_file);
-	}
-
-	return ERROR_OK;
-}
-
-extern int telnet_socket;
-
-int readMore(int fd, void *data, int length)
-{
-	/* used in select() */
-	fd_set read_fds;
-
-	/* monitor sockets for acitvity */
-	int fd_max = 1;
-	FD_ZERO(&read_fds);
-	/* listen for new connections */
-	FD_SET(fd, &read_fds);
-
-	// Maximum 5 seconds.
-	struct timeval tv;
-	tv.tv_sec = 5;
-	tv.tv_usec = 0;
-
-	int retval = select(fd_max + 1, &read_fds, NULL, NULL, &tv);
-	if (retval == 0)
-	{
-		diag_printf("Timed out waiting for binary payload\n");
-		return -1;
-	}
-	if (retval != 1)
-		return -1;
-
-	return read_socket(fd, data, length);
-}
-
-int readAll(int fd, void *data, int length)
-{
-	int pos = 0;
-	for (;;)
-	{
-		int actual = readMore(fd, ((char *) data) + pos, length - pos);
-		//		diag_printf("Read %d bytes(pos=%d, length=%d)\n", actual, pos, length);
-		if (actual <= 0)
-			return -1;
-		pos += actual;
-		if (pos == length)
-			break;
-	}
-	return length;
-}
-
-int handle_peek_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	cyg_uint32 value;
-	if (argc != 1)
-	{
-		return ERROR_INVALID_ARGUMENTS;
-	}
-	HAL_READ_UINT32(strtoul(args[0], NULL, 0), value);
-	command_print(cmd_ctx, "0x%x : 0x%x", strtoul(args[0], NULL, 0), value);
-	return ERROR_OK;
-}
-
-int handle_poke_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc != 2)
-	{
-		return ERROR_INVALID_ARGUMENTS;
-	}
-	HAL_WRITE_UINT32(strtoul(args[0], NULL, 0), strtoul(args[1], NULL, 0));
-	return ERROR_OK;
-}
-
-int handle_cp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc != 2)
-	{
-		return ERROR_INVALID_ARGUMENTS;
-	}
-
-	// NOTE!!! we only have line printing capability so we print the entire file as a single line.
-	void *data;
-	int len;
-
-	int retval = loadFile(args[0], &data, &len);
-	if (retval != ERROR_OK)
-		return retval;
-
-	FILE *f = fopen(args[1], "wb");
-	if (f == NULL)
-		retval = ERROR_INVALID_ARGUMENTS;
-
-	int pos = 0;
-	for (;;)
-	{
-		int chunk = len - pos;
-		static const int maxChunk = 512 * 1024; // ~1/sec
-		if (chunk > maxChunk)
-		{
-			chunk = maxChunk;
-		}
-
-		if ((retval==ERROR_OK)&&(fwrite(((char *)data)+pos, 1, chunk, f)!=chunk))
-			retval = ERROR_INVALID_ARGUMENTS;
-
-		if (retval != ERROR_OK)
-		{
-			break;
-		}
-
-		command_print(cmd_ctx, "%d", len - pos);
-
-		pos += chunk;
-
-		if (pos == len)
-			break;
-	}
-
-	if (retval == ERROR_OK)
-	{
-		command_print(cmd_ctx, "Copied %s to %s", args[0], args[1]);
-	} else
-	{
-		command_print(cmd_ctx, "Failed: %d", retval);
-	}
-
-	if (data != NULL)
-		free(data);
-	if (f != NULL)
-		fclose(f);
-
-	if (retval != ERROR_OK)
-		unlink(args[1]);
-
-	return retval;
 }
 
 #ifdef CYGPKG_PROFILE_GPROF
@@ -618,115 +249,9 @@ void _zylinjtag_diag_write_char(char c, void **param)
 #endif
 }
 
-#define SHOW_RESULT(a, b) diag_printf(#a " failed %d\n", (int)b)
+void copyfile(char *name2, char *name1);
 
-#define IOSIZE 512
-static void copyfile(char *name2, char *name1)
-{
-
-	int err;
-	char buf[IOSIZE];
-	int fd1, fd2;
-	ssize_t done, wrote;
-
-	fd1 = open(name1, O_WRONLY | O_CREAT);
-	if (fd1 < 0)
-		SHOW_RESULT( open, fd1 );
-
-	fd2 = open(name2, O_RDONLY);
-	if (fd2 < 0)
-		SHOW_RESULT( open, fd2 );
-
-	for (;;)
-	{
-		done = read(fd2, buf, IOSIZE );
-		if (done < 0)
-		{
-			SHOW_RESULT( read, done );
-			break;
-		}
-
-        if( done == 0 ) break;
-
-		wrote = write(fd1, buf, done);
-        if( wrote != done ) SHOW_RESULT( write, wrote );
-
-        if( wrote != done ) break;
-	}
-
-	err = close(fd1);
-    if( err < 0 ) SHOW_RESULT( close, err );
-
-	err = close(fd2);
-    if( err < 0 ) SHOW_RESULT( close, err );
-
-}
-static void copydir(char *name, char *destdir)
-{
-	int err;
-	DIR *dirp;
-
-	dirp = opendir(destdir);
-	if (dirp==NULL)
-	{
-		mkdir(destdir, 0777);
-	} else
-	{
-		err = closedir(dirp);
-	}
-
-	dirp = opendir(name);
-    if( dirp == NULL ) SHOW_RESULT( opendir, -1 );
-
-	for (;;)
-	{
-		struct dirent *entry = readdir(dirp);
-
-		if (entry == NULL)
-			break;
-
-		if (strcmp(entry->d_name, ".") == 0)
-			continue;
-		if (strcmp(entry->d_name, "..") == 0)
-			continue;
-
-		bool isDir = false;
-		struct stat buf;
-		char fullPath[PATH_MAX];
-		strncpy(fullPath, name, PATH_MAX);
-		strcat(fullPath, "/");
-		strncat(fullPath, entry->d_name, PATH_MAX - strlen(fullPath));
-
-		if (stat(fullPath, &buf) == -1)
-		{
-			diag_printf("unable to read status from %s", fullPath);
-			break;
-		}
-		isDir = S_ISDIR(buf.st_mode) != 0;
-
-		if (isDir)
-			continue;
-
-		//        diag_printf("<INFO>: entry %14s",entry->d_name);
-		char fullname[PATH_MAX];
-		char fullname2[PATH_MAX];
-
-		strcpy(fullname, name);
-		strcat(fullname, "/");
-		strcat(fullname, entry->d_name);
-
-		strcpy(fullname2, destdir);
-		strcat(fullname2, "/");
-		strcat(fullname2, entry->d_name);
-		//        diag_printf("from %s to %s\n", fullname, fullname2);
-		copyfile(fullname, fullname2);
-
-		//       diag_printf("\n");
-	}
-
-	err = closedir(dirp);
-    if( err < 0 ) SHOW_RESULT( stat, err );
-}
+void copydir(char *name, char *destdir);
 
 #if 0
 MTAB_ENTRY( romfs_mte1,
@@ -746,7 +271,6 @@ void openocd_sleep_postlude()
 	cyg_mutex_lock(&httpstate.jim_lock);
 }
 
-
 void format(void)
 {
 	diag_printf("Formatting JFFS2...\n");
@@ -761,12 +285,10 @@ void format(void)
 		reboot();
 	}
 
-
 	cyg_uint32 len;
 	cyg_io_flash_getconfig_devsize_t ds;
-	len = sizeof (ds);
-	err = cyg_io_get_config(handle,
-				CYG_IO_GET_CONFIG_FLASH_DEVSIZE, &ds, &len);
+	len = sizeof(ds);
+	err = cyg_io_get_config(handle, CYG_IO_GET_CONFIG_FLASH_DEVSIZE, &ds, &len);
 	if (err != ENOERR)
 	{
 		diag_printf("Flash error cyg_io_get_config %d\n", err);
@@ -775,15 +297,14 @@ void format(void)
 
 	cyg_io_flash_getconfig_erase_t e;
 	void *err_addr;
-	len = sizeof (e);
+	len = sizeof(e);
 
 	e.offset = 0;
 	e.len = ds.dev_size;
 	e.err_address = &err_addr;
 
 	diag_printf("Formatting 0x%08x bytes\n", ds.dev_size);
-	err = cyg_io_get_config(handle, CYG_IO_GET_CONFIG_FLASH_ERASE,
-				&e, &len);
+	err = cyg_io_get_config(handle, CYG_IO_GET_CONFIG_FLASH_ERASE, &e, &len);
 	if (err != ENOERR)
 	{
 		diag_printf("Flash erase error %d offset 0x%p\n", err, err_addr);
@@ -795,11 +316,7 @@ void format(void)
 	reboot();
 }
 
-
-
-static int
-zylinjtag_Jim_Command_format_jffs2(Jim_Interp *interp,
-                                   int argc,
+static int zylinjtag_Jim_Command_format_jffs2(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv)
 {
 	if (argc != 1)
@@ -808,29 +325,8 @@ zylinjtag_Jim_Command_format_jffs2(Jim_Interp *interp,
 	}
 
 	format();
-	for(;;);
-}
-
-
-static int
-zylinjtag_Jim_Command_rm(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
-{
-	int del;
-	if (argc != 2)
-	{
-		Jim_WrongNumArgs(interp, 1, argv, "rm ?dirorfile?");
-		return JIM_ERR;
-	}
-
-	del = 0;
-	if (unlink(Jim_GetString(argv[1], NULL)) == 0)
-		del = 1;
-	if (rmdir(Jim_GetString(argv[1], NULL)) == 0)
-		del = 1;
-
-	return del ? JIM_OK : JIM_ERR;
+	for (;;)
+		;
 }
 
 static int zylinjtag_Jim_Command_threads(Jim_Interp *interp, int argc,
@@ -887,198 +383,28 @@ static int zylinjtag_Jim_Command_threads(Jim_Interp *interp, int argc,
 		Jim_ListAppendElement(interp, threadObj, Jim_NewStringObj(interp,
 				state_string, strlen(state_string)));
 
-		Jim_ListAppendElement	(interp, threadObj, Jim_NewIntObj(interp, id));
-		Jim_ListAppendElement(interp, threadObj, Jim_NewIntObj(interp, info.set_pri));
-		Jim_ListAppendElement(interp, threadObj, Jim_NewIntObj(interp, info.cur_pri));
+		Jim_ListAppendElement(interp, threadObj, Jim_NewIntObj(interp, id));
+		Jim_ListAppendElement(interp, threadObj, Jim_NewIntObj(interp,
+				info.set_pri));
+		Jim_ListAppendElement(interp, threadObj, Jim_NewIntObj(interp,
+				info.cur_pri));
 
 		Jim_ListAppendElement(interp, threads, threadObj);
 	}
-	Jim_SetResult( interp, threads);
+	Jim_SetResult(interp, threads);
 
 	return JIM_OK;
 }
 
-
-static int
-zylinjtag_Jim_Command_ls(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
-{
-	if (argc != 2)
-	{
-		Jim_WrongNumArgs(interp, 1, argv, "ls ?dir?");
-		return JIM_ERR;
-	}
-
-	char *name = (char*) Jim_GetString(argv[1], NULL);
-
-	DIR *dirp = NULL;
-	dirp = opendir(name);
-	if (dirp == NULL)
-	{
-		return JIM_ERR;
-	}
-	Jim_Obj *objPtr = Jim_NewListObj(interp, NULL, 0);
-
-	for (;;)
-	{
-		struct dirent *entry = NULL;
-		entry = readdir(dirp);
-		if (entry == NULL)
-			break;
-
-		if ((strcmp(".", entry->d_name)==0)||(strcmp("..", entry->d_name)==0))
-			continue;
-
-        Jim_ListAppendElement(interp, objPtr, Jim_NewStringObj(interp, entry->d_name, strlen(entry->d_name)));
-	}
-	closedir(dirp);
-
-	Jim_SetResult(interp, objPtr);
-
-	return JIM_OK;
-}
-
-
-static int
-zylinjtag_Jim_Command_getmem(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
-{
-	if (argc != 3)
-	{
-		Jim_WrongNumArgs(interp, 1, argv, "ls ?dir?");
-		return JIM_ERR;
-	}
-
-	long address;
-	long length;
-	if (Jim_GetLong(interp, argv[1], &address) != JIM_OK)
-		return JIM_ERR;
-	if (Jim_GetLong(interp, argv[2], &length) != JIM_OK)
-		return JIM_ERR;
-
-	if (length < 0 && length > (4096 * 1024))
-	{
-		Jim_WrongNumArgs(interp, 1, argv, "getmem ?dir?");
-		return JIM_ERR;
-	}
-
-	void *mem = malloc(length);
-	if (mem == NULL)
-		return JIM_ERR;
-
-	target_t *target = get_current_target(cmd_ctx);
-
-	int retval;
-	int size = 1;
-	int count = length;
-	if ((address % 4 == 0) && (count % 4 == 0))
-	{
-		size = 4;
-		count /= 4;
-	}
-
-	if ((retval  = target->type->read_memory(target, address, size, count, mem)) != ERROR_OK)
-	{
-		free(mem);
-		return JIM_ERR;
-	}
-
-	Jim_Obj *objPtr = Jim_NewStringObj(interp, mem, length);
-	Jim_SetResult(interp, objPtr);
-
-	free(mem);
-
-	return JIM_OK;
-}
-
-static int
-zylinjtag_Jim_Command_peek(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
-{
-	if (argc != 2)
-	{
-		Jim_WrongNumArgs(interp, 1, argv, "peek ?address?");
-		return JIM_ERR;
-	}
-
-	long address;
-	if (Jim_GetLong(interp, argv[1], &address) != JIM_OK)
-		return JIM_ERR;
-
-	int value = *((volatile int *) address);
-
-	Jim_SetResult(interp, Jim_NewIntObj(interp, value));
-
-	return JIM_OK;
-}
-
-static int
-zylinjtag_Jim_Command_poke(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
-{
-	if (argc != 3)
-	{
-		Jim_WrongNumArgs(interp, 1, argv, "poke ?address? ?value?");
-		return JIM_ERR;
-	}
-
-	long address;
-	if (Jim_GetLong(interp, argv[1], &address) != JIM_OK)
-		return JIM_ERR;
-	long value;
-	if (Jim_GetLong(interp, argv[2], &value) != JIM_OK)
-		return JIM_ERR;
-
-	*((volatile int *) address) = value;
-
-	return JIM_OK;
-}
-
-
-
-static int
-zylinjtag_Jim_Command_flash(Jim_Interp *interp,
-                                   int argc,
-		Jim_Obj * const *argv)
-{
-	int retval;
-	u32 base = 0;
-	flash_bank_t *t = get_flash_bank_by_num_noprobe(0);
-	if (t != NULL)
-	{
-		base = t->base;
-		retval = JIM_OK;
-    } else
-	{
-		retval = JIM_ERR;
-	}
-
-	if (retval == JIM_OK)
-	{
-		Jim_SetResult(interp, Jim_NewIntObj(interp, base));
-	}
-
-	return retval;
-}
-
-
-
-
-
-static int
-zylinjtag_Jim_Command_log(Jim_Interp *interp,
-                                   int argc,
+static int zylinjtag_Jim_Command_log(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv)
 {
 	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
 
 	if (logCount >= logSize)
 	{
-    	Jim_AppendString(httpstate.jim_interp, tclOutput, logBuffer+logCount%logSize, logSize-logCount%logSize);
+		Jim_AppendString(httpstate.jim_interp, tclOutput, logBuffer + logCount
+				% logSize, logSize - logCount % logSize);
 	}
 	Jim_AppendString(httpstate.jim_interp, tclOutput, logBuffer, writePtr);
 
@@ -1086,18 +412,14 @@ zylinjtag_Jim_Command_log(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-static int
-zylinjtag_Jim_Command_reboot(Jim_Interp *interp,
-                                   int argc,
+static int zylinjtag_Jim_Command_reboot(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv)
 {
 	reboot();
 	return JIM_OK;
 }
 
-static int
-zylinjtag_Jim_Command_mac(Jim_Interp *interp,
-                                   int argc,
+static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv)
 {
 
@@ -1110,9 +432,7 @@ zylinjtag_Jim_Command_mac(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-static int
-zylinjtag_Jim_Command_ip(Jim_Interp *interp,
-                                   int argc,
+static int zylinjtag_Jim_Command_ip(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv)
 {
 	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
@@ -1156,7 +476,6 @@ zylinjtag_Jim_Command_ip(Jim_Interp *interp,
 
 extern Jim_Interp *interp;
 
-
 static void zylinjtag_startNetwork()
 {
 	// Bring TCP/IP up immediately before we're ready to accept commands.
@@ -1181,18 +500,18 @@ static void zylinjtag_startNetwork()
 
 	interp = httpstate.jim_interp;
 
-    Jim_CreateCommand(httpstate.jim_interp, "log", zylinjtag_Jim_Command_log, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "reboot", zylinjtag_Jim_Command_reboot, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "peek", zylinjtag_Jim_Command_peek, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "zy1000_flash", zylinjtag_Jim_Command_flash, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "poke", zylinjtag_Jim_Command_poke, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "ls", zylinjtag_Jim_Command_ls, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "threads", zylinjtag_Jim_Command_threads, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "getmem", zylinjtag_Jim_Command_getmem, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "mac", zylinjtag_Jim_Command_mac, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "ip", zylinjtag_Jim_Command_ip, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "rm", zylinjtag_Jim_Command_rm, NULL, NULL);
-    Jim_CreateCommand(httpstate.jim_interp, "format_jffs2", zylinjtag_Jim_Command_format_jffs2, NULL, NULL);
+	Jim_CreateCommand(httpstate.jim_interp, "log", zylinjtag_Jim_Command_log,
+			NULL, NULL);
+	Jim_CreateCommand(httpstate.jim_interp, "reboot",
+			zylinjtag_Jim_Command_reboot, NULL, NULL);
+	Jim_CreateCommand(httpstate.jim_interp, "threads",
+			zylinjtag_Jim_Command_threads, NULL, NULL);
+	Jim_CreateCommand(httpstate.jim_interp, "mac", zylinjtag_Jim_Command_mac,
+			NULL, NULL);
+	Jim_CreateCommand(httpstate.jim_interp, "ip", zylinjtag_Jim_Command_ip,
+			NULL, NULL);
+	Jim_CreateCommand(httpstate.jim_interp, "format_jffs2",
+			zylinjtag_Jim_Command_format_jffs2, NULL, NULL);
 
 	cyg_httpd_start();
 
@@ -1225,18 +544,14 @@ static void zylinjtag_startNetwork()
 			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[4],
 			(int) ((unsigned char *) &ifr.ifr_hwaddr.sa_data)[5]);
 
-
-	discover_message=alloc_printf("ZY1000 Zylin JTAG debugger MAC %s", hwaddr);
+	discover_message
+			= alloc_printf("ZY1000 Zylin JTAG debugger MAC %s", hwaddr);
 
 	discover_launch();
 }
 
-
-
-
-
-static void
-print_exception_handler(cyg_addrword_t data, cyg_code_t exception, cyg_addrword_t info)
+static void print_exception_handler(cyg_addrword_t data, cyg_code_t exception,
+		cyg_addrword_t info)
 {
 	writeLog = false;
 	serialLog = true;
@@ -1245,17 +560,17 @@ print_exception_handler(cyg_addrword_t data, cyg_code_t exception, cyg_addrword_
 	{
 #ifdef CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION
 	case CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION:
-		infoStr = "undefined instruction";
-		break;
+	infoStr = "undefined instruction";
+	break;
 	case CYGNUM_HAL_VECTOR_SOFTWARE_INTERRUPT:
-		infoStr = "software interrupt";
-		break;
+	infoStr = "software interrupt";
+	break;
 	case CYGNUM_HAL_VECTOR_ABORT_PREFETCH:
-		infoStr = "abort prefetch";
-		break;
+	infoStr = "abort prefetch";
+	break;
 	case CYGNUM_HAL_VECTOR_ABORT_DATA:
-		infoStr = "abort data";
-		break;
+	infoStr = "abort data";
+	break;
 #endif
 	default:
 		break;
@@ -1282,11 +597,8 @@ static void setHandler(cyg_code_t exception)
 	cyg_exception_handler_t *old_handler;
 	cyg_addrword_t old_data;
 
-	cyg_exception_set_handler(exception,
-	print_exception_handler,
-	0,
-	&old_handler,
-	&old_data);
+	cyg_exception_set_handler(exception, print_exception_handler, 0,
+			&old_handler, &old_data);
 }
 
 static cyg_thread zylinjtag_uart_thread_object;
@@ -1295,7 +607,6 @@ static char uart_stack[4096];
 
 static char forwardBuffer[1024]; // NB! must be smaller than a TCP/IP packet!!!!!
 static char backwardBuffer[1024];
-
 
 void setNoDelay(int session, int flag)
 {
@@ -1324,8 +635,7 @@ struct
 } tcpipSent[512 * 1024];
 int cur;
 
-static void
-zylinjtag_uart(cyg_addrword_t data)
+static void zylinjtag_uart(cyg_addrword_t data)
 {
 	int so_reuseaddr_option = 1;
 
@@ -1336,7 +646,8 @@ zylinjtag_uart(cyg_addrword_t data)
 		exit(-1);
 	}
 
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&so_reuseaddr_option, sizeof(int));
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*) &so_reuseaddr_option,
+			sizeof(int));
 
 	struct sockaddr_in sin;
 	unsigned int address_size;
@@ -1417,7 +728,8 @@ zylinjtag_uart(cyg_addrword_t data)
 			if (actual2 <= 0)
 			{
 				memset(backwardBuffer, 's', sizeof(backwardBuffer));
-				actual2=read(serHandle, backwardBuffer, sizeof(backwardBuffer));
+				actual2 = read(serHandle, backwardBuffer,
+						sizeof(backwardBuffer));
 				if (actual2 < 0)
 				{
 					if (errno != EAGAIN)
@@ -1441,7 +753,8 @@ zylinjtag_uart(cyg_addrword_t data)
 				y = written;
 			}
 
-			if (FD_ISSET(session, &read_fds)&&(sizeof(forwardBuffer)>actual))
+			if (FD_ISSET(session, &read_fds)
+					&& (sizeof(forwardBuffer) > actual))
 			{
 				// NB! Here it is important that we empty the TCP/IP read buffer
 				// to make transmission tick right
@@ -1449,7 +762,8 @@ zylinjtag_uart(cyg_addrword_t data)
 				pos = 0;
 				int t;
 				// this will block if there is no data at all
-				t=read_socket(session, forwardBuffer+actual, sizeof(forwardBuffer)-actual);
+				t = read_socket(session, forwardBuffer + actual,
+						sizeof(forwardBuffer) - actual);
 				if (t <= 0)
 				{
 					goto closeSession;
@@ -1475,7 +789,8 @@ zylinjtag_uart(cyg_addrword_t data)
 					}
 					// The serial buffer is full
 					written = 0;
-				} else
+				}
+				else
 				{
 					actual -= written;
 					pos += written;
@@ -1492,14 +807,14 @@ zylinjtag_uart(cyg_addrword_t data)
 			}
 
 		}
-	    closeSession:
-	    close(session);
+		closeSession: close(session);
 		close(serHandle);
 
 		int i;
 		for (i = 0; i < 1024; i++)
 		{
-	    	diag_printf("%d %d %d %d\n", tcpipSent[i].req, tcpipSent[i].actual, tcpipSent[i].req2, tcpipSent[i].actual2);
+			diag_printf("%d %d %d %d\n", tcpipSent[i].req, tcpipSent[i].actual,
+					tcpipSent[i].req2, tcpipSent[i].actual2);
 
 		}
 	}
@@ -1509,28 +824,23 @@ zylinjtag_uart(cyg_addrword_t data)
 
 void startUart(void)
 {
-    cyg_thread_create(1,
-                      zylinjtag_uart,
-                      (cyg_addrword_t)0,
-                      "uart thread",
-                      (void *)uart_stack,
-                      sizeof(uart_stack),
-                      &zylinjtag_uart_thread_handle,
-                      &zylinjtag_uart_thread_object);
+	cyg_thread_create(1, zylinjtag_uart, (cyg_addrword_t) 0, "uart thread",
+			(void *) uart_stack, sizeof(uart_stack),
+			&zylinjtag_uart_thread_handle, &zylinjtag_uart_thread_object);
 	cyg_thread_set_priority(zylinjtag_uart_thread_handle, 1); // low priority as it sits in a busy loop
 	cyg_thread_resume(zylinjtag_uart_thread_handle);
 }
 
-
-
-int handle_uart_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_uart_command(struct command_context_s *cmd_ctx, char *cmd,
+		char **args, int argc)
 {
 	static int current_baud = 38400;
 	if (argc == 0)
 	{
 		command_print(cmd_ctx, "%d", current_baud);
 		return ERROR_OK;
-	} else if (argc != 1)
+	}
+	else if (argc != 1)
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
@@ -1577,9 +887,10 @@ int handle_uart_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		return ERROR_FAIL;
 	}
 
-
-	err = cyg_io_get_config(serial_handle, CYG_IO_GET_CONFIG_SERIAL_OUTPUT_DRAIN, &buf, &len);
-	err = cyg_io_get_config(serial_handle, CYG_IO_GET_CONFIG_SERIAL_INFO, &buf, &len);
+	err = cyg_io_get_config(serial_handle,
+			CYG_IO_GET_CONFIG_SERIAL_OUTPUT_DRAIN, &buf, &len);
+	err = cyg_io_get_config(serial_handle, CYG_IO_GET_CONFIG_SERIAL_INFO, &buf,
+			&len);
 	if (err != ENOERR)
 	{
 		command_print(cmd_ctx, "Failed to get serial port settings %d", err);
@@ -1587,7 +898,8 @@ int handle_uart_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	}
 	buf.baud = baud;
 
-	err = cyg_io_set_config(serial_handle, CYG_IO_SET_CONFIG_SERIAL_INFO, &buf, &len);
+	err = cyg_io_set_config(serial_handle, CYG_IO_SET_CONFIG_SERIAL_INFO, &buf,
+			&len);
 	if (err != ENOERR)
 	{
 		command_print(cmd_ctx, "Failed to set serial port settings %d", err);
@@ -1599,48 +911,26 @@ int handle_uart_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 bool logAllToSerial = false;
 
-/* boolean parameter stored on config */
-bool boolParam(char *var)
-{
-	bool result = false;
-	char *name = alloc_printf(ZYLIN_CONFIG_DIR "/%s", var);
-	if (name == NULL)
-		return result;
 
-	void *data;
-	int len;
-	if (loadFile(name, &data, &len) == ERROR_OK)
-	{
-		if (len > 1)
-			len = 1;
-		result = strncmp((char *) data, "1", len) == 0;
-		free(data);
-	}
-	free(name);
-	return result;
-}
+int boolParam(char *var);
+
 
 command_context_t *setup_command_handler();
 
+extern const char *zylin_config_dir;
+
 int add_default_dirs(void)
 {
-	add_script_search_dir(ZYLIN_CONFIG_DIR);
+	add_script_search_dir(zylin_config_dir);
 	add_script_search_dir("/rom/lib/openocd");
 	add_script_search_dir("/rom");
 	return ERROR_OK;
 }
 
-static cyg_uint8 *ramblockdevice;
-static const int ramblockdevice_size=4096*1024;
 int main(int argc, char *argv[])
 {
 	/* ramblockdevice will be the same address every time. The deflate app uses a buffer 16mBytes out, so we
 	 * need to allocate towards the end of the heap.  */
-
-	ramblockdevice=(cyg_uint8 *)malloc(ramblockdevice_size);
-	memset(ramblockdevice, 0xff, ramblockdevice_size);
-
-
 
 #ifdef CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION
 	setHandler(CYGNUM_HAL_VECTOR_UNDEF_INSTRUCTION);
@@ -1650,9 +940,11 @@ int main(int argc, char *argv[])
 
 	int err;
 
-	setPower(true); // on by default
-
 	atexit(keep_webserver);
+
+	diag_init_putc(_zylinjtag_diag_write_char);
+	// We want this in the log.
+	diag_printf("Zylin ZY1000.\n");
 
 	err = mount("", "/ram", "ramfs");
 	if (err < 0)
@@ -1688,11 +980,6 @@ int main(int argc, char *argv[])
 		exit(-1);
 	}
 
-	diag_init_putc(_zylinjtag_diag_write_char);
-
-	// We want this in the log.
-	diag_printf("Zylin ZY1000. Copyright Zylin AS 2007-2008.\n");
-	diag_printf("%s\n", ZYLIN_OPENOCD_VERSION);
 
 	copydir("/rom", "/ram/cgi");
 
@@ -1701,12 +988,13 @@ int main(int argc, char *argv[])
 	{
 		diag_printf("unable to mount jffs2, falling back to ram disk..\n");
 		err = mount("", "/config", "ramfs");
-		if (err<0)
+		if (err < 0)
 		{
 			diag_printf("unable to mount /config as ramdisk.\n");
 			reboot();
 		}
-	} else
+	}
+	else
 	{
 		/* are we using a ram disk instead of a flash disk? This is used
 		 * for ZY1000 live demo...
@@ -1716,7 +1004,7 @@ int main(int argc, char *argv[])
 		if (boolParam("ramdisk"))
 		{
 			diag_printf("Unmounting /config from flash and using ram instead\n");
-			err=umount("/config");
+			err = umount("/config");
 			if (err < 0)
 			{
 				diag_printf("unable to unmount jffs\n");
@@ -1737,22 +1025,21 @@ int main(int argc, char *argv[])
 				reboot();
 			}
 
-	//		copydir("/config2", "/config");
+			//		copydir("/config2", "/config");
 			copyfile("/config2/ip", "/config/ip");
 			copydir("/config2/settings", "/config/settings");
 
 			umount("/config2");
-		} else
-		{
-			/* we're not going to use a ram block disk */
-			free(ramblockdevice);
 		}
 	}
 
-
-	mkdir(ZYLIN_CONFIG_DIR, 0777);
-	mkdir(ZYLIN_CONFIG_DIR "/target", 0777);
-	mkdir(ZYLIN_CONFIG_DIR "/event", 0777);
+	mkdir(zylin_config_dir, 0777);
+	char *dirname=alloc_printf("%s/target", zylin_config_dir);
+	mkdir(dirname, 0777);
+	free(dirname);
+	dirname=alloc_printf("%s/event", zylin_config_dir);
+	mkdir(dirname, 0777);
+	free(dirname);
 
 	logAllToSerial = boolParam("logserial");
 
@@ -1767,43 +1054,18 @@ int main(int argc, char *argv[])
 	add_default_dirs();
 
 	/* initialize commandline interface */
-	command_context_t *cmd_ctx;
+	command_context_t * cmd_ctx;
 	cmd_ctx = setup_command_handler();
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);
-
-
-	register_command(cmd_ctx, NULL, "zy1000_version", handle_zy1000_version_command,
-			COMMAND_EXEC, "show zy1000 version numbers");
-
-	register_command(cmd_ctx, NULL, "rm", handle_rm_command, COMMAND_ANY,
-			"remove file");
-
-	register_command(cmd_ctx, NULL, "cat", handle_cat_command, COMMAND_ANY,
-			"display file content");
-
-	register_command(cmd_ctx, NULL, "trunc", handle_trunc_command, COMMAND_ANY,
-			"truncate a file to 0 size");
-
-	register_command(cmd_ctx, NULL, "append_file", handle_append_command,
-			COMMAND_ANY, "append a variable number of strings to a file");
-
-	register_command(cmd_ctx, NULL, "power", handle_power_command, COMMAND_ANY,
-			"power <on/off> - turn power switch to target on/off. No arguments - print status.");
-
-	register_command(cmd_ctx, NULL, "meminfo", handle_meminfo_command,
-			COMMAND_ANY, "display available ram memory");
-
-	register_command(cmd_ctx, NULL, "cp", handle_cp_command,
-					 COMMAND_ANY, "copy a file <from> <to>");
 
 #ifdef CYGPKG_PROFILE_GPROF
 	register_command(cmd_ctx, NULL, "ecosboard_profile", eCosBoard_handle_eCosBoard_profile_command,
 			COMMAND_ANY, NULL);
 #endif
-	register_command(cmd_ctx, NULL, "uart", handle_uart_command,
-					 COMMAND_ANY, "uart <baud>  - forward uart on port 5555");
 
+	register_command(cmd_ctx, NULL, "uart", handle_uart_command, COMMAND_ANY,
+			"uart <baud>  - forward uart on port 5555");
 
 	int errVal;
 	errVal = log_init(cmd_ctx);
@@ -1821,11 +1083,12 @@ int main(int argc, char *argv[])
 
 	if (logAllToSerial)
 	{
-		diag_printf(ZYLIN_CONFIG_DIR "/logserial=1 => sending log output to serial port using \"debug_level 3\" as default.\n");
+		diag_printf(
+				 "%s/logserial=1 => sending log output to serial port using \"debug_level 3\" as default.\n", zylin_config_dir);
 		command_run_line(cmd_ctx, "debug_level 3");
 	}
 
-	zylinjtag_parse_config_file(cmd_ctx, "/rom/openocd.cfg");
+	command_run_linef(cmd_ctx, "script /rom/openocd.cfg");
 
 	// FIX!!!  Yuk!
 	// diag_printf() is really invoked from many more places than we trust it
@@ -1834,7 +1097,8 @@ int main(int argc, char *argv[])
 	// Disabling it here is safe and gives us enough logged debug output for now. Crossing
 	// fingers that it doesn't cause any crashes.
 	diag_printf("Init complete, GDB & telnet servers launched.\n");
-	command_set_output_handler(cmd_ctx, zy1000_configuration_output_handler_log, NULL);
+	command_set_output_handler(cmd_ctx,
+			zy1000_configuration_output_handler_log, NULL);
 	if (!logAllToSerial)
 	{
 		serialLog = false;
@@ -1852,13 +1116,11 @@ int main(int argc, char *argv[])
 	umount("/config");
 
 	exit(0);
-	for (;;);
+	for (;;)
+		;
 }
 
-
-
-cyg_int32
-cyg_httpd_exec_cgi_tcl(char *file_name);
+cyg_int32 cyg_httpd_exec_cgi_tcl(char *file_name);
 cyg_int32 homeForm(CYG_HTTPD_STATE *p)
 {
 	cyg_httpd_exec_cgi_tcl("/ram/cgi/index.tcl");
@@ -1960,18 +1222,12 @@ FSTAB_ENTRY( tftpfs_fste, "tftpfs", 0,
 // This set of file operations are used for normal open files.
 
 static cyg_fileops tftpfs_fileops =
-{
-	tftpfs_fo_read,
-	tftpfs_fo_write,
-	tftpfs_fo_lseek,
-	(cyg_fileop_ioctl *)cyg_fileio_erofs,
-    cyg_fileio_seltrue,
-    tftpfs_fo_fsync,
-    tftpfs_fo_close,
+{ tftpfs_fo_read, tftpfs_fo_write, tftpfs_fo_lseek,
+		(cyg_fileop_ioctl *) cyg_fileio_erofs, cyg_fileio_seltrue,
+		tftpfs_fo_fsync, tftpfs_fo_close,
 		(cyg_fileop_fstat *) cyg_fileio_erofs,
 		(cyg_fileop_getinfo *) cyg_fileio_erofs,
-	(cyg_fileop_setinfo *)cyg_fileio_erofs,
-};
+		(cyg_fileop_setinfo *) cyg_fileio_erofs, };
 
 // -------------------------------------------------------------------------
 // tftpfs_mount()
@@ -2068,7 +1324,8 @@ static int fetchTftp(struct Tftp *tftp)
 	if (!tftp->readFile)
 	{
 		int err;
-	    tftp->actual = tftp_client_get( tftp->file, tftp->server, 0, tftp->mem, tftpMaxSize,   TFTP_OCTET, &err);
+		tftp->actual = tftp_client_get(tftp->file, tftp->server, 0, tftp->mem,
+				tftpMaxSize, TFTP_OCTET, &err);
 
 		if (tftp->actual < 0)
 		{
@@ -2083,8 +1340,7 @@ static int fetchTftp(struct Tftp *tftp)
 // tftpfs_fo_write()
 // Read data from file.
 
-static int
-tftpfs_fo_read(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio)
+static int tftpfs_fo_read(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio)
 {
 	struct Tftp *tftp = (struct Tftp *) fp->f_data;
 
@@ -2116,9 +1372,7 @@ tftpfs_fo_read(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio)
 	return ENOERR;
 }
 
-
-static int
-tftpfs_fo_write(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio)
+static int tftpfs_fo_write(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio)
 {
 	struct Tftp *tftp = (struct Tftp *) fp->f_data;
 
@@ -2149,8 +1403,7 @@ tftpfs_fo_write(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio)
 	return ENOERR;
 }
 
-static int
-tftpfs_fo_fsync(struct CYG_FILE_TAG *fp, int mode)
+static int tftpfs_fo_fsync(struct CYG_FILE_TAG *fp, int mode)
 {
 	int error = ENOERR;
 	return error;
@@ -2167,7 +1420,8 @@ static int tftpfs_fo_close(struct CYG_FILE_TAG *fp)
 
 	if (tftp->write)
 	{
-	    tftp_client_put( tftp->file, tftp->server, 0, tftp->mem, fp->f_offset,   TFTP_OCTET, &error);
+		tftp_client_put(tftp->file, tftp->server, 0, tftp->mem, fp->f_offset,
+				TFTP_OCTET, &error);
 	}
 
 	freeTftp(tftp);
@@ -2227,13 +1481,13 @@ void usleep(int us)
 }
 
 // Chunked version.
-cyg_int32
-show_log_entry(CYG_HTTPD_STATE *phttpstate)
+cyg_int32 show_log_entry(CYG_HTTPD_STATE *phttpstate)
 {
 	cyg_httpd_start_chunked("text");
 	if (logCount >= logSize)
 	{
-        cyg_httpd_write_chunked(logBuffer+logCount%logSize, logSize-logCount%logSize);
+		cyg_httpd_write_chunked(logBuffer + logCount % logSize, logSize
+				- logCount % logSize);
 	}
 	cyg_httpd_write_chunked(logBuffer, writePtr);
 	cyg_httpd_end_chunked();
@@ -2247,8 +1501,7 @@ static int logfs_mount(cyg_fstab_entry *fste, cyg_mtab_entry *mte);
 static int logfs_umount(cyg_mtab_entry *mte);
 static int logfs_open(cyg_mtab_entry *mte, cyg_dir dir, const char *name,
 		int mode, cyg_file *fte);
-static int
-logfs_fo_write(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio);
+static int logfs_fo_write(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio);
 
 // File operations
 static int logfs_fo_fsync(struct CYG_FILE_TAG *fp, int mode);
@@ -2285,18 +1538,12 @@ FSTAB_ENTRY( logfs_fste, "logfs", 0,
 // This set of file operations are used for normal open files.
 
 static cyg_fileops logfs_fileops =
-{
-	(cyg_fileop_read *)cyg_fileio_erofs,
-    (cyg_fileop_write *)logfs_fo_write,
+{ (cyg_fileop_read *) cyg_fileio_erofs, (cyg_fileop_write *) logfs_fo_write,
 		(cyg_fileop_lseek *) cyg_fileio_erofs,
-	(cyg_fileop_ioctl *)cyg_fileio_erofs,
-    cyg_fileio_seltrue,
-    logfs_fo_fsync,
-    logfs_fo_close,
-	(cyg_fileop_fstat *)cyg_fileio_erofs,
+		(cyg_fileop_ioctl *) cyg_fileio_erofs, cyg_fileio_seltrue,
+		logfs_fo_fsync, logfs_fo_close, (cyg_fileop_fstat *) cyg_fileio_erofs,
 		(cyg_fileop_getinfo *) cyg_fileio_erofs,
-	(cyg_fileop_setinfo *)cyg_fileio_erofs,
-};
+		(cyg_fileop_setinfo *) cyg_fileio_erofs, };
 
 // -------------------------------------------------------------------------
 // logfs_mount()
@@ -2329,8 +1576,7 @@ static int logfs_open(cyg_mtab_entry *mte, cyg_dir dir, const char *name,
 // logfs_fo_write()
 // Write data to file.
 
-static int
-logfs_fo_write(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio)
+static int logfs_fo_write(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio)
 {
 	int i;
 	for (i = 0; i < uio->uio_iovcnt; i++)
@@ -2345,8 +1591,7 @@ logfs_fo_write(struct CYG_FILE_TAG *fp, struct CYG_UIO_TAG *uio)
 
 	return ENOERR;
 }
-static int
-logfs_fo_fsync(struct CYG_FILE_TAG *fp, int mode)
+static int logfs_fo_fsync(struct CYG_FILE_TAG *fp, int mode)
 {
 	return ENOERR;
 }

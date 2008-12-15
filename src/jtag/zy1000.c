@@ -32,6 +32,12 @@
 
 #include <stdlib.h>
 
+#define ZYLIN_VERSION "1.48"
+#define ZYLIN_DATE __DATE__
+#define ZYLIN_TIME __TIME__
+#define ZYLIN_OPENOCD "$Revision: 1241 $"
+#define ZYLIN_OPENOCD_VERSION "Zylin JTAG ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE " " ZYLIN_TIME
+const char *zylin_config_dir="/config/settings";
 
 extern int jtag_error;
 
@@ -223,7 +229,7 @@ int zy1000_speed(int speed)
 	{
 		if(speed > 8190 || speed < 2)
 		{
-			LOG_ERROR("valid ZY1000 jtag_speed=[8190,2]. Divisor is 64MHz / even values between 8190-2, i.e. min 7814Hz, max 32MHz");
+			LOG_USER("valid ZY1000 jtag_speed=[8190,2]. Divisor is 64MHz / even values between 8190-2, i.e. min 7814Hz, max 32MHz");
 			return ERROR_INVALID_ARGUMENTS;
 		}
 
@@ -234,15 +240,105 @@ int zy1000_speed(int speed)
 	return ERROR_OK;
 }
 
+static bool savePower;
+
+
+static void setPower(bool power)
+{
+	savePower = power;
+	if (power)
+	{
+		HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x14, 0x8);
+	} else
+	{
+		HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x10, 0x8);
+	}
+}
+
+int handle_power_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc > 1)
+	{
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	if (argc == 1)
+	{
+		if (strcmp(args[0], "on") == 0)
+		{
+			setPower(1);
+		}
+		else if (strcmp(args[0], "off") == 0)
+		{
+			setPower(0);
+		} else
+		{
+			command_print(cmd_ctx, "arg is \"on\" or \"off\"");
+			return ERROR_INVALID_ARGUMENTS;
+		}
+	}
+
+	command_print(cmd_ctx, "Target power %s", savePower ? "on" : "off");
+
+	return ERROR_OK;
+}
+
+
+/* Give TELNET a way to find out what version this is */
+int handle_zy1000_version_command(struct command_context_s *cmd_ctx, char *cmd,
+		char **args, int argc)
+{
+	if (argc > 1)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	if (argc == 0)
+	{
+		command_print(cmd_ctx, ZYLIN_OPENOCD_VERSION);
+	}
+	else if (strcmp("openocd", args[0]) == 0)
+	{
+		int revision;
+		revision = atol(ZYLIN_OPENOCD+strlen("XRevision: "));
+		command_print(cmd_ctx, "%d", revision);
+	}
+	else if (strcmp("zy1000", args[0]) == 0)
+	{
+		command_print(cmd_ctx, "%s", ZYLIN_VERSION);
+	}
+	else if (strcmp("date", args[0]) == 0)
+	{
+		command_print(cmd_ctx, "%s", ZYLIN_DATE);
+	}
+	else
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return ERROR_OK;
+}
+
+
 int zy1000_register_commands(struct command_context_s *cmd_ctx)
 {
+	register_command(cmd_ctx, NULL, "power", handle_power_command, COMMAND_ANY,
+			"power <on/off> - turn power switch to target on/off. No arguments - print status.");
+	register_command(cmd_ctx, NULL, "zy1000_version", handle_zy1000_version_command,
+			COMMAND_EXEC, "show zy1000 version numbers");
+
+
 	return ERROR_OK;
 }
 
 
 int zy1000_init(void)
 {
+	LOG_ERROR("%s\n", ZYLIN_OPENOCD_VERSION);
+
 	ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x30); // Turn on LED1 & LED2
+
+	setPower(true); // on by default
+
 
 	 /* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
 	zy1000_reset(0, 0);
@@ -257,63 +353,6 @@ int zy1000_quit(void)
 {
 
 	return ERROR_OK;
-}
-
-
-
-/* loads a file and returns a pointer to it in memory. The file contains
- * a 0 byte(sentinel) after len bytes - the length of the file. */
-int loadFile(const char *fileName, void **data, int *len)
-{
-	FILE * pFile;
-	pFile = fopen(fileName,"rb");
-	if (pFile==NULL)
-	{
-		LOG_ERROR("Can't open %s\n", fileName);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	if (fseek(pFile, 0, SEEK_END)!=0)
-	{
-		LOG_ERROR("Can't open %s\n", fileName);
-		fclose(pFile);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	*len=ftell(pFile);
-	if (*len==-1)
-	{
-		LOG_ERROR("Can't open %s\n", fileName);
-		fclose(pFile);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	if (fseek(pFile, 0, SEEK_SET)!=0)
-	{
-		LOG_ERROR("Can't open %s\n", fileName);
-		fclose(pFile);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	*data=malloc(*len+1);
-	if (*data==NULL)
-	{
-		LOG_ERROR("Can't open %s\n", fileName);
-		fclose(pFile);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-
-	if (fread(*data, 1, *len, pFile)!=*len)
-	{
-		fclose(pFile);
-	free(*data);
-		LOG_ERROR("Can't open %s\n", fileName);
-		return ERROR_JTAG_DEVICE_ERROR;
-	}
-	fclose(pFile);
-	*(((char *)(*data))+*len)=0; /* sentinel */
-
-	return ERROR_OK;
-
-
-
 }
 
 
@@ -703,7 +742,7 @@ int interface_jtag_add_pathmove(int num_states, enum tap_state *path)
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(path[state_count)]);
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(path[state_count]));
 			exit(-1);
 		}
 
@@ -760,3 +799,25 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little
 	}
 }
 
+int loadFile(const char *fileName, void **data, int *len);
+
+/* boolean parameter stored on config */
+int boolParam(char *var)
+{
+	bool result = false;
+	char *name = alloc_printf("%s/%s", zylin_config_dir, var);
+	if (name == NULL)
+		return result;
+
+	void *data;
+	int len;
+	if (loadFile(name, &data, &len) == ERROR_OK)
+	{
+		if (len > 1)
+			len = 1;
+		result = strncmp((char *) data, "1", len) == 0;
+		free(data);
+	}
+	free(name);
+	return result;
+}

@@ -9,8 +9,15 @@ else
 CONFIGFILES = options.c jim.c jim-eventloop.c 
 endif
 
+
+
 libhelper_a_SOURCES = binarybuffer.c $(CONFIGFILES) configuration.c log.c command.c time_support.c \
 	replacements.c fileio.c startup_tcl.c
+
+if IOUTIL
+libhelper_a_SOURCES += ioutil.c
+endif
+
 
 noinst_HEADERS = binarybuffer.h configuration.h types.h log.h command.h \
 	time_support.h replacements.h fileio.h jim.h jim-eventloop.h \

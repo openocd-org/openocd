@@ -6,6 +6,7 @@ else
 MAINFILE = main.c
 endif
 
+
 openocd_SOURCES = $(MAINFILE) openocd.c
 
 # set the include path found by configure
