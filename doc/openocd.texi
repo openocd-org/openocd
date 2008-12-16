@@ -544,7 +544,7 @@ Some key things you should look at and understand are:
 
 @enumerate
 @item The RESET configuration of your debug environment as a hole
-@item Is there a ``work area'' that that OpenOCD can use?
+@item Is there a ``work area'' that OpenOCD can use?
 @* For ARM - work areas mean up to 10x faster downloads.
 @item For MMU/MPU based ARM chips (ie: ARM9 and later) will that work area still be available?
 @item For complex targets (multiple chips) the JTAG SPEED becomes an issue.
@@ -920,7 +920,7 @@ can type a Tcl for() loop, set variables, etc.
 
 @node Daemon Configuration
 @chapter Daemon Configuration
-The commands here are commonly found inthe openocd.cfg file and are
+The commands here are commonly found in the openocd.cfg file and are
 used to specify what TCP/IP ports are used, and how GDB should be
 supported.
 @section init
@@ -1492,9 +1492,9 @@ have the taps created in the proper order.
 by the ``jtag newtap'' command. The documentation remains here so that
 one can easily convert the old syntax to the new syntax. About the old
 syntax: The old syntax is positional, ie: The 4th parameter is the
-``irmask'' The new syntax requires named prefixes, and supports
-additional options, for example ``-irmask 4'' Please refer to the
-@b{jtag newtap} command for deails.
+``irmask''. The new syntax requires named prefixes, and supports
+additional options, for example ``-irmask 4''. Please refer to the
+@b{jtag newtap} command for details.
 @example
 OLD: jtag_device 8 0x01 0x0e3 0xfe
 NEW: jtag newtap CHIPNAME TAPNAME -irlen 8 -ircapture 0xe3 -irmask 0xfe
@@ -1543,7 +1543,7 @@ The IEEE JTAG definition has no concept of a ``disabled'' tap.
 
 @b{jtag tapisenabled DOTTED.NAME}
 
-This command return 1 if the named tap is currently enabled, 0 if not.
+This command returns 1 if the named tap is currently enabled, 0 if not.
 This command exists so that scripts that manipulate a JRC (like the
 Omap3530 has) can determine if OpenOCD thinks a tap is presently
 enabled, or disabled.
@@ -1558,7 +1558,7 @@ creating a ``target'' a JTAG Tap DOTTED.NAME must exist first.
 @section targets [NAME]
 @b{Note:} This command name is PLURAL - not singular.  
 
-With NO parameter, this pural @b{targets} command lists all known
+With NO parameter, this plural @b{targets} command lists all known
 targets in a human friendly form.
 
 With a parameter, this pural @b{targets} command sets the current
@@ -1690,13 +1690,13 @@ with odd reset situations and are not documented here.
 @end itemize
 
 @section Target Events
-At various times, certian things happen, or you want to happen.
+At various times, certain things can happen, or you want them to happen.
 
 Examples:
 @itemize @bullet
 @item What should happen when GDB connects? Should your target reset?
 @item When GDB tries to flash the target, do you need to enable the flash via a special command?
-@item During reset, do you need to write to certian memory locations to reconfigure the SDRAM?
+@item During reset, do you need to write to certain memory location to reconfigure the SDRAM?
 @end itemize
 
 All of the above items are handled by target events.
@@ -1708,7 +1708,7 @@ Syntactially, the option is: ``-event NAME BODY'' where NAME is a
 target event name, and BODY is a tcl procedure or string of commands
 to execute. 
 
-The programers model is the: ``-command'' option used in Tcl/Tk
+The programmers model is the ``-command'' option used in Tcl/Tk
 buttons and events. Below are two identical examples, the first
 creates and invokes small procedure. The second inlines the procedure.
 
@@ -1822,13 +1822,13 @@ command.
 @comment end TYPES
 @end itemize
 @item @b{PARAMS}
-@*PARAMs are various target configure parameters, the following are manditory
-at configuration.
-@comment START manditory
+@*PARAMs are various target configure parameters, the following are mandatory
+at configuration:
+@comment START mandatory
 @itemize @bullet
 @item @b{-endian big|little}
 @item @b{-chain-position DOTTED.NAME}
-@comment end MANDITORY
+@comment end MANDATORY
 @end itemize
 @comment END params
 @end itemize
@@ -3269,7 +3269,7 @@ OpenOCD.
 @section TCL Rule #1
 There is a famous joke, it goes like this:
 @enumerate
-@item Rule #1: The wife is aways correct
+@item Rule #1: The wife is always correct
 @item Rule #2: If you think otherwise, See Rule #1
 @end enumerate
 
@@ -3280,7 +3280,7 @@ The TCL equal is this:
 @item Rule #2: If you think otherwise, See Rule #1
 @end enumerate
 
-As in the famous joke, the consiquences of Rule #1 are profound. Once
+As in the famous joke, the consequences of Rule #1 are profound. Once
 you understand Rule #1, you will understand TCL.
 
 @section TCL Rule #1b
@@ -3350,9 +3350,9 @@ nested 3 times@}@}@} NOTE: [date] is perhaps a bad example, as of
 28/nov/2008, Jim/OpenOCD does not have a date command.
 @end itemize
 
-@section Consiquences of Rule 1/2/3/4
+@section Consequences of Rule 1/2/3/4
 
-The consiquences of Rule 1 is profound.
+The consequences of Rule 1 is profound.
 
 @subsection Tokenizing & Execution.
 
