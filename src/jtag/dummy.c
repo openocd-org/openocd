@@ -30,18 +30,24 @@ int dummy_speed(int speed);
 int dummy_register_commands(struct command_context_s *cmd_ctx);
 int dummy_init(void);
 int dummy_quit(void);
+static int dummy_khz(int khz, int *jtag_speed);
+static int dummy_speed_div(int speed, int *khz);
 
-/* The dummy driver is used to easily check the code path 
+
+/* The dummy driver is used to easily check the code path
  * where the target is unresponsive.
  */
-jtag_interface_t dummy_interface = 
+jtag_interface_t dummy_interface =
 {
 	.name = "dummy",
-	
+
 	.execute_queue = bitbang_execute_queue,
 
-	.speed = dummy_speed,	
+	.speed = dummy_speed,
 	.register_commands = dummy_register_commands,
+	.khz = dummy_khz,
+	.speed_div = dummy_speed_div,
+
 	.init = dummy_init,
 	.quit = dummy_quit,
 };
@@ -72,6 +78,33 @@ void dummy_reset(int trst, int srst)
 {
 }
 
+static int dummy_khz(int khz, int *jtag_speed)
+{
+	if (khz==0)
+	{
+		*jtag_speed=0;
+	}
+	else
+	{
+		*jtag_speed=64000/khz;
+	}
+	return ERROR_OK;
+}
+
+static int dummy_speed_div(int speed, int *khz)
+{
+	if (speed==0)
+	{
+		*khz = 0;
+	}
+	else
+	{
+		*khz=64000/speed;
+	}
+
+	return ERROR_OK;
+}
+
 int dummy_speed(int speed)
 {
 	return ERROR_OK;
@@ -84,7 +117,7 @@ int dummy_register_commands(struct command_context_s *cmd_ctx)
 
 int dummy_init(void)
 {
-	bitbang_interface = &dummy_bitbang;	
+	bitbang_interface = &dummy_bitbang;
 
 	return ERROR_OK;
 }
