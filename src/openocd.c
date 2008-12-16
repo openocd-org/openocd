@@ -229,6 +229,9 @@ command_context_t *setup_command_handler(void)
 	return cmd_ctx;
 }
 
+int httpd_start(void);
+void httpd_stop(void);
+
 /* normally this is the main() function entry, but if OpenOCD is linked
  * into application, then this fn will not be invoked, but rather that
  * application will have it's own implementation of main(). */
@@ -255,6 +258,11 @@ int openocd_main(int argc, char *argv[])
 	if ( (ret != ERROR_OK) && (ret != ERROR_COMMAND_CLOSE_CONNECTION) )
 		return EXIT_FAILURE;
 
+#if BUILD_HTTPD
+	if (httpd_start()!=ERROR_OK)
+		return EXIT_FAILURE;
+#endif
+
 	if (ret != ERROR_COMMAND_CLOSE_CONNECTION)
 	{
 		command_context_mode(cmd_ctx, COMMAND_EXEC);
@@ -268,10 +276,15 @@ int openocd_main(int argc, char *argv[])
 	/* shut server down */
 	server_quit();
 
+#if BUILD_HTTPD
+	httpd_stop();
+#endif
+
 	unregister_all_commands(cmd_ctx);
 
 	/* free commandline interface */
 	command_done(cmd_ctx);
+
 
 	return EXIT_SUCCESS;
 }

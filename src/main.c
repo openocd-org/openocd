@@ -18,6 +18,12 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#if !BUILD_HTTPD
 /* implementations of OpenOCD that uses multithreading needs to know when
  * OpenOCD is sleeping. No-op in vanilla OpenOCD
  */
@@ -28,13 +34,14 @@ void openocd_sleep_prelude(void)
 void openocd_sleep_postlude(void)
 {
 }
+#endif
 
 /* This is the main entry for developer PC hosted OpenOCD.
  *
  * OpenOCD can also be used as a library that is linked with
  * another application(not mainstream yet, but possible), e.g.
  * w/as an embedded application.
- * 
+ *
  * Those applications will have their own main() implementation
  * and use bits and pieces from openocd.c. */
 

@@ -79,6 +79,13 @@ openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
 	$(top_builddir)/src/pld/libpld.a \
 	$(FTDI2232LIB) $(FTD2XXLIB) $(MINGWLDADD) $(LIBUSB)
 
+
+if HTTPD
+openocd_LDADD += -lmicrohttpd
+endif
+
+
+
 nobase_dist_pkglib_DATA = \
 	tcl/bitsbytes.tcl			\
 	tcl/chip/atmel/at91/aic.tcl		\
