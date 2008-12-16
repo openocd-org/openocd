@@ -180,7 +180,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 				return retval;
 			gdb_con->buf_cnt = read_socket(connection->fd, gdb_con->buffer, GDB_BUFFER_SIZE);
 		}
-		
+
 		if (gdb_con->buf_cnt > 0)
 		{
 			break;
@@ -276,7 +276,7 @@ int gdb_write(connection_t *connection, void *data, int len)
 	gdb_connection_t *gdb_con = connection->priv;
 	if (gdb_con->closed)
 		return ERROR_SERVER_REMOTE_CLOSED;
-	
+
 	if (connection->service->type == CONNECTION_PIPE)
 	{
 		/* write to stdout */
@@ -2205,7 +2205,7 @@ int gdb_init(void)
 	if (server_use_pipes)
 	{
 		/* only a single gdb connection when using a pipe */
-		
+
 		gdb_service = malloc(sizeof(gdb_service_t));
 		gdb_service->target = target;
 
@@ -2221,12 +2221,12 @@ int gdb_init(void)
 			gdb_service->target = target;
 
 			add_service("gdb", CONNECTION_TCP, gdb_port + target->target_number, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
-			
+
 			LOG_DEBUG("gdb service for target %s at port %i", target->type->name, gdb_port + target->target_number);
 			target = target->next;
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -2377,7 +2377,7 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 int gdb_register_commands(command_context_t *command_context)
 {
 	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
-			COMMAND_CONFIG, "daemon configuration command gdb_port");
+			COMMAND_ANY, "daemon configuration command gdb_port");
 	register_command(command_context, NULL, "gdb_detach", handle_gdb_detach_command,
 			COMMAND_CONFIG, "");
 	register_command(command_context, NULL, "gdb_memory_map", handle_gdb_memory_map_command,
