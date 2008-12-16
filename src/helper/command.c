@@ -290,9 +290,9 @@ int unregister_command(command_context_t *context, char *name)
 
 	/* find command */
 	c = context->commands;
-	
+
 	while(NULL != c)
-	{		
+	{
 		if (strcmp(name, c->name) == 0)
 		{
 			/* unlink command */
@@ -305,7 +305,7 @@ int unregister_command(command_context_t *context, char *name)
 				/* first element in command list */
 				context->commands = c->next;
 			}
-			
+
 			/* unregister children */
 			while(NULL != c->children)
 			{
@@ -316,7 +316,7 @@ int unregister_command(command_context_t *context, char *name)
 				free(c2);
 				c2 = NULL;
 			}
-			
+
 			/* delete command */
 			free(c->name);
 			c->name = NULL;
@@ -324,7 +324,7 @@ int unregister_command(command_context_t *context, char *name)
 			c = NULL;
 			return ERROR_OK;
 		}
-		
+
 		/* remember the last command for unlinking */
 		p = c;
 		c = c->next;
@@ -479,21 +479,20 @@ int command_run_line(command_context_t *context, char *line)
 		int reslen;
 
 		result = Jim_GetString(Jim_GetResult(interp), &reslen);
-		if (reslen) {
-			int i;
-			char buff[256+1];
-			for (i = 0; i < reslen; i += 256)
-			{
-				int chunk;
-				chunk = reslen - i;
-				if (chunk > 256)
-					chunk = 256;
-				strncpy(buff, result+i, chunk);
-				buff[chunk] = 0;
-				LOG_USER_N("%s", buff);
-			}
-			LOG_USER_N("%s", "\n");
+		int i;
+		char buff[256+1];
+		for (i = 0; i < reslen; i += 256)
+		{
+			int chunk;
+			chunk = reslen - i;
+			if (chunk > 256)
+				chunk = 256;
+			strncpy(buff, result+i, chunk);
+			buff[chunk] = 0;
+			LOG_USER_N("%s", buff);
 		}
+		LOG_USER_N("%s", "\n");
+		retval=ERROR_OK;
 	}
 	return retval;
 }
