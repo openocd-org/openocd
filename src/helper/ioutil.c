@@ -63,6 +63,8 @@
 #include <string.h>
 
 
+#include <ifaddrs.h>
+
 #include <unistd.h>
 #include <stdio.h>
 
@@ -557,6 +559,120 @@ zylinjtag_Jim_Command_poke(Jim_Interp *interp,
 	return JIM_OK;
 }
 
+
+/* not so pretty code to fish out ip number*/
+static int zylinjtag_Jim_Command_ip(Jim_Interp *interp, int argc,
+		Jim_Obj * const *argv)
+{
+	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
+
+	struct ifaddrs *ifa = NULL, *ifp = NULL;
+
+	if (getifaddrs(&ifp) < 0)
+	{
+		return JIM_ERR;
+	}
+
+	for (ifa = ifp; ifa; ifa = ifa->ifa_next)
+	{
+		char ip[200];
+		socklen_t salen;
+
+		if (ifa->ifa_addr->sa_family == AF_INET)
+			salen = sizeof(struct sockaddr_in);
+		else if (ifa->ifa_addr->sa_family == AF_INET6)
+			salen = sizeof(struct sockaddr_in6);
+		else
+			continue;
+
+		if (getnameinfo(ifa->ifa_addr, salen, ip, sizeof(ip), NULL, 0,
+				NI_NUMERICHOST) < 0)
+		{
+			continue;
+		}
+
+		Jim_AppendString(interp, tclOutput, ip, strlen(ip));
+		break;
+
+	}
+
+	freeifaddrs(ifp);
+
+	Jim_SetResult(interp, tclOutput);
+
+	return JIM_OK;
+}
+
+
+/* not so pretty code to fish out eth0 mac address */
+static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
+		Jim_Obj * const *argv)
+{
+
+
+	struct ifreq *ifr, *ifend;
+	struct ifreq ifreq;
+	struct ifconf ifc;
+	struct ifreq ifs[5];
+	int SockFD;
+
+	SockFD = socket(AF_INET, SOCK_DGRAM, 0);
+	if (SockFD < 0)
+	{
+		return JIM_ERR;
+	}
+
+	ifc.ifc_len = sizeof(ifs);
+	ifc.ifc_req = ifs;
+	if (ioctl(SockFD, SIOCGIFCONF, &ifc) < 0)
+	{
+		close(SockFD);
+		return JIM_ERR;
+	}
+
+	ifend = ifs + (ifc.ifc_len / sizeof(struct ifreq));
+	for (ifr = ifc.ifc_req; ifr < ifend; ifr++)
+	{
+		//if (ifr->ifr_addr.sa_family == AF_INET)
+		{
+			if (strcmp("eth0", ifr->ifr_name)!=0)
+				continue;
+			strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+			if (ioctl(SockFD, SIOCGIFHWADDR, &ifreq) < 0)
+			{
+				close(SockFD);
+				return JIM_ERR;
+			}
+
+			close(SockFD);
+
+
+			Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
+
+			char buffer[256];
+			sprintf(buffer, "%02x-%02x-%02x-%02x-%02x-%02x",
+					ifreq.ifr_hwaddr.sa_data[0]&0xff,
+					ifreq.ifr_hwaddr.sa_data[1]&0xff,
+					ifreq.ifr_hwaddr.sa_data[2]&0xff,
+					ifreq.ifr_hwaddr.sa_data[3]&0xff,
+					ifreq.ifr_hwaddr.sa_data[4]&0xff,
+					ifreq.ifr_hwaddr.sa_data[5]&0xff);
+
+			Jim_AppendString(interp, tclOutput, buffer, strlen(buffer));
+
+			Jim_SetResult(interp, tclOutput);
+
+			return JIM_OK;
+		}
+	}
+	close(SockFD);
+
+	return JIM_ERR;
+
+}
+
+
+
 int ioutil_init(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "rm", handle_rm_command, COMMAND_ANY,
@@ -583,6 +699,11 @@ int ioutil_init(struct command_context_s *cmd_ctx)
     Jim_CreateCommand(interp, "poke", zylinjtag_Jim_Command_poke, NULL, NULL);
     Jim_CreateCommand(interp, "ls", zylinjtag_Jim_Command_ls, NULL, NULL);
 
+	Jim_CreateCommand(interp, "mac", zylinjtag_Jim_Command_mac,
+			NULL, NULL);
+
+	Jim_CreateCommand(interp, "ip", zylinjtag_Jim_Command_ip,
+			NULL, NULL);
 
     return ERROR_OK;
 }

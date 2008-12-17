@@ -419,60 +419,6 @@ static int zylinjtag_Jim_Command_reboot(Jim_Interp *interp, int argc,
 	return JIM_OK;
 }
 
-static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
-{
-
-	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
-
-	Jim_AppendString(httpstate.jim_interp, tclOutput, hwaddr, strlen(hwaddr));
-
-	Jim_SetResult(interp, tclOutput);
-
-	return JIM_OK;
-}
-
-static int zylinjtag_Jim_Command_ip(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
-{
-	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
-
-	struct ifaddrs *ifa = NULL, *ifp = NULL;
-
-	if (getifaddrs(&ifp) < 0)
-	{
-		return JIM_ERR;
-	}
-
-	for (ifa = ifp; ifa; ifa = ifa->ifa_next)
-	{
-		char ip[200];
-		socklen_t salen;
-
-		if (ifa->ifa_addr->sa_family == AF_INET)
-			salen = sizeof(struct sockaddr_in);
-		else if (ifa->ifa_addr->sa_family == AF_INET6)
-			salen = sizeof(struct sockaddr_in6);
-		else
-			continue;
-
-		if (getnameinfo(ifa->ifa_addr, salen, ip, sizeof(ip), NULL, 0,
-				NI_NUMERICHOST) < 0)
-		{
-			continue;
-		}
-
-		Jim_AppendString(httpstate.jim_interp, tclOutput, ip, strlen(ip));
-		break;
-
-	}
-
-	freeifaddrs(ifp);
-
-	Jim_SetResult(interp, tclOutput);
-
-	return JIM_OK;
-}
 
 extern Jim_Interp *interp;
 
@@ -506,10 +452,6 @@ static void zylinjtag_startNetwork()
 			zylinjtag_Jim_Command_reboot, NULL, NULL);
 	Jim_CreateCommand(httpstate.jim_interp, "threads",
 			zylinjtag_Jim_Command_threads, NULL, NULL);
-	Jim_CreateCommand(httpstate.jim_interp, "mac", zylinjtag_Jim_Command_mac,
-			NULL, NULL);
-	Jim_CreateCommand(httpstate.jim_interp, "ip", zylinjtag_Jim_Command_ip,
-			NULL, NULL);
 	Jim_CreateCommand(httpstate.jim_interp, "format_jffs2",
 			zylinjtag_Jim_Command_format_jffs2, NULL, NULL);
 

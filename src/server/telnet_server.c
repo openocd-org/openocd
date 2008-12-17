@@ -626,7 +626,7 @@ int telnet_register_commands(command_context_t *command_context)
 					 COMMAND_EXEC, "exit telnet session");
 
 	register_command(command_context, NULL, "telnet_port", handle_telnet_port_command,
-					 COMMAND_CONFIG, "port on which to listen for incoming telnet connections");
+					 COMMAND_ANY, "port on which to listen for incoming telnet connections");
 
 	return ERROR_OK;
 }
