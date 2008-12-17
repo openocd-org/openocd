@@ -175,9 +175,13 @@ httpd_Jim_Command_formfetch(Jim_Interp *interp,
     	int retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__ );
     	free((void *) script);
     	if (retcode != JIM_OK)
-    		return retcode;
+    	{
+    	    Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
+    	} else
+    	{
+    	    Jim_SetResult(interp, Jim_GetResult(interp));
+    	}
 
-    Jim_SetResult(interp, Jim_GetResult(interp));
     return JIM_OK;
 }
 
@@ -292,8 +296,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection,
 		r = (struct httpd_request *) *ptr;
 
 		r->post = post;
-
-//		r->dict = Jim_NewDictObj(interp, NULL, 0);
+		Jim_SetVariableStr(interp, "httppostdata", Jim_NewDictObj(interp, NULL, 0));
 
 		/* fill in url query strings in dictonary */
 		MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND,
@@ -327,7 +330,6 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection,
 	}
 
 	/* hand over to request who will be using it. */
-	//Jim_SetGlobalVariableStr(interp, "httppostdata", Jim_GetVariableStr(interp, "httppostdata", 0));
 	//	r->dict = NULL;
 
 
