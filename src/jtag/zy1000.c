@@ -319,6 +319,25 @@ int handle_zy1000_version_command(struct command_context_s *cmd_ctx, char *cmd,
 }
 
 
+static int
+zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
+                                   int argc,
+		Jim_Obj * const *argv)
+{
+	if (argc != 1)
+	{
+		Jim_WrongNumArgs(interp, 1, argv, "powerstatus");
+		return JIM_ERR;
+	}
+
+	cyg_uint32 status;
+	ZY1000_PEEK(ZY1000_JTAG_BASE+0x10, status);
+
+	Jim_SetResult(interp, Jim_NewIntObj(interp, (status&0x80)!=0));
+
+	return JIM_OK;
+}
+
 int zy1000_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "power", handle_power_command, COMMAND_ANY,
@@ -326,9 +345,12 @@ int zy1000_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "zy1000_version", handle_zy1000_version_command,
 			COMMAND_EXEC, "show zy1000 version numbers");
 
+	Jim_CreateCommand(interp, "powerstatus", zylinjtag_Jim_Command_powerstatus, NULL, NULL);
 
 	return ERROR_OK;
 }
+
+
 
 
 int zy1000_init(void)
