@@ -355,7 +355,7 @@ int zy1000_register_commands(struct command_context_s *cmd_ctx)
 
 int zy1000_init(void)
 {
-	LOG_ERROR("%s\n", ZYLIN_OPENOCD_VERSION);
+	LOG_USER("%s", ZYLIN_OPENOCD_VERSION);
 
 	ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x30); // Turn on LED1 & LED2
 
