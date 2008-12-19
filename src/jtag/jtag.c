@@ -1300,7 +1300,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 				{
 					if (cmd->fields[i].in_handler(cmd->fields[i].in_value, cmd->fields[i].in_handler_priv, cmd->fields+i) != ERROR_OK)
 					{
-						LOG_WARNING("in_handler reported a failed check");
+						LOG_WARNING("in_handler: with \"in_value\", mismatch in %s", cmd->ir_scan ? "SIR" : "SDR" );
 						retval = ERROR_JTAG_QUEUE_FAILED;
 					}
 				}
@@ -1314,7 +1314,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 					/* We're going to call the error:handler later, but if the in_handler
 					 * reported an error we report this failure upstream
 					 */
-					LOG_WARNING("in_handler reported a failed check");
+					LOG_WARNING("in_handler: w/o \"in_value\", mismatch in %s",  cmd->ir_scan ? "SIR" : "SDR" );
 					retval = ERROR_JTAG_QUEUE_FAILED;
 				}
 			}

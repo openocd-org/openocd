@@ -35,14 +35,14 @@
 
 /* 16 Tap States, from page 21 of ASSET InterTech, Inc.'s svf.pdf
  */
-enum tap_state
+typedef enum tap_state
 {
 	TAP_RESET = 0x0, TAP_IDLE = 0x8,
 	TAP_DRSELECT = 0x1, TAP_DRCAPTURE = 0x2, TAP_DRSHIFT = 0x3, TAP_DREXIT1 = 0x4,
 	TAP_DRPAUSE = 0x5, TAP_DREXIT2 = 0x6, TAP_DRUPDATE = 0x7,
 	TAP_IRSELECT = 0x9, TAP_IRCAPTURE = 0xa, TAP_IRSHIFT = 0xb, TAP_IREXIT1 = 0xc,
 	TAP_IRPAUSE = 0xd, TAP_IREXIT2 = 0xe, TAP_IRUPDATE = 0xf
-};
+} tap_state_t;
 
 typedef struct tap_transition_s
 {
@@ -530,7 +530,7 @@ static __inline__ void jtag_add_dr_out(jtag_tap_t *tap,
 
 /**
  * Function jtag_state_name
- * Returns a string suitable for display representing the JTAG tap_state 
+ * Returns a string suitable for display representing the JTAG tap_state
  */
 const char* jtag_state_name(enum tap_state state);
 
