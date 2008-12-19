@@ -45,37 +45,68 @@ typedef unsigned long long u64;
 
 typedef struct jtag_tap_s jtag_tap_t;
 
-/* DANGER!!!! here be dragons! Note that the pointer in 
- * memory might be unaligned. On some CPU's, i.e. ARM7,
- * the 2 lsb are ignored for 32 bit access, on others
- * it will cause an exception and on e.g. x86, it works
- * the same as if aligned.
+
+/* DANGER!!!! here be dragons! 
+ * 
+ * Leave these fn's as byte accesses because it is safe
+ * across architectures. Clever usage of 32 bit access
+ * will create problems on some hosts.
+ * 
+ * Note that the pointer in memory might be unaligned. 
+ * 
+ * On some CPU's, i.e. ARM7, the 2 lsb are ignored for 32 
+ * bit access, on others it will cause an exception and 
+ * on e.g. x86, it works the same as if aligned.
+ * 
  */
-#define le_to_h_u32(x) ((u32)((x)[0] | (x)[1] << 8 | (x)[2] << 16 | (x)[3] << 24))
-#define le_to_h_u16(x) ((u16)((x)[0] | (x)[1] << 8))
-#define be_to_h_u32(x) ((u32)((x)[3] | (x)[2] << 8 | (x)[1] << 16 | (x)[0] << 24))
-#define be_to_h_u16(x) ((u16)((x)[1] | (x)[0] << 8))
 
-#define h_u32_to_le(buf, val) do {\
-	(buf)[3] = ((val) & 0xff000000) >> 24;\
-	(buf)[2] = ((val) & 0x00ff0000) >> 16;\
-	(buf)[1] = ((val) & 0x0000ff00) >> 8;\
-	(buf)[0] = ((val) & 0x000000ff);\
-} while (0)
-#define h_u32_to_be(buf, val) do {\
-	(buf)[0] = ((val) & 0xff000000) >> 24;\
-	(buf)[1] = ((val) & 0x00ff0000) >> 16;\
-	(buf)[2] = ((val) & 0x0000ff00) >> 8;\
-	(buf)[3] = ((val) & 0x000000ff);\
-} while (0)
 
-#define h_u16_to_le(buf, val) do {\
-	(buf)[1] = ((val) & 0xff00) >> 8;\
-	(buf)[0] = ((val) & 0x00ff) >> 0;\
-} while (0)
-#define h_u16_to_be(buf, val) do {\
-	(buf)[0] = ((val) & 0xff00) >> 8;\
-	(buf)[1] = ((val) & 0x00ff) >> 0;\
-} while (0)
+static inline u32 le_to_h_u32(const u8* buf)
+{
+	return (u32)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
+}
+
+static inline u16 le_to_h_u16(const u8* buf)
+{
+	return (u16)(buf[0] | buf[1] << 8);
+}
+
+static inline u32 be_to_h_u32(const u8* buf)
+{
+	return (u32)(buf[3] | buf[2] << 8 | buf[1] << 16 | buf[0] << 24);
+}
+
+static inline u16 be_to_h_u16(const u8* buf)
+{
+	return (u16)(buf[1] | buf[0] << 8);
+}
+
+static inline void h_u32_to_le(u8* buf, int val)
+{
+	buf[3] = (u8) (val >> 24);
+	buf[2] = (u8) (val >> 16);
+	buf[1] = (u8) (val >> 8);
+	buf[0] = (u8) (val >> 0);
+}
+
+static inline void h_u32_to_be(u8* buf, int val)
+{
+	buf[0] = (u8) (val >> 24);
+	buf[1] = (u8) (val >> 16);
+	buf[2] = (u8) (val >> 8);
+	buf[3] = (u8) (val >> 0);
+}
+
+static inline void h_u16_to_le(u8* buf, int val)
+{
+	buf[1] = (u8) (val >> 8);
+	buf[0] = (u8) (val >> 0);
+}
+
+static inline void h_u16_to_be(u8* buf, int val)
+{
+	buf[0] = (u8) (val >> 8);
+	buf[1] = (u8) (val >> 0);
+}
 
 #endif /* TYPES_H */
