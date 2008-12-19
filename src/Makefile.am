@@ -47,7 +47,11 @@ else
 if JLINK
 LIBUSB = -lusb
 else
+if RLINK
+LIBUSB = -lusb
+else
 LIBUSB =
+endif
 endif
 endif
 

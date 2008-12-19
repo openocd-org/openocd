@@ -1,0 +1,68 @@
+#!/bin/perl
+#***************************************************************************
+#*   Copyright (C) 2008 Lou Deluxe                                         *
+#*   lou.openocd012@fixit.nospammail.net                                   *
+#*                                                                         *
+#*   This program is free software; you can redistribute it and/or modify  *
+#*   it under the terms of the GNU General Public License as published by  *
+#*   the Free Software Foundation; either version 2 of the License, or     *
+#*   (at your option) any later version.                                   *
+#*                                                                         *
+#*   This program is distributed in the hope that it will be useful,       *
+#*   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+#*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+#*   GNU General Public License for more details.                          *
+#*                                                                         *
+#*   You should have received a copy of the GNU General Public License     *
+#*   along with this program; if not, write to the                         *
+#*   Free Software Foundation, Inc.,                                       *
+#*   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+#***************************************************************************
+
+# A simple utility to read a list of files (names composed by numeric prescaler arguments) and compose a C source file defining data structures which hold the binary data read from those files.
+
+@speed_table = ();
+
+printf("/* This file was created automatically by %s. */\n\n", $0);
+for $i ('rlink', 'st7') {
+	printf("#include \"$i.h\"\n");
+}
+printf("\n");
+
+for $prescaler (sort {$b <=> $a} @ARGV) {
+	my(@ary) = (
+		byte_array_from_file(${prescaler} . "_init.dtc"),
+		byte_array_from_file(${prescaler} . "_call.dtc")
+	);
+
+	for $i (@ary) {
+		$i = sprintf("%d", $i);
+	}
+	$bytes = join(', ', @ary);
+	$bytes =~ s/(^|\s)(.{70}?\S*)/\2\n/go;	# break up long lines
+	$bytes =~ s/\n +/\n/go;
+	$bytes =~ s/(^|\n)/\1\t/go;		# format nicely
+	printf("static const u8 dtc_%d[] = {\n%s\n};\n\n", $prescaler, $bytes);
+	push(@speed_table, sprintf("\tdtc_%d, sizeof(dtc_%d), (ST7_FOSC * 2) / (1000 * %d), %d\n", $prescaler, $prescaler, $prescaler, $prescaler));
+}
+
+printf("const rlink_speed_table_t rlink_speed_table[] = {{\n%s}};\n\n", join("}, {\n", @speed_table));
+printf("const size_t rlink_speed_table_size = sizeof(rlink_speed_table) / sizeof(*rlink_speed_table);\n\n");
+
+
+sub byte_array_from_file {
+	my($filename) = @_;
+
+	my(@array, $text, $i) = ();
+
+	open(IN, '<', $filename) || die "$filename: $!";
+	undef($/);
+	$text = <IN>;
+	close(IN);
+
+	for($i = 0; $i < length($text); $i++) {
+		push(@array, ord(substr($text, $i, 1)));
+	}
+
+	@array;
+}

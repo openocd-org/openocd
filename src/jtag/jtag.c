@@ -196,6 +196,10 @@ static int hasKHz = 0;
 	extern jtag_interface_t jlink_interface;
 #endif
 
+#if BUILD_RLINK == 1
+	extern jtag_interface_t rlink_interface;
+#endif
+
 jtag_interface_t *jtag_interfaces[] = {
 #if BUILD_ECOSBOARD == 1
 	&zy1000_interface,
@@ -232,6 +236,9 @@ jtag_interface_t *jtag_interfaces[] = {
 #endif
 #if BUILD_JLINK == 1
 	&jlink_interface,
+#endif
+#if BUILD_RLINK == 1
+	&rlink_interface,
 #endif
 	NULL,
 };

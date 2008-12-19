@@ -218,6 +218,8 @@ build properly.}
 @option{--enable-presto_ftd2xx}
 @item
 @option{--enable-jlink}
+@item
+@option{--enable-rlink}
 @end itemize
 
 If you want to access the parallel port using the PPDEV interface you have to specify
@@ -320,6 +322,18 @@ AT91SAM764 internally.
 @* Link: @url{http://www.segger.com/jlink.html}
 @item @b{IAR J-Link}
 @* Link: @url{http://www.iar.com/website1/1.0.1.0/369/1/index.php}
+@end itemize
+
+@section USB RLINK based
+Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form on the STM32 Primer, permanently attached to the JTAG lines.  It also exists on the STM32 Primer2, but that is wired for SWD and not JTAG, thus not supported.
+
+@itemize @bullet
+@item @b{Raisonance RLink}
+@* Link: @url{http://www.raisonance.com/products/RLink.php}
+@item @b{STM32 Primer}
+@* Link: @url{http://www.stm32circle.com/resources/stm32primer.php}
+@item @b{STM32 Primer2}
+@* Link: @url{http://www.stm32circle.com/resources/stm32primer2.php}
 @end itemize
 
 @section USB Other
@@ -1017,6 +1031,11 @@ ft2232_vid_pid 0x0403 0xbdc8
 # jlink interface
 interface jlink
 @end verbatim
+@b{A Raisonance RLink}
+@verbatim
+# rlink interface
+interface rlink
+@end verbatim
 @b{Parallel Port}
 @verbatim
 interface parport
@@ -1066,6 +1085,9 @@ libusb.
 
 @item @b{jlink}
 @* Segger jlink usb adapter
+
+@item @b{rlink}
+@* Raisonance RLink usb adapter
 @comment - End parameters
 @end itemize
 @comment - End Interface
@@ -1247,6 +1269,7 @@ pre_reset and post_reset events.
 @item ft2232: 6MHz / (@var{number}+1)
 @item amt jtagaccel: 8 / 2**@var{number}
 @item jlink: maximum speed in kHz (0-12000), 0 will use RTCK
+@item rlink: 24MHz / @var{number}, but only for certain values of @var{number}
 @comment end speed list.
 @end itemize
 

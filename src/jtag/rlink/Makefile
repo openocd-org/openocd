@@ -1,0 +1,73 @@
+#***************************************************************************
+#*   Copyright (C) 2008 Lou Deluxe                                         *
+#*   lou.openocd012@fixit.nospammail.net                                   *
+#*                                                                         *
+#*   This program is free software; you can redistribute it and/or modify  *
+#*   it under the terms of the GNU General Public License as published by  *
+#*   the Free Software Foundation; either version 2 of the License, or     *
+#*   (at your option) any later version.                                   *
+#*                                                                         *
+#*   This program is distributed in the hope that it will be useful,       *
+#*   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+#*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+#*   GNU General Public License for more details.                          *
+#*                                                                         *
+#*   You should have received a copy of the GNU General Public License     *
+#*   along with this program; if not, write to the                         *
+#*   Free Software Foundation, Inc.,                                       *
+#*   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+#***************************************************************************
+
+TOP = ../../..
+INTERFACE_NAME = rlink
+
+PERL = perl
+M4 = m4
+
+TARGETDIR = ${TOP}/src/target
+TOOLSDIR = ${TOP}/tools
+
+MAKE_SPEED_TABLE = ${TOOLSDIR}/rlink_make_speed_table/rlink_make_speed_table
+ST7_DTC_AS = ${TOOLSDIR}/st7_dtc_as/st7_dtc_as
+
+OPENOCD = ${TOP}/src/openocd
+OPENOCD_CONFIG = -s ${TARGETDIR}
+OPENOCD_CONFIG += -f interface/rlink.cfg
+OPENOCD_CONFIG += -f board/stm32f10x_128k_eval.cfg
+
+PATCHFILE = /tmp/openocd_${INTERFACE_NAME}.diff.gz
+
+# relative to ${TOP}
+SVNADDFILES =
+SVNADDFILES += src/target/interface/rlink.cfg
+SVNADDFILES += src/jtag/${INTERFACE_NAME}.c
+SVNADDFILES += src/jtag/${INTERFACE_NAME}
+
+PRESCALERS = 64 11 8 2
+
+DTCFILES =
+DTCFILES += $(addsuffix _init.dtc, ${PRESCALERS})
+DTCFILES += $(addsuffix _call.dtc, ${PRESCALERS})
+
+default: rlink_speed_table.c clean
+
+%_init.fsm: init.m4
+	${M4} -P -DSHIFTER_PRESCALER=`echo "$@" | sed -e's/_.*//'` $< > $@
+
+%_call.fsm: call.m4
+	${M4} -P -DSHIFTER_PRESCALER=`echo "$@" | sed -e's/_.*//'` $< > $@
+
+%.dtc: %.fsm
+	${ST7_DTC_AS} -b -o $@ -i $< > /dev/null
+
+rlink_speed_table.c: ${DTCFILES}
+	${MAKE_SPEED_TABLE} ${PRESCALERS} > $@ || rm $@
+
+clean:
+	-rm *.dtc *.fsm
+
+distclean: clean
+
+test: default
+	(cd ${TOP} && (rm src/jtag/${INTERFACE_NAME}.o; ${MAKE}))
+	${OPENOCD} -d0 ${OPENOCD_CONFIG} -c init -c 'poll off'
