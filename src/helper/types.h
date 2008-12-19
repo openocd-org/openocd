@@ -46,18 +46,22 @@ typedef unsigned long long u64;
 typedef struct jtag_tap_s jtag_tap_t;
 
 
-/* DANGER!!!! here be dragons! 
- * 
+/* DANGER!!!! here be dragons!
+ *
  * Leave these fn's as byte accesses because it is safe
  * across architectures. Clever usage of 32 bit access
  * will create problems on some hosts.
- * 
- * Note that the pointer in memory might be unaligned. 
- * 
- * On some CPU's, i.e. ARM7, the 2 lsb are ignored for 32 
- * bit access, on others it will cause an exception and 
- * on e.g. x86, it works the same as if aligned.
- * 
+ *
+ * Note that the "buf" pointer in memory is probably unaligned.
+ *
+ * Were these functions to be re-written to take a 32 bit wide or 16 bit wide
+ * memory access shortcut, then on some CPU's, i.e. ARM7, the 2 lsbytes of the address are
+ * ignored for 32 bit access, whereas on other CPU's a 32 bit wide unaligned memory access
+ * will cause an exception, and lastly on x86, an unaligned "greater than bytewide"
+ * memory access works as if aligned.  So what follows below will work for all
+ * platforms and gives the compiler leeway to do its own platform specific optimizations.
+ *
+ * Again, note that the "buf" pointer in memory is probably unaligned.
  */
 
 
