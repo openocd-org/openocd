@@ -55,12 +55,13 @@ static long long start;
 
 static char *log_strings[5] =
 {
-	"User:   ",
-	"Error:  ",
-	"Warning:",
-	"Info:   ",
-	"Debug:  "
+	"User : ",
+	"Error: ",
+	"Warn : ",  /* want a space after each colon, all same width, colons aligned */
+	"Info : ",
+	"Debug: "
 };
+
 
 static int count = 0;
 
@@ -99,7 +100,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 			struct mallinfo info;
 			info = mallinfo();
 #endif
-			fprintf(log_output, "%s %d %d %s:%d %s()"
+			fprintf(log_output, "%s%d %d %s:%d %s()"
 #if PRINT_MEM()
 					" %d"
 #endif
@@ -217,7 +218,7 @@ int handle_debug_level_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			LOG_WARNING("enabling log output as we are using pipes");
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
