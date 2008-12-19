@@ -26,6 +26,15 @@
 #include "jtag.h"
 #include "bitbang.h"
 
+
+/* my private tap controller state, which tracks state for calling code */
+static tap_state_t dummy_state = TAP_RESET;
+
+static int dummy_clock;         /* edge detector */
+
+static tap_state_t tap_state_transition(tap_state_t cur_state, int tms);
+
+
 int dummy_speed(int speed);
 int dummy_register_commands(struct command_context_s *cmd_ctx);
 int dummy_init(void);
@@ -70,12 +79,28 @@ int dummy_read(void)
 	return 1;
 }
 
+
 void dummy_write(int tck, int tms, int tdi)
 {
+	/* TAP standard: "state transitions occur on rising edge of clock" */
+	if( tck != dummy_clock )
+	{
+		if( tck )
+		{
+			int old_state = dummy_state;
+			dummy_state = tap_state_transition( dummy_state, tms );
+			if( old_state != dummy_state )
+				LOG_INFO( "dummy_tap=%s", jtag_state_name(dummy_state) );
+		}
+		dummy_clock = tck;
+	}
 }
 
 void dummy_reset(int trst, int srst)
 {
+	dummy_clock = 0;
+	dummy_state = TAP_RESET;
+	LOG_DEBUG( "reset to %s", jtag_state_name(dummy_state) );
 }
 
 static int dummy_khz(int khz, int *jtag_speed)
@@ -129,4 +154,108 @@ int dummy_quit(void)
 
 void dummy_led(int on)
 {
+}
+
+
+/**
+ * Function tap_state_transition
+ * takes a current TAP state and returns the next state according to the tms value.
+ *
+ * Even though there is code to duplicate this elsewhere, we do it here a little
+ * differently just to get a second opinion, i.e. a verification, on state tracking
+ * in that other logic. Plus array lookups without index checking are no favorite thing.
+ * This is educational for developers new to TAP controllers.
+ */
+static tap_state_t tap_state_transition(tap_state_t cur_state, int tms)
+{
+	tap_state_t new_state;
+
+	if (tms)
+	{
+		switch (cur_state)
+		{
+		case TAP_RESET:
+			new_state = cur_state;
+			break;
+		case TAP_IDLE:
+		case TAP_DRUPDATE:
+		case TAP_IRUPDATE:
+			new_state = TAP_DRSELECT;
+			break;
+		case TAP_DRSELECT:
+			new_state = TAP_IRSELECT;
+			break;
+		case TAP_DRCAPTURE:
+		case TAP_DRSHIFT:
+			new_state = TAP_DREXIT1;
+			break;
+		case TAP_DREXIT1:
+		case TAP_DREXIT2:
+			new_state = TAP_DRUPDATE;
+			break;
+		case TAP_DRPAUSE:
+			new_state = TAP_DREXIT2;
+			break;
+		case TAP_IRSELECT:
+			new_state = TAP_RESET;
+			break;
+		case TAP_IRCAPTURE:
+		case TAP_IRSHIFT:
+			new_state = TAP_IREXIT1;
+			break;
+		case TAP_IREXIT1:
+		case TAP_IREXIT2:
+			new_state = TAP_IRUPDATE;
+			break;
+		case TAP_IRPAUSE:
+			new_state = TAP_IREXIT2;
+			break;
+		default:
+			LOG_ERROR( "fatal: invalid argument cur_state=%d", cur_state );
+			exit(1);
+			break;
+		}
+	}
+	else
+	{
+		switch (cur_state)
+		{
+		case TAP_RESET:
+		case TAP_IDLE:
+		case TAP_DRUPDATE:
+		case TAP_IRUPDATE:
+			new_state = TAP_IDLE;
+			break;
+		case TAP_DRSELECT:
+			new_state = TAP_DRCAPTURE;
+			break;
+		case TAP_DRCAPTURE:
+		case TAP_DRSHIFT:
+		case TAP_DREXIT2:
+			new_state = TAP_DRSHIFT;
+			break;
+		case TAP_DREXIT1:
+		case TAP_DRPAUSE:
+			new_state = TAP_DRPAUSE;
+			break;
+		case TAP_IRSELECT:
+			new_state = TAP_IRCAPTURE;
+			break;
+		case TAP_IRCAPTURE:
+		case TAP_IRSHIFT:
+		case TAP_IREXIT2:
+			new_state = TAP_IRSHIFT;
+			break;
+		case TAP_IREXIT1:
+		case TAP_IRPAUSE:
+			new_state = TAP_IRPAUSE;
+			break;
+		default:
+			LOG_ERROR( "fatal: invalid argument cur_state=%d", cur_state );
+			exit(1);
+			break;
+		}
+	}
+
+	return new_state;
 }
