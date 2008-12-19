@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <string.h>
 #include <usb.h>
+#include <stdint.h>
 
 /* project specific includes */
 #include "log.h"
@@ -1034,7 +1035,6 @@ rlink_scan(
 	int			tdi_bit_offset;
 	u8			tdi_mask, *tdi_p;
 	u8			dtc_mask;
-	dtc_reply_queue_entry_t	*rq_entry;
 
 	if(scan_size < 1) {
 		LOG_ERROR("scan_size cannot be less than 1 bit\n");
@@ -1555,7 +1555,7 @@ int rlink_init(void)
 {
 	struct usb_bus *busses;
 	struct usb_bus *bus;
-	int c, i, a, j, retries,len;
+	int i, j, retries;
 	int found=0;
 	int success=0;
 	u8 reply_buffer[USB_EP1IN_SIZE];
@@ -1597,6 +1597,9 @@ int rlink_init(void)
 					{
 						LOG_DEBUG("Opened device, pHDev = %p\n",pHDev);
 
+						/* usb_set_configuration required under win32 */
+						usb_set_configuration(pHDev, dev->config[0].bConfigurationValue);
+						
 						retries = 3;
 						do
 						{

@@ -84,7 +84,6 @@ struct timeval {
 /* gettimeofday() */
 #ifndef HAVE_GETTIMEOFDAY
 
-
 #ifdef _WIN32
 struct timezone {
 	int tz_minuteswest;
@@ -160,6 +159,12 @@ void usleep(int us);
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <time.h>
+
+/* win32 systems do not support ETIMEDOUT */
+
+#ifndef ETIMEDOUT
+#define ETIMEDOUT WSAETIMEDOUT
+#endif
 
 #if IS_MINGW == 1
 static __inline unsigned char inb(unsigned short int port)
