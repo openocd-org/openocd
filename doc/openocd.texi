@@ -1744,8 +1744,8 @@ creates and invokes small procedure. The second inlines the procedure.
    mychip.cpu configure -event gdb-attach @{ puts "Reset..." ; reset halt @}
 @end example
 
-Current Events
-
+@section Current Events
+The following events are available:
 @itemize @bullet
 @item @b{debug-halted}
 @* The target has halted for debug reasons (ie: breakpoint)
@@ -1809,6 +1809,22 @@ Current Events
 @* Success
 @item @b{resumed}
 @* Target has resumed
+@item @b{tap-enable}
+@* Executed by @b{jtag tapenable DOTTED.NAME} command. Example:
+@example
+jtag configure DOTTED.NAME -event tap-enable @{
+  puts "Enabling CPU"
+  ...
+@}
+@end example
+@item @b{tap-disable}
+@*Executed by @b{jtag tapdisable DOTTED.NAME} command. Example:
+@example
+jtag configure DOTTED.NAME -event tap-disable @{
+  puts "Disabling CPU"
+  ...
+@}
+@end example
 @end itemize
 
 
