@@ -261,13 +261,89 @@ static int record_arg(void *cls, enum MHD_ValueKind kind, const char *key,
 	return MHD_YES;
 }
 
+
+int handle_request(struct MHD_Connection * connection, const char * url)
+{
+	struct MHD_Response * response;
+
+	int ret;
+	const char *suffix;
+	suffix = strrchr(url, '.');
+	if ((suffix != NULL) && (strcmp(suffix, ".tcl") == 0))
+	{
+		printf("Run tcl %s\n", url);
+
+		int retcode;
+
+		const char *script = alloc_printf(
+				"global httpdata; source {%s}; set httpdata", url);
+		retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__ );
+		free((void *) script);
+
+		if (retcode == JIM_ERR)
+		{
+			printf("Tcl failed\n");
+			const char *t = httpd_exec_cgi_tcl_error(interp);
+			if (t == NULL)
+				return MHD_NO;
+
+			response = MHD_create_response_from_data(strlen(t), (void *) t,
+					MHD_YES, MHD_NO);
+			ret = MHD_queue_response(connection,
+					MHD_HTTP_INTERNAL_SERVER_ERROR, response);
+			MHD_destroy_response(response);
+			return ret;
+		}
+		else
+		{
+			printf("Tcl OK\n");
+			/* FIX!!! how to handle mime types??? */
+			const char *result;
+			int reslen;
+			result = Jim_GetString(Jim_GetResult(interp), &reslen);
+
+			response = MHD_create_response_from_data(reslen, (void *) result,
+					MHD_NO, MHD_YES);
+			ret = MHD_queue_response(connection,
+					MHD_HTTP_INTERNAL_SERVER_ERROR, response);
+			MHD_destroy_response(response);
+			return ret;
+		}
+	}
+	else
+	{
+		void *data;
+		int len;
+
+		int retval = loadFile(url, &data, &len);
+		if (retval != ERROR_OK)
+		{
+			printf("Did not find %s\n", url);
+
+			response = MHD_create_response_from_data(strlen(PAGE_NOT_FOUND),
+					(void *) PAGE_NOT_FOUND, MHD_NO, MHD_NO);
+			ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
+			MHD_destroy_response(response);
+			return ret;
+		}
+
+		LOG_DEBUG("Serving %s length=%d", url, len);
+		/* serve file directly */
+		response = MHD_create_response_from_data(len, data, MHD_YES, MHD_NO);
+		MHD_add_response_header(response, "Content-Type", "image/png");
+
+		ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
+		MHD_destroy_response(response);
+
+		//free(data);
+		return ret;
+	}
+}
+
 static int ahc_echo(void * cls, struct MHD_Connection * connection,
 		const char * url, const char * method, const char * version,
 		const char * upload_data, unsigned int * upload_data_size, void ** ptr)
 {
-	struct MHD_Response * response;
-	int ret;
-
 	int post = 0;
 
 	if (0 == strcmp(method, "POST"))
@@ -337,79 +413,19 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection,
 	 * being subverted to evil purposes
 	 */
 
-	url++; /* skip '/' */
+	const char *httpd_dir=PKGLIBDIR "/httpd";
 
-	const char *suffix;
-	suffix = strrchr(url, '.');
-	if ((suffix != NULL) && (strcmp(suffix, ".tcl") == 0))
+	if (*url=='/')
 	{
-		printf("Run tcl %s\n", url);
-
-		int retcode;
-
-		const char *script = alloc_printf(
-				"global httpdata; source {%s}; set httpdata", url);
-		retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__ );
-		free((void *) script);
-
-		if (retcode == JIM_ERR)
-		{
-			printf("Tcl failed\n");
-			const char *t = httpd_exec_cgi_tcl_error(interp);
-			if (t == NULL)
-				return MHD_NO;
-
-			response = MHD_create_response_from_data(strlen(t), (void *) t,
-					MHD_YES, MHD_NO);
-			ret = MHD_queue_response(connection,
-					MHD_HTTP_INTERNAL_SERVER_ERROR, response);
-			MHD_destroy_response(response);
-			return ret;
-		}
-		else
-		{
-			printf("Tcl OK\n");
-			/* FIX!!! how to handle mime types??? */
-			const char *result;
-			int reslen;
-			result = Jim_GetString(Jim_GetResult(interp), &reslen);
-
-			response = MHD_create_response_from_data(reslen, (void *) result,
-					MHD_NO, MHD_YES);
-			ret = MHD_queue_response(connection,
-					MHD_HTTP_INTERNAL_SERVER_ERROR, response);
-			MHD_destroy_response(response);
-			return ret;
-		}
+		url++; /* skip '/' */
 	}
-	else
-	{
-		void *data;
-		int len;
+	if (!*url)
+		url="index.tcl";
 
-		int retval = loadFile(url, &data, &len);
-		if (retval != ERROR_OK)
-		{
-			printf("Did not find %s\n", url);
-
-			response = MHD_create_response_from_data(strlen(PAGE_NOT_FOUND),
-					(void *) PAGE_NOT_FOUND, MHD_NO, MHD_NO);
-			ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
-			MHD_destroy_response(response);
-			return ret;
-		}
-
-		printf("Serving %s length=%d\n", url, len);
-		/* serve file directly */
-		response = MHD_create_response_from_data(len, data, MHD_YES, MHD_NO);
-		MHD_add_response_header(response, "Content-Type", "image/png");
-
-		ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
-		MHD_destroy_response(response);
-
-		//free(data);
-		return ret;
-	}
+	const char *file_name=alloc_printf("%s/%s", httpd_dir, url);
+	int result = handle_request(connection, file_name);
+	free((void *)file_name);
+	return result;
 }
 
 static struct MHD_Daemon * d;

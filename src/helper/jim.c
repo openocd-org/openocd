@@ -8695,7 +8695,7 @@ int Jim_EvalObj(Jim_Interp *interp, Jim_Obj *scriptObjPtr)
             if (cmd->cmdProc) {
                 interp->cmdPrivData = cmd->privData;
                 retcode = cmd->cmdProc(interp, argc, argv);
-                if (retcode == JIM_ERR_ADDSTACK) {
+                if ((retcode == JIM_ERR)||(retcode == JIM_ERR_ADDSTACK)) {
                     JimAppendStackTrace(interp, "", script->fileName, token[i-argc*2].linenr);
                     retcode = JIM_ERR;
                 }

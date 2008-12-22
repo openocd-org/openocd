@@ -1,0 +1,132 @@
+a:link
+{
+	font-size: 12px;
+	color : #024d67;
+	font-weight:bold;
+	text-decoration : none;
+}
+
+a:visited
+{
+	font-size: 12px;
+	color : #024d67;
+	font-weight:bold;
+	text-decoration : none;
+}
+
+a:active
+{
+	font-size: 12px;
+	color : #024d67;
+	font-weight:bold;
+	text-decoration : none;
+}
+
+a:hover
+{
+	font-size: 12px;
+	color : #555555;
+	font-weight:bold;
+	text-decoration : none;
+}
+
+a.openocd:link
+{
+	font-size: 12px;
+	color : #555555;
+	font-weight:bold;
+	text-decoration : none;
+}
+
+a.openocd:visited
+{
+	font-size: 12px;
+	color : #555555;
+	font-weight:bold;
+	text-decoration : none;
+}
+
+a.openocd:active
+{
+	font-size: 12px;
+	color : #555555;
+	font-weight:bold;
+	text-decoration : none;
+}
+
+a.openocd:hover
+{
+	font-size: 12px;
+	color : #024d67;
+	font-weight:bold;
+	text-decoration : none;
+}
+
+body
+{
+	background-color : green;
+	background-color : #176e8c;
+	font-family : Arial;
+	font-size: 12px;
+	line-height: 15px;
+	color : #024d67;
+	
+}
+
+h1
+{
+	padding: 0px;
+	font-size: 18px;
+	font-weight:bold;
+	text-decoration : none;
+	margin-bottom: 8px;
+}
+
+td
+{
+	padding: 0px;
+	font-size: 12px;
+ 	vertical-align:top;
+
+}
+
+.textlight
+{
+	color: #cccccc;
+	padding: 0px;
+	font-size: 12px;
+ 	vertical-align:top;
+
+}
+
+.fontbigger
+{
+	font-size:14px;
+}
+
+.textgray
+{
+	color: #555555;
+}
+
+.formtext
+{
+	padding-top: 4px;
+	font-size: 14px;
+	padding-right:10px;
+}
+
+input
+{
+	font-size: 14px;
+}
+
+.buttonspacelarge
+{
+	width:20px;
+}
+
+.buttonspacesmall
+{
+	width:8px;
+}
