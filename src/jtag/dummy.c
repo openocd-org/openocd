@@ -90,7 +90,7 @@ void dummy_write(int tck, int tms, int tdi)
 			int old_state = dummy_state;
 			dummy_state = tap_state_transition( dummy_state, tms );
 			if( old_state != dummy_state )
-				LOG_INFO( "dummy_tap=%s", jtag_state_name(dummy_state) );
+				LOG_DEBUG( "dummy_tap=%s", jtag_state_name(dummy_state) );
 		}
 		dummy_clock = tck;
 	}
