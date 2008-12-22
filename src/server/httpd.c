@@ -296,7 +296,7 @@ int handle_request(struct MHD_Connection * connection, const char * url)
 		}
 		else
 		{
-			printf("Tcl OK\n");
+			LOG_DEBUG("Tcl OK");
 			/* FIX!!! how to handle mime types??? */
 			const char *result;
 			int reslen;

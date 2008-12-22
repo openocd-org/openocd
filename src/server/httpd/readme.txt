@@ -19,6 +19,6 @@ https://gnunet.org/mantis/view.php?id=1440
 ../openocd/configure --enable-httpd --enable-dummy  --enable-ioutil
 make
 make install
-openocd -c "interface dummy" -f target/at91eb40a.cfg
+openocd  -f httpd/httpd.tcl -c "interface dummy" -f target/at91eb40a.cfg
 
 4. Point browser to: http://localhost:8888
