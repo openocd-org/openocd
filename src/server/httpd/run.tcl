@@ -14,8 +14,6 @@ append buffer {
 
 
 		
-
-		
 		
 
 		

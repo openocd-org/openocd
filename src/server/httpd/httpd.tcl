@@ -106,3 +106,8 @@ proc capture_catch {a} {
 	} result
 	return $result
 }
+
+proc zy1000_flash {} {
+	set t [lindex 0 [ocd_flash_banks]]
+	return $t(base)
+}

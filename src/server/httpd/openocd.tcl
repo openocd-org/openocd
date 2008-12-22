@@ -14,8 +14,6 @@ append buffer {
 
 
 		
-
-		
 		
 
 		
@@ -91,7 +89,7 @@ append buffer {
 <tr>
 <td style="width:140px;height:38px;background-image:url('menu_cuts/v_tab.png');background-repeat: no-repeat;">
 <div style="position:relative;left:10px;top:10px;font-weight:bold;">
-<a href="guiupload.tcl" style="">Upload File to ZY1000</a>
+<a href="guiupload.tcl" style="">Upload File</a>
 </div>
 </td>
 </tr>

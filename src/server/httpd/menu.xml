@@ -87,10 +87,7 @@
 					See log for details. <br>
 					<p><b>Target power</b> - Detects power on target. <br>
 					If the JTAG cable is not connected, or the target has no power, then no target power will be detected.</p>
-					<p><b>Power on</b> - Turn on ZY1000 target power relay.</p>
-					<p><b>Power off</b> - Turn off ZY1000  target power relay.</p>
 					<p>Type "help power" in telnet for command to control power relay.</p>
-					<p><b>Reboot ZY1000</b> - Reboots ZY1000 unit. Type "help reboot" in telnet.</p>
 				]]></markup_code>
 			</right_column>
 			
@@ -108,13 +105,13 @@
 				<markup_code><![CDATA[
 				
 				A target needs an openocd.cfg file. This config file sets up
-				the CPU, flash and reset init script. Either ZY1000 ships with an
+				the CPU, flash and reset init script. Either OpenOCD ships with an
 				openocd.cfg file for your target or you need to take an existing
 				config file and modify it for your needs.
 				<p> 
 				The reset init script is crucial. It will set up e.g. MMU, chip
 				select registers, etc. after a reset. The init.cfg (reset init script)
-				is embedded into the openocd.cfg file in the sampls Zylin provides.
+				is embedded into the openocd.cfg file in the sampls OpenOCD provides.
 				<p>
 				Writing an openocd.cfg from scratch is a non-trivial exercise, but
 				fortunally it only has to be done once for a target and afterwards it
@@ -132,33 +129,6 @@
 		</page>
 
 
-
-		<page lang="eng">
-			<outfile>reload.tcl</outfile>
-			<level2parent>index.tcl</level2parent>
-			<pageheading>Reload Config Scripts</pageheading>
-			<pagetext>
-			<markup_code><![CDATA[
-			
-			<tcl>
-				set form_action [formfetch form_action]
-	
-				if {[string compare $form_action "Reload"]==0} {
-					append buffer "Reloading Config Scripts...<p>"
-					reboot
-				}
-			</tcl>
-			<form enctype="multipart/form-data" action="reload.tcl" method="post">
-				<input type="submit" name="form_action" value="Reload">
-			</form>
-			
-			]]></markup_code>
-			<right_column>
-				Restart ZY1000 to reload selected target config script.				
-			</right_column>
-			</pagetext>
-			
-		</page>
 
 		
 		<page lang="eng">
@@ -789,12 +759,12 @@ append console [encode [capture_catch poll]]
 			]]></markup_code>
 			<right_column>
 				<![CDATA[	
-				Download memory to ZY1000 from target. <br>
+				Download memory from target. <br>
 				<b>Note</b> that download memory can take
 				a long time(potentially minutes for megabytes at low JTAG clk speeds).
 				<p/>
 				Once the memory is downloaded a link is available on the page to download
-				the file from ZY1000 to your PC.
+				the file to your PC.
 				]]>
 			</right_column>
 			</pagetext>
@@ -811,9 +781,9 @@ append console [encode [capture_catch poll]]
 			<level2parent>openocd.tcl</level2parent>
 			<level2menu href="openocd.tcl" title="Run Command" titlestyle="color:#4e6627;">
 			</level2menu>
-			<level2menu href="guiupload.tcl" title="Upload File to ZY1000" titlestyle="color:#4e6627;">
+			<level2menu href="guiupload.tcl" title="Upload File" titlestyle="color:#4e6627;">
 			<![CDATA[
-			    Upload file to ZY1000
+			    Upload file
 			]]>
 			</level2menu>
 			
@@ -869,7 +839,7 @@ append console [encode [capture_catch poll]]
 		<page lang="eng">
 			<outfile>guiupload.tcl</outfile>
 			<level2parent>openocd.tcl</level2parent>
-			<pageheading>Upload File to ZY1000</pageheading>
+			<pageheading>Upload File</pageheading>
 			<pagetext>
 			<markup_code><![CDATA[
 			
@@ -888,7 +858,7 @@ append console [encode [capture_catch poll]]
 					}
 				}
 				
-				append buffer {<table style="padding:0px;border-collapse:collapse;"><tr><td class="formtext">Filename on ZY1000</td><td><input type="text" name="form_filename"></td></tr>}
+				append buffer {<table style="padding:0px;border-collapse:collapse;"><tr><td class="formtext">Filename on OpenOCD machine</td><td><input type="text" name="form_filename"></td></tr>}
 				append buffer {<td class="formtext">File to upload</td><td><input type="file" name="form_filecontent"></td></tr></table>}
 				append buffer {<table><tr><td style="height:15px;width:535px;">&nbsp</td></tr><tr><td style="height:1px;width:535px;background-color:#a2c5d1;"></td></tr><tr><td style="height:15px;width:535px;">&nbsp</td></tr></table>}
 				append buffer {<input type="submit" name="form_action" value="Upload" ><br> }
@@ -897,41 +867,6 @@ append console [encode [capture_catch poll]]
 			</tcl>
 			
 			]]></markup_code>
-			<right_column>	
-				<![CDATA[
-				  <p>The ZY1000 has three filing systems "/rom", "/ram" and "/config". "/rom" is a read only filing
-				  embedded into the firmware.</p>
-
-				  <p>Use "/ram" to store temporary files.<p/>
-				  
-				  <p>
-				  You can browse filing systems and download files by pointing your web browser to:
-				  <ul> 
-				  <li><a href="/ram" target="_blank">/ram</a>
-				  <li><a href="/rom" target="_blank">/rom</a>
-				  <li><a href="/config" target="_blank">/config</a>
-				  </ul>
-				  </p> 
-				  
-				  <p>
-				  You can also upload files using e.g. curl from the command line. Example:
-				  </p>
-				  <code>
-				  curl --form form_filecontent=@/tmp/myfile.elf --form form_filename=/ram/myfile.elf <tcl>append buffer [ip]</tcl>upload.tcl
-				  </code>
-				  <p> 
-				  If you have a tftp server installed on your development PC, you can access
-				  files on your developer PC using a /tftp/ip/ prefix to the file to be accessed
-				  on your developer PC. Note that if you do not increase the default packet
-				  size for your tftp server, then the performance will be very poor. Normal
-				  performance is about 500-600kBytes/s.
-				  </p>
-				  <code> 
-				  cp /tftp/10.0.0.106/build/src/openocd /ram/test
-				  </code>
-				  
-				  ]]>
-			</right_column>
 			</pagetext>
 			
 		</page>
@@ -946,13 +881,13 @@ append console [encode [capture_catch poll]]
 				<markup_code><![CDATA[
 				
 				A target needs an openocd.cfg file. This config file sets up
-				the CPU, flash and reset init script. Either ZY1000 ships with an
+				the CPU, flash and reset init script. Either OpenOCD ships with an
 				openocd.cfg file for your target or you need to take an existing
 				config file and modify it for your needs.
 				<p> 
 				The reset init script is crucial. It will set up e.g. MMU, chip
 				select registers, etc. after a reset. The init.cfg (reset init script)
-				is embedded into the openocd.cfg file in the sampls Zylin provides.
+				is embedded into the openocd.cfg file in the sampls OpenOCD provides.
 				<p>
 				Writing an openocd.cfg from scratch is a non-trivial exercise, but
 				fortunally it only has to be done once for a target and afterwards it

@@ -14,8 +14,6 @@ append buffer {
 
 
 		
-
-		
 		
 
 		
@@ -95,7 +93,7 @@ append buffer {
 <tr>
 <td style="width:140px;height:38px;background-image:url('menu_cuts/v_tab_selected.png');background-repeat: no-repeat;">
 <div style="position:relative;left:10px;top:10px;font-weight:bold;">
-<a href="guiupload.tcl" style="font-weight: bold;">Upload File to ZY1000</a>
+<a href="guiupload.tcl" style="font-weight: bold;">Upload File</a>
 </div>
 </td>
 </tr>
@@ -149,7 +147,7 @@ append buffer {
 </tr>
 <tr>
 <td style="background-color:#ffffff;text-indent:30px;height:40px;" colspan="6">
-<H1>Upload File to ZY1000</H1>
+<H1>Upload File</H1>
 </td>
 </tr>
 <tr style="height:100%;">
@@ -171,7 +169,7 @@ append buffer {
 					}
 				}
 				
-				append buffer {<table style="padding:0px;border-collapse:collapse;"><tr><td class="formtext">Filename on ZY1000</td><td><input type="text" name="form_filename"></td></tr>}
+				append buffer {<table style="padding:0px;border-collapse:collapse;"><tr><td class="formtext">Filename on OpenOCD machine</td><td><input type="text" name="form_filename"></td></tr>}
 				append buffer {<td class="formtext">File to upload</td><td><input type="file" name="form_filecontent"></td></tr></table>}
 				append buffer {<table><tr><td style="height:15px;width:535px;">&nbsp</td></tr><tr><td style="height:1px;width:535px;background-color:#a2c5d1;"></td></tr><tr><td style="height:15px;width:535px;">&nbsp</td></tr></table>}
 				append buffer {<input type="submit" name="form_action" value="Upload" ><br> }
@@ -302,43 +300,7 @@ append buffer {
 <td style="background-color:#d8d7d7;height:15px;" colspan="3"/>
 </tr>
 <tr style="height:100%;">
-<td style="height:100%;background-color:#d8d7d7;padding-left:10px;padding-right:10px;" colspan="3" class="textgray">	
-				
-				  <p>The ZY1000 has three filing systems "/rom", "/ram" and "/config". "/rom" is a read only filing
-				  embedded into the firmware.</p>
-
-				  <p>Use "/ram" to store temporary files.<p/>
-				  
-				  <p>
-				  You can browse filing systems and download files by pointing your web browser to:
-				  <ul> 
-				  <li><a href="/ram" target="_blank">/ram</a>
-				  <li><a href="/rom" target="_blank">/rom</a>
-				  <li><a href="/config" target="_blank">/config</a>
-				  </ul>
-				  </p> 
-				  
-				  <p>
-				  You can also upload files using e.g. curl from the command line. Example:
-				  </p>
-				  <code>
-				  curl --form form_filecontent=@/tmp/myfile.elf --form form_filename=/ram/myfile.elf }
-append buffer [ip]
-append buffer {upload.tcl
-				  </code>
-				  <p> 
-				  If you have a tftp server installed on your development PC, you can access
-				  files on your developer PC using a /tftp/ip/ prefix to the file to be accessed
-				  on your developer PC. Note that if you do not increase the default packet
-				  size for your tftp server, then the performance will be very poor. Normal
-				  performance is about 500-600kBytes/s.
-				  </p>
-				  <code> 
-				  cp /tftp/10.0.0.106/build/src/openocd /ram/test
-				  </code>
-				  
-				  
-			</td>
+<td style="height:100%;background-color:#d8d7d7;padding-left:10px;padding-right:10px;" colspan="3" class="textgray"/>
 </tr>
 <tr>
 <td style="height:30px;background-image:url('menu_cuts/right_bottom.png');" colspan="3">

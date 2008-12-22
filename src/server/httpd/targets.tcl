@@ -105,13 +105,13 @@ append buffer {
 <td style="background-color:#ffffff;padding-left:30px;padding-right:30px;width=535px;height:100%;" colspan="6">
 				
 				A target needs an openocd.cfg file. This config file sets up
-				the CPU, flash and reset init script. Either ZY1000 ships with an
+				the CPU, flash and reset init script. Either OpenOCD ships with an
 				openocd.cfg file for your target or you need to take an existing
 				config file and modify it for your needs.
 				<p> 
 				The reset init script is crucial. It will set up e.g. MMU, chip
 				select registers, etc. after a reset. The init.cfg (reset init script)
-				is embedded into the openocd.cfg file in the sampls Zylin provides.
+				is embedded into the openocd.cfg file in the sampls OpenOCD provides.
 				<p>
 				Writing an openocd.cfg from scratch is a non-trivial exercise, but
 				fortunally it only has to be done once for a target and afterwards it
@@ -260,8 +260,6 @@ append buffer {
 
 
 		
-
-		
 		
 
 		
@@ -392,13 +390,13 @@ append buffer {
 <td style="background-color:#ffffff;padding-left:30px;padding-right:30px;width=535px;height:100%;" colspan="6">
 				
 				A target needs an openocd.cfg file. This config file sets up
-				the CPU, flash and reset init script. Either ZY1000 ships with an
+				the CPU, flash and reset init script. Either OpenOCD ships with an
 				openocd.cfg file for your target or you need to take an existing
 				config file and modify it for your needs.
 				<p> 
 				The reset init script is crucial. It will set up e.g. MMU, chip
 				select registers, etc. after a reset. The init.cfg (reset init script)
-				is embedded into the openocd.cfg file in the sampls Zylin provides.
+				is embedded into the openocd.cfg file in the sampls OpenOCD provides.
 				<p>
 				Writing an openocd.cfg from scratch is a non-trivial exercise, but
 				fortunally it only has to be done once for a target and afterwards it

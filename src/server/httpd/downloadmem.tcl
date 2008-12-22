@@ -14,8 +14,6 @@ append buffer {
 
 
 		
-
-		
 		
 
 		
@@ -317,12 +315,12 @@ append buffer {
 <tr style="height:100%;">
 <td style="height:100%;background-color:#d8d7d7;padding-left:10px;padding-right:10px;" colspan="3" class="textgray">
 					
-				Download memory to ZY1000 from target. <br>
+				Download memory from target. <br>
 				<b>Note</b> that download memory can take
 				a long time(potentially minutes for megabytes at low JTAG clk speeds).
 				<p/>
 				Once the memory is downloaded a link is available on the page to download
-				the file from ZY1000 to your PC.
+				the file to your PC.
 				
 			</td>
 </tr>

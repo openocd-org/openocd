@@ -298,10 +298,7 @@ append buffer {
 					See log for details. <br>
 					<p><b>Target power</b> - Detects power on target. <br>
 					If the JTAG cable is not connected, or the target has no power, then no target power will be detected.</p>
-					<p><b>Power on</b> - Turn on ZY1000 target power relay.</p>
-					<p><b>Power off</b> - Turn off ZY1000  target power relay.</p>
 					<p>Type "help power" in telnet for command to control power relay.</p>
-					<p><b>Reboot ZY1000</b> - Reboots ZY1000 unit. Type "help reboot" in telnet.</p>
 				
 			</td>
 </tr>
@@ -323,8 +320,6 @@ append buffer {
 		
 
 
-
-		
 
 		
 		
