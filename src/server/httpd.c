@@ -54,7 +54,7 @@
 
 #define PAGE_NOT_FOUND "<html><head><title>File not found</title></head><body>File not found</body></html>"
 
-static const char *appendf(const *prev, const char *format, ...)
+static const char *appendf(const char *prev, const char *format, ...)
 {
 	va_list ap;
 	va_start(ap, format);
@@ -69,7 +69,7 @@ static const char *appendf(const *prev, const char *format, ...)
 
 	if (prev != NULL)
 	{
-		free(prev);
+		free((void *)prev);
 	}
 
 	if (string == NULL)
@@ -120,7 +120,7 @@ static int httpd_Jim_Command_writeform(Jim_Interp *interp, int argc,
 	char *file = (char*) Jim_GetString(argv[2], NULL);
 
 	// Find length
-	char *data;
+	const char *data;
 	int actual;
 
 	int retcode;
@@ -449,9 +449,11 @@ void httpd_stop(void)
 
 void openocd_sleep_prelude(void)
 {
+	/* FIX!!!! add locking here!!!! */
 }
 
 void openocd_sleep_postlude(void)
 {
+	/* FIX!!!! add locking here!!!! */
 }
 

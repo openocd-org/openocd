@@ -62,8 +62,9 @@
 #include <stdio.h>
 #include <string.h>
 
-
+#if !defined(__CYGWIN__)
 #include <ifaddrs.h>
+#endif
 
 #include <unistd.h>
 #include <stdio.h>
@@ -564,6 +565,7 @@ zylinjtag_Jim_Command_poke(Jim_Interp *interp,
 static int zylinjtag_Jim_Command_ip(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv)
 {
+#if !defined(__CYGWIN__)
 	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "", 0);
 
 	struct ifaddrs *ifa = NULL, *ifp = NULL;
@@ -597,12 +599,13 @@ static int zylinjtag_Jim_Command_ip(Jim_Interp *interp, int argc,
 	}
 
 	freeifaddrs(ifp);
-
+#else
+	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "fixme!!!", 0);
+#endif
 	Jim_SetResult(interp, tclOutput);
 
 	return JIM_OK;
 }
-
 
 /* not so pretty code to fish out eth0 mac address */
 static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
