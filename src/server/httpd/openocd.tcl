@@ -154,8 +154,8 @@ append buffer {
 				set form_command [formfetch form_command]
 
 				set form_edittext ""
-				if {[string length $form_command]>0} {				
-					catch {capture_catch {eval "$form_command"}} form_edittext
+				if {[string length $form_command]>0} {
+					set form_edittext [capture_catch {eval $form_command}]
 				}
 				
 				append buffer {<form action="openocd.tcl" method="post">} "\n"

@@ -161,7 +161,7 @@ append buffer {
 				set form_length 0x10000
 			}  
 			if {[string compare $form_address ""]==0} {
-				if {[catch {[zy1000_flash]} result]==0} {
+				if {[catch {[first_flash_base]} result]==0} {
 						set form_address "0x[tohex $result]"
 					}			
 			}  

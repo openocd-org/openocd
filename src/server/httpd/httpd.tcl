@@ -102,12 +102,12 @@ proc encode {a} {
 # catch any exceptions, capture output and return it 
 proc capture_catch {a} {
 	catch {
-		return [eval {capture $a}]
+		capture {uplevel $a}
 	} result
-	return $result
+	return $result 
 }
 
-proc zy1000_flash {} {
+proc first_flash_base {} {
 	set t [lindex 0 [ocd_flash_banks]]
 	return $t(base)
 }

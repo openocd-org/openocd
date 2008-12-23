@@ -438,7 +438,7 @@
 				set form_length 0x10000
 			}  
 			if {[string compare $form_address ""]==0} {
-				if {[catch {[zy1000_flash]} result]==0} {
+				if {[catch {[first_flash_base]} result]==0} {
 						set form_address "0x[tohex $result]"
 					}			
 			}  
@@ -794,8 +794,8 @@ append console [encode [capture_catch poll]]
 				set form_command [formfetch form_command]
 
 				set form_edittext ""
-				if {[string length $form_command]>0} {				
-					catch {capture_catch {eval "$form_command"}} form_edittext
+				if {[string length $form_command]>0} {
+					set form_edittext [capture_catch {eval $form_command}]
 				}
 				
 				append buffer {<form action="openocd.tcl" method="post">} "\n"
