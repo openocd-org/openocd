@@ -50,7 +50,11 @@ else
 if RLINK
 LIBUSB = -lusb
 else
+if VSLLINK
+LIBUSB = -lusb
+else
 LIBUSB =
+endif
 endif
 endif
 endif

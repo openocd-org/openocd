@@ -222,6 +222,8 @@ should be included:
 @item
 @option{--enable-jlink} - From SEGGER
 @item
+@option{--enable-vsllink}
+@item
 @option{--enable-rlink} - Raisonance.com dongle.
 @end itemize
 
@@ -395,6 +397,9 @@ Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form o
 
 @item @b{USB - Presto} 
 @* Link: @url{http://tools.asix.net/prg_presto.htm}
+
+@item @b{Versaloon-Link}
+@* Link: @url{http://www.simonqian.com/en/Versaloon}
 @end itemize
 
 @section IBM PC Parallel Printer Port Based
@@ -1140,6 +1145,9 @@ libusb.
 
 @item @b{rlink}
 @* Raisonance RLink usb adapter
+
+@item @b{vsllink}
+@* vsllink is part of Versaloon which is a versatile USB programmer.
 @comment - End parameters
 @end itemize
 @comment - End Interface

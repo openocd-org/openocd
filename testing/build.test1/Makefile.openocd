@@ -40,7 +40,7 @@ MINGW32_EASY_PERMUTATIONS += ftd2xx
 CONFIG_OPTIONS_win32_libftdi  = --enable-parport --enable-ft2232_libftdi
 
 # Default build for win32... is the ftd2xx type build.
-PERMUTE_win32          ?= $(BUILD_SYSNAME)_ftd2xx
+PERMUTE_win32          ?= ftd2xx
 CONFIG_OPTIONS_win32   ?= $(CONFIG_OPTIONS_win32_$(PERMUTE_win32))
 CONFIG_OPTIONS_cygwin   = $(CONFIG_OPTIONS_win32)
 CONFIG_OPTIONS_mingw32  = $(CONFIG_OPTIONS_win32)
