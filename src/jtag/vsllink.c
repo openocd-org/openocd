@@ -200,8 +200,8 @@ void vsllink_reset(int trst, int srst);
 void vsllink_simple_command(u8 command);
 
 /* VSLLink tap buffer functions */
-void vsllink_tap_init();
-int vsllink_tap_execute();
+void vsllink_tap_init(void);
+int vsllink_tap_execute(void);
 void vsllink_tap_ensure_space(int scans, int bytes);
 void vsllink_tap_append_scan(int length, u8 *buffer, scan_command_t *command, int offset);
 
@@ -971,7 +971,7 @@ void vsllink_reset(int trst, int srst)
 	result = vsllink_usb_write(vsllink_jtag_handle, 3);
 	if (result != 3)
 	{
-		LOG_ERROR("VSLLink command VSLLINK_CMD_SET_PORT failed (%d)");
+	  LOG_ERROR("VSLLink command VSLLINK_CMD_SET_PORT failed (%d)", result);
 	}
 }
 
@@ -1054,7 +1054,6 @@ typedef struct
 static int pending_scan_results_length;
 static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
 
-static int last_tms;
 
 void vsllink_tap_init()
 {
@@ -1106,7 +1105,7 @@ void vsllink_tap_append_scan(int length, u8 *buffer, scan_command_t *command, in
  * For the purpose of padding we assume that we are in idle or pause state. */
 int vsllink_tap_execute()
 {
-	int i, j;
+	int i;
 	int result;
 	int first = 0;
 
@@ -1242,7 +1241,6 @@ void vsllink_usb_close(vsllink_jtag_t *vsllink_jtag)
 int vsllink_usb_message(vsllink_jtag_t *vsllink_jtag, int out_length, int in_length)
 {
 	int result;
-	int result2;
 	
 	result = vsllink_usb_write(vsllink_jtag, out_length);
 	if (result == out_length)
