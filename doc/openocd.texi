@@ -1459,7 +1459,7 @@ parameters'', the required parameters are:
 @itemize @bullet
 @item @b{-irlen NUMBER} - the length in bits of the instruction register
 @item @b{-ircapture NUMBER} - the ID code capture command.
-@item @b{-irmask NUMBER} - the corrisponding mask for the ir register.
+@item @b{-irmask NUMBER} - the corresponding mask for the ir register.
 @comment END REQUIRED
 @end itemize
 An example of a FOOBAR Tap
@@ -2399,14 +2399,12 @@ port is 5555.
 
 @section Daemon Commands
 
-@subsection sleep
-@b{sleep} <@var{msec}>
+@subsection sleep [@var{msec}]
 @cindex sleep
 @*Wait for n milliseconds before resuming. Useful in connection with script files
 (@var{script} command and @var{target_script} configuration). 
 
-@subsection sleep
-@b{shutdown}
+@subsection shutdown
 @cindex shutdown
 @*Close the OpenOCD daemon, disconnecting all clients (GDB, Telnet, Other). 
 
@@ -2803,7 +2801,8 @@ In general these commands control JTAG taps at a very low level. For
 example if you need to control a JTAG Route Controller (ie: the
 OMAP3530 on the Beagle Board has one) you might use these commands in
 a script or an event procedure.
-
+@section Commands
+@cindex Commands
 @itemize @bullet
 @item @b{scan_chain}
 @cindex scan_chain
@@ -2835,6 +2834,44 @@ a script or an event procedure.
 @item @b{field} <@var{var}> <@var{field}> [@var{value}|@var{flip}]
 @cindex field
 Display/modify variable field <@var{var}> <@var{field}> [@var{value}|@var{flip}].
+@end itemize
+
+@section Tap states
+@cindex Tap states
+Available tap_states are:
+@itemize @bullet
+@item @b{RESET}
+@cindex RESET
+@item @b{IDLE}
+@cindex IDLE
+@item @b{DRSELECT}
+@cindex DRSELECT
+@item @b{DRCAPTURE}
+@cindex DRCAPTURE
+@item @b{DRSHIFT}
+@cindex DRSHIFT
+@item @b{DREXIT1}
+@cindex DREXIT1
+@item @b{DRPAUSE}
+@cindex DRPAUSE
+@item @b{DREXIT2}
+@cindex DREXIT2
+@item @b{DRUPDATE}
+@cindex DRUPDATE
+@item @b{IRSELECT}
+@cindex IRSELECT
+@item @b{IRCAPTURE}
+@cindex IRCAPTURE
+@item @b{IRSHIFT}
+@cindex IRSHIFT
+@item @b{IREXIT1}
+@cindex IREXIT1
+@item @b{IRPAUSE}
+@cindex IRPAUSE
+@item @b{IREXIT2}
+@cindex IREXIT2
+@item @b{IRUPDATE}
+@cindex IRUPDATE
 @end itemize
 
 
