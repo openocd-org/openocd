@@ -133,6 +133,46 @@ OpenOCD, then check if your interface supplier provides binaries for
 you. Chances are that that binary is from some SVN version that is more
 stable than SVN trunk where bleeding edge development takes place.
 
+@section Packagers Please Read!
+
+If you are a @b{PACKAGER} of OpenOCD if you
+
+@enumerate
+@item @b{Sell dongles} and include pre-built binaries
+@item @b{Supply tools} ie: A complete development solution
+@item @b{Supply IDEs} like Eclipse, or RHIDE, etc.
+@item @b{Build packages} ie: RPM files, or DEB files for a Linux Distro
+@end enumerate
+
+As a @b{PACKAGER} - you are at the top of the food chain. You solve
+problems for downstream users. What you fix or solve - solves hundreds
+if not thousands of user questions. If something does not work for you
+please let us know. That said, would also like you to follow a few
+suggestions:
+
+@enumerate
+@item @b{Always build with Printer Ports Enabled}
+@item @b{Try where possible to use LIBFTDI + LIBUSB} You cover more bases
+@end enumerate
+
+It is your decision..
+
+@itemize @bullet
+@item @b{Why YES to LIBFTDI + LIBUSB}
+@itemize @bullet
+@item @b{LESS} work - libusb perhaps already there
+@item @b{LESS} work - identical code multiple platforms
+@item @b{MORE} dongles are supported
+@item @b{MORE} platforms are supported
+@item @b{MORE} complete solution
+@end itemize
+@item @b{Why not LIBFTDI + LIBUSB} (ie: ftd2xx instead)
+@itemize @bullet
+@item @b{LESS} Some say it is slower.
+@item @b{LESS} complex to distribute (external dependencies)
+@end itemize
+@end itemize
+
 @section Building From Source
 
 You can download the current SVN version with SVN client of your choice from the
