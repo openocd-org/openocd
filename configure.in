@@ -55,7 +55,7 @@ then
     
     LDFLAGS="$LDFLAGS -L$OCDxprefix/lib"
     # RPATH becomes an issue on Linux only
-    if test $host_os = linux-gnu
+    if test $host_os = linux-gnu || $host_os = linux
     then
 	LDFLAGS="$LDFLAGS -Wl,-rpath,$OCDxprefix/lib"
     fi
@@ -500,7 +500,7 @@ if test $build_ft2232_ftd2xx = yes ; then
    AC_MSG_CHECKING([for libftd2xx.a (linux)])
    # Must be linux -
    # Cause FTDICHIP does not supply a MAC-OS version
-   if test $host_os != linux-gnu; then
+   if test $host_os != linux-gnu && $host_os != linux ; then
       AC_MSG_ERROR([The (linux) ftd2xx library from FTDICHIP.com is linux only. Try --enable-ft2232-libftdi instead])
    fi
    # Are we given a TAR directory?
