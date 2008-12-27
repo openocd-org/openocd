@@ -1,0 +1,161 @@
+# -*- mode: makefile -*-
+#========================================
+# DO NOT REMOVE THE LINE BELOW
+HERE := $(shell pwd)
+# DO NOT REMOVE THE LINE ABOVE
+#========================================
+
+# These are common CYGWIN build settings.
+# Comment out things you do not want.
+# Or unComment things you want.
+
+# PCs always have printer ports...
+X86_PRINTER_PORT   ?= y
+
+# Chose *ONE* of these three solutions.
+#FTD2232_DRIVER = none
+FT2232_DRIVER  = ftd2xx
+#FT2232_DRIVER  = libftdi
+
+# Do you have "libusb" installed?
+ifeq (x"${FT2232_DRIVER}",x"libftdi")
+# With LIBFTDI... LIBUSB is manditory.
+USE_LIBUSB     = y
+endif
+
+# By default... we assume libusb not present.
+USE_LIBUSB    ?= n
+
+#========================================
+# DO NOT EDIT SETTINGS BELOW THIS LINE
+#========================================
+
+
+
+#========================================
+# House keeping...
+
+# Solve problems on systems with DASH.. Grrr...
+SHELL=/bin/bash
+export SHELL
+
+VIRGINS         ?= ${HERE}/virgins
+INSTALL_DIR     ?= $(HERE)/install
+PREFIX          ?= ${INSTALL_DIR}
+
+# Determine the build platform.
+BUILD_SYSNAME_Linux      =linux
+BUILD_SYSNAME_linux      =linux
+BUILD_SYSNAME_CYGWIN_NT  =cygwin
+BUILD_SYSNAME_MINGW32_NT =mingw32
+BUILD_SYSNAME_Darwin     =darwin
+BUILD_SYSNAME_darwin     =darwin
+BUILD_SYSNAME :=$(BUILD_SYSNAME_$(shell uname --sysname | cut -d'-' -f1))
+
+# And machine (ie: i686, x86_64, or what ever)
+BUILD_MACHINE :=$(BUILD_SYSNAME).$(shell uname -m)
+
+
+#========================================
+# 
+
+FTD2XX_LINUX_VERSION=0.4.16
+FTD2XX_LINUX_DIR    = ${HERE}/libftd2xx${FTD2XX_LINUX_VERSION}
+FTD2XX_LINUX_64_DIR = ${HERE}/libftd2xx${FTD2XX_LINUX_VERSION}_x86_64
+
+
+# Wiggler type interfaces are here.
+OPENOCD_CONFIG_OPTIONS_printer_y += --enable-parport 
+OPENOCD_CONFIG_OPTIONS_printer_y += --enable-parport-giveio
+OPENOCD_CONFIG_OPTIONS_printer_y += --enable-gw16012
+OPENOCD_CONFIG_OPTIONS_printer_y += --enable-parport-giveio
+OPENOCD_CONFIG_OPTIONS_printer_y += --enable-amtjtagaccel
+
+
+# FTD2XX only supports these
+OPENOCD_CONFIG_OPTIONS_ft2232_none    =
+OPENOCD_CONFIG_OPTIONS_ft2232_ftd2xx  = --enable-ft2232_ftd2xx  --enable-presto_ftd2xx --with-ftd2xx-win32-zipdir=${FTD2XX_WIN32_DIR}
+OPENOCD_CONFIG_OPTIONS_ft2232_libftdi = --enable-ft2232_libftdi --enable-presto_libftdi 
+
+# LIBUSB - adds support for these.
+OPENOCD_CONFIG_OPTIONS_libusb_y += --enable-jlink 
+OPENOCD_CONFIG_OPTIONS_libusb_y += --enable-usbprog
+OPENOCD_CONFIG_OPTIONS_libusb_y += --enable-rlink 
+OPENOCD_CONFIG_OPTIONS_libusb_y += --enable-vsllink
+OPENOCD_CONFIG_OPTIONS_libusb_y += --enable-usbprog
+
+#========================================
+# EXPLICITY NOT SUPPORTED INTERFACES
+#
+#  zy1000.c
+#     This is a standalone hardware box
+#     it is *NOT* a cygwin thing.
+#
+#  at91rm9200.c
+#     This is a uC/Linux (or linux) that
+#     runs uC/Linux and uses the gpio pins
+#     to bit-bang JTAG stuff.
+#
+#  ep93xx.c
+#     Just like at91rm9200 - different chip.
+
+#========================================
+# Build OPENOCD config options...
+# Always enable "dummy"
+OPENOCD_CONFIG_OPTIONS += --enable-dummy
+# 
+# Today: Cannot enable 'oocd_trace' on cygwin.
+# it assumes/uses termios functions like
+# cfmakeraw() which do not exist on cygwin.
+#
+#OPENOCD_CONFIG_OPTIONS += --enable-oocd-trace
+#
+# Add printer options..
+OPENOCD_CONFIG_OPTIONS += ${OPENOCD_CONFIG_OPTIONS_printer_${X86_PRINTER_PORT}}
+
+# Add the FTD2232 based options.
+OPENOCD_CONFIG_OPTIONS += ${OPENOCD_CONFIG_OPTIONS_ft2232_${FT2232_DRIVER}}
+
+# Add LIBUSB based options.
+OPENOCD_CONFIG_OPTIONS += ${OPENOCD_CONFIG_OPTIONS_libusb_${USE_LIBUSB}}
+
+
+#========================================
+# WARNING... the file on the ftdi chip site has a SPACE in the filename GRRR!!!
+# We fix that with the "-O" option to wget.
+FTD2XX_WIN32_VERSION=2.04.14
+FTD2XX_WIN32_DIR    = ${HERE}/ftd2xx.win32
+
+FTD2XX_ZIPFILE_LOCAL=${VIRGINS}/cdm.${FTD2XX_WIN32_VERSION}.zip
+# Damn thing has a space in the F-ing filename!
+FTD2XX_ZIPFILE_URL  ="http://www.ftdichip.com/Drivers/CDM/CDM ${FTD2XX_WIN32_VERSION}.zip"
+
+
+#========================================
+# LIBCONFUSE - used by LIBFTDI..
+LIBCONFUSE_VERSION=2.5
+LIBCONFUSE_TARFILE_LOCAL=${VIRGINS}/confuse-${LIBCONFUSE_VERSION}.tar.gz
+LIBCONFUSE_TARFILE_URL  =http://www.intra2net.com/de/produkte/opensource/ftdi/TGZ/confuse-${LIBCONFUSE_VERSION}.tar.gz
+
+LIBCONFUSE_SRC_DIR   =${HERE}/confuse-${LIBCONFUSE_VERSION}
+LIBCONFUSE_BUILD_DIR =${HERE}/confuse-build
+
+
+#========================================
+# LIBFTDI... (which uses libusb, and libconfuse)
+LIBFTDI_VERSION=0.14
+LIBFTDI_TARFILE_LOCAL    = ${VIRGINS}/libftdi-${LIBFTDI_VERSION}.tar.gz
+LIBFTDI_TARFILE_URL      = http://www.intra2net.com/de/produkte/opensource/ftdi/TGZ/libftdi-${LIBFTDI_VERSION}.tar.gz
+
+LIBFTDI_SRC_DIR  = ${HERE}/libftdi-${LIBFTDI_VERSION}
+LIBFTDI_BUILD_DIR= ${HERE}/libftdi-build
+
+#========================================
+# Finally - OpenOCD...
+#
+OPENOCD_BUILD_DIR =${HERE}/openocd-build
+OPENOCD_SRC_DIR   =${HERE}/openocd
+
+#========================================
+# END ..
+#========================================
