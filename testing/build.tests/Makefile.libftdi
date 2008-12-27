@@ -1,0 +1,51 @@
+# -*- mode: makefile -*-
+default: _complain_
+include ./local.uses
+
+TARFILE_LOCAL    = ${VIRGINS}/libftdi-${LIBFTDI_VERSION}.tar.gz
+TARFILE_URL      = http://www.intra2net.com/de/produkte/opensource/ftdi/TGZ/libftdi-${LIBFTDI_VERSION}.tar.gz
+
+LIBFTDI_SRC_DIR  = ${HERE}/libftdi-${LIBFTDI_VERSION}
+LIBFTDI_BUILD_DIR= ${HERE}/libftdi-build
+
+download:
+	mkdir -p virgins
+	wget -O  ${TARFILE_LOCAL} ${TARFILE_URL}
+
+clean::
+	rm -rf ${LIBFTDI_SRC_DIR}
+
+unpack:
+	tar xf ${TARFILE_LOCAL}
+
+PATH := ${EXEC_PREFIX}/bin:${PATH}
+export PATH
+
+clean::
+	rm -rf ${LIBFTDI_BUILD_DIR}
+
+configure:
+	rm -rf ${LIBFTDI_BUILD_DIR}
+	mkdir -p ${LIBFTDI_BUILD_DIR}
+	cd ${LIBFTDI_BUILD_DIR} && ${LIBFTDI_SRC_DIR}/configure \
+		--prefix=${PREFIX} \
+		--exec-prefix=${EXEC_PREFIX}
+
+build:
+	cd ${LIBFTDI_BUILD_DIR} && ${MAKE}
+
+install: 
+	cd ${LIBFTDI_BUILD_DIR} && ${MAKE} install
+
+all: unpack configure build install
+
+.PHONY: install
+
+_complain_:
+	@echo ""
+	@echo "Please try one of these targets: bootstrap, clean, configure, build, install"
+	@echo " Or read the makefile and learn about the permutation test targets"
+	@echo ""
+	@echo "You also might find the download and unpack targets helpful."
+	@echo ""
+	@exit 1

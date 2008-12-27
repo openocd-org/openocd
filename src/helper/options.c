@@ -178,7 +178,8 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 	if (version_flag)
 	{
 		/* Nothing to do, version gets printed automatically. */
-		exit(-1);
+		// It is not an error to request the VERSION number.
+		exit(0);
 	}
 	
 	return ERROR_OK;

@@ -127,11 +127,13 @@ The main OpenOCD web site is available at @uref{http://openocd.berlios.de/web/}
 @chapter Building
 @cindex building OpenOCD
 
+@section Pre-Built Tools
 If you are interested in getting actual work done rather than building
 OpenOCD, then check if your interface supplier provides binaries for
 you. Chances are that that binary is from some SVN version that is more
 stable than SVN trunk where bleeding edge development takes place.
 
+@section Building From Source
 
 You can download the current SVN version with SVN client of your choice from the
 following repositories:
@@ -166,8 +168,7 @@ a FTDI FT2232 based interface:
 homepage (@uref{www.amontec.com}), as the JTAGkey uses a non-standard VID/PID. 
 @end itemize
 
-libftdi is supported under windows. Versions earlier than 0.13 will require patching.
-see contrib/libftdi for more details.
+libftdi is supported under windows. Do not use versions earlier then 0.14.
 
 In general, the D2XX driver provides superior performance (several times as fast),
 but has the draw-back of being binary-only - though that isn't that bad, as it isn't
@@ -179,35 +180,37 @@ To build OpenOCD (on both Linux and Cygwin), use the following commands:
 @end example
 Bootstrap generates the configure script, and prepares building on your system.
 @example
- ./configure 
+ ./configure [options, see below]
 @end example
 Configure generates the Makefiles used to build OpenOCD.
 @example
  make 
+ make install
 @end example
-Make builds OpenOCD, and places the final executable in ./src/.
+Make builds OpenOCD, and places the final executable in ./src/, the last step, ``make install'' is optional.
 
 The configure script takes several options, specifying which JTAG interfaces
 should be included:
 
 @itemize @bullet
 @item
-@option{--enable-parport}
+@option{--enable-parport} - Bit bang pc printer ports.
 @item
-@option{--enable-parport_ppdev}
+@option{--enable-parport_ppdev} - Parallel Port [see below]
 @item
-@option{--enable-parport_giveio}
+@option{--enable-parport_giveio} - Parallel Port [see below]
 @item
-@option{--enable-amtjtagaccel}
+@option{--enable-amtjtagaccel} - Parallel Port [Amontec, see below]
 @item
-@option{--enable-ft2232_ftd2xx}
-@footnote{Using the latest D2XX drivers from FTDI and following their installation
-instructions, I had to use @option{--enable-ft2232_libftd2xx} for OpenOCD to
-build properly.}
+@option{--enable-ft2232_ftd2xx} - Numerous USB Type ARM JTAG dongles use the FT2232C chip from this FTDICHIP.COM chip (closed source).
 @item
-@option{--enable-ft2232_libftdi}
+@option{--enable-ft2232_libftdi} - An open source (free) alternate to FTDICHIP.COM ftd2xx solution (Linux, MacOS, Cygwin)
 @item
-@option{--with-ftd2xx=/path/to/d2xx/}
+@option{--with-ftd2xx-win32-zipdir=PATH} - If using FTDICHIP.COM ft2232c, point at the directory where the Win32 FTDICHIP.COM 'CDM' driver zip file was unpacked.
+@item
+@option{--with-ftd2xx-linux-tardir=PATH} - Linux only equal of @option{--with-ftd2xx-win32-zipdir}, where you unpacked the TAR.GZ file.
+@item
+@option{--with-ftd2xx-lib=shared|static} - Linux only. Default: static, specifies how the FTDICHIP.COM libftd2xx driver should be linked. Note 'static' only works in conjunction with @option{--with-ftd2xx-linux-tardir}. Shared is supported (12/26/2008), however you must manually install the required header files and shared libraries in an appropriate place. This uses ``libusb'' internally.
 @item
 @option{--enable-gw16012}
 @item
@@ -217,23 +220,72 @@ build properly.}
 @item
 @option{--enable-presto_ftd2xx}
 @item
-@option{--enable-jlink}
+@option{--enable-jlink} - From SEGGER
 @item
-@option{--enable-rlink}
+@option{--enable-rlink} - Raisonance.com dongle.
 @end itemize
+
+@section Parallel Port Dongles
 
 If you want to access the parallel port using the PPDEV interface you have to specify
 both the @option{--enable-parport} AND the @option{--enable-parport_ppdev} option since
 the @option{--enable-parport_ppdev} option actually is an option to the parport driver
 (see @uref{http://forum.sparkfun.com/viewtopic.php?t=3795} for more info).
 
-Cygwin users have to specify the location of the FTDI D2XX package. This should be an
-absolute path containing no spaces.
+@section FT2232C Based USB Dongles 
 
-Linux users should copy the various parts of the D2XX package to the appropriate
-locations, i.e. /usr/include, /usr/lib. 
+There are 2 methods of using the FTD2232, either (1) using the
+FTDICHIP.COM closed source driver, or (2) the open (and free) driver
+libftdi. Some claim the (closed) FTDICHIP.COM solution is faster.
 
-Miscellaneous configure options
+The FTDICHIP drivers come as either a (win32) ZIP file, or a (linux)
+TAR.GZ file. You must unpack them ``some where'' convient. As of this
+writing (12/26/2008) FTDICHIP does not supply means to install these
+files ``in an appropriate place'' As a result, there are two
+``./configure'' options that help. 
+
+Below is an example build process:
+
+1) Check out the latest version of ``openocd'' from SVN.
+
+2) Download & Unpack either the Windows or Linux FTD2xx Drivers
+    (@uref{http://www.ftdichip.com/Drivers/D2XX.htm})
+
+@example
+   /home/duane/ftd2xx.win32    => the Cygwin/Win32 ZIP file contents.
+   /home/duane/libftd2xx0.4.16 => the Linux TAR file contents.
+@end example
+
+3) Configure with these options:
+
+@example
+Cygwin FTCICHIP solution
+   ./configure --prefix=/home/duane/mytools \ 
+                  --enable-ft2232_ftd2xx \
+                  --with-ftd2xx-win32-zipdir=/home/duane/ftd2xx.win32
+
+Linux FTDICHIP solution
+   ./configure --prefix=/home/duane/mytools \
+                  --enable-ft2232_ftd2xx \
+                  --with-ft2xx-linux-tardir=/home/duane/libftd2xx0.4.16
+
+Cygwin/Linux LIBFTDI solution
+    Assumes: 
+    1a) For Windows: The windows port of LIBUSB is in place.
+    1b) For Linux: libusb has been built and is inplace.
+
+    2) And libftdi has been built and installed
+    Note: libftdi - relies upon libusb.
+
+    ./configure --prefix=/home/duane/mytools \
+                   --enable-ft2232_libftdi
+       
+@end example
+
+4) Then just type ``make'', and perhaps ``make install''.
+
+
+@section Miscellaneous configure options
 
 @itemize @bullet
 @item

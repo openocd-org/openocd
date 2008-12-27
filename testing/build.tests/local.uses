@@ -1,0 +1,39 @@
+# -*- mode: makefile -*-
+HERE := $(shell pwd)
+
+# Solve problems on systems with DASH.. Grrr...
+SHELL=/bin/bash
+export SHELL
+
+VIRGINS=${HERE}/virgins
+
+# Determine the build platform.
+BUILD_SYSNAME_Linux      =linux
+BUILD_SYSNAME_linux      =linux
+BUILD_SYSNAME_CYGWIN_NT  =cygwin
+BUILD_SYSNAME_MINGW32_NT =mingw32
+BUILD_SYSNAME_Darwin     =darwin
+BUILD_SYSNAME_darwin     =darwin
+BUILD_SYSNAME :=$(BUILD_SYSNAME_$(shell uname --sysname | cut -d'-' -f1))
+
+# And machine (ie: i686, x86_64, or what)
+BUILD_MACHINE :=$(BUILD_SYSNAME).$(shell uname -m)
+
+
+INSTALL_DIR     := $(HERE)/install
+PREFIX          := ${INSTALL_DIR}
+EXEC_PREFIX     := ${INSTALL_DIR}/${BUILD_MACHINE}
+
+LIBFTDI_VERSION=0.14
+LIBCONFUSE_VERSION=2.5
+
+LIBUSB_VERSION_linux=0.1.12
+
+LIBUSB_VERSION=${LIBUSB_VERSION_${BUILD_SYSNAME}}
+
+FTD2XX_WIN32_VERSION=2.04.14
+FTD2XX_WIN32_DIR    = ${HERE}/ftd2xx.win32
+
+FTD2XX_LINUX_VERSION=0.4.16
+FTD2XX_LINUX_DIR    = ${HERE}/libftd2xx${FTD2XX_LINUX_VERSION}
+FTD2XX_LINUX_64_DIR = ${HERE}/libftd2xx${FTD2XX_LINUX_VERSION}_x86_64

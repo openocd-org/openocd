@@ -1,0 +1,88 @@
+# -*- mode: makefile -*-
+#
+default: _complain_
+
+include ./local.uses
+
+# WARNING... the file on the ftdi chip site has a SPACE in the filename GRRR!!!
+# We fix that with the "-O" option to wget.
+ZIPFILE_LOCAL=${VIRGINS}/cdm.${FTD2XX_WIN32_VERSION}.zip
+ZIPFILE_URL  ="http://www.ftdichip.com/Drivers/CDM/CDM ${FTD2XX_WIN32_VERSION}.zip"
+
+TARFILE_LOCAL=${VIRGINS}/libftd2xx${FTD2XX_LINUX_VERSION}.tar.gz
+TARFILE_URL  =http://www.ftdichip.com/Drivers/D2XX/Linux/libftd2xx${FTD2XX_LINUX_VERSION}.tar.gz
+
+TARFILE_64_LOCAL=${VIRGINS}/libftd2xx${FTD2XX_LINUX_VERSION}_x86_64.tar.gz
+TARFILE_64_URL  =http://www.ftdichip.com/Drivers/D2XX/Linux/libftd2xx${FTD2XX_LINUX_VERSION}_x86_64.tar.gz
+
+
+download.win32:
+	mkdir -p ${VIRGINS}
+	wget -O ${ZIPFILE_LOCAL} ${ZIPFILE_URL}
+
+unpack.win32:
+	rm -rf ${FTD2XX_WIN32_DIR}
+	mkdir -p ${FTD2XX_WIN32_DIR}
+	cd ${FTD2XX_WIN32_DIR} && unzip ${ZIPFILE_LOCAL}
+
+clean::
+	rm -rf ${FTD2XX_WIN32_DIR}
+
+download.linux:
+	mkdir -p ${VIRGINS}
+	wget -O ${TARFILE_LOCAL} ${TARFILE_URL}
+
+clean:: 
+	rm -rf ${FTD2XX_LINUX_DIR}
+
+unpack.linux:
+	rm -rf ${FTD2XX_LINUX_DIR}
+	mkdir -p ${FTD2XX_LINUX_DIR}
+	tar xfz ${TARFILE_LOCAL}
+
+download.linux.x86_64:
+	mkdir -p ${VIRGINS}
+	wget -O ${TARFILE_LOCAL} ${TARFILE_URL}
+
+unpack.linux.x86_64:
+	rm -rf ${FTD2XX_LINUX_64_DIR}
+	mkdir -p ${FTD2XX_LINUX_64_DIR}
+	tar xfz ${TARFILE_64_LOCAL}
+
+clean::
+	rm -rf ${FTD2XX_LINUX_64_DIR}
+
+download: download.win32 download.linux
+
+unpack.cygwin unpack.mingw32: unpack.win32
+
+unpack: unpack.${BUILD_SYSNAME}
+
+# Nothing to do here
+build:
+	@echo "Done"
+
+#Nothing to do here
+configure:
+	@echo "Done"
+
+# Nothing to do here
+install: 
+	@echo "Done"
+
+all: unpack configure build install
+
+.PHONY: install
+
+# Nothing to do here
+clean::
+	@echo "Done"
+
+_complain_:
+	@echo ""
+	@echo "Please try one of these targets: bootstrap, clean, configure, build, install"
+	@echo " Or read the makefile and learn about the permutation test targets"
+	@echo ""
+	@echo "You also might find the download and unpack targets helpful."
+	@echo ""
+	@exit 1

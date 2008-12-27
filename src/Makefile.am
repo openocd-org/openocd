@@ -55,25 +55,7 @@ endif
 endif
 endif
 
-if IS_WIN32
-if FTD2XXDIR
-FTD2XXLDADD = @WITH_FTD2XX@/FTD2XX.lib
-else
-FTD2XXLDADD = -lftd2xx
-endif
-else
-FTD2XXLDADD = -lftd2xx 
-endif
-  
-if FT2232_FTD2XX
-FTD2XXLIB = $(FTD2XXLDADD)
-else
-if PRESTO_FTD2XX
-FTD2XXLIB = $(FTD2XXLDADD)
-else
-FTD2XXLIB =
-endif
-endif
+
 
 openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
 	$(top_builddir)/src/target/libtarget.a $(top_builddir)/src/jtag/libjtag.a \
@@ -81,7 +63,7 @@ openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
 	$(top_builddir)/src/server/libserver.a $(top_builddir)/src/helper/libhelper.a \
 	$(top_builddir)/src/flash/libflash.a $(top_builddir)/src/target/libtarget.a \
 	$(top_builddir)/src/pld/libpld.a \
-	$(FTDI2232LIB) $(FTD2XXLIB) $(MINGWLDADD) $(LIBUSB)
+	$(FTDI2232LIB) $(MINGWLDADD) $(LIBUSB)
 
 
 if HTTPD

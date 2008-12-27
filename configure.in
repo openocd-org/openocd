@@ -28,6 +28,133 @@ is_cygwin=no
 is_mingw=no
 is_win32=no
 
+# We are not *ALWAYS* being installed in the standard place.
+# We may be installed in a "tool-build" specific location.
+# Normally with other packages - as part of a tool distro.
+# Thus - we should search that 'libdir' also.
+#
+# And - if we are being installed there - the odds are
+# The libraries unique to what we are are there too.
+#
+# what matters is the "exec-prefix"
+if test $exec_prefix != $ac_default_prefix
+then
+    # use build specific install library dir
+    LDFLAGS="$LDFLAGS -L$libdir"
+    # RPATH becomes an issue on Linux only
+    if test $host_os = linux-gnu
+    then
+	LDFLAGS="$LDFLAGS -Wl,-rpath,$libdir"
+    fi
+    # The "INCDIR" is also usable
+    CFLAGS="$CFLAGS -I$includedir"
+fi
+
+AC_ARG_WITH(ftd2xx,
+   AS_HELP_STRING([--with-ftd2xx=<PATH>],[This option has been removed.]),
+[
+# Option Given.
+cat << __EOF__
+
+The option: --with-ftd2xx=<PATH> has been removed replaced.
+On Linux, the new option is:
+  
+  --with-ftd2xx-linux-tardir=/path/to/files
+
+Where <path> is the path the the directory where the "tar.gz" file
+from FTDICHIP.COM was unpacked, for example:
+
+  --with-ftd2xx-linux-tardir=/home/duane/libftd2xx-linux-tardir=/home/duane/libftd2xx0.4.16
+
+On Cygwin/MingW32, the new option is:
+
+  --with-ftd2xx-win32-zipdir=/path/to/files
+
+Where <path> is the path to the directory where the "zip" file from
+FTDICHIP.COM was unpacked, for example:
+
+  --with-ftd2xx-win32-zipdir=/home/duane/ftd2xx.cdm.files
+
+__EOF__
+
+   AC_MSG_ERROR([Sorry Cannot continue])
+],
+[ 
+# Option not given
+true
+]
+)
+
+#========================================
+# FTD2XXX support comes in 3 forms.
+#    (1) win32 - via a zip file
+#    (2) linux - via a tar file
+#    (3) linux/cygwin/mingw - via libftdi
+#
+# In case (1) and (2) we need to know where the package was unpacked.
+
+AC_ARG_WITH(ftd2xx-win32-zipdir,
+  AS_HELP_STRING([--with-ftd2xx-win32-zipdir],[Where (CYGWIN/MINGW) the zip file from ftdichip.com was unpacked <default=search>]),
+  [
+  # option present
+  if test -d $with_ftd2xx_win32_zipdir
+  then
+	with_ftd2xx_win32_zipdir=`cd $with_ftd2xx_win32_zipdir && pwd`
+	AC_MSG_NOTICE([Using: ftdichip.com library: $with_ftd2xx_win32_zipdir])
+  else
+	AC_MSG_ERROR([Parameter to --with-ftd2xx-win32-zipdir is not a dir: $with_ftd2xx_win32_zipdir])
+  fi
+  ],
+  [
+  # not given
+  true
+  ]
+)
+	
+
+AC_ARG_WITH(ftd2xx-linux-tardir,
+  AS_HELP_STRING([--with-ftd2xx-linux-tardir], [Where (Linux/Unix) the tar file from ftdichip.com was unpacked <default=search>]),
+  [
+  # Option present
+  if test $is_win32 = yes ; then
+     AC_MSG_ERROR([The option: --with-ftd2xx-linux-tardir is only usable on linux])
+  fi
+  if test -d $with_ftd2xx_linux_tardir
+  then
+	with_ftd2xx_linux_tardir=`cd $with_ftd2xx_linux_tardir && pwd`
+	AC_MSG_NOTICE([Using: ftdichip.com library: $with_ftd2xx_linux_tardir])
+  else
+	AC_MSG_ERROR([Parameter to --with-ftd2xx-linux-tardir is not a dir: $with_ftd2xx_linux_tardir])
+  fi
+  ],
+  [
+  # Not given 
+  true
+  ]
+)
+
+
+AC_ARG_WITH(ftd2xx-lib,
+	AS_HELP_STRING([--with-ftd2xx-lib], [Use static or shared ftd2xx libs on default static]),
+[
+case "$withval" in
+static)
+	with_ftd2xx_lib=$withval
+	;;
+shared)
+	with_ftd2xx_lib=$withval
+	;;
+*)
+	AC_MSG_ERROR([Option: --with-ftd2xx-lib=static or --with-ftd2xx-lib=shared not, $withval])
+	;;
+esac
+],
+[
+	# Default is static - it is simpler :-(
+	with_ftd2xx_lib=static
+]
+)
+
 AC_ARG_ENABLE(gccwarnings,
 	AS_HELP_STRING([--enable-gccwarnings], [Enable compiler warnings, default no]),
 	[gcc_warnings=$enableval], [gcc_warnings=no])
@@ -52,11 +179,11 @@ case "${host_cpu}" in
 esac
 
 AC_ARG_ENABLE(ft2232_libftdi,
-  AS_HELP_STRING([--enable-ft2232_libftdi], [Enable building support for FT2232 based devices using the libftdi driver]), 
+  AS_HELP_STRING([--enable-ft2232_libftdi], [Enable building support for FT2232 based devices using the libftdi driver, opensource alternate of FTD2XX]), 
   [build_ft2232_libftdi=$enableval], [build_ft2232_libftdi=no])
 
 AC_ARG_ENABLE(ft2232_ftd2xx,
-  AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver]), 
+  AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]), 
   [build_ft2232_ftd2xx=$enableval], [build_ft2232_ftd2xx=no])
  
 AC_ARG_ENABLE(amtjtagaccel,
@@ -120,11 +247,6 @@ AC_ARG_ENABLE(rlink,
   AS_HELP_STRING([--enable-rlink], [Enable building support for the Raisonance RLink JTAG Programmer]),
   [build_rlink=$enableval], [build_rlink=no])
 
-AC_ARG_WITH(ftd2xx,
-        [AS_HELP_STRING(--with-ftd2xx,
-           [Where libftd2xx can be found <default=search>])],
-        [],
-        with_ftd2xx=search)
 
 case $host in 
   *-cygwin*) 
@@ -296,6 +418,198 @@ else
   AC_DEFINE(BUILD_RLINK, 0, [0 if you don't want the RLink JTAG driver.])
 fi
 
+#-- Deal with MingW/Cygwin FTD2XX issues
+
+if test $is_win32 = yes; then
+if test "${with_ftd2xx_linux_tardir+set}" = set
+then
+   AC_MSG_ERROR([The option: with_ftd2xx_linux_tardir is for LINUX only.])
+fi
+
+if test $build_ft2232_ftd2xx = yes ; then
+AC_MSG_CHECKING([for ftd2xx.lib exists (win32)])
+
+   # if we are given a zipdir...
+   if test "${with_ftd2xx_win32_zipdir+set}" = set
+   then
+      # Set the CFLAGS for "ftd2xx.h"
+      f=$with_ftd2xx_win32_zipdir/ftd2xx.h
+      if test ! -f $f ; then
+      	 AC_MSG_ERROR([File: $f cannot be found])
+      fi
+      CFLAGS="$CFLAGS -I$with_ftd2xx_win32_zipdir"
+
+      # And calculate the LDFLAGS for the machine
+      case "$host_cpu" in
+      i?86|x86_*)
+	LDFLAGS="$LFLAGS -L$with_ftd2xx_win32_zipdir/i386"
+	LIBS="$LIBS -lftd2xx"
+	f=$with_ftd2xx_win32_zipdir/i386/ftd2xx.lib
+	;;
+      amd64)
+	LDFLAGS="$LFLAGS -L$with_ftd2xx_win32_zipdir/amd64"
+	LIBS="$LIBS -lftd2xx"
+	f=$with_ftd2xx_win32_zipdir/amd64/ftd2xx.lib
+	;;
+      *)
+	AC_MSG_ERROR([Unknown Win32 host cpu: $host_cpu])
+        ;;
+       esac
+       if test ! -f $f ; then
+       	  AC_MSG_ERROR([Library: $f not found])
+       fi
+   else
+      LIBS="$LIBS -lftd2xx"
+      AC_MSG_WARN([ASSUMPTION: The (win32) FTDICHIP.COM files: ftd2xx.h and ftd2xx.lib are in a proper place])
+   fi
+fi
+fi
+
+
+if test $is_win32 = no; then
+
+if test "${with_ftd2xx_win32_zipdir+set}" = set
+then
+   AC_MSG_ERROR([The option: --with-ftd2xx-win32-zipdir is for win32 only])
+fi
+
+if test $build_ft2232_ftd2xx = yes ; then
+   AC_MSG_CHECKING([for libftd2xx.a (linux)])
+   # Must be linux -
+   # Cause FTDICHIP does not supply a MAC-OS version
+   if test $host_os != linux-gnu; then
+      AC_MSG_ERROR([The (linux) ftd2xx library from FTDICHIP.com is linux only. Try --enable-ft2232-libftdi instead])
+   fi
+   # Are we given a TAR directory?
+   if test "${with_ftd2xx_linux_tardir+set}" = set
+   then
+	# The .H file is simple..
+	f=$with_ftd2xx_linux_tardir/ftd2xx.h
+	if test ! -f $f ; then
+	   AC_MSG_ERROR([Option: --with-ftd2xx-linux-tardir appears wrong, cannot find: $f])
+	fi
+	CFLAGS="$CFLAGS -I$with_ftd2xx_linux_tardir"
+	if test $with_ftd2xx_lib = shared
+	then
+	    LDFLAGS="$LDFLAGS -L$with_ftd2xx_linux_tardir"
+	    LIBS="$LIBS -lftd2xx"
+	    AC_MSG_RESULT([ Assuming: -L$with_ftd2xx_linux_tardir -lftd2xx])
+	else
+	    # Test #1 - Future proof - if/when ftdichip fixes their distro.
+	    # Try it with the simple ".a" suffix.
+	    f=$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a
+	    if test -f $f ; then
+	       # Yea we are done
+	       LDFLAGS="$LDFLAGS -L$with_ftd2xx_linux_tardir/static_lib"
+	       LIBS="$LIBS -lftd2xx"
+            else
+	       # Test Number2.
+	       # Grr.. perhaps it exists as a version number?
+	       f="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a.*.*.*"
+	       count=`ls $f | wc -l`
+	       if test $count -gt 1 ; then
+	          AC_MSG_ERROR([Multiple libftd2xx.a files found in: $with_ftd2xx_linux_tardir/static_lib sorry cannot handle this yet])
+	       fi
+	       if test $count -ne 1 ; then
+	          AC_MSG_ERROR([Not found: $f, option: --with-ftd2xx-linux-tardir appears to be wrong])
+	       fi
+	       # Because the "-l" rules do not understand version numbers...
+	       # we will just stuff the absolute path onto the LIBS variable
+	       f=`ls $f`
+	       #
+	       LIBS="$LIBS $f -lpthread"
+	       # No need to bother with LDFLAGS...
+	    fi
+	    AC_MSG_RESULT([Found: $f])
+        fi
+   else
+	LIBS="$LIBS -lftd2xx"
+	AC_MSG_RESULT([Assumed: installed])
+	AC_MSG_WARN([The (linux) FTDICHIP.COM files ftd2xx.h and libftd2xx.so are assumed to be in a proper place])
+   fi
+fi
+fi
+
+if test $build_ft2232_ftd2xx = yes; then
+
+# Before we go any further - make sure we can *BUILD* and *RUN*
+# a simple app with the "ftd2xx.lib" file - in what ever form we where given
+# We should be able to compile, link and run this test program now
+  AC_MSG_CHECKING([Test: Build & Link with ftd2xx])
+
+#
+# Save the LDFLAGS for later..
+LDFLAGS_SAVE=$LDFLAGS
+CFLAGS_SAVE=$CFLAGS
+_LDFLAGS=`eval echo $LDFLAGS`
+_CFLAGS=`eval echo $CFLAGS`
+LDFLAGS=$_LDFLAGS
+CFLAGS=$_CFLAGS
+  AC_RUN_IFELSE(
+[
+#include "confdefs.h"
+#if IS_WIN32
+#include "windows.h"
+#endif
+#include <stdio.h>
+#include <ftd2xx.h>
+
+int
+main( int argc, char **argv )
+{
+	DWORD x;
+	FT_GetLibraryVersion( &x );
+	return 0;
+}
+], [ AC_MSG_RESULT([Success!])] , [ AC_MSG_ERROR([Cannot build & run test program using ftd2xx.lib]) ] )
+LDFLAGS=$LDFLAGS_SAVE
+CFLAGS=$CFLAGS_SAVE
+fi
+
+if test $build_ft2232_libftdi = yes ; then
+   # We assume: the package is preinstalled in the proper place
+   # these present as 2 libraries..
+   LIBS="$LIBS -lftdi -lusb"
+   # 
+   # Try to build a small program.
+   AC_MSG_CHECKING([Build & Link with libftdi...])
+
+LDFLAGS_SAVE=$LDFLAGS
+CFLAGS_SAVE=$CFLAGS
+_LDFLAGS=`eval echo $LDFLAGS`
+_CFLAGS=`eval echo $CFLAGS`
+LDFLAGS=$_LDFLAGS
+CFLAGS=$_CFLAGS
+
+   AC_RUN_IFELSE(
+[
+#include <stdio.h>
+#include <ftdi.h>
+
+int
+main( int argc, char **argv )
+{
+	struct ftdi_context *p;
+	p = ftdi_new();
+	if( p != NULL ){
+	    return 0;
+	} else {
+	    fprintf( stderr, "calling ftdi_new() failed\n");
+	    return 1;
+        }
+}
+]
+, 
+[ AC_MSG_RESULT([Success]) ]
+, 
+[ AC_MSG_ERROR([Cannot build & run test program using libftdi]) ] )
+# Restore the 'unexpanded ldflags'
+LDFLAGS=$LDFLAGS_SAVE
+CFLAGS=$CFLAGS_SAVE
+fi
+   
+
+
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(openocd, 1.0)
 
@@ -321,7 +635,6 @@ AM_CONDITIONAL(RLINK, test $build_rlink = yes)
 AM_CONDITIONAL(IS_CYGWIN, test $is_cygwin = yes)
 AM_CONDITIONAL(IS_MINGW, test $is_mingw = yes)
 AM_CONDITIONAL(IS_WIN32, test $is_win32 = yes)
-AM_CONDITIONAL(FTD2XXDIR, test $with_ftd2xx != search)
 AM_CONDITIONAL(BITQ, test $build_bitq = yes)
 
 AC_LANG_C
@@ -377,6 +690,6 @@ fi
 AC_MSG_RESULT([$EXEEXT_FOR_BUILD])
 AC_SUBST(EXEEXT_FOR_BUILD)
 
-AC_SUBST(WITH_FTD2XX, $with_ftd2xx)
+#AC_SUBST(WITH_FTD2XX, $with_ftd2xx)
 
 AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile src/pld/Makefile doc/Makefile)
