@@ -132,7 +132,7 @@ ep1_generic_commandl(
 	usb_ret = usb_bulk_write(
 		pHDev,
 		USB_EP1OUT_ADDR,
-		usb_buffer, sizeof(usb_buffer),
+		(char *)usb_buffer, sizeof(usb_buffer),
 		USB_TIMEOUT_MS
 	);
 
@@ -249,7 +249,7 @@ ep1_memory_write(
 
       		usb_ret = usb_bulk_write(
 			pHDev, USB_EP1OUT_ADDR,
-			usb_buffer, sizeof(usb_buffer),
+			(char *)usb_buffer, sizeof(usb_buffer),
 			USB_TIMEOUT_MS
 		);
 
@@ -359,7 +359,7 @@ dtc_load_from_buffer(
 
 			case DTCLOAD_ENTRY:
 				/* store entry addresses somewhere */
-				if(!strncmp("download", buffer + 1, 8)) {
+				if(!strncmp("download", (char *)buffer + 1, 8)) {
 					dtc_entry_download = buffer[0];
 				}
 				break;
@@ -449,7 +449,7 @@ dtc_start_download(
 	/* read back ep2txr */
 	usb_err = usb_bulk_read(
 		pHDev, USB_EP1IN_ADDR,
-		&ep2txr, 1,
+		(char *)&ep2txr, 1,
 		USB_TIMEOUT_MS
 	);
 	if(usb_err < 0) return(usb_err);
@@ -476,7 +476,7 @@ dtc_start_download(
 	/* wait for completion */
 	usb_err = usb_bulk_read(
 		pHDev, USB_EP1IN_ADDR,
-		&ep2txr, 1,
+		(char *)&ep2txr, 1,
 		USB_TIMEOUT_MS
 	);
 
@@ -502,7 +502,7 @@ dtc_run_download(
 	usb_err = usb_bulk_write(
 		pHDev,
 		USB_EP2OUT_ADDR,
-		command_buffer, USB_EP2BANK_SIZE,
+		(char *)command_buffer, USB_EP2BANK_SIZE,
 		USB_TIMEOUT_MS
 	);
 	if(usb_err < 0) return(usb_err);
@@ -523,7 +523,7 @@ dtc_run_download(
 		usb_err = usb_bulk_read(
 			pHDev,
 			USB_EP1IN_ADDR,
-			ep2_buffer, 1,
+			(char *)ep2_buffer, 1,
 			USB_TIMEOUT_MS
 		);
 		if(usb_err < 0) return(usb_err);
@@ -544,7 +544,7 @@ dtc_run_download(
 		usb_err = usb_bulk_read(
 			pHDev,
 			USB_EP2IN_ADDR,
-			ep2_buffer, sizeof(ep2_buffer),
+			(char *)ep2_buffer, sizeof(ep2_buffer),
 			USB_TIMEOUT_MS
 		);
 
@@ -1662,7 +1662,7 @@ int rlink_init(void)
 		}
 		j = usb_bulk_read(
 			pHDev, USB_EP1IN_ADDR,
-			reply_buffer, sizeof(reply_buffer),
+			(char *)reply_buffer, sizeof(reply_buffer),
 			200
 		);
 		if(j != -ETIMEDOUT) break;
@@ -1701,7 +1701,7 @@ int rlink_init(void)
 
 	usb_bulk_read(
 		pHDev, USB_EP1IN_ADDR,
-		reply_buffer, 1,
+		(char *)reply_buffer, 1,
 		USB_TIMEOUT_MS
 	);
 
@@ -1726,7 +1726,7 @@ int rlink_init(void)
 
 	usb_bulk_read(
 		pHDev, USB_EP1IN_ADDR,
-		reply_buffer, 1,
+		(char *)reply_buffer, 1,
 		USB_TIMEOUT_MS
 	);
 
