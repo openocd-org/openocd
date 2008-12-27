@@ -1001,15 +1001,26 @@ void rlink_reset(int trst, int srst)
 	}
 
 	usb_err = ep1_generic_commandl(
-		pHDev, 5,
+		pHDev, 6,
 		 
 		EP1_CMD_MEMORY_WRITE,
 			ST7_PADR >> 8,
 			ST7_PADR,
 			1,
-			bitmap
+			bitmap,
+		EP1_CMD_DTC_GET_CACHED_STATUS
 	);
 	if(usb_err < 0) {
+		LOG_ERROR("%s: %s\n", __func__, usb_strerror());
+		exit(1);
+	}
+
+	usb_err = usb_bulk_read(
+		pHDev, USB_EP1IN_ADDR,
+		&bitmap, 1,
+		USB_TIMEOUT_MS
+	);
+	if(usb_err < 1) {
 		LOG_ERROR("%s: %s\n", __func__, usb_strerror());
 		exit(1);
 	}
