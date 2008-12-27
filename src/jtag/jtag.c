@@ -2071,7 +2071,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 			}
 			switch( n->value ){
 			case JTAG_CMD_TAPISENABLED:
-				// below
+				e = t->enabled;
 				break;
 			case JTAG_CMD_TAPENABLE:
 				jtag_tap_handle_event( t, JTAG_TAP_EVENT_ENABLE);

@@ -1469,7 +1469,7 @@ static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int *try_more)
 			{
 				LOG_ERROR("ListDevices: %lu\n", num_devices);
 				for (i = 0; i < num_devices; i++)
-					LOG_ERROR("%i: %s", i, desc_array[i]);
+					LOG_ERROR("%i: \"%s\"", i, desc_array[i]);
 			}
 
 			for (i = 0; i < num_devices; i++)
