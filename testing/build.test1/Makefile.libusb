@@ -10,8 +10,8 @@ ifeq (x"$BUILD_SYSNAME",x"mingw32")
 $(error Please use the win32 specific port of LibUSB not the Unix version)
 endif 
 
-TARFILE_LOCAL    = ${VIRGINS}/libusb-${LIBUSB_VERSION}.tar.bz2
-TARFILE_URL      = http://downloads.sourceforge.net/libusb/libusb-${LIBUSB_VERSION}.tar.gz
+TARFILE_LOCAL    = ${VIRGINS}/libusb-${LIBUSB_VERSION_linux}.tar.bz2
+TARFILE_URL      = http://downloads.sourceforge.net/libusb/libusb-${LIBUSB_VERSION_linux}.tar.gz
 
 LIBUSB_SRC_DIR   = ${HERE}/libusb-${LIBUSB_VERSION}
 LIBUSB_BUILD_DIR = ${HERE}/libusb-build

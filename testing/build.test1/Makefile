@@ -81,10 +81,18 @@ linux.ftd2xx_installed.setup:
 	cd $(EXEC_PREFIX)/lib && ln -s libftd2xx.so.$(FTD2XX_LINUX_VERSION) libftd2xx.so
 
 
+all.download:
+	mkdir -p ${VIRGINS}
+	${MAKE} -f Makefile.confuse download
+	${MAKE} -f Makefile.libftdi download
+	${MAKE} -f Makefile.ftd2xx  download
+	${MAKE} -f Makefile.libusb  download
+
 .PHONY: linux.buildtest \
 	linux.easy.buildtest \
 	linux.ftd2xx_installed \
 	linux.ft22232_libftdi \
 	linux.ftd2xx_installed.setup
+
 
 
