@@ -427,8 +427,7 @@ dtc_load_from_buffer(
  */
 static
 int
-dtc_start_download(
-) {
+dtc_start_download(void) {
 	int	usb_err;
 	u8	ep2txr;
 
@@ -611,8 +610,7 @@ struct {
 
 static
 int
-dtc_queue_init(
-) {
+dtc_queue_init(void) {
 	dtc_queue.rq_head = NULL;
 	dtc_queue.rq_tail = NULL;
 	dtc_queue.cmd_index = 0;
@@ -663,8 +661,7 @@ dtc_queue_enqueue_reply(
 
 static
 int
-dtc_queue_run(
-) {
+dtc_queue_run(void) {
 	dtc_reply_queue_entry_t	*rq_p, *rq_next;
 	int			retval;
 	int			usb_err;
@@ -808,8 +805,7 @@ dtc_queue_run(
 
 static
 int
-tap_state_queue_init(
-) {
+tap_state_queue_init(void) {
 	tap_state_queue.length = 0;
 	tap_state_queue.buffer = 0;
 	return(0);
@@ -818,8 +814,7 @@ tap_state_queue_init(
 
 static
 int
-tap_state_queue_run(
-) {
+tap_state_queue_run(void) {
 	int	i;
 	int	bits;
 	u8	byte;
