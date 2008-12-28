@@ -49,6 +49,7 @@
 #define JIM_DYNLIB      /* Dynamic library support for UNIX and WIN32 */
 #endif /* JIM_ANSIC */
 
+#define _GNU_SOURCE	/* for vasprintf() */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

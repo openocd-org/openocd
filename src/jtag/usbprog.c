@@ -93,7 +93,7 @@ struct usbprog_jtag
 
 struct usbprog_jtag * usbprog_jtag_handle;
 
-struct usbprog_jtag* usbprog_jtag_open();
+struct usbprog_jtag* usbprog_jtag_open(void);
 void usbprog_jtag_close(struct usbprog_jtag *usbprog_jtag);
 void usbprog_jtag_init(struct usbprog_jtag *usbprog_jtag);
 unsigned char usbprog_jtag_message(struct usbprog_jtag *usbprog_jtag, char *msg, int msglen);
@@ -405,7 +405,7 @@ void usbprog_reset(int trst, int srst)
 
 struct usb_bus *busses;
 
-struct usbprog_jtag* usbprog_jtag_open()
+struct usbprog_jtag* usbprog_jtag_open(void)
 {
 	struct usb_bus *bus;
 	struct usb_device *dev;

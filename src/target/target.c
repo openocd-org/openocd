@@ -4014,7 +4014,7 @@ struct FastLoad
 static int fastload_num;
 static struct FastLoad *fastload;
 
-static void free_fastload()
+static void free_fastload(void)
 {
 	if (fastload!=NULL)
 	{

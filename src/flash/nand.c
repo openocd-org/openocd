@@ -375,7 +375,7 @@ int nand_read_status(struct nand_device_s *device, u8 *status)
 int nand_probe(struct nand_device_s *device)
 {
 	u8 manufacturer_id, device_id;
-	u8 id_buff[5];
+	u8 id_buff[6];
 	int retval;
 	int i;
 
