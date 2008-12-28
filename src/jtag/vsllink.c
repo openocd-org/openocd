@@ -694,8 +694,8 @@ void vsllink_path_move(int num_states, enum tap_state *path)
 
 void vsllink_runtest(int num_cycles)
 {
-	int i, j;
-	int tms_len, first_tms = 0, tms_cmd_pos;
+	int i = 0, j;
+	int tms_len, first_tms = 0, tms_cmd_pos = 0;
 	enum tap_state saved_end_state = end_state;
 
 	if (cur_state != TAP_IDLE)
@@ -971,7 +971,7 @@ void vsllink_reset(int trst, int srst)
 	result = vsllink_usb_write(vsllink_jtag_handle, 3);
 	if (result != 3)
 	{
-	  LOG_ERROR("VSLLink command VSLLINK_CMD_SET_PORT failed (%d)", result);
+		LOG_ERROR("VSLLink command VSLLINK_CMD_SET_PORT failed (%d)", result);
 	}
 }
 
@@ -1054,8 +1054,7 @@ typedef struct
 static int pending_scan_results_length;
 static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
 
-
-void vsllink_tap_init()
+void vsllink_tap_init(void)
 {
 	vsllink_usb_out_buffer_idx = 0;
 	vsllink_usb_in_want_length = 0;
@@ -1103,7 +1102,7 @@ void vsllink_tap_append_scan(int length, u8 *buffer, scan_command_t *command, in
 
 /* Pad and send a tap sequence to the device, and receive the answer.
  * For the purpose of padding we assume that we are in idle or pause state. */
-int vsllink_tap_execute()
+int vsllink_tap_execute(void)
 {
 	int i;
 	int result;
@@ -1185,7 +1184,7 @@ int vsllink_tap_execute()
 /*****************************************************************************/
 /* VSLLink USB low-level functions */
 
-vsllink_jtag_t* vsllink_usb_open()
+vsllink_jtag_t* vsllink_usb_open(void)
 {
 	struct usb_bus *busses;
 	struct usb_bus *bus;
