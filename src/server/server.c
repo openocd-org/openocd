@@ -97,12 +97,11 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	}
 	else if (service->type == CONNECTION_PIPE)
 	{
-#ifndef _WIN32
 		c->fd = service->fd;
 		
 		/* do not check for new connections again on stdin */
 		service->fd = -1;
-#endif
+		
 		LOG_INFO("accepting '%s' connection from pipe", service->name);
 		if ((retval = service->new_connection(c)) != ERROR_OK)
 		{
@@ -223,6 +222,8 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 			LOG_WARNING("cannot change stdout mode to binary");
 		if (_setmode(_fileno(stdin), _O_BINARY) < 0)
 			LOG_WARNING("cannot change stdin mode to binary");
+		if (_setmode(_fileno(stderr), _O_BINARY) < 0)
+			LOG_WARNING("cannot change stderr mode to binary");
 #else
 		socket_nonblock(c->fd);
 #endif
@@ -365,7 +366,7 @@ int server_loop(command_context_t *command_context)
 		kept_alive();
 		
 		/* Only while we're sleeping we'll let others run */
-		retval = select(fd_max + 1, &read_fds, NULL, NULL, &tv);
+		retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
 		openocd_sleep_postlude();
 
 		if (retval == -1)
@@ -503,7 +504,7 @@ int server_init(void)
 	WORD wVersionRequested;
 	WSADATA wsaData;
 
-	wVersionRequested = MAKEWORD( 2, 2 );
+	wVersionRequested = MAKEWORD(2, 2);
 
 	if (WSAStartup(wVersionRequested, &wsaData) != 0)
 	{
@@ -511,7 +512,16 @@ int server_init(void)
 		exit(-1);
 	}
 
-	SetConsoleCtrlHandler( ControlHandler, TRUE );
+	if (server_use_pipes == 0)
+	{
+		/* register ctrl-c handler */
+		SetConsoleCtrlHandler(ControlHandler, TRUE);
+	}
+	else
+	{
+		/* we are using pipes so ignore ctrl-c */
+		SetConsoleCtrlHandler(NULL, TRUE);
+	}
 
 	signal(SIGINT, sig_handler);
 	signal(SIGTERM, sig_handler);

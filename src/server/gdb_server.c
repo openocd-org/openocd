@@ -126,7 +126,7 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 
 	tv.tv_sec = timeout_s;
 	tv.tv_usec = 0;
-	if (select(connection->fd + 1, &read_fds, NULL, NULL, &tv) == 0)
+	if (socket_select(connection->fd + 1, &read_fds, NULL, NULL, &tv) == 0)
 	{
 		/* This can typically be because a "monitor" command took too long
 		 * before printing any progress messages

@@ -180,6 +180,9 @@ static __inline void outb(unsigned char value, unsigned short int port)
 }
 
 #endif /* IS_MINGW */
+
+int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct timeval *tv);
+
 #endif  /* _WIN32 */
 
 /* generic socket functions for Windows and Posix */
@@ -218,6 +221,15 @@ static __inline void socket_nonblock(int fd)
 #else
 	int oldopts = fcntl(fd, F_GETFL, 0);
 	fcntl(fd, F_SETFL, oldopts | O_NONBLOCK);
+#endif
+}
+
+static __inline int socket_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct timeval *tv)
+{
+#ifdef _WIN32
+	return win_select(max_fd, rfds, wfds, efds, tv);
+#else
+	return select(max_fd, rfds, wfds, efds, tv);
 #endif
 }
 

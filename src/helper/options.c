@@ -149,13 +149,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 				/* pipes unsupported on hosted platforms */
 				LOG_WARNING("pipes not supported on this platform");
 #else
-#ifdef IS_MINGW
-				/* pipes currently unsupported on win32 */
-				LOG_WARNING("pipes currently unsupported on win32");
-				exit(1);
-#else
 				server_use_pipes = 1;
-#endif
 #endif
 				break;
 		}

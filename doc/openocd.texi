@@ -557,7 +557,6 @@ the @option{-s <search>} switch. The current directory and the OpenOCD
 target library is in the search path by default.
 
 For details on the @option{-p} option. @xref{Connecting to GDB}.
-Option @option{-p} is not currently supported under native win32.
 
 Note! OpenOCD will launch the GDB & telnet server even if it can not
 establish a connection with the target. In general, it is possible for
