@@ -102,6 +102,7 @@ typedef struct mips_ejtag_s
 {
 	jtag_tap_t *tap;
 	u32 impcode;
+	u32 idcode;
 	/*int use_dma;*/
 	u32 ejtag_ctrl;
 } mips_ejtag_t;

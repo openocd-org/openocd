@@ -50,6 +50,7 @@ int mips_m4k_target_create(struct target_s *target, Jim_Interp *interp);
 int mips_m4k_examine(struct target_s *target);
 int mips_m4k_assert_reset(target_t *target);
 int mips_m4k_deassert_reset(target_t *target);
+int mips_m4k_checksum_memory(target_t *target, u32 address, u32 size, u32 *checksum);
 
 target_type_t mips_m4k_target =
 {
@@ -73,7 +74,7 @@ target_type_t mips_m4k_target =
 	.read_memory = mips_m4k_read_memory,
 	.write_memory = mips_m4k_write_memory,
 	.bulk_write_memory = mips_m4k_bulk_write_memory,
-	.checksum_memory = NULL,
+	.checksum_memory = mips_m4k_checksum_memory,
 	.blank_check_memory = NULL,
 
 	.run_algorithm = mips32_run_algorithm,
@@ -766,7 +767,8 @@ int mips_m4k_examine(struct target_s *target)
 	if (!target->type->examined)
 	{
 		mips_ejtag_get_idcode(ejtag_info, &idcode, NULL);
-
+		ejtag_info->idcode = idcode;
+		
 		if (((idcode >> 1) & 0x7FF) == 0x29)
 		{
 			/* we are using a pic32mx so select ejtag port
@@ -789,4 +791,9 @@ int mips_m4k_examine(struct target_s *target)
 int mips_m4k_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
 {
 	return mips_m4k_write_memory(target, address, 4, count, buffer);
+}
+
+int mips_m4k_checksum_memory(target_t *target, u32 address, u32 size, u32 *checksum)
+{
+	return ERROR_FAIL; /* use bulk read method */
 }

@@ -78,6 +78,7 @@ extern flash_driver_t tms470_flash;
 extern flash_driver_t ecosflash_flash;
 extern flash_driver_t lpc288x_flash;
 extern flash_driver_t ocl_flash;
+extern flash_driver_t pic32mx_flash;
 
 flash_driver_t *flash_drivers[] = {
 	&lpc2000_flash,
@@ -94,6 +95,7 @@ flash_driver_t *flash_drivers[] = {
 	&ecosflash_flash,
 	&lpc288x_flash,
 	&ocl_flash,
+	&pic32mx_flash,
 	NULL,
 };
 
@@ -316,14 +318,17 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 			/* put flash bank in linked list */
 			if (flash_banks)
 			{
+				int	bank_num = 0;
 				/* find last flash bank */
-				for (p = flash_banks; p && p->next; p = p->next);
+				for (p = flash_banks; p && p->next; p = p->next) bank_num++;
 				if (p)
 					p->next = c;
+				c->bank_number = bank_num + 1;
 			}
 			else
 			{
 				flash_banks = c;
+				c->bank_number = 0;
 			}
 
 			found = 1;
