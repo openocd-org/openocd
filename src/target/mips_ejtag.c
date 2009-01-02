@@ -144,6 +144,8 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 		return retval;
 	}
 
+	keep_alive();
+
 	return ERROR_OK;
 }
 
