@@ -42,10 +42,12 @@ extern int mips32_pracc_write_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, 
 extern int mips32_pracc_read_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *buf);
 extern int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 *buf);
 extern int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 *buf);
+extern int mips32_pracc_read_u32(mips_ejtag_t *ejtag_info, u32 addr, u32 *buf);
 
 extern int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *buf);
 extern int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 *buf);
 extern int mips32_pracc_write_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 *buf);
+extern int mips32_pracc_write_u32(mips_ejtag_t *ejtag_info, u32 addr, u32 *buf);
 
 extern int mips32_pracc_read_regs(mips_ejtag_t *ejtag_info, u32 *regs);
 extern int mips32_pracc_write_regs(mips_ejtag_t *ejtag_info, u32 *regs);
