@@ -1517,8 +1517,6 @@ Creates the tap ``foobar.tap'' with the instruction register (IR) is 7
 bits long, during Capture-IR 0x42 is loaded into the IR, and bits
 [6,4,2,0] are checked.
 
-FIXME: The IDCODE - this was not used in the old code, it should be?
-Right? -Duane.
 @item @b{Optional configparams}
 @comment START Optional
 @itemize @bullet
@@ -1613,13 +1611,13 @@ have the taps created in the proper order.
 @* @b{Removed: 28/nov/2008} This command has been removed and replaced
 by the ``jtag newtap'' command. The documentation remains here so that
 one can easily convert the old syntax to the new syntax. About the old
-syntax: The old syntax is positional, ie: The 4th parameter is the
+syntax: The old syntax is positional, ie: The 3rd parameter is the
 ``irmask''. The new syntax requires named prefixes, and supports
-additional options, for example ``-irmask 4''. Please refer to the
+additional options, for example ``-expected-id 0x3f0f0f0f''. Please refer to the
 @b{jtag newtap} command for details.
 @example
-OLD: jtag_device 8 0x01 0x0e3 0xfe
-NEW: jtag newtap CHIPNAME TAPNAME -irlen 8 -ircapture 0xe3 -irmask 0xfe
+OLD: jtag_device 8 0x01 0xe3 0xfe
+NEW: jtag newtap CHIPNAME TAPNAME -irlen 8 -ircapture 0x01 -irmask 0xe3
 @end example
 
 @section Enable/Disable Taps
@@ -2990,10 +2988,11 @@ This would cause GDB to connect to the gdbserver on the local pc using port 3333
 @item
 A pipe connection is typically started as follows:
 @example
-target remote openocd --pipe
+target remote | openocd --pipe
 @end example
 This would cause GDB to run OpenOCD and communicate using pipes (stdin/stdout).
-Using this method has the advantage of GDB starting/stopping OpenOCD for debug session.
+Using this method has the advantage of GDB starting/stopping OpenOCD for the debug
+session.
 @end enumerate
 
 @*To see a list of available OpenOCD commands type @option{monitor help} on the
