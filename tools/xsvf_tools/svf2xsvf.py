@@ -365,8 +365,8 @@ shiftParts = ('TDI', 'TDO', 'MASK', 'SMASK')
 # the set of legal states which can trail the RUNTEST command
 run_state_allowed = ('IRPAUSE', 'DRPAUSE', 'RESET', 'IDLE')
 
-enddr_state_allowed = ('DRPAUSE', 'IDLE', 'RESET')
-endir_state_allowed = ('IRPAUSE', 'IDLE', 'RESET')
+enddr_state_allowed = ('DRPAUSE', 'IDLE')
+endir_state_allowed = ('IRPAUSE', 'IDLE')
 
 enddr_state = IDLE
 endir_state = IDLE
@@ -617,7 +617,7 @@ try:
         elif tokVal == 'ENDDR':
             nextTok()
             if tokVal not in enddr_state_allowed:
-                raise ParseError( tokLn, tokVal, "Expecting 'stable_state' after ENDDR. (one of: DRPAUSE, IDLE, RESET)")
+                raise ParseError( tokLn, tokVal, "Expecting 'stable_state' after ENDDR. (one of: DRPAUSE, IDLE)")
             enddr_state = StateTxt.index(tokVal)
             nextTok()
             if tokVal != ';':
@@ -626,13 +626,16 @@ try:
                 writeComment( output, tokLn, 'ENDDR' )
             obuf = bytearray(2)
             obuf[0] = XENDDR
-            obuf[1] = enddr_state
+            # Page 10 of the March 1999 SVF spec shows that RESET is also allowed here.
+            # Yet the XSVF spec has no provision for that, and uses a non-standard, i.e.
+            # boolean argument to XENDDR which only handles two of the 3 intended states.
+            obuf[1] = 1 if enddr_state == DRPAUSE else 0
             output.write( obuf )
 
         elif tokVal == 'ENDIR':
             nextTok()
             if tokVal not in endir_state_allowed:
-                raise ParseError( tokLn, tokVal, "Expecting 'stable_state' after ENDIR. (one of: IRPAUSE, IDLE, RESET)")
+                raise ParseError( tokLn, tokVal, "Expecting 'stable_state' after ENDIR. (one of: IRPAUSE, IDLE)")
             endir_state = StateTxt.index(tokVal)
             nextTok()
             if tokVal != ';':
@@ -641,7 +644,10 @@ try:
                 writeComment( output, tokLn, 'ENDIR' )
             obuf = bytearray(2)
             obuf[0] = XENDIR
-            obuf[1] = endir_state
+            # Page 10 of the March 1999 SVF spec shows that RESET is also allowed here.
+            # Yet the XSVF spec has no provision for that, and uses a non-standard, i.e.
+            # boolean argument to XENDDR which only handles two of the 3 intended states.
+            obuf[1] = 1 if endir_state == IRPAUSE else 0
             output.write( obuf )
 
         elif tokVal == 'STATE':

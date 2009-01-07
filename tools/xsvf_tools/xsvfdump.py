@@ -181,11 +181,11 @@ def ShowOpcode( op, f ):
 
     elif op == XENDIR:
         b = ReadByte( f )
-        print("XENDIR %s" % ShowState(b))
+        print("XENDIR %s" % 'IRPAUSE' if b==1 else 'IDLE')
 
     elif op == XENDDR:
         b = ReadByte( f )
-        print("XENDDR %s" % ShowState(b))
+        print("XENDDR %s" % 'DRPAUSE' if b==1 else 'IDLE')
 
     elif op == XSIR2:
         len = struct.unpack( '>H', f.read(2) )[0]
