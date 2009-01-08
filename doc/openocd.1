@@ -1,37 +1,39 @@
-.TH "OPENOCD" "1" "February 29, 2008"
+.TH "OPENOCD" "1" "January 08, 2009"
 .SH "NAME"
 openocd \- A free and open on\-chip debugging, in\-system programming and
-boundary\-scan testing tool for ARM systems
+boundary\-scan testing tool for ARM and MIPS systems
 .SH "SYNOPSIS"
-.B openocd \fR[\fB\-fsdlchv\fR] [\fB\-\-file\fR <filename>] [\fB\-\-search\fR <dirname>] [\fB\-\-debug\fR <debuglevel>] [\fB\-\-log_output\fR <filename>] [\fB\-\-command\fR <cmd>] [\fB\-\-help\fR] [\fB\-\-version\fR]
+.B openocd \fR[\fB\-fsdlcphv\fR] [\fB\-\-file\fR <filename>] [\fB\-\-search\fR <dirname>] [\fB\-\-debug\fR <debuglevel>] [\fB\-\-log_output\fR <filename>] [\fB\-\-command\fR <cmd>] [\fB\-\-pipe\fR] [\fB\-\-help\fR] [\fB\-\-version\fR]
 .SH "DESCRIPTION"
 .B OpenOCD
 is an on\-chip debugging, in\-system programming and boundary\-scan
-testing tool for ARM systems.
+testing tool for various ARM and MIPS systems.
 .PP 
 The debugger uses an IEEE 1149\-1 compliant JTAG TAP bus master to access
-on\-chip debug functionality available on ARM7/9, XScale, Cortex-M3, and
-Marvell Feroceon (as found in the Orion SoC family) based
-microcontrollers / system\-on\-chip solutions.
+on\-chip debug functionality available on ARM based microcontrollers or
+system-on-chip solutions. For MIPS systems the EJTAG interface is supported.
 .PP 
-User interaction is realized through a telnet command line interface and
-a gdb (the GNU debugger) remote protocol server.
+User interaction is realized through a telnet command line interface,
+a gdb (the GNU debugger) remote protocol server, and a simplified RPC
+connection that can be used to interface with OpenOCD's Jim Tcl engine.
 .PP 
 OpenOCD supports various different types of JTAG interfaces/programmers,
-please check the README for the complete list.
+please check the \fIopenocd\fR info page for the complete list.
 .SH "OPTIONS"
 .TP 
 .B "\-f, \-\-file <filename>"
 Use configuration file
 .BR <filename> .
-If this option is omitted, the config file
+In order to specify multiple config files, you can use multiple
+.B \-\-file
+arguments. If this option is omitted, the config file
 .B openocd.cfg
 in the current working directory will be used.
 .TP 
 .B "\-s, \-\-search <dirname>"
 Search for config files and scripts in the directory
 .BR <dirname> .
-If this option is omitted, openocd searches for config files and scripts
+If this option is omitted, OpenOCD searches for config files and scripts
 in the current directory.
 .TP 
 .B "\-d, \-\-debug <debuglevel>"
@@ -58,6 +60,9 @@ Per default the log output is printed on
 Run the command
 .BR <cmd> .
 .TP 
+.B "\-p, \-\-pipe"
+Use pipes when talking to gdb.
+.TP 
 .B "\-h, \-\-help"
 Show a help text and exit.
 .TP 
@@ -78,10 +83,12 @@ The full documentation for
 .B openocd
 is maintained as a Texinfo manual. If the
 .BR info
+(or
+.BR pinfo )
 and
 .BR openocd
 programs are properly installed at your site, the command
-.B info flex
+.B info openocd
 should give you access to the complete manual.
 .PP
 Also, the OpenOCD wiki contains some more information and examples:
