@@ -3184,24 +3184,29 @@ halt
 @*
 
 In digital circuit design it is often refered to as ``clock
-syncronization'' the JTAG interface uses one clock (TCK or TCLK)
+synchronisation'' the JTAG interface uses one clock (TCK or TCLK)
 operating at some speed, your target is operating at another.  The two
-clocks are not syncronized, they are ``asynchronous''
+clocks are not synchronised, they are ``asynchronous''
 
-In order for the two to work together they must syncronize. Otherwise
+In order for the two to work together they must be synchronised. Otherwise
 the two systems will get out of sync with each other and nothing will
-work. There are 2 basic options. @b{1.} use a special circuit or
-@b{2.}  one clock must be some multile slower the the other.
+work. There are 2 basic options.
+@enumerate
+@item
+Use a special circuit.
+@item
+One clock must be some multiple slower the the other.
+@end enumerate
 
 @b{Does this really matter?} For some chips and some situations, this
-is a non-issue (ie: A 500mhz ARM926) but for others - for example some
-ATMEL SAM7 and SAM9 chips start operation from reset at 32khz -
+is a non-issue (ie: A 500MHz ARM926) but for others - for example some
+ATMEL SAM7 and SAM9 chips start operation from reset at 32kHz -
 program/enable the oscillators and eventually the main clock. It is in
 those critical times you must slow the jtag clock to sometimes 1 to
-4khz.
+4kHz.
 
-Imagine debugging that 500mhz arm926 hand held battery powered device
-that ``deep sleeps'' at 32khz between every keystroke. It can be
+Imagine debugging that 500MHz ARM926 hand held battery powered device
+that ``deep sleeps'' at 32kHz between every keystroke. It can be
 painful.
 
 @b{Solution #1 - A special circuit} 
@@ -3213,14 +3218,14 @@ The RTCK signal often found in some ARM chips is used to help with
 this problem. ARM has a good description of the problem described at
 this link: @url{http://www.arm.com/support/faqdev/4170.html} [checked
 28/nov/2008]. Link title: ``How does the jtag synchronisation logic
-work? / how does adaptive clocking working?''.
+work? / how does adaptive clocking work?''.
 
 The nice thing about adaptive clocking is that ``battery powered hand
 held device example'' - the adaptiveness works perfectly all the
 time. One can set a break point or halt the system in the deep power
 down code, slow step out until the system speeds up.
 
-@b{Solution #2 - Always works - but is slower}
+@b{Solution #2 - Always works - but may be slower}
 
 Often this is a perfectly acceptable solution.
 
@@ -3230,7 +3235,7 @@ depending upon the chips on your board. @b{ARM Rule of thumb} Most ARM
 based systems require an 8:1 division. @b{Xilinx Rule of thumb} is
 1/12 the clock speed.
 
-Note: Many FTDI2232C based JTAG dongles are limited to 6mhz.
+Note: Many FTDI2232C based JTAG dongles are limited to 6MHz.
 
 You can still debug the 'lower power' situations - you just need to
 manually adjust the clock speed at every step. While painful and
@@ -3244,7 +3249,7 @@ this way.
 To set the JTAG frequency use the command:
 
 @example
-        # Example: 1.234mhz
+        # Example: 1.234MHz
         jtag_khz 1234
 @end example
 
@@ -3390,7 +3395,7 @@ You can use the ``scan_chain'' command to verify and display the tap order.
 
 Many newer devices have multiple JTAG taps. For example: ST
 Microsystems STM32 chips have two taps, a ``boundary scan tap'' and
-``cortexM3'' tap.  Example: The STM32 reference manual, Document ID:
+``CortexM3'' tap.  Example: The STM32 reference manual, Document ID:
 RM0008, Section 26.5, Figure 259, page 651/681, the ``TDI'' pin is
 connected to the Boundary Scan Tap, which then connects to the
 CortexM3 Tap, which then connects to the TDO pin.
