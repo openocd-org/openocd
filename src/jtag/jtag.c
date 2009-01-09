@@ -2172,7 +2172,8 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "jtag_device", handle_jtag_device_command,
 		COMMAND_CONFIG, "jtag_device <ir_length> <ir_expected> <ir_mask>");
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
-		COMMAND_CONFIG, NULL);
+		COMMAND_ANY,
+		"[none/trst_only/srst_only/trst_and_srst] [srst_pulls_trst/trst_pulls_srst] [combined/separate] [trst_push_pull/trst_open_drain] [srst_push_pull/srst_open_drain]");
 	register_command(cmd_ctx, NULL, "jtag_nsrst_delay", handle_jtag_nsrst_delay_command,
 		COMMAND_ANY, "jtag_nsrst_delay <ms> - delay after deasserting srst in ms");
 	register_command(cmd_ctx, NULL, "jtag_ntrst_delay", handle_jtag_ntrst_delay_command,
