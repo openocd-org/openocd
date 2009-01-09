@@ -969,7 +969,7 @@ void jtag_add_tlr(void)
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_tlr)()
+int MINIDRIVER(interface_jtag_add_tlr)(void)
 {
 	enum tap_state state = TAP_RESET;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();

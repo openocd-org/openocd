@@ -190,7 +190,7 @@ int zy1000_configuration_output_handler_log(struct command_context_s *context,
 }
 
 #ifdef CYGPKG_PROFILE_GPROF
-extern void start_profile();
+extern void start_profile(void);
 
 int eCosBoard_handle_eCosBoard_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -201,13 +201,13 @@ int eCosBoard_handle_eCosBoard_profile_command(struct command_context_s *cmd_ctx
 
 #endif
 
-externC void phi_init_all_network_interfaces();
+externC void phi_init_all_network_interfaces(void);
 
 command_context_t *cmd_ctx;
 
 static bool webRunning = false;
 
-void keep_webserver()
+void keep_webserver(void)
 {
 	// Target initialisation is only attempted at startup, so we sleep forever and
 	// let the http server bail us out(i.e. get config files set up).
@@ -261,12 +261,12 @@ MTAB_ENTRY( romfs_mte1,
 		(CYG_ADDRWORD) &filedata[0] );
 #endif
 
-void openocd_sleep_prelude()
+void openocd_sleep_prelude(void)
 {
 	cyg_mutex_unlock(&httpstate.jim_lock);
 }
 
-void openocd_sleep_postlude()
+void openocd_sleep_postlude(void)
 {
 	cyg_mutex_lock(&httpstate.jim_lock);
 }
@@ -422,7 +422,7 @@ static int zylinjtag_Jim_Command_reboot(Jim_Interp *interp, int argc,
 
 extern Jim_Interp *interp;
 
-static void zylinjtag_startNetwork()
+static void zylinjtag_startNetwork(void)
 {
 	// Bring TCP/IP up immediately before we're ready to accept commands.
 	//
@@ -857,7 +857,7 @@ bool logAllToSerial = false;
 int boolParam(char *var);
 
 
-command_context_t *setup_command_handler();
+command_context_t *setup_command_handler(void);
 
 extern const char *zylin_config_dir;
 

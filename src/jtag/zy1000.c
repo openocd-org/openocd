@@ -83,7 +83,7 @@ static int zy1000_speed_div(int speed, int *khz)
 	return ERROR_OK;
 }
 
-static bool readPowerDropout()
+static bool readPowerDropout(void)
 {
 	cyg_uint32 state;
 	// sample and clear power dropout
@@ -95,7 +95,7 @@ static bool readPowerDropout()
 }
 
 
-static bool readSRST()
+static bool readSRST(void)
 {
 	cyg_uint32 state;
 	// sample and clear SRST sensing
@@ -152,7 +152,7 @@ int zy1000_read(void)
 	return -1;
 }
 
-extern bool readSRST();
+extern bool readSRST(void);
 
 void zy1000_reset(int trst, int srst)
 {
@@ -404,7 +404,7 @@ int interface_jtag_execute_queue(void)
 
 
 
-static cyg_uint32 getShiftValue()
+static cyg_uint32 getShiftValue(void)
 {
 	cyg_uint32 value;
 	waitIdle();
@@ -413,7 +413,7 @@ static cyg_uint32 getShiftValue()
 	return value;
 }
 #if 0
-static cyg_uint32 getShiftValueFlip()
+static cyg_uint32 getShiftValueFlip(void)
 {
 	cyg_uint32 value;
 	waitIdle();
@@ -438,7 +438,7 @@ static void shiftValueInnerFlip(const enum tap_state state, const enum tap_state
 
 extern int jtag_check_value(u8 *captured, void *priv);
 
-static void gotoEndState()
+static void gotoEndState(void)
 {
 	setCurrentState(cmd_queue_end_state);
 }
@@ -693,10 +693,10 @@ int interface_jtag_add_reset(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
+static int zy1000_jtag_add_clocks(int num_cycles, enum tap_state state, enum tap_state clockstate)
 {
 	/* num_cycles can be 0 */
-	setCurrentState(TAP_IDLE);
+	setCurrentState(clockstate);
 
 	/* execute num_cycles, 32 at the time. */
 	int i;
@@ -708,7 +708,7 @@ int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
 		{
 			num=num_cycles-i;
 		}
-		shiftValueInner(TAP_IDLE, TAP_IDLE, num, 0);
+		shiftValueInner(clockstate, clockstate, num, 0);
 	}
 
 #if !TEST_MANUAL()
@@ -732,6 +732,16 @@ int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
 
 
 	return ERROR_OK;
+}
+
+int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
+{
+	return zy1000_jtag_add_clocks(num_cycles, state, TAP_IDLE);
+}
+
+int interface_jtag_add_clocks(int num_cycles)
+{
+	return zy1000_jtag_add_clocks(num_cycles, cmd_queue_cur_state, cmd_queue_end_state);
 }
 
 int interface_jtag_add_sleep(u32 us)
@@ -843,3 +853,5 @@ int boolParam(char *var)
 	free(name);
 	return result;
 }
+
+
