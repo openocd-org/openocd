@@ -601,6 +601,7 @@ static int zylinjtag_Jim_Command_ip(Jim_Interp *interp, int argc,
 	freeifaddrs(ifp);
 #else
 	Jim_Obj *tclOutput = Jim_NewStringObj(interp, "fixme!!!", 0);
+	LOG_ERROR("NOT IMPLEMENTED!!!");
 #endif
 	Jim_SetResult(interp, tclOutput);
 

@@ -139,13 +139,6 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 	atexit(exit_handler);
 
-#if BUILD_IOUTIL
-	if (ioutil_init(cmd_ctx) != ERROR_OK)
-	{
-		return ERROR_FAIL;
-	}
-#endif
-
 	if (target_init(cmd_ctx) != ERROR_OK)
 		return ERROR_FAIL;
 	LOG_DEBUG("target init complete");
@@ -250,6 +243,13 @@ int openocd_main(int argc, char *argv[])
 	command_context_t *cmd_ctx;
 
 	cmd_ctx = setup_command_handler();
+
+#if BUILD_IOUTIL
+	if (ioutil_init(cmd_ctx) != ERROR_OK)
+	{
+		return EXIT_FAILURE;
+	}
+#endif
 
 	LOG_OUTPUT("\n\nBUGS? Read http://svn.berlios.de/svnroot/repos/openocd/trunk/BUGS\n\n\n");
 

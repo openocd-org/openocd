@@ -869,6 +869,8 @@ int add_default_dirs(void)
 	return ERROR_OK;
 }
 
+int ioutil_init(struct command_context_s *cmd_ctx);
+
 int main(int argc, char *argv[])
 {
 	/* ramblockdevice will be the same address every time. The deflate app uses a buffer 16mBytes out, so we
@@ -1000,6 +1002,14 @@ int main(int argc, char *argv[])
 	cmd_ctx = setup_command_handler();
 	command_set_output_handler(cmd_ctx, configuration_output_handler, NULL);
 	command_context_mode(cmd_ctx, COMMAND_CONFIG);
+
+#if BUILD_IOUTIL
+	if (ioutil_init(cmd_ctx) != ERROR_OK)
+	{
+		return EXIT_FAILURE;
+	}
+#endif
+
 
 #ifdef CYGPKG_PROFILE_GPROF
 	register_command(cmd_ctx, NULL, "ecosboard_profile", eCosBoard_handle_eCosBoard_profile_command,
