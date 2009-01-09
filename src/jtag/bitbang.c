@@ -37,6 +37,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+
+static void bitbang_stableclocks(int num_cycles);
+
+
 bitbang_interface_t *bitbang_interface;
 
 /* DANGER!!!! clock absolutely *MUST* be 0 in idle or reset won't work!
@@ -60,6 +64,8 @@ bitbang_interface_t *bitbang_interface;
 #define CLOCK_IDLE() 0
 
 int bitbang_execute_queue(void);
+
+
 
 /* The bitbang driver leaves the TCK 0 when in idle */
 
@@ -152,6 +158,21 @@ void bitbang_runtest(int num_cycles)
 	if (cur_state != end_state)
 		bitbang_state_move();
 }
+
+
+static void bitbang_stableclocks(int num_cycles)
+{
+	int i;
+
+	/* send num_cycles clocks onto the cable */
+	for (i = 0; i < num_cycles; i++)
+	{
+		bitbang_interface->write(1, 0, 0);
+		bitbang_interface->write(0, 0, 0);
+	}
+}
+
+
 
 void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
@@ -247,7 +268,7 @@ int bitbang_execute_queue(void)
 		{
 			case JTAG_END_STATE:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
+				LOG_DEBUG("end_state: %s", jtag_state_name(cmd->cmd.end_state->end_state) );
 #endif
 				if (cmd->cmd.end_state->end_state != -1)
 					bitbang_end_state(cmd->cmd.end_state->end_state);
@@ -264,15 +285,20 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
+				LOG_DEBUG("runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, jtag_state_name(cmd->cmd.runtest->end_state) );
 #endif
 				if (cmd->cmd.runtest->end_state != -1)
 					bitbang_end_state(cmd->cmd.runtest->end_state);
 				bitbang_runtest(cmd->cmd.runtest->num_cycles);
 				break;
+
+			case JTAG_STABLECLOCKS:
+				bitbang_stableclocks(cmd->cmd.stableclocks->num_cycles);
+				break;
+
 			case JTAG_STATEMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
+				LOG_DEBUG("statemove end in %s", jtag_state_name(cmd->cmd.statemove->end_state));
 #endif
 				if (cmd->cmd.statemove->end_state != -1)
 					bitbang_end_state(cmd->cmd.statemove->end_state);
@@ -280,13 +306,14 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+				LOG_DEBUG("pathmove: %i states, end in %s", cmd->cmd.pathmove->num_states,
+					jtag_state_name(cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]));
 #endif
 				bitbang_path_move(cmd->cmd.pathmove);
 				break;
 			case JTAG_SCAN:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("%s scan end in %i",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", cmd->cmd.scan->end_state);
+				LOG_DEBUG("%s scan end in %s",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", jtag_state_name(cmd->cmd.scan->end_state) );
 #endif
 				if (cmd->cmd.scan->end_state != -1)
 					bitbang_end_state(cmd->cmd.scan->end_state);

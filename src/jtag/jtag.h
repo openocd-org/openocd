@@ -29,6 +29,7 @@
 
 #include "command.h"
 
+
 #if 0
 #define _DEBUG_JTAG_IO_
 #endif
@@ -112,6 +113,13 @@ typedef struct runtest_command_s
 	enum tap_state end_state;	/* TAP state in which JTAG commands should finish */
 } runtest_command_t;
 
+
+typedef struct stableclocks_command_s
+{
+	int num_cycles;				/* number of clock cycles that should be sent */
+} stableclocks_command_t;
+
+
 typedef struct reset_command_s
 {
 	int trst;			/* trst/srst 0: deassert, 1: assert, -1: don't change */
@@ -134,6 +142,7 @@ typedef union jtag_command_container_u
 	statemove_command_t *statemove;
 	pathmove_command_t *pathmove;
 	runtest_command_t *runtest;
+	stableclocks_command_t *stableclocks;
 	reset_command_t *reset;
 	end_state_command_t *end_state;
 	sleep_command_t *sleep;
@@ -144,7 +153,8 @@ enum jtag_command_type
 	JTAG_SCAN = 1,
 	JTAG_STATEMOVE = 2, JTAG_RUNTEST = 3,
 	JTAG_RESET = 4, JTAG_END_STATE = 5,
-	JTAG_PATHMOVE = 6, JTAG_SLEEP = 7
+	JTAG_PATHMOVE = 6, JTAG_SLEEP = 7,
+	JTAG_STABLECLOCKS = 8
 };
 
 typedef struct jtag_command_s
@@ -433,6 +443,16 @@ extern void jtag_add_end_state(enum tap_state endstate);
 extern int interface_jtag_add_end_state(enum tap_state endstate);
 extern void jtag_add_sleep(u32 us);
 extern int interface_jtag_add_sleep(u32 us);
+
+
+/**
+ * Function jtag_add_stable_clocks
+ * first checks that the state in which the clocks are to be issued is
+ * stable, then queues up clock_count clocks for transmission.
+ */
+void jtag_add_clocks( int num_cycles );
+int interface_jtag_add_clocks( int num_cycles );
+
 
 /*
  * For software FIFO implementations, the queued commands can be executed

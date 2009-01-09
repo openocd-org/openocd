@@ -79,22 +79,22 @@ int tap_move_map[16] = {
 
 tap_transition_t tap_transitions[16] =
 {
-	{TAP_RESET, TAP_IDLE},		/* RESET */
-	{TAP_IRSELECT, TAP_DRCAPTURE},		/* DRSELECT */
-	{TAP_DREXIT1, TAP_DRSHIFT},		/* DRCAPTURE  */
-	{TAP_DREXIT1, TAP_DRSHIFT},		/* DRSHIFT  */
+	{TAP_RESET, 		TAP_IDLE},			/* RESET */
+	{TAP_IRSELECT, 	TAP_DRCAPTURE},		/* DRSELECT */
+	{TAP_DREXIT1,	TAP_DRSHIFT},		/* DRCAPTURE  */
+	{TAP_DREXIT1, 	TAP_DRSHIFT},		/* DRSHIFT  */
 	{TAP_DRUPDATE,  TAP_DRPAUSE}, 		/* DREXIT1 */
-	{TAP_DREXIT2, TAP_DRPAUSE},		/* DRPAUSE  */
+	{TAP_DREXIT2, 	TAP_DRPAUSE},		/* DRPAUSE  */
 	{TAP_DRUPDATE,  TAP_DRSHIFT},		/* DREXIT2 */
-	{TAP_DRSELECT, TAP_IDLE},		/* DRUPDATE  */
-	{TAP_DRSELECT, TAP_IDLE},		/* IDLE */
-	{TAP_RESET, TAP_IRCAPTURE},		/* IRSELECT */
-	{TAP_IREXIT1, TAP_IRSHIFT},		/* IRCAPTURE  */
-	{TAP_IREXIT1, TAP_IRSHIFT},		/* IRSHIFT  */
+	{TAP_DRSELECT, 	TAP_IDLE},			/* DRUPDATE  */
+	{TAP_DRSELECT, 	TAP_IDLE},			/* IDLE */
+	{TAP_RESET, 		TAP_IRCAPTURE},		/* IRSELECT */
+	{TAP_IREXIT1, 	TAP_IRSHIFT},		/* IRCAPTURE  */
+	{TAP_IREXIT1, 	TAP_IRSHIFT},		/* IRSHIFT  */
 	{TAP_IRUPDATE,  TAP_IRPAUSE}, 		/* IREXIT1 */
-	{TAP_IREXIT2, TAP_IRPAUSE},		/* IRPAUSE  */
+	{TAP_IREXIT2, 	TAP_IRPAUSE},		/* IRPAUSE  */
 	{TAP_IRUPDATE,  TAP_IRSHIFT},		/* IREXIT2 */
-	{TAP_DRSELECT, TAP_IDLE}		/* IRUPDATE  */
+	{TAP_DRSELECT, 	TAP_IDLE}			/* IRUPDATE  */
 };
 
 char* jtag_event_strings[] =
@@ -983,7 +983,6 @@ int MINIDRIVER(interface_jtag_add_tlr)()
 	(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
 	(*last_cmd)->cmd.statemove->end_state = state;
 
-
 	return ERROR_OK;
 }
 
@@ -1070,6 +1069,33 @@ void jtag_add_runtest(int num_cycles, enum tap_state state)
 
 	/* executed by sw or hw fifo */
 	retval=interface_jtag_add_runtest(num_cycles, cmd_queue_end_state);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
+}
+
+
+int MINIDRIVER(interface_jtag_add_clocks)( int num_cycles )
+{
+	jtag_command_t **last_cmd = jtag_get_last_command_p();
+
+	/* allocate memory for a new list member */
+	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	(*last_cmd)->next = NULL;
+	last_comand_pointer = &((*last_cmd)->next);
+	(*last_cmd)->type = JTAG_STABLECLOCKS;
+
+	(*last_cmd)->cmd.stableclocks = cmd_queue_alloc(sizeof(stableclocks_command_t));
+	(*last_cmd)->cmd.stableclocks->num_cycles = num_cycles;
+	return ERROR_OK;
+}
+
+void jtag_add_clocks( int num_cycles )
+{
+	int retval;
+
+	jtag_prelude1();
+
+	retval=interface_jtag_add_clocks(num_cycles);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -1252,6 +1278,8 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 
 	bit_count = 0;
 
+	LOG_DEBUG("num_fields: %i",cmd->num_fields);
+
 	for (i = 0; i < cmd->num_fields; i++)
 	{
 		if (cmd->fields[i].out_value)
@@ -1261,12 +1289,13 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 #endif
 			buf_set_buf(cmd->fields[i].out_value, 0, *buffer, bit_count, cmd->fields[i].num_bits);
 #ifdef _DEBUG_JTAG_IO_
-			LOG_DEBUG("fields[%i].out_value: 0x%s", i, char_buf);
+			LOG_DEBUG("fields[%i].out_value[%i]: 0x%s", i, cmd->fields[i].num_bits, char_buf);
 			free(char_buf);
 #endif
 		}
 
 		bit_count += cmd->fields[i].num_bits;
+		LOG_DEBUG("bit_count totalling: %i",  bit_count );
 	}
 
 	return bit_count;
@@ -1292,10 +1321,8 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			u8 *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
 
 #ifdef _DEBUG_JTAG_IO_
-			char *char_buf;
-
-			char_buf = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
-			LOG_DEBUG("fields[%i].in_value: 0x%s", i, char_buf);
+			char *char_buf = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
+			LOG_DEBUG("fields[%i].in_value[%i]: 0x%s", i, num_bits, char_buf);
 			free(char_buf);
 #endif
 

@@ -32,7 +32,12 @@ static tap_state_t dummy_state = TAP_RESET;
 
 static int dummy_clock;         /* edge detector */
 
+static int clock_count;         /* count clocks in any stable state, only stable states */
+
+
 static tap_state_t tap_state_transition(tap_state_t cur_state, int tms);
+
+static u32 dummy_data;
 
 
 int dummy_speed(int speed);
@@ -76,7 +81,9 @@ bitbang_interface_t dummy_bitbang =
 
 int dummy_read(void)
 {
-	return 1;
+	int data = 1 & dummy_data;
+	dummy_data = (dummy_data >> 1) | (1<<31);
+	return data;
 }
 
 
@@ -88,9 +95,30 @@ void dummy_write(int tck, int tms, int tdi)
 		if( tck )
 		{
 			int old_state = dummy_state;
-			dummy_state = tap_state_transition( dummy_state, tms );
+			dummy_state = tap_state_transition( old_state, tms );
+
 			if( old_state != dummy_state )
-				LOG_DEBUG( "dummy_tap=%s", jtag_state_name(dummy_state) );
+			{
+				if( clock_count )
+				{
+					LOG_DEBUG("dummy_tap: %d stable clocks", clock_count);
+					clock_count = 0;
+				}
+
+				LOG_DEBUG("dummy_tap: %s", jtag_state_name(dummy_state) );
+
+#if defined(DEBUG)
+				if(dummy_state == TAP_DRCAPTURE)
+					dummy_data = 0x01255043;
+#endif
+			}
+			else
+			{
+				/* this is a stable state clock edge, no change of state here,
+				 * simply increment clock_count for subsequent logging
+				 */
+				++clock_count;
+			}
 		}
 		dummy_clock = tck;
 	}
@@ -99,8 +127,11 @@ void dummy_write(int tck, int tms, int tdi)
 void dummy_reset(int trst, int srst)
 {
 	dummy_clock = 0;
-	dummy_state = TAP_RESET;
-	LOG_DEBUG( "reset to %s", jtag_state_name(dummy_state) );
+
+	if (trst || (srst && (jtag_reset_config & RESET_SRST_PULLS_TRST)))
+		dummy_state = TAP_RESET;
+
+	LOG_DEBUG("reset to: %s", jtag_state_name(dummy_state) );
 }
 
 static int dummy_khz(int khz, int *jtag_speed)
