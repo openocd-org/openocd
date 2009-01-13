@@ -85,18 +85,16 @@ mips32_core_reg_t mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
 	{37, NULL, NULL},
 };
 
-u8 mips32_gdb_dummy_fsr_value[] = {0, 0, 0, 0};
+/* number of mips dummy fp regs fp0 - fp31 + fsr and fir
+ * we also add 18 unknown registers to handle gdb requests */
 
-reg_t mips32_gdb_dummy_fsr_reg =
+#define MIPS32NUMFPREGS 34 + 18
+
+u8 mips32_gdb_dummy_fp_value[] = {0, 0, 0, 0};
+
+reg_t mips32_gdb_dummy_fp_reg =
 {
-	"GDB dummy floating-point status register", mips32_gdb_dummy_fsr_value, 0, 1, 32, NULL, 0, NULL, 0
-};
-
-u8 mips32_gdb_dummy_fir_value[] = {0, 0, 0, 0};
-
-reg_t mips32_gdb_dummy_fir_reg =
-{
-	"GDB dummy floating-point register", mips32_gdb_dummy_fir_value, 0, 1, 32, NULL, 0, NULL, 0
+	"GDB dummy floating-point register", mips32_gdb_dummy_fp_value, 0, 1, 32, NULL, 0, NULL, 0
 };
 
 int mips32_core_reg_arch_type = -1;
@@ -198,8 +196,8 @@ int mips32_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	mips32_common_t *mips32 = target->arch_info;
 	int i;
 	
-	/* include fsr/fir reg */
-	*reg_list_size = MIPS32NUMCOREREGS + 2;
+	/* include floating point registers */
+	*reg_list_size = MIPS32NUMCOREREGS + MIPS32NUMFPREGS;
 	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
 	
 	for (i = 0; i < MIPS32NUMCOREREGS; i++)
@@ -208,9 +206,11 @@ int mips32_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	}
 	
 	/* add dummy floating points regs */
-	(*reg_list)[38] = &mips32_gdb_dummy_fsr_reg;
-	(*reg_list)[39] = &mips32_gdb_dummy_fir_reg;
-	
+	for (i = MIPS32NUMCOREREGS; i < (MIPS32NUMCOREREGS + MIPS32NUMFPREGS); i++)
+	{
+		(*reg_list)[i] = &mips32_gdb_dummy_fp_reg;
+	}
+
 	return ERROR_OK;
 }
 
@@ -290,8 +290,7 @@ reg_cache_t *mips32_build_reg_cache(target_t *target)
 	if (mips32_core_reg_arch_type == -1)
 		mips32_core_reg_arch_type = register_reg_arch_type(mips32_get_core_reg, mips32_set_core_reg);
 
-	register_init_dummy(&mips32_gdb_dummy_fsr_reg);
-	register_init_dummy(&mips32_gdb_dummy_fir_reg);
+	register_init_dummy(&mips32_gdb_dummy_fp_reg);
 
 	/* Build the process context cache */ 
 	cache->name = "mips32 registers";
