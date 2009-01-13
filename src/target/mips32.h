@@ -116,7 +116,11 @@ typedef struct mips32_core_reg_s
 #define MIPS32_SB(reg, off, base)	MIPS32_I_INST(MIPS32_OP_SB, base, reg, off)
 #define MIPS32_SH(reg, off, base)	MIPS32_I_INST(MIPS32_OP_SH, base, reg, off)
 #define MIPS32_SW(reg, off, base)	MIPS32_I_INST(MIPS32_OP_SW, base, reg, off)
+
+/* ejtag specific instructions */
 #define MIPS32_DRET					0x4200001F
+#define MIPS32_SDBBP				0x7000003F
+#define MIPS16_SDBBP 				0xE801
 
 extern int mips32_arch_state(struct target_s *target);
 extern int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, jtag_tap_t *tap);

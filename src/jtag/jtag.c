@@ -40,7 +40,6 @@
 */
 int jtag_error=ERROR_OK;
 
-
 typedef struct cmd_queue_page_s
 {
 	void *address;
@@ -1278,7 +1277,9 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 
 	bit_count = 0;
 
+#ifdef _DEBUG_JTAG_IO_
 	LOG_DEBUG("num_fields: %i",cmd->num_fields);
+#endif
 
 	for (i = 0; i < cmd->num_fields; i++)
 	{
@@ -1295,7 +1296,9 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 		}
 
 		bit_count += cmd->fields[i].num_bits;
+#ifdef _DEBUG_JTAG_IO_
 		LOG_DEBUG("bit_count totalling: %i",  bit_count );
+#endif
 	}
 
 	return bit_count;
@@ -2950,7 +2953,6 @@ void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
 	}
 }
 
-
 /* map state number to SVF state string */
 const char* jtag_state_name(enum tap_state state)
 {
@@ -2979,4 +2981,3 @@ const char* jtag_state_name(enum tap_state state)
 
 	return ret;
 }
-

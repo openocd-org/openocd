@@ -490,7 +490,8 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips32_comparator_t * comparator_list = mips32->inst_break_list;
-
+	int retval;
+	
 	if (breakpoint->set)
 	{
 		LOG_WARNING("breakpoint already set");
@@ -519,7 +520,54 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
-
+		if (breakpoint->length == 4)
+		{
+			u32 verify = 0xffffffff;
+			
+			if((retval = target->type->read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if ((retval = target_write_u32(target, breakpoint->address, MIPS32_SDBBP)) != ERROR_OK)
+			{
+				return retval;
+			}
+			
+			if ((retval = target_read_u32(target, breakpoint->address, &verify)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if (verify != MIPS32_SDBBP)
+			{
+				LOG_ERROR("Unable to set 32bit breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
+				return ERROR_OK;
+			}
+		}
+		else
+		{
+			u16 verify = 0xffff;
+			
+			if((retval = target->type->read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if ((retval = target_write_u16(target, breakpoint->address, MIPS16_SDBBP)) != ERROR_OK)
+			{
+				return retval;
+			}
+			
+			if ((retval = target_read_u16(target, breakpoint->address, &verify)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if (verify != MIPS16_SDBBP)
+			{
+				LOG_ERROR("Unable to set 16bit breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
+				return ERROR_OK;
+			}
+		}
+		
+		breakpoint->set = 20; /* Any nice value but 0 */
 	}
 
 	return ERROR_OK;
@@ -530,7 +578,8 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
 	mips32_comparator_t * comparator_list = mips32->inst_break_list;
-
+	int retval;
+	
 	if (!breakpoint->set)
 	{
 		LOG_WARNING("breakpoint not set");
@@ -551,7 +600,42 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	}
 	else
 	{
-
+		/* restore original instruction (kept in target endianness) */
+		if (breakpoint->length == 4)
+		{
+			u32 current_instr;
+			
+			/* check that user program has not modified breakpoint instruction */
+			if ((retval = target->type->read_memory(target, breakpoint->address, 4, 1, (u8*)&current_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if (current_instr == MIPS32_SDBBP)
+			{
+				if((retval = target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+				{
+					return retval;
+				}
+			}
+		}
+		else
+		{
+			u16 current_instr;
+			
+			/* check that user program has not modified breakpoint instruction */
+			if ((retval = target->type->read_memory(target, breakpoint->address, 2, 1, (u8*)&current_instr)) != ERROR_OK)
+			{
+				return retval;
+			}
+			
+			if (current_instr == MIPS16_SDBBP)
+			{
+				if((retval = target->type->write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+				{
+					return retval;
+				}
+			}
+		}
 	}
 	breakpoint->set = 0;
 
@@ -562,16 +646,17 @@ int mips_m4k_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	mips32_common_t *mips32 = target->arch_info;
 
-	if (mips32->num_inst_bpoints_avail < 1)
+	if (breakpoint->type == BKPT_HARD)
 	{
-		LOG_INFO("no hardware breakpoint available");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
+		if (mips32->num_inst_bpoints_avail < 1)
+		{
+			LOG_INFO("no hardware breakpoint available");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
+		
+		mips32->num_inst_bpoints_avail--;
+	}	
 
-	/* default to hardware for now */
-	breakpoint->type = BKPT_HARD;
-
-	mips32->num_inst_bpoints_avail--;
 	mips_m4k_set_breakpoint(target, breakpoint);
 
 	return ERROR_OK;
