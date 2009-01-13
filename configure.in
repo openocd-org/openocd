@@ -44,7 +44,6 @@ test x"$OCDprefix"  = xNONE && OCDprefix=$ac_default_prefix
 # Let make expand exec_prefix.
 test x"$OCDxprefix" = xNONE && OCDxprefix="$OCDprefix"
 
-
 # what matters is the "exec-prefix"
 if test "$OCDxprefix" != "$ac_default_prefix"
 then
@@ -122,7 +121,6 @@ AC_ARG_WITH(ftd2xx-win32-zipdir,
   true
   ]
 )
-	
 
 AC_ARG_WITH(ftd2xx-linux-tardir,
   AS_HELP_STRING([--with-ftd2xx-linux-tardir], [Where (Linux/Unix) the tar file from ftdichip.com was unpacked <default=search>]),
@@ -144,7 +142,6 @@ AC_ARG_WITH(ftd2xx-linux-tardir,
   true
   ]
 )
-
 
 AC_ARG_WITH(ftd2xx-lib,
 	AS_HELP_STRING([--with-ftd2xx-lib], [Use static or shared ftd2xx libs on default static]),
@@ -263,7 +260,6 @@ AC_ARG_ENABLE(rlink,
   AS_HELP_STRING([--enable-rlink], [Enable building support for the Raisonance RLink JTAG Programmer]),
   [build_rlink=$enableval], [build_rlink=no])
 
-
 case $host in 
   *-cygwin*) 
     is_win32=yes
@@ -313,7 +309,6 @@ if test $build_dummy = yes; then
 else
   AC_DEFINE(BUILD_DUMMY, 0, [0 if you don't want dummy driver.])
 fi
-
 
 if test $build_ep93xx = yes; then
   build_bitbang=yes
@@ -464,12 +459,12 @@ AC_MSG_CHECKING([for ftd2xx.lib exists (win32)])
       # And calculate the LDFLAGS for the machine
       case "$host_cpu" in
       i?86|x86_*)
-	LDFLAGS="$LFLAGS -L$with_ftd2xx_win32_zipdir/i386"
+	LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/i386"
 	LIBS="$LIBS -lftd2xx"
 	f=$with_ftd2xx_win32_zipdir/i386/ftd2xx.lib
 	;;
       amd64)
-	LDFLAGS="$LFLAGS -L$with_ftd2xx_win32_zipdir/amd64"
+	LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/amd64"
 	LIBS="$LIBS -lftd2xx"
 	f=$with_ftd2xx_win32_zipdir/amd64/ftd2xx.lib
 	;;
@@ -486,7 +481,6 @@ AC_MSG_CHECKING([for ftd2xx.lib exists (win32)])
    fi
 fi
 fi
-
 
 if test $is_win32 = no; then
 
@@ -629,8 +623,6 @@ main( int argc, char **argv )
 LDFLAGS=$LDFLAGS_SAVE
 CFLAGS=$CFLAGS_SAVE
 fi
-   
-
 
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(openocd, 1.0)
@@ -712,7 +704,5 @@ else
 fi
 AC_MSG_RESULT([$EXEEXT_FOR_BUILD])
 AC_SUBST(EXEEXT_FOR_BUILD)
-
-#AC_SUBST(WITH_FTD2XX, $with_ftd2xx)
 
 AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile src/pld/Makefile doc/Makefile)
