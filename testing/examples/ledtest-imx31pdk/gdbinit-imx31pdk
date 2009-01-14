@@ -1,0 +1,136 @@
+echo Setting up for the FreeScale iMX31 Board.\n
+# SETUP GDB :
+#
+# Common gdb setup for ARM CPUs
+set complaints 1
+set output-radix 10
+set input-radix 10
+set prompt (arm-gdb) 
+set endian little
+dir .
+
+# Tell GDB to use 1024 bytes packes when downloading, this
+# reduces load image download times
+set remote memory-write-packet-size 1024
+set remote memory-write-packet-size fixed
+
+
+
+# DEFINE MACROS	:
+#
+# Create a "refresh" macro to update gdb's screens after the cpu
+# has been stopped by the other CPU or following an "monitor allstop" 
+define refresh
+	monitor set hbreak
+	cont
+	monitor clear hbreak
+end
+
+
+# CONNECT TO TARGET :
+target remote 127.0.0.1:3333
+monitor reset run
+monitor reset halt
+
+# iMX31 PDK board initialization commands:
+
+#// init_ccm
+
+monitor mww 0x53FC0000 0x040
+monitor mww 0x53F80000 0x074B0B7D
+
+#//532-133-66.5
+#//monitor mww 0x53F80004 0xFF871D58
+#//monitor mww 0x53F80010 0x0033280C
+
+#// 399MHz - 26MHz input, PD=1,MFI=7, MFN=27, MFD=40
+monitor mww 0x53F80004 0xFF871D50
+monitor mww 0x53F80010 0x00271C1B
+
+#// 208-104-52
+#//monitor mww 0x53F80004 0xFF871D48
+#//monitor mww 0x53F80010 0x04002000
+
+
+#// Configure CPLD on CS5 
+monitor mww 0xb8002050 0x0000DCF6
+monitor mww 0xb8002054 0x444A4541
+monitor mww 0xb8002058 0x44443302
+
+#// Disable maximum drive strength for SDRAM/DDR lines by clearing DSE1 bits
+#// in SW_PAD_CTL registers
+
+#// SDCLK
+monitor mww 0x43FAC26C 0
+ 
+#// CAS
+monitor mww 0x43FAC270 0
+ 
+#// RAS
+monitor mww 0x43FAC274 0
+ 
+#// CS2 (CSD0)
+monitor mww 0x43FAC27C 0x1000
+    
+#// DQM3
+monitor mww 0x43FAC284 0
+ 
+#// DQM2, DQM1, DQM0, SD31-SD0, A25-A0, MA10 (0x288..0x2DC)
+monitor mww 0x43FAC288 0
+monitor mww 0x43FAC28C 0
+monitor mww 0x43FAC290 0
+monitor mww 0x43FAC294 0
+monitor mww 0x43FAC298 0
+monitor mww 0x43FAC29C 0
+monitor mww 0x43FAC2A0 0
+monitor mww 0x43FAC2A4 0
+monitor mww 0x43FAC2A8 0
+monitor mww 0x43FAC2AC 0
+monitor mww 0x43FAC2B0 0
+monitor mww 0x43FAC2B4 0
+monitor mww 0x43FAC2B8 0
+monitor mww 0x43FAC2BC 0
+monitor mww 0x43FAC2C0 0
+monitor mww 0x43FAC2C4 0
+monitor mww 0x43FAC2C8 0
+monitor mww 0x43FAC2CC 0
+monitor mww 0x43FAC2D0 0
+monitor mww 0x43FAC2D4 0
+monitor mww 0x43FAC2D8 0
+monitor mww 0x43FAC2DC 0
+
+#// Initialization script for 32 bit DDR on MX31 PDK 
+monitor mww 0xB8001010 0x00000004
+monitor mww 0xB8001004 0x006ac73a
+monitor mww 0xB8001000 0x92100000
+monitor mww 0x80000f00 0x12344321
+monitor mww 0xB8001000 0xa2100000
+monitor mww 0x80000000 0x12344321
+monitor mww 0x80000000 0x12344321
+monitor mww 0xB8001000 0xb2100000
+#monitor char 0x80000033 0xda
+monitor mwb 0x80000033 0xda
+#monitor char 0x81000000 0xff
+monitor mwb 0x81000000 0xff
+monitor mww 0xB8001000 0x82226080
+monitor mww 0x80000000 0xDEADBEEF
+monitor mww 0xB8001010 0x0000000c
+
+#  LOAD IMAGE :
+#
+
+# Load the program executable called "u-boot"
+load test.elf
+
+# Load the symbols for the program.
+symbol-file test.elf
+
+# RUN TO MAIN :
+#
+# Set a breakpoint at main().
+#b reset
+b main
+
+# Run to the breakpoint.
+c
+
