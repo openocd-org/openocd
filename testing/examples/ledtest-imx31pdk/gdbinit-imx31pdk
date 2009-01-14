@@ -9,12 +9,6 @@ set prompt (arm-gdb)
 set endian little
 dir .
 
-# Tell GDB to use 1024 bytes packes when downloading, this
-# reduces load image download times
-set remote memory-write-packet-size 1024
-set remote memory-write-packet-size fixed
-
-
 
 # DEFINE MACROS	:
 #
@@ -30,6 +24,7 @@ end
 # CONNECT TO TARGET :
 target remote 127.0.0.1:3333
 monitor reset run
+#FIX!!!! should be reset init!
 monitor reset halt
 
 # iMX31 PDK board initialization commands:
