@@ -5,21 +5,19 @@ echo Setting up for the FreeScale iMX31 Board.\n
 set complaints 1
 set output-radix 10
 set input-radix 10
-set prompt (arm-gdb) 
+set prompt (arm-gdb)
 set endian little
 dir .
-
 
 # DEFINE MACROS	:
 #
 # Create a "refresh" macro to update gdb's screens after the cpu
-# has been stopped by the other CPU or following an "monitor allstop" 
+# has been stopped by the other CPU or following an "monitor allstop"
 define refresh
 	monitor set hbreak
 	cont
 	monitor clear hbreak
 end
-
 
 # CONNECT TO TARGET :
 target remote 127.0.0.1:3333
@@ -46,7 +44,6 @@ monitor mww 0x53F80010 0x00271C1B
 #//monitor mww 0x53F80004 0xFF871D48
 #//monitor mww 0x53F80010 0x04002000
 
-
 #// Configure CPLD on CS5 
 monitor mww 0xb8002050 0x0000DCF6
 monitor mww 0xb8002054 0x444A4541
@@ -57,19 +54,19 @@ monitor mww 0xb8002058 0x44443302
 
 #// SDCLK
 monitor mww 0x43FAC26C 0
- 
+
 #// CAS
 monitor mww 0x43FAC270 0
- 
+
 #// RAS
 monitor mww 0x43FAC274 0
- 
+
 #// CS2 (CSD0)
 monitor mww 0x43FAC27C 0x1000
-    
+
 #// DQM3
 monitor mww 0x43FAC284 0
- 
+
 #// DQM2, DQM1, DQM0, SD31-SD0, A25-A0, MA10 (0x288..0x2DC)
 monitor mww 0x43FAC288 0
 monitor mww 0x43FAC28C 0
@@ -94,7 +91,7 @@ monitor mww 0x43FAC2D4 0
 monitor mww 0x43FAC2D8 0
 monitor mww 0x43FAC2DC 0
 
-#// Initialization script for 32 bit DDR on MX31 PDK 
+#// Initialization script for 32 bit DDR on MX31 PDK
 monitor mww 0xB8001010 0x00000004
 monitor mww 0xB8001004 0x006ac73a
 monitor mww 0xB8001000 0x92100000
