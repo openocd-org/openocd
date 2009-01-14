@@ -40,6 +40,7 @@
 */
 int jtag_error=ERROR_OK;
 
+
 typedef struct cmd_queue_page_s
 {
 	void *address;
@@ -1364,6 +1365,11 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 	return retval;
 }
 
+static const char *jtag_tap_name(jtag_tap_t *tap)
+{
+	return (tap == NULL) ? "(unknown)" : tap->dotted_name;
+}
+
 int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 {
 	int retval = ERROR_OK;
@@ -1382,7 +1388,7 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 		 * acknowledged the error
 		 */
 		LOG_WARNING("TAP %s:",
-					(field->tap == NULL) ? "(unknown)" : field->tap->dotted_name );
+					jtag_tap_name(field->tap));
 		if (compare_failed)
 		{
 			char *captured_char = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
@@ -1698,17 +1704,18 @@ int jtag_validate_chain(void)
 
 	tap = NULL;
 	chain_pos = 0;
+	int val;
 	for(;;){
 		tap = jtag_NextEnabledTap(tap);
 		if( tap == NULL ){
 			break;
 		}
 
-
-		if (buf_get_u32(ir_test, chain_pos, 2) != 0x1)
+		val = buf_get_u32(ir_test, chain_pos, 2);
+		if (val != 0x1)
 		{
 			char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
-			LOG_ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
+			LOG_ERROR("Could not validate JTAG scan chain, IR mismatch, scan returned 0x%s. tap=%s pos=%d expected 0x1 got %0x", cbuf, jtag_tap_name(tap), chain_pos, val);
 			free(cbuf);
 			free(ir_test);
 			return ERROR_JTAG_INIT_FAILED;
@@ -1716,10 +1723,11 @@ int jtag_validate_chain(void)
 		chain_pos += tap->ir_length;
 	}
 
-	if (buf_get_u32(ir_test, chain_pos, 2) != 0x3)
+	val = buf_get_u32(ir_test, chain_pos, 2);
+	if (val != 0x3)
 	{
 		char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
-		LOG_ERROR("Error validating JTAG scan chain, IR mismatch, scan returned 0x%s", cbuf);
+		LOG_ERROR("Could not validate end of JTAG scan chain, IR mismatch, scan returned 0x%s. pos=%d expected 0x3 got %0x", cbuf, chain_pos, val);
 		free(cbuf);
 		free(ir_test);
 		return ERROR_JTAG_INIT_FAILED;
@@ -2249,7 +2257,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 
 	if (jtag_validate_chain() != ERROR_OK)
 	{
-		LOG_ERROR("Could not validate JTAG chain, continuing anyway...");
+		LOG_WARNING("Could not validate JTAG chain, continuing anyway...");
 	}
 
 	return ERROR_OK;
@@ -2953,6 +2961,7 @@ void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
 	}
 }
 
+
 /* map state number to SVF state string */
 const char* jtag_state_name(enum tap_state state)
 {
@@ -2981,3 +2990,4 @@ const char* jtag_state_name(enum tap_state state)
 
 	return ret;
 }
+
