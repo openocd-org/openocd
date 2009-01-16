@@ -105,4 +105,4 @@ endif
 libjtag_a_SOURCES = jtag.c $(BITBANGFILES) $(PARPORTFILES) $(DUMMYFILES) $(FT2232FILES) $(AMTJTAGACCELFILES) $(EP93XXFILES) \
 	$(AT91RM9200FILES) $(GW16012FILES) $(BITQFILES) $(PRESTOFILES) $(USBPROGFILES) $(ECOSBOARDFILES) $(JLINKFILES) $(RLINKFILES) $(VSLLINKFILES)
 
-noinst_HEADERS = bitbang.h jtag.h
+noinst_HEADERS = bitbang.h jtag.h bitq.h rlink/dtc_cmd.h rlink/ep1_cmd.h rlink/rlink.h rlink/st7.h
