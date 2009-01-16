@@ -14,8 +14,6 @@ noinst_HEADERS += tcl_server.h
 libserver_a_SOURCES += tcl_server.c
 
 if HTTPD
-nobase_dist_pkglib_DATA = $(wildcard $(srcdir)/httpd/*.tcl)
-nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/httpd/*.css)
-nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/httpd/menu_cuts/*.png)
+nobase_dist_pkglib_DATA = $(wildcard $(srcdir)/httpd/*.tcl $(srcdir)/httpd/*.css $(srcdir)/httpd/menu_cuts/*.png)
 endif
 AM_CPPFLAGS = -DPKGLIBDIR=\"$(pkglibdir)\" @CPPFLAGS@
