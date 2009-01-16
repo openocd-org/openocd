@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/sh
+#
 
 REV=unknown
 
