@@ -404,6 +404,7 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 	int i;
 	arm_instruction_t cur_instruction;
 	u32 opcode;
+	u16 thumb_opcode;
 	int thumb = 0;
 
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
@@ -427,13 +428,26 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 
 	for (i = 0; i < count; i++)
 	{
-		if((retval = target_read_u32(target, address, &opcode)) != ERROR_OK)
+		if(thumb)
 		{
-			return retval;
+			if((retval = target_read_u16(target, address, &thumb_opcode)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if((retval = thumb_evaluate_opcode(thumb_opcode, address, &cur_instruction)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
-		if((retval = arm_evaluate_opcode(opcode, address, &cur_instruction)) != ERROR_OK)
-		{
-			return retval;
+		else {
+			if((retval = target_read_u32(target, address, &opcode)) != ERROR_OK)
+			{
+				return retval;
+			}
+			if((retval = arm_evaluate_opcode(opcode, address, &cur_instruction)) != ERROR_OK)
+			{
+				return retval;
+			}
 		}
 		command_print(cmd_ctx, "%s", cur_instruction.text);
 		address += (thumb) ? 2 : 4;
