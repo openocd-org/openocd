@@ -26,6 +26,7 @@
 #include "jtag.h"
 #include "configuration.h"
 #include "xsvf.h"
+#include "svf.h"
 #include "target.h"
 #include "flash.h"
 #include "nand.h"

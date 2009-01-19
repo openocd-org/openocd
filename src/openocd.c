@@ -35,6 +35,7 @@
 #include "jtag.h"
 #include "configuration.h"
 #include "xsvf.h"
+#include "svf.h"
 #include "target.h"
 #include "flash.h"
 #include "nand.h"
@@ -209,6 +210,7 @@ command_context_t *setup_command_handler(void)
 	log_register_commands(cmd_ctx);
 	jtag_register_commands(cmd_ctx);
 	xsvf_register_commands(cmd_ctx);
+	svf_register_commands(cmd_ctx);
 	target_register_commands(cmd_ctx);
 	flash_register_commands(cmd_ctx);
 	nand_register_commands(cmd_ctx);

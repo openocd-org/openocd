@@ -11,8 +11,8 @@ openocd_SOURCES = $(MAINFILE) openocd.c
 
 # set the include path found by configure
 INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/helper \
-	-I$(top_srcdir)/src/jtag -I$(top_srcdir)/src/target -I$(top_srcdir)/src/xsvf -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/flash -I$(top_srcdir)/src/pld $(all_includes)
+	-I$(top_srcdir)/src/jtag -I$(top_srcdir)/src/target -I$(top_srcdir)/src/xsvf -I$(top_srcdir)/src/svf \
+	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/flash -I$(top_srcdir)/src/pld $(all_includes)
 
 # pass path to prefix path
 openocd_CPPFLAGS = \
@@ -23,7 +23,7 @@ openocd_CPPFLAGS = \
 
 # the library search path.
 openocd_LDFLAGS = $(all_libraries) 
-SUBDIRS = helper jtag xsvf target server flash pld
+SUBDIRS = helper jtag xsvf svf target server flash pld
 
 if IS_MINGW
 MINGWLDADD = -lwsock32
@@ -61,7 +61,7 @@ endif
 
 
 
-openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a \
+openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a $(top_builddir)/src/svf/libsvf.a \
 	$(top_builddir)/src/target/libtarget.a $(top_builddir)/src/jtag/libjtag.a \
 	$(top_builddir)/src/helper/libhelper.a \
 	$(top_builddir)/src/server/libserver.a $(top_builddir)/src/helper/libhelper.a \

@@ -705,4 +705,4 @@ fi
 AC_MSG_RESULT([$EXEEXT_FOR_BUILD])
 AC_SUBST(EXEEXT_FOR_BUILD)
 
-AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile src/pld/Makefile doc/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/svf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile src/pld/Makefile doc/Makefile)
