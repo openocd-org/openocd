@@ -57,14 +57,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#ifdef _WIN32
-#include <malloc.h>
-#else
-#include <alloca.h>
-#endif
-
-#include "replacements.h"
-
 void print_version(void)
 {
 	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
