@@ -2240,8 +2240,8 @@ Use the standard str9 driver for programming. @xref{STR9 specific commands}.
 @subsubsection aduc702x options
 @cindex aduc702x options
 
-@b{flash bank aduc702x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
-@*aduc702x flash plugin require the flash @var{base}, @var{size} and @var{target#}.
+@b{flash bank aduc702x} 0 0 0 0 <@var{target#}>
+@*The aduc702x flash plugin works with Analog Devices model numbers ADUC7019 through ADUC7028.  The setup command only requires the @var{target#} argument (all devices in this family have the same memory layout).
 
 @subsection mFlash configuration
 @cindex mFlash configuration
