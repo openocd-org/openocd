@@ -27,6 +27,16 @@ build_bitq=no
 is_cygwin=no
 is_mingw=no
 is_win32=no
+build_release=yes
+
+AC_ARG_ENABLE(release,
+	AS_HELP_STRING([--enable-release], [Enable Release Build, default no]),
+	[build_release=$enableval], [build_release=no])
+
+if test $build_release = no; then
+	# check we can find guess-rev.sh
+	AC_CHECK_FILE("guess-rev.sh", build_release=no, build_release=yes)
+fi
 
 # We are not *ALWAYS* being installed in the standard place.
 # We may be installed in a "tool-build" specific location.
@@ -627,6 +637,7 @@ fi
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(openocd, 1.0)
 
+AM_CONDITIONAL(RELEASE, test $build_release = yes)
 AM_CONDITIONAL(PARPORT, test $build_parport = yes)
 AM_CONDITIONAL(DUMMY, test $build_dummy = yes)
 AM_CONDITIONAL(GIVEIO, test $parport_use_giveio = yes)

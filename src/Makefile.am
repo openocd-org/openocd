@@ -6,7 +6,6 @@ else
 MAINFILE = main.c
 endif
 
-
 openocd_SOURCES = $(MAINFILE) openocd.c
 
 # set the include path found by configure
@@ -17,9 +16,16 @@ INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/helper \
 # pass path to prefix path
 openocd_CPPFLAGS = \
  -DPKGLIBDIR=\"$(pkglibdir)\" \
- -DPKGBLDDATE=\"`date +%F-%R`\" \
- -DPKGBLDREV=\"`$(top_srcdir)/guess-rev.sh`\" \
- @CPPFLAGS@
+ -DPKGBLDDATE=\"`date +%F-%R`\"
+
+if RELEASE
+openocd_CPPFLAGS += -DRELSTR=\"Release\" -DPKGBLDREV=\"\"
+else
+openocd_CPPFLAGS += -DRELSTR=\"svn:\" -DPKGBLDREV=\"`$(top_srcdir)/guess-rev.sh`\"
+endif
+
+# add default CPPFLAGS
+openocd_CPPFLAGS += @CPPFLAGS@
 
 # the library search path.
 openocd_LDFLAGS = $(all_libraries) 
@@ -59,8 +65,6 @@ endif
 endif
 endif
 
-
-
 openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a $(top_builddir)/src/svf/libsvf.a \
 	$(top_builddir)/src/target/libtarget.a $(top_builddir)/src/jtag/libjtag.a \
 	$(top_builddir)/src/helper/libhelper.a \
@@ -69,12 +73,9 @@ openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a $(top_builddir)/src/svf/libsv
 	$(top_builddir)/src/pld/libpld.a \
 	$(FTDI2232LIB) $(MINGWLDADD) $(LIBUSB)
 
-
 if HTTPD
 openocd_LDADD += -lmicrohttpd
 endif
-
-
 
 nobase_dist_pkglib_DATA = \
 	tcl/bitsbytes.tcl			\
