@@ -331,7 +331,12 @@ Cygwin/Linux LIBFTDI solution
 
 @itemize @bullet
 @item
-@option{--enable-gccwarnings} - enable extra gcc warnings during build
+@option{--enable-gccwarnings} - enable extra gcc warnings during build.
+Default is enabled.
+@item
+@option{--enable-release} - enable building of a openocd release, generally
+this is for developers. It simply omits the svn version string when the
+openocd @option{-v} is executed.
 @end itemize
 
 @node JTAG Hardware Dongles
