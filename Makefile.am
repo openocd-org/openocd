@@ -11,3 +11,14 @@ nobase_dist_pkgdata_DATA = \
 	contrib/libdcc/README
 
 SUBDIRS = src doc
+
+MAINTAINERCLEANFILES = \
+	configure \
+	Makefile.in \
+	depcomp \
+	config.guess \
+	config.sub \
+	config.h.in \
+	missing \
+	aclocal.m4 \
+	install-sh

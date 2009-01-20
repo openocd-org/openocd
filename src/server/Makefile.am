@@ -17,3 +17,5 @@ if HTTPD
 nobase_dist_pkglib_DATA = $(wildcard $(srcdir)/httpd/*.tcl $(srcdir)/httpd/*.css $(srcdir)/httpd/menu_cuts/*.png)
 endif
 AM_CPPFLAGS = -DPKGLIBDIR=\"$(pkglibdir)\" @CPPFLAGS@
+
+MAINTAINERCLEANFILES = Makefile.in

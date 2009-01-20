@@ -28,3 +28,5 @@ nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/target/*.cfg)
 nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/interface/*.cfg)
 # Various preconfigured boards
 nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/board/*.cfg)
+
+MAINTAINERCLEANFILES = Makefile.in

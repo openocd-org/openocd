@@ -8,3 +8,5 @@ libflash_a_SOURCES = flash.c lpc2000.c cfi.c non_cfi.c at91sam7.c at91sam7_old.c
 noinst_HEADERS = flash.h lpc2000.h cfi.h non_cfi.h at91sam7.h at91sam7_old.h str7x.h str9x.h nand.h lpc3180_nand_controller.h \
 				 stellaris.h str9xpec.h stm32x.h tms470.h s3c24xx_nand.h s3c24xx_regs_nand.h lpc288x.h mflash.h \
 				 ocl.h pic32mx.h
+
+MAINTAINERCLEANFILES = Makefile.in

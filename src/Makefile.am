@@ -95,3 +95,5 @@ nobase_dist_pkglib_DATA = \
 	tcl/memory.tcl				\
 	tcl/mmr_helpers.tcl			\
 	tcl/readable.tcl
+
+MAINTAINERCLEANFILES = Makefile.in
