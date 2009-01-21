@@ -1,0 +1,25 @@
+BUS!="usb", ACTION!="add", SUBSYSTEM!=="usb_device", GOTO="openocd_rules_end"
+
+# Olimex ARM-USB-OCD
+SYSFS{idVendor}=="15ba", SYSFS{idProduct}=="0003", MODE="664", GROUP="plugdev"
+
+# Olimex ARM-USB-OCD-TINY
+SYSFS{idVendor}=="15ba", SYSFS{idProduct}=="0004", MODE="664", GROUP="plugdev"
+
+# USBprog with OpenOCD firmware
+SYSFS{idVendor}=="1781", SYSFS{idProduct}=="0c63", MODE="664", GROUP="plugdev"
+
+# Amontec JTAGkey
+SYSFS{idVendor}=="0403", SYSFS{idProduct}=="cff8", MODE="664", GROUP="plugdev"
+
+# Amontec JTAGkey-HiSpeed
+SYSFS{idVendor}=="0fbb", SYSFS{idProduct}=="1000", MODE="664", GROUP="plugdev"
+
+# IAR J-Link USB
+SYSFS{idVendor}=="1366", SYSFS{idProduct}=="0101", MODE="664", GROUP="plugdev"
+
+# Raisonance RLink
+SYSFS{idVendor}=="138e", SYSFS{idProduct}=="9000", MODE="664", GROUP="plugdev"
+
+LABEL="openocd_rules_end"
+

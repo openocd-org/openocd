@@ -6,7 +6,8 @@ nobase_dist_pkgdata_DATA = \
 	contrib/libdcc/dcc_stdio.c \
 	contrib/libdcc/dcc_stdio.h \
 	contrib/libdcc/example.c \
-	contrib/libdcc/README
+	contrib/libdcc/README \
+	contrib/openocd.udev
 
 SUBDIRS = src doc
 
