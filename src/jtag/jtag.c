@@ -1093,11 +1093,31 @@ void jtag_add_clocks( int num_cycles )
 {
 	int retval;
 
-	jtag_prelude1();
+	/* "if (tap_move_map[cm_queue_cur_state] != -1)" is of no help when cur_state==TAP_IDLE */
+	switch(cmd_queue_cur_state)
+	{
+	case TAP_DRSHIFT:
+	case TAP_IDLE:
+	case TAP_RESET:
+	case TAP_DRPAUSE:
+	case TAP_IRSHIFT:
+	case TAP_IRPAUSE:
+		 break;			/* above stable states are OK */
+	default:
+		 LOG_ERROR( "jtag_add_clocks() was called with TAP in non-stable state \"%s\"",
+				 jtag_state_name(cmd_queue_cur_state) );
+		 jtag_error = ERROR_JTAG_NOT_STABLE_STATE;
+		 return;
+	}
 
-	retval=interface_jtag_add_clocks(num_cycles);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
+	if( num_cycles > 0 )
+	{
+		jtag_prelude1();
+
+		retval=interface_jtag_add_clocks(num_cycles);
+		if (retval!=ERROR_OK)
+			jtag_error=retval;
+	}
 }
 
 void jtag_add_reset(int req_tlr_or_trst, int req_srst)
@@ -1287,7 +1307,7 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 		if (cmd->fields[i].out_value)
 		{
 #ifdef _DEBUG_JTAG_IO_
-			char* char_buf = buf_to_str(cmd->fields[i].out_value, (cmd->fields[i].num_bits > 64) ? 64 : cmd->fields[i].num_bits, 16);
+			char* char_buf = buf_to_str(cmd->fields[i].out_value, (cmd->fields[i].num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : cmd->fields[i].num_bits, 16);
 #endif
 			buf_set_buf(cmd->fields[i].out_value, 0, *buffer, bit_count, cmd->fields[i].num_bits);
 #ifdef _DEBUG_JTAG_IO_
@@ -1297,9 +1317,6 @@ int jtag_build_buffer(scan_command_t *cmd, u8 **buffer)
 		}
 
 		bit_count += cmd->fields[i].num_bits;
-#ifdef _DEBUG_JTAG_IO_
-		LOG_DEBUG("bit_count totalling: %i",  bit_count );
-#endif
 	}
 
 	return bit_count;
@@ -1325,7 +1342,7 @@ int jtag_read_buffer(u8 *buffer, scan_command_t *cmd)
 			u8 *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
 
 #ifdef _DEBUG_JTAG_IO_
-			char *char_buf = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
+			char *char_buf = buf_to_str(captured, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
 			LOG_DEBUG("fields[%i].in_value[%i]: 0x%s", i, num_bits, char_buf);
 			free(char_buf);
 #endif
@@ -1391,13 +1408,13 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 					jtag_tap_name(field->tap));
 		if (compare_failed)
 		{
-			char *captured_char = buf_to_str(captured, (num_bits > 64) ? 64 : num_bits, 16);
-			char *in_check_value_char = buf_to_str(field->in_check_value, (num_bits > 64) ? 64 : num_bits, 16);
+			char *captured_char = buf_to_str(captured, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
+			char *in_check_value_char = buf_to_str(field->in_check_value, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
 
 			if (field->in_check_mask)
 			{
 				char *in_check_mask_char;
-				in_check_mask_char = buf_to_str(field->in_check_mask, (num_bits > 64) ? 64 : num_bits, 16);
+				in_check_mask_char = buf_to_str(field->in_check_mask, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
 				LOG_WARNING("value captured during scan didn't pass the requested check:");
 				LOG_WARNING("captured: 0x%s check_value: 0x%s check_mask: 0x%s",
 							captured_char, in_check_value_char, in_check_mask_char);

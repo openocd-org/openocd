@@ -1415,22 +1415,9 @@ int ft2232_execute_queue()
 				break;
 
 			case JTAG_STABLECLOCKS:
-				/* "if (tap_move_map[cur_state] != -1)" is of no help when cur_state==TAP_IDLE */
-				switch(cur_state)
-				{
-				case TAP_DRSHIFT:
-				case TAP_IDLE:
-				case TAP_RESET:
-				case TAP_DRPAUSE:
-				case TAP_IRSHIFT:
-				case TAP_IRPAUSE:
-					 break;			/* above stable states are OK */
-				default:
-					 LOG_ERROR( "jtag_add_clocks() was called with TAP in non-stable state \"%s\"",
-							 jtag_state_name(cur_state) );
-					 retval = ERROR_JTAG_QUEUE_FAILED;
-				}
-
+				/* this is only allowed while in a stable state.  A check for a stable
+				 * state was done in jtag_add_clocks()
+				 */
 				if (ft2232_stableclocks(cmd->cmd.stableclocks->num_cycles, cmd) != ERROR_OK)
 					retval = ERROR_JTAG_QUEUE_FAILED;
 #ifdef _DEBUG_JTAG_IO_
@@ -2336,11 +2323,15 @@ static int ft2232_stableclocks(int num_cycles, jtag_command_t *cmd)
 {
 	int retval = 0;
 
+	/* 7 bits of either ones or zeros. */
+	u8 tms = (cur_state == TAP_RESET ? 0x7F : 0x00);
+
 	while (num_cycles > 0)
 	{
 		/* the command 0x4b, "Clock Data to TMS/CS Pin (no Read)" handles
 		 * at most 7 bits per invocation.  Here we invoke it potentially
 		 * several times.
+		 * see: http://www.ftdichip.com/Documents/AppNotes/AN2232C-01_MPSSE_Cmnd.pdf
 		 */
 		int bitcount_per_command = (num_cycles > 7) ? 7 : num_cycles;
 
@@ -2358,8 +2349,8 @@ static int ft2232_stableclocks(int num_cycles, jtag_command_t *cmd)
 		/* scan 7 bit */
 		BUFFER_ADD = bitcount_per_command - 1;
 
-		/* TMS data bits are all zeros to stay in the current stable state */
-		BUFFER_ADD = 0x0;
+		/* TMS data bits are either all zeros or ones to stay in the current stable state */
+		BUFFER_ADD = tms;
 
 		require_send = 1;
 

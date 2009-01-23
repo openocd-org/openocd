@@ -34,6 +34,11 @@
 #define _DEBUG_JTAG_IO_
 #endif
 
+#ifndef DEBUG_JTAG_IOZ
+#define DEBUG_JTAG_IOZ		64
+#endif
+
+
 /* 16 Tap States, from page 21 of ASSET InterTech, Inc.'s svf.pdf
  */
 typedef enum tap_state
@@ -499,11 +504,13 @@ void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e);
  * JTAG subsystem uses codes between -100 and -199 */
 
 #define ERROR_JTAG_INIT_FAILED			(-100)
-#define ERROR_JTAG_INVALID_INTERFACE	(-101)
+#define ERROR_JTAG_INVALID_INTERFACE		(-101)
 #define ERROR_JTAG_NOT_IMPLEMENTED		(-102)
-#define ERROR_JTAG_TRST_ASSERTED		(-103)
+#define ERROR_JTAG_TRST_ASSERTED			(-103)
 #define ERROR_JTAG_QUEUE_FAILED			(-104)
+#define ERROR_JTAG_NOT_STABLE_STATE		(-105)
 #define ERROR_JTAG_DEVICE_ERROR			(-107)
+
 
 /* this allows JTAG devices to implement the entire jtag_xxx() layer in hw/sw */
 #ifdef HAVE_JTAG_MINIDRIVER_H

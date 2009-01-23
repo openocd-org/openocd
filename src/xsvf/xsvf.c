@@ -107,6 +107,7 @@ LSDR 1  TDI  (0)
 #define LCOUNT			0x19
 #define LDELAY			0x1A
 #define LSDR				0x1B
+#define XTRST			0x1C
 
 
 /* XSVF valid state values for the XSTATE command, from appendix B of xapp503.pdf */
@@ -127,6 +128,11 @@ LSDR 1  TDI  (0)
 #define XSV_IREXIT2		0x0E
 #define XSV_IRUPDATE		0x0F
 
+/* arguments to XTRST */
+#define XTRST_ON			0
+#define XTRST_OFF		1
+#define XTRST_Z			2
+#define XTRST_ABSENT		3
 
 #define XSTATE_MAX_PATH 12
 
@@ -210,7 +216,7 @@ static void xsvf_add_statemove(tap_state_t state)
 int xsvf_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "xsvf", handle_xsvf_command,
-		COMMAND_EXEC, "run xsvf <file> [virt2]");
+		COMMAND_EXEC, "run xsvf <file> [virt2] [quiet]");
 
 	return ERROR_OK;
 }
@@ -288,6 +294,8 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	int 		unsupported = 0;
 	int 		tdo_mismatch = 0;
 	int 		result;
+	int		verbose = 1;
+	char*	filename;
 
 	int 		runtest_requires_tck = 0;	/* a flag telling whether to clock TCK during waits, or simply sleep, controled by virt2 */
 
@@ -300,9 +308,11 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	if (argc < 2)
 	{
-		command_print(cmd_ctx, "usage: xsvf <device#|plain> <file> <variant>");
+		command_print(cmd_ctx, "usage: xsvf <device#|plain> <file> [<variant>] [quiet]");
 		return ERROR_FAIL;
 	}
+
+	filename = args[1];		/* we mess with args starting point below, snapshot filename here */
 
 	if (strcmp(args[0], "plain") != 0)
 	{
@@ -314,9 +324,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		}
 	}
 
-	if ((xsvf_fd = open(args[1], O_RDONLY)) < 0)
+	if ((xsvf_fd = open(filename, O_RDONLY)) < 0)
 	{
-		command_print(cmd_ctx, "file \"%s\" not found", args[1]);
+		command_print(cmd_ctx, "file \"%s\" not found", filename);
 		return ERROR_FAIL;
 	}
 
@@ -324,9 +334,16 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	if ((argc > 2) && (strcmp(args[2], "virt2") == 0))
 	{
 		runtest_requires_tck = 1;
+		--argc;
+		++args;
 	}
 
-	LOG_USER("xsvf processing file: \"%s\"", args[1]);
+	if ((argc > 2) && (strcmp(args[2], "quiet") == 0))
+	{
+		verbose = 0;
+	}
+
+	LOG_USER("xsvf processing file: \"%s\"", filename);
 
 	while( read(xsvf_fd, &opcode, 1) > 0 )
 	{
@@ -462,7 +479,8 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 							jtag_add_pathmove( sizeof(exception_path)/sizeof(exception_path[0]), exception_path);
 
-							LOG_USER("%s %d retry %d", op_name, xsdrsize, attempt);
+							if (verbose)
+								LOG_USER("%s %d retry %d", op_name, xsdrsize, attempt);
 						}
 
 						field.tap = tap;
@@ -749,7 +767,8 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					} while (uc != 0);
 
 					comment[sizeof(comment)-1] = 0;		/* regardless, terminate */
-					LOG_USER(comment);
+					if (verbose)
+						LOG_USER(comment);
 				}
 				break;
 
@@ -918,20 +937,24 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					{
 						scan_field_t field;
 
+						xsvf_add_statemove( loop_state );
+						jtag_add_clocks(loop_clocks);
+						jtag_add_sleep(loop_usecs);
+
 						field.tap = tap;
 						field.num_bits = xsdrsize;
 						field.out_value = dr_out_buf;
 						field.out_mask = NULL;
 						field.in_value = NULL;
 
-						if (attempt > 0)
+						if (attempt > 0 && verbose)
 							LOG_USER("LSDR retry %d", attempt);
 
 						jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
 						if (tap == NULL)
-							jtag_add_plain_dr_scan(1, &field, loop_state);
+							jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
 						else
-							jtag_add_dr_scan(1, &field, loop_state);
+							jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
 
 						/* LOG_DEBUG("FLUSHING QUEUE"); */
 						result = jtag_execute_queue();
@@ -940,9 +963,6 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 							matched = 1;
 							break;
 						}
-
-						jtag_add_clocks(loop_clocks);
-						jtag_add_sleep(loop_usecs);
 					}
 
 					if (!matched )
@@ -950,6 +970,34 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 						LOG_USER( "LSDR mismatch" );
 						tdo_mismatch = 1;
 						break;
+					}
+				}
+				break;
+
+			case XTRST:
+				{
+					u8	trst_mode;
+
+					if (read(xsvf_fd, &trst_mode, 1) < 0)
+					{
+						do_abort = 1;
+						break;
+					}
+
+					switch( trst_mode )
+					{
+					case XTRST_ON:
+						jtag_add_reset(1, 0);
+						break;
+					case XTRST_OFF:
+					case XTRST_Z:
+						jtag_add_reset(0, 0);
+						break;
+					case XTRST_ABSENT:
+						break;
+					default:
+						LOG_ERROR( "XTRST mode argument (0x%02X) out of range", trst_mode );
+						do_abort = 1;
 					}
 				}
 				break;

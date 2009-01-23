@@ -38,6 +38,14 @@
 #include <unistd.h>
 
 
+/**
+ * Function bitbang_stableclocks
+ * issues a number of clock cycles while staying in a stable state.
+ * Because the TMS value required to stay in the RESET state is a 1, whereas
+ * the TMS value required to stay in any of the other stable states is a 0,
+ * this function checks the current stable state to decide on the value of TMS
+ * to use.
+ */
 static void bitbang_stableclocks(int num_cycles);
 
 
@@ -162,13 +170,14 @@ void bitbang_runtest(int num_cycles)
 
 static void bitbang_stableclocks(int num_cycles)
 {
+	int tms = (cur_state == TAP_RESET ? 1 : 0);
 	int i;
 
 	/* send num_cycles clocks onto the cable */
 	for (i = 0; i < num_cycles; i++)
 	{
-		bitbang_interface->write(1, 0, 0);
-		bitbang_interface->write(0, 0, 0);
+		bitbang_interface->write(1, tms, 0);
+		bitbang_interface->write(0, tms, 0);
 	}
 }
 
@@ -293,6 +302,9 @@ int bitbang_execute_queue(void)
 				break;
 
 			case JTAG_STABLECLOCKS:
+				/* this is only allowed while in a stable state.  A check for a stable
+				 * state was done in jtag_add_clocks()
+				 */
 				bitbang_stableclocks(cmd->cmd.stableclocks->num_cycles);
 				break;
 
