@@ -37,6 +37,7 @@
 #include "jtag.h"
 #include "command.h"
 #include "log.h"
+#include "time_support.h"
 
 #include <ctype.h>
 #include <stdlib.h>
@@ -187,10 +188,12 @@ static int svf_command_buffer_size = 0;
 static int svf_line_number = 1;
 
 static jtag_tap_t *tap = NULL;
+static tap_state_t last_state = TAP_RESET;
 
 #define SVF_MAX_BUFFER_SIZE_TO_COMMIT	(4 * 1024)
 static u8 *svf_tdi_buffer = NULL, *svf_tdo_buffer = NULL, *svf_mask_buffer = NULL;
 static int svf_buffer_index = 0, svf_buffer_size = 0;
+static int svf_quiet = 0;
 
 
 int svf_register_commands(struct command_context_s *cmd_ctx)
@@ -230,22 +233,46 @@ void svf_free_xxd_para(svf_xxr_para_t *para)
 
 static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+#define SVF_NUM_OF_OPTIONS			1
 	int command_num = 0, i;
 	int ret = ERROR_OK;
+	long long time_ago;
 
-	if (argc < 1)
+	if ((argc < 1) || (argc > (1 + SVF_NUM_OF_OPTIONS)))
 	{
-		command_print(cmd_ctx, "usage: svf <file>");
+		command_print(cmd_ctx, "usage: svf <file> [quiet]");
 		return ERROR_FAIL;
+	}
+
+	// parse variant
+	svf_quiet = 0;
+	for (i = 1; i < argc; i++)
+	{
+		if (!strcmp(args[i], "quiet"))
+		{
+			svf_quiet = 1;
+		}
+		else
+		{
+			LOG_ERROR("unknown variant for svf: %s", args[i]);
+
+			// no need to free anything now
+			return ERROR_FAIL;
+		}
 	}
 
 	if ((svf_fd = open(args[0], O_RDONLY)) < 0)
 	{
 		command_print(cmd_ctx, "file \"%s\" not found", args[0]);
+
+		// no need to free anything now
 		return ERROR_FAIL;
 	}
 
 	LOG_USER("svf processing file: \"%s\"", args[0]);
+
+	// get time
+	time_ago = timeval_ms();
 
 	// init
 	svf_line_number = 1;
@@ -314,6 +341,9 @@ static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char
 	{
 		ret = ERROR_FAIL;
 	}
+
+	// print time
+	command_print(cmd_ctx, "%d ms used", timeval_ms() - time_ago);
 
 free_all:
 
@@ -655,6 +685,22 @@ static int svf_add_check_para(u8 enabled, int buffer_offset, int bit_len)
 	return ERROR_OK;
 }
 
+static int svf_execute_tap(void)
+{
+	if (ERROR_OK != jtag_execute_queue())
+	{
+		return ERROR_FAIL;
+	}
+	else if (ERROR_OK != svf_check_tdo())
+	{
+		return ERROR_FAIL;
+	}
+
+	svf_buffer_index = 0;
+
+	return ERROR_OK;
+}
+
 // not good to use this
 extern jtag_command_t** jtag_get_last_command_p(void);
 extern void* cmd_queue_alloc(size_t size);
@@ -681,7 +727,10 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 	// for STATE
 	tap_state_t *path = NULL, state;
 
-	LOG_DEBUG("%s", cmd_str);
+	if (!svf_quiet)
+	{
+		LOG_USER("%s", svf_command_buffer);
+	}
 
 	if (ERROR_OK != svf_parse_cmd_string(cmd_str, strlen(cmd_str), argus, &num_of_argu))
 	{
@@ -736,6 +785,10 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				LOG_ERROR("HZ not found in FREQUENCY command");
 				return ERROR_FAIL;
 			}
+			if (ERROR_OK != svf_execute_tap())
+			{
+				return ERROR_FAIL;
+			}
 			svf_para.frequency = atof(argus[1]);
 			// TODO: set jtag speed to
 			if (svf_para.frequency > 0)
@@ -776,7 +829,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 		xxr_para_tmp->data_mask = 0;
 		for (i = 2; i < num_of_argu; i += 2)
 		{
-			if ((argus[i + 1][0] != '(') || (argus[i + 1][strlen(argus[i + 1]) - 1] != ')'))
+			if ((strlen(argus[i + 1]) < 3) || (argus[i + 1][0] != '(') || (argus[i + 1][strlen(argus[i + 1]) - 1] != ')'))
 			{
 				LOG_ERROR("data section error");
 				return ERROR_FAIL;
@@ -931,6 +984,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			jtag_add_plain_dr_scan(1, &field, svf_para.dr_end_state);
 
 			svf_buffer_index += (i + 7) >> 3;
+			last_state = svf_para.dr_end_state;
 		}
 		else if (SIR == command)
 		{
@@ -1031,6 +1085,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			jtag_add_plain_ir_scan(1, &field, svf_para.ir_end_state);
 
 			svf_buffer_index += (i + 7) >> 3;
+			last_state = svf_para.ir_end_state;
 		}
 		break;
 	case PIO:
@@ -1126,14 +1181,50 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 		{
 			if (run_count > 0)
 			{
+				// run_state and end_state is checked to be stable state
 				// TODO: do runtest
+#if 1
+				// enter into run_state if necessary
+				if (last_state != svf_para.runtest_run_state)
+				{
+					last_cmd = jtag_get_last_command_p();
+					*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+					last_comand_pointer = &((*last_cmd)->next);
+					(*last_cmd)->next = NULL;
+					(*last_cmd)->type = JTAG_STATEMOVE;
+					(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
+					(*last_cmd)->cmd.statemove->end_state = svf_para.runtest_run_state;
+
+					cmd_queue_end_state = cmd_queue_cur_state = (*last_cmd)->cmd.statemove->end_state;
+				}
+
+				// call jtag_add_clocks
+				jtag_add_clocks(run_count);
+
+				if (svf_para.runtest_end_state != svf_para.runtest_run_state)
+				{
+					// move to end_state
+					last_cmd = jtag_get_last_command_p();
+					*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+					last_comand_pointer = &((*last_cmd)->next);
+					(*last_cmd)->next = NULL;
+					(*last_cmd)->type = JTAG_STATEMOVE;
+					(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
+					(*last_cmd)->cmd.statemove->end_state = svf_para.runtest_end_state;
+
+					cmd_queue_end_state = cmd_queue_cur_state = (*last_cmd)->cmd.statemove->end_state;
+				}
+				last_state = svf_para.runtest_end_state;
+#else
 				if (svf_para.runtest_run_state != TAP_IDLE)
 				{
 					// RUNTEST can only executed in TAP_IDLE
 					LOG_ERROR("cannot runtest in %s state", svf_tap_state_name[svf_para.runtest_run_state]);
 					return ERROR_FAIL;
 				}
+
 				jtag_add_runtest(run_count, svf_para.runtest_end_state);
+#endif
 			}
 		}
 		else
@@ -1158,32 +1249,45 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				LOG_ERROR("not enough memory");
 				return ERROR_FAIL;
 			}
-			for (i = 1; i < num_of_argu; i++)
+			num_of_argu--;		// num of path
+			i_tmp = 1;			// path is from patameter 1
+			for (i = 0; i < num_of_argu; i++)
 			{
-				path[i - 1] = svf_find_string_in_array(argus[i], (char **)svf_tap_state_name, dimof(svf_tap_state_name));
-				if (!svf_tap_state_is_valid(path[i - 1]))
+				path[i] = svf_find_string_in_array(argus[i_tmp++], (char **)svf_tap_state_name, dimof(svf_tap_state_name));
+				if (!svf_tap_state_is_valid(path[i]))
 				{
-					LOG_ERROR("%s is not valid state", svf_tap_state_name[path[i - 1]]);
+					LOG_ERROR("%s is not valid state", svf_tap_state_name[path[i]]);
 					return ERROR_FAIL;
 				}
-				if (TAP_RESET == path[i - 1])
+				if (TAP_RESET == path[i])
 				{
-					LOG_ERROR("TAP_RESET is not allowed in pathmove");
+					if (i > 0)
+					{
+						jtag_add_pathmove(i, path);
+					}
+					jtag_add_tlr();
+					num_of_argu -= i + 1;
+					i = -1;
+				}
+			}
+			if (num_of_argu > 0)
+			{
+				// execute last path if necessary
+				if (svf_tap_state_is_stable(path[num_of_argu - 1]))
+				{
+					// last state MUST be stable state
+					// TODO: call path_move
+					jtag_add_pathmove(num_of_argu, path);
+					last_state = path[num_of_argu - 1];
+					LOG_DEBUG("\tmove to %s by path_move", svf_tap_state_name[path[num_of_argu - 1]]);
+				}
+				else
+				{
+					LOG_ERROR("%s is not valid state", svf_tap_state_name[path[num_of_argu - 1]]);
 					return ERROR_FAIL;
 				}
 			}
-			if (svf_tap_state_is_stable(path[num_of_argu - 1]))
-			{
-				// last state MUST be stable state
-				// TODO: call path_move
-				jtag_add_pathmove(num_of_argu - 1, path);
-				LOG_DEBUG("\tmove to %s by path_move", svf_tap_state_name[path[num_of_argu - 1]]);
-			}
-			else
-			{
-				LOG_ERROR("%s is not valid state", svf_tap_state_name[path[num_of_argu - 1]]);
-				return ERROR_FAIL;
-			}
+			// no need to keep this memory, in jtag_add_pathmove, path will be duplicated
 			if (NULL != path)
 			{
 				free(path);
@@ -1205,6 +1309,9 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
 				(*last_cmd)->cmd.statemove->end_state = state;
 
+				cmd_queue_end_state = cmd_queue_cur_state = (*last_cmd)->cmd.statemove->end_state;
+				last_state = state;
+
 				LOG_DEBUG("\tmove to %s by state_move", svf_tap_state_name[state]);
 			}
 			else
@@ -1223,16 +1330,20 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 		}
 		if (svf_para.trst_mode != TRST_ABSENT)
 		{
+			if (ERROR_OK != svf_execute_tap())
+			{
+				return ERROR_FAIL;
+			}
 			i_tmp = svf_find_string_in_array(argus[1], (char **)svf_trst_mode_name, dimof(svf_trst_mode_name));
 			switch (i_tmp)
 			{
 			case TRST_ON:
+				last_state = TAP_RESET;
 				jtag_add_reset(1, 0);
 				break;
-			case TRST_OFF:
-				jtag_add_reset(1, 1);
-				break;
 			case TRST_Z:
+			case TRST_OFF:
+				jtag_add_reset(0, 0);
 				break;
 			case TRST_ABSENT:
 				break;
@@ -1262,22 +1373,17 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			(((command != STATE) && (command != RUNTEST)) || \
 			((command == STATE) && (num_of_argu == 2))))
 		{
-			// there is data to be executed
-			if (ERROR_OK != jtag_execute_queue())
-			{
-				return ERROR_FAIL;
-			}
-			// output debug info
-			if ((SIR == command) || (SDR == command))
-			{
-				LOG_DEBUG("\tTDO read = 0x%X", (*(int*)svf_tdi_buffer) & ((1 << (svf_check_tdo_para[0].bit_len)) - 1));
-			}
-			if (ERROR_OK != svf_check_tdo())
+			if (ERROR_OK != svf_execute_tap())
 			{
 				return ERROR_FAIL;
 			}
 
-			svf_buffer_index = 0;
+			// output debug info
+			if ((SIR == command) || (SDR == command))
+			{
+				// in debug mode, data is from index 0
+				LOG_DEBUG("\tTDO read = 0x%X", (*(int*)svf_tdi_buffer) & ((1 << (svf_check_tdo_para[0].bit_len)) - 1));
+			}
 		}
 	}
 	else
@@ -1288,16 +1394,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			(((command != STATE) && (command != RUNTEST)) || \
 			((command == STATE) && (num_of_argu == 2))))
 		{
-			if (ERROR_OK != jtag_execute_queue())
-			{
-				return ERROR_FAIL;
-			}
-			else if (ERROR_OK != svf_check_tdo())
-			{
-				return ERROR_FAIL;
-			}
-
-			svf_buffer_index = 0;
+			return svf_execute_tap();
 		}
 	}
 
