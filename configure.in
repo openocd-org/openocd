@@ -33,9 +33,11 @@ AC_ARG_ENABLE(release,
 	AS_HELP_STRING([--enable-release], [Enable Release Build, default no]),
 	[build_release=$enableval], [build_release=no])
 
-if test $build_release = no; then
-	# check we can find guess-rev.sh
-	AC_CHECK_FILE("$srcdir/guess-rev.sh", build_release=no, build_release=yes)
+if test $cross_compiling = no; then
+	if test $build_release = no; then
+		# check we can find guess-rev.sh
+		AC_CHECK_FILE("$srcdir/guess-rev.sh", build_release=no, build_release=yes)
+	fi
 fi
 
 # We are not *ALWAYS* being installed in the standard place.
