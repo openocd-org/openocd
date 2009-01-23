@@ -39,7 +39,8 @@ Xsdrsize = 0
 
 (XCOMPLETE,XTDOMASK,XSIR,XSDR,XRUNTEST,hole0,hole1,XREPEAT,XSDRSIZE,XSDRTDO,
     XSETSDRMASKS,XSDRINC,XSDRB,XSDRC,XSDRE,XSDRTDOB,XSDRTDOC,
-    XSDRTDOE,XSTATE,XENDIR,XENDDR,XSIR2,XCOMMENT,XWAIT,XWAITSTATE,LCOUNT,LDELAY,LSDR) = range(28)
+    XSDRTDOE,XSTATE,XENDIR,XENDDR,XSIR2,XCOMMENT,XWAIT,XWAITSTATE,
+    LCOUNT,LDELAY,LSDR,XTRST) = range(29)
 
 
 (RESET,IDLE,
@@ -50,6 +51,10 @@ Xsdrsize = 0
 State = ("RESET","IDLE",
     "DRSELECT","DRCAPTURE","DRSHIFT","DREXIT1","DRPAUSE","DREXIT2","DRUPDATE",
     "IRSELECT","IRCAPTURE","IRSHIFT","IREXIT1","IRPAUSE","IREXIT2","IRUPDATE")
+
+
+trst_mode_allowed = ('ON', 'OFF', 'Z', 'ABSENT')
+
 
 Setsdrmasks = 0
 SetsdrmasksOnesCount = 0
@@ -228,6 +233,14 @@ def ShowOpcode( op, f ):
         tdi = bytes2hexString( f, Xsdrsize )
         tdo = bytes2hexString( f, Xsdrsize )
         print("LSDR 0x%s 0x%s" % (tdi, tdo) )
+
+    elif op == XTRST:
+        # the argument is a single byte and it is the index into "trst_mode_allowed"
+        trst_mode = ReadByte(f)
+        if trst_mode <= 3:
+            print("TRST %s" % trst_mode_allowed[trst_mode] )
+        else:
+            print("TRST 0x%02X" % trst_mode );
 
     else:
         print("UNKNOWN op 0x%02X %d" % (op, op))

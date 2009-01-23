@@ -57,6 +57,11 @@ outputFilename = sys.argv[2]
 doCOMMENTs = True       # Save XCOMMENTs in the output xsvf file
 #doCOMMENTs = False       # Save XCOMMENTs in the output xsvf file
 
+# pick your file encoding
+file_encoding = 'ISO-8859-1'
+#file_encoding = 'utf-8'
+
+
 xrepeat = 0             # argument to XREPEAT, gives retry count for masked compares
 
 
@@ -74,7 +79,8 @@ StateTxt = ("RESET","IDLE",
 
 (XCOMPLETE,XTDOMASK,XSIR,XSDR,XRUNTEST,hole0,hole1,XREPEAT,XSDRSIZE,XSDRTDO,
     XSETSDRMASKS,XSDRINC,XSDRB,XSDRC,XSDRE,XSDRTDOB,XSDRTDOC,
-    XSDRTDOE,XSTATE,XENDIR,XENDDR,XSIR2,XCOMMENT,XWAIT,XWAITSTATE,LCOUNT,LDELAY,LSDR) = range(28)
+    XSDRTDOE,XSTATE,XENDIR,XENDDR,XSIR2,XCOMMENT,XWAIT,XWAITSTATE,
+    LCOUNT,LDELAY,LSDR,XTRST) = range(29)
 
 #Note: LCOUNT, LDELAY, and LSDR are Lattice extensions to SVF and provide a way to loop back
 # and check a completion status, essentially waiting on a part until it signals that it is done.
@@ -89,6 +95,8 @@ LDELAY	DRPAUSE	5 TCK	1.00E-003 SEC;
 LSDR  1 TDI  (0)
         TDO  (1);
 """
+
+#XTRST is an opcode Xilinx seemed to have missed and it comes from the SVF TRST statement.
 
 LineNumber = 1
 
@@ -127,8 +135,13 @@ scanner = re.Scanner([
     re.MULTILINE
     )
 
+# open the file using the given encoding
+file = open( sys.argv[1], encoding=file_encoding )
+
 # read all svf file input into string "input"
-input = open( sys.argv[1] ).read()
+input = file.read()
+
+file.close()
 
 # Lexer:
 # create a list of tuples containing (tokenType, tokenValue, LineNumber)
@@ -367,6 +380,8 @@ run_state_allowed = ('IRPAUSE', 'DRPAUSE', 'RESET', 'IDLE')
 
 enddr_state_allowed = ('DRPAUSE', 'IDLE')
 endir_state_allowed = ('IRPAUSE', 'IDLE')
+
+trst_mode_allowed = ('ON', 'OFF', 'Z', 'ABSENT')
 
 enddr_state = IDLE
 endir_state = IDLE
@@ -680,6 +695,19 @@ try:
                 nextTok()
                 if tokVal != ';':
                     raise ParseError( tokLn, tokVal, "Expecting ';' after FREQUENCY cycles HZ")
+
+        elif tokVal == 'TRST':
+            nextTok()
+            if tokVal not in trst_mode_allowed:
+                raise ParseError( tokLn, tokVal, "Expecting 'ON|OFF|Z|ABSENT' after TRST")
+            trst_mode = tokVal
+            nextTok()
+            if tokVal != ';':
+                raise ParseError( tokLn, tokVal, "Expecting ';' after TRST trst_mode")
+            obuf = bytearray( 2 )
+            obuf[0] = XTRST
+            obuf[1] = trst_mode_allowed.index( trst_mode )  # use the index as the binary argument to XTRST opcode
+            output.write( obuf )
 
         else:
             raise ParseError( tokLn, tokVal, "Unknown token '%s'" % tokVal)
