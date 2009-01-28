@@ -3341,6 +3341,8 @@ static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 			break;
 		}
 	} /* while( goi->argc ) */
+
+
 		/* done - we return */
 	return JIM_OK;
 }
@@ -3839,6 +3841,13 @@ static int target_create( Jim_GetOptInfo *goi )
 	/* Do the rest as "configure" options */
 	goi->isconfigure = 1;
 	e = target_configure( goi, target);
+
+	if (target->tap == NULL)
+	{
+		Jim_SetResultString( interp, "-chain-position required when creating target", -1);
+		e=JIM_ERR;
+	}
+
 	if( e != JIM_OK ){
 		free( target->type );
 		free( target );
