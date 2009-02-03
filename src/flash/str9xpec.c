@@ -111,7 +111,7 @@ int str9xpec_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int str9xpec_set_instr(jtag_tap_t *tap, u32 new_instr, enum tap_state end_state)
+int str9xpec_set_instr(jtag_tap_t *tap, u32 new_instr, tap_state_t end_state)
 {
 	if( tap == NULL ){
 		return ERROR_TARGET_INVALID;

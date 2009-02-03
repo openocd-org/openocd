@@ -88,9 +88,9 @@ int jlink_quit(void);
 int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* Queue command functions */
-void jlink_end_state(enum tap_state state);
+void jlink_end_state(tap_state_t state);
 void jlink_state_move(void);
-void jlink_path_move(int num_states, enum tap_state *path);
+void jlink_path_move(int num_states, tap_state_t *path);
 void jlink_runtest(int num_cycles);
 void jlink_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
 void jlink_reset(int trst, int srst);
@@ -214,7 +214,7 @@ int jlink_execute_queue(void)
 
 				if (cmd->cmd.reset->trst == 1)
 				{
-					cur_state = TAP_RESET;
+					tap_set_state(TAP_RESET);
 				}
 				jlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
@@ -331,11 +331,11 @@ int jlink_quit(void)
 /***************************************************************************/
 /* Queue command implementations */
 
-void jlink_end_state(enum tap_state state)
+void jlink_end_state(tap_state_t state)
 {
-	if (tap_move_map[state] != -1)
+	if (tap_is_state_stable(state))
 	{
-		end_state = state;
+		tap_set_end_state(state);
 	}
 	else
 	{
@@ -349,7 +349,7 @@ void jlink_state_move(void)
 {
 	int i;
 	int tms = 0;
-	u8 tms_scan = TAP_MOVE(cur_state, end_state);
+	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 
 	for (i = 0; i < 7; i++)
 	{
@@ -357,43 +357,43 @@ void jlink_state_move(void)
 		jlink_tap_append_step(tms, 0);
 	}
 
-	cur_state = end_state;
+	tap_set_state(tap_get_end_state());
 }
 
-void jlink_path_move(int num_states, enum tap_state *path)
+void jlink_path_move(int num_states, tap_state_t *path)
 {
 	int i;
 
 	for (i = 0; i < num_states; i++)
 	{
-		if (path[i] == tap_transitions[cur_state].low)
+		if (path[i] == tap_state_transition(tap_get_state(), FALSE))
 		{
 			jlink_tap_append_step(0, 0);
 		}
-		else if (path[i] == tap_transitions[cur_state].high)
+		else if (path[i] == tap_state_transition(tap_get_state(), TRUE))
 		{
 			jlink_tap_append_step(1, 0);
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(path[i]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(tap_get_state()), tap_state_name(path[i]));
 			exit(-1);
 		}
 
-		cur_state = path[i];
+		tap_set_state(path[i]);
 	}
 
-	end_state = cur_state;
+	tap_set_end_state(tap_get_state());
 }
 
 void jlink_runtest(int num_cycles)
 {
 	int i;
 
-	enum tap_state saved_end_state = end_state;
+	tap_state_t saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in IDLE */
-	if (cur_state != TAP_IDLE)
+	if (tap_get_state() != TAP_IDLE)
 	{
 		jlink_end_state(TAP_IDLE);
 		jlink_state_move();
@@ -407,7 +407,7 @@ void jlink_runtest(int num_cycles)
 
 	/* finish in end_state */
 	jlink_end_state(saved_end_state);
-	if (cur_state != end_state)
+	if (tap_get_state() != tap_get_end_state())
 	{
 		jlink_state_move();
 	}
@@ -415,11 +415,11 @@ void jlink_runtest(int num_cycles)
 
 void jlink_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
 {
-	enum tap_state saved_end_state;
+	tap_state_t saved_end_state;
 
 	jlink_tap_ensure_space(1, scan_size + 8);
 
-	saved_end_state = end_state;
+	saved_end_state = tap_get_end_state();
 
 	/* Move to appropriate scan state */
 	jlink_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
@@ -433,9 +433,9 @@ void jlink_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, sca
 	/* We are in Exit1, go to Pause */
 	jlink_tap_append_step(0, 0);
 
-	cur_state = ir_scan ? TAP_IRPAUSE : TAP_DRPAUSE;
+	tap_set_state(ir_scan ? TAP_IRPAUSE : TAP_DRPAUSE);
 
-	if (cur_state != end_state)
+	if (tap_get_state() != tap_get_end_state())
 	{
 		jlink_state_move();
 	}

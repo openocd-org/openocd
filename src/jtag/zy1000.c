@@ -321,7 +321,7 @@ int handle_zy1000_version_command(struct command_context_s *cmd_ctx, char *cmd,
 
 static int
 zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
-                                   int argc,
+								   int argc,
 		Jim_Obj * const *argv)
 {
 	if (argc != 1)
@@ -424,9 +424,9 @@ static cyg_uint32 getShiftValueFlip(void)
 #endif
 
 #if 0
-static void shiftValueInnerFlip(const enum tap_state state, const enum tap_state endState, int repeat, cyg_uint32 value)
+static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endState, int repeat, cyg_uint32 value)
 {
-	VERBOSE(LOG_INFO("shiftValueInner %s %s %d %08x (flipped)", jtag_state_name(state), jtag_state_name(endState), repeat, value));
+	VERBOSE(LOG_INFO("shiftValueInner %s %s %d %08x (flipped)", tap_state_name(state), tap_state_name(endState), repeat, value));
 	cyg_uint32 a,b;
 	a=state;
 	b=endState;
@@ -443,7 +443,7 @@ static void gotoEndState(void)
 	setCurrentState(cmd_queue_end_state);
 }
 
-static __inline void scanFields(int num_fields, scan_field_t *fields, enum tap_state shiftState, int pause)
+static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_t shiftState, int pause)
 {
 	int i;
 	int j;
@@ -487,7 +487,7 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, enum tap_s
 		j=0;
 		while (j<num_bits)
 		{
-			enum tap_state pause_state;
+			tap_state_t pause_state;
 			int l;
 			k=num_bits-j;
 			pause_state=(shiftState==TAP_DRSHIFT)?TAP_DRSHIFT:TAP_IRSHIFT;
@@ -544,13 +544,13 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, enum tap_s
 	}
 }
 
-int interface_jtag_add_end_state(enum tap_state state)
+int interface_jtag_add_end_state(tap_state_t state)
 {
 	return ERROR_OK;
 }
 
 
-int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 
 	int j;
@@ -614,7 +614,7 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_st
 
 
 
-int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	scanFields(num_fields, fields, TAP_IRSHIFT, 1);
 	gotoEndState();
@@ -624,7 +624,7 @@ int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum 
 
 /*extern jtag_command_t **jtag_get_last_command_p(void);*/
 
-int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 
 	int j;
@@ -667,7 +667,7 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_st
 	return ERROR_OK;
 }
 
-int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	scanFields(num_fields, fields, TAP_DRSHIFT, 1);
 	gotoEndState();
@@ -693,7 +693,7 @@ int interface_jtag_add_reset(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-static int zy1000_jtag_add_clocks(int num_cycles, enum tap_state state, enum tap_state clockstate)
+static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t clockstate)
 {
 	/* num_cycles can be 0 */
 	setCurrentState(clockstate);
@@ -715,10 +715,10 @@ static int zy1000_jtag_add_clocks(int num_cycles, enum tap_state state, enum tap
 	/* finish in end_state */
 	setCurrentState(state);
 #else
-	enum tap_state t=TAP_IDLE;
+	tap_state_t t=TAP_IDLE;
 	/* test manual drive code on any target */
 	int tms;
-	u8 tms_scan = TAP_MOVE(t, state);
+	u8 tms_scan = tap_get_tms_path(t, state);
 
 	for (i = 0; i < 7; i++)
 	{
@@ -734,7 +734,7 @@ static int zy1000_jtag_add_clocks(int num_cycles, enum tap_state state, enum tap
 	return ERROR_OK;
 }
 
-int interface_jtag_add_runtest(int num_cycles, enum tap_state state)
+int interface_jtag_add_runtest(int num_cycles, tap_state_t state)
 {
 	return zy1000_jtag_add_clocks(num_cycles, state, TAP_IDLE);
 }
@@ -750,7 +750,7 @@ int interface_jtag_add_sleep(u32 us)
 	return ERROR_OK;
 }
 
-int interface_jtag_add_pathmove(int num_states, enum tap_state *path)
+int interface_jtag_add_pathmove(int num_states, tap_state_t *path)
 {
 	int state_count;
 	int tms = 0;
@@ -760,21 +760,21 @@ int interface_jtag_add_pathmove(int num_states, enum tap_state *path)
 
 	state_count = 0;
 
-	enum tap_state cur_state=cmd_queue_cur_state;
+	tap_state_t cur_state=cmd_queue_cur_state;
 
 	while (num_states)
 	{
-		if (tap_transitions[cur_state].low == path[state_count])
+		if (tap_state_transition(cur_state, FALSE) == path[state_count])
 		{
 			tms = 0;
 		}
-		else if (tap_transitions[cur_state].high == path[state_count])
+		else if (tap_state_transition(cur_state, TRUE) == path[state_count])
 		{
 			tms = 1;
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(path[state_count]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(cur_state), tap_state_name(path[state_count]));
 			exit(-1);
 		}
 
@@ -796,7 +796,7 @@ int interface_jtag_add_pathmove(int num_states, enum tap_state *path)
 void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count)
 {
 //	static int const reg_addr=0x5;
-	enum tap_state end_state=cmd_queue_end_state;
+	tap_state_t end_state=cmd_queue_end_state;
 	if (jtag_NextEnabledTap(jtag_NextEnabledTap(NULL))==NULL)
 	{
 		/* better performance via code duplication */

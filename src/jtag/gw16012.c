@@ -196,8 +196,8 @@ int gw16012_speed(int speed)
 
 void gw16012_end_state(int state)
 {
-	if (tap_move_map[state] != -1)
-		end_state = state;
+	if (tap_is_state_stable(state))
+		tap_set_end_state(state);
 	else
 	{
 		LOG_ERROR("BUG: %i is not a valid end state", state);
@@ -208,7 +208,7 @@ void gw16012_end_state(int state)
 void gw16012_state_move(void)
 {
 	int i=0, tms=0;
-	u8 tms_scan = TAP_MOVE(cur_state, end_state);
+	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 
 	gw16012_control(0x0); /* single-bit mode */
 
@@ -218,7 +218,7 @@ void gw16012_state_move(void)
 		gw16012_data(tms << 1); /* output next TMS bit */
 	}
 
-	cur_state = end_state;
+	tap_set_state(tap_get_end_state());
 }
 
 void gw16012_path_move(pathmove_command_t *cmd)
@@ -230,35 +230,35 @@ void gw16012_path_move(pathmove_command_t *cmd)
 	while (num_states)
 	{
 		gw16012_control(0x0); /* single-bit mode */
-		if (tap_transitions[cur_state].low == cmd->path[state_count])
+		if (tap_state_transition(tap_get_state(), FALSE) == cmd->path[state_count])
 		{
 			gw16012_data(0x0); /* TCK cycle with TMS low */
 		}
-		else if (tap_transitions[cur_state].high == cmd->path[state_count])
+		else if (tap_state_transition(tap_get_state(), TRUE) == cmd->path[state_count])
 		{
 			gw16012_data(0x2); /* TCK cycle with TMS high */
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(cmd->path[state_count]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(tap_get_state()), tap_state_name(cmd->path[state_count]));
 			exit(-1);
 		}
 
-		cur_state = cmd->path[state_count];
+		tap_set_state(cmd->path[state_count]);
 		state_count++;
 		num_states--;
 	}
 
-	end_state = cur_state;
+	tap_set_end_state(tap_get_state());
 }
 
 void gw16012_runtest(int num_cycles)
 {
-	enum tap_state saved_end_state = end_state;
+	tap_state_t saved_end_state = tap_get_end_state();
 	int i;
 
 	/* only do a state_move when we're not already in IDLE */
-	if (cur_state != TAP_IDLE)
+	if (tap_get_state() != TAP_IDLE)
 	{
 		gw16012_end_state(TAP_IDLE);
 		gw16012_state_move();
@@ -271,7 +271,7 @@ void gw16012_runtest(int num_cycles)
 	}
 
 	gw16012_end_state(saved_end_state);
-	if (cur_state != end_state)
+	if (tap_get_state() != tap_get_end_state())
 		gw16012_state_move();
 }
 
@@ -279,11 +279,11 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	int bits_left = scan_size;
 	int bit_count = 0;
-	enum tap_state saved_end_state = end_state;
+	tap_state_t saved_end_state = tap_get_end_state();
 	u8 scan_out, scan_in;
 
 	/* only if we're not already in the correct Shift state */
-	if (!((!ir_scan && (cur_state == TAP_DRSHIFT)) || (ir_scan && (cur_state == TAP_IRSHIFT))))
+	if (!((!ir_scan && (tap_get_state() == TAP_DRSHIFT)) || (ir_scan && (tap_get_state() == TAP_IRSHIFT))))
 	{
 		if (ir_scan)
 			gw16012_end_state(TAP_IRSHIFT);
@@ -312,8 +312,8 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 
 		if (bits_left == 0) /* last bit */
 		{
-			if ((ir_scan && (end_state == TAP_IRSHIFT))
-				|| (!ir_scan && (end_state == TAP_DRSHIFT)))
+			if ((ir_scan && (tap_get_end_state() == TAP_IRSHIFT))
+				|| (!ir_scan && (tap_get_end_state() == TAP_DRSHIFT)))
 			{
 				tms = 0;
 			}
@@ -334,16 +334,16 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 		bit_count++;
 	}
 
-	if (!((ir_scan && (end_state == TAP_IRSHIFT)) ||
-		(!ir_scan && (end_state == TAP_DRSHIFT))))
+	if (!((ir_scan && (tap_get_end_state() == TAP_IRSHIFT)) ||
+		(!ir_scan && (tap_get_end_state() == TAP_DRSHIFT))))
 	{
 		gw16012_data(0x0);
 		if (ir_scan)
-			cur_state = TAP_IRPAUSE;
+			tap_set_state(TAP_IRPAUSE);
 		else
-			cur_state = TAP_DRPAUSE;
+			tap_set_state(TAP_DRPAUSE);
 
-		if (cur_state != end_state)
+		if (tap_get_state() != tap_get_end_state())
 			gw16012_state_move();
 	}
 }
@@ -378,7 +378,7 @@ int gw16012_execute_queue(void)
 #endif
 				if (cmd->cmd.reset->trst == 1)
 				{
-					cur_state = TAP_RESET;
+					tap_set_state(TAP_RESET);
 				}
 				gw16012_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;

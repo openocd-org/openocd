@@ -141,7 +141,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 static int xsvf_fd = 0;
 
 
-/* map xsvf tap state to an openocd "enum tap_state" */
+/* map xsvf tap state to an openocd "tap_state_t" */
 static tap_state_t xsvf_to_tap( int xsvf_state )
 {
 	tap_state_t	ret;
@@ -185,7 +185,7 @@ static void xsvf_add_statemove(tap_state_t state)
 	tap_state_t curstate = cmd_queue_cur_state;
 	int i;
 
-	u8 move = TAP_MOVE(cmd_queue_cur_state, state);
+	u8 move = tap_get_tms_path(cmd_queue_cur_state, state);
 
 	if (state != TAP_RESET  &&  state==cmd_queue_cur_state)
 		return;
@@ -201,11 +201,11 @@ static void xsvf_add_statemove(tap_state_t state)
 		int j = (move >> i) & 1;
 		if (j)
 		{
-			curstate = tap_transitions[curstate].high;
+			curstate = tap_state_transition(curstate, TRUE);
 		}
 		else
 		{
-			curstate = tap_transitions[curstate].low;
+			curstate = tap_state_transition(curstate, FALSE);
 		}
 		moves[i] = curstate;
 	}
@@ -257,7 +257,7 @@ static int xsvf_read_xstates(int fd, tap_state_t *path, int max_path, int *path_
 
 		mystate = xsvf_to_tap(uc);
 
-		LOG_DEBUG("XSTATE %02X %s", uc, jtag_state_name(mystate) );
+		LOG_DEBUG("XSTATE %02X %s", uc, tap_state_name(mystate) );
 
 		path[(*path_len)++] = mystate;
 	}
@@ -581,7 +581,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 					mystate = xsvf_to_tap(uc);
 
-					LOG_DEBUG("XSTATE 0x%02X %s", uc, jtag_state_name(mystate) );
+					LOG_DEBUG("XSTATE 0x%02X %s", uc, tap_state_name(mystate) );
 
 					path = calloc(XSTATE_MAX_PATH, 4);
 					path_len = 1;
@@ -631,14 +631,14 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					/* see page 22 of XSVF spec */
 					mystate = uc == 1 ? TAP_IRPAUSE : TAP_IDLE;
 
-					LOG_DEBUG("XENDIR 0x%02X %s", uc, jtag_state_name(mystate));
+					LOG_DEBUG("XENDIR 0x%02X %s", uc, tap_state_name(mystate));
 
 					/* assuming that the XRUNTEST comes from SVF RUNTEST, then only these states
 					 * should come here because the SVF spec only allows these with a RUNTEST
 					 */
 					if (mystate != TAP_IRPAUSE && mystate != TAP_DRPAUSE && mystate != TAP_RESET && mystate != TAP_IDLE )
 					{
-						LOG_ERROR("illegal XENDIR endstate: \"%s\"", jtag_state_name(mystate));
+						LOG_ERROR("illegal XENDIR endstate: \"%s\"", tap_state_name(mystate));
 						unsupported = 1;
 						break;
 					}
@@ -659,11 +659,11 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					/* see page 22 of XSVF spec */
 					mystate = uc == 1 ? TAP_DRPAUSE : TAP_IDLE;
 
-					LOG_DEBUG("XENDDR %02X %s", uc, jtag_state_name(mystate));
+					LOG_DEBUG("XENDDR %02X %s", uc, tap_state_name(mystate));
 
 					if (mystate != TAP_IRPAUSE && mystate != TAP_DRPAUSE && mystate != TAP_RESET && mystate != TAP_IDLE )
 					{
-						LOG_ERROR("illegal XENDDR endstate: \"%s\"", jtag_state_name( mystate ));
+						LOG_ERROR("illegal XENDDR endstate: \"%s\"", tap_state_name( mystate ));
 						unsupported = 1;
 						break;
 					}
@@ -798,7 +798,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					end_state  = xsvf_to_tap(end);
 					delay      = be_to_h_u32(delay_buf);
 
-					LOG_DEBUG("XWAIT %s %s usecs:%d", jtag_state_name(wait_state), jtag_state_name(end_state), delay);
+					LOG_DEBUG("XWAIT %s %s usecs:%d", tap_state_name(wait_state), tap_state_name(end_state), delay);
 
 					if (runtest_requires_tck && wait_state == TAP_IDLE )
 					{
@@ -844,8 +844,8 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					usecs       = be_to_h_u32(usecs_buf);
 
 					LOG_DEBUG("XWAITSTATE %s %s clocks:%i usecs:%i",
-						jtag_state_name(wait_state),
-						jtag_state_name(end_state),
+						tap_state_name(wait_state),
+						tap_state_name(end_state),
 						clock_count, usecs);
 
 					/* the following states are 'stable', meaning that they have a transition
@@ -855,7 +855,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					 */
 					if (wait_state != TAP_IRPAUSE && wait_state != TAP_DRPAUSE && wait_state != TAP_RESET && wait_state != TAP_IDLE)
 					{
-						LOG_ERROR("illegal XWAITSTATE wait_state: \"%s\"", jtag_state_name( wait_state ));
+						LOG_ERROR("illegal XWAITSTATE wait_state: \"%s\"", tap_state_name( wait_state ));
 						unsupported = 1;
 					}
 
@@ -908,7 +908,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					loop_clocks = be_to_h_u32(clock_buf);
 					loop_usecs  = be_to_h_u32(usecs_buf);
 
-					LOG_DEBUG("LDELAY %s clocks:%d usecs:%d", jtag_state_name(loop_state), loop_clocks, loop_usecs);
+					LOG_DEBUG("LDELAY %s clocks:%d usecs:%d", tap_state_name(loop_state), loop_clocks, loop_usecs);
 				}
 				break;
 

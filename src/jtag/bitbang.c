@@ -74,13 +74,12 @@ bitbang_interface_t *bitbang_interface;
 int bitbang_execute_queue(void);
 
 
-
 /* The bitbang driver leaves the TCK 0 when in idle */
 
-void bitbang_end_state(enum tap_state state)
+void bitbang_end_state(tap_state_t state)
 {
-	if (tap_move_map[state] != -1)
-		end_state = state;
+	if (tap_is_state_stable(state))
+		tap_set_end_state(state);
 	else
 	{
 		LOG_ERROR("BUG: %i is not a valid end state", state);
@@ -88,10 +87,10 @@ void bitbang_end_state(enum tap_state state)
 	}
 }
 
-void bitbang_state_move(void) {
-
+void bitbang_state_move(void)
+{
 	int i=0, tms=0;
-	u8 tms_scan = TAP_MOVE(cur_state, end_state);
+	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 
 	for (i = 0; i < 7; i++)
 	{
@@ -101,7 +100,7 @@ void bitbang_state_move(void) {
 	}
 	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
 
-	cur_state = end_state;
+	tap_set_state(tap_get_end_state());
 }
 
 void bitbang_path_move(pathmove_command_t *cmd)
@@ -113,41 +112,41 @@ void bitbang_path_move(pathmove_command_t *cmd)
 	state_count = 0;
 	while (num_states)
 	{
-		if (tap_transitions[cur_state].low == cmd->path[state_count])
+		if (tap_state_transition(tap_get_state(), FALSE) == cmd->path[state_count])
 		{
 			tms = 0;
 		}
-		else if (tap_transitions[cur_state].high == cmd->path[state_count])
+		else if (tap_state_transition(tap_get_state(), TRUE) == cmd->path[state_count])
 		{
 			tms = 1;
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(cmd->path[state_count]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(tap_get_state()), tap_state_name(cmd->path[state_count]));
 			exit(-1);
 		}
 
 		bitbang_interface->write(0, tms, 0);
 		bitbang_interface->write(1, tms, 0);
 
-		cur_state = cmd->path[state_count];
+		tap_set_state(cmd->path[state_count]);
 		state_count++;
 		num_states--;
 	}
 
 	bitbang_interface->write(CLOCK_IDLE(), tms, 0);
 
-	end_state = cur_state;
+	tap_set_end_state(tap_get_state());
 }
 
 void bitbang_runtest(int num_cycles)
 {
 	int i;
 
-	enum tap_state saved_end_state = end_state;
+	tap_state_t saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in IDLE */
-	if (cur_state != TAP_IDLE)
+	if (tap_get_state() != TAP_IDLE)
 	{
 		bitbang_end_state(TAP_IDLE);
 		bitbang_state_move();
@@ -163,14 +162,14 @@ void bitbang_runtest(int num_cycles)
 
 	/* finish in end_state */
 	bitbang_end_state(saved_end_state);
-	if (cur_state != end_state)
+	if (tap_get_state() != tap_get_end_state())
 		bitbang_state_move();
 }
 
 
 static void bitbang_stableclocks(int num_cycles)
 {
-	int tms = (cur_state == TAP_RESET ? 1 : 0);
+	int tms = (tap_get_state() == TAP_RESET ? 1 : 0);
 	int i;
 
 	/* send num_cycles clocks onto the cable */
@@ -185,10 +184,10 @@ static void bitbang_stableclocks(int num_cycles)
 
 void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
-	enum tap_state saved_end_state = end_state;
+	tap_state_t saved_end_state = tap_get_end_state();
 	int bit_cnt;
 
-	if (!((!ir_scan && (cur_state == TAP_DRSHIFT)) || (ir_scan && (cur_state == TAP_IRSHIFT))))
+	if (!((!ir_scan && (tap_get_state() == TAP_DRSHIFT)) || (ir_scan && (tap_get_state() == TAP_IRSHIFT))))
 	{
 		if (ir_scan)
 			bitbang_end_state(TAP_IRSHIFT);
@@ -241,11 +240,11 @@ void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	bitbang_interface->write(CLOCK_IDLE(), 0, 0);
 
 	if (ir_scan)
-		cur_state = TAP_IRPAUSE;
+		tap_set_state(TAP_IRPAUSE);
 	else
-		cur_state = TAP_DRPAUSE;
+		tap_set_state(TAP_DRPAUSE);
 
-	if (cur_state != end_state)
+	if (tap_get_state() != tap_get_end_state())
 		bitbang_state_move();
 }
 
@@ -277,7 +276,7 @@ int bitbang_execute_queue(void)
 		{
 			case JTAG_END_STATE:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("end_state: %s", jtag_state_name(cmd->cmd.end_state->end_state) );
+				LOG_DEBUG("end_state: %s", tap_state_name(cmd->cmd.end_state->end_state) );
 #endif
 				if (cmd->cmd.end_state->end_state != -1)
 					bitbang_end_state(cmd->cmd.end_state->end_state);
@@ -288,13 +287,13 @@ int bitbang_execute_queue(void)
 #endif
 				if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_reset_config & RESET_SRST_PULLS_TRST)))
 				{
-					cur_state = TAP_RESET;
+					tap_set_state(TAP_RESET);
 				}
 				bitbang_interface->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
 			case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, jtag_state_name(cmd->cmd.runtest->end_state) );
+				LOG_DEBUG("runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, tap_state_name(cmd->cmd.runtest->end_state) );
 #endif
 				if (cmd->cmd.runtest->end_state != -1)
 					bitbang_end_state(cmd->cmd.runtest->end_state);
@@ -310,7 +309,7 @@ int bitbang_execute_queue(void)
 
 			case JTAG_STATEMOVE:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("statemove end in %s", jtag_state_name(cmd->cmd.statemove->end_state));
+				LOG_DEBUG("statemove end in %s", tap_state_name(cmd->cmd.statemove->end_state));
 #endif
 				if (cmd->cmd.statemove->end_state != -1)
 					bitbang_end_state(cmd->cmd.statemove->end_state);
@@ -319,13 +318,13 @@ int bitbang_execute_queue(void)
 			case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("pathmove: %i states, end in %s", cmd->cmd.pathmove->num_states,
-					jtag_state_name(cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]));
+					tap_state_name(cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]));
 #endif
 				bitbang_path_move(cmd->cmd.pathmove);
 				break;
 			case JTAG_SCAN:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("%s scan end in %s",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", jtag_state_name(cmd->cmd.scan->end_state) );
+				LOG_DEBUG("%s scan end in %s",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", tap_state_name(cmd->cmd.scan->end_state) );
 #endif
 				if (cmd->cmd.scan->end_state != -1)
 					bitbang_end_state(cmd->cmd.scan->end_state);

@@ -230,9 +230,9 @@ void arm11_dump_reg_changes(arm11_common_t * arm11);
 /* internals */
 
 void arm11_setup_field		(arm11_common_t * arm11, int num_bits, void * in_data, void * out_data, scan_field_t * field);
-void arm11_add_IR		(arm11_common_t * arm11, u8 instr, enum tap_state state);
-void arm11_add_debug_SCAN_N	(arm11_common_t * arm11, u8 chain, enum tap_state state);
-void arm11_add_debug_INST	(arm11_common_t * arm11, u32 inst, u8 * flag, enum tap_state state);
+void arm11_add_IR		(arm11_common_t * arm11, u8 instr, tap_state_t state);
+void arm11_add_debug_SCAN_N	(arm11_common_t * arm11, u8 chain, tap_state_t state);
+void arm11_add_debug_INST	(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state_t state);
 u32  arm11_read_DSCR		(arm11_common_t * arm11);
 void arm11_write_DSCR		(arm11_common_t * arm11, u32 dscr);
 
@@ -249,8 +249,8 @@ void arm11_run_instr_data_from_core		(arm11_common_t * arm11, u32 opcode, u32 * 
 void arm11_run_instr_data_from_core_via_r0	(arm11_common_t * arm11, u32 opcode, u32 * data);
 void arm11_run_instr_data_to_core_via_r0	(arm11_common_t * arm11, u32 opcode, u32 data);
 
-int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state);
-int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state);
+int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state);
+int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state);
 
 /** Used to make a list of read/write commands for scan chain 7
  *

@@ -4,6 +4,10 @@
  *                                                                         *
  *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
+ *
+ *   Copyright (C) 2009 SoftPLC Corporation
+ * 	 http://softplc.com
+ *   dick@softplc.com
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -51,52 +55,6 @@ typedef struct cmd_queue_page_s
 #define CMD_QUEUE_PAGE_SIZE (1024 * 1024)
 static cmd_queue_page_t *cmd_queue_pages = NULL;
 
-/* tap_move[i][j]: tap movement command to go from state i to state j
- * 0: Test-Logic-Reset
- * 1: Run-Test/Idle
- * 2: Shift-DR
- * 3: Pause-DR
- * 4: Shift-IR
- * 5: Pause-IR
- *
- * DRSHIFT->DRSHIFT and IRSHIFT->IRSHIFT have to be caught in interface specific code
- */
-u8 tap_move[6][6] =
-{
-/*	  RESET  IDLE  DRSHIFT  DRPAUSE  IRSHIFT  IRPAUSE             */
-	{  0x7f, 0x00,    0x17,    0x0a,    0x1b,    0x16},	/* RESET */
-	{  0x7f, 0x00,    0x25,    0x05,    0x2b,    0x0b},	/* IDLE */
-	{  0x7f, 0x31,    0x00,    0x01,    0x0f,    0x2f},	/* DRSHIFT  */
-	{  0x7f, 0x30,    0x20,    0x17,    0x1e,    0x2f},	/* DRPAUSE  */
-	{  0x7f, 0x31,    0x07,    0x17,    0x00,    0x01},	/* IRSHIFT  */
-	{  0x7f, 0x30,    0x1c,    0x17,    0x20,    0x2f}	/* IRPAUSE  */
-};
-
-int tap_move_map[16] = {
-	0, -1, -1,  2, -1,  3, -1, -1,
-	1, -1, -1,  4, -1,  5, -1, -1
-};
-
-tap_transition_t tap_transitions[16] =
-{
-	{TAP_RESET, 		TAP_IDLE},			/* RESET */
-	{TAP_IRSELECT, 	TAP_DRCAPTURE},		/* DRSELECT */
-	{TAP_DREXIT1,	TAP_DRSHIFT},		/* DRCAPTURE  */
-	{TAP_DREXIT1, 	TAP_DRSHIFT},		/* DRSHIFT  */
-	{TAP_DRUPDATE,  TAP_DRPAUSE}, 		/* DREXIT1 */
-	{TAP_DREXIT2, 	TAP_DRPAUSE},		/* DRPAUSE  */
-	{TAP_DRUPDATE,  TAP_DRSHIFT},		/* DREXIT2 */
-	{TAP_DRSELECT, 	TAP_IDLE},			/* DRUPDATE  */
-	{TAP_DRSELECT, 	TAP_IDLE},			/* IDLE */
-	{TAP_RESET, 		TAP_IRCAPTURE},		/* IRSELECT */
-	{TAP_IREXIT1, 	TAP_IRSHIFT},		/* IRCAPTURE  */
-	{TAP_IREXIT1, 	TAP_IRSHIFT},		/* IRSHIFT  */
-	{TAP_IRUPDATE,  TAP_IRPAUSE}, 		/* IREXIT1 */
-	{TAP_IREXIT2, 	TAP_IRPAUSE},		/* IRPAUSE  */
-	{TAP_IRUPDATE,  TAP_IRSHIFT},		/* IREXIT2 */
-	{TAP_DRSELECT, 	TAP_IDLE}			/* IRUPDATE  */
-};
-
 char* jtag_event_strings[] =
 {
 	"JTAG controller reset (RESET or TRST)"
@@ -109,13 +67,6 @@ const Jim_Nvp nvp_jtag_tap_event[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-/* kludge!!!! these are just global variables that the
- * interface use internally. They really belong
- * inside the drivers, but we don't want to break
- * linking the drivers!!!!
- */
-enum tap_state end_state = TAP_RESET;
-enum tap_state cur_state = TAP_RESET;
 int jtag_trst = 0;
 int jtag_srst = 0;
 
@@ -124,8 +75,8 @@ jtag_command_t **last_comand_pointer = &jtag_command_queue;
 static jtag_tap_t *jtag_all_taps = NULL;
 
 enum reset_types jtag_reset_config = RESET_NONE;
-enum tap_state cmd_queue_end_state = TAP_RESET;
-enum tap_state cmd_queue_cur_state = TAP_RESET;
+tap_state_t cmd_queue_end_state = TAP_RESET;
+tap_state_t cmd_queue_cur_state = TAP_RESET;
 
 int jtag_verify_capture_ir = 1;
 
@@ -257,9 +208,9 @@ jtag_interface_t *jtag_interface = NULL;
 int jtag_speed = 0;
 
 /* forward declarations */
-void jtag_add_pathmove(int num_states, enum tap_state *path);
-void jtag_add_runtest(int num_cycles, enum tap_state endstate);
-void jtag_add_end_state(enum tap_state endstate);
+void jtag_add_pathmove(int num_states, tap_state_t *path);
+void jtag_add_runtest(int num_cycles, tap_state_t endstate);
+void jtag_add_end_state(tap_state_t endstate);
 void jtag_add_sleep(u32 us);
 int jtag_execute_queue(void);
 
@@ -550,7 +501,7 @@ static void jtag_prelude1(void)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 }
 
-static void jtag_prelude(enum tap_state state)
+static void jtag_prelude(tap_state_t state)
 {
 	jtag_prelude1();
 
@@ -560,7 +511,7 @@ static void jtag_prelude(enum tap_state state)
 	cmd_queue_cur_state = cmd_queue_end_state;
 }
 
-void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+void jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	int retval;
 
@@ -571,7 +522,7 @@ void jtag_add_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	jtag_command_t **last_cmd;
 	jtag_tap_t *tap;
@@ -657,7 +608,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 	return ERROR_OK;
 }
 
-void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	int retval;
 
@@ -668,7 +619,7 @@ void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, enum tap_state
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	int i;
 	jtag_command_t **last_cmd;
@@ -704,7 +655,7 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *f
 	return ERROR_OK;
 }
 
-void jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+void jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	int retval;
 
@@ -715,7 +666,7 @@ void jtag_add_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	int j;
 	int nth_tap;
@@ -818,7 +769,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 		int num_fields,
 		const int *num_bits,
 		const u32 *value,
-		enum tap_state end_state)
+		tap_state_t end_state)
 {
 	int nth_tap;
 	int field_count = 0;
@@ -912,7 +863,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 	}
 }
 
-void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state state)
+void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	int retval;
 
@@ -923,7 +874,7 @@ void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, enum tap_state
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *fields, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	int i;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
@@ -971,7 +922,7 @@ void jtag_add_tlr(void)
 
 int MINIDRIVER(interface_jtag_add_tlr)(void)
 {
-	enum tap_state state = TAP_RESET;
+	tap_state_t state = TAP_RESET;
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 
 	/* allocate memory for a new list member */
@@ -986,14 +937,14 @@ int MINIDRIVER(interface_jtag_add_tlr)(void)
 	return ERROR_OK;
 }
 
-void jtag_add_pathmove(int num_states, enum tap_state *path)
+void jtag_add_pathmove(int num_states, tap_state_t *path)
 {
-	enum tap_state cur_state=cmd_queue_cur_state;
+	tap_state_t cur_state=cmd_queue_cur_state;
 	int i;
 	int retval;
 
 	/* the last state has to be a stable state */
-	if (tap_move_map[path[num_states - 1]] == -1)
+	if (!tap_is_state_stable(path[num_states - 1]))
 	{
 		LOG_ERROR("BUG: TAP path doesn't finish in a stable state");
 		exit(-1);
@@ -1006,10 +957,10 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 			LOG_ERROR("BUG: TAP_RESET is not a valid state for pathmove sequences");
 			exit(-1);
 		}
-		if ((tap_transitions[cur_state].low != path[i])&&
-				(tap_transitions[cur_state].high != path[i]))
+		if ( tap_state_transition(cur_state, TRUE)  != path[i]
+		  && tap_state_transition(cur_state, FALSE) != path[i])
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(path[i]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(cur_state), tap_state_name(path[i]));
 			exit(-1);
 		}
 		cur_state = path[i];
@@ -1023,7 +974,7 @@ void jtag_add_pathmove(int num_states, enum tap_state *path)
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, enum tap_state *path)
+int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, tap_state_t *path)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	int i;
@@ -1036,7 +987,7 @@ int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, enum tap_state *path
 
 	(*last_cmd)->cmd.pathmove = cmd_queue_alloc(sizeof(pathmove_command_t));
 	(*last_cmd)->cmd.pathmove->num_states = num_states;
-	(*last_cmd)->cmd.pathmove->path = cmd_queue_alloc(sizeof(enum tap_state) * num_states);
+	(*last_cmd)->cmd.pathmove->path = cmd_queue_alloc(sizeof(tap_state_t) * num_states);
 
 	for (i = 0; i < num_states; i++)
 		(*last_cmd)->cmd.pathmove->path[i] = path[i];
@@ -1044,7 +995,7 @@ int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, enum tap_state *path
 	return ERROR_OK;
 }
 
-int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
+int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, tap_state_t state)
 {
 	jtag_command_t **last_cmd = jtag_get_last_command_p();
 
@@ -1061,7 +1012,7 @@ int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, enum tap_state state)
 	return ERROR_OK;
 }
 
-void jtag_add_runtest(int num_cycles, enum tap_state state)
+void jtag_add_runtest(int num_cycles, tap_state_t state)
 {
 	int retval;
 
@@ -1093,19 +1044,10 @@ void jtag_add_clocks( int num_cycles )
 {
 	int retval;
 
-	/* "if (tap_move_map[cm_queue_cur_state] != -1)" is of no help when cur_state==TAP_IDLE */
-	switch(cmd_queue_cur_state)
+	if( !tap_is_state_stable(cmd_queue_cur_state) )
 	{
-	case TAP_DRSHIFT:
-	case TAP_IDLE:
-	case TAP_RESET:
-	case TAP_DRPAUSE:
-	case TAP_IRSHIFT:
-	case TAP_IRPAUSE:
-		 break;			/* above stable states are OK */
-	default:
 		 LOG_ERROR( "jtag_add_clocks() was called with TAP in non-stable state \"%s\"",
-				 jtag_state_name(cmd_queue_cur_state) );
+				 tap_state_name(cmd_queue_cur_state) );
 		 jtag_error = ERROR_JTAG_NOT_STABLE_STATE;
 		 return;
 	}
@@ -1114,8 +1056,8 @@ void jtag_add_clocks( int num_cycles )
 	{
 		jtag_prelude1();
 
-		retval=interface_jtag_add_clocks(num_cycles);
-		if (retval!=ERROR_OK)
+		retval = interface_jtag_add_clocks(num_cycles);
+		if (retval != ERROR_OK)
 			jtag_error=retval;
 	}
 }
@@ -1240,7 +1182,7 @@ int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-void jtag_add_end_state(enum tap_state state)
+void jtag_add_end_state(tap_state_t state)
 {
 	cmd_queue_end_state = state;
 	if ((cmd_queue_end_state == TAP_DRSHIFT)||(cmd_queue_end_state == TAP_IRSHIFT))
@@ -2708,7 +2650,7 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	enum tap_state state;
+	tap_state_t state;
 
 	if (argc < 1)
 	{
@@ -2718,14 +2660,14 @@ int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	{
 		for (state = 0; state < 16; state++)
 		{
-			if (strcmp(args[0], jtag_state_name(state)) == 0)
+			if (strcmp(args[0], tap_state_name(state)) == 0)
 			{
 				jtag_add_end_state(state);
 				jtag_execute_queue();
 			}
 		}
 	}
-	command_print(cmd_ctx, "current endstate: %s", jtag_state_name(cmd_queue_end_state));
+	command_print(cmd_ctx, "current endstate: %s", tap_state_name(cmd_queue_end_state));
 
 	return ERROR_OK;
 }
@@ -2979,8 +2921,247 @@ void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
 }
 
 
-/* map state number to SVF state string */
-const char* jtag_state_name(enum tap_state state)
+/*-----<Cable Helper API>---------------------------------------*/
+
+/*  these Cable Helper API functions are all documented in the jtag.h header file,
+	using a Doxygen format.  And since Doxygen's configuration file "Doxyfile",
+	is setup to prefer its docs in the header file, no documentation is here, for
+	if it were, it would have to be doubly maintained.
+*/
+
+/**
+ * @see tap_set_state() and tap_get_state() accessors.
+ * Actual name is not important since accessors hide it.
+ */
+static tap_state_t state_follower = TAP_RESET;
+
+void tap_set_state_impl( tap_state_t new_state )
+{
+	/* this is the state we think the TAPs are in now, was cur_state */
+	state_follower = new_state;
+}
+
+tap_state_t tap_get_state()
+{
+	return state_follower;
+}
+
+/**
+ * @see tap_set_end_state() and tap_get_end_state() accessors.
+ * Actual name is not important because accessors hide it.
+ */
+static tap_state_t end_state_follower = TAP_RESET;
+
+void tap_set_end_state( tap_state_t new_end_state )
+{
+	/* this is the state we think the TAPs will be in at completion of the
+	   current TAP operation, was end_state
+	*/
+	end_state_follower = new_end_state;
+}
+
+tap_state_t tap_get_end_state()
+{
+	return end_state_follower;
+}
+
+
+int tap_move_ndx( tap_state_t astate )
+{
+	/* given a stable state, return the index into the tms_seqs[] array within tap_get_tms_path() */
+
+	/* old version
+	const static int move_map[16] =
+	{
+		0, -1, -1,  2, -1,  3, -1, -1,
+		1, -1, -1,  4, -1,  5, -1, -1
+	};
+	*/
+
+	int ndx;
+
+	switch( astate )
+	{
+	case TAP_RESET:		ndx = 0;			break;
+	case TAP_DRSHIFT:	ndx = 2;			break;
+	case TAP_DRPAUSE:	ndx = 3;			break;
+	case TAP_IDLE:		ndx = 1;			break;
+	case TAP_IRSHIFT:	ndx = 4;			break;
+	case TAP_IRPAUSE:	ndx = 5;			break;
+	default:
+		LOG_ERROR( "fatal: unstable state \"%s\" used in tap_move_ndx()", tap_state_name(astate) );
+		exit(1);
+	}
+
+	return ndx;
+}
+
+
+int tap_get_tms_path( tap_state_t from, tap_state_t to )
+{
+	/* tap_move[i][j]: tap movement command to go from state i to state j
+	 * 0: Test-Logic-Reset
+	 * 1: Run-Test/Idle
+	 * 2: Shift-DR
+	 * 3: Pause-DR
+	 * 4: Shift-IR
+	 * 5: Pause-IR
+	 *
+	 * DRSHIFT->DRSHIFT and IRSHIFT->IRSHIFT have to be caught in interface specific code
+	 */
+	const static u8 tms_seqs[6][6] =
+	{
+		/* value clocked to TMS to move from one of six stable states to another */
+
+		/* RESET  IDLE  DRSHIFT  DRPAUSE  IRSHIFT  IRPAUSE */
+		{  0x7f, 0x00,    0x17,    0x0a,    0x1b,    0x16 },	/* RESET */
+		{  0x7f, 0x00,    0x25,    0x05,    0x2b,    0x0b },	/* IDLE */
+		{  0x7f, 0x31,    0x00,    0x01,    0x0f,    0x2f },	/* DRSHIFT  */
+		{  0x7f, 0x30,    0x20,    0x17,    0x1e,    0x2f },	/* DRPAUSE  */
+		{  0x7f, 0x31,    0x07,    0x17,    0x00,    0x01 },	/* IRSHIFT  */
+		{  0x7f, 0x30,    0x1c,    0x17,    0x20,    0x2f }	/* IRPAUSE  */
+	};
+
+	if( !tap_is_state_stable(from) )
+	{
+		LOG_ERROR( "fatal: tap_state \"from\" (=%s) is not stable", tap_state_name(from) );
+		exit(1);
+	}
+
+	if( !tap_is_state_stable(to) )
+	{
+		LOG_ERROR( "fatal: tap_state \"to\" (=%s) is not stable", tap_state_name(to) );
+		exit(1);
+	}
+
+	/* @todo: support other than 7 clocks ? */
+	return tms_seqs[tap_move_ndx(from)][tap_move_ndx(to)];
+}
+
+
+BOOL tap_is_state_stable(tap_state_t astate)
+{
+	BOOL is_stable;
+
+	/* 	A switch() is used because it is symbol dependent
+		(not value dependent like an array), and can also check bounds.
+	*/
+	switch( astate )
+	{
+	case TAP_RESET:
+	case TAP_IDLE:
+	case TAP_DRSHIFT:
+	case TAP_DRPAUSE:
+	case TAP_IRSHIFT:
+	case TAP_IRPAUSE:
+		is_stable = TRUE;
+		break;
+	default:
+		is_stable = FALSE;
+	}
+
+	return is_stable;
+}
+
+tap_state_t tap_state_transition(tap_state_t cur_state, BOOL tms)
+{
+	tap_state_t new_state;
+
+	/* 	A switch is used because it is symbol dependent and not value dependent
+		like an array.  Also it can check for out of range conditions.
+	*/
+
+	if (tms)
+	{
+		switch (cur_state)
+		{
+		case TAP_RESET:
+			new_state = cur_state;
+			break;
+		case TAP_IDLE:
+		case TAP_DRUPDATE:
+		case TAP_IRUPDATE:
+			new_state = TAP_DRSELECT;
+			break;
+		case TAP_DRSELECT:
+			new_state = TAP_IRSELECT;
+			break;
+		case TAP_DRCAPTURE:
+		case TAP_DRSHIFT:
+			new_state = TAP_DREXIT1;
+			break;
+		case TAP_DREXIT1:
+		case TAP_DREXIT2:
+			new_state = TAP_DRUPDATE;
+			break;
+		case TAP_DRPAUSE:
+			new_state = TAP_DREXIT2;
+			break;
+		case TAP_IRSELECT:
+			new_state = TAP_RESET;
+			break;
+		case TAP_IRCAPTURE:
+		case TAP_IRSHIFT:
+			new_state = TAP_IREXIT1;
+			break;
+		case TAP_IREXIT1:
+		case TAP_IREXIT2:
+			new_state = TAP_IRUPDATE;
+			break;
+		case TAP_IRPAUSE:
+			new_state = TAP_IREXIT2;
+			break;
+		default:
+			LOG_ERROR( "fatal: invalid argument cur_state=%d", cur_state );
+			exit(1);
+			break;
+		}
+	}
+	else
+	{
+		switch (cur_state)
+		{
+		case TAP_RESET:
+		case TAP_IDLE:
+		case TAP_DRUPDATE:
+		case TAP_IRUPDATE:
+			new_state = TAP_IDLE;
+			break;
+		case TAP_DRSELECT:
+			new_state = TAP_DRCAPTURE;
+			break;
+		case TAP_DRCAPTURE:
+		case TAP_DRSHIFT:
+		case TAP_DREXIT2:
+			new_state = TAP_DRSHIFT;
+			break;
+		case TAP_DREXIT1:
+		case TAP_DRPAUSE:
+			new_state = TAP_DRPAUSE;
+			break;
+		case TAP_IRSELECT:
+			new_state = TAP_IRCAPTURE;
+			break;
+		case TAP_IRCAPTURE:
+		case TAP_IRSHIFT:
+		case TAP_IREXIT2:
+			new_state = TAP_IRSHIFT;
+			break;
+		case TAP_IREXIT1:
+		case TAP_IRPAUSE:
+			new_state = TAP_IRPAUSE;
+			break;
+		default:
+			LOG_ERROR( "fatal: invalid argument cur_state=%d", cur_state );
+			exit(1);
+			break;
+		}
+	}
+
+	return new_state;
+}
+
+const char* tap_state_name(tap_state_t state)
 {
 	const char* ret;
 
@@ -3008,3 +3189,4 @@ const char* jtag_state_name(enum tap_state state)
 	return ret;
 }
 
+/*-----</Cable Helper API>--------------------------------------*/

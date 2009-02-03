@@ -318,7 +318,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 
-	enum tap_state path[3];
+	tap_state_t path[3];
 	scan_field_t fields[3];
 
 	u8 *field0 = malloc(num_words * 1);
@@ -427,8 +427,8 @@ int xscale_read_tx(target_t *target, int consume)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	enum tap_state path[3];
-	enum tap_state noconsume_path[6];
+	tap_state_t path[3];
+	tap_state_t noconsume_path[6];
 
 	int retval;
 	struct timeval timeout, now;

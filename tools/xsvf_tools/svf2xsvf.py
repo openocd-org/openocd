@@ -704,6 +704,8 @@ try:
             nextTok()
             if tokVal != ';':
                 raise ParseError( tokLn, tokVal, "Expecting ';' after TRST trst_mode")
+            if doCOMMENTs:
+                writeComment( output, tokLn, 'TRST %s' % trst_mode )
             obuf = bytearray( 2 )
             obuf[0] = XTRST
             obuf[1] = trst_mode_allowed.index( trst_mode )  # use the index as the binary argument to XTRST opcode

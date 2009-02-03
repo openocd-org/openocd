@@ -109,6 +109,7 @@ u8 amt_jtagaccel_tap_move[6][6][2] =
 	{{0x1f, 0x00}, {0x0c, 0x00}, {0x07, 0x00}, {0x97, 0x00}, {0x08, 0x00}, {0x00, 0x00}},	/* IRPAUSE  */
 };
 
+
 jtag_interface_t amt_jtagaccel_interface =
 {
 	.name = "amt_jtagaccel",
@@ -157,8 +158,8 @@ int amt_jtagaccel_speed(int speed)
 
 void amt_jtagaccel_end_state(int state)
 {
-	if (tap_move_map[state] != -1)
-		end_state = state;
+	if (tap_is_state_stable(state))
+		tap_set_end_state(state);
 	else
 	{
 		LOG_ERROR("BUG: %i is not a valid end state", state);
@@ -187,8 +188,11 @@ void amt_jtagaccel_state_move(void)
 	u8 aw_scan_tms_5;
 	u8 tms_scan[2];
 
-	tms_scan[0] = amt_jtagaccel_tap_move[tap_move_map[cur_state]][tap_move_map[end_state]][0];
-	tms_scan[1] = amt_jtagaccel_tap_move[tap_move_map[cur_state]][tap_move_map[end_state]][1];
+	tap_state_t	cur_state = tap_get_state();
+	tap_state_t	end_state = tap_get_end_state();
+
+	tms_scan[0] = amt_jtagaccel_tap_move[tap_move_ndx(cur_state)][tap_move_ndx(end_state)][0];
+	tms_scan[1] = amt_jtagaccel_tap_move[tap_move_ndx(cur_state)][tap_move_ndx(end_state)][1];
 
 	aw_scan_tms_5 = 0x40 | (tms_scan[0] & 0x1f);
 	AMT_AW(aw_scan_tms_5);
@@ -203,7 +207,7 @@ void amt_jtagaccel_state_move(void)
 			amt_wait_scan_busy();
 	}
 
-	cur_state = end_state;
+	tap_set_state(end_state);
 }
 
 void amt_jtagaccel_runtest(int num_cycles)
@@ -212,10 +216,10 @@ void amt_jtagaccel_runtest(int num_cycles)
 	u8 aw_scan_tms_5;
 	u8 aw_scan_tms_1to4;
 
-	enum tap_state saved_end_state = end_state;
+	tap_state_t saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in IDLE */
-	if (cur_state != TAP_IDLE)
+	if (tap_get_state() != TAP_IDLE)
 	{
 		amt_jtagaccel_end_state(TAP_IDLE);
 		amt_jtagaccel_state_move();
@@ -235,7 +239,7 @@ void amt_jtagaccel_runtest(int num_cycles)
 	}
 
 	amt_jtagaccel_end_state(saved_end_state);
-	if (cur_state != end_state)
+	if (tap_get_state() != tap_get_end_state())
 		amt_jtagaccel_state_move();
 }
 
@@ -243,7 +247,7 @@ void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_s
 {
 	int bits_left = scan_size;
 	int bit_count = 0;
-	enum tap_state saved_end_state = end_state;
+	tap_state_t saved_end_state = tap_get_end_state();
 	u8 aw_tdi_option;
 	u8 dw_tdi_scan;
 	u8 dr_tdo;
@@ -297,8 +301,8 @@ void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_s
 		bits_left -= 8;
 	}
 
-	tms_scan[0] = amt_jtagaccel_tap_move[tap_move_map[cur_state]][tap_move_map[end_state]][0];
-	tms_scan[1] = amt_jtagaccel_tap_move[tap_move_map[cur_state]][tap_move_map[end_state]][1];
+	tms_scan[0] = amt_jtagaccel_tap_move[tap_move_ndx(tap_get_state())][tap_move_ndx(tap_get_end_state())][0];
+	tms_scan[1] = amt_jtagaccel_tap_move[tap_move_ndx(tap_get_state())][tap_move_ndx(tap_get_end_state())][1];
 	aw_tms_scan = 0x40 | (tms_scan[0] & 0x1f) | (buf_get_u32(buffer, bit_count, 1) << 5);
 	AMT_AW(aw_tms_scan);
 	if (jtag_speed > 3 || rtck_enabled)
@@ -318,7 +322,7 @@ void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_s
 		if (jtag_speed > 3 || rtck_enabled)
 			amt_wait_scan_busy();
 	}
-	cur_state = end_state;
+	tap_set_state(tap_get_end_state());
 }
 
 int amt_jtagaccel_execute_queue(void)
@@ -351,7 +355,7 @@ int amt_jtagaccel_execute_queue(void)
 #endif
 				if (cmd->cmd.reset->trst == 1)
 				{
-					cur_state = TAP_RESET;
+					tap_set_state(TAP_RESET);
 				}
 				amt_jtagaccel_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
@@ -404,26 +408,26 @@ int amt_jtagaccel_execute_queue(void)
 #if PARPORT_USE_GIVEIO == 1
 int amt_jtagaccel_get_giveio_access(void)
 {
-    HANDLE h;
-    OSVERSIONINFO version;
+	HANDLE h;
+	OSVERSIONINFO version;
 
-    version.dwOSVersionInfoSize = sizeof version;
-    if (!GetVersionEx( &version )) {
+	version.dwOSVersionInfoSize = sizeof version;
+	if (!GetVersionEx( &version )) {
 	errno = EINVAL;
 	return -1;
-    }
-    if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
+	}
+	if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
 	return 0;
 
-    h = CreateFile( "\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
-    if (h == INVALID_HANDLE_VALUE) {
+	h = CreateFile( "\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+	if (h == INVALID_HANDLE_VALUE) {
 	errno = ENODEV;
 	return -1;
-    }
+	}
 
-    CloseHandle( h );
+	CloseHandle( h );
 
-    return 0;
+	return 0;
 }
 #endif
 

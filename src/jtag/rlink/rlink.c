@@ -122,7 +122,7 @@ ep1_generic_commandl(
 		*usb_buffer_p++ = va_arg(ap, int);
 		length--;
 	}
-	
+
 	memset(
 		usb_buffer_p,
 		0,
@@ -176,7 +176,7 @@ ep1_memory_read(
 		usb_buffer[2] = addr;
 		usb_buffer[3] = length;
 
-      		usb_ret = usb_bulk_write(
+			usb_ret = usb_bulk_write(
 			pHDev, USB_EP1OUT_ADDR,
 			usb_buffer, sizeof(usb_buffer),
 			USB_TIMEOUT_MS
@@ -185,7 +185,7 @@ ep1_memory_read(
 		if(usb_ret < sizeof(usb_buffer)) {
 			break;
 		}
-		
+
 		usb_ret = usb_bulk_read(
 			pHDev, USB_EP1IN_ADDR,
 			buffer, length,
@@ -195,7 +195,7 @@ ep1_memory_read(
 		if(usb_ret < length) {
 			break;
 		}
-		
+
 		addr += length;
 		buffer += length;
 		count += length;
@@ -247,7 +247,7 @@ ep1_memory_write(
 			sizeof(usb_buffer) - 4 - length
 		);
 
-      		usb_ret = usb_bulk_write(
+			usb_ret = usb_bulk_write(
 			pHDev, USB_EP1OUT_ADDR,
 			(char *)usb_buffer, sizeof(usb_buffer),
 			USB_TIMEOUT_MS
@@ -256,7 +256,7 @@ ep1_memory_write(
 		if(usb_ret < sizeof(usb_buffer)) {
 			break;
 		}
-		
+
 		addr += length;
 		buffer += length;
 		count += length;
@@ -343,7 +343,7 @@ dtc_load_from_buffer(
 			LOG_ERROR("Malformed DTC image\n");
 			exit(1);
 		}
-		
+
 		header = (struct header_s *)buffer;
 		buffer += sizeof(*header);
 		length -= sizeof(*header);
@@ -352,7 +352,7 @@ dtc_load_from_buffer(
 			LOG_ERROR("Malformed DTC image\n");
 			exit(1);
 		}
-		
+
 		switch(header->type) {
 			case DTCLOAD_COMMENT:
 				break;
@@ -365,7 +365,7 @@ dtc_load_from_buffer(
 				break;
 
 			case DTCLOAD_LOAD:
-   				/* Send the DTC program to ST7 RAM. */
+				/* Send the DTC program to ST7 RAM. */
 				usb_err = ep1_memory_write(
 					pHDev,
 					DTC_LOAD_BUFFER,
@@ -398,9 +398,9 @@ dtc_load_from_buffer(
 			case DTCLOAD_LUT_START:
 				lut_start = buffer[0];
 				break;
-		
+
 			case DTCLOAD_LUT:
-   				usb_err = ep1_memory_write(
+				usb_err = ep1_memory_write(
 					pHDev,
 					ST7_USB_BUF_EP0OUT + lut_start,
 					header->length + 1, buffer
@@ -413,7 +413,7 @@ dtc_load_from_buffer(
 				exit(1);
 				break;
 		}
-		
+
 		buffer += (header->length + 1);
 		length -= (header->length + 1);
 	}
@@ -434,7 +434,7 @@ dtc_start_download(void) {
 	/* set up for download mode and make sure EP2 is set up to transmit */
 	usb_err = ep1_generic_commandl(
 		pHDev, 7,
-		 
+
 		EP1_CMD_DTC_STOP,
 		EP1_CMD_SET_UPLOAD,
 		EP1_CMD_SET_DOWNLOAD,
@@ -455,7 +455,7 @@ dtc_start_download(void) {
 
 	usb_err = ep1_generic_commandl(
 		pHDev, 13,
-		 
+
 		EP1_CMD_MEMORY_WRITE,	/* preinitialize poll byte */
 			DTC_STATUS_POLL_BYTE >> 8,
 			DTC_STATUS_POLL_BYTE,
@@ -682,7 +682,7 @@ dtc_queue_run(void) {
 		usb_err = dtc_run_download(pHDev,
 			dtc_queue.cmd_buffer, dtc_queue.cmd_index,
 			NULL, 0
-		);	
+		);
 		if(usb_err < 0) {
 			LOG_ERROR("dtc_run_download: %s\n", usb_strerror());
 			exit(1);
@@ -691,7 +691,7 @@ dtc_queue_run(void) {
 		usb_err = dtc_run_download(pHDev,
 			dtc_queue.cmd_buffer, dtc_queue.cmd_index,
 			reply_buffer, dtc_queue.reply_index
-		);	
+		);
 		if(usb_err < 0) {
 			LOG_ERROR("dtc_run_download: %s\n", usb_strerror());
 			exit(1);
@@ -726,7 +726,7 @@ dtc_queue_run(void) {
 						} else {
 							*tdo_p &=~ tdo_mask;
 						}
-						
+
 						dtc_mask >>= 1;
 						if(dtc_mask == 0) {
 							dtc_p++;
@@ -772,7 +772,7 @@ dtc_queue_run(void) {
 							tdo_p++;
 							tdo_mask = 1;
 						}
-								
+
 					}
 				}
 
@@ -825,7 +825,7 @@ tap_state_queue_run(void) {
 	bits = 1;
 	byte = 0;
 	for(i = tap_state_queue.length; i--;) {
-		
+
 		byte <<= 1;
 		if(tap_state_queue.buffer & 1) {
 			byte |= 1;
@@ -890,10 +890,10 @@ tap_state_queue_append(
 
 
 static
-void rlink_end_state(enum tap_state state)
+void rlink_end_state(tap_state_t state)
 {
-	if (tap_move_map[state] != -1)
-		end_state = state;
+	if (tap_is_state_stable(state))
+		tap_set_end_state(state);
 	else
 	{
 		LOG_ERROR("BUG: %i is not a valid end state", state);
@@ -906,7 +906,7 @@ static
 void rlink_state_move(void) {
 
 	int i=0, tms=0;
-	u8 tms_scan = TAP_MOVE(cur_state, end_state);
+	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 
 	for (i = 0; i < 7; i++)
 	{
@@ -914,7 +914,7 @@ void rlink_state_move(void) {
 		tap_state_queue_append(tms);
 	}
 
-	cur_state = end_state;
+	tap_set_state(tap_get_end_state());
 }
 
 static
@@ -927,28 +927,28 @@ void rlink_path_move(pathmove_command_t *cmd)
 	state_count = 0;
 	while (num_states)
 	{
-		if (tap_transitions[cur_state].low == cmd->path[state_count])
+		if (tap_state_transition(tap_get_state(), FALSE) == cmd->path[state_count])
 		{
 			tms = 0;
 		}
-		else if (tap_transitions[cur_state].high == cmd->path[state_count])
+		else if (tap_state_transition(tap_get_state(), TRUE) == cmd->path[state_count])
 		{
 			tms = 1;
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(cmd->path[state_count]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(tap_get_state()), tap_state_name(cmd->path[state_count]));
 			exit(-1);
 		}
 
 		tap_state_queue_append(tms);
 
-		cur_state = cmd->path[state_count];
+		tap_set_state(cmd->path[state_count]);
 		state_count++;
 		num_states--;
 	}
 
-	end_state = cur_state;
+	tap_set_end_state(tap_get_state());
 }
 
 
@@ -957,10 +957,10 @@ void rlink_runtest(int num_cycles)
 {
 	int i;
 
-	enum tap_state saved_end_state = end_state;
+	tap_state_t saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in RTI */
-	if (cur_state != TAP_IDLE)
+	if (tap_get_state() != TAP_IDLE)
 	{
 		rlink_end_state(TAP_IDLE);
 		rlink_state_move();
@@ -974,7 +974,7 @@ void rlink_runtest(int num_cycles)
 
 	/* finish in end_state */
 	rlink_end_state(saved_end_state);
-	if (cur_state != end_state)
+	if (tap_get_state() != tap_get_end_state())
 		rlink_state_move();
 }
 
@@ -997,7 +997,7 @@ void rlink_reset(int trst, int srst)
 
 	usb_err = ep1_generic_commandl(
 		pHDev, 6,
-		 
+
 		EP1_CMD_MEMORY_WRITE,
 			ST7_PADR >> 8,
 			ST7_PADR,
@@ -1031,7 +1031,7 @@ rlink_scan(
 	int			scan_size
 ) {
 	int			ir_scan;
-	enum tap_state	saved_end_state;
+	tap_state_t	saved_end_state;
 	int			byte_bits;
 	int			extra_bits;
 	int			chunk_bits;
@@ -1051,11 +1051,11 @@ rlink_scan(
 
 	/* Move to the proper state before starting to shift TDI/TDO. */
 	if (!(
-		(!ir_scan && (cur_state == TAP_DRSHIFT))
+		(!ir_scan && (tap_get_state() == TAP_DRSHIFT))
 		||
-		(ir_scan && (cur_state == TAP_IRSHIFT))
+		(ir_scan && (tap_get_state() == TAP_IRSHIFT))
 	)) {
-		saved_end_state = end_state;
+		saved_end_state = tap_get_end_state();
 		rlink_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
 		rlink_state_move();
 		rlink_end_state(saved_end_state);
@@ -1102,7 +1102,7 @@ rlink_scan(
 
 		x = 0;
 		dtc_mask = 1 << (extra_bits - 1);
-	
+
 		while(extra_bits--) {
 			if(*tdi_p & tdi_mask) {
 				x |= dtc_mask;
@@ -1170,7 +1170,7 @@ rlink_scan(
 				LOG_ERROR("enqueuing DTC reply entry: %s\n", strerror(errno));
 				exit(1);
 			}
-			
+
 			tdi_bit_offset += chunk_bits;
 		}
 
@@ -1193,12 +1193,12 @@ rlink_scan(
 		if(type != SCAN_IN) {
 			x = 0;
 			dtc_mask = 1 << (8 - 1);
-		
+
 			while(chunk_bits--) {
 				if(*tdi_p & tdi_mask) {
 					x |= dtc_mask;
 				}
-	
+
 				dtc_mask >>= 1;
 				if(dtc_mask == 0) {
 					dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = x;
@@ -1206,7 +1206,7 @@ rlink_scan(
 					x = 0;
 					dtc_mask = 1 << (8 - 1);
 				}
-	
+
 				tdi_mask <<= 1;
 				if(tdi_mask == 0) {
 					tdi_p++;
@@ -1235,7 +1235,7 @@ rlink_scan(
 			LOG_ERROR("enqueuing DTC reply entry: %s\n", strerror(errno));
 			exit(1);
 		}
-			
+
 		tdi_bit_offset += extra_bits;
 
 		if(type == SCAN_IN) {
@@ -1248,14 +1248,14 @@ rlink_scan(
 
 			x = 0;
 			dtc_mask = 1 << (8 - 1);
-		
+
 			while(extra_bits--) {
 				if(*tdi_p & tdi_mask) {
 					x |= dtc_mask;
 				}
-	
+
 				dtc_mask >>= 1;
-	
+
 				tdi_mask <<= 1;
 				if(tdi_mask == 0) {
 					tdi_p++;
@@ -1293,8 +1293,8 @@ rlink_scan(
 				LOG_ERROR("enqueuing DTC reply entry: %s\n", strerror(errno));
 				exit(1);
 			}
-			
-			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = 
+
+			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
 				DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 1);
 
 			dtc_queue.reply_index++;
@@ -1303,8 +1303,8 @@ rlink_scan(
 
 	/* Move to pause state */
 	tap_state_queue_append(0);
-	cur_state = ir_scan ? TAP_IRPAUSE : TAP_DRPAUSE;
-	if (cur_state != end_state) rlink_state_move();
+	tap_set_state(ir_scan ? TAP_IRPAUSE : TAP_DRPAUSE);
+	if (tap_get_state() != tap_get_end_state()) rlink_state_move();
 
 	return(0);
 }
@@ -1363,7 +1363,7 @@ int rlink_execute_queue(void)
 #endif
 				if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_reset_config & RESET_SRST_PULLS_TRST)))
 				{
-					cur_state = TAP_RESET;
+					tap_set_state(TAP_RESET);
 				}
 				rlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
@@ -1451,7 +1451,7 @@ int rlink_speed(int speed)
 				LOG_ERROR("An error occurred while trying to load DTC code for speed \"%d\".\n", speed);
 				exit(1);
 			}
-	
+
 			if(dtc_start_download() < 0) {
 				LOG_ERROR("%s, %d: starting DTC: %s",
 					__FILE__, __LINE__,
@@ -1605,7 +1605,7 @@ int rlink_init(void)
 
 						/* usb_set_configuration required under win32 */
 						usb_set_configuration(pHDev, dev->config[0].bConfigurationValue);
-						
+
 						retries = 3;
 						do
 						{

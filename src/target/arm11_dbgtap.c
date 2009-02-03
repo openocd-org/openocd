@@ -36,13 +36,13 @@
 #define JTAG_DEBUG(expr ...)	do {} while(0)
 #endif
 
-enum tap_state arm11_move_pi_to_si_via_ci[] =
+tap_state_t arm11_move_pi_to_si_via_ci[] =
 {
     TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IRSHIFT
 };
 
 
-int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state)
+int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state)
 {
     if (cmd_queue_cur_state == TAP_IRPAUSE)
 	jtag_add_pathmove(asizeof(arm11_move_pi_to_si_via_ci), arm11_move_pi_to_si_via_ci);
@@ -51,12 +51,12 @@ int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, enum tap_state st
     return ERROR_OK;
 }
 
-enum tap_state arm11_move_pd_to_sd_via_cd[] =
+tap_state_t arm11_move_pd_to_sd_via_cd[] =
 {
     TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
 
-int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, enum tap_state state)
+int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state)
 {
     if (cmd_queue_cur_state == TAP_DRPAUSE)
 	jtag_add_pathmove(asizeof(arm11_move_pd_to_sd_via_cd), arm11_move_pd_to_sd_via_cd);
@@ -99,7 +99,7 @@ void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, vo
  *
  * \remarks This adds to the JTAG command queue but does \em not execute it.
  */
-void arm11_add_IR(arm11_common_t * arm11, u8 instr, enum tap_state state)
+void arm11_add_IR(arm11_common_t * arm11, u8 instr, tap_state_t state)
 {
 	jtag_tap_t *tap;
 	tap = arm11->jtag_info.tap;
@@ -167,7 +167,7 @@ static int arm11_in_handler_SCAN_N(u8 *in_value, void *priv, struct scan_field_s
  * \remarks This adds to the JTAG command queue but does \em not execute it.
  */
 
-void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, enum tap_state state)
+void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
 {
     JTAG_DEBUG("SCREG <= 0x%02x", chain);
 
@@ -199,7 +199,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, enum tap_state sta
  *
  * \remarks This adds to the JTAG command queue but does \em not execute it.
  */
-void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, enum tap_state state)
+void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state_t state)
 {
     JTAG_DEBUG("INST <= 0x%08x", inst);
 
@@ -471,7 +471,7 @@ void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data
  *  the core but still shorter than any manually inducible delays.
  *
  */
-enum tap_state arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
+tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
 {
     TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };

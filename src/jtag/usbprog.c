@@ -58,7 +58,7 @@ int usbprog_register_commands(struct command_context_s *cmd_ctx);
 int usbprog_init(void);
 int usbprog_quit(void);
 
-void usbprog_end_state(enum tap_state state);
+void usbprog_end_state(tap_state_t state);
 void usbprog_state_move(void);
 void usbprog_path_move(pathmove_command_t *cmd);
 void usbprog_runtest(int num_cycles);
@@ -151,7 +151,7 @@ int usbprog_execute_queue(void)
 #endif
 				if (cmd->cmd.reset->trst == 1)
 				{
-					cur_state = TAP_RESET;
+					tap_set_state(TAP_RESET);
 				}
 				usbprog_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
@@ -235,10 +235,10 @@ int usbprog_quit(void)
 }
 
 /*************** jtag execute commands **********************/
-void usbprog_end_state(enum tap_state state)
+void usbprog_end_state(tap_state_t state)
 {
-	if (tap_move_map[state] != -1)
-		end_state = state;
+	if (tap_is_state_stable(state))
+		tap_set_end_state(state);
 	else
 	{
 		LOG_ERROR("BUG: %i is not a valid end state", state);
@@ -249,7 +249,7 @@ void usbprog_end_state(enum tap_state state)
 void usbprog_state_move(void)
 {
 	int i = 0, tms = 0;
-	u8 tms_scan = TAP_MOVE(cur_state, end_state);
+	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 
 	usbprog_jtag_write_tms(usbprog_jtag_handle, (char)tms_scan);
 	for (i = 0; i < 7; i++)
@@ -257,7 +257,7 @@ void usbprog_state_move(void)
 		tms = (tms_scan >> i) & 1;
 	}
 
-	cur_state = end_state;
+	tap_set_state(tap_get_end_state());
 }
 
 void usbprog_path_move(pathmove_command_t *cmd)
@@ -268,13 +268,13 @@ void usbprog_path_move(pathmove_command_t *cmd)
 	state_count = 0;
 	while (num_states)
 	{
-		if (tap_transitions[cur_state].low == cmd->path[state_count])
+		if (tap_state_transition(tap_get_state(), FALSE) == cmd->path[state_count])
 		{
 			/* LOG_INFO("1"); */
 			usbprog_write(0, 0, 0);
 			usbprog_write(1, 0, 0);
 		}
-		else if (tap_transitions[cur_state].high == cmd->path[state_count])
+		else if (tap_state_transition(tap_get_state(), TRUE) == cmd->path[state_count])
 		{
 			/* LOG_INFO("2"); */
 			usbprog_write(0, 1, 0);
@@ -282,16 +282,16 @@ void usbprog_path_move(pathmove_command_t *cmd)
 		}
 		else
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", jtag_state_name(cur_state), jtag_state_name(cmd->path[state_count]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(tap_get_state()), tap_state_name(cmd->path[state_count]));
 			exit(-1);
 		}
 
-		cur_state = cmd->path[state_count];
+		tap_set_state(cmd->path[state_count]);
 		state_count++;
 		num_states--;
 	}
 
-	end_state = cur_state;
+	tap_set_end_state(tap_get_state());
 }
 
 void usbprog_runtest(int num_cycles)
@@ -299,7 +299,7 @@ void usbprog_runtest(int num_cycles)
 	int i;
 
 	/* only do a state_move when we're not already in IDLE */
-	if (cur_state != TAP_IDLE)
+	if (tap_get_state() != TAP_IDLE)
 	{
 		usbprog_end_state(TAP_IDLE);
 		usbprog_state_move();
@@ -326,14 +326,14 @@ void usbprog_runtest(int num_cycles)
 	/* finish in end_state */
 	/*
 	usbprog_end_state(saved_end_state);
-	if (cur_state != end_state)
+	if (tap_get_state() != tap_get_end_state())
 		usbprog_state_move();
 	*/
 }
 
 void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
-	enum tap_state saved_end_state = end_state;
+	tap_state_t saved_end_state = tap_get_end_state();
 
 	if (ir_scan)
 		usbprog_end_state(TAP_IRSHIFT);
@@ -361,11 +361,11 @@ void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	}
 
 	if (ir_scan)
-		cur_state = TAP_IRPAUSE;
+		tap_set_state(TAP_IRPAUSE);
 	else
-		cur_state = TAP_DRPAUSE;
+		tap_set_state(TAP_DRPAUSE);
 
-	if (cur_state != end_state)
+	if (tap_get_state() != tap_get_end_state())
 		usbprog_state_move();
 }
 

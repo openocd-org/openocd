@@ -69,7 +69,7 @@ typedef enum
 	TRST,
 }svf_command_t;
 
-const char *svf_command_name[14] = 
+const char *svf_command_name[14] =
 {
 	"ENDDR",
 	"ENDIR",
@@ -137,7 +137,7 @@ typedef struct
 }svf_para_t;
 
 svf_para_t svf_para;
-const svf_para_t svf_para_init = 
+const svf_para_t svf_para_init =
 {
 //	frequency,	ir_end_state,	dr_end_state,	runtest_run_state,	runtest_end_state,	trst_mode
 	0,			TAP_IDLE,		TAP_IDLE,		TAP_IDLE,			TAP_IDLE,			TRST_Z,
@@ -318,7 +318,7 @@ static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char
 	memcpy(&svf_para, &svf_para_init, sizeof(svf_para));
 	for (i = 0; i < dimof(svf_tap_state_name); i++)
 	{
-		svf_tap_state_name[i] = (char *)jtag_state_name(i);
+		svf_tap_state_name[i] = (char *)tap_state_name(i);
 	}
 	// TAP_RESET
 	jtag_add_tlr();
@@ -653,10 +653,10 @@ static int svf_check_tdo(void)
 			{
 				if ((svf_tdi_buffer[index + j] & svf_mask_buffer[index + j]) != svf_tdo_buffer[index + j])
 				{
-					LOG_ERROR("tdo check error at line %d, read = 0x%X, want = 0x%X, mask = 0x%X", 
-								svf_check_tdo_para[i].line_num, 
-								(*(int*)(svf_tdi_buffer + index)) & ((1 << svf_check_tdo_para[i].bit_len) - 1), 
-								(*(int*)(svf_tdo_buffer + index)) & ((1 << svf_check_tdo_para[i].bit_len) - 1), 
+					LOG_ERROR("tdo check error at line %d, read = 0x%X, want = 0x%X, mask = 0x%X",
+								svf_check_tdo_para[i].line_num,
+								(*(int*)(svf_tdi_buffer + index)) & ((1 << svf_check_tdo_para[i].bit_len) - 1),
+								(*(int*)(svf_tdo_buffer + index)) & ((1 << svf_check_tdo_para[i].bit_len) - 1),
 								(*(int*)(svf_mask_buffer + index)) & ((1 << svf_check_tdo_para[i].bit_len) - 1));
 					return ERROR_FAIL;
 				}
@@ -872,7 +872,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			}
 			LOG_DEBUG("\t%s = 0x%X", argus[i], (**(int**)pbuffer_tmp) & ((1 << (xxr_para_tmp->len)) - 1));
 		}
-		// If a command changes the length of the last scan of the same type and the MASK parameter is absent, 
+		// If a command changes the length of the last scan of the same type and the MASK parameter is absent,
 		// the mask pattern used is all cares
 		if (!(xxr_para_tmp->data_mask & XXR_MASK) && (i_tmp != xxr_para_tmp->len))
 		{
