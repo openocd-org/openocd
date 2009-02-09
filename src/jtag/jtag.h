@@ -29,7 +29,6 @@
 
 #include "command.h"
 
-
 #if 0
 #define _DEBUG_JTAG_IO_
 #endif
@@ -37,7 +36,6 @@
 #ifndef DEBUG_JTAG_IOZ
 #define DEBUG_JTAG_IOZ 64
 #endif
-
 
 /* 16 Tap States, from page 21 of ASSET InterTech, Inc.'s svf.pdf
  */
@@ -51,10 +49,6 @@ enum tap_state {
 
 typedef enum tap_state tap_state_t;
 
-typedef unsigned		BOOL;
-#define TRUE			1
-#define FALSE		0
-
 typedef struct tap_transition_s
 {
 	tap_state_t high;
@@ -62,7 +56,6 @@ typedef struct tap_transition_s
 } tap_transition_t;
 
 //extern tap_transition_t tap_transitions[16];    /* describe the TAP state diagram */
-
 
 /*-----<Cable Helper API>-------------------------------------------*/
 
@@ -156,7 +149,7 @@ int tap_move_ndx(tap_state_t astate);
  * Function tap_is_state_stable
  * returns TRUE if the \a astate is stable.
  */
-BOOL tap_is_state_stable(tap_state_t astate);
+int tap_is_state_stable(tap_state_t astate);
 
 /**
  * Function tap_state_transition
@@ -165,7 +158,7 @@ BOOL tap_is_state_stable(tap_state_t astate);
  * @param tms is either zero or non-zero, just like a real TMS line in a jtag interface.
  * @return tap_state_t - the next state a TAP would enter.
  */
-tap_state_t tap_state_transition(tap_state_t current_state, BOOL tms);
+tap_state_t tap_state_transition(tap_state_t current_state, int tms);
 
 /**
  * Function tap_state_name
@@ -174,7 +167,6 @@ tap_state_t tap_state_transition(tap_state_t current_state, BOOL tms);
 const char* tap_state_name(tap_state_t state);
 
 /*-----</Cable Helper API>------------------------------------------*/
-
 
 extern tap_state_t cmd_queue_end_state;         /* finish DR scans in dr_end_state */
 extern tap_state_t cmd_queue_cur_state;         /* current TAP state */

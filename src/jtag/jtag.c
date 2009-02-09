@@ -2920,7 +2920,6 @@ void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
 	}
 }
 
-
 /*-----<Cable Helper API>---------------------------------------*/
 
 /*  these Cable Helper API functions are all documented in the jtag.h header file,
@@ -2965,7 +2964,6 @@ tap_state_t tap_get_end_state()
 	return end_state_follower;
 }
 
-
 int tap_move_ndx( tap_state_t astate )
 {
 	/* given a stable state, return the index into the tms_seqs[] array within tap_get_tms_path() */
@@ -2995,7 +2993,6 @@ int tap_move_ndx( tap_state_t astate )
 
 	return ndx;
 }
-
 
 int tap_get_tms_path( tap_state_t from, tap_state_t to )
 {
@@ -3038,10 +3035,9 @@ int tap_get_tms_path( tap_state_t from, tap_state_t to )
 	return tms_seqs[tap_move_ndx(from)][tap_move_ndx(to)];
 }
 
-
-BOOL tap_is_state_stable(tap_state_t astate)
+int tap_is_state_stable(tap_state_t astate)
 {
-	BOOL is_stable;
+	int is_stable;
 
 	/* 	A switch() is used because it is symbol dependent
 		(not value dependent like an array), and can also check bounds.
@@ -3054,16 +3050,16 @@ BOOL tap_is_state_stable(tap_state_t astate)
 	case TAP_DRPAUSE:
 	case TAP_IRSHIFT:
 	case TAP_IRPAUSE:
-		is_stable = TRUE;
+		is_stable = 1;
 		break;
 	default:
-		is_stable = FALSE;
+		is_stable = 0;
 	}
 
 	return is_stable;
 }
 
-tap_state_t tap_state_transition(tap_state_t cur_state, BOOL tms)
+tap_state_t tap_state_transition(tap_state_t cur_state, int tms)
 {
 	tap_state_t new_state;
 
