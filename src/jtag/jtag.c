@@ -957,8 +957,8 @@ void jtag_add_pathmove(int num_states, tap_state_t *path)
 			LOG_ERROR("BUG: TAP_RESET is not a valid state for pathmove sequences");
 			exit(-1);
 		}
-		if ( tap_state_transition(cur_state, TRUE)  != path[i]
-		  && tap_state_transition(cur_state, FALSE) != path[i])
+		if ( tap_state_transition(cur_state, 1)  != path[i]
+		  && tap_state_transition(cur_state, 0) != path[i])
 		{
 			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(cur_state), tap_state_name(path[i]));
 			exit(-1);
