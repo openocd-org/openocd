@@ -194,9 +194,9 @@ void bitq_path_move(pathmove_command_t* cmd)
 
 	for (i = 0; i<=cmd->num_states; i++)
 	{
-		if (tap_state_transition(tap_get_state(), FALSE) == cmd->path[i])
+		if (tap_state_transition(tap_get_state(), false) == cmd->path[i])
 			bitq_io(0, 0, 0);
-		else if (tap_state_transition(tap_get_state(), TRUE) == cmd->path[i])
+		else if (tap_state_transition(tap_get_state(), true) == cmd->path[i])
 			bitq_io(1, 0, 0);
 		else
 		{

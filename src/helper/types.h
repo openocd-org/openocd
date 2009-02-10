@@ -45,6 +45,21 @@ typedef unsigned long long u64;
 
 typedef struct jtag_tap_s jtag_tap_t;
 
+#ifdef HAVE_STDBOOL_H
+#include <stdbool.h>
+#else	/* HAVE_STDBOOL_H */
+#define __bool_true_false_are_defined 1
+
+#ifndef __cplusplus
+
+#define false	0
+#define true		1
+
+#define bool		_Bool
+typedef int _Bool;
+#endif	/* __cplusplus */
+
+#endif	/* HAVE_STDBOOL_H */
 
 /* DANGER!!!! here be dragons!
  *

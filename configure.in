@@ -11,6 +11,7 @@ AC_CHECK_HEADERS(sys/param.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_HEADERS(elf.h)
 AC_CHECK_HEADERS(strings.h)
+AC_CHECK_HEADERS(stdbool.h)
 
 AC_HEADER_TIME
 

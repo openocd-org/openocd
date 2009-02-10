@@ -201,11 +201,11 @@ static void xsvf_add_statemove(tap_state_t state)
 		int j = (move >> i) & 1;
 		if (j)
 		{
-			curstate = tap_state_transition(curstate, TRUE);
+			curstate = tap_state_transition(curstate, true);
 		}
 		else
 		{
-			curstate = tap_state_transition(curstate, FALSE);
+			curstate = tap_state_transition(curstate, false);
 		}
 		moves[i] = curstate;
 	}

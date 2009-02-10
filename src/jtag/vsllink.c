@@ -634,11 +634,11 @@ void vsllink_add_path(int start, int num, tap_state_t *path)
 			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx] = 0;
 		}
 
-		if (path[i - start] == tap_state_transition(tap_get_state(), TRUE))
+		if (path[i - start] == tap_state_transition(tap_get_state(), true))
 		{
 			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx] |= 1 << (i & 7);
 		}
-		else if (path[i - start] == tap_state_transition(tap_get_state(), FALSE))
+		else if (path[i - start] == tap_state_transition(tap_get_state(), false))
 		{
 			// nothing to do
 		}

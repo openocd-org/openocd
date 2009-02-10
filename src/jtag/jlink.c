@@ -366,11 +366,11 @@ void jlink_path_move(int num_states, tap_state_t *path)
 
 	for (i = 0; i < num_states; i++)
 	{
-		if (path[i] == tap_state_transition(tap_get_state(), FALSE))
+		if (path[i] == tap_state_transition(tap_get_state(), false))
 		{
 			jlink_tap_append_step(0, 0);
 		}
-		else if (path[i] == tap_state_transition(tap_get_state(), TRUE))
+		else if (path[i] == tap_state_transition(tap_get_state(), true))
 		{
 			jlink_tap_append_step(1, 0);
 		}

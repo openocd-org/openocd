@@ -268,13 +268,13 @@ void usbprog_path_move(pathmove_command_t *cmd)
 	state_count = 0;
 	while (num_states)
 	{
-		if (tap_state_transition(tap_get_state(), FALSE) == cmd->path[state_count])
+		if (tap_state_transition(tap_get_state(), false) == cmd->path[state_count])
 		{
 			/* LOG_INFO("1"); */
 			usbprog_write(0, 0, 0);
 			usbprog_write(1, 0, 0);
 		}
-		else if (tap_state_transition(tap_get_state(), TRUE) == cmd->path[state_count])
+		else if (tap_state_transition(tap_get_state(), true) == cmd->path[state_count])
 		{
 			/* LOG_INFO("2"); */
 			usbprog_write(0, 1, 0);

@@ -764,11 +764,11 @@ int interface_jtag_add_pathmove(int num_states, tap_state_t *path)
 
 	while (num_states)
 	{
-		if (tap_state_transition(cur_state, FALSE) == path[state_count])
+		if (tap_state_transition(cur_state, false) == path[state_count])
 		{
 			tms = 0;
 		}
-		else if (tap_state_transition(cur_state, TRUE) == path[state_count])
+		else if (tap_state_transition(cur_state, true) == path[state_count])
 		{
 			tms = 1;
 		}

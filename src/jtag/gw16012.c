@@ -230,11 +230,11 @@ void gw16012_path_move(pathmove_command_t *cmd)
 	while (num_states)
 	{
 		gw16012_control(0x0); /* single-bit mode */
-		if (tap_state_transition(tap_get_state(), FALSE) == cmd->path[state_count])
+		if (tap_state_transition(tap_get_state(), false) == cmd->path[state_count])
 		{
 			gw16012_data(0x0); /* TCK cycle with TMS low */
 		}
-		else if (tap_state_transition(tap_get_state(), TRUE) == cmd->path[state_count])
+		else if (tap_state_transition(tap_get_state(), true) == cmd->path[state_count])
 		{
 			gw16012_data(0x2); /* TCK cycle with TMS high */
 		}

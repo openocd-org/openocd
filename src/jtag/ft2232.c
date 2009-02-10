@@ -562,9 +562,9 @@ void ft2232_add_pathmove(pathmove_command_t* cmd)
 
 		while (num_states_batch--)
 		{
-			if (tap_state_transition(tap_get_state(), FALSE) == cmd->path[state_count])
+			if (tap_state_transition(tap_get_state(), false) == cmd->path[state_count])
 				buf_set_u32(&tms_byte, bit_count++, 1, 0x0);
-			else if (tap_state_transition(tap_get_state(), TRUE) == cmd->path[state_count])
+			else if (tap_state_transition(tap_get_state(), true) == cmd->path[state_count])
 				buf_set_u32(&tms_byte, bit_count++, 1, 0x1);
 			else
 			{
