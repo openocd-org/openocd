@@ -1053,7 +1053,11 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 
 		/* fit the run into bank constraints */
 		if (run_address + run_size > c->base + c->size)
+		{
+			LOG_WARNING("writing %d bytes only - as image section is %d bytes and bank is only %d bytes", \
+					c->base + c->size - run_address, run_size, c->size);
 			run_size = c->base + c->size - run_address;
+		}
 
 		/* allocate buffer */
 		buffer = malloc(run_size);
