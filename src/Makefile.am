@@ -21,7 +21,7 @@ openocd_CPPFLAGS = \
 if RELEASE
 openocd_CPPFLAGS += -DRELSTR=\"Release\" -DPKGBLDREV=\"\"
 else
-openocd_CPPFLAGS += -DRELSTR=\"svn:\" -DPKGBLDREV=\"`$(top_srcdir)/guess-rev.sh`\"
+openocd_CPPFLAGS += -DRELSTR=\"svn:\" -DPKGBLDREV=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
 endif
 
 # add default CPPFLAGS
