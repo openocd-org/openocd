@@ -99,14 +99,6 @@ proc encode {a} {
 	return [string map {\n <br/> { } {&nbsp;} \t {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} > &gt; < &lt; / &#47;} $a]
 }
 
-# catch any exceptions, capture output and return it 
-proc capture_catch {a} {
-	catch {
-		capture {uplevel $a}
-	} result
-	return $result 
-}
-
 proc first_flash_base {} {
 	set t [lindex 0 [ocd_flash_banks]]
 	return $t(base)

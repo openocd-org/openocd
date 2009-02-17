@@ -303,3 +303,11 @@ add_help_text srst_deasserted "Overridable procedure run when srst deassert is d
 proc srst_asserted {} {
 	puts "Sensed nSRST asserted."
 }
+
+# catch any exceptions, capture output and return output
+proc capture_catch {a} {
+	catch {
+		capture {uplevel $a}
+	} result
+	return $result 
+}
