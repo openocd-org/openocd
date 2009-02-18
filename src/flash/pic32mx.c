@@ -268,10 +268,12 @@ int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	pic32mx_flash_bank_t *pic32mx_info = NULL;
 	target_t *target = bank->target;
+#if 0
 	u16 prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
 	int i, reg, bit;
 	int status;
 	u32 protection;
+#endif
 
 	pic32mx_info = bank->driver_priv;
 
@@ -824,7 +826,9 @@ int pic32mx_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, 
 int pic32mx_chip_erase(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
+#if 0
 	u32 status;
+#endif
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -865,10 +869,10 @@ int pic32mx_chip_erase(struct flash_bank_s *bank)
 
 int pic32mx_handle_chip_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+#if 0
 	flash_bank_t *bank;
 	int i;
 
-#if 0
 	if (argc != 0)
 	{
 		command_print(cmd_ctx, "pic32mx chip_erase");

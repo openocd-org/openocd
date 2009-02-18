@@ -206,31 +206,6 @@ static int mflash_rst(u8 level)
 	return mflash_bank->gpio_drv->set_gpio_output_val(mflash_bank->rst_pin, level);
 }
 
-static int mg_dump_task_reg (void)
-{
-	target_t *target = mflash_bank->target;
-	u32 address = mflash_bank->base + MG_REG_OFFSET + MG_REG_ERROR;
-	u8 value, i;
-	char *reg_name[9] = {
-		"error                  ",
-		"sector count           ",
-		"sector num (LBA  7- 0) ",
-		"cyl. low   (LBA 15- 8) ",
-		"cyl. high  (LBA 23-16) ",
-		"drv/head               ",
-		"status                 ",
-		"dev control            ",
-		"burst control          "
-	};
-
-	for (i = 0; i < 9; i++) {
-		target_read_u8(target, address + i * 2, &value);
-		LOG_INFO("%s : 0x%2.2x", reg_name[i], value);
-	}
-
-	return ERROR_OK;
-
-}
 static int mflash_init_gpio (void)
 {
 	mflash_gpio_drv_t *gpio_drv = mflash_bank->gpio_drv;

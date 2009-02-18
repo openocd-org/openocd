@@ -95,17 +95,6 @@ JIM_STATIC int JIM_API(Jim_ProcessEvents) (Jim_Interp *interp, int flags);
 #define JIM_GET_API(name) \
     Jim_GetApi(interp, "Jim_" #name, ((void *)&Jim_ ## name))
 
-#if defined(JIM_EXTENSION) || defined(JIM_EMBEDDED)
-/* This must be included "inline" inside the extension */
-static void Jim_ImportEventloopAPI(Jim_Interp *interp)
-{
-  JIM_GET_API(CreateFileHandler);
-  JIM_GET_API(DeleteFileHandler);
-  JIM_GET_API(CreateTimeHandler);
-  JIM_GET_API(DeleteTimeHandler);
-  JIM_GET_API(ProcessEvents);
-}
-#endif /* defined JIM_EXTENSION || defined JIM_EMBEDDED */
 #undef JIM_GET_API
 #endif /* __JIM_EVENTLOOP_CORE__ */
 

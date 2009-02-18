@@ -600,7 +600,7 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 
 
 
-		int checksum_ok;
+		int checksum_ok = 0;
 		/* explicit code expansion here to get faster inlined code in -O3 by not
 		 * calculating checksum
 		 */

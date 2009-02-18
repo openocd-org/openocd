@@ -93,7 +93,7 @@ target_type_t mips_m4k_target =
 
 int mips_m4k_examine_debug_reason(target_t *target)
 {
-	int break_status;
+	u32 break_status;
 	int retval;
 
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
