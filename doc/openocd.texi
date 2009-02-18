@@ -1509,9 +1509,12 @@ Tap Uses:
 parameters'', the required parameters are:
 @comment START REQUIRED
 @itemize @bullet
-@item @b{-irlen NUMBER} - the length in bits of the instruction register
-@item @b{-ircapture NUMBER} - the ID code capture command.
-@item @b{-irmask NUMBER} - the corresponding mask for the ir register.
+@item @b{-irlen NUMBER} - the length in bits of the instruction register, mostly 4 or 5 bits.
+@item @b{-ircapture NUMBER} - the IDCODE capture command, usually 0x01.
+@item @b{-irmask NUMBER} - the corresponding mask for the IR register. For
+some devices, there are bits in the IR that aren't used.  This lets you mask
+them off when doing comparisons.  In general, this should just be all ones for
+the size of the IR.
 @comment END REQUIRED
 @end itemize
 An example of a FOOBAR Tap
