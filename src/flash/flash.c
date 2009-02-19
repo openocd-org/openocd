@@ -950,7 +950,7 @@ int flash_erase_address_range(target_t *target, u32 addr, u32 length)
 	}
 
 	/* check whether it fits */
-	if (addr + length > c->base + c->size)
+	if (addr + length - 1 > c->base + c->size - 1)
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 
 	addr -= c->base;
@@ -1030,7 +1030,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 		section_first = section;
 		section_last = section;
 		padding[section] = 0;
-		while ((run_address + run_size < c->base + c->size)
+		while ((run_address + run_size - 1 < c->base + c->size - 1)
 				&& (section_last + 1 < image->num_sections))
 		{
 			if (image->sections[section_last + 1].base_address < (run_address + run_size))
@@ -1052,7 +1052,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 		}
 
 		/* fit the run into bank constraints */
-		if (run_address + run_size > c->base + c->size)
+		if (run_address + run_size - 1 > c->base + c->size - 1)
 		{
 			LOG_WARNING("writing %d bytes only - as image section is %d bytes and bank is only %d bytes", \
 					c->base + c->size - run_address, run_size, c->size);
