@@ -1700,32 +1700,41 @@ int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return target_wait_state(target, TARGET_HALTED, ms);
 }
 
+/* wait for target state to change. The trick here is to have a low
+ * latency for short waits and not to suck up all the CPU time
+ * on longer waits.
+ *
+ * After 500ms, keep_alive() is invoked
+ */
 int target_wait_state(target_t *target, enum target_state state, int ms)
 {
 	int retval;
-	struct timeval timeout, now;
+	long long then=0, cur;
 	int once=1;
-	gettimeofday(&timeout, NULL);
-	timeval_add_time(&timeout, 0, ms * 1000);
 
 	for (;;)
 	{
 		if ((retval=target_poll(target))!=ERROR_OK)
 			return retval;
-		keep_alive();
 		if (target->state == state)
 		{
 			break;
 		}
+		cur = timeval_ms();
 		if (once)
 		{
 			once=0;
+			then = timeval_ms();
 			LOG_DEBUG("waiting for target %s...",
 				Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
 		}
 
-		gettimeofday(&now, NULL);
-		if ((now.tv_sec > timeout.tv_sec) || ((now.tv_sec == timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
+		if (cur-then>500)
+		{
+			keep_alive();
+		}
+
+		if ((cur-then)>ms)
 		{
 			LOG_ERROR("timed out while waiting for target %s",
 				Jim_Nvp_value2name_simple(nvp_target_state,state)->name);

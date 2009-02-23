@@ -5,6 +5,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2009 by Oyvind Harboe                                   *
+ *   oyvind.harboe@zylin.com                                               *
+ *																		   *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -178,7 +181,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 	int retval;
 	u32 ctrlstat;
 
-	keep_alive();
+	/* too expensive to call keep_alive() here */
 
 	/* Danger!!!! BROKEN!!!! */
 	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
@@ -199,27 +202,33 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 
 	swjdp->ack = swjdp->ack & 0x7;
 
-	long long then=timeval_ms();
-	while (swjdp->ack != 2)
+	if (swjdp->ack != 2)
 	{
-		if (swjdp->ack == 1)
+		long long then=timeval_ms();
+		while (swjdp->ack != 2)
 		{
-			if ((timeval_ms()-then) > 1000)
+			if (swjdp->ack == 1)
 			{
-				LOG_WARNING("Timeout (1000ms) waiting for ACK = OK/FAULT in SWJDP transaction");
+				if ((timeval_ms()-then) > 1000)
+				{
+					LOG_WARNING("Timeout (1000ms) waiting for ACK = OK/FAULT in SWJDP transaction");
+					return ERROR_JTAG_DEVICE_ERROR;
+				}
+			}
+			else
+			{
+				LOG_WARNING("Invalid ACK in SWJDP transaction");
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
-		}
-		else
-		{
-			LOG_WARNING("Invalid ACK in SWJDP transaction");
-			return ERROR_JTAG_DEVICE_ERROR;
-		}
 
-		scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-		if ((retval=jtag_execute_queue())!=ERROR_OK)
-			return retval;
-		swjdp->ack = swjdp->ack & 0x7;
+			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
+			if ((retval=jtag_execute_queue())!=ERROR_OK)
+				return retval;
+			swjdp->ack = swjdp->ack & 0x7;
+		}
+	} else
+	{
+		/* common code path avoids fn to timeval_ms() */
 	}
 
 	/* Check for STICKYERR and STICKYORUN */
