@@ -508,7 +508,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 		0x01, 0x3A,					/* subs	r2, r2, #1 */
 		0xED, 0xD1,					/* bne	write */
 									/* exit: */
-		0xFE, 0xE7,					/* b exit */		           	
+		0xFE, 0xE7,					/* b exit */
 		0x10, 0x20, 0x02, 0x40,		/* STM32_FLASH_CR:	.word 0x40022010 */
 		0x0C, 0x20, 0x02, 0x40		/* STM32_FLASH_SR:	.word 0x4002200C */
 	};
@@ -757,6 +757,21 @@ int stm32x_probe(struct flash_bank_s *bank)
 			num_pages = 512;
 		}
 	}
+	else if ((device_id & 0x7ff) == 0x418)
+	{
+		/* connectivity line density - we have 1k pages
+		 * 4 pages for a protection area */
+		page_size = 1024;
+		stm32x_info->ppage_size = 4;
+		
+		/* check for early silicon */
+		if (num_pages == 0xffff)
+		{
+			/* number of sectors incorrect on revZ */
+			LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 256k flash" );
+			num_pages = 256;
+		}
+	}
 	else
 	{
 		LOG_WARNING( "Cannot identify target as a STM32 family." );
@@ -870,6 +885,23 @@ int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 				snprintf(buf, buf_size, "Z");
 				break;
 			
+			default:
+				snprintf(buf, buf_size, "unknown");
+				break;
+		}
+	}
+	else if ((device_id & 0x7ff) == 0x418)
+	{
+		printed = snprintf(buf, buf_size, "stm32x (Connectivity) - Rev: ");
+		buf += printed;
+		buf_size -= printed;
+		
+		switch(device_id >> 16)
+		{
+			case 0x1000:
+				snprintf(buf, buf_size, "A");
+				break;
+
 			default:
 				snprintf(buf, buf_size, "unknown");
 				break;
