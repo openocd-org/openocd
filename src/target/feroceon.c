@@ -22,7 +22,7 @@
  ***************************************************************************/
 
 /*
- * Marvell Feroceon (88F5182, 88F5281) support.
+ * Marvell Feroceon support, including Orion and Kirkwood SOCs.
  *
  * The Feroceon core mimics the ARM926 ICE interface with the following
  * differences:
