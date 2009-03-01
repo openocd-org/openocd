@@ -530,7 +530,7 @@ int nand_probe(struct nand_device_s *device)
 			device->address_cycles = 5;
 		else
 		{
-			LOG_ERROR("BUG: small page NAND device with more than 32 GiB encountered");
+			LOG_ERROR("BUG: large page NAND device with more than 32 GiB encountered");
 			device->address_cycles = 6;
 		}
 	}
@@ -1345,7 +1345,7 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 		oob = NULL;
 		page = NULL;
 		duration_stop_measure(&duration, &duration_text);
-		command_print(cmd_ctx, "wrote file %s to NAND flash %s at offset 0x%8.8x in %s",
+		command_print(cmd_ctx, "wrote file %s to NAND flash %s up to offset 0x%8.8x in %s",
 			args[1], args[0], offset, duration_text);
 		free(duration_text);
 		duration_text = NULL;
