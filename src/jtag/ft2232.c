@@ -139,6 +139,7 @@ void sheevaplug_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
 void olimex_jtag_blink(void);
+void flyswatter_jtag_blink(void);
 void turtle_jtag_blink(void);
 
 ft2232_layout_t            ft2232_layouts[] =
@@ -150,7 +151,7 @@ ft2232_layout_t            ft2232_layouts[] =
 	{ "signalyzer",           usbjtag_init,              usbjtag_reset,      NULL                    },
 	{ "evb_lm3s811",          usbjtag_init,              usbjtag_reset,      NULL                    },
 	{ "olimex-jtag",          olimex_jtag_init,          olimex_jtag_reset,  olimex_jtag_blink       },
-	{ "flyswatter",           flyswatter_init,           flyswatter_reset,   NULL                    },
+	{ "flyswatter",           flyswatter_init,           flyswatter_reset,   flyswatter_jtag_blink   },
 	{ "turtelizer2",          turtle_init,               turtle_reset,       turtle_jtag_blink       },
 	{ "comstick",             comstick_init,             comstick_reset,     NULL                    },
 	{ "stm32stick",           stm32stick_init,           stm32stick_reset,   NULL                    },
@@ -2136,7 +2137,7 @@ int flyswatter_init(void)
 	high_output    = 0x00;
 	high_direction = 0x0c;
 
-	/* turn red LED1 on, LED2 off */
+	/* turn red LED3 on, LED2 off */
 	high_output |= 0x08;
 
 	/* initialize high port */
@@ -2350,6 +2351,19 @@ void olimex_jtag_blink(void)
 		/* set port pin low */
 		high_output |= 0x08;
 	}
+
+	BUFFER_ADD = 0x82;
+	BUFFER_ADD = high_output;
+	BUFFER_ADD = high_direction;
+}
+
+
+void flyswatter_jtag_blink(void)
+{
+	/*
+	 * Flyswatter has two LEDs connected to ACBUS2 and ACBUS3
+	 */
+	high_output ^= 0x0c;
 
 	BUFFER_ADD = 0x82;
 	BUFFER_ADD = high_output;
