@@ -569,7 +569,7 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 			target_buffer_set_u32(target, dcc_code_buf + i*4, dcc_code[i]);
 
 		/* write DCC code to working area */
-		if((retval = target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, dcc_size, dcc_code_buf)) != ERROR_OK)
+		if((retval = target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, dcc_size/4, dcc_code_buf)) != ERROR_OK)
 		{
 			return retval;
 		}
