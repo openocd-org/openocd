@@ -372,6 +372,27 @@ int nand_read_status(struct nand_device_s *device, u8 *status)
 	return ERROR_OK;
 }
 
+int nand_poll_ready(struct nand_device_s *device, int timeout)
+{
+	u8 status;
+
+	device->controller->command(device, NAND_CMD_STATUS);
+	do {
+		if (device->device->options & NAND_BUSWIDTH_16) {
+			u16 data;
+			device->controller->read_data(device, &data);
+			status = data & 0xff;
+		} else {
+			device->controller->read_data(device, &status);
+		}
+		if (status & NAND_STATUS_READY)
+			break;
+		alive_sleep(1);
+	} while (timeout--);
+
+	return (status & NAND_STATUS_READY) != 0;
+}
+
 int nand_probe(struct nand_device_s *device)
 {
 	u8 manufacturer_id, device_id;
@@ -648,9 +669,11 @@ int nand_erase(struct nand_device_s *device, int first_block, int last_block)
 		
 		/* Send erase confirm command */
 		device->controller->command(device, NAND_CMD_ERASE2);
-		
-		if (!device->controller->nand_ready(device, 1000))
-		{
+
+		retval = device->controller->nand_ready ?
+				device->controller->nand_ready(device, 1000) :
+				nand_poll_ready(device, 1000);
+		if (!retval) {
 			LOG_ERROR("timeout waiting for NAND flash block erase to complete");
 			return ERROR_NAND_OPERATION_TIMEOUT;
 		}
@@ -823,8 +846,12 @@ int nand_read_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 dat
 		device->controller->command(device, NAND_CMD_READSTART);
 	}
 	
-	if (!device->controller->nand_ready(device, 100))
-		return ERROR_NAND_OPERATION_TIMEOUT;
+	if (device->controller->nand_ready) {
+		if (!device->controller->nand_ready(device, 100))
+			return ERROR_NAND_OPERATION_TIMEOUT;
+	} else {
+		alive_sleep(1);
+	}
 	
 	if (data)
 	{
@@ -977,7 +1004,10 @@ int nand_write_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 da
 	
 	device->controller->command(device, NAND_CMD_PAGEPROG);
 	
-	if (!device->controller->nand_ready(device, 100))
+	retval = device->controller->nand_ready ?
+			device->controller->nand_ready(device, 100) :
+			nand_poll_ready(device, 100);
+	if (!retval)
 		return ERROR_NAND_OPERATION_TIMEOUT;
 	
 	if ((retval = nand_read_status(device, &status)) != ERROR_OK)
