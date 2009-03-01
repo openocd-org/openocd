@@ -287,7 +287,7 @@ int nand_init(struct command_context_s *cmd_ctx)
 		register_command(cmd_ctx, nand_cmd, "dump", handle_nand_dump_command, COMMAND_EXEC,
 						 "dump from NAND flash device <num> <filename> <offset> <size> [options]");
 		register_command(cmd_ctx, nand_cmd, "write", handle_nand_write_command, COMMAND_EXEC,
-						 "write to NAND flash device <num> <filename> <offset> [options]");
+						 "write to NAND flash device <num> <filename> <offset> [oob_raw|oob_only]");
 		register_command(cmd_ctx, nand_cmd, "raw_access", handle_nand_raw_access_command, COMMAND_EXEC,
 						 "raw access to NAND flash device <num> ['enable'|'disable']");
 	}
@@ -1254,7 +1254,6 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 		u8 *oob = NULL;
 		u32 oob_size = 0;
 			
-		duration_start_measure(&duration);
 		offset = strtoul(args[2], NULL, 0);
 		
 		if (argc > 3)
@@ -1269,10 +1268,13 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 				else
 				{
 					command_print(cmd_ctx, "unknown option: %s", args[i]);
+					return ERROR_COMMAND_SYNTAX_ERROR;
 				}
 			}
 		}
 		
+		duration_start_measure(&duration);
+
 		if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK)
 		{
 			return ERROR_OK;
