@@ -61,6 +61,7 @@ int nand_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_s
 /* NAND flash controller
  */
 extern nand_flash_controller_t lpc3180_nand_controller;
+extern nand_flash_controller_t orion_nand_controller;
 extern nand_flash_controller_t s3c2410_nand_controller;
 extern nand_flash_controller_t s3c2412_nand_controller;
 extern nand_flash_controller_t s3c2440_nand_controller;
@@ -71,6 +72,7 @@ extern nand_flash_controller_t s3c2443_nand_controller;
 nand_flash_controller_t *nand_flash_controllers[] =
 {
 	&lpc3180_nand_controller,
+	&orion_nand_controller,
 	&s3c2410_nand_controller,
 	&s3c2412_nand_controller,
 	&s3c2440_nand_controller,
