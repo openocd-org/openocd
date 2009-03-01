@@ -124,6 +124,7 @@ int  turtle_init(void);
 int  comstick_init(void);
 int  stm32stick_init(void);
 int  axm0432_jtag_init(void);
+int sheevaplug_init(void);
 
 /* reset procedures for supported layouts */
 void usbjtag_reset(int trst, int srst);
@@ -134,6 +135,7 @@ void turtle_reset(int trst, int srst);
 void comstick_reset(int trst, int srst);
 void stm32stick_reset(int trst, int srst);
 void axm0432_jtag_reset(int trst, int srst);
+void sheevaplug_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
 void olimex_jtag_blink(void);
@@ -153,6 +155,7 @@ ft2232_layout_t            ft2232_layouts[] =
 	{ "comstick",             comstick_init,             comstick_reset,     NULL                    },
 	{ "stm32stick",           stm32stick_init,           stm32stick_reset,   NULL                    },
 	{ "axm0432_jtag",         axm0432_jtag_init,         axm0432_jtag_reset, NULL                    },
+	{"sheevaplug",            sheevaplug_init,           sheevaplug_reset,   NULL                    },
 	{ NULL,                   NULL,                      NULL },
 };
 
@@ -1253,6 +1256,26 @@ void stm32stick_reset(int trst, int srst)
 }
 
 
+
+void sheevaplug_reset(int trst, int srst)
+{
+	if (trst == 1)
+		high_output &= ~nTRST;
+	else if (trst == 0)
+		high_output |= nTRST;
+
+	if (srst == 1)
+		high_output &= ~nSRSTnOE;
+	else if (srst == 0)
+		high_output |= nSRSTnOE;
+
+	/* command "set data bits high byte" */
+	BUFFER_ADD = 0x82;
+	BUFFER_ADD = high_output;
+	BUFFER_ADD = high_direction;
+	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
+}
+
 int ft2232_execute_queue()
 {
 	jtag_command_t* cmd = jtag_command_queue;   /* currently processed command */
@@ -2260,6 +2283,57 @@ int stm32stick_init(void)
 	return ERROR_OK;
 }
 
+
+int sheevaplug_init(void)
+{
+	u8 buf[3];
+	u32 bytes_written;
+
+	low_output = 0x08;
+	low_direction = 0x1b;
+
+	/* initialize low byte for jtag */
+	buf[0] = 0x80; /* command "set data bits low byte" */
+	buf[1] = low_output; /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
+	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in */
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'sheevaplug' layout"); 
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	nTRSTnOE = 0x1;
+	nTRST = 0x02;
+	nSRSTnOE = 0x4;
+	nSRST = 0x08;
+
+	high_output = 0x0;
+	high_direction = 0x0f;
+
+	/* nTRST is always push-pull */
+	high_output &= ~nTRSTnOE;
+	high_output |= nTRST;
+
+	/* nSRST is always open-drain */
+	high_output |= nSRSTnOE;
+	high_output &= ~nSRST;
+
+	/* initialize high port */
+	buf[0] = 0x82; /* command "set data bits high byte" */
+	buf[1] = high_output; /* value */
+	buf[2] = high_direction;   /* all outputs - xRST */
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'sheevaplug' layout"); 
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
 
 void olimex_jtag_blink(void)
 {
