@@ -76,6 +76,7 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int handle_test_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -1329,6 +1330,7 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "load_image", handle_load_image_command, COMMAND_EXEC, "load_image <file> <address> ['bin'|'ihex'|'elf'|'s19'] [min_address] [max_length]");
 	register_command(cmd_ctx,  NULL, "dump_image", handle_dump_image_command, COMMAND_EXEC, "dump_image <file> <address> <size>");
 	register_command(cmd_ctx,  NULL, "verify_image", handle_verify_image_command, COMMAND_EXEC, "verify_image <file> [offset] [type]");
+	register_command(cmd_ctx,  NULL, "test_image", handle_test_image_command, COMMAND_EXEC, "test_image <file> [offset] [type]");
 
 	if((retval = target_request_register_commands(cmd_ctx)) != ERROR_OK)
 		return retval;
@@ -2161,7 +2163,7 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_verify_image_command_internal(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, int verify)
 {
 	u8 *buffer;
 	u32 buf_cnt;
@@ -2225,55 +2227,61 @@ int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			break;
 		}
 
-		/* calculate checksum of image */
-		image_calculate_checksum( buffer, buf_cnt, &checksum );
-
-		retval = target_checksum_memory(target, image.sections[i].base_address, buf_cnt, &mem_checksum);
-		if( retval != ERROR_OK )
+		if (verify)
 		{
-			free(buffer);
-			break;
-		}
+			/* calculate checksum of image */
+			image_calculate_checksum( buffer, buf_cnt, &checksum );
 
-		if( checksum != mem_checksum )
-		{
-			/* failed crc checksum, fall back to a binary compare */
-			u8 *data;
-
-			command_print(cmd_ctx, "checksum mismatch - attempting binary compare");
-
-			data = (u8*)malloc(buf_cnt);
-
-			/* Can we use 32bit word accesses? */
-			int size = 1;
-			int count = buf_cnt;
-			if ((count % 4) == 0)
+			retval = target_checksum_memory(target, image.sections[i].base_address, buf_cnt, &mem_checksum);
+			if( retval != ERROR_OK )
 			{
-				size *= 4;
-				count /= 4;
+				free(buffer);
+				break;
 			}
-			retval = target->type->read_memory(target, image.sections[i].base_address, size, count, data);
-			if (retval == ERROR_OK)
+
+			if( checksum != mem_checksum )
 			{
-				int t;
-				for (t = 0; t < buf_cnt; t++)
+				/* failed crc checksum, fall back to a binary compare */
+				u8 *data;
+
+				command_print(cmd_ctx, "checksum mismatch - attempting binary compare");
+
+				data = (u8*)malloc(buf_cnt);
+
+				/* Can we use 32bit word accesses? */
+				int size = 1;
+				int count = buf_cnt;
+				if ((count % 4) == 0)
 				{
-					if (data[t] != buffer[t])
+					size *= 4;
+					count /= 4;
+				}
+				retval = target->type->read_memory(target, image.sections[i].base_address, size, count, data);
+				if (retval == ERROR_OK)
+				{
+					int t;
+					for (t = 0; t < buf_cnt; t++)
 					{
-						command_print(cmd_ctx, "Verify operation failed address 0x%08x. Was 0x%02x instead of 0x%02x\n", t + image.sections[i].base_address, data[t], buffer[t]);
-						free(data);
-						free(buffer);
-						retval=ERROR_FAIL;
-						goto done;
-					}
-					if ((t%16384)==0)
-					{
-						keep_alive();
+						if (data[t] != buffer[t])
+						{
+							command_print(cmd_ctx, "Verify operation failed address 0x%08x. Was 0x%02x instead of 0x%02x\n", t + image.sections[i].base_address, data[t], buffer[t]);
+							free(data);
+							free(buffer);
+							retval=ERROR_FAIL;
+							goto done;
+						}
+						if ((t%16384)==0)
+						{
+							keep_alive();
+						}
 					}
 				}
-			}
 
-			free(data);
+				free(data);
+			}
+		} else
+		{
+			command_print(cmd_ctx, "address 0x%08x length 0x%08x", image.sections[i].base_address, buf_cnt);
 		}
 
 		free(buffer);
@@ -2296,6 +2304,16 @@ done:
 	image_close(&image);
 
 	return retval;
+}
+
+int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	return handle_verify_image_command_internal(cmd_ctx, cmd, args, argc, 1);
+}
+
+int handle_test_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	return handle_verify_image_command_internal(cmd_ctx, cmd, args, argc, 0);
 }
 
 int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -4198,17 +4216,18 @@ int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	int i;
 	int ms=timeval_ms();
 	int size=0;
+	int retval=ERROR_OK;
 	for (i=0; i<fastload_num;i++)
 	{
-		int retval;
 		target_t *target = get_current_target(cmd_ctx);
-		if ((retval = target_write_buffer(target, fastload[i].address, fastload[i].length, fastload[i].data)) != ERROR_OK)
+		command_print(cmd_ctx, "Write to 0x%08x, length 0x%08x", fastload[i].address, fastload[i].length);
+		if (retval==ERROR_OK)
 		{
-			return retval;
+			retval = target_write_buffer(target, fastload[i].address, fastload[i].length, fastload[i].data);
 		}
 		size+=fastload[i].length;
 	}
 	int after=timeval_ms();
 	command_print(cmd_ctx, "Loaded image %f kBytes/s", (float)(size/1024.0)/((float)(after-ms)/1000.0));
-	return ERROR_OK;
+	return retval;
 }
