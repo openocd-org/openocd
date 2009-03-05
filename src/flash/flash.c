@@ -727,6 +727,7 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 	u32 count;
 	u8 chunk[1024];
 	u32 wrote = 0;
+	u32 cur_size = 0;
 	int chunk_count;
 	char *duration_text;
 	duration_t duration;
@@ -786,9 +787,9 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 	duration_start_measure(&duration);
 
-	for (wrote=0; wrote<(count*wordsize); wrote+=sizeof(chunk))
+	for (wrote=0; wrote<(count*wordsize); wrote += cur_size)
 	{
-		int cur_size = MIN( (count*wordsize - wrote) , 1024 );
+		cur_size = MIN( (count*wordsize - wrote), sizeof(chunk) );
 		flash_bank_t *bank;
 		bank = get_flash_bank_by_addr(target, address);
 		if(bank == NULL)
@@ -798,7 +799,6 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 		err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
 		if (err!=ERROR_OK)
 			return err;
-		wrote += cur_size;
 	}
 
 	if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
