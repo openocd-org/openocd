@@ -1759,6 +1759,16 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		return retval;
 	}
 
+	if (argc == 1)
+	{
+		int wait;
+		char *end;
+
+		wait = strtoul(args[0], &end, 0);
+		if (!*end && !wait)
+			return ERROR_OK;
+	}
+
 	return handle_wait_halt_command(cmd_ctx, cmd, args, argc);
 }
 
