@@ -97,6 +97,7 @@ int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char* cmd, 
 static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd);
 
 
+char *        ft2232_device_desc_A = NULL;
 char*         ft2232_device_desc = NULL;
 char*         ft2232_serial  = NULL;
 char*         ft2232_layout  = NULL;
@@ -1570,7 +1571,28 @@ static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int* try_more)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	if ( ( status = FT_OpenEx(openex_string, openex_flags, &ftdih) ) != FT_OK )
+	status = FT_OpenEx(openex_string, openex_flags, &ftdih);
+	if( status != FT_OK ){
+		// under Win32, the FTD2XX driver appends an "A" to the end
+		// of the description, if we tried by the desc, then
+		// try by the alternate "A" description.
+		if( openex_string == ft2232_device_desc ){
+			// Try the alternate method.
+			openex_string = ft2232_device_desc_A;
+			status = FT_OpenEx(openex_string, openex_flags, &ftdih);
+			if( status == FT_OK ){
+				// yea, the "alternate" method worked!
+			} else {
+				// drat, give the user a meaningfull message.
+				// telling the use we tried *BOTH* methods.
+				LOG_WARNING("Unable to open FTDI Device tried: '%s' and '%s'\n",
+							ft2232_device_desc,
+							ft2232_device_desc_A );
+			}
+		}
+	}
+
+	if ( status != FT_OK )
 	{
 		DWORD num_devices;
 
@@ -2414,9 +2436,29 @@ int ft2232_quit(void)
 
 int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
 {
+	char *cp;
+	char buf[200];
 	if (argc == 1)
 	{
 		ft2232_device_desc = strdup(args[0]);
+		cp = strchr( ft2232_device_desc, 0 );
+		// under Win32, the FTD2XX driver appends an "A" to the end
+		// of the description, this examines the given desc
+		// and creates the 'missing' _A or non_A variable.
+		if( (cp[-1] == 'A') && (cp[-2]==' ') ){
+			// it was, so make this the "A" version.
+			ft2232_device_desc_A = ft2232_device_desc;
+			// and *CREATE* the non-A version.
+			strcpy( buf, ft2232_device_desc );
+			cp = strchr( buf, 0 );
+			cp[-2] = 0;
+			ft2232_device_desc =  strdup( buf );
+		} else {
+			// <space>A not defined
+			// so create it
+			sprintf( buf, "%s A", ft2232_device_desc );
+			ft2232_device_desc_A = strdup( buf );
+		}
 	}
 	else
 	{
