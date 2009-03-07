@@ -672,6 +672,7 @@ command_context_t* command_init()
 {
 	command_context_t* context = malloc(sizeof(command_context_t));
 	extern const char startup_tcl[];
+	const char *HostOs;
 
 	context->mode = COMMAND_EXEC;
 	context->commands = NULL;
@@ -686,6 +687,28 @@ command_context_t* command_init()
 	/* Add all the Jim core commands */
 	Jim_RegisterCoreCommands(interp);
 #endif
+
+#if defined( _MSC_VER )
+	/* WinXX - is generic, the forward
+	 * looking problem is this:
+	 * 
+	 *   "win32" or "win64"
+	 *
+	 * "winxx" is generic.
+	 */
+	HostOs = "winxx";
+#elif defined( __LINUX__)
+	HostOs = "linux";
+#elif defined( __DARWIN__ )
+	HostOs = "darwin";
+#elif defined( __CYGWIN__ )
+	HostOs = "cygwin";
+#elif defined( __MINGW32__ )
+	HostOs = "mingw32";
+#else
+	HostOs = "other";
+#endif
+	Jim_SetGlobalVariableStr( interp, "ocd_HOSTOS", Jim_NewStringObj( interp, HostOs , strlen(HostOs)) );
 
 	Jim_CreateCommand(interp, "ocd_find", jim_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);

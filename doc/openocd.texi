@@ -3063,9 +3063,10 @@ To verify any flash programming the GDB command @option{compare-sections}
 can be used.
 
 @node TCL scripting API
-@chapter TCL scripting API
+@chapter TCL scripts
 @cindex TCL scripting API
-API rules
+@cindex TCL scripts
+@section API Rules
 
 The commands are stateless. E.g. the telnet command line has a concept
 of currently active target, the Tcl API proc's take this sort of state
@@ -3102,7 +3103,11 @@ Thus, to get the names of the associative array is easy:
 Lists returned must be relatively small. Otherwise a range
 should be passed in to the proc in question.
 
-Low level commands are prefixed with "openocd_", e.g. openocd_flash_banks
+@section Internal Low Level Commands
+
+By Low level, the intent is a human would not directly use these commands.
+
+Low level commands are (should be) prefixed with "openocd_", e.g. openocd_flash_banks
 is the low level API upon which "flash banks" is implemented.
 
 @itemize @bullet
@@ -3121,6 +3126,24 @@ OpenOCD commands can consist of two words, e.g. "flash banks". The
 startup.tcl "unknown" proc will translate this into a tcl proc
 called "flash_banks".
 
+@section OpenOCD specific Global Variables
+
+@subsection HostOS
+
+Real TCL has ::tcl_platform(), and platform::identify, and many other
+variables. JimTCL, as implimented in OpenOCD creates $HostOS which
+holds one of the following values.
+
+@itemize bullet 
+@item @b{winxx}    Built using Microsoft Visual Studio
+@item @b{linux}    Linux is the underlying operating sytem
+@item @b{darwin}   Darwin (mac-os) is the underlying operating sytem.
+@item @b{cygwin}   Running under Cygwin
+@item @b{mingw32}  Running under MingW32
+@item @b{other}    Unknown, none of the above.
+@end itemize
+
+Note: 'winxx' was choosen because today (March-2009) no distinction is made between Win32 and Win64.
 
 @node Upgrading
 @chapter Deprecated/Removed Commands
