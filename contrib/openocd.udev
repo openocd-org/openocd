@@ -21,5 +21,8 @@ SYSFS{idVendor}=="1366", SYSFS{idProduct}=="0101", MODE="664", GROUP="plugdev"
 # Raisonance RLink
 SYSFS{idVendor}=="138e", SYSFS{idProduct}=="9000", MODE="664", GROUP="plugdev"
 
+# Olimex ARM-JTAG-EW
+SYSFS{idVendor}=="15ba", SYSFS{idProduct}=="001e", MODE="664", GROUP="plugdev"
+
 LABEL="openocd_rules_end"
 

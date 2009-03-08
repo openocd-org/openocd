@@ -265,6 +265,8 @@ should be included:
 @option{--enable-vsllink}
 @item
 @option{--enable-rlink} - Raisonance.com dongle.
+@item
+@option{--enable-arm-jtag-ew} - Olimex ARM-JTAG-EW dongle.
 @end itemize
 
 @section Parallel Port Dongles
@@ -445,6 +447,9 @@ Raisonance has an adapter called @b{RLink}.  It exists in a stripped-down form o
 
 @item @b{Versaloon-Link}
 @* Link: @url{http://www.simonqian.com/en/Versaloon}
+
+@item @b{ARM-JTAG-EW}
+@* Link: @url{http://www.olimex.com/dev/arm-jtag-ew.html}
 @end itemize
 
 @section IBM PC Parallel Printer Port Based
@@ -1144,6 +1149,10 @@ parport_port 0xc8b8
 parport_cable wiggler
 jtag_speed 0
 @end verbatim
+@b{ARM-JTAG-EW}
+@verbatim
+interface arm-jtag-ew
+@end verbatim
 @section Interface Conmmand
 
 The interface command tells OpenOCD what type of jtag dongle you are
@@ -1192,6 +1201,9 @@ libusb.
 
 @item @b{vsllink}
 @* vsllink is part of Versaloon which is a versatile USB programmer.
+
+@item @b{arm-jtag-ew}
+@* Olimex ARM-JTAG-EW usb adapter
 @comment - End parameters
 @end itemize
 @comment - End Interface
