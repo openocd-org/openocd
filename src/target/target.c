@@ -927,23 +927,12 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 {
 
 	register_command(cmd_ctx, NULL, "targets", handle_targets_command, COMMAND_EXEC, "change the current command line target (one parameter) or lists targets (with no parameter)");
-	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "translate a virtual address into a physical address");
-	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "profiling samples the CPU PC");
 
-	register_command(cmd_ctx, NULL, "fast_load_image", handle_fast_load_image_command, COMMAND_ANY,
-			"same args as load_image, image stored in memory - mainly for profiling purposes");
-
-	register_command(cmd_ctx, NULL, "fast_load", handle_fast_load_command, COMMAND_ANY,
-			"loads active fast load image to current target - mainly for profiling purposes");
 
 
 
 	register_jim(cmd_ctx, "target", jim_target, "configure target" );
 
-
-	/* script procedures */
-	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing");
-	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values");
 	return ERROR_OK;
 }
 
@@ -1305,6 +1294,21 @@ int target_write_u8(struct target_s *target, u32 address, u8 value)
 int target_register_user_commands(struct command_context_s *cmd_ctx)
 {
 	int retval = ERROR_OK;
+
+
+	/* script procedures */
+	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "profiling samples the CPU PC");
+	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing");
+	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values");
+
+	register_command(cmd_ctx, NULL, "fast_load_image", handle_fast_load_image_command, COMMAND_ANY,
+			"same args as load_image, image stored in memory - mainly for profiling purposes");
+
+	register_command(cmd_ctx, NULL, "fast_load", handle_fast_load_command, COMMAND_ANY,
+			"loads active fast load image to current target - mainly for profiling purposes");
+
+
+	register_command(cmd_ctx, NULL, "virt2phys", handle_virt2phys_command, COMMAND_ANY, "translate a virtual address into a physical address");
 	register_command(cmd_ctx,  NULL, "reg", handle_reg_command, COMMAND_EXEC, "display or set a register");
 	register_command(cmd_ctx,  NULL, "poll", handle_poll_command, COMMAND_EXEC, "poll target state");
 	register_command(cmd_ctx,  NULL, "wait_halt", handle_wait_halt_command, COMMAND_EXEC, "wait for target halt [time (s)]");
