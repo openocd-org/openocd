@@ -3146,7 +3146,7 @@ Real TCL has ::tcl_platform(), and platform::identify, and many other
 variables. JimTCL, as implimented in OpenOCD creates $HostOS which
 holds one of the following values.
 
-@itemize bullet 
+@itemize @bullet 
 @item @b{winxx}    Built using Microsoft Visual Studio
 @item @b{linux}    Linux is the underlying operating sytem
 @item @b{darwin}   Darwin (mac-os) is the underlying operating sytem.
