@@ -46,8 +46,8 @@
 /* a quick way to just read back one byte */
 #define EP1_CMD_DTC_GET_CACHED_STATUS	(0x16)
 
-/* Writes upper 2 bits port D with argument */
-#define EP1_CMD_SET_PORTD_UPPER			(0x19)
+/* Writes upper 2 bits (SHDN and SEL) of port D with argument */
+#define EP1_CMD_SET_PORTD_VPP			(0x19)
 /* Writes lower 2 bits (BUSY and ERROR) of port D with argument */
 #define EP1_CMD_SET_PORTD_LEDS			(0x1a)
 

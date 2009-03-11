@@ -72,24 +72,39 @@
 #define DTC_STATUS_POLL_BYTE	(ST7_USB_BUF_EP0OUT + 0xff)
 
 
-/* Symbolic names for some pins */
-#define ST7_PA_NJTAG_TRST		ST7_PA1
-#define ST7_PA_NRLINK_RST		ST7_PA3
-#define ST7_PA_NLINE_DRIVER_ENABLE	ST7_PA5
-
-/* mask for negative-logic pins */
-#define ST7_PA_NUNASSERTED	(0	\
-	| ST7_PA_NJTAG_TRST	\
-	| ST7_PA_NRLINK_RST	\
-	| ST7_PA_NLINE_DRIVER_ENABLE	\
-)
-
 #define ST7_PD_NBUSY_LED		ST7_PD0
-#define ST7_PD_NERROR_LED		ST7_PD1
-#define ST7_PD_NRUN_LED			ST7_PD7
+#define ST7_PD_NRUN_LED			ST7_PD1
+/* low enables VPP at adapter header, high connects it to GND instead */
+#define ST7_PD_VPP_SEL			ST7_PD6
+/* low: VPP = 12v, high: VPP <= 5v */
+#define ST7_PD_VPP_SHDN			ST7_PD7
 
+/* These pins are connected together */
 #define ST7_PE_ADAPTER_SENSE_IN		ST7_PE3
 #define ST7_PE_ADAPTER_SENSE_OUT	ST7_PE4
+
+/* Symbolic mapping between port pins and numbered IO lines */
+#define ST7_PA_IO1	ST7_PA1
+#define ST7_PA_IO2	ST7_PA2
+#define ST7_PA_IO4	ST7_PA4
+#define ST7_PA_IO8	ST7_PA6
+#define ST7_PA_IO10	ST7_PA7
+#define ST7_PB_IO5	ST7_PB5
+#define ST7_PC_IO9	ST7_PC1
+#define ST7_PC_IO3	ST7_PC2
+#define ST7_PC_IO7	ST7_PC3
+#define ST7_PE_IO6	ST7_PE5
+
+/* Symbolic mapping between numbered IO lines and adapter signals */
+#define ST7_PA_RTCK	ST7_PA_IO0
+#define ST7_PA_NTRST	ST7_PA_IO1
+#define ST7_PC_TDI	ST7_PC_IO3
+#define ST7_PA_DBGRQ	ST7_PA_IO4
+#define ST7_PB_NSRST	ST7_PB_IO5
+#define ST7_PE_TMS	ST7_PE_IO6
+#define ST7_PC_TCK	ST7_PC_IO7
+#define ST7_PC_TDO	ST7_PC_IO9
+#define ST7_PA_DBGACK	ST7_PA_IO10
 
 static usb_dev_handle *pHDev;
 
@@ -986,37 +1001,92 @@ void rlink_reset(int trst, int srst)
 	u8			bitmap;
 	int			usb_err;
 
-	bitmap = ((~(ST7_PA_NLINE_DRIVER_ENABLE)) & ST7_PA_NUNASSERTED);
-
-	if(trst) {
-		bitmap &= ~ST7_PA_NJTAG_TRST;
-	}
-	if(srst) {
-		bitmap &= ~ST7_PA_NRLINK_RST;
-	}
-
+	/* Read port A for bit op */
 	usb_err = ep1_generic_commandl(
-		pHDev, 6,
-
-		EP1_CMD_MEMORY_WRITE,
+		pHDev, 4,
+		EP1_CMD_MEMORY_READ,
 			ST7_PADR >> 8,
 			ST7_PADR,
-			1,
-			bitmap,
-		EP1_CMD_DTC_GET_CACHED_STATUS
+			1
 	);
 	if(usb_err < 0) {
-		LOG_ERROR("%s: %s\n", __func__, usb_strerror());
+		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
 
 	usb_err = usb_bulk_read(
 		pHDev, USB_EP1IN_ADDR,
-		&bitmap, 1,
+		(char *)&bitmap, 1,
 		USB_TIMEOUT_MS
 	);
 	if(usb_err < 1) {
-		LOG_ERROR("%s: %s\n", __func__, usb_strerror());
+		LOG_ERROR("%s", usb_strerror());
+		exit(1);
+	}
+
+	if(trst) {
+		bitmap &= ~ST7_PA_NTRST;
+	} else {
+		bitmap |= ST7_PA_NTRST;
+	}
+
+	/* Write port A and read port B for bit op */
+	/* port B has no OR, and we want to emulate open drain on NSRST, so we initialize DR to 0 and assert NSRST by setting DDR to 1. */
+	usb_err = ep1_generic_commandl(
+		pHDev, 9,
+		EP1_CMD_MEMORY_WRITE,
+			ST7_PADR >> 8,
+			ST7_PADR,
+			1,
+		 	bitmap,
+		EP1_CMD_MEMORY_READ,
+			ST7_PBDDR >> 8,
+			ST7_PBDDR,
+			1
+	);
+	if(usb_err < 0) {
+		LOG_ERROR("%s", usb_strerror());
+		exit(1);
+	}
+
+	usb_err = usb_bulk_read(
+		pHDev, USB_EP1IN_ADDR,
+		(char *)&bitmap, 1,
+		USB_TIMEOUT_MS
+	);
+	if(usb_err < 1) {
+		LOG_ERROR("%s", usb_strerror());
+		exit(1);
+	}
+
+	if(srst) {
+		bitmap |= ST7_PB_NSRST;
+	} else {
+		bitmap &= ~ST7_PB_NSRST;
+	}
+
+	/* write port B and read dummy to ensure completion before returning */
+	usb_err = ep1_generic_commandl(
+		pHDev, 6,
+		EP1_CMD_MEMORY_WRITE,
+			ST7_PBDDR >> 8,
+			ST7_PBDDR,
+			1,
+			bitmap,
+		EP1_CMD_DTC_GET_CACHED_STATUS
+	);
+	if(usb_err < 0) {
+		LOG_ERROR("%s", usb_strerror());
+		exit(1);
+	}
+
+	usb_err = usb_bulk_read(
+		pHDev, USB_EP1IN_ADDR,
+		(char *)&bitmap, 1,
+		USB_TIMEOUT_MS
+	);
+	if(usb_err < 1) {
+		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
 }
@@ -1691,9 +1761,9 @@ int rlink_init(void)
 			ST7_PEDR >> 8,
 			ST7_PEDR,
 			3,
-			0x00,
-			ST7_PE_ADAPTER_SENSE_OUT,
-			ST7_PE_ADAPTER_SENSE_OUT,
+			0x00,						/* DR */
+			ST7_PE_ADAPTER_SENSE_OUT,	/* DDR */
+			ST7_PE_ADAPTER_SENSE_OUT,	/* OR */
 		EP1_CMD_MEMORY_READ,	/* Read back */
 			ST7_PEDR >> 8,
 			ST7_PEDR,
@@ -1725,9 +1795,9 @@ int rlink_init(void)
 			ST7_PEDR >> 8,
 			ST7_PEDR,
 			3,
-			0x00,
-			0x00,
-			0x00
+			0x00,	/* DR */
+			0x00,	/* DDR */
+			0x00	/* OR */
 	);
 
 	usb_bulk_read(
@@ -1741,24 +1811,40 @@ int rlink_init(void)
 		LOG_WARNING("target not plugged in\n");
 	}
 
-	/* float port A, make sure DTC is stopped, set upper 2 bits of port D, and set up port A */
+	/* float ports A and B */
 	ep1_generic_commandl(
-		pHDev, 15,
+		pHDev, 11,
 		EP1_CMD_MEMORY_WRITE,
 			ST7_PADDR >> 8,
 			ST7_PADDR,
 			2,
 			0x00,
 			0x00,
+		EP1_CMD_MEMORY_WRITE,
+			ST7_PBDDR >> 8,
+			ST7_PBDDR,
+			1,
+			0x00
+	);
+
+	/* make sure DTC is stopped, set VPP control, set up ports A and B */
+	ep1_generic_commandl(
+		pHDev, 14,
 		EP1_CMD_DTC_STOP,
-		EP1_CMD_SET_PORTD_UPPER,
-			~(ST7_PD_NRUN_LED),
+		EP1_CMD_SET_PORTD_VPP,
+			~(ST7_PD_VPP_SHDN),
 		EP1_CMD_MEMORY_WRITE,
 			ST7_PADR >> 8,
 			ST7_PADR,
 			2,
-			((~(ST7_PA_NLINE_DRIVER_ENABLE)) & ST7_PA_NUNASSERTED),
-			(ST7_PA_NLINE_DRIVER_ENABLE | ST7_PA_NRLINK_RST | ST7_PA_NJTAG_TRST)
+			((~(0)) & (ST7_PA_NTRST)),
+		 	(ST7_PA_NTRST),
+	/* port B has no OR, and we want to emulate open drain on NSRST, so we set DR to 0 here and later assert NSRST by setting DDR bit to 1. */
+		EP1_CMD_MEMORY_WRITE,
+			ST7_PBDR >> 8,
+			ST7_PBDR,
+			1,
+			0x00
 	);
 
 	/* set LED updating mode and make sure they're unlit */
@@ -1792,7 +1878,7 @@ int rlink_quit(void)
 		EP1_CMD_LEDUE_NONE,
 		EP1_CMD_SET_PORTD_LEDS,
 			~0,
-		EP1_CMD_SET_PORTD_UPPER,
+		EP1_CMD_SET_PORTD_VPP,
 			~0
 	);
 
