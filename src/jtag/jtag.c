@@ -2657,7 +2657,7 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	tap_state_t state;
+	int state;
 
 	if (argc < 1)
 	{
@@ -2665,14 +2665,13 @@ int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	}
 	else
 	{
-		for (state = 0; state < 16; state++)
-		{
-			if (strcmp(args[0], tap_state_name(state)) == 0)
-			{
-				jtag_add_end_state(state);
-				jtag_execute_queue();
-			}
+		state = tap_state_by_name( args[0] );
+		if( state < 0 ){
+			command_print( cmd_ctx, "Invalid state name: %s\n", args[0] );
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
+		jtag_add_end_state( (tap_state_t)(state));
+		jtag_execute_queue();
 	}
 	command_print(cmd_ctx, "current endstate: %s", tap_state_name(cmd_queue_end_state));
 
@@ -2735,11 +2734,40 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	int i;
 	scan_field_t *fields;
 	jtag_tap_t *tap;
+	int endstate;
 
 	if ((argc < 2) || (argc % 2))
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+
+	// optional "-endstate"
+	//          "statename"
+	// at the end of the arguments.
+	// assume none.
+	endstate = -1;
+	if( argc >= 4 ){
+		// have at least one pair of numbers.
+		// is last pair the magic text?
+		if( 0 == strcmp( "-endstate", args[ argc - 2 ] ) ){
+			const char *cpA;
+			const char *cpS;
+			cpA = args[ argc-1 ];
+			for( endstate = 0 ; endstate < 16 ; endstate++ ){
+				cpS = tap_state_name( endstate );
+				if( 0 == strcmp( cpA, cpS ) ){
+					break;
+				}
+			}
+			if( endstate >= 16 ){
+				return ERROR_COMMAND_SYNTAX_ERROR;
+			} else {
+				// found - remove the last 2 args
+				argc -= 2;
+			}
+		}
+	}
+
 
 	fields = malloc(sizeof(scan_field_t) * argc / 2);
 
@@ -2763,6 +2791,10 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	}
 
 	jtag_add_ir_scan(argc / 2, fields, -1);
+	// did we have an endstate?
+	if( endstate >= 0 ){
+		jtag_add_end_state(endstate);
+	}
 	jtag_execute_queue();
 
 	for (i = 0; i < argc / 2; i++)
@@ -2781,11 +2813,16 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 	int field_count = 0;
 	int i, e;
 	jtag_tap_t *tap;
+	int endstate;
 
 	/* args[1] = device
 	 * args[2] = num_bits
 	 * args[3] = hex string
 	 * ... repeat num bits and hex string ...
+	 * 
+	 * .. optionally:
+     *     args[N-2] = "-endstate"
+	 *     args[N-1] = statename
 	 */
 	if ((argc < 4) || ((argc % 2)!=0))
 	{
@@ -2793,14 +2830,55 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 		return JIM_ERR;
 	}
 
+	/* assume no endstate */
+	endstate = -1;
+	// validate arguments as numbers
+	e = JIM_OK;
 	for (i = 2; i < argc; i+=2)
 	{
 		long bits;
+		const char *cp;
+		
 
 		e = Jim_GetLong(interp, args[i], &bits);
-		if (e != JIM_OK)
+		/* If valid - try next arg */
+		if( e == JIM_OK ){
+			continue;
+		}
+
+		/* Not valid.. are we at the end? */
+		if ( ((i+2) != argc) ){
+			/* nope, then error */
 			return e;
-	}
+		}
+
+		/* it could be: "-endstate FOO" */
+
+		/* get arg as a string. */
+		cp = Jim_GetString( args[i], NULL );
+		/* is it the magic? */
+		if( 0 == strcmp( "-endstate", cp ) ){
+			/* is the statename valid? */
+			cp = Jim_GetString( args[i+1], NULL );
+
+			/* see if it is a valid state name */
+			endstate = tap_state_by_name(cp);
+			if( endstate < 0 ){
+				/* update the error message */
+				Jim_SetResult_sprintf(interp,"endstate: %s invalid", cp );
+			} else {
+				/* valid - so clear the error */
+				e = JIM_OK;
+				/* and remove the last 2 args */
+				argc -= 2;
+			}
+		}
+
+		/* Still an error? */
+		if( e != JIM_OK ){
+			return e; /* too bad */
+		} 
+	} /* validate args */
 
 	tap = jtag_TapByJimObj( interp, args[1] );
 	if( tap == NULL ){
@@ -2829,8 +2907,12 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 		fields[field_count].in_handler = NULL;
 		fields[field_count++].in_handler_priv = NULL;
 	}
-
+		
 	jtag_add_dr_scan(num_fields, fields, -1);
+	// did we get an end state?
+	if( endstate >= 0 ){
+		jtag_add_end_state( (tap_state_t)endstate );
+	}
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
 	{
@@ -3194,6 +3276,21 @@ const char* tap_state_name(tap_state_t state)
 	}
 
 	return ret;
+}
+
+int
+tap_state_by_name( const char *name )
+{
+	int x;
+	
+	for( x = 0 ; x < 16 ; x++ ){
+		/* be nice to the human */
+		if( 0 == strcasecmp( name, tap_state_name(x) ) ){
+			return x;
+		}
+	}
+	/* not found */
+	return -1;
 }
 
 /*-----</Cable Helper API>--------------------------------------*/
