@@ -31,7 +31,7 @@ Default implementation of procedures in tcl/procedures.tcl.
     is to ignore serial number and write a raw binary file
     to beginning of first flash. Target script can dictate
     file format and structure of serialnumber. Tcl allows
-    an argument to consit of e.g. a list so the structure of
+    an argument to consist of e.g. a list so the structure of
     the serial number is not limited to a single string.
   - reset handling. Precise control of how srst, trst & 
     tms is handled.

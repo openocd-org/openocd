@@ -215,8 +215,8 @@ All memory regions must have 2 things:
 		   LEN
 		   HUMAN
 		   TYPE
-		   RWX - the access ablity.
-		   WIDTH - the accessable width.
+		   RWX - the access ability.
+		   WIDTH - the accessible width.
 
         ie: Some regions of memory are not 'word' 
 	accessible.
