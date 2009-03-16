@@ -243,6 +243,10 @@ int cortex_m3_endreset_event(target_t *target)
 	swjdp_transaction_endcheck(swjdp);
 	
 	armv7m_invalidate_core_regs(target);
+	
+	/* make sure we have latest dhcsr flags */
+	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+	
 	return ERROR_OK;
 }
 
@@ -724,8 +728,12 @@ int cortex_m3_assert_reset(target_t *target)
 		/* Set/Clear C_MASKINTS in a separate operation */
 		if (cortex_m3->dcb_dhcsr & C_MASKINTS)
 			ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT);
-	
+
+		/* clear any debug flags before resuming */
 		cortex_m3_clear_halt(target);
+		
+		/* clear C_HALT in dhcsr reg */
+		cortex_m3_write_debug_halt_mask(target, 0, C_HALT);
 							
 		/* Enter debug state on reset, cf. end_reset_event() */	
 		ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
