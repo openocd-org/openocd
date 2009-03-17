@@ -27,6 +27,8 @@
 #include "config.h"
 #endif
 
+#include "replacements.h"
+
 #include "log.h"
 #include "configuration.h"
 #include "time_support.h"
@@ -36,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <stdarg.h>
 
 #define PRINT_MEM() 0

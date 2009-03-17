@@ -1450,17 +1450,18 @@ static int xscale_step_inner(struct target_s *target, int current, u32 address, 
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 
-	u32 current_pc, next_pc;
+	u32 next_pc;
 	int retval;
 	int i;
-
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
 	/* calculate PC of next instruction */
 	if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
 	{
-		u32 current_opcode;
+		u32 current_opcode, current_pc;
+		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+
 		target_read_u32(target, current_pc, &current_opcode);
 		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
 		return retval;

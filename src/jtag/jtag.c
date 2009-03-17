@@ -4,10 +4,10 @@
  *                                                                         *
  *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
- *
- *   Copyright (C) 2009 SoftPLC Corporation
- * 	 http://softplc.com
- *   dick@softplc.com
+ *                                                                         *
+ *   Copyright (C) 2009 SoftPLC Corporation                                *
+ * 	 http://softplc.com                                                    *
+ *   dick@softplc.com                                                      *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -43,7 +43,6 @@
    that implement the jtag_xxx() minidriver layer
 */
 int jtag_error=ERROR_OK;
-
 
 typedef struct cmd_queue_page_s
 {
@@ -220,7 +219,7 @@ void jtag_add_runtest(int num_cycles, tap_state_t endstate);
 void jtag_add_end_state(tap_state_t endstate);
 void jtag_add_sleep(u32 us);
 int jtag_execute_queue(void);
-
+int tap_state_by_name(const char *name);
 
 /* jtag commands */
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -276,14 +275,13 @@ int jtag_NumEnabledTaps(void)
 	return n;
 }
 
-
 jtag_tap_t *jtag_TapByString( const char *s )
 {
 	jtag_tap_t *t;
 	char *cp;
 
 	t = jtag_AllTaps();
-	// try name first
+	/* try name first */
 	while(t){
 		if( 0 == strcmp( t->dotted_name, s ) ){
 			break;
@@ -291,7 +289,7 @@ jtag_tap_t *jtag_TapByString( const char *s )
 			t = t->next_tap;
 		}
 	}
-	// backup plan is by number
+	/* backup plan is by number */
 	if( t == NULL ){
 		/* ok - is "s" a number? */
 		int n;
@@ -538,7 +536,6 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 	int nth_tap;
 	int scan_size = 0;
 
-
 	last_cmd = jtag_get_last_command_p();
 
 	/* allocate memory for a new list member */
@@ -560,7 +557,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 	for(;;){
 		int found = 0;
 
-		// do this here so it is not forgotten
+		/* do this here so it is not forgotten */
 		tap = jtag_NextEnabledTap(tap);
 		if( tap == NULL ){
 			break;
@@ -1510,7 +1507,7 @@ int jtag_examine_chain(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	// point at the 1st tap
+	/* point at the 1st tap */
 	tap = jtag_NextEnabledTap(NULL);
 	if( tap == NULL ){
 		LOG_ERROR("JTAG: No taps enabled?");
@@ -1714,9 +1711,7 @@ static Jim_Nvp nvp_config_opts[] = {
 	{ .name = NULL,          .value = -1 }
 };
 
-static int
-jtag_tap_configure_cmd( Jim_GetOptInfo *goi,
-		jtag_tap_t * tap)
+static int jtag_tap_configure_cmd( Jim_GetOptInfo *goi, jtag_tap_t * tap)
 {
 	Jim_Nvp *n;
 	Jim_Obj *o;
@@ -2741,14 +2736,14 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	// optional "-endstate"
-	//          "statename"
-	// at the end of the arguments.
-	// assume none.
+	/* optional "-endstate" */
+	/*          "statename" */
+	/* at the end of the arguments. */
+	/* assume none. */
 	endstate = -1;
 	if( argc >= 4 ){
-		// have at least one pair of numbers.
-		// is last pair the magic text?
+		/* have at least one pair of numbers. */
+		/* is last pair the magic text? */
 		if( 0 == strcmp( "-endstate", args[ argc - 2 ] ) ){
 			const char *cpA;
 			const char *cpS;
@@ -2762,12 +2757,11 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 			if( endstate >= 16 ){
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			} else {
-				// found - remove the last 2 args
+				/* found - remove the last 2 args */
 				argc -= 2;
 			}
 		}
 	}
-
 
 	fields = malloc(sizeof(scan_field_t) * argc / 2);
 
@@ -2791,7 +2785,7 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	}
 
 	jtag_add_ir_scan(argc / 2, fields, -1);
-	// did we have an endstate?
+	/* did we have an endstate? */
 	if( endstate >= 0 ){
 		jtag_add_end_state(endstate);
 	}
@@ -2819,9 +2813,9 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 	 * args[2] = num_bits
 	 * args[3] = hex string
 	 * ... repeat num bits and hex string ...
-	 * 
+	 *
 	 * .. optionally:
-     *     args[N-2] = "-endstate"
+	*     args[N-2] = "-endstate"
 	 *     args[N-1] = statename
 	 */
 	if ((argc < 4) || ((argc % 2)!=0))
@@ -2832,13 +2826,12 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 
 	/* assume no endstate */
 	endstate = -1;
-	// validate arguments as numbers
+	/* validate arguments as numbers */
 	e = JIM_OK;
 	for (i = 2; i < argc; i+=2)
 	{
 		long bits;
 		const char *cp;
-		
 
 		e = Jim_GetLong(interp, args[i], &bits);
 		/* If valid - try next arg */
@@ -2877,7 +2870,7 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 		/* Still an error? */
 		if( e != JIM_OK ){
 			return e; /* too bad */
-		} 
+		}
 	} /* validate args */
 
 	tap = jtag_TapByJimObj( interp, args[1] );
@@ -2907,9 +2900,9 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 		fields[field_count].in_handler = NULL;
 		fields[field_count++].in_handler_priv = NULL;
 	}
-		
+
 	jtag_add_dr_scan(num_fields, fields, -1);
-	// did we get an end state?
+	/* did we get an end state? */
 	if( endstate >= 0 ){
 		jtag_add_end_state( (tap_state_t)endstate );
 	}
@@ -3009,7 +3002,6 @@ void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
 	}
 }
 
-
 /*-----<Cable Helper API>---------------------------------------*/
 
 /*  these Cable Helper API functions are all documented in the jtag.h header file,
@@ -3084,7 +3076,6 @@ int tap_move_ndx( tap_state_t astate )
 
 	return ndx;
 }
-
 
 int tap_get_tms_path( tap_state_t from, tap_state_t to )
 {
@@ -3278,11 +3269,10 @@ const char* tap_state_name(tap_state_t state)
 	return ret;
 }
 
-int
-tap_state_by_name( const char *name )
+int tap_state_by_name( const char *name )
 {
 	int x;
-	
+
 	for( x = 0 ; x < 16 ; x++ ){
 		/* be nice to the human */
 		if( 0 == strcasecmp( name, tap_state_name(x) ) ){
