@@ -128,7 +128,11 @@ int handle_trace_history_command(struct command_context_s *cmd_ctx, char *cmd, c
 		int i;
 		int first = 0;
 		int last = trace->trace_history_pos;
-		
+
+		if ( !trace->trace_history_size ) {
+			command_print(cmd_ctx, "trace history buffer is not allocated");
+			return ERROR_OK;
+		}
 		if (trace->trace_history_overflowed)
 		{
 			first = trace->trace_history_pos;
