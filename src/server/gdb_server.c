@@ -2387,7 +2387,7 @@ int gdb_register_commands(command_context_t *command_context)
 	register_command(command_context, NULL, "gdb_report_data_abort", handle_gdb_report_data_abort_command,
 			COMMAND_CONFIG, "enable or disable report data");
 	register_command(command_context, NULL, "gdb_breakpoint_override", handle_gdb_breakpoint_override_command,
-			COMMAND_EXEC, "hard/soft/disabled - force breakpoint type for gdb 'break' commands."
+			COMMAND_EXEC, "hard/soft/disable - force breakpoint type for gdb 'break' commands."
 			"The raison d'etre for this option is to support GDB GUI's without "
 			"a hard/soft breakpoint concept where the default OpenOCD behaviour "
 			"is not sufficient");

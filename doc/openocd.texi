@@ -1083,7 +1083,7 @@ first target will be gdb_port, the second target will listen on gdb_port + 1, an
 
 @section GDB Items
 @itemize @bullet
-@item @b{gdb_breakpoint_override} <@var{hard|soft|disabled}>
+@item @b{gdb_breakpoint_override} <@var{hard|soft|disable}>
 @cindex gdb_breakpoint_override
 @anchor{gdb_breakpoint_override}
 @*Force breakpoint type for gdb 'break' commands.
@@ -1097,7 +1097,7 @@ the same issue.
 
 @item @b{gdb_detach} <@var{resume|reset|halt|nothing}>
 @cindex gdb_detach
-@*Configures what OpenOCD will do when gdb detaches from the daeman.
+@*Configures what OpenOCD will do when gdb detaches from the daemon.
 Default behaviour is <@var{resume}>
 
 @item @b{gdb_memory_map} <@var{enable|disable}>
