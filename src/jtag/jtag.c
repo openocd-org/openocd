@@ -2391,9 +2391,9 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				   args[0],
 				   args[1],
 				   args[2] );
-	command_print( cmd_ctx, "Example: STM32 has 2 taps, the cortexM3(len4) + boundryscan(len5)");
-	command_print( cmd_ctx, "jtag newtap stm32 cortexm3  ....., thus creating the tap: \"stm32.cortexm3\"");
-	command_print( cmd_ctx, "jtag newtap stm32 boundry  ....., and the tap: \"stm32.boundery\"");
+	command_print( cmd_ctx, "Example: STM32 has 2 taps, the cortexM3(len4) + boundaryscan(len5)");
+	command_print( cmd_ctx, "jtag newtap stm32 cortexm3 ....., thus creating the tap: \"stm32.cortexm3\"");
+	command_print( cmd_ctx, "jtag newtap stm32 boundary ....., and the tap: \"stm32.boundary\"");
 	command_print( cmd_ctx, "And then refer to the taps by the dotted name.");
 
 	newargs[0] = Jim_NewStringObj( interp, "jtag", -1   );
