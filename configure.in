@@ -80,7 +80,7 @@ AC_ARG_WITH(ftd2xx,
 # Option Given.
 cat << __EOF__
 
-The option: --with-ftd2xx=<PATH> has been removed replaced.
+The option: --with-ftd2xx=<PATH> has been removed.
 On Linux, the new option is:
   
   --with-ftd2xx-linux-tardir=/path/to/files
