@@ -818,7 +818,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 	}
 	
 	/* CLZ */
-	if ((opcode & 0x0060000f0) == 0x00300010)
+	if ((opcode & 0x006000f0) == 0x00600010)
 	{
 		u8 Rm, Rd;
 		instruction->type = ARM_CLZ;
@@ -829,8 +829,8 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 				 address, opcode, COND(opcode), Rd, Rm);
 	}
 	
-	/* BLX */
-	if ((opcode & 0x0060000f0) == 0x00200030)
+	/* BLX(2) */
+	if ((opcode & 0x006000f0) == 0x00200030)
 	{
 		u8 Rm;
 		instruction->type = ARM_BLX;
