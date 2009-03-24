@@ -2871,9 +2871,9 @@ encoding of the [M4:M0] bits of the PSR.
 OpenOCD can handle certain target requests, currently debugmsg are only supported for arm7_9 and cortex_m3.
 See libdcc in the contrib dir for more details.
 @itemize @bullet
-@item @b{target_request debugmsgs} <@var{enable}|@var{disable}>
+@item @b{target_request debugmsgs} <@var{enable}|@var{disable}|@var{charmsg}>
 @cindex target_request debugmsgs
-@*Enable/disable target debugmsgs requests. debugmsgs enable messages to be sent to the debugger while the target is running.
+@*Enable/disable target debugmsgs requests. debugmsgs enable messages to be sent to the debugger while the target is running. @var{charmsg} recives the message like linux kernel ``Kernel low-level debugging via EmbeddedICE DCC channel'' option way.
 @end itemize
 
 @node JTAG Commands

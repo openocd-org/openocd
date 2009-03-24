@@ -39,6 +39,7 @@
 #include <string.h>
 
 command_t *target_request_cmd = NULL;
+static int charmsg_mode = 0;
 
 int target_asciimsg(target_t *target, u32 length)
 {
@@ -119,7 +120,11 @@ int target_hexmsg(target_t *target, int size, u32 length)
 int target_request(target_t *target, u32 request)
 {
 	target_req_cmd_t target_req_cmd = request & 0xff;
-	
+
+	if ( charmsg_mode ) {
+		target_charmsg(target, target_req_cmd );
+		return ERROR_OK;
+	}
 	switch (target_req_cmd)
 	{
 		case TARGET_REQ_TRACEMSG:
@@ -268,7 +273,7 @@ int handle_target_request_debugmsgs_command(struct command_context_s *cmd_ctx, c
 
 	if (argc > 0)
 	{
-		if (!strcmp(args[0], "enable"))
+		if (!strcmp(args[0], "enable") || !strcmp(args[0], "charmsg"))
 		{
 			/* don't register if this command context is already receiving */
 			if (!receiving)
@@ -276,6 +281,7 @@ int handle_target_request_debugmsgs_command(struct command_context_s *cmd_ctx, c
 				receiving = 1;
 				add_debug_msg_receiver(cmd_ctx, target);
 			}
+			charmsg_mode = !strcmp(args[0], "charmsg");
 		}
 		else if (!strcmp(args[0], "disable"))
 		{
@@ -288,13 +294,12 @@ int handle_target_request_debugmsgs_command(struct command_context_s *cmd_ctx, c
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: target_request debugmsgs ['enable'|'disable']");
+			command_print(cmd_ctx, "usage: target_request debugmsgs ['enable'|'disable'|'charmsg']");
 		}
 	}
 	
 	command_print(cmd_ctx, "receiving debug messages from current target %s",
-			(receiving) ? "enabled" : "disabled");
-	
+		      (receiving) ? (charmsg_mode?"charmsg":"enabled") : "disabled" );
 	return ERROR_OK;
 }
 
