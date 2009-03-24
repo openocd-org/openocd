@@ -2873,7 +2873,7 @@ See libdcc in the contrib dir for more details.
 @itemize @bullet
 @item @b{target_request debugmsgs} <@var{enable}|@var{disable}|@var{charmsg}>
 @cindex target_request debugmsgs
-@*Enable/disable target debugmsgs requests. debugmsgs enable messages to be sent to the debugger while the target is running. @var{charmsg} recives the message like linux kernel ``Kernel low-level debugging via EmbeddedICE DCC channel'' option way.
+@*Enable/disable target debugmsgs requests. debugmsgs enable messages to be sent to the debugger while the target is running. @var{charmsg} receives messages if Linux kernel ``Kernel low-level debugging via EmbeddedICE DCC channel'' option is enabled.
 @end itemize
 
 @node JTAG Commands
