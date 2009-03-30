@@ -381,7 +381,10 @@ an adapter .... [snip]
 In the OpenOCD case, this generally refers to @b{a small adapater} one
 attaches to your computer via USB or the Parallel Printer Port.  The
 execption being the Zylin ZY1000 which is a small box you attach via
-an ethernet cable.
+an ethernet cable. The Zylin ZY1000 has the advantage that it does not
+require any drivers to be installed on the developer PC. It also has
+a built in web interface. It supports RTCK/RCLK or adaptive clocking
+and has a built in relay to power cycle targets remotely.
 
 
 @section Choosing a Dongle
@@ -398,7 +401,10 @@ There are three things you should keep in mind when choosing a dongle.
 @section Stand alone Systems
 
 @b{ZY1000} See: @url{http://www.zylin.com/zy1000.html} Technically, not a
-dongle, but a standalone box.
+dongle, but a standalone box. The ZY1000 has the advantage that it does
+not require any drivers installed on the developer PC. It also has
+a built in web interface. It supports RTCK/RCLK or adaptive clocking
+and has a built in relay to power cycle targets remotely.
 
 @section USB FT2232 Based
 
