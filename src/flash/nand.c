@@ -186,6 +186,39 @@ nand_manufacturer_t nand_manuf_ids[] =
 	{0x0, NULL},
 };
 
+/*
+ * Define default oob placement schemes for large and small page devices
+ */
+
+nand_ecclayout_t nand_oob_8 = {
+	.eccbytes = 3,
+	.eccpos = {0, 1, 2},
+	.oobfree = {
+		{.offset = 3,
+		 .length = 2},
+		{.offset = 6,
+		 .length = 2}}
+};
+
+nand_ecclayout_t nand_oob_16 = {
+	.eccbytes = 6,
+	.eccpos = {0, 1, 2, 3, 6, 7},
+	.oobfree = {
+		{.offset = 8,
+		 . length = 8}}
+};
+
+nand_ecclayout_t nand_oob_64 = {
+	.eccbytes = 24,
+	.eccpos = {
+		   40, 41, 42, 43, 44, 45, 46, 47,
+		   48, 49, 50, 51, 52, 53, 54, 55,
+		   56, 57, 58, 59, 60, 61, 62, 63},
+	.oobfree = {
+		{.offset = 2,
+		 .length = 38}}
+};
+
 /* nand device <nand_controller> [controller options]
  */
 int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1291,6 +1324,7 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 		u32 page_size = 0;
 		u8 *oob = NULL;
 		u32 oob_size = 0;
+		const int *eccpos = NULL;
 			
 		offset = strtoul(args[2], NULL, 0);
 		
@@ -1303,6 +1337,8 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 					oob_format |= NAND_OOB_RAW;
 				else if (!strcmp(args[i], "oob_only"))
 					oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
+				else if (!strcmp(args[i], "oob_softecc"))
+					oob_format |= NAND_OOB_SW_ECC;
 				else
 				{
 					command_print(cmd_ctx, "unknown option: %s", args[i]);
@@ -1326,12 +1362,15 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 			page = malloc(p->page_size);
 		}
 
-		if (oob_format & NAND_OOB_RAW)
+		if (oob_format & (NAND_OOB_RAW | NAND_OOB_SW_ECC))
 		{
-			if (p->page_size == 512)
+			if (p->page_size == 512) {
 				oob_size = 16;
-			else if (p->page_size == 2048)
+				eccpos = nand_oob_16.eccpos;
+			} else if (p->page_size == 2048) {
 				oob_size = 64;
+				eccpos = nand_oob_64.eccpos;
+			}
 			oob = malloc(oob_size);
 		}
 		
@@ -1357,8 +1396,20 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 					memset(page + size_read, 0xff, page_size - size_read);
 				}
 			}
-				
-			if (NULL != oob)
+
+			if (oob_format & NAND_OOB_SW_ECC)
+			{
+				int i, j;
+				u8 ecc[3];
+				memset(oob, 0xff, oob_size);
+				for (i = 0, j = 0; i < page_size; i += 256) {
+					nand_calculate_ecc(p, page+i, ecc);
+					oob[eccpos[j++]] = ecc[0];
+					oob[eccpos[j++]] = ecc[1];
+					oob[eccpos[j++]] = ecc[2];
+				}
+			}
+			else if (NULL != oob)
 			{
 				fileio_read(&fileio, oob_size, oob, &size_read);
 				buf_cnt -= size_read;

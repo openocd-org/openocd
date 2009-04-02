@@ -56,6 +56,18 @@ typedef struct nand_block_s
 	int is_bad;
 } nand_block_t;
 
+struct nand_oobfree {
+	int offset;
+	int length;
+};
+
+typedef struct nand_ecclayout_s {
+	int eccbytes;
+	int eccpos[64];
+	int oobavail;
+	struct nand_oobfree oobfree[2];
+} nand_ecclayout_t;
+
 typedef struct nand_device_s
 {
 	nand_flash_controller_t *controller;
