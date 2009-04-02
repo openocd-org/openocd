@@ -484,7 +484,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 {
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u32 buffer_size = 8192;
+	u32 buffer_size = 16384;
 	working_area_t *source;
 	u32 address = bank->base + offset;
 	reg_param_t reg_params[4];

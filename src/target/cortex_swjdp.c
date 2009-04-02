@@ -183,6 +183,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 
 	/* too expensive to call keep_alive() here */
 
+#if 0
 	/* Danger!!!! BROKEN!!!! */
 	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	/* Danger!!!! BROKEN!!!! Why will jtag_execute_queue() fail here????
@@ -196,6 +197,8 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 		LOG_ERROR("BUG: Why does this fail the first time????");
 	}
 	/* Why??? second time it works??? */
+#endif
+
 	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	if ((retval=jtag_execute_queue())!=ERROR_OK)
 		return retval;
@@ -925,7 +928,7 @@ int ahbap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum)
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we gave to save/restore the DCB_DCRDR when used */
 
-	ahbap_read_system_atomic_u32(swjdp, DCB_DCRDR, &dcrdr);
+	ahbap_read_system_u32(swjdp, DCB_DCRDR, &dcrdr);
 
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
@@ -937,8 +940,8 @@ int ahbap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum)
 	ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
 	ahbap_read_reg_u32(swjdp, AHBAP_BD0 | (DCB_DCRDR & 0xC), value );
 
+	ahbap_write_system_u32(swjdp, DCB_DCRDR, dcrdr);
 	retval = swjdp_transaction_endcheck(swjdp);
-	ahbap_write_system_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
 	return retval;
 }
 
@@ -950,7 +953,7 @@ int ahbap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum)
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we gave to save/restore the DCB_DCRDR when used */
 
-	ahbap_read_system_atomic_u32(swjdp, DCB_DCRDR, &dcrdr);
+	ahbap_read_system_u32(swjdp, DCB_DCRDR, &dcrdr);
 
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
@@ -962,8 +965,8 @@ int ahbap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum)
 	ahbap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
 	ahbap_write_reg_u32(swjdp, AHBAP_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR );
 
+	ahbap_write_system_u32(swjdp, DCB_DCRDR, dcrdr);
 	retval = swjdp_transaction_endcheck(swjdp);
-	ahbap_write_system_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
 	return retval;
 }
 
