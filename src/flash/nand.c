@@ -317,9 +317,7 @@ int nand_build_bbt(struct nand_device_s *device, int first, int last)
 {
 	u32 page = 0x0;
 	int i;
-	u8 *oob;
-	
-	oob = malloc(6);
+	u8 oob[6];
 	
 	if ((first < 0) || (first >= device->num_blocks))
 		first = 0;
