@@ -35,7 +35,7 @@
 #define ZYLIN_VERSION "1.50"
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
-#define ZYLIN_OPENOCD "$Revision: 1241 $"
+#define ZYLIN_OPENOCD "$Revision$"
 #define ZYLIN_OPENOCD_VERSION "Zylin JTAG ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE " " ZYLIN_TIME
 const char *zylin_config_dir="/config/settings";
 
