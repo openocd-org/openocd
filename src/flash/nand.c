@@ -689,6 +689,8 @@ int nand_erase(struct nand_device_s *device, int first_block, int last_block)
 			LOG_ERROR("erase operation didn't pass, status: 0x%2.2x", status);
 			return ERROR_NAND_OPERATION_FAILED;
 		}
+
+		device->blocks[i].is_erased = 1;
 	}
 	
 	return ERROR_OK;
@@ -770,9 +772,15 @@ int nand_write_plain(struct nand_device_s *device, u32 address, u8 *data, u32 da
 
 int nand_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
 {
+	u32 block;
+
 	if (!device->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
 		
+	block = page / (device->erase_size / device->page_size);
+	if (device->blocks[block].is_erased == 1)
+		device->blocks[block].is_erased = 0;
+
 	if (device->use_raw || device->controller->write_page == NULL)
 		return nand_write_page_raw(device, page, data, data_size, oob, oob_size);
 	else
