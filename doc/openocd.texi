@@ -123,6 +123,41 @@ as numerous bugfixes and enhancements. See the AUTHORS file for regular contribu
 
 The main OpenOCD web site is available at @uref{http://openocd.berlios.de/web/}.
 
+@section Coding Style
+@cindex Coding Style
+
+The following rules try to describe formatting and naming conventions that should be
+followed to make the whole OpenOCD code look more consistent. The ultimate goal of
+coding style should be readability, and these rules may be ignored for a particular
+(small) piece of code if that makes it more readable.
+
+@subsection Formatting rules:
+@itemize @bullet
+@item remove any trailing white space
+@item use TAB characters for indentation, not spaces
+@item displayed TAB width is 4 characters
+@item make sure NOT to use DOS '\r\n' line feeds
+@item do not add more than 2 empty lines to source files
+@item do not add trailing empty lines to source files
+@item do not use C++ style comments (//)
+@item lines may be reasonably wide - there's no anachronistic 80 characters limit
+@end itemize
+
+@subsection Naming rules:
+@itemize @bullet
+@item identifiers use lower-case letters only
+@item identifiers consisting of multiple words use underline characters between consecutive words
+@item macros use upper-case letters only
+@item structure names shall be appended with '_s'
+@item typedefs shall be appended with '_t'
+@end itemize
+
+@subsection Function calls:
+@itemize @bullet
+@item function calls have no space between the functions name and the parameter
+list: my_func(param1, param2, ...)
+@end itemize
+
 @node Building
 @chapter Building
 @cindex building OpenOCD
