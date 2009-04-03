@@ -449,10 +449,15 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 
 	for (i = ARMV7NUMCOREREGS-1; i >= 0; i--)
 	{
-		LOG_DEBUG("restoring register %s with value 0x%8.8x", armv7m->core_cache->reg_list[i].name, context[i]);
-		buf_set_u32(armv7m->core_cache->reg_list[i].value, 0, 32, context[i]);
-		armv7m->core_cache->reg_list[i].valid = 1;
-		armv7m->core_cache->reg_list[i].dirty = 1;
+		u32 regvalue;
+		regvalue = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);
+		if (regvalue != context[i])
+		{
+			LOG_DEBUG("restoring register %s with value 0x%8.8x", armv7m->core_cache->reg_list[i].name, context[i]);
+			buf_set_u32(armv7m->core_cache->reg_list[i].value, 0, 32, context[i]);
+			armv7m->core_cache->reg_list[i].valid = 1;
+			armv7m->core_cache->reg_list[i].dirty = 1;
+		}
 	}
 
 	armv7m->core_mode = core_mode;

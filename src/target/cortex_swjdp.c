@@ -247,6 +247,8 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 		{
 			u32 dcb_dhcsr,nvic_shcsr, nvic_bfar, nvic_cfsr;
 
+			/* Print information about last AHBAP access */
+			LOG_ERROR("AHBAP: dp_select 0x%x, ap_csw 0x%x, ap_tar 0x%x", swjdp->dp_select_value, swjdp->ap_csw_value, swjdp->ap_tar_value);
 			if (ctrlstat & SSTICKYORUN)
 				LOG_ERROR("SWJ-DP OVERRUN - check clock or reduce jtag speed");
 
