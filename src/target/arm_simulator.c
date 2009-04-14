@@ -415,7 +415,12 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		u8 carry_out;
 		
 		Rd = 0x0;
-		Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.data_proc.Rn).value, 0, 32);
+		/* ARM_MOV and ARM_MVN does not use Rn */
+		if ((instruction.type != ARM_MOV) && (instruction.type != ARM_MVN))
+			Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.data_proc.Rn).value, 0, 32);
+		else
+			Rn = 0;
+
 		shifter_operand = arm_shifter_operand(armv4_5, instruction.info.data_proc.variant, instruction.info.data_proc.shifter_operand, &carry_out);
 
 		/* adjust Rn in case the PC is being read */
@@ -446,6 +451,8 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 			Rd = shifter_operand;
 		else if (instruction.type == ARM_MVN)
 			Rd = ~shifter_operand;
+		else
+			LOG_WARNING("unhandled instruction type");
 		
 		if (dry_run_pc)
 		{
