@@ -9,7 +9,7 @@
  *	 peter.hettkamp@htp-tel.de											   *
  *																		   *
  *	 Copyright (C) 2009 SoftPLC Corporation. http://softplc.com             *
- *	 dick@softplc.com											           *
+ *	 Dick Hollenbeck <dick@softplc.com>									   *
  *                                                                          *
  *	 This program is free software; you can redistribute it and/or modify   *
  *	 it under the terms of the GNU General Public License as published by   *
@@ -352,659 +352,652 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 		switch (opcode)
 		{
-			case XCOMPLETE:
-				LOG_DEBUG("XCOMPLETE");
+		case XCOMPLETE:
+			LOG_DEBUG("XCOMPLETE");
 
-				result = jtag_execute_queue();
-				if (result != ERROR_OK)
+			result = jtag_execute_queue();
+			if (result != ERROR_OK)
+			{
+				tdo_mismatch = 1;
+				break;
+			}
+			break;
+
+		case XTDOMASK:
+			LOG_DEBUG("XTDOMASK");
+			if (dr_in_mask && (xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_mask) != ERROR_OK))
+				do_abort = 1;
+			break;
+
+		case XRUNTEST:
+			{
+				u8	xruntest_buf[4];
+
+				if (read(xsvf_fd, xruntest_buf, 4) < 0)
 				{
+					do_abort = 1;
+					break;
+				}
+
+				xruntest = be_to_h_u32(xruntest_buf);
+				LOG_DEBUG("XRUNTEST %d 0x%08X", xruntest, xruntest);
+			}
+			break;
+
+		case XREPEAT:
+			{
+				u8 myrepeat;
+
+				if (read(xsvf_fd, &myrepeat, 1) < 0)
+					do_abort = 1;
+				else
+				{
+					xrepeat = myrepeat;
+					LOG_DEBUG("XREPEAT %d", xrepeat );
+				}
+			}
+			break;
+
+		case XSDRSIZE:
+			{
+				u8	xsdrsize_buf[4];
+
+				if (read(xsvf_fd, xsdrsize_buf, 4) < 0)
+				{
+					do_abort = 1;
+					break;
+				}
+
+				xsdrsize = be_to_h_u32(xsdrsize_buf);
+				LOG_DEBUG("XSDRSIZE %d", xsdrsize);
+
+				if( dr_out_buf ) free(dr_out_buf);
+				if( dr_in_buf)   free(dr_in_buf);
+				if( dr_in_mask)  free(dr_in_mask);
+
+				dr_out_buf = malloc((xsdrsize + 7) / 8);
+				dr_in_buf = malloc((xsdrsize + 7) / 8);
+				dr_in_mask = malloc((xsdrsize + 7) / 8);
+			}
+			break;
+
+		case XSDR:		/* these two are identical except for the dr_in_buf */
+		case XSDRTDO:
+			{
+				int limit = xrepeat;
+				int	matched = 0;
+				int attempt;
+
+				const char* op_name = (opcode == XSDR ? "XSDR" : "XSDRTDO");
+
+				if (xsvf_read_buffer(xsdrsize, xsvf_fd, dr_out_buf) != ERROR_OK)
+				{
+					do_abort = 1;
+					break;
+				}
+
+				if (opcode == XSDRTDO)
+				{
+					if(xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_buf)  != ERROR_OK )
+					{
+						do_abort = 1;
+						break;
+					}
+				}
+
+				if (limit < 1)
+					limit = 1;
+
+				LOG_DEBUG("%s %d", op_name, xsdrsize);
+
+				for( attempt=0; attempt<limit;  ++attempt )
+				{
+					scan_field_t field;
+
+					if( attempt>0 )
+					{
+						/* perform the XC9500 exception handling sequence shown in xapp067.pdf and
+						   illustrated in psuedo code at end of this file.  We start from state
+						   DRPAUSE:
+						   go to Exit2-DR
+						   go to Shift-DR
+						   go to Exit1-DR
+						   go to Update-DR
+						   go to Run-Test/Idle
+
+						   This sequence should be harmless for other devices, and it
+						   will be skipped entirely if xrepeat is set to zero.
+						*/
+
+						static tap_state_t exception_path[] = {
+							TAP_DREXIT2,
+							TAP_DRSHIFT,
+							TAP_DREXIT1,
+							TAP_DRUPDATE,
+							TAP_IDLE,
+						};
+
+						jtag_add_pathmove( sizeof(exception_path)/sizeof(exception_path[0]), exception_path);
+
+						if (verbose)
+							LOG_USER("%s mismatch, xsdrsize=%d retry=%d", op_name, xsdrsize, attempt);
+					}
+
+					field.tap = tap;
+					field.num_bits = xsdrsize;
+					field.out_value = dr_out_buf;
+					field.out_mask = NULL;
+					field.in_value = NULL;
+
+					jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
+
+					if (tap == NULL)
+						jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
+					else
+						jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
+
+					/* LOG_DEBUG("FLUSHING QUEUE"); */
+					result = jtag_execute_queue();
+					if (result == ERROR_OK)
+					{
+						matched = 1;
+						break;
+					}
+				}
+
+				if (!matched)
+				{
+					LOG_USER( "%s mismatch", op_name);
 					tdo_mismatch = 1;
 					break;
 				}
-				break;
 
-			case XTDOMASK:
-				LOG_DEBUG("XTDOMASK");
-				if (dr_in_mask && (xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_mask) != ERROR_OK))
-					do_abort = 1;
-				break;
-
-			case XRUNTEST:
+				/* See page 19 of XSVF spec regarding opcode "XSDR" */
+				if (xruntest)
 				{
-					u8	xruntest_buf[4];
+					xsvf_add_statemove(TAP_IDLE);
 
-					if (read(xsvf_fd, xruntest_buf, 4) < 0)
-					{
-						do_abort = 1;
-						break;
-					}
-
-					xruntest = be_to_h_u32(xruntest_buf);
-					LOG_DEBUG("XRUNTEST %d 0x%08X", xruntest, xruntest);
-				}
-				break;
-
-			case XREPEAT:
-				{
-					u8 myrepeat;
-
-					if (read(xsvf_fd, &myrepeat, 1) < 0)
-						do_abort = 1;
+					if (runtest_requires_tck)
+						jtag_add_clocks(xruntest);
 					else
+						jtag_add_sleep(xruntest);
+				}
+				else if (xendir != TAP_DRPAUSE)	/* we are already in TAP_DRPAUSE */
+					xsvf_add_statemove(xenddr);
+			}
+			break;
+
+		case XSETSDRMASKS:
+			LOG_ERROR("unsupported XSETSDRMASKS\n");
+			unsupported = 1;
+			break;
+
+		case XSDRINC:
+			LOG_ERROR("unsupported XSDRINC\n");
+			unsupported = 1;
+			break;
+
+		case XSDRB:
+			LOG_ERROR("unsupported XSDRB\n");
+			unsupported = 1;
+			break;
+
+		case XSDRC:
+			LOG_ERROR("unsupported XSDRC\n");
+			unsupported = 1;
+			break;
+
+		case XSDRE:
+			LOG_ERROR("unsupported XSDRE\n");
+			unsupported = 1;
+			break;
+
+		case XSDRTDOB:
+			LOG_ERROR("unsupported XSDRTDOB\n");
+			unsupported = 1;
+			break;
+
+		case XSDRTDOC:
+			LOG_ERROR("unsupported XSDRTDOC\n");
+			unsupported = 1;
+			break;
+
+		case XSDRTDOE:
+			LOG_ERROR("unsupported XSDRTDOE\n");
+			unsupported = 1;
+			break;
+
+		case XSTATE:
+			{
+				tap_state_t	mystate;
+				tap_state_t*	path;
+				int 			path_len;
+
+				if (read(xsvf_fd, &uc, 1) < 0)
+				{
+					do_abort = 1;
+					break;
+				}
+
+				mystate = xsvf_to_tap(uc);
+
+				LOG_DEBUG("XSTATE 0x%02X %s", uc, tap_state_name(mystate) );
+
+				path = calloc(XSTATE_MAX_PATH, 4);
+				path_len = 1;
+
+				path[0] = mystate;
+				if (xsvf_read_xstates(xsvf_fd, path, XSTATE_MAX_PATH, &path_len) != ERROR_OK)
+					do_abort = 1;
+				else
+				{
+					int i,lasti;
+
+					/* here the trick is that jtag_add_pathmove() must end in a stable
+					 * state, so we must only invoke jtag_add_tlr() when we absolutely
+					 * have to
+					 */
+					for(i=0,lasti=0;  i<path_len;  i++)
 					{
-						xrepeat = myrepeat;
-						LOG_DEBUG("XREPEAT %d", xrepeat );
+						if(path[i]==TAP_RESET)
+						{
+							if(i>lasti)
+							{
+								jtag_add_pathmove(i-lasti,path+lasti);
+							}
+							lasti=i+1;
+							jtag_add_tlr();
+						}
+					}
+					if(i>=lasti)
+					{
+						jtag_add_pathmove(i-lasti, path+lasti);
 					}
 				}
+				free(path);
+			}
+			break;
+
+		case XENDIR:
+
+			if (read(xsvf_fd, &uc, 1) < 0)
+			{
+				do_abort = 1;
 				break;
+			}
 
-			case XSDRSIZE:
+			/* see page 22 of XSVF spec */
+			if( uc == 0 )
+				xendir = TAP_IDLE;
+			else if( uc == 1 )
+				xendir = TAP_IRPAUSE;
+			else
+			{
+				LOG_ERROR("illegial XENDIR argument: 0x%02X", uc);
+				unsupported = 1;
+				break;
+			}
+
+			LOG_DEBUG("XENDIR 0x%02X %s", uc, tap_state_name(xendir));
+			break;
+
+		case XENDDR:
+
+			if (read(xsvf_fd, &uc, 1) < 0)
+			{
+				do_abort = 1;
+				break;
+			}
+
+			/* see page 22 of XSVF spec */
+			if( uc == 0 )
+				xenddr = TAP_IDLE;
+			else if( uc == 1 )
+				xenddr = TAP_DRPAUSE;
+			else
+			{
+				LOG_ERROR("illegial XENDDR argument: 0x%02X", uc);
+				unsupported = 1;
+				break;
+			}
+
+			LOG_DEBUG("XENDDR %02X %s", uc, tap_state_name(xenddr));
+			break;
+
+		case XSIR:
+		case XSIR2:
+			{
+				u8	short_buf[2];
+				u8*	ir_buf;
+				int bitcount;
+				tap_state_t my_end_state = xruntest ? TAP_IDLE : xendir;
+
+				if( opcode == XSIR )
 				{
-					u8	xsdrsize_buf[4];
-
-					if (read(xsvf_fd, xsdrsize_buf, 4) < 0)
+					/* one byte bitcount */
+					if (read(xsvf_fd, short_buf, 1) < 0)
 					{
 						do_abort = 1;
 						break;
 					}
-
-					xsdrsize = be_to_h_u32(xsdrsize_buf);
-					LOG_DEBUG("XSDRSIZE %d", xsdrsize);
-
-					if( dr_out_buf ) free(dr_out_buf);
-					if( dr_in_buf)   free(dr_in_buf);
-					if( dr_in_mask)  free(dr_in_mask);
-
-					dr_out_buf = malloc((xsdrsize + 7) / 8);
-					dr_in_buf = malloc((xsdrsize + 7) / 8);
-					dr_in_mask = malloc((xsdrsize + 7) / 8);
+					bitcount = short_buf[0];
+					LOG_DEBUG("XSIR %d", bitcount);
 				}
-				break;
-
-			case XSDR:		/* these two are identical except for the dr_in_buf */
-			case XSDRTDO:
+				else
 				{
-					int limit = xrepeat;
-					int	matched = 0;
-					int attempt;
-
-					const char* op_name = (opcode == XSDR ? "XSDR" : "XSDRTDO");
-
-					if (xsvf_read_buffer(xsdrsize, xsvf_fd, dr_out_buf) != ERROR_OK)
+					if (read(xsvf_fd, short_buf, 2) < 0)
 					{
 						do_abort = 1;
 						break;
 					}
+					bitcount = be_to_h_u16(short_buf);
+					LOG_DEBUG("XSIR2 %d", bitcount);
+				}
 
-					if (opcode == XSDRTDO)
-					{
-						if(xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_buf)  != ERROR_OK )
-						{
-							do_abort = 1;
-							break;
-						}
-					}
+				ir_buf = malloc((bitcount+7) / 8);
 
-					if (limit < 1)
-						limit = 1;
+				if (xsvf_read_buffer(bitcount, xsvf_fd, ir_buf) != ERROR_OK)
+					do_abort = 1;
+				else
+				{
+					scan_field_t field;
 
-					LOG_DEBUG("%s %d", op_name, xsdrsize);
+					field.tap = tap;
+					field.num_bits = bitcount;
+					field.out_value = ir_buf;
+					field.out_mask = NULL;
+					field.in_value = NULL;
+					field.in_check_value = NULL;
+					field.in_check_mask = NULL;
+					field.in_handler = NULL;
+					field.in_handler_priv = NULL;
 
-					for( attempt=0; attempt<limit;  ++attempt )
-					{
-						scan_field_t field;
+					if (tap == NULL)
+						jtag_add_plain_ir_scan(1, &field, my_end_state);
+					else
+						jtag_add_ir_scan(1, &field, my_end_state);
 
-						if( attempt>0 )
-						{
-							/* perform the XC9500 exception handling sequence shown in xapp067.pdf and
-							   illustrated in psuedo code at end of this file.  We start from state
-							   DRPAUSE:
-							   go to Exit2-DR
-							   go to Shift-DR
-							   go to Exit1-DR
-							   go to Update-DR
-							   go to Run-Test/Idle
-
-							   This sequence should be harmless for other devices, and it
-							   will be skipped entirely if xrepeat is set to zero.
-							*/
-
-							static tap_state_t exception_path[] = {
-								TAP_DREXIT2,
-								TAP_DRSHIFT,
-								TAP_DREXIT1,
-								TAP_DRUPDATE,
-								TAP_IDLE,
-							};
-
-							jtag_add_pathmove( sizeof(exception_path)/sizeof(exception_path[0]), exception_path);
-
-							if (verbose)
-								LOG_USER("%s %d retry %d", op_name, xsdrsize, attempt);
-						}
-
-						field.tap = tap;
-						field.num_bits = xsdrsize;
-						field.out_value = dr_out_buf;
-						field.out_mask = NULL;
-						field.in_value = NULL;
-
-						jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
-
-						if (tap == NULL)
-							jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
-						else
-							jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
-
-						/* LOG_DEBUG("FLUSHING QUEUE"); */
-						result = jtag_execute_queue();
-						if (result == ERROR_OK)
-						{
-							matched = 1;
-							break;
-						}
-					}
-
-					if (!matched)
-					{
-						LOG_USER( "%s mismatch", op_name);
-						tdo_mismatch = 1;
-						break;
-					}
-
-					/* See page 19 of XSVF spec regarding opcode "XSDR" */
 					if (xruntest)
 					{
-						xsvf_add_statemove(TAP_IDLE);
-
 						if (runtest_requires_tck)
 							jtag_add_clocks(xruntest);
 						else
 							jtag_add_sleep(xruntest);
 					}
-					else if (xendir != TAP_DRPAUSE)	/* we are already in TAP_DRPAUSE */
-						xsvf_add_statemove(xenddr);
-				}
-				break;
 
-			case XSETSDRMASKS:
-				LOG_ERROR("unsupported XSETSDRMASKS\n");
-				unsupported = 1;
-				break;
-
-			case XSDRINC:
-				LOG_ERROR("unsupported XSDRINC\n");
-				unsupported = 1;
-				break;
-
-			case XSDRB:
-				LOG_ERROR("unsupported XSDRB\n");
-				unsupported = 1;
-				break;
-
-			case XSDRC:
-				LOG_ERROR("unsupported XSDRC\n");
-				unsupported = 1;
-				break;
-
-			case XSDRE:
-				LOG_ERROR("unsupported XSDRE\n");
-				unsupported = 1;
-				break;
-
-			case XSDRTDOB:
-				LOG_ERROR("unsupported XSDRTDOB\n");
-				unsupported = 1;
-				break;
-
-			case XSDRTDOC:
-				LOG_ERROR("unsupported XSDRTDOC\n");
-				unsupported = 1;
-				break;
-
-			case XSDRTDOE:
-				LOG_ERROR("unsupported XSDRTDOE\n");
-				unsupported = 1;
-				break;
-
-			case XSTATE:
-				{
-					tap_state_t	mystate;
-					tap_state_t *path;
-					int path_len;
-
-					if (read(xsvf_fd, &uc, 1) < 0)
-					{
-						do_abort = 1;
-						break;
-					}
-
-					mystate = xsvf_to_tap(uc);
-
-					LOG_DEBUG("XSTATE 0x%02X %s", uc, tap_state_name(mystate) );
-
-					path = calloc(XSTATE_MAX_PATH, 4);
-					path_len = 1;
-
-					path[0] = mystate;
-					if (xsvf_read_xstates(xsvf_fd, path, XSTATE_MAX_PATH, &path_len) != ERROR_OK)
-						do_abort = 1;
-					else
-					{
-						int i,lasti;
-
-						/* here the trick is that jtag_add_pathmove() must end in a stable
-						 * state, so we must only invoke jtag_add_tlr() when we absolutely
-						 * have to
-						 */
-						for(i=0,lasti=0;  i<path_len;  i++)
-						{
-							if(path[i]==TAP_RESET)
-							{
-								if(i>lasti)
-								{
-									jtag_add_pathmove(i-lasti,path+lasti);
-								}
-								lasti=i+1;
-								jtag_add_tlr();
-							}
-						}
-						if(i>=lasti)
-						{
-							jtag_add_pathmove(i-lasti, path+lasti);
-						}
-					}
-					free(path);
-				}
-				break;
-
-			case XENDIR:
-				{
-					tap_state_t	 mystate;
-
-					if (read(xsvf_fd, &uc, 1) < 0)
-					{
-						do_abort = 1;
-						break;
-					}
-
-					/* see page 22 of XSVF spec */
-					mystate = uc == 1 ? TAP_IRPAUSE : TAP_IDLE;
-
-					LOG_DEBUG("XENDIR 0x%02X %s", uc, tap_state_name(mystate));
-
-					/* assuming that the XRUNTEST comes from SVF RUNTEST, then only these states
-					 * should come here because the SVF spec only allows these with a RUNTEST
+					/* Note that an -irmask of non-zero in your config file
+					 * can cause this to fail.  Setting -irmask to zero cand work
+					 * around the problem.
 					 */
-					if (mystate != TAP_IRPAUSE && mystate != TAP_DRPAUSE && mystate != TAP_RESET && mystate != TAP_IDLE )
+
+					/* LOG_DEBUG("FLUSHING QUEUE"); */
+					result = jtag_execute_queue();
+					if(result != ERROR_OK)
 					{
-						LOG_ERROR("illegal XENDIR endstate: \"%s\"", tap_state_name(mystate));
-						unsupported = 1;
-						break;
+						tdo_mismatch = 1;
 					}
-					xendir = mystate;
 				}
-				break;
+				free(ir_buf);
+			}
+			break;
 
-			case XENDDR:
+		case XCOMMENT:
+			{
+				int		ndx = 0;
+				char 	comment[128];
+
+				do
 				{
-					tap_state_t	 mystate;
-
 					if (read(xsvf_fd, &uc, 1) < 0)
 					{
 						do_abort = 1;
 						break;
 					}
 
-					/* see page 22 of XSVF spec */
-					mystate = uc == 1 ? TAP_DRPAUSE : TAP_IDLE;
+					if ( ndx < sizeof(comment)-1 )
+						comment[ndx++] = uc;
 
-					LOG_DEBUG("XENDDR %02X %s", uc, tap_state_name(mystate));
+				} while (uc != 0);
 
-					if (mystate != TAP_IRPAUSE && mystate != TAP_DRPAUSE && mystate != TAP_RESET && mystate != TAP_IDLE )
-					{
-						LOG_ERROR("illegal XENDDR endstate: \"%s\"", tap_state_name( mystate ));
-						unsupported = 1;
-						break;
-					}
-					xenddr = mystate;
-				}
-				break;
+				comment[sizeof(comment)-1] = 0;		/* regardless, terminate */
+				if (verbose)
+					LOG_USER(comment);
+			}
+			break;
 
-			case XSIR:
-			case XSIR2:
+		case XWAIT:
+			{
+				/* expected in stream:
+				   XWAIT <u8 wait_state> <u8 end_state> <u32 usecs>
+				*/
+
+				u8	wait;
+				u8	end;
+				u8	delay_buf[4];
+
+				tap_state_t wait_state;
+				tap_state_t end_state;
+				int 	delay;
+
+				if ( read(xsvf_fd, &wait, 1) < 0
+				  || read(xsvf_fd, &end, 1) < 0
+				  || read(xsvf_fd, delay_buf, 4) < 0)
 				{
-					u8	short_buf[2];
-					u8*	ir_buf;
-					int bitcount;
-					tap_state_t my_end_state = xruntest ? TAP_IDLE : xendir;
-
-					if( opcode == XSIR )
-					{
-						/* one byte bitcount */
-						if (read(xsvf_fd, short_buf, 1) < 0)
-						{
-							do_abort = 1;
-							break;
-						}
-						bitcount = short_buf[0];
-						LOG_DEBUG("XSIR %d", bitcount);
-					}
-					else
-					{
-						if (read(xsvf_fd, short_buf, 2) < 0)
-						{
-							do_abort = 1;
-							break;
-						}
-						bitcount = be_to_h_u16(short_buf);
-						LOG_DEBUG("XSIR2 %d", bitcount);
-					}
-
-					ir_buf = malloc((bitcount+7) / 8);
-
-					if (xsvf_read_buffer(bitcount, xsvf_fd, ir_buf) != ERROR_OK)
-						do_abort = 1;
-					else
-					{
-						scan_field_t field;
-
-						field.tap = tap;
-						field.num_bits = bitcount;
-						field.out_value = ir_buf;
-						field.out_mask = NULL;
-						field.in_value = NULL;
-						field.in_check_value = NULL;
-						field.in_check_mask = NULL;
-						field.in_handler = NULL;
-						field.in_handler_priv = NULL;
-
-						if (tap == NULL)
-							jtag_add_plain_ir_scan(1, &field, my_end_state);
-						else
-							jtag_add_ir_scan(1, &field, my_end_state);
-
-						if (xruntest)
-						{
-							if (runtest_requires_tck)
-								jtag_add_clocks(xruntest);
-							else
-								jtag_add_sleep(xruntest);
-						}
-
-						/* Note that an -irmask of non-zero in your config file
-						 * can cause this to fail.  Setting -irmask to zero cand work
-						 * around the problem.
-						 */
-
-						/* LOG_DEBUG("FLUSHING QUEUE"); */
-						result = jtag_execute_queue();
-						if(result != ERROR_OK)
-						{
-							tdo_mismatch = 1;
-						}
-					}
-					free(ir_buf);
+					do_abort = 1;
+					break;
 				}
-				break;
 
-			case XCOMMENT:
+				wait_state = xsvf_to_tap(wait);
+				end_state  = xsvf_to_tap(end);
+				delay      = be_to_h_u32(delay_buf);
+
+				LOG_DEBUG("XWAIT %s %s usecs:%d", tap_state_name(wait_state), tap_state_name(end_state), delay);
+
+				if (runtest_requires_tck && wait_state == TAP_IDLE )
 				{
-					int		ndx = 0;
-					char 	comment[128];
-
-					do
-					{
-						if (read(xsvf_fd, &uc, 1) < 0)
-						{
-							do_abort = 1;
-							break;
-						}
-
-						if ( ndx < sizeof(comment)-1 )
-							comment[ndx++] = uc;
-
-					} while (uc != 0);
-
-					comment[sizeof(comment)-1] = 0;		/* regardless, terminate */
-					if (verbose)
-						LOG_USER(comment);
+					jtag_add_runtest(delay, end_state);
 				}
-				break;
-
-			case XWAIT:
+				else
 				{
-					/* expected in stream:
-					   XWAIT <u8 wait_state> <u8 end_state> <u32 usecs>
-					*/
-
-					u8	wait;
-					u8	end;
-					u8	delay_buf[4];
-
-					tap_state_t wait_state;
-					tap_state_t end_state;
-					int 	delay;
-
-					if ( read(xsvf_fd, &wait, 1) < 0
-					  || read(xsvf_fd, &end, 1) < 0
-					  || read(xsvf_fd, delay_buf, 4) < 0)
-					{
-						do_abort = 1;
-						break;
-					}
-
-					wait_state = xsvf_to_tap(wait);
-					end_state  = xsvf_to_tap(end);
-					delay      = be_to_h_u32(delay_buf);
-
-					LOG_DEBUG("XWAIT %s %s usecs:%d", tap_state_name(wait_state), tap_state_name(end_state), delay);
-
-					if (runtest_requires_tck && wait_state == TAP_IDLE )
-					{
-						jtag_add_runtest(delay, end_state);
-					}
-					else
-					{
-						xsvf_add_statemove( wait_state );
-						jtag_add_sleep(delay);
-						xsvf_add_statemove( end_state );
-					}
-				}
-				break;
-
-			case XWAITSTATE:
-				{
-					/* expected in stream:
-					   XWAITSTATE <u8 wait_state> <u8 end_state> <u32 clock_count> <u32 usecs>
-					*/
-
-					u8  clock_buf[4];
-					u8  	usecs_buf[4];
-					u8	wait;
-					u8	end;
-					tap_state_t wait_state;
-					tap_state_t end_state;
-					int clock_count;
-					int usecs;
-
-					if ( read(xsvf_fd, &wait, 1) < 0
-					 ||  read(xsvf_fd, &end, 1) < 0
-					 ||  read(xsvf_fd, clock_buf, 4) < 0
-					 ||  read(xsvf_fd, usecs_buf, 4) < 0 )
-					{
-						do_abort = 1;
-						break;
-					}
-
-					wait_state = xsvf_to_tap( wait );
-					end_state  = xsvf_to_tap( end );
-
-					clock_count = be_to_h_u32(clock_buf);
-					usecs       = be_to_h_u32(usecs_buf);
-
-					LOG_DEBUG("XWAITSTATE %s %s clocks:%i usecs:%i",
-						tap_state_name(wait_state),
-						tap_state_name(end_state),
-						clock_count, usecs);
-
-					/* the following states are 'stable', meaning that they have a transition
-					 * in the state diagram back to themselves.  This is necessary because we will
-					 * be issuing a number of clocks in this state.  This set of allowed states is also
-					 * determined by the SVF RUNTEST command's allowed states.
-					 */
-					if (wait_state != TAP_IRPAUSE && wait_state != TAP_DRPAUSE && wait_state != TAP_RESET && wait_state != TAP_IDLE)
-					{
-						LOG_ERROR("illegal XWAITSTATE wait_state: \"%s\"", tap_state_name( wait_state ));
-						unsupported = 1;
-					}
-
 					xsvf_add_statemove( wait_state );
-
-					jtag_add_clocks( clock_count );
-
-					jtag_add_sleep( usecs );
-
+					jtag_add_sleep(delay);
 					xsvf_add_statemove( end_state );
 				}
-				break;
+			}
+			break;
 
-			case LCOUNT:
+		case XWAITSTATE:
+			{
+				/* expected in stream:
+				   XWAITSTATE <u8 wait_state> <u8 end_state> <u32 clock_count> <u32 usecs>
+				*/
+
+				u8  clock_buf[4];
+				u8  	usecs_buf[4];
+				u8	wait;
+				u8	end;
+				tap_state_t wait_state;
+				tap_state_t end_state;
+				int clock_count;
+				int usecs;
+
+				if ( read(xsvf_fd, &wait, 1) < 0
+				 ||  read(xsvf_fd, &end, 1) < 0
+				 ||  read(xsvf_fd, clock_buf, 4) < 0
+				 ||  read(xsvf_fd, usecs_buf, 4) < 0 )
 				{
-					/* expected in stream:
-					   LCOUNT <u32 loop_count>
-					*/
-					u8  count_buf[4];
-
-					if ( read(xsvf_fd, count_buf, 4) < 0 )
-					{
-						do_abort = 1;
-						break;
-					}
-
-					loop_count = be_to_h_u32(count_buf);
-					LOG_DEBUG("LCOUNT %d", loop_count);
+					do_abort = 1;
+					break;
 				}
-				break;
 
-			case LDELAY:
+				wait_state = xsvf_to_tap( wait );
+				end_state  = xsvf_to_tap( end );
+
+				clock_count = be_to_h_u32(clock_buf);
+				usecs       = be_to_h_u32(usecs_buf);
+
+				LOG_DEBUG("XWAITSTATE %s %s clocks:%i usecs:%i",
+					tap_state_name(wait_state),
+					tap_state_name(end_state),
+					clock_count, usecs);
+
+				/* the following states are 'stable', meaning that they have a transition
+				 * in the state diagram back to themselves.  This is necessary because we will
+				 * be issuing a number of clocks in this state.  This set of allowed states is also
+				 * determined by the SVF RUNTEST command's allowed states.
+				 */
+				if (wait_state != TAP_IRPAUSE && wait_state != TAP_DRPAUSE && wait_state != TAP_RESET && wait_state != TAP_IDLE)
 				{
-					/* expected in stream:
-					   LDELAY <u8 wait_state> <u32 clock_count> <u32 usecs_to_sleep>
-					*/
-					u8	state;
-					u8  clock_buf[4];
-					u8  usecs_buf[4];
-
-					if ( read(xsvf_fd, &state, 1) < 0
-					  || read(xsvf_fd, clock_buf, 4) < 0
-					  ||	 read(xsvf_fd, usecs_buf, 4) < 0 )
-					{
-						do_abort = 1;
-						break;
-					}
-
-					loop_state  = xsvf_to_tap(state);
-					loop_clocks = be_to_h_u32(clock_buf);
-					loop_usecs  = be_to_h_u32(usecs_buf);
-
-					LOG_DEBUG("LDELAY %s clocks:%d usecs:%d", tap_state_name(loop_state), loop_clocks, loop_usecs);
+					LOG_ERROR("illegal XWAITSTATE wait_state: \"%s\"", tap_state_name( wait_state ));
+					unsupported = 1;
 				}
-				break;
 
-			/* LSDR is more like XSDRTDO than it is like XSDR.  It uses LDELAY which
-			 * comes with clocks !AND! sleep requirements.
-			 */
-			case LSDR:
+				xsvf_add_statemove( wait_state );
+
+				jtag_add_clocks( clock_count );
+
+				jtag_add_sleep( usecs );
+
+				xsvf_add_statemove( end_state );
+			}
+			break;
+
+		case LCOUNT:
+			{
+				/* expected in stream:
+				   LCOUNT <u32 loop_count>
+				*/
+				u8  count_buf[4];
+
+				if ( read(xsvf_fd, count_buf, 4) < 0 )
 				{
-					int limit = loop_count;
-					int matched = 0;
-					int attempt;
-
-					LOG_DEBUG("LSDR");
-
-					if ( xsvf_read_buffer(xsdrsize, xsvf_fd, dr_out_buf) != ERROR_OK
-					  || xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_buf) != ERROR_OK )
-					{
-						do_abort = 1;
-						break;
-					}
-
-					if (limit < 1)
-						limit = 1;
-
-					for( attempt=0; attempt<limit;  ++attempt )
-					{
-						scan_field_t field;
-
-						xsvf_add_statemove( loop_state );
-						jtag_add_clocks(loop_clocks);
-						jtag_add_sleep(loop_usecs);
-
-						field.tap = tap;
-						field.num_bits = xsdrsize;
-						field.out_value = dr_out_buf;
-						field.out_mask = NULL;
-						field.in_value = NULL;
-
-						if (attempt > 0 && verbose)
-							LOG_USER("LSDR retry %d", attempt);
-
-						jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
-						if (tap == NULL)
-							jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
-						else
-							jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
-
-						/* LOG_DEBUG("FLUSHING QUEUE"); */
-						result = jtag_execute_queue();
-						if(result == ERROR_OK)
-						{
-							matched = 1;
-							break;
-						}
-					}
-
-					if (!matched )
-					{
-						LOG_USER( "LSDR mismatch" );
-						tdo_mismatch = 1;
-						break;
-					}
+					do_abort = 1;
+					break;
 				}
-				break;
 
-			case XTRST:
+				loop_count = be_to_h_u32(count_buf);
+				LOG_DEBUG("LCOUNT %d", loop_count);
+			}
+			break;
+
+		case LDELAY:
+			{
+				/* expected in stream:
+				   LDELAY <u8 wait_state> <u32 clock_count> <u32 usecs_to_sleep>
+				*/
+				u8	state;
+				u8  clock_buf[4];
+				u8  usecs_buf[4];
+
+				if ( read(xsvf_fd, &state, 1) < 0
+				  || read(xsvf_fd, clock_buf, 4) < 0
+				  ||	 read(xsvf_fd, usecs_buf, 4) < 0 )
 				{
-					u8	trst_mode;
+					do_abort = 1;
+					break;
+				}
 
-					if (read(xsvf_fd, &trst_mode, 1) < 0)
-					{
-						do_abort = 1;
-						break;
-					}
+				loop_state  = xsvf_to_tap(state);
+				loop_clocks = be_to_h_u32(clock_buf);
+				loop_usecs  = be_to_h_u32(usecs_buf);
 
-					switch( trst_mode )
+				LOG_DEBUG("LDELAY %s clocks:%d usecs:%d", tap_state_name(loop_state), loop_clocks, loop_usecs);
+			}
+			break;
+
+		/* LSDR is more like XSDRTDO than it is like XSDR.  It uses LDELAY which
+		 * comes with clocks !AND! sleep requirements.
+		 */
+		case LSDR:
+			{
+				int limit = loop_count;
+				int matched = 0;
+				int attempt;
+
+				LOG_DEBUG("LSDR");
+
+				if ( xsvf_read_buffer(xsdrsize, xsvf_fd, dr_out_buf) != ERROR_OK
+				  || xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_buf) != ERROR_OK )
+				{
+					do_abort = 1;
+					break;
+				}
+
+				if (limit < 1)
+					limit = 1;
+
+				for( attempt=0; attempt<limit;  ++attempt )
+				{
+					scan_field_t field;
+
+					xsvf_add_statemove( loop_state );
+					jtag_add_clocks(loop_clocks);
+					jtag_add_sleep(loop_usecs);
+
+					field.tap = tap;
+					field.num_bits = xsdrsize;
+					field.out_value = dr_out_buf;
+					field.out_mask = NULL;
+					field.in_value = NULL;
+
+					if (attempt > 0 && verbose)
+						LOG_USER("LSDR retry %d", attempt);
+
+					jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
+					if (tap == NULL)
+						jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
+					else
+						jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
+
+					/* LOG_DEBUG("FLUSHING QUEUE"); */
+					result = jtag_execute_queue();
+					if(result == ERROR_OK)
 					{
-					case XTRST_ON:
-						jtag_add_reset(1, 0);
+						matched = 1;
 						break;
-					case XTRST_OFF:
-					case XTRST_Z:
-						jtag_add_reset(0, 0);
-						break;
-					case XTRST_ABSENT:
-						break;
-					default:
-						LOG_ERROR( "XTRST mode argument (0x%02X) out of range", trst_mode );
-						do_abort = 1;
 					}
 				}
-				break;
 
-			default:
-				LOG_ERROR("unknown xsvf command (0x%02X)\n", uc);
-				unsupported = 1;
+				if (!matched )
+				{
+					LOG_USER( "LSDR mismatch" );
+					tdo_mismatch = 1;
+					break;
+				}
+			}
+			break;
+
+		case XTRST:
+			{
+				u8	trst_mode;
+
+				if (read(xsvf_fd, &trst_mode, 1) < 0)
+				{
+					do_abort = 1;
+					break;
+				}
+
+				switch( trst_mode )
+				{
+				case XTRST_ON:
+					jtag_add_reset(1, 0);
+					break;
+				case XTRST_OFF:
+				case XTRST_Z:
+					jtag_add_reset(0, 0);
+					break;
+				case XTRST_ABSENT:
+					break;
+				default:
+					LOG_ERROR( "XTRST mode argument (0x%02X) out of range", trst_mode );
+					do_abort = 1;
+				}
+			}
+			break;
+
+		default:
+			LOG_ERROR("unknown xsvf command (0x%02X)\n", uc);
+			unsupported = 1;
 		}
 
 		if (do_abort || unsupported || tdo_mismatch)
@@ -1058,7 +1051,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 }
 
 
-/* PSUEDO-Code from Xilinx Appnote XAPP067.pdf:
+#if 0   /* this comment style used to try and keep uncrustify from adding * at begin of line */
+
+PSUEDO-Code from Xilinx Appnote XAPP067.pdf:
 
 the following pseudo code clarifies the intent of the xrepeat support.  The
 flow given is for the entire processing of an SVF file, not an XSVF file.
@@ -1106,4 +1101,4 @@ else if RUNTEST record then
    store <TCK value> as <current pause time>
 end if
 
-*/
+#endif
