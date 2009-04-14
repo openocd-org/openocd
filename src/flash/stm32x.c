@@ -565,8 +565,16 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 			break;
 		}
 		
-		if (buf_get_u32(reg_params[3].value, 0, 32) & 0x14)
+		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_PGERR)
 		{
+			LOG_ERROR("flash memory not erased before writing");
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		}
+		
+		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_WRPRTERR)
+		{
+			LOG_ERROR("flash memory write protected");
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
@@ -647,9 +655,15 @@ int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		status = stm32x_wait_status_busy(bank, 5);
 		
 		if( status & FLASH_WRPRTERR )
+		{
+			LOG_ERROR("flash memory not erased before writing");
 			return ERROR_FLASH_OPERATION_FAILED;
+		}
 		if( status & FLASH_PGERR )
+		{
+			LOG_ERROR("flash memory write protected");
 			return ERROR_FLASH_OPERATION_FAILED;
+		}
 
 		bytes_written += 2;
 		words_remaining--;
@@ -674,9 +688,15 @@ int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		status = stm32x_wait_status_busy(bank, 5);
 		
 		if( status & FLASH_WRPRTERR )
+		{
+			LOG_ERROR("flash memory not erased before writing");
 			return ERROR_FLASH_OPERATION_FAILED;
+		}
 		if( status & FLASH_PGERR )
+		{
+			LOG_ERROR("flash memory write protected");
 			return ERROR_FLASH_OPERATION_FAILED;
+		}
 	}
 	
 	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
