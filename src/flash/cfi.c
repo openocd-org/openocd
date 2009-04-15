@@ -1589,7 +1589,7 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 	u8 command[8];
 
 	/* Calculate buffer size and boundary mask */
-	u32 buffersize = 1UL << cfi_info->max_buf_write_size;
+	u32 buffersize = (1UL << cfi_info->max_buf_write_size) * (bank->bus_width / bank->chip_width);
 	u32 buffermask = buffersize-1;
 	u32 bufferwsize;
 
@@ -1608,6 +1608,9 @@ int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u3
 		LOG_ERROR("Unsupported chip width %d", bank->chip_width);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
+
+	bufferwsize/=(bank->bus_width / bank->chip_width);
+
 
 	/* Check for valid size */
 	if (wordcount > bufferwsize)
@@ -1725,7 +1728,7 @@ int cfi_spansion_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount,
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 
 	/* Calculate buffer size and boundary mask */
-	u32 buffersize = 1UL << cfi_info->max_buf_write_size;
+	u32 buffersize = (1UL << cfi_info->max_buf_write_size) * (bank->bus_width / bank->chip_width);
 	u32 buffermask = buffersize-1;
 	u32 bufferwsize;
 
@@ -1744,6 +1747,8 @@ int cfi_spansion_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount,
 		LOG_ERROR("Unsupported chip width %d", bank->chip_width);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
+
+	bufferwsize/=(bank->bus_width / bank->chip_width);
 
 	/* Check for valid size */
 	if (wordcount > bufferwsize)
@@ -1946,7 +1951,8 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	{
 		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 		{
-			u32 buffersize = 1UL << cfi_info->max_buf_write_size;
+			//adjust buffersize for chip width
+			u32 buffersize = (1UL << cfi_info->max_buf_write_size) * (bank->bus_width / bank->chip_width);
 			u32 buffermask = buffersize-1;
 			u32 bufferwsize;
 
@@ -1959,6 +1965,8 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 				LOG_ERROR("Unsupported chip width %d", bank->chip_width);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
+			
+			bufferwsize/=(bank->bus_width / bank->chip_width);
 
 			/* fall back to memory writes */
 			while (count >= bank->bus_width)
