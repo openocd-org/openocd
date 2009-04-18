@@ -36,19 +36,19 @@
 #include <string.h>
 #include <unistd.h>
 
-int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-int aduc702x_register_commands(struct command_context_s *cmd_ctx);
-int aduc702x_erase(struct flash_bank_s *bank, int first, int last);
-int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int last);
-int aduc702x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-int aduc702x_write_single(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-int aduc702x_probe(struct flash_bank_s *bank);
-int aduc702x_info(struct flash_bank_s *bank, char *buf, int buf_size);
-int aduc702x_protect_check(struct flash_bank_s *bank);
-int aduc702x_build_sector_list(struct flash_bank_s *bank);
-int aduc702x_check_flash_completion(target_t* target, unsigned int timeout_ms);
-int aduc702x_set_write_enable(target_t *target, int enable);
+static int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
+static int aduc702x_register_commands(struct command_context_s *cmd_ctx);
+static int aduc702x_erase(struct flash_bank_s *bank, int first, int last);
+static int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int last);
+static int aduc702x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int aduc702x_write_single(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int aduc702x_probe(struct flash_bank_s *bank);
+static int aduc702x_info(struct flash_bank_s *bank, char *buf, int buf_size);
+static int aduc702x_protect_check(struct flash_bank_s *bank);
+static int aduc702x_build_sector_list(struct flash_bank_s *bank);
+static int aduc702x_check_flash_completion(target_t* target, unsigned int timeout_ms);
+static int aduc702x_set_write_enable(target_t *target, int enable);
 
 #define ADUC702x_FLASH				0xfffff800
 #define ADUC702x_FLASH_FEESTA		(0*4)
@@ -91,14 +91,14 @@ flash_driver_t aduc702x_flash =
 	.info = aduc702x_info
 };
 
-int aduc702x_register_commands(struct command_context_s *cmd_ctx)
+static int aduc702x_register_commands(struct command_context_s *cmd_ctx)
 {
 	return ERROR_OK;
 }
 
 /* flash bank aduc702x 0 0 0 0 <target#>
  * The ADC7019-28 devices all have the same flash layout */
-int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+static int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	aduc702x_flash_bank_t *nbank;
 
@@ -113,7 +113,7 @@ int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
         return ERROR_OK;
 }
 
-int aduc702x_build_sector_list(struct flash_bank_s *bank)
+static int aduc702x_build_sector_list(struct flash_bank_s *bank)
 {
 	//aduc7026_flash_bank_t *aduc7026_info = bank->driver_priv;
 	
@@ -135,13 +135,13 @@ int aduc702x_build_sector_list(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int aduc702x_protect_check(struct flash_bank_s *bank)
+static int aduc702x_protect_check(struct flash_bank_s *bank)
 {
 	printf("aduc702x_protect_check not implemented yet.\n");
 	return ERROR_OK;
 }
 
-int aduc702x_erase(struct flash_bank_s *bank, int first, int last)
+static int aduc702x_erase(struct flash_bank_s *bank, int first, int last)
 {
         //int res;
 	int x;
@@ -194,13 +194,13 @@ int aduc702x_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	printf("aduc702x_protect not implemented yet.\n");
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
-int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	aduc702x_flash_bank_t *aduc702x_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -329,7 +329,7 @@ int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 
 /* All-JTAG, single-access method.  Very slow.  Used only if there is no 
  * working area available. */
-int aduc702x_write_single(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int aduc702x_write_single(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	int x;
         u8 b;
@@ -399,12 +399,12 @@ int aduc702x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
         return ERROR_OK;
 }
 
-int aduc702x_probe(struct flash_bank_s *bank)
+static int aduc702x_probe(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
 
-int aduc702x_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int aduc702x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "aduc702x flash driver info" );
 	return ERROR_OK;
@@ -412,7 +412,7 @@ int aduc702x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 /* sets FEEMOD bit 3
  * enable = 1 enables writes & erases, 0 disables them */
-int aduc702x_set_write_enable(target_t *target, int enable)
+static int aduc702x_set_write_enable(target_t *target, int enable)
 {
         // don't bother to preserve int enable bit here
         target_write_u16(target, ADUC702x_FLASH + ADUC702x_FLASH_FEEMOD, enable ? 8 : 0);
@@ -425,7 +425,7 @@ int aduc702x_set_write_enable(target_t *target, int enable)
  *
  * this function sleeps 1ms between checks (after the first one),
  * so in some cases may slow things down without a usleep after the first read */
-int aduc702x_check_flash_completion(target_t* target, unsigned int timeout_ms)
+static int aduc702x_check_flash_completion(target_t* target, unsigned int timeout_ms)
 {
         u8 v = 4;
 

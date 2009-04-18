@@ -82,7 +82,7 @@ int etb_set_instr(etb_t *etb, u32 new_instr)
 		field.in_handler = NULL;
 		field.in_handler_priv = NULL;
 
-		jtag_add_ir_scan(1, &field, -1);
+		jtag_add_ir_scan(1, &field, TAP_INVALID);
 
 		free(field.out_value);
 	}
@@ -109,7 +109,7 @@ int etb_scann(etb_t *etb, u32 new_scan_chain)
 
 		/* select INTEST instruction */
 		etb_set_instr(etb, 0x2);
-		jtag_add_dr_scan(1, &field, -1);
+		jtag_add_dr_scan(1, &field, TAP_INVALID);
 
 		etb->cur_scan_chain = new_scan_chain;
 
@@ -220,7 +220,7 @@ int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	fields[0].in_handler = buf_to_u32_handler;
 
@@ -236,7 +236,7 @@ int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 			buf_set_u32(fields[1].out_value, 0, 7, 0);
 
 		fields[0].in_handler_priv = &data[i];
-		jtag_add_dr_scan(3, fields, -1);
+		jtag_add_dr_scan(3, fields, TAP_INVALID);
 	}
 
 	jtag_execute_queue();
@@ -291,7 +291,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	/* read the identification register in the second run, to make sure we
 	 * don't read the ETB data register twice, skipping every second entry
@@ -301,7 +301,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 
 	jtag_set_check_value(fields+0, check_value, check_mask, NULL);
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);
@@ -388,7 +388,7 @@ int etb_write_reg(reg_t *reg, u32 value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	free(fields[0].out_value);
 	free(fields[1].out_value);

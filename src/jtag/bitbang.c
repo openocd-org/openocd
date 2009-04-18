@@ -278,7 +278,7 @@ int bitbang_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("end_state: %s", tap_state_name(cmd->cmd.end_state->end_state) );
 #endif
-				if (cmd->cmd.end_state->end_state != -1)
+				if (cmd->cmd.end_state->end_state != TAP_INVALID)
 					bitbang_end_state(cmd->cmd.end_state->end_state);
 				break;
 			case JTAG_RESET:
@@ -295,7 +295,7 @@ int bitbang_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, tap_state_name(cmd->cmd.runtest->end_state) );
 #endif
-				if (cmd->cmd.runtest->end_state != -1)
+				if (cmd->cmd.runtest->end_state != TAP_INVALID)
 					bitbang_end_state(cmd->cmd.runtest->end_state);
 				bitbang_runtest(cmd->cmd.runtest->num_cycles);
 				break;
@@ -311,7 +311,7 @@ int bitbang_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("statemove end in %s", tap_state_name(cmd->cmd.statemove->end_state));
 #endif
-				if (cmd->cmd.statemove->end_state != -1)
+				if (cmd->cmd.statemove->end_state != TAP_INVALID)
 					bitbang_end_state(cmd->cmd.statemove->end_state);
 				bitbang_state_move();
 				break;
@@ -326,7 +326,7 @@ int bitbang_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("%s scan end in %s",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", tap_state_name(cmd->cmd.scan->end_state) );
 #endif
-				if (cmd->cmd.scan->end_state != -1)
+				if (cmd->cmd.scan->end_state != TAP_INVALID)
 					bitbang_end_state(cmd->cmd.scan->end_state);
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 				type = jtag_scan_type(cmd->cmd.scan);

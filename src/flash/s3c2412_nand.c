@@ -38,8 +38,8 @@
 #include "s3c24xx_nand.h"
 #include "target.h"
 
-int s3c2412_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device);
-int s3c2412_init(struct nand_device_s *device);
+static int s3c2412_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device);
+static int s3c2412_init(struct nand_device_s *device);
 
 nand_flash_controller_t s3c2412_nand_controller =
 {
@@ -60,7 +60,7 @@ nand_flash_controller_t s3c2412_nand_controller =
 	.nand_ready		= s3c2440_nand_ready,
 };
 
-int s3c2412_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
+static int s3c2412_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 				char **args, int argc,
 				struct nand_device_s *device)
 {
@@ -80,7 +80,7 @@ int s3c2412_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 	return ERROR_OK;
 }
 
-int s3c2412_init(struct nand_device_s *device)
+static int s3c2412_init(struct nand_device_s *device)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;

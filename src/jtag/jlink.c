@@ -154,7 +154,7 @@ int jlink_execute_queue(void)
 			case JTAG_END_STATE:
 				DEBUG_JTAG_IO("end_state: %i", cmd->cmd.end_state->end_state);
 
-				if (cmd->cmd.end_state->end_state != -1)
+				if (cmd->cmd.end_state->end_state != TAP_INVALID)
 				{
 					jlink_end_state(cmd->cmd.end_state->end_state);
 				}
@@ -164,7 +164,7 @@ int jlink_execute_queue(void)
 				DEBUG_JTAG_IO( "runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, \
 					cmd->cmd.runtest->end_state);
 
-				if (cmd->cmd.runtest->end_state != -1)
+				if (cmd->cmd.runtest->end_state != TAP_INVALID)
 				{
 					jlink_end_state(cmd->cmd.runtest->end_state);
 				}
@@ -174,7 +174,7 @@ int jlink_execute_queue(void)
 			case JTAG_STATEMOVE:
 				DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 
-				if (cmd->cmd.statemove->end_state != -1)
+				if (cmd->cmd.statemove->end_state != TAP_INVALID)
 				{
 					jlink_end_state(cmd->cmd.statemove->end_state);
 				}
@@ -192,7 +192,7 @@ int jlink_execute_queue(void)
 			case JTAG_SCAN:
 				DEBUG_JTAG_IO("scan end in %i", cmd->cmd.scan->end_state);
 
-				if (cmd->cmd.scan->end_state != -1)
+				if (cmd->cmd.scan->end_state != TAP_INVALID)
 				{
 					jlink_end_state(cmd->cmd.scan->end_state);
 				}
@@ -525,7 +525,7 @@ int jlink_get_version_info(void)
 		if (result == len)
 		{
 			usb_in_buffer[result] = 0;
-			LOG_INFO(usb_in_buffer);
+			LOG_INFO((char *)usb_in_buffer);
 			return ERROR_OK;
 		}
 	}
@@ -858,8 +858,8 @@ int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length)
 		return -1;
 	}
 
-	result = usb_bulk_write(jlink_jtag->usb_handle, JLINK_WRITE_ENDPOINT, \
-		usb_out_buffer, out_length, JLINK_USB_TIMEOUT);
+	result = usb_bulk_write(jlink_jtag->usb_handle, JLINK_WRITE_ENDPOINT,
+		(char *)usb_out_buffer, out_length, JLINK_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("jlink_usb_write, out_length = %d, result = %d", out_length, result);
 
@@ -872,8 +872,8 @@ int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length)
 /* Read data from USB into in_buffer. */
 int jlink_usb_read(jlink_jtag_t *jlink_jtag)
 {
-	int result = usb_bulk_read(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT, \
-		usb_in_buffer, JLINK_IN_BUFFER_SIZE, JLINK_USB_TIMEOUT);
+	int result = usb_bulk_read(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT,
+		(char *)usb_in_buffer, JLINK_IN_BUFFER_SIZE, JLINK_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("jlink_usb_read, result = %d", result);
 
@@ -886,8 +886,9 @@ int jlink_usb_read(jlink_jtag_t *jlink_jtag)
 /* Read the result from the previous EMU cmd into result_buffer. */
 int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag)
 {
-	int result = usb_bulk_read(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT, \
-		usb_emu_result_buffer, JLINK_EMU_RESULT_BUFFER_SIZE, JLINK_USB_TIMEOUT);
+	int result = usb_bulk_read(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT,
+		(char *)usb_emu_result_buffer, JLINK_EMU_RESULT_BUFFER_SIZE,
+		JLINK_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("jlink_usb_read_result, result = %d", result);
 

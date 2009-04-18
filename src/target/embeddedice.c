@@ -283,7 +283,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	fields[0].in_value = reg->value;
 	jtag_set_check_value(fields+0, check_value, check_mask, NULL);
@@ -294,7 +294,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	 */
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	return ERROR_OK;
 }
@@ -345,7 +345,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	while (size > 0)
 	{
@@ -357,7 +357,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 
 		fields[0].in_handler = arm_jtag_buf_to_u32;
 		fields[0].in_handler_priv = data;
-		jtag_add_dr_scan(3, fields, -1);
+		jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 		data++;
 		size--;
@@ -465,7 +465,7 @@ int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	while (size > 0)
 	{
 		buf_set_u32(fields[0].out_value, 0, 32, *data);
-		jtag_add_dr_scan(3, fields, -1);
+		jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 		data++;
 		size--;
@@ -531,11 +531,11 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 	gettimeofday(&lap, NULL);
 	do
 	{
-		jtag_add_dr_scan(3, fields, -1);
+		jtag_add_dr_scan(3, fields, TAP_INVALID);
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
 

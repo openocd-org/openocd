@@ -32,20 +32,20 @@
 #include "nand.h"
 #include "target.h"
 
-int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device);
-int lpc3180_register_commands(struct command_context_s *cmd_ctx);
-int lpc3180_init(struct nand_device_s *device);
-int lpc3180_reset(struct nand_device_s *device);
-int lpc3180_command(struct nand_device_s *device, u8 command);
-int lpc3180_address(struct nand_device_s *device, u8 address);
-int lpc3180_write_data(struct nand_device_s *device, u16 data);
-int lpc3180_read_data(struct nand_device_s *device, void *data);
-int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
-int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
-int lpc3180_controller_ready(struct nand_device_s *device, int timeout);
-int lpc3180_nand_ready(struct nand_device_s *device, int timeout);
+static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device);
+static int lpc3180_register_commands(struct command_context_s *cmd_ctx);
+static int lpc3180_init(struct nand_device_s *device);
+static int lpc3180_reset(struct nand_device_s *device);
+static int lpc3180_command(struct nand_device_s *device, u8 command);
+static int lpc3180_address(struct nand_device_s *device, u8 address);
+static int lpc3180_write_data(struct nand_device_s *device, u16 data);
+static int lpc3180_read_data(struct nand_device_s *device, void *data);
+static int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
+static int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
+static int lpc3180_controller_ready(struct nand_device_s *device, int timeout);
+static int lpc3180_nand_ready(struct nand_device_s *device, int timeout);
 
-int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 nand_flash_controller_t lpc3180_nand_controller =
 {
@@ -66,7 +66,7 @@ nand_flash_controller_t lpc3180_nand_controller =
 
 /* nand device lpc3180 <target#> <oscillator_frequency>
  */
-int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device)
+static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device)
 {
 	lpc3180_nand_controller_t *lpc3180_info;
 	
@@ -99,7 +99,7 @@ int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-int lpc3180_register_commands(struct command_context_s *cmd_ctx)
+static int lpc3180_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *lpc3180_cmd = register_command(cmd_ctx, NULL, "lpc3180", NULL, COMMAND_ANY, "commands specific to the LPC3180 NAND flash controllers");
 	
@@ -108,7 +108,7 @@ int lpc3180_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int lpc3180_pll(int fclkin, u32 pll_ctrl)
+static int lpc3180_pll(int fclkin, u32 pll_ctrl)
 {
 	int bypass = (pll_ctrl & 0x8000) >> 15;
 	int direct = (pll_ctrl & 0x4000) >> 14;
@@ -136,7 +136,7 @@ int lpc3180_pll(int fclkin, u32 pll_ctrl)
 		return (m / (2 * p)) * (fclkin / n); 
 }
 
-float lpc3180_cycle_time(lpc3180_nand_controller_t *lpc3180_info)
+static float lpc3180_cycle_time(lpc3180_nand_controller_t *lpc3180_info)
 {
 	target_t *target = lpc3180_info->target;
 	u32 sysclk_ctrl, pwr_ctrl, hclkdiv_ctrl, hclkpll_ctrl;
@@ -186,7 +186,7 @@ float lpc3180_cycle_time(lpc3180_nand_controller_t *lpc3180_info)
 	return cycle;
 }
 
-int lpc3180_init(struct nand_device_s *device)
+static int lpc3180_init(struct nand_device_s *device)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -316,7 +316,7 @@ int lpc3180_init(struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-int lpc3180_reset(struct nand_device_s *device)
+static int lpc3180_reset(struct nand_device_s *device)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -358,7 +358,7 @@ int lpc3180_reset(struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-int lpc3180_command(struct nand_device_s *device, u8 command)
+static int lpc3180_command(struct nand_device_s *device, u8 command)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -388,7 +388,7 @@ int lpc3180_command(struct nand_device_s *device, u8 command)
 	return ERROR_OK;
 }
 
-int lpc3180_address(struct nand_device_s *device, u8 address)
+static int lpc3180_address(struct nand_device_s *device, u8 address)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -418,7 +418,7 @@ int lpc3180_address(struct nand_device_s *device, u8 address)
 	return ERROR_OK;
 }
 
-int lpc3180_write_data(struct nand_device_s *device, u16 data)
+static int lpc3180_write_data(struct nand_device_s *device, u16 data)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -448,7 +448,7 @@ int lpc3180_write_data(struct nand_device_s *device, u16 data)
 	return ERROR_OK;
 }
 
-int lpc3180_read_data(struct nand_device_s *device, void *data)
+static int lpc3180_read_data(struct nand_device_s *device, void *data)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -510,7 +510,7 @@ int lpc3180_read_data(struct nand_device_s *device, void *data)
 	return ERROR_OK;
 }
 
-int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
+static int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -649,7 +649,7 @@ int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 dat
 	return ERROR_OK;
 }
 
-int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
+static int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -796,7 +796,7 @@ int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data
 	return ERROR_OK;
 }
 
-int lpc3180_controller_ready(struct nand_device_s *device, int timeout)
+static int lpc3180_controller_ready(struct nand_device_s *device, int timeout)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -830,7 +830,7 @@ int lpc3180_controller_ready(struct nand_device_s *device, int timeout)
 	return 0;
 }
 
-int lpc3180_nand_ready(struct nand_device_s *device, int timeout)
+static int lpc3180_nand_ready(struct nand_device_s *device, int timeout)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -870,7 +870,7 @@ int lpc3180_nand_ready(struct nand_device_s *device, int timeout)
 	return 0;	
 }
 
-int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_lpc3180_select_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	nand_device_t *device = NULL;
 	lpc3180_nand_controller_t *lpc3180_info = NULL;

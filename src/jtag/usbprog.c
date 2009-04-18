@@ -142,7 +142,7 @@ int usbprog_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
 #endif
-				if (cmd->cmd.end_state->end_state != -1)
+				if (cmd->cmd.end_state->end_state != TAP_INVALID)
 					usbprog_end_state(cmd->cmd.end_state->end_state);
 				break;
 			case JTAG_RESET:
@@ -159,7 +159,7 @@ int usbprog_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
 #endif
-				if (cmd->cmd.runtest->end_state != -1)
+				if (cmd->cmd.runtest->end_state != TAP_INVALID)
 					usbprog_end_state(cmd->cmd.runtest->end_state);
 				usbprog_runtest(cmd->cmd.runtest->num_cycles);
 				break;
@@ -167,7 +167,7 @@ int usbprog_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif
-				if (cmd->cmd.statemove->end_state != -1)
+				if (cmd->cmd.statemove->end_state != TAP_INVALID)
 					usbprog_end_state(cmd->cmd.statemove->end_state);
 				usbprog_state_move();
 				break;
@@ -182,7 +182,7 @@ int usbprog_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("scan end in %i", cmd->cmd.scan->end_state);
 #endif
-				if (cmd->cmd.scan->end_state != -1)
+				if (cmd->cmd.scan->end_state != TAP_INVALID)
 					usbprog_end_state(cmd->cmd.scan->end_state);
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 				type = jtag_scan_type(cmd->cmd.scan);

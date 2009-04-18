@@ -269,7 +269,7 @@ int vsllink_execute_queue(void)
 			case JTAG_END_STATE:
 				DEBUG_JTAG_IO("end_state: %s", tap_state_name(cmd->cmd.end_state->end_state));
 
-				if (cmd->cmd.end_state->end_state != -1)
+				if (cmd->cmd.end_state->end_state != TAP_INVALID)
 				{
 					vsllink_end_state(cmd->cmd.end_state->end_state);
 				}
@@ -279,7 +279,7 @@ int vsllink_execute_queue(void)
 				DEBUG_JTAG_IO( "runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, \
 					tap_state_name(cmd->cmd.runtest->end_state));
 
-				if (cmd->cmd.runtest->end_state != -1)
+				if (cmd->cmd.runtest->end_state != TAP_INVALID)
 				{
 					vsllink_end_state(cmd->cmd.runtest->end_state);
 				}
@@ -289,7 +289,7 @@ int vsllink_execute_queue(void)
 			case JTAG_STATEMOVE:
 				DEBUG_JTAG_IO("statemove end in %s", tap_state_name(cmd->cmd.statemove->end_state));
 
-				if (cmd->cmd.statemove->end_state != -1)
+				if (cmd->cmd.statemove->end_state != TAP_INVALID)
 				{
 					vsllink_end_state(cmd->cmd.statemove->end_state);
 				}
@@ -305,7 +305,7 @@ int vsllink_execute_queue(void)
 				break;
 
 			case JTAG_SCAN:
-				if (cmd->cmd.scan->end_state != -1)
+				if (cmd->cmd.scan->end_state != TAP_INVALID)
 				{
 					vsllink_end_state(cmd->cmd.scan->end_state);
 				}

@@ -94,22 +94,19 @@
 /* F_CLK_TIME */
 #define FCT_CLK_DIV_MASK    0x0FFF
 
-int lpc288x_register_commands(struct command_context_s *cmd_ctx);
-int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-int lpc288x_erase(struct flash_bank_s *bank, int first, int last);
-int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int last);
-int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-int lpc288x_probe(struct flash_bank_s *bank);
-int lpc288x_auto_probe(struct flash_bank_s *bank);
-int lpc288x_erase_check(struct flash_bank_s *bank);
-int lpc288x_protect_check(struct flash_bank_s *bank);
-int lpc288x_info(struct flash_bank_s *bank, char *buf, int buf_size);
-void lpc288x_set_flash_mode(flash_bank_t *bank, u8 flashplane, int mode);
-u32 lpc288x_wait_status_busy(flash_bank_t *bank, int timeout);
-void lpc288x_load_timer(int erase, struct target_s *target);
-void lpc288x_set_flash_clk(struct flash_bank_s *bank);
-u32 lpc288x_system_ready(struct flash_bank_s *bank);
-int lpc288x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int lpc288x_register_commands(struct command_context_s *cmd_ctx);
+static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
+static int lpc288x_erase(struct flash_bank_s *bank, int first, int last);
+static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int last);
+static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int lpc288x_probe(struct flash_bank_s *bank);
+static int lpc288x_erase_check(struct flash_bank_s *bank);
+static int lpc288x_protect_check(struct flash_bank_s *bank);
+static int lpc288x_info(struct flash_bank_s *bank, char *buf, int buf_size);
+static u32 lpc288x_wait_status_busy(flash_bank_t *bank, int timeout);
+static void lpc288x_load_timer(int erase, struct target_s *target);
+static void lpc288x_set_flash_clk(struct flash_bank_s *bank);
+static u32 lpc288x_system_ready(struct flash_bank_s *bank);
 
 flash_driver_t lpc288x_flash =
 {
@@ -126,12 +123,12 @@ flash_driver_t lpc288x_flash =
 	.info = lpc288x_info
 };
 
-int lpc288x_register_commands(struct command_context_s *cmd_ctx)
+static int lpc288x_register_commands(struct command_context_s *cmd_ctx)
 {
 	return ERROR_OK;
 }
 
-u32 lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
+static u32 lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 {
 	u32 status;
 	target_t *target = bank->target;
@@ -151,7 +148,7 @@ u32 lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 }
 
 /* Read device id register and fill in driver info structure */
-int lpc288x_read_part_info(struct flash_bank_s *bank)
+static int lpc288x_read_part_info(struct flash_bank_s *bank)
 {
 	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -201,13 +198,13 @@ int lpc288x_read_part_info(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int lpc288x_protect_check(struct flash_bank_s *bank)
+static int lpc288x_protect_check(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
 
 /* flash_bank LPC288x 0 0 0 0 <target#> <cclk> */
-int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	lpc288x_flash_bank_t *lpc288x_info;
 	
@@ -232,7 +229,7 @@ int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, cha
  * AHB = 12 MHz ?
  * 12000000/66000 = 182
  * CLK_DIV = 60 ? */
-void lpc288x_set_flash_clk(struct flash_bank_s *bank)
+static void lpc288x_set_flash_clk(struct flash_bank_s *bank)
 {
 	u32 clk_time;
 	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
@@ -247,7 +244,7 @@ void lpc288x_set_flash_clk(struct flash_bank_s *bank)
  * LOAD_TIMER_WRITE		FPT_TIME	= ((1,000,000 / AHB tcyc (in ns)) - 2) / 512
  * 									= 23 (75) (AN10548 72 - is this wrong?)
  * TODO: Sort out timing calcs ;) */
-void lpc288x_load_timer(int erase, struct target_s *target)
+static void lpc288x_load_timer(int erase, struct target_s *target)
 {
 	if (erase == LOAD_TIMER_ERASE)
 	{
@@ -259,7 +256,7 @@ void lpc288x_load_timer(int erase, struct target_s *target)
 	}
 }
 
-u32 lpc288x_system_ready(struct flash_bank_s *bank)
+static u32 lpc288x_system_ready(struct flash_bank_s *bank)
 {
 	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
 	if (lpc288x_info->cidr == 0)
@@ -275,7 +272,7 @@ u32 lpc288x_system_ready(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int lpc288x_erase_check(struct flash_bank_s *bank)
+static int lpc288x_erase_check(struct flash_bank_s *bank)
 {
 	u32 status = lpc288x_system_ready(bank);	/* probed? halted? */
 	if (status != ERROR_OK)
@@ -287,7 +284,7 @@ int lpc288x_erase_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int lpc288x_erase(struct flash_bank_s *bank, int first, int last)
+static int lpc288x_erase(struct flash_bank_s *bank, int first, int last)
 {
 	u32 status;
 	int sector;
@@ -328,7 +325,7 @@ int lpc288x_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	u8 page_buffer[FLASH_PAGE_SIZE];
 	u32 i, status, source_offset,dest_offset;
@@ -443,7 +440,7 @@ int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	return ERROR_OK;
 }
 
-int lpc288x_probe(struct flash_bank_s *bank)
+static int lpc288x_probe(struct flash_bank_s *bank)
 {
 	/* we only deal with LPC2888 so flash config is fixed */
 	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
@@ -466,13 +463,13 @@ int lpc288x_probe(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int lpc288x_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int lpc288x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "lpc288x flash driver");
 	return ERROR_OK;
 }
 
-int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	int lockregion, status;
 	u32 value;

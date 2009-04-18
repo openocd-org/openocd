@@ -156,7 +156,7 @@ int armjtagew_execute_queue(void)
 			case JTAG_END_STATE:
 				DEBUG_JTAG_IO("end_state: %i", cmd->cmd.end_state->end_state);
 
-				if (cmd->cmd.end_state->end_state != -1)
+				if (cmd->cmd.end_state->end_state != TAP_INVALID)
 				{
 					armjtagew_end_state(cmd->cmd.end_state->end_state);
 				}
@@ -166,7 +166,7 @@ int armjtagew_execute_queue(void)
 				DEBUG_JTAG_IO( "runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, \
 					cmd->cmd.runtest->end_state);
 
-				if (cmd->cmd.runtest->end_state != -1)
+				if (cmd->cmd.runtest->end_state != TAP_INVALID)
 				{
 					armjtagew_end_state(cmd->cmd.runtest->end_state);
 				}
@@ -176,7 +176,7 @@ int armjtagew_execute_queue(void)
 			case JTAG_STATEMOVE:
 				DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 
-				if (cmd->cmd.statemove->end_state != -1)
+				if (cmd->cmd.statemove->end_state != TAP_INVALID)
 				{
 					armjtagew_end_state(cmd->cmd.statemove->end_state);
 				}
@@ -194,7 +194,7 @@ int armjtagew_execute_queue(void)
 			case JTAG_SCAN:
 				DEBUG_JTAG_IO("scan end in %i", cmd->cmd.scan->end_state);
 
-				if (cmd->cmd.scan->end_state != -1)
+				if (cmd->cmd.scan->end_state != TAP_INVALID)
 				{
 					armjtagew_end_state(cmd->cmd.scan->end_state);
 				}

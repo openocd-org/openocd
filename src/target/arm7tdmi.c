@@ -169,9 +169,9 @@ static __inline int arm7tdmi_clock_out_inner(arm_jtag_t *jtag_info, u32 out, int
 			2,
 			arm7tdmi_num_bits,
 			values,
-			-1);
+			TAP_INVALID);
 
-	jtag_add_runtest(0, -1);
+	jtag_add_runtest(0, TAP_INVALID);
 
 	return ERROR_OK;
 }
@@ -219,9 +219,9 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	jtag_add_dr_scan(2, fields, -1);
+	jtag_add_dr_scan(2, fields, TAP_INVALID);
 
-	jtag_add_runtest(0, -1);
+	jtag_add_runtest(0, TAP_INVALID);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 {
@@ -291,9 +291,9 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	jtag_add_dr_scan(2, fields, -1);
+	jtag_add_dr_scan(2, fields, TAP_INVALID);
 
-	jtag_add_runtest(0, -1);
+	jtag_add_runtest(0, TAP_INVALID);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 {

@@ -40,31 +40,31 @@
 #include <unistd.h>
 #include <getopt.h>
 
-int str9xpec_register_commands(struct command_context_s *cmd_ctx);
-int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-int str9xpec_erase(struct flash_bank_s *bank, int first, int last);
-int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last);
-int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-int str9xpec_probe(struct flash_bank_s *bank);
-int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_protect_check(struct flash_bank_s *bank);
-int str9xpec_erase_check(struct flash_bank_s *bank);
-int str9xpec_info(struct flash_bank_s *bank, char *buf, int buf_size);
+static int str9xpec_register_commands(struct command_context_s *cmd_ctx);
+static int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
+static int str9xpec_erase(struct flash_bank_s *bank, int first, int last);
+static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last);
+static int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int str9xpec_probe(struct flash_bank_s *bank);
+static int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_protect_check(struct flash_bank_s *bank);
+static int str9xpec_erase_check(struct flash_bank_s *bank);
+static int str9xpec_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
-int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last);
-int str9xpec_set_address(struct flash_bank_s *bank, u8 sector);
-int str9xpec_write_options(struct flash_bank_s *bank);
+static int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last);
+static int str9xpec_set_address(struct flash_bank_s *bank, u8 sector);
+static int str9xpec_write_options(struct flash_bank_s *bank);
 
-int str9xpec_handle_flash_options_cmap_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_handle_flash_options_lvdsel_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_handle_flash_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_handle_flash_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_handle_flash_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_options_cmap_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_options_lvdsel_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 flash_driver_t str9xpec_flash =
 {
@@ -81,7 +81,7 @@ flash_driver_t str9xpec_flash =
 	.info = str9xpec_info
 };
 
-int str9xpec_register_commands(struct command_context_s *cmd_ctx)
+static int str9xpec_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *str9xpec_cmd = register_command(cmd_ctx, NULL, "str9xpec", NULL, COMMAND_ANY, "str9xpec flash specific commands");
 
@@ -140,7 +140,7 @@ int str9xpec_set_instr(jtag_tap_t *tap, u32 new_instr, tap_state_t end_state)
 	return ERROR_OK;
 }
 
-u8 str9xpec_isc_status(jtag_tap_t *tap)
+static u8 str9xpec_isc_status(jtag_tap_t *tap)
 {
 	scan_field_t field;
 	u8 status;
@@ -169,7 +169,7 @@ u8 str9xpec_isc_status(jtag_tap_t *tap)
 	return status;
 }
 
-int str9xpec_isc_enable(struct flash_bank_s *bank)
+static int str9xpec_isc_enable(struct flash_bank_s *bank)
 {
 	u8 status;
 	jtag_tap_t *tap;
@@ -196,7 +196,7 @@ int str9xpec_isc_enable(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int str9xpec_isc_disable(struct flash_bank_s *bank)
+static int str9xpec_isc_disable(struct flash_bank_s *bank)
 {
 	u8 status;
 	jtag_tap_t *tap;
@@ -225,7 +225,7 @@ int str9xpec_isc_disable(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int str9xpec_read_config(struct flash_bank_s *bank)
+static int str9xpec_read_config(struct flash_bank_s *bank)
 {
 	scan_field_t field;
 	u8 status;
@@ -258,7 +258,7 @@ int str9xpec_read_config(struct flash_bank_s *bank)
 	return status;
 }
 
-int str9xpec_build_block_list(struct flash_bank_s *bank)
+static int str9xpec_build_block_list(struct flash_bank_s *bank)
 {
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 
@@ -327,7 +327,7 @@ int str9xpec_build_block_list(struct flash_bank_s *bank)
 
 /* flash bank str9x <base> <size> 0 0 <target#>
  */
-int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+static int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	str9xpec_flash_controller_t *str9xpec_info;
 	armv4_5_common_t *armv4_5 = NULL;
@@ -361,7 +361,7 @@ int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
+static int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 {
 	scan_field_t field;
 	u8 status;
@@ -438,7 +438,7 @@ int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-int str9xpec_protect_check(struct flash_bank_s *bank)
+static int str9xpec_protect_check(struct flash_bank_s *bank)
 {
 	u8 status;
 	int i;
@@ -460,7 +460,7 @@ int str9xpec_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
+static int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 {
 	scan_field_t field;
 	u8 status;
@@ -535,7 +535,7 @@ int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	return status;
 }
 
-int str9xpec_erase(struct flash_bank_s *bank, int first, int last)
+static int str9xpec_erase(struct flash_bank_s *bank, int first, int last)
 {
 	int status;
 
@@ -547,7 +547,7 @@ int str9xpec_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-int str9xpec_lock_device(struct flash_bank_s *bank)
+static int str9xpec_lock_device(struct flash_bank_s *bank)
 {
 	scan_field_t field;
 	u8 status;
@@ -594,7 +594,7 @@ int str9xpec_lock_device(struct flash_bank_s *bank)
 	return status;
 }
 
-int str9xpec_unlock_device(struct flash_bank_s *bank)
+static int str9xpec_unlock_device(struct flash_bank_s *bank)
 {
 	u8 status;
 
@@ -603,7 +603,7 @@ int str9xpec_unlock_device(struct flash_bank_s *bank)
 	return status;
 }
 
-int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	u8 status;
 	int i;
@@ -649,7 +649,7 @@ int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-int str9xpec_set_address(struct flash_bank_s *bank, u8 sector)
+static int str9xpec_set_address(struct flash_bank_s *bank, u8 sector)
 {
 	jtag_tap_t *tap;
 	scan_field_t field;
@@ -675,7 +675,7 @@ int str9xpec_set_address(struct flash_bank_s *bank, u8 sector)
 	return ERROR_OK;
 }
 
-int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
 	u32 dwords_remaining = (count / 8);
@@ -858,12 +858,12 @@ int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	return ERROR_OK;
 }
 
-int str9xpec_probe(struct flash_bank_s *bank)
+static int str9xpec_probe(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
 
-int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	scan_field_t field;
@@ -913,18 +913,18 @@ int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-int str9xpec_erase_check(struct flash_bank_s *bank)
+static int str9xpec_erase_check(struct flash_bank_s *bank)
 {
 	return str9xpec_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
-int str9xpec_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int str9xpec_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "str9xpec flash driver info" );
 	return ERROR_OK;
 }
 
-int str9xpec_handle_flash_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_flash_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	u8 status;
@@ -983,7 +983,7 @@ int str9xpec_handle_flash_options_read_command(struct command_context_s *cmd_ctx
 	return ERROR_OK;
 }
 
-int str9xpec_write_options(struct flash_bank_s *bank)
+static int str9xpec_write_options(struct flash_bank_s *bank)
 {
 	scan_field_t field;
 	u8 status;
@@ -1054,7 +1054,7 @@ int str9xpec_write_options(struct flash_bank_s *bank)
 	return status;
 }
 
-int str9xpec_handle_flash_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_flash_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	u8 status;
@@ -1080,7 +1080,7 @@ int str9xpec_handle_flash_options_write_command(struct command_context_s *cmd_ct
 	return ERROR_OK;
 }
 
-int str9xpec_handle_flash_options_cmap_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_flash_options_cmap_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
@@ -1112,7 +1112,7 @@ int str9xpec_handle_flash_options_cmap_command(struct command_context_s *cmd_ctx
 	return ERROR_OK;
 }
 
-int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
@@ -1176,7 +1176,7 @@ int str9xpec_handle_flash_options_lvdsel_command(struct command_context_s *cmd_c
 	return ERROR_OK;
 }
 
-int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
@@ -1208,7 +1208,7 @@ int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_s *cmd_
 	return ERROR_OK;
 }
 
-int str9xpec_handle_flash_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_flash_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u8 status;
 	flash_bank_t *bank;
@@ -1234,7 +1234,7 @@ int str9xpec_handle_flash_lock_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u8 status;
 	flash_bank_t *bank;
@@ -1260,7 +1260,7 @@ int str9xpec_handle_flash_unlock_command(struct command_context_s *cmd_ctx, char
 	return ERROR_OK;
 }
 
-int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval;
 	flash_bank_t *bank;
@@ -1313,7 +1313,7 @@ int str9xpec_handle_flash_enable_turbo_command(struct command_context_s *cmd_ctx
 	return ERROR_OK;
 }
 
-int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9xpec_handle_flash_disable_turbo_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	jtag_tap_t *tap;

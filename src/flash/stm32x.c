@@ -37,23 +37,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-int stm32x_register_commands(struct command_context_s *cmd_ctx);
-int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-int stm32x_erase(struct flash_bank_s *bank, int first, int last);
-int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last);
-int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-int stm32x_probe(struct flash_bank_s *bank);
-int stm32x_auto_probe(struct flash_bank_s *bank);
-int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int stm32x_protect_check(struct flash_bank_s *bank);
-int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size);
+static int stm32x_register_commands(struct command_context_s *cmd_ctx);
+static int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
+static int stm32x_erase(struct flash_bank_s *bank, int first, int last);
+static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last);
+static int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int stm32x_probe(struct flash_bank_s *bank);
+static int stm32x_auto_probe(struct flash_bank_s *bank);
+//static int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int stm32x_protect_check(struct flash_bank_s *bank);
+static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
-int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int stm32x_mass_erase(struct flash_bank_s *bank);
+static int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int stm32x_mass_erase(struct flash_bank_s *bank);
 
 flash_driver_t stm32x_flash =
 {
@@ -70,7 +70,7 @@ flash_driver_t stm32x_flash =
 	.info = stm32x_info
 };
 
-int stm32x_register_commands(struct command_context_s *cmd_ctx)
+static int stm32x_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *stm32x_cmd = register_command(cmd_ctx, NULL, "stm32x", NULL, COMMAND_ANY, "stm32x flash specific commands");
 	
@@ -89,7 +89,7 @@ int stm32x_register_commands(struct command_context_s *cmd_ctx)
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
  */
-int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+static int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	stm32x_flash_bank_t *stm32x_info;
 	
@@ -108,7 +108,7 @@ int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-u32 stm32x_get_flash_status(flash_bank_t *bank)
+static u32 stm32x_get_flash_status(flash_bank_t *bank)
 {
 	target_t *target = bank->target;
 	u32 status;
@@ -118,7 +118,7 @@ u32 stm32x_get_flash_status(flash_bank_t *bank)
 	return status;
 }
 
-u32 stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
+static u32 stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 {
 	u32 status;
 	
@@ -132,7 +132,7 @@ u32 stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 	return status;
 }
 
-int stm32x_read_options(struct flash_bank_s *bank)
+static int stm32x_read_options(struct flash_bank_s *bank)
 {
 	u32 optiondata;
 	stm32x_flash_bank_t *stm32x_info = NULL;
@@ -160,7 +160,7 @@ int stm32x_read_options(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int stm32x_erase_options(struct flash_bank_s *bank)
+static int stm32x_erase_options(struct flash_bank_s *bank)
 {
 	stm32x_flash_bank_t *stm32x_info = NULL;
 	target_t *target = bank->target;
@@ -197,7 +197,7 @@ int stm32x_erase_options(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int stm32x_write_options(struct flash_bank_s *bank)
+static int stm32x_write_options(struct flash_bank_s *bank)
 {
 	stm32x_flash_bank_t *stm32x_info = NULL;
 	target_t *target = bank->target;
@@ -281,7 +281,7 @@ int stm32x_write_options(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int stm32x_protect_check(struct flash_bank_s *bank)
+static int stm32x_protect_check(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
@@ -352,7 +352,7 @@ int stm32x_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int stm32x_erase(struct flash_bank_s *bank, int first, int last)
+static int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 {
 	target_t *target = bank->target;
 	int i;
@@ -393,7 +393,7 @@ int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	stm32x_flash_bank_t *stm32x_info = NULL;
 	target_t *target = bank->target;
@@ -480,7 +480,7 @@ int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	return stm32x_write_options(bank);
 }
 
-int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -595,7 +595,7 @@ int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 	return retval;
 }
 
-int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	target_t *target = bank->target;
 	u32 words_remaining = (count / 2);
@@ -704,7 +704,7 @@ int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	return ERROR_OK;
 }
 
-int stm32x_probe(struct flash_bank_s *bank)
+static int stm32x_probe(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
@@ -821,7 +821,7 @@ int stm32x_probe(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int stm32x_auto_probe(struct flash_bank_s *bank)
+static int stm32x_auto_probe(struct flash_bank_s *bank)
 {
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
 	if (stm32x_info->probed)
@@ -829,12 +829,14 @@ int stm32x_auto_probe(struct flash_bank_s *bank)
 	return stm32x_probe(bank);
 }
 
-int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+#if 0
+static int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	return ERROR_OK;
 }
+#endif
 
-int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	target_t *target = bank->target;
 	u32 device_id;
@@ -936,7 +938,7 @@ int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	target_t *target = NULL;
@@ -985,7 +987,7 @@ int stm32x_handle_lock_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return ERROR_OK;
 }
 
-int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	target_t *target = NULL;
@@ -1031,7 +1033,7 @@ int stm32x_handle_unlock_command(struct command_context_s *cmd_ctx, char *cmd, c
 	return ERROR_OK;
 }
 
-int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	u32 optionbyte;
@@ -1090,7 +1092,7 @@ int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	target_t *target = NULL;
@@ -1166,7 +1168,7 @@ int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx, char 
 	return ERROR_OK;
 }
 
-int stm32x_mass_erase(struct flash_bank_s *bank)
+static int stm32x_mass_erase(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
 	u32 status;
@@ -1204,7 +1206,7 @@ int stm32x_mass_erase(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int stm32x_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	int i;

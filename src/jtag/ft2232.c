@@ -1308,7 +1308,7 @@ int ft2232_execute_queue()
 		switch (cmd->type)
 		{
 		case JTAG_END_STATE:
-			if (cmd->cmd.end_state->end_state != -1)
+			if (cmd->cmd.end_state->end_state != TAP_INVALID)
 				ft2232_end_state(cmd->cmd.end_state->end_state);
 			break;
 
@@ -1341,9 +1341,9 @@ int ft2232_execute_queue()
 			if (tap_get_state() != TAP_IDLE)
 				predicted_size += 3;
 			predicted_size += 3 * CEIL(cmd->cmd.runtest->num_cycles, 7);
-			if ( (cmd->cmd.runtest->end_state != -1) && (cmd->cmd.runtest->end_state != TAP_IDLE) )
+			if ( (cmd->cmd.runtest->end_state != TAP_INVALID) && (cmd->cmd.runtest->end_state != TAP_IDLE) )
 				predicted_size += 3;
-			if ( (cmd->cmd.runtest->end_state == -1) && (tap_get_end_state() != TAP_IDLE) )
+			if ( (cmd->cmd.runtest->end_state == TAP_INVALID) && (tap_get_end_state() != TAP_IDLE) )
 				predicted_size += 3;
 			if (ft2232_buffer_size + predicted_size + 1 > FT2232_BUFFER_SIZE)
 			{
@@ -1379,7 +1379,7 @@ int ft2232_execute_queue()
 				/* LOG_DEBUG("added TMS scan (no read)"); */
 			}
 
-			if (cmd->cmd.runtest->end_state != -1)
+			if (cmd->cmd.runtest->end_state != TAP_INVALID)
 				ft2232_end_state(cmd->cmd.runtest->end_state);
 
 			if ( tap_get_state() != tap_get_end_state() )
@@ -1409,7 +1409,7 @@ int ft2232_execute_queue()
 				require_send = 0;
 				first_unsent = cmd;
 			}
-			if (cmd->cmd.statemove->end_state != -1)
+			if (cmd->cmd.statemove->end_state != TAP_INVALID)
 				ft2232_end_state(cmd->cmd.statemove->end_state);
 
 			/* command "Clock Data to TMS/CS Pin (no Read)" */
@@ -1458,7 +1458,7 @@ int ft2232_execute_queue()
 						retval = ERROR_JTAG_QUEUE_FAILED;
 
 				/* current command */
-				if (cmd->cmd.scan->end_state != -1)
+				if (cmd->cmd.scan->end_state != TAP_INVALID)
 					ft2232_end_state(cmd->cmd.scan->end_state);
 				ft2232_large_scan(cmd->cmd.scan, type, buffer, scan_size);
 				require_send = 0;
@@ -1479,7 +1479,7 @@ int ft2232_execute_queue()
 			}
 			ft2232_expect_read += ft2232_predict_scan_in(scan_size, type);
 			/* LOG_DEBUG("new read size: %i", ft2232_expect_read); */
-			if (cmd->cmd.scan->end_state != -1)
+			if (cmd->cmd.scan->end_state != TAP_INVALID)
 				ft2232_end_state(cmd->cmd.scan->end_state);
 			ft2232_add_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
 			require_send = 1;

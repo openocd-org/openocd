@@ -46,7 +46,9 @@ enum tap_state {
 	TAP_DRSELECT = 1, TAP_DRCAPTURE = 2, TAP_DRSHIFT = 3, TAP_DREXIT1 = 4,
 	TAP_DRPAUSE  = 5, TAP_DREXIT2 = 6, TAP_DRUPDATE = 7,
 	TAP_IRSELECT = 9, TAP_IRCAPTURE = 10, TAP_IRSHIFT = 11, TAP_IREXIT1 = 12,
-	TAP_IRPAUSE  = 13, TAP_IREXIT2 = 14, TAP_IRUPDATE = 15
+	TAP_IRPAUSE  = 13, TAP_IREXIT2 = 14, TAP_IRUPDATE = 15,
+
+	TAP_NUM_STATES = 16, TAP_INVALID = -1,
 };
 
 typedef enum tap_state tap_state_t;
@@ -643,7 +645,7 @@ void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
 
 /* jtag_add_dr_out() is a faster version of jtag_add_dr_scan()
  *
- * Current or end_state can not be TAP_RESET. end_state can be -1
+ * Current or end_state can not be TAP_RESET. end_state can be TAP_INVALID
  *
  * num_bits[i] is the number of bits to clock out from value[i] LSB first.
  *
@@ -666,7 +668,7 @@ extern void interface_jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const int
 static __inline__ void jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const int* num_bits, const u32* value,
 		tap_state_t end_state)
 {
-	if (end_state != -1)
+	if (end_state != TAP_INVALID)
 		cmd_queue_end_state = end_state;
 	cmd_queue_cur_state = cmd_queue_end_state;
 	interface_jtag_add_dr_out(tap, num_fields, num_bits, value, cmd_queue_end_state);

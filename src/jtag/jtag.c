@@ -510,7 +510,7 @@ static void jtag_prelude(tap_state_t state)
 {
 	jtag_prelude1();
 
-	if (state != -1)
+	if (state != TAP_INVALID)
 		jtag_add_end_state(state);
 
 	cmd_queue_cur_state = cmd_queue_end_state;
@@ -2717,7 +2717,7 @@ int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	jtag_add_runtest(strtol(args[0], NULL, 0), -1);
+	jtag_add_runtest(strtol(args[0], NULL, 0), TAP_INVALID);
 	jtag_execute_queue();
 
 	return ERROR_OK;
@@ -2740,7 +2740,7 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	/*          "statename" */
 	/* at the end of the arguments. */
 	/* assume none. */
-	endstate = -1;
+	endstate = TAP_INVALID;
 	if( argc >= 4 ){
 		/* have at least one pair of numbers. */
 		/* is last pair the magic text? */
@@ -2748,13 +2748,13 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 			const char *cpA;
 			const char *cpS;
 			cpA = args[ argc-1 ];
-			for( endstate = 0 ; endstate < 16 ; endstate++ ){
+			for( endstate = 0 ; endstate < TAP_NUM_STATES ; endstate++ ){
 				cpS = tap_state_name( endstate );
 				if( 0 == strcmp( cpA, cpS ) ){
 					break;
 				}
 			}
-			if( endstate >= 16 ){
+			if( endstate >= TAP_NUM_STATES ){
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			} else {
 				/* found - remove the last 2 args */
@@ -2784,11 +2784,11 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 		fields[i].in_handler_priv = NULL;
 	}
 
-	jtag_add_ir_scan(argc / 2, fields, -1);
+	jtag_add_ir_scan(argc / 2, fields, TAP_INVALID);
 	/* did we have an endstate? */
-	if( endstate >= 0 ){
+	if (endstate != TAP_INVALID)
 		jtag_add_end_state(endstate);
-	}
+
 	jtag_execute_queue();
 
 	for (i = 0; i < argc / 2; i++)
@@ -2825,7 +2825,7 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 	}
 
 	/* assume no endstate */
-	endstate = -1;
+	endstate = TAP_INVALID;
 	/* validate arguments as numbers */
 	e = JIM_OK;
 	for (i = 2; i < argc; i+=2)
@@ -2901,11 +2901,11 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 		fields[field_count++].in_handler_priv = NULL;
 	}
 
-	jtag_add_dr_scan(num_fields, fields, -1);
+	jtag_add_dr_scan(num_fields, fields, TAP_INVALID);
 	/* did we get an end state? */
-	if( endstate >= 0 ){
-		jtag_add_end_state( (tap_state_t)endstate );
-	}
+	if (endstate != TAP_INVALID)
+		jtag_add_end_state(endstate);
+
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
 	{
@@ -3089,7 +3089,7 @@ int tap_get_tms_path( tap_state_t from, tap_state_t to )
 	 *
 	 * DRSHIFT->DRSHIFT and IRSHIFT->IRSHIFT have to be caught in interface specific code
 	 */
-	const static u8 tms_seqs[6][6] =
+	static const u8 tms_seqs[6][6] =
 	{
 		/* value clocked to TMS to move from one of six stable states to another */
 
@@ -3273,14 +3273,14 @@ int tap_state_by_name( const char *name )
 {
 	int x;
 
-	for( x = 0 ; x < 16 ; x++ ){
+	for( x = 0 ; x < TAP_NUM_STATES ; x++ ){
 		/* be nice to the human */
 		if( 0 == strcasecmp( name, tap_state_name(x) ) ){
 			return x;
 		}
 	}
 	/* not found */
-	return -1;
+	return TAP_INVALID;
 }
 
 /*-----</Cable Helper API>--------------------------------------*/

@@ -136,10 +136,10 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
 
-	jtag_add_dr_scan(2, fields, -1);
+	jtag_add_dr_scan(2, fields, TAP_INVALID);
 
 	if (clock)
-		jtag_add_runtest(0, -1);
+		jtag_add_runtest(0, TAP_INVALID);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	if((retval = jtag_execute_queue()) != ERROR_OK)

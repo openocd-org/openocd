@@ -371,12 +371,12 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	fields[0].in_value = reg->value;
 	jtag_set_check_value(fields+0, check_value, check_mask, NULL);
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);
@@ -463,7 +463,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	fields[2].in_handler = NULL;
 	fields[2].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	free(fields[0].out_value);
 	free(fields[1].out_value);
@@ -883,7 +883,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 				continue;
 
 			/* indirect branch to the exception vector means an exception occured */
-			if (((ctx->last_branch >= 0x0) && (ctx->last_branch <= 0x20))
+			if ((ctx->last_branch <= 0x20)
 				|| ((ctx->last_branch >= 0xffff0000) && (ctx->last_branch <= 0xffff0020)))
 			{
 				if ((ctx->last_branch & 0xff) == 0x10)

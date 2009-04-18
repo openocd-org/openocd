@@ -39,24 +39,21 @@
 #include "fileio.h"
 #include "image.h"
 
-int nand_register_commands(struct command_context_s *cmd_ctx);
-int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_nand_copy_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_nand_copy_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int nand_read_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
-int nand_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
-int nand_read_plain(struct nand_device_s *device, u32 address, u8 *data, u32 data_size);
+static int nand_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
+//static int nand_read_plain(struct nand_device_s *device, u32 address, u8 *data, u32 data_size);
 
-int nand_write_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
-int nand_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
+static int nand_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
 
 /* NAND flash controller
  */
@@ -69,7 +66,7 @@ extern nand_flash_controller_t s3c2443_nand_controller;
 
 /* extern nand_flash_controller_t boundary_scan_nand_controller; */
 
-nand_flash_controller_t *nand_flash_controllers[] =
+static nand_flash_controller_t *nand_flash_controllers[] =
 {
 	&lpc3180_nand_controller,
 	&orion_nand_controller,
@@ -82,7 +79,7 @@ nand_flash_controller_t *nand_flash_controllers[] =
 };
 
 /* configured NAND devices and NAND Flash command handler */
-nand_device_t *nand_devices = NULL;
+static nand_device_t *nand_devices = NULL;
 static command_t *nand_cmd;
 
 /*	Chip ID list
@@ -95,7 +92,7 @@ static command_t *nand_cmd;
  *	256	256 Byte page size
  *	512	512 Byte page size
  */
-nand_info_t nand_flash_ids[] =
+static nand_info_t nand_flash_ids[] =
 {
 	{"NAND 1MiB 5V 8-bit",		0x6e, 256, 1, 0x1000, 0},
 	{"NAND 2MiB 5V 8-bit",		0x64, 256, 2, 0x1000, 0},
@@ -173,7 +170,7 @@ nand_info_t nand_flash_ids[] =
 
 /* Manufacturer ID list
  */
-nand_manufacturer_t nand_manuf_ids[] =
+static nand_manufacturer_t nand_manuf_ids[] =
 {
 	{0x0, "unknown"},
 	{NAND_MFR_TOSHIBA, "Toshiba"},
@@ -190,7 +187,8 @@ nand_manufacturer_t nand_manuf_ids[] =
  * Define default oob placement schemes for large and small page devices
  */
 
-nand_ecclayout_t nand_oob_8 = {
+#if 0
+static nand_ecclayout_t nand_oob_8 = {
 	.eccbytes = 3,
 	.eccpos = {0, 1, 2},
 	.oobfree = {
@@ -199,8 +197,9 @@ nand_ecclayout_t nand_oob_8 = {
 		{.offset = 6,
 		 .length = 2}}
 };
+#endif
 
-nand_ecclayout_t nand_oob_16 = {
+static nand_ecclayout_t nand_oob_16 = {
 	.eccbytes = 6,
 	.eccpos = {0, 1, 2, 3, 6, 7},
 	.oobfree = {
@@ -208,7 +207,7 @@ nand_ecclayout_t nand_oob_16 = {
 		 . length = 8}}
 };
 
-nand_ecclayout_t nand_oob_64 = {
+static nand_ecclayout_t nand_oob_64 = {
 	.eccbytes = 24,
 	.eccpos = {
 		   40, 41, 42, 43, 44, 45, 46, 47,
@@ -221,7 +220,7 @@ nand_ecclayout_t nand_oob_64 = {
 
 /* nand device <nand_controller> [controller options]
  */
-int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
 	int retval;
@@ -346,7 +345,7 @@ nand_device_t *get_nand_device_by_num(int num)
 	return NULL;
 }
 
-int nand_build_bbt(struct nand_device_s *device, int first, int last)
+static int nand_build_bbt(struct nand_device_s *device, int first, int last)
 {
 	u32 page = 0x0;
 	int i;
@@ -405,7 +404,7 @@ int nand_read_status(struct nand_device_s *device, u8 *status)
 	return ERROR_OK;
 }
 
-int nand_poll_ready(struct nand_device_s *device, int timeout)
+static int nand_poll_ready(struct nand_device_s *device, int timeout)
 {
 	u8 status;
 
@@ -729,7 +728,8 @@ int nand_erase(struct nand_device_s *device, int first_block, int last_block)
 	return ERROR_OK;
 }
 
-int nand_read_plain(struct nand_device_s *device, u32 address, u8 *data, u32 data_size)
+#if 0
+static int nand_read_plain(struct nand_device_s *device, u32 address, u8 *data, u32 data_size)
 {
 	u8 *page;
 	
@@ -766,7 +766,7 @@ int nand_read_plain(struct nand_device_s *device, u32 address, u8 *data, u32 dat
 	return ERROR_OK;
 }
 
-int nand_write_plain(struct nand_device_s *device, u32 address, u8 *data, u32 data_size)
+static int nand_write_plain(struct nand_device_s *device, u32 address, u8 *data, u32 data_size)
 {
 	u8 *page;
 	
@@ -802,6 +802,7 @@ int nand_write_plain(struct nand_device_s *device, u32 address, u8 *data, u32 da
 	
 	return ERROR_OK;
 }
+#endif
 
 int nand_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
 {
@@ -820,7 +821,7 @@ int nand_write_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_s
 		return device->controller->write_page(device, page, data, data_size, oob, oob_size);
 }
 
-int nand_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
+static int nand_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
 {
 	if (!device->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
@@ -1089,7 +1090,7 @@ int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return ERROR_OK;
 }
 
-int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	nand_device_t *p;
 	int i = 0;
@@ -1159,7 +1160,7 @@ int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return ERROR_OK;
 }
 
-int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	nand_device_t *p;
 	int retval;
@@ -1193,7 +1194,7 @@ int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	nand_device_t *p;
 	int retval;
@@ -1274,7 +1275,7 @@ int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char
 	return ERROR_OK;
 }
 
-int handle_nand_copy_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_nand_copy_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	nand_device_t *p;
 		
@@ -1297,7 +1298,7 @@ int handle_nand_copy_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return ERROR_OK;
 }
 
-int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 offset;
 	u32 binary_size;
@@ -1452,7 +1453,7 @@ int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	nand_device_t *p;
 			
@@ -1574,7 +1575,7 @@ int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return ERROR_OK;
 }
 
-int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	nand_device_t *p;
 		

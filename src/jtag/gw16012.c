@@ -369,7 +369,7 @@ int gw16012_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
 #endif
-				if (cmd->cmd.end_state->end_state != -1)
+				if (cmd->cmd.end_state->end_state != TAP_INVALID)
 					gw16012_end_state(cmd->cmd.end_state->end_state);
 				break;
 			case JTAG_RESET:
@@ -386,7 +386,7 @@ int gw16012_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
 #endif
-				if (cmd->cmd.runtest->end_state != -1)
+				if (cmd->cmd.runtest->end_state != TAP_INVALID)
 					gw16012_end_state(cmd->cmd.runtest->end_state);
 				gw16012_runtest(cmd->cmd.runtest->num_cycles);
 				break;
@@ -394,7 +394,7 @@ int gw16012_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif
-				if (cmd->cmd.statemove->end_state != -1)
+				if (cmd->cmd.statemove->end_state != TAP_INVALID)
 					gw16012_end_state(cmd->cmd.statemove->end_state);
 				gw16012_state_move();
 				break;
@@ -405,7 +405,7 @@ int gw16012_execute_queue(void)
 				gw16012_path_move(cmd->cmd.pathmove);
 				break;
 			case JTAG_SCAN:
-				if (cmd->cmd.scan->end_state != -1)
+				if (cmd->cmd.scan->end_state != TAP_INVALID)
 					gw16012_end_state(cmd->cmd.scan->end_state);
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 				type = jtag_scan_type(cmd->cmd.scan);

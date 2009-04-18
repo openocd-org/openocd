@@ -51,22 +51,22 @@ There are some things to notice
 #include <string.h>
 #include <unistd.h>
 
-int at91sam7_old_register_commands(struct command_context_s *cmd_ctx);
-int at91sam7_old_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-int at91sam7_old_erase(struct flash_bank_s *bank, int first, int last);
-int at91sam7_old_protect(struct flash_bank_s *bank, int set, int first, int last);
-int at91sam7_old_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-int at91sam7_old_probe(struct flash_bank_s *bank);
-int at91sam7_old_auto_probe(struct flash_bank_s *bank);
-int at91sam7_old_erase_check(struct flash_bank_s *bank);
-int at91sam7_old_protect_check(struct flash_bank_s *bank);
-int at91sam7_old_info(struct flash_bank_s *bank, char *buf, int buf_size);
+static int at91sam7_old_register_commands(struct command_context_s *cmd_ctx);
+static int at91sam7_old_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
+static int at91sam7_old_erase(struct flash_bank_s *bank, int first, int last);
+static int at91sam7_old_protect(struct flash_bank_s *bank, int set, int first, int last);
+static int at91sam7_old_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int at91sam7_old_probe(struct flash_bank_s *bank);
+//static int at91sam7_old_auto_probe(struct flash_bank_s *bank);
+static int at91sam7_old_erase_check(struct flash_bank_s *bank);
+static int at91sam7_old_protect_check(struct flash_bank_s *bank);
+static int at91sam7_old_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
-u32 at91sam7_old_get_flash_status(flash_bank_t *bank, u8 flashplane);
-void at91sam7_old_set_flash_mode(flash_bank_t *bank, u8 flashplane, int mode);
-u32 at91sam7_old_wait_status_busy(flash_bank_t *bank, u8 flashplane, u32 waitbits, int timeout);
-int at91sam7_old_flash_command(struct flash_bank_s *bank, u8 flashplane, u8 cmd, u16 pagen); 
-int at91sam7_old_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static u32 at91sam7_old_get_flash_status(flash_bank_t *bank, u8 flashplane);
+static void at91sam7_old_set_flash_mode(flash_bank_t *bank, u8 flashplane, int mode);
+static u32 at91sam7_old_wait_status_busy(flash_bank_t *bank, u8 flashplane, u32 waitbits, int timeout);
+static int at91sam7_old_flash_command(struct flash_bank_s *bank, u8 flashplane, u8 cmd, u16 pagen); 
+static int at91sam7_old_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 flash_driver_t at91sam7_old_flash =
 {
@@ -83,12 +83,12 @@ flash_driver_t at91sam7_old_flash =
 	.info = at91sam7_old_info
 };
 
-u32 MC_FMR_old[4] =	{ 0xFFFFFF60, 0xFFFFFF70, 0xFFFFFF80, 0xFFFFFF90 };
-u32 MC_FCR_old[4] =	{ 0xFFFFFF64, 0xFFFFFF74, 0xFFFFFF84, 0xFFFFFF94 };
-u32 MC_FSR_old[4] =	{ 0xFFFFFF68, 0xFFFFFF78, 0xFFFFFF88, 0xFFFFFF98 };
+static u32 MC_FMR_old[4] =	{ 0xFFFFFF60, 0xFFFFFF70, 0xFFFFFF80, 0xFFFFFF90 };
+static u32 MC_FCR_old[4] =	{ 0xFFFFFF64, 0xFFFFFF74, 0xFFFFFF84, 0xFFFFFF94 };
+static u32 MC_FSR_old[4] =	{ 0xFFFFFF68, 0xFFFFFF78, 0xFFFFFF88, 0xFFFFFF98 };
 
-char * EPROC_old[8]= {"Unknown","ARM946-E","ARM7TDMI","Unknown","ARM920T","ARM926EJ-S","Unknown","Unknown"};
-long NVPSIZ_old[16] = {
+static char * EPROC_old[8]= {"Unknown","ARM946-E","ARM7TDMI","Unknown","ARM920T","ARM926EJ-S","Unknown","Unknown"};
+static long NVPSIZ_old[16] = {
    0,
    0x2000, /*  8K */
    0x4000, /* 16K */ 
@@ -107,7 +107,8 @@ long NVPSIZ_old[16] = {
    -1
 };
 
-long SRAMSIZ_old[16] = {
+#if 0
+static long SRAMSIZ_old[16] = {
    -1,
    0x0400, /*  1K */
    0x0800, /*  2K */ 
@@ -125,8 +126,9 @@ long SRAMSIZ_old[16] = {
    0x18000, /* 96K */
    0x80000, /* 512K */
 };
+#endif
 
-int at91sam7_old_register_commands(struct command_context_s *cmd_ctx)
+static int at91sam7_old_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *at91sam7_old_cmd = register_command(cmd_ctx, NULL, "at91sam7", NULL, COMMAND_ANY, NULL);
 	register_command(cmd_ctx, at91sam7_old_cmd, "gpnvm", at91sam7_old_handle_gpnvm_command, COMMAND_EXEC,
@@ -135,7 +137,7 @@ int at91sam7_old_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-u32 at91sam7_old_get_flash_status(flash_bank_t *bank, u8 flashplane)
+static u32 at91sam7_old_get_flash_status(flash_bank_t *bank, u8 flashplane)
 {
 	target_t *target = bank->target;
 	u32 fsr;
@@ -146,7 +148,7 @@ u32 at91sam7_old_get_flash_status(flash_bank_t *bank, u8 flashplane)
 }
 
 /* Read clock configuration and set at91sam7_old_info->usec_clocks*/
-void at91sam7_old_read_clock_info(flash_bank_t *bank)
+static void at91sam7_old_read_clock_info(flash_bank_t *bank)
 {
 	at91sam7_old_flash_bank_t *at91sam7_old_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -210,7 +212,7 @@ void at91sam7_old_read_clock_info(flash_bank_t *bank)
 }
 
 /* Setup the timimg registers for nvbits or normal flash */
-void at91sam7_old_set_flash_mode(flash_bank_t *bank, u8 flashplane, int mode)
+static void at91sam7_old_set_flash_mode(flash_bank_t *bank, u8 flashplane, int mode)
 {
 	u32 fmr, fmcn = 0, fws = 0;
 	at91sam7_old_flash_bank_t *at91sam7_old_info = bank->driver_priv;
@@ -251,7 +253,7 @@ void at91sam7_old_set_flash_mode(flash_bank_t *bank, u8 flashplane, int mode)
 	at91sam7_old_info->flashmode[flashplane] = mode;		
 }
 
-u32 at91sam7_old_wait_status_busy(flash_bank_t *bank, u8 flashplane, u32 waitbits, int timeout)
+static u32 at91sam7_old_wait_status_busy(flash_bank_t *bank, u8 flashplane, u32 waitbits, int timeout)
 {
 	u32 status;
 	
@@ -279,7 +281,7 @@ u32 at91sam7_old_wait_status_busy(flash_bank_t *bank, u8 flashplane, u32 waitbit
 
 
 /* Send one command to the AT91SAM flash controller */
-int at91sam7_old_flash_command(struct flash_bank_s *bank, u8 flashplane, u8 cmd, u16 pagen) 
+static int at91sam7_old_flash_command(struct flash_bank_s *bank, u8 flashplane, u8 cmd, u16 pagen) 
 {
 	u32 fcr;
 	at91sam7_old_flash_bank_t *at91sam7_old_info = bank->driver_priv;
@@ -307,7 +309,7 @@ int at91sam7_old_flash_command(struct flash_bank_s *bank, u8 flashplane, u8 cmd,
 }
 
 /* Read device id register, main clock frequency register and fill in driver info structure */
-int at91sam7_old_read_part_info(struct flash_bank_s *bank)
+static int at91sam7_old_read_part_info(struct flash_bank_s *bank)
 {
 	at91sam7_old_flash_bank_t *at91sam7_old_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -574,7 +576,7 @@ int at91sam7_old_erase_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int at91sam7_old_protect_check(struct flash_bank_s *bank)
+static int at91sam7_old_protect_check(struct flash_bank_s *bank)
 {
 	u32 status;
 	int flashplane;
@@ -625,7 +627,7 @@ int at91sam7_old_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-int at91sam7_old_erase(struct flash_bank_s *bank, int first, int last)
+static int at91sam7_old_erase(struct flash_bank_s *bank, int first, int last)
 {
 	at91sam7_old_flash_bank_t *at91sam7_old_info = bank->driver_priv;
 	u8 flashplane;
@@ -716,7 +718,7 @@ int at91sam7_old_protect(struct flash_bank_s *bank, int set, int first, int last
 }
 
 
-int at91sam7_old_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int at91sam7_old_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	at91sam7_old_flash_bank_t *at91sam7_old_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -784,7 +786,7 @@ int at91sam7_old_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 }
 
 
-int at91sam7_old_probe(struct flash_bank_s *bank)
+static int at91sam7_old_probe(struct flash_bank_s *bank)
 {
 	/* we can't probe on an at91sam7_old
 	 * if this is an at91sam7_old, it has the configured flash
@@ -811,7 +813,7 @@ int at91sam7_old_probe(struct flash_bank_s *bank)
 }
 
 
-int at91sam7_old_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int at91sam7_old_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	int printed, flashplane;
 	at91sam7_old_flash_bank_t *at91sam7_old_info = bank->driver_priv;
@@ -871,7 +873,7 @@ int at91sam7_old_info(struct flash_bank_s *bank, char *buf, int buf_size)
 * 	The maximum number of write/erase cycles for Non Volatile Memory bits is 100. This includes
 *	Lock Bits (LOCKx), General Purpose NVM bits (GPNVMx) and the Security Bit.
 */
-int at91sam7_old_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int at91sam7_old_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
 	int bit;

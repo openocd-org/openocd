@@ -37,16 +37,16 @@
 #include <string.h>
 #include <unistd.h>
 
-int ocl_register_commands(struct command_context_s *cmd_ctx);
-int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-int ocl_erase(struct flash_bank_s *bank, int first, int last);
-int ocl_protect(struct flash_bank_s *bank, int set, int first, int last);
-int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-int ocl_probe(struct flash_bank_s *bank);
-int ocl_erase_check(struct flash_bank_s *bank);
-int ocl_protect_check(struct flash_bank_s *bank);
-int ocl_info(struct flash_bank_s *bank, char *buf, int buf_size);
-int ocl_auto_probe(struct flash_bank_s *bank);
+static int ocl_register_commands(struct command_context_s *cmd_ctx);
+static int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
+static int ocl_erase(struct flash_bank_s *bank, int first, int last);
+static int ocl_protect(struct flash_bank_s *bank, int set, int first, int last);
+static int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int ocl_probe(struct flash_bank_s *bank);
+static int ocl_erase_check(struct flash_bank_s *bank);
+static int ocl_protect_check(struct flash_bank_s *bank);
+static int ocl_info(struct flash_bank_s *bank, char *buf, int buf_size);
+static int ocl_auto_probe(struct flash_bank_s *bank);
 
 flash_driver_t ocl_flash =
 {
@@ -70,23 +70,23 @@ typedef struct ocl_priv_s
 	int bufalign;
 } ocl_priv_t;
 
-int ocl_register_commands(struct command_context_s *cmd_ctx)
+static int ocl_register_commands(struct command_context_s *cmd_ctx)
 {
 	return ERROR_OK;
 }
 
-int ocl_erase_check(struct flash_bank_s *bank)
+static int ocl_erase_check(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
 
-int ocl_protect_check(struct flash_bank_s *bank)
+static int ocl_protect_check(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
 
 /* flash_bank ocl 0 0 0 0 <target#> */
-int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+static int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	int retval;
 	armv4_5_common_t *armv4_5;
@@ -110,7 +110,7 @@ int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	return ERROR_OK;
 }
 
-int ocl_erase(struct flash_bank_s *bank, int first, int last)
+static int ocl_erase(struct flash_bank_s *bank, int first, int last)
 {
 	ocl_priv_t *ocl = bank->driver_priv;
 	int retval;
@@ -165,12 +165,12 @@ int ocl_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-int ocl_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int ocl_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	return ERROR_OK;
 }
 
-int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	ocl_priv_t *ocl = bank->driver_priv;
 	int retval;
@@ -277,7 +277,7 @@ int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	return ERROR_OK;
 }
 
-int ocl_probe(struct flash_bank_s *bank)
+static int ocl_probe(struct flash_bank_s *bank)
 {
 	ocl_priv_t *ocl = bank->driver_priv;
 	int retval;
@@ -375,12 +375,12 @@ int ocl_probe(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int ocl_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int ocl_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	return ERROR_OK;
 }
 
-int ocl_auto_probe(struct flash_bank_s *bank)
+static int ocl_auto_probe(struct flash_bank_s *bank)
 {
 	ocl_priv_t *ocl = bank->driver_priv;
 

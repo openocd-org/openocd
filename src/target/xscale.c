@@ -229,7 +229,7 @@ int xscale_jtag_set_instr(jtag_tap_t *tap, u32 new_instr)
 		field.in_value = NULL;
 		jtag_set_check_value(&field, tap->expected, tap->expected_mask, NULL);
 
-		jtag_add_ir_scan(1, &field, -1);
+		jtag_add_ir_scan(1, &field, TAP_INVALID);
 
 		free(field.out_value);
 	}
@@ -282,7 +282,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[2].in_value = NULL;
 	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -302,7 +302,7 @@ int xscale_read_dcsr(target_t *target)
 
 	jtag_add_end_state(TAP_IDLE);
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	/* DANGER!!! this must be here. It will make sure that the arguments
 	 * to jtag_set_check_value() does not go out of scope! */
@@ -362,7 +362,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 
 	jtag_add_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgtx);
-	jtag_add_runtest(1, -1); /* ensures that we're in the TAP_IDLE state as the above could be a no-op */
+	jtag_add_runtest(1, TAP_INVALID); /* ensures that we're in the TAP_IDLE state as the above could be a no-op */
 
 	/* repeat until all words have been collected */
 	int attempts=0;
@@ -750,7 +750,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[2].in_value = NULL;
 	jtag_set_check_value(fields+2, &field2_check_value, &field2_check_mask, NULL);
 
-	jtag_add_dr_scan(3, fields, -1);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -822,7 +822,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(2, fields, -1);
+	jtag_add_dr_scan(2, fields, TAP_INVALID);
 
 	fields[0].num_bits = 32;
 	fields[0].out_value = packet;
@@ -834,7 +834,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	{
 		buf_set_u32(packet, 0, 32, buffer[word]);
 		cmd = parity(*((u32*)packet));
-		jtag_add_dr_scan(2, fields, -1);
+		jtag_add_dr_scan(2, fields, TAP_INVALID);
 	}
 
 	jtag_execute_queue();
@@ -880,7 +880,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(2, fields, -1);
+	jtag_add_dr_scan(2, fields, TAP_INVALID);
 
 	return ERROR_OK;
 }

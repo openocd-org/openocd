@@ -44,17 +44,17 @@
 
 static u32 bank1start = 0x00080000;
 
-int str9x_register_commands(struct command_context_s *cmd_ctx);
-int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
-int str9x_erase(struct flash_bank_s *bank, int first, int last);
-int str9x_protect(struct flash_bank_s *bank, int set, int first, int last);
-int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-int str9x_probe(struct flash_bank_s *bank);
-int str9x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int str9x_protect_check(struct flash_bank_s *bank);
-int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size);
+static int str9x_register_commands(struct command_context_s *cmd_ctx);
+static int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
+static int str9x_erase(struct flash_bank_s *bank, int first, int last);
+static int str9x_protect(struct flash_bank_s *bank, int set, int first, int last);
+static int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int str9x_probe(struct flash_bank_s *bank);
+//static int str9x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9x_protect_check(struct flash_bank_s *bank);
+static int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
-int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 flash_driver_t str9x_flash =
 {
@@ -71,7 +71,7 @@ flash_driver_t str9x_flash =
 	.info = str9x_info
 };
 
-int str9x_register_commands(struct command_context_s *cmd_ctx)
+static int str9x_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *str9x_cmd = register_command(cmd_ctx, NULL, "str9x", NULL, COMMAND_ANY, NULL);
 	
@@ -81,7 +81,7 @@ int str9x_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int str9x_build_block_list(struct flash_bank_s *bank)
+static int str9x_build_block_list(struct flash_bank_s *bank)
 {
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
 	
@@ -164,7 +164,8 @@ int str9x_build_block_list(struct flash_bank_s *bank)
 
 /* flash bank str9x <base> <size> 0 0 <target#>
  */
-int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
+static int str9x_flash_bank_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	str9x_flash_bank_t *str9x_info;
 	
@@ -184,7 +185,7 @@ int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return ERROR_OK;
 }
 
-int str9x_protect_check(struct flash_bank_s *bank)
+static int str9x_protect_check(struct flash_bank_s *bank)
 {
 	int retval;
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
@@ -259,7 +260,7 @@ int str9x_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-int str9x_erase(struct flash_bank_s *bank, int first, int last)
+static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 {
 	target_t *target = bank->target;
 	int i;
@@ -351,7 +352,8 @@ int str9x_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-int str9x_protect(struct flash_bank_s *bank, int set, int first, int last)
+static int str9x_protect(struct flash_bank_s *bank,
+		int set, int first, int last)
 {
 	target_t *target = bank->target;
 	int i;
@@ -389,7 +391,8 @@ int str9x_protect(struct flash_bank_s *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int str9x_write_block(struct flash_bank_s *bank,
+		u8 *buffer, u32 offset, u32 count)
 {
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -497,7 +500,8 @@ int str9x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 	return retval;
 }
 
-int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int str9x_write(struct flash_bank_s *bank,
+		u8 *buffer, u32 offset, u32 count)
 {
 	target_t *target = bank->target;
 	u32 words_remaining = (count / 2);
@@ -654,23 +658,27 @@ int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	return ERROR_OK;
 }
 
-int str9x_probe(struct flash_bank_s *bank)
+static int str9x_probe(struct flash_bank_s *bank)
 {
 	return ERROR_OK;
 }
 
-int str9x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+#if 0
+static int str9x_handle_part_id_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	return ERROR_OK;
 }
+#endif
 
-int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size)
+static int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	snprintf(buf, buf_size, "str9x flash driver info" );
 	return ERROR_OK;
 }
 
-int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int str9x_handle_flash_config_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	str9x_flash_bank_t *str9x_info;
 	flash_bank_t *bank;

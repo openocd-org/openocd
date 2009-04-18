@@ -58,7 +58,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handl
 		field.in_check_mask = NULL;
 		field.in_handler = handler;
 		field.in_handler_priv = NULL;
-		jtag_add_ir_scan(1, &field, -1);
+		jtag_add_ir_scan(1, &field, TAP_INVALID);
 	}
 
 	return ERROR_OK;
@@ -84,7 +84,7 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 				1,
 				num_bits,
 				values,
-				-1);
+				TAP_INVALID);
 
 		jtag_info->cur_scan_chain = new_scan_chain;
 	}

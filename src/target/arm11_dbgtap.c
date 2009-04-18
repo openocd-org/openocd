@@ -95,7 +95,7 @@ void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, vo
  *
  * \param arm11 Target state variable.
  * \param instr An ARM11 DBGTAP instruction. Use enum #arm11_instructions.
- * \param state Pass the final TAP state or -1 for the default value (Pause-IR).
+ * \param state Pass the final TAP state or TAP_INVALID for the default value (Pause-IR).
  *
  * \remarks This adds to the JTAG command queue but does \em not execute it.
  */
@@ -120,7 +120,7 @@ void arm11_add_IR(arm11_common_t * arm11, u8 instr, tap_state_t state)
 
     arm11_setup_field(arm11, 5, &instr, NULL, &field);
 
-    arm11_add_ir_scan_vc(1, &field, state == -1 ? TAP_IRPAUSE : state);
+    arm11_add_ir_scan_vc(1, &field, state == TAP_INVALID ? TAP_IRPAUSE : state);
 }
 
 /** Verify shifted out data from Scan Chain Register (SCREG)
@@ -152,7 +152,7 @@ static int arm11_in_handler_SCAN_N(u8 *in_value, void *priv, struct scan_field_s
  *
  * \param arm11	    Target state variable.
  * \param chain	    Scan chain that will be selected.
- * \param state	    Pass the final TAP state or -1 for the default
+ * \param state	    Pass the final TAP state or TAP_INVALID for the default
  *		    value (Pause-DR).
  *
  * The chain takes effect when Update-DR is passed (usually when subsequently
@@ -171,7 +171,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
 {
     JTAG_DEBUG("SCREG <= 0x%02x", chain);
 
-    arm11_add_IR(arm11, ARM11_SCAN_N, -1);
+    arm11_add_IR(arm11, ARM11_SCAN_N, TAP_INVALID);
 
     scan_field_t		field;
 
@@ -179,7 +179,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
 
     field.in_handler = arm11_in_handler_SCAN_N;
 
-    arm11_add_dr_scan_vc(1, &field, state == -1 ? TAP_DRPAUSE : state);
+    arm11_add_dr_scan_vc(1, &field, state == TAP_INVALID ? TAP_DRPAUSE : state);
 }
 
 /** Write an instruction into the ITR register
@@ -188,7 +188,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
  * \param inst	An ARM11 processor instruction/opcode.
  * \param flag	Optional parameter to retrieve the InstCompl flag
  *		(this will be written when the JTAG chain is executed).
- * \param state	Pass the final TAP state or -1 for the default
+ * \param state	Pass the final TAP state or TAP_INVALID for the default
  *		value (Run-Test/Idle).
  *
  * \remarks By default this ends with Run-Test/Idle state
@@ -208,7 +208,7 @@ void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state
     arm11_setup_field(arm11, 32,    &inst,	NULL, itr + 0);
     arm11_setup_field(arm11, 1,	    NULL,	flag, itr + 1);
 
-    arm11_add_dr_scan_vc(asizeof(itr), itr, state == -1 ? TAP_IDLE : state);
+    arm11_add_dr_scan_vc(asizeof(itr), itr, state == TAP_INVALID ? TAP_IDLE : state);
 }
 
 /** Read the Debug Status and Control Register (DSCR)
@@ -222,9 +222,9 @@ void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state
  */
 u32 arm11_read_DSCR(arm11_common_t * arm11)
 {
-    arm11_add_debug_SCAN_N(arm11, 0x01, -1);
+    arm11_add_debug_SCAN_N(arm11, 0x01, TAP_INVALID);
 
-    arm11_add_IR(arm11, ARM11_INTEST, -1);
+    arm11_add_IR(arm11, ARM11_INTEST, TAP_INVALID);
 
     u32			dscr;
     scan_field_t	chain1_field;
@@ -254,9 +254,9 @@ u32 arm11_read_DSCR(arm11_common_t * arm11)
  */
 void arm11_write_DSCR(arm11_common_t * arm11, u32 dscr)
 {
-    arm11_add_debug_SCAN_N(arm11, 0x01, -1);
+    arm11_add_debug_SCAN_N(arm11, 0x01, TAP_INVALID);
 
-    arm11_add_IR(arm11, ARM11_EXTEST, -1);
+    arm11_add_IR(arm11, ARM11_EXTEST, TAP_INVALID);
 
     scan_field_t		    chain1_field;
 
@@ -331,7 +331,7 @@ enum target_debug_reason arm11_get_DSCR_debug_reason(u32 dscr)
  */
 void arm11_run_instr_data_prepare(arm11_common_t * arm11)
 {
-    arm11_add_debug_SCAN_N(arm11, 0x05, -1);
+    arm11_add_debug_SCAN_N(arm11, 0x05, TAP_INVALID);
 }
 
 /** Cleanup after ITR/DTR operations
@@ -350,7 +350,7 @@ void arm11_run_instr_data_prepare(arm11_common_t * arm11)
  */
 void arm11_run_instr_data_finish(arm11_common_t * arm11)
 {
-    arm11_add_debug_SCAN_N(arm11, 0x00, -1);
+    arm11_add_debug_SCAN_N(arm11, 0x00, TAP_INVALID);
 }
 
 
@@ -365,7 +365,7 @@ void arm11_run_instr_data_finish(arm11_common_t * arm11)
  */
 void arm11_run_instr_no_data(arm11_common_t * arm11, u32 * opcode, size_t count)
 {
-    arm11_add_IR(arm11, ARM11_ITRSEL, -1);
+    arm11_add_IR(arm11, ARM11_ITRSEL, TAP_INVALID);
 
     while (count--)
     {
@@ -414,11 +414,11 @@ void arm11_run_instr_no_data1(arm11_common_t * arm11, u32 opcode)
  */
 void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count)
 {
-    arm11_add_IR(arm11, ARM11_ITRSEL, -1);
+    arm11_add_IR(arm11, ARM11_ITRSEL, TAP_INVALID);
 
     arm11_add_debug_INST(arm11, opcode, NULL, TAP_DRPAUSE);
 
-    arm11_add_IR(arm11, ARM11_EXTEST, -1);
+    arm11_add_IR(arm11, ARM11_EXTEST, TAP_INVALID);
 
     scan_field_t	chain5_fields[3];
 
@@ -446,7 +446,7 @@ void arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data
 	data++;
     }
 
-    arm11_add_IR(arm11, ARM11_INTEST, -1);
+    arm11_add_IR(arm11, ARM11_INTEST, TAP_INVALID);
 
     do
     {
@@ -495,11 +495,11 @@ tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
  */
 void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count)
 {
-    arm11_add_IR(arm11, ARM11_ITRSEL, -1);
+    arm11_add_IR(arm11, ARM11_ITRSEL, TAP_INVALID);
 
     arm11_add_debug_INST(arm11, opcode, NULL, TAP_DRPAUSE);
 
-    arm11_add_IR(arm11, ARM11_EXTEST, -1);
+    arm11_add_IR(arm11, ARM11_EXTEST, TAP_INVALID);
 
     scan_field_t	chain5_fields[3];
 
@@ -527,7 +527,7 @@ void arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 
 	}
     }
 
-    arm11_add_IR(arm11, ARM11_INTEST, -1);
+    arm11_add_IR(arm11, ARM11_INTEST, TAP_INVALID);
 
     chain5_fields[0].out_value	= 0;
     chain5_fields[1].in_value   = ReadyPos++;
@@ -584,11 +584,11 @@ void arm11_run_instr_data_to_core1(arm11_common_t * arm11, u32 opcode, u32 data)
  */
 void arm11_run_instr_data_from_core(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count)
 {
-    arm11_add_IR(arm11, ARM11_ITRSEL, -1);
+    arm11_add_IR(arm11, ARM11_ITRSEL, TAP_INVALID);
 
     arm11_add_debug_INST(arm11, opcode, NULL, TAP_IDLE);
 
-    arm11_add_IR(arm11, ARM11_INTEST, -1);
+    arm11_add_IR(arm11, ARM11_INTEST, TAP_INVALID);
 
     scan_field_t	chain5_fields[3];
 
@@ -666,9 +666,9 @@ void arm11_run_instr_data_to_core_via_r0(arm11_common_t * arm11, u32 opcode, u32
  */
 void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t count)
 {
-    arm11_add_debug_SCAN_N(arm11, 0x07, -1);
+    arm11_add_debug_SCAN_N(arm11, 0x07, TAP_INVALID);
 
-    arm11_add_IR(arm11, ARM11_EXTEST, -1);
+    arm11_add_IR(arm11, ARM11_EXTEST, TAP_INVALID);
 
     scan_field_t	chain7_fields[3];
 

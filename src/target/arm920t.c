@@ -150,12 +150,12 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
 	fields[1].in_handler_priv = value;
 	fields[1].in_handler = arm_jtag_buf_to_u32;
 
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	jtag_execute_queue();
@@ -222,7 +222,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
@@ -289,7 +289,7 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	fields[3].in_handler = NULL;
 	fields[3].in_handler_priv = NULL;
 
-	jtag_add_dr_scan(4, fields, -1);
+	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
 	arm9tdmi_clock_out(jtag_info, arm_opcode, 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);

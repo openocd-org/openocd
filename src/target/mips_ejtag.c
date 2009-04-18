@@ -55,7 +55,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, in_handler_t h
 		field.in_check_mask = NULL;
 		field.in_handler = handler;
 		field.in_handler_priv = NULL;
-		jtag_add_ir_scan(1, &field, -1);
+		jtag_add_ir_scan(1, &field, TAP_INVALID);
 	}
 
 	return ERROR_OK;
@@ -78,7 +78,7 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode, in_handler_t ha
 	field.in_check_mask = NULL;
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
-	jtag_add_dr_scan(1, &field, -1);
+	jtag_add_dr_scan(1, &field, TAP_INVALID);
 
 	if (jtag_execute_queue() != ERROR_OK)
 	{
@@ -105,7 +105,7 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode, in_handler_t 
 	field.in_check_mask = NULL;
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
-	jtag_add_dr_scan(1, &field, -1);
+	jtag_add_dr_scan(1, &field, TAP_INVALID);
 
 	if (jtag_execute_queue() != ERROR_OK)
 	{
@@ -136,7 +136,7 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 	field.in_check_mask = NULL;
 	field.in_handler = NULL;
 	field.in_handler_priv = NULL;
-	jtag_add_dr_scan(1, &field, -1);
+	jtag_add_dr_scan(1, &field, TAP_INVALID);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{

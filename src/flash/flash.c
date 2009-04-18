@@ -48,19 +48,17 @@
 #include <inttypes.h>
 
 /* command handlers */
-int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_protect_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);
+static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_protect_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* flash drivers
  */
@@ -265,7 +263,7 @@ flash_bank_t *get_flash_bank_by_num(int num)
 	return p;
 }
 
-int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval;
 	int i;
@@ -345,7 +343,7 @@ int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *p;
 	int i = 0;
@@ -396,7 +394,7 @@ int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *p;
 	int retval;
@@ -432,7 +430,7 @@ int handle_flash_probe_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return ERROR_OK;
 }
 
-int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *p;
 	int retval;
@@ -476,7 +474,7 @@ int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *p;
 	int retval;
@@ -524,7 +522,7 @@ int handle_flash_erase_address_command(struct command_context_s *cmd_ctx, char *
 	return retval;
 }
 
-int handle_flash_protect_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_protect_check_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *p;
 	int retval;
@@ -558,7 +556,7 @@ int handle_flash_protect_check_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc > 2)
 	{
@@ -595,7 +593,7 @@ int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return ERROR_OK;
 }
 
-int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc > 3)
 	{
@@ -634,7 +632,7 @@ int handle_flash_protect_command(struct command_context_s *cmd_ctx, char *cmd, c
 	return ERROR_OK;
 }
 
-int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -719,7 +717,7 @@ int handle_flash_write_image_command(struct command_context_s *cmd_ctx, char *cm
 	return retval;
 }
 
-int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int err = ERROR_OK, retval;
 	u32 address;
@@ -819,7 +817,7 @@ int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 offset;
 	u8 *buffer;

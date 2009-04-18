@@ -153,7 +153,7 @@ void bitq_io(int tms, int tdi, int tdo_req)
 
 void bitq_end_state(tap_state_t state)
 {
-	if (state==-1)
+	if (state==TAP_INVALID)
 		return;
 
 	if (!tap_is_state_stable(state))

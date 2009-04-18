@@ -455,7 +455,7 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 		fields[field_count++].in_handler_priv = NULL;
 	}
 
-	jtag_add_dr_scan(num_fields, fields, -1);
+	jtag_add_dr_scan(num_fields, fields, TAP_INVALID);
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
 	{

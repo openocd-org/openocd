@@ -383,9 +383,9 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 
 	if (R(DSCR) & ARM11_DSCR_WDTR_FULL)
 	{
-	arm11_add_debug_SCAN_N(arm11, 0x05, -1);
+	arm11_add_debug_SCAN_N(arm11, 0x05, TAP_INVALID);
 
-	arm11_add_IR(arm11, ARM11_INTEST, -1);
+	arm11_add_IR(arm11, ARM11_INTEST, TAP_INVALID);
 
 	scan_field_t	chain5_fields[3];
 
@@ -614,9 +614,9 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 
 	if (R(DSCR) & ARM11_DSCR_RDTR_FULL || arm11->reg_list[ARM11_RC_RDTR].dirty)
 	{
-	arm11_add_debug_SCAN_N(arm11, 0x05, -1);
+	arm11_add_debug_SCAN_N(arm11, 0x05, TAP_INVALID);
 
-	arm11_add_IR(arm11, ARM11_EXTEST, -1);
+	arm11_add_IR(arm11, ARM11_EXTEST, TAP_INVALID);
 
 	scan_field_t	chain5_fields[3];
 
@@ -1565,7 +1565,7 @@ int arm11_examine(struct target_s *target)
 
 	/* check IDCODE */
 
-	arm11_add_IR(arm11, ARM11_IDCODE, -1);
+	arm11_add_IR(arm11, ARM11_IDCODE, TAP_INVALID);
 
 	scan_field_t		idcode_field;
 
@@ -1575,9 +1575,9 @@ int arm11_examine(struct target_s *target)
 
 	/* check DIDR */
 
-	arm11_add_debug_SCAN_N(arm11, 0x00, -1);
+	arm11_add_debug_SCAN_N(arm11, 0x00, TAP_INVALID);
 
-	arm11_add_IR(arm11, ARM11_INTEST, -1);
+	arm11_add_IR(arm11, ARM11_INTEST, TAP_INVALID);
 
 	scan_field_t		chain0_fields[2];
 
