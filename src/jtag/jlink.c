@@ -115,7 +115,7 @@ jlink_jtag_t *jlink_usb_open(void);
 void jlink_usb_close(jlink_jtag_t *jlink_jtag);
 int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length);
 int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length);
-int jlink_usb_read(jlink_jtag_t *jlink_jtag);
+int jlink_usb_read(jlink_jtag_t *jlink_jtag, int expected_size);
 int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag);
 
 /* helper functions */
@@ -497,7 +497,7 @@ int jlink_get_status(void)
 	int result;
 
 	jlink_simple_command(EMU_CMD_GET_STATE);
-	result = jlink_usb_read(jlink_jtag_handle);
+	result = jlink_usb_read(jlink_jtag_handle, 8);
 
 	if (result == 8)
 	{
@@ -527,12 +527,12 @@ int jlink_get_version_info(void)
 
 	/* query hardware version */
 	jlink_simple_command(EMU_CMD_VERSION);
-	result = jlink_usb_read(jlink_jtag_handle);
+	result = jlink_usb_read(jlink_jtag_handle, 2);
 
 	if (result == 2)
 	{
 		len = buf_get_u32(usb_in_buffer, 0, 16);
-		result = jlink_usb_read(jlink_jtag_handle);
+		result = jlink_usb_read(jlink_jtag_handle, len);
 
 		if (result == len)
 		{
@@ -806,7 +806,7 @@ int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
 	result = jlink_usb_write(jlink_jtag, out_length);
 	if (result == out_length)
 	{
-		result = jlink_usb_read(jlink_jtag);
+		result = jlink_usb_read(jlink_jtag, in_length);
 		if (result == in_length || result == in_length+1)
 		{
 			if (result == in_length)
@@ -859,6 +859,54 @@ int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
 	}
 }
 
+int usb_bulk_write_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
+                      int timeout) {
+
+	int rc = 0, tries = 3, this_size;
+
+	while (tries && size) {
+
+		this_size = usb_bulk_write (dev, ep, bytes, size, timeout);
+
+		if (this_size > 0) {
+			
+			size -= this_size;
+			rc += this_size;
+			bytes += this_size;
+
+		} else
+			tries --;
+	}
+
+	return rc;
+
+
+}
+
+int usb_bulk_read_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
+                  int timeout) {
+
+	int rc = 0, tries = 3, this_size;
+
+	while (tries && size) {
+
+		this_size = usb_bulk_read (dev, ep, bytes, size, timeout);
+
+		if (this_size > 0) {
+			
+			size -= this_size;
+			rc += this_size;
+			bytes += this_size;
+
+		} else
+			tries --;
+	}
+
+	return rc;
+
+}
+
+
 /* Write data from out_buffer to USB. */
 int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length)
 {
@@ -870,7 +918,7 @@ int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length)
 		return -1;
 	}
 
-	result = usb_bulk_write(jlink_jtag->usb_handle, JLINK_WRITE_ENDPOINT,
+	result = usb_bulk_write_ex(jlink_jtag->usb_handle, JLINK_WRITE_ENDPOINT,
 		(char *)usb_out_buffer, out_length, JLINK_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("jlink_usb_write, out_length = %d, result = %d", out_length, result);
@@ -882,10 +930,10 @@ int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length)
 }
 
 /* Read data from USB into in_buffer. */
-int jlink_usb_read(jlink_jtag_t *jlink_jtag)
+int jlink_usb_read(jlink_jtag_t *jlink_jtag, int expected_size)
 {
-	int result = usb_bulk_read(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT,
-		(char *)usb_in_buffer, JLINK_IN_BUFFER_SIZE, JLINK_USB_TIMEOUT);
+	int result = usb_bulk_read_ex(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT,
+		(char *)usb_in_buffer, expected_size, JLINK_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("jlink_usb_read, result = %d", result);
 
@@ -898,8 +946,8 @@ int jlink_usb_read(jlink_jtag_t *jlink_jtag)
 /* Read the result from the previous EMU cmd into result_buffer. */
 int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag)
 {
-	int result = usb_bulk_read(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT,
-		(char *)usb_emu_result_buffer, JLINK_EMU_RESULT_BUFFER_SIZE,
+	int result = usb_bulk_read_ex(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT,
+		(char *)usb_emu_result_buffer, 1 /* JLINK_EMU_RESULT_BUFFER_SIZE */,
 		JLINK_USB_TIMEOUT);
 
 	DEBUG_JTAG_IO("jlink_usb_read_result, result = %d", result);
