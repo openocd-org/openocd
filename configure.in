@@ -178,8 +178,17 @@ esac
 )
 
 AC_ARG_ENABLE(gccwarnings,
-	AS_HELP_STRING([--enable-gccwarnings], [Enable compiler warnings, default yes]),
+	AS_HELP_STRING([--disable-gccwarnings], [Disable compiler warnings]),
 	[gcc_warnings=$enableval], [gcc_warnings=yes])
+
+AC_ARG_ENABLE(wextra,
+	AS_HELP_STRING([--disable-wextra], [Disable extra compiler warnings]),
+	[gcc_wextra=$enableval], [gcc_wextra=$gcc_warnings])
+
+AC_ARG_ENABLE(werror,
+	AS_HELP_STRING([--disable-werror], [Do not treat warnings as errors]),
+	[gcc_werror=$enableval], [gcc_werror=$gcc_warnings])
+
 
 AC_ARG_ENABLE(parport,
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]), 
@@ -684,6 +693,12 @@ AC_PROG_RANLIB
 
 # set default gcc warnings
 GCC_WARNINGS="-Wall -Wstrict-prototypes"
+if test "${gcc_wextra}" = yes; then
+	GCC_WARNINGS="${GCC_WARNINGS} -Wextra -Wno-unused-parameter"
+fi
+if test "${gcc_werror}" = yes; then
+	GCC_WARNINGS="${GCC_WARNINGS} -Werror"
+fi
 
 # overide default gcc cflags
 if test $gcc_warnings = yes; then
