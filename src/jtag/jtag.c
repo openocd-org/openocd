@@ -219,7 +219,7 @@ void jtag_add_runtest(int num_cycles, tap_state_t endstate);
 void jtag_add_end_state(tap_state_t endstate);
 void jtag_add_sleep(u32 us);
 int jtag_execute_queue(void);
-int tap_state_by_name(const char *name);
+tap_state_t tap_state_by_name(const char *name);
 
 /* jtag commands */
 int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -2652,7 +2652,7 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int state;
+	tap_state_t state;
 
 	if (argc < 1)
 	{
@@ -2665,7 +2665,7 @@ int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char *
 			command_print( cmd_ctx, "Invalid state name: %s\n", args[0] );
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
-		jtag_add_end_state( (tap_state_t)(state));
+		jtag_add_end_state(state);
 		jtag_execute_queue();
 	}
 	command_print(cmd_ctx, "current endstate: %s", tap_state_name(cmd_queue_end_state));
@@ -2729,7 +2729,7 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	int i;
 	scan_field_t *fields;
 	jtag_tap_t *tap;
-	int endstate;
+	tap_state_t endstate;
 
 	if ((argc < 2) || (argc % 2))
 	{
@@ -2807,7 +2807,7 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 	int field_count = 0;
 	int i, e;
 	jtag_tap_t *tap;
-	int endstate;
+	tap_state_t endstate;
 
 	/* args[1] = device
 	 * args[2] = num_bits
@@ -3269,9 +3269,9 @@ const char* tap_state_name(tap_state_t state)
 	return ret;
 }
 
-int tap_state_by_name( const char *name )
+tap_state_t tap_state_by_name( const char *name )
 {
-	int x;
+	tap_state_t x;
 
 	for( x = 0 ; x < TAP_NUM_STATES ; x++ ){
 		/* be nice to the human */

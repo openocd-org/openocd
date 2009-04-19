@@ -91,7 +91,7 @@ void dummy_write(int tck, int tms, int tdi)
 	{
 		if( tck )
 		{
-			int old_state = dummy_state;
+			tap_state_t old_state = dummy_state;
 			dummy_state = tap_state_transition( old_state, tms );
 
 			if( old_state != dummy_state )

@@ -194,7 +194,7 @@ int gw16012_speed(int speed)
 	return ERROR_OK;
 }
 
-void gw16012_end_state(int state)
+void gw16012_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
