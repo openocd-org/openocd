@@ -433,7 +433,10 @@ void jlink_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, sca
 	/* Move to appropriate scan state */
 	jlink_end_state(ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);
 
-	jlink_state_move();
+	/* Only move if we're not already there */
+	if (tap_get_state() != tap_get_end_state())
+		jlink_state_move();
+
 	jlink_end_state(saved_end_state);
 
 	/* Scan */

@@ -265,6 +265,10 @@ void usbprog_path_move(pathmove_command_t *cmd)
 	int num_states = cmd->num_states;
 	int state_count;
 
+	/* There may be queued transitions, and before following a specified
+	   path, we must flush those queued transitions */
+	usbprog_jtag_tms_send(usbprog_jtag_handle);
+
 	state_count = 0;
 	while (num_states)
 	{
@@ -323,6 +327,10 @@ void usbprog_runtest(int num_cycles)
 		usbprog_write(0, 0, 0);
 	}
 
+#ifdef _DEBUG_JTAG_IO_
+	LOG_DEBUG("runtest: cur_state %s end_state %s", tap_state_name(tap_get_state()), tap_state_name(tap_get_end_state()));
+#endif
+
 	/* finish in end_state */
 	/*
 	usbprog_end_state(saved_end_state);
@@ -340,9 +348,10 @@ void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	else
 		usbprog_end_state(TAP_DRSHIFT);
 
-	/* usbprog_jtag_tms_send(usbprog_jtag_handle); */
+	/* Only move if we're not already there */
+	if (tap_get_state() != tap_get_end_state())
+		usbprog_state_move();
 
-	usbprog_state_move();
 	usbprog_end_state(saved_end_state);
 
 	usbprog_jtag_tms_send(usbprog_jtag_handle);
@@ -358,6 +367,7 @@ void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	}
 	f(usbprog_jtag_handle, (char *)buffer, scan_size);
 
+	/* The adapter does the transition to PAUSE internally */
 	if (ir_scan)
 		tap_set_state(TAP_IRPAUSE);
 	else
