@@ -79,6 +79,7 @@ static u8 usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 /* External interface functions */
 int jlink_execute_queue(void);
 int jlink_speed(int speed);
+int jlink_speed_div(int speed, int* khz);
 int jlink_khz(int khz, int *jtag_speed);
 int jlink_register_commands(struct command_context_s *cmd_ctx);
 int jlink_init(void);
@@ -134,6 +135,7 @@ jtag_interface_t jlink_interface =
 	.name = "jlink",
 	.execute_queue = jlink_execute_queue,
 	.speed = jlink_speed,
+	.speed_div = jlink_speed_div,
 	.khz = jlink_khz,
 	.register_commands = jlink_register_commands,
 	.init = jlink_init,
@@ -266,6 +268,13 @@ int jlink_speed(int speed)
 	{
 		LOG_INFO("Requested speed %dkHz exceeds maximum of %dkHz, ignored", speed, JLINK_MAX_SPEED);
 	}
+
+	return ERROR_OK;
+}
+
+int jlink_speed_div(int speed, int* khz)
+{
+	*khz = speed;
 
 	return ERROR_OK;
 }
