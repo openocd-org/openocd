@@ -649,6 +649,7 @@ fi
 
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE(openocd, 1.0)
+AM_MAINTAINER_MODE
 
 AM_CONDITIONAL(RELEASE, test $build_release = yes)
 AM_CONDITIONAL(PARPORT, test $build_parport = yes)
