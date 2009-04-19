@@ -348,7 +348,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 
 		char local_buffer[1024];
 		local_buffer[0] = '$';
-		if (len+4 <= sizeof(local_buffer))
+		if ((size_t)len + 4 <= sizeof(local_buffer))
 		{
 			/* performance gain on smaller packets by only a single call to gdb_write() */
 			memcpy(local_buffer+1, buffer, len++);
@@ -1213,7 +1213,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 	{
 		hex_buffer = malloc(len * 2 + 1);
 
-		int i;
+		u32 i;
 		for (i = 0; i < len; i++)
 		{
 			u8 t = buffer[i];
@@ -1243,7 +1243,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 
 	u8 *buffer;
 
-	int i;
+	u32 i;
 	int retval;
 
 	/* skip command character */
@@ -1540,12 +1540,12 @@ static int decode_xfer_read(char *buf, char **annex, int *ofs, unsigned int *len
 
 int gdb_calc_blocksize(flash_bank_t *bank)
 {
-	int i;
-	int block_size = 0xffffffff;
+	u32 i;
+	u32 block_size = 0xffffffff;
 
 	/* loop through all sectors and return smallest sector size */
 
-	for (i = 0; i < bank->num_sectors; i++)
+	for (i = 0; i < (u32)bank->num_sectors; i++)
 	{
 		if (bank->sectors[i].size < block_size)
 			block_size = bank->sectors[i].size;

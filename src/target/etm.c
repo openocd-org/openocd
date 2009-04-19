@@ -647,7 +647,7 @@ int etmv1_branch_address(etm_context_t *ctx)
 	u8 packet;
 	int shift = 0;
 	int apo;
-	int i;
+	u32 i;
 
 	/* quit analysis if less than two cycles are left in the trace
 	 * because we can't extract the APO */
@@ -998,7 +998,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 			if (((instruction.type == ARM_B) ||
 				(instruction.type == ARM_BL) ||
 				(instruction.type == ARM_BLX)) &&
-				(instruction.info.b_bl_bx_blx.target_address != -1))
+				(instruction.info.b_bl_bx_blx.target_address != ~0UL))
 			{
 				next_pc = instruction.info.b_bl_bx_blx.target_address;
 			}
@@ -1543,7 +1543,7 @@ int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	etm_context_t *etm_ctx;
-	int i;
+	u32 i;
 
 	if (argc != 1)
 	{
@@ -1611,7 +1611,7 @@ int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	etm_context_t *etm_ctx;
-	int i;
+	u32 i;
 
 	if (argc != 1)
 	{

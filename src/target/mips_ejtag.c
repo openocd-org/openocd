@@ -40,7 +40,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, in_handler_t h
 	if (tap==NULL)
 		return ERROR_FAIL;
 
-	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (u32)new_instr)
 	{
 		scan_field_t field;
 		u8 t[4];

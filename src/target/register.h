@@ -40,7 +40,7 @@ typedef struct reg_s
 	u8 *value;
 	int dirty;
 	int valid;
-	int size;
+	u32 size;
 	bitfield_desc_t *bitfield_desc;
 	int num_bitfields;
 	void *arch_info;

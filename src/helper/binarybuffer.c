@@ -55,7 +55,7 @@ const unsigned char bit_reverse_table256[] =
 
 u8* buf_cpy(u8 *from, u8 *to, int size)
 {
-	int num_bytes = CEIL(size, 8);
+	unsigned int num_bytes = CEIL(size, 8);
 	unsigned int i;
 
 	if (from == NULL)
@@ -244,7 +244,7 @@ char* buf_to_str(const u8 *buf, int buf_len, int radix)
 int str_to_buf(const char *str, int str_len, u8 *buf, int buf_len, int radix)
 {
 	char *charbuf;
-	u32 tmp;
+	char tmp;
 	float factor;
 	u8 *b256_buf;
 	int b256_len;

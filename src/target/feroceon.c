@@ -517,7 +517,7 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	enum armv4_5_state core_state = armv4_5->core_state;
 	u32 x, flip, shift, save[7];
-	int i;
+	u32 i;
 
 	/*
 	 * We can't use the dcc flow control bits, so let's transfer data
@@ -547,7 +547,7 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 		0xeafffff3,	/*	b	3b			*/
 	};
 
-	int dcc_size = sizeof(dcc_code);
+	u32 dcc_size = sizeof(dcc_code);
 
 	if (!arm7_9->dcc_downloads)
 		return target->type->write_memory(target, address, 4, count, buffer);

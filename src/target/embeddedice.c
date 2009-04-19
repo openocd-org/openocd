@@ -484,7 +484,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	u8 field1_out[1];
 	u8 field2_out[1];
 	int retval;
-	int hsact;
+	u32 hsact;
 	struct timeval lap;
 	struct timeval now;
 
@@ -544,7 +544,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 
 		gettimeofday(&now, NULL);
 	}
-	while ((now.tv_sec-lap.tv_sec)*1000 + (now.tv_usec-lap.tv_usec)/1000 <= timeout);
+	while ((u32)((now.tv_sec-lap.tv_sec)*1000 + (now.tv_usec-lap.tv_usec)/1000) <= timeout);
 
 	return ERROR_TARGET_TIMEOUT;
 }

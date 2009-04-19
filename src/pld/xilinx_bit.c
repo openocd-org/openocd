@@ -40,7 +40,7 @@
 int read_section(FILE *input_file, int length_size, char section, u32 *buffer_length, u8 **buffer) 
 {
 	u8 length_buffer[4];
-	u32 length;
+	int length;
 	char section_char;
 	int read_count;
 	

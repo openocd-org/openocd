@@ -591,7 +591,7 @@ int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 		0x1DB7, 0x04C1			/* CRC32XOR:	.word 0x04C11DB7 */
 	};
 
-	int i;
+	u32 i;
 
 	if (target_alloc_working_area(target, sizeof(cortex_m3_crc_code), &crc_algorithm) != ERROR_OK)
 	{
@@ -640,7 +640,7 @@ int armv7m_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 	reg_param_t reg_params[3];
 	armv7m_algorithm_t armv7m_info;
 	int retval;
-	int i;
+	u32 i;
 
 	u16 erase_check_code[] =
 	{

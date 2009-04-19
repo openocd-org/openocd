@@ -1631,7 +1631,7 @@ int xscale_deassert_reset(target_t *target)
 	u32 binary_size;
 
 	u32 buf_cnt;
-	int i;
+	u32 i;
 	int retval;
 
 	breakpoint_t *breakpoint = target->breakpoints;
@@ -1928,7 +1928,7 @@ int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
 	u32 *buf32;
-	int i;
+	u32 i;
 	int retval;
 
 	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
@@ -2933,7 +2933,7 @@ int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 						(((instruction.type == ARM_B) ||
 							(instruction.type == ARM_BL) ||
 							(instruction.type == ARM_BLX)) &&
-							(instruction.info.b_bl_bx_blx.target_address != -1)))
+							(instruction.info.b_bl_bx_blx.target_address != ~0UL)))
 					{
 						xscale->trace.current_pc = instruction.info.b_bl_bx_blx.target_address;
 					}

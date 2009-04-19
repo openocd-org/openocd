@@ -161,7 +161,7 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
 	xilinx_bit_file_t bit_file;
 	int retval;
-	int i;
+	unsigned int i;
 
 	scan_field_t field;
 

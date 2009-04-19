@@ -268,7 +268,7 @@ ep1_memory_write(
 			USB_TIMEOUT_MS
 		);
 
-		if(usb_ret < sizeof(usb_buffer)) {
+		if((size_t)usb_ret < sizeof(usb_buffer)) {
 			break;
 		}
 
@@ -363,7 +363,7 @@ dtc_load_from_buffer(
 		buffer += sizeof(*header);
 		length -= sizeof(*header);
 
-		if(length < header->length + 1) {
+		if(length < (size_t)header->length + 1) {
 			LOG_ERROR("Malformed DTC image\n");
 			exit(1);
 		}
@@ -605,8 +605,8 @@ static
 struct {
 	dtc_reply_queue_entry_t	*rq_head;
 	dtc_reply_queue_entry_t	*rq_tail;
-	int			cmd_index;
-	int			reply_index;
+	u32			cmd_index;
+	u32			reply_index;
 	u8			cmd_buffer[USB_EP2BANK_SIZE];
 } dtc_queue;
 
@@ -617,7 +617,7 @@ struct {
 
 static
 struct {
-	int	length;
+	u32	length;
 	u32	buffer;
 } tap_state_queue;
 

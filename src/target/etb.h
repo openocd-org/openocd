@@ -46,17 +46,17 @@ typedef struct etb_s
 {
 	etm_context_t *etm_ctx;
 	jtag_tap_t *tap;
-	int cur_scan_chain;
+	u32 cur_scan_chain;
 	reg_cache_t *reg_cache;
 	
 	/* ETB parameters */
-	int ram_depth;
-	int ram_width;
+	u32 ram_depth;
+	u32 ram_width;
 } etb_t;
 
 typedef struct etb_reg_s
 {
-	int addr;
+	u32 addr;
 	etb_t *etb;
 } etb_reg_t;
 

@@ -103,7 +103,7 @@ const char *svf_trst_mode_name[4] =
 	"ABSENT"
 };
 
-char *svf_tap_state_name[16];
+char *svf_tap_state_name[TAP_NUM_STATES];
 
 #define XXR_TDI						(1 << 0)
 #define XXR_TDO						(1 << 1)
@@ -316,7 +316,7 @@ static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char
 	svf_buffer_size = 2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT;
 
 	memcpy(&svf_para, &svf_para_init, sizeof(svf_para));
-	for (i = 0; i < dimof(svf_tap_state_name); i++)
+	for (i = 0; i < (int)dimof(svf_tap_state_name); i++)
 	{
 		svf_tap_state_name[i] = (char *)tap_state_name(i);
 	}
@@ -515,7 +515,7 @@ static int svf_tap_state_is_stable(tap_state_t state)
 
 static int svf_tap_state_is_valid(tap_state_t state)
 {
-	return ((state >= 0) && (state < sizeof(svf_tap_state_name)));
+	return state >= 0 && state < TAP_NUM_STATES;
 }
 
 static int svf_find_string_in_array(char *str, char **strs, int num_of_element)

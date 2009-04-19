@@ -1758,7 +1758,7 @@ static int jtag_tap_configure_cmd( Jim_GetOptInfo *goi, jtag_tap_t * tap)
 					jteap = tap->event_action;
 					/* replace existing? */
 					while (jteap) {
-						if (jteap->event == n->value) {
+						if (jteap->event == (enum jtag_tap_event)n->value) {
 							break;
 						}
 						jteap = jteap->next;

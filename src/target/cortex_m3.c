@@ -1475,7 +1475,7 @@ int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer)
 	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
 	u8 data;
 	u8 ctrl;
-	int i;
+	u32 i;
 	
 	for (i = 0; i < (size * 4); i++)
 	{

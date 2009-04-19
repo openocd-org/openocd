@@ -78,7 +78,8 @@ int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
 
 int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 address, u32 size)
 {
-	size_t bytes_written, bytes_read, bytes_to_read;
+	size_t bytes_written, bytes_to_read;
+	ssize_t bytes_read;
 	u8 cmd;
 
 	oocd_trace_write_reg(oocd_trace, OOCD_TRACE_ADDRESS, address);
@@ -188,7 +189,7 @@ int oocd_trace_read_trace(etm_context_t *etm_ctx)
 	u32 first_frame = 0x0;
 	u32 num_frames = 1048576;
 	u8 *trace_data;
-	int i;
+	u32 i;
 
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_ADDRESS, &address);

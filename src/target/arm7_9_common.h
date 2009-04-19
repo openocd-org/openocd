@@ -40,7 +40,7 @@
 
 typedef struct arm7_9_common_s
 {
-	int common_magic;
+	u32 common_magic;
 	
 	arm_jtag_t jtag_info;
 	reg_cache_t *eice_cache;

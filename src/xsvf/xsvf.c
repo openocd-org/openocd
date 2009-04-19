@@ -743,7 +743,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 		case XCOMMENT:
 			{
-				int		ndx = 0;
+				unsigned int ndx = 0;
 				char 	comment[128];
 
 				do

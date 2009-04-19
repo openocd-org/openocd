@@ -655,7 +655,8 @@ int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	u32 *data;
-	int i, retval = ERROR_OK;
+	int retval = ERROR_OK;
+	u32 i;
 
 	data = malloc(size * (sizeof(u32)));
 
@@ -1956,7 +1957,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
 	u32 reg[16];
-	int num_accesses = 0;
+	u32 num_accesses = 0;
 	int thisrun_accesses;
 	int i;
 	u32 cpsr;
@@ -2133,7 +2134,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	u32 reg[16];
-	int num_accesses = 0;
+	u32 num_accesses = 0;
 	int thisrun_accesses;
 	int i;
 	u32 cpsr;
@@ -2466,7 +2467,7 @@ int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 		0x04C11DB7				/* CRC32XOR:	.word 0x04C11DB7 */
 	};
 
-	int i;
+	u32 i;
 
 	if (target_alloc_working_area(target, sizeof(arm7_9_crc_code), &crc_algorithm) != ERROR_OK)
 	{
@@ -2518,7 +2519,7 @@ int arm7_9_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 	reg_param_t reg_params[3];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval;
-	int i;
+	u32 i;
 
 	u32 erase_check_code[] =
 	{

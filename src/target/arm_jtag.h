@@ -30,9 +30,9 @@ typedef struct arm_jtag_s
 {
 	jtag_tap_t *tap;
 	
-	int scann_size;
+	u32 scann_size;
 	u32 scann_instr;
-	int cur_scan_chain;
+	u32 cur_scan_chain;
 	
 	u32 intest_instr;
 } arm_jtag_t;

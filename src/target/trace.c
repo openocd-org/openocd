@@ -31,7 +31,7 @@
 #include <string.h>
 #include <inttypes.h>
 
-int trace_point(target_t *target, int number)
+int trace_point(target_t *target, u32 number)
 {
 	trace_t *trace = target->trace_info;
 
@@ -60,7 +60,7 @@ int handle_trace_point_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	
 	if (argc == 0)
 	{
-		int i;
+		u32 i;
 		
 		for (i = 0; i < trace->num_trace_points; i++)
 		{
@@ -125,9 +125,9 @@ int handle_trace_history_command(struct command_context_s *cmd_ctx, char *cmd, c
 	}
 	else
 	{
-		int i;
-		int first = 0;
-		int last = trace->trace_history_pos;
+		u32 i;
+		u32 first = 0;
+		u32 last = trace->trace_history_pos;
 
 		if ( !trace->trace_history_size ) {
 			command_print(cmd_ctx, "trace history buffer is not allocated");

@@ -73,7 +73,7 @@ int target_hexmsg(target_t *target, int size, u32 length)
 	char line[128];
 	int line_len;
 	debug_msg_receiver_t *c = target->dbgmsg;
-	int i;
+	u32 i;
 	
 	LOG_DEBUG("size: %i, length: %i", size, length);
 

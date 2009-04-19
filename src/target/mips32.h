@@ -47,7 +47,7 @@ typedef struct mips32_comparator_s
 
 typedef struct mips32_common_s
 {
-	int common_magic;
+	u32 common_magic;
 	void *arch_info;
 	reg_cache_t *core_cache;
 	mips_ejtag_t ejtag_info;

@@ -985,7 +985,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 	/* handle unaligned head bytes */
 	if (address % 4)
 	{
-		int unaligned = 4 - (address % 4);
+		u32 unaligned = 4 - (address % 4);
 
 		if (unaligned > size)
 			unaligned = size;
@@ -1060,7 +1060,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	/* handle unaligned head bytes */
 	if (address % 4)
 	{
-		int unaligned = 4 - (address % 4);
+		u32 unaligned = 4 - (address % 4);
 
 		if (unaligned > size)
 			unaligned = size;
@@ -1100,7 +1100,7 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 {
 	u8 *buffer;
 	int retval;
-	int i;
+	u32 i;
 	u32 checksum = 0;
 	if (!target->type->examined)
 	{
@@ -2273,7 +2273,7 @@ int handle_verify_image_command_internal(struct command_context_s *cmd_ctx, char
 				retval = target->type->read_memory(target, image.sections[i].base_address, size, count, data);
 				if (retval == ERROR_OK)
 				{
-					int t;
+					u32 t;
 					for (t = 0; t < buf_cnt; t++)
 					{
 						if (data[t] != buffer[t])
@@ -2508,9 +2508,9 @@ static void writeString(FILE *f, char *s)
 }
 
 /* Dump a gmon.out histogram file. */
-static void writeGmon(u32 *samples, int sampleNum, char *filename)
+static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
 {
-	int i;
+	u32 i;
 	FILE *f=fopen(filename, "w");
 	if (f==NULL)
 		return;
@@ -2539,8 +2539,8 @@ static void writeGmon(u32 *samples, int sampleNum, char *filename)
 
 	int addressSpace=(max-min+1);
 
-	static int const maxBuckets=256*1024; /* maximum buckets. */
-	int length=addressSpace;
+	static const u32 maxBuckets = 256 * 1024; /* maximum buckets. */
+	u32 length = addressSpace;
 	if (length > maxBuckets)
 	{
 		length=maxBuckets;
@@ -2747,7 +2747,8 @@ static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_
 	u32 v;
 	const char *varname;
 	u8 buffer[4096];
-	int  i, n, e, retval;
+	int  n, e, retval;
+	u32 i;
 
 	/* argv[1] = name of array to receive the data
 	 * argv[2] = desired width
@@ -2928,7 +2929,8 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 	u32 v;
 	const char *varname;
 	u8 buffer[4096];
-	int  i, n, e, retval;
+	int  n, e, retval;
+	u32 i;
 
 	/* argv[1] = name of array to get the data
 	 * argv[2] = desired width
@@ -3200,7 +3202,7 @@ static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 				teap = target->event_action;
 				/* replace existing? */
 				while( teap ){
-					if( teap->event == n->value ){
+					if( teap->event == (enum target_event)n->value ){
 						break;
 					}
 					teap = teap->next;
