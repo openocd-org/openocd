@@ -1113,7 +1113,7 @@ static int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 addr
 	};
 	u8 target_code[4*CFI_MAX_INTEL_CODESIZE];
 	const u32 *target_code_src;
-	int target_code_size;
+	u32 target_code_size;
 	int retval = ERROR_OK;
 
 
@@ -1969,7 +1969,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 			bufferwsize/=(bank->bus_width / bank->chip_width);
 
 			/* fall back to memory writes */
-			while (count >= bank->bus_width)
+			while (count >= (u32)bank->bus_width)
 			{
 				int fallback;
 				if ((write_p & 0xff) == 0)
@@ -2268,7 +2268,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 
 		LOG_DEBUG("size: 0x%x, interface desc: %i, max buffer write size: %x", 1 << cfi_info->dev_size, cfi_info->interface_desc, (1 << cfi_info->max_buf_write_size));
 
-		if (((1 << cfi_info->dev_size) * bank->bus_width / bank->chip_width) != bank->size)
+		if ((u32)((1 << cfi_info->dev_size) * bank->bus_width / bank->chip_width) != bank->size)
 		{
 			LOG_WARNING("configuration specifies 0x%x size, but a 0x%x size flash was found", bank->size, 1 << cfi_info->dev_size);
 		}
@@ -2361,7 +2361,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 
 		for (i = 0; i < cfi_info->num_erase_regions; i++)
 		{
-			int j;
+			u32 j;
 			for (j = 0; j < (cfi_info->erase_region_info[i] & 0xffff) + 1; j++)
 			{
 				bank->sectors[sector].offset = offset;

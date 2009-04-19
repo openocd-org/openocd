@@ -331,7 +331,7 @@ static int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offse
  * working area available. */
 static int aduc702x_write_single(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
-	int x;
+	u32 x;
         u8 b;
 	target_t *target = bank->target;
 	

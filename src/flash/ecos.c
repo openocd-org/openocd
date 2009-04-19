@@ -328,7 +328,7 @@ static int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, u32 address
 		return retval;
 
 
-	int i;
+	u32 i;
 	for (i=0; i<len; i+=chunk)
 	{
 		int t=len-i;

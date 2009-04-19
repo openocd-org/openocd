@@ -32,7 +32,7 @@ typedef struct lpc2000_flash_bank_s
 	int cmd51_can_256b;
 	int cmd51_can_8192b;
 	int calc_checksum;
-	int cmd51_max_buffer;
+	u32 cmd51_max_buffer;
 } lpc2000_flash_bank_t;
 
 enum lpc2000_status_codes

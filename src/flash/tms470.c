@@ -955,7 +955,8 @@ static int tms470_write(struct flash_bank_s *bank, u8 * buffer, u32 offset, u32 
 {
 	target_t *target = bank->target;
 	u32 glbctrl, fmbac2, orig_fmregopt, fmbsea, fmbseb, fmmaxpp, fmmstat;
-	int i, result = ERROR_OK;
+	int result = ERROR_OK;
+	u32 i;
 
 	if (target->state != TARGET_HALTED)
 	{

@@ -509,7 +509,7 @@ static int str9x_write(struct flash_bank_s *bank,
 	u32 address = bank->base + offset;
 	u32 bytes_written = 0;
 	u8 status;
-	u32 retval;
+	int retval;
 	u32 check_address = offset;
 	u32 bank_adr;
 	int i;

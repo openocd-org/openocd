@@ -587,7 +587,7 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 		else
 		{
 			u8 *last_buffer = malloc(thisrun_bytes);
-			int i;
+			u32 i;
 			memcpy(last_buffer, buffer + bytes_written, bytes_remaining);
 			for (i = bytes_remaining; i < thisrun_bytes; i++)
 				last_buffer[i] = 0xff;

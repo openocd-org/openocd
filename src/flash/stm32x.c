@@ -603,7 +603,7 @@ static int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 c
 	u32 address = bank->base + offset;
 	u32 bytes_written = 0;
 	u8 status;
-	u32 retval;
+	int retval;
 	
 	if (bank->target->state != TARGET_HALTED)
 	{

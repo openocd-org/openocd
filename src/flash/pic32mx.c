@@ -526,7 +526,7 @@ static int pic32mx_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 	u32 address = bank->base + offset;
 	u32 bytes_written = 0;
 	u32 status;
-	u32 retval;
+	int retval;
 
 	if (bank->target->state != TARGET_HALTED)
 	{

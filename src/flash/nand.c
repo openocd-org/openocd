@@ -834,7 +834,7 @@ static int nand_read_page(struct nand_device_s *device, u32 page, u8 *data, u32 
 
 int nand_read_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
 {
-	int i;
+	u32 i;
 	
 	if (!device->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
@@ -948,7 +948,7 @@ int nand_read_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 dat
 
 int nand_write_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size)
 {
-	int i;
+	u32 i;
 	int retval;
 	u8 status;
 	
@@ -1400,7 +1400,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 
 			if (oob_format & NAND_OOB_SW_ECC)
 			{
-				int i, j;
+				u32 i, j;
 				u8 ecc[3];
 				memset(oob, 0xff, oob_size);
 				for (i = 0, j = 0; i < page_size; i += 256) {

@@ -937,7 +937,8 @@ static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 static int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	u32 cmd;
-	u32 sector, pagen;
+	int sector;
+	u32 pagen;
 
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 

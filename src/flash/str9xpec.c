@@ -687,8 +687,8 @@ static int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 	scan_field_t field;
 	u8 *scanbuf;
 	int i;
-	u32 first_sector = 0;
-	u32 last_sector = 0;
+	int first_sector = 0;
+	int last_sector = 0;
 
 	tap = str9xpec_info->tap;
 

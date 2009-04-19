@@ -478,7 +478,7 @@ static int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 	u32 address = bank->base + offset;
 	u32 bytes_written = 0;
 	u32 cmd;
-	u32 retval;
+	int retval;
 	u32 check_address = offset;
 	int i;
 	

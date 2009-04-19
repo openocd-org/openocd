@@ -328,10 +328,11 @@ static int lpc288x_erase(struct flash_bank_s *bank, int first, int last)
 static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 {
 	u8 page_buffer[FLASH_PAGE_SIZE];
-	u32 i, status, source_offset,dest_offset;
+	u32 status, source_offset,dest_offset;
 	target_t *target = bank->target;
 	u32 bytes_remaining = count;
 	u32 first_sector, last_sector, sector, page;
+	int i;
 	
 	/* probed? halted? */
 	status = lpc288x_system_ready(bank);

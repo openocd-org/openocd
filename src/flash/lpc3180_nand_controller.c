@@ -546,7 +546,7 @@ static int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, 
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 		
-		if (data_size > device->page_size)
+		if (data_size > (u32)device->page_size)
 		{
 			LOG_ERROR("data size exceeds page size");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
@@ -681,7 +681,7 @@ static int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u
 		}
 #endif
 		
-		if (data_size > device->page_size)
+		if (data_size > (u32)device->page_size)
 		{
 			LOG_ERROR("data size exceeds page size");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
@@ -741,7 +741,7 @@ static int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u
 			target_write_u32(target, 0x200b8000, NAND_CMD_READSTART);
 		}
 		
-		while (page_bytes_done < device->page_size)
+		while (page_bytes_done < (u32)device->page_size)
 		{
 			/* MLC_ECC_AUTO_DEC_REG = dummy */
 			target_write_u32(target, 0x200b8014, 0xaa55aa55);

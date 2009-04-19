@@ -66,8 +66,8 @@ flash_driver_t ocl_flash =
 typedef struct ocl_priv_s
 {
 	arm_jtag_t *jtag_info;
-	int buflen;
-	int bufalign;
+	unsigned int buflen;
+	unsigned int bufalign;
 } ocl_priv_t;
 
 static int ocl_register_commands(struct command_context_s *cmd_ctx)

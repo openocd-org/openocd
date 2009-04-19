@@ -346,7 +346,7 @@ static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cm
 static int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *p;
-	int i = 0;
+	u32 i = 0;
 	int j = 0;
 	int retval;
 
@@ -726,12 +726,12 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	u8 chunk[1024];
 	u32 wrote = 0;
 	u32 cur_size = 0;
-	int chunk_count;
+	u32 chunk_count;
 	char *duration_text;
 	duration_t duration;
 	target_t *target = get_current_target(cmd_ctx);
 	u32 i;
-	int wordsize;
+	u32 wordsize;
 
 	if (argc != 3)
 	{
@@ -1129,7 +1129,7 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 	u8 buffer[1024];
 	int buffer_size = sizeof(buffer);
 	int i;
-	int nBytes;
+	u32 nBytes;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -1139,12 +1139,12 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		int j;
+		u32 j;
 		bank->sectors[i].is_erased = 1;
 
 		for (j = 0; j < bank->sectors[i].size; j += buffer_size)
 		{
-			int chunk;
+			u32 chunk;
 			int retval;
 			chunk = buffer_size;
 			if (chunk > (j - bank->sectors[i].size))

@@ -570,12 +570,12 @@ static int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 		return ERROR_FLASH_OPERATION_FAILED;
 	}	
 	
-	if ((first < 0) || (last < first) || (last >= stellaris_info->num_pages))
+	if ((first < 0) || (last < first) || (last >= (int)stellaris_info->num_pages))
 	{
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
 	
-	if ((first == 0) && (last == (stellaris_info->num_pages-1)))
+	if ((first == 0) && (last == ((int)stellaris_info->num_pages-1)))
 	{
 		return stellaris_mass_erase(bank);
 	}
@@ -821,7 +821,7 @@ static int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u3
 	u32 words_remaining = (count / 4);
 	u32 bytes_remaining = (count & 0x00000003);
 	u32 bytes_written = 0;
-	u32 retval;
+	int retval;
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
