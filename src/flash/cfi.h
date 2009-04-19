@@ -26,7 +26,7 @@
 typedef struct cfi_flash_bank_s
 {
 	working_area_t *write_algorithm;
-	
+
 
 	int x16_as_x8;
 	int jedec_probe;
@@ -59,7 +59,7 @@ typedef struct cfi_flash_bank_s
 	u8 chip_erase_timeout_max;
 
 	/* flash geometry */
-	u8 dev_size;
+	u32 dev_size;
 	u16 interface_desc;
 	u16 max_buf_write_size;
 	u8 num_erase_regions;

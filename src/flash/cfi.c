@@ -1,6 +1,8 @@
 /***************************************************************************
  *   Copyright (C) 2005, 2007 by Dominic Rath                              *
  *   Dominic.Rath@gmx.de                                                   *
+ *   Copyright (C) 2009 Michael Schwingen                                  *
+ *   michael@schwingen.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -81,24 +83,6 @@ static cfi_unlock_addresses_t cfi_unlock_addresses[] =
 static void cfi_fixup_0002_erase_regions(flash_bank_t *flash, void *param);
 static void cfi_fixup_0002_unlock_addresses(flash_bank_t *flash, void *param);
 static void cfi_fixup_atmel_reversed_erase_regions(flash_bank_t *flash, void *param);
-
-/* fixup after identifying JEDEC manufactuer and ID */
-static cfi_fixup_t cfi_jedec_fixups[] = {
-	{CFI_MFR_SST, 0x00D4, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_SST, 0x00D5, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_SST, 0x00D6, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_SST, 0x00D7, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_SST, 0x2780, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_ST, 0x00D5, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_ST, 0x00D6, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_AMD, 0x2223, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_AMD, 0x22ab, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_FUJITSU, 0x226b, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_AMIC, 0xb31a, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_MX, 0x225b, cfi_fixup_non_cfi, NULL},
-	{CFI_MFR_AMD, 0x225b, cfi_fixup_non_cfi, NULL},
-	{0, 0, NULL, NULL}
-};
 
 /* fixup after reading cmdset 0002 primary query table */
 static cfi_fixup_t cfi_0002_fixups[] = {
@@ -633,6 +617,8 @@ static int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, 
 {
 	cfi_flash_bank_t *cfi_info;
 	int i;
+	(void) cmd_ctx;
+	(void) cmd;
 
 	if (argc < 6)
 	{
@@ -964,7 +950,7 @@ static int cfi_protect(struct flash_bank_s *bank, int set, int first, int last)
 			cfi_intel_protect(bank, set, first, last);
 			break;
 		default:
-			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			LOG_ERROR("protect: cfi primary command set %i unsupported", cfi_info->pri_id);
 			break;
 	}
 
@@ -1843,7 +1829,7 @@ static int cfi_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u
 			return cfi_intel_write_words(bank, word, wordcount, address);
 			break;
 		case 2:
-			return cfi_spansion_write_words(bank, word, wordcount, address); 
+			return cfi_spansion_write_words(bank, word, wordcount, address);
 			break;
 		default:
 			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
@@ -1965,7 +1951,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 				LOG_ERROR("Unsupported chip width %d", bank->chip_width);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
-			
+
 			bufferwsize/=(bank->bus_width / bank->chip_width);
 
 			/* fall back to memory writes */
@@ -2064,6 +2050,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 
 static void cfi_fixup_atmel_reversed_erase_regions(flash_bank_t *bank, void *param)
 {
+	(void) param;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 
@@ -2075,6 +2062,7 @@ static void cfi_fixup_0002_erase_regions(flash_bank_t *bank, void *param)
 	int i;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
+	(void) param;
 
 	if ((pri_ext->_reversed_geometry) || (pri_ext->TopBottom == 3))
 	{
@@ -2110,7 +2098,6 @@ static int cfi_probe(struct flash_bank_s *bank)
 	int num_sectors = 0;
 	int i;
 	int sector = 0;
-	u32 offset = 0;
 	u32 unlock1 = 0x555;
 	u32 unlock2 = 0x2aa;
 	int retval;
@@ -2175,6 +2162,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 		}
 	}
 
+	LOG_INFO("Flash Manufacturer/Device: 0x%04x 0x%04x", cfi_info->manufacturer, cfi_info->device_id);
 	/* switch back to read array mode */
 	cfi_command(bank, 0xf0, command);
 	if((retval = target->type->write_memory(target, flash_address(bank, 0, 0x00), bank->bus_width, 1, command)) != ERROR_OK)
@@ -2187,7 +2175,8 @@ static int cfi_probe(struct flash_bank_s *bank)
 		return retval;
 	}
 
-	cfi_fixup(bank, cfi_jedec_fixups);
+	/* check device/manufacturer ID for known non-CFI flashes. */
+	cfi_fixup_non_cfi(bank);
 
 	/* query only if this is a CFI compatible flash,
 	 * otherwise the relevant info has already been filled in
@@ -2225,7 +2214,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 			{
 				return retval;
 			}
-			LOG_ERROR("Could not probe bank");
+			LOG_ERROR("Could not probe bank: no QRY");
 			return ERROR_FLASH_BANK_INVALID;
 		}
 
@@ -2261,17 +2250,12 @@ static int cfi_probe(struct flash_bank_s *bank)
 			(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
 			(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
 
-		cfi_info->dev_size = cfi_query_u8(bank, 0, 0x27);
+		cfi_info->dev_size = 1<<cfi_query_u8(bank, 0, 0x27);
 		cfi_info->interface_desc = cfi_query_u16(bank, 0, 0x28);
 		cfi_info->max_buf_write_size = cfi_query_u16(bank, 0, 0x2a);
 		cfi_info->num_erase_regions = cfi_query_u8(bank, 0, 0x2c);
 
-		LOG_DEBUG("size: 0x%x, interface desc: %i, max buffer write size: %x", 1 << cfi_info->dev_size, cfi_info->interface_desc, (1 << cfi_info->max_buf_write_size));
-
-		if ((u32)((1 << cfi_info->dev_size) * bank->bus_width / bank->chip_width) != bank->size)
-		{
-			LOG_WARNING("configuration specifies 0x%x size, but a 0x%x size flash was found", bank->size, 1 << cfi_info->dev_size);
-		}
+		LOG_DEBUG("size: 0x%x, interface desc: %i, max buffer write size: %x", cfi_info->dev_size, cfi_info->interface_desc, (1 << cfi_info->max_buf_write_size));
 
 		if (cfi_info->num_erase_regions)
 		{
@@ -2338,6 +2322,11 @@ static int cfi_probe(struct flash_bank_s *bank)
 			break;
 	}
 
+	if ((cfi_info->dev_size * bank->bus_width / bank->chip_width) != bank->size)
+	{
+		LOG_WARNING("configuration specifies 0x%x size, but a 0x%x size flash was found", bank->size, cfi_info->dev_size);
+	}
+
 	if (cfi_info->num_erase_regions == 0)
 	{
 		/* a device might have only one erase block, spanning the whole device */
@@ -2351,6 +2340,8 @@ static int cfi_probe(struct flash_bank_s *bank)
 	}
 	else
 	{
+		u32 offset = 0;
+
 		for (i = 0; i < cfi_info->num_erase_regions; i++)
 		{
 			num_sectors += (cfi_info->erase_region_info[i] & 0xffff) + 1;
@@ -2372,8 +2363,12 @@ static int cfi_probe(struct flash_bank_s *bank)
 				sector++;
 			}
 		}
+		if (offset != cfi_info->dev_size)
+		{
+			LOG_WARNING("CFI size is 0x%x, but total sector size is 0x%x", cfi_info->dev_size, offset);
+		}
 	}
-	
+
 	cfi_info->probed = 1;
 
 	return ERROR_OK;
@@ -2504,7 +2499,7 @@ static int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	}
 
 	if (cfi_info->not_cfi == 0)
-	printed = snprintf(buf, buf_size, "\ncfi information:\n");
+		printed = snprintf(buf, buf_size, "\ncfi information:\n");
 	else
 		printed = snprintf(buf, buf_size, "\nnon-cfi flash:\n");
 	buf += printed;
@@ -2546,7 +2541,7 @@ static int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf_size -= printed;
 
 		printed = snprintf(buf, buf_size, "size: 0x%x, interface desc: %i, max buffer write size: %x\n",
-		                   1 << cfi_info->dev_size,
+		                   cfi_info->dev_size,
 		                   cfi_info->interface_desc,
 		                   1 << cfi_info->max_buf_write_size);
 	buf += printed;

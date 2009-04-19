@@ -1,6 +1,8 @@
 /***************************************************************************
  *   Copyright (C) 2007 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
+ *   Copyright (C) 2009 Michael Schwingen                                  *
+ *   michael@schwingen.org                                                 *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -29,212 +31,279 @@
 #include "cfi.h"
 #include "non_cfi.h"
 
+#define KB 1024
+#define MB (1024*1024)
+#define ERASE_REGION(num, size) (((size/256)<<16)|(num-1))
+
 /* non-CFI compatible flashes */
 non_cfi_t non_cfi_flashes[] = {
 	{
 		.mfr = CFI_MFR_SST,
 		.id = 0xd4,
 		.pri_id = 0x02,
-		.dev_size = 0x10,			/* 2^16 = 64KB */
+		.dev_size = 64*KB,
 		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
-			0x0010000f,				/* 16x  4KB */
-			0x00000000
+			ERASE_REGION(16, 4*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_SST,
 		.id = 0xd5,
 		.pri_id = 0x02,
-		.dev_size = 0x11,			/* 2^17 = 128KB */
+		.dev_size = 128*KB,
 		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
-			0x0010001f,
-			0x00000000
+			ERASE_REGION(32, 4*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_SST,
 		.id = 0xd6,
 		.pri_id = 0x02,
-		.dev_size = 0x12,			/* 2^18 = 256KB */
+		.dev_size = 256*KB,
 		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
-			0x0010003f,
-			0x00000000
+			ERASE_REGION(64, 4*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_SST,
 		.id = 0xd7,
 		.pri_id = 0x02,
-		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.dev_size = 512*KB,
 		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
-			0x0010007f,
-			0x00000000
+			ERASE_REGION(128, 4*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_SST,
 		.id = 0x2780,
 		.pri_id = 0x02,
-		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
-			0x0010007f,
-			0x00000000
+			ERASE_REGION(128, 4*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_ST,
 		.id = 0xd6,					/* ST29F400BB */
 		.pri_id = 0x02,
-		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			0x00400000,		/* 1x 16KB */
-			0x00200001,		/* 2x  8KB */
-			0x00800000,		/* 1x 32KB */
-			0x01000006,		/* 7x 64KB */
-			0x00000000
+			ERASE_REGION( 1, 16*KB),
+			ERASE_REGION( 2,  8*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION( 7, 64*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_ST,
 		.id = 0xd5,					/* ST29F400BT */
 		.pri_id = 0x02,
-		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			0x01000006,		/* 7x 64KB */
-			0x00800000,		/* 1x 32KB */
-			0x00200001,		/* 2x  8KB */
-			0x00400000,		/* 1x 16KB */
-			0x00000000
+			ERASE_REGION( 7, 64*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION( 2,  8*KB),
+			ERASE_REGION( 1, 16*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_AMD,
 		.id = 0x22ab,				/* AM29F400BB */
 		.pri_id = 0x02,
-		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			0x00400000,		/* 1x 16KB */
-			0x00200001,		/* 2x  8KB */
-			0x00800000,		/* 1x 32KB */
-			0x01000006,		/* 7x 64KB */
-			0x00000000
+			ERASE_REGION( 1, 16*KB),
+			ERASE_REGION( 2,  8*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION( 7, 64*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_AMD,
 		.id = 0x2223,				/* AM29F400BT */
 		.pri_id = 0x02,
-		.dev_size = 0x13,			/* 2^19 = 512KB */
+		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			0x01000006,		/* 7x 64KB */
-			0x00800000,		/* 1x 32KB */
-			0x00200001,		/* 2x  8KB */
-			0x00400000,		/* 1x 16KB */
-			0x00000000
+			ERASE_REGION( 7, 64*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION( 2,  8*KB),
+			ERASE_REGION( 1, 16*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_FUJITSU,
 		.id = 0x226b,				/* AM29SL800DB */
 		.pri_id = 0x02,
-		.dev_size = 0x14,			/* 2^20 = 1MB */
+		.dev_size = 1*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			0x00400000,				/* 1x 16KB */
-			0x00200001,				/* 2x 8KB */
-			0x00800000,				/* 1x 32KB */
-			0x0100000e,				/* 15x 64KB */
-			0x00000000
+			ERASE_REGION( 1, 16*KB),
+			ERASE_REGION( 2,  8*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(15, 64*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_AMIC,
 		.id = 0xb31a,				/* A29L800A */
 		.pri_id = 0x02,
-		.dev_size = 0x14,
+		.dev_size = 1*MB,
 		.interface_desc = 0x2,
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			0x00400000,				/* 1x 16KB */
-			0x00200001,				/* 2x 8KB */
-			0x00800000,				/* 1x 32KB */
-			0x0100000e,				/* 15x 64KB */
-			0x00000000
+			ERASE_REGION( 1, 16*KB),
+			ERASE_REGION( 2,  8*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(15, 64*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_MX,
 		.id = 0x225b,				/* MX29LV800B */
 		.pri_id = 0x02,
-		.dev_size = 0x14,			/* 2^20 = 1MB */
+		.dev_size = 1*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-                        0x00400000,             /* 1x 16KB */
-                        0x00200001,             /* 2x 8KB */
-                        0x00800000,             /* 1x 32KB */
-                        0x0100000e,             /* 15x 64KB */
-			0x00000000
+			ERASE_REGION( 1, 16*KB),
+			ERASE_REGION( 2, 8*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(15, 64*KB)
+		}
+	},
+
+	{
+		.mfr = CFI_MFR_MX,
+		.id = 0x2249,				/* MX29LV160AB: 2MB */
+		.pri_id = 0x02,
+		.dev_size = 2*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 4,
+		.erase_region_info =
+		{
+			ERASE_REGION( 1, 16*KB),
+			ERASE_REGION( 2, 8*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(31, 64*KB)
+		}
+	},
+	{
+		.mfr = CFI_MFR_MX,
+		.id = 0x22C4,				/* MX29LV160AT: 2MB */
+		.pri_id = 0x02,
+		.dev_size = 2*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 4,
+		.erase_region_info =
+		{
+			ERASE_REGION(31, 64*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION( 2, 8*KB),
+			ERASE_REGION( 1, 16*KB)
+		}
+	},
+	{
+		.mfr = CFI_MFR_SST,
+		.id = 0x2782,				/* SST39xF160 */
+		.pri_id = 0x02,
+		.dev_size = 2*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 1,
+		.erase_region_info =
+		{
+			ERASE_REGION(512, 4*KB)
+		}
+	},
+	{
+		.mfr = CFI_MFR_ATMEL,
+		.id = 0x00c0,				/* Atmel 49BV1614 */
+		.pri_id = 0x02,
+		.dev_size = 2*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 3,
+		.erase_region_info =
+		{
+			ERASE_REGION( 8,  8*KB),
+			ERASE_REGION( 2, 32*KB),
+			ERASE_REGION(30, 64*KB)
+		}
+	},
+	{
+		.mfr = CFI_MFR_ATMEL,
+		.id = 0xC2,					/* Atmel 49BV1614T */
+		.pri_id = 0x02,
+		.dev_size = 2*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.num_erase_regions = 3,
+		.erase_region_info =
+		{
+			ERASE_REGION(30, 64*KB),
+			ERASE_REGION( 2, 32*KB),
+			ERASE_REGION( 8,  8*KB)
 		}
 	},
 	{
 		.mfr = CFI_MFR_AMD,
 		.id = 0x225b,				/* S29AL008D */
 		.pri_id = 0x02,
-		.dev_size = 0x14,			/* 2^20 = 1MB */
+		.dev_size = 1*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-                        0x00400000,             /* 1x 16KB */
-                        0x00200001,             /* 2x 8KB */
-                        0x00800000,             /* 1x 32KB */
-                        0x0100000e,             /* 15x 64KB */
-			0x00000000
+			ERASE_REGION( 1, 16*KB),
+			ERASE_REGION( 2, 8*KB),
+			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(15, 64*KB)
 		}
 	},
 	{
@@ -243,23 +312,26 @@ non_cfi_t non_cfi_flashes[] = {
 	}
 };
 
-void cfi_fixup_non_cfi(flash_bank_t *bank, void *param)
+void cfi_fixup_non_cfi(flash_bank_t *bank)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	non_cfi_t *non_cfi = non_cfi_flashes;
-	
-	while (non_cfi->mfr)
+
+	for (non_cfi = non_cfi_flashes; non_cfi->mfr; non_cfi++)
 	{
 		if ((cfi_info->manufacturer == non_cfi->mfr)
 			&& (cfi_info->device_id == non_cfi->id))
 		{
 			break;
 		}
-		non_cfi++;
 	}
-	
+
+	/* only fixup jedec flashs found in table */
+	if (!non_cfi->mfr)
+		return;
+
 	cfi_info->not_cfi = 1;
-	
+
 	/* fill in defaults for non-critical data */
 	cfi_info->vcc_min = 0x0;
 	cfi_info->vcc_max = 0x0;
@@ -273,22 +345,23 @@ void cfi_fixup_non_cfi(flash_bank_t *bank, void *param)
 	cfi_info->buf_write_timeout_max = 0x0;
 	cfi_info->block_erase_timeout_max = 0x0;
 	cfi_info->chip_erase_timeout_max = 0x0;
-	
+
 	cfi_info->qry[0] = 'Q';
 	cfi_info->qry[1] = 'R';
 	cfi_info->qry[2] = 'Y';
-	
+
 	cfi_info->pri_id = non_cfi->pri_id;
 	cfi_info->pri_addr = 0x0;
 	cfi_info->alt_id = 0x0;
 	cfi_info->alt_addr = 0x0;
 	cfi_info->alt_ext = NULL;
-	
+
 	cfi_info->interface_desc = non_cfi->interface_desc;
 	cfi_info->max_buf_write_size = non_cfi->max_buf_write_size;
 	cfi_info->num_erase_regions = non_cfi->num_erase_regions;
 	cfi_info->erase_region_info = non_cfi->erase_region_info;
-	
+	cfi_info->dev_size = non_cfi->dev_size;
+
 	if (cfi_info->pri_id == 0x2)
 	{
 		cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
@@ -296,10 +369,10 @@ void cfi_fixup_non_cfi(flash_bank_t *bank, void *param)
 		pri_ext->pri[0] = 'P';
 		pri_ext->pri[1] = 'R';
 		pri_ext->pri[2] = 'I';
-		
+
 		pri_ext->major_version = '1';
 		pri_ext->minor_version = '0';
-		
+
 		pri_ext->SiliconRevision = 0x0;
 		pri_ext->EraseSuspend = 0x0;
 		pri_ext->EraseSuspend = 0x0;
@@ -312,9 +385,11 @@ void cfi_fixup_non_cfi(flash_bank_t *bank, void *param)
 		pri_ext->VppMin = 0x0;
 		pri_ext->VppMax = 0x0;
 		pri_ext->TopBottom = 0x0;
-	
+
+		pri_ext->_unlock1 = 0x5555;
+		pri_ext->_unlock2 = 0x2AAA;
 		pri_ext->_reversed_geometry = 0;
-		
+
 		cfi_info->pri_ext = pri_ext;
 	} else if ((cfi_info->pri_id == 0x1) || (cfi_info->pri_id == 0x3))
 	{

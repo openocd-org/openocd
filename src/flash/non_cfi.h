@@ -27,7 +27,7 @@ typedef struct non_cfi_s
 	u16 mfr;
 	u16 id;
 	u16 pri_id;
-	u8 dev_size;
+	u32 dev_size;
 	u16 interface_desc;
 	u16 max_buf_write_size;
 	u8 num_erase_regions;
@@ -35,6 +35,6 @@ typedef struct non_cfi_s
 } non_cfi_t;
 
 extern non_cfi_t non_cfi_flashes[];
-extern void cfi_fixup_non_cfi(flash_bank_t *bank, void *param);
+extern void cfi_fixup_non_cfi(flash_bank_t *bank);
 
 #endif /* NON_CFI_H */
