@@ -196,7 +196,7 @@ static int tms470_read_part_info(struct flash_bank_s *bank)
 	case 0x2b:
 		part_name = "TMS470R1A288";
 
-		if ((bank->base >= 0x00000000) && (bank->base < 0x00008000))
+		if (bank->base < 0x00008000)
 		{
 			tms470_info->ordinal = 0;
 			bank->base = 0x00000000;
@@ -232,7 +232,7 @@ static int tms470_read_part_info(struct flash_bank_s *bank)
 	case 0x2d:
 		part_name = "TMS470R1A384";
 
-		if ((bank->base >= 0x00000000) && (bank->base < 0x00020000))
+		if (bank->base < 0x00020000)
 		{
 			tms470_info->ordinal = 0;
 			bank->base = 0x00000000;
