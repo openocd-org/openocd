@@ -347,18 +347,16 @@ void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 
 	usbprog_jtag_tms_send(usbprog_jtag_handle);
 
-	if (type == SCAN_OUT)
-	{
-		usbprog_jtag_write_tdi(usbprog_jtag_handle,buffer, scan_size);
+	void (*f)(struct usbprog_jtag *usbprog_jtag, char * buffer, int size);
+	switch (type) {
+	case SCAN_OUT: f = &usbprog_jtag_write_tdi; break;
+	case SCAN_IN: f = &usbprog_jtag_read_tdo; break;
+	case SCAN_IO: f = &usbprog_jtag_write_and_read; break;
+	default:
+		LOG_ERROR("unknown scan type: %i", type);
+		exit(-1);
 	}
-	if (type == SCAN_IN)
-	{
-		usbprog_jtag_read_tdo(usbprog_jtag_handle,buffer, scan_size);
-	}
-	if (type == SCAN_IO)
-	{
-		usbprog_jtag_write_and_read(usbprog_jtag_handle,buffer, scan_size);
-	}
+	f(usbprog_jtag_handle, (char *)buffer, scan_size);
 
 	if (ir_scan)
 		tap_set_state(TAP_IRPAUSE);
