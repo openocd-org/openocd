@@ -104,7 +104,7 @@ struct device_t
 struct device_t devices[] =
 {
 	{ "rea_ecr", PIOD, P27, PIOA, NC, PIOD, P23, PIOD, P24, PIOD, P26, PIOC, P5 },
-	{ NULL, 0 }
+	{ .name = NULL },
 };
 
 /* configuration */
