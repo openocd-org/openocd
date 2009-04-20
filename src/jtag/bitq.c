@@ -39,7 +39,7 @@ bitq_interface_t* bitq_interface;       /* low level bit queue interface */
 bitq_state_t      bitq_in_state;        /* state of input queue */
 
 u8* bitq_in_buffer;                     /* buffer dynamically reallocated as needed */
-unsigned long     bitq_in_bufsize = 32; /* min. buffer size */
+int     bitq_in_bufsize = 32; /* min. buffer size */
 
 /*
  * input queue processing does not use jtag_read_buffer() to avoid unnecessary overhead

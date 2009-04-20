@@ -138,7 +138,7 @@ u8 presto_init_seq[] =
 	0x80, 0xA0, 0xA8, 0xB0, 0xC0, 0xE0
 };
 
-int presto_write(u8 *buf, int size)
+int presto_write(u8 *buf, u32 size)
 {
 #if BUILD_PRESTO_FTD2XX == 1
 	DWORD ftbytes;
@@ -160,14 +160,14 @@ int presto_write(u8 *buf, int size)
 
 	if (ftbytes != size)
 	{
-		LOG_ERROR("couldn't write the requested number of bytes to PRESTO (%i < %i)", ftbytes, size);
+		LOG_ERROR("couldn't write the requested number of bytes to PRESTO (%u < %u)", (u32)ftbytes, size);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	return ERROR_OK;
 }
 
-int presto_read(u8* buf, int size)
+int presto_read(u8* buf, u32 size)
 {
 #if BUILD_PRESTO_FTD2XX == 1
 	DWORD ftbytes;
@@ -202,7 +202,7 @@ int presto_read(u8* buf, int size)
 	if (ftbytes != size)
 	{
 		/* this is just a warning, there might have been timeout when detecting PRESTO, which is not fatal */
-		LOG_WARNING("couldn't read the requested number of bytes from PRESTO (%i < %i)", ftbytes, size);
+		LOG_WARNING("couldn't read the requested number of bytes from PRESTO (%u < %u)", (u32)ftbytes, size);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -212,7 +212,7 @@ int presto_read(u8* buf, int size)
 #if BUILD_PRESTO_FTD2XX == 1
 int presto_open_ftd2xx(char *req_serial)
 {
-	int i;
+	u32 i;
 	DWORD numdevs;
 	DWORD vidpid;
 	char devname[FT_DEVICE_NAME_LEN];
@@ -238,7 +238,7 @@ int presto_open_ftd2xx(char *req_serial)
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	LOG_DEBUG("FTDI devices available: %i", numdevs);
+	LOG_DEBUG("FTDI devices available: %lu", numdevs);
 	for (i = 0; i < numdevs; i++)
 	{
 		if ((presto->status = FT_Open(i, &(presto->handle))) != FT_OK)
@@ -257,7 +257,7 @@ int presto_open_ftd2xx(char *req_serial)
 				break;
 		}
 		else
-			LOG_DEBUG("FT_GetDeviceInfo failed: %i", presto->status);
+			LOG_DEBUG("FT_GetDeviceInfo failed: %lu", presto->status);
 
 		LOG_DEBUG("FTDI device %i does not match, closing", i);
 		FT_Close(presto->handle);

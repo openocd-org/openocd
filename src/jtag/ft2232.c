@@ -158,7 +158,7 @@ ft2232_layout_t            ft2232_layouts[] =
 	{ "stm32stick",           stm32stick_init,           stm32stick_reset,   NULL                    },
 	{ "axm0432_jtag",         axm0432_jtag_init,         axm0432_jtag_reset, NULL                    },
 	{"sheevaplug",            sheevaplug_init,           sheevaplug_reset,   NULL                    },
-	{ NULL,                   NULL,                      NULL },
+	{ NULL,                   NULL,                      NULL,               NULL                    },
 };
 
 static u8                  nTRST, nTRSTnOE, nSRST, nSRSTnOE;
@@ -233,7 +233,7 @@ int ft2232_write(u8* buf, int size, u32* bytes_written)
 }
 
 
-int ft2232_read(u8* buf, int size, u32* bytes_read)
+int ft2232_read(u8* buf, u32 size, u32* bytes_read)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	DWORD     dw_bytes_read;
@@ -1607,7 +1607,7 @@ static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int* try_more)
 		if (status == FT_OK)
 		{
 			char** desc_array = malloc( sizeof(char*) * (num_devices + 1) );
-			int    i;
+			u32 i;
 
 			for (i = 0; i < num_devices; i++)
 				desc_array[i] = malloc(64);
