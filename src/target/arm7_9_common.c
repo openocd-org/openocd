@@ -78,6 +78,26 @@ static int arm7_9_clear_watchpoints(arm7_9_common_t *arm7_9)
 	return jtag_execute_queue();
 }
 
+static void arm7_9_assign_wp(arm7_9_common_t *arm7_9, breakpoint_t *breakpoint)
+{
+	if (!arm7_9->wp0_used)
+	{
+		arm7_9->wp0_used = 1;
+		breakpoint->set = 1;
+		arm7_9->wp_available--;
+	}
+	else if (!arm7_9->wp1_used)
+	{
+		arm7_9->wp1_used = 1;
+		breakpoint->set = 2;
+		arm7_9->wp_available--;
+	}
+	else
+	{
+		LOG_ERROR("BUG: no hardware comparator available");
+	}
+}
+
 /* set up embedded ice registers */
 static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
 {
@@ -182,6 +202,13 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		/* either an ARM (4 byte) or Thumb (2 byte) breakpoint */
 		u32 mask = (breakpoint->length == 4) ? 0x3u : 0x1u;
+
+		/* reassign a hw breakpoint */
+		if (breakpoint->set==0)
+		{
+			arm7_9_assign_wp(arm7_9, breakpoint);
+		}
+
 		if (breakpoint->set==1)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_VALUE], breakpoint->address);
@@ -288,11 +315,13 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
 			arm7_9->wp0_used = 0;
+			arm7_9->wp_available++;
 		}
 		else if (breakpoint->set == 2)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
 			arm7_9->wp1_used = 0;
+			arm7_9->wp_available++;
 		}
 		retval = jtag_execute_queue();
 		breakpoint->set = 0;
@@ -367,22 +396,7 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if (breakpoint->type == BKPT_HARD)
 	{
-		arm7_9->wp_available--;
-
-		if (!arm7_9->wp0_used)
-		{
-			arm7_9->wp0_used = 1;
-			breakpoint->set = 1;
-		}
-		else if (!arm7_9->wp1_used)
-		{
-			arm7_9->wp1_used = 1;
-			breakpoint->set = 2;
-		}
-		else
-		{
-			LOG_ERROR("BUG: no hardware comparator available");
-		}
+		arm7_9_assign_wp(arm7_9, breakpoint);
 	}
 
 	arm7_9->breakpoint_count++;
