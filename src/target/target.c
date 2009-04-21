@@ -2491,20 +2491,27 @@ int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args,
 	return retval;
 }
 
+static void writeData(FILE *f, const void *data, size_t len)
+{
+	size_t written = fwrite(data, len, 1, f);
+	if (written != len)
+		LOG_ERROR("failed to write %u bytes: %s", len, strerror(errno));
+}
+
 static void writeLong(FILE *f, int l)
 {
 	int i;
 	for (i=0; i<4; i++)
 	{
 		char c=(l>>(i*8))&0xff;
-		fwrite(&c, 1, 1, f);
+		writeData(f, &c, 1);
 	}
 
 }
 
 static void writeString(FILE *f, char *s)
 {
-	fwrite(s, 1, strlen(s), f);
+	writeData(f, s, strlen(s));
 }
 
 /* Dump a gmon.out histogram file. */
@@ -2514,13 +2521,14 @@ static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
 	FILE *f=fopen(filename, "w");
 	if (f==NULL)
 		return;
-	fwrite("gmon", 1, 4, f);
+	writeString(f, "gmon");
 	writeLong(f, 0x00000001); /* Version */
 	writeLong(f, 0); /* padding */
 	writeLong(f, 0); /* padding */
 	writeLong(f, 0); /* padding */
 
-	fwrite("", 1, 1, f);  /* GMON_TAG_TIME_HIST */
+	u8 zero = 0;  /* GMON_TAG_TIME_HIST */
+	writeData(f, &zero, 1);
 
 	/* figure out bucket size */
 	u32 min=samples[0];
@@ -2569,9 +2577,7 @@ static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
 	writeLong(f, 64000000); 	/* 64MHz */
 	writeString(f, "seconds");
 	for (i=0; i<(15-strlen("seconds")); i++)
-	{
-		fwrite("", 1, 1, f);	/* padding */
-	}
+		writeData(f, &zero, 1);
 	writeString(f, "s");
 
 	/*append binary memory gmon.out profile_hist_data (profile_hist_data + profile_hist_hdr.hist_size) */
@@ -2591,7 +2597,7 @@ static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
 			data[i*2+1]=(val>>8)&0xff;
 		}
 		free(buckets);
-		fwrite(data, 1, length*2, f);
+		writeData(f, data, length * 2);
 		free(data);
 	} else
 	{
