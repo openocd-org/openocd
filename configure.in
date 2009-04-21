@@ -522,7 +522,6 @@ then
 fi
 
 if test $build_ft2232_ftd2xx = yes ; then
-   AC_MSG_CHECKING([for libftd2xx.a (linux)])
    # Must be linux -
    # Cause FTDICHIP does not supply a MAC-OS version
    if test $host_os != linux-gnu && test $host_os != linux ; then
@@ -531,30 +530,26 @@ if test $build_ft2232_ftd2xx = yes ; then
    # Are we given a TAR directory?
    if test "${with_ftd2xx_linux_tardir+set}" = set
    then
+        AC_MSG_CHECKING([uninstalled ftd2xx distribution])
 	# The .H file is simple..
-	f=$with_ftd2xx_linux_tardir/ftd2xx.h
-	if test ! -f $f ; then
-	   AC_MSG_ERROR([Option: --with-ftd2xx-linux-tardir appears wrong, cannot find: $f])
+	FTD2XX_H=$with_ftd2xx_linux_tardir/ftd2xx.h
+	if test ! -f "${FTD2XX_H}"; then
+	   AC_MSG_ERROR([Option: --with-ftd2xx-linux-tardir appears wrong, cannot find: ${FTD2XX_H}])
 	fi
 	CFLAGS="$CFLAGS -I$with_ftd2xx_linux_tardir"
-	if test $with_ftd2xx_lib = shared
-	then
-	    LDFLAGS="$LDFLAGS -L$with_ftd2xx_linux_tardir"
-	    LIBS="$LIBS -lftd2xx"
-	    AC_MSG_RESULT([ Assuming: -L$with_ftd2xx_linux_tardir -lftd2xx])
-	else
+	FTD2XX_LDFLAGS="-L$with_ftd2xx_linux_tardir"
+	FTD2XX_LIB="-lftd2xx"
+	if test $with_ftd2xx_lib != shared; then
 	    # Test #1 - Future proof - if/when ftdichip fixes their distro.
 	    # Try it with the simple ".a" suffix.
-	    f=$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a
-	    if test -f $f ; then
-	       # Yea we are done
-	       LDFLAGS="$LDFLAGS -L$with_ftd2xx_linux_tardir/static_lib"
-	       LIBS="$LIBS -lftd2xx"
+	    FTD2XX_LIB="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a"
+	    if test -f "${FTD2XX_LIB}"; then
+	       FTD2XX_LDFLAGS="${FTD2XX_LDFLAGS}/static_lib"
             else
 	       # Test Number2.
 	       # Grr.. perhaps it exists as a version number?
-	       f="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a.*.*.*"
-	       count=`ls $f | wc -l`
+	       FTD2XX_LIB="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a.*.*.*"
+	       count=`ls ${FTD2XX_LIB} | wc -l`
 	       if test $count -gt 1 ; then
 	          AC_MSG_ERROR([Multiple libftd2xx.a files found in: $with_ftd2xx_linux_tardir/static_lib sorry cannot handle this yet])
 	       fi
@@ -563,17 +558,20 @@ if test $build_ft2232_ftd2xx = yes ; then
 	       fi
 	       # Because the "-l" rules do not understand version numbers...
 	       # we will just stuff the absolute path onto the LIBS variable
-	       f=`ls $f`
-	       #
-	       LIBS="$LIBS $f -lpthread"
-	       # No need to bother with LDFLAGS...
+	       FTD2XX_LIB="`ls ${FTD2XX_LIB}` -lpthread"
+	       FTD2XX_LDFLAGS=""
 	    fi
-	    AC_MSG_RESULT([Found: $f])
         fi
+	LDFLAGS="${LDFLAGS} ${FTD2XX_LDFLAGS}"
+	LIBS="${LIBS} ${FTD2XX_LIB}"
+	AC_MSG_RESULT([${FTD2XX_LDFLAGS} ${FTD2XX_LIB}])
    else
-	LIBS="$LIBS -lftd2xx"
-	AC_MSG_RESULT([Assumed: installed])
-	AC_MSG_WARN([The (linux) FTDICHIP.COM files ftd2xx.h and libftd2xx.so are assumed to be in a proper place])
+	AC_CHECK_HEADER([ftd2xx.h],[],[
+			AC_MSG_ERROR([You seem to be missing the FTD2xx driver header file.])
+		])
+	AC_SEARCH_LIBS([FT_GetLibraryVersion],[ftd2xx],,[
+			AC_MSG_ERROR([You appear to be missing the FTD2xx driver library.])
+		],[])
    fi
 fi
 fi
@@ -583,7 +581,7 @@ if test $build_ft2232_ftd2xx = yes; then
 # Before we go any further - make sure we can *BUILD* and *RUN*
 # a simple app with the "ftd2xx.lib" file - in what ever form we where given
 # We should be able to compile, link and run this test program now
-  AC_MSG_CHECKING([Test: Build & Link with ftd2xx])
+  AC_MSG_CHECKING([whether ftd2xx library works])
 
 #
 # Save the LDFLAGS for later..
