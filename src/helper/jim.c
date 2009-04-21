@@ -11976,7 +11976,10 @@ static int Jim_EnvCoreCommand(Jim_Interp *interp, int argc,
     char *val;
 
     if (argc == 1) {
+
+#ifndef _WIN32
         extern char **environ;
+#endif
 
         int i;
         Jim_Obj *listObjPtr = Jim_NewListObj(interp, NULL, 0);
