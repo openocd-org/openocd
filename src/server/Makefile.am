@@ -8,6 +8,11 @@ if HTTPD
 libserver_a_SOURCES += httpd.c
 endif
 
+libserver_a_CFLAGS =
+if IS_MINGW
+# FD_* macros are sloppy with their signs on MinGW32 platform
+libserver_a_CFLAGS += -Wno-sign-compare
+endif
 
 # tcl server addons
 noinst_HEADERS += tcl_server.h

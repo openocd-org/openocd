@@ -18,6 +18,11 @@ if IOUTIL
 libhelper_a_SOURCES += ioutil.c
 endif
 
+libhelper_a_CFLAGS =
+if IS_MINGW
+# FD_* macros are sloppy with their signs on MinGW32 platform
+libhelper_a_CFLAGS += -Wno-sign-compare
+endif
 
 noinst_HEADERS = binarybuffer.h configuration.h types.h log.h command.h \
 	time_support.h replacements.h fileio.h jim.h jim-eventloop.h \
