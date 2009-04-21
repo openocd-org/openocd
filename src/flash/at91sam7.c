@@ -322,11 +322,11 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 	u16 bnk, sec;
 	u16 arch;
 	u32 cidr;
-	u8 banks_num;
-	u16 num_nvmbits;
-	u16 sectors_num;
-	u16 pages_per_sector;
-	u16 page_size;
+	u8 banks_num = 0;
+	u16 num_nvmbits = 0;
+	u16 sectors_num = 0;
+	u16 pages_per_sector = 0;
+	u16 page_size = 0;
 	u32 ext_freq;
 	u32 bank_size;
 	u32 base_address = 0;

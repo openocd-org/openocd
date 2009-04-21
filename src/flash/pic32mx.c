@@ -611,7 +611,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	int i;
-	u16 num_pages;
+	u16 num_pages = 0;
 	u32 device_id;
 	int page_size;
 
@@ -704,7 +704,7 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	u32 device_id;
-	int printed, i;
+	int printed = 0, i;
 
 	device_id = ejtag_info->idcode;
 
