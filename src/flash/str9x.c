@@ -194,6 +194,7 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 	int i;
 	u32 adr;
 	u32 status = 0;
+	u16 hstatus = 0;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -212,10 +213,11 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 			{
 				return retval;
 			}
-			if ((retval=target_read_u16(target, adr, (u16*)&status))!=ERROR_OK)
+			if ((retval=target_read_u16(target, adr, &hstatus))!=ERROR_OK)
 			{
 				return retval;
 			}
+			status = hstatus;
 		}
 		else
 		{
@@ -237,10 +239,11 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 		{
 			return retval;
 		}
-		if ((retval=target_read_u16(target, adr, (u16*)&status))!=ERROR_OK)
+		if ((retval=target_read_u16(target, adr, &hstatus))!=ERROR_OK)
 		{
 			return retval;
 		}
+		status = hstatus;
 	}
 	
 	/* read array command */
