@@ -692,7 +692,7 @@ AC_PROG_CC
 AC_PROG_RANLIB
 
 # set default gcc warnings
-GCC_WARNINGS="-Wall -Wstrict-prototypes"
+GCC_WARNINGS="-Wall -Wstrict-prototypes -Wformat-security"
 if test "${gcc_wextra}" = yes; then
 	GCC_WARNINGS="${GCC_WARNINGS} -Wextra -Wno-unused-parameter"
 fi
