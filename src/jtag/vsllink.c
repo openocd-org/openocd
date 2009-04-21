@@ -470,7 +470,7 @@ static int vsllink_init(void)
 			vsllink_usb_in_buffer[result] = 0;
 			VSLLINK_BufferSize = vsllink_usb_in_buffer[0] + (vsllink_usb_in_buffer[1] << 8);
 			strncpy(version_str, (char *)vsllink_usb_in_buffer + 2, sizeof(version_str));
-			LOG_INFO(version_str);
+			LOG_INFO("%s", version_str);
 
 			// free the pre-alloc memroy
 			free(vsllink_usb_in_buffer);
@@ -1449,7 +1449,7 @@ static void vsllink_debug_buffer(u8 *buffer, int length)
 			snprintf(s, 4, " %02x", buffer[j]);
 			strcat(line, s);
 		}
-		LOG_DEBUG(line);
+		LOG_DEBUG("%s", line);
 	}
 }
 #endif // _DEBUG_USB_COMMS_

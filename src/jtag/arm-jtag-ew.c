@@ -896,7 +896,7 @@ static void armjtagew_debug_buffer(u8 *buffer, int length)
 			snprintf(s, 4, " %02x", buffer[j]);
 			strcat(line, s);
 		}
-		LOG_DEBUG(line);
+		LOG_DEBUG("%s", line);
 	}
 }
 #endif

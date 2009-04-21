@@ -537,7 +537,7 @@ static int jlink_get_version_info(void)
 		if (result == len)
 		{
 			usb_in_buffer[result] = 0;
-			LOG_INFO((char *)usb_in_buffer);
+			LOG_INFO("%s", (char *)usb_in_buffer);
 			return ERROR_OK;
 		}
 	}

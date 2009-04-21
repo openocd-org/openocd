@@ -3961,7 +3961,7 @@ static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	};
 
 	LOG_DEBUG("Target command params:");
-	LOG_DEBUG(Jim_Debug_ArgvString( interp, argc, argv) );
+	LOG_DEBUG("%s", Jim_Debug_ArgvString(interp, argc, argv));
 
 	cmd_ctx = Jim_GetAssocData( interp, "context" );
 

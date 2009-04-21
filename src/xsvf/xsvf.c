@@ -761,7 +761,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				comment[sizeof(comment)-1] = 0;		/* regardless, terminate */
 				if (verbose)
-					LOG_USER(comment);
+					LOG_USER("%s", comment);
 			}
 			break;
 
