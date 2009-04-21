@@ -80,8 +80,8 @@ tap_state_t cmd_queue_cur_state = TAP_RESET;
 int jtag_verify_capture_ir = 1;
 
 /* how long the OpenOCD should wait before attempting JTAG communication after reset lines deasserted (in ms) */
-int jtag_nsrst_delay = 0; /* default to no nSRST delay */
-int jtag_ntrst_delay = 0; /* default to no nTRST delay */
+static int jtag_nsrst_delay = 0; /* default to no nSRST delay */
+static int jtag_ntrst_delay = 0; /* default to no nTRST delay */
 
 /* maximum number of JTAG devices expected in the chain
  */
@@ -210,35 +210,35 @@ jtag_interface_t *jtag_interfaces[] = {
 jtag_interface_t *jtag = NULL;
 
 /* configuration */
-jtag_interface_t *jtag_interface = NULL;
+static jtag_interface_t *jtag_interface = NULL;
 int jtag_speed = 0;
 
 /* forward declarations */
-void jtag_add_pathmove(int num_states, tap_state_t *path);
-void jtag_add_runtest(int num_cycles, tap_state_t endstate);
-void jtag_add_end_state(tap_state_t endstate);
-void jtag_add_sleep(u32 us);
-int jtag_execute_queue(void);
-tap_state_t tap_state_by_name(const char *name);
+//void jtag_add_pathmove(int num_states, tap_state_t *path);
+//void jtag_add_runtest(int num_cycles, tap_state_t endstate);
+//void jtag_add_end_state(tap_state_t endstate);
+//void jtag_add_sleep(u32 us);
+//int jtag_execute_queue(void);
+static tap_state_t tap_state_by_name(const char *name);
 
 /* jtag commands */
-int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+static int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
-int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 jtag_tap_t *jtag_AllTaps(void)
 {
@@ -2305,7 +2305,7 @@ static int default_srst_asserted(int *srst_asserted)
 	return ERROR_OK;
 }
 
-int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
 	int retval;
@@ -2368,7 +2368,7 @@ int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return ERROR_JTAG_INVALID_INTERFACE;
 }
 
-int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int e;
 	char buf[1024];
@@ -2429,7 +2429,7 @@ int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return e;
 }
 
-int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	jtag_tap_t *tap;
 
@@ -2466,7 +2466,7 @@ int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2542,7 +2542,7 @@ int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc < 1)
 	{
@@ -2557,7 +2557,7 @@ int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc < 1)
 	{
@@ -2572,7 +2572,7 @@ int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval=ERROR_OK;
 
@@ -2600,7 +2600,7 @@ int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return retval;
 }
 
-int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval=ERROR_OK;
 	LOG_DEBUG("handle jtag khz");
@@ -2650,7 +2650,7 @@ int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 }
 
-int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	tap_state_t state;
 
@@ -2673,7 +2673,7 @@ int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
-int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int trst = -1;
 	int srst = -1;
@@ -2710,7 +2710,7 @@ int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc < 1)
 	{
@@ -2724,7 +2724,7 @@ int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **
 
 }
 
-int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
 	scan_field_t *fields;
@@ -2799,7 +2799,7 @@ int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	return ERROR_OK;
 }
 
-int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
+static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 {
 	int retval;
 	scan_field_t *fields;
@@ -2936,7 +2936,7 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 	return JIM_OK;
 }
 
-int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 1)
 	{
@@ -3269,7 +3269,7 @@ const char* tap_state_name(tap_state_t state)
 	return ret;
 }
 
-tap_state_t tap_state_by_name( const char *name )
+static tap_state_t tap_state_by_name( const char *name )
 {
 	tap_state_t x;
 

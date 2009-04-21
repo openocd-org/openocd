@@ -37,10 +37,10 @@ static int clock_count;         /* count clocks in any stable state, only stable
 static u32 dummy_data;
 
 
-int dummy_speed(int speed);
-int dummy_register_commands(struct command_context_s *cmd_ctx);
-int dummy_init(void);
-int dummy_quit(void);
+static int dummy_speed(int speed);
+static int dummy_register_commands(struct command_context_s *cmd_ctx);
+static int dummy_init(void);
+static int dummy_quit(void);
 static int dummy_khz(int khz, int *jtag_speed);
 static int dummy_speed_div(int speed, int *khz);
 
@@ -63,12 +63,12 @@ jtag_interface_t dummy_interface =
 	.quit = dummy_quit,
 };
 
-int dummy_read(void);
-void dummy_write(int tck, int tms, int tdi);
-void dummy_reset(int trst, int srst);
-void dummy_led(int on);
+static int dummy_read(void);
+static void dummy_write(int tck, int tms, int tdi);
+static void dummy_reset(int trst, int srst);
+static void dummy_led(int on);
 
-bitbang_interface_t dummy_bitbang =
+static bitbang_interface_t dummy_bitbang =
 {
 	.read = dummy_read,
 	.write = dummy_write,
@@ -76,7 +76,7 @@ bitbang_interface_t dummy_bitbang =
 	.blink = dummy_led
 };
 
-int dummy_read(void)
+static int dummy_read(void)
 {
 	int data = 1 & dummy_data;
 	dummy_data = (dummy_data >> 1) | (1<<31);
@@ -84,7 +84,7 @@ int dummy_read(void)
 }
 
 
-void dummy_write(int tck, int tms, int tdi)
+static void dummy_write(int tck, int tms, int tdi)
 {
 	/* TAP standard: "state transitions occur on rising edge of clock" */
 	if( tck != dummy_clock )
@@ -121,7 +121,7 @@ void dummy_write(int tck, int tms, int tdi)
 	}
 }
 
-void dummy_reset(int trst, int srst)
+static void dummy_reset(int trst, int srst)
 {
 	dummy_clock = 0;
 
@@ -158,29 +158,29 @@ static int dummy_speed_div(int speed, int *khz)
 	return ERROR_OK;
 }
 
-int dummy_speed(int speed)
+static int dummy_speed(int speed)
 {
 	return ERROR_OK;
 }
 
-int dummy_register_commands(struct command_context_s *cmd_ctx)
+static int dummy_register_commands(struct command_context_s *cmd_ctx)
 {
 	return ERROR_OK;
 }
 
-int dummy_init(void)
+static int dummy_init(void)
 {
 	bitbang_interface = &dummy_bitbang;
 
 	return ERROR_OK;
 }
 
-int dummy_quit(void)
+static int dummy_quit(void)
 {
 	return ERROR_OK;
 }
 
-void dummy_led(int on)
+static void dummy_led(int on)
 {
 }
 

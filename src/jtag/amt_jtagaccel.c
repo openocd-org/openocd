@@ -56,7 +56,7 @@
 #include "log.h"
 
 /* configuration */
-u16 amt_jtagaccel_port;
+static u16 amt_jtagaccel_port;
 
 /* interface variables
  */
@@ -68,27 +68,32 @@ static int rtck_enabled = 0;
 
 #if PARPORT_USE_PPDEV == 1
 static int device_handle;
-int addr_mode = IEEE1284_MODE_EPP | IEEE1284_ADDR ;
-int data_mode = IEEE1284_MODE_EPP | IEEE1284_DATA ;
+
+static int addr_mode = IEEE1284_MODE_EPP | IEEE1284_ADDR ;
 #define AMT_AW(val)	do { ioctl(device_handle, PPSETMODE, &addr_mode); write(device_handle, &val, 1); } while (0)
 #define AMT_AR(val)	do { ioctl(device_handle, PPSETMODE, &addr_mode); read(device_handle, &val, 1); } while (0)
+
+static int data_mode = IEEE1284_MODE_EPP | IEEE1284_DATA ;
 #define AMT_DW(val)	do { ioctl(device_handle, PPSETMODE, &data_mode); write(device_handle, &val, 1); } while (0)
 #define AMT_DR(val)	do { ioctl(device_handle, PPSETMODE, &data_mode); read(device_handle, &val, 1); } while (0)
+
 #else
+
 #define AMT_AW(val)	do { outb(val, amt_jtagaccel_port + 3); } while (0)
 #define AMT_AR(val)	do { val = inb(amt_jtagaccel_port + 3); } while (0)
 #define AMT_DW(val)	do { outb(val, amt_jtagaccel_port + 4); } while (0)
 #define AMT_DR(val)	do { val = inb(amt_jtagaccel_port + 4); } while (0)
-#endif
 
-int amt_jtagaccel_execute_queue(void);
-int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx);
-int amt_jtagaccel_speed(int speed);
-int amt_jtagaccel_init(void);
-int amt_jtagaccel_quit(void);
+#endif // PARPORT_USE_PPDEV
 
-int amt_jtagaccel_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int amt_jtagaccel_execute_queue(void);
+static int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx);
+static int amt_jtagaccel_speed(int speed);
+static int amt_jtagaccel_init(void);
+static int amt_jtagaccel_quit(void);
+
+static int amt_jtagaccel_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* tap_move[i][j]: tap movement command to go from state i to state j
  * 0: Test-Logic-Reset
@@ -98,7 +103,7 @@ int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, char *c
  * 4: Shift-IR
  * 5: Pause-IR
  */
-u8 amt_jtagaccel_tap_move[6][6][2] =
+static u8 amt_jtagaccel_tap_move[6][6][2] =
 {
 	/*	   RESET         IDLE        DRSHIFT       DRPAUSE       IRSHIFT       IRPAUSE             */
 	{{0x1f, 0x00}, {0x0f, 0x00}, {0x8a, 0x04}, {0x0a, 0x00}, {0x06, 0x00}, {0x96, 0x00}},	/* RESET */
@@ -122,7 +127,7 @@ jtag_interface_t amt_jtagaccel_interface =
 	.quit = amt_jtagaccel_quit,
 };
 
-int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx)
+static int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "parport_port", amt_jtagaccel_handle_parport_port_command,
 					 COMMAND_CONFIG, NULL);
@@ -132,7 +137,7 @@ int amt_jtagaccel_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-void amt_jtagaccel_reset(int trst, int srst)
+static void amt_jtagaccel_reset(int trst, int srst)
 {
 	if (trst == 1)
 		aw_control_rst |= 0x4;
@@ -147,7 +152,7 @@ void amt_jtagaccel_reset(int trst, int srst)
 	AMT_AW(aw_control_rst);
 }
 
-int amt_jtagaccel_speed(int speed)
+static int amt_jtagaccel_speed(int speed)
 {
 	aw_control_baudrate &= 0xf0;
 	aw_control_baudrate |= speed & 0x0f;
@@ -156,7 +161,7 @@ int amt_jtagaccel_speed(int speed)
 	return ERROR_OK;
 }
 
-void amt_jtagaccel_end_state(tap_state_t state)
+static void amt_jtagaccel_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -167,7 +172,7 @@ void amt_jtagaccel_end_state(tap_state_t state)
 	}
 }
 
-void amt_wait_scan_busy(void)
+static void amt_wait_scan_busy(void)
 {
 	int timeout = 4096;
 	u8 ar_status;
@@ -183,7 +188,7 @@ void amt_wait_scan_busy(void)
 	}
 }
 
-void amt_jtagaccel_state_move(void)
+static void amt_jtagaccel_state_move(void)
 {
 	u8 aw_scan_tms_5;
 	u8 tms_scan[2];
@@ -210,7 +215,7 @@ void amt_jtagaccel_state_move(void)
 	tap_set_state(end_state);
 }
 
-void amt_jtagaccel_runtest(int num_cycles)
+static void amt_jtagaccel_runtest(int num_cycles)
 {
 	int i = 0;
 	u8 aw_scan_tms_5;
@@ -243,7 +248,7 @@ void amt_jtagaccel_runtest(int num_cycles)
 		amt_jtagaccel_state_move();
 }
 
-void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	int bits_left = scan_size;
 	int bit_count = 0;
@@ -325,7 +330,7 @@ void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_s
 	tap_set_state(tap_get_end_state());
 }
 
-int amt_jtagaccel_execute_queue(void)
+static int amt_jtagaccel_execute_queue(void)
 {
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
@@ -431,7 +436,7 @@ int amt_jtagaccel_get_giveio_access(void)
 }
 #endif
 
-int amt_jtagaccel_init(void)
+static int amt_jtagaccel_init(void)
 {
 #if PARPORT_USE_PPDEV == 1
 	char buffer[256];
@@ -536,13 +541,13 @@ int amt_jtagaccel_init(void)
 	return ERROR_OK;
 }
 
-int amt_jtagaccel_quit(void)
+static int amt_jtagaccel_quit(void)
 {
 
 	return ERROR_OK;
 }
 
-int amt_jtagaccel_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int amt_jtagaccel_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
 		return ERROR_OK;
@@ -554,7 +559,7 @@ int amt_jtagaccel_handle_parport_port_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
 	{

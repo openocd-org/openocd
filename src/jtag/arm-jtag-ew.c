@@ -77,32 +77,32 @@ static u8 usb_in_buffer[ARMJTAGEW_IN_BUFFER_SIZE];
 static u8 usb_out_buffer[ARMJTAGEW_OUT_BUFFER_SIZE];
 
 /* External interface functions */
-int armjtagew_execute_queue(void);
-int armjtagew_speed(int speed);
-int armjtagew_khz(int khz, int *jtag_speed);
-int armjtagew_register_commands(struct command_context_s *cmd_ctx);
-int armjtagew_init(void);
-int armjtagew_quit(void);
+static int armjtagew_execute_queue(void);
+static int armjtagew_speed(int speed);
+static int armjtagew_khz(int khz, int *jtag_speed);
+static int armjtagew_register_commands(struct command_context_s *cmd_ctx);
+static int armjtagew_init(void);
+static int armjtagew_quit(void);
 
 /* CLI command handler functions */
-int armjtagew_handle_armjtagew_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int armjtagew_handle_armjtagew_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* Queue command functions */
-void armjtagew_end_state(tap_state_t state);
-void armjtagew_state_move(void);
-void armjtagew_path_move(int num_states, tap_state_t *path);
-void armjtagew_runtest(int num_cycles);
-void armjtagew_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
-void armjtagew_reset(int trst, int srst);
-void armjtagew_simple_command(u8 command);
-int armjtagew_get_status(void);
+static void armjtagew_end_state(tap_state_t state);
+static void armjtagew_state_move(void);
+static void armjtagew_path_move(int num_states, tap_state_t *path);
+static void armjtagew_runtest(int num_cycles);
+static void armjtagew_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
+static void armjtagew_reset(int trst, int srst);
+//static void armjtagew_simple_command(u8 command);
+static int armjtagew_get_status(void);
 
 /* tap buffer functions */
-void armjtagew_tap_init(void);
-int armjtagew_tap_execute(void);
-void armjtagew_tap_ensure_space(int scans, int bits);
-void armjtagew_tap_append_step(int tms, int tdi);
-void armjtagew_tap_append_scan(int length, u8 *buffer, scan_command_t *command);
+static void armjtagew_tap_init(void);
+static int armjtagew_tap_execute(void);
+static void armjtagew_tap_ensure_space(int scans, int bits);
+static void armjtagew_tap_append_step(int tms, int tdi);
+static void armjtagew_tap_append_scan(int length, u8 *buffer, scan_command_t *command);
 
 /* ARM-JTAG-EW lowlevel functions */
 typedef struct armjtagew_jtag
@@ -110,20 +110,20 @@ typedef struct armjtagew_jtag
 	struct usb_dev_handle* usb_handle;
 } armjtagew_jtag_t;
 
-armjtagew_jtag_t *armjtagew_usb_open(void);
-void armjtagew_usb_close(armjtagew_jtag_t *armjtagew_jtag);
-int armjtagew_usb_message(armjtagew_jtag_t *armjtagew_jtag, int out_length, int in_length);
-int armjtagew_usb_write(armjtagew_jtag_t *armjtagew_jtag, int out_length);
-int armjtagew_usb_read(armjtagew_jtag_t *armjtagew_jtag, int exp_in_length);
+static armjtagew_jtag_t *armjtagew_usb_open(void);
+static void armjtagew_usb_close(armjtagew_jtag_t *armjtagew_jtag);
+static int armjtagew_usb_message(armjtagew_jtag_t *armjtagew_jtag, int out_length, int in_length);
+static int armjtagew_usb_write(armjtagew_jtag_t *armjtagew_jtag, int out_length);
+static int armjtagew_usb_read(armjtagew_jtag_t *armjtagew_jtag, int exp_in_length);
 
 /* helper functions */
-int armjtagew_get_version_info(void);
+static int armjtagew_get_version_info(void);
 
 #ifdef _DEBUG_USB_COMMS_
-void armjtagew_debug_buffer(u8 *buffer, int length);
+static void armjtagew_debug_buffer(u8 *buffer, int length);
 #endif
 
-armjtagew_jtag_t* armjtagew_jtag_handle;
+static armjtagew_jtag_t* armjtagew_jtag_handle;
 
 
 
@@ -142,7 +142,7 @@ jtag_interface_t armjtagew_interface =
 };
 
 
-int armjtagew_execute_queue(void)
+static int armjtagew_execute_queue(void)
 {
 	jtag_command_t *cmd = jtag_command_queue;
 	int scan_size;
@@ -239,7 +239,7 @@ int armjtagew_execute_queue(void)
 
 
 /* Sets speed in kHz. */
-int armjtagew_speed(int speed)
+static int armjtagew_speed(int speed)
 {
     int result;
     int speed_real;
@@ -273,21 +273,21 @@ int armjtagew_speed(int speed)
 }
 
 
-int armjtagew_khz(int khz, int *jtag_speed)
+static int armjtagew_khz(int khz, int *jtag_speed)
 {
 	*jtag_speed = khz;
 
 	return ERROR_OK;
 }
 
-int armjtagew_register_commands(struct command_context_s *cmd_ctx)
+static int armjtagew_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "armjtagew_info", armjtagew_handle_armjtagew_info_command, COMMAND_EXEC,
 		"query armjtagew info");
 	return ERROR_OK;
 }
 
-int armjtagew_init(void)
+static int armjtagew_init(void)
 {
 	int check_cnt;
 
@@ -325,7 +325,7 @@ int armjtagew_init(void)
 	return ERROR_OK;
 }
 
-int armjtagew_quit(void)
+static int armjtagew_quit(void)
 {
 	armjtagew_usb_close(armjtagew_jtag_handle);
 	return ERROR_OK;
@@ -334,7 +334,7 @@ int armjtagew_quit(void)
 /***************************************************************************/
 /* Queue command implementations */
 
-void armjtagew_end_state(tap_state_t state)
+static void armjtagew_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 	{
@@ -348,7 +348,7 @@ void armjtagew_end_state(tap_state_t state)
 }
 
 /* Goes to the end state. */
-void armjtagew_state_move(void)
+static void armjtagew_state_move(void)
 {
 	int i;
 	int tms = 0;
@@ -363,7 +363,7 @@ void armjtagew_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-void armjtagew_path_move(int num_states, tap_state_t *path)
+static void armjtagew_path_move(int num_states, tap_state_t *path)
 {
 	int i;
 
@@ -394,7 +394,7 @@ void armjtagew_path_move(int num_states, tap_state_t *path)
 	tap_set_end_state(tap_get_state());
 }
 
-void armjtagew_runtest(int num_cycles)
+static void armjtagew_runtest(int num_cycles)
 {
 	int i;
 
@@ -421,7 +421,7 @@ void armjtagew_runtest(int num_cycles)
 	}
 }
 
-void armjtagew_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
+static void armjtagew_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
 {
 	tap_state_t saved_end_state;
 
@@ -449,7 +449,7 @@ void armjtagew_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size,
 	}
 }
 
-void armjtagew_reset(int trst, int srst)
+static void armjtagew_reset(int trst, int srst)
 {
 	const u8 trst_mask = (1u<<5);
 	const u8 srst_mask = (1u<<6);
@@ -498,7 +498,7 @@ void armjtagew_reset(int trst, int srst)
 }
 
 
-int armjtagew_get_status(void)
+static int armjtagew_get_status(void)
 {
 	int result;
 
@@ -530,7 +530,7 @@ int armjtagew_get_status(void)
 	return ERROR_OK;
 }
 
-int armjtagew_get_version_info(void)
+static int armjtagew_get_version_info(void)
 {
 	int result;
 	char sn[16];
@@ -559,7 +559,7 @@ int armjtagew_get_version_info(void)
 	return ERROR_OK;
 }
 
-int armjtagew_handle_armjtagew_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int armjtagew_handle_armjtagew_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (armjtagew_get_version_info() == ERROR_OK)
 	{
@@ -596,13 +596,13 @@ static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULT
 
 static int last_tms;
 
-void armjtagew_tap_init(void)
+static void armjtagew_tap_init(void)
 {
 	tap_length = 0;
 	pending_scan_results_length = 0;
 }
 
-void armjtagew_tap_ensure_space(int scans, int bits)
+static void armjtagew_tap_ensure_space(int scans, int bits)
 {
 	int available_scans = MAX_PENDING_SCAN_RESULTS - pending_scan_results_length;
 	int available_bits = ARMJTAGEW_TAP_BUFFER_SIZE * 8 - tap_length;
@@ -613,7 +613,7 @@ void armjtagew_tap_ensure_space(int scans, int bits)
 	}
 }
 
-void armjtagew_tap_append_step(int tms, int tdi)
+static void armjtagew_tap_append_step(int tms, int tdi)
 {
 	last_tms = tms;
 	int index = tap_length / 8;
@@ -668,7 +668,7 @@ void armjtagew_tap_append_scan(int length, u8 *buffer, scan_command_t *command)
 
 /* Pad and send a tap sequence to the device, and receive the answer.
  * For the purpose of padding we assume that we are in idle or pause state. */
-int armjtagew_tap_execute(void)
+static int armjtagew_tap_execute(void)
 {
 	int byte_length;
 	int tms_offset;
@@ -764,7 +764,7 @@ int armjtagew_tap_execute(void)
 /*****************************************************************************/
 /* JLink USB low-level functions */
 
-armjtagew_jtag_t* armjtagew_usb_open()
+static armjtagew_jtag_t* armjtagew_usb_open()
 {
 	struct usb_bus *busses;
 	struct usb_bus *bus;
@@ -812,14 +812,14 @@ armjtagew_jtag_t* armjtagew_usb_open()
 	return NULL;
 }
 
-void armjtagew_usb_close(armjtagew_jtag_t *armjtagew_jtag)
+static void armjtagew_usb_close(armjtagew_jtag_t *armjtagew_jtag)
 {
 	usb_close(armjtagew_jtag->usb_handle);
 	free(armjtagew_jtag);
 }
 
 /* Send a message and receive the reply. */
-int armjtagew_usb_message(armjtagew_jtag_t *armjtagew_jtag, int out_length, int in_length)
+static int armjtagew_usb_message(armjtagew_jtag_t *armjtagew_jtag, int out_length, int in_length)
 {
 	int result;
 
@@ -842,7 +842,7 @@ int armjtagew_usb_message(armjtagew_jtag_t *armjtagew_jtag, int out_length, int 
 }
 
 /* Write data from out_buffer to USB. */
-int armjtagew_usb_write(armjtagew_jtag_t *armjtagew_jtag, int out_length)
+static int armjtagew_usb_write(armjtagew_jtag_t *armjtagew_jtag, int out_length)
 {
 	int result;
 
@@ -864,7 +864,7 @@ int armjtagew_usb_write(armjtagew_jtag_t *armjtagew_jtag, int out_length)
 }
 
 /* Read data from USB into in_buffer. */
-int armjtagew_usb_read(armjtagew_jtag_t *armjtagew_jtag, int exp_in_length)
+static int armjtagew_usb_read(armjtagew_jtag_t *armjtagew_jtag, int exp_in_length)
 {
 	int result = usb_bulk_read(armjtagew_jtag->usb_handle, ARMJTAGEW_EPT_BULK_IN, \
 		(char*)usb_in_buffer, exp_in_length, ARMJTAGEW_USB_TIMEOUT);
@@ -881,7 +881,7 @@ int armjtagew_usb_read(armjtagew_jtag_t *armjtagew_jtag, int exp_in_length)
 #ifdef _DEBUG_USB_COMMS_
 #define BYTES_PER_LINE  16
 
-void armjtagew_debug_buffer(u8 *buffer, int length)
+static void armjtagew_debug_buffer(u8 *buffer, int length)
 {
 	char line[81];
 	char s[4];

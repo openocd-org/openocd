@@ -77,33 +77,33 @@ static u8 usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 #define JLINK_MAX_SPEED 12000
 
 /* External interface functions */
-int jlink_execute_queue(void);
-int jlink_speed(int speed);
-int jlink_speed_div(int speed, int* khz);
-int jlink_khz(int khz, int *jtag_speed);
-int jlink_register_commands(struct command_context_s *cmd_ctx);
-int jlink_init(void);
-int jlink_quit(void);
+static int jlink_execute_queue(void);
+static int jlink_speed(int speed);
+static int jlink_speed_div(int speed, int* khz);
+static int jlink_khz(int khz, int *jtag_speed);
+static int jlink_register_commands(struct command_context_s *cmd_ctx);
+static int jlink_init(void);
+static int jlink_quit(void);
 
 /* CLI command handler functions */
-int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* Queue command functions */
-void jlink_end_state(tap_state_t state);
-void jlink_state_move(void);
-void jlink_path_move(int num_states, tap_state_t *path);
-void jlink_runtest(int num_cycles);
-void jlink_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
-void jlink_reset(int trst, int srst);
-void jlink_simple_command(u8 command);
-int jlink_get_status(void);
+static void jlink_end_state(tap_state_t state);
+static void jlink_state_move(void);
+static void jlink_path_move(int num_states, tap_state_t *path);
+static void jlink_runtest(int num_cycles);
+static void jlink_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
+static void jlink_reset(int trst, int srst);
+static void jlink_simple_command(u8 command);
+static int jlink_get_status(void);
 
 /* J-Link tap buffer functions */
-void jlink_tap_init(void);
-int jlink_tap_execute(void);
-void jlink_tap_ensure_space(int scans, int bits);
-void jlink_tap_append_step(int tms, int tdi);
-void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *command);
+static void jlink_tap_init(void);
+static int jlink_tap_execute(void);
+static void jlink_tap_ensure_space(int scans, int bits);
+static void jlink_tap_append_step(int tms, int tdi);
+static void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *command);
 
 /* Jlink lowlevel functions */
 typedef struct jlink_jtag
@@ -111,21 +111,21 @@ typedef struct jlink_jtag
 	struct usb_dev_handle* usb_handle;
 } jlink_jtag_t;
 
-jlink_jtag_t *jlink_usb_open(void);
-void jlink_usb_close(jlink_jtag_t *jlink_jtag);
-int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length);
-int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length);
-int jlink_usb_read(jlink_jtag_t *jlink_jtag, int expected_size);
-int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag);
+static jlink_jtag_t *jlink_usb_open(void);
+static void jlink_usb_close(jlink_jtag_t *jlink_jtag);
+static int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length);
+static int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length);
+static int jlink_usb_read(jlink_jtag_t *jlink_jtag, int expected_size);
+static int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag);
 
 /* helper functions */
-int jlink_get_version_info(void);
+static int jlink_get_version_info(void);
 
 #ifdef _DEBUG_USB_COMMS_
-void jlink_debug_buffer(u8 *buffer, int length);
+static void jlink_debug_buffer(u8 *buffer, int length);
 #endif
 
-jlink_jtag_t* jlink_jtag_handle;
+static jlink_jtag_t* jlink_jtag_handle;
 
 /***************************************************************************/
 /* External interface implementation */
@@ -142,7 +142,7 @@ jtag_interface_t jlink_interface =
 	.quit = jlink_quit
 };
 
-int jlink_execute_queue(void)
+static int jlink_execute_queue(void)
 {
 	jtag_command_t *cmd = jtag_command_queue;
 	int scan_size;
@@ -238,7 +238,7 @@ int jlink_execute_queue(void)
 }
 
 /* Sets speed in kHz. */
-int jlink_speed(int speed)
+static int jlink_speed(int speed)
 {
 	int result;
 
@@ -272,28 +272,28 @@ int jlink_speed(int speed)
 	return ERROR_OK;
 }
 
-int jlink_speed_div(int speed, int* khz)
+static int jlink_speed_div(int speed, int* khz)
 {
 	*khz = speed;
 
 	return ERROR_OK;
 }
 
-int jlink_khz(int khz, int *jtag_speed)
+static int jlink_khz(int khz, int *jtag_speed)
 {
 	*jtag_speed = khz;
 
 	return ERROR_OK;
 }
 
-int jlink_register_commands(struct command_context_s *cmd_ctx)
+static int jlink_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "jlink_info", jlink_handle_jlink_info_command, COMMAND_EXEC,
 		"query jlink info");
 	return ERROR_OK;
 }
 
-int jlink_init(void)
+static int jlink_init(void)
 {
 	int check_cnt;
 
@@ -331,7 +331,7 @@ int jlink_init(void)
 	return ERROR_OK;
 }
 
-int jlink_quit(void)
+static int jlink_quit(void)
 {
 	jlink_usb_close(jlink_jtag_handle);
 	return ERROR_OK;
@@ -340,7 +340,7 @@ int jlink_quit(void)
 /***************************************************************************/
 /* Queue command implementations */
 
-void jlink_end_state(tap_state_t state)
+static void jlink_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 	{
@@ -354,7 +354,7 @@ void jlink_end_state(tap_state_t state)
 }
 
 /* Goes to the end state. */
-void jlink_state_move(void)
+static void jlink_state_move(void)
 {
 	int i;
 	int tms = 0;
@@ -369,7 +369,7 @@ void jlink_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-void jlink_path_move(int num_states, tap_state_t *path)
+static void jlink_path_move(int num_states, tap_state_t *path)
 {
 	int i;
 
@@ -395,7 +395,7 @@ void jlink_path_move(int num_states, tap_state_t *path)
 	tap_set_end_state(tap_get_state());
 }
 
-void jlink_runtest(int num_cycles)
+static void jlink_runtest(int num_cycles)
 {
 	int i;
 
@@ -422,7 +422,7 @@ void jlink_runtest(int num_cycles)
 	}
 }
 
-void jlink_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
+static void jlink_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
 {
 	tap_state_t saved_end_state;
 
@@ -453,7 +453,7 @@ void jlink_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, sca
 	}
 }
 
-void jlink_reset(int trst, int srst)
+static void jlink_reset(int trst, int srst)
 {
 	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 
@@ -477,7 +477,7 @@ void jlink_reset(int trst, int srst)
 	}
 }
 
-void jlink_simple_command(u8 command)
+static void jlink_simple_command(u8 command)
 {
 	int result;
 
@@ -492,7 +492,7 @@ void jlink_simple_command(u8 command)
 	}
 }
 
-int jlink_get_status(void)
+static int jlink_get_status(void)
 {
 	int result;
 
@@ -520,7 +520,7 @@ int jlink_get_status(void)
 	return ERROR_OK;
 }
 
-int jlink_get_version_info(void)
+static int jlink_get_version_info(void)
 {
 	int result;
 	int len = 0;
@@ -546,7 +546,7 @@ int jlink_get_version_info(void)
 	return ERROR_JTAG_DEVICE_ERROR;
 }
 
-int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (jlink_get_version_info() == ERROR_OK)
 	{
@@ -583,13 +583,13 @@ static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULT
 
 static int last_tms;
 
-void jlink_tap_init(void)
+static void jlink_tap_init(void)
 {
 	tap_length = 0;
 	pending_scan_results_length = 0;
 }
 
-void jlink_tap_ensure_space(int scans, int bits)
+static void jlink_tap_ensure_space(int scans, int bits)
 {
 	int available_scans = MAX_PENDING_SCAN_RESULTS - pending_scan_results_length;
 	int available_bits = JLINK_TAP_BUFFER_SIZE * 8 - tap_length;
@@ -600,7 +600,7 @@ void jlink_tap_ensure_space(int scans, int bits)
 	}
 }
 
-void jlink_tap_append_step(int tms, int tdi)
+static void jlink_tap_append_step(int tms, int tdi)
 {
 	last_tms = tms;
 	int index = tap_length / 8;
@@ -636,7 +636,7 @@ void jlink_tap_append_step(int tms, int tdi)
 	}
 }
 
-void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *command)
+static void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *command)
 {
 	pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
 	int i;
@@ -655,7 +655,7 @@ void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *command)
 
 /* Pad and send a tap sequence to the device, and receive the answer.
  * For the purpose of padding we assume that we are in idle or pause state. */
-int jlink_tap_execute(void)
+static int jlink_tap_execute(void)
 {
 	int byte_length;
 	int tms_offset;
@@ -745,7 +745,7 @@ int jlink_tap_execute(void)
 /*****************************************************************************/
 /* JLink USB low-level functions */
 
-jlink_jtag_t* jlink_usb_open()
+static jlink_jtag_t* jlink_usb_open()
 {
 	struct usb_bus *busses;
 	struct usb_bus *bus;
@@ -791,14 +791,14 @@ jlink_jtag_t* jlink_usb_open()
 	return NULL;
 }
 
-void jlink_usb_close(jlink_jtag_t *jlink_jtag)
+static void jlink_usb_close(jlink_jtag_t *jlink_jtag)
 {
 	usb_close(jlink_jtag->usb_handle);
 	free(jlink_jtag);
 }
 
 /* Send a message and receive the reply. */
-int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
+static int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
 {
 	int result;
 	int result2;
@@ -859,7 +859,7 @@ int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_length)
 	}
 }
 
-int usb_bulk_write_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
+static int usb_bulk_write_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
                       int timeout) {
 
 	int rc = 0, tries = 3, this_size;
@@ -883,7 +883,7 @@ int usb_bulk_write_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
 
 }
 
-int usb_bulk_read_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
+static int usb_bulk_read_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
                   int timeout) {
 
 	int rc = 0, tries = 3, this_size;
@@ -908,7 +908,7 @@ int usb_bulk_read_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
 
 
 /* Write data from out_buffer to USB. */
-int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length)
+static int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length)
 {
 	int result;
 
@@ -930,7 +930,7 @@ int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length)
 }
 
 /* Read data from USB into in_buffer. */
-int jlink_usb_read(jlink_jtag_t *jlink_jtag, int expected_size)
+static int jlink_usb_read(jlink_jtag_t *jlink_jtag, int expected_size)
 {
 	int result = usb_bulk_read_ex(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT,
 		(char *)usb_in_buffer, expected_size, JLINK_USB_TIMEOUT);
@@ -944,7 +944,7 @@ int jlink_usb_read(jlink_jtag_t *jlink_jtag, int expected_size)
 }
 
 /* Read the result from the previous EMU cmd into result_buffer. */
-int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag)
+static int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag)
 {
 	int result = usb_bulk_read_ex(jlink_jtag->usb_handle, JLINK_READ_ENDPOINT,
 		(char *)usb_emu_result_buffer, 1 /* JLINK_EMU_RESULT_BUFFER_SIZE */,
@@ -961,7 +961,7 @@ int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag)
 #ifdef _DEBUG_USB_COMMS_
 #define BYTES_PER_LINE  16
 
-void jlink_debug_buffer(u8 *buffer, int length)
+static void jlink_debug_buffer(u8 *buffer, int length)
 {
 	char line[81];
 	char s[4];

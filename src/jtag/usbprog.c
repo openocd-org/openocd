@@ -52,17 +52,17 @@
 #define TCK_BIT			2
 #define TMS_BIT			1
 
-int usbprog_execute_queue(void);
-int usbprog_speed(int speed);
-int usbprog_register_commands(struct command_context_s *cmd_ctx);
-int usbprog_init(void);
-int usbprog_quit(void);
+static int usbprog_execute_queue(void);
+static int usbprog_speed(int speed);
+static int usbprog_register_commands(struct command_context_s *cmd_ctx);
+static int usbprog_init(void);
+static int usbprog_quit(void);
 
-void usbprog_end_state(tap_state_t state);
-void usbprog_state_move(void);
-void usbprog_path_move(pathmove_command_t *cmd);
-void usbprog_runtest(int num_cycles);
-void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size);
+static void usbprog_end_state(tap_state_t state);
+static void usbprog_state_move(void);
+static void usbprog_path_move(pathmove_command_t *cmd);
+static void usbprog_runtest(int num_cycles);
+static void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size);
 
 jtag_interface_t usbprog_interface =
 {
@@ -91,43 +91,44 @@ struct usbprog_jtag
 	struct usb_dev_handle* usb_handle;
 };
 
-struct usbprog_jtag * usbprog_jtag_handle;
+static struct usbprog_jtag * usbprog_jtag_handle;
 
-struct usbprog_jtag* usbprog_jtag_open(void);
-void usbprog_jtag_close(struct usbprog_jtag *usbprog_jtag);
-void usbprog_jtag_init(struct usbprog_jtag *usbprog_jtag);
-unsigned char usbprog_jtag_message(struct usbprog_jtag *usbprog_jtag, char *msg, int msglen);
+static struct usbprog_jtag* usbprog_jtag_open(void);
+//static void usbprog_jtag_close(struct usbprog_jtag *usbprog_jtag);
+static void usbprog_jtag_init(struct usbprog_jtag *usbprog_jtag);
+static unsigned char usbprog_jtag_message(struct usbprog_jtag *usbprog_jtag, char *msg, int msglen);
 
-void usbprog_jtag_read_tdo(struct usbprog_jtag *usbprog_jtag, char * buffer, int size);
-void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buffer, int size);
-void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char * buffer, int size);
-void usbprog_jtag_write_tms(struct usbprog_jtag *usbprog_jtag, char tms_scan);
+static void usbprog_jtag_read_tdo(struct usbprog_jtag *usbprog_jtag, char * buffer, int size);
+static void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buffer, int size);
+static void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char * buffer, int size);
+static void usbprog_jtag_write_tms(struct usbprog_jtag *usbprog_jtag, char tms_scan);
 
-char tms_chain[64];
-int tms_chain_index;
-void usbprog_jtag_tms_collect(char tms_scan);
-void usbprog_jtag_tms_send(struct usbprog_jtag *usbprog_jtag);
+static char tms_chain[64];
+static int tms_chain_index;
 
-void usbprog_write(int tck, int tms, int tdi);
-void usbprog_reset(int trst, int srst);
+static void usbprog_jtag_tms_collect(char tms_scan);
+static void usbprog_jtag_tms_send(struct usbprog_jtag *usbprog_jtag);
 
-void usbprog_jtag_set_direction(struct usbprog_jtag *usbprog_jtag, unsigned char direction);
-void usbprog_jtag_write_slice(struct usbprog_jtag *usbprog_jtag,unsigned char value);
-unsigned char usbprog_jtag_get_port(struct usbprog_jtag *usbprog_jtag);
-void usbprog_jtag_set_bit(struct usbprog_jtag *usbprog_jtag,int bit, int value);
-int usbprog_jtag_get_bit(struct usbprog_jtag *usbprog_jtag, int bit);
+static void usbprog_write(int tck, int tms, int tdi);
+static void usbprog_reset(int trst, int srst);
 
-int usbprog_speed(int speed)
+static void usbprog_jtag_set_direction(struct usbprog_jtag *usbprog_jtag, unsigned char direction);
+static void usbprog_jtag_write_slice(struct usbprog_jtag *usbprog_jtag,unsigned char value);
+//static unsigned char usbprog_jtag_get_port(struct usbprog_jtag *usbprog_jtag);
+static void usbprog_jtag_set_bit(struct usbprog_jtag *usbprog_jtag,int bit, int value);
+//static int usbprog_jtag_get_bit(struct usbprog_jtag *usbprog_jtag, int bit);
+
+static int usbprog_speed(int speed)
 {
 	return ERROR_OK;
 }
 
-int usbprog_register_commands(struct command_context_s *cmd_ctx)
+static int usbprog_register_commands(struct command_context_s *cmd_ctx)
 {
 	return ERROR_OK;
 }
 
-int usbprog_execute_queue(void)
+static int usbprog_execute_queue(void)
 {
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
@@ -209,7 +210,7 @@ int usbprog_execute_queue(void)
 	return ERROR_OK;
 }
 
-int usbprog_init(void)
+static int usbprog_init(void)
 {
 	usbprog_jtag_handle = usbprog_jtag_open();
 
@@ -229,13 +230,13 @@ int usbprog_init(void)
 	return ERROR_OK;
 }
 
-int usbprog_quit(void)
+static int usbprog_quit(void)
 {
 	return ERROR_OK;
 }
 
 /*************** jtag execute commands **********************/
-void usbprog_end_state(tap_state_t state)
+static void usbprog_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -246,7 +247,7 @@ void usbprog_end_state(tap_state_t state)
 	}
 }
 
-void usbprog_state_move(void)
+static void usbprog_state_move(void)
 {
 	int i = 0, tms = 0;
 	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
@@ -260,7 +261,7 @@ void usbprog_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-void usbprog_path_move(pathmove_command_t *cmd)
+static void usbprog_path_move(pathmove_command_t *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;
@@ -298,7 +299,7 @@ void usbprog_path_move(pathmove_command_t *cmd)
 	tap_set_end_state(tap_get_state());
 }
 
-void usbprog_runtest(int num_cycles)
+static void usbprog_runtest(int num_cycles)
 {
 	int i;
 
@@ -339,7 +340,7 @@ void usbprog_runtest(int num_cycles)
 	*/
 }
 
-void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 
@@ -379,7 +380,7 @@ void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 
 /*************** jtag wrapper functions *********************/
 
-void usbprog_write(int tck, int tms, int tdi)
+static void usbprog_write(int tck, int tms, int tdi)
 {
 	unsigned char output_value=0x00;
 
@@ -394,7 +395,7 @@ void usbprog_write(int tck, int tms, int tdi)
 }
 
 /* (1) assert or (0) deassert reset lines */
-void usbprog_reset(int trst, int srst)
+static void usbprog_reset(int trst, int srst)
 {
 	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 
@@ -449,13 +450,15 @@ struct usbprog_jtag* usbprog_jtag_open(void)
 	return 0;
 }
 
-void usbprog_jtag_close(struct usbprog_jtag *usbprog_jtag)
+#if 0
+static void usbprog_jtag_close(struct usbprog_jtag *usbprog_jtag)
 {
 	usb_close(usbprog_jtag->usb_handle);
 	free(usbprog_jtag);
 }
+#endif
 
-unsigned char usbprog_jtag_message(struct usbprog_jtag *usbprog_jtag, char *msg, int msglen)
+static unsigned char usbprog_jtag_message(struct usbprog_jtag *usbprog_jtag, char *msg, int msglen)
 {
 	int res = usb_bulk_write(usbprog_jtag->usb_handle, 3, msg,msglen, 100);
 	if ((msg[0] == 2) || (msg[0] == 1) || (msg[0] == 4) || (msg[0] == 0) || \
@@ -475,12 +478,12 @@ unsigned char usbprog_jtag_message(struct usbprog_jtag *usbprog_jtag, char *msg,
 	return 0;
 }
 
-void usbprog_jtag_init(struct usbprog_jtag *usbprog_jtag)
+static void usbprog_jtag_init(struct usbprog_jtag *usbprog_jtag)
 {
 	usbprog_jtag_set_direction(usbprog_jtag, 0xFE);
 }
 
-void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char * buffer, int size)
+static void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char * buffer, int size)
 {
 	char tmp[64];	/* fastes packet size for usb controller */
 	int send_bits, bufindex = 0, fillindex = 0, i, loops;
@@ -535,7 +538,7 @@ void usbprog_jtag_write_and_read(struct usbprog_jtag *usbprog_jtag, char * buffe
 	}
 }
 
-void usbprog_jtag_read_tdo(struct usbprog_jtag *usbprog_jtag, char * buffer, int size)
+static void usbprog_jtag_read_tdo(struct usbprog_jtag *usbprog_jtag, char * buffer, int size)
 {
 	char tmp[64];	/* fastes packet size for usb controller */
 	int send_bits, fillindex = 0, i, loops;
@@ -582,7 +585,7 @@ void usbprog_jtag_read_tdo(struct usbprog_jtag *usbprog_jtag, char * buffer, int
 	}
 }
 
-void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buffer, int size)
+static void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buffer, int size)
 {
 	char tmp[64];	/* fastes packet size for usb controller */
 	int send_bits, bufindex = 0, i, loops;
@@ -618,12 +621,12 @@ void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buffer, in
 	}
 }
 
-void usbprog_jtag_write_tms(struct usbprog_jtag *usbprog_jtag, char tms_scan)
+static void usbprog_jtag_write_tms(struct usbprog_jtag *usbprog_jtag, char tms_scan)
 {
 	usbprog_jtag_tms_collect(tms_scan);
 }
 
-void usbprog_jtag_set_direction(struct usbprog_jtag *usbprog_jtag, unsigned char direction)
+static void usbprog_jtag_set_direction(struct usbprog_jtag *usbprog_jtag, unsigned char direction)
 {
 	char tmp[2];
 	tmp[0] = PORT_DIRECTION;
@@ -631,7 +634,7 @@ void usbprog_jtag_set_direction(struct usbprog_jtag *usbprog_jtag, unsigned char
 	usbprog_jtag_message(usbprog_jtag, tmp, 2);
 }
 
-void usbprog_jtag_write_slice(struct usbprog_jtag *usbprog_jtag,unsigned char value)
+static void usbprog_jtag_write_slice(struct usbprog_jtag *usbprog_jtag,unsigned char value)
 {
 	char tmp[2];
 	tmp[0] = PORT_SET;
@@ -639,15 +642,17 @@ void usbprog_jtag_write_slice(struct usbprog_jtag *usbprog_jtag,unsigned char va
 	usbprog_jtag_message(usbprog_jtag, tmp, 2);
 }
 
-unsigned char usbprog_jtag_get_port(struct usbprog_jtag *usbprog_jtag)
+#if 0
+static unsigned char usbprog_jtag_get_port(struct usbprog_jtag *usbprog_jtag)
 {
 	char tmp[2];
 	tmp[0] = PORT_GET;
 	tmp[1] = 0x00;
 	return usbprog_jtag_message(usbprog_jtag, tmp, 2);
 }
+#endif
 
-void usbprog_jtag_set_bit(struct usbprog_jtag *usbprog_jtag,int bit, int value)
+static void usbprog_jtag_set_bit(struct usbprog_jtag *usbprog_jtag,int bit, int value)
 {
 	char tmp[3];
 	tmp[0] = PORT_SETBIT;
@@ -659,7 +664,8 @@ void usbprog_jtag_set_bit(struct usbprog_jtag *usbprog_jtag,int bit, int value)
 	usbprog_jtag_message(usbprog_jtag, tmp, 3);
 }
 
-int usbprog_jtag_get_bit(struct usbprog_jtag *usbprog_jtag, int bit)
+#if 0
+static int usbprog_jtag_get_bit(struct usbprog_jtag *usbprog_jtag, int bit)
 {
 	char tmp[2];
 	tmp[0] = PORT_GETBIT;
@@ -670,14 +676,15 @@ int usbprog_jtag_get_bit(struct usbprog_jtag *usbprog_jtag, int bit)
 	else
 		return 0;
 }
+#endif
 
-void usbprog_jtag_tms_collect(char tms_scan)
+static void usbprog_jtag_tms_collect(char tms_scan)
 {
 	tms_chain[tms_chain_index] = tms_scan;
 	tms_chain_index++;
 }
 
-void usbprog_jtag_tms_send(struct usbprog_jtag *usbprog_jtag)
+static void usbprog_jtag_tms_send(struct usbprog_jtag *usbprog_jtag)
 {
 	int i;
 	/* LOG_INFO("TMS SEND"); */

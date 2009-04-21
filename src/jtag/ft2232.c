@@ -70,20 +70,20 @@
 #define _DEBUG_USB_COMMS_
 #endif
 
-int ft2232_execute_queue(void);
+static int ft2232_execute_queue(void);
 
-int ft2232_speed(int speed);
-int ft2232_speed_div(int speed, int* khz);
-int ft2232_khz(int khz, int* jtag_speed);
-int ft2232_register_commands(struct command_context_s* cmd_ctx);
-int ft2232_init(void);
-int ft2232_quit(void);
+static int ft2232_speed(int speed);
+static int ft2232_speed_div(int speed, int* khz);
+static int ft2232_khz(int khz, int* jtag_speed);
+static int ft2232_register_commands(struct command_context_s* cmd_ctx);
+static int ft2232_init(void);
+static int ft2232_quit(void);
 
-int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
-int ft2232_handle_serial_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
-int ft2232_handle_layout_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
-int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
-int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
+static int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
+static int ft2232_handle_serial_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
+static int ft2232_handle_layout_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
+static int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
+static int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc);
 
 
 /**
@@ -97,11 +97,11 @@ int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char* cmd, 
 static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd);
 
 
-char *        ft2232_device_desc_A = NULL;
-char*         ft2232_device_desc = NULL;
-char*         ft2232_serial  = NULL;
-char*         ft2232_layout  = NULL;
-unsigned char ft2232_latency = 2;
+static char *        ft2232_device_desc_A = NULL;
+static char*         ft2232_device_desc = NULL;
+static char*         ft2232_serial  = NULL;
+static char*         ft2232_layout  = NULL;
+static unsigned char ft2232_latency = 2;
 
 #define MAX_USB_IDS 8
 /* vid = pid = 0 marks the end of the list */
@@ -117,31 +117,31 @@ typedef struct ft2232_layout_s
 } ft2232_layout_t;
 
 /* init procedures for supported layouts */
-int  usbjtag_init(void);
-int  jtagkey_init(void);
-int  olimex_jtag_init(void);
-int  flyswatter_init(void);
-int  turtle_init(void);
-int  comstick_init(void);
-int  stm32stick_init(void);
-int  axm0432_jtag_init(void);
-int sheevaplug_init(void);
+static int  usbjtag_init(void);
+static int  jtagkey_init(void);
+static int  olimex_jtag_init(void);
+static int  flyswatter_init(void);
+static int  turtle_init(void);
+static int  comstick_init(void);
+static int  stm32stick_init(void);
+static int  axm0432_jtag_init(void);
+static int sheevaplug_init(void);
 
 /* reset procedures for supported layouts */
-void usbjtag_reset(int trst, int srst);
-void jtagkey_reset(int trst, int srst);
-void olimex_jtag_reset(int trst, int srst);
-void flyswatter_reset(int trst, int srst);
-void turtle_reset(int trst, int srst);
-void comstick_reset(int trst, int srst);
-void stm32stick_reset(int trst, int srst);
-void axm0432_jtag_reset(int trst, int srst);
-void sheevaplug_reset(int trst, int srst);
+static void usbjtag_reset(int trst, int srst);
+static void jtagkey_reset(int trst, int srst);
+static void olimex_jtag_reset(int trst, int srst);
+static void flyswatter_reset(int trst, int srst);
+static void turtle_reset(int trst, int srst);
+static void comstick_reset(int trst, int srst);
+static void stm32stick_reset(int trst, int srst);
+static void axm0432_jtag_reset(int trst, int srst);
+static void sheevaplug_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
-void olimex_jtag_blink(void);
-void flyswatter_jtag_blink(void);
-void turtle_jtag_blink(void);
+static void olimex_jtag_blink(void);
+static void flyswatter_jtag_blink(void);
+static void turtle_jtag_blink(void);
 
 ft2232_layout_t            ft2232_layouts[] =
 {
@@ -200,7 +200,7 @@ jtag_interface_t ft2232_interface =
 	.quit = ft2232_quit,
 };
 
-int ft2232_write(u8* buf, int size, u32* bytes_written)
+static int ft2232_write(u8* buf, int size, u32* bytes_written)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	FT_STATUS status;
@@ -233,7 +233,7 @@ int ft2232_write(u8* buf, int size, u32* bytes_written)
 }
 
 
-int ft2232_read(u8* buf, u32 size, u32* bytes_read)
+static int ft2232_read(u8* buf, u32 size, u32* bytes_read)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	DWORD     dw_bytes_read;
@@ -281,7 +281,7 @@ int ft2232_read(u8* buf, u32 size, u32* bytes_read)
 }
 
 
-int ft2232_speed(int speed)
+static int ft2232_speed(int speed)
 {
 	u8  buf[3];
 	int retval;
@@ -302,7 +302,7 @@ int ft2232_speed(int speed)
 }
 
 
-int ft2232_speed_div(int speed, int* khz)
+static int ft2232_speed_div(int speed, int* khz)
 {
 	/* Take a look in the FT2232 manual,
 	 * AN2232C-01 Command Processor for
@@ -314,7 +314,7 @@ int ft2232_speed_div(int speed, int* khz)
 }
 
 
-int ft2232_khz(int khz, int* jtag_speed)
+static int ft2232_khz(int khz, int* jtag_speed)
 {
 	if (khz==0)
 	{
@@ -355,7 +355,7 @@ int ft2232_khz(int khz, int* jtag_speed)
 }
 
 
-int ft2232_register_commands(struct command_context_s* cmd_ctx)
+static int ft2232_register_commands(struct command_context_s* cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "ft2232_device_desc", ft2232_handle_device_desc_command,
 			COMMAND_CONFIG, "the USB device description of the FTDI FT2232 device");
@@ -383,7 +383,7 @@ void ft2232_end_state(tap_state_t state)
 }
 
 
-void ft2232_read_scan(enum scan_type type, u8* buffer, int scan_size)
+static void ft2232_read_scan(enum scan_type type, u8* buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;
@@ -407,7 +407,7 @@ void ft2232_read_scan(enum scan_type type, u8* buffer, int scan_size)
 }
 
 
-void ft2232_debug_dump_buffer(void)
+static void ft2232_debug_dump_buffer(void)
 {
 	int   i;
 	char  line[256];
@@ -428,7 +428,7 @@ void ft2232_debug_dump_buffer(void)
 }
 
 
-int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
+static int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
 {
 	jtag_command_t* cmd;
 	u8*             buffer;
@@ -546,7 +546,7 @@ int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
 }
 
 
-void ft2232_add_pathmove(pathmove_command_t* cmd)
+static void ft2232_add_pathmove(pathmove_command_t* cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count = 0;
@@ -742,7 +742,7 @@ void ft2232_add_scan(int ir_scan, enum scan_type type, u8* buffer, int scan_size
 }
 
 
-int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, u8* buffer, int scan_size)
+static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, u8* buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;
@@ -952,7 +952,7 @@ int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, u8* buffer, int 
 }
 
 
-int ft2232_predict_scan_out(int scan_size, enum scan_type type)
+static int ft2232_predict_scan_out(int scan_size, enum scan_type type)
 {
 	int predicted_size = 3;
 	int num_bytes = (scan_size - 1) / 8;
@@ -979,7 +979,7 @@ int ft2232_predict_scan_out(int scan_size, enum scan_type type)
 }
 
 
-int ft2232_predict_scan_in(int scan_size, enum scan_type type)
+static int ft2232_predict_scan_in(int scan_size, enum scan_type type)
 {
 	int predicted_size = 0;
 
@@ -1001,7 +1001,7 @@ int ft2232_predict_scan_in(int scan_size, enum scan_type type)
 }
 
 
-void usbjtag_reset(int trst, int srst)
+static void usbjtag_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
@@ -1040,7 +1040,7 @@ void usbjtag_reset(int trst, int srst)
 }
 
 
-void jtagkey_reset(int trst, int srst)
+static void jtagkey_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
@@ -1081,7 +1081,7 @@ void jtagkey_reset(int trst, int srst)
 }
 
 
-void olimex_jtag_reset(int trst, int srst)
+static void olimex_jtag_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
@@ -1116,7 +1116,7 @@ void olimex_jtag_reset(int trst, int srst)
 }
 
 
-void axm0432_jtag_reset(int trst, int srst)
+static void axm0432_jtag_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
@@ -1146,7 +1146,7 @@ void axm0432_jtag_reset(int trst, int srst)
 }
 
 
-void flyswatter_reset(int trst, int srst)
+static void flyswatter_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
@@ -1174,7 +1174,7 @@ void flyswatter_reset(int trst, int srst)
 }
 
 
-void turtle_reset(int trst, int srst)
+static void turtle_reset(int trst, int srst)
 {
 	trst = trst;
 
@@ -1195,7 +1195,7 @@ void turtle_reset(int trst, int srst)
 }
 
 
-void comstick_reset(int trst, int srst)
+static void comstick_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
@@ -1224,7 +1224,7 @@ void comstick_reset(int trst, int srst)
 }
 
 
-void stm32stick_reset(int trst, int srst)
+static void stm32stick_reset(int trst, int srst)
 {
 	if (trst == 1)
 	{
@@ -1259,7 +1259,7 @@ void stm32stick_reset(int trst, int srst)
 
 
 
-void sheevaplug_reset(int trst, int srst)
+static void sheevaplug_reset(int trst, int srst)
 {
 	if (trst == 1)
 		high_output &= ~nTRST;
@@ -1278,7 +1278,7 @@ void sheevaplug_reset(int trst, int srst)
 	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
 
-int ft2232_execute_queue()
+static int ft2232_execute_queue()
 {
 	jtag_command_t* cmd = jtag_command_queue;   /* currently processed command */
 	u8*             buffer;
@@ -1755,7 +1755,7 @@ static int ft2232_purge_libftdi(void)
 
 #endif /* BUILD_FT2232_LIBFTDI == 1 */
 
-int ft2232_init(void)
+static int ft2232_init(void)
 {
 	u8  buf[1];
 	int retval;
@@ -1837,7 +1837,7 @@ int ft2232_init(void)
 }
 
 
-int usbjtag_init(void)
+static int usbjtag_init(void)
 {
 	u8  buf[3];
 	u32 bytes_written;
@@ -1912,7 +1912,7 @@ int usbjtag_init(void)
 }
 
 
-int axm0432_jtag_init(void)
+static int axm0432_jtag_init(void)
 {
 	u8  buf[3];
 	u32 bytes_written;
@@ -1982,7 +1982,7 @@ int axm0432_jtag_init(void)
 }
 
 
-int jtagkey_init(void)
+static int jtagkey_init(void)
 {
 	u8  buf[3];
 	u32 bytes_written;
@@ -2064,7 +2064,7 @@ int jtagkey_init(void)
 }
 
 
-int olimex_jtag_init(void)
+static int olimex_jtag_init(void)
 {
 	u8  buf[3];
 	u32 bytes_written;
@@ -2131,7 +2131,7 @@ int olimex_jtag_init(void)
 }
 
 
-int flyswatter_init(void)
+static int flyswatter_init(void)
 {
 	u8  buf[3];
 	u32 bytes_written;
@@ -2178,7 +2178,7 @@ int flyswatter_init(void)
 }
 
 
-int turtle_init(void)
+static int turtle_init(void)
 {
 	u8  buf[3];
 	u32 bytes_written;
@@ -2219,7 +2219,7 @@ int turtle_init(void)
 }
 
 
-int comstick_init(void)
+static int comstick_init(void)
 {
 	u8  buf[3];
 	u32 bytes_written;
@@ -2263,7 +2263,7 @@ int comstick_init(void)
 }
 
 
-int stm32stick_init(void)
+static int stm32stick_init(void)
 {
 	u8  buf[3];
 	u32 bytes_written;
@@ -2307,7 +2307,7 @@ int stm32stick_init(void)
 }
 
 
-int sheevaplug_init(void)
+static int sheevaplug_init(void)
 {
 	u8 buf[3];
 	u32 bytes_written;
@@ -2358,7 +2358,7 @@ int sheevaplug_init(void)
 	return ERROR_OK;
 }
 
-void olimex_jtag_blink(void)
+static void olimex_jtag_blink(void)
 {
 	/* Olimex ARM-USB-OCD has a LED connected to ACBUS3
 	 * ACBUS3 is bit 3 of the GPIOH port
@@ -2380,7 +2380,7 @@ void olimex_jtag_blink(void)
 }
 
 
-void flyswatter_jtag_blink(void)
+static void flyswatter_jtag_blink(void)
 {
 	/*
 	 * Flyswatter has two LEDs connected to ACBUS2 and ACBUS3
@@ -2393,7 +2393,7 @@ void flyswatter_jtag_blink(void)
 }
 
 
-void turtle_jtag_blink(void)
+static void turtle_jtag_blink(void)
 {
 	/*
 	 * Turtelizer2 has two LEDs connected to ACBUS2 and ACBUS3
@@ -2413,7 +2413,7 @@ void turtle_jtag_blink(void)
 }
 
 
-int ft2232_quit(void)
+static int ft2232_quit(void)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	FT_STATUS status;
@@ -2434,7 +2434,7 @@ int ft2232_quit(void)
 }
 
 
-int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+static int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
 {
 	char *cp;
 	char buf[200];
@@ -2469,7 +2469,7 @@ int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, char* c
 }
 
 
-int ft2232_handle_serial_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+static int ft2232_handle_serial_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
 {
 	if (argc == 1)
 	{
@@ -2484,7 +2484,7 @@ int ft2232_handle_serial_command(struct command_context_s* cmd_ctx, char* cmd, c
 }
 
 
-int ft2232_handle_layout_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+static int ft2232_handle_layout_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
 {
 	if (argc == 0)
 		return ERROR_OK;
@@ -2496,7 +2496,7 @@ int ft2232_handle_layout_command(struct command_context_s* cmd_ctx, char* cmd, c
 }
 
 
-int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+static int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
 {
 	int i;
 
@@ -2529,7 +2529,7 @@ int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char* cmd, 
 }
 
 
-int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
+static int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
 {
 	if (argc == 1)
 	{

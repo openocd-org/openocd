@@ -96,7 +96,7 @@ typedef struct cable_s
 	u8 LED_MASK;	/* data port bit for LED */
 } cable_t;
 
-cable_t cables[] = 
+static cable_t cables[] = 
 {	
 	/* name					tdo   trst  tms   tck   tdi   srst  o_inv i_inv init  exit  led */
 	{ "wiggler",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x80, 0x00 },
@@ -123,8 +123,8 @@ cable_t cables[] =
 };
 
 /* configuration */
-char* parport_cable = NULL;
-u16 parport_port;
+static char* parport_cable = NULL;
+static u16 parport_port;
 static int parport_exit = 0;
 
 /* interface variables
@@ -141,20 +141,20 @@ static unsigned long statusport;
 
 /* low level command set
  */
-int parport_read(void);
-void parport_write(int tck, int tms, int tdi);
-void parport_reset(int trst, int srst);
-void parport_led(int on);
+static int parport_read(void);
+static void parport_write(int tck, int tms, int tdi);
+static void parport_reset(int trst, int srst);
+static void parport_led(int on);
 
-int parport_speed(int speed);
-int parport_register_commands(struct command_context_s *cmd_ctx);
-int parport_init(void);
-int parport_quit(void);
+static int parport_speed(int speed);
+static int parport_register_commands(struct command_context_s *cmd_ctx);
+static int parport_init(void);
+static int parport_quit(void);
 
 /* interface commands */
-int parport_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int parport_handle_write_on_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int parport_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int parport_handle_write_on_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 jtag_interface_t parport_interface = 
 {
@@ -168,7 +168,7 @@ jtag_interface_t parport_interface =
 	.quit = parport_quit,
 };
 
-bitbang_interface_t parport_bitbang =
+static bitbang_interface_t parport_bitbang =
 {
 	.read = parport_read,
 	.write = parport_write,
@@ -176,7 +176,7 @@ bitbang_interface_t parport_bitbang =
 	.blink = parport_led
 };
 
-int parport_read(void)
+static int parport_read(void)
 {
 	int data = 0;
 	
@@ -208,7 +208,7 @@ static __inline__ void parport_write_data(void)
 #endif
 }
 
-void parport_write(int tck, int tms, int tdi)
+static void parport_write(int tck, int tms, int tdi)
 {
 	int i = jtag_speed + 1;
 	
@@ -232,7 +232,7 @@ void parport_write(int tck, int tms, int tdi)
 }
 
 /* (1) assert or (0) deassert reset lines */
-void parport_reset(int trst, int srst)
+static void parport_reset(int trst, int srst)
 {
 	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 
@@ -250,7 +250,7 @@ void parport_reset(int trst, int srst)
 }
 	
 /* turn LED on parport adapter on (1) or off (0) */
-void parport_led(int on)
+static void parport_led(int on)
 {
 	if (on)
 		dataport_value |= cable->LED_MASK;
@@ -260,12 +260,12 @@ void parport_led(int on)
 	parport_write_data();
 }
 
-int parport_speed(int speed)
+static int parport_speed(int speed)
 {
 	return ERROR_OK;
 }
 
-int parport_register_commands(struct command_context_s *cmd_ctx)
+static int parport_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "parport_port", parport_handle_parport_port_command,
 		COMMAND_CONFIG, "either the address of the I/O port or the number of the ‘/dev/parport’ device");
@@ -278,7 +278,7 @@ int parport_register_commands(struct command_context_s *cmd_ctx)
 }
 
 #if PARPORT_USE_GIVEIO == 1
-int parport_get_giveio_access(void)
+static int parport_get_giveio_access(void)
 {
 	HANDLE h;
 	OSVERSIONINFO version;
@@ -303,7 +303,7 @@ int parport_get_giveio_access(void)
 }
 #endif
 
-int parport_init(void)
+static int parport_init(void)
 {
 	cable_t *cur_cable;
 #if PARPORT_USE_PPDEV == 1
@@ -429,7 +429,7 @@ int parport_init(void)
 	return ERROR_OK;
 }
 
-int parport_quit(void)
+static int parport_quit(void)
 {
 	parport_led(0);
 
@@ -448,7 +448,7 @@ int parport_quit(void)
 	return ERROR_OK;
 }
 
-int parport_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int parport_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
 		return ERROR_OK;
@@ -460,7 +460,7 @@ int parport_handle_parport_port_command(struct command_context_s *cmd_ctx, char 
 	return ERROR_OK;
 }
 
-int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
 		return ERROR_OK;
@@ -475,7 +475,7 @@ int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char
 	return ERROR_OK;
 }
 
-int parport_handle_write_on_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int parport_handle_write_on_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc != 1)
 	{

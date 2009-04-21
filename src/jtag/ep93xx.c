@@ -50,14 +50,14 @@ static volatile u8 *gpio_data_direction_register;
 
 /* low level command set
  */
-int ep93xx_read(void);
-void ep93xx_write(int tck, int tms, int tdi);
-void ep93xx_reset(int trst, int srst);
+static int ep93xx_read(void);
+static void ep93xx_write(int tck, int tms, int tdi);
+static void ep93xx_reset(int trst, int srst);
 
-int ep93xx_speed(int speed);
-int ep93xx_register_commands(struct command_context_s *cmd_ctx);
-int ep93xx_init(void);
-int ep93xx_quit(void);
+static int ep93xx_speed(int speed);
+static int ep93xx_register_commands(struct command_context_s *cmd_ctx);
+static int ep93xx_init(void);
+static int ep93xx_quit(void);
 
 struct timespec ep93xx_zzzz;
 
@@ -73,7 +73,7 @@ jtag_interface_t ep93xx_interface =
 	.quit = ep93xx_quit,
 };
 
-bitbang_interface_t ep93xx_bitbang =
+static bitbang_interface_t ep93xx_bitbang =
 {
 	.read = ep93xx_read,
 	.write = ep93xx_write,
@@ -81,12 +81,12 @@ bitbang_interface_t ep93xx_bitbang =
 	.blink = 0,
 };
 
-int ep93xx_read(void)
+static int ep93xx_read(void)
 {
 	return !!(*gpio_data_register & TDO_BIT);
 }
 
-void ep93xx_write(int tck, int tms, int tdi)
+static void ep93xx_write(int tck, int tms, int tdi)
 {
 	if (tck)
 		output_value |= TCK_BIT;
@@ -108,7 +108,7 @@ void ep93xx_write(int tck, int tms, int tdi)
 }
 
 /* (1) assert or (0) deassert reset lines */
-void ep93xx_reset(int trst, int srst)
+static void ep93xx_reset(int trst, int srst)
 {
 	if (trst == 0)
 		output_value |= TRST_BIT;
@@ -124,13 +124,13 @@ void ep93xx_reset(int trst, int srst)
 	nanosleep(&ep93xx_zzzz, NULL);
 }
 
-int ep93xx_speed(int speed)
+static int ep93xx_speed(int speed)
 {
 
 	return ERROR_OK;
 }
 
-int ep93xx_register_commands(struct command_context_s *cmd_ctx)
+static int ep93xx_register_commands(struct command_context_s *cmd_ctx)
 {
 
 	return ERROR_OK;
@@ -157,7 +157,7 @@ static int set_gonk_mode(void)
 	return ERROR_OK;
 }
 
-int ep93xx_init(void)
+static int ep93xx_init(void)
 {
 	int ret;
 
@@ -231,7 +231,7 @@ int ep93xx_init(void)
 	return ERROR_OK;
 }
 
-int ep93xx_quit(void)
+static int ep93xx_quit(void)
 {
 
 	return ERROR_OK;

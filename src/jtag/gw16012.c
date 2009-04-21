@@ -89,13 +89,13 @@ static u8 gw16012_control_value = 0x0;
 static int device_handle;
 #endif
 
-int gw16012_execute_queue(void);
-int gw16012_register_commands(struct command_context_s *cmd_ctx);
-int gw16012_speed(int speed);
-int gw16012_init(void);
-int gw16012_quit(void);
+static int gw16012_execute_queue(void);
+static int gw16012_register_commands(struct command_context_s *cmd_ctx);
+static int gw16012_speed(int speed);
+static int gw16012_init(void);
+static int gw16012_quit(void);
 
-int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 jtag_interface_t gw16012_interface =
 {
@@ -109,7 +109,7 @@ jtag_interface_t gw16012_interface =
 	.quit = gw16012_quit,
 };
 
-int gw16012_register_commands(struct command_context_s *cmd_ctx)
+static int gw16012_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "parport_port", gw16012_handle_parport_port_command,
 					 COMMAND_CONFIG, NULL);
@@ -117,7 +117,7 @@ int gw16012_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-void gw16012_data(u8 value)
+static void gw16012_data(u8 value)
 {
 	value = (value & 0x7f) | gw16012_msb;
 	gw16012_msb ^= 0x80; /* toggle MSB */
@@ -137,7 +137,7 @@ void gw16012_data(u8 value)
 	#endif
 }
 
-void gw16012_control(u8 value)
+static void gw16012_control(u8 value)
 {
 	if (value != gw16012_control_value)
 	{
@@ -159,7 +159,7 @@ void gw16012_control(u8 value)
 	}
 }
 
-void gw16012_input(u8 *value)
+static void gw16012_input(u8 *value)
 {
 	#if PARPORT_USE_PPDEV == 1
 		ioctl(device_handle, PPRSTATUS, value);
@@ -173,7 +173,7 @@ void gw16012_input(u8 *value)
 }
 
 /* (1) assert or (0) deassert reset lines */
-void gw16012_reset(int trst, int srst)
+static void gw16012_reset(int trst, int srst)
 {
 	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 
@@ -188,13 +188,13 @@ void gw16012_reset(int trst, int srst)
 		gw16012_control(0x0b);
 }
 
-int gw16012_speed(int speed)
+static int gw16012_speed(int speed)
 {
 
 	return ERROR_OK;
 }
 
-void gw16012_end_state(tap_state_t state)
+static void gw16012_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -205,7 +205,7 @@ void gw16012_end_state(tap_state_t state)
 	}
 }
 
-void gw16012_state_move(void)
+static void gw16012_state_move(void)
 {
 	int i=0, tms=0;
 	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
@@ -221,7 +221,7 @@ void gw16012_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-void gw16012_path_move(pathmove_command_t *cmd)
+static void gw16012_path_move(pathmove_command_t *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;
@@ -252,7 +252,7 @@ void gw16012_path_move(pathmove_command_t *cmd)
 	tap_set_end_state(tap_get_state());
 }
 
-void gw16012_runtest(int num_cycles)
+static void gw16012_runtest(int num_cycles)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 	int i;
@@ -275,7 +275,7 @@ void gw16012_runtest(int num_cycles)
 		gw16012_state_move();
 }
 
-void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	int bits_left = scan_size;
 	int bit_count = 0;
@@ -348,7 +348,7 @@ void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 	}
 }
 
-int gw16012_execute_queue(void)
+static int gw16012_execute_queue(void)
 {
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
@@ -436,7 +436,7 @@ int gw16012_execute_queue(void)
 }
 
 #if PARPORT_USE_GIVEIO == 1
-int gw16012_get_giveio_access()
+static int gw16012_get_giveio_access()
 {
 	HANDLE h;
 	OSVERSIONINFO version;
@@ -461,7 +461,7 @@ int gw16012_get_giveio_access()
 }
 #endif
 
-int gw16012_init(void)
+static int gw16012_init(void)
 {
 #if PARPORT_USE_PPDEV == 1
 	char buffer[256];
@@ -555,13 +555,13 @@ int gw16012_init(void)
 	return ERROR_OK;
 }
 
-int gw16012_quit(void)
+static int gw16012_quit(void)
 {
 
 	return ERROR_OK;
 }
 
-int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
 		return ERROR_OK;

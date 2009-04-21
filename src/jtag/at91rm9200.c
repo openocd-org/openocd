@@ -119,14 +119,14 @@ static u32* pio_base;
 
 /* low level command set
  */
-int at91rm9200_read(void);
-void at91rm9200_write(int tck, int tms, int tdi);
-void at91rm9200_reset(int trst, int srst);
+static int at91rm9200_read(void);
+static void at91rm9200_write(int tck, int tms, int tdi);
+static void at91rm9200_reset(int trst, int srst);
 
-int at91rm9200_speed(int speed);
-int at91rm9200_register_commands(struct command_context_s *cmd_ctx);
-int at91rm9200_init(void);
-int at91rm9200_quit(void);
+static int at91rm9200_speed(int speed);
+static int at91rm9200_register_commands(struct command_context_s *cmd_ctx);
+static int at91rm9200_init(void);
+static int at91rm9200_quit(void);
 
 jtag_interface_t at91rm9200_interface =
 {
@@ -140,7 +140,7 @@ jtag_interface_t at91rm9200_interface =
 	.quit = at91rm9200_quit,
 };
 
-bitbang_interface_t at91rm9200_bitbang =
+static bitbang_interface_t at91rm9200_bitbang =
 {
 	.read = at91rm9200_read,
 	.write = at91rm9200_write,
@@ -148,12 +148,12 @@ bitbang_interface_t at91rm9200_bitbang =
 	.blink = 0
 };
 
-int at91rm9200_read(void)
+static int at91rm9200_read(void)
 {
 	return (pio_base[device->TDO_PIO + PIO_PDSR] & device->TDO_MASK) != 0;
 }
 
-void at91rm9200_write(int tck, int tms, int tdi)
+static void at91rm9200_write(int tck, int tms, int tdi)
 {
 	if (tck)
 		pio_base[device->TCK_PIO + PIO_SODR] = device->TCK_MASK;
@@ -172,7 +172,7 @@ void at91rm9200_write(int tck, int tms, int tdi)
 }
 
 /* (1) assert or (0) deassert reset lines */
-void at91rm9200_reset(int trst, int srst)
+static void at91rm9200_reset(int trst, int srst)
 {
 	if (trst == 0)
 		pio_base[device->TRST_PIO + PIO_SODR] = device->TRST_MASK;
@@ -185,13 +185,13 @@ void at91rm9200_reset(int trst, int srst)
 		pio_base[device->SRST_PIO + PIO_CODR] = device->SRST_MASK;
 }
 
-int at91rm9200_speed(int speed)
+static int at91rm9200_speed(int speed)
 {
 
 	return ERROR_OK;
 }
 
-int at91rm9200_handle_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int at91rm9200_handle_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc == 0)
 		return ERROR_OK;
@@ -206,14 +206,14 @@ int at91rm9200_handle_device_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-int at91rm9200_register_commands(struct command_context_s *cmd_ctx)
+static int at91rm9200_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "at91rm9200_device", at91rm9200_handle_device_command,
 		COMMAND_CONFIG, NULL);
 	return ERROR_OK;
 }
 
-int at91rm9200_init(void)
+static int at91rm9200_init(void)
 {
 	struct device_t *cur_device;
 
@@ -284,7 +284,7 @@ int at91rm9200_init(void)
 	return ERROR_OK;
 }
 
-int at91rm9200_quit(void)
+static int at91rm9200_quit(void)
 {
 
 	return ERROR_OK;

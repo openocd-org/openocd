@@ -71,12 +71,9 @@ bitbang_interface_t *bitbang_interface;
  */
 #define CLOCK_IDLE() 0
 
-int bitbang_execute_queue(void);
-
 
 /* The bitbang driver leaves the TCK 0 when in idle */
-
-void bitbang_end_state(tap_state_t state)
+static void bitbang_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -87,7 +84,7 @@ void bitbang_end_state(tap_state_t state)
 	}
 }
 
-void bitbang_state_move(void)
+static void bitbang_state_move(void)
 {
 	int i=0, tms=0;
 	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
@@ -103,7 +100,7 @@ void bitbang_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-void bitbang_path_move(pathmove_command_t *cmd)
+static void bitbang_path_move(pathmove_command_t *cmd)
 {
 	int num_states = cmd->num_states;
 	int state_count;
@@ -139,7 +136,7 @@ void bitbang_path_move(pathmove_command_t *cmd)
 	tap_set_end_state(tap_get_state());
 }
 
-void bitbang_runtest(int num_cycles)
+static void bitbang_runtest(int num_cycles)
 {
 	int i;
 
@@ -182,7 +179,7 @@ static void bitbang_stableclocks(int num_cycles)
 
 
 
-void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 	int bit_cnt;
