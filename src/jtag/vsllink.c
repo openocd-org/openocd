@@ -37,18 +37,6 @@
 
 //#define _VSLLINK_IN_DEBUG_MODE_
 
-/* enable this to view USB communication
- */
-#if 0
-#define _DEBUG_USB_COMMS_
-#endif
-
-#ifdef _DEBUG_JTAG_IO_
-#define DEBUG_JTAG_IO(expr ...)		LOG_DEBUG(expr)
-#else
-#define DEBUG_JTAG_IO(expr ...)
-#endif
-
 #define VSLLINK_MODE_NORMAL			0
 #define VSLLINK_MODE_DMA			1
 
