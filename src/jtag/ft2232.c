@@ -472,9 +472,10 @@ static int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
 		timeval_subtract(&d_inter2, &inter2, &start);
 		timeval_subtract(&d_end, &end, &start);
 
-		LOG_INFO("inter: %i.%06i, inter2: %i.%06i end: %i.%06i", d_inter.tv_sec, d_inter.tv_usec, d_inter2.tv_sec,
-				d_inter2.tv_usec, d_end.tv_sec,
-				d_end.tv_usec);
+		LOG_INFO("inter: %u.%06u, inter2: %u.%06u end: %u.%06u",
+			(unsigned)d_inter.tv_sec, (unsigned)d_inter.tv_usec,
+			(unsigned)d_inter2.tv_sec, (unsigned)d_inter2.tv_usec,
+			(unsigned)d_end.tv_sec, (unsigned)d_end.tv_usec);
 #endif
 
 		ft2232_buffer_size = bytes_read;
