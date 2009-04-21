@@ -101,14 +101,14 @@ struct device_t
 	u32 SRST_MASK;	/* SRST bitmask */
 };
 
-struct device_t devices[] =
+static struct device_t devices[] =
 {
 	{ "rea_ecr", PIOD, P27, PIOA, NC, PIOD, P23, PIOD, P24, PIOD, P26, PIOC, P5 },
 	{ .name = NULL },
 };
 
 /* configuration */
-char* at91rm9200_device;
+static char* at91rm9200_device;
 
 /* interface variables
  */
