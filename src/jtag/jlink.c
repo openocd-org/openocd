@@ -859,15 +859,17 @@ static int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_le
 	}
 }
 
-static int usb_bulk_write_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
-                      int timeout) {
-
+/* calls the given usb_bulk_* function, allowing for the data to trickle in with some timeouts  */
+static int usb_bulk_with_retries(
+		int (*f)(usb_dev_handle *, int, char *, int, int),
+		usb_dev_handle *dev, int ep,
+		char *bytes, int size, int timeout)
+{
 	int rc = 0, tries = 3, this_size;
 
 	while (tries && size) {
 
-		this_size = usb_bulk_write (dev, ep, bytes, size, timeout);
-
+		this_size = f(dev, ep, bytes, size, timeout);
 		if (this_size > 0) {
 			
 			size -= this_size;
@@ -877,35 +879,20 @@ static int usb_bulk_write_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
 		} else
 			tries --;
 	}
-
 	return rc;
-
-
 }
-
-static int usb_bulk_read_ex(usb_dev_handle *dev, int ep, char *bytes, int size,
-                  int timeout) {
-
-	int rc = 0, tries = 3, this_size;
-
-	while (tries && size) {
-
-		this_size = usb_bulk_read (dev, ep, bytes, size, timeout);
-
-		if (this_size > 0) {
-			
-			size -= this_size;
-			rc += this_size;
-			bytes += this_size;
-
-		} else
-			tries --;
-	}
-
-	return rc;
-
+static inline int usb_bulk_write_ex(usb_dev_handle *dev, int ep,
+		char *bytes, int size, int timeout)
+{
+	return usb_bulk_with_retries(&usb_bulk_write,
+			dev, ep, bytes, size, timeout);
 }
-
+static inline int usb_bulk_read_ex(usb_dev_handle *dev, int ep,
+		char *bytes, int size, int timeout)
+{
+	return usb_bulk_with_retries(&usb_bulk_read,
+			dev, ep, bytes, size, timeout);
+}
 
 /* Write data from out_buffer to USB. */
 static int jlink_usb_write(jlink_jtag_t *jlink_jtag, int out_length)
