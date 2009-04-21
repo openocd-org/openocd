@@ -32,6 +32,7 @@ typedef struct non_cfi_s
 	u16 max_buf_write_size;
 	u8 num_erase_regions;
 	u32 erase_region_info[6];
+	u8  status_poll_mask;
 } non_cfi_t;
 
 extern non_cfi_t non_cfi_flashes[];

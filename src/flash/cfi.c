@@ -296,13 +296,14 @@ u8 cfi_intel_wait_status_busy(flash_bank_t *bank, int timeout)
 int cfi_spansion_wait_status_busy(flash_bank_t *bank, int timeout)
 {
 	u8 status, oldstatus;
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 
 	oldstatus = cfi_get_u8(bank, 0, 0x0);
 
 	do {
 		status = cfi_get_u8(bank, 0, 0x0);
 		if ((status ^ oldstatus) & 0x40) {
-			if (status & 0x20) {
+			if (status & cfi_info->status_poll_mask & 0x20) {
 				oldstatus = cfi_get_u8(bank, 0, 0x0);
 				status = cfi_get_u8(bank, 0, 0x0);
 				if ((status ^ oldstatus) & 0x40) {
@@ -313,7 +314,7 @@ int cfi_spansion_wait_status_busy(flash_bank_t *bank, int timeout)
 					return(ERROR_OK);
 				}
 			}
-		} else {
+		} else { /* no toggle: finished, OK */
 			LOG_DEBUG("status: 0x%x", status);
 			return(ERROR_OK);
 		}
@@ -2283,6 +2284,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 				break;
 			/* AMD/Spansion, Atmel, ... command set */
 			case 0x0002:
+				cfi_info->status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7; /* default for all CFI flashs */
 				cfi_read_0002_pri_ext(bank);
 				break;
 			default:
@@ -2303,7 +2305,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 		{
 			return retval;
 		}
-	}
+	} /* end CFI case */
 
 	/* apply fixups depending on the primary command set */
 	switch(cfi_info->pri_id)

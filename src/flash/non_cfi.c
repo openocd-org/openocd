@@ -44,6 +44,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 64*KB,
 		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
@@ -57,6 +58,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 128*KB,
 		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
@@ -70,6 +72,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 256*KB,
 		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
@@ -83,6 +86,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 512*KB,
 		.interface_desc = 0x0,		/* x8 only device */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
@@ -96,6 +100,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 1,
 		.erase_region_info =
 		{
@@ -109,6 +114,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -125,6 +131,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -134,6 +141,94 @@ non_cfi_t non_cfi_flashes[] = {
 			ERASE_REGION( 1, 16*KB)
 		}
 	},
+
+	/* SST 39VF* do not support DQ5 status polling - this currently is
+	   only supported by the host algorithm, not by the target code using
+	   the work area. */
+	{
+		.mfr = CFI_MFR_SST,
+		.id = 0x2782,				/* SST39xF160 */
+		.pri_id = 0x02,
+		.dev_size = 2*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
+		.num_erase_regions = 1,
+		.erase_region_info =
+		{
+			ERASE_REGION(512, 4*KB)
+		}
+	},
+	{
+		.mfr = CFI_MFR_SST,
+		.id = 0x2783,				/* SST39VF320 */
+		.pri_id = 0x02,
+		.dev_size = 4*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
+		.num_erase_regions = 1,
+		.erase_region_info =
+		{
+			ERASE_REGION(1024, 4*KB)
+		}
+	},
+	{
+		.mfr = CFI_MFR_SST,
+		.id = 0x234b,				/* SST39VF1601 */
+		.pri_id = 0x02,
+		.dev_size = 2*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
+		.num_erase_regions = 1,
+		.erase_region_info =
+		{
+			ERASE_REGION(512, 4*KB)
+		}
+	},
+	{
+		.mfr = CFI_MFR_SST,
+		.id = 0x234a,				/* SST39VF1602 */
+		.pri_id = 0x02,
+		.dev_size = 2*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
+		.num_erase_regions = 1,
+		.erase_region_info =
+		{
+			ERASE_REGION(512, 4*KB)
+		}
+	},
+	{
+		.mfr = CFI_MFR_SST,
+		.id = 0x235b,				/* SST39VF3201 */
+		.pri_id = 0x02,
+		.dev_size = 4*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
+		.num_erase_regions = 1,
+		.erase_region_info =
+		{
+			ERASE_REGION(1024, 4*KB)
+		}
+	},
+	{
+		.mfr = CFI_MFR_SST,
+		.id = 0x235a,				/* SST39VF3202 */
+		.pri_id = 0x02,
+		.dev_size = 4*MB,
+		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
+		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ6_DQ7,
+		.num_erase_regions = 1,
+		.erase_region_info =
+		{
+			ERASE_REGION(1024, 4*KB)
+		}
+	},
 	{
 		.mfr = CFI_MFR_AMD,
 		.id = 0x22ab,				/* AM29F400BB */
@@ -141,6 +236,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -157,6 +253,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 512*KB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -173,6 +270,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 1*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -189,6 +287,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 1*MB,
 		.interface_desc = 0x2,
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -205,6 +304,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 1*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -222,6 +322,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 2*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -238,6 +339,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 2*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -248,25 +350,13 @@ non_cfi_t non_cfi_flashes[] = {
 		}
 	},
 	{
-		.mfr = CFI_MFR_SST,
-		.id = 0x2782,				/* SST39xF160 */
-		.pri_id = 0x02,
-		.dev_size = 2*MB,
-		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
-		.max_buf_write_size = 0x0,
-		.num_erase_regions = 1,
-		.erase_region_info =
-		{
-			ERASE_REGION(512, 4*KB)
-		}
-	},
-	{
 		.mfr = CFI_MFR_ATMEL,
 		.id = 0x00c0,				/* Atmel 49BV1614 */
 		.pri_id = 0x02,
 		.dev_size = 2*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 3,
 		.erase_region_info =
 		{
@@ -282,6 +372,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 2*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 3,
 		.erase_region_info =
 		{
@@ -297,6 +388,7 @@ non_cfi_t non_cfi_flashes[] = {
 		.dev_size = 1*MB,
 		.interface_desc = 0x2,		/* x8 or x16 device with nBYTE */
 		.max_buf_write_size = 0x0,
+		.status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7,
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
@@ -358,6 +450,7 @@ void cfi_fixup_non_cfi(flash_bank_t *bank)
 
 	cfi_info->interface_desc = non_cfi->interface_desc;
 	cfi_info->max_buf_write_size = non_cfi->max_buf_write_size;
+	cfi_info->status_poll_mask = non_cfi->status_poll_mask;
 	cfi_info->num_erase_regions = non_cfi->num_erase_regions;
 	cfi_info->erase_region_info = non_cfi->erase_region_info;
 	cfi_info->dev_size = non_cfi->dev_size;

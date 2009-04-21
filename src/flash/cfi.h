@@ -23,10 +23,12 @@
 #include "flash.h"
 #include "target.h"
 
+#define CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7 0xE0 /* DQ5..DQ7 */
+#define CFI_STATUS_POLL_MASK_DQ6_DQ7     0xC0 /* DQ6..DQ7 */
+
 typedef struct cfi_flash_bank_s
 {
 	working_area_t *write_algorithm;
-
 
 	int x16_as_x8;
 	int jedec_probe;
@@ -57,6 +59,8 @@ typedef struct cfi_flash_bank_s
 	u8 buf_write_timeout_max;
 	u8 block_erase_timeout_max;
 	u8 chip_erase_timeout_max;
+
+	u8 status_poll_mask;
 
 	/* flash geometry */
 	u32 dev_size;
