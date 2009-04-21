@@ -35,19 +35,6 @@
 
 #include "log.h"
 
-/* enable this to debug communication
- */
-#if 1
-#define _DEBUG_USB_COMMS_
-#define _DEBUG_JTAG_IO_
-#endif
-
-#ifdef _DEBUG_JTAG_IO_
-#define DEBUG_JTAG_IO(expr ...)	LOG_DEBUG(expr)
-#else
-#define DEBUG_JTAG_IO(expr ...)
-#endif
-
 #define USB_VID						0x15ba
 #define USB_PID						0x001e
 

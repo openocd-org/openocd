@@ -30,8 +30,10 @@
 #include "command.h"
 
 
-#if 0
-#define _DEBUG_JTAG_IO_
+#ifdef _DEBUG_JTAG_IO_
+#define DEBUG_JTAG_IO(expr ...)		LOG_DEBUG(expr)
+#else
+#define DEBUG_JTAG_IO(expr ...)
 #endif
 
 #ifndef DEBUG_JTAG_IOZ

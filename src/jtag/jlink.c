@@ -34,18 +34,6 @@
 
 #include "log.h"
 
-/* enable this to debug communication
- */
-#if 0
-#define _DEBUG_USB_COMMS_
-#endif
-
-#ifdef _DEBUG_JTAG_IO_
-#define DEBUG_JTAG_IO(expr ...)	LOG_DEBUG(expr)
-#else
-#define DEBUG_JTAG_IO(expr ...)
-#endif
-
 #define VID 0x1366
 #define PID 0x0101
 
