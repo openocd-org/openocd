@@ -45,8 +45,11 @@
 #define ARM11_REGCACHE_FREGS		0
 
 #define ARM11_REGCACHE_COUNT		(20 +					\
-					 23 * ARM11_REGCACHE_MODEREGS +		\
+					 23 * ARM11_REGCACHE_MODEREGS +			\
 					  9 * ARM11_REGCACHE_FREGS)
+
+#define ARM11_TAP_DEFAULT			TAP_INVALID
+
 
 typedef struct arm11_register_history_s
 {
@@ -56,17 +59,17 @@ typedef struct arm11_register_history_s
 
 enum arm11_debug_version
 {
-	ARM11_DEBUG_V6	= 0x01,
-	ARM11_DEBUG_V61	= 0x02,
-	ARM11_DEBUG_V7	= 0x03,
-	ARM11_DEBUG_V7_CP14	= 0x04,
+	ARM11_DEBUG_V6			= 0x01,
+	ARM11_DEBUG_V61			= 0x02,
+	ARM11_DEBUG_V7			= 0x03,
+	ARM11_DEBUG_V7_CP14		= 0x04,
 };
 
 typedef struct arm11_common_s
 {
-	target_t *	target;
+	target_t *	target;		/**< Reference back to the owner */
 
-	arm_jtag_t	jtag_info;
+	arm_jtag_t	jtag_info;	/**< Handler to access assigned JTAG device */
 
 	/** \name Processor type detection */
 	/*@{*/
@@ -83,11 +86,13 @@ typedef struct arm11_common_s
 	/*@}*/
 
 	u32		last_dscr;		/**< Last retrieved DSCR value;
-							 * Can be used to detect changes		*/
+							     Use only for debug message generation		*/
 
 	bool	trst_active;
-	bool	halt_requested;
-	bool	simulate_reset_on_next_halt;
+	bool	halt_requested;					/**< Keep track if arm11_halt() calls occured
+												 during reset. Otherwise do it ASAP. */
+												 
+	bool	simulate_reset_on_next_halt;	/**< Perform cleanups of the ARM state on next halt */
 
 	/** \name Shadow registers to save processor state */
 	/*@{*/
@@ -127,23 +132,24 @@ enum arm11_instructions
 
 enum arm11_dscr
 {
-	ARM11_DSCR_CORE_HALTED				= 1 << 0,
-	ARM11_DSCR_CORE_RESTARTED				= 1 << 1,
+	ARM11_DSCR_CORE_HALTED									= 1 << 0,
+	ARM11_DSCR_CORE_RESTARTED								= 1 << 1,
 
-	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_MASK		= 0x0F << 2,
-	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_HALT		= 0x00 << 2,
-	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BREAKPOINT		= 0x01 << 2,
-	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_WATCHPOINT		= 0x02 << 2,
-	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BKPT_INSTRUCTION	= 0x03 << 2,
-	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_EDBGRQ		= 0x04 << 2,
-	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_VECTOR_CATCH	= 0x05 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_MASK					= 0x0F << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_HALT					= 0x00 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BREAKPOINT				= 0x01 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_WATCHPOINT				= 0x02 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_BKPT_INSTRUCTION		= 0x03 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_EDBGRQ					= 0x04 << 2,
+	ARM11_DSCR_METHOD_OF_DEBUG_ENTRY_VECTOR_CATCH			= 0x05 << 2,
 
-	ARM11_DSCR_STICKY_PRECISE_DATA_ABORT		= 1 << 6,
-	ARM11_DSCR_STICKY_IMPRECISE_DATA_ABORT		= 1 << 7,
-	ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE		= 1 << 13,
-	ARM11_DSCR_MODE_SELECT				= 1 << 14,
-	ARM11_DSCR_WDTR_FULL				= 1 << 29,
-	ARM11_DSCR_RDTR_FULL				= 1 << 30,
+	ARM11_DSCR_STICKY_PRECISE_DATA_ABORT					= 1 << 6,
+	ARM11_DSCR_STICKY_IMPRECISE_DATA_ABORT					= 1 << 7,
+	ARM11_DSCR_INTERRUPTS_DISABLE							= 1 << 11,
+	ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE				= 1 << 13,
+	ARM11_DSCR_MODE_SELECT									= 1 << 14,
+	ARM11_DSCR_WDTR_FULL									= 1 << 29,
+	ARM11_DSCR_RDTR_FULL									= 1 << 30,
 };
 
 enum arm11_cpsr
@@ -229,23 +235,23 @@ void arm11_dump_reg_changes(arm11_common_t * arm11);
 
 /* internals */
 
-void arm11_setup_field		(arm11_common_t * arm11, int num_bits, void * in_data, void * out_data, scan_field_t * field);
-void arm11_add_IR		(arm11_common_t * arm11, u8 instr, tap_state_t state);
-void arm11_add_debug_SCAN_N	(arm11_common_t * arm11, u8 chain, tap_state_t state);
-void arm11_add_debug_INST	(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state_t state);
-u32  arm11_read_DSCR		(arm11_common_t * arm11);
-void arm11_write_DSCR		(arm11_common_t * arm11, u32 dscr);
+void arm11_setup_field			(arm11_common_t * arm11, int num_bits, void * in_data, void * out_data, scan_field_t * field);
+void arm11_add_IR				(arm11_common_t * arm11, u8 instr, tap_state_t state);
+void arm11_add_debug_SCAN_N		(arm11_common_t * arm11, u8 chain, tap_state_t state);
+void arm11_add_debug_INST		(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state_t state);
+u32  arm11_read_DSCR			(arm11_common_t * arm11);
+void arm11_write_DSCR			(arm11_common_t * arm11, u32 dscr);
 
 enum target_debug_reason arm11_get_DSCR_debug_reason(u32 dscr);
 
-void arm11_run_instr_data_prepare		(arm11_common_t * arm11);
-void arm11_run_instr_data_finish		(arm11_common_t * arm11);
-void arm11_run_instr_no_data			(arm11_common_t * arm11, u32 * opcode, size_t count);
-void arm11_run_instr_no_data1			(arm11_common_t * arm11, u32 opcode);
-void arm11_run_instr_data_to_core		(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
+void arm11_run_instr_data_prepare			(arm11_common_t * arm11);
+void arm11_run_instr_data_finish			(arm11_common_t * arm11);
+void arm11_run_instr_no_data				(arm11_common_t * arm11, u32 * opcode, size_t count);
+void arm11_run_instr_no_data1				(arm11_common_t * arm11, u32 opcode);
+void arm11_run_instr_data_to_core			(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
 void arm11_run_instr_data_to_core_noack		(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
-void arm11_run_instr_data_to_core1		(arm11_common_t * arm11, u32 opcode, u32 data);
-void arm11_run_instr_data_from_core		(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
+void arm11_run_instr_data_to_core1			(arm11_common_t * arm11, u32 opcode, u32 data);
+void arm11_run_instr_data_from_core			(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
 void arm11_run_instr_data_from_core_via_r0	(arm11_common_t * arm11, u32 opcode, u32 * data);
 void arm11_run_instr_data_to_core_via_r0	(arm11_common_t * arm11, u32 opcode, u32 data);
 
@@ -259,10 +265,10 @@ int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state
 typedef struct arm11_sc7_action_s
 {
 	bool	write;				/**< Access mode: true for write, false for read.	*/
-	u8		address;				/**< Register address mode. Use enum #arm11_sc7		*/
+	u8		address;			/**< Register address mode. Use enum #arm11_sc7		*/
 	u32		value;				/**< If write then set this to value to be written.
-								In read mode this receives the read value when the
-								function returns.					*/
+									 In read mode this receives the read value when the
+									 function returns.					*/
 } arm11_sc7_action_t;
 
 void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t count);
