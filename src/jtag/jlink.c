@@ -42,8 +42,9 @@
 
 #define JLINK_USB_TIMEOUT		1000
 
-#define JLINK_IN_BUFFER_SIZE			8192
-#define JLINK_OUT_BUFFER_SIZE			8192
+// See Section 1.3.2 of the Segger JLink USB protocol manual
+#define JLINK_IN_BUFFER_SIZE			2048
+#define JLINK_OUT_BUFFER_SIZE			2048
 #define JLINK_EMU_RESULT_BUFFER_SIZE	64
 
 /* Global USB buffers */
