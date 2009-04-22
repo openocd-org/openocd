@@ -58,7 +58,7 @@ int server_use_pipes = 0;
 
 int add_connection(service_t *service, command_context_t *cmd_ctx)
 {
-	unsigned int address_size;
+	socklen_t address_size;
 	connection_t *c, **p;
 	int retval;
 	int flag=1;
@@ -422,7 +422,7 @@ int server_loop(command_context_t *command_context)
 					if (service->type != CONNECTION_PIPE)
 					{
 						struct sockaddr_in sin;
-						unsigned int address_size = sizeof(sin);
+						socklen_t address_size = sizeof(sin);
 						int tmp_fd;
 						tmp_fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
 						close_socket(tmp_fd);
