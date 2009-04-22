@@ -130,95 +130,113 @@ jtag_interface_t jlink_interface =
 	.quit = jlink_quit
 };
 
-static int jlink_execute_queue(void)
+static void jlink_execute_end_state(jtag_command_t *cmd)
 {
-	jtag_command_t *cmd = jtag_command_queue;
+	DEBUG_JTAG_IO("end_state: %i", cmd->cmd.end_state->end_state);
+
+	if (cmd->cmd.end_state->end_state != TAP_INVALID)
+		jlink_end_state(cmd->cmd.end_state->end_state);
+}
+
+static void jlink_execute_runtest(jtag_command_t *cmd)
+{
+	DEBUG_JTAG_IO("runtest %i cycles, end in %i",
+			cmd->cmd.runtest->num_cycles,
+			cmd->cmd.runtest->end_state);
+
+	if (cmd->cmd.runtest->end_state != TAP_INVALID)
+		jlink_end_state(cmd->cmd.runtest->end_state);
+
+	jlink_runtest(cmd->cmd.runtest->num_cycles);
+}
+
+static void jlink_execute_statemove(jtag_command_t *cmd)
+{
+	DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
+
+	if (cmd->cmd.statemove->end_state != TAP_INVALID)
+	{
+		jlink_end_state(cmd->cmd.statemove->end_state);
+	}
+	jlink_state_move();
+}
+
+static void jlink_execute_pathmove(jtag_command_t *cmd)
+{
+	DEBUG_JTAG_IO("pathmove: %i states, end in %i",
+		cmd->cmd.pathmove->num_states,
+		cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+
+	jlink_path_move(cmd->cmd.pathmove->num_states,
+			cmd->cmd.pathmove->path);
+}
+
+static void jlink_execute_scan(jtag_command_t *cmd)
+{
 	int scan_size;
 	enum scan_type type;
 	u8 *buffer;
 
-	while (cmd != NULL)
-	{
-		switch (cmd->type)
-		{
-			case JTAG_END_STATE:
-				DEBUG_JTAG_IO("end_state: %i", cmd->cmd.end_state->end_state);
+	DEBUG_JTAG_IO("scan end in %i", cmd->cmd.scan->end_state);
 
-				if (cmd->cmd.end_state->end_state != TAP_INVALID)
-				{
-					jlink_end_state(cmd->cmd.end_state->end_state);
-				}
-				break;
+	if (cmd->cmd.scan->end_state != TAP_INVALID)
+		jlink_end_state(cmd->cmd.scan->end_state);
 
-			case JTAG_RUNTEST:
-				DEBUG_JTAG_IO( "runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, \
-					cmd->cmd.runtest->end_state);
-
-				if (cmd->cmd.runtest->end_state != TAP_INVALID)
-				{
-					jlink_end_state(cmd->cmd.runtest->end_state);
-				}
-				jlink_runtest(cmd->cmd.runtest->num_cycles);
-				break;
-
-			case JTAG_STATEMOVE:
-				DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
-
-				if (cmd->cmd.statemove->end_state != TAP_INVALID)
-				{
-					jlink_end_state(cmd->cmd.statemove->end_state);
-				}
-				jlink_state_move();
-				break;
-
-			case JTAG_PATHMOVE:
-				DEBUG_JTAG_IO("pathmove: %i states, end in %i", \
-					cmd->cmd.pathmove->num_states, \
-					cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
-
-				jlink_path_move(cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path);
-				break;
-
-			case JTAG_SCAN:
-				DEBUG_JTAG_IO("scan end in %i", cmd->cmd.scan->end_state);
-
-				if (cmd->cmd.scan->end_state != TAP_INVALID)
-				{
-					jlink_end_state(cmd->cmd.scan->end_state);
-				}
-
-				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
-				DEBUG_JTAG_IO("scan input, length = %d", scan_size);
+	scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
+	DEBUG_JTAG_IO("scan input, length = %d", scan_size);
 
 #ifdef _DEBUG_USB_COMMS_
-				jlink_debug_buffer(buffer, (scan_size + 7) / 8);
+	jlink_debug_buffer(buffer, (scan_size + 7) / 8);
 #endif
-				type = jtag_scan_type(cmd->cmd.scan);
-				jlink_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size, cmd->cmd.scan);
-				break;
+	type = jtag_scan_type(cmd->cmd.scan);
+	jlink_scan(cmd->cmd.scan->ir_scan,
+			type, buffer, scan_size, cmd->cmd.scan);
+}
 
-			case JTAG_RESET:
-				DEBUG_JTAG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+static void jlink_execute_reset(jtag_command_t *cmd)
+{
+	DEBUG_JTAG_IO("reset trst: %i srst %i",
+			cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 
-				jlink_tap_execute();
+	jlink_tap_execute();
 
-				if (cmd->cmd.reset->trst == 1)
-				{
-					tap_set_state(TAP_RESET);
-				}
-				jlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-				break;
+	if (cmd->cmd.reset->trst == 1)
+		tap_set_state(TAP_RESET);
 
-			case JTAG_SLEEP:
-				DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
-				jlink_tap_execute();
-				jtag_sleep(cmd->cmd.sleep->us);
-				break;
+	jlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+}
 
-			default:
-				LOG_ERROR("BUG: unknown JTAG command type encountered");
-				exit(-1);
-		}
+static void jlink_execute_sleep(jtag_command_t *cmd)
+{
+	DEBUG_JTAG_IO("sleep %i", cmd->cmd.sleep->us);
+	jlink_tap_execute();
+	jtag_sleep(cmd->cmd.sleep->us);
+}
+
+static void jlink_execute_command(jtag_command_t *cmd)
+{
+	switch (cmd->type)
+	{
+	case JTAG_END_STATE: jlink_execute_end_state(cmd); break;
+	case JTAG_RUNTEST:   jlink_execute_runtest(cmd); break;
+	case JTAG_STATEMOVE: jlink_execute_statemove(cmd); break;
+	case JTAG_PATHMOVE:  jlink_execute_pathmove(cmd); break;
+	case JTAG_SCAN:      jlink_execute_scan(cmd); break;
+	case JTAG_RESET:     jlink_execute_reset(cmd); break;
+	case JTAG_SLEEP:     jlink_execute_sleep(cmd); break;
+	default:
+		LOG_ERROR("BUG: unknown JTAG command type encountered");
+		exit(-1);
+	}
+}
+
+static int jlink_execute_queue(void)
+{
+	jtag_command_t *cmd = jtag_command_queue;
+
+	while (cmd != NULL)
+	{
+		jlink_execute_command(cmd);
 		cmd = cmd->next;
 	}
 
