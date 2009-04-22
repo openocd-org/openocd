@@ -2495,7 +2495,7 @@ static void writeData(FILE *f, const void *data, size_t len)
 {
 	size_t written = fwrite(data, len, 1, f);
 	if (written != len)
-		LOG_ERROR("failed to write %u bytes: %s", len, strerror(errno));
+		LOG_ERROR("failed to write %zu bytes: %s", len, strerror(errno));
 }
 
 static void writeLong(FILE *f, int l)
