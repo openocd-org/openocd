@@ -623,6 +623,10 @@ static void jlink_tap_append_step(int tms, int tdi)
 	int bit_index = tap_length % 8;
 	u8 bit = 1 << bit_index;
 
+	// we do not pad TMS, so be sure to initialize all bits
+	if (0 == bit_index)
+		tms_buffer[index] = tdi_buffer[index] = 0;
+
 	if (tms)
 		tms_buffer[index] |= bit;
 	else
@@ -669,15 +673,8 @@ static int jlink_tap_execute(void)
 	if (!tap_length)
 		return ERROR_OK;
 
-	/* Pad last byte so that tap_length is divisible by 8 */
-	while (tap_length % 8 != 0)
-	{
-		/* More of the last TMS value keeps us in the same state,
-		 * analogous to free-running JTAG interfaces. */
-		jlink_tap_append_step(last_tms, 0);
-	}
-
-	byte_length = tap_length / 8;
+	// number of full bytes (plus one if some would be left over)
+	byte_length = tap_length / 8 + !!(tap_length % 8);
 
 	usb_out_buffer[0] = EMU_CMD_HW_JTAG3;
 	usb_out_buffer[1] = 0;
