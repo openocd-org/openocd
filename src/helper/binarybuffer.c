@@ -244,7 +244,7 @@ char* buf_to_str(const u8 *buf, int buf_len, int radix)
 int str_to_buf(const char *str, int str_len, u8 *buf, int buf_len, int radix)
 {
 	char *charbuf;
-	char tmp;
+	u32 tmp;
 	float factor;
 	u8 *b256_buf;
 	int b256_len;
@@ -303,7 +303,7 @@ int str_to_buf(const char *str, int str_len, u8 *buf, int buf_len, int radix)
 			tmp = (tmp - 'A' + 10);
 		else continue;	/* skip characters other than [0-9,a-f,A-F] */
 
-		if (tmp >= radix)
+		if (tmp >= (u32)radix)
 			continue;	/* skip digits invalid for the current radix */
 
 		for (j = 0; j < b256_len; j++)
