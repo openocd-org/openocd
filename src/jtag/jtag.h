@@ -41,20 +41,37 @@
 #endif
 
 
-/* 16 Tap States, from page 21 of ASSET InterTech, Inc.'s svf.pdf
+/*
+ * Tap states from ARM7TDMI-S Technical reference manual.
+ * Also, validated against several other ARM core technical manuals.
+ *
+ * N.B. tap_get_tms_path() was changed to reflect this corrected
+ * numbering and ordering of the TAP states.
  */
-enum tap_state {
-	TAP_RESET    = 0, TAP_IDLE = 8,
-	TAP_DRSELECT = 1, TAP_DRCAPTURE = 2, TAP_DRSHIFT = 3, TAP_DREXIT1 = 4,
-	TAP_DRPAUSE  = 5, TAP_DREXIT2 = 6, TAP_DRUPDATE = 7,
-	TAP_IRSELECT = 9, TAP_IRCAPTURE = 10, TAP_IRSHIFT = 11, TAP_IREXIT1 = 12,
-	TAP_IRPAUSE  = 13, TAP_IREXIT2 = 14, TAP_IRUPDATE = 15,
+typedef enum tap_state
+{
+	TAP_DREXIT2 = 0x0,
+	TAP_DREXIT1 = 0x1,
+	TAP_DRSHIFT = 0x2,
+	TAP_DRPAUSE = 0x3,
+	TAP_IRSELECT = 0x4,
+	TAP_DRUPDATE = 0x5,
+	TAP_DRCAPTURE = 0x6,
+	TAP_DRSELECT = 0x7,
+	TAP_IREXIT2 = 0x8,
+	TAP_IREXIT1 = 0x9,
+	TAP_IRSHIFT = 0xa,
+	TAP_IRPAUSE = 0xb,
+	TAP_IDLE = 0xc,
+	TAP_IRUPDATE = 0xd,
+	TAP_IRCAPTURE = 0xe,
+	TAP_RESET = 0x0f,
 
-	TAP_NUM_STATES = 16, TAP_INVALID = -1,
-};
+	TAP_NUM_STATES = 0x10,
 
-typedef enum tap_state tap_state_t;
-
+	TAP_INVALID = -1,
+} tap_state_t;
+ 
 typedef struct tap_transition_s
 {
 	tap_state_t high;
