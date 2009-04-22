@@ -3248,7 +3248,7 @@ const char* tap_state_name(tap_state_t state)
 	switch( state )
 	{
 	case TAP_RESET:		ret = "RESET";			break;
-	case TAP_IDLE:		ret = "IDLE";			break;
+	case TAP_IDLE:		ret = "RUN/IDLE";			break;
 	case TAP_DRSELECT:	ret = "DRSELECT";		break;
 	case TAP_DRCAPTURE: ret = "DRCAPTURE";		break;
 	case TAP_DRSHIFT:	ret = "DRSHIFT";			break;
