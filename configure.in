@@ -28,6 +28,7 @@ build_bitq=no
 is_cygwin=no
 is_mingw=no
 is_win32=no
+is_darwin=no
 build_release=yes
 
 AC_ARG_ENABLE(release,
@@ -110,10 +111,11 @@ true
 )
 
 #========================================
-# FTD2XXX support comes in 3 forms.
+# FTD2XXX support comes in 4 forms.
 #    (1) win32 - via a zip file
 #    (2) linux - via a tar file
 #    (3) linux/cygwin/mingw - via libftdi
+#    (4) darwin - installed under /usr/local
 #
 # In case (1) and (2) we need to know where the package was unpacked.
 
@@ -350,6 +352,7 @@ case $host in
 	fi
 	
     AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
+    AC_DEFINE(IS_DARWIN, 0, [0 if not building for Darwin.])
     ;; 
   *-mingw*) 
     is_mingw=yes
@@ -359,11 +362,22 @@ case $host in
 
     AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
     AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
+    AC_DEFINE(IS_DARWIN, 0, [0 if not building for Darwin.])
     ;; 
+  *darwin*)
+    is_darwin=yes
+
+    parport_use_giveio=no
+
+    AC_DEFINE(IS_CYGWIN, 0, [0 if not building for Cygwin.])
+    AC_DEFINE(IS_WIN32, 0, [0 if not building for Win32.])
+    AC_DEFINE(IS_DARWIN, 1, [1 if building for Darwin.])
+    ;;
   *) 
 	parport_use_giveio=no
     AC_DEFINE(IS_CYGWIN, 0, [0 if not building for Cygwin.])
     AC_DEFINE(IS_WIN32, 0, [0 if not building for Win32.])
+    AC_DEFINE(IS_DARWIN, 0, [0 if not building for Darwin.])
     ;;
 esac
 
@@ -559,7 +573,31 @@ AC_MSG_CHECKING([for ftd2xx.lib exists (win32)])
 fi
 fi
 
-if test $is_win32 = no; then
+if test $is_darwin = yes ; then
+if test "${with_ftd2xx_win32_zipdir+set}" = set
+then
+   AC_MSG_ERROR([The option: --with-ftd2xx-win32-zipdir is for win32 only])
+fi
+if test "${with_ftd2xx_linux_tardir+set}" = set
+then
+   AC_MSG_ERROR([The option: with_ftd2xx_linux_tardir is for LINUX only.])
+fi
+
+if test $build_ft2232_ftd2xx = yes ; then
+   AC_MSG_CHECKING([for libftd2xx.a (darwin)])
+
+   if test ! -f /usr/local/include/ftd2xx.h ; then
+      AC_MSG_ERROR([ftd2xx library from FTDICHIP.com seems to be missing, cannot find: /usr/local/include/ftd2xx.h])
+   fi
+
+   CFLAGS="$CFLAGS -I/usr/local/include"
+   LDFLAGS="$LDFLAGS -L/usr/local/lib"
+   LIBS="$LIBS -lftd2xx"
+   AC_MSG_RESULT([-L/usr/local/lib -lftd2xx])
+fi
+fi
+
+if test $is_win32 = no && test $is_darwin = no ; then
 
 if test "${with_ftd2xx_win32_zipdir+set}" = set
 then
@@ -567,8 +605,7 @@ then
 fi
 
 if test $build_ft2232_ftd2xx = yes ; then
-   # Must be linux -
-   # Cause FTDICHIP does not supply a MAC-OS version
+   # Must be linux
    if test $host_os != linux-gnu && test $host_os != linux ; then
       AC_MSG_ERROR([The (linux) ftd2xx library from FTDICHIP.com is linux only. Try --enable-ft2232-libftdi instead])
    fi
@@ -728,6 +765,7 @@ AM_CONDITIONAL(ARMJTAGEW, test $build_armjtagew = yes)
 AM_CONDITIONAL(IS_CYGWIN, test $is_cygwin = yes)
 AM_CONDITIONAL(IS_MINGW, test $is_mingw = yes)
 AM_CONDITIONAL(IS_WIN32, test $is_win32 = yes)
+AM_CONDITIONAL(IS_DARWIN, test $is_darwin = yes)
 AM_CONDITIONAL(BITQ, test $build_bitq = yes)
 
 AC_LANG_C
