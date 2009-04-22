@@ -463,6 +463,8 @@ static void jlink_reset(int trst, int srst)
 	if (srst == 0)
 	{
 		jlink_simple_command(EMU_CMD_HW_RESET1);
+		jlink_end_state(TAP_RESET);
+		jlink_state_move();
 	}
 	else if (srst == 1)
 	{
@@ -472,6 +474,8 @@ static void jlink_reset(int trst, int srst)
 	if (trst == 0)
 	{
 		jlink_simple_command(EMU_CMD_HW_TRST1);
+		jlink_end_state(TAP_RESET);
+		jlink_state_move();
 	}
 	else if (trst == 1)
 	{
