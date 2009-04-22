@@ -329,6 +329,7 @@ static int jlink_init(void)
 
 	jlink_reset(0, 0);
 	jlink_tap_init();
+	jlink_speed(jtag_speed);
 
 	return ERROR_OK;
 }
