@@ -47,9 +47,24 @@
  *
  * N.B. tap_get_tms_path() was changed to reflect this corrected
  * numbering and ordering of the TAP states.
+ *
+ * DANGER!!!! some interfaces care about the actual numbers used
+ * as they are handed off directly to hardware implementations.
  */
+
 typedef enum tap_state
 {
+#if BUILD_ECOSBOARD
+/* These are the old numbers. Leave as-is for now... */
+	TAP_RESET    = 0, TAP_IDLE = 8,
+	TAP_DRSELECT = 1, TAP_DRCAPTURE = 2, TAP_DRSHIFT = 3, TAP_DREXIT1 = 4,
+	TAP_DRPAUSE  = 5, TAP_DREXIT2 = 6, TAP_DRUPDATE = 7,
+	TAP_IRSELECT = 9, TAP_IRCAPTURE = 10, TAP_IRSHIFT = 11, TAP_IREXIT1 = 12,
+	TAP_IRPAUSE  = 13, TAP_IREXIT2 = 14, TAP_IRUPDATE = 15,
+
+	TAP_NUM_STATES = 16, TAP_INVALID = -1,
+#else
+	/* Proper ARM recommended numbers */
 	TAP_DREXIT2 = 0x0,
 	TAP_DREXIT1 = 0x1,
 	TAP_DRSHIFT = 0x2,
@@ -70,8 +85,9 @@ typedef enum tap_state
 	TAP_NUM_STATES = 0x10,
 
 	TAP_INVALID = -1,
+#endif
 } tap_state_t;
- 
+
 typedef struct tap_transition_s
 {
 	tap_state_t high;
