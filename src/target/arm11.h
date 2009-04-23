@@ -26,7 +26,7 @@
 #include "register.h"
 #include "embeddedice.h"
 #include "arm_jtag.h"
-#include <stdbool.h>
+#include "types.h"
 
 #define asizeof(x)	(sizeof(x) / sizeof((x)[0]))
 
