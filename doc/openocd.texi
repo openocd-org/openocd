@@ -1606,7 +1606,9 @@ bits long, during Capture-IR 0x42 is loaded into the IR, and bits
 @itemize @bullet
 @item @b{-expected-id NUMBER}
 @* By default it is zero. If non-zero represents the
-expected tap ID used when the JTAG chain is examined. See below.
+expected tap ID used when the JTAG chain is examined. Repeat 
+the option as many times as required if multiple id's can be
+expected. See below. 
 @item @b{-disable}
 @item @b{-enable}
 @* By default not specified the tap is enabled. Some chips have a
