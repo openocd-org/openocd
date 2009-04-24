@@ -672,7 +672,7 @@ static int jlink_tap_execute(void)
 		return ERROR_OK;
 
 	// number of full bytes (plus one if some would be left over)
-	byte_length = tap_length / 8 + !!(tap_length % 8);
+	byte_length = TAP_SCAN_BYTES(tap_length);
 
 	usb_out_buffer[0] = EMU_CMD_HW_JTAG3;
 	usb_out_buffer[1] = 0;
