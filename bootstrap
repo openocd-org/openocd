@@ -2,3 +2,7 @@ aclocal \
 && autoheader \
 && automake --foreign --add-missing --copy \
 && autoconf
+
+# AM_MAINTAINER_MODE requires SVN users provide --enable-maintainer-mode
+# otherwise the documentation will fail to build due to missing version.texi
+echo "Bootstrap complete; you can './configure --enable-maintainer-mode ....'"
