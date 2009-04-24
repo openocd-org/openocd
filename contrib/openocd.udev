@@ -6,14 +6,27 @@ SYSFS{idVendor}=="15ba", SYSFS{idProduct}=="0003", MODE="664", GROUP="plugdev"
 # Olimex ARM-USB-OCD-TINY
 SYSFS{idVendor}=="15ba", SYSFS{idProduct}=="0004", MODE="664", GROUP="plugdev"
 
+# Olimex ARM-JTAG-EW
+SYSFS{idVendor}=="15ba", SYSFS{idProduct}=="001e", MODE="664", GROUP="plugdev"
+
 # USBprog with OpenOCD firmware
 SYSFS{idVendor}=="1781", SYSFS{idProduct}=="0c63", MODE="664", GROUP="plugdev"
 
-# Amontec JTAGkey
+# Amontec JTAGkey and JTAGkey-tiny
 SYSFS{idVendor}=="0403", SYSFS{idProduct}=="cff8", MODE="664", GROUP="plugdev"
 
 # Amontec JTAGkey-HiSpeed
 SYSFS{idVendor}=="0fbb", SYSFS{idProduct}=="1000", MODE="664", GROUP="plugdev"
+
+# Axiom AXM-0432 Link (Symphony SoundBite?)
+# Calao Systems USB-A9260-C01
+# TinCanTools Flyswatter
+# OOCD-Link
+# Marvell Sheevaplug (early development versions)
+SYSFS{idVendor}=="0403", SYSFS{idProduct}=="6010", MODE="664", GROUP="plugdev"
+
+# Calao Systems USB-A9260-C02
+SYSFS{idVendor}=="0403", SYSFS{idProduct}=="6001", MODE="664", GROUP="plugdev"
 
 # IAR J-Link USB
 SYSFS{idVendor}=="1366", SYSFS{idProduct}=="0101", MODE="664", GROUP="plugdev"
@@ -21,8 +34,23 @@ SYSFS{idVendor}=="1366", SYSFS{idProduct}=="0101", MODE="664", GROUP="plugdev"
 # Raisonance RLink
 SYSFS{idVendor}=="138e", SYSFS{idProduct}=="9000", MODE="664", GROUP="plugdev"
 
-# Olimex ARM-JTAG-EW
-SYSFS{idVendor}=="15ba", SYSFS{idProduct}=="001e", MODE="664", GROUP="plugdev"
+# Hitex STR9-comStick
+SYSFS{idVendor}=="0640", SYSFS{idProduct}=="002c", MODE="664", GROUP="plugdev"
+
+# Hitex STM32-PerformanceStick
+SYSFS{idVendor}=="0640", SYSFS{idProduct}=="002d", MODE="664", GROUP="plugdev"
+
+# Luminary Micro Stellaris/LM3S811
+SYSFS{idVendor}=="0403", SYSFS{idProduct}=="bcd9", MODE="664", GROUP="plugdev"
+
+# Xverve Signalyzer Tool (DT-USB-ST)
+SYSFS{idVendor}=="0403", SYSFS{idProduct}=="bca0", MODE="664", GROUP="plugdev"
+
+# egnite Turtelizer 2
+SYSFS{idVendor}=="0403", SYSFS{idProduct}=="bdc8", MODE="664", GROUP="plugdev"
+
+# Marvell Sheevaplug
+SYSFS{idVendor}=="9e88", SYSFS{idProduct}=="9e8f", MODE="664", GROUP="plugdev"
 
 LABEL="openocd_rules_end"
 
