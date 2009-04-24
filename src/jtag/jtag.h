@@ -206,6 +206,25 @@ tap_state_t tap_state_transition(tap_state_t current_state, bool tms);
  */
 const char* tap_state_name(tap_state_t state);
 
+#ifdef _DEBUG_JTAG_IO_
+/**
+ * @brief Prints verbose TAP state transitions for the given TMS/TDI buffers.
+ * @param tms_buf must points to a buffer containing the TMS bitstream.
+ * @param tdi_buf must points to a buffer containing the TDI bitstream.
+ * @param tap_len must specify the length of the TMS/TDI bitstreams.
+ * @param start_tap_state must specify the current TAP state.
+ * @returns the final TAP state; pass as @a start_tap_state in following call.
+ */
+tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
+		unsigned tap_len, tap_state_t start_tap_state);
+#else
+static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
+		const void *tdi_buf, unsigned tap_len, tap_state_t start_tap_state)
+{
+	return start_tap_state;
+}
+#endif // _DEBUG_JTAG_IO_
+
 /*-----</Cable Helper API>------------------------------------------*/
 
 

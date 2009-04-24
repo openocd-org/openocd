@@ -114,6 +114,8 @@ static int jlink_get_version_info(void);
 static void jlink_debug_buffer(u8 *buffer, int length);
 #endif
 
+static enum tap_state jlink_last_state = TAP_RESET;
+
 static jlink_jtag_t* jlink_jtag_handle;
 
 /***************************************************************************/
@@ -680,6 +682,9 @@ static int jlink_tap_execute(void)
 	usb_out_buffer[3] = (tap_length >> 8) & 0xff;
 	memcpy(usb_out_buffer + 4, tms_buffer, byte_length);
 	memcpy(usb_out_buffer + 4 + byte_length, tdi_buffer, byte_length);
+
+	jlink_last_state = jtag_debug_state_machine(tms_buffer, tdi_buffer,
+			tap_length, jlink_last_state);
 
 	result = jlink_usb_message(jlink_jtag_handle, 4 + 2 * byte_length, byte_length);
 	if (result != byte_length)

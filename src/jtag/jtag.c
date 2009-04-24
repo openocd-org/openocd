@@ -3283,4 +3283,89 @@ static tap_state_t tap_state_by_name( const char *name )
 	return TAP_INVALID;
 }
 
+#ifdef _DEBUG_JTAG_IO_
+
+#define JTAG_DEBUG_STATE_APPEND(buf, len, bit) \
+		do { buf[len] = bit ? '1' : '0'; } while(0)
+#define JTAG_DEBUG_STATE_PRINT(a, b, astr, bstr) \
+		DEBUG_JTAG_IO("TAP/SM: %9s -> %5s\tTMS: %s\tTDI: %s", \
+			tap_state_name(a), tap_state_name(b), astr, bstr)
+
+tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
+		unsigned tap_bits, tap_state_t next_state)
+{
+	const u8 *tms_buffer;
+	const u8 *tdi_buffer;
+	unsigned tap_bytes;
+	unsigned cur_byte;
+	unsigned cur_bit;
+
+	unsigned tap_out_bits;
+	char tms_str[33];
+	char tdi_str[33];
+
+	tap_state_t last_state;
+
+	// set startstate (and possibly last, if tap_bits == 0) 
+	last_state = next_state;
+	DEBUG_JTAG_IO("TAP/SM: START state: %s", tap_state_name(next_state));
+
+	tms_buffer = (const u8 *)tms_buf;
+	tdi_buffer = (const u8 *)tdi_buf;
+
+	tap_bytes = TAP_SCAN_BYTES(tap_bits);
+	DEBUG_JTAG_IO("TAP/SM: TMS bits: %u (bytes: %u)", tap_bits, tap_bytes);
+
+	tap_out_bits = 0;
+	for(cur_byte = 0; cur_byte < tap_bytes; cur_byte++)
+	{
+		for(cur_bit = 0; cur_bit < 8; cur_bit++)
+		{
+			// make sure we do not run off the end of the buffers
+			unsigned tap_bit = cur_byte * 8 + cur_bit;
+			if (tap_bit == tap_bits)
+				break;
+
+			// check and save TMS bit
+			tap_bit = !!(tms_buffer[cur_byte] & (1 << cur_bit));
+			JTAG_DEBUG_STATE_APPEND(tms_str, tap_out_bits, tap_bit);
+
+			// use TMS bit to find the next TAP state
+			next_state = tap_state_transition(last_state, tap_bit);
+
+			// check and store TDI bit
+			tap_bit = !!(tdi_buffer[cur_byte] & (1 << cur_bit));
+			JTAG_DEBUG_STATE_APPEND(tdi_str, tap_out_bits, tap_bit);
+
+			// increment TAP bits
+			tap_out_bits++;
+
+			// Only show TDO bits on state transitions, or
+			// after some number of bits in the same state.
+			if ((next_state == last_state) && (tap_out_bits < 32))
+				continue;
+
+			// terminate strings and display state transition
+			tms_str[tap_out_bits] = tdi_str[tap_out_bits] = 0;
+			JTAG_DEBUG_STATE_PRINT(last_state, next_state, tms_str, tdi_str);
+
+			// reset state
+			last_state = next_state;
+			tap_out_bits = 0;
+		}
+	}
+
+	if (tap_out_bits)
+	{
+		// terminate strings and display state transition
+		tms_str[tap_out_bits] = tdi_str[tap_out_bits] = 0;
+		JTAG_DEBUG_STATE_PRINT(last_state, next_state, tms_str, tdi_str);
+	}
+
+	DEBUG_JTAG_IO("TAP/SM: FINAL state: %s", tap_state_name(next_state));
+
+	return next_state;
+}
+#endif // _DEBUG_JTAG_IO_
+
 /*-----</Cable Helper API>--------------------------------------*/
