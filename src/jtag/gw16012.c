@@ -436,7 +436,7 @@ static int gw16012_execute_queue(void)
 }
 
 #if PARPORT_USE_GIVEIO == 1
-static int gw16012_get_giveio_access()
+static int gw16012_get_giveio_access(void)
 {
 	HANDLE h;
 	OSVERSIONINFO version;
