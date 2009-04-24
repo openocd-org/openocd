@@ -665,8 +665,6 @@ static void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *comman
 static int jlink_tap_execute(void)
 {
 	int byte_length;
-	int tms_offset;
-	int tdi_offset;
 	int i;
 	int result;
 
@@ -680,21 +678,10 @@ static int jlink_tap_execute(void)
 	usb_out_buffer[1] = 0;
 	usb_out_buffer[2] = (tap_length >> 0) & 0xff;
 	usb_out_buffer[3] = (tap_length >> 8) & 0xff;
-
-	tms_offset = 4;
-	for (i = 0; i < byte_length; i++)
-	{
-		usb_out_buffer[tms_offset + i] = tms_buffer[i];
-	}
-
-	tdi_offset = tms_offset + byte_length;
-	for (i = 0; i < byte_length; i++)
-	{
-		usb_out_buffer[tdi_offset + i] = tdi_buffer[i];
-	}
+	memcpy(usb_out_buffer + 4, tms_buffer, byte_length);
+	memcpy(usb_out_buffer + 4 + byte_length, tdi_buffer, byte_length);
 
 	result = jlink_usb_message(jlink_jtag_handle, 4 + 2 * byte_length, byte_length);
-
 	if (result != byte_length)
 	{
 		LOG_ERROR("jlink_tap_execute, wrong result %d (expected %d)",
@@ -702,8 +689,7 @@ static int jlink_tap_execute(void)
 		return ERROR_JTAG_QUEUE_FAILED;
 	}
 
-	for (i = 0; i < byte_length; i++)
-		tdo_buffer[i] = usb_in_buffer[i];
+	memcpy(tdo_buffer, usb_in_buffer, byte_length);
 
 	for (i = 0; i < pending_scan_results_length; i++)
 	{
