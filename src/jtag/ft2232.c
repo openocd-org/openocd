@@ -1590,13 +1590,13 @@ static int ft2232_execute_queue()
 		if (ft2232_execute_command(cmd) != ERROR_OK)
 			retval = ERROR_JTAG_QUEUE_FAILED;
 		/* Start reading input before FT2232 TX buffer fills up */
-		if (ft2232_expect_read > 280)
+		cmd = cmd->next;
+		if (ft2232_expect_read > 256)
 		{
 			if (ft2232_send_and_recv(first_unsent, cmd) != ERROR_OK)
 				retval = ERROR_JTAG_QUEUE_FAILED;
 			first_unsent = cmd;
 		}
-		cmd = cmd->next;
 	}
 
 	if (require_send > 0)
