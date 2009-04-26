@@ -237,7 +237,7 @@ struct scan_field_s;
 typedef int (*in_handler_t)(u8* in_value, void* priv, struct scan_field_s* field);
 
 /// @brief calculates number of bytes required to hold @a n TAP scan bits
-#define TAP_SCAN_BYTES(n)		(((n) / 8) + !!((n) % 8))
+#define TAP_SCAN_BYTES(n)		CEIL(n, 8)
 
 typedef struct scan_field_s
 {
