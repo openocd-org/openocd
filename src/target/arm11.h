@@ -240,18 +240,18 @@ void arm11_add_IR				(arm11_common_t * arm11, u8 instr, tap_state_t state);
 void arm11_add_debug_SCAN_N		(arm11_common_t * arm11, u8 chain, tap_state_t state);
 void arm11_add_debug_INST		(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state_t state);
 int arm11_read_DSCR			(arm11_common_t * arm11, u32 *dscr);
-void arm11_write_DSCR			(arm11_common_t * arm11, u32 dscr);
+int arm11_write_DSCR			(arm11_common_t * arm11, u32 dscr);
 
 enum target_debug_reason arm11_get_DSCR_debug_reason(u32 dscr);
 
 void arm11_run_instr_data_prepare			(arm11_common_t * arm11);
 void arm11_run_instr_data_finish			(arm11_common_t * arm11);
-void arm11_run_instr_no_data				(arm11_common_t * arm11, u32 * opcode, size_t count);
+int arm11_run_instr_no_data				(arm11_common_t * arm11, u32 * opcode, size_t count);
 void arm11_run_instr_no_data1				(arm11_common_t * arm11, u32 opcode);
-void arm11_run_instr_data_to_core			(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
-void arm11_run_instr_data_to_core_noack		(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
-void arm11_run_instr_data_to_core1			(arm11_common_t * arm11, u32 opcode, u32 data);
-void arm11_run_instr_data_from_core			(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
+int arm11_run_instr_data_to_core			(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
+int arm11_run_instr_data_to_core_noack		(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
+int arm11_run_instr_data_to_core1			(arm11_common_t * arm11, u32 opcode, u32 data);
+int arm11_run_instr_data_from_core			(arm11_common_t * arm11, u32 opcode, u32 * data, size_t count);
 void arm11_run_instr_data_from_core_via_r0	(arm11_common_t * arm11, u32 opcode, u32 * data);
 void arm11_run_instr_data_to_core_via_r0	(arm11_common_t * arm11, u32 opcode, u32 data);
 
@@ -271,12 +271,12 @@ typedef struct arm11_sc7_action_s
 									 function returns.					*/
 } arm11_sc7_action_t;
 
-void arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t count);
+int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t count);
 
 /* Mid-level helper functions */
 void arm11_sc7_clear_vbw(arm11_common_t * arm11);
 void arm11_sc7_set_vcr(arm11_common_t * arm11, u32 value);
 
-void arm11_read_memory_word(arm11_common_t * arm11, u32 address, u32 * result);
+int arm11_read_memory_word(arm11_common_t * arm11, u32 address, u32 * result);
 
 #endif /* ARM11_H */

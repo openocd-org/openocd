@@ -932,7 +932,8 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 
 	u32	next_instruction;
 
-	arm11_read_memory_word(arm11, R(PC), &next_instruction);
+	if ((arm11_read_memory_word(arm11, R(PC), &next_instruction))!=ERROR_OK)
+		return retval;
 
 	/* skip over BKPT */
 	if ((next_instruction & 0xFFF00070) == 0xe1200070)
@@ -976,7 +977,8 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 		brp[1].address	= ARM11_SC7_BCR0;
 		brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (2 << 21);
 
-		arm11_sc7_run(arm11, brp, asizeof(brp));
+		if ((retval=arm11_sc7_run(arm11, brp, asizeof(brp)))!=ERROR_OK)
+			return retval;
 
 		/* resume */
 
@@ -987,7 +989,8 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 			R(DSCR) |= ARM11_DSCR_INTERRUPTS_DISABLE;
 
 
-		arm11_leave_debug_state(arm11);
+		if ((retval=arm11_leave_debug_state(arm11))!=ERROR_OK)
+			return retval;
 
 		arm11_add_IR(arm11, ARM11_RESTART, TAP_IDLE);
 
@@ -1018,7 +1021,8 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 		arm11_sc7_clear_vbw(arm11);
 
 		/* save state */
-		arm11_on_enter_debug_state(arm11);
+		if((retval = arm11_on_enter_debug_state(arm11))!=ERROR_OK)
+			return retval;
 
 	    /* restore default state */
 		R(DSCR) &= ~ARM11_DSCR_INTERRUPTS_DISABLE;
