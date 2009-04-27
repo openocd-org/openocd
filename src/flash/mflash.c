@@ -473,14 +473,16 @@ static int mg_mflash_read_sects(void *buff, u32 sect_num, u32 sect_cnt)
 	residue = sect_cnt % 256;
 
 	for (i = 0; i < quotient; i++) {
-		LOG_DEBUG("sect num : %u buff : 0x%8.8x", sect_num, (u32)buff_ptr);
+		LOG_DEBUG("sect num : %u buff : 0x%0lx", sect_num, 
+			(unsigned long)buff_ptr);
 		mg_mflash_do_read_sects(buff_ptr, sect_num, 256);
 		sect_num += 256;
 		buff_ptr += 256 * MG_MFLASH_SECTOR_SIZE;
 	}
 
 	if (residue) {
-		LOG_DEBUG("sect num : %u buff : %8.8x", sect_num, (u32)buff_ptr);
+		LOG_DEBUG("sect num : %u buff : %0lx", sect_num, 
+			(unsigned long)buff_ptr);
 		mg_mflash_do_read_sects(buff_ptr, sect_num, residue);
 	}
 
@@ -542,14 +544,16 @@ static int mg_mflash_write_sects(void *buff, u32 sect_num, u32 sect_cnt)
 	residue = sect_cnt % 256;
 
 	for (i = 0; i < quotient; i++) {
-		LOG_DEBUG("sect num : %u buff : %8.8x", sect_num, (u32)buff_ptr);
+		LOG_DEBUG("sect num : %u buff : %0lx", sect_num, 
+			(unsigned long)buff_ptr);
 		mg_mflash_do_write_sects(buff_ptr, sect_num, 256);
 		sect_num += 256;
 		buff_ptr += 256 * MG_MFLASH_SECTOR_SIZE;
 	}
 
 	if (residue) {
-		LOG_DEBUG("sect num : %u buff : %8.8x", sect_num, (u32)buff_ptr);
+		LOG_DEBUG("sect num : %u buff : %0lx", sect_num, 
+			(unsigned long)buff_ptr);
 		mg_mflash_do_write_sects(buff_ptr, sect_num, residue);
 	}
 
