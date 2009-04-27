@@ -372,7 +372,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	for (i = 0; i < num_reg_params; i++)
 	{
 		reg_t *reg = register_get_by_name(armv7m->core_cache, reg_params[i].reg_name, 0);
-		u32 regvalue;
+//		u32 regvalue;
 
 		if (!reg)
 		{
@@ -386,7 +386,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 			exit(-1);
 		}
 
-		regvalue = buf_get_u32(reg_params[i].value, 0, 32);
+//		regvalue = buf_get_u32(reg_params[i].value, 0, 32);
 		armv7m_set_core_reg(reg, reg_params[i].value);
 	}
 
@@ -553,8 +553,10 @@ int armv7m_register_commands(struct command_context_s *cmd_ctx)
 	command_t *arm_adi_v5_dap_cmd;
 
 	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap", NULL, COMMAND_ANY, "cortex dap specific commands");		
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "info", handle_dap_info_command, COMMAND_EXEC, "dap info for ap [num] (default 0)");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "info", handle_dap_info_command, COMMAND_EXEC, "dap info for ap [num], default currently selected AP");
 	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apsel", handle_dap_apsel_command, COMMAND_EXEC, "select a different AP [num] (default 0)");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apid", handle_dap_apid_command, COMMAND_EXEC, "return id reg from AP [num], default currently selected AP");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "baseaddr", handle_dap_baseaddr_command, COMMAND_EXEC, "return debug base address from AP [num], default currently selected AP");
 
 	return ERROR_OK;
 }
@@ -702,6 +704,75 @@ int armv7m_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 	return ERROR_OK;
 }
 
+/********************************************************************************************************************
+* Return the debug ap baseaddress in hexadecimal, no extra output to simplify script processing
+*********************************************************************************************************************/
+int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv7m_common_t *armv7m = target->arch_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	u32 apsel, apselsave, baseaddr;
+	int retval;
+
+	apsel = swjdp->apsel;
+	apselsave = swjdp->apsel;
+	if (argc > 0)
+	{	
+		apsel = strtoul(args[0], NULL, 0);
+	}
+	if (apselsave != apsel)
+	{
+		dap_ap_select(swjdp, apsel);
+	}
+
+	dap_ap_read_reg_u32(swjdp, 0xF8, &baseaddr);
+	retval = swjdp_transaction_endcheck(swjdp);
+	command_print(cmd_ctx, "0x%8.8x", baseaddr);
+
+	if (apselsave != apsel)
+	{
+		dap_ap_select(swjdp, apselsave);
+	}
+
+	return retval;
+}
+
+
+/********************************************************************************************************************
+* Return the debug ap id in hexadecimal, no extra output to simplify script processing
+*********************************************************************************************************************/
+extern int handle_dap_apid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv7m_common_t *armv7m = target->arch_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	u32 apsel, apselsave, apid;
+	int retval;
+
+	apsel = swjdp->apsel;
+	apselsave = swjdp->apsel;
+	if (argc > 0)
+	{	
+		apsel = strtoul(args[0], NULL, 0);
+	}
+
+	if (apselsave != apsel)
+	{
+		dap_ap_select(swjdp, apsel);
+	}
+
+	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
+	retval = swjdp_transaction_endcheck(swjdp);
+	command_print(cmd_ctx, "0x%8.8x", apid);
+	if (apselsave != apsel)
+	{
+		dap_ap_select(swjdp, apselsave);
+	}
+
+	return retval;
+}
+
 int handle_dap_apsel_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
@@ -732,7 +803,7 @@ int handle_dap_info_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	int retval;
 	u32 apsel;
 
-	apsel = 0;
+	apsel =  swjdp->apsel;
 	if (argc > 0)
 	{	
 		apsel = strtoul(args[0], NULL, 0);
