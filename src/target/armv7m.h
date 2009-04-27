@@ -29,6 +29,7 @@
 #include "register.h"
 #include "target.h"
 #include "arm_jtag.h"
+#include "arm_adi_v5.h"
 
 /* define for enabling armv7 gdb workarounds */
 #if 1
@@ -78,6 +79,8 @@ typedef struct armv7m_common_s
 	reg_cache_t *core_cache;
 	enum armv7m_mode core_mode;
 	int exception_number;
+	swjdp_common_t swjdp_info;
+
 	
 	/* Direct processor core register read and writes */
 	int (*load_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, u32 num, u32 *value);

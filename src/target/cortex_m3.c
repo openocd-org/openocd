@@ -22,6 +22,10 @@
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                         *
+ *                                                                         *
+ *   Cortex-M3(tm) TRM, ARM DDI 0337C                                      *
+ *                                                                         *
  ***************************************************************************/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -101,19 +105,70 @@ target_type_t cortexm3_target =
 	.quit = cortex_m3_quit
 };
 
+int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum)
+{
+	int retval;
+	u32 dcrdr;
+
+	/* because the DCB_DCRDR is used for the emulated dcc channel
+	 * we gave to save/restore the DCB_DCRDR when used */
+
+	mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
+
+	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
+
+	/* mem_ap_write_u32(swjdp, DCB_DCRSR, regnum); */
+	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
+	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum );
+
+	/* mem_ap_read_u32(swjdp, DCB_DCRDR, value); */
+	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
+	dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value );
+
+	mem_ap_write_u32(swjdp, DCB_DCRDR, dcrdr);
+	retval = swjdp_transaction_endcheck(swjdp);
+	return retval;
+}
+
+int cortexm3_dap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum)
+{
+	int retval;
+	u32 dcrdr;
+
+	/* because the DCB_DCRDR is used for the emulated dcc channel
+	 * we gave to save/restore the DCB_DCRDR when used */
+
+	mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
+
+	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
+
+	/* mem_ap_write_u32(swjdp, DCB_DCRDR, core_regs[i]); */
+	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
+	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value );
+
+	/* mem_ap_write_u32(swjdp, DCB_DCRSR, i | DCRSR_WnR	); */
+	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
+	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR );
+
+	mem_ap_write_u32(swjdp, DCB_DCRDR, dcrdr);
+	retval = swjdp_transaction_endcheck(swjdp);
+	return retval;
+}
+
+
 int cortex_m3_write_debug_halt_mask(target_t *target, u32 mask_on, u32 mask_off)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	
 	/* mask off status bits */
 	cortex_m3->dcb_dhcsr &= ~((0xFFFF << 16) | mask_off);
 	/* create new register mask */
 	cortex_m3->dcb_dhcsr |= DBGKEY | C_DEBUGEN | mask_on;
 	
-	return ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, cortex_m3->dcb_dhcsr);
+	return mem_ap_write_atomic_u32(swjdp, DCB_DHCSR, cortex_m3->dcb_dhcsr);
 }
 
 int cortex_m3_clear_halt(target_t *target)
@@ -121,15 +176,15 @@ int cortex_m3_clear_halt(target_t *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	
 	/* clear step if any */
 	cortex_m3_write_debug_halt_mask(target, C_HALT, C_STEP);
 	
 	/* Read Debug Fault Status Register */
-	ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
+	mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
 	/* Write Debug Fault Status Register to enable processing to resume ?? Try with and without this !! */
-	ahbap_write_system_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
+	mem_ap_write_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
 	LOG_DEBUG(" NVIC_DFSR 0x%x", cortex_m3->nvic_dfsr);
 
 	return ERROR_OK;
@@ -140,7 +195,7 @@ int cortex_m3_single_step_core(target_t *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	u32 dhcsr_save;
 	
 	/* backup dhcsr reg */
@@ -148,8 +203,8 @@ int cortex_m3_single_step_core(target_t *target)
 	
 	/* mask interrupts if not done already */
 	if (!(cortex_m3->dcb_dhcsr & C_MASKINTS))
-		ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_HALT | C_DEBUGEN);
-	ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_STEP | C_DEBUGEN);
+		mem_ap_write_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_HALT | C_DEBUGEN);
+	mem_ap_write_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_MASKINTS | C_STEP | C_DEBUGEN);
 	LOG_DEBUG(" ");
 	
 	/* restore dhcsr reg */
@@ -163,17 +218,16 @@ int cortex_m3_exec_opcode(target_t *target,u32 opcode, int len /* MODE, r0_inval
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	u32 savedram;
 	int retvalue;
 	
-	ahbap_read_system_u32(swjdp, 0x20000000, &savedram);
-	ahbap_write_system_u32(swjdp, 0x20000000, opcode);
-	ahbap_write_coreregister_u32(swjdp, 0x20000000, 15);
+	mem_ap_read_u32(swjdp, 0x20000000, &savedram);
+	mem_ap_write_u32(swjdp, 0x20000000, opcode);
+	cortexm3_dap_write_coreregister_u32(swjdp, 0x20000000, 15);
 	cortex_m3_single_step_core(target);
 	armv7m->core_cache->reg_list[15].dirty = armv7m->core_cache->reg_list[15].valid;
-	retvalue = ahbap_write_system_atomic_u32(swjdp, 0x20000000, savedram);
+	retvalue = mem_ap_write_atomic_u32(swjdp, 0x20000000, savedram);
 	
 	return retvalue;
 }
@@ -200,28 +254,28 @@ int cortex_m3_endreset_event(target_t *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	cortex_m3_fp_comparator_t *fp_list = cortex_m3->fp_comparator_list; 
 	cortex_m3_dwt_comparator_t *dwt_list = cortex_m3->dwt_comparator_list;
 
-	ahbap_read_system_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
+	mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
 	LOG_DEBUG("DCB_DEMCR = 0x%8.8x",dcb_demcr);
 	
 	/* this regsiter is used for emulated dcc channel */
-	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0);
+	mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
 	
 	/* Enable debug requests */
-	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
-		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+		mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
 	
 	/* clear any interrupt masking */
 	cortex_m3_write_debug_halt_mask(target, 0, C_MASKINTS);
 	
 	/* Enable trace and dwt */
-	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
+	mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
 	/* Monitor bus faults */
-	ahbap_write_system_u32(swjdp, NVIC_SHCSR, SHCSR_BUSFAULTENA);
+	mem_ap_write_u32(swjdp, NVIC_SHCSR, SHCSR_BUSFAULTENA);
 
 	/* Enable FPB */
 	target_write_u32(target, FP_CTRL, 3);
@@ -245,7 +299,7 @@ int cortex_m3_endreset_event(target_t *target)
 	armv7m_invalidate_core_regs(target);
 	
 	/* make sure we have latest dhcsr flags */
-	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	
 	return ERROR_OK;
 }
@@ -283,36 +337,35 @@ int cortex_m3_examine_exception_reason(target_t *target)
 
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
-	ahbap_read_system_u32(swjdp, NVIC_SHCSR, &shcsr);
+	mem_ap_read_u32(swjdp, NVIC_SHCSR, &shcsr);
 	switch (armv7m->exception_number)
 	{
 		case 2:	/* NMI */
 			break;
 		case 3:	/* Hard Fault */
-			ahbap_read_system_atomic_u32(swjdp, NVIC_HFSR, &except_sr);
+			mem_ap_read_atomic_u32(swjdp, NVIC_HFSR, &except_sr);
 			if (except_sr & 0x40000000)
 			{
-				ahbap_read_system_u32(swjdp, NVIC_CFSR, &cfsr);
+				mem_ap_read_u32(swjdp, NVIC_CFSR, &cfsr);
 			}
 			break;
 		case 4:	/* Memory Management */
-			ahbap_read_system_u32(swjdp, NVIC_CFSR, &except_sr);
-			ahbap_read_system_u32(swjdp, NVIC_MMFAR, &except_ar);		
+			mem_ap_read_u32(swjdp, NVIC_CFSR, &except_sr);
+			mem_ap_read_u32(swjdp, NVIC_MMFAR, &except_ar);		
 			break;
 		case 5:	/* Bus Fault */
-			ahbap_read_system_u32(swjdp, NVIC_CFSR, &except_sr);
-			ahbap_read_system_u32(swjdp, NVIC_BFAR, &except_ar);				
+			mem_ap_read_u32(swjdp, NVIC_CFSR, &except_sr);
+			mem_ap_read_u32(swjdp, NVIC_BFAR, &except_ar);				
 			break;
 		case 6:	/* Usage Fault */
-			ahbap_read_system_u32(swjdp, NVIC_CFSR, &except_sr);
+			mem_ap_read_u32(swjdp, NVIC_CFSR, &except_sr);
 			break;
 		case 11:	/* SVCall */
 			break;
 		case 12:	/* Debug Monitor */
-			ahbap_read_system_u32(swjdp, NVIC_DFSR, &except_sr);
+			mem_ap_read_u32(swjdp, NVIC_DFSR, &except_sr);
 			break;
 		case 14:	/* PendSV */
 			break;
@@ -337,14 +390,14 @@ int cortex_m3_debug_entry(target_t *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	LOG_DEBUG(" ");
 	if (armv7m->pre_debug_entry)
 		armv7m->pre_debug_entry(target);
 
 	cortex_m3_clear_halt(target);
-	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 
 	if ((retval = armv7m->examine_debug_reason(target)) != ERROR_OK)
 		return retval;
@@ -417,10 +470,10 @@ int cortex_m3_poll(target_t *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 	/* Read from Debug Halting Control and Status Register */
-	retval = ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+	retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (retval != ERROR_OK)
 	{
 		target->state = TARGET_UNKNOWN;
@@ -430,7 +483,7 @@ int cortex_m3_poll(target_t *target)
 	if (cortex_m3->dcb_dhcsr & S_RESET_ST)
 	{
 		/* check if still in reset */
-		ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+		mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 		
 		if (cortex_m3->dcb_dhcsr & S_RESET_ST)
 		{
@@ -476,7 +529,7 @@ int cortex_m3_poll(target_t *target)
 
 #if 0
 	/* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
-	ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
+	mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
 	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 #endif
 	
@@ -530,15 +583,15 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	u32 dcb_dhcsr = 0;
 	int retval, timeout = 0;
 
 	/* Enter debug state on reset, cf. end_reset_event() */
-	ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
+	mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 	
 	/* Request a reset */ 
-	ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_VECTRESET);
+	mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_VECTRESET);
 	target->state = TARGET_RESET;
 
 	/* registers are now invalid */
@@ -546,10 +599,10 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 
 	while (timeout < 100)
 	{
-		retval = ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
+		retval = mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &dcb_dhcsr);
 		if (retval == ERROR_OK)
 		{
-			ahbap_read_system_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
+			mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
 			if ((dcb_dhcsr & S_HALT) && (cortex_m3->nvic_dfsr & DFSR_VCATCH))
 			{
 				LOG_DEBUG("system reset-halted, dcb_dhcsr 0x%x, nvic_dfsr 0x%x", dcb_dhcsr, cortex_m3->nvic_dfsr);
@@ -657,7 +710,7 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	breakpoint_t *breakpoint = NULL;
 
 	if (target->state != TARGET_HALTED)
@@ -683,7 +736,7 @@ int cortex_m3_step(struct target_s *target, int current, u32 address, int handle
 	
 	/* set step and clear halt */
 	cortex_m3_write_debug_halt_mask(target, C_STEP, C_HALT);
-	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 
 	/* registers are now invalid */
 	armv7m_invalidate_core_regs(target);
@@ -704,7 +757,7 @@ int cortex_m3_assert_reset(target_t *target)
 {
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	int assert_srst = 1;
 	
 	LOG_DEBUG("target->state: %s", 
@@ -717,17 +770,17 @@ int cortex_m3_assert_reset(target_t *target)
 	}
 	
 	/* Enable debug requests */
-	ahbap_read_system_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
+	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
-		ahbap_write_system_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
+		mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
 		
-	ahbap_write_system_u32(swjdp, DCB_DCRDR, 0 );
+	mem_ap_write_u32(swjdp, DCB_DCRDR, 0 );
 	
 	if (!target->reset_halt)
 	{
 		/* Set/Clear C_MASKINTS in a separate operation */
 		if (cortex_m3->dcb_dhcsr & C_MASKINTS)
-			ahbap_write_system_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT);
+			mem_ap_write_atomic_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN | C_HALT);
 
 		/* clear any debug flags before resuming */
 		cortex_m3_clear_halt(target);
@@ -736,12 +789,12 @@ int cortex_m3_assert_reset(target_t *target)
 		cortex_m3_write_debug_halt_mask(target, 0, C_HALT);
 							
 		/* Enter debug state on reset, cf. end_reset_event() */	
-		ahbap_write_system_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
+		mem_ap_write_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR);
 	}
 	else
 	{
 		/* Enter debug state on reset, cf. end_reset_event() */
-		ahbap_write_system_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
+		mem_ap_write_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 	}
 	
 	/* following hack is to handle luminary reset
@@ -789,14 +842,14 @@ int cortex_m3_assert_reset(target_t *target)
 	else
 	{
 		/* this causes the luminary device to reset using the watchdog */
-		ahbap_write_system_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
+		mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
 		LOG_DEBUG("Using Luminary Reset: SYSRESETREQ");
 
 		{
 			/* I do not know why this is necessary, but it fixes strange effects
 			 * (step/resume cause a NMI after reset) on LM3S6918 -- Michael Schwingen */
 			u32 tmp;
-			ahbap_read_system_atomic_u32(swjdp, NVIC_AIRCR, &tmp);
+			mem_ap_read_atomic_u32(swjdp, NVIC_AIRCR, &tmp);
 		}
 	}
 	
@@ -1179,13 +1232,12 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 	int retval;
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 		
 	if ((type == ARMV7M_REGISTER_CORE_GP) && (num <= ARMV7M_PSP))
 	{
 		/* read a normal core register */
-		retval = ahbap_read_coreregister_u32(swjdp, value, num);
+		retval = cortexm3_dap_read_coreregister_u32(swjdp, value, num);
 		
 		if (retval != ERROR_OK)
 		{
@@ -1197,7 +1249,7 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
 	{
 		/* read other registers */
-		ahbap_read_coreregister_u32(swjdp, value, 20);
+		cortexm3_dap_read_coreregister_u32(swjdp, value, 20);
 		
 		switch (num)
 		{
@@ -1235,8 +1287,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
 #ifdef ARMV7_GDB_HACKS
 	/* If the LR register is being modified, make sure it will put us
@@ -1251,7 +1302,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	 
 	if ((type == ARMV7M_REGISTER_CORE_GP) && (num <= ARMV7M_PSP))
 	{
-		retval = ahbap_write_coreregister_u32(swjdp, value, num);
+		retval = cortexm3_dap_write_coreregister_u32(swjdp, value, num);
 		if (retval != ERROR_OK)
 		{
 			LOG_ERROR("JTAG failure %i", retval);
@@ -1264,7 +1315,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	{
 		/* write other registers */
 		
-		ahbap_read_coreregister_u32(swjdp, &reg, 20);
+		cortexm3_dap_read_coreregister_u32(swjdp, &reg, 20);
 		
 		switch (num)
 		{
@@ -1285,7 +1336,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 				break;
 		}
 		
-		ahbap_write_coreregister_u32(swjdp, reg, 20);
+		cortexm3_dap_write_coreregister_u32(swjdp, reg, 20);
 		
 		LOG_DEBUG("write special reg %i value 0x%x ", num, value);
 	}
@@ -1301,8 +1352,7 @@ int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 co
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	int retval;
 	
 	/* sanitize arguments */
@@ -1314,13 +1364,13 @@ int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 co
 	switch (size)
 	{
 		case 4:
-			retval = ahbap_read_buf_u32(swjdp, buffer, 4 * count, address);
+			retval = mem_ap_read_buf_u32(swjdp, buffer, 4 * count, address);
 			break;
 		case 2:
-			retval = ahbap_read_buf_u16(swjdp, buffer, 2 * count, address);
+			retval = mem_ap_read_buf_u16(swjdp, buffer, 2 * count, address);
 			break;
 		case 1:
-			retval = ahbap_read_buf_u8(swjdp, buffer, count, address);
+			retval = mem_ap_read_buf_u8(swjdp, buffer, count, address);
 			break;
 		default:
 			LOG_ERROR("BUG: we shouldn't get here");
@@ -1334,8 +1384,7 @@ int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 c
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	int retval;
 	
 	/* sanitize arguments */
@@ -1345,13 +1394,13 @@ int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 c
 	switch (size)
 	{
 		case 4:
-			retval = ahbap_write_buf_u32(swjdp, buffer, 4 * count, address);
+			retval = mem_ap_write_buf_u32(swjdp, buffer, 4 * count, address);
 			break;
 		case 2:
-			retval = ahbap_write_buf_u16(swjdp, buffer, 2 * count, address);
+			retval = mem_ap_write_buf_u16(swjdp, buffer, 2 * count, address);
 			break;
 		case 1:
-			retval = ahbap_write_buf_u8(swjdp, buffer, count, address);	
+			retval = mem_ap_write_buf_u8(swjdp, buffer, count, address);	
 			break;
 		default:
 			LOG_ERROR("BUG: we shouldn't get here");
@@ -1386,7 +1435,7 @@ int cortex_m3_examine(struct target_s *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	
 	if ((retval = ahbap_debugport_init(swjdp)) != ERROR_OK)
 		return retval;
@@ -1451,7 +1500,7 @@ int cortex_m3_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
 {
 	u16 dcrdr;
 	
-	ahbap_read_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
+	mem_ap_read_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
 	*ctrl = (u8)dcrdr;
 	*value = (u8)(dcrdr >> 8);
 	
@@ -1462,7 +1511,7 @@ int cortex_m3_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
 	if (dcrdr & (1 << 0))
 	{
 		dcrdr = 0;
-		ahbap_write_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
+		mem_ap_write_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
 	}
 	
 	return ERROR_OK;
@@ -1471,8 +1520,7 @@ int cortex_m3_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
 int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer)
 {
 	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	u8 data;
 	u8 ctrl;
 	u32 i;
@@ -1492,8 +1540,7 @@ int cortex_m3_handle_target_request(void *priv)
 	if (!target->type->examined)
 		return ERROR_OK;
 	armv7m_common_t *armv7m = target->arch_info;
-	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
-	swjdp_common_t *swjdp = &cortex_m3->swjdp_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	
 	if (!target->dbg_msg_enabled)
 		return ERROR_OK;
@@ -1534,10 +1581,10 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jt
 	cortex_m3->jtag_info.tap = tap;
 	cortex_m3->jtag_info.scann_size = 4;
 	
-	cortex_m3->swjdp_info.dp_select_value = -1;
-	cortex_m3->swjdp_info.ap_csw_value = -1;
-	cortex_m3->swjdp_info.ap_tar_value = -1;
-	cortex_m3->swjdp_info.jtag_info = &cortex_m3->jtag_info;
+	armv7m->swjdp_info.dp_select_value = -1;
+	armv7m->swjdp_info.ap_csw_value = -1;
+	armv7m->swjdp_info.ap_tar_value = -1;
+	armv7m->swjdp_info.jtag_info = &cortex_m3->jtag_info;
 
 	/* initialize arch-specific breakpoint handling */
 	

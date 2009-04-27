@@ -550,6 +550,12 @@ int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m)
 
 int armv7m_register_commands(struct command_context_s *cmd_ctx)
 {
+	command_t *arm_adi_v5_dap_cmd;
+
+	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap", NULL, COMMAND_ANY, "cortex dap specific commands");		
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "info", handle_dap_info_command, COMMAND_EXEC, "dap info for ap [num] (default 0)");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apsel", handle_dap_apsel_command, COMMAND_EXEC, "select a different AP [num] (default 0)");
+
 	return ERROR_OK;
 }
 
@@ -695,3 +701,45 @@ int armv7m_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 
 	return ERROR_OK;
 }
+
+int handle_dap_apsel_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv7m_common_t *armv7m = target->arch_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	u32 apsel, apid;
+	int retval;
+
+	apsel = 0;
+	if (argc > 0)
+	{	
+		apsel = strtoul(args[0], NULL, 0);
+	}
+
+	dap_ap_select(swjdp, apsel);
+	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
+	retval = swjdp_transaction_endcheck(swjdp);
+	command_print(cmd_ctx, "ap %i selected, identification register 0x%8.8x", apsel, apid);
+
+	return retval;
+}
+
+int handle_dap_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv7m_common_t *armv7m = target->arch_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	int retval;
+	u32 apsel;
+
+	apsel = 0;
+	if (argc > 0)
+	{	
+		apsel = strtoul(args[0], NULL, 0);
+	}
+	
+	retval = dap_info_command(cmd_ctx, swjdp, apsel);
+
+	return retval;
+}
+
