@@ -313,7 +313,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 	avrf_flash_bank_t *avrf_info = bank->driver_priv;
 	avr_common_t *avr = target->arch_info;
-	avrf_type_t *avr_info;
+	avrf_type_t *avr_info = NULL;
 	int i;
 	u32 device_id;
 	
@@ -347,7 +347,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 		}
 	}
 	
-	if (i < (int)(sizeof(avft_chips_info) / sizeof(avft_chips_info[0])))
+	if (avr_info != NULL)
 	{
 		// chip found
 		bank->base = 0x00000000;
@@ -394,7 +394,7 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	target_t *target = bank->target;
 	avr_common_t *avr = target->arch_info;
-	avrf_type_t *avr_info;
+	avrf_type_t *avr_info = NULL;
 	int i;
 	u32 device_id;
 	
@@ -423,11 +423,11 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 			avr_info = &avft_chips_info[i];
 			LOG_INFO("target device is %s", avr_info->name);
 			
-			return ERROR_OK;
+			break;
 		}
 	}
 	
-	if (i < (int)(sizeof(avft_chips_info) / sizeof(avft_chips_info[0])))
+	if (avr_info != NULL)
 	{
 		// chip found
 		snprintf(buf, buf_size, "%s - Rev: 0x%X", avr_info->name, EXTRACT_VER(device_id));
