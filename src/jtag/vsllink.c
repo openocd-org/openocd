@@ -242,7 +242,7 @@ static int vsllink_usb_message(vsllink_jtag_t *vsllink_jtag, int out_length, int
 static int vsllink_usb_write(vsllink_jtag_t *vsllink_jtag, int out_length);
 static int vsllink_usb_read(vsllink_jtag_t *vsllink_jtag);
 
-#ifdef _DEBUG_USB_COMMS_
+#if defined _DEBUG_USB_COMMS_ || defined _DEBUG_JTAG_IO_
 static void vsllink_debug_buffer(u8 *buffer, int length);
 #endif
 
@@ -1243,7 +1243,7 @@ static void vsllink_scan_normal(int ir_scan, enum scan_type type, u8 *buffer, in
 			// which is merged from the last tms shift command
 			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = VSLLINK_CMDJTAGSEQ_SCAN | 1;
 			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = ((tdi_len + 1) >> 0) & 0xff;
-			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = ((tdi_len + 1)>> 8) & 0xff;
+			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = ((tdi_len + 1) >> 8) & 0xff;
 			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = tms_tmp;
 			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = buffer[0] << (8 - vsllink_tms_data_len);
 			
@@ -1917,7 +1917,7 @@ static int vsllink_usb_read(vsllink_jtag_t *vsllink_jtag)
 
 #define BYTES_PER_LINE  16
 
-#ifdef _DEBUG_USB_COMMS_
+#if defined _DEBUG_USB_COMMS_ || defined _DEBUG_JTAG_IO_
 static void vsllink_debug_buffer(u8 *buffer, int length)
 {
 	char line[81];
@@ -1936,4 +1936,4 @@ static void vsllink_debug_buffer(u8 *buffer, int length)
 		LOG_DEBUG("%s", line);
 	}
 }
-#endif // _DEBUG_USB_COMMS_
+#endif // _DEBUG_USB_COMMS_ || _DEBUG_JTAG_IO_
