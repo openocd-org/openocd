@@ -91,7 +91,7 @@ typedef struct arm11_common_s
 	bool	trst_active;
 	bool	halt_requested;					/**< Keep track if arm11_halt() calls occured
 												 during reset. Otherwise do it ASAP. */
-												 
+
 	bool	simulate_reset_on_next_halt;	/**< Perform cleanups of the ARM state on next halt */
 
 	/** \name Shadow registers to save processor state */
@@ -239,7 +239,7 @@ void arm11_setup_field			(arm11_common_t * arm11, int num_bits, void * in_data, 
 void arm11_add_IR				(arm11_common_t * arm11, u8 instr, tap_state_t state);
 void arm11_add_debug_SCAN_N		(arm11_common_t * arm11, u8 chain, tap_state_t state);
 void arm11_add_debug_INST		(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state_t state);
-u32  arm11_read_DSCR			(arm11_common_t * arm11);
+int arm11_read_DSCR			(arm11_common_t * arm11, u32 *dscr);
 void arm11_write_DSCR			(arm11_common_t * arm11, u32 dscr);
 
 enum target_debug_reason arm11_get_DSCR_debug_reason(u32 dscr);

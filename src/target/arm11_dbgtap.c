@@ -216,7 +216,7 @@ void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state
  *
  * \remarks			This is a stand-alone function that executes the JTAG command queue.
  */
-u32 arm11_read_DSCR(arm11_common_t * arm11)
+int arm11_read_DSCR(arm11_common_t * arm11, u32 *value)
 {
 	arm11_add_debug_SCAN_N(arm11, 0x01, ARM11_TAP_DEFAULT);
 
@@ -229,14 +229,20 @@ u32 arm11_read_DSCR(arm11_common_t * arm11)
 
 	arm11_add_dr_scan_vc(1, &chain1_field, TAP_DRPAUSE);
 
-	jtag_execute_queue();
+	int retval;
+	if ((retval=jtag_execute_queue())!=ERROR_OK)
+	{
+		return retval;
+	}
 
 	if (arm11->last_dscr != dscr)
 		JTAG_DEBUG("DSCR  = %08x (OLD %08x)", dscr, arm11->last_dscr);
 
 	arm11->last_dscr = dscr;
 
-	return dscr;
+	*value=dscr;
+
+	return retval;
 }
 
 /** Write the Debug Status and Control Register (DSCR)

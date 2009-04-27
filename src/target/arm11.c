@@ -48,7 +48,7 @@
 #define FNC_INFO_NOTIMPLEMENTED
 #endif
 
-static void arm11_on_enter_debug_state(arm11_common_t * arm11);
+static int arm11_on_enter_debug_state(arm11_common_t * arm11);
 
 bool	arm11_config_memwrite_burst				= true;
 bool	arm11_config_memwrite_error_fatal		= true;
@@ -313,16 +313,18 @@ reg_t arm11_gdb_dummy_fps_reg =
  *					available a pointer to a word holding the
  *					DSCR can be passed. Otherwise use NULL.
  */
-void arm11_check_init(arm11_common_t * arm11, u32 * dscr)
+int arm11_check_init(arm11_common_t * arm11, u32 * dscr)
 {
 	FNC_INFO;
+	int retval;
 
 	u32			dscr_local_tmp_copy;
 
 	if (!dscr)
 	{
 		dscr = &dscr_local_tmp_copy;
-		*dscr = arm11_read_DSCR(arm11);
+		if ((retval=arm11_read_DSCR(arm11, dscr))!=ERROR_OK)
+			return retval;
 	}
 
 	if (!(*dscr & ARM11_DSCR_MODE_SELECT))
@@ -353,6 +355,8 @@ void arm11_check_init(arm11_common_t * arm11, u32 * dscr)
 
 		arm11_sc7_clear_vbw(arm11);
 	}
+
+	return ERROR_OK;
 }
 
 
@@ -366,7 +370,7 @@ void arm11_check_init(arm11_common_t * arm11, u32 * dscr)
   * or on other occasions that stop the processor.
   *
   */
-static void arm11_on_enter_debug_state(arm11_common_t * arm11)
+static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 {
 	FNC_INFO;
 
@@ -378,8 +382,9 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 	}}
 
 	/* Save DSCR */
-
-	R(DSCR) = arm11_read_DSCR(arm11);
+	int retval;
+	if ((retval=arm11_read_DSCR(arm11, &R(DSCR)))!=ERROR_OK)
+		return retval;
 
 	/* Save wDTR */
 
@@ -514,6 +519,8 @@ static void arm11_on_enter_debug_state(arm11_common_t * arm11)
 	arm11_run_instr_data_finish(arm11);
 
 	arm11_dump_reg_changes(arm11);
+
+	return ERROR_OK;
 }
 
 void arm11_dump_reg_changes(arm11_common_t * arm11)
@@ -546,7 +553,7 @@ void arm11_dump_reg_changes(arm11_common_t * arm11)
   * This is called in preparation for the RESTART function.
   *
   */
-void arm11_leave_debug_state(arm11_common_t * arm11)
+int arm11_leave_debug_state(arm11_common_t * arm11)
 {
 	FNC_INFO;
 
@@ -572,7 +579,12 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 	/* spec says clear wDTR and rDTR; we assume they are clear as
 	   otherwise our programming would be sloppy */
 	{
-		u32 DSCR = arm11_read_DSCR(arm11);
+		u32 DSCR;
+		int retval;
+		if ((retval=arm11_read_DSCR(arm11, &DSCR))!=ERROR_OK)
+		{
+			return retval;
+		}
 
 		if (DSCR & (ARM11_DSCR_RDTR_FULL | ARM11_DSCR_WDTR_FULL))
 		{
@@ -632,6 +644,8 @@ void arm11_leave_debug_state(arm11_common_t * arm11)
 	}
 
 	arm11_record_register_history(arm11);
+
+	return ERROR_OK;
 }
 
 void arm11_record_register_history(arm11_common_t * arm11)
@@ -658,11 +672,15 @@ int arm11_poll(struct target_s *target)
 	if (arm11->trst_active)
 		return ERROR_OK;
 
-	u32	dscr = arm11_read_DSCR(arm11);
+	u32	dscr;
+	int retval;
+	if ((retval=arm11_read_DSCR(arm11, &dscr))!=ERROR_OK)
+		return retval;
 
 	LOG_DEBUG("DSCR %08x", dscr);
 
-	arm11_check_init(arm11, &dscr);
+	if ((retval=arm11_check_init(arm11, &dscr))!=ERROR_OK)
+		return retval;
 
 	if (dscr & ARM11_DSCR_CORE_HALTED)
 	{
@@ -747,7 +765,10 @@ int arm11_halt(struct target_s *target)
 
 	while (1)
 	{
-		dscr = arm11_read_DSCR(arm11);
+		int retval;
+		retval = arm11_read_DSCR(arm11, &dscr);
+		if (retval!=ERROR_OK)
+			return retval;
 
 		if (dscr & ARM11_DSCR_CORE_HALTED)
 			break;
@@ -774,7 +795,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 	int retval = ERROR_OK;
 
 	FNC_INFO;
-	
+
 	//	  LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
 	//	current, address, handle_breakpoints, debug_execution);
 
@@ -851,7 +872,10 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
 	while (1)
 	{
-		u32 dscr = arm11_read_DSCR(arm11);
+		u32 dscr;
+		retval = arm11_read_DSCR(arm11, &dscr);
+		if (retval!=ERROR_OK)
+			return retval;
 
 		LOG_DEBUG("DSCR %08x", dscr);
 
@@ -961,7 +985,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 			R(DSCR) &= ~ARM11_DSCR_INTERRUPTS_DISABLE;		/* should be redundant */
 		else
 			R(DSCR) |= ARM11_DSCR_INTERRUPTS_DISABLE;
-			
+
 
 		arm11_leave_debug_state(arm11);
 
@@ -978,7 +1002,10 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 
 		while (1)
 		{
-			u32 dscr = arm11_read_DSCR(arm11);
+			u32 dscr;
+			retval = arm11_read_DSCR(arm11, &dscr);
+			if (retval!=ERROR_OK)
+				return retval;
 
 			LOG_DEBUG("DSCR %08x", dscr);
 
@@ -1987,7 +2014,7 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
 	RC_FINAL_BOOL(		"no_increment",			"Don't increment address on multi-read/-write (default: disabled)",
 						memrw_no_increment)
-						
+
 	RC_FINAL_BOOL(		"step_irq_enable",		"Enable interrupts while stepping (default: disabled)",
 						step_irq_enable)
 
