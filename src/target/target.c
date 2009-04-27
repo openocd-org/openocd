@@ -105,6 +105,7 @@ extern target_type_t xscale_target;
 extern target_type_t cortexm3_target;
 extern target_type_t arm11_target;
 extern target_type_t mips_m4k_target;
+extern target_type_t avr_target;
 
 target_type_t *target_types[] =
 {
@@ -119,6 +120,7 @@ target_type_t *target_types[] =
 	&cortexm3_target,
 	&arm11_target,
 	&mips_m4k_target,
+	&avr_target,
 	NULL,
 };
 

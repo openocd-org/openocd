@@ -77,6 +77,7 @@ extern flash_driver_t ecosflash_flash;
 extern flash_driver_t lpc288x_flash;
 extern flash_driver_t ocl_flash;
 extern flash_driver_t pic32mx_flash;
+extern flash_driver_t avr_flash;
 
 flash_driver_t *flash_drivers[] = {
 	&lpc2000_flash,
@@ -94,6 +95,7 @@ flash_driver_t *flash_drivers[] = {
 	&lpc288x_flash,
 	&ocl_flash,
 	&pic32mx_flash,
+	&avr_flash,
 	NULL,
 };
 
