@@ -40,6 +40,17 @@
 #define DEBUG_JTAG_IOZ 64
 #endif
 
+/*-----<Macros>--------------------------------------------------*/
+
+/** When given an array, compute its DIMension, i.e. number of elements in the array */
+#define DIM(x)					(sizeof(x)/sizeof((x)[0]))
+
+/** Calculate the number of bytes required to hold @a n TAP scan bits */
+#define TAP_SCAN_BYTES(n)		CEIL(n, 8)
+
+/*-----</Macros>-------------------------------------------------*/
+
+
 
 /*
  * Tap states from ARM7TDMI-S Technical reference manual.
@@ -235,9 +246,6 @@ typedef void* error_handler_t;  /* Later on we can delete error_handler_t, but k
 
 struct scan_field_s;
 typedef int (*in_handler_t)(u8* in_value, void* priv, struct scan_field_s* field);
-
-/// @brief calculates number of bytes required to hold @a n TAP scan bits
-#define TAP_SCAN_BYTES(n)		CEIL(n, 8)
 
 typedef struct scan_field_s
 {
