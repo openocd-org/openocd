@@ -776,6 +776,8 @@ AC_PROG_RANLIB
 GCC_WARNINGS="-Wall -Wstrict-prototypes -Wformat-security"
 if test "${gcc_wextra}" = yes; then
 	GCC_WARNINGS="${GCC_WARNINGS} -Wextra -Wno-unused-parameter"
+	GCC_WARNINGS="${GCC_WARNINGS} -Wbad-function-cast"
+	GCC_WARNINGS="${GCC_WARNINGS} -Wcast-align"
 fi
 if test "${gcc_werror}" = yes; then
 	GCC_WARNINGS="${GCC_WARNINGS} -Werror"
