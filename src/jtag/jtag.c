@@ -1531,7 +1531,9 @@ int jtag_examine_chain(void)
 			u32 part;
 			u32 version;
 
-			if (idcode == 0x000000FF)
+			/* some devices, such as AVR will output all 1's instead of TDI
+			input value at end of chain. */
+			if ((idcode == 0x000000FF)||(idcode == 0xFFFFFFFF))
 			{
 				int unexpected=0;
 				/* End of chain (invalid manufacturer ID)
@@ -1548,7 +1550,7 @@ int jtag_examine_chain(void)
 				for (bit_count += 32; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;bit_count += 32)
 				{
 					idcode = buf_get_u32(idcode_buffer, bit_count, 32);
-					if (unexpected||(idcode != 0x000000FF))
+					if (unexpected||((idcode != 0x000000FF)&&(idcode != 0xFFFFFFFF)))
 					{
 						LOG_WARNING("Unexpected idcode after end of chain! %d 0x%08x", bit_count, idcode);
 						unexpected = 1;
@@ -3306,7 +3308,7 @@ tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
 
 	tap_state_t last_state;
 
-	// set startstate (and possibly last, if tap_bits == 0) 
+	// set startstate (and possibly last, if tap_bits == 0)
 	last_state = next_state;
 	DEBUG_JTAG_IO("TAP/SM: START state: %s", tap_state_name(next_state));
 
