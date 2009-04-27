@@ -525,24 +525,30 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 
 void arm11_dump_reg_changes(arm11_common_t * arm11)
 {
+
+	if (!(debug_level >= LOG_LVL_DEBUG))
+	{
+		return;
+	}
+
 	{size_t i;
 	for(i = 0; i < ARM11_REGCACHE_COUNT; i++)
 	{
 		if (!arm11->reg_list[i].valid)
 		{
 			if (arm11->reg_history[i].valid)
-				LOG_INFO("%8s INVALID	 (%08x)", arm11_reg_defs[i].name, arm11->reg_history[i].value);
+				LOG_DEBUG("%8s INVALID	 (%08x)", arm11_reg_defs[i].name, arm11->reg_history[i].value);
 		}
 		else
 		{
 			if (arm11->reg_history[i].valid)
 			{
 				if (arm11->reg_history[i].value != arm11->reg_values[i])
-					LOG_INFO("%8s %08x (%08x)", arm11_reg_defs[i].name, arm11->reg_values[i], arm11->reg_history[i].value);
+					LOG_DEBUG("%8s %08x (%08x)", arm11_reg_defs[i].name, arm11->reg_values[i], arm11->reg_history[i].value);
 			}
 			else
 			{
-				LOG_INFO("%8s %08x (INVALID)", arm11_reg_defs[i].name, arm11->reg_values[i]);
+				LOG_DEBUG("%8s %08x (INVALID)", arm11_reg_defs[i].name, arm11->reg_values[i]);
 			}
 		}
 	}}
@@ -712,7 +718,12 @@ int arm11_poll(struct target_s *target)
 /* architecture specific status reply */
 int arm11_arch_state(struct target_s *target)
 {
-	FNC_INFO_NOTIMPLEMENTED;
+	arm11_common_t * arm11 = target->arch_info;
+
+	LOG_USER("target halted due to %s\ncpsr: 0x%8.8x pc: 0x%8.8x",
+			 Jim_Nvp_value2name_simple( nvp_target_debug_reason, target->debug_reason )->name,
+			 R(CPSR),
+			 R(PC));
 
 	return ERROR_OK;
 }
@@ -814,7 +825,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 	if (!current)
 		R(PC) = address;
 
-	LOG_INFO("RESUME PC %08x%s", R(PC), !current ? "!" : "");
+	LOG_DEBUG("RESUME PC %08x%s", R(PC), !current ? "!" : "");
 
 	/* clear breakpoints/watchpoints and VCR*/
 	arm11_sc7_clear_vbw(arm11);
