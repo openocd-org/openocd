@@ -461,32 +461,65 @@ static int gw16012_get_giveio_access(void)
 }
 #endif
 
-static int gw16012_init(void)
-{
 #if PARPORT_USE_PPDEV == 1
-	char buffer[256];
-	int i = 0;
-#endif
-	u8 status_port;
 
-#if PARPORT_USE_PPDEV == 1
-	if (device_handle>0)
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+
+#define GW16012_PPDEV_NAME	"ppi"
+
+static int gw16012_init_ioctls(void)
+{
+	int temp = 0;
+	temp = ioctl(device_handle, PPCLAIM);
+	if (temp < 0)
+	{
+		LOG_ERROR("cannot claim device");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	temp = PARPORT_MODE_COMPAT;
+	temp = ioctl(device_handle, PPSETMODE, &temp);
+	if (temp < 0)
+	{
+		LOG_ERROR(" cannot set compatible mode to device");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	temp = IEEE1284_MODE_COMPAT;
+	temp = ioctl(device_handle, PPNEGOT, &temp);
+	if (temp < 0)
+	{
+		LOG_ERROR("cannot set compatible 1284 mode to device");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+	return ERROR_OK;
+}
+#else
+
+#define GW16012_PPDEV_NAME	"parport"
+
+static int gw16012_init_ioctls(void)
+{
+	return ERROR_OK;
+}
+
+#endif // defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+
+static int gw16012_init_device(void)
+{
+	const char *device_name = GW16012_PPDEV_NAME;
+	char buffer[256];
+
+	if (device_handle > 0)
 	{
 		LOG_ERROR("device is already opened");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-	LOG_DEBUG("opening /dev/ppi%d...", gw16012_port);
+	snprintf(buffer, 256, "/dev/%s%d", device_name, gw16012_port);
+	LOG_DEBUG("opening %s...", buffer);
 
-	snprintf(buffer, 256, "/dev/ppi%d", gw16012_port);
 	device_handle = open(buffer, O_WRONLY);
-#else
-	LOG_DEBUG("opening /dev/parport%d...", gw16012_port);
-
-	snprintf(buffer, 256, "/dev/parport%d", gw16012_port);
-	device_handle = open(buffer, O_WRONLY);
-#endif
 	if (device_handle<0)
 	{
 		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set");
@@ -495,31 +528,16 @@ static int gw16012_init(void)
 
 	LOG_DEBUG("...open");
 
-#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-	i=ioctl(device_handle, PPCLAIM);
-	if (i<0)
-	{
-		LOG_ERROR("cannot claim device");
+	if (gw16012_init_ioctls() != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
-	}
 
-	i = PARPORT_MODE_COMPAT;
-	i= ioctl(device_handle, PPSETMODE, & i);
-	if (i<0)
-	{
-		LOG_ERROR(" cannot set compatible mode to device");
-		return ERROR_JTAG_INIT_FAILED;
-	}
+	return ERROR_OK;
+}
 
-	i = IEEE1284_MODE_COMPAT;
-	i = ioctl(device_handle, PPNEGOT, & i);
-	if (i<0)
-	{
-		LOG_ERROR("cannot set compatible 1284 mode to device");
-		return ERROR_JTAG_INIT_FAILED;
-	}
-#endif
-#else
+#else // PARPORT_USE_PPDEV
+
+static int gw16012_init_device(void)
+{
 	if (gw16012_port == 0)
 	{
 		gw16012_port = 0x378;
@@ -544,7 +562,17 @@ static int gw16012_init(void)
 #else
 	outb(0x0, gw16012_port + 2);
 #endif
-#endif /* PARPORT_USE_PPDEV */
+	return ERROR_OK;
+}
+
+#endif // PARPORT_USE_PPDEV
+
+static int gw16012_init(void)
+{
+	u8 status_port;
+
+	if (gw16012_init_device() != ERROR_OK)
+		return ERROR_JTAG_INIT_FAILED;
 
 	gw16012_input(&status_port);
 	gw16012_msb = (status_port & 0x80) ^ 0x80;
