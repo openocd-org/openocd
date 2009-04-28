@@ -181,6 +181,25 @@ tap_state_t tap_get_end_state(void);
  */
 int tap_get_tms_path(tap_state_t from, tap_state_t to);
 
+
+/**
+ * Function int tap_get_tms_path_len
+ * returns the total number of bits that represents a TMS path
+ * transition as given by the function tap_get_tms_path().
+ *
+ * For at least one interface (JLink) it's not OK to simply "pad" TMS sequences
+ * to fit a whole byte.  (I suspect this is a general TAP problem within OOCD.)
+ * Padding TMS causes all manner of instability that's not easily
+ * discovered.  Using this routine we can apply EXACTLY the state transitions
+ * required to make something work - no more - no less.
+ *
+ * @param from is the starting state
+ * @param to is the resultant or final state
+ * @return int - the total number of bits in a transition.
+ */
+int tap_get_tms_path_len(tap_state_t from, tap_state_t to);
+
+
 /**
  * Function tap_move_ndx
  * when given a stable state, returns an index from 0-5.  The index corresponds to a
