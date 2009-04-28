@@ -575,7 +575,18 @@ extern int  interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t* field
 extern void jtag_add_tlr(void);
 extern int  interface_jtag_add_tlr(void);
 
-/* Do not use jtag_add_pathmove() unless you need to, but do use it
+/* Application code *must* assume that interfaces will
+ * implement transitions between states with different
+ * paths and path lengths through the state diagram. The
+ * path will vary across interface and also across versions
+ * of the same interface over time. Even if the OpenOCD code
+ * is unchanged, the actual path taken may vary over time
+ * and versions of interface firmware or PCB revisions.
+ * 
+ * Use jtag_add_pathmove() when specific transition sequences
+ * are required.
+ * 
+ * Do not use jtag_add_pathmove() unless you need to, but do use it
  * if you have to.
  *
  * DANGER! If the target is dependent upon a particular sequence
