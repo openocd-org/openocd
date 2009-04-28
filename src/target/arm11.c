@@ -322,7 +322,7 @@ int arm11_check_init(arm11_common_t * arm11, u32 * dscr)
 	if (!dscr)
 	{
 		dscr = &dscr_local_tmp_copy;
-		
+
 		CHECK_RETVAL(arm11_read_DSCR(arm11, dscr));
 	}
 
@@ -673,7 +673,7 @@ int arm11_poll(struct target_s *target)
 		return ERROR_OK;
 
 	u32	dscr;
-	
+
 	CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
 	LOG_DEBUG("DSCR %08x", dscr);
@@ -861,7 +861,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 	while (1)
 	{
 		u32 dscr;
-	
+
 		CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
 		LOG_DEBUG("DSCR %08x", dscr);
@@ -906,7 +906,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 	if (!current)
 		R(PC) = address;
 
-	LOG_INFO("STEP PC %08x%s", R(PC), !current ? "!" : "");
+	LOG_DEBUG("STEP PC %08x%s", R(PC), !current ? "!" : "");
 
 	/** \todo TODO: Thumb not supported here */
 
@@ -920,7 +920,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 		R(PC) += 4;
 		arm11->reg_list[ARM11_RC_PC].valid = 1;
 		arm11->reg_list[ARM11_RC_PC].dirty = 0;
-		LOG_INFO("Skipping BKPT");
+		LOG_DEBUG("Skipping BKPT");
 	}
 	/* skip over Wait for interrupt / Standby */
 	/* mcr	15, 0, r?, cr7, cr0, {4} */
@@ -929,12 +929,12 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 		R(PC) += 4;
 		arm11->reg_list[ARM11_RC_PC].valid = 1;
 		arm11->reg_list[ARM11_RC_PC].dirty = 0;
-		LOG_INFO("Skipping WFI");
+		LOG_DEBUG("Skipping WFI");
 	}
 	/* ignore B to self */
 	else if ((next_instruction & 0xFEFFFFFF) == 0xeafffffe)
 	{
-		LOG_INFO("Not stepping jump to self");
+		LOG_DEBUG("Not stepping jump to self");
 	}
 	else
 	{
@@ -1331,13 +1331,13 @@ int arm11_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if (!arm11->free_brps)
 	{
-		LOG_INFO("no breakpoint unit available for hardware breakpoint");
+		LOG_DEBUG("no breakpoint unit available for hardware breakpoint");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	if (breakpoint->length != 4)
 	{
-		LOG_INFO("only breakpoints of four bytes length supported");
+		LOG_DEBUG("only breakpoints of four bytes length supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
