@@ -229,11 +229,7 @@ int arm11_read_DSCR(arm11_common_t * arm11, u32 *value)
 
 	arm11_add_dr_scan_vc(1, &chain1_field, TAP_DRPAUSE);
 
-	int retval;
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
-	{
-		return retval;
-	}
+	CHECK_RETVAL(jtag_execute_queue());
 
 	if (arm11->last_dscr != dscr)
 		JTAG_DEBUG("DSCR  = %08x (OLD %08x)", dscr, arm11->last_dscr);
@@ -242,7 +238,7 @@ int arm11_read_DSCR(arm11_common_t * arm11, u32 *value)
 
 	*value=dscr;
 
-	return retval;
+	return ERROR_OK;
 }
 
 /** Write the Debug Status and Control Register (DSCR)
@@ -266,9 +262,7 @@ int arm11_write_DSCR(arm11_common_t * arm11, u32 dscr)
 
 	arm11_add_dr_scan_vc(1, &chain1_field, TAP_DRPAUSE);
 
-	int retval;
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
-		return retval;
+	CHECK_RETVAL(jtag_execute_queue());
 
 	JTAG_DEBUG("DSCR <= %08x (OLD %08x)", dscr, arm11->last_dscr);
 
@@ -383,9 +377,7 @@ int arm11_run_instr_no_data(arm11_common_t * arm11, u32 * opcode, size_t count)
 
 			arm11_add_debug_INST(arm11, 0, &flag, count ? TAP_IDLE : TAP_DRPAUSE);
 
-			int retval;
-			if ((retval=jtag_execute_queue())!=ERROR_OK)
-				return retval;
+			CHECK_RETVAL(jtag_execute_queue());
 
 			if (flag)
 				break;
@@ -447,9 +439,8 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data,
 			Data	    = *data;
 
 			arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_IDLE);
-			int retval;
-			if ((retval=jtag_execute_queue())!=ERROR_OK)
-				return retval;
+
+			CHECK_RETVAL(jtag_execute_queue());
 
 			JTAG_DEBUG("DTR  Ready %d  nRetry %d", Ready, nRetry);
 		}
@@ -465,9 +456,8 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data,
 		Data	    = 0;
 
 		arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
-		int retval;
-		if ((retval=jtag_execute_queue())!=ERROR_OK)
-			return retval;
+
+		CHECK_RETVAL(jtag_execute_queue());
 
 		JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
 	}
@@ -550,9 +540,7 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 *
 
 	arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
 
-	int retval;
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
-		return retval;
+	CHECK_RETVAL(jtag_execute_queue());
 
 	size_t error_count = 0;
 
@@ -625,9 +613,8 @@ int arm11_run_instr_data_from_core(arm11_common_t * arm11, u32 opcode, u32 * dat
 		do
 		{
 			arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, count ? TAP_IDLE : TAP_DRPAUSE);
-			int retval;
-			if ((retval=jtag_execute_queue())!=ERROR_OK)
-				return retval;
+			
+			CHECK_RETVAL(jtag_execute_queue());
 
 			JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
 		}
@@ -728,9 +715,8 @@ int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t c
 			JTAG_DEBUG("SC7 <= Address %02x  Data %08x    nRW %d", AddressOut, DataOut, nRW);
 
 			arm11_add_dr_scan_vc(asizeof(chain7_fields), chain7_fields, TAP_DRPAUSE);
-			int retval;
-			if ((retval=jtag_execute_queue())!=ERROR_OK)
-				return retval;
+			
+			CHECK_RETVAL(jtag_execute_queue());
 
 			JTAG_DEBUG("SC7 => Address %02x  Data %08x  Ready %d", AddressIn, DataIn, Ready);
 		}
@@ -826,16 +812,13 @@ void arm11_sc7_set_vcr(arm11_common_t * arm11, u32 value)
  */
 int arm11_read_memory_word(arm11_common_t * arm11, u32 address, u32 * result)
 {
-	int retval;
 	arm11_run_instr_data_prepare(arm11);
 
 	/* MRC p14,0,r0,c0,c5,0 (r0 = address) */
-	if ((retval=arm11_run_instr_data_to_core1(arm11, 0xee100e15, address))!=ERROR_OK)
-		return retval;
+	CHECK_RETVAL(arm11_run_instr_data_to_core1(arm11, 0xee100e15, address));
 
 	/* LDC p14,c5,[R0],#4 (DTR = [r0]) */
-	if ((retval=arm11_run_instr_data_from_core(arm11, 0xecb05e01, result, 1))!=ERROR_OK)
-		return retval;
+	CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xecb05e01, result, 1));
 
 	arm11_run_instr_data_finish(arm11);
 

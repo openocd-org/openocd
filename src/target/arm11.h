@@ -51,6 +51,16 @@
 #define ARM11_TAP_DEFAULT			TAP_INVALID
 
 
+#define CHECK_RETVAL(action)								\
+do {														\
+	int __retval = (action);								\
+															\
+	if (__retval != ERROR_OK)								\
+		return __retval;									\
+															\
+} while (0)
+
+
 typedef struct arm11_register_history_s
 {
 	u32		value;

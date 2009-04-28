@@ -316,15 +316,14 @@ reg_t arm11_gdb_dummy_fps_reg =
 int arm11_check_init(arm11_common_t * arm11, u32 * dscr)
 {
 	FNC_INFO;
-	int retval;
 
 	u32			dscr_local_tmp_copy;
 
 	if (!dscr)
 	{
 		dscr = &dscr_local_tmp_copy;
-		if ((retval=arm11_read_DSCR(arm11, dscr))!=ERROR_OK)
-			return retval;
+		
+		CHECK_RETVAL(arm11_read_DSCR(arm11, dscr));
 	}
 
 	if (!(*dscr & ARM11_DSCR_MODE_SELECT))
@@ -382,9 +381,7 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 	}}
 
 	/* Save DSCR */
-	int retval;
-	if ((retval=arm11_read_DSCR(arm11, &R(DSCR)))!=ERROR_OK)
-		return retval;
+	CHECK_RETVAL(arm11_read_DSCR(arm11, &R(DSCR)));
 
 	/* Save wDTR */
 
@@ -586,11 +583,8 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 	   otherwise our programming would be sloppy */
 	{
 		u32 DSCR;
-		int retval;
-		if ((retval=arm11_read_DSCR(arm11, &DSCR))!=ERROR_OK)
-		{
-			return retval;
-		}
+
+		CHECK_RETVAL(arm11_read_DSCR(arm11, &DSCR));
 
 		if (DSCR & (ARM11_DSCR_RDTR_FULL | ARM11_DSCR_WDTR_FULL))
 		{
@@ -679,14 +673,12 @@ int arm11_poll(struct target_s *target)
 		return ERROR_OK;
 
 	u32	dscr;
-	int retval;
-	if ((retval=arm11_read_DSCR(arm11, &dscr))!=ERROR_OK)
-		return retval;
+	
+	CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
 	LOG_DEBUG("DSCR %08x", dscr);
 
-	if ((retval=arm11_check_init(arm11, &dscr))!=ERROR_OK)
-		return retval;
+	CHECK_RETVAL(arm11_check_init(arm11, &dscr));
 
 	if (dscr & ARM11_DSCR_CORE_HALTED)
 	{
@@ -739,8 +731,6 @@ int arm11_target_request_data(struct target_s *target, u32 size, u8 *buffer)
 /* target execution control */
 int arm11_halt(struct target_s *target)
 {
-	int retval = ERROR_OK;
-
 	FNC_INFO;
 
 	arm11_common_t * arm11 = target->arch_info;
@@ -767,19 +757,13 @@ int arm11_halt(struct target_s *target)
 
 	arm11_add_IR(arm11, ARM11_HALT, TAP_IDLE);
 
-	if((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		return retval;
-	}
+	CHECK_RETVAL(jtag_execute_queue());
 
 	u32 dscr;
 
 	while (1)
 	{
-		int retval;
-		retval = arm11_read_DSCR(arm11, &dscr);
-		if (retval!=ERROR_OK)
-			return retval;
+		CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
 		if (dscr & ARM11_DSCR_CORE_HALTED)
 			break;
@@ -792,19 +776,15 @@ int arm11_halt(struct target_s *target)
 	target->state		= TARGET_HALTED;
 	target->debug_reason	= arm11_get_DSCR_debug_reason(dscr);
 
-	if((retval = target_call_event_callbacks(target,
-		old_state == TARGET_DEBUG_RUNNING ? TARGET_EVENT_DEBUG_HALTED : TARGET_EVENT_HALTED)) != ERROR_OK)
-	{
-		return retval;
-	}
+	CHECK_RETVAL(
+		target_call_event_callbacks(target,
+			old_state == TARGET_DEBUG_RUNNING ? TARGET_EVENT_DEBUG_HALTED : TARGET_EVENT_HALTED));
 
 	return ERROR_OK;
 }
 
 int arm11_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
 {
-	int retval = ERROR_OK;
-
 	FNC_INFO;
 
 	//	  LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d",
@@ -876,17 +856,13 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
 	arm11_add_IR(arm11, ARM11_RESTART, TAP_IDLE);
 
-	if((retval = jtag_execute_queue()) != ERROR_OK)
-	{
-		return retval;
-	}
+	CHECK_RETVAL(jtag_execute_queue());
 
 	while (1)
 	{
 		u32 dscr;
-		retval = arm11_read_DSCR(arm11, &dscr);
-		if (retval!=ERROR_OK)
-			return retval;
+	
+		CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
 		LOG_DEBUG("DSCR %08x", dscr);
 
@@ -899,19 +875,14 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 		target->state			= TARGET_RUNNING;
 		target->debug_reason	= DBG_REASON_NOTHALTED;
 
-		if((retval = target_call_event_callbacks(target, TARGET_EVENT_RESUMED)) != ERROR_OK)
-		{
-			return retval;
-		}
+		CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_RESUMED));
 	}
 	else
 	{
 		target->state			= TARGET_DEBUG_RUNNING;
 		target->debug_reason	= DBG_REASON_NOTHALTED;
-		if((retval = target_call_event_callbacks(target, TARGET_EVENT_RESUMED)) != ERROR_OK)
-		{
-			return retval;
-		}
+
+		CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_RESUMED));
 	}
 
 	return ERROR_OK;
@@ -919,8 +890,6 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
 int arm11_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
 {
-	int retval = ERROR_OK;
-
 	FNC_INFO;
 
 	LOG_DEBUG("target->state: %s",
@@ -943,8 +912,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 
 	u32	next_instruction;
 
-	if ((arm11_read_memory_word(arm11, R(PC), &next_instruction))!=ERROR_OK)
-		return retval;
+	CHECK_RETVAL(arm11_read_memory_word(arm11, R(PC), &next_instruction));
 
 	/* skip over BKPT */
 	if ((next_instruction & 0xFFF00070) == 0xe1200070)
@@ -988,8 +956,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 		brp[1].address	= ARM11_SC7_BCR0;
 		brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (2 << 21);
 
-		if ((retval=arm11_sc7_run(arm11, brp, asizeof(brp)))!=ERROR_OK)
-			return retval;
+		CHECK_RETVAL(arm11_sc7_run(arm11, brp, asizeof(brp)));
 
 		/* resume */
 
@@ -1000,15 +967,11 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 			R(DSCR) |= ARM11_DSCR_INTERRUPTS_DISABLE;
 
 
-		if ((retval=arm11_leave_debug_state(arm11))!=ERROR_OK)
-			return retval;
+		CHECK_RETVAL(arm11_leave_debug_state(arm11));
 
 		arm11_add_IR(arm11, ARM11_RESTART, TAP_IDLE);
 
-		if((retval = jtag_execute_queue()) != ERROR_OK)
-		{
-			return retval;
-		}
+		CHECK_RETVAL(jtag_execute_queue());
 
 		/** \todo TODO: add a timeout */
 
@@ -1017,9 +980,8 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 		while (1)
 		{
 			u32 dscr;
-			retval = arm11_read_DSCR(arm11, &dscr);
-			if (retval!=ERROR_OK)
-				return retval;
+
+			CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
 			LOG_DEBUG("DSCR %08x", dscr);
 
@@ -1032,8 +994,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 		arm11_sc7_clear_vbw(arm11);
 
 		/* save state */
-		if((retval = arm11_on_enter_debug_state(arm11))!=ERROR_OK)
-			return retval;
+		CHECK_RETVAL(arm11_on_enter_debug_state(arm11));
 
 	    /* restore default state */
 		R(DSCR) &= ~ARM11_DSCR_INTERRUPTS_DISABLE;
@@ -1043,10 +1004,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 	//	  target->state		= TARGET_HALTED;
 	target->debug_reason	= DBG_REASON_SINGLESTEP;
 
-	if((retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED)) != ERROR_OK)
-	{
-		return retval;
-	}
+	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_HALTED));
 
 	return ERROR_OK;
 }
@@ -1069,9 +1027,7 @@ int arm11_assert_reset(struct target_s *target)
 
 	if (target->reset_halt)
 	{
-		int retval;
-		if ((retval = target_halt(target))!=ERROR_OK)
-			return retval;
+		CHECK_RETVAL(target_halt(target));
 	}
 
 	return ERROR_OK;
@@ -1511,25 +1467,18 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 	}
 
 	// no debug, otherwise breakpoint is not set
-	if((retval = target_resume(target, 0, entry_point, 1, 0)) != ERROR_OK)
-	{
-		return retval;
-	}
+	CHECK_RETVAL(target_resume(target, 0, entry_point, 1, 0));
 
-	if((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
-	{
-		return retval;
-	}
+	CHECK_RETVAL(target_wait_state(target, TARGET_HALTED, timeout_ms));
 
 	if (target->state != TARGET_HALTED)
 	{
-		if ((retval=target_halt(target))!=ERROR_OK)
-			return retval;
-		if ((retval=target_wait_state(target, TARGET_HALTED, 500))!=ERROR_OK)
-		{
-			return retval;
-		}
+		CHECK_RETVAL(target_halt(target));
+
+		CHECK_RETVAL(target_wait_state(target, TARGET_HALTED, 500));
+
 		retval = ERROR_TARGET_TIMEOUT;
+
 		goto del_breakpoint;
 	}
 
@@ -1590,7 +1539,6 @@ restore:
 
 int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 {
-	int retval = ERROR_OK;
 	FNC_INFO;
 
 	NEW(arm11_common_t, arm11, 1);
@@ -1601,10 +1549,7 @@ int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 	arm11->jtag_info.tap	= target->tap;
 	arm11->jtag_info.scann_size	= 5;
 
-	if((retval = arm_jtag_setup_connection(&arm11->jtag_info)) != ERROR_OK)
-	{
-		return retval;
-	}
+	CHECK_RETVAL(arm_jtag_setup_connection(&arm11->jtag_info));
 
 	if (target->tap==NULL)
 		return ERROR_FAIL;
@@ -1630,7 +1575,6 @@ int arm11_init_target(struct command_context_s *cmd_ctx, struct target_s *target
 int arm11_examine(struct target_s *target)
 {
 	FNC_INFO;
-	int retval;
 
 	arm11_common_t * arm11 = target->arch_info;
 
@@ -1657,9 +1601,7 @@ int arm11_examine(struct target_s *target)
 
 	arm11_add_dr_scan_vc(asizeof(chain0_fields), chain0_fields, TAP_IDLE);
 
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
-		return retval;
-
+	CHECK_RETVAL(jtag_execute_queue());
 
 	switch (arm11->device_id & 0x0FFFF000)
 	{
