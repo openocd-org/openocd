@@ -31,6 +31,7 @@
 
 #include <usb.h>
 #include <string.h>
+#include <errno.h>
 
 #include "log.h"
 
@@ -867,21 +868,17 @@ static int usb_bulk_with_retries(
 		usb_dev_handle *dev, int ep,
 		char *bytes, int size, int timeout)
 {
-	int rc = 0, tries = 3, this_size;
+	int tries = 3, count = 0;
 
-	while (tries && size) {
-
-		this_size = f(dev, ep, bytes, size, timeout);
-		if (this_size > 0) {
-			
-			size -= this_size;
-			rc += this_size;
-			bytes += this_size;
-
-		} else
-			tries --;
+	while (tries && (count < size))
+	{
+		int result = f(dev, ep, bytes + count, size - count, timeout);
+		if (result > 0)
+			count += result;
+		else if ((-ETIMEDOUT != result) || !--tries)
+			return result;
 	}
-	return rc;
+	return count;
 }
 
 static int wrap_usb_bulk_write(usb_dev_handle *dev, int ep,
