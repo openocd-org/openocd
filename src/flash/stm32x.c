@@ -120,6 +120,7 @@ static u32 stm32x_get_flash_status(flash_bank_t *bank)
 
 static u32 stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 {
+	target_t *target = bank->target;
 	u32 status;
 	
 	/* wait for busy to clear */
@@ -128,7 +129,11 @@ static u32 stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 		LOG_DEBUG("status: 0x%x", status);
 		alive_sleep(1);
 	}
-	
+	/* Clear but report errors */
+	if (status & (FLASH_WRPRTERR|FLASH_PGERR))
+	{
+		target_write_u32(target, STM32_FLASH_SR, FLASH_WRPRTERR|FLASH_PGERR);	
+	}
 	return status;
 }
 
@@ -568,6 +573,8 @@ static int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset,
 		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_PGERR)
 		{
 			LOG_ERROR("flash memory not erased before writing");
+			/* Clear but report errors */
+			target_write_u32(target, STM32_FLASH_SR, FLASH_PGERR);	
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
@@ -575,6 +582,8 @@ static int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset,
 		if (buf_get_u32(reg_params[3].value, 0, 32) & FLASH_WRPRTERR)
 		{
 			LOG_ERROR("flash memory write protected");
+			/* Clear but report errors */
+			target_write_u32(target, STM32_FLASH_SR, FLASH_WRPRTERR);	
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
