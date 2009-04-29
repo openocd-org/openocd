@@ -114,6 +114,7 @@ static int  comstick_init(void);
 static int  stm32stick_init(void);
 static int  axm0432_jtag_init(void);
 static int sheevaplug_init(void);
+static int icebear_jtag_init(void);
 
 /* reset procedures for supported layouts */
 static void usbjtag_reset(int trst, int srst);
@@ -125,6 +126,7 @@ static void comstick_reset(int trst, int srst);
 static void stm32stick_reset(int trst, int srst);
 static void axm0432_jtag_reset(int trst, int srst);
 static void sheevaplug_reset(int trst, int srst);
+static void icebear_jtag_reset(int trst, int srst);
 
 /* blink procedures for layouts that support a blinking led */
 static void olimex_jtag_blink(void);
@@ -146,6 +148,7 @@ ft2232_layout_t            ft2232_layouts[] =
 	{ "stm32stick",           stm32stick_init,           stm32stick_reset,   NULL                    },
 	{ "axm0432_jtag",         axm0432_jtag_init,         axm0432_jtag_reset, NULL                    },
 	{"sheevaplug",            sheevaplug_init,           sheevaplug_reset,   NULL                    },
+	{ "icebear",              icebear_jtag_init,         icebear_jtag_reset, NULL                    },
 	{ NULL,                   NULL,                      NULL,               NULL                    },
 };
 
@@ -2660,4 +2663,106 @@ static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd)
 	}
 
 	return retval;
+}
+
+/* ---------------------------------------------------------------------
+ * Support for IceBear JTAG adapter from Section5:
+ * 	http://section5.ch/icebear
+ *
+ * Author: Sten, debian@sansys-electronic.com
+ */
+
+/* Icebear pin layout
+ *
+ * ADBUS5 (nEMU) nSRST	| 2   1|	GND (10k->VCC)
+ * GND GND		| 4   3|	n.c.
+ * ADBUS3 TMS		| 6   5|	ADBUS6 VCC
+ * ADBUS0 TCK		| 8   7|	ADBUS7 (GND)
+ * ADBUS4 nTRST		|10   9|	ACBUS0 (GND)
+ * ADBUS1 TDI		|12  11|	ACBUS1 (GND)
+ * ADBUS2 TDO		|14  13|	GND GND
+ *
+ * ADBUS0 O L TCK		ACBUS0 GND
+ * ADBUS1 O L TDI		ACBUS1 GND
+ * ADBUS2 I   TDO		ACBUS2 n.c.
+ * ADBUS3 O H TMS		ACBUS3 n.c.
+ * ADBUS4 O H nTRST
+ * ADBUS5 O H nSRST
+ * ADBUS6 -   VCC
+ * ADBUS7 -   GND
+ */
+static int icebear_jtag_init(void) {
+	u8  buf[3];
+	u32 bytes_written;
+
+	low_direction	= 0x0b;	/* output: TCK TDI TMS; input: TDO */
+	low_output	= 0x08;	/* high: TMS; low: TCK TDI */
+	nTRST		= 0x10;
+	nSRST		= 0x20;
+
+	if ((jtag_reset_config & RESET_TRST_OPEN_DRAIN) != 0) {
+		low_direction	&= ~nTRST;	/* nTRST high impedance */
+	}
+	else {
+		low_direction	|= nTRST;
+		low_output	|= nTRST;
+	}
+
+	low_direction	|= nSRST;
+	low_output	|= nSRST;
+
+	/* initialize low byte for jtag */
+	buf[0] = 0x80;          /* command "set data bits low byte" */
+	buf[1] = low_output;
+	buf[2] = low_direction;
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) ) {
+		LOG_ERROR("couldn't initialize FT2232 with 'IceBear' layout (low)");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	high_output    = 0x0;
+	high_direction = 0x00;
+
+
+	/* initialize high port */
+	buf[0] = 0x82;              /* command "set data bits high byte" */
+	buf[1] = high_output;       /* value */
+	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) ) {
+		LOG_ERROR("couldn't initialize FT2232 with 'IceBear' layout (high)");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
+static void icebear_jtag_reset(int trst, int srst) {
+
+	if (trst == 1) {
+		low_direction	|= nTRST;
+		low_output	&= ~nTRST;
+	}
+	else if (trst == 0) {
+		if ((jtag_reset_config & RESET_TRST_OPEN_DRAIN) != 0)
+			low_direction	&= ~nTRST;
+		else
+			low_output	|= nTRST;
+	}
+
+	if (srst == 1) {
+		low_output &= ~nSRST;
+	}
+	else if (srst == 0) {
+		low_output |= nSRST;
+	}
+
+	/* command "set data bits low byte" */
+	BUFFER_ADD = 0x80;
+	BUFFER_ADD = low_output;
+	BUFFER_ADD = low_direction;
+	LOG_DEBUG("trst: %i, srst: %i, low_output: 0x%2.2x, low_direction: 0x%2.2x", trst, srst, low_output, low_direction);
 }
