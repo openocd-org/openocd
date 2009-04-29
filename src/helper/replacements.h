@@ -35,7 +35,14 @@
 #if BUILD_ECOSBOARD
 #include <pkgconf/system.h>
 #include <stdlib.h>
-#include <sys/select.h>
+#endif
+
+#ifdef HAVE_SYS_SELECT_H 
+#include <sys/select.h> /* select, FD_SET and friends (POSIX.1-2001) */
+#endif
+
+#ifdef HAVE_SYS_TIME_H 
+#include <sys/time.h> /* FD_SET and friends (pre-POSIX.1-2001) */
 #endif
 
 /* include necessary headers for socket functionality */

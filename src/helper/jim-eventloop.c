@@ -62,6 +62,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <errno.h>
 
 #include "replacements.h"
