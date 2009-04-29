@@ -36,6 +36,13 @@
 #define JTAG_DEBUG(expr ...)	do {} while(0)
 #endif
 
+/*
+This pathmove goes from Pause-IR to Shift-IR while avoiding RTI. The
+behavior of the FTDI driver IIRC was to go via RTI.
+
+Conversely there may be other places in this code where the ARM11 code relies
+on the driver to hit through RTI when coming from Update-?R.
+*/
 tap_state_t arm11_move_pi_to_si_via_ci[] =
 {
     TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IRSHIFT
@@ -476,6 +483,8 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data,
  *  layer (FT2232) that is long enough to finish execution on
  *  the core but still shorter than any manually inducible delays.
  *
+ *  To disable this code, try "memwrite burst false"
+ *
  */
 tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
 {
@@ -613,7 +622,7 @@ int arm11_run_instr_data_from_core(arm11_common_t * arm11, u32 opcode, u32 * dat
 		do
 		{
 			arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, count ? TAP_IDLE : TAP_DRPAUSE);
-			
+
 			CHECK_RETVAL(jtag_execute_queue());
 
 			JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
@@ -715,7 +724,7 @@ int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t c
 			JTAG_DEBUG("SC7 <= Address %02x  Data %08x    nRW %d", AddressOut, DataOut, nRW);
 
 			arm11_add_dr_scan_vc(asizeof(chain7_fields), chain7_fields, TAP_DRPAUSE);
-			
+
 			CHECK_RETVAL(jtag_execute_queue());
 
 			JTAG_DEBUG("SC7 => Address %02x  Data %08x  Ready %d", AddressIn, DataIn, Ready);

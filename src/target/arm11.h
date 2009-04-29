@@ -56,7 +56,10 @@ do {														\
 	int __retval = (action);								\
 															\
 	if (__retval != ERROR_OK)								\
+	{														\
+		LOG_DEBUG("error while calling \"" # action "\"");	\
 		return __retval;									\
+	}														\
 															\
 } while (0)
 
