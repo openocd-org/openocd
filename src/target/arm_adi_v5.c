@@ -247,7 +247,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 		}
 		else
 		{
-			u32 mem_ap_csw;
+			u32 mem_ap_csw, mem_ap_tar;
 
 			/* Print information about last AHBAP access */
 			LOG_ERROR("AHBAP Cached values: dp_select 0x%x, ap_csw 0x%x, ap_tar 0x%x", swjdp->dp_select_value, swjdp->ap_csw_value, swjdp->ap_tar_value);
@@ -266,9 +266,10 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			LOG_DEBUG("swjdp: status 0x%x", ctrlstat);
 
 			dap_ap_read_reg_u32(swjdp, AP_REG_CSW, &mem_ap_csw);
+			dap_ap_read_reg_u32(swjdp, AP_REG_TAR, &mem_ap_tar);
 			if ((retval=jtag_execute_queue())!=ERROR_OK)
 				return retval;
-			LOG_ERROR("Read MEM_AP_CSW 0x%x", mem_ap_csw);
+			LOG_ERROR("Read MEM_AP_CSW 0x%x, MEM_AP_TAR 0x%x", mem_ap_csw, mem_ap_tar);
 
 		}
 		if ((retval=jtag_execute_queue())!=ERROR_OK)
