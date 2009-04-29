@@ -621,8 +621,6 @@ typedef struct
 static int pending_scan_results_length;
 static pending_scan_result_t pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
 
-static int last_tms;
-
 static void jlink_tap_init(void)
 {
 	tap_length = 0;
@@ -642,7 +640,6 @@ static void jlink_tap_ensure_space(int scans, int bits)
 
 static void jlink_tap_append_step(int tms, int tdi)
 {
-	last_tms = tms;
 	int index = tap_length / 8;
 
 	if (index >= JLINK_TAP_BUFFER_SIZE)
