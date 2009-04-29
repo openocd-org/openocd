@@ -886,12 +886,21 @@ static int usb_bulk_with_retries(
 	}
 	return rc;
 }
+
+static int wrap_usb_bulk_write(usb_dev_handle *dev, int ep,
+			       char *buff, int size, int timeout)
+{
+	/* usb_bulk_write() takes const char *buff */
+	return usb_bulk_write(dev, ep, buff, size, timeout);
+}
+
 static inline int usb_bulk_write_ex(usb_dev_handle *dev, int ep,
 		char *bytes, int size, int timeout)
 {
-	return usb_bulk_with_retries(&usb_bulk_write,
+	return usb_bulk_with_retries(&wrap_usb_bulk_write,
 			dev, ep, bytes, size, timeout);
 }
+
 static inline int usb_bulk_read_ex(usb_dev_handle *dev, int ep,
 		char *bytes, int size, int timeout)
 {
