@@ -48,13 +48,11 @@
 #endif
 
 /* cli handling */
-int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 /* forward declarations */
 int arm9tdmi_target_create( struct target_s *target, Jim_Interp *interp );
 
-int arm9tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm9tdmi_quit(void);
 
 target_type_t arm9tdmi_target =

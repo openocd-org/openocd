@@ -43,7 +43,6 @@ typedef struct tcl_connection_s {
 	int tc_outerror; /* flag an output error */
 } tcl_connection_t;
 
-extern Jim_Interp *interp;
 static unsigned short tcl_port = 0;
 
 /* commands */

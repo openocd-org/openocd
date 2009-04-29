@@ -208,11 +208,6 @@ char* etm_reg_list[] =
 int etm_reg_arch_type = -1;
 
 int etm_get_reg(reg_t *reg);
-int etm_set_reg(reg_t *reg, u32 value);
-int etm_set_reg_w_exec(reg_t *reg, u8 *buf);
-
-int etm_write_reg(reg_t *reg, u32 value);
-int etm_read_reg(reg_t *reg);
 
 command_t *etm_cmd = NULL;
 
@@ -480,7 +475,6 @@ int etm_store_reg(reg_t *reg)
 /* ETM trace analysis functionality
  *
  */
-extern etm_capture_driver_t etb_capture_driver;
 extern etm_capture_driver_t etm_dummy_capture_driver;
 #if BUILD_OOCD_TRACE == 1
 extern etm_capture_driver_t oocd_trace_capture_driver;

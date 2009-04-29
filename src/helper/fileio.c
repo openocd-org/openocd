@@ -43,7 +43,6 @@
 #include <errno.h>
 #include <ctype.h>
 
-int fileio_close(fileio_t *fileio);
 int fileio_dispatch_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read);
 
 int fileio_open_local(fileio_t *fileio)

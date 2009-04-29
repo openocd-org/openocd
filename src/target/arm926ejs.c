@@ -34,8 +34,6 @@
 #endif
 
 /* cli handling */
-int arm926ejs_register_commands(struct command_context_s *cmd_ctx);
-
 int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm926ejs_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm926ejs_handle_virt2phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -50,10 +48,8 @@ int arm926ejs_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *c
 int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp);
 int arm926ejs_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm926ejs_quit(void);
-int arm926ejs_arch_state(struct target_s *target);
 int arm926ejs_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int arm926ejs_soft_reset_halt(struct target_s *target);
+
 static int arm926ejs_virt2phys(struct target_s *target, u32 virtual, u32 *physical);
 static int arm926ejs_mmu(struct target_s *target, int *enabled);
 

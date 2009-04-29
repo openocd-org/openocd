@@ -30,8 +30,6 @@
 #include <stdlib.h>
 
 u32 armv4mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 va, int *type, u32 *cb, int *domain, u32 *ap);
-int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 address, u32 size, u32 count, u8 *buffer);
-int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 address, u32 size, u32 count, u8 *buffer);
 
 char* armv4_5_mmu_page_type_names[] =
 {

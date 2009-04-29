@@ -59,7 +59,6 @@ static u32 stellaris_get_flash_status(flash_bank_t *bank);
 static void stellaris_set_flash_mode(flash_bank_t *bank,int mode);
 //static u32 stellaris_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout);
 
-static int stellaris_read_part_info(struct flash_bank_s *bank);
 static int stellaris_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int stellaris_mass_erase(struct flash_bank_s *bank);
 

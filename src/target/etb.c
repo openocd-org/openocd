@@ -52,11 +52,6 @@ char* etb_reg_list[] =
 int etb_reg_arch_type = -1;
 
 int etb_get_reg(reg_t *reg);
-int etb_set_reg(reg_t *reg, u32 value);
-int etb_set_reg_w_exec(reg_t *reg, u8 *buf);
-
-int etb_write_reg(reg_t *reg, u32 value);
-int etb_read_reg(reg_t *reg);
 
 int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 

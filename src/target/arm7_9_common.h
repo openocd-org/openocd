@@ -127,7 +127,6 @@ int arm7_9_soft_reset_halt(struct target_s *target);
 int arm7_9_prepare_reset_halt(struct target_s *target);
 
 int arm7_9_halt(target_t *target);
-int arm7_9_debug_entry(target_t *target);
 int arm7_9_full_context(target_t *target);
 int arm7_9_restore_context(target_t *target);
 int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);

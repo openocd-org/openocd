@@ -64,6 +64,7 @@ void *fill_malloc(size_t size)
 	return t;
 }
 
+#define IN_REPLACEMENTS_C
 #include "replacements.h"
 
 #include <stdio.h>

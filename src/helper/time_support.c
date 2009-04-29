@@ -33,9 +33,6 @@
 
 #include <stdlib.h>
 
-int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
-int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y);
-int timeval_add_time(struct timeval *result, int sec, int usec);
 
 /* calculate difference between two struct timeval values */
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)

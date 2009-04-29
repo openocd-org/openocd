@@ -11979,7 +11979,7 @@ static int Jim_EnvCoreCommand(Jim_Interp *interp, int argc,
 
     if (argc == 1) {
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__USE_GNU)
         extern char **environ;
 #endif
 

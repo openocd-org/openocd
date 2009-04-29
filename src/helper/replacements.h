@@ -103,9 +103,11 @@ struct timezone;
 extern int gettimeofday(struct timeval *tv, struct timezone *tz);
 #endif
 
+#ifndef IN_REPLACEMENTS_C
 /**** clear_malloc & fill_malloc ****/
 void *clear_malloc(size_t size);
 void *fill_malloc(size_t size);
+#endif
 
 /*
  * Now you have 3 ways for the malloc function:

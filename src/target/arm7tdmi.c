@@ -43,13 +43,9 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-/* cli handling */
-int arm7tdmi_register_commands(struct command_context_s *cmd_ctx);
-
 /* forward declarations */
 
 int arm7tdmi_target_create(struct target_s *target,Jim_Interp *interp);
-int arm7tdmi_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm7tdmi_quit(void);
 
 /* target function declarations */

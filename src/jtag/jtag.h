@@ -395,7 +395,6 @@ struct jtag_tap_s
 };
 extern jtag_tap_t* jtag_AllTaps(void);
 extern jtag_tap_t* jtag_TapByPosition(int n);
-extern jtag_tap_t* jtag_TapByPosition(int n);
 extern jtag_tap_t* jtag_TapByString(const char* dotted_name);
 extern jtag_tap_t* jtag_TapByJimObj(Jim_Interp* interp, Jim_Obj* obj);
 extern jtag_tap_t* jtag_TapByAbsPosition(int abs_position);

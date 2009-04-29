@@ -86,11 +86,6 @@ char* embeddedice_reg_list[] =
 int embeddedice_reg_arch_type = -1;
 
 int embeddedice_get_reg(reg_t *reg);
-void embeddedice_set_reg(reg_t *reg, u32 value);
-int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf);
-
-void embeddedice_write_reg(reg_t *reg, u32 value);
-int embeddedice_read_reg(reg_t *reg);
 
 reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
 {
