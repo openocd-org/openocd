@@ -113,7 +113,7 @@ static int autodetect_image_type(image_t *image, char *url)
 	return ERROR_OK;
 }
 
-int identify_image_type(image_t *image, char *type_string, char *url)
+static int identify_image_type(image_t *image, char *type_string, char *url)
 {
 	if (type_string)
 	{
@@ -154,7 +154,7 @@ int identify_image_type(image_t *image, char *type_string, char *url)
 	return ERROR_OK;
 }
 
-int image_ihex_buffer_complete(image_t *image)
+static int image_ihex_buffer_complete(image_t *image)
 {
 	image_ihex_t *ihex = image->type_private;
 	fileio_t *fileio = &ihex->fileio;
@@ -344,7 +344,7 @@ int image_ihex_buffer_complete(image_t *image)
 	return ERROR_IMAGE_FORMAT_ERROR;
 }
 
-int image_elf_read_headers(image_t *image)
+static int image_elf_read_headers(image_t *image)
 {
 	image_elf_t *elf = image->type_private;
 	u32 read_bytes;
@@ -445,7 +445,7 @@ int image_elf_read_headers(image_t *image)
 	return ERROR_OK;
 }
 
-int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read)
+static int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read)
 {
 	image_elf_t *elf = image->type_private;
 	Elf32_Phdr *segment = (Elf32_Phdr *)image->sections[section].private;
@@ -486,7 +486,7 @@ int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8
 	return ERROR_OK;
 }
 
-int image_mot_buffer_complete(image_t *image)
+static int image_mot_buffer_complete(image_t *image)
 {
 	image_mot_t *mot = image->type_private;
 	fileio_t *fileio = &mot->fileio;

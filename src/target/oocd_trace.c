@@ -41,7 +41,9 @@
 
 #include <stdlib.h>
 
-int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
+static int oocd_trace_register_commands(struct command_context_s *cmd_ctx);
+
+static int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
 {
 	size_t bytes_written, bytes_read, bytes_to_read;
 	u8 cmd;
@@ -61,7 +63,7 @@ int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
 	return ERROR_OK;
 }
 
-int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
+static int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
 {
 	size_t bytes_written;
 	u8 data[5];
@@ -78,7 +80,7 @@ int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
 	return ERROR_OK;
 }
 
-int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 address, u32 size)
+static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 address, u32 size)
 {
 	size_t bytes_written, bytes_to_read;
 	ssize_t bytes_read;
@@ -105,7 +107,7 @@ int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 address, u32 
 	return ERROR_OK;
 }
 
-int oocd_trace_init(etm_context_t *etm_ctx)
+static int oocd_trace_init(etm_context_t *etm_ctx)
 {
 	u8 trash[256];
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
@@ -152,7 +154,7 @@ int oocd_trace_init(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-trace_status_t oocd_trace_status(etm_context_t *etm_ctx)
+static trace_status_t oocd_trace_status(etm_context_t *etm_ctx)
 {
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
 	u32 status;
@@ -184,7 +186,7 @@ trace_status_t oocd_trace_status(etm_context_t *etm_ctx)
 	return etm_ctx->capture_status;
 }
 
-int oocd_trace_read_trace(etm_context_t *etm_ctx)
+static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 {
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
 	u32 status, address;
@@ -242,7 +244,7 @@ int oocd_trace_read_trace(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-int oocd_trace_start_capture(etm_context_t *etm_ctx)
+static int oocd_trace_start_capture(etm_context_t *etm_ctx)
 {
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
 	u32 control = 0x1;	/* 0x1: enabled */
@@ -275,7 +277,7 @@ int oocd_trace_start_capture(etm_context_t *etm_ctx)
 	return ERROR_OK; 
 }
 
-int oocd_trace_stop_capture(etm_context_t *etm_ctx)
+static int oocd_trace_stop_capture(etm_context_t *etm_ctx)
 {
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
 
@@ -298,7 +300,7 @@ etm_capture_driver_t oocd_trace_capture_driver =
 	.read_trace = oocd_trace_read_trace,
 };
 
-int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -336,7 +338,7 @@ int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-int handle_oocd_trace_status_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_oocd_trace_status_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -376,7 +378,7 @@ int handle_oocd_trace_status_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-int handle_oocd_trace_resync_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_oocd_trace_resync_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;

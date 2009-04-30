@@ -46,15 +46,17 @@
  *
  */
 
-bitfield_desc_t etm_comms_ctrl_bitfield_desc[] =
+#if 0
+static bitfield_desc_t etm_comms_ctrl_bitfield_desc[] =
 {
 	{"R", 1},
 	{"W", 1},
 	{"reserved", 26},
 	{"version", 4}
 };
+#endif
 
-int etm_reg_arch_info[] =
+static int etm_reg_arch_info[] =
 {
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
@@ -72,7 +74,7 @@ int etm_reg_arch_info[] =
 	0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f,
 };
 
-int etm_reg_arch_size_info[] =
+static int etm_reg_arch_size_info[] =
 {
 	32, 32, 17, 8, 3, 9, 32, 16,
 	17, 26, 25, 8, 17, 32, 32, 17,
@@ -90,7 +92,7 @@ int etm_reg_arch_size_info[] =
 	17, 17, 17, 17, 32, 32, 32, 32
 };
 
-char* etm_reg_list[] =
+static char* etm_reg_list[] =
 {
 	"ETM_CTRL",
 	"ETM_CONFIG",
@@ -205,11 +207,11 @@ char* etm_reg_list[] =
 	"ETM_CONTEXTID_COMPARATOR_MASK"
 };
 
-int etm_reg_arch_type = -1;
+static int etm_reg_arch_type = -1;
 
-int etm_get_reg(reg_t *reg);
+static int etm_get_reg(reg_t *reg);
 
-command_t *etm_cmd = NULL;
+static command_t *etm_cmd = NULL;
 
 reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_context_t *etm_ctx)
 {
@@ -480,7 +482,7 @@ extern etm_capture_driver_t etm_dummy_capture_driver;
 extern etm_capture_driver_t oocd_trace_capture_driver;
 #endif
 
-etm_capture_driver_t *etm_capture_drivers[] =
+static etm_capture_driver_t *etm_capture_drivers[] =
 {
 	&etb_capture_driver,
 	&etm_dummy_capture_driver,
@@ -502,7 +504,7 @@ char *etmv1v1_branch_reason_strings[] =
 	"reserved",
 };
 
-int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instruction)
+static int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instruction)
 {
 	int i;
 	int section = -1;
@@ -570,7 +572,7 @@ int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instruction)
 	return ERROR_OK;
 }
 
-int etmv1_next_packet(etm_context_t *ctx, u8 *packet, int apo)
+static int etmv1_next_packet(etm_context_t *ctx, u8 *packet, int apo)
 {
 	while (ctx->data_index < ctx->trace_depth)
 	{
@@ -635,7 +637,7 @@ int etmv1_next_packet(etm_context_t *ctx, u8 *packet, int apo)
 	return -1;
 }
 
-int etmv1_branch_address(etm_context_t *ctx)
+static int etmv1_branch_address(etm_context_t *ctx)
 {
 	int retval;
 	u8 packet;
@@ -721,7 +723,7 @@ int etmv1_branch_address(etm_context_t *ctx)
 	return 0;
 }
 
-int etmv1_data(etm_context_t *ctx, int size, u32 *data)
+static int etmv1_data(etm_context_t *ctx, int size, u32 *data)
 {
 	int j;
 	u8 buf[4];
@@ -750,7 +752,7 @@ int etmv1_data(etm_context_t *ctx, int size, u32 *data)
 	return 0;
 }
 
-int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
+static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 {
 	int retval;
 	arm_instruction_t instruction;
@@ -1043,7 +1045,7 @@ int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1223,7 +1225,7 @@ int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char *cmd, c
 	return ERROR_OK;
 }
 
-int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1423,7 +1425,7 @@ int handle_etm_info_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
-int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1471,7 +1473,7 @@ int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1530,7 +1532,7 @@ int handle_etm_image_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return ERROR_OK;
 }
 
-int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	fileio_t file;
 	target_t *target;
@@ -1598,7 +1600,7 @@ int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
-int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	fileio_t file;
 	target_t *target;
@@ -1680,7 +1682,7 @@ int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
-int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1720,7 +1722,7 @@ int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-int handle_etm_start_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_start_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1765,7 +1767,7 @@ int handle_etm_start_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	return ERROR_OK;
 }
 
-int handle_etm_stop_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_stop_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -1801,7 +1803,7 @@ int handle_etm_stop_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	return ERROR_OK;
 }
 
-int handle_etm_analyze_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_analyze_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;

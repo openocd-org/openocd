@@ -38,10 +38,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-command_t *target_request_cmd = NULL;
+static command_t *target_request_cmd = NULL;
 static int charmsg_mode = 0;
 
-int target_asciimsg(target_t *target, u32 length)
+static int target_asciimsg(target_t *target, u32 length)
 {
 	char *msg = malloc(CEIL(length + 1, 4) * 4);
 	debug_msg_receiver_t *c = target->dbgmsg;
@@ -60,14 +60,14 @@ int target_asciimsg(target_t *target, u32 length)
 	return ERROR_OK;
 }
 
-int target_charmsg(target_t *target, u8 msg)
+static int target_charmsg(target_t *target, u8 msg)
 {
 	LOG_USER_N("%c", msg);
 	
 	return ERROR_OK;
 }
 
-int target_hexmsg(target_t *target, int size, u32 length)
+static int target_hexmsg(target_t *target, int size, u32 length)
 {
 	u8 *data = malloc(CEIL(length * size, 4) * 4);
 	char line[128];
@@ -154,7 +154,7 @@ int target_request(target_t *target, u32 request)
 	return ERROR_OK;
 }
 
-int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
+static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 {
 	debug_msg_receiver_t **p = &target->dbgmsg;
 	
@@ -182,7 +182,7 @@ int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 	return ERROR_OK;
 }
 
-debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
+static debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 {
 	int do_all_targets = 0;
 	debug_msg_receiver_t **p = &target->dbgmsg;
@@ -261,7 +261,7 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 	return ERROR_OK;
 }
 
-int handle_target_request_debugmsgs_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_target_request_debugmsgs_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 

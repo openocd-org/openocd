@@ -30,13 +30,13 @@
 
 #include "breakpoints.h"
 
-char *breakpoint_type_strings[] =
+static char *breakpoint_type_strings[] =
 {
 	"hardware",
 	"software"
 };
 
-char *watchpoint_rw_strings[] =
+static char *watchpoint_rw_strings[] =
 {
 	"read",
 	"write",

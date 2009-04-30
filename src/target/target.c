@@ -59,32 +59,30 @@
 #include <fileio.h>
 #include <image.h>
 
-int cli_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv);
+static int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-
-int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_test_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc);
-int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_fast_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_test_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
@@ -1346,7 +1344,7 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	return retval;
 }
 
-int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	char *cp;
 	target_t *target = all_targets;
@@ -1542,7 +1540,7 @@ int handle_target(void *priv)
 	return retval;
 }
 
-int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	reg_t *reg = NULL;
@@ -1653,7 +1651,7 @@ int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	return ERROR_OK;
 }
 
-int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1688,7 +1686,7 @@ int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	return retval;
 }
 
-int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int ms = 5000;
 
@@ -1753,7 +1751,7 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 	return ERROR_OK;
 }
 
-int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1778,7 +1776,7 @@ int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	return handle_wait_halt_command(cmd_ctx, cmd, args, argc);
 }
 
-int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -1789,7 +1787,7 @@ int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, char *cmd,
 	return ERROR_OK;
 }
 
-int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	const Jim_Nvp *n;
 	enum target_reset_mode reset_mode = RESET_RUN;
@@ -1808,7 +1806,7 @@ int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 }
 
 
-int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -1827,7 +1825,7 @@ int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	return retval;
 }
 
-int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -1842,7 +1840,7 @@ int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	return ERROR_OK;
 }
 
-int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	const int line_bytecnt = 32;
 	int count = 1;
@@ -1919,7 +1917,7 @@ int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	return retval;
 }
 
-int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 address = 0;
 	u32 value = 0;
@@ -1983,7 +1981,7 @@ int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 
 }
 
-int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u8 *buffer;
 	u32 buf_cnt;
@@ -2107,7 +2105,7 @@ int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 }
 
-int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	fileio_t fileio;
 
@@ -2179,7 +2177,7 @@ int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int handle_verify_image_command_internal(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, int verify)
+static int handle_verify_image_command_internal(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, int verify)
 {
 	u8 *buffer;
 	u32 buf_cnt;
@@ -2322,17 +2320,17 @@ done:
 	return retval;
 }
 
-int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_verify_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	return handle_verify_image_command_internal(cmd_ctx, cmd, args, argc, 1);
 }
 
-int handle_test_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_test_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	return handle_verify_image_command_internal(cmd_ctx, cmd, args, argc, 0);
 }
 
-int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -2384,7 +2382,7 @@ int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	return ERROR_OK;
 }
 
-int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -2394,7 +2392,7 @@ int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	return ERROR_OK;
 }
 
-int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	int retval;
@@ -2456,7 +2454,7 @@ int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	return ERROR_OK;
 }
 
-int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 
@@ -2466,7 +2464,7 @@ int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args
 	return ERROR_OK;
 }
 
-int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -2610,7 +2608,7 @@ static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
 }
 
 /* profiling samples the CPU PC as quickly as OpenOCD is able, which will be used as a random sampling of PC */
-int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	struct timeval timeout, now;
@@ -4092,7 +4090,7 @@ static void free_fastload(void)
 
 
 
-int handle_fast_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u8 *buffer;
 	u32 buf_cnt;
@@ -4228,7 +4226,7 @@ int handle_fast_load_image_command(struct command_context_s *cmd_ctx, char *cmd,
 	return retval;
 }
 
-int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc>0)
 		return ERROR_COMMAND_SYNTAX_ERROR;

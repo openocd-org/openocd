@@ -42,15 +42,17 @@
 
 #include <stdlib.h>
 
-bitfield_desc_t embeddedice_comms_ctrl_bitfield_desc[] =
+#if 0
+static bitfield_desc_t embeddedice_comms_ctrl_bitfield_desc[] =
 {
 	{"R", 1},
 	{"W", 1},
 	{"reserved", 26},
 	{"version", 4}
 };
+#endif
 
-int embeddedice_reg_arch_info[] =
+static int embeddedice_reg_arch_info[] =
 {
 	0x0, 0x1, 0x4, 0x5,
 	0x8, 0x9, 0xa, 0xb, 0xc, 0xd,
@@ -58,7 +60,7 @@ int embeddedice_reg_arch_info[] =
 	0x2
 };
 
-char* embeddedice_reg_list[] =
+static char* embeddedice_reg_list[] =
 {
 	"debug_ctrl",
 	"debug_status",
@@ -83,9 +85,9 @@ char* embeddedice_reg_list[] =
 	"vector catch"
 };
 
-int embeddedice_reg_arch_type = -1;
+static int embeddedice_reg_arch_type = -1;
 
-int embeddedice_get_reg(reg_t *reg);
+static int embeddedice_get_reg(reg_t *reg);
 
 reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9)
 {
@@ -215,7 +217,7 @@ int embeddedice_setup(target_t *target)
 	return jtag_execute_queue();
 }
 
-int embeddedice_get_reg(reg_t *reg)
+static int embeddedice_get_reg(reg_t *reg)
 {
 	int retval;
 	if ((retval = embeddedice_read_reg(reg)) != ERROR_OK)

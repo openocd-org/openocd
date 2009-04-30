@@ -59,6 +59,4 @@ typedef struct oocd_trace_s
 
 extern etm_capture_driver_t oocd_trace_capture_driver;
 
-extern int oocd_trace_register_commands(struct command_context_s *cmd_ctx);
-
 #endif /* OOCD_TRACE_TRACE_H */

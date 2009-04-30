@@ -36,7 +36,7 @@
 
 #include <stdlib.h>
 
-char* etb_reg_list[] =
+static char* etb_reg_list[] =
 {
 	"ETB_identification",
 	"ETB_ram_depth",
@@ -49,13 +49,13 @@ char* etb_reg_list[] =
 	"ETB_control",
 };
 
-int etb_reg_arch_type = -1;
+static int etb_reg_arch_type = -1;
 
-int etb_get_reg(reg_t *reg);
+static int etb_get_reg(reg_t *reg);
 
-int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-int etb_set_instr(etb_t *etb, u32 new_instr)
+static int etb_set_instr(etb_t *etb, u32 new_instr)
 {
 	jtag_tap_t *tap;
 	tap = etb->tap;
@@ -85,7 +85,7 @@ int etb_set_instr(etb_t *etb, u32 new_instr)
 	return ERROR_OK;
 }
 
-int etb_scann(etb_t *etb, u32 new_scan_chain)
+static int etb_scann(etb_t *etb, u32 new_scan_chain)
 {
 	if(etb->cur_scan_chain != new_scan_chain)
 	{
@@ -156,7 +156,7 @@ reg_cache_t* etb_build_reg_cache(etb_t *etb)
 	return reg_cache;
 }
 
-int etb_get_reg(reg_t *reg)
+static int etb_get_reg(reg_t *reg)
 {
 	int retval;
 	if ((retval = etb_read_reg(reg)) != ERROR_OK)
@@ -174,7 +174,7 @@ int etb_get_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
-int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
+static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 {
 	scan_field_t fields[3];
 	int i;
@@ -397,7 +397,7 @@ int etb_store_reg(reg_t *reg)
 	return etb_write_reg(reg, buf_get_u32(reg->value, 0, reg->size));
 }
 
-int etb_register_commands(struct command_context_s *cmd_ctx)
+static int etb_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *etb_cmd;
 
@@ -408,7 +408,7 @@ int etb_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	jtag_tap_t *tap;
@@ -462,7 +462,7 @@ int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-int etb_init(etm_context_t *etm_ctx)
+static int etb_init(etm_context_t *etm_ctx)
 {
 	etb_t *etb = etm_ctx->capture_driver_priv;
 
@@ -479,7 +479,7 @@ int etb_init(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-trace_status_t etb_status(etm_context_t *etm_ctx)
+static trace_status_t etb_status(etm_context_t *etm_ctx)
 {
 	etb_t *etb = etm_ctx->capture_driver_priv;
 
@@ -534,7 +534,7 @@ trace_status_t etb_status(etm_context_t *etm_ctx)
 	return etm_ctx->capture_status;
 }
 
-int etb_read_trace(etm_context_t *etm_ctx)
+static int etb_read_trace(etm_context_t *etm_ctx)
 {
 	etb_t *etb = etm_ctx->capture_driver_priv;
 	int first_frame = 0;
@@ -684,7 +684,7 @@ int etb_read_trace(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-int etb_start_capture(etm_context_t *etm_ctx)
+static int etb_start_capture(etm_context_t *etm_ctx)
 {
 	etb_t *etb = etm_ctx->capture_driver_priv;
 	u32 etb_ctrl_value = 0x1;
@@ -716,7 +716,7 @@ int etb_start_capture(etm_context_t *etm_ctx)
 	return ERROR_OK;
 }
 
-int etb_stop_capture(etm_context_t *etm_ctx)
+static int etb_stop_capture(etm_context_t *etm_ctx)
 {
 	etb_t *etb = etm_ctx->capture_driver_priv;
 	reg_t *etb_ctrl_reg = &etb->reg_cache->reg_list[ETB_CTRL];

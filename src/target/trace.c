@@ -53,7 +53,7 @@ int trace_point(target_t *target, u32 number)
 	return ERROR_OK;
 }
 
-int handle_trace_point_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_trace_point_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	trace_t *trace = target->trace_info;
@@ -99,7 +99,7 @@ int handle_trace_point_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return ERROR_OK;
 }
 
-int handle_trace_history_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_trace_history_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	trace_t *trace = target->trace_info;

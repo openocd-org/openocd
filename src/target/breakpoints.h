@@ -30,14 +30,10 @@ enum breakpoint_type
 	BKPT_SOFT,
 };
 
-extern char *breakpoint_type_strings[];
-
 enum watchpoint_rw
 {
 	WPT_READ = 0, WPT_WRITE = 1, WPT_ACCESS = 2
 };
-
-extern char *watchpoint_rw_strings[];
 
 typedef struct breakpoint_s
 {

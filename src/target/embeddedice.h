@@ -111,9 +111,9 @@ extern int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout);
 /* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of
  * embeddedice_write_reg
  */
-static const int embeddedice_num_bits[]={32,5,1};
 static __inline__ void embeddedice_write_reg_inner( jtag_tap_t *tap, int reg_addr, u32 value)
 {
+	static const int embeddedice_num_bits[]={32,5,1};
 	u32 values[3];
 
 	values[0]=value;

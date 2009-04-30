@@ -70,6 +70,4 @@ extern int etb_store_reg(reg_t *reg);
 extern int etb_set_reg(reg_t *reg, u32 value);
 extern int etb_set_reg_w_exec(reg_t *reg, u8 *buf);
 
-extern int etb_register_commands(struct command_context_s *cmd_ctx);
-
 #endif /* ETB_H */

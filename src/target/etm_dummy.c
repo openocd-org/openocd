@@ -36,7 +36,7 @@
 
 #include <stdlib.h>
 
-int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	armv4_5_common_t *armv4_5;
@@ -69,7 +69,7 @@ int handle_etm_dummy_config_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-int etm_dummy_register_commands(struct command_context_s *cmd_ctx)
+static int etm_dummy_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *etm_dummy_cmd;
 
@@ -80,27 +80,27 @@ int etm_dummy_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int etm_dummy_init(etm_context_t *etm_ctx)
+static int etm_dummy_init(etm_context_t *etm_ctx)
 {
 	return ERROR_OK;
 }
 
-trace_status_t etm_dummy_status(etm_context_t *etm_ctx)
+static trace_status_t etm_dummy_status(etm_context_t *etm_ctx)
 {
 	return TRACE_IDLE;
 }
 
-int etm_dummy_read_trace(etm_context_t *etm_ctx)
+static int etm_dummy_read_trace(etm_context_t *etm_ctx)
 {
 	return ERROR_OK;
 }
 
-int etm_dummy_start_capture(etm_context_t *etm_ctx)
+static int etm_dummy_start_capture(etm_context_t *etm_ctx)
 {
 	return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 }
 
-int etm_dummy_stop_capture(etm_context_t *etm_ctx)
+static int etm_dummy_stop_capture(etm_context_t *etm_ctx)
 {
 	return ERROR_OK;
 }

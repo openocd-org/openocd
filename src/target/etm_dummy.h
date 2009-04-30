@@ -28,6 +28,5 @@
 #include "etm.h"
 
 extern etm_capture_driver_t etm_dummy_capture_driver;
-extern int etm_dummy_register_commands(struct command_context_s *cmd_ctx);
 
 #endif /* ETB_H */
