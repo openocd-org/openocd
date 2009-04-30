@@ -982,6 +982,9 @@ int main(int argc, char *argv[])
 	char *dirname=alloc_printf("%s/target", zylin_config_dir);
 	mkdir(dirname, 0777);
 	free(dirname);
+	dirname=alloc_printf("%s/board", zylin_config_dir);
+	mkdir(dirname, 0777);
+	free(dirname);
 	dirname=alloc_printf("%s/event", zylin_config_dir);
 	mkdir(dirname, 0777);
 	free(dirname);
