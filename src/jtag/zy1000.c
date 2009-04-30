@@ -32,7 +32,7 @@
 
 #include <stdlib.h>
 
-#define ZYLIN_VERSION "1.50"
+#define ZYLIN_VERSION "1.51"
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
 #define ZYLIN_OPENOCD "$Revision$"
