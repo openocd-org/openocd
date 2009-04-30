@@ -726,6 +726,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	u32 pattern;
 	u32 count;
 	u8 chunk[1024];
+	u8 readback[1024];
 	u32 wrote = 0;
 	u32 cur_size = 0;
 	u32 chunk_count;
@@ -799,6 +800,21 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 		err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
 		if (err!=ERROR_OK)
 			return err;
+
+		err = target_read_buffer(target, address + wrote, cur_size, readback);
+		if (err!=ERROR_OK)
+			return err;
+
+		int i;
+		for (i=0; i<cur_size; i++)
+		{
+			if (readback[i]!=chunk[i])
+			{
+				LOG_ERROR("Verfication error address 0x%08x, read back 0x%02x, expected 0x%02x", address + wrote + i, readback[i], chunk[i]);
+				return ERROR_FAIL;
+			}
+		}
+
 	}
 
 	if ((retval = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
