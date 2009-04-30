@@ -33,11 +33,11 @@
 #include "config.h"
 #endif
 
+#include "replacements.h"
+
 #if IS_CYGWIN == 1
 #include "windows.h"
 #endif
-
-#include "replacements.h"
 
 /* project specific includes */
 #include "log.h"
