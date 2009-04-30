@@ -11979,7 +11979,7 @@ static int Jim_EnvCoreCommand(Jim_Interp *interp, int argc,
 
     if (argc == 1) {
 
-#if !defined(_WIN32) && !defined(__USE_GNU)
+#ifndef HAVE_UNISTD_H
         extern char **environ;
 #endif
 
