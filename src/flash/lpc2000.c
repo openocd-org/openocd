@@ -17,6 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -60,7 +61,7 @@ static int lpc2000_probe(struct flash_bank_s *bank);
 static int lpc2000_erase_check(struct flash_bank_s *bank);
 static int lpc2000_protect_check(struct flash_bank_s *bank);
 static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size);
-	
+
 static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 flash_driver_t lpc2000_flash =
@@ -81,25 +82,25 @@ flash_driver_t lpc2000_flash =
 static int lpc2000_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *lpc2000_cmd = register_command(cmd_ctx, NULL, "lpc2000", NULL, COMMAND_ANY, NULL);
-	
+
 	register_command(cmd_ctx, lpc2000_cmd, "part_id", lpc2000_handle_part_id_command, COMMAND_EXEC,
 					 "print part id of lpc2000 flash bank <num>");
-	
+
 	return ERROR_OK;
 }
 
 static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
-	
+
 	/* default to a 4096 write buffer */
 	lpc2000_info->cmd51_max_buffer = 4096;
-	
+
 	if (lpc2000_info->variant == 1)
 	{
 		int i = 0;
 		u32 offset = 0;
-		
+
 		/* variant 1 has different layout for 128kb and 256kb flashes */
 		if (bank->size == 128 * 1024)
 		{
@@ -118,7 +119,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 		{
 			bank->num_sectors = 18;
 			bank->sectors = malloc(sizeof(flash_sector_t) * 18);
-			
+
 			for (i = 0; i < 8; i++)
 			{
 				bank->sectors[i].offset = offset;
@@ -155,7 +156,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 		int num_sectors;
 		int i;
 		u32 offset = 0;
-	
+
 		/* variant 2 has a uniform layout, only number of sectors differs */
 		switch (bank->size)
 		{
@@ -191,10 +192,10 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 				exit(-1);
 				break;
 		}
-		
+
 		bank->num_sectors = num_sectors;
 		bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
-		
+
 		for (i = 0; i < num_sectors; i++)
 		{
 			if ((i >= 0) && (i < 8))
@@ -228,7 +229,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 		LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
 		exit(-1);
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -248,19 +249,19 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u3
 	reg_param_t reg_params[5];
 	armv4_5_algorithm_t armv4_5_info;
 	u32 status_code;
-	
+
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!lpc2000_info->iap_working_area)
 	{
 		u8 jump_gate[8];
-		
+
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, 172, &lpc2000_info->iap_working_area) != ERROR_OK)
 		{
 			LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
-		
+
 		/* write IAP code to working area */
 		target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
 		target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
@@ -269,11 +270,11 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u3
 			return retval;
 		}
 	}
-	
+
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
 	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
-	
+
 	/* command parameter table */
 	init_mem_param(&mem_params[0], lpc2000_info->iap_working_area->address + 8, 4 * 6, PARAM_OUT);
 	target_buffer_set_u32(target, mem_params[0].value, code);
@@ -282,20 +283,20 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u3
 	target_buffer_set_u32(target, mem_params[0].value + 0xc, param_table[2]);
 	target_buffer_set_u32(target, mem_params[0].value + 0x10, param_table[3]);
 	target_buffer_set_u32(target, mem_params[0].value + 0x14, param_table[4]);
-	
+
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	buf_set_u32(reg_params[0].value, 0, 32, lpc2000_info->iap_working_area->address + 0x8);
-	
+
 	/* command result table */
 	init_mem_param(&mem_params[1], lpc2000_info->iap_working_area->address + 0x20, 4 * 3, PARAM_IN);
-	
+
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
 	buf_set_u32(reg_params[1].value, 0, 32, lpc2000_info->iap_working_area->address + 0x20);
-	
+
 	/* IAP entry point */
 	init_reg_param(&reg_params[2], "r12", 32, PARAM_OUT);
 	buf_set_u32(reg_params[2].value, 0, 32, 0x7ffffff1);
-	
+
 	/* IAP stack */
 	init_reg_param(&reg_params[3], "r13_svc", 32, PARAM_OUT);
 	buf_set_u32(reg_params[3].value, 0, 32, lpc2000_info->iap_working_area->address + 0xac);
@@ -303,22 +304,22 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u3
 	/* return address */
 	init_reg_param(&reg_params[4], "lr_svc", 32, PARAM_OUT);
 	buf_set_u32(reg_params[4].value, 0, 32, lpc2000_info->iap_working_area->address + 0x4);
-	
+
 	target->type->run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, lpc2000_info->iap_working_area->address + 0x4, 10000, &armv4_5_info);
-	
+
 	status_code = buf_get_u32(mem_params[1].value, 0, 32);
 	result_table[0] = target_buffer_get_u32(target, mem_params[1].value);
 	result_table[1] = target_buffer_get_u32(target, mem_params[1].value + 4);
-	
+
 	destroy_mem_param(&mem_params[0]);
 	destroy_mem_param(&mem_params[1]);
-	
+
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
 	destroy_reg_param(&reg_params[3]);
 	destroy_reg_param(&reg_params[4]);
-	
+
 	return status_code;
 }
 
@@ -328,16 +329,16 @@ static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int las
 	u32 result_table[2];
 	int status_code;
 	int i;
-	
+
 	if ((first < 0) || (last >= bank->num_sectors))
 		return ERROR_FLASH_SECTOR_INVALID;
-	
+
 	for (i = first; i <= last; i++)
 	{
 		/* check single sector */
 		param_table[0] = param_table[1] = i;
 		status_code = lpc2000_iap_call(bank, 53, param_table, result_table);
-		
+
 		switch (status_code)
 		{
 			case ERROR_FLASH_OPERATION_FAILED:
@@ -359,7 +360,7 @@ static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int las
 				exit(-1);
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -368,16 +369,16 @@ static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int las
 static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	lpc2000_flash_bank_t *lpc2000_info;
-	
+
 	if (argc < 8)
 	{
 		LOG_WARNING("incomplete flash_bank lpc2000 configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
-	
+
 	lpc2000_info = malloc(sizeof(lpc2000_flash_bank_t));
 	bank->driver_priv = lpc2000_info;
-	
+
 	if (strcmp(args[6], "lpc2000_v1") == 0)
 	{
 		lpc2000_info->variant = 1;
@@ -398,18 +399,18 @@ static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *c
 		free(lpc2000_info);
 		return ERROR_FLASH_BANK_INVALID;
 	}
-	
+
 	lpc2000_info->iap_working_area = NULL;
 	lpc2000_info->cclk = strtoul(args[7], NULL, 0);
 	lpc2000_info->calc_checksum = 0;
 	lpc2000_build_sector_list(bank);
-		
+
 	if (argc >= 9)
 	{
 		if (strcmp(args[8], "calc_checksum") == 0)
 			lpc2000_info->calc_checksum = 1;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -419,7 +420,7 @@ static int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 	u32 param_table[5];
 	u32 result_table[2];
 	int status_code;
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
@@ -429,7 +430,7 @@ static int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 	param_table[0] = first;
 	param_table[1] = last;
 	param_table[2] = lpc2000_info->cclk;
-	
+
 	/* Prepare sectors */
 	status_code = lpc2000_iap_call(bank, 50, param_table, result_table);
 	switch (status_code)
@@ -445,7 +446,7 @@ static int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 			LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
 			return ERROR_FLASH_OPERATION_FAILED;
 	}
-	
+
 	/* Erase sectors */
 	status_code = lpc2000_iap_call(bank, 52, param_table, result_table);
 	switch (status_code)
@@ -461,7 +462,7 @@ static int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 			LOG_WARNING("lpc2000 erase sectors returned %i", status_code);
 			return ERROR_FLASH_OPERATION_FAILED;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -486,27 +487,27 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 	int i;
 	working_area_t *download_area;
 	int retval = ERROR_OK;
-		 
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if (offset + count > bank->size)
 		return ERROR_FLASH_DST_OUT_OF_BANK;
-		
+
 	if (lpc2000_info->cmd51_can_256b)
 		dst_min_alignment = 256;
 	else
 		dst_min_alignment = 512;
-	
+
 	if (offset % dst_min_alignment)
 	{
 		LOG_WARNING("offset 0x%x breaks required alignment 0x%x", offset, dst_min_alignment);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
-	
+
 	for (i = 0; i < bank->num_sectors; i++)
 	{
 		if (offset >= bank->sectors[i].offset)
@@ -514,7 +515,7 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 		if (offset + CEIL(count, dst_min_alignment) * dst_min_alignment > bank->sectors[i].offset)
 			last_sector = i;
 	}
-	
+
 	LOG_DEBUG("first_sector: %i, last_sector: %i", first_sector, last_sector);
 
 	/* check if exception vectors should be flashed */
@@ -532,14 +533,14 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 		LOG_DEBUG("checksum: 0x%8.8x", checksum);
 		buf_set_u32(buffer + 0x14, 0, 32, checksum);
 	}
-	
+
 	/* allocate a working area */
 	if (target_alloc_working_area(target, lpc2000_info->cmd51_max_buffer, &download_area) != ERROR_OK)
 	{
 		LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
-	
+
 	while (bytes_remaining > 0)
 	{
 		u32 thisrun_bytes;
@@ -551,7 +552,7 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 			thisrun_bytes = 512;
 		else
 			thisrun_bytes = 256;
-		
+
 		/* Prepare sectors */
 		param_table[0] = first_sector;
 		param_table[1] = last_sector;
@@ -575,7 +576,7 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 		/* Exit if error occured */
 		if (retval != ERROR_OK)
 			break;
-		
+
 		if (bytes_remaining >= thisrun_bytes)
 		{
 			if ((retval = target_write_buffer(bank->target, download_area->address, thisrun_bytes, buffer + bytes_written)) != ERROR_OK)
@@ -594,9 +595,9 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 			target_write_buffer(bank->target, download_area->address, thisrun_bytes, last_buffer);
 			free(last_buffer);
 		}
-		
+
 		LOG_DEBUG("writing 0x%x bytes to address 0x%x", thisrun_bytes, bank->base + offset + bytes_written);
-		
+
 		/* Write data */
 		param_table[0] = bank->base + offset + bytes_written;
 		param_table[1] = download_area->address;
@@ -618,26 +619,26 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 				retval = ERROR_FLASH_OPERATION_FAILED;
 				break;
 		}
-		
+
 		/* Exit if error occured */
 		if (retval != ERROR_OK)
 			break;
-		
+
 		if (bytes_remaining > thisrun_bytes)
 			bytes_remaining -= thisrun_bytes;
 		else
 			bytes_remaining = 0;
 		bytes_written += thisrun_bytes;
 	}
-	
+
 	target_free_working_area(target, download_area);
-	
+
 	return retval;
 }
 
 static int lpc2000_probe(struct flash_bank_s *bank)
 {
-	/* we can't probe on an lpc2000 
+	/* we can't probe on an lpc2000
 	 * if this is an lpc2xxx, it has the configured flash
 	 */
 	return ERROR_OK;
@@ -650,7 +651,7 @@ static int lpc2000_erase_check(struct flash_bank_s *bank)
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	return lpc2000_iap_blank_check(bank, 0, bank->num_sectors - 1);
 }
 
@@ -665,7 +666,7 @@ static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
 
 	snprintf(buf, buf_size, "lpc2000 flash driver variant: %i, clk: %i", lpc2000_info->variant, lpc2000_info->cclk);
-	
+
 	return ERROR_OK;
 }
 
@@ -680,7 +681,7 @@ static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, cha
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	
+
 	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
 	if (!bank)
 	{
@@ -693,7 +694,7 @@ static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, cha
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if ((status_code = lpc2000_iap_call(bank, 54, param_table, result_table)) != 0x0)
 	{
 		if (status_code == ERROR_FLASH_OPERATION_FAILED)
@@ -707,6 +708,6 @@ static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, cha
 	{
 		command_print(cmd_ctx, "lpc2000 part id: 0x%8.8x", result_table[0]);
 	}
-	
+
 	return ERROR_OK;
 }
