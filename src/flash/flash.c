@@ -805,7 +805,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 		if (err!=ERROR_OK)
 			return err;
 
-		int i;
+		unsigned i;
 		for (i=0; i<cur_size; i++)
 		{
 			if (readback[i]!=chunk[i])
