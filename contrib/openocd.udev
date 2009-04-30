@@ -52,9 +52,9 @@ SYSFS{idVendor}=="0403", SYSFS{idProduct}=="bdc8", MODE="664", GROUP="plugdev"
 # Marvell Sheevaplug
 SYSFS{idVendor}=="9e88", SYSFS{idProduct}=="9e8f", MODE="664", GROUP="plugdev"
 
-# Icebear (Section5)
-SYSFS{idProduct}=="c140", SYSFS{idVendor}=="0403", MODE="666", GROUP="usb"
-SYSFS{idProduct}=="c141", SYSFS{idVendor}=="0403", MODE="666", GROUP="usb"
+# Section5 ICEbear
+SYSFS{idVendor}=="0403", SYSFS{idProduct}=="c140", MODE="664", GROUP="plugdev"
+SYSFS{idVendor}=="0403", SYSFS{idProduct}=="c141", MODE="664", GROUP="plugdev"
 
 LABEL="openocd_rules_end"
 
