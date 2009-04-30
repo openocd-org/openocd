@@ -531,6 +531,15 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 		}
 		checksum = 0 - checksum;
 		LOG_DEBUG("checksum: 0x%8.8x", checksum);
+
+		u32 original_value=buf_get_u32(buffer + (5 * 4), 0, 32);
+		if (original_value!=checksum)
+		{
+			LOG_WARNING("Verification will fail since checksum in image(0x%8.8x) written to flash was different from calculated vector checksum(0x%8.8x).",
+					original_value, checksum);
+			LOG_WARNING("To remove this warning modify build tools on developer PC to inject correct LPC vector checksum.");
+		}
+
 		buf_set_u32(buffer + 0x14, 0, 32, checksum);
 	}
 
