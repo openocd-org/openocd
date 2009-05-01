@@ -59,8 +59,7 @@
 #define OPENOCD_VERSION \
 		"Open On-Chip Debugger " VERSION " (" PKGBLDDATE ") " RELSTR PKGBLDREV
 
-
-void print_version(void)
+static void print_version(void)
 {
 	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
 	/* DANGER!!! make sure that the line below does not appear in a patch, do not remove */
@@ -76,7 +75,7 @@ void print_version(void)
 }
 
 /* Give TELNET a way to find out what version this is */
-int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	if (argc!=0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -86,7 +85,7 @@ int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	return ERROR_OK;
 }
 
-void exit_handler(void)
+static void exit_handler(void)
 {
 	/* close JTAG interface */
 	if (jtag && jtag->quit)
@@ -120,7 +119,7 @@ static int log_target_callback_event_handler(struct target_s *target, enum targe
 int ioutil_init(struct command_context_s *cmd_ctx);
 
 /* OpenOCD can't really handle failure of this command. Patches welcome! :-) */
-int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 
 	if (argc!=0)
@@ -188,7 +187,7 @@ int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 command_context_t *global_cmd_ctx;
 
-command_context_t *setup_command_handler(void)
+static command_context_t *setup_command_handler(void)
 {
 	command_context_t *cmd_ctx;
 
