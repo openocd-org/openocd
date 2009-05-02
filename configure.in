@@ -739,6 +739,14 @@ LDFLAGS=$LDFLAGS_SAVE
 CFLAGS=$CFLAGS_SAVE
 fi
 
+# check for usb.h when a driver will require it
+if test $build_jlink = yes -o $build_vsllink = yes -o $build_usbprog = yes -o \
+	$build_rlink = yes -o $build_armjtagew = yes
+then 
+  AC_CHECK_HEADERS([usb.h],[],
+	[AC_MSG_ERROR([usb.h is required to build some OpenOCD driver(s)])])
+fi
+
 AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE([-Wall -Wno-portability])
 AM_MAINTAINER_MODE
