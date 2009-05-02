@@ -228,6 +228,21 @@ static command_context_t *setup_command_handler(void)
 int httpd_start(void);
 void httpd_stop(void);
 
+
+#if !BUILD_HTTPD
+/* implementations of OpenOCD that uses multithreading needs to know when
+ * OpenOCD is sleeping. No-op in vanilla OpenOCD
+ */
+void openocd_sleep_prelude(void)
+{
+}
+
+void openocd_sleep_postlude(void)
+{
+}
+#endif
+
+
 /* normally this is the main() function entry, but if OpenOCD is linked
  * into application, then this fn will not be invoked, but rather that
  * application will have it's own implementation of main(). */

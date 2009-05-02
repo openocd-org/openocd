@@ -23,19 +23,6 @@
 #include "config.h"
 #endif
 
-#if !BUILD_HTTPD
-/* implementations of OpenOCD that uses multithreading needs to know when
- * OpenOCD is sleeping. No-op in vanilla OpenOCD
- */
-void openocd_sleep_prelude(void)
-{
-}
-
-void openocd_sleep_postlude(void)
-{
-}
-#endif
-
 /* This is the main entry for developer PC hosted OpenOCD.
  *
  * OpenOCD can also be used as a library that is linked with
