@@ -9,9 +9,16 @@ endif
 openocd_SOURCES = $(MAINFILE) openocd.c
 
 # set the include path found by configure
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/helper \
-	-I$(top_srcdir)/src/jtag -I$(top_srcdir)/src/target -I$(top_srcdir)/src/xsvf -I$(top_srcdir)/src/svf \
-	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/flash -I$(top_srcdir)/src/pld $(all_includes)
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/helper \
+	-I$(top_srcdir)/src/jtag \
+	-I$(top_srcdir)/src/target \
+	-I$(top_srcdir)/src/xsvf \
+	-I$(top_srcdir)/src/svf \
+	-I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/flash \
+	-I$(top_srcdir)/src/pld
 
 # pass path to prefix path
 openocd_CPPFLAGS = \
@@ -25,7 +32,7 @@ openocd_CPPFLAGS += -DRELSTR=\"svn:\" -DPKGBLDREV=\"`$(top_srcdir)/guess-rev.sh 
 endif
 
 # add default CPPFLAGS
-openocd_CPPFLAGS += @CPPFLAGS@
+openocd_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS)
 
 # the library search path.
 openocd_LDFLAGS = $(all_libraries) 

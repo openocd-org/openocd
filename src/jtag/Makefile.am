@@ -1,6 +1,7 @@
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src/helper \
+	-I$(top_srcdir)/src/target
 
-
-INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/src/helper  $(all_includes) -I$(top_srcdir)/src/target 
 METASOURCES = AUTO
 noinst_LIBRARIES = libjtag.a
 

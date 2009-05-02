@@ -1,6 +1,10 @@
-INCLUDES = -I$(top_srcdir)/src $(all_includes) -I$(top_srcdir)/src/target -I$(top_srcdir)/src/server
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/target \
+	-DPKGDATADIR=\"$(pkgdatadir)\" \
+	-DPKGLIBDIR=\"$(pkglibdir)\"
+
 METASOURCES = AUTO
-AM_CPPFLAGS = -DPKGDATADIR=\"$(pkgdatadir)\" -DPKGLIBDIR=\"$(pkglibdir)\" @CPPFLAGS@
 noinst_LIBRARIES = libhelper.a
 
 if ECOSBOARD

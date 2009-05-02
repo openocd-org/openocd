@@ -1,5 +1,7 @@
 AC_PREREQ(2.59)
-AC_INIT(configure.in)
+AC_INIT([openocd], [0.2.0-in-development],
+	[OpenOCD Mailing List <openocd-development@lists.berlios.de>])
+AC_CONFIG_SRCDIR([src/openocd.c])
 
 AC_CANONICAL_HOST
 
@@ -738,7 +740,7 @@ CFLAGS=$CFLAGS_SAVE
 fi
 
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(openocd, 1.0)
+AM_INIT_AUTOMAKE([-Wall -Wno-portability])
 AM_MAINTAINER_MODE
 
 AM_CONDITIONAL(RELEASE, test $build_release = yes)
@@ -771,6 +773,7 @@ AM_CONDITIONAL(BITQ, test $build_bitq = yes)
 
 AC_LANG_C
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_RANLIB
 
 # set default gcc warnings

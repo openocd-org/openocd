@@ -5,9 +5,12 @@ else
 OOCD_TRACE_FILES =
 endif
 
-INCLUDES = -I$(top_srcdir)/src/gdb -I$(top_srcdir)/src/helper 	-I$(top_srcdir)/src/jtag -I$(top_srcdir)/src/xsvf $(all_includes)
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/src/helper \
+	-I$(top_srcdir)/src/jtag \
+	-I$(top_srcdir)/src/xsvf
+
 METASOURCES = AUTO
-AM_CPPFLAGS = -DPKGLIBDIR=\"$(pkglibdir)\" @CPPFLAGS@
 noinst_LIBRARIES = libtarget.a
 libtarget_a_SOURCES = target.c register.c breakpoints.c armv4_5.c embeddedice.c etm.c arm7tdmi.c arm9tdmi.c \
 	arm_jtag.c arm7_9_common.c algorithm.c arm920t.c arm720t.c armv4_5_mmu.c armv4_5_cache.c arm_disassembler.c \
