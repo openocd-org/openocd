@@ -89,7 +89,7 @@
 #endif /* WIN32 */
 #endif /* JIM_DYNLIB */
 
-#ifndef WIN32
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
@@ -118,7 +118,7 @@ static void JimChangeCallFrameId(Jim_Interp *interp, Jim_CallFrame *cf);
 static void JimFreeCallFrame(Jim_Interp *interp, Jim_CallFrame *cf, int flags);
 static void JimRegisterCoreApi(Jim_Interp *interp);
 
-static Jim_HashTableType JimVariablesHashTableType;
+static Jim_HashTableType *getJimVariablesHashTableType(void);
 
 /* -----------------------------------------------------------------------------
  * Utility functions
@@ -3237,7 +3237,7 @@ int Jim_CreateProcedure(Jim_Interp *interp, const char *cmdName,
         Jim_ListLength(interp, staticsListObjPtr, &len);
         if (len != 0) {
             cmdPtr->staticVars = Jim_Alloc(sizeof(Jim_HashTable));
-            Jim_InitHashTable(cmdPtr->staticVars, &JimVariablesHashTableType,
+            Jim_InitHashTable(cmdPtr->staticVars, getJimVariablesHashTableType(),
                     interp);
             for (i = 0; i < len; i++) {
                 Jim_Obj *objPtr, *initObjPtr, *nameObjPtr;
@@ -3439,6 +3439,11 @@ static Jim_HashTableType JimVariablesHashTableType = {
     JimStringCopyHTKeyDestructor,     /* key destructor */
     JimVariablesHTValDestructor       /* val destructor */
 };
+
+static Jim_HashTableType *getJimVariablesHashTableType(void)
+{
+	return &JimVariablesHashTableType;
+}
 
 /* -----------------------------------------------------------------------------
  * Variable object
