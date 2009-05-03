@@ -247,13 +247,13 @@ static int avrf_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd,
 
 static int avrf_erase(struct flash_bank_s *bank, int first, int last)
 {
-	LOG_INFO(__FUNCTION__);
+	LOG_INFO("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
 static int avrf_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
-	LOG_INFO(__FUNCTION__);
+	LOG_INFO("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
@@ -386,7 +386,7 @@ static int avrf_auto_probe(struct flash_bank_s *bank)
 
 static int avrf_protect_check(struct flash_bank_s *bank)
 {
-	LOG_INFO(__FUNCTION__);
+	LOG_INFO("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
@@ -495,6 +495,6 @@ static int avrf_handle_mass_erase_command(struct command_context_s *cmd_ctx, cha
 		command_print(cmd_ctx, "avr mass erase failed");
 	}
 	
-	LOG_DEBUG(__FUNCTION__);
+	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }
