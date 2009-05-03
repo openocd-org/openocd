@@ -11984,7 +11984,7 @@ static int Jim_EnvCoreCommand(Jim_Interp *interp, int argc,
 
     if (argc == 1) {
 
-#if !defined(HAVE_UNISTD_H) || IS_DARWIN
+#ifndef HAVE_UNISTD_H
         extern char **environ;
 #endif
 
