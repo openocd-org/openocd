@@ -187,7 +187,8 @@ static int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 command_context_t *global_cmd_ctx;
 
-static command_context_t *setup_command_handler(void)
+/* NB! this fn can be invoked outside this file for non PC hosted builds */
+command_context_t *setup_command_handler(void)
 {
 	command_context_t *cmd_ctx;
 
@@ -229,7 +230,7 @@ int httpd_start(void);
 void httpd_stop(void);
 
 
-#if !BUILD_HTTPD
+#if !BUILD_HTTPD && !BUILD_ECOSBOARD
 /* implementations of OpenOCD that uses multithreading needs to know when
  * OpenOCD is sleeping. No-op in vanilla OpenOCD
  */
