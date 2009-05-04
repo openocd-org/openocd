@@ -448,7 +448,7 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 		arm7_9->etm_ctx->capture_driver_priv = etb;
 
 		etb->tap  = tap;
-		etb->cur_scan_chain = ~0UL;
+		etb->cur_scan_chain = 0xffffffff;
 		etb->reg_cache = NULL;
 		etb->ram_width = 0;
 		etb->ram_depth = 0;

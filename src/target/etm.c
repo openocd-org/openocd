@@ -992,9 +992,9 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 		if ((pipestat == STAT_IE) || (pipestat == STAT_ID))
 		{
 			if (((instruction.type == ARM_B) ||
-				(instruction.type == ARM_BL) ||
-				(instruction.type == ARM_BLX)) &&
-				(instruction.info.b_bl_bx_blx.target_address != ~0UL))
+			     (instruction.type == ARM_BL) ||
+			     (instruction.type == ARM_BLX)) &&	 
+			    (instruction.info.b_bl_bx_blx.target_address != 0xffffffff))
 			{
 				next_pc = instruction.info.b_bl_bx_blx.target_address;
 			}

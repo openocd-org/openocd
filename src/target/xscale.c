@@ -2933,7 +2933,7 @@ int xscale_analyze_trace(target_t *target, command_context_t *cmd_ctx)
 						(((instruction.type == ARM_B) ||
 							(instruction.type == ARM_BL) ||
 							(instruction.type == ARM_BLX)) &&
-							(instruction.info.b_bl_bx_blx.target_address != ~0UL)))
+							(instruction.info.b_bl_bx_blx.target_address != 0xffffffff)))
 					{
 						xscale->trace.current_pc = instruction.info.b_bl_bx_blx.target_address;
 					}
