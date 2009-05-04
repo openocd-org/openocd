@@ -101,6 +101,7 @@ extern target_type_t arm926ejs_target;
 extern target_type_t feroceon_target;
 extern target_type_t xscale_target;
 extern target_type_t cortexm3_target;
+extern target_type_t cortexa8_target;
 extern target_type_t arm11_target;
 extern target_type_t mips_m4k_target;
 extern target_type_t avr_target;
@@ -116,6 +117,7 @@ target_type_t *target_types[] =
 	&feroceon_target,
 	&xscale_target,
 	&cortexm3_target,
+	&cortexa8_target,
 	&arm11_target,
 	&mips_m4k_target,
 	&avr_target,
