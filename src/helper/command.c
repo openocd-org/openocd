@@ -479,19 +479,22 @@ int command_run_line(command_context_t *context, char *line)
 		int reslen;
 
 		result = Jim_GetString(Jim_GetResult(interp), &reslen);
-		int i;
-		char buff[256+1];
-		for (i = 0; i < reslen; i += 256)
+		if (reslen>0)
 		{
-			int chunk;
-			chunk = reslen - i;
-			if (chunk > 256)
-				chunk = 256;
-			strncpy(buff, result+i, chunk);
-			buff[chunk] = 0;
-			LOG_USER_N("%s", buff);
+			int i;
+			char buff[256+1];
+			for (i = 0; i < reslen; i += 256)
+			{
+				int chunk;
+				chunk = reslen - i;
+				if (chunk > 256)
+					chunk = 256;
+				strncpy(buff, result+i, chunk);
+				buff[chunk] = 0;
+				LOG_USER_N("%s", buff);
+			}
+			LOG_USER_N("%s", "\n");
 		}
-		LOG_USER_N("%s", "\n");
 		retval=ERROR_OK;
 	}
 	return retval;
@@ -691,7 +694,7 @@ command_context_t* command_init()
 #if defined( _MSC_VER )
 	/* WinXX - is generic, the forward
 	 * looking problem is this:
-	 * 
+	 *
 	 *   "win32" or "win64"
 	 *
 	 * "winxx" is generic.
