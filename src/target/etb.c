@@ -217,7 +217,7 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
-	fields[0].in_handler = buf_to_u32_handler;
+	fields[0].in_handler = buf_to_u32_handler; /* deprecated! invoke this from user code! */
 
 	for (i = 0; i < num_frames; i++)
 	{

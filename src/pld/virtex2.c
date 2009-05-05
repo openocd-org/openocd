@@ -121,7 +121,7 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	scan_field.in_value = NULL;
 	scan_field.in_check_value = NULL;
 	scan_field.in_check_mask = NULL;
-	scan_field.in_handler = virtex2_jtag_buf_to_u32;
+	scan_field.in_handler = virtex2_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
 
 	virtex2_set_instr(virtex2_info->tap, 0x4); /* CFG_OUT */
 

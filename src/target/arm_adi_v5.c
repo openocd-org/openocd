@@ -127,7 +127,7 @@ int adi_jtag_dp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u
 	fields[1].in_value = NULL;
 	if (invalue)
 	{
-		fields[1].in_handler = arm_jtag_buf_to_u32;
+		fields[1].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
 		fields[1].in_handler_priv = invalue;
 	}
 	else

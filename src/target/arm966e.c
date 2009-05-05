@@ -217,7 +217,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	fields[0].in_handler_priv = value;
-	fields[0].in_handler = arm_jtag_buf_to_u32;
+	fields[0].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 

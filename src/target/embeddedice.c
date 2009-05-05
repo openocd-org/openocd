@@ -352,7 +352,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 		if (size == 1)
 			buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
 
-		fields[0].in_handler = arm_jtag_buf_to_u32;
+		fields[0].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
 		fields[0].in_handler_priv = data;
 		jtag_add_dr_scan(3, fields, TAP_INVALID);
 

@@ -153,7 +153,7 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
 	fields[1].in_handler_priv = value;
-	fields[1].in_handler = arm_jtag_buf_to_u32;
+	fields[1].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 

@@ -220,7 +220,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 	fields[0].in_value = NULL;
 	if (in)
 	{
-		fields[0].in_handler = arm_jtag_buf_to_u32;
+		fields[0].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
 		fields[0].in_handler_priv = in;
 	}
 	else
@@ -293,7 +293,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[0].out_value = NULL;
 	fields[0].out_mask = NULL;
 	fields[0].in_value = NULL;
-	fields[0].in_handler = arm_jtag_buf_to_u32;
+	fields[0].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
 	fields[0].in_handler_priv = in;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -368,13 +368,13 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	switch (size)
 	{
 		case 4:
-			fields[0].in_handler = (be) ? arm_jtag_buf_to_be32 : arm_jtag_buf_to_le32;
+			fields[0].in_handler = (be) ? arm_jtag_buf_to_be32 : arm_jtag_buf_to_le32; /* deprecated! invoke this from user code! */
 			break;
 		case 2:
-			fields[0].in_handler = (be) ? arm_jtag_buf_to_be16 : arm_jtag_buf_to_le16;
+			fields[0].in_handler = (be) ? arm_jtag_buf_to_be16 : arm_jtag_buf_to_le16; /* deprecated! invoke this from user code! */
 			break;
 		case 1:
-			fields[0].in_handler = arm_jtag_buf_to_8;
+			fields[0].in_handler = arm_jtag_buf_to_8; /* deprecated! invoke this from user code! */
 			break;
 	}
 	fields[0].in_handler_priv = in;

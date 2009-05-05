@@ -126,7 +126,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	fields[1].in_value = NULL;
 	if (in)
 	{
-		fields[1].in_handler = arm_jtag_buf_to_u32_flip;
+		fields[1].in_handler = arm_jtag_buf_to_u32_flip; /* deprecated! invoke this from user code! */
 		fields[1].in_handler_priv = in;
 	} else
 	{

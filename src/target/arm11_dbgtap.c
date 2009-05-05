@@ -180,7 +180,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
 
 	arm11_setup_field(arm11, 5, &chain, NULL, &field);
 
-	field.in_handler = arm11_in_handler_SCAN_N;
+	field.in_handler = arm11_in_handler_SCAN_N; /* deprecated! invoke this from user code! */
 
 	arm11_add_dr_scan_vc(1, &field, state == ARM11_TAP_DEFAULT ? TAP_DRPAUSE : state);
 }

@@ -373,8 +373,8 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 		for (i = words_done; i < num_words; i++)
 		{
 			fields[0].in_value = &field0[i];
-			fields[1].in_handler = buf_to_u32_handler;
-			fields[1].in_handler_priv = (u8*)&field1[i];
+			fields[1].in_handler = buf_to_u32_handler; /* deprecated! invoke this from user code! */
+			fields[1].in_handler_priv = (u8*)&field1[i]; 
 
 			jtag_add_pathmove(3, path);
 			jtag_add_dr_scan(3, fields, TAP_IDLE);

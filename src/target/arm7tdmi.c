@@ -210,7 +210,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[1].out_value = NULL;
 	fields[1].out_mask = NULL;
 	fields[1].in_value = NULL;
-	fields[1].in_handler = arm_jtag_buf_to_u32_flip;
+	fields[1].in_handler = arm_jtag_buf_to_u32_flip; /* deprecated! invoke this from user code! */
 	fields[1].in_handler_priv = in;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
@@ -274,13 +274,13 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	switch (size)
 	{
 		case 4:
-			fields[1].in_handler = (be) ? arm_jtag_buf_to_be32_flip : arm_jtag_buf_to_le32_flip;
+			fields[1].in_handler = (be) ? arm_jtag_buf_to_be32_flip : arm_jtag_buf_to_le32_flip; /* deprecated! invoke this from user code! */
 			break;
 		case 2:
-			fields[1].in_handler = (be) ? arm_jtag_buf_to_be16_flip : arm_jtag_buf_to_le16_flip;
+			fields[1].in_handler = (be) ? arm_jtag_buf_to_be16_flip : arm_jtag_buf_to_le16_flip; /* deprecated! invoke this from user code! */
 			break;
 		case 1:
-			fields[1].in_handler = arm_jtag_buf_to_8_flip;
+			fields[1].in_handler = arm_jtag_buf_to_8_flip; /* deprecated! invoke this from user code! */
 			break;
 	}
 	fields[1].in_handler_priv = in;
