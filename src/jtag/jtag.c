@@ -3116,7 +3116,7 @@ static struct
 
 #define B8(bits,count)		{ ((u8)B8__(HEX__(bits))), (count) }
 
-#if 0 && ((BUILD_FT2232_FTD2XX==1) || (BUILD_FT2232_LIBFTDI==1))
+#if 0 && ((BUILD_FT2232_FTD2XX==1) || (BUILD_FT2232_LIBFTDI==1) || (BUILD_JLINK==1))
 	/* 	this is the table submitted by Jeff Williams on 3/30/2009 with this comment:
 
 		OK, I added Peter's version of the state table, and it works OK for
