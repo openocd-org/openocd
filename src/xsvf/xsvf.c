@@ -177,13 +177,13 @@ static tap_state_t xsvf_to_tap( int xsvf_state )
 /**
  * Function xsvf_add_statemove
  * moves from the current state to the goal \a state. This needs
- * to be handled according to the xsvf spec, which has nothing
- * to do with the JTAG spec or OpenOCD as such.
- *
- * Implemented via jtag_add_pathmove().
+ * to be handled according to the xsvf spec, see the XSTATE command
+ * description.
  */
-static void xsvf_add_statemove(tap_state_t goal_state)
+static int xsvf_add_statemove(tap_state_t goal_state)
 {
+	int retval = ERROR_OK;
+
 	tap_state_t moves[8];
 	tap_state_t cur_state = cmd_queue_cur_state;
 	int i;
@@ -194,29 +194,69 @@ static void xsvf_add_statemove(tap_state_t goal_state)
 		tap_state_name(cur_state),
 		tap_state_name(goal_state) );
 
-	if (goal_state==cur_state )
-		return;
 
-	if( goal_state==TAP_RESET )
+	/*	From the XSVF spec, pertaining to XSTATE:
+
+		For special states known as stable states (Test-Logic-Reset,
+		Run-Test/Idle, Pause-DR, Pause- IR), an XSVF interpreter follows
+		predefined TAP state paths when the starting state is a stable state and
+		when the XSTATE specifies a new stable state (see the STATE command in
+		the [Ref 5] for the TAP state paths between stable states). For
+		non-stable states, XSTATE should specify a state that is only one TAP
+		state transition distance from the current TAP state to avoid undefined
+		TAP state paths. A sequence of multiple XSTATE commands can be issued to
+		transition the TAP through a specific state path.
+	*/
+
+	if (goal_state==cur_state )
+		;	/* nothing to do */
+
+	else if( goal_state==TAP_RESET )
 	{
 		jtag_add_tlr();
-		return;
 	}
 
-	tms_bits  = tap_get_tms_path(cur_state, goal_state);
-	tms_count = tap_get_tms_path_len(cur_state, goal_state);
-
-	assert( (unsigned) tms_count < DIM(moves) );
-
-	for (i=0;   i<tms_count;   i++, tms_bits>>=1)
+	else if( tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state) )
 	{
-		bool bit = tms_bits & 1;
+		/* 	note: unless tms_bits holds a path that agrees with [Ref 5] in above
+			spec, then this code is not fully conformant to the xsvf spec.  This
+			puts a burden on tap_get_tms_path() function from the xsvf spec.
+			If in doubt, you should confirm that that burden is being met.
+		*/
 
-		cur_state = tap_state_transition(cur_state, bit);
-		moves[i] = cur_state;
+		tms_bits  = tap_get_tms_path(cur_state, goal_state);
+		tms_count = tap_get_tms_path_len(cur_state, goal_state);
+
+		assert( (unsigned) tms_count < DIM(moves) );
+
+		for (i=0;   i<tms_count;   i++, tms_bits>>=1)
+		{
+			bool bit = tms_bits & 1;
+
+			cur_state = tap_state_transition(cur_state, bit);
+			moves[i] = cur_state;
+		}
+
+		jtag_add_pathmove(tms_count, moves);
 	}
 
-	jtag_add_pathmove(tms_count, moves);
+	/* 	else state must be immediately reachable in one clock cycle, and does not
+		need to be a stable state.
+	*/
+	else if( tap_state_transition(cur_state, true)  == goal_state
+		||   tap_state_transition(cur_state, false) == goal_state )
+	{
+		/* move a single state */
+		moves[0] = goal_state;
+		jtag_add_pathmove( 1, moves );
+	}
+
+	else
+	{
+		retval = ERROR_FAIL;
+	}
+
+	return retval;
 }
 
 
@@ -557,7 +597,32 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				LOG_DEBUG("XSTATE 0x%02X %s", uc, tap_state_name(mystate) );
 
-				xsvf_add_statemove( mystate );
+				/* 	there is no need for the lookahead code that was here since we
+					queue up the jtag commands anyway.  This is a simple way to handle
+					the XSTATE.
+				*/
+
+				if( xsvf_add_statemove( mystate ) != ERROR_OK )
+				{
+					/*	For special states known as stable states
+						(Test-Logic-Reset, Run-Test/Idle, Pause-DR, Pause- IR),
+						an XSVF interpreter follows predefined TAP state paths
+						when the starting state is a stable state and when the
+						XSTATE specifies a new stable state (see the STATE
+						command in the [Ref 5] for the TAP state paths between
+						stable states). For non-stable states, XSTATE should
+						specify a state that is only one TAP state transition
+						distance from the current TAP state to avoid undefined
+						TAP state paths. A sequence of multiple XSTATE commands
+						can be issued to transition the TAP through a specific
+						state path.
+					*/
+
+					LOG_ERROR("XSTATE %s is not reachable from current state %s in one clock cycle",
+						tap_state_name(mystate),
+						tap_state_name(cmd_queue_cur_state)
+						);
+				}
 			}
 			break;
 
@@ -703,7 +768,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				comment[sizeof(comment)-1] = 0;		/* regardless, terminate */
 				if (verbose)
-					LOG_USER("\"# %s\"", comment);
+					LOG_USER("# %s", comment);
 			}
 			break;
 
