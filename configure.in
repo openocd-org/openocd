@@ -811,7 +811,7 @@ int main(int argc, char **argv) { char **ep = environ; }
   ])
 
 if test "${has_environ}" != "yes" ; then
-     AC_MSG_FAILURE([Could find 'environ' in unistd.h or available libraries.]) 
+     AC_MSG_FAILURE([Could not find 'environ' in unistd.h or available libraries.]) 
 fi
 
 
