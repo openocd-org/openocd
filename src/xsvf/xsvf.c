@@ -53,6 +53,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <assert.h>
 
 #include <sys/time.h>
 #include <time.h>
@@ -173,45 +174,51 @@ static tap_state_t xsvf_to_tap( int xsvf_state )
 }
 
 
-/* xsvf has it's own definition of a statemove. This needs
+/**
+ * Function xsvf_add_statemove
+ * moves from the current state to the goal \a state. This needs
  * to be handled according to the xsvf spec, which has nothing
  * to do with the JTAG spec or OpenOCD as such.
  *
  * Implemented via jtag_add_pathmove().
  */
-static void xsvf_add_statemove(tap_state_t state)
+static void xsvf_add_statemove(tap_state_t goal_state)
 {
-	tap_state_t moves[7]; 	/* max # of transitions */
-	tap_state_t curstate = cmd_queue_cur_state;
+	tap_state_t moves[8];
+	tap_state_t cur_state = cmd_queue_cur_state;
 	int i;
+	int tms_bits;
+	int	tms_count;
 
-	u8 move = tap_get_tms_path(cmd_queue_cur_state, state);
+	LOG_DEBUG( "cur_state=%s goal_state=%s",
+		tap_state_name(cur_state),
+		tap_state_name(goal_state) );
 
-	if (state != TAP_RESET  &&  state==cmd_queue_cur_state)
+	if (goal_state==cur_state )
 		return;
 
-	if(state==TAP_RESET)
+	if( goal_state==TAP_RESET )
 	{
 		jtag_add_tlr();
 		return;
 	}
 
-	for (i=0; i<7; i++)
+	tms_bits  = tap_get_tms_path(cur_state, goal_state);
+	tms_count = tap_get_tms_path_len(cur_state, goal_state);
+
+	assert( (unsigned) tms_count < DIM(moves) );
+
+	for (i=0;   i<tms_count;   i++, tms_bits>>=1)
 	{
-		int j = (move >> i) & 1;
-		if (j)
-		{
-			curstate = tap_state_transition(curstate, true);
-		}
-		else
-		{
-			curstate = tap_state_transition(curstate, false);
-		}
-		moves[i] = curstate;
+		bool bit = tms_bits & 1;
+
+		cur_state = tap_state_transition(cur_state, bit);
+		moves[i] = cur_state;
 	}
 
-	jtag_add_pathmove(7, moves);
+	jtag_add_pathmove(tms_count, moves);
 }
+
 
 int xsvf_register_commands(struct command_context_s *cmd_ctx)
 {
@@ -231,38 +238,6 @@ static int xsvf_read_buffer(int num_bits, int fd, u8* buf)
 		if (read(fd, buf + num_bytes - 1, 1) < 0)
 			return ERROR_XSVF_EOF;
 	}
-
-	return ERROR_OK;
-}
-
-
-static int xsvf_read_xstates(int fd, tap_state_t *path, int max_path, int *path_len)
-{
-	char c;
-	u8   uc;
-
-	while ((read(fd, &c, 1) > 0) && (c == XSTATE))
-	{
-		tap_state_t	mystate;
-
-		if (*path_len > max_path)
-		{
-			LOG_WARNING("XSTATE path longer than max_path");
-			break;
-		}
-		if (read(fd, &uc, 1) < 0)
-		{
-			return ERROR_XSVF_EOF;
-		}
-
-		mystate = xsvf_to_tap(uc);
-
-		LOG_DEBUG("XSTATE %02X %s", uc, tap_state_name(mystate) );
-
-		path[(*path_len)++] = mystate;
-	}
-
-	lseek(fd, -1, SEEK_CUR);
 
 	return ERROR_OK;
 }
@@ -477,7 +452,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 							TAP_IDLE,
 						};
 
-						jtag_add_pathmove( sizeof(exception_path)/sizeof(exception_path[0]), exception_path);
+						jtag_add_pathmove( DIM(exception_path), exception_path );
 
 						if (verbose)
 							LOG_USER("%s mismatch, xsdrsize=%d retry=%d", op_name, xsdrsize, attempt);
@@ -570,8 +545,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case XSTATE:
 			{
 				tap_state_t	mystate;
-				tap_state_t*	path;
-				int 			path_len;
+				u8			uc;
 
 				if (read(xsvf_fd, &uc, 1) < 0)
 				{
@@ -583,38 +557,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				LOG_DEBUG("XSTATE 0x%02X %s", uc, tap_state_name(mystate) );
 
-				path = calloc(XSTATE_MAX_PATH, 4);
-				path_len = 1;
-
-				path[0] = mystate;
-				if (xsvf_read_xstates(xsvf_fd, path, XSTATE_MAX_PATH, &path_len) != ERROR_OK)
-					do_abort = 1;
-				else
-				{
-					int i,lasti;
-
-					/* here the trick is that jtag_add_pathmove() must end in a stable
-					 * state, so we must only invoke jtag_add_tlr() when we absolutely
-					 * have to
-					 */
-					for(i=0,lasti=0;  i<path_len;  i++)
-					{
-						if(path[i]==TAP_RESET)
-						{
-							if(i>lasti)
-							{
-								jtag_add_pathmove(i-lasti,path+lasti);
-							}
-							lasti=i+1;
-							jtag_add_tlr();
-						}
-					}
-					if(i>=lasti)
-					{
-						jtag_add_pathmove(i-lasti, path+lasti);
-					}
-				}
-				free(path);
+				xsvf_add_statemove( mystate );
 			}
 			break;
 
@@ -710,7 +653,6 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					
 					
 					field.in_handler = NULL;
-					
 
 					if (tap == NULL)
 						jtag_add_plain_ir_scan(1, &field, my_end_state);
@@ -761,7 +703,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				comment[sizeof(comment)-1] = 0;		/* regardless, terminate */
 				if (verbose)
-					LOG_USER("%s", comment);
+					LOG_USER("\"# %s\"", comment);
 			}
 			break;
 
