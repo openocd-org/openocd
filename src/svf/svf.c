@@ -653,11 +653,17 @@ static int svf_check_tdo(void)
 			{
 				if ((svf_tdi_buffer[index + j] & svf_mask_buffer[index + j]) != svf_tdo_buffer[index + j])
 				{
-					LOG_ERROR("tdo check error at line %d, read = 0x%X, want = 0x%X, mask = 0x%X",
+					unsigned bitmask = (1 << svf_check_tdo_para[i].bit_len) - 1;
+					unsigned received, expected, tapmask;
+					memcpy(&received, svf_tdi_buffer + index, sizeof(unsigned));
+					memcpy(&expected, svf_tdo_buffer + index, sizeof(unsigned));
+					memcpy(&tapmask, svf_mask_buffer + index, sizeof(unsigned));
+					LOG_ERROR("tdo check error at line %d, "
+						"read = 0x%X, want = 0x%X, mask = 0x%X",
 								svf_check_tdo_para[i].line_num,
-								(*(int*)(svf_tdi_buffer + index)) & ((1 << svf_check_tdo_para[i].bit_len) - 1),
-								(*(int*)(svf_tdo_buffer + index)) & ((1 << svf_check_tdo_para[i].bit_len) - 1),
-								(*(int*)(svf_mask_buffer + index)) & ((1 << svf_check_tdo_para[i].bit_len) - 1));
+								received & bitmask,
+								expected & bitmask,
+								tapmask & bitmask);
 					return ERROR_FAIL;
 				}
 			}
@@ -1381,8 +1387,11 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			// output debug info
 			if ((SIR == command) || (SDR == command))
 			{
+				int read_value;
+				memcpy(&read_value, svf_tdi_buffer, sizeof(int));
 				// in debug mode, data is from index 0
-				LOG_DEBUG("\tTDO read = 0x%X", (*(int*)svf_tdi_buffer) & ((1 << (svf_check_tdo_para[0].bit_len)) - 1));
+				int read_mask = (1 << (svf_check_tdo_para[0].bit_len)) - 1;
+				LOG_DEBUG("\tTDO read = 0x%X", read_value & read_mask);
 			}
 		}
 	}
