@@ -84,12 +84,12 @@ static void bitbang_end_state(tap_state_t state)
 	}
 }
 
-static void bitbang_state_move(void)
+static void bitbang_state_move(int skip)
 {
 	int i=0, tms=0;
 	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 
-	for (i = 0; i < 7; i++)
+	for (i = skip; i < 7; i++)
 	{
 		tms = (tms_scan >> i) & 1;
 		bitbang_interface->write(0, tms, 0);
@@ -146,7 +146,7 @@ static void bitbang_runtest(int num_cycles)
 	if (tap_get_state() != TAP_IDLE)
 	{
 		bitbang_end_state(TAP_IDLE);
-		bitbang_state_move();
+		bitbang_state_move(0);
 	}
 
 	/* execute num_cycles */
@@ -160,7 +160,7 @@ static void bitbang_runtest(int num_cycles)
 	/* finish in end_state */
 	bitbang_end_state(saved_end_state);
 	if (tap_get_state() != tap_get_end_state())
-		bitbang_state_move();
+		bitbang_state_move(0);
 }
 
 
@@ -191,7 +191,7 @@ static void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_
 		else
 			bitbang_end_state(TAP_DRSHIFT);
 
-		bitbang_state_move();
+		bitbang_state_move(0);
 		bitbang_end_state(saved_end_state);
 	}
 
@@ -227,22 +227,14 @@ static void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_
 		}
 	}
 
-	/* TAP_DRSHIFT & TAP_IRSHIFT are illegal end states, so we always transition to the pause
-	 * state which is a legal stable state from which statemove will work.
-	 *
-	 * Exit1 -> Pause
-	 */
-	bitbang_interface->write(0, 0, 0);
-	bitbang_interface->write(1, 0, 0);
-	bitbang_interface->write(CLOCK_IDLE(), 0, 0);
-
-	if (ir_scan)
-		tap_set_state(TAP_IRPAUSE);
-	else
-		tap_set_state(TAP_DRPAUSE);
-
 	if (tap_get_state() != tap_get_end_state())
-		bitbang_state_move();
+	{
+		/* we *KNOW* the above loop transitioned out of
+		 * the shift state, so we skip the first state
+		 * and move directly to the end state.
+		 */
+		bitbang_state_move(1);
+	}
 }
 
 int bitbang_execute_queue(void)
@@ -310,7 +302,7 @@ int bitbang_execute_queue(void)
 #endif
 				if (cmd->cmd.statemove->end_state != TAP_INVALID)
 					bitbang_end_state(cmd->cmd.statemove->end_state);
-				bitbang_state_move();
+				bitbang_state_move(0);
 				break;
 			case JTAG_PATHMOVE:
 #ifdef _DEBUG_JTAG_IO_
