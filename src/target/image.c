@@ -217,7 +217,9 @@ static int image_ihex_buffer_complete(image_t *image)
 
 			while (count-- > 0)
 			{
-				sscanf(&lpszLine[bytes_read], "%2x", (u32*)&ihex->buffer[cooked_bytes]);
+				unsigned value;
+				sscanf(&lpszLine[bytes_read], "%2x", &value);
+				ihex->buffer[cooked_bytes] = (u8)value;
 				cal_checksum += (u8)ihex->buffer[cooked_bytes];
 				bytes_read += 2;
 				cooked_bytes += 1;
@@ -594,7 +596,9 @@ static int image_mot_buffer_complete(image_t *image)
 
 			while (count-- > 0)
 			{
-				sscanf(&lpszLine[bytes_read], "%2x", (u32*)&mot->buffer[cooked_bytes]);
+				unsigned value;
+				sscanf(&lpszLine[bytes_read], "%2x", &value);
+				mot->buffer[cooked_bytes] = (u8)value;
 				cal_checksum += (u8)mot->buffer[cooked_bytes];
 				bytes_read += 2;
 				cooked_bytes += 1;
