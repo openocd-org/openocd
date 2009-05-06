@@ -579,7 +579,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 			{
 				found = 1;
 				(*last_cmd)->cmd.scan->fields[nth_tap].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				
+
 				if (jtag_verify_capture_ir)
 				{
 					if (fields[j].in_handler==NULL)
@@ -938,7 +938,7 @@ int MINIDRIVER(interface_jtag_add_tlr)(void)
 
 void jtag_add_pathmove(int num_states, tap_state_t *path)
 {
-	tap_state_t cur_state=cmd_queue_cur_state;
+	tap_state_t cur_state = cmd_queue_cur_state;
 	int i;
 	int retval;
 
@@ -956,6 +956,7 @@ void jtag_add_pathmove(int num_states, tap_state_t *path)
 			LOG_ERROR("BUG: TAP_RESET is not a valid state for pathmove sequences");
 			exit(-1);
 		}
+
 		if ( tap_state_transition(cur_state, true)  != path[i]
 		  && tap_state_transition(cur_state, false) != path[i])
 		{
@@ -967,7 +968,7 @@ void jtag_add_pathmove(int num_states, tap_state_t *path)
 
 	jtag_prelude1();
 
-	retval=interface_jtag_add_pathmove(num_states, path);
+	retval = interface_jtag_add_pathmove(num_states, path);
 	cmd_queue_cur_state = path[num_states - 1];
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
@@ -1489,7 +1490,6 @@ int jtag_examine_chain(void)
 	
 	
 	field.in_handler = NULL;
-	
 
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
 	{
@@ -1667,7 +1667,6 @@ int jtag_validate_chain(void)
 	
 	
 	field.in_handler = NULL;
-	
 
 	jtag_add_plain_ir_scan(1, &field, TAP_RESET);
 	jtag_execute_queue();
@@ -3127,29 +3126,40 @@ static struct
 		some long-standing problems.
 		Jeff
 
-		I added the bit count into the table
+		I added the bit count into the table, reduced RESET column to 7 bits from 8.
 		Dick
+
+		state specific comments:
+		------------------------
+		*->RESET		   tried the 5 bit reset and it gave me problems, 7 bits seems to
+					   work better on ARM9 with ft2232 driver.  (Dick)
+
+		RESET->DRSHIFT add 1 extra clock cycles in the RESET state before advancing.
+						needed on ARM9 with ft2232 driver.  (Dick)
+
+		RESET->IRSHIFT add 1 extra clock cycles in the RESET state before advancing.
+						needed on ARM9 with ft2232 driver.  (Dick)
 	*/
 
 	/* to state: */
-	/*	RESET			IDLE				DRSHIFT			DRPAUSE			IRSHIFT	  		IRPAUSE */		/* from state: */
-	{	B8(11111,5),		B8(0,1),			B8(0010,4), 		B8(01010,5),		B8(00110,5), 	B8(010110,6) },	/* RESET */
-	{	B8(11111,5),		B8(0,1),			B8(001,3),  		B8(0101,4),		B8(0011,4),  	B8(01011,5) },	/* IDLE */
-	{	B8(11111,5),		B8(011,3),		B8(00111,5),		B8(01,2),		B8(001111,6),	B8(0101111,7) },	/* DRSHIFT */
-	{	B8(11111,5),		B8(011,3),		B8(01,2),   		B8(0,1),			B8(001111,6),	B8(0101111,7) },	/* DRPAUSE */
-	{	B8(11111,5),		B8(011,3),		B8(00111,5),		B8(010111,6), 	B8(001111,6),	B8(01,2) },		/* IRSHIFT */
-	{	B8(11111,5),		B8(011,3),		B8(00111,5),		B8(010111,6),	B8(01,2),   		B8(0,1) } 		/* IRPAUSE */
+	/*	RESET			IDLE				DRSHIFT			DRPAUSE			IRSHIFT	  		IRPAUSE */			/* from state: */
+	{	B8(1111111,7),	B8(0,1),			B8(00101,5), 	B8(01010,5),		B8(001101,6), 	B8(010110,6) },		/* RESET */
+	{	B8(1111111,7),	B8(0,1),			B8(001,3),		B8(0101,4),		B8(0011,4),  	B8(01011,5) },		/* IDLE */
+	{	B8(1111111,7),	B8(011,3),		B8(00111,5),		B8(01,2),		B8(001111,6),	B8(0101111,7) },		/* DRSHIFT */
+	{	B8(1111111,7),	B8(011,3),		B8(01,2),   		B8(0,1),			B8(001111,6),	B8(0101111,7) },		/* DRPAUSE */
+	{	B8(1111111,7),	B8(011,3),		B8(00111,5),		B8(010111,6), 	B8(001111,6),	B8(01,2) },			/* IRSHIFT */
+	{	B8(1111111,7),	B8(011,3),		B8(00111,5),		B8(010111,6),	B8(01,2),		B8(0,1) } 			/* IRPAUSE */
 
 #else	/* this is the old table, converted from hex and with the bit_count set to 7 for each combo, like before */
 
 	/* to state: */
-	/*	RESET			IDLE			DRSHIFT			DRPAUSE			IRSHIFT			IRPAUSE 	*/		/* from state: */
-	{	B8(1111111,7),	B8(0000000,7),	B8(0010111,7),	B8(0001010,7),	B8(0011011,7),	B8(0010110,7) },	/* RESET */
-	{	B8(1111111,7),	B8(0000000,7),	B8(0100101,7),	B8(0000101,7),	B8(0101011,7),	B8(0001011,7) },	/* IDLE */
-	{	B8(1111111,7),	B8(0110001,7),	B8(0000000,7),	B8(0000001,7),	B8(0001111,7),	B8(0101111,7) },	/* DRSHIFT */
-	{	B8(1111111,7),	B8(0110000,7),	B8(0100000,7),	B8(0010111,7),	B8(0011110,7),	B8(0101111,7) },	/* DRPAUSE */
-	{	B8(1111111,7),	B8(0110001,7),	B8(0000111,7),	B8(0010111,7),	B8(0000000,7),	B8(0000001,7) },	/* IRSHIFT */
-	{	B8(1111111,7),	B8(0110000,7),	B8(0011100,7),	B8(0010111,7),	B8(0100000,7),	B8(0101111,7) },	/* IRPAUSE */
+	/*	RESET			IDLE				DRSHIFT			DRPAUSE			IRSHIFT	  		IRPAUSE */			/* from state: */
+	{	B8(1111111,7),	B8(0000000,7),	B8(0010111,7), 	B8(0001010,7),	B8(0011011,7), 	B8(0010110,7) },		/* RESET */
+	{	B8(1111111,7),	B8(0000000,7),	B8(0100101,7),	B8(0000101,7),	B8(0101011,7),	B8(0001011,7) },		/* IDLE */
+	{	B8(1111111,7),	B8(0110001,7),	B8(0000000,7),	B8(0000001,7),	B8(0001111,7),	B8(0101111,7) },		/* DRSHIFT */
+	{	B8(1111111,7),	B8(0110000,7),	B8(0100000,7),	B8(0010111,7),	B8(0011110,7),	B8(0101111,7) },		/* DRPAUSE */
+	{	B8(1111111,7),	B8(0110001,7),	B8(0000111,7),	B8(0010111,7), 	B8(0000000,7),	B8(0000001,7) },		/* IRSHIFT */
+	{	B8(1111111,7),	B8(0110000,7),	B8(0011100,7),	B8(0010111,7),	B8(0100000,7),	B8(0101111,7) } 		/* IRPAUSE */
 
 #endif
 
