@@ -285,37 +285,43 @@ int handle_power_command(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 
 /* Give TELNET a way to find out what version this is */
-int handle_zy1000_version_command(struct command_context_s *cmd_ctx, char *cmd,
-		char **args, int argc)
+static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	if (argc > 1)
+	if ((argc < 1) || (argc > 2))
+		return JIM_ERR;
+	char buff[128];
+	const char *version_str=NULL;
+
+	if (argc == 1)
 	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	if (argc == 0)
+		version_str=ZYLIN_OPENOCD_VERSION;
+	} else
 	{
-		command_print(cmd_ctx, ZYLIN_OPENOCD_VERSION);
-	}
-	else if (strcmp("openocd", args[0]) == 0)
-	{
-		int revision;
-		revision = atol(ZYLIN_OPENOCD+strlen("XRevision: "));
-		command_print(cmd_ctx, "%d", revision);
-	}
-	else if (strcmp("zy1000", args[0]) == 0)
-	{
-		command_print(cmd_ctx, "%s", ZYLIN_VERSION);
-	}
-	else if (strcmp("date", args[0]) == 0)
-	{
-		command_print(cmd_ctx, "%s", ZYLIN_DATE);
-	}
-	else
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		const char *str = Jim_GetString(argv[1], NULL);
+		if (strcmp("openocd", str) == 0)
+		{
+			int revision;
+			revision = atol(ZYLIN_OPENOCD+strlen("XRevision: "));
+			sprintf(buff, "%d", revision);
+			version_str=buff;
+		}
+		else if (strcmp("zy1000", str) == 0)
+		{
+			version_str=ZYLIN_VERSION;
+		}
+		else if (strcmp("date", str) == 0)
+		{
+			version_str=ZYLIN_DATE;
+		}
+		else
+		{
+			return JIM_ERR;
+		}
 	}
 
-	return ERROR_OK;
+	Jim_SetResult(interp, Jim_NewStringObj(interp, version_str, -1));
+
+	return JIM_OK;
 }
 
 
@@ -342,8 +348,9 @@ int zy1000_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "power", handle_power_command, COMMAND_ANY,
 			"power <on/off> - turn power switch to target on/off. No arguments - print status.");
-	register_command(cmd_ctx, NULL, "zy1000_version", handle_zy1000_version_command,
-			COMMAND_EXEC, "show zy1000 version numbers");
+
+	Jim_CreateCommand(interp, "zy1000_version", jim_zy1000_version, NULL, NULL);
+
 
 	Jim_CreateCommand(interp, "powerstatus", zylinjtag_Jim_Command_powerstatus, NULL, NULL);
 
