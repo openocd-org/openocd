@@ -289,7 +289,7 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 
 	/* ARMV7M is always in thumb mode, try to make GDB understand this
 	 * if it does not support this arch */
-	armv7m->core_cache->reg_list[15].value[0] |= 1;
+	*((char*)armv7m->core_cache->reg_list[15].value) |= 1;
 #else
 	(*reg_list)[25] = &armv7m->core_cache->reg_list[ARMV7M_xPSR];
 #endif

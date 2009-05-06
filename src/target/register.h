@@ -37,7 +37,7 @@ typedef struct bitfield_desc_s
 typedef struct reg_s
 {
 	char *name;
-	u8 *value;
+	void *value;
 	int dirty;
 	int valid;
 	u32 size;
