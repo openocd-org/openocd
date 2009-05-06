@@ -52,7 +52,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handl
 		field.num_bits = tap->ir_length;
 		field.out_value = t;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
-		field.out_mask = NULL;
+		
 		field.in_value = NULL;
 		field.in_check_value = NULL;
 		field.in_check_mask = NULL;

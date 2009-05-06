@@ -111,7 +111,7 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		fields[0].tap = arm7_9->jtag_info.tap;
 		fields[0].num_bits = 1;
 		fields[0].out_value = NULL;
-		fields[0].out_mask = NULL;
+		
 		fields[0].in_value = &breakpoint;
 		fields[0].in_check_value = NULL;
 		fields[0].in_check_mask = NULL;
@@ -121,7 +121,7 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		fields[1].tap = arm7_9->jtag_info.tap;
 		fields[1].num_bits = 32;
 		fields[1].out_value = NULL;
-		fields[1].out_mask = NULL;
+		
 		fields[1].in_value = databus;
 		fields[1].in_check_value = NULL;
 		fields[1].in_check_mask = NULL;
@@ -198,7 +198,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = NULL;
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = NULL;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -208,7 +208,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = NULL;
 	fields[1].in_handler = arm_jtag_buf_to_u32_flip; /* deprecated! invoke this from user code! */
 	fields[1].in_handler_priv = in;
@@ -259,7 +259,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = NULL;
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = NULL;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -269,7 +269,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = NULL;
 	switch (size)
 	{

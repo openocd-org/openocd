@@ -650,7 +650,6 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t
 			/* program the scan field to 1 bit length, and ignore it's value */
 			tmp.num_bits = 1;
 			tmp.out_value = NULL;
-			tmp.out_mask = NULL;
 			tmp.in_value = NULL;
 			tmp.in_check_value = NULL;
 			tmp.in_check_mask = NULL;

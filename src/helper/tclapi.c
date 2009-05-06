@@ -447,7 +447,6 @@ int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 		fields[field_count].num_bits = bits;
 		fields[field_count].out_value = malloc(CEIL(bits, 8));
 		str_to_buf(str, len, fields[field_count].out_value, bits, 0);
-		fields[field_count].out_mask = NULL;
 		fields[field_count].in_value = fields[field_count].out_value;
 		fields[field_count].in_check_mask = NULL;
 		fields[field_count].in_check_value = NULL;

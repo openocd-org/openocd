@@ -70,7 +70,7 @@ static int etb_set_instr(etb_t *etb, u32 new_instr)
 		field.num_bits = tap->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
-		field.out_mask = NULL;
+		
 		field.in_value = NULL;
 		field.in_check_value = NULL;
 		field.in_check_mask = NULL;
@@ -95,7 +95,7 @@ static int etb_scann(etb_t *etb, u32 new_scan_chain)
 		field.num_bits = 5;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_scan_chain);
-		field.out_mask = NULL;
+		
 		field.in_value = NULL;
 		field.in_check_value = NULL;
 		field.in_check_mask = NULL;
@@ -186,7 +186,7 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	fields[0].tap = etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = NULL;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -197,7 +197,7 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, 4);
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
@@ -208,7 +208,7 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
-	fields[2].out_mask = NULL;
+	
 	fields[2].in_value = NULL;
 	fields[2].in_check_value = NULL;
 	fields[2].in_check_mask = NULL;
@@ -257,7 +257,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].tap = etb_reg->etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = NULL;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -268,7 +268,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
@@ -279,7 +279,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
-	fields[2].out_mask = NULL;
+	
 	fields[2].in_value = NULL;
 	fields[2].in_check_value = NULL;
 	fields[2].in_check_mask = NULL;
@@ -354,7 +354,7 @@ int etb_write_reg(reg_t *reg, u32 value)
 	fields[0].num_bits = 32;
 	fields[0].out_value = malloc(4);
 	buf_set_u32(fields[0].out_value, 0, 32, value);
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = NULL;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -365,7 +365,7 @@ int etb_write_reg(reg_t *reg, u32 value)
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = NULL;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
@@ -376,7 +376,7 @@ int etb_write_reg(reg_t *reg, u32 value)
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 1);
-	fields[2].out_mask = NULL;
+	
 	fields[2].in_value = NULL;
 	fields[2].in_check_value = NULL;
 	fields[2].in_check_mask = NULL;

@@ -579,8 +579,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 			{
 				found = 1;
 				(*last_cmd)->cmd.scan->fields[nth_tap].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				(*last_cmd)->cmd.scan->fields[nth_tap].out_mask = buf_cpy(fields[j].out_mask, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-
+				
 				if (jtag_verify_capture_ir)
 				{
 					if (fields[j].in_handler==NULL)
@@ -604,7 +603,6 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 		{
 			/* if a tap isn't listed, set it to BYPASS */
 			(*last_cmd)->cmd.scan->fields[nth_tap].out_value = buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-			(*last_cmd)->cmd.scan->fields[nth_tap].out_mask = NULL;
 			tap->bypass = 1;
 		}
 
@@ -652,7 +650,6 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *f
 		(*last_cmd)->cmd.scan->fields[i].tap = fields[i].tap;
 		(*last_cmd)->cmd.scan->fields[i].num_bits = num_bits;
 		(*last_cmd)->cmd.scan->fields[i].out_value = buf_cpy(fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
-		(*last_cmd)->cmd.scan->fields[i].out_mask = buf_cpy(fields[i].out_mask, cmd_queue_alloc(num_bytes), num_bits);
 		(*last_cmd)->cmd.scan->fields[i].in_value = fields[i].in_value;
 		(*last_cmd)->cmd.scan->fields[i].in_check_value = fields[i].in_check_value;
 		(*last_cmd)->cmd.scan->fields[i].in_check_mask = fields[i].in_check_mask;
@@ -729,7 +726,6 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 				scan_size = fields[j].num_bits;
 				(*last_cmd)->cmd.scan->fields[field_count].num_bits = scan_size;
 				(*last_cmd)->cmd.scan->fields[field_count].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				(*last_cmd)->cmd.scan->fields[field_count].out_mask = buf_cpy(fields[j].out_mask, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 				(*last_cmd)->cmd.scan->fields[field_count].in_value = fields[j].in_value;
 				(*last_cmd)->cmd.scan->fields[field_count].in_check_value = fields[j].in_check_value;
 				(*last_cmd)->cmd.scan->fields[field_count].in_check_mask = fields[j].in_check_mask;
@@ -750,7 +746,6 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 			/* program the scan field to 1 bit length, and ignore it's value */
 			(*last_cmd)->cmd.scan->fields[field_count].num_bits = 1;
 			(*last_cmd)->cmd.scan->fields[field_count].out_value = NULL;
-			(*last_cmd)->cmd.scan->fields[field_count].out_mask = NULL;
 			(*last_cmd)->cmd.scan->fields[field_count].in_value = NULL;
 			(*last_cmd)->cmd.scan->fields[field_count].in_check_value = NULL;
 			(*last_cmd)->cmd.scan->fields[field_count].in_check_mask = NULL;
@@ -840,7 +835,6 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 				buf_set_u32(out_value, 0, scan_size, value[j]);
 				(*last_cmd)->cmd.scan->fields[field_count].num_bits = scan_size;
 				(*last_cmd)->cmd.scan->fields[field_count].out_value = buf_cpy(out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				(*last_cmd)->cmd.scan->fields[field_count].out_mask = NULL;
 				(*last_cmd)->cmd.scan->fields[field_count].in_value = NULL;
 				(*last_cmd)->cmd.scan->fields[field_count].in_check_value = NULL;
 				(*last_cmd)->cmd.scan->fields[field_count].in_check_mask = NULL;
@@ -860,7 +854,6 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 			/* program the scan field to 1 bit length, and ignore it's value */
 			(*last_cmd)->cmd.scan->fields[field_count].num_bits = 1;
 			(*last_cmd)->cmd.scan->fields[field_count].out_value = NULL;
-			(*last_cmd)->cmd.scan->fields[field_count].out_mask = NULL;
 			(*last_cmd)->cmd.scan->fields[field_count].in_value = NULL;
 			(*last_cmd)->cmd.scan->fields[field_count].in_check_value = NULL;
 			(*last_cmd)->cmd.scan->fields[field_count].in_check_mask = NULL;
@@ -906,7 +899,6 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 		(*last_cmd)->cmd.scan->fields[i].tap = fields[i].tap;
 		(*last_cmd)->cmd.scan->fields[i].num_bits = num_bits;
 		(*last_cmd)->cmd.scan->fields[i].out_value = buf_cpy(fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
-		(*last_cmd)->cmd.scan->fields[i].out_mask = buf_cpy(fields[i].out_mask, cmd_queue_alloc(num_bytes), num_bits);
 		(*last_cmd)->cmd.scan->fields[i].in_value = fields[i].in_value;
 		(*last_cmd)->cmd.scan->fields[i].in_check_value = fields[i].in_check_value;
 		(*last_cmd)->cmd.scan->fields[i].in_check_mask = fields[i].in_check_mask;
@@ -1492,7 +1484,7 @@ int jtag_examine_chain(void)
 	field.tap = NULL;
 	field.num_bits = sizeof(idcode_buffer) * 8;
 	field.out_value = idcode_buffer;
-	field.out_mask = NULL;
+	
 	field.in_value = idcode_buffer;
 	field.in_check_value = NULL;
 	field.in_check_mask = NULL;
@@ -1670,7 +1662,7 @@ int jtag_validate_chain(void)
 	field.tap = NULL;
 	field.num_bits = total_ir_length;
 	field.out_value = ir_test;
-	field.out_mask = NULL;
+	
 	field.in_value = ir_test;
 	field.in_check_value = NULL;
 	field.in_check_mask = NULL;
@@ -2792,7 +2784,6 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 		fields[i].tap = tap;
 		fields[i].out_value = malloc(CEIL(field_size, 8));
 		buf_set_u32(fields[i].out_value, 0, field_size, strtoul(args[i*2+1], NULL, 0));
-		fields[i].out_mask = NULL;
 		fields[i].in_value = NULL;
 		fields[i].in_check_mask = NULL;
 		fields[i].in_handler = NULL;
@@ -2908,7 +2899,6 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		fields[field_count].num_bits = bits;
 		fields[field_count].out_value = malloc(CEIL(bits, 8));
 		str_to_buf(str, len, fields[field_count].out_value, bits, 0);
-		fields[field_count].out_mask = NULL;
 		fields[field_count].in_value = fields[field_count].out_value;
 		fields[field_count].in_check_mask = NULL;
 		fields[field_count].in_check_value = NULL;

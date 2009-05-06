@@ -56,7 +56,7 @@ int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
 		field.num_bits = tap->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
-		field.out_mask = NULL;
+		
 		field.in_value = NULL;
 		field.in_check_value = NULL;
 		field.in_check_mask = NULL;
@@ -83,7 +83,6 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 	scan_field.tap = virtex2_info->tap;
 	scan_field.num_bits = num_words * 32;
 	scan_field.out_value = values;
-	scan_field.out_mask = NULL;
 	scan_field.in_value = NULL;
 	scan_field.in_check_value = NULL;
 	scan_field.in_check_mask = NULL;
@@ -117,7 +116,6 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	scan_field.tap = virtex2_info->tap;
 	scan_field.num_bits = 32;
 	scan_field.out_value = NULL;
-	scan_field.out_mask = NULL;
 	scan_field.in_value = NULL;
 	scan_field.in_check_value = NULL;
 	scan_field.in_check_mask = NULL;
@@ -166,7 +164,7 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	scan_field_t field;
 
 	field.tap = virtex2_info->tap;
-	field.out_mask = NULL;
+	
 	field.in_value = NULL;
 	field.in_check_value = NULL;
 	field.in_check_mask = NULL;

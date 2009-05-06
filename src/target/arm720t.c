@@ -112,7 +112,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = &instruction_buf;
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = NULL;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -122,7 +122,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = out_buf;
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = NULL;
 	if (in)
 	{

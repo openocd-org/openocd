@@ -486,7 +486,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					field.tap = tap;
 					field.num_bits = xsdrsize;
 					field.out_value = dr_out_buf;
-					field.out_mask = NULL;
+					
 					field.in_value = NULL;
 
 					jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
@@ -705,7 +705,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					field.tap = tap;
 					field.num_bits = bitcount;
 					field.out_value = ir_buf;
-					field.out_mask = NULL;
+					
 					field.in_value = NULL;
 					field.in_check_value = NULL;
 					field.in_check_mask = NULL;
@@ -937,7 +937,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					field.tap = tap;
 					field.num_bits = xsdrsize;
 					field.out_value = dr_out_buf;
-					field.out_mask = NULL;
+					
 					field.in_value = NULL;
 
 					if (attempt > 0 && verbose)

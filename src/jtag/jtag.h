@@ -271,7 +271,6 @@ typedef struct scan_field_s
 	jtag_tap_t* tap;                /* tap pointer this instruction refers to */
 	int         num_bits;           /* number of bits this field specifies (up to 32) */
 	u8*         out_value;          /* value to be scanned into the device */
-	u8*         out_mask;           /* only masked bits care */
 	u8*         in_value;           /* pointer to a 32-bit memory location to take data scanned out */
 	/* in_check_value/mask, in_handler_error_handler, in_handler_priv can be used by the in handler, otherwise they contain garbage  */
 	u8*          in_check_value;    /* used to validate scan results */

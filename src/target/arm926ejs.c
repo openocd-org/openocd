@@ -137,7 +137,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = NULL;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -147,7 +147,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = &access;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
@@ -157,7 +157,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
-	fields[2].out_mask = NULL;
+	
 	fields[2].in_value = NULL;
 	fields[2].in_check_value = NULL;
 	fields[2].in_check_mask = NULL;
@@ -167,7 +167,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
-	fields[3].out_mask = NULL;
+	
 	fields[3].in_value = NULL;
 	fields[3].in_check_value = NULL;
 	fields[3].in_check_mask = NULL;
@@ -227,7 +227,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = NULL;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -237,7 +237,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = &access;
 	fields[1].in_check_value = NULL;
 	fields[1].in_check_mask = NULL;
@@ -247,7 +247,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
-	fields[2].out_mask = NULL;
+	
 	fields[2].in_value = NULL;
 	fields[2].in_check_value = NULL;
 	fields[2].in_check_mask = NULL;
@@ -257,7 +257,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
-	fields[3].out_mask = NULL;
+	
 	fields[3].in_value = NULL;
 	fields[3].in_check_value = NULL;
 	fields[3].in_check_mask = NULL;

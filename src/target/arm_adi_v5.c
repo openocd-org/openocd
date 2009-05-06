@@ -76,7 +76,7 @@ int adi_jtag_dp_scan(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u8 *o
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = ack;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -86,7 +86,7 @@ int adi_jtag_dp_scan(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u8 *o
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = outvalue;
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = invalue;
 	fields[1].in_handler = NULL;
 	fields[1].in_handler_priv = NULL;
@@ -112,7 +112,7 @@ int adi_jtag_dp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
-	fields[0].out_mask = NULL;
+	
 	fields[0].in_value = ack;
 	fields[0].in_check_value = NULL;
 	fields[0].in_check_mask = NULL;
@@ -123,7 +123,7 @@ int adi_jtag_dp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u
 	fields[1].num_bits = 32;
 	buf_set_u32(out_value_buf, 0, 32, outvalue);
 	fields[1].out_value = out_value_buf;
-	fields[1].out_mask = NULL;
+	
 	fields[1].in_value = NULL;
 	if (invalue)
 	{

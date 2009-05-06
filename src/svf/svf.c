@@ -975,7 +975,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			field.tap = tap;
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
-			field.out_mask = NULL;
+			
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_check_value = NULL;
 			field.in_check_mask = NULL;
@@ -1076,7 +1076,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			field.tap = tap;
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
-			field.out_mask = NULL;
+			
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
 			field.in_check_value = NULL;
 			field.in_check_mask = NULL;

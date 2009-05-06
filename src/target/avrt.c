@@ -232,7 +232,6 @@ int mcu_write_ir(jtag_tap_t *tap, u8 *ir_in, u8 *ir_out, int ir_len, int rti)
 		field[0].tap = tap;
 		field[0].num_bits = tap->ir_length;
 		field[0].out_value = ir_out;
-		field[0].out_mask = NULL;
 		field[0].in_value = ir_in;
 		field[0].in_check_value = NULL;
 		field[0].in_check_mask = NULL;
@@ -258,7 +257,6 @@ int mcu_write_dr(jtag_tap_t *tap, u8 *dr_in, u8 *dr_out, int dr_len, int rti)
 		field[0].tap = tap;
 		field[0].num_bits = dr_len;
 		field[0].out_value = dr_out;
-		field[0].out_mask = NULL;
 		field[0].in_value = dr_in;
 		field[0].in_check_value = NULL;
 		field[0].in_check_mask = NULL;

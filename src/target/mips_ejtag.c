@@ -49,7 +49,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, in_handler_t h
 		field.num_bits = tap->ir_length;
 		field.out_value = t;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
-		field.out_mask = NULL;
+		
 		field.in_value = NULL;
 		field.in_check_value = NULL;
 		field.in_check_mask = NULL;
@@ -72,7 +72,7 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode, in_handler_t ha
 	field.tap = ejtag_info->tap;
 	field.num_bits = 32;
 	field.out_value = NULL;
-	field.out_mask = NULL;
+	
 	field.in_value = (void*)idcode;
 	field.in_check_value = NULL;
 	field.in_check_mask = NULL;
@@ -99,7 +99,7 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode, in_handler_t 
 	field.tap = ejtag_info->tap;
 	field.num_bits = 32;
 	field.out_value = NULL;
-	field.out_mask = NULL;
+	
 	field.in_value = (void*)impcode;
 	field.in_check_value = NULL;
 	field.in_check_mask = NULL;
@@ -130,7 +130,7 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 	field.num_bits = 32;
 	field.out_value = t;
 	buf_set_u32(field.out_value, 0, field.num_bits, *data);
-	field.out_mask = NULL;
+	
 	field.in_value = (u8*)data;
 	field.in_check_value = NULL;
 	field.in_check_mask = NULL;
