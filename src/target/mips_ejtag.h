@@ -107,7 +107,7 @@ typedef struct mips_ejtag_s
 	u32 ejtag_ctrl;
 } mips_ejtag_t;
 
-extern int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, in_handler_t handler);
+extern int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_me_and_submit_patch);
 extern int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info);
 extern int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info, int enable_interrupts);
 extern int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode, in_handler_t handler);

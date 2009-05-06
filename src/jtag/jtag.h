@@ -273,9 +273,9 @@ typedef struct scan_field_s
 	u8*         out_value;          /* value to be scanned into the device */
 	u8*         in_value;           /* pointer to a 32-bit memory location to take data scanned out */
 	/* in_check_value/mask, in_handler_error_handler, in_handler_priv can be used by the in handler, otherwise they contain garbage  */
-	u8*          in_check_value;    /* used to validate scan results */
-	u8*          in_check_mask;     /* check specified bits against check_value */
-	in_handler_t in_handler;        /* process received buffer using this handler */
+	u8*          in_check_value;    /* deprecated! only used from jtag_set_check_value. used to validate scan results */
+	u8*          in_check_mask;     /* deprecated! only used from jtag_set_check_value.  check specified bits against check_value */
+	in_handler_t in_handler;        /* deprecated! DO NOT USE! process received buffer using this handler */
 	void*        in_handler_priv;   /* additional information for the in_handler */
 } scan_field_t;
 
@@ -580,10 +580,10 @@ extern int  interface_jtag_add_tlr(void);
  * of the same interface over time. Even if the OpenOCD code
  * is unchanged, the actual path taken may vary over time
  * and versions of interface firmware or PCB revisions.
- * 
+ *
  * Use jtag_add_pathmove() when specific transition sequences
  * are required.
- * 
+ *
  * Do not use jtag_add_pathmove() unless you need to, but do use it
  * if you have to.
  *
