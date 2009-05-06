@@ -57,8 +57,11 @@ static u8 usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 #define EMU_CMD_VERSION     		0x01
 #define EMU_CMD_SET_SPEED   		0x05
 #define EMU_CMD_GET_STATE   		0x07
+#define EMU_CMD_HW_CLOCK			0xc8
+#define EMU_CMD_HW_TMS0 			0xc9
+#define EMU_CMD_HW_TMS1 			0xca
 #define EMU_CMD_HW_JTAG3    		0xcf
-#define EMU_CMD_GET_MAX_MEM_BLOCK   0xd4
+#define EMU_CMD_GET_MAX_MEM_BLOCK	0xd4
 #define EMU_CMD_HW_RESET0   		0xdc
 #define EMU_CMD_HW_RESET1   		0xdd
 #define EMU_CMD_HW_TRST0    		0xde
@@ -183,7 +186,7 @@ static void jlink_execute_scan(jtag_command_t *cmd)
 	enum scan_type type;
 	u8 *buffer;
 
-	DEBUG_JTAG_IO("scan end in %i", cmd->cmd.scan->end_state);
+	DEBUG_JTAG_IO("scan end in %s", tap_state_name(cmd->cmd.scan->end_state));
 
 	if (cmd->cmd.scan->end_state != TAP_INVALID)
 		jlink_end_state(cmd->cmd.scan->end_state);
@@ -206,10 +209,13 @@ static void jlink_execute_reset(jtag_command_t *cmd)
 
 	jlink_tap_execute();
 
-	if (cmd->cmd.reset->trst == 1)
+	if ( (cmd->cmd.reset->trst == 1) || ( cmd->cmd.reset->srst && (jtag_reset_config & RESET_SRST_PULLS_TRST) ) )
+	{
 		tap_set_state(TAP_RESET);
+	}
 
 	jlink_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+	jlink_tap_execute();
 }
 
 static void jlink_execute_sleep(jtag_command_t *cmd)
@@ -333,6 +339,7 @@ static int jlink_init(void)
 	LOG_INFO("J-Link JTAG Interface ready");
 
 	jlink_reset(0, 0);
+	jtag_sleep(3000);
 	jlink_tap_init();
 	jlink_speed(jtag_speed);
 
@@ -367,8 +374,9 @@ static void jlink_state_move(void)
 	int i;
 	int tms = 0;
 	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	u8 tms_scan_bits = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < tms_scan_bits; i++)
 	{
 		tms = (tms_scan >> i) & 1;
 		jlink_tap_append_step(tms, 0);
@@ -414,6 +422,7 @@ static void jlink_runtest(int num_cycles)
 	{
 		jlink_end_state(TAP_IDLE);
 		jlink_state_move();
+//		num_cycles--;
 	}
 
 	/* execute num_cycles */
@@ -469,23 +478,22 @@ static void jlink_reset(int trst, int srst)
 	if (srst == 0)
 	{
 		jlink_simple_command(EMU_CMD_HW_RESET1);
-		jlink_end_state(TAP_RESET);
-		jlink_state_move();
 	}
-	else if (srst == 1)
+	if (srst == 1)
 	{
 		jlink_simple_command(EMU_CMD_HW_RESET0);
 	}
 
+	if (trst == 1)
+	{
+		jlink_simple_command(EMU_CMD_HW_TRST0);
+	}
 	if (trst == 0)
 	{
 		jlink_simple_command(EMU_CMD_HW_TRST1);
+		jtag_sleep(5000);
 		jlink_end_state(TAP_RESET);
 		jlink_state_move();
-	}
-	else if (trst == 1)
-	{
-		jlink_simple_command(EMU_CMD_HW_TRST0);
 	}
 }
 
@@ -602,9 +610,9 @@ static int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, ch
 /* J-Link tap functions */
 
 /* 2048 is the max value we can use here */
-#define JLINK_TAP_BUFFER_SIZE 2048
+#define JLINK_TAP_BUFFER_SIZE 1024
 
-static unsigned tap_length;
+static unsigned tap_length=0;
 static u8 tms_buffer[JLINK_TAP_BUFFER_SIZE];
 static u8 tdi_buffer[JLINK_TAP_BUFFER_SIZE];
 static u8 tdo_buffer[JLINK_TAP_BUFFER_SIZE];
@@ -631,7 +639,7 @@ static void jlink_tap_init(void)
 static void jlink_tap_ensure_space(int scans, int bits)
 {
 	int available_scans = MAX_PENDING_SCAN_RESULTS - pending_scan_results_length;
-	int available_bits = JLINK_TAP_BUFFER_SIZE * 8 - tap_length;
+	int available_bits = JLINK_TAP_BUFFER_SIZE * 8 - tap_length - 64;
 
 	if (scans > available_scans || bits > available_bits)
 	{
@@ -654,7 +662,9 @@ static void jlink_tap_append_step(int tms, int tdi)
 
 	// we do not pad TMS, so be sure to initialize all bits
 	if (0 == bit_index)
+	{
 		tms_buffer[index] = tdi_buffer[index] = 0;
+	}
 
 	if (tms)
 		tms_buffer[index] |= bit;
@@ -682,8 +692,8 @@ static void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *comman
 
 	for (i = 0; i < length; i++)
 	{
-		int tms = i < length - 1 ? 0 : 1;
-		int tdi = buffer[i / 8] & (1 << (i % 8));
+		int tms = (i < (length - 1)) ? 0 : 1;
+		int tdi = (buffer[i / 8] & (1 << (i % 8)))!=0;
 		jlink_tap_append_step(tms, tdi);
 	}
 	pending_scan_results_length++;
@@ -699,6 +709,13 @@ static int jlink_tap_execute(void)
 
 	if (!tap_length)
 		return ERROR_OK;
+
+	/* JLink returns an extra NULL in packet when size of in message is a multiple of 64, creates problems with usb comms */
+	/* WARNING This will interfere with tap state counting */
+	while ((TAP_SCAN_BYTES(tap_length)%64)==0)
+	{
+		jlink_tap_append_step((tap_get_state() == TAP_RESET)?1:0, 0);
+	}
 
 	// number of full bytes (plus one if some would be left over)
 	byte_length = TAP_SCAN_BYTES(tap_length);
@@ -839,9 +856,15 @@ static int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_le
 		result2 = jlink_usb_read_emu_result(jlink_jtag);
 		if (1 != result2)
 		{
-			LOG_ERROR("jlink_usb_read_emu_result failed "
-				"(requested=1, result=%d)", result2);
-			return ERROR_JTAG_DEVICE_ERROR;
+			LOG_ERROR("jlink_usb_read_emu_result retried requested=1, result=%d, in_length=%i", result2,in_length);
+			/* Try again once, should only happen if (in_length%64==0) */
+			result2 = jlink_usb_read_emu_result(jlink_jtag);
+			if (1 != result2)
+			{
+				LOG_ERROR("jlink_usb_read_emu_result failed "
+					"(requested=1, result=%d)", result2);
+				return ERROR_JTAG_DEVICE_ERROR;
+			}
 		}
 
 		/* Check the result itself */
@@ -975,3 +998,4 @@ static void jlink_debug_buffer(u8 *buffer, int length)
 	}
 }
 #endif
+
