@@ -11984,7 +11984,7 @@ static int Jim_EnvCoreCommand(Jim_Interp *interp, int argc,
 
     if (argc == 1) {
 
-#if !defined(HAVE_UNISTD_H) || !defined(__GNU_LIBRARY__)
+#ifdef NEED_ENVIRON_EXTERN
         extern char **environ;
 #endif
 

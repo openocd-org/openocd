@@ -784,6 +784,37 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_RANLIB
 
+# Look for environ alternatives.  Possibility #1: is environ in unistd.h?
+AC_MSG_CHECKING([for environ in unistd.h])
+AC_COMPILE_IFELSE([
+#define _GNU_SOURCE
+#include <unistd.h>
+int main(int argc, char **argv) { char **ep = environ; }
+  ], [
+    AC_MSG_RESULT([yes])
+    has_environ=yes
+  ], [
+    AC_MSG_RESULT([no])
+
+    # Possibility #2: can environ be found in an available library?
+    AC_MSG_CHECKING([for extern environ])
+    AC_LINK_IFELSE([
+extern char **environ;
+int main(int argc, char **argv) { char **ep = environ; }
+      ], [
+        AC_DEFINE(NEED_ENVIRON_EXTERN, [1], [Must declare 'environ' to use it.])
+        has_environ=yes
+      ], [
+        has_environ=no
+      ])
+    AC_MSG_RESULT([${has_environ}])
+  ])
+
+if test "${has_environ}" != "yes" ; then
+     AC_MSG_FAILURE([Could find 'environ' in unistd.h or available libraries.]) 
+fi
+
+
 # set default gcc warnings
 GCC_WARNINGS="-Wall -Wstrict-prototypes -Wformat-security"
 if test "${gcc_wextra}" = yes; then
