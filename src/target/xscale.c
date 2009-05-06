@@ -833,7 +833,11 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	for (word = 0; word < 8; word++)
 	{
 		buf_set_u32(packet, 0, 32, buffer[word]);
-		cmd = parity(*((u32*)packet));
+
+		u32 value;
+		memcpy(&value, packet, sizeof(u32));
+		cmd = parity(value);
+
 		jtag_add_dr_scan(2, fields, TAP_INVALID);
 	}
 
