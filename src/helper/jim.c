@@ -7650,6 +7650,8 @@ static int ScanOneEntry(Jim_Interp *interp, const char *str, long pos,
                 scanned += 1;
                 break;
             case 'd': case 'o': case 'x': case 'u': case 'i': {
+                jim_wide jwvalue;
+                long lvalue;
                 char *endp;  /* Position where the number finished */
                 int base = descr->type == 'o' ? 8
                     : descr->type == 'x' ? 16
@@ -7659,16 +7661,22 @@ static int ScanOneEntry(Jim_Interp *interp, const char *str, long pos,
                 do {
                     /* Try to scan a number with the given base */
                     if (descr->modifier == 'l')
+                    {
 #ifdef HAVE_LONG_LONG
-                      *(jim_wide*)value = JimStrtoll(tok, &endp, base);
+                        jwvalue = JimStrtoll(tok, &endp, base),
 #else
-                      *(jim_wide*)value = strtol(tok, &endp, base);
+                        jwvalue = strtol(tok, &endp, base),
 #endif
+                        memcpy(value, &jwvalue, sizeof(jim_wide));
+                    }
                     else
+                    {
                       if (descr->type == 'u')
-                        *(long*)value = strtoul(tok, &endp, base);
+                        lvalue = strtoul(tok, &endp, base);
                       else
-                        *(long*)value = strtol(tok, &endp, base);
+                        lvalue = strtol(tok, &endp, base);
+                      memcpy(value, &lvalue, sizeof(lvalue));
+                    }
                     /* If scanning failed, and base was undetermined, simply
                      * put it to 10 and try once more. This should catch the
                      * case where %i begin to parse a number prefix (e.g. 
@@ -7680,9 +7688,9 @@ static int ScanOneEntry(Jim_Interp *interp, const char *str, long pos,
                 if (endp != tok) {
                     /* There was some number sucessfully scanned! */
                     if (descr->modifier == 'l')
-                        *valObjPtr = Jim_NewIntObj(interp, *(jim_wide*)value);
+                        *valObjPtr = Jim_NewIntObj(interp, jwvalue);
                     else
-                        *valObjPtr = Jim_NewIntObj(interp, *(long*)value);
+                        *valObjPtr = Jim_NewIntObj(interp, lvalue);
                     /* Adjust the number-of-chars scanned so far */
                     scanned += endp - tok;
                 } else {
@@ -7701,10 +7709,11 @@ static int ScanOneEntry(Jim_Interp *interp, const char *str, long pos,
             case 'e': case 'f': case 'g': {
                 char *endp;
 
-                *(double*)value = strtod(tok, &endp);
+                double dvalue = strtod(tok, &endp);
+                memcpy(value, &dvalue, sizeof(double));
                 if (endp != tok) {
                     /* There was some number sucessfully scanned! */
-                    *valObjPtr = Jim_NewDoubleObj(interp, *(double*)value);
+                    *valObjPtr = Jim_NewDoubleObj(interp, dvalue);
                     /* Adjust the number-of-chars scanned so far */
                     scanned += endp - tok;
                 } else {
