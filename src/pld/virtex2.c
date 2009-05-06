@@ -56,12 +56,12 @@ int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
 		field.num_bits = tap->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
-		
+
 		field.in_value = NULL;
-		field.in_check_value = NULL;
-		field.in_check_mask = NULL;
+
+
 		field.in_handler = NULL;
-		field.in_handler_priv = NULL;
+
 
 		jtag_add_ir_scan(1, &field, TAP_IDLE);
 
@@ -84,10 +84,7 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 	scan_field.num_bits = num_words * 32;
 	scan_field.out_value = values;
 	scan_field.in_value = NULL;
-	scan_field.in_check_value = NULL;
-	scan_field.in_check_mask = NULL;
 	scan_field.in_handler = NULL;
-	scan_field.in_handler_priv = NULL;
 
 	for (i = 0; i < num_words; i++)
 		buf_set_u32(values + 4 * i, 0, 32, flip_u32(*words++, 32));
@@ -117,8 +114,6 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	scan_field.num_bits = 32;
 	scan_field.out_value = NULL;
 	scan_field.in_value = NULL;
-	scan_field.in_check_value = NULL;
-	scan_field.in_check_mask = NULL;
 	scan_field.in_handler = virtex2_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
 
 	virtex2_set_instr(virtex2_info->tap, 0x4); /* CFG_OUT */
@@ -164,12 +159,12 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	scan_field_t field;
 
 	field.tap = virtex2_info->tap;
-	
+
 	field.in_value = NULL;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+
+
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+
 
 	if ((retval = xilinx_read_bit_file(&bit_file, filename)) != ERROR_OK)
 		return retval;

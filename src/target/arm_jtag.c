@@ -54,10 +54,10 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handl
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		
 		field.in_value = NULL;
-		field.in_check_value = NULL;
-		field.in_check_mask = NULL;
+		
+		
 		field.in_handler = handler;
-		field.in_handler_priv = NULL;
+		
 		jtag_add_ir_scan(1, &field, TAP_INVALID);
 	}
 

@@ -115,40 +115,40 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	fields[0].out_value = &access_type_buf;
 	
 	fields[0].in_value = NULL;
-	fields[0].in_check_value = NULL;
-	fields[0].in_check_mask = NULL;
+	
+	
 	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
+	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	
 	fields[1].in_value = NULL;
-	fields[1].in_check_value = NULL;
-	fields[1].in_check_mask = NULL;
+	
+	
 	fields[1].in_handler = NULL;
-	fields[1].in_handler_priv = NULL;
+	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 6;
 	fields[2].out_value = &reg_addr_buf;
 	
 	fields[2].in_value = NULL;
-	fields[2].in_check_value = NULL;
-	fields[2].in_check_mask = NULL;
+	
+	
 	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
+	
 
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	
 	fields[3].in_value = NULL;
-	fields[3].in_check_value = NULL;
-	fields[3].in_check_mask = NULL;
+	
+	
 	fields[3].in_handler = NULL;
-	fields[3].in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
@@ -187,40 +187,40 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	fields[0].out_value = &access_type_buf;
 	
 	fields[0].in_value = NULL;
-	fields[0].in_check_value = NULL;
-	fields[0].in_check_mask = NULL;
+	
+	
 	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
+	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = value_buf;
 	
 	fields[1].in_value = NULL;
-	fields[1].in_check_value = NULL;
-	fields[1].in_check_mask = NULL;
+	
+	
 	fields[1].in_handler = NULL;
-	fields[1].in_handler_priv = NULL;
+	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 6;
 	fields[2].out_value = &reg_addr_buf;
 	
 	fields[2].in_value = NULL;
-	fields[2].in_check_value = NULL;
-	fields[2].in_check_mask = NULL;
+	
+	
 	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
+	
 
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	
 	fields[3].in_value = NULL;
-	fields[3].in_check_value = NULL;
-	fields[3].in_check_mask = NULL;
+	
+	
 	fields[3].in_handler = NULL;
-	fields[3].in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
@@ -254,40 +254,40 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	fields[0].out_value = &access_type_buf;
 	
 	fields[0].in_value = NULL;
-	fields[0].in_check_value = NULL;
-	fields[0].in_check_mask = NULL;
+	
+	
 	fields[0].in_handler = NULL;
-	fields[0].in_handler_priv = NULL;
+	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = cp15_opcode_buf;
 	
 	fields[1].in_value = NULL;
-	fields[1].in_check_value = NULL;
-	fields[1].in_check_mask = NULL;
+	
+	
 	fields[1].in_handler = NULL;
-	fields[1].in_handler_priv = NULL;
+	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 6;
 	fields[2].out_value = &reg_addr_buf;
 	
 	fields[2].in_value = NULL;
-	fields[2].in_check_value = NULL;
-	fields[2].in_check_mask = NULL;
+	
+	
 	fields[2].in_handler = NULL;
-	fields[2].in_handler_priv = NULL;
+	
 
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	
 	fields[3].in_value = NULL;
-	fields[3].in_check_value = NULL;
-	fields[3].in_check_mask = NULL;
+	
+	
 	fields[3].in_handler = NULL;
-	fields[3].in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 

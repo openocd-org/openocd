@@ -127,10 +127,10 @@ int str9xpec_set_instr(jtag_tap_t *tap, u32 new_instr, tap_state_t end_state)
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		
 		field.in_value = NULL;
-		field.in_check_value = NULL;
-		field.in_check_mask = NULL;
+		
+		
 		field.in_handler = NULL;
-		field.in_handler_priv = NULL;
+		
 
 		jtag_add_ir_scan(1, &field, end_state);
 
@@ -153,10 +153,10 @@ static u8 str9xpec_isc_status(jtag_tap_t *tap)
 	field.out_value = NULL;
 	
 	field.in_value = &status;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_execute_queue();
@@ -245,10 +245,10 @@ static int str9xpec_read_config(struct flash_bank_s *bank)
 	field.out_value = NULL;
 	
 	field.in_value = str9xpec_info->options;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_execute_queue();
@@ -397,10 +397,10 @@ static int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	field.out_value = buffer;
 	
 	field.in_value = NULL;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_add_sleep(40000);
@@ -411,10 +411,10 @@ static int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	field.out_value = NULL;
 	
 	field.in_value = buffer;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(1, &field, TAP_IRPAUSE);
 	jtag_execute_queue();
@@ -513,10 +513,10 @@ static int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	field.out_value = buffer;
 	
 	field.in_value = NULL;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_execute_queue();
@@ -579,10 +579,10 @@ static int str9xpec_lock_device(struct flash_bank_s *bank)
 		field.out_value = NULL;
 		
 		field.in_value = &status;
-		field.in_check_value = NULL;
-		field.in_check_mask = NULL;
+		
+		
 		field.in_handler = NULL;
-		field.in_handler_priv = NULL;
+		
 
 		jtag_add_dr_scan(1, &field, -1);
 		jtag_execute_queue();
@@ -665,10 +665,10 @@ static int str9xpec_set_address(struct flash_bank_s *bank, u8 sector)
 	field.out_value = &sector;
 	
 	field.in_value = NULL;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(1, &field, -1);
 
@@ -754,10 +754,10 @@ static int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 			field.out_value = (buffer + bytes_written);
 			
 			field.in_value = NULL;
-			field.in_check_value = NULL;
-			field.in_check_mask = NULL;
+			
+			
 			field.in_handler = NULL;
-			field.in_handler_priv = NULL;
+			
 
 			jtag_add_dr_scan(1, &field, TAP_IDLE);
 
@@ -772,10 +772,10 @@ static int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 				field.out_value = NULL;
 				
 				field.in_value = scanbuf;
-				field.in_check_value = NULL;
-				field.in_check_mask = NULL;
+				
+				
 				field.in_handler = NULL;
-				field.in_handler_priv = NULL;
+				
 
 				jtag_add_dr_scan(1, &field, -1);
 				jtag_execute_queue();
@@ -814,10 +814,10 @@ static int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 		field.out_value = last_dword;
 		
 		field.in_value = NULL;
-		field.in_check_value = NULL;
-		field.in_check_mask = NULL;
+		
+		
 		field.in_handler = NULL;
-		field.in_handler_priv = NULL;
+		
 
 		jtag_add_dr_scan(1, &field, TAP_IDLE);
 
@@ -832,10 +832,10 @@ static int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 			field.out_value = NULL;
 			
 			field.in_value = scanbuf;
-			field.in_check_value = NULL;
-			field.in_check_mask = NULL;
+			
+			
 			field.in_handler = NULL;
-			field.in_handler_priv = NULL;
+			
 
 			jtag_add_dr_scan(1, &field, -1);
 			jtag_execute_queue();
@@ -896,10 +896,10 @@ static int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, ch
 	field.out_value = NULL;
 	
 	field.in_value = buffer;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(1, &field, TAP_IDLE);
 	jtag_execute_queue();
@@ -1021,10 +1021,10 @@ static int str9xpec_write_options(struct flash_bank_s *bank)
 	field.out_value = str9xpec_info->options;
 	
 	field.in_value = NULL;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	jtag_add_dr_scan(1, &field, TAP_IDLE);
 
@@ -1039,10 +1039,10 @@ static int str9xpec_write_options(struct flash_bank_s *bank)
 		field.out_value = NULL;
 		
 		field.in_value = &status;
-		field.in_check_value = NULL;
-		field.in_check_mask = NULL;
+		
+		
 		field.in_handler = NULL;
-		field.in_handler_priv = NULL;
+		
 
 		jtag_add_dr_scan(1, &field, -1);
 		jtag_execute_queue();

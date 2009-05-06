@@ -1486,10 +1486,10 @@ int jtag_examine_chain(void)
 	field.out_value = idcode_buffer;
 	
 	field.in_value = idcode_buffer;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
 	{
@@ -1664,10 +1664,10 @@ int jtag_validate_chain(void)
 	field.out_value = ir_test;
 	
 	field.in_value = ir_test;
-	field.in_check_value = NULL;
-	field.in_check_mask = NULL;
+	
+	
 	field.in_handler = NULL;
-	field.in_handler_priv = NULL;
+	
 
 	jtag_add_plain_ir_scan(1, &field, TAP_RESET);
 	jtag_execute_queue();

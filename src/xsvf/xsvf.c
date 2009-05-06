@@ -707,10 +707,10 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					field.out_value = ir_buf;
 					
 					field.in_value = NULL;
-					field.in_check_value = NULL;
-					field.in_check_mask = NULL;
+					
+					
 					field.in_handler = NULL;
-					field.in_handler_priv = NULL;
+					
 
 					if (tap == NULL)
 						jtag_add_plain_ir_scan(1, &field, my_end_state);
