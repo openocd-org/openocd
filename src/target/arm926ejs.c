@@ -137,47 +137,30 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	
-	fields[0].in_value = NULL;
-	
-	
+	u8 tmp[4];
+	fields[0].in_value = tmp;
 	fields[0].in_handler = NULL;
-	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
-	
 	fields[1].in_value = &access;
-	
-	
 	fields[1].in_handler = NULL;
-	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
-	
 	fields[2].in_value = NULL;
-	
-	
 	fields[2].in_handler = NULL;
-	
+
 
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
-	
 	fields[3].in_value = NULL;
-	
-	
 	fields[3].in_handler = NULL;
-	
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
-
-	fields[0].in_handler_priv = value;
-	fields[0].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
 
 	/*TODO: add timeout*/
 	do
@@ -185,7 +168,10 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
 		nr_w_buf = 0;
-		jtag_add_dr_scan(4, fields, TAP_INVALID);
+		jtag_add_dr_scan_now(4, fields, TAP_INVALID);
+
+		*value=le_to_h_u32(tmp);
+
 		if((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
@@ -227,42 +213,42 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;
-	
+
 	fields[0].in_value = NULL;
-	
-	
+
+
 	fields[0].in_handler = NULL;
-	
+
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
-	
+
 	fields[1].in_value = &access;
-	
-	
+
+
 	fields[1].in_handler = NULL;
-	
+
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
-	
+
 	fields[2].in_value = NULL;
-	
-	
+
+
 	fields[2].in_handler = NULL;
-	
+
 
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
-	
+
 	fields[3].in_value = NULL;
-	
-	
+
+
 	fields[3].in_handler = NULL;
-	
+
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 	/*TODO: add timeout*/
