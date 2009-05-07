@@ -1144,7 +1144,8 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 		{
 			arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-			for (size_t i = 0; i < count; i++)
+			size_t i;
+			for (i = 0; i < count; i++)
 			{
 				/* ldrh    r1, [r0], #2 */
 				arm11_run_instr_no_data1(arm11,
@@ -1224,7 +1225,8 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 		{
 			arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-			for (size_t i = 0; i < count; i++)
+			size_t i;
+			for (i = 0; i < count; i++)
 			{
 				u16 value;
 				memcpy(&value, buffer + count * sizeof(u16), sizeof(u16));
