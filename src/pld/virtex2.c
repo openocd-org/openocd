@@ -98,12 +98,6 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 	return ERROR_OK;
 }
 
-int virtex2_jtag_buf_to_u32(u8 *in_buf, void *priv, struct scan_field_s *field)
-{
-	u32 *dest = priv;
-	*dest = flip_u32(le_to_h_u32(in_buf), 32);
-	return ERROR_OK;
-}
 
 int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 {
@@ -113,15 +107,17 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	scan_field.tap = virtex2_info->tap;
 	scan_field.num_bits = 32;
 	scan_field.out_value = NULL;
-	scan_field.in_value = NULL;
-	scan_field.in_handler = virtex2_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
+	u8 tmp[4];
+	scan_field.in_value = tmp;
+	scan_field.in_handler = NULL;
 
 	virtex2_set_instr(virtex2_info->tap, 0x4); /* CFG_OUT */
 
 	while (num_words--)
 	{
-		scan_field.in_handler_priv = words++;
-		jtag_add_dr_scan(1, &scan_field, TAP_DRPAUSE);
+		jtag_add_dr_scan_now(1, &scan_field, TAP_DRPAUSE);
+
+		*words++=flip_u32(le_to_h_u32(tmp), 32);
 	}
 
 	return ERROR_OK;
