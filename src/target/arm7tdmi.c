@@ -265,28 +265,29 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 
 	jtag_add_dr_scan_now(2, fields, TAP_INVALID);
 
+	u32 readback=flip_u32(le_to_h_u32(tmp), 32);
 	switch (size)
 	{
 		case 4:
 			if (be)
 			{
-				h_u32_to_be(((u8*)in), flip_u32(le_to_h_u32(tmp), 32));
+				h_u32_to_be(((u8*)in), readback);
 			} else
 			{
-				 h_u32_to_le(((u8*)in), flip_u32(le_to_h_u32(tmp), 32));
+				 h_u32_to_le(((u8*)in), readback);
 			}
 			break;
 		case 2:
 			if (be)
 			{
-				h_u16_to_be(((u8*)in), flip_u32(le_to_h_u32(tmp), 32) & 0xffff);
+				h_u16_to_be(((u8*)in), readback & 0xffff);
 			} else
 			{
-				h_u16_to_le(((u8*)in), flip_u32(le_to_h_u32(tmp), 32) & 0xffff);
+				h_u16_to_le(((u8*)in), readback & 0xffff);
 			}
 			break;
 		case 1:
-			*((u8 *)in)= flip_u32(le_to_h_u32(tmp), 32) & 0xff;
+			*((u8 *)in)= readback & 0xff;
 			break;
 	}
 
