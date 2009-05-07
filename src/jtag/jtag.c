@@ -1347,7 +1347,7 @@ static const char *jtag_tap_name(jtag_tap_t *tap)
 	return (tap == NULL) ? "(unknown)" : tap->dotted_name;
 }
 
-int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
+int jtag_check_value_inner(u8 *captured, scan_field_t *field, u8 *in_check_value, u8 *in_check_mask)
 {
 	int retval = ERROR_OK;
 	int num_bits = field->num_bits;
@@ -1355,9 +1355,9 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 	int compare_failed = 0;
 
 	if (field->in_check_mask)
-		compare_failed = buf_cmp_mask(captured, field->in_check_value, field->in_check_mask, num_bits);
+		compare_failed = buf_cmp_mask(captured, in_check_value, in_check_mask, num_bits);
 	else
-		compare_failed = buf_cmp(captured, field->in_check_value, num_bits);
+		compare_failed = buf_cmp(captured, in_check_value, num_bits);
 
 	if (compare_failed){
 		/* An error handler could have caught the failing check
@@ -1369,12 +1369,12 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 		if (compare_failed)
 		{
 			char *captured_char = buf_to_str(captured, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
-			char *in_check_value_char = buf_to_str(field->in_check_value, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
+			char *in_check_value_char = buf_to_str(in_check_value, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
 
-			if (field->in_check_mask)
+			if (in_check_mask)
 			{
 				char *in_check_mask_char;
-				in_check_mask_char = buf_to_str(field->in_check_mask, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
+				in_check_mask_char = buf_to_str(in_check_mask, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
 				LOG_WARNING("value captured during scan didn't pass the requested check:");
 				LOG_WARNING("captured: 0x%s check_value: 0x%s check_mask: 0x%s",
 							captured_char, in_check_value_char, in_check_mask_char);
@@ -1395,6 +1395,11 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
 	return retval;
 }
 
+int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
+{
+	return jtag_check_value_inner(captured, field, field->in_check_value, field->in_check_mask);
+}
+
 /*
   set up checking of this field using the in_handler. The values passed in must be valid until
   after jtag_execute() has completed.
@@ -1409,6 +1414,17 @@ void jtag_set_check_value(scan_field_t *field, u8 *value, u8 *mask, struct inval
 	field->in_check_value = value;
 	field->in_check_mask = mask;
 }
+
+void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask)
+{
+	jtag_execute_queue_noclear();
+	
+	int retval=jtag_check_value_inner(field->in_value, field, value, mask);
+	jtag_set_error(retval);
+	
+}
+
+
 
 enum scan_type jtag_scan_type(scan_command_t *cmd)
 {

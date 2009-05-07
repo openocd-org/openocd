@@ -735,6 +735,9 @@ struct invalidstruct
 };
 
 extern void           jtag_set_check_value(scan_field_t* field, u8* value, u8* mask, struct invalidstruct *obsolete);
+/* execute jtag queue and check value and use mask if mask is != NULL. invokes
+ * jtag_set_error() with any error. */
+extern void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask);
 extern enum scan_type jtag_scan_type(scan_command_t* cmd);
 extern int            jtag_scan_size(scan_command_t* cmd);
 extern int            jtag_read_buffer(u8* buffer, scan_command_t* cmd);
