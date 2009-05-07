@@ -256,28 +256,39 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[0].in_value = NULL;
 	fields[0].in_handler = NULL;
 
-
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
-	fields[1].in_value = NULL;
+	u8 tmp[4];
+	fields[1].in_value = tmp;
+	fields[1].in_handler = NULL;
+
+	jtag_add_dr_scan_now(2, fields, TAP_INVALID);
+
 	switch (size)
 	{
 		case 4:
-			fields[1].in_handler = (be) ? arm_jtag_buf_to_be32_flip : arm_jtag_buf_to_le32_flip; /* deprecated! invoke this from user code! */
+			if (be)
+			{
+				h_u32_to_be(((u8*)in), flip_u32(le_to_h_u32(tmp), 32));
+			} else
+			{
+				 h_u32_to_le(((u8*)in), flip_u32(le_to_h_u32(tmp), 32));
+			}
 			break;
 		case 2:
-			fields[1].in_handler = (be) ? arm_jtag_buf_to_be16_flip : arm_jtag_buf_to_le16_flip; /* deprecated! invoke this from user code! */
+			if (be)
+			{
+				h_u16_to_be(((u8*)in), flip_u32(le_to_h_u32(tmp), 32) & 0xffff);
+			} else
+			{
+				h_u16_to_le(((u8*)in), flip_u32(le_to_h_u32(tmp), 32) & 0xffff);
+			}
 			break;
 		case 1:
-			fields[1].in_handler = arm_jtag_buf_to_8_flip; /* deprecated! invoke this from user code! */
+			*((u8 *)in)= flip_u32(le_to_h_u32(tmp), 32) & 0xff;
 			break;
 	}
-	fields[1].in_handler_priv = in;
-
-
-
-	jtag_add_dr_scan(2, fields, TAP_INVALID);
 
 	jtag_add_runtest(0, TAP_INVALID);
 
