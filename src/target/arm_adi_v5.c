@@ -77,22 +77,22 @@ int adi_jtag_dp_scan(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u8 *o
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
-	
+
 	fields[0].in_value = ack;
-	
-	
+
+
 	fields[0].in_handler = NULL;
-	
+
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = outvalue;
-	
+
 	fields[1].in_value = invalue;
 	fields[1].in_handler = NULL;
-	
-	
-	
+
+
+
 
 	jtag_add_dr_scan(2, fields, TAP_INVALID);
 
@@ -113,33 +113,29 @@ int adi_jtag_dp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
-	
 	fields[0].in_value = ack;
-	
-	
 	fields[0].in_handler = NULL;
-	
+
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	buf_set_u32(out_value_buf, 0, 32, outvalue);
 	fields[1].out_value = out_value_buf;
-	
 	fields[1].in_value = NULL;
+	fields[1].in_handler = NULL;
+
 	if (invalue)
 	{
-		fields[1].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
-		fields[1].in_handler_priv = invalue;
-	}
-	else
-	{
-		fields[1].in_handler = NULL;
-		
-	}
-	
-	
+		u8 tmp[4];
+		fields[1].in_value = tmp;
+		jtag_add_dr_scan_now(2, fields, TAP_INVALID);
 
-	jtag_add_dr_scan(2, fields, TAP_INVALID);
+		*invalue=flip_u32(le_to_h_u32(tmp), 32);
+	} else
+	{
+
+		jtag_add_dr_scan(2, fields, TAP_INVALID);
+	}
 
 	return ERROR_OK;
 }
@@ -296,7 +292,7 @@ int dap_dp_read_reg(swjdp_common_t *swjdp, u32 *value, u8 reg_addr)
 {
 	return scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, reg_addr, DPAP_READ, 0, value);
 }
- 
+
 int dap_ap_select(swjdp_common_t *swjdp,u8 apsel)
 {
 	u32 select;
@@ -1012,7 +1008,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 
 	u32 dbgbase,apid;
 	int romtable_present = 0;
-	u8 mem_ap; 
+	u8 mem_ap;
 	u32 apselold;
 
 	apselold = swjdp->apsel;
@@ -1028,23 +1024,23 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 		switch (apid&0x0F)
 		{
 			case 0:
-				command_print(cmd_ctx, "\tType is jtag-ap");		
+				command_print(cmd_ctx, "\tType is jtag-ap");
 				break;
 			case 1:
-				command_print(cmd_ctx, "\tType is mem-ap AHB");		
+				command_print(cmd_ctx, "\tType is mem-ap AHB");
 				break;
 			case 2:
-				command_print(cmd_ctx, "\tType is mem-ap APB");				
+				command_print(cmd_ctx, "\tType is mem-ap APB");
 				break;
 			default:
-				command_print(cmd_ctx, "\tUnknown AP-type");	
+				command_print(cmd_ctx, "\tUnknown AP-type");
 			break;
 		}
 		command_print(cmd_ctx, "ap debugbase 0x%8.8x", dbgbase);
 	}
 	else
 	{
-		command_print(cmd_ctx, "No AP found at this apsel 0x%x", apsel);	
+		command_print(cmd_ctx, "No AP found at this apsel 0x%x", apsel);
 	}
 
 	romtable_present = ((mem_ap)&&(dbgbase != 0xFFFFFFFF));
@@ -1062,11 +1058,11 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 			command_print(cmd_ctx, "\tROM table in legacy format" );
 		}
 		/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFF0, &cid0);		
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFF4, &cid1);		
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFF8, &cid2);		
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFFC, &cid3);		
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFCC, &memtype);		
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFF0, &cid0);
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFF4, &cid1);
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFF8, &cid2);
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFFC, &cid3);
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFCC, &memtype);
 		swjdp_transaction_endcheck(swjdp);
 		command_print(cmd_ctx, "\tCID3 0x%x, CID2 0x%x, CID1 0x%x, CID0, 0x%x",cid3,cid2,cid1,cid0);
 		if (memtype&0x01)
@@ -1077,10 +1073,10 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 		{
 			command_print(cmd_ctx, "\tMEMTYPE system memory not present. Dedicated debug bus" );
 		}
-		
+
 		/* Now we read ROM table entries from dbgbase&0xFFFFF000)|0x000 until we get 0x00000000 */
 		entry_offset = 0;
-		do 
+		do
 		{
 			mem_ap_read_atomic_u32(swjdp, (dbgbase&0xFFFFF000)|entry_offset, &romentry);
 			command_print(cmd_ctx, "\tROMTABLE[0x%x] = 0x%x",entry_offset,romentry);
@@ -1107,16 +1103,16 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 			else
 			{
 				if (romentry)
-					command_print(cmd_ctx, "\t\tComponent not present");		
+					command_print(cmd_ctx, "\t\tComponent not present");
 				else
-					command_print(cmd_ctx, "\t\tEnd of ROM table");							
+					command_print(cmd_ctx, "\t\tEnd of ROM table");
 			}
 			entry_offset += 4;
 		} while (romentry>0);
 	}
 	else
 	{
-		command_print(cmd_ctx, "\tNo ROM table present");		
+		command_print(cmd_ctx, "\tNo ROM table present");
 	}
 	dap_ap_select(swjdp, apselold);
 
