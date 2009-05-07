@@ -70,12 +70,12 @@ static int etb_set_instr(etb_t *etb, u32 new_instr)
 		field.num_bits = tap->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
-		
+
 		field.in_value = NULL;
-		
-		
+
+
 		field.in_handler = NULL;
-		
+
 
 		jtag_add_ir_scan(1, &field, TAP_INVALID);
 
@@ -95,12 +95,12 @@ static int etb_scann(etb_t *etb, u32 new_scan_chain)
 		field.num_bits = 5;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_scan_chain);
-		
+
 		field.in_value = NULL;
-		
-		
+
+
 		field.in_handler = NULL;
-		
+
 
 		/* select INTEST instruction */
 		etb_set_instr(etb, 0x2);
@@ -186,38 +186,26 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	fields[0].tap = etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	
-	fields[0].in_value = NULL;
-	
-	
+	u8 tmp[4];
+	fields[0].in_value = tmp;
 	fields[0].in_handler = NULL;
-	
 
 	fields[1].tap = etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, 4);
-	
 	fields[1].in_value = NULL;
-	
-	
 	fields[1].in_handler = NULL;
-	
 
 	fields[2].tap = etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
-	
 	fields[2].in_value = NULL;
-	
-	
 	fields[2].in_handler = NULL;
-	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
-	fields[0].in_handler = buf_to_u32_handler; /* deprecated! invoke this from user code! */
 
 	for (i = 0; i < num_frames; i++)
 	{
@@ -230,8 +218,9 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 		else
 			buf_set_u32(fields[1].out_value, 0, 7, 0);
 
-		fields[0].in_handler_priv = &data[i];
-		jtag_add_dr_scan(3, fields, TAP_INVALID);
+		jtag_add_dr_scan_now(3, fields, TAP_INVALID);
+
+		data[i]=buf_get_u32(tmp, 0, 32);
 	}
 
 	jtag_execute_queue();
@@ -257,34 +246,34 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].tap = etb_reg->etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
-	
+
 	fields[0].in_value = NULL;
-	
-	
+
+
 	fields[0].in_handler = NULL;
-	
+
 
 	fields[1].tap = etb_reg->etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
-	
+
 	fields[1].in_value = NULL;
-	
-	
+
+
 	fields[1].in_handler = NULL;
-	
+
 
 	fields[2].tap = etb_reg->etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
-	
+
 	fields[2].in_value = NULL;
-	
-	
+
+
 	fields[2].in_handler = NULL;
-	
+
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -354,34 +343,34 @@ int etb_write_reg(reg_t *reg, u32 value)
 	fields[0].num_bits = 32;
 	fields[0].out_value = malloc(4);
 	buf_set_u32(fields[0].out_value, 0, 32, value);
-	
+
 	fields[0].in_value = NULL;
-	
-	
+
+
 	fields[0].in_handler = NULL;
-	
+
 
 	fields[1].tap = etb_reg->etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
-	
+
 	fields[1].in_value = NULL;
-	
-	
+
+
 	fields[1].in_handler = NULL;
-	
+
 
 	fields[2].tap = etb_reg->etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 1);
-	
+
 	fields[2].in_value = NULL;
-	
-	
+
+
 	fields[2].in_handler = NULL;
-	
+
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
