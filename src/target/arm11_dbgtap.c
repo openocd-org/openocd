@@ -130,7 +130,7 @@ void arm11_add_IR(arm11_common_t * arm11, u8 instr, tap_state_t state)
  *  arm11_add_debug_SCAN_N().
  *
  */
-static int arm11_in_handler_SCAN_N(u8 *in_value, void *priv, struct scan_field_s *field)
+static void arm11_in_handler_SCAN_N(u8 *in_value)
 {
 	/** \todo TODO: clarify why this isnt properly masked in jtag.c jtag_read_buffer() */
 	u8 v = *in_value & 0x1F;
@@ -138,11 +138,10 @@ static int arm11_in_handler_SCAN_N(u8 *in_value, void *priv, struct scan_field_s
 	if (v != 0x10)
 	{
 		LOG_ERROR("'arm11 target' JTAG communication error SCREG SCAN OUT 0x%02x (expected 0x10)", v);
-		return ERROR_FAIL;
+		jtag_set_error(ERROR_FAIL);
 	}
 
 	JTAG_DEBUG("SCREG SCAN OUT 0x%02x", v);
-	return ERROR_OK;
 }
 
 /** Select and write to Scan Chain Register (SCREG)
@@ -177,11 +176,14 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
 
 	scan_field_t		field;
 
-	arm11_setup_field(arm11, 5, &chain, NULL, &field);
-
-	field.in_handler = arm11_in_handler_SCAN_N; /* deprecated! invoke this from user code! */
+	u8 tmp[1];
+	arm11_setup_field(arm11, 5, &chain, &tmp, &field);
 
 	arm11_add_dr_scan_vc(1, &field, state == ARM11_TAP_DEFAULT ? TAP_DRPAUSE : state);
+
+	jtag_execute_queue_noclear();
+
+	arm11_in_handler_SCAN_N(tmp); /* deprecated! invoke this from user code! */
 }
 
 /** Write an instruction into the ITR register
