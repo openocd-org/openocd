@@ -187,39 +187,30 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	
 	fields[0].in_value = NULL;
-	
-	
 	fields[0].in_handler = NULL;
-	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 6;
 	fields[1].out_value = &reg_addr_buf;
-	
 	fields[1].in_value = NULL;
-	
-	
 	fields[1].in_handler = NULL;
-	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &nr_w_buf;
-	
 	fields[2].in_value = NULL;
-	
-	
 	fields[2].in_handler = NULL;
-	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
-	fields[0].in_handler_priv = value;
-	fields[0].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
+	u8 tmp[4];
+	fields[1].in_value = tmp;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
+
+	*value=flip_u32(le_to_h_u32(tmp), 32);
+
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	if((retval = jtag_execute_queue()) != ERROR_OK)
@@ -255,32 +246,32 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;
-	
+
 	fields[0].in_value = NULL;
-	
-	
+
+
 	fields[0].in_handler = NULL;
-	
+
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 6;
 	fields[1].out_value = &reg_addr_buf;
-	
+
 	fields[1].in_value = NULL;
-	
-	
+
+
 	fields[1].in_handler = NULL;
-	
+
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &nr_w_buf;
-	
+
 	fields[2].in_value = NULL;
-	
-	
+
+
 	fields[2].in_handler = NULL;
-	
+
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
