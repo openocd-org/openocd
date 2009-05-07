@@ -1144,10 +1144,7 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 		{
 			arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-			u16 * buf16 = (u16*)buffer;
-
-			{size_t i;
-			for (i = 0; i < count; i++)
+			for (size_t i = 0; i < count; i++)
 			{
 				/* ldrh    r1, [r0], #2 */
 				arm11_run_instr_no_data1(arm11,
@@ -1158,20 +1155,24 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 				/* MCR p14,0,R1,c0,c5,0 */
 				arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
 
-				*buf16++ = res;
-			}}
+				u16 svalue = res;
+				memcpy(buffer + count * sizeof(u16), &svalue, sizeof(u16));
+			}
 
 			break;
 		}
 
 	case 4:
+		{
+		u32 instr = !arm11_config_memrw_no_increment ? 0xecb05e01 : 0xed905e00;
+		/** \todo TODO: buffer cast to u32* causes alignment warnings */
+		u32 *words = (u32 *)buffer;
 
 		/* LDC p14,c5,[R0],#4 */
 		/* LDC p14,c5,[R0] */
-		arm11_run_instr_data_from_core(arm11,
-			(!arm11_config_memrw_no_increment ? 0xecb05e01 : 0xed905e00),
-			(u32 *)buffer, count);
+		arm11_run_instr_data_from_core(arm11, instr, words, count);
 		break;
+		}
 	}
 
 	arm11_run_instr_data_finish(arm11);
@@ -1223,44 +1224,44 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 		{
 			arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-			u16 * buf16 = (u16*)buffer;
-
-			{size_t i;
-			for (i = 0; i < count; i++)
+			for (size_t i = 0; i < count; i++)
 			{
+				u16 value;
+				memcpy(&value, buffer + count * sizeof(u16), sizeof(u16));
+
 				/* MRC p14,0,r1,c0,c5,0 */
-				arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buf16++);
+				arm11_run_instr_data_to_core1(arm11, 0xee101e15, value);
 
 				/* strh    r1, [r0], #2 */
 				/* strh    r1, [r0] */
 				arm11_run_instr_no_data1(arm11,
 					!arm11_config_memrw_no_increment ? 0xe0c010b2 : 0xe1c010b0);
-			}}
+			}
 
 			break;
 		}
 
-	case 4:
-		/** \todo TODO: check if buffer cast to u32* might cause alignment problems */
+	case 4: {
+		u32 instr = !arm11_config_memrw_no_increment ? 0xeca05e01 : 0xed805e00;
+
+		/** \todo TODO: buffer cast to u32* causes alignment warnings */
+		u32 *words = (u32*)buffer;
 
 		if (!arm11_config_memwrite_burst)
 		{
 			/* STC p14,c5,[R0],#4 */
 			/* STC p14,c5,[R0]*/
-			arm11_run_instr_data_to_core(arm11,
-				(!arm11_config_memrw_no_increment ? 0xeca05e01 : 0xed805e00),
-				(u32 *)buffer, count);
+			arm11_run_instr_data_to_core(arm11, instr, words, count);
 		}
 		else
 		{
 			/* STC p14,c5,[R0],#4 */
 			/* STC p14,c5,[R0]*/
-			arm11_run_instr_data_to_core_noack(arm11,
-				(!arm11_config_memrw_no_increment ? 0xeca05e01 : 0xed805e00),
-				(u32 *)buffer, count);
+			arm11_run_instr_data_to_core_noack(arm11, instr, words, count);
 		}
 
 		break;
+	}
 	}
 
 #if 1
