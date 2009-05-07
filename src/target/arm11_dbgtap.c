@@ -183,7 +183,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
 
 	jtag_execute_queue_noclear();
 
-	arm11_in_handler_SCAN_N(tmp); /* deprecated! invoke this from user code! */
+	arm11_in_handler_SCAN_N(tmp);
 }
 
 /** Write an instruction into the ITR register
