@@ -238,7 +238,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 		fields[0].in_value=tmp;
 		jtag_add_dr_scan_now(3, fields, TAP_INVALID);
 
-		*in=flip_u32(le_to_h_u32(tmp), 32);
+		*in=le_to_h_u32(tmp);
 	}
 	else
 	{
@@ -301,7 +301,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 
 	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
 
-	*in=flip_u32(le_to_h_u32(tmp), 32);
+	*in=le_to_h_u32(tmp);
 
 	jtag_add_runtest(0, TAP_INVALID);
 
@@ -326,7 +326,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	return ERROR_OK;
 }
 
-extern void arm_endianness(u8 *tmp, void *in, int size, int be);
+extern void arm_endianness(u8 *tmp, void *in, int size, int be, int flip);
 
 /* clock the target, and read the databus
  * the *in pointer points to a buffer where elements of 'size' bytes
@@ -366,7 +366,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 
 	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
 
-	arm_endianness(tmp, in, size, be);
+	arm_endianness(tmp, in, size, be, 0);
 
 
 	jtag_add_runtest(0, TAP_INVALID);

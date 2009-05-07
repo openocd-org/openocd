@@ -234,9 +234,11 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	return ERROR_OK;
 }
 
-void arm_endianness(u8 *tmp, void *in, int size, int be)
+void arm_endianness(u8 *tmp, void *in, int size, int be, int flip)
 {
-	u32 readback=flip_u32(le_to_h_u32(tmp), 32);
+	u32 readback=le_to_h_u32(tmp);
+	if (flip)
+		readback=flip_u32(readback, 32);
 	switch (size)
 	{
 		case 4:
@@ -295,7 +297,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 
 	jtag_add_dr_scan_now(2, fields, TAP_INVALID);
 
-	arm_endianness(tmp, in, size, be);
+	arm_endianness(tmp, in, size, be, 1);
 
 	jtag_add_runtest(0, TAP_INVALID);
 
