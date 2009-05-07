@@ -130,7 +130,7 @@ int adi_jtag_dp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u
 		fields[1].in_value = tmp;
 		jtag_add_dr_scan_now(2, fields, TAP_INVALID);
 
-		*invalue=flip_u32(le_to_h_u32(tmp), 32);
+		*invalue=le_to_h_u32(in_buf);
 	} else
 	{
 
