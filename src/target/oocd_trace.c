@@ -98,7 +98,7 @@ static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 addres
 		if ((bytes_read = read(oocd_trace->tty_fd,
 				((u8*)data) + (size * 16) - bytes_to_read, bytes_to_read)) < 0)
 		{
-			LOG_DEBUG("read() returned %i (%s)", bytes_read, strerror(errno));
+			LOG_DEBUG("read() returned %zi (%s)", bytes_read, strerror(errno));
 		}
 		else
 			bytes_to_read -= bytes_read;
@@ -148,7 +148,7 @@ static int oocd_trace_init(etm_context_t *etm_ctx)
 	 * read up any leftover characters to ensure communication is in sync */
 	while ((bytes_read = read(oocd_trace->tty_fd, trash, sizeof(trash))) > 0)
 	{
-		LOG_DEBUG("%i bytes read\n", bytes_read);
+		LOG_DEBUG("%zi bytes read\n", bytes_read);
 	};
 	
 	return ERROR_OK;
