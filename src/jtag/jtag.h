@@ -561,6 +561,10 @@ extern int  jtag_register_commands(struct command_context_s* cmd_ctx);
 extern void jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern int  interface_jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern void jtag_add_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
+/* same as jtag_add_dr_scan but the scan is executed immediately. sets jtag_error if there
+ * was a failure.
+ */
+extern void jtag_add_dr_scan_now(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern int  interface_jtag_add_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern void jtag_add_plain_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern int  interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
@@ -695,6 +699,16 @@ int  interface_jtag_add_clocks(int num_cycles);
  * at some time between the jtag_add_xxx() fn call and jtag_execute_queue().
  */
 extern int            jtag_execute_queue(void);
+
+/* this flag is set when an error occurs while executing the queue. cleared
+ * by jtag_execute_queue()
+ *
+ * this flag can also be set from application code if some error happens
+ * during processing that should be reported during jtag_execute_queue().
+ */
+extern int jtag_error;
+
+
 
 /* can be implemented by hw+sw */
 extern int            interface_jtag_execute_queue(void);

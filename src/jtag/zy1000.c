@@ -39,8 +39,6 @@
 #define ZYLIN_OPENOCD_VERSION "Zylin JTAG ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE " " ZYLIN_TIME
 const char *zylin_config_dir="/config/settings";
 
-extern int jtag_error;
-
 /* low level command set
  */
 int zy1000_read(void);

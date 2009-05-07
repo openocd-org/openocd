@@ -5,6 +5,9 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -111,22 +114,14 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		fields[0].tap = arm7_9->jtag_info.tap;
 		fields[0].num_bits = 1;
 		fields[0].out_value = NULL;
-		
 		fields[0].in_value = &breakpoint;
-		
-		
 		fields[0].in_handler = NULL;
-		
 
 		fields[1].tap = arm7_9->jtag_info.tap;
 		fields[1].num_bits = 32;
 		fields[1].out_value = NULL;
-		
 		fields[1].in_value = databus;
-		
-		
 		fields[1].in_handler = NULL;
-		
 
 		if((retval = arm_jtag_scann(&arm7_9->jtag_info, 0x1)) != ERROR_OK)
 		{
@@ -198,24 +193,23 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = NULL;
-	
 	fields[0].in_value = NULL;
-	
-	
 	fields[0].in_handler = NULL;
-	
+
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
-	
-	fields[1].in_value = NULL;
-	fields[1].in_handler = arm_jtag_buf_to_u32_flip; /* deprecated! invoke this from user code! */
-	fields[1].in_handler_priv = in;
-	
-	
+	u8 tmp[4];
+	fields[1].in_value = tmp;
+	fields[1].in_handler = NULL;
 
-	jtag_add_dr_scan(2, fields, TAP_INVALID);
+	jtag_add_dr_scan_now(2, fields, TAP_INVALID);
+
+	if (jtag_error==ERROR_OK)
+	{
+		*in=flip_u32(le_to_h_u32(tmp), 32);
+	}
 
 	jtag_add_runtest(0, TAP_INVALID);
 
@@ -259,17 +253,13 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 1;
 	fields[0].out_value = NULL;
-	
 	fields[0].in_value = NULL;
-	
-	
 	fields[0].in_handler = NULL;
-	
+
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
-	
 	fields[1].in_value = NULL;
 	switch (size)
 	{
@@ -284,8 +274,8 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 			break;
 	}
 	fields[1].in_handler_priv = in;
-	
-	
+
+
 
 	jtag_add_dr_scan(2, fields, TAP_INVALID);
 

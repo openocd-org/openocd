@@ -42,6 +42,8 @@
 #include <strings.h>
 #endif
 
+static void jtag_execute_queue_noclear(void);
+
 /* note that this is not marked as static as it must be available from outside jtag.c for those
    that implement the jtag_xxx() minidriver layer
 */
@@ -668,6 +670,12 @@ void jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 	retval=interface_jtag_add_dr_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
+}
+
+void jtag_add_dr_scan_now(int num_fields, scan_field_t *fields, tap_state_t state)
+{
+	jtag_add_dr_scan(num_fields, fields, state);
+	jtag_execute_queue_noclear();
 }
 
 int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
@@ -1438,13 +1446,21 @@ int MINIDRIVER(interface_jtag_execute_queue)(void)
 	return retval;
 }
 
-int jtag_execute_queue(void)
+static void jtag_execute_queue_noclear(void)
 {
 	int retval=interface_jtag_execute_queue();
-	if (retval==ERROR_OK)
+	/* we keep the first error */
+	if ((jtag_error==ERROR_OK)&&(retval!=ERROR_OK))
 	{
-		retval=jtag_error;
+		jtag_error=retval;
 	}
+}
+
+int jtag_execute_queue(void)
+{
+	int retval;
+	jtag_execute_queue_noclear();
+	retval=jtag_error;
 	jtag_error=ERROR_OK;
 	return retval;
 }
@@ -1485,10 +1501,10 @@ int jtag_examine_chain(void)
 	field.tap = NULL;
 	field.num_bits = sizeof(idcode_buffer) * 8;
 	field.out_value = idcode_buffer;
-	
+
 	field.in_value = idcode_buffer;
-	
-	
+
+
 	field.in_handler = NULL;
 
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
@@ -1662,10 +1678,7 @@ int jtag_validate_chain(void)
 	field.tap = NULL;
 	field.num_bits = total_ir_length;
 	field.out_value = ir_test;
-	
 	field.in_value = ir_test;
-	
-	
 	field.in_handler = NULL;
 
 	jtag_add_plain_ir_scan(1, &field, TAP_RESET);
