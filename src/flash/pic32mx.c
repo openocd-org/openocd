@@ -463,9 +463,10 @@ static int pic32mx_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset
 
 	while(count > 0)
 	{
-		u32 status;
+		u32 value;
+		memcpy(&value, buffer, sizeof(u32));
 
-		status = pic32mx_write_word(bank, address, *(u32*)buffer);
+		u32 status = pic32mx_write_word(bank, address, value);
 		if( status & NVMCON_NVMERR ) {
 			LOG_ERROR("Flash write error NVMERR (status=0x%08x)", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
@@ -568,8 +569,10 @@ static int pic32mx_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 
 	while (words_remaining > 0)
 	{
-		status = pic32mx_write_word(bank, address, *(u32*)(buffer + bytes_written));
+		u32 value;
+		memcpy(&value, buffer + bytes_written, sizeof(u32));
 
+		status = pic32mx_write_word(bank, address, value);
 		if( status & NVMCON_NVMERR )
 			return ERROR_FLASH_OPERATION_FAILED;
 		if( status & NVMCON_LVDERR )
@@ -582,19 +585,10 @@ static int pic32mx_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 
 	if (bytes_remaining)
 	{
-		u8 last_word[4] = {0xff, 0xff, 0xff, 0xff};
-		int i = 0;
+		u32 value = 0xffffffff;
+		memcpy(&value, buffer + bytes_written, bytes_remaining);
 
-		while(bytes_remaining > 0)
-		{
-			/* Assumes little endian */
-			last_word[i++] = *(buffer + bytes_written);
-			bytes_remaining--;
-			bytes_written++;
-		}
-
-		status = pic32mx_write_word(bank, address, *(u32*)last_word);
-
+		status = pic32mx_write_word(bank, address, value);
 		if( status & NVMCON_NVMERR )
 			return ERROR_FLASH_OPERATION_FAILED;
 		if( status & NVMCON_LVDERR )

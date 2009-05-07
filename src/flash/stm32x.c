@@ -658,8 +658,11 @@ static int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 c
 
 	while (words_remaining > 0)
 	{
+		u16 value;
+		memcpy(&value, buffer + bytes_written, sizeof(u16));
+
 		target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
-		target_write_u16(target, address, *(u16*)(buffer + bytes_written));
+		target_write_u16(target, address, value);
 		
 		status = stm32x_wait_status_busy(bank, 5);
 		
@@ -681,18 +684,11 @@ static int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 c
 	
 	if (bytes_remaining)
 	{
-		u8 last_halfword[2] = {0xff, 0xff};
-		int i = 0;
-				
-		while(bytes_remaining > 0)
-		{
-			last_halfword[i++] = *(buffer + bytes_written); 
-			bytes_remaining--;
-			bytes_written++;
-		}
-		
+		u16 value = 0xffff;
+		memcpy(&value, buffer + bytes_written, bytes_remaining);
+
 		target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
-		target_write_u16(target, address, *(u16*)last_halfword);
+		target_write_u16(target, address, value);
 		
 		status = stm32x_wait_status_busy(bank, 5);
 		
