@@ -1399,7 +1399,7 @@ int jtag_check_value(u8 *captured, void *priv, scan_field_t *field)
   set up checking of this field using the in_handler. The values passed in must be valid until
   after jtag_execute() has completed.
  */
-void jtag_set_check_value(scan_field_t *field, u8 *value, u8 *mask, error_handler_t *in_error_handler)
+void jtag_set_check_value(scan_field_t *field, u8 *value, u8 *mask, struct invalidstruct *obsolete)
 {
 	if (value)
 		field->in_handler = jtag_check_value;

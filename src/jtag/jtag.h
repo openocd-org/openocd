@@ -729,7 +729,12 @@ extern int            jtag_power_dropout(int* dropout);
 extern int            jtag_srst_asserted(int* srst_asserted);
 
 /* JTAG support functions */
-extern void           jtag_set_check_value(scan_field_t* field, u8* value, u8* mask, error_handler_t* in_error_handler);
+struct invalidstruct
+{
+	
+};
+
+extern void           jtag_set_check_value(scan_field_t* field, u8* value, u8* mask, struct invalidstruct *obsolete);
 extern enum scan_type jtag_scan_type(scan_command_t* cmd);
 extern int            jtag_scan_size(scan_command_t* cmd);
 extern int            jtag_read_buffer(u8* buffer, scan_command_t* cmd);
