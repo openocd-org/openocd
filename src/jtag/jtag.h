@@ -700,6 +700,9 @@ int  interface_jtag_add_clocks(int num_cycles);
  */
 extern int            jtag_execute_queue(void);
 
+/* same as jtag_execute_queue() but does not clear the error flag */
+extern void jtag_execute_queue_noclear(void);
+
 /* this flag is set when an error occurs while executing the queue. cleared
  * by jtag_execute_queue()
  *
@@ -707,6 +710,16 @@ extern int            jtag_execute_queue(void);
  * during processing that should be reported during jtag_execute_queue().
  */
 extern int jtag_error;
+
+static __inline__ void jtag_set_error(int error)
+{
+	if ((error==ERROR_OK)||(jtag_error!=ERROR_OK))
+	{
+		/* keep first error */
+		return;
+	}
+	jtag_error=error;
+}
 
 
 

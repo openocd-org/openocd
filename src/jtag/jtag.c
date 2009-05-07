@@ -42,7 +42,7 @@
 #include <strings.h>
 #endif
 
-static void jtag_execute_queue_noclear(void);
+
 
 /* note that this is not marked as static as it must be available from outside jtag.c for those
    that implement the jtag_xxx() minidriver layer
@@ -1446,7 +1446,7 @@ int MINIDRIVER(interface_jtag_execute_queue)(void)
 	return retval;
 }
 
-static void jtag_execute_queue_noclear(void)
+void jtag_execute_queue_noclear(void)
 {
 	int retval=interface_jtag_execute_queue();
 	/* we keep the first error */
