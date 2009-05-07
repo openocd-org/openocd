@@ -283,34 +283,25 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-
-	fields[0].in_value = NULL;
-	fields[0].in_handler = arm_jtag_buf_to_u32; /* deprecated! invoke this from user code! */
-	fields[0].in_handler_priv = in;
-
-
+	u8 tmp[4];
+	fields[0].in_value = tmp;
+	fields[0].in_handler = NULL;
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = NULL;
-
 	fields[1].in_value = NULL;
 	fields[1].in_handler = NULL;
-
-
-
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = NULL;
-
 	fields[2].in_value = NULL;
-
-
 	fields[2].in_handler = NULL;
 
+	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	*in=flip_u32(le_to_h_u32(tmp), 32);
 
 	jtag_add_runtest(0, TAP_INVALID);
 
@@ -335,6 +326,8 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	return ERROR_OK;
 }
 
+extern void arm_endianness(u8 *tmp, void *in, int size, int be);
+
 /* clock the target, and read the databus
  * the *in pointer points to a buffer where elements of 'size' bytes
  * are stored in big (be==1) or little (be==0) endianness
@@ -355,45 +348,26 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-
-	fields[0].in_value = NULL;
-	switch (size)
-	{
-		case 4:
-			fields[0].in_handler = (be) ? arm_jtag_buf_to_be32 : arm_jtag_buf_to_le32; /* deprecated! invoke this from user code! */
-			break;
-		case 2:
-			fields[0].in_handler = (be) ? arm_jtag_buf_to_be16 : arm_jtag_buf_to_le16; /* deprecated! invoke this from user code! */
-			break;
-		case 1:
-			fields[0].in_handler = arm_jtag_buf_to_8; /* deprecated! invoke this from user code! */
-			break;
-	}
-	fields[0].in_handler_priv = in;
-
-
+	u8 tmp[4];
+	fields[0].in_value = tmp;
+	fields[0].in_handler = NULL;
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = NULL;
-
 	fields[1].in_value = NULL;
 	fields[1].in_handler = NULL;
-
-
-
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = NULL;
-
 	fields[2].in_value = NULL;
-
-
 	fields[2].in_handler = NULL;
 
+	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	arm_endianness(tmp, in, size, be);
+
 
 	jtag_add_runtest(0, TAP_INVALID);
 
