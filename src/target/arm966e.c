@@ -209,7 +209,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 
 	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
 
-	*value=flip_u32(le_to_h_u32(tmp), 32);
+	*value=le_to_h_u32(tmp);
 
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
