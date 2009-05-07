@@ -45,6 +45,7 @@
 #include "log.h"
 #include "time_support.h"
 #include <stdlib.h>
+#include <string.h>
 
 /*
  * Transaction Mode:
@@ -448,7 +449,6 @@ int mem_ap_write_atomic_u32(swjdp_common_t *swjdp, u32 address, u32 value)
 *****************************************************************************/
 int mem_ap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address)
 {
-	u32 outvalue;
 	int wcount, blocksize, writecount, errorcount = 0, retval = ERROR_OK;
 	u32 adr = address;
 	u8* pBuffer = buffer;
@@ -464,7 +464,8 @@ int mem_ap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addre
 		for (writecount = 0; writecount < count; writecount++)
 		{
 			int i;
-			outvalue = *((u32*)pBuffer);
+			u32 outvalue;
+			memcpy(&outvalue, pBuffer, sizeof(u32));
 
 			for (i = 0; i < 4; i++ )
 			{
@@ -472,7 +473,7 @@ int mem_ap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addre
 				outvalue >>= 8;
 				adr++;
 			}
-			pBuffer += 4;
+			pBuffer += sizeof(u32);
 		}
 	}
 
@@ -517,7 +518,6 @@ int mem_ap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addre
 
 int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address)
 {
-	u32 outvalue;
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
 
@@ -558,7 +558,8 @@ int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u3
 			}
 			else
 			{
-				outvalue = *((u32*)buffer);
+				u32 outvalue;
+				memcpy(&outvalue, buffer, sizeof(u32));
 
 				for (i = 0; i < nbytes; i++ )
 				{
@@ -567,7 +568,7 @@ int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u3
 					address++;
 				}
 
-				outvalue = *((u32*)buffer);
+				memcpy(&outvalue, buffer, sizeof(u32));
 				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
 				if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 				{
@@ -588,7 +589,6 @@ int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u3
 
 int mem_ap_write_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address)
 {
-	u32 outvalue;
 	int retval = ERROR_OK;
 
 	if (count >= 4)
@@ -599,7 +599,9 @@ int mem_ap_write_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addre
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
-		outvalue = *((u16*)buffer) << 8 * (address & 0x3);
+		u16 svalue;
+		memcpy(&svalue, buffer, sizeof(u16));
+		u32 outvalue = (u32)svalue << 8 * (address & 0x3);
 		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue );
 		retval = swjdp_transaction_endcheck(swjdp);
 		count -= 2;
@@ -612,7 +614,6 @@ int mem_ap_write_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addre
 
 int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address)
 {
-	u32 outvalue;
 	int retval = ERROR_OK;
 	int wcount, blocksize, writecount, i;
 
@@ -649,7 +650,8 @@ int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 			}
 			else
 			{
-				outvalue = *((u32*)buffer);
+				u32 outvalue;
+				memcpy(&outvalue, buffer, sizeof(u32));
 
 				for (i = 0; i < nbytes; i++ )
 				{
@@ -658,7 +660,7 @@ int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 					address++;
 				}
 
-				outvalue = *((u32*)buffer);
+				memcpy(&outvalue, buffer, sizeof(u32));
 				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
 				if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 				{
@@ -679,7 +681,6 @@ int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 
 int mem_ap_write_buf_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address)
 {
-	u32 outvalue;
 	int retval = ERROR_OK;
 
 	if (count >= 4)
@@ -690,7 +691,7 @@ int mem_ap_write_buf_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
-		outvalue = *((u8*)buffer) << 8 * (address & 0x3);
+		u32 outvalue = (u32)*buffer << 8 * (address & 0x3);
 		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue );
 		retval = swjdp_transaction_endcheck(swjdp);
 		count--;
@@ -766,7 +767,8 @@ int mem_ap_read_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 		for (readcount = 0; readcount < count; readcount++)
 		{
 			int i;
-			u32 data = *((u32*)pBuffer);
+			u32 data;
+			memcpy(&data, pBuffer, sizeof(u32));
 
 			for (i = 0; i < 4; i++ )
 			{
@@ -858,7 +860,8 @@ int mem_ap_read_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 		}
 		else
 		{
-			*((u16*)buffer) = (invalue >> 8 * (address & 0x3));
+			u16 svalue = (invalue >> 8 * (address & 0x3));
+			memcpy(buffer, &svalue, sizeof(u16));
 			address += 2;
 			buffer += 2;
 		}
