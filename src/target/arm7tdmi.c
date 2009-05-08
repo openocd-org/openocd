@@ -372,6 +372,13 @@ void arm7tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 	*pc -= 0xa;
 }
 
+
+/* FIX!!! is this a potential performance bottleneck w.r.t. requiring too many
+ * roundtrips when jtag_execute_queue() has a large overhead(e.g. for USB)s?
+ *
+ * The solution is to arrange for a large out/in scan in this loop and
+ * and convert data afterwards.
+ */
 void arm7tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
 {
 	int i;

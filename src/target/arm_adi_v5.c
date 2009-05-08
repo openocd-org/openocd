@@ -867,6 +867,12 @@ int mem_ap_read_buf_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 	return retval;
 }
 
+/* FIX!!! is this a potential performance bottleneck w.r.t. requiring too many
+ * roundtrips when jtag_execute_queue() has a large overhead(e.g. for USB)s?
+ *
+ * The solution is to arrange for a large out/in scan in this loop and
+ * and convert data afterwards.
+ */
 int mem_ap_read_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 address)
 {
 	u32 invalue;
