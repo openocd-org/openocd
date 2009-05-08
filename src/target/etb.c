@@ -58,6 +58,7 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 static int etb_set_instr(etb_t *etb, u32 new_instr)
 {
 	jtag_tap_t *tap;
+
 	tap = etb->tap;
 	if (tap==NULL)
 		return ERROR_FAIL;
@@ -73,10 +74,6 @@ static int etb_set_instr(etb_t *etb, u32 new_instr)
 
 		field.in_value = NULL;
 
-
-		
-
-
 		jtag_add_ir_scan(1, &field, TAP_INVALID);
 
 		free(field.out_value);
@@ -87,7 +84,7 @@ static int etb_set_instr(etb_t *etb, u32 new_instr)
 
 static int etb_scann(etb_t *etb, u32 new_scan_chain)
 {
-	if(etb->cur_scan_chain != new_scan_chain)
+	if (etb->cur_scan_chain != new_scan_chain)
 	{
 		scan_field_t field;
 
@@ -97,10 +94,6 @@ static int etb_scann(etb_t *etb, u32 new_scan_chain)
 		buf_set_u32(field.out_value, 0, field.num_bits, new_scan_chain);
 
 		field.in_value = NULL;
-
-
-		
-
 
 		/* select INTEST instruction */
 		etb_set_instr(etb, 0x2);
@@ -159,6 +152,7 @@ reg_cache_t* etb_build_reg_cache(etb_t *etb)
 static int etb_get_reg(reg_t *reg)
 {
 	int retval;
+
 	if ((retval = etb_read_reg(reg)) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: error scheduling etm register read");
@@ -188,24 +182,20 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	fields[0].out_value = NULL;
 	u8 tmp[4];
 	fields[0].in_value = tmp;
-	
 
 	fields[1].tap = etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, 4);
 	fields[1].in_value = NULL;
-	
 
 	fields[2].tap = etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
-	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
-
 
 	for (i = 0; i < num_frames; i++)
 	{
@@ -246,34 +236,19 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].tap = etb_reg->etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
-
 	fields[0].in_value = NULL;
-
-
-	
-
 
 	fields[1].tap = etb_reg->etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
-
 	fields[1].in_value = NULL;
-
-
-	
-
 
 	fields[2].tap = etb_reg->etb->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
-
 	fields[2].in_value = NULL;
-
-
-	
-
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -301,6 +276,7 @@ int etb_read_reg(reg_t *reg)
 int etb_set_reg(reg_t *reg, u32 value)
 {
 	int retval;
+
 	if ((retval = etb_write_reg(reg, value)) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: error scheduling etm register write");
@@ -317,6 +293,7 @@ int etb_set_reg(reg_t *reg, u32 value)
 int etb_set_reg_w_exec(reg_t *reg, u8 *buf)
 {
 	int retval;
+
 	etb_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -343,23 +320,13 @@ int etb_write_reg(reg_t *reg, u32 value)
 	fields[0].num_bits = 32;
 	fields[0].out_value = malloc(4);
 	buf_set_u32(fields[0].out_value, 0, 32, value);
-
 	fields[0].in_value = NULL;
-
-
-	
-
 
 	fields[1].tap = etb_reg->etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
-
 	fields[1].in_value = NULL;
-
-
-	
-
 
 	fields[2].tap = etb_reg->etb->tap;
 	fields[2].num_bits = 1;
@@ -367,12 +334,6 @@ int etb_write_reg(reg_t *reg, u32 value)
 	buf_set_u32(fields[2].out_value, 0, 1, 1);
 
 	fields[2].in_value = NULL;
-
-
-	
-
-
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	free(fields[0].out_value);
 	free(fields[1].out_value);
@@ -424,11 +385,11 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 	}
 
 	tap = jtag_TapByString( args[1] );
-	if( tap == NULL ){
+	if (tap == NULL)
+	{
 		command_print(cmd_ctx, "Tap: %s does not exist", args[1] );
 		return ERROR_FAIL;
 	}
-
 
 	if (arm7_9->etm_ctx)
 	{

@@ -62,7 +62,7 @@ enum
 	ETM_SEQUENCER_STATE = 0x67,
 	ETM_EXTERNAL_OUTPUT = 0x68,
 	ETM_CONTEXTID_COMPARATOR_VALUE = 0x6c,
-	ETM_CONTEXTID_COMPARATOR_MASK = 0x6f,	
+	ETM_CONTEXTID_COMPARATOR_MASK = 0x6f,
 };
 
 typedef struct etm_reg_s
@@ -77,7 +77,7 @@ typedef enum
 	ETM_PORT_4BIT		= 0x00,
 	ETM_PORT_8BIT		= 0x10,
 	ETM_PORT_16BIT		= 0x20,
-	ETM_PORT_WIDTH_MASK	= 0x70, 
+	ETM_PORT_WIDTH_MASK	= 0x70,
 	/* Port modes */
 	ETM_PORT_NORMAL    = 0x00000,
 	ETM_PORT_MUXED     = 0x10000,
@@ -146,11 +146,11 @@ typedef struct etm_context_s
 	etm_capture_driver_t *capture_driver;	/* driver used to access ETM data */
 	void *capture_driver_priv;		/* capture driver private data */
 	u32 trigger_percent;			/* percent of trace buffer to be filled after the trigger */
-	trace_status_t capture_status;	/* current state of capture run */ 
+	trace_status_t capture_status;	/* current state of capture run */
 	etmv1_trace_data_t *trace_data;	/* trace data */
 	u32 trace_depth;				/* number of trace cycles to be analyzed, 0 if no trace data available */
 	etm_portmode_t portmode;		/* normal, multiplexed or demultiplexed */
-	etmv1_tracemode_t tracemode;	/* type of information the trace contains (data, addres, contextID, ...) */ 
+	etmv1_tracemode_t tracemode;	/* type of information the trace contains (data, addres, contextID, ...) */
 	armv4_5_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
 	image_t *image;					/* source for target opcodes */
 	u32 pipe_index;					/* current trace cycle */
@@ -158,10 +158,10 @@ typedef struct etm_context_s
 	int data_half;					/* port half on a 16 bit port */
 	u32 current_pc;					/* current program counter */
 	u32 pc_ok;						/* full PC has been acquired */
-	u32 last_branch;				/* last branch address output */ 
+	u32 last_branch;				/* last branch address output */
 	u32 last_branch_reason;			/* branch reason code for the last branch encountered */
 	u32 last_ptr;					/* address of the last data access */
-	u32 ptr_ok;						/* whether last_ptr is valid */ 
+	u32 ptr_ok;						/* whether last_ptr is valid */
 	u32 context_id;					/* context ID of the code being traced */
 	u32 last_instruction;			/* index of last instruction executed (to calculate cycle timings) */
 } etm_context_t;
