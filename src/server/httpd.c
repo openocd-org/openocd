@@ -42,6 +42,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <signal.h>
 
 #include <sys/types.h>
@@ -53,6 +54,8 @@
 #include <stdio.h>
 
 #define PAGE_NOT_FOUND "<html><head><title>File not found</title></head><body>File not found</body></html>"
+
+int loadFile(const char *name, void **data, size_t *len);
 
 static const char *appendf(const char *prev, const char *format, ...)
 {
@@ -134,23 +137,19 @@ static int httpd_Jim_Command_writeform(Jim_Interp *interp, int argc,
 
 	data = Jim_GetString(Jim_GetResult(interp), &actual);
 
-	FILE *f;
-	f = fopen(file, "wb");
-	if (f != NULL)
-	{
-		int ok;
-		ok = fwrite(data, 1, actual, f) == actual;
-		fclose(f);
-
-		if (!ok)
-		{
-			Jim_SetResultString(interp, "Could not write to file", -1);
-			return JIM_ERR;
-		}
-	}
-	else
+	FILE *f = fopen(file, "wb");
+	if (NULL == f)
 	{
 		Jim_SetResultString(interp, "Could not create file", -1);
+		return JIM_ERR;
+	}
+
+	int result = fwrite(data, 1, actual, f);
+	fclose(f);
+
+	if (result != actual)
+	{
+		Jim_SetResultString(interp, "Could not write to file", -1);
 		return JIM_ERR;
 	}
 	return JIM_OK;
@@ -243,7 +242,7 @@ static void append_key(struct httpd_request *r, const char *key,
 /* append data to each key */
 static int iterate_post(void *con_cls, enum MHD_ValueKind kind,
 		const char *key, const char *filename, const char *content_type,
-		const char *transfer_encoding, const char *data, size_t off,
+		const char *transfer_encoding, const char *data, uint64_t off,
 		size_t size)
 {
 	struct httpd_request *r = (struct httpd_request*) con_cls;
@@ -313,7 +312,7 @@ int handle_request(struct MHD_Connection * connection, const char * url)
 	else
 	{
 		void *data;
-		int len;
+		size_t len;
 
 		int retval = loadFile(url, &data, &len);
 		if (retval != ERROR_OK)
@@ -327,7 +326,7 @@ int handle_request(struct MHD_Connection * connection, const char * url)
 			return ret;
 		}
 
-		LOG_DEBUG("Serving %s length=%d", url, len);
+		LOG_DEBUG("Serving %s length=%u", url, len);
 		/* serve file directly */
 		response = MHD_create_response_from_data(len, data, MHD_YES, MHD_NO);
 		MHD_add_response_header(response, "Content-Type", "image/png");
@@ -381,7 +380,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection,
 		if (r->post)
 		{
 			r->postprocessor = MHD_create_post_processor(connection, 2048
-					* 1024, iterate_post, r);
+					* 1024, &iterate_post, r);
 		}
 
 		return MHD_YES;
