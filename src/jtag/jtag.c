@@ -521,15 +521,65 @@ static void jtag_prelude(tap_state_t state)
 	cmd_queue_cur_state = cmd_queue_end_state;
 }
 
-void jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+void jtag_add_ir_scan_noverify(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	int retval;
-
 	jtag_prelude(state);
 
 	retval=interface_jtag_add_ir_scan(num_fields, fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
+
+}
+
+
+void jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+{
+	/* 8 x 32 bit id's is enough for all invoations */
+	u32 id[8];
+	int modified[8];
+
+	/* if we are to run a verification of the ir scan, we need to get the input back.
+	 * We may have to allocate space if the caller didn't ask for the input back.
+	 *
+	 */
+	if (jtag_verify_capture_ir)
+	{
+		int j;
+		for (j = 0; j < num_fields; j++)
+		{
+			modified[j]=0;
+			if ((fields[j].in_value==NULL)&&(fields[j].num_bits<=32))
+			{
+				if (j<8)
+				{
+					modified[j]=1;
+					fields[j].in_value=(u8 *)(id+j);
+				} else
+				{
+					LOG_DEBUG("caller must provide in_value space for verify_capture_ir to work");
+				}
+			}
+		}
+	}
+
+	jtag_add_ir_scan_noverify(num_fields, fields, state);
+
+	if (jtag_verify_capture_ir)
+	{
+		int j;
+		for (j = 0; j < num_fields; j++)
+		{
+			jtag_tap_t *tap=fields[j].tap;
+			jtag_check_value_mask(fields+j, tap->expected, tap->expected_mask);
+
+			if (modified[j])
+			{
+				fields[j].in_value=NULL;
+			}
+		}
+	}
+
 }
 
 int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
@@ -581,20 +631,6 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 			{
 				found = 1;
 				(*last_cmd)->cmd.scan->fields[nth_tap].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-
-				if (jtag_verify_capture_ir)
-				{
-					if (fields[j].in_handler==NULL)
-					{
-						jtag_set_check_value((*last_cmd)->cmd.scan->fields+nth_tap, tap->expected, tap->expected_mask, NULL);
-					} else
-					{
-						(*last_cmd)->cmd.scan->fields[nth_tap].in_handler = fields[j].in_handler;
-						(*last_cmd)->cmd.scan->fields[nth_tap].in_handler_priv = fields[j].in_handler_priv;
-						(*last_cmd)->cmd.scan->fields[nth_tap].in_check_value = tap->expected;
-						(*last_cmd)->cmd.scan->fields[nth_tap].in_check_mask = tap->expected_mask;
-					}
-				}
 
 				tap->bypass = 0;
 				break;

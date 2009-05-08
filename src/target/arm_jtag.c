@@ -36,7 +36,7 @@
 #define _ARM_JTAG_SCAN_N_CHECK_
 #endif
 
-int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handler)
+int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  void *no_verify_capture)
 {
 	jtag_tap_t *tap;
 	tap = jtag_info->tap;
@@ -52,13 +52,20 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  in_handler_t handl
 		field.num_bits = tap->ir_length;
 		field.out_value = t;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
-
 		field.in_value = NULL;
+		field.in_handler = NULL;
 
 
-		field.in_handler = handler; /* deprecated! move into calling code */
-
-		jtag_add_ir_scan(1, &field, TAP_INVALID);
+		if (no_verify_capture==NULL)
+		{
+			jtag_add_ir_scan(1, &field, TAP_INVALID);
+		} else
+		{
+			/* FIX!!!! this is a kludge!!! arm926ejs.c should reimplement this arm_jtag_set_instr to
+			 * have special verification code.
+			 */
+			jtag_add_ir_scan_noverify(1, &field, TAP_INVALID);
+		}
 	}
 
 	return ERROR_OK;

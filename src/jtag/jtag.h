@@ -559,6 +559,8 @@ extern int  jtag_register_commands(struct command_context_s* cmd_ctx);
  *
  */
 extern void jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
+/* same as jtag_add_ir_scan except no verify is performed */
+extern void jtag_add_ir_scan_noverify(int num_fields, scan_field_t *fields, tap_state_t state);
 extern int  interface_jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern void jtag_add_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 /* same as jtag_add_dr_scan but the scan is executed immediately. sets jtag_error if there
@@ -731,7 +733,7 @@ extern int            jtag_srst_asserted(int* srst_asserted);
 /* JTAG support functions */
 struct invalidstruct
 {
-	
+
 };
 
 extern void           jtag_set_check_value(scan_field_t* field, u8* value, u8* mask, struct invalidstruct *obsolete);

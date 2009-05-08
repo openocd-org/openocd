@@ -29,15 +29,15 @@
 typedef struct arm_jtag_s
 {
 	jtag_tap_t *tap;
-	
+
 	u32 scann_size;
 	u32 scann_instr;
 	u32 cur_scan_chain;
-	
+
 	u32 intest_instr;
 } arm_jtag_t;
 
-extern int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr, in_handler_t handler);
+extern int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr, void *verify_capture);
 extern int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain);
 extern int arm_jtag_setup_connection(arm_jtag_t *jtag_info);
 
