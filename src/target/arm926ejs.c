@@ -96,6 +96,10 @@ target_type_t arm926ejs_target =
 
 int arm926ejs_catch_broken_irscan(u8 *captured, void *priv, scan_field_t *field)
 {
+	/* FIX!!!! this code should be reenabled. For now it does not check
+	 * the queue...*/
+	return 0;
+#if 0
 	/* The ARM926EJ-S' instruction register is 4 bits wide */
 	u8 t = *captured & 0xf;
 	u8 t2 = *field->in_check_value & 0xf;
@@ -109,6 +113,7 @@ int arm926ejs_catch_broken_irscan(u8 *captured, void *priv, scan_field_t *field)
 		return ERROR_OK;
 	}
 	return ERROR_JTAG_QUEUE_FAILED;;
+#endif
 }
 
 #define ARM926EJS_CP15_ADDR(opcode_1, opcode_2, CRn, CRm) ((opcode_1 << 11) | (opcode_2 << 8) | (CRn << 4) | (CRm << 0))
@@ -139,26 +144,26 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[0].out_value = NULL;
 	u8 tmp[4];
 	fields[0].in_value = tmp;
-	fields[0].in_handler = NULL;
+
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
 	fields[1].in_value = &access;
-	fields[1].in_handler = NULL;
+
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
 	fields[2].in_value = NULL;
-	fields[2].in_handler = NULL;
+
 
 
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	fields[3].in_value = NULL;
-	fields[3].in_handler = NULL;
+
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
@@ -217,7 +222,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[0].in_value = NULL;
 
 
-	fields[0].in_handler = NULL;
+
 
 
 	fields[1].tap = jtag_info->tap;
@@ -227,7 +232,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[1].in_value = &access;
 
 
-	fields[1].in_handler = NULL;
+
 
 
 	fields[2].tap = jtag_info->tap;
@@ -237,7 +242,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[2].in_value = NULL;
 
 
-	fields[2].in_handler = NULL;
+
 
 
 	fields[3].tap = jtag_info->tap;
@@ -247,7 +252,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[3].in_value = NULL;
 
 
-	fields[3].in_handler = NULL;
+
 
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);

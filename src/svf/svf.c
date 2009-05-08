@@ -985,7 +985,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
 			
 			
-			field.in_handler = NULL;
+			
 			
 			jtag_add_plain_dr_scan(1, &field, svf_para.dr_end_state);
 
@@ -1086,7 +1086,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
 			
 			
-			field.in_handler = NULL;
+			
 			
 			jtag_add_plain_ir_scan(1, &field, svf_para.ir_end_state);
 

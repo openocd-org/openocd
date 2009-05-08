@@ -188,19 +188,19 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
-	fields[0].in_handler = NULL;
+	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 6;
 	fields[1].out_value = &reg_addr_buf;
 	fields[1].in_value = NULL;
-	fields[1].in_handler = NULL;
+	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &nr_w_buf;
 	fields[2].in_value = NULL;
-	fields[2].in_handler = NULL;
+	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -250,7 +250,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[0].in_value = NULL;
 
 
-	fields[0].in_handler = NULL;
+	
 
 
 	fields[1].tap = jtag_info->tap;
@@ -260,7 +260,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[1].in_value = NULL;
 
 
-	fields[1].in_handler = NULL;
+	
 
 
 	fields[2].tap = jtag_info->tap;
@@ -270,7 +270,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[2].in_value = NULL;
 
 
-	fields[2].in_handler = NULL;
+	
 
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);

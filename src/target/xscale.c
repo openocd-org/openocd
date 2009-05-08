@@ -270,7 +270,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
-	fields[1].in_handler = NULL;
+	
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -346,7 +346,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[1].out_value = NULL;
 	u8 tmp[4];
 	fields[1].in_value = tmp;
-	fields[1].in_handler = NULL;
+	
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -462,7 +462,7 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_TX].value;
-	fields[1].in_handler = NULL;
+	
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -554,7 +554,7 @@ int xscale_write_rx(target_t *target)
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_RX].value;
 	fields[1].in_value = NULL;
-	fields[1].in_handler = NULL;
+	
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -726,7 +726,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 	fields[1].in_value = NULL;
-	fields[1].in_handler = NULL;
+	
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -796,7 +796,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	fields[0].in_value = NULL;
 
 
-	fields[0].in_handler = NULL;
+	
 
 
 	fields[1].tap = xscale->jtag_info.tap;
@@ -806,7 +806,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	fields[1].in_value = NULL;
 
 
-	fields[1].in_handler = NULL;
+	
 
 
 	jtag_add_dr_scan(2, fields, TAP_INVALID);
@@ -858,7 +858,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	fields[0].in_value = NULL;
 
 
-	fields[0].in_handler = NULL;
+	
 
 
 	fields[1].tap = xscale->jtag_info.tap;
@@ -868,7 +868,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	fields[1].in_value = NULL;
 
 
-	fields[1].in_handler = NULL;
+	
 
 
 	jtag_add_dr_scan(2, fields, TAP_INVALID);

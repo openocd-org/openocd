@@ -60,7 +60,7 @@ int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
 		field.in_value = NULL;
 
 
-		field.in_handler = NULL;
+
 
 
 		jtag_add_ir_scan(1, &field, TAP_IDLE);
@@ -84,7 +84,6 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 	scan_field.num_bits = num_words * 32;
 	scan_field.out_value = values;
 	scan_field.in_value = NULL;
-	scan_field.in_handler = NULL;
 
 	for (i = 0; i < num_words; i++)
 		buf_set_u32(values + 4 * i, 0, 32, flip_u32(*words++, 32));
@@ -109,7 +108,6 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	scan_field.out_value = NULL;
 	u8 tmp[4];
 	scan_field.in_value = tmp;
-	scan_field.in_handler = NULL;
 
 	virtex2_set_instr(virtex2_info->tap, 0x4); /* CFG_OUT */
 
@@ -159,7 +157,7 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	field.in_value = NULL;
 
 
-	field.in_handler = NULL;
+
 
 
 	if ((retval = xilinx_read_bit_file(&bit_file, filename)) != ERROR_OK)

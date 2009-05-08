@@ -53,7 +53,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_m
 		field.in_value = NULL;
 		
 		
-		field.in_handler = NULL;
+		
 		
 		jtag_add_ir_scan(1, &field, TAP_INVALID);
 	}
@@ -76,7 +76,7 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode, in_handler_t ha
 	field.in_value = (void*)idcode;
 	
 	
-	field.in_handler = NULL;
+	
 	
 	jtag_add_dr_scan(1, &field, TAP_INVALID);
 
@@ -103,7 +103,7 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode, in_handler_t 
 	field.in_value = (void*)impcode;
 	
 	
-	field.in_handler = NULL;
+	
 	
 	jtag_add_dr_scan(1, &field, TAP_INVALID);
 
@@ -134,7 +134,7 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 	field.in_value = (u8*)data;
 	
 	
-	field.in_handler = NULL;
+	
 	
 	jtag_add_dr_scan(1, &field, TAP_INVALID);
 

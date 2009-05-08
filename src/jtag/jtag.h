@@ -272,11 +272,6 @@ typedef struct scan_field_s
 	int         num_bits;           /* number of bits this field specifies (up to 32) */
 	u8*         out_value;          /* value to be scanned into the device */
 	u8*         in_value;           /* pointer to a 32-bit memory location to take data scanned out */
-	/* in_check_value/mask, in_handler_error_handler, in_handler_priv can be used by the in handler, otherwise they contain garbage  */
-	u8*          in_check_value;    /* deprecated! only used from jtag_set_check_value. used to validate scan results */
-	u8*          in_check_mask;     /* deprecated! only used from jtag_set_check_value.  check specified bits against check_value */
-	in_handler_t in_handler;        /* deprecated! SET TO NULL. DO NOT USE! process received buffer using this handler */
-	void*        in_handler_priv;   /* deprecated! only used by obsolete in_handler implementations */
 } scan_field_t;
 
 enum scan_type {
@@ -736,7 +731,6 @@ struct invalidstruct
 
 };
 
-extern void           jtag_set_check_value(scan_field_t* field, u8* value, u8* mask, struct invalidstruct *obsolete);
 /* execute jtag queue and check value and use mask if mask is != NULL. invokes
  * jtag_set_error() with any error. */
 extern void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask);

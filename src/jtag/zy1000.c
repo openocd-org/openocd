@@ -468,24 +468,6 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_
 		if (fields[i].in_value!=NULL)
 		{
 			inBuffer=fields[i].in_value;
-		} else if (fields[i].in_handler!=NULL)
-		{
-			if (in_buff_size*8<num_bits)
-			{
-				// we need more space
-				if (in_buff!=NULL)
-					free(in_buff);
-				in_buff=NULL;
-				in_buff_size=(num_bits+7)/8;
-				in_buff=malloc(in_buff_size);
-				if (in_buff==NULL)
-				{
-					LOG_ERROR("Out of memory");
-					jtag_error=ERROR_JTAG_QUEUE_FAILED;
-					return;
-				}
-			}
-			inBuffer=in_buff;
 		}
 
 		// here we shuffle N bits out/in
@@ -535,17 +517,6 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_
 			}
 			j+=k;
 		}
-
-		if (fields[i].in_handler!=NULL)
-		{
-			// invoke callback
-			int r=fields[i].in_handler(inBuffer, fields[i].in_handler_priv, fields+i);
-			if (r!=ERROR_OK)
-			{
-				/* this will cause jtag_execute_queue() to return an error */
-				jtag_error=r;
-			}
-		}
 	}
 }
 
@@ -576,15 +547,6 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t
 			if (tap == fields[j].tap)
 			{
 				found = 1;
-
-				if ((jtag_verify_capture_ir)&&(fields[j].in_handler==NULL))
-				{
-					jtag_set_check_value(fields+j, tap->expected, tap->expected_mask, NULL);
-				} else if (jtag_verify_capture_ir)
-				{
-					fields[j].in_check_value = tap->expected;
-					fields[j].in_check_mask = tap->expected_mask;
-				}
 
 				scanFields(1, fields+j, TAP_IRSHIFT, pause);
 				/* update device information */
@@ -656,10 +618,6 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t
 			tmp.num_bits = 1;
 			tmp.out_value = NULL;
 			tmp.in_value = NULL;
-			tmp.in_check_value = NULL;
-			tmp.in_check_mask = NULL;
-			tmp.in_handler = NULL;
-			tmp.in_handler_priv = NULL;
 
 			scanFields(1, &tmp, TAP_DRSHIFT, pause);
 		}

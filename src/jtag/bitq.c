@@ -66,7 +66,7 @@ void bitq_in_proc(void)
 			while (bitq_in_state.field_idx<bitq_in_state.cmd->cmd.scan->num_fields)
 			{
 				field = &bitq_in_state.cmd->cmd.scan->fields[bitq_in_state.field_idx];
-				if (field->in_value || field->in_handler)
+				if (field->in_value)
 				{
 					if (bitq_in_state.bit_pos==0)
 					{
@@ -123,12 +123,6 @@ void bitq_in_proc(void)
 						else
 							in_mask <<= 1;
 						bitq_in_state.bit_pos++;
-					}
-
-
-					if (field->in_handler && bitq_in_state.status==ERROR_OK)
-					{
-						bitq_in_state.status = (*field->in_handler)(in_buff, field->in_handler_priv, field);
 					}
 				}
 
@@ -238,7 +232,7 @@ void bitq_scan_field(scan_field_t* field, int pause)
 	u8* out_ptr;
 	u8  out_mask;
 
-	if (field->in_value || field->in_handler)
+	if (field->in_value)
 		tdo_req = 1;
 	else
 		tdo_req = 0;

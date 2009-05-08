@@ -87,11 +87,6 @@ void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, vo
 {
 	field->tap   			= arm11->jtag_info.tap;
 	field->num_bits			= num_bits;
-	field->in_check_mask	= NULL;
-	field->in_check_value	= NULL;
-	field->in_handler		= NULL;
-	field->in_handler_priv	= NULL;
-
 	field->out_value		= out_data;
 	field->in_value			= in_data;
 }

@@ -340,21 +340,21 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
 	fields[0].in_value = NULL;
-	fields[0].in_handler = NULL;
+	
 
 	fields[1].tap = etm_reg->jtag_info->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
 	fields[1].in_value = NULL;
-	fields[1].in_handler = NULL;
+	
 
 	fields[2].tap = etm_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
-	fields[2].in_handler = NULL;
+	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -424,7 +424,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	fields[0].in_value = NULL;
 
 
-	fields[0].in_handler = NULL;
+	
 
 
 	fields[1].tap = etm_reg->jtag_info->tap;
@@ -435,7 +435,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	fields[1].in_value = NULL;
 
 
-	fields[1].in_handler = NULL;
+	
 
 
 	fields[2].tap = etm_reg->jtag_info->tap;
@@ -446,7 +446,7 @@ int etm_write_reg(reg_t *reg, u32 value)
 	fields[2].in_value = NULL;
 
 
-	fields[2].in_handler = NULL;
+	
 
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);

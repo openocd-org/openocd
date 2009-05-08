@@ -132,7 +132,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		fields[0].in_value = databus;
 
 
-		fields[0].in_handler = NULL;
+		
 
 
 		fields[1].tap = arm7_9->jtag_info.tap;
@@ -142,7 +142,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		fields[1].in_value = &debug_reason;
 
 
-		fields[1].in_handler = NULL;
+		
 
 
 		fields[2].tap = arm7_9->jtag_info.tap;
@@ -152,7 +152,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		fields[2].in_value = instructionbus;
 
 
-		fields[2].in_handler = NULL;
+		
 
 
 		if((retval = arm_jtag_scann(&arm7_9->jtag_info, 0x1)) != ERROR_OK)
@@ -217,20 +217,20 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 	fields[0].num_bits = 32;
 	fields[0].out_value = out_buf;
 	fields[0].in_value = NULL;
-	fields[0].in_handler = NULL;
+	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = &sysspeed_buf;
 	fields[1].in_value = NULL;
-	fields[1].in_handler = NULL;
+	
 
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = instr_buf;
 	fields[2].in_value = NULL;
-	fields[2].in_handler = NULL;
+	
 
 	if (in)
 	{
@@ -285,19 +285,19 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[0].out_value = NULL;
 	u8 tmp[4];
 	fields[0].in_value = tmp;
-	fields[0].in_handler = NULL;
+	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = NULL;
 	fields[1].in_value = NULL;
-	fields[1].in_handler = NULL;
+	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
-	fields[2].in_handler = NULL;
+	
 
 	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
 
@@ -350,19 +350,19 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[0].out_value = NULL;
 	u8 tmp[4];
 	fields[0].in_value = tmp;
-	fields[0].in_handler = NULL;
+	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = NULL;
 	fields[1].in_value = NULL;
-	fields[1].in_handler = NULL;
+	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
-	fields[2].in_handler = NULL;
+	
 
 	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
 

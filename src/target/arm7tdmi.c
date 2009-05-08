@@ -115,13 +115,13 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		fields[0].num_bits = 1;
 		fields[0].out_value = NULL;
 		fields[0].in_value = &breakpoint;
-		fields[0].in_handler = NULL;
+		
 
 		fields[1].tap = arm7_9->jtag_info.tap;
 		fields[1].num_bits = 32;
 		fields[1].out_value = NULL;
 		fields[1].in_value = databus;
-		fields[1].in_handler = NULL;
+		
 
 		if((retval = arm_jtag_scann(&arm7_9->jtag_info, 0x1)) != ERROR_OK)
 		{
@@ -194,7 +194,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[0].num_bits = 1;
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
-	fields[0].in_handler = NULL;
+	
 
 
 	fields[1].tap = jtag_info->tap;
@@ -202,7 +202,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[1].out_value = NULL;
 	u8 tmp[4];
 	fields[1].in_value = tmp;
-	fields[1].in_handler = NULL;
+	
 
 	jtag_add_dr_scan_now(2, fields, TAP_INVALID);
 
@@ -286,14 +286,14 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[0].num_bits = 1;
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
-	fields[0].in_handler = NULL;
+	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	u8 tmp[4];
 	fields[1].in_value = tmp;
-	fields[1].in_handler = NULL;
+	
 
 	jtag_add_dr_scan_now(2, fields, TAP_INVALID);
 

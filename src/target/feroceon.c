@@ -137,7 +137,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	fields[0].out_value = out_buf;
 	
 	fields[0].in_value = NULL;
-	fields[0].in_handler = NULL;
+	
 	
 	
 	
@@ -149,7 +149,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	fields[1].in_value = NULL;
 	
 	
-	fields[1].in_handler = NULL;
+	
 	
 
 	fields[2].tap = jtag_info->tap;
@@ -159,7 +159,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	fields[2].in_value = NULL;
 	
 	
-	fields[2].in_handler = NULL;
+	
 	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
