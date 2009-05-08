@@ -41,6 +41,7 @@
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
+#include <assert.h>
 
 
 
@@ -1453,11 +1454,7 @@ void jtag_set_check_value(scan_field_t *field, u8 *value, u8 *mask, struct inval
 
 void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask)
 {
-	if (field->in_value==NULL)
-	{
-		LOG_ERROR("remember to fill in in_value for jtag_check_value_mask() to work!");
-		return;
-	}
+	assert(field->in_value != NULL);
 
 	if (value==NULL)
 	{
