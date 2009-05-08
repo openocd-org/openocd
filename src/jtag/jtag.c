@@ -43,7 +43,7 @@
 #endif
 #include <assert.h>
 
-
+int jtag_flush_queue_count; /* count # of flushes for profiling / debugging purposes */
 
 /* note that this is not marked as static as it must be available from outside jtag.c for those
    that implement the jtag_xxx() minidriver layer
@@ -243,6 +243,7 @@ static int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cm
 static int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const *args);
 
 static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
@@ -1446,6 +1447,11 @@ int MINIDRIVER(interface_jtag_execute_queue)(void)
 
 void jtag_execute_queue_noclear(void)
 {
+	/* each flush can take as much as 1-2ms on high bandwidth low latency interfaces.
+	 * E.g. a JTAG over TCP/IP or USB....
+	 */
+	jtag_flush_queue_count++; 
+
 	int retval=interface_jtag_execute_queue();
 	/* we keep the first error */
 	if ((jtag_error==ERROR_OK)&&(retval!=ERROR_OK))
@@ -2180,6 +2186,7 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "irscan", handle_irscan_command,
 		COMMAND_EXEC, "execute IR scan <device> <instr> [dev2] [instr2] ...");
 	register_jim(cmd_ctx, "drscan", Jim_Command_drscan, "execute DR scan <device> <num_bits> <value> <num_bits1> <value2> ...");
+	register_jim(cmd_ctx, "flush_count", Jim_Command_flush_count, "returns number of times the JTAG queue has been flushed");
 
 	register_command(cmd_ctx, NULL, "verify_ircapture", handle_verify_ircapture_command,
 		COMMAND_ANY, "verify value captured during Capture-IR <enable|disable>");
@@ -2944,6 +2951,15 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 	return JIM_OK;
 }
+
+
+static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const *args)
+{
+	Jim_SetResult(interp, Jim_NewIntObj(interp, jtag_flush_queue_count));
+
+	return JIM_OK;
+}
+
 
 static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
