@@ -574,7 +574,11 @@ void jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 		for (j = 0; j < num_fields; j++)
 		{
 			jtag_tap_t *tap=fields[j].tap;
-			jtag_check_value_mask(fields+j, tap->expected, tap->expected_mask);
+			if (fields[j].in_value!=NULL)
+			{
+				/* we verify max 32 bit long irlens. */
+				jtag_check_value_mask(fields+j, tap->expected, tap->expected_mask);
+			}
 
 			if (modified[j])
 			{
