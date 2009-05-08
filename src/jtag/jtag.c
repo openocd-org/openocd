@@ -45,6 +45,7 @@
 
 int jtag_flush_queue_count; /* count # of flushes for profiling / debugging purposes */
 
+
 /* note that this is not marked as static as it must be available from outside jtag.c for those
    that implement the jtag_xxx() minidriver layer
 */
@@ -541,7 +542,6 @@ void jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 	u32 id[8];
 	int modified[8];
 
-
 	/* if we are to run a verification of the ir scan, we need to get the input back.
 	 * We may have to allocate space if the caller didn't ask for the input back.
 	 *
@@ -621,10 +621,13 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 			break;
 		}
 		nth_tap++;
+
+		assert(nth_tap < x );
+
 		scan_size = tap->ir_length;
 		(*last_cmd)->cmd.scan->fields[nth_tap].tap = tap;
 		(*last_cmd)->cmd.scan->fields[nth_tap].num_bits = scan_size;
-		(*last_cmd)->cmd.scan->fields[nth_tap].in_value = fields[nth_tap].in_value;
+		(*last_cmd)->cmd.scan->fields[nth_tap].in_value = NULL; /* do not collect input for tap's in bypass */
 
 		/* search the list */
 		for (j = 0; j < num_fields; j++)
@@ -632,6 +635,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 			if (tap == fields[j].tap)
 			{
 				found = 1;
+				(*last_cmd)->cmd.scan->fields[nth_tap].in_value = fields[j].in_value;
 				(*last_cmd)->cmd.scan->fields[nth_tap].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 
 				tap->bypass = 0;
@@ -649,6 +653,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 		/* update device information */
 		buf_cpy((*last_cmd)->cmd.scan->fields[nth_tap].out_value, tap->cur_instr, scan_size);
 	}
+	assert(nth_tap == (x-1));
 
 	return ERROR_OK;
 }
@@ -1450,7 +1455,7 @@ void jtag_execute_queue_noclear(void)
 	/* each flush can take as much as 1-2ms on high bandwidth low latency interfaces.
 	 * E.g. a JTAG over TCP/IP or USB....
 	 */
-	jtag_flush_queue_count++; 
+	jtag_flush_queue_count++;
 
 	int retval=interface_jtag_execute_queue();
 	/* we keep the first error */
