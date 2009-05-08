@@ -540,6 +540,7 @@ void jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 	u32 id[8];
 	int modified[8];
 
+
 	/* if we are to run a verification of the ir scan, we need to get the input back.
 	 * We may have to allocate space if the caller didn't ask for the input back.
 	 *
@@ -622,7 +623,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 		scan_size = tap->ir_length;
 		(*last_cmd)->cmd.scan->fields[nth_tap].tap = tap;
 		(*last_cmd)->cmd.scan->fields[nth_tap].num_bits = scan_size;
-		(*last_cmd)->cmd.scan->fields[nth_tap].in_value = NULL;
+		(*last_cmd)->cmd.scan->fields[nth_tap].in_value = fields[nth_tap].in_value;
 
 		/* search the list */
 		for (j = 0; j < num_fields; j++)
