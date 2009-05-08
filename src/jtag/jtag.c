@@ -1391,7 +1391,7 @@ int jtag_check_value_inner(u8 *captured, scan_field_t *field, u8 *in_check_value
 
 	int compare_failed = 0;
 
-	if (field->in_check_mask)
+	if (in_check_mask)
 		compare_failed = buf_cmp_mask(captured, in_check_value, in_check_mask, num_bits);
 	else
 		compare_failed = buf_cmp(captured, in_check_value, num_bits);
