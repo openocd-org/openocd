@@ -448,7 +448,7 @@ static void gotoEndState(void)
 	setCurrentState(cmd_queue_end_state);
 }
 
-static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_t shiftState, int pause)
+static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_t shiftState, tap_state_t end_state)
 {
 	int i;
 	int j;
@@ -482,10 +482,10 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_
 			{
 				k=32;
 				/* we have more to shift out */
-			} else if (pause&&(i == num_fields-1))
+			} else if (i == num_fields-1)
 			{
 				/* this was the last to shift out this time */
-				pause_state=(shiftState==TAP_DRSHIFT)?TAP_DRPAUSE:TAP_IRPAUSE;
+				pause_state=end_state;
 			}
 
 			// we have (num_bits+7)/8 bytes of bits to toggle out.
@@ -535,7 +535,14 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t
 	for(tap = jtag_NextEnabledTap(NULL); tap!= NULL; tap=nextTap)
 	{
 		nextTap=jtag_NextEnabledTap(tap);
-		int pause=(nextTap==NULL);
+		tap_state_t end_state;
+		if (nextTap==NULL)
+		{
+			end_state = cmd_queue_end_state;
+		} else
+		{
+			end_state = TAP_IRSHIFT;
+		}
 
 		int found = 0;
 
@@ -548,7 +555,7 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t
 			{
 				found = 1;
 
-				scanFields(1, fields+j, TAP_IRSHIFT, pause);
+				scanFields(1, fields+j, TAP_IRSHIFT, end_state);
 				/* update device information */
 				buf_cpy(fields[j].out_value, tap->cur_instr, scan_size);
 
@@ -566,13 +573,12 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t
 			memset(&tmp, 0, sizeof(tmp));
 			tmp.out_value = ones;
 			tmp.num_bits = scan_size;
-			scanFields(1, &tmp, TAP_IRSHIFT, pause);
+			scanFields(1, &tmp, TAP_IRSHIFT, end_state);
 			/* update device information */
 			buf_cpy(tmp.out_value, tap->cur_instr, scan_size);
 			tap->bypass = 1;
 		}
 	}
-	gotoEndState();
 
 	return ERROR_OK;
 }
@@ -583,8 +589,7 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t
 
 int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
-	scanFields(num_fields, fields, TAP_IRSHIFT, 1);
-	gotoEndState();
+	scanFields(num_fields, fields, TAP_IRSHIFT, cmd_queue_end_state);
 
 	return ERROR_OK;
 }
@@ -600,7 +605,14 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t
 	{
 		nextTap=jtag_NextEnabledTap(tap);
 		int found=0;
-		int pause=(nextTap==NULL);
+		tap_state_t end_state;
+		if (nextTap==NULL)
+		{
+			end_state = cmd_queue_end_state;
+		} else
+		{
+			end_state = TAP_DRSHIFT;
+		}
 
 		for (j=0; j < num_fields; j++)
 		{
@@ -608,7 +620,7 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t
 			{
 				found = 1;
 
-				scanFields(1, fields+j, TAP_DRSHIFT, pause);
+				scanFields(1, fields+j, TAP_DRSHIFT, end_state);
 			}
 		}
 		if (!found)
@@ -619,20 +631,18 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t
 			tmp.out_value = NULL;
 			tmp.in_value = NULL;
 
-			scanFields(1, &tmp, TAP_DRSHIFT, pause);
+			scanFields(1, &tmp, TAP_DRSHIFT, end_state);
 		}
 		else
 		{
 		}
 	}
-	gotoEndState();
 	return ERROR_OK;
 }
 
 int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
-	scanFields(num_fields, fields, TAP_DRSHIFT, 1);
-	gotoEndState();
+	scanFields(num_fields, fields, TAP_DRSHIFT, cmd_queue_end_state);
 	return ERROR_OK;
 }
 
