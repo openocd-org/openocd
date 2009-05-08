@@ -91,6 +91,9 @@ int handle_rm_command(struct command_context_s *cmd_ctx, char *cmd,
  * a 0 byte(sentinel) after len bytes - the length of the file. */
 int loadFile(const char *fileName, void **data, size_t *len)
 {
+	// ensure returned length is always sane
+	*len = 0;
+
 	FILE * pFile;
 	pFile = fopen(fileName,"rb");
 	if (pFile==NULL)
@@ -111,6 +114,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
+	*len = fsize;
 
 	if (fseek(pFile, 0, SEEK_SET)!=0)
 	{
@@ -118,7 +122,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
-	*data = malloc(fsize + 1);
+	*data = malloc(*len + 1);
 	if (*data==NULL)
 	{
 		LOG_ERROR("Can't open %s\n", fileName);
@@ -134,12 +138,12 @@ int loadFile(const char *fileName, void **data, size_t *len)
 		return ERROR_FAIL;
 	}
 	fclose(pFile);
-	*(((char *)(*data))+*len)=0; /* sentinel */
+
+	// 0-byte after buffer (not included in *len) serves as a sentinel
+	char *buf = (char *)*data;
+	buf[*len = 0;
 
 	return ERROR_OK;
-
-
-
 }
 
 
