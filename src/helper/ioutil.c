@@ -141,7 +141,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 
 	// 0-byte after buffer (not included in *len) serves as a sentinel
 	char *buf = (char *)*data;
-	buf[*len = 0;
+	buf[*len] = 0;
 
 	return ERROR_OK;
 }
