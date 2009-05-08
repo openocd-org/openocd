@@ -501,15 +501,17 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					field.tap = tap;
 					field.num_bits = xsdrsize;
 					field.out_value = dr_out_buf;
-					
-					field.in_value = NULL;
-
-					jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
+					field.in_value = calloc(CEIL(field.num_bits, 8), 1);
 
 					if (tap == NULL)
 						jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
 					else
 						jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
+
+					jtag_check_value_mask(&field, dr_in_buf, dr_in_mask);
+
+					free(field.in_value);
+
 
 					/* LOG_DEBUG("FLUSHING QUEUE"); */
 					result = jtag_execute_queue();
@@ -713,10 +715,10 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					field.tap = tap;
 					field.num_bits = bitcount;
 					field.out_value = ir_buf;
-					
+
 					field.in_value = NULL;
-					
-					
+
+
 					field.in_handler = NULL;
 
 					if (tap == NULL)
@@ -944,17 +946,20 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					field.tap = tap;
 					field.num_bits = xsdrsize;
 					field.out_value = dr_out_buf;
-					
-					field.in_value = NULL;
+					field.in_value = calloc(CEIL(field.num_bits, 8), 1);
 
 					if (attempt > 0 && verbose)
 						LOG_USER("LSDR retry %d", attempt);
 
-					jtag_set_check_value(&field, dr_in_buf, dr_in_mask, NULL);
 					if (tap == NULL)
 						jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
 					else
 						jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
+
+					jtag_check_value_mask(&field, dr_in_buf, dr_in_mask);
+
+					free(field.in_value);
+
 
 					/* LOG_DEBUG("FLUSHING QUEUE"); */
 					result = jtag_execute_queue();
