@@ -89,7 +89,7 @@ int handle_rm_command(struct command_context_s *cmd_ctx, char *cmd,
 
 /* loads a file and returns a pointer to it in memory. The file contains
  * a 0 byte(sentinel) after len bytes - the length of the file. */
-int loadFile(const char *fileName, void **data, int *len)
+int loadFile(const char *fileName, void **data, size_t *len)
 {
 	FILE * pFile;
 	pFile = fopen(fileName,"rb");
@@ -104,8 +104,8 @@ int loadFile(const char *fileName, void **data, int *len)
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
-	*len=ftell(pFile);
-	if (*len==-1)
+	long fsize = ftell(pFile);
+	if (fsize == -1)
 	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		fclose(pFile);
@@ -118,7 +118,7 @@ int loadFile(const char *fileName, void **data, int *len)
 		fclose(pFile);
 		return ERROR_FAIL;
 	}
-	*data=malloc(*len+1);
+	*data = malloc(fsize + 1);
 	if (*data==NULL)
 	{
 		LOG_ERROR("Can't open %s\n", fileName);
@@ -155,7 +155,7 @@ int handle_cat_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	// NOTE!!! we only have line printing capability so we print the entire file as a single line.
 	void *data;
-	int len;
+	size_t len;
 
 	int retval = loadFile(args[0], &data, &len);
 	if (retval == ERROR_OK)
@@ -256,7 +256,7 @@ int handle_cp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 
 	// NOTE!!! we only have line printing capability so we print the entire file as a single line.
 	void *data;
-	int len;
+	size_t len;
 
 	int retval = loadFile(args[0], &data, &len);
 	if (retval != ERROR_OK)
@@ -266,11 +266,11 @@ int handle_cp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 	if (f == NULL)
 		retval = ERROR_INVALID_ARGUMENTS;
 
-	int pos = 0;
+	size_t pos = 0;
 	for (;;)
 	{
-		int chunk = len - pos;
-		static const int maxChunk = 512 * 1024; // ~1/sec
+		size_t chunk = len - pos;
+		static const size_t maxChunk = 512 * 1024; // ~1/sec
 		if (chunk > maxChunk)
 		{
 			chunk = maxChunk;
@@ -497,8 +497,9 @@ int handle_peek_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	volatile int *address=(volatile int *)strtoul(args[0], NULL, 0);
-	int value=*address;
+	unsigned long addr = strtoul(args[0], NULL, 0);
+	volatile unsigned *address = (volatile unsigned *)addr;
+	unsigned value = *address;
 	command_print(cmd_ctx, "0x%x : 0x%x", address, value);
 	return ERROR_OK;
 }
@@ -509,7 +510,8 @@ int handle_poke_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
-	volatile int *address=(volatile int *)strtoul(args[0], NULL, 0);
+	unsigned long addr = strtoul(args[0], NULL, 0);
+	volatile int *address = (volatile int *)addr;
 	int value=strtoul(args[1], NULL, 0);
 	*address=value;
 	return ERROR_OK;
