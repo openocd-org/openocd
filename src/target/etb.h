@@ -48,7 +48,7 @@ typedef struct etb_s
 	jtag_tap_t *tap;
 	u32 cur_scan_chain;
 	reg_cache_t *reg_cache;
-	
+
 	/* ETB parameters */
 	u32 ram_depth;
 	u32 ram_width;

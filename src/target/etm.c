@@ -280,6 +280,7 @@ int etm_setup(target_t *target)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	etm_context_t *etm_ctx = arm7_9->etm_ctx;
 	reg_t *etm_ctrl_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_CTRL];
+
 	/* initialize some ETM control register settings */
 	etm_get_reg(etm_ctrl_reg);
 	etm_ctrl_value = buf_get_u32(etm_ctrl_reg->value, 0, etm_ctrl_reg->size);
@@ -309,6 +310,7 @@ int etm_setup(target_t *target)
 int etm_get_reg(reg_t *reg)
 {
 	int retval;
+
 	if ((retval = etm_read_reg(reg)) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: error scheduling etm register read");
@@ -340,21 +342,18 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
 	fields[0].in_value = NULL;
-	
 
 	fields[1].tap = etm_reg->jtag_info->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
 	fields[1].in_value = NULL;
-	
 
 	fields[2].tap = etm_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
-	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -378,6 +377,7 @@ int etm_read_reg(reg_t *reg)
 int etm_set_reg(reg_t *reg, u32 value)
 {
 	int retval;
+
 	if ((retval = etm_write_reg(reg, value)) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: error scheduling etm register write");
@@ -394,6 +394,7 @@ int etm_set_reg(reg_t *reg, u32 value)
 int etm_set_reg_w_exec(reg_t *reg, u8 *buf)
 {
 	int retval;
+
 	etm_set_reg(reg, buf_get_u32(buf, 0, reg->size));
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -423,10 +424,6 @@ int etm_write_reg(reg_t *reg, u32 value)
 
 	fields[0].in_value = NULL;
 
-
-	
-
-
 	fields[1].tap = etm_reg->jtag_info->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
@@ -434,20 +431,12 @@ int etm_write_reg(reg_t *reg, u32 value)
 
 	fields[1].in_value = NULL;
 
-
-	
-
-
 	fields[2].tap = etm_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 1);
 
 	fields[2].in_value = NULL;
-
-
-	
-
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -1648,7 +1637,7 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd,
 	fileio_read_u32(&file, &etm_ctx->trace_depth);
 
 	etm_ctx->trace_data = malloc(sizeof(etmv1_trace_data_t) * etm_ctx->trace_depth);
-	if(etm_ctx->trace_data == NULL)
+	if (etm_ctx->trace_data == NULL)
 	{
 		command_print(cmd_ctx, "not enough memory to perform operation");
 		fileio_close(&file);
@@ -1816,7 +1805,7 @@ static int handle_etm_analyze_command(struct command_context_s *cmd_ctx, char *c
 
 	if ((retval = etmv1_analyze_trace(etm_ctx, cmd_ctx)) != ERROR_OK)
 	{
-		switch(retval)
+		switch (retval)
 		{
 			case ERROR_ETM_ANALYSIS_FAILED:
 				command_print(cmd_ctx, "further analysis failed (corrupted trace data or just end of data");
