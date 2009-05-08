@@ -1417,11 +1417,23 @@ void jtag_set_check_value(scan_field_t *field, u8 *value, u8 *mask, struct inval
 
 void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask)
 {
+	if (field->in_value==NULL)
+	{
+		LOG_ERROR("remember to fill in in_value for jtag_check_value_mask() to work!");
+		return;
+	}
+
+	if (value==NULL)
+	{
+		/* no checking to do */
+		return;
+	}
+
 	jtag_execute_queue_noclear();
-	
+
 	int retval=jtag_check_value_inner(field->in_value, field, value, mask);
 	jtag_set_error(retval);
-	
+
 }
 
 
