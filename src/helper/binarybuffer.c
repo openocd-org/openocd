@@ -53,7 +53,7 @@ const unsigned char bit_reverse_table256[] =
 };
 
 
-u8* buf_cpy(u8 *from, u8 *to, int size)
+u8* buf_cpy(const u8 *from, u8 *to, int size)
 {
 	unsigned int num_bytes = CEIL(size, 8);
 	unsigned int i;
@@ -73,7 +73,7 @@ u8* buf_cpy(u8 *from, u8 *to, int size)
 	return to;
 }
 
-int buf_cmp(u8 *buf1, u8 *buf2, int size)
+int buf_cmp(const u8 *buf1, const u8 *buf2, int size)
 {
 	int num_bytes = CEIL(size, 8);
 	int i;
@@ -100,7 +100,7 @@ int buf_cmp(u8 *buf1, u8 *buf2, int size)
 	return 0;
 }
 
-int buf_cmp_mask(u8 *buf1, u8 *buf2, u8 *mask, int size)
+int buf_cmp_mask(const u8 *buf1, const u8 *buf2, const u8 *mask, int size)
 {
 	int num_bytes = CEIL(size, 8);
 	int i;
@@ -143,7 +143,7 @@ u8* buf_set_ones(u8 *buf, int count)
 	return buf;
 }
 
-u8* buf_set_buf(u8 *src, int src_start, u8 *dst, int dst_start, int len)
+u8* buf_set_buf(const u8 *src, int src_start, u8 *dst, int dst_start, int len)
 {
 	int src_idx = src_start, dst_idx = dst_start;
 	int i;
