@@ -549,14 +549,13 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 *
 
 	size_t error_count = 0;
 
-	{size_t i;
-	for (i = 0; i < asizeof(Readies); i++)
+	for (size_t i = 0; i < asizeof(Readies); i++)
 	{
 		if (Readies[i] != 1)
 		{
 			error_count++;
 		}
-	}}
+	}
 
 	if (error_count)
 		LOG_ERROR("Transfer errors " ZU, error_count);
@@ -699,8 +698,7 @@ int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t c
 	arm11_setup_field(arm11, 32, &DataOut,		&DataIn,	chain7_fields + 1);
 	arm11_setup_field(arm11,  7, &AddressOut,	&AddressIn,	chain7_fields + 2);
 
-	{size_t i;
-	for (i = 0; i < count + 1; i++)
+	for (size_t i = 0; i < count + 1; i++)
 	{
 		if (i < count)
 		{
@@ -746,13 +744,12 @@ int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t c
 				}
 			}
 		}
-	}}
+	}
 
-	{size_t i;
-	for (i = 0; i < count; i++)
+	for (size_t i = 0; i < count; i++)
 	{
 		JTAG_DEBUG("SC7 %02d: %02x %s %08x", i, actions[i].address, actions[i].write ? "<=" : "=>", actions[i].value);
-	}}
+	}
 
 	return ERROR_OK;
 }
@@ -767,22 +764,19 @@ void arm11_sc7_clear_vbw(arm11_common_t * arm11)
 	arm11_sc7_action_t		clear_bw[arm11->brp + arm11->wrp + 1];
 	arm11_sc7_action_t *	pos = clear_bw;
 
-	{size_t i;
-	for (i = 0; i < asizeof(clear_bw); i++)
+	for (size_t i = 0; i < asizeof(clear_bw); i++)
 	{
 		clear_bw[i].write	= true;
 		clear_bw[i].value	= 0;
-	}}
+	}
 
-	{size_t i;
-	for (i = 0; i < arm11->brp; i++)
+	for (size_t i = 0; i < arm11->brp; i++)
 		(pos++)->address = ARM11_SC7_BCR0 + i;
-	}
 
-	{size_t i;
-	for (i = 0; i < arm11->wrp; i++)
+
+	for (size_t i = 0; i < arm11->wrp; i++)
 		(pos++)->address = ARM11_SC7_WCR0 + i;
-	}
+
 
 	(pos++)->address = ARM11_SC7_VCR;
 

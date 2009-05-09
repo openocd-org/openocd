@@ -373,12 +373,11 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 {
 	FNC_INFO;
 
-	{size_t i;
-	for(i = 0; i < asizeof(arm11->reg_values); i++)
+	for (size_t i = 0; i < asizeof(arm11->reg_values); i++)
 	{
 		arm11->reg_list[i].valid	= 1;
 		arm11->reg_list[i].dirty	= 0;
-	}}
+	}
 
 	/* Save DSCR */
 	CHECK_RETVAL(arm11_read_DSCR(arm11, &R(DSCR)));
@@ -454,12 +453,11 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 
 	/** \todo TODO: handle other mode registers */
 
-	{size_t i;
-	for (i = 0; i < 15; i++)
+	for (size_t i = 0; i < 15; i++)
 	{
 		/* MCR p14,0,R?,c0,c5,0 */
 		arm11_run_instr_data_from_core(arm11, 0xEE000E15 | (i << 12), &R(RX + i), 1);
-	}}
+	}
 
 	/* save rDTR */
 
@@ -528,8 +526,7 @@ void arm11_dump_reg_changes(arm11_common_t * arm11)
 		return;
 	}
 
-	{size_t i;
-	for(i = 0; i < ARM11_REGCACHE_COUNT; i++)
+	for (size_t i = 0; i < ARM11_REGCACHE_COUNT; i++)
 	{
 		if (!arm11->reg_list[i].valid)
 		{
@@ -548,7 +545,7 @@ void arm11_dump_reg_changes(arm11_common_t * arm11)
 				LOG_DEBUG("%8s %08x (INVALID)", arm11_reg_defs[i].name, arm11->reg_values[i]);
 			}
 		}
-	}}
+	}
 }
 
 /** Restore processor state
@@ -565,8 +562,8 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 	/** \todo TODO: handle other mode registers */
 
 	/* restore R1 - R14 */
-	{size_t i;
-	for (i = 1; i < 15; i++)
+
+	for (size_t i = 1; i < 15; i++)
 	{
 		if (!arm11->reg_list[ARM11_RC_RX + i].dirty)
 			continue;
@@ -575,7 +572,7 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 		arm11_run_instr_data_to_core1(arm11, 0xee100e15 | (i << 12), R(RX + i));
 
 		//	LOG_DEBUG("RESTORE R" ZU " %08x", i, R(RX + i));
-	}}
+	}
 
 	arm11_run_instr_data_finish(arm11);
 
@@ -650,15 +647,14 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 
 void arm11_record_register_history(arm11_common_t * arm11)
 {
-	{size_t i;
-	for(i = 0; i < ARM11_REGCACHE_COUNT; i++)
+	for (size_t i = 0; i < ARM11_REGCACHE_COUNT; i++)
 	{
 		arm11->reg_history[i].value	= arm11->reg_values[i];
 		arm11->reg_history[i].valid	= arm11->reg_list[i].valid;
 
 		arm11->reg_list[i].valid	= 0;
 		arm11->reg_list[i].dirty	= 0;
-	}}
+	}
 }
 
 
@@ -1072,22 +1068,20 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
 	*reg_list_size	= ARM11_GDB_REGISTER_COUNT;
 	*reg_list		= malloc(sizeof(reg_t*) * ARM11_GDB_REGISTER_COUNT);
 
-	{size_t i;
-	for (i = 16; i < 24; i++)
+	for (size_t i = 16; i < 24; i++)
 	{
 		(*reg_list)[i] = &arm11_gdb_dummy_fp_reg;
-	}}
+	}
 
 	(*reg_list)[24] = &arm11_gdb_dummy_fps_reg;
 
-	{size_t i;
-	for (i = 0; i < ARM11_REGCACHE_COUNT; i++)
+	for (size_t i = 0; i < ARM11_REGCACHE_COUNT; i++)
 	{
 		if (arm11_reg_defs[i].gdb_num == -1)
 			continue;
 
 		(*reg_list)[arm11_reg_defs[i].gdb_num] = arm11->reg_list + i;
-	}}
+	}
 
 	return ERROR_OK;
 }
@@ -1123,8 +1117,7 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 		/** \todo TODO: check if dirty is the right choice to force a rewrite on arm11_resume() */
 		arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-		{size_t i;
-		for (i = 0; i < count; i++)
+		for (size_t i = 0; i < count; i++)
 		{
 			/* ldrb    r1, [r0], #1 */
 			/* ldrb    r1, [r0] */
@@ -1136,7 +1129,7 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 			arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
 
 			*buffer++ = res;
-		}}
+		}
 
 		break;
 
@@ -1144,8 +1137,7 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 		{
 			arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-			size_t i;
-			for (i = 0; i < count; i++)
+			for (size_t i = 0; i < count; i++)
 			{
 				/* ldrh    r1, [r0], #2 */
 				arm11_run_instr_no_data1(arm11,
@@ -1206,8 +1198,7 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 		{
 			arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-			{size_t i;
-			for (i = 0; i < count; i++)
+			for (size_t i = 0; i < count; i++)
 			{
 				/* MRC p14,0,r1,c0,c5,0 */
 				arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buffer++);
@@ -1216,7 +1207,7 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 				/* strb    r1, [r0] */
 				arm11_run_instr_no_data1(arm11,
 					!arm11_config_memrw_no_increment ? 0xe4c01001 : 0xe5c01000);
-			}}
+			}
 
 			break;
 		}
@@ -1225,8 +1216,7 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 		{
 			arm11->reg_list[ARM11_RC_R1].dirty = 1;
 
-			size_t i;
-			for (i = 0; i < count; i++)
+			for (size_t i = 0; i < count; i++)
 			{
 				u16 value;
 				memcpy(&value, buffer + count * sizeof(u16), sizeof(u16));
@@ -1389,7 +1379,6 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 	u32 context[16];
 	u32 cpsr;
 	int exit_breakpoint_size = 0;
-	int i;
 	int retval = ERROR_OK;
 		LOG_DEBUG("Running algorithm");
 
@@ -1410,7 +1399,7 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 //		return ERROR_FAIL;
 
 	// Save regs
-	for (i = 0; i < 16; i++)
+	for (size_t i = 0; i < 16; i++)
 	{
 		context[i] = buf_get_u32((u8*)(&arm11->reg_values[i]),0,32);
 		LOG_DEBUG("Save %i: 0x%x",i,context[i]);
@@ -1419,13 +1408,13 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 	cpsr = buf_get_u32((u8*)(arm11->reg_values+ARM11_RC_CPSR),0,32);
 	LOG_DEBUG("Save CPSR: 0x%x", cpsr);
 
-	for (i = 0; i < num_mem_params; i++)
+	for (int i = 0; i < num_mem_params; i++)
 	{
 		target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
 	}
 
 	// Set register parameters
-	for (i = 0; i < num_reg_params; i++)
+	for (int i = 0; i < num_reg_params; i++)
 	{
 		reg_t *reg = register_get_by_name(arm11->core_cache, reg_params[i].reg_name, 0);
 		if (!reg)
@@ -1495,13 +1484,13 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 		goto del_breakpoint;
 	}
 
-	for (i = 0; i < num_mem_params; i++)
+	for (int i = 0; i < num_mem_params; i++)
 	{
 		if (mem_params[i].direction != PARAM_OUT)
 			target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
 	}
 
-	for (i = 0; i < num_reg_params; i++)
+	for (int i = 0; i < num_reg_params; i++)
 	{
 		if (reg_params[i].direction != PARAM_OUT)
 		{
@@ -1527,7 +1516,7 @@ del_breakpoint:
 
 restore:
 	// Restore context
-	for (i = 0; i < 16; i++)
+	for (size_t i = 0; i < 16; i++)
 	{
 		LOG_DEBUG("restoring register %s with value 0x%8.8x",
 			 arm11->reg_list[i].name, context[i]);
@@ -1897,8 +1886,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 	u32	values[6];
 
-	{size_t i;
-	for (i = 0; i < (read ? 5 : 6); i++)
+	for (size_t i = 0; i < (read ? 5 : 6); i++)
 	{
 		values[i] = strtoul(args[i + 1], NULL, 0);
 
@@ -1909,7 +1897,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 				read ? arm11_mrc_syntax : arm11_mcr_syntax);
 			return -1;
 		}
-	}}
+	}
 
 	u32 instr = 0xEE000010	|
 		(values[0] <<  8) |
