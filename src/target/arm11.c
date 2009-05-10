@@ -1402,7 +1402,7 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 	for (size_t i = 0; i < 16; i++)
 	{
 		context[i] = buf_get_u32((u8*)(&arm11->reg_values[i]),0,32);
-		LOG_DEBUG("Save %i: 0x%x",i,context[i]);
+		LOG_DEBUG("Save %zi: 0x%x",i,context[i]);
 	}
 
 	cpsr = buf_get_u32((u8*)(arm11->reg_values+ARM11_RC_CPSR),0,32);
