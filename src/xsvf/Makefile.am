@@ -4,8 +4,8 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/jtag
 
 METASOURCES = AUTO
-noinst_LIBRARIES = libxsvf.a
+noinst_LTLIBRARIES = libxsvf.la
 noinst_HEADERS = xsvf.h
-libxsvf_a_SOURCES = xsvf.c
+libxsvf_la_SOURCES = xsvf.c
 
 MAINTAINERCLEANFILES = Makefile.in

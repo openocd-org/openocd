@@ -5,7 +5,7 @@ AM_CPPFLAGS = \
 	-DPKGLIBDIR=\"$(pkglibdir)\"
 
 METASOURCES = AUTO
-noinst_LIBRARIES = libhelper.a
+noinst_LTLIBRARIES = libhelper.la
 
 if ECOSBOARD
 CONFIGFILES = 
@@ -15,19 +15,19 @@ endif
 
 
 
-libhelper_a_SOURCES = \
+libhelper_la_SOURCES = \
 	binarybuffer.c $(CONFIGFILES) configuration.c \
 	log.c command.c time_support.c \
 	replacements.c fileio.c startup_tcl.c
 
 if IOUTIL
-libhelper_a_SOURCES += ioutil.c
+libhelper_la_SOURCES += ioutil.c
 endif
 
-libhelper_a_CFLAGS =
+libhelper_la_CFLAGS =
 if IS_MINGW
 # FD_* macros are sloppy with their signs on MinGW32 platform
-libhelper_a_CFLAGS += -Wno-sign-compare
+libhelper_la_CFLAGS += -Wno-sign-compare
 endif
 
 noinst_HEADERS = binarybuffer.h configuration.h types.h log.h command.h \

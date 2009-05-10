@@ -11,8 +11,9 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/xsvf
 
 METASOURCES = AUTO
-noinst_LIBRARIES = libtarget.a
-libtarget_a_SOURCES = target.c register.c breakpoints.c armv4_5.c embeddedice.c etm.c arm7tdmi.c arm9tdmi.c \
+noinst_LTLIBRARIES = libtarget.la
+libtarget_la_SOURCES = target.c register.c breakpoints.c \
+	armv4_5.c embeddedice.c etm.c arm7tdmi.c arm9tdmi.c \
 	arm_jtag.c arm7_9_common.c algorithm.c arm920t.c arm720t.c armv4_5_mmu.c armv4_5_cache.c arm_disassembler.c \
 	arm966e.c arm926ejs.c feroceon.c etb.c xscale.c arm_simulator.c image.c armv7m.c cortex_m3.c cortex_a8.c arm_adi_v5.c \
 	etm_dummy.c $(OOCD_TRACE_FILES) target_request.c trace.c arm11.c arm11_dbgtap.c mips32.c mips_m4k.c \

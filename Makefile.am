@@ -20,6 +20,7 @@ MAINTAINERCLEANFILES = \
 	config.h.in \
 	config.h.in~ \
 	compile \
+	ltmain.sh \
 	missing \
 	aclocal.m4 \
 	install-sh

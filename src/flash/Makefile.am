@@ -4,8 +4,8 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/target
 
 METASOURCES = AUTO
-noinst_LIBRARIES = libflash.a
-libflash_a_SOURCES = \
+noinst_LTLIBRARIES = libflash.la
+libflash_la_SOURCES = \
 	flash.c lpc2000.c cfi.c non_cfi.c at91sam7.c \
 	str7x.c str9x.c aduc702x.c nand.c nand_ecc.c \
 	lpc3180_nand_controller.c stellaris.c str9xpec.c stm32x.c tms470.c \

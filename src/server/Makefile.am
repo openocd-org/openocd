@@ -6,23 +6,23 @@ AM_CPPFLAGS = \
 	-DPKGLIBDIR=\"$(pkglibdir)\"
 
 METASOURCES = AUTO
-noinst_LIBRARIES = libserver.a
+noinst_LTLIBRARIES = libserver.la
 noinst_HEADERS = server.h telnet_server.h gdb_server.h
-libserver_a_SOURCES = server.c telnet_server.c gdb_server.c
+libserver_la_SOURCES = server.c telnet_server.c gdb_server.c
 
 if HTTPD
-libserver_a_SOURCES += httpd.c
+libserver_la_SOURCES += httpd.c
 endif
 
-libserver_a_CFLAGS =
+libserver_la_CFLAGS =
 if IS_MINGW
 # FD_* macros are sloppy with their signs on MinGW32 platform
-libserver_a_CFLAGS += -Wno-sign-compare
+libserver_la_CFLAGS += -Wno-sign-compare
 endif
 
 # tcl server addons
 noinst_HEADERS += tcl_server.h
-libserver_a_SOURCES += tcl_server.c
+libserver_la_SOURCES += tcl_server.c
 
 if HTTPD
 nobase_dist_pkglib_DATA = $(wildcard $(srcdir)/httpd/*.tcl $(srcdir)/httpd/*.css $(srcdir)/httpd/menu_cuts/*.png)

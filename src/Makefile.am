@@ -1,3 +1,6 @@
+SUBDIRS = helper jtag xsvf svf target server flash pld
+
+lib_LTLIBRARIES = libopenocd.la
 bin_PROGRAMS = openocd
 
 if ECOSBOARD
@@ -6,7 +9,10 @@ else
 MAINFILE = main.c
 endif
 
-openocd_SOURCES = $(MAINFILE) openocd.c
+openocd_SOURCES = $(MAINFILE) 
+openocd_LDADD = libopenocd.la
+
+libopenocd_la_SOURCES = openocd.c
 
 # set the include path found by configure
 AM_CPPFLAGS = \
@@ -21,22 +27,21 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/pld
 
 # pass path to prefix path
-openocd_CPPFLAGS = \
+libopenocd_la_CPPFLAGS = \
  -DPKGLIBDIR=\"$(pkglibdir)\" \
  -DPKGBLDDATE=\"`date +%F-%R`\"
 
 if RELEASE
-openocd_CPPFLAGS += -DRELSTR=\"Release\" -DPKGBLDREV=\"\"
+libopenocd_la_CPPFLAGS += -DRELSTR=\"Release\" -DPKGBLDREV=\"\"
 else
-openocd_CPPFLAGS += -DRELSTR=\"svn:\" -DPKGBLDREV=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
+libopenocd_la_CPPFLAGS += -DRELSTR=\"svn:\" -DPKGBLDREV=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
 endif
 
 # add default CPPFLAGS
-openocd_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS)
+libopenocd_la_CPPFLAGS += $(AM_CPPFLAGS) $(CPPFLAGS)
 
 # the library search path.
-openocd_LDFLAGS = $(all_libraries) 
-SUBDIRS = helper jtag xsvf svf target server flash pld
+libopenocd_la_LDFLAGS = $(all_libraries) 
 
 if IS_MINGW
 MINGWLDADD = -lwsock32
@@ -72,16 +77,19 @@ endif
 endif
 endif
 
-openocd_LDADD = $(top_builddir)/src/xsvf/libxsvf.a $(top_builddir)/src/svf/libsvf.a \
-	$(top_builddir)/src/target/libtarget.a $(top_builddir)/src/jtag/libjtag.a \
-	$(top_builddir)/src/helper/libhelper.a \
-	$(top_builddir)/src/server/libserver.a $(top_builddir)/src/helper/libhelper.a \
-	$(top_builddir)/src/flash/libflash.a $(top_builddir)/src/target/libtarget.a \
-	$(top_builddir)/src/pld/libpld.a \
+libopenocd_la_LIBADD = \
+	$(top_builddir)/src/xsvf/libxsvf.la \
+	$(top_builddir)/src/svf/libsvf.la \
+	$(top_builddir)/src/pld/libpld.la \
+	$(top_builddir)/src/jtag/libjtag.la \
+	$(top_builddir)/src/flash/libflash.la \
+	$(top_builddir)/src/target/libtarget.la \
+	$(top_builddir)/src/server/libserver.la \
+	$(top_builddir)/src/helper/libhelper.la \
 	$(FTDI2232LIB) $(MINGWLDADD) $(LIBUSB)
 
 if HTTPD
-openocd_LDADD += -lmicrohttpd
+libopenocd_la_LIBADD += -lmicrohttpd
 endif
 
 nobase_dist_pkglib_DATA = \

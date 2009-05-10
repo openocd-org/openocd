@@ -4,8 +4,8 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/jtag
 
 METASOURCES = AUTO
-noinst_LIBRARIES = libsvf.a
+noinst_LTLIBRARIES = libsvf.la
 noinst_HEADERS = svf.h
-libsvf_a_SOURCES = svf.c
+libsvf_la_SOURCES = svf.c
 
 MAINTAINERCLEANFILES = Makefile.in
