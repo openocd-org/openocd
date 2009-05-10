@@ -178,7 +178,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	u8 nr_w_buf = 0;
 
 	jtag_add_end_state(TAP_IDLE);
-	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	if ((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -188,19 +188,16 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
 	fields[0].in_value = NULL;
-	
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 6;
 	fields[1].out_value = &reg_addr_buf;
 	fields[1].in_value = NULL;
-	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &nr_w_buf;
 	fields[2].in_value = NULL;
-	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -213,7 +210,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	if((retval = jtag_execute_queue()) != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -237,7 +234,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	buf_set_u32(value_buf, 0, 32, value);
 
 	jtag_add_end_state(TAP_IDLE);
-	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	if ((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -246,32 +243,17 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;
-
 	fields[0].in_value = NULL;
-
-
-	
-
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 6;
 	fields[1].out_value = &reg_addr_buf;
-
 	fields[1].in_value = NULL;
-
-
-	
-
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &nr_w_buf;
-
 	fields[2].in_value = NULL;
-
-
-	
-
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -319,7 +301,7 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				command_print(cmd_ctx, "couldn't access reg %i", address);
 				return ERROR_OK;
 			}
-			if((retval = jtag_execute_queue()) != ERROR_OK)
+			if ((retval = jtag_execute_queue()) != ERROR_OK)
 			{
 				return retval;
 			}
