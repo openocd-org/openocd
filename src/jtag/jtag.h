@@ -568,6 +568,70 @@ extern int  interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t* field
 extern void jtag_add_plain_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern int  interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 
+
+/* Simplest/typical callback - do some conversion on the data clocked in.
+ * This callback is for such conversion that can not fail.
+ * For conversion types or checks that can
+ * fail, use the jtag_callback_t variant */
+typedef void (*jtag_callback1_t)(u8 *in);
+
+#ifndef HAVE_JTAG_MINIDRIVER_H
+/* A simpler version of jtag_add_callback3 */
+extern void jtag_add_callback(jtag_callback1_t, u8 *in);
+#else
+/* implemented by minidriver */
+#endif
+
+/* This type can store an integer safely by a normal cast on 64 and
+ * 32 bit systems. */
+typedef void *jtag_callback_data_t;
+
+/* The generic callback mechanism.
+ *
+ * The callback is invoked with three arguments. The first argument is
+ * the pointer to the data clocked in.
+ */
+typedef int (*jtag_callback_t)(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2);
+
+
+/* This callback can be executed immediately the queue has been flushed. Note that
+ * the JTAG queue can either be executed synchronously or asynchronously. Typically
+ * for USB the queue is executed asynchronously. For low latency interfaces, the
+ * queue may be executed synchronously.
+ *
+ * These callbacks are typically executed *after* the *entire* JTAG queue has been
+ * executed for e.g. USB interfaces.
+ *
+ * The callbacks are guaranteeed to be invoked in the order that they were queued.
+ *
+ * The strange name is due to C's lack of overloading using function arguments
+ *
+ * The callback mechansim is very general and does not really make any assumptions
+ * about what the callback does and what the arguments are.
+ *
+ * in - typically used to point to the data to operate on. More often than not
+ * this will be the data clocked in during a shift operation
+ *
+ * data1 - an integer that is big enough to be used either as an 'int' or
+ * cast to/from a pointer
+ *
+ * data2 - an integer that is big enough to be used either as an 'int' or
+ * cast to/from a pointer
+ *
+ * Why stop at 'data2' for arguments? Somewhat historical reasons. This is
+ * sufficient to implement the jtag_check_value_mask(), besides the
+ * line is best drawn somewhere...
+ *
+ * If the execution of the queue fails before the callbacks, then the
+ * callbacks may or may not be invoked depending on driver implementation.
+ */
+#ifndef HAVE_JTAG_MINIDRIVER_H
+extern void jtag_add_callback3(jtag_callback_t, u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2);
+#else
+/* implemented by minidriver */
+#endif
+
+
 /* run a TAP_RESET reset. End state is TAP_RESET, regardless
  * of start state.
  */

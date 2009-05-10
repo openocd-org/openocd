@@ -76,6 +76,24 @@ const Jim_Nvp nvp_jtag_tap_event[] = {
 int jtag_trst = 0;
 int jtag_srst = 0;
 
+#ifndef HAVE_JTAG_MINIDRIVER_H
+struct jtag_callback_entry
+{
+	struct jtag_callback_entry *next;
+
+	jtag_callback_t callback;
+	u8 *in;
+	jtag_callback_data_t data1;
+	jtag_callback_data_t data2;
+
+};
+
+
+static struct jtag_callback_entry *jtag_callback_queue_head = NULL;
+static struct jtag_callback_entry *jtag_callback_queue_tail = NULL;
+#endif
+
+
 jtag_command_t *jtag_command_queue = NULL;
 jtag_command_t **last_comand_pointer = &jtag_command_queue;
 static jtag_tap_t *jtag_all_taps = NULL;
@@ -1434,7 +1452,46 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 	return type;
 }
 
-int MINIDRIVER(interface_jtag_execute_queue)(void)
+
+#ifndef HAVE_JTAG_MINIDRIVER_H
+/* add callback to end of queue */
+void jtag_add_callback3(jtag_callback_t callback, u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2)
+{
+	struct jtag_callback_entry *entry=cmd_queue_alloc(sizeof(struct jtag_callback_entry));
+
+	entry->next=NULL;
+	entry->callback=callback;
+	entry->in=in;
+	entry->data1=data1;
+	entry->data2=data2;
+
+	if (jtag_callback_queue_head==NULL)
+	{
+		jtag_callback_queue_head=entry;
+		jtag_callback_queue_tail=entry;
+	} else
+	{
+		jtag_callback_queue_tail->next=entry;
+		jtag_callback_queue_tail=entry;
+	}
+}
+
+
+static int jtag_convert_to_callback3(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2)
+{
+	((jtag_callback1_t)data1)(in);
+	return ERROR_OK;
+}
+
+void jtag_add_callback(jtag_callback1_t callback, u8 *in)
+{
+	jtag_add_callback3(jtag_convert_to_callback3, in, (jtag_callback_data_t)callback, 0);
+}
+#endif
+
+#ifndef HAVE_JTAG_MINIDRIVER_H
+
+int interface_jtag_execute_queue(void)
 {
 	int retval;
 
@@ -1446,13 +1503,28 @@ int MINIDRIVER(interface_jtag_execute_queue)(void)
 
 	retval = jtag->execute_queue();
 
+	if (retval == ERROR_OK)
+	{
+		struct jtag_callback_entry *entry;
+		for (entry=jtag_callback_queue_head; entry!=NULL; entry=entry->next)
+		{
+			retval=entry->callback(entry->in, entry->data1, entry->data2);
+			if (retval!=ERROR_OK)
+				break;
+		}
+	}
+
 	cmd_queue_free();
+
+	jtag_callback_queue_head = NULL;
+	jtag_callback_queue_tail = NULL;
 
 	jtag_command_queue = NULL;
 	last_comand_pointer = &jtag_command_queue;
 
 	return retval;
 }
+#endif
 
 void jtag_execute_queue_noclear(void)
 {
