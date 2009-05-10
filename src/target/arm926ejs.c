@@ -133,7 +133,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	buf_set_u32(address_buf, 0, 14, address);
 
 	jtag_add_end_state(TAP_IDLE);
-	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	if ((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -151,19 +151,15 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[1].out_value = &access;
 	fields[1].in_value = &access;
 
-
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
 	fields[2].in_value = NULL;
 
-
-
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
 	fields[3].in_value = NULL;
-
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
@@ -177,7 +173,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 
 		*value=le_to_h_u32(tmp);
 
-		if((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -209,7 +205,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	buf_set_u32(value_buf, 0, 32, value);
 
 	jtag_add_end_state(TAP_IDLE);
-	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	if ((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -218,42 +214,22 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = value_buf;
-
 	fields[0].in_value = NULL;
-
-
-
-
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 1;
 	fields[1].out_value = &access;
-
 	fields[1].in_value = &access;
-
-
-
-
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 14;
 	fields[2].out_value = address_buf;
-
 	fields[2].in_value = NULL;
-
-
-
-
 
 	fields[3].tap = jtag_info->tap;
 	fields[3].num_bits = 1;
 	fields[3].out_value = &nr_w_buf;
-
 	fields[3].in_value = NULL;
-
-
-
-
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 	/*TODO: add timeout*/
@@ -263,7 +239,7 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 		access = 0;
 		nr_w_buf = 0;
 		jtag_add_dr_scan(4, fields, TAP_INVALID);
-		if((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -595,7 +571,7 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 	reg_t *dbg_stat = &arm7_9->eice_cache->reg_list[EICE_DBG_STAT];
 
-	if((retval = target_halt(target)) != ERROR_OK)
+	if ((retval = target_halt(target)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -607,7 +583,7 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
 		{
 			embeddedice_read_reg(dbg_stat);
-			if((retval = jtag_execute_queue()) != ERROR_OK)
+			if ((retval = jtag_execute_queue()) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -812,7 +788,7 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 			command_print(cmd_ctx, "couldn't access register");
 			return ERROR_OK;
 		}
-		if((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
 		}

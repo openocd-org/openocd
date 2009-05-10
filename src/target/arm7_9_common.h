@@ -41,10 +41,10 @@
 typedef struct arm7_9_common_s
 {
 	u32 common_magic;
-	
+
 	arm_jtag_t jtag_info;
 	reg_cache_t *eice_cache;
-	
+
 	u32 arm_bkpt;
 	u16 thumb_bkpt;
 	int sw_breakpoints_added;
@@ -58,32 +58,32 @@ typedef struct arm7_9_common_s
 	int dbgreq_adjust_pc;
 	int use_dbgrq;
 	int need_bypass_before_restart;
-	
+
 	etm_context_t *etm_ctx;
-	
+
 	int has_single_step;
 	int has_monitor_mode;
 	int has_vector_catch;
-	
+
 	int debug_entry_from_reset;
-	
+
 	struct working_area_s *dcc_working_area;
-	
+
 	int fast_memory_access;
 	int dcc_downloads;
 
 	int (*examine_debug_reason)(target_t *target);
-	
+
 	void (*change_to_arm)(target_t *target, u32 *r0, u32 *pc);
-	
+
 	void (*read_core_regs)(target_t *target, u32 mask, u32 *core_regs[16]);
 	void (*read_core_regs_target_buffer)(target_t *target, u32 mask, void *buffer, int size);
 	void (*read_xpsr)(target_t *target, u32 *xpsr, int spsr);
-	
+
 	void (*write_xpsr)(target_t *target, u32 xpsr, int spsr);
 	void (*write_xpsr_im8)(target_t *target, u8 xpsr_im, int rot, int spsr);
 	void (*write_core_regs)(target_t *target, u32 mask, u32 core_regs[16]);
-	
+
 	void (*load_word_regs)(target_t *target, u32 mask);
 	void (*load_hword_reg)(target_t *target, int num);
 	void (*load_byte_reg)(target_t *target, int num);
@@ -91,22 +91,22 @@ typedef struct arm7_9_common_s
 	void (*store_word_regs)(target_t *target, u32 mask);
 	void (*store_hword_reg)(target_t *target, int num);
 	void (*store_byte_reg)(target_t *target, int num);
-	
+
 	void (*write_pc)(target_t *target, u32 pc);
 	void (*branch_resume)(target_t *target);
 	void (*branch_resume_thumb)(target_t *target);
-	
+
 	void (*enable_single_step)(target_t *target, u32 next_pc);
 	void (*disable_single_step)(target_t *target);
-	
+
 	void (*set_special_dbgrq)(target_t *target);
 
 	void (*pre_debug_entry)(target_t *target);
 	void (*post_debug_entry)(target_t *target);
-	
+
 	void (*pre_restore_context)(target_t *target);
 	void (*post_restore_context)(target_t *target);
-	
+
 	armv4_5_common_t armv4_5_common;
 	void *arch_info;
 

@@ -29,10 +29,10 @@
 
 typedef enum armv4_5_mode
 {
-	ARMV4_5_MODE_USR = 16, 
-	ARMV4_5_MODE_FIQ = 17, 
-	ARMV4_5_MODE_IRQ = 18, 
-	ARMV4_5_MODE_SVC = 19, 
+	ARMV4_5_MODE_USR = 16,
+	ARMV4_5_MODE_FIQ = 17,
+	ARMV4_5_MODE_IRQ = 18,
+	ARMV4_5_MODE_SVC = 19,
 	ARMV4_5_MODE_ABT = 23,
 	ARMV4_5_MODE_UND = 27,
 	ARMV4_5_MODE_SYS = 31,
@@ -58,7 +58,7 @@ extern int armv4_5_core_reg_map[7][17];
 		cache->reg_list[armv4_5_core_reg_map[mode][num]]
 
 /* offsets into armv4_5 core register cache */
-enum 
+enum
 {
 	ARMV4_5_CPSR = 31,
 	ARMV4_5_SPSR_FIQ = 32,
@@ -85,7 +85,7 @@ typedef struct armv4_5_common_s
 typedef struct armv4_5_algorithm_s
 {
 	int common_magic;
-		
+
 	enum armv4_5_mode core_mode;
 	enum armv4_5_state core_state;
 } armv4_5_algorithm_t;
@@ -113,7 +113,7 @@ static __inline int armv4_5_mode_to_number(enum armv4_5_mode mode)
 		case ARMV4_5_MODE_UND: return 5; break;
 		case ARMV4_5_MODE_SYS: return 6; break;
 		case ARMV4_5_MODE_ANY: return 0; break;	/* map MODE_ANY to user mode */
-		default: 
+		default:
 			LOG_ERROR("invalid mode value encountered");
 			return -1;
 	}
@@ -122,7 +122,7 @@ static __inline int armv4_5_mode_to_number(enum armv4_5_mode mode)
 /* map linear number to mode bits */
 static __inline enum armv4_5_mode armv4_5_number_to_mode(int number)
 {
-	switch(number)
+	switch (number)
 	{
 		case 0: return ARMV4_5_MODE_USR; break;
 		case 1: return ARMV4_5_MODE_FIQ; break;
@@ -131,7 +131,7 @@ static __inline enum armv4_5_mode armv4_5_number_to_mode(int number)
 		case 4: return ARMV4_5_MODE_ABT; break;
 		case 5: return ARMV4_5_MODE_UND; break;
 		case 6: return ARMV4_5_MODE_SYS; break;
-		default: 
+		default:
 			LOG_ERROR("mode index out of bounds");
 			return ARMV4_5_MODE_ANY;
 	}
@@ -149,7 +149,7 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
 
 /* ARM mode instructions
  */
- 
+
 /* Store multiple increment after
  * Rn: base register
  * List: for each bit in list: store register
@@ -239,7 +239,7 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  * CRm: second coprocessor operand
  * op2: Second coprocessor opcode
  */
-#define ARMV4_5_MRC(CP, op1, Rd, CRn, CRm, op2) (0xee100010 | (CRm) | ((op2) << 5) | ((CP) << 8) | ((Rd) << 12) | ((CRn) << 16) | ((op1) << 21)) 
+#define ARMV4_5_MRC(CP, op1, Rd, CRn, CRm, op2) (0xee100010 | (CRm) | ((op2) << 5) | ((CP) << 8) | ((Rd) << 12) | ((CRn) << 16) | ((op1) << 21))
 
 /* Move to coprocessor from ARM register
  * CP: Coprocessor number
@@ -249,7 +249,7 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  * CRm: second coprocessor operand
  * op2: Second coprocessor opcode
  */
-#define ARMV4_5_MCR(CP, op1, Rd, CRn, CRm, op2) (0xee000010 | (CRm) | ((op2) << 5) | ((CP) << 8) | ((Rd) << 12) | ((CRn) << 16) | ((op1) << 21)) 
+#define ARMV4_5_MCR(CP, op1, Rd, CRn, CRm, op2) (0xee000010 | (CRm) | ((op2) << 5) | ((CP) << 8) | ((Rd) << 12) | ((CRn) << 16) | ((op1) << 21))
 
 /* Breakpoint instruction (ARMv5)
  * Im: 16-bit immediate
@@ -259,7 +259,7 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
 
 /* Thumb mode instructions
  */
- 
+
 /* Store register (Thumb mode)
  * Rd: source register
  * Rn: base register
@@ -277,12 +277,12 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  * List: for each bit in list: store register
  */
 #define ARMV4_5_T_LDMIA(Rn, List) ((0xc800 | ((Rn) << 8) | (List)) | ((0xc800 | ((Rn) << 8) | List) << 16))
- 
+
 /* Load register with PC relative addressing
  * Rd: register to load
  */
-#define ARMV4_5_T_LDR_PCREL(Rd)	((0x4800 | ((Rd) << 8)) | ((0x4800 | ((Rd) << 8)) << 16)) 
- 
+#define ARMV4_5_T_LDR_PCREL(Rd)	((0x4800 | ((Rd) << 8)) | ((0x4800 | ((Rd) << 8)) << 16))
+
 /* Move hi register (Thumb mode)
  * Rd: destination register
  * Rm: source register

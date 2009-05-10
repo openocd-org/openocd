@@ -89,9 +89,9 @@ u32 armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu
 			(first_lvl_descriptor & 0xfffff000) | ((va & 0x000ffc00) >> 8),
 			4, 1, (u8*)&second_lvl_descriptor);
 	}
-	
+
 	second_lvl_descriptor = target_buffer_get_u32(target, (u8*)&second_lvl_descriptor);
-	
+
 	LOG_DEBUG("2nd lvl desc: %8.8x", second_lvl_descriptor);
 
 	if ((second_lvl_descriptor & 0x3) == 0)
@@ -163,14 +163,14 @@ int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_m
 
 	/* disable MMU and data (or unified) cache */
 	armv4_5_mmu->disable_mmu_caches(target, 1, 1, 0);
-	
+
 	retval = armv4_5_mmu->write_memory(target, address, size, count, buffer);
 
 	/* reenable MMU / cache */
 	armv4_5_mmu->enable_mmu_caches(target, armv4_5_mmu->mmu_enabled,
 		armv4_5_mmu->armv4_5_cache.d_u_cache_enabled,
 		armv4_5_mmu->armv4_5_cache.i_cache_enabled);
-	
+
 	return retval;
 }
 
@@ -182,7 +182,7 @@ int armv4_5_mmu_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, 
 	u32 cb;
 	int domain;
 	u32 ap;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		command_print(cmd_ctx, "target must be stopped for \"virt2phys\" command");
@@ -211,11 +211,11 @@ int armv4_5_mmu_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, 
 			}
 			return ERROR_OK;
 		}
-	
+
 		command_print(cmd_ctx, "0x%8.8x -> 0x%8.8x, type: %s, cb: %i, domain: %i, ap: %2.2x",
 			va, pa, armv4_5_mmu_page_type_names[type], cb, domain, ap);
-	}			
-	
+	}
+
 	return ERROR_OK;
 }
 
@@ -272,7 +272,7 @@ int armv4_5_mmu_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 				break;
 			case ERROR_TARGET_NOT_HALTED:
 				command_print(cmd_ctx, "error: target must be halted for memory accesses");
-				break;			
+				break;
 			case ERROR_TARGET_DATA_ABORT:
 				command_print(cmd_ctx, "error: access caused data abort, system possibly corrupted");
 				break;
@@ -287,7 +287,7 @@ int armv4_5_mmu_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 	{
 		if (i%8 == 0)
 			output_len += snprintf(output + output_len, 128 - output_len, "0x%8.8x: ", address + (i*size));
-		
+
 		switch (size)
 		{
 			case 4:
@@ -309,7 +309,7 @@ int armv4_5_mmu_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 	}
 
 	free(buffer);
-	
+
 	return ERROR_OK;
 }
 
@@ -365,7 +365,7 @@ int armv4_5_mmu_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 			break;
 		default:
 			command_print(cmd_ctx, "error: unknown error");
-	}	
+	}
 
 	return ERROR_OK;
 }

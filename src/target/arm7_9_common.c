@@ -1287,7 +1287,7 @@ int arm7_9_full_context(target_t *target)
 	/* iterate through processor modes (User, FIQ, IRQ, SVC, ABT, UND)
 	 * SYS shares registers with User, so we don't touch SYS
 	 */
-	for(i = 0; i < 6; i++)
+	for (i = 0; i < 6; i++)
 	{
 		u32 mask = 0;
 		u32* reg_p[16];

@@ -428,23 +428,23 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 
 	for (i = 0; i < count; i++)
 	{
-		if(thumb)
+		if (thumb)
 		{
-			if((retval = target_read_u16(target, address, &thumb_opcode)) != ERROR_OK)
+			if ((retval = target_read_u16(target, address, &thumb_opcode)) != ERROR_OK)
 			{
 				return retval;
 			}
-			if((retval = thumb_evaluate_opcode(thumb_opcode, address, &cur_instruction)) != ERROR_OK)
+			if ((retval = thumb_evaluate_opcode(thumb_opcode, address, &cur_instruction)) != ERROR_OK)
 			{
 				return retval;
 			}
 		}
 		else {
-			if((retval = target_read_u32(target, address, &opcode)) != ERROR_OK)
+			if ((retval = target_read_u32(target, address, &opcode)) != ERROR_OK)
 			{
 				return retval;
 			}
-			if((retval = arm_evaluate_opcode(opcode, address, &cur_instruction)) != ERROR_OK)
+			if ((retval = arm_evaluate_opcode(opcode, address, &cur_instruction)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -502,7 +502,7 @@ static int armv4_5_run_algorithm_completion(struct target_s *target, u32 exit_po
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 
-	if((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
+	if ((retval = target_wait_state(target, TARGET_HALTED, timeout_ms)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -564,7 +564,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 
 	for (i = 0; i < num_mem_params; i++)
 	{
-		if((retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
+		if ((retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -585,7 +585,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 			exit(-1);
 		}
 
-		if((retval = armv4_5_set_core_reg(reg, reg_params[i].value)) != ERROR_OK)
+		if ((retval = armv4_5_set_core_reg(reg, reg_params[i].value)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -616,7 +616,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 		return ERROR_TARGET_FAILURE;
 	}
 
-	if((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
+	if ((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -631,7 +631,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 	for (i = 0; i < num_mem_params; i++)
 	{
 		if (mem_params[i].direction != PARAM_OUT)
-			if((retvaltemp = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
+			if ((retvaltemp = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
 			{
 					retval = retvaltemp;
 			}
