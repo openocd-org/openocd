@@ -62,12 +62,12 @@ typedef struct fileio_s
 	FILE *file;
 } fileio_t;
 
-extern int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written);
+extern int fileio_write(fileio_t *fileio, u32 size, const u8 *buffer, u32 *size_written);
 extern int fileio_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read);
 extern int fileio_fgets(fileio_t *fileio, u32 size, char *buffer);
 extern int fileio_seek(fileio_t *fileio, u32 position);
 extern int fileio_close(fileio_t *fileio);
-extern int fileio_open(fileio_t *fileio, char *url, enum fileio_access access, enum fileio_type type);
+extern int fileio_open(fileio_t *fileio, const char *url, enum fileio_access access, enum fileio_type type);
 extern int fileio_read_u32(fileio_t *fileio, u32 *data);
 extern int fileio_write_u32(fileio_t *fileio, u32 data);
 

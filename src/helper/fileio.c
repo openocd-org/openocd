@@ -43,9 +43,7 @@
 #include <errno.h>
 #include <ctype.h>
 
-int fileio_dispatch_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read);
-
-int fileio_open_local(fileio_t *fileio)
+static inline int fileio_open_local(fileio_t *fileio)
 {
 	char access[4];
 	
@@ -112,7 +110,7 @@ int fileio_open_local(fileio_t *fileio)
 	return ERROR_OK;
 }
 
-int fileio_open(fileio_t *fileio, char *url, enum fileio_access access,	enum fileio_type type)
+int fileio_open(fileio_t *fileio, const char *url, enum fileio_access access,	enum fileio_type type)
 {
 	int retval = ERROR_OK;
 
@@ -125,7 +123,7 @@ int fileio_open(fileio_t *fileio, char *url, enum fileio_access access,	enum fil
 	return retval;
 }
 
-int fileio_close_local(fileio_t *fileio)
+static inline int fileio_close_local(fileio_t *fileio)
 {
 	int retval;
 	if ((retval = fclose(fileio->file)) != 0)
@@ -169,7 +167,7 @@ int fileio_seek(fileio_t *fileio, u32 position)
 	return ERROR_OK;
 }
 
-int fileio_local_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
+static inline int fileio_local_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
 {
 	*size_read = fread(buffer, 1, size, fileio->file);
 	
@@ -194,7 +192,7 @@ int fileio_read_u32(fileio_t *fileio, u32 *data)
 	return ERROR_OK;
 }
 
-int fileio_local_fgets(fileio_t *fileio, u32 size, char *buffer)
+static inline int fileio_local_fgets(fileio_t *fileio, u32 size, char *buffer)
 {
 	if( fgets(buffer, size, fileio->file) == NULL)
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -207,14 +205,14 @@ int fileio_fgets(fileio_t *fileio, u32 size, char *buffer)
 	return fileio_local_fgets(fileio, size, buffer);
 }
 
-int fileio_local_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
+static inline int fileio_local_write(fileio_t *fileio, u32 size, const u8 *buffer, u32 *size_written)
 {
 	*size_written = fwrite(buffer, 1, size, fileio->file);
 	
 	return ERROR_OK;
 }
 
-int fileio_write(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_written)
+int fileio_write(fileio_t *fileio, u32 size, const u8 *buffer, u32 *size_written)
 {
 	int retval;
 	
