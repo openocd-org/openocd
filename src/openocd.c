@@ -41,7 +41,6 @@
 #include "mflash.h"
 
 #include "command.h"
-#include "tclapi.h"
 #include "server.h"
 #include "telnet_server.h"
 #include "gdb_server.h"
@@ -203,7 +202,6 @@ command_context_t *setup_command_handler(void)
 	telnet_register_commands(cmd_ctx);
 	gdb_register_commands(cmd_ctx);
 	tcl_register_commands(cmd_ctx); /* tcl server commands */
-	tclapi_register_commands(cmd_ctx); /* misc tcl commands */
 	log_register_commands(cmd_ctx);
 	jtag_register_commands(cmd_ctx);
 	xsvf_register_commands(cmd_ctx);

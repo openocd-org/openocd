@@ -17,7 +17,7 @@ endif
 
 libhelper_a_SOURCES = \
 	binarybuffer.c $(CONFIGFILES) configuration.c \
-	log.c command.c time_support.c tclapi.c \
+	log.c command.c time_support.c \
 	replacements.c fileio.c startup_tcl.c
 
 if IOUTIL
