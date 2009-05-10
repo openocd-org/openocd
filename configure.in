@@ -788,11 +788,12 @@ AC_PROG_CC_C99
 AM_PROG_CC_C_O
 AC_PROG_RANLIB
 
-# Look for environ alternatives.  Possibility #1: is environ in unistd.h?
-AC_MSG_CHECKING([for environ in unistd.h])
+# Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
+AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
 AC_COMPILE_IFELSE([
 #define _GNU_SOURCE
 #include <unistd.h>
+#include <stdlib.h>
 int main(int argc, char **argv) { char **ep = environ; }
   ], [
     AC_MSG_RESULT([yes])
