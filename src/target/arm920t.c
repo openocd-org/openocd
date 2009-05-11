@@ -128,12 +128,11 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 
 	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
-	u8 tmp[4];
-	fields[1].in_value = tmp;
+	fields[1].in_value = (u8 *)value;
 
-	jtag_add_dr_scan_now(4, fields, TAP_INVALID);
+	jtag_add_dr_scan(4, fields, TAP_INVALID);
 
-	*value=le_to_h_u32(tmp);
+	jtag_add_callback(arm_le_to_h_u32, (u8 *)value);
 
 	#ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	jtag_execute_queue();
