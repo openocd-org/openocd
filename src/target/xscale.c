@@ -213,6 +213,7 @@ int xscale_jtag_set_instr(jtag_tap_t *tap, u32 new_instr)
 
 		jtag_add_ir_scan(1, &field, TAP_INVALID);
 
+		/* FIX!!!! isn't this check superfluous? verify_ircapture handles this? */
 		jtag_check_value_mask(&field, tap->expected, tap->expected_mask);
 
 		free(field.out_value);
@@ -326,19 +327,22 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = NULL;
-	u8 tmp2;
-	fields[0].in_value = &tmp2;
+	fields[0].in_value = NULL;
+	fields[0].check_value = &field0_check_value;
+	fields[0].check_mask = &field0_check_mask;
 
 	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
-
+	fields[1].check_value = NULL;
+	fields[1].check_mask = NULL;
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
-	u8 tmp3;
-	fields[2].in_value = &tmp3;
+	fields[2].in_value = NULL;
+	fields[2].check_value = &field2_check_value;
+	fields[2].check_mask = &field2_check_mask;
 
 	jtag_add_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgtx);
@@ -357,12 +361,10 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 			jtag_add_pathmove(3, path);
 
 			fields[1].in_value = (u8 *)(field1+i);
-			jtag_add_dr_scan(3, fields, TAP_IDLE);
+
+			jtag_add_dr_scan_check(3, fields, TAP_IDLE);
 
 			jtag_add_callback(xscale_getbuf, (u8 *)(field1+i));
-
-			jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
-			jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
 
 			words_scheduled++;
 		}
