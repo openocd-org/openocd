@@ -37,6 +37,8 @@
 
 int jtag_flush_queue_count; /* count # of flushes for profiling / debugging purposes */
 
+static void jtag_add_scan_check(void (*jtag_add_scan)(int num_fields, scan_field_t *fields, tap_state_t state),
+		int num_fields, scan_field_t *fields, tap_state_t state);
 
 /* note that this is not marked as static as it must be available from outside jtag.c for those
    that implement the jtag_xxx() minidriver layer
@@ -549,54 +551,22 @@ void jtag_add_ir_scan_noverify(int num_fields, scan_field_t *fields, tap_state_t
 void jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	/* 8 x 32 bit id's is enough for all invoations */
-	u32 id[8];
-	int modified[8];
-
-	/* if we are to run a verification of the ir scan, we need to get the input back.
-	 * We may have to allocate space if the caller didn't ask for the input back.
-	 *
-	 */
-	if (jtag_verify_capture_ir)
+	int j;
+	for (j = 0; j < num_fields; j++)
 	{
-		int j;
-		for (j = 0; j < num_fields; j++)
+		fields[j].check_value=NULL;
+		fields[j].check_mask=NULL;
+		/* if we are to run a verification of the ir scan, we need to get the input back.
+		 * We may have to allocate space if the caller didn't ask for the input back.
+		 */
+		if (jtag_verify_capture_ir)
 		{
-			modified[j]=0;
-			if ((fields[j].in_value==NULL)&&(fields[j].num_bits<=32))
-			{
-				if (j<8)
-				{
-					modified[j]=1;
-					fields[j].in_value=(u8 *)(id+j);
-				} else
-				{
-					LOG_DEBUG("caller must provide in_value space for verify_capture_ir to work");
-				}
-			}
+			fields[j].check_value=fields[j].tap->expected;
+			fields[j].check_mask=fields[j].tap->expected_mask;
 		}
 	}
 
-	jtag_add_ir_scan_noverify(num_fields, fields, state);
-
-	if (jtag_verify_capture_ir)
-	{
-		int j;
-		for (j = 0; j < num_fields; j++)
-		{
-			jtag_tap_t *tap=fields[j].tap;
-			if (fields[j].in_value!=NULL)
-			{
-				/* we verify max 32 bit long irlens. */
-				jtag_check_value_mask(fields+j, tap->expected, tap->expected_mask);
-			}
-
-			if (modified[j])
-			{
-				fields[j].in_value=NULL;
-			}
-		}
-	}
-
+	jtag_add_scan_check(jtag_add_ir_scan_noverify, num_fields, fields, state);
 }
 
 int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
@@ -733,7 +703,8 @@ static int jtag_check_value_mask_callback(u8 *in, jtag_callback_data_t data1, jt
 	return jtag_check_value_inner(in, (u8 *)data1, (u8 *)data2, (int)data3);
 }
 
-void jtag_add_dr_scan_check(int num_fields, scan_field_t *fields, tap_state_t state)
+static void jtag_add_scan_check(void (*jtag_add_scan)(int num_fields, scan_field_t *fields, tap_state_t state),
+		int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	for (int i=0; i<num_fields; i++)
 	{
@@ -759,7 +730,7 @@ void jtag_add_dr_scan_check(int num_fields, scan_field_t *fields, tap_state_t st
 		}
 	}
 
-	jtag_add_dr_scan(num_fields, fields, state);
+	jtag_add_scan(num_fields, fields, state);
 
 	for (int i=0; i<num_fields; i++)
 	{
@@ -777,9 +748,15 @@ void jtag_add_dr_scan_check(int num_fields, scan_field_t *fields, tap_state_t st
 			fields[i].in_value=NULL;
 		}
 	}
-
-
 }
+
+void jtag_add_dr_scan_check(int num_fields, scan_field_t *fields, tap_state_t state)
+{
+	jtag_add_scan_check(jtag_add_dr_scan, num_fields, fields, state);
+}
+
+
+
 
 int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
 {
