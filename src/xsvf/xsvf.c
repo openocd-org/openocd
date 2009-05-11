@@ -42,20 +42,9 @@
 #endif
 
 #include "xsvf.h"
-
 #include "jtag.h"
-#include "command.h"
-#include "log.h"
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <string.h>
 #include <assert.h>
-
-#include <sys/time.h>
-#include <time.h>
 
 
 /* XSVF commands, from appendix B of xapp503.pdf  */

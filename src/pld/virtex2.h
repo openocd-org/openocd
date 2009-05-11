@@ -20,9 +20,7 @@
 #ifndef VIRTEX2_H
 #define VIRTEX2_H
 
-#include "types.h"
-#include "pld.h"
-#include "xilinx_bit.h"
+#include "jtag.h"
 
 typedef struct virtex2_pld_device_s
 {

@@ -22,14 +22,9 @@
 #endif
 
 #include "virtex2.h"
-
-#include "pld.h"
 #include "xilinx_bit.h"
-#include "command.h"
-#include "log.h"
-#include "jtag.h"
+#include "pld.h"
 
-#include <stdlib.h>
 
 int virtex2_register_commands(struct command_context_s *cmd_ctx);
 int virtex2_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct pld_device_s *pld_device);
