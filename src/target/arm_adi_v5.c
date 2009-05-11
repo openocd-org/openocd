@@ -120,11 +120,10 @@ int adi_jtag_dp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u
 
 	if (invalue)
 	{
-		u8 tmp[4];
-		fields[1].in_value = tmp;
-		jtag_add_dr_scan_now(2, fields, TAP_INVALID);
+		fields[1].in_value = (u8 *)invalue;
+		jtag_add_dr_scan(2, fields, TAP_INVALID);
 
-		*invalue=le_to_h_u32(tmp);
+		jtag_add_callback(arm_le_to_h_u32, (u8 *)invalue);
 	} else
 	{
 
