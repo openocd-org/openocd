@@ -240,21 +240,18 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
 	fields[0].in_value = NULL;
-	
 
 	fields[1].tap = ice_reg->jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	buf_set_u32(fields[1].out_value, 0, 5, reg_addr);
 	fields[1].in_value = NULL;
-	
 
 	fields[2].tap = ice_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
-	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -290,23 +287,19 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	u8 tmp[4];
-	fields[0].in_value = tmp;
-	
+	fields[0].in_value = NULL;
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_DATA]);
 	fields[1].in_value = NULL;
-	
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
-	
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
@@ -318,9 +311,9 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 		if (size == 1)
 			buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
 
-		jtag_add_dr_scan_now(3, fields, TAP_INVALID);
-
-		*data = le_to_h_u32(tmp);
+		fields[0].in_value = (u8 *)data;
+		jtag_add_dr_scan(3, fields, TAP_INVALID);
+		jtag_add_callback(arm_le_to_h_u32, (u8 *)data);
 
 		data++;
 		size--;
@@ -396,23 +389,13 @@ int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = field0_out;
-
 	fields[0].in_value = NULL;
-
-
-	
-
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_DATA]);
-
 	fields[1].in_value = NULL;
-
-
-	
-
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
@@ -420,10 +403,6 @@ int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	buf_set_u32(fields[2].out_value, 0, 1, 1);
 
 	fields[2].in_value = NULL;
-
-
-	
-
 
 	while (size > 0)
 	{
@@ -465,34 +444,19 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-
 	fields[0].in_value = field0_in;
-
-
-	
-
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
-
 	fields[1].in_value = NULL;
-
-
-	
-
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = field2_out;
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
-
 	fields[2].in_value = NULL;
-
-
-	
-
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 	gettimeofday(&lap, NULL);
