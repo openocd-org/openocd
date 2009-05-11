@@ -21,7 +21,6 @@
 #define CFI_H
 
 #include "flash.h"
-#include "target.h"
 
 #define CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7 0xE0 /* DQ5..DQ7 */
 #define CFI_STATUS_POLL_MASK_DQ6_DQ7     0xC0 /* DQ6..DQ7 */

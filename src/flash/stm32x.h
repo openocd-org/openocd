@@ -24,7 +24,6 @@
 #define STM32X_H
 
 #include "flash.h"
-#include "target.h"
 
 typedef struct stm32x_options_s
 {

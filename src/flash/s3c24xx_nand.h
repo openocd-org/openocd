@@ -24,7 +24,7 @@
  * Many thanks to Simtec Electronics for sponsoring this work.
  */
 
-#include "target.h"
+#include "nand.h"
 #include "s3c24xx_regs_nand.h"
 
 typedef struct s3c24xx_nand_controller_s

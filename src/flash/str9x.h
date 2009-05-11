@@ -24,7 +24,6 @@
 #define STR9X_H
 
 #include "flash.h"
-#include "target.h"
 
 typedef struct str9x_flash_bank_s
 {

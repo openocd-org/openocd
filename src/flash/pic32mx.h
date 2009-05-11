@@ -27,7 +27,6 @@
 #define PIC32MX_H
 
 #include "flash.h"
-#include "target.h"
 
 typedef struct pic32mx_flash_bank_s
 {

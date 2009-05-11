@@ -27,7 +27,9 @@
 #define FLASH_H
 
 #include "target.h"
-#include "image.h"
+#include "log.h"
+
+struct image_s;
 
 #define FLASH_MAX_ERROR_STR	(128)
 
@@ -65,7 +67,7 @@ typedef struct flash_driver_s
 
 typedef struct flash_bank_s
 {
-	target_t *target;
+	struct target_s *target;
 	flash_driver_t *driver;
 	void *driver_priv;
 	int bank_number;
@@ -81,8 +83,8 @@ typedef struct flash_bank_s
 extern int flash_register_commands(struct command_context_s *cmd_ctx);
 extern int flash_init_drivers(struct command_context_s *cmd_ctx);
 
-extern int flash_erase_address_range(target_t *target, u32 addr, u32 length);
-extern int flash_write(target_t *target, image_t *image, u32 *written, int erase);
+extern int flash_erase_address_range(struct target_s *target, u32 addr, u32 length);
+extern int flash_write(struct target_s *target, struct image_s *image, u32 *written, int erase);
 extern void flash_set_dirty(void);
 extern int flash_get_bank_count(void);
 extern int default_flash_blank_check(struct flash_bank_s *bank);
@@ -90,7 +92,7 @@ extern int default_flash_mem_blank_check(struct flash_bank_s *bank);
 
 extern flash_bank_t *get_flash_bank_by_num(int num);
 extern flash_bank_t *get_flash_bank_by_num_noprobe(int num);
-extern flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr);
+extern flash_bank_t *get_flash_bank_by_addr(struct target_s *target, u32 addr);
 
 #define ERROR_FLASH_BANK_INVALID			(-900)
 #define ERROR_FLASH_SECTOR_INVALID			(-901)

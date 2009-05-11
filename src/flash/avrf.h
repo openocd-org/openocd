@@ -20,6 +20,8 @@
 #ifndef AVRF_H
 #define AVRF_H
 
+#include "types.h"
+
 typedef struct avrf_type_s
 {
 	char name[15];

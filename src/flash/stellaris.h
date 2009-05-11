@@ -21,7 +21,6 @@
 #define STELLARIS_FLASH_H
 
 #include "flash.h"
-#include "target.h"
 
 typedef struct stellaris_flash_bank_s
 {

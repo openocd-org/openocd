@@ -24,7 +24,6 @@
 #define STR9XPEC_H
 
 #include "flash.h"
-#include "target.h"
 #include "jtag.h"
 
 typedef struct str9xpec_flash_controller_s

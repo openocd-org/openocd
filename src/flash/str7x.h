@@ -24,7 +24,6 @@
 #define STR7X_H
 
 #include "flash.h"
-#include "target.h"
 
 typedef struct str7x_flash_bank_s
 {

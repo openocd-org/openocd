@@ -24,7 +24,6 @@
 #define AT91SAM7_H
 
 #include "flash.h"
-#include "target.h"
 
 typedef struct at91sam7_flash_bank_s
 {

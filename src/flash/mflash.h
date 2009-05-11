@@ -20,6 +20,8 @@
 #ifndef _MFLASH_H
 #define _MFLASH_H
 
+#include "target.h"
+
 typedef unsigned long mg_io_uint32;
 typedef unsigned short mg_io_uint16;
 typedef unsigned char mg_io_uint8;

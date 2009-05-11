@@ -21,7 +21,6 @@
 #define LPC2000_H
 
 #include "flash.h"
-#include "target.h"
 
 typedef struct lpc2000_flash_bank_s
 {

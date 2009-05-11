@@ -22,7 +22,6 @@
 #define lpc288x_H
 
 #include "flash.h"
-#include "target.h"
 
 typedef struct lpc288x_flash_bank_s
 {
