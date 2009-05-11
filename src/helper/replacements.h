@@ -26,10 +26,6 @@
 #ifndef REPLACEMENTS_H
 #define REPLACEMENTS_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include "types.h"
 #include "system.h"
 
