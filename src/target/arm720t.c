@@ -117,10 +117,9 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 
 	if (in)
 	{
-		u8 tmp[4];
-		fields[1].in_value = tmp;
-		jtag_add_dr_scan_now(2, fields, TAP_INVALID);
-		*in=flip_u32(le_to_h_u32(tmp), 32);
+		fields[1].in_value = (u8 *)in;
+		jtag_add_dr_scan(2, fields, TAP_INVALID);
+		jtag_add_callback(arm7flip32, (u8 *)in);
 	} else
 	{
 		jtag_add_dr_scan(2, fields, TAP_INVALID);
