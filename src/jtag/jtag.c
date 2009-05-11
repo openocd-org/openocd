@@ -781,12 +781,6 @@ void jtag_add_dr_scan_check(int num_fields, scan_field_t *fields, tap_state_t st
 
 }
 
-void jtag_add_dr_scan_now(int num_fields, scan_field_t *fields, tap_state_t state)
-{
-	jtag_add_dr_scan(num_fields, fields, state);
-	jtag_execute_queue_noclear();
-}
-
 int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	int j;

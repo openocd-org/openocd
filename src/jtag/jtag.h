@@ -567,10 +567,6 @@ extern void jtag_add_dr_scan(int num_fields, scan_field_t* fields, tap_state_t e
 
 /* This version of jtag_add_dr_scan() uses the check_value/mask fields */
 extern void jtag_add_dr_scan_check(int num_fields, scan_field_t* fields, tap_state_t endstate);
-/* same as jtag_add_dr_scan but the scan is executed immediately. sets jtag_error if there
- * was a failure.
- */
-extern void jtag_add_dr_scan_now(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern int  interface_jtag_add_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern void jtag_add_plain_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern int  interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
