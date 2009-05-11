@@ -21,7 +21,8 @@
 #define ARMV4_5_CACHE_H
 
 #include "types.h"
-#include "command.h"
+
+struct command_context_s;
 
 typedef struct armv4_5_cachesize_s
 {

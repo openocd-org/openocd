@@ -38,14 +38,8 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "arm_adi_v5.h"
-#include "jtag.h"
-#include "log.h"
 #include "time_support.h"
-#include <stdlib.h>
-#include <string.h>
 
 /*
  * Transaction Mode:

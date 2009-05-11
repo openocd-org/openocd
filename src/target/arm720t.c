@@ -22,12 +22,8 @@
 #endif
 
 #include "arm720t.h"
-#include "jtag.h"
-#include "log.h"
 #include "time_support.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_

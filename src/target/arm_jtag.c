@@ -26,11 +26,6 @@
 
 #include "arm_jtag.h"
 
-#include "binarybuffer.h"
-#include "log.h"
-#include "jtag.h"
-
-#include <stdlib.h>
 
 #if 0
 #define _ARM_JTAG_SCAN_N_CHECK_

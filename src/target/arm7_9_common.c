@@ -30,27 +30,12 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "embeddedice.h"
-#include "target.h"
 #include "target_request.h"
-#include "armv4_5.h"
-#include "arm_jtag.h"
-#include "jtag.h"
-#include "log.h"
 #include "arm7_9_common.h"
-#include "breakpoints.h"
 #include "time_support.h"
 #include "arm_simulator.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <errno.h>
 
 int arm7_9_debug_entry(target_t *target);
 int arm7_9_enable_sw_bkpts(struct target_s *target);

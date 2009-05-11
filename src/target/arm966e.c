@@ -26,17 +26,6 @@
 
 #include "arm966e.h"
 
-#include "arm7_9_common.h"
-#include "register.h"
-#include "target.h"
-#include "armv4_5.h"
-#include "embeddedice.h"
-#include "log.h"
-#include "jtag.h"
-#include "arm_jtag.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_

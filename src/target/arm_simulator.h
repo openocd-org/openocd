@@ -20,11 +20,11 @@
 #ifndef ARM_SIMULATOR_H
 #define ARM_SIMULATOR_H
 
-#include "target.h"
 #include "types.h"
 
-extern int arm_simulate_step(target_t *target, u32 *dry_run_pc);
+struct target_s;
 
+extern int arm_simulate_step(struct target_s *target, u32 *dry_run_pc);
 
 #define ERROR_ARM_SIMULATOR_NOT_IMPLEMENTED	(-700)
 

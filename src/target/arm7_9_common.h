@@ -29,11 +29,7 @@
 #ifndef ARM7_9_COMMON_H
 #define ARM7_9_COMMON_H
 
-#include "armv4_5.h"
-#include "arm_jtag.h"
 #include "breakpoints.h"
-#include "target.h"
-
 #include "etm.h"
 
 #define	ARM7_9_COMMON_MAGIC 0x0a790a79

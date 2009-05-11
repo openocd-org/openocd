@@ -24,14 +24,12 @@
 #include "config.h"
 #endif
 
-#include "target.h"
 #include "armv4_5.h"
 #include "arm_disassembler.h"
 #include "arm_simulator.h"
 #include "log.h"
 #include "binarybuffer.h"
 
-#include <string.h>
 
 u32 arm_shift(u8 shift, u32 Rm, u32 shift_amount, u8 *carry)
 {

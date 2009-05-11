@@ -22,9 +22,7 @@
 #endif
 
 #include "armv4_5_cache.h"
-
 #include "log.h"
-#include "command.h"
 
 int armv4_5_identify_cache(u32 cache_type_reg, armv4_5_cache_common_t *cache)
 {

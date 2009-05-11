@@ -21,13 +21,9 @@
 #include "config.h"
 #endif
 
-#include "arm7_9_common.h"
 #include "log.h"
-#include "command.h"
 #include "armv4_5_mmu.h"
-#include "target.h"
 
-#include <stdlib.h>
 
 u32 armv4mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 va, int *type, u32 *cb, int *domain, u32 *ap);
 

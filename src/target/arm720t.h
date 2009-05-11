@@ -20,13 +20,8 @@
 #ifndef ARM720T_H
 #define ARM720T_H
 
-#include "target.h"
-#include "register.h"
-#include "embeddedice.h"
-#include "arm_jtag.h"
 #include "arm7tdmi.h"
 #include "armv4_5_mmu.h"
-#include "armv4_5_cache.h"
 
 #define	ARM720T_COMMON_MAGIC 0xa720a720
 

@@ -23,10 +23,6 @@
 #ifndef ARM966E_H
 #define ARM966E_H
 
-#include "target.h"
-#include "register.h"
-#include "embeddedice.h"
-#include "arm_jtag.h"
 #include "arm9tdmi.h"
 
 #define	ARM966E_COMMON_MAGIC 0x20f920f9

@@ -26,9 +26,6 @@
 #ifndef ARMV7M_COMMON_H
 #define ARMV7M_COMMON_H
 
-#include "register.h"
-#include "target.h"
-#include "arm_jtag.h"
 #include "arm_adi_v5.h"
 
 /* define for enabling armv7 gdb workarounds */

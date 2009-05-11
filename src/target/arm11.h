@@ -22,11 +22,7 @@
 #ifndef ARM11_H
 #define ARM11_H
 
-#include "target.h"
-#include "register.h"
 #include "embeddedice.h"
-#include "arm_jtag.h"
-#include "types.h"
 
 #define asizeof(x)	(sizeof(x) / sizeof((x)[0]))
 

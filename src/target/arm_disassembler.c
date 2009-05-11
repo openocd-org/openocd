@@ -22,10 +22,8 @@
 #endif
 
 #include "arm_disassembler.h"
-
 #include "log.h"
 
-#include <string.h>
 
 /* textual represenation of the condition field */
 /* ALways (default) is ommitted (empty string) */

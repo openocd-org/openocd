@@ -20,13 +20,8 @@
 #ifndef ARM920T_H
 #define ARM920T_H
 
-#include "target.h"
-#include "register.h"
-#include "embeddedice.h"
-#include "arm_jtag.h"
 #include "arm9tdmi.h"
 #include "armv4_5_mmu.h"
-#include "armv4_5_cache.h"
 
 #define	ARM920T_COMMON_MAGIC 0xa920a920
 

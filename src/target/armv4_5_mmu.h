@@ -21,6 +21,7 @@
 #define ARMV4_5_MMU_H
 
 #include "armv4_5_cache.h"
+#include "target.h"
 
 typedef struct armv4_5_mmu_common_s
 {

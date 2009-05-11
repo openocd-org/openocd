@@ -27,21 +27,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
-#include "arm_disassembler.h"
-
 #include "armv4_5.h"
-
-#include "target.h"
-#include "register.h"
-#include "log.h"
+#include "arm_disassembler.h"
 #include "binarybuffer.h"
-#include "command.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 bitfield_desc_t armv4_5_psr_bitfield_desc[] =
 {

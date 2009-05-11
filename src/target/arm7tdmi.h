@@ -23,12 +23,7 @@
 #ifndef ARM7TDMI_H
 #define ARM7TDMI_H
 
-#include "target.h"
-#include "register.h"
-#include "armv4_5.h"
 #include "embeddedice.h"
-#include "arm_jtag.h"
-#include "arm7_9_common.h"
 
 #define	ARM7TDMI_COMMON_MAGIC 0x00a700a7
 
