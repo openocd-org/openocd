@@ -27,6 +27,10 @@
 #include "config.h"
 #endif
 
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
 #ifndef u8
 typedef unsigned char u8;
 #endif
