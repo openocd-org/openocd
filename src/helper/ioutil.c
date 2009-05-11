@@ -51,7 +51,9 @@
 #include <ifaddrs.h>
 #endif
 #ifdef HAVE_MALLOC_H
+#if !BUILD_ECOSBOARD
 #include <malloc.h>
+#endif
 #endif
 //#ifdef HAVE_STRINGS_H
 //#include <strings.h>

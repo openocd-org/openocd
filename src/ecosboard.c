@@ -21,53 +21,69 @@
 #include "config.h"
 #endif
 
-#include "configuration.h"
-#include "time_support.h"
-
+#include "log.h"
+#include "types.h"
 #include "jtag.h"
+#include "configuration.h"
 #include "xsvf.h"
 #include "svf.h"
 #include "target.h"
 #include "flash.h"
 #include "nand.h"
 #include "pld.h"
-#include "rom.h"
 
+#include "command.h"
 #include "server.h"
 #include "telnet_server.h"
 #include "gdb_server.h"
 
+#include <time_support.h>
+#include <sys/time.h>
+#include <strings.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+
+#include <cyg/io/flash.h>
 #include <pkgconf/fs_jffs2.h>	// Address of JFFS2
 #include <network.h>
 
-#include <arpa/inet.h>
-#include <dirent.h>
-#include <net/if.h>
-#include <netdb.h>
-#include <netinet/tcp.h>
-#include <stdarg.h>
-#include <sys/ioctl.h>
+#include <fcntl.h>
 #include <sys/stat.h>
-
+#include <cyg/fileio/fileio.h>
+#include <dirent.h>
 #include <cyg/athttpd/http.h>
 #include <cyg/athttpd/socket.h>
 #include <cyg/athttpd/handler.h>
 #include <cyg/athttpd/cgi.h>
 #include <cyg/athttpd/forms.h>
 #include <cyg/discover/discover.h>
-#include <cyg/fileio/fileio.h>
 #include <cyg/hal/hal_diag.h>
-#include <cyg/io/flash.h>
+#include <cyg/kernel/kapi.h>
 #include <cyg/io/serialio.h>
 #include <cyg/io/io.h>
-#include <cyg/kernel/kapi.h>
-
-#ifdef HAVE_IFADDRS_H
+#include <netinet/tcp.h>
+#include "rom.h"
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <stdio.h>
 #include <ifaddrs.h>
-#endif
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
+#include <string.h>
+
+#include <unistd.h>
+#include <stdio.h>
+
 
 #define MAX_IFS 64
 #if defined(CYGPKG_NET_FREEBSD_STACK)
