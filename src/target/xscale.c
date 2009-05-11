@@ -252,7 +252,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
-	
+
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -288,6 +288,12 @@ int xscale_read_dcsr(target_t *target)
 	/* DANGER!!! this must be here. It will make sure that the arguments
 	 * to jtag_set_check_value() does not go out of scope! */
 	return jtag_execute_queue();
+}
+
+
+static void xscale_getbuf(u8 *in)
+{
+	*((u32 *)in)=buf_get_u32(in, 0, 32);
 }
 
 int xscale_receive(target_t *target, u32 *buffer, int num_words)
@@ -326,9 +332,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[1].tap = xscale->jtag_info.tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
-	u8 tmp[4];
-	fields[1].in_value = tmp;
-	
+
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -351,12 +355,14 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 			fields[0].in_value = &field0[i];
 
 			jtag_add_pathmove(3, path);
-			jtag_add_dr_scan_now(3, fields, TAP_IDLE);
+
+			fields[1].in_value = (u8 *)(field1+i);
+			jtag_add_dr_scan(3, fields, TAP_IDLE);
+
+			jtag_add_callback(xscale_getbuf, (u8 *)(field1+i));
 
 			jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
 			jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
-
-			field1[i]=buf_get_u32(tmp, 0, 32);
 
 			words_scheduled++;
 		}
@@ -444,7 +450,7 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
 	fields[1].in_value = xscale->reg_cache->reg_list[XSCALE_TX].value;
-	
+
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -536,7 +542,7 @@ int xscale_write_rx(target_t *target)
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_RX].value;
 	fields[1].in_value = NULL;
-	
+
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -708,7 +714,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[1].num_bits = 32;
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 	fields[1].in_value = NULL;
-	
+
 
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
@@ -778,7 +784,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	fields[0].in_value = NULL;
 
 
-	
+
 
 
 	fields[1].tap = xscale->jtag_info.tap;
@@ -788,7 +794,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 	fields[1].in_value = NULL;
 
 
-	
+
 
 
 	jtag_add_dr_scan(2, fields, TAP_INVALID);
@@ -840,7 +846,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	fields[0].in_value = NULL;
 
 
-	
+
 
 
 	fields[1].tap = xscale->jtag_info.tap;
@@ -850,7 +856,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 	fields[1].in_value = NULL;
 
 
-	
+
 
 
 	jtag_add_dr_scan(2, fields, TAP_INVALID);
