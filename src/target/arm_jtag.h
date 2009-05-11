@@ -56,5 +56,18 @@ int arm_jtag_buf_to_be32(u8 *in_buf, void *priv, struct scan_field_s *field);
 int arm_jtag_buf_to_be16(u8 *in_buf, void *priv, struct scan_field_s *field);
 int arm_jtag_buf_to_8(u8 *in_buf, void *priv, struct scan_field_s *field);
 
+
+/* use this as a static so we can inline it in -O3 and refer to it via a pointer  */
+static __inline__ void arm7flip32(u8 *in)
+{
+	*((u32 *)in)=flip_u32(le_to_h_u32(in), 32);
+}
+
+static __inline__ void arm_le_to_h_u32(u8 *in)
+{
+	*((u32 *)in)=le_to_h_u32(in);
+}
+
+
 #endif /* ARM_JTAG */
 
