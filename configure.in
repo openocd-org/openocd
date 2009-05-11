@@ -250,6 +250,19 @@ if test $debug_usb_comms = yes; then
 fi
 
 
+debug_malloc=no
+AC_ARG_ENABLE(malloc_logging,
+	AS_HELP_STRING([--enable-malloc-logging],
+  		[Include free space in logging messages (requires malloc.h).]), 
+	[debug_malloc=$enableval], [])
+
+AC_MSG_CHECKING([whether to enable malloc free space logging]);
+AC_MSG_RESULT($debug_malloc)
+if test $debug_malloc = yes; then
+  AC_DEFINE([_DEBUG_FREE_SPACE_],[1], [Include malloc free space in logging])
+fi
+
+
 AC_ARG_ENABLE(parport,
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]), 
   [build_parport=$enableval], [build_parport=no])

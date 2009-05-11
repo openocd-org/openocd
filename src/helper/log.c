@@ -41,9 +41,12 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-#define PRINT_MEM() 0
-#if PRINT_MEM()
+#ifdef _DEBUG_FREE_SPACE_
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#else
+#error "malloc.h is required to use --enable-malloc-logging"
+#endif
 #endif
 
 int debug_level = -1;
@@ -99,16 +102,16 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		{
 			/* print with count and time information */
 			int t=(int)(timeval_ms()-start);
-#if PRINT_MEM()
+#ifdef _DEBUG_FREE_SPACE_
 			struct mallinfo info;
 			info = mallinfo();
 #endif
 			fprintf(log_output, "%s%d %d %s:%d %s()"
-#if PRINT_MEM()
+#ifdef _DEBUG_FREE_SPACE_
 					" %d"
 #endif
 					": %s", log_strings[level+1], count, t, file, line, function,
-#if PRINT_MEM()
+#ifdef _DEBUG_FREE_SPACE_
 					info.fordblks,
 #endif
 					string);
