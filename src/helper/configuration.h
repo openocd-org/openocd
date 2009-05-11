@@ -24,7 +24,6 @@
 #define CONFIGURATION_H
 
 #include "command.h"
-#include "types.h"
 
 extern int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]);
 extern int parse_config_file(struct command_context_s *cmd_ctx);

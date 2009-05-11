@@ -28,14 +28,7 @@
 
 #define FILEIO_MAX_ERROR_STRING		(128)
 
-#include "types.h"
-
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <ctype.h>
+#include "replacements.h"
 
 enum fileio_type
 {

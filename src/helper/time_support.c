@@ -27,11 +27,8 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
 #include "time_support.h"
 #include "log.h"
-
-#include <stdlib.h>
 
 
 /* calculate difference between two struct timeval values */

@@ -29,8 +29,6 @@
 #include "replacements.h"
 #include "command.h"
 
-#include <stdarg.h>
-
 /* logging priorities 
  * LOG_LVL_SILENT - turn off all output. In lieu of try+catch this can be used as a 
  *                  feeble ersatz.

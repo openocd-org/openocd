@@ -24,14 +24,9 @@
 #include "config.h"
 #endif
 
-#include "types.h"
-#include "command.h"
 #include "configuration.h"
 #include "log.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 static size_t num_config_files;
 static char** config_file_names;

@@ -24,18 +24,11 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
-#include "types.h"
-#include "command.h"
 #include "configuration.h"
 #include "log.h"
 #include "server.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <getopt.h>
-#include <string.h>
 
 static int help_flag, version_flag;
 

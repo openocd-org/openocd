@@ -27,18 +27,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "log.h"
-#include "configuration.h"
 #include "time_support.h"
-#include "command.h"
 #include "server.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <stdarg.h>
 
 #ifdef _DEBUG_FREE_SPACE_

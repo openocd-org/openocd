@@ -27,20 +27,9 @@
 #include "config.h"
 #endif
 
-#include "types.h"
-#include "replacements.h"
 #include "log.h"
 #include "configuration.h"
-
 #include "fileio.h"
-
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <ctype.h>
 
 static inline int fileio_open_local(fileio_t *fileio)
 {

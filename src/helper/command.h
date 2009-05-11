@@ -23,7 +23,16 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+/* Integrate the JIM TCL interpretor into the command processing. */
+#if BUILD_ECOSBOARD
 #include <stdio.h>
+#include <stdarg.h>
+/* Jim is provied by eCos */
+#include <cyg/jimtcl/jim.h>
+#else
+#define JIM_EMBEDDED
+#include "jim.h"
+#endif
 
 enum command_mode
 {
@@ -86,16 +95,6 @@ extern void process_jim_events(void);
 #define		ERROR_COMMAND_NOTFOUND				(-602)
 
 extern int fast_and_dangerous;
-
-/* Integrate the JIM TCL interpretor into the command processing. */
-#include <stdarg.h>
-#if BUILD_ECOSBOARD
-/* Jim is provied by eCos */
-#include <cyg/jimtcl/jim.h>
-#else
-#define JIM_EMBEDDED
-#include "jim.h"
-#endif
 
 extern Jim_Interp *interp;
 

@@ -24,12 +24,7 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
-#include <string.h>
-
-#include "types.h"
 #include "log.h"
-
 #include "binarybuffer.h"
 
 const unsigned char bit_reverse_table256[] =

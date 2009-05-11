@@ -30,22 +30,14 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
+// @todo the inclusion of target.h here is a layering violation
 #include "target.h"
 #include "command.h"
 #include "configuration.h"
-
 #include "log.h"
 #include "time_support.h"
 #include "jim-eventloop.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
 
 int fast_and_dangerous = 0;
 Jim_Interp *interp = NULL;
