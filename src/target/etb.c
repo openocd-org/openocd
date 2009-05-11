@@ -157,6 +157,13 @@ static int etb_get_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
+
+static void etb_getbuf(u8 *in)
+{
+	*((u32 *)in)=buf_get_u32(in, 0, 32);
+}
+
+
 static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 {
 	scan_field_t fields[3];
@@ -169,9 +176,8 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	fields[0].tap = etb->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	u8 tmp[4];
-	fields[0].in_value = tmp;
-
+	fields[0].in_value = NULL;
+	
 	fields[1].tap = etb->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
@@ -197,9 +203,10 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 		else
 			buf_set_u32(fields[1].out_value, 0, 7, 0);
 
-		jtag_add_dr_scan_now(3, fields, TAP_INVALID);
+		fields[0].in_value = (u8 *)(data+i);
+		jtag_add_dr_scan(3, fields, TAP_INVALID);
 
-		data[i]=buf_get_u32(tmp, 0, 32);
+		jtag_add_callback(etb_getbuf, (u8 *)(data+i));
 	}
 
 	jtag_execute_queue();
