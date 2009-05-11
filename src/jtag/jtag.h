@@ -269,6 +269,15 @@ typedef struct scan_field_s
 	int         num_bits;           /* number of bits this field specifies (up to 32) */
 	u8*         out_value;          /* value to be scanned into the device */
 	u8*         in_value;           /* pointer to a 32-bit memory location to take data scanned out */
+
+	u8*         check_value;        /* Used together with jtag_add_dr_scan_check() to check data clocked
+	                                   in */
+	u8*         check_mask;         /* mask to go with check_value */
+
+	/* internal work space */
+	int			allocated;			/* in_value has been allocated for the queue */
+	int			modified;			/* did we modify the in_value? */
+	u32			intmp;				/* temporary storage for checking synchronously */
 } scan_field_t;
 
 enum scan_type {
@@ -555,6 +564,9 @@ extern void jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t e
 extern void jtag_add_ir_scan_noverify(int num_fields, scan_field_t *fields, tap_state_t state);
 extern int  interface_jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern void jtag_add_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
+
+/* This version of jtag_add_dr_scan() uses the check_value/mask fields */
+extern void jtag_add_dr_scan_check(int num_fields, scan_field_t* fields, tap_state_t endstate);
 /* same as jtag_add_dr_scan but the scan is executed immediately. sets jtag_error if there
  * was a failure.
  */
@@ -573,7 +585,7 @@ extern int  interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t* field
 typedef void (*jtag_callback1_t)(u8 *in);
 
 #ifndef HAVE_JTAG_MINIDRIVER_H
-/* A simpler version of jtag_add_callback3 */
+/* A simpler version of jtag_add_callback4 */
 extern void jtag_add_callback(jtag_callback1_t, u8 *in);
 #else
 /* implemented by minidriver */
@@ -588,7 +600,7 @@ typedef void *jtag_callback_data_t;
  * The callback is invoked with three arguments. The first argument is
  * the pointer to the data clocked in.
  */
-typedef int (*jtag_callback_t)(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2);
+typedef int (*jtag_callback_t)(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
 
 
 /* This callback can be executed immediately the queue has been flushed. Note that
@@ -623,7 +635,7 @@ typedef int (*jtag_callback_t)(u8 *in, jtag_callback_data_t data1, jtag_callback
  * callbacks may or may not be invoked depending on driver implementation.
  */
 #ifndef HAVE_JTAG_MINIDRIVER_H
-extern void jtag_add_callback3(jtag_callback_t, u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2);
+extern void jtag_add_callback4(jtag_callback_t, u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
 #else
 /* implemented by minidriver */
 #endif

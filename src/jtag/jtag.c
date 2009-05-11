@@ -77,7 +77,7 @@ struct jtag_callback_entry
 	u8 *in;
 	jtag_callback_data_t data1;
 	jtag_callback_data_t data2;
-
+	jtag_callback_data_t data3;
 };
 
 
@@ -725,6 +725,62 @@ void jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 		jtag_error=retval;
 }
 
+
+int jtag_check_value_inner(u8 *captured, u8 *in_check_value, u8 *in_check_mask, int num_bits);
+
+static int jtag_check_value_mask_callback(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
+{
+	return jtag_check_value_inner(in, (u8 *)data1, (u8 *)data2, (int)data3);
+}
+
+void jtag_add_dr_scan_check(int num_fields, scan_field_t *fields, tap_state_t state)
+{
+	for (int i=0; i<num_fields; i++)
+	{
+		fields[i].allocated=0;
+		fields[i].modified=0;
+		if ((fields[i].check_value!=NULL)&&(fields[i].in_value==NULL))
+		{
+			fields[i].modified=1;
+			/* we need storage space... */
+#ifdef HAVE_JTAG_MINIDRIVER_H
+			if (fields[i].num_bits<=32)
+			{
+				/* This is enough space and we're executing this synchronously */
+				fields[i].in_value=(u8 *)&fields[i].intmp;
+			} else
+			{
+				fields[i].in_value=(u8 *)malloc(CEIL(fields[i].num_bits, 8));
+				fields[i].allocated=1;
+			}
+#else
+			fields[i].in_value=(u8 *)cmd_queue_alloc(CEIL(fields[i].num_bits, 8));
+#endif
+		}
+	}
+
+	jtag_add_dr_scan(num_fields, fields, state);
+
+	for (int i=0; i<num_fields; i++)
+	{
+		if ((fields[i].check_value!=NULL)&&(fields[i].in_value!=NULL))
+		{
+			/* this is synchronous for a minidriver */
+			jtag_add_callback4(jtag_check_value_mask_callback, fields[i].in_value, fields[i].check_value, fields[i].check_mask, (jtag_callback_data_t)fields[i].num_bits);
+		}
+		if (fields[i].allocated)
+		{
+			free(fields[i].in_value);
+		}
+		if (fields[i].modified)
+		{
+			fields[i].in_value=NULL;
+		}
+	}
+
+
+}
+
 void jtag_add_dr_scan_now(int num_fields, scan_field_t *fields, tap_state_t state)
 {
 	jtag_add_dr_scan(num_fields, fields, state);
@@ -1362,10 +1418,9 @@ static const char *jtag_tap_name(jtag_tap_t *tap)
 	return (tap == NULL) ? "(unknown)" : tap->dotted_name;
 }
 
-int jtag_check_value_inner(u8 *captured, scan_field_t *field, u8 *in_check_value, u8 *in_check_mask)
+int jtag_check_value_inner(u8 *captured, u8 *in_check_value, u8 *in_check_mask, int num_bits)
 {
 	int retval = ERROR_OK;
-	int num_bits = field->num_bits;
 
 	int compare_failed = 0;
 
@@ -1379,8 +1434,10 @@ int jtag_check_value_inner(u8 *captured, scan_field_t *field, u8 *in_check_value
 		 * only report a problem when there wasn't a handler, or if the handler
 		 * acknowledged the error
 		 */
+		/*
 		LOG_WARNING("TAP %s:",
 					jtag_tap_name(field->tap));
+					*/
 		if (compare_failed)
 		{
 			char *captured_char = buf_to_str(captured, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
@@ -1422,7 +1479,7 @@ void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask)
 
 	jtag_execute_queue_noclear();
 
-	int retval=jtag_check_value_inner(field->in_value, field, value, mask);
+	int retval=jtag_check_value_inner(field->in_value, value, mask, field->num_bits);
 	jtag_set_error(retval);
 }
 
@@ -1447,7 +1504,7 @@ enum scan_type jtag_scan_type(scan_command_t *cmd)
 
 #ifndef HAVE_JTAG_MINIDRIVER_H
 /* add callback to end of queue */
-void jtag_add_callback3(jtag_callback_t callback, u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2)
+void jtag_add_callback4(jtag_callback_t callback, u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
 {
 	struct jtag_callback_entry *entry=cmd_queue_alloc(sizeof(struct jtag_callback_entry));
 
@@ -1456,6 +1513,7 @@ void jtag_add_callback3(jtag_callback_t callback, u8 *in, jtag_callback_data_t d
 	entry->in=in;
 	entry->data1=data1;
 	entry->data2=data2;
+	entry->data3=data3;
 
 	if (jtag_callback_queue_head==NULL)
 	{
@@ -1469,7 +1527,7 @@ void jtag_add_callback3(jtag_callback_t callback, u8 *in, jtag_callback_data_t d
 }
 
 
-static int jtag_convert_to_callback3(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2)
+static int jtag_convert_to_callback4(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
 {
 	((jtag_callback1_t)data1)(in);
 	return ERROR_OK;
@@ -1477,7 +1535,7 @@ static int jtag_convert_to_callback3(u8 *in, jtag_callback_data_t data1, jtag_ca
 
 void jtag_add_callback(jtag_callback1_t callback, u8 *in)
 {
-	jtag_add_callback3(jtag_convert_to_callback3, in, (jtag_callback_data_t)callback, 0);
+	jtag_add_callback4(jtag_convert_to_callback4, in, (jtag_callback_data_t)callback, 0, 0);
 }
 #endif
 
@@ -1500,7 +1558,7 @@ int interface_jtag_execute_queue(void)
 		struct jtag_callback_entry *entry;
 		for (entry=jtag_callback_queue_head; entry!=NULL; entry=entry->next)
 		{
-			retval=entry->callback(entry->in, entry->data1, entry->data2);
+			retval=entry->callback(entry->in, entry->data1, entry->data2, entry->data3);
 			if (retval!=ERROR_OK)
 				break;
 		}

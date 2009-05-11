@@ -244,7 +244,7 @@ void arm_endianness(u8 *tmp, void *in, int size, int be, int flip)
 	}
 }
 
-static int arm7endianness(u8 *in, jtag_callback_data_t size, jtag_callback_data_t be)
+static int arm7endianness(u8 *in, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t dummy)
 {
 	arm_endianness(in, in, (int)size, (int)be, 1);
 	return ERROR_OK;
@@ -278,7 +278,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 
 	jtag_add_dr_scan(2, fields, TAP_INVALID);
 
-	jtag_add_callback3(arm7endianness, in, (jtag_callback_data_t)size, (jtag_callback_data_t)be);
+	jtag_add_callback4(arm7endianness, in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, NULL);
 
 	jtag_add_runtest(0, TAP_INVALID);
 
