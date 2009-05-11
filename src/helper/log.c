@@ -29,6 +29,7 @@
 
 #include "log.h"
 #include "time_support.h"
+// @todo the inclusion of server.h here is a layering violation
 #include "server.h"
 
 #include <stdarg.h>
