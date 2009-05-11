@@ -24,48 +24,39 @@
 #endif
 
 #include "log.h"
-#include "types.h"
-#include "configuration.h"
-#include "target.h"
+#include "time_support.h"
 
-#include "command.h"
-
-#include <time_support.h>
-#include <sys/time.h>
-#include <strings.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#if !BUILD_ECOSBOARD
-#include <malloc.h>
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
 #endif
-#include <errno.h>
-
-
-#include <fcntl.h>
-#include <sys/stat.h>
+#ifdef HAVE_DIRENT_H
 #include <dirent.h>
-#include <netinet/tcp.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
+#endif
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <string.h>
-
-#if !defined(__CYGWIN__)
+#endif
+#ifdef HAVE_NET_IF_H
+#include <net/if.h>
+#endif
+//#ifdef HAVE_NETINET_TCP_H
+//#include <netinet/tcp.h>
+//#endif
+#ifdef HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+#ifdef HAVE_IFADDRS_H
 #include <ifaddrs.h>
 #endif
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+//#ifdef HAVE_STRINGS_H
+//#include <strings.h>
+//#endif
 
-#include <unistd.h>
-#include <stdio.h>
 
 int handle_rm_command(struct command_context_s *cmd_ctx, char *cmd,
 		char **args, int argc)
