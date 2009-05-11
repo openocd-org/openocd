@@ -94,11 +94,6 @@ proc lunion {a b} {
 }
  
 
-# encode text
-proc encode {a} {
-	return [string map {\n <br/> { } {&nbsp;} \t {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} > &gt; < &lt; / &#47;} $a]
-}
-
 proc first_flash_base {} {
 	set t [lindex 0 [ocd_flash_banks]]
 	return $t(base)
