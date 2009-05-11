@@ -21,10 +21,8 @@
 #include "config.h"
 #endif
 
-#include "log.h"
 #include "tms470.h"
-#include <string.h>
-#include <unistd.h>
+
 
 static int tms470_register_commands(struct command_context_s *cmd_ctx);
 static int tms470_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);

@@ -26,16 +26,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-#include "log.h"
-
-#include <stdlib.h>
-#include <string.h>
-
 #include "nand.h"
-#include "target.h"
 #include "armv4_5.h"
 #include "binarybuffer.h"
+
 
 typedef struct orion_nand_controller_s
 {

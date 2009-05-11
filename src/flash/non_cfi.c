@@ -23,13 +23,9 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
-
-#include "log.h"
-
-#include "flash.h"
-#include "cfi.h"
 #include "non_cfi.h"
+#include "cfi.h"
+
 
 #define KB 1024
 #define MB (1024*1024)

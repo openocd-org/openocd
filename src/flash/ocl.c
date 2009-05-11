@@ -21,21 +21,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "ocl.h"
-
 #include "flash.h"
-#include "target.h"
-#include "log.h"
-#include "binarybuffer.h"
-#include "types.h"
 #include "embeddedice.h"
-#include "arm7_9_common.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 static int ocl_register_commands(struct command_context_s *cmd_ctx);
 static int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);

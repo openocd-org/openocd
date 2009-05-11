@@ -21,18 +21,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "avrf.h"
 #include "avrt.h"
 #include "flash.h"
-#include "target.h"
-#include "log.h"
-#include "algorithm.h"
-#include "binarybuffer.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 /* AVR_JTAG_Instructions */
 #define AVR_JTAG_INS_LEN							4

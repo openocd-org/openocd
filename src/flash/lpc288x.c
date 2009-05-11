@@ -31,19 +31,9 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "lpc288x.h"
-
-#include "flash.h"
-#include "target.h"
-#include "log.h"
 #include "binarybuffer.h"
-#include "types.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #define LOAD_TIMER_ERASE	0
 #define LOAD_TIMER_WRITE	1

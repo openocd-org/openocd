@@ -27,20 +27,9 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "str9x.h"
-#include "flash.h"
-#include "target.h"
-#include "log.h"
-#include "armv4_5.h"
 #include "arm966e.h"
-#include "algorithm.h"
-#include "binarybuffer.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 static u32 bank1start = 0x00080000;
 

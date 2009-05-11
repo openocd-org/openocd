@@ -23,18 +23,11 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-#include "time_support.h"
 #include "flash.h"
-#include "target.h"
-#include "log.h"
 #include "armv4_5.h"
-#include "algorithm.h"
 #include "binarybuffer.h"
+#include "time_support.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 static int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int aduc702x_register_commands(struct command_context_s *cmd_ctx);

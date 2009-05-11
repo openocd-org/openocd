@@ -28,20 +28,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "stellaris.h"
-#include "cortex_m3.h"
-
-#include "flash.h"
-#include "target.h"
-#include "log.h"
+#include "armv7m.h"
 #include "binarybuffer.h"
-#include "types.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #define DID0_VER(did0) ((did0>>28)&0x07)
 static int stellaris_register_commands(struct command_context_s *cmd_ctx);

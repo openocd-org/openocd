@@ -21,20 +21,11 @@
 #include "config.h"
 #endif
 
-#include <ctype.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <inttypes.h>
-
-#include "command.h"
-#include "log.h"
-#include "target.h"
+#include "mflash.h"
 #include "time_support.h"
 #include "fileio.h"
-#include "mflash.h"
+#include "log.h"
+
 
 static int s3c2440_set_gpio_to_output (mflash_gpio_num_t gpio);
 static int s3c2440_set_gpio_output_val (mflash_gpio_num_t gpio, u8 val);

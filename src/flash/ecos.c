@@ -21,20 +21,10 @@
 #include "config.h"
 #endif
 
-#include <string.h>
-
-#include "replacements.h"
-
 #include "flash.h"
+#include "embeddedice.h"
+#include "image.h"
 
-#include "target.h"
-
-#include "flash.h"
-#include "target.h"
-#include "log.h"
-#include "binarybuffer.h"
-#include "../target/embeddedice.h"
-#include "types.h"
 
 static int ecosflash_register_commands(struct command_context_s *cmd_ctx);
 static int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);

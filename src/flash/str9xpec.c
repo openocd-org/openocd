@@ -24,21 +24,9 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "str9xpec.h"
-#include "flash.h"
-#include "target.h"
-#include "log.h"
-#include "armv4_5.h"
 #include "arm7_9_common.h"
-#include "jtag.h"
-#include "binarybuffer.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <getopt.h>
 
 static int str9xpec_register_commands(struct command_context_s *cmd_ctx);
 static int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);

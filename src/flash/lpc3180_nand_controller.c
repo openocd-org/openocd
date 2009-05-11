@@ -22,15 +22,7 @@
 #endif
 
 #include "lpc3180_nand_controller.h"
-
-#include "replacements.h"
-#include "log.h"
-
-#include <stdlib.h>
-#include <string.h>
-
 #include "nand.h"
-#include "target.h"
 
 static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct nand_device_s *device);
 static int lpc3180_register_commands(struct command_context_s *cmd_ctx);

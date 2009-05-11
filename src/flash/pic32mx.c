@@ -27,18 +27,9 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "pic32mx.h"
-#include "flash.h"
-#include "target.h"
-#include "log.h"
 #include "mips32.h"
-#include "algorithm.h"
-#include "binarybuffer.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 static
 struct pic32mx_devs_s {

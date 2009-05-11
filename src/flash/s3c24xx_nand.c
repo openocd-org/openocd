@@ -28,15 +28,8 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-#include "log.h"
-
-#include <stdlib.h>
-#include <string.h>
-
-#include "nand.h"
 #include "s3c24xx_nand.h"
-#include "target.h"
+
 
 s3c24xx_nand_controller_t *
 s3c24xx_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,

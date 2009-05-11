@@ -28,22 +28,9 @@
 #endif
 
 #include "flash.h"
-#include "command.h"
-#include "target.h"
-#include "time_support.h"
-#include "fileio.h"
 #include "image.h"
-#include "log.h"
-#include "armv4_5.h"
-#include "algorithm.h"
-#include "binarybuffer.h"
-#include "armv7m.h"
+#include "time_support.h"
 
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <errno.h>
 #include <inttypes.h>
 
 /* command handlers */

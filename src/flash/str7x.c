@@ -24,19 +24,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "str7x.h"
-#include "flash.h"
-#include "target.h"
-#include "log.h"
 #include "armv4_5.h"
-#include "algorithm.h"
 #include "binarybuffer.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 str7x_mem_layout_t mem_layout_str7bank0[] = {
 	{0x00000000, 0x02000, 0x01},

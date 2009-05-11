@@ -24,20 +24,12 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-#include "log.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
-
-#include <errno.h>
-
 #include "nand.h"
-#include "flash.h"
 #include "time_support.h"
 #include "fileio.h"
-#include "image.h"
+
+#include <inttypes.h>
+
 
 static int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);

@@ -41,10 +41,6 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
-#include <inttypes.h>
-
 #include "nand.h"
 
 /*

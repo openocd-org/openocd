@@ -23,16 +23,9 @@
 #endif
 
 #include "lpc2000.h"
-
-#include "flash.h"
-#include "target.h"
-#include "log.h"
 #include "armv4_5.h"
-#include "algorithm.h"
 #include "binarybuffer.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 /* flash programming support for Philips LPC2xxx devices
  * currently supported devices:
