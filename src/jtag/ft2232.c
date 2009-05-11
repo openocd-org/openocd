@@ -33,13 +33,13 @@
 #include "config.h"
 #endif
 
-#if IS_CYGWIN == 1
-#include "windows.h"
-#endif
-
 /* project specific includes */
 #include "jtag.h"
 #include "time_support.h"
+
+#if IS_CYGWIN == 1
+#include <windows.h>
+#endif
 
 
 /* FT2232 access library includes */
