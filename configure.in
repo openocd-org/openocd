@@ -816,6 +816,10 @@ AM_PROG_CC_C_O
 AC_PROG_RANLIB
 AC_PROG_LIBTOOL
 
+dnl configure checks required for Jim files (these are obsolete w/ C99)
+AC_C_CONST
+AC_TYPE_LONG_LONG_INT
+
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
 AC_COMPILE_IFELSE([

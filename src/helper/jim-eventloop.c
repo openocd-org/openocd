@@ -44,6 +44,9 @@
  *  - more complete [after] command with [after info] and other subcommands.
  *  - Win32 port
  */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #define JIM_EXTENSION
 #define __JIM_EVENTLOOP_CORE__

@@ -39,6 +39,10 @@
  * are those of the authors and should not be interpreted as representing
  * official policies, either expressed or implied, of the Jim Tcl Project.
  **/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #define __JIM_CORE__
 #define JIM_OPTIMIZATION /* comment to avoid optimizations and reduce size */
 
@@ -160,7 +164,7 @@ jim_vasprintf_done( void *buf )
  * Ignores `locale' stuff.  Assumes that the upper and lower case
  * alphabets and digits are each contiguous.
  */
-#ifdef HAVE_LONG_LONG
+#ifdef HAVE_LONG_LONG_INT
 #define JimIsAscii(c) (((c) & ~0x7f) == 0)
 static jim_wide JimStrtoll(const char *nptr, char **endptr, register int base)
 {
@@ -424,7 +428,7 @@ int Jim_StringToWide(const char *str, jim_wide *widePtr, int base)
 {
     char *endptr;
 
-#ifdef HAVE_LONG_LONG
+#ifdef HAVE_LONG_LONG_INT
     *widePtr = JimStrtoll(str, &endptr, base);
 #else
     *widePtr = strtol(str, &endptr, base);
@@ -7662,7 +7666,7 @@ static int ScanOneEntry(Jim_Interp *interp, const char *str, long pos,
                     /* Try to scan a number with the given base */
                     if (descr->modifier == 'l')
                     {
-#ifdef HAVE_LONG_LONG
+#ifdef HAVE_LONG_LONG_INT
                         jwvalue = JimStrtoll(tok, &endp, base),
 #else
                         jwvalue = strtol(tok, &endp, base),

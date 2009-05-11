@@ -78,25 +78,6 @@ extern "C" {
 #include <stdarg.h> /* In order to get type va_list */
 
 /* -----------------------------------------------------------------------------
-* Some /very/ old compiler maybe do not know how to
-* handle 'const'. They even do not know, how to ignore
-* it. For those compiler it may be better to compile with
-* define JIM_NO_CONST activated
-* ---------------------------------------------------------------------------*/
-
-#ifdef JIM_NO_CONST
-#  define const
-#endif
-
-/* -----------------------------------------------------------------------------
- * System configuration
- * For most modern systems, you can leave the default.
- * For embedded systems some change may be required.
- * ---------------------------------------------------------------------------*/
-
-#define HAVE_LONG_LONG
-
-/* -----------------------------------------------------------------------------
  * Compiler specific fixes.
  * ---------------------------------------------------------------------------*/
 
@@ -106,7 +87,7 @@ extern "C" {
 #endif /* _MSC_VER */
 
 /* Long Long type and related issues */
-#ifdef HAVE_LONG_LONG
+#ifdef HAVE_LONG_LONG_INT
 #  ifdef _MSC_VER /* MSC compiler */
 #    define jim_wide _int64
 #    ifndef LLONG_MAX
@@ -138,7 +119,7 @@ extern "C" {
  * LIBC specific fixes
  * ---------------------------------------------------------------------------*/
 
-#ifdef HAVE_LONG_LONG
+#ifdef HAVE_LONG_LONG_INT
 # if defined(_MSC_VER) || defined(__MSVCRT__)
 #    define JIM_WIDE_MODIFIER "I64d"
 # else
