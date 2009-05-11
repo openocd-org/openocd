@@ -28,8 +28,6 @@
 #include "config.h"
 #endif
 
-#include "log.h"
-#include "types.h"
 #include "jtag.h"
 #include "configuration.h"
 #include "xsvf.h"
@@ -40,19 +38,14 @@
 #include "pld.h"
 #include "mflash.h"
 
-#include "command.h"
 #include "server.h"
 #include "telnet_server.h"
 #include "gdb_server.h"
 #include "tcl_server.h"
 
-#include <sys/time.h>
+#ifdef HAVE_STRINGS_H
 #include <strings.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
+#endif
 
 
 #define OPENOCD_VERSION \

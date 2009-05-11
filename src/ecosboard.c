@@ -21,68 +21,54 @@
 #include "config.h"
 #endif
 
-#include "log.h"
-#include "types.h"
-#include "jtag.h"
 #include "configuration.h"
+#include "time_support.h"
+
+#include "jtag.h"
 #include "xsvf.h"
 #include "svf.h"
 #include "target.h"
 #include "flash.h"
 #include "nand.h"
 #include "pld.h"
+#include "rom.h"
 
-#include "command.h"
 #include "server.h"
 #include "telnet_server.h"
 #include "gdb_server.h"
 
-#include <time_support.h>
-#include <sys/time.h>
-#include <strings.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-
-#include <cyg/io/flash.h>
 #include <pkgconf/fs_jffs2.h>	// Address of JFFS2
 #include <network.h>
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <cyg/fileio/fileio.h>
+#include <arpa/inet.h>
 #include <dirent.h>
+#include <net/if.h>
+#include <netdb.h>
+#include <netinet/tcp.h>
+#include <stdarg.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+
 #include <cyg/athttpd/http.h>
 #include <cyg/athttpd/socket.h>
 #include <cyg/athttpd/handler.h>
 #include <cyg/athttpd/cgi.h>
 #include <cyg/athttpd/forms.h>
 #include <cyg/discover/discover.h>
+#include <cyg/fileio/fileio.h>
 #include <cyg/hal/hal_diag.h>
-#include <cyg/kernel/kapi.h>
+#include <cyg/io/flash.h>
 #include <cyg/io/serialio.h>
 #include <cyg/io/io.h>
-#include <netinet/tcp.h>
-#include "rom.h"
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <ifaddrs.h>
-#include <string.h>
+#include <cyg/kernel/kapi.h>
 
-#include <unistd.h>
-#include <stdio.h>
+#ifdef HAVE_IFADDRS_H
+#include <ifaddrs.h>
+#endif
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
+
 #define MAX_IFS 64
 #if defined(CYGPKG_NET_FREEBSD_STACK)
 #include <tftp_support.h>
@@ -1096,20 +1082,7 @@ CYG_HTTPD_MIME_TABLE_ENTRY(bin_mime_label, "bin", "application/octet-stream");
 #include <cyg/kernel/ktypes.h>         // base kernel types
 #include <cyg/infra/cyg_trac.h>        // tracing macros
 #include <cyg/infra/cyg_ass.h>         // assertion macros
-#include <unistd.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <dirent.h>
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <cyg/fileio/fileio.h>
-
 #include <cyg/kernel/kapi.h>
 #include <cyg/infra/diag.h>
 
