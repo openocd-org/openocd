@@ -202,11 +202,10 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 
 	if (in)
 	{
-		u8 tmp[4];
-		fields[0].in_value=tmp;
-		jtag_add_dr_scan_now(3, fields, TAP_INVALID);
+		fields[0].in_value=(u8 *)in;
+		jtag_add_dr_scan(3, fields, TAP_INVALID);
 
-		*in=le_to_h_u32(tmp);
+		jtag_add_callback(arm_le_to_h_u32, (u8 *)in);
 	}
 	else
 	{
@@ -251,8 +250,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	u8 tmp[4];
-	fields[0].in_value = tmp;
+	fields[0].in_value = (u8 *)in;
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
@@ -264,9 +262,9 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
-	*in=le_to_h_u32(tmp);
+	jtag_add_callback(arm_le_to_h_u32, (u8 *)in);
 
 	jtag_add_runtest(0, TAP_INVALID);
 
@@ -293,6 +291,12 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 
 extern void arm_endianness(u8 *tmp, void *in, int size, int be, int flip);
 
+static int arm9endianness(u8 *in, jtag_callback_data_t size, jtag_callback_data_t be)
+{
+	arm_endianness(in, in, (int)size, (int)be, 0);
+	return ERROR_OK;
+}
+
 /* clock the target, and read the databus
  * the *in pointer points to a buffer where elements of 'size' bytes
  * are stored in big (be==1) or little (be==0) endianness
@@ -313,8 +317,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	u8 tmp[4];
-	fields[0].in_value = tmp;
+	fields[0].in_value = (u8 *)in;
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
@@ -326,10 +329,9 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan_now(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
-	arm_endianness(tmp, in, size, be, 0);
-
+	jtag_add_callback3(arm9endianness, in, (jtag_callback_data_t)size, (jtag_callback_data_t)be);
 
 	jtag_add_runtest(0, TAP_INVALID);
 
