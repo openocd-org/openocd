@@ -737,7 +737,7 @@ static void jtag_add_scan_check(void (*jtag_add_scan)(int num_fields, scan_field
 		if ((fields[i].check_value!=NULL)&&(fields[i].in_value!=NULL))
 		{
 			/* this is synchronous for a minidriver */
-			jtag_add_callback4(jtag_check_value_mask_callback, fields[i].in_value, fields[i].check_value, fields[i].check_mask, (jtag_callback_data_t)fields[i].num_bits);
+			jtag_add_callback4(jtag_check_value_mask_callback, fields[i].in_value, (jtag_callback_data_t)fields[i].check_value, (jtag_callback_data_t)fields[i].check_mask, (jtag_callback_data_t)fields[i].num_bits);
 		}
 		if (fields[i].allocated)
 		{

@@ -589,7 +589,7 @@ extern void jtag_add_callback(jtag_callback1_t, u8 *in);
 
 /* This type can store an integer safely by a normal cast on 64 and
  * 32 bit systems. */
-typedef void *jtag_callback_data_t;
+typedef intptr_t jtag_callback_data_t;
 
 /* The generic callback mechanism.
  *
