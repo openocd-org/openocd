@@ -54,14 +54,19 @@ typedef struct jtag_tap_s jtag_tap_t;
 #else	/* HAVE_STDBOOL_H */
 #define __bool_true_false_are_defined 1
 
+#ifndef HAVE__BOOL
 #ifndef __cplusplus
 
 #define false	0
 #define true		1
 
-#define bool		_Bool
 typedef int _Bool;
+#else 
+typedef bool _Bool;
 #endif	/* __cplusplus */
+#endif	/* HAVE__BOOL */
+
+#define bool _Bool
 
 #endif	/* HAVE_STDBOOL_H */
 
