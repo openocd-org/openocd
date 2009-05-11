@@ -23,16 +23,6 @@
 
 #include "bitq.h"
 
-/* project specific includes */
-#include "log.h"
-#include "types.h"
-#include "jtag.h"
-#include "configuration.h"
-
-/* system includes */
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 bitq_interface_t* bitq_interface;       /* low level bit queue interface */
 

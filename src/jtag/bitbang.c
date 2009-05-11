@@ -25,18 +25,7 @@
 #endif
 
 #include "bitbang.h"
-
-/* project specific includes */
-#include "log.h"
-#include "types.h"
 #include "jtag.h"
-#include "configuration.h"
-
-/* system includes */
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 
 /**
  * Function bitbang_stableclocks

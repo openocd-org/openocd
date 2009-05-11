@@ -24,31 +24,16 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "jtag.h"
 #include "bitbang.h"
 
-/* system includes */
 /* -ino: 060521-1036 */
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-
 #include <machine/sysarch.h>
 #include <machine/cpufunc.h>
 #define ioperm(startport,length,enable)\
   i386_set_ioperm((startport), (length), (enable))
-
-#else
-
-#ifdef _WIN32
-#include "errno.h"
-#endif /* _WIN32 */
-
 #endif /* __FreeBSD__ */
-
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 #if PARPORT_USE_PPDEV == 1
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
@@ -60,7 +45,6 @@
 #include <linux/parport.h>
 #include <linux/ppdev.h>
 #endif
-#include <fcntl.h>
 #include <sys/ioctl.h>
 #else /* not PARPORT_USE_PPDEV */
 #ifndef _WIN32
@@ -68,14 +52,10 @@
 #endif
 #endif
 
-#if PARPORT_USE_GIVEIO == 1
-#if IS_CYGWIN == 1
+#if PARPORT_USE_GIVEIO == 1 && IS_CYGWIN == 1
 #include <windows.h>
-#include <errno.h>
-#endif
 #endif
 
-#include "log.h"
 
 /* parallel port cable description
  */

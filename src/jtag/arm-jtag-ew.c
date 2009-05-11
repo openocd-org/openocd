@@ -24,16 +24,9 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "jtag.h"
 #include <usb.h>
-#include <string.h>
-#include <ctype.h>
 
-/* system includes */
-
-#include "log.h"
 
 #define USB_VID						0x15ba
 #define USB_PID						0x001e

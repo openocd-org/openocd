@@ -28,16 +28,8 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "jtag.h"
 
-#include "command.h"
-#include "log.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif

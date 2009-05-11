@@ -21,8 +21,6 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "jtag.h"
 #include "bitbang.h"
 

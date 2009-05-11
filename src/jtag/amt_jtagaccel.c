@@ -21,25 +21,13 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "jtag.h"
 
-/* system includes */
-
-#ifdef _WIN32
-#include "errno.h"
-#endif /* _WIN32 */
-
-#include <string.h>
-#include <stdlib.h>
 
 #if PARPORT_USE_PPDEV == 1
 #include <linux/parport.h>
 #include <linux/ppdev.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include <unistd.h>
 #else /* not PARPORT_USE_PPDEV */
 #ifndef _WIN32
 #include <sys/io.h>
@@ -49,11 +37,8 @@
 #if PARPORT_USE_GIVEIO == 1
 #if IS_CYGWIN == 1
 #include <windows.h>
-#include <errno.h>
 #endif
 #endif
-
-#include "log.h"
 
 /* configuration */
 static u16 amt_jtagaccel_port;

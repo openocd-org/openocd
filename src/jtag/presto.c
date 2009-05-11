@@ -25,20 +25,10 @@
 #include "windows.h"
 #endif
 
-#include "replacements.h"
-
-/* project specific includes */
-#include "log.h"
-#include "types.h"
 #include "jtag.h"
-#include "configuration.h"
 #include "time_support.h"
 #include "bitq.h"
 
-/* system includes */
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 /* PRESTO access library includes */
 #if BUILD_PRESTO_FTD2XX == 1

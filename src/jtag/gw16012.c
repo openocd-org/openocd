@@ -21,9 +21,8 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "jtag.h"
+
 
 #if 1
 #define _DEBUG_GW16012_IO_
@@ -40,14 +39,8 @@
 
 #else
 
-#ifdef _WIN32
-#include "errno.h"
-#endif /* _WIN32 */
-
 #endif /* __FreeBSD__, __FreeBSD_kernel__ */
 
-#include <string.h>
-#include <stdlib.h>
 
 #if PARPORT_USE_PPDEV == 1
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
@@ -67,14 +60,10 @@
 #endif
 #endif
 
-#if PARPORT_USE_GIVEIO == 1
-#if IS_CYGWIN == 1
+#if PARPORT_USE_GIVEIO == 1 && IS_CYGWIN == 1
 #include <windows.h>
-#include <errno.h>
-#endif
 #endif
 
-#include "log.h"
 
 /* configuration */
 u16 gw16012_port;

@@ -27,21 +27,16 @@
 #include "config.h"
 #endif
 
-/* system includes */
-#include <errno.h>
-#include <string.h>
-#include <usb.h>
-#include <stdint.h>
-
 /* project specific includes */
-#include "log.h"
-#include "types.h"
 #include "jtag.h"
-#include "configuration.h"
 #include "rlink.h"
 #include "st7.h"
 #include "ep1_cmd.h"
 #include "dtc_cmd.h"
+
+/* system includes */
+#include <usb.h>
+#include <stdint.h>
 
 
 /* This feature is made useless by running the DTC all the time.  When automatic, the LED is on whenever the DTC is running.  Otherwise, USB messages are sent to turn it on and off. */

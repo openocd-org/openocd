@@ -21,17 +21,11 @@
 #include "config.h"
 #endif
 
-#include "log.h"
 #include "jtag.h"
 #include "bitbang.h"
 
-/* system includes */
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <sys/mman.h>
-#include <unistd.h>
-#include <fcntl.h>
+
 
 /* AT91RM9200 */
 #define AT91C_BASE_SYS	(0xfffff000)

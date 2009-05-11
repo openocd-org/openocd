@@ -25,15 +25,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "jtag.h"
 
 #include <usb.h>
-#include <string.h>
-#include <errno.h>
 
-#include "log.h"
 
 #define VID 0x1366
 #define PID 0x0101

@@ -21,7 +21,6 @@
 #include "config.h"
 #endif
 
-#include "log.h"
 #include "jtag.h"
 #include "bitbang.h"
 
@@ -33,14 +32,7 @@
 #define SRST_BIT	32
 #define VCC_BIT		64
 
-/* system includes */
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
 #include <sys/mman.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 static u8 output_value = 0x0;
 static int dev_mem_fd;

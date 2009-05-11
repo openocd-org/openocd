@@ -34,14 +34,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "jtag.h"
+
 #include <usb.h>
 
-/* system includes */
-
-#include "log.h"
 
 #define VID 0x1781
 #define PID 0x0c63

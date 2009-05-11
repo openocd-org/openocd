@@ -20,17 +20,12 @@
 #include "config.h"
 #endif
 
-
-#include "log.h"
-#include "jtag.h"
+#include "embeddedice.h"
 #include "bitbang.h"
-#include "../target/embeddedice.h"
-
 
 #include <cyg/hal/hal_io.h>             // low level i/o
 #include <cyg/hal/hal_diag.h>
 
-#include <stdlib.h>
 
 #define ZYLIN_VERSION "1.51"
 #define ZYLIN_DATE __DATE__

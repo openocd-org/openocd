@@ -26,14 +26,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "jtag.h"
 
 #include <usb.h>
-#include <string.h>
 
-#include "log.h"
 
 //#define _VSLLINK_IN_DEBUG_MODE_
 
