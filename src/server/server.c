@@ -40,7 +40,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <signal.h>
 #ifndef _WIN32

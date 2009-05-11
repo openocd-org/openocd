@@ -19,7 +19,6 @@
  ***************************************************************************/
 
 #include "types.h"
-#include <sys/types.h>
 
 typedef
 struct rlink_speed_table_s {

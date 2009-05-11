@@ -30,8 +30,6 @@
 #include "binarybuffer.h"
 #include "replacements.h"
 
-#include <sys/types.h>
-
 enum connection_type
 {
 	CONNECTION_TCP,

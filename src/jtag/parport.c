@@ -33,7 +33,6 @@
 /* -ino: 060521-1036 */
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 
-#include <sys/types.h>
 #include <machine/sysarch.h>
 #include <machine/cpufunc.h>
 #define ioperm(startport,length,enable)\

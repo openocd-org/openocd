@@ -47,7 +47,6 @@
 #include "tcl_server.h"
 
 #include <sys/time.h>
-#include <sys/types.h>
 #include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
