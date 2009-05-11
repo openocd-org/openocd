@@ -328,26 +328,32 @@ int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].num_bits = 32;
 	fields[0].out_value = reg->value;
 	fields[0].in_value = NULL;
+	fields[0].check_value = NULL;
+	fields[0].check_mask = NULL;
 
 	fields[1].tap = etm_reg->jtag_info->tap;
 	fields[1].num_bits = 7;
 	fields[1].out_value = malloc(1);
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
 	fields[1].in_value = NULL;
+	fields[1].check_value = NULL;
+	fields[1].check_mask = NULL;
 
 	fields[2].tap = etm_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = malloc(1);
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
+	fields[2].check_value = NULL;
+	fields[2].check_mask = NULL;
 
 	jtag_add_dr_scan(3, fields, TAP_INVALID);
 
 	fields[0].in_value = reg->value;
+	fields[0].check_value = check_value;
+	fields[0].check_mask = check_mask;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
-
-	jtag_check_value_mask(fields+0, check_value, check_mask);
+	jtag_add_dr_scan_check(3, fields, TAP_INVALID);
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);
