@@ -26,19 +26,16 @@
 #ifndef TARGET_H
 #define TARGET_H
 
-#include "register.h"
 #include "breakpoints.h"
 #include "algorithm.h"
-#include "trace.h"
-
 #include "command.h"
-#include "types.h"
 
-#include <sys/time.h>
-#include <time.h>
+#include "replacements.h"
 
 struct reg_s;
+struct trace_s;
 struct command_context_s;
+
 /*
  * TARGET_UNKNOWN = 0: we don't know anything about the target yet
  * TARGET_RUNNING = 1: the target is executing user code

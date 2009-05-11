@@ -33,30 +33,16 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
 #include "target.h"
 #include "target_request.h"
-
-#include "log.h"
-#include "configuration.h"
-#include "binarybuffer.h"
+#include "time_support.h"
+#include "register.h"
+#include "trace.h"
+#include "image.h"
 #include "jtag.h"
 
-#include <string.h>
-#include <stdlib.h>
 #include <inttypes.h>
 
-#include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
-
-#include <sys/time.h>
-#include <time.h>
-
-#include <time_support.h>
-
-#include <fileio.h>
-#include <image.h>
 
 static int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
