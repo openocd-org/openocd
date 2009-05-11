@@ -31,35 +31,7 @@
 #endif
 
 #include "types.h"
-
-#if BUILD_ECOSBOARD
-#include <pkgconf/system.h>
-#include <stdlib.h>
-#endif
-
-#ifdef HAVE_SYS_SELECT_H 
-#include <sys/select.h> /* select, FD_SET and friends (POSIX.1-2001) */
-#endif
-
-#ifdef HAVE_SYS_TIME_H 
-#include <sys/time.h> /* FD_SET and friends (pre-POSIX.1-2001) */
-#endif
-
-/* include necessary headers for socket functionality */
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <sys/socket.h>
-#include <sys/poll.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <fcntl.h>
-#endif
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h> /* for MIN/MAX macros */
-#endif
+#include "system.h"
 
 /* MIN,MAX macros */
 #ifndef MIN
