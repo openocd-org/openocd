@@ -21,17 +21,8 @@
 #include "config.h"
 #endif
 
-#include <stdarg.h>
 #include "tcl_server.h"
 
-#include "log.h"
-#include "command.h"
-
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <ctype.h>
 
 #define TCL_SERVER_VERSION	"TCL Server 0.1"
 #define TCL_MAX_LINE		(4096)

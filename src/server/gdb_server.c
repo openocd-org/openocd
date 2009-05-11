@@ -27,24 +27,14 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "gdb_server.h"
-
-#include "server.h"
-#include "log.h"
-#include "binarybuffer.h"
-#include "jtag.h"
-#include "breakpoints.h"
-#include "flash.h"
-#include "target.h"
 #include "target_request.h"
-#include "configuration.h"
+#include "register.h"
+#include "server.h"
+#include "flash.h"
+#include "image.h"
+#include "jtag.h"
 
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
 
 #if 0
 #define _DEBUG_GDB_IO_

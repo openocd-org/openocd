@@ -27,24 +27,15 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "server.h"
-
-#include "log.h"
-#include "telnet_server.h"
 #include "target.h"
 
-#include <command.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <signal.h>
+
 #ifndef _WIN32
 #include <netinet/tcp.h>
 #endif
+
 
 service_t *services = NULL;
 

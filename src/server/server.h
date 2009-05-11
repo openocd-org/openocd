@@ -26,9 +26,11 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "command.h"
-#include "binarybuffer.h"
-#include "replacements.h"
+#include "log.h"
+
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
 
 enum connection_type
 {

@@ -27,29 +27,12 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
-#include "server.h"
-
-#include "log.h"
 #include "telnet_server.h"
 #include "target.h"
 
-#include <command.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <microhttpd.h>
 #include <pthread.h>
 #include <signal.h>
-
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <microhttpd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 
 #define PAGE_NOT_FOUND "<html><head><title>File not found</title></head><body>File not found</body></html>"
 

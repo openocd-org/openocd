@@ -27,21 +27,8 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "telnet_server.h"
-
-#include "server.h"
-#include "log.h"
-#include "command.h"
-#include "target.h"
 #include "target_request.h"
-
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <ctype.h>
 
 static unsigned short telnet_port = 0;
 
