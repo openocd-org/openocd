@@ -138,8 +138,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	u8 tmp[4];
-	fields[0].in_value = tmp;
+	fields[0].in_value = (u8 *)value;
 
 
 	fields[1].tap = jtag_info->tap;
@@ -165,9 +164,9 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
 		nr_w_buf = 0;
-		jtag_add_dr_scan_now(4, fields, TAP_INVALID);
+		jtag_add_dr_scan(4, fields, TAP_INVALID);
 
-		*value=le_to_h_u32(tmp);
+		jtag_add_callback(arm_le_to_h_u32, (u8 *)value);
 
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
