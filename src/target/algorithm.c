@@ -22,12 +22,8 @@
 #endif
 
 #include "algorithm.h"
-
-#include "log.h"
-#include "configuration.h"
+#include "replacements.h"
 #include "binarybuffer.h"
-
-#include <stdlib.h>
 
 
 void init_mem_param(mem_param_t *param, u32 address, u32 size, enum param_direction direction)

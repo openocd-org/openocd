@@ -21,26 +21,11 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "avrt.h"
-
-#include "register.h"
 #include "target.h"
-#include "log.h"
-#include "jtag.h"
-#include "binarybuffer.h"
-#include "time_support.h"
-#include "breakpoints.h"
-#include "fileio.h"
 
-#include <stdlib.h>
-#include <string.h>
 
-#include <unistd.h>
-#include <errno.h>
-
-#define AVR_JTAG_INS_LEN							4
+#define AVR_JTAG_INS_LEN	4
 
 /* cli handling */
 int avr_register_commands(struct command_context_s *cmd_ctx);

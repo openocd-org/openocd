@@ -20,11 +20,6 @@
 #ifndef ETM_DUMMY_H
 #define ETM_DUMMY_H
 
-#include "command.h"
-#include "target.h"
-#include "register.h"
-#include "arm_jtag.h"
-
 #include "etm.h"
 
 extern etm_capture_driver_t etm_dummy_capture_driver;

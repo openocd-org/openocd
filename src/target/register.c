@@ -25,12 +25,8 @@
 #endif
 
 #include "register.h"
-
 #include "log.h"
-#include "command.h"
 
-#include <string.h>
-#include <stdlib.h>
 
 reg_arch_type_t *reg_arch_types = NULL;
 

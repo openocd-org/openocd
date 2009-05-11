@@ -29,18 +29,6 @@
 
 #include "embeddedice.h"
 
-#include "armv4_5.h"
-#include "arm7_9_common.h"
-
-#include "log.h"
-#include "arm_jtag.h"
-#include "types.h"
-#include "binarybuffer.h"
-#include "target.h"
-#include "register.h"
-#include "jtag.h"
-
-#include <stdlib.h>
 
 #if 0
 static bitfield_desc_t embeddedice_comms_ctrl_bitfield_desc[] =

@@ -21,26 +21,12 @@
 #include "config.h"
 #endif
 
-#include <string.h>
-
 #include "etm.h"
 #include "etb.h"
-
-#include "armv4_5.h"
+#include "image.h"
 #include "arm7_9_common.h"
 #include "arm_disassembler.h"
-#include "arm_simulator.h"
 
-#include "log.h"
-#include "arm_jtag.h"
-#include "types.h"
-#include "binarybuffer.h"
-#include "target.h"
-#include "register.h"
-#include "jtag.h"
-#include "fileio.h"
-
-#include <stdlib.h>
 
 /* ETM register access functionality
  *

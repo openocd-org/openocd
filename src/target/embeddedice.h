@@ -26,9 +26,6 @@
 #ifndef EMBEDDED_ICE_H
 #define EMBEDDED_ICE_H
 
-#include "target.h"
-#include "register.h"
-#include "arm_jtag.h"
 #include "arm7_9_common.h"
 
 enum

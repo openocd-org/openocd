@@ -25,8 +25,8 @@
 
 #include "target.h"
 #include "register.h"
-#include "mips_ejtag.h"
 #include "mips32_pracc.h"
+
 
 #define MIPS32_COMMON_MAGIC		0xB320B320
 
@@ -69,7 +69,7 @@ typedef struct mips32_common_s
 typedef struct mips32_core_reg_s
 {
 	u32 num;
-	target_t *target;
+	struct target_s *target;
 	mips32_common_t *mips32_common;
 } mips32_core_reg_t;
 

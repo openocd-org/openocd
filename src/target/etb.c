@@ -21,20 +21,9 @@
 #include "config.h"
 #endif
 
-#include <string.h>
-
 #include "arm7_9_common.h"
 #include "etb.h"
-#include "etm.h"
 
-#include "log.h"
-#include "types.h"
-#include "binarybuffer.h"
-#include "target.h"
-#include "register.h"
-#include "jtag.h"
-
-#include <stdlib.h>
 
 static char* etb_reg_list[] =
 {

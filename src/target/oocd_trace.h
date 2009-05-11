@@ -20,12 +20,9 @@
 #ifndef OOCD_TRACE_H
 #define OOCD_TRACE_H
 
-#include "command.h"
-
 #include "etm.h"
 
 #include <termios.h>
-#include <unistd.h>
 
 /* registers */
 enum

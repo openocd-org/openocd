@@ -23,13 +23,11 @@
 #ifndef ETM_H
 #define ETM_H
 
-#include "image.h"
 #include "trace.h"
-#include "target.h"
-#include "register.h"
 #include "arm_jtag.h"
-
 #include "armv4_5.h"
+
+struct image_s;
 
 /* ETM registers (V1.3 protocol) */
 enum
@@ -152,7 +150,7 @@ typedef struct etm_context_s
 	etm_portmode_t portmode;		/* normal, multiplexed or demultiplexed */
 	etmv1_tracemode_t tracemode;	/* type of information the trace contains (data, addres, contextID, ...) */
 	armv4_5_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
-	image_t *image;					/* source for target opcodes */
+	struct image_s *image;					/* source for target opcodes */
 	u32 pipe_index;					/* current trace cycle */
 	u32 data_index;					/* cycle holding next data packet */
 	int data_half;					/* port half on a 16 bit port */

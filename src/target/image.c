@@ -27,20 +27,10 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
-#include <string.h>
-#ifdef HAVE_ELF_H
-#include <elf.h>
-#endif
-
 #include "image.h"
-
-#include "types.h"
-#include "replacements.h"
+#include "target.h"
 #include "log.h"
 
-#include "fileio.h"
-#include "target.h"
 
 /* convert ELF header field to host endianness */
 #define field16(elf,field)\

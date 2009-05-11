@@ -27,16 +27,11 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-#include "log.h"
-#include "target.h"
 #include "target_request.h"
 #include "binarybuffer.h"
-#include "command.h"
 #include "trace.h"
+#include "log.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 static command_t *target_request_cmd = NULL;
 static int charmsg_mode = 0;

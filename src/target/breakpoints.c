@@ -21,14 +21,10 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
-
-#include "binarybuffer.h"
 #include "target.h"
 #include "log.h"
-#include "types.h"
-
 #include "breakpoints.h"
+
 
 static char *breakpoint_type_strings[] =
 {

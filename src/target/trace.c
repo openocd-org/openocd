@@ -21,14 +21,10 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
 #include "log.h"
 #include "trace.h"
 #include "target.h"
-#include "command.h"
 
-#include <stdlib.h>
-#include <string.h>
 #include <inttypes.h>
 
 int trace_point(target_t *target, u32 number)

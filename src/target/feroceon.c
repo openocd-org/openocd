@@ -50,11 +50,7 @@
 #endif
 
 #include "arm926ejs.h"
-#include "jtag.h"
-#include "log.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 int feroceon_examine(struct target_s *target);
 int feroceon_target_create(struct target_s *target, Jim_Interp *interp);

@@ -23,12 +23,9 @@
 #ifndef XSCALE_H
 #define XSCALE_H
 
-#include "target.h"
-#include "register.h"
 #include "armv4_5.h"
 #include "armv4_5_mmu.h"
 #include "trace.h"
-#include "image.h"
 
 #define	XSCALE_COMMON_MAGIC 0x58534341
 
@@ -77,7 +74,7 @@ typedef struct xscale_trace_data_s
 typedef struct xscale_trace_s
 {
 	trace_status_t capture_status;	/* current state of capture run */
-	image_t *image;					/* source for target opcodes */
+	struct image_s *image;					/* source for target opcodes */
 	xscale_trace_data_t *data;		/* linked list of collected trace data */
 	int buffer_enabled;				/* whether trace buffer is enabled */
 	int buffer_fill;				/* maximum number of trace runs to read (-1 for wrap-around) */

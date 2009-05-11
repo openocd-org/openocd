@@ -20,12 +20,6 @@
 #ifndef ETB_H
 #define ETB_H
 
-#include "command.h"
-#include "target.h"
-#include "register.h"
-#include "arm_jtag.h"
-
-#include "etb.h"
 #include "etm.h"
 
 /* ETB registers */

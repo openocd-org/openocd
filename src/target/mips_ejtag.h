@@ -23,7 +23,6 @@
 #ifndef MIPS_EJTAG
 #define MIPS_EJTAG
 
-#include "types.h"
 #include "jtag.h"
 
 /* tap instructions */

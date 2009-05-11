@@ -26,10 +26,8 @@
 #include "config.h"
 #endif
 
-#include <string.h>
-#include "log.h"
-#include "mips32.h"
 #include "mips32_dmaacc.h"
+
 
 /*
  * The following logic shamelessly cloned from HairyDairyMaid's wrt54g_debrick

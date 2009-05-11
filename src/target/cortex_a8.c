@@ -33,20 +33,9 @@
 #include "config.h"
 #endif
 
-#include "replacements.h"
-
 #include "cortex_a8.h"
-#include "armv7m.h"
-
-#include "register.h"
-#include "target.h"
 #include "target_request.h"
-#include "log.h"
-#include "jtag.h"
-#include "arm_jtag.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 /* cli handling */
 int cortex_a8_register_commands(struct command_context_s *cmd_ctx);

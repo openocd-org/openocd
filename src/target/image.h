@@ -26,16 +26,11 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "fileio.h"
 
 #ifdef HAVE_ELF_H
 #include <elf.h>
 #endif
-#include "replacements.h"
-#include "fileio.h"
-#include "target.h"
 
 #define IMAGE_MAX_ERROR_STRING		(256)
 #define IMAGE_MAX_SECTIONS			(128)
@@ -85,7 +80,7 @@ typedef struct image_ihex_s
 
 typedef struct image_memory_s
 {
-	target_t *target;
+	struct target_s *target;
 	u8 *cache;
 	u32 cache_address;
 } image_memory_t;

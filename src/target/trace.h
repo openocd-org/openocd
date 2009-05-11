@@ -20,9 +20,10 @@
 #ifndef TRACE_H
 #define TRACE_H
 
-#include "target.h"
-#include "command.h"
 #include "types.h"
+
+struct target_s;
+struct command_context_s;
 
 typedef struct trace_point_s
 {

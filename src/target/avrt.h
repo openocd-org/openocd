@@ -20,6 +20,8 @@
 #ifndef AVRT_H
 #define AVRT_H
 
+#include "jtag.h"
+
 typedef struct mcu_jtag_s
 {
 	jtag_tap_t *tap;

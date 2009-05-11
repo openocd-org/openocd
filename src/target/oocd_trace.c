@@ -21,25 +21,14 @@
 #include "config.h"
 #endif
 
+// we must define _GNU_SOURCE to get strndup
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
-#include <string.h>
-#include <errno.h>
 
 #include "oocd_trace.h"
-#include "etm.h"
-
-#include "log.h"
-#include "types.h"
-#include "binarybuffer.h"
-#include "target.h"
-#include "register.h"
-#include "jtag.h"
 #include "arm7_9_common.h"
-#include "replacements.h"
 
-#include <stdlib.h>
 
 static int oocd_trace_register_commands(struct command_context_s *cmd_ctx);
 

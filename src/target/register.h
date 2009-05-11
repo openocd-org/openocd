@@ -24,7 +24,6 @@
 #define REGISTER_H
 
 #include "types.h"
-#include "target.h"
 
 struct target_s;
 

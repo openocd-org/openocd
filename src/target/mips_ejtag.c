@@ -26,11 +26,6 @@
 #include "mips32.h"
 #include "mips_ejtag.h"
 
-#include "binarybuffer.h"
-#include "log.h"
-#include "jtag.h"
-
-#include <stdlib.h>
 
 int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_me_and_submit_patch)
 {

@@ -23,8 +23,9 @@
 #ifndef MIPS_M4K_H
 #define MIPS_M4K_H
 
-#include "register.h"
-#include "target.h"
+#include "types.h"
+
+struct target_s;
 
 #define MIPSM4K_COMMON_MAGIC	0xB321B321
 
@@ -34,7 +35,7 @@ typedef struct mips_m4k_common_s
 	mips32_common_t mips32_common;
 } mips_m4k_common_t;
 
-extern int mips_m4k_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
+extern int mips_m4k_bulk_write_memory(struct target_s *target, u32 address, u32 count, u8 *buffer);
 
 extern void mips_m4k_enable_breakpoints(struct target_s *target);
 extern int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint);

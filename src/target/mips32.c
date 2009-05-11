@@ -27,11 +27,7 @@
 #endif
 
 #include "mips32.h"
-#include "jtag.h"
-#include "log.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 char* mips32_core_reg_list[] =
 {
