@@ -2889,9 +2889,11 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 		}
 	}
 
-	fields = malloc(sizeof(scan_field_t) * argc / 2);
+	int num_fields= num_fields;
 
-	for (i = 0; i < argc / 2; i++)
+	fields = malloc(sizeof(scan_field_t) * num_fields);
+
+	for (i = 0; i < num_fields; i++)
 	{
 		tap = jtag_TapByString( args[i*2] );
 		if (tap==NULL)
@@ -2901,19 +2903,20 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 		}
 		int field_size = tap->ir_length;
 		fields[i].tap = tap;
+		fields[i].num_bits = field_size;
 		fields[i].out_value = malloc(CEIL(field_size, 8));
 		buf_set_u32(fields[i].out_value, 0, field_size, strtoul(args[i*2+1], NULL, 0));
 		fields[i].in_value = NULL;
 	}
 
-	jtag_add_ir_scan(argc / 2, fields, TAP_INVALID);
+	jtag_add_ir_scan(num_fields, fields, TAP_INVALID);
 	/* did we have an endstate? */
 	if (endstate != TAP_INVALID)
 		jtag_add_end_state(endstate);
 
 	jtag_execute_queue();
 
-	for (i = 0; i < argc / 2; i++)
+	for (i = 0; i < num_fields; i++)
 		free(fields[i].out_value);
 
 	free (fields);
