@@ -27,7 +27,6 @@
 #define REPLACEMENTS_H
 
 #include "types.h"
-#include "system.h"
 
 /* MIN,MAX macros */
 #ifndef MIN
