@@ -210,22 +210,30 @@ static __inline int socket_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set
 
 #ifndef HAVE_ELF_H
 
+typedef uint32_t	Elf32_Addr;
+typedef uint16_t	Elf32_Half;
+typedef uint32_t	Elf32_Off;
+typedef int32_t		Elf32_Sword;
+typedef uint32_t	Elf32_Word;
+typedef uint32_t	Elf32_Size;
+typedef Elf32_Off	Elf32_Hashelt;
+
 typedef struct
 {
 	unsigned char	e_ident[16];	/* Magic number and other info */
-	u16	e_type;			/* Object file type */
-	u16	e_machine;		/* Architecture */
-	u32	e_version;		/* Object file version */
-	u32 e_entry;		/* Entry point virtual address */
-	u32 e_phoff;		/* Program header table file offset */
-	u32	e_shoff;		/* Section header table file offset */
-	u32	e_flags;		/* Processor-specific flags */
-	u16	e_ehsize;		/* ELF header size in bytes */
-	u16	e_phentsize;	/* Program header table entry size */
-	u16	e_phnum;		/* Program header table entry count */
-	u16	e_shentsize;	/* Section header table entry size */
-	u16	e_shnum;		/* Section header table entry count */
-	u16	e_shstrndx;		/* Section header string table index */
+	Elf32_Half	e_type;			/* Object file type */
+	Elf32_Half	e_machine;		/* Architecture */
+	Elf32_Word	e_version;		/* Object file version */
+	Elf32_Addr	e_entry;		/* Entry point virtual address */
+	Elf32_Off	e_phoff;		/* Program header table file offset */
+	Elf32_Off	e_shoff;		/* Section header table file offset */
+	Elf32_Word	e_flags;		/* Processor-specific flags */
+	Elf32_Half	e_ehsize;		/* ELF header size in bytes */
+	Elf32_Half	e_phentsize;	/* Program header table entry size */
+	Elf32_Half	e_phnum;		/* Program header table entry count */
+	Elf32_Half	e_shentsize;	/* Section header table entry size */
+	Elf32_Half	e_shnum;		/* Section header table entry count */
+	Elf32_Half	e_shstrndx;		/* Section header string table index */
 } Elf32_Ehdr;
 
 #define	ELFMAG		"\177ELF"
@@ -241,14 +249,14 @@ typedef struct
 
 typedef struct
 {
-	u32 p_type;			/* Segment type */
-	u32 p_offset;		/* Segment file offset */
-	u32 p_vaddr;		/* Segment virtual address */
-	u32 p_paddr;		/* Segment physical address */
-	u32 p_filesz;		/* Segment size in file */
-	u32 p_memsz;		/* Segment size in memory */
-	u32 p_flags;		/* Segment flags */
-	u32 p_align;		/* Segment alignment */
+	Elf32_Word p_type;		/* Segment type */
+	Elf32_Off p_offset;		/* Segment file offset */
+	Elf32_Addr p_vaddr;		/* Segment virtual address */
+	Elf32_Addr p_paddr;		/* Segment physical address */
+	Elf32_Size p_filesz;	/* Segment size in file */
+	Elf32_Size p_memsz;		/* Segment size in memory */
+	Elf32_Word p_flags;		/* Segment flags */
+	Elf32_Size p_align;		/* Segment alignment */
 } Elf32_Phdr;
 
 #define PT_LOAD		1		/* Loadable program segment */
