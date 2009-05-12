@@ -21,11 +21,6 @@
 #include "config.h"
 #endif
 
-// we must define _GNU_SOURCE to get strndup
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include "oocd_trace.h"
 #include "arm7_9_common.h"
 
