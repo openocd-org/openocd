@@ -277,7 +277,7 @@ typedef struct scan_field_s
 	/* internal work space */
 	int			allocated;			/* in_value has been allocated for the queue */
 	int			modified;			/* did we modify the in_value? */
-	u32			intmp;				/* temporary storage for checking synchronously */
+	u8			intmp[4];			/* temporary storage for checking synchronously */
 } scan_field_t;
 
 enum scan_type {
@@ -564,6 +564,26 @@ extern void jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t e
 extern void jtag_add_ir_scan_noverify(int num_fields, scan_field_t *fields, tap_state_t state);
 extern int  interface_jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern void jtag_add_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
+
+/* set in_value to point to 32 bits of memory to scan into. This function
+ * is a way to handle the case of synchronous and asynchronous
+ * JTAG queues.
+ *
+ * In the event of an asynchronous queue execution the queue buffer
+ * allocation method is used, for the synchronous case the temporary 32 bits come
+ * from the input field itself.
+ */
+
+#ifndef HAVE_JTAG_MINIDRIVER_H
+extern void jtag_alloc_in_value32(scan_field_t *field);
+#else
+static __inline__ void jtag_alloc_in_value32(scan_field_t *field)
+{
+	field->in_value=field->intmp;
+}
+#endif
+
+
 
 /* This version of jtag_add_dr_scan() uses the check_value/mask fields */
 extern void jtag_add_dr_scan_check(int num_fields, scan_field_t* fields, tap_state_t endstate);

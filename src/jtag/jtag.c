@@ -718,7 +718,7 @@ static void jtag_add_scan_check(void (*jtag_add_scan)(int num_fields, scan_field
 			if (fields[i].num_bits<=32)
 			{
 				/* This is enough space and we're executing this synchronously */
-				fields[i].in_value=(u8 *)&fields[i].intmp;
+				fields[i].in_value=fields[i].intmp;
 			} else
 			{
 				fields[i].in_value=(u8 *)malloc(CEIL(fields[i].num_bits, 8));
@@ -3561,5 +3561,13 @@ tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
 	return next_state;
 }
 #endif // _DEBUG_JTAG_IO_
+
+#ifndef HAVE_JTAG_MINIDRIVER_H
+void jtag_alloc_in_value32(scan_field_t *field)
+{
+	field->in_value=(u8 *)cmd_queue_alloc(4);
+}
+#endif
+
 
 /*-----</Cable Helper API>--------------------------------------*/
