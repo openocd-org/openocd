@@ -36,7 +36,6 @@
 
 /* system includes */
 #include <usb.h>
-#include <stdint.h>
 
 
 /* This feature is made useless by running the DTC all the time.  When automatic, the LED is on whenever the DTC is running.  Otherwise, USB messages are sent to turn it on and off. */
