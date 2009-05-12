@@ -44,8 +44,6 @@
 #include "xsvf.h"
 #include "jtag.h"
 
-#include <assert.h>
-
 
 /* XSVF commands, from appendix B of xapp503.pdf  */
 #define XCOMPLETE		0x00

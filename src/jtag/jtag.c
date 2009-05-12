@@ -33,7 +33,7 @@
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
-#include <assert.h>
+
 
 int jtag_flush_queue_count; /* count # of flushes for profiling / debugging purposes */
 
