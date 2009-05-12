@@ -61,13 +61,6 @@
 #include "jim-eventloop.h"
 #endif
 
-/* POSIX includes */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <errno.h>
-
 #include "replacements.h"
 
 
