@@ -780,6 +780,7 @@ fi
 AM_CONFIG_HEADER(config.h)
 AH_BOTTOM([
 #include "system.h"
+#include "replacements.h"
 ])
 
 AM_INIT_AUTOMAKE([-Wall -Wno-portability])
