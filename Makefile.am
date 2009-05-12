@@ -11,6 +11,8 @@ nobase_dist_pkgdata_DATA = \
 
 SUBDIRS = src doc
 
+EXTRA_DIST = Doxyfile
+
 MAINTAINERCLEANFILES = \
 	configure \
 	Makefile.in \
