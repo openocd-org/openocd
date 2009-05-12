@@ -21,13 +21,20 @@
 
 # A simple utility to read a list of files (names composed by numeric prescaler arguments) and compose a C source file defining data structures which hold the binary data read from those files.
 
-@speed_table = ();
+my @speed_table = ();
 
-printf("/* This file was created automatically by %s. */\n\n", $0);
-for $i ('rlink', 'st7') {
-	printf("#include \"$i.h\"\n");
-}
-printf("\n");
+print <<HEADER;
+/* This file was created automatically by the following script:
+ *   $0
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "rlink.h"
+#include "st7.h"
+
+HEADER
 
 for $prescaler (sort {$b <=> $a} @ARGV) {
 	my(@ary) = (
