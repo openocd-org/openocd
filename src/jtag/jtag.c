@@ -2889,7 +2889,7 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 		}
 	}
 
-	int num_fields= num_fields;
+	int num_fields = argc / 2;
 
 	fields = malloc(sizeof(scan_field_t) * num_fields);
 
