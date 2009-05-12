@@ -1332,6 +1332,8 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 					oob_format |= NAND_OOB_RAW | NAND_OOB_ONLY;
 				else if (!strcmp(args[i], "oob_softecc"))
 					oob_format |= NAND_OOB_SW_ECC;
+				else if (!strcmp(args[i], "oob_softecc_kw"))
+					oob_format |= NAND_OOB_SW_ECC_KW;
 				else
 				{
 					command_print(cmd_ctx, "unknown option: %s", args[i]);
@@ -1355,7 +1357,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 			page = malloc(p->page_size);
 		}
 
-		if (oob_format & (NAND_OOB_RAW | NAND_OOB_SW_ECC))
+		if (oob_format & (NAND_OOB_RAW | NAND_OOB_SW_ECC | NAND_OOB_SW_ECC_KW))
 		{
 			if (p->page_size == 512) {
 				oob_size = 16;
@@ -1400,6 +1402,21 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 					oob[eccpos[j++]] = ecc[0];
 					oob[eccpos[j++]] = ecc[1];
 					oob[eccpos[j++]] = ecc[2];
+				}
+			} else if (oob_format & NAND_OOB_SW_ECC_KW)
+			{
+				/*
+				 * In this case eccpos is not used as
+				 * the ECC data is always stored contigously
+				 * at the end of the OOB area.  It consists
+				 * of 10 bytes per 512-byte data block.
+				 */
+				u32 i;
+				u8 *ecc = oob + oob_size - page_size/512 * 10;
+				memset(oob, 0xff, oob_size);
+				for (i = 0; i < page_size; i += 512) {
+					nand_calculate_ecc_kw(p, page+i, ecc);
+					ecc += 10;
 				}
 			}
 			else if (NULL != oob)

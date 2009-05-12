@@ -200,6 +200,7 @@ enum oob_formats
 	NAND_OOB_ONLY = 0x2,	/* only OOB data */
 	NAND_OOB_SW_ECC = 0x10,	/* when writing, use SW ECC (as opposed to no ECC) */ 
 	NAND_OOB_HW_ECC = 0x20, /* when writing, use HW ECC (as opposed to no ECC) */
+	NAND_OOB_SW_ECC_KW = 0x40, /* when writing, use Marvell's Kirkwood bootrom format */
 	NAND_OOB_JFFS2 = 0x100,	/* when writing, use JFFS2 OOB layout */
 	NAND_OOB_YAFFS2 = 0x100,/* when writing, use YAFFS2 OOB layout */
 };
@@ -210,6 +211,7 @@ extern int nand_read_page_raw(struct nand_device_s *device, u32 page, u8 *data, 
 extern int nand_write_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
 extern int nand_read_status(struct nand_device_s *device, u8 *status);
 extern int nand_calculate_ecc(struct nand_device_s *device, const u8 *dat, u8 *ecc_code);
+extern int nand_calculate_ecc_kw(struct nand_device_s *device, const u8 *dat, u8 *ecc_code);
 
 extern int nand_register_commands(struct command_context_s *cmd_ctx);
 extern int nand_init(struct command_context_s *cmd_ctx);
