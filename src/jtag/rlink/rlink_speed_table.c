@@ -1,4 +1,7 @@
 /* This file was created automatically by ../../../tools/rlink_make_speed_table/rlink_make_speed_table.pl. */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "rlink.h"
 #include "st7.h"
