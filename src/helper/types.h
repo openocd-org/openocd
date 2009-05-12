@@ -60,7 +60,7 @@ typedef struct jtag_tap_s jtag_tap_t;
 #define true		1
 
 typedef int _Bool;
-#else 
+#else
 typedef bool _Bool;
 #endif	/* __cplusplus */
 #endif	/* HAVE__BOOL */
@@ -135,5 +135,10 @@ static inline void h_u16_to_be(u8* buf, int val)
 	buf[0] = (u8) (val >> 8);
 	buf[1] = (u8) (val >> 0);
 }
+
+#ifdef __ECOS
+/* eCos plain lacks this definition... */
+typedef CYG_ADDRWORD intptr_t;
+#endif
 
 #endif /* TYPES_H */

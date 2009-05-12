@@ -608,10 +608,6 @@ extern void jtag_add_callback(jtag_callback1_t, u8 *in);
 #endif
 
 
-#ifdef __ECOS
-typedef CYG_ADDRWORD intptr_t;
-#endif
-
 /* This type can store an integer safely by a normal cast on 64 and
  * 32 bit systems. */
 typedef intptr_t jtag_callback_data_t;
