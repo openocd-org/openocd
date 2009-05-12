@@ -23,17 +23,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 /* DANGER!!!! These must be defined *BEFORE* replacements.h and the malloc() macro!!!! */
 
 #include <stdlib.h>
 #include <string.h>
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
 /* 
  * clear_malloc
  *
@@ -65,9 +58,12 @@ void *fill_malloc(size_t size)
 }
 
 #define IN_REPLACEMENTS_C
-#include "replacements.h"
-
-#include <stdio.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
 
 #ifdef _WIN32
 #include <io.h>

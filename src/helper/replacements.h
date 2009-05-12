@@ -26,8 +26,6 @@
 #ifndef REPLACEMENTS_H
 #define REPLACEMENTS_H
 
-#include "types.h"
-
 /* MIN,MAX macros */
 #ifndef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))

@@ -56,8 +56,6 @@
 #include <stdarg.h>
 #include <limits.h>
 
-#include "replacements.h"
-
 /* Include the platform dependent libraries for
  * dynamic loading of libraries. */
 #ifdef JIM_DYNLIB

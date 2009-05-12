@@ -30,8 +30,6 @@
 #include "algorithm.h"
 #include "command.h"
 
-#include "replacements.h"
-
 struct reg_s;
 struct trace_s;
 struct command_context_s;

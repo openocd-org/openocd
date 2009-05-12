@@ -61,11 +61,6 @@
 #include "jim-eventloop.h"
 #endif
 
-#include "replacements.h"
-
-
-/* --- */
-
 /* File event structure */
 typedef struct Jim_FileEvent {
     void *handle;
