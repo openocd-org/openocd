@@ -23,6 +23,8 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+#include "types.h"
+
 /* Integrate the JIM TCL interpretor into the command processing. */
 #if BUILD_ECOSBOARD
 #include <stdio.h>
