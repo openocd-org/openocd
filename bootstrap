@@ -1,8 +1,24 @@
-aclocal \
-&& autoheader \
-&& libtoolize --automake \
-&& automake --foreign --add-missing --copy \
-&& autoconf
+#!/bin/sh -e
+
+if libtoolize --version >/dev/null 2>&1; then
+	libtoolize="libtoolize"
+elif libtoolize --version >/dev/null 2>&1; then
+	libtoolize="glibtoolize"
+else
+	echo "libtool is required" >&2
+	exit 1
+fi
+
+# bootstrap the autotools
+(
+set -x
+aclocal
+autoheader
+${libtoolize} --automake --copy
+autoconf
+autoheader
+automake --foreign --add-missing --copy
+)
 
 # AM_MAINTAINER_MODE requires SVN users provide --enable-maintainer-mode
 # otherwise the documentation will fail to build due to missing version.texi
