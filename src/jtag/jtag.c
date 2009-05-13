@@ -97,6 +97,7 @@ tap_state_t cmd_queue_end_state = TAP_RESET;
 tap_state_t cmd_queue_cur_state = TAP_RESET;
 
 int jtag_verify_capture_ir = 1;
+int jtag_verify = 1;
 
 /* how long the OpenOCD should wait before attempting JTAG communication after reset lines deasserted (in ms) */
 static int jtag_nsrst_delay = 0; /* default to no nSRST delay */
@@ -259,6 +260,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const *args);
 
 static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 jtag_tap_t *jtag_AllTaps(void)
 {
@@ -550,23 +552,25 @@ void jtag_add_ir_scan_noverify(int num_fields, scan_field_t *fields, tap_state_t
 
 void jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
 {
-	/* 8 x 32 bit id's is enough for all invoations */
-	int j;
-	for (j = 0; j < num_fields; j++)
+	if (jtag_verify&&jtag_verify_capture_ir)
 	{
-		fields[j].check_value=NULL;
-		fields[j].check_mask=NULL;
-		/* if we are to run a verification of the ir scan, we need to get the input back.
-		 * We may have to allocate space if the caller didn't ask for the input back.
-		 */
-		if (jtag_verify_capture_ir)
+		/* 8 x 32 bit id's is enough for all invoations */
+		int j;
+		for (j = 0; j < num_fields; j++)
 		{
+			fields[j].check_value=NULL;
+			fields[j].check_mask=NULL;
+			/* if we are to run a verification of the ir scan, we need to get the input back.
+			 * We may have to allocate space if the caller didn't ask for the input back.
+			 */
 			fields[j].check_value=fields[j].tap->expected;
 			fields[j].check_mask=fields[j].tap->expected_mask;
 		}
+		jtag_add_scan_check(jtag_add_ir_scan_noverify, num_fields, fields, state);
+	} else
+	{
+		jtag_add_ir_scan_noverify(num_fields, fields, state);
 	}
-
-	jtag_add_scan_check(jtag_add_ir_scan_noverify, num_fields, fields, state);
 }
 
 int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
@@ -752,11 +756,14 @@ static void jtag_add_scan_check(void (*jtag_add_scan)(int num_fields, scan_field
 
 void jtag_add_dr_scan_check(int num_fields, scan_field_t *fields, tap_state_t state)
 {
-	jtag_add_scan_check(jtag_add_dr_scan, num_fields, fields, state);
+	if (jtag_verify)
+	{
+		jtag_add_scan_check(jtag_add_dr_scan, num_fields, fields, state);
+	} else
+	{
+		jtag_add_dr_scan(num_fields, fields, state);
+	}
 }
-
-
-
 
 int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
 {
@@ -2292,6 +2299,8 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 
 	register_command(cmd_ctx, NULL, "verify_ircapture", handle_verify_ircapture_command,
 		COMMAND_ANY, "verify value captured during Capture-IR <enable|disable>");
+	register_command(cmd_ctx, NULL, "verify_jtag", handle_verify_jtag_command,
+		COMMAND_ANY, "verify value capture <enable|disable>");
 	return ERROR_OK;
 }
 
@@ -3087,6 +3096,31 @@ static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, ch
 	}
 
 	command_print(cmd_ctx, "verify Capture-IR is %s", (jtag_verify_capture_ir) ? "enabled": "disabled");
+
+	return ERROR_OK;
+}
+
+static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc == 1)
+	{
+		if (strcmp(args[0], "enable") == 0)
+		{
+			jtag_verify = 1;
+		}
+		else if (strcmp(args[0], "disable") == 0)
+		{
+			jtag_verify = 0;
+		} else
+		{
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	} else if (argc != 0)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	command_print(cmd_ctx, "verify jtag capture is %s", (jtag_verify) ? "enabled": "disabled");
 
 	return ERROR_OK;
 }
