@@ -18,7 +18,6 @@ AC_CHECK_HEADERS(malloc.h)
 AC_CHECK_HEADERS(netdb.h)
 AC_CHECK_HEADERS(netinet/in.h)
 AC_CHECK_HEADERS(netinet/tcp.h)
-AC_CHECK_HEADERS(net/if.h)
 AC_CHECK_HEADERS(pthread.h)
 AC_CHECK_HEADERS(strings.h)
 AC_CHECK_HEADERS(sys/ioctl.h)
@@ -30,6 +29,21 @@ AC_CHECK_HEADERS(sys/stat.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_HEADERS(sys/types.h)
 AC_CHECK_HEADERS(unistd.h)
+
+AC_CHECK_HEADERS([net/if.h], [], [], [dnl
+#include <stdio.h>
+#ifdef STDC_HEADERS
+# include <stdlib.h>
+# include <stddef.h>
+#else
+# ifdef HAVE_STDLIB_H
+#  include <stdlib.h>
+# endif
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+# include <sys/socket.h>
+#endif
+])
 
 AC_HEADER_ASSERT
 AC_HEADER_STDBOOL
