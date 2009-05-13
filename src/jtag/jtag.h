@@ -856,8 +856,15 @@ void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
 #define MINIDRIVER(a) notused ## a
 #else
 #define MINIDRIVER(a) a
+extern void interface_jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const int* num_bits, const u32* value,
+		tap_state_t end_state);
 
-/* jtag_add_dr_out() is a faster version of jtag_add_dr_scan()
+#endif
+
+/* jtag_add_dr_out() is a version of jtag_add_dr_scan() which
+ * only scans data out. It operates on 32 bit integers instead
+ * of 8 bit, which makes it a better impedance match with
+ * the calling code which often operate on 32 bit integers.
  *
  * Current or end_state can not be TAP_RESET. end_state can be TAP_INVALID
  *
@@ -872,13 +879,13 @@ void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
  * return an error. There is no way to determine if there was a failure
  * during this function call.
  *
- * Note that this jtag_add_dr_out can be defined as an inline function.
+ * This is an inline fn to speed up embedded hosts. Also note that
+ * interface_jtag_add_dr_out() can be a *small* inline function for
+ * embedded hosts.
+ *
+ * There is no jtag_add_dr_outin() version of this fn that also allows
+ * clocking data back in. Patches gladly accepted!
  */
-extern void interface_jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const int* num_bits, const u32* value,
-		tap_state_t end_state);
-
-#endif
-
 static __inline__ void jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const int* num_bits, const u32* value,
 		tap_state_t end_state)
 {
