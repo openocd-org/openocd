@@ -1,0 +1,39 @@
+/** @page jtagdocs OpenOCD JTAG APIs
+
+This document contains @subpage jtagprimer, which introduces the
+IEEE JTAG interface.
+
+The OpenOCD JTAG library API covers several functional areas:
+
+  - @subpage jtagcable
+  - @subpage jtagtap
+  - @subpage jtagmdriver
+  - @subpage jtagdriver
+
+This section needs to be expanded.
+
+ */
+
+/** @page jtagcable OpenOCD JTAG Cable API
+
+This section needs to be expanded.
+
+ */
+
+/** @page jtagtap OpenOCD JTAG TAP API
+
+This section needs to be expanded.
+
+ */
+
+/** @page jtagmdriver OpenOCD JTAG Interface API
+
+This section needs to be expanded.
+
+ */
+
+/** @page jtagdriver OpenOCD JTAG Driver API
+
+This section needs to be expanded.
+
+ */

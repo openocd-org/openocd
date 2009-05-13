@@ -1,0 +1,48 @@
+/** @page helperdocs OpenOCD Helper APIs
+
+OpenOCD uses several low-level APIs as the foundation for high-level APIs:
+
+  - @subpage helperporting
+  - @subpage helperjim
+  - @subpage helpercommand
+  - @subpage helperlogging
+  - @subpage helperbuffers
+
+This section needs to be expanded.
+
+ */
+
+/** @page helperporting OpenOCD Types/Portability APIs
+
+This section needs to be expanded to describe OpenOCD's type and
+portability API.
+
+ */
+
+/** @page helperjim OpenOCD Jim API
+
+The Jim API provides access to a small-footprint TCL implementation.
+
+Visit http://jim.berlios.de/ for more information on Jim.
+
+This section needs to be expanded to describe OpenOCD's Jim API.
+
+ */
+
+/** @page helpercommand OpenOCD Command API
+
+This section needs to be expanded to describe OpenOCD's Command API.
+
+ */
+
+/** @page helperlogging OpenOCD Logging API
+
+This section needs to be expanded to describe OpenOCD's Logging API.
+
+ */
+
+/** @page helperbuffers OpenOCD Byte Buffer API
+
+This section needs to be expanded to describe OpenOCD's Byte Buffer API.
+
+ */

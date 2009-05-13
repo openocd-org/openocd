@@ -1,0 +1,30 @@
+/** @page serverdocs OpenOCD Server APIs
+
+OpenOCD provides support for implementing different types of servers.
+Presently, the following servers have APIs that can be used.
+
+  - @subpage servergdb
+  - @subpage servertelnet
+  - @subpage serverhttp
+
+This section needs to be expanded.
+
+ */
+
+/** @page servergdb OpenOCD GDB Server API
+
+This section needs to be expanded.
+
+ */
+
+/** @page servertelnet OpenOCD Telnet Server API
+
+This section needs to be expanded.
+
+ */
+
+/** @page serverhttp OpenOCD HTTP Server API
+
+This section needs to be expanded.
+
+ */

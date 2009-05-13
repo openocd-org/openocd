@@ -1,0 +1,45 @@
+/** @mainpage OpenOCD Reference Manual
+
+The @ref primer page provides introductory materials for new developers.
+
+The @ref oocd page explains how the code has been organized into layers
+of APIs and gives an overview of how they fit together.
+ 
+ */
+
+/** @page oocd OpenOCD Architecture
+
+The OpenOCD library consists of several APIs that build together to
+provide the support functionality.  The following list shows how these
+modules are stacked in the current implementation (from bottom to top):
+
+- @subpage helperdocs
+  - @ref helperporting
+  - @ref helperjim
+  - @ref helpercommand
+  - @ref helperlogging
+- @subpage jtagdocs
+  - @ref jtagcable
+  - @ref jtagtap
+  - @ref jtagmdriver
+  - @ref jtagdriver
+- @subpage targetdocs
+  - @ref targetarm
+  - @ref targetnotarm
+  - @ref targetregister
+  - @ref targetimage
+  - @ref targettrace
+- @subpage flashdocs
+  - @ref flashcfi
+  - @ref flashnand
+  - @ref flashtarget
+- @subpage serverdocs
+  - @ref servergdb
+  - @ref servertelnet
+  - @ref serverhttp
+- @subpage appdocs
+
+Obviously, there are some nuances to the stack that are not shown by
+this linear list of layers.
+
+ */

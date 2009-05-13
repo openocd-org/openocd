@@ -1,0 +1,51 @@
+/** @page targetdocs OpenOCD Target APIs
+
+OpenOCD provides its Target APIs to allow developers to provide trace and
+debugging support for specific device targets.  These primarily consist of
+ARM cores, but other types have been supported.  New targets should be
+developed by following or using these APIs.
+
+The Target Support module contains APIs that cover several functional areas:
+
+  - @subpage targetarm
+  - @subpage targetnotarm
+  - @subpage targetregister
+  - @subpage targetimage
+  - @subpage targettrace
+
+This section needs to be expanded.
+
+*/
+
+/** @page targetarm OpenOCD ARM Targets
+
+This section needs to describe OpenOCD's ARM target support.
+
+ */
+
+/** @page targetnotarm OpenOCD Non-ARM Targets
+
+This section needs to describe OpenOCD's non-ARM target support.
+
+ */
+
+/** @page targetregister OpenOCD Target Register API
+
+This section needs to describe OpenOCD's Target Register API, as
+provided by 'src/target/register.h'.
+
+ */
+
+/** @page targetimage OpenOCD Target Image API
+
+This section needs to describe OpenOCD's Target Image API, as provided
+by 'src/target/image.h'.
+
+ */
+
+/** @page targettrace OpenOCD Target Trace API
+
+This section needs to describe OpenOCD's Target Trace API, as provided
+by 'src/target/trace.h'.
+
+ */

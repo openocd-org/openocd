@@ -1,0 +1,35 @@
+/** @page flashdocs OpenOCD Flash APIs
+
+OpenOCD provides its Flash APIs for developers to support different
+types of flash devices, some of which are built-in to target devices
+while others may be connected via standard memory interface (e.g. CFI,
+FMI, etc.).
+
+The Flash module provides the following APIs:
+
+  - @subpage flashcfi 
+  - @subpage flashnand
+  - @subpage flashtarget
+
+This section needs to be expanded.
+
+*/
+
+
+/** @page flashcfi OpenOCD CFI Flash API
+
+This section needs to be expanded to describe OpenOCD's CFI Flash API.
+
+*/
+
+/** @page flashnand OpenOCD NAND Flash API
+
+This section needs to be expanded to describe OpenOCD's NAND Flash API.
+
+*/
+
+/** @page flashtarget OpenOCD Target Flash API
+
+This section needs to be expanded to describe OpenOCD's Target Flash API.
+
+*/

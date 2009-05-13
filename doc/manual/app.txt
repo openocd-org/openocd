@@ -1,0 +1,9 @@
+/** @page appdocs OpenOCD Application APIs
+
+The top-level APIs in the OpenOCD library allow applications to integrate
+all of the low-level functionality using a set of simple function calls.
+
+These function calls do not exist in a re-usable form, but
+contributions to create and document them will be welcome.
+
+ */
