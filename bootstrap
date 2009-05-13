@@ -2,7 +2,7 @@
 
 if libtoolize --version >/dev/null 2>&1; then
 	libtoolize="libtoolize"
-elif libtoolize --version >/dev/null 2>&1; then
+elif glibtoolize --version >/dev/null 2>&1; then
 	libtoolize="glibtoolize"
 else
 	echo "libtool is required" >&2
