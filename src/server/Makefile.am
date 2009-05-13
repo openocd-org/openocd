@@ -28,4 +28,13 @@ if HTTPD
 nobase_dist_pkglib_DATA = $(wildcard $(srcdir)/httpd/*.tcl $(srcdir)/httpd/*.css $(srcdir)/httpd/menu_cuts/*.png)
 endif
 
+EXTRA_DIST = \
+	httpd/readme.txt \
+	httpd/menu.xml \
+	httpd/menu.xsl \
+	httpd/build.sh \
+	httpd/html2tcl.sh \
+	httpd/Stylizer.java \
+	httpd/Stylizer.class
+
 MAINTAINERCLEANFILES = Makefile.in
