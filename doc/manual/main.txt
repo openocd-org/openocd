@@ -7,6 +7,18 @@ of APIs and gives an overview of how they fit together.
  
  */
 
+/** @page primer OpenOCD Techincal Primers
+
+This pages lists Techincal Primers available for OpenOCD Developers.
+They seek to provide information to pull novices up the learning curves
+associated with the fundamental technologies used by OpenOCD.
+
+- @subpage primerjtag
+
+Contributions or suggestions for new Technical Primers are welcome.
+
+ */
+
 /** @page oocd OpenOCD Architecture
 
 The OpenOCD library consists of several APIs that build together to
