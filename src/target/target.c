@@ -2115,12 +2115,6 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 	address = strtoul(args[1], NULL, 0);
 	size = strtoul(args[2], NULL, 0);
 
-	if ((address & 3) || (size & 3))
-	{
-		command_print(cmd_ctx, "only 32-bit aligned address and size are supported");
-		return ERROR_OK;
-	}
-
 	if (fileio_open(&fileio, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
 		return ERROR_OK;
