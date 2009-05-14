@@ -1,7 +1,7 @@
 /** @page jtagdocs OpenOCD JTAG APIs
 
-This document contains @subpage jtagprimer, which introduces the
-IEEE JTAG interface.
+For new developers unfamiliar with the technology, @ref primerjtag provides
+a brief introduction to the IEEE JTAG interface.
 
 The OpenOCD JTAG library API covers several functional areas:
 

@@ -7,9 +7,9 @@ of APIs and gives an overview of how they fit together.
  
  */
 
-/** @page primer OpenOCD Techincal Primers
+/** @page primer OpenOCD Technical Primers
 
-This pages lists Techincal Primers available for OpenOCD Developers.
+This pages lists Technical Primers available for OpenOCD Developers.
 They seek to provide information to pull novices up the learning curves
 associated with the fundamental technologies used by OpenOCD.
 

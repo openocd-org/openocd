@@ -30,10 +30,10 @@ between TDI and TDO.  The second diagram shows the state transitions on
 TMS which will select different shift registers.
 
 The first thing you need to do is reset the state machine, because when 
-you connect to a chip you dont know what state the jtag is in,you need 
+you connect to a chip you do not know what state the controller is in,you need 
 to clock TMS as 1, at least 7 times.  This will put you into "Test Logic 
 Reset" State.  Knowing this, you can, once reset, then track what each 
-transition on TMS will do, and hence know what state the jtag state 
+transition on TMS will do, and hence know what state the JTAG state 
 machine is in.
 
 There are 2 "types" of shift registers.  The Instruction shift register 
@@ -47,7 +47,7 @@ instruction register.
 
 For example, one of the data registers will be known as "bypass" this is 
 (usually) a single bit which has no function and is used to bypass the 
-chip.  Eg, assume we have 3 identical chips, wired up like the picture 
+chip.  Assume we have 3 identical chips, wired up like the picture 
 and each has a 3 bit instruction register, and there are 2 known 
 instructions (110 = bypass, 010 = some other function) if we want to use 
 "some other function", on the second chip in the line, and not change 
@@ -88,7 +88,8 @@ TDI (holding TMS to 0):
 
   0 1 0 1 0 1 1 1 1 0
 
-Again, we are clocking the lsbit first.  Then we would clock TMS:
+Again, we are clocking the least-significant bit first.  Then we would
+clock TMS:
 
   1 1 0
 
