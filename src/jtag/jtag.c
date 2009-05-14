@@ -2875,7 +2875,7 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 	/*          "statename" */
 	/* at the end of the arguments. */
 	/* assume none. */
-	endstate = TAP_INVALID;
+	endstate = cmd_queue_end_state;
 	if( argc >= 4 ){
 		/* have at least one pair of numbers. */
 		/* is last pair the magic text? */
@@ -2918,19 +2918,17 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 		fields[i].in_value = NULL;
 	}
 
-	jtag_add_ir_scan(num_fields, fields, TAP_INVALID);
 	/* did we have an endstate? */
-	if (endstate != TAP_INVALID)
-		jtag_add_end_state(endstate);
+	jtag_add_ir_scan(num_fields, fields, endstate);
 
-	jtag_execute_queue();
+	int retval=jtag_execute_queue();
 
 	for (i = 0; i < num_fields; i++)
 		free(fields[i].out_value);
 
 	free (fields);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args)
@@ -2959,7 +2957,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 	}
 
 	/* assume no endstate */
-	endstate = TAP_INVALID;
+	endstate = cmd_queue_end_state;
 	/* validate arguments as numbers */
 	e = JIM_OK;
 	for (i = 2; i < argc; i+=2)
@@ -3031,10 +3029,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		field_count++;
 	}
 
-	jtag_add_dr_scan(num_fields, fields, TAP_INVALID);
-	/* did we get an end state? */
-	if (endstate != TAP_INVALID)
-		jtag_add_end_state(endstate);
+	jtag_add_dr_scan(num_fields, fields, endstate);
 
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
