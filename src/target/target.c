@@ -2158,10 +2158,10 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 	if (retval==ERROR_OK)
 	{
 		command_print(cmd_ctx, "dumped %"PRIi64" byte in %s", fileio.size, duration_text);
+		free(duration_text);
 	}
-	free(duration_text);
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int handle_verify_image_command_internal(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, int verify)
