@@ -2133,7 +2133,7 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 		u32 size_written;
 		u32 this_run_size = (size > 560) ? 560 : size;
 
-		retval = target->type->read_memory(target, address, 4, this_run_size / 4, buffer);
+		retval = target_read_buffer(target, address, this_run_size, buffer);
 		if (retval != ERROR_OK)
 		{
 			break;
