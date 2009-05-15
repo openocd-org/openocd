@@ -565,6 +565,7 @@ WARN_LOGFILE           =
 # with spaces.
 
 INPUT                  = doc/manual \
+                         TODO \
                          src \
                          config.h
 
