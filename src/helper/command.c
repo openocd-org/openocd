@@ -30,6 +30,11 @@
 #include "config.h"
 #endif
 
+#if !BUILD_ECOSBOARD
+/* see Embedder-HOWTO.txt in Jim Tcl project hosted on BerliOS*/
+#define JIM_EMBEDDED
+#endif
+
 // @todo the inclusion of target.h here is a layering violation
 #include "target.h"
 #include "command.h"
@@ -675,7 +680,7 @@ command_context_t* command_init()
 	context->output_handler = NULL;
 	context->output_handler_priv = NULL;
 
-#ifdef JIM_EMBEDDED
+#if !BUILD_ECOSBOARD
 	Jim_InitEmbedded();
 	/* Create an interpreter */
 	interp = Jim_CreateInterp();
@@ -721,7 +726,7 @@ command_context_t* command_init()
 
 	add_default_dirs();
 
-#ifdef JIM_EMBEDDED
+#if !BUILD_ECOSBOARD
 	Jim_EventLoopOnLoad(interp);
 #endif
 	if (Jim_Eval_Named(interp, startup_tcl, "embedded:startup.tcl",1)==JIM_ERR)
@@ -800,7 +805,7 @@ int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 void process_jim_events(void)
 {
-#ifdef JIM_EMBEDDED
+#if !BUILD_ECOSBOARD
 	static int recursion = 0;
 
 	if (!recursion)
