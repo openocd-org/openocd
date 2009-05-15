@@ -632,7 +632,7 @@ typedef struct {
 #define JIM_API( X )  X
 #else
 #ifndef __JIM_CORE__
-# if defined JIM_EXTENSION || defined JIM_EMBEDDED
+# if defined JIM_EMBEDDED
 #  define JIM_API(x) (*x)
 #  define JIM_STATIC
 # else
