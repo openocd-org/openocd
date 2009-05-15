@@ -5919,7 +5919,7 @@ int Jim_DictKey(Jim_Interp *interp, Jim_Obj *dictPtr, Jim_Obj *keyPtr,
 int Jim_DictKeysVector(Jim_Interp *interp, Jim_Obj *dictPtr,
         Jim_Obj *const *keyv, int keyc, Jim_Obj **objPtrPtr, int flags)
 {
-    Jim_Obj *objPtr;
+    Jim_Obj *objPtr = NULL;
     int i;
 
     if (keyc == 0) {
