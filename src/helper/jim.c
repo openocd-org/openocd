@@ -7642,8 +7642,8 @@ static int ScanOneEntry(Jim_Interp *interp, const char *str, long pos,
                 scanned += 1;
                 break;
             case 'd': case 'o': case 'x': case 'u': case 'i': {
-                jim_wide jwvalue;
-                long lvalue;
+                jim_wide jwvalue = 0;
+                long lvalue = 0;
                 char *endp;  /* Position where the number finished */
                 int base = descr->type == 'o' ? 8
                     : descr->type == 'x' ? 16
