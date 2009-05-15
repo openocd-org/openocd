@@ -1,10 +1,15 @@
 /** @mainpage OpenOCD Reference Manual
 
-The @ref primer page provides introductory materials for new developers.
-
-The @ref oocd page explains how the code has been organized into layers
-of APIs and gives an overview of how they fit together.
+@ref oocd explains how the code has been organized into layers
+of APIs and gives an overview of how they fit together.  These pages
+attempt to give developers a high-level perspective of the various
+code modules provided by OpenOCD.
  
+@ref primer provide introductory materials for new developers.
+
+The List of @ref thelist enumerates opportunities for improving or
+extending the OpenOCD platform.
+
  */
 
 /** @page primer OpenOCD Technical Primers
@@ -53,5 +58,8 @@ modules are stacked in the current implementation (from bottom to top):
 
 Obviously, there are some nuances to the stack that are not shown by
 this linear list of layers.
+
+The List of @ref thelist enumerates opportunities for improving or
+extending the OpenOCD platform.
 
  */

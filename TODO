@@ -1,2 +1,176 @@
-This document is not in use. See mailing list.
+/** @page thelist Pending and Open Tasks
 
+This page lists pending and open tasks being considered or worked upon
+by the OpenOCD community.
+
+
+Items with a current patch available should include a link to its
+posting on the openocd-developer mailing list archives.
+
+Some items may be in progress, usually indicated by the individual whose
+initials in parentheses following it.  A key for decoding these initials
+appears after The List.
+
+Most items are open for the taking, but please post to the mailing list
+before spending much time working on anything lists here.  The community
+may have evolved an idea since it was added here.
+
+Feel free to send patches to add or clarify items on this list, too.
+
+@verbatim
+================================================================== 
+                             The List
+------------------------------------------------------------------
+@endverbatim
+
+- JTAG/TAP changes:
+  - update all drivers to use tap_get_tms_path_len API.
+    - link to posted patch: @missing
+  - rework TAP state table (started but still needs work)
+    - link to posted patch: @missing
+  - use tap_set_state everywhere to allow logging TAP state transitions
+  - rename other tap_states to use standard JTAG names (suggested by ML)
+    - write script that automate production of the series of 16-17 patches
+    - produce and distribute current series against the current trunk
+    - distribute script so developers can use on WC through live commits
+    - make live commits after giving sufficient notice to others
+  - add TAP_UNKNOWN to augment TAP_INVALID? (suggested by ML/DH)
+  
+- JTAG Interfaces:
+  - autodetect devices present on the scan chain
+    - implement 'discover_taps' command
+  - FT2232 driver: (DH)
+    - integrate FTD2XX High-Speed Device Patch
+      - link to posted patch: @missing
+    - fix non-recoverability of cable connect/reconnect
+      - link to posted patch: @missing
+    - fix outstanding bugs
+  - J-Link driver: (ZW)
+    - fix outstanding bugs
+    - test with known targets (i.e. working with other interfaces)
+    - test compatibility between v6.0 (yellow) and older units (e.g. v5.2)
+  - TCP driver:
+    - add TCP/IP client and server for remote JTAG interface control
+  - Do others need some help?  Probably....
+
+- Other Interfaces
+  - SVF/XSVF:
+    - pending tasks??
+  - SPI/UART emulation:
+    - (ab)use bit-banging JTAG interfaces to emulate SPI/UART
+    - allow SPI to program flash, MCUs, etc.
+  - SWD
+
+- Target Support:
+  - ARM11 improvements (MB?)
+    - fix single stepping  (reported by ØH)
+    - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
+  - Cortex A8 support (ML)
+    - add target implementation (ML)
+    - what else remains to be done?
+  - MC1322x support (JW/DE?)
+    - integrate and test support from JW (and DE?)
+    - get working with a known good interface (i.e. not today's jlink)
+  - AT91SAM92xx:
+    - improvements for unknown-board-atmel-at91sam9260.cfg (RD)
+  - STR9x: (ZW)
+    - improvements to str912.cfg to be more general purpose
+  - AVR: (SQ)
+    - independently verify implementation
+    - incrementally improve working prototype in trunk. (SQ)
+    - work out how to debug this target
+    - AVR debugging protocol.
+  - FPGA:
+    - improve things (??)
+  - Coldfire (suggested by NC)
+    - can we draw from the BDM project?  @par
+      http://bdm.sourceforge.net/
+
+  - other targets?  (suggestions always welcome)
+
+- CFI:
+  - speed enhancements (posted Apr 22 by NC) (??)
+    - link to patch: @missing
+  - finish implementing bus width/chip width handling (suggested by NC)
+    - link to patch: @missing
+  - factor vendor-specific code into separate source files
+  - add new callback interface for vendor-specific code
+  - investigate/implement "thin wrapper" to use eCos CFI drivers (ØH)
+
+- TCL
+  - Isolate all TCL command support: 
+    - Allow pure C CLI implementations using --disable-builtin-tcl
+    - Allow full TCL support? add --with-tcl=/path/to/installed/tcl
+    - Move TCL support in foo.* to foo_tcl.* (other ideas?)
+
+- Debugger Support
+  - Keil AGDI interface to OpenOCD (submitted by Dario Vecchio)
+
+- Architectural Upgrades
+  - Allow N:M:P mapping of servers, targets, and interfaces
+  - loadable module support for interface/target/flash drivers
+  - libopenocd support: @par
+      https://lists.berlios.de/pipermail/openocd-development/2009-May/006405.html
+
+- Test Suite:
+  - implement server unit tests
+  - implement JTAG core unit tests
+  - implement JTAG interface unit tests
+  - implement flash unit tests
+  - implement target unit tests
+
+- Test Feedback Tools: @par
+      https://lists.berlios.de/pipermail/openocd-development/2009-May/006358.html
+
+  - extend target test script to produce helpful pass/fail output
+  - provide results submission script
+
+
+- Generic Hardware Tester:
+  - implement VHDL to use for FPGA-based JTAG TAP testing device
+  - develop test suite that utilizes this testing device
+
+- Build Systems (Autotools, CMake, etc.)
+  - investigate fixes to permit the use of -Wshadow
+  - change bootstrap to call 'configure --enable-maintainer-mode <opts>'?
+
+- Miscellaneous:
+  - make JTAG and USB debug output a run-time configuration option
+  - review and clean up interface/target/flash APIs 
+  - factor code to eliminate duplicated functionality
+  - overhaul use of types to improve 32/64-bit portability
+
+- Berlios Admin:
+  - use patch tracker? @par
+    https://developer.berlios.de/patch/?group_id=4148
+  - use bug tracking?  we need something!
+
+@verbatim
+==================================================================
+OpenOCD's Active Developers and Testers
+------------------------------------------------------------------
+
+** | Name            | Status | Targets          | Interfaces
+---+-----------------+--------+------------------+----------------
+NC | Nico Coesel     |   *    | AU1100           | *
+DE | Duane Ellis     |   *    | *                | *
+DH | Dick Hollenbeck |   ?    | *                | FT2232
+ØH | Øyvind Harboe   |   *    | *                | ZY1000
+JK | Joern Keipf     |   *    | *                | FT2232H/FT4232HS?
+JW | Jeff Williams   |   ?    | MC1322x          | J-Link
+MA | Mariano Alvira  |   *    | MC1322x          | J-Link, FTDI
+MB | Michael Bruck   |   *    | ARM11            | *
+ML | Magnus Lundin   |   *    | *                | *
+RA | Rick Altherr    |   *    | *                | *
+RD | Rene Doss       |   *    | AT91SAM92xx      | *
+SQ | Simon Qian      |   *    | AVR              | *
+ZW | Zach Welch      |   *    | STR912           | J-Link
+
+Status Key:
+* - Active Contributor
+? - Missing In Action
+V - On Vacation
+
+@endverbatim
+
+*/
