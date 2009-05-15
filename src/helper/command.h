@@ -32,6 +32,7 @@
 /* Jim is provied by eCos */
 #include <cyg/jimtcl/jim.h>
 #else
+#define JIM_EMBEDDED
 #include "jim.h"
 #endif
 
