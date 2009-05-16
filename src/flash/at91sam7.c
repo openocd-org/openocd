@@ -62,7 +62,7 @@ static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char
 
 flash_driver_t at91sam7_flash =
 {
-	.name = "at91sam7_new",
+	.name = "at91sam7",
 	.register_commands = at91sam7_register_commands,
 	.flash_bank_command = at91sam7_flash_bank_command,
 	.erase = at91sam7_erase,
@@ -104,7 +104,7 @@ static long SRAMSIZ[16] = {
 
 static int at91sam7_register_commands(struct command_context_s *cmd_ctx)
 {
-	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "at91sam7_new", NULL, COMMAND_ANY, NULL);
+	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "at91sam7", NULL, COMMAND_ANY, NULL);
 
 	register_command(cmd_ctx, at91sam7_cmd, "gpnvm", at91sam7_handle_gpnvm_command, COMMAND_EXEC,
 					"at91sam7 gpnvm <bit> set|clear, set or clear one gpnvm bit");
