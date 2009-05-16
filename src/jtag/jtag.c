@@ -592,7 +592,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 
 	/* allocate memory for ir scan command */
 	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	(*last_cmd)->cmd.scan->ir_scan = 1;
+	(*last_cmd)->cmd.scan->ir_scan = true;
 	x = jtag_NumEnabledTaps();
 	(*last_cmd)->cmd.scan->num_fields = x;	/* one field per device */
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(x  * sizeof(scan_field_t));
@@ -672,7 +672,7 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *f
 
 	/* allocate memory for ir scan command */
 	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	(*last_cmd)->cmd.scan->ir_scan = 1;
+	(*last_cmd)->cmd.scan->ir_scan = true;
 	(*last_cmd)->cmd.scan->num_fields = num_fields;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
@@ -797,7 +797,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 
 	/* allocate memory for dr scan command */
 	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	(*last_cmd)->cmd.scan->ir_scan = 0;
+	(*last_cmd)->cmd.scan->ir_scan = false;
 	(*last_cmd)->cmd.scan->num_fields = num_fields + bypass_devices;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;
@@ -891,7 +891,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 
 	/* allocate memory for dr scan command */
 	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	(*last_cmd)->cmd.scan->ir_scan = 0;
+	(*last_cmd)->cmd.scan->ir_scan = false;
 	(*last_cmd)->cmd.scan->num_fields = num_fields + bypass_devices;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = end_state;
@@ -970,7 +970,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 
 	/* allocate memory for scan command */
 	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	(*last_cmd)->cmd.scan->ir_scan = 0;
+	(*last_cmd)->cmd.scan->ir_scan = false;
 	(*last_cmd)->cmd.scan->num_fields = num_fields;
 	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
 	(*last_cmd)->cmd.scan->end_state = state;

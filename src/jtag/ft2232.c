@@ -573,7 +573,7 @@ static void ft2232_add_pathmove(pathmove_command_t* cmd)
 }
 
 
-void ft2232_add_scan(int ir_scan, enum scan_type type, u8* buffer, int scan_size)
+void ft2232_add_scan(bool ir_scan, enum scan_type type, u8* buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;

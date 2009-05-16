@@ -72,7 +72,7 @@ static void armjtagew_end_state(tap_state_t state);
 static void armjtagew_state_move(void);
 static void armjtagew_path_move(int num_states, tap_state_t *path);
 static void armjtagew_runtest(int num_cycles);
-static void armjtagew_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
+static void armjtagew_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
 static void armjtagew_reset(int trst, int srst);
 //static void armjtagew_simple_command(u8 command);
 static int armjtagew_get_status(void);
@@ -401,7 +401,7 @@ static void armjtagew_runtest(int num_cycles)
 	}
 }
 
-static void armjtagew_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
+static void armjtagew_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
 {
 	tap_state_t saved_end_state;
 

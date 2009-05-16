@@ -204,9 +204,9 @@ static void vsllink_runtest(int num_cycles);
 static void vsllink_stableclocks_dma(int num_cycles, int tms);
 static void vsllink_stableclocks_normal(int num_cycles, int tms);
 static void (*vsllink_stableclocks)(int num_cycles, int tms);
-static void vsllink_scan_dma(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
-static void vsllink_scan_normal(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
-static void (*vsllink_scan)(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
+static void vsllink_scan_dma(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
+static void vsllink_scan_normal(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
+static void (*vsllink_scan)(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
 static void vsllink_reset(int trst, int srst);
 static void vsllink_simple_command(u8 command);
 static int vsllink_connect(void);
@@ -1189,7 +1189,7 @@ static void vsllink_runtest(int num_cycles)
 	}
 }
 
-static void vsllink_scan_normal(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
+static void vsllink_scan_normal(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
 {
 	tap_state_t saved_end_state;
 	u8 bits_left, tms_tmp, tdi_len;
@@ -1305,7 +1305,7 @@ static void vsllink_scan_normal(int ir_scan, enum scan_type type, u8 *buffer, in
 	
 	tap_set_state(tap_get_end_state());
 }
-static void vsllink_scan_dma(int ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
+static void vsllink_scan_dma(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
 {
 	tap_state_t saved_end_state;
 	

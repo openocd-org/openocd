@@ -263,7 +263,7 @@ static void gw16012_runtest(int num_cycles)
 		gw16012_state_move();
 }
 
-static void gw16012_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void gw16012_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	int bits_left = scan_size;
 	int bit_count = 0;

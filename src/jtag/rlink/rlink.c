@@ -1094,7 +1094,7 @@ rlink_scan(
 	u8			*buffer,
 	int			scan_size
 ) {
-	int			ir_scan;
+	bool		ir_scan;
 	tap_state_t	saved_end_state;
 	int			byte_bits;
 	int			extra_bits;

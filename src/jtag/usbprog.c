@@ -58,7 +58,7 @@ static void usbprog_end_state(tap_state_t state);
 static void usbprog_state_move(void);
 static void usbprog_path_move(pathmove_command_t *cmd);
 static void usbprog_runtest(int num_cycles);
-static void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size);
+static void usbprog_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size);
 
 jtag_interface_t usbprog_interface =
 {
@@ -336,7 +336,7 @@ static void usbprog_runtest(int num_cycles)
 	*/
 }
 
-static void usbprog_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void usbprog_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 

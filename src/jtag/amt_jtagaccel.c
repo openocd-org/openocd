@@ -233,7 +233,7 @@ static void amt_jtagaccel_runtest(int num_cycles)
 		amt_jtagaccel_state_move();
 }
 
-static void amt_jtagaccel_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	int bits_left = scan_size;
 	int bit_count = 0;

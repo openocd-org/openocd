@@ -168,7 +168,7 @@ static void bitbang_stableclocks(int num_cycles)
 
 
 
-static void bitbang_scan(int ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void bitbang_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 	int bit_cnt;

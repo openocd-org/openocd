@@ -287,7 +287,7 @@ enum scan_type {
 
 typedef struct scan_command_s
 {
-	int           ir_scan;      /* instruction/not data scan */
+	bool          ir_scan;      /* instruction/not data scan */
 	int           num_fields;   /* number of fields in *fields array */
 	scan_field_t* fields;       /* pointer to an array of data scan fields */
 	tap_state_t   end_state;    /* TAP state in which JTAG commands should finish */
