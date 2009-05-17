@@ -1285,8 +1285,8 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 
 	/* script procedures */
 	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "profiling samples the CPU PC");
-	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing");
-	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values");
+	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing <ARRAYNAME> <WIDTH=32/16/8> <ADDRESS> <COUNT>");
+	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values  <ARRAYNAME> <WIDTH=32/16/8> <ADDRESS> <COUNT>");
 
 	register_command(cmd_ctx, NULL, "fast_load_image", handle_fast_load_image_command, COMMAND_ANY,
 			"same args as load_image, image stored in memory - mainly for profiling purposes");
@@ -2721,7 +2721,7 @@ static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 
-	return 	target_mem2array(interp, target, argc,argv);
+	return 	target_mem2array(interp, target, argc-1, argv+1);
 }
 
 static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
@@ -2742,25 +2742,25 @@ static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_
 	 * argv[3] = memory address
 	 * argv[4] = count of times to read
 	 */
-	if (argc != 5) {
+	if (argc != 4) {
 		Jim_WrongNumArgs(interp, 1, argv, "varname width addr nelems");
 		return JIM_ERR;
 	}
-	varname = Jim_GetString(argv[1], &len);
+	varname = Jim_GetString(argv[0], &len);
 	/* given "foo" get space for worse case "foo(%d)" .. add 20 */
 
-	e = Jim_GetLong(interp, argv[2], &l);
+	e = Jim_GetLong(interp, argv[1], &l);
 	width = l;
 	if (e != JIM_OK) {
 		return e;
 	}
 
-	e = Jim_GetLong(interp, argv[3], &l);
+	e = Jim_GetLong(interp, argv[2], &l);
 	addr = l;
 	if (e != JIM_OK) {
 		return e;
 	}
-	e = Jim_GetLong(interp, argv[4], &l);
+	e = Jim_GetLong(interp, argv[3], &l);
 	len = l;
 	if (e != JIM_OK) {
 		return e;
@@ -2903,7 +2903,7 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 
-	return target_array2mem( interp,target, argc, argv );
+	return target_array2mem( interp,target, argc-1, argv+1 );
 }
 
 static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
@@ -2924,25 +2924,25 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 	 * argv[3] = memory address
 	 * argv[4] = count to write
 	 */
-	if (argc != 5) {
+	if (argc != 4) {
 		Jim_WrongNumArgs(interp, 1, argv, "varname width addr nelems");
 		return JIM_ERR;
 	}
-	varname = Jim_GetString(argv[1], &len);
+	varname = Jim_GetString(argv[0], &len);
 	/* given "foo" get space for worse case "foo(%d)" .. add 20 */
 
-	e = Jim_GetLong(interp, argv[2], &l);
+	e = Jim_GetLong(interp, argv[1], &l);
 	width = l;
 	if (e != JIM_OK) {
 		return e;
 	}
 
-	e = Jim_GetLong(interp, argv[3], &l);
+	e = Jim_GetLong(interp, argv[2], &l);
 	addr = l;
 	if (e != JIM_OK) {
 		return e;
 	}
-	e = Jim_GetLong(interp, argv[4], &l);
+	e = Jim_GetLong(interp, argv[3], &l);
 	len = l;
 	if (e != JIM_OK) {
 		return e;
