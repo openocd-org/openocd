@@ -1,5 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 digenius technology GmbH.                          *
+ *   Michael Bruck                                                         *
  *                                                                         *
  *   Copyright (C) 2008 Oyvind Harboe oyvind.harboe@zylin.com              *
  *                                                                         *
@@ -336,7 +337,9 @@ int arm11_check_init(arm11_common_t * arm11, u32 * dscr)
 		if (*dscr & ARM11_DSCR_CORE_HALTED)
 		{
 			/** \todo TODO: this needs further scrutiny because
-			  * arm11_on_enter_debug_state() never gets properly called
+			  * arm11_on_enter_debug_state() never gets properly called.
+			  * As a result we don't read the actual register states from
+			  * the target.
 			  */
 
 			arm11->target->state	= TARGET_HALTED;
@@ -389,8 +392,8 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 		scan_field_t	chain5_fields[3];
 
 		arm11_setup_field(arm11, 32, NULL, &R(WDTR),	chain5_fields + 0);
-		arm11_setup_field(arm11,  1, NULL, NULL,	chain5_fields + 1);
-		arm11_setup_field(arm11,  1, NULL, NULL,	chain5_fields + 2);
+		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 1);
+		arm11_setup_field(arm11,  1, NULL, NULL,		chain5_fields + 2);
 
 		arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
 	}
@@ -679,7 +682,7 @@ int arm11_poll(struct target_s *target)
 			enum target_state old_state = target->state;
 
 			LOG_DEBUG("enter TARGET_HALTED");
-			target->state		= TARGET_HALTED;
+			target->state			= TARGET_HALTED;
 			target->debug_reason	= arm11_get_DSCR_debug_reason(dscr);
 			arm11_on_enter_debug_state(arm11);
 
@@ -692,7 +695,7 @@ int arm11_poll(struct target_s *target)
 		if (target->state != TARGET_RUNNING && target->state != TARGET_DEBUG_RUNNING)
 		{
 			LOG_DEBUG("enter TARGET_RUNNING");
-			target->state		= TARGET_RUNNING;
+			target->state			= TARGET_RUNNING;
 			target->debug_reason	= DBG_REASON_NOTHALTED;
 		}
 	}
@@ -1369,7 +1372,6 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 			int timeout_ms, void *arch_info)
 {
 		arm11_common_t *arm11 = target->arch_info;
-	armv4_5_algorithm_t *arm11_algorithm_info = arch_info;
 //	enum armv4_5_state core_state = arm11->core_state;
 //	enum armv4_5_mode core_mode = arm11->core_mode;
 	u32 context[16];
@@ -1378,11 +1380,6 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 	int retval = ERROR_OK;
 		LOG_DEBUG("Running algorithm");
 
-	if (arm11_algorithm_info->common_magic != ARMV4_5_COMMON_MAGIC)
-	{
-		LOG_ERROR("current target isn't an ARMV4/5 target");
-		return ERROR_TARGET_INVALID;
-	}
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1441,6 +1438,12 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 		exit(-1);
 	}
 */
+
+
+/* arm11 at this point only supports ARM not THUMB mode
+   however if this test needs to be reactivated the current state can be read back
+   from CPSR */
+#if 0
 	if (arm11_algorithm_info->core_mode != ARMV4_5_MODE_ANY)
 	{
 		LOG_DEBUG("setting core_mode: 0x%2.2x", arm11_algorithm_info->core_mode);
@@ -1448,6 +1451,7 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 		arm11->reg_list[ARM11_RC_CPSR].dirty = 1;
 		arm11->reg_list[ARM11_RC_CPSR].valid = 1;
 	}
+#endif
 
 	if ((retval = breakpoint_add(target, exit_point, exit_breakpoint_size, BKPT_HARD)) != ERROR_OK)
 	{
@@ -1534,12 +1538,6 @@ int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 	NEW(arm11_common_t, arm11, 1);
 
 	arm11->target = target;
-
-	/* prepare JTAG information for the new target */
-	arm11->jtag_info.tap	= target->tap;
-	arm11->jtag_info.scann_size	= 5;
-
-	CHECK_RETVAL(arm_jtag_setup_connection(&arm11->jtag_info));
 
 	if (target->tap==NULL)
 		return ERROR_FAIL;
@@ -1956,7 +1954,7 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
 		RC_FINAL_BOOL(	"error_fatal",			"Terminate program if transfer error was found (default: enabled)",
 						memwrite_error_fatal)
-	)
+	) /* memwrite */
 
 	RC_FINAL_BOOL(		"no_increment",			"Don't increment address on multi-read/-write (default: disabled)",
 						memrw_no_increment)
@@ -1972,7 +1970,7 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
 	RC_FINAL(			"mcr",					"Write Coprocessor register",
 						arm11_handle_mcr)
-	)
+	) /* arm11 */
 
 	return ERROR_OK;
 }

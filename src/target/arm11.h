@@ -1,5 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 digenius technology GmbH.                          *
+ *   Michael Bruck                                                         *
  *                                                                         *
  *   Copyright (C) 2008 Georg Acher <acher@in.tum.de>                      *
  *                                                                         *
@@ -22,7 +23,9 @@
 #ifndef ARM11_H
 #define ARM11_H
 
-#include "embeddedice.h"
+#include "target.h"
+#include "register.h"
+#include "jtag.h"
 
 #define asizeof(x)	(sizeof(x) / sizeof((x)[0]))
 
@@ -77,8 +80,6 @@ enum arm11_debug_version
 typedef struct arm11_common_s
 {
 	target_t *	target;		/**< Reference back to the owner */
-
-	arm_jtag_t	jtag_info;	/**< Handler to access assigned JTAG device */
 
 	/** \name Processor type detection */
 	/*@{*/

@@ -1,5 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2008 digenius technology GmbH.                          *
+ *   Michael Bruck                                                         *
  *                                                                         *
  *   Copyright (C) 2008 Oyvind Harboe oyvind.harboe@zylin.com              *
  *                                                                         *
@@ -81,7 +82,7 @@ int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state
  */
 void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, void * in_data, scan_field_t * field)
 {
-	field->tap   			= arm11->jtag_info.tap;
+	field->tap   			= arm11->target->tap;
 	field->num_bits			= num_bits;
 	field->out_value		= out_data;
 	field->in_value			= in_data;
@@ -99,7 +100,7 @@ void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, vo
 void arm11_add_IR(arm11_common_t * arm11, u8 instr, tap_state_t state)
 {
 	jtag_tap_t *tap;
-	tap = arm11->jtag_info.tap;
+	tap = arm11->target->tap;
 
 	if (buf_get_u32(tap->cur_instr, 0, 5) == instr)
 	{
@@ -211,7 +212,8 @@ void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state
  * same as CP14 c1
  *
  * \param arm11		Target state variable.
- * \return			DSCR content
+ * \param value		DSCR content
+ * \return			Error status
  *
  * \remarks			This is a stand-alone function that executes the JTAG command queue.
  */
