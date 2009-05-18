@@ -785,7 +785,6 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 	int field_count = 0;
 	int scan_size;
 
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
 	jtag_tap_t *tap;
 
 	/* count devices in bypass */
@@ -802,17 +801,19 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 	}
 
 	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->next = NULL;
-	(*last_cmd)->type = JTAG_SCAN;
+	
+	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	
+	jtag_queue_command(cmd);
+	
+	cmd->type = JTAG_SCAN;
 
 	/* allocate memory for dr scan command */
-	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	(*last_cmd)->cmd.scan->ir_scan = false;
-	(*last_cmd)->cmd.scan->num_fields = num_fields + bypass_devices;
-	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
-	(*last_cmd)->cmd.scan->end_state = state;
+	cmd->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
+	cmd->cmd.scan->ir_scan = false;
+	cmd->cmd.scan->num_fields = num_fields + bypass_devices;
+	cmd->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
+	cmd->cmd.scan->end_state = state;
 
 	tap = NULL;
 	nth_tap = -1;
@@ -823,7 +824,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 			break;
 		}
 		int found = 0;
-		(*last_cmd)->cmd.scan->fields[field_count].tap = tap;
+		cmd->cmd.scan->fields[field_count].tap = tap;
 
 		for (j = 0; j < num_fields; j++)
 		{
@@ -831,9 +832,9 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 			{
 				found = 1;
 				scan_size = fields[j].num_bits;
-				(*last_cmd)->cmd.scan->fields[field_count].num_bits = scan_size;
-				(*last_cmd)->cmd.scan->fields[field_count].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				(*last_cmd)->cmd.scan->fields[field_count].in_value = fields[j].in_value;
+				cmd->cmd.scan->fields[field_count].num_bits = scan_size;
+				cmd->cmd.scan->fields[field_count].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+				cmd->cmd.scan->fields[field_count].in_value = fields[j].in_value;
 				field_count++;
 			}
 		}
@@ -848,9 +849,9 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 			}
 #endif
 			/* program the scan field to 1 bit length, and ignore it's value */
-			(*last_cmd)->cmd.scan->fields[field_count].num_bits = 1;
-			(*last_cmd)->cmd.scan->fields[field_count].out_value = NULL;
-			(*last_cmd)->cmd.scan->fields[field_count].in_value = NULL;
+			cmd->cmd.scan->fields[field_count].num_bits = 1;
+			cmd->cmd.scan->fields[field_count].out_value = NULL;
+			cmd->cmd.scan->fields[field_count].in_value = NULL;
 			field_count++;
 		}
 		else
