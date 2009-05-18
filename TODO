@@ -98,10 +98,10 @@ Feel free to send patches to add or clarify items on this list, too.
   - investigate/implement "thin wrapper" to use eCos CFI drivers (ØH)
 
 - TCL
-  - mem2array bugs:
-    - Report: https://lists.berlios.de/pipermail/openocd-development/2009-May/006459.html
   - Isolate all TCL command support: 
-    - Allow pure C CLI implementations using --disable-builtin-tcl
+    - Allow pure C CLI implementations using --disable-builtin-tcl. 
+    Ref? How could this be made to work given targets extensive need
+    for events, etc.? What about the target library?
     - Allow full TCL support? add --with-tcl=/path/to/installed/tcl
     - Move TCL support in foo.* to foo_tcl.* (other ideas?)
 
