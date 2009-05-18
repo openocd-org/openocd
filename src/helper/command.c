@@ -221,7 +221,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	free((void *)full_name);
 
 	/* we now need to add an overrideable proc */
-	const char *override_name=alloc_printf("proc %s%s%s {args} {if {[catch {eval \"ocd_%s%s%s $args\"}]==0} {return \"\"} else { return -code error }", t1, t2, t3, t1, t2, t3);
+	const char *override_name=alloc_printf("proc %s%s%s {args} {if {[catch {eval ocd_%s%s%s $args}]==0} {return \"\"} else { return -code error }", t1, t2, t3, t1, t2, t3);
 	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__ );
 	free((void *)override_name);
 
