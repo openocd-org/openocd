@@ -164,10 +164,10 @@ static int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char 
 		bank->sectors[i].is_protected = 0;
 	}
 
-	info->target = get_target_by_num(strtoul(args[5], NULL, 0));
+	info->target = get_target(args[5]);
 	if (info->target == NULL)
 	{
-		LOG_ERROR("no target '%i' configured", (int)strtoul(args[5], NULL, 0));
+		LOG_ERROR("target '%s' not defined", args[5]);
 		return ERROR_FAIL;
 	}
 	return ERROR_OK;

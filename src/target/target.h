@@ -371,7 +371,7 @@ extern int target_call_timer_callbacks_now(void);
 
 extern target_t* get_current_target(struct command_context_s *cmd_ctx);
 extern int get_num_by_target(target_t *query_target);
-extern target_t* get_target_by_num(int num);
+extern target_t *get_target(const char *id);
 
 extern int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
 extern int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);

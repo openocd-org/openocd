@@ -881,6 +881,8 @@ If the chip has 2 targets, use the names @b{_TARGETNAME0},
 At no time should the name ``target0'' (the default target name if
 none was specified) be used. The name ``target0'' is a hard coded name
 - the next target on the board will be some other number.
+In the same way, avoid using target numbers even when they are
+permitted; use the right target name(s) for your board.
 
 The user (or board file) should reasonably be able to:
 
@@ -1702,7 +1704,8 @@ tap which then connects to the TDI pin.
 @item @b{Note: Deprecated} - Index Numbers
 @* Prior to 28/nov/2008, JTAG taps where numbered from 0..N this
 feature is still present, however its use is highly discouraged and
-should not be counted upon.
+should not be counted upon.  Update all of your scripts to use
+TAP names rather than numbers.
 @item @b{Multiple chips}
 @* If your board has multiple chips, you should be
 able to @b{source} two configuration files, in the proper order, and
@@ -2045,8 +2048,8 @@ jtag configure DOTTED.NAME -event tap-disable @{
 @itemize @bullet
 @item @b{NAME}
 @* Is the name of the debug target. By convention it should be the tap
-DOTTED.NAME, this name is also used to create the target object
-command.
+DOTTED.NAME.  This name is also used to create the target object
+command, and in other places the target needs to be identified.
 @item @b{TYPE}
 @* Specifies the target type, i.e.: ARM7TDMI, or Cortex-M3. Currently supported targets are:
 @comment START types
@@ -2254,7 +2257,7 @@ The @b{flash bank} command is used to configure one or more flash chips (or bank
 
 @example
 @b{flash bank} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}>
-<@var{bus_width}> <@var{target#}> [@var{driver_options ...}]
+<@var{bus_width}> <@var{target}> [@var{driver_options ...}]
 @end example
 @cindex flash bank
 @*Configures a flash bank at <@var{base}> of <@var{size}> bytes and <@var{chip_width}>
@@ -2274,8 +2277,9 @@ perhaps configure a GPIO pin that controls the ``write protect'' pin
 on the flash chip.
 
 @b{flash bank cfi} <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}>
-<@var{target#}> [@var{jedec_probe}|@var{x16_as_x8}]
-@*CFI flashes require the number of the target they're connected to as an additional
+<@var{target}> [@var{jedec_probe}|@var{x16_as_x8}]
+@*CFI flashes require the name or number of the target they're connected to
+as an additional
 argument. The CFI driver makes use of a working area (specified for the target)
 to significantly speed up operation. 
 
@@ -2289,12 +2293,13 @@ The @var{jedec_probe} option is used to detect certain non-CFI flash ROMs, like 
 @subsubsection lpc2000 options
 @cindex lpc2000 options
 
-@b{flash bank lpc2000} <@var{base}> <@var{size}> 0 0 <@var{target#}> <@var{variant}>
+@b{flash bank lpc2000} <@var{base}> <@var{size}> 0 0 <@var{target}> <@var{variant}>
 <@var{clock}> [@var{calc_checksum}]
 @*LPC flashes don't require the chip and bus width to be specified. Additional
 parameters are the <@var{variant}>, which may be @var{lpc2000_v1} (older LPC21xx and LPC22xx)
-or @var{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx), the number
-of the target this flash belongs to (first is 0), the frequency at which the core
+or @var{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx),
+the name or number of the target this flash belongs to (first is 0),
+the frequency at which the core
 is currently running (in kHz - must be an integral number), and the optional keyword
 @var{calc_checksum}, telling the driver to calculate a valid checksum for the exception
 vector table. 
@@ -2303,20 +2308,20 @@ vector table.
 @subsubsection at91sam7 options
 @cindex at91sam7 options
 
-@b{flash bank at91sam7} 0 0 0 0 <@var{target#}>
-@*AT91SAM7 flashes only require the @var{target#}, all other values are looked up after
+@b{flash bank at91sam7} 0 0 0 0 <@var{target}>
+@*AT91SAM7 flashes only require the @var{target}, all other values are looked up after
 reading the chip-id and type. 
 
 @subsubsection str7 options
 @cindex str7 options
 
-@b{flash bank str7x} <@var{base}> <@var{size}> 0 0 <@var{target#}> <@var{variant}>
+@b{flash bank str7x} <@var{base}> <@var{size}> 0 0 <@var{target}> <@var{variant}>
 @*variant can be either STR71x, STR73x or STR75x. 
 
 @subsubsection str9 options
 @cindex str9 options
 
-@b{flash bank str9x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+@b{flash bank str9x} <@var{base}> <@var{size}> 0 0 <@var{target}>
 @*The str9 needs the flash controller to be configured prior to Flash programming, e.g.
 @example
 str9x flash_config 0 4 2 0 0x80000
@@ -2325,7 +2330,7 @@ This will setup the BBSR, NBBSR, BBADR and NBBADR registers respectively.
 
 @subsubsection str9 options (str9xpec driver)
 
-@b{flash bank str9xpec} <@var{base}> <@var{size}> 0 0 <@var{target#}>
+@b{flash bank str9xpec} <@var{base}> <@var{size}> 0 0 <@var{target}>
 @*Before using the flash commands the turbo mode must be enabled using str9xpec
 @option{enable_turbo} <@var{num>.}
 
@@ -2335,25 +2340,25 @@ Use the standard str9 driver for programming. @xref{STR9 specific commands}.
 @subsubsection Stellaris (LM3Sxxx) options
 @cindex Stellaris (LM3Sxxx) options
 
-@b{flash bank stellaris} <@var{base}> <@var{size}> 0 0 <@var{target#}>
-@*Stellaris flash plugin only require the @var{target#}. 
+@b{flash bank stellaris} <@var{base}> <@var{size}> 0 0 <@var{target}>
+@*Stellaris flash plugin only require the @var{target}.
 
 @subsubsection stm32x options
 @cindex stm32x options
 
-@b{flash bank stm32x} <@var{base}> <@var{size}> 0 0 <@var{target#}>
-@*stm32x flash plugin only require the @var{target#}. 
+@b{flash bank stm32x} <@var{base}> <@var{size}> 0 0 <@var{target}>
+@*stm32x flash plugin only require the @var{target}.
 
 @subsubsection aduc702x options
 @cindex aduc702x options
 
-@b{flash bank aduc702x} 0 0 0 0 <@var{target#}>
-@*The aduc702x flash plugin works with Analog Devices model numbers ADUC7019 through ADUC7028.  The setup command only requires the @var{target#} argument (all devices in this family have the same memory layout).
+@b{flash bank aduc702x} 0 0 0 0 <@var{target}>
+@*The aduc702x flash plugin works with Analog Devices model numbers ADUC7019 through ADUC7028.  The setup command only requires the @var{target} argument (all devices in this family have the same memory layout).
 
 @subsection mFlash Configuration
 @cindex mFlash Configuration
 @b{mflash bank} <@var{soc}> <@var{base}> <@var{chip_width}> <@var{bus_width}>
-<@var{RST pin}> <@var{WP pin}> <@var{DPD pin}> <@var{target #}>
+<@var{RST pin}> <@var{WP pin}> <@var{DPD pin}> <@var{target}>
 @cindex mflash bank
 @*Configures a mflash for <@var{soc}> host bank at
 <@var{base}>. <@var{chip_width}> and <@var{bus_width}> are bytes

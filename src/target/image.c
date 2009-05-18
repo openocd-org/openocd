@@ -711,10 +711,11 @@ int image_open(image_t *image, char *url, char *type_string)
 	}
 	else if (image->type == IMAGE_MEMORY)
 	{
-		target_t *target = get_target_by_num(strtoul(url, NULL, 0));
-		if (target==NULL)
+		target_t *target = get_target(url);
+
+		if (target == NULL)
 		{
-			LOG_ERROR("Target '%s' does not exist", url);
+			LOG_ERROR("target '%s' not defined", url);
 			return ERROR_FAIL;
 		}
 

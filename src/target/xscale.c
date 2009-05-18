@@ -3147,9 +3147,9 @@ int xscale_handle_debug_handler_command(struct command_context_s *cmd_ctx, char 
 		return ERROR_OK;
 	}
 
-	if ((target = get_target_by_num(strtoul(args[0], NULL, 0))) == NULL)
+	if ((target = get_target(args[0])) == NULL)
 	{
-		LOG_ERROR("no target '%s' configured", args[0]);
+		LOG_ERROR("target '%s' not defined", args[0]);
 		return ERROR_FAIL;
 	}
 
@@ -3187,9 +3187,10 @@ int xscale_handle_cache_clean_address_command(struct command_context_s *cmd_ctx,
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if ((target = get_target_by_num(strtoul(args[0], NULL, 0))) == NULL)
+	target = get_target(args[0]);
+	if (target == NULL)
 	{
-		LOG_ERROR("no target '%s' configured", args[0]);
+		LOG_ERROR("target '%s' not defined", args[0]);
 		return ERROR_FAIL;
 	}
 

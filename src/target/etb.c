@@ -372,11 +372,11 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	target = get_target_by_num(strtoul(args[0], NULL, 0));
+	target = get_target(args[0]);
 
 	if (!target)
 	{
-		LOG_ERROR("target number '%s' not defined", args[0]);
+		LOG_ERROR("target '%s' not defined", args[0]);
 		return ERROR_FAIL;
 	}
 

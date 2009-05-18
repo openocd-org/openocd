@@ -71,10 +71,10 @@ static int lpc3180_nand_device_command(struct command_context_s *cmd_ctx, char *
 	lpc3180_info = malloc(sizeof(lpc3180_nand_controller_t));
 	device->controller_priv = lpc3180_info;
 
-	lpc3180_info->target = get_target_by_num(strtoul(args[1], NULL, 0));
+	lpc3180_info->target = get_target(args[1]);
 	if (!lpc3180_info->target)
 	{
-		LOG_ERROR("no target '%s' configured", args[1]);
+		LOG_ERROR("target '%s' not defined", args[1]);
 		return ERROR_NAND_DEVICE_INVALID;
 	}
 

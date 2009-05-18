@@ -46,12 +46,12 @@ s3c24xx_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	device->controller_priv = s3c24xx_info;
 
-	s3c24xx_info->target = get_target_by_num(strtoul(args[1], NULL, 0));
+	s3c24xx_info->target = get_target(args[1]);
 	if (s3c24xx_info->target == NULL) {
-		LOG_ERROR("no target '%s' configured", args[1]);
+		LOG_ERROR("target '%s' not defined", args[1]);
 		return NULL;
 	}
-		
+
 	return s3c24xx_info;
 }
 

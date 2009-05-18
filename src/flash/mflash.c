@@ -795,9 +795,9 @@ static int mflash_bank_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if ((target = get_target_by_num(strtoul(args[7], NULL, 0))) == NULL)
+	if ((target = get_target(args[7])) == NULL)
 	{
-		LOG_ERROR("target %lu not defined", strtoul(args[7], NULL, 0));
+		LOG_ERROR("target '%s' not defined", args[7]);
 		return ERROR_FAIL;
 	}
 

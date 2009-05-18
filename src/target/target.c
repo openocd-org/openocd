@@ -320,8 +320,36 @@ void target_buffer_set_u8(target_t *target, u8 *buffer, u8 value)
 	*buffer = value;
 }
 
+/* return a pointer to a configured target; id is name or number */
+target_t *get_target(const char *id)
+{
+	target_t *target;
+	char *endptr;
+	int num;
+
+	/* try as tcltarget name */
+	for (target = all_targets; target; target = target->next) {
+		if (target->cmd_name == NULL)
+			continue;
+		if (strcmp(id, target->cmd_name) == 0)
+			return target;
+	}
+
+	/* no match, try as number */
+	num = strtoul(id, &endptr, 0);
+	if (*endptr != 0)
+		return NULL;
+
+	for (target = all_targets; target; target = target->next) {
+		if (target->target_number == num)
+			return target;
+	}
+
+	return NULL;
+}
+
 /* returns a pointer to the n-th configured target */
-target_t* get_target_by_num(int num)
+static target_t *get_target_by_num(int num)
 {
 	target_t *target = all_targets;
 
@@ -1333,35 +1361,16 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 
 static int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	char *cp;
 	target_t *target = all_targets;
 
 	if (argc == 1)
 	{
-		/* try as tcltarget name */
-		for( target = all_targets ; target ; target = target->next ){
-		  if( target->cmd_name ){
-			if( 0 == strcmp( args[0], target->cmd_name ) ){
-				/* MATCH */
-				goto Match;
-			}
-		  }
-		}
-		/* no match, try as number */
-
-		int num = strtoul(args[0], &cp, 0 );
-		if( *cp != 0 ){
-			/* then it was not a number */
-			command_print( cmd_ctx, "Target: %s unknown, try one of:\n", args[0] );
-			goto DumpTargets;
-		}
-
-		target = get_target_by_num( num );
-		if( target == NULL ){
+		target = get_target(args[0]);
+		if (target == NULL) {
 			command_print(cmd_ctx,"Target: %s is unknown, try one of:\n", args[0] );
 			goto DumpTargets;
 		}
-	Match:
+
 		cmd_ctx->current_target = target->target_number;
 		return ERROR_OK;
 	}
