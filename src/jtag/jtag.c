@@ -439,6 +439,21 @@ jtag_command_t** jtag_get_last_command_p(void)
 	return last_comand_pointer;
 }
 
+
+void jtag_queue_command(jtag_command_t * cmd)
+{
+	jtag_command_t **last_cmd;
+
+	last_cmd = jtag_get_last_command_p();
+
+	*last_cmd = cmd;
+
+	(*last_cmd)->next = NULL;
+
+	last_comand_pointer = &((*last_cmd)->next);
+}
+
+
 void* cmd_queue_alloc(size_t size)
 {
 	cmd_queue_page_t **p_page = &cmd_queue_pages;
