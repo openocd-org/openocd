@@ -1766,6 +1766,12 @@ static int ft2232_init_libftdi(u16 vid, u16 pid, int more, int* try_more)
 	if (ftdi_init(&ftdic) < 0)
 		return ERROR_JTAG_INIT_FAILED;
 
+	if (ftdi_set_interface(&ftdic, INTERFACE_A) < 0)
+	{
+		LOG_ERROR("unable to select FT2232 channel A: %s", ftdic.error_str);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
 	/* context, vendor id, product id */
 	if (ftdi_usb_open_desc(&ftdic, vid, pid, ft2232_device_desc,
 				ft2232_serial) < 0)
@@ -1776,12 +1782,6 @@ static int ft2232_init_libftdi(u16 vid, u16 pid, int more, int* try_more)
 		else
 			LOG_ERROR("unable to open ftdi device: %s", ftdic.error_str);
 		*try_more = 1;
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	if (ftdi_set_interface(&ftdic, INTERFACE_A) < 0)
-	{
-		LOG_ERROR("unable to select FT2232 channel A: %s", ftdic.error_str);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
