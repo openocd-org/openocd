@@ -197,10 +197,11 @@ static void gw16012_state_move(void)
 {
 	int i=0, tms=0;
 	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	gw16012_control(0x0); /* single-bit mode */
 
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < tms_count; i++)
 	{
 		tms = (tms_scan >> i) & 1;
 		gw16012_data(tms << 1); /* output next TMS bit */

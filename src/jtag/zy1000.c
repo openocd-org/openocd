@@ -686,8 +686,9 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 	/* test manual drive code on any target */
 	int tms;
 	u8 tms_scan = tap_get_tms_path(t, state);
+	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < tms_count; i++)
 	{
 		tms = (tms_scan >> i) & 1;
 		waitIdle();

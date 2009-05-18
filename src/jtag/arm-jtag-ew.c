@@ -333,8 +333,9 @@ static void armjtagew_state_move(void)
 	int i;
 	int tms = 0;
 	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < tms_count; i++)
 	{
 		tms = (tms_scan >> i) & 1;
 		armjtagew_tap_append_step(tms, 0);
