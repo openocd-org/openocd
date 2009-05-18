@@ -77,8 +77,9 @@ static void bitbang_state_move(int skip)
 {
 	int i=0, tms=0;
 	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
-
-	for (i = skip; i < 7; i++)
+	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
+	
+	for (i = skip; i < tms_count; i++)
 	{
 		tms = (tms_scan >> i) & 1;
 		bitbang_interface->write(0, tms, 0);
