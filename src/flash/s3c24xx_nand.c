@@ -37,7 +37,7 @@ s3c24xx_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 			    struct nand_device_s *device)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info;
-	
+
 	s3c24xx_info = malloc(sizeof(s3c24xx_nand_controller_t));
 	if (s3c24xx_info == NULL) {
 		LOG_ERROR("no memory for nand controller\n");
@@ -69,9 +69,9 @@ int s3c24xx_reset(struct nand_device_s *device)
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
-	
+
 	target_write_u32(target, s3c24xx_info->cmd, 0xff);
-	
+
 	return ERROR_OK;
 }
 
@@ -79,7 +79,7 @@ int s3c24xx_command(struct nand_device_s *device, u8 command)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
-	
+
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
@@ -94,12 +94,12 @@ int s3c24xx_address(struct nand_device_s *device, u8 address)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
-	
+
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
-	
+
 	target_write_u16(target, s3c24xx_info->addr, address);
 	return ERROR_OK;
 }
@@ -113,7 +113,7 @@ int s3c24xx_write_data(struct nand_device_s *device, u16 data)
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
-	
+
 	target_write_u8(target, s3c24xx_info->data, data);
 	return ERROR_OK;
 }
@@ -122,7 +122,7 @@ int s3c24xx_read_data(struct nand_device_s *device, void *data)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
-	
+
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;

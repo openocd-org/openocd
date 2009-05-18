@@ -59,14 +59,14 @@ enum str7x_status_codes
 #define FLASH_AR		0x00000010
 #define FLASH_ER		0x00000014
 #define FLASH_NVWPAR	0x0000DFB0
-#define FLASH_NVAPR0 	0x0000DFB8
-#define FLASH_NVAPR1 	0x0000DFBC
+#define FLASH_NVAPR0	0x0000DFB8
+#define FLASH_NVAPR1	0x0000DFBC
 
 /* FLASH_CR0 register bits */
 
 #define FLASH_WMS		0x80000000
 #define FLASH_SUSP		0x40000000
-#define FLASH_WPG   	0x20000000
+#define FLASH_WPG		0x20000000
 #define FLASH_DWPG		0x10000000
 #define FLASH_SER		0x08000000
 #define FLASH_SPR		0x01000000
@@ -76,7 +76,7 @@ enum str7x_status_codes
 #define FLASH_BSYA1		0x00000004
 #define FLASH_BSYA0		0x00000002
 
-/* FLASH_CR1 regsiter bits */
+/* FLASH_CR1 register bits */
 
 #define FLASH_B1S		0x02000000
 #define FLASH_B0S		0x01000000

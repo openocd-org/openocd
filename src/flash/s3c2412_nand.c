@@ -69,7 +69,7 @@ static int s3c2412_nand_device_command(struct command_context_s *cmd_ctx, char *
 	info->addr = S3C2440_NFADDR;
 	info->data = S3C2440_NFDATA;
 	info->nfstat = S3C2412_NFSTAT;
-	
+
 	return ERROR_OK;
 }
 

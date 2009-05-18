@@ -66,17 +66,17 @@ typedef struct stm32x_flash_bank_s
 
 #define FLASH_PG		(1<<0)
 #define FLASH_PER		(1<<1)
-#define FLASH_MER   	(1<<2)
+#define FLASH_MER		(1<<2)
 #define FLASH_OPTPG		(1<<4)
 #define FLASH_OPTER		(1<<5)
 #define FLASH_STRT		(1<<6)
 #define FLASH_LOCK		(1<<7)
 #define FLASH_OPTWRE	(1<<9)
 
-/* FLASH_SR regsiter bits */
+/* FLASH_SR register bits */
 
 #define FLASH_BSY		(1<<0)
-#define FLASH_PGERR   	(1<<2)
+#define FLASH_PGERR		(1<<2)
 #define FLASH_WRPRTERR	(1<<4)
 #define FLASH_EOP		(1<<5)
 

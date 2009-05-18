@@ -59,7 +59,7 @@ static int s3c2440_nand_device_command(struct command_context_s *cmd_ctx, char *
 				struct nand_device_s *device)
 {
 	s3c24xx_nand_controller_t *info;
-	
+
 	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, device);
 	if (info == NULL) {
 		return ERROR_NAND_DEVICE_INVALID;
@@ -70,7 +70,7 @@ static int s3c2440_nand_device_command(struct command_context_s *cmd_ctx, char *
 	info->addr = S3C2440_NFADDR;
 	info->data = S3C2440_NFDATA;
 	info->nfstat = S3C2440_NFSTAT;
-		
+
 	return ERROR_OK;
 }
 
@@ -100,10 +100,10 @@ int s3c2440_nand_ready(struct nand_device_s *device, int timeout)
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
-	
-	do {		
+
+	do {
 		target_read_u8(target, s3c24xx_info->nfstat, &status);
-		
+
 		if (status & S3C2440_NFSTAT_READY)
 			return 1;
 
@@ -130,7 +130,7 @@ int s3c2440_read_block_data(struct nand_device_s *device, u8 *data, int data_siz
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	while (data_size >= 4) {	  
+	while (data_size >= 4) {
 		target_read_u32(target, nfdata, &tmp);
 
 		data[0] = tmp;
@@ -164,7 +164,7 @@ int s3c2440_write_block_data(struct nand_device_s *device, u8 *data, int data_si
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	while (data_size >= 4) {	  
+	while (data_size >= 4) {
 		tmp = le_to_h_u32(data);
 		target_write_u32(target, nfdata, tmp);
 

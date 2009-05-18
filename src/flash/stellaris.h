@@ -47,7 +47,6 @@ typedef struct stellaris_flash_bank_s
 	u32 rcc;
 	u8  mck_valid;
 	u32 mck_freq;
-	
 } stellaris_flash_bank_t;
 
 /* STELLARIS control registers */
@@ -66,7 +65,7 @@ typedef struct stellaris_flash_bank_s
 
 #define FMPRE		0x130
 #define FMPPE		0x134
-#define USECRL 		0x140
+#define USECRL		0x140
 
 #define FLASH_CONTROL_BASE	0x400FD000
 #define FLASH_FMA	(FLASH_CONTROL_BASE|0x000)
@@ -87,7 +86,7 @@ typedef struct stellaris_flash_bank_s
 #define FMC_COMT	(1<<3)
 #define FMC_MERASE	(1<<2)
 #define FMC_ERASE	(1<<1)
-#define FMC_WRITE	(1<<0)	
+#define FMC_WRITE	(1<<0)
 
 /* STELLARIS constants */
 

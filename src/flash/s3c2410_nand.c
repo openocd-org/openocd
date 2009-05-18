@@ -59,7 +59,7 @@ static int s3c2410_nand_device_command(struct command_context_s *cmd_ctx, char *
 				struct nand_device_s *device)
 {
 	s3c24xx_nand_controller_t *info;
-	
+
 	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, device);
 	if (info == NULL) {
 		return ERROR_NAND_DEVICE_INVALID;
@@ -70,7 +70,7 @@ static int s3c2410_nand_device_command(struct command_context_s *cmd_ctx, char *
 	info->addr = S3C2410_NFADDR;
 	info->data = S3C2410_NFDATA;
 	info->nfstat = S3C2410_NFSTAT;
-		
+
 	return ERROR_OK;
 }
 
@@ -79,7 +79,7 @@ static int s3c2410_init(struct nand_device_s *device)
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
 
-	target_write_u32(target, S3C2410_NFCONF, 
+	target_write_u32(target, S3C2410_NFCONF,
 			 S3C2410_NFCONF_EN | S3C2410_NFCONF_TACLS(3) |
 			 S3C2410_NFCONF_TWRPH0(5) | S3C2410_NFCONF_TWRPH1(3));
 
@@ -95,7 +95,7 @@ static int s3c2410_write_data(struct nand_device_s *device, u16 data)
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
-	
+
 	target_write_u32(target, S3C2410_NFDATA, data);
 	return ERROR_OK;
 }
@@ -104,13 +104,13 @@ static int s3c2410_read_data(struct nand_device_s *device, void *data)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
-	
+
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
-	target_read_u8(target, S3C2410_NFDATA, data);	
+	target_read_u8(target, S3C2410_NFDATA, data);
 	return ERROR_OK;
 }
 
@@ -124,14 +124,14 @@ static int s3c2410_nand_ready(struct nand_device_s *device, int timeout)
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
 		return ERROR_NAND_OPERATION_FAILED;
 	}
-	
+
 	do {
 		target_read_u8(target, S3C2410_NFSTAT, &status);
-		
+
 		if (status & S3C2410_NFSTAT_BUSY)
 			return 1;
 
-		alive_sleep(1);		
+		alive_sleep(1);
 	} while (timeout-- > 0);
 
 	return 0;

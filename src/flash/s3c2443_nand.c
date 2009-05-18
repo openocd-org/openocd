@@ -58,7 +58,7 @@ static int s3c2443_nand_device_command(struct command_context_s *cmd_ctx, char *
 				struct nand_device_s *device)
 {
 	s3c24xx_nand_controller_t *info;
-	
+
 	info = s3c24xx_nand_device_command(cmd_ctx, cmd, args, argc, device);
 	if (info == NULL) {
 		return ERROR_NAND_DEVICE_INVALID;
@@ -69,7 +69,7 @@ static int s3c2443_nand_device_command(struct command_context_s *cmd_ctx, char *
 	info->addr = S3C2440_NFADDR;
 	info->data = S3C2440_NFDATA;
 	info->nfstat = S3C2412_NFSTAT;
-	
+
 	return ERROR_OK;
 }
 

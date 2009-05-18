@@ -99,7 +99,7 @@ enum
 
 typedef struct nand_manufacturer_s
 {
-    int id;
+	int id;
 	char *name;
 } nand_manufacturer_t;
 
@@ -115,43 +115,43 @@ typedef struct nand_info_s
 
 /* Option constants for bizarre disfunctionality and real features
  */
-enum { 
+enum {
 	/* Chip can not auto increment pages */
 	NAND_NO_AUTOINCR = 0x00000001,
-	
+
 	/* Buswitdh is 16 bit */
 	NAND_BUSWIDTH_16 = 0x00000002,
-	
+
 	/* Device supports partial programming without padding */
 	NAND_NO_PADDING = 0x00000004,
-	
+
 	/* Chip has cache program function */
 	NAND_CACHEPRG = 0x00000008,
-	
+
 	/* Chip has copy back function */
 	NAND_COPYBACK = 0x00000010,
-	
+
 	/* AND Chip which has 4 banks and a confusing page / block
 	 * assignment. See Renesas datasheet for further information */
 	NAND_IS_AND = 0x00000020,
-	
+
 	/* Chip has a array of 4 pages which can be read without
 	 * additional ready /busy waits */
 	NAND_4PAGE_ARRAY = 0x00000040,
-	
+
 	/* Chip requires that BBT is periodically rewritten to prevent
 	 * bits from adjacent blocks from 'leaking' in altering data.
 	 * This happens with the Renesas AG-AND chips, possibly others.  */
 	BBT_AUTO_REFRESH = 0x00000080,
-	
+
 	/* Chip does not require ready check on read. True
 	 * for all large page devices, as they do not support
 	 * autoincrement.*/
 	NAND_NO_READRDY = 0x00000100,
-	
+
 	/* Options valid for Samsung large page devices */
 	NAND_SAMSUNG_LP_OPTIONS = (NAND_NO_PADDING | NAND_CACHEPRG | NAND_COPYBACK),
-	
+
 	/* Options for new chips with large page size. The pagesize and the
 	 * erasesize is determined from the extended id bytes
 	 */
@@ -175,7 +175,7 @@ enum
 	NAND_CMD_READID = 0x90,
 	NAND_CMD_ERASE2 = 0xd0,
 	NAND_CMD_RESET = 0xff,
-	
+
 	/* Extended commands for large page devices */
 	NAND_CMD_READSTART = 0x30,
 	NAND_CMD_RNDOUTSTART = 0xE0,
@@ -198,7 +198,7 @@ enum oob_formats
 	NAND_OOB_NONE = 0x0,	/* no OOB data at all */
 	NAND_OOB_RAW = 0x1,		/* raw OOB data (16 bytes for 512b page sizes, 64 bytes for 2048b page sizes) */
 	NAND_OOB_ONLY = 0x2,	/* only OOB data */
-	NAND_OOB_SW_ECC = 0x10,	/* when writing, use SW ECC (as opposed to no ECC) */ 
+	NAND_OOB_SW_ECC = 0x10,	/* when writing, use SW ECC (as opposed to no ECC) */
 	NAND_OOB_HW_ECC = 0x20, /* when writing, use HW ECC (as opposed to no ECC) */
 	NAND_OOB_SW_ECC_KW = 0x40, /* when writing, use Marvell's Kirkwood bootrom format */
 	NAND_OOB_JFFS2 = 0x100,	/* when writing, use JFFS2 OOB layout */
