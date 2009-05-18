@@ -89,7 +89,7 @@ static struct jtag_callback_entry *jtag_callback_queue_tail = NULL;
 
 
 jtag_command_t *jtag_command_queue = NULL;
-jtag_command_t **last_comand_pointer = &jtag_command_queue;
+jtag_command_t **last_command_pointer = &jtag_command_queue;
 static jtag_tap_t *jtag_all_taps = NULL;
 
 enum reset_types jtag_reset_config = RESET_NONE;
@@ -436,7 +436,7 @@ jtag_command_t** jtag_get_last_command_p(void)
 
 	return &cmd->next;*/
 
-	return last_comand_pointer;
+	return last_command_pointer;
 }
 
 
@@ -450,7 +450,7 @@ void jtag_queue_command(jtag_command_t * cmd)
 
 	(*last_cmd)->next = NULL;
 
-	last_comand_pointer = &((*last_cmd)->next);
+	last_command_pointer = &((*last_cmd)->next);
 }
 
 
@@ -1557,7 +1557,7 @@ int interface_jtag_execute_queue(void)
 	jtag_callback_queue_tail = NULL;
 
 	jtag_command_queue = NULL;
-	last_comand_pointer = &jtag_command_queue;
+	last_command_pointer = &jtag_command_queue;
 
 	return retval;
 }
