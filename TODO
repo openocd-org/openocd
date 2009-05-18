@@ -27,7 +27,12 @@ Feel free to send patches to add or clarify items on this list, too.
   - update all drivers to use tap_get_tms_path_len API.
   - use tap_set_state everywhere to allow logging TAP state transitions
   - rename other tap_states to use standard JTAG names (suggested by ML)
-  - add TAP_UNKNOWN to augment TAP_INVALID? (suggested by ML/DH)
+  - retire jtag_add_end_state() and replace w/global variable. This also
+  removes TAP_INVALID as an argument to jtag_add_xxxx(). The global variable
+  as argument to jtag_add_xxxx() should eventually be phased out, but
+  the global variable is useful in an interim phase where one needs to
+  be bug by bug compatible before each change can be tested. Suggested
+  by ØH. Michael Bruck also interested in this.
   
 - JTAG Interfaces:
   - autodetect devices present on the scan chain
