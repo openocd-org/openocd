@@ -868,7 +868,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 	}
 
 	/* field_count represents the true number of fields setup*/
-	(*last_cmd)->cmd.scan->num_fields = field_count;
+	cmd->cmd.scan->num_fields = field_count;
 	return ERROR_OK;
 }
 
