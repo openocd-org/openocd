@@ -1014,6 +1014,7 @@ See the command ``jtag newtap'' for detail, but in brief the names you should us
 @item @b{cpu}
 @item @b{flash}
 @item @b{bs}
+@item @b{etb}
 @item @b{jrc}
 @item @b{unknownN} - it happens :-(
 @end itemize
@@ -1047,6 +1048,27 @@ easily disable it.  Experiance has shown the ``vector catch'' is
 helpful - for common programing errors.
 
 If present, the MMU, the MPU and the CACHE should be disabled.
+
+Some ARM cores are equipped with trace support, which permits
+examination of the instruction and data bus activity.  Trace
+activity is controlled through an ``Embedded Trace Module'' (ETM)
+on one of the core's scan chains.  The ETM emits voluminous data
+through a ``trace port''.  The trace port is accessed in one
+of two ways.  When its signals are pinned out from the chip,
+boards may provide a special high speed debugging connector;
+software support for this is not configured by default, use
+the ``--enable-oocd_trace'' option.  Alternatively, trace data
+may be stored an on-chip SRAM which is packaged as an ``Embedded
+Trace Buffer'' (ETB).  An ETB has its own TAP, usually right after
+its associated ARM core.  OpenOCD supports the ETM, and your
+target configuration should set it up with the relevant trace
+port:  ``etb'' for chips which use that, else the board-specific
+option will be either ``oocd_trace'' or ``dummy''.
+
+@example
+etm config $_TARGETNAME 16 normal full etb
+etb config $_TARGETNAME $_CHIPNAME.etb
+@end example
 
 @subsection Internal Flash Configuration
 
@@ -1640,6 +1662,7 @@ JTAG taps. GDB ends up talking via OpenOCD to one of the taps.
 @item @b{cpu} - the main CPU of the chip, alternatively @b{foo.arm} and @b{foo.dsp}
 @item @b{flash} - if the chip has a flash tap, example: str912.flash
 @item @b{bs} - for boundary scan if this is a seperate tap.
+@item @b{etb} - for an embedded trace buffer (example: an ARM ETB11)
 @item @b{jrc} - for JTAG route controller (example: OMAP3530 found on Beagleboards)
 @item @b{unknownN} - where N is a number if you have no idea what the tap is for
 @item @b{Other names} - Freescale IMX31 has a SDMA (smart dma) with a JTAG tap, that tap should be called the ``sdma'' tap.
