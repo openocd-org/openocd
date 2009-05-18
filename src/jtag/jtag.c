@@ -1015,16 +1015,16 @@ void jtag_add_tlr(void)
 int MINIDRIVER(interface_jtag_add_tlr)(void)
 {
 	tap_state_t state = TAP_RESET;
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
 
 	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->next = NULL;
-	(*last_cmd)->type = JTAG_STATEMOVE;
+	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 
-	(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
-	(*last_cmd)->cmd.statemove->end_state = state;
+	jtag_queue_command(cmd);
+
+	cmd->type = JTAG_STATEMOVE;
+
+	cmd->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
+	cmd->cmd.statemove->end_state = state;
 
 	return ERROR_OK;
 }
@@ -1069,38 +1069,35 @@ void jtag_add_pathmove(int num_states, tap_state_t *path)
 
 int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, tap_state_t *path)
 {
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-	int i;
-
 	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->next = NULL;
-	(*last_cmd)->type = JTAG_PATHMOVE;
+	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 
-	(*last_cmd)->cmd.pathmove = cmd_queue_alloc(sizeof(pathmove_command_t));
-	(*last_cmd)->cmd.pathmove->num_states = num_states;
-	(*last_cmd)->cmd.pathmove->path = cmd_queue_alloc(sizeof(tap_state_t) * num_states);
+	jtag_queue_command(cmd);
 
-	for (i = 0; i < num_states; i++)
-		(*last_cmd)->cmd.pathmove->path[i] = path[i];
+	cmd->type = JTAG_PATHMOVE;
+
+	cmd->cmd.pathmove = cmd_queue_alloc(sizeof(pathmove_command_t));
+	cmd->cmd.pathmove->num_states = num_states;
+	cmd->cmd.pathmove->path = cmd_queue_alloc(sizeof(tap_state_t) * num_states);
+
+	for (int i = 0; i < num_states; i++)
+		cmd->cmd.pathmove->path[i] = path[i];
 
 	return ERROR_OK;
 }
 
 int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, tap_state_t state)
 {
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-
 	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	(*last_cmd)->next = NULL;
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->type = JTAG_RUNTEST;
+	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 
-	(*last_cmd)->cmd.runtest = cmd_queue_alloc(sizeof(runtest_command_t));
-	(*last_cmd)->cmd.runtest->num_cycles = num_cycles;
-	(*last_cmd)->cmd.runtest->end_state = state;
+	jtag_queue_command(cmd);
+
+	cmd->type = JTAG_RUNTEST;
+
+	cmd->cmd.runtest = cmd_queue_alloc(sizeof(runtest_command_t));
+	cmd->cmd.runtest->num_cycles = num_cycles;
+	cmd->cmd.runtest->end_state = state;
 
 	return ERROR_OK;
 }
@@ -1120,16 +1117,16 @@ void jtag_add_runtest(int num_cycles, tap_state_t state)
 
 int MINIDRIVER(interface_jtag_add_clocks)( int num_cycles )
 {
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-
 	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	(*last_cmd)->next = NULL;
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->type = JTAG_STABLECLOCKS;
+	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 
-	(*last_cmd)->cmd.stableclocks = cmd_queue_alloc(sizeof(stableclocks_command_t));
-	(*last_cmd)->cmd.stableclocks->num_cycles = num_cycles;
+	jtag_queue_command(cmd);
+
+	cmd->type = JTAG_STABLECLOCKS;
+
+	cmd->cmd.stableclocks = cmd_queue_alloc(sizeof(stableclocks_command_t));
+	cmd->cmd.stableclocks->num_cycles = num_cycles;
+
 	return ERROR_OK;
 }
 
@@ -1260,17 +1257,16 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 
 int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
 {
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-
 	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	(*last_cmd)->next = NULL;
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->type = JTAG_RESET;
+	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 
-	(*last_cmd)->cmd.reset = cmd_queue_alloc(sizeof(reset_command_t));
-	(*last_cmd)->cmd.reset->trst = req_trst;
-	(*last_cmd)->cmd.reset->srst = req_srst;
+	jtag_queue_command(cmd);
+
+	cmd->type = JTAG_RESET;
+
+	cmd->cmd.reset = cmd_queue_alloc(sizeof(reset_command_t));
+	cmd->cmd.reset->trst = req_trst;
+	cmd->cmd.reset->srst = req_srst;
 
 	return ERROR_OK;
 }
@@ -1286,16 +1282,15 @@ void jtag_add_end_state(tap_state_t state)
 
 int MINIDRIVER(interface_jtag_add_sleep)(u32 us)
 {
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-
 	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	(*last_cmd)->next = NULL;
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->type = JTAG_SLEEP;
+	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
 
-	(*last_cmd)->cmd.sleep = cmd_queue_alloc(sizeof(sleep_command_t));
-	(*last_cmd)->cmd.sleep->us = us;
+	jtag_queue_command(cmd);
+
+	cmd->type = JTAG_SLEEP;
+
+	cmd->cmd.sleep = cmd_queue_alloc(sizeof(sleep_command_t));
+	cmd->cmd.sleep->us = us;
 
 	return ERROR_OK;
 }
