@@ -2,12 +2,19 @@ Please mail patches to:
 
 openocd-development@lists.berlios.de
 
+Note that you can't send patches to that list unless
+you're a member, despite what the list info page says.
+
 The patch should be against svn trunk using an SVN
 diff. 
 
 Attach the patch to the email as a .txt file and
 also write a short change log entry that maintainers
 can copy and paste into the commit message
+
+(However, don't expect the maintainers to actually
+include such entries in their commit messages if
+they're longer than a single $SUBJECT line.)
 
 Add yourself to the GPL copyright for non-trivial changes.
 
