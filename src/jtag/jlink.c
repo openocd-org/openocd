@@ -39,6 +39,11 @@
 #define JLINK_USB_TIMEOUT		1000
 
 // See Section 1.3.2 of the Segger JLink USB protocol manual
+/* 2048 is the max value we can use here */
+//#define JLINK_TAP_BUFFER_SIZE 2048
+#define JLINK_TAP_BUFFER_SIZE 256
+//#define JLINK_TAP_BUFFER_SIZE 384
+
 #define JLINK_IN_BUFFER_SIZE			2048
 #define JLINK_OUT_BUFFER_SIZE			2*2048+4
 #define JLINK_EMU_RESULT_BUFFER_SIZE	64
@@ -412,6 +417,8 @@ static void jlink_runtest(int num_cycles)
 
 	tap_state_t saved_end_state = tap_get_end_state();
 
+	jlink_tap_ensure_space(1,num_cycles + 16);
+
 	/* only do a state_move when we're not already in IDLE */
 	if (tap_get_state() != TAP_IDLE)
 	{
@@ -438,7 +445,7 @@ static void jlink_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_s
 {
 	tap_state_t saved_end_state;
 
-	jlink_tap_ensure_space(1, scan_size + 8);
+	jlink_tap_ensure_space(1, scan_size + 16);
 
 	saved_end_state = tap_get_end_state();
 
@@ -604,8 +611,6 @@ static int jlink_handle_jlink_info_command(struct command_context_s *cmd_ctx, ch
 /***************************************************************************/
 /* J-Link tap functions */
 
-/* 2048 is the max value we can use here */
-#define JLINK_TAP_BUFFER_SIZE 1024
 
 static unsigned tap_length=0;
 static u8 tms_buffer[JLINK_TAP_BUFFER_SIZE];
@@ -634,7 +639,7 @@ static void jlink_tap_init(void)
 static void jlink_tap_ensure_space(int scans, int bits)
 {
 	int available_scans = MAX_PENDING_SCAN_RESULTS - pending_scan_results_length;
-	int available_bits = JLINK_TAP_BUFFER_SIZE * 8 - tap_length - 64;
+	int available_bits = JLINK_TAP_BUFFER_SIZE * 8 - tap_length - 32;
 
 	if (scans > available_scans || bits > available_bits)
 	{
@@ -649,6 +654,7 @@ static void jlink_tap_append_step(int tms, int tdi)
 	if (index >= JLINK_TAP_BUFFER_SIZE)
 	{
 		LOG_ERROR("jlink_tap_append_step: overflow");
+		*(u32 *)0xFFFFFFFF = 0;
 		exit(-1);
 	}
 
