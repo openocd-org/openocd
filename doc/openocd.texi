@@ -2082,13 +2082,23 @@ command, and in other places the target needs to be identified.
 @section Target Config/Cget Options
 These options can be specified when the target is created, or later
 via the configure option or to query the target via cget.
+
+You should specify a working area if you can; typically it uses some
+on-chip SRAM.  Such a working area can speed up many things, including bulk
+writes to target memory; flash operations like checking to see if memory needs
+to be erased; GDB memory checksumming; and may help perform otherwise
+unavailable operations (like some coprocessor operations on ARM7/9 systems).
 @itemize @bullet
 @item @b{-type} - returns the target type
 @item @b{-event NAME BODY} see Target events
-@item @b{-work-area-virt [ADDRESS]} specify/set the work area
-@item @b{-work-area-phys [ADDRESS]} specify/set the work area
+@item @b{-work-area-virt [ADDRESS]} specify/set the work area base address
+which will be used when an MMU is active.
+@item @b{-work-area-phys [ADDRESS]} specify/set the work area base address
+which will be used when an MMU is inactive.
 @item @b{-work-area-size [ADDRESS]} specify/set the work area
-@item @b{-work-area-backup [0|1]} does the work area get backed up
+@item @b{-work-area-backup [0|1]} does the work area get backed up;
+by default, it doesn't.  When possible, use a working_area that doesn't
+need to be backed up, since performing a backup slows down operations.
 @item @b{-endian  [big|little]} 
 @item @b{-variant [NAME]} some chips have variants OpenOCD needs to know about
 @item @b{-chain-position DOTTED.NAME} the tap name this target refers to.
@@ -2143,15 +2153,6 @@ still use this that need to be converted.
   working_area target# address  size backup| [virtualaddress]
 @end example
 @* The target# is a the 0 based target numerical index.
-
-This command specifies a working area for the debugger to use. This
-may be used to speed-up downloads to target memory and flash
-operations, or to perform otherwise unavailable operations (some
-coprocessor operations on ARM7/9 systems, for example). The last
-parameter decides whether the memory should be preserved
-(<@var{backup}>) or can simply be overwritten (<@var{nobackup}>). If
-possible, use a working_area that doesn't need to be backed up, as
-performing a backup slows down operation.
 
 @node Flash Configuration
 @chapter Flash programming
@@ -2810,7 +2811,7 @@ speeds, like the 32kHz startup clock of an AT91RM9200.
 @*Enable the use of the debug communications channel (DCC) to write larger (>128 byte)
 amounts of memory. DCC downloads offer a huge speed increase, but might be potentially
 unsafe, especially with targets running at very low speeds. This command was introduced
-with OpenOCD rev. 60. 
+with OpenOCD rev. 60, and requires a few bytes of working area.
 @end itemize
 
 @subsection ARM720T specific commands
