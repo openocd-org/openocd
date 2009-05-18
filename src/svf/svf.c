@@ -695,9 +695,8 @@ static int svf_execute_tap(void)
 }
 
 // not good to use this
-extern jtag_command_t** jtag_get_last_command_p(void);
 extern void* cmd_queue_alloc(size_t size);
-extern jtag_command_t **last_comand_pointer;
+extern void jtag_queue_command(jtag_command_t * cmd);
 
 static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 {
@@ -706,9 +705,6 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 
 	// tmp variable
 	int i_tmp;
-
-	// not good to use this
-	jtag_command_t **last_cmd;
 
 	// for RUNTEST
 	int run_count;
@@ -1180,15 +1176,15 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				// enter into run_state if necessary
 				if (last_state != svf_para.runtest_run_state)
 				{
-					last_cmd = jtag_get_last_command_p();
-					*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-					last_comand_pointer = &((*last_cmd)->next);
-					(*last_cmd)->next = NULL;
-					(*last_cmd)->type = JTAG_STATEMOVE;
-					(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
-					(*last_cmd)->cmd.statemove->end_state = svf_para.runtest_run_state;
+					jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+					
+					jtag_queue_command(cmd);
+				
+					cmd->type = JTAG_STATEMOVE;
+					cmd->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
+					cmd->cmd.statemove->end_state = svf_para.runtest_run_state;
 
-					cmd_queue_end_state = cmd_queue_cur_state = (*last_cmd)->cmd.statemove->end_state;
+					cmd_queue_end_state = cmd_queue_cur_state = cmd->cmd.statemove->end_state;
 				}
 
 				// call jtag_add_clocks
@@ -1197,15 +1193,14 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				if (svf_para.runtest_end_state != svf_para.runtest_run_state)
 				{
 					// move to end_state
-					last_cmd = jtag_get_last_command_p();
-					*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-					last_comand_pointer = &((*last_cmd)->next);
-					(*last_cmd)->next = NULL;
-					(*last_cmd)->type = JTAG_STATEMOVE;
-					(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
-					(*last_cmd)->cmd.statemove->end_state = svf_para.runtest_end_state;
+					jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+					
+					jtag_queue_command(cmd);
+					cmd->type = JTAG_STATEMOVE;
+					cmd->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
+					cmd->cmd.statemove->end_state = svf_para.runtest_end_state;
 
-					cmd_queue_end_state = cmd_queue_cur_state = (*last_cmd)->cmd.statemove->end_state;
+					cmd_queue_end_state = cmd_queue_cur_state = cmd->cmd.statemove->end_state;
 				}
 				last_state = svf_para.runtest_end_state;
 #else
@@ -1294,15 +1289,15 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			if (svf_tap_state_is_stable(state))
 			{
 				// TODO: move to state
-				last_cmd = jtag_get_last_command_p();
-				*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-				last_comand_pointer = &((*last_cmd)->next);
-				(*last_cmd)->next = NULL;
-				(*last_cmd)->type = JTAG_STATEMOVE;
-				(*last_cmd)->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
-				(*last_cmd)->cmd.statemove->end_state = state;
+				jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+					
+				jtag_queue_command(cmd);
+				
+				cmd->type = JTAG_STATEMOVE;
+				cmd->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
+				cmd->cmd.statemove->end_state = state;
 
-				cmd_queue_end_state = cmd_queue_cur_state = (*last_cmd)->cmd.statemove->end_state;
+				cmd_queue_end_state = cmd_queue_cur_state = cmd->cmd.statemove->end_state;
 				last_state = state;
 
 				LOG_DEBUG("\tmove to %s by state_move", svf_tap_state_name[state]);
