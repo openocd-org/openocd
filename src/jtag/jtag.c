@@ -975,30 +975,28 @@ void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, tap_state_t st
 
 int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
 {
-	int i;
-	jtag_command_t **last_cmd = jtag_get_last_command_p();
-
 	/* allocate memory for a new list member */
-	*last_cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	last_comand_pointer = &((*last_cmd)->next);
-	(*last_cmd)->next = NULL;
-	(*last_cmd)->type = JTAG_SCAN;
+	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+
+	jtag_queue_command(cmd);
+
+	cmd->type = JTAG_SCAN;
 
 	/* allocate memory for scan command */
-	(*last_cmd)->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	(*last_cmd)->cmd.scan->ir_scan = false;
-	(*last_cmd)->cmd.scan->num_fields = num_fields;
-	(*last_cmd)->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
-	(*last_cmd)->cmd.scan->end_state = state;
+	cmd->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
+	cmd->cmd.scan->ir_scan = false;
+	cmd->cmd.scan->num_fields = num_fields;
+	cmd->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
+	cmd->cmd.scan->end_state = state;
 
-	for (i = 0; i < num_fields; i++)
+	for (int i = 0; i < num_fields; i++)
 	{
 		int num_bits = fields[i].num_bits;
 		int num_bytes = CEIL(fields[i].num_bits, 8);
-		(*last_cmd)->cmd.scan->fields[i].tap = fields[i].tap;
-		(*last_cmd)->cmd.scan->fields[i].num_bits = num_bits;
-		(*last_cmd)->cmd.scan->fields[i].out_value = buf_cpy(fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
-		(*last_cmd)->cmd.scan->fields[i].in_value = fields[i].in_value;
+		cmd->cmd.scan->fields[i].tap = fields[i].tap;
+		cmd->cmd.scan->fields[i].num_bits = num_bits;
+		cmd->cmd.scan->fields[i].out_value = buf_cpy(fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
+		cmd->cmd.scan->fields[i].in_value = fields[i].in_value;
 	}
 
 	return ERROR_OK;
