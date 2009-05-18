@@ -50,6 +50,12 @@ int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, 
 int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_arm7_9_etm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
+/**
+ * Clear watchpoints for an ARM7/9 target.
+ *
+ * @param arm7_9 Pointer to the common struct for an ARM7/9 target
+ * @return JTAG error status after executing queue
+ */
 static int arm7_9_clear_watchpoints(arm7_9_common_t *arm7_9)
 {
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
@@ -62,6 +68,13 @@ static int arm7_9_clear_watchpoints(arm7_9_common_t *arm7_9)
 	return jtag_execute_queue();
 }
 
+/**
+ * Assign a watchpoint to one of the two available hardware comparators in an
+ * ARM7 or ARM9 target.
+ *
+ * @param arm7_9 Pointer to the common struct for an ARM7/9 target
+ * @param breakpoint Pointer to the breakpoint to be used as a watchpoint
+ */
 static void arm7_9_assign_wp(arm7_9_common_t *arm7_9, breakpoint_t *breakpoint)
 {
 	if (!arm7_9->wp0_used)
@@ -82,7 +95,13 @@ static void arm7_9_assign_wp(arm7_9_common_t *arm7_9, breakpoint_t *breakpoint)
 	}
 }
 
-/* set up embedded ice registers */
+/**
+ * Setup an ARM7/9 target's embedded ICE registers for software breakpoints.
+ *
+ * @param arm7_9 Pointer to common struct for ARM7/9 targets
+ * @return Error codes if there is a problem finding a watchpoint or the result
+ *         of executing the JTAG queue
+ */
 static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
 {
 	if (arm7_9->sw_breakpoints_added)
@@ -137,7 +156,12 @@ static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
 	return jtag_execute_queue();
 }
 
-/* set things up after a reset / on startup */
+/**
+ * Setup the common pieces for an ARM7/9 target after reset or on startup.
+ *
+ * @param target Pointer to an ARM7/9 target to setup
+ * @return Result of clearing the watchpoints on the target
+ */
 int arm7_9_setup(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -146,6 +170,18 @@ int arm7_9_setup(target_t *target)
 	return arm7_9_clear_watchpoints(arm7_9);
 }
 
+/**
+ * Retrieves the architecture information pointers for ARMv4/5 and ARM7/9
+ * targets.  A return of ERROR_OK signifies that the target is a valid target
+ * and that the pointers have been set properly.
+ *
+ * @param target Pointer to the target device to get the pointers from
+ * @param armv4_5_p Pointer to be filled in with the common struct for ARMV4/5
+ *                  targets
+ * @param arm7_9_p Pointer to be filled in with the common struct for ARM7/9
+ *                 targets
+ * @return ERROR_OK if successful
+ */
 int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm7_9_common_t **arm7_9_p)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -167,8 +203,16 @@ int arm7_9_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, arm
 	return ERROR_OK;
 }
 
-/* we set up the breakpoint even if it is already set. Some action, e.g. reset
- * might have erased the values in embedded ice
+/**
+ * Set either a hardware or software breakpoint on an ARM7/9 target.  The
+ * breakpoint is set up even if it is already set.  Some actions, e.g. reset,
+ * might have erased the values in Embedded ICE.
+ *
+ * @param target Pointer to the target device to set the breakpoints on
+ * @param breakpoint Pointer to the breakpoint to be set
+ * @return For hardware breakpoints, this is the result of executing the JTAG
+ *         queue.  For software breakpoints, this will be the status of the
+ *         required memory reads and writes
  */
 int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
@@ -280,6 +324,18 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return retval;
 }
 
+/**
+ * Unsets an existing breakpoint on an ARM7/9 target.  If it is a hardware
+ * breakpoint, the watchpoint used will be freed and the Embedded ICE registers
+ * will be updated.  Otherwise, the software breakpoint will be restored to its
+ * original instruction if it hasn't already been modified.
+ *
+ * @param target Pointer to ARM7/9 target to unset the breakpoint from
+ * @param breakpoint Pointer to breakpoint to be unset
+ * @return For hardware breakpoints, this is the result of executing the JTAG
+ *         queue.  For software breakpoints, this will be the status of the
+ *         required memory reads and writes
+ */
 int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval = ERROR_OK;
@@ -347,6 +403,15 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return retval;
 }
 
+/**
+ * Add a breakpoint to an ARM7/9 target.  This makes sure that there are no
+ * dangling breakpoints and that the desired breakpoint can be added.
+ *
+ * @param target Pointer to the target ARM7/9 device to add a breakpoint to
+ * @param breakpoint Pointer to the breakpoint to be added
+ * @return An error status if there is a problem adding the breakpoint or the
+ *         result of setting the breakpoint
+ */
 int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -388,6 +453,16 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return arm7_9_set_breakpoint(target, breakpoint);
 }
 
+/**
+ * Removes a breakpoint from an ARM7/9 target.  This will make sure there are no
+ * dangling breakpoints and updates available watchpoints if it is a hardware
+ * breakpoint.
+ *
+ * @param target Pointer to the target to have a breakpoint removed
+ * @param breakpoint Pointer to the breakpoint to be removed
+ * @return Error status if there was a problem unsetting the breakpoint or the
+ *         watchpoints could not be cleared
+ */
 int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval = ERROR_OK;
@@ -415,6 +490,16 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	return ERROR_OK;
 }
 
+/**
+ * Sets a watchpoint for an ARM7/9 target in one of the watchpoint units.  It is
+ * considered a bug to call this function when there are no available watchpoint
+ * units.
+ *
+ * @param target Pointer to an ARM7/9 target to set a watchpoint on
+ * @param watchpoint Pointer to the watchpoint to be set
+ * @return Error status if watchpoint set fails or the result of executing the
+ *         JTAG queue
+ */
 int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	int retval = ERROR_OK;
@@ -479,6 +564,14 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
+/**
+ * Unset an existing watchpoint and clear the used watchpoint unit.
+ *
+ * @param target Pointer to the target to have the watchpoint removed
+ * @param watchpoint Pointer to the watchpoint to be removed
+ * @return Error status while trying to unset the watchpoint or the result of
+ *         executing the JTAG queue
+ */
 int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	int retval = ERROR_OK;
@@ -520,6 +613,14 @@ int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
+/**
+ * Add a watchpoint to an ARM7/9 target.  If there are no watchpoint units
+ * available, an error response is returned.
+ *
+ * @param target Pointer to the ARM7/9 target to add a watchpoint to
+ * @param watchpoint Pointer to the watchpoint to be added
+ * @return Error status while trying to add the watchpoint
+ */
 int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -546,6 +647,14 @@ int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
+/**
+ * Remove a watchpoint from an ARM7/9 target.  The watchpoint will be unset and
+ * the used watchpoint unit will be reopened.
+ *
+ * @param target Pointer to the target to remove a watchpoint from
+ * @param watchpoint Pointer to the watchpoint to be removed
+ * @return Result of trying to unset the watchpoint
+ */
 int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	int retval = ERROR_OK;
@@ -565,6 +674,15 @@ int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	return ERROR_OK;
 }
 
+/**
+ * Restarts the target by sending a RESTART instruction and moving the JTAG
+ * state to IDLE.  This includes a timeout waiting for DBGACK and SYSCOMP to be
+ * asserted by the processor.
+ *
+ * @param target Pointer to target to issue commands to
+ * @return Error status if there is a timeout or a problem while executing the
+ *         JTAG queue
+ */
 int arm7_9_execute_sys_speed(struct target_s *target)
 {
 	int retval;
@@ -610,6 +728,14 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 	return ERROR_OK;
 }
 
+/**
+ * Restarts the target by sending a RESTART instruction and moving the JTAG
+ * state to IDLE.  This validates that DBGACK and SYSCOMP are set without
+ * waiting until they are.
+ *
+ * @param target Pointer to the target to issue commands to
+ * @return Always ERROR_OK
+ */
 int arm7_9_execute_fast_sys_speed(struct target_s *target)
 {
 	static int set=0;
@@ -642,7 +768,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 	}
 
 	/* read debug status register */
-	embeddedice_read_reg_w_check(dbg_stat, check_value, check_value);
+	embeddedice_read_reg_w_check(dbg_stat, check_value, check_mask);
 
 	return ERROR_OK;
 }
