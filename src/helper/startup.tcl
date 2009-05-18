@@ -88,9 +88,10 @@ proc unknown {args} {
 	# do the name mangling from "flash banks" to "flash_banks"
 	if {[llength $args]>=2} {
 		set cmd_name "[lindex $args 0]_[lindex $args 1]"
-		# Fix?? add a check here if this is a command?
-		# we'll strip away args until we fail anyway...
-		return [eval "$cmd_name [lrange $args 2 end]"]
+		if {[catch {info body $cmd_name}]==0} {
+		    # the command exists, try it...
+			return [eval "$cmd_name [lrange $args 2 end]"]
+		}
 	}
 	# This really is an unknown command.
 	return -code error "Unknown command: $args"
