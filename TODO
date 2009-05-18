@@ -25,25 +25,21 @@ Feel free to send patches to add or clarify items on this list, too.
 
 - JTAG/TAP changes:
   - update all drivers to use tap_get_tms_path_len API.
-    - link to posted patch: @missing
-  - rework TAP state table (started but still needs work)
-    - link to posted patch: @missing
   - use tap_set_state everywhere to allow logging TAP state transitions
   - rename other tap_states to use standard JTAG names (suggested by ML)
-    - write script that automate production of the series of 16-17 patches
-    - produce and distribute current series against the current trunk
-    - distribute script so developers can use on WC through live commits
-    - make live commits after giving sufficient notice to others
   - add TAP_UNKNOWN to augment TAP_INVALID? (suggested by ML/DH)
   
 - JTAG Interfaces:
   - autodetect devices present on the scan chain
     - implement 'discover_taps' command
   - FT2232 driver: (DH)
-    - integrate FTD2XX High-Speed Device Patch
-      - link to posted patch: @missing
-    - fix non-recoverability of cable connect/reconnect
-      - link to posted patch: @missing
+    - integrate FTD2XX High-Speed Device support
+      - PATCH: https://lists.berlios.de/pipermail/openocd-development/2009-April/005479.html
+    - massive set of changes (DH):
+      - fixes non-recoverability of cable connect/reconnect
+      - https://lists.berlios.de/pipermail/openocd-development/2009-May/006011.html
+    - further cleanup (DH):
+      - PATCH: https://lists.berlios.de/pipermail/openocd-development/2009-May/006112.html
     - fix outstanding bugs
   - J-Link driver: (ZW)
     - fix outstanding bugs
@@ -62,6 +58,8 @@ Feel free to send patches to add or clarify items on this list, too.
   - SWD
 
 - Target Support:
+  - general layer cleanup:
+    - https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
   - ARM11 improvements (MB?)
     - fix single stepping  (reported by ØH)
     - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
@@ -89,15 +87,14 @@ Feel free to send patches to add or clarify items on this list, too.
   - other targets?  (suggestions always welcome)
 
 - CFI:
-  - speed enhancements (posted Apr 22 by NC) (??)
-    - link to patch: @missing
   - finish implementing bus width/chip width handling (suggested by NC)
-    - link to patch: @missing
   - factor vendor-specific code into separate source files
   - add new callback interface for vendor-specific code
   - investigate/implement "thin wrapper" to use eCos CFI drivers (ØH)
 
 - TCL
+  - mem2array bugs:
+    - Report: https://lists.berlios.de/pipermail/openocd-development/2009-May/006459.html
   - Isolate all TCL command support: 
     - Allow pure C CLI implementations using --disable-builtin-tcl
     - Allow full TCL support? add --with-tcl=/path/to/installed/tcl
@@ -144,33 +141,5 @@ Feel free to send patches to add or clarify items on this list, too.
   - use patch tracker? @par
     https://developer.berlios.de/patch/?group_id=4148
   - use bug tracking?  we need something!
-
-@verbatim
-==================================================================
-OpenOCD's Active Developers and Testers
-------------------------------------------------------------------
-
-** | Name            | Status | Targets          | Interfaces
----+-----------------+--------+------------------+----------------
-NC | Nico Coesel     |   *    | AU1100           | *
-DE | Duane Ellis     |   *    | *                | *
-DH | Dick Hollenbeck |   ?    | *                | FT2232
-ØH | Øyvind Harboe   |   *    | *                | ZY1000
-JK | Joern Keipf     |   *    | *                | FT2232H/FT4232HS?
-JW | Jeff Williams   |   ?    | MC1322x          | J-Link
-MA | Mariano Alvira  |   *    | MC1322x          | J-Link, FTDI
-MB | Michael Bruck   |   *    | ARM11            | *
-ML | Magnus Lundin   |   *    | *                | *
-RA | Rick Altherr    |   *    | *                | *
-RD | Rene Doss       |   *    | AT91SAM92xx      | *
-SQ | Simon Qian      |   *    | AVR              | *
-ZW | Zach Welch      |   *    | STR912           | J-Link
-
-Status Key:
-* - Active Contributor
-? - Missing In Action
-V - On Vacation
-
-@endverbatim
 
 */
