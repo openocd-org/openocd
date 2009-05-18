@@ -566,6 +566,7 @@ WARN_LOGFILE           =
 
 INPUT                  = doc/manual \
                          TODO \
+                         BUGS \
                          src \
                          config.h
 

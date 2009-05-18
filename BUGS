@@ -1,12 +1,14 @@
-Please report bugs by posting a message to 
+/** @page bugs Bug Reporting
 
-openocd-development@lists.berlios.de.
+Please report bugs by subscribing to the OpenOCD mailing list and
+posting a message with your report:
+
+	openocd-development@lists.berlios.de
 
 To minimize work for OpenOCD developers, you can include
 all the information below.  If you feel that some of the
 items below are unnecessary for a clear bug report, you
 leave them out.
-
 
 - Target PCB/board description
 - Config scripts
@@ -14,21 +16,31 @@ leave them out.
 - List of commands issued or GDB operations performed
 - Expected result
 - Actual result
-- debug_level 3 logs
-- If this is a regression, include logs for working and broken
-version
-- If this is a regression, please find out the precise version
-that caused the regression. This can be done via a binary
-search. E.g. if version 550 worked and 600 failed, then try
-575, etc.
+- Logs using @c debug_level 3 (e.g. add '-d 3' to the command line)
+- If this is a regression, include logs for working and broken version
+- If this is a regression, please find out the precise version that
+  caused the regression.  This can be done via a binary search; For
+  example: if testing version 550 works but 600 fail, then try 575, etc.
 
-- If OpenOCD is crashing, you can use GDB to get a trace:
-
-gdb --args openocd ....
+- If OpenOCD is crashing, you can use GDB to get a trace:@par
+@code
+% gdb --args openocd ....
 (gdb) run
 (gdb) bt
 => here a stack trace is dumped.
+@endcode
 
-attach files directly to the posting. The mailing list knows to 
-transform attachments to links so you will not be bloating anyones
-mail box. Keep attachments to <100kBytes.
+- To run or debug the in-tree executable (not recommended), you must
+  use libtool to set up the correct shared library paths:
+@code
+  libtool gdb --args openocd ....
+@endcode
+or the more pedantic (and forward-compatible):
+@code
+  libtool --mode=execute gdb --args openocd ....
+@endcode
+- Attach files directly to the posting.  The mailing list knows to
+transform attachments to links so you will not be bloating anyones mail
+box.  Please keep attachments to less than 100KB.
+
+ */
