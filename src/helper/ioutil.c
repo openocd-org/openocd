@@ -218,6 +218,7 @@ int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
+	int retval=ERROR_FAIL;
 	FILE *config_file = NULL;
 	config_file = fopen(args[0], "a");
 	if (config_file != NULL)
@@ -227,17 +228,22 @@ int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
 
 		for (i = 1; i < argc; i++)
 		{
-			fwrite(args[i], strlen(args[i]), 1, config_file);
+			if (fwrite(args[i], strlen(args[i]), 1, config_file)!=strlen(args[i]))
+				break;
 			if (i != argc - 1)
 			{
-				fwrite(" ", 1, 1, config_file);
+				if (fwrite(" ", 1, 1, config_file)!=1)
+					break;
 			}
 		}
-		fwrite("\n", 1, 1, config_file);
+		if ((i==argc)&&(fwrite("\n", 1, 1, config_file)==1))
+		{
+			retval=ERROR_OK;
+		}
 		fclose(config_file);
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 
