@@ -2588,6 +2588,10 @@ Typically the "fast enable" is specified first on the command line:
 openocd -c "fast enable" -c "interface dummy" -f target/str710.cfg
 @end example
 
+@subsection echo <@var{message}>
+@cindex echo
+@*Output message to stdio. e.g. echo "Programming - please wait"
+
 @subsection log_output <@var{file}>
 @cindex log_output
 @*Redirect logging to <file> (default: stderr) 
