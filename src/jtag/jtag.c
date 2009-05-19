@@ -261,6 +261,7 @@ static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const 
 
 static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 jtag_tap_t *jtag_AllTaps(void)
 {
@@ -2310,6 +2311,8 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_ANY, "verify value captured during Capture-IR <enable|disable>");
 	register_command(cmd_ctx, NULL, "verify_jtag", handle_verify_jtag_command,
 		COMMAND_ANY, "verify value capture <enable|disable>");
+	register_command(cmd_ctx, NULL, "tms_sequence", handle_tms_sequence_command,
+		COMMAND_ANY, "choose short(default) or long tms_sequence <short|long>");
 	return ERROR_OK;
 }
 
@@ -3129,6 +3132,7 @@ static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
+
 int jtag_power_dropout(int *dropout)
 {
 	return jtag->power_dropout(dropout);
@@ -3248,19 +3252,12 @@ int tap_move_ndx( tap_state_t astate )
  *
  * DRSHIFT->DRSHIFT and IRSHIFT->IRSHIFT have to be caught in interface specific code
  */
-static struct
+struct tms_sequences
 {
 	u8	bits;
 	u8	bit_count;
 
-} tms_seqs[6][6] =		/*  [from_state_ndx][to_state_ndx] */
-{
-	/* value clocked to TMS to move from one of six stable states to another.
-	 * N.B. OOCD clocks TMS from LSB first, so read these right-to-left.
-	 * N.B. These values are tightly bound to the table in tap_get_tms_path_len().
-	 * N.B. Reset only needs to be 0b11111, but in JLink an even byte of 1's is more stable.
-	 * 		These extra ones cause no TAP state problem, because we go into reset and stay in reset.
-	 */
+};
 
 /*
  * These macros allow us to specify TMS state transitions by bits rather than hex bytes.
@@ -3280,7 +3277,31 @@ static struct
 
 #define B8(bits,count)		{ ((u8)B8__(HEX__(bits))), (count) }
 
-#if 1 && ((BUILD_FT2232_FTD2XX==1) || (BUILD_FT2232_LIBFTDI==1) || (BUILD_JLINK==1))
+static const struct tms_sequences old_tms_seqs[6][6] =		/*  [from_state_ndx][to_state_ndx] */
+{
+	/* value clocked to TMS to move from one of six stable states to another.
+	 * N.B. OOCD clocks TMS from LSB first, so read these right-to-left.
+	 * N.B. These values are tightly bound to the table in tap_get_tms_path_len().
+	 * N.B. Reset only needs to be 0b11111, but in JLink an even byte of 1's is more stable.
+	 * 		These extra ones cause no TAP state problem, because we go into reset and stay in reset.
+	 */
+
+
+
+	/* to state: */
+	/*	RESET			IDLE			DRSHIFT			DRPAUSE			IRSHIFT			IRPAUSE 	*/		/* from state: */
+	{	B8(1111111,7),	B8(0000000,7),	B8(0010111,7),	B8(0001010,7),	B8(0011011,7),	B8(0010110,7) },	/* RESET */
+	{	B8(1111111,7),	B8(0000000,7),	B8(0100101,7),	B8(0000101,7),	B8(0101011,7),	B8(0001011,7) },	/* IDLE */
+	{	B8(1111111,7),	B8(0110001,7),	B8(0000000,7),	B8(0000001,7),	B8(0001111,7),	B8(0101111,7) },	/* DRSHIFT */
+	{	B8(1111111,7),	B8(0110000,7),	B8(0100000,7),	B8(0010111,7),	B8(0011110,7),	B8(0101111,7) },	/* DRPAUSE */
+	{	B8(1111111,7),	B8(0110001,7),	B8(0000111,7),	B8(0010111,7),	B8(0000000,7),	B8(0000001,7) },	/* IRSHIFT */
+	{	B8(1111111,7),	B8(0110000,7),	B8(0011100,7),	B8(0010111,7),	B8(0011110,7),	B8(0101111,7) },	/* IRPAUSE */
+};
+
+
+
+static const struct tms_sequences short_tms_seqs[6][6] =		/*  [from_state_ndx][to_state_ndx] */
+{
 	/* 	this is the table submitted by Jeff Williams on 3/30/2009 with this comment:
 
 		OK, I added Peter's version of the state table, and it works OK for
@@ -3314,40 +3335,21 @@ static struct
 	{	B8(1111111,7),	B8(011,3),		B8(00111,5),		B8(010111,6), 	B8(001111,6),	B8(01,2) },			/* IRSHIFT */
 	{	B8(1111111,7),	B8(011,3),		B8(00111,5),		B8(010111,6),	B8(01,2),		B8(0,1) } 			/* IRPAUSE */
 
-#else	/* this is the old table, converted from hex and with the bit_count set to 7 for each combo, like before */
-
-	/* to state: */
-	/*	RESET			IDLE			DRSHIFT			DRPAUSE			IRSHIFT			IRPAUSE 	*/		/* from state: */
-	{	B8(1111111,7),	B8(0000000,7),	B8(0010111,7),	B8(0001010,7),	B8(0011011,7),	B8(0010110,7) },	/* RESET */
-	{	B8(1111111,7),	B8(0000000,7),	B8(0100101,7),	B8(0000101,7),	B8(0101011,7),	B8(0001011,7) },	/* IDLE */
-	{	B8(1111111,7),	B8(0110001,7),	B8(0000000,7),	B8(0000001,7),	B8(0001111,7),	B8(0101111,7) },	/* DRSHIFT */
-	{	B8(1111111,7),	B8(0110000,7),	B8(0100000,7),	B8(0010111,7),	B8(0011110,7),	B8(0101111,7) },	/* DRPAUSE */
-	{	B8(1111111,7),	B8(0110001,7),	B8(0000111,7),	B8(0010111,7),	B8(0000000,7),	B8(0000001,7) },	/* IRSHIFT */
-	{	B8(1111111,7),	B8(0110000,7),	B8(0011100,7),	B8(0010111,7),	B8(0011110,7),	B8(0101111,7) },	/* IRPAUSE */
-
-#endif
-
-#if 0 /* keeping old hex stuff for awhile, for reference */
-	/* RESET  			IDLE  			DRSHIFT  		DRPAUSE  		IRSHIFT  		IRPAUSE */
-	{  0x7f, 			0x00,    		0x17,    		0x0a,    		0x1b,    		0x16 },	/* RESET */
-	{  0x7f, 			0x00,    		0x25,    		0x05,    		0x2b,    		0x0b },	/* IDLE */
-	{  0x7f, 			0x31,    		0x00,    		0x01,    		0x0f,    		0x2f },	/* DRSHIFT  */
-	{  0x7f, 			0x30,    		0x20,    		0x17,    		0x1e,    		0x2f },	/* DRPAUSE  */
-	{  0x7f, 			0x31,    		0x07,    		0x17,    		0x00,    		0x01 },	/* IRSHIFT  */
-	{  0x7f, 			0x30,    		0x1c,    		0x17,    		0x20,    		0x2f }	/* IRPAUSE  */
-#endif
 };
 
+typedef const struct tms_sequences tms_table[6][6];
+
+static tms_table *tms_seqs=&short_tms_seqs;
 
 int tap_get_tms_path( tap_state_t from, tap_state_t to )
 {
-	return tms_seqs[tap_move_ndx(from)][tap_move_ndx(to)].bits;
+	return (*tms_seqs)[tap_move_ndx(from)][tap_move_ndx(to)].bits;
 }
 
 
 int tap_get_tms_path_len( tap_state_t from, tap_state_t to )
 {
-	return tms_seqs[tap_move_ndx(from)][tap_move_ndx(to)].bit_count;
+	return (*tms_seqs)[tap_move_ndx(from)][tap_move_ndx(to)].bit_count;
 }
 
 
@@ -3607,5 +3609,29 @@ void jtag_alloc_in_value32(scan_field_t *field)
 }
 #endif
 
+static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc == 1)
+	{
+		if (strcmp(args[0], "short") == 0)
+		{
+			tms_seqs=&short_tms_seqs;
+		}
+		else if (strcmp(args[0], "long") == 0)
+		{
+			tms_seqs=&old_tms_seqs;
+		} else
+		{
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	} else if (argc != 0)
+	{
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	command_print(cmd_ctx, "tms sequence is  %s", (tms_seqs==&short_tms_seqs) ? "short": "long");
+
+	return ERROR_OK;
+}
 
 /*-----</Cable Helper API>--------------------------------------*/
