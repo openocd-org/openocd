@@ -86,6 +86,7 @@ static command_t *nand_cmd;
  */
 static nand_info_t nand_flash_ids[] =
 {
+	/* start "museum" IDs */
 	{"NAND 1MiB 5V 8-bit",		0x6e, 256, 1, 0x1000, 0},
 	{"NAND 2MiB 5V 8-bit",		0x64, 256, 2, 0x1000, 0},
 	{"NAND 4MiB 5V 8-bit",		0x6b, 512, 4, 0x2000, 0},
@@ -101,6 +102,7 @@ static nand_info_t nand_flash_ids[] =
 	{"NAND 8MiB 3,3V 8-bit",	0xe6, 512, 8, 0x2000, 0},
 	{"NAND 8MiB 1,8V 16-bit",	0x49, 512, 8, 0x2000, NAND_BUSWIDTH_16},
 	{"NAND 8MiB 3,3V 16-bit",	0x59, 512, 8, 0x2000, NAND_BUSWIDTH_16},
+	/* end "museum" IDs */
 
 	{"NAND 16MiB 1,8V 8-bit",	0x33, 512, 16, 0x4000, 0},
 	{"NAND 16MiB 3,3V 8-bit",	0x73, 512, 16, 0x4000, 0},
@@ -172,6 +174,7 @@ static nand_manufacturer_t nand_manuf_ids[] =
 	{NAND_MFR_RENESAS, "Renesas"},
 	{NAND_MFR_STMICRO, "ST Micro"},
 	{NAND_MFR_HYNIX, "Hynix"},
+	{NAND_MFR_MICRON, "Micron"},
 	{0x0, NULL},
 };
 
@@ -1062,7 +1065,7 @@ int nand_write_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 da
 int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	nand_device_t *p;
-	int i = 0;
+	int i;
 
 	if (!nand_devices)
 	{
@@ -1070,13 +1073,13 @@ int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		return ERROR_OK;
 	}
 
-	for (p = nand_devices; p; p = p->next)
+	for (p = nand_devices, i = 0; p; p = p->next, i++)
 	{
 		if (p->device)
 			command_print(cmd_ctx, "#%i: %s (%s) pagesize: %i, buswidth: %i, erasesize: %i",
-				i++, p->device->name, p->manufacturer->name, p->page_size, p->bus_width, p->erase_size);
+				i, p->device->name, p->manufacturer->name, p->page_size, p->bus_width, p->erase_size);
 		else
-			command_print(cmd_ctx, "#%i: not probed");
+			command_print(cmd_ctx, "#%i: not probed", i);
 	}
 
 	return ERROR_OK;
