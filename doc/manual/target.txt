@@ -23,12 +23,6 @@ This section needs to describe OpenOCD's ARM target support.
 
  */
 
-/** @page targetnotarm OpenOCD Non-ARM Targets
-
-This section needs to describe OpenOCD's non-ARM target support.
-
- */
-
 /** @page targetregister OpenOCD Target Register API
 
 This section needs to describe OpenOCD's Target Register API, as
