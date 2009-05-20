@@ -791,7 +791,6 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, scan_field_t *in_f
 	int nth_tap;
 	int bypass_devices = 0;
 	int field_count = 0;
-	int scan_size;
 
 	jtag_tap_t *tap;
 
@@ -837,7 +836,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, scan_field_t *in_f
 			if (tap == in_fields[j].tap)
 			{
 				found = 1;
-				scan_size = in_fields[j].num_bits;
+				size_t scan_size = in_fields[j].num_bits;
 				scan->fields[field_count].num_bits	= scan_size;
 				scan->fields[field_count].out_value	= buf_cpy(in_fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 				scan->fields[field_count].in_value	= in_fields[j].in_value;
