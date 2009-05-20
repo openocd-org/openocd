@@ -420,3 +420,41 @@ int mips32_configure_break_unit(struct target_s *target)
 	
 	return ERROR_OK;
 }
+
+int mips32_enable_interrupts(struct target_s *target, int enable)
+{
+	int retval;
+	int update = 0;
+	u32 dcr;
+	
+	/* read debug control register */
+	if ((retval = target_read_u32(target, EJTAG_DCR, &dcr)) != ERROR_OK)
+		return retval;
+	
+	if (enable)
+	{
+		if (!(dcr & (1<<4)))
+		{
+			/* enable interrupts */
+			dcr |= (1<<4);
+			update = 1;
+		}
+	}
+	else
+	{
+		if (dcr & (1<<4))
+		{
+			/* disable interrupts */
+			dcr &= ~(1<<4);
+			update = 1;
+		}
+	}
+	
+	if (update)
+	{
+		if ((retval = target_write_u32(target, EJTAG_DCR, dcr)) != ERROR_OK)
+			return retval;
+	}
+	
+	return ERROR_OK;
+}

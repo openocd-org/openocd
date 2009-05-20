@@ -344,8 +344,11 @@ int mips_m4k_single_step_core(target_t *target)
 	/* configure single step mode */
 	mips_ejtag_config_step(ejtag_info, 1);
 
+	/* disable interrupts while stepping */
+	mips32_enable_interrupts(target, 0);
+	
 	/* exit debug mode */
-	mips_ejtag_exit_debug(ejtag_info, 1);
+	mips_ejtag_exit_debug(ejtag_info);
 
 	mips_m4k_debug_entry(target);
 
@@ -397,8 +400,11 @@ int mips_m4k_resume(struct target_s *target, int current, u32 address, int handl
 		}
 	}
 
-	/* exit debug mode - enable interrupts if required */
-	mips_ejtag_exit_debug(ejtag_info, !debug_execution);
+	/* enable interrupts if we are running */
+	mips32_enable_interrupts(target, !debug_execution);
+	
+	/* exit debug mode */
+	mips_ejtag_exit_debug(ejtag_info);
 	target->debug_reason = DBG_REASON_NOTHALTED;
 
 	/* registers are now invalid */
@@ -452,8 +458,11 @@ int mips_m4k_step(struct target_s *target, int current, u32 address, int handle_
 
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
+	/* disable interrupts while stepping */
+	mips32_enable_interrupts(target, 0);
+		
 	/* exit debug mode */
-	mips_ejtag_exit_debug(ejtag_info, 1);
+	mips_ejtag_exit_debug(ejtag_info);
 
 	/* registers are now invalid */
 	mips32_invalidate_core_regs(target);

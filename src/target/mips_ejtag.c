@@ -216,13 +216,11 @@ int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 	return ERROR_OK;
 }
 
-int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info, int enable_interrupts)
+int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info)
 {
 	u32 inst;
 	inst = MIPS32_DRET;
-
-	/* TODO : enable/disable interrrupts */
-
+	
 	/* execute our dret instruction */
 	mips32_pracc_exec(ejtag_info, 1, &inst, 0, NULL, 0, NULL, 0);
 
