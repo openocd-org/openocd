@@ -13,6 +13,14 @@ SUBDIRS = src doc
 
 EXTRA_DIST = Doxyfile
 
+docs: pdf html doxygen
+
+doxygen::
+	doxygen Doxyfile 2>&1 | perl tools/logger.pl > doxygen.log
+
+doxygen-clean:
+	rm -f -r doxygen doxygen.log
+
 MAINTAINERCLEANFILES = \
 	configure \
 	Makefile.in \
