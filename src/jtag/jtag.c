@@ -589,6 +589,13 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
 	}
 }
 
+/**
+ * Generate a list of scan fields with one entry for each TAP.
+ *
+ * If the input field list contains an instruction value for a TAP then that is used
+ * otherwise the TAP is set to bypass.
+ *
+ */
 int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	jtag_tap_t *tap;
@@ -597,19 +604,18 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 
 	int num_taps = jtag_NumEnabledTaps();
 
-	/* allocate memory for a new list member */
-	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-	
-	jtag_queue_command(cmd);
-	
-	cmd->type = JTAG_SCAN;
+	jtag_command_t * cmd	= cmd_queue_alloc(sizeof(jtag_command_t));
+	scan_command_t * scan	= cmd_queue_alloc(sizeof(scan_command_t));
 
-	/* allocate memory for ir scan command */
-	cmd->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	cmd->cmd.scan->ir_scan = true;
-	cmd->cmd.scan->num_fields = num_taps;	/* one field per device */
-	cmd->cmd.scan->fields = cmd_queue_alloc(num_taps  * sizeof(scan_field_t));
-	cmd->cmd.scan->end_state = state;
+	jtag_queue_command(cmd);
+
+	cmd->type				= JTAG_SCAN;
+	cmd->cmd.scan			= scan;
+
+	scan->ir_scan			= true;
+	scan->num_fields		= num_taps;	/* one field per device */
+	scan->fields			= cmd_queue_alloc(num_taps  * sizeof(scan_field_t));
+	scan->end_state			= state;
 
 	nth_tap = -1;
 	tap = NULL;
@@ -625,10 +631,10 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 
 		assert(nth_tap < num_taps);
 
-		scan_size = tap->ir_length;
-		cmd->cmd.scan->fields[nth_tap].tap = tap;
-		cmd->cmd.scan->fields[nth_tap].num_bits = scan_size;
-		cmd->cmd.scan->fields[nth_tap].in_value = NULL; /* do not collect input for tap's in bypass */
+		scan_size						= tap->ir_length;
+		scan->fields[nth_tap].tap		= tap;
+		scan->fields[nth_tap].num_bits	= scan_size;
+		scan->fields[nth_tap].in_value	= NULL; /* do not collect input for tap's in bypass */
 
 		/* search the list */
 		for (int j = 0; j < in_num_fields; j++)
@@ -636,8 +642,8 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 			if (tap == in_fields[j].tap)
 			{
 				found = 1;
-				cmd->cmd.scan->fields[nth_tap].in_value = in_fields[j].in_value;
-				cmd->cmd.scan->fields[nth_tap].out_value = buf_cpy(in_fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+				scan->fields[nth_tap].in_value	= in_fields[j].in_value;
+				scan->fields[nth_tap].out_value	= buf_cpy(in_fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 
 				tap->bypass = 0;
 				break;
@@ -647,12 +653,12 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 		if (!found)
 		{
 			/* if a tap isn't listed, set it to BYPASS */
-			cmd->cmd.scan->fields[nth_tap].out_value = buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+			scan->fields[nth_tap].out_value = buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 			tap->bypass = 1;
 		}
 
 		/* update device information */
-		buf_cpy(cmd->cmd.scan->fields[nth_tap].out_value, tap->cur_instr, scan_size);
+		buf_cpy(scan->fields[nth_tap].out_value, tap->cur_instr, scan_size);
 	}
 
 	assert(nth_tap == (num_taps - 1));
