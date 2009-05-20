@@ -885,7 +885,6 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 {
 	int nth_tap;
 	int field_count = 0;
-	int scan_size;
 	int bypass_devices = 0;
 
 	jtag_tap_t *tap;
@@ -928,7 +927,6 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 
 		if (tap == target_tap)
 		{
-			int j;
 #ifdef _DEBUG_JTAG_IO_
 			/* if a device is listed, the BYPASS register must not be selected */
 			if (tap->bypass)
@@ -937,10 +935,10 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 				exit(-1);
 			}
 #endif
-			for (j = 0; j < in_num_fields; j++)
+			for (int j = 0; j < in_num_fields; j++)
 			{
 				u8 out_value[4];
-				scan_size = num_bits[j];
+				size_t scan_size = num_bits[j];
 				buf_set_u32(out_value, 0, scan_size, value[j]);
 				scan->fields[field_count].num_bits		= scan_size;
 				scan->fields[field_count].out_value		= buf_cpy(out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
