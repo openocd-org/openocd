@@ -37,8 +37,8 @@
 
 int jtag_flush_queue_count; /* count # of flushes for profiling / debugging purposes */
 
-static void jtag_add_scan_check(void (*jtag_add_scan)(int num_fields, scan_field_t *fields, tap_state_t state),
-		int num_fields, scan_field_t *fields, tap_state_t state);
+static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state),
+		int in_num_fields, scan_field_t *in_fields, tap_state_t state);
 
 /* note that this is not marked as static as it must be available from outside jtag.c for those
    that implement the jtag_xxx() minidriver layer
@@ -554,45 +554,44 @@ static void jtag_prelude(tap_state_t state)
 	cmd_queue_cur_state = cmd_queue_end_state;
 }
 
-void jtag_add_ir_scan_noverify(int num_fields, scan_field_t *fields, tap_state_t state)
+void jtag_add_ir_scan_noverify(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	int retval;
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_ir_scan(num_fields, fields, cmd_queue_end_state);
+	retval=interface_jtag_add_ir_scan(in_num_fields, in_fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 
 }
 
 
-void jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	if (jtag_verify&&jtag_verify_capture_ir)
 	{
 		/* 8 x 32 bit id's is enough for all invoations */
-		int j;
-		for (j = 0; j < num_fields; j++)
+
+		for (int j = 0; j < in_num_fields; j++)
 		{
-			fields[j].check_value=NULL;
-			fields[j].check_mask=NULL;
+			in_fields[j].check_value=NULL;
+			in_fields[j].check_mask=NULL;
 			/* if we are to run a verification of the ir scan, we need to get the input back.
 			 * We may have to allocate space if the caller didn't ask for the input back.
 			 */
-			fields[j].check_value=fields[j].tap->expected;
-			fields[j].check_mask=fields[j].tap->expected_mask;
+			in_fields[j].check_value=in_fields[j].tap->expected;
+			in_fields[j].check_mask=in_fields[j].tap->expected_mask;
 		}
-		jtag_add_scan_check(jtag_add_ir_scan_noverify, num_fields, fields, state);
+		jtag_add_scan_check(jtag_add_ir_scan_noverify, in_num_fields, in_fields, state);
 	} else
 	{
-		jtag_add_ir_scan_noverify(num_fields, fields, state);
+		jtag_add_ir_scan_noverify(in_num_fields, in_fields, state);
 	}
 }
 
-int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
+int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	jtag_tap_t *tap;
-	int j;
 	int x;
 	int nth_tap;
 	int scan_size = 0;
@@ -632,13 +631,13 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 		cmd->cmd.scan->fields[nth_tap].in_value = NULL; /* do not collect input for tap's in bypass */
 
 		/* search the list */
-		for (j = 0; j < num_fields; j++)
+		for (int j = 0; j < in_num_fields; j++)
 		{
-			if (tap == fields[j].tap)
+			if (tap == in_fields[j].tap)
 			{
 				found = 1;
-				cmd->cmd.scan->fields[nth_tap].in_value = fields[j].in_value;
-				cmd->cmd.scan->fields[nth_tap].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+				cmd->cmd.scan->fields[nth_tap].in_value = in_fields[j].in_value;
+				cmd->cmd.scan->fields[nth_tap].out_value = buf_cpy(in_fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 
 				tap->bypass = 0;
 				break;
@@ -660,18 +659,18 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int num_fields, scan_field_t *fields,
 	return ERROR_OK;
 }
 
-void jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+void jtag_add_plain_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	int retval;
 
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_plain_ir_scan(num_fields, fields, cmd_queue_end_state);
+	retval=interface_jtag_add_plain_ir_scan(in_num_fields, in_fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
+int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	/* allocate memory for a new list member */
 
@@ -684,30 +683,30 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int num_fields, scan_field_t *f
 	/* allocate memory for ir scan command */
 	cmd->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
 	cmd->cmd.scan->ir_scan = true;
-	cmd->cmd.scan->num_fields = num_fields;
-	cmd->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
+	cmd->cmd.scan->num_fields = in_num_fields;
+	cmd->cmd.scan->fields = cmd_queue_alloc(in_num_fields * sizeof(scan_field_t));
 	cmd->cmd.scan->end_state = state;
 
-	for (int i = 0; i < num_fields; i++)
+	for (int i = 0; i < in_num_fields; i++)
 	{
-		int num_bits = fields[i].num_bits;
-		int num_bytes = CEIL(fields[i].num_bits, 8);
-		cmd->cmd.scan->fields[i].tap = fields[i].tap;
+		int num_bits = in_fields[i].num_bits;
+		int num_bytes = CEIL(in_fields[i].num_bits, 8);
+		cmd->cmd.scan->fields[i].tap = in_fields[i].tap;
 		cmd->cmd.scan->fields[i].num_bits = num_bits;
-		cmd->cmd.scan->fields[i].out_value = buf_cpy(fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
-		cmd->cmd.scan->fields[i].in_value = fields[i].in_value;
+		cmd->cmd.scan->fields[i].out_value = buf_cpy(in_fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
+		cmd->cmd.scan->fields[i].in_value = in_fields[i].in_value;
 	}
 
 	return ERROR_OK;
 }
 
-void jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+void jtag_add_dr_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	int retval;
 
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_dr_scan(num_fields, fields, cmd_queue_end_state);
+	retval=interface_jtag_add_dr_scan(in_num_fields, in_fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -720,65 +719,68 @@ static int jtag_check_value_mask_callback(u8 *in, jtag_callback_data_t data1, jt
 	return jtag_check_value_inner(in, (u8 *)data1, (u8 *)data2, (int)data3);
 }
 
-static void jtag_add_scan_check(void (*jtag_add_scan)(int num_fields, scan_field_t *fields, tap_state_t state),
-		int num_fields, scan_field_t *fields, tap_state_t state)
+static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state),
+		int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
-	for (int i=0; i<num_fields; i++)
+	for (int i = 0; i < in_num_fields; i++)
 	{
-		fields[i].allocated=0;
-		fields[i].modified=0;
-		if ((fields[i].check_value!=NULL)&&(fields[i].in_value==NULL))
+		in_fields[i].allocated = 0;
+		in_fields[i].modified = 0;
+		if ((in_fields[i].check_value != NULL) && (in_fields[i].in_value == NULL))
 		{
-			fields[i].modified=1;
+			in_fields[i].modified = 1;
 			/* we need storage space... */
 #ifdef HAVE_JTAG_MINIDRIVER_H
-			if (fields[i].num_bits<=32)
+			if (in_fields[i].num_bits <= 32)
 			{
 				/* This is enough space and we're executing this synchronously */
-				fields[i].in_value=fields[i].intmp;
+				in_fields[i].in_value = in_fields[i].intmp;
 			} else
 			{
-				fields[i].in_value=(u8 *)malloc(CEIL(fields[i].num_bits, 8));
-				fields[i].allocated=1;
+				in_fields[i].in_value = (u8 *)malloc(CEIL(in_fields[i].num_bits, 8));
+				in_fields[i].allocated = 1;
 			}
 #else
-			fields[i].in_value=(u8 *)cmd_queue_alloc(CEIL(fields[i].num_bits, 8));
+			in_fields[i].in_value = (u8 *)cmd_queue_alloc(CEIL(in_fields[i].num_bits, 8));
 #endif
 		}
 	}
 
-	jtag_add_scan(num_fields, fields, state);
+	jtag_add_scan(in_num_fields, in_fields, state);
 
-	for (int i=0; i<num_fields; i++)
+	for (int i = 0; i < in_num_fields; i++)
 	{
-		if ((fields[i].check_value!=NULL)&&(fields[i].in_value!=NULL))
+		if ((in_fields[i].check_value != NULL) && (in_fields[i].in_value != NULL))
 		{
 			/* this is synchronous for a minidriver */
-			jtag_add_callback4(jtag_check_value_mask_callback, fields[i].in_value, (jtag_callback_data_t)fields[i].check_value, (jtag_callback_data_t)fields[i].check_mask, (jtag_callback_data_t)fields[i].num_bits);
+			jtag_add_callback4(jtag_check_value_mask_callback, in_fields[i].in_value,
+				(jtag_callback_data_t)in_fields[i].check_value,
+				(jtag_callback_data_t)in_fields[i].check_mask,
+				(jtag_callback_data_t)in_fields[i].num_bits);
 		}
-		if (fields[i].allocated)
+		if (in_fields[i].allocated)
 		{
-			free(fields[i].in_value);
+			free(in_fields[i].in_value);
 		}
-		if (fields[i].modified)
+		if (in_fields[i].modified)
 		{
-			fields[i].in_value=NULL;
+			in_fields[i].in_value = NULL;
 		}
 	}
 }
 
-void jtag_add_dr_scan_check(int num_fields, scan_field_t *fields, tap_state_t state)
+void jtag_add_dr_scan_check(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	if (jtag_verify)
 	{
-		jtag_add_scan_check(jtag_add_dr_scan, num_fields, fields, state);
+		jtag_add_scan_check(jtag_add_dr_scan, in_num_fields, in_fields, state);
 	} else
 	{
-		jtag_add_dr_scan(num_fields, fields, state);
+		jtag_add_dr_scan(in_num_fields, in_fields, state);
 	}
 }
 
-int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
+int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	int j;
 	int nth_tap;
@@ -812,8 +814,8 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 	/* allocate memory for dr scan command */
 	cmd->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
 	cmd->cmd.scan->ir_scan = false;
-	cmd->cmd.scan->num_fields = num_fields + bypass_devices;
-	cmd->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
+	cmd->cmd.scan->num_fields = in_num_fields + bypass_devices;
+	cmd->cmd.scan->fields = cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
 	cmd->cmd.scan->end_state = state;
 
 	tap = NULL;
@@ -827,15 +829,15 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 		int found = 0;
 		cmd->cmd.scan->fields[field_count].tap = tap;
 
-		for (j = 0; j < num_fields; j++)
+		for (j = 0; j < in_num_fields; j++)
 		{
-			if (tap == fields[j].tap)
+			if (tap == in_fields[j].tap)
 			{
 				found = 1;
-				scan_size = fields[j].num_bits;
+				scan_size = in_fields[j].num_bits;
 				cmd->cmd.scan->fields[field_count].num_bits = scan_size;
-				cmd->cmd.scan->fields[field_count].out_value = buf_cpy(fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				cmd->cmd.scan->fields[field_count].in_value = fields[j].in_value;
+				cmd->cmd.scan->fields[field_count].out_value = buf_cpy(in_fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+				cmd->cmd.scan->fields[field_count].in_value = in_fields[j].in_value;
 				field_count++;
 			}
 		}
@@ -874,7 +876,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int num_fields, scan_field_t *fields,
 }
 
 void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
-		int num_fields,
+		int in_num_fields,
 		const int *num_bits,
 		const u32 *value,
 		tap_state_t end_state)
@@ -909,8 +911,8 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 	/* allocate memory for dr scan command */
 	cmd->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
 	cmd->cmd.scan->ir_scan = false;
-	cmd->cmd.scan->num_fields = num_fields + bypass_devices;
-	cmd->cmd.scan->fields = cmd_queue_alloc((num_fields + bypass_devices) * sizeof(scan_field_t));
+	cmd->cmd.scan->num_fields = in_num_fields + bypass_devices;
+	cmd->cmd.scan->fields = cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
 	cmd->cmd.scan->end_state = end_state;
 
 	tap = NULL;
@@ -934,7 +936,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 				exit(-1);
 			}
 #endif
-			for (j = 0; j < num_fields; j++)
+			for (j = 0; j < in_num_fields; j++)
 			{
 				u8 out_value[4];
 				scan_size = num_bits[j];
@@ -963,18 +965,18 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 	}
 }
 
-void jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+void jtag_add_plain_dr_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	int retval;
 
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_plain_dr_scan(num_fields, fields, cmd_queue_end_state);
+	retval=interface_jtag_add_plain_dr_scan(in_num_fields, in_fields, cmd_queue_end_state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
 
-int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *fields, tap_state_t state)
+int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	/* allocate memory for a new list member */
 	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
@@ -986,18 +988,18 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int num_fields, scan_field_t *f
 	/* allocate memory for scan command */
 	cmd->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
 	cmd->cmd.scan->ir_scan = false;
-	cmd->cmd.scan->num_fields = num_fields;
-	cmd->cmd.scan->fields = cmd_queue_alloc(num_fields * sizeof(scan_field_t));
+	cmd->cmd.scan->num_fields = in_num_fields;
+	cmd->cmd.scan->fields = cmd_queue_alloc(in_num_fields * sizeof(scan_field_t));
 	cmd->cmd.scan->end_state = state;
 
-	for (int i = 0; i < num_fields; i++)
+	for (int i = 0; i < in_num_fields; i++)
 	{
-		int num_bits = fields[i].num_bits;
-		int num_bytes = CEIL(fields[i].num_bits, 8);
-		cmd->cmd.scan->fields[i].tap = fields[i].tap;
+		int num_bits = in_fields[i].num_bits;
+		int num_bytes = CEIL(in_fields[i].num_bits, 8);
+		cmd->cmd.scan->fields[i].tap = in_fields[i].tap;
 		cmd->cmd.scan->fields[i].num_bits = num_bits;
-		cmd->cmd.scan->fields[i].out_value = buf_cpy(fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
-		cmd->cmd.scan->fields[i].in_value = fields[i].in_value;
+		cmd->cmd.scan->fields[i].out_value = buf_cpy(in_fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
+		cmd->cmd.scan->fields[i].in_value = in_fields[i].in_value;
 	}
 
 	return ERROR_OK;
