@@ -7,7 +7,293 @@ Presently, the following servers have APIs that can be used.
   - @subpage servertelnet
   - @subpage serverhttp
 
-This section needs to be expanded.
+@section serverdocsoverview Overview
+
+What follows is a development history, and describes some of the intent
+of why certain features exist within OpenOCD along with the reasoning
+behind them.
+
+This roadmap section was written May 2009 - about 9 to 12 months
+after some of this work had started, it attempts to document some of
+the reasons why certain features exist within OpenOCD at that time.
+
+@section serverdocsbg Background
+
+In early 2008, Oyvind Harboe and Duane Ellis had talked about how to
+create a reasonable GUI for OpenOCD - something that is non-invasive,
+simple to use and maintain, and does not tie OpenOCD to many other
+packages.  It would be wrong to "spider web" requirements into other
+external external packages.  That makes it difficult for developers to
+write new code and creates a support nightmare.
+
+In many ways, people had talked about the need for some type of
+high-level interface to OpenOCD, because they only had two choices:
+- the ability to script: via an external program the actions of OpenOCD.
+- the ablity to write a complex internal commands: native 'commands'
+  inside of OpenOCD was complicated.
+
+Fundamentally, the basic problem with both of those would be solved 
+with a script language:
+
+-# <b>Internal</b>: simple, small, and self-contained.
+-# <b>Cross Language</b>: script friendly front-end
+-# <b>Cross Host</b>: GUI Host interface
+-# <b>Cross Debugger</b>: GUI-like interface
+  
+What follows hopefully shows how the plans to solve these problems
+materialized and help to explain the grand roadmap plan.
+
+@subsection serverdocsjim Why JimTCL? The Internal Script Language
+
+At the time, the existing "command context schema" was proving itself
+insufficient.  However, the problem was also considered from another
+direction: should OpenOCD be first class and the script second class?
+Which one rules?
+
+In the end, OpenOCD won, the conclusion was that simpler will be better.
+Let the script language be "good enough"; it would not need numerous
+features.  Imagine debugging an embedded Perl module while debugging
+OpenOCD. Yuck.  OpenOCD already has a complex enough build system, why
+make it worse?
+
+The goal was to add a simple language that would be moderately easy to
+work with and be self-contained.  JimTCL is a single C and single H
+file, allowing OpenOCD to avoid the spider web of dependent packages.
+
+@section serverdocstcl TCL Server Port
+
+The TCL Server port was added in mid-2008.  With embedded TCL, we can
+write scripts internally to help things, or we can write "C" code  that
+interfaces well with TCL. 
+
+From there, the developers wanted to create an external front-end that
+would be @a very usable and that that @a any language could utilize,
+allowing simple front-ends to be (a) cross-platform (b) languag
+agnostic, and (c) easy to develop and use.
+
+Simple ASCII protocols are easy.  For example, HTTP, FTP (control), and
+SMTP are all text-based.  All of these examples are widely and
+well-known, and they do not require high-speed or high-volume.  They
+also support a high degree of interoperability with multiple systems.
+They are not human-centric protocols; more correctly, they are rigid,
+terse, simple ASCII protocols that are emensely parsable by a script.
+
+Thus, the TCL server -- a 'machine' type socket interface -- was added
+with the hope was it would output simple "name-value" pair type
+data.  At the time, simple name/value pairs seemed reasonably easier to
+do at the time, though Maybe it should output JSON; 
+
+See here:
+
+   http://www.mail-archive.com/openocd-development%40lists.berlios.de/msg00248.html
+
+The hope was that one could write a script in what ever language you want
+and do things with it!
+
+@section serverdocsgui GUI Like Interfaces
+
+A lot has been said about various "widigit-foo-gui-library is so
+wonderful".  Please refer back to the domino and spider web problem of
+dependencies.  Sure, you may well know the WhatEver-GUI library, but
+most others will not (including the next contributer to OpenOCD).
+How do we solve that problem?
+
+For example, Cygwin can be painful, Cygwin GUI packages want X11
+to be present, crossing the barrier between MinGW and Cygwin is
+painful, let alone getting the GUI front end to work on MacOS, and
+Linux, yuck yuck yuck. Painful. very very painful.  
+
+What works easier and is less work is what is already present in every
+platform?  The answer: A web browser.  In other words, OpenOCD could
+serve out embedded web pages via "localhost" to your browser. 
+
+Long before OpenOCD had a TCL command line, Zylin AS built their ZY1000
+devince with a built-in HTTP server.  Later, they were willing to both
+contribute and integrate most of that work into the main tree.
+
+@subsection serverdocsother Other Options Concidered
+
+What if a web browser is not acceptable ie: You want to write your own
+front gadget in Eclipse, or KDevelop, or PerlTK, Ruby, or what ever
+the latest and greatest Script De Jour is.
+
+- Option 1: Can we transport this extra data through the GDB server
+protocol? In other words, can we extend the GDB server protocol?
+No, Eclipse wants to talk to GDB directly and control the GDB port.
+
+- Option 2: SWIG front end (libopenocd): Would that work?
+
+That's painful - unless you design your api to be very simplistic -
+every language has it's own set of wack-ness, parameter marshaling is
+painful.
+
+What about "callbacks" and structures, and other mess. Imagine
+debugging that system.  When JimTCL was introduced Spencer Oliver had
+quite a few well-put concerns (Summer 2008) about the idea of "TCL"
+taking over OpenOCD.  His concern is and was: how do you debug
+something written in 2 different languages?  A "SWIG" front-end is
+unlikely to help that situation.
+
+@subsection serverdoccombined Combined: Socket & WebServer Benifits
+
+Seriously think about this question: What script language (or compiled
+language) today cannot talk directly to a socket? Every thing in the
+OpenOCD world can work a socket interface. Any host side tool can talk
+to Localhost or remote host, however one might want to make it work.
+
+A socket interface is very simple. One could write a Java application
+and serve it out via the embedded web server, could it - or something
+like it talk to the built in TCL server? Yes, absolutely! We are on to
+something here.
+
+@subsection serverdocplatforms Platform Permuntations
+
+Look at some permutations where OpenOCD can run; these "just work" if
+the Socket Approach is used.
+
+
+- Linux/Cygwin/MinGw/MacOSx/FreeBSD development Host Locally
+- OpenOCD with some dongle on that host
+
+
+- Linux/Cygwin/MingW/MacOS/FreeBSD development host
+- DONGLE:  tcpip based ARM-Linux perhaps at91rm9200 or ep93xx.c, running openocd.
+
+
+- Windows cygwin/X desktop environment.
+- Linux development host (via remote X11)
+- Dongle:  "eb93xx.c" based linux board
+
+
+@subsection serverdocfuture Development Scale Out
+
+During 2008, Duane Ellis created some TCL scripts to display peripheral
+register contents. For example, look at the sam7 TCL scripts, and the
+stm32 TCL scripts.  The hope was others would create more. 
+
+
+A good example of this is display/view the peripheral registers on
+your embedded target.  Lots of commercial embedded debug tools have
+this, some can show the TIMER registers, the interrupt controller.
+
+What if the chip companies behind STM32, or PIC32, AT91SAM chips -
+wanted to write something that makes working with their chip better,
+easier, faster, etc.
+
+@a Question: How can we (the OpenOCD group) make that really fancy
+stuff across multiple different host platforms?
+
+Remember: OpenOCD runs on:
+-# Linux via USB,
+-# ARM Linux - bit-banging GPIO pins
+-# MacOSX
+-# FreeBSD
+-# Cygwin
+-# MinGW32
+-# Ecos
+
+How can we get that to work?
+
+@subsection serverdocdebug What about Debugger Plugins?
+
+Really GDB is nice, it works, but it is not a good embedded debug tool.
+OpenOCD cannot work in a GUI when one cannot get to its command line.
+Some GDB front-end developers have pedantic designs that refuse any and
+all access to the GDB command line (e.g.  http://www.kdbg.org/todo.php).
+
+The TELNET interface to OpenOCD works, but the intent of that interface
+is <b>human interaction</b>. It must remain available, developers depend
+upon it, sometimes that is the only scheme available.
+
+As a small group of developers, supporting all the platforms and
+targets in the debugger will be difficult, as there are enough problem
+with the plethora of Dongles, Chips, and different target boards.
+Yes, the TCL interface might be suitable, but it has not received much
+love or attention.  Perhaps it will after you read and understand this.
+
+One reason might be, this adds one more host side requirement to make
+use of the feature.  In other words, one could write a Python/TK
+front-end, but it is only useable if you have Python/TK installed.
+Maybe this can be done via Ecllipse, but not all developers use Ecplise.
+Many devlopers use Emacs (possibly with GUD mode) or vim and will not 
+accept such an interface.  The next developer reading this might be
+using Insight (GDB-TK) - and somebody else - DDD..
+
+There is no common host-side GDB front-end method.
+
+@section serverdocschallenge Front-End Scaling
+
+Maybe we are wrong - ie: OpenOCD + some TK tool
+
+Remember: OpenOCD is often (maybe 99.9%) of the time used with
+GDB-REMOTE.  There is always some front-end package - be it command-line
+GDB under DDD, Eclipse, KDevelop, Emacs, or some other package
+(e.g. IAR tools can talk to GDB servers).  How can the OpenOCD
+developers make that fancy target display GUI visible under 5 to 10
+different host-side GDB..
+
+Sure - a <em>man on a mission</em> can make that work.  The GUI might be
+libopenocd + Perl/TK, or maybe an Eclipse Plug-in.
+That is a development support nightmare for reasons described
+above. We have enough support problems as it is with targets, dongles,
+etc.
+
+@section serverdocshttpbg HTTP Server Background
+
+OpenOCD includes an HTTP server because most development environments
+are likely contain a web browser.  The web browser can talk to OpenOCD's
+HTTP server and provide a high-level interfaces to the program.
+Altogether, it provides a universally accessible GUI for OpenOCD.
+
+@section serverdocshtml Simple HTML Pages
+
+There is (or could be) a simple "Jim TCL" function to read a memory
+location. If that can be tied into a TCL script that can modify the
+HTTP text, then we have a simple script-based web server with a JTAG
+engine under the hood.
+
+Imagine a web page - served from a small board with two buttons:
+"LED_ON" and "LED_OFF", each click - turns the LED on or OFF, a very
+simplistic idea.  Little boards with web servers are great examples of
+this: Ethernut is a good example and Contiki (not a board, an embedded
+OS) is another example.
+
+One could create a simple: <b>Click here to display memory</b> or maybe
+<b>click here to display the UART REGISTER BLOCK</b>; click again and see
+each register explained in exquisit detail.
+
+For an STM32, one could create a simple HTML page, with simple
+substitution text that the simple web server use to substitute the
+HTML text JIMTCL_PEEK32( 0x12345678 ) with the value read from
+memory. We end up with an HTML page that could list the contents of
+every peripheral register on the target platform.
+
+That also is transportable, regardless of the OpenOCD host
+platform: Linux/X86, Linux/ARM, FreeBSD, Cygwin, MingW, or MacOSX.
+You could even port OpenOCD to an Google Android and use it as a
+bit-bang dongle JTAG serving web pages.
+
+@subsection serverdocshtmladv Advanced HTML Pages
+
+Java or JavaScript could be used to talk back to the TCL port.  One
+could write a Java, AJAX, FLASH, or some other developer friendly
+toolbox and get a real cross-platform GUI interface. Sure, the interface
+is not native - but it is 100% cross-platform!
+
+OpenOCD current uses simple HTML pages; others might be an Adobe FLASH
+expert, or a Java Expert.  These possibilities could allow the pages
+remain cross-platform but still provide a rich user-interface
+experience.
+
+Don't forget it can also be very simple, exactly what one developer
+can contribute, a set of very simple web pages.
+
+@subsection serverdocshtmlstatus HTTP/HTML Status
+
+As of May 2009, much of the HTML pages were contributed by Zylin AS,
+hence they continue to retain some resemblance to the ZY1000 interface.
+
+Patches would be welcome to move these parts of the system forward.
 
  */
 
