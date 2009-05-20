@@ -1,3 +1,7 @@
+/** @page primertcl OpenOCD TCL Primer
+
+@verbatim
+
 ****************************************
 ****************************************
 
@@ -428,3 +432,7 @@ END of the Tcl Intro and Walk Through
 FUTURE PLANS
 
        Some "GPIO" functions...
+
+@endverbatim
+
+ */
