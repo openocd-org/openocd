@@ -592,9 +592,10 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
 int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	jtag_tap_t *tap;
-	int x;
 	int nth_tap;
 	int scan_size = 0;
+
+	int num_taps = jtag_NumEnabledTaps();
 
 	/* allocate memory for a new list member */
 	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
@@ -606,9 +607,8 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 	/* allocate memory for ir scan command */
 	cmd->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
 	cmd->cmd.scan->ir_scan = true;
-	x = jtag_NumEnabledTaps();
-	cmd->cmd.scan->num_fields = x;	/* one field per device */
-	cmd->cmd.scan->fields = cmd_queue_alloc(x  * sizeof(scan_field_t));
+	cmd->cmd.scan->num_fields = num_taps;	/* one field per device */
+	cmd->cmd.scan->fields = cmd_queue_alloc(num_taps  * sizeof(scan_field_t));
 	cmd->cmd.scan->end_state = state;
 
 	nth_tap = -1;
@@ -623,7 +623,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 		}
 		nth_tap++;
 
-		assert(nth_tap < x );
+		assert(nth_tap < num_taps);
 
 		scan_size = tap->ir_length;
 		cmd->cmd.scan->fields[nth_tap].tap = tap;
@@ -654,7 +654,8 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 		/* update device information */
 		buf_cpy(cmd->cmd.scan->fields[nth_tap].out_value, tap->cur_instr, scan_size);
 	}
-	assert(nth_tap == (x-1));
+
+	assert(nth_tap == (num_taps - 1));
 
 	return ERROR_OK;
 }
