@@ -6,5 +6,9 @@ EXTRA_DIST = openocd.1
 dist-hook:
 	mkdir $(distdir)/manual
 	cp -p $(srcdir)/manual/*.txt $(distdir)/manual
+	for i in $$(cd $(srcdir)/manual/ && ls -d */); do \
+		mkdir $(distdir)/manual/$$i; \
+		cp -p $(srcdir)/manual/$$i/* $(distdir)/manual/$$i/; \
+	done
 
 MAINTAINERCLEANFILES = Makefile.in mdate-sh texinfo.tex
