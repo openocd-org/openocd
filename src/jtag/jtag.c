@@ -903,19 +903,18 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 		}
 	}
 
-	/* allocate memory for a new list member */
-	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
+	jtag_command_t * cmd	= cmd_queue_alloc(sizeof(jtag_command_t));
+	scan_command_t * scan	= cmd_queue_alloc(sizeof(scan_command_t));
 
 	jtag_queue_command(cmd);
 
-	cmd->type = JTAG_SCAN;
+	cmd->type				= JTAG_SCAN;
+	cmd->cmd.scan			= scan;
 
-	/* allocate memory for dr scan command */
-	cmd->cmd.scan = cmd_queue_alloc(sizeof(scan_command_t));
-	cmd->cmd.scan->ir_scan = false;
-	cmd->cmd.scan->num_fields = in_num_fields + bypass_devices;
-	cmd->cmd.scan->fields = cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
-	cmd->cmd.scan->end_state = end_state;
+	scan->ir_scan			= false;
+	scan->num_fields		= in_num_fields + bypass_devices;
+	scan->fields			= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
+	scan->end_state			= end_state;
 
 	tap = NULL;
 	nth_tap = -1;
@@ -925,7 +924,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 			break;
 		}
 		nth_tap++;
-		cmd->cmd.scan->fields[field_count].tap = tap;
+		scan->fields[field_count].tap = tap;
 
 		if (tap == target_tap)
 		{
@@ -943,9 +942,9 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 				u8 out_value[4];
 				scan_size = num_bits[j];
 				buf_set_u32(out_value, 0, scan_size, value[j]);
-				cmd->cmd.scan->fields[field_count].num_bits = scan_size;
-				cmd->cmd.scan->fields[field_count].out_value = buf_cpy(out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				cmd->cmd.scan->fields[field_count].in_value = NULL;
+				scan->fields[field_count].num_bits		= scan_size;
+				scan->fields[field_count].out_value		= buf_cpy(out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+				scan->fields[field_count].in_value		= NULL;
 				field_count++;
 			}
 		} else
@@ -959,9 +958,9 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 			}
 #endif
 			/* program the scan field to 1 bit length, and ignore it's value */
-			cmd->cmd.scan->fields[field_count].num_bits = 1;
-			cmd->cmd.scan->fields[field_count].out_value = NULL;
-			cmd->cmd.scan->fields[field_count].in_value = NULL;
+			scan->fields[field_count].num_bits			= 1;
+			scan->fields[field_count].out_value			= NULL;
+			scan->fields[field_count].in_value			= NULL;
 			field_count++;
 		}
 	}
