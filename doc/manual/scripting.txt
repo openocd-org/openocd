@@ -1,13 +1,11 @@
-Plan for hosted scripting support in OpenOCD
-============================================
+/** @page scripting OpenOCD Scripting Overview
 
-What scripting will not do
-==========================
+@section What scripting will not do
+
+The scripting support is intended for developers of OpenOCD.
 It is not the intention that normal OpenOCD users will
 use tcl scripting extensively, write lots of clever scripts,
 or contribute back to OpenOCD. 
-
-The scripting support is intended for developers of OpenOCD.
 
 Target scripts can contain new procedures that end users may
 tinker to their needs without really understanding tcl.
@@ -20,8 +18,8 @@ Jim Tcl was chosen as it was easy to integrate, works
 great in an embedded environment and Øyvind Harboe
 had experience with it.
 
-Uses of scripting
-=================
+@section Uses of scripting
+
 Default implementation of procedures in tcl/procedures.tcl.
 
 - Polymorphic commands for target scripts.
@@ -54,8 +52,8 @@ Default implementation of procedures in tcl/procedures.tcl.
   be simpler.
   
   
-External scripting
-==================
+@section External scripting
+
 The embedded Jim Tcl interpreter in OpenOCD is very limited
 compared to any full scale PC hosted scripting language.
 
@@ -78,3 +76,5 @@ unknown commands to OpenOCD.
 
 Basically a PC version of startup.tcl. Patches most
 gratefully accepted! :-)
+
+ */
