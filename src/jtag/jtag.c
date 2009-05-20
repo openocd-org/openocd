@@ -600,7 +600,6 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 {
 	jtag_tap_t *tap;
 	int nth_tap;
-	int scan_size = 0;
 
 	int num_taps = jtag_NumEnabledTaps();
 
@@ -631,7 +630,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 
 		assert(nth_tap < num_taps);
 
-		scan_size						= tap->ir_length;
+		size_t scan_size				= tap->ir_length;
 		scan->fields[nth_tap].tap		= tap;
 		scan->fields[nth_tap].num_bits	= scan_size;
 		scan->fields[nth_tap].in_value	= NULL; /* do not collect input for tap's in bypass */
