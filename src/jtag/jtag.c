@@ -531,6 +531,20 @@ void cmd_queue_free(void)
 	cmd_queue_pages = NULL;
 }
 
+/**
+ * Copy a scan_field_t for insertion into the queue.
+ *
+ * This allocates a new copy of out_value using cmd_queue_alloc.
+ */
+static void cmd_queue_scan_field_clone(scan_field_t * dst, const scan_field_t * src)
+{
+	dst->tap		= src->tap;
+	dst->num_bits	= src->num_bits;
+	dst->out_value	= buf_cpy(src->out_value, cmd_queue_alloc(CEIL(src->num_bits, 8)), src->num_bits);
+	dst->in_value	= src->in_value;
+}
+
+
 static void jtag_prelude1(void)
 {
 	if (jtag_trst == 1)
@@ -633,9 +647,6 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 		assert(nth_tap < num_taps);
 
 		size_t scan_size				= tap->ir_length;
-		scan->fields[nth_tap].tap		= tap;
-		scan->fields[nth_tap].num_bits	= scan_size;
-		scan->fields[nth_tap].in_value	= NULL; /* do not collect input for tap's in bypass */
 
 		/* search the list */
 		for (int j = 0; j < in_num_fields; j++)
@@ -643,10 +654,11 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 			if (tap == in_fields[j].tap)
 			{
 				found = 1;
-				scan->fields[nth_tap].in_value	= in_fields[j].in_value;
-				scan->fields[nth_tap].out_value	= buf_cpy(in_fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 
 				tap->bypass = 0;
+
+				cmd_queue_scan_field_clone(scan->fields + nth_tap, in_fields + j);
+
 				break;
 			}
 		}
@@ -654,8 +666,12 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 		if (!found)
 		{
 			/* if a tap isn't listed, set it to BYPASS */
-			scan->fields[nth_tap].out_value = buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
 			tap->bypass = 1;
+
+			scan->fields[nth_tap].tap		= tap;
+			scan->fields[nth_tap].num_bits	= scan_size;
+			scan->fields[nth_tap].out_value = buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+			scan->fields[nth_tap].in_value	= NULL; /* do not collect input for tap's in bypass */
 		}
 
 		/* update device information */
@@ -707,14 +723,7 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int in_num_fields, const scan_f
 	scan->end_state			= state;
 
 	for (int i = 0; i < in_num_fields; i++)
-	{
-		int num_bits = in_fields[i].num_bits;
-		int num_bytes = CEIL(in_fields[i].num_bits, 8);
-		scan->fields[i].tap = in_fields[i].tap;
-		scan->fields[i].num_bits = num_bits;
-		scan->fields[i].out_value = buf_cpy(in_fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
-		scan->fields[i].in_value = in_fields[i].in_value;
-	}
+		cmd_queue_scan_field_clone(out_fields + i, in_fields + i);
 
 	return ERROR_OK;
 }
@@ -847,17 +856,15 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
 	{
 		int found = 0;
-		scan->fields[field_count].tap = tap;
 
 		for (j = 0; j < in_num_fields; j++)
 		{
 			if (tap == in_fields[j].tap)
 			{
 				found = 1;
-				size_t scan_size = in_fields[j].num_bits;
-				scan->fields[field_count].num_bits	= scan_size;
-				scan->fields[field_count].out_value	= buf_cpy(in_fields[j].out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				scan->fields[field_count].in_value	= in_fields[j].in_value;
+				
+				cmd_queue_scan_field_clone(scan->fields + field_count, in_fields + j);
+
 				field_count++;
 			}
 		}
@@ -872,6 +879,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 			}
 #endif
 			/* program the scan field to 1 bit length, and ignore it's value */
+			scan->fields[field_count].tap			= tap;
 			scan->fields[field_count].num_bits		= 1;
 			scan->fields[field_count].out_value		= NULL;
 			scan->fields[field_count].in_value		= NULL;
@@ -1027,14 +1035,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int in_num_fields, const scan_f
 	scan->end_state			= state;
 
 	for (int i = 0; i < in_num_fields; i++)
-	{
-		int num_bits = in_fields[i].num_bits;
-		int num_bytes = CEIL(in_fields[i].num_bits, 8);
-		scan->fields[i].tap = in_fields[i].tap;
-		scan->fields[i].num_bits = num_bits;
-		scan->fields[i].out_value = buf_cpy(in_fields[i].out_value, cmd_queue_alloc(num_bytes), num_bits);
-		scan->fields[i].in_value = in_fields[i].in_value;
-	}
+		cmd_queue_scan_field_clone(out_fields + i, in_fields + i);
 
 	return ERROR_OK;
 }
