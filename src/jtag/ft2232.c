@@ -2642,8 +2642,6 @@ static int ft2232_quit(void)
 
 	status = FT_Close(ftdih);
 #elif BUILD_FT2232_LIBFTDI == 1
-	ftdi_disable_bitbang(&ftdic);
-
 	ftdi_usb_close(&ftdic);
 
 	ftdi_deinit(&ftdic);
