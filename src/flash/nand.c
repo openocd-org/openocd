@@ -1148,7 +1148,7 @@ static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd
 		}
 		else
 		{
-			command_print(cmd_ctx, "#%i: not probed");
+			command_print(cmd_ctx, "#%s: not probed", args[0]);
 		}
 	}
 
@@ -1251,7 +1251,7 @@ int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char
 	{
 		if ((retval = nand_build_bbt(p, first, last)) == ERROR_OK)
 		{
-			command_print(cmd_ctx, "checked NAND flash device for bad blocks, use \"nand info\" command to list blocks", p->device->name);
+			command_print(cmd_ctx, "checked NAND flash device for bad blocks, use \"nand info\" command to list blocks");
 		}
 		else if (retval == ERROR_NAND_OPERATION_FAILED)
 		{
@@ -1570,13 +1570,13 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 			fileio_close(&fileio);
 
 			duration_stop_measure(&duration, &duration_text);
-			command_print(cmd_ctx, "dumped %"PRIi64" byte in %s", fileio.size, duration_text);
+			command_print(cmd_ctx, "dumped %lld byte in %s", fileio.size, duration_text);
 			free(duration_text);
 			duration_text = NULL;
 		}
 		else
 		{
-			command_print(cmd_ctx, "#%i: not probed");
+			command_print(cmd_ctx, "#%s: not probed", args[0]);
 		}
 	}
 	else
@@ -1621,7 +1621,7 @@ static int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, cha
 		}
 		else
 		{
-			command_print(cmd_ctx, "#%i: not probed");
+			command_print(cmd_ctx, "#%s: not probed", args[0]);
 		}
 	}
 	else

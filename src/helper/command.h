@@ -83,10 +83,14 @@ extern command_context_t* copy_command_context(command_context_t* context);
 extern int command_context_mode(command_context_t *context, enum command_mode mode);
 extern command_context_t* command_init(void);
 extern int command_done(command_context_t *context);
-extern void command_print(command_context_t *context, char *format, ...);
-extern void command_print_sameline(command_context_t *context, char *format, ...);
+
+extern void command_print(command_context_t *context, char *format, ...)
+		__attribute__ ((format (printf, 2, 3)));
+extern void command_print_sameline(command_context_t *context, char *format, ...)
+		__attribute__ ((format (printf, 2, 3)));
 extern int command_run_line(command_context_t *context, char *line);
-extern int command_run_linef(command_context_t *context, char *format, ...);
+extern int command_run_linef(command_context_t *context, char *format, ...)
+		__attribute__ ((format (printf, 2, 3)));
 extern void command_output_text(command_context_t *context, const char *data);
 
 extern void process_jim_events(void);

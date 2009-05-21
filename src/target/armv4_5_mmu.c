@@ -299,7 +299,7 @@ int armv4_5_mmu_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 
 		if ((i % 8 == 7) || (i == count - 1))
 		{
-			command_print(cmd_ctx, output);
+			command_print(cmd_ctx, "%s", output);
 			output_len = 0;
 		}
 	}

@@ -342,7 +342,7 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			output_len += snprintf(output + output_len, 128 - output_len, "%8s: %8.8x ", ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).name,
 				buf_get_u32(ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).value, 0, 32));
 		}
-		command_print(cmd_ctx, output);
+		command_print(cmd_ctx, "%s", output);
 	}
 	command_print(cmd_ctx, "    cpsr: %8.8x spsr_fiq: %8.8x spsr_irq: %8.8x spsr_svc: %8.8x spsr_abt: %8.8x spsr_und: %8.8x",
 			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),

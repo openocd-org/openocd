@@ -1674,7 +1674,7 @@ static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
 
 		if ((new_value < 2) || (new_value > 100))
 		{
-			command_print(cmd_ctx, "valid settings are 2% to 100%");
+			command_print(cmd_ctx, "valid settings are 2%% to 100%%");
 		}
 		else
 		{

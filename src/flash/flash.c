@@ -432,7 +432,7 @@ static int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, c
 		int j;
 		if ((retval = p->driver->erase_check(p)) == ERROR_OK)
 		{
-			command_print(cmd_ctx, "successfully checked erase state", p->driver->name, p->base);
+			command_print(cmd_ctx, "successfully checked erase state");
 		}
 		else
 		{
@@ -567,7 +567,8 @@ static int handle_flash_erase_command(struct command_context_s *cmd_ctx, char *c
 				return retval;
 			}
 
-			command_print(cmd_ctx, "erased sectors %i through %i on flash bank %i in %s", first, last, strtoul(args[0], 0, 0), duration_text);
+			command_print(cmd_ctx, "erased sectors %i through %i on flash bank %li in %s",
+				first, last, strtoul(args[0], 0, 0), duration_text);
 			free(duration_text);
 		}
 	}
@@ -606,7 +607,9 @@ static int handle_flash_protect_command(struct command_context_s *cmd_ctx, char 
 		retval = flash_driver_protect(p, set, first, last);
 		if (retval == ERROR_OK)
 		{
-			command_print(cmd_ctx, "%s protection for sectors %i through %i on flash bank %i", (set) ? "set" : "cleared", first, last, strtoul(args[0], 0, 0));
+			command_print(cmd_ctx, "%s protection for sectors %i through %i on flash bank %li",
+				(set) ? "set" : "cleared", first,
+				last, strtoul(args[0], 0, 0));
 		}
 	}
 	else
@@ -873,7 +876,7 @@ static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, ch
 	}
 	if (retval==ERROR_OK)
 	{
-	command_print(cmd_ctx, "wrote  %"PRIi64" byte from file %s to flash bank %i at offset 0x%8.8x in %s (%f kb/s)",
+	command_print(cmd_ctx, "wrote  %lld byte from file %s to flash bank %li at offset 0x%8.8x in %s (%f kb/s)",
 		fileio.size, args[1], strtoul(args[0], NULL, 0), offset, duration_text,
 		(float)fileio.size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
 	}

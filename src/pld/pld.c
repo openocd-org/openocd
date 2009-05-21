@@ -178,7 +178,7 @@ int handle_pld_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	
 	if ((retval = p->driver->load(p, args[1])) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "failed loading file %s to pld device %i",
+		command_print(cmd_ctx, "failed loading file %s to pld device %lu",
 			args[1], strtoul(args[0], NULL, 0));
 		switch (retval)
 		{
@@ -188,9 +188,10 @@ int handle_pld_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	{
 		gettimeofday(&end, NULL);	
 		timeval_subtract(&duration, &end, &start);
-		
-		command_print(cmd_ctx, "loaded file %s to pld device %i in %is %ius", 
-			args[1], strtoul(args[0], NULL, 0), duration.tv_sec, duration.tv_usec);
+
+		command_print(cmd_ctx, "loaded file %s to pld device %lu in %lis %lius",
+			args[1], strtoul(args[0], NULL, 0),
+			duration.tv_sec, duration.tv_usec);
 	}
 	
 	return ERROR_OK;

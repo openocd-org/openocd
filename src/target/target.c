@@ -1910,7 +1910,7 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 			if ((i%line_modulo == line_modulo-1) || (i == count - 1))
 			{
-				command_print(cmd_ctx, output);
+				command_print(cmd_ctx, "%s", output);
 				output_len = 0;
 			}
 		}
@@ -2168,7 +2168,8 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (retval==ERROR_OK)
 	{
-		command_print(cmd_ctx, "dumped %"PRIi64" byte in %s", fileio.size, duration_text);
+		command_print(cmd_ctx, "dumped %lld byte in %s",
+				fileio.size, duration_text);
 		free(duration_text);
 	}
 
@@ -2369,7 +2370,8 @@ static int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		}
 		else
 		{
-			command_print(cmd_ctx, "breakpoint added at address 0x%8.8x", strtoul(args[0], NULL, 0));
+			command_print(cmd_ctx, "breakpoint added at address 0x%8.8lx",
+					strtoul(args[0], NULL, 0));
 		}
 	}
 	else

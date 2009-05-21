@@ -330,7 +330,7 @@ static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char
 	}
 
 	// print time
-	command_print(cmd_ctx, "%d ms used", timeval_ms() - time_ago);
+	command_print(cmd_ctx, "%lld ms used", timeval_ms() - time_ago);
 
 free_all:
 
