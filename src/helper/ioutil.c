@@ -492,32 +492,6 @@ zylinjtag_Jim_Command_ls(Jim_Interp *interp,
 	return JIM_OK;
 }
 
-int handle_peek_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc != 1)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	unsigned long addr = strtoul(args[0], NULL, 0);
-	volatile unsigned *address = (volatile unsigned *)addr;
-	unsigned value = *address;
-	command_print(cmd_ctx, "0x%p : 0x%x", address, (int)value);
-	return ERROR_OK;
-}
-
-int handle_poke_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc != 2)
-	{
-		return ERROR_INVALID_ARGUMENTS;
-	}
-	unsigned long addr = strtoul(args[0], NULL, 0);
-	volatile int *address = (volatile int *)addr;
-	int value=strtoul(args[1], NULL, 0);
-	*address=value;
-	return ERROR_OK;
-}
-
 static int
 zylinjtag_Jim_Command_peek(Jim_Interp *interp,
                                    int argc,
