@@ -609,8 +609,9 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 
 	int num_taps = jtag_NumEnabledTaps();
 
-	jtag_command_t * cmd	= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan	= cmd_queue_alloc(sizeof(scan_command_t));
+	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	scan_field_t * out_fields	= cmd_queue_alloc(num_taps  * sizeof(scan_field_t));
 
 	jtag_queue_command(cmd);
 
@@ -619,7 +620,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 
 	scan->ir_scan			= true;
 	scan->num_fields		= num_taps;	/* one field per device */
-	scan->fields			= cmd_queue_alloc(num_taps  * sizeof(scan_field_t));
+	scan->fields			= out_fields;
 	scan->end_state			= state;
 
 	nth_tap = -1;
@@ -696,8 +697,9 @@ void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields, ta
 int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
 
-	jtag_command_t * cmd	= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan	= cmd_queue_alloc(sizeof(scan_command_t));
+	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	scan_field_t * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(scan_field_t));
 	
 	jtag_queue_command(cmd);
 
@@ -706,7 +708,7 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int in_num_fields, const scan_f
 
 	scan->ir_scan			= true;
 	scan->num_fields		= in_num_fields;
-	scan->fields			= cmd_queue_alloc(in_num_fields * sizeof(scan_field_t));
+	scan->fields			= out_fields;
 	scan->end_state			= state;
 
 	for (int i = 0; i < in_num_fields; i++)
@@ -840,8 +842,9 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 		}
 	}
 
-	jtag_command_t * cmd	= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan	= cmd_queue_alloc(sizeof(scan_command_t));
+	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	scan_field_t * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
 	
 	jtag_queue_command(cmd);
 	
@@ -850,7 +853,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 
 	scan->ir_scan			= false;
 	scan->num_fields		= in_num_fields + bypass_devices;
-	scan->fields			= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
+	scan->fields			= out_fields;
 	scan->end_state			= state;
 
 	tap = NULL;
@@ -951,8 +954,9 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 		}
 	}
 
-	jtag_command_t * cmd	= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan	= cmd_queue_alloc(sizeof(scan_command_t));
+	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	scan_field_t * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
 
 	jtag_queue_command(cmd);
 
@@ -961,7 +965,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 
 	scan->ir_scan			= false;
 	scan->num_fields		= in_num_fields + bypass_devices;
-	scan->fields			= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
+	scan->fields			= out_fields;
 	scan->end_state			= end_state;
 
 	tap = NULL;
@@ -1038,8 +1042,9 @@ void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields, ta
  */
 int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
-	jtag_command_t * cmd	= cmd_queue_alloc(sizeof(jtag_command_t));
-	scan_command_t * scan	= cmd_queue_alloc(sizeof(scan_command_t));
+	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
+	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
+	scan_field_t * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(scan_field_t));
 
 	jtag_queue_command(cmd);
 
@@ -1048,7 +1053,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int in_num_fields, const scan_f
 
 	scan->ir_scan			= false;
 	scan->num_fields		= in_num_fields;
-	scan->fields			= cmd_queue_alloc(in_num_fields * sizeof(scan_field_t));
+	scan->fields			= out_fields;
 	scan->end_state			= state;
 
 	for (int i = 0; i < in_num_fields; i++)
