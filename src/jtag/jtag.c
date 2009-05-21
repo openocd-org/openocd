@@ -916,8 +916,6 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 		const u32 *value,
 		tap_state_t end_state)
 {
-	int field_count = 0;
-
 	/* count devices in bypass */
 
 	size_t bypass_devices = 0;
@@ -943,47 +941,52 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 	scan->fields			= out_fields;
 	scan->end_state			= end_state;
 
+
+	bool target_tap_match	= false;
+
+	scan_field_t * field = out_fields;	/* keep track where we insert data */
+
+	/* loop over all enabled TAPs */
+
 	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
 	{
-		scan->fields[field_count].tap = tap;
+		/* if TAP is not bypassed insert matching input fields */
 
-		if (tap == target_tap)
+		if (!tap->bypass)
 		{
-#ifdef _DEBUG_JTAG_IO_
-			/* if a device is listed, the BYPASS register must not be selected */
-			if (tap->bypass)
-			{
-				LOG_ERROR("BUG: scan data for a device in BYPASS");
-				exit(-1);
-			}
-#endif
+			assert(tap == target_tap); /* target_tap must match the one not bypassed TAP */
+
+			target_tap_match = true;
+
 			for (int j = 0; j < in_num_fields; j++)
 			{
 				u8 out_value[4];
 				size_t scan_size = num_bits[j];
 				buf_set_u32(out_value, 0, scan_size, value[j]);
-				scan->fields[field_count].num_bits		= scan_size;
-				scan->fields[field_count].out_value		= buf_cpy(out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-				scan->fields[field_count].in_value		= NULL;
-				field_count++;
+
+				field->tap			= tap;
+				field->num_bits		= scan_size;
+				field->out_value	= buf_cpy(out_value, cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+				field->in_value		= NULL;
+
+				field++;
 			}
-		} else
+		}
+
+		/* if a TAP is bypassed, generated a dummy bit*/
+		else
 		{
-#ifdef _DEBUG_JTAG_IO_
-			/* if a device isn't listed, the BYPASS register should be selected */
-			if (! tap->bypass)
-			{
-				LOG_ERROR("BUG: no scan data for a device not in BYPASS");
-				exit(-1);
-			}
-#endif
-			/* program the scan field to 1 bit length, and ignore it's value */
-			scan->fields[field_count].num_bits			= 1;
-			scan->fields[field_count].out_value			= NULL;
-			scan->fields[field_count].in_value			= NULL;
-			field_count++;
+
+			field->tap				= tap;
+			field->num_bits			= 1;
+			field->out_value		= NULL;
+			field->in_value			= NULL;
+
+			field++;
 		}
 	}
+
+	assert(target_tap_match);	/* target_tap should be enabled and not bypassed */
 }
 
 
