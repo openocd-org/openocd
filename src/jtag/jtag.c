@@ -641,14 +641,18 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 
 	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
 	{
-		int found = 0;
+		/* search the input field list for fields for the current TAP */
+
+		bool found = false;
 
 		for (int j = 0; j < in_num_fields; j++)
 		{
 			if (tap != in_fields[j].tap)
 				continue;
 
-			found = 1;
+			/* if TAP is listed in input fields, copy the value */
+
+			found = true;
 
 			tap->bypass = 0;
 
@@ -662,6 +666,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 		if (!found)
 		{
 			/* if a TAP isn't listed in input fields, set it to BYPASS */
+
 			tap->bypass = 1;
 
 			field->tap			= tap;
