@@ -561,9 +561,9 @@ extern int  jtag_register_commands(struct command_context_s* cmd_ctx);
  */
 extern void jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 /* same as jtag_add_ir_scan except no verify is performed */
-extern void jtag_add_ir_scan_noverify(int num_fields, scan_field_t *fields, tap_state_t state);
-extern int  interface_jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
-extern void jtag_add_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
+extern void jtag_add_ir_scan_noverify(int num_fields, const scan_field_t *fields, tap_state_t state);
+extern int  interface_jtag_add_ir_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
+extern void jtag_add_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
 
 /* set in_value to point to 32 bits of memory to scan into. This function
  * is a way to handle the case of synchronous and asynchronous
@@ -587,11 +587,11 @@ static __inline__ void jtag_alloc_in_value32(scan_field_t *field)
 
 /* This version of jtag_add_dr_scan() uses the check_value/mask fields */
 extern void jtag_add_dr_scan_check(int num_fields, scan_field_t* fields, tap_state_t endstate);
-extern int  interface_jtag_add_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
-extern void jtag_add_plain_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
-extern int  interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
-extern void jtag_add_plain_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
-extern int  interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
+extern int  interface_jtag_add_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
+extern void jtag_add_plain_ir_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
+extern int  interface_jtag_add_plain_ir_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
+extern void jtag_add_plain_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
+extern int  interface_jtag_add_plain_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
 
 
 /* Simplest/typical callback - do some conversion on the data clocked in.
@@ -705,8 +705,8 @@ extern int  interface_jtag_add_tlr(void);
  * a partial implementation of pathmove would have little practical
  * application.
  */
-extern void jtag_add_pathmove(int num_states, tap_state_t* path);
-extern int  interface_jtag_add_pathmove(int num_states, tap_state_t* path);
+extern void jtag_add_pathmove(int num_states, const tap_state_t* path);
+extern int  interface_jtag_add_pathmove(int num_states, const tap_state_t* path);
 
 /* go to TAP_IDLE, if we're not already there and cycle
  * precisely num_cycles in the TAP_IDLE after which move
@@ -824,10 +824,10 @@ struct invalidstruct
 /* execute jtag queue and check value and use mask if mask is != NULL. invokes
  * jtag_set_error() with any error. */
 extern void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask);
-extern enum scan_type jtag_scan_type(scan_command_t* cmd);
-extern int            jtag_scan_size(scan_command_t* cmd);
-extern int            jtag_read_buffer(u8* buffer, scan_command_t* cmd);
-extern int            jtag_build_buffer(scan_command_t* cmd, u8** buffer);
+extern enum scan_type jtag_scan_type(const scan_command_t* cmd);
+extern int            jtag_scan_size(const scan_command_t* cmd);
+extern int            jtag_read_buffer(u8* buffer, const scan_command_t* cmd);
+extern int            jtag_build_buffer(const scan_command_t* cmd, u8** buffer);
 
 extern void           jtag_sleep(u32 us);
 extern int            jtag_call_event_callbacks(enum jtag_event event);
