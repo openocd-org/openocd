@@ -517,7 +517,7 @@ dtc_run_download(
 
 
 	/* Wait for DTC to finish running command buffer */
-	for(i = 5;;) {
+	for(i = 10;;) {
 		usb_err = ep1_generic_commandl(
 			pHDev, 4,
 
