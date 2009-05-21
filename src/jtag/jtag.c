@@ -827,9 +827,6 @@ void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields, tap_stat
  */
 int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
-	int j;
-	int field_count = 0;
-
 	/* count devices in bypass */
 
 	size_t bypass_devices = 0;
@@ -854,53 +851,46 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 	scan->fields			= out_fields;
 	scan->end_state			= state;
 
+
+	scan_field_t * field = out_fields;	/* keep track where we insert data */
+
+	/* loop over all enabled TAPs */
+
 	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
 	{
-		int found = 0;
+		/* if TAP is not bypassed insert matching input fields */
 
-		for (j = 0; j < in_num_fields; j++)
+		if (!tap->bypass)
 		{
-			if (tap == in_fields[j].tap)
-			{
-				found = 1;
-				
-				cmd_queue_scan_field_clone(scan->fields + field_count, in_fields + j);
+			scan_field_t * start_field = field;	/* keep initial position for assert() */
 
-				field_count++;
-			}
-		}
-		if (!found)
-		{
-#ifdef _DEBUG_JTAG_IO_
-			/* if a device isn't listed, the BYPASS register should be selected */
-			if (! tap->bypass)
+			for (int j = 0; j < in_num_fields; j++)
 			{
-				LOG_ERROR("BUG: no scan data for a device not in BYPASS");
-				exit(-1);
+				if (tap != in_fields[j].tap)
+					continue;
+
+				cmd_queue_scan_field_clone(field, in_fields + j);
+
+				field++;
 			}
-#endif
-			/* program the scan field to 1 bit length, and ignore it's value */
-			scan->fields[field_count].tap			= tap;
-			scan->fields[field_count].num_bits		= 1;
-			scan->fields[field_count].out_value		= NULL;
-			scan->fields[field_count].in_value		= NULL;
-			field_count++;
+
+			assert(field > start_field);	/* must have at least one input field per not bypassed TAP */
 		}
+		
+		/* if a TAP is bypassed, generated a dummy bit*/
 		else
 		{
-#ifdef _DEBUG_JTAG_IO_
-			/* if a device is listed, the BYPASS register must not be selected */
-			if (tap->bypass)
-			{
-				LOG_ERROR("BUG: scan data for a device in BYPASS");
-				exit(-1);
-			}
-#endif
+			field->tap			= tap;
+			field->num_bits		= 1;
+			field->out_value	= NULL;
+			field->in_value		= NULL;
+
+			field++;
 		}
 	}
 
-	/* field_count represents the true number of fields setup*/
-	scan->num_fields = field_count;
+	assert(field == out_fields + scan->num_fields); /* no superfluous input fields permitted */
+
 	return ERROR_OK;
 }
 
