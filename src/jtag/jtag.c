@@ -643,23 +643,20 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 	{
 		int found = 0;
 
-		size_t scan_size				= tap->ir_length;
-
-		/* search the list */
 		for (int j = 0; j < in_num_fields; j++)
 		{
-			if (tap == in_fields[j].tap)
-			{
-				found = 1;
+			if (tap != in_fields[j].tap)
+				continue;
 
-				tap->bypass = 0;
-				
-				assert(in_fields[j].num_bits == tap->ir_length); /* input fields must have the same length as the TAP's IR */
+			found = 1;
 
-				cmd_queue_scan_field_clone(field, in_fields + j);
+			tap->bypass = 0;
 
-				break;
-			}
+			assert(in_fields[j].num_bits == tap->ir_length); /* input fields must have the same length as the TAP's IR */
+
+			cmd_queue_scan_field_clone(field, in_fields + j);
+
+			break;
 		}
 
 		if (!found)
@@ -668,13 +665,13 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 			tap->bypass = 1;
 
 			field->tap			= tap;
-			field->num_bits		= scan_size;
-			field->out_value	= buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+			field->num_bits		= tap->ir_length;
+			field->out_value	= buf_set_ones(cmd_queue_alloc(CEIL(tap->ir_length, 8)), tap->ir_length);
 			field->in_value		= NULL; /* do not collect input for tap's in bypass */
 		}
 
 		/* update device information */
-		buf_cpy(field->out_value, tap->cur_instr, scan_size);
+		buf_cpy(field->out_value, tap->cur_instr, tap->ir_length);
 
 		field++;
 	}
