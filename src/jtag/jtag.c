@@ -566,6 +566,15 @@ void jtag_add_ir_scan_noverify(int in_num_fields, scan_field_t *in_fields, tap_s
 }
 
 
+/**
+ * Generate an IR SCAN with a list of scan fields with one entry for each enabled TAP.
+ *
+ * If the input field list contains an instruction value for a TAP then that is used
+ * otherwise the TAP is set to bypass.
+ *
+ * TAPs for which no fields are passed are marked as bypassed for subsequent DR SCANs.
+ *
+ */
 void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	if (jtag_verify&&jtag_verify_capture_ir)
@@ -590,10 +599,7 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
 }
 
 /**
- * Generate a list of scan fields with one entry for each TAP.
- *
- * If the input field list contains an instruction value for a TAP then that is used
- * otherwise the TAP is set to bypass.
+ * see jtag_add_ir_scan()
  *
  */
 int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
@@ -665,6 +671,12 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, scan_field_t *in_f
 	return ERROR_OK;
 }
 
+/**
+ * Duplicate the scan fields passed into the function into an IR SCAN command
+ *
+ * This function assumes that the caller handles extra fields for bypassed TAPs
+ *
+ */
 void jtag_add_plain_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	int retval;
@@ -676,6 +688,11 @@ void jtag_add_plain_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_stat
 		jtag_error=retval;
 }
 
+
+/**
+ * see jtag_add_plain_ir_scan()
+ *
+ */
 int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 
@@ -705,16 +722,6 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int in_num_fields, scan_field_t
 	return ERROR_OK;
 }
 
-void jtag_add_dr_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
-{
-	int retval;
-
-	jtag_prelude(state);
-
-	retval=interface_jtag_add_dr_scan(in_num_fields, in_fields, cmd_queue_end_state);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
-}
 
 
 int jtag_check_value_inner(u8 *captured, u8 *in_check_value, u8 *in_check_mask, int num_bits);
@@ -785,6 +792,32 @@ void jtag_add_dr_scan_check(int in_num_fields, scan_field_t *in_fields, tap_stat
 	}
 }
 
+
+/**
+ * Generate a DR SCAN using the fields passed to the function
+ *
+ * For not bypassed TAPs the function checks in_fields and uses fields specified there.
+ * For bypassed TAPs the function generates a dummy 1bit field.
+ *
+ * The bypass status of TAPs is set by jtag_add_ir_scan().
+ *
+ */
+void jtag_add_dr_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
+{
+	int retval;
+
+	jtag_prelude(state);
+
+	retval=interface_jtag_add_dr_scan(in_num_fields, in_fields, cmd_queue_end_state);
+	if (retval!=ERROR_OK)
+		jtag_error=retval;
+}
+
+
+/**
+ * see jtag_add_dr_scan()
+ *
+ */
 int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	int j;
@@ -877,6 +910,22 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, scan_field_t *in_f
 	return ERROR_OK;
 }
 
+
+
+/**
+ * Generate a DR SCAN using the array of output values passed to the function
+ *
+ * This function assumes that the parameter target_tap specifies the one TAP
+ * that is not bypassed. All other TAPs must be bypassed and the function will
+ * generate a dummy 1bit field for them.
+ *
+ * For the target_tap a sequence of output-only fields will be generated where
+ * each field has the size num_bits and the field's values are taken from
+ * the array value.
+ *
+ * The bypass status of TAPs is set by jtag_add_ir_scan().
+ *
+ */
 void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 		int in_num_fields,
 		const int *num_bits,
@@ -964,6 +1013,13 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 	}
 }
 
+
+/**
+ * Duplicate the scan fields passed into the function into a DR SCAN command
+ *
+ * This function assumes that the caller handles extra fields for bypassed TAPs
+ *
+ */
 void jtag_add_plain_dr_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	int retval;
@@ -975,6 +1031,11 @@ void jtag_add_plain_dr_scan(int in_num_fields, scan_field_t *in_fields, tap_stat
 		jtag_error=retval;
 }
 
+
+/**
+ * see jtag_add_plain_dr_scan()
+ *
+ */
 int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	jtag_command_t * cmd	= cmd_queue_alloc(sizeof(jtag_command_t));
@@ -1002,6 +1063,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int in_num_fields, scan_field_t
 
 	return ERROR_OK;
 }
+
 
 void jtag_add_tlr(void)
 {
