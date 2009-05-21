@@ -501,7 +501,7 @@ int handle_peek_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	unsigned long addr = strtoul(args[0], NULL, 0);
 	volatile unsigned *address = (volatile unsigned *)addr;
 	unsigned value = *address;
-	command_print(cmd_ctx, "0x%x : 0x%x", (intptr_t)address, value);
+	command_print(cmd_ctx, "0x%p : 0x%x", address, (int)value);
 	return ERROR_OK;
 }
 
