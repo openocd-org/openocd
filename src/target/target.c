@@ -985,6 +985,10 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 		return ERROR_FAIL;
 	}
 
+	if (size == 0) {
+		return ERROR_OK;
+	}
+
 	if ((address + size - 1) < address)
 	{
 		/* GDB can request this when e.g. PC is 0xfffffffc*/
@@ -1058,6 +1062,10 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
+	}
+
+	if (size == 0) {
+		return ERROR_OK;
 	}
 
 	if ((address + size - 1) < address)
