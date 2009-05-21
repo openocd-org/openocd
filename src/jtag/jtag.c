@@ -604,7 +604,6 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
  */
 int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
-	jtag_tap_t *tap;
 	int nth_tap;
 
 	int num_taps = jtag_NumEnabledTaps();
@@ -624,15 +623,11 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 	scan->end_state			= state;
 
 	nth_tap = -1;
-	tap = NULL;
-	for(;;){
+
+	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	{
 		int found = 0;
 
-		/* do this here so it is not forgotten */
-		tap = jtag_NextEnabledTap(tap);
-		if( tap == NULL ){
-			break;
-		}
 		nth_tap++;
 
 		assert(nth_tap < num_taps);
@@ -824,22 +819,16 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 {
 	int j;
 	int nth_tap;
-	int bypass_devices = 0;
 	int field_count = 0;
 
-	jtag_tap_t *tap;
-
 	/* count devices in bypass */
-	tap = NULL;
-	bypass_devices = 0;
-	for(;;){
-		tap = jtag_NextEnabledTap(tap);
-		if( tap == NULL ){
-			break;
-		}
-		if( tap->bypass ){
+
+	size_t bypass_devices = 0;
+
+	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	{
+		if (tap->bypass)
 			bypass_devices++;
-		}
 	}
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
@@ -856,14 +845,12 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 	scan->fields			= out_fields;
 	scan->end_state			= state;
 
-	tap = NULL;
 	nth_tap = -1;
-	for(;;){
+
+	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	{
 		nth_tap++;
-		tap = jtag_NextEnabledTap(tap);
-		if( tap == NULL ){
-			break;
-		}
+
 		int found = 0;
 		scan->fields[field_count].tap = tap;
 
@@ -937,22 +924,17 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 {
 	int nth_tap;
 	int field_count = 0;
-	int bypass_devices = 0;
-
-	jtag_tap_t *tap;
 
 	/* count devices in bypass */
-	tap = NULL;
-	bypass_devices = 0;
-	for(;;){
-		tap = jtag_NextEnabledTap(tap);
-		if( tap == NULL ){
-			break;
-		}
-		if( tap->bypass ){
+
+	size_t bypass_devices = 0;
+
+	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	{
+		if (tap->bypass)
 			bypass_devices++;
-		}
 	}
+
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
@@ -968,13 +950,10 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 	scan->fields			= out_fields;
 	scan->end_state			= end_state;
 
-	tap = NULL;
 	nth_tap = -1;
-	for(;;){
-		tap = jtag_NextEnabledTap(tap);
-		if( tap == NULL ){
-			break;
-		}
+
+	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	{
 		nth_tap++;
 		scan->fields[field_count].tap = tap;
 
