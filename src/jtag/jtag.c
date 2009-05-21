@@ -818,7 +818,6 @@ void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields, tap_stat
 int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
 	int j;
-	int nth_tap;
 	int field_count = 0;
 
 	/* count devices in bypass */
@@ -845,12 +844,8 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 	scan->fields			= out_fields;
 	scan->end_state			= state;
 
-	nth_tap = -1;
-
 	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
 	{
-		nth_tap++;
-
 		int found = 0;
 		scan->fields[field_count].tap = tap;
 
@@ -922,7 +917,6 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 		const u32 *value,
 		tap_state_t end_state)
 {
-	int nth_tap;
 	int field_count = 0;
 
 	/* count devices in bypass */
@@ -950,11 +944,8 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
 	scan->fields			= out_fields;
 	scan->end_state			= end_state;
 
-	nth_tap = -1;
-
 	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
 	{
-		nth_tap++;
 		scan->fields[field_count].tap = tap;
 
 		if (tap == target_tap)
