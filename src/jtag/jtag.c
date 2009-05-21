@@ -618,9 +618,7 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
  */
 int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
-	int nth_tap;
-
-	int num_taps = jtag_NumEnabledTaps();
+	size_t num_taps = jtag_NumEnabledTaps();
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
@@ -636,15 +634,14 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 	scan->fields			= out_fields;
 	scan->end_state			= state;
 
-	nth_tap = -1;
+
+	scan_field_t * field = out_fields;	/* keep track where we insert data */
+
+	/* loop over all enabled TAPs */
 
 	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
 	{
 		int found = 0;
-
-		nth_tap++;
-
-		assert(nth_tap < num_taps);
 
 		size_t scan_size				= tap->ir_length;
 
@@ -656,8 +653,10 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 				found = 1;
 
 				tap->bypass = 0;
+				
+				assert(in_fields[j].num_bits == tap->ir_length); /* input fields must have the same length as the TAP's IR */
 
-				cmd_queue_scan_field_clone(scan->fields + nth_tap, in_fields + j);
+				cmd_queue_scan_field_clone(field, in_fields + j);
 
 				break;
 			}
@@ -665,20 +664,22 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
 
 		if (!found)
 		{
-			/* if a tap isn't listed, set it to BYPASS */
+			/* if a TAP isn't listed in input fields, set it to BYPASS */
 			tap->bypass = 1;
 
-			scan->fields[nth_tap].tap		= tap;
-			scan->fields[nth_tap].num_bits	= scan_size;
-			scan->fields[nth_tap].out_value = buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
-			scan->fields[nth_tap].in_value	= NULL; /* do not collect input for tap's in bypass */
+			field->tap			= tap;
+			field->num_bits		= scan_size;
+			field->out_value	= buf_set_ones(cmd_queue_alloc(CEIL(scan_size, 8)), scan_size);
+			field->in_value		= NULL; /* do not collect input for tap's in bypass */
 		}
 
 		/* update device information */
-		buf_cpy(scan->fields[nth_tap].out_value, tap->cur_instr, scan_size);
+		buf_cpy(field->out_value, tap->cur_instr, scan_size);
+
+		field++;
 	}
 
-	assert(nth_tap == (num_taps - 1));
+	assert(field == out_fields + num_taps); /* paranoia: jtag_NumEnabledTaps() and jtag_NextEnabledTap() not in sync */
 
 	return ERROR_OK;
 }
