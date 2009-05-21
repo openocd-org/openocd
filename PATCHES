@@ -1,34 +1,44 @@
 Please mail patches to:
 
-openocd-development@lists.berlios.de
+	openocd-development@lists.berlios.de
 
 Note that you can't send patches to that list unless
 you're a member, despite what the list info page says.
 
 The patch should be against svn trunk using an SVN
-diff. 
+diff. If you use git-svn, a git diff or patch is OK
+too; likewise a quilt patch, if you use quilt.
+
+It should be a "good patch": focus it on a single
+issue, and make it be easily reviewable. Don't make
+it so large that it's hard to review; split large
+patches into smaller ones. (That can also help
+track down bugs later on.) All patches should
+be "clean", which includes preserving the existing
+coding style and updating documentation as needed.j
 
 Attach the patch to the email as a .txt file and
 also write a short change log entry that maintainers
 can copy and paste into the commit message
 
-(However, don't expect the maintainers to actually
-include such entries in their commit messages if
-they're longer than a single $SUBJECT line.)
+Say if it's a bugfix (describe the bug) or a new
+feature. Don't expect patches to merge immediately
+for the next release. Be ready to rework patches
+in response to feedback.
 
 Add yourself to the GPL copyright for non-trivial changes.
 
 To create a patch from the command line:
  
-svn diff >mypatch.txt
+	svn diff >mypatch.txt
 
-http://svnbook.red-bean.com/en/1.0/re09.html
+See:
+
+	http://svnbook.red-bean.com/en/1.0/re09.html
 
 NB! remember to use "svn add" on new files first!
 
-http://svnbook.red-bean.com/en/1.0/re01.html
-
-
+	http://svnbook.red-bean.com/en/1.0/re01.html
 
 If you have a decent SVN GUI, then that should be
 able to create and apply patches as well...
