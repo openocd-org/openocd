@@ -204,9 +204,18 @@ static u8 cfi_get_u8(flash_bank_t *bank, int sector, u32 offset)
 static u16 cfi_query_u16(flash_bank_t *bank, int sector, u32 offset)
 {
 	target_t *target = bank->target;
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	u8 data[CFI_MAX_BUS_WIDTH * 2];
 
-	target->type->read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 2, data);
+	if(cfi_info->x16_as_x8)
+	{
+		u8 i;
+		for(i=0;i<2;i++)
+			target->type->read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
+				&data[i*bank->bus_width] );
+	}
+	else
+		target->type->read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 2, data);
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
 		return data[0] | data[bank->bus_width] << 8;
@@ -217,9 +226,18 @@ static u16 cfi_query_u16(flash_bank_t *bank, int sector, u32 offset)
 static u32 cfi_query_u32(flash_bank_t *bank, int sector, u32 offset)
 {
 	target_t *target = bank->target;
+	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	u8 data[CFI_MAX_BUS_WIDTH * 4];
 
-	target->type->read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 4, data);
+	if(cfi_info->x16_as_x8)
+	{
+		u8 i;
+		for(i=0;i<4;i++)
+			target->type->read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
+				&data[i*bank->bus_width] );
+	}
+	else
+		target->type->read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 4, data);
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
 		return data[0] | data[bank->bus_width] << 8 | data[bank->bus_width * 2] << 16 | data[bank->bus_width * 3] << 24;
