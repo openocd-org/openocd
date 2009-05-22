@@ -189,9 +189,9 @@ int handle_pld_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		gettimeofday(&end, NULL);	
 		timeval_subtract(&duration, &end, &start);
 
-		command_print(cmd_ctx, "loaded file %s to pld device %lu in %lis %lius",
+		command_print(cmd_ctx, "loaded file %s to pld device %lu in %jis %jius",
 			args[1], strtoul(args[0], NULL, 0),
-			duration.tv_sec, duration.tv_usec);
+			(intmax_t)duration.tv_sec, (intmax_t)duration.tv_usec);
 	}
 	
 	return ERROR_OK;

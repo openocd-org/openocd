@@ -1021,7 +1021,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	if (unsupported)
 	{
 		command_print(cmd_ctx,
-			 "unsupported xsvf command: 0x%02X in xsvf file at offset %ld, aborting",
+			 "unsupported xsvf command: 0x%02X in xsvf file at offset %jd, aborting",
 					  uc,  lseek(xsvf_fd, 0, SEEK_CUR)-1 );
 		return ERROR_FAIL;
 	}
