@@ -65,6 +65,7 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 * Tap Creation::                     Tap Creation
 * Target Configuration::             Target Configuration
 * Flash Configuration::              Flash Configuration
+* NAND Flash Commands::              NAND Flash Commands
 * General Commands::                 General Commands
 * JTAG Commands::                    JTAG Commands
 * Sample Scripts::                   Sample Target Scripts
@@ -80,7 +81,8 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 @comment case issue with ``Index.html'' and ``index.html''
 @comment Occurs when creating ``--html --no-split'' output
 @comment This fix is based on: http://sourceware.org/ml/binutils/2006-05/msg00215.html
-* OpenOCD Index::                    Main Index
+* OpenOCD Concept Index::            Concept Index
+* OpenOCD Command Index::            Command Index
 @end menu
 
 @node About
@@ -104,10 +106,10 @@ Cortex-M3 (Luminary Stellaris LM3 and ST STM32) based cores to be
 debugged via the GDB protocol.
 
 @b{Flash Programing:} Flash writing is supported for external CFI
-compatible flashes (Intel and AMD/Spansion command set) and several
+compatible NOR flashes (Intel and AMD/Spansion command set) and several
 internal flashes (LPC2000, AT91SAM7, STR7x, STR9x, LM3, and
-STM32x). Preliminary support for using the LPC3180's NAND flash
-controller is included.
+STM32x). Preliminary support for various NAND flash controllers
+(LPC3180, Orion, S3C24xx, more) controller is included.
 
 @node Developers
 @chapter Developers
@@ -812,7 +814,7 @@ target/FOO.cfg]} statements along with any board specific things.
 In summary the board files should contain (if present)
 
 @enumerate
-@item External flash configuration (i.e.: the flash on CS0)
+@item External flash configuration (i.e.: NOR flash on CS0, two NANDs on CS2)
 @item SDRAM configuration (size, speed, etc.
 @item Board specific IO configuration (i.e.: GPIO pins might disable a 2nd flash)
 @item Multiple TARGET source statements
@@ -1077,8 +1079,8 @@ etb config $_TARGETNAME $_CHIPNAME.etb
 This applies @b{ONLY TO MICROCONTROLLERS} that have flash built in.
 
 @b{Never ever} in the ``target configuration file'' define any type of
-flash that is external to the chip. (For example the BOOT flash on
-Chip Select 0). The BOOT flash information goes in a board file - not
+flash that is external to the chip. (For example a BOOT flash on
+Chip Select 0.) Such flash information goes in a board file - not
 the TARGET (chip) file.
 
 Examples:
@@ -1148,7 +1150,7 @@ configuration files and/or command line options.
 openocd.cfg file to force OpenOCD to ``initialize'' and make the
 targets ready. For example: If your openocd.cfg file needs to
 read/write memory on your target - the init command must occur before
-the memory read/write commands.
+the memory read/write commands.  This includes @command{nand probe}.
 
 @section TCP/IP Ports
 @itemize @bullet
@@ -1585,7 +1587,8 @@ commands use that dotted.name to manipulate or refer to the tap.
 Tap Uses:
 @itemize @bullet
 @item @b{Debug Target} A tap can be used by a GDB debug target
-@item @b{Flash Programing} Some chips program the flash via JTAG
+@item @b{Flash Programing} Some chips program the flash directly via JTAG,
+instead of indirectly by making a CPU do it.
 @item @b{Boundry Scan} Some chips support boundary scan.
 @end itemize
 
@@ -2003,7 +2006,10 @@ The following events are available:
 @item @b{reset-halt-pre}
 @* Currently not used
 @item @b{reset-init}
-@* Currently not used
+@* Used by @b{reset init} command for board-specific initialization.
+This is where you would configure PLLs and clocking, set up DRAM so
+you can download programs that don't fit in on-chip SRAM, set up pin
+multiplexing, and so on.
 @item @b{reset-start}
 @* Currently not used
 @item @b{reset-wait-pos}
@@ -2157,6 +2163,16 @@ still use this that need to be converted.
 @node Flash Configuration
 @chapter Flash programming
 @cindex Flash Configuration
+
+OpenOCD has different commands for NOR and NAND flash;
+the ``flash'' command works with NOR flash, while
+the ``nand'' command works with NAND flash.
+This partially reflects different hardware technologies:
+NOR flash usually supports direct CPU instruction and data bus access,
+while data from a NAND flash must be copied to memory before it can be
+used.  (SPI flash must also be copied to memory before use.)
+However, the documentation also uses ``flash'' as a generic term;
+for example, ``Put flash configuration in board-specific files''.
 
 @b{Note:} As of 28/nov/2008 OpenOCD does not know how to program a SPI
 flash that a micro may boot from. Perhaps you, the reader, would like to
@@ -2524,6 +2540,286 @@ These are flash specific commands when using the Stellaris driver.
 @cindex stellaris mass_erase
 @*mass erase flash memory. 
 @end itemize
+
+@node NAND Flash Commands
+@chapter NAND Flash Commands
+@cindex NAND
+
+Compared to NOR or SPI flash, NAND devices are inexpensive
+and high density.  Today's NAND chips, and multi-chip modules,
+commonly hold multiple GigaBytes of data.
+
+NAND chips consist of a number of ``erase blocks'' of a given
+size (such as 128 KBytes), each of which is divided into a
+number of pages (of perhaps 512 or 2048 bytes each).  Each
+page of a NAND flash has an ``out of band'' (OOB) area to hold
+Error Correcting Code (ECC) and other metadata, usually 16 bytes
+of OOB for every 512 bytes of page data.
+
+One key characteristic of NAND flash is that its error rate
+is higher than that of NOR flash.  In normal operation, that
+ECC is used to correct and detect errors.  However, NAND
+blocks can also wear out and become unusable; those blocks
+are then marked "bad".  NAND chips are even shipped from the
+manufacturer with a few bad blocks.  The highest density chips
+use a technology (MLC) that wears out more quickly, so ECC
+support is increasingly important as a way to detect blocks
+that have begun to fail, and help to preserve data integrity
+with techniques such as wear leveling.
+
+Software is used to manage the ECC.  Some controllers don't
+support ECC directly; in those cases, software ECC is used.
+Other controllers speed up the ECC calculations with hardware.
+Single-bit error correction hardware is routine.  Controllers
+geared for newer MLC chips may correct 4 or more errors for
+every 512 bytes of data.
+
+You will need to make sure that any data you write using
+OpenOCD includes the apppropriate kind of ECC.  For example,
+that may mean passing the @code{oob_softecc} flag when
+writing NAND data, or ensuring that the correct hardware
+ECC mode is used.
+
+The basic steps for using NAND devices include:
+@enumerate
+@item Declare via the command @command{nand device}
+@* Do this in a board-specific configuration file,
+passing parameters as needed by the controller.
+@item Configure each device using @command{nand probe}.
+@* Do this only after the associated target is set up,
+such as in its reset-init script or in procures defined
+to access that device.
+@item Operate on the flash via @command{nand subcommand}
+@* Often commands to manipulate the flash are typed by a human, or run
+via a script in some automated way.  Common task include writing a
+boot loader, operating system, or other data needed to initialize or
+de-brick a board.
+@end enumerate
+
+@section NAND Configuration Commands
+@cindex NAND configuration
+
+NAND chips must be declared in configuration scripts,
+plus some additional configuration that's done after
+OpenOCD has initialized.
+
+@deffn {Config Command} {nand device} controller target [configparams...]
+Declares a NAND device, which can be read and written to
+after it has been configured through @command{nand probe}.
+In OpenOCD, devices are single chips; this is unlike some
+operating systems, which may manage multiple chips as if
+they were a single (larger) device.
+In some cases, configuring a device will activate extra
+commands; see the controller-specific documentation.
+
+@b{NOTE:} This command is not available after OpenOCD
+initialization has completed.  Use it in board specific
+configuration files, not interactively.
+
+@itemize @bullet
+@item @var{controller} ... identifies a the controller driver
+associated with the NAND device being declared.
+@xref{NAND Driver List}.
+@item @var{target} ... names the target used when issuing
+commands to the NAND controller.
+@comment Actually, it's currently a controller-specific parameter...
+@item @var{configparams} ... controllers may support, or require,
+additional parameters.  See the controller-specific documentation
+for more information.
+@end itemize
+@end deffn
+
+@deffn Command {nand list}
+Prints a one-line summary of each device declared
+using @command{nand device}, numbered from zero.
+Note that un-probed devices show no details.
+@end deffn
+
+@deffn Command {nand probe} num
+Probes the specified device to determine key characteristics
+like its page and block sizes, and how many blocks it has.
+The @var{num} parameter is the value shown by @command{nand list}.
+You must (successfully) probe a device before you can use
+it with most other NAND commands.
+@end deffn
+
+@section Erasing, Reading, Writing to NAND Flash
+
+@deffn Command {nand dump} num filename offset length [oob_option]
+@cindex NAND reading
+Reads binary data from the NAND device and writes it to the file,
+starting at the specified offset.
+The @var{num} parameter is the value shown by @command{nand list}.
+
+Use a complete path name for @var{filename}, so you don't depend
+on the directory used to start the OpenOCD server.
+
+The @var{offset} and @var{length} must be exact multiples of the
+device's page size.  They describe a data region; the OOB data
+associated with each such page may also be accessed.
+
+@b{NOTE:} At the time this text was written, no error correction
+was done on the data that's read, unless raw access was disabled
+and the underlying NAND controller driver had a @code{read_page}
+method which handled that error correction.
+
+By default, only page data is saved to the specified file.
+Use an @var{oob_option} parameter to save OOB data:
+@itemize @bullet
+@item no oob_* parameter
+@*Output file holds only page data; OOB is discarded.
+@item @code{oob_raw}
+@*Output file interleaves page data and OOB data;
+the file will be longer than "length" by the size of the
+spare areas associated with each data page.
+Note that this kind of "raw" access is different from
+what's implied by @command{nand raw_access}, which just
+controls whether a hardware-aware access method is used.
+@item @code{oob_only}
+@*Output file has only raw OOB data, and will
+be smaller than "length" since it will contain only the
+spare areas associated with each data page.
+@end itemize
+@end deffn
+
+@deffn Command {nand erase} num ...
+@cindex NAND erasing
+@b{NOTE:} Syntax is in flux.
+@end deffn
+
+@deffn Command {nand write} num filename offset [option...]
+@cindex NAND writing
+Writes binary data from the file into the specified NAND device,
+starting at the specified offset.  Those pages should already
+have been erased; you can't change zero bits to one bits.
+The @var{num} parameter is the value shown by @command{nand list}.
+
+Use a complete path name for @var{filename}, so you don't depend
+on the directory used to start the OpenOCD server.
+
+The @var{offset} must be an exact multiple of the device's page size.
+All data in the file will be written, assuming it doesn't run
+past the end of the device.
+Only full pages are written, and any extra space in the last
+page will be filled with 0xff bytes.  (That includes OOB data,
+if that's being written.)
+
+@b{NOTE:} At the time this text was written, bad blocks are
+ignored.  That is, this routine will not skip bad blocks,
+but will instead try to write them.  This can cause problems.
+
+Provide at most one @var{option} parameter.  With some
+NAND drivers, the meanings of these parameters may change
+if @command{nand raw_access} was used to disable hardware ECC.
+@itemize @bullet
+@item no oob_* parameter
+@*File has only page data, which is written.
+If raw acccess is in use, the OOB area will not be written.
+Otherwise, if the underlying NAND controller driver has
+a @code{write_page} routine, that routine may write the OOB
+with hardware-computed ECC data.
+@item @code{oob_only}
+@*File has only raw OOB data, which is written to the OOB area.
+Each page's data area stays untouched.  @i{This can be a dangerous
+option}, since it can invalidate the ECC data.
+You may need to force raw access to use this mode.
+@item @code{oob_raw}
+@*File interleaves data and OOB data, both of which are written
+If raw access is enabled, the data is written first, then the
+un-altered OOB.
+Otherwise, if the underlying NAND controller driver has
+a @code{write_page} routine, that routine may modify the OOB
+before it's written, to include hardware-computed ECC data.
+@item @code{oob_softecc}
+@*File has only page data, which is written.
+The OOB area is filled with 0xff, except for a standard 1-bit
+software ECC code stored in conventional locations.
+You might need to force raw access to use this mode, to prevent
+the underlying driver from applying hardware ECC.
+@item @code{oob_softecc_kw}
+@*File has only page data, which is written.
+The OOB area is filled with 0xff, except for a 4-bit software ECC
+specific to the boot ROM in Marvell Kirkwood SoCs.
+You might need to force raw access to use this mode, to prevent
+the underlying driver from applying hardware ECC.
+@end itemize
+@end deffn
+
+@section Other NAND commands
+@cindex NAND other commands
+
+@deffn Command {nand check_bad} num ...
+@b{NOTE:} Syntax is in flux.
+@end deffn
+
+@deffn Command {nand info} num
+The @var{num} parameter is the value shown by @command{nand list}.
+This prints the one-line summary from "nand list", plus for
+devices which have been probed this also prints any known
+status for each block.
+@end deffn
+
+@deffn Command {nand raw_access} num <enable|disable>
+Sets or clears an flag affecting how page I/O is done.
+The @var{num} parameter is the value shown by @command{nand list}.
+
+This flag is cleared (disabled) by default, but changing that
+value won't affect all NAND devices.  The key factor is whether
+the underlying driver provides @code{read_page} or @code{write_page}
+methods.  If it doesn't provide those methods, the setting of
+this flag is irrelevant; all access is effectively ``raw''.
+
+When those methods exist, they are normally used when reading
+data (@command{nand dump} or reading bad block markers) or
+writing it (@command{nand write}).  However, enabling
+raw access (setting the flag) prevents use of those methods,
+bypassing hardware ECC logic.
+@i{This can be a dangerous option}, since writing blocks
+with the wrong ECC data can cause them to be marked as bad.
+@end deffn
+
+@section NAND Drivers; Driver-specific Options and Commands
+@anchor{NAND Driver List}
+As noted above, the @command{nand device} command allows
+driver-specific options and behaviors.
+Some controllers also activate controller-specific commands.
+
+@deffn {NAND Driver} lpc3180
+These controllers require an extra @command{nand device}
+parameter:  the clock rate used by the controller.
+@deffn Command {nand lpc3180 select} num [mlc|slc]
+Configures use of the MLC or SLC controller mode.
+MLC implies use of hardware ECC.
+The @var{num} parameter is the value shown by @command{nand list}.
+@end deffn
+
+At this writing, this driver includes @code{write_page}
+and @code{read_page} methods.  Using @command{nand raw_access}
+to disable those methods will prevent use of hardware ECC
+in the MLC controller mode, but won't change SLC behavior.
+@end deffn
+@comment current lpc3180 code won't issue 5-byte address cycles
+
+@deffn {NAND Driver} orion
+These controllers require an extra @command{nand device}
+parameter:  the address of the controller.
+@example
+nand device orion 0xd8000000
+@end example
+These controllers don't define any specialized commands.
+At this writing, their drivers don't include @code{write_page}
+or @code{read_page} methods, so @command{nand raw_access} won't
+change any behavior.
+@end deffn
+
+@deffn {NAND Driver} {s3c2410, s3c2412, s3c2440, s3c2443}
+These S3C24xx family controllers don't have any special
+@command{nand device} options, and don't define any
+specialized commands.
+At this writing, their drivers don't include @code{write_page}
+or @code{read_page} methods, so @command{nand raw_access} won't
+change any behavior.
+@end deffn
 
 @node General Commands
 @chapter General Commands
@@ -3530,6 +3826,11 @@ references a jtag newtap and a flash bank references a target).
 
 You can use the ``scan_chain'' command to verify and display the tap order.
 
+Also, some commands can't execute until after @command{init} has been
+processed.  Such commands include @command{nand probe} and everything
+else that needs to write to controller registers, perhaps for setting
+up DRAM and loading it with code.
+
 @item @b{JTAG Tap Order} JTAG tap order - command order
 
 Many newer devices have multiple JTAG taps. For example: ST
@@ -3956,13 +4257,17 @@ at91sam9260.cfg  nslu2.cfg     sam7x256.cfg    wi-9c.cfg
 
 @include fdl.texi
 
-@node OpenOCD Index
+@node OpenOCD Concept Index
 @comment DO NOT use the plain word ``Index'', reason: CYGWIN filename
 @comment case issue with ``Index.html'' and ``index.html''
 @comment Occurs when creating ``--html --no-split'' output
 @comment This fix is based on: http://sourceware.org/ml/binutils/2006-05/msg00215.html
-@unnumbered OpenOCD Index
+@unnumbered OpenOCD Concept Index
 
 @printindex cp
+
+@node OpenOCD Command Index
+@unnumbered OpenOCD Command Index
+@printindex fn
 
 @bye
