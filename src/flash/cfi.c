@@ -2129,11 +2129,11 @@ static int cfi_probe(struct flash_bank_s *bank)
 	if (bank->chip_width == 1)
 	{
 		u8 manufacturer, device_id;
-		if((retval = target_read_u8(target, bank->base + 0x0, &manufacturer)) != ERROR_OK)
+		if((retval = target_read_u8(target, flash_address(bank, 0, 0x00), &manufacturer)) != ERROR_OK)
 		{
 			return retval;
 		}
-		if((retval = target_read_u8(target, bank->base + 0x1, &device_id)) != ERROR_OK)
+		if((retval = target_read_u8(target, flash_address(bank, 0, 0x01), &device_id)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -2142,11 +2142,11 @@ static int cfi_probe(struct flash_bank_s *bank)
 	}
 	else if (bank->chip_width == 2)
 	{
-		if((retval = target_read_u16(target, bank->base + 0x0, &cfi_info->manufacturer)) != ERROR_OK)
+		if((retval = target_read_u16(target, flash_address(bank, 0, 0x00), &cfi_info->manufacturer)) != ERROR_OK)
 		{
 			return retval;
 		}
-		if((retval = target_read_u16(target, bank->base + 0x2, &cfi_info->device_id)) != ERROR_OK)
+		if((retval = target_read_u16(target, flash_address(bank, 0, 0x02), &cfi_info->device_id)) != ERROR_OK)
 		{
 			return retval;
 		}
