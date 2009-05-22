@@ -35,7 +35,6 @@ static int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd
 static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-static int handle_nand_copy_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -311,12 +310,11 @@ int nand_init(struct command_context_s *cmd_ctx)
 						 "check NAND flash device <num> for bad blocks [<first> <last>]");
 		register_command(cmd_ctx, nand_cmd, "erase", handle_nand_erase_command, COMMAND_EXEC,
 						 "erase blocks on NAND flash device <num> <first> <last>");
-		register_command(cmd_ctx, nand_cmd, "copy", handle_nand_copy_command, COMMAND_EXEC,
-						 "copy from NAND flash device <num> <offset> <length> <ram-address>");
 		register_command(cmd_ctx, nand_cmd, "dump", handle_nand_dump_command, COMMAND_EXEC,
-						 "dump from NAND flash device <num> <filename> <offset> <size> [options]");
+						 "dump from NAND flash device <num> <filename> "
+						 "<offset> <size> [oob_raw|oob_only]");
 		register_command(cmd_ctx, nand_cmd, "write", handle_nand_write_command, COMMAND_EXEC,
-						 "write to NAND flash device <num> <filename> <offset> [oob_raw|oob_only|oob_softecc]");
+						 "write to NAND flash device <num> <filename> <offset> [oob_raw|oob_only|oob_softecc|oob_softecc_kw]");
 		register_command(cmd_ctx, nand_cmd, "raw_access", handle_nand_raw_access_command, COMMAND_EXEC,
 						 "raw access to NAND flash device <num> ['enable'|'disable']");
 	}
@@ -1261,29 +1259,6 @@ int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char
 		{
 			command_print(cmd_ctx, "unknown error when checking for bad blocks on NAND flash device");
 		}
-	}
-	else
-	{
-		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds", args[0]);
-	}
-
-	return ERROR_OK;
-}
-
-static int handle_nand_copy_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	nand_device_t *p;
-
-	if (argc != 4)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	}
-
-	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
-	if (p)
-	{
-
 	}
 	else
 	{
