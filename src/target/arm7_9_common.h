@@ -32,52 +32,55 @@
 #include "breakpoints.h"
 #include "etm.h"
 
-#define	ARM7_9_COMMON_MAGIC 0x0a790a79
+#define	ARM7_9_COMMON_MAGIC 0x0a790a79 /**< */
 
+/**
+ * Structure for items that are common between both ARM7 and ARM9 targets.
+ */
 typedef struct arm7_9_common_s
 {
 	u32 common_magic;
 
-	arm_jtag_t jtag_info;
-	reg_cache_t *eice_cache;
+	arm_jtag_t jtag_info; /**< JTAG information for target */
+	reg_cache_t *eice_cache; /**< Embedded ICE register cache */
 
-	u32 arm_bkpt;
-	u16 thumb_bkpt;
-	int sw_breakpoints_added;
-	int breakpoint_count;
-	int wp_available;
-	int wp_available_max;
-	int wp0_used;
-	int wp1_used;
-	int wp1_used_default;
+	u32 arm_bkpt; /**< ARM breakpoint instruction */
+	u16 thumb_bkpt; /**< Thumb breakpoint instruction */
+	int sw_breakpoints_added; /**< Specifies which watchpoint software breakpoints are setup on */
+	int breakpoint_count; /**< Current number of set breakpoints */
+	int wp_available; /**< Current number of available watchpoint units */
+	int wp_available_max; /**< Maximum number of available watchpoint units */
+	int wp0_used; /**< Specifies if and how watchpoint unit 0 is used */
+	int wp1_used; /**< Specifies if and how watchpoint unit 1 is used */
+	int wp1_used_default; /**< Specifies if and how watchpoint unit 1 is used by default */
 	int force_hw_bkpts;
-	int dbgreq_adjust_pc;
-	int use_dbgrq;
-	int need_bypass_before_restart;
+	int dbgreq_adjust_pc; /**< Amount of PC adjustment caused by a DBGREQ */
+	int use_dbgrq; /**< Specifies if DBGRQ should be used to halt the target */
+	int need_bypass_before_restart; /**< Specifies if there should be a bypass before a JTAG restart */
 
 	etm_context_t *etm_ctx;
 
 	int has_single_step;
 	int has_monitor_mode;
-	int has_vector_catch;
+	int has_vector_catch; /**< Specifies if the target has a reset vector catch */
 
-	int debug_entry_from_reset;
+	int debug_entry_from_reset; /**< Specifies if debug entry was from a reset */
 
 	struct working_area_s *dcc_working_area;
 
 	int fast_memory_access;
 	int dcc_downloads;
 
-	int (*examine_debug_reason)(target_t *target);
+	int (*examine_debug_reason)(target_t *target); /**< Function for determining why debug state was entered */
 
-	void (*change_to_arm)(target_t *target, u32 *r0, u32 *pc);
+	void (*change_to_arm)(target_t *target, u32 *r0, u32 *pc); /**< Function for changing from Thumb to ARM mode */
 
-	void (*read_core_regs)(target_t *target, u32 mask, u32 *core_regs[16]);
+	void (*read_core_regs)(target_t *target, u32 mask, u32 *core_regs[16]); /**< Function for reading the core registers */
 	void (*read_core_regs_target_buffer)(target_t *target, u32 mask, void *buffer, int size);
-	void (*read_xpsr)(target_t *target, u32 *xpsr, int spsr);
+	void (*read_xpsr)(target_t *target, u32 *xpsr, int spsr); /**< Function for reading CPSR or SPSR */
 
-	void (*write_xpsr)(target_t *target, u32 xpsr, int spsr);
-	void (*write_xpsr_im8)(target_t *target, u8 xpsr_im, int rot, int spsr);
+	void (*write_xpsr)(target_t *target, u32 xpsr, int spsr); /**< Function for writing to CPSR or SPSR */
+	void (*write_xpsr_im8)(target_t *target, u8 xpsr_im, int rot, int spsr); /**< Function for writing an immediate value to CPSR or SPSR */
 	void (*write_core_regs)(target_t *target, u32 mask, u32 core_regs[16]);
 
 	void (*load_word_regs)(target_t *target, u32 mask);
@@ -88,20 +91,20 @@ typedef struct arm7_9_common_s
 	void (*store_hword_reg)(target_t *target, int num);
 	void (*store_byte_reg)(target_t *target, int num);
 
-	void (*write_pc)(target_t *target, u32 pc);
+	void (*write_pc)(target_t *target, u32 pc); /**< Function for writing to the program counter */
 	void (*branch_resume)(target_t *target);
 	void (*branch_resume_thumb)(target_t *target);
 
 	void (*enable_single_step)(target_t *target, u32 next_pc);
 	void (*disable_single_step)(target_t *target);
 
-	void (*set_special_dbgrq)(target_t *target);
+	void (*set_special_dbgrq)(target_t *target); /**< Function for setting DBGRQ if the normal way won't work */
 
-	void (*pre_debug_entry)(target_t *target);
-	void (*post_debug_entry)(target_t *target);
+	void (*pre_debug_entry)(target_t *target); /**< Callback function called before entering debug mode */
+	void (*post_debug_entry)(target_t *target); /**< Callback function called after entering debug mode */
 
-	void (*pre_restore_context)(target_t *target);
-	void (*post_restore_context)(target_t *target);
+	void (*pre_restore_context)(target_t *target); /**< Callback function called before restoring the processor context */
+	void (*post_restore_context)(target_t *target); /**< Callback function called after restoring the processor context */
 
 	armv4_5_common_t armv4_5_common;
 	void *arch_info;

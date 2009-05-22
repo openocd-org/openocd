@@ -773,6 +773,14 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 	return ERROR_OK;
 }
 
+/**
+ * Get some data from the ARM7/9 target.
+ *
+ * @param target Pointer to the ARM7/9 target to read data from
+ * @param size The number of 32bit words to be read
+ * @param buffer Pointer to the buffer that will hold the data
+ * @return The result of receiving data from the Embedded ICE unit
+ */
 int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -786,6 +794,7 @@ int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer)
 
 	retval = embeddedice_receive(jtag_info, data, size);
 
+	/* return the 32-bit ints in the 8-bit array */
 	for (i = 0; i < size; i++)
 	{
 		h_u32_to_le(buffer + (i * 4), data[i]);
@@ -796,6 +805,15 @@ int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer)
 	return retval;
 }
 
+/**
+ * Handles requests to an ARM7/9 target.  If debug messaging is enabled, the
+ * target is running and the DCC control register has the W bit high, this will
+ * execute the request on the target.
+ *
+ * @param priv Void pointer expected to be a target_t pointer
+ * @return ERROR_OK unless there are issues with the JTAG queue or when reading
+ *                  from the Embedded ICE unit
+ */
 int arm7_9_handle_target_request(void *priv)
 {
 	int retval = ERROR_OK;
@@ -838,6 +856,26 @@ int arm7_9_handle_target_request(void *priv)
 	return ERROR_OK;
 }
 
+/**
+ * Polls an ARM7/9 target for its current status.  If DBGACK is set, the target
+ * is manipulated to the right halted state based on its current state.  This is
+ * what happens:
+ *
+ * <table>
+ * 		<tr><th>State</th><th>Action</th></tr>
+ * 		<tr><td>TARGET_RUNNING | TARGET_RESET</td><td>Enters debug mode.  If TARGET_RESET, pc may be checked</td></tr>
+ * 		<tr><td>TARGET_UNKNOWN</td><td>Warning is logged</td></tr>
+ * 		<tr><td>TARGET_DEBUG_RUNNING</td><td>Enters debug mode</td></tr>
+ * 		<tr><td>TARGET_HALTED</td><td>Nothing</td></tr>
+ * </table>
+ *
+ * If the target does not end up in the halted state, a warning is produced.  If
+ * DBGACK is cleared, then the target is expected to either be running or
+ * running in debug.
+ *
+ * @param target Pointer to the ARM7/9 target to poll
+ * @return ERROR_OK or an error status if a command fails
+ */
 int arm7_9_poll(target_t *target)
 {
 	int retval;
@@ -907,7 +945,7 @@ int arm7_9_poll(target_t *target)
 		}
 		if (target->state != TARGET_HALTED)
 		{
-			LOG_WARNING("DBGACK set, but the target did not end up in the halted stated %d", target->state);
+			LOG_WARNING("DBGACK set, but the target did not end up in the halted state %d", target->state);
 		}
 	}
 	else
@@ -919,14 +957,17 @@ int arm7_9_poll(target_t *target)
 	return ERROR_OK;
 }
 
-/*
-  Some -S targets (ARM966E-S in the STR912 isn't affected, ARM926EJ-S
-  in the LPC3180 and AT91SAM9260 is affected) completely stop the JTAG clock
-  while the core is held in reset(SRST). It isn't possible to program the halt
-  condition once reset was asserted, hence a hook that allows the target to set
-  up its reset-halt condition prior to asserting reset.
-*/
-
+/**
+ * Asserts the reset (SRST) on an ARM7/9 target.  Some -S targets (ARM966E-S in
+ * the STR912 isn't affected, ARM926EJ-S in the LPC3180 and AT91SAM9260 is
+ * affected) completely stop the JTAG clock while the core is held in reset
+ * (SRST).  It isn't possible to program the halt condition once reset is
+ * asserted, hence a hook that allows the target to set up its reset-halt
+ * condition is setup prior to asserting reset.
+ *
+ * @param target Pointer to an ARM7/9 target to assert reset on
+ * @return ERROR_FAIL if the JTAG device does not have SRST, otherwise ERROR_OK
+ */
 int arm7_9_assert_reset(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -965,7 +1006,7 @@ int arm7_9_assert_reset(target_t *target)
 		}
 	}
 
-	/* here we should issue a srst only, but we may have to assert trst as well */
+	/* here we should issue an SRST only, but we may have to assert TRST as well */
 	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 	{
 		jtag_add_reset(1, 1);
@@ -988,6 +1029,15 @@ int arm7_9_assert_reset(target_t *target)
 	return ERROR_OK;
 }
 
+/**
+ * Deassert the reset (SRST) signal on an ARM7/9 target.  If SRST pulls TRST
+ * and the target is being reset into a halt, a warning will be triggered
+ * because it is not possible to reset into a halted mode in this case.  The
+ * target is halted using the target's functions.
+ *
+ * @param target Pointer to the target to have the reset deasserted
+ * @return ERROR_OK or an error from polling or halting the target
+ */
 int arm7_9_deassert_reset(target_t *target)
 {
 	int retval=ERROR_OK;
@@ -1018,6 +1068,15 @@ int arm7_9_deassert_reset(target_t *target)
 	return retval;
 }
 
+/**
+ * Clears the halt condition for an ARM7/9 target.  If it isn't coming out of
+ * reset and if DBGRQ is used, it is progammed to be deasserted.  If the reset
+ * vector catch was used, it is restored.  Otherwise, the control value is
+ * restored and the watchpoint unit is restored if it was in use.
+ *
+ * @param target Pointer to the ARM7/9 target to have halt cleared
+ * @return Always ERROR_OK
+ */
 int arm7_9_clear_halt(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -1066,6 +1125,16 @@ int arm7_9_clear_halt(target_t *target)
 	return ERROR_OK;
 }
 
+/**
+ * Issue a software reset and halt to an ARM7/9 target.  The target is halted
+ * and then there is a wait until the processor shows the halt.  This wait can
+ * timeout and results in an error being returned.  The software reset involves
+ * clearing the halt, updating the debug control register, changing to ARM mode,
+ * reset of the program counter, and reset of all of the registers.
+ *
+ * @param target Pointer to the ARM7/9 target to be reset and halted by software
+ * @return Error status if any of the commands fail, otherwise ERROR_OK
+ */
 int arm7_9_soft_reset_halt(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -1163,6 +1232,15 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
+/**
+ * Halt an ARM7/9 target.  This is accomplished by either asserting the DBGRQ
+ * line or by programming a watchpoint to trigger on any address.  It is
+ * considered a bug to call this function while the target is in the
+ * TARGET_RESET state.
+ *
+ * @param target Pointer to the ARM7/9 target to be halted
+ * @return Always ERROR_OK
+ */
 int arm7_9_halt(target_t *target)
 {
 	if (target->state==TARGET_RESET)
@@ -1215,6 +1293,17 @@ int arm7_9_halt(target_t *target)
 	return ERROR_OK;
 }
 
+/**
+ * Handle an ARM7/9 target's entry into debug mode.  The halt is cleared on the
+ * ARM.  The JTAG queue is then executed and the reason for debug entry is
+ * examined.  Once done, the target is verified to be halted and the processor
+ * is forced into ARM mode.  The core registers are saved for the current core
+ * mode and the program counter (register 15) is updated as needed.  The core
+ * registers and CPSR and SPSR are saved for restoration later.
+ *
+ * @param target Pointer to target that is entering debug mode
+ * @return Error code if anything fails, otherwise ERROR_OK
+ */
 int arm7_9_debug_entry(target_t *target)
 {
 	int i;
@@ -1376,6 +1465,15 @@ int arm7_9_debug_entry(target_t *target)
 	return ERROR_OK;
 }
 
+/**
+ * Validate the full context for an ARM7/9 target in all processor modes.  If
+ * there are any invalid registers for the target, they will all be read.  This
+ * includes the PSR.
+ *
+ * @param target Pointer to the ARM7/9 target to capture the full context from
+ * @return Error if the target is not halted, has an invalid core mode, or if
+ *         the JTAG queue fails to execute
+ */
 int arm7_9_full_context(target_t *target)
 {
 	int i;
@@ -1457,6 +1555,18 @@ int arm7_9_full_context(target_t *target)
 	return ERROR_OK;
 }
 
+/**
+ * Restore the processor context on an ARM7/9 target.  The full processor
+ * context is analyzed to see if any of the registers are dirty on this end, but
+ * have a valid new value.  If this is the case, the processor is changed to the
+ * appropriate mode and the new register values are written out to the
+ * processor.  If there happens to be a dirty register with an invalid value, an
+ * error will be logged.
+ *
+ * @param target Pointer to the ARM7/9 target to have its context restored
+ * @return Error status if the target is not halted or the core mode in the
+ *         armv4_5 struct is invalid.
+ */
 int arm7_9_restore_context(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -1599,6 +1709,14 @@ int arm7_9_restore_context(target_t *target)
 	return ERROR_OK;
 }
 
+/**
+ * Restart the core of an ARM7/9 target.  A RESTART command is sent to the
+ * instruction register and the JTAG state is set to TAP_IDLE causing a core
+ * restart.
+ *
+ * @param target Pointer to the ARM7/9 target to be restarted
+ * @return Result of executing the JTAG queue
+ */
 int arm7_9_restart_core(struct target_s *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -1617,6 +1735,12 @@ int arm7_9_restart_core(struct target_s *target)
 	return jtag_execute_queue();
 }
 
+/**
+ * Enable the watchpoints on an ARM7/9 target.  The target's watchpoints are
+ * iterated through and are set on the target if they aren't already set.
+ *
+ * @param target Pointer to the ARM7/9 target to enable watchpoints on
+ */
 void arm7_9_enable_watchpoints(struct target_s *target)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
@@ -1629,6 +1753,12 @@ void arm7_9_enable_watchpoints(struct target_s *target)
 	}
 }
 
+/**
+ * Enable the breakpoints on an ARM7/9 target.  The target's breakpoints are
+ * iterated through and are set on the target.
+ *
+ * @param target Pointer to the ARM7/9 target to enable breakpoints on
+ */
 void arm7_9_enable_breakpoints(struct target_s *target)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
