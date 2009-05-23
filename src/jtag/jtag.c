@@ -1253,6 +1253,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		jtag_error=retval;
 		return;
 	}
+	jtag_execute_queue();
 
 	if (jtag_srst)
 	{
@@ -1280,7 +1281,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		 * and inform possible listeners about this
 		 */
 		LOG_DEBUG("TRST line asserted");
-		cmd_queue_cur_state = TAP_RESET;
+		tap_set_state(TAP_RESET);
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 	}
 	else
