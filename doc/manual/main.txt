@@ -1,14 +1,31 @@
 /** @mainpage OpenOCD Reference Manual
 
-@ref oocd explains how the code has been organized into layers
-of APIs and gives an overview of how they fit together.  These pages
-attempt to give developers a high-level perspective of the various
-code modules provided by OpenOCD.
- 
-@ref primer provide introductory materials for new developers.
+Welcome to the OpenOCD Reference Manual -- the developer's resource for
+learning about the internal architecture of the OpenOCD project.
 
-The List of @ref thelist enumerates opportunities for improving or
-extending the OpenOCD platform.
+In addition, this document contains the tactical and strategic plans
+and processes that have been devleoped by and for the community.
+
+Developers that want to contribute to OpenOCD should read the following
+sections before starting work:
+
+- The List of @subpage thelist enumerates opportunities for improving or
+extending the OpenOCD platform.  If your ideas are on The List, you might
+check the mailing list archives to find the status of your feature (or bug).
+- The @subpage styleguide provides rules that developers should
+  follow when writing new code for OpenOCD.
+- The @subpage patchguide provides policies that developers should
+  follow when submitting patches to the project.
+- The @subpage bugs page contains the content of the BUGS file, which
+  provides instructions for submitting bug reports to the maintainers.
+
+@ref primer provide introductory materials for new developers on various
+specific topics.
+
+Finally, the @ref oocd pages explain how the code has been organized
+into layers of APIs, providing an overview of how they fit together.
+These pages attempt to give developers a high-level perspective of the
+various code modules provided by OpenOCD.
 
  */
 
