@@ -1629,10 +1629,6 @@ static int ft2232_execute_reset(jtag_command_t *cmd)
 		first_unsent = cmd;
 	}
 
-	if ( (cmd->cmd.reset->trst == 1) || ( cmd->cmd.reset->srst && (jtag_reset_config & RESET_SRST_PULLS_TRST) ) )
-	{
-		tap_set_state(TAP_RESET);
-	}
 	layout->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 	require_send = 1;
 
