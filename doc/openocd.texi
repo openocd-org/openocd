@@ -89,6 +89,14 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 @unnumbered About
 @cindex about
 
+OpenOCD was created by Dominic Rath as part of a diploma thesis written at the
+University of Applied Sciences Augsburg (@uref{http://www.fh-augsburg.de}).
+Since that time, the project has grown into an active open-source project,
+supported by a diverse community of software and hardware developers from
+around the world.
+
+@section What is OpenOCD?
+
 The Open On-Chip Debugger (OpenOCD) aims to provide debugging,
 in-system programming and boundary-scan testing for embedded target
 devices.
@@ -98,7 +106,7 @@ with the JTAG (IEEE 1149.1) compliant taps on your target board.
 
 @b{Dongles:} OpenOCD currently supports many types of hardware dongles: USB
 based, parallel port based, and other standalone boxes that run
-OpenOCD internally. See the section titled: @xref{JTAG Hardware Dongles}.
+OpenOCD internally. @xref{JTAG Hardware Dongles}.
 
 @b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920T,
 ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x) and
@@ -111,58 +119,64 @@ internal flashes (LPC2000, AT91SAM7, STR7x, STR9x, LM3, and
 STM32x). Preliminary support for various NAND flash controllers
 (LPC3180, Orion, S3C24xx, more) controller is included.
 
+@section OpenOCD Web Site
+
+The OpenOCD web site provides the latest public news from the community:
+
+@uref{http://openocd.berlios.de/web/}
+
+
 @node Developers
-@chapter Developers
+@chapter OpenOCD Developer Resources
 @cindex developers
 
-OpenOCD was created by Dominic Rath as part of a diploma thesis written at the
-University of Applied Sciences Augsburg (@uref{http://www.fh-augsburg.de}).
-Others interested in improving the state of free and open debug and testing technology
-are welcome to participate.
+If you are interested in improving the state of OpenOCD's debugging and
+testing support, new contributions will be welcome.  Motivated developers
+can produce new target, flash or interface drivers, improve the
+documentation, as well as more conventional bug fixes and enhancements.
 
-Other developers have contributed support for additional targets and flashes as well
-as numerous bugfixes and enhancements. See the AUTHORS file for regular contributors. 
+The resources in this chapter are available for developers wishing to explore
+or expand the OpenOCD source code.
 
-The main OpenOCD web site is available at @uref{http://openocd.berlios.de/web/}.
+@section OpenOCD Subversion Repository
 
-@section Coding Style
-@cindex Coding Style
+The ``Building From Source'' section (@xref{Building}) provides
+instructions to retrieve and and build the latest version of the OpenOCD
+source code.
 
-The following rules try to describe formatting and naming conventions that should be
-followed to make the whole OpenOCD code look more consistent. The ultimate goal of
-coding style should be readability, and these rules may be ignored for a particular
-(small) piece of code if that makes it more readable.
+Developers that want to contribute patches to the OpenOCD system are
+@b{strongly} encouraged to base their work off of the most recent trunk
+revision.  Patches created against older versions may require additional
+work from their submitter in order to be updated for newer releases.
 
-@subsection Formatting rules:
-@itemize @bullet
-@item remove any trailing white space
-@item use TAB characters for indentation, not spaces
-@item displayed TAB width is 4 characters
-@item make sure NOT to use DOS '\r\n' line feeds
-@item do not add more than 2 empty lines to source files
-@item do not add trailing empty lines to source files
-@item do not use C++ style comments (//)
-@item lines may be reasonably wide - there's no anachronistic 80 characters limit
-@end itemize
+@section Doxygen Developer Manual
 
-@subsection Naming rules:
-@itemize @bullet
-@item identifiers use lower-case letters only
-@item identifiers consisting of multiple words use underline characters between consecutive words
-@item macros use upper-case letters only
-@item structure names shall be appended with '_s'
-@item typedefs shall be appended with '_t'
-@end itemize
+During the development of the 0.2.0 release, the OpenOCD project began
+providing a Doxygen reference manual.  This document contains more
+technical information about the software internals, development
+processes, and similar documentation:
 
-@subsection Function calls:
-@itemize @bullet
-@item function calls have no space between the functions name and the parameter
-list: my_func(param1, param2, ...)
-@end itemize
+@uref{http://openocd.berlios.de/doc/doxygen/index.html}
+
+This document is a work-in-progress, but contributions would be welcome
+to fill in the gaps.  All of the source files are provided in-tree,
+listed in the Doxyfile configuration in the top of the repository trunk.
+
+@section OpenOCD Developer Mailing List
+
+The OpenOCD Developer Mailing List provides the primary means of
+communication between developers:
+
+	@uref{https://lists.berlios.de/mailman/listinfo/openocd-development}
+
+All drivers developers are enouraged to also subscribe to the list of
+SVN commits to keep pace with the ongoing changes:
+
+	@uref{https://lists.berlios.de/mailman/listinfo/openocd-svn}
 
 @node Building
-@chapter Building
-@cindex building OpenOCD
+@chapter Building OpenOCD
+@cindex building
 
 @section Pre-Built Tools
 If you are interested in getting actual work done rather than building
@@ -181,10 +195,16 @@ You are a @b{PACKAGER} of OpenOCD if you
 @item @b{Build packages} i.e.: RPM files, or DEB files for a Linux Distro
 @end enumerate
 
-As a @b{PACKAGER} - you are at the top of the food chain. You solve
-problems for downstream users. What you fix or solve - solves hundreds
-if not thousands of user questions. If something does not work for you
-please let us know. That said, would also like you to follow a few
+As a @b{PACKAGER}, you will experience first reports of most issues.
+When you fix those problems for your users, your solution may help
+prevent hundreds (if not thousands) of other questions from other users.
+
+If something does not work for you, please work to inform the OpenOCD
+developers know how to improve the system or documentation to avoid
+future problems, and follow-up to help us ensure the issue will be fully
+resolved in our future releases.
+
+That said, the OpenOCD developers would also like you to follow a few
 suggestions:
 
 @enumerate
