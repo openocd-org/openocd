@@ -1,0 +1,93 @@
+/** @page styleguide OpenOCD Coding C Style Guide
+
+The following rules describe a formatting, naming, and other conventions
+that should be followed when writing or changing the OpenOCD C code.
+Many of the general rules should apply to OpenOCD's Jim/TCL code as well.
+
+The goals of this guide are:
+- to produce code that appears clean, consistent, and readable,
+- to allow developers to create patches that conform to a standard,
+- to eliminate these issues as points of future contention.
+consistent.
+
+Some of these rules may be ignored in the spirit of these stated goals;
+however, such exceptions should be fairly rare.
+
+@section styleformat Formatting Rules
+
+- remove any trailing white space at the end of lines.
+- use TAB characters for indentation; do NOT use spaces.
+- displayed TAB width is 4 characters.
+- use Unix line endings ('\\n'); do NOT use DOS endings ('\\r\\n')
+- limit adjacent empty lines to at most two (2).
+- remove any trailing empty lines at the end of source files
+- do not "comment out" code from the tree; instead, one should either:
+  -# remove it entirely (Subversion can retrieve the old version), or
+  -# use an @c #if/#endif block.
+
+Finally, try to avoid lines of code that are longer than than 72-80 columns:
+
+- long lines frequently indicate other style problems:
+  - insufficient use of static functions, macros, or temporary variables
+  - poor flow-control structure; "inverted" logical tests
+- a few lines may be wider than this limit (typically format strings), but:
+  - all C compilers will concatenate series of string constants.
+  - all long string constants should be split across multiple lines.
+
+@section stylenames Naming Rules
+
+- most identifiers must use lower-case letters (and digits) only.
+  - macros must use upper-case letters (and digits) only.
+  - OpenOCD identifiers should NEVER use @c MixedCaps.
+- structure names must end with the '_s' suffix.
+- typedef names must end with the '_t' suffix.
+- use underline characters between consecutive words in identifiers
+  (e.g. @c more_than_one_word).
+
+@section stylec99 C99 Rules
+
+- inline functions
+- @c // comments -- in new code, prefer these for single-line comments
+- trailing comma allowed in enum declarations
+- designated initializers (@{ .field = value @})
+- variables declarations may be mixed with code
+- new block scopes for selection and iteration statements
+
+@section stylefunc Functions
+
+- static inline functions should be prefered over macros:
+@code
+/** do NOT define macro-like functions like this... */
+#define CUBE(x) ((x) * (x) * (x))
+/** instead, define the same expression using a C99 inline function */
+static inline int cube(int x) { return x * x * x; }
+@endcode
+- Functions should be declared static unless required by other modules
+  - define static functions before first usage to avoid forward declarations.
+- Functions should have no space between its name and its parameter list:
+@code
+int f(int x1, int x2)
+{
+	...
+	int y = f(x1, x2 - x1);
+	...
+}
+@endcode
+
+@section styledoxygen Doxygen Rules
+
+- use @c /// to for one-line documentation
+- for multiple lines, use a "block" style with one space
+@verbatim
+/**
+ * @brief Short description.
+ * Full description here.
+ * @param foo Describe foo.
+ */
+@endverbatim
+- if the total line length will be less than 72 columns, then
+  - The @c /**< form can be used on the same line.
+  - This style should be used sparingly; the best use is for fields:
+    - @code int field /**< field description */ @endcode
+
+ */
