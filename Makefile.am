@@ -11,15 +11,23 @@ nobase_dist_pkgdata_DATA = \
 
 SUBDIRS = src doc
 
-EXTRA_DIST = Doxyfile
+EXTRA_DIST = \
+	Doxyfile.in \
+	tools/logger.pl
 
 docs: pdf html doxygen
 
-doxygen::
-	(cd $(srcdir) && doxygen Doxyfile 2>&1 | perl tools/logger.pl ) > doxygen.log
+Doxyfile: $(srcdir)/Doxyfile.in
+	sed -e 's,@srcdir\@,$(srcdir),' $< > $@
 
-doxygen-clean:
-	rm -f -r doxygen doxygen.log
+doxygen::
+	$(MAKE) Doxyfile
+	doxygen Doxyfile 2>&1 | perl $(srcdir)/tools/logger.pl > doxygen.log
+
+distclean-local:
+	rm -rf Doxyfile doxygen
+
+DISTCLEANFILES = doxygen.log
 
 MAINTAINERCLEANFILES = \
 	configure \
