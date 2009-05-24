@@ -596,7 +596,7 @@ int telnet_init(char *banner)
 
 	if (telnet_port == 0)
 	{
-		LOG_WARNING("no telnet port specified, using default port 4444");
+		LOG_DEBUG("no telnet port specified, using default port 4444");
 		telnet_port = 4444;
 	}
 

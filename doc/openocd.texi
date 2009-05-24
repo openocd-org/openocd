@@ -686,10 +686,6 @@ Here is an example of an openocd.cfg file for an ATMEL at91sam7x256
 @example
 source [find interface/signalyzer.cfg]
 
-# Change the default telnet port...
-telnet_port 4444
-# GDB connects here
-gdb_port 3333
 # GDB can also flash my flash!
 gdb_memory_map enable
 gdb_flash_program enable
@@ -1150,11 +1146,26 @@ can type a Tcl for() loop, set variables, etc.
 
 @node Daemon Configuration
 @chapter Daemon Configuration
+@cindex initialization
 The commands here are commonly found in the openocd.cfg file and are
 used to specify what TCP/IP ports are used, and how GDB should be
 supported.
-@section init
-@cindex init
+
+@section Configuration Stage
+@cindex configuration stage
+@cindex configuration command
+
+When the OpenOCD server process starts up, it enters a
+@emph{configuration stage} which is the only time that
+certain commands, @emph{configuration commands}, may be issued.
+Those configuration commands include declaration of TAPs
+and other basic setup.
+The server must leave the configuration stage before it
+may access or activate TAPs.
+After it leaves this stage, configuration commands may no
+longer be issued.
+
+@deffn {Config Command} init
 This command terminates the configuration stage and
 enters the normal command mode. This can be useful to add commands to
 the startup scripts and commands such as resetting the target,
@@ -1169,64 +1180,92 @@ configuration files and/or command line options.
 @b{NOTE:} This command normally occurs at or near the end of your
 openocd.cfg file to force OpenOCD to ``initialize'' and make the
 targets ready. For example: If your openocd.cfg file needs to
-read/write memory on your target - the init command must occur before
+read/write memory on your target, @command{init} must occur before
 the memory read/write commands.  This includes @command{nand probe}.
+@end deffn
 
 @section TCP/IP Ports
-@itemize @bullet
-@item @b{telnet_port} <@var{number}>
-@cindex telnet_port
-@*Intended for a human. Port on which to listen for incoming telnet connections.
+@cindex TCP port
+@cindex server
+@cindex port
+The OpenOCD server accepts remote commands in several syntaxes.
+Each syntax uses a different TCP/IP port, which you may specify
+only during configuration (before those ports are opened).
 
-@item @b{tcl_port} <@var{number}>
-@cindex tcl_port
-@*Intended as a machine interface. Port on which to listen for
-incoming Tcl syntax. This port is intended as a simplified RPC
-connection that can be used by clients to issue commands and get the
+@deffn {Command} gdb_port (number)
+@cindex GDB server
+Specify or query the first port used for incoming GDB connections.
+The GDB port for the
+first target will be gdb_port, the second target will listen on gdb_port + 1, and so on.
+When not specified during the configuration stage,
+the port @var{number} defaults to 3333.
+@end deffn
+
+@deffn {Command} tcl_port (number)
+Specify or query the port used for a simplified RPC
+connection that can be used by clients to issue TCL commands and get the
 output from the Tcl engine.
+Intended as a machine interface.
+When not specified during the configuration stage,
+the port @var{number} defaults to 6666.
+@end deffn
 
-@item @b{gdb_port} <@var{number}>
-@cindex gdb_port
-@*First port on which to listen for incoming GDB connections. The GDB port for the
-first target will be gdb_port, the second target will listen on gdb_port + 1, and so on. 
-@end itemize
+@deffn {Command} telnet_port (number)
+Specify or query the
+port on which to listen for incoming telnet connections.
+This port is intended for interaction with one human through TCL commands.
+When not specified during the configuration stage,
+the port @var{number} defaults to 4444.
+@end deffn
 
-@section GDB Items
-@itemize @bullet
-@item @b{gdb_breakpoint_override} <@var{hard|soft|disable}>
-@cindex gdb_breakpoint_override
+@section GDB Configuration
+@anchor{GDB Configuration}
+@cindex GDB
+@cindex GDB configuration
+You can reconfigure some GDB behaviors if needed.
+The ones listed here are static and global.
+@xref{Target Create}, about declaring individual targets.
+@xref{Target Events}, about configuring target-specific event handling.
+
+@deffn {Command} gdb_breakpoint_override <hard|soft|disable>
 @anchor{gdb_breakpoint_override}
-@*Force breakpoint type for gdb 'break' commands.
-The raison d'etre for this option is to support GDB GUI's without 
-a hard/soft breakpoint concept where the default OpenOCD and
-GDB behaviour is not sufficient. Note that GDB will use hardware
+Force breakpoint type for gdb @command{break} commands.
+The raison d'etre for this option is to support GDB GUI's which don't
+distinguish hard versus soft breakpoints, if the default OpenOCD and
+GDB behaviour is not sufficient.  GDB normally uses hardware
 breakpoints if the memory map has been set up for flash regions.
 
 This option replaces older arm7_9 target commands that addressed
 the same issue.
+@end deffn
 
-@item @b{gdb_detach} <@var{resume|reset|halt|nothing}>
-@cindex gdb_detach
-@*Configures what OpenOCD will do when GDB detaches from the daemon.
-Default behaviour is <@var{resume}>
+@deffn {Config command} gdb_detach <resume|reset|halt|nothing>
+Configures what OpenOCD will do when GDB detaches from the daemon.
+Default behaviour is @var{resume}.
+@end deffn
 
-@item @b{gdb_memory_map} <@var{enable|disable}>
-@cindex gdb_memory_map
-@*Set to <@var{enable}> to cause OpenOCD to send the memory configuration to GDB when
-requested. GDB will then know when to set hardware breakpoints, and program flash
-using the GDB load command. @option{gdb_flash_program enable} must also be enabled 
-for flash programming to work.
-Default behaviour is <@var{enable}>
-@xref{gdb_flash_program}.
-
-@item @b{gdb_flash_program} <@var{enable|disable}>
-@cindex gdb_flash_program
+@deffn {Config command} gdb_flash_program <enable|disable>
 @anchor{gdb_flash_program}
-@*Set to <@var{enable}> to cause OpenOCD to program the flash memory when a
+Set to @var{enable} to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
-Default behaviour is <@var{enable}>
-@comment END GDB Items
-@end itemize
+The default behaviour is @var{enable}.
+@end deffn
+
+@deffn {Config command} gdb_memory_map <enable|disable>
+Set to @var{enable} to cause OpenOCD to send the memory configuration to GDB when
+requested. GDB will then know when to set hardware breakpoints, and program flash
+using the GDB load command. @command{gdb_flash_program enable} must also be enabled
+for flash programming to work.
+Default behaviour is @var{enable}.
+@xref{gdb_flash_program}.
+@end deffn
+
+@deffn {Config command} gdb_report_data_abort <enable|disable>
+Specifies whether data aborts cause an error to be reported
+by GDB memory read packets.
+The default behaviour is @var{disable};
+use @var{enable} see these errors reported.
+@end deffn
 
 @node Interface - Dongle Configuration
 @chapter Interface - Dongle Configuration
@@ -1806,6 +1845,7 @@ enabled or disabled.
 @page
 @node Target Configuration
 @chapter Target Configuration
+@cindex GDB target
 
 This chapter discusses how to create a GDB debug target.  Before
 creating a ``target'' a JTAG tap DOTTED.NAME must exist first.
@@ -1945,6 +1985,8 @@ with odd reset situations and are not documented here.
 @end itemize
 
 @section Target Events
+@cindex events
+@anchor{Target Events}
 At various times, certain things can happen, or you want them to happen.
 
 Examples:
@@ -2062,7 +2104,8 @@ jtag configure DOTTED.NAME -event tap-disable @{
 @end example
 @end itemize
 
-@section target create
+@section Target Create
+@anchor{Target Create}
 @cindex target
 @cindex target creation
 
@@ -2208,8 +2251,8 @@ via a script in some automated way. For example: To program the boot
 flash on your board.
 @item GDB Flashing
 @* Flashing via GDB requires the flash be configured via ``flash
-bank'', and the GDB flash features be enabled. See the daemon
-configuration section for more details.
+bank'', and the GDB flash features be enabled.
+@xref{GDB Configuration}.
 @end enumerate
 
 @section Flash commands
@@ -2903,8 +2946,8 @@ elsewhere) or typed manually by a human or supplied programatically,
 or via one of several TCP/IP Ports.
 
 @item @b{From the human}
-@* A human should interact with the telnet interface (default port: 4444,
-or via GDB, default port 3333)
+@* A human should interact with the telnet interface (default port: 4444)
+or via GDB (default port 3333).
 
 To issue commands from within a GDB session, use the @option{monitor}
 command, e.g. use @option{monitor poll} to issue the @option{poll}
@@ -3444,7 +3487,7 @@ openocd -f interface/parport.cfg -f target/at91r40008.cfg -c init -c reset
 
 @node GDB and OpenOCD
 @chapter GDB and OpenOCD
-@cindex GDB and OpenOCD
+@cindex GDB
 OpenOCD complies with the remote gdbserver protocol, and as such can be used
 to debug remote targets.
 
@@ -3505,7 +3548,7 @@ working area.
 
 Informing GDB of the memory map of the target will enable GDB to protect any
 flash areas of the target and use hardware breakpoints by default. This means
-that the OpenOCD option @option{gdb_breakpoint_override} is not required when
+that the OpenOCD option @command{gdb_breakpoint_override} is not required when
 using a memory map. @xref{gdb_breakpoint_override}.
 
 To view the configured memory map in GDB, use the GDB command @option{info mem}
@@ -3517,7 +3560,7 @@ This can be changed to the old behaviour by using the following GDB command
 set mem inaccessible-by-default off
 @end example
 
-If @option{gdb_flash_program enable} is also used, GDB will be able to
+If @command{gdb_flash_program enable} is also used, GDB will be able to
 program any flash memory using the vFlash interface.
 
 GDB will look at the target memory map when a load command is given, if any
@@ -3627,12 +3670,12 @@ Certain OpenOCD commands have been deprecated/removed during the various revisio
 @*use @option{arm7_9 fast_memory_access} command with same args. @xref{arm7_9 fast_memory_access}.
 @item @b{arm7_9 force_hw_bkpts}
 @cindex arm7_9 force_hw_bkpts
-@*Use @option{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
+@*Use @command{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
 for flash if the GDB memory map has been set up(default when flash is declared in
 target configuration). @xref{gdb_breakpoint_override}.
 @item @b{arm7_9 sw_bkpts}
 @cindex arm7_9 sw_bkpts
-@*On by default. See also @option{gdb_breakpoint_override}. @xref{gdb_breakpoint_override}.
+@*On by default. @xref{gdb_breakpoint_override}.
 @item @b{daemon_startup}
 @cindex daemon_startup
 @*this config option has been removed, simply adding @option{init} and @option{reset halt} to

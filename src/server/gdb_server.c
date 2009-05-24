@@ -2188,7 +2188,7 @@ int gdb_init(void)
 
 	if (gdb_port == 0 && server_use_pipes == 0)
 	{
-		LOG_WARNING("no gdb port specified, using default port 3333");
+		LOG_DEBUG("no gdb port specified, using default port 3333");
 		gdb_port = 3333;
 	}
 
@@ -2369,17 +2369,15 @@ int gdb_register_commands(command_context_t *command_context)
 	register_command(command_context, NULL, "gdb_port", handle_gdb_port_command,
 			COMMAND_ANY, "daemon configuration command gdb_port");
 	register_command(command_context, NULL, "gdb_detach", handle_gdb_detach_command,
-			COMMAND_CONFIG, "");
+			COMMAND_CONFIG, "resume/reset/halt/nothing - "
+			"specify behavior when GDB detaches from the target");
 	register_command(command_context, NULL, "gdb_memory_map", handle_gdb_memory_map_command,
 			COMMAND_CONFIG, "enable or disable memory map");
 	register_command(command_context, NULL, "gdb_flash_program", handle_gdb_flash_program_command,
 			COMMAND_CONFIG, "enable or disable flash program");
 	register_command(command_context, NULL, "gdb_report_data_abort", handle_gdb_report_data_abort_command,
-			COMMAND_CONFIG, "enable or disable report data");
+			COMMAND_CONFIG, "enable or disable reporting data aborts");
 	register_command(command_context, NULL, "gdb_breakpoint_override", handle_gdb_breakpoint_override_command,
-			COMMAND_EXEC, "hard/soft/disable - force breakpoint type for gdb 'break' commands."
-			"The raison d'etre for this option is to support GDB GUI's without "
-			"a hard/soft breakpoint concept where the default OpenOCD behaviour "
-			"is not sufficient");
+			COMMAND_EXEC, "hard/soft/disable - force breakpoint type for gdb 'break' commands.");
 	return ERROR_OK;
 }

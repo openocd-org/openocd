@@ -165,7 +165,7 @@ int tcl_init(void)
 
 	if (tcl_port == 0)
 	{
-		LOG_WARNING("no tcl port specified, using default port 6666");
+		LOG_DEBUG("no tcl port specified, using default port 6666");
 		tcl_port = 6666;
 	}
 
