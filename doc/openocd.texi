@@ -53,7 +53,7 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 @menu
 * About::                            About OpenOCD
 * Developers::                       OpenOCD Developers
-* Building::                         Building OpenOCD
+* Building OpenOCD::                 Building OpenOCD From SVN
 * JTAG Hardware Dongles::            JTAG Hardware Dongles
 * Running::                          Running OpenOCD
 * Simple Configuration Files::       Simple Configuration Files
@@ -140,9 +140,9 @@ or expand the OpenOCD source code.
 
 @section OpenOCD Subversion Repository
 
-The ``Building From Source'' section (@xref{Building}) provides
-instructions to retrieve and and build the latest version of the OpenOCD
-source code.
+The ``Building From Source'' section provides instructions to retrieve
+and and build the latest version of the OpenOCD source code.
+@xref{Building OpenOCD}.
 
 Developers that want to contribute patches to the OpenOCD system are
 @b{strongly} encouraged to base their work off of the most recent trunk
@@ -174,7 +174,7 @@ SVN commits to keep pace with the ongoing changes:
 
 	@uref{https://lists.berlios.de/mailman/listinfo/openocd-svn}
 
-@node Building
+@node Building OpenOCD
 @chapter Building OpenOCD
 @cindex building
 
