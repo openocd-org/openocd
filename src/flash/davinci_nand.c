@@ -258,8 +258,10 @@ static int davinci_write_page(struct nand_device_s *nand, u32 page,
 		return ERROR_NAND_OPERATION_FAILED;
 
 	/* Always write both data and OOB ... we are not "raw" I/O! */
-	if (!data)
+	if (!data) {
+		LOG_ERROR("Missing NAND data; try 'nand raw_access enable'\n");
 		return ERROR_NAND_OPERATION_FAILED;
+	}
 
 	/* If we're not given OOB, write 0xff where we don't write ECC codes. */
 	switch (nand->page_size) {
@@ -277,7 +279,7 @@ static int davinci_write_page(struct nand_device_s *nand, u32 page,
 	}
 	if (!oob) {
 		ooballoc = malloc(oob_size);
-		if (ooballoc)
+		if (!ooballoc)
 			return ERROR_NAND_OPERATION_FAILED;
 		oob = ooballoc;
 		memset(oob, 0x0ff, oob_size);
