@@ -6,7 +6,7 @@ AM_CPPFLAGS = \
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libflash.la
 libflash_la_SOURCES = \
-	flash.c lpc2000.c cfi.c non_cfi.c at91sam7.c \
+	flash.c lpc2000.c cfi.c non_cfi.c at91sam7.c davinci_nand.c \
 	str7x.c str9x.c aduc702x.c nand.c nand_ecc.c nand_ecc_kw.c \
 	lpc3180_nand_controller.c stellaris.c str9xpec.c stm32x.c tms470.c \
 	ecos.c orion_nand.c s3c24xx_nand.c s3c2410_nand.c s3c2412_nand.c \

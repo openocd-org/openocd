@@ -2804,6 +2804,23 @@ As noted above, the @command{nand device} command allows
 driver-specific options and behaviors.
 Some controllers also activate controller-specific commands.
 
+@deffn {NAND Driver} davinci
+This driver handles the NAND controllers found on DaVinci family
+chips from Texas Instruments.
+It takes three extra parameters:
+address of the NAND chip;
+hardware ECC mode to use (hwecc1, hwecc4, hwecc4_infix);
+address of the AEMIF controller on this processor.
+@example
+nand device davinci dm355.arm 0x02000000 hwecc4 0x01e10000
+@end example
+All DaVinci processors support the single-bit ECC hardware,
+and newer ones also support the four-bit ECC hardware.
+The @code{write_page} and @code{read_page} methods are used
+to implement those ECC modes, unless they are disabled using
+the @command{nand raw_access} command.
+@end deffn
+
 @deffn {NAND Driver} lpc3180
 These controllers require an extra @command{nand device}
 parameter:  the clock rate used by the controller.
