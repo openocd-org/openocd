@@ -628,32 +628,35 @@ static int svf_copy_hexstring_to_binary(char *str, u8 **bin, int orig_bit_len, i
 
 static int svf_check_tdo(void)
 {
-	int i, j, byte_len, index;
+	int i, len, index;
 
 	for (i = 0; i < svf_check_tdo_para_index; i++)
 	{
-		if (svf_check_tdo_para[i].enabled)
+		index = svf_check_tdo_para[i].buffer_offset;
+		len = svf_check_tdo_para[i].bit_len;
+		if ((svf_check_tdo_para[i].enabled) 
+			&& buf_cmp_mask(&svf_tdi_buffer[index], &svf_tdo_buffer[index], &svf_mask_buffer[index], len))
 		{
-			byte_len = (svf_check_tdo_para[i].bit_len + 7) >> 3;
-			index = svf_check_tdo_para[i].buffer_offset;
-			for (j = 0; j < byte_len; j++)
+			unsigned bitmask;
+			unsigned received, expected, tapmask;
+			if (svf_check_tdo_para[i].bit_len >= 32)
 			{
-				if ((svf_tdi_buffer[index + j] & svf_mask_buffer[index + j]) != svf_tdo_buffer[index + j])
-				{
-					unsigned bitmask = (1 << svf_check_tdo_para[i].bit_len) - 1;
-					unsigned received, expected, tapmask;
-					memcpy(&received, svf_tdi_buffer + index, sizeof(unsigned));
-					memcpy(&expected, svf_tdo_buffer + index, sizeof(unsigned));
-					memcpy(&tapmask, svf_mask_buffer + index, sizeof(unsigned));
-					LOG_ERROR("tdo check error at line %d, "
-						"read = 0x%X, want = 0x%X, mask = 0x%X",
-								svf_check_tdo_para[i].line_num,
-								received & bitmask,
-								expected & bitmask,
-								tapmask & bitmask);
-					return ERROR_FAIL;
-				}
+				bitmask = 0xFFFFFFFF;
 			}
+			else
+			{
+				bitmask = (1 << svf_check_tdo_para[i].bit_len) - 1;
+			}
+			memcpy(&received, svf_tdi_buffer + index, sizeof(unsigned));
+			memcpy(&expected, svf_tdo_buffer + index, sizeof(unsigned));
+			memcpy(&tapmask, svf_mask_buffer + index, sizeof(unsigned));
+			LOG_ERROR("tdo check error at line %d", 
+					  svf_check_tdo_para[i].line_num);
+			LOG_ERROR("read = 0x%X, want = 0x%X, mask = 0x%X", 
+					  received & bitmask, 
+					  expected & bitmask, 
+					  tapmask & bitmask);
+			return ERROR_FAIL;
 		}
 	}
 	svf_check_tdo_para_index = 0;
