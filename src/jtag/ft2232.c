@@ -446,7 +446,7 @@ static int ft2232_khz(int khz, int* jtag_speed)
 {
 	if (khz==0)
 	{
-		LOG_ERROR("RCLK not supported");
+		LOG_DEBUG("RTCK not supported");
 		return ERROR_FAIL;
 	}
 

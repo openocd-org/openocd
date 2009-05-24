@@ -2315,9 +2315,10 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "interface", handle_interface_command,
 		COMMAND_CONFIG, "try to configure interface");
 	register_command(cmd_ctx, NULL, "jtag_speed", handle_jtag_speed_command,
-		COMMAND_ANY, "set jtag speed (if supported)");
+		COMMAND_ANY, "(DEPRECATED) set jtag speed (if supported)");
 	register_command(cmd_ctx, NULL, "jtag_khz", handle_jtag_khz_command,
-		COMMAND_ANY, "same as jtag_speed, except it takes maximum khz as arguments. 0 KHz = RTCK.");
+		COMMAND_ANY, "set maximum jtag speed (if supported); "
+		"parameter is maximum khz, or 0 for adaptive clocking (RTCK).");
 	register_command(cmd_ctx, NULL, "jtag_device", handle_jtag_device_command,
 		COMMAND_CONFIG, "jtag_device <ir_length> <ir_expected> <ir_mask>");
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,

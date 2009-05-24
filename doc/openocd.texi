@@ -1493,53 +1493,58 @@ The OpenOCD default value is 2 and for some systems a value of 10 has proved use
 Currently, there are no options available for the ep93xx interface.
 
 @section JTAG Speed
-@itemize @bullet
-@item @b{jtag_khz} <@var{reset speed kHz}>
-@cindex jtag_khz
+@anchor{JTAG Speed}
+JTAG clock setup is part of system setup.
+It @emph{does not belong with interface setup} since any interface
+only knows a few of the constraints for the JTAG clock speed.
+Sometimes the JTAG speed is
+changed during the target initialization process: (1) slow at
+reset, (2) program the CPU clocks, (3) run fast.
+Both the "slow" and "fast" clock rates are functions of the
+oscillators used, the chip, the board design, and sometimes
+power management software that may be active.
 
-It is debatable if this command belongs here - or in a board
-configuration file. In fact, in some situations the JTAG speed is
-changed during the target initialisation process (i.e.: (1) slow at
-reset, (2) program the CPU clocks, (3) run fast)
+The speed used during reset can be adjusted using pre_reset
+and post_reset event handlers.
+@xref{Target Events}.
 
-Speed 0 (khz) selects RTCK method. A non-zero speed is in KHZ. Hence: 3000 is 3mhz. 
+If your system supports adaptive clocking (RTCK), configuring
+JTAG to use that is probably the most robust approach.
+However, it introduces delays to synchronize clocks; so it
+may not be the fastest solution.
 
-Not all interfaces support ``rtck''. If the interface device can not
-support the rate asked for, or can not translate from kHz to
-jtag_speed, then an error is returned.
+@b{NOTE:} Script writers should consider using @command{jtag_rclk}
+instead of @command{jtag_khz}.
 
-Make sure the JTAG clock is no more than @math{1/6th  CPU-Clock}. This is
-especially true for synthesized cores (-S). Also see RTCK.
+@deffn {Command} jtag_khz max_speed_kHz
+A non-zero speed is in KHZ. Hence: 3000 is 3mhz.
+JTAG interfaces usually support a limited number of
+speeds.  The speed actually used won't be faster
+than the speed specified.
 
-@b{NOTE: Script writers} If the target chip requires/uses RTCK -
-please use the command: 'jtag_rclk FREQ'. This Tcl proc (in
-startup.tcl) attempts to enable RTCK, if that fails it falls back to
-the specified frequency.
+As a rule of thumb, if you specify a clock rate make
+sure the JTAG clock is no more than @math{1/6th CPU-Clock}.
+This is especially true for synthesized cores (ARMxxx-S).
 
+Speed 0 (khz) selects RTCK method.
+@xref{FAQ RTCK}.
+If your system uses RTCK, you won't need to change the
+JTAG clocking after setup.
+Not all interfaces, boards, or targets support ``rtck''.
+If the interface device can not
+support it, an error is returned when you try to use RTCK.
+@end deffn
+
+@defun jtag_rclk fallback_speed_kHz
+@cindex RTCK
+This Tcl proc (defined in startup.tcl) attempts to enable RTCK/RCLK.
+If that fails (maybe the interface, board, or target doesn't
+support it), falls back to the specified frequency.
 @example
-    # Fall back to 3mhz if RCLK is not supported
-    jtag_rclk 3000
+# Fall back to 3mhz if RTCK is not supported
+jtag_rclk 3000
 @end example
-
-@item @b{DEPRECATED} @b{jtag_speed} - please use jtag_khz above.
-@cindex jtag_speed
-@*Limit the maximum speed of the JTAG interface. Usually, a value of zero means maximum
-speed. The actual effect of this option depends on the JTAG interface used. 
-
-The speed used during reset can be adjusted using setting jtag_speed during
-pre_reset and post_reset events.
-@itemize @minus
-
-@item wiggler: maximum speed / @var{number}
-@item ft2232: 6MHz / (@var{number}+1)
-@item amt jtagaccel: 8 / 2**@var{number}
-@item jlink: maximum speed in kHz (0-12000), 0 will use RTCK
-@item rlink: 24MHz / @var{number}, but only for certain values of @var{number}
-@comment end speed list.
-@end itemize
-
-@comment END command list
-@end itemize
+@end defun
 
 @node Reset Configuration
 @chapter Reset Configuration
@@ -3696,6 +3701,20 @@ and @option{target cortex_m3 little reset_halt 0}.
 @item @b{flash auto_erase}
 @cindex flash auto_erase
 @*use @option{flash write_image} command passing @option{erase} as the first parameter. @xref{flash write_image}.
+
+@item @b{jtag_speed} value
+@*@xref{JTAG Speed}.
+Usually, a value of zero means maximum
+speed. The actual effect of this option depends on the JTAG interface used.
+@itemize @minus
+@item wiggler: maximum speed / @var{number}
+@item ft2232: 6MHz / (@var{number}+1)
+@item amt jtagaccel: 8 / 2**@var{number}
+@item jlink: maximum speed in kHz (0-12000), 0 will use RTCK
+@item rlink: 24MHz / @var{number}, but only for certain values of @var{number}
+@comment end speed list.
+@end itemize
+
 @item @b{load_binary}
 @cindex load_binary
 @*use @option{load_image} command with same args. @xref{load_image}.
@@ -3724,6 +3743,7 @@ halt
 @cindex faq
 @enumerate
 @item @b{RTCK, also known as: Adaptive Clocking - What is it?}
+@anchor{FAQ RTCK}
 @cindex RTCK
 @cindex adaptive clocking
 @*
