@@ -2616,6 +2616,15 @@ boot loader, operating system, or other data needed to initialize or
 de-brick a board.
 @end enumerate
 
+@b{NOTE:} At the time this text was written, the largest NAND
+flash fully supported by OpenOCD is 2 GiBytes (16 GiBits).
+This is because the variables used to hold offsets and lengths
+are only 32 bits wide.
+(Larger chips may work in some cases, unless an offset or length
+is larger than 0xffffffff, the largest 32-bit unsigned integer.)
+Some larger devices will work, since they are actually multi-chip
+modules with two smaller chips and individual chipselect lines.
+
 @section NAND Configuration Commands
 @cindex NAND configuration
 
@@ -2702,9 +2711,19 @@ spare areas associated with each data page.
 @end itemize
 @end deffn
 
-@deffn Command {nand erase} num ...
+@deffn Command {nand erase} num offset length
 @cindex NAND erasing
-@b{NOTE:} Syntax is in flux.
+Erases blocks on the specified NAND device, starting at the
+specified @var{offset} and continuing for @var{length} bytes.
+Both of those values must be exact multiples of the device's
+block size, and the region they specify must fit entirely in the chip.
+The @var{num} parameter is the value shown by @command{nand list}.
+
+@b{NOTE:} This command will try to erase bad blocks, when told
+to do so, which will probably invalidate the manufacturer's bad
+block marker.
+For the remainder of the current server session, @command{nand info}
+will still report that the block ``is'' bad.
 @end deffn
 
 @deffn Command {nand write} num filename offset [option...]
@@ -2768,8 +2787,18 @@ the underlying driver from applying hardware ECC.
 @section Other NAND commands
 @cindex NAND other commands
 
-@deffn Command {nand check_bad} num ...
-@b{NOTE:} Syntax is in flux.
+@deffn Command {nand check_bad_blocks} [offset length]
+Checks for manufacturer bad block markers on the specified NAND
+device.  If no parameters are provided, checks the whole
+device; otherwise, starts at the specified @var{offset} and
+continues for @var{length} bytes.
+Both of those values must be exact multiples of the device's
+block size, and the region they specify must fit entirely in the chip.
+The @var{num} parameter is the value shown by @command{nand list}.
+
+@b{NOTE:} Before using this command you should force raw access
+with @command{nand raw_access enable} to ensure that the underlying
+driver will not try to apply hardware ECC.
 @end deffn
 
 @deffn Command {nand info} num

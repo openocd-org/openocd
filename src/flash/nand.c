@@ -309,12 +309,12 @@ int nand_init(struct command_context_s *cmd_ctx)
 		register_command(cmd_ctx, nand_cmd, "probe", handle_nand_probe_command, COMMAND_EXEC,
 						 "identify NAND flash device <num>");
 		register_command(cmd_ctx, nand_cmd, "check_bad_blocks", handle_nand_check_bad_blocks_command, COMMAND_EXEC,
-						 "check NAND flash device <num> for bad blocks [<first> <last>]");
+						 "check NAND flash device <num> for bad blocks [<offset> <length>]");
 		register_command(cmd_ctx, nand_cmd, "erase", handle_nand_erase_command, COMMAND_EXEC,
-						 "erase blocks on NAND flash device <num> <first> <last>");
+						 "erase blocks on NAND flash device <num> <offset> <length>");
 		register_command(cmd_ctx, nand_cmd, "dump", handle_nand_dump_command, COMMAND_EXEC,
 						 "dump from NAND flash device <num> <filename> "
-						 "<offset> <size> [oob_raw|oob_only]");
+						 "<offset> <length> [oob_raw|oob_only]");
 		register_command(cmd_ctx, nand_cmd, "write", handle_nand_write_command, COMMAND_EXEC,
 						 "write to NAND flash device <num> <filename> <offset> [oob_raw|oob_only|oob_softecc|oob_softecc_kw]");
 		register_command(cmd_ctx, nand_cmd, "raw_access", handle_nand_raw_access_command, COMMAND_EXEC,
@@ -360,7 +360,7 @@ static int nand_build_bbt(struct nand_device_s *device, int first, int last)
 			|| (((device->page_size == 512) && (oob[5] != 0xff)) ||
 				((device->page_size == 2048) && (oob[0] != 0xff))))
 		{
-			LOG_WARNING("invalid block: %i", i);
+			LOG_WARNING("bad block: %i", i);
 			device->blocks[i].is_bad = 1;
 		}
 		else
@@ -1093,20 +1093,20 @@ static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd
 	int first = -1;
 	int last = -1;
 
-	if ((argc < 1) || (argc > 3))
-	{
+	switch (argc) {
+	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	}
-
-	if (argc == 2)
-	{
+	case 1:
+		first = 0;
+		last = INT32_MAX;
+		break;
+	case 2:
 		first = last = strtoul(args[1], NULL, 0);
-	}
-	else if (argc == 3)
-	{
+		break;
+	case 3:
 		first = strtoul(args[1], NULL, 0);
 		last = strtoul(args[2], NULL, 0);
+		break;
 	}
 
 	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
@@ -1141,7 +1141,7 @@ static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd
 				else
 					bad_state = " (block condition unknown)";
 
-				command_print(cmd_ctx, "\t#%i: 0x%8.8x (0x%xkB) %s%s",
+				command_print(cmd_ctx, "\t#%i: 0x%8.8x (%dkB) %s%s",
 							j, p->blocks[j].offset, p->blocks[j].size / 1024,
 							erase_state, bad_state);
 			}
@@ -1203,12 +1203,31 @@ static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cm
 	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
 	if (p)
 	{
-		int first = strtoul(args[1], NULL, 0);
-		int last = strtoul(args[2], NULL, 0);
+		char *cp;
+		unsigned long offset;
+		unsigned long length;
 
-		if ((retval = nand_erase(p, first, last)) == ERROR_OK)
+		offset = strtoul(args[1], &cp, 0);
+		if (*cp || offset == ULONG_MAX || offset % p->erase_size)
 		{
-			command_print(cmd_ctx, "successfully erased blocks %i to %i on NAND flash device '%s'", first, last, p->device->name);
+			return ERROR_INVALID_ARGUMENTS;
+		}
+		offset /= p->erase_size;
+
+		length = strtoul(args[2], &cp, 0);
+		if (*cp || length == ULONG_MAX || length % p->erase_size)
+		{
+			return ERROR_INVALID_ARGUMENTS;
+		}
+		length -= 1;
+		length /= p->erase_size;
+
+		retval = nand_erase(p, offset, offset + length);
+		if (retval == ERROR_OK)
+		{
+			command_print(cmd_ctx, "successfully erased blocks "
+					"%lu to %lu on NAND flash device '%s'",
+					offset, offset + length, p->device->name);
 		}
 		else if (retval == ERROR_NAND_OPERATION_FAILED)
 		{
@@ -1240,31 +1259,53 @@ int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char
 
 	}
 
-	if (argc == 3)
-	{
-		first = strtoul(args[1], NULL, 0);
-		last = strtoul(args[2], NULL, 0);
+	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
+	if (!p) {
+		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds",
+				args[0]);
+		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	p = get_nand_device_by_num(strtoul(args[0], NULL, 0));
-	if (p)
+	if (argc == 3)
 	{
-		if ((retval = nand_build_bbt(p, first, last)) == ERROR_OK)
+		char *cp;
+		unsigned long offset;
+		unsigned long length;
+
+		offset = strtoul(args[1], &cp, 0);
+		if (*cp || offset == ULONG_MAX || offset % p->erase_size)
 		{
-			command_print(cmd_ctx, "checked NAND flash device for bad blocks, use \"nand info\" command to list blocks");
+			return ERROR_INVALID_ARGUMENTS;
 		}
-		else if (retval == ERROR_NAND_OPERATION_FAILED)
+		offset /= p->erase_size;
+
+		length = strtoul(args[2], &cp, 0);
+		if (*cp || length == ULONG_MAX || length % p->erase_size)
 		{
-			command_print(cmd_ctx, "error when checking for bad blocks on NAND flash device");
+			return ERROR_INVALID_ARGUMENTS;
 		}
-		else
-		{
-			command_print(cmd_ctx, "unknown error when checking for bad blocks on NAND flash device");
-		}
+		length -= 1;
+		length /= p->erase_size;
+
+		first = offset;
+		last = offset + length;
+	}
+
+	retval = nand_build_bbt(p, first, last);
+	if (retval == ERROR_OK)
+	{
+		command_print(cmd_ctx, "checked NAND flash device for bad blocks, "
+				"use \"nand info\" command to list blocks");
+	}
+	else if (retval == ERROR_NAND_OPERATION_FAILED)
+	{
+		command_print(cmd_ctx, "error when checking for bad blocks on "
+				"NAND flash device");
 	}
 	else
 	{
-		command_print(cmd_ctx, "NAND flash device '#%s' is out of bounds", args[0]);
+		command_print(cmd_ctx, "unknown error when checking for bad "
+				"blocks on NAND flash device");
 	}
 
 	return ERROR_OK;
