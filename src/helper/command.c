@@ -392,7 +392,7 @@ int run_command(command_context_t *context, command_t *c, char *words[], int num
 	if (!((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode) ))
 	{
 		/* Config commands can not run after the config stage */
-		LOG_ERROR("Illegal mode for command");
+		LOG_ERROR("Command '%s' only runs during configuration stage", c->name);
 		return ERROR_FAIL;
 	}
 
