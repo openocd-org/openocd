@@ -218,6 +218,34 @@ void svf_free_xxd_para(svf_xxr_para_t *para)
 	}
 }
 
+static const char* tap_state_svf_name(tap_state_t state)
+{
+	const char* ret;
+
+	switch( state )
+	{
+	case TAP_RESET:		ret = "RESET";		break;
+	case TAP_IDLE:		ret = "IDLE";		break;
+	case TAP_DRSELECT:	ret = "DRSELECT";	break;
+	case TAP_DRCAPTURE: ret = "DRCAPTURE";	break;
+	case TAP_DRSHIFT:	ret = "DRSHIFT";	break;
+	case TAP_DREXIT1:	ret = "DREXIT1";	break;
+	case TAP_DRPAUSE:	ret = "DRPAUSE";	break;
+	case TAP_DREXIT2:	ret = "DREXIT2";	break;
+	case TAP_DRUPDATE:	ret = "DRUPDATE";	break;
+	case TAP_IRSELECT:	ret = "IRSELECT";	break;
+	case TAP_IRCAPTURE: ret = "IRCAPTURE";	break;
+	case TAP_IRSHIFT:	ret = "IRSHIFT";	break;
+	case TAP_IREXIT1:	ret = "IREXIT1";	break;
+	case TAP_IRPAUSE:	ret = "IRPAUSE";	break;
+	case TAP_IREXIT2:	ret = "IREXIT2";	break;
+	case TAP_IRUPDATE:	ret = "IRUPDATE";	break;
+	default:			ret = "???";		break;
+	}
+
+	return ret;
+}
+
 static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 #define SVF_NUM_OF_OPTIONS			1
@@ -305,7 +333,7 @@ static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char
 	memcpy(&svf_para, &svf_para_init, sizeof(svf_para));
 	for (i = 0; i < (int)dimof(svf_tap_state_name); i++)
 	{
-		svf_tap_state_name[i] = (char *)tap_state_name(i);
+		svf_tap_state_name[i] = (char *)tap_state_svf_name(i);
 	}
 	// TAP_RESET
 	jtag_add_tlr();
