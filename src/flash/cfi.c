@@ -114,9 +114,11 @@ static __inline__ u32 flash_address(flash_bank_t *bank, int sector, u32 offset)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 
+	if(cfi_info->x16_as_x8) offset*=2;
+
 	/* while the sector list isn't built, only accesses to sector 0 work */
 	if (sector == 0)
-		return bank->base + (offset * bank->bus_width << cfi_info->x16_as_x8 );
+		return bank->base + offset * bank->bus_width;
 	else
 	{
 		if (!bank->sectors)
@@ -124,7 +126,7 @@ static __inline__ u32 flash_address(flash_bank_t *bank, int sector, u32 offset)
 			LOG_ERROR("BUG: sector list not yet built");
 			exit(-1);
 		}
-		return bank->base + bank->sectors[sector].offset + (offset * bank->bus_width << cfi_info->x16_as_x8 );
+		return bank->base + bank->sectors[sector].offset + offset * bank->bus_width;
 	}
 
 }
