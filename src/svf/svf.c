@@ -918,6 +918,27 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			}
 			buf_set_ones(xxr_para_tmp->mask, xxr_para_tmp->len);
 		}
+		// If TDO is absent, no comparison is needed, set the mask to 0
+		if (!(xxr_para_tmp->data_mask & XXR_TDO))
+		{
+			if (NULL == xxr_para_tmp->tdo)
+			{
+				if (ERROR_OK != svf_adjust_array_length(&xxr_para_tmp->tdo, i_tmp, xxr_para_tmp->len))
+				{
+					LOG_ERROR("fail to adjust length of array");
+					return ERROR_FAIL;
+				}
+			}
+			if (NULL == xxr_para_tmp->mask)
+			{
+				if (ERROR_OK != svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp, xxr_para_tmp->len))
+				{
+					LOG_ERROR("fail to adjust length of array");
+					return ERROR_FAIL;
+				}
+			}
+			memset(xxr_para_tmp->mask, 0, (xxr_para_tmp->len + 7) >> 3);
+		}
 		// do scan if necessary
 		if (SDR == command)
 		{
