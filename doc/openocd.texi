@@ -1551,67 +1551,133 @@ jtag_rclk 3000
 @cindex Reset Configuration
 
 Every system configuration may require a different reset
-configuration. This can also be quite confusing. Please see the
-various board files for example.
+configuration. This can also be quite confusing.
+Please see the various board files for examples.
 
-@section jtag_nsrst_delay <@var{ms}>
-@cindex jtag_nsrst_delay
-@*How long (in milliseconds) OpenOCD should wait after deasserting
-nSRST before starting new JTAG operations.
+@b{Note} to maintainers and integrators:
+Reset configuration touches several things at once.
+Normally the board configuration file
+should define it and assume that the JTAG adapter supports
+everything that's wired up to the board's JTAG connector.
+However, the target configuration file could also make note
+of something the silicon vendor has done inside the chip,
+which will be true for most (or all) boards using that chip.
+And when the JTAG adapter doesn't support everything, the
+system configuration file will need to override parts of
+the reset configuration provided by other files.
 
-@section jtag_ntrst_delay <@var{ms}>
-@cindex jtag_ntrst_delay
-@*Same @b{jtag_nsrst_delay}, but for nTRST  
+@section Types of Reset
 
-The jtag_n[st]rst_delay options are useful if reset circuitry (like a
-big resistor/capacitor, reset supervisor, or on-chip features). This
-keeps the signal asserted for some time after the external reset got
-deasserted.
+There are many kinds of reset possible through JTAG, but
+they may not all work with a given board and adapter.
+That's part of why reset configuration can be error prone.
 
-@section reset_config
-
-@b{Note:} To maintainers and integrators: Where exactly the
-``reset configuration'' goes is a good question. It touches several
-things at once. In the end, if you have a board file - the board file
-should define it and assume 100% that the DONGLE supports
-anything. However, that does not mean the target should not also make
-not of something the silicon vendor has done inside the
-chip. @i{Grr.... nothing is every pretty.}
-
-@* @b{Problems:} 
-@enumerate
-@item Every JTAG Dongle is slightly different, some dongles implement reset differently.
-@item Every board is also slightly different; some boards tie TRST and SRST together.
-@item Every chip is slightly different; some chips internally tie the two signals together.
-@item Some may not implement all of the signals the same way.
-@item Some signals might be push-pull, others open-drain/collector.
-@end enumerate
-@b{Best Case:} OpenOCD can hold the SRST (push-button-reset), then
-reset the TAP via TRST and send commands through the JTAG tap to halt
-the CPU at the reset vector before the 1st instruction is executed,
-and finally release the SRST signal.
-@*Depending on your board vendor, chip vendor, etc., these
-signals may have slightly different names. 
-
-OpenOCD defines these signals in these terms:
 @itemize @bullet
-@item @b{TRST} - is Tap Reset - and should reset only the TAP.
-@item @b{SRST} - is System Reset - typically equal to a reset push button.
+@item
+@emph{System Reset} ... the @emph{SRST} hardware signal
+resets all chips connected to the JTAG adapter, such as processors,
+power management chips, and I/O controllers.  Normally resets triggered
+with this signal behave exactly like pressing a RESET button.
+@item
+@emph{JTAG TAP Reset} ... the @emph{TRST} hardware signal resets
+just the TAP controllers connected to the JTAG adapter.
+Such resets should not be visible to the rest of the system; resetting a
+device's the TAP controller just puts that controller into a known state.
+@item
+@emph{Emulation Reset} ... many devices can be reset through JTAG
+commands.  These resets are often distinguishable from system
+resets, either explicitly (a "reset reason" register says so)
+or implicitly (not all parts of the chip get reset).
+@item
+@emph{Other Resets} ... system-on-chip devices often support
+several other types of reset.
+You may need to arrange that a watchdog timer stops
+while debugging, preventing a watchdog reset.
+There may be individual module resets.
 @end itemize
 
-The Command:
+In the best case, OpenOCD can hold SRST, then reset
+the TAPs via TRST and send commands through JTAG to halt the
+CPU at the reset vector before the 1st instruction is executed.
+Then when it finally releases the SRST signal, the system is
+halted under debugger control before any code has executed.
+This is the behavior required to support the @command{reset halt}
+and @command{reset init} commands; after @command{reset init} a
+board-specific script might do things like setting up DRAM.
+(@xref{Reset Command}.)
+
+@section SRST and TRST Signal Issues
+
+Because SRST and TRST are hardware signals, they can have a
+variety of system-specific constraints.  Some of the most
+common issues are:
 
 @itemize @bullet
-@item @b{reset_config} <@var{signals}> [@var{combination}] [@var{trst_type}] [@var{srst_type}]
-@cindex reset_config
-@* The @t{reset_config} command tells OpenOCD the reset configuration
-of your combination of Dongle, Board, and Chips.
-If the JTAG interface provides SRST, but the target doesn't connect
-that signal properly, then OpenOCD can't use it. <@var{signals}> can
+
+@item @emph{Signal not available} ... Some boards don't wire
+SRST or TRST to the JTAG connector.  Some JTAG adapters don't
+support such signals even if they are wired up.
+Use the @command{reset_config} @var{signals} options to say
+when one of those signals is not connected.
+When SRST is not available, your code might not be able to rely
+on controllers having been fully reset during code startup.
+
+@item @emph{Signals shorted} ... Sometimes a chip, board, or
+adapter will connect SRST to TRST, instead of keeping them separate.
+Use the @command{reset_config} @var{combination} options to say
+when those signals aren't properly independent.
+
+@item @emph{Timing} ... Reset circuitry like a resistor/capacitor
+delay circuit, reset supervisor, or on-chip features can extend
+the effect of a JTAG adapter's reset for some time after the adapter
+stops issuing the reset.  For example, there may be chip or board
+requirements that all reset pulses last for at least a
+certain amount of time; and reset buttons commonly have
+hardware debouncing.
+Use the @command{jtag_nsrst_delay} and @command{jtag_ntrst_delay}
+commands to say when extra delays are needed.
+
+@item @emph{Drive type} ... Reset lines often have a pullup
+resistor, letting the JTAG interface treat them as open-drain
+signals.  But that's not a requirement, so the adapter may need
+to use push/pull output drivers.
+Also, with weak pullups it may be advisable to drive
+signals to both levels (push/pull) to minimize rise times.
+Use the @command{reset_config} @var{trst_type} and
+@var{srst_type} parameters to say how to drive reset signals.
+@end itemize
+
+There can also be other issues.
+Some devices don't fully conform to the JTAG specifications.
+Others have chip-specific extensions like extra steps needed
+during TAP reset, or a requirement to use the normally-optional TRST
+signal.
+Trivial system-specific differences are common, such as
+SRST and TRST using slightly different names.
+
+@section Commands for Handling Resets
+
+@deffn {Command} jtag_nsrst_delay milliseconds
+How long (in milliseconds) OpenOCD should wait after deasserting
+nSRST (active-low system reset) before starting new JTAG operations.
+When a board has a reset button connected to SRST line it will
+probably have hardware debouncing, implying you should use this.
+@end deffn
+
+@deffn {Command} jtag_ntrst_delay milliseconds
+How long (in milliseconds) OpenOCD should wait after deasserting
+nTRST (active-low JTAG TAP reset) before starting new JTAG operations.
+@end deffn
+
+@deffn {Command} reset_config signals [combination [trst_type [srst_type]]]
+This command tells OpenOCD the reset configuration
+of your combination of JTAG interface, board, and target.
+If the JTAG interface provides SRST, but the board doesn't connect
+that signal properly, then OpenOCD can't use it. @var{signals} can
 be @option{none}, @option{trst_only}, @option{srst_only} or
 @option{trst_and_srst}.
 
-[@var{combination}] is an optional value specifying broken reset
+The @var{combination} is an optional value specifying broken reset
 signal implementations.  @option{srst_pulls_trst} states that the
 test logic is reset together with the reset of the system (e.g. Philips
 LPC2000, "broken" board layout), @option{trst_pulls_srst} says that
@@ -1621,17 +1687,14 @@ haven't seen hardware with such a bug, and can be worked around).
 @option{trst_pulls_srst}.  The default behaviour if no option given is
 @option{separate}.
 
-The [@var{trst_type}] and [@var{srst_type}] parameters allow the
+The optional @var{trst_type} and @var{srst_type} parameters allow the
 driver type of the reset lines to be specified. Possible values are
 @option{trst_push_pull} (default) and @option{trst_open_drain} for the
 test reset signal, and @option{srst_open_drain} (default) and
 @option{srst_push_pull} for the system reset. These values only affect
 JTAG interfaces with support for different drivers, like the Amontec
 JTAGkey and JTAGAccelerator.
-
-@comment - end command
-@end itemize
-
+@end deffn
 
 
 @node Tap Creation
@@ -3053,11 +3116,14 @@ OpenOCD will wait 5 seconds for the target to resume.
 @cindex step
 @*Single-step the target at its current code position, or at an optional address. 
 
+@anchor{Reset Command}
 @subsection reset [@option{run}|@option{halt}|@option{init}]
 @cindex reset
-@*Perform a hard-reset. The optional parameter specifies what should happen after the reset.
-
-With no arguments a "reset run" is executed
+@*Perform a hard-reset. The optional parameter specifies what should
+happen after the reset.
+If there is no parameter, a @command{reset run} is executed.
+The other options will not work on all systems.
+@xref{Reset Configuration}.
 @itemize @minus
 @item @b{run}
 @cindex reset run
