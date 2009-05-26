@@ -1,4 +1,4 @@
-/** @page patchguide OpenOCD Patch Policies
+/** @page patchguide Patch Policies
 
 Please mail patches to:
 
@@ -46,3 +46,6 @@ If you have a decent SVN GUI, then that should be
 able to create and apply patches as well...
  
  */
+/** @file
+This file contains the @ref patchguide page.
+*/

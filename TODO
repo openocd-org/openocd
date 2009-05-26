@@ -148,3 +148,6 @@ Feel free to send patches to add or clarify items on this list, too.
   - use bug tracking?  we need something!
 
 */
+/** @file
+This file contains the @ref thelist page.
+*/

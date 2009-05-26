@@ -44,3 +44,6 @@ transform attachments to links so you will not be bloating anyones mail
 box.  Please keep attachments to less than 100KB.
 
  */
+/** @file
+This file contains the @ref bugs page.
+*/
