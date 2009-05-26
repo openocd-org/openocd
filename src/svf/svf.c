@@ -218,6 +218,26 @@ void svf_free_xxd_para(svf_xxr_para_t *para)
 	}
 }
 
+unsigned svf_get_mask_u32(int bitlen)
+{
+	u32 bitmask;
+
+	if (bitlen < 0)
+	{
+		bitmask = 0;
+	}
+	else if (bitlen >= 32)
+	{
+		bitmask = 0xFFFFFFFF;
+	}
+	else
+	{
+		bitmask = (1 << bitlen) - 1;
+	}
+
+	return bitmask;
+}
+
 static const char* tap_state_svf_name(tap_state_t state)
 {
 	const char* ret;
@@ -667,14 +687,8 @@ static int svf_check_tdo(void)
 		{
 			unsigned bitmask;
 			unsigned received, expected, tapmask;
-			if (svf_check_tdo_para[i].bit_len >= 32)
-			{
-				bitmask = 0xFFFFFFFF;
-			}
-			else
-			{
-				bitmask = (1 << svf_check_tdo_para[i].bit_len) - 1;
-			}
+			bitmask = svf_get_mask_u32(svf_check_tdo_para[i].bit_len);
+
 			memcpy(&received, svf_tdi_buffer + index, sizeof(unsigned));
 			memcpy(&expected, svf_tdo_buffer + index, sizeof(unsigned));
 			memcpy(&tapmask, svf_mask_buffer + index, sizeof(unsigned));
@@ -890,7 +904,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				LOG_ERROR("fail to parse hex value");
 				return ERROR_FAIL;
 			}
-			LOG_DEBUG("\t%s = 0x%X", argus[i], (**(int**)pbuffer_tmp) & ((1 << (xxr_para_tmp->len)) - 1));
+			LOG_DEBUG("\t%s = 0x%X", argus[i], (**(int**)pbuffer_tmp) & svf_get_mask_u32(xxr_para_tmp->len));
 		}
 		// If a command changes the length of the last scan of the same type and the MASK parameter is absent,
 		// the mask pattern used is all cares
@@ -1403,7 +1417,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				int read_value;
 				memcpy(&read_value, svf_tdi_buffer, sizeof(int));
 				// in debug mode, data is from index 0
-				int read_mask = (1 << (svf_check_tdo_para[0].bit_len)) - 1;
+				int read_mask = svf_get_mask_u32(svf_check_tdo_para[0].bit_len);
 				LOG_DEBUG("\tTDO read = 0x%X", read_value & read_mask);
 			}
 		}
