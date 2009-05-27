@@ -1126,8 +1126,9 @@ static int mg_set_pll(mg_pll_t *pll)
 	u8 buff[512];
 
 	memset(buff, 0xff, 512);
-	*((u32 *)&buff[0]) = pll->lock_cyc;	/* PLL Lock cycle */
-	*((u16 *)&buff[4]) = pll->feedback_div;	/* PLL Feedback 9bit Divider */
+	/* PLL Lock cycle and Feedback 9bit Divider */
+	memcpy(buff, &pll->lock_cyc, sizeof(u32));
+	memcpy(buff + 4, &pll->feedback_div, sizeof(u16));
 	buff[6] = pll->input_div;		/* PLL Input 5bit Divider */
 	buff[7] = pll->output_div;		/* PLL Output Divider */
 
