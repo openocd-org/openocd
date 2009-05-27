@@ -29,6 +29,29 @@ doxygen::
 	$(MAKE) Doxyfile
 	doxygen Doxyfile 2>&1 | perl $(srcdir)/tools/logger.pl > doxygen.log
 
+TCL_PATH = src/tcl
+# command to find paths of script files, relative to TCL_PATH
+TCL_FILES := find $(srcdir)/$(TCL_PATH) -name '*.cfg' -o -name '*.tcl' | \
+		sed -e 's,^$(srcdir)/$(TCL_PATH),,'
+
+dist-hook:
+	for i in $$($(TCL_FILES)); do \
+		j="$(distdir)/$(TCL_PATH)/$$i" && \
+		mkdir -p "$$(dirname $$j)" && \
+		$(INSTALL_DATA) $(srcdir)/$(TCL_PATH)/$$i $$j; \
+	done
+
+install-data-hook:
+	for i in $$($(TCL_FILES)); do \
+		j="$(DESTDIR)$(pkgdatadir)/scripts/$$i" && \
+		mkdir -p "$$(dirname $$j)" && \
+		$(INSTALL_DATA) $(srcdir)/$(TCL_PATH)/$$i $$j; \
+	done
+
+uninstall-hook:
+	rm -rf $(DESTDIR)$(pkgdatadir)/scripts
+
+
 distclean-local:
 	rm -rf Doxyfile doxygen
 

@@ -26,14 +26,5 @@ noinst_HEADERS = target.h trace.h register.h armv4_5.h embeddedice.h etm.h arm7t
 nobase_dist_pkglib_DATA =
 nobase_dist_pkglib_DATA += xscale/debug_handler.bin 
 nobase_dist_pkglib_DATA += ecos/at91eb40a.elf
-# Various chip targets
-nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/target/*.cfg)
-# Various jtag interfaces
-nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/interface/*.cfg)
-# Various preconfigured boards
-nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/board/*.cfg)
-
-# test files
-nobase_dist_pkglib_DATA += $(wildcard $(srcdir)/test/*.cfg)
 
 MAINTAINERCLEANFILES = Makefile.in
