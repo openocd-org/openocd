@@ -35,6 +35,8 @@ This pages lists Technical Primers available for OpenOCD Developers.
 They seek to provide information to pull novices up the learning curves
 associated with the fundamental technologies used by OpenOCD.
 
+- @subpage primerdocs
+- @subpage primerautotools
 - @subpage primertcl
 - @subpage primerjtag
 
