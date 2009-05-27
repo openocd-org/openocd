@@ -61,6 +61,10 @@ enum gdb_detach_mode
 /* target behaviour on gdb detach */
 enum gdb_detach_mode detach_mode = GDB_DETACH_RESUME;
 
+/* number of gdb connections, mainly to supress gdb related debugging spam
+ * in helper/log.c when no gdb connections are actually active */
+int gdb_actual_connections;
+
 /* set if we are sending a memory map to gdb
  * via qXfer:memory-map:read packet */
 /* enabled by default*/
@@ -797,6 +801,9 @@ int gdb_new_connection(connection_t *connection)
 	if (initial_ack != '+')
 		gdb_putback_char(connection, initial_ack);
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_ATTACH );
+
+	gdb_actual_connections++;
+
 	return ERROR_OK;
 }
 
@@ -804,6 +811,8 @@ int gdb_connection_closed(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
 	gdb_connection_t *gdb_connection = connection->priv;
+
+	gdb_actual_connections--;
 
 	/* see if an image built with vFlash commands is left */
 	if (gdb_connection->vflash_image)
