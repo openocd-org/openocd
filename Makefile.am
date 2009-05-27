@@ -29,7 +29,7 @@ doxygen::
 	$(MAKE) Doxyfile
 	doxygen Doxyfile 2>&1 | perl $(srcdir)/tools/logger.pl > doxygen.log
 
-TCL_PATH = src/tcl
+TCL_PATH = tcl
 # command to find paths of script files, relative to TCL_PATH
 TCL_FILES := find $(srcdir)/$(TCL_PATH) -name '*.cfg' -o -name '*.tcl' | \
 		sed -e 's,^$(srcdir)/$(TCL_PATH),,'
