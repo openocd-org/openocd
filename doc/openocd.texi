@@ -2509,22 +2509,19 @@ Use the standard str9 driver for programming. @xref{STR9 specific commands}.
 
 @subsection mFlash Configuration
 @cindex mFlash Configuration
-@b{mflash bank} <@var{soc}> <@var{base}> <@var{chip_width}> <@var{bus_width}>
-<@var{RST pin}> <@var{WP pin}> <@var{DPD pin}> <@var{target}>
+@b{mflash bank} <@var{soc}> <@var{base}> <@var{RST pin}> <@var{target}>
 @cindex mflash bank
 @*Configures a mflash for <@var{soc}> host bank at
-<@var{base}>. <@var{chip_width}> and <@var{bus_width}> are bytes
-order. Pin number format is dependent on host GPIO calling convention.
-If WP or DPD pin was not used, write -1. Currently, mflash bank
-support s3c2440 and pxa270.
+<@var{base}>. Pin number format is dependent on host GPIO calling convention.
+Currently, mflash bank support s3c2440 and pxa270.
 
-(ex. of s3c2440) mflash <@var{RST pin}> is GPIO B1, <@var{WP pin}> and <@var{DPD pin}> are not used.
+(ex. of s3c2440) mflash <@var{RST pin}> is GPIO B1.
 @example
-mflash bank s3c2440 0x10000000 2 2 1b -1 -1 0
+mflash bank s3c2440 0x10000000 1b 0
 @end example
-(ex. of pxa270) mflash <@var{RST pin}> is GPIO 43, <@var{DPD pin}> is not used and <@var{DPD pin}> is GPIO 51.
+(ex. of pxa270) mflash <@var{RST pin}> is GPIO 43.
 @example
-mflash bank pxa270 0x08000000 2 2 43 -1 51 0  
+mflash bank pxa270 0x08000000 43 0  
 @end example
 
 @section Microcontroller specific Flash Commands

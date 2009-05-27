@@ -125,12 +125,8 @@ typedef struct mg_drv_info_s {
 typedef struct mflash_bank_s
 {
 	u32 base;
-	u32 chip_width;
-	u32 bus_width;
 
 	mflash_gpio_num_t rst_pin;
-	mflash_gpio_num_t wp_pin;
-	mflash_gpio_num_t dpd_pin;
 
 	mflash_gpio_drv_t *gpio_drv;
 	target_t *target;

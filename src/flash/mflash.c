@@ -203,16 +203,6 @@ static int mg_init_gpio (void)
 	gpio_drv->set_gpio_to_output(mflash_bank->rst_pin);
 	gpio_drv->set_gpio_output_val(mflash_bank->rst_pin, 1);
 
-	if (mflash_bank->wp_pin.num != -1) {
-		gpio_drv->set_gpio_to_output(mflash_bank->wp_pin);
-		gpio_drv->set_gpio_output_val(mflash_bank->wp_pin, 1);
-	}
-
-	if (mflash_bank->dpd_pin.num != -1) {
-		gpio_drv->set_gpio_to_output(mflash_bank->dpd_pin);
-		gpio_drv->set_gpio_output_val(mflash_bank->dpd_pin, 1);
-	}
-
 	return ERROR_OK;
 }
 
@@ -790,30 +780,22 @@ static int mg_bank_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 	char *str;
 	int i;
 
-	if (argc < 8)
+	if (argc < 4)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	if ((target = get_target(args[7])) == NULL)
+	if ((target = get_target(args[3])) == NULL)
 	{
-		LOG_ERROR("target '%s' not defined", args[7]);
+		LOG_ERROR("target '%s' not defined", args[3]);
 		return ERROR_FAIL;
 	}
 
 	mflash_bank = calloc(sizeof(mflash_bank_t), 1);
 	mflash_bank->base = strtoul(args[1], NULL, 0);
-	mflash_bank->chip_width = strtoul(args[2], NULL, 0);
-	mflash_bank->bus_width = strtoul(args[3], NULL, 0);
-	mflash_bank->rst_pin.num = strtoul(args[4], &str, 0);
+	mflash_bank->rst_pin.num = strtoul(args[2], &str, 0);
 	if (*str)
 		mflash_bank->rst_pin.port[0] = (u16)tolower(str[0]);
-	mflash_bank->wp_pin.num = strtol(args[5], &str, 0);
-	if (*str)
-		mflash_bank->wp_pin.port[0] = (u16)tolower(str[0]);
-	mflash_bank->dpd_pin.num = strtol(args[6], &str, 0);
-	if (*str)
-		mflash_bank->dpd_pin.port[0] = (u16)tolower(str[0]);
 
 	mflash_bank->target = target;
 
@@ -835,6 +817,6 @@ int mflash_register_commands(struct command_context_s *cmd_ctx)
 {
 	mflash_cmd = register_command(cmd_ctx, NULL, "mflash", NULL, COMMAND_ANY, NULL);
 	register_command(cmd_ctx, mflash_cmd, "bank", mg_bank_cmd, COMMAND_CONFIG,
-			"mflash bank <soc> <base> <chip_width> <bus_width> <RST pin> <WP pin> <DPD pin> <target #>");
+			"mflash bank <soc> <base> <RST pin> <target #>");
 	return ERROR_OK;
 }
