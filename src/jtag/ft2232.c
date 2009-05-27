@@ -124,6 +124,7 @@ static int  stm32stick_init(void);
 static int	axm0432_jtag_init(void);
 static int 	sheevaplug_init(void);
 static int 	icebear_jtag_init(void);
+static int 	cortino_jtag_init(void);
 
 /* reset procedures for supported layouts */
 static void usbjtag_reset(int trst, int srst);
@@ -156,8 +157,9 @@ ft2232_layout_t  ft2232_layouts[] =
 	{ "comstick",             comstick_init,             comstick_reset,     NULL                    },
 	{ "stm32stick",           stm32stick_init,           stm32stick_reset,   NULL                    },
 	{ "axm0432_jtag",         axm0432_jtag_init,         axm0432_jtag_reset, NULL                    },
-	{"sheevaplug",            sheevaplug_init,           sheevaplug_reset,   NULL                    },
+	{ "sheevaplug",           sheevaplug_init,           sheevaplug_reset,   NULL                    },
 	{ "icebear",              icebear_jtag_init,         icebear_jtag_reset, NULL                    },
+	{ "cortino",              cortino_jtag_init,         comstick_reset, NULL                        },
 	{ NULL,                   NULL,                      NULL,               NULL                    },
 };
 
@@ -2570,6 +2572,49 @@ static int sheevaplug_init(void)
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
 	{
 		LOG_ERROR("couldn't initialize FT2232 with 'sheevaplug' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	return ERROR_OK;
+}
+
+static int 	cortino_jtag_init(void)
+{
+	u8  buf[3];
+	u32 bytes_written;
+
+	low_output    = 0x08;
+	low_direction = 0x1b;
+
+	/* initialize low byte for jtag */
+	buf[0] = 0x80;          /* command "set data bits low byte" */
+	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
+	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) )
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'cortino' layout");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	nTRST    = 0x01;
+	nTRSTnOE = 0x00;    /* no output enable for nTRST */
+	nSRST    = 0x02;
+	nSRSTnOE = 0x00;    /* no output enable for nSRST */
+
+	high_output    = 0x03;
+	high_direction = 0x03;
+
+	/* initialize high port */
+	buf[0] = 0x82; /* command "set data bits high byte" */
+	buf[1] = high_output;
+	buf[2] = high_direction;
+	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
+
+	if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) )
+	{
+		LOG_ERROR("couldn't initialize FT2232 with 'stm32stick' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
