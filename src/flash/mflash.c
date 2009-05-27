@@ -670,13 +670,11 @@ static int mg_mflash_write(u32 addr, u8 *buff, u32 len)
 
 static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u32 address, buf_cnt;
+	u32 address, buf_cnt, cnt, res, i;
 	u8 *buffer;
-	/* TODO : multi-bank support, large file support */
 	fileio_t fileio;
 	duration_t duration;
 	char *duration_text;
-	int ret;
 
 	if (argc != 3) {
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -688,18 +686,32 @@ static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		return ERROR_FAIL;
 	}
 
-	buffer = malloc(fileio.size);
-
-	if (fileio_read(&fileio, fileio.size, buffer, &buf_cnt) != ERROR_OK)
-	{
-		free(buffer);
+	buffer = malloc(MG_FILEIO_CHUNK);
+	if (!buffer) {
 		fileio_close(&fileio);
 		return ERROR_FAIL;
 	}
 
+	cnt = fileio.size / MG_FILEIO_CHUNK;
+	res = fileio.size % MG_FILEIO_CHUNK;
+
 	duration_start_measure(&duration);
 
-	ret = mg_mflash_write(address, buffer, (u32)fileio.size);
+	for (i = 0; i < cnt; i++) {
+		if (fileio_read(&fileio, MG_FILEIO_CHUNK, buffer, &buf_cnt) !=
+				ERROR_OK)
+			goto mg_write_cmd_err;
+		if (mg_mflash_write(address, buffer, MG_FILEIO_CHUNK) != ERROR_OK)
+			goto mg_write_cmd_err;
+		address += MG_FILEIO_CHUNK;
+	}
+ 
+	if (res) {
+		if (fileio_read(&fileio, res, buffer, &buf_cnt) != ERROR_OK)
+			goto mg_write_cmd_err;			
+		if (mg_mflash_write(address, buffer, res) != ERROR_OK)
+			goto mg_write_cmd_err;
+	}
 
 	duration_stop_measure(&duration, &duration_text);
 
@@ -708,19 +720,24 @@ static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 		(float)fileio.size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
 
 	free(duration_text);
-
+	free(buffer);
 	fileio_close(&fileio);
 
-	free(buffer);
-
 	return ERROR_OK;
+
+mg_write_cmd_err:
+	duration_stop_measure(&duration, &duration_text);
+	free(duration_text);
+ 	free(buffer);
+	fileio_close(&fileio);
+
+	return ERROR_FAIL;
 }
 
 static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u32 address, size_written, size;
+	u32 address, size_written, size, cnt, res, i;
 	u8 *buffer;
-	/* TODO : multi-bank support */
 	fileio_t fileio;
 	duration_t duration;
 	char *duration_text;
@@ -735,30 +752,54 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 	if (fileio_open(&fileio, args[1], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
+ 
+	buffer = malloc(MG_FILEIO_CHUNK);
+	if (!buffer) {
+		fileio_close(&fileio);
+		return ERROR_FAIL;
+	}
 
-	buffer = malloc(size);
-
+	cnt = size / MG_FILEIO_CHUNK;
+	res = size % MG_FILEIO_CHUNK;
+ 
 	duration_start_measure(&duration);
 
-	mg_mflash_read(address, buffer, size);
+	for (i = 0; i < cnt; i++) {
+		if (mg_mflash_read(address, buffer, MG_FILEIO_CHUNK) != ERROR_OK)
+			goto mg_dump_cmd_err;
+		if (fileio_write(&fileio, MG_FILEIO_CHUNK, buffer, &size_written)
+				!= ERROR_OK)
+			goto mg_dump_cmd_err;
+		address += MG_FILEIO_CHUNK;
+	}
+ 
+	if (res) {
+		if (mg_mflash_read(address, buffer, res) != ERROR_OK)
+			goto mg_dump_cmd_err;
+		if (fileio_write(&fileio, res, buffer, &size_written) != ERROR_OK)
+			goto mg_dump_cmd_err;
+	}
 
 	duration_stop_measure(&duration, &duration_text);
-
-	fileio_write(&fileio, size, buffer, &size_written);
 
 	command_print(cmd_ctx, "dump image (address 0x%8.8x size %u) to file %s in %s (%f kB/s)",
 				address, size, args[1], duration_text,
 				(float)size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
 
 	free(duration_text);
-
+	free(buffer);
 	fileio_close(&fileio);
 
-	free(buffer);
-
 	return ERROR_OK;
-}
 
+mg_dump_cmd_err:
+	duration_stop_measure(&duration, &duration_text);
+	free(duration_text);
+ 	free(buffer);
+	fileio_close(&fileio);
+ 
+	return ERROR_FAIL;	
+}
 
 static int mg_set_feature(mg_feature_id feature, mg_feature_val config)
 {

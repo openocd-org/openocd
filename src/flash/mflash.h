@@ -176,6 +176,8 @@ extern int mflash_init_drivers(struct command_context_s *cmd_ctx);
 
 #define MG_UNLOCK_OTP_AREA 0xFF
 
+#define MG_FILEIO_CHUNK 1048576
+
 typedef enum _mg_io_type_wait{
 
 	mg_io_wait_bsy       = 1,
