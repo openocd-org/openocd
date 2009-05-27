@@ -710,10 +710,10 @@ static void vsllink_state_move_dma(void)
 		&VSLLINK_TAP_MOVE_INSERT_INSIGNIFICANT[tap_move_ndx(tap_get_state())][tap_move_ndx(tap_get_end_state())];
 	u8 tms_scan = VSLLINK_TAP_MOVE(tap_get_state(), tap_get_end_state());
 	
-	vsllink_tap_ensure_space(0, 8);
-	
 	if (tap_get_state() == TAP_RESET)
 	{
+		vsllink_tap_ensure_space(0, 8);
+		
 		for (i = 0; i < 8; i++)
 		{
 			vsllink_tap_append_step(1, 0);
@@ -1318,7 +1318,6 @@ static void vsllink_scan_dma(bool ir_scan, enum scan_type type, u8 *buffer, int 
 	vsllink_end_state(saved_end_state);
 	
 	/* Scan */
-	vsllink_tap_ensure_space(1, (scan_size + 7) & ~0x00000007);
 	vsllink_tap_append_scan_dma(scan_size, buffer, command);
 	
 	tap_set_state(ir_scan ? TAP_IRPAUSE : TAP_DRPAUSE);
@@ -1581,20 +1580,37 @@ static void vsllink_tap_append_scan_normal(int length, u8 *buffer, scan_command_
 }
 static void vsllink_tap_append_scan_dma(int length, u8 *buffer, scan_command_t *command)
 {
-	pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
-	int i;
+	pending_scan_result_t *pending_scan_result;
+	int len_tmp, len_all, i;
 	
-	pending_scan_result->offset = tap_length;
-	pending_scan_result->length = length;
-	pending_scan_result->command = command;
-	pending_scan_result->buffer = buffer;
-	
-	for (i = 0; i < length; i++)
+	len_all = 0;
+	while (len_all < length)
 	{
-		vsllink_tap_append_step((i < length-1 ? 0 : 1), (buffer[i/8] >> (i%8)) & 1);
+		if ((length - len_all) > tap_buffer_size * 8)
+		{
+			len_tmp = tap_buffer_size * 8;
+		}
+		else
+		{
+			len_tmp = length - len_all;
+		}
+		
+		vsllink_tap_ensure_space(1, (len_tmp + 7) & ~7);
+		
+		pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
+		pending_scan_result->offset = tap_length;
+		pending_scan_result->length = len_tmp;
+		pending_scan_result->command = command;
+		pending_scan_result->buffer = buffer + len_all / 8;
+		
+		for (i = 0; i < len_tmp; i++)
+		{
+			vsllink_tap_append_step(((len_all+i) < length-1 ? 0 : 1), (buffer[(len_all+i)/8] >> ((len_all+i)%8)) & 1);
+		}
+		
+		pending_scan_results_length++;
+		len_all += len_tmp;
 	}
-	
-	pending_scan_results_length++;
 }
 
 /* Pad and send a tap sequence to the device, and receive the answer.
