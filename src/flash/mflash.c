@@ -191,12 +191,12 @@ static int s3c2440_set_gpio_output_val (mflash_gpio_num_t gpio, u8 val)
 	return ret;
 }
 
-static int mflash_rst(u8 level)
+static int mg_hdrst(u8 level)
 {
 	return mflash_bank->gpio_drv->set_gpio_output_val(mflash_bank->rst_pin, level);
 }
 
-static int mflash_init_gpio (void)
+static int mg_init_gpio (void)
 {
 	mflash_gpio_drv_t *gpio_drv = mflash_bank->gpio_drv;
 
@@ -370,16 +370,16 @@ static int mg_mflash_probe(void)
 {
 	mflash_bank->proved = 0;
 
-	mflash_init_gpio();
+	mg_init_gpio();
 
 	LOG_INFO("reset mflash");
 
-	mflash_rst(0);
+	mg_hdrst(0);
 
 	if (mg_dsk_wait(mg_io_wait_bsy, MG_OEM_DISK_WAIT_TIME_LONG) != ERROR_OK)
 		return ERROR_FAIL;
 
-	mflash_rst(1);
+	mg_hdrst(1);
 
 	if (mg_dsk_wait(mg_io_wait_not_bsy, MG_OEM_DISK_WAIT_TIME_LONG) != ERROR_OK)
 		return ERROR_FAIL;
@@ -402,7 +402,7 @@ static int mg_mflash_probe(void)
 	return ERROR_OK;
 }
 
-static int mflash_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int mg_probe_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int ret;
 
@@ -672,7 +672,7 @@ static int mg_mflash_write(u32 addr, u8 *buff, u32 len)
 	return ERROR_OK;
 }
 
-static int mflash_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 address, buf_cnt;
 	u8 *buffer;
@@ -724,7 +724,7 @@ static int mflash_write_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	return ERROR_OK;
 }
 
-static int mflash_dump_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 address, size_written, size;
 	u8 *buffer;
@@ -774,17 +774,17 @@ static int mflash_dump_command(struct command_context_s *cmd_ctx, char *cmd, cha
 int mflash_init_drivers(struct command_context_s *cmd_ctx)
 {
 	if (mflash_bank) {
-		register_command(cmd_ctx, mflash_cmd, "probe", mflash_probe_command, COMMAND_EXEC, NULL);
-		register_command(cmd_ctx, mflash_cmd, "write", mflash_write_command, COMMAND_EXEC,
+		register_command(cmd_ctx, mflash_cmd, "probe", mg_probe_cmd, COMMAND_EXEC, NULL);
+		register_command(cmd_ctx, mflash_cmd, "write", mg_write_cmd, COMMAND_EXEC,
 				"mflash write <num> <file> <address>");
-		register_command(cmd_ctx, mflash_cmd, "dump", mflash_dump_command, COMMAND_EXEC,
+		register_command(cmd_ctx, mflash_cmd, "dump", mg_dump_cmd, COMMAND_EXEC,
 						"mflash dump <num> <file> <address> <size>");
 	}
 
 	return ERROR_OK;
 }
 
-static int mflash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int mg_bank_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target;
 	char *str;
@@ -834,7 +834,7 @@ static int mflash_bank_command(struct command_context_s *cmd_ctx, char *cmd, cha
 int mflash_register_commands(struct command_context_s *cmd_ctx)
 {
 	mflash_cmd = register_command(cmd_ctx, NULL, "mflash", NULL, COMMAND_ANY, NULL);
-	register_command(cmd_ctx, mflash_cmd, "bank", mflash_bank_command, COMMAND_CONFIG,
+	register_command(cmd_ctx, mflash_cmd, "bank", mg_bank_cmd, COMMAND_CONFIG,
 			"mflash bank <soc> <base> <chip_width> <bus_width> <RST pin> <WP pin> <DPD pin> <target #>");
 	return ERROR_OK;
 }
