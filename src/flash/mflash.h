@@ -131,8 +131,6 @@ typedef struct mflash_bank_s
 	mflash_gpio_drv_t *gpio_drv;
 	target_t *target;
 	mg_drv_info_t *drv_info;
-
-	u8 proved;
 } mflash_bank_t;
 
 extern int mflash_register_commands(struct command_context_s *cmd_ctx);

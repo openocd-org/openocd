@@ -358,8 +358,6 @@ static int mg_dsk_drv_info(void)
 
 static int mg_mflash_probe(void)
 {
-	mflash_bank->proved = 0;
-
 	mg_init_gpio();
 
 	LOG_INFO("reset mflash");
@@ -386,8 +384,6 @@ static int mg_mflash_probe(void)
 
 	if (mg_dsk_drv_info() != ERROR_OK)
 		return ERROR_FAIL;
-
-	mflash_bank->proved = 1;
 
 	return ERROR_OK;
 }
@@ -678,10 +674,6 @@ static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 	address = strtoul(args[2], NULL, 0);
 
-	if (! mflash_bank->proved ) {
-		mg_mflash_probe();
-	}
-
 	if (fileio_open(&fileio, args[1], FILEIO_READ, FILEIO_BINARY) != ERROR_OK) {
 		return ERROR_FAIL;
 	}
@@ -729,10 +721,6 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 
 	address = strtoul(args[2], NULL, 0);
 	size = strtoul(args[3], NULL, 0);
-
-	if (! mflash_bank->proved ) {
-			mg_mflash_probe();
-	}
 
 	if (fileio_open(&fileio, args[1], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK) {
 		return ERROR_FAIL;
