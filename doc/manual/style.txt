@@ -202,7 +202,7 @@ Documentation for the page.
  */
 /** @file
 
-This file contains the @page page.
+This file contains the @ref pagename page.
 
  */
 @endverbatim

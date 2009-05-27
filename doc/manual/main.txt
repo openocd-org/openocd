@@ -4,7 +4,7 @@ Welcome to the OpenOCD Reference Manual -- the developer's resource for
 learning about the internal architecture of the OpenOCD project.
 
 In addition, this document contains the tactical and strategic plans
-and processes that have been devleoped by and for the community.
+and processes that have been developed by and for the OpenOCD community.
 
 Developers that want to contribute to OpenOCD should read the following
 sections before starting work:

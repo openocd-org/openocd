@@ -1,4 +1,4 @@
-/** @page scripting OpenOCD Scripting Overview
+/** @page scripting Scripting Overview
 
 @section scriptingisnt What scripting will not do
 
