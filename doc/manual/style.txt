@@ -1,19 +1,46 @@
-/** @page styleguide OpenOCD Coding C Style Guide
+/** @page styleguide Style Guides
 
-The following rules describe a formatting, naming, and other conventions
-that should be followed when writing or changing the OpenOCD C code.
-Many of the general rules should apply to OpenOCD's Jim/TCL code as well.
-
-The goals of this guide are:
-- to produce code that appears clean, consistent, and readable,
-- to allow developers to create patches that conform to a standard,
+The goals for each of these guides are:
+- to produce correct code that appears clean, consistent, and readable,
+- to allow developers to create patches that conform to a standard, and
 - to eliminate these issues as points of future contention.
-consistent.
 
 Some of these rules may be ignored in the spirit of these stated goals;
 however, such exceptions should be fairly rare.
 
-@section styleformat Formatting Rules
+The following style guides describe a formatting, naming, and other
+conventions that should be followed when writing or changing the OpenOCD
+code:
+
+- @subpage styletcl
+- @subpage stylec
+- @subpage styleperl
+- @subpage styleautotools
+
+In addition, the following style guides provide information for
+providing documentation, either as part of the C code or stand-alone.
+
+- @subpage styledoxygen
+- @subpage styletexinfo
+- @subpage stylelatex
+
+Feedback would be welcome to improve the OpenOCD guidelines.
+
+ */
+/** @page styletcl TCL Style Guide
+
+OpenOCD needs to expand its Jim/TCL Style Guide.
+
+Many of the guidelines listed on the @ref stylec page should apply to
+OpenOCD's Jim/TCL code as well.
+
+ */
+/** @page stylec C Style Guide
+
+This page contains guidelines for writing new C source code for the
+OpenOCD project.
+
+@section styleformat Formatting Guide
 
 - remove any trailing white space at the end of lines.
 - use TAB characters for indentation; do NOT use spaces.
@@ -23,7 +50,7 @@ however, such exceptions should be fairly rare.
 - remove any trailing empty lines at the end of source files
 - do not "comment out" code from the tree; instead, one should either:
   -# remove it entirely (Subversion can retrieve the old version), or
-  -# use an @c #if/#endif block.
+  -# use an @c \#if/\#endif block.
 
 Finally, try to avoid lines of code that are longer than than 72-80 columns:
 
@@ -74,20 +101,186 @@ int f(int x1, int x2)
 }
 @endcode
 
-@section styledoxygen Doxygen Rules
+ */
+/** @page styledoxygen Doxygen Style Guide
 
-- use @c /// to for one-line documentation
-- for multiple lines, use a "block" style with one space
+The following sections provide guidelines for OpenOCD developers
+who wish to write Doxygen comments in the code or this manual.
+For an introduction to Doxygen documentation,
+see the @ref primerdoxygen.
+
+@section styledoxyblocks Doxygen Block Selection
+
+Several different types of Doxygen comments can be used; often,
+one style will be the most appropriate for a specific context.
+The following guidelines provide developers with heuristics for
+selecting an appropriate form and writing consistent documentation
+comments.
+
+-# use @c /// to for one-line documentation of instances.
+-# for documentation requiring multiple lines, use a "block" style:
 @verbatim
 /**
- * @brief Short description.
- * Full description here.
- * @param foo Describe foo.
+ * @brief First sentence is short description.  Remaining text becomes
+ * the full description block, where "empty" lines start new paragraphs.
+ *
+ * One can make text appear in @a italics, @b bold, @c monospace, or
+ * in blocks such as the one in which this example appears in the Style
+ * Guide.  See the Doxygen Manual for the full list of commands.
+ *
+ * @param foo For a function, describe the parameters (e.g. @a foo). 
+ * @returns The value(s) returned, or possible error conditions.
  */
 @endverbatim
-- if the total line length will be less than 72 columns, then
+  -# The block should start on the line following the opening @c /**.
+  -# The end of the block, \f$*/\f$, should also be on its own line.
+  -# Every line in the block should have a @c '*' in-line with its start:
+    - A leading space is required to align the @c '*' with the @c /** line.
+    - A single "empty" line should separate the function documentation
+      from the block of parameter and return value descriptions.
+    - Except to separate paragraphs of documentation, other extra
+      "empty" lines should be removed from the block.
+  -# Only single spaces should be used; do @b not add mid-line indentation.
+-# If the total line length will be less than 72-80 columns, then
   - The @c /**< form can be used on the same line.
   - This style should be used sparingly; the best use is for fields:
-    - @code int field /**< field description */ @endcode
+    @code int field; /**< field description */ @endcode
+
+@section styledoxyall Doxygen Style Guide
+
+The following guidelines apply to all Doxygen comment blocks:
+
+-# Use the @c '\@cmd' form for all doxygen commands (do @b not use @c '\\cmd').
+-# Use symbol names such that Doxygen automatically creates links:
+  -# @c function_name() can be used to reference functions
+    (e.g. flash_set_dirty()).
+  -# @c struct_name::member_name should be used to reference structure
+    fields in the documentation (e.g. @c flash_driver_s::name).
+  -# URLS get converted to markup automatically, without any extra effort.
+  -# new pages can be linked into the heirarchy by using the @c \@subpage
+    command somewhere the page(s) under which they should be linked:
+  -# use @c \@ref in other contexts to create links to pages and sections.
+-# Use good Doxygen mark-up:
+  -# '\@a' (italics) should be used to reference parameters (e.g. <i>foo</i>).
+  -# '\@b' (bold) should be used to emphasizing <b>single</b> words.
+  -# '\@c' (monospace) should be used with <code>file names</code> and
+  <code>code symbols</code>, so they appear visually distinct from
+  surrounding text.
+  -# To mark-up multiple words, the HTML alternatives must be used.
+-# Two spaces should be used when nesting lists; do @b not use '\\t' in lists.
+-# Code examples provided in documentation must conform to the Style Guide.
+
+@section styledoxytext Doxygen Text Inputs
+
+In addition to the guidelines in the preceding sections, the following
+additional style guidelines should be considered when writing
+documentation as part of standalone text files:
+
+-# Text files must contain Doxygen at least one comment block:
+  -# Documentation should begin in the first column (except for nested lists).
+  -# Do NOT use the @c '*' convention that must be used in the source code.
+-# Each file should contain at least one @c \@page block.
+  -# Each new page should be listed as a \@subpage in the \@page block
+  of the page that should serve as its parent.
+  -# Large pages should be structure in parts using meaningful \@section
+  and \@subsection commands.
+-# Include a @c \@file block at the end of each Doxygen @c .txt file to
+  document its contents:
+  - Doxygen creates such pages for files automatically, but no content
+    will appear on them for those that only contain manual pages.
+  - The \@file block should provide useful meta-documentation to assist
+    techincal writers; typically, a list of the pages that it contains.
+  - For example, the @ref styleguide exists in @c doc/manual/style.txt,
+    which contains a reference back to itself.
+-# The \@file and \@page commands should begin on the same line as
+   the start of the Doxygen comment:
+@verbatim
+/** @page pagename Page Title
+
+Documentation for the page.
+
+ */
+/** @file
+
+This file contains the @page page.
+
+ */
+@endverbatim
+
+For an example, the Doxygen source for this Style Guide can be found in
+@c doc/manual/style.txt, alongside other parts of The Manual.  
+
+ */
+/** @page styletexinfo Texinfo Style Guide
+
+This page needs to provide style guidelines for Texinfo, the mark-up
+language used by The Guide for OpenOCD Users.
+
+ */
+/** @page stylelatex LaTeX Style Guide
+
+This page needs to provide style guidelines for using LaTeX, the
+typesetting language used by The References for OpenOCD Hardware.
+Likewise, the @ref primerlatex for using this guide needs to be completed.
+
+ */
+/** @page styleperl Perl Style Guide
+
+This page provides some style guidelines for using Perl, a scripting
+language used by several small tools in the tree:
+
+-# Ensure all Perl scripts use the proper suffix (@c .pl for scripts, and 
+   @c .pm for modules)
+-# Pass files as script parameters or piped as input:
+  - Do NOT code paths to files in the tree, as this breaks out-of-tree builds.
+  - If you must, then you must also use an automake rule to create the script.
+-# use @c '#!/usr/bin/perl' as the first line of Perl scripts.
+-# always <code>use strict</code> and <code>use warnings</code>
+-# invoke scripts indirectly in Makefiles or other scripts:
+@code
+perl script.pl
+@endcode
+
+Maintainers must also be sure to follow additional guidelines:
+-# Ensure that Perl scripts are committed as executables:
+  - Use "<code>chmod +x script.pl</code>"
+    @a before using "<code>svn add script.pl</code>", or
+  - Use "<code>svn ps svn:executable '*' script.pl</code>"
+    @a after using "<code>svn add script.pl</code>".
+
+ */
+/** @page styleautotools Autotools Style Guide
+
+This page contains style guidelines for the OpenOCD autotools scripts.
+
+The following guidelines apply to the @c configure.in file:
+- Better guidelines need to be developed, but until then...
+- Use good judgement.
+
+The following guidelines apply to @c Makefile.am files:
+-# When assigning variables with long lists of items:
+  -# Separate the values on each line to make the files "patch friendly":
+@code
+VAR = \
+	value1 \
+	value2 \
+	...
+	value9 \
+	value10
+@endcode
+ */
+/** @file
+
+This file contains the @ref styleguide pages.  The @ref styleguide pages
+include the following Style Guides for their respective code and
+documentation languages:
+
+- @ref styletcl
+- @ref stylec
+- @ref styledoxygen
+- @ref styletexinfo
+- @ref stylelatex
+- @ref styleperl
+- @ref styleautotools
 
  */
