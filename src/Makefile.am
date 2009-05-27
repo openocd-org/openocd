@@ -26,10 +26,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/flash \
 	-I$(top_srcdir)/src/pld
 
-# pass path to prefix path
-libopenocd_la_CPPFLAGS = \
- -DPKGLIBDIR=\"$(pkglibdir)\" \
- -DPKGBLDDATE=\"`date +%F-%R`\"
+libopenocd_la_CPPFLAGS = -DPKGBLDDATE=\"`date +%F-%R`\"
 
 if RELEASE
 libopenocd_la_CPPFLAGS += -DRELSTR=\"Release\" -DPKGBLDREV=\"\"

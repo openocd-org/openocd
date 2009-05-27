@@ -3,7 +3,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/target \
 	-I$(top_srcdir)/src/flash \
 	-I$(top_srcdir)/src/jtag  \
-	-DPKGLIBDIR=\"$(pkglibdir)\"
+	-DPKGDATADIR=\"$(pkgdatadir)\"
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libserver.la
@@ -25,7 +25,12 @@ noinst_HEADERS += tcl_server.h
 libserver_la_SOURCES += tcl_server.c
 
 if HTTPD
-nobase_dist_pkglib_DATA = $(wildcard $(srcdir)/httpd/*.tcl $(srcdir)/httpd/*.css $(srcdir)/httpd/menu_cuts/*.png)
+nobase_dist_pkgdata_DATA = \
+	$(wildcard \
+		$(srcdir)/httpd/*.tcl \
+		$(srcdir)/httpd/*.css \
+		$(srcdir)/httpd/menu_cuts/*.png \
+	)
 endif
 
 EXTRA_DIST = \

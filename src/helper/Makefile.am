@@ -1,8 +1,7 @@
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/target \
-	-DPKGDATADIR=\"$(pkgdatadir)\" \
-	-DPKGLIBDIR=\"$(pkglibdir)\"
+	-DPKGDATADIR=\"$(pkgdatadir)\"
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libhelper.la

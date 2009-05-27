@@ -97,10 +97,14 @@ int add_default_dirs(void)
 		add_script_search_dir(strExePath);
 	}
 #else
-	/* Add dir for openocd supplied scripts last so that user can over
-	   ride those scripts if desired. */
-	add_script_search_dir(PKGDATADIR);
-	add_script_search_dir(PKGLIBDIR);
+	/*
+	 * The directory containing OpenOCD-supplied scripts should be
+	 * listed last in the built-in search order, so the user can
+	 * override these scripts with site-specific customizations.
+	 */
+	/// @todo Implement @c add_script_search_dir("${HOME}/.openocd").
+	add_script_search_dir(PKGDATADIR "/site");
+	add_script_search_dir(PKGDATADIR "/scripts");
 #endif
 	return ERROR_OK;
 }

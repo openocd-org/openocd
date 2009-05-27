@@ -393,7 +393,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection,
 	 * being subverted to evil purposes
 	 */
 
-	const char *httpd_dir=PKGLIBDIR "/httpd";
+	const char *httpd_dir = PKGDATADIR "/httpd";
 
 	if (*url=='/')
 	{
