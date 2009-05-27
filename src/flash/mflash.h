@@ -48,7 +48,7 @@ typedef struct _mg_io_type_drv_info {
 	mg_io_uint16 unformatted_bytes_per_track;		/* 04 */
 	mg_io_uint16 unformatted_bytes_per_sector;		/* 05 */
 	mg_io_uint16 sectors_per_track;					/* 06 */
-	mg_io_uint8  vendor_unique1[6];					/* 07/08/09 */
+	mg_io_uint16  vendor_unique1[3];				/* 07/08/09 */
 
 	mg_io_uint8  serial_number[20];					/* 10~19 */
 
@@ -117,6 +117,14 @@ typedef struct _mg_io_type_drv_info {
 
 } mg_io_type_drv_info;
 
+typedef struct _mg_pll_t
+{
+	unsigned int   lock_cyc;
+	unsigned short feedback_div;	/* 9bit divider */
+	unsigned char  input_div;	/* 5bit divider */
+	unsigned char  output_div;	/* 2bit divider */
+} mg_pll_t;
+
 typedef struct mg_drv_info_s {
 	mg_io_type_drv_info drv_id;
 	u32 tot_sects;
@@ -157,6 +165,16 @@ extern int mflash_init_drivers(struct command_context_s *cmd_ctx);
 #define MG_OEM_DISK_WAIT_TIME_LONG		15000	/* msec */
 #define MG_OEM_DISK_WAIT_TIME_NORMAL	3000	/* msec */
 #define MG_OEM_DISK_WAIT_TIME_SHORT		1000	/* msec */
+
+#define MG_PLL_CLK_OUT 66000000.0 /* 66Mhz */
+#define MG_PLL_MAX_FEEDBACKDIV_VAL 512
+#define MG_PLL_MAX_INPUTDIV_VAL 32
+#define MG_PLL_MAX_OUTPUTDIV_VAL 4
+
+#define MG_PLL_STD_INPUTCLK 12000000.0 /* 12Mhz */
+#define MG_PLL_STD_LOCKCYCLE 10000
+
+#define MG_UNLOCK_OTP_AREA 0xFF
 
 typedef enum _mg_io_type_wait{
 
@@ -237,5 +255,38 @@ typedef enum _mg_io_type_cmd
 	mg_io_cmd_wakeup           =0xC3
 
 } mg_io_type_cmd;
+
+typedef enum _mg_feature_id
+{
+	mg_feature_id_transmode = 0x3
+} mg_feature_id;
+
+typedef enum _mg_feature_val
+{
+	mg_feature_val_trans_default = 0x0,
+	mg_feature_val_trans_vcmd = 0x3,
+	mg_feature_val_trand_vcmds = 0x2
+} mg_feature_val;
+
+typedef enum _mg_vcmd
+{
+	mg_vcmd_update_xipinfo = 0xFA, /* FWPATCH commmand through IOM I/O */
+	mg_vcmd_verify_fwpatch = 0xFB, /* FWPATCH commmand through IOM I/O */
+	mg_vcmd_update_stgdrvinfo = 0xFC, /* IOM identificatin info program command */
+	mg_vcmd_prep_fwpatch = 0xFD, /* FWPATCH commmand through IOM I/O */
+	mg_vcmd_exe_fwpatch = 0xFE, /* FWPATCH commmand through IOM I/O */
+	mg_vcmd_wr_pll = 0x8B,
+	mg_vcmd_purge_nand = 0x8C, /* Only for  Seagle */
+	mg_vcmd_lock_otp = 0x8D,
+	mg_vcmd_rd_otp = 0x8E,
+	mg_vcmd_wr_otp = 0x8F
+} mg_vcmd;
+
+typedef enum _mg_opmode
+{
+	mg_op_mode_xip = 1, /* TRUE XIP */
+	mg_op_mode_snd = 2, /* BOOT+Storage */
+	mg_op_mode_stg = 0  /* Only Storage */
+} mg_opmode;
 
 #endif

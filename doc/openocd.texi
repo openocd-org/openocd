@@ -2393,15 +2393,29 @@ if the @option{erase} parameter is given.
 @itemize @bullet
 @item @b{mflash probe} 
 @cindex mflash probe
-Probe mflash.
+@*Probe mflash.
 @item @b{mflash write} <@var{num}> <@var{file}> <@var{offset}>
 @cindex mflash write
-Write the binary <@var{file}> to mflash bank <@var{num}>, starting at
+@*Write the binary <@var{file}> to mflash bank <@var{num}>, starting at
 <@var{offset}> bytes from the beginning of the bank.
 @item @b{mflash dump} <@var{num}> <@var{file}> <@var{offset}> <@var{size}>
 @cindex mflash dump
-Dump <size> bytes, starting at <@var{offset}> bytes from the beginning of the <@var{num}> bank 
+@*Dump <size> bytes, starting at <@var{offset}> bytes from the beginning of the <@var{num}> bank 
 to a <@var{file}>.
+@item @b{mflash config pll} <@var{frequency}>
+@cindex mflash config pll
+@*Configure mflash pll. <@var{frequency}> is input frequency of mflash. The order is Hz.
+Issuing this command will erase mflash's whole internal nand and write new pll. 
+After this command, mflash needs power-on-reset for normal operation.
+If pll was newly configured, storage and boot(optional) info also need to be update.
+@item @b{mflash config boot}
+@cindex mflash config boot
+@*Configure bootable option. If bootable option is set, mflash offer the first 8 sectors
+(4kB) for boot.
+@item @b{mflash config storage}
+@cindex mflash config storage
+@*Configure storage information. For the normal storage operation, this information must be
+written. 
 @end itemize
 
 @section flash bank command
