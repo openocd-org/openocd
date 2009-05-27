@@ -1,0 +1,122 @@
+/** @page primerdocs OpenOCD Documentation Primers
+
+This page provides an introduction to OpenOCD's documentation processes.
+
+OpenOCD presently produces several kinds of documentation:
+- The Guide:
+  - Focuses on using the OpenOCD software.
+  - Details the installation, usage, and customization.
+  - Provides descriptions of public Jim/TCL script commands.
+  - Written using GNU texinfo.
+  - Created with 'make pdf' or 'make html'.
+  - See @subpage primertexinfo and @ref styletexinfo.
+- The References: (as proposed)
+  - Focuses on using specific hardware with OpenOCD.
+  - Details the supported interfaces, chips, boards, and targets.
+  - Provides overview, usage, reference, and FAQ for each device.
+  - Written using LaTeX language with custom macros.
+  - Created with 'make references'.
+  - See @subpage primerlatex and @ref stylelatex.
+- The Manual:
+  - Focuses on developing the OpenOCD software.
+  - Details the architecutre, driver interfaces, and processes.
+  - Provides "full" coverage of C source code (work-in-progress).
+  - Written using Doxygen C language conventions (i.e. in comments).
+  - Created with 'make doxygen'.
+  - See @subpage primerdoxygen and @ref styledoxygen.
+
+The following sections provide more information for anyone that wants to
+contribute new or updated documentation to the OpenOCD project.
+
+ */
+/** @page primertexinfo Texinfo Primer
+
+The OpenOCD User Guide presently exists entirely within the
+doc/openocd.texi document.  That file contains documentation with
+mark-up suitable for being parsed by the GNU Texinfo utilities
+(http://www.gnu.org/software/texinfo/).
+
+This section needs to be expanded to provide an overview to new
+developers.
+
+OpenOCD style guidelines for Texinfo documentation can be found on the
+@ref styletexinfo page.
+
+ */
+/** @page primerlatex LaTeX Primer
+
+The OpenOCD project provides a number of reference guides using the
+LaTeX typesetting language.
+
+- OpenOCD Quick Reference Sheets
+- OpenOCD Hardware Reference Guides
+
+These documents have not yet been produced, so this Primer serves as
+a placeholder to describe how they are created and can be extended.
+The same holds true for the @ref stylelatex page.
+
+ */
+/** @page primerdoxygen Doxygen Primer
+
+Doxygen-style comments are used to provide documentation in-line with
+the OpenOCD source code.  These comments are used to document functions,
+variables, structs, enums, fields, and everything else that might need
+to be documented for developers.  Additional files containing comments
+that supplement the code comments in order to provide complete developer
+documentation.
+
+Even if you already know Doxygen, please read this Primer to learn
+how OpenOCD developers already use Doxygen features in the project tree.
+For more information about OpenOCD's required style for using Doxygen,
+see the @ref styledoxygen page and look at existing documentation in the
+@c doc/manual tree.
+
+@section primerdoxytext Doxygen Input Files
+
+Doxygen has been configured parse all of the C source code files (*.c
+and *.h) in @c src/ in order to produce a complete reference of all
+OpenOCD project symbols.  In addition to the source code files, other
+files will also be scanned for comment blocks; some are referenced
+explicitly by the @c INPUT variable in the Doxygen configuration file.
+
+By default, the Doxygen configuration enables a "full" set of features,
+including generation of dependency graphs (using the GraphViz package).
+These features may be disabled by editing the @c Doxyfile.in file at the
+top of the project tree; the configuration file includes comments that
+provide detailed documentation for each option.
+
+To support out-of-tree building of the documentation, the @c Doxyfile.in
+@c INPUT values will have all instances of the string @c "@srcdir@"
+replaced with the current value of the make variable
+<code>$(srcdir)</code>.  The Makefile uses a rule to convert 
+@c Doxyfile.in into the @c Doxyfile used by <code>make doxygen</code>.
+
+@section primerdoxyoocd OpenOCD Input Files
+
+OpenOCD uses the @c INPUT mechanism to include additional documentation to
+provide The Manual for OpenOCD Developers.  These extra files contain
+high-level information intended to supplement the relatively low-level
+documentation that gets extracted from the source code comments.
+
+OpenOCD's Doxygen configuration file will search for all @c .txt files
+that can be found under the @c doc/manual directory in the project tree.
+New files containing valid Doxygen markup that are placed in or under
+that directory will be detected and included in The Manual automatically.
+
+@section primerdoxyman Doxygen Reference Manual 
+
+The full documentation for Doxygen can be referenced on-line at the project
+home page: http://www.doxygen.org/index.html.  In HTML versions of this
+document, an image with a link to this site appears in the page footer.
+
+*/
+/** @file
+
+This file contains the Doxygen source code for the @ref primerdocs.
+The @ref primerdocs page also contains the following sections:
+
+- @ref primertexinfo
+- @ref primerlatex
+- @ref primerdoxygen
+
+ */
