@@ -261,7 +261,7 @@ a FTDI FT2232 based interface:
 @item @b{ftdi2232} libftdi (@uref{http://www.intra2net.com/opensource/ftdi/})
 @item @b{ftd2xx} libftd2xx (@uref{http://www.ftdichip.com/Drivers/D2XX.htm})
 @item When using the Amontec JTAGkey, you have to get the drivers from the Amontec
-homepage (@uref{http://www.amontec.com}), as the JTAGkey uses a non-standard VID/PID. 
+homepage (@uref{http://www.amontec.com}). The JTAGkey uses a non-standard VID/PID.
 @end itemize
 
 libftdi is supported under Windows. Do not use versions earlier than 0.14.
@@ -320,9 +320,11 @@ should be included (among other things):
 @item
 @option{--enable-ft2232_libftdi} - An open source (free) alternative to FTDICHIP.COM ftd2xx solution (Linux, MacOS, Cygwin).
 @item
-@option{--with-ftd2xx-win32-zipdir=PATH} - If using FTDICHIP.COM ft2232c, point at the directory where the Win32 FTDICHIP.COM 'CDM' driver zip file was unpacked.
+@option{--with-ftd2xx-win32-zipdir=PATH} - If using FTDICHIP.COM ft2232c driver,
+give the directory where the Win32 FTDICHIP.COM 'CDM' driver zip file was unpacked.
 @item
-@option{--with-ftd2xx-linux-tardir=PATH} - Linux only. Equivalent of @option{--with-ftd2xx-win32-zipdir}, where you unpacked the TAR.GZ file.
+@option{--with-ftd2xx-linux-tardir=PATH} - If using FTDICHIP.COM ft2232c driver
+on Linux, give the directory where the Linux driver's TAR.GZ file was unpacked.
 @item
 @option{--with-ftd2xx-lib=shared|static} - Linux only. Default: static. Specifies how the FTDICHIP.COM libftd2xx driver should be linked. Note: 'static' only works in conjunction with @option{--with-ftd2xx-linux-tardir}. The 'shared' value is supported (12/26/2008), however you must manually install the required header files and shared libraries in an appropriate place. This uses ``libusb'' internally.
 @item
@@ -369,43 +371,54 @@ files ``in an appropriate place'' As a result, there are two
 
 Below is an example build process:
 
-1) Check out the latest version of ``openocd'' from SVN.
+@enumerate
+@item Check out the latest version of ``openocd'' from SVN.
 
-2) Download & unpack either the Windows or Linux FTD2xx drivers
-    (@uref{http://www.ftdichip.com/Drivers/D2XX.htm}).
-
-@example
-   /home/duane/ftd2xx.win32    => the Cygwin/Win32 ZIP file contents.
-   /home/duane/libftd2xx0.4.16 => the Linux TAR.GZ file contents.
-@end example
-
-3) Configure with these options:
+@item If you are using the FTDICHIP.COM driver, download
+and unpack the Windows or Linux FTD2xx drivers
+(@uref{http://www.ftdichip.com/Drivers/D2XX.htm}).
+If you are using the libftdi driver, install that package
+(e.g. @command{apt-get install libftdi} on systems with APT).
 
 @example
-Cygwin FTDICHIP solution:
-   ./configure --prefix=/home/duane/mytools \
-               --enable-ft2232_ftd2xx \
-               --with-ftd2xx-win32-zipdir=/home/duane/ftd2xx.win32
-
-Linux FTDICHIP solution:
-   ./configure --prefix=/home/duane/mytools \
-               --enable-ft2232_ftd2xx \
-               --with-ft2xx-linux-tardir=/home/duane/libftd2xx0.4.16
-
-Cygwin/Linux LIBFTDI solution:
-    Assumes: 
-    1a) For Windows: The Windows port of LIBUSB is in place.
-    1b) For Linux: libusb has been built/installed and is in place.
-
-    2) And libftdi has been built and installed
-    Note: libftdi - relies upon libusb.
-
-    ./configure --prefix=/home/duane/mytools \
-                --enable-ft2232_libftdi
-       
+/home/duane/ftd2xx.win32    => the Cygwin/Win32 ZIP file contents
+/home/duane/libftd2xx0.4.16 => the Linux TAR.GZ file contents
 @end example
 
-4) Then just type ``make'', and perhaps ``make install''.
+@item Configure with options resembling the following.
+
+@enumerate a
+@item Cygwin FTDICHIP solution:
+@example
+./configure --prefix=/home/duane/mytools \
+        --enable-ft2232_ftd2xx \
+        --with-ftd2xx-win32-zipdir=/home/duane/ftd2xx.win32
+@end example
+
+@item Linux FTDICHIP solution:
+@example
+./configure --prefix=/home/duane/mytools \
+        --enable-ft2232_ftd2xx \
+        --with-ft2xx-linux-tardir=/home/duane/libftd2xx0.4.16
+@end example
+
+@item Cygwin/Linux LIBFTDI solution ... assuming that
+@itemize
+@item For Windows -- that the Windows port of LIBUSB is in place.
+@item For Linux -- that libusb has been built/installed and is in place.
+@item That libftdi has been built and installed (relies on libusb).
+@end itemize
+
+Then configure the libftdi solution like this:
+
+@example
+./configure --prefix=/home/duane/mytools \
+        --enable-ft2232_libftdi
+@end example
+@end enumerate
+
+@item Then just type ``make'', and perhaps ``make install''.
+@end enumerate
 
 
 @section Miscellaneous Configure Options
@@ -467,9 +480,10 @@ and has a built in relay to power cycle targets remotely.
 
 There are many USB JTAG dongles on the market, many of them are based
 on a chip from ``Future Technology Devices International'' (FTDI)
-known as the FTDI FT2232.
-
-See: @url{http://www.ftdichip.com} or @url{http://www.ftdichip.com/Products/FT2232H.htm}
+known as the FTDI FT2232; this is a USB full speed (12 Mbps) chip.
+See: @url{http://www.ftdichip.com} for more information.
+In summer 2009, USB high speed (480 Mbps) versions of these FTDI
+chips are starting to become available in JTAG adapters.
 
 As of 28/Nov/2008, the following are supported:
 
@@ -489,7 +503,9 @@ As of 28/Nov/2008, the following are supported:
 @item @b{flyswatter}
 @* See: @url{http://www.tincantools.com}
 @item @b{turtelizer2}
-@* See: @url{http://www.ethernut.de}, or @url{http://www.ethernut.de/en/hardware/turtelizer/index.html}
+@* See:
+@uref{http://www.ethernut.de/en/hardware/turtelizer/index.html, Turtelizer 2}, or
+@url{http://www.ethernut.de}
 @item @b{comstick}
 @* Link: @url{http://www.hitex.com/index.php?id=383}
 @item @b{stm32stick}
@@ -563,7 +579,8 @@ produced, PDF schematics are easily found and it is easy to make.
 @* Link: @url{http://www.gateworks.com/products/avila_accessories/gw16042.php}
 
 @item @b{Wiggler2}
-@* Link: @url{http://www.ccac.rwth-aachen.de/~michaels/index.php/hardware/armjtag}
+@*@uref{http://www.ccac.rwth-aachen.de/@/~michaels/@/index.php/hardware/@/armjtag,
+Improved parallel-port wiggler-style JTAG adapter}
 
 @item @b{Wiggler_ntrst_inverted}
 @* Yet another variation - See the source code, src/jtag/parport.c
@@ -581,12 +598,13 @@ produced, PDF schematics are easily found and it is easy to make.
 @* Unknown.
 
 @item @b{Lattice}
-@* ispDownload from Lattice Semiconductor @url{http://www.latticesemi.com/lit/docs/devtools/dlcable.pdf}
+@* ispDownload from Lattice Semiconductor
+@url{http://www.latticesemi.com/lit/docs/@/devtools/dlcable.pdf}
 
 @item @b{flashlink}
-@* From ST Microsystems, link:
-@url{http://www.st.com/stonline/products/literature/um/7889.pdf}
-Title: FlashLINK JTAG programing cable for PSD and uPSD
+@* From ST Microsystems;
+@uref{http://www.st.com/stonline/@/products/literature/um/7889.pdf,
+FlashLINK JTAG programing cable for PSD and uPSD}
 
 @end itemize
 
@@ -717,7 +735,7 @@ You can use a series of ``-f filename'' options on the command line,
 OpenOCD will read each filename in sequence, for example:
 
 @example
-        openocd -f file1.cfg -f file2.cfg -f file2.cfg
+openocd -f file1.cfg -f file2.cfg -f file2.cfg
 @end example
 
 You can also intermix various commands with the ``-c'' command line
@@ -806,11 +824,6 @@ A preconfigured interface file should exist for every interface in use
 today, that said, perhaps some interfaces have only been used by the
 sole developer who created it.
 
-@b{FIXME/NOTE:} We need to add support for a variable like Tcl variable
-tcl_platform(platform), it should be called jim_platform (because it
-is jim, not real tcl) and it should contain 1 of 3 words: ``linux'',
-``cygwin'' or ``mingw''
-
 Interface files should be found in @t{$(INSTALLDIR)/lib/openocd/interface}
 
 @section Board Config Files
@@ -881,8 +894,10 @@ error or warning like this. The hope is that this will help to pinpoint
 problems in OpenOCD configurations.
 
 @example
-Info:   JTAG tap: sam7x256.cpu tap/device found: 0x3f0f0f0f (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)
-Error:  ERROR: Tap: sam7x256.cpu - Expected id: 0x12345678, Got: 0x3f0f0f0f
+Info:   JTAG tap: sam7x256.cpu tap/device found: 0x3f0f0f0f
+                (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)
+Error:  ERROR: Tap: sam7x256.cpu - Expected id: 0x12345678,
+                Got: 0x3f0f0f0f
 Error:  ERROR: expected: mfg: 0x33c, part: 0x2345, ver: 0x1
 Error:  ERROR:      got: mfg: 0x787, part: 0xf0f0, ver: 0x3
 @end example
@@ -989,7 +1004,8 @@ After the ``defaults'' are choosen [see above] the taps are created.
 @example
 # for an ARM7TDMI.
 set _TARGETNAME [format "%s.cpu" $_CHIPNAME]
-jtag newtap $_CHIPNAME cpu -irlen 4 -ircapture 0x1 -irmask 0xf -expected-id $_CPUTAPID
+jtag newtap $_CHIPNAME cpu -irlen 4 -ircapture 0x1 -irmask 0xf \
+        -expected-id $_CPUTAPID
 @end example
 
 @b{COMPLEX example:}
@@ -1007,14 +1023,16 @@ if @{ [info exists FLASHTAPID ] @} @{
 @} else @{
    set _FLASHTAPID 0x25966041
 @}
-jtag newtap $_CHIPNAME flash -irlen 8 -ircapture 0x1 -irmask 0x1 -expected-id $_FLASHTAPID
+jtag newtap $_CHIPNAME flash -irlen 8 -ircapture 0x1 -irmask 0x1 \
+        -expected-id $_FLASHTAPID
 
 if @{ [info exists CPUTAPID ] @} @{
    set _CPUTAPID $CPUTAPID
 @} else @{
    set _CPUTAPID 0x25966041
 @}
-jtag newtap $_CHIPNAME cpu   -irlen 4 -ircapture 0xf -irmask 0xe -expected-id $_CPUTAPID
+jtag newtap $_CHIPNAME cpu -irlen 4 -ircapture 0xf -irmask 0xe \
+        -expected-id $_CPUTAPID
 
 
 if @{ [info exists BSTAPID ] @} @{
@@ -1022,7 +1040,8 @@ if @{ [info exists BSTAPID ] @} @{
 @} else @{
    set _BSTAPID 0x1457f041
 @}
-jtag newtap $_CHIPNAME bs    -irlen 5 -ircapture 0x1 -irmask 0x1 -expected-id $_BSTAPID
+jtag newtap $_CHIPNAME bs -irlen 5 -ircapture 0x1 -irmask 0x1 \
+        -expected-id $_BSTAPID
 
 set _TARGETNAME [format "%s.cpu" $_CHIPNAME]
 @end example
@@ -1144,7 +1163,6 @@ can type a Tcl for() loop, set variables, etc.
 @item @b{Need a crash course in Tcl?}
 @* See: @xref{Tcl Crash Course}.
 @end itemize
-
 
 @node Daemon Configuration
 @chapter Daemon Configuration
@@ -2087,7 +2105,10 @@ creates and invokes small procedure. The second inlines the procedure.
        reset halt
    @}
    mychip.cpu configure -event gdb-attach my_attach_proc 
-   mychip.cpu configure -event gdb-attach @{ puts "Reset..." ; reset halt @}
+   mychip.cpu configure -event gdb-attach @{
+	   puts "Reset..."
+	   reset halt
+   @}
 @end example
 
 @section Current Events
@@ -2256,27 +2277,16 @@ Example:
 
 @section Target Variants
 @itemize @bullet
-@item @b{arm7tdmi}
-@* Unknown (please write me)
-@item @b{arm720t}
-@* Unknown (please write me) (similar to arm7tdmi)
-@item @b{arm9tdmi}
-@* Variants: @option{arm920t}, @option{arm922t} and @option{arm940t}
-This enables the hardware single-stepping support found on these
-cores.
-@item @b{arm920t}
-@* None.
-@item @b{arm966e}
-@* None (this is also used as the ARM946)
 @item @b{cortex_m3}
-@* use variant <@var{-variant lm3s}> when debugging Luminary lm3s targets. This will cause
-OpenOCD to use a software reset rather than asserting SRST to avoid a issue with clearing
-the debug registers. This is fixed in Fury Rev B, DustDevil Rev B, Tempest, these revisions will
+@* Use variant @option{lm3s} when debugging older Stellaris LM3S targets.
+This will cause OpenOCD to use a software reset rather than asserting
+SRST, to avoid a issue with clearing the debug registers.
+This is fixed in Fury Rev B, DustDevil Rev B, Tempest; these revisions will
 be detected and the normal reset behaviour used.
 @item @b{xscale}
-@* Supported variants are @option{ixp42x}, @option{ixp45x}, @option{ixp46x},@option{pxa250}, @option{pxa255}, @option{pxa26x}.
-@item @b{arm11}
-@* Supported variants are @option{arm1136}, @option{arm1156}, @option{arm1176}
+@*Supported variants are
+@option{ixp42x}, @option{ixp45x}, @option{ixp46x},
+@option{pxa250}, @option{pxa255}, @option{pxa26x}.
 @item @b{mips_m4k}
 @* Use variant @option{ejtag_srst} when debugging targets that do not
 provide a functional SRST line on the EJTAG connector.  This causes
@@ -3536,8 +3546,13 @@ be used to access files on PCs (either the developer's PC or some other PC).
 
 The way this works on the ZY1000 is to prefix a filename by
 "/tftp/ip/" and append the TFTP path on the TFTP
-server (tftpd). E.g. "load_image /tftp/10.0.0.96/c:\temp\abc.elf" will
-load c:\temp\abc.elf from the developer pc (10.0.0.96) into memory as
+server (tftpd). For example,
+
+@example
+load_image /tftp/10.0.0.96/c:\temp\abc.elf
+@end example
+
+will load c:\temp\abc.elf from the developer pc (10.0.0.96) into memory as
 if the file was hosted on the embedded host.
 
 In order to achieve decent performance, you must choose a TFTP server
@@ -3567,7 +3582,8 @@ Detailed information about each section can be found at OpenOCD configuration.
 To start OpenOCD with a target script for the AT91R40008 CPU and reset
 the CPU upon startup of the OpenOCD daemon.
 @example
-openocd -f interface/parport.cfg -f target/at91r40008.cfg -c init -c reset 
+openocd -f interface/parport.cfg -f target/at91r40008.cfg \
+        -c "init" -c "reset"
 @end example
 
 
@@ -3585,7 +3601,8 @@ instance GDB 6.3 has a known bug that produces bogus memory access
 errors, which has since been fixed: look up 1836 in
 @url{http://sourceware.org/cgi-bin/gnatsweb.pl?database=gdb}
 
-@*OpenOCD can communicate with GDB in two ways:
+OpenOCD can communicate with GDB in two ways:
+
 @enumerate
 @item
 A socket (TCP/IP) connection is typically started as follows:
@@ -3603,7 +3620,7 @@ Using this method has the advantage of GDB starting/stopping OpenOCD for the deb
 session.
 @end enumerate
 
-@*To see a list of available OpenOCD commands type @option{monitor help} on the
+To list the available OpenOCD commands type @command{monitor help} on the
 GDB command line.
 
 OpenOCD supports the gdb @option{qSupported} packet, this enables information
@@ -3707,8 +3724,9 @@ should be passed in to the proc in question.
 
 By low-level, the intent is a human would not directly use these commands.
 
-Low-level commands are (should be) prefixed with "openocd_", e.g. openocd_flash_banks
-is the low level API upon which "flash banks" is implemented.
+Low-level commands are (should be) prefixed with "ocd_", e.g.
+@command{ocd_flash_banks}
+is the low level API upon which @command{flash banks} is implemented.
 
 @itemize @bullet
 @item @b{ocd_mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
@@ -3745,6 +3763,13 @@ holds one of the following values:
 
 Note: 'winxx' was choosen because today (March-2009) no distinction is made between Win32 and Win64.
 
+@quotation Note
+We should add support for a variable like Tcl variable
+@code{tcl_platform(platform)}, it should be called
+@code{jim_platform} (because it
+is jim, not real tcl).
+@end quotation
+
 @node Upgrading
 @chapter Deprecated/Removed Commands
 @cindex Deprecated/Removed Commands
@@ -3753,7 +3778,8 @@ Certain OpenOCD commands have been deprecated/removed during the various revisio
 @itemize @bullet
 @item @b{arm7_9 fast_writes}
 @cindex arm7_9 fast_writes
-@*use @option{arm7_9 fast_memory_access} command with same args. @xref{arm7_9 fast_memory_access}.
+@*Use @command{arm7_9 fast_memory_access} instead.
+@xref{arm7_9 fast_memory_access}.
 @item @b{arm7_9 force_hw_bkpts}
 @cindex arm7_9 force_hw_bkpts
 @*Use @command{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
@@ -4451,7 +4477,8 @@ finally issues the init and reset commands. The communication speed
 is set to 10kHz for reset and 8MHz for post reset.
 
 @example
-openocd -f interface/parport.cfg -f target/str710.cfg -c "init" -c "reset"
+openocd -f interface/parport.cfg -f target/str710.cfg \
+        -c "init" -c "reset"
 @end example
 
 To list the target scripts available:
