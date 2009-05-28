@@ -64,7 +64,7 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 * Reset Configuration::              Reset Configuration
 * Tap Creation::                     Tap Creation
 * Target Configuration::             Target Configuration
-* Flash Configuration::              Flash Configuration
+* Flash Commands::                   Flash Commands
 * NAND Flash Commands::              NAND Flash Commands
 * General Commands::                 General Commands
 * JTAG Commands::                    JTAG Commands
@@ -2305,9 +2305,8 @@ still use this that need to be converted.
 @end example
 @* The target# is a the 0 based target numerical index.
 
-@node Flash Configuration
-@chapter Flash programming
-@cindex Flash Configuration
+@node Flash Commands
+@chapter Flash Commands
 
 OpenOCD has different commands for NOR and NAND flash;
 the ``flash'' command works with NOR flash, while
@@ -2319,94 +2318,35 @@ used.  (SPI flash must also be copied to memory before use.)
 However, the documentation also uses ``flash'' as a generic term;
 for example, ``Put flash configuration in board-specific files''.
 
-@b{Note:} As of 28/nov/2008 OpenOCD does not know how to program a SPI
+@quotation Note
+As of 28-nov-2008 OpenOCD does not know how to program a SPI
 flash that a micro may boot from. Perhaps you, the reader, would like to
 contribute support for this.
+@end quotation
 
 Flash Steps:
 @enumerate
-@item Configure via the command @b{flash bank} 
-@* Normally this is done in a configuration file.
-@item Operate on the flash via @b{flash SOMECOMMAND}
+@item Configure via the command @command{flash bank}
+@* Do this in a board-specific configuration file,
+passing parameters as needed by the driver.
+@item Operate on the flash via @command{flash subcommand}
 @* Often commands to manipulate the flash are typed by a human, or run
-via a script in some automated way. For example: To program the boot
-flash on your board.
+via a script in some automated way.  Common tasks include writing a
+boot loader, operating system, or other data.
 @item GDB Flashing
 @* Flashing via GDB requires the flash be configured via ``flash
 bank'', and the GDB flash features be enabled.
 @xref{GDB Configuration}.
 @end enumerate
 
-@section Flash commands
-@cindex Flash commands
-@subsection flash banks
-@b{flash banks}
-@cindex flash banks
-@*List configured flash banks 
-@*@b{NOTE:} the singular form: 'flash bank' is used to configure the flash banks.
-@subsection flash info
-@b{flash info} <@var{num}>
-@cindex flash info
-@*Print info about flash bank <@option{num}> 
-@subsection flash probe
-@b{flash probe} <@var{num}>
-@cindex flash probe
-@*Identify the flash, or validate the parameters of the configured flash. Operation
-depends on the flash type. 
-@subsection flash erase_check
-@b{flash erase_check} <@var{num}>
-@cindex flash erase_check
-@*Check erase state of sectors in flash bank <@var{num}>. This is the only operation that
-updates the erase state information displayed by @option{flash info}. That means you have
-to issue an @option{erase_check} command after erasing or programming the device to get
-updated information. 
-@subsection flash protect_check
-@b{flash protect_check} <@var{num}>
-@cindex flash protect_check
-@*Check protection state of sectors in flash bank <num>. 
-@option{flash erase_sector} using the same syntax. 
-@subsection flash erase_sector
-@b{flash erase_sector} <@var{num}> <@var{first}> <@var{last}>
-@cindex flash erase_sector
-@anchor{flash erase_sector}
-@*Erase sectors at bank <@var{num}>, starting at sector <@var{first}> up to and including
-<@var{last}>. Sector numbering starts at 0. Depending on the flash type, erasing may
-require the protection to be disabled first (e.g. Intel Advanced Bootblock flash using
-the CFI driver).
-@subsection flash erase_address
-@b{flash erase_address} <@var{address}> <@var{length}>
-@cindex flash erase_address
-@*Erase sectors starting at <@var{address}> for <@var{length}> bytes
-@subsection flash write_bank
-@b{flash write_bank} <@var{num}> <@var{file}> <@var{offset}>
-@cindex flash write_bank
-@anchor{flash write_bank}
-@*Write the binary <@var{file}> to flash bank <@var{num}>, starting at
-<@option{offset}> bytes from the beginning of the bank.
-@subsection flash write_image
-@b{flash write_image} [@var{erase}] <@var{file}> [@var{offset}] [@var{type}]
-@cindex flash write_image
-@anchor{flash write_image}
-@*Write the image <@var{file}> to the current target's flash bank(s). A relocation
-[@var{offset}] can be specified and the file [@var{type}] can be specified
-explicitly as @option{bin} (binary), @option{ihex} (Intel hex), @option{elf}
-(ELF file) or @option{s19} (Motorola s19). Flash memory will be erased prior to programming
-if the @option{erase} parameter is given.
-@subsection flash protect
-@b{flash protect} <@var{num}> <@var{first}> <@var{last}> <@option{on}|@option{off}>
-@cindex flash protect
-@*Enable (@var{on}) or disable (@var{off}) protection of flash sectors <@var{first}> to
-<@var{last}> of @option{flash bank} <@var{num}>.
+Many CPUs have the ablity to ``boot'' from the first flash bank.
+This means that misprograming that bank can ``brick'' a system,
+so that it can't boot.
+JTAG tools, like OpenOCD, are often then used to ``de-brick'' the
+board by (re)installing working boot firmware.
 
-@section flash bank command
-The @command{flash bank} command is used to configure one or more flash
-chips (or @emph{banks} in OpenOCD terms).
-Most CPUs have the ablity to ``boot'' from the first flash bank.
-
-@quotation Note
-This command is not available after OpenOCD initialization has completed.
-Use it in board specific configuration files, not interactively.
-@end quotation
+@section Flash Configuration Commands
+@cindex flash configuration
 
 @deffn {Config Command} {flash bank} driver base size chip_width bus_width target [driver_options]
 Configures a flash bank which provides persistent storage
@@ -2435,6 +2375,152 @@ commands to the flash controller.
 additional parameters.  See the driver-specific documentation
 for more information.
 @end itemize
+@quotation Note
+This command is not available after OpenOCD initialization has completed.
+Use it in board specific configuration files, not interactively.
+@end quotation
+@end deffn
+
+@comment the REAL name for this command is "ocd_flash_banks"
+@comment less confusing would be:  "flash list" (like "nand list")
+@deffn Command {flash banks}
+Prints a one-line summary of each device declared
+using @command{flash bank}, numbered from zero.
+Note that this is the @emph{plural} form;
+the @emph{singular} form is a very different command.
+@end deffn
+
+@deffn Command {flash probe} num
+Identify the flash, or validate the parameters of the configured flash. Operation
+depends on the flash type.
+The @var{num} parameter is a value shown by @command{flash banks}.
+Most flash commands will implicitly @emph{autoprobe} the bank;
+flash drivers can distinguish between probing and autoprobing,
+but most don't bother.
+@end deffn
+
+@section Erasing, Reading, Writing to Flash
+@cindex flash erasing
+@cindex flash reading
+@cindex flash writing
+@cindex flash programming
+
+One feature distinguishing NOR flash from NAND or serial flash technologies
+is that for read access, it acts exactly like any other addressible memory.
+This means you can use normal memory read commands like @command{mdw} or
+@command{dump_image} with it, with no special @command{flash} subcommands.
+@xref{Memory access}.
+@xref{Image access}.
+
+Write access works differently.  Flash memory normally needs to be erased
+before it's written.  Erasing a sector turns all of its bits to ones, and
+writing can turn ones into zeroes.  This is why there are special commands
+for interactive erasing and writing, and why GDB needs to know which parts
+of the address space hold NOR flash memory.
+
+@quotation Note
+Most of these erase and write commands leverage the fact that NOR flash
+chips consume target address space.  They implicitly refer to the current
+JTAG target, and map from an address in that target's address space
+back to a flash bank.
+@comment In May 2009, those mappings may fail if any bank associated
+@comment with that target doesn't succesfuly autoprobe ... bug worth fixing?
+A few commands use abstract addressing based on bank and sector numbers,
+and don't depend on searching the current target and its address space.
+Avoid confusing the two command models.
+@end quotation
+
+Some flash chips implement software protection against accidental writes,
+since such buggy writes could in some cases ``brick'' a system.
+For such systems, erasing and writing may require sector protection to be
+disabled first.
+Examples include CFI flash such as ``Intel Advanced Bootblock flash'',
+and AT91SAM7 on-chip flash.
+@xref{flash protect}.
+
+@anchor{flash erase_sector}
+@deffn Command {flash erase_sector} num first last
+Erase sectors in bank @var{num}, starting at sector @var{first} up to and including
+@var{last}. Sector numbering starts at 0.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {flash erase_address} address length
+Erase sectors starting at @var{address} for @var{length} bytes.
+The flash bank to use is inferred from the @var{address}, and
+the specified length must stay within that bank.
+As a special case, when @var{length} is zero and @var{address} is
+the start of the bank, the whole flash is erased.
+@end deffn
+
+@deffn Command {flash fillw} address word length
+@deffnx Command {flash fillh} address halfword length
+@deffnx Command {flash fillb} address byte length
+Fills flash memory with the specified @var{word} (32 bits),
+@var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
+starting at @var{address} and continuing
+for @var{length} units (word/halfword/byte).
+No erasure is done before writing; when needed, that must be done
+before issuing this command.
+Writes are done in blocks of up to 1024 bytes, and each write is
+verified by reading back the data and comparing it to what was written.
+The flash bank to use is inferred from the @var{address} of
+each block, and the specified length must stay within that bank.
+@end deffn
+@comment no current checks for errors if fill blocks touch multiple banks!
+
+@anchor{flash write_bank}
+@deffn Command {flash write_bank} num filename offset
+Write the binary @file{filename} to flash bank @var{num},
+starting at @var{offset} bytes from the beginning of the bank.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@anchor{flash write_image}
+@deffn Command {flash write_image} [erase] filename [offset] [type]
+Write the image @file{filename} to the current target's flash bank(s).
+A relocation @var{offset} may be specified, in which case it is added
+to the base address for each section in the image.
+The file [@var{type}] can be specified
+explicitly as @option{bin} (binary), @option{ihex} (Intel hex), @option{elf}
+(ELF file) or @option{s19} (Motorola s19).
+The relevant flash sectors will be erased prior to programming
+if the @option{erase} parameter is given.
+The flash bank to use is inferred from the @var{address} of
+each image segment.
+@end deffn
+
+@section Other Flash commands
+@cindex flash protection
+
+@deffn Command {flash erase_check} num
+Check erase state of sectors in flash bank @var{num},
+and display that status.
+The @var{num} parameter is a value shown by @command{flash banks}.
+This is the only operation that
+updates the erase state information displayed by @option{flash info}. That means you have
+to issue an @command{flash erase_check} command after erasing or programming the device
+to get updated information.
+(Code execution may have invalidated any state records kept by OpenOCD.)
+@end deffn
+
+@deffn Command {flash info} num
+Print info about flash bank @var{num}
+The @var{num} parameter is a value shown by @command{flash banks}.
+The information includes per-sector protect status.
+@end deffn
+
+@anchor{flash protect}
+@deffn Command {flash protect} num first last (on|off)
+Enable (@var{on}) or disable (@var{off}) protection of flash sectors
+@var{first} to @var{last} of flash bank @var{num}.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {flash protect_check} num
+Check protection state of sectors in flash bank @var{num}.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@comment @option{flash erase_sector} using the same syntax.
 @end deffn
 
 @section Flash Drivers, Options, and Commands
@@ -3279,6 +3365,7 @@ state.
 
 
 @section Memory access commands
+@anchor{Memory access}
 @subsection meminfo
 display available RAM memory.
 @subsection Memory peek/poke type commands
@@ -3314,6 +3401,7 @@ SDRAM controller to enable SDRAM.
 @end itemize
 
 @section Image loading commands
+@anchor{Image access}
 @subsection load_image
 @b{load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
 @cindex load_image
