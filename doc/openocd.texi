@@ -82,7 +82,7 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 @comment Occurs when creating ``--html --no-split'' output
 @comment This fix is based on: http://sourceware.org/ml/binutils/2006-05/msg00215.html
 * OpenOCD Concept Index::            Concept Index
-* OpenOCD Command Index::            Command Index
+* Command and Driver Index::         Command and Driver Index
 @end menu
 
 @node About
@@ -110,7 +110,7 @@ OpenOCD internally. @xref{JTAG Hardware Dongles}.
 
 @b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920T,
 ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x) and
-Cortex-M3 (Luminary Stellaris LM3 and ST STM32) based cores to be
+Cortex-M3 (Stellaris LM3 and ST STM32) based cores to be
 debugged via the GDB protocol.
 
 @b{Flash Programing:} Flash writing is supported for external CFI
@@ -497,7 +497,7 @@ As of 28/Nov/2008, the following are supported:
 @item @b{signalyzer}
 @* See: @url{http://www.signalyzer.com}
 @item @b{evb_lm3s811}
-@* See: @url{http://www.luminarymicro.com} - The Luminary Micro Stellaris LM3S811 eval board has an FTD2232C chip built in.
+@* See: @url{http://www.luminarymicro.com} - The Stellaris LM3S811 eval board has an FTD2232C chip built in.
 @item @b{olimex-jtag}
 @* See: @url{http://www.olimex.com}
 @item @b{flyswatter}
@@ -2398,204 +2398,265 @@ if the @option{erase} parameter is given.
 @*Enable (@var{on}) or disable (@var{off}) protection of flash sectors <@var{first}> to
 <@var{last}> of @option{flash bank} <@var{num}>.
 
-@subsection mFlash commands
-@cindex mFlash commands
-@itemize @bullet
-@item @b{mflash probe} 
-@cindex mflash probe
-@*Probe mflash.
-@item @b{mflash write} <@var{num}> <@var{file}> <@var{offset}>
-@cindex mflash write
-@*Write the binary <@var{file}> to mflash bank <@var{num}>, starting at
-<@var{offset}> bytes from the beginning of the bank.
-@item @b{mflash dump} <@var{num}> <@var{file}> <@var{offset}> <@var{size}>
-@cindex mflash dump
-@*Dump <size> bytes, starting at <@var{offset}> bytes from the beginning of the <@var{num}> bank 
-to a <@var{file}>.
-@item @b{mflash config pll} <@var{frequency}>
-@cindex mflash config pll
-@*Configure mflash pll. <@var{frequency}> is input frequency of mflash. The order is Hz.
-Issuing this command will erase mflash's whole internal nand and write new pll. 
-After this command, mflash needs power-on-reset for normal operation.
-If pll was newly configured, storage and boot(optional) info also need to be update.
-@item @b{mflash config boot}
-@cindex mflash config boot
-@*Configure bootable option. If bootable option is set, mflash offer the first 8 sectors
-(4kB) for boot.
-@item @b{mflash config storage}
-@cindex mflash config storage
-@*Configure storage information. For the normal storage operation, this information must be
-written. 
-@end itemize
-
 @section flash bank command
-The @b{flash bank} command is used to configure one or more flash chips (or banks in OpenOCD terms)
+The @command{flash bank} command is used to configure one or more flash
+chips (or @emph{banks} in OpenOCD terms).
+Most CPUs have the ablity to ``boot'' from the first flash bank.
 
-@example
-@b{flash bank} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}>
-<@var{bus_width}> <@var{target}> [@var{driver_options ...}]
-@end example
-@cindex flash bank
-@*Configures a flash bank at <@var{base}> of <@var{size}> bytes and <@var{chip_width}>
-and <@var{bus_width}> bytes using the selected flash <driver>.
+@quotation Note
+This command is not available after OpenOCD initialization has completed.
+Use it in board specific configuration files, not interactively.
+@end quotation
 
-@subsection External Flash - cfi options
-@cindex cfi options
-CFI flashes are external flash chips - often they are connected to a
-specific chip select on the CPU. By default, at hard reset, most
-CPUs have the ablity to ``boot'' from some flash chip - typically
-attached to the CPU's CS0 pin.
+@deffn {Config Command} {flash bank} driver base size chip_width bus_width target [driver_options]
+Configures a flash bank which provides persistent storage
+for addresses from @math{base} to @math{base + size - 1}.
+These banks will often be visible to GDB through the target's memory map.
+In some cases, configuring a flash bank will activate extra commands;
+see the driver-specific documentation.
 
-For other chip selects: OpenOCD does not know how to configure, or
-access a specific chip select. Instead you, the human, might need to 
-configure additional chip selects via other commands (like: mww) , or
+@itemize @bullet
+@item @var{driver} ... identifies the controller driver
+associated with the flash bank being declared.
+This is usually @code{cfi} for external flash, or else
+the name of a microcontroller with embedded flash memory.
+@xref{Flash Driver List}.
+@item @var{base} ... Base address of the flash chip.
+@item @var{size} ... Size of the chip, in bytes.
+For some drivers, this value is detected from the hardware.
+@item @var{chip_width} ... Width of the flash chip, in bytes;
+ignored for most microcontroller drivers.
+@item @var{bus_width} ... Width of the data bus used to access the
+chip, in bytes; ignored for most microcontroller drivers.
+@item @var{target} ... Names the target used to issue
+commands to the flash controller.
+@comment Actually, it's currently a controller-specific parameter...
+@item @var{driver_options} ... drivers may support, or require,
+additional parameters.  See the driver-specific documentation
+for more information.
+@end itemize
+@end deffn
+
+@section Flash Drivers, Options, and Commands
+@anchor{Flash Driver List}
+As noted above, the @command{flash bank} command requires a driver name,
+and allows driver-specific options and behaviors.
+Some drivers also activate driver-specific commands.
+
+@subsection External Flash
+
+@deffn {Flash Driver} cfi
+@cindex Common Flash Interface
+@cindex CFI
+The ``Common Flash Interface'' (CFI) is the main standard for
+external NOR flash chips, each of which connects to a
+specific external chip select on the CPU.
+Frequently the first such chip is used to boot the system.
+Your board's @code{reset-init} handler might need to
+configure additional chip selects using other commands (like: @command{mww} to
+configure a bus and its timings) , or
 perhaps configure a GPIO pin that controls the ``write protect'' pin
 on the flash chip.
+The CFI driver can use a target-specific working area to significantly
+speed up operation.
 
-@b{flash bank cfi} <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}>
-<@var{target}> [@var{jedec_probe}|@var{x16_as_x8}]
-@*CFI flashes require the name or number of the target they're connected to
-as an additional
-argument. The CFI driver makes use of a working area (specified for the target)
-to significantly speed up operation. 
+The CFI driver can accept the following optional parameters, in any order:
 
-@var{chip_width} and @var{bus_width} are specified in bytes.
+@itemize
+@item @var{jedec_probe} ... is used to detect certain non-CFI flash ROMs,
+like AM29LV010 and similar types.
+@item @var{x16_as_x8} ...
+@end itemize
 
-The @var{jedec_probe} option is used to detect certain non-CFI flash ROMs, like AM29LV010 and similar types.
+To configure two adjacent banks of 16 MBytes each, both sixteen bits (two bytes)
+wide on a sixteen bit bus:
 
-@var{x16_as_x8} ???
+@example
+flash bank cfi 0x00000000 0x01000000 2 2 $_TARGETNAME
+flash bank cfi 0x01000000 0x01000000 2 2 $_TARGETNAME
+@end example
+@end deffn
 
 @subsection Internal Flash (Microcontrollers)
-@subsubsection lpc2000 options
-@cindex lpc2000 options
 
-@b{flash bank lpc2000} <@var{base}> <@var{size}> 0 0 <@var{target}> <@var{variant}>
-<@var{clock}> [@var{calc_checksum}]
-@*LPC flashes don't require the chip and bus width to be specified. Additional
-parameters are the <@var{variant}>, which may be @var{lpc2000_v1} (older LPC21xx and LPC22xx)
-or @var{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx),
-the name or number of the target this flash belongs to (first is 0),
-the frequency at which the core
-is currently running (in kHz - must be an integral number), and the optional keyword
-@var{calc_checksum}, telling the driver to calculate a valid checksum for the exception
-vector table. 
+@deffn {Flash Driver} aduc702x
+The ADUC702x analog microcontrollers from ST Micro
+include internal flash and use ARM7TDMI cores.
+The aduc702x flash driver works with models ADUC7019 through ADUC7028.
+The setup command only requires the @var{target} argument
+since all devices in this family have the same memory layout.
 
-
-@subsubsection at91sam7 options
-@cindex at91sam7 options
-
-@b{flash bank at91sam7} 0 0 0 0 <@var{target}>
-@*AT91SAM7 flashes only require the @var{target}, all other values are looked up after
-reading the chip-id and type. 
-
-@subsubsection str7 options
-@cindex str7 options
-
-@b{flash bank str7x} <@var{base}> <@var{size}> 0 0 <@var{target}> <@var{variant}>
-@*variant can be either STR71x, STR73x or STR75x. 
-
-@subsubsection str9 options
-@cindex str9 options
-
-@b{flash bank str9x} <@var{base}> <@var{size}> 0 0 <@var{target}>
-@*The str9 needs the flash controller to be configured prior to Flash programming, e.g.
 @example
+flash bank aduc702x 0 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
+@deffn {Flash Driver} at91sam7
+All members of the AT91SAM7 microcontroller family from Atmel
+include internal flash and use ARM7TDMI cores.
+The driver automatically recognizes a number of these chips using
+the chip identification register, and autoconfigures itself.
+
+@example
+flash bank at91sam7 0 0 0 0 $_TARGETNAME
+@end example
+
+For chips which are not recognized by the controller driver, you must
+provide additional parameters in the following order:
+
+@itemize
+@item @var{chip_model} ... label used with @command{flash info}
+@item @var{banks}
+@item @var{sectors_per_bank}
+@item @var{pages_per_sector}
+@item @var{pages_size}
+@item @var{num_nvm_bits}
+@item @var{freq_khz} ... required if an external clock is provided,
+optional (but recommended) when the oscillator frequency is known
+@end itemize
+
+It is recommended that you provide zeroes for all of those values
+except the clock frequency, so that everything except that frequency
+will be autoconfigured.
+Knowing the frequency helps ensure correct timings for flash access.
+
+The flash controller handles erases automatically on a page (128/256 byte)
+basis, so explicit erase commands are not necessary for flash programming.
+However, there is an ``EraseAll`` command that can erase an entire flash
+plane (of up to 256KB), and it will be used automatically when you issue
+@command{flash erase_sector} or @command{flash erase_address} commands.
+
+@deffn Command {at91sam7 gpnvm} bitnum (set|clear)
+Set or clear a ``General Purpose Non-Volatle Memory'' (GPNVM)
+bit for the processor.   Each processor has a number of such bits,
+used for controlling features such as brownout detection (so they
+are not truly general purpose).
+@quotation Note
+This assumes that the first flash bank (number 0) is associated with
+the appropriate at91sam7 target.
+@end quotation
+@end deffn
+@end deffn
+
+@deffn {Flash Driver} lpc2000
+Most members of the LPC2000 microcontroller family from NXP
+include internal flash and use ARM7TDMI cores.
+The @var{lpc2000} driver defines two mandatory and one optional parameters,
+which must appear in the following order:
+
+@itemize
+@item @var{variant} ... required, may be
+@var{lpc2000_v1} (older LPC21xx and LPC22xx)
+or @var{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx)
+@item @var{clock_kHz} ... the frequency, in kiloHertz,
+at which the core is running
+@item @var{calc_checksum} ... optional (but you probably want to provide this!),
+telling the driver to calculate a valid checksum for the exception vector table.
+@end itemize
+
+LPC flashes don't require the chip and bus width to be specified.
+
+@example
+flash bank lpc2000 0x0 0x7d000 0 0 $_TARGETNAME \
+      lpc2000_v2 14765 calc_checksum
+@end example
+@end deffn
+
+@deffn {Flash Driver} stellaris
+All members of the Stellaris LM3Sxxx microcontroller family from
+Texas Instruments
+include internal flash and use ARM Cortex M3 cores.
+The driver automatically recognizes a number of these chips using
+the chip identification register, and autoconfigures itself.
+@footnote{Currently there is a @command{stellaris mass_erase} command.
+That seems pointless since the same effect can be had using the
+standard @command{flash erase_address} command.}
+
+@example
+flash bank stellaris 0 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
+@deffn {Flash Driver} stm32x
+All members of the STM32 microcontroller family from ST Microelectronics
+include internal flash and use ARM Cortex M3 cores.
+The driver automatically recognizes a number of these chips using
+the chip identification register, and autoconfigures itself.
+
+@example
+flash bank stm32x 0 0 0 0 $_TARGETNAME
+@end example
+
+Some stm32x-specific commands
+@footnote{Currently there is a @command{stm32x mass_erase} command.
+That seems pointless since the same effect can be had using the
+standard @command{flash erase_address} command.}
+are defined:
+
+@deffn Command {stm32x lock} num
+Locks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32x unlock} num
+Unlocks the entire stm32 device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32x options_read} num
+Read and display the stm32 option bytes written by
+the @command{stm32x options_write} command.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32x options_write} num (SWWDG|HWWDG) (RSTSTNDBY|NORSTSTNDBY) (RSTSTOP|NORSTSTOP)
+Writes the stm32 option byte with the specified values.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+@end deffn
+
+@deffn {Flash Driver} str7x
+All members of the STR7 microcontroller family from ST Microelectronics
+include internal flash and use ARM7TDMI cores.
+The @var{str7x} driver defines one mandatory parameter, @var{variant},
+which is either @code{STR71x}, @code{STR73x} or @code{STR75x}.
+
+@example
+flash bank str7x 0x40000000 0x00040000 0 0 $_TARGETNAME STR71x
+@end example
+@end deffn
+
+@deffn {Flash Driver} str9x
+Most members of the STR9 microcontroller family from ST Microelectronics
+include internal flash and use ARM966E cores.
+The str9 needs the flash controller to be configured using
+the @command{str9x flash_config} command prior to Flash programming.
+
+@example
+flash bank str9x 0x40000000 0x00040000 0 0 $_TARGETNAME
 str9x flash_config 0 4 2 0 0x80000
 @end example
-This will setup the BBSR, NBBSR, BBADR and NBBADR registers respectively. 
 
-@subsubsection str9 options (str9xpec driver)
+@deffn Command {str9x flash_config} num bbsr nbbsr bbadr nbbadr
+Configures the str9 flash controller.
+The @var{num} parameter is a value shown by @command{flash banks}.
 
-@b{flash bank str9xpec} <@var{base}> <@var{size}> 0 0 <@var{target}>
-@*Before using the flash commands the turbo mode must be enabled using str9xpec
-@option{enable_turbo} <@var{num>.}
-
-Only use this driver for locking/unlocking the device or configuring the option bytes.
-Use the standard str9 driver for programming. @xref{STR9 specific commands}.
-
-@subsubsection Stellaris (LM3Sxxx) options
-@cindex Stellaris (LM3Sxxx) options
-
-@b{flash bank stellaris} <@var{base}> <@var{size}> 0 0 <@var{target}>
-@*Stellaris flash plugin only require the @var{target}.
-
-@subsubsection stm32x options
-@cindex stm32x options
-
-@b{flash bank stm32x} <@var{base}> <@var{size}> 0 0 <@var{target}>
-@*stm32x flash plugin only require the @var{target}.
-
-@subsubsection aduc702x options
-@cindex aduc702x options
-
-@b{flash bank aduc702x} 0 0 0 0 <@var{target}>
-@*The aduc702x flash plugin works with Analog Devices model numbers ADUC7019 through ADUC7028.  The setup command only requires the @var{target} argument (all devices in this family have the same memory layout).
-
-@subsection mFlash Configuration
-@cindex mFlash Configuration
-@b{mflash bank} <@var{soc}> <@var{base}> <@var{RST pin}> <@var{target}>
-@cindex mflash bank
-@*Configures a mflash for <@var{soc}> host bank at
-<@var{base}>. Pin number format is dependent on host GPIO calling convention.
-Currently, mflash bank support s3c2440 and pxa270.
-
-(ex. of s3c2440) mflash <@var{RST pin}> is GPIO B1.
-@example
-mflash bank s3c2440 0x10000000 1b 0
-@end example
-(ex. of pxa270) mflash <@var{RST pin}> is GPIO 43.
-@example
-mflash bank pxa270 0x08000000 43 0  
-@end example
-
-@section Microcontroller specific Flash Commands
-
-@subsection AT91SAM7 specific commands
-@cindex AT91SAM7 specific commands
-The flash configuration is deduced from the chip identification register. The flash
-controller handles erases automatically on a page (128/265 byte) basis, so erase is
-not necessary for flash programming. AT91SAM7 processors with less than 512K flash
-only have a single flash bank embedded on chip. AT91SAM7xx512 have two flash planes
-that can be erased separatly. Only an EraseAll command is supported by the controller
-for each flash plane and this is called with
 @itemize @bullet
-@item @b{flash erase} <@var{num}> @var{first_plane} @var{last_plane}
-@*bulk erase flash planes first_plane to last_plane. 
-@item @b{at91sam7 gpnvm} <@var{num}> <@var{bit}> <@option{set}|@option{clear}>
-@cindex at91sam7 gpnvm
-@*set or clear a gpnvm bit for the processor 
+@item @var{bbsr} - Boot Bank Size register
+@item @var{nbbsr} - Non Boot Bank Size register
+@item @var{bbadr} - Boot Bank Start Address register
+@item @var{nbbadr} - Boot Bank Start Address register
 @end itemize
+@end deffn
 
-@subsection STR9 specific commands
-@cindex STR9 specific commands
-@anchor{STR9 specific commands}
-These are flash specific commands when using the str9xpec driver.
-@itemize @bullet
-@item @b{str9xpec enable_turbo} <@var{num}>
-@cindex str9xpec enable_turbo
-@*enable turbo mode, will simply remove the str9 from the chain and talk
-directly to the embedded flash controller. 
-@item @b{str9xpec disable_turbo} <@var{num}>
-@cindex str9xpec disable_turbo
-@*restore the str9 into JTAG chain. 
-@item @b{str9xpec lock} <@var{num}>
-@cindex str9xpec lock
-@*lock str9 device. The str9 will only respond to an unlock command that will
-erase the device. 
-@item @b{str9xpec unlock} <@var{num}>
-@cindex str9xpec unlock
-@*unlock str9 device. 
-@item @b{str9xpec options_read} <@var{num}>
-@cindex str9xpec options_read
-@*read str9 option bytes. 
-@item @b{str9xpec options_write} <@var{num}>
-@cindex str9xpec options_write
-@*write str9 option bytes. 
-@end itemize
+@end deffn
 
-Note: Before using the str9xpec driver here is some background info to help
-you better understand how the drivers works. OpenOCD has two flash drivers for
-the str9.
+@subsection str9xpec driver
+@cindex str9xpec
+
+Here is some background info to help
+you better understand how this driver works. OpenOCD has two flash drivers for
+the str9:
 @enumerate
 @item
 Standard driver @option{str9x} programmed via the str9 core. Normally used for
@@ -2630,25 +2691,45 @@ When performing a unlock remember that you will not be able to halt the str9 - i
 has been locked. Halting the core is not required for the @option{str9xpec} driver
 as mentioned above, just issue the commands above manually or from a telnet prompt.
 
-@subsection STR9 configuration
-@cindex STR9 configuration
+@subsubsection str9xpec driver options
+
+@b{flash bank str9xpec} <@var{base}> <@var{size}> 0 0 <@var{target}>
+@*Before using the flash commands the turbo mode must be enabled using str9xpec
+@option{enable_turbo} <@var{num>.}
+
+Only use this driver for locking/unlocking the device or configuring the option bytes.
+Use the standard str9 driver for programming.
+
+@subsubsection str9xpec specific commands
+@cindex str9xpec specific commands
+These are flash specific commands when using the str9xpec driver.
+
 @itemize @bullet
-@item @b{str9x flash_config} <@var{bank}> <@var{BBSR}> <@var{NBBSR}>
-<@var{BBADR}> <@var{NBBADR}>
-@cindex str9x flash_config
-@*Configure str9 flash controller.
-@example
-e.g. str9x flash_config 0 4 2 0 0x80000
-This will setup
-BBSR - Boot Bank Size register
-NBBSR - Non Boot Bank Size register
-BBADR - Boot Bank Start Address register
-NBBADR - Boot Bank Start Address register
-@end example
+@item @b{str9xpec enable_turbo} <@var{num}>
+@cindex str9xpec enable_turbo
+@*enable turbo mode, will simply remove the str9 from the chain and talk
+directly to the embedded flash controller.
+@item @b{str9xpec disable_turbo} <@var{num}>
+@cindex str9xpec disable_turbo
+@*restore the str9 into JTAG chain.
+@item @b{str9xpec lock} <@var{num}>
+@cindex str9xpec lock
+@*lock str9 device. The str9 will only respond to an unlock command that will
+erase the device.
+@item @b{str9xpec unlock} <@var{num}>
+@cindex str9xpec unlock
+@*unlock str9 device.
+@item @b{str9xpec options_read} <@var{num}>
+@cindex str9xpec options_read
+@*read str9 option bytes.
+@item @b{str9xpec options_write} <@var{num}>
+@cindex str9xpec options_write
+@*write str9 option bytes.
 @end itemize
 
-@subsection STR9 option byte configuration
+@subsubsection STR9 option byte configuration
 @cindex STR9 option byte configuration
+
 @itemize @bullet
 @item @b{str9xpec options_cmap} <@var{num}> <@option{bank0}|@option{bank1}>
 @cindex str9xpec options_cmap
@@ -2664,37 +2745,57 @@ NBBADR - Boot Bank Start Address register
 @*configure str9 lvd reset warning source. 
 @end itemize
 
-@subsection STM32x specific commands
-@cindex STM32x specific commands
- 
-These are flash specific commands when using the stm32x driver.
-@itemize @bullet
-@item @b{stm32x lock} <@var{num}>
-@cindex stm32x lock
-@*lock stm32 device. 
-@item @b{stm32x unlock} <@var{num}>
-@cindex stm32x unlock
-@*unlock stm32 device. 
-@item @b{stm32x options_read} <@var{num}>
-@cindex stm32x options_read
-@*read stm32 option bytes. 
-@item @b{stm32x options_write} <@var{num}> <@option{SWWDG}|@option{HWWDG}>
-<@option{RSTSTNDBY}|@option{NORSTSTNDBY}> <@option{RSTSTOP}|@option{NORSTSTOP}>
-@cindex stm32x options_write
-@*write stm32 option bytes. 
-@item @b{stm32x mass_erase} <@var{num}>
-@cindex stm32x mass_erase
-@*mass erase flash memory. 
-@end itemize
+@section mFlash
 
-@subsection Stellaris specific commands
-@cindex Stellaris specific commands
- 
-These are flash specific commands when using the Stellaris driver.
+@subsection mFlash Configuration
+@cindex mFlash Configuration
+@b{mflash bank} <@var{soc}> <@var{base}> <@var{RST pin}> <@var{target}>
+@cindex mflash bank
+@*Configures a mflash for <@var{soc}> host bank at
+<@var{base}>. Pin number format is dependent on host GPIO calling convention.
+Currently, mflash bank support s3c2440 and pxa270.
+
+(ex. of s3c2440) mflash <@var{RST pin}> is GPIO B1.
+
+@example
+mflash bank s3c2440 0x10000000 1b 0
+@end example
+
+(ex. of pxa270) mflash <@var{RST pin}> is GPIO 43.
+
+@example
+mflash bank pxa270 0x08000000 43 0
+@end example
+
+@subsection mFlash commands
+@cindex mFlash commands
+
 @itemize @bullet
-@item @b{stellaris mass_erase} <@var{num}>
-@cindex stellaris mass_erase
-@*mass erase flash memory. 
+@item @b{mflash probe}
+@cindex mflash probe
+@*Probe mflash.
+@item @b{mflash write} <@var{num}> <@var{file}> <@var{offset}>
+@cindex mflash write
+@*Write the binary <@var{file}> to mflash bank <@var{num}>, starting at
+<@var{offset}> bytes from the beginning of the bank.
+@item @b{mflash dump} <@var{num}> <@var{file}> <@var{offset}> <@var{size}>
+@cindex mflash dump
+@*Dump <size> bytes, starting at <@var{offset}> bytes from the beginning of the <@var{num}> bank
+to a <@var{file}>.
+@item @b{mflash config pll} <@var{frequency}>
+@cindex mflash config pll
+@*Configure mflash pll. <@var{frequency}> is input frequency of mflash. The order is Hz.
+Issuing this command will erase mflash's whole internal nand and write new pll.
+After this command, mflash needs power-on-reset for normal operation.
+If pll was newly configured, storage and boot(optional) info also need to be update.
+@item @b{mflash config boot}
+@cindex mflash config boot
+@*Configure bootable option. If bootable option is set, mflash offer the first 8 sectors
+(4kB) for boot.
+@item @b{mflash config storage}
+@cindex mflash config storage
+@*Configure storage information. For the normal storage operation, this information must be
+written.
 @end itemize
 
 @node NAND Flash Commands
@@ -2782,7 +2883,7 @@ initialization has completed.  Use it in board specific
 configuration files, not interactively.
 
 @itemize @bullet
-@item @var{controller} ... identifies a the controller driver
+@item @var{controller} ... identifies the controller driver
 associated with the NAND device being declared.
 @xref{NAND Driver List}.
 @item @var{target} ... names the target used when issuing
@@ -2849,6 +2950,7 @@ spare areas associated with each data page.
 
 @deffn Command {nand erase} num offset length
 @cindex NAND erasing
+@cindex NAND programming
 Erases blocks on the specified NAND device, starting at the
 specified @var{offset} and continuing for @var{length} bytes.
 Both of those values must be exact multiples of the device's
@@ -2864,6 +2966,7 @@ will still report that the block ``is'' bad.
 
 @deffn Command {nand write} num filename offset [option...]
 @cindex NAND writing
+@cindex NAND programming
 Writes binary data from the file into the specified NAND device,
 starting at the specified offset.  Those pages should already
 have been erased; you can't change zero bits to one bits.
@@ -2963,7 +3066,7 @@ bypassing hardware ECC logic.
 with the wrong ECC data can cause them to be marked as bad.
 @end deffn
 
-@section NAND Drivers; Driver-specific Options and Commands
+@section NAND Drivers, Options, and Commands
 @anchor{NAND Driver List}
 As noted above, the @command{nand device} command allows
 driver-specific options and behaviors.
@@ -2989,7 +3092,7 @@ the @command{nand raw_access} command.
 @deffn {NAND Driver} lpc3180
 These controllers require an extra @command{nand device}
 parameter:  the clock rate used by the controller.
-@deffn Command {nand lpc3180 select} num [mlc|slc]
+@deffn Command {lpc3180 select} num [mlc|slc]
 Configures use of the MLC or SLC controller mode.
 MLC implies use of hardware ECC.
 The @var{num} parameter is the value shown by @command{nand list}.
@@ -3014,7 +3117,10 @@ or @code{read_page} methods, so @command{nand raw_access} won't
 change any behavior.
 @end deffn
 
-@deffn {NAND Driver} {s3c2410, s3c2412, s3c2440, s3c2443}
+@deffn {NAND Driver} s3c2410
+@deffnx {NAND Driver} s3c2412
+@deffnx {NAND Driver} s3c2440
+@deffnx {NAND Driver} s3c2443
 These S3C24xx family controllers don't have any special
 @command{nand device} options, and don't define any
 specialized commands.
@@ -3273,7 +3379,6 @@ Profiling samples the CPU's program counter as quickly as possible, which is use
 @cindex Target Specific Commands
 
 
-@page
 @section Architecture Specific Commands
 @cindex Architecture Specific Commands
 
@@ -4503,8 +4608,8 @@ at91sam9260.cfg  nslu2.cfg     sam7x256.cfg    wi-9c.cfg
 
 @printindex cp
 
-@node OpenOCD Command Index
-@unnumbered OpenOCD Command Index
+@node Command and Driver Index
+@unnumbered Command and Driver Index
 @printindex fn
 
 @bye
