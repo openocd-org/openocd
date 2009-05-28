@@ -1,4 +1,5 @@
 #!/bin/sh -e
+# Run the autotools bootstrap sequence to create the configure script
 
 if libtoolize --version >/dev/null 2>&1; then
 	libtoolize="libtoolize"
@@ -13,7 +14,6 @@ fi
 (
 set -x
 aclocal
-autoheader
 ${libtoolize} --automake --copy
 autoconf
 autoheader
