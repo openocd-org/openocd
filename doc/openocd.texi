@@ -2625,6 +2625,19 @@ the appropriate at91sam7 target.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} avr
+The AVR 8-bit microcontrollers from Atmel integrate flash memory.
+@emph{The current implementation is incomplete.}
+@comment - defines mass_erase ... pointless given flash_erase_address
+@end deffn
+
+@deffn {Flash Driver} ecosflash
+@emph{No idea what this is...}
+The @var{ecosflash} driver defines one mandatory parameter,
+the name of a modules of target code which is downloaded
+and executed.
+@end deffn
+
 @deffn {Flash Driver} lpc2000
 Most members of the LPC2000 microcontroller family from NXP
 include internal flash and use ARM7TDMI cores.
@@ -2647,6 +2660,46 @@ LPC flashes don't require the chip and bus width to be specified.
 flash bank lpc2000 0x0 0x7d000 0 0 $_TARGETNAME \
       lpc2000_v2 14765 calc_checksum
 @end example
+@end deffn
+
+@deffn {Flash Driver} lpc288x
+The LPC2888 microcontroller from NXP needs slightly different flash
+support from its lpc2000 siblings.
+The @var{lpc288x} driver defines one mandatory parameter,
+the programming clock rate in Hz.
+LPC flashes don't require the chip and bus width to be specified.
+
+@example
+flash bank lpc288x 0 0 0 0 $_TARGETNAME 12000000
+@end example
+@end deffn
+
+@deffn {Flash Driver} ocl
+@emph{No idea what this is, other than using some arm7/arm9 core.}
+
+@example
+flash bank ocl 0 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
+@deffn {Flash Driver} pic32mx
+The PIC32MX microcontrollers are based on the MIPS 4K cores,
+and integrate flash memory.
+@emph{The current implementation is incomplete.}
+
+@example
+flash bank pix32mx 0 0 0 0 $_TARGETNAME
+@end example
+
+@comment numerous *disabled* commands are defined:
+@comment - chip_erase ... pointless given flash_erase_address
+@comment - lock, unlock ... pointless given protect on/off (yes?)
+@comment - pgm_word ... shouldn't bank be deduced from address??
+Some pic32mx-specific commands are defined:
+@deffn Command {pic32mx pgm_word} address value bank
+Programs the specified 32-bit @var{value} at the given @var{address}
+in the specified chip @var{bank}.
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} stellaris
@@ -2736,6 +2789,27 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end itemize
 @end deffn
 
+@end deffn
+
+@deffn {Flash Driver} tms470
+Most members of the TMS470 microcontroller family from Texas Instruments
+include internal flash and use ARM7TDMI cores.
+This driver doesn't require the chip and bus width to be specified.
+
+Some tms470-specific commands are defined:
+
+@deffn Command {tms470 flash_keyset} key0 key1 key2 key3
+Saves programming keys in a register, to enable flash erase and write commands.
+@end deffn
+
+@deffn Command {tms470 osc_mhz} clock_mhz
+Reports the clock speed, which is used to calculate timings.
+@end deffn
+
+@deffn Command {tms470 plldis} (0|1)
+Disables (@var{1}) or enables (@var{0}) use of the PLL to speed up
+the flash clock.
+@end deffn
 @end deffn
 
 @subsection str9xpec driver
