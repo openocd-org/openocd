@@ -258,8 +258,6 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
 extern tap_state_t cmd_queue_end_state;         /* finish DR scans in dr_end_state */
 extern tap_state_t cmd_queue_cur_state;         /* current TAP state */
 
-typedef void* error_handler_t;  /* Later on we can delete error_handler_t, but keep it for now to make patches more readable */
-
 struct scan_field_s;
 typedef int (*in_handler_t)(u8* in_value, void* priv, struct scan_field_s* field);
 
