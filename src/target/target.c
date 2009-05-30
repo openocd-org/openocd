@@ -1958,27 +1958,11 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	}
 	for (i=0; i<count; i++)
 	{
-		int retval;
-		switch (wordsize)
-		{
-			case 4:
-				retval = target->type->write_memory(target, address + i*wordsize, 4, 1, value_buf);
-				break;
-			case 2:
-				retval = target->type->write_memory(target, address + i*wordsize, 2, 1, value_buf);
-				break;
-			case 1:
-				retval = target->type->write_memory(target, address + i*wordsize, 1, 1, value_buf);
-			break;
-			default:
-			return ERROR_OK;
-		}
-		keep_alive();
-
-		if (retval!=ERROR_OK)
-		{
+		int retval = target->type->write_memory(target,
+				address + i * wordsize, wordsize, 1, value_buf);
+		if (ERROR_OK != retval)
 			return retval;
-		}
+		keep_alive();
 	}
 
 	return ERROR_OK;
