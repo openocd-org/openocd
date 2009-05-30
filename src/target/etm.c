@@ -1815,7 +1815,8 @@ int etm_register_commands(struct command_context_s *cmd_ctx)
 {
 	etm_cmd = register_command(cmd_ctx, NULL, "etm", NULL, COMMAND_ANY, "Embedded Trace Macrocell");
 
-	register_command(cmd_ctx, etm_cmd, "config", handle_etm_config_command, COMMAND_CONFIG, "etm config <target> <port_width> <port_mode> <clocking> <capture_driver>");
+	register_command(cmd_ctx, etm_cmd, "config", handle_etm_config_command,
+		COMMAND_CONFIG, "etm config <target> <port_width> <port_mode> <clocking> <capture_driver>");
 
 	return ERROR_OK;
 }
@@ -1823,12 +1824,13 @@ int etm_register_commands(struct command_context_s *cmd_ctx)
 int etm_register_user_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, etm_cmd, "tracemode", handle_etm_tracemode_command,
-		COMMAND_EXEC, "configure trace mode <none|data|address|all> <context id bits> <cycle accurate> <branch output");
+		COMMAND_EXEC, "configure trace mode <none|data|address|all> "
+			"<context_id_bits> <cycle_accurate> <branch_output>");
 
 	register_command(cmd_ctx, etm_cmd, "info", handle_etm_info_command,
 		COMMAND_EXEC, "display info about the current target's ETM");
 
-	register_command(cmd_ctx, etm_cmd, "trigger_percent <percent>", handle_etm_trigger_percent_command,
+	register_command(cmd_ctx, etm_cmd, "trigger_percent", handle_etm_trigger_percent_command,
 		COMMAND_EXEC, "amount (<percent>) of trace buffer to be filled after the trigger occured");
 	register_command(cmd_ctx, etm_cmd, "status", handle_etm_status_command,
 		COMMAND_EXEC, "display current target's ETM status");

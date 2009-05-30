@@ -24,6 +24,11 @@
 #include "oocd_trace.h"
 #include "arm7_9_common.h"
 
+/*
+ * This is "proof of concept" code, for prototype hardware:
+ * https://lists.berlios.de/pipermail/openocd-development/2007-September/000336.html
+ */
+
 
 static int oocd_trace_register_commands(struct command_context_s *cmd_ctx);
 

@@ -1094,17 +1094,11 @@ Some ARM cores are equipped with trace support, which permits
 examination of the instruction and data bus activity.  Trace
 activity is controlled through an ``Embedded Trace Module'' (ETM)
 on one of the core's scan chains.  The ETM emits voluminous data
-through a ``trace port''.  The trace port is accessed in one
-of two ways.  When its signals are pinned out from the chip,
-boards may provide a special high speed debugging connector;
-software support for this is not configured by default, use
-the ``--enable-oocd_trace'' option.  Alternatively, trace data
-may be stored an on-chip SRAM which is packaged as an ``Embedded
-Trace Buffer'' (ETB).  An ETB has its own TAP, usually right after
-its associated ARM core.  OpenOCD supports the ETM, and your
-target configuration should set it up with the relevant trace
-port:  ``etb'' for chips which use that, else the board-specific
-option will be either ``oocd_trace'' or ``dummy''.
+through a ``trace port''.  (@xref{ARM Tracing}.)
+If you are using an external trace port,
+configure it in your board config file.
+If you are using an on-chip ``Embedded Trace Buffer'' (ETB),
+configure it in your target config file.
 
 @example
 etm config $_TARGETNAME 16 normal full etb
@@ -3585,6 +3579,181 @@ Most CPUs have specialized JTAG operations to support debugging.
 OpenOCD packages most such operations in its standard command framework.
 Some of those operations don't fit well in that framework, so they are
 exposed here using architecture or implementation specific commands.
+
+@anchor{ARM Tracing}
+@subsection ARM Tracing
+@cindex ETM
+@cindex ETB
+
+CPUs based on ARM cores may include standard tracing interfaces,
+based on an ``Embedded Trace Module'' (ETM) which sends voluminous
+address and data bus trace records to a ``Trace Port''.
+
+@itemize
+@item
+Development-oriented boards will sometimes provide a high speed
+trace connector for collecting that data, when the particular CPU
+supports such an interface.
+(The standard connector is a 38-pin Mictor, with both JTAG
+and trace port support.)
+Those trace connectors are supported by higher end JTAG adapters
+and some logic analyzer modules; frequently those modules can
+buffer several megabytes of trace data.
+Configuring an ETM coupled to such an external trace port belongs
+in the board-specific configuration file.
+@item
+If the CPU doesn't provide an external interface, it probably
+has an ``Embedded Trace Buffer'' (ETB) on the chip, which is a
+dedicated SRAM.  4KBytes is one common ETB size.
+Configuring an ETM coupled only to an ETB belongs in the CPU-specific
+(target) configuration file, since it works the same on all boards.
+@end itemize
+
+ETM support in OpenOCD doesn't seem to be widely used yet.
+
+@quotation Issues
+ETM support may be buggy, and at least some @command{etm config}
+parameters should be detected by asking the ETM for them.
+It seems like a GDB hookup should be possible,
+as well as triggering trace on specific events
+(perhaps @emph{handling IRQ 23} or @emph{calls foo()}).
+There should be GUI tools to manipulate saved trace data and help
+analyse it in conjunction with the source code.
+It's unclear how much of a common interface is shared
+with the current XScale trace support, or should be
+shared with eventual Nexus-style trace module support.
+@end quotation
+
+@subsubsection ETM Configuration
+ETM setup is coupled with the trace port driver configuration.
+
+@deffn {Config Command} {etm config} target width mode clocking driver
+Declares the ETM associated with @var{target}, and associates it
+with a given trace port @var{driver}.  @xref{Trace Port Drivers}.
+
+Several of the parameters must reflect the trace port configuration.
+The @var{width} must be either 4, 8, or 16.
+The @var{mode} must be @option{normal}, @option{multiplexted},
+or @option{demultiplexted}.
+The @var{clocking} must be @option{half} or @option{full}.
+
+@quotation Note
+You can see the ETM registers using the @command{reg} command, although
+not all of those possible registers are present in every ETM.
+@end quotation
+@end deffn
+
+@deffn Command {etm info}
+Displays information about the current target's ETM.
+@end deffn
+
+@deffn Command {etm status}
+Displays status of the current target's ETM:
+is the ETM idle, or is it collecting data?
+Did trace data overflow?
+Was it triggered?
+@end deffn
+
+@deffn Command {etm tracemode} [type context_id_bits cycle_accurate branch_output]
+Displays what data that ETM will collect.
+If arguments are provided, first configures that data.
+When the configuration changes, tracing is stopped
+and any buffered trace data is invalidated.
+
+@itemize
+@item @var{type} ... one of
+@option{none} (save nothing),
+@option{data} (save data),
+@option{address} (save addresses),
+@option{all} (save data and addresses)
+@item @var{context_id_bits} ... 0, 8, 16, or 32
+@item @var{cycle_accurate} ...  @option{enable} or @option{disable}
+@item @var{branch_output} ...  @option{enable} or @option{disable}
+@end itemize
+@end deffn
+
+@deffn Command {etm trigger_percent} percent
+@emph{Buggy and effectively a NOP ... @var{percent} from 2..100}
+@end deffn
+
+@subsubsection ETM Trace Operation
+
+After setting up the ETM, you can use it to collect data.
+That data can be exported to files for later analysis.
+It can also be parsed with OpenOCD, for basic sanity checking.
+
+@deffn Command {etm analyze}
+Reads trace data into memory, if it wasn't already present.
+Decodes and prints the data that was collected.
+@end deffn
+
+@deffn Command {etm dump} filename
+Stores the captured trace data in @file{filename}.
+@end deffn
+
+@deffn Command {etm image} filename [base_address] [type]
+Opens an image file.
+@end deffn
+
+@deffn Command {etm load} filename
+Loads captured trace data from @file{filename}.
+@end deffn
+
+@deffn Command {etm start}
+Starts trace data collection.
+@end deffn
+
+@deffn Command {etm stop}
+Stops trace data collection.
+@end deffn
+
+@anchor{Trace Port Drivers}
+@subsubsection Trace Port Drivers
+
+To use an ETM trace port it must be associated with a driver.
+
+@deffn {Trace Port Driver} etb
+Use the @option{etb} driver if you are configuring an ETM
+to use on-chip ETB memory.
+@deffn {Config Command} {etb config} target etb_tap
+Associates the ETM for @var{target} with the ETB at @var{etb_tap}.
+You can see the ETB registers using the @command{reg} command.
+@end deffn
+@end deffn
+
+@deffn {Trace Port Driver} etm_dummy
+Use the @option{etm_dummy} driver if you are configuring an ETM that's
+not connected to anything (on-chip ETB or off-chip trace connector).
+@emph{This driver lets OpenOCD talk to the ETM, but it does not expose
+any trace data collection.}
+@deffn {Config Command} {etm_dummy config} target
+Associates the ETM for @var{target} with a dummy driver.
+@end deffn
+@end deffn
+
+@deffn {Trace Port Driver} oocd_trace
+This driver isn't available unless OpenOCD was explicitly configured
+with the @option{--enable-oocd_trace} option.  You probably don't want
+to configure it unless you've built the appropriate prototype hardware;
+it's @emph{proof-of-concept} software.
+
+Use the @option{oocd_trace} driver if you are configuring an ETM that's
+connected to an off-chip trace connector.
+
+@deffn {Config Command} {oocd_trace config} target tty
+Associates the ETM for @var{target} with a trace driver which
+collects data through the serial port @var{tty}.
+@end deffn
+
+@deffn Command {oocd_trace resync}
+Re-synchronizes with the capture clock.
+@end deffn
+
+@deffn Command {oocd_trace status}
+Reports whether the capture clock is locked or not.
+@end deffn
+@end deffn
+
 
 @subsection ARMv4 and ARMv5 Architecture
 @cindex ARMv4 specific commands
