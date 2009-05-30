@@ -150,14 +150,6 @@ jtag_interface_t jlink_interface =
 	.quit = jlink_quit
 };
 
-static void jlink_execute_end_state(jtag_command_t *cmd)
-{
-	DEBUG_JTAG_IO("end_state: %i", cmd->cmd.end_state->end_state);
-
-	if (cmd->cmd.end_state->end_state != TAP_INVALID)
-		jlink_end_state(cmd->cmd.end_state->end_state);
-}
-
 static void jlink_execute_runtest(jtag_command_t *cmd)
 {
 	DEBUG_JTAG_IO("runtest %i cycles, end in %i",
