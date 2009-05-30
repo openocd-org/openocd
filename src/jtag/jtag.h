@@ -512,8 +512,6 @@ typedef struct jtag_event_callback_s
 
 extern jtag_event_callback_t* jtag_event_callbacks;
 
-extern jtag_interface_t*      jtag; /* global pointer to configured JTAG interface */
-
 extern int jtag_speed;
 extern int jtag_speed_post_reset;
 
@@ -534,6 +532,9 @@ extern enum reset_types jtag_reset_config;
  * upon subsequent invocations
  */
 extern int  jtag_interface_init(struct command_context_s* cmd_ctx);
+
+/// Shutdown the JTAG interface upon program exit.
+extern int  jtag_interface_quit(void);
 
 /* initialize JTAG chain using only a RESET reset. If init fails,
  * try reset + init.

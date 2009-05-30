@@ -227,7 +227,7 @@ jtag_interface_t *jtag_interfaces[] = {
 	NULL,
 };
 
-jtag_interface_t *jtag = NULL;
+static jtag_interface_t *jtag = NULL;
 
 /* configuration */
 static jtag_interface_t *jtag_interface = NULL;
@@ -2406,6 +2406,20 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 
 	return ERROR_OK;
 }
+
+int jtag_interface_quit(void)
+{
+	if (!jtag || !jtag->quit)
+		return ERROR_OK;
+
+	// close the JTAG interface
+	int result = jtag->quit();
+	if (ERROR_OK != result)
+		LOG_ERROR("failed: %d", result);
+
+	return ERROR_OK;
+}
+
 
 int jtag_init_reset(struct command_context_s *cmd_ctx)
 {

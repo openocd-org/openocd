@@ -79,9 +79,7 @@ static int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 static void exit_handler(void)
 {
-	/* close JTAG interface */
-	if (jtag && jtag->quit)
-		jtag->quit();
+	jtag_interface_quit();
 }
 
 static int log_target_callback_event_handler(struct target_s *target, enum target_event event, void *priv)
