@@ -348,7 +348,6 @@ enum jtag_command_type {
 	JTAG_STATEMOVE    = 2,
 	JTAG_RUNTEST      = 3,
 	JTAG_RESET        = 4,
-	JTAG_END_STATE    = 5,
 	JTAG_PATHMOVE     = 6,
 	JTAG_SLEEP        = 7,
 	JTAG_STABLECLOCKS = 8

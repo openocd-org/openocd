@@ -512,7 +512,6 @@ void ft2232_end_state(tap_state_t state)
 	}
 }
 
-
 static void ft2232_read_scan(enum scan_type type, u8* buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
@@ -1412,20 +1411,6 @@ static void sheevaplug_reset(int trst, int srst)
 	LOG_DEBUG("trst: %i, srst: %i, high_output: 0x%2.2x, high_direction: 0x%2.2x", trst, srst, high_output, high_direction);
 }
 
-static int ft2232_execute_end_state(jtag_command_t *cmd)
-{
-	int  retval;
-	retval = ERROR_OK;
-
-	DEBUG_JTAG_IO("execute_end_state: %s", tap_state_name(cmd->cmd.end_state->end_state) );
-
-	if (cmd->cmd.end_state->end_state != TAP_INVALID)
-		ft2232_end_state(cmd->cmd.end_state->end_state);
-
-	return retval;
-}
-
-
 static int ft2232_execute_runtest(jtag_command_t *cmd)
 {
 	int  retval;
@@ -1682,7 +1667,6 @@ static int ft2232_execute_command(jtag_command_t *cmd)
 
 	switch (cmd->type)
 	{
-	case JTAG_END_STATE: 	retval = ft2232_execute_end_state(cmd); break;
 	case JTAG_RESET:	 		retval = ft2232_execute_reset(cmd); break;
 	case JTAG_RUNTEST:   	retval = ft2232_execute_runtest(cmd); break;
 	case JTAG_STATEMOVE: 	retval = ft2232_execute_statemove(cmd); break;
