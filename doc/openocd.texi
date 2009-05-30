@@ -1574,9 +1574,13 @@ jtag_rclk 3000
 
 Every system configuration may require a different reset
 configuration. This can also be quite confusing.
+Resets also interact with @var{reset-init} event handlers,
+which do things like setting up clocks and DRAM, and
+JTAG clock rates.  (@xref{JTAG Speed}.)
 Please see the various board files for examples.
 
-@b{Note} to maintainers and integrators:
+@quotation Note
+To maintainers and integrators:
 Reset configuration touches several things at once.
 Normally the board configuration file
 should define it and assume that the JTAG adapter supports
@@ -1587,6 +1591,7 @@ which will be true for most (or all) boards using that chip.
 And when the JTAG adapter doesn't support everything, the
 system configuration file will need to override parts of
 the reset configuration provided by other files.
+@end quotation
 
 @section Types of Reset
 
@@ -1671,11 +1676,18 @@ Use the @command{reset_config} @var{trst_type} and
 
 There can also be other issues.
 Some devices don't fully conform to the JTAG specifications.
-Others have chip-specific extensions like extra steps needed
-during TAP reset, or a requirement to use the normally-optional TRST
-signal.
 Trivial system-specific differences are common, such as
 SRST and TRST using slightly different names.
+There are also vendors who distribute key JTAG documentation for
+their chips only to developers who have signed a Non-Disclosure
+Agreement (NDA).
+
+Sometimes there are chip-specific extensions like a requirement to use
+the normally-optional TRST signal (precluding use of JTAG adapters which
+don't pass TRST through), or needing extra steps to complete a TAP reset.
+
+In short, SRST and especially TRST handling may be very finicky,
+needing to cope with both architecture and board specific constraints.
 
 @section Commands for Handling Resets
 
@@ -1691,31 +1703,58 @@ How long (in milliseconds) OpenOCD should wait after deasserting
 nTRST (active-low JTAG TAP reset) before starting new JTAG operations.
 @end deffn
 
-@deffn {Command} reset_config signals [combination [trst_type [srst_type]]]
+@deffn {Command} reset_config mode_flag ...
 This command tells OpenOCD the reset configuration
 of your combination of JTAG interface, board, and target.
-If the JTAG interface provides SRST, but the board doesn't connect
-that signal properly, then OpenOCD can't use it. @var{signals} can
-be @option{none}, @option{trst_only}, @option{srst_only} or
-@option{trst_and_srst}.
+
+The @var{mode_flag} options can be specified in any order, but only one
+of each type -- @var{signals}, @var{combination}, @var{trst_type},
+and @var{srst_type} -- may be specified at a time.
+If you don't provide a new value for a given type, its previous
+value (perhaps the default) is unchanged.
+For example, this means that you don't need to say anything at all about
+TRST just to declare that if the JTAG adapter should want to drive SRST,
+it must explicitly be driven high (@option{srst_push_pull}).
+
+@var{signals} can specify which of the reset signals are connected.
+For example, If the JTAG interface provides SRST, but the board doesn't
+connect that signal properly, then OpenOCD can't use it.
+Possible values are @option{none} (the default), @option{trst_only},
+@option{srst_only} and @option{trst_and_srst}.
+
+@quotation Tip
+If your board provides SRST or TRST through the JTAG connector,
+you must declare that or else those signals will not be used.
+@end quotation
 
 The @var{combination} is an optional value specifying broken reset
-signal implementations.  @option{srst_pulls_trst} states that the
+signal implementations.
+The default behaviour if no option given is @option{separate},
+indicating everything behaves normally.
+@option{srst_pulls_trst} states that the
 test logic is reset together with the reset of the system (e.g. Philips
 LPC2000, "broken" board layout), @option{trst_pulls_srst} says that
 the system is reset together with the test logic (only hypothetical, I
 haven't seen hardware with such a bug, and can be worked around).
 @option{combined} implies both @option{srst_pulls_trst} and
-@option{trst_pulls_srst}.  The default behaviour if no option given is
-@option{separate}.
+@option{trst_pulls_srst}.
 
 The optional @var{trst_type} and @var{srst_type} parameters allow the
-driver type of the reset lines to be specified. Possible values are
-@option{trst_push_pull} (default) and @option{trst_open_drain} for the
-test reset signal, and @option{srst_open_drain} (default) and
-@option{srst_push_pull} for the system reset. These values only affect
-JTAG interfaces with support for different drivers, like the Amontec
-JTAGkey and JTAGAccelerator.
+driver mode of each reset line to be specified.  These values only affect
+JTAG interfaces with support for different driver modes, like the Amontec
+JTAGkey and JTAGAccelerator.  Also, they are necessarily ignored if the
+relevant signal (TRST or SRST) is not connected.
+
+Possible @var{trst_type} driver modes for the test reset signal (TRST)
+are @option{trst_push_pull} (default) and @option{trst_open_drain}.
+Most boards connect this signal to a pulldown, so the JTAG TAPs
+never leave reset unless they are hooked up to a JTAG adapter.
+
+Possible @var{srst_type} driver modes for the system reset signal (SRST)
+are the default @option{srst_open_drain}, and @option{srst_push_pull}.
+Most boards connect this signal to a pullup, and allow the
+signal to be pulled low by various events including system
+powerup and pressing a reset button.
 @end deffn
 
 

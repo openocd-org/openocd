@@ -2651,76 +2651,110 @@ static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cm
 
 static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	int new_cfg = 0;
+	int mask = 0;
+
 	if (argc < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc >= 1)
-	{
-		if (strcmp(args[0], "none") == 0)
-			jtag_reset_config = RESET_NONE;
-		else if (strcmp(args[0], "trst_only") == 0)
-			jtag_reset_config = RESET_HAS_TRST;
-		else if (strcmp(args[0], "srst_only") == 0)
-			jtag_reset_config = RESET_HAS_SRST;
-		else if (strcmp(args[0], "trst_and_srst") == 0)
-			jtag_reset_config = RESET_TRST_AND_SRST;
+	/* Original versions cared about the order of these tokens:
+	 *   reset_config signals [combination [trst_type [srst_type]]]
+	 * They also clobbered the previous configuration even on error.
+	 *
+	 * Here we don't care about the order, and only change values
+	 * which have been explicitly specified.
+	 */
+	for (; argc; argc--, args++) {
+		int tmp = 0;
+		int m;
+
+		/* signals */
+		m = RESET_HAS_TRST | RESET_HAS_SRST;
+		if (strcmp(*args, "none") == 0)
+			tmp = RESET_NONE;
+		else if (strcmp(*args, "trst_only") == 0)
+			tmp = RESET_HAS_TRST;
+		else if (strcmp(*args, "srst_only") == 0)
+			tmp = RESET_HAS_SRST;
+		else if (strcmp(*args, "trst_and_srst") == 0)
+			tmp = RESET_HAS_TRST | RESET_HAS_SRST;
 		else
-		{
-			LOG_ERROR("(1) invalid reset_config argument (%s), defaulting to none", args[0]);
-			jtag_reset_config = RESET_NONE;
+			m = 0;
+		if (mask & m) {
+			LOG_ERROR("extra reset_config %s spec (%s)",
+					"signal", *args);
 			return ERROR_INVALID_ARGUMENTS;
 		}
-	}
+		if (m)
+			goto next;
 
-	if (argc >= 2)
-	{
-		if (strcmp(args[1], "separate") == 0)
-		{
-			/* seperate reset lines - default */
-		} else
-		{
-			if (strcmp(args[1], "srst_pulls_trst") == 0)
-				jtag_reset_config |= RESET_SRST_PULLS_TRST;
-			else if (strcmp(args[1], "trst_pulls_srst") == 0)
-				jtag_reset_config |= RESET_TRST_PULLS_SRST;
-			else if (strcmp(args[1], "combined") == 0)
-				jtag_reset_config |= RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST;
-			else
-			{
-				LOG_ERROR("(2) invalid reset_config argument (%s), defaulting to none", args[1]);
-				jtag_reset_config = RESET_NONE;
-				return ERROR_INVALID_ARGUMENTS;
-			}
-		}
-	}
-
-	if (argc >= 3)
-	{
-		if (strcmp(args[2], "trst_open_drain") == 0)
-			jtag_reset_config |= RESET_TRST_OPEN_DRAIN;
-		else if (strcmp(args[2], "trst_push_pull") == 0)
-			jtag_reset_config &= ~RESET_TRST_OPEN_DRAIN;
+		/* combination (options for broken wiring) */
+		m = RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST;
+		if (strcmp(*args, "separate") == 0)
+			/* separate reset lines - default */;
+		else if (strcmp(*args, "srst_pulls_trst") == 0)
+			tmp |= RESET_SRST_PULLS_TRST;
+		else if (strcmp(*args, "trst_pulls_srst") == 0)
+			tmp |= RESET_TRST_PULLS_SRST;
+		else if (strcmp(*args, "combined") == 0)
+			tmp |= RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST;
 		else
-		{
-			LOG_ERROR("(3) invalid reset_config argument (%s) defaulting to none", args[2] );
-			jtag_reset_config = RESET_NONE;
+			m = 0;
+		if (mask & m) {
+			LOG_ERROR("extra reset_config %s spec (%s)",
+					"combination", *args);
 			return ERROR_INVALID_ARGUMENTS;
 		}
-	}
+		if (m)
+			goto next;
 
-	if (argc >= 4)
-	{
-		if (strcmp(args[3], "srst_push_pull") == 0)
-			jtag_reset_config |= RESET_SRST_PUSH_PULL;
-		else if (strcmp(args[3], "srst_open_drain") == 0)
-			jtag_reset_config &= ~RESET_SRST_PUSH_PULL;
+		/* trst_type (NOP without HAS_TRST) */
+		m = RESET_TRST_OPEN_DRAIN;
+		if (strcmp(*args, "trst_open_drain") == 0)
+			tmp |= RESET_TRST_OPEN_DRAIN;
+		else if (strcmp(*args, "trst_push_pull") == 0)
+			/* push/pull from adapter - default */;
 		else
-		{
-			LOG_ERROR("(4) invalid reset_config argument (%s), defaulting to none", args[3]);
-			jtag_reset_config = RESET_NONE;
+			m = 0;
+		if (mask & m) {
+			LOG_ERROR("extra reset_config %s spec (%s)",
+					"trst_type", *args);
 			return ERROR_INVALID_ARGUMENTS;
 		}
+		if (m)
+			goto next;
+
+		/* srst_type (NOP without HAS_SRST) */
+		m |= RESET_SRST_PUSH_PULL;
+		if (strcmp(*args, "srst_push_pull") == 0)
+			tmp |= RESET_SRST_PUSH_PULL;
+		else if (strcmp(*args, "srst_open_drain") == 0)
+			/* open drain from adapter - default */;
+		else
+			m = 0;
+		if (mask & m) {
+			LOG_ERROR("extra reset_config %s spec (%s)",
+					"srst_type", *args);
+			return ERROR_INVALID_ARGUMENTS;
+		}
+		if (m)
+			goto next;
+
+		/* caller provided nonsense; fail */
+		LOG_ERROR("unknown reset_config flag (%s)", *args);
+		return ERROR_INVALID_ARGUMENTS;
+
+next:
+		/* Remember the bits which were specified (mask)
+		 * and their new values (new_cfg).
+		 */
+		mask |= m;
+		new_cfg |= tmp;
 	}
+
+	/* clear previous values of those bits, save new values */
+	jtag_reset_config &= ~mask;
+	jtag_reset_config |= new_cfg;
 
 	return ERROR_OK;
 }
