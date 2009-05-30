@@ -3488,7 +3488,9 @@ state.
 @section Memory access commands
 @anchor{Memory access}
 @subsection meminfo
-display available RAM memory.
+display available RAM memory on OpenOCD host. Used in OpenOCD regression testing scripts. Mainly
+useful on embedded targets, PC type hosts have complimentary tools like Valgrind to address
+resource tracking problems.
 @subsection Memory peek/poke type commands
 These commands allow accesses of a specific size to the memory
 system. Often these are used to configure the current target in some
