@@ -1399,7 +1399,6 @@ int rlink_execute_queue(void)
 	{
 		switch (cmd->type)
 		{
-			case JTAG_END_STATE:
 			case JTAG_RUNTEST:
 			case JTAG_STATEMOVE:
 			case JTAG_PATHMOVE:
@@ -1415,13 +1414,6 @@ int rlink_execute_queue(void)
 
 		switch (cmd->type)
 		{
-			case JTAG_END_STATE:
-#ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("end_state: %i", cmd->cmd.end_state->end_state);
-#endif
-				if (cmd->cmd.end_state->end_state != -1)
-					rlink_end_state(cmd->cmd.end_state->end_state);
-				break;
 			case JTAG_RESET:
 #ifdef _DEBUG_JTAG_IO_
 				LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);

@@ -133,15 +133,6 @@ static int armjtagew_execute_queue(void)
 	{
 		switch (cmd->type)
 		{
-			case JTAG_END_STATE:
-				DEBUG_JTAG_IO("end_state: %i", cmd->cmd.end_state->end_state);
-
-				if (cmd->cmd.end_state->end_state != TAP_INVALID)
-				{
-					armjtagew_end_state(cmd->cmd.end_state->end_state);
-				}
-				break;
-
 			case JTAG_RUNTEST:
 				DEBUG_JTAG_IO( "runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, \
 					cmd->cmd.runtest->end_state);

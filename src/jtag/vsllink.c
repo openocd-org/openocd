@@ -296,15 +296,6 @@ static int vsllink_execute_queue(void)
 	{
 		switch (cmd->type)
 		{
-			case JTAG_END_STATE:
-				DEBUG_JTAG_IO("end_state: %s", tap_state_name(cmd->cmd.end_state->end_state));
-			
-				if (cmd->cmd.end_state->end_state != TAP_INVALID)
-				{
-					vsllink_end_state(cmd->cmd.end_state->end_state);
-				}
-				break;
-				
 			case JTAG_RUNTEST:
 				DEBUG_JTAG_IO( "runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, \
 					tap_state_name(cmd->cmd.runtest->end_state));
