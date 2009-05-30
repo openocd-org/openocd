@@ -1699,7 +1699,20 @@ nTRST (active-low JTAG TAP reset) before starting new JTAG operations.
 
 @deffn {Command} reset_config mode_flag ...
 This command tells OpenOCD the reset configuration
-of your combination of JTAG interface, board, and target.
+of your combination of JTAG board and target in target
+configuration scripts.
+
+If you have an interface that does not support SRST and
+TRST(unlikely), then you may be able to work around that
+problem by using a reset_config command to override any
+settings in the target configuration script.
+
+SRST and TRST has a fairly well understood definition and
+behaviour in the JTAG specification, but vendors take
+liberties to achieve various more or less clearly understood
+goals. Sometimes documentation is available, other times it
+is not. OpenOCD has the reset_config command to allow OpenOCD
+to deal with the various common cases.
 
 The @var{mode_flag} options can be specified in any order, but only one
 of each type -- @var{signals}, @var{combination}, @var{trst_type},
