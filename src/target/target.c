@@ -1844,77 +1844,80 @@ static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	return ERROR_OK;
 }
 
+static void handle_md_output(struct command_context_s *cmd_ctx,
+		struct target_s *target, u32 address, unsigned size,
+		unsigned count, const u8 *buffer)
+{
+	const unsigned line_bytecnt = 32;
+	unsigned line_modulo = line_bytecnt / size;
+
+	char output[line_bytecnt * 4 + 1];
+	unsigned output_len = 0;
+
+	const char *value_fmt;
+	switch (size) {
+	case 4: value_fmt = "%8.8x"; break;
+	case 2: value_fmt = "%4.2x"; break;
+	case 1: value_fmt = "%2.2x"; break;
+	default:
+		LOG_ERROR("invalid memory read size: %u", size);
+		exit(-1);
+	}
+
+	for (unsigned i = 0; i < count; i++)
+	{
+		if (i % line_modulo == 0)
+		{
+			output_len += snprintf(output + output_len,
+					sizeof(output) - output_len,
+					"0x%8.8x: ", address + (i*size));
+		}
+
+		u32 value;
+		const u8 *value_ptr = buffer + i * size;
+		switch (size) {
+		case 4: value = target_buffer_get_u32(target, value_ptr); break;
+		case 2: value = target_buffer_get_u16(target, value_ptr); break;
+		case 1: value = *value_ptr;
+		}
+		output_len += snprintf(output + output_len,
+				sizeof(output) - output_len,
+				value_fmt, value);
+
+		if ((i % line_modulo == line_modulo - 1) || (i == count - 1))
+		{
+			command_print(cmd_ctx, "%s", output);
+			output_len = 0;
+		}
+	}
+}
+
 static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	const int line_bytecnt = 32;
-	int count = 1;
-	int size = 4;
-	u32 address = 0;
-	int line_modulo;
-	int i;
-
-	char output[128];
-	int output_len;
-
-	int retval;
-
-	u8 *buffer;
-	target_t *target = get_current_target(cmd_ctx);
-
 	if (argc < 1)
-		return ERROR_OK;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
+	unsigned size = 0;
+	switch (cmd[2]) {
+	case 'w': size = 4; break;
+	case 'h': size = 2; break;
+	case 'b': size = 1; break;
+	default: return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	u32 address = strtoul(args[0], NULL, 0);
+
+	unsigned count = 1;
 	if (argc == 2)
 		count = strtoul(args[1], NULL, 0);
 
-	address = strtoul(args[0], NULL, 0);
+	u8 *buffer = calloc(count, size);
 
-	switch (cmd[2])
-	{
-		case 'w':
-			size = 4; line_modulo = line_bytecnt / 4;
-			break;
-		case 'h':
-			size = 2; line_modulo = line_bytecnt / 2;
-			break;
-		case 'b':
-			size = 1; line_modulo = line_bytecnt / 1;
-			break;
-		default:
-			return ERROR_OK;
-	}
-
-	buffer = calloc(count, size);
-	retval  = target->type->read_memory(target, address, size, count, buffer);
-	if (retval == ERROR_OK)
-	{
-		output_len = 0;
-
-		for (i = 0; i < count; i++)
-		{
-			if (i%line_modulo == 0)
-				output_len += snprintf(output + output_len, 128 - output_len, "0x%8.8x: ", address + (i*size));
-
-			switch (size)
-			{
-				case 4:
-					output_len += snprintf(output + output_len, 128 - output_len, "%8.8x ", target_buffer_get_u32(target, &buffer[i*4]));
-					break;
-				case 2:
-					output_len += snprintf(output + output_len, 128 - output_len, "%4.4x ", target_buffer_get_u16(target, &buffer[i*2]));
-					break;
-				case 1:
-					output_len += snprintf(output + output_len, 128 - output_len, "%2.2x ", buffer[i*1]);
-					break;
-			}
-
-			if ((i%line_modulo == line_modulo-1) || (i == count - 1))
-			{
-				command_print(cmd_ctx, "%s", output);
-				output_len = 0;
-			}
-		}
-	}
+	target_t *target = get_current_target(cmd_ctx);
+	int retval = target->type->read_memory(target,
+				address, size, count, buffer);
+	if (ERROR_OK == retval)
+		handle_md_output(cmd_ctx, target, address, size, count, buffer);
 
 	free(buffer);
 
