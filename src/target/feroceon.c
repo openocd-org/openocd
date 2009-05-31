@@ -49,8 +49,8 @@
 #include "config.h"
 #endif
 
-#define DEFINE_TARGET_TYPE_S
 #include "arm926ejs.h"
+#include "target_type.h"
 
 
 int feroceon_examine(struct target_s *target);

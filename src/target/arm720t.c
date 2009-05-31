@@ -21,9 +21,9 @@
 #include "config.h"
 #endif
 
-#define DEFINE_TARGET_TYPE_S
 #include "arm720t.h"
 #include "time_support.h"
+#include "target_type.h"
 
 
 #if 0

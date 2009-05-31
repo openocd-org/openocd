@@ -24,8 +24,8 @@
 #include "config.h"
 #endif
 
-#define DEFINE_TARGET_TYPE_S
 #include "xscale.h"
+#include "target_type.h"
 #include "arm7_9_common.h"
 #include "arm_simulator.h"
 #include "arm_disassembler.h"

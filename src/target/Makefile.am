@@ -55,6 +55,7 @@ libtarget_la_SOURCES = \
 
 noinst_HEADERS = \
 	target.h \
+	target_type.h \
 	trace.h \
 	register.h \
 	armv4_5.h \

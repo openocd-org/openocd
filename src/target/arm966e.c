@@ -24,8 +24,8 @@
 #include "config.h"
 #endif
 
-#define DEFINE_TARGET_TYPE_S
 #include "arm966e.h"
+#include "target_type.h"
 
 
 #if 0

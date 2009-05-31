@@ -21,9 +21,9 @@
 #include "config.h"
 #endif
 
-#define DEFINE_TARGET_TYPE_S
 #include "avrt.h"
 #include "target.h"
+#include "target_type.h"
 
 
 #define AVR_JTAG_INS_LEN	4

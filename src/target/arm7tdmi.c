@@ -27,8 +27,8 @@
 #include "config.h"
 #endif
 
-#define DEFINE_TARGET_TYPE_S
 #include "arm7tdmi.h"
+#include "target_type.h"
 
 
 #if 0
