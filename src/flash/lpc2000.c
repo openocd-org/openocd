@@ -258,7 +258,7 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u3
 		/* write IAP code to working area */
 		target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
 		target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
-		if((retval = target->type->write_memory(target, lpc2000_info->iap_working_area->address, 4, 2, jump_gate)) != ERROR_OK)
+		if((retval = target_write_memory(target, lpc2000_info->iap_working_area->address, 4, 2, jump_gate)) != ERROR_OK)
 		{
 			return retval;
 		}

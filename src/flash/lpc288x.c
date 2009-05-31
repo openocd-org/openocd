@@ -406,7 +406,7 @@ static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 			 * it seems not to be a LOT slower....
 			 * bulk_write_memory() is no quicker :(*/
 #if 1
-			if (target->type->write_memory(target, offset + dest_offset, 4, 128, page_buffer) != ERROR_OK)
+			if (target_write_memory(target, offset + dest_offset, 4, 128, page_buffer) != ERROR_OK)
 			{
 				LOG_ERROR("Write failed s %x p %x", sector, page);
 				return ERROR_FLASH_OPERATION_FAILED;

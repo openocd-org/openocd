@@ -167,6 +167,10 @@ typedef struct target_type_s
 	 */
 	int (*read_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 	int (*write_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+	/**
+	 * Target memory write callback.  Do @b not call this function
+	 * directly, use target_write_memory() instead.
+	 */
 	int (*write_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 
 	/* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
@@ -382,6 +386,14 @@ extern target_t *get_target(const char *id);
  * This routine is a wrapper for target->type->read_memory.
  */
 extern int target_read_memory(struct target_s *target,
+		u32 address, u32 size, u32 count, u8 *buffer);
+/**
+ * Write @count items of @a size bytes to the memory of @a target at
+ * the @a address given.
+ *
+ * This routine is wrapper for target->type->write_memory.
+ */
+extern int target_write_memory(struct target_s *target,
 		u32 address, u32 size, u32 count, u8 *buffer);
 
 extern int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);

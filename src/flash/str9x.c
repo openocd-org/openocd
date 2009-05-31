@@ -569,7 +569,7 @@ static int str9x_write(struct flash_bank_s *bank,
 		
 		/* write data command */
 		target_write_u16(target, bank_adr, 0x40);
-		target->type->write_memory(target, address, 2, 1, buffer + bytes_written);
+		target_write_memory(target, address, 2, 1, buffer + bytes_written);
 		
 		/* get status command */
 		target_write_u16(target, bank_adr, 0x70);
@@ -618,7 +618,7 @@ static int str9x_write(struct flash_bank_s *bank,
 		
 		/* write data comamnd */
 		target_write_u16(target, bank_adr, 0x40);
-		target->type->write_memory(target, address, 2, 1, last_halfword);
+		target_write_memory(target, address, 2, 1, last_halfword);
 		
 		/* query status command */
 		target_write_u16(target, bank_adr, 0x70);

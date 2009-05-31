@@ -1027,7 +1027,7 @@ static int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 		/* Write one block to the PageWriteBuffer */
 		buffer_pos = (pagen-first_page)*dst_min_alignment;
 		wcount = CEIL(count,4);
-		if((retval = target->type->write_memory(target, bank->base+pagen*dst_min_alignment, 4, wcount, buffer+buffer_pos)) != ERROR_OK)
+		if((retval = target_write_memory(target, bank->base+pagen*dst_min_alignment, 4, wcount, buffer+buffer_pos)) != ERROR_OK)
 		{
 			return retval;
 		}

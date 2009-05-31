@@ -617,7 +617,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			}
 			if (current_instr == MIPS32_SDBBP)
 			{
-				if((retval = target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+				if((retval = target_write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
 				}
@@ -635,7 +635,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			
 			if (current_instr == MIPS16_SDBBP)
 			{
-				if((retval = target->type->write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+				if((retval = target_write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
 				}

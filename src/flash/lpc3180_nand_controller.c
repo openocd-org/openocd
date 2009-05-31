@@ -602,8 +602,8 @@ static int lpc3180_write_page(struct nand_device_s *device, u32 page, u8 *data, 
 			/* write MLC_ECC_ENC_REG to start encode cycle */
 			target_write_u32(target, 0x200b8008, 0x0);
 
-			target->type->write_memory(target, 0x200a8000, 4, 128, page_buffer + (quarter * 512));
-			target->type->write_memory(target, 0x200a8000, 1, 6, oob_buffer + (quarter * 6));
+			target_write_memory(target, 0x200a8000, 4, 128, page_buffer + (quarter * 512));
+			target_write_memory(target, 0x200a8000, 1, 6, oob_buffer + (quarter * 6));
 
 			/* write MLC_ECC_AUTO_ENC_REG to start auto encode */
 			target_write_u32(target, 0x200b8010, 0x0);

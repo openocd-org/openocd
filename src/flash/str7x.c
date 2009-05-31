@@ -546,11 +546,11 @@ static int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
 		
 		/* data word 1 */
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, buffer + bytes_written);
+		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, buffer + bytes_written);
 		bytes_written += 4;
 		
 		/* data word 2 */
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, buffer + bytes_written);
+		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, buffer + bytes_written);
 		bytes_written += 4;
 		
 		/* start programming cycle */
@@ -593,11 +593,11 @@ static int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
 		
 		/* data word 1 */
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, last_dword);
+		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, last_dword);
 		bytes_written += 4;
 		
 		/* data word 2 */
-		target->type->write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, last_dword + 4);
+		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, last_dword + 4);
 		bytes_written += 4;
 		
 		/* start programming cycle */

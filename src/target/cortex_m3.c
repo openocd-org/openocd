@@ -934,7 +934,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			return retval;
 		}
-		if((retval = target->type->write_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, code)) != ERROR_OK)
+		if((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, code)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -975,14 +975,14 @@ int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4)
 		{
-			if((retval = target->type->write_memory(target, breakpoint->address & 0xFFFFFFFE, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
 		}
 		else
 		{
-			if((retval = target->type->write_memory(target, breakpoint->address & 0xFFFFFFFE, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}

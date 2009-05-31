@@ -494,7 +494,7 @@ static int mg_mflash_do_write_sects(void *buff, u32 sect_num, u32 sect_cnt,
 		if (ret != ERROR_OK)
 			LOG_ERROR("mg_io_wait_drq time out");
 
-		ret = target->type->write_memory(target, address, 2, MG_MFLASH_SECTOR_SIZE / 2, buff_ptr);
+		ret = target_write_memory(target, address, 2, MG_MFLASH_SECTOR_SIZE / 2, buff_ptr);
 		if (ret != ERROR_OK)
 			LOG_ERROR("mem write error");
 		buff_ptr += MG_MFLASH_SECTOR_SIZE;
@@ -927,7 +927,7 @@ static int mg_verify_interface(void)
 		for (i = 0; i < MG_MFLASH_SECTOR_SIZE >> 1; i++)
 			buff[i] = i;
 
-		target->type->write_memory(target, address, 2,
+		target_write_memory(target, address, 2,
 				MG_MFLASH_SECTOR_SIZE / 2, (u8 *)buff);
 
 		memset(buff, 0xff, MG_MFLASH_SECTOR_SIZE);

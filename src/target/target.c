@@ -531,6 +531,13 @@ int target_read_memory(struct target_s *target,
 	return target->type->read_memory(target, address, size, count, buffer);
 }
 
+int target_write_memory(struct target_s *target,
+		u32 address, u32 size, u32 count, u8 *buffer)
+{
+	return target->type->write_memory(target, address, size, count, buffer);
+}
+
+
 int target_init(struct command_context_s *cmd_ctx)
 {
 	target_t *target = all_targets;
@@ -898,7 +905,7 @@ int target_free_working_area_restore(struct target_s *target, working_area_t *ar
 	if (restore&&target->backup_working_area)
 	{
 		int retval;
-		if((retval = target->type->write_memory(target, area->address, 4, area->size / 4, area->backup)) != ERROR_OK)
+		if((retval = target_write_memory(target, area->address, 4, area->size / 4, area->backup)) != ERROR_OK)
 			return retval;
 	}
 
@@ -1004,7 +1011,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 
 	if (((address % 2) == 0) && (size == 2))
 	{
-		return target->type->write_memory(target, address, 2, 1, buffer);
+		return target_write_memory(target, address, 2, 1, buffer);
 	}
 
 	/* handle unaligned head bytes */
@@ -1015,7 +1022,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 		if (unaligned > size)
 			unaligned = size;
 
-		if ((retval = target->type->write_memory(target, address, 1, unaligned, buffer)) != ERROR_OK)
+		if ((retval = target_write_memory(target, address, 1, unaligned, buffer)) != ERROR_OK)
 			return retval;
 
 		buffer += unaligned;
@@ -1036,7 +1043,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 		}
 		else
 		{
-			if ((retval = target->type->write_memory(target, address, 4, aligned / 4, buffer)) != ERROR_OK)
+			if ((retval = target_write_memory(target, address, 4, aligned / 4, buffer)) != ERROR_OK)
 				return retval;
 		}
 
@@ -1048,7 +1055,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 	/* handle tail writes of less than 4 bytes */
 	if (size > 0)
 	{
-		if ((retval = target->type->write_memory(target, address, 1, size, buffer)) != ERROR_OK)
+		if ((retval = target_write_memory(target, address, 1, size, buffer)) != ERROR_OK)
 			return retval;
 	}
 
@@ -1272,7 +1279,7 @@ int target_write_u32(struct target_s *target, u32 address, u32 value)
 	LOG_DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
 
 	target_buffer_set_u32(target, value_buf, value);
-	if ((retval = target->type->write_memory(target, address, 4, 1, value_buf)) != ERROR_OK)
+	if ((retval = target_write_memory(target, address, 4, 1, value_buf)) != ERROR_OK)
 	{
 		LOG_DEBUG("failed: %i", retval);
 	}
@@ -1293,7 +1300,7 @@ int target_write_u16(struct target_s *target, u32 address, u16 value)
 	LOG_DEBUG("address: 0x%8.8x, value: 0x%8.8x", address, value);
 
 	target_buffer_set_u16(target, value_buf, value);
-	if ((retval = target->type->write_memory(target, address, 2, 1, value_buf)) != ERROR_OK)
+	if ((retval = target_write_memory(target, address, 2, 1, value_buf)) != ERROR_OK)
 	{
 		LOG_DEBUG("failed: %i", retval);
 	}
@@ -1312,7 +1319,7 @@ int target_write_u8(struct target_s *target, u32 address, u8 value)
 
 	LOG_DEBUG("address: 0x%8.8x, value: 0x%2.2x", address, value);
 
-	if ((retval = target->type->write_memory(target, address, 1, 1, &value)) != ERROR_OK)
+	if ((retval = target_write_memory(target, address, 1, 1, &value)) != ERROR_OK)
 	{
 		LOG_DEBUG("failed: %i", retval);
 	}
@@ -1967,7 +1974,7 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	}
 	for (i=0; i<count; i++)
 	{
-		int retval = target->type->write_memory(target,
+		int retval = target_write_memory(target,
 				address + i * wordsize, wordsize, 1, value_buf);
 		if (ERROR_OK != retval)
 			return retval;
@@ -3034,7 +3041,7 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 		}
 		len -= count;
 
-		retval = target->type->write_memory(target, addr, width, count, buffer);
+		retval = target_write_memory(target, addr, width, count, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
 			LOG_ERROR("array2mem: Write @ 0x%08x, w=%d, cnt=%d, failed", addr, width, count);
@@ -3525,7 +3532,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			break;
 		}
 		for( x = 0 ; x < c ; x++ ){
-			e = target->type->write_memory( target, a, b, 1, target_buf );
+			e = target_write_memory( target, a, b, 1, target_buf );
 			if( e != ERROR_OK ){
 				Jim_SetResult_sprintf( interp, "Error writing @ 0x%08x: %d\n", (int)(a), e );
 				return JIM_ERR;

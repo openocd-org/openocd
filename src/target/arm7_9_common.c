@@ -378,7 +378,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 				return retval;
 			}
 			if (current_instr==arm7_9->arm_bkpt)
-				if ((retval = target->type->write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+				if ((retval = target_write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
 				}
@@ -392,7 +392,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 				return retval;
 			}
 			if (current_instr==arm7_9->thumb_bkpt)
-				if ((retval = target->type->write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+				if ((retval = target_write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
 				}
@@ -2628,7 +2628,7 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	int i;
 
 	if (!arm7_9->dcc_downloads)
-		return target->type->write_memory(target, address, 4, count, buffer);
+		return target_write_memory(target, address, 4, count, buffer);
 
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!arm7_9->dcc_working_area)
@@ -2639,7 +2639,7 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 		if (target_alloc_working_area(target, 24, &arm7_9->dcc_working_area) != ERROR_OK)
 		{
 			LOG_INFO("no working area available, falling back to memory writes");
-			return target->type->write_memory(target, address, 4, count, buffer);
+			return target_write_memory(target, address, 4, count, buffer);
 		}
 
 		/* copy target instructions to target endianness */
@@ -2649,7 +2649,7 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 		}
 
 		/* write DCC code to working area */
-		if ((retval = target->type->write_memory(target, arm7_9->dcc_working_area->address, 4, 6, dcc_code_buf)) != ERROR_OK)
+		if ((retval = target_write_memory(target, arm7_9->dcc_working_area->address, 4, 6, dcc_code_buf)) != ERROR_OK)
 		{
 			return retval;
 		}
