@@ -12,16 +12,86 @@ AM_CPPFLAGS = \
 
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libtarget.la
-libtarget_la_SOURCES = target.c register.c breakpoints.c \
-	armv4_5.c embeddedice.c etm.c arm7tdmi.c arm9tdmi.c \
-	arm_jtag.c arm7_9_common.c algorithm.c arm920t.c arm720t.c armv4_5_mmu.c armv4_5_cache.c arm_disassembler.c \
-	arm966e.c arm926ejs.c feroceon.c etb.c xscale.c arm_simulator.c image.c armv7m.c cortex_m3.c cortex_a8.c arm_adi_v5.c \
-	etm_dummy.c $(OOCD_TRACE_FILES) target_request.c trace.c arm11.c arm11_dbgtap.c mips32.c mips_m4k.c \
-	mips32_pracc.c mips32_dmaacc.c mips_ejtag.c avrt.c
-noinst_HEADERS = target.h trace.h register.h armv4_5.h embeddedice.h etm.h arm7tdmi.h arm9tdmi.h \
-	arm_jtag.h arm7_9_common.h arm920t.h arm720t.h armv4_5_mmu.h armv4_5_cache.h breakpoints.h algorithm.h \
-	arm_disassembler.h arm966e.h arm926ejs.h etb.h xscale.h arm_simulator.h image.h armv7m.h cortex_m3.h cortex_a8.h arm_adi_v5.h \
-	etm_dummy.h oocd_trace.h target_request.h trace.h arm11.h mips32.h mips_m4k.h mips_ejtag.h mips32_pracc.h mips32_dmaacc.h avrt.h
+libtarget_la_SOURCES = \
+	target.c \
+	register.c \
+	breakpoints.c \
+	armv4_5.c \
+	embeddedice.c \
+	etm.c \
+	arm7tdmi.c \
+	arm9tdmi.c \
+	arm_jtag.c \
+	arm7_9_common.c \
+	algorithm.c \
+	arm920t.c \
+	arm720t.c \
+	armv4_5_mmu.c \
+	armv4_5_cache.c \
+	arm_disassembler.c \
+	arm966e.c \
+	arm926ejs.c \
+	feroceon.c \
+	etb.c \
+	xscale.c \
+	arm_simulator.c \
+	image.c \
+	armv7m.c \
+	cortex_m3.c \
+	cortex_a8.c \
+	arm_adi_v5.c \
+	etm_dummy.c \
+	$(OOCD_TRACE_FILES) \
+	target_request.c \
+	trace.c \
+	arm11.c \
+	arm11_dbgtap.c \
+	mips32.c \
+	mips_m4k.c \
+	mips32_pracc.c \
+	mips32_dmaacc.c \
+	mips_ejtag.c \
+	avrt.c
+
+noinst_HEADERS = \
+	target.h \
+	trace.h \
+	register.h \
+	armv4_5.h \
+	embeddedice.h \
+	etm.h \
+	arm7tdmi.h \
+	arm9tdmi.h \
+	arm_jtag.h \
+	arm7_9_common.h \
+	arm920t.h \
+	arm720t.h \
+	armv4_5_mmu.h \
+	armv4_5_cache.h \
+	breakpoints.h \
+	algorithm.h \
+	arm_disassembler.h \
+	arm966e.h \
+	arm926ejs.h \
+	etb.h \
+	xscale.h \
+	arm_simulator.h \
+	image.h \
+	armv7m.h \
+	cortex_m3.h \
+	cortex_a8.h \
+	arm_adi_v5.h \
+	etm_dummy.h \
+	oocd_trace.h \
+	target_request.h \
+	trace.h \
+	arm11.h \
+	mips32.h \
+	mips_m4k.h \
+	mips_ejtag.h \
+	mips32_pracc.h \
+	mips32_dmaacc.h \
+	avrt.h
 
 nobase_dist_pkglib_DATA =
 nobase_dist_pkglib_DATA += xscale/debug_handler.bin 

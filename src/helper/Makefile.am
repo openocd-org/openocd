@@ -15,9 +15,15 @@ endif
 
 
 libhelper_la_SOURCES = \
-	binarybuffer.c $(CONFIGFILES) configuration.c \
-	log.c command.c time_support.c \
-	replacements.c fileio.c startup_tcl.c
+	binarybuffer.c \
+	$(CONFIGFILES) \
+	configuration.c \
+	log.c \
+	command.c \
+	time_support.c \
+	replacements.c \
+	fileio.c \
+	startup_tcl.c
 
 if IOUTIL
 libhelper_la_SOURCES += ioutil.c
@@ -29,9 +35,20 @@ if IS_MINGW
 libhelper_la_CFLAGS += -Wno-sign-compare
 endif
 
-noinst_HEADERS = binarybuffer.h configuration.h types.h log.h command.h \
-	time_support.h replacements.h fileio.h jim.h jim-eventloop.h \
-	system.h startup.tcl bin2char.c
+noinst_HEADERS = \
+	binarybuffer.h \
+	configuration.h \
+	types.h \
+	log.h \
+	command.h \
+	time_support.h \
+	replacements.h \
+	fileio.h \
+	jim.h \
+	jim-eventloop.h \
+	system.h \
+	startup.tcl \
+	bin2char.c
 
 bin2char$(EXEEXT_FOR_BUILD): bin2char.c
 	${CC_FOR_BUILD} ${CFLAGS_FOR_BUILD} $(srcdir)/bin2char.c -o $@
