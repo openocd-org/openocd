@@ -11,12 +11,10 @@ want to use it for (as a chip designer).
 Think of JTAG as I2C for testing.  It doesn't define what it can do, 
 just a logical interface that allows a uniform channel for communication.
 
-See:
-
+See @par
 	http://en.wikipedia.org/wiki/Joint_Test_Action_Group
 
-and
-
+and @par
 	http://www.inaccessnetworks.com/projects/ianjtag/jtag-intro/jtag-state-machine-large.png
 
 The first page (among other things) shows a logical representation 
@@ -107,4 +105,64 @@ target chips and work out what the various instruction registers/data
 registers do, so you can actually do something useful.  That's where it
 gets interesting.  But in and of itself, JTAG is actually very simple.
 
+A separate primer contains information about @subpage primerjtagbs for
+developers that want to extend OpenOCD for such purposes.
+
+ */
+/** @page primerjtagbs JTAG Boundary Scan Primer
+
+The following page provides an introduction on JTAG that focuses on its
+boundary scan capabilities: @par
+http://www.engr.udayton.edu/faculty/jloomis/ece446/notes/jtag/jtag1.html
+
+OpenOCD does not presently have clear means of using JTAG for boundary
+scan testing purposes; however, some developers have explored the
+possibilities.  The page contains information that may be useful to
+those wishing to implement boundary scan capabilities in OpenOCD.
+
+@section primerbsdl The BSDL Language
+
+For more information on the Boundary Scan Description Language (BSDL),
+the following page provides a good introduction: @par
+http://www.radio-electronics.com/info/t_and_m/boundaryscan/bsdl.php
+
+@section primerbsdlvendors Vendor BSDL Files
+
+NXP LPC: @par
+http://www.standardics.nxp.com/support/models/lpc2000/
+
+Freescale PowerPC: @par
+http://www.freescale.com/webapp/sps/site/overview.jsp?code=DRPPCBSDLFLS
+
+Freescale i.MX1 (too old): @par
+http://www.freescale.com/webapp/sps/site/prod_summary.jsp?code=i.MX1&nodeId=0162468rH311432973ZrDR&fpsp=1&tab=Design_Tools_Tab
+
+Renesas R32C/117: @par
+http://sg.renesas.com/fmwk.jsp?cnt=r32c116_7_8_root.jsp&fp=/products/mpumcu/m16c_family/r32c100_series/r32c116_7_8_group/
+- The device page does not come with BSDL file; you have to register to
+  download them. @par
+  http://www.corelis.com/support/BSDL.htm
+
+TI links theirs right off the generic page for each chip;
+this may be the case for other vendors as well.  For example:
+
+- DaVinci DM355 -- http://www.ti.com/litv/zip/sprm262b
+- DaVinci DM6446
+  - 2.1 silicon -- http://www.ti.com/litv/zip/sprm325a
+  - older silicon -- http://www.ti.com/litv/zip/sprm203
+- OMAP 3530
+  - CBB package -- http://www.ti.com/litv/zip/sprm315b
+    - 515 ball s-PGBA, POP, 0.4mm pitch
+  - CUS package -- http://www.ti.com/litv/zip/sprm314a
+    - 515 ball s-PGBA, POP, 0.5mm pitch
+  - CBC package -- http://www.ti.com/litv/zip/sprm346
+    - 423 ball s-PGBA, 0.65mm pitch
+
+Many other files are available in the "Semiconductor Manufacturer's BSDL
+files" section of the following site: @par
+http://www.freelabs.com/~whitis/electronics/jtag/
+
+ */
+/** @file
+This file contains the @ref primerjtag and @ref bsdl page.
  */
