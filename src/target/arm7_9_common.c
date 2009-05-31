@@ -818,7 +818,7 @@ int arm7_9_handle_target_request(void *priv)
 {
 	int retval = ERROR_OK;
 	target_t *target = priv;
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 		return ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;

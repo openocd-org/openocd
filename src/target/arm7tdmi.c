@@ -718,7 +718,7 @@ int arm7tdmi_examine(struct target_s *target)
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		/* get pointers to arch-specific information */
 		reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
@@ -735,7 +735,7 @@ int arm7tdmi_examine(struct target_s *target)
 			(*cache_p)->next = etm_build_reg_cache(target, jtag_info, arm7_9->etm_ctx);
 			arm7_9->etm_ctx->reg_cache = (*cache_p)->next;
 		}
-		target->type->examined = 1;
+		target_set_examined(target);
 	}
 	if ((retval=embeddedice_setup(target))!=ERROR_OK)
 		return retval;

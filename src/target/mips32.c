@@ -346,9 +346,9 @@ int mips32_examine(struct target_s *target)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	
-	if (!target->type->examined)
+	if (target_was_examined(target))
 	{
-		target->type->examined = 1;
+		target_set_examined(target);
 	
 		/* we will configure later */
 		mips32->bp_scanned = 0;

@@ -854,7 +854,7 @@ int mips_m4k_examine(struct target_s *target)
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	u32 idcode = 0;
 
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		mips_ejtag_get_idcode(ejtag_info, &idcode, NULL);
 		ejtag_info->idcode = idcode;

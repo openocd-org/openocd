@@ -1429,9 +1429,9 @@ int cortex_m3_examine(struct target_s *target)
 	if ((retval = ahbap_debugport_init(swjdp)) != ERROR_OK)
 		return retval;
 	
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
-		target->type->examined = 1;
+		target_set_examined(target);
 		
 		/* Read from Device Identification Registers */
 		if ((retval = target_read_u32(target, CPUID, &cpuid)) != ERROR_OK)
@@ -1526,7 +1526,7 @@ int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer)
 int cortex_m3_handle_target_request(void *priv)
 {
 	target_t *target = priv;
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 		return ERROR_OK;
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;

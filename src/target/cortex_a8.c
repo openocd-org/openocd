@@ -168,7 +168,7 @@ int cortex_a8_write_memory(struct target_s *target, u32 address, u32 size, u32 c
 int cortex_a8_handle_target_request(void *priv)
 {
 	target_t *target = priv;
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 		return ERROR_OK;
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;

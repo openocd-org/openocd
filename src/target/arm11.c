@@ -1631,7 +1631,7 @@ int arm11_examine(struct target_s *target)
 
 	arm11_check_init(arm11, NULL);
 
-	target->type->examined = 1;
+	target_set_examined(target);
 
 	return ERROR_OK;
 }

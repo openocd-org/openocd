@@ -384,7 +384,7 @@ target_t* get_current_target(command_context_t *cmd_ctx)
 int target_poll(struct target_s *target)
 {
 	/* We can't poll until after examine */
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		/* Fail silently lest we pollute the log */
 		return ERROR_FAIL;
@@ -395,7 +395,7 @@ int target_poll(struct target_s *target)
 int target_halt(struct target_s *target)
 {
 	/* We can't poll until after examine */
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -408,7 +408,7 @@ int target_resume(struct target_s *target, int current, u32 address, int handle_
 	int retval;
 
 	/* We can't poll until after examine */
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -463,7 +463,7 @@ static int default_mmu(struct target_s *target, int *enabled)
 
 static int default_examine(struct target_s *target)
 {
-	target->type->examined = 1;
+	target_set_examined(target);
 	return ERROR_OK;
 }
 
@@ -487,7 +487,7 @@ int target_examine(void)
 
 static int target_write_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
 {
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -497,7 +497,7 @@ static int target_write_memory_imp(struct target_s *target, u32 address, u32 siz
 
 static int target_read_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
 {
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -507,7 +507,7 @@ static int target_read_memory_imp(struct target_s *target, u32 address, u32 size
 
 static int target_soft_reset_halt_imp(struct target_s *target)
 {
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -517,7 +517,7 @@ static int target_soft_reset_halt_imp(struct target_s *target)
 
 static int target_run_algorithm_imp(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
 {
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -548,6 +548,22 @@ int target_run_algorithm(struct target_s *target,
 			entry_point, exit_point, timeout_ms, arch_info);
 }
 
+/// @returns @c true if the target has been examined.
+bool target_was_examined(struct target_s *target)
+{
+	return target->type->examined;
+}
+/// Sets the @c examined flag for the given target.
+void target_set_examined(struct target_s *target)
+{
+	target->type->examined = true;
+}
+// Reset the @c examined flag for the given target.
+void target_reset_examined(struct target_s *target)
+{
+	target->type->examined = false;
+}
+
 
 int target_init(struct command_context_s *cmd_ctx)
 {
@@ -556,7 +572,7 @@ int target_init(struct command_context_s *cmd_ctx)
 
 	while (target)
 	{
-		target->type->examined = 0;
+		target_reset_examined(target);
 		if (target->type->examine == NULL)
 		{
 			target->type->examine = default_examine;
@@ -1003,7 +1019,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
 	int retval;
 	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x", size, address);
 
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -1082,7 +1098,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	int retval;
 	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x", size, address);
 
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -1149,7 +1165,7 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 	int retval;
 	u32 i;
 	u32 checksum = 0;
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -1191,7 +1207,7 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u32* blank)
 {
 	int retval;
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -1208,7 +1224,7 @@ int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u3
 int target_read_u32(struct target_s *target, u32 address, u32 *value)
 {
 	u8 value_buf[4];
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -1233,7 +1249,7 @@ int target_read_u32(struct target_s *target, u32 address, u32 *value)
 int target_read_u16(struct target_s *target, u32 address, u16 *value)
 {
 	u8 value_buf[2];
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -1258,7 +1274,7 @@ int target_read_u16(struct target_s *target, u32 address, u16 *value)
 int target_read_u8(struct target_s *target, u32 address, u8 *value)
 {
 	int retval = target_read_memory(target, address, 1, 1, value);
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -1281,7 +1297,7 @@ int target_write_u32(struct target_s *target, u32 address, u32 value)
 {
 	int retval;
 	u8 value_buf[4];
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -1302,7 +1318,7 @@ int target_write_u16(struct target_s *target, u32 address, u16 value)
 {
 	int retval;
 	u8 value_buf[2];
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -1322,7 +1338,7 @@ int target_write_u16(struct target_s *target, u32 address, u16 value)
 int target_write_u8(struct target_s *target, u32 address, u8 value)
 {
 	int retval;
-	if (!target->type->examined)
+	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -3682,7 +3698,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			Jim_WrongNumArgs( goi.interp, 2, argv, "[no parameters]");
 			return JIM_ERR;
 		}
-		if( !(target->type->examined) ){
+		if( !(target_was_examined(target)) ){
 			e = ERROR_TARGET_NOT_EXAMINED;
 		} else {
 			e = target->type->poll( target );

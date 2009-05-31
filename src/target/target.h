@@ -109,6 +109,12 @@ typedef struct target_type_s
 {
 	char *name;
 
+	/**
+	 * Indicates whether this target has been examined.
+	 *
+	 * Do @b not access this field directly, use target_was_examined()
+	 * target_set_examined(), and target_reset_examined().
+	 */
 	int examined;
 
 	/* poll current target status */
@@ -382,6 +388,13 @@ extern int target_call_timer_callbacks_now(void);
 extern target_t* get_current_target(struct command_context_s *cmd_ctx);
 extern int get_num_by_target(target_t *query_target);
 extern target_t *get_target(const char *id);
+
+/// @returns @c true if the target has been examined.
+extern bool target_was_examined(struct target_s *target);
+/// Sets the @c examined flag for the given target.
+extern void target_set_examined(struct target_s *target);
+/// Reset the @c examined flag for the given target.
+extern void target_reset_examined(struct target_s *target);
 
 /**
  * Run an algorithm on the @a target given.
