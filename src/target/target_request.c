@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#define DEFINE_TARGET_TYPE_S
 #include "target_request.h"
 #include "binarybuffer.h"
 #include "trace.h"

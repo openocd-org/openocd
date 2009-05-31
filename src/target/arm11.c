@@ -26,6 +26,7 @@
 #include "config.h"
 #endif
 
+#define DEFINE_TARGET_TYPE_S
 #include "arm11.h"
 
 

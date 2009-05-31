@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 
+#define DEFINE_TARGET_TYPE_S
 #include "mips32.h"
 #include "mips_m4k.h"
 #include "mips32_dmaacc.h"

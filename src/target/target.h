@@ -105,7 +105,8 @@ typedef struct working_area_s
 	struct working_area_s *next;
 } working_area_t;
 
-typedef struct target_type_s
+#ifdef DEFINE_TARGET_TYPE_S
+struct target_type_s
 {
 	/**
 	 * Name of the target.  Do @b not access this field directly, use
@@ -258,7 +259,11 @@ typedef struct target_type_s
 	int (*virt2phys)(struct target_s *target, u32 address, u32 *physical);
 	int (*mmu)(struct target_s *target, int *enabled);
 
-} target_type_t;
+};
+#else
+struct target_type_s;
+#endif // DEFINE_TARGET_TYPE_S
+typedef struct target_type_s target_type_t;
 
 /* forward decloration */
 typedef struct target_event_action_s target_event_action_t;
