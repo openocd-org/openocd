@@ -536,6 +536,12 @@ int target_write_memory(struct target_s *target,
 {
 	return target->type->write_memory(target, address, size, count, buffer);
 }
+int target_bulk_write_memory(struct target_s *target,
+		u32 address, u32 count, u8 *buffer)
+{
+	return target->type->bulk_write_memory(target, address, count, buffer);
+}
+
 
 int target_run_algorithm(struct target_s *target,
 		int num_mem_params, mem_param_t *mem_params,

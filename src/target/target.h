@@ -179,7 +179,11 @@ typedef struct target_type_s
 	 */
 	int (*write_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 
-	/* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
+	/**
+	 * Write target memory in multiples of 4 bytes, optimized for
+	 * writing large quantities of data.  Do @b not call this
+	 * function directly, use target_bulk_write_memory() instead.
+	 */
 	int (*bulk_write_memory)(struct target_s *target, u32 address, u32 count, u8 *buffer);
 
 	int (*checksum_memory)(struct target_s *target, u32 address, u32 count, u32* checksum);
@@ -423,6 +427,16 @@ extern int target_read_memory(struct target_s *target,
  */
 extern int target_write_memory(struct target_s *target,
 		u32 address, u32 size, u32 count, u8 *buffer);
+
+/**
+ * Write @count items of 4 bytes to the memory of @a target at
+ * the @a address given.  Because it operates only on whole words,
+ * this should be faster than target_write_memory().
+ *
+ * This routine is wrapper for target->type->bulk_write_memory.
+ */
+extern int target_bulk_write_memory(struct target_s *target,
+		u32 address, u32 count, u8 *buffer);
 
 extern int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
 extern int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);

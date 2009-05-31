@@ -140,8 +140,7 @@ static int orion_nand_fast_block_write(struct nand_device_s *device, u8 *data, i
 
 	/* copy data to target's memory */
 	target_buf = hw->copy_area->address + code_size;
-	retval = target->type->bulk_write_memory(target, target_buf,
-						 size/4, data);
+	retval = target_bulk_write_memory(target, target_buf, size/4, data);
 	if (retval == ERROR_OK && size & 3) {
 		retval = target_write_memory(target,
 					target_buf + (size & ~3),
