@@ -107,6 +107,10 @@ typedef struct working_area_s
 
 typedef struct target_type_s
 {
+	/**
+	 * Name of the target.  Do @b not access this field directly, use
+	 * target_get_name() instead.
+	 */
 	char *name;
 
 	/**
@@ -394,6 +398,13 @@ extern int target_call_timer_callbacks_now(void);
 extern target_t* get_current_target(struct command_context_s *cmd_ctx);
 extern int get_num_by_target(target_t *query_target);
 extern target_t *get_target(const char *id);
+
+/**
+ * Get the target name.
+ *
+ * This routine is a wrapper for the target->type->name field.
+ */
+extern const char *target_get_name(struct target_s *target);
 
 /// @returns @c true if the target has been examined.
 extern bool target_was_examined(struct target_s *target);

@@ -484,6 +484,10 @@ int target_examine(void)
 	}
 	return retval;
 }
+const char *target_get_name(struct target_s *target)
+{
+	return target->type->name;
+}
 
 static int target_write_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
 {
@@ -598,7 +602,7 @@ int target_init(struct command_context_s *cmd_ctx)
 
 		if ((retval = target->type->init_target(cmd_ctx, target)) != ERROR_OK)
 		{
-			LOG_ERROR("target '%s' init failed", target->type->name);
+			LOG_ERROR("target '%s' init failed", target_get_name(target));
 			return retval;
 		}
 
@@ -1451,7 +1455,7 @@ DumpTargets:
 		command_print(cmd_ctx, "%2d: %-10s %-10s %-10s %10d %14s %s",
 					  target->target_number,
 					  target->cmd_name,
-					  target->type->name,
+					  target_get_name(target),
 					  Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness )->name,
 					  target->tap->abs_chain_position,
 					  target->tap->dotted_name,
@@ -3131,7 +3135,7 @@ void target_handle_event( target_t *target, enum target_event e )
 			LOG_DEBUG( "target: (%d) %s (%s) event: %d (%s) action: %s\n",
 					   target->target_number,
 					   target->cmd_name,
-					   target->type->name,
+					   target_get_name(target),
 					   e,
 					   Jim_Nvp_value2name_simple( nvp_target_event, e )->name,
 					   Jim_GetString( teap->body, NULL ) );
@@ -3220,7 +3224,7 @@ static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 					return JIM_ERR;
 				}
 			}
-			Jim_SetResultString( goi->interp, target->type->name, -1 );
+			Jim_SetResultString( goi->interp, target_get_name(target), -1 );
 			/* loop for more */
 			break;
 		case TCFG_EVENT:

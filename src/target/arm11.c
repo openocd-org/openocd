@@ -1847,7 +1847,7 @@ arm11_common_t * arm11_find_target(const char * arg)
 			continue;
 
 		/* if (t->type == arm11_target) */
-		if (0 == strcmp(t->type->name, "arm11"))
+		if (0 == strcmp(target_get_name(t), "arm11"))
 			return t->arch_info;
 	}
 
