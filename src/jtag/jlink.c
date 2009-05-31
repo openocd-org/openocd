@@ -809,7 +809,7 @@ static int jlink_tap_execute(void)
 		DEBUG_JTAG_IO("pending scan result, length = %d", length);
 
 #ifdef _DEBUG_USB_COMMS_
-		jlink_debug_buffer(buffer, byte_length);
+		jlink_debug_buffer(buffer, TAP_SCAN_BYTES(length));
 #endif
 
 		if (jtag_read_buffer(buffer, command) != ERROR_OK)
