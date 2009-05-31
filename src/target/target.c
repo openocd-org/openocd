@@ -273,7 +273,7 @@ static int new_target_number(void)
 static int target_continous_poll = 1;
 
 /* read a u32 from a buffer in target memory endianness */
-u32 target_buffer_get_u32(target_t *target, u8 *buffer)
+u32 target_buffer_get_u32(target_t *target, const u8 *buffer)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return le_to_h_u32(buffer);
@@ -282,7 +282,7 @@ u32 target_buffer_get_u32(target_t *target, u8 *buffer)
 }
 
 /* read a u16 from a buffer in target memory endianness */
-u16 target_buffer_get_u16(target_t *target, u8 *buffer)
+u16 target_buffer_get_u16(target_t *target, const u8 *buffer)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return le_to_h_u16(buffer);
@@ -291,7 +291,7 @@ u16 target_buffer_get_u16(target_t *target, u8 *buffer)
 }
 
 /* read a u8 from a buffer in target memory endianness */
-u8 target_buffer_get_u8(target_t *target, u8 *buffer)
+u8 target_buffer_get_u8(target_t *target, const u8 *buffer)
 {
 	return *buffer & 0x0ff;
 }
