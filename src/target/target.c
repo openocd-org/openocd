@@ -543,6 +543,12 @@ int target_bulk_write_memory(struct target_s *target,
 }
 
 
+int target_get_gdb_reg_list(struct target_s *target,
+		struct reg_s **reg_list[], int *reg_list_size)
+{
+	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size);
+}
+
 int target_run_algorithm(struct target_s *target,
 		int num_mem_params, mem_param_t *mem_params,
 		int num_reg_params, reg_param_t *reg_param,

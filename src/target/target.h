@@ -151,7 +151,9 @@ typedef struct target_type_s
 	int (*soft_reset_halt_imp)(struct target_s *target);
 	int (*soft_reset_halt)(struct target_s *target);
 
-	/* target register access for gdb.
+	/**
+	 * Target register access for GDB.  Do @b not call this function
+	 * directly, use target_get_gdb_reg_list() instead.
 	 *
 	 * Danger! this function will succeed even if the target is running
 	 * and return a register list with dummy values.
@@ -399,6 +401,14 @@ extern bool target_was_examined(struct target_s *target);
 extern void target_set_examined(struct target_s *target);
 /// Reset the @c examined flag for the given target.
 extern void target_reset_examined(struct target_s *target);
+
+/**
+ * Obtain the registers for GDB.
+ *
+ * This routine is a wrapper for target->type->get_gdb_reg_list.
+ */
+extern int target_get_gdb_reg_list(struct target_s *target,
+		struct reg_s **reg_list[], int *reg_list_size);
 
 /**
  * Run an algorithm on the @a target given.

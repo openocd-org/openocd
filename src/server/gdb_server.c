@@ -947,7 +947,7 @@ int gdb_get_registers_packet(connection_t *connection, target_t *target, char* p
 	LOG_DEBUG("-");
 #endif
 
-	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
+	if ((retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
 		return gdb_error(connection, retval);
 	}
@@ -1005,7 +1005,7 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
+	if ((retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
 		return gdb_error(connection, retval);
 	}
@@ -1057,7 +1057,7 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 	LOG_DEBUG("-");
 #endif
 
-	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
+	if ((retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
 		return gdb_error(connection, retval);
 	}
@@ -1092,7 +1092,7 @@ int gdb_set_register_packet(connection_t *connection, target_t *target, char *pa
 
 	LOG_DEBUG("-");
 
-	if ((retval = target->type->get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
+	if ((retval = target_get_gdb_reg_list(target, &reg_list, &reg_list_size)) != ERROR_OK)
 	{
 		return gdb_error(connection, retval);
 	}
