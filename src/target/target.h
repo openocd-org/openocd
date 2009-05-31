@@ -161,6 +161,10 @@ typedef struct target_type_s
 	* count: number of items of <size>
 	*/
 	int (*read_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+	/**
+	 * Target memory read callback.  Do @b not call this function
+	 * directly, use target_read_memory() instead.
+	 */
 	int (*read_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 	int (*write_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
 	int (*write_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
@@ -370,6 +374,15 @@ extern int target_call_timer_callbacks_now(void);
 extern target_t* get_current_target(struct command_context_s *cmd_ctx);
 extern int get_num_by_target(target_t *query_target);
 extern target_t *get_target(const char *id);
+
+/**
+ * Read @count items of @a size bytes from the memory of @a target at
+ * the @a address given.
+ *
+ * This routine is a wrapper for target->type->read_memory.
+ */
+extern int target_read_memory(struct target_s *target,
+		u32 address, u32 size, u32 count, u8 *buffer);
 
 extern int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
 extern int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);

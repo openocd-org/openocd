@@ -759,12 +759,12 @@ static int lpc3180_read_page(struct nand_device_s *device, u32 page, u8 *data, u
 
 			if (data)
 			{
-				target->type->read_memory(target, 0x200a8000, 4, 128, page_buffer + page_bytes_done);
+				target_read_memory(target, 0x200a8000, 4, 128, page_buffer + page_bytes_done);
 			}
 
 			if (oob)
 			{
-				target->type->read_memory(target, 0x200a8000, 4, 4, oob_buffer + oob_bytes_done);
+				target_read_memory(target, 0x200a8000, 4, 4, oob_buffer + oob_bytes_done);
 			}
 
 			page_bytes_done += 512;

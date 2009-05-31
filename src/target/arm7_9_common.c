@@ -274,7 +274,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			u32 verify = 0xffffffff;
 			/* keep the original instruction in target endianness */
-			if ((retval = target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -298,7 +298,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			u16 verify = 0xffff;
 			/* keep the original instruction in target endianness */
-			if ((retval = target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -373,7 +373,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			u32 current_instr;
 			/* check that user program as not modified breakpoint instruction */
-			if ((retval = target->type->read_memory(target, breakpoint->address, 4, 1, (u8*)&current_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, (u8*)&current_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -387,7 +387,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			u16 current_instr;
 			/* check that user program as not modified breakpoint instruction */
-			if ((retval = target->type->read_memory(target, breakpoint->address, 2, 1, (u8*)&current_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, (u8*)&current_instr)) != ERROR_OK)
 			{
 				return retval;
 			}

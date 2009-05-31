@@ -2187,7 +2187,7 @@ int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		if (breakpoint->length == 4)
 		{
 			/* keep the original instruction in target endianness */
-			if((retval = target->type->read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if((retval = target_read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -2200,7 +2200,7 @@ int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		else
 		{
 			/* keep the original instruction in target endianness */
-			if((retval = target->type->read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if((retval = target_read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}

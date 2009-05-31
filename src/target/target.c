@@ -525,6 +525,12 @@ static int target_run_algorithm_imp(struct target_s *target, int num_mem_params,
 	return target->type->run_algorithm_imp(target, num_mem_params, mem_params, num_reg_params, reg_param, entry_point, exit_point, timeout_ms, arch_info);
 }
 
+int target_read_memory(struct target_s *target,
+		u32 address, u32 size, u32 count, u8 *buffer)
+{
+	return target->type->read_memory(target, address, size, count, buffer);
+}
+
 int target_init(struct command_context_s *cmd_ctx)
 {
 	target_t *target = all_targets;
@@ -858,7 +864,7 @@ int target_alloc_working_area(struct target_s *target, u32 size, working_area_t 
 		{
 			int retval;
 			new_wa->backup = malloc(new_wa->size);
-			if((retval = target->type->read_memory(target, new_wa->address, 4, new_wa->size / 4, new_wa->backup)) != ERROR_OK)
+			if((retval = target_read_memory(target, new_wa->address, 4, new_wa->size / 4, new_wa->backup)) != ERROR_OK)
 			{
 				free(new_wa->backup);
 				free(new_wa);
@@ -1077,7 +1083,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 
 	if (((address % 2) == 0) && (size == 2))
 	{
-		return target->type->read_memory(target, address, 2, 1, buffer);
+		return target_read_memory(target, address, 2, 1, buffer);
 	}
 
 	/* handle unaligned head bytes */
@@ -1088,7 +1094,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 		if (unaligned > size)
 			unaligned = size;
 
-		if ((retval = target->type->read_memory(target, address, 1, unaligned, buffer)) != ERROR_OK)
+		if ((retval = target_read_memory(target, address, 1, unaligned, buffer)) != ERROR_OK)
 			return retval;
 
 		buffer += unaligned;
@@ -1101,7 +1107,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	{
 		int aligned = size - (size % 4);
 
-		if ((retval = target->type->read_memory(target, address, 4, aligned / 4, buffer)) != ERROR_OK)
+		if ((retval = target_read_memory(target, address, 4, aligned / 4, buffer)) != ERROR_OK)
 			return retval;
 
 		buffer += aligned;
@@ -1112,7 +1118,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 	/* handle tail writes of less than 4 bytes */
 	if (size > 0)
 	{
-		if ((retval = target->type->read_memory(target, address, 1, size, buffer)) != ERROR_OK)
+		if ((retval = target_read_memory(target, address, 1, size, buffer)) != ERROR_OK)
 			return retval;
 	}
 
@@ -1190,7 +1196,7 @@ int target_read_u32(struct target_s *target, u32 address, u32 *value)
 		return ERROR_FAIL;
 	}
 
-	int retval = target->type->read_memory(target, address, 4, 1, value_buf);
+	int retval = target_read_memory(target, address, 4, 1, value_buf);
 
 	if (retval == ERROR_OK)
 	{
@@ -1215,7 +1221,7 @@ int target_read_u16(struct target_s *target, u32 address, u16 *value)
 		return ERROR_FAIL;
 	}
 
-	int retval = target->type->read_memory(target, address, 2, 1, value_buf);
+	int retval = target_read_memory(target, address, 2, 1, value_buf);
 
 	if (retval == ERROR_OK)
 	{
@@ -1233,7 +1239,7 @@ int target_read_u16(struct target_s *target, u32 address, u16 *value)
 
 int target_read_u8(struct target_s *target, u32 address, u8 *value)
 {
-	int retval = target->type->read_memory(target, address, 1, 1, value);
+	int retval = target_read_memory(target, address, 1, 1, value);
 	if (!target->type->examined)
 	{
 		LOG_ERROR("Target not examined yet");
@@ -1914,7 +1920,7 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	u8 *buffer = calloc(count, size);
 
 	target_t *target = get_current_target(cmd_ctx);
-	int retval = target->type->read_memory(target,
+	int retval = target_read_memory(target,
 				address, size, count, buffer);
 	if (ERROR_OK == retval)
 		handle_md_output(cmd_ctx, target, address, size, count, buffer);
@@ -2256,7 +2262,7 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 					size *= 4;
 					count /= 4;
 				}
-				retval = target->type->read_memory(target, image.sections[i].base_address, size, count, data);
+				retval = target_read_memory(target, image.sections[i].base_address, size, count, data);
 				if (retval == ERROR_OK)
 				{
 					u32 t;
@@ -2829,7 +2835,7 @@ static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_
 			count = (sizeof(buffer)/width);
 		}
 
-		retval = target->type->read_memory( target, addr, width, count, buffer );
+		retval = target_read_memory( target, addr, width, count, buffer );
 		if (retval != ERROR_OK) {
 			/* BOO !*/
 			LOG_ERROR("mem2array: Read @ 0x%08x, w=%d, cnt=%d, failed", addr, width, count);
@@ -3575,7 +3581,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			if( y > 16 ){
 				y = 16;
 			}
-			e = target->type->read_memory( target, a, b, y / b, target_buf );
+			e = target_read_memory( target, a, b, y / b, target_buf );
 			if( e != ERROR_OK ){
 				Jim_SetResult_sprintf( interp, "error reading target @ 0x%08lx", (int)(a) );
 				return JIM_ERR;

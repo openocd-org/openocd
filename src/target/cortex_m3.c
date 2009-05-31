@@ -930,7 +930,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		u8 code[4];
 		buf_set_u32(code, 0, 32, ARMV7M_T_BKPT(0x11));
-		if((retval = target->type->read_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
+		if((retval = target_read_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 		{
 			return retval;
 		}

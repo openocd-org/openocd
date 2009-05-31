@@ -1157,7 +1157,7 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 				chunk = (j - bank->sectors[i].size);
 			}
 
-			retval = target->type->read_memory(target, bank->base + bank->sectors[i].offset + j, 4, chunk/4, buffer);
+			retval = target_read_memory(target, bank->base + bank->sectors[i].offset + j, 4, chunk/4, buffer);
 			if (retval != ERROR_OK)
 				return retval;
 

@@ -345,7 +345,7 @@ static int mg_dsk_drv_info(void)
 	if (! mflash_bank->drv_info)
 		mflash_bank->drv_info = malloc(sizeof(mg_drv_info_t));
 
-	target->type->read_memory(target, mg_buff, 2, sizeof(mg_io_type_drv_info) >> 1,
+	target_read_memory(target, mg_buff, 2, sizeof(mg_io_type_drv_info) >> 1,
 			(u8 *)&mflash_bank->drv_info->drv_id);
 
 	mflash_bank->drv_info->tot_sects = (u32)(mflash_bank->drv_info->drv_id.total_user_addressable_sectors_hi << 16)
@@ -428,7 +428,7 @@ static int mg_mflash_do_read_sects(void *buff, u32 sect_num, u32 sect_cnt)
 	for (i = 0; i < sect_cnt; i++) {
 		mg_dsk_wait(mg_io_wait_drq, MG_OEM_DISK_WAIT_TIME_NORMAL);
 
-		target->type->read_memory(target, address, 2, MG_MFLASH_SECTOR_SIZE / 2, buff_ptr);
+		target_read_memory(target, address, 2, MG_MFLASH_SECTOR_SIZE / 2, buff_ptr);
 		buff_ptr += MG_MFLASH_SECTOR_SIZE;
 
 		target_write_u8(target, mflash_bank->base + MG_REG_OFFSET + MG_REG_COMMAND, mg_io_cmd_confirm_read);
@@ -932,7 +932,7 @@ static int mg_verify_interface(void)
 
 		memset(buff, 0xff, MG_MFLASH_SECTOR_SIZE);
 
-		target->type->read_memory(target, address, 2,
+		target_read_memory(target, address, 2,
 				MG_MFLASH_SECTOR_SIZE / 2, (u8 *)buff);
 
 		for (i = 0; i < MG_MFLASH_SECTOR_SIZE >> 1; i++) {

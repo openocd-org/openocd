@@ -665,7 +665,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 	for (nSector=0; nSector<bank->num_sectors; nSector++)
 	{
 		bank->sectors[nSector].is_erased = 1;
-		retval = target->type->read_memory(target, bank->base+bank->sectors[nSector].offset, 4,
+		retval = target_read_memory(target, bank->base+bank->sectors[nSector].offset, 4,
 			bank->sectors[nSector].size/4, buffer);
 		if (retval != ERROR_OK)
 			return retval;

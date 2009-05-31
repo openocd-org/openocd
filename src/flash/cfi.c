@@ -166,7 +166,7 @@ static u8 cfi_query_u8(flash_bank_t *bank, int sector, u32 offset)
 	target_t *target = bank->target;
 	u8 data[CFI_MAX_BUS_WIDTH];
 
-	target->type->read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
+	target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
 		return data[0];
@@ -184,7 +184,7 @@ static u8 cfi_get_u8(flash_bank_t *bank, int sector, u32 offset)
 	u8 data[CFI_MAX_BUS_WIDTH];
 	int i;
 
-	target->type->read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
+	target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
 	{
@@ -213,11 +213,11 @@ static u16 cfi_query_u16(flash_bank_t *bank, int sector, u32 offset)
 	{
 		u8 i;
 		for(i=0;i<2;i++)
-			target->type->read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
+			target_read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
 				&data[i*bank->bus_width] );
 	}
 	else
-		target->type->read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 2, data);
+		target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 2, data);
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
 		return data[0] | data[bank->bus_width] << 8;
@@ -235,11 +235,11 @@ static u32 cfi_query_u32(flash_bank_t *bank, int sector, u32 offset)
 	{
 		u8 i;
 		for(i=0;i<4;i++)
-			target->type->read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
+			target_read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
 				&data[i*bank->bus_width] );
 	}
 	else
-		target->type->read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 4, data);
+		target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 4, data);
 
 	if (bank->target->endianness == TARGET_LITTLE_ENDIAN)
 		return data[0] | data[bank->bus_width] << 8 | data[bank->bus_width * 2] << 16 | data[bank->bus_width * 3] << 24;
@@ -1889,7 +1889,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		for (i = 0; i < align; ++i, ++copy_p)
 		{
 			u8 byte;
-			if((retval = target->type->read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
+			if((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -1908,7 +1908,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		for (; (count == 0) && (i < bank->bus_width); ++i, ++copy_p)
 		{
 			u8 byte;
-			if((retval = target->type->read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
+			if((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -2039,7 +2039,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		for (; i < bank->bus_width; ++i, ++copy_p)
 		{
 			u8 byte;
-			if((retval = target->type->read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
+			if((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
 			{
 				return retval;
 			}
