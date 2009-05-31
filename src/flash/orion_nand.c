@@ -162,7 +162,7 @@ static int orion_nand_fast_block_write(struct nand_device_s *device, u8 *data, i
 	buf_set_u32(reg_params[1].value, 0, 32, target_buf);
 	buf_set_u32(reg_params[2].value, 0, 32, size);
 
-	retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params,
+	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 					hw->copy_area->address,
 					hw->copy_area->address + code_size - 4,
 					1000, &algo);

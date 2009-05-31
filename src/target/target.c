@@ -537,6 +537,17 @@ int target_write_memory(struct target_s *target,
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 
+int target_run_algorithm(struct target_s *target,
+		int num_mem_params, mem_param_t *mem_params,
+		int num_reg_params, reg_param_t *reg_param,
+		u32 entry_point, u32 exit_point,
+		int timeout_ms, void *arch_info)
+{
+	return target->type->run_algorithm(target,
+			num_mem_params, mem_params, num_reg_params, reg_param,
+			entry_point, exit_point, timeout_ms, arch_info);
+}
+
 
 int target_init(struct command_context_s *cmd_ctx)
 {

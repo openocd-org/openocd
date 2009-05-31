@@ -298,7 +298,7 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u3
 	init_reg_param(&reg_params[4], "lr_svc", 32, PARAM_OUT);
 	buf_set_u32(reg_params[4].value, 0, 32, lpc2000_info->iap_working_area->address + 0x4);
 
-	target->type->run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, lpc2000_info->iap_working_area->address + 0x4, 10000, &armv4_5_info);
+	target_run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, lpc2000_info->iap_working_area->address + 0x4, 10000, &armv4_5_info);
 
 	status_code = buf_get_u32(mem_params[1].value, 0, 32);
 	result_table[0] = target_buffer_get_u32(target, mem_params[1].value);

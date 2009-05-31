@@ -2747,7 +2747,7 @@ int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 	buf_set_u32(reg_params[0].value, 0, 32, address);
 	buf_set_u32(reg_params[1].value, 0, 32, count);
 
-	if ((retval = target->type->run_algorithm(target, 0, NULL, 2, reg_params,
+	if ((retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
 		crc_algorithm->address, crc_algorithm->address + (sizeof(arm7_9_crc_code) - 8), 20000, &armv4_5_info)) != ERROR_OK)
 	{
 		LOG_ERROR("error executing arm7_9 crc algorithm");
@@ -2812,7 +2812,7 @@ int arm7_9_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN_OUT);
 	buf_set_u32(reg_params[2].value, 0, 32, 0xff);
 
-	if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params,
+	if ((retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 			erase_check_algorithm->address, erase_check_algorithm->address + (sizeof(erase_check_code) - 4), 10000, &armv4_5_info)) != ERROR_OK)
 	{
 		destroy_reg_param(&reg_params[0]);

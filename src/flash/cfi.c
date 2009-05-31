@@ -1227,7 +1227,7 @@ static int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 addr
 		LOG_INFO("Write 0x%04x bytes to flash at 0x%08x", thisrun_count, address );
 
 		/* Execute algorithm, assume breakpoint for last instruction */
-		retval = target->type->run_algorithm(target, 0, NULL, 7, reg_params,
+		retval = target_run_algorithm(target, 0, NULL, 7, reg_params,
 			cfi_info->write_algorithm->address,
 			cfi_info->write_algorithm->address + target_code_size - sizeof(u32),
 			10000, /* 10s should be enough for max. 32k of data */
@@ -1510,7 +1510,7 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 a
 		buf_set_u32(reg_params[8].value, 0, 32, flash_address(bank, 0, pri_ext->_unlock2));
 		buf_set_u32(reg_params[9].value, 0, 32, 0x55555555);
 
-		retval = target->type->run_algorithm(target, 0, NULL, 10, reg_params,
+		retval = target_run_algorithm(target, 0, NULL, 10, reg_params,
 						     cfi_info->write_algorithm->address,
 						     cfi_info->write_algorithm->address + ((24 * 4) - 4),
 						     10000, &armv4_5_info);

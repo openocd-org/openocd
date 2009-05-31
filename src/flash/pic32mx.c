@@ -419,7 +419,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, buffer_size/4);
 
-		if ((retval = target->type->run_algorithm(target, 0, NULL, 4, reg_params, pic32mx_info->write_algorithm->address, \
+		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params, pic32mx_info->write_algorithm->address, \
 				pic32mx_info->write_algorithm->address + (sizeof(pic32mx_flash_write_code) - 10), 10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing pic32mx flash write algorithm");

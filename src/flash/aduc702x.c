@@ -288,7 +288,7 @@ static int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offse
 		buf_set_u32(reg_params[2].value, 0, 32, address);
 		buf_set_u32(reg_params[4].value, 0, 32, 0xFFFFF800);
 
-		if ((retval = target->type->run_algorithm(target, 0, NULL, 5, 
+		if ((retval = target_run_algorithm(target, 0, NULL, 5, 
                         reg_params, aduc702x_info->write_algorithm->address, 
                         aduc702x_info->write_algorithm->address + sizeof(aduc702x_flash_write_code) - 4, 
                         10000, &armv4_5_info)) != ERROR_OK)

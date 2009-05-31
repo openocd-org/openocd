@@ -554,7 +554,7 @@ static int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset,
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count);
 		
-		if ((retval = target->type->run_algorithm(target, 0, NULL, 4, reg_params, stm32x_info->write_algorithm->address, \
+		if ((retval = target_run_algorithm(target, 0, NULL, 4, reg_params, stm32x_info->write_algorithm->address, \
 				stm32x_info->write_algorithm->address + (sizeof(stm32x_flash_write_code) - 10), 10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing stm32x flash write algorithm");

@@ -779,7 +779,7 @@ static int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offs
 		buf_set_u32(reg_params[2].value, 0, 32, 4*thisrun_count);
 		LOG_INFO("Algorithm flash write %i words to 0x%x, %i remaining", thisrun_count, address, wcount);
 		LOG_DEBUG("Algorithm flash write %i words to 0x%x, %i remaining", thisrun_count, address, wcount);
-		if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params, write_algorithm->address, write_algorithm->address + sizeof(stellaris_write_code)-10, 10000, &armv7m_info)) != ERROR_OK)
+		if ((retval = target_run_algorithm(target, 0, NULL, 3, reg_params, write_algorithm->address, write_algorithm->address + sizeof(stellaris_write_code)-10, 10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing stellaris flash write algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;

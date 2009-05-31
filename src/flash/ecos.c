@@ -245,7 +245,7 @@ static int runCode(ecosflash_flash_bank_t *info,
 	buf_set_u32(reg_params[2].value, 0, 32, r2);
 
 	int retval;
-	if ((retval = target->type->run_algorithm(target, 0, NULL, 3, reg_params,
+	if ((retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
 			codeStart,
 			codeStop, timeout,
 			&armv4_5_info)) != ERROR_OK)

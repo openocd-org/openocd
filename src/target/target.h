@@ -204,6 +204,10 @@ typedef struct target_type_s
 
 	/* target algorithm support */
 	int (*run_algorithm_imp)(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
+	/**
+	 * Target algorithm support.  Do @b not call this method directly,
+	 * use target_run_algorithm() instead.
+	 */
 	int (*run_algorithm)(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
 
 	int (*register_commands)(struct command_context_s *cmd_ctx);
@@ -378,6 +382,17 @@ extern int target_call_timer_callbacks_now(void);
 extern target_t* get_current_target(struct command_context_s *cmd_ctx);
 extern int get_num_by_target(target_t *query_target);
 extern target_t *get_target(const char *id);
+
+/**
+ * Run an algorithm on the @a target given.
+ *
+ * This routine is a wrapper for target->type->run_algorithm.
+ */
+extern int target_run_algorithm(struct target_s *target,
+		int num_mem_params, mem_param_t *mem_params,
+		int num_reg_params, reg_param_t *reg_param,
+		u32 entry_point, u32 exit_point,
+		int timeout_ms, void *arch_info);
 
 /**
  * Read @count items of @a size bytes from the memory of @a target at
