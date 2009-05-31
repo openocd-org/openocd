@@ -406,6 +406,12 @@ extern target_t *get_target(const char *id);
  */
 extern const char *target_get_name(struct target_s *target);
 
+/**
+ * Examine the specified @a target.
+ *
+ * This routine is a wrapper for target->type->examine.
+ */
+extern int target_examine_one(struct target_s *target);
 /// @returns @c true if the target has been examined.
 extern bool target_was_examined(struct target_s *target);
 /// Sets the @c examined flag for the given target.

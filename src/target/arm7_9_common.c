@@ -1051,7 +1051,7 @@ int arm7_9_deassert_reset(target_t *target)
 	{
 		LOG_WARNING("srst pulls trst - can not reset into halted mode. Issuing halt after reset.");
 		/* set up embedded ice registers again */
-		if ((retval=target->type->examine(target))!=ERROR_OK)
+		if ((retval = target_examine_one(target)) != ERROR_OK)
 			return retval;
 
 		if ((retval=target_poll(target))!=ERROR_OK)

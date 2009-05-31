@@ -467,6 +467,11 @@ static int default_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
+int target_examine_one(struct target_s *target)
+{
+	return target->type->examine(target);
+}
+
 /* Targets that correctly implement init+examine, i.e.
  * no communication with target during init:
  *
@@ -478,7 +483,7 @@ int target_examine(void)
 	target_t *target = all_targets;
 	while (target)
 	{
-		if ((retval = target->type->examine(target))!=ERROR_OK)
+		if ((retval = target_examine_one(target)) != ERROR_OK)
 			return retval;
 		target = target->next;
 	}
