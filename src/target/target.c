@@ -150,7 +150,7 @@ const char *target_strerror_safe( int err )
 	}
 }
 
-const Jim_Nvp nvp_target_event[] = {
+static const Jim_Nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_OLD_gdb_program_config , .name = "old-gdb_program_config" },
 	{ .value = TARGET_EVENT_OLD_pre_resume         , .name = "old-pre_resume" },
 

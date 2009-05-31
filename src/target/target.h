@@ -318,8 +318,6 @@ enum target_event
 	TARGET_EVENT_GDB_FLASH_WRITE_END,
 };
 
-extern const Jim_Nvp nvp_target_event[];
-
 struct target_event_action_s {
 	enum target_event event;
 	Jim_Obj *body;
