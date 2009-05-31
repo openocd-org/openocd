@@ -61,7 +61,7 @@ int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_ty
 	(*breakpoint_p)->orig_instr = malloc(length);
 	(*breakpoint_p)->next = NULL;
 	
-	if ((retval = target->type->add_breakpoint(target, *breakpoint_p)) != ERROR_OK)
+	if ((retval = target_add_breakpoint(target, *breakpoint_p)) != ERROR_OK)
 	{
 		switch (retval)
 		{
@@ -108,7 +108,7 @@ static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
 	if (breakpoint==NULL)
 		return;
 	
-	target->type->remove_breakpoint(target, breakpoint);
+	target_remove_breakpoint(target, breakpoint);
 	
 	(*breakpoint_p) = breakpoint->next;
 	free(breakpoint->orig_instr);
@@ -184,7 +184,7 @@ int watchpoint_add(target_t *target, u32 address, u32 length, enum watchpoint_rw
 	(*watchpoint_p)->set = 0;
 	(*watchpoint_p)->next = NULL;
 		
-	if ((retval = target->type->add_watchpoint(target, *watchpoint_p)) != ERROR_OK)
+	if ((retval = target_add_watchpoint(target, *watchpoint_p)) != ERROR_OK)
 	{
 		switch (retval)
 		{
@@ -229,7 +229,7 @@ static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
 	
 	if (watchpoint==NULL)
 		return;
-	target->type->remove_watchpoint(target, watchpoint);
+	target_remove_watchpoint(target, watchpoint);
 	(*watchpoint_p) = watchpoint->next;
 	free(watchpoint);
 }

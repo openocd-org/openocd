@@ -546,6 +546,27 @@ int target_bulk_write_memory(struct target_s *target,
 	return target->type->bulk_write_memory(target, address, count, buffer);
 }
 
+int target_add_breakpoint(struct target_s *target,
+		struct breakpoint_s *breakpoint)
+{
+	return target->type->add_breakpoint(target, breakpoint);
+}
+int target_remove_breakpoint(struct target_s *target,
+		struct breakpoint_s *breakpoint)
+{
+	return target->type->remove_breakpoint(target, breakpoint);
+}
+
+int target_add_watchpoint(struct target_s *target,
+		struct watchpoint_s *watchpoint)
+{
+	return target->type->add_watchpoint(target, watchpoint);
+}
+int target_remove_watchpoint(struct target_s *target,
+		struct watchpoint_s *watchpoint)
+{
+	return target->type->remove_watchpoint(target, watchpoint);
+}
 
 int target_get_gdb_reg_list(struct target_s *target,
 		struct reg_s **reg_list[], int *reg_list_size)

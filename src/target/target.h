@@ -413,6 +413,36 @@ extern void target_set_examined(struct target_s *target);
 /// Reset the @c examined flag for the given target.
 extern void target_reset_examined(struct target_s *target);
 
+
+/**
+ * Add the @a breakpoint for @a target.
+ *
+ * This routine is a wrapper for target->type->add_breakpoint.
+ */
+extern int target_add_breakpoint(struct target_s *target,
+		struct breakpoint_s *breakpoint);
+/**
+ * Remove the @a breakpoint for @a target.
+ *
+ * This routine is a wrapper for target->type->remove_breakpoint.
+ */
+extern int target_remove_breakpoint(struct target_s *target,
+		struct breakpoint_s *breakpoint);
+/**
+ * Add the @a watchpoint for @a target.
+ *
+ * This routine is a wrapper for target->type->add_watchpoint.
+ */
+extern int target_add_watchpoint(struct target_s *target,
+		struct watchpoint_s *watchpoint);
+/**
+ * Remove the @a watchpoint for @a target.
+ *
+ * This routine is a wrapper for target->type->remove_watchpoint.
+ */
+extern int target_remove_watchpoint(struct target_s *target,
+		struct watchpoint_s *watchpoint);
+
 /**
  * Obtain the registers for GDB.
  *
