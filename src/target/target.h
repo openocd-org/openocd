@@ -411,6 +411,13 @@ extern int target_get_gdb_reg_list(struct target_s *target,
 		struct reg_s **reg_list[], int *reg_list_size);
 
 /**
+ * Step the target.
+ *
+ * This routine is a wrapper for target->type->step.
+ */
+int target_step(struct target_s *target,
+		int current, u32 address, int handle_breakpoints);
+/**
  * Run an algorithm on the @a target given.
  *
  * This routine is a wrapper for target->type->run_algorithm.

@@ -548,6 +548,12 @@ int target_get_gdb_reg_list(struct target_s *target,
 {
 	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size);
 }
+int target_step(struct target_s *target,
+		int current, u32 address, int handle_breakpoints)
+{
+	return target->type->step(target, current, address, handle_breakpoints);
+}
+
 
 int target_run_algorithm(struct target_s *target,
 		int num_mem_params, mem_param_t *mem_params,

@@ -1366,7 +1366,8 @@ int gdb_step_continue_packet(connection_t *connection, target_t *target, char *p
 	else if (packet[0] == 's')
 	{
 		LOG_DEBUG("step");
-		retval=target->type->step(target, current, address, 0); /* step at current or address, don't handle breakpoints */
+		/* step at current or address, don't handle breakpoints */
+		retval = target_step(target, current, address, 0);
 	}
 	return retval;
 }
