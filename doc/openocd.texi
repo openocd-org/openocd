@@ -1,17 +1,22 @@
-\input texinfo	@c -*-texinfo-*-
+\input texinfo @c -*-texinfo-*-
 @c %**start of header
 @setfilename openocd.info
-@settitle Open On-Chip Debugger (OpenOCD)
+@settitle OpenOCD User's Guide
 @dircategory Development
 @direntry
-@paragraphindent 0
-* OpenOCD: (openocd).      Open On-Chip Debugger.
+* OpenOCD: (openocd).      OpenOCD User's Guide
 @end direntry
+@paragraphindent 0
 @c %**end of header
 
 @include version.texi
 
 @copying
+
+This User's Guide documents
+release @value{VERSION},
+dated @value{UPDATED},
+of the Open On-Chip Debugger (OpenOCD).
 
 @itemize @bullet
 @item Copyright @copyright{} 2008 The OpenOCD Project
@@ -31,9 +36,12 @@ Free Documentation License''.
 @end copying
 
 @titlepage
-@title Open On-Chip Debugger (OpenOCD)
-@subtitle Edition @value{EDITION} for OpenOCD version @value{VERSION}
+@titlefont{@emph{Open On-Chip Debugger:}}
+@sp 1
+@title OpenOCD User's Guide
+@subtitle for release @value{VERSION}
 @subtitle @value{UPDATED}
+
 @page
 @vskip 0pt plus 1filll
 @insertcopying
@@ -42,13 +50,12 @@ Free Documentation License''.
 @summarycontents
 @contents
 
-@node Top, About, , (dir)
-@top OpenOCD
-
-This manual documents edition @value{EDITION} of the Open On-Chip Debugger
-(OpenOCD) version @value{VERSION}, @value{UPDATED}.
+@ifnottex
+@node Top
+@top OpenOCD User's Guide
 
 @insertcopying
+@end ifnottex
 
 @menu
 * About::                            About OpenOCD
@@ -77,6 +84,7 @@ This manual documents edition @value{EDITION} of the Open On-Chip Debugger
 * FAQ::                              Frequently Asked Questions
 * Tcl Crash Course::                 Tcl Crash Course
 * License::                          GNU Free Documentation License
+
 @comment DO NOT use the plain word ``Index'', reason: CYGWIN filename
 @comment case issue with ``Index.html'' and ``index.html''
 @comment Occurs when creating ``--html --no-split'' output
@@ -125,6 +133,24 @@ The OpenOCD web site provides the latest public news from the community:
 
 @uref{http://openocd.berlios.de/web/}
 
+@section Latest User's Guide:
+
+The user's guide you are now reading may not be the latest one
+available.  A version for more recent code may be available.
+Its HTML form is published irregularly at:
+
+@uref{http://openocd.berlios.de/doc/}
+
+PDF form is likewise published at:
+
+@uref{http://openocd.berlios.de/doc/pdf/}
+
+@section OpenOCD User's Forum
+
+There is an OpenOCD forum (phpBB) hosted by SparkFun:
+
+@uref{http://forum.sparkfun.com/viewforum.php?f=18}
+
 
 @node Developers
 @chapter OpenOCD Developer Resources
@@ -167,12 +193,13 @@ listed in the Doxyfile configuration in the top of the repository trunk.
 The OpenOCD Developer Mailing List provides the primary means of
 communication between developers:
 
-	@uref{https://lists.berlios.de/mailman/listinfo/openocd-development}
+@uref{https://lists.berlios.de/mailman/listinfo/openocd-development}
 
 All drivers developers are enouraged to also subscribe to the list of
 SVN commits to keep pace with the ongoing changes:
 
-	@uref{https://lists.berlios.de/mailman/listinfo/openocd-svn}
+@uref{https://lists.berlios.de/mailman/listinfo/openocd-svn}
+
 
 @node Building OpenOCD
 @chapter Building OpenOCD
@@ -247,7 +274,14 @@ current directory):
  svn checkout svn://svn.berlios.de/openocd/trunk openocd
 @end example
 
-Building OpenOCD requires a recent version of the GNU autotools (autoconf >= 2.59 and automake >= 1.9).
+If you prefer GIT based tools, the @command{git-svn} package works too:
+
+@example
+ git svn clone -s svn://svn.berlios.de/openocd
+@end example
+
+Building OpenOCD from a repository requires a recent version of the
+GNU autotools (autoconf >= 2.59 and automake >= 1.9).
 For building on Windows,
 you have to use Cygwin. Make sure that your @env{PATH} environment variable contains no
 other locations with Unix utils (like UnxUtils) - these can't handle the Cygwin
@@ -951,14 +985,14 @@ used at will within a ?TARGET? configuration file.
    # variable: _TARGETNAME = network.cpu
    # other commands can refer to the "network.cpu" tap.
    $_TARGETNAME configure .... params for this CPU..
-   
+
    set ENDIAN little
    set CHIPNAME video
    source [find target/pxa270.cfg]
    # variable: _TARGETNAME = video.cpu
    # other commands can refer to the "video.cpu" tap.
    $_TARGETNAME configure .... params for this CPU..
-   
+
    unset ENDIAN
    set CHIPNAME xilinx
    source [find target/spartan3.cfg]
@@ -976,15 +1010,15 @@ All target configuration files should start with this (or a modified form)
 
 @example
 # SIMPLE example
-if @{ [info exists CHIPNAME] @} @{	
-   set  _CHIPNAME $CHIPNAME    
-@} else @{	 
+if @{ [info exists CHIPNAME] @} @{
+   set  _CHIPNAME $CHIPNAME
+@} else @{
    set  _CHIPNAME sam7x256
 @}
 
-if @{ [info exists ENDIAN] @} @{	
-   set  _ENDIAN $ENDIAN    
-@} else @{	 
+if @{ [info exists ENDIAN] @} @{
+   set  _ENDIAN $ENDIAN
+@} else @{
    set  _ENDIAN little
 @}
 
@@ -1069,7 +1103,7 @@ managed. If these are @b{CHIP SPECIFIC} they go here, if they are
 @subsection Work Areas
 
 Work areas are small RAM areas used by OpenOCD to speed up downloads,
-and to download small snippets of code to program flash chips.  
+and to download small snippets of code to program flash chips.
 
 If the chip includes a form of ``on-chip-ram'' - and many do - define
 a reasonable work area and use the ``backup'' option.
@@ -1155,7 +1189,7 @@ can type a Tcl for() loop, set variables, etc.
 @* JIM-Tcl was introduced to OpenOCD in spring 2008.
 
 @item @b{Need a crash course in Tcl?}
-@* See: @xref{Tcl Crash Course}.
+@*@xref{Tcl Crash Course}.
 @end itemize
 
 @node Daemon Configuration
@@ -1232,8 +1266,8 @@ When not specified during the configuration stage,
 the port @var{number} defaults to 4444.
 @end deffn
 
-@section GDB Configuration
 @anchor{GDB Configuration}
+@section GDB Configuration
 @cindex GDB
 @cindex GDB configuration
 You can reconfigure some GDB behaviors if needed.
@@ -1241,8 +1275,8 @@ The ones listed here are static and global.
 @xref{Target Create}, about declaring individual targets.
 @xref{Target Events}, about configuring target-specific event handling.
 
-@deffn {Command} gdb_breakpoint_override <hard|soft|disable>
 @anchor{gdb_breakpoint_override}
+@deffn {Command} gdb_breakpoint_override <hard|soft|disable>
 Force breakpoint type for gdb @command{break} commands.
 The raison d'etre for this option is to support GDB GUI's which don't
 distinguish hard versus soft breakpoints, if the default OpenOCD and
@@ -1258,8 +1292,8 @@ Configures what OpenOCD will do when GDB detaches from the daemon.
 Default behaviour is @var{resume}.
 @end deffn
 
-@deffn {Config command} gdb_flash_program <enable|disable>
 @anchor{gdb_flash_program}
+@deffn {Config command} gdb_flash_program <enable|disable>
 Set to @var{enable} to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
 The default behaviour is @var{enable}.
@@ -1508,8 +1542,8 @@ The OpenOCD default value is 2 and for some systems a value of 10 has proved use
 @cindex ep93xx options
 Currently, there are no options available for the ep93xx interface.
 
-@section JTAG Speed
 @anchor{JTAG Speed}
+@section JTAG Speed
 JTAG clock setup is part of system setup.
 It @emph{does not belong with interface setup} since any interface
 only knows a few of the constraints for the JTAG clock speed.
@@ -1987,7 +2021,7 @@ This chapter discusses how to create a GDB debug target.  Before
 creating a ``target'' a JTAG tap DOTTED.NAME must exist first.
 
 @section targets [NAME]
-@b{Note:} This command name is PLURAL - not singular.  
+@b{Note:} This command name is PLURAL - not singular.
 
 With NO parameter, this plural @b{targets} command lists all known
 targets in a human friendly form.
@@ -1998,7 +2032,7 @@ target to the given name. (i.e.: If there are multiple debug targets)
 Example:
 @verbatim
 (gdb) mon targets
-      CmdName     Type     Endian    ChainPos   State     
+      CmdName     Type     Endian    ChainPos   State
 --  ---------- ---------- ---------- -------- ----------
     0: target0  arm7tdmi   little        0      halted
 @end verbatim
@@ -2018,7 +2052,7 @@ The TARGET command accepts these sub-commands:
 @* Lists all supported target types (perhaps some are not yet in this document).
 @item @b{names}
 @* Lists all current debug target names, for example: 'str912.cpu' or 'pxa27.cpu' example usage:
-@verbatim  
+@verbatim
 	foreach t [target names] {
 	    puts [format "Target: %s\n" $t]
 	}
@@ -2073,7 +2107,7 @@ configure it like this:
     # Report
     puts [format "The button is %s" $x]
 @end example
-    
+
 In OpenOCD's terms, the ``target'' is an object just like a Tcl/Tk
 button. Commands available as a ``target object'' are:
 
@@ -2120,9 +2154,9 @@ with odd reset situations and are not documented here.
 @* Invokes the specific event manually for the target
 @end itemize
 
+@anchor{Target Events}
 @section Target Events
 @cindex events
-@anchor{Target Events}
 At various times, certain things can happen, or you want them to happen.
 
 Examples:
@@ -2152,8 +2186,8 @@ creates and invokes small procedure. The second inlines the procedure.
    @}
    mychip.cpu configure -event gdb-attach my_attach_proc 
    mychip.cpu configure -event gdb-attach @{
-	   puts "Reset..."
-	   reset halt
+       puts "Reset..."
+       reset halt
    @}
 @end example
 
@@ -2243,8 +2277,8 @@ jtag configure DOTTED.NAME -event tap-disable @{
 @end example
 @end itemize
 
-@section Target Create
 @anchor{Target Create}
+@section Target Create
 @cindex target
 @cindex target creation
 
@@ -2455,8 +2489,7 @@ One feature distinguishing NOR flash from NAND or serial flash technologies
 is that for read access, it acts exactly like any other addressible memory.
 This means you can use normal memory read commands like @command{mdw} or
 @command{dump_image} with it, with no special @command{flash} subcommands.
-@xref{Memory access}.
-@xref{Image access}.
+@xref{Memory access}, and @ref{Image access}.
 
 Write access works differently.  Flash memory normally needs to be erased
 before it's written.  Erasing a sector turns all of its bits to ones, and
@@ -2570,8 +2603,8 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @comment @option{flash erase_sector} using the same syntax.
 @end deffn
 
-@section Flash Drivers, Options, and Commands
 @anchor{Flash Driver List}
+@section Flash Drivers, Options, and Commands
 As noted above, the @command{flash bank} command requires a driver name,
 and allows driver-specific options and behaviors.
 Some drivers also activate driver-specific commands.
@@ -3273,8 +3306,8 @@ bypassing hardware ECC logic.
 with the wrong ECC data can cause them to be marked as bad.
 @end deffn
 
-@section NAND Drivers, Options, and Commands
 @anchor{NAND Driver List}
+@section NAND Drivers, Options, and Commands
 As noted above, the @command{nand device} command allows
 driver-specific options and behaviors.
 Some controllers also activate controller-specific commands.
@@ -3376,9 +3409,9 @@ port is 5555.
 @cindex shutdown
 @*Close the OpenOCD daemon, disconnecting all clients (GDB, telnet, other). 
 
+@anchor{debug_level}
 @subsection debug_level [@var{n}]
 @cindex debug_level
-@anchor{debug_level}
 @*Display or adjust debug level to n<0-3> 
 
 @subsection fast [@var{enable|disable}]
@@ -3485,8 +3518,8 @@ the code that was executed may have left the hardware in an unknown
 state.
 
 
-@section Memory access commands
 @anchor{Memory access}
+@section Memory access commands
 @subsection meminfo
 display available RAM memory on OpenOCD host. Used in OpenOCD regression testing scripts. Mainly
 useful on embedded targets, PC type hosts have complimentary tools like Valgrind to address
@@ -3523,17 +3556,16 @@ SDRAM controller to enable SDRAM.
 @*write memory byte (8bit)
 @end itemize
 
-@section Image loading commands
 @anchor{Image access}
+@section Image loading commands
+@anchor{load_image}
 @subsection load_image
 @b{load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
 @cindex load_image
-@anchor{load_image}
 @*Load image <@var{file}> to target memory at <@var{address}> 
 @subsection fast_load_image
 @b{fast_load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
 @cindex fast_load_image
-@anchor{fast_load_image}
 @*Normally you should be using @b{load_image} or GDB load. However, for
 testing purposes or when I/O overhead is significant(OpenOCD running on an embedded
 host), storing the image in memory and uploading the image to the target
@@ -3545,12 +3577,11 @@ separately.
 @subsection fast_load
 @b{fast_load}
 @cindex fast_image
-@anchor{fast_image}
 @*Loads an image stored in memory by @b{fast_load_image} to the current target. Must be preceeded by fast_load_image.
+@anchor{dump_image}
 @subsection dump_image
 @b{dump_image} <@var{file}> <@var{address}> <@var{size}>
 @cindex dump_image
-@anchor{dump_image}
 @*Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
 (binary) <@var{file}>.
 @subsection verify_image
@@ -4299,9 +4330,9 @@ openocd -f interface/parport.cfg -f target/at91r40008.cfg \
 OpenOCD complies with the remote gdbserver protocol, and as such can be used
 to debug remote targets.
 
+@anchor{Connecting to GDB}
 @section Connecting to GDB
 @cindex Connecting to GDB
-@anchor{Connecting to GDB}
 Use GDB 6.7 or newer with OpenOCD if you run into trouble. For
 instance GDB 6.3 has a known bug that produces bogus memory access
 errors, which has since been fixed: look up 1836 in
@@ -4555,8 +4586,8 @@ halt
 @chapter FAQ
 @cindex faq
 @enumerate
-@item @b{RTCK, also known as: Adaptive Clocking - What is it?}
 @anchor{FAQ RTCK}
+@item @b{RTCK, also known as: Adaptive Clocking - What is it?}
 @cindex RTCK
 @cindex adaptive clocking
 @*
@@ -4660,7 +4691,7 @@ arm7_9_add_breakpoint(): sw breakpoint requested, but software breakpoints not e
 
 GDB issues software breakpoints when a normal breakpoint is requested, or to implement
 source-line single-stepping. On ARMv4T systems, like ARM7TDMI, ARM720T or ARM920T,
-software breakpoints consume one of the two available hardware breakpoints.  
+software breakpoints consume one of the two available hardware breakpoints.
 
 @item @b{LPC2000 Flash} When erasing or writing LPC2000 on-chip flash, the operation fails at random.
 
@@ -4811,7 +4842,7 @@ log file, I can see these error messages: Error: arm7_9_common.c:561
 arm7_9_execute_sys_speed(): timeout waiting for SYSCOMP
 
 TODO.
-							
+
 @end enumerate
 
 @node Tcl Crash Course
@@ -5028,7 +5059,7 @@ MyForCommand( void *interp,
        SetResult( interp, "WRONG number of parameters");
        return ERROR;
    @}
-   
+
    // argv[0] = the ascii string just like C
 
    // Execute the start statement.
@@ -5051,7 +5082,7 @@ MyForCommand( void *interp,
     SetResult( interp, "" );
     return SUCCESS;
 @}
-@end example        
+@end example
 
 Every other command IF, WHILE, FORMAT, PUTS, EXPR, everything works
 in the same basic way.
@@ -5071,7 +5102,7 @@ substituted on the orginal command line.
 @* SOURCE reads a file and executes as a script.
 @end enumerate
 @subsection format command
-@b{Where:} Generally occurs in numerous places.  
+@b{Where:} Generally occurs in numerous places.
 @* Tcl has no command like @b{printf()}, instead it has @b{format}, which is really more like
 @b{sprintf()}.
 @b{Example}
