@@ -90,6 +90,38 @@ const char *svf_trst_mode_name[4] =
 	"ABSENT"
 };
 
+typedef struct
+{
+	tap_state_t from;
+	tap_state_t to;
+	u32 num_of_moves;
+	tap_state_t paths[8];
+}svf_statemove_t;
+
+svf_statemove_t svf_statemoves[] = 
+{
+	// from			to				num_of_moves,	paths[8]
+//	{TAP_RESET,		TAP_RESET,		1,				{TAP_RESET}},
+	{TAP_RESET,		TAP_IDLE,		2,				{TAP_RESET, TAP_IDLE}},
+	{TAP_RESET,		TAP_DRPAUSE,	6,				{TAP_RESET, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DREXIT1, TAP_DRPAUSE}},
+	{TAP_RESET,		TAP_IRPAUSE,	7,				{TAP_RESET, TAP_IDLE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IREXIT1, TAP_IRPAUSE}},
+	
+//	{TAP_IDLE,		TAP_RESET,		4,				{TAP_IDLE, TAP_DRSELECT, TAP_IRSELECT, TAP_RESET}},
+	{TAP_IDLE,		TAP_IDLE,		1,				{TAP_IDLE}},
+	{TAP_IDLE,		TAP_DRPAUSE,	5,				{TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DREXIT1, TAP_DRPAUSE}},
+	{TAP_IDLE,		TAP_IRPAUSE,	6,				{TAP_IDLE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IREXIT1, TAP_IRPAUSE}},
+	
+//	{TAP_DRPAUSE,	TAP_RESET,		6,				{TAP_DRPAUSE, TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_RESET}},
+	{TAP_DRPAUSE,	TAP_IDLE,		4,				{TAP_DRPAUSE, TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE}},
+	{TAP_DRPAUSE,	TAP_DRPAUSE,	7,				{TAP_DRPAUSE, TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DREXIT1, TAP_DRPAUSE}},
+	{TAP_DRPAUSE,	TAP_IRPAUSE,	8,				{TAP_DRPAUSE, TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IREXIT1, TAP_IRPAUSE}},
+	
+//	{TAP_IRPAUSE,	TAP_RESET,		6,				{TAP_IRPAUSE, TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_RESET}},
+	{TAP_IRPAUSE,	TAP_IDLE,		4,				{TAP_IRPAUSE, TAP_IREXIT2, TAP_IRUPDATE, TAP_IDLE}},
+	{TAP_IRPAUSE,	TAP_DRPAUSE,	7,				{TAP_IRPAUSE, TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DREXIT1, TAP_DRPAUSE}},
+	{TAP_IRPAUSE,	TAP_IRPAUSE,	8,				{TAP_IRPAUSE, TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IREXIT1, TAP_IRPAUSE}}
+};
+
 char *svf_tap_state_name[TAP_NUM_STATES];
 
 #define XXR_TDI						(1 << 0)
@@ -175,7 +207,6 @@ static int svf_command_buffer_size = 0;
 static int svf_line_number = 1;
 
 static jtag_tap_t *tap = NULL;
-static tap_state_t last_state = TAP_RESET;
 
 #define SVF_MAX_BUFFER_SIZE_TO_COMMIT	(4 * 1024)
 static u8 *svf_tdi_buffer = NULL, *svf_tdo_buffer = NULL, *svf_mask_buffer = NULL;
@@ -264,6 +295,38 @@ static const char* tap_state_svf_name(tap_state_t state)
 	}
 
 	return ret;
+}
+
+static int svf_add_statemove(tap_state_t state_to)
+{
+	tap_state_t state_from = cmd_queue_cur_state;
+	u8 index;
+
+	for (index = 0; index < dimof(svf_statemoves); index++)
+	{
+		if ((svf_statemoves[index].from == state_from) 
+			&& (svf_statemoves[index].to == state_to))
+		{
+			if (TAP_RESET == state_from)
+			{
+				jtag_add_tlr();
+				if (svf_statemoves[index].num_of_moves > 1)
+				{
+					jtag_add_pathmove(svf_statemoves[index].num_of_moves - 1, svf_statemoves[index].paths + 1);
+				}
+			}
+			else
+			{
+				if (svf_statemoves[index].num_of_moves > 0)
+				{
+					jtag_add_pathmove(svf_statemoves[index].num_of_moves, svf_statemoves[index].paths);
+				}
+			}
+			return ERROR_OK;
+		}
+	}
+	LOG_ERROR("can not move to %s", tap_state_svf_name(state_to));
+	return ERROR_FAIL;
 }
 
 static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -355,6 +418,7 @@ static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char
 	{
 		svf_tap_state_name[i] = (char *)tap_state_svf_name(i);
 	}
+
 	// TAP_RESET
 	jtag_add_tlr();
 
@@ -739,10 +803,6 @@ static int svf_execute_tap(void)
 	return ERROR_OK;
 }
 
-// not good to use this
-extern void* cmd_queue_alloc(size_t size);
-extern void jtag_queue_command(jtag_command_t * cmd);
-
 static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 {
 	char *argus[256], command;
@@ -1030,16 +1090,10 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			field.tap = tap;
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
-			
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
-			
-			
-			
-			
 			jtag_add_plain_dr_scan(1, &field, svf_para.dr_end_state);
 
 			svf_buffer_index += (i + 7) >> 3;
-			last_state = svf_para.dr_end_state;
 		}
 		else if (SIR == command)
 		{
@@ -1131,16 +1185,10 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			field.tap = tap;
 			field.num_bits = i;
 			field.out_value = &svf_tdi_buffer[svf_buffer_index];
-			
 			field.in_value = &svf_tdi_buffer[svf_buffer_index];
-			
-			
-			
-			
 			jtag_add_plain_ir_scan(1, &field, svf_para.ir_end_state);
 
 			svf_buffer_index += (i + 7) >> 3;
-			last_state = svf_para.ir_end_state;
 		}
 		break;
 	case PIO:
@@ -1240,35 +1288,19 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				// TODO: do runtest
 #if 1
 				// enter into run_state if necessary
-				if (last_state != svf_para.runtest_run_state)
+				if (cmd_queue_cur_state != svf_para.runtest_run_state)
 				{
-					jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-					
-					jtag_queue_command(cmd);
-				
-					cmd->type = JTAG_STATEMOVE;
-					cmd->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
-					cmd->cmd.statemove->end_state = svf_para.runtest_run_state;
-
-					cmd_queue_end_state = cmd_queue_cur_state = cmd->cmd.statemove->end_state;
+					svf_add_statemove(svf_para.runtest_run_state);
 				}
 
 				// call jtag_add_clocks
 				jtag_add_clocks(run_count);
 
+				// move to end_state if necessary
 				if (svf_para.runtest_end_state != svf_para.runtest_run_state)
 				{
-					// move to end_state
-					jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-					
-					jtag_queue_command(cmd);
-					cmd->type = JTAG_STATEMOVE;
-					cmd->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
-					cmd->cmd.statemove->end_state = svf_para.runtest_end_state;
-
-					cmd_queue_end_state = cmd_queue_cur_state = cmd->cmd.statemove->end_state;
+					svf_add_statemove(svf_para.runtest_end_state);
 				}
-				last_state = svf_para.runtest_end_state;
 #else
 				if (svf_para.runtest_run_state != TAP_IDLE)
 				{
@@ -1332,7 +1364,6 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 					// last state MUST be stable state
 					// TODO: call path_move
 					jtag_add_pathmove(num_of_argu, path);
-					last_state = path[num_of_argu - 1];
 					LOG_DEBUG("\tmove to %s by path_move", svf_tap_state_name[path[num_of_argu - 1]]);
 				}
 				else
@@ -1355,18 +1386,9 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			if (svf_tap_state_is_stable(state))
 			{
 				// TODO: move to state
-				jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
-					
-				jtag_queue_command(cmd);
-				
-				cmd->type = JTAG_STATEMOVE;
-				cmd->cmd.statemove = cmd_queue_alloc(sizeof(statemove_command_t));
-				cmd->cmd.statemove->end_state = state;
+				svf_add_statemove(state);
 
-				cmd_queue_end_state = cmd_queue_cur_state = cmd->cmd.statemove->end_state;
-				last_state = state;
-
-				LOG_DEBUG("\tmove to %s by state_move", svf_tap_state_name[state]);
+				LOG_DEBUG("\tmove to %s by svf_add_statemove", svf_tap_state_name[state]);
 			}
 			else
 			{
@@ -1392,7 +1414,6 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 			switch (i_tmp)
 			{
 			case TRST_ON:
-				last_state = TAP_RESET;
 				jtag_add_reset(1, 0);
 				break;
 			case TRST_Z:
