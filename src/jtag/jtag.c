@@ -6,7 +6,7 @@
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2009 SoftPLC Corporation                                *
- * 	 http://softplc.com                                                    *
+ *       http://softplc.com                                                *
  *   dick@softplc.com                                                      *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -595,12 +595,10 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
 {
 	if (jtag_verify&&jtag_verify_capture_ir)
 	{
-		/* 8 x 32 bit id's is enough for all invoations */
+		/* 8 x 32 bit id's is enough for all invocations */
 
 		for (int j = 0; j < in_num_fields; j++)
 		{
-			in_fields[j].check_value=NULL;
-			in_fields[j].check_mask=NULL;
 			/* if we are to run a verification of the ir scan, we need to get the input back.
 			 * We may have to allocate space if the caller didn't ask for the input back.
 			 */
@@ -716,7 +714,7 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int in_num_fields, const scan_f
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
 	scan_field_t * out_fields	= cmd_queue_alloc(in_num_fields * sizeof(scan_field_t));
-	
+
 	jtag_queue_command(cmd);
 
 	cmd->type				= JTAG_SCAN;
@@ -844,9 +842,9 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
 	scan_field_t * out_fields	= cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(scan_field_t));
-	
+
 	jtag_queue_command(cmd);
-	
+
 	cmd->type				= JTAG_SCAN;
 	cmd->cmd.scan			= scan;
 
@@ -880,7 +878,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
 
 			assert(field > start_field);	/* must have at least one input field per not bypassed TAP */
 		}
-		
+
 		/* if a TAP is bypassed, generated a dummy bit*/
 		else
 		{
@@ -2322,7 +2320,7 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_ANY, "set maximum jtag speed (if supported); "
 		"parameter is maximum khz, or 0 for adaptive clocking (RTCK).");
 	register_command(cmd_ctx, NULL, "jtag_device", handle_jtag_device_command,
-		COMMAND_CONFIG, "jtag_device <ir_length> <ir_expected> <ir_mask>");
+		COMMAND_CONFIG, "(DEPRECATED) jtag_device <ir_length> <ir_expected> <ir_mask>");
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
 		COMMAND_ANY,
 		"[none/trst_only/srst_only/trst_and_srst] [srst_pulls_trst/trst_pulls_srst] [combined/separate] [trst_push_pull/trst_open_drain] [srst_push_pull/srst_open_drain]");
@@ -3369,7 +3367,7 @@ static const struct tms_sequences old_tms_seqs[6][6] =		/*  [from_state_ndx][to_
 	 * N.B. OOCD clocks TMS from LSB first, so read these right-to-left.
 	 * N.B. These values are tightly bound to the table in tap_get_tms_path_len().
 	 * N.B. Reset only needs to be 0b11111, but in JLink an even byte of 1's is more stable.
-	 * 		These extra ones cause no TAP state problem, because we go into reset and stay in reset.
+	 * These extra ones cause no TAP state problem, because we go into reset and stay in reset.
 	 */
 
 
@@ -3388,7 +3386,7 @@ static const struct tms_sequences old_tms_seqs[6][6] =		/*  [from_state_ndx][to_
 
 static const struct tms_sequences short_tms_seqs[6][6] =		/*  [from_state_ndx][to_state_ndx] */
 {
-	/* 	this is the table submitted by Jeff Williams on 3/30/2009 with this comment:
+	/* this is the table submitted by Jeff Williams on 3/30/2009 with this comment:
 
 		OK, I added Peter's version of the state table, and it works OK for
 		me on MC1322x. I've recreated the jlink portion of patch with this
@@ -3443,7 +3441,7 @@ bool tap_is_state_stable(tap_state_t astate)
 {
 	bool is_stable;
 
-	/* 	A switch() is used because it is symbol dependent
+	/*	A switch() is used because it is symbol dependent
 		(not value dependent like an array), and can also check bounds.
 	*/
 	switch( astate )
@@ -3467,7 +3465,7 @@ tap_state_t tap_state_transition(tap_state_t cur_state, bool tms)
 {
 	tap_state_t new_state;
 
-	/* 	A switch is used because it is symbol dependent and not value dependent
+	/*	A switch is used because it is symbol dependent and not value dependent
 		like an array.  Also it can check for out of range conditions.
 	*/
 
