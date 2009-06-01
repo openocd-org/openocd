@@ -894,4 +894,14 @@ static __inline__ void jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const in
 }
 
 
+
+
+/**
+ * Function jtag_add_statemove
+ * moves from the current state to the goal \a state. This needs
+ * to be handled according to the xsvf spec, see the XSTATE command
+ * description.
+ */
+extern int jtag_add_statemove(tap_state_t goal_state);
+
 #endif /* JTAG_H */
