@@ -1962,7 +1962,7 @@ static void handle_md_output(struct command_context_s *cmd_ctx,
 					"0x%8.8x: ", address + (i*size));
 		}
 
-		u32 value;
+		u32 value=0;
 		const u8 *value_ptr = buffer + i * size;
 		switch (size) {
 		case 4: value = target_buffer_get_u32(target, value_ptr); break;
