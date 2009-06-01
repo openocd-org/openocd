@@ -74,6 +74,7 @@ Free Documentation License''.
 * Flash Commands::                   Flash Commands
 * NAND Flash Commands::              NAND Flash Commands
 * General Commands::                 General Commands
+* Architecture and Core Commands::   Architecture and Core Commands
 * JTAG Commands::                    JTAG Commands
 * Sample Scripts::                   Sample Target Scripts
 * TFTP::                             TFTP
@@ -3617,17 +3618,18 @@ Profiling samples the CPU's program counter as quickly as possible, which is use
 
 @end itemize
 
-@section Architecture and Core Specific Commands
+@node Architecture and Core Commands
+@chapter Architecture and Core Commands
 @cindex Architecture Specific Commands
 @cindex Core Specific Commands
 
 Most CPUs have specialized JTAG operations to support debugging.
 OpenOCD packages most such operations in its standard command framework.
 Some of those operations don't fit well in that framework, so they are
-exposed here using architecture or implementation specific commands.
+exposed here as architecture or implementation (core) specific commands.
 
 @anchor{ARM Tracing}
-@subsection ARM Tracing
+@section ARM Tracing
 @cindex ETM
 @cindex ETB
 
@@ -3670,7 +3672,7 @@ with the current XScale trace support, or should be
 shared with eventual Nexus-style trace module support.
 @end quotation
 
-@subsubsection ETM Configuration
+@subsection ETM Configuration
 ETM setup is coupled with the trace port driver configuration.
 
 @deffn {Config Command} {etm config} target width mode clocking driver
@@ -3722,7 +3724,7 @@ and any buffered trace data is invalidated.
 @emph{Buggy and effectively a NOP ... @var{percent} from 2..100}
 @end deffn
 
-@subsubsection ETM Trace Operation
+@subsection ETM Trace Operation
 
 After setting up the ETM, you can use it to collect data.
 That data can be exported to files for later analysis.
@@ -3754,7 +3756,7 @@ Stops trace data collection.
 @end deffn
 
 @anchor{Trace Port Drivers}
-@subsubsection Trace Port Drivers
+@subsection Trace Port Drivers
 
 To use an ETM trace port it must be associated with a driver.
 
@@ -3801,7 +3803,7 @@ Reports whether the capture clock is locked or not.
 @end deffn
 
 
-@subsection ARMv4 and ARMv5 Architecture
+@section ARMv4 and ARMv5 Architecture
 @cindex ARMv4 specific commands
 @cindex ARMv5 specific commands
 
@@ -3833,7 +3835,7 @@ core mode if necessary. OpenOCD versions before rev. 60 didn't fetch the current
 register value. 
 @end deffn
 
-@subsubsection ARM7 and ARM9 specific commands
+@subsection ARM7 and ARM9 specific commands
 @cindex ARM7 specific commands
 @cindex ARM9 specific commands
 
@@ -3900,7 +3902,7 @@ This has lower JTAG overhead than writing the entire CPSR or SPSR
 with @command{arm7_9 write_xpsr}.
 @end deffn
 
-@subsubsection ARM720T specific commands
+@subsection ARM720T specific commands
 @cindex ARM720T specific commands
 
 These commands are available to ARM720T based CPUs,
@@ -3935,7 +3937,7 @@ Translate a virtual address @var{va} to a physical address
 and display the result.
 @end deffn
 
-@subsubsection ARM9TDMI specific commands
+@subsection ARM9TDMI specific commands
 @cindex ARM9TDMI specific commands
 
 Many ARM9-family CPUs are built around ARM9TDMI integer cores,
@@ -3949,7 +3951,7 @@ or a list with one or more of the following:
 @option{irq} @option{fiq}.
 @end deffn
 
-@subsubsection ARM920T specific commands
+@subsection ARM920T specific commands
 @cindex ARM920T specific commands
 
 These commands are available to ARM920T based CPUs,
@@ -4005,7 +4007,7 @@ Translate a virtual address @var{va} to a physical address
 and display the result.
 @end deffn
 
-@subsubsection ARM926EJ-S specific commands
+@subsection ARM926EJ-S specific commands
 @cindex ARM926EJ-S specific commands
 
 These commands are available to ARM926EJ-S based CPUs,
@@ -4047,7 +4049,7 @@ Translate a virtual address @var{va} to a physical address
 and display the result.
 @end deffn
 
-@subsubsection ARM966E specific commands
+@subsection ARM966E specific commands
 @cindex ARM966E specific commands
 
 These commands are available to ARM966 based CPUs,
@@ -4060,7 +4062,7 @@ Display cp15 register @var{regnum};
 else if a @var{value} is provided, that value is written to that register.
 @end deffn
 
-@subsubsection XScale specific commands
+@subsection XScale specific commands
 @cindex XScale specific commands
 
 These commands are available to XScale based CPUs,
@@ -4121,9 +4123,9 @@ The image @var{type} may be one of
 Provide a bitmask showing the vectors to catch.
 @end deffn
 
-@subsection ARMv6 Architecture
+@section ARMv6 Architecture
 
-@subsubsection ARM11 specific commands
+@subsection ARM11 specific commands
 @cindex ARM11 specific commands
 
 @deffn Command {arm11 mcr} p1 p2 p3 p4 p5
@@ -4160,9 +4162,9 @@ they is disabled by default.
 If @var{value} is defined, first assigns that.
 @end deffn
 
-@subsection ARMv7 Architecture
+@section ARMv7 Architecture
 
-@subsubsection Cortex-M3 specific commands
+@subsection Cortex-M3 specific commands
 @cindex Cortex-M3 specific commands
 
 @deffn Command {cortex_m3 maskisr} (on|off)
