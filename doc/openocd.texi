@@ -1823,9 +1823,9 @@ instead of indirectly by making a CPU do it.
 @end itemize
 
 
+@anchor{jtag newtap}
 @section jtag newtap
 @b{@t{jtag newtap CHIPNAME TAPNAME  configparams ....}}
-@cindex jtag_device
 @cindex jtag newtap
 @cindex tap
 @cindex tap order
@@ -1946,24 +1946,6 @@ have the taps created in the proper order.
 @comment END NOTES
 @end itemize
 @comment at command level
-@comment DOCUMENT old command
-@section jtag_device - REMOVED
-@example
-@b{jtag_device} <@var{IR length}> <@var{IR capture}> <@var{IR mask}> <@var{IDCODE instruction}>
-@end example
-@cindex jtag_device
-
-@* @b{Removed: 28/nov/2008} This command has been removed and replaced
-by the ``jtag newtap'' command. The documentation remains here so that
-one can easily convert the old syntax to the new syntax. About the old
-syntax: The old syntax is positional, i.e.: The 3rd parameter is the
-``irmask''. The new syntax requires named prefixes, and supports
-additional options, for example ``-expected-id 0x3f0f0f0f''. Please refer to the
-@b{jtag newtap} command for details.
-@example
-OLD: jtag_device 8 0x01 0xe3 0xfe
-NEW: jtag newtap CHIPNAME TAPNAME -irlen 8 -ircapture 0x01 -irmask 0xe3
-@end example
 
 @section Enable/Disable Taps
 @b{Note:} These commands are intended to be used as a machine/script
@@ -2376,15 +2358,6 @@ processor.  You still need to enable @option{srst} on the reset
 configuration command to enable OpenOCD hardware reset functionality.
 @comment END variants
 @end itemize
-@section working_area - Command Removed
-@cindex working_area
-@*@b{Please use the ``$_TARGETNAME configure -work-area-... parameters instead}
-@* This documentation remains because there are existing scripts that
-still use this that need to be converted.
-@example
-  working_area target# address  size backup| [virtualaddress]
-@end example
-@* The target# is a the 0 based target numerical index.
 
 @node Flash Commands
 @chapter Flash Commands
@@ -4515,7 +4488,14 @@ is jim, not real tcl).
 @node Upgrading
 @chapter Deprecated/Removed Commands
 @cindex Deprecated/Removed Commands
-Certain OpenOCD commands have been deprecated/removed during the various revisions.
+Certain OpenOCD commands have been deprecated or
+removed during the various revisions.
+
+Upgrade your scripts as soon as possible.
+These descriptions for old commands may be removed
+a year after the command itself was removed.
+This means that in January 2010 this chapter may
+become much shorter.
 
 @itemize @bullet
 @item @b{arm7_9 fast_writes}
@@ -4523,33 +4503,38 @@ Certain OpenOCD commands have been deprecated/removed during the various revisio
 @*Use @command{arm7_9 fast_memory_access} instead.
 @xref{arm7_9 fast_memory_access}.
 @item @b{arm7_9 force_hw_bkpts}
-@cindex arm7_9 force_hw_bkpts
 @*Use @command{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
 for flash if the GDB memory map has been set up(default when flash is declared in
 target configuration). @xref{gdb_breakpoint_override}.
 @item @b{arm7_9 sw_bkpts}
-@cindex arm7_9 sw_bkpts
 @*On by default. @xref{gdb_breakpoint_override}.
 @item @b{daemon_startup}
-@cindex daemon_startup
 @*this config option has been removed, simply adding @option{init} and @option{reset halt} to
 the end of your config script will give the same behaviour as using @option{daemon_startup reset}
 and @option{target cortex_m3 little reset_halt 0}.
 @item @b{dump_binary}
-@cindex dump_binary
 @*use @option{dump_image} command with same args. @xref{dump_image}.
 @item @b{flash erase}
-@cindex flash erase
 @*use @option{flash erase_sector} command with same args. @xref{flash erase_sector}.
 @item @b{flash write}
-@cindex flash write
 @*use @option{flash write_bank} command with same args. @xref{flash write_bank}.
 @item @b{flash write_binary}
-@cindex flash write_binary
 @*use @option{flash write_bank} command with same args. @xref{flash write_bank}.
 @item @b{flash auto_erase}
-@cindex flash auto_erase
 @*use @option{flash write_image} command passing @option{erase} as the first parameter. @xref{flash write_image}.
+
+@item @b{jtag_device}
+@*use the @command{jtag newtap} command, converting from positional syntax
+to named prefixes, and naming the TAP.
+@xref{jtag newtap}.
+Note that if you try to use the old command, a message will tell you the
+right new command to use; and that the fourth parameter in the old syntax
+was never actually used.
+@example
+OLD: jtag_device 8 0x01 0xe3 0xfe
+NEW: jtag newtap CHIPNAME TAPNAME \
+           -irlen 8 -ircapture 0x01 -irmask 0xe3
+@end example
 
 @item @b{jtag_speed} value
 @*@xref{JTAG Speed}.
@@ -4565,10 +4550,8 @@ speed. The actual effect of this option depends on the JTAG interface used.
 @end itemize
 
 @item @b{load_binary}
-@cindex load_binary
 @*use @option{load_image} command with same args. @xref{load_image}.
 @item @b{run_and_halt_time}
-@cindex run_and_halt_time
 @*This command has been removed for simpler reset behaviour, it can be simulated with the
 following commands:
 @smallexample
@@ -4577,13 +4560,10 @@ sleep 100
 halt
 @end smallexample
 @item @b{target} <@var{type}> <@var{endian}> <@var{jtag-position}>
-@cindex target
 @*use the create subcommand of @option{target}.
 @item @b{target_script} <@var{target#}> <@var{eventname}> <@var{scriptname}>
-@cindex target_script
 @*use <@var{target_name}> configure -event <@var{eventname}> "script <@var{scriptname}>"
 @item @b{working_area}
-@cindex working_area
 @*use the @option{configure} subcommand of @option{target} to set the work-area-virt, work-area-phy, work-area-size, and work-area-backup properties of the target.
 @end itemize
 
