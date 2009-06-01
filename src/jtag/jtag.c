@@ -2955,6 +2955,26 @@ static int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 }
 
+/*
+ * For "irscan" or "drscan" commands, the "end" (really, "next") state
+ * should be stable ... and *NOT* a shift state, otherwise free-running
+ * jtag clocks could change the values latched by the update state.
+ */
+static bool scan_is_safe(tap_state_t state)
+{
+	switch (state)
+	{
+	case TAP_RESET:
+	case TAP_IDLE:
+	case TAP_DRPAUSE:
+	case TAP_IRPAUSE:
+		return true;
+	default:
+		return false;
+	}
+}
+
+
 static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int i;
@@ -2967,11 +2987,12 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	/* optional "-endstate" */
-	/*          "statename" */
-	/* at the end of the arguments. */
-	/* assume none. */
-	endstate = cmd_queue_end_state;
+	/* optional "-endstate" "statename" at the end of the arguments,
+	 * so that e.g. IRPAUSE can let us load the data register before
+	 * entering RUN/IDLE to execute the instruction we load here.
+	 */
+	endstate = TAP_IDLE;
+
 	if( argc >= 4 ){
 		/* have at least one pair of numbers. */
 		/* is last pair the magic text? */
@@ -2988,6 +3009,9 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 			if( endstate >= TAP_NUM_STATES ){
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			} else {
+				if (!scan_is_safe(endstate))
+					LOG_WARNING("irscan with unsafe "
+							"endstate \"%s\"", cpA);
 				/* found - remove the last 2 args */
 				argc -= 2;
 			}
@@ -3052,8 +3076,8 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		return JIM_ERR;
 	}
 
-	/* assume no endstate */
-	endstate = cmd_queue_end_state;
+	endstate = TAP_IDLE;
+
 	/* validate arguments as numbers */
 	e = JIM_OK;
 	for (i = 2; i < argc; i+=2)
@@ -3073,7 +3097,10 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 			return e;
 		}
 
-		/* it could be: "-endstate FOO" */
+		/* it could be: "-endstate FOO"
+		 * e.g. DRPAUSE so we can issue more instructions
+		 * before entering RUN/IDLE and executing them.
+		 */
 
 		/* get arg as a string. */
 		cp = Jim_GetString( args[i], NULL );
@@ -3088,6 +3115,10 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 				/* update the error message */
 				Jim_SetResult_sprintf(interp,"endstate: %s invalid", cp );
 			} else {
+				if (!scan_is_safe(endstate))
+					LOG_WARNING("drscan with unsafe "
+							"endstate \"%s\"", cp);
+
 				/* valid - so clear the error */
 				e = JIM_OK;
 				/* and remove the last 2 args */
