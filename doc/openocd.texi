@@ -3758,22 +3758,22 @@ Stops trace data collection.
 
 To use an ETM trace port it must be associated with a driver.
 
+@deffn {Trace Port Driver} dummy
+Use the @option{dummy} driver if you are configuring an ETM that's
+not connected to anything (on-chip ETB or off-chip trace connector).
+@emph{This driver lets OpenOCD talk to the ETM, but it does not expose
+any trace data collection.}
+@deffn {Config Command} {etm_dummy config} target
+Associates the ETM for @var{target} with a dummy driver.
+@end deffn
+@end deffn
+
 @deffn {Trace Port Driver} etb
 Use the @option{etb} driver if you are configuring an ETM
 to use on-chip ETB memory.
 @deffn {Config Command} {etb config} target etb_tap
 Associates the ETM for @var{target} with the ETB at @var{etb_tap}.
 You can see the ETB registers using the @command{reg} command.
-@end deffn
-@end deffn
-
-@deffn {Trace Port Driver} etm_dummy
-Use the @option{etm_dummy} driver if you are configuring an ETM that's
-not connected to anything (on-chip ETB or off-chip trace connector).
-@emph{This driver lets OpenOCD talk to the ETM, but it does not expose
-any trace data collection.}
-@deffn {Config Command} {etm_dummy config} target
-Associates the ETM for @var{target} with a dummy driver.
 @end deffn
 @end deffn
 
@@ -4186,8 +4186,11 @@ deliver messages before a serial console can be activated.
 @deffn Command {target_request debugmsgs} [enable|disable|charmsg]
 Displays current handling of target DCC message requests.
 These messages may be sent to the debugger while the target is running.
-The optional @option{enable} and @option{charmsg} parameters are
-equivalent; both enable the messages, @option{disable} disables them.
+The optional @option{enable} and @option{charmsg} parameters
+both enable the messages, while @option{disable} disables them.
+With @option{charmsg} the DCC words each contain one character,
+as used by Linux with CONFIG_DEBUG_ICEDCC;
+otherwise the libdcc format is used.
 @end deffn
 
 @node JTAG Commands
