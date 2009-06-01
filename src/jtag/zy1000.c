@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#define INCLUDE_JTAG_MINIDRIVER_H
 #include "embeddedice.h"
 #include "bitbang.h"
 
