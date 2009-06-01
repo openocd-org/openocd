@@ -50,7 +50,7 @@
 #define AVR_JTAG_REG_ProgrammingCommand_Len			15
 #define AVR_JTAG_REG_FlashDataByte_Len				16
 
-avrf_type_t avft_chips_info[] = 
+avrf_type_t avft_chips_info[] =
 {
 //	 name,			chip_id,	flash_page_size,	flash_page_num,	eeprom_page_size,	eeprom_page_num
 	{"atmega128",	0x9702,		256,				512,			8,					512},
@@ -102,7 +102,7 @@ static int avr_jtag_reset(avr_common_t *avr, u32 reset)
 {
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_AVR_RESET);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, reset ,AVR_JTAG_REG_Reset_Len);
-	
+
 	return ERROR_OK;
 }
 
@@ -110,17 +110,17 @@ static int avr_jtag_read_jtagid(avr_common_t *avr, u32 *id)
 {
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_IDCODE);
 	avr_jtag_senddat(avr->jtag_info.tap, id, 0, AVR_JTAG_REG_JTAGID_Len);
-	
+
 	return ERROR_OK;
 }
 
 static int avr_jtagprg_enterprogmode(avr_common_t *avr)
 {
 	avr_jtag_reset(avr, 1);
-	
+
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_PROG_ENABLE);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0xA370, AVR_JTAG_REG_ProgrammingEnable_Len);
-	
+
 	return ERROR_OK;
 }
 
@@ -134,20 +134,20 @@ static int avr_jtagprg_leaveprogmode(avr_common_t *avr)
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0, AVR_JTAG_REG_ProgrammingEnable_Len);
 
 	avr_jtag_reset(avr, 0);
-	
+
 	return ERROR_OK;
 }
 
 static int avr_jtagprg_chiperase(avr_common_t *avr)
 {
 	u32 poll_value;
-	
+
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_PROG_COMMANDS);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x2380, AVR_JTAG_REG_ProgrammingCommand_Len);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3180, AVR_JTAG_REG_ProgrammingCommand_Len);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3380, AVR_JTAG_REG_ProgrammingCommand_Len);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3380, AVR_JTAG_REG_ProgrammingCommand_Len);
-	
+
 	do{
 		poll_value = 0;
 		avr_jtag_senddat(avr->jtag_info.tap, &poll_value, 0x3380, AVR_JTAG_REG_ProgrammingCommand_Len);
@@ -157,25 +157,25 @@ static int avr_jtagprg_chiperase(avr_common_t *avr)
 		}
 		LOG_DEBUG("poll_value = 0x%04X", poll_value);
 	}while(!(poll_value & 0x0200));
-	
+
 	return ERROR_OK;
 }
 
 static int avr_jtagprg_writeflashpage(avr_common_t *avr, u8 *page_buf, u32 buf_size, u32 addr, u32 page_size)
 {
 	u32 i, poll_value;
-	
+
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_PROG_COMMANDS);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x2310, AVR_JTAG_REG_ProgrammingCommand_Len);
-	
+
 	// load addr high byte
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x0700 | ((addr >> 9) & 0xFF), AVR_JTAG_REG_ProgrammingCommand_Len);
-	
+
 	// load addr low byte
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x0300 | ((addr >> 1) & 0xFF), AVR_JTAG_REG_ProgrammingCommand_Len);
-	
+
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_PROG_PAGELOAD);
-	
+
 	for (i = 0; i < page_size; i++)
 	{
 		if (i < buf_size)
@@ -187,14 +187,14 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, u8 *page_buf, u32 buf_s
 			avr_jtag_senddat(avr->jtag_info.tap, NULL, 0xFF, 8);
 		}
 	}
-	
+
 	avr_jtag_sendinstr(avr->jtag_info.tap, NULL, AVR_JTAG_INS_PROG_COMMANDS);
-	
+
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3700, AVR_JTAG_REG_ProgrammingCommand_Len);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3500, AVR_JTAG_REG_ProgrammingCommand_Len);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3700, AVR_JTAG_REG_ProgrammingCommand_Len);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3700, AVR_JTAG_REG_ProgrammingCommand_Len);
-	
+
 	do{
 		poll_value = 0;
 		avr_jtag_senddat(avr->jtag_info.tap, &poll_value, 0x3700, AVR_JTAG_REG_ProgrammingCommand_Len);
@@ -204,7 +204,7 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, u8 *page_buf, u32 buf_s
 		}
 		LOG_DEBUG("poll_value = 0x%04X", poll_value);
 	}while(!(poll_value & 0x0200));
-	
+
 	return ERROR_OK;
 }
 
@@ -212,28 +212,28 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, u8 *page_buf, u32 buf_s
 static int avrf_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *avr_cmd = register_command(cmd_ctx, NULL, "avr", NULL, COMMAND_ANY, "avr flash specific commands");
-	
+
 	register_command(cmd_ctx, avr_cmd, "mass_erase", avrf_handle_mass_erase_command, COMMAND_EXEC,
 					 "mass erase device");
-	
+
 	return ERROR_OK;
 }
 
 static int avrf_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	avrf_flash_bank_t *avrf_info;
-	
+
 	if (argc < 6)
 	{
 		LOG_WARNING("incomplete flash_bank avr configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
-	
+
 	avrf_info = malloc(sizeof(avrf_flash_bank_t));
 	bank->driver_priv = avrf_info;
-	
+
 	avrf_info->probed = 0;
-	
+
 	return ERROR_OK;
 }
 
@@ -254,28 +254,28 @@ static int avrf_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 	target_t *target = bank->target;
 	avr_common_t *avr = target->arch_info;
 	u32 cur_size, cur_buffer_size, page_size;
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	page_size = bank->sectors[0].size;
 	if ((offset % page_size) != 0)
 	{
 		LOG_WARNING("offset 0x%x breaks required %d-byte alignment", offset, page_size);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
-	
+
 	LOG_DEBUG("offset is 0x%08X", offset);
 	LOG_DEBUG("count is %d", count);
-	
+
 	if (ERROR_OK != avr_jtagprg_enterprogmode(avr))
 	{
 		return ERROR_FAIL;
 	}
-	
+
 	cur_size = 0;
 	while(count > 0)
 	{
@@ -290,10 +290,10 @@ static int avrf_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 cou
 		avr_jtagprg_writeflashpage(avr, buffer + cur_size, cur_buffer_size, offset + cur_size, page_size);
 		count -= cur_buffer_size;
 		cur_size += cur_buffer_size;
-		
+
 		keep_alive();
 	}
-	
+
 	return avr_jtagprg_leaveprogmode(avr);
 }
 
@@ -308,7 +308,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 	avrf_type_t *avr_info = NULL;
 	int i;
 	u32 device_id;
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
@@ -316,19 +316,19 @@ static int avrf_probe(struct flash_bank_s *bank)
 	}
 
 	avrf_info->probed = 0;
-	
+
 	avr_jtag_read_jtagid(avr, &device_id);
 	if (ERROR_OK != mcu_execute_queue())
 	{
 		return ERROR_FAIL;
 	}
-	
+
 	LOG_INFO( "device id = 0x%08x", device_id );
 	if (EXTRACT_MFG(device_id) != 0x1F)
 	{
 		LOG_ERROR("0x%X is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);
 	}
-	
+
 	for (i = 0; i < (int)(sizeof(avft_chips_info) / sizeof(avft_chips_info[0])); i++)
 	{
 		if (avft_chips_info[i].chip_id == EXTRACT_PART(device_id))
@@ -338,7 +338,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 			break;
 		}
 	}
-	
+
 	if (avr_info != NULL)
 	{
 		// chip found
@@ -346,7 +346,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 		bank->size = (avr_info->flash_page_size * avr_info->flash_page_num);
 		bank->num_sectors = avr_info->flash_page_num;
 		bank->sectors = malloc(sizeof(flash_sector_t) * avr_info->flash_page_num);
-		
+
 		for (i = 0; i < avr_info->flash_page_num; i++)
 		{
 			bank->sectors[i].offset = i * avr_info->flash_page_size;
@@ -354,7 +354,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 			bank->sectors[i].is_erased = -1;
 			bank->sectors[i].is_protected = 1;
 		}
-		
+
 		avrf_info->probed = 1;
 		return ERROR_OK;
 	}
@@ -362,7 +362,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 	{
 		// chip not supported
 		LOG_ERROR("0x%X is not support for avr", EXTRACT_PART(device_id));
-		
+
 		avrf_info->probed = 1;
 		return ERROR_FAIL;
 	}
@@ -389,36 +389,36 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	avrf_type_t *avr_info = NULL;
 	int i;
 	u32 device_id;
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	avr_jtag_read_jtagid(avr, &device_id);
 	if (ERROR_OK != mcu_execute_queue())
 	{
 		return ERROR_FAIL;
 	}
-	
+
 	LOG_INFO( "device id = 0x%08x", device_id );
 	if (EXTRACT_MFG(device_id) != 0x1F)
 	{
 		LOG_ERROR("0x%X is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);
 	}
-	
+
 	for (i = 0; i < (int)(sizeof(avft_chips_info) / sizeof(avft_chips_info[0])); i++)
 	{
 		if (avft_chips_info[i].chip_id == EXTRACT_PART(device_id))
 		{
 			avr_info = &avft_chips_info[i];
 			LOG_INFO("target device is %s", avr_info->name);
-			
+
 			break;
 		}
 	}
-	
+
 	if (avr_info != NULL)
 	{
 		// chip found
@@ -437,20 +437,20 @@ static int avrf_mass_erase(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
 	avr_common_t *avr = target->arch_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	if ((ERROR_OK != avr_jtagprg_enterprogmode(avr))
 		|| (ERROR_OK != avr_jtagprg_chiperase(avr))
 		|| (ERROR_OK != avr_jtagprg_leaveprogmode(avr)))
 	{
 		return ERROR_FAIL;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -458,20 +458,20 @@ static int avrf_handle_mass_erase_command(struct command_context_s *cmd_ctx, cha
 {
 	flash_bank_t *bank;
 	int i;
-	
+
 	if (argc < 1)
 	{
 		command_print(cmd_ctx, "avr mass_erase <bank>");
-		return ERROR_OK;	
+		return ERROR_OK;
 	}
-	
+
 	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
 	if (!bank)
 	{
 		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[0]);
 		return ERROR_OK;
 	}
-	
+
 	if (avrf_mass_erase(bank) == ERROR_OK)
 	{
 		/* set all sectors as erased */
@@ -479,14 +479,14 @@ static int avrf_handle_mass_erase_command(struct command_context_s *cmd_ctx, cha
 		{
 			bank->sectors[i].is_erased = 1;
 		}
-		
+
 		command_print(cmd_ctx, "avr mass erase complete");
 	}
 	else
 	{
 		command_print(cmd_ctx, "avr mass erase failed");
 	}
-	
+
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }

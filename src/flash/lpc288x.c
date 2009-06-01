@@ -128,7 +128,7 @@ static u32 lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 		timeout--;
 		target_read_u32(target, F_STAT, &status);
 	}while (((status & FS_DONE) == 0) && timeout);
-	
+
 	if(timeout == 0)
 	{
 		LOG_DEBUG("Timedout!");
@@ -143,31 +143,31 @@ static int lpc288x_read_part_info(struct flash_bank_s *bank)
 	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
 	target_t *target = bank->target;
 	u32 cidr;
-	
+
 	int i = 0;
 	u32 offset;
-	
+
 	if (lpc288x_info->cidr == 0x0102100A)
 		return ERROR_OK; /* already probed, multiple probes may cause memory leak, not allowed */
-		
+
 	/* Read and parse chip identification register */
 	target_read_u32(target, DBGU_CIDR, &cidr);
-	
+
 	if (cidr != 0x0102100A)
 	{
 		LOG_WARNING("Cannot identify target as an LPC288X (%08X)",cidr);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
-	
+
 	lpc288x_info->cidr = cidr;
 	lpc288x_info->sector_size_break = 0x000F0000;
 	lpc288x_info->target_name = "LPC288x";
-	
+
 	/* setup the sector info... */
 	offset = bank->base;
 	bank->num_sectors = 23;
 	bank->sectors = malloc(sizeof(flash_sector_t) * 23);
-	
+
 	for (i = 0; i < 15; i++)
 	{
 		bank->sectors[i].offset = offset;
@@ -184,7 +184,7 @@ static int lpc288x_read_part_info(struct flash_bank_s *bank)
 		bank->sectors[i].is_erased = -1;
 		bank->sectors[i].is_protected = 1;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -197,20 +197,20 @@ static int lpc288x_protect_check(struct flash_bank_s *bank)
 static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	lpc288x_flash_bank_t *lpc288x_info;
-	
+
 	if (argc < 6)
 	{
 		LOG_WARNING("incomplete flash_bank LPC288x configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
-	
+
 	lpc288x_info = malloc(sizeof(lpc288x_flash_bank_t));
 	bank->driver_priv = lpc288x_info;
-	
+
 	/* part wasn't probed for info yet */
 	lpc288x_info->cidr = 0;
 	lpc288x_info->cclk = strtoul(args[6], NULL, 0);
-	
+
 	return ERROR_OK;
 }
 
@@ -230,9 +230,9 @@ static void lpc288x_set_flash_clk(struct flash_bank_s *bank)
 
 /* AHB tcyc (in ns) 83 ns
  * LOAD_TIMER_ERASE		FPT_TIME	= ((400,000,000 / AHB tcyc (in ns)) - 2) / 512
- * 									= 9412 (9500) (AN10548 9375)
+ *									= 9412 (9500) (AN10548 9375)
  * LOAD_TIMER_WRITE		FPT_TIME	= ((1,000,000 / AHB tcyc (in ns)) - 2) / 512
- * 									= 23 (75) (AN10548 72 - is this wrong?)
+ *									= 23 (75) (AN10548 72 - is this wrong?)
  * TODO: Sort out timing calcs ;) */
 static void lpc288x_load_timer(int erase, struct target_s *target)
 {
@@ -253,7 +253,7 @@ static u32 lpc288x_system_ready(struct flash_bank_s *bank)
 	{
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
@@ -270,7 +270,7 @@ static int lpc288x_erase_check(struct flash_bank_s *bank)
 		LOG_INFO("Processor not halted/not probed");
 		return status;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -279,33 +279,33 @@ static int lpc288x_erase(struct flash_bank_s *bank, int first, int last)
 	u32 status;
 	int sector;
 	target_t *target = bank->target;
-	
+
 	status = lpc288x_system_ready(bank);    /* probed? halted? */
 	if (status != ERROR_OK)
 	{
 		return status;
 	}
-	
+
 	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
 	{
 		LOG_INFO("Bad sector range");
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
-	
+
 	/* Configure the flash controller timing */
 	lpc288x_set_flash_clk(bank);
-	
+
 	for (sector = first; sector <= last; sector++)
 	{
 		if (lpc288x_wait_status_busy(bank, 1000) != ERROR_OK)
 		{
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
-		
+
 		lpc288x_load_timer(LOAD_TIMER_ERASE,target);
-		
+
 		target_write_u32(target, bank->sectors[sector].offset, 0x00);
-		
+
 		target_write_u32(target, F_CTRL, FC_PROG_REQ | FC_PROTECT | FC_CS);
 	}
 	if (lpc288x_wait_status_busy(bank, 1000) != ERROR_OK)
@@ -323,17 +323,17 @@ static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 	u32 bytes_remaining = count;
 	u32 first_sector, last_sector, sector, page;
 	int i;
-	
+
 	/* probed? halted? */
 	status = lpc288x_system_ready(bank);
 	if (status != ERROR_OK)
 	{
 		return status;
 	}
-	
+
 	/* Initialise search indices */
 	first_sector = last_sector = 0xffffffff;
-	
+
 	/* validate the write range... */
 	for (i = 0; i < bank->num_sectors; i++)
 	{
@@ -356,21 +356,21 @@ static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 			last_sector = i;
 		}
 	}
-	
+
 	/* Range check... */
 	if (first_sector == 0xffffffff || last_sector == 0xffffffff)
 	{
 		LOG_INFO("Range check failed %x %x", offset, count);
 		return ERROR_FLASH_DST_OUT_OF_BANK;
 	}
-	
+
 	/* Configure the flash controller timing */
 	lpc288x_set_flash_clk(bank);
-	
+
 	/* initialise the offsets */
 	source_offset = 0;
 	dest_offset = 0;
-	
+
 	for (sector = first_sector; sector <= last_sector; sector++)
 	{
 		for (page = 0; page < bank->sectors[sector].size / FLASH_PAGE_SIZE; page++)
@@ -391,16 +391,16 @@ static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 				count = FLASH_PAGE_SIZE;
 				memcpy(page_buffer, &buffer[source_offset], count);
 			}
-			
+
 			/* Wait for flash to become ready */
 			if (lpc288x_wait_status_busy(bank, 1000) != ERROR_OK)
 			{
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
-			
+
 			/* fill flash data latches with 1's */
 			target_write_u32(target, F_CTRL, FC_CS | FC_SET_DATA | FC_WEN | FC_FUNC);
-			
+
 			target_write_u32(target, F_CTRL, FC_CS | FC_WEN | FC_FUNC);
 			/*would be better to use the clean target_write_buffer() interface but
 			 * it seems not to be a LOT slower....
@@ -421,13 +421,13 @@ static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 			dest_offset += FLASH_PAGE_SIZE;
 			source_offset += count;
 			bytes_remaining -= count;
-			
+
 			lpc288x_load_timer(LOAD_TIMER_WRITE, target);
-			
+
 			target_write_u32(target, F_CTRL, FC_PROG_REQ | FC_PROTECT | FC_FUNC | FC_CS);
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -436,18 +436,18 @@ static int lpc288x_probe(struct flash_bank_s *bank)
 	/* we only deal with LPC2888 so flash config is fixed */
 	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
 	int retval;
-	
+
 	if (lpc288x_info->cidr != 0)
 	{
 		return ERROR_OK; /* already probed */
 	}
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	retval = lpc288x_read_part_info(bank);
 	if (retval != ERROR_OK)
 		return retval;
@@ -465,22 +465,22 @@ static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int la
 	int lockregion, status;
 	u32 value;
 	target_t *target = bank->target;
-	
+
 	/* probed? halted? */
-	status = lpc288x_system_ready(bank);   
+	status = lpc288x_system_ready(bank);
 	if (status != ERROR_OK)
 	{
 		return status;
 	}
-	
+
 	if ((first < 0) || (last < first) || (last >= bank->num_sectors))
 	{
 		return ERROR_FLASH_SECTOR_INVALID;
 	}
-	
+
 	/* Configure the flash controller timing */
-	lpc288x_set_flash_clk(bank);   
-	
+	lpc288x_set_flash_clk(bank);
+
 	for (lockregion = first; lockregion <= last; lockregion++)
 	{
 		if (set)
@@ -496,6 +496,6 @@ static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int la
 		target_write_u32(target, bank->sectors[lockregion].offset, value);
 		target_write_u32(target, F_CTRL, FC_LOAD_REQ | FC_PROTECT | FC_WEN | FC_FUNC | FC_CS);
 	}
-	
+
 	return ERROR_OK;
 }

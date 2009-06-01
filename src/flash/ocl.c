@@ -108,13 +108,13 @@ static int ocl_erase(struct flash_bank_s *bank, int first, int last)
 	/* check preconditions */
 	if (bank->num_sectors == 0)
 		return ERROR_FLASH_BANK_NOT_PROBED;
-		
+
 	if (bank->target->state != TARGET_RUNNING)
 	{
 		LOG_ERROR("target has to be running to communicate with the loader");
 		return ERROR_TARGET_NOT_RUNNING;
 	}
-		
+
 	if ((first == 0) && (last == bank->num_sectors - 1))
 	{
 		dcc_buffer[0] = OCL_ERASE_ALL;
@@ -168,7 +168,7 @@ static int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 coun
 	int byteofs;
 	int runlen;
 	u32 chksum;
-	
+
 	int i;
 
 	/* check preconditions */
@@ -227,7 +227,7 @@ static int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 coun
 			chksum ^= *(dcc_bufptr++);
 
 		*(dcc_bufptr++) = chksum;
-		
+
 		/* send the data */
 		if ((retval = embeddedice_send(ocl->jtag_info, dcc_buffer, dcc_bufptr-dcc_buffer)) != ERROR_OK)
 		{
@@ -292,7 +292,7 @@ static int ocl_probe(struct flash_bank_s *bank)
 	/* receive response */
 	if ((retval = embeddedice_receive(ocl->jtag_info, dcc_buffer, 1) != ERROR_OK))
 		return retval;
-		
+
 	if (dcc_buffer[0] != OCL_CMD_DONE)
 	{
 		LOG_ERROR("loader response to OCL_PROBE 0x%08X", dcc_buffer[0]);
