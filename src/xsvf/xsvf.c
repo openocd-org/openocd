@@ -41,6 +41,7 @@
 #include "config.h"
 #endif
 
+#define INCLUDE_JTAG_INTERFACE_H
 #include "xsvf.h"
 #include "jtag.h"
 

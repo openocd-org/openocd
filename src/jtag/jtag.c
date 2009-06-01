@@ -29,6 +29,7 @@
 #endif
 
 #define INCLUDE_JTAG_MINIDRIVER_H
+#define INCLUDE_JTAG_INTERFACE_H
 #include "jtag.h"
 
 #ifdef HAVE_STRINGS_H

@@ -105,6 +105,8 @@ typedef struct tap_transition_s
 //extern tap_transition_t tap_transitions[16];    /* describe the TAP state diagram */
 
 
+#ifdef INCLUDE_JTAG_INTERFACE_H
+
 /*-----<Cable Helper API>-------------------------------------------*/
 
 /* The "Cable Helper API" is what the cable drivers can use to help implement
@@ -253,6 +255,8 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
 #endif // _DEBUG_JTAG_IO_
 
 /*-----</Cable Helper API>------------------------------------------*/
+
+#endif // INCLUDE_JTAG_INTERFACE_H
 
 
 extern tap_state_t cmd_queue_end_state;         /* finish DR scans in dr_end_state */
@@ -428,6 +432,8 @@ enum reset_line_mode {
 	LINE_PUSH_PULL  = 0x1,
 };
 
+#ifdef INCLUDE_JTAG_INTERFACE_H
+
 typedef struct jtag_interface_s
 {
 	char* name;
@@ -476,6 +482,8 @@ typedef struct jtag_interface_s
 	 */
 	int (*srst_asserted)(int* srst_asserted);
 } jtag_interface_t;
+
+#endif // INCLUDE_JTAG_INTERFACE_H
 
 enum jtag_event {
 	JTAG_TRST_ASSERTED

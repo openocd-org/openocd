@@ -26,6 +26,7 @@
 #include "config.h"
 #endif
 
+#define INCLUDE_JTAG_INTERFACE_H
 #include "jtag.h"
 
 #include <usb.h>

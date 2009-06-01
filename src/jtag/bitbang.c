@@ -25,6 +25,7 @@
 #endif
 
 #include "bitbang.h"
+#define INCLUDE_JTAG_INTERFACE_H
 #include "jtag.h"
 
 /**

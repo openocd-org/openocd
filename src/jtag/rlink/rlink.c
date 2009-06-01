@@ -28,6 +28,7 @@
 #endif
 
 /* project specific includes */
+#define INCLUDE_JTAG_INTERFACE_H
 #include "jtag.h"
 #include "rlink.h"
 #include "st7.h"
