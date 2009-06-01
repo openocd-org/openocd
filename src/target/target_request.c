@@ -41,25 +41,25 @@ static int target_asciimsg(target_t *target, u32 length)
 {
 	char *msg = malloc(CEIL(length + 1, 4) * 4);
 	debug_msg_receiver_t *c = target->dbgmsg;
-	
+
 	target->type->target_request_data(target, CEIL(length, 4), (u8*)msg);
 	msg[length] = 0;
-	
+
 	LOG_DEBUG("%s", msg);
-	
+
 	while (c)
 	{
 		command_print(c->cmd_ctx, "%s", msg);
 		c = c->next;
 	}
-	
+
 	return ERROR_OK;
 }
 
 static int target_charmsg(target_t *target, u8 msg)
 {
 	LOG_USER_N("%c", msg);
-	
+
 	return ERROR_OK;
 }
 
@@ -70,7 +70,7 @@ static int target_hexmsg(target_t *target, int size, u32 length)
 	int line_len;
 	debug_msg_receiver_t *c = target->dbgmsg;
 	u32 i;
-	
+
 	LOG_DEBUG("size: %i, length: %i", size, length);
 
 	target->type->target_request_data(target, CEIL(length * size, 4), (u8*)data);
@@ -90,11 +90,11 @@ static int target_hexmsg(target_t *target, int size, u32 length)
 				line_len += snprintf(line + line_len, 128 - line_len, "%2.2x ", data[i]);
 				break;
 		}
-		
+
 		if ((i%8 == 7) || (i == length - 1))
 		{
 			LOG_DEBUG("%s", line);
-			
+
 			while (c)
 			{
 				command_print(c->cmd_ctx, "%s", line);
@@ -104,7 +104,7 @@ static int target_hexmsg(target_t *target, int size, u32 length)
 			line_len = 0;
 		}
 	}
-	
+
 	free(data);
 
 	return ERROR_OK;
@@ -146,14 +146,14 @@ int target_request(target_t *target, u32 request)
  			LOG_ERROR("unknown target request: %2.2x", target_req_cmd);
  			break;
 	}
-	
+
 	return ERROR_OK;
 }
 
 static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *target)
 {
 	debug_msg_receiver_t **p = &target->dbgmsg;
-	
+
 	if (target == NULL)
 		return ERROR_INVALID_ARGUMENTS;
 
@@ -171,10 +171,10 @@ static int add_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *t
 	(*p) = malloc(sizeof(debug_msg_receiver_t));
 	(*p)->cmd_ctx = cmd_ctx;
 	(*p)->next = NULL;
-	
+
 	/* enable callback */
 	target->dbg_msg_enabled = 1;
-	
+
 	return ERROR_OK;
 }
 
@@ -182,7 +182,7 @@ static debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *c
 {
 	int do_all_targets = 0;
 	debug_msg_receiver_t **p = &target->dbgmsg;
-	
+
 	/* if no target has been specified search all of them */
 	if (target == NULL)
 	{
@@ -193,7 +193,7 @@ static debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *c
 		target = all_targets;
 		do_all_targets = 1;
 	}
-	
+
 	do
 	{
 		while (*p)
@@ -204,10 +204,10 @@ static debug_msg_receiver_t* find_debug_msg_receiver(struct command_context_s *c
 			}
 			p = &((*p)->next);
 		}
-		
+
 		target = target->next;
 	} while (target && do_all_targets);
-	
+
 	return NULL;
 }
 
@@ -216,14 +216,14 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 	debug_msg_receiver_t **p;
 	debug_msg_receiver_t *c;
 	int do_all_targets = 0;
-	
+
 	/* if no target has been specified search all of them */
 	if (target == NULL)
 	{
 		/* if no targets haven been specified */
 		if (all_targets == NULL)
 			return ERROR_OK;
-		
+
 		target = all_targets;
 		do_all_targets = 1;
 	}
@@ -250,10 +250,10 @@ int delete_debug_msg_receiver(struct command_context_s *cmd_ctx, target_t *targe
 				p = &(c->next);
 			c = next;
 		}
-	
+
 		target = target->next;
 	} while (target && do_all_targets);
-	
+
 	return ERROR_OK;
 }
 
@@ -262,7 +262,7 @@ static int handle_target_request_debugmsgs_command(struct command_context_s *cmd
 	target_t *target = get_current_target(cmd_ctx);
 
 	int receiving = 0;
-	
+
 	/* see if reciever is already registered */
 	if (find_debug_msg_receiver(cmd_ctx, target) != NULL)
 		receiving = 1;
@@ -293,7 +293,7 @@ static int handle_target_request_debugmsgs_command(struct command_context_s *cmd
 			command_print(cmd_ctx, "usage: target_request debugmsgs ['enable'|'disable'|'charmsg']");
 		}
 	}
-	
+
 	command_print(cmd_ctx, "receiving debug messages from current target %s",
 		      (receiving) ? (charmsg_mode?"charmsg":"enabled") : "disabled" );
 	return ERROR_OK;
@@ -303,7 +303,7 @@ int target_request_register_commands(struct command_context_s *cmd_ctx)
 {
 	target_request_cmd =
 		register_command(cmd_ctx, NULL, "target_request", NULL, COMMAND_ANY, "target_request commands");
-	
+
 	register_command(cmd_ctx, target_request_cmd, "debugmsgs", handle_target_request_debugmsgs_command,
 		COMMAND_EXEC, "enable/disable reception of debug messages from target");
 
