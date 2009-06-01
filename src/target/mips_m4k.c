@@ -857,7 +857,7 @@ int mips_m4k_examine(struct target_s *target)
 
 	if (!target_was_examined(target))
 	{
-		mips_ejtag_get_idcode(ejtag_info, &idcode, NULL);
+		mips_ejtag_get_idcode(ejtag_info, &idcode);
 		ejtag_info->idcode = idcode;
 		
 		if (((idcode >> 1) & 0x7FF) == 0x29)

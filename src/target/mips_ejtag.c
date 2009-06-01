@@ -56,7 +56,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_m
 	return ERROR_OK;
 }
 
-int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode, in_handler_t handler)
+int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode)
 {
 	scan_field_t field;
 
@@ -83,7 +83,7 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode, in_handler_t ha
 	return ERROR_OK;
 }
 
-int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode, in_handler_t handler)
+int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode)
 {
 	scan_field_t field;
 
@@ -258,7 +258,7 @@ int mips_ejtag_init(mips_ejtag_t *ejtag_info)
 {
 	u32 ejtag_version;
 
-	mips_ejtag_get_impcode(ejtag_info, &ejtag_info->impcode, NULL);
+	mips_ejtag_get_impcode(ejtag_info, &ejtag_info->impcode);
 	LOG_DEBUG("impcode: 0x%8.8x", ejtag_info->impcode);
 
 	/* get ejtag version */
