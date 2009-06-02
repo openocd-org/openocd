@@ -92,6 +92,8 @@ static int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char
  */
 static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd);
 
+/* max TCK for the high speed devices 30000 kHz */
+#define	FTDI_2232H_4232H_MAX_TCK	30000
 
 static char *       ft2232_device_desc_A = NULL;
 static char*        ft2232_device_desc = NULL;
@@ -174,6 +176,7 @@ static u8                  high_direction = 0x0;
 
 #if BUILD_FT2232_FTD2XX == 1
 static FT_HANDLE 	ftdih = NULL;
+static FT_DEVICE 	ftdi_device = 0;
 #elif BUILD_FT2232_LIBFTDI == 1
 static struct ftdi_context ftdic;
 #endif
@@ -411,12 +414,54 @@ static int ft2232_read(u8* buf, u32 size, u32* bytes_read)
 	return ERROR_OK;
 }
 
+#ifdef BUILD_FTD2XX_HIGHSPEED
+static bool ft2232_device_is_highspeed(void)
+{
+	return (ftdi_device == FT_DEVICE_2232H) || (ftdi_device == FT_DEVICE_4232H);
+}
+
+static int ft2232_adaptive_clocking(int speed)
+{
+	bool use_adaptive_clocking = FALSE;
+	if (0 == speed)
+	{
+		if (ft2232_device_is_highspeed())
+			use_adaptive_clocking = TRUE;
+		else
+		{
+			LOG_ERROR("ft2232 device %lu does not support RTCK", ftdi_device);
+			return ERROR_OK;
+		}
+	}
+
+	u8  buf = use_adaptive_clocking ? 0x96 : 0x97;
+	LOG_DEBUG("%2.2x", buf);
+
+	u32 bytes_written;
+	int retval = ft2232_write(&buf, 1, &bytes_written);
+	if (ERROR_OK != retval || bytes_written != 1)
+	{
+		LOG_ERROR("unable to set adative clocking: %d", retval);
+		return retval;
+	}
+
+	return ERROR_OK;
+}
+#else
+static int ft2232_adaptive_clocking(int speed)
+{
+	// not implemented on low-speed devices
+	return speed ? ERROR_OK : -1234;
+}
+#endif
 
 static int ft2232_speed(int speed)
 {
 	u8  buf[3];
 	int retval;
 	u32 bytes_written;
+
+	ft2232_adaptive_clocking(speed);
 
 	buf[0] = 0x86;                  	/* command "set divisor" */
 	buf[1] = speed & 0xff;          /* valueL (0=6MHz, 1=3MHz, 2=2.0MHz, ...*/
@@ -449,8 +494,15 @@ static int ft2232_khz(int khz, int* jtag_speed)
 {
 	if (khz==0)
 	{
-		LOG_DEBUG("RTCK not supported");
+#ifdef BUILD_FTD2XX_HIGHSPEED
+		*jtag_speed = 0;
+		return ERROR_OK;
+#else
+		LOG_DEBUG("RCLK not supported");
+		LOG_DEBUG("If you have a high-speed FTDI device, then "
+			"OpenOCD may be built with --enable-ftd2xx-highspeed.");
 		return ERROR_FAIL;
+#endif
 	}
 
 	/* Take a look in the FT2232 manual,
@@ -1724,6 +1776,9 @@ static int ft2232_execute_queue()
 static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int* try_more)
 {
 	FT_STATUS 	status;
+	DWORD		deviceID;
+	char		SerialNumber[16];
+	char		Description[64]; 
 	DWORD     	openex_flags  = 0;
 	char*     	openex_string = NULL;
 	u8        	latency_timer;
@@ -1852,6 +1907,27 @@ static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int* try_more)
 	{
 		LOG_ERROR("unable to enable bit i/o mode: %lu", status);
 		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	if ( ( status = FT_GetDeviceInfo(ftdih, &ftdi_device, &deviceID, SerialNumber, Description, NULL) ) != FT_OK )
+	{
+		LOG_ERROR("unable to get FT_GetDeviceInfo: %lu", status);
+		return ERROR_JTAG_INIT_FAILED;
+	}
+	else
+	{
+		LOG_INFO("device: %lu", ftdi_device);
+		LOG_INFO("deviceID: %lu", deviceID);
+		LOG_INFO("SerialNumber: %s", SerialNumber);
+		LOG_INFO("Description: %s", Description);
+
+#ifdef BUILD_FTD2XX_HIGHSPEED
+		if (ft2232_device_is_highspeed())
+		{
+			ft2232_max_tck = FTDI_2232H_4232H_MAX_TCK;
+			LOG_INFO("max TCK change to: %u kHz", ft2232_max_tck);
+		}
+#endif
 	}
 
 	return ERROR_OK;

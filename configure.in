@@ -310,6 +310,10 @@ AC_ARG_ENABLE(ft2232_libftdi,
 AC_ARG_ENABLE(ft2232_ftd2xx,
   AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]), 
   [build_ft2232_ftd2xx=$enableval], [build_ft2232_ftd2xx=no])
+
+AC_ARG_ENABLE(ftd2xx_highspeed,
+  AS_HELP_STRING([--enable-ftd2xx-highspeed], [Enable building support for FT2232H and FT4232H-based devices (requires >=libftd2xx-0.4.16)]), 
+  [want_ftd2xx_highspeed=$enableval], [want_ftd2xx_highspeed=maybe])
  
 AC_ARG_ENABLE(amtjtagaccel,
   AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]), 
@@ -737,6 +741,32 @@ main( int argc, char **argv )
 	return 0;
 }
 ], [ AC_MSG_RESULT([Success!])] , [ AC_MSG_ERROR([Cannot build & run test program using ftd2xx.lib]) ] )
+
+AC_MSG_CHECKING([whether to build ftd2xx device support])
+AC_MSG_RESULT([$want_ftd2xx_highspeed])
+if test $want_ftd2xx_highspeed != no; then
+AC_MSG_CHECKING([for ftd2xx highspeed device support])
+AC_COMPILE_IFELSE([
+#include "confdefs.h"
+#if IS_WIN32
+#include "windows.h"
+#endif
+#include <stdio.h>
+#include <ftd2xx.h>
+DWORD x = FT_DEVICE_4232H;
+], [
+ AC_DEFINE(BUILD_FTD2XX_HIGHSPEED, [1], [Support FT2232H/FT4232HS with FTD2XX.])
+ build_ftd2xx_highspeed=yes
+], [
+ build_ftd2xx_highspeed=no
+] )
+AC_MSG_RESULT([$build_ftd2xx_highspeed])
+
+if test $want_ftd2xx_highspeed = yes -a $build_ftd2xx_highspeed = no; then
+   AC_MSG_ERROR([You need a newer FTD2XX driver (version 0.4.16 or later).])
+ fi
+fi
+
 LDFLAGS=$LDFLAGS_SAVE
 CFLAGS=$CFLAGS_SAVE
 fi
