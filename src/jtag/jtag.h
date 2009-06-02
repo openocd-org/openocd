@@ -800,10 +800,6 @@ extern int            jtag_power_dropout(int* dropout);
 extern int            jtag_srst_asserted(int* srst_asserted);
 
 /* JTAG support functions */
-struct invalidstruct
-{
-
-};
 
 /* execute jtag queue and check value and use mask if mask is != NULL. invokes
  * jtag_set_error() with any error. */
