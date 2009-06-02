@@ -869,6 +869,13 @@ extern int interface_jtag_add_sleep(u32 us);
 extern int interface_jtag_add_clocks(int num_cycles);
 extern int interface_jtag_execute_queue(void);
 
+/**
+ * Calls the interface callback to execute the queue.  This routine
+ * is used by the JTAG driver layer and should not be called directly.
+ */
+extern int default_interface_jtag_execute_queue(void);
+
+
 #endif // INCLUDE_JTAG_MINIDRIVER_H
 
 /* this allows JTAG devices to implement the entire jtag_xxx() layer in hw/sw */

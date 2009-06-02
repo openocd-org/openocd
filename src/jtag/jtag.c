@@ -1570,7 +1570,7 @@ int interface_jtag_execute_queue(void)
 		return ERROR_FAIL;
 	}
 
-	retval = jtag->execute_queue();
+	retval = default_interface_jtag_execute_queue();
 
 	if (retval == ERROR_OK)
 	{
@@ -1591,6 +1591,11 @@ int interface_jtag_execute_queue(void)
 	return retval;
 }
 #endif
+
+int default_interface_jtag_execute_queue(void)
+{
+	return jtag->execute_queue();
+}
 
 void jtag_execute_queue_noclear(void)
 {
