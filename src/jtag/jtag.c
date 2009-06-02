@@ -590,7 +590,17 @@ void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields, ta
 		jtag_error=retval;
 }
 
+void jtag_add_callback(jtag_callback1_t f, u8 *in)
+{
+	interface_jtag_add_callback(f, in);
+}
 
+void jtag_add_callback4(jtag_callback_t f, u8 *in,
+		jtag_callback_data_t data1, jtag_callback_data_t data2,
+		jtag_callback_data_t data3)
+{
+	interface_jtag_add_callback4(f, in, data1, data2, data3);
+}
 
 int jtag_check_value_inner(u8 *captured, u8 *in_check_value, u8 *in_check_mask, int num_bits);
 

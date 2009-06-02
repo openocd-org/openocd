@@ -83,6 +83,12 @@ extern void interface_jtag_add_dr_out(jtag_tap_t* tap,
 		int num_fields, const int* num_bits, const u32* value,
 		tap_state_t end_state);
 
+extern void interface_jtag_add_callback(jtag_callback1_t f, u8 *in);
+
+extern void interface_jtag_add_callback4(jtag_callback_t f, u8 *in,
+		jtag_callback_data_t data1, jtag_callback_data_t data2,
+		jtag_callback_data_t data3);
+
 #endif
 
 extern int interface_jtag_add_ir_scan(

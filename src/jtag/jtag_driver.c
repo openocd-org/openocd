@@ -466,7 +466,7 @@ int interface_jtag_add_sleep(u32 us)
 }
 
 /* add callback to end of queue */
-void jtag_add_callback4(jtag_callback_t callback, u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
+void interface_jtag_add_callback4(jtag_callback_t callback, u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
 {
 	struct jtag_callback_entry *entry=cmd_queue_alloc(sizeof(struct jtag_callback_entry));
 
@@ -514,7 +514,7 @@ static int jtag_convert_to_callback4(u8 *in, jtag_callback_data_t data1, jtag_ca
 	return ERROR_OK;
 }
 
-void jtag_add_callback(jtag_callback1_t callback, u8 *in)
+void interface_jtag_add_callback(jtag_callback1_t callback, u8 *in)
 {
 	jtag_add_callback4(jtag_convert_to_callback4, in, (jtag_callback_data_t)callback, 0, 0);
 }

@@ -599,12 +599,8 @@ extern void jtag_add_plain_dr_scan(int num_fields, const scan_field_t* fields, t
  * fail, use the jtag_callback_t variant */
 typedef void (*jtag_callback1_t)(u8 *in);
 
-#ifndef HAVE_JTAG_MINIDRIVER_H
 /* A simpler version of jtag_add_callback4 */
 extern void jtag_add_callback(jtag_callback1_t, u8 *in);
-#else
-/* implemented by minidriver */
-#endif
 
 
 /* This type can store an integer safely by a normal cast on 64 and
@@ -650,11 +646,9 @@ typedef int (*jtag_callback_t)(u8 *in, jtag_callback_data_t data1, jtag_callback
  * If the execution of the queue fails before the callbacks, then the
  * callbacks may or may not be invoked depending on driver implementation.
  */
-#ifndef HAVE_JTAG_MINIDRIVER_H
-extern void jtag_add_callback4(jtag_callback_t, u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
-#else
-/* implemented by minidriver */
-#endif
+extern void jtag_add_callback4(jtag_callback_t, u8 *in,
+		jtag_callback_data_t data1, jtag_callback_data_t data2,
+		jtag_callback_data_t data3);
 
 
 /* run a TAP_RESET reset. End state is TAP_RESET, regardless
