@@ -4137,6 +4137,33 @@ If @var{value} is defined, first assigns that.
 
 @section ARMv7 Architecture
 
+@subsection ARMv7 Debug Access Port (DAP) specific commands
+@cindex ARMv7 Debug Access Port (DAP) specific commands
+These commands are specific to ARM architecture v7 Debug Access Port (DAP),
+included on cortex-m3 and cortex-a8 systems.
+They are available in addition to other core-specific commands that may be available.
+
+@deffn Command {dap info} [num]
+Displays dap info for ap [num], default currently selected AP.
+@end deffn
+
+@deffn Command {dap apsel} [num]
+Select a different AP [num] (default 0).
+@end deffn
+
+@deffn Command {dap apid} [num]
+Displays id reg from AP [num], default currently selected AP.
+@end deffn
+
+@deffn Command {dap baseaddr} [num]
+Displays debug base address from AP [num], default currently selected AP.
+@end deffn
+
+@deffn Command {dap memaccess} [value]
+Displays the number of extra tck for mem-ap memory bus access [0-255].
+If value is defined, first assigns that.
+@end deffn
+
 @subsection Cortex-M3 specific commands
 @cindex Cortex-M3 specific commands
 

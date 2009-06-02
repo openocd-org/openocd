@@ -59,34 +59,29 @@
 ***************************************************************************/
 
 /* Scan out and in from target ordered u8 buffers */
-int adi_jtag_dp_scan(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u8 *outvalue, u8 *invalue, u8 *ack)
+int adi_jtag_dp_scan(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u8 *outvalue, u8 *invalue, u8 *ack)
 {
+	arm_jtag_t *jtag_info = swjdp->jtag_info;
 	scan_field_t fields[2];
 	u8 out_addr_buf;
 
 	jtag_add_end_state(TAP_IDLE);
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
+	/* Add specified number of tck clocks before accessing memory bus */
+	if ((instr == DAP_IR_APACC) && ((reg_addr == AP_REG_DRW)||((reg_addr&0xF0) == AP_REG_BD0) )&& (swjdp->memaccess_tck != 0))
+		jtag_add_runtest(swjdp->memaccess_tck, TAP_IDLE);
+
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
-
 	fields[0].in_value = ack;
-
-
-	
-
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = outvalue;
-
 	fields[1].in_value = invalue;
-	
-
-
-
 
 	jtag_add_dr_scan(2, fields, TAP_INVALID);
 
@@ -94,8 +89,9 @@ int adi_jtag_dp_scan(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u8 *o
 }
 
 /* Scan out and in from host ordered u32 variables */
-int adi_jtag_dp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u32 outvalue, u32 *invalue, u8 *ack)
+int adi_jtag_dp_scan_u32(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u32 outvalue, u32 *invalue, u8 *ack)
 {
+	arm_jtag_t *jtag_info = swjdp->jtag_info;
 	scan_field_t fields[2];
 	u8 out_value_buf[4];
 	u8 out_addr_buf;
@@ -103,20 +99,21 @@ int adi_jtag_dp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u
 	jtag_add_end_state(TAP_IDLE);
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
+	/* Add specified number of tck clocks before accessing memory bus */
+	if ((instr == DAP_IR_APACC) && ((reg_addr == AP_REG_DRW)||((reg_addr&0xF0) == AP_REG_BD0) )&& (swjdp->memaccess_tck != 0))
+		jtag_add_runtest(swjdp->memaccess_tck, TAP_IDLE);
+
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 3;
 	buf_set_u32(&out_addr_buf, 0, 3, ((reg_addr >> 1) & 0x6) | (RnW & 0x1));
 	fields[0].out_value = &out_addr_buf;
 	fields[0].in_value = ack;
-	
-
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	buf_set_u32(out_value_buf, 0, 32, outvalue);
 	fields[1].out_value = out_value_buf;
 	fields[1].in_value = NULL;
-	
 
 	if (invalue)
 	{
@@ -136,14 +133,15 @@ int adi_jtag_dp_scan_u32(arm_jtag_t *jtag_info, u8 instr, u8 reg_addr, u8 RnW, u
 /* scan_inout_check adds one extra inscan for DPAP_READ commands to read variables */
 int scan_inout_check(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u8 *outvalue, u8 *invalue)
 {
-	adi_jtag_dp_scan(swjdp->jtag_info, instr, reg_addr, RnW, outvalue, NULL, NULL);
+	adi_jtag_dp_scan(swjdp, instr, reg_addr, RnW, outvalue, NULL, NULL);
+
 	if ((RnW == DPAP_READ) && (invalue != NULL))
 	{
-		adi_jtag_dp_scan(swjdp->jtag_info, SWJDP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
+		adi_jtag_dp_scan(swjdp, DAP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
 	}
 
-	/* In TRANS_MODE_ATOMIC all SWJDP_IR_APACC transactions wait for ack=OK/FAULT and the check CTRL_STAT */
-	if ((instr == SWJDP_IR_APACC) && (swjdp->trans_mode == TRANS_MODE_ATOMIC))
+	/* In TRANS_MODE_ATOMIC all DAP_IR_APACC transactions wait for ack=OK/FAULT and the check CTRL_STAT */
+	if ((instr == DAP_IR_APACC) && (swjdp->trans_mode == TRANS_MODE_ATOMIC))
 	{
 		return swjdp_transaction_endcheck(swjdp);
 	}
@@ -153,14 +151,15 @@ int scan_inout_check(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u8 *o
 
 int scan_inout_check_u32(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u32 outvalue, u32 *invalue)
 {
-	adi_jtag_dp_scan_u32(swjdp->jtag_info, instr, reg_addr, RnW, outvalue, NULL, NULL);
+	adi_jtag_dp_scan_u32(swjdp, instr, reg_addr, RnW, outvalue, NULL, NULL);
+
 	if ((RnW==DPAP_READ) && (invalue != NULL))
 	{
-		adi_jtag_dp_scan_u32(swjdp->jtag_info, SWJDP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
+		adi_jtag_dp_scan_u32(swjdp, DAP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
 	}
 
-	/* In TRANS_MODE_ATOMIC all SWJDP_IR_APACC transactions wait for ack=OK/FAULT and then check CTRL_STAT */
-	if ((instr == SWJDP_IR_APACC) && (swjdp->trans_mode == TRANS_MODE_ATOMIC))
+	/* In TRANS_MODE_ATOMIC all DAP_IR_APACC transactions wait for ack=OK/FAULT and then check CTRL_STAT */
+	if ((instr == DAP_IR_APACC) && (swjdp->trans_mode == TRANS_MODE_ATOMIC))
 	{
 		return swjdp_transaction_endcheck(swjdp);
 	}
@@ -177,7 +176,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 
 #if 0
 	/* Danger!!!! BROKEN!!!! */
-	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
+	scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	/* Danger!!!! BROKEN!!!! Why will jtag_execute_queue() fail here????
 	R956 introduced the check on return value here and now Michael Schwingen reports
 	that this code no longer works....
@@ -191,7 +190,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 	/* Why??? second time it works??? */
 #endif
 
-	scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
+	scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 	if ((retval=jtag_execute_queue())!=ERROR_OK)
 		return retval;
 
@@ -216,7 +215,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 
-			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
+			scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 			if ((retval=jtag_execute_queue())!=ERROR_OK)
 				return retval;
 			swjdp->ack = swjdp->ack & 0x7;
@@ -248,8 +247,8 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 				LOG_ERROR("SWJ-DP STICKY ERROR");
 
 			/* Clear Sticky Error Bits */
-			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_WRITE, swjdp->dp_ctrl_stat | SSTICKYORUN | SSTICKYERR, NULL);
-			scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
+			scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_WRITE, swjdp->dp_ctrl_stat | SSTICKYORUN | SSTICKYERR, NULL);
+			scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
 			if ((retval=jtag_execute_queue())!=ERROR_OK)
 				return retval;
 
@@ -278,12 +277,12 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 
 int dap_dp_write_reg(swjdp_common_t *swjdp, u32 value, u8 reg_addr)
 {
-	return scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, reg_addr, DPAP_WRITE, value, NULL);
+	return scan_inout_check_u32(swjdp, DAP_IR_DPACC, reg_addr, DPAP_WRITE, value, NULL);
 }
 
 int dap_dp_read_reg(swjdp_common_t *swjdp, u32 *value, u8 reg_addr)
 {
-	return scan_inout_check_u32(swjdp, SWJDP_IR_DPACC, reg_addr, DPAP_READ, 0, value);
+	return scan_inout_check_u32(swjdp, DAP_IR_DPACC, reg_addr, DPAP_READ, 0, value);
 }
 
 int dap_ap_select(swjdp_common_t *swjdp,u8 apsel)
@@ -294,7 +293,7 @@ int dap_ap_select(swjdp_common_t *swjdp,u8 apsel)
 	if (select != swjdp->apsel)
 	{
 		swjdp->apsel = select;
-		/* Switchin AP invalidates cached values */
+		/* Switching AP invalidates cached values */
 		swjdp->dp_select_value = -1;
 		swjdp->ap_csw_value = -1;
 		swjdp->ap_tar_value = -1;
@@ -320,7 +319,7 @@ int dap_dp_bankselect(swjdp_common_t *swjdp,u32 ap_reg)
 int dap_ap_write_reg(swjdp_common_t *swjdp, u32 reg_addr, u8* out_value_buf)
 {
 	dap_dp_bankselect(swjdp, reg_addr);
-	scan_inout_check(swjdp, SWJDP_IR_APACC, reg_addr, DPAP_WRITE, out_value_buf, NULL);
+	scan_inout_check(swjdp, DAP_IR_APACC, reg_addr, DPAP_WRITE, out_value_buf, NULL);
 
 	return ERROR_OK;
 }
@@ -328,7 +327,7 @@ int dap_ap_write_reg(swjdp_common_t *swjdp, u32 reg_addr, u8* out_value_buf)
 int dap_ap_read_reg(swjdp_common_t *swjdp, u32 reg_addr, u8 *in_value_buf)
 {
 	dap_dp_bankselect(swjdp, reg_addr);
-	scan_inout_check(swjdp, SWJDP_IR_APACC, reg_addr, DPAP_READ, 0, in_value_buf);
+	scan_inout_check(swjdp, DAP_IR_APACC, reg_addr, DPAP_READ, 0, in_value_buf);
 
 	return ERROR_OK;
 }
@@ -338,7 +337,7 @@ int dap_ap_write_reg_u32(swjdp_common_t *swjdp, u32 reg_addr, u32 value)
 
 	buf_set_u32(out_value_buf, 0, 32, value);
 	dap_dp_bankselect(swjdp, reg_addr);
-	scan_inout_check(swjdp, SWJDP_IR_APACC, reg_addr, DPAP_WRITE, out_value_buf, NULL);
+	scan_inout_check(swjdp, DAP_IR_APACC, reg_addr, DPAP_WRITE, out_value_buf, NULL);
 
 	return ERROR_OK;
 }
@@ -346,7 +345,7 @@ int dap_ap_write_reg_u32(swjdp_common_t *swjdp, u32 reg_addr, u32 value)
 int dap_ap_read_reg_u32(swjdp_common_t *swjdp, u32 reg_addr, u32 *value)
 {
 	dap_dp_bankselect(swjdp, reg_addr);
-	scan_inout_check_u32(swjdp, SWJDP_IR_APACC, reg_addr, DPAP_READ, 0, value);
+	scan_inout_check_u32(swjdp, DAP_IR_APACC, reg_addr, DPAP_READ, 0, value);
 
 	return ERROR_OK;
 }
@@ -723,15 +722,15 @@ int mem_ap_read_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 		dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_SINGLE, address);
 
 		/* Scan out first read */
-		adi_jtag_dp_scan(swjdp->jtag_info, SWJDP_IR_APACC, AP_REG_DRW, DPAP_READ, 0, NULL, NULL);
+		adi_jtag_dp_scan(swjdp, DAP_IR_APACC, AP_REG_DRW, DPAP_READ, 0, NULL, NULL);
 		for (readcount = 0; readcount < blocksize - 1; readcount++)
 		{
 			/* Scan out read instruction and scan in previous value */
-			adi_jtag_dp_scan(swjdp->jtag_info, SWJDP_IR_APACC, AP_REG_DRW, DPAP_READ, 0, buffer + 4 * readcount, &swjdp->ack);
+			adi_jtag_dp_scan(swjdp, DAP_IR_APACC, AP_REG_DRW, DPAP_READ, 0, buffer + 4 * readcount, &swjdp->ack);
 		}
 
 		/* Scan in last value */
-		adi_jtag_dp_scan(swjdp->jtag_info, SWJDP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, buffer + 4 * readcount, &swjdp->ack);
+		adi_jtag_dp_scan(swjdp, DAP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, buffer + 4 * readcount, &swjdp->ack);
 		if (swjdp_transaction_endcheck(swjdp) == ERROR_OK)
 		{
 			wcount = wcount - blocksize;

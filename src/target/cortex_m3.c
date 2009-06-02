@@ -1564,8 +1564,11 @@ int cortex_m3_handle_target_request(void *priv)
 
 int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jtag_tap_t *tap)
 {
+	int retval;
 	armv7m_common_t *armv7m;
 	armv7m = &cortex_m3->armv7m;
+
+	armv7m_init_arch_info(target, armv7m);
 
 	/* prepare JTAG information for the new target */
 	cortex_m3->jtag_info.tap = tap;
@@ -1575,6 +1578,7 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jt
 	armv7m->swjdp_info.ap_csw_value = -1;
 	armv7m->swjdp_info.ap_tar_value = -1;
 	armv7m->swjdp_info.jtag_info = &cortex_m3->jtag_info;
+	armv7m->swjdp_info.memaccess_tck = 8;
 
 	/* initialize arch-specific breakpoint handling */
 
@@ -1590,12 +1594,16 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jt
 	armv7m->pre_restore_context = NULL;
 	armv7m->post_restore_context = NULL;
 
-	armv7m_init_arch_info(target, armv7m);
 	armv7m->arch_info = cortex_m3;
 	armv7m->load_core_reg_u32 = cortex_m3_load_core_reg_u32;
 	armv7m->store_core_reg_u32 = cortex_m3_store_core_reg_u32;
 
 	target_register_timer_callback(cortex_m3_handle_target_request, 1, 1, target);
+
+	if ((retval = arm_jtag_setup_connection(&cortex_m3->jtag_info)) != ERROR_OK)
+	{
+		return retval;
+	}
 
 	return ERROR_OK;
 }

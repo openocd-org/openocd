@@ -27,8 +27,8 @@
 #include "register.h"
 #include "arm_jtag.h"
 
-#define SWJDP_IR_DPACC	0xA
-#define SWJDP_IR_APACC	0xB
+#define DAP_IR_DPACC	0xA
+#define DAP_IR_APACC	0xB
 
 #define DPAP_WRITE		0
 #define DPAP_READ		1
@@ -97,6 +97,8 @@ typedef struct swjdp_common_s
 	u8  trans_mode;
 	u8  trans_rw;
 	u8  ack;
+	/* extra tck clocks for memory bus access */
+	u32	memaccess_tck;
 } swjdp_common_t;
 
 /* Internal functions used in the module, partial transactions, use with caution */
@@ -141,4 +143,6 @@ extern int handle_dap_info_command(struct command_context_s *cmd_ctx, char *cmd,
 extern int handle_dap_apsel_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 extern int handle_dap_apid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 extern int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+extern int handle_dap_memaccess_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+
 #endif
