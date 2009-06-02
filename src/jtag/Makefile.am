@@ -136,6 +136,7 @@ libjtag_la_SOURCES = \
 	$(ARMJTAGEWFILES)
 
 noinst_HEADERS = \
+	interface.h \
 	minidriver.h \
 	bitbang.h \
 	jtag.h \
