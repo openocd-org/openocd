@@ -109,7 +109,9 @@ else
 ARMJTAGEWFILES =
 endif
 
-libjtag_la_SOURCES = jtag.c \
+libjtag_la_SOURCES = \
+	jtag.c \
+	jtag_driver.c \
 	$(BITBANGFILES) \
 	$(PARPORTFILES) \
 	$(DUMMYFILES) \

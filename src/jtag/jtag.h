@@ -365,6 +365,12 @@ typedef struct jtag_command_s
 
 extern jtag_command_t* jtag_command_queue;
 
+extern void* cmd_queue_alloc(size_t size);
+extern void cmd_queue_free(void);
+
+extern void jtag_queue_command(jtag_command_t *cmd);
+extern void jtag_command_queue_reset(void);
+
 #endif // INCLUDE_JTAG_INTERFACE_H
 
 /* forward declaration */
