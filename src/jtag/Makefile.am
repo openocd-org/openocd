@@ -51,6 +51,12 @@ else
 ECOSBOARDFILES =
 endif
 
+if MINIDRIVER
+DRIVERFILES =
+else
+DRIVERFILES = jtag_driver.c
+endif
+
 if AT91RM9200
 AT91RM9200FILES = at91rm9200.c
 else
@@ -111,7 +117,7 @@ endif
 
 libjtag_la_SOURCES = \
 	jtag.c \
-	jtag_driver.c \
+	$(DRIVERFILES) \
 	$(BITBANGFILES) \
 	$(PARPORTFILES) \
 	$(DUMMYFILES) \

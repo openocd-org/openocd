@@ -13,7 +13,7 @@ AC_CHECK_HEADERS(elf.h)
 AC_CHECK_HEADERS(dirent.h)
 AC_CHECK_HEADERS(fcntl.h)
 AC_CHECK_HEADERS(ifaddrs.h)
-AC_CHECK_HEADERS(jtag_minidriver.h)
+AC_CHECK_HEADERS(jtag_minidriver.h,[build_minidriver=yes],[build_minidriver=no])
 AC_CHECK_HEADERS(malloc.h)
 AC_CHECK_HEADERS(netdb.h)
 AC_CHECK_HEADERS(netinet/in.h)
@@ -857,6 +857,7 @@ AM_CONDITIONAL(IS_MINGW, test $is_mingw = yes)
 AM_CONDITIONAL(IS_WIN32, test $is_win32 = yes)
 AM_CONDITIONAL(IS_DARWIN, test $is_darwin = yes)
 AM_CONDITIONAL(BITQ, test $build_bitq = yes)
+AM_CONDITIONAL(MINIDRIVER, test $build_minidriver = yes)
 
 AC_LANG_C
 AC_PROG_CC
