@@ -36,7 +36,6 @@
 #include "jtag.h"
 #include "command.h"
 
-#ifndef HAVE_JTAG_MINIDRIVER_H
 struct jtag_callback_entry
 {
 	struct jtag_callback_entry *next;
@@ -530,6 +529,4 @@ void jtag_add_callback(jtag_callback1_t callback, u8 *in)
 {
 	jtag_add_callback4(jtag_convert_to_callback4, in, (jtag_callback_data_t)callback, 0, 0);
 }
-
-#endif
 
