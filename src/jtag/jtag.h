@@ -843,6 +843,8 @@ void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
 
 #ifdef INCLUDE_JTAG_MINIDRIVER_H
 
+extern void interface_jtag_add_scan_check_alloc(scan_field_t *field);
+
 extern int interface_jtag_add_ir_scan(
 		int num_fields, const scan_field_t* fields,
 		tap_state_t endstate);

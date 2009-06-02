@@ -594,27 +594,6 @@ static int jtag_check_value_mask_callback(u8 *in, jtag_callback_data_t data1, jt
 	return jtag_check_value_inner(in, (u8 *)data1, (u8 *)data2, (int)data3);
 }
 
-#ifdef HAVE_JTAG_MINIDRIVER_H
-void interface_jtag_add_scan_check_alloc(scan_field_t *field)
-{
-	/* We're executing this synchronously, so try to use local storage. */
-	if (field->num_bits > 32)
-	{
-		unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
-		field->in_value = (u8 *)malloc(num_bytes);
-		field->allocated = 1;
-	}
-	else
-		field->in_value = field->intmp;
-}
-#else
-void interface_jtag_add_scan_check_alloc(scan_field_t *field)
-{
-	unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
-	field->in_value = (u8 *)cmd_queue_alloc(num_bytes);
-}
-#endif
-
 static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state),
 		int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {

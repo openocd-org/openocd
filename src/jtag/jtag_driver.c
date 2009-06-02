@@ -499,6 +499,12 @@ void jtag_add_callback(jtag_callback1_t callback, u8 *in)
 	jtag_add_callback4(jtag_convert_to_callback4, in, (jtag_callback_data_t)callback, 0, 0);
 }
 
+void interface_jtag_add_scan_check_alloc(scan_field_t *field)
+{
+	unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
+	field->in_value = (u8 *)cmd_queue_alloc(num_bytes);
+}
+
 int interface_jtag_execute_queue(void)
 {
 	int retval = default_interface_jtag_execute_queue();

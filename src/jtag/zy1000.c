@@ -380,6 +380,18 @@ int zy1000_quit(void)
 }
 
 
+void interface_jtag_add_scan_check_alloc(scan_field_t *field)
+{
+	/* We're executing this synchronously, so try to use local storage. */
+	if (field->num_bits > 32)
+	{
+		unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
+		field->in_value = (u8 *)malloc(num_bytes);
+		field->allocated = 1;
+	}
+	else
+		field->in_value = field->intmp;
+}
 
 
 int interface_jtag_execute_queue(void)
