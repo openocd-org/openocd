@@ -91,7 +91,7 @@ static struct jtag_callback_entry *jtag_callback_queue_tail = NULL;
 
 
 jtag_command_t *jtag_command_queue = NULL;
-jtag_command_t **last_command_pointer = &jtag_command_queue;
+static jtag_command_t **next_command_pointer = &jtag_command_queue;
 static jtag_tap_t *jtag_all_taps = NULL;
 
 enum reset_types jtag_reset_config = RESET_NONE;
@@ -423,39 +423,19 @@ int jtag_call_event_callbacks(enum jtag_event event)
 	return ERROR_OK;
 }
 
-/* returns a pointer to the pointer of the last command in queue
- * this may be a pointer to the root pointer (jtag_command_queue)
- * or to the next member of the last but one command
- */
-jtag_command_t** jtag_get_last_command_p(void)
-{
-/*	jtag_command_t *cmd = jtag_command_queue;
-
-	if (cmd)
-		while (cmd->next)
-			cmd = cmd->next;
-	else
-		return &jtag_command_queue;
-
-	return &cmd->next;*/
-
-	return last_command_pointer;
-}
-
-
 void jtag_queue_command(jtag_command_t * cmd)
 {
-	jtag_command_t **last_cmd;
+	// this command goes on the end, so ensure the queue terminates
+	cmd->next = NULL;
 
-	last_cmd = jtag_get_last_command_p();
-
+	jtag_command_t **last_cmd = next_command_pointer;
+	assert(NULL != last_cmd);
+	assert(NULL == *last_cmd);
 	*last_cmd = cmd;
 
-	(*last_cmd)->next = NULL;
-
-	last_command_pointer = &((*last_cmd)->next);
+	// store location where the next command pointer will be stored
+	next_command_pointer = &cmd->next;
 }
-
 
 void* cmd_queue_alloc(size_t size)
 {
@@ -531,6 +511,14 @@ void cmd_queue_free(void)
 	}
 
 	cmd_queue_pages = NULL;
+}
+
+void jtag_command_queue_reset(void)
+{
+	cmd_queue_free();
+
+	jtag_command_queue = NULL;
+	next_command_pointer = &jtag_command_queue;
 }
 
 /**
@@ -1595,13 +1583,10 @@ int interface_jtag_execute_queue(void)
 		}
 	}
 
-	cmd_queue_free();
-
 	jtag_callback_queue_head = NULL;
 	jtag_callback_queue_tail = NULL;
 
-	jtag_command_queue = NULL;
-	last_command_pointer = &jtag_command_queue;
+	jtag_command_queue_reset();
 
 	return retval;
 }
