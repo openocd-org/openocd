@@ -740,31 +740,39 @@ static int jtag_check_value_mask_callback(u8 *in, jtag_callback_data_t data1, jt
 	return jtag_check_value_inner(in, (u8 *)data1, (u8 *)data2, (int)data3);
 }
 
+#ifdef HAVE_JTAG_MINIDRIVER_H
+void interface_jtag_add_scan_check_alloc(scan_field_t *field)
+{
+	/* We're executing this synchronously, so try to use local storage. */
+	if (field->num_bits > 32)
+	{
+		unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
+		field->in_value = (u8 *)malloc(num_bytes);
+		field->allocated = 1;
+	}
+	else
+		field->in_value = field->intmp;
+}
+#else
+void interface_jtag_add_scan_check_alloc(scan_field_t *field)
+{
+	unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
+	field->in_value = (u8 *)cmd_queue_alloc(num_bytes);
+}
+#endif
+
 static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state),
 		int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	for (int i = 0; i < in_num_fields; i++)
 	{
-		in_fields[i].allocated = 0;
-		in_fields[i].modified = 0;
-		if ((in_fields[i].check_value != NULL) && (in_fields[i].in_value == NULL))
-		{
-			in_fields[i].modified = 1;
-			/* we need storage space... */
-#ifdef HAVE_JTAG_MINIDRIVER_H
-			if (in_fields[i].num_bits <= 32)
-			{
-				/* This is enough space and we're executing this synchronously */
-				in_fields[i].in_value = in_fields[i].intmp;
-			} else
-			{
-				in_fields[i].in_value = (u8 *)malloc(CEIL(in_fields[i].num_bits, 8));
-				in_fields[i].allocated = 1;
-			}
-#else
-			in_fields[i].in_value = (u8 *)cmd_queue_alloc(CEIL(in_fields[i].num_bits, 8));
-#endif
-		}
+		struct scan_field_s *field = &in_fields[i];
+		field->allocated = 0;
+		field->modified = 0;
+		if (field->check_value || field->in_value)
+			continue;
+		interface_jtag_add_scan_check_alloc(field);
+		field->modified = 1;
 	}
 
 	jtag_add_scan(in_num_fields, in_fields, state);
