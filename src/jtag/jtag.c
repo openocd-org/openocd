@@ -28,9 +28,9 @@
 #include "config.h"
 #endif
 
-#define INCLUDE_JTAG_MINIDRIVER_H
 #define INCLUDE_JTAG_INTERFACE_H
 #include "jtag.h"
+#include "minidriver.h"
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -526,6 +526,11 @@ static void jtag_prelude(tap_state_t state)
 	cmd_queue_cur_state = cmd_queue_end_state;
 }
 
+void jtag_alloc_in_value32(scan_field_t *field)
+{
+	interface_jtag_alloc_in_value32(field);
+}
+
 void jtag_add_ir_scan_noverify(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
 	int retval;
@@ -682,7 +687,19 @@ void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields, ta
 		jtag_error=retval;
 }
 
+void jtag_add_dr_out(jtag_tap_t* tap,
+		int num_fields, const int* num_bits, const u32* value,
+		tap_state_t end_state)
+{
+	if (end_state != TAP_INVALID)
+		cmd_queue_end_state = end_state;
 
+	cmd_queue_cur_state = cmd_queue_end_state;
+
+	interface_jtag_add_dr_out(tap,
+			num_fields, num_bits, value,
+			cmd_queue_end_state);
+}
 
 void jtag_add_tlr(void)
 {

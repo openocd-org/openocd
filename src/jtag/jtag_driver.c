@@ -31,9 +31,9 @@
 #include "config.h"
 #endif
 
-#define INCLUDE_JTAG_MINIDRIVER_H
 #define INCLUDE_JTAG_INTERFACE_H
 #include "jtag.h"
+#include "minidriver.h"
 #include "command.h"
 
 struct jtag_callback_entry
@@ -488,12 +488,6 @@ void jtag_add_callback4(jtag_callback_t callback, u8 *in, jtag_callback_data_t d
 	}
 }
 
-void interface_jtag_add_scan_check_alloc(scan_field_t *field)
-{
-	unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
-	field->in_value = (u8 *)cmd_queue_alloc(num_bytes);
-}
-
 int interface_jtag_execute_queue(void)
 {
 	int retval = default_interface_jtag_execute_queue();
@@ -512,11 +506,6 @@ int interface_jtag_execute_queue(void)
 	jtag_callback_queue_reset();
 
 	return retval;
-}
-
-void jtag_alloc_in_value32(scan_field_t *field)
-{
-	field->in_value=(u8 *)cmd_queue_alloc(4);
 }
 
 static int jtag_convert_to_callback4(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)

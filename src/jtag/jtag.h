@@ -585,17 +585,7 @@ extern void jtag_add_dr_scan(int num_fields, const scan_field_t* fields, tap_sta
  * allocation method is used, for the synchronous case the temporary 32 bits come
  * from the input field itself.
  */
-
-#ifndef HAVE_JTAG_MINIDRIVER_H
 extern void jtag_alloc_in_value32(scan_field_t *field);
-#else
-static __inline__ void jtag_alloc_in_value32(scan_field_t *field)
-{
-	field->in_value=field->intmp;
-}
-#endif
-
-
 
 /* This version of jtag_add_dr_scan() uses the check_value/mask fields */
 extern void jtag_add_dr_scan_check(int num_fields, scan_field_t* fields, tap_state_t endstate);
@@ -841,61 +831,6 @@ void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
 #define ERROR_JTAG_NOT_STABLE_STATE  (-105)
 #define ERROR_JTAG_DEVICE_ERROR      (-107)
 
-#ifdef INCLUDE_JTAG_MINIDRIVER_H
-
-extern void interface_jtag_add_scan_check_alloc(scan_field_t *field);
-
-extern int interface_jtag_add_ir_scan(
-		int num_fields, const scan_field_t* fields,
-		tap_state_t endstate);
-extern int interface_jtag_add_plain_ir_scan(
-		int num_fields, const scan_field_t* fields,
-		tap_state_t endstate);
-
-extern int interface_jtag_add_dr_scan(
-		int num_fields, const scan_field_t* fields,
-		tap_state_t endstate);
-extern int interface_jtag_add_plain_dr_scan(
-		int num_fields, const scan_field_t* fields,
-		tap_state_t endstate);
-
-extern int interface_jtag_add_tlr(void);
-extern int interface_jtag_add_pathmove(int num_states, const tap_state_t* path);
-extern int interface_jtag_add_runtest(int num_cycles, tap_state_t endstate);
-
-/**
- * This drives the actual srst and trst pins. srst will always be 0
- * if jtag_reset_config & RESET_SRST_PULLS_TRST != 0 and ditto for
- * trst.
- *
- * the higher level jtag_add_reset will invoke jtag_add_tlr() if
- * approperiate
- */
-extern int interface_jtag_add_reset(int trst, int srst);
-extern int interface_jtag_add_end_state(tap_state_t endstate);
-extern int interface_jtag_add_sleep(u32 us);
-extern int interface_jtag_add_clocks(int num_cycles);
-extern int interface_jtag_execute_queue(void);
-
-/**
- * Calls the interface callback to execute the queue.  This routine
- * is used by the JTAG driver layer and should not be called directly.
- */
-extern int default_interface_jtag_execute_queue(void);
-
-
-#endif // INCLUDE_JTAG_MINIDRIVER_H
-
-/* this allows JTAG devices to implement the entire jtag_xxx() layer in hw/sw */
-#ifdef HAVE_JTAG_MINIDRIVER_H
-/* Here a #define MINIDRIVER() and an inline version of hw fifo interface_jtag_add_dr_out can be defined */
-#include "jtag_minidriver.h"
-#else
-extern void interface_jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const int* num_bits, const u32* value,
-		tap_state_t end_state);
-
-#endif
-
 /* jtag_add_dr_out() is a version of jtag_add_dr_scan() which
  * only scans data out. It operates on 32 bit integers instead
  * of 8 bit, which makes it a better impedance match with
@@ -921,16 +856,9 @@ extern void interface_jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const int
  * There is no jtag_add_dr_outin() version of this fn that also allows
  * clocking data back in. Patches gladly accepted!
  */
-static __inline__ void jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const int* num_bits, const u32* value,
-		tap_state_t end_state)
-{
-	if (end_state != TAP_INVALID)
-		cmd_queue_end_state = end_state;
-	cmd_queue_cur_state = cmd_queue_end_state;
-	interface_jtag_add_dr_out(tap, num_fields, num_bits, value, cmd_queue_end_state);
-}
-
-
+extern void jtag_add_dr_out(jtag_tap_t* tap,
+		int num_fields, const int* num_bits, const u32* value,
+		tap_state_t end_state);
 
 
 /**
