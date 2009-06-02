@@ -279,6 +279,8 @@ typedef struct scan_field_s
 	u8			intmp[4];			/* temporary storage for checking synchronously */
 } scan_field_t;
 
+#ifdef INCLUDE_JTAG_INTERFACE_H
+
 enum scan_type {
 	/* IN: from device to host, OUT: from host to device */
 	SCAN_IN = 1, SCAN_OUT = 2, SCAN_IO = 3
@@ -362,6 +364,8 @@ typedef struct jtag_command_s
 } jtag_command_t;
 
 extern jtag_command_t* jtag_command_queue;
+
+#endif // INCLUDE_JTAG_INTERFACE_H
 
 /* forward declaration */
 typedef struct jtag_tap_event_action_s jtag_tap_event_action_t;
@@ -804,10 +808,13 @@ extern int            jtag_srst_asserted(int* srst_asserted);
 /* execute jtag queue and check value and use mask if mask is != NULL. invokes
  * jtag_set_error() with any error. */
 extern void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask);
+
+#ifdef INCLUDE_JTAG_INTERFACE_H
 extern enum scan_type jtag_scan_type(const scan_command_t* cmd);
 extern int            jtag_scan_size(const scan_command_t* cmd);
 extern int            jtag_read_buffer(u8* buffer, const scan_command_t* cmd);
 extern int            jtag_build_buffer(const scan_command_t* cmd, u8** buffer);
+#endif  // INCLUDE_JTAG_INTERFACE_H
 
 extern void           jtag_sleep(u32 us);
 extern int            jtag_call_event_callbacks(enum jtag_event event);
