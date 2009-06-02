@@ -306,7 +306,8 @@ static int jlink_register_commands(struct command_context_s *cmd_ctx)
 static int jlink_init(void)
 {
 	int check_cnt;
-
+	int i;
+	
 	jlink_jtag_handle = jlink_usb_open();
 
 	if (jlink_jtag_handle == 0)
@@ -341,6 +342,13 @@ static int jlink_init(void)
 	jlink_tap_init();
 	jlink_speed(jtag_speed);
 
+	/* v5/6 jlink seems to have an issue if the first tap move
+	 * is not divisible by 8, so we send a TLR on first power up */ 
+	for (i = 0; i < 8; i++) {
+		jlink_tap_append_step(1, 0);
+	}
+	jlink_tap_execute();
+	
 	return ERROR_OK;
 }
 
