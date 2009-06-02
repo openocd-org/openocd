@@ -890,9 +890,7 @@ extern int default_interface_jtag_execute_queue(void);
 #ifdef HAVE_JTAG_MINIDRIVER_H
 /* Here a #define MINIDRIVER() and an inline version of hw fifo interface_jtag_add_dr_out can be defined */
 #include "jtag_minidriver.h"
-#define MINIDRIVER(a) notused ## a
 #else
-#define MINIDRIVER(a) a
 extern void interface_jtag_add_dr_out(jtag_tap_t* tap, int num_fields, const int* num_bits, const u32* value,
 		tap_state_t end_state);
 

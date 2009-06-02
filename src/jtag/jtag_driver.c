@@ -36,6 +36,7 @@
 #include "jtag.h"
 #include "command.h"
 
+#ifndef HAVE_JTAG_MINIDRIVER_H
 struct jtag_callback_entry
 {
 	struct jtag_callback_entry *next;
@@ -69,11 +70,12 @@ static void cmd_queue_scan_field_clone(scan_field_t * dst, const scan_field_t * 
 	dst->in_value	= src->in_value;
 }
 
+
 /**
  * see jtag_add_ir_scan()
  *
  */
-int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+int interface_jtag_add_ir_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
 	size_t num_taps = jtag_NumEnabledTaps();
 
@@ -147,7 +149,7 @@ int MINIDRIVER(interface_jtag_add_ir_scan)(int in_num_fields, const scan_field_t
  * see jtag_add_plain_ir_scan()
  *
  */
-int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+int interface_jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
@@ -176,7 +178,7 @@ int MINIDRIVER(interface_jtag_add_plain_ir_scan)(int in_num_fields, const scan_f
  * see jtag_add_dr_scan()
  *
  */
-int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+int interface_jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
 	/* count devices in bypass */
 
@@ -261,7 +263,7 @@ int MINIDRIVER(interface_jtag_add_dr_scan)(int in_num_fields, const scan_field_t
  * The bypass status of TAPs is set by jtag_add_ir_scan().
  *
  */
-void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
+void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
 		int in_num_fields,
 		const int *num_bits,
 		const u32 *value,
@@ -344,7 +346,7 @@ void MINIDRIVER(interface_jtag_add_dr_out)(jtag_tap_t *target_tap,
  * see jtag_add_plain_dr_scan()
  *
  */
-int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+int interface_jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
@@ -366,7 +368,7 @@ int MINIDRIVER(interface_jtag_add_plain_dr_scan)(int in_num_fields, const scan_f
 	return ERROR_OK;
 }
 
-int MINIDRIVER(interface_jtag_add_tlr)(void)
+int interface_jtag_add_tlr(void)
 {
 	tap_state_t state = TAP_RESET;
 
@@ -383,7 +385,7 @@ int MINIDRIVER(interface_jtag_add_tlr)(void)
 	return ERROR_OK;
 }
 
-int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, const tap_state_t *path)
+int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 {
 	/* allocate memory for a new list member */
 	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
@@ -402,7 +404,7 @@ int MINIDRIVER(interface_jtag_add_pathmove)(int num_states, const tap_state_t *p
 	return ERROR_OK;
 }
 
-int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, tap_state_t state)
+int interface_jtag_add_runtest(int num_cycles, tap_state_t state)
 {
 	/* allocate memory for a new list member */
 	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
@@ -418,7 +420,7 @@ int MINIDRIVER(interface_jtag_add_runtest)(int num_cycles, tap_state_t state)
 	return ERROR_OK;
 }
 
-int MINIDRIVER(interface_jtag_add_clocks)( int num_cycles )
+int interface_jtag_add_clocks( int num_cycles )
 {
 	/* allocate memory for a new list member */
 	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
@@ -433,7 +435,7 @@ int MINIDRIVER(interface_jtag_add_clocks)( int num_cycles )
 	return ERROR_OK;
 }
 
-int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
+int interface_jtag_add_reset(int req_trst, int req_srst)
 {
 	/* allocate memory for a new list member */
 	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
@@ -449,7 +451,7 @@ int MINIDRIVER(interface_jtag_add_reset)(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-int MINIDRIVER(interface_jtag_add_sleep)(u32 us)
+int interface_jtag_add_sleep(u32 us)
 {
 	/* allocate memory for a new list member */
 	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));
@@ -487,18 +489,6 @@ void jtag_add_callback4(jtag_callback_t callback, u8 *in, jtag_callback_data_t d
 	}
 }
 
-
-static int jtag_convert_to_callback4(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
-{
-	((jtag_callback1_t)data1)(in);
-	return ERROR_OK;
-}
-
-void jtag_add_callback(jtag_callback1_t callback, u8 *in)
-{
-	jtag_add_callback4(jtag_convert_to_callback4, in, (jtag_callback_data_t)callback, 0, 0);
-}
-
 void interface_jtag_add_scan_check_alloc(scan_field_t *field)
 {
 	unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
@@ -529,3 +519,17 @@ void jtag_alloc_in_value32(scan_field_t *field)
 {
 	field->in_value=(u8 *)cmd_queue_alloc(4);
 }
+
+static int jtag_convert_to_callback4(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
+{
+	((jtag_callback1_t)data1)(in);
+	return ERROR_OK;
+}
+
+void jtag_add_callback(jtag_callback1_t callback, u8 *in)
+{
+	jtag_add_callback4(jtag_convert_to_callback4, in, (jtag_callback_data_t)callback, 0, 0);
+}
+
+#endif
+

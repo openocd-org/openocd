@@ -489,8 +489,9 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	return ERROR_TARGET_TIMEOUT;
 }
 
+#ifndef HAVE_JTAG_MINIDRIVER_H
 /* this is the inner loop of the open loop DCC write of data to target */
-void MINIDRIVER(embeddedice_write_dcc)(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count)
+void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count)
 {
 	int i;
 	for (i = 0; i < count; i++)
@@ -499,3 +500,6 @@ void MINIDRIVER(embeddedice_write_dcc)(jtag_tap_t *tap, int reg_addr, u8 *buffer
 		buffer += 4;
 	}
 }
+#else
+/* provided by minidriver */
+#endif

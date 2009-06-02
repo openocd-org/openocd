@@ -535,7 +535,7 @@ int interface_jtag_add_end_state(tap_state_t state)
 }
 
 
-int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
 {
 
 	int j;
@@ -596,7 +596,7 @@ int interface_jtag_add_ir_scan(int num_fields, scan_field_t *fields, tap_state_t
 
 
 
-int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+int interface_jtag_add_plain_ir_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
 {
 	scanFields(num_fields, fields, TAP_IRSHIFT, cmd_queue_end_state);
 
@@ -605,7 +605,7 @@ int interface_jtag_add_plain_ir_scan(int num_fields, scan_field_t *fields, tap_s
 
 /*extern jtag_command_t **jtag_get_last_command_p(void);*/
 
-int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
 {
 
 	int j;
@@ -649,7 +649,7 @@ int interface_jtag_add_dr_scan(int num_fields, scan_field_t *fields, tap_state_t
 	return ERROR_OK;
 }
 
-int interface_jtag_add_plain_dr_scan(int num_fields, scan_field_t *fields, tap_state_t state)
+int interface_jtag_add_plain_dr_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
 {
 	scanFields(num_fields, fields, TAP_DRSHIFT, cmd_queue_end_state);
 	return ERROR_OK;
@@ -732,7 +732,7 @@ int interface_jtag_add_sleep(u32 us)
 	return ERROR_OK;
 }
 
-int interface_jtag_add_pathmove(int num_states, tap_state_t *path)
+int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 {
 	int state_count;
 	int tms = 0;
