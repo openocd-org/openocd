@@ -157,8 +157,7 @@ static void jlink_execute_runtest(jtag_command_t *cmd)
 			cmd->cmd.runtest->num_cycles,
 			cmd->cmd.runtest->end_state);
 
-	if (cmd->cmd.runtest->end_state != TAP_INVALID)
-		jlink_end_state(cmd->cmd.runtest->end_state);
+	jlink_end_state(cmd->cmd.runtest->end_state);
 
 	jlink_runtest(cmd->cmd.runtest->num_cycles);
 }
@@ -167,10 +166,7 @@ static void jlink_execute_statemove(jtag_command_t *cmd)
 {
 	DEBUG_JTAG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 
-	if (cmd->cmd.statemove->end_state != TAP_INVALID)
-	{
-		jlink_end_state(cmd->cmd.statemove->end_state);
-	}
+	jlink_end_state(cmd->cmd.statemove->end_state);
 	jlink_state_move();
 }
 
@@ -192,8 +188,7 @@ static void jlink_execute_scan(jtag_command_t *cmd)
 
 	DEBUG_JTAG_IO("scan end in %s", tap_state_name(cmd->cmd.scan->end_state));
 
-	if (cmd->cmd.scan->end_state != TAP_INVALID)
-		jlink_end_state(cmd->cmd.scan->end_state);
+	jlink_end_state(cmd->cmd.scan->end_state);
 
 	scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 	DEBUG_JTAG_IO("scan input, length = %d", scan_size);
