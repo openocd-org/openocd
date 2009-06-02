@@ -87,6 +87,12 @@ struct jtag_callback_entry
 
 static struct jtag_callback_entry *jtag_callback_queue_head = NULL;
 static struct jtag_callback_entry *jtag_callback_queue_tail = NULL;
+
+static void jtag_callback_queue_reset(void)
+{
+	jtag_callback_queue_head = NULL;
+	jtag_callback_queue_tail = NULL;
+}
 #endif
 
 
@@ -1583,10 +1589,8 @@ int interface_jtag_execute_queue(void)
 		}
 	}
 
-	jtag_callback_queue_head = NULL;
-	jtag_callback_queue_tail = NULL;
-
 	jtag_command_queue_reset();
+	jtag_callback_queue_reset();
 
 	return retval;
 }
