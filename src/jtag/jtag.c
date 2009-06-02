@@ -1568,16 +1568,7 @@ void jtag_add_callback(jtag_callback1_t callback, u8 *in)
 
 int interface_jtag_execute_queue(void)
 {
-	int retval;
-
-	if (jtag==NULL)
-	{
-		LOG_ERROR("No JTAG interface configured yet. Issue 'init' command in startup scripts before communicating with targets.");
-		return ERROR_FAIL;
-	}
-
-	retval = default_interface_jtag_execute_queue();
-
+	int retval = default_interface_jtag_execute_queue();
 	if (retval == ERROR_OK)
 	{
 		struct jtag_callback_entry *entry;
@@ -1598,6 +1589,14 @@ int interface_jtag_execute_queue(void)
 
 int default_interface_jtag_execute_queue(void)
 {
+	if (NULL == jtag)
+	{
+		LOG_ERROR("No JTAG interface configured yet.  "
+			"Issue 'init' command in startup scripts "
+			"before communicating with targets.");
+		return ERROR_FAIL;
+	}
+
 	return jtag->execute_queue();
 }
 
