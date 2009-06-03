@@ -138,6 +138,7 @@ libjtag_la_SOURCES = \
 
 noinst_HEADERS = \
 	interface.h \
+	commands.h \
 	minidriver.h \
 	bitbang.h \
 	jtag.h \
