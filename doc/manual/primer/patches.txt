@@ -206,5 +206,5 @@ that they spend doing these tasks.
 
  */
 /** @file
-This file contains the @ref patchprimer page.
+This file contains the @ref primerpatches page.
 */

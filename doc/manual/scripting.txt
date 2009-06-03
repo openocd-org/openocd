@@ -25,7 +25,7 @@ Default implementation of procedures in tcl/procedures.tcl.
 - Polymorphic commands for target scripts.
   - there will be added some commands in Tcl that the target
     scripts can replace.
-  - produce <productionfile> <serialnumber>. Default implementation
+  - produce \<productionfile\> \<serialnumber\>. Default implementation
     is to ignore serial number and write a raw binary file
     to beginning of first flash. Target script can dictate
     file format and structure of serialnumber. Tcl allows

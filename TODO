@@ -44,10 +44,14 @@ The following tasks have been suggeted for cleaning up the JTAG layer:
 
 - use tap_set_state everywhere to allow logging TAP state transitions
 - rename other tap_states to use standard JTAG names (suggested by ML)
+
 - retire jtag_add_end_state() and replace w/global variable:
   - removes TAP_INVALID as an argument to jtag_add_xxxx().
-  - global variable as argument to jtag_add_xxxx() should be phased out, but
-    it is useful while we need to bug-by-bug compatible while testing changes.
+
+  - global variable as argument to jtag_add_xxxx() should be phased out,
+    but it is useful while we need to bug-by-bug compatible while
+    testing changes.
+
  - Suggested by ØH. Michael Bruck also interested in this.
 - Encapsulate cmd_queue_cur_state and related varaible handling.
 
@@ -223,7 +227,7 @@ These ideas were first introduced here:
 
 - investigate fixes to permit the use of -Wshadow
 - eliminate sources of confusion in @c boostrap script:
-  -# Make @c bootstrap call 'configure --enable-maintainer-mode <opts>'?
+  -# Make @c bootstrap call 'configure --enable-maintainer-mode \<opts\>'?
   -# Add @c buildstrap script to assist with boostrap and configure steps.
 - automatically build tool-chains required for cross-compiling
   - produce mingw32, arm-elf, others using in-tree scripts
