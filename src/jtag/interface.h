@@ -167,6 +167,9 @@ const char* tap_state_name(tap_state_t state);
 /// Provides user-friendly name lookup of TAP states.
 tap_state_t tap_state_by_name(const char *name);
 
+/// Allow switching between old and new TMS tables. @see tap_get_tms_path
+void tap_use_new_tms_table(bool use_new);
+
 #ifdef _DEBUG_JTAG_IO_
 /**
  * @brief Prints verbose TAP state transitions for the given TMS/TDI buffers.

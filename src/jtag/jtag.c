@@ -3223,24 +3223,27 @@ tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
 }
 #endif // _DEBUG_JTAG_IO_
 
+void tap_use_new_tms_table(bool use_new)
+{
+	tms_seqs = use_new ? &short_tms_seqs : &old_tms_seqs;
+}
+
 static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	if (argc == 1)
 	{
+		bool use_new_table;
 		if (strcmp(args[0], "short") == 0)
-		{
-			tms_seqs=&short_tms_seqs;
-		}
+			use_new_table = true;
 		else if (strcmp(args[0], "long") == 0)
-		{
-			tms_seqs=&old_tms_seqs;
-		} else
-		{
+			use_new_table = false;
+		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-	} else if (argc != 0)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
+
+		tap_use_new_tms_table(use_new_table);
 	}
 
 	command_print(cmd_ctx, "tms sequence is  %s", (tms_seqs==&short_tms_seqs) ? "short": "long");
