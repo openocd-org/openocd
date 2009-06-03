@@ -1,8 +1,9 @@
-/** @page thelist Pending and Open Tasks
+/** @page tasks Pending and Open Tasks
 
 This page lists pending and open tasks being considered or worked upon
 by the OpenOCD community.
 
+@section thelist The List
 
 Items with a current patch available should include a link to its
 posting on the openocd-developer mailing list archives.
@@ -17,135 +18,241 @@ may have evolved an idea since it was added here.
 
 Feel free to send patches to add or clarify items on this list, too.
 
-@verbatim
-================================================================== 
-                             The List
-------------------------------------------------------------------
-@endverbatim
+@section thelisttcl TCL
 
-- JTAG/TAP changes:
-  - update all drivers to use tap_get_tms_path_len API.
-  - use tap_set_state everywhere to allow logging TAP state transitions
-  - rename other tap_states to use standard JTAG names (suggested by ML)
-  - retire jtag_add_end_state() and replace w/global variable. This also
-  removes TAP_INVALID as an argument to jtag_add_xxxx(). The global variable
-  as argument to jtag_add_xxxx() should eventually be phased out, but
-  the global variable is useful in an interim phase where one needs to
-  be bug by bug compatible before each change can be tested. Suggested
-  by ØH. Michael Bruck also interested in this.
-  
-- JTAG Interfaces:
-  - autodetect devices present on the scan chain
-    - implement 'discover_taps' command
-  - FT2232 driver: (DH)
-    - integrate FTD2XX High-Speed Device support
-      - PATCH: https://lists.berlios.de/pipermail/openocd-development/2009-April/005479.html
-    - massive set of changes (DH):
-      - fixes non-recoverability of cable connect/reconnect
-      - https://lists.berlios.de/pipermail/openocd-development/2009-May/006011.html
-    - further cleanup (DH):
-      - PATCH: https://lists.berlios.de/pipermail/openocd-development/2009-May/006112.html
-    - fix outstanding bugs
-  - J-Link driver: (ZW)
-    - fix outstanding bugs
-    - test with known targets (i.e. working with other interfaces)
-    - test compatibility between v6.0 (yellow) and older units (e.g. v5.2)
-  - TCP driver:
-    - add TCP/IP client and server for remote JTAG interface control
-  - Do others need some help?  Probably....
+This section provides possible things to improve with OpenOCD's TCL support.
 
-- Other Interfaces
-  - SVF/XSVF:
-    - pending tasks??
-  - SPI/UART emulation:
-    - (ab)use bit-banging JTAG interfaces to emulate SPI/UART
-    - allow SPI to program flash, MCUs, etc.
-  - SWD
+- organize the TCL configurations:
+  - provide more directory structure for boards/targets?
+  - factor configurations into layers (encapsulation and re-use)
 
-- Target Support:
-  - general layer cleanup:
-    - https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
-  - ARM11 improvements (MB?)
-    - fix single stepping  (reported by ØH)
-    - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
-  - Cortex A8 support (ML)
-    - add target implementation (ML)
-    - what else remains to be done?
-  - MC1322x support (JW/DE?)
-    - integrate and test support from JW (and DE?)
-    - get working with a known good interface (i.e. not today's jlink)
-  - AT91SAM92xx:
-    - improvements for unknown-board-atmel-at91sam9260.cfg (RD)
-  - STR9x: (ZW)
-    - improvements to str912.cfg to be more general purpose
-  - AVR: (SQ)
-    - independently verify implementation
-    - incrementally improve working prototype in trunk. (SQ)
-    - work out how to debug this target
-    - AVR debugging protocol.
-  - FPGA:
-    - improve things (??)
-  - Coldfire (suggested by NC)
-    - can we draw from the BDM project?  @par
-      http://bdm.sourceforge.net/
+- Isolate all TCL command support: 
+  - Pure C CLI implementations using --disable-builtin-tcl. 
+    - Allow developers to build new dongles using OpenOCD's JTAG core.
+    - At first, provide only low-level JTAG support; target layer and
+      above rely heavily on scripting event mechanisms.
+  - Allow full TCL support? add --with-tcl=/path/to/installed/tcl
+  - Move TCL support out of foo.[ch] and into foo_tcl.[ch] (other ideas?)
 
-  - other targets?  (suggestions always welcome)
+@section thelistjtag JTAG
 
-- CFI:
-  - finish implementing bus width/chip width handling (suggested by NC)
-  - factor vendor-specific code into separate source files
+This section list issues that need to be resolved in the JTAG layer.
+
+@subsection thelistjtagcore JTAG Core
+
+The following tasks have been suggeted for cleaning up the JTAG layer:
+
+- use tap_set_state everywhere to allow logging TAP state transitions
+- rename other tap_states to use standard JTAG names (suggested by ML)
+- retire jtag_add_end_state() and replace w/global variable:
+  - removes TAP_INVALID as an argument to jtag_add_xxxx().
+  - global variable as argument to jtag_add_xxxx() should be phased out, but
+    it is useful while we need to bug-by-bug compatible while testing changes.
+ - Suggested by ØH. Michael Bruck also interested in this.
+- Encapsulate cmd_queue_cur_state and related varaible handling.
+
+The following tasks have been suggested for adding new core JTAG support:
+
+- autodetect devices present on the scan chain
+  - implement 'discover_taps' command
+- SPI/UART emulation:
+  - (ab)use bit-banging JTAG interfaces to emulate SPI/UART
+  - allow SPI to program flash, MCUs, etc.
+
+@subsection thelistjtaginterfaces JTAG Interfaces
+
+The following tasks have been suggeted for improving OpenOCD's JTAG
+interface support:
+
+- rework USB communication to be more robust.  Two possible options are:
+  -# use libusb-1.0.1 with libusb-compat-0.1.1 (non-blocking I/O wrapper)
+  -# rewrite implementation to use non-blocking I/O
+- FT2232 driver:
+  - integrate FTD2XX High-Speed Device support @par
+      PATCH: https://lists.berlios.de/pipermail/openocd-development/2009-April/005479.html
+  - fix outstanding bugs
+- J-Link driver:
+  - fix to work with long scan chains, such as R.Doss's svf test.
+  - fix other outstanding bugs
+
+The following tasks have been suggested for adding new JTAG interfaces:
+
+- TCP driver: allow client/server for remote JTAG interface control.
+
+@section thelistswd Serial Wire Debug
+
+- implement Serial Wire Debug interface 
+
+@section thelistbs Boundary Scan Support
+
+- add STAPL support?
+- add BSDL support?
+
+A few possible options for the above:
+  -# Fake a TCL equivalent?
+  -# Integrate an existing library?
+  -# Write a new C implementation a la Jim?
+
+Once the above are completed:
+- add support for programming flash using boundary scan techniques
+- add integration with a modified gerber view program:
+  - provide means to view the PCB and select pins and traces
+  - allow use-cases such as the following:
+    - @b Stimulus
+      -# Double-click on a pin (or trace) with the mouse.
+    - @b Effects
+      -# The trace starts blinking, and
+      -# OpenOCD toggles the pin(s) 0/1.
+
+@section thelisttargets Target Support
+
+- general layer cleanup:
+  - https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
+- ARM11 improvements (MB?)
+  - fix single stepping  (reported by ØH)
+  - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
+- Cortex A8 support (ML)
+  - add target implementation (ML)
+- MC1322x support (JW/DE?)
+  - integrate and test support from JW (and DE?)
+  - get working with a known good interface (i.e. not today's jlink)
+- AT91SAM92xx:
+  - improvements for unknown-board-atmel-at91sam9260.cfg (RD)
+- STR9x: (ZW)
+  - improvements to str912.cfg to be more general purpose
+- AVR: (SQ)
+  - independently verify implementation
+  - incrementally improve working prototype in trunk. (SQ)
+  - work out how to debug this target
+  - AVR debugging protocol.
+- FPGA:
+  - improve things (??)
+- Coldfire (suggested by NC)
+  - can we draw from the BDM project?  @par
+    http://bdm.sourceforge.net/
+
+    or the OSBDM package @par
+    http://forums.freescale.com/freescale/board/message?board.id=OSBDM08&thread.id=422
+
+@section thelistsvf SVF/XSVF
+
+- factor and clean-up code
+- review The Guide for OpenOCD Users for documentation errors or omissions
+- update The Manual for OpenOCD Developerrs:
+  - add documentation describing the architecture of each module
+  - provide Technical Primers to bootstrap contributor knowledge
+- develop SVF unit tests 
+- develop XSVF unit tests 
+
+@section thelistflash Flash Support
+
+- finish documentation for the following flash drivers:
+  - avr
+  - ecosflash
+  - pic32mx
+  - ocl
+  - str9xpec
+
+@subsection thelistflashcfi CFI
+
+- finish implementing bus width/chip width handling (suggested by NC)
+- factor vendor-specific code into separate source files
   - add new callback interface for vendor-specific code
-  - investigate/implement "thin wrapper" to use eCos CFI drivers (ØH)
+- investigate/implement "thin wrapper" to use eCos CFI drivers (ØH)
 
-- TCL
-  - Isolate all TCL command support: 
-    - Allow pure C CLI implementations using --disable-builtin-tcl. 
-    Ref? How could this be made to work given targets extensive need
-    for events, etc.? What about the target library?
-    - Allow full TCL support? add --with-tcl=/path/to/installed/tcl
-    - Move TCL support in foo.* to foo_tcl.* (other ideas?)
+@section thelistdebug Debugger Support
 
-- Debugger Support
-  - Keil AGDI interface to OpenOCD (submitted by Dario Vecchio)
+- integrate Keil AGDI interface to OpenOCD? (submitted by Dario Vecchio)
 
-- Architectural Upgrades
-  - Allow N:M:P mapping of servers, targets, and interfaces
-  - loadable module support for interface/target/flash drivers
-  - libopenocd support: @par
-      https://lists.berlios.de/pipermail/openocd-development/2009-May/006405.html
+@section thelisttesting Testing Suite
 
-- Test Suite:
-  - implement server unit tests
-  - implement JTAG core unit tests
-  - implement JTAG interface unit tests
-  - implement flash unit tests
-  - implement target unit tests
+This section includes several related groups of ideas:
+- @ref thelistunittests
+- @ref thelistsmoketests
+- @ref thelisttestreports
+- @ref thelisttestgenerichw
 
-- Test Feedback Tools: @par
-      https://lists.berlios.de/pipermail/openocd-development/2009-May/006358.html
+@subsection thelistunittests Unit Tests
 
-  - extend target test script to produce helpful pass/fail output
-  - provide results submission script
+- add testing skeleton to provide frameworks for adding tests
+- implement server unit tests
+- implement JTAG core unit tests
+- implement JTAG interface unit tests
+- implement flash unit tests
+- implement target unit tests
 
+@subsection thelistsmoketests Smoke Test Tools
 
-- Generic Hardware Tester:
-  - implement VHDL to use for FPGA-based JTAG TAP testing device
-  - develop test suite that utilizes this testing device
+-# extend 'make check' with a smoketest app
+  - checks for OOCD_TEST_CONFIG, etc. in environment (or config file)
+  - if properly set, runs the smoke test with specified parameters
+    - openocd -f ${OOCD_TEST_CONFIG}
+    - implies a modular test suite (see below)
+  - should be able to run some minimal tests with dummy interface:
+    - compare results of baseline sanity checks with expected results
 
-- Build Systems (Autotools, CMake, etc.)
-  - investigate fixes to permit the use of -Wshadow
-  - change bootstrap to call 'configure --enable-maintainer-mode <opts>'?
+-# builds a more complete test suite:
+  - existing testing/examples/ look like a great start
+  - all targets should be tested fully and for all capabilities
+    - we do NOT want a "lowest common denominator" test suite
+    - ... but can we start with one to get going?
+  - probably requires one test configuration file per board/target
+    - modularization can occur here, just like with targets/boards/chips
+    - coverage can increase over time, building up bundles of tests
 
-- Miscellaneous:
-  - make JTAG and USB debug output a run-time configuration option
-  - review and clean up interface/target/flash APIs 
-  - factor code to eliminate duplicated functionality
-  - overhaul use of types to improve 32/64-bit portability
+-# add new 'smoketest' Makefile target:
+  - calls 'make check' (and the smoketest app)
+  - gather inputs and output into a report file
 
-- Berlios Admin:
-  - use patch tracker? @par
-    https://developer.berlios.de/patch/?group_id=4148
-  - use bug tracking?  we need something!
+@subsection thelisttestreports Test Feedback Tools
+
+These ideas were first introduced here:
+  https://lists.berlios.de/pipermail/openocd-development/2009-May/006358.html
+
+- provide report submission scripts for e-mail and web forms
+- add new Makefile targets to post the report:
+  - 'checkreportsend' -- send to list via e-mail (via sendmail)
+  - 'checkreportpost' -- send web form (via curl or other script)
+
+@subsection thelisttestgenerichw Generic Hardware Tester
+
+- implement VHDL to use for FPGA-based JTAG TAP testing device
+- develop test suite that utilizes this testing device
+
+@section thelistautotools Autotools Build System
+
+- investigate fixes to permit the use of -Wshadow
+- eliminate sources of confusion in @c boostrap script:
+  -# Make @c bootstrap call 'configure --enable-maintainer-mode <opts>'?
+  -# Add @c buildstrap script to assist with boostrap and configure steps.
+- automatically build tool-chains required for cross-compiling
+  - produce mingw32, arm-elf, others using in-tree scripts
+  - build all required target code from sources
+- make JTAG and USB debug output a run-time configuration option
+
+@section thelistarchitecture Architectural Tasks
+
+The following architectural tasks need to be accomplished and should be
+fairly easy to complete:
+
+- factor code to eliminate duplicated functionality
+- overhaul use of types to improve 32/64-bit portability
+- rewrite code that uses casts to access 16-bit and larger types
+  from unaligned memory addresses
+- libopenocd support: @par
+    https://lists.berlios.de/pipermail/openocd-development/2009-May/006405.html
+- review and clean up interface/target/flash APIs 
+
+The following strategic tasks will require ambition, knowledge, and time
+to complete:
+
+- Allow N:M:P mapping of servers, targets, and interfaces
+- loadable module support for interface/target/flash drivers
+
+@section thelistadmin Administrative Tasks
+
+- Develop "style" guidelines for committing to Subversion
+- Develop milestone and release guidelines.
 
 */
 /** @file
