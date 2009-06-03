@@ -69,8 +69,8 @@ Free Documentation License''.
 * Daemon Configuration::             Daemon Configuration
 * Interface - Dongle Configuration:: Interface - Dongle Configuration
 * Reset Configuration::              Reset Configuration
-* Tap Creation::                     Tap Creation
-* Target Configuration::             Target Configuration
+* TAP Creation::                     TAP Creation
+* CPU Configuration::                CPU Configuration
 * Flash Commands::                   Flash Commands
 * NAND Flash Commands::              NAND Flash Commands
 * General Commands::                 General Commands
@@ -111,7 +111,10 @@ in-system programming and boundary-scan testing for embedded target
 devices.
 
 @b{JTAG:} OpenOCD uses a ``hardware interface dongle'' to communicate
-with the JTAG (IEEE 1149.1) compliant taps on your target board.
+with the JTAG (IEEE 1149.1) compliant TAPs on your target board.
+A @dfn{TAP} is a ``Test Access Port'', a module which processes
+special instructions and data.  TAPs are daisy-chained within and
+between chips and boards.
 
 @b{Dongles:} OpenOCD currently supports many types of hardware dongles: USB
 based, parallel port based, and other standalone boxes that run
@@ -835,9 +838,12 @@ sequence to enable that external flash or SDRAM should be found in the
 board file. Boards may also contain multiple targets, i.e.: Two CPUs, or
 a CPU and an FPGA or CPLD.
 @item @b{target}
-@* Think chip. The ``target'' directory represents a JTAG tap (or
-chip) OpenOCD should control, not a board. Two common types of targets
+@* Think chip. The ``target'' directory represents the JTAG TAPs
+on a chip
+which OpenOCD should control, not a board. Two common types of targets
 are ARM chips and FPGA or CPLD chips.
+When a chip has multiple TAPs (maybe it has both ARM and DSP cores),
+the target config file defines all of them.
 @end itemize
 
 @b{If needed...} The user in their ``openocd.cfg'' file or the board
@@ -902,9 +908,9 @@ In summary the target files should contain
 
 @enumerate 
 @item Set defaults
-@item Create taps
+@item Add TAPs to the scan chain
+@item Add CPU targets
 @item Reset configuration
-@item Work areas
 @item CPU/Chip/CPU-Core specific features
 @item On-Chip flash
 @end enumerate
@@ -1002,7 +1008,6 @@ used at will within a ?TARGET? configuration file.
    #  these names still work!
    network.cpu configure ... params
    video.cpu   configure ... params
-
 @end example
 
 @subsection Default Value Boiler Plate Code
@@ -1028,89 +1033,68 @@ if @{ [info exists CPUTAPID ] @} @{
 @} else @{
    set _CPUTAPID 0x3f0f0f0f
 @}
-
 @end example
 
-@subsection Creating Taps
-After the ``defaults'' are choosen [see above] the taps are created.
+@subsection Adding TAPs to the Scan Chain
+After the ``defaults'' are set up,
+add the TAPs on each chip to the JTAG scan chain.
+@xref{TAP Creation}, and the naming convention
+for taps.
 
-@b{SIMPLE example:} such as an Atmel AT91SAM7X256
+In the simplest case the chip has only one TAP,
+probably for a CPU or FPGA.
+The config file for the Atmel AT91SAM7X256
+looks (in part) like this:
 
 @example
-# for an ARM7TDMI.
-set _TARGETNAME [format "%s.cpu" $_CHIPNAME]
 jtag newtap $_CHIPNAME cpu -irlen 4 -ircapture 0x1 -irmask 0xf \
         -expected-id $_CPUTAPID
 @end example
 
-@b{COMPLEX example:}
+A board with two such at91sam7 chips would be able
+to source such a config file twice, with different
+values for @code{CHIPNAME} and @code{CPUTAPID}, so
+it adds a different TAP each time.
 
-This is an SNIP/example for an STR912 - which has 3 internal taps. Key features shown:
+There are more complex examples too, with chips that have
+multiple TAPs.  Ones worth looking at include:
 
-@enumerate
-@item @b{Unform tap names} - See: Tap Naming Convention
-@item @b{_TARGETNAME} is created at the end where used.
-@end enumerate
+@itemize
+@item @file{target/omap3530.cfg} -- with a disabled ARM, and a JRC
+(there's a DSP too, which is not listed)
+@item @file{target/str912.cfg} -- with flash, CPU, and boundary scan
+@item @file{target/ti_dm355.cfg} -- with ETM, ARM, and JRC (this JRC
+is not currently used)
+@end itemize
+
+@subsection Add CPU targets
+
+After adding a TAP for a CPU, you should set it up so that
+GDB and other commands can use it.
+@xref{CPU Configuration}.
+For the at91sam7 example above, the command can look like this:
 
 @example
-if @{ [info exists FLASHTAPID ] @} @{
-   set _FLASHTAPID $FLASHTAPID
-@} else @{
-   set _FLASHTAPID 0x25966041
-@}
-jtag newtap $_CHIPNAME flash -irlen 8 -ircapture 0x1 -irmask 0x1 \
-        -expected-id $_FLASHTAPID
-
-if @{ [info exists CPUTAPID ] @} @{
-   set _CPUTAPID $CPUTAPID
-@} else @{
-   set _CPUTAPID 0x25966041
-@}
-jtag newtap $_CHIPNAME cpu -irlen 4 -ircapture 0xf -irmask 0xe \
-        -expected-id $_CPUTAPID
-
-
-if @{ [info exists BSTAPID ] @} @{
-   set _BSTAPID $BSTAPID
-@} else @{
-   set _BSTAPID 0x1457f041
-@}
-jtag newtap $_CHIPNAME bs -irlen 5 -ircapture 0x1 -irmask 0x1 \
-        -expected-id $_BSTAPID
-
-set _TARGETNAME [format "%s.cpu" $_CHIPNAME]
+target create $_TARGETNAME arm7tdmi -chain-position $_TARGETNAME
 @end example
 
-@b{Tap Naming Convention}
+Work areas are small RAM areas associated with CPU targets.
+They are used by OpenOCD to speed up downloads,
+and to download small snippets of code to program flash chips.
+If the chip includes a form of ``on-chip-ram'' - and many do - define
+a work area if you can.
+Again using the at91sam7 as an example, this can look like:
 
-See the command ``jtag newtap'' for detail, but in brief the names you should use are:
-
-@itemize @bullet
-@item @b{tap}
-@item @b{cpu}
-@item @b{flash}
-@item @b{bs}
-@item @b{etb}
-@item @b{jrc}
-@item @b{unknownN} - it happens :-(
-@end itemize
+@example
+$_TARGETNAME configure -work-area-phys 0x00200000 \
+	-work-area-size 0x4000 -work-area-backup 0
+@end example
 
 @subsection Reset Configuration
 
 Some chips have specific ways the TRST and SRST signals are
 managed. If these are @b{CHIP SPECIFIC} they go here, if they are
 @b{BOARD SPECIFIC} they go in the board file.
-
-@subsection Work Areas
-
-Work areas are small RAM areas used by OpenOCD to speed up downloads,
-and to download small snippets of code to program flash chips.
-
-If the chip includes a form of ``on-chip-ram'' - and many do - define
-a reasonable work area and use the ``backup'' option.
-
-@b{PROBLEMS:} On more complex chips, this ``work area'' may become
-inaccessible if/when the application code enables or disables the MMU.
 
 @subsection ARM Core Specific Hacks
 
@@ -1800,208 +1784,273 @@ powerup and pressing a reset button.
 @end deffn
 
 
-@node Tap Creation
-@chapter Tap Creation
-@cindex tap creation
-@cindex tap configuration
+@node TAP Creation
+@chapter TAP Creation
+@cindex TAP creation
+@cindex TAP configuration
 
-In order for OpenOCD to control a target, a JTAG tap must be
-defined/created.
+@emph{Test Access Ports} (TAPs) are the core of JTAG.
+TAPs serve many roles, including:
 
-Commands to create taps are normally found in a configuration file and
-are not normally typed by a human.
-
-When a tap is created a @b{dotted.name} is created for the tap. Other
-commands use that dotted.name to manipulate or refer to the tap.
-
-Tap Uses:
 @itemize @bullet
-@item @b{Debug Target} A tap can be used by a GDB debug target
-@item @b{Flash Programing} Some chips program the flash directly via JTAG,
-instead of indirectly by making a CPU do it.
-@item @b{Boundry Scan} Some chips support boundary scan.
+@item @b{Debug Target} A CPU TAP can be used as a GDB debug target
+@item @b{Flash Programing} Some chips program the flash directly via JTAG.
+Others do it indirectly, making a CPU do it.
+@item @b{Program Download} Using the same CPU support GDB uses,
+you can initialize a DRAM controller, download code to DRAM, and then
+start running that code.
+@item @b{Boundary Scan} Most chips support boundary scan, which
+helps test for board assembly problems like solder bridges
+and missing connections
 @end itemize
 
+OpenOCD must know about the active TAPs on your board(s).
+Setting up the TAPs is the core task of your configuration files.
+Once those TAPs are set up, you can pass their names to code
+which sets up CPUs and exports them as GDB targets,
+probes flash memory, performs low-level JTAG operations, and more.
 
-@anchor{jtag newtap}
-@section jtag newtap
-@b{@t{jtag newtap CHIPNAME TAPNAME  configparams ....}}
-@cindex jtag newtap
-@cindex tap
-@cindex tap order
-@cindex tap geometry
+@section Scan Chains
 
-@comment START options
-@itemize @bullet
-@item @b{CHIPNAME}
-@* is a symbolic name of the chip. 
-@item @b{TAPNAME}
-@* is a symbol name of a tap present on the chip.
-@item @b{Required configparams}
-@* Every tap has 3 required configparams, and several ``optional
-parameters'', the required parameters are:
-@comment START REQUIRED
-@itemize @bullet
-@item @b{-irlen NUMBER} - the length in bits of the instruction register, mostly 4 or 5 bits.
-@item @b{-ircapture NUMBER} - the IDCODE capture command, usually 0x01.
-@item @b{-irmask NUMBER} - the corresponding mask for the IR register. For
-some devices, there are bits in the IR that aren't used.  This lets you mask
-them off when doing comparisons.  In general, this should just be all ones for
-the size of the IR.
-@comment END REQUIRED
-@end itemize
-An example of a FOOBAR Tap
+OpenOCD uses a JTAG adapter (interface) to talk to your board,
+which has a daisy chain of TAPs.
+That daisy chain is called a @dfn{scan chain}.
+Simple configurations may have a single TAP in the scan chain,
+perhaps for a microcontroller.
+Complex configurations might have a dozen or more TAPs:
+several in one chip, more in the next, and connecting
+to other boards with their own chips and TAPs.
+
+Unfortunately those TAPs can't always be autoconfigured,
+because not all devices provide good support for that.
+(JTAG doesn't require supporting IDCODE instructions.)
+The configuration mechanism currently supported by OpenOCD
+requires explicit configuration of all TAP devices using
+@command{jtag newtap} commands.
+One like this would create a tap named @code{chip1.cpu}:
+
 @example
-jtag newtap foobar tap -irlen 7 -ircapture 0x42 -irmask 0x55
+jtag newtap chip1 cpu -irlen 7 -ircapture 0x01 -irmask 0x55
 @end example
-Creates the tap ``foobar.tap'' with the instruction register (IR) is 7
-bits long, during Capture-IR 0x42 is loaded into the IR, and bits
-[6,4,2,0] are checked.
 
-@item @b{Optional configparams}
-@comment START Optional
-@itemize @bullet
-@item @b{-expected-id NUMBER}
-@* By default it is zero. If non-zero represents the
-expected tap ID used when the JTAG chain is examined. Repeat 
-the option as many times as required if multiple id's can be
-expected. See below. 
-@item @b{-disable}
-@item @b{-enable}
-@* By default not specified the tap is enabled. Some chips have a
-JTAG route controller (JRC) that is used to enable and/or disable
-specific JTAG taps. You can later enable or disable any JTAG tap via
-the command @b{jtag tapenable DOTTED.NAME} or @b{jtag tapdisable 
-DOTTED.NAME}
-@comment END Optional
-@end itemize
+Each target configuration file lists the TAPs provided
+by a given chip.
+Board configuration files combine all the targets on a board,
+and so forth.
+Note that @emph{the order in which TAPs are created is very important.}
+It must match the order in the JTAG scan chain, both inside
+a single chip and between them.
 
-@comment END OPTIONS
-@end itemize
-@b{Notes:}
-@comment START NOTES
-@itemize @bullet
-@item @b{Technically}
-@* newtap is a sub command of the ``jtag'' command
-@item @b{Big Picture Background}
-@*GDB Talks to OpenOCD using the GDB protocol via
-TCP/IP. OpenOCD then uses the JTAG interface (the dongle) to
-control the JTAG chain on your board. Your board has one or more chips
-in a @i{daisy chain configuration}. Each chip may have one or more
-JTAG taps. GDB ends up talking via OpenOCD to one of the taps.
-@item @b{NAME Rules}
-@*Names follow ``C'' symbol name rules (start with alpha ...)
-@item @b{TAPNAME - Conventions}
-@itemize @bullet
-@item @b{tap} - should be used only FPGA or CPLD like devices with a single tap.
-@item @b{cpu} - the main CPU of the chip, alternatively @b{foo.arm} and @b{foo.dsp}
-@item @b{flash} - if the chip has a flash tap, example: str912.flash
-@item @b{bs} - for boundary scan if this is a seperate tap.
-@item @b{etb} - for an embedded trace buffer (example: an ARM ETB11)
-@item @b{jrc} - for JTAG route controller (example: OMAP3530 found on Beagleboards)
-@item @b{unknownN} - where N is a number if you have no idea what the tap is for
-@item @b{Other names} - Freescale IMX31 has a SDMA (smart dma) with a JTAG tap, that tap should be called the ``sdma'' tap.
-@item @b{When in doubt} - use the chip maker's name in their data sheet.
-@end itemize
-@item @b{DOTTED.NAME}
-@* @b{CHIPNAME}.@b{TAPNAME} creates the tap name, aka: the
-@b{Dotted.Name} is the @b{CHIPNAME} and @b{TAPNAME} combined with a
-dot (period); for example: @b{xilinx.tap}, @b{str912.flash},
-@b{omap3530.jrc}, or @b{stm32.cpu} The @b{dotted.name} is used in
-numerous other places to refer to various taps.
-@item @b{ORDER}
-@* The order this command appears via the config files is
-important.
-@item @b{Multi Tap Example}
-@* This example is based on the ST Microsystems STR912. See the ST
-document titled: @b{STR91xFAxxx, Section 3.15 Jtag Interface, Page:
+For example, the ST Microsystems STR912 chip has
+three separate TAPs@footnote{See the ST
+document titled: @emph{STR91xFAxxx, Section 3.15 Jtag Interface, Page:
 28/102, Figure 3: JTAG chaining inside the STR91xFA}.
-
 @url{http://eu.st.com/stonline/products/literature/ds/13495.pdf}
-@*@b{checked: 28/nov/2008}
-
-The diagram shows that the TDO pin connects to the flash tap, flash TDI
-connects to the CPU debug tap, CPU TDI connects to the boundary scan
-tap which then connects to the TDI pin.
+Checked: 28-Nov-2008}.
+To configure those taps, @file{target/str912.cfg}
+includes commands something like this:
 
 @example
-   # The order is...
-   # create tap: 'str912.flash'
-   jtag newtap str912 flash  ... params ...
-   # create tap: 'str912.cpu'
-   jtag newtap str912 cpu  ... params ...
-   # create tap: 'str912.bs'
-   jtag newtap str912 bs  ... params ...
+jtag newtap str912 flash ... params ...
+jtag newtap str912 cpu ... params ...
+jtag newtap str912 bs ... params ...
 @end example
 
-@item @b{Note: Deprecated} - Index Numbers
-@* Prior to 28/nov/2008, JTAG taps where numbered from 0..N this
-feature is still present, however its use is highly discouraged and
-should not be counted upon.  Update all of your scripts to use
-TAP names rather than numbers.
-@item @b{Multiple chips}
-@* If your board has multiple chips, you should be
-able to @b{source} two configuration files, in the proper order, and
-have the taps created in the proper order.
-@comment END NOTES
-@end itemize
-@comment at command level
+Actual config files use a variable instead of literals like
+@option{str912}, to support more than one chip of each type.
+@xref{Config File Guidelines}.
 
-@section Enable/Disable Taps
-@b{Note:} These commands are intended to be used as a machine/script
-interface. Humans might find the ``scan_chain'' command more helpful
-when querying the state of the JTAG taps.
+@section TAP Names
 
-@b{By default, all taps are enabled}
+When a TAP objects is created with @command{jtag newtap},
+a @dfn{dotted.name} is created for the TAP, combining the
+name of a module (usually a chip) and a label for the TAP.
+For example: @code{xilinx.tap}, @code{str912.flash},
+@code{omap3530.jrc}, @code{dm6446.dsp}, or @code{stm32.cpu}.
+Many other commands use that dotted.name to manipulate or
+refer to the TAP.  For example, CPU configuration uses the
+name, as does declaration of NAND or NOR flash banks.
+
+The components of a dotted name should follow ``C'' symbol
+name rules:  start with an alphabetic character, then numbers
+and underscores are OK; while others (including dots!) are not.
+
+@quotation Tip
+In older code, JTAG TAPs were numbered from 0..N.
+This feature is still present.
+However its use is highly discouraged, and
+should not be counted upon.
+Update all of your scripts to use TAP names rather than numbers.
+Using TAP numbers in target configuration scripts prevents
+reusing on boards with multiple targets.
+@end quotation
+
+@anchor{TAP Creation Commands}
+@section TAP Creation Commands
+
+@c shouldn't this be(come) a {Config Command}?
+@anchor{jtag newtap}
+@deffn Command {jtag newtap} chipname tapname configparams...
+Creates a new TAP with the dotted name @var{chipname}.@var{tapname},
+and configured according to the various @var{configparams}.
+
+The @var{chipname} is a symbolic name for the chip.
+Conventionally target config files use @code{$_CHIPNAME},
+defaulting to the model name given by the chip vendor but
+overridable.
+
+@cindex TAP naming convention
+The @var{tapname} reflects the role of that TAP,
+and should follow this convention:
 
 @itemize @bullet
-@item @b{jtag tapenable} @var{DOTTED.NAME}
-@item @b{jtag tapdisable} @var{DOTTED.NAME}
-@item @b{jtag tapisenabled} @var{DOTTED.NAME}
+@item @code{bs} -- For boundary scan if this is a seperate TAP;
+@item @code{cpu} -- The main CPU of the chip, alternatively
+@code{arm} and @code{dsp} on chips with both ARM and DSP CPUs,
+@code{arm1} and @code{arm2} on chips two ARMs, and so forth;
+@item @code{etb} -- For an embedded trace buffer (example: an ARM ETB11);
+@item @code{flash} -- If the chip has a flash TAP, like the str912;
+@item @code{jrc} -- For JTAG route controller (example: the ICEpick modules
+on many Texas Instruments chips, like the OMAP3530 on Beagleboards);
+@item @code{tap} -- Should be used only FPGA or CPLD like devices
+with a single TAP;
+@item @code{unknownN} -- If you have no idea what the TAP is for (N is a number);
+@item @emph{when in doubt} -- Use the chip maker's name in their data sheet.
+For example, the Freescale IMX31 has a SDMA (Smart DMA) with
+a JTAG TAP; that TAP should be named @code{sdma}.
 @end itemize
-@cindex tap enable
-@cindex tap disable
-@cindex JRC
-@cindex route controller
 
-These commands are used when your target has a JTAG route controller
-that effectively adds or removes a tap from the JTAG chain in a
-non-standard way.
-
-The ``standard way'' to remove a tap would be to place the tap in
-bypass mode. But with the advent of modern chips, this is not always a
-good solution. Some taps operate slowly, others operate fast, and
-there are other JTAG clock synchronisation problems one must face. To
-solve that problem, the JTAG route controller was introduced. Rather
-than ``bypass'' the tap, the tap is completely removed from the
-circuit and skipped.
-
-
-From OpenOCD's point of view, a JTAG tap is in one of 3 states:
+Every TAP requires at least the following @var{configparams}:
 
 @itemize @bullet
-@item @b{Enabled - Not In ByPass} and has a variable bit length
-@item @b{Enabled - In ByPass} and has a length of exactly 1 bit.
-@item @b{Disabled} and has a length of ZERO and is removed from the circuit.
+@item @code{-ircapture} @var{NUMBER}
+@*The IDCODE capture command, such as 0x01.
+@item @code{-irlen} @var{NUMBER}
+@*The length in bits of the
+instruction register, such as 4 or 5 bits.
+@item @code{-irmask} @var{NUMBER}
+@*A mask for the IR register.
+For some devices, there are bits in the IR that aren't used.
+This lets OpenOCD mask them off when doing IDCODE comparisons.
+In general, this should just be all ones for the size of the IR.
 @end itemize
 
-The IEEE JTAG definition has no concept of a ``disabled'' tap.
-@b{Historical note:} this feature was added 28/nov/2008
+A TAP may also provide optional @var{configparams}:
 
-@b{jtag tapisenabled DOTTED.NAME}
+@itemize @bullet
+@item @code{-disable} (or @code{-enable})
+@*Use the @code{-disable} paramater to flag a TAP which is not
+linked in to the scan chain when it is declared.
+You may use @code{-enable} to highlight the default state
+(the TAP is linked in).
+@xref{Enabling and Disabling TAPs}.
+@item @code{-expected-id} @var{number}
+@*A non-zero value represents the expected 32-bit IDCODE
+found when the JTAG chain is examined.
+These codes are not required by all JTAG devices.
+@emph{Repeat the option} as many times as required if more than one
+ID code could appear (for example, multiple versions).
+@end itemize
+@end deffn
 
-This command returns 1 if the named tap is currently enabled, 0 if not.
-This command exists so that scripts that manipulate a JRC (like the
-OMAP3530 has) can determine if OpenOCD thinks a tap is presently
-enabled or disabled.
+@c @deffn Command {jtag arp_init-reset}
+@c ... more or less "init" ?
 
-@page
-@node Target Configuration
-@chapter Target Configuration
+@anchor{Enabling and Disabling TAPs}
+@section Enabling and Disabling TAPs
+@cindex TAP events
+
+In some systems, a @dfn{JTAG Route Controller} (JRC)
+is used to enable and/or disable specific JTAG TAPs.
+Many ARM based chips from Texas Instruments include
+an ``ICEpick'' module, which is a JRC.
+Such chips include DaVinci and OMAP3 processors.
+
+A given TAP may not be visible until the JRC has been
+told to link it into the scan chain; and if the JRC
+has been told to unlink that TAP, it will no longer
+be visible.
+Such routers address problems that JTAG ``bypass mode''
+ignores, such as:
+
+@itemize
+@item The scan chain can only go as fast as its slowest TAP.
+@item Having many TAPs slows instruction scans, since all
+TAPs receive new instructions.
+@item TAPs in the scan chain must be powered up, which wastes
+power and prevents debugging some power management mechanisms.
+@end itemize
+
+The IEEE 1149.1 JTAG standard has no concept of a ``disabled'' tap,
+as implied by the existence of JTAG routers.
+However, the upcoming IEEE 1149.7 framework (layered on top of JTAG)
+does include a kind of JTAG router functionality.
+
+@c (a) currently the event handlers don't seem to be able to
+@c     fail in a way that could lead to no-change-of-state.
+@c (b) eventually non-event configuration should be possible,
+@c     in which case some this documentation must move.
+
+@deffn Command {jtag cget} dotted.name @option{-event} name
+@deffnx Command {jtag configure} dotted.name @option{-event} name string
+At this writing this mechanism is used only for event handling,
+and the only two events relate to TAP enabling and disabling.
+
+The @code{configure} subcommand assigns an event handler,
+a TCL string which is evaluated when the event is triggered.
+The @code{cget} subcommand returns that handler.
+The two possible values for an event @var{name}
+are @option{tap-disable} and @option{tap-enable}.
+
+So for example, when defining a TAP for a CPU connected to
+a JTAG router, you should define TAP event handlers using
+code that looks something like this:
+
+@example
+jtag configure CHIP.cpu -event tap-enable @{
+  echo "Enabling CPU TAP"
+  ... jtag operations using CHIP.jrc
+@}
+jtag configure CHIP.cpu -event tap-disable @{
+  echo "Disabling CPU TAP"
+  ... jtag operations using CHIP.jrc
+@}
+@end example
+@end deffn
+
+@deffn Command {jtag tapdisable} dotted.name
+@deffnx Command {jtag tapenable} dotted.name
+@deffnx Command {jtag tapisenabled} dotted.name
+These three commands all return the string "1" if the tap
+specified by @var{dotted.name} is enabled,
+and "0" if it is disbabled.
+The @command{tapenable} variant first enables the tap
+by sending it a @option{tap-enable} event.
+The @command{tapdisable} variant first disables the tap
+by sending it a @option{tap-disable} event.
+
+@quotation Note
+Humans will find the @command{scan_chain} command more helpful
+than the script-oriented @command{tapisenabled}
+for querying the state of the JTAG taps.
+@end quotation
+@end deffn
+
+@node CPU Configuration
+@chapter CPU Configuration
 @cindex GDB target
 
-This chapter discusses how to create a GDB debug target.  Before
-creating a ``target'' a JTAG tap DOTTED.NAME must exist first.
+This chapter discusses how to create a GDB debug target for a CPU.
+You can also access these targets without GDB
+(@pxref{Architecture and Core Commands}) and, where relevant,
+through various kinds of NAND and NOR flash commands.
+Also, if you have multiple CPUs you can have multiple such targets.
+
+Before creating a ``target'', you must have added its TAP to the scan chain.
+When you've added that TAP, you will have a @code{dotted.name}
+which is used to set up the CPU support.
+The chip-specific configuration file will normally configure its CPU(s)
+right after it adds all of the chip's TAPs to the scan chain.
 
 @section targets [NAME]
 @b{Note:} This command name is PLURAL - not singular.
@@ -2067,7 +2116,7 @@ Example:
 @section TARGETNAME (object) commands
 @b{Use:} Once a target is created, an ``object name'' that represents the
 target is created. By convention, the target name is identical to the
-tap name. In a multiple target system, one can preceed many common
+tap name. In a multiple target system, one can precede many common
 commands with a specific target name and effect only that target.
 @example
     str912.cpu    mww 0x1234 0x42
@@ -2242,22 +2291,6 @@ multiplexing, and so on.
 @* Success
 @item @b{resumed}
 @* Target has resumed
-@item @b{tap-enable}
-@* Executed by @b{jtag tapenable DOTTED.NAME} command. Example:
-@example
-jtag configure DOTTED.NAME -event tap-enable @{
-  puts "Enabling CPU"
-  ...
-@}
-@end example
-@item @b{tap-disable}
-@*Executed by @b{jtag tapdisable DOTTED.NAME} command. Example:
-@example
-jtag configure DOTTED.NAME -event tap-disable @{
-  puts "Disabling CPU"
-  ...
-@}
-@end example
 @end itemize
 
 @anchor{Target Create}
@@ -2337,6 +2370,11 @@ Example:
     puts [format "Chip %d is %s, Endian: %s, type: %s" $x $y $z]
   @}
 @end example
+
+@b{PROBLEM:} On more complex chips, the work area can become
+inaccessible when application code enables or disables the MMU.
+For example, the MMU context used to acess the virtual address
+will probably matter.
 
 @section Target Variants
 @itemize @bullet
