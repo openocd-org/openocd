@@ -217,14 +217,6 @@ struct jtag_interface_s *jtag = NULL;
 static jtag_interface_t *jtag_interface = NULL;
 int jtag_speed = 0;
 
-/* forward declarations */
-//void jtag_add_pathmove(int num_states, tap_state_t *path);
-//void jtag_add_runtest(int num_cycles, tap_state_t endstate);
-//void jtag_add_end_state(tap_state_t endstate);
-//void jtag_add_sleep(u32 us);
-//int jtag_execute_queue(void);
-static tap_state_t tap_state_by_name(const char *name);
-
 /* jtag commands */
 static int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -3132,7 +3124,7 @@ const char* tap_state_name(tap_state_t state)
 	return ret;
 }
 
-static tap_state_t tap_state_by_name( const char *name )
+tap_state_t tap_state_by_name(const char *name)
 {
 	tap_state_t x;
 

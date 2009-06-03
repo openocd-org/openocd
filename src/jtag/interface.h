@@ -164,6 +164,9 @@ tap_state_t tap_state_transition(tap_state_t current_state, bool tms);
  */
 const char* tap_state_name(tap_state_t state);
 
+/// Provides user-friendly name lookup of TAP states.
+tap_state_t tap_state_by_name(const char *name);
+
 #ifdef _DEBUG_JTAG_IO_
 /**
  * @brief Prints verbose TAP state transitions for the given TMS/TDI buffers.
