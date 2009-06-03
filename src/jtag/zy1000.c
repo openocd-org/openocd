@@ -23,7 +23,6 @@
 #include "embeddedice.h"
 #include "minidriver.h"
 #include "interface.h"
-#include "bitbang.h"
 
 #include <cyg/hal/hal_io.h>             // low level i/o
 #include <cyg/hal/hal_diag.h>
@@ -117,7 +116,7 @@ static int zy1000_power_dropout(int *dropout)
 jtag_interface_t zy1000_interface =
 {
 	.name = "ZY1000",
-	.execute_queue = bitbang_execute_queue,
+	.execute_queue = NULL,
 	.speed = zy1000_speed,
 	.register_commands = zy1000_register_commands,
 	.init = zy1000_init,
@@ -127,15 +126,6 @@ jtag_interface_t zy1000_interface =
 	.power_dropout = zy1000_power_dropout,
 	.srst_asserted = zy1000_srst_asserted,
 };
-
-bitbang_interface_t zy1000_bitbang =
-{
-	.read = zy1000_read,
-	.write = zy1000_write,
-	.reset = zy1000_reset
-};
-
-
 
 static void zy1000_write(int tck, int tms, int tdi)
 {
@@ -367,8 +357,6 @@ int zy1000_init(void)
 	 /* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
 	zy1000_reset(0, 0);
 	zy1000_speed(jtag_speed);
-
-	bitbang_interface = &zy1000_bitbang;
 
 	return ERROR_OK;
 }

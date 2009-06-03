@@ -454,7 +454,6 @@ else
 fi
 
 if test $build_ecosboard = yes; then
-  build_bitbang=yes
   AC_DEFINE(BUILD_ECOSBOARD, 1, [1 if you want eCosBoard.])
 else
   AC_DEFINE(BUILD_ECOSBOARD, 0, [0 if you don't want eCosBoard.])
