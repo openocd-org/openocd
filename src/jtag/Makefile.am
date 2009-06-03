@@ -54,7 +54,7 @@ endif
 if MINIDRIVER
 DRIVERFILES =
 else
-DRIVERFILES = jtag_driver.c
+DRIVERFILES = jtag_driver.c commands.c
 endif
 
 if AT91RM9200
