@@ -39,7 +39,10 @@
 
 /*-----<Macros>--------------------------------------------------*/
 
-/** When given an array, compute its DIMension, i.e. number of elements in the array */
+/**
+ * When given an array, compute its DIMension; in other words, the
+ * number of elements in the array
+ */
 #define DIM(x)					(sizeof(x)/sizeof((x)[0]))
 
 /** Calculate the number of bytes required to hold @a n TAP scan bits */
@@ -47,23 +50,20 @@
 
 /*-----</Macros>-------------------------------------------------*/
 
-
-
-/*
- * Tap states from ARM7TDMI-S Technical reference manual.
- * Also, validated against several other ARM core technical manuals.
+/**
+ * Defines JTAG Test Access Port states.
  *
- * N.B. tap_get_tms_path() was changed to reflect this corrected
- * numbering and ordering of the TAP states.
- *
- * DANGER!!!! some interfaces care about the actual numbers used
- * as they are handed off directly to hardware implementations.
+ * These definitions were gleaned from the ARM7TDMI-S Technical
+ * Reference Manual and validated against several other ARM core
+ * technical manuals.  tap_get_tms_path() is sensitive to this numbering
+ * and ordering of the TAP states; furthermore, some interfaces require
+ * specific numbers be used, as they are handed-off directly to their
+ * hardware implementations.
  */
-
 typedef enum tap_state
 {
 #if BUILD_ECOSBOARD
-/* These are the old numbers. Leave as-is for now... */
+	/* These are the old numbers. Leave as-is for now... */
 	TAP_RESET    = 0, TAP_IDLE = 8,
 	TAP_DRSELECT = 1, TAP_DRCAPTURE = 2, TAP_DRSHIFT = 3, TAP_DREXIT1 = 4,
 	TAP_DRPAUSE  = 5, TAP_DREXIT2 = 6, TAP_DRUPDATE = 7,
@@ -102,82 +102,132 @@ typedef enum tap_state
  */
 const char* tap_state_name(tap_state_t state);
 
+/// The current TAP state of the pending JTAG command queue.
+extern tap_state_t cmd_queue_cur_state;
+/// The TAP state in which DR scans should end.
+extern tap_state_t cmd_queue_end_state;
 
-extern tap_state_t cmd_queue_end_state;         /* finish DR scans in dr_end_state */
-extern tap_state_t cmd_queue_cur_state;         /* current TAP state */
-
+/**
+ * This structure defines a single scan field in the scan. It provides
+ * fields for the field's width and pointers to scan input and output
+ * values.
+ *
+ * In addition, this structure includes a value and mask that is used by
+ * jtag_add_dr_scan_check() to validate the value that was scanned out.
+ *
+ * The allocated, modified, and intmp fields are internal work space.
+ */
 typedef struct scan_field_s
 {
-	jtag_tap_t* tap;                /* tap pointer this instruction refers to */
-	int         num_bits;           /* number of bits this field specifies (up to 32) */
-	u8*         out_value;          /* value to be scanned into the device */
-	u8*         in_value;           /* pointer to a 32-bit memory location to take data scanned out */
+	/// A pointer to the tap structure to which this field refers.
+	jtag_tap_t* tap;
 
-	u8*         check_value;        /* Used together with jtag_add_dr_scan_check() to check data clocked
-	                                   in */
-	u8*         check_mask;         /* mask to go with check_value */
+	/// The number of bits this field specifies (up to 32)
+	int num_bits;
+	/// A pointer to value to be scanned into the device
+	u8* out_value;
+	/// A pointer to a 32-bit memory location for data scanned out
+	u8* in_value;
 
-	/* internal work space */
-	int			allocated;			/* in_value has been allocated for the queue */
-	int			modified;			/* did we modify the in_value? */
-	u8			intmp[4];			/* temporary storage for checking synchronously */
+	/// The value used to check the data scanned out.
+	u8* check_value;
+	/// The mask to go with check_value
+	u8* check_mask;
+
+	/// in_value has been allocated for the queue
+	int allocated;
+	/// Indicates we modified the in_value.
+	int modified;
+	/// temporary storage for performing value checks synchronously
+	u8 intmp[4];
 } scan_field_t;
 
 #ifdef INCLUDE_JTAG_INTERFACE_H
 
+/**
+ * The inferred type of a scan_command_s structure, indicating whether
+ * the command has the host scan in from the device, the host scan out
+ * to the device, or both.
+ */
 enum scan_type {
-	/* IN: from device to host, OUT: from host to device */
-	SCAN_IN = 1, SCAN_OUT = 2, SCAN_IO = 3
+	/// From device to host,
+	SCAN_IN = 1,
+	/// From host to device,
+	SCAN_OUT = 2,
+	/// Full-duplex scan.
+	SCAN_IO = 3
 };
 
+/**
+ * The scan_command provide a means of encapsulating a set of scan_field_s
+ * structures that should be scanned in/out to the device.
+ */
 typedef struct scan_command_s
 {
-	bool          ir_scan;      /* instruction/not data scan */
-	int           num_fields;   /* number of fields in *fields array */
-	scan_field_t* fields;       /* pointer to an array of data scan fields */
-	tap_state_t   end_state;    /* TAP state in which JTAG commands should finish */
+	/// instruction/not data scan
+	bool ir_scan;
+	/// number of fields in *fields array
+	int num_fields;
+	/// pointer to an array of data scan fields
+	scan_field_t* fields;
+	/// state in which JTAG commands should finish
+	tap_state_t end_state;
 } scan_command_t;
 
 typedef struct statemove_command_s
 {
-	tap_state_t end_state;   /* TAP state in which JTAG commands should finish */
+	/// state in which JTAG commands should finish
+	tap_state_t end_state;
 } statemove_command_t;
 
 typedef struct pathmove_command_s
 {
-	int          num_states;    /* number of states in *path */
-	tap_state_t* path;          /* states that have to be passed */
+	/// number of states in *path
+	int num_states;
+	/// states that have to be passed
+	tap_state_t* path;
 } pathmove_command_t;
 
 typedef struct runtest_command_s
 {
-	int         num_cycles;     /* number of cycles that should be spent in Run-Test/Idle */
-	tap_state_t end_state;      /* TAP state in which JTAG commands should finish */
+	/// number of cycles to spend in Run-Test/Idle state
+	int num_cycles;
+	/// state in which JTAG commands should finish
+	tap_state_t end_state;
 } runtest_command_t;
 
 
 typedef struct stableclocks_command_s
 {
-	int num_cycles;             /* number of clock cycles that should be sent */
+	/// number of clock cycles that should be sent
+	int num_cycles;
 } stableclocks_command_t;
 
 
 typedef struct reset_command_s
 {
-	int trst;           /* trst/srst 0: deassert, 1: assert, -1: don't change */
+	/// Set TRST output: 0=deassert, 1=assert, -1=no change
+	int trst;
+	/// Set SRST output: 0=deassert, 1=assert, -1=no change
 	int srst;
 } reset_command_t;
 
 typedef struct end_state_command_s
 {
-	tap_state_t end_state;   /* TAP state in which JTAG commands should finish */
+	/// state in which JTAG commands should finish
+	tap_state_t end_state;
 } end_state_command_t;
 
 typedef struct sleep_command_s
 {
-	u32 us;     /* number of microseconds to sleep */
+	/// number of microseconds to sleep
+	u32 us;
 } sleep_command_t;
 
+/**
+ * Defines a container type that hold a pointer to a JTAG command
+ * structure of any defined type.
+ */
 typedef union jtag_command_container_u
 {
 	scan_command_t*         scan;
@@ -190,6 +240,10 @@ typedef union jtag_command_container_u
 	sleep_command_t* sleep;
 } jtag_command_container_t;
 
+/**
+ * The type of the @c jtag_command_container_u contained by a
+ * @c jtag_command_s structure.
+ */
 enum jtag_command_type {
 	JTAG_SCAN         = 1,
 	JTAG_STATEMOVE    = 2,
@@ -207,6 +261,7 @@ typedef struct jtag_command_s
 	struct jtag_command_s*   next;
 } jtag_command_t;
 
+/// The current queue of jtag_command_s structures.
 extern jtag_command_t* jtag_command_queue;
 
 extern void* cmd_queue_alloc(size_t size);
@@ -217,7 +272,6 @@ extern void jtag_command_queue_reset(void);
 
 #endif // INCLUDE_JTAG_INTERFACE_H
 
-/* forward declaration */
 typedef struct jtag_tap_event_action_s jtag_tap_event_action_t;
 
 /* this is really: typedef jtag_tap_t */
@@ -228,20 +282,28 @@ struct jtag_tap_s
 	const char* chip;
 	const char* tapname;
 	const char* dotted_name;
-	int         abs_chain_position;
-	int         enabled;
-	int         ir_length;          /* size of instruction register */
-	u32         ir_capture_value;
-	u8*         expected;           /* Capture-IR expected value */
-	u32         ir_capture_mask;
-	u8*         expected_mask;      /* Capture-IR expected mask */
-	u32         idcode;             /* device identification code */
-	u32*        expected_ids;       /* Array of expected identification codes */
-	u8          expected_ids_cnt;   /* Number of expected identification codes */
-	u8*         cur_instr;          /* current instruction */
-	int         bypass;             /* bypass register selected */
+	int abs_chain_position;
+	/// Is this TAP enabled?
+	int enabled;
+	int ir_length; /**< size of instruction register */
+	u32 ir_capture_value;
+	u8* expected; /**< Capture-IR expected value */
+	u32 ir_capture_mask;
+	u8* expected_mask; /**< Capture-IR expected mask */
+	u32 idcode;
+	/**< device identification code */
 
-	jtag_tap_event_action_t* event_action;
+	/// Array of expected identification codes */
+	u32* expected_ids;
+	/// Number of expected identification codes
+	u8 expected_ids_cnt;
+
+	/// current instruction
+	u8* cur_instr;
+	/// Bypass register selected
+	int bypass;
+
+	jtag_tap_event_action_t *event_action;
 
 	jtag_tap_t* next_tap;
 };
@@ -250,8 +312,8 @@ extern jtag_tap_t* jtag_TapByPosition(int n);
 extern jtag_tap_t* jtag_TapByString(const char* dotted_name);
 extern jtag_tap_t* jtag_TapByJimObj(Jim_Interp* interp, Jim_Obj* obj);
 extern jtag_tap_t* jtag_TapByAbsPosition(int abs_position);
-extern int         jtag_NumEnabledTaps(void);
-extern int         jtag_NumTotalTaps(void);
+extern int jtag_NumEnabledTaps(void);
+extern int jtag_NumTotalTaps(void);
 
 static __inline__ jtag_tap_t* jtag_NextEnabledTap(jtag_tap_t* p)
 {
@@ -334,120 +396,138 @@ enum reset_types {
 
 extern enum reset_types jtag_reset_config;
 
-/* initialize interface upon startup. A successful no-op
- * upon subsequent invocations
+/**
+ * Initialize interface upon startup.  Return a successful no-op upon
+ * subsequent invocations.
  */
 extern int  jtag_interface_init(struct command_context_s* cmd_ctx);
 
 /// Shutdown the JTAG interface upon program exit.
 extern int  jtag_interface_quit(void);
 
-/* initialize JTAG chain using only a RESET reset. If init fails,
+/**
+ * Initialize JTAG chain using only a RESET reset. If init fails,
  * try reset + init.
  */
 extern int  jtag_init(struct command_context_s* cmd_ctx);
 
-/* reset, then initialize JTAG chain */
+/// reset, then initialize JTAG chain
 extern int  jtag_init_reset(struct command_context_s* cmd_ctx);
 extern int  jtag_register_commands(struct command_context_s* cmd_ctx);
 
-/* JTAG interface, can be implemented with a software or hardware fifo
+/**
+ * @file
+ * The JTAG interface can be implemented with a software or hardware fifo.
  *
- * TAP_DRSHIFT and TAP_IRSHIFT are illegal end states. TAP_DRSHIFT/IRSHIFT as end states
- * can be emulated by using a larger scan.
+ * TAP_DRSHIFT and TAP_IRSHIFT are illegal end states; however,
+ * TAP_DRSHIFT/IRSHIFT can be emulated as end states, by using longer
+ * scans.
  *
- * Code that is relatively insensitive to the path(as long
- * as it is JTAG compliant) taken through state machine can use
- * endstate for jtag_add_xxx_scan(). Otherwise the pause state must be
- * specified as end state and a subsequent jtag_add_pathmove() must
- * be issued.
- *
+ * Code that is relatively insensitive to the path taken through state
+ * machine (as long as it is JTAG compliant) can use @a endstate for
+ * jtag_add_xxx_scan(). Otherwise, the pause state must be specified as
+ * end state and a subsequent jtag_add_pathmove() must be issued.
  */
-extern void jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
-/* same as jtag_add_ir_scan except no verify is performed */
-extern void jtag_add_ir_scan_noverify(int num_fields, const scan_field_t *fields, tap_state_t state);
-extern void jtag_add_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
 
-/* set in_value to point to 32 bits of memory to scan into. This function
- * is a way to handle the case of synchronous and asynchronous
+extern void jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
+/**
+ * The same as jtag_add_ir_scan except no verification is performed out
+ * the output values.
+ */
+extern void jtag_add_ir_scan_noverify(int num_fields, const scan_field_t *fields, tap_state_t state);
+
+
+/**
+ * Set in_value to point to 32 bits of memory to scan into. This
+ * function is a way to handle the case of synchronous and asynchronous
  * JTAG queues.
  *
  * In the event of an asynchronous queue execution the queue buffer
- * allocation method is used, for the synchronous case the temporary 32 bits come
- * from the input field itself.
+ * allocation method is used, for the synchronous case the temporary 32
+ * bits come from the input field itself.
  */
 extern void jtag_alloc_in_value32(scan_field_t *field);
 
-/* This version of jtag_add_dr_scan() uses the check_value/mask fields */
+extern void jtag_add_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
+/// A version of jtag_add_dr_scan() that uses the check_value/mask fields
 extern void jtag_add_dr_scan_check(int num_fields, scan_field_t* fields, tap_state_t endstate);
 extern void jtag_add_plain_ir_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
 extern void jtag_add_plain_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
 
 
-/* Simplest/typical callback - do some conversion on the data clocked in.
- * This callback is for such conversion that can not fail.
- * For conversion types or checks that can
- * fail, use the jtag_callback_t variant */
+/**
+ * Defines a simple JTAG callback that can allow conversions on data
+ * scanned in from an interface.
+ *
+ * This callback should only be used for conversion that cannot fail.
+ * For conversion types or checks that can fail, use the more complete
+ * variant: jtag_callback_t.
+ */
 typedef void (*jtag_callback1_t)(u8 *in);
 
-/* A simpler version of jtag_add_callback4 */
+/// A simpler version of jtag_add_callback4().
 extern void jtag_add_callback(jtag_callback1_t, u8 *in);
 
 
-/* This type can store an integer safely by a normal cast on 64 and
- * 32 bit systems. */
+/**
+ * Defines the type of data passed to the jtag_callback_t interface.
+ * The underlying type must allow storing an @c int or pointer type.
+ */
 typedef intptr_t jtag_callback_data_t;
 
-/* The generic callback mechanism.
+/**
+ * Defines the interface of the JTAG callback mechanism.
  *
- * The callback is invoked with three arguments. The first argument is
- * the pointer to the data clocked in.
+ * @param in the pointer to the data clocked in
+ * @param data1 An integer big enough to use as an @c int or a pointer.
+ * @param data2 An integer big enough to use as an @c int or a pointer.
+ * @param data3 An integer big enough to use as an @c int or a pointer.
+ * @returns an error code
  */
 typedef int (*jtag_callback_t)(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
 
 
-/* This callback can be executed immediately the queue has been flushed. Note that
- * the JTAG queue can either be executed synchronously or asynchronously. Typically
- * for USB the queue is executed asynchronously. For low latency interfaces, the
- * queue may be executed synchronously.
+/**
+ * This callback can be executed immediately the queue has been flushed.
  *
- * These callbacks are typically executed *after* the *entire* JTAG queue has been
- * executed for e.g. USB interfaces.
+ * The JTAG queue can be executed synchronously or asynchronously.
+ * Typically for USB, the queue is executed asynchronously.  For
+ * low-latency interfaces, the queue may be executed synchronously.
  *
- * The callbacks are guaranteeed to be invoked in the order that they were queued.
+ * The callback mechanism is very general and does not make many
+ * assumptions about what the callback does or what its arguments are.
+ * These callbacks are typically executed *after* the *entire* JTAG
+ * queue has been executed for e.g. USB interfaces, and they are
+ * guaranteeed to be invoked in the order that they were queued.
  *
- * The strange name is due to C's lack of overloading using function arguments
+ * If the execution of the queue fails before the callbacks, then --
+ * depending on driver implementation -- the callbacks may or may not be
+ * invoked.  @todo Can we make this behavior consistent?
  *
- * The callback mechansim is very general and does not really make any assumptions
- * about what the callback does and what the arguments are.
+ * The strange name is due to C's lack of overloading using function
+ * arguments.
  *
- * in - typically used to point to the data to operate on. More often than not
- * this will be the data clocked in during a shift operation
+ * @param f The callback function to add.
+ * @param in Typically used to point to the data to operate on.
+ * Frequently this will be the data clocked in during a shift operation.
+ * @param data1 An integer big enough to use as an @c int or a pointer.
+ * @param data2 An integer big enough to use as an @c int or a pointer.
+ * @param data3 An integer big enough to use as an @c int or a pointer.
  *
- * data1 - an integer that is big enough to be used either as an 'int' or
- * cast to/from a pointer
- *
- * data2 - an integer that is big enough to be used either as an 'int' or
- * cast to/from a pointer
- *
- * Why stop at 'data2' for arguments? Somewhat historical reasons. This is
- * sufficient to implement the jtag_check_value_mask(), besides the
- * line is best drawn somewhere...
- *
- * If the execution of the queue fails before the callbacks, then the
- * callbacks may or may not be invoked depending on driver implementation.
  */
 extern void jtag_add_callback4(jtag_callback_t, u8 *in,
 		jtag_callback_data_t data1, jtag_callback_data_t data2,
 		jtag_callback_data_t data3);
 
 
-/* run a TAP_RESET reset. End state is TAP_RESET, regardless
- * of start state.
+/**
+ * Run a TAP_RESET reset where the end state is TAP_RESET,
+ * regardless of the start state.
  */
 extern void jtag_add_tlr(void);
 
-/* Application code *must* assume that interfaces will
+/**
+ * Application code *must* assume that interfaces will
  * implement transitions between states with different
  * paths and path lengths through the state diagram. The
  * path will vary across interface and also across versions
@@ -490,16 +570,20 @@ extern void jtag_add_tlr(void);
  */
 extern void jtag_add_pathmove(int num_states, const tap_state_t* path);
 
-/* go to TAP_IDLE, if we're not already there and cycle
- * precisely num_cycles in the TAP_IDLE after which move
- * to the end state, if it is != TAP_IDLE
+/**
+ * Goes to TAP_IDLE (if we're not already there), cycle
+ * precisely num_cycles in the TAP_IDLE state, after which move
+ * to @a endstate (unless it is also TAP_IDLE).
  *
- * nb! num_cycles can be 0, in which case the fn will navigate
- * to endstate via TAP_IDLE
+ * @param num_cycles Number of cycles in TAP_IDLE state.  This argument
+ * 	may be 0, in which case this routine will navigate to @a endstate
+ * 	via TAP_IDLE.
+ * @param endstate The final state.
  */
 extern void jtag_add_runtest(int num_cycles, tap_state_t endstate);
 
-/* A reset of the TAP state machine can be requested.
+/**
+ * A reset of the TAP state machine can be requested.
  *
  * Whether tms or trst reset is used depends on the capabilities of
  * the target and jtag interface(reset_config  command configures this).
@@ -535,7 +619,7 @@ extern void jtag_add_sleep(u32 us);
 void jtag_add_clocks(int num_cycles);
 
 
-/*
+/**
  * For software FIFO implementations, the queued commands can be executed
  * during this call or earlier. A sw queue might decide to push out
  * some of the jtag_add_xxx() operations once the queue is "big enough".
@@ -555,16 +639,19 @@ void jtag_add_clocks(int num_cycles);
  * jtag_add_xxx() commands can either be executed immediately or
  * at some time between the jtag_add_xxx() fn call and jtag_execute_queue().
  */
-extern int            jtag_execute_queue(void);
+extern int jtag_execute_queue(void);
 
 /* same as jtag_execute_queue() but does not clear the error flag */
 extern void jtag_execute_queue_noclear(void);
 
-/* this flag is set when an error occurs while executing the queue. cleared
- * by jtag_execute_queue()
+/**
+ * The jtag_error variable is set when an error occurs while executing
+ * the queue.
  *
- * this flag can also be set from application code if some error happens
+ * This flag can also be set from application code, if an error happens
  * during processing that should be reported during jtag_execute_queue().
+ *
+ * It is cleared by jtag_execute_queue().
  */
 extern int jtag_error;
 
@@ -581,33 +668,39 @@ static __inline__ void jtag_set_error(int error)
 
 
 /* can be implemented by hw+sw */
-extern int            jtag_power_dropout(int* dropout);
-extern int            jtag_srst_asserted(int* srst_asserted);
+extern int jtag_power_dropout(int* dropout);
+extern int jtag_srst_asserted(int* srst_asserted);
 
 /* JTAG support functions */
 
-/* execute jtag queue and check value and use mask if mask is != NULL. invokes
- * jtag_set_error() with any error. */
+/**
+ * Execute jtag queue and check value with an optional mask.
+ * @param field Pointer to scan field.
+ * @param value Pointer to scan value.
+ * @param mask Pointer to scan mask; may be NULL.
+ * @returns Nothing, but calls jtag_set_error() on any error.
+ */
 extern void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask);
 
 #ifdef INCLUDE_JTAG_INTERFACE_H
 extern enum scan_type jtag_scan_type(const scan_command_t* cmd);
-extern int            jtag_scan_size(const scan_command_t* cmd);
-extern int            jtag_read_buffer(u8* buffer, const scan_command_t* cmd);
-extern int            jtag_build_buffer(const scan_command_t* cmd, u8** buffer);
+extern int jtag_scan_size(const scan_command_t* cmd);
+extern int jtag_read_buffer(u8* buffer, const scan_command_t* cmd);
+extern int jtag_build_buffer(const scan_command_t* cmd, u8** buffer);
 #endif // INCLUDE_JTAG_INTERFACE_H
 
-extern void           jtag_sleep(u32 us);
-extern int            jtag_call_event_callbacks(enum jtag_event event);
-extern int            jtag_register_event_callback(int (* callback)(enum jtag_event event, void* priv), void* priv);
+extern void jtag_sleep(u32 us);
+extern int jtag_call_event_callbacks(enum jtag_event event);
+extern int jtag_register_event_callback(int (* callback)(enum jtag_event event, void* priv), void* priv);
 
 extern int jtag_verify_capture_ir;
 
 void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
 
-/* error codes
- * JTAG subsystem uses codes between -100 and -199 */
-
+/*
+ * The JTAG subsystem defines a number of error codes,
+ * using codes between -100 and -199.
+ */
 #define ERROR_JTAG_INIT_FAILED       (-100)
 #define ERROR_JTAG_INVALID_INTERFACE (-101)
 #define ERROR_JTAG_NOT_IMPLEMENTED   (-102)
@@ -616,7 +709,8 @@ void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
 #define ERROR_JTAG_NOT_STABLE_STATE  (-105)
 #define ERROR_JTAG_DEVICE_ERROR      (-107)
 
-/* jtag_add_dr_out() is a version of jtag_add_dr_scan() which
+/**
+ * jtag_add_dr_out() is a version of jtag_add_dr_scan() which
  * only scans data out. It operates on 32 bit integers instead
  * of 8 bit, which makes it a better impedance match with
  * the calling code which often operate on 32 bit integers.
@@ -626,9 +720,9 @@ void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
  * num_bits[i] is the number of bits to clock out from value[i] LSB first.
  *
  * If the device is in bypass, then that is an error condition in
- * the caller code that is not detected by this fn, whereas jtag_add_dr_scan()
- * does detect it. Similarly if the device is not in bypass, data must
- * be passed to it.
+ * the caller code that is not detected by this fn, whereas
+ * jtag_add_dr_scan() does detect it. Similarly if the device is not in
+ * bypass, data must be passed to it.
  *
  * If anything fails, then jtag_error will be set and jtag_execute() will
  * return an error. There is no way to determine if there was a failure
@@ -647,10 +741,13 @@ extern void jtag_add_dr_out(jtag_tap_t* tap,
 
 
 /**
- * Function jtag_add_statemove
- * moves from the current state to the goal \a state. This needs
- * to be handled according to the xsvf spec, see the XSTATE command
- * description.
+ * jtag_add_statemove() moves from the current state to @a goal_state.
+ *
+ * This function was originally designed to handle the XSTATE command
+ * from the XSVF specification.
+ *
+ * @param goal_state The final TAP state.
+ * @return ERROR_OK on success, or an error code on failure.
  */
 extern int jtag_add_statemove(tap_state_t goal_state);
 
