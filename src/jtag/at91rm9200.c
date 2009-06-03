@@ -22,7 +22,7 @@
 #endif
 
 #define INCLUDE_JTAG_INTERFACE_H
-#include "jtag.h"
+#include "interface.h"
 #include "bitbang.h"
 
 #include <sys/mman.h>

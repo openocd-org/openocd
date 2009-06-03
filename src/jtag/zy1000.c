@@ -23,6 +23,7 @@
 #define INCLUDE_JTAG_INTERFACE_H
 #include "embeddedice.h"
 #include "minidriver.h"
+#include "interface.h"
 #include "bitbang.h"
 
 #include <cyg/hal/hal_io.h>             // low level i/o

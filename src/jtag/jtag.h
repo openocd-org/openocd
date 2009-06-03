@@ -224,8 +224,6 @@ extern void cmd_queue_free(void);
 extern void jtag_queue_command(jtag_command_t *cmd);
 extern void jtag_command_queue_reset(void);
 
-#include "interface.h"
-
 #endif // INCLUDE_JTAG_INTERFACE_H
 
 /* forward declaration */

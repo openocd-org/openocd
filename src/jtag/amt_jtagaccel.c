@@ -22,7 +22,7 @@
 #endif
 
 #define INCLUDE_JTAG_INTERFACE_H
-#include "jtag.h"
+#include "interface.h"
 
 
 #if PARPORT_USE_PPDEV == 1

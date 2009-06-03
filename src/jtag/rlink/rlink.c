@@ -29,7 +29,7 @@
 
 /* project specific includes */
 #define INCLUDE_JTAG_INTERFACE_H
-#include "jtag.h"
+#include "interface.h"
 #include "rlink.h"
 #include "st7.h"
 #include "ep1_cmd.h"

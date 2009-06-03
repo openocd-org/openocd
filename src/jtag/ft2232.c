@@ -41,7 +41,7 @@
 
 /* project specific includes */
 #define INCLUDE_JTAG_INTERFACE_H
-#include "jtag.h"
+#include "interface.h"
 #include "time_support.h"
 
 #if IS_CYGWIN == 1

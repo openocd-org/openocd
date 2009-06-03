@@ -23,6 +23,7 @@
 
 #define INCLUDE_JTAG_INTERFACE_H
 #include "bitq.h"
+#include "interface.h"
 
 
 bitq_interface_t* bitq_interface;       /* low level bit queue interface */

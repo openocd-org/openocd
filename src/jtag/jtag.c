@@ -31,6 +31,7 @@
 #define INCLUDE_JTAG_INTERFACE_H
 #include "jtag.h"
 #include "minidriver.h"
+#include "interface.h"
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>

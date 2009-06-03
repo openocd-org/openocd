@@ -32,7 +32,7 @@
 #endif
 
 #define INCLUDE_JTAG_INTERFACE_H
-#include "jtag.h"
+#include "interface.h"
 #include "minidriver.h"
 #include "command.h"
 
