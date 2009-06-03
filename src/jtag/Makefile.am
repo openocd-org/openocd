@@ -117,6 +117,7 @@ endif
 
 libjtag_la_SOURCES = \
 	jtag.c \
+	interface.c \
 	$(DRIVERFILES) \
 	$(BITBANGFILES) \
 	$(PARPORTFILES) \

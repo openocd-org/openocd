@@ -26,6 +26,8 @@
 #ifndef OPENOCD_JTAG_INTERFACE_H
 #define OPENOCD_JTAG_INTERFACE_H
 
+#include "jtag.h"
+
 /* @file
  * The "Cable Helper API" is what the cable drivers can use to help
  * implement their "Cable API".  So a Cable Helper API is a set of
