@@ -1,4 +1,4 @@
-/** @page patchguide Patch Policies
+/** @page patchguide Patch Guidelines
 
 Please mail patches to:
 
@@ -6,6 +6,8 @@ Please mail patches to:
 
 Note that you can't send patches to that list unless
 you're a member, despite what the list info page says.
+
+@section Patch Guidelines in a Nutshell
 
 The patch should be against svn trunk using an SVN
 diff. If you use git-svn, a git diff or patch is OK
@@ -31,20 +33,24 @@ in response to feedback.
 Add yourself to the GPL copyright for non-trivial changes.
 
 To create a patch from the command line:
- 
+@code 
 	svn diff >mypatch.txt
+@endcode
 
-See:
-
+See: @par
 	http://svnbook.red-bean.com/en/1.0/re09.html
 
-NB! remember to use "svn add" on new files first!
-
+Remember to use "svn add" on new files first: @par
 	http://svnbook.red-bean.com/en/1.0/re01.html
 
 If you have a decent SVN GUI, then that should be
 able to create and apply patches as well...
  
+@section More Information on Patching
+
+The @ref primerpatches provides a more complete guide to creating,
+managing, and contributing patches to the OpenOCD project.
+
  */
 /** @file
 This file contains the @ref patchguide page.
