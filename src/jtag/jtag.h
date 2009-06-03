@@ -515,7 +515,7 @@ typedef int (*jtag_callback_t)(u8 *in, jtag_callback_data_t data1, jtag_callback
  * @param data3 An integer big enough to use as an @c int or a pointer.
  *
  */
-extern void jtag_add_callback4(jtag_callback_t, u8 *in,
+extern void jtag_add_callback4(jtag_callback_t f, u8 *in,
 		jtag_callback_data_t data1, jtag_callback_data_t data2,
 		jtag_callback_data_t data3);
 

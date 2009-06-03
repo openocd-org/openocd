@@ -83,12 +83,14 @@ static int ft2232_handle_latency_command(struct command_context_s* cmd_ctx, char
 
 
 /**
- * Function ft2232_stableclocks
- * will send out \a num_cycles on the TCK line while the TAP(s)
- * are in a stable state.  Calling code must ensure that current state is
- * stable, that verification is not done in here.
- * @param num_cycles is the count of clocks cycles to send.
- * @return int - ERROR_OK or ERROR_JTAG_QUEUE_FAILED
+ * Send out \a num_cycles on the TCK line while the TAP(s) are in a
+ * stable state.  Calling code must ensure that current state is stable,
+ * that verification is not done in here.
+ *
+ * @param num_cycles The number of clocks cycles to send.
+ * @param cmd The command to send.
+ *
+ * @returns ERROR_OK on success, or ERROR_JTAG_QUEUE_FAILED on failure.
  */
 static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd);
 
@@ -231,19 +233,21 @@ static inline u8 buffer_read(void)
 
 
 /**
- * Function clock_tms
- * clocks out \a bit_count bits on the TMS line, starting with the least
+ * Clocks out \a bit_count bits on the TMS line, starting with the least
  * significant bit of tms_bits and progressing to more significant bits.
  * Rigorous state transition logging is done here via tap_set_state().
  *
- * @param pmsse_cmd is one of the MPSSE TMS oriented commands such as 0x4b or 0x6b.  See
- *   the MPSSE spec referenced above for their functionality. The MPSSE command
- *   "Clock Data to TMS/CS Pin (no Read)" is often used for this, 0x4b.
+ * @param mpsse_cmd One of the MPSSE TMS oriented commands such as
+ * 	0x4b or 0x6b.  See the MPSSE spec referenced above for their
+ * 	functionality. The MPSSE command "Clock Data to TMS/CS Pin (no Read)"
+ * 	is often used for this, 0x4b.
  *
- * @param tms_bits holds the sequence of bits to send.
- * @param tms_count tells how many bits in the sequence.
- * @param tdi_bit is a single bit which is passed on to TDI before the first TCK cycle
- *   and is held static for the duration of TMS clocking.  See the MPSSE spec referenced above.
+ * @param tms_bits Holds the sequence of bits to send.
+ * @param tms_count Tells how many bits in the sequence.
+ * @param tdi_bit A single bit to pass on to TDI before the first TCK
+ * 	cycle and held static for the duration of TMS clocking.
+ *
+ * See the MPSSE spec referenced above.
  */
 static void clock_tms( u8 mpsse_cmd, int tms_bits, int tms_count, bool tdi_bit )
 {

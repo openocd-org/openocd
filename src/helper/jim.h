@@ -1058,6 +1058,7 @@ JIM_STATIC int JIM_API( Jim_GetOpt_Obj)( Jim_GetOptInfo *goi, Jim_Obj **puthere 
  *
  * \param goi     - get opt info
  * \param puthere - where param is put
+ * \param len     - return its length
  */
 JIM_STATIC int JIM_API( Jim_GetOpt_String )( Jim_GetOptInfo *goi, char **puthere, int *len );
 

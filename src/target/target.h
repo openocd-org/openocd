@@ -325,7 +325,7 @@ extern int target_run_algorithm(struct target_s *target,
 		int timeout_ms, void *arch_info);
 
 /**
- * Read @count items of @a size bytes from the memory of @a target at
+ * Read @a count items of @a size bytes from the memory of @a target at
  * the @a address given.
  *
  * This routine is a wrapper for target->type->read_memory.
@@ -333,7 +333,7 @@ extern int target_run_algorithm(struct target_s *target,
 extern int target_read_memory(struct target_s *target,
 		u32 address, u32 size, u32 count, u8 *buffer);
 /**
- * Write @count items of @a size bytes to the memory of @a target at
+ * Write @a count items of @a size bytes to the memory of @a target at
  * the @a address given.
  *
  * This routine is wrapper for target->type->write_memory.
@@ -342,7 +342,7 @@ extern int target_write_memory(struct target_s *target,
 		u32 address, u32 size, u32 count, u8 *buffer);
 
 /**
- * Write @count items of 4 bytes to the memory of @a target at
+ * Write @a count items of 4 bytes to the memory of @a target at
  * the @a address given.  Because it operates only on whole words,
  * this should be faster than target_write_memory().
  *
