@@ -25,7 +25,6 @@
 #include "windows.h"
 #endif
 
-#define INCLUDE_JTAG_INTERFACE_H
 #include "interface.h"
 #include "time_support.h"
 #include "bitq.h"

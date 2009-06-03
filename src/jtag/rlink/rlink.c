@@ -28,8 +28,8 @@
 #endif
 
 /* project specific includes */
-#define INCLUDE_JTAG_INTERFACE_H
 #include "interface.h"
+#include "commands.h"
 #include "rlink.h"
 #include "st7.h"
 #include "ep1_cmd.h"

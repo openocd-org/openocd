@@ -68,6 +68,8 @@ static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
 
 #else
 
+#include "commands.h"
+
 static inline void interface_jtag_alloc_in_value32(scan_field_t *field)
 {
 	field->in_value = (u8 *)cmd_queue_alloc(4);

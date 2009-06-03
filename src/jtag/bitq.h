@@ -20,7 +20,7 @@
 #ifndef BITQ_H
 #define BITQ_H
 
-#include "jtag.h"
+#include "commands.h"
 
 typedef struct bitq_interface_s
 {

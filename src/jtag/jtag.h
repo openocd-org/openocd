@@ -552,10 +552,6 @@ extern int jtag_srst_asserted(int* srst_asserted);
  */
 extern void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask);
 
-#ifdef INCLUDE_JTAG_INTERFACE_H
-#include "commands.h"
-#endif // INCLUDE_JTAG_INTERFACE_H
-
 extern void jtag_sleep(u32 us);
 extern int jtag_call_event_callbacks(enum jtag_event event);
 extern int jtag_register_event_callback(int (* callback)(enum jtag_event event, void* priv), void* priv);

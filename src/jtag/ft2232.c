@@ -40,8 +40,8 @@
 #endif
 
 /* project specific includes */
-#define INCLUDE_JTAG_INTERFACE_H
 #include "interface.h"
+#include "commands.h"
 #include "time_support.h"
 
 #if IS_CYGWIN == 1
