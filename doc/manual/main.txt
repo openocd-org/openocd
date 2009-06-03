@@ -68,9 +68,9 @@ modules are stacked in the current implementation (from bottom to top):
   - @ref helpercommand
   - @ref helperlogging
 - @subpage jtagdocs
-  - @ref jtagcable
-  - @ref jtagtap
-  - @ref jtagmdriver
+  - @ref jtagcore
+  - @ref jtagcmd
+  - @ref jtagiface
   - @ref jtagdriver
 - @subpage targetdocs
   - @ref targetarm

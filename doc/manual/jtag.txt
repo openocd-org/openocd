@@ -1,38 +1,61 @@
-/** @page jtagdocs OpenOCD JTAG APIs
+/** @page jtagdocs JTAG APIs
 
 For new developers unfamiliar with the technology, @ref primerjtag provides
 a brief introduction to the IEEE JTAG interface.
 
-The OpenOCD JTAG library API covers several functional areas:
+The OpenOCD JTAG library API covers several functional areas.  The jtag
+@b core communicates through the @b minidriver API with either its full
+@a driver implementation (src/jtag/jtag_driver.c) or a @a minidriver .
+Internally, the @b command API is used by the JTAG driver for managing
+asynchronous transactions.
 
-  - @subpage jtagcable
-  - @subpage jtagtap
-  - @subpage jtagmdriver
-  - @subpage jtagdriver
+- @subpage jtagcore
+  - @b public API routines
+  - declared in @c src/jtag/jtag.h
+  - used by other modules
+
+- @subpage jtagcmd
+  - @b private command queue API
+  - declared in @c src/jtag/commands.h
+  - provides routines used internally by the full JTAG drivers.
+
+- @subpage jtagiface
+  - @b private interface driver API
+  - declared in @c src/jtag/interface.h
+  - used by the core, minidrivers, and the full interface device drivers.
+    - allows implementing new interface device drivers.
+    - includes the Cable/TAP API (commands starting with @c tap_)
+
+- @subpage jtagdriver
+  - @b private minidriver API 
+  - declared in @c src/jtag/minidriver.h
+  - used @a only by the core and minidriver implementations:
+    - @c jtag_driver.c (in-tree OpenOCD drivers)
+    - @c zy1000/build/include/jtag_minidriver.h (ZY1000 minidriver)
+    - future implementations (on other embedded hosts)
+    - interface device drivers do @b not need this API.
+
+ */
+
+/** @page jtagcore JTAG Core API
 
 This section needs to be expanded.
 
  */
 
-/** @page jtagcable OpenOCD JTAG Cable API
+/** @page jtagcmd JTAG Command API
 
 This section needs to be expanded.
 
  */
 
-/** @page jtagtap OpenOCD JTAG TAP API
+/** @page jtagiface JTAG Interface API
 
 This section needs to be expanded.
 
  */
 
-/** @page jtagmdriver OpenOCD JTAG Interface API
-
-This section needs to be expanded.
-
- */
-
-/** @page jtagdriver OpenOCD JTAG Driver API
+/** @page jtagdriver JTAG Minidriver API
 
 This section needs to be expanded.
 
