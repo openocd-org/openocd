@@ -35,10 +35,22 @@ This pages lists Technical Primers available for OpenOCD Developers.
 They seek to provide information to pull novices up the learning curves
 associated with the fundamental technologies used by OpenOCD.
 
+- @subpage primerpatches
 - @subpage primerdocs
 - @subpage primerautotools
 - @subpage primertcl
 - @subpage primerjtag
+
+These documents should bridge any "ancillary" gaps in contributor
+knowledge, without having to learn the complete languages or technology.
+They should provide enough information for experienced developers to
+learn how to make "correct" changes when creating patches.
+
+In all cases, these Primers should use idiomatic conventions that the
+community has agreed are the "right way of doing things".  In this
+respect, these documents typically assume some familiarity with the
+information contained in one or more @ref styleguide, or they will
+directly refer to specific style guides as supplemental reading.
 
 Contributions or suggestions for new Technical Primers are welcome.
 

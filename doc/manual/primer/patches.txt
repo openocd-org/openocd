@@ -1,0 +1,210 @@
+/** @page primerpatches Patch Primer
+
+This page provides an introduction to patching that may be useful
+for OpenOCD contributors who are unfamiliar with the process.
+
+@section primerpatchintro Introduction to Patching
+
+The standard method for creating patches requires developers to:
+- checkout the Subversion repository (or bring a copy up-to-date),
+- make the necessary modifications to a working copy,
+- check with 'svn status' to see which files will be modified/added, and 
+- use 'svn diff' to review the changes and produce a patch.
+
+It is important to minimize the changes to only those lines that contain
+important differences; do not allow stray whitespace changes into your
+patches, and keep the focus to a single logical change.
+
+@section primerpatchcreate Creating Patches
+
+You can create a patch (from the root of your working copy) with a
+command like the following example: @par
+@verbatim
+svn diff > patch-name.patch
+@endverbatim
+
+where @a patch-name should be something that is descriptive and unique.
+
+The above command will create a patch containing all of the changes in
+the working copy; if you want to obtain a subset, simply provide the
+list of files to the command: @par
+@verbatim
+svn diff doc > <patch-name>-doc.patch
+svn diff src > <patch-name>-src.patch
+@endverbatim
+
+This will create two patches, each containing only those changes present
+in the subdirectory specified.
+
+@subsection primerpatchcreate Naming Patches
+
+One developer has evolved an informal standard for naming his patches: @par
+@verbatim
+<project>-<lod>-<action>-<task>.patch
+@endverbatim
+
+where @a project is @c openocd, @a lod (line-of-development) could be a
+subsystem (e.g. @c jtag, @c jlink, etc.) or other group identifier,
+@a action is @c add, @c change, @c fix, @c update, etc., and @a task is
+whatever the patch will accomplish (in 2-4 words).
+
+This scheme does not need to be followed, but it is helpful for
+maintainers that receive many patches.  You do not want your own
+@c openocd.patch file to be accidentally overwritten by another
+submission, sending your patch to the bit bucket on accident.
+
+@section primerpatchpreflight Developer Review
+
+Before sending in patches, please make sure you have updated to the
+latest version of the trunk (using <code>svn up</code>) before creating
+your patch.  This helps to increase the chances that it will apply
+cleanly to the trunk.  However, the content matters most.
+
+When creating a patch using "<code>svn diff</code>", Subversion will
+produce a patch that contains all of the changes in your working copy.
+To manage multiple changes at once, you either need one working copy per
+patch, or you can specified specific files and directories when using
+<code>svn diff</code>.  Overlapping patches will be discussed in the
+next section.
+
+The remainder of this section provides 
+
+@subsection primerpatchprops Subversion Properties
+
+The Subversion attributes of files can be examined with commands like the
+following: @par
+@verbatim
+$ svn pl README
+Properties on 'README':
+  svn:eol-style
+$ svn pl tools/rlink_make_speed_table/rlink_make_speed_table.pl
+Properties on 'tools/rlink_make_speed_table/rlink_make_speed_table.pl':
+  svn:executable
+  svn:eol-style
+$
+@endverbatim
+
+@subsection primerpatchpropcrlf Native Line-endings
+
+Subversion checks out files marked with the attribute @c svn:eol-style
+set to @c native such that these files contain the default line ending
+style of the current host ('\\n' or '\\r\\n').  By using the proper line
+endings for different platforms, two different byte streams for the same
+file will be produced.
+
+@subsection primerpatchwincrlf Windows Patching Problems
+
+Because of the line-ending functionality, it may be correct when a fresh
+patch does not apply cleanly on the Windows platform.  This is because
+patches are created by SVN with UNIX line endings, so the context and
+changes will not appear to match the files with Windows line endings.
+
+In other words, the following command may @b not succeed because @c foo
+has its @c svn:eol-style property set to @c native: @par
+@code
+svn diff foo | patch -R
+@endcode
+
+The following series of commands will work: @par
+@code
+svn diff foo | unix2dos | patch -R
+@endcode
+
+This is not a bug. 
+
+@todo Does Subversion's treatment of line-endings for files marked with
+svn:eol-style=native continue to pose the problems described here, or
+has this been magically solved?
+
+@section primerpatchseries Patch Series
+
+As was mentioned above, each patch should contain one logical @c task,
+and multiple logical tasks should be split into a series of patches.
+There are no hard guidelines for how that is to be done; it's an art
+form.  Many simple changes should not have to worry about being split,
+as they will naturally represent a single task.
+
+When working on several different non-intersecting lines of development,
+a combination of multiple working copies and patch series management
+techniques can become critical to efficiently managing change.  This
+again is an area where developers have favorite methodologies that are
+simply a matter of taste or familiarity; your mileage may vary.
+
+Packages such as @c patchutils, @c diffutils, and @c quilt are among
+those that have proved themselves invaluable for these type of tasks.
+Others take their patch management a step further, tracking the
+Subversion repository with git-svn and employing GIT conventions and
+methodologies for development.
+
+@subsection primerpatchseriesinterdiff Using @c interdiff
+
+The @c patchutils package includes the @c interdiff command, which
+produces a patch that contains the changes made between two other
+patches.  This command can be used to manage the creation of trivial
+patch series.  For example, the following sequence of commands will
+produce three patches: @par
+@verbatim
+$ cd openocd-head/
+$ svn up && svn st
+At revision NNNN.
+$ <<<start changes for patch #1>>>
+...
+$ <<<finish changes for patch #1>>>
+$ svn diff > series-1.patch                         # patch #1 is easy
+$ <<<start changes for patch #2>>>
+...
+$ <<<finish changes for patch #2>>>
+$ svn diff > series-1+2.patch                       # create patch 1+2
+$ interdiff series-1{,+2}.patch > series-2.patch    #   1 ~  1+2  => #2
+$ <<<start changes for patch #3>>>
+...
+$ <<<finish changes for patch #3>>>
+$ svn diff > series-1+2+3.patch                     # create patch 1+2+3
+$ interdiff series-1+2{,+3}.patch > series-3.patch  # 1+2 ~ 1+2+3 => 3
+@endverbatim
+
+This technique falls apart when the repository changes, but this may be
+suitable for small series of patches.
+
+@subsection primerpatchseriesquilt Using @c quilt
+
+The @c quilt package provides scripts to manage series of patches more
+efficiently than can be managed by hand.  For out-of-tree work projects
+that require such patch management, @c quilt provides an indispensable
+tool for solving the problem.
+
+@subsection primerpatchseriesgit Using @c git
+
+The @c git revision control system provides a tool for tracking
+Subversion repositories.
+
+@section primerpatchsubmit Submitting Patches
+
+Write access to the OpenOCD Subversion repository is limited to
+contributors that have demonstrated the ability to produce clear,
+consistent, and frequent patches.  These individuals are responsible
+for maintaining the integrity of the repository for the community.
+
+Thus, commits to the Subversion repository must be handled by one of
+these maintainers.
+
+Patches must be sent to the OpenOCD developer mailing list:
+@par
+	openocd-development@lists.berlios.de
+
+They will be reviewed and committed if the changes are found to be
+acceptable.  If there are problems, you will receive feedback via the
+mailing list; in general, the maintainers prefer all communication to go
+through the list, as the entire community needs to judge contributions
+for possible merits and mistakes.
+
+Contributors may be asked to address certain issues and submit a new
+patch.  In the event that it gets overlooked, you may need to resubmit
+it or prompt for feedback.  Please have patience, as many maintainers
+work on the project voluntarily and without compensation for the time
+that they spend doing these tasks.
+
+ */
+/** @file
+This file contains the @ref patchprimer page.
+*/
