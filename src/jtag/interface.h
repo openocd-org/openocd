@@ -169,6 +169,8 @@ tap_state_t tap_state_by_name(const char *name);
 
 /// Allow switching between old and new TMS tables. @see tap_get_tms_path
 void tap_use_new_tms_table(bool use_new);
+/// @returns True if new TMS table is active; false otherwise.
+bool tap_uses_new_tms_table(void);
 
 #ifdef _DEBUG_JTAG_IO_
 /**

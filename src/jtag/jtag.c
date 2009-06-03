@@ -3227,6 +3227,10 @@ void tap_use_new_tms_table(bool use_new)
 {
 	tms_seqs = use_new ? &short_tms_seqs : &old_tms_seqs;
 }
+bool tap_uses_new_tms_table(void)
+{
+	return tms_seqs == &short_tms_seqs;
+}
 
 static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -3246,7 +3250,8 @@ static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *
 		tap_use_new_tms_table(use_new_table);
 	}
 
-	command_print(cmd_ctx, "tms sequence is  %s", (tms_seqs==&short_tms_seqs) ? "short": "long");
+	command_print(cmd_ctx, "tms sequence is  %s",
+			tap_uses_new_tms_table() ? "short": "long");
 
 	return ERROR_OK;
 }
