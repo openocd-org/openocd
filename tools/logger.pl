@@ -24,8 +24,14 @@ while (<STDIN>)
 {
 	# echo line to output
 	print STDOUT $_;
+	# echo line to console if it is important
+	if (/(Warning|Error)/) {
+		print STDERR "\n" if $c;
+		print STDERR $_;
+		$c = 0;
+	}
 	# only display progress every Nth step
-	next unless ++$n % $N;
+	next if ++$n % $N;
 	print STDERR ".";
 	# wrap at column C to provide fixed-width rows of dots
 	print STDERR "\n" unless ++$c % $C;
