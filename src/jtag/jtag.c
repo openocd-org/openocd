@@ -387,12 +387,7 @@ int jtag_call_event_callbacks(enum jtag_event event)
 
 static void jtag_prelude1(void)
 {
-	if (jtag_trst == 1)
-	{
-		LOG_WARNING("JTAG command queued, while TRST is low (TAP in reset)");
-		jtag_error=ERROR_JTAG_TRST_ASSERTED;
-		return;
-	}
+	assert(jtag_trst == 0);
 
 	if (cmd_queue_end_state == TAP_RESET)
 		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
