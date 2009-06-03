@@ -1335,18 +1335,25 @@ jtag_speed 0
 @verbatim
 interface arm-jtag-ew
 @end verbatim
-@section Interface Command
+
+@section Interface Configuration
 
 The interface command tells OpenOCD what type of JTAG dongle you are
 using. Depending on the type of dongle, you may need to have one or
 more additional commands.
 
-@itemize @bullet
+@deffn {Config Command} {interface} name
+Use the interface driver @var{name} to connect to the
+target.
+@end deffn
 
-@item @b{interface} <@var{name}>
-@cindex interface
-@*Use the interface driver <@var{name}> to connect to the
-target. Currently supported interfaces are
+@deffn Command {jtag interface}
+Returns the name of the interface driver being used.
+@end deffn
+
+@section Interface Drivers
+
+Currently supported interface drivers are:
 
 @itemize @minus
 
@@ -1386,10 +1393,8 @@ libusb.
 
 @item @b{arm-jtag-ew}
 @* Olimex ARM-JTAG-EW USB adapter
-@comment - End parameters
 @end itemize
-@comment - End Interface
-@end itemize
+
 @subsection parport options
 
 @itemize @bullet
@@ -1523,10 +1528,6 @@ also reduces the risk of timeouts before receiving the expected number of bytes.
 The OpenOCD default value is 2 and for some systems a value of 10 has proved useful.
 @end itemize
 
-@subsection ep93xx options
-@cindex ep93xx options
-Currently, there are no options available for the ep93xx interface.
-
 @anchor{JTAG Speed}
 @section JTAG Speed
 JTAG clock setup is part of system setup.
@@ -1646,7 +1647,7 @@ and @command{reset init} commands; after @command{reset init} a
 board-specific script might do things like setting up DRAM.
 (@xref{Reset Command}.)
 
-@section SRST and TRST Signal Issues
+@section SRST and TRST Issues
 
 Because SRST and TRST are hardware signals, they can have a
 variety of system-specific constraints.  Some of the most
@@ -1685,6 +1686,15 @@ Also, with weak pullups it may be advisable to drive
 signals to both levels (push/pull) to minimize rise times.
 Use the @command{reset_config} @var{trst_type} and
 @var{srst_type} parameters to say how to drive reset signals.
+
+@item @emph{Special initialization} ...  Targets sometimes need
+special JTAG initialization sequences to handle chip-specific
+issues (not limited to errata).
+For example, certain JTAG commands might need to be issued while
+the system as a whole is in a reset state (SRST active)
+but the JTAG scan chain is usable (TRST inactive).
+(@xref{JTAG Commands}, where the @command{jtag_reset}
+command is presented.)
 @end itemize
 
 There can also be other issues.
@@ -4236,87 +4246,203 @@ otherwise the libdcc format is used.
 @node JTAG Commands
 @chapter JTAG Commands
 @cindex JTAG Commands
-Generally most people will not use the bulk of these commands. They
-are mostly used by the OpenOCD developers or those who need to
-directly manipulate the JTAG taps.
+Most general purpose JTAG commands have been presented earlier.
+(@xref{JTAG Speed}, @ref{Reset Configuration}, and @ref{TAP Creation}.)
+Lower level JTAG commands, as presented here,
+may be needed to work with targets which require special
+attention during operations such as reset or initialization.
 
-In general these commands control JTAG taps at a very low level. For
-example if you need to control a JTAG Route Controller (i.e.: the
-OMAP3530 on the Beagle Board has one) you might use these commands in
-a script or an event procedure.
-@section Commands
-@cindex Commands
+To use these commands you will need to understand some
+of the basics of JTAG, including:
+
 @itemize @bullet
-@item @b{scan_chain}
-@cindex scan_chain
-@*Print current scan chain configuration. 
-@item @b{jtag_reset} <@var{trst}> <@var{srst}>
-@cindex jtag_reset
-@*Toggle reset lines. 
-@item @b{endstate} <@var{tap_state}>
-@cindex endstate
-@*Finish JTAG operations in <@var{tap_state}>. 
-@item @b{runtest} <@var{num_cycles}>
-@cindex runtest
-@*Move to Run-Test/Idle, and execute <@var{num_cycles}> 
-@item @b{statemove} [@var{tap_state}]
-@cindex statemove
-@*Move to current endstate or [@var{tap_state}] 
-@item @b{irscan} <@var{device}> <@var{instr}> [@var{dev2}] [@var{instr2}] ...
-@cindex irscan
-@*Execute IR scan <@var{device}> <@var{instr}> [@var{dev2}] [@var{instr2}] ... 
-@item @b{drscan} <@var{device}> [@var{dev2}] [@var{var2}] ...
-@cindex drscan
-@*Execute DR scan <@var{device}> [@var{dev2}] [@var{var2}] ... 
-@item @b{verify_ircapture} <@option{enable}|@option{disable}>
-@cindex verify_ircapture
-@*Verify value captured during Capture-IR. Default is enabled.
-@item @b{var} <@var{name}> [@var{num_fields}|@var{del}] [@var{size1}] ... 
-@cindex var
-@*Allocate, display or delete variable <@var{name}> [@var{num_fields}|@var{del}] [@var{size1}] ... 
-@item @b{field} <@var{var}> <@var{field}> [@var{value}|@var{flip}]
-@cindex field
-Display/modify variable field <@var{var}> <@var{field}> [@var{value}|@var{flip}].
+@item A JTAG scan chain consists of a sequence of individual TAP
+devices such as a CPUs.
+@item Control operations involve moving each TAP through the same
+standard state machine (in parallel)
+using their shared TMS and clock signals.
+@item Data transfer involves shifting data through the chain of
+instruction or data registers of each TAP, writing new register values
+while the reading previous ones.
+@item Data register sizes are a function of the instruction active in
+a given TAP, while instruction register sizes are fixed for each TAP.
+All TAPs support a BYPASS instruction with a single bit data register.
+@item The way OpenOCD differentiates between TAP devices is by
+shifting different instructions into (and out of) their instruction
+registers.
 @end itemize
 
-@section Tap states
-@cindex Tap states
-Available tap_states are:
+@section Low Level JTAG Commands
+
+These commands are used by developers who need to access
+JTAG instruction or data registers, possibly controlling
+the order of TAP state transitions.
+If you're not debugging OpenOCD internals, or bringing up a
+new JTAG adapter or a new type of TAP device (like a CPU or
+JTAG router), you probably won't need to use these commands.
+
+@deffn Command {drscan} tap [numbits value]+ [@option{-endstate} tap_state]
+Loads the data register of @var{tap} with a series of bit fields
+that specify the entire register.
+Each field is @var{numbits} bits long with
+a numeric @var{value} (hexadecimal encouraged).
+The return value holds the original value of each
+of those fields.
+
+For example, a 38 bit number might be specified as one
+field of 32 bits then one of 6 bits.
+@emph{For portability, never pass fields which are more
+than 32 bits long.  Many OpenOCD implementations do not
+support 64-bit (or larger) integer values.}
+
+All TAPs other than @var{tap} must be in BYPASS mode.
+The single bit in their data registers does not matter.
+
+When @var{tap_state} is specified, the JTAG state machine is left
+in that state.
+For example @sc{drpause} might be specified, so that more
+instructions can be issued before re-entering the @sc{run/idle} state.
+If the end state is not specified, the @sc{run/idle} state is entered.
+
+@quotation Warning
+OpenOCD does not record information about data register lengths,
+so @emph{it is important that you get the bit field lengths right}.
+Remember that different JTAG instructions refer to different
+data registers, which may have different lengths.
+Moreover, those lengths may not be fixed;
+the SCAN_N instruction can change the length of
+the register accessed by the INTEST instruction
+(by connecting a different scan chain).
+@end quotation
+@end deffn
+
+@deffn Command {flush_count}
+Returns the number of times the JTAG queue has been flushed.
+This may be used for performance tuning.
+
+For example, flushing a queue over USB involves a
+minimum latency, often several milliseconds, which does
+not change with the amount of data which is written.
+You may be able to identify performance problems by finding
+tasks which waste bandwidth by flushing small transfers too often,
+instead of batching them into larger operations.
+@end deffn
+
+@deffn Command {endstate} tap_state
+Flush any pending JTAG operations,
+and return with all TAPs in @var{tap_state}.
+This state should be a stable state such as @sc{reset},
+@sc{run/idle},
+@sc{drpause}, or @sc{irpause}.
+@end deffn
+
+@deffn Command {irscan} [tap instruction]+ [@option{-endstate} tap_state]
+For each @var{tap} listed, loads the instruction register
+with its associated numeric @var{instruction}.
+(The number of bits in that instruction may be displayed
+using the @command{scan_chain} command.)
+For other TAPs, a BYPASS instruction is loaded.
+
+When @var{tap_state} is specified, the JTAG state machine is left
+in that state.
+For example @sc{irpause} might be specified, so the data register
+can be loaded before re-entering the @sc{run/idle} state.
+If the end state is not specified, the @sc{run/idle} state is entered.
+
+@quotation Note
+OpenOCD currently supports only a single field for instruction
+register values, unlike data register values.
+For TAPs where the instruction register length is more than 32 bits,
+portable scripts currently must issue only BYPASS instructions.
+@end quotation
+@end deffn
+
+@deffn Command {jtag_reset} trst srst
+Set values of reset signals.
+The @var{trst} and @var{srst} parameter values may be
+@option{0}, indicating that reset is inactive (pulled or driven high),
+or @option{1}, indicating it is active (pulled or driven low).
+The @command{reset_config} command should already have been used
+to configure how the board and JTAG adapter treat these two
+signals, and to say if either signal is even present.
+@xref{Reset Configuration}.
+@end deffn
+
+@deffn Command {runtest} @var{num_cycles}
+Move to the @sc{run/idle} state, and execute at least
+@var{num_cycles} of the JTAG clock (TCK).
+Instructions often need some time
+to execute before they take effect.
+@end deffn
+
+@deffn Command {scan_chain}
+Displays the TAPs in the scan chain configuration,
+and their status.
+The set of TAPs listed by this command is fixed by
+exiting the OpenOCD configuration stage,
+but systems with a JTAG router can
+enable or disable TAPs dynamically.
+In addition to the enable/disable status, the contents of
+each TAP's instruction register can also change.
+@end deffn
+
+@c tms_sequence (short|long)
+@c ... temporary, debug-only, probably gone before 0.2 ships
+
+@deffn Command {verify_ircapture} (@option{enable}|@option{disable})
+Verify values captured during @sc{ircapture} and returned
+during IR scans.  Default is enabled, but this can be
+overridden by @command{verify_jtag}.
+@end deffn
+
+@deffn Command {verify_jtag} (@option{enable}|@option{disable})
+Enables verification of DR and IR scans, to help detect
+programming errors.  For IR scans, @command{verify_ircapture}
+must also be enabled.
+Default is enabled.
+@end deffn
+
+@section TAP state names
+@cindex TAP state names
+
+The @var{tap_state} names used by OpenOCD in the @command{drscan},
+@command{endstate}, and @command{irscan} commands are:
+
 @itemize @bullet
 @item @b{RESET}
-@cindex RESET
-@item @b{IDLE}
-@cindex IDLE
+@item @b{RUN/IDLE}
 @item @b{DRSELECT}
-@cindex DRSELECT
 @item @b{DRCAPTURE}
-@cindex DRCAPTURE
 @item @b{DRSHIFT}
-@cindex DRSHIFT
 @item @b{DREXIT1}
-@cindex DREXIT1
 @item @b{DRPAUSE}
-@cindex DRPAUSE
 @item @b{DREXIT2}
-@cindex DREXIT2
 @item @b{DRUPDATE}
-@cindex DRUPDATE
 @item @b{IRSELECT}
-@cindex IRSELECT
 @item @b{IRCAPTURE}
-@cindex IRCAPTURE
 @item @b{IRSHIFT}
-@cindex IRSHIFT
 @item @b{IREXIT1}
-@cindex IREXIT1
 @item @b{IRPAUSE}
-@cindex IRPAUSE
 @item @b{IREXIT2}
-@cindex IREXIT2
 @item @b{IRUPDATE}
-@cindex IRUPDATE
 @end itemize
 
+Note that only six of those states are fully ``stable'' in the
+face of TMS fixed and a free-running JTAG clock; for all the
+others, the next TCK transition changes to a new state.
+
+@itemize @bullet
+@item @sc{reset} is probably most useful with @command{endstate},
+but entering it frequently has side effects.
+(This is the only stable state with TMS high.)
+@item From @sc{drshift} and @sc{irshift}, clock transitions will
+produce side effects by changing register contents.  The values
+to be latched in upcoming @sc{drupdate} or @sc{irupdate} states
+may not be as expected.
+@item @sc{run/idle}, @sc{drpause}, and @sc{irpause} are reasonable
+choices after @command{drscan} or @command{irscan} commands,
+since they are free of side effects.
+@end itemize
 
 @node TFTP
 @chapter TFTP
