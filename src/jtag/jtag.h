@@ -102,15 +102,6 @@ typedef enum tap_state
  */
 const char* tap_state_name(tap_state_t state);
 
-typedef struct tap_transition_s
-{
-	tap_state_t high;
-	tap_state_t low;
-} tap_transition_t;
-
-//extern tap_transition_t tap_transitions[16];    /* describe the TAP state diagram */
-
-
 
 extern tap_state_t cmd_queue_end_state;         /* finish DR scans in dr_end_state */
 extern tap_state_t cmd_queue_cur_state;         /* current TAP state */
