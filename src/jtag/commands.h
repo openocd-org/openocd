@@ -146,7 +146,7 @@ typedef struct jtag_command_s
 } jtag_command_t;
 
 /// The current queue of jtag_command_s structures.
-jtag_command_t* jtag_command_queue;
+extern jtag_command_t* jtag_command_queue;
 
 void* cmd_queue_alloc(size_t size);
 void cmd_queue_free(void);
