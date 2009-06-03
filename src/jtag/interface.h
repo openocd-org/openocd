@@ -189,49 +189,89 @@ static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
 
 typedef struct jtag_interface_s
 {
+	/// The name of the JTAG interface driver.
 	char* name;
 
-	/* queued command execution
+	/**
+	 * Execute queued commands.
+	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*execute_queue)(void);
 
-	/* interface initalization
+	/**
+	 * Set the interface speed.
+	 * @param speed The new interface speed setting.
+	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*speed)(int speed);
+
+	/**
+	 * The interface driver may register additional commands to expose
+	 * additional features not covered by the standard command set.
+	 * @param cmd_ctx The context in which commands should be registered.
+	 * @returns ERROR_OK on success, or an error code on failure.
+	 */
 	int (*register_commands)(struct command_context_s* cmd_ctx);
+
+	/**
+	 * Interface driver must initalize any resources and connect to a
+	 * JTAG device.
+	 * @returns ERROR_OK on success, or an error code on failure.
+	 */
 	int (*init)(void);
+
+	/**
+	 * Interface driver must tear down all resources and disconnect from
+	 * the JTAG device.
+	 * @returns ERROR_OK on success, or an error code on failure.
+	 */
 	int (*quit)(void);
 
-	/* returns JTAG maxium speed for KHz. 0=RTCK. The function returns
+	/**
+	 * Returns JTAG maxium speed for KHz. 0=RTCK. The function returns
 	 *  a failure if it can't support the KHz/RTCK.
 	 *
 	 *  WARNING!!!! if RTCK is *slow* then think carefully about
 	 *  whether you actually want to support this in the driver.
 	 *  Many target scripts are written to handle the absence of RTCK
 	 *  and use a fallback kHz TCK.
+	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*khz)(int khz, int* jtag_speed);
 
-	/* returns the KHz for the provided JTAG speed. 0=RTCK. The function returns
-	 *  a failure if it can't support the KHz/RTCK. */
+	/**
+	 * Calculate the clock frequency (in KHz) for the given @a speed.
+	 * @param speed The desired interface speed setting.
+	 * @param khz On return, contains the speed in KHz (0 for RTCK).
+	 * @returns ERROR_OK on success, or an error code if the
+	 * interface cannot support the specified speed (KHz or RTCK).
+	 */
 	int (*speed_div)(int speed, int* khz);
 
-	/* Read and clear the power dropout flag. Note that a power dropout
-	 *  can be transitionary, easily much less than a ms.
+	/**
+	 * Read and clear the power dropout flag. Note that a power dropout
+	 * can be transitionary, easily much less than a ms.
 	 *
-	 *  So to find out if the power is *currently* on, you must invoke
-	 *  this method twice. Once to clear the power dropout flag and a
-	 *  second time to read the current state.
+	 * To find out if the power is *currently* on, one must invoke this
+	 * method twice.  Once to clear the power dropout flag and a second
+	 * time to read the current state.  The default implementation
+	 * never reports power dropouts.
 	 *
-	 *  Currently the default implementation is never to detect power dropout.
+	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*power_dropout)(int* power_dropout);
 
-	/* Read and clear the srst asserted detection flag.
+	/**
+	 * Read and clear the srst asserted detection flag.
 	 *
-	 * NB!!!! like power_dropout this does *not* read the current
-	 * state. srst assertion is transitionary and *can* be much
-	 * less than 1ms.
+	 * Like power_dropout this does *not* read the current
+	 * state.  SRST assertion is transitionary and may be much
+	 * less than 1ms, so the interface driver must watch for these
+	 * events until this routine is called.
+	 *
+	 * @param srst_asserted On return, indicates whether SRST has
+	 * been asserted.
+	 * @returns ERROR_OK on success, or an error code on failure.
 	 */
 	int (*srst_asserted)(int* srst_asserted);
 } jtag_interface_t;
