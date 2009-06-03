@@ -96,6 +96,12 @@ typedef enum tap_state
 #endif
 } tap_state_t;
 
+/**
+ * Function tap_state_name
+ * Returns a string suitable for display representing the JTAG tap_state
+ */
+const char* tap_state_name(tap_state_t state);
+
 typedef struct tap_transition_s
 {
 	tap_state_t high;

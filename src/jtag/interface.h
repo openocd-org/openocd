@@ -160,12 +160,6 @@ bool tap_is_state_stable(tap_state_t astate);
  */
 tap_state_t tap_state_transition(tap_state_t current_state, bool tms);
 
-/**
- * Function tap_state_name
- * Returns a string suitable for display representing the JTAG tap_state
- */
-const char* tap_state_name(tap_state_t state);
-
 /// Provides user-friendly name lookup of TAP states.
 tap_state_t tap_state_by_name(const char *name);
 
