@@ -138,9 +138,6 @@ void bitq_io(int tms, int tdi, int tdo_req)
 
 void bitq_end_state(tap_state_t state)
 {
-	if (state==TAP_INVALID)
-		return;
-
 	if (!tap_is_state_stable(state))
 	{
 		LOG_ERROR("BUG: %i is not a valid end state", state);
