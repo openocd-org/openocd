@@ -1302,39 +1302,26 @@ use @var{enable} see these errors reported.
 
 @node Interface - Dongle Configuration
 @chapter Interface - Dongle Configuration
-Interface commands are normally found in an interface configuration
-file which is sourced by your openocd.cfg file. These commands tell
-OpenOCD what type of JTAG dongle you have and how to talk to it.
-@section Simple Complete Interface Examples
-@b{A Turtelizer FT2232 Based JTAG Dongle}
-@verbatim
-#interface
-interface ft2232
-ft2232_device_desc "Turtelizer JTAG/RS232 Adapter A"
-ft2232_layout turtelizer2
-ft2232_vid_pid 0x0403 0xbdc8
-@end verbatim
-@b{A SEGGER Jlink}
-@verbatim
+JTAG Adapters/Interfaces/Dongles are normally configured
+through commands in an interface configuration
+file which is sourced by your @file{openocd.cfg} file, or
+through a command line @option{-f interface/....cfg} option.
+
+@example
+source [find interface/olimex-jtag-tiny.cfg]
+@end example
+
+These commands tell
+OpenOCD what type of JTAG adapter you have, and how to talk to it.
+A few cases are so simple that you only need to say what driver to use:
+
+@example
 # jlink interface
 interface jlink
-@end verbatim
-@b{A Raisonance RLink}
-@verbatim
-# rlink interface
-interface rlink
-@end verbatim
-@b{Parallel Port}
-@verbatim
-interface parport
-parport_port 0xc8b8
-parport_cable wiggler
-jtag_speed 0
-@end verbatim
-@b{ARM-JTAG-EW}
-@verbatim
-interface arm-jtag-ew
-@end verbatim
+@end example
+
+Most adapters need a bit more configuration than that.
+
 
 @section Interface Configuration
 
@@ -1353,180 +1340,232 @@ Returns the name of the interface driver being used.
 
 @section Interface Drivers
 
-Currently supported interface drivers are:
+Each of the interface drivers listed here must be explicitly
+enabled when OpenOCD is configured, in order to be made
+available at run time.
 
-@itemize @minus
+@deffn {Interface Driver} {amt_jtagaccel}
+Amontec Chameleon in its JTAG Accelerator configuration,
+connected to a PC's EPP mode parallel port.
+This defines some driver-specific commands:
 
-@item @b{parport}
-@* PC parallel port bit-banging (Wigglers, PLD download cable, ...)
+@deffn {Config Command} {parport_port} number
+Specifies either the address of the I/O port (default: 0x378 for LPT1) or
+the number of the @file{/dev/parport} device.
+@end deffn
 
-@item @b{amt_jtagaccel}
-@* Amontec Chameleon in its JTAG Accelerator configuration connected to a PC's EPP
-mode parallel port
+@deffn {Config Command} rtck [@option{enable}|@option{disable}]
+Displays status of RTCK option.
+Optionally sets that option first.
+@end deffn
+@end deffn
 
-@item @b{ft2232}
-@* FTDI FT2232 (USB) based devices using either the open-source libftdi or the binary only
-FTD2XX driver. The FTD2XX is superior in performance, but not available on every
-platform. The libftdi uses libusb, and should be portable to all systems that provide
-libusb.
+@deffn {Interface Driver} {arm-jtag-ew}
+Olimex ARM-JTAG-EW USB adapter
+This has one driver-specific command:
 
-@item @b{ep93xx}
-@*Cirrus Logic EP93xx based single-board computer bit-banging (in development)
+@deffn Command {armjtagew_info}
+Logs some status
+@end deffn
+@end deffn
 
-@item @b{presto}
-@* ASIX PRESTO USB JTAG programmer.
+@deffn {Interface Driver} {at91rm9200}
+Supports bitbanged JTAG from the local system,
+presuming that system is an Atmel AT91rm9200
+and a specific set of GPIOs is used.
+@c command:	at91rm9200_device NAME
+@c chooses among list of bit configs ... only one option
+@end deffn
 
-@item @b{usbprog}
-@* usbprog is a freely programmable USB adapter.
+@deffn {Interface Driver} {dummy}
+A dummy software-only driver for debugging.
+@end deffn
 
-@item @b{gw16012}
-@* Gateworks GW16012 JTAG programmer.
+@deffn {Interface Driver} {ep93xx}
+Cirrus Logic EP93xx based single-board computer bit-banging (in development)
+@end deffn
 
-@item @b{jlink}
-@* Segger jlink USB adapter
+@deffn {Interface Driver} {ft2232}
+FTDI FT2232 (USB) based devices over one of the userspace libraries.
+These interfaces have several commands, used to configure the driver
+before initializing the JTAG scan chain:
 
-@item @b{rlink}
-@* Raisonance RLink USB adapter
-
-@item @b{vsllink}
-@* vsllink is part of Versaloon which is a versatile USB programmer.
-
-@item @b{arm-jtag-ew}
-@* Olimex ARM-JTAG-EW USB adapter
-@end itemize
-
-@subsection parport options
-
-@itemize @bullet
-@item @b{parport_port} <@var{number}>
-@cindex parport_port
-@*Either the address of the I/O port (default: 0x378 for LPT1) or the number of
-the @file{/dev/parport} device
-
-When using PPDEV to access the parallel port, use the number of the parallel port:
-@option{parport_port 0} (the default). If @option{parport_port 0x378} is specified
-you may encounter a problem.
-@item @b{parport_cable} <@var{name}>
-@cindex parport_cable
-@*The layout of the parallel port cable used to connect to the target.
-Currently supported cables are 
-@itemize @minus
-@item @b{wiggler}
-@cindex wiggler
-The original Wiggler layout, also supported by several clones, such
-as the Olimex ARM-JTAG
-@item @b{wiggler2}
-@cindex wiggler2
-Same as original wiggler except an led is fitted on D5.
-@item @b{wiggler_ntrst_inverted}
-@cindex wiggler_ntrst_inverted
-Same as original wiggler except TRST is inverted.
-@item @b{old_amt_wiggler}
-@cindex old_amt_wiggler
-The Wiggler configuration that comes with Amontec's Chameleon Programmer. The new
-version available from the website uses the original Wiggler layout ('@var{wiggler}')
-@item @b{chameleon}
-@cindex chameleon
-The Amontec Chameleon's CPLD when operated in configuration mode. This is only used to
-program the Chameleon itself, not a connected target.
-@item @b{dlc5}
-@cindex dlc5
-The Xilinx Parallel cable III.
-@item @b{triton}
-@cindex triton
-The parallel port adapter found on the 'Karo Triton 1 Development Board'.
-This is also the layout used by the HollyGates design
-(see @uref{http://www.lartmaker.nl/projects/jtag/}).
-@item @b{flashlink}
-@cindex flashlink
-The ST Parallel cable.
-@item @b{arm-jtag}
-@cindex arm-jtag
-Same as original wiggler except SRST and TRST connections reversed and
-TRST is also inverted.
-@item @b{altium}
-@cindex altium
-Altium Universal JTAG cable.
-@end itemize
-@item @b{parport_write_on_exit} <@var{on}|@var{off}>
-@cindex parport_write_on_exit
-@*This will configure the parallel driver to write a known value to the parallel
-interface on exiting OpenOCD
-@end itemize
-
-@subsection amt_jtagaccel options
-@itemize @bullet
-@item @b{parport_port} <@var{number}>
-@cindex parport_port
-@*Either the address of the I/O port (default: 0x378 for LPT1) or the number of the
-@file{/dev/parport} device 
-@end itemize
-@subsection ft2232 options
-
-@itemize @bullet
-@item @b{ft2232_device_desc} <@var{description}>
-@cindex ft2232_device_desc
-@*The USB device description of the FTDI FT2232 device. If not
+@deffn {Config Command} {ft2232_device_desc} description
+Provides the USB device description (the @emph{iProduct string})
+of the FTDI FT2232 device. If not
 specified, the FTDI default value is used. This setting is only valid
 if compiled with FTD2XX support.
+@end deffn
 
-@b{TODO:} Confirm the following: On Windows the name needs to end with
-a ``space A''? Or not? It has to do with the FTD2xx driver. When must
-this be added and when must it not be added? Why can't the code in the
-interface or in OpenOCD automatically add this if needed? -- Duane.
+@deffn {Config Command} {ft2232_serial} serial-number
+Specifies the @var{serial-number} of the FTDI FT2232 device to use,
+in case the vendor provides unique IDs and more than one FT2232 device
+is connected to the host.
+If not specified, serial numbers are not considered.
+@end deffn
 
-@item @b{ft2232_serial} <@var{serial-number}>
-@cindex ft2232_serial
-@*The serial number of the FTDI FT2232 device. If not specified, the FTDI default 
-values are used.
-@item @b{ft2232_layout} <@var{name}>
-@cindex ft2232_layout
-@*The layout of the FT2232 GPIO signals used to control output-enables and reset
-signals. Valid layouts are
+@deffn {Config Command} {ft2232_layout} name
+Each vendor's FT2232 device can use different GPIO signals
+to control output-enables, reset signals, and LEDs.
+Currently valid layout @var{name} values include:
 @itemize @minus
-@item @b{usbjtag}
-"USBJTAG-1" layout described in the original OpenOCD diploma thesis
-@item @b{jtagkey}
-Amontec JTAGkey and JTAGkey-Tiny
-@item @b{signalyzer}
-Signalyzer
-@item @b{olimex-jtag}
-Olimex ARM-USB-OCD
-@item @b{m5960}
-American Microsystems M5960
-@item @b{evb_lm3s811}
-Luminary Micro EVB_LM3S811 as a JTAG interface (not onboard processor), no TRST or
-SRST signals on external connector
-@item @b{comstick}
-Hitex STR9 comstick 
-@item @b{stm32stick}
-Hitex STM32 Performance Stick
-@item @b{flyswatter}
-Tin Can Tools Flyswatter
-@item @b{turtelizer2}
-egnite Software turtelizer2
-@item @b{oocdlink}
-OOCDLink
-@item @b{axm0432_jtag}
-Axiom AXM-0432
-@item @b{cortino}
-Hitex Cortino JTAG interface
+@item @b{axm0432_jtag} Axiom AXM-0432
+@item @b{comstick} Hitex STR9 comstick
+@item @b{cortino} Hitex Cortino JTAG interface
+@item @b{evb_lm3s811} Luminary Micro EVB_LM3S811 as a JTAG interface
+(bypassing onboard processor), no TRST or SRST signals on external connector
+@item @b{flyswatter} Tin Can Tools Flyswatter
+@item @b{icebear} ICEbear JTAG adapter from Section 5
+@item @b{jtagkey} Amontec JTAGkey and JTAGkey-Tiny (and compatibles)
+@item @b{m5960} American Microsystems M5960
+@item @b{olimex-jtag} Olimex ARM-USB-OCD and ARM-USB-Tiny
+@item @b{oocdlink} OOCDLink
+@c oocdlink ~= jtagkey_prototype_v1
+@item @b{sheevaplug} Marvell Sheevaplug development kit
+@item @b{signalyzer} Xverve Signalyzer
+@item @b{stm32stick} Hitex STM32 Performance Stick
+@item @b{turtelizer2} egnite Software turtelizer2
+@item @b{usbjtag} "USBJTAG-1" layout described in the OpenOCD diploma thesis
 @end itemize
+@end deffn
 
-@item @b{ft2232_vid_pid} <@var{vid}> <@var{pid}>
-@*The vendor ID and product ID of the FTDI FT2232 device. If not specified, the FTDI
-default values are used. Multiple <@var{vid}>, <@var{pid}> pairs may be given, e.g.
+@deffn {Config Command} {ft2232_vid_pid} [vid pid]+
+The vendor ID and product ID of the FTDI FT2232 device. If not specified, the FTDI
+default values are used.
+Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
 @example
 ft2232_vid_pid 0x0403 0xcff8 0x15ba 0x0003
 @end example
-@item @b{ft2232_latency} <@var{ms}>
-@*On some systems using FT2232 based JTAG interfaces the FT_Read function call in
+@end deffn
+
+@deffn {Config Command} {ft2232_latency} ms
+On some systems using FT2232 based JTAG interfaces the FT_Read function call in
 ft2232_read() fails to return the expected number of bytes. This can be caused by
 USB communication delays and has proved hard to reproduce and debug. Setting the
 FT2232 latency timer to a larger value increases delays for short USB packets but it
 also reduces the risk of timeouts before receiving the expected number of bytes.
 The OpenOCD default value is 2 and for some systems a value of 10 has proved useful.
+@end deffn
+
+For example, the interface config file for a
+Turtelizer JTAG Adapter looks something like this:
+
+@example
+interface ft2232
+ft2232_device_desc "Turtelizer JTAG/RS232 Adapter"
+ft2232_layout turtelizer2
+ft2232_vid_pid 0x0403 0xbdc8
+@end example
+@end deffn
+
+@deffn {Interface Driver} {gw16012}
+Gateworks GW16012 JTAG programmer.
+This has one driver-specific command:
+
+@deffn {Config Command} {parport_port} number
+Specifies either the address of the I/O port (default: 0x378 for LPT1) or
+the number of the @file{/dev/parport} device.
+@end deffn
+@end deffn
+
+@deffn {Interface Driver} {jlink}
+Segger jlink USB adapter
+@c command:	jlink_info
+@c     dumps status
+@c command:	jlink_hw_jtag (2|3)
+@c     sets version 2 or 3
+@end deffn
+
+@deffn {Interface Driver} {parport}
+Supports PC parallel port bit-banging cables:
+Wigglers, PLD download cable, and more.
+These interfaces have several commands, used to configure the driver
+before initializing the JTAG scan chain:
+
+@deffn {Config Command} {parport_cable} name
+The layout of the parallel port cable used to connect to the target.
+Currently valid cable @var{name} values include:
+
+@itemize @minus
+@item @b{altium} Altium Universal JTAG cable.
+@item @b{arm-jtag} Same as original wiggler except SRST and
+TRST connections reversed and TRST is also inverted.
+@item @b{chameleon} The Amontec Chameleon's CPLD when operated
+in configuration mode. This is only used to
+program the Chameleon itself, not a connected target.
+@item @b{dlc5} The Xilinx Parallel cable III.
+@item @b{flashlink} The ST Parallel cable.
+@item @b{lattice} Lattice ispDOWNLOAD Cable
+@item @b{old_amt_wiggler} The Wiggler configuration that comes with
+some versions of
+Amontec's Chameleon Programmer. The new version available from
+the website uses the original Wiggler layout ('@var{wiggler}')
+@item @b{triton} The parallel port adapter found on the
+``Karo Triton 1 Development Board''.
+This is also the layout used by the HollyGates design
+(see @uref{http://www.lartmaker.nl/projects/jtag/}).
+@item @b{wiggler} The original Wiggler layout, also supported by
+several clones, such as the Olimex ARM-JTAG
+@item @b{wiggler2} Same as original wiggler except an led is fitted on D5.
+@item @b{wiggler_ntrst_inverted} Same as original wiggler except TRST is inverted.
 @end itemize
+@end deffn
+
+@deffn {Config Command} {parport_port} number
+Either the address of the I/O port (default: 0x378 for LPT1) or the number of
+the @file{/dev/parport} device
+
+When using PPDEV to access the parallel port, use the number of the parallel port:
+@option{parport_port 0} (the default). If @option{parport_port 0x378} is specified
+you may encounter a problem.
+@end deffn
+
+@deffn {Config Command} {parport_write_on_exit} (on|off)
+This will configure the parallel driver to write a known
+cable-specific value to the parallel interface on exiting OpenOCD
+@end deffn
+
+For example, the interface configuration file for a
+classic ``Wiggler'' cable might look something like this:
+
+@example
+interface parport
+parport_port 0xc8b8
+parport_cable wiggler
+@end example
+@end deffn
+
+@deffn {Interface Driver} {presto}
+ASIX PRESTO USB JTAG programmer.
+@c command:	presto_serial str
+@c     sets serial number
+@end deffn
+
+@deffn {Interface Driver} {rlink}
+Raisonance RLink USB adapter
+@end deffn
+
+@deffn {Interface Driver} {usbprog}
+usbprog is a freely programmable USB adapter.
+@end deffn
+
+@deffn {Interface Driver} {vsllink}
+vsllink is part of Versaloon which is a versatile USB programmer.
+
+@quotation Note
+This defines quite a few driver-specific commands,
+which are not currently documented here.
+@end quotation
+@end deffn
+
+@deffn {Interface Driver} {ZY1000}
+This is the Zylin ZY1000 JTAG debugger.
+
+@quotation Note
+This defines some driver-specific commands,
+which are not currently documented here.
+@end quotation
+@end deffn
 
 @anchor{JTAG Speed}
 @section JTAG Speed
