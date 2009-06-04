@@ -86,7 +86,7 @@ jtag_event_callback_t *jtag_event_callbacks;
 /* speed in kHz*/
 static int speed_khz = 0;
 /* flag if the kHz speed was defined */
-static int hasKHz = 0;
+static bool hasKHz = false;
 
 /* jtag interfaces (parport, FTDI-USB, TI-USB, ...)
  */
@@ -1650,7 +1650,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	if(hasKHz)
 	{
 		jtag_interface->khz(speed_khz, &jtag_speed);
-		hasKHz = 0;
+		hasKHz = false;
 	}
 
 	if (jtag_interface->init() != ERROR_OK)
@@ -2139,7 +2139,7 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 			retval=jtag->speed(cur_speed);
 		} else
 		{
-			hasKHz = 1;
+			hasKHz = true;
 		}
 	} else if (argc==0)
 	{
