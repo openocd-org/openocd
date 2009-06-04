@@ -98,7 +98,7 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		u8 databus[4];
 		u8 breakpoint;
 
-		jtag_add_end_state(TAP_DRPAUSE);
+		jtag_set_end_state(TAP_DRPAUSE);
 
 		fields[0].tap = arm7_9->jtag_info.tap;
 		fields[0].num_bits = 1;
@@ -116,7 +116,7 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		}
 		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL);
 
-		jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_DRPAUSE));
+		jtag_add_dr_scan(2, fields, jtag_set_end_state(TAP_DRPAUSE));
 		if((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
@@ -127,7 +127,7 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		fields[1].in_value = NULL;
 		fields[1].out_value = databus;
 
-		jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_DRPAUSE));
+		jtag_add_dr_scan(2, fields, jtag_set_end_state(TAP_DRPAUSE));
 
 		if (breakpoint & 1)
 			target->debug_reason = DBG_REASON_WATCHPOINT;
@@ -157,7 +157,7 @@ static __inline int arm7tdmi_clock_out_inner(arm_jtag_t *jtag_info, u32 out, int
 /* put an instruction in the ARM7TDMI pipeline or write the data bus, and optionally read data */
 static __inline int arm7tdmi_clock_out(arm_jtag_t *jtag_info, u32 out, u32 *deprecated, int breakpoint)
 {
-	jtag_add_end_state(TAP_DRPAUSE);
+	jtag_set_end_state(TAP_DRPAUSE);
 	arm_jtag_scann(jtag_info, 0x1);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
@@ -170,7 +170,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	int retval = ERROR_OK;
 	scan_field_t fields[2];
 
-	jtag_add_end_state(TAP_DRPAUSE);
+	jtag_set_end_state(TAP_DRPAUSE);
 	if((retval = arm_jtag_scann(jtag_info, 0x1)) != ERROR_OK)
 	{
 		return retval;
@@ -260,7 +260,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	int retval = ERROR_OK;
 	scan_field_t fields[2];
 
-	jtag_add_end_state(TAP_DRPAUSE);
+	jtag_set_end_state(TAP_DRPAUSE);
 	if((retval = arm_jtag_scann(jtag_info, 0x1)) != ERROR_OK)
 	{
 		return retval;

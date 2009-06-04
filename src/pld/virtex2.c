@@ -58,7 +58,7 @@ int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
 
 
 
-		jtag_add_ir_scan(1, &field, jtag_add_end_state(TAP_IDLE));
+		jtag_add_ir_scan(1, &field, jtag_set_end_state(TAP_IDLE));
 
 		free(field.out_value);
 	}
@@ -85,7 +85,7 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 
 	virtex2_set_instr(virtex2_info->tap, 0x5); /* CFG_IN */
 
-	jtag_add_dr_scan(1, &scan_field, jtag_add_end_state(TAP_DRPAUSE));
+	jtag_add_dr_scan(1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
 
 	free(values);
 
@@ -113,7 +113,7 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	{
 		scan_field.in_value = (u8 *)words;
 		
-		jtag_add_dr_scan(1, &scan_field, jtag_add_end_state(TAP_DRPAUSE));
+		jtag_add_dr_scan(1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
 
 		jtag_add_callback(virtexflip32, (u8 *)words);
 
@@ -165,7 +165,7 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	if ((retval = xilinx_read_bit_file(&bit_file, filename)) != ERROR_OK)
 		return retval;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	virtex2_set_instr(virtex2_info->tap, 0xb); /* JPROG_B */
 	jtag_execute_queue();
 	jtag_add_sleep(1000);
@@ -179,18 +179,18 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	field.num_bits = bit_file.length * 8;
 	field.out_value = bit_file.data;
 
-	jtag_add_dr_scan(1, &field, jtag_add_end_state(TAP_DRPAUSE));
+	jtag_add_dr_scan(1, &field, jtag_set_end_state(TAP_DRPAUSE));
 	jtag_execute_queue();
 
 	jtag_add_tlr();
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	virtex2_set_instr(virtex2_info->tap, 0xc); /* JSTART */
-	jtag_add_runtest(13, jtag_add_end_state(TAP_IDLE));
+	jtag_add_runtest(13, jtag_set_end_state(TAP_IDLE));
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */
 	virtex2_set_instr(virtex2_info->tap, 0xc); /* JSTART */
-	jtag_add_runtest(13, jtag_add_end_state(TAP_IDLE));
+	jtag_add_runtest(13, jtag_set_end_state(TAP_IDLE));
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */
 	jtag_execute_queue();
 

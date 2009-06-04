@@ -96,7 +96,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 
 	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
 
-	jtag_add_end_state(TAP_DRPAUSE);
+	jtag_set_end_state(TAP_DRPAUSE);
 	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;

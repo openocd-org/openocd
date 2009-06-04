@@ -218,7 +218,7 @@ int mcu_write_ir(jtag_tap_t *tap, u8 *ir_in, u8 *ir_out, int ir_len, int rti)
 		field[0].num_bits = tap->ir_length;
 		field[0].out_value = ir_out;
 		field[0].in_value = ir_in;
-		jtag_add_plain_ir_scan(sizeof(field) / sizeof(field[0]), field, jtag_add_end_state(TAP_IDLE));
+		jtag_add_plain_ir_scan(sizeof(field) / sizeof(field[0]), field, jtag_set_end_state(TAP_IDLE));
 	}
 
 	return ERROR_OK;
@@ -239,7 +239,7 @@ int mcu_write_dr(jtag_tap_t *tap, u8 *dr_in, u8 *dr_out, int dr_len, int rti)
 		field[0].num_bits = dr_len;
 		field[0].out_value = dr_out;
 		field[0].in_value = dr_in;
-		jtag_add_plain_dr_scan(sizeof(field) / sizeof(field[0]), field, jtag_add_end_state(TAP_IDLE));
+		jtag_add_plain_dr_scan(sizeof(field) / sizeof(field[0]), field, jtag_set_end_state(TAP_IDLE));
 	}
 
 	return ERROR_OK;

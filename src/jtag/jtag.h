@@ -488,14 +488,14 @@ extern void jtag_add_reset(int req_tlr_or_trst, int srst);
 
 
 /**
- * Function jtag_add_end_state
+ * Function jtag_set_end_state
  *
  * Set a global variable to \a state if \a state != TAP_INVALID.
  *
  * Return the value of the global variable.
  *
  **/
-extern tap_state_t jtag_add_end_state(tap_state_t state);
+extern tap_state_t jtag_set_end_state(tap_state_t state);
 /**
  * Function jtag_get_end_state
  *

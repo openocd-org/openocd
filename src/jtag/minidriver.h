@@ -120,7 +120,7 @@ extern int interface_jtag_add_runtest(int num_cycles, tap_state_t endstate);
  * approperiate
  */
 extern int interface_jtag_add_reset(int trst, int srst);
-extern int interface_jtag_add_end_state(tap_state_t endstate);
+extern int interface_jtag_set_end_state(tap_state_t endstate);
 extern int interface_jtag_add_sleep(u32 us);
 extern int interface_jtag_add_clocks(int num_cycles);
 extern int interface_jtag_execute_queue(void);

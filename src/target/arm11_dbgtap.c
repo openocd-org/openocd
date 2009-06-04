@@ -439,7 +439,7 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data,
 		{
 			Data	    = *data;
 
-			arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, jtag_add_end_state(TAP_IDLE));
+			arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, jtag_set_end_state(TAP_IDLE));
 
 			CHECK_RETVAL(jtag_execute_queue());
 
@@ -526,13 +526,13 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 *
 
 		if (count)
 		{
-			jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, jtag_add_end_state(TAP_DRPAUSE));
+			jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, jtag_set_end_state(TAP_DRPAUSE));
 			jtag_add_pathmove(asizeof(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
 				arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
 		}
 		else
 		{
-			jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, jtag_add_end_state(TAP_IDLE));
+			jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, jtag_set_end_state(TAP_IDLE));
 		}
 	}
 

@@ -750,7 +750,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	if (trst_with_tlr)
 	{
 		LOG_DEBUG("JTAG reset with RESET instead of TRST");
-		jtag_add_end_state(TAP_RESET);
+		jtag_set_end_state(TAP_RESET);
 		jtag_add_tlr();
 		return;
 	}
@@ -771,7 +771,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	}
 }
 
-tap_state_t jtag_add_end_state(tap_state_t state)
+tap_state_t jtag_set_end_state(tap_state_t state)
 {
 	if ((state == TAP_DRSHIFT)||(state == TAP_IRSHIFT))
 	{
@@ -2179,7 +2179,7 @@ static int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd,
 			command_print( cmd_ctx, "Invalid state name: %s\n", args[0] );
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
-		jtag_add_end_state(state);
+		jtag_set_end_state(state);
 		jtag_execute_queue();
 	}
 	command_print(cmd_ctx, "current endstate: %s", tap_state_name(cmd_queue_end_state));

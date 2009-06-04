@@ -499,7 +499,7 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_
 	}
 }
 
-int interface_jtag_add_end_state(tap_state_t state)
+int interface_jtag_set_end_state(tap_state_t state)
 {
 	return ERROR_OK;
 }

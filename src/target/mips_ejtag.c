@@ -60,7 +60,7 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode)
 {
 	scan_field_t field;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IDCODE, NULL);
 
@@ -87,7 +87,7 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode)
 {
 	scan_field_t field;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IMPCODE, NULL);
 
@@ -199,7 +199,7 @@ int mips_ejtag_config_step(mips_ejtag_t *ejtag_info, int enable_step)
 int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 {
 	u32 ejtag_ctrl;
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 
 	/* set debug break bit */

@@ -238,7 +238,7 @@ int xscale_read_dcsr(target_t *target)
 	u8 field2_check_value = 0x0;
 	u8 field2_check_mask = 0x1;
 
-	jtag_add_end_state(TAP_DRPAUSE);
+	jtag_set_end_state(TAP_DRPAUSE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
 
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
@@ -283,7 +283,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[1].out_value = xscale->reg_cache->reg_list[XSCALE_DCSR].value;
 	fields[1].in_value = NULL;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
@@ -345,7 +345,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	fields[2].check_value = &field2_check_value;
 	fields[2].check_mask = &field2_check_mask;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgtx);
 	jtag_add_runtest(1, jtag_get_end_state()); /* ensures that we're in the TAP_IDLE state as the above could be a no-op */
 
@@ -363,7 +363,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 
 			fields[1].in_value = (u8 *)(field1+i);
 
-			jtag_add_dr_scan_check(3, fields, jtag_add_end_state(TAP_IDLE));
+			jtag_add_dr_scan_check(3, fields, jtag_set_end_state(TAP_IDLE));
 
 			jtag_add_callback(xscale_getbuf, (u8 *)(field1+i));
 
@@ -429,7 +429,7 @@ int xscale_read_tx(target_t *target, int consume)
 	u8 field2_check_value = 0x0;
 	u8 field2_check_mask = 0x1;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgtx);
 
@@ -477,7 +477,7 @@ int xscale_read_tx(target_t *target, int consume)
 			jtag_add_pathmove(sizeof(noconsume_path)/sizeof(*noconsume_path), noconsume_path);
 		}
 
-		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_IDLE));
+		jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_IDLE));
 
 		jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
 		jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
@@ -532,7 +532,7 @@ int xscale_write_rx(target_t *target)
 	u8 field2_check_value = 0x0;
 	u8 field2_check_mask = 0x1;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgrx);
 
@@ -560,7 +560,7 @@ int xscale_write_rx(target_t *target)
 	LOG_DEBUG("polling RX");
 	for (;;)
 	{
-		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_IDLE));
+		jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_IDLE));
 
 		jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
 		jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
@@ -592,7 +592,7 @@ int xscale_write_rx(target_t *target)
 
 	/* set rx_valid */
 	field2 = 0x1;
-	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_IDLE));
+	jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_IDLE));
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -615,7 +615,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 
 	int done_count = 0;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dbgrx);
 
@@ -658,7 +658,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 				3,
 				bits,
 				t,
-				jtag_add_end_state(TAP_IDLE));
+				jtag_set_end_state(TAP_IDLE));
 		buffer += size;
 	}
 
@@ -701,7 +701,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	if (ext_dbg_brk != -1)
 		xscale->external_debug_break = ext_dbg_brk;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
 
 	buf_set_u32(&field0, 1, 1, xscale->hold_rst);
@@ -766,7 +766,7 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 
 	LOG_DEBUG("loading miniIC at 0x%8.8x", va);
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.ldic); /* LDIC */
 
 	/* CMD is b010 for Main IC and b011 for Mini IC */
@@ -833,7 +833,7 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 
 	scan_field_t fields[2];
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.ldic); /* LDIC */
 
 	/* CMD for invalidate IC line b000, bits [6:4] b000 */
@@ -1572,7 +1572,7 @@ int xscale_assert_reset(target_t *target)
 	/* select DCSR instruction (set endstate to R-T-I to ensure we don't
 	 * end up in T-L-R, which would reset JTAG
 	 */
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
 
 	/* set Hold reset, Halt mode and Trap Reset */
@@ -1646,7 +1646,7 @@ int xscale_deassert_reset(target_t *target)
 		/* wait 300ms; 150 and 100ms were not enough */
 		jtag_add_sleep(300*1000);
 
-		jtag_add_runtest(2030, jtag_add_end_state(TAP_IDLE));
+		jtag_add_runtest(2030, jtag_set_end_state(TAP_IDLE));
 		jtag_execute_queue();
 
 		/* set Hold reset, Halt mode and Trap Reset */
@@ -1709,7 +1709,7 @@ int xscale_deassert_reset(target_t *target)
 		xscale_load_ic(target, 1, 0x0, xscale->low_vectors);
 		xscale_load_ic(target, 1, 0xffff0000, xscale->high_vectors);
 
-		jtag_add_runtest(30, jtag_add_end_state(TAP_IDLE));
+		jtag_add_runtest(30, jtag_set_end_state(TAP_IDLE));
 
 		jtag_add_sleep(100000);
 

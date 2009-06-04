@@ -124,7 +124,7 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 
 	buf_set_u32(instr_buf, 0, 32, flip_u32(instr, 32));
 
-	jtag_add_end_state(TAP_DRPAUSE);
+	jtag_set_end_state(TAP_DRPAUSE);
 	arm_jtag_scann(jtag_info, 0x1);
 
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);

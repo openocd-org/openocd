@@ -103,7 +103,7 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	u8 reg_addr_buf = reg_addr & 0x3f;
 	u8 nr_w_buf = 0;
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
@@ -156,7 +156,7 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 
 	buf_set_u32(value_buf, 0, 32, value);
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
@@ -201,7 +201,7 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	u8 nr_w_buf = 0;
 	u8 cp15_opcode_buf[4];
 
-	jtag_add_end_state(TAP_IDLE);
+	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf);
 	arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL);
 
