@@ -37,7 +37,8 @@
 #endif
 
 
-int jtag_flush_queue_count; /* count # of flushes for profiling / debugging purposes */
+/// The number of JTAG queue flushes (for profiling and debugging purposes).
+static int jtag_flush_queue_count;
 
 static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state),
 		int in_num_fields, scan_field_t *in_fields, tap_state_t state);
@@ -906,7 +907,7 @@ int jtag_execute_queue(void)
 	return retval;
 }
 
-int jtag_reset_callback(enum jtag_event event, void *priv)
+static int jtag_reset_callback(enum jtag_event event, void *priv)
 {
 	jtag_tap_t *tap = priv;
 
@@ -928,7 +929,7 @@ void jtag_sleep(u32 us)
 
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
-int jtag_examine_chain(void)
+static int jtag_examine_chain(void)
 {
 	jtag_tap_t *tap;
 	scan_field_t field;
@@ -1094,7 +1095,7 @@ int jtag_examine_chain(void)
 	return ERROR_OK;
 }
 
-int jtag_validate_chain(void)
+static int jtag_validate_chain(void)
 {
 	jtag_tap_t *tap;
 	int total_ir_length = 0;
