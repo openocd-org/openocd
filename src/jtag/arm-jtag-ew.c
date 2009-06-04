@@ -1,4 +1,4 @@
-// vim:ts=4 sw=4: 
+// vim:ts=4 sw=4:
 
 /***************************************************************************
  *   Copyright (C) 2009 by Dimitar Dimitrov <dinuxbg@gmail.com>            *
@@ -222,14 +222,14 @@ static int armjtagew_speed(int speed)
 	usb_out_buffer[0] = CMD_GET_TCK_FREQUENCY;
     result = armjtagew_usb_message(armjtagew_jtag_handle, 1, 4);
 	speed_real = (int)buf_get_u32(usb_in_buffer,0,32);
-	if(result < 0) 
+	if(result < 0)
 	{
         LOG_ERROR("ARM-JTAG-EW getting speed failed (%d)", result);
         return ERROR_JTAG_DEVICE_ERROR;
-	} 
+	}
 	else
 	{
-    	LOG_INFO("Requested speed %dkHz, emulator reported %dkHz.", speed, speed_real);
+	LOG_INFO("Requested speed %dkHz, emulator reported %dkHz.", speed, speed_real);
 	}
 
     return ERROR_OK;
@@ -334,7 +334,7 @@ static void armjtagew_path_move(int num_states, tap_state_t *path)
 	for (i = 0; i < num_states; i++)
 	{
 		/*
-		 * TODO: The ARM-JTAG-EW hardware delays TDI with 3 TCK cycles when in RTCK mode. 
+		 * TODO: The ARM-JTAG-EW hardware delays TDI with 3 TCK cycles when in RTCK mode.
 		 * Either handle that here, or update the documentation with examples
 		 * how to fix that in the configuration files.
 		 */
@@ -504,7 +504,7 @@ static int armjtagew_get_version_info(void)
 	usb_out_buffer[0] = CMD_GET_VERSION;
 	result = armjtagew_usb_message(armjtagew_jtag_handle, 1, 4+15+256);
 
-	if (result != 0) 
+	if (result != 0)
 	{
 		LOG_ERROR("ARM-JTAG-EW command CMD_GET_VERSION failed (%d)\n", result);
 		return ERROR_JTAG_DEVICE_ERROR;
@@ -791,7 +791,7 @@ static int armjtagew_usb_message(armjtagew_jtag_t *armjtagew_jtag, int out_lengt
 	if (result == out_length)
 	{
 		result = armjtagew_usb_read(armjtagew_jtag, in_length);
-		if (result != in_length) 
+		if (result != in_length)
 		{
 			LOG_ERROR("usb_bulk_read failed (requested=%d, result=%d)", in_length, result);
 			return -1;

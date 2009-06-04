@@ -59,24 +59,24 @@ static u8 usb_out_buffer[JLINK_OUT_BUFFER_SIZE];
 static u8 usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 
 /* Constants for JLink command */
-#define EMU_CMD_VERSION     		0x01
-#define EMU_CMD_SET_SPEED   		0x05
-#define EMU_CMD_GET_STATE   		0x07
+#define EMU_CMD_VERSION		0x01
+#define EMU_CMD_SET_SPEED		0x05
+#define EMU_CMD_GET_STATE		0x07
 #define EMU_CMD_HW_CLOCK			0xc8
-#define EMU_CMD_HW_TMS0 			0xc9
-#define EMU_CMD_HW_TMS1 			0xca
-#define EMU_CMD_HW_JTAG2    		0xce
-#define EMU_CMD_HW_JTAG3    		0xcf
+#define EMU_CMD_HW_TMS0			0xc9
+#define EMU_CMD_HW_TMS1			0xca
+#define EMU_CMD_HW_JTAG2		0xce
+#define EMU_CMD_HW_JTAG3		0xcf
 #define EMU_CMD_GET_MAX_MEM_BLOCK	0xd4
-#define EMU_CMD_HW_RESET0   		0xdc
-#define EMU_CMD_HW_RESET1   		0xdd
-#define EMU_CMD_HW_TRST0    		0xde
-#define EMU_CMD_HW_TRST1    		0xdf
-#define EMU_CMD_GET_CAPS    		0xe8
-#define EMU_CMD_GET_HW_VERSION  	0xf0
+#define EMU_CMD_HW_RESET0		0xdc
+#define EMU_CMD_HW_RESET1		0xdd
+#define EMU_CMD_HW_TRST0		0xde
+#define EMU_CMD_HW_TRST1		0xdf
+#define EMU_CMD_GET_CAPS		0xe8
+#define EMU_CMD_GET_HW_VERSION	0xf0
 
 /* bits return from EMU_CMD_GET_CAPS */
-#define EMU_CAP_GET_HW_VERSION 		1
+#define EMU_CAP_GET_HW_VERSION		1
 #define EMU_CAP_GET_MAX_BLOCK_SIZE	11
 
 /* max speed 12MHz v5.0 jlink */
@@ -294,7 +294,7 @@ static int jlink_khz(int khz, int *jtag_speed)
 static int jlink_register_commands(struct command_context_s *cmd_ctx)
 {
 
-	register_command(cmd_ctx, NULL, "jlink_info", 
+	register_command(cmd_ctx, NULL, "jlink_info",
 		&jlink_handle_jlink_info_command, COMMAND_EXEC,
 		"query jlink info");
 	register_command(cmd_ctx, NULL, "jlink_hw_jtag",
@@ -307,7 +307,7 @@ static int jlink_init(void)
 {
 	int check_cnt;
 	int i;
-	
+
 	jlink_jtag_handle = jlink_usb_open();
 
 	if (jlink_jtag_handle == 0)
@@ -343,12 +343,12 @@ static int jlink_init(void)
 	jlink_speed(jtag_speed);
 
 	/* v5/6 jlink seems to have an issue if the first tap move
-	 * is not divisible by 8, so we send a TLR on first power up */ 
+	 * is not divisible by 8, so we send a TLR on first power up */
 	for (i = 0; i < 8; i++) {
 		jlink_tap_append_step(1, 0);
 	}
 	jlink_tap_execute();
-	
+
 	return ERROR_OK;
 }
 
@@ -567,7 +567,7 @@ static int jlink_get_version_info(void)
 		LOG_ERROR("J-Link command EMU_CMD_VERSION impossible return length 0x%0x", len);
 		len = JLINK_IN_BUFFER_SIZE;
 	}
-	
+
 	result = jlink_usb_read(jlink_jtag_handle, len);
 	if (result != len)
 	{

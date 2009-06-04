@@ -117,7 +117,7 @@ typedef struct presto_s
 	int jtag_tdi_count;
 
 	int jtag_speed;
-	
+
 } presto_t;
 
 static presto_t presto_state;
@@ -420,7 +420,7 @@ static int presto_open(char *req_serial)
 	presto->jtag_tdi_count=0;
 
 	presto->jtag_speed=0;
-	
+
 #if BUILD_PRESTO_FTD2XX == 1
 	return presto_open_ftd2xx(req_serial);
 #elif BUILD_PRESTO_LIBFTDI == 1
@@ -575,7 +575,7 @@ static int presto_tdi_flush(void)
 	presto_sendbyte(presto->jtag_tdi_data);
 	presto->jtag_tdi_count = 0;
 	presto->jtag_tdi_data = 0;
-	
+
 	return 0;
 }
 
@@ -586,7 +586,7 @@ static int presto_tck_idle(void)
 		presto_sendbyte(0xCA);
 		presto->jtag_tck = 0;
 	}
-	
+
 	return 0;
 }
 
@@ -711,7 +711,7 @@ static int presto_jtag_khz(int khz, int *jtag_speed)
 
 	if (khz >= 3000) *jtag_speed = 0;
 	else *jtag_speed = (1000+khz-1)/khz;
-	
+
 	return 0;
 }
 
@@ -725,26 +725,26 @@ static int presto_jtag_speed_div(int speed, int *khz)
 
 	if (speed == 0) *khz = 3000;
 	else *khz = 1000/speed;
-	
+
 	return 0;
 }
 
 static int presto_jtag_speed(int speed)
 {
 	int khz;
-	
+
 	if (presto_jtag_speed_div(speed, &khz))
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	presto->jtag_speed = speed;
-	
+
 	if (khz%1000 == 0)
 		LOG_INFO("setting speed to %d, max. TCK freq. is %d MHz", speed, khz/1000);
 	else
 		LOG_INFO("setting speed to %d, max. TCK freq. is %d kHz", speed, khz);
-	
+
 	return 0;
 }
 

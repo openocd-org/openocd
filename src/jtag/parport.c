@@ -75,8 +75,8 @@ typedef struct cable_s
 	u8 LED_MASK;	/* data port bit for LED */
 } cable_t;
 
-static cable_t cables[] = 
-{	
+static cable_t cables[] =
+{
 	/* name					tdo   trst  tms   tck   tdi   srst  o_inv i_inv init  exit  led */
 	{ "wiggler",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x80, 0x00 },
 	{ "wiggler2",			0x80, 0x10, 0x02, 0x04, 0x08, 0x01, 0x01, 0x80, 0x80, 0x00, 0x20 },
@@ -135,13 +135,13 @@ static int parport_handle_parport_port_command(struct command_context_s *cmd_ctx
 static int parport_handle_parport_cable_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int parport_handle_write_on_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-jtag_interface_t parport_interface = 
+jtag_interface_t parport_interface =
 {
 	.name = "parport",
-	
+
 	.execute_queue = bitbang_execute_queue,
 
-	.speed = parport_speed,	
+	.speed = parport_speed,
 	.register_commands = parport_register_commands,
 	.init = parport_init,
 	.quit = parport_quit,
@@ -158,7 +158,7 @@ static bitbang_interface_t parport_bitbang =
 static int parport_read(void)
 {
 	int data = 0;
-	
+
 #if PARPORT_USE_PPDEV == 1
 	ioctl(device_handle, PPRSTATUS, & data);
 #else
@@ -190,22 +190,22 @@ static __inline__ void parport_write_data(void)
 static void parport_write(int tck, int tms, int tdi)
 {
 	int i = jtag_speed + 1;
-	
+
 	if (tck)
 		dataport_value |= cable->TCK_MASK;
 	else
 		dataport_value &= ~cable->TCK_MASK;
-	
+
 	if (tms)
 		dataport_value |= cable->TMS_MASK;
 	else
 		dataport_value &= ~cable->TMS_MASK;
-	
+
 	if (tdi)
 		dataport_value |= cable->TDI_MASK;
 	else
 		dataport_value &= ~cable->TDI_MASK;
-		
+
 	while (i-- > 0)
 		parport_write_data();
 }
@@ -224,10 +224,10 @@ static void parport_reset(int trst, int srst)
 		dataport_value |= cable->SRST_MASK;
 	else if (srst == 1)
 		dataport_value &= ~cable->SRST_MASK;
-	
+
 	parport_write_data();
 }
-	
+
 /* turn LED on parport adapter on (1) or off (0) */
 static void parport_led(int on)
 {
@@ -261,7 +261,7 @@ static int parport_get_giveio_access(void)
 {
 	HANDLE h;
 	OSVERSIONINFO version;
-	
+
 	version.dwOSVersionInfoSize = sizeof version;
 	if (!GetVersionEx( &version )) {
 		errno = EINVAL;
@@ -269,15 +269,15 @@ static int parport_get_giveio_access(void)
 	}
 	if (version.dwPlatformId != VER_PLATFORM_WIN32_NT)
 		return 0;
-	
+
 	h = CreateFile( "\\\\.\\giveio", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
 	if (h == INVALID_HANDLE_VALUE) {
 		errno = ENODEV;
 		return -1;
 	}
-	
+
 	CloseHandle( h );
-	
+
 	return 0;
 }
 #endif
@@ -289,15 +289,15 @@ static int parport_init(void)
 	char buffer[256];
 	int i = 0;
 #endif
-	
+
 	cur_cable = cables;
-	
+
 	if ((parport_cable == NULL) || (parport_cable[0] == 0))
 	{
 		parport_cable = "wiggler";
 		LOG_WARNING("No parport cable specified, using default 'wiggler'");
 	}
-	
+
 	while (cur_cable->name)
 	{
 		if (strcmp(cur_cable->name, parport_cable) == 0)
@@ -313,9 +313,9 @@ static int parport_init(void)
 		LOG_ERROR("No matching cable found for %s", parport_cable);
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	
+
 	dataport_value = cable->PORT_INIT;
-	
+
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle > 0)
 	{
@@ -374,10 +374,10 @@ static int parport_init(void)
 		parport_port = 0x378;
 		LOG_WARNING("No parport port specified, using default '0x378' (LPT1)");
 	}
-	
+
 	dataport = parport_port;
 	statusport = parport_port + 1;
-	
+
 	LOG_DEBUG("requesting privileges for parallel port 0x%lx...", dataport);
 #if PARPORT_USE_GIVEIO == 1
 	if (parport_get_giveio_access() != 0)
@@ -389,21 +389,21 @@ static int parport_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	LOG_DEBUG("...privileges granted");
-	
+
 	/* make sure parallel port is in right mode (clear tristate and interrupt */
 	#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 		outb(parport_port + 2, 0x0);
 	#else
 		outb(0x0, parport_port + 2);
 	#endif
-	
+
 #endif /* PARPORT_USE_PPDEV */
-	
+
 	parport_reset(0, 0);
 	parport_write(0, 0, 0);
 	parport_led(1);
 
-	bitbang_interface = &parport_bitbang;	
+	bitbang_interface = &parport_bitbang;
 
 	return ERROR_OK;
 }
@@ -417,13 +417,13 @@ static int parport_quit(void)
 		dataport_value = cable->PORT_EXIT;
 		parport_write_data();
 	}
-	
+
 	if (parport_cable)
 	{
 		free(parport_cable);
 		parport_cable = NULL;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -461,11 +461,11 @@ static int parport_handle_write_on_exit_command(struct command_context_s *cmd_ct
 		command_print(cmd_ctx, "usage: parport_write_on_exit <on|off>");
 		return ERROR_OK;
 	}
-	
+
 	if (strcmp(args[0], "on") == 0)
 		parport_exit = 1;
 	else if (strcmp(args[0], "off") == 0)
 		parport_exit = 0;
-	
+
 	return ERROR_OK;
 }

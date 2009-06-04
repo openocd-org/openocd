@@ -53,13 +53,13 @@ static int ep93xx_quit(void);
 
 struct timespec ep93xx_zzzz;
 
-jtag_interface_t ep93xx_interface = 
+jtag_interface_t ep93xx_interface =
 {
 	.name = "ep93xx",
 
 	.execute_queue = bitbang_execute_queue,
 
-	.speed = ep93xx_speed,	
+	.speed = ep93xx_speed,
 	.register_commands = ep93xx_register_commands,
 	.init = ep93xx_init,
 	.quit = ep93xx_quit,
@@ -84,12 +84,12 @@ static void ep93xx_write(int tck, int tms, int tdi)
 		output_value |= TCK_BIT;
 	else
 		output_value &= ~TCK_BIT;
-	
+
 	if (tms)
 		output_value |= TMS_BIT;
 	else
 		output_value &= ~TMS_BIT;
-	
+
 	if (tdi)
 		output_value |= TDI_BIT;
 	else
@@ -111,7 +111,7 @@ static void ep93xx_reset(int trst, int srst)
 		output_value |= SRST_BIT;
 	else if (srst == 1)
 		output_value &= ~SRST_BIT;
-	
+
 	*gpio_data_register = output_value;
 	nanosleep(&ep93xx_zzzz, NULL);
 }
@@ -153,7 +153,7 @@ static int ep93xx_init(void)
 {
 	int ret;
 
-	bitbang_interface = &ep93xx_bitbang;	
+	bitbang_interface = &ep93xx_bitbang;
 
 	ep93xx_zzzz.tv_sec = 0;
 	ep93xx_zzzz.tv_nsec = 10000000;
@@ -203,7 +203,7 @@ static int ep93xx_init(void)
 	gpio_data_direction_register = gpio_controller + 0x18;
 
 	LOG_INFO("gpio_data_register      = %p\n", gpio_data_register);
-	LOG_INFO("gpio_data_direction_reg = %p\n", gpio_data_direction_register); 
+	LOG_INFO("gpio_data_direction_reg = %p\n", gpio_data_direction_register);
 	/*
 	 * Configure bit 0 (TDO) as an input, and bits 1-5 (TDI, TCK
 	 * TMS, TRST, SRST) as outputs.  Drive TDI and TCK low, and

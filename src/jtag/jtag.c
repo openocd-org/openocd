@@ -2658,7 +2658,7 @@ int jtag_add_statemove(tap_state_t goal_state)
 		jtag_add_pathmove(tms_count, moves);
 	}
 
-	/* 	else state must be immediately reachable in one clock cycle, and does not
+	/*	else state must be immediately reachable in one clock cycle, and does not
 		need to be a stable state.
 	*/
 	else if( tap_state_transition(cur_state, true)  == goal_state
