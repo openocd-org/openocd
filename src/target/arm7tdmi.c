@@ -116,7 +116,7 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		}
 		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL);
 
-		jtag_add_dr_scan(2, fields, TAP_DRPAUSE);
+		jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_DRPAUSE));
 		if((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
@@ -127,7 +127,7 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 		fields[1].in_value = NULL;
 		fields[1].out_value = databus;
 
-		jtag_add_dr_scan(2, fields, TAP_DRPAUSE);
+		jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_DRPAUSE));
 
 		if (breakpoint & 1)
 			target->debug_reason = DBG_REASON_WATCHPOINT;

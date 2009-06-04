@@ -134,7 +134,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		}
 		arm_jtag_set_instr(&arm7_9->jtag_info, arm7_9->jtag_info.intest_instr, NULL);
 
-		jtag_add_dr_scan(3, fields, TAP_DRPAUSE);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_DRPAUSE));
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
@@ -147,7 +147,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 		fields[2].in_value = NULL;
 		fields[2].out_value = instructionbus;
 
-		jtag_add_dr_scan(3, fields, TAP_DRPAUSE);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_DRPAUSE));
 
 		if (debug_reason & 0x4)
 			if (debug_reason & 0x2)

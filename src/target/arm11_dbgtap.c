@@ -526,7 +526,7 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 *
 
 		if (count)
 		{
-			jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
+			jtag_add_dr_scan(asizeof(chain5_fields), chain5_fields, jtag_add_end_state(TAP_DRPAUSE));
 			jtag_add_pathmove(asizeof(arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay),
 				arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay);
 		}

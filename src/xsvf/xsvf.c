@@ -405,9 +405,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					field.in_value = calloc(CEIL(field.num_bits, 8), 1);
 
 					if (tap == NULL)
-						jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
+						jtag_add_plain_dr_scan(1, &field, jtag_add_end_state(TAP_DRPAUSE));
 					else
-						jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
+						jtag_add_dr_scan(1, &field, jtag_add_end_state(TAP_DRPAUSE));
 
 					jtag_check_value_mask(&field, dr_in_buf, dr_in_mask);
 
@@ -853,9 +853,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 						LOG_USER("LSDR retry %d", attempt);
 
 					if (tap == NULL)
-						jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
+						jtag_add_plain_dr_scan(1, &field, jtag_add_end_state(TAP_DRPAUSE));
 					else
-						jtag_add_dr_scan(1, &field, TAP_DRPAUSE);
+						jtag_add_dr_scan(1, &field, jtag_add_end_state(TAP_DRPAUSE));
 
 					jtag_check_value_mask(&field, dr_in_buf, dr_in_mask);
 
