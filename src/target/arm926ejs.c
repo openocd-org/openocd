@@ -157,7 +157,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[3].out_value = &nr_w_buf;
 	fields[3].in_value = NULL;
 
-	jtag_add_dr_scan(4, fields, TAP_INVALID);
+	jtag_add_dr_scan(4, fields, jtag_add_end_state(TAP_INVALID));
 
 	/*TODO: add timeout*/
 	do
@@ -165,7 +165,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
 		nr_w_buf = 0;
-		jtag_add_dr_scan(4, fields, TAP_INVALID);
+		jtag_add_dr_scan(4, fields, jtag_add_end_state(TAP_INVALID));
 
 		jtag_add_callback(arm_le_to_h_u32, (u8 *)value);
 
@@ -227,14 +227,14 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	fields[3].out_value = &nr_w_buf;
 	fields[3].in_value = NULL;
 
-	jtag_add_dr_scan(4, fields, TAP_INVALID);
+	jtag_add_dr_scan(4, fields, jtag_add_end_state(TAP_INVALID));
 	/*TODO: add timeout*/
 	do
 	{
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
 		nr_w_buf = 0;
-		jtag_add_dr_scan(4, fields, TAP_INVALID);
+		jtag_add_dr_scan(4, fields, jtag_add_end_state(TAP_INVALID));
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;

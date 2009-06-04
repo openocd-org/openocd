@@ -119,15 +119,15 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	if (in)
 	{
 		fields[1].in_value = (u8 *)in;
-		jtag_add_dr_scan(2, fields, TAP_INVALID);
+		jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_INVALID));
 		jtag_add_callback(arm7flip32, (u8 *)in);
 	} else
 	{
-		jtag_add_dr_scan(2, fields, TAP_INVALID);
+		jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_INVALID));
 	}
 
 	if (clock)
-		jtag_add_runtest(0, TAP_INVALID);
+		jtag_add_runtest(0, jtag_add_end_state(TAP_INVALID));
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	if((retval = jtag_execute_queue()) != ERROR_OK)

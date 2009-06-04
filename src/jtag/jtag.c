@@ -2228,7 +2228,7 @@ static int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, 
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	jtag_add_runtest(strtol(args[0], NULL, 0), TAP_INVALID);
+	jtag_add_runtest(strtol(args[0], NULL, 0), jtag_add_end_state(TAP_INVALID));
 	jtag_execute_queue();
 
 	return ERROR_OK;

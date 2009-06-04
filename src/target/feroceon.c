@@ -159,9 +159,9 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 	
 	
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
-	/* no jtag_add_runtest(0, TAP_INVALID) here */
+	/* no jtag_add_runtest(0, jtag_add_end_state(TAP_INVALID)) here */
 
 	return ERROR_OK;
 }

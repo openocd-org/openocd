@@ -53,13 +53,13 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr,  void *no_verify_ca
 
 		if (no_verify_capture==NULL)
 		{
-			jtag_add_ir_scan(1, &field, TAP_INVALID);
+			jtag_add_ir_scan(1, &field, jtag_add_end_state(TAP_INVALID));
 		} else
 		{
 			/* FIX!!!! this is a kludge!!! arm926ejs.c should reimplement this arm_jtag_set_instr to
 			 * have special verification code.
 			 */
-			jtag_add_ir_scan_noverify(1, &field, TAP_INVALID);
+			jtag_add_ir_scan_noverify(1, &field, jtag_add_end_state(TAP_INVALID));
 		}
 	}
 
@@ -86,7 +86,7 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain)
 				1,
 				num_bits,
 				values,
-				TAP_INVALID);
+				jtag_add_end_state(TAP_INVALID));
 
 		jtag_info->cur_scan_chain = new_scan_chain;
 	}

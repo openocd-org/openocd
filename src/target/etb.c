@@ -63,7 +63,7 @@ static int etb_set_instr(etb_t *etb, u32 new_instr)
 
 		field.in_value = NULL;
 
-		jtag_add_ir_scan(1, &field, TAP_INVALID);
+		jtag_add_ir_scan(1, &field, jtag_add_end_state(TAP_INVALID));
 
 		free(field.out_value);
 	}
@@ -86,7 +86,7 @@ static int etb_scann(etb_t *etb, u32 new_scan_chain)
 
 		/* select INTEST instruction */
 		etb_set_instr(etb, 0x2);
-		jtag_add_dr_scan(1, &field, TAP_INVALID);
+		jtag_add_dr_scan(1, &field, jtag_add_end_state(TAP_INVALID));
 
 		etb->cur_scan_chain = new_scan_chain;
 
@@ -190,7 +190,7 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	for (i = 0; i < num_frames; i++)
 	{
@@ -204,7 +204,7 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 			buf_set_u32(fields[1].out_value, 0, 7, 0);
 
 		fields[0].in_value = (u8 *)(data+i);
-		jtag_add_dr_scan(3, fields, TAP_INVALID);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 		jtag_add_callback(etb_getbuf, (u8 *)(data+i));
 	}
@@ -252,7 +252,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].check_value = NULL;
 	fields[2].check_mask = NULL;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	/* read the identification register in the second run, to make sure we
 	 * don't read the ETB data register twice, skipping every second entry
@@ -262,7 +262,7 @@ int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[0].check_value = check_value;
 	fields[0].check_mask = check_mask;
 
-	jtag_add_dr_scan_check(3, fields, TAP_INVALID);
+	jtag_add_dr_scan_check(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	free(fields[1].out_value);
 	free(fields[2].out_value);

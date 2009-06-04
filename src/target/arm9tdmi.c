@@ -204,16 +204,16 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 	if (in)
 	{
 		fields[0].in_value=(u8 *)in;
-		jtag_add_dr_scan(3, fields, TAP_INVALID);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 		jtag_add_callback(arm_le_to_h_u32, (u8 *)in);
 	}
 	else
 	{
-		jtag_add_dr_scan(3, fields, TAP_INVALID);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 	}
 
-	jtag_add_runtest(0, TAP_INVALID);
+	jtag_add_runtest(0, jtag_add_end_state(TAP_INVALID));
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	{
@@ -263,11 +263,11 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	jtag_add_callback(arm_le_to_h_u32, (u8 *)in);
 
-	jtag_add_runtest(0, TAP_INVALID);
+	jtag_add_runtest(0, jtag_add_end_state(TAP_INVALID));
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	{
@@ -330,11 +330,11 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[2].out_value = NULL;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	jtag_add_callback4(arm9endianness, in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, (jtag_callback_data_t)fields[0].in_value);
 
-	jtag_add_runtest(0, TAP_INVALID);
+	jtag_add_runtest(0, jtag_add_end_state(TAP_INVALID));
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	{

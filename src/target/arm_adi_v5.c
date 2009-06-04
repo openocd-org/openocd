@@ -83,7 +83,7 @@ int adi_jtag_dp_scan(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u8 *o
 	fields[1].out_value = outvalue;
 	fields[1].in_value = invalue;
 
-	jtag_add_dr_scan(2, fields, TAP_INVALID);
+	jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_INVALID));
 
 	return ERROR_OK;
 }
@@ -118,13 +118,13 @@ int adi_jtag_dp_scan_u32(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u
 	if (invalue)
 	{
 		fields[1].in_value = (u8 *)invalue;
-		jtag_add_dr_scan(2, fields, TAP_INVALID);
+		jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_INVALID));
 
 		jtag_add_callback(arm_le_to_h_u32, (u8 *)invalue);
 	} else
 	{
 
-		jtag_add_dr_scan(2, fields, TAP_INVALID);
+		jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_INVALID));
 	}
 
 	return ERROR_OK;

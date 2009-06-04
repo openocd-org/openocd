@@ -266,7 +266,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	fields[2].check_value = NULL;
 	fields[2].check_mask = NULL;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	fields[0].in_value = reg->value;
 	fields[0].check_value = check_value;
@@ -278,7 +278,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
 	 */
 	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
 
-	jtag_add_dr_scan_check(3, fields, TAP_INVALID);
+	jtag_add_dr_scan_check(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	return ERROR_OK;
 }
@@ -314,7 +314,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	while (size > 0)
 	{
@@ -325,7 +325,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
 			buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
 
 		fields[0].in_value = (u8 *)data;
-		jtag_add_dr_scan(3, fields, TAP_INVALID);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 		jtag_add_callback(arm_le_to_h_u32, (u8 *)data);
 
 		data++;
@@ -420,7 +420,7 @@ int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
 	while (size > 0)
 	{
 		buf_set_u32(fields[0].out_value, 0, 32, *data);
-		jtag_add_dr_scan(3, fields, TAP_INVALID);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 		data++;
 		size--;
@@ -471,11 +471,11 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 	buf_set_u32(fields[2].out_value, 0, 1, 0);
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 	gettimeofday(&lap, NULL);
 	do
 	{
-		jtag_add_dr_scan(3, fields, TAP_INVALID);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
 

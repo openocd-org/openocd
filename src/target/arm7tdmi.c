@@ -147,9 +147,9 @@ static __inline int arm7tdmi_clock_out_inner(arm_jtag_t *jtag_info, u32 out, int
 			2,
 			arm7tdmi_num_bits,
 			values,
-			TAP_INVALID);
+			jtag_add_end_state(TAP_INVALID));
 
-	jtag_add_runtest(0, TAP_INVALID);
+	jtag_add_runtest(0, jtag_add_end_state(TAP_INVALID));
 
 	return ERROR_OK;
 }
@@ -187,11 +187,11 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[1].out_value = NULL;
 	fields[1].in_value = (u8 *)in;
 
-	jtag_add_dr_scan(2, fields, TAP_INVALID);
+	jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_INVALID));
 
 	jtag_add_callback(arm7flip32, (u8 *)in);
 
-	jtag_add_runtest(0, TAP_INVALID);
+	jtag_add_runtest(0, jtag_add_end_state(TAP_INVALID));
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 {
@@ -277,11 +277,11 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	fields[1].out_value = NULL;
 	jtag_alloc_in_value32(&fields[1]);
 
-	jtag_add_dr_scan(2, fields, TAP_INVALID);
+	jtag_add_dr_scan(2, fields, jtag_add_end_state(TAP_INVALID));
 
 	jtag_add_callback4(arm7endianness, in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, (jtag_callback_data_t)fields[1].in_value);
 
-	jtag_add_runtest(0, TAP_INVALID);
+	jtag_add_runtest(0, jtag_add_end_state(TAP_INVALID));
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 {

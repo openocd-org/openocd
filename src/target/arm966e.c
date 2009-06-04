@@ -189,11 +189,11 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	fields[2].out_value = &nr_w_buf;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	fields[1].in_value = (u8 *)value;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 	jtag_add_callback(arm_le_to_h_u32, (u8 *)value);
 
@@ -244,7 +244,7 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	fields[2].out_value = &nr_w_buf;
 	fields[2].in_value = NULL;
 
-	jtag_add_dr_scan(3, fields, TAP_INVALID);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_INVALID));
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	LOG_DEBUG("addr: 0x%x value: %8.8x", reg_addr, value);
