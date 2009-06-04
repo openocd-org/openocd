@@ -427,11 +427,6 @@ static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endSt
 
 extern int jtag_check_value(u8 *captured, void *priv);
 
-static void gotoEndState(void)
-{
-	setCurrentState(cmd_queue_end_state);
-}
-
 static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_t shiftState, tap_state_t end_state)
 {
 	int i;
