@@ -1579,6 +1579,7 @@ int cortex_m3_init_arch_info(target_t *target, cortex_m3_common_t *cortex_m3, jt
 	armv7m->swjdp_info.ap_tar_value = -1;
 	armv7m->swjdp_info.jtag_info = &cortex_m3->jtag_info;
 	armv7m->swjdp_info.memaccess_tck = 8;
+	armv7m->swjdp_info.tar_autoincr_block = (1<<12);	/* Cortex-M3 has 4096 bytes autoincrement range */
 
 	/* initialize arch-specific breakpoint handling */
 

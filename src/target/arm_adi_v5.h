@@ -99,7 +99,16 @@ typedef struct swjdp_common_s
 	u8  ack;
 	/* extra tck clocks for memory bus access */
 	u32	memaccess_tck;
+	/* Size of TAR autoincrement block, ARM ADI Specification requires at least 10 bits */
+	u32 tar_autoincr_block;
+
 } swjdp_common_t;
+
+/* Accessor function for currently selected DAP-AP number */ 
+static inline u8 dap_ap_get_select(swjdp_common_t *swjdp)
+{
+	return (u8)( swjdp ->apsel >> 24);
+}
 
 /* Internal functions used in the module, partial transactions, use with caution */
 extern int dap_dp_write_reg(swjdp_common_t *swjdp, u32 value, u8 reg_addr);

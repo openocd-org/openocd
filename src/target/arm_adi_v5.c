@@ -52,6 +52,18 @@
  * are immediatley available.
 */
 
+
+/* ARM ADI Specification requires at least 10 bits used for TAR autoincrement  */
+
+/*
+	u32 tar_block_size(u32 address)
+	Return the largest block starting at address that does not cross a tar block size alignment boundary
+*/
+static u32 max_tar_block_size(u32 tar_autoincr_block, u32 address)
+{
+	return (tar_autoincr_block - ((tar_autoincr_block - 1) & address)) >> 2;
+}
+
 /***************************************************************************
  *                                                                         *
  * DPACC and APACC scanchain access through JTAG-DP                        *
@@ -467,8 +479,8 @@ int mem_ap_write_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addre
 
 	while (wcount > 0)
 	{
-		/* Adjust to write blocks within 4K aligned boundaries */
-		blocksize = (0x1000 - (0xFFF & address)) >> 2;
+		/* Adjust to write blocks within boundaries aligned to the TAR autoincremnent size*/
+		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
 		if (wcount < blocksize)
 			blocksize = wcount;
 
@@ -517,8 +529,8 @@ int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u3
 	{
 		int nbytes;
 
-		/* Adjust to read within 4K block boundaries */
-		blocksize = (0x1000 - (0xFFF & address)) >> 1;
+		/* Adjust to write blocks within boundaries aligned to the TAR autoincremnent size*/
+		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
 
 		if (wcount < blocksize)
 			blocksize = wcount;
@@ -613,8 +625,8 @@ int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 	{
 		int nbytes;
 
-		/* Adjust to read within 4K block boundaries */
-		blocksize = (0x1000 - (0xFFF & address));
+		/* Adjust to write blocks within boundaries aligned to the TAR autoincremnent size*/
+		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
 
 		if (wcount < blocksize)
 			blocksize = wcount;
@@ -710,8 +722,8 @@ int mem_ap_read_buf_u32(swjdp_common_t *swjdp, u8 *buffer, int count, u32 addres
 
 	while (wcount > 0)
 	{
-		/* Adjust to read within 4K block boundaries */
-		blocksize = (0x1000 - (0xFFF & address)) >> 2;
+		/* Adjust to read blocks within boundaries aligned to the TAR autoincremnent size*/
+		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
 		if (wcount < blocksize)
 			blocksize = wcount;
 
@@ -784,8 +796,8 @@ int mem_ap_read_buf_packed_u16(swjdp_common_t *swjdp, u8 *buffer, int count, u32
 	{
 		int nbytes;
 
-		/* Adjust to read within 4K block boundaries */
-		blocksize = (0x1000 - (0xFFF & address)) >> 1;
+		/* Adjust to read blocks within boundaries aligned to the TAR autoincremnent size*/
+		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
 		if (wcount < blocksize)
 			blocksize = wcount;
 
@@ -879,8 +891,8 @@ int mem_ap_read_buf_packed_u8(swjdp_common_t *swjdp, u8 *buffer, int count, u32 
 	{
 		int nbytes;
 
-		/* Adjust to read within 4K block boundaries */
-		blocksize = (0x1000 - (0xFFF & address));
+		/* Adjust to read blocks within boundaries aligned to the TAR autoincremnent size*/
+		blocksize = max_tar_block_size(swjdp->tar_autoincr_block, address);
 
 		if (wcount < blocksize)
 			blocksize = wcount;
