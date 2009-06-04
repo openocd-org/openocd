@@ -539,7 +539,7 @@ static int str9xpec_lock_device(struct flash_bank_s *bank)
 		field.out_value = NULL;
 		field.in_value = &status;
 
-		jtag_add_dr_scan(1, &field, jtag_add_end_state(TAP_INVALID));
+		jtag_add_dr_scan(1, &field, jtag_get_end_state());
 		jtag_execute_queue();
 
 	} while(!(status & ISC_STATUS_BUSY));
@@ -620,7 +620,7 @@ static int str9xpec_set_address(struct flash_bank_s *bank, u8 sector)
 	field.out_value = &sector;
 	field.in_value = NULL;
 
-	jtag_add_dr_scan(1, &field, jtag_add_end_state(TAP_INVALID));
+	jtag_add_dr_scan(1, &field, jtag_get_end_state());
 
 	return ERROR_OK;
 }
@@ -717,7 +717,7 @@ static int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 				field.out_value = NULL;
 				field.in_value = scanbuf;
 
-				jtag_add_dr_scan(1, &field, jtag_add_end_state(TAP_INVALID));
+				jtag_add_dr_scan(1, &field, jtag_get_end_state());
 				jtag_execute_queue();
 
 				status = buf_get_u32(scanbuf, 0, 8);
@@ -767,7 +767,7 @@ static int str9xpec_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32
 			field.out_value = NULL;
 			field.in_value = scanbuf;
 
-			jtag_add_dr_scan(1, &field, jtag_add_end_state(TAP_INVALID));
+			jtag_add_dr_scan(1, &field, jtag_get_end_state());
 			jtag_execute_queue();
 
 			status = buf_get_u32(scanbuf, 0, 8);
@@ -959,7 +959,7 @@ static int str9xpec_write_options(struct flash_bank_s *bank)
 		field.out_value = NULL;
 		field.in_value = &status;
 
-		jtag_add_dr_scan(1, &field, jtag_add_end_state(TAP_INVALID));
+		jtag_add_dr_scan(1, &field, jtag_get_end_state());
 		jtag_execute_queue();
 
 	} while(!(status & ISC_STATUS_BUSY));

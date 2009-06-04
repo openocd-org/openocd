@@ -783,6 +783,11 @@ tap_state_t jtag_add_end_state(tap_state_t state)
 	return cmd_queue_end_state;
 }
 
+tap_state_t jtag_get_end_state(void)
+{
+	return cmd_queue_end_state;
+}
+
 void jtag_add_sleep(u32 us)
 {
 	keep_alive(); /* we might be running on a very slow JTAG clk */
@@ -2226,7 +2231,7 @@ static int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, 
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	jtag_add_runtest(strtol(args[0], NULL, 0), jtag_add_end_state(TAP_INVALID));
+	jtag_add_runtest(strtol(args[0], NULL, 0), jtag_get_end_state());
 	jtag_execute_queue();
 
 	return ERROR_OK;

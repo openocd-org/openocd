@@ -748,7 +748,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count)
 {
 //	static int const reg_addr=0x5;
-	tap_state_t end_state=jtag_add_end_state(TAP_INVALID);
+	tap_state_t end_state=jtag_get_end_state();
 	if (jtag_NextEnabledTap(jtag_NextEnabledTap(NULL))==NULL)
 	{
 		/* better performance via code duplication */

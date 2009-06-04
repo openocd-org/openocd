@@ -488,7 +488,7 @@ extern void jtag_add_reset(int req_tlr_or_trst, int srst);
 
 
 /**
- * Function jtag_add_stable_clocks
+ * Function jtag_add_end_state
  *
  * Set a global variable to \a state if \a state != TAP_INVALID.
  *
@@ -496,6 +496,13 @@ extern void jtag_add_reset(int req_tlr_or_trst, int srst);
  *
  **/
 extern tap_state_t jtag_add_end_state(tap_state_t state);
+/**
+ * Function jtag_get_end_state
+ *
+ * Return the value of the global variable for end state
+ *
+ **/
+extern tap_state_t jtag_get_end_state(void);
 extern void jtag_add_sleep(u32 us);
 
 
