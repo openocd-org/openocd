@@ -1565,6 +1565,12 @@ This is the Zylin ZY1000 JTAG debugger.
 This defines some driver-specific commands,
 which are not currently documented here.
 @end quotation
+
+@deffn Command power [@option{on}|@option{off}]
+Turn power switch to target on/off.
+No arguments: print status.
+@end deffn
+
 @end deffn
 
 @anchor{JTAG Speed}
@@ -2308,26 +2314,33 @@ The following events are available:
 @item @b{old-pre_resume}
 @* DO NOT USE THIS: Used internally
 @item @b{reset-assert-pre}
-@* Before reset is asserted on the tap.
+@* Issued as part of @command{reset} processing
+after SRST and/or TRST were activated and deactivated,
+but before reset is asserted on the tap.
 @item @b{reset-assert-post}
-@* Reset is now asserted on the tap.
+@* Issued as part of @command{reset} processing
+when reset is asserted on the tap.
 @item @b{reset-deassert-pre}
-@* Reset is about to be released on the tap
+@* Issued as part of @command{reset} processing
+when reset is about to be released on the tap.
 @item @b{reset-deassert-post}
-@* Reset has been released on the tap
+@* Issued as part of @command{reset} processing
+when reset has been released on the tap.
 @item @b{reset-end}
-@* Currently not used.
+@* Issued as the final step in @command{reset} processing.
 @item @b{reset-halt-post}
 @* Currently not usd
 @item @b{reset-halt-pre}
 @* Currently not used
 @item @b{reset-init}
 @* Used by @b{reset init} command for board-specific initialization.
+This event fires after @emph{reset-deassert-post}.
 This is where you would configure PLLs and clocking, set up DRAM so
 you can download programs that don't fit in on-chip SRAM, set up pin
 multiplexing, and so on.
 @item @b{reset-start}
-@* Currently not used
+@* Issued as part of @command{reset} processing
+before either SRST or TRST are activated.
 @item @b{reset-wait-pos}
 @* Currently not used
 @item @b{reset-wait-pre}
@@ -3472,27 +3485,37 @@ port is 5555.
 
 @section Daemon Commands
 
-@subsection sleep [@var{msec}]
-@cindex sleep
-@*Wait for n milliseconds before resuming. Useful in connection with script files
-(@var{script} command and @var{target_script} configuration). 
+@deffn Command sleep msec [@option{busy}]
+Wait for at least @var{msec} milliseconds before resuming.
+If @option{busy} is passed, busy-wait instead of sleeping.
+(This option is strongly discouraged.)
+Useful in connection with script files
+(@command{script} command and @command{target_name} configuration).
+@end deffn
 
-@subsection shutdown
-@cindex shutdown
-@*Close the OpenOCD daemon, disconnecting all clients (GDB, telnet, other). 
+@deffn Command shutdown
+Close the OpenOCD daemon, disconnecting all clients (GDB, telnet, other).
+@end deffn
 
 @anchor{debug_level}
-@subsection debug_level [@var{n}]
-@cindex debug_level
-@*Display or adjust debug level to n<0-3> 
+@deffn Command debug_level [n]
+@cindex message level
+Display debug level.
+If @var{n} (from 0..3) is provided, then set it to that level.
+This affects the kind of messages sent to the server log.
+Level 0 is error messages only;
+level 1 adds warnings;
+level 2 (the default) adds informational messages;
+and level 3 adds debugging messages.
+@end deffn
 
-@subsection fast [@var{enable|disable}]
-@cindex fast
-@*Default disabled. Set default behaviour of OpenOCD to be "fast and dangerous". For instance ARM7/9 DCC memory
-downloads and fast memory access will work if the JTAG interface isn't too fast and
-the core doesn't run at a too low frequency. Note that this option only changes the default
-and that the indvidual options, like DCC memory downloads, can be enabled and disabled
-individually. 
+@deffn Command fast [enable|disable]
+Default disabled.
+Set default behaviour of OpenOCD to be "fast and dangerous".
+
+At this writing, this only affects the defaults for two ARM7/ARM9 parameters:
+fast memory access, and DCC downloads.  Those parameters may still be
+individually overridden.
 
 The target specific "dangerous" optimisation tweaking options may come and go
 as more robust and user friendly ways are found to ensure maximum throughput
@@ -3503,191 +3526,264 @@ Typically the "fast enable" is specified first on the command line:
 @example
 openocd -c "fast enable" -c "interface dummy" -f target/str710.cfg
 @end example
+@end deffn
 
-@subsection echo <@var{message}>
-@cindex echo
-@*Output message to stdio. e.g. echo "Programming - please wait"
+@deffn Command echo message
+Logs a message at "user" priority.
+Output @var{message} to stdout.
+@example
+echo "Downloading kernel -- please wait"
+@end example
+@end deffn
 
-@subsection log_output <@var{file}>
-@cindex log_output
-@*Redirect logging to <file> (default: stderr) 
+@deffn Command log_output [filename]
+Redirect logging to @var{filename};
+the initial log output channel is stderr.
+@end deffn
 
-@subsection script <@var{file}>
-@cindex script
-@*Execute commands from <file> 
-See also: ``source [find FILENAME]''
+@section Target State handling
+@cindex reset
+@cindex halt
+@cindex target initialization
 
-@section Target state handling
-@subsection power <@var{on}|@var{off}>
-@cindex reg
-@*Turn power switch to target on/off. 
-No arguments: print status.
-Not all interfaces support this.
+In this section ``target'' refers to a CPU configured as
+shown earlier (@pxref{CPU Configuration}).
+These commands, like many, implicitly refer to
+a @dfn{current target} which is used to perform the
+various operations.  The current target may be changed
+by using @command{targets} command with the name of the
+target which should become current.
 
-@subsection reg [@option{#}|@option{name}] [value]
-@cindex reg
-@*Access a single register by its number[@option{#}] or by its [@option{name}].
-No arguments: list all available registers for the current target.
-Number or name argument: display a register.
-Number or name and value arguments: set register value.
+@deffn Command reg [(number|name) [value]]
+Access a single register by @var{number} or by its @var{name}.
 
-@subsection poll [@option{on}|@option{off}]
-@cindex poll
-@*Poll the target for its current state. If the target is in debug mode, architecture
+@emph{With no arguments}:
+list all available registers for the current target,
+showing number, name, size, value, and cache status.
+
+@emph{With number/name}: display that register's value.
+
+@emph{With both number/name and value}: set register's value.
+
+Cores may have surprisingly many registers in their
+Debug and trace infrastructure:
+
+@example
+> reg
+(0) r0 (/32): 0x0000D3C2 (dirty: 1, valid: 1)
+(1) r1 (/32): 0xFD61F31C (dirty: 0, valid: 1)
+(2) r2 (/32): 0x00022551 (dirty: 0, valid: 1)
+...
+(164) ETM_CONTEXTID_COMPARATOR_MASK (/32): \
+              0x00000000 (dirty: 0, valid: 0)
+>
+@end example
+@end deffn
+
+@deffn Command poll [@option{on}|@option{off}]
+Poll the current target for its current state.
+If that target is in debug mode, architecture
 specific information about the current state is printed. An optional parameter
 allows continuous polling to be enabled and disabled.
 
-@subsection halt [@option{ms}]
-@cindex halt
-@*Send a halt request to the target and wait for it to halt for up to [@option{ms}] milliseconds.
-Default [@option{ms}] is 5 seconds if no arg given.
-Optional arg @option{ms} is a timeout in milliseconds. Using 0 as the [@option{ms}]
-will stop OpenOCD from waiting.
+@example
+> poll
+target state: halted
+target halted in ARM state due to debug-request, \
+               current mode: Supervisor
+cpsr: 0x800000d3 pc: 0x11081bfc
+MMU: disabled, D-Cache: disabled, I-Cache: enabled
+>
+@end example
+@end deffn
 
-@subsection wait_halt [@option{ms}]
-@cindex wait_halt
-@*Wait for the target to enter debug mode. Optional [@option{ms}] is
-a timeout in milliseconds. Default [@option{ms}] is 5 seconds if no
-arg is given.
+@deffn Command halt [ms]
+@deffnx Command wait_halt [ms]
+The @command{halt} command first sends a halt request to the target,
+which @command{wait_halt} doesn't.
+Otherwise these behave the same:  wait up to @var{ms} milliseconds,
+or 5 seconds if there is no parameter, for the target to halt
+(and enter debug mode).
+Using 0 as the @var{ms} parameter prevents OpenOCD from waiting.
+@end deffn
 
-@subsection resume [@var{address}]
-@cindex resume
-@*Resume the target at its current code position, or at an optional address.
+@deffn Command resume [address]
+Resume the target at its current code position,
+or the optional @var{address} if it is provided.
 OpenOCD will wait 5 seconds for the target to resume.
+@end deffn
 
-@subsection step [@var{address}]
-@cindex step
-@*Single-step the target at its current code position, or at an optional address. 
+@deffn Command step [address]
+Single-step the target at its current code position,
+or the optional @var{address} if it is provided.
+@end deffn
 
 @anchor{Reset Command}
-@subsection reset [@option{run}|@option{halt}|@option{init}]
-@cindex reset
-@*Perform a hard-reset. The optional parameter specifies what should
+@deffn Command reset
+@deffnx Command {reset run}
+@deffnx Command {reset halt}
+@deffnx Command {reset init}
+Perform as hard a reset as possible, using SRST if possible.
+@emph{All defined targets will be reset, and target
+events will fire during the reset sequence.}
+
+The optional parameter specifies what should
 happen after the reset.
 If there is no parameter, a @command{reset run} is executed.
 The other options will not work on all systems.
 @xref{Reset Configuration}.
-@itemize @minus
-@item @b{run}
-@cindex reset run
-@*Let the target run.
-@item @b{halt}
-@cindex reset halt
-@*Immediately halt the target (works only with certain configurations).
-@item @b{init}
-@cindex reset init
-@*Immediately halt the target, and execute the reset script (works only with certain
-configurations)
-@end itemize
 
-@subsection soft_reset_halt
-@cindex reset
-@*Requesting target halt and executing a soft reset. This is often used
+@itemize @minus
+@item @b{run} Let the target run
+@item @b{halt} Immediately halt the target
+@item @b{init} Immediately halt the target, and execute the reset-init script
+@end itemize
+@end deffn
+
+@deffn Command soft_reset_halt
+Requesting target halt and executing a soft reset. This is often used
 when a target cannot be reset and halted. The target, after reset is
 released begins to execute code. OpenOCD attempts to stop the CPU and
 then sets the program counter back to the reset vector. Unfortunately
 the code that was executed may have left the hardware in an unknown
 state.
+@end deffn
 
+@section I/O Utilities
+
+These commands are available when
+OpenOCD is built with @option{--enable-ioutil}.
+They are mainly useful on embedded targets;
+PC type hosts have complimentary tools.
+
+@emph{Note:} there are several more such commands.
+
+@deffn Command  meminfo
+Display available RAM memory on OpenOCD host.
+Used in OpenOCD regression testing scripts.
+@end deffn
 
 @anchor{Memory access}
 @section Memory access commands
-@subsection meminfo
-display available RAM memory on OpenOCD host. Used in OpenOCD regression testing scripts. Mainly
-useful on embedded targets, PC type hosts have complimentary tools like Valgrind to address
-resource tracking problems.
-@subsection Memory peek/poke type commands
+@cindex memory access
+
 These commands allow accesses of a specific size to the memory
 system. Often these are used to configure the current target in some
-special way. For example - one may need to write certian values to the
+special way. For example - one may need to write certain values to the
 SDRAM controller to enable SDRAM.
 
 @enumerate
-@item To change the current target see the ``targets'' (plural) command
-@item In system level scripts these commands are deprecated, please use the TARGET object versions.
+@item Use the @command{targets} (plural) command
+to change the current target.
+@item In system level scripts these commands are deprecated.
+Please use their TARGET object siblings to avoid making assumptions
+about what TAP is the current target, or about MMU configuration.
 @end enumerate
 
-@itemize @bullet
-@item @b{mdw} <@var{addr}> [@var{count}]
-@cindex mdw
-@*display memory words (32bit)
-@item @b{mdh} <@var{addr}> [@var{count}]
-@cindex mdh
-@*display memory half-words (16bit)
-@item @b{mdb} <@var{addr}> [@var{count}]
-@cindex mdb
-@*display memory bytes (8bit)
-@item @b{mww} <@var{addr}> <@var{value}>
-@cindex mww
-@*write memory word (32bit)
-@item @b{mwh} <@var{addr}> <@var{value}>
-@cindex mwh
-@*write memory half-word (16bit)
-@item @b{mwb} <@var{addr}> <@var{value}>
-@cindex mwb
-@*write memory byte (8bit)
-@end itemize
+@deffn Command mdw addr [count]
+@deffnx Command mdh addr [count]
+@deffnx Command mdb addr [count]
+Display contents of address @var{addr}, as
+32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
+or 8-bit bytes (@command{mdb}).
+If @var{count} is specified, displays that many units.
+@end deffn
+
+@deffn Command mww addr word
+@deffnx Command mwh addr halfword
+@deffnx Command mwb addr byte
+Writes the specified @var{word} (32 bits),
+@var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
+at the specified address @var{addr}.
+@end deffn
+
 
 @anchor{Image access}
 @section Image loading commands
-@anchor{load_image}
-@subsection load_image
-@b{load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
-@cindex load_image
-@*Load image <@var{file}> to target memory at <@var{address}> 
-@subsection fast_load_image
-@b{fast_load_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
-@cindex fast_load_image
-@*Normally you should be using @b{load_image} or GDB load. However, for
+@cindex image loading
+@cindex image dumping
+
+@anchor{dump_image}
+@deffn Command {dump_image} filename address size
+Dump @var{size} bytes of target memory starting at @var{address} to the
+binary file named @var{filename}.
+@end deffn
+
+@deffn Command {fast_load}
+Loads an image stored in memory by @command{fast_load_image} to the
+current target. Must be preceeded by fast_load_image.
+@end deffn
+
+@deffn Command {fast_load_image} filename address [@option{bin}|@option{ihex}|@option{elf}]
+Normally you should be using @command{load_image} or GDB load. However, for
 testing purposes or when I/O overhead is significant(OpenOCD running on an embedded
 host), storing the image in memory and uploading the image to the target
 can be a way to upload e.g. multiple debug sessions when the binary does not change.
-Arguments are the same as @b{load_image}, but the image is stored in OpenOCD host
+Arguments are the same as @command{load_image}, but the image is stored in OpenOCD host
 memory, i.e. does not affect target.  This approach is also useful when profiling
 target programming performance as I/O and target programming can easily be profiled
 separately.
-@subsection fast_load
-@b{fast_load}
-@cindex fast_image
-@*Loads an image stored in memory by @b{fast_load_image} to the current target. Must be preceeded by fast_load_image.
-@anchor{dump_image}
-@subsection dump_image
-@b{dump_image} <@var{file}> <@var{address}> <@var{size}>
-@cindex dump_image
-@*Dump <@var{size}> bytes of target memory starting at <@var{address}> to a
-(binary) <@var{file}>.
-@subsection verify_image
-@b{verify_image} <@var{file}> <@var{address}> [@option{bin}|@option{ihex}|@option{elf}]
-@cindex verify_image
-@*Verify <@var{file}> against target memory starting at <@var{address}>.
+@end deffn
+
+@anchor{load_image}
+@deffn Command {load_image} filename address [@option{bin}|@option{ihex}|@option{elf}]
+Load image from file @var{filename} to target memory at @var{address}.
+The file format may optionally be specified
+(@option{bin}, @option{ihex}, or @option{elf})
+@end deffn
+
+@deffn Command {verify_image} filename address [@option{bin}|@option{ihex}|@option{elf}]
+Verify @var{filename} against target memory starting at @var{address}.
+The file format may optionally be specified
+(@option{bin}, @option{ihex}, or @option{elf})
 This will first attempt a comparison using a CRC checksum, if this fails it will try a binary compare.
+@end deffn
 
 
-@section Breakpoint commands
-@cindex Breakpoint commands
-@itemize @bullet
-@item @b{bp} <@var{addr}> <@var{len}> [@var{hw}]
-@cindex bp
-@*set breakpoint <address> <length> [hw]
-@item @b{rbp} <@var{addr}>
-@cindex rbp
-@*remove breakpoint <adress>
-@item @b{wp} <@var{addr}> <@var{len}> <@var{r}|@var{w}|@var{a}> [@var{value}] [@var{mask}]
-@cindex wp
-@*set watchpoint <address> <length> <r/w/a> [value] [mask]
-@item @b{rwp} <@var{addr}>
-@cindex rwp
-@*remove watchpoint <adress>
-@end itemize
+@section Breakpoint and Watchpoint commands
+@cindex breakpoint
+@cindex watchpoint
+
+CPUs often make debug modules accessible through JTAG, with
+hardware support for a handful of code breakpoints and data
+watchpoints.
+In addition, CPUs almost always support software breakpoints.
+
+@deffn Command {bp} [address len [@option{hw}]]
+With no parameters, lists all active breakpoints.
+Else sets a breakpoint on code execution starting
+at @var{address} for @var{length} bytes.
+This is a software breakpoint, unless @option{hw} is specified
+in which case it will be a hardware breakpoint.
+@end deffn
+
+@deffn Command {rbp} address
+Remove the breakpoint at @var{address}.
+@end deffn
+
+@deffn Command {rwp} address
+Remove data watchpoint on @var{address}
+@end deffn
+
+@deffn Command {wp} [address len [(@option{r}|@option{w}|@option{a}) [value [mask]]]
+With no parameters, lists all active watchpoints.
+Else sets a data watchpoint on data from @var{address} for @var{length} bytes.
+The watch point is an "access" watchpoint unless
+the @option{r} or @option{w} parameter is provided,
+defining it as respectively a read or write watchpoint.
+If a @var{value} is provided, that value is used when determining if
+the watchpoint should trigger.  The value may be first be masked
+using @var{mask} to mark ``don't care'' fields.
+@end deffn
 
 @section Misc Commands
-@cindex Other Target Commands
-@itemize
-@item @b{profile} <@var{seconds}> <@var{gmon.out}>
+@cindex profiling
 
-Profiling samples the CPU's program counter as quickly as possible, which is useful for non-intrusive stochastic profiling.
-
-@end itemize
+@deffn Command {profile} seconds filename
+Profiling samples the CPU's program counter as quickly as possible,
+which is useful for non-intrusive stochastic profiling.
+Saves up to 10000 sampines in @file{filename} using ``gmon.out'' format.
+@end deffn
 
 @node Architecture and Core Commands
 @chapter Architecture and Core Commands
