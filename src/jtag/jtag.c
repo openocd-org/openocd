@@ -396,9 +396,7 @@ static void jtag_prelude(tap_state_t state)
 
 	assert(state!=TAP_INVALID);
 
-	jtag_add_end_state(state);
-
-	cmd_queue_cur_state = cmd_queue_end_state;
+	cmd_queue_cur_state = state;
 }
 
 void jtag_alloc_in_value32(scan_field_t *field)
@@ -411,7 +409,7 @@ void jtag_add_ir_scan_noverify(int in_num_fields, const scan_field_t *in_fields,
 	int retval;
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_ir_scan(in_num_fields, in_fields, cmd_queue_end_state);
+	retval=interface_jtag_add_ir_scan(in_num_fields, in_fields, state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 
@@ -460,7 +458,7 @@ void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields, ta
 
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_plain_ir_scan(in_num_fields, in_fields, cmd_queue_end_state);
+	retval=interface_jtag_add_plain_ir_scan(in_num_fields, in_fields, state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -548,7 +546,7 @@ void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields, tap_stat
 
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_dr_scan(in_num_fields, in_fields, cmd_queue_end_state);
+	retval=interface_jtag_add_dr_scan(in_num_fields, in_fields, state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -567,7 +565,7 @@ void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields, ta
 
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_plain_dr_scan(in_num_fields, in_fields, cmd_queue_end_state);
+	retval=interface_jtag_add_plain_dr_scan(in_num_fields, in_fields, state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }
@@ -578,13 +576,11 @@ void jtag_add_dr_out(jtag_tap_t* tap,
 {
 	assert(end_state != TAP_INVALID);
 
-	cmd_queue_end_state = end_state;
-
-	cmd_queue_cur_state = cmd_queue_end_state;
+	cmd_queue_cur_state = end_state;
 
 	interface_jtag_add_dr_out(tap,
 			num_fields, num_bits, value,
-			cmd_queue_end_state);
+			end_state);
 }
 
 void jtag_add_tlr(void)
@@ -644,7 +640,7 @@ void jtag_add_runtest(int num_cycles, tap_state_t state)
 	jtag_prelude(state);
 
 	/* executed by sw or hw fifo */
-	retval=interface_jtag_add_runtest(num_cycles, cmd_queue_end_state);
+	retval=interface_jtag_add_runtest(num_cycles, state);
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
 }

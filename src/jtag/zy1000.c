@@ -517,7 +517,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 		tap_state_t end_state;
 		if (nextTap==NULL)
 		{
-			end_state = cmd_queue_end_state;
+			end_state = state;
 		} else
 		{
 			end_state = TAP_IRSHIFT;
@@ -568,7 +568,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 
 int interface_jtag_add_plain_ir_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
 {
-	scanFields(num_fields, fields, TAP_IRSHIFT, cmd_queue_end_state);
+	scanFields(num_fields, fields, TAP_IRSHIFT, state);
 
 	return ERROR_OK;
 }
@@ -587,7 +587,7 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 		tap_state_t end_state;
 		if (nextTap==NULL)
 		{
-			end_state = cmd_queue_end_state;
+			end_state = state;
 		} else
 		{
 			end_state = TAP_DRSHIFT;
@@ -621,7 +621,7 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 
 int interface_jtag_add_plain_dr_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
 {
-	scanFields(num_fields, fields, TAP_DRSHIFT, cmd_queue_end_state);
+	scanFields(num_fields, fields, TAP_DRSHIFT, state);
 	return ERROR_OK;
 }
 
@@ -693,7 +693,7 @@ int interface_jtag_add_runtest(int num_cycles, tap_state_t state)
 
 int interface_jtag_add_clocks(int num_cycles)
 {
-	return zy1000_jtag_add_clocks(num_cycles, cmd_queue_cur_state, cmd_queue_end_state);
+	return zy1000_jtag_add_clocks(num_cycles, cmd_queue_cur_state, cmd_queue_cur_state);
 }
 
 int interface_jtag_add_sleep(u32 us)
