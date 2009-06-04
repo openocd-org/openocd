@@ -385,17 +385,14 @@ int jtag_call_event_callbacks(enum jtag_event event)
 	return ERROR_OK;
 }
 
-static void jtag_prelude1(void)
+static void jtag_checks(void)
 {
 	assert(jtag_trst == 0);
-
-	if (cmd_queue_end_state == TAP_RESET)
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 }
 
 static void jtag_prelude(tap_state_t state)
 {
-	jtag_prelude1();
+	jtag_checks();
 
 	if (state != TAP_INVALID)
 		jtag_add_end_state(state);
@@ -596,6 +593,8 @@ void jtag_add_tlr(void)
 	retval=interface_jtag_add_tlr();
 	if (retval!=ERROR_OK)
 		jtag_error=retval;
+	
+	jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 }
 
 void jtag_add_pathmove(int num_states, const tap_state_t *path)
@@ -628,7 +627,7 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 		cur_state = path[i];
 	}
 
-	jtag_prelude1();
+	jtag_checks();
 
 	retval = interface_jtag_add_pathmove(num_states, path);
 	cmd_queue_cur_state = path[num_states - 1];
@@ -663,7 +662,7 @@ void jtag_add_clocks( int num_cycles )
 
 	if( num_cycles > 0 )
 	{
-		jtag_prelude1();
+		jtag_checks();
 
 		retval = interface_jtag_add_clocks(num_cycles);
 		if (retval != ERROR_OK)
@@ -755,7 +754,6 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		LOG_DEBUG("JTAG reset with RESET instead of TRST");
 		jtag_add_end_state(TAP_RESET);
 		jtag_add_tlr();
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 		return;
 	}
 

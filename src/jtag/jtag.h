@@ -218,6 +218,17 @@ enum reset_line_mode {
 	LINE_PUSH_PULL  = 0x1,
 };
 
+/* 
+ * There are three cases when JTAG_TRST_ASSERTED callback is invoked. The
+ * event is invoked *after* TRST is asserted(or queued rather). It is illegal 
+ * to communicate with the JTAG interface during the callback(as there is 
+ * currently a queue being built).
+ * 
+ * - TMS reset
+ * - SRST pulls TRST
+ * - TRST asserted
+ * 
+ **/
 enum jtag_event {
 	JTAG_TRST_ASSERTED
 };
