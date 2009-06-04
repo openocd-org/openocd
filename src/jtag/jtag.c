@@ -909,6 +909,11 @@ void jtag_execute_queue_noclear(void)
 	}
 }
 
+int jtag_get_flush_queue_count(void)
+{
+	return jtag_flush_queue_count;
+}
+
 int jtag_execute_queue(void)
 {
 	int retval;
@@ -2480,7 +2485,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const *args)
 {
-	Jim_SetResult(interp, Jim_NewIntObj(interp, jtag_flush_queue_count));
+	Jim_SetResult(interp, Jim_NewIntObj(interp, jtag_get_flush_queue_count()));
 
 	return JIM_OK;
 }
