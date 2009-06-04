@@ -58,7 +58,7 @@ int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
 
 
 
-		jtag_add_ir_scan(1, &field, TAP_IDLE);
+		jtag_add_ir_scan(1, &field, jtag_add_end_state(TAP_IDLE));
 
 		free(field.out_value);
 	}
@@ -186,11 +186,11 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 
 	jtag_add_end_state(TAP_IDLE);
 	virtex2_set_instr(virtex2_info->tap, 0xc); /* JSTART */
-	jtag_add_runtest(13, TAP_IDLE);
+	jtag_add_runtest(13, jtag_add_end_state(TAP_IDLE));
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */
 	virtex2_set_instr(virtex2_info->tap, 0xc); /* JSTART */
-	jtag_add_runtest(13, TAP_IDLE);
+	jtag_add_runtest(13, jtag_add_end_state(TAP_IDLE));
 	virtex2_set_instr(virtex2_info->tap, 0x3f); /* BYPASS */
 	jtag_execute_queue();
 

@@ -70,7 +70,7 @@ int adi_jtag_dp_scan(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u8 *o
 
 	/* Add specified number of tck clocks before accessing memory bus */
 	if ((instr == DAP_IR_APACC) && ((reg_addr == AP_REG_DRW)||((reg_addr&0xF0) == AP_REG_BD0) )&& (swjdp->memaccess_tck != 0))
-		jtag_add_runtest(swjdp->memaccess_tck, TAP_IDLE);
+		jtag_add_runtest(swjdp->memaccess_tck, jtag_add_end_state(TAP_IDLE));
 
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 3;
@@ -101,7 +101,7 @@ int adi_jtag_dp_scan_u32(swjdp_common_t *swjdp, u8 instr, u8 reg_addr, u8 RnW, u
 
 	/* Add specified number of tck clocks before accessing memory bus */
 	if ((instr == DAP_IR_APACC) && ((reg_addr == AP_REG_DRW)||((reg_addr&0xF0) == AP_REG_BD0) )&& (swjdp->memaccess_tck != 0))
-		jtag_add_runtest(swjdp->memaccess_tck, TAP_IDLE);
+		jtag_add_runtest(swjdp->memaccess_tck, jtag_add_end_state(TAP_IDLE));
 
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 3;

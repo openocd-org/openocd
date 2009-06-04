@@ -363,7 +363,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 
 			fields[1].in_value = (u8 *)(field1+i);
 
-			jtag_add_dr_scan_check(3, fields, TAP_IDLE);
+			jtag_add_dr_scan_check(3, fields, jtag_add_end_state(TAP_IDLE));
 
 			jtag_add_callback(xscale_getbuf, (u8 *)(field1+i));
 
@@ -477,7 +477,7 @@ int xscale_read_tx(target_t *target, int consume)
 			jtag_add_pathmove(sizeof(noconsume_path)/sizeof(*noconsume_path), noconsume_path);
 		}
 
-		jtag_add_dr_scan(3, fields, TAP_IDLE);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_IDLE));
 
 		jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
 		jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
@@ -560,7 +560,7 @@ int xscale_write_rx(target_t *target)
 	LOG_DEBUG("polling RX");
 	for (;;)
 	{
-		jtag_add_dr_scan(3, fields, TAP_IDLE);
+		jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_IDLE));
 
 		jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
 		jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
@@ -592,7 +592,7 @@ int xscale_write_rx(target_t *target)
 
 	/* set rx_valid */
 	field2 = 0x1;
-	jtag_add_dr_scan(3, fields, TAP_IDLE);
+	jtag_add_dr_scan(3, fields, jtag_add_end_state(TAP_IDLE));
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -658,7 +658,7 @@ int xscale_send(target_t *target, u8 *buffer, int count, int size)
 				3,
 				bits,
 				t,
-				TAP_IDLE);
+				jtag_add_end_state(TAP_IDLE));
 		buffer += size;
 	}
 
@@ -1646,7 +1646,7 @@ int xscale_deassert_reset(target_t *target)
 		/* wait 300ms; 150 and 100ms were not enough */
 		jtag_add_sleep(300*1000);
 
-		jtag_add_runtest(2030, TAP_IDLE);
+		jtag_add_runtest(2030, jtag_add_end_state(TAP_IDLE));
 		jtag_execute_queue();
 
 		/* set Hold reset, Halt mode and Trap Reset */
@@ -1709,7 +1709,7 @@ int xscale_deassert_reset(target_t *target)
 		xscale_load_ic(target, 1, 0x0, xscale->low_vectors);
 		xscale_load_ic(target, 1, 0xffff0000, xscale->high_vectors);
 
-		jtag_add_runtest(30, TAP_IDLE);
+		jtag_add_runtest(30, jtag_add_end_state(TAP_IDLE));
 
 		jtag_add_sleep(100000);
 
