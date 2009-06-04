@@ -2953,112 +2953,123 @@ When performing a unlock remember that you will not be able to halt the str9 - i
 has been locked. Halting the core is not required for the @option{str9xpec} driver
 as mentioned above, just issue the commands above manually or from a telnet prompt.
 
-@subsubsection str9xpec driver options
-
-@b{flash bank str9xpec} <@var{base}> <@var{size}> 0 0 <@var{target}>
-@*Before using the flash commands the turbo mode must be enabled using str9xpec
-@option{enable_turbo} <@var{num>.}
-
+@deffn {Flash Driver} str9xpec
 Only use this driver for locking/unlocking the device or configuring the option bytes.
 Use the standard str9 driver for programming.
+Before using the flash commands the turbo mode must be enabled using the
+@command{str9xpec enable_turbo} command.
 
-@subsubsection str9xpec specific commands
-@cindex str9xpec specific commands
-These are flash specific commands when using the str9xpec driver.
+Several str9xpec-specific commands are defined:
 
-@itemize @bullet
-@item @b{str9xpec enable_turbo} <@var{num}>
-@cindex str9xpec enable_turbo
-@*enable turbo mode, will simply remove the str9 from the chain and talk
+@deffn Command {str9xpec disable_turbo} num
+Restore the str9 into JTAG chain.
+@end deffn
+
+@deffn Command {str9xpec enable_turbo} num
+Enable turbo mode, will simply remove the str9 from the chain and talk
 directly to the embedded flash controller.
-@item @b{str9xpec disable_turbo} <@var{num}>
-@cindex str9xpec disable_turbo
-@*restore the str9 into JTAG chain.
-@item @b{str9xpec lock} <@var{num}>
-@cindex str9xpec lock
-@*lock str9 device. The str9 will only respond to an unlock command that will
+@end deffn
+
+@deffn Command {str9xpec lock} num
+Lock str9 device. The str9 will only respond to an unlock command that will
 erase the device.
-@item @b{str9xpec unlock} <@var{num}>
-@cindex str9xpec unlock
-@*unlock str9 device.
-@item @b{str9xpec options_read} <@var{num}>
-@cindex str9xpec options_read
-@*read str9 option bytes.
-@item @b{str9xpec options_write} <@var{num}>
-@cindex str9xpec options_write
-@*write str9 option bytes.
-@end itemize
+@end deffn
 
-@subsubsection STR9 option byte configuration
-@cindex STR9 option byte configuration
+@deffn Command {str9xpec part_id} num
+Prints the part identifier for bank @var{num}.
+@end deffn
 
-@itemize @bullet
-@item @b{str9xpec options_cmap} <@var{num}> <@option{bank0}|@option{bank1}>
-@cindex str9xpec options_cmap
-@*configure str9 boot bank. 
-@item @b{str9xpec options_lvdthd} <@var{num}> <@option{2.4v}|@option{2.7v}>
-@cindex str9xpec options_lvdthd
-@*configure str9 lvd threshold. 
-@item @b{str9xpec options_lvdsel} <@var{num}> <@option{vdd}|@option{vdd_vddq}>
-@cindex str9xpec options_lvdsel
-@*configure str9 lvd source. 
-@item @b{str9xpec options_lvdwarn} <@var{bank}> <@option{vdd}|@option{vdd_vddq}>
-@cindex str9xpec options_lvdwarn
-@*configure str9 lvd reset warning source. 
-@end itemize
+@deffn Command {str9xpec options_cmap} num (@option{bank0}|@option{bank1})
+Configure str9 boot bank.
+@end deffn
+
+@deffn Command {str9xpec options_lvdsel} num (@option{vdd}|@option{vdd_vddq})
+Configure str9 lvd source.
+@end deffn
+
+@deffn Command {str9xpec options_lvdthd} num (@option{2.4v}|@option{2.7v})
+Configure str9 lvd threshold.
+@end deffn
+
+@deffn Command {str9xpec options_lvdwarn} bank (@option{vdd}|@option{vdd_vddq})
+Configure str9 lvd reset warning source.
+@end deffn
+
+@deffn Command {str9xpec options_read} num
+Read str9 option bytes.
+@end deffn
+
+@deffn Command {str9xpec options_write} num
+Write str9 option bytes.
+@end deffn
+
+@deffn Command {str9xpec unlock} num
+unlock str9 device.
+@end deffn
+
+@end deffn
+
 
 @section mFlash
 
 @subsection mFlash Configuration
 @cindex mFlash Configuration
-@b{mflash bank} <@var{soc}> <@var{base}> <@var{RST pin}> <@var{target}>
-@cindex mflash bank
-@*Configures a mflash for <@var{soc}> host bank at
-<@var{base}>. Pin number format is dependent on host GPIO calling convention.
-Currently, mflash bank support s3c2440 and pxa270.
 
-(ex. of s3c2440) mflash <@var{RST pin}> is GPIO B1.
+@deffn {Config Command} {mflash bank} soc base RST_pin target
+Configures a mflash for @var{soc} host bank at
+address @var{base}.
+The pin number format depends on the host GPIO naming convention.
+Currently, the mflash driver supports s3c2440 and pxa270.
+
+Example for s3c2440 mflash where @var{RST pin} is GPIO B1:
 
 @example
 mflash bank s3c2440 0x10000000 1b 0
 @end example
 
-(ex. of pxa270) mflash <@var{RST pin}> is GPIO 43.
+Example for pxa270 mflash where @var{RST pin} is GPIO 43:
 
 @example
 mflash bank pxa270 0x08000000 43 0
 @end example
+@end deffn
 
 @subsection mFlash commands
 @cindex mFlash commands
 
-@itemize @bullet
-@item @b{mflash probe}
-@cindex mflash probe
-@*Probe mflash.
-@item @b{mflash write} <@var{num}> <@var{file}> <@var{offset}>
-@cindex mflash write
-@*Write the binary <@var{file}> to mflash bank <@var{num}>, starting at
-<@var{offset}> bytes from the beginning of the bank.
-@item @b{mflash dump} <@var{num}> <@var{file}> <@var{offset}> <@var{size}>
-@cindex mflash dump
-@*Dump <size> bytes, starting at <@var{offset}> bytes from the beginning of the <@var{num}> bank
-to a <@var{file}>.
-@item @b{mflash config pll} <@var{frequency}>
-@cindex mflash config pll
-@*Configure mflash pll. <@var{frequency}> is input frequency of mflash. The order is Hz.
+@deffn Command {mflash config pll} frequency
+Configure mflash PLL.
+The @var{frequency} is the mflash input frequency, in Hz.
 Issuing this command will erase mflash's whole internal nand and write new pll.
 After this command, mflash needs power-on-reset for normal operation.
 If pll was newly configured, storage and boot(optional) info also need to be update.
-@item @b{mflash config boot}
-@cindex mflash config boot
-@*Configure bootable option. If bootable option is set, mflash offer the first 8 sectors
+@end deffn
+
+@deffn Command {mflash config boot}
+Configure bootable option.
+If bootable option is set, mflash offer the first 8 sectors
 (4kB) for boot.
-@item @b{mflash config storage}
-@cindex mflash config storage
-@*Configure storage information. For the normal storage operation, this information must be
+@end deffn
+
+@deffn Command {mflash config storage}
+Configure storage information.
+For the normal storage operation, this information must be
 written.
-@end itemize
+@end deffn
+
+@deffn Command {mflash dump} num filename offset size
+Dump @var{size} bytes, starting at @var{offset} bytes from the
+beginning of the bank @var{num}, to the file named @var{filename}.
+@end deffn
+
+@deffn Command {mflash probe}
+Probe mflash.
+@end deffn
+
+@deffn Command {mflash write} num filename offset
+Write the binary file @var{filename} to mflash bank @var{num}, starting at
+@var{offset} bytes from the beginning of the bank.
+@end deffn
 
 @node NAND Flash Commands
 @chapter NAND Flash Commands
