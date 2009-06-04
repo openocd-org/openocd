@@ -394,8 +394,9 @@ static void jtag_prelude(tap_state_t state)
 {
 	jtag_checks();
 
-	if (state != TAP_INVALID)
-		jtag_add_end_state(state);
+	assert(state!=TAP_INVALID);
+
+	jtag_add_end_state(state);
 
 	cmd_queue_cur_state = cmd_queue_end_state;
 }
@@ -575,8 +576,9 @@ void jtag_add_dr_out(jtag_tap_t* tap,
 		int num_fields, const int* num_bits, const u32* value,
 		tap_state_t end_state)
 {
-	if (end_state != TAP_INVALID)
-		cmd_queue_end_state = end_state;
+	assert(end_state != TAP_INVALID);
+
+	cmd_queue_end_state = end_state;
 
 	cmd_queue_cur_state = cmd_queue_end_state;
 
