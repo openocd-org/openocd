@@ -148,7 +148,7 @@ static void olimex_jtag_blink(void);
 static void flyswatter_jtag_blink(void);
 static void turtle_jtag_blink(void);
 
-ft2232_layout_t  ft2232_layouts[] =
+static const ft2232_layout_t  ft2232_layouts[] =
 {
 	{ "usbjtag",              usbjtag_init,              usbjtag_reset,      NULL                    },
 	{ "jtagkey",              jtagkey_init,              jtagkey_reset,      NULL                    },
@@ -170,7 +170,7 @@ ft2232_layout_t  ft2232_layouts[] =
 
 static u8                  nTRST, nTRSTnOE, nSRST, nSRSTnOE;
 
-static ft2232_layout_t*    layout;
+static const ft2232_layout_t *layout;
 static u8                  low_output     = 0x0;
 static u8                  low_direction  = 0x0;
 static u8                  high_output    = 0x0;
@@ -558,7 +558,7 @@ static int ft2232_register_commands(struct command_context_s* cmd_ctx)
 }
 
 
-void ft2232_end_state(tap_state_t state)
+static void ft2232_end_state(tap_state_t state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -775,7 +775,7 @@ static void ft2232_add_pathmove( tap_state_t* path, int num_states )
 }
 
 
-void ft2232_add_scan(bool ir_scan, enum scan_type type, u8* buffer, int scan_size)
+static void ft2232_add_scan(bool ir_scan, enum scan_type type, u8* buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;
@@ -2032,7 +2032,7 @@ static int ft2232_init(void)
 	u8  buf[1];
 	int retval;
 	u32 bytes_written;
-	ft2232_layout_t* cur_layout = ft2232_layouts;
+	const ft2232_layout_t* cur_layout = ft2232_layouts;
 	int i;
 
 	if (tap_get_tms_path_len(TAP_IRPAUSE,TAP_IRPAUSE)==7)
@@ -2361,7 +2361,7 @@ static int olimex_jtag_init(void)
 
 	if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) )
 	{
-		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
+		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -2402,9 +2402,9 @@ static int olimex_jtag_init(void)
 	buf[2] = high_direction;    /* all outputs (xRST and xRSTnOE) */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
-	if ( ( ( ft2232_write(buf, 3, &bytes_written) ) != ERROR_OK ) || (bytes_written != 3) )
+	if ((ft2232_write(buf, 3, &bytes_written) != ERROR_OK) || (bytes_written != 3))
 	{
-		LOG_ERROR("couldn't initialize FT2232 with 'JTAGkey' layout");
+		LOG_ERROR("couldn't initialize FT2232 with 'Olimex' layout");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
