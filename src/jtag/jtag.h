@@ -104,8 +104,6 @@ const char* tap_state_name(tap_state_t state);
 
 /// The current TAP state of the pending JTAG command queue.
 extern tap_state_t cmd_queue_cur_state;
-/// The TAP state in which DR scans should end.
-extern tap_state_t cmd_queue_end_state;
 
 /**
  * This structure defines a single scan field in the scan. It provides
