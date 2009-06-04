@@ -1270,6 +1270,41 @@ static int jtag_tap_configure_cmd( Jim_GetOptInfo *goi, jtag_tap_t * tap)
 	return JIM_OK;
 }
 
+
+static void jtag_tap_init(jtag_tap_t *tap)
+{
+	assert(0 != tap->ir_length);
+
+	tap->expected = malloc(tap->ir_length);
+	tap->expected_mask = malloc(tap->ir_length);
+	tap->cur_instr = malloc(tap->ir_length);
+
+	buf_set_u32(tap->expected, 0, tap->ir_length, tap->ir_capture_value);
+	buf_set_u32(tap->expected_mask, 0, tap->ir_length, tap->ir_capture_mask);
+	buf_set_ones(tap->cur_instr, tap->ir_length);
+
+	// place TAP in bypass mode
+	tap->bypass = 1;
+	// register the reset callback for the TAP
+	jtag_register_event_callback(&jtag_reset_callback, tap);
+
+	LOG_DEBUG("Created Tap: %s @ abs position %d, "
+			"irlen %d, capture: 0x%x mask: 0x%x", tap->dotted_name,
+				tap->abs_chain_position, tap->ir_length,
+				tap->ir_capture_value, tap->ir_capture_mask);
+	jtag_tap_add(tap);
+}
+
+static void jtag_tap_free(jtag_tap_t *tap)
+{
+	/// @todo is anything missing? no memory leaks please 
+	free((void *)tap->expected_ids);
+	free((void *)tap->chip);
+	free((void *)tap->tapname);
+	free((void *)tap->dotted_name);
+	free(tap);
+}
+
 static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 {
 	jtag_tap_t *pTap;
@@ -1404,49 +1439,18 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 		} /* switch(n->value) */
 	} /* while( goi->argc ) */
 
-	/* Did we get all the options? */
-	if( reqbits ){
-		// no
-		Jim_SetResult_sprintf( goi->interp,
-							   "newtap: %s missing required parameters",
-							   pTap->dotted_name);
-		/* TODO: Tell user what is missing :-( */
-		/* no memory leaks pelase */
-		free(((void *)(pTap->expected_ids)));
-		free(((void *)(pTap->chip)));
-		free(((void *)(pTap->tapname)));
-		free(((void *)(pTap->dotted_name)));
-		free(((void *)(pTap)));
-		return JIM_ERR;
+	/* Did all the required option bits get cleared? */
+	if (0 == reqbits)
+	{
+		jtag_tap_init(pTap);
+		return ERROR_OK;
 	}
 
-	pTap->expected      = malloc( pTap->ir_length );
-	pTap->expected_mask = malloc( pTap->ir_length );
-	pTap->cur_instr     = malloc( pTap->ir_length );
-
-	buf_set_u32( pTap->expected,
-				 0,
-				 pTap->ir_length,
-				 pTap->ir_capture_value );
-	buf_set_u32( pTap->expected_mask,
-				 0,
-				 pTap->ir_length,
-				 pTap->ir_capture_mask );
-	buf_set_ones( pTap->cur_instr,
-				  pTap->ir_length );
-
-	pTap->bypass = 1;
-
-	jtag_register_event_callback(jtag_reset_callback, pTap );
-
-	jtag_tap_add(pTap);
-
-	LOG_DEBUG("Created Tap: %s @ abs position %d, "
-		"irlen %d, capture: 0x%x mask: 0x%x", pTap->dotted_name,
-			pTap->abs_chain_position, pTap->ir_length,
-			pTap->ir_capture_value, pTap->ir_capture_mask);
-
-	return ERROR_OK;
+	Jim_SetResult_sprintf(goi->interp,
+			"newtap: %s missing required parameters",
+			pTap->dotted_name);
+	jtag_tap_free(pTap);
+	return JIM_ERR;
 }
 
 static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
