@@ -47,7 +47,7 @@
 					 23 * ARM11_REGCACHE_MODEREGS +			\
 					  9 * ARM11_REGCACHE_FREGS)
 
-#define ARM11_TAP_DEFAULT			jtag_get_end_state()
+#define ARM11_TAP_DEFAULT			TAP_INVALID
 
 
 #define CHECK_RETVAL(action)								\
