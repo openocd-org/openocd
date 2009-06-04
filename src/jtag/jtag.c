@@ -63,7 +63,15 @@ const Jim_Nvp nvp_jtag_tap_event[] = {
 int jtag_trst = 0;
 int jtag_srst = 0;
 
+/**
+ * List all TAPs that have been created.
+ */
 static jtag_tap_t *jtag_all_taps = NULL;
+/**
+ * The number of TAPs in the jtag_all_taps list, used to track the
+ * assigned chain position to new TAPs
+ */
+static int jtag_num_taps = 0;
 
 enum reset_types jtag_reset_config = RESET_NONE;
 tap_state_t cmd_queue_end_state = TAP_RESET;
@@ -235,16 +243,7 @@ jtag_tap_t *jtag_AllTaps(void)
 
 int jtag_NumTotalTaps(void)
 {
-	jtag_tap_t *t;
-	int n;
-
-	n = 0;
-	t = jtag_AllTaps();
-	while(t){
-		n++;
-		t = t->next_tap;
-	}
-	return n;
+	return jtag_num_taps;
 }
 
 int jtag_NumEnabledTaps(void)
@@ -261,6 +260,17 @@ int jtag_NumEnabledTaps(void)
 		t = t->next_tap;
 	}
 	return n;
+}
+
+/// Append a new TAP to the chain of all taps.
+static void jtag_tap_add(struct jtag_tap_s *t)
+{
+	t->abs_chain_position = jtag_num_taps++;
+
+	jtag_tap_t **tap = &jtag_all_taps;
+	while(*tap != NULL)
+		tap = &(*tap)->next_tap;
+	*tap = t;
 }
 
 jtag_tap_t *jtag_TapByString( const char *s )
@@ -323,6 +333,12 @@ jtag_tap_t * jtag_TapByAbsPosition( int n )
 	}
 	return t;
 }
+
+const char *jtag_tap_name(const jtag_tap_t *tap)
+{
+	return (tap == NULL) ? "(unknown)" : tap->dotted_name;
+}
+
 
 int jtag_register_event_callback(int (*callback)(enum jtag_event event, void *priv), void *priv)
 {
@@ -798,11 +814,6 @@ void jtag_add_sleep(u32 us)
 	return;
 }
 
-static const char *jtag_tap_name(const jtag_tap_t *tap)
-{
-	return (tap == NULL) ? "(unknown)" : tap->dotted_name;
-}
-
 int jtag_check_value_inner(u8 *captured, u8 *in_check_value, u8 *in_check_mask, int num_bits)
 {
 	int retval = ERROR_OK;
@@ -1262,7 +1273,6 @@ static int jtag_tap_configure_cmd( Jim_GetOptInfo *goi, jtag_tap_t * tap)
 static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 {
 	jtag_tap_t *pTap;
-	jtag_tap_t **ppTap;
 	jim_wide w;
 	int x;
 	int e;
@@ -1429,21 +1439,12 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 
 	jtag_register_event_callback(jtag_reset_callback, pTap );
 
-	ppTap = &(jtag_all_taps);
-	while( (*ppTap) != NULL ){
-		ppTap = &((*ppTap)->next_tap);
-	}
-	*ppTap = pTap;
-	{
-		static int n_taps = 0;
-		pTap->abs_chain_position = n_taps++;
-	}
-	LOG_DEBUG( "Created Tap: %s @ abs position %d, irlen %d, capture: 0x%x mask: 0x%x",
-				(*ppTap)->dotted_name,
-				(*ppTap)->abs_chain_position,
-				(*ppTap)->ir_length,
-				(*ppTap)->ir_capture_value,
-				(*ppTap)->ir_capture_mask );
+	jtag_tap_add(pTap);
+
+	LOG_DEBUG("Created Tap: %s @ abs position %d, "
+		"irlen %d, capture: 0x%x mask: 0x%x", pTap->dotted_name,
+			pTap->abs_chain_position, pTap->ir_length,
+			pTap->ir_capture_value, pTap->ir_capture_mask);
 
 	return ERROR_OK;
 }
@@ -1914,7 +1915,7 @@ static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cm
 {
 	jtag_tap_t *tap;
 
-	tap = jtag_all_taps;
+	tap = jtag_AllTaps();
 	command_print(cmd_ctx, "     TapName            | Enabled |   IdCode      Expected    IrLen IrCap  IrMask Instr     ");
 	command_print(cmd_ctx, "---|--------------------|---------|------------|------------|------|------|------|---------");
 
