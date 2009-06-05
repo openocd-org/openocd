@@ -642,6 +642,8 @@ extern int jtag_add_statemove(tap_state_t goal_state);
 
 /// @returns the number of times the scan queue has been flushed
 int jtag_get_flush_queue_count(void);
+void jtag_set_nsrst_delay(unsigned delay);
+void jtag_set_ntrst_delay(unsigned delay);
 void jtag_set_speed_khz(unsigned speed);
 unsigned jtag_get_speed_khz(void);
 

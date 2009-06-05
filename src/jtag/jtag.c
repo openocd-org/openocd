@@ -2085,7 +2085,7 @@ static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, ch
 	}
 	else
 	{
-		jtag_nsrst_delay = strtoul(args[0], NULL, 0);
+		jtag_set_nsrst_delay(strtoul(args[0], NULL, 0));
 	}
 
 	return ERROR_OK;
@@ -2100,11 +2100,12 @@ static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, ch
 	}
 	else
 	{
-		jtag_ntrst_delay = strtoul(args[0], NULL, 0);
+		jtag_set_ntrst_delay(strtoul(args[0], NULL, 0));
 	}
 
 	return ERROR_OK;
 }
+
 
 static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -2698,4 +2699,14 @@ int jtag_add_statemove(tap_state_t goal_state)
 
 	return retval;
 }
+
+void jtag_set_nsrst_delay(unsigned delay)
+{
+	jtag_nsrst_delay = delay;
+}
+void jtag_set_ntrst_delay(unsigned delay)
+{
+	jtag_ntrst_delay = delay;
+}
+
 
