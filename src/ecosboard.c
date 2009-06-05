@@ -39,7 +39,6 @@
 
 #include <time_support.h>
 #include <sys/time.h>
-#include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
