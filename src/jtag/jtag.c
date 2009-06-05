@@ -66,9 +66,9 @@ int jtag_srst = 0;
 /**
  * List all TAPs that have been created.
  */
-static jtag_tap_t *jtag_all_taps = NULL;
+static jtag_tap_t *__jtag_all_taps = NULL;
 /**
- * The number of TAPs in the jtag_all_taps list, used to track the
+ * The number of TAPs in the __jtag_all_taps list, used to track the
  * assigned chain position to new TAPs
  */
 static int jtag_num_taps = 0;
@@ -238,7 +238,7 @@ static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *
 
 jtag_tap_t *jtag_AllTaps(void)
 {
-	return jtag_all_taps;
+	return __jtag_all_taps;
 };
 
 int jtag_NumTotalTaps(void)
@@ -267,7 +267,7 @@ static void jtag_tap_add(struct jtag_tap_s *t)
 {
 	t->abs_chain_position = jtag_num_taps++;
 
-	jtag_tap_t **tap = &jtag_all_taps;
+	jtag_tap_t **tap = &__jtag_all_taps;
 	while(*tap != NULL)
 		tap = &(*tap)->next_tap;
 	*tap = t;
