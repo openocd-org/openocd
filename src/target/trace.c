@@ -25,8 +25,6 @@
 #include "trace.h"
 #include "target.h"
 
-#include <inttypes.h>
-
 int trace_point(target_t *target, u32 number)
 {
 	trace_t *trace = target->trace_info;

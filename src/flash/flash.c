@@ -31,8 +31,6 @@
 #include "image.h"
 #include "time_support.h"
 
-#include <inttypes.h>
-
 /* command handlers */
 static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);

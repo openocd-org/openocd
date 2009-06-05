@@ -28,9 +28,6 @@
 #include "time_support.h"
 #include "fileio.h"
 
-#include <inttypes.h>
-
-
 static int handle_nand_list_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_nand_probe_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
