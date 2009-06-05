@@ -294,7 +294,7 @@ jtag_tap_t *jtag_TapByString( const char *s )
 		n = strtol( s, &cp, 0 );
 		if( (s != cp) && (*cp == 0) ){
 			/* Then it is... */
-			t = jtag_TapByAbsPosition(n);
+			t = jtag_tap_by_abs_position(n);
 		}
 	}
 	return t;
@@ -319,7 +319,7 @@ jtag_tap_t * jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *o )
 }
 
 /* returns a pointer to the n-th device in the scan chain */
-jtag_tap_t * jtag_TapByAbsPosition( int n )
+jtag_tap_t * jtag_tap_by_abs_position( int n )
 {
 	int orig_n;
 	jtag_tap_t *t;

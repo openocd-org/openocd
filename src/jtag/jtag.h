@@ -180,7 +180,7 @@ extern const char *jtag_tap_name(const jtag_tap_t *tap);
 extern jtag_tap_t* jtag_tap_by_position(int n);
 extern jtag_tap_t* jtag_TapByString(const char* dotted_name);
 extern jtag_tap_t* jtag_TapByJimObj(Jim_Interp* interp, Jim_Obj* obj);
-extern jtag_tap_t* jtag_TapByAbsPosition(int abs_position);
+extern jtag_tap_t* jtag_tap_by_abs_position(int abs_position);
 extern int jtag_NumEnabledTaps(void);
 extern int jtag_NumTotalTaps(void);
 

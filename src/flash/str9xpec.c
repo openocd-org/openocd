@@ -325,7 +325,7 @@ static int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *
 	arm7_9 = armv4_5->arch_info;
 	jtag_info = &arm7_9->jtag_info;
 
-	str9xpec_info->tap = jtag_TapByAbsPosition( jtag_info->tap->abs_chain_position - 1);
+	str9xpec_info->tap = jtag_tap_by_abs_position( jtag_info->tap->abs_chain_position - 1);
 	str9xpec_info->isc_enable = 0;
 
 	str9xpec_build_block_list(bank);
