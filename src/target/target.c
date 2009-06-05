@@ -42,8 +42,6 @@
 #include "image.h"
 #include "jtag.h"
 
-#include <inttypes.h>
-
 
 static int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
