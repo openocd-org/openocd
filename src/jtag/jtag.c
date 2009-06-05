@@ -241,7 +241,7 @@ jtag_tap_t *jtag_all_taps(void)
 	return __jtag_all_taps;
 };
 
-int jtag_NumTotalTaps(void)
+int jtag_tap_count(void)
 {
 	return jtag_num_taps;
 }
@@ -1103,7 +1103,7 @@ static int jtag_examine_chain(void)
 	if (device_count != jtag_NumEnabledTaps())
 	{
 		LOG_ERROR("number of discovered devices in JTAG chain (%i) doesn't match (enabled) configuration (%i), total taps: %d",
-				  device_count, jtag_NumEnabledTaps(), jtag_NumTotalTaps());
+				  device_count, jtag_NumEnabledTaps(), jtag_tap_count());
 		LOG_ERROR("check the config file and ensure proper JTAG communication (connections, speed, ...)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -1898,9 +1898,9 @@ static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *c
 
 	newargs[0] = Jim_NewStringObj( interp, "jtag", -1   );
 	newargs[1] = Jim_NewStringObj( interp, "newtap", -1 );
-	sprintf( buf, "chip%d", jtag_NumTotalTaps() );
+	sprintf( buf, "chip%d", jtag_tap_count() );
 	newargs[2] = Jim_NewStringObj( interp, buf, -1 );
-	sprintf( buf, "tap%d", jtag_NumTotalTaps() );
+	sprintf( buf, "tap%d", jtag_tap_count() );
 	newargs[3] = Jim_NewStringObj( interp, buf, -1  );
 	newargs[4] = Jim_NewStringObj( interp, "-irlen", -1  );
 	newargs[5] = Jim_NewStringObj( interp, args[0], -1  );
