@@ -232,7 +232,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	if (strcmp(args[0], "plain") != 0)
 	{
-		tap = jtag_TapByString( args[0] );
+		tap = jtag_tap_by_string( args[0] );
 		if (!tap )
 		{
 			command_print( cmd_ctx, "Tap: %s unknown", args[0] );

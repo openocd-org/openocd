@@ -1837,7 +1837,7 @@ arm11_common_t * arm11_find_target(const char * arg)
 	jtag_tap_t *	tap;
 	target_t *		t;
 
-	tap = jtag_TapByString(arg);
+	tap = jtag_tap_by_string(arg);
 
 	if (!tap)
 		return 0;

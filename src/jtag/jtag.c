@@ -273,7 +273,7 @@ static void jtag_tap_add(struct jtag_tap_s *t)
 	*tap = t;
 }
 
-jtag_tap_t *jtag_TapByString( const char *s )
+jtag_tap_t *jtag_tap_by_string( const char *s )
 {
 	jtag_tap_t *t;
 	char *cp;
@@ -310,7 +310,7 @@ jtag_tap_t * jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *o )
 		cp = "(unknown)";
 		t = NULL;
 	}  else {
-		t = jtag_TapByString( cp );
+		t = jtag_tap_by_string( cp );
 	}
 	if( t == NULL ){
 		Jim_SetResult_sprintf(interp,"Tap: %s is unknown", cp );
@@ -2326,7 +2326,7 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 
 	for (i = 0; i < num_fields; i++)
 	{
-		tap = jtag_TapByString( args[i*2] );
+		tap = jtag_tap_by_string( args[i*2] );
 		if (tap==NULL)
 		{
 			command_print( cmd_ctx, "Tap: %s unknown", args[i*2] );
