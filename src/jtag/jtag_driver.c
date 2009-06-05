@@ -96,7 +96,7 @@ int interface_jtag_add_ir_scan(int in_num_fields, const scan_field_t *in_fields,
 
 	/* loop over all enabled TAPs */
 
-	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	for (jtag_tap_t * tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap))
 	{
 		/* search the input field list for fields for the current TAP */
 
@@ -138,7 +138,7 @@ int interface_jtag_add_ir_scan(int in_num_fields, const scan_field_t *in_fields,
 		field++;
 	}
 
-	assert(field == out_fields + num_taps); /* paranoia: jtag_tap_count_enabled() and jtag_NextEnabledTap() not in sync */
+	assert(field == out_fields + num_taps); /* paranoia: jtag_tap_count_enabled() and jtag_tap_next_enabled() not in sync */
 
 	return ERROR_OK;
 }
@@ -182,7 +182,7 @@ int interface_jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 
 	size_t bypass_devices = 0;
 
-	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	for (jtag_tap_t * tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap))
 	{
 		if (tap->bypass)
 			bypass_devices++;
@@ -207,7 +207,7 @@ int interface_jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 
 	/* loop over all enabled TAPs */
 
-	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	for (jtag_tap_t * tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap))
 	{
 		/* if TAP is not bypassed insert matching input fields */
 
@@ -271,7 +271,7 @@ void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
 
 	size_t bypass_devices = 0;
 
-	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	for (jtag_tap_t * tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap))
 	{
 		if (tap->bypass)
 			bypass_devices++;
@@ -299,7 +299,7 @@ void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
 
 	/* loop over all enabled TAPs */
 
-	for (jtag_tap_t * tap = jtag_NextEnabledTap(NULL); tap != NULL; tap = jtag_NextEnabledTap(tap))
+	for (jtag_tap_t * tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap))
 	{
 		/* if TAP is not bypassed insert matching input fields */
 

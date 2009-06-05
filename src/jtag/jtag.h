@@ -184,7 +184,7 @@ extern jtag_tap_t* jtag_tap_by_abs_position(int abs_position);
 extern int jtag_tap_count_enabled(void);
 extern int jtag_tap_count(void);
 
-static __inline__ jtag_tap_t* jtag_NextEnabledTap(jtag_tap_t* p)
+static __inline__ jtag_tap_t* jtag_tap_next_enabled(jtag_tap_t* p)
 {
 	if (p == NULL)
 	{

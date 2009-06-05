@@ -987,7 +987,7 @@ static int jtag_examine_chain(void)
 	}
 
 	/* point at the 1st tap */
-	tap = jtag_NextEnabledTap(NULL);
+	tap = jtag_tap_next_enabled(NULL);
 	if( tap == NULL ){
 		LOG_ERROR("JTAG: No taps enabled?");
 		return ERROR_JTAG_INIT_FAILED;
@@ -1094,7 +1094,7 @@ static int jtag_examine_chain(void)
 						 tap->idcode);
 #endif
 			}
-			tap = jtag_NextEnabledTap(tap);
+			tap = jtag_tap_next_enabled(tap);
 		}
 		device_count++;
 	}
@@ -1122,7 +1122,7 @@ static int jtag_validate_chain(void)
 	tap = NULL;
 	total_ir_length = 0;
 	for(;;){
-		tap = jtag_NextEnabledTap(tap);
+		tap = jtag_tap_next_enabled(tap);
 		if( tap == NULL ){
 			break;
 		}
@@ -1146,7 +1146,7 @@ static int jtag_validate_chain(void)
 	chain_pos = 0;
 	int val;
 	for(;;){
-		tap = jtag_NextEnabledTap(tap);
+		tap = jtag_tap_next_enabled(tap);
 		if( tap == NULL ){
 			break;
 		}
@@ -1677,7 +1677,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 
 	LOG_DEBUG("Init JTAG chain");
 
-	tap = jtag_NextEnabledTap(NULL);
+	tap = jtag_tap_next_enabled(NULL);
 	if( tap == NULL ){
 		LOG_ERROR("There are no enabled taps?");
 		return ERROR_JTAG_INIT_FAILED;

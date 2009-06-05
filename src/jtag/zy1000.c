@@ -511,9 +511,9 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 	int j;
 	int scan_size = 0;
 	jtag_tap_t *tap, *nextTap;
-	for(tap = jtag_NextEnabledTap(NULL); tap!= NULL; tap=nextTap)
+	for(tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
 	{
-		nextTap=jtag_NextEnabledTap(tap);
+		nextTap=jtag_tap_next_enabled(tap);
 		tap_state_t end_state;
 		if (nextTap==NULL)
 		{
@@ -580,9 +580,9 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 
 	int j;
 	jtag_tap_t *tap, *nextTap;
-	for(tap = jtag_NextEnabledTap(NULL); tap!= NULL; tap=nextTap)
+	for(tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
 	{
-		nextTap=jtag_NextEnabledTap(tap);
+		nextTap=jtag_tap_next_enabled(tap);
 		int found=0;
 		tap_state_t end_state;
 		if (nextTap==NULL)
@@ -749,7 +749,7 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little
 {
 //	static int const reg_addr=0x5;
 	tap_state_t end_state=jtag_get_end_state();
-	if (jtag_NextEnabledTap(jtag_NextEnabledTap(NULL))==NULL)
+	if (jtag_tap_next_enabled(jtag_tap_next_enabled(NULL))==NULL)
 	{
 		/* better performance via code duplication */
 		if (little)
