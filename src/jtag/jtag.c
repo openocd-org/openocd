@@ -246,7 +246,7 @@ int jtag_tap_count(void)
 	return jtag_num_taps;
 }
 
-int jtag_NumEnabledTaps(void)
+int jtag_tap_count_enabled(void)
 {
 	jtag_tap_t *t;
 	int n;
@@ -1100,10 +1100,10 @@ static int jtag_examine_chain(void)
 	}
 
 	/* see if number of discovered devices matches configuration */
-	if (device_count != jtag_NumEnabledTaps())
+	if (device_count != jtag_tap_count_enabled())
 	{
 		LOG_ERROR("number of discovered devices in JTAG chain (%i) doesn't match (enabled) configuration (%i), total taps: %d",
-				  device_count, jtag_NumEnabledTaps(), jtag_tap_count());
+				  device_count, jtag_tap_count_enabled(), jtag_tap_count());
 		LOG_ERROR("check the config file and ensure proper JTAG communication (connections, speed, ...)");
 		return ERROR_JTAG_INIT_FAILED;
 	}

@@ -75,7 +75,7 @@ static void cmd_queue_scan_field_clone(scan_field_t * dst, const scan_field_t * 
  */
 int interface_jtag_add_ir_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
 {
-	size_t num_taps = jtag_NumEnabledTaps();
+	size_t num_taps = jtag_tap_count_enabled();
 
 	jtag_command_t * cmd		= cmd_queue_alloc(sizeof(jtag_command_t));
 	scan_command_t * scan		= cmd_queue_alloc(sizeof(scan_command_t));
@@ -138,7 +138,7 @@ int interface_jtag_add_ir_scan(int in_num_fields, const scan_field_t *in_fields,
 		field++;
 	}
 
-	assert(field == out_fields + num_taps); /* paranoia: jtag_NumEnabledTaps() and jtag_NextEnabledTap() not in sync */
+	assert(field == out_fields + num_taps); /* paranoia: jtag_tap_count_enabled() and jtag_NextEnabledTap() not in sync */
 
 	return ERROR_OK;
 }
