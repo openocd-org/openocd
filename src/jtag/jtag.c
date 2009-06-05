@@ -300,7 +300,7 @@ jtag_tap_t *jtag_tap_by_string( const char *s )
 	return t;
 }
 
-jtag_tap_t * jtag_TapByJimObj( Jim_Interp *interp, Jim_Obj *o )
+jtag_tap_t * jtag_tap_by_jim_obj( Jim_Interp *interp, Jim_Obj *o )
 {
 	jtag_tap_t *t;
 	const char *cp;
@@ -1535,7 +1535,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 
 		{
 			jtag_tap_t *t;
-			t = jtag_TapByJimObj( goi.interp, goi.argv[0] );
+			t = jtag_tap_by_jim_obj( goi.interp, goi.argv[0] );
 			if( t == NULL ){
 				return JIM_ERR;
 			}
@@ -1569,7 +1569,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 			jtag_tap_t *t;
 
 			Jim_GetOpt_Obj(&goi, &o);
-			t = jtag_TapByJimObj( goi.interp, o );
+			t = jtag_tap_by_jim_obj( goi.interp, o );
 			if( t == NULL ){
 				return JIM_ERR;
 			}
@@ -1589,7 +1589,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 			jtag_tap_t *t;
 
 			Jim_GetOpt_Obj(&goi, &o);
-			t = jtag_TapByJimObj( goi.interp, o );
+			t = jtag_tap_by_jim_obj( goi.interp, o );
 			if( t == NULL ){
 				return JIM_ERR;
 			}
@@ -2434,7 +2434,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		}
 	} /* validate args */
 
-	tap = jtag_TapByJimObj( interp, args[1] );
+	tap = jtag_tap_by_jim_obj( interp, args[1] );
 	if( tap == NULL ){
 		return JIM_ERR;
 	}

@@ -3450,7 +3450,7 @@ static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 				if( e != JIM_OK ){
 					return e;
 				}
-				tap = jtag_TapByJimObj( goi->interp, o );
+				tap = jtag_tap_by_jim_obj( goi->interp, o );
 				if( tap == NULL ){
 					return JIM_ERR;
 				}
