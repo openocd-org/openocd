@@ -1659,7 +1659,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	}
 	if(hasKHz)
 	{
-		jtag_interface->khz(speed_khz, &jtag_speed);
+		jtag_interface->khz(jtag_get_speed_khz(), &jtag_speed);
 		hasKHz = false;
 	}
 
@@ -1770,6 +1770,15 @@ int jtag_init(struct command_context_s *cmd_ctx)
 		return ERROR_OK;
 	}
 	return jtag_init_reset(cmd_ctx);
+}
+
+void jtag_set_speed_khz(unsigned khz)
+{
+	speed_khz = khz;
+}
+unsigned jtag_get_speed_khz(void)
+{
+	return speed_khz;
 }
 
 static int default_khz(int khz, int *jtag_speed)
@@ -2130,17 +2139,17 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 	int retval=ERROR_OK;
 	LOG_DEBUG("handle jtag khz");
 
+	int cur_speed = 0;
 	if(argc == 1)
 	{
-		speed_khz = strtoul(args[0], NULL, 0);
+		jtag_set_speed_khz(strtoul(args[0], NULL, 0));
 		if (jtag != NULL)
 		{
-			int cur_speed = 0;
 			LOG_DEBUG("have interface set up");
 			int speed_div1;
-			if ((retval=jtag->khz(speed_khz, &speed_div1))!=ERROR_OK)
+			if ((retval=jtag->khz(jtag_get_speed_khz(), &speed_div1))!=ERROR_OK)
 			{
-				speed_khz = 0;
+				jtag_set_speed_khz(0);
 				return retval;
 			}
 
@@ -2157,20 +2166,18 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+	cur_speed = jtag_get_speed_khz();
 
 	if (jtag!=NULL)
 	{
-		if ((retval=jtag->speed_div(jtag_speed, &speed_khz))!=ERROR_OK)
+		if ((retval=jtag->speed_div(jtag_speed, &cur_speed))!=ERROR_OK)
 			return retval;
 	}
 
-	if (speed_khz==0)
-	{
+	if (cur_speed)
+		command_print(cmd_ctx, "%d kHz", cur_speed);
+	else
 		command_print(cmd_ctx, "RCLK - adaptive");
-	} else
-	{
-		command_print(cmd_ctx, "%d kHz", speed_khz);
-	}
 	return retval;
 
 }
