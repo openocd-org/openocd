@@ -2524,27 +2524,33 @@ static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, ch
 	return ERROR_OK;
 }
 
+void jtag_set_verify(bool enable)
+{
+	jtag_verify = enable;
+}
+
+bool jtag_will_verify()
+{
+	return jtag_verify;
+}
+
 static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	if (argc == 1)
 	{
 		if (strcmp(args[0], "enable") == 0)
-		{
-			jtag_verify = 1;
-		}
+			jtag_set_verify(true);
 		else if (strcmp(args[0], "disable") == 0)
-		{
-			jtag_verify = 0;
-		} else
-		{
+			jtag_set_verify(false);
+		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-	} else if (argc != 0)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	command_print(cmd_ctx, "verify jtag capture is %s", (jtag_verify) ? "enabled": "disabled");
+	const char *status = jtag_will_verify() ? "enabled": "disabled";
+	command_print(cmd_ctx, "verify jtag capture is %s", status);
 
 	return ERROR_OK;
 }
