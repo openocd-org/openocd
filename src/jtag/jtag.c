@@ -236,7 +236,7 @@ static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, ch
 static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-jtag_tap_t *jtag_AllTaps(void)
+jtag_tap_t *jtag_all_taps(void)
 {
 	return __jtag_all_taps;
 };
@@ -252,7 +252,7 @@ int jtag_NumEnabledTaps(void)
 	int n;
 
 	n = 0;
-	t = jtag_AllTaps();
+	t = jtag_all_taps();
 	while(t){
 		if( t->enabled ){
 			n++;
@@ -278,7 +278,7 @@ jtag_tap_t *jtag_TapByString( const char *s )
 	jtag_tap_t *t;
 	char *cp;
 
-	t = jtag_AllTaps();
+	t = jtag_all_taps();
 	/* try name first */
 	while(t){
 		if( 0 == strcmp( t->dotted_name, s ) ){
@@ -325,7 +325,7 @@ jtag_tap_t * jtag_TapByAbsPosition( int n )
 	jtag_tap_t *t;
 
 	orig_n = n;
-	t = jtag_AllTaps();
+	t = jtag_all_taps();
 
 	while( t && (n > 0)) {
 		n--;
@@ -1933,7 +1933,7 @@ static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cm
 {
 	jtag_tap_t *tap;
 
-	tap = jtag_AllTaps();
+	tap = jtag_all_taps();
 	command_print(cmd_ctx, "     TapName            | Enabled |   IdCode      Expected    IrLen IrCap  IrMask Instr     ");
 	command_print(cmd_ctx, "---|--------------------|---------|------------|------------|------|------|------|---------");
 

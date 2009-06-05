@@ -175,7 +175,7 @@ struct jtag_tap_s
 
 	jtag_tap_t* next_tap;
 };
-extern jtag_tap_t* jtag_AllTaps(void);
+extern jtag_tap_t* jtag_all_taps(void);
 extern const char *jtag_tap_name(const jtag_tap_t *tap);
 extern jtag_tap_t* jtag_TapByPosition(int n);
 extern jtag_tap_t* jtag_TapByString(const char* dotted_name);
@@ -189,7 +189,7 @@ static __inline__ jtag_tap_t* jtag_NextEnabledTap(jtag_tap_t* p)
 	if (p == NULL)
 	{
 		/* start at the head of list */
-		p = jtag_AllTaps();
+		p = jtag_all_taps();
 	}
 	else
 	{
