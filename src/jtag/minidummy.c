@@ -1,0 +1,190 @@
+/***************************************************************************
+ *   Copyright (C) 2007-2008 by Øyvind Harboe                              *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "embeddedice.h"
+#include "minidriver.h"
+#include "interface.h"
+
+
+
+
+jtag_interface_t minidummy_interface =
+{
+	.name = "minidummy",
+	.execute_queue = NULL,
+	.speed = NULL,
+	.register_commands = NULL,
+	.init = NULL,
+	.quit = NULL,
+	.khz = NULL,
+	.speed_div = NULL,
+	.power_dropout = NULL,
+	.srst_asserted = NULL,
+};
+
+
+
+
+
+
+int interface_jtag_execute_queue(void)
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
+
+
+
+
+extern int jtag_check_value(u8 *captured, void *priv);
+
+int interface_jtag_set_end_state(tap_state_t state)
+{
+	return ERROR_OK;
+}
+
+
+int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+
+}
+
+
+
+
+
+int interface_jtag_add_plain_ir_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
+/*extern jtag_command_t **jtag_get_last_command_p(void);*/
+
+int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
+int interface_jtag_add_plain_dr_scan(int num_fields, const scan_field_t *fields, tap_state_t state)
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
+
+int interface_jtag_add_tlr()
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
+
+
+int interface_jtag_add_reset(int req_trst, int req_srst)
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
+
+int interface_jtag_add_runtest(int num_cycles, tap_state_t state)
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
+int interface_jtag_add_clocks(int num_cycles)
+{
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
+int interface_jtag_add_sleep(u32 us)
+{
+	jtag_sleep(us);
+	return ERROR_OK;
+}
+
+int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
+{
+	int state_count;
+	int tms = 0;
+
+	state_count = 0;
+
+	tap_state_t cur_state=cmd_queue_cur_state;
+
+	while (num_states)
+	{
+		if (tap_state_transition(cur_state, false) == path[state_count])
+		{
+			tms = 0;
+		}
+		else if (tap_state_transition(cur_state, true) == path[state_count])
+		{
+			tms = 1;
+		}
+		else
+		{
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(cur_state), tap_state_name(path[state_count]));
+			exit(-1);
+		}
+
+		/* synchronously do the operation here */
+
+		cur_state = path[state_count];
+		state_count++;
+		num_states--;
+	}
+
+
+	/* synchronously do the operation here */
+
+	return ERROR_OK;
+}
+
+
+
+void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count)
+{
+	int i;
+	for (i = 0; i < count; i++)
+	{
+		embeddedice_write_reg_inner(tap, reg_addr, fast_target_buffer_get_u32(buffer, little));
+		buffer += 4;
+	}
+}
+

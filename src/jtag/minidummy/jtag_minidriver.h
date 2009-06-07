@@ -1,0 +1,43 @@
+/***************************************************************************
+ *   Copyright (C) 2007-2008 by Øyvind Harboe                              *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+
+
+
+
+static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
+		int num_fields,
+		const int *num_bits,
+		const u32 *value,
+		enum tap_state end_state)
+{
+	/* synchronously do the operation here */
+}
+
+static __inline__ void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
+		int num_fields,
+		const int *num_bits,
+		const u32 *value,
+		enum tap_state end_state)
+{
+	/* synchronously do the operation here */
+}
+
+#define interface_jtag_add_callback(callback, in) callback(in)
+
+#define interface_jtag_add_callback4(callback, in, data1, data2, data3) jtag_set_error(callback(in, data1, data2, data3))
