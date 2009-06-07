@@ -105,6 +105,12 @@ target chips and work out what the various instruction registers/data
 registers do, so you can actually do something useful.  That's where it
 gets interesting.  But in and of itself, JTAG is actually very simple.
 
+@section primerjtag More Reading
+
+The following link goes to an HTML (or PDF) introduction to JTAG,
+written by one of the original members of the JTAG committee: @par
+http://www.asset-intertech.com/products/boundscan.htm
+
 A separate primer contains information about @subpage primerjtagbs for
 developers that want to extend OpenOCD for such purposes.
 
@@ -164,5 +170,5 @@ http://www.freelabs.com/~whitis/electronics/jtag/
 
  */
 /** @file
-This file contains the @ref primerjtag and @ref bsdl page.
+This file contains the @ref primerjtag and @ref primerjtagbs page.
  */
