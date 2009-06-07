@@ -995,6 +995,27 @@ static void jtag_examine_chain_display(enum log_levels level, const char *msg,
 		EXTRACT_MFG(idcode), EXTRACT_PART(idcode), EXTRACT_VER(idcode) );
 }
 
+/**
+ * This helper checks that remaining bits in the examined chain data are
+ * all as expected, but a single JTAG device requires only 64 bits to be
+ * read back correctly.  This can help identify and diagnose problems
+ * with the JTAG chain earlier, gives more helpful/explicit error messages.
+ */
+static void jtag_examine_chain_end(u8 *idcodes, unsigned count, unsigned max)
+{
+	bool triggered = false;
+	for ( ; count < max - 31; count += 32)
+	{
+		u32 idcode = buf_get_u32(idcodes, count, 32);
+		// do not trigger the warning if the data looks good
+		if (!triggered && (idcode == 0x000000FF || idcode == 0xFFFFFFFF))
+			continue;
+		LOG_WARNING("Unexpected idcode after end of chain: %d 0x%08x",
+				count, idcode);
+		triggered = true;
+	}
+}
+
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
 static int jtag_examine_chain(void)
@@ -1029,32 +1050,15 @@ static int jtag_examine_chain(void)
 		}
 		else
 		{
-			/* some devices, such as AVR will output all 1's instead of TDI
-			input value at end of chain. */
+	 		/*
+			 * End of chain (invalid manufacturer ID) some devices, such
+			 * as AVR will output all 1's instead of TDI input value at
+			 * end of chain.
+			 */
 			if ((idcode == 0x000000FF)||(idcode == 0xFFFFFFFF))
 			{
-				int unexpected=0;
-				/* End of chain (invalid manufacturer ID)
-				 *
-				 * The JTAG examine is the very first thing that happens
-				 *
-				 * A single JTAG device requires only 64 bits to be read back correctly.
-				 *
-				 * The code below adds a check that the rest of the data scanned (640 bits)
-				 * are all as expected. This helps diagnose/catch problems with the JTAG chain
-				 *
-				 * earlier and gives more helpful/explicit error messages.
-				 */
-				for (bit_count += 32; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;bit_count += 32)
-				{
-					idcode = buf_get_u32(idcode_buffer, bit_count, 32);
-					if (unexpected||((idcode != 0x000000FF)&&(idcode != 0xFFFFFFFF)))
-					{
-						LOG_WARNING("Unexpected idcode after end of chain! %d 0x%08x", bit_count, idcode);
-						unexpected = 1;
-					}
-				}
-
+				jtag_examine_chain_end(idcode_buffer,
+						bit_count + 32, JTAG_MAX_CHAIN_SIZE * 32);
 				break;
 			}
 
