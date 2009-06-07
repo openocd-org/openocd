@@ -246,7 +246,7 @@ jtag_tap_t *jtag_all_taps(void)
 int jtag_tap_count(void)
 {
 	return jtag_num_taps;
-	}
+}
 
 unsigned jtag_tap_count_enabled(void)
 {
@@ -1064,12 +1064,12 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 				tap->dotted_name, tap->expected_ids[ii]);
 	}
 	return false;
-	}
+}
 
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
 static int jtag_examine_chain(void)
-	{
+{
 	u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
 	unsigned device_count = 0;
 
@@ -1093,7 +1093,7 @@ static int jtag_examine_chain(void)
 		{
 			/* LSB must not be 0, this indicates a device in bypass */
 			LOG_WARNING("Tap/Device does not have IDCODE");
-			idcode=0;
+			idcode = 0;
 
 			bit_count += 1;
 		}
@@ -1103,9 +1103,9 @@ static int jtag_examine_chain(void)
 			 * End of chain (invalid manufacturer ID) some devices, such
 			 * as AVR will output all 1's instead of TDI input value at
 			 * end of chain.
-				 */
+			 */
 			if (jtag_idcode_is_final(idcode))
-				{
+			{
 				jtag_examine_chain_end(idcode_buffer,
 						bit_count + 32, JTAG_MAX_CHAIN_SIZE * 32);
 				break;
@@ -1121,7 +1121,7 @@ static int jtag_examine_chain(void)
 		if (!tap)
 			continue;
 
-			tap->idcode = idcode;
+		tap->idcode = idcode;
 
 		// ensure the TAP ID does matches what was expected
  		if (!jtag_examine_chain_match_tap(tap))
@@ -1484,12 +1484,12 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 		return ERROR_OK;
 	}
 
-		Jim_SetResult_sprintf( goi->interp,
-							   "newtap: %s missing required parameters",
-							   pTap->dotted_name);
+	Jim_SetResult_sprintf(goi->interp,
+			"newtap: %s missing required parameters",
+			pTap->dotted_name);
 	jtag_tap_free(pTap);
-		return JIM_ERR;
-	}
+	return JIM_ERR;
+}
 
 static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 {
@@ -2223,11 +2223,11 @@ static int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd,
 	tap_state_t state = tap_state_by_name(args[0]);
 	if (state < 0)
 	{
-			command_print( cmd_ctx, "Invalid state name: %s\n", args[0] );
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-		jtag_set_end_state(state);
-		jtag_execute_queue();
+		command_print( cmd_ctx, "Invalid state name: %s\n", args[0] );
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	jtag_set_end_state(state);
+	jtag_execute_queue();
 
 	command_print(cmd_ctx, "current endstate: %s",
 			tap_state_name(cmd_queue_end_state));
@@ -2576,7 +2576,7 @@ static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *c
 			jtag_set_verify(false);
 		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
+	}
 
 	const char *status = jtag_will_verify() ? "enabled": "disabled";
 	command_print(cmd_ctx, "verify jtag capture is %s", status);
