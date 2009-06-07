@@ -1262,7 +1262,7 @@ the port @var{number} defaults to 4444.
 @cindex GDB configuration
 You can reconfigure some GDB behaviors if needed.
 The ones listed here are static and global.
-@xref{Target Create}, about declaring individual targets.
+@xref{Target Configuration}, about configuring individual targets.
 @xref{Target Events}, about configuring target-specific event handling.
 
 @anchor{gdb_breakpoint_override}
@@ -2096,11 +2096,173 @@ for querying the state of the JTAG taps.
 @chapter CPU Configuration
 @cindex GDB target
 
-This chapter discusses how to create a GDB debug target for a CPU.
+This chapter discusses how to set up GDB debug targets for CPUs.
 You can also access these targets without GDB
-(@pxref{Architecture and Core Commands}) and, where relevant,
+(@pxref{Architecture and Core Commands},
+and @ref{Target State handling}) and
 through various kinds of NAND and NOR flash commands.
-Also, if you have multiple CPUs you can have multiple such targets.
+If you have multiple CPUs you can have multiple such targets.
+
+We'll start by looking at how to examine the targets you have,
+then look at how to add one more target and how to configure it.
+
+@section Target List
+
+All targets that have been set up are part of a list,
+where each member has a name.
+That name should normally be the same as the TAP name.
+You can display the list with the @command{targets}
+(plural!) command.
+This display often has only one CPU; here's what it might
+look like with more than one:
+@verbatim
+    CmdName    Type       Endian     AbsChainPos Name          State
+--  ---------- ---------- ---------- ----------- ------------- ----------
+ 0: rm9200.cpu arm920t    little              2     rm9200.cpu running
+ 1: MyTarget   cortex_m3  little              0     mychip.cpu halted
+@end verbatim
+
+One member of that list is the @dfn{current target}, which
+is implicitly referenced by many commands.
+In particular, memory addresses often refer to the address
+space seen by that current target.
+Commands like @command{mdw} (memory display words)
+and @command{flash erase_address} (erase NOR flash blocks)
+are examples; and there are many more.
+
+Several commands let you examine the list of targets:
+
+@deffn Command {target count}
+Returns the number of targets, @math{N}.
+The highest numbered target is @math{N - 1}.
+@example
+set c [target count]
+for @{ set x 0 @} @{ $x < $c @} @{ incr x @} @{
+    # Assuming you have created this function
+    print_target_details $x
+@}
+@end example
+@end deffn
+
+@deffn Command {target current}
+Returns the name of the current target.
+@end deffn
+
+@deffn Command {target names}
+Lists the names of all current targets in the list.
+@example
+foreach t [target names] @{
+    puts [format "Target: %s\n" $t]
+@}
+@end example
+@end deffn
+
+@deffn Command {target number} number
+The list of targets is numbered starting at zero.
+This command returns the name of the target at index @var{number}.
+@example
+set thename [target number $x]
+puts [format "Target %d is: %s\n" $x $thename]
+@end example
+@end deffn
+
+@c yep, "target list" would have been better.
+@c plus maybe "target setdefault".
+
+@deffn Command targets [name]
+@emph{Note: the name of this command is plural.  Other target
+command names are singular.}
+
+With no parameter, this command displays a table of all known
+targets in a user friendly form.
+
+With a parameter, this command sets the current target to
+the given target with the given @var{name}; this is
+only relevant on boards which have more than one target.
+@end deffn
+
+@section Target CPU Types and Variants
+
+Each target has a @dfn{CPU type}, as shown in the output of
+the @command{targets} command.  You need to specify that type
+when calling @command{target create}.
+The CPU type indicates more than just the instruction set.
+It also indicates how that instruction set is implemented,
+what kind of debug support it integrates,
+whether it has an MMU (and if so, what kind),
+what core-specific commands may be available
+(@pxref{Architecture and Core Commands}),
+and more.
+
+For some CPU types, OpenOCD also defines @dfn{variants} which
+indicate differences that affect their handling.
+For example, a particular implementation bug might need to be
+worked around in some chip versions.
+
+It's easy to see what target types are supported,
+since there's a command to list them.
+However, there is currently no way to list what target variants
+are supported (other than by reading the OpenOCD source code).
+
+@anchor{target types}
+@deffn Command {target types}
+Lists all supported target types.
+At this writing, the supported CPU types and variants are:
+
+@itemize @bullet
+@item @code{arm11} -- this is a generation of ARMv6 cores
+@item @code{arm720t} -- this is an ARMv4 core
+@item @code{arm7tdmi} -- this is an ARMv4 core
+@item @code{arm920t} -- this is an ARMv5 core
+@item @code{arm926ejs} -- this is an ARMv5 core
+@item @code{arm966e} -- this is an ARMv5 core
+@item @code{arm9tdmi} -- this is an ARMv4 core
+@item @code{avr} -- implements Atmel's 8-bit AVR instruction set.
+(Support for this is preliminary and incomplete.)
+@item @code{cortex_a8} -- this is an ARMv7 core
+@item @code{cortex_m3} -- this is an ARMv7 core, supporting only the
+compact Thumb2 instruction set.  It supports one variant:
+@itemize @minus
+@item @code{lm3s} ... Use this when debugging older Stellaris LM3S targets.
+This will cause OpenOCD to use a software reset rather than asserting
+SRST, to avoid a issue with clearing the debug registers.
+This is fixed in Fury Rev B, DustDevil Rev B, Tempest; these revisions will
+be detected and the normal reset behaviour used.
+@end itemize
+@item @code{feroceon} -- resembles arm926
+@item @code{mips_m4k} -- a MIPS core.  This supports one variant:
+@itemize @minus
+@item @code{ejtag_srst} ... Use this when debugging targets that do not
+provide a functional SRST line on the EJTAG connector.  This causes
+OpenOCD to instead use an EJTAG software reset command to reset the
+processor.
+You still need to enable @option{srst} on the @command{reset_config}
+command to enable OpenOCD hardware reset functionality.
+@end itemize
+@item @code{xscale} -- this is actually an architecture,
+not a CPU type.  It is based on the ARMv5 architecture.
+There are several variants defined:
+@itemize @minus
+@item @code{ixp42x}, @code{ixp45x}, @code{ixp46x},
+@code{pxa27x} ... instruction register length is 7 bits
+@item @code{pxa250}, @code{pxa255},
+@code{pxa26x} ... instruction register length is 5 bits
+@end itemize
+@end itemize
+@end deffn
+
+To avoid being confused by the variety of ARM based cores, remember
+this key point: @emph{ARM is a technology licencing company}.
+(See: @url{http://www.arm.com}.)
+The CPU name used by OpenOCD will reflect the CPU design that was
+licenced, not a vendor brand which incorporates that design.
+Name prefixes like arm7, arm9, arm11, and cortex
+reflect design generations;
+while names like ARMv4, ARMv5, ARMv6, and ARMv7
+reflect an architecture version implemented by a CPU design.
+
+@anchor{Target Configuration}
+@section Target Configuration
 
 Before creating a ``target'', you must have added its TAP to the scan chain.
 When you've added that TAP, you will have a @code{dotted.name}
@@ -2108,179 +2270,295 @@ which is used to set up the CPU support.
 The chip-specific configuration file will normally configure its CPU(s)
 right after it adds all of the chip's TAPs to the scan chain.
 
-@section targets [NAME]
-@b{Note:} This command name is PLURAL - not singular.
+Although you can set up a target in one step, it's often clearer if you
+use shorter commands and do it in two steps:  create it, then configure
+optional parts.
+All operations on the target after it's created will use a new
+command, created as part of target creation.
 
-With NO parameter, this plural @b{targets} command lists all known
-targets in a human friendly form.
+The two main things to configure after target creation are
+a work area, which usually has target-specific defaults even
+if the board setup code overrides them later;
+and event handlers (@pxref{Target Events}), which tend
+to be much more board-specific.
+The key steps you use might look something like this
 
-With a parameter, this plural @b{targets} command sets the current
-target to the given name. (i.e.: If there are multiple debug targets)
-
-Example:
-@verbatim
-(gdb) mon targets
-      CmdName     Type     Endian    ChainPos   State
---  ---------- ---------- ---------- -------- ----------
-    0: target0  arm7tdmi   little        0      halted
-@end verbatim
-
-@section target COMMANDS
-@b{Note:} This command name is SINGULAR - not plural. It is used to
-manipulate specific targets, to create targets and other things.
-
-Once a target is created, a TARGETNAME (object) command is created;
-see below for details.
-
-The TARGET command accepts these sub-commands:
-@itemize @bullet
-@item @b{create} .. parameters ..
-@* creates a new target, see below for details.
-@item @b{types}
-@* Lists all supported target types (perhaps some are not yet in this document).
-@item @b{names}
-@* Lists all current debug target names, for example: 'str912.cpu' or 'pxa27.cpu' example usage:
-@verbatim
-	foreach t [target names] {
-	    puts [format "Target: %s\n" $t]
-	}
-@end verbatim
-@item @b{current}
-@* Returns the current target. OpenOCD always has, or refers to the ``current target'' in some way.
-By default, commands like: ``mww'' (used to write memory) operate on the current target.
-@item @b{number} @b{NUMBER}
-@* Internally OpenOCD maintains a list of targets - in numerical index
-(0..N-1) this command returns the name of the target at index N.
-Example usage:
-@verbatim
-    set thename [target number $x]
-    puts [format "Target %d is: %s\n" $x $thename]
-@end verbatim
-@item @b{count}
-@* Returns the number of targets known to OpenOCD (see number above)
-Example:
-@verbatim
-    set c [target count]
-    for { set x 0 } { $x < $c } { incr x } {
-       	# Assuming you have created this function
-       	print_target_details $x
-    }
-@end verbatim
-
-@end itemize
-
-@section TARGETNAME (object) commands
-@b{Use:} Once a target is created, an ``object name'' that represents the
-target is created. By convention, the target name is identical to the
-tap name. In a multiple target system, one can precede many common
-commands with a specific target name and effect only that target.
 @example
-    str912.cpu    mww 0x1234 0x42
-    omap3530.cpu  mww 0x5555 123
+target create MyTarget cortex_m3 -chain-position mychip.cpu
+$MyTarget configure -work-area-phys 0x08000 -work-area-size 8096
+$MyTarget configure -event reset-deassert-pre @{ jtag_rclk 5 @}
+$MyTarget configure -event reset-init @{ myboard_reinit @}
 @end example
 
-@b{Model:} The Tcl/Tk language has the concept of object commands. A
-good example is a on screen button, once a button is created a button
-has a name (a path in Tk terms) and that name is useable as a 1st
+You should specify a working area if you can; typically it uses some
+on-chip SRAM.
+Such a working area can speed up many things, including bulk
+writes to target memory;
+flash operations like checking to see if memory needs to be erased;
+GDB memory checksumming;
+and more.
+
+@quotation Warning
+On more complex chips, the work area can become
+inaccessible when application code
+(such as an operating system)
+enables or disables the MMU.
+For example, the particular MMU context used to acess the virtual
+address will probably matter ... and that context might not have
+easy access to other addresses needed.
+At this writing, OpenOCD doesn't have much MMU intelligence.
+@end quotation
+
+It's often very useful to define a @code{reset-init} event handler.
+For systems that are normally used with a boot loader,
+common tasks include updating clocks and initializing memory
+controllers.
+That may be needed to let you write the boot loader into flash,
+in order to ``de-brick'' your board; or to load programs into
+external DDR memory without having run the boot loader.
+
+@deffn Command {target create} target_name type configparams...
+This command creates a GDB debug target that refers to a specific JTAG tap.
+It enters that target into a list, and creates a new
+command (@command{@var{target_name}}) which is used for various
+purposes including additional configuration.
+
+@itemize @bullet
+@item @var{target_name} ...  is the name of the debug target.
+By convention this should be the same as the @emph{dotted.name}
+of the TAP associated with this target, which must be specified here
+using the @code{-chain-position @var{dotted.name}} configparam.
+
+This name is also used to create the target object command,
+referred to here as @command{$target_name},
+and in other places the target needs to be identified.
+@item @var{type} ... specifies the target type.  @xref{target types}.
+@item @var{configparams} ...  all parameters accepted by
+@command{$target_name configure} are permitted.
+If the target is big-endian, set it here with @code{-endian big}.
+If the variant matters, set it here with @code{-variant}.
+
+You @emph{must} set the @code{-chain-position @var{dotted.name}} here.
+@end itemize
+@end deffn
+
+@deffn Command {$target_name configure} configparams...
+The options accepted by this command may also be
+specified as parameters to @command{target create}.
+Their values can later be queried one at a time by
+using the @command{$target_name cget} command.
+
+@emph{Warning:} changing some of these after setup is dangerous.
+For example, moving a target from one TAP to another;
+and changing its endianness or variant.
+
+@itemize @bullet
+
+@item @code{-chain-position} @var{dotted.name} -- names the TAP
+used to access this target.
+
+@item @code{-endian} (@option{big}|@option{little}) -- specifies
+whether the CPU uses big or little endian conventions
+
+@item @code{-event} @var{event_name} @var{event_body} --
+@xref{Target Events}.
+Note that this updates a list of named event handlers.
+Calling this twice with two different event names assigns
+two different handlers, but calling it twice with the
+same event name assigns only one handler.
+
+@item @code{-variant} @var{name} -- specifies a variant of the target,
+which OpenOCD needs to know about.
+
+@item @code{-work-area-backup} (@option{0}|@option{1}) -- says
+whether the work area gets backed up; by default, it doesn't.
+When possible, use a working_area that doesn't need to be backed up,
+since performing a backup slows down operations.
+
+@item @code{-work-area-size} @var{size} -- specify/set the work area
+
+@item @code{-work-area-phys} @var{address} -- set the work area
+base @var{address} to be used when no MMU is active.
+
+@item @code{-work-area-virt} @var{address} -- set the work area
+base @var{address} to be used when an MMU is active.
+
+@end itemize
+@end deffn
+
+@section Other $target_name Commands
+@cindex object command
+
+The Tcl/Tk language has the concept of object commands,
+and OpenOCD adopts that same model for targets.
+
+A good Tk example is a on screen button.
+Once a button is created a button
+has a name (a path in Tk terms) and that name is useable as a first
 class command. For example in Tk, one can create a button and later
 configure it like this:
 
 @example
-    # Create
-    button .foobar -background red -command @{ foo @}
-    # Modify
-    .foobar configure -foreground blue
-    # Query
-    set x [.foobar cget -background]
-    # Report
-    puts [format "The button is %s" $x]
+# Create
+button .foobar -background red -command @{ foo @}
+# Modify
+.foobar configure -foreground blue
+# Query
+set x [.foobar cget -background]
+# Report
+puts [format "The button is %s" $x]
 @end example
 
 In OpenOCD's terms, the ``target'' is an object just like a Tcl/Tk
-button. Commands available as a ``target object'' are:
+button, and its object commands are invoked the same way.
 
-@comment START targetobj commands.
-@itemize @bullet
-@item @b{configure} - configure the target; see Target Config/Cget Options below
-@item @b{cget} - query the target configuration; see Target Config/Cget Options below
-@item @b{curstate} - current target state (running, halt, etc.
-@item @b{eventlist}
-@* Intended for a human to see/read the currently configure target events.
-@item @b{Various Memory Commands} See the ``mww'' command elsewhere.
-@comment start memory
-@itemize @bullet
-@item @b{mww} ...
-@item @b{mwh} ...
-@item @b{mwb} ...
-@item @b{mdw} ...
-@item @b{mdh} ...
-@item @b{mdb} ...
-@comment end memory
+@example
+str912.cpu    mww 0x1234 0x42
+omap3530.cpu  mww 0x5555 123
+@end example
+
+The commands supported by OpenOCD target objects are:
+
+@deffn Command {$target_name arp_examine}
+@deffnx Command {$target_name arp_halt}
+@deffnx Command {$target_name arp_poll}
+@deffnx Command {$target_name arp_reset}
+@deffnx Command {$target_name arp_waitstate}
+Internal OpenOCD scripts (most notably @file{startup.tcl})
+use these to deal with specific reset cases.
+They are not otherwise documented here.
+@end deffn
+
+@deffn Command {$target_name array2mem} arrayname width address count
+@deffnx Command {$target_name mem2array} arrayname width address count
+These provide an efficient script-oriented interface to memory.
+The @code{array2mem} primitive writes bytes, halfwords, or words;
+while @code{mem2array} reads them.
+In both cases, the TCL side uses an array, and
+the target side uses raw memory.
+
+The efficiency comes from enabling the use of
+bulk JTAG data transfer operations.
+The script orientation comes from working with data
+values that are packaged for use by TCL scripts;
+@command{mdw} type primitives only print data they retrieve,
+and neither store nor return those values.
+
+@itemize
+@item @var{arrayname} ... is the name of an array variable
+@item @var{width} ... is 8/16/32 - indicating the memory access size
+@item @var{address} ... is the target memory address
+@item @var{count} ... is the number of elements to process
 @end itemize
-@item @b{Memory To Array, Array To Memory}
-@* These are aimed at a machine interface to memory
+@end deffn
+
+@deffn Command {$target_name cget} queryparm
+Each configuration parameter accepted by
+@command{$target_name configure}
+can be individually queried, to return its current value.
+The @var{queryparm} is a parameter name
+accepted by that command, such as @code{-work-area-phys}.
+There are a few special cases:
+
 @itemize @bullet
-@item @b{mem2array ARRAYNAME WIDTH ADDRESS COUNT}
-@item @b{array2mem ARRAYNAME WIDTH ADDRESS COUNT}
-@* Where:
-@*   @b{ARRAYNAME} is the name of an array variable
-@*   @b{WIDTH} is 8/16/32 - indicating the memory access size
-@*   @b{ADDRESS} is the target memory address
-@*   @b{COUNT} is the number of elements to process
+@item @code{-event} @var{event_name} -- returns the handler for the
+event named @var{event_name}.
+This is a special case because setting a handler requires
+two parameters.
+@item @code{-type} -- returns the target type.
+This is a special case because this is set using
+@command{target create} and can't be changed
+using @command{$target_name configure}.
 @end itemize
-@item @b{Used during ``reset''}
-@* These commands are used internally by the OpenOCD scripts to deal
-with odd reset situations and are not documented here.
-@itemize @bullet
-@item @b{arp_examine}
-@item @b{arp_poll}
-@item @b{arp_reset}
-@item @b{arp_halt}
-@item @b{arp_waitstate}
-@end itemize
-@item @b{invoke-event} @b{EVENT-NAME}
-@* Invokes the specific event manually for the target
-@end itemize
+
+For example, if you wanted to summarize information about
+all the targets you might use something like this:
+
+@example
+for @{ set x 0 @} @{ $x < [target count] @} @{ incr x @} @{
+    set name [target number $x]
+    set y [$name cget -endian]
+    set z [$name cget -type]
+    puts [format "Chip %d is %s, Endian: %s, type: %s" \
+                 $x $name $y $z]
+@}
+@end example
+@end deffn
+
+@deffn Command {$target_name curstate}
+Displays the current target state:
+@code{debug-running},
+@code{halted},
+@code{reset},
+@code{running}, or @code{unknown}.
+@end deffn
+
+@deffn Command {$target_name eventlist}
+Displays a table listing all event handlers
+currently associated with this target.
+@xref{Target Events}.
+@end deffn
+
+@deffn Command {$target_name invoke-event} event_name
+Invokes the handler for the event named @var{event_name}.
+(This is primarily intended for use by OpenOCD framework
+code, for example by the reset code in @file{startup.tcl}.)
+@end deffn
+
+@deffn Command {$target_name mdw} addr [count]
+@deffnx Command {$target_name mdh} addr [count]
+@deffnx Command {$target_name mdb} addr [count]
+Display contents of address @var{addr}, as
+32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
+or 8-bit bytes (@command{mdb}).
+If @var{count} is specified, displays that many units.
+(If you want to manipulate the data instead of displaying it,
+see the @code{mem2array} primitives.)
+@end deffn
+
+@deffn Command {$target_name mww} addr word
+@deffnx Command {$target_name mwh} addr halfword
+@deffnx Command {$target_name mwb} addr byte
+Writes the specified @var{word} (32 bits),
+@var{halfword} (16 bits), or @var{byte} (8-bit) pattern,
+at the specified address @var{addr}.
+@end deffn
 
 @anchor{Target Events}
 @section Target Events
 @cindex events
 At various times, certain things can happen, or you want them to happen.
-
-Examples:
+For example:
 @itemize @bullet
 @item What should happen when GDB connects? Should your target reset?
 @item When GDB tries to flash the target, do you need to enable the flash via a special command?
-@item During reset, do you need to write to certain memory location to reconfigure the SDRAM?
+@item During reset, do you need to write to certain memory locations
+to set up system clocks or
+to reconfigure the SDRAM?
 @end itemize
 
-All of the above items are handled by target events.
+All of the above items can be addressed by target event handlers.
+These are set up by @command{$target_name configure -event} or
+@command{target create ... -event}.
 
-To specify an event action, either during target creation, or later
-via ``$_TARGETNAME configure'' see this example.
-
-Syntactially, the option is: ``-event NAME BODY'' where NAME is a
-target event name, and BODY is a Tcl procedure or string of commands
-to execute. 
-
-The programmers model is the ``-command'' option used in Tcl/Tk
-buttons and events. Below are two identical examples, the first
-creates and invokes small procedure. The second inlines the procedure.
+The programmer's model matches the @code{-command} option used in Tcl/Tk
+buttons and events.  The two examples below act the same, but one creates
+and invokes a small procedure while the other inlines it.
 
 @example
-   proc my_attach_proc @{ @} @{
-       puts "RESET...."
-       reset halt
-   @}
-   mychip.cpu configure -event gdb-attach my_attach_proc 
-   mychip.cpu configure -event gdb-attach @{
-       puts "Reset..."
-       reset halt
-   @}
+proc my_attach_proc @{ @} @{
+    echo "Reset..."
+    reset halt
+@}
+mychip.cpu configure -event gdb-attach my_attach_proc
+mychip.cpu configure -event gdb-attach @{
+    echo "Reset..."
+    reset halt
+@}
 @end example
 
-@section Current Events
-The following events are available:
+The following target events are defined:
+
 @itemize @bullet
 @item @b{debug-halted}
 @* The target has halted for debug reasons (i.e.: breakpoint)
@@ -2324,6 +2602,10 @@ when reset is asserted on the tap.
 @item @b{reset-deassert-pre}
 @* Issued as part of @command{reset} processing
 when reset is about to be released on the tap.
+
+For some chips, this may be a good place to make sure
+the JTAG clock is slow enough to work before the PLL
+has been set up to allow faster JTAG speeds.
 @item @b{reset-deassert-post}
 @* Issued as part of @command{reset} processing
 when reset has been released on the tap.
@@ -2336,6 +2618,7 @@ when reset has been released on the tap.
 @item @b{reset-init}
 @* Used by @b{reset init} command for board-specific initialization.
 This event fires after @emph{reset-deassert-post}.
+
 This is where you would configure PLLs and clocking, set up DRAM so
 you can download programs that don't fit in on-chip SRAM, set up pin
 multiplexing, and so on.
@@ -2356,109 +2639,6 @@ before either SRST or TRST are activated.
 @* Target has resumed
 @end itemize
 
-@anchor{Target Create}
-@section Target Create
-@cindex target
-@cindex target creation
-
-@example
-@b{target} @b{create} <@var{NAME}> <@var{TYPE}> <@var{PARAMS ...}>
-@end example
-@*This command creates a GDB debug target that refers to a specific JTAG tap.
-@comment START params
-@itemize @bullet
-@item @b{NAME}
-@* Is the name of the debug target. By convention it should be the tap
-DOTTED.NAME.  This name is also used to create the target object
-command, and in other places the target needs to be identified.
-@item @b{TYPE}
-@* Specifies the target type, i.e.: ARM7TDMI, or Cortex-M3. Currently supported targets are:
-@comment START types
-@itemize @minus
-@item @b{arm7tdmi}
-@item @b{arm720t}
-@item @b{arm9tdmi}
-@item @b{arm920t}
-@item @b{arm922t}
-@item @b{arm926ejs}
-@item @b{arm966e} 
-@item @b{cortex_m3}
-@item @b{feroceon}
-@item @b{xscale}
-@item @b{arm11}
-@item @b{mips_m4k}
-@comment end TYPES
-@end itemize
-@item @b{PARAMS}
-@*PARAMs are various target configuration parameters. The following ones are mandatory:
-@comment START mandatory
-@itemize @bullet
-@item @b{-endian big|little}
-@item @b{-chain-position DOTTED.NAME}
-@comment end MANDATORY
-@end itemize
-@comment END params
-@end itemize
-
-@section Target Config/Cget Options
-These options can be specified when the target is created, or later
-via the configure option or to query the target via cget.
-
-You should specify a working area if you can; typically it uses some
-on-chip SRAM.  Such a working area can speed up many things, including bulk
-writes to target memory; flash operations like checking to see if memory needs
-to be erased; GDB memory checksumming; and may help perform otherwise
-unavailable operations (like some coprocessor operations on ARM7/9 systems).
-@itemize @bullet
-@item @b{-type} - returns the target type
-@item @b{-event NAME BODY} see Target events
-@item @b{-work-area-virt [ADDRESS]} specify/set the work area base address
-which will be used when an MMU is active.
-@item @b{-work-area-phys [ADDRESS]} specify/set the work area base address
-which will be used when an MMU is inactive.
-@item @b{-work-area-size [ADDRESS]} specify/set the work area
-@item @b{-work-area-backup [0|1]} does the work area get backed up;
-by default, it doesn't.  When possible, use a working_area that doesn't
-need to be backed up, since performing a backup slows down operations.
-@item @b{-endian  [big|little]} 
-@item @b{-variant [NAME]} some chips have variants OpenOCD needs to know about
-@item @b{-chain-position DOTTED.NAME} the tap name this target refers to.
-@end itemize
-Example:
-@example
-  for @{ set x 0 @} @{ $x < [target count] @} @{ incr x @} @{
-    set name [target number $x]
-    set y [$name cget -endian]
-    set z [$name cget -type]
-    puts [format "Chip %d is %s, Endian: %s, type: %s" $x $y $z]
-  @}
-@end example
-
-@b{PROBLEM:} On more complex chips, the work area can become
-inaccessible when application code enables or disables the MMU.
-For example, the MMU context used to acess the virtual address
-will probably matter.
-
-@section Target Variants
-@itemize @bullet
-@item @b{cortex_m3}
-@* Use variant @option{lm3s} when debugging older Stellaris LM3S targets.
-This will cause OpenOCD to use a software reset rather than asserting
-SRST, to avoid a issue with clearing the debug registers.
-This is fixed in Fury Rev B, DustDevil Rev B, Tempest; these revisions will
-be detected and the normal reset behaviour used.
-@item @b{xscale}
-@*Supported variants are
-@option{ixp42x}, @option{ixp45x}, @option{ixp46x},
-@option{pxa250}, @option{pxa255}, @option{pxa26x}.
-@item @b{mips_m4k}
-@* Use variant @option{ejtag_srst} when debugging targets that do not
-provide a functional SRST line on the EJTAG connector.  This causes
-OpenOCD to instead use an EJTAG software reset command to reset the
-processor.  You still need to enable @option{srst} on the reset
-configuration command to enable OpenOCD hardware reset functionality.
-@comment END variants
-@end itemize
 
 @node Flash Commands
 @chapter Flash Commands
@@ -3542,6 +3722,7 @@ Redirect logging to @var{filename};
 the initial log output channel is stderr.
 @end deffn
 
+@anchor{Target State handling}
 @section Target State handling
 @cindex reset
 @cindex halt
@@ -3688,6 +3869,8 @@ Display contents of address @var{addr}, as
 32-bit words (@command{mdw}), 16-bit halfwords (@command{mdh}),
 or 8-bit bytes (@command{mdb}).
 If @var{count} is specified, displays that many units.
+(If you want to manipulate the data instead of displaying it,
+see the @code{mem2array} primitives.)
 @end deffn
 
 @deffn Command mww addr word
@@ -4183,6 +4366,9 @@ which are implementations of the ARMv5TEJ architecture
 based on the ARM9EJ-S integer core.
 They are available in addition to the ARMv4/5, ARM7/ARM9,
 and ARM9TDMI commands.
+
+The Feroceon cores also support these commands, although
+they are not built from ARM926ej-s designs.
 
 @deffn Command {arm926ejs cache_info}
 Print information about the caches found.
