@@ -84,10 +84,6 @@ int jtag_verify = 1;
 static int jtag_nsrst_delay = 0; /* default to no nSRST delay */
 static int jtag_ntrst_delay = 0; /* default to no nTRST delay */
 
-/* maximum number of JTAG devices expected in the chain
- */
-#define JTAG_MAX_CHAIN_SIZE 20
-
 /* callbacks to inform high-level handlers about JTAG state changes */
 jtag_event_callback_t *jtag_event_callbacks;
 
@@ -942,6 +938,9 @@ void jtag_sleep(u32 us)
 {
 	alive_sleep(us/1000);
 }
+
+/// maximum number of JTAG devices expected in the chain
+#define JTAG_MAX_CHAIN_SIZE 20
 
 #define EXTRACT_MFG(X)  (((X) & 0xffe) >> 1)
 #define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
