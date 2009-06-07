@@ -69,7 +69,7 @@ Free Documentation License''.
 * Daemon Configuration::             Daemon Configuration
 * Interface - Dongle Configuration:: Interface - Dongle Configuration
 * Reset Configuration::              Reset Configuration
-* TAP Creation::                     TAP Creation
+* TAP Declaration::                  TAP Declaration
 * CPU Configuration::                CPU Configuration
 * Flash Commands::                   Flash Commands
 * NAND Flash Commands::              NAND Flash Commands
@@ -890,6 +890,7 @@ In summary the board files should contain (if present)
 @item SDRAM configuration (size, speed, etc.
 @item Board specific IO configuration (i.e.: GPIO pins might disable a 2nd flash)
 @item Multiple TARGET source statements
+@item Reset configuration
 @item All things that are not ``inside a chip''
 @item Things inside a chip go in a 'target' file
 @end enumerate
@@ -910,7 +911,6 @@ In summary the target files should contain
 @item Set defaults
 @item Add TAPs to the scan chain
 @item Add CPU targets
-@item Reset configuration
 @item CPU/Chip/CPU-Core specific features
 @item On-Chip flash
 @end enumerate
@@ -1038,7 +1038,7 @@ if @{ [info exists CPUTAPID ] @} @{
 @subsection Adding TAPs to the Scan Chain
 After the ``defaults'' are set up,
 add the TAPs on each chip to the JTAG scan chain.
-@xref{TAP Creation}, and the naming convention
+@xref{TAP Declaration}, and the naming convention
 for taps.
 
 In the simplest case the chip has only one TAP,
@@ -1053,7 +1053,7 @@ jtag newtap $_CHIPNAME cpu -irlen 4 -ircapture 0x1 -irmask 0xf \
 
 A board with two such at91sam7 chips would be able
 to source such a config file twice, with different
-values for @code{CHIPNAME} and @code{CPUTAPID}, so
+values for @code{CHIPNAME}, so
 it adds a different TAP each time.
 
 There are more complex examples too, with chips that have
@@ -1075,6 +1075,7 @@ GDB and other commands can use it.
 For the at91sam7 example above, the command can look like this:
 
 @example
+set _TARGETNAME $_CHIPNAME.cpu
 target create $_TARGETNAME arm7tdmi -chain-position $_TARGETNAME
 @end example
 
@@ -1087,14 +1088,18 @@ Again using the at91sam7 as an example, this can look like:
 
 @example
 $_TARGETNAME configure -work-area-phys 0x00200000 \
-	-work-area-size 0x4000 -work-area-backup 0
+             -work-area-size 0x4000 -work-area-backup 0
 @end example
 
 @subsection Reset Configuration
 
+As a rule, you should put the @command{reset_config} command
+into the board file.  Most things you think you know about a
+chip can be tweaked by the board.
+
 Some chips have specific ways the TRST and SRST signals are
-managed. If these are @b{CHIP SPECIFIC} they go here, if they are
-@b{BOARD SPECIFIC} they go in the board file.
+managed. In the unusual case that these are @emph{chip specific}
+and can never be changed by board wiring, they could go here.
 
 @subsection ARM Core Specific Hacks
 
@@ -1261,43 +1266,40 @@ The ones listed here are static and global.
 @xref{Target Events}, about configuring target-specific event handling.
 
 @anchor{gdb_breakpoint_override}
-@deffn {Command} gdb_breakpoint_override <hard|soft|disable>
+@deffn {Command} gdb_breakpoint_override [@option{hard}|@option{soft}|@option{disable}]
 Force breakpoint type for gdb @command{break} commands.
-The raison d'etre for this option is to support GDB GUI's which don't
+This option supports GDB GUIs which don't
 distinguish hard versus soft breakpoints, if the default OpenOCD and
 GDB behaviour is not sufficient.  GDB normally uses hardware
 breakpoints if the memory map has been set up for flash regions.
-
-This option replaces older arm7_9 target commands that addressed
-the same issue.
 @end deffn
 
-@deffn {Config command} gdb_detach <resume|reset|halt|nothing>
+@deffn {Config command} gdb_detach (@option{resume}|@option{reset}|@option{halt}|@option{nothing})
 Configures what OpenOCD will do when GDB detaches from the daemon.
-Default behaviour is @var{resume}.
+Default behaviour is @option{resume}.
 @end deffn
 
 @anchor{gdb_flash_program}
-@deffn {Config command} gdb_flash_program <enable|disable>
-Set to @var{enable} to cause OpenOCD to program the flash memory when a
+@deffn {Config command} gdb_flash_program (@option{enable}|@option{disable})
+Set to @option{enable} to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
-The default behaviour is @var{enable}.
+The default behaviour is @option{enable}.
 @end deffn
 
-@deffn {Config command} gdb_memory_map <enable|disable>
-Set to @var{enable} to cause OpenOCD to send the memory configuration to GDB when
+@deffn {Config command} gdb_memory_map (@option{enable}|@option{disable})
+Set to @option{enable} to cause OpenOCD to send the memory configuration to GDB when
 requested. GDB will then know when to set hardware breakpoints, and program flash
 using the GDB load command. @command{gdb_flash_program enable} must also be enabled
 for flash programming to work.
-Default behaviour is @var{enable}.
+Default behaviour is @option{enable}.
 @xref{gdb_flash_program}.
 @end deffn
 
-@deffn {Config command} gdb_report_data_abort <enable|disable>
+@deffn {Config command} gdb_report_data_abort (@option{enable}|@option{disable})
 Specifies whether data aborts cause an error to be reported
 by GDB memory read packets.
-The default behaviour is @var{disable};
-use @var{enable} see these errors reported.
+The default behaviour is @option{disable};
+use @option{enable} see these errors reported.
 @end deffn
 
 @node Interface - Dongle Configuration
@@ -1839,9 +1841,9 @@ powerup and pressing a reset button.
 @end deffn
 
 
-@node TAP Creation
-@chapter TAP Creation
-@cindex TAP creation
+@node TAP Declaration
+@chapter TAP Declaration
+@cindex TAP declaration
 @cindex TAP configuration
 
 @emph{Test Access Ports} (TAPs) are the core of JTAG.
@@ -1882,7 +1884,7 @@ because not all devices provide good support for that.
 The configuration mechanism currently supported by OpenOCD
 requires explicit configuration of all TAP devices using
 @command{jtag newtap} commands.
-One like this would create a tap named @code{chip1.cpu}:
+One like this would declare a tap and name it @code{chip1.cpu}:
 
 @example
 jtag newtap chip1 cpu -irlen 7 -ircapture 0x01 -irmask 0x55
@@ -1892,16 +1894,16 @@ Each target configuration file lists the TAPs provided
 by a given chip.
 Board configuration files combine all the targets on a board,
 and so forth.
-Note that @emph{the order in which TAPs are created is very important.}
+Note that @emph{the order in which TAPs are declared is very important.}
 It must match the order in the JTAG scan chain, both inside
 a single chip and between them.
+@xref{FAQ TAP Order}.
 
 For example, the ST Microsystems STR912 chip has
 three separate TAPs@footnote{See the ST
 document titled: @emph{STR91xFAxxx, Section 3.15 Jtag Interface, Page:
 28/102, Figure 3: JTAG chaining inside the STR91xFA}.
-@url{http://eu.st.com/stonline/products/literature/ds/13495.pdf}
-Checked: 28-Nov-2008}.
+@url{http://eu.st.com/stonline/products/literature/ds/13495.pdf}}.
 To configure those taps, @file{target/str912.cfg}
 includes commands something like this:
 
@@ -1917,7 +1919,7 @@ Actual config files use a variable instead of literals like
 
 @section TAP Names
 
-When a TAP objects is created with @command{jtag newtap},
+When TAP objects are declared with @command{jtag newtap},
 a @dfn{dotted.name} is created for the TAP, combining the
 name of a module (usually a chip) and a label for the TAP.
 For example: @code{xilinx.tap}, @code{str912.flash},
@@ -1940,13 +1942,12 @@ Using TAP numbers in target configuration scripts prevents
 reusing on boards with multiple targets.
 @end quotation
 
-@anchor{TAP Creation Commands}
-@section TAP Creation Commands
+@section TAP Declaration Commands
 
 @c shouldn't this be(come) a {Config Command}?
 @anchor{jtag newtap}
 @deffn Command {jtag newtap} chipname tapname configparams...
-Creates a new TAP with the dotted name @var{chipname}.@var{tapname},
+Declares a new TAP with the dotted name @var{chipname}.@var{tapname},
 and configured according to the various @var{configparams}.
 
 The @var{chipname} is a symbolic name for the chip.
@@ -2705,7 +2706,7 @@ The CFI driver can accept the following optional parameters, in any order:
 @itemize
 @item @var{jedec_probe} ... is used to detect certain non-CFI flash ROMs,
 like AM29LV010 and similar types.
-@item @var{x16_as_x8} ...
+@item @var{x16_as_x8} ... when a 16-bit flash is hooked up to an 8-bit bus.
 @end itemize
 
 To configure two adjacent banks of 16 MBytes each, both sixteen bits (two bytes)
@@ -3372,7 +3373,7 @@ devices which have been probed this also prints any known
 status for each block.
 @end deffn
 
-@deffn Command {nand raw_access} num <enable|disable>
+@deffn Command {nand raw_access} num (@option{enable}|@option{disable})
 Sets or clears an flag affecting how page I/O is done.
 The @var{num} parameter is the value shown by @command{nand list}.
 
@@ -3509,7 +3510,7 @@ level 2 (the default) adds informational messages;
 and level 3 adds debugging messages.
 @end deffn
 
-@deffn Command fast [enable|disable]
+@deffn Command fast (@option{enable}|@option{disable})
 Default disabled.
 Set default behaviour of OpenOCD to be "fast and dangerous".
 
@@ -3971,15 +3972,15 @@ Reports whether the capture clock is locked or not.
 
 
 @section ARMv4 and ARMv5 Architecture
-@cindex ARMv4 specific commands
-@cindex ARMv5 specific commands
+@cindex ARMv4
+@cindex ARMv5
 
 These commands are specific to ARM architecture v4 and v5,
 including all ARM7 or ARM9 systems and Intel XScale.
 They are available in addition to other core-specific
 commands that may be available.
 
-@deffn Command {armv4_5 core_state} [arm|thumb]
+@deffn Command {armv4_5 core_state} [@option{arm}|@option{thumb}]
 Displays the core_state, optionally changing it to process
 either @option{arm} or @option{thumb} instructions.
 The target may later be resumed in the currently set core_state.
@@ -3997,27 +3998,27 @@ those instructions are not currently understood by OpenOCD.)
 @end deffn
 
 @deffn Command {armv4_5 reg}
-Display a list of all banked core registers, fetching the current value from every
+Display a table of all banked core registers, fetching the current value from every
 core mode if necessary. OpenOCD versions before rev. 60 didn't fetch the current
 register value. 
 @end deffn
 
 @subsection ARM7 and ARM9 specific commands
-@cindex ARM7 specific commands
-@cindex ARM9 specific commands
+@cindex ARM7
+@cindex ARM9
 
 These commands are specific to ARM7 and ARM9 cores, like ARM7TDMI, ARM720T,
 ARM9TDMI, ARM920T or ARM926EJ-S.
 They are available in addition to the ARMv4/5 commands,
 and any other core-specific commands that may be available.
 
-@deffn Command {arm7_9 dbgrq} (enable|disable)
+@deffn Command {arm7_9 dbgrq} (@option{enable}|@option{disable})
 Control use of the EmbeddedIce DBGRQ signal to force entry into debug mode,
 instead of breakpoints.  This should be
 safe for all but ARM7TDMI--S cores (like Philips LPC). 
 @end deffn
 
-@deffn Command {arm7_9 dcc_downloads} (enable|disable)
+@deffn Command {arm7_9 dcc_downloads} (@option{enable}|@option{disable})
 @cindex DCC
 Control the use of the debug communications channel (DCC) to write larger (>128 byte)
 amounts of memory. DCC downloads offer a huge speed increase, but might be
@@ -4026,7 +4027,7 @@ with OpenOCD rev. 60, and requires a few bytes of working area.
 @end deffn
 
 @anchor{arm7_9 fast_memory_access}
-@deffn Command {arm7_9 fast_memory_access} (enable|disable)
+@deffn Command {arm7_9 fast_memory_access} (@option{enable}|@option{disable})
 Enable or disable memory writes and reads that don't check completion of
 the operation. This provides a huge speed increase, especially with USB JTAG
 cables (FT2232), but might be unsafe if used with targets running at very low
@@ -4048,7 +4049,7 @@ in which case register 16 is the CPSR.
 The write goes directly to the CPU, bypassing the register cache.
 @end deffn
 
-@deffn {Debug Command} {arm7_9 write_xpsr} word (0|1)
+@deffn {Debug Command} {arm7_9 write_xpsr} word (@option{0}|@option{1})
 @emph{This is intended for use while debugging OpenOCD; you probably
 shouldn't use it.}
 
@@ -4058,7 +4059,7 @@ Else writes @var{word} to the current mode's Saved PSR (SPSR).
 In both cases, this bypasses the register cache.
 @end deffn
 
-@deffn {Debug Command} {arm7_9 write_xpsr_im8} byte rotate (0|1)
+@deffn {Debug Command} {arm7_9 write_xpsr_im8} byte rotate (@option{0}|@option{1})
 @emph{This is intended for use while debugging OpenOCD; you probably
 shouldn't use it.}
 
@@ -4070,7 +4071,7 @@ with @command{arm7_9 write_xpsr}.
 @end deffn
 
 @subsection ARM720T specific commands
-@cindex ARM720T specific commands
+@cindex ARM720T
 
 These commands are available to ARM720T based CPUs,
 which are implementations of the ARMv4T architecture
@@ -4105,13 +4106,13 @@ and display the result.
 @end deffn
 
 @subsection ARM9TDMI specific commands
-@cindex ARM9TDMI specific commands
+@cindex ARM9TDMI
 
 Many ARM9-family CPUs are built around ARM9TDMI integer cores,
 or processors resembling ARM9TDMI, and can use these commands.
 Such cores include the ARM920T, ARM926EJ-S, and ARM966.
 
-@deffn Command {arm9tdmi vector_catch} (all|none|list)
+@deffn Command {arm9tdmi vector_catch} (@option{all}|@option{none}|list)
 Catch arm9 interrupt vectors, can be @option{all}, @option{none},
 or a list with one or more of the following:
 @option{reset} @option{undef} @option{swi} @option{pabt} @option{dabt} @option{reserved}
@@ -4119,7 +4120,7 @@ or a list with one or more of the following:
 @end deffn
 
 @subsection ARM920T specific commands
-@cindex ARM920T specific commands
+@cindex ARM920T
 
 These commands are available to ARM920T based CPUs,
 which are implementations of the ARMv4T architecture
@@ -4169,15 +4170,15 @@ Dump the content of ICache and DCache to a file named @file{filename}.
 Dump the content of the ITLB and DTLB to a file named @file{filename}.
 @end deffn
 
-@deffn Command {arm920t virt2phys} @var{va}
+@deffn Command {arm920t virt2phys} va
 Translate a virtual address @var{va} to a physical address
 and display the result.
 @end deffn
 
-@subsection ARM926EJ-S specific commands
-@cindex ARM926EJ-S specific commands
+@subsection ARM926ej-s specific commands
+@cindex ARM926ej-s
 
-These commands are available to ARM926EJ-S based CPUs,
+These commands are available to ARM926ej-s based CPUs,
 which are implementations of the ARMv5TEJ architecture
 based on the ARM9EJ-S integer core.
 They are available in addition to the ARMv4/5, ARM7/ARM9,
@@ -4211,13 +4212,13 @@ Writes the specified @var{word} (32 bits),
 at the specified physical address @var{addr}.
 @end deffn
 
-@deffn Command {arm926ejs virt2phys} @var{va}
+@deffn Command {arm926ejs virt2phys} va
 Translate a virtual address @var{va} to a physical address
 and display the result.
 @end deffn
 
 @subsection ARM966E specific commands
-@cindex ARM966E specific commands
+@cindex ARM966E
 
 These commands are available to ARM966 based CPUs,
 which are implementations of the ARMv5TE architecture.
@@ -4230,7 +4231,7 @@ else if a @var{value} is provided, that value is written to that register.
 @end deffn
 
 @subsection XScale specific commands
-@cindex XScale specific commands
+@cindex XScale
 
 These commands are available to XScale based CPUs,
 which are implementations of the ARMv5TE architecture.
@@ -4256,7 +4257,7 @@ else if a @var{value} is provided, that value is written to that register.
 Changes the address used for the specified target's debug handler.
 @end deffn
 
-@deffn Command {xscale dcache} (enable|disable)
+@deffn Command {xscale dcache} (@option{enable}|@option{disable})
 Enables or disable the CPU's data cache.
 @end deffn
 
@@ -4264,15 +4265,15 @@ Enables or disable the CPU's data cache.
 Dumps the raw contents of the trace buffer to @file{filename}.
 @end deffn
 
-@deffn Command {xscale icache} (enable|disable)
+@deffn Command {xscale icache} (@option{enable}|@option{disable})
 Enables or disable the CPU's instruction cache.
 @end deffn
 
-@deffn Command {xscale mmu} (enable|disable)
+@deffn Command {xscale mmu} (@option{enable}|@option{disable})
 Enables or disable the CPU's memory management unit.
 @end deffn
 
-@deffn Command {xscale trace_buffer} (enable|disable) [fill [n] | wrap]
+@deffn Command {xscale trace_buffer} (@option{enable}|@option{disable}) [@option{fill} [n] | @option{wrap}]
 Enables or disables the trace buffer,
 and controls how it is emptied.
 @end deffn
@@ -4291,9 +4292,10 @@ Provide a bitmask showing the vectors to catch.
 @end deffn
 
 @section ARMv6 Architecture
+@cindex ARMv6
 
 @subsection ARM11 specific commands
-@cindex ARM11 specific commands
+@cindex ARM11
 
 @deffn Command {arm11 mcr} p1 p2 p3 p4 p5
 Read coprocessor register
@@ -4330,38 +4332,42 @@ If @var{value} is defined, first assigns that.
 @end deffn
 
 @section ARMv7 Architecture
+@cindex ARMv7
 
 @subsection ARMv7 Debug Access Port (DAP) specific commands
-@cindex ARMv7 Debug Access Port (DAP) specific commands
+@cindex Debug Access Port
+@cindex DAP
 These commands are specific to ARM architecture v7 Debug Access Port (DAP),
 included on cortex-m3 and cortex-a8 systems.
 They are available in addition to other core-specific commands that may be available.
 
 @deffn Command {dap info} [num]
-Displays dap info for ap [num], default currently selected AP.
+Displays dap info for ap @var{num}, defaulting to the currently selected AP.
 @end deffn
 
 @deffn Command {dap apsel} [num]
-Select a different AP [num] (default 0).
+Select AP @var{num}, defaulting to 0.
 @end deffn
 
 @deffn Command {dap apid} [num]
-Displays id reg from AP [num], default currently selected AP.
+Displays id register from AP @var{num},
+defaulting to the currently selected AP.
 @end deffn
 
 @deffn Command {dap baseaddr} [num]
-Displays debug base address from AP [num], default currently selected AP.
+Displays debug base address from AP @var{num},
+defaulting to the currently selected AP.
 @end deffn
 
 @deffn Command {dap memaccess} [value]
 Displays the number of extra tck for mem-ap memory bus access [0-255].
-If value is defined, first assigns that.
+If @var{value} is defined, first assigns that.
 @end deffn
 
 @subsection Cortex-M3 specific commands
-@cindex Cortex-M3 specific commands
+@cindex Cortex-M3
 
-@deffn Command {cortex_m3 maskisr} (on|off)
+@deffn Command {cortex_m3 maskisr} (@option{on}|@option{off})
 Control masking (disabling) interrupts during target step/resume.
 @end deffn
 
@@ -4379,7 +4385,7 @@ via EmbeddedICE DCC channel'' option (CONFIG_DEBUG_ICEDCC,
 depends on CONFIG_DEBUG_LL) which uses this mechanism to
 deliver messages before a serial console can be activated.
 
-@deffn Command {target_request debugmsgs} [enable|disable|charmsg]
+@deffn Command {target_request debugmsgs} [@option{enable}|@option{disable}|@option{charmsg}]
 Displays current handling of target DCC message requests.
 These messages may be sent to the debugger while the target is running.
 The optional @option{enable} and @option{charmsg} parameters
@@ -4393,7 +4399,7 @@ otherwise the libdcc format is used.
 @chapter JTAG Commands
 @cindex JTAG Commands
 Most general purpose JTAG commands have been presented earlier.
-(@xref{JTAG Speed}, @ref{Reset Configuration}, and @ref{TAP Creation}.)
+(@xref{JTAG Speed}, @ref{Reset Configuration}, and @ref{TAP Declaration}.)
 Lower level JTAG commands, as presented here,
 may be needed to work with targets which require special
 attention during operations such as reset or initialization.
@@ -4547,26 +4553,27 @@ The @var{tap_state} names used by OpenOCD in the @command{drscan},
 and @command{irscan} commands are:
 
 @itemize @bullet
-@item @b{RESET}
-@item @b{RUN/IDLE}
+@item @b{RESET} ... should act as if TRST were active
+@item @b{RUN/IDLE} ... don't assume this always means IDLE
 @item @b{DRSELECT}
 @item @b{DRCAPTURE}
-@item @b{DRSHIFT}
+@item @b{DRSHIFT} ... TDI/TDO shifting through the data register
 @item @b{DREXIT1}
-@item @b{DRPAUSE}
+@item @b{DRPAUSE} ... data register ready for update or more shifting
 @item @b{DREXIT2}
 @item @b{DRUPDATE}
 @item @b{IRSELECT}
 @item @b{IRCAPTURE}
-@item @b{IRSHIFT}
+@item @b{IRSHIFT} ... TDI/TDO shifting through the instruction register
 @item @b{IREXIT1}
-@item @b{IRPAUSE}
+@item @b{IRPAUSE} ... instruction register ready for update or more shifting
 @item @b{IREXIT2}
 @item @b{IRUPDATE}
 @end itemize
 
 Note that only six of those states are fully ``stable'' in the
-face of TMS fixed and a free-running JTAG clock; for all the
+face of TMS fixed (usually low)
+and a free-running JTAG clock.  For all the
 others, the next TCK transition changes to a new state.
 
 @itemize @bullet
@@ -4576,7 +4583,10 @@ to be latched in upcoming @sc{drupdate} or @sc{irupdate} states
 may not be as expected.
 @item @sc{run/idle}, @sc{drpause}, and @sc{irpause} are reasonable
 choices after @command{drscan} or @command{irscan} commands,
-since they are free of side effects.
+since they are free of JTAG side effects.
+However, @sc{run/idle} may have side effects that appear at other
+levels, such as advancing the ARM9E-S instruction pipeline.
+Consult the documentation for the TAP(s) you are working with.
 @end itemize
 
 @node TFTP
@@ -5118,17 +5128,22 @@ processed.  Such commands include @command{nand probe} and everything
 else that needs to write to controller registers, perhaps for setting
 up DRAM and loading it with code.
 
-@item @b{JTAG Tap Order} JTAG tap order - command order
+@anchor{FAQ TAP Order}
+@item @b{JTAG TAP Order} Do I have to declare the TAPS in some
+particular order?
 
-Many newer devices have multiple JTAG taps. For example: ST
-Microsystems STM32 chips have two taps, a ``boundary scan tap'' and
-``Cortex-M3'' tap.  Example: The STM32 reference manual, Document ID:
+Yes; whenever you have more than one, you must declare them in
+the same order used by the hardware.
+
+Many newer devices have multiple JTAG TAPs. For example: ST
+Microsystems STM32 chips have two TAPs, a ``boundary scan TAP'' and
+``Cortex-M3'' TAP.  Example: The STM32 reference manual, Document ID:
 RM0008, Section 26.5, Figure 259, page 651/681, the ``TDI'' pin is
-connected to the boundary scan tap, which then connects to the
-Cortex-M3 tap, which then connects to the TDO pin.
+connected to the boundary scan TAP, which then connects to the
+Cortex-M3 TAP, which then connects to the TDO pin.
 
 Thus, the proper order for the STM32 chip is: (1) The Cortex-M3, then
-(2) The boundary scan tap. If your board includes an additional JTAG
+(2) The boundary scan TAP. If your board includes an additional JTAG
 chip in the scan chain (for example a Xilinx CPLD or FPGA) you could
 place it before or after the STM32 chip in the chain. For example:
 
