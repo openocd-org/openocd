@@ -1414,8 +1414,9 @@ Currently valid layout @var{name} values include:
 @item @b{axm0432_jtag} Axiom AXM-0432
 @item @b{comstick} Hitex STR9 comstick
 @item @b{cortino} Hitex Cortino JTAG interface
-@item @b{evb_lm3s811} Luminary Micro EVB_LM3S811 as a JTAG interface
-(bypassing onboard processor), no TRST or SRST signals on external connector
+@item @b{evb_lm3s811} Luminary Micro EVB_LM3S811 as a JTAG interface,
+either for the local Cortex-M3 (SRST only)
+or in a passthrough mode (neither SRST nor TRST)
 @item @b{flyswatter} Tin Can Tools Flyswatter
 @item @b{icebear} ICEbear JTAG adapter from Section 5
 @item @b{jtagkey} Amontec JTAGkey and JTAGkey-Tiny (and compatibles)
