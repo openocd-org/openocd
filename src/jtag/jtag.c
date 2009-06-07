@@ -946,12 +946,28 @@ void jtag_sleep(u32 us)
 #define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
 #define EXTRACT_VER(X)  (((X) & 0xf0000000) >> 28)
 
+static int jtag_examine_chain_execute(u8 *idcode_buffer, unsigned num_idcode)
+{
+	scan_field_t field = {
+			.tap = NULL,
+			.num_bits = num_idcode * 32,
+			.out_value = idcode_buffer,
+			.in_value = idcode_buffer,
+		};
+
+	// initialize to the end of chain ID value
+	for (unsigned i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
+		buf_set_u32(idcode_buffer, i * 32, 32, 0x000000FF);
+
+	jtag_add_plain_dr_scan(1, &field, TAP_RESET);
+	return jtag_execute_queue();
+}
+
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
 static int jtag_examine_chain(void)
 {
 	jtag_tap_t *tap;
-	scan_field_t field;
 	u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
 	int i;
 	int bit_count;
@@ -959,22 +975,7 @@ static int jtag_examine_chain(void)
 	u8 zero_check = 0x0;
 	u8 one_check = 0xff;
 
-	field.tap = NULL;
-	field.num_bits = sizeof(idcode_buffer) * 8;
-	field.out_value = idcode_buffer;
-
-	field.in_value = idcode_buffer;
-
-
-
-
-	for (i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
-	{
-		buf_set_u32(idcode_buffer, i * 32, 32, 0x000000FF);
-	}
-
-	jtag_add_plain_dr_scan(1, &field, TAP_RESET);
-	jtag_execute_queue();
+	jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
 
 	for (i = 0; i < JTAG_MAX_CHAIN_SIZE * 4; i++)
 	{
