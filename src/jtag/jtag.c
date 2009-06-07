@@ -995,6 +995,11 @@ static void jtag_examine_chain_display(enum log_levels level, const char *msg,
 		EXTRACT_MFG(idcode), EXTRACT_PART(idcode), EXTRACT_VER(idcode) );
 }
 
+static bool jtag_idcode_is_final(u32 idcode)
+{
+		return idcode == 0x000000FF || idcode == 0xFFFFFFFF;
+}
+
 /**
  * This helper checks that remaining bits in the examined chain data are
  * all as expected, but a single JTAG device requires only 64 bits to be
@@ -1008,7 +1013,7 @@ static void jtag_examine_chain_end(u8 *idcodes, unsigned count, unsigned max)
 	{
 		u32 idcode = buf_get_u32(idcodes, count, 32);
 		// do not trigger the warning if the data looks good
-		if (!triggered && (idcode == 0x000000FF || idcode == 0xFFFFFFFF))
+		if (!triggered && jtag_idcode_is_final(idcode))
 			continue;
 		LOG_WARNING("Unexpected idcode after end of chain: %d 0x%08x",
 				count, idcode);
@@ -1055,7 +1060,7 @@ static int jtag_examine_chain(void)
 			 * as AVR will output all 1's instead of TDI input value at
 			 * end of chain.
 			 */
-			if ((idcode == 0x000000FF)||(idcode == 0xFFFFFFFF))
+			if (jtag_idcode_is_final(idcode))
 			{
 				jtag_examine_chain_end(idcode_buffer,
 						bit_count + 32, JTAG_MAX_CHAIN_SIZE * 32);
