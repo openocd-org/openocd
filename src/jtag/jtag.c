@@ -1021,6 +1021,45 @@ static void jtag_examine_chain_end(u8 *idcodes, unsigned count, unsigned max)
 	}
 }
 
+static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
+{
+	if (0 == tap->expected_ids_cnt)
+	{
+		/// @todo Enable LOG_INFO to ask for reports about unknown TAP IDs.
+#if 0
+		LOG_INFO("Uknown JTAG TAP ID: 0x%08x", tap->idcode)
+		LOG_INFO("Please report the chip name and reported ID code to the openocd project");
+#endif
+		return true;
+	}
+
+	/* Loop over the expected identification codes and test for a match */
+	u8 ii;
+	for (ii = 0; ii < tap->expected_ids_cnt; ii++)
+	{
+		if (tap->idcode == tap->expected_ids[ii])
+			break;
+	}
+
+	/* If none of the expected ids matched, log an error */
+	if (ii != tap->expected_ids_cnt)
+	{
+		LOG_INFO("JTAG Tap/device matched");
+		return true;
+	}
+	jtag_examine_chain_display(LOG_LVL_ERROR, "got",
+			tap->dotted_name, tap->idcode);
+	for (ii = 0; ii < tap->expected_ids_cnt; ii++)
+	{
+		char msg[32];
+		snprintf(msg, sizeof(msg), "expected %hhu of %hhu",
+				ii + 1, tap->expected_ids_cnt);
+		jtag_examine_chain_display(LOG_LVL_ERROR, msg,
+				tap->dotted_name, tap->expected_ids[ii]);
+	}
+	return false;
+}
+
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
 static int jtag_examine_chain(void)
@@ -1080,42 +1119,11 @@ static int jtag_examine_chain(void)
 
 		tap->idcode = idcode;
 
-		if (0 == tap->expected_ids_cnt)
-		{
-			/// @todo Enable LOG_INFO to ask for reports about unknown TAP IDs.
-#if 0
-			LOG_INFO("Uknown JTAG TAP ID: 0x%08x", tap->idcode)
-			LOG_INFO("Please report the chip name and reported ID code to the openocd project");
-#endif
-			tap = jtag_tap_next_enabled(tap);
-			continue;
-		}
-		/* Loop over the expected identification codes and test for a match */
-		u8 ii;
-		for (ii = 0; ii < tap->expected_ids_cnt; ii++)
-		{
-			if (tap->idcode == tap->expected_ids[ii])
-				break;
-		}
+		// ensure the TAP ID does matches what was expected
+ 		if (!jtag_examine_chain_match_tap(tap))
+			return ERROR_JTAG_INIT_FAILED;
 
-		/* If none of the expected ids matched, log an error */
-		if (ii != tap->expected_ids_cnt)
-		{
-			LOG_INFO("JTAG Tap/device matched");
-			tap = jtag_tap_next_enabled(tap);
-			continue;
-		}
-		jtag_examine_chain_display(LOG_LVL_ERROR, "got",
-				tap->dotted_name, tap->idcode);
-		for (ii = 0; ii < tap->expected_ids_cnt; ii++)
-		{
-			char msg[20];
-			snprintf(msg, 20, "expected %hhu of %hhu",
-					ii + 1, tap->expected_ids_cnt);
-			jtag_examine_chain_display(LOG_LVL_ERROR, msg,
-					tap->dotted_name, tap->expected_ids[ii]);
-		}
-		return ERROR_JTAG_INIT_FAILED;
+		tap = jtag_tap_next_enabled(tap);
 	}
 
 	/* see if number of discovered devices matches configuration */
