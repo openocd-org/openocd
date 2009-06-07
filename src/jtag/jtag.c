@@ -227,7 +227,6 @@ static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, ch
 
 static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-static int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -1659,8 +1658,6 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "scan_chain", handle_scan_chain_command,
 		COMMAND_EXEC, "print current scan chain configuration");
 
-	register_command(cmd_ctx, NULL, "endstate", handle_endstate_command,
-		COMMAND_EXEC, "finish JTAG operations in <tap_state>");
 	register_command(cmd_ctx, NULL, "jtag_reset", handle_jtag_reset_command,
 		COMMAND_EXEC, "toggle reset lines <trst> <srst>");
 	register_command(cmd_ctx, NULL, "runtest", handle_runtest_command,
@@ -2213,26 +2210,6 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 		command_print(cmd_ctx, "RCLK - adaptive");
 	return retval;
 
-}
-
-static int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
-{
-	if (argc < 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	tap_state_t state = tap_state_by_name(args[0]);
-	if (state < 0)
-	{
-		command_print( cmd_ctx, "Invalid state name: %s\n", args[0] );
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	jtag_set_end_state(state);
-	jtag_execute_queue();
-
-	command_print(cmd_ctx, "current endstate: %s",
-			tap_state_name(cmd_queue_end_state));
-
-	return ERROR_OK;
 }
 
 static int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)

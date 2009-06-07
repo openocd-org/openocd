@@ -4474,14 +4474,6 @@ tasks which waste bandwidth by flushing small transfers too often,
 instead of batching them into larger operations.
 @end deffn
 
-@deffn Command {endstate} tap_state
-Flush any pending JTAG operations,
-and return with all TAPs in @var{tap_state}.
-This state should be a stable state such as @sc{reset},
-@sc{run/idle},
-@sc{drpause}, or @sc{irpause}.
-@end deffn
-
 @deffn Command {irscan} [tap instruction]+ [@option{-endstate} tap_state]
 For each @var{tap} listed, loads the instruction register
 with its associated numeric @var{instruction}.
@@ -4552,7 +4544,7 @@ Default is enabled.
 @cindex TAP state names
 
 The @var{tap_state} names used by OpenOCD in the @command{drscan},
-@command{endstate}, and @command{irscan} commands are:
+and @command{irscan} commands are:
 
 @itemize @bullet
 @item @b{RESET}
@@ -4578,9 +4570,6 @@ face of TMS fixed and a free-running JTAG clock; for all the
 others, the next TCK transition changes to a new state.
 
 @itemize @bullet
-@item @sc{reset} is probably most useful with @command{endstate},
-but entering it frequently has side effects.
-(This is the only stable state with TMS high.)
 @item From @sc{drshift} and @sc{irshift}, clock transitions will
 produce side effects by changing register contents.  The values
 to be latched in upcoming @sc{drupdate} or @sc{irupdate} states
@@ -4838,6 +4827,9 @@ become much shorter.
 @item @b{arm7_9 fast_writes}
 @cindex arm7_9 fast_writes
 @*Use @command{arm7_9 fast_memory_access} instead.
+@item @b{endstate}
+@cindex endstate
+@*An buggy old command that would not really work since background polling would wipe out the global endstate
 @xref{arm7_9 fast_memory_access}.
 @item @b{arm7_9 force_hw_bkpts}
 @*Use @command{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
