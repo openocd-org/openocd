@@ -2185,23 +2185,20 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 
 static int handle_endstate_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	tap_state_t state;
-
 	if (argc < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	tap_state_t state = tap_state_by_name(args[0]);
+	if (state < 0)
 	{
+		command_print( cmd_ctx, "Invalid state name: %s\n", args[0] );
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	else
-	{
-		state = tap_state_by_name( args[0] );
-		if( state < 0 ){
-			command_print( cmd_ctx, "Invalid state name: %s\n", args[0] );
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-		jtag_set_end_state(state);
-		jtag_execute_queue();
-	}
-	command_print(cmd_ctx, "current endstate: %s", tap_state_name(cmd_queue_end_state));
+	jtag_set_end_state(state);
+	jtag_execute_queue();
+
+	command_print(cmd_ctx, "current endstate: %s",
+			tap_state_name(cmd_queue_end_state));
 
 	return ERROR_OK;
 }
