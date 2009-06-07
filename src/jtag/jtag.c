@@ -963,32 +963,41 @@ static int jtag_examine_chain_execute(u8 *idcode_buffer, unsigned num_idcode)
 	return jtag_execute_queue();
 }
 
+static bool jtag_examine_chain_check(u8 *idcodes, unsigned count)
+{
+	u8 zero_check = 0x0;
+	u8 one_check = 0xff;
+
+	for (unsigned i = 0; i < count * 4; i++)
+	{
+		zero_check |= idcodes[i];
+		one_check &= idcodes[i];
+	}
+
+	/* if there wasn't a single non-zero bit or if all bits were one,
+	 * the scan is not valid */
+	if (zero_check == 0x00 || one_check == 0xff)
+	{
+		LOG_ERROR("JTAG communication failure: check connection, "
+			"JTAG interface, target power etc.");
+		return false;
+	}
+	return true;
+}
+
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
 static int jtag_examine_chain(void)
 {
 	jtag_tap_t *tap;
 	u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
-	int i;
 	int bit_count;
 	int device_count = 0;
-	u8 zero_check = 0x0;
-	u8 one_check = 0xff;
 
 	jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
 
-	for (i = 0; i < JTAG_MAX_CHAIN_SIZE * 4; i++)
-	{
-		zero_check |= idcode_buffer[i];
-		one_check &= idcode_buffer[i];
-	}
-
-	/* if there wasn't a single non-zero bit or if all bits were one, the scan isn't valid */
-	if ((zero_check == 0x00) || (one_check == 0xff))
-	{
-		LOG_ERROR("JTAG communication failure, check connection, JTAG interface, target power etc.");
+	if (!jtag_examine_chain_check(idcode_buffer, JTAG_MAX_CHAIN_SIZE))
 		return ERROR_JTAG_INIT_FAILED;
-	}
 
 	/* point at the 1st tap */
 	tap = jtag_tap_next_enabled(NULL);
