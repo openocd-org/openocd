@@ -985,6 +985,16 @@ static bool jtag_examine_chain_check(u8 *idcodes, unsigned count)
 	return true;
 }
 
+static void jtag_examine_chain_display(enum log_levels level, const char *msg,
+		const char *name, u32 idcode)
+{
+	log_printf_lf(level, __FILE__, __LINE__, __FUNCTION__,
+			"JTAG tap: %s %16.16s: 0x%08x "
+			"(mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
+		name, msg, idcode,
+		EXTRACT_MFG(idcode), EXTRACT_PART(idcode), EXTRACT_VER(idcode) );
+}
+
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
 static int jtag_examine_chain(void)
@@ -1019,10 +1029,6 @@ static int jtag_examine_chain(void)
 		}
 		else
 		{
-			u32 manufacturer;
-			u32 part;
-			u32 version;
-
 			/* some devices, such as AVR will output all 1's instead of TDI
 			input value at end of chain. */
 			if ((idcode == 0x000000FF)||(idcode == 0xFFFFFFFF))
@@ -1052,13 +1058,9 @@ static int jtag_examine_chain(void)
 				break;
 			}
 
-			manufacturer = EXTRACT_MFG(idcode);
-			part = EXTRACT_PART(idcode);
-			version = EXTRACT_VER(idcode);
-
-			LOG_INFO("JTAG tap: %s tap/device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x)",
-					 ((tap != NULL) ? (tap->dotted_name) : "(not-named)"),
-				idcode, manufacturer, part, version);
+			jtag_examine_chain_display(LOG_LVL_INFO, "tap/device found",
+					tap ? tap->dotted_name : "(not-named)",
+					idcode);
 
 			bit_count += 32;
 		}
@@ -1093,21 +1095,14 @@ static int jtag_examine_chain(void)
 			tap = jtag_tap_next_enabled(tap);
 			continue;
 		}
-		LOG_ERROR("JTAG tap: %s             got: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
-				tap->dotted_name,
-				idcode,
-				EXTRACT_MFG( tap->idcode ),
-				EXTRACT_PART( tap->idcode ),
-				EXTRACT_VER( tap->idcode ) );
+		jtag_examine_chain_display(LOG_LVL_ERROR, "got",
+				tap->dotted_name, tap->idcode);
 		for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
-			LOG_ERROR("JTAG tap: %s expected %hhu of %hhu: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
-					tap->dotted_name,
-					ii + 1,
-					tap->expected_ids_cnt,
-					tap->expected_ids[ii],
-					EXTRACT_MFG( tap->expected_ids[ii] ),
-					EXTRACT_PART( tap->expected_ids[ii] ),
-					EXTRACT_VER( tap->expected_ids[ii] ) );
+			char msg[20];
+			snprintf(msg, 20, "expected %hhu of %hhu",
+					ii + 1, tap->expected_ids_cnt);
+			jtag_examine_chain_display(LOG_LVL_ERROR, msg,
+					tap->dotted_name, tap->expected_ids[ii]);
 		}
 		return ERROR_JTAG_INIT_FAILED;
 	}
