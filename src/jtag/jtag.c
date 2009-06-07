@@ -943,6 +943,10 @@ void jtag_sleep(u32 us)
 	alive_sleep(us/1000);
 }
 
+#define EXTRACT_MFG(X)  (((X) & 0xffe) >> 1)
+#define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
+#define EXTRACT_VER(X)  (((X) & 0xf0000000) >> 28)
+
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
 static int jtag_examine_chain(void)
@@ -1039,11 +1043,8 @@ static int jtag_examine_chain(void)
 				break;
 			}
 
-#define EXTRACT_MFG(X)  (((X) & 0xffe) >> 1)
 			manufacturer = EXTRACT_MFG(idcode);
-#define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
 			part = EXTRACT_PART(idcode);
-#define EXTRACT_VER(X)  (((X) & 0xf0000000) >> 28)
 			version = EXTRACT_VER(idcode);
 
 			LOG_INFO("JTAG tap: %s tap/device found: 0x%8.8x (Manufacturer: 0x%3.3x, Part: 0x%4.4x, Version: 0x%1.1x)",
