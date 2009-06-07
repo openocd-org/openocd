@@ -1037,7 +1037,8 @@ static int jtag_examine_chain(void)
 
 	/* point at the 1st tap */
 	tap = jtag_tap_next_enabled(NULL);
-	if( tap == NULL ){
+	if (tap == NULL)
+	{
 		LOG_ERROR("JTAG: No taps enabled?");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -1049,7 +1050,7 @@ static int jtag_examine_chain(void)
 		{
 			/* LSB must not be 0, this indicates a device in bypass */
 			LOG_WARNING("Tap/Device does not have IDCODE");
-			idcode=0;
+			idcode = 0;
 
 			bit_count += 1;
 		}
@@ -1081,7 +1082,7 @@ static int jtag_examine_chain(void)
 
 		if (0 == tap->expected_ids_cnt)
 		{
-			// @todo Enable LOG_INFO to ask for reports about unknown TAP IDs.
+			/// @todo Enable LOG_INFO to ask for reports about unknown TAP IDs.
 #if 0
 			LOG_INFO("Uknown JTAG TAP ID: 0x%08x", tap->idcode)
 			LOG_INFO("Please report the chip name and reported ID code to the openocd project");
@@ -1089,12 +1090,12 @@ static int jtag_examine_chain(void)
 			tap = jtag_tap_next_enabled(tap);
 			continue;
 		}
-			/* Loop over the expected identification codes and test for a match */
+		/* Loop over the expected identification codes and test for a match */
 		u8 ii;
-		for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
-			if (tap->idcode == tap->expected_ids[ii]) {
+		for (ii = 0; ii < tap->expected_ids_cnt; ii++)
+		{
+			if (tap->idcode == tap->expected_ids[ii])
 				break;
-			}
 		}
 
 		/* If none of the expected ids matched, log an error */
@@ -1106,7 +1107,8 @@ static int jtag_examine_chain(void)
 		}
 		jtag_examine_chain_display(LOG_LVL_ERROR, "got",
 				tap->dotted_name, tap->idcode);
-		for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
+		for (ii = 0; ii < tap->expected_ids_cnt; ii++)
+		{
 			char msg[20];
 			snprintf(msg, 20, "expected %hhu of %hhu",
 					ii + 1, tap->expected_ids_cnt);
@@ -1119,9 +1121,11 @@ static int jtag_examine_chain(void)
 	/* see if number of discovered devices matches configuration */
 	if (device_count != jtag_tap_count_enabled())
 	{
-		LOG_ERROR("number of discovered devices in JTAG chain (%i) doesn't match (enabled) configuration (%i), total taps: %d",
-				  device_count, jtag_tap_count_enabled(), jtag_tap_count());
-		LOG_ERROR("check the config file and ensure proper JTAG communication (connections, speed, ...)");
+		LOG_ERROR("number of discovered devices in JTAG chain (%i) "
+				"does not match (enabled) configuration (%i), total taps: %d",
+				device_count, jtag_tap_count_enabled(), jtag_tap_count());
+		LOG_ERROR("check the config file and ensure proper JTAG communication"
+				" (connections, speed, ...)");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
