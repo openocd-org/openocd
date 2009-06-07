@@ -1064,9 +1064,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
  */
 static int jtag_examine_chain(void)
 {
-	jtag_tap_t *tap;
 	u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
-	int bit_count;
 	int device_count = 0;
 
 	jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
@@ -1075,14 +1073,14 @@ static int jtag_examine_chain(void)
 		return ERROR_JTAG_INIT_FAILED;
 
 	/* point at the 1st tap */
-	tap = jtag_tap_next_enabled(NULL);
+	jtag_tap_t *tap = jtag_tap_next_enabled(NULL);
 	if (tap == NULL)
 	{
 		LOG_ERROR("JTAG: No taps enabled?");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	for (bit_count = 0; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;)
+	for (unsigned bit_count = 0; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;)
 	{
 		u32 idcode = buf_get_u32(idcode_buffer, bit_count, 32);
 		if ((idcode & 1) == 0)
