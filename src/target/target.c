@@ -479,12 +479,14 @@ int target_examine_one(struct target_s *target)
 int target_examine(void)
 {
 	int retval = ERROR_OK;
-	target_t *target = all_targets;
-	while (target)
+	target_t *target;
+
+	for (target = all_targets; target; target = target->next)
 	{
+		if (!target->tap->enabled)
+			continue;
 		if ((retval = target_examine_one(target)) != ERROR_OK)
 			return retval;
-		target = target->next;
 	}
 	return retval;
 }
@@ -3734,6 +3736,8 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			Jim_WrongNumArgs( goi.interp, 2, argv, "[no parameters]");
 			return JIM_ERR;
 		}
+		if (!target->tap->enabled)
+			goto err_tap_disabled;
 		e = target->type->examine( target );
 		if( e != ERROR_OK ){
 			Jim_SetResult_sprintf( interp, "examine-fails: %d", e );
@@ -3745,6 +3749,8 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			Jim_WrongNumArgs( goi.interp, 2, argv, "[no parameters]");
 			return JIM_ERR;
 		}
+		if (!target->tap->enabled)
+			goto err_tap_disabled;
 		if( !(target_was_examined(target)) ){
 			e = ERROR_TARGET_NOT_EXAMINED;
 		} else {
@@ -3772,6 +3778,8 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		if( e != JIM_OK ){
 			return e;
 		}
+		if (!target->tap->enabled)
+			goto err_tap_disabled;
 		/* determine if we should halt or not. */
 		target->reset_halt = !!a;
 		/* When this happens - all workareas are invalid. */
@@ -3789,6 +3797,8 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			Jim_WrongNumArgs( goi.interp, 0, argv, "halt [no parameters]");
 			return JIM_ERR;
 		}
+		if (!target->tap->enabled)
+			goto err_tap_disabled;
 		target->type->halt( target );
 		return JIM_OK;
 	case TS_CMD_WAITSTATE:
@@ -3806,6 +3816,8 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		if( e != JIM_OK ){
 			return e;
 		}
+		if (!target->tap->enabled)
+			goto err_tap_disabled;
 		e = target_wait_state( target, n->value, a );
 		if( e != ERROR_OK ){
 			Jim_SetResult_sprintf( goi.interp,
@@ -3860,6 +3872,10 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		target_handle_event( target, n->value );
 		return JIM_OK;
 	}
+	return JIM_ERR;
+
+err_tap_disabled:
+	Jim_SetResult_sprintf(interp, "[TAP is disabled]");
 	return JIM_ERR;
 }
 

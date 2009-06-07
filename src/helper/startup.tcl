@@ -164,6 +164,11 @@ proc ocd_process_reset { MODE } {
 		return -error "Invalid mode: $MODE, must be one of: halt, init, or run";
 	}
 
+	# Target event handlers *might* change which TAPs are enabled
+	# or disabled, so we fire all of them.  But don't issue any
+	# of the "arp_*" commands, which may issue JTAG transactions,
+	# unless we know the underlying TAP is active.
+
 	foreach t [ target names ] {
 		# New event script.
 		$t invoke-event reset-start
@@ -172,16 +177,20 @@ proc ocd_process_reset { MODE } {
 	# Init the tap controller.
 	jtag arp_init-reset
 
-	# Examine all targets.
+	# Examine all targets on enabled taps.
 	foreach t [ target names ] {
-		$t arp_examine
+		if {[jtag tapisenabled [$t cget -chain-position]]} {
+			$t arp_examine
+		}
 	}
 
 	# Let the C code know we are asserting reset.
 	foreach t [ target names ] {
 		$t invoke-event reset-assert-pre
 		# C code needs to know if we expect to 'halt'
-		$t arp_reset assert $halt
+		if {[jtag tapisenabled [$t cget -chain-position]]} {
+			$t arp_reset assert $halt
+		}
 		$t invoke-event reset-assert-post
 	}
 
@@ -189,14 +198,19 @@ proc ocd_process_reset { MODE } {
 	foreach t [ target names ] {
 		$t invoke-event reset-deassert-pre
 		# Again, de-assert code needs to know..
-		$t arp_reset deassert $halt
+		if {[jtag tapisenabled [$t cget -chain-position]]} {
+			$t arp_reset deassert $halt
+		}
 		$t invoke-event reset-deassert-post
 	}
 
 	# Pass 1 - Now try to halt.
 	if { $halt } {
 		foreach t [target names] {
-	
+			if {[jtag tapisenabled [$t cget -chain-position]] == 0} {
+				continue
+			}
+
 			# Wait upto 1 second for target to halt.  Why 1sec? Cause
 			# the JTAG tap reset signal might be hooked to a slow
 			# resistor/capacitor circuit - and it might take a while
@@ -217,6 +231,10 @@ proc ocd_process_reset { MODE } {
 	#Pass 2 - if needed "init"
 	if { 0 == [string compare init $MODE] } {
 		foreach t [target names] {
+			if {[jtag tapisenabled [$t cget -chain-position]] == 0} {
+				continue
+			}
+
 			set err [catch "$t arp_waitstate halted 5000"]
 			# Did it halt?
 			if { $err == 0 } {
