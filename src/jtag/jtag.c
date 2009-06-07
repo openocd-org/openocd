@@ -1052,51 +1052,51 @@ static int jtag_examine_chain(void)
 
 			bit_count += 32;
 		}
-		if (tap)
-		{
-			tap->idcode = idcode;
-
-			if (tap->expected_ids_cnt > 0) {
-				/* Loop over the expected identification codes and test for a match */
-				u8 ii;
-				for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
-					if( tap->idcode == tap->expected_ids[ii] ){
-						break;
-					}
-				}
-
-				/* If none of the expected ids matched, log an error */
-				if (ii == tap->expected_ids_cnt) {
-					LOG_ERROR("JTAG tap: %s             got: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
-							  tap->dotted_name,
-							  idcode,
-							  EXTRACT_MFG( tap->idcode ),
-							  EXTRACT_PART( tap->idcode ),
-							  EXTRACT_VER( tap->idcode ) );
-					for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
-						LOG_ERROR("JTAG tap: %s expected %hhu of %hhu: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
-								  tap->dotted_name,
-								  ii + 1,
-								  tap->expected_ids_cnt,
-								  tap->expected_ids[ii],
-								  EXTRACT_MFG( tap->expected_ids[ii] ),
-								  EXTRACT_PART( tap->expected_ids[ii] ),
-								  EXTRACT_VER( tap->expected_ids[ii] ) );
-					}
-
-					return ERROR_JTAG_INIT_FAILED;
-				} else {
-					LOG_INFO("JTAG Tap/device matched");
-				}
-			} else {
-#if 0
-				LOG_INFO("JTAG TAP ID: 0x%08x - Unknown - please report (A) chipname and (B) idcode to the openocd project",
-						 tap->idcode);
-#endif
-			}
-			tap = jtag_tap_next_enabled(tap);
-		}
 		device_count++;
+		if (!tap)
+			continue;
+
+		tap->idcode = idcode;
+
+		if (tap->expected_ids_cnt > 0) {
+			/* Loop over the expected identification codes and test for a match */
+			u8 ii;
+			for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
+				if( tap->idcode == tap->expected_ids[ii] ){
+					break;
+				}
+			}
+
+			/* If none of the expected ids matched, log an error */
+			if (ii == tap->expected_ids_cnt) {
+				LOG_ERROR("JTAG tap: %s             got: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
+						  tap->dotted_name,
+						  idcode,
+						  EXTRACT_MFG( tap->idcode ),
+						  EXTRACT_PART( tap->idcode ),
+						  EXTRACT_VER( tap->idcode ) );
+				for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
+					LOG_ERROR("JTAG tap: %s expected %hhu of %hhu: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
+							  tap->dotted_name,
+							  ii + 1,
+							  tap->expected_ids_cnt,
+							  tap->expected_ids[ii],
+							  EXTRACT_MFG( tap->expected_ids[ii] ),
+							  EXTRACT_PART( tap->expected_ids[ii] ),
+							  EXTRACT_VER( tap->expected_ids[ii] ) );
+				}
+
+				return ERROR_JTAG_INIT_FAILED;
+			} else {
+				LOG_INFO("JTAG Tap/device matched");
+			}
+		} else {
+#if 0
+			LOG_INFO("JTAG TAP ID: 0x%08x - Unknown - please report (A) chipname and (B) idcode to the openocd project",
+					 tap->idcode);
+#endif
+		}
+		tap = jtag_tap_next_enabled(tap);
 	}
 
 	/* see if number of discovered devices matches configuration */
