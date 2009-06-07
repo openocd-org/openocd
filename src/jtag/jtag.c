@@ -242,10 +242,10 @@ int jtag_tap_count(void)
 	return jtag_num_taps;
 }
 
-int jtag_tap_count_enabled(void)
+unsigned jtag_tap_count_enabled(void)
 {
 	jtag_tap_t *t;
-	int n;
+	unsigned n;
 
 	n = 0;
 	t = jtag_all_taps();
@@ -1065,7 +1065,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 static int jtag_examine_chain(void)
 {
 	u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
-	int device_count = 0;
+	unsigned device_count = 0;
 
 	jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
 
