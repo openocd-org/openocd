@@ -1077,30 +1077,29 @@ static int jtag_examine_chain(void)
 		}
 
 		/* If none of the expected ids matched, log an error */
-		if (ii == tap->expected_ids_cnt) {
-			LOG_ERROR("JTAG tap: %s             got: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
-					  tap->dotted_name,
-					  idcode,
-					  EXTRACT_MFG( tap->idcode ),
-					  EXTRACT_PART( tap->idcode ),
-					  EXTRACT_VER( tap->idcode ) );
-			for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
-				LOG_ERROR("JTAG tap: %s expected %hhu of %hhu: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
-						  tap->dotted_name,
-						  ii + 1,
-						  tap->expected_ids_cnt,
-						  tap->expected_ids[ii],
-						  EXTRACT_MFG( tap->expected_ids[ii] ),
-						  EXTRACT_PART( tap->expected_ids[ii] ),
-						  EXTRACT_VER( tap->expected_ids[ii] ) );
-			}
-
-			return ERROR_JTAG_INIT_FAILED;
-		} else {
+		if (ii != tap->expected_ids_cnt)
+		{
 			LOG_INFO("JTAG Tap/device matched");
+			tap = jtag_tap_next_enabled(tap);
+			continue;
 		}
-		
-		tap = jtag_tap_next_enabled(tap);
+		LOG_ERROR("JTAG tap: %s             got: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
+				tap->dotted_name,
+				idcode,
+				EXTRACT_MFG( tap->idcode ),
+				EXTRACT_PART( tap->idcode ),
+				EXTRACT_VER( tap->idcode ) );
+		for (ii = 0; ii < tap->expected_ids_cnt; ii++) {
+			LOG_ERROR("JTAG tap: %s expected %hhu of %hhu: 0x%08x (mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
+					tap->dotted_name,
+					ii + 1,
+					tap->expected_ids_cnt,
+					tap->expected_ids[ii],
+					EXTRACT_MFG( tap->expected_ids[ii] ),
+					EXTRACT_PART( tap->expected_ids[ii] ),
+					EXTRACT_VER( tap->expected_ids[ii] ) );
+		}
+		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	/* see if number of discovered devices matches configuration */
