@@ -1336,6 +1336,11 @@ Use the interface driver @var{name} to connect to the
 target.
 @end deffn
 
+@deffn Command {interface_list}
+List the interface drivers that have been built into
+the running copy of OpenOCD.
+@end deffn
+
 @deffn Command {jtag interface}
 Returns the name of the interface driver being used.
 @end deffn
