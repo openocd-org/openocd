@@ -2117,14 +2117,15 @@ You can display the list with the @command{targets}
 This display often has only one CPU; here's what it might
 look like with more than one:
 @verbatim
-    CmdName    Type       Endian     AbsChainPos Name          State
---  ---------- ---------- ---------- ----------- ------------- ----------
- 0: rm9200.cpu arm920t    little              2     rm9200.cpu running
- 1: MyTarget   cortex_m3  little              0     mychip.cpu halted
+    TargetName         Type       Endian TapName            State
+--  ------------------ ---------- ------ ------------------ ------------
+ 0* at91rm9200.cpu     arm920t    little at91rm9200.cpu     running
+ 1  MyTarget           cortex_m3  little mychip.foo         tap-disabled
 @end verbatim
 
 One member of that list is the @dfn{current target}, which
 is implicitly referenced by many commands.
+It's the one marked with a @code{*} near the target name.
 In particular, memory addresses often refer to the address
 space seen by that current target.
 Commands like @command{mdw} (memory display words)

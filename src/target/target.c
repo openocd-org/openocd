@@ -1467,6 +1467,12 @@ static int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, 
 			command_print(cmd_ctx,"Target: %s is unknown, try one of:\n", args[0] );
 			goto DumpTargets;
 		}
+		if (!target->tap->enabled) {
+			command_print(cmd_ctx,"Target: TAP %s is disabled, "
+					"can't be the current target\n",
+					target->tap->dotted_name);
+			return ERROR_FAIL;
+		}
 
 		cmd_ctx->current_target = target->target_number;
 		return ERROR_OK;
@@ -1474,19 +1480,32 @@ static int handle_targets_command(struct command_context_s *cmd_ctx, char *cmd, 
 DumpTargets:
 
 	target = all_targets;
-	command_print(cmd_ctx, "    CmdName    Type       Endian     AbsChainPos Name          State     ");
-	command_print(cmd_ctx, "--  ---------- ---------- ---------- ----------- ------------- ----------");
+	command_print(cmd_ctx, "    TargetName         Type       Endian TapName            State       ");
+	command_print(cmd_ctx, "--  ------------------ ---------- ------ ------------------ ------------");
 	while (target)
 	{
-		/* XX: abcdefghij abcdefghij abcdefghij abcdefghij */
-		command_print(cmd_ctx, "%2d: %-10s %-10s %-10s %10d %14s %s",
+		const char *state;
+		char marker = ' ';
+
+		if (target->tap->enabled)
+			state = Jim_Nvp_value2name_simple(nvp_target_state,
+					target->state)->name;
+		else
+			state = "tap-disabled";
+
+		if (cmd_ctx->current_target == target->target_number)
+			marker = '*';
+
+		/* keep columns lined up to match the headers above */
+		command_print(cmd_ctx, "%2d%c %-18s %-10s %-6s %-18s %s",
 					  target->target_number,
+					  marker,
 					  target->cmd_name,
 					  target_get_name(target),
-					  Jim_Nvp_value2name_simple( nvp_target_endian, target->endianness )->name,
-					  target->tap->abs_chain_position,
+					  Jim_Nvp_value2name_simple(nvp_target_endian,
+								target->endianness)->name,
 					  target->tap->dotted_name,
-					  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+					  state);
 		target = target->next;
 	}
 
