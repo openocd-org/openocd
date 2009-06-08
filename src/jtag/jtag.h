@@ -561,7 +561,16 @@ static __inline__ void jtag_set_error(int error)
 	jtag_error=error;
 }
 
-
+/**
+ * Resets jtag_error to ERROR_OK, returning its previous value.
+ * @returns The previous value of @c jtag_error.
+ */
+static inline int jtag_error_clear(void)
+{
+	int temp = jtag_error;
+	jtag_error = ERROR_OK;
+	return temp;
+}
 
 /* can be implemented by hw+sw */
 extern int jtag_power_dropout(int* dropout);

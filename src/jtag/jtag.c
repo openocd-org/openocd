@@ -914,11 +914,8 @@ int jtag_get_flush_queue_count(void)
 
 int jtag_execute_queue(void)
 {
-	int retval;
 	jtag_execute_queue_noclear();
-	retval=jtag_error;
-	jtag_error=ERROR_OK;
-	return retval;
+	return jtag_error_clear();
 }
 
 static int jtag_reset_callback(enum jtag_event event, void *priv)
