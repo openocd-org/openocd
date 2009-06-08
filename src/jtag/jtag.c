@@ -428,15 +428,13 @@ void jtag_alloc_in_value32(scan_field_t *field)
 	interface_jtag_alloc_in_value32(field);
 }
 
-void jtag_add_ir_scan_noverify(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+void jtag_add_ir_scan_noverify(int in_count, const scan_field_t *in_fields,
+		tap_state_t state)
 {
-	int retval;
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_ir_scan(in_num_fields, in_fields, state);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
-
+	int retval = interface_jtag_add_ir_scan(in_count, in_fields, state);
+	jtag_set_error(retval);
 }
 
 
