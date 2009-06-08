@@ -2234,18 +2234,16 @@ static int handle_jtag_reset_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_runtest_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
-	if (argc < 1)
-	{
+	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	jtag_add_runtest(strtol(args[0], NULL, 0), jtag_get_end_state());
 	jtag_execute_queue();
 
 	return ERROR_OK;
-
 }
 
 /*
