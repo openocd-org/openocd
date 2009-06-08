@@ -1796,11 +1796,9 @@ static int default_srst_asserted(int *srst_asserted)
 	return ERROR_OK;
 }
 
-static int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_interface_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
-	int i;
-	int retval;
-
 	/* check whether the interface is already configured */
 	if (jtag_interface)
 	{
@@ -1809,52 +1807,39 @@ static int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd
 	}
 
 	/* interface name is a mandatory argument */
-	if (argc < 1 || args[0][0] == '\0')
-	{
+	if (argc != 1 || args[0][0] == '\0')
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	for (i=0; jtag_interfaces[i]; i++)
+	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
 	{
-		if (strcmp(args[0], jtag_interfaces[i]->name) == 0)
-		{
-			if ((retval = jtag_interfaces[i]->register_commands(cmd_ctx)) != ERROR_OK)
-			{
+		if (strcmp(args[0], jtag_interfaces[i]->name) != 0)
+			continue;
+
+		int retval = jtag_interfaces[i]->register_commands(cmd_ctx);
+		if (ERROR_OK != retval)
 				return retval;
-			}
 
-			jtag_interface = jtag_interfaces[i];
+		jtag_interface = jtag_interfaces[i];
 
-			if (jtag_interface->khz == NULL)
-			{
-				jtag_interface->khz = default_khz;
-			}
-			if (jtag_interface->speed_div == NULL)
-			{
-				jtag_interface->speed_div = default_speed_div;
-			}
-			if (jtag_interface->power_dropout == NULL)
-			{
-				jtag_interface->power_dropout = default_power_dropout;
-			}
-			if (jtag_interface->srst_asserted == NULL)
-			{
-				jtag_interface->srst_asserted = default_srst_asserted;
-			}
+		if (jtag_interface->khz == NULL)
+			jtag_interface->khz = default_khz;
+		if (jtag_interface->speed_div == NULL)
+			jtag_interface->speed_div = default_speed_div;
+		if (jtag_interface->power_dropout == NULL)
+			jtag_interface->power_dropout = default_power_dropout;
+		if (jtag_interface->srst_asserted == NULL)
+			jtag_interface->srst_asserted = default_srst_asserted;
 
-			return ERROR_OK;
-		}
+		return ERROR_OK;
 	}
 
 	/* no valid interface was found (i.e. the configuration option,
 	 * didn't match one of the compiled-in interfaces
 	 */
-	LOG_ERROR("No valid jtag interface found (%s)", args[0]);
-	LOG_ERROR("compiled-in jtag interfaces:");
-	for (i = 0; jtag_interfaces[i]; i++)
-	{
-		LOG_ERROR("%i: %s", i, jtag_interfaces[i]->name);
-	}
+	LOG_ERROR("The specified JTAG interface was not found (%s)", args[0]);
+	LOG_ERROR("The following built-in JTAG interfaces are available:");
+	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
+		LOG_ERROR("%u: %s", i, jtag_interfaces[i]->name);
 
 	return ERROR_JTAG_INVALID_INTERFACE;
 }
