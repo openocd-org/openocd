@@ -474,15 +474,14 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
  * This function assumes that the caller handles extra fields for bypassed TAPs
  *
  */
-void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields,
+		tap_state_t state)
 {
-	int retval;
-
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_plain_ir_scan(in_num_fields, in_fields, state);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
+	int retval = interface_jtag_add_plain_ir_scan(
+			in_num_fields, in_fields, state);
+	jtag_set_error(retval);
 }
 
 void jtag_add_callback(jtag_callback1_t f, u8 *in)
