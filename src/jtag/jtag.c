@@ -2167,41 +2167,39 @@ static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cm
 
 static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int retval=ERROR_OK;
-	LOG_DEBUG("handle jtag khz");
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
+	int retval = ERROR_OK;
 	int cur_speed = 0;
-	if(argc == 1)
+	if (argc == 1)
 	{
+		LOG_DEBUG("handle jtag khz");
+
 		jtag_set_speed_khz(strtoul(args[0], NULL, 0));
 		if (jtag != NULL)
 		{
 			LOG_DEBUG("have interface set up");
 			int speed_div1;
-			if ((retval=jtag->khz(jtag_get_speed_khz(), &speed_div1))!=ERROR_OK)
+			retval = jtag->khz(jtag_get_speed_khz(), &speed_div1);
+			if (ERROR_OK != retval)
 			{
 				jtag_set_speed_khz(0);
 				return retval;
 			}
-
 			cur_speed = jtag_speed = speed_div1;
 
-			retval=jtag->speed(cur_speed);
-		} else
-		{
-			hasKHz = true;
+			retval = jtag->speed(cur_speed);
 		}
-	} else if (argc==0)
-	{
-	} else
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		else
+			hasKHz = true;
 	}
-	cur_speed = jtag_get_speed_khz();
 
-	if (jtag!=NULL)
+	cur_speed = jtag_get_speed_khz();
+	if (jtag != NULL)
 	{
-		if ((retval=jtag->speed_div(jtag_speed, &cur_speed))!=ERROR_OK)
+		retval = jtag->speed_div(jtag_speed, &cur_speed);
+		if (ERROR_OK != retval)
 			return retval;
 	}
 
