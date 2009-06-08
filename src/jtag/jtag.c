@@ -2115,24 +2115,22 @@ next:
 static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
-	if (argc != 1)
-	{
-		LOG_ERROR("jtag_nsrst_delay <ms> -- command requires one argument");
+	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	jtag_set_nsrst_delay(strtoul(args[0], NULL, 0));
+	if (argc == 1)
+		jtag_set_nsrst_delay(strtoul(args[0], NULL, 0));
+	command_print(cmd_ctx, "jtag_nsrst_delay: %u", jtag_get_nsrst_delay());
 	return ERROR_OK;
 }
 
 static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx,
 		char *cmd, char **args, int argc)
 {
-	if (argc != 1)
-	{
-		LOG_ERROR("jtag_ntrst_delay <ms> -- command requires one argument");
+	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	jtag_set_ntrst_delay(strtoul(args[0], NULL, 0));
+	if (argc == 1)
+		jtag_set_ntrst_delay(strtoul(args[0], NULL, 0));
+	command_print(cmd_ctx, "jtag_ntrst_delay: %u", jtag_get_ntrst_delay());
 	return ERROR_OK;
 }
 
