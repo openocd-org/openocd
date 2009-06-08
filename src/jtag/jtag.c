@@ -2112,33 +2112,27 @@ next:
 	return ERROR_OK;
 }
 
-static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
-	if (argc < 1)
+	if (argc != 1)
 	{
-		LOG_ERROR("jtag_nsrst_delay <ms> command takes one required argument");
-		exit(-1);
+		LOG_ERROR("jtag_nsrst_delay <ms> -- command requires one argument");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	else
-	{
-		jtag_set_nsrst_delay(strtoul(args[0], NULL, 0));
-	}
-
+	jtag_set_nsrst_delay(strtoul(args[0], NULL, 0));
 	return ERROR_OK;
 }
 
-static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
-	if (argc < 1)
+	if (argc != 1)
 	{
-		LOG_ERROR("jtag_ntrst_delay <ms> command takes one required argument");
-		exit(-1);
+		LOG_ERROR("jtag_ntrst_delay <ms> -- command requires one argument");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	else
-	{
-		jtag_set_ntrst_delay(strtoul(args[0], NULL, 0));
-	}
-
+	jtag_set_ntrst_delay(strtoul(args[0], NULL, 0));
 	return ERROR_OK;
 }
 
