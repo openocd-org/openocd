@@ -223,6 +223,8 @@ static jtag_interface_t *jtag_interface = NULL;
 int jtag_speed = 0;
 
 /* jtag commands */
+static int handle_interface_list_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc);
 static int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -1601,6 +1603,9 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 
 	register_command(cmd_ctx, NULL, "interface", handle_interface_command,
 		COMMAND_CONFIG, "try to configure interface");
+	register_command(cmd_ctx, NULL,
+		"interface_list", &handle_interface_list_command,
+		COMMAND_ANY, "list all built-in interfaces");
 	register_command(cmd_ctx, NULL, "jtag_speed", handle_jtag_speed_command,
 		COMMAND_ANY, "(DEPRECATED) set jtag speed (if supported)");
 	register_command(cmd_ctx, NULL, "jtag_khz", handle_jtag_khz_command,
@@ -1837,11 +1842,24 @@ static int handle_interface_command(struct command_context_s *cmd_ctx,
 	 * didn't match one of the compiled-in interfaces
 	 */
 	LOG_ERROR("The specified JTAG interface was not found (%s)", args[0]);
-	LOG_ERROR("The following built-in JTAG interfaces are available:");
-	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
-		LOG_ERROR("%u: %s", i, jtag_interfaces[i]->name);
-
+	handle_interface_list_command(cmd_ctx, cmd, args, argc);
 	return ERROR_JTAG_INVALID_INTERFACE;
+}
+
+static int handle_interface_list_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	if (strcmp(cmd, "interface_list") == 0 && argc > 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	command_print(cmd_ctx, "The following JTAG interfaces are available:");
+	for (unsigned i = 0; NULL != jtag_interfaces[i]; i++)
+	{
+		const char *name = jtag_interfaces[i]->name;
+		command_print(cmd_ctx, "%u: %s", i + 1, name);
+	}
+
+	return ERROR_OK;
 }
 
 static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
