@@ -640,14 +640,8 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 void jtag_add_runtest(int num_cycles, tap_state_t state)
 {
-	int retval;
-
 	jtag_prelude(state);
-
-	/* executed by sw or hw fifo */
-	retval=interface_jtag_add_runtest(num_cycles, state);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
+	jtag_set_error(interface_jtag_add_runtest(num_cycles, state));
 }
 
 
