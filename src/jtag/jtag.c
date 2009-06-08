@@ -903,17 +903,8 @@ int default_interface_jtag_execute_queue(void)
 
 void jtag_execute_queue_noclear(void)
 {
-	/* each flush can take as much as 1-2ms on high bandwidth low latency interfaces.
-	 * E.g. a JTAG over TCP/IP or USB....
-	 */
 	jtag_flush_queue_count++;
-
-	int retval=interface_jtag_execute_queue();
-	/* we keep the first error */
-	if ((jtag_error==ERROR_OK)&&(retval!=ERROR_OK))
-	{
-		jtag_error=retval;
-	}
+	jtag_set_error(interface_jtag_execute_queue());
 }
 
 int jtag_get_flush_queue_count(void)
