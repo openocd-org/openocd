@@ -553,23 +553,19 @@ void jtag_add_dr_scan_check(int in_num_fields, scan_field_t *in_fields, tap_stat
 
 
 /**
- * Generate a DR SCAN using the fields passed to the function
- *
- * For not bypassed TAPs the function checks in_fields and uses fields specified there.
- * For bypassed TAPs the function generates a dummy 1bit field.
- *
- * The bypass status of TAPs is set by jtag_add_ir_scan().
- *
+ * Generate a DR SCAN using the fields passed to the function.
+ * For connected TAPs, the function checks in_fields and uses fields
+ * specified there.  For bypassed TAPs, the function generates a dummy
+ * 1-bit field.  The bypass status of TAPs is set by jtag_add_ir_scan().
  */
-void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
+		tap_state_t state)
 {
-	int retval;
-
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_dr_scan(in_num_fields, in_fields, state);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
+	int retval;
+	retval = interface_jtag_add_dr_scan(in_num_fields, in_fields, state);
+	jtag_set_error(retval);
 }
 
 
