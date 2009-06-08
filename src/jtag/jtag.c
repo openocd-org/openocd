@@ -783,11 +783,9 @@ tap_state_t jtag_get_end_state(void)
 
 void jtag_add_sleep(u32 us)
 {
-	keep_alive(); /* we might be running on a very slow JTAG clk */
-	int retval=interface_jtag_add_sleep(us);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
-	return;
+	/// @todo Here, keep_alive() appears to be a layering violation!!!
+	keep_alive();
+	jtag_set_error(interface_jtag_add_sleep(us));
 }
 
 int jtag_check_value_inner(u8 *captured, u8 *in_check_value, u8 *in_check_mask, int num_bits)
