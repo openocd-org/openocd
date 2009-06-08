@@ -3,7 +3,33 @@ AC_INIT([openocd], [0.2.0-in-development],
 	[OpenOCD Mailing List <openocd-development@lists.berlios.de>])
 AC_CONFIG_SRCDIR([src/openocd.c])
 
-AC_CANONICAL_HOST
+AM_INIT_AUTOMAKE([-Wall -Wno-portability])
+AM_MAINTAINER_MODE
+
+AM_CONFIG_HEADER(config.h)
+AH_BOTTOM([
+#include "system.h"
+#include "replacements.h"
+])
+
+AC_LANG_C
+AC_PROG_CC
+AC_PROG_CC_C99
+AM_PROG_CC_C_O
+AC_PROG_RANLIB
+
+dnl disable checks for C++, Fortran and GNU Java Compiler
+m4_defun([_LT_AC_LANG_CXX_CONFIG], [:])
+m4_defun([_LT_AC_LANG_F77_CONFIG], [:])
+m4_defun([_LT_AC_LANG_GCJ_CONFIG], [:])
+AC_DISABLE_SHARED
+AC_PROG_LIBTOOL
+
+
+dnl configure checks required for Jim files (these are obsolete w/ C99)
+AC_C_CONST
+AC_TYPE_LONG_LONG_INT
+
 
 AC_SEARCH_LIBS([ioperm], [ioperm])
 AC_SEARCH_LIBS([dlopen], [dl])
@@ -877,15 +903,6 @@ then
 	[AC_MSG_ERROR([usb.h is required to build some OpenOCD driver(s)])])
 fi
 
-AM_CONFIG_HEADER(config.h)
-AH_BOTTOM([
-#include "system.h"
-#include "replacements.h"
-])
-
-AM_INIT_AUTOMAKE([-Wall -Wno-portability])
-AM_MAINTAINER_MODE
-
 AM_CONDITIONAL(RELEASE, test $build_release = yes)
 AM_CONDITIONAL(PARPORT, test $build_parport = yes)
 AM_CONDITIONAL(DUMMY, test $build_dummy = yes)
@@ -916,18 +933,6 @@ AM_CONDITIONAL(BITQ, test $build_bitq = yes)
 
 AM_CONDITIONAL(MINIDRIVER, test $build_minidriver = yes)
 AM_CONDITIONAL(MINIDRIVER_DUMMY, test $build_minidriver_dummy = yes)
-
-AC_LANG_C
-AC_PROG_CC
-AC_PROG_CC_C99
-AM_PROG_CC_C_O
-AC_PROG_RANLIB
-AC_PROG_LIBTOOL
-AC_PROG_INSTALL
-
-dnl configure checks required for Jim files (these are obsolete w/ C99)
-AC_C_CONST
-AC_TYPE_LONG_LONG_INT
 
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
