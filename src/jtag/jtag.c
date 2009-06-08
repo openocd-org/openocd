@@ -606,8 +606,6 @@ void jtag_add_tlr(void)
 void jtag_add_pathmove(int num_states, const tap_state_t *path)
 {
 	tap_state_t cur_state = cmd_queue_cur_state;
-	int i;
-	int retval;
 
 	/* the last state has to be a stable state */
 	if (!tap_is_state_stable(path[num_states - 1]))
@@ -616,7 +614,7 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 		exit(-1);
 	}
 
-	for (i=0; i<num_states; i++)
+	for (int i = 0; i < num_states; i++)
 	{
 		if (path[i] == TAP_RESET)
 		{
@@ -627,7 +625,8 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 		if ( tap_state_transition(cur_state, true)  != path[i]
 		  && tap_state_transition(cur_state, false) != path[i])
 		{
-			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(cur_state), tap_state_name(path[i]));
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition",
+					tap_state_name(cur_state), tap_state_name(path[i]));
 			exit(-1);
 		}
 		cur_state = path[i];
@@ -635,10 +634,8 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 	jtag_checks();
 
-	retval = interface_jtag_add_pathmove(num_states, path);
+	jtag_set_error(interface_jtag_add_pathmove(num_states, path));
 	cmd_queue_cur_state = path[num_states - 1];
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
 }
 
 void jtag_add_runtest(int num_cycles, tap_state_t state)
