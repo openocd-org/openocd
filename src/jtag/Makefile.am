@@ -52,7 +52,7 @@ ECOSBOARDFILES =
 endif
 
 if MINIDRIVER_DUMMY
-MINIDUMMYFILES = minidummy.c commands.c
+MINIDUMMYFILES = minidummy/minidummy.c commands.c
 AM_CPPFLAGS += -I$(srcdir)/minidummy
 else
 MINIDUMMYFILES =
