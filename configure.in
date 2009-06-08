@@ -1014,16 +1014,16 @@ fi
 AC_MSG_RESULT([$EXEEXT_FOR_BUILD])
 AC_SUBST(EXEEXT_FOR_BUILD)
 
-AC_OUTPUT([
-    Makefile
-    src/Makefile
-    src/helper/Makefile
-    src/jtag/Makefile
-    src/xsvf/Makefile
-    src/svf/Makefile
-    src/target/Makefile
-    src/server/Makefile
-    src/flash/Makefile
-    src/pld/Makefile
-    doc/Makefile
-  ])
+AC_OUTPUT(dnl
+    Makefile dnl
+    src/Makefile dnl
+    src/helper/Makefile dnl
+    src/jtag/Makefile dnl
+    src/xsvf/Makefile dnl
+    src/svf/Makefile dnl
+    src/target/Makefile dnl
+    src/server/Makefile dnl
+    src/flash/Makefile dnl
+    src/pld/Makefile dnl
+    doc/Makefile dnl
+  )
