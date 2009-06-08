@@ -2709,9 +2709,15 @@ void jtag_set_nsrst_delay(unsigned delay)
 {
 	jtag_nsrst_delay = delay;
 }
+unsigned jtag_get_nsrst_delay(void)
+{
+	return jtag_nsrst_delay;
+}
 void jtag_set_ntrst_delay(unsigned delay)
 {
 	jtag_ntrst_delay = delay;
 }
-
-
+unsigned jtag_get_ntrst_delay(void)
+{
+	return jtag_ntrst_delay;
+}
