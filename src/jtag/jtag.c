@@ -2144,8 +2144,10 @@ static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx, ch
 
 static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int retval=ERROR_OK;
+	int retval = ERROR_OK;
 
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (argc == 1)
 	{
 		LOG_DEBUG("handle jtag speed");
@@ -2156,14 +2158,7 @@ static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cm
 		/* this command can be called during CONFIG,
 		 * in which case jtag isn't initialized */
 		if (jtag)
-		{
-			retval=jtag->speed(cur_speed);
-		}
-	} else if (argc == 0)
-	{
-	} else
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
+			retval = jtag->speed(cur_speed);
 	}
 	command_print(cmd_ctx, "jtag_speed: %d", jtag_speed);
 
