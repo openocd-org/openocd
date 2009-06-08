@@ -2203,33 +2203,27 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 
 }
 
-static int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_jtag_reset_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
-	int trst = -1;
-	int srst = -1;
-
-	if (argc < 2)
-	{
+	if (argc != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
+	int trst = -1;
 	if (args[0][0] == '1')
 		trst = 1;
 	else if (args[0][0] == '0')
 		trst = 0;
 	else
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
+	int srst = -1;
 	if (args[1][0] == '1')
 		srst = 1;
 	else if (args[1][0] == '0')
 		srst = 0;
 	else
-	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (jtag_interface_init(cmd_ctx) != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
