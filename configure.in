@@ -13,7 +13,6 @@ AC_CHECK_HEADERS(elf.h)
 AC_CHECK_HEADERS(dirent.h)
 AC_CHECK_HEADERS(fcntl.h)
 AC_CHECK_HEADERS(ifaddrs.h)
-AC_CHECK_HEADERS(jtag_minidriver.h,[build_minidriver=yes],[build_minidriver=no])
 AC_CHECK_HEADERS(malloc.h)
 AC_CHECK_HEADERS(netdb.h)
 AC_CHECK_HEADERS(netinet/in.h)
@@ -323,10 +322,6 @@ AC_ARG_ENABLE(ecosboard,
   AS_HELP_STRING([--enable-ecosboard], [Enable building support for eCosBoard based JTAG debugger]), 
   [build_ecosboard=$enableval], [build_ecosboard=no])
 
-AC_ARG_ENABLE(minidummy,
-  AS_HELP_STRING([--enable-minidummy], [Enable building support for minidummy driver]), 
-  [build_minidummy=$enableval], [build_minidummy=no])
-
 AC_ARG_ENABLE(ioutil,
   AS_HELP_STRING([--enable-ioutil], [Enable ioutil functions - useful for standalone OpenOCD implementations]), 
   [build_ioutil=$enableval], [build_ioutil=no])
@@ -387,6 +382,47 @@ AC_ARG_ENABLE(rlink,
 AC_ARG_ENABLE(arm-jtag-ew,
   AS_HELP_STRING([--enable-arm-jtag-ew], [Enable building support for the Olimex ARM-JTAG-EW Programmer]),
   [build_armjtagew=$enableval], [build_armjtagew=no])
+
+AC_ARG_ENABLE(minidriver_dummy,
+  AS_HELP_STRING([--enable-minidriver-dummy], [Enable the dummy minidriver.]),
+  [build_minidriver_dummy=$enableval], [build_minidriver_dummy=no])
+
+
+build_minidriver=no
+AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
+if test $build_ecosboard = yes; then
+  # check for that project's header file in the current header search path
+  AC_CHECK_HEADERS(jtag_minidriver.h, [build_minidriver=yes],
+      AC_MSG_WARN([The --enable-ecosboard option needs the out-of-tree 'jtag_minidriver.h'])
+      AC_MSG_ERROR([The out-of-tree jtag_minidriver.h cannot be found.])
+    )
+  build_minidriver=yes
+  AC_DEFINE(BUILD_MINIDRIVER_DUMMY, 1, [Use the dummy minidriver.])
+fi
+AC_MSG_RESULT($build_ecosboard)
+
+
+AC_MSG_CHECKING([whether to enable dummy minidriver])
+if test $build_minidriver_dummy = yes; then
+  if test $build_minidriver = yes; then
+    AC_MSG_ERROR([Multiple minidriver options have been enabled.])
+  fi
+  build_minidriver=yes
+  AC_DEFINE(BUILD_MINIDRIVER_DUMMY, 1, [Use the dummy minidriver.])
+  AC_DEFINE(HAVE_JTAG_MINIDRIVER_H, 1,
+  		[Define to 1 if you have the <jtag_minidriver.h> header file.])
+fi
+AC_MSG_RESULT($build_minidriver_dummy)
+
+AC_MSG_CHECKING([whether standard drivers can be built])
+if test "$build_minidriver" = yes; then
+  AC_MSG_RESULT([no])
+  AC_MSG_WARN([Using the minidriver disables all other drivers.])
+  sleep 2
+else
+  AC_MSG_RESULT([yes])
+fi
+
 
 case $host in 
   *-cygwin*) 
@@ -461,12 +497,6 @@ if test $build_ecosboard = yes; then
   AC_DEFINE(BUILD_ECOSBOARD, 1, [1 if you want eCosBoard.])
 else
   AC_DEFINE(BUILD_ECOSBOARD, 0, [0 if you don't want eCosBoard.])
-fi
-
-if test $build_minidummy = yes; then
-  AC_DEFINE(BUILD_MINIDUMMY, 1, [1 if you want minidummy.])
-else
-  AC_DEFINE(BUILD_MINIDUMMY, 0, [0 if you don't want minidummy.])
 fi
 
 if test $build_ioutil = yes; then
@@ -845,7 +875,6 @@ AM_CONDITIONAL(DUMMY, test $build_dummy = yes)
 AM_CONDITIONAL(GIVEIO, test $parport_use_giveio = yes)
 AM_CONDITIONAL(EP93XX, test $build_ep93xx = yes)
 AM_CONDITIONAL(ECOSBOARD, test $build_ecosboard = yes)
-AM_CONDITIONAL(MINIDUMMY, test $build_minidummy = yes)
 AM_CONDITIONAL(IOUTIL, test $build_ioutil = yes)
 AM_CONDITIONAL(HTTPD, test $build_httpd = yes)
 AM_CONDITIONAL(AT91RM9200, test $build_at91rm9200 = yes)
@@ -867,7 +896,9 @@ AM_CONDITIONAL(IS_MINGW, test $is_mingw = yes)
 AM_CONDITIONAL(IS_WIN32, test $is_win32 = yes)
 AM_CONDITIONAL(IS_DARWIN, test $is_darwin = yes)
 AM_CONDITIONAL(BITQ, test $build_bitq = yes)
+
 AM_CONDITIONAL(MINIDRIVER, test $build_minidriver = yes)
+AM_CONDITIONAL(MINIDRIVER_DUMMY, test $build_minidriver_dummy = yes)
 
 AC_LANG_C
 AC_PROG_CC

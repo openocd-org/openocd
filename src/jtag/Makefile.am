@@ -51,14 +51,15 @@ else
 ECOSBOARDFILES =
 endif
 
-if MINIDUMMY
-MINIDUMMYFILES = minidummy.c
+if MINIDRIVER_DUMMY
+MINIDUMMYFILES = minidummy.c commands.c
+AM_CPPFLAGS += -I$(srcdir)/minidummy
 else
 MINIDUMMYFILES =
 endif
 
 if MINIDRIVER
-DRIVERFILES =
+DRIVERFILES = $(MINIDUMMYFILES)
 else
 DRIVERFILES = jtag_driver.c commands.c
 endif
@@ -137,7 +138,6 @@ libjtag_la_SOURCES = \
 	$(PRESTOFILES) \
 	$(USBPROGFILES) \
 	$(ECOSBOARDFILES) \
-	$(MINIDUMMYFILES) \
 	$(JLINKFILES) \
 	$(RLINKFILES) \
 	$(VSLLINKFILES) \
@@ -153,6 +153,7 @@ noinst_HEADERS = \
 	rlink/dtc_cmd.h \
 	rlink/ep1_cmd.h \
 	rlink/rlink.h \
-	rlink/st7.h
+	rlink/st7.h \
+	minidummy/jtag_minidriver.h
 
 MAINTAINERCLEANFILES = Makefile.in

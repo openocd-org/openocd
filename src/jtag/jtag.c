@@ -97,11 +97,9 @@ static bool hasKHz = false;
 
 #if BUILD_ECOSBOARD == 1
 	extern jtag_interface_t zy1000_interface;
-#endif
-
-#if BUILD_MINIDUMMY == 1
+#elif defined(BUILD_MINIDRIVER_DUMMY)
 	extern jtag_interface_t minidummy_interface;
-#endif
+#else // standard drivers
 #if BUILD_PARPORT == 1
 	extern jtag_interface_t parport_interface;
 #endif
@@ -157,14 +155,21 @@ static bool hasKHz = false;
 #if BUILD_ARMJTAGEW == 1
 	extern jtag_interface_t armjtagew_interface;
 #endif
+#endif // standard drivers
 
+/**
+ * The list of built-in JTAG interfaces, containing entries for those
+ * drivers that were enabled by the @c configure script.
+ *
+ * The list should be defined to contain either one minidriver interface
+ * or some number of standard driver interfaces, never both.
+ */
 jtag_interface_t *jtag_interfaces[] = {
 #if BUILD_ECOSBOARD == 1
 	&zy1000_interface,
-#endif
-#if BUILD_MINIDUMMY == 1
+#elif defined(BUILD_MINIDRIVER_DUMMY)
 	&minidummy_interface,
-#endif
+#else // standard drivers
 #if BUILD_PARPORT == 1
 	&parport_interface,
 #endif
@@ -207,6 +212,7 @@ jtag_interface_t *jtag_interfaces[] = {
 #if BUILD_ARMJTAGEW == 1
 	&armjtagew_interface,
 #endif
+#endif // standard drivers
 	NULL,
 };
 
