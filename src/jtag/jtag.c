@@ -599,12 +599,7 @@ void jtag_add_dr_out(jtag_tap_t* tap,
 void jtag_add_tlr(void)
 {
 	jtag_prelude(TAP_RESET);
-
-	int retval;
-	retval=interface_jtag_add_tlr();
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
-	
+	jtag_set_error(interface_jtag_add_tlr());
 	jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 }
 
