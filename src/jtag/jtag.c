@@ -645,25 +645,20 @@ void jtag_add_runtest(int num_cycles, tap_state_t state)
 }
 
 
-void jtag_add_clocks( int num_cycles )
+void jtag_add_clocks(int num_cycles)
 {
-	int retval;
-
-	if( !tap_is_state_stable(cmd_queue_cur_state) )
+	if (!tap_is_state_stable(cmd_queue_cur_state))
 	{
-		 LOG_ERROR( "jtag_add_clocks() was called with TAP in non-stable state \"%s\"",
-				 tap_state_name(cmd_queue_cur_state) );
-		 jtag_error = ERROR_JTAG_NOT_STABLE_STATE;
+		 LOG_ERROR("jtag_add_clocks() called with TAP in unstable state \"%s\"",
+				 tap_state_name(cmd_queue_cur_state));
+		 jtag_set_error(ERROR_JTAG_NOT_STABLE_STATE);
 		 return;
 	}
 
-	if( num_cycles > 0 )
+	if (num_cycles > 0)
 	{
 		jtag_checks();
-
-		retval = interface_jtag_add_clocks(num_cycles);
-		if (retval != ERROR_OK)
-			jtag_error=retval;
+		jtag_set_error(interface_jtag_add_clocks(num_cycles));
 	}
 }
 
