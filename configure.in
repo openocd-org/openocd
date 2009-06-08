@@ -400,13 +400,12 @@ AC_ARG_ENABLE(minidriver_dummy,
 build_minidriver=no
 AC_MSG_CHECKING([whether to enable ZY1000 minidriver])
 if test $build_ecosboard = yes; then
-  # check for that project's header file in the current header search path
-  AC_CHECK_HEADERS(jtag_minidriver.h, [build_minidriver=yes],
-      AC_MSG_WARN([The --enable-ecosboard option needs the out-of-tree 'jtag_minidriver.h'])
-      AC_MSG_ERROR([The out-of-tree jtag_minidriver.h cannot be found.])
-    )
+  if test $build_minidriver = yes; then
+    AC_MSG_ERROR([Multiple minidriver options have been enabled.])
+  fi
+  AC_DEFINE(HAVE_JTAG_MINIDRIVER_H, 1,
+      [Define to 1 if you have the <jtag_minidriver.h> header file.])
   build_minidriver=yes
-  AC_DEFINE(BUILD_MINIDRIVER_DUMMY, 1, [Use the dummy minidriver.])
 fi
 AC_MSG_RESULT($build_ecosboard)
 
