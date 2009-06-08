@@ -3413,7 +3413,7 @@ static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 					goto no_params;
 				}
 			}
-			Jim_SetResult( interp, Jim_NewIntObj( goi->interp, target->working_area_size ) );
+			Jim_SetResult(interp, Jim_NewIntObj(goi->interp, target->backup_working_area));
 			/* loop for more e*/
 			break;
 
