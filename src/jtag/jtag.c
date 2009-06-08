@@ -568,23 +568,19 @@ void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 	jtag_set_error(retval);
 }
 
-
-
 /**
- * Duplicate the scan fields passed into the function into a DR SCAN command
- *
- * This function assumes that the caller handles extra fields for bypassed TAPs
- *
+ * Duplicate the scan fields passed into the function into a DR SCAN
+ * command.  Unlike jtag_add_dr_scan(), this function assumes that the
+ * caller handles extra fields for bypassed TAPs.
  */
-void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields, tap_state_t state)
+void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields,
+		tap_state_t state)
 {
-	int retval;
-
 	jtag_prelude(state);
 
-	retval=interface_jtag_add_plain_dr_scan(in_num_fields, in_fields, state);
-	if (retval!=ERROR_OK)
-		jtag_error=retval;
+	int retval;
+	retval = interface_jtag_add_plain_dr_scan(in_num_fields, in_fields, state);
+	jtag_set_error(retval);
 }
 
 void jtag_add_dr_out(jtag_tap_t* tap,
