@@ -665,7 +665,6 @@ void jtag_add_clocks(int num_cycles)
 void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 {
 	int trst_with_tlr = 0;
-	int retval;
 
 	/* FIX!!! there are *many* different cases here. A better
 	 * approach is needed for legal combinations of transitions...
@@ -689,7 +688,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (!req_tlr_or_trst))
 	{
 		LOG_ERROR("BUG: requested reset would assert trst");
-		jtag_error=ERROR_FAIL;
+		jtag_set_error(ERROR_FAIL);
 		return;
 	}
 
@@ -702,7 +701,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
 	{
 		LOG_ERROR("BUG: requested SRST assertion, but the current configuration doesn't support this");
-		jtag_error=ERROR_FAIL;
+		jtag_set_error(ERROR_FAIL);
 		return;
 	}
 
@@ -722,10 +721,10 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 
 	jtag_srst = req_srst;
 
-	retval = interface_jtag_add_reset(jtag_trst, jtag_srst);
-	if (retval!=ERROR_OK)
+	int retval = interface_jtag_add_reset(jtag_trst, jtag_srst);
+	if (retval != ERROR_OK)
 	{
-		jtag_error=retval;
+		jtag_set_error(retval);
 		return;
 	}
 	jtag_execute_queue();
