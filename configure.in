@@ -1,6 +1,6 @@
 AC_PREREQ(2.60)
 AC_INIT([openocd], [0.2.0-in-development],
-	[OpenOCD Mailing List <openocd-development@lists.berlios.de>])
+  [OpenOCD Mailing List <openocd-development@lists.berlios.de>])
 AC_CONFIG_SRCDIR([src/openocd.c])
 
 AM_INIT_AUTOMAKE([-Wall -Wno-portability])
@@ -91,14 +91,14 @@ is_darwin=no
 build_release=yes
 
 AC_ARG_ENABLE(release,
-	AS_HELP_STRING([--enable-release], [Enable Release Build, default no]),
-	[build_release=$enableval], [build_release=no])
+  AS_HELP_STRING([--enable-release], [Enable Release Build, default no]),
+  [build_release=$enableval], [build_release=no])
 
 if test $cross_compiling = no; then
-	if test $build_release = no; then
-		# check we can find guess-rev.sh
-		AC_CHECK_FILE("$srcdir/guess-rev.sh", build_release=no, build_release=yes)
-	fi
+  if test $build_release = no; then
+    # check we can find guess-rev.sh
+    AC_CHECK_FILE("$srcdir/guess-rev.sh", build_release=no, build_release=yes)
+  fi
 fi
 
 # We are not *ALWAYS* being installed in the standard place.
@@ -128,7 +128,7 @@ then
     LDFLAGS="$LDFLAGS -L$OCDxprefix/lib"
     # RPATH becomes an issue on Linux only
     if test $host_os = linux-gnu || test $host_os = linux ; then
-	LDFLAGS="$LDFLAGS -Wl,-rpath,$OCDxprefix/lib"
+      LDFLAGS="$LDFLAGS -Wl,-rpath,$OCDxprefix/lib"
     fi
     # The "INCDIR" is also usable
     CFLAGS="$CFLAGS -I$includedir"
@@ -136,7 +136,7 @@ fi
 
 AC_ARG_WITH(ftd2xx,
    AS_HELP_STRING([--with-ftd2xx=<PATH>],[This option has been removed.]),
-[
+  [
 # Option Given.
 cat << __EOF__
 
@@ -148,7 +148,7 @@ On Linux, the new option is:
 Where <path> is the path the the directory where the "tar.gz" file
 from FTDICHIP.COM was unpacked, for example:
 
-  --with-ftd2xx-linux-tardir=/home/duane/libftd2xx-linux-tardir=/home/duane/libftd2xx0.4.16
+  --with-ftd2xx-linux-tardir=${HOME}/libftd2xx0.4.16
 
 On Cygwin/MingW32, the new option is:
 
@@ -157,17 +157,12 @@ On Cygwin/MingW32, the new option is:
 Where <path> is the path to the directory where the "zip" file from
 FTDICHIP.COM was unpacked, for example:
 
-  --with-ftd2xx-win32-zipdir=/home/duane/ftd2xx.cdm.files
+  --with-ftd2xx-win32-zipdir=${HOME}/ftd2xx.cdm.files
 
 __EOF__
 
    AC_MSG_ERROR([Sorry Cannot continue])
-],
-[ 
-# Option not given
-true
-]
-)
+  ], [true])
 
 #========================================
 # FTD2XXX support comes in 4 forms.
@@ -184,17 +179,12 @@ AC_ARG_WITH(ftd2xx-win32-zipdir,
   # option present
   if test -d $with_ftd2xx_win32_zipdir
   then
-	with_ftd2xx_win32_zipdir=`cd $with_ftd2xx_win32_zipdir && pwd`
-	AC_MSG_NOTICE([Using: ftdichip.com library: $with_ftd2xx_win32_zipdir])
+    with_ftd2xx_win32_zipdir=`cd $with_ftd2xx_win32_zipdir && pwd`
+    AC_MSG_NOTICE([Using: ftdichip.com library: $with_ftd2xx_win32_zipdir])
   else
-	AC_MSG_ERROR([Parameter to --with-ftd2xx-win32-zipdir is not a dir: $with_ftd2xx_win32_zipdir])
+    AC_MSG_ERROR([Parameter to --with-ftd2xx-win32-zipdir is not a dir: $with_ftd2xx_win32_zipdir])
   fi
-  ],
-  [
-  # not given
-  true
-  ]
-)
+  ], [true])
 
 AC_ARG_WITH(ftd2xx-linux-tardir,
   AS_HELP_STRING([--with-ftd2xx-linux-tardir], [Where (Linux/Unix) the tar file from ftdichip.com was unpacked <default=search>]),
@@ -205,50 +195,44 @@ AC_ARG_WITH(ftd2xx-linux-tardir,
   fi
   if test -d $with_ftd2xx_linux_tardir
   then
-	with_ftd2xx_linux_tardir=`cd $with_ftd2xx_linux_tardir && pwd`
-	AC_MSG_NOTICE([Using: ftdichip.com library: $with_ftd2xx_linux_tardir])
+    with_ftd2xx_linux_tardir=`cd $with_ftd2xx_linux_tardir && pwd`
+    AC_MSG_NOTICE([Using: ftdichip.com library: $with_ftd2xx_linux_tardir])
   else
-	AC_MSG_ERROR([Parameter to --with-ftd2xx-linux-tardir is not a dir: $with_ftd2xx_linux_tardir])
+    AC_MSG_ERROR([Parameter to --with-ftd2xx-linux-tardir is not a dir: $with_ftd2xx_linux_tardir])
   fi
-  ],
-  [
-  # Not given 
-  true
-  ]
-)
+  ], [true])
 
 AC_ARG_WITH(ftd2xx-lib,
-	AS_HELP_STRING([--with-ftd2xx-lib], [Use static or shared ftd2xx libs on default static]),
-[
-case "$withval" in
-static)
-	with_ftd2xx_lib=$withval
-	;;
-shared)
-	with_ftd2xx_lib=$withval
-	;;
-*)
-	AC_MSG_ERROR([Option: --with-ftd2xx-lib=static or --with-ftd2xx-lib=shared not, $withval])
-	;;
-esac
-],
-[
-	# Default is static - it is simpler :-(
-	with_ftd2xx_lib=static
-]
-)
+  AS_HELP_STRING([--with-ftd2xx-lib],
+    [Use static or shared ftd2xx libs on default static]),
+  [
+  case "$withval" in
+  static)
+    with_ftd2xx_lib=$withval
+    ;;
+  shared)
+    with_ftd2xx_lib=$withval
+    ;;
+  *)
+    AC_MSG_ERROR([Option: --with-ftd2xx-lib=static or --with-ftd2xx-lib=shared not, $withval])
+    ;;
+  esac
+  ], [
+  # Default is static - it is simpler :-(
+  with_ftd2xx_lib=static
+  ])
 
 AC_ARG_ENABLE(gccwarnings,
-	AS_HELP_STRING([--disable-gccwarnings], [Disable compiler warnings]),
-	[gcc_warnings=$enableval], [gcc_warnings=yes])
+  AS_HELP_STRING([--disable-gccwarnings], [Disable compiler warnings]),
+  [gcc_warnings=$enableval], [gcc_warnings=yes])
 
 AC_ARG_ENABLE(wextra,
-	AS_HELP_STRING([--disable-wextra], [Disable extra compiler warnings]),
-	[gcc_wextra=$enableval], [gcc_wextra=$gcc_warnings])
+  AS_HELP_STRING([--disable-wextra], [Disable extra compiler warnings]),
+  [gcc_wextra=$enableval], [gcc_wextra=$gcc_warnings])
 
 AC_ARG_ENABLE(werror,
-	AS_HELP_STRING([--disable-werror], [Do not treat warnings as errors]),
-	[gcc_werror=$enableval], [gcc_werror=$gcc_warnings])
+  AS_HELP_STRING([--disable-werror], [Do not treat warnings as errors]),
+  [gcc_werror=$enableval], [gcc_werror=$gcc_warnings])
 
 # set default verbose options, overridden by following options
 debug_jtag_io=no
@@ -256,26 +240,26 @@ debug_usb_io=no
 debug_usb_comms=no
 
 AC_ARG_ENABLE(verbose,
-	AS_HELP_STRING([--enable-verbose],
-  		[Enable verbose JTAG I/O messages (for debugging).]), 
-	[
-	debug_jtag_io=$enableval
-	debug_usb_io=$enableval
-	debug_usb_comms=$enableval
-	], [])
+  AS_HELP_STRING([--enable-verbose],
+      [Enable verbose JTAG I/O messages (for debugging).]), 
+  [
+  debug_jtag_io=$enableval
+  debug_usb_io=$enableval
+  debug_usb_comms=$enableval
+  ], [])
 
 AC_ARG_ENABLE(verbose_jtag_io,
-	AS_HELP_STRING([--enable-verbose-jtag-io],
-  		[Enable verbose JTAG I/O messages (for debugging).]), 
-	[debug_jtag_io=$enableval], [])
+  AS_HELP_STRING([--enable-verbose-jtag-io],
+      [Enable verbose JTAG I/O messages (for debugging).]), 
+  [debug_jtag_io=$enableval], [])
 AC_ARG_ENABLE(verbose_usb_io,
-	AS_HELP_STRING([--enable-verbose-usb-io],
-  		[Enable verbose USB I/O messages (for debugging)]), 
-	[debug_usb_io=$enableval], [])
+  AS_HELP_STRING([--enable-verbose-usb-io],
+      [Enable verbose USB I/O messages (for debugging)]), 
+  [debug_usb_io=$enableval], [])
 AC_ARG_ENABLE(verbose_usb_comms,
-	AS_HELP_STRING([--enable-verbose-usb-comms],
-  		[Enable verbose USB communication messages (for debugging)]), 
-	[debug_usb_comms=$enableval], [])
+  AS_HELP_STRING([--enable-verbose-usb-comms],
+      [Enable verbose USB communication messages (for debugging)]), 
+  [debug_usb_comms=$enableval], [])
 
 AC_MSG_CHECKING([whether to enable verbose JTAG I/O messages]);
 AC_MSG_RESULT($debug_jtag_io)
@@ -298,9 +282,9 @@ fi
 
 debug_malloc=no
 AC_ARG_ENABLE(malloc_logging,
-	AS_HELP_STRING([--enable-malloc-logging],
-  		[Include free space in logging messages (requires malloc.h).]), 
-	[debug_malloc=$enableval], [])
+  AS_HELP_STRING([--enable-malloc-logging],
+      [Include free space in logging messages (requires malloc.h).]), 
+  [debug_malloc=$enableval], [])
 
 AC_MSG_CHECKING([whether to enable malloc free space logging]);
 AC_MSG_RESULT($debug_malloc)
@@ -326,7 +310,7 @@ AC_ARG_ENABLE(parport_giveio,
     AS_HELP_STRING([--enable-parport-giveio],
       [Enable use of giveio for parport (for CygWin only)]), 
     [parport_use_giveio=$enableval], [parport_use_giveio=])
-	  
+    
 AC_ARG_ENABLE(ft2232_libftdi,
   AS_HELP_STRING([--enable-ft2232_libftdi], [Enable building support for FT2232 based devices using the libftdi driver, opensource alternate of FTD2XX]), 
   [build_ft2232_libftdi=$enableval], [build_ft2232_libftdi=no])
@@ -435,7 +419,7 @@ if test $build_minidriver_dummy = yes; then
   build_minidriver=yes
   AC_DEFINE(BUILD_MINIDRIVER_DUMMY, 1, [Use the dummy minidriver.])
   AC_DEFINE(HAVE_JTAG_MINIDRIVER_H, 1,
-  		[Define to 1 if you have the <jtag_minidriver.h> header file.])
+      [Define to 1 if you have the <jtag_minidriver.h> header file.])
 fi
 AC_MSG_RESULT($build_minidriver_dummy)
 
@@ -463,19 +447,20 @@ case $host in
   *-cygwin*) 
     is_win32=yes
 
-	AC_COMPILE_IFELSE(AC_LANG_PROGRAM([],[return __MINGW32__;]),[is_mingw=yes],[is_mingw=no])
-	if test $is_mingw = yes; then
-		AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
-    		if test x$parport_use_giveio = xno; then
-    		  AC_MSG_WARN([--disable-parport-giveio is not supported by MinGW32 hosts])
-    		fi
-		parport_use_giveio=yes
-		is_cygwin=no
-	else
-		is_cygwin=yes
-		AC_DEFINE(IS_CYGWIN, 1, [1 if building for Cygwin.])
-	fi
-	
+    AC_COMPILE_IFELSE(AC_LANG_PROGRAM([],[return __MINGW32__;]),
+      [is_mingw=yes],[is_mingw=no])
+    if test $is_mingw = yes; then
+      AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
+      if test x$parport_use_giveio = xno; then
+        AC_MSG_WARN([--disable-parport-giveio is not supported by MinGW32 hosts])
+      fi
+      parport_use_giveio=yes
+      is_cygwin=no
+    else
+      is_cygwin=yes
+      AC_DEFINE(IS_CYGWIN, 1, [1 if building for Cygwin.])
+    fi
+  
     AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
     AC_DEFINE(IS_DARWIN, 0, [0 if not building for Darwin.])
     ;; 
@@ -664,47 +649,47 @@ fi
 if test $is_win32 = yes; then
 if test "${with_ftd2xx_linux_tardir+set}" = set
 then
-   AC_MSG_ERROR([The option: with_ftd2xx_linux_tardir is for LINUX only.])
+  AC_MSG_ERROR([The option: with_ftd2xx_linux_tardir is for LINUX only.])
 fi
 
 if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes ; then
-AC_MSG_CHECKING([for ftd2xx.lib exists (win32)])
+  AC_MSG_CHECKING([for ftd2xx.lib exists (win32)])
 
-   # if we are given a zipdir...
-   if test "${with_ftd2xx_win32_zipdir+set}" = set
-   then
-      # Set the CFLAGS for "ftd2xx.h"
-      f=$with_ftd2xx_win32_zipdir/ftd2xx.h
-      if test ! -f $f ; then
-      	 AC_MSG_ERROR([File: $f cannot be found])
-      fi
-      CFLAGS="$CFLAGS -I$with_ftd2xx_win32_zipdir"
+  # if we are given a zipdir...
+  if test "${with_ftd2xx_win32_zipdir+set}" = set
+  then
+    # Set the CFLAGS for "ftd2xx.h"
+    f=$with_ftd2xx_win32_zipdir/ftd2xx.h
+    if test ! -f $f ; then
+      AC_MSG_ERROR([File: $f cannot be found])
+    fi
+    CFLAGS="$CFLAGS -I$with_ftd2xx_win32_zipdir"
 
-      # And calculate the LDFLAGS for the machine
-      case "$host_cpu" in
-      i?86|x86_*)
-	LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/i386"
-	LIBS="$LIBS -lftd2xx"
-	f=$with_ftd2xx_win32_zipdir/i386/ftd2xx.lib
-	;;
-      amd64)
-	LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/amd64"
-	LIBS="$LIBS -lftd2xx"
-	f=$with_ftd2xx_win32_zipdir/amd64/ftd2xx.lib
-	;;
-      *)
-	AC_MSG_ERROR([Unknown Win32 host cpu: $host_cpu])
-        ;;
-       esac
-       if test ! -f $f ; then
-       	  AC_MSG_ERROR([Library: $f not found])
-       fi
-   else
+    # And calculate the LDFLAGS for the machine
+    case "$host_cpu" in
+    i?86|x86_*)
+      LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/i386"
       LIBS="$LIBS -lftd2xx"
-      AC_MSG_WARN([ASSUMPTION: The (win32) FTDICHIP.COM files: ftd2xx.h and ftd2xx.lib are in a proper place])
-   fi
+      f=$with_ftd2xx_win32_zipdir/i386/ftd2xx.lib
+      ;;
+    amd64)
+      LDFLAGS="$LDFLAGS -L$with_ftd2xx_win32_zipdir/amd64"
+      LIBS="$LIBS -lftd2xx"
+      f=$with_ftd2xx_win32_zipdir/amd64/ftd2xx.lib
+      ;;
+    *)
+      AC_MSG_ERROR([Unknown Win32 host cpu: $host_cpu])
+      ;;
+    esac
+    if test ! -f $f ; then
+         AC_MSG_ERROR([Library: $f not found])
+    fi
+  else
+    LIBS="$LIBS -lftd2xx"
+    AC_MSG_WARN([ASSUMPTION: The (win32) FTDICHIP.COM files: ftd2xx.h and ftd2xx.lib are in a proper place])
+  fi
 fi
-fi
+fi # win32
 
 if test $is_darwin = yes ; then
 if test "${with_ftd2xx_win32_zipdir+set}" = set
@@ -728,7 +713,7 @@ if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes ; then
    LIBS="$LIBS -lftd2xx"
    AC_MSG_RESULT([-L/usr/local/lib -lftd2xx])
 fi
-fi
+fi # darwin
 
 if test $is_win32 = no && test $is_darwin = no ; then
 
@@ -741,62 +726,62 @@ if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes ; then
    # Must be linux
    if test $host_os != linux-gnu && test $host_os != linux ; then
       AC_MSG_ERROR([The (linux) ftd2xx library from FTDICHIP.com is linux only. Try --enable-ft2232-libftdi instead])
-   fi
-   # Are we given a TAR directory?
-   if test "${with_ftd2xx_linux_tardir+set}" = set
-   then
-        AC_MSG_CHECKING([uninstalled ftd2xx distribution])
-	# The .H file is simple..
-	FTD2XX_H=$with_ftd2xx_linux_tardir/ftd2xx.h
-	if test ! -f "${FTD2XX_H}"; then
-	   AC_MSG_ERROR([Option: --with-ftd2xx-linux-tardir appears wrong, cannot find: ${FTD2XX_H}])
-	fi
-	CFLAGS="$CFLAGS -I$with_ftd2xx_linux_tardir"
-	FTD2XX_LDFLAGS="-L$with_ftd2xx_linux_tardir"
-	FTD2XX_LIB="-lftd2xx"
-	if test $with_ftd2xx_lib != shared; then
-	    # Test #1 - Future proof - if/when ftdichip fixes their distro.
-	    # Try it with the simple ".a" suffix.
-	    FTD2XX_LIB="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a"
-	    if test -f "${FTD2XX_LIB}"; then
-	       FTD2XX_LDFLAGS="${FTD2XX_LDFLAGS}/static_lib"
-            else
-	       # Test Number2.
-	       # Grr.. perhaps it exists as a version number?
-	       FTD2XX_LIB="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a.*.*.*"
-	       count=`ls ${FTD2XX_LIB} | wc -l`
-	       if test $count -gt 1 ; then
-	          AC_MSG_ERROR([Multiple libftd2xx.a files found in: $with_ftd2xx_linux_tardir/static_lib sorry cannot handle this yet])
-	       fi
-	       if test $count -ne 1 ; then
-	          AC_MSG_ERROR([Not found: $f, option: --with-ftd2xx-linux-tardir appears to be wrong])
-	       fi
-	       # Because the "-l" rules do not understand version numbers...
-	       # we will just stuff the absolute path onto the LIBS variable
-	       FTD2XX_LIB="`ls ${FTD2XX_LIB}` -lpthread"
-	       FTD2XX_LDFLAGS=""
-	    fi
+  fi
+  # Are we given a TAR directory?
+  if test "${with_ftd2xx_linux_tardir+set}" = set
+  then
+    AC_MSG_CHECKING([uninstalled ftd2xx distribution])
+    # The .H file is simple..
+    FTD2XX_H=$with_ftd2xx_linux_tardir/ftd2xx.h
+    if test ! -f "${FTD2XX_H}"; then
+    AC_MSG_ERROR([Option: --with-ftd2xx-linux-tardir appears wrong, cannot find: ${FTD2XX_H}])
+    fi
+    CFLAGS="$CFLAGS -I$with_ftd2xx_linux_tardir"
+    FTD2XX_LDFLAGS="-L$with_ftd2xx_linux_tardir"
+    FTD2XX_LIB="-lftd2xx"
+    if test $with_ftd2xx_lib != shared; then
+      # Test #1 - Future proof - if/when ftdichip fixes their distro.
+      # Try it with the simple ".a" suffix.
+      FTD2XX_LIB="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a"
+      if test -f "${FTD2XX_LIB}"; then
+        FTD2XX_LDFLAGS="${FTD2XX_LDFLAGS}/static_lib"
+      else
+        # Test Number2.
+        # Grr.. perhaps it exists as a version number?
+        FTD2XX_LIB="$with_ftd2xx_linux_tardir/static_lib/libftd2xx.a.*.*.*"
+        count=`ls ${FTD2XX_LIB} | wc -l`
+        if test $count -gt 1 ; then
+          AC_MSG_ERROR([Multiple libftd2xx.a files found in: $with_ftd2xx_linux_tardir/static_lib sorry cannot handle this yet])
         fi
-	LDFLAGS="${LDFLAGS} ${FTD2XX_LDFLAGS}"
-	LIBS="${LIBS} ${FTD2XX_LIB}"
-	AC_MSG_RESULT([${FTD2XX_LDFLAGS} ${FTD2XX_LIB}])
-   else
-	AC_CHECK_HEADER([ftd2xx.h],[],[
-			AC_MSG_ERROR([You seem to be missing the FTD2xx driver header file.])
-		])
-	AC_SEARCH_LIBS([FT_GetLibraryVersion],[ftd2xx],,[
-			AC_MSG_ERROR([You appear to be missing the FTD2xx driver library.])
-		],[])
-   fi
+        if test $count -ne 1 ; then
+          AC_MSG_ERROR([Not found: $f, option: --with-ftd2xx-linux-tardir appears to be wrong])
+        fi
+        # Because the "-l" rules do not understand version numbers...
+        # we will just stuff the absolute path onto the LIBS variable
+        FTD2XX_LIB="`ls ${FTD2XX_LIB}` -lpthread"
+        FTD2XX_LDFLAGS=""
+      fi
+    fi
+    LDFLAGS="${LDFLAGS} ${FTD2XX_LDFLAGS}"
+    LIBS="${LIBS} ${FTD2XX_LIB}"
+    AC_MSG_RESULT([${FTD2XX_LDFLAGS} ${FTD2XX_LIB}])
+  else
+    AC_CHECK_HEADER([ftd2xx.h],[],[
+        AC_MSG_ERROR([You seem to be missing the FTD2xx driver header file.])
+      ])
+    AC_SEARCH_LIBS([FT_GetLibraryVersion],[ftd2xx],,[
+        AC_MSG_ERROR([You appear to be missing the FTD2xx driver library.])
+      ],[])
+  fi
 fi
-fi
+fi # linux
 
 if test $build_ft2232_ftd2xx = yes -o $build_presto_ftd2xx = yes; then
 
 # Before we go any further - make sure we can *BUILD* and *RUN*
 # a simple app with the "ftd2xx.lib" file - in what ever form we where given
 # We should be able to compile, link and run this test program now
-  AC_MSG_CHECKING([whether ftd2xx library works])
+AC_MSG_CHECKING([whether ftd2xx library works])
 
 #
 # Save the LDFLAGS for later..
@@ -806,8 +791,8 @@ _LDFLAGS=`eval echo $LDFLAGS`
 _CFLAGS=`eval echo $CFLAGS`
 LDFLAGS=$_LDFLAGS
 CFLAGS=$_CFLAGS
-  AC_RUN_IFELSE(
-[
+
+AC_RUN_IFELSE([
 #include "confdefs.h"
 #if IS_WIN32
 #include "windows.h"
@@ -818,17 +803,21 @@ CFLAGS=$_CFLAGS
 int
 main( int argc, char **argv )
 {
-	DWORD x;
-	FT_GetLibraryVersion( &x );
-	return 0;
+  DWORD x;
+  FT_GetLibraryVersion( &x );
+  return 0;
 }
-], [ AC_MSG_RESULT([Success!])] , [ AC_MSG_ERROR([Cannot build & run test program using ftd2xx.lib]) ] )
+  ], [
+    AC_MSG_RESULT([Success!])
+  ], [
+    AC_MSG_ERROR([Cannot build & run test program using ftd2xx.lib])
+  ] )
 
 AC_MSG_CHECKING([whether to build ftd2xx device support])
 AC_MSG_RESULT([$want_ftd2xx_highspeed])
 if test $want_ftd2xx_highspeed != no; then
-AC_MSG_CHECKING([for ftd2xx highspeed device support])
-AC_COMPILE_IFELSE([
+  AC_MSG_CHECKING([for ftd2xx highspeed device support])
+  AC_COMPILE_IFELSE([
 #include "confdefs.h"
 #if IS_WIN32
 #include "windows.h"
@@ -836,17 +825,18 @@ AC_COMPILE_IFELSE([
 #include <stdio.h>
 #include <ftd2xx.h>
 DWORD x = FT_DEVICE_4232H;
-], [
- AC_DEFINE(BUILD_FTD2XX_HIGHSPEED, [1], [Support FT2232H/FT4232HS with FTD2XX.])
- build_ftd2xx_highspeed=yes
-], [
- build_ftd2xx_highspeed=no
-] )
-AC_MSG_RESULT([$build_ftd2xx_highspeed])
+    ], [
+      AC_DEFINE(BUILD_FTD2XX_HIGHSPEED, [1],
+        [Support FT2232H/FT4232HS with FTD2XX.])
+      build_ftd2xx_highspeed=yes
+    ], [
+      build_ftd2xx_highspeed=no
+    ])
+  AC_MSG_RESULT([$build_ftd2xx_highspeed])
 
-if test $want_ftd2xx_highspeed = yes -a $build_ftd2xx_highspeed = no; then
-   AC_MSG_ERROR([You need a newer FTD2XX driver (version 0.4.16 or later).])
- fi
+  if test $want_ftd2xx_highspeed = yes -a $build_ftd2xx_highspeed = no; then
+    AC_MSG_ERROR([You need a newer FTD2XX driver (version 0.4.16 or later).])
+  fi
 fi
 
 LDFLAGS=$LDFLAGS_SAVE
@@ -854,53 +844,52 @@ CFLAGS=$CFLAGS_SAVE
 fi
 
 if test $build_ft2232_libftdi = yes ; then
-   # We assume: the package is preinstalled in the proper place
-   # these present as 2 libraries..
-   LIBS="$LIBS -lftdi -lusb"
-   # 
-   # Try to build a small program.
-   AC_MSG_CHECKING([Build & Link with libftdi...])
+  # We assume: the package is preinstalled in the proper place
+  # these present as 2 libraries..
+  LIBS="$LIBS -lftdi -lusb"
+  # 
+  # Try to build a small program.
+  AC_MSG_CHECKING([Build & Link with libftdi...])
 
-LDFLAGS_SAVE=$LDFLAGS
-CFLAGS_SAVE=$CFLAGS
-_LDFLAGS=`eval echo $LDFLAGS`
-_CFLAGS=`eval echo $CFLAGS`
-LDFLAGS=$_LDFLAGS
-CFLAGS=$_CFLAGS
+  LDFLAGS_SAVE=$LDFLAGS
+  CFLAGS_SAVE=$CFLAGS
+  _LDFLAGS=`eval echo $LDFLAGS`
+  _CFLAGS=`eval echo $CFLAGS`
+  LDFLAGS=$_LDFLAGS
+  CFLAGS=$_CFLAGS
 
-   AC_RUN_IFELSE(
-[
+  AC_RUN_IFELSE([
 #include <stdio.h>
 #include <ftdi.h>
 
 int
 main( int argc, char **argv )
 {
-	struct ftdi_context *p;
-	p = ftdi_new();
-	if( p != NULL ){
-	    return 0;
-	} else {
-	    fprintf( stderr, "calling ftdi_new() failed\n");
-	    return 1;
+  struct ftdi_context *p;
+  p = ftdi_new();
+  if( p != NULL ){
+      return 0;
+  } else {
+      fprintf( stderr, "calling ftdi_new() failed\n");
+      return 1;
         }
 }
-]
-, 
-[ AC_MSG_RESULT([Success]) ]
-, 
-[ AC_MSG_ERROR([Cannot build & run test program using libftdi]) ] )
-# Restore the 'unexpanded ldflags'
-LDFLAGS=$LDFLAGS_SAVE
-CFLAGS=$CFLAGS_SAVE
+    ], [
+      AC_MSG_RESULT([Success])
+    ], [
+      AC_MSG_ERROR([Cannot build & run test program using libftdi])
+    ])
+  # Restore the 'unexpanded ldflags'
+  LDFLAGS=$LDFLAGS_SAVE
+  CFLAGS=$CFLAGS_SAVE
 fi
 
 # check for usb.h when a driver will require it
 if test $build_jlink = yes -o $build_vsllink = yes -o $build_usbprog = yes -o \
-	$build_rlink = yes -o $build_armjtagew = yes
+  $build_rlink = yes -o $build_armjtagew = yes
 then 
   AC_CHECK_HEADERS([usb.h],[],
-	[AC_MSG_ERROR([usb.h is required to build some OpenOCD driver(s)])])
+  [AC_MSG_ERROR([usb.h is required to build some OpenOCD driver(s)])])
 fi
 
 AM_CONDITIONAL(RELEASE, test $build_release = yes)
@@ -962,7 +951,7 @@ int main(int argc, char **argv) { char **ep = environ; }
   ])
 
 if test "${has_environ}" != "yes" ; then
-     AC_MSG_FAILURE([Could not find 'environ' in unistd.h or available libraries.]) 
+  AC_MSG_FAILURE([Could not find 'environ' in unistd.h or available libraries.]) 
 fi
 
 AC_DEFINE([_GNU_SOURCE],[1],[Use GNU C library extensions (e.g. stdndup).])
@@ -970,28 +959,28 @@ AC_DEFINE([_GNU_SOURCE],[1],[Use GNU C library extensions (e.g. stdndup).])
 # set default gcc warnings
 GCC_WARNINGS="-Wall -Wstrict-prototypes -Wformat-security"
 if test "${gcc_wextra}" = yes; then
-	GCC_WARNINGS="${GCC_WARNINGS} -Wextra -Wno-unused-parameter"
-	GCC_WARNINGS="${GCC_WARNINGS} -Wbad-function-cast"
-	GCC_WARNINGS="${GCC_WARNINGS} -Wcast-align"
-	GCC_WARNINGS="${GCC_WARNINGS} -Wredundant-decls"
+  GCC_WARNINGS="${GCC_WARNINGS} -Wextra -Wno-unused-parameter"
+  GCC_WARNINGS="${GCC_WARNINGS} -Wbad-function-cast"
+  GCC_WARNINGS="${GCC_WARNINGS} -Wcast-align"
+  GCC_WARNINGS="${GCC_WARNINGS} -Wredundant-decls"
 fi
 if test "${gcc_werror}" = yes; then
-	GCC_WARNINGS="${GCC_WARNINGS} -Werror"
+  GCC_WARNINGS="${GCC_WARNINGS} -Werror"
 fi
 
 # overide default gcc cflags
 if test $gcc_warnings = yes; then
-	CFLAGS="$CFLAGS $GCC_WARNINGS"
+  CFLAGS="$CFLAGS $GCC_WARNINGS"
 fi
 
 # Setup for compiling build tools
 AC_MSG_CHECKING([for a C compiler for build tools])
 if test $cross_compiling = yes; then
-	AC_CHECK_PROGS(CC_FOR_BUILD, gcc cc)
-	CFLAGS_FOR_BUILD="-g -O2 $GCC_WARNINGS"
+  AC_CHECK_PROGS(CC_FOR_BUILD, gcc cc)
+  CFLAGS_FOR_BUILD="-g -O2 $GCC_WARNINGS"
 else
-	CC_FOR_BUILD=$CC
-	CFLAGS_FOR_BUILD=$CFLAGS
+  CC_FOR_BUILD=$CC
+  CFLAGS_FOR_BUILD=$CFLAGS
 fi
 
 AC_MSG_RESULT([$CC_FOR_BUILD])
@@ -1000,29 +989,41 @@ AC_SUBST(CFLAGS_FOR_BUILD)
 
 AC_MSG_CHECKING([for suffix of executable build tools])
 if test $cross_compiling = yes; then
-	cat >conftest.c <<\_______EOF
+  cat >conftest.c <<\_______EOF
 int main ()
 {
-	exit (0);
+  exit (0);
 }
 _______EOF
-for i in .exe ""; do
+  for i in .exe ""; do
     compile="$CC_FOR_BUILD conftest.c -o conftest$i"
     if AC_TRY_EVAL(compile); then
-		if (./conftest) 2>&AC_FD_CC; then
-			EXEEXT_FOR_BUILD=$i
-			break
-			fi
-		fi
-done
-	rm -f conftest*
-	if test "${EXEEXT_FOR_BUILD+set}" != set; then
-		AC_MSG_ERROR([Cannot determine suffix of executable build tools])
-	fi
+      if (./conftest) 2>&AC_FD_CC; then
+        EXEEXT_FOR_BUILD=$i
+        break
+      fi
+    fi
+  done
+  rm -f conftest*
+  if test "${EXEEXT_FOR_BUILD+set}" != set; then
+    AC_MSG_ERROR([Cannot determine suffix of executable build tools])
+  fi
 else
-	EXEEXT_FOR_BUILD=$EXEEXT
+  EXEEXT_FOR_BUILD=$EXEEXT
 fi
 AC_MSG_RESULT([$EXEEXT_FOR_BUILD])
 AC_SUBST(EXEEXT_FOR_BUILD)
 
-AC_OUTPUT(Makefile src/Makefile src/helper/Makefile src/jtag/Makefile src/xsvf/Makefile src/svf/Makefile src/target/Makefile src/server/Makefile src/flash/Makefile src/pld/Makefile doc/Makefile)
+AC_OUTPUT([
+    Makefile
+    src/Makefile
+    src/helper/Makefile
+    src/jtag/Makefile
+    src/xsvf/Makefile
+    src/svf/Makefile
+    src/target/Makefile
+    src/server/Makefile
+    src/flash/Makefile
+    src/pld/Makefile
+    doc/Makefile
+  ])
