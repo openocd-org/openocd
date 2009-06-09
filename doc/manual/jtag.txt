@@ -14,6 +14,11 @@ asynchronous transactions.
   - declared in @c src/jtag/jtag.h
   - used by other modules
 
+- @subpage jtagtcl
+  - @b private TCL handling routines
+  - defined in @c src/jtag/tcl.c
+  - registers and handles Jim commands that configure and use the JTAG core
+
 - @subpage jtagcmd
   - @b private command queue API
   - declared in @c src/jtag/commands.h
@@ -38,6 +43,12 @@ asynchronous transactions.
  */
 
 /** @page jtagcore JTAG Core API
+
+This section needs to be expanded.
+
+ */
+
+/** @page jtagtcl JTAG TCL API
 
 This section needs to be expanded.
 
