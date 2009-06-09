@@ -578,36 +578,19 @@ extern int jtag_execute_queue(void);
 extern void jtag_execute_queue_noclear(void);
 
 /**
- * The jtag_error variable is set when an error occurs while executing
- * the queue.
- *
- * This flag can also be set from application code, if an error happens
- * during processing that should be reported during jtag_execute_queue().
- *
- * It is cleared by jtag_execute_queue().
+ * Set the current JTAG core execution error, unless one was set
+ * by a previous call previously.  Driver or application code must
+ * use jtag_error_clear to reset jtag_error once this routine has been
+ * called with a non-zero error code.
  */
-extern int jtag_error;
-
-static __inline__ void jtag_set_error(int error)
-{
-	if ((error==ERROR_OK)||(jtag_error!=ERROR_OK))
-	{
-		/* keep first error */
-		return;
-	}
-	jtag_error=error;
-}
-
+void jtag_set_error(int error);
+/// @returns The current value of jtag_error
+int jtag_get_error(void);
 /**
  * Resets jtag_error to ERROR_OK, returning its previous value.
  * @returns The previous value of @c jtag_error.
  */
-static inline int jtag_error_clear(void)
-{
-	int temp = jtag_error;
-	jtag_error = ERROR_OK;
-	return temp;
-}
+int jtag_error_clear(void);
 
 /* can be implemented by hw+sw */
 extern int jtag_power_dropout(int* dropout);

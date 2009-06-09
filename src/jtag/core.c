@@ -46,10 +46,17 @@ static int jtag_flush_queue_count;
 static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state),
 		int in_num_fields, scan_field_t *in_fields, tap_state_t state);
 
-/* note that this is not marked as static as it must be available from outside core.c for those
-   that implement the jtag_xxx() minidriver layer
-*/
-int jtag_error=ERROR_OK;
+/**
+ * The jtag_error variable is set when an error occurs while executing
+ * the queue.  Application code may set this using jtag_set_error(),
+ * when an error occurs during processing that should be reported during
+ * jtag_execute_queue().
+ *
+ * Tts value may be checked with jtag_get_error() and cleared with
+ * jtag_error_clear().  This value is returned (and cleared) by
+ * jtag_execute_queue().
+ */
+static int jtag_error = ERROR_OK;
 
 char* jtag_event_strings[] =
 {
@@ -100,6 +107,24 @@ struct jtag_interface_s *jtag = NULL;
 /* configuration */
 jtag_interface_t *jtag_interface = NULL;
 int jtag_speed = 0;
+
+void jtag_set_error(int error)
+{
+	if ((error == ERROR_OK) || (jtag_error != ERROR_OK))
+		return;
+	jtag_error = error;
+}
+int jtag_get_error(void)
+{
+	return jtag_error;
+}
+int jtag_error_clear(void)
+{
+	int temp = jtag_error;
+	jtag_error = ERROR_OK;
+	return temp;
+}
+
 
 jtag_tap_t *jtag_all_taps(void)
 {
