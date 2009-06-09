@@ -1304,25 +1304,21 @@ static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const 
 
 static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	if (argc == 1)
 	{
 		if (strcmp(args[0], "enable") == 0)
-		{
-			jtag_verify_capture_ir = 1;
-		}
+			jtag_set_verify_capture_ir(true);
 		else if (strcmp(args[0], "disable") == 0)
-		{
-			jtag_verify_capture_ir = 0;
-		} else
-		{
+			jtag_set_verify_capture_ir(false);
+		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-	} else if (argc != 0)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	command_print(cmd_ctx, "verify Capture-IR is %s", (jtag_verify_capture_ir) ? "enabled": "disabled");
+	const char *status = jtag_will_verify_capture_ir() ? "enabled": "disabled";
+	command_print(cmd_ctx, "verify Capture-IR is %s", status);
 
 	return ERROR_OK;
 }

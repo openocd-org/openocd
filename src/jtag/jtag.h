@@ -611,8 +611,6 @@ extern void jtag_sleep(u32 us);
 extern int jtag_call_event_callbacks(enum jtag_event event);
 extern int jtag_register_event_callback(int (* callback)(enum jtag_event event, void* priv), void* priv);
 
-extern int jtag_verify_capture_ir;
-
 void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
 
 /*
@@ -707,5 +705,8 @@ unsigned jtag_get_speed_khz(void);
 
 void jtag_set_verify(bool enable);
 bool jtag_will_verify(void);
+
+void jtag_set_verify_capture_ir(bool enable);
+bool jtag_will_verify_capture_ir(void);
 
 #endif /* JTAG_H */
