@@ -611,8 +611,6 @@ extern void jtag_sleep(u32 us);
 extern int jtag_call_event_callbacks(enum jtag_event event);
 extern int jtag_register_event_callback(int (* callback)(enum jtag_event event, void* priv), void* priv);
 
-void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
-
 /*
  * The JTAG subsystem defines a number of error codes,
  * using codes between -100 and -199.
