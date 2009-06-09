@@ -266,8 +266,6 @@ int jtag_get_speed(void);
  */
 int jtag_set_speed(int speed);
 
-extern int jtag_speed_post_reset;
-
 enum reset_types {
 	RESET_NONE            = 0x0,
 	RESET_HAS_TRST        = 0x1,
