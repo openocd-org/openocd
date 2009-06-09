@@ -308,12 +308,29 @@ extern int  jtag_register_commands(struct command_context_s* cmd_ctx);
  * end state and a subsequent jtag_add_pathmove() must be issued.
  */
 
+/**
+ * Generate an IR SCAN with a list of scan fields with one entry for
+ * each enabled TAP.
+ *
+ * If the input field list contains an instruction value for a TAP then
+ * that is used otherwise the TAP is set to bypass.
+ *
+ * TAPs for which no fields are passed are marked as bypassed for
+ * subsequent DR SCANs.
+ *
+ */
 extern void jtag_add_ir_scan(int num_fields, scan_field_t* fields, tap_state_t endstate);
 /**
  * The same as jtag_add_ir_scan except no verification is performed out
  * the output values.
  */
 extern void jtag_add_ir_scan_noverify(int num_fields, const scan_field_t *fields, tap_state_t state);
+/**
+ * Duplicate the scan fields passed into the function into an IR SCAN
+ * command.  This function assumes that the caller handles extra fields
+ * for bypassed TAPs.
+ */
+extern void jtag_add_plain_ir_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
 
 
 /**
@@ -327,10 +344,20 @@ extern void jtag_add_ir_scan_noverify(int num_fields, const scan_field_t *fields
  */
 extern void jtag_alloc_in_value32(scan_field_t *field);
 
+/**
+ * Generate a DR SCAN using the fields passed to the function.
+ * For connected TAPs, the function checks in_fields and uses fields
+ * specified there.  For bypassed TAPs, the function generates a dummy
+ * 1-bit field.  The bypass status of TAPs is set by jtag_add_ir_scan().
+ */
 extern void jtag_add_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
 /// A version of jtag_add_dr_scan() that uses the check_value/mask fields
 extern void jtag_add_dr_scan_check(int num_fields, scan_field_t* fields, tap_state_t endstate);
-extern void jtag_add_plain_ir_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
+/**
+ * Duplicate the scan fields passed into the function into a DR SCAN
+ * command.  Unlike jtag_add_dr_scan(), this function assumes that the
+ * caller handles extra fields for bypassed TAPs.
+ */
 extern void jtag_add_plain_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
 
 

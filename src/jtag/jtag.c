@@ -418,15 +418,6 @@ void jtag_add_ir_scan_noverify(int in_count, const scan_field_t *in_fields,
 }
 
 
-/**
- * Generate an IR SCAN with a list of scan fields with one entry for each enabled TAP.
- *
- * If the input field list contains an instruction value for a TAP then that is used
- * otherwise the TAP is set to bypass.
- *
- * TAPs for which no fields are passed are marked as bypassed for subsequent DR SCANs.
- *
- */
 void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
 	if (jtag_verify&&jtag_verify_capture_ir)
@@ -448,12 +439,6 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
 	}
 }
 
-/**
- * Duplicate the scan fields passed into the function into an IR SCAN command
- *
- * This function assumes that the caller handles extra fields for bypassed TAPs
- *
- */
 void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields,
 		tap_state_t state)
 {
@@ -532,12 +517,6 @@ void jtag_add_dr_scan_check(int in_num_fields, scan_field_t *in_fields, tap_stat
 }
 
 
-/**
- * Generate a DR SCAN using the fields passed to the function.
- * For connected TAPs, the function checks in_fields and uses fields
- * specified there.  For bypassed TAPs, the function generates a dummy
- * 1-bit field.  The bypass status of TAPs is set by jtag_add_ir_scan().
- */
 void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 		tap_state_t state)
 {
@@ -548,11 +527,6 @@ void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 	jtag_set_error(retval);
 }
 
-/**
- * Duplicate the scan fields passed into the function into a DR SCAN
- * command.  Unlike jtag_add_dr_scan(), this function assumes that the
- * caller handles extra fields for bypassed TAPs.
- */
 void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 		tap_state_t state)
 {
