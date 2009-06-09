@@ -58,7 +58,7 @@ static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const s
  */
 static int jtag_error = ERROR_OK;
 
-char* jtag_event_strings[] =
+static char* jtag_event_strings[] =
 {
 	"JTAG controller reset (RESET or TRST)"
 };
@@ -83,12 +83,12 @@ static jtag_tap_t *__jtag_all_taps = NULL;
  */
 static unsigned jtag_num_taps = 0;
 
-enum reset_types jtag_reset_config = RESET_NONE;
-tap_state_t cmd_queue_end_state = TAP_RESET;
+static enum reset_types jtag_reset_config = RESET_NONE;
+static tap_state_t cmd_queue_end_state = TAP_RESET;
 tap_state_t cmd_queue_cur_state = TAP_RESET;
 
 int jtag_verify_capture_ir = 1;
-int jtag_verify = 1;
+static int jtag_verify = 1;
 
 /* how long the OpenOCD should wait before attempting JTAG communication after reset lines deasserted (in ms) */
 static int jtag_nsrst_delay = 0; /* default to no nSRST delay */
@@ -106,7 +106,7 @@ struct jtag_interface_s *jtag = NULL;
 
 /* configuration */
 jtag_interface_t *jtag_interface = NULL;
-int jtag_speed = 0;
+static int jtag_speed = 0;
 
 void jtag_set_error(int error)
 {
