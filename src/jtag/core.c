@@ -88,7 +88,7 @@ static int jtag_nsrst_delay = 0; /* default to no nSRST delay */
 static int jtag_ntrst_delay = 0; /* default to no nTRST delay */
 
 /* callbacks to inform high-level handlers about JTAG state changes */
-jtag_event_callback_t *jtag_event_callbacks;
+static jtag_event_callback_t *jtag_event_callbacks;
 
 /* speed in kHz*/
 static int speed_khz = 0;

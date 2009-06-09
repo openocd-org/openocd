@@ -255,8 +255,6 @@ typedef struct jtag_event_callback_s
 	struct jtag_event_callback_s* next;
 } jtag_event_callback_t;
 
-extern jtag_event_callback_t* jtag_event_callbacks;
-
 extern int jtag_speed;
 extern int jtag_speed_post_reset;
 
