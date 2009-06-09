@@ -41,6 +41,8 @@
 
 extern bool hasKHz;
 
+extern const Jim_Nvp nvp_jtag_tap_event[];
+
 /* jtag interfaces (parport, FTDI-USB, TI-USB, ...)
  */
 

@@ -236,8 +236,6 @@ enum jtag_tap_event {
 	JTAG_TAP_EVENT_DISABLE
 };
 
-extern const Jim_Nvp nvp_jtag_tap_event[];
-
 struct jtag_tap_event_action_s
 {
 	enum jtag_tap_event      event;
