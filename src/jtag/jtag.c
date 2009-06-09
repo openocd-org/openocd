@@ -2597,13 +2597,7 @@ static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *
  */
 int jtag_add_statemove(tap_state_t goal_state)
 {
-	int retval = ERROR_OK;
-
-	tap_state_t moves[8];
 	tap_state_t cur_state = cmd_queue_cur_state;
-	int i;
-	int tms_bits;
-	int	tms_count;
 
 	LOG_DEBUG( "cur_state=%s goal_state=%s",
 		tap_state_name(cur_state),
@@ -2618,12 +2612,12 @@ int jtag_add_statemove(tap_state_t goal_state)
 	}
 	else if( tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state) )
 	{
-		tms_bits  = tap_get_tms_path(cur_state, goal_state);
-		tms_count = tap_get_tms_path_len(cur_state, goal_state);
+		unsigned tms_bits  = tap_get_tms_path(cur_state, goal_state);
+		unsigned tms_count = tap_get_tms_path_len(cur_state, goal_state);
+		tap_state_t moves[8];
+		assert(tms_count < DIM(moves));
 
-		assert( (unsigned) tms_count < DIM(moves) );
-
-		for (i=0;   i<tms_count;   i++, tms_bits>>=1)
+		for (unsigned i = 0; i < tms_count; i++, tms_bits >>= 1)
 		{
 			bool bit = tms_bits & 1;
 
@@ -2636,17 +2630,13 @@ int jtag_add_statemove(tap_state_t goal_state)
 	else if( tap_state_transition(cur_state, true)  == goal_state
 		||   tap_state_transition(cur_state, false) == goal_state )
 	{
-		/* move a single state */
-		moves[0] = goal_state;
-		jtag_add_pathmove( 1, moves );
+		jtag_add_pathmove(1, &goal_state);
 	}
 
 	else
-	{
-		retval = ERROR_FAIL;
-	}
+		return ERROR_FAIL;
 
-	return retval;
+	return ERROR_OK;
 }
 
 void jtag_set_nsrst_delay(unsigned delay)
