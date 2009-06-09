@@ -610,6 +610,7 @@ extern void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask);
 extern void jtag_sleep(u32 us);
 extern int jtag_call_event_callbacks(enum jtag_event event);
 extern int jtag_register_event_callback(int (* callback)(enum jtag_event event, void* priv), void* priv);
+extern int jtag_unregister_event_callback(int (*callback)(enum jtag_event event, void *priv));
 
 /*
  * The JTAG subsystem defines a number of error codes,
