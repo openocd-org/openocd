@@ -299,21 +299,14 @@ jtag_tap_t *jtag_tap_by_string(const char *s)
 	return jtag_tap_by_abs_position(n);
 }
 
-jtag_tap_t * jtag_tap_by_jim_obj( Jim_Interp *interp, Jim_Obj *o )
+jtag_tap_t *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 {
-	jtag_tap_t *t;
-	const char *cp;
-
-	cp = Jim_GetString( o, NULL );
-	if(cp == NULL){
+	const char *cp = Jim_GetString(o, NULL);
+	jtag_tap_t *t = cp ? jtag_tap_by_string(cp) : NULL;
+	if (NULL == cp)
 		cp = "(unknown)";
-		t = NULL;
-	}  else {
-		t = jtag_tap_by_string( cp );
-	}
-	if( t == NULL ){
-		Jim_SetResult_sprintf(interp,"Tap: %s is unknown", cp );
-	}
+	if (NULL == t)
+		Jim_SetResult_sprintf(interp, "Tap '%s' could not be found", cp);
 	return t;
 }
 
