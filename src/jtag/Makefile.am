@@ -32,12 +32,8 @@ endif
 if DUMMY
 DRIVERFILES += dummy.c
 endif
-if FT2232_LIBFTDI
+if FT2232_DRIVER
 DRIVERFILES += ft2232.c
-else
-if FT2232_FTD2XX
-DRIVERFILES += ft2232.c
-endif
 endif
 if AMTJTAGACCEL
 DRIVERFILES += amt_jtagaccel.c
@@ -54,12 +50,8 @@ endif
 if BITQ
 DRIVERFILES += bitq.c
 endif
-if PRESTO_LIBFTDI
+if PRESTO_DRIVER
 DRIVERFILES += presto.c
-else
-if PRESTO_FTD2XX
-DRIVERFILES += presto.c
-endif
 endif
 if USBPROG
 DRIVERFILES += usbprog.c
