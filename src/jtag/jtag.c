@@ -71,7 +71,7 @@ static jtag_tap_t *__jtag_all_taps = NULL;
  * The number of TAPs in the __jtag_all_taps list, used to track the
  * assigned chain position to new TAPs
  */
-static int jtag_num_taps = 0;
+static unsigned jtag_num_taps = 0;
 
 enum reset_types jtag_reset_config = RESET_NONE;
 tap_state_t cmd_queue_end_state = TAP_RESET;
@@ -250,7 +250,7 @@ jtag_tap_t *jtag_all_taps(void)
 	return __jtag_all_taps;
 };
 
-int jtag_tap_count(void)
+unsigned jtag_tap_count(void)
 {
 	return jtag_num_taps;
 }
@@ -311,7 +311,7 @@ jtag_tap_t *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 }
 
 /* returns a pointer to the n-th device in the scan chain */
-jtag_tap_t *jtag_tap_by_abs_position(int n)
+jtag_tap_t *jtag_tap_by_abs_position(unsigned n)
 {
 	jtag_tap_t *t = jtag_all_taps();
 
