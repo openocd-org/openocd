@@ -787,7 +787,7 @@ static int presto_jtag_init(void)
 	LOG_INFO("PRESTO open, serial number '%s'", presto->serial);
 
 	/* use JTAG speed setting from configuration file */
-	presto_jtag_speed(jtag_speed);
+	presto_jtag_speed(jtag_get_speed());
 
 	bitq_interface = &presto_bitq;
 	return ERROR_OK;

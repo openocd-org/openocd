@@ -255,7 +255,17 @@ typedef struct jtag_event_callback_s
 	struct jtag_event_callback_s* next;
 } jtag_event_callback_t;
 
-extern int jtag_speed;
+/// @returns The current JTAG speed setting.
+int jtag_get_speed(void);
+/**
+ * Set the JTAG speed. This routine will call the underlying
+ * interface @c speed callback, if the interface has been initialized.
+ * @param speed The new speed setting.
+ * @returns ERROR_OK during configuration or on success, or an error
+ *   code returned from the interface @c speed callback.
+ */
+int jtag_set_speed(int speed);
+
 extern int jtag_speed_post_reset;
 
 enum reset_types {

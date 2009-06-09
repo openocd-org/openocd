@@ -1153,6 +1153,18 @@ unsigned jtag_get_speed_khz(void)
 {
 	return speed_khz;
 }
+int jtag_get_speed(void)
+{
+	return jtag_speed;
+}
+
+int jtag_set_speed(int speed)
+{
+	jtag_speed = speed;
+	/* this command can be called during CONFIG,
+	 * in which case jtag isn't initialized */
+	return jtag ? jtag->speed(speed) : ERROR_OK;
+}
 
 void jtag_set_verify(bool enable)
 {

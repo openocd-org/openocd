@@ -2099,7 +2099,7 @@ static int ft2232_init(void)
 	if (layout->init() != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
-	ft2232_speed(jtag_speed);
+	ft2232_speed(jtag_get_speed());
 
 	buf[0] = 0x85; /* Disconnect TDI/DO to TDO/DI for Loopback */
 	if (((retval = ft2232_write(buf, 1, &bytes_written)) != ERROR_OK) || (bytes_written != 1))

@@ -187,6 +187,7 @@ static void amt_jtagaccel_state_move(void)
 
 	aw_scan_tms_5 = 0x40 | (tms_scan[0] & 0x1f);
 	AMT_AW(aw_scan_tms_5);
+	int jtag_speed = jtag_get_speed();
 	if (jtag_speed > 3 || rtck_enabled)
 		amt_wait_scan_busy();
 
@@ -244,6 +245,7 @@ static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, u8 *buffer, in
 	u8 dr_tdo;
 	u8 aw_tms_scan;
 	u8 tms_scan[2];
+	int jtag_speed = jtag_get_speed();
 
 	if (ir_scan)
 		amt_jtagaccel_end_state(TAP_IRSHIFT);
@@ -496,7 +498,7 @@ static int amt_jtagaccel_init(void)
 	aw_control_fsm |= 0x04;
 	AMT_AW(aw_control_fsm);
 
-	amt_jtagaccel_speed(jtag_speed);
+	amt_jtagaccel_speed(jtag_get_speed());
 
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 		aw_control_rst &= ~0x8;

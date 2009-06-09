@@ -189,7 +189,7 @@ static __inline__ void parport_write_data(void)
 
 static void parport_write(int tck, int tms, int tdi)
 {
-	int i = jtag_speed + 1;
+	int i = jtag_get_speed() + 1;
 
 	if (tck)
 		dataport_value |= cable->TCK_MASK;

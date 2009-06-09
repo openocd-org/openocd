@@ -960,14 +960,11 @@ static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cm
 		LOG_DEBUG("handle jtag speed");
 
 		int cur_speed = 0;
-		cur_speed = jtag_speed = strtoul(args[0], NULL, 0);
+		cur_speed = strtoul(args[0], NULL, 0);
+		retval = jtag_set_speed(cur_speed);
 
-		/* this command can be called during CONFIG,
-		 * in which case jtag isn't initialized */
-		if (jtag)
-			retval = jtag->speed(cur_speed);
 	}
-	command_print(cmd_ctx, "jtag_speed: %d", jtag_speed);
+	command_print(cmd_ctx, "jtag_speed: %d", jtag_get_speed());
 
 	return retval;
 }
@@ -994,9 +991,9 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 				jtag_set_speed_khz(0);
 				return retval;
 			}
-			cur_speed = jtag_speed = speed_div1;
+			cur_speed = speed_div1;
 
-			retval = jtag->speed(cur_speed);
+			retval = jtag_set_speed(cur_speed);
 		}
 		else
 			hasKHz = true;
@@ -1005,7 +1002,7 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 	cur_speed = jtag_get_speed_khz();
 	if (jtag != NULL)
 	{
-		retval = jtag->speed_div(jtag_speed, &cur_speed);
+		retval = jtag->speed_div(jtag_get_speed(), &cur_speed);
 		if (ERROR_OK != retval)
 			return retval;
 	}

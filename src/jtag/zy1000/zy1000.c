@@ -356,7 +356,7 @@ int zy1000_init(void)
 
 	 /* deassert resets. Important to avoid infinite loop waiting for SRST to deassert */
 	zy1000_reset(0, 0);
-	zy1000_speed(jtag_speed);
+	zy1000_speed(jtag_get_speed());
 
 	return ERROR_OK;
 }
