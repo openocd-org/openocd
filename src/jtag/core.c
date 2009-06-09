@@ -93,7 +93,7 @@ jtag_event_callback_t *jtag_event_callbacks;
 /* speed in kHz*/
 static int speed_khz = 0;
 /* flag if the kHz speed was defined */
-static bool hasKHz = false;
+bool hasKHz = false;
 
 struct jtag_interface_s *jtag = NULL;
 

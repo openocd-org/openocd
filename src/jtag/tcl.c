@@ -39,8 +39,7 @@
 #include <strings.h>
 #endif
 
-/* flag if the kHz speed was defined */
-static bool hasKHz = false;
+extern bool hasKHz;
 
 /* jtag interfaces (parport, FTDI-USB, TI-USB, ...)
  */
