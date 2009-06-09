@@ -311,18 +311,13 @@ jtag_tap_t *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 }
 
 /* returns a pointer to the n-th device in the scan chain */
-jtag_tap_t * jtag_tap_by_abs_position( int n )
+jtag_tap_t *jtag_tap_by_abs_position(int n)
 {
-	int orig_n;
-	jtag_tap_t *t;
+	jtag_tap_t *t = jtag_all_taps();
 
-	orig_n = n;
-	t = jtag_all_taps();
-
-	while( t && (n > 0)) {
-		n--;
+	while (t && n-- > 0)
 		t = t->next_tap;
-	}
+
 	return t;
 }
 
