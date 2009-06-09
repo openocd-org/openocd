@@ -277,7 +277,8 @@ enum reset_types {
 	RESET_SRST_PUSH_PULL  = 0x20,
 };
 
-extern enum reset_types jtag_reset_config;
+enum reset_types jtag_get_reset_config(void);
+void jtag_set_reset_config(enum reset_types type);
 
 /**
  * Initialize interface upon startup.  Return a successful no-op upon

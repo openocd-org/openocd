@@ -1262,6 +1262,15 @@ int jtag_add_statemove(tap_state_t goal_state)
 	return ERROR_OK;
 }
 
+enum reset_types jtag_get_reset_config(void)
+{
+	return jtag_reset_config;
+}
+void jtag_set_reset_config(enum reset_types type)
+{
+	jtag_reset_config = type;
+}
+
 int jtag_get_trst(void)
 {
 	return jtag_trst;

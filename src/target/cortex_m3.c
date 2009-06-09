@@ -544,7 +544,7 @@ int cortex_m3_halt(target_t *target)
 
 	if (target->state == TARGET_RESET)
 	{
-		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) && jtag_get_srst())
+		if ((jtag_get_reset_config() & RESET_SRST_PULLS_TRST) && jtag_get_srst())
 		{
 			LOG_ERROR("can't request a halt while in reset if nSRST pulls nTRST");
 			return ERROR_TARGET_FAILURE;
@@ -753,6 +753,7 @@ int cortex_m3_assert_reset(target_t *target)
 	LOG_DEBUG("target->state: %s",
 		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (!(jtag_reset_config & RESET_HAS_SRST))
 	{
 		LOG_ERROR("Can't assert SRST");

@@ -905,6 +905,7 @@ int arm7_9_poll(target_t *target)
 			{
 				if (target->reset_halt)
 				{
+					enum reset_types jtag_reset_config = jtag_get_reset_config();
 					if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
 					{
 						check_pc = 1;
@@ -975,6 +976,7 @@ int arm7_9_assert_reset(target_t *target)
 	LOG_DEBUG("target->state: %s",
 		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (!(jtag_reset_config & RESET_HAS_SRST))
 	{
 		LOG_ERROR("Can't assert SRST");
@@ -1047,6 +1049,7 @@ int arm7_9_deassert_reset(target_t *target)
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (target->reset_halt&&(jtag_reset_config & RESET_SRST_PULLS_TRST)!=0)
 	{
 		LOG_WARNING("srst pulls trst - can not reset into halted mode. Issuing halt after reset.");

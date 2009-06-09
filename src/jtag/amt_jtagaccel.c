@@ -500,6 +500,7 @@ static int amt_jtagaccel_init(void)
 
 	amt_jtagaccel_speed(jtag_get_speed());
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 		aw_control_rst &= ~0x8;
 	else

@@ -123,7 +123,7 @@ static void dummy_reset(int trst, int srst)
 {
 	dummy_clock = 0;
 
-	if (trst || (srst && (jtag_reset_config & RESET_SRST_PULLS_TRST)))
+	if (trst || (srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
 		dummy_state = TAP_RESET;
 
 	LOG_DEBUG("reset to: %s", tap_state_name(dummy_state) );

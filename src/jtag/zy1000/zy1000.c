@@ -164,7 +164,7 @@ void zy1000_reset(int trst, int srst)
 		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x00000002);
 	}
 
-	if (trst||(srst&&(jtag_reset_config & RESET_SRST_PULLS_TRST)))
+	if (trst||(srst&&(jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
 	{
 		waitIdle();
 		/* we're now in the RESET state until trst is deasserted */

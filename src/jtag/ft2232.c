@@ -1193,6 +1193,7 @@ static int ft2232_predict_scan_in(int scan_size, enum scan_type type)
 
 static void usbjtag_reset(int trst, int srst)
 {
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (trst == 1)
 	{
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
@@ -1232,6 +1233,7 @@ static void usbjtag_reset(int trst, int srst)
 
 static void jtagkey_reset(int trst, int srst)
 {
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (trst == 1)
 	{
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
@@ -1273,6 +1275,7 @@ static void jtagkey_reset(int trst, int srst)
 
 static void olimex_jtag_reset(int trst, int srst)
 {
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (trst == 1)
 	{
 		if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
@@ -2155,6 +2158,7 @@ static int usbjtag_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 	{
 		low_direction &= ~nTRSTnOE; /* nTRST input */
@@ -2229,6 +2233,7 @@ static int axm0432_jtag_init(void)
 	high_output    = 0x0;
 	high_direction = 0x0c;
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 	{
 		LOG_ERROR("can't set nTRSTOE to push-pull on the Dicarlo jtag");
@@ -2307,6 +2312,7 @@ static int jtagkey_init(void)
 	high_output    = 0x0;
 	high_direction = 0x0f;
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 	{
 		high_output |= nTRSTnOE;
@@ -2373,6 +2379,7 @@ static int olimex_jtag_init(void)
 	high_output    = 0x0;
 	high_direction = 0x0f;
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (jtag_reset_config & RESET_TRST_OPEN_DRAIN)
 	{
 		high_output |= nTRSTnOE;
@@ -2944,6 +2951,7 @@ static int icebear_jtag_init(void) {
 	nTRST		= 0x10;
 	nSRST		= 0x20;
 
+	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if ((jtag_reset_config & RESET_TRST_OPEN_DRAIN) != 0) {
 		low_direction	&= ~nTRST;	/* nTRST high impedance */
 	}
@@ -2991,6 +2999,7 @@ static void icebear_jtag_reset(int trst, int srst) {
 		low_output	&= ~nTRST;
 	}
 	else if (trst == 0) {
+		enum reset_types jtag_reset_config = jtag_get_reset_config();
 		if ((jtag_reset_config & RESET_TRST_OPEN_DRAIN) != 0)
 			low_direction	&= ~nTRST;
 		else

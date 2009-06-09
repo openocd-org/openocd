@@ -921,8 +921,10 @@ next:
 	}
 
 	/* clear previous values of those bits, save new values */
-	jtag_reset_config &= ~mask;
-	jtag_reset_config |= new_cfg;
+	enum reset_types old_cfg = jtag_get_reset_config();
+	old_cfg &= ~mask;
+	new_cfg |= old_cfg;
+	jtag_set_reset_config(new_cfg);
 
 	return ERROR_OK;
 }
