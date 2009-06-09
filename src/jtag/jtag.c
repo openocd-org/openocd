@@ -2523,33 +2523,6 @@ static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
-/**
- * Moves from the current state to the goal \a state. This needs
- * to be handled according to the xsvf spec, see the XSTATE command
- * description.
- *
- * From the XSVF spec, pertaining to XSTATE:
- *
- * For special states known as stable states (Test-Logic-Reset,
- * Run-Test/Idle, Pause-DR, Pause- IR), an XSVF interpreter follows
- * predefined TAP state paths when the starting state is a stable state
- * and when the XSTATE specifies a new stable state.  See the STATE
- * command in the [Ref 5] for the TAP state paths between stable
- * states.
- *
- * For non-stable states, XSTATE should specify a state that is only one
- * TAP state transition distance from the current TAP state to avoid
- * undefined TAP state paths. A sequence of multiple XSTATE commands can
- * be issued to transition the TAP through a specific state path.
- *
- * @note Unless @a tms_bits holds a path that agrees with [Ref 5] in *
- * above spec, then this code is not fully conformant to the xsvf spec.
- * This puts a burden on tap_get_tms_path() function from the xsvf spec.
- * If in doubt, you should confirm that that burden is being met.
- *
- * Otherwise, state must be immediately reachable in one clock cycle,
- * and does not need to be a stable state.
- */
 int jtag_add_statemove(tap_state_t goal_state)
 {
 	tap_state_t cur_state = cmd_queue_cur_state;
