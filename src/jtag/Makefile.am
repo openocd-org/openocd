@@ -124,7 +124,8 @@ ARMJTAGEWFILES =
 endif
 
 libjtag_la_SOURCES = \
-	jtag.c \
+	core.c \
+	tcl.c \
 	interface.c \
 	$(DRIVERFILES) \
 	$(BITBANGFILES) \
