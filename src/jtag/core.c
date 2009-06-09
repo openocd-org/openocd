@@ -100,13 +100,13 @@ static jtag_event_callback_t *jtag_event_callbacks;
 /* speed in kHz*/
 static int speed_khz = 0;
 /* flag if the kHz speed was defined */
-bool hasKHz = false;
+static bool hasKHz = false;
+static int jtag_speed = 0;
 
 struct jtag_interface_s *jtag = NULL;
 
 /* configuration */
 jtag_interface_t *jtag_interface = NULL;
-static int jtag_speed = 0;
 
 void jtag_set_error(int error)
 {
@@ -1188,6 +1188,7 @@ int jtag_set_speed(int speed)
 	jtag_speed = speed;
 	/* this command can be called during CONFIG,
 	 * in which case jtag isn't initialized */
+	hasKHz = !jtag;
 	return jtag ? jtag->speed(speed) : ERROR_OK;
 }
 

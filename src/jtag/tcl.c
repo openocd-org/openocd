@@ -39,8 +39,6 @@
 #include <strings.h>
 #endif
 
-extern bool hasKHz;
-
 extern const Jim_Nvp nvp_jtag_tap_event[];
 
 /* jtag interfaces (parport, FTDI-USB, TI-USB, ...)
@@ -994,11 +992,8 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 				return retval;
 			}
 			cur_speed = speed_div1;
-
-			retval = jtag_set_speed(cur_speed);
 		}
-		else
-			hasKHz = true;
+		retval = jtag_set_speed(cur_speed);
 	}
 
 	cur_speed = jtag_get_speed_khz();
