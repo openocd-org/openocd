@@ -279,31 +279,24 @@ void jtag_tap_add(struct jtag_tap_s *t)
 	*tap = t;
 }
 
-jtag_tap_t *jtag_tap_by_string( const char *s )
+jtag_tap_t *jtag_tap_by_string(const char *s)
 {
-	jtag_tap_t *t;
-	char *cp;
+	/* try by name first */
+	jtag_tap_t *t = jtag_all_taps();
+	while (t)
+	{
+		if (0 == strcmp(t->dotted_name, s))
+			return t;
+		t = t->next_tap;
+	}
 
-	t = jtag_all_taps();
-	/* try name first */
-	while(t){
-		if( 0 == strcmp( t->dotted_name, s ) ){
-			break;
-		} else {
-			t = t->next_tap;
-		}
-	}
-	/* backup plan is by number */
-	if( t == NULL ){
-		/* ok - is "s" a number? */
-		int n;
-		n = strtol( s, &cp, 0 );
-		if( (s != cp) && (*cp == 0) ){
-			/* Then it is... */
-			t = jtag_tap_by_abs_position(n);
-		}
-	}
-	return t;
+	/* no tap found by name, so try to parse the name as a number */
+	char *cp;
+	unsigned n = strtoul(s, &cp, 0);
+	if ((s == cp) || (*cp != 0))
+		return NULL;
+
+	return jtag_tap_by_abs_position(n);
 }
 
 jtag_tap_t * jtag_tap_by_jim_obj( Jim_Interp *interp, Jim_Obj *o )
