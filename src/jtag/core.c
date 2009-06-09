@@ -201,7 +201,7 @@ const char *jtag_tap_name(const jtag_tap_t *tap)
 }
 
 
-int jtag_register_event_callback(int (*callback)(enum jtag_event event, void *priv), void *priv)
+int jtag_register_event_callback(jtag_event_handler_t callback, void *priv)
 {
 	jtag_event_callback_t **callbacks_p = &jtag_event_callbacks;
 
@@ -225,7 +225,7 @@ int jtag_register_event_callback(int (*callback)(enum jtag_event event, void *pr
 	return ERROR_OK;
 }
 
-int jtag_unregister_event_callback(int (*callback)(enum jtag_event event, void *priv))
+int jtag_unregister_event_callback(jtag_event_handler_t callback)
 {
 	jtag_event_callback_t **callbacks_p = &jtag_event_callbacks;
 
