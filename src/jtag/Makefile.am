@@ -5,145 +5,87 @@ AM_CPPFLAGS = \
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libjtag.la
 
-if BITBANG
-BITBANGFILES = bitbang.c
-else
-BITBANGFILES =
-endif
-
-if PARPORT
-PARPORTFILES = parport.c
-else
-PARPORTFILES =
-endif
-
-if DUMMY
-DUMMYFILES = dummy.c
-else
-DUMMYFILES =
-endif
-
-if FT2232_LIBFTDI
-FT2232FILES = ft2232.c
-else
-if FT2232_FTD2XX
-FT2232FILES = ft2232.c
-else
-FT2232FILES =
-endif
-endif
-
-if AMTJTAGACCEL
-AMTJTAGACCELFILES = amt_jtagaccel.c
-else
-AMTJTAGACCELFILES =
-endif
-
-if EP93XX
-EP93XXFILES = ep93xx.c
-else
-EP93XXFILES =
-endif
-
-if ECOSBOARD
-ECOSBOARDFILES = zy1000/zy1000.c
-AM_CPPFLAGS += -I$(srcdir)/zy1000
-else
-ECOSBOARDFILES =
-endif
-
-if MINIDRIVER_DUMMY
-MINIDUMMYFILES = minidummy/minidummy.c commands.c
-AM_CPPFLAGS += -I$(srcdir)/minidummy
-else
-MINIDUMMYFILES =
-endif
+DRIVERFILES =
 
 if MINIDRIVER
-DRIVERFILES = $(MINIDUMMYFILES)
-else
-DRIVERFILES = driver.c commands.c
+
+if ECOSBOARD
+DRIVERFILES += zy1000/zy1000.c
+AM_CPPFLAGS += -I$(srcdir)/zy1000
+endif
+if MINIDRIVER_DUMMY
+DRIVERFILES += minidummy/minidummy.c commands.c
+AM_CPPFLAGS += -I$(srcdir)/minidummy
 endif
 
+else
+
+# Standard Driver: common files
+DRIVERFILES += driver.c commands.c
+
+if BITBANG
+DRIVERFILES += bitbang.c
+endif
+if PARPORT
+DRIVERFILES += parport.c
+endif
+if DUMMY
+DRIVERFILES += dummy.c
+endif
+if FT2232_LIBFTDI
+DRIVERFILES += ft2232.c
+else
+if FT2232_FTD2XX
+DRIVERFILES += ft2232.c
+endif
+endif
+if AMTJTAGACCEL
+DRIVERFILES += amt_jtagaccel.c
+endif
+if EP93XX
+DRIVERFILES += ep93xx.c
+endif
 if AT91RM9200
-AT91RM9200FILES = at91rm9200.c
-else
-AT91RM9200FILES =
+DRIVERFILES += at91rm9200.c
 endif
-
 if GW16012
-GW16012FILES = gw16012.c
-else
-GW16012FILES =
+DRIVERFILES += gw16012.c
 endif
-
 if BITQ
-BITQFILES = bitq.c
-else
-BITQFILES =
+DRIVERFILES += bitq.c
 endif
-
 if PRESTO_LIBFTDI
-PRESTOFILES = presto.c
+DRIVERFILES += presto.c
 else
 if PRESTO_FTD2XX
-PRESTOFILES = presto.c
-else
-PRESTOFILES =
+DRIVERFILES += presto.c
 endif
 endif
-
 if USBPROG
-USBPROGFILES = usbprog.c
-else
-USBPROGFILES =
+DRIVERFILES += usbprog.c
 endif
-
 if JLINK
-JLINKFILES = jlink.c
-else
-JLINKFILES =
+DRIVERFILES += jlink.c
 endif
-
 if RLINK
-RLINKFILES = rlink/rlink.c rlink/rlink_speed_table.c
-else
-RLINKFILES =
+DRIVERFILES += rlink/rlink.c rlink/rlink_speed_table.c
 endif
-
 if VSLLINK
-VSLLINKFILES = vsllink.c
-else
-VSLLINKFILES =
+DRIVERFILES += vsllink.c
+endif
+if ARMJTAGEW
+DRIVERFILES += arm-jtag-ew.c
 endif
 
-if ARMJTAGEW
-ARMJTAGEWFILES = arm-jtag-ew.c
-else
-ARMJTAGEWFILES =
 endif
+# endif // MINIDRIVER
+
 
 libjtag_la_SOURCES = \
 	core.c \
 	tcl.c \
 	interface.c \
-	$(DRIVERFILES) \
-	$(BITBANGFILES) \
-	$(PARPORTFILES) \
-	$(DUMMYFILES) \
-	$(FT2232FILES) \
-	$(AMTJTAGACCELFILES) \
-	$(EP93XXFILES) \
-	$(AT91RM9200FILES) \
-	$(GW16012FILES) \
-	$(BITQFILES) \
-	$(PRESTOFILES) \
-	$(USBPROGFILES) \
-	$(ECOSBOARDFILES) \
-	$(JLINKFILES) \
-	$(RLINKFILES) \
-	$(VSLLINKFILES) \
-	$(ARMJTAGEWFILES)
+	$(DRIVERFILES)
 
 noinst_HEADERS = \
 	interface.h \
