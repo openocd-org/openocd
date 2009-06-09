@@ -87,6 +87,13 @@ static int jtag_verify = 1;
 static int jtag_nsrst_delay = 0; /* default to no nSRST delay */
 static int jtag_ntrst_delay = 0; /* default to no nTRST delay */
 
+typedef struct jtag_event_callback_s
+{
+	jtag_event_handler_t          callback;
+	void*                         priv;
+	struct jtag_event_callback_s* next;
+} jtag_event_callback_t;
+
 /* callbacks to inform high-level handlers about JTAG state changes */
 static jtag_event_callback_t *jtag_event_callbacks;
 

@@ -261,12 +261,11 @@ int jtag_get_srst(void);
  */
 typedef int (*jtag_event_handler_t)(enum jtag_event event, void* priv);
 
-typedef struct jtag_event_callback_s
-{
-	jtag_event_handler_t          callback;
-	void*                         priv;
-	struct jtag_event_callback_s* next;
-} jtag_event_callback_t;
+extern int jtag_register_event_callback(jtag_event_handler_t f, void *x);
+extern int jtag_unregister_event_callback(jtag_event_handler_t f);
+
+extern int jtag_call_event_callbacks(enum jtag_event event);
+
 
 /// @returns The current JTAG speed setting.
 int jtag_get_speed(void);
@@ -621,9 +620,6 @@ extern int jtag_srst_asserted(int* srst_asserted);
 extern void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask);
 
 extern void jtag_sleep(u32 us);
-extern int jtag_call_event_callbacks(enum jtag_event event);
-extern int jtag_register_event_callback(jtag_event_handler_t f, void *x);
-extern int jtag_unregister_event_callback(jtag_event_handler_t f);
 
 /*
  * The JTAG subsystem defines a number of error codes,
