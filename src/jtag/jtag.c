@@ -269,7 +269,7 @@ unsigned jtag_tap_count_enabled(void)
 }
 
 /// Append a new TAP to the chain of all taps.
-static void jtag_tap_add(struct jtag_tap_s *t)
+void jtag_tap_add(struct jtag_tap_s *t)
 {
 	t->abs_chain_position = jtag_num_taps++;
 
