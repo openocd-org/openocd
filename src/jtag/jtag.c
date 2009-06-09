@@ -257,15 +257,12 @@ int jtag_tap_count(void)
 
 unsigned jtag_tap_count_enabled(void)
 {
-	jtag_tap_t *t;
-	unsigned n;
-
-	n = 0;
-	t = jtag_all_taps();
-	while(t){
-		if( t->enabled ){
+	jtag_tap_t *t = jtag_all_taps();
+	unsigned n = 0;
+	while(t)
+	{
+		if (t->enabled)
 			n++;
-		}
 		t = t->next_tap;
 	}
 	return n;
