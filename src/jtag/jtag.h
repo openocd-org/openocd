@@ -231,8 +231,6 @@ enum jtag_event {
 	JTAG_TRST_ASSERTED
 };
 
-extern char* jtag_event_strings[];
-
 enum jtag_tap_event {
 	JTAG_TAP_EVENT_ENABLE,
 	JTAG_TAP_EVENT_DISABLE
