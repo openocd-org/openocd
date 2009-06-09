@@ -243,8 +243,10 @@ struct jtag_tap_event_action_s
 	jtag_tap_event_action_t* next;
 };
 
-extern int jtag_trst;
-extern int jtag_srst;
+/// @returns The current state of TRST.
+int jtag_get_trst(void);
+/// @returns The current state of SRST.
+int jtag_get_srst(void);
 
 typedef struct jtag_event_callback_s
 {

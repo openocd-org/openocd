@@ -544,7 +544,7 @@ int cortex_m3_halt(target_t *target)
 
 	if (target->state == TARGET_RESET)
 	{
-		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) && jtag_srst)
+		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) && jtag_get_srst())
 		{
 			LOG_ERROR("can't request a halt while in reset if nSRST pulls nTRST");
 			return ERROR_TARGET_FAILURE;

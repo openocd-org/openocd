@@ -63,8 +63,8 @@ const Jim_Nvp nvp_jtag_tap_event[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-int jtag_trst = 0;
-int jtag_srst = 0;
+static int jtag_trst = 0;
+static int jtag_srst = 0;
 
 /**
  * List all TAPs that have been created.
@@ -1248,6 +1248,15 @@ int jtag_add_statemove(tap_state_t goal_state)
 		return ERROR_FAIL;
 
 	return ERROR_OK;
+}
+
+int jtag_get_trst(void)
+{
+	return jtag_trst;
+}
+int jtag_get_srst(void)
+{
+	return jtag_srst;
 }
 
 void jtag_set_nsrst_delay(unsigned delay)
