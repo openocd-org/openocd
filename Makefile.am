@@ -15,6 +15,9 @@ EXTRA_DIST = \
 	Doxyfile.in \
 	tools/logger.pl
 
+libtool: $(LIBTOOL_DEPS)
+	$(SHELL) ./config.status --recheck
+
 docs: pdf html doxygen
 
 Doxyfile: $(srcdir)/Doxyfile.in

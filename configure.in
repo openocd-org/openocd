@@ -24,6 +24,7 @@ m4_defun([_LT_AC_LANG_F77_CONFIG], [:])
 m4_defun([_LT_AC_LANG_GCJ_CONFIG], [:])
 AC_DISABLE_SHARED
 AC_PROG_LIBTOOL
+AC_SUBST(LIBTOOL_DEPS)
 
 
 dnl configure checks required for Jim files (these are obsolete w/ C99)
