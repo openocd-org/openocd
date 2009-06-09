@@ -613,7 +613,8 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 	if (!tap_is_state_stable(path[num_states - 1]))
 	{
 		LOG_ERROR("BUG: TAP path doesn't finish in a stable state");
-		exit(-1);
+		jtag_set_error(ERROR_JTAG_NOT_STABLE_STATE);
+		return;
 	}
 
 	for (int i = 0; i < num_states; i++)
@@ -621,7 +622,8 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 		if (path[i] == TAP_RESET)
 		{
 			LOG_ERROR("BUG: TAP_RESET is not a valid state for pathmove sequences");
-			exit(-1);
+			jtag_set_error(ERROR_JTAG_STATE_INVALID);
+			return;
 		}
 
 		if ( tap_state_transition(cur_state, true)  != path[i]
@@ -629,7 +631,8 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 		{
 			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition",
 					tap_state_name(cur_state), tap_state_name(path[i]));
-			exit(-1);
+			jtag_set_error(ERROR_JTAG_TRANSITION_INVALID);
+			return;
 		}
 		cur_state = path[i];
 	}

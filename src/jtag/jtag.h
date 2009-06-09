@@ -447,6 +447,12 @@ extern void jtag_add_tlr(void);
  * can only implement a few transitions and therefore
  * a partial implementation of pathmove would have little practical
  * application.
+ *
+ * If an error occurs, jtag_error will contain one of these error codes:
+ *   - ERROR_JTAG_NOT_STABLE_STATE -- The final state was not stable.
+ *   - ERROR_JTAG_STATE_INVALID -- The path passed through TAP_RESET.
+ *   - ERROR_JTAG_TRANSITION_INVALID -- The path includes invalid
+ *     state transitions.
  */
 extern void jtag_add_pathmove(int num_states, const tap_state_t* path);
 
@@ -606,6 +612,8 @@ void jtag_tap_handle_event(jtag_tap_t* tap, enum jtag_tap_event e);
 #define ERROR_JTAG_QUEUE_FAILED      (-104)
 #define ERROR_JTAG_NOT_STABLE_STATE  (-105)
 #define ERROR_JTAG_DEVICE_ERROR      (-107)
+#define ERROR_JTAG_STATE_INVALID     (-108)
+#define ERROR_JTAG_TRANSITION_INVALID (-109)
 
 /**
  * jtag_add_dr_out() is a version of jtag_add_dr_scan() which
