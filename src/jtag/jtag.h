@@ -270,6 +270,14 @@ extern int jtag_call_event_callbacks(enum jtag_event event);
 /// @returns The current JTAG speed setting.
 int jtag_get_speed(void);
 /**
+ * Given a @a speed setting, use the interface @c speed_div callback to
+ * adjust the setting.  
+ * @param speed The speed setting to convert back to readable KHz.
+ * @returns ERROR_OK if the interface has not been initialized or on success;
+ * 	otherwise, the error code produced by the @c speed_div callback.
+ */
+int jtag_get_speed_readable(int *speed);
+/**
  * Set the JTAG speed. This routine will call the underlying
  * interface @c speed callback, if the interface has been initialized.
  * @param speed The new speed setting.
@@ -708,6 +716,7 @@ unsigned jtag_get_nsrst_delay(void);
 void jtag_set_ntrst_delay(unsigned delay);
 unsigned jtag_get_ntrst_delay(void);
 
+int jtag_config_khz(unsigned khz);
 void jtag_set_speed_khz(unsigned speed);
 unsigned jtag_get_speed_khz(void);
 

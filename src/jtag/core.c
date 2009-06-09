@@ -103,7 +103,7 @@ static int speed_khz = 0;
 static bool hasKHz = false;
 static int jtag_speed = 0;
 
-struct jtag_interface_s *jtag = NULL;
+static struct jtag_interface_s *jtag = NULL;
 
 /* configuration */
 jtag_interface_t *jtag_interface = NULL;
@@ -1178,6 +1178,27 @@ unsigned jtag_get_speed_khz(void)
 {
 	return speed_khz;
 }
+int jtag_config_khz(unsigned khz)
+{
+	LOG_DEBUG("handle jtag khz");
+	jtag_set_speed_khz(khz);
+
+	int cur_speed = 0;
+	if (jtag != NULL)
+	{
+		LOG_DEBUG("have interface set up");
+		int speed_div1;
+		int retval = jtag->khz(jtag_get_speed_khz(), &speed_div1);
+		if (ERROR_OK != retval)
+		{
+			jtag_set_speed_khz(0);
+			return retval;
+		}
+		cur_speed = speed_div1;
+	}
+	return jtag_set_speed(cur_speed);
+}
+
 int jtag_get_speed(void)
 {
 	return jtag_speed;
@@ -1191,6 +1212,12 @@ int jtag_set_speed(int speed)
 	hasKHz = !jtag;
 	return jtag ? jtag->speed(speed) : ERROR_OK;
 }
+
+int jtag_get_speed_readable(int *speed)
+{
+	return jtag ? jtag->speed_div(jtag_get_speed(), speed) : ERROR_OK;
+}
+
 
 void jtag_set_verify(bool enable)
 {
