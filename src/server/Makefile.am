@@ -42,4 +42,4 @@ EXTRA_DIST = \
 	httpd/Stylizer.java \
 	httpd/Stylizer.class
 
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

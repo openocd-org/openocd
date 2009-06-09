@@ -158,4 +158,4 @@ noinst_HEADERS = \
 	rlink/st7.h \
 	minidummy/jtag_minidriver.h
 
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

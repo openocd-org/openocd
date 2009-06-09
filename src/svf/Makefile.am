@@ -8,4 +8,4 @@ noinst_LTLIBRARIES = libsvf.la
 noinst_HEADERS = svf.h
 libsvf_la_SOURCES = svf.c
 
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

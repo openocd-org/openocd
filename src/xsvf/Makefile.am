@@ -8,4 +8,4 @@ noinst_LTLIBRARIES = libxsvf.la
 noinst_HEADERS = xsvf.h
 libxsvf_la_SOURCES = xsvf.c
 
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

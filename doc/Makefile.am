@@ -11,4 +11,7 @@ dist-hook:
 		cp -p $(srcdir)/manual/$$i/* $(distdir)/manual/$$i/; \
 	done
 
-MAINTAINERCLEANFILES = Makefile.in mdate-sh texinfo.tex
+MAINTAINERCLEANFILES = \
+	$(srcdir)/Makefile.in \
+	$(srcdir)/mdate-sh \
+	$(srcdir)/texinfo.tex

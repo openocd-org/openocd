@@ -60,4 +60,4 @@ startup_tcl.c: startup.tcl bin2char$(EXEEXT_FOR_BUILD)
 # add startup_tcl.c to make clean list
 CLEANFILES = startup_tcl.c bin2char$(EXEEXT_FOR_BUILD)
 
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

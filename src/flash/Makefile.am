@@ -58,4 +58,4 @@ noinst_HEADERS = \
 	pic32mx.h \
 	avrf.h
 
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

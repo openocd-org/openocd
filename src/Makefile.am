@@ -89,4 +89,4 @@ if HTTPD
 libopenocd_la_LIBADD += -lmicrohttpd
 endif
 
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in

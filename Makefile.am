@@ -58,15 +58,15 @@ distclean-local:
 DISTCLEANFILES = doxygen.log
 
 MAINTAINERCLEANFILES = \
-	configure \
-	Makefile.in \
-	depcomp \
-	config.guess \
-	config.sub \
-	config.h.in \
-	config.h.in~ \
-	compile \
-	ltmain.sh \
-	missing \
-	aclocal.m4 \
-	install-sh
+	$(srcdir)/configure \
+	$(srcdir)/Makefile.in \
+	$(srcdir)/depcomp \
+	$(srcdir)/config.guess \
+	$(srcdir)/config.sub \
+	$(srcdir)/config.h.in \
+	$(srcdir)/config.h.in~ \
+	$(srcdir)/compile \
+	$(srcdir)/ltmain.sh \
+	$(srcdir)/missing \
+	$(srcdir)/aclocal.m4 \
+	$(srcdir)/install-sh
