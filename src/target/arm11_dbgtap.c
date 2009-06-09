@@ -124,7 +124,7 @@ void arm11_add_IR(arm11_common_t * arm11, u8 instr, tap_state_t state)
  */
 static void arm11_in_handler_SCAN_N(u8 *in_value)
 {
-	/** \todo TODO: clarify why this isnt properly masked in jtag.c jtag_read_buffer() */
+	/** \todo TODO: clarify why this isnt properly masked in core.c jtag_read_buffer() */
 	u8 v = *in_value & 0x1F;
 
 	if (v != 0x10)

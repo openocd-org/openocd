@@ -46,7 +46,7 @@ static int jtag_flush_queue_count;
 static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state),
 		int in_num_fields, scan_field_t *in_fields, tap_state_t state);
 
-/* note that this is not marked as static as it must be available from outside jtag.c for those
+/* note that this is not marked as static as it must be available from outside core.c for those
    that implement the jtag_xxx() minidriver layer
 */
 int jtag_error=ERROR_OK;
