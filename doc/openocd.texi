@@ -143,11 +143,11 @@ The user's guide you are now reading may not be the latest one
 available.  A version for more recent code may be available.
 Its HTML form is published irregularly at:
 
-@uref{http://openocd.berlios.de/doc/}
+@uref{http://openocd.berlios.de/doc/html/index.html}
 
 PDF form is likewise published at:
 
-@uref{http://openocd.berlios.de/doc/pdf/}
+@uref{http://openocd.berlios.de/doc/pdf/openocd.pdf}
 
 @section OpenOCD User's Forum
 
