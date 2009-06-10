@@ -1770,9 +1770,11 @@ static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	if (argc == 0)
 	{
-		if((retval = target_poll(target)) != ERROR_OK)
+		command_print(cmd_ctx, "background polling: %s",
+				target_continous_poll ?  "on" : "off");
+		if ((retval = target_poll(target)) != ERROR_OK)
 			return retval;
-		if((retval = target_arch_state(target)) != ERROR_OK)
+		if ((retval = target_arch_state(target)) != ERROR_OK)
 			return retval;
 
 	}

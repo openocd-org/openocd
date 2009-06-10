@@ -1302,6 +1302,67 @@ The default behaviour is @option{disable};
 use @option{enable} see these errors reported.
 @end deffn
 
+@anchor{Event Polling}
+@section Event Polling
+
+Hardware debuggers are parts of asynchronous systems,
+where significant events can happen at any time.
+The OpenOCD server needs to detect some of these events,
+so it can report them to through TCL command line
+or to GDB.
+
+Examples of such events include:
+
+@itemize
+@item One of the targets can stop running ... maybe it triggers
+a code breakpoint or data watchpoint, or halts itself.
+@item Messages may be sent over ``debug message'' channels ... many
+targets support such messages sent over JTAG,
+for receipt by the person debugging or tools.
+@item Loss of power ... some adapters can detect these events.
+@item Resets not issued through JTAG ... such reset sources
+can include button presses or other system hardware, sometimes
+including the target itself (perhaps through a watchdog).
+@item Debug instrumentation sometimes supports event triggering
+such as ``trace buffer full'' (so it can quickly be emptied)
+or other signals (to correlate with code behavior).
+@end itemize
+
+None of those events are signaled through standard JTAG signals.
+However, most conventions for JTAG connectors include voltage
+level and system reset (SRST) signal detection.
+Some connectors also include instrumentation signals, which
+can imply events when those signals are inputs.
+
+In general, OpenOCD needs to periodically check for those events,
+either by looking at the status of signals on the JTAG connector
+or by sending synchronous ``tell me your status'' JTAG requests
+to the various active targets.
+There is a command to manage and monitor that polling,
+which is normally done in the background.
+
+@deffn Command poll [@option{on}|@option{off}]
+Poll the current target for its current state.
+(Also, @pxref{target curstate}.)
+If that target is in debug mode, architecture
+specific information about the current state is printed.
+An optional parameter
+allows background polling to be enabled and disabled.
+
+You could use this from the TCL command shell, or
+from GDB using @command{monitor poll} command.
+@example
+> poll
+background polling: on
+target state: halted
+target halted in ARM state due to debug-request, \
+               current mode: Supervisor
+cpsr: 0x800000d3 pc: 0x11081bfc
+MMU: disabled, D-Cache: disabled, I-Cache: enabled
+>
+@end example
+@end deffn
+
 @node Interface - Dongle Configuration
 @chapter Interface - Dongle Configuration
 JTAG Adapters/Interfaces/Dongles are normally configured
@@ -2492,12 +2553,14 @@ for @{ set x 0 @} @{ $x < [target count] @} @{ incr x @} @{
 @end example
 @end deffn
 
+@anchor{target curstate}
 @deffn Command {$target_name curstate}
 Displays the current target state:
 @code{debug-running},
 @code{halted},
 @code{reset},
 @code{running}, or @code{unknown}.
+(Also, @pxref{Event Polling}.)
 @end deffn
 
 @deffn Command {$target_name eventlist}
@@ -3769,23 +3832,6 @@ Debug and trace infrastructure:
 @end example
 @end deffn
 
-@deffn Command poll [@option{on}|@option{off}]
-Poll the current target for its current state.
-If that target is in debug mode, architecture
-specific information about the current state is printed. An optional parameter
-allows continuous polling to be enabled and disabled.
-
-@example
-> poll
-target state: halted
-target halted in ARM state due to debug-request, \
-               current mode: Supervisor
-cpsr: 0x800000d3 pc: 0x11081bfc
-MMU: disabled, D-Cache: disabled, I-Cache: enabled
->
-@end example
-@end deffn
-
 @deffn Command halt [ms]
 @deffnx Command wait_halt [ms]
 The @command{halt} command first sends a halt request to the target,
@@ -3843,7 +3889,7 @@ state.
 These commands are available when
 OpenOCD is built with @option{--enable-ioutil}.
 They are mainly useful on embedded targets;
-PC type hosts have complimentary tools.
+PC type hosts have complementary tools.
 
 @emph{Note:} there are several more such commands.
 
