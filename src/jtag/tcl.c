@@ -189,6 +189,7 @@ static int handle_jtag_reset_command(struct command_context_s *cmd_ctx, char *cm
 static int handle_runtest_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 static int Jim_Command_flush_count(Jim_Interp *interp, int argc, Jim_Obj *const *args);
 
 static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -658,6 +659,7 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 		COMMAND_EXEC, "execute IR scan <device> <instr> [dev2] [instr2] ...");
 	register_jim(cmd_ctx, "drscan", Jim_Command_drscan, "execute DR scan <device> <num_bits> <value> <num_bits1> <value2> ...");
 	register_jim(cmd_ctx, "flush_count", Jim_Command_flush_count, "returns number of times the JTAG queue has been flushed");
+	register_jim(cmd_ctx, "pathmove", Jim_Command_pathmove, "move JTAG to state1 then to state2, state3, etc. <state1>,<state2>,<stat3>...");
 
 	register_command(cmd_ctx, NULL, "verify_ircapture", handle_verify_ircapture_command,
 		COMMAND_ANY, "verify value captured during Capture-IR <enable|disable>");
@@ -1303,6 +1305,48 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 	Jim_SetResult(interp, list);
 
 	free(fields);
+
+	return JIM_OK;
+}
+
+
+static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *args)
+{
+	tap_state_t states[8];
+
+	if ((argc < 2) || ((size_t)argc > (sizeof(states)/sizeof(*states)+1)))
+	{
+		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
+		return JIM_ERR;
+	}
+
+	int i;
+	for (i=0; i<argc-1; i++)
+	{
+		const char *cp;
+		cp = Jim_GetString( args[i+1], NULL );
+		states[i] = tap_state_by_name(cp);
+		if( states[i] < 0 )
+		{
+			/* update the error message */
+			Jim_SetResult_sprintf(interp,"endstate: %s invalid", cp );
+			return JIM_ERR;
+		}
+	}
+
+	if ((jtag_add_statemove(states[0]) != ERROR_OK) || ( jtag_execute_queue()!= ERROR_OK))
+	{
+		Jim_SetResultString(interp, "pathmove: jtag execute failed",-1);
+		return JIM_ERR;
+	}
+
+	jtag_add_pathmove(argc-2, states+1);
+
+	if (jtag_execute_queue()!= ERROR_OK)
+	{
+		Jim_SetResultString(interp, "pathmove: failed",-1);
+		return JIM_ERR;
+	}
 
 	return JIM_OK;
 }
