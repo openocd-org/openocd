@@ -185,11 +185,6 @@ extern unsigned jtag_tap_count_enabled(void);
 extern unsigned jtag_tap_count(void);
 
 
-enum reset_line_mode {
-	LINE_OPEN_DRAIN = 0x0,
-	LINE_PUSH_PULL  = 0x1,
-};
-
 /* 
  * There are three cases when JTAG_TRST_ASSERTED callback is invoked. The
  * event is invoked *after* TRST is asserted(or queued rather). It is illegal 
@@ -216,11 +211,6 @@ struct jtag_tap_event_action_s
 	Jim_Obj*                 body;
 	jtag_tap_event_action_t* next;
 };
-
-/// @returns The current state of TRST.
-int jtag_get_trst(void);
-/// @returns The current state of SRST.
-int jtag_get_srst(void);
 
 /**
  * Defines the function signature requide for JTAG event callback
@@ -273,6 +263,19 @@ enum reset_types {
 
 enum reset_types jtag_get_reset_config(void);
 void jtag_set_reset_config(enum reset_types type);
+
+void jtag_set_nsrst_delay(unsigned delay);
+unsigned jtag_get_nsrst_delay(void);
+
+void jtag_set_ntrst_delay(unsigned delay);
+unsigned jtag_get_ntrst_delay(void);
+
+/// @returns The current state of TRST.
+int jtag_get_trst(void);
+/// @returns The current state of SRST.
+int jtag_get_srst(void);
+
+
 
 /**
  * Initialize interface upon startup.  Return a successful no-op upon
@@ -668,12 +671,6 @@ extern void jtag_add_dr_out(jtag_tap_t* tap,
 
 /// @returns the number of times the scan queue has been flushed
 int jtag_get_flush_queue_count(void);
-
-void jtag_set_nsrst_delay(unsigned delay);
-unsigned jtag_get_nsrst_delay(void);
-
-void jtag_set_ntrst_delay(unsigned delay);
-unsigned jtag_get_ntrst_delay(void);
 
 int jtag_config_khz(unsigned khz);
 void jtag_set_speed_khz(unsigned speed);
