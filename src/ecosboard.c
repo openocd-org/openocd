@@ -1046,6 +1046,9 @@ int main(int argc, char *argv[])
 
 	command_run_linef(cmd_ctx, "script /rom/openocd.cfg");
 
+	/* we MUST always run the init command as it will launch telnet sessions */
+	command_run_line(cmd_ctx, "init");
+
 	// FIX!!!  Yuk!
 	// diag_printf() is really invoked from many more places than we trust it
 	// not to cause instabilities(e.g. invoking fputc() from an interrupt is *BAD*).
