@@ -2623,7 +2623,7 @@ static int handle_virt2phys_command(command_context_t *cmd_ctx,
 
 static void writeData(FILE *f, const void *data, size_t len)
 {
-	size_t written = fwrite(data, len, 1, f);
+	size_t written = fwrite(data, 1, len, f);
 	if (written != len)
 		LOG_ERROR("failed to write %zu bytes: %s", len, strerror(errno));
 }

@@ -225,7 +225,7 @@ int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
 
 		for (i = 1; i < argc; i++)
 		{
-			if (fwrite(args[i], strlen(args[i]), 1, config_file)!=strlen(args[i]))
+			if (fwrite(args[i], 1, strlen(args[i]), config_file)!=strlen(args[i]))
 				break;
 			if (i != argc - 1)
 			{
