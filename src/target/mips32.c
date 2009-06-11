@@ -346,7 +346,7 @@ int mips32_examine(struct target_s *target)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	
-	if (target_was_examined(target))
+	if (!target_was_examined(target))
 	{
 		target_set_examined(target);
 	
