@@ -1950,17 +1950,20 @@ static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, c
 
 static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	LOG_DEBUG("-");
 
-	if (argc == 0)
-		return target->type->step(target, 1, 0, 1); /* current pc, addr = 0, handle breakpoints */
-
+	/* with no args, step from current pc, addr = 0,
+	 * with one argument addr = args[0],
+	 * handle breakpoints, debugging */
+	u32 addr = 0;
 	if (argc == 1)
-		return target->type->step(target, 0, strtoul(args[0], NULL, 0), 1); /* addr = args[0], handle breakpoints */
+		addr = strtoul(args[0], NULL, 0);
 
-	return ERROR_OK;
+	target_t *target = get_current_target(cmd_ctx);
+	return target->type->step(target, 0, addr, 1);
 }
 
 static void handle_md_output(struct command_context_s *cmd_ctx,
