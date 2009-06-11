@@ -2566,10 +2566,11 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	if (argc != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc > 0)
-		watchpoint_remove(target, strtoul(args[0], NULL, 0));
+	target_t *target = get_current_target(cmd_ctx);
+	watchpoint_remove(target, strtoul(args[0], NULL, 0));
 
 	return ERROR_OK;
 }
