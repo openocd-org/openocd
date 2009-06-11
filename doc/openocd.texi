@@ -1091,7 +1091,7 @@ $_TARGETNAME configure -work-area-phys 0x00200000 \
              -work-area-size 0x4000 -work-area-backup 0
 @end example
 
-@subsection Reset Configuration
+@subsection Chip Reset Setup
 
 As a rule, you should put the @command{reset_config} command
 into the board file.  Most things you think you know about a
@@ -1101,16 +1101,24 @@ Some chips have specific ways the TRST and SRST signals are
 managed. In the unusual case that these are @emph{chip specific}
 and can never be changed by board wiring, they could go here.
 
+Some chips need special attention during reset handling if
+they're going to be used with JTAG.
+An example might be needing to send some commands right
+after the target's TAP has been reset, providing a
+@code{reset-deassert-post} event handler that writes a chip
+register to report that JTAG debugging is being done.
+
 @subsection ARM Core Specific Hacks
 
 If the chip has a DCC, enable it. If the chip is an ARM9 with some
 special high speed download features - enable it.
 
-If the chip has an ARM ``vector catch'' feature - by default enable
-it for Undefined Instructions, Data Abort, and Prefetch Abort, if the
-user is really writing a handler for those situations - they can
-easily disable it.  Experiance has shown the ``vector catch'' is
-helpful - for common programing errors.
+If the chip supports the @command{arm9tdmi vector_catch},
+@command{xscale vector_catch}, or similar features,
+consider enabling it in your user-specific configuration file.
+Experience has shown the ``vector_catch'' can be
+helpful for catching programming errors
+like Undefined Instructions, Data Abort, and Prefetch Abort.
 
 If present, the MMU, the MPU and the CACHE should be disabled.
 
@@ -2636,16 +2644,18 @@ The following target events are defined:
 @* The target has resumed (i.e.: gdb said run)
 @item @b{early-halted}
 @* Occurs early in the halt process
+@ignore
 @item @b{examine-end}
 @* Currently not used (goal: when JTAG examine completes)
 @item @b{examine-start}
 @* Currently not used (goal: when JTAG examine starts)
+@end ignore
 @item @b{gdb-attach}
 @* When GDB connects
 @item @b{gdb-detach}
 @* When GDB disconnects
 @item @b{gdb-end}
-@* When the taret has halted and GDB is not doing anything (see early halt)
+@* When the target has halted and GDB is not doing anything (see early halt)
 @item @b{gdb-flash-erase-start}
 @* Before the GDB flash process tries to erase the flash
 @item @b{gdb-flash-erase-end}
@@ -2655,13 +2665,15 @@ The following target events are defined:
 @item @b{gdb-flash-write-end}
 @* After GDB writes to the flash
 @item @b{gdb-start}
-@* Before the taret steps, gdb is trying to start/resume the target
+@* Before the target steps, gdb is trying to start/resume the target
 @item @b{halted}
 @* The target has halted
+@ignore
 @item @b{old-gdb_program_config}
 @* DO NOT USE THIS: Used internally
 @item @b{old-pre_resume}
 @* DO NOT USE THIS: Used internally
+@end ignore
 @item @b{reset-assert-pre}
 @* Issued as part of @command{reset} processing
 after SRST and/or TRST were activated and deactivated,
@@ -2681,10 +2693,12 @@ has been set up to allow faster JTAG speeds.
 when reset has been released on the tap.
 @item @b{reset-end}
 @* Issued as the final step in @command{reset} processing.
+@ignore
 @item @b{reset-halt-post}
-@* Currently not usd
+@* Currently not used
 @item @b{reset-halt-pre}
 @* Currently not used
+@end ignore
 @item @b{reset-init}
 @* Used by @b{reset init} command for board-specific initialization.
 This event fires after @emph{reset-deassert-post}.
@@ -2695,10 +2709,12 @@ multiplexing, and so on.
 @item @b{reset-start}
 @* Issued as part of @command{reset} processing
 before either SRST or TRST are activated.
+@ignore
 @item @b{reset-wait-pos}
 @* Currently not used
 @item @b{reset-wait-pre}
 @* Currently not used
+@end ignore
 @item @b{resume-start}
 @* Before any target is resumed
 @item @b{resume-end}
@@ -3992,6 +4008,9 @@ Else sets a breakpoint on code execution starting
 at @var{address} for @var{length} bytes.
 This is a software breakpoint, unless @option{hw} is specified
 in which case it will be a hardware breakpoint.
+
+(@xref{arm9tdmi vector_catch}, or @pxref{xscale vector_catch},
+for similar mechanisms that do not consume hardware breakpoints.)
 @end deffn
 
 @deffn Command {rbp} address
@@ -4348,8 +4367,22 @@ Many ARM9-family CPUs are built around ARM9TDMI integer cores,
 or processors resembling ARM9TDMI, and can use these commands.
 Such cores include the ARM920T, ARM926EJ-S, and ARM966.
 
-@deffn Command {arm9tdmi vector_catch} (@option{all}|@option{none}|list)
-Catch arm9 interrupt vectors, can be @option{all}, @option{none},
+@c 9-june-2009:  tried this on arm920t, it didn't work.
+@c no-params always lists nothing caught, and that's how it acts.
+
+@anchor{arm9tdmi vector_catch}
+@deffn Command {arm9tdmi vector_catch} [@option{all}|@option{none}|list]
+Vector Catch hardware provides a sort of dedicated breakpoint
+for hardware events such as reset, interrupt, and abort.
+You can use this to conserve normal breakpoint resources,
+so long as you're not concerned with code that branches directly
+to those hardware vectors.
+
+This always finishes by listing the current configuration.
+If parameters are provided, it first reconfigures the
+vector catch hardware to intercept
+@option{all} of the hardware vectors,
+@option{none} of them,
 or a list with one or more of the following:
 @option{reset} @option{undef} @option{swi} @option{pabt} @option{dabt} @option{reserved}
 @option{irq} @option{fiq}.
@@ -4526,8 +4559,10 @@ The image @var{type} may be one of
 @option{mem}, or @option{builder}.
 @end deffn
 
-@deffn Command {xscale vector_catch} mask
-Provide a bitmask showing the vectors to catch.
+@anchor{xscale vector_catch}
+@deffn Command {xscale vector_catch} [mask]
+Display a bitmask showing the hardware vectors to catch.
+If the optional parameter is provided, first set the bitmask to that value.
 @end deffn
 
 @section ARMv6 Architecture
