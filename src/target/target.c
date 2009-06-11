@@ -821,46 +821,56 @@ int target_call_event_callbacks(target_t *target, enum target_event event)
 	return ERROR_OK;
 }
 
+static int target_timer_callback_periodic_restart(
+		target_timer_callback_t *cb, struct timeval *now)
+{
+	int time_ms = cb->time_ms;
+	cb->when.tv_usec = now->tv_usec + (time_ms % 1000) * 1000;
+	time_ms -= (time_ms % 1000);
+	cb->when.tv_sec = now->tv_sec + time_ms / 1000;
+	if (cb->when.tv_usec > 1000000)
+	{
+		cb->when.tv_usec = cb->when.tv_usec - 1000000;
+		cb->when.tv_sec += 1;
+	}
+	return ERROR_OK;
+}
+
+static int target_call_timer_callback(target_timer_callback_t *cb,
+		struct timeval *now)
+{
+	cb->callback(cb->priv);
+
+	if (cb->periodic)
+		return target_timer_callback_periodic_restart(cb, now);
+
+	return target_unregister_timer_callback(cb->callback, cb->priv);
+}
+
 static int target_call_timer_callbacks_check_time(int checktime)
 {
-	target_timer_callback_t *callback = target_timer_callbacks;
-	target_timer_callback_t *next_callback;
-	struct timeval now;
-
 	keep_alive();
 
+	struct timeval now;
 	gettimeofday(&now, NULL);
 
+	target_timer_callback_t *callback = target_timer_callbacks;
 	while (callback)
 	{
-		next_callback = callback->next;
+		// cleaning up may unregister and free this callback
+		target_timer_callback_t *next_callback = callback->next;
 
-		if ((!checktime&&callback->periodic)||
-				(((now.tv_sec >= callback->when.tv_sec) && (now.tv_usec >= callback->when.tv_usec))
-						|| (now.tv_sec > callback->when.tv_sec)))
+		bool call_it = callback->callback &&
+			((!checktime && callback->periodic) ||
+			  now.tv_sec > callback->when.tv_sec ||
+			 (now.tv_sec == callback->when.tv_sec &&
+			  now.tv_usec >= callback->when.tv_usec));
+
+		if (call_it)
 		{
-			if(callback->callback != NULL)
-			{
-				callback->callback(callback->priv);
-				if (callback->periodic)
-				{
-					int time_ms = callback->time_ms;
-					callback->when.tv_usec = now.tv_usec + (time_ms % 1000) * 1000;
-					time_ms -= (time_ms % 1000);
-					callback->when.tv_sec = now.tv_sec + time_ms / 1000;
-					if (callback->when.tv_usec > 1000000)
-					{
-						callback->when.tv_usec = callback->when.tv_usec - 1000000;
-						callback->when.tv_sec += 1;
-					}
-				}
-				else
-				{
-					int retval;
-					if((retval = target_unregister_timer_callback(callback->callback, callback->priv)) != ERROR_OK)
-						return retval;
-				}
-			}
+			int retval = target_call_timer_callback(callback, &now);
+			if (retval != ERROR_OK)
+				return retval;
 		}
 
 		callback = next_callback;
