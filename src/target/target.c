@@ -2449,57 +2449,69 @@ static int handle_test_image_command(struct command_context_s *cmd_ctx, char *cm
 	return handle_verify_image_command_internal(cmd_ctx, cmd, args, argc, 0);
 }
 
-static int handle_bp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_bp_command_list(struct command_context_s *cmd_ctx)
 {
-	int retval;
 	target_t *target = get_current_target(cmd_ctx);
-
-	if (argc == 0)
+	breakpoint_t *breakpoint = target->breakpoints;
+	while (breakpoint)
 	{
-		breakpoint_t *breakpoint = target->breakpoints;
-
-		while (breakpoint)
+		if (breakpoint->type == BKPT_SOFT)
 		{
-			if (breakpoint->type == BKPT_SOFT)
-			{
-				char* buf = buf_to_str(breakpoint->orig_instr, breakpoint->length, 16);
-				command_print(cmd_ctx, "0x%8.8x, 0x%x, %i, 0x%s", breakpoint->address, breakpoint->length, breakpoint->set, buf);
-				free(buf);
-			}
-			else
-			{
-				command_print(cmd_ctx, "0x%8.8x, 0x%x, %i", breakpoint->address, breakpoint->length, breakpoint->set);
-			}
-			breakpoint = breakpoint->next;
-		}
-	}
-	else if (argc >= 2)
-	{
-		int hw = BKPT_SOFT;
-		u32 length = 0;
-
-		length = strtoul(args[1], NULL, 0);
-
-		if (argc >= 3)
-			if (strcmp(args[2], "hw") == 0)
-				hw = BKPT_HARD;
-
-		if ((retval = breakpoint_add(target, strtoul(args[0], NULL, 0), length, hw)) != ERROR_OK)
-		{
-			LOG_ERROR("Failure setting breakpoints");
+			char* buf = buf_to_str(breakpoint->orig_instr,
+					breakpoint->length, 16);
+			command_print(cmd_ctx, "0x%8.8x, 0x%x, %i, 0x%s",
+					breakpoint->address, breakpoint->length,
+					breakpoint->set, buf);
+			free(buf);
 		}
 		else
 		{
-			command_print(cmd_ctx, "breakpoint added at address 0x%8.8lx",
-					strtoul(args[0], NULL, 0));
+			command_print(cmd_ctx, "0x%8.8x, 0x%x, %i",
+					breakpoint->address, breakpoint->length, breakpoint->set);
 		}
+
+		breakpoint = breakpoint->next;
 	}
+	return ERROR_OK;
+}
+
+static int handle_bp_command_set(struct command_context_s *cmd_ctx,
+		u32 addr, u32 length, int hw)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	int retval = breakpoint_add(target, addr, length, hw);
+	if (ERROR_OK == retval)
+		command_print(cmd_ctx, "breakpoint set at 0x%8.8x", addr);
 	else
+		LOG_ERROR("Failure setting breakpoint");
+	return retval;
+}
+
+static int handle_bp_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	if (argc == 0)
+		return handle_bp_command_list(cmd_ctx);
+
+	if (argc < 2 || argc > 3)
 	{
 		command_print(cmd_ctx, "usage: bp <address> <length> ['hw']");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return ERROR_OK;
+	u32 addr = strtoul(args[0], NULL, 0);
+	u32 length = strtoul(args[1], NULL, 0);
+
+	int hw = BKPT_SOFT;
+	if (argc == 3)
+	{
+		if (strcmp(args[2], "hw") == 0)
+			hw = BKPT_HARD;
+		else
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return handle_bp_command_set(cmd_ctx, addr, length, hw);
 }
 
 static int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
