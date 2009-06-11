@@ -604,21 +604,6 @@ extern int jtag_execute_queue(void);
 /* same as jtag_execute_queue() but does not clear the error flag */
 extern void jtag_execute_queue_noclear(void);
 
-/**
- * Set the current JTAG core execution error, unless one was set
- * by a previous call previously.  Driver or application code must
- * use jtag_error_clear to reset jtag_error once this routine has been
- * called with a non-zero error code.
- */
-void jtag_set_error(int error);
-/// @returns The current value of jtag_error
-int jtag_get_error(void);
-/**
- * Resets jtag_error to ERROR_OK, returning its previous value.
- * @returns The previous value of @c jtag_error.
- */
-int jtag_error_clear(void);
-
 /* can be implemented by hw+sw */
 extern int jtag_power_dropout(int* dropout);
 extern int jtag_srst_asserted(int* srst_asserted);
@@ -699,5 +684,20 @@ bool jtag_will_verify(void);
 
 void jtag_set_verify_capture_ir(bool enable);
 bool jtag_will_verify_capture_ir(void);
+
+/**
+ * Set the current JTAG core execution error, unless one was set
+ * by a previous call previously.  Driver or application code must
+ * use jtag_error_clear to reset jtag_error once this routine has been
+ * called with a non-zero error code.
+ */
+void jtag_set_error(int error);
+/// @returns The current value of jtag_error
+int jtag_get_error(void);
+/**
+ * Resets jtag_error to ERROR_OK, returning its previous value.
+ * @returns The previous value of @c jtag_error.
+ */
+int jtag_error_clear(void);
 
 #endif /* JTAG_H */
