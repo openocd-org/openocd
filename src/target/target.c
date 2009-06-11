@@ -1912,11 +1912,13 @@ static int handle_soft_reset_halt_command(struct command_context_s *cmd_ctx, cha
 
 static int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	const Jim_Nvp *n;
-	enum target_reset_mode reset_mode = RESET_RUN;
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc >= 1)
+	enum target_reset_mode reset_mode = RESET_RUN;
+	if (argc == 1)
 	{
+		const Jim_Nvp *n;
 		n = Jim_Nvp_name2value_simple( nvp_reset_modes, args[0] );
 		if( (n->name == NULL) || (n->value == RESET_UNKNOWN) ){
 			return ERROR_COMMAND_SYNTAX_ERROR;
