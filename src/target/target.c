@@ -434,8 +434,17 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 		return ERROR_FAIL;
 	}
 
+	/* disable polling during reset to make reset event scripts
+	 * more predictable, i.e. dr/irscan & pathmove in events will
+	 * not have JTAG operations injected into the middle of a sequence.
+	 */
+	int save_poll = target_continous_poll;
+	target_continous_poll = 0;
+
 	sprintf( buf, "ocd_process_reset %s", n->name );
 	retval = Jim_Eval( interp, buf );
+
+	target_continous_poll = save_poll;
 
 	if(retval != JIM_OK) {
 		Jim_PrintErrorMessage(interp);
