@@ -476,6 +476,50 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 	cmd_queue_cur_state = path[num_states - 1];
 }
 
+int jtag_add_statemove(tap_state_t goal_state)
+{
+	tap_state_t cur_state = cmd_queue_cur_state;
+
+	LOG_DEBUG( "cur_state=%s goal_state=%s",
+		tap_state_name(cur_state),
+		tap_state_name(goal_state) );
+
+
+	if (goal_state==cur_state )
+		;	/* nothing to do */
+	else if( goal_state==TAP_RESET )
+	{
+		jtag_add_tlr();
+	}
+	else if( tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state) )
+	{
+		unsigned tms_bits  = tap_get_tms_path(cur_state, goal_state);
+		unsigned tms_count = tap_get_tms_path_len(cur_state, goal_state);
+		tap_state_t moves[8];
+		assert(tms_count < DIM(moves));
+
+		for (unsigned i = 0; i < tms_count; i++, tms_bits >>= 1)
+		{
+			bool bit = tms_bits & 1;
+
+			cur_state = tap_state_transition(cur_state, bit);
+			moves[i] = cur_state;
+		}
+
+		jtag_add_pathmove(tms_count, moves);
+	}
+	else if( tap_state_transition(cur_state, true)  == goal_state
+		||   tap_state_transition(cur_state, false) == goal_state )
+	{
+		jtag_add_pathmove(1, &goal_state);
+	}
+
+	else
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
 void jtag_add_runtest(int num_cycles, tap_state_t state)
 {
 	jtag_prelude(state);
@@ -1247,50 +1291,6 @@ int jtag_power_dropout(int *dropout)
 int jtag_srst_asserted(int *srst_asserted)
 {
 	return jtag->srst_asserted(srst_asserted);
-}
-
-int jtag_add_statemove(tap_state_t goal_state)
-{
-	tap_state_t cur_state = cmd_queue_cur_state;
-
-	LOG_DEBUG( "cur_state=%s goal_state=%s",
-		tap_state_name(cur_state),
-		tap_state_name(goal_state) );
-
-
-	if (goal_state==cur_state )
-		;	/* nothing to do */
-	else if( goal_state==TAP_RESET )
-	{
-		jtag_add_tlr();
-	}
-	else if( tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state) )
-	{
-		unsigned tms_bits  = tap_get_tms_path(cur_state, goal_state);
-		unsigned tms_count = tap_get_tms_path_len(cur_state, goal_state);
-		tap_state_t moves[8];
-		assert(tms_count < DIM(moves));
-
-		for (unsigned i = 0; i < tms_count; i++, tms_bits >>= 1)
-		{
-			bool bit = tms_bits & 1;
-
-			cur_state = tap_state_transition(cur_state, bit);
-			moves[i] = cur_state;
-		}
-
-		jtag_add_pathmove(tms_count, moves);
-	}
-	else if( tap_state_transition(cur_state, true)  == goal_state
-		||   tap_state_transition(cur_state, false) == goal_state )
-	{
-		jtag_add_pathmove(1, &goal_state);
-	}
-
-	else
-		return ERROR_FAIL;
-
-	return ERROR_OK;
 }
 
 enum reset_types jtag_get_reset_config(void)

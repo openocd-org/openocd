@@ -508,6 +508,39 @@ extern void jtag_add_tlr(void);
 extern void jtag_add_pathmove(int num_states, const tap_state_t* path);
 
 /**
+ * jtag_add_statemove() moves from the current state to @a goal_state.
+ *
+ * @param goal_state The final TAP state.
+ * @return ERROR_OK on success, or an error code on failure.
+ *
+ * Moves from the current state to the goal \a state. 
+ *
+ * This needs to be handled according to the xsvf spec, see the XSTATE
+ * command description.  From the XSVF spec, pertaining to XSTATE:
+ *
+ * For special states known as stable states (Test-Logic-Reset,
+ * Run-Test/Idle, Pause-DR, Pause- IR), an XSVF interpreter follows
+ * predefined TAP state paths when the starting state is a stable state
+ * and when the XSTATE specifies a new stable state.  See the STATE
+ * command in the [Ref 5] for the TAP state paths between stable
+ * states.
+ *
+ * For non-stable states, XSTATE should specify a state that is only one
+ * TAP state transition distance from the current TAP state to avoid
+ * undefined TAP state paths. A sequence of multiple XSTATE commands can
+ * be issued to transition the TAP through a specific state path.
+ *
+ * @note Unless @c tms_bits holds a path that agrees with [Ref 5] in the
+ * above spec, then this code is not fully conformant to the xsvf spec.
+ * This puts a burden on tap_get_tms_path() function from the xsvf spec.
+ * If in doubt, you should confirm that that burden is being met.
+ *
+ * Otherwise, @a goal_state must be immediately reachable in one clock
+ * cycle, and does not need to be a stable state.
+ */
+extern int jtag_add_statemove(tap_state_t goal_state);
+
+/**
  * Goes to TAP_IDLE (if we're not already there), cycle
  * precisely num_cycles in the TAP_IDLE state, after which move
  * to @a endstate (unless it is also TAP_IDLE).
@@ -673,39 +706,6 @@ extern void jtag_add_dr_out(jtag_tap_t* tap,
 		int num_fields, const int* num_bits, const u32* value,
 		tap_state_t end_state);
 
-
-/**
- * jtag_add_statemove() moves from the current state to @a goal_state.
- *
- * @param goal_state The final TAP state.
- * @return ERROR_OK on success, or an error code on failure.
- *
- * Moves from the current state to the goal \a state. 
- *
- * This needs to be handled according to the xsvf spec, see the XSTATE
- * command description.  From the XSVF spec, pertaining to XSTATE:
- *
- * For special states known as stable states (Test-Logic-Reset,
- * Run-Test/Idle, Pause-DR, Pause- IR), an XSVF interpreter follows
- * predefined TAP state paths when the starting state is a stable state
- * and when the XSTATE specifies a new stable state.  See the STATE
- * command in the [Ref 5] for the TAP state paths between stable
- * states.
- *
- * For non-stable states, XSTATE should specify a state that is only one
- * TAP state transition distance from the current TAP state to avoid
- * undefined TAP state paths. A sequence of multiple XSTATE commands can
- * be issued to transition the TAP through a specific state path.
- *
- * @note Unless @c tms_bits holds a path that agrees with [Ref 5] in the
- * above spec, then this code is not fully conformant to the xsvf spec.
- * This puts a burden on tap_get_tms_path() function from the xsvf spec.
- * If in doubt, you should confirm that that burden is being met.
- *
- * Otherwise, @a goal_state must be immediately reachable in one clock
- * cycle, and does not need to be a stable state.
- */
-extern int jtag_add_statemove(tap_state_t goal_state);
 
 /// @returns the number of times the scan queue has been flushed
 int jtag_get_flush_queue_count(void);
