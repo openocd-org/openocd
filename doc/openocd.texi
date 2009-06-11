@@ -63,7 +63,7 @@ Free Documentation License''.
 * Building OpenOCD::                 Building OpenOCD From SVN
 * JTAG Hardware Dongles::            JTAG Hardware Dongles
 * Running::                          Running OpenOCD
-* Simple Configuration Files::       Simple Configuration Files
+* OpenOCD Project Setup::            OpenOCD Project Setup
 * Config File Guidelines::           Config File Guidelines
 * About JIM-Tcl::                    About JIM-Tcl
 * Daemon Configuration::             Daemon Configuration
@@ -76,7 +76,6 @@ Free Documentation License''.
 * General Commands::                 General Commands
 * Architecture and Core Commands::   Architecture and Core Commands
 * JTAG Commands::                    JTAG Commands
-* Sample Scripts::                   Sample Target Scripts
 * TFTP::                             TFTP
 * GDB and OpenOCD::                  Using GDB and OpenOCD
 * Tcl Scripting API::                Tcl Scripting API
@@ -239,6 +238,7 @@ That said, the OpenOCD developers would also like you to follow a few
 suggestions:
 
 @enumerate
+@item @b{Send patches, including config files, upstream.}
 @item @b{Always build with printer ports enabled.}
 @item @b{Try to use LIBFTDI + LIBUSB where possible. You cover more bases.}
 @end enumerate
@@ -718,28 +718,114 @@ establish a connection with the target. In general, it is possible for
 the JTAG controller to be unresponsive until the target is set up
 correctly via e.g. GDB monitor commands in a GDB init script.
 
-@node Simple Configuration Files
-@chapter Simple Configuration Files
-@cindex configuration
+@node OpenOCD Project Setup
+@chapter OpenOCD Project Setup
 
-@section Outline
-There are 4 basic ways of ``configurating'' OpenOCD to run, they are:
+To use OpenOCD with your development projects, you need to do more than
+just connecting the JTAG adapter hardware (dongle) to your development board
+and then starting the OpenOCD server.
+You also need to configure that server so that it knows
+about that adapter and board, and helps your work.
+
+@section Hooking up the JTAG Adapter
+
+Today's most common case is a dongle with a JTAG cable on one side
+(such as a ribbon cable with a 10-pin or 20-pin IDC connector)
+and a USB cable on the other.
+Instead of USB, some cables use Ethernet;
+older ones may use a PC parallel port, or even a serial port.
 
 @enumerate
-@item A small openocd.cfg file which ``sources'' other configuration files
-@item A monolithic openocd.cfg file
-@item Many -f filename options on the command line
-@item Your Mixed Solution
+@item @emph{Start with power to your target board turned off},
+and nothing connected to your JTAG adapter.
+If you're particularly paranoid, unplug power to the board.
+It's important to have the ground signal properly set up,
+unless you are using a JTAG adapter which provides
+galvanic isolation between the target board and the
+debugging host.
+
+@item @emph{Be sure it's the right kind of JTAG connector.}
+If your dongle has a 20-pin ARM connector, you need some kind
+of adapter (or octopus, see below) to hook it up to
+boards using 14-pin or 10-pin connectors ... or to 20-pin
+connectors which don't use ARM's pinout.
+
+In the same vein, make sure the voltage levels are compatible.
+Not all JTAG adapters have the level shifters needed to work
+with 1.2 Volt boards.
+
+@item @emph{Be certain the cable is properly oriented} or you might
+damage your board.  In most cases there are only two possible
+ways to connect the cable.
+Connect the JTAG cable from your adapter to the board.
+Be sure it's firmly connected.
+
+In the best case, the connector is keyed to physically
+prevent you from inserting it wrong.
+This is most often done using a slot on the board's male connector
+housing, which must match a key on the JTAG cable's female connector.
+If there's no housing, then you must look carefully and
+make sure pin 1 on the cable hooks up to pin 1 on the board.
+Ribbon cables are frequently all grey except for a wire on one
+edge, which is red.  The red wire is pin 1.
+
+Sometimes dongles provide cables where one end is an ``octopus'' of
+color coded single-wire connectors, instead of a connector block.
+These are great when converting from one JTAG pinout to another,
+but are tedious to set up.
+Use these with connector pinout diagrams to help you match up the
+adapter signals to the right board pins.
+
+@item @emph{Connect the adapter's other end} once the JTAG cable is connected.
+A USB, parallel, or serial port connector will go to the host which
+you are using to run OpenOCD.
+For Ethernet, consult the documentation and your network administrator.
+
+For USB based JTAG adapters you have an easy sanity check at this point:
+does the host operating system see the JTAG adapter?
+
+@item @emph{Connect the adapter's power supply, if needed.}
+This step is primarily for non-USB adapters,
+but sometimes USB adapters need extra power.
+
+@item @emph{Power up the target board.}
+Unless you just let the magic smoke escape,
+you're now ready to set up the OpenOCD server
+so you can use JTAG to work with that board.
+
 @end enumerate
 
-@section Small configuration file method
+Talk with the OpenOCD server using
+telnet (@code{telnet localhost 4444} on many systems) or GDB.
+@xref{GDB and OpenOCD}.
 
-This is the preferred method. It is simple and works well for many
-people. The developers of OpenOCD would encourage you to use this
-method. If you create a new configuration please email new
-configurations to the development list.
+@section Project Directory
 
-Here is an example of an openocd.cfg file for an ATMEL at91sam7x256
+There are many ways you can configure OpenOCD and start it up.
+
+A simple way to organize them all involves keeping a
+single directory for your work with a given board.
+When you start OpenOCD from that directory,
+it searches there first for configuration files
+and for code you upload to the target board.
+It is also be the natural place to write files,
+such as log files and data you download from the board.
+
+@section Configuration Basics
+
+There are two basic ways of configuring OpenOCD, and
+a variety of ways you can mix them.
+Think of the difference as just being how you start the server:
+
+@itemize
+@item Many @option{-f file} or @option{-c command} options on the command line
+@item No options, but a @dfn{user config file}
+in the current directory named @file{openocd.cfg}
+@end itemize
+
+Here is an example @file{openocd.cfg} file for a setup
+using a Signalyzer FT2232-based JTAG adapter to talk to
+a board with an Atmel AT91SAM7X256 microcontroller:
 
 @example
 source [find interface/signalyzer.cfg]
@@ -751,66 +837,172 @@ gdb_flash_program enable
 source [find target/sam7x256.cfg]
 @end example
 
-There are many example configuration scripts you can work with. You
-should look in the directory: @t{$(INSTALLDIR)/lib/openocd}. You
-should find:
-
-@enumerate
-@item @b{board} - eval board level configurations
-@item @b{interface} - specific dongle configurations
-@item @b{target} - the target chips
-@item @b{tcl} - helper scripts 
-@item @b{xscale} - things specific to the xscale.
-@end enumerate
-
-Look first in the ``boards'' area, then the ``targets'' area. Often a board
-configuration is a good example to work from.
-
-@section Many -f filename options
-Some believe this is a wonderful solution, others find it painful.
-
-You can use a series of ``-f filename'' options on the command line,
-OpenOCD will read each filename in sequence, for example:
+Here is the command line equivalent of that configuration:
 
 @example
-openocd -f file1.cfg -f file2.cfg -f file2.cfg
+openocd -f interface/signalyzer.cfg \
+        -c "gdb_memory_map enable" \
+        -c "gdb_flash_program enable" \
+        -f target/sam7x256.cfg
 @end example
 
-You can also intermix various commands with the ``-c'' command line
-option.
+You could wrap such long command lines in shell scripts,
+each supporting a different development task.
+One might re-flash the board with specific firmware version.
+Another might set up a particular debugging or run-time environment.
 
-@section Monolithic file
-The ``Monolithic File'' dispenses with all ``source'' statements and
-puts everything in one self contained (monolithic) file. This is not
-encouraged. 
+Here we will focus on the simpler solution:  one user config
+file, including basic configuration plus any TCL procedures
+to simplify your work.
 
-Please try to ``source'' various files or use the multiple -f
-technique.
+@section User Config Files
+@cindex config file
+@cindex user config file
 
-@section Advice for you
-Often, one uses a ``mixed approach''. Where possible, please try to
-``source'' common things, and if needed cut/paste parts of the
-standard distribution configuration files as needed.
+A user configuration file ties together all the parts of a project
+in one place.
+One of the following will match your situation best:
 
-@b{REMEMBER:} The ``important parts'' of your configuration file are:
+@itemize
+@item Ideally almost everything comes from configuration files
+provided by someone else.
+For example, OpenOCD distributes a @file{scripts} directory
+(probably in @file{/usr/share/openocd/scripts} on Linux);
+board and tool vendors can provide these too.
+The AT91SAM7X256 example above works this way.
+
+Three main types of non-user configuration file each have their
+own subdirectory in the @file{scripts} directory:
 
 @enumerate
-@item @b{Interface} - Defines the dongle
-@item @b{Taps} - Defines the JTAG Taps
-@item @b{GDB Targets} - What GDB talks to
-@item @b{Flash Programing} - Very Helpful
+@item @b{interface} -- one for each kind of JTAG adapter/dongle
+@item @b{board} -- one for each different board
+@item @b{target} -- the chips which integrate CPUs and other JTAG TAPs
 @end enumerate
 
-Some key things you should look at and understand are:
+Best case:  include just two files, and they handle everything else.
+The first is an interface config file.
+The second is board-specific, and it sets up the JTAG TAPs and
+their GDB targets (by deferring to some @file{target.cfg} file),
+declares all flash memory, and leaves you nothing to do except
+meet your deadline:
 
-@enumerate
-@item The reset configuration of your debug environment as a whole
-@item Is there a ``work area'' that OpenOCD can use?
-@* For ARM - work areas mean up to 10x faster downloads.
-@item For MMU/MPU based ARM chips (i.e.: ARM9 and later) will that work area still be available?
-@item For complex targets (multiple chips) the JTAG SPEED becomes an issue.
-@end enumerate
+@example
+source [find interface/olimex-jtag-tiny.cfg]
+source [find board/csb337.cfg]
+@end example
 
+Boards with a single microcontroller often won't need more
+than the target config file, as in the AT91SAM7X256 example.
+That's because there is no external memory (flash, DDR RAM), and
+the board differences are encapsulated by application code.
+
+@item You can often reuse some standard config files but
+need to write a few new ones, probably a @file{board.cfg} file.
+You will be using commands described later in this User's Guide,
+and working with the guidelines in the next chapter.
+
+For example, there may be configuration files for your JTAG adapter
+and target chip, but you need a new board-specific config file
+giving access to your particular flash chips.
+Or you might need to write another target chip configuration file
+for a new chip built around the Cortex M3 core.
+
+@quotation Note
+When you write new configuration files, please submit
+them for inclusion in the next OpenOCD release.
+For example, a @file{board/newboard.cfg} file will help the
+next users of that board, and a @file{target/newcpu.cfg}
+will help support users of any board using that chip.
+@end quotation
+
+@item
+You may may need to write some C code.
+It may be as simple as a supporting a new new ft2232 or parport
+based dongle; a bit more involved, like a NAND or NOR flash
+controller driver; or a big piece of work like supporting
+a new chip architecture.
+@end itemize
+
+Reuse the existing config files when you can.
+Look first in the @file{scripts/boards} area, then @file{scripts/targets}.
+You may find a board configuration that's a good example to follow.
+
+When you write config files, separate the reusable parts
+(things every user of that interface, chip, or board needs)
+from ones specific to your environment and debugging approach.
+
+For example, a @code{gdb-attach} event handler that invokes
+the @command{reset init} command will interfere with debugging
+early boot code, which performs some of the same actions
+that the @code{reset-init} event handler does.
+Likewise, the @command{arm9tdmi vector_catch} command (or
+its @command{xscale vector_catch} sibling) can be a timesaver
+during some debug sessions, but don't make everyone use that either.
+Keep those kinds of debugging aids in your user config file.
+
+@section Project-Specific Utilities
+
+A few project-specific utility
+routines may well speed up your work.
+Write them, and keep them in your project's user config file.
+
+For example, if you are making a boot loader work on a
+board, it's nice to be able to debug the ``after it's
+loaded to RAM'' parts separately from the finicky early
+code which sets up the DDR RAM controller and clocks.
+A script like this one, or a more GDB-aware sibling,
+may help:
+
+@example
+proc ramboot @{ @} @{
+    # Reset, running the target's "reset-init" scripts
+    # to initialize clocks and the DDR RAM controller.
+    # Leave the CPU halted.
+    reset init
+
+    # Load CONFIG_SKIP_LOWLEVEL_INIT version into DDR RAM.
+    load_image u-boot.bin 0x20000000
+
+    # Start running.
+    resume 0x20000000
+@}
+@end example
+
+Then once that code is working you will need to make it
+boot from NOR flash; a different utility would help.
+Alternatively, some developers write to flash using GDB.
+(You might use a similar script if you're working with a flash
+based microcontroller application instead of a boot loader.)
+
+@example
+proc newboot @{ @} @{
+    # Reset, leaving the CPU halted.  The "reset-init" event
+    # proc gives faster access to the CPU and to NOR flash;
+    # "reset halt" would be slower.
+    reset init
+
+    # Write standard version of U-Boot into the first two
+    # sectors of NOR flash ... the standard version should
+    # do the same lowlevel init as "reset-init".
+    flash protect 0 0 1 off
+    flash erase_sector 0 0 1
+    flash write_bank 0 u-boot.bin 0x0
+    flash protect 0 0 1 on
+
+    # Reboot from scratch using that new boot loader.
+    reset run
+@}
+@end example
+
+You may need more complicated utility procedures when booting
+from NAND.
+That often involves an extra bootloader stage,
+running from on-chip SRAM to perform DDR RAM setup so it can load
+the main bootloader code (which won't fit into that SRAM).
+
+Other helper scripts might be used to write production system images,
+involving considerably more than just a three stage bootloader.
 
 
 @node Config File Guidelines
@@ -852,6 +1044,7 @@ setting a variable or two before sourcing the target file. Or adding
 various commands specific to their situation.
 
 @section Interface Config Files
+@cindex config file
 
 The user should be able to source one of these files via a command like this:
 
@@ -868,6 +1061,7 @@ sole developer who created it.
 Interface files should be found in @t{$(INSTALLDIR)/lib/openocd/interface}
 
 @section Board Config Files
+@cindex config file
 
 @b{Note: BOARD directory NEW as of 28/nov/2008} 
 
@@ -896,6 +1090,7 @@ In summary the board files should contain (if present)
 @end enumerate
 
 @section Target Config Files
+@cindex config file
 
 The user should be able to source one of these files via a command like this:
 
@@ -1112,13 +1307,6 @@ register to report that JTAG debugging is being done.
 
 If the chip has a DCC, enable it. If the chip is an ARM9 with some
 special high speed download features - enable it.
-
-If the chip supports the @command{arm9tdmi vector_catch},
-@command{xscale vector_catch}, or similar features,
-consider enabling it in your user-specific configuration file.
-Experience has shown the ``vector_catch'' can be
-helpful for catching programming errors
-like Undefined Instructions, Data Abort, and Prefetch Abort.
 
 If present, the MMU, the MPU and the CACHE should be disabled.
 
@@ -4884,33 +5072,6 @@ In order to achieve decent performance, you must choose a TFTP server
 that supports a packet size bigger than the default packet size (512 bytes). There
 are numerous TFTP servers out there (free and commercial) and you will have to do
 a bit of googling to find something that fits your requirements.
-
-@node Sample Scripts
-@chapter Sample Scripts
-@cindex scripts
-
-This page shows how to use the Target Library.
-
-The configuration script can be divided into the following sections:
-@itemize @bullet
-@item Daemon configuration
-@item Interface
-@item JTAG scan chain
-@item Target configuration
-@item Flash configuration 
-@end itemize
-
-Detailed information about each section can be found at OpenOCD configuration. 
-
-@section AT91R40008 example
-@cindex AT91R40008 example
-To start OpenOCD with a target script for the AT91R40008 CPU and reset
-the CPU upon startup of the OpenOCD daemon.
-@example
-openocd -f interface/parport.cfg -f target/at91r40008.cfg \
-        -c "init" -c "reset"
-@end example
-
 
 @node GDB and OpenOCD
 @chapter GDB and OpenOCD
