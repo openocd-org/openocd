@@ -337,7 +337,7 @@ void command_output_text(command_context_t *context, const char *data)
 	}
 }
 
-void command_print_n(command_context_t *context, char *format, ...)
+void command_print_sameline(command_context_t *context, const char *format, ...)
 {
 	char *string;
 
@@ -361,7 +361,7 @@ void command_print_n(command_context_t *context, char *format, ...)
 	va_end(ap);
 }
 
-void command_print(command_context_t *context, char *format, ...)
+void command_print(command_context_t *context, const char *format, ...)
 {
 	char *string;
 
@@ -497,7 +497,7 @@ int command_run_line(command_context_t *context, char *line)
 	return retval;
 }
 
-int command_run_linef(command_context_t *context, char *format, ...)
+int command_run_linef(command_context_t *context, const char *format, ...)
 {
 	int retval=ERROR_FAIL;
 	char *string;
