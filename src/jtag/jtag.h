@@ -621,8 +621,12 @@ void jtag_add_clocks(int num_cycles);
  */
 extern int jtag_execute_queue(void);
 
-/* same as jtag_execute_queue() but does not clear the error flag */
+/// same as jtag_execute_queue() but does not clear the error flag
 extern void jtag_execute_queue_noclear(void);
+
+/// @returns the number of times the scan queue has been flushed
+int jtag_get_flush_queue_count(void);
+
 
 /* can be implemented by hw+sw */
 extern int jtag_power_dropout(int* dropout);
@@ -685,9 +689,6 @@ extern void jtag_add_dr_out(jtag_tap_t* tap,
 		int num_fields, const int* num_bits, const u32* value,
 		tap_state_t end_state);
 
-
-/// @returns the number of times the scan queue has been flushed
-int jtag_get_flush_queue_count(void);
 
 /**
  * Set the current JTAG core execution error, unless one was set
