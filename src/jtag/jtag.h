@@ -250,6 +250,15 @@ int jtag_get_speed_readable(int *speed);
  */
 int jtag_set_speed(int speed);
 
+
+/// Attempt to configure the interface for the specified KHz.
+int jtag_config_khz(unsigned khz);
+/// Set the clock speed of the JTAG interface in KHz.
+void jtag_set_speed_khz(unsigned speed);
+/// Retreives the clock speed of the JTAG interface in KHz.
+unsigned jtag_get_speed_khz(void);
+
+
 enum reset_types {
 	RESET_NONE            = 0x0,
 	RESET_HAS_TRST        = 0x1,
@@ -275,7 +284,15 @@ int jtag_get_trst(void);
 /// @returns The current state of SRST.
 int jtag_get_srst(void);
 
+/// Enable or disable data scan verification checking.
+void jtag_set_verify(bool enable);
+/// @returns True if data scan verification will be performed.
+bool jtag_will_verify(void);
 
+/// Enable or disable verification of IR scan checking.
+void jtag_set_verify_capture_ir(bool enable);
+/// @returns True if IR scan verification will be performed.
+bool jtag_will_verify_capture_ir(void);
 
 /**
  * Initialize interface upon startup.  Return a successful no-op upon
@@ -671,16 +688,6 @@ extern void jtag_add_dr_out(jtag_tap_t* tap,
 
 /// @returns the number of times the scan queue has been flushed
 int jtag_get_flush_queue_count(void);
-
-int jtag_config_khz(unsigned khz);
-void jtag_set_speed_khz(unsigned speed);
-unsigned jtag_get_speed_khz(void);
-
-void jtag_set_verify(bool enable);
-bool jtag_will_verify(void);
-
-void jtag_set_verify_capture_ir(bool enable);
-bool jtag_will_verify_capture_ir(void);
 
 /**
  * Set the current JTAG core execution error, unless one was set
