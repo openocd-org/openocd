@@ -2575,30 +2575,27 @@ static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char
 	return ERROR_OK;
 }
 
-static int handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
+
+/**
+ * Translate a virtual address to a physical address.
+ *
+ * The low-level target implementation must have logged a detailed error
+ * which is forwarded to telnet/GDB session.
+ */
+static int handle_virt2phys_command(command_context_t *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
-	int retval;
+	if (argc != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	target_t *target = get_current_target(cmd_ctx);
-	u32 va;
+	u32 va = strtoul(args[0], NULL, 0);
 	u32 pa;
 
-	if (argc != 1)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	va = strtoul(args[0], NULL, 0);
-
-	retval = target->type->virt2phys(target, va, &pa);
+	int retval = target->type->virt2phys(target, va, &pa);
 	if (retval == ERROR_OK)
-	{
 		command_print(cmd_ctx, "Physical address 0x%08x", pa);
-	}
-	else
-	{
-		/* lower levels will have logged a detailed error which is
-		 * forwarded to telnet/GDB session.
-		 */
-	}
+
 	return retval;
 }
 
