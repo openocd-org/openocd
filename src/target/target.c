@@ -1931,21 +1931,20 @@ static int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, ch
 
 static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int retval;
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	target_t *target = get_current_target(cmd_ctx);
+	target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
 
-	target_handle_event( target, TARGET_EVENT_OLD_pre_resume );
+	/* with no args, resume from current pc, addr = 0,
+	 * with one arguments, addr = args[0],
+	 * handle breakpoints, not debugging */
+	u32 addr = 0;
+	if (argc == 1)
+		addr = strtoul(args[0], NULL, 0);
 
-	if (argc == 0)
-		retval = target_resume(target, 1, 0, 1, 0); /* current pc, addr = 0, handle breakpoints, not debugging */
-	else if (argc == 1)
-		retval = target_resume(target, 0, strtoul(args[0], NULL, 0), 1, 0); /* addr = args[0], handle breakpoints, not debugging */
-	else
-	{
-		retval = ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return retval;
+	return target_resume(target, 0, addr, 1, 0);
 }
 
 static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
