@@ -180,35 +180,9 @@ extern const char *jtag_tap_name(const jtag_tap_t *tap);
 extern jtag_tap_t* jtag_tap_by_string(const char* dotted_name);
 extern jtag_tap_t* jtag_tap_by_jim_obj(Jim_Interp* interp, Jim_Obj* obj);
 extern jtag_tap_t* jtag_tap_by_position(unsigned abs_position);
+extern jtag_tap_t* jtag_tap_next_enabled(jtag_tap_t* p);
 extern unsigned jtag_tap_count_enabled(void);
 extern unsigned jtag_tap_count(void);
-
-static __inline__ jtag_tap_t* jtag_tap_next_enabled(jtag_tap_t* p)
-{
-	if (p == NULL)
-	{
-		/* start at the head of list */
-		p = jtag_all_taps();
-	}
-	else
-	{
-		/* start *after* this one */
-		p = p->next_tap;
-	}
-	while (p)
-	{
-		if (p->enabled)
-		{
-			break;
-		}
-		else
-		{
-			p = p->next_tap;
-		}
-	}
-
-	return p;
-}
 
 
 enum reset_line_mode {

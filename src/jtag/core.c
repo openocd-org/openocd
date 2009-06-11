@@ -202,6 +202,18 @@ jtag_tap_t *jtag_tap_by_position(unsigned n)
 	return t;
 }
 
+jtag_tap_t* jtag_tap_next_enabled(jtag_tap_t* p)
+{
+	p = p ? p->next_tap : jtag_all_taps();
+	while (p)
+	{
+		if (p->enabled)
+			return p;
+		p = p->next_tap;
+	}
+	return NULL;
+}
+
 const char *jtag_tap_name(const jtag_tap_t *tap)
 {
 	return (tap == NULL) ? "(unknown)" : tap->dotted_name;
