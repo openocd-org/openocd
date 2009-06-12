@@ -2132,22 +2132,43 @@ probes flash memory, performs low-level JTAG operations, and more.
 
 @section Scan Chains
 
-OpenOCD uses a JTAG adapter (interface) to talk to your board,
-which has a daisy chain of TAPs.
-That daisy chain is called a @dfn{scan chain}.
-Simple configurations may have a single TAP in the scan chain,
-perhaps for a microcontroller.
-Complex configurations might have a dozen or more TAPs:
+TAPs are part of a hardware @dfn{scan chain},
+which is daisy chain of TAPs.
+They also need to be added to
+OpenOCD's software mirror of that hardware list,
+giving each member a name and associating other data with it.
+Simple scan chains, with a single TAP, are common in
+systems with a single microcontroller or microprocessor.
+More complex chips may have several TAPs internally.
+Very complex scan chains might have a dozen or more TAPs:
 several in one chip, more in the next, and connecting
 to other boards with their own chips and TAPs.
 
+You can display the list with the @command{scan_chain} command.
+(Don't confuse this with the list displayed by the @command{targets}
+command, presented in the next chapter.
+That only displays TAPs for CPUs which are configured as
+debugging targets.)
+Here's what the scan chain might look like for a chip more than one TAP:
+
+@verbatim
+   TapName            Enabled IdCode     Expected   IrLen IrCap IrMask Instr
+-- ------------------ ------- ---------- ---------- ----- ----- ------ -----
+ 0 omap5912.dsp          Y    0x03df1d81 0x03df1d81 38    0     0      0x...
+ 1 omap5912.arm          Y    0x0692602f 0x0692602f 4     0x1   0      0xc
+ 2 omap5912.unknown      Y    0x00000000 0x00000000 8     0     0      0xff
+@end verbatim
+
 Unfortunately those TAPs can't always be autoconfigured,
 because not all devices provide good support for that.
-(JTAG doesn't require supporting IDCODE instructions.)
+JTAG doesn't require supporting IDCODE instructions, and
+chips with JTAG routers may not link TAPs into the chain
+until they are told to do so.
+
 The configuration mechanism currently supported by OpenOCD
 requires explicit configuration of all TAP devices using
-@command{jtag newtap} commands.
-One like this would declare a tap and name it @code{chip1.cpu}:
+@command{jtag newtap} commands, as detailed later in this chapter.
+A command like this would declare one tap and name it @code{chip1.cpu}:
 
 @example
 jtag newtap chip1 cpu -irlen 7 -ircapture 0x01 -irmask 0x55
@@ -2180,6 +2201,29 @@ Actual config files use a variable instead of literals like
 @option{str912}, to support more than one chip of each type.
 @xref{Config File Guidelines}.
 
+At this writing there is only a single command to work with
+scan chains, and there is no support for enumerating
+TAPs or examining their attributes.
+
+@deffn Command {scan_chain}
+Displays the TAPs in the scan chain configuration,
+and their status.
+The set of TAPs listed by this command is fixed by
+exiting the OpenOCD configuration stage,
+but systems with a JTAG router can
+enable or disable TAPs dynamically.
+In addition to the enable/disable status, the contents of
+each TAP's instruction register can also change.
+@end deffn
+
+@c FIXME!  there should be commands to enumerate TAPs
+@c and get their attributes, like there are for targets.
+@c "jtag cget ..." will handle attributes.
+@c "jtag names" for enumerating TAPs, maybe.
+
+@c Probably want "jtag eventlist", and a "tap-reset" event
+@c (on entry to RESET state).
+
 @section TAP Names
 
 When TAP objects are declared with @command{jtag newtap},
@@ -2202,7 +2246,7 @@ However its use is highly discouraged, and
 should not be counted upon.
 Update all of your scripts to use TAP names rather than numbers.
 Using TAP numbers in target configuration scripts prevents
-reusing on boards with multiple targets.
+reusing those scripts on boards with multiple targets.
 @end quotation
 
 @section TAP Declaration Commands
@@ -4979,17 +5023,6 @@ Move to the @sc{run/idle} state, and execute at least
 @var{num_cycles} of the JTAG clock (TCK).
 Instructions often need some time
 to execute before they take effect.
-@end deffn
-
-@deffn Command {scan_chain}
-Displays the TAPs in the scan chain configuration,
-and their status.
-The set of TAPs listed by this command is fixed by
-exiting the OpenOCD configuration stage,
-but systems with a JTAG router can
-enable or disable TAPs dynamically.
-In addition to the enable/disable status, the contents of
-each TAP's instruction register can also change.
 @end deffn
 
 @c tms_sequence (short|long)
