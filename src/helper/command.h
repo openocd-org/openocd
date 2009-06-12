@@ -107,4 +107,20 @@ void register_jim(command_context_t *context, const char *name, int (*cmd)(Jim_I
 
 long jim_global_long(const char *variable);
 
+int parse_ulong(const char *str, unsigned long *ul);
+int parse_ullong(const char *str, unsigned long long *ul);
+
+#define DEFINE_PARSE_ULONG(name, type, max) \
+	static inline int parse_##name(const char *str, type *ul) \
+	{ \
+		unsigned long n; \
+		int retval = parse_ulong(str, &n); \
+		*ul = n; \
+		return n > (max) ? ERROR_COMMAND_SYNTAX_ERROR : retval; \
+	}	
+DEFINE_PARSE_ULONG(uint, unsigned, UINT_MAX)
+DEFINE_PARSE_ULONG(u32, uint32_t, UINT32_MAX)
+DEFINE_PARSE_ULONG(u16, uint16_t, UINT16_MAX)
+DEFINE_PARSE_ULONG(u8, uint8_t, UINT8_MAX)
+
 #endif /* COMMAND_H */
