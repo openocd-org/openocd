@@ -172,9 +172,8 @@ jtag_tap_t *jtag_tap_by_string(const char *s)
 	}
 
 	/* no tap found by name, so try to parse the name as a number */
-	char *cp;
-	unsigned n = strtoul(s, &cp, 0);
-	if ((s == cp) || (*cp != 0))
+	unsigned n;
+	if (parse_uint(s, &n) != ERROR_OK)
 		return NULL;
 
 	return jtag_tap_by_position(n);
