@@ -2827,8 +2827,6 @@ static int ft2232_handle_layout_command(struct command_context_s* cmd_ctx, char*
 
 static int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char* cmd, char** args, int argc)
 {
-	int i;
-
 	if (argc > MAX_USB_IDS * 2)
 	{
 		LOG_WARNING("ignoring extra IDs in ft2232_vid_pid "
@@ -2839,13 +2837,21 @@ static int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char
 	{
 		LOG_WARNING("incomplete ft2232_vid_pid configuration directive");
 		if (argc < 2)
-			return ERROR_OK;
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		// remove the incomplete trailing id
+		argc -= 1;
 	}
 
-	for (i = 0; i + 1 < argc; i += 2)
+	int i;
+	int retval = ERROR_OK;
+	for (i = 0; i < argc; i += 2)
 	{
-		ft2232_vid[i >> 1] = strtol(args[i], NULL, 0);
-		ft2232_pid[i >> 1] = strtol(args[i + 1], NULL, 0);
+		retval = parse_u16(args[i], &ft2232_vid[i >> 1]);
+		if (ERROR_OK != retval)
+			break;
+		retval = parse_u16(args[i + 1], &ft2232_pid[i >> 1]);
+		if (ERROR_OK != retval)
+			break;
 	}
 
 	/*
@@ -2854,7 +2860,7 @@ static int ft2232_handle_vid_pid_command(struct command_context_s* cmd_ctx, char
 	 */
 	ft2232_vid[i >> 1] = ft2232_pid[i >> 1] = 0;
 
-	return ERROR_OK;
+	return retval;
 }
 
 
