@@ -1407,9 +1407,7 @@ static int vsllink_handle_usb_vid_command(struct command_context_s *cmd_ctx, cha
 		return ERROR_OK;
 	}
 
-	vsllink_usb_vid = strtol(args[0], NULL, 0);
-
-	return ERROR_OK;
+	return parse_u16(args[0], &vsllink_usb_vid);
 }
 
 static int vsllink_handle_usb_pid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1419,10 +1417,7 @@ static int vsllink_handle_usb_pid_command(struct command_context_s *cmd_ctx, cha
 		LOG_ERROR("parameter error, should be one parameter for PID");
 		return ERROR_OK;
 	}
-
-	vsllink_usb_pid = strtol(args[0], NULL, 0);
-
-	return ERROR_OK;
+	return parse_u16(args[0], &vsllink_usb_pid);
 }
 
 static int vsllink_handle_usb_bulkin_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1433,9 +1428,11 @@ static int vsllink_handle_usb_bulkin_command(struct command_context_s *cmd_ctx, 
 		return ERROR_OK;
 	}
 
-	vsllink_usb_bulkin = strtol(args[0], NULL, 0) | 0x80;
+	int retval = parse_u8(args[0], &vsllink_usb_bulkin);
+	if (ERROR_OK == retval)
+		vsllink_usb_bulkin |= 0x80;
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int vsllink_handle_usb_bulkout_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1446,9 +1443,11 @@ static int vsllink_handle_usb_bulkout_command(struct command_context_s *cmd_ctx,
 		return ERROR_OK;
 	}
 
-	vsllink_usb_bulkout = strtol(args[0], NULL, 0);
+	int retval = parse_u8(args[0], &vsllink_usb_bulkout);
+	if (ERROR_OK == retval)
+		vsllink_usb_bulkout &= ~0x80;
 
-	return ERROR_OK;
+	return retval;
 }
 
 static int vsllink_handle_usb_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -1459,9 +1458,7 @@ static int vsllink_handle_usb_interface_command(struct command_context_s *cmd_ct
 		return ERROR_OK;
 	}
 
-	vsllink_usb_interface = strtol(args[0], NULL, 0);
-
-	return ERROR_OK;
+	return parse_u8(args[0], &vsllink_usb_interface);
 }
 
 /***************************************************************************/
