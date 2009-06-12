@@ -732,7 +732,6 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	int retval;
 
 	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
@@ -749,22 +748,14 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	switch (size)
-	{
-		case 4:
-		case 2:
-		case 1:
-			/* if noDMA off, use DMAACC mode for memory read */
-			if(ejtag_info->impcode & EJTAG_IMP_NODMA)
-				retval = mips32_pracc_read_mem(ejtag_info, address, size, count, (void *)buffer);
-			else
-				retval = mips32_dmaacc_read_mem(ejtag_info, address, size, count, (void *)buffer);
-			break;
-		default:
-			LOG_ERROR("BUG: we shouldn't get here");
-			exit(-1);
-			break;
-	}
+	/* if noDMA off, use DMAACC mode for memory read */
+	int retval;
+	if(ejtag_info->impcode & EJTAG_IMP_NODMA)
+		retval = mips32_pracc_read_mem(ejtag_info, address, size, count, (void *)buffer);
+	else
+		retval = mips32_dmaacc_read_mem(ejtag_info, address, size, count, (void *)buffer);
+	if (ERROR_OK != retval)
+		return retval;
 
 	/* TAP data register is loaded LSB first (little endian) */
 	if (target->endianness == TARGET_BIG_ENDIAN) 
@@ -787,15 +778,14 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 			}
 		}
 	}
-	
-	return retval;
+
+	return ERROR_OK;
 }
 
 int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	int retval;
 
 	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
@@ -811,19 +801,6 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
-
-	switch (size)
-	{
-		case 4:
-		case 2:
-		case 1:
-			/* if noDMA off, use DMAACC mode for memory write */
-			break;
-		default:
-			LOG_ERROR("BUG: we shouldn't get here");
-			exit(-1);
-			break;
-	}
 
 	/* TAP data register is loaded LSB first (little endian) */
 	if (target->endianness == TARGET_BIG_ENDIAN)
@@ -847,13 +824,11 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 		}
 	}	   
 
+	/* if noDMA off, use DMAACC mode for memory write */
 	if(ejtag_info->impcode & EJTAG_IMP_NODMA)
-		retval = mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+		return mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 	else
-		retval = mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
-	
-
-	return retval;
+		return mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 }
 
 int mips_m4k_register_commands(struct command_context_s *cmd_ctx)
