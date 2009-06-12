@@ -118,7 +118,7 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 	if (tap==NULL)
 		return ERROR_FAIL;
 	scan_field_t field;
-	u8 t[4];
+	u8 t[4], r[4];
 	int retval;
 
 	field.tap = tap;
@@ -126,7 +126,7 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 	field.out_value = t;
 	buf_set_u32(field.out_value, 0, field.num_bits, *data);
 
-	field.in_value = (u8*)data;
+	field.in_value = r;
 	
 	
 	
@@ -138,6 +138,8 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 		LOG_ERROR("register read failed");
 		return retval;
 	}
+
+	*data = buf_get_u32(field.in_value, 0, 32);
 
 	keep_alive();
 

@@ -732,6 +732,7 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	int retval;
 
 	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
@@ -755,22 +756,46 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 		case 1:
 			/* if noDMA off, use DMAACC mode for memory read */
 			if(ejtag_info->impcode & EJTAG_IMP_NODMA)
-				return mips32_pracc_read_mem(ejtag_info, address, size, count, (void *)buffer);
+				retval = mips32_pracc_read_mem(ejtag_info, address, size, count, (void *)buffer);
 			else
-				return mips32_dmaacc_read_mem(ejtag_info, address, size, count, (void *)buffer);
+				retval = mips32_dmaacc_read_mem(ejtag_info, address, size, count, (void *)buffer);
+			break;
 		default:
 			LOG_ERROR("BUG: we shouldn't get here");
 			exit(-1);
 			break;
 	}
 
-	return ERROR_OK;
+	/* TAP data register is loaded LSB first (little endian) */
+	if (target->endianness == TARGET_BIG_ENDIAN) 
+	{
+		u32 i, t32;
+		u16 t16;
+
+		for(i = 0; i < (count*size); i += size)
+		{
+			switch(size)
+			{
+				case 4:
+					t32 = le_to_h_u32(&buffer[i]);
+					h_u32_to_be(&buffer[i], t32);
+					break;
+				case 2:
+					t16 = le_to_h_u16(&buffer[i]);
+					h_u16_to_be(&buffer[i], t16);
+					break;
+			}
+		}
+	}
+	
+	return retval;
 }
 
 int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
+	int retval;
 
 	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
 
@@ -793,10 +818,6 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 		case 2:
 		case 1:
 			/* if noDMA off, use DMAACC mode for memory write */
-			if(ejtag_info->impcode & EJTAG_IMP_NODMA)
-				mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
-			else
-				mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 			break;
 		default:
 			LOG_ERROR("BUG: we shouldn't get here");
@@ -804,7 +825,35 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 			break;
 	}
 
-	return ERROR_OK;
+	/* TAP data register is loaded LSB first (little endian) */
+	if (target->endianness == TARGET_BIG_ENDIAN)
+	{
+		u32 i, t32;
+		u16 t16;
+
+		for(i = 0; i < (count*size); i += size)
+		{
+			switch(size) 
+			{
+				case 4:
+					t32 = be_to_h_u32(&buffer[i]);
+					h_u32_to_le(&buffer[i], t32);
+					break;
+				case 2:
+					t16 = be_to_h_u16(&buffer[i]);
+					h_u16_to_le(&buffer[i], t16);
+					break;
+			}
+		}
+	}	   
+
+	if(ejtag_info->impcode & EJTAG_IMP_NODMA)
+		retval = mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+	else
+		retval = mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
+	
+
+	return retval;
 }
 
 int mips_m4k_register_commands(struct command_context_s *cmd_ctx)
