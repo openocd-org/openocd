@@ -1158,9 +1158,11 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 	}
 
 	int num_fields = argc / 2;
+	size_t fields_len = sizeof(scan_field_t) * num_fields;
+	fields = malloc(fields_len);
+	memset(fields, 0, fields_len);
 
-	fields = malloc(sizeof(scan_field_t) * num_fields);
-
+	int retval;
 	for (i = 0; i < num_fields; i++)
 	{
 		tap = jtag_tap_by_string( args[i*2] );
@@ -1173,17 +1175,26 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 		fields[i].tap = tap;
 		fields[i].num_bits = field_size;
 		fields[i].out_value = malloc(CEIL(field_size, 8));
-		buf_set_u32(fields[i].out_value, 0, field_size, strtoul(args[i*2+1], NULL, 0));
+
+		u32 value;
+		retval = parse_u32(args[i * 2 + 1], &value);
+		if (ERROR_OK != retval)
+			goto error_return;
+		buf_set_u32(fields[i].out_value, 0, field_size, value);
 		fields[i].in_value = NULL;
 	}
 
 	/* did we have an endstate? */
 	jtag_add_ir_scan(num_fields, fields, endstate);
 
-	int retval=jtag_execute_queue();
+	retval = jtag_execute_queue();
 
+error_return:
 	for (i = 0; i < num_fields; i++)
-		free(fields[i].out_value);
+	{
+		if (NULL != fields[i].out_value)
+			free(fields[i].out_value);
+	}
 
 	free (fields);
 
