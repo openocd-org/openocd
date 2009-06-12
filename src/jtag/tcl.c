@@ -1088,7 +1088,12 @@ static int handle_runtest_command(struct command_context_s *cmd_ctx,
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	jtag_add_runtest(strtol(args[0], NULL, 0), jtag_get_end_state());
+	unsigned num_clocks;
+	int retval = parse_uint(args[0], &num_clocks);
+	if (ERROR_OK != retval)
+		return retval;
+
+	jtag_add_runtest(num_clocks, jtag_get_end_state());
 	jtag_execute_queue();
 
 	return ERROR_OK;
