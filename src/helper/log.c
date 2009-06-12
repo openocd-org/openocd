@@ -194,17 +194,18 @@ void log_printf_lf(enum log_levels level, const char *file, int line, const char
  */
 int handle_debug_level_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc == 0)
-		command_print(cmd_ctx, "debug_level: %i", debug_level);
+	if (argc == 1)
+	{
+		unsigned new_level;
+		int retval = parse_uint(args[0], &new_level);
+		if (ERROR_OK != retval)
+			return retval;
+		debug_level = MIN(new_level, LOG_LVL_DEBUG);
+	}
+	else if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc > 0)
-		debug_level = strtoul(args[0], NULL, 0);
-
-	if (debug_level < 0)
-		debug_level = 0;
-
-	if (debug_level > 3)
-		debug_level = 3;
+	command_print(cmd_ctx, "debug_level: %i", debug_level);
 
 	if (debug_level >= LOG_LVL_DEBUG && server_use_pipes == 1)
 	{
