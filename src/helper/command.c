@@ -757,38 +757,36 @@ int command_context_mode(command_context_t *cmd_ctx, enum command_mode mode)
 /* sleep command sleeps for <n> miliseconds
  * this is useful in target startup scripts
  */
-int handle_sleep_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+int handle_sleep_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
-	unsigned long duration = 0;
-	int busy = 0;
-
-	if (argc==1)
+	bool busy = false;
+	if (argc == 2)
 	{
-
-	} else if (argc==2)
-	{
-		if (strcmp(args[1], "busy")!=0)
+		if (strcmp(args[1], "busy") == 0)
+			busy = true;
+		else
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		busy = 1;
-	} else
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
+	else if (argc < 1 || argc > 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	duration = strtoul(args[0], NULL, 0);
+	unsigned long duration = 0;
+	int retval = parse_ulong(args[0], &duration);
+	if (ERROR_OK != retval)
+		return retval;
 
-	if (busy)
+	if (!busy)
 	{
-		busy_sleep(duration);
-	} else
-	{
-		long long then=timeval_ms();
-		while ((timeval_ms()-then)<(long long)duration)
+		long long then = timeval_ms();
+		while (timeval_ms() - then < (long long)duration)
 		{
 			target_call_timer_callbacks_now();
 			usleep(1000);
 		}
 	}
+	else
+		busy_sleep(duration);
 
 	return ERROR_OK;
 }
