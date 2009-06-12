@@ -1038,7 +1038,7 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 			return retval;
 	}
 
-	int cur_speed;
+	int cur_speed = jtag_get_speed_khz();
 	retval = jtag_get_speed_readable(&cur_speed);
 	if (ERROR_OK != retval)
 		return retval;
