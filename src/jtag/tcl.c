@@ -296,6 +296,15 @@ static int jtag_tap_configure_cmd( Jim_GetOptInfo *goi, jtag_tap_t * tap)
 	return JIM_OK;
 }
 
+static int is_bad_irval(int ir_length, jim_wide w)
+{
+	jim_wide v = 1;
+
+	v <<= ir_length;
+	v -= 1;
+	v = ~v;
+	return (w & v) != 0;
+}
 
 extern void jtag_tap_init(jtag_tap_t *tap);
 extern void jtag_tap_free(jtag_tap_t *tap);
@@ -411,22 +420,28 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 				Jim_SetResult_sprintf( goi->interp, "option: %s bad parameter", n->name );
 				return e;
 			}
-			if( (w < 0) || (w > 0xffff) ){
-				/* wacky value */
-				Jim_SetResult_sprintf( goi->interp, "option: %s - wacky value: %d (0x%x)",
-									   n->name, (int)(w), (int)(w));
-				return JIM_ERR;
-			}
 			switch(n->value){
 			case NTAP_OPT_IRLEN:
+				if (w < (jim_wide) sizeof(pTap->ir_capture_value))
+					LOG_WARNING("huge IR length %d", (int) w);
 				pTap->ir_length = w;
 				reqbits &= (~(NTREQ_IRLEN));
 				break;
 			case NTAP_OPT_IRMASK:
+				if (is_bad_irval(pTap->ir_length, w)) {
+					LOG_ERROR("IR mask %x too big",
+							(int) w);
+					return ERROR_FAIL;
+				}
 				pTap->ir_capture_mask = w;
 				reqbits &= (~(NTREQ_IRMASK));
 				break;
 			case NTAP_OPT_IRCAPTURE:
+				if (is_bad_irval(pTap->ir_length, w)) {
+					LOG_ERROR("IR capture %x too big",
+							(int) w);
+					return ERROR_FAIL;
+				}
 				pTap->ir_capture_value = w;
 				reqbits &= (~(NTREQ_IRCAPTURE));
 				break;

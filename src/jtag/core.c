@@ -1073,6 +1073,7 @@ void jtag_tap_init(jtag_tap_t *tap)
 	tap->expected_mask = malloc(tap->ir_length);
 	tap->cur_instr = malloc(tap->ir_length);
 
+	/// @todo cope sanely with ir_length bigger than 32 bits
 	buf_set_u32(tap->expected, 0, tap->ir_length, tap->ir_capture_value);
 	buf_set_u32(tap->expected_mask, 0, tap->ir_length, tap->ir_capture_mask);
 	buf_set_ones(tap->cur_instr, tap->ir_length);
