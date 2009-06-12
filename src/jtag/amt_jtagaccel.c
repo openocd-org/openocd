@@ -526,14 +526,26 @@ static int amt_jtagaccel_quit(void)
 	return ERROR_OK;
 }
 
-static int amt_jtagaccel_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int amt_jtagaccel_handle_parport_port_command(
+		struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc == 0)
-		return ERROR_OK;
+	if (argc == 1)
+	{
+		/* only if the port wasn't overwritten by cmdline */
+		if (amt_jtagaccel_port == 0)
+		{
+			int retval = parse_u16(args[0], &amt_jtagaccel_port);
+			if (ERROR_OK != retval)
+				return retval;
+		}
+		else
+		{
+			LOG_ERROR("The parport port was already configured!");
+			return ERROR_FAIL;
+		}
+	}
 
-	/* only if the port wasn't overwritten by cmdline */
-	if (amt_jtagaccel_port == 0)
-		amt_jtagaccel_port = strtoul(args[0], NULL, 0);
+	command_print(cmd_ctx, "parport port = %u", amt_jtagaccel_port);
 
 	return ERROR_OK;
 }
