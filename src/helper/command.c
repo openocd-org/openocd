@@ -61,6 +61,23 @@ static void tcl_output(void *privData, const char *file, int line, const char *f
 
 extern command_context_t *global_cmd_ctx;
 
+void script_debug(Jim_Interp *interp, const char *name, int argc, Jim_Obj *const *argv)
+{
+	int i;
+
+	LOG_DEBUG("command - %s", name);
+	for (i = 0; i < argc; i++) {
+		int len;
+		const char *w = Jim_GetString(argv[i], &len);
+
+		/* end of line comment? */
+		if (*w == '#')
+			break;
+
+		LOG_DEBUG("%s - argv[%d]=%s", name, i, w);
+	}
+}
+
 static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	/* the private data is stashed in the interp structure */
@@ -85,7 +102,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	target_call_timer_callbacks_now();
 	LOG_USER_N("%s", ""); /* Keep GDB connection alive*/
 
-	LOG_DEBUG("script_command - %s", c->name);
+	script_debug(interp, c->name, argc, argv);
 
 	words = malloc(sizeof(char *) * argc);
 	for (i = 0; i < argc; i++)
@@ -102,7 +119,6 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		{
 			return JIM_ERR;
 		}
-		LOG_DEBUG("script_command - %s, argv[%u]=%s", c->name, i, words[i]);
 	}
 	nwords = i;
 

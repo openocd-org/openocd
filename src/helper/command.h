@@ -123,4 +123,6 @@ DEFINE_PARSE_ULONG(u32, uint32_t, UINT32_MAX)
 DEFINE_PARSE_ULONG(u16, uint16_t, UINT16_MAX)
 DEFINE_PARSE_ULONG(u8, uint8_t, UINT8_MAX)
 
+void script_debug(Jim_Interp *interp, const char *cmd, int argc, Jim_Obj *const *argv);
+
 #endif /* COMMAND_H */
