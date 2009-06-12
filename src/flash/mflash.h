@@ -178,6 +178,13 @@ extern int mflash_init_drivers(struct command_context_s *cmd_ctx);
 
 #define MG_FILEIO_CHUNK 1048576
 
+#define ERROR_MG_IO (-1600)
+#define ERROR_MG_TIMEOUT (-1601)
+#define ERROR_MG_INVALID_PLL (-1603)
+#define ERROR_MG_INTERFACE (-1604)
+#define ERROR_MG_INVALID_OSC (-1605)
+#define ERROR_MG_UNSUPPORTED_SOC (-1606)
+
 typedef enum _mg_io_type_wait{
 
 	mg_io_wait_bsy       = 1,
