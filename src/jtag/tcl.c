@@ -971,7 +971,13 @@ static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx,
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (argc == 1)
-		jtag_set_nsrst_delay(strtoul(args[0], NULL, 0));
+	{
+		unsigned delay;
+		int retval = parse_uint(args[0], &delay);
+		if (ERROR_OK != retval)
+			return retval;
+		jtag_set_nsrst_delay(delay);
+	}
 	command_print(cmd_ctx, "jtag_nsrst_delay: %u", jtag_get_nsrst_delay());
 	return ERROR_OK;
 }
@@ -982,7 +988,13 @@ static int handle_jtag_ntrst_delay_command(struct command_context_s *cmd_ctx,
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (argc == 1)
-		jtag_set_ntrst_delay(strtoul(args[0], NULL, 0));
+	{
+		unsigned delay;
+		int retval = parse_uint(args[0], &delay);
+		if (ERROR_OK != retval)
+			return retval;
+		jtag_set_ntrst_delay(delay);
+	}
 	command_print(cmd_ctx, "jtag_ntrst_delay: %u", jtag_get_ntrst_delay());
 	return ERROR_OK;
 }
@@ -997,8 +1009,10 @@ static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cm
 	{
 		LOG_DEBUG("handle jtag speed");
 
-		int cur_speed = 0;
-		cur_speed = strtoul(args[0], NULL, 0);
+		unsigned cur_speed = 0;
+		int retval = parse_uint(args[0], &cur_speed);
+		if (ERROR_OK != retval)
+			return retval;
 		retval = jtag_set_speed(cur_speed);
 
 	}
@@ -1015,7 +1029,11 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 	int retval = ERROR_OK;
 	if (argc == 1)
 	{
-		retval = jtag_config_khz(strtoul(args[0], NULL, 0));
+		unsigned khz = 0;
+		int retval = parse_uint(args[0], &khz);
+		if (ERROR_OK != retval)
+			return retval;
+		retval = jtag_config_khz(khz);
 		if (ERROR_OK != retval)
 			return retval;
 	}
