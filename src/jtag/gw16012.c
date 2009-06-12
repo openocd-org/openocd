@@ -571,12 +571,23 @@ static int gw16012_quit(void)
 
 static int gw16012_handle_parport_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc == 0)
-		return ERROR_OK;
+	if (argc == 1)
+	{
+		/* only if the port wasn't overwritten by cmdline */
+		if (gw16012_port == 0)
+		{
+			int retval = parse_u16(args[0], &gw16012_port);
+			if (ERROR_OK != retval)
+				return retval;
+		}
+		else
+		{
+			LOG_ERROR("The parport port was already configured!");
+			return ERROR_FAIL;
+		}
+	}
 
-	/* only if the port wasn't overwritten by cmdline */
-	if (gw16012_port == 0)
-		gw16012_port = strtoul(args[0], NULL, 0);
+	command_print(cmd_ctx, "parport port = %u", gw16012_port);
 
 	return ERROR_OK;
 }
