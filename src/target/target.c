@@ -1822,21 +1822,23 @@ static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 static int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int ms = 5000;
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc > 0)
+	unsigned ms = 5000;
+	if (1 == argc)
 	{
-		char *end;
-
-		ms = strtoul(args[0], &end, 0) * 1000;
-		if (*end)
+		int retval = parse_uint(args[0], &ms);
+		if (ERROR_OK != retval)
 		{
 			command_print(cmd_ctx, "usage: %s [seconds]", cmd);
-			return ERROR_OK;
+			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
+		// convert seconds (given) to milliseconds (needed)
+		ms *= 1000;
 	}
-	target_t *target = get_current_target(cmd_ctx);
 
+	target_t *target = get_current_target(cmd_ctx);
 	return target_wait_state(target, TARGET_HALTED, ms);
 }
 
