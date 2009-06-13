@@ -2541,8 +2541,15 @@ static int handle_bp_command(struct command_context_s *cmd_ctx,
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	u32 addr = strtoul(args[0], NULL, 0);
-	u32 length = strtoul(args[1], NULL, 0);
+	u32 addr;
+	int retval = parse_u32(args[0], &addr);
+	if (ERROR_OK != retval)
+		return retval;
+
+	u32 length;
+	retval = parse_u32(args[1], &length);
+	if (ERROR_OK != retval)
+		return retval;
 
 	int hw = BKPT_SOFT;
 	if (argc == 3)
@@ -2558,10 +2565,16 @@ static int handle_bp_command(struct command_context_s *cmd_ctx,
 
 static int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	target_t *target = get_current_target(cmd_ctx);
+	if (argc != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (argc > 0)
-		breakpoint_remove(target, strtoul(args[0], NULL, 0));
+	u32 addr;
+	int retval = parse_u32(args[0], &addr);
+	if (ERROR_OK != retval)
+		return retval;
+
+	target_t *target = get_current_target(cmd_ctx);
+	breakpoint_remove(target, addr);
 
 	return ERROR_OK;
 }
