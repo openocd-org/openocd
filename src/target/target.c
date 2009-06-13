@@ -2682,11 +2682,14 @@ static int handle_virt2phys_command(command_context_t *cmd_ctx,
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	target_t *target = get_current_target(cmd_ctx);
-	u32 va = strtoul(args[0], NULL, 0);
+	u32 va;
+	int retval = parse_u32(args[0], &va);
+	if (ERROR_OK != retval)
+		return retval;
 	u32 pa;
 
-	int retval = target->type->virt2phys(target, va, &pa);
+	target_t *target = get_current_target(cmd_ctx);
+	retval = target->type->virt2phys(target, va, &pa);
 	if (retval == ERROR_OK)
 		command_print(cmd_ctx, "Physical address 0x%08x", pa);
 
