@@ -2823,12 +2823,12 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	char *end;
-	timeval_add_time(&timeout, strtoul(args[0], &end, 0), 0);
-	if (*end)
-	{
-		return ERROR_OK;
-	}
+	unsigned offset;
+	int retval = parse_uint(args[0], &offset);
+	if (ERROR_OK != retval)
+		return retval;
+
+	timeval_add_time(&timeout, offset, 0);
 
 	command_print(cmd_ctx, "Starting profiling. Halting and resuming the target as often as we can...");
 
@@ -2838,7 +2838,6 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 		return ERROR_OK;
 
 	int numSamples=0;
-	int retval=ERROR_OK;
 	/* hopefully it is safe to cache! We want to stop/restart as quickly as possible. */
 	reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
 
