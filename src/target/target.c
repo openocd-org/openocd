@@ -2074,22 +2074,30 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u32 address = 0;
-	u32 value = 0;
-	int count = 1;
-	int i;
-	int wordsize;
-	target_t *target = get_current_target(cmd_ctx);
-	u8 value_buf[4];
-
 	 if ((argc < 2) || (argc > 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	address = strtoul(args[0], NULL, 0);
-	value = strtoul(args[1], NULL, 0);
-	if (argc == 3)
-		count = strtoul(args[2], NULL, 0);
+	u32 address;
+	int retval = parse_u32(args[0], &address);
+	if (ERROR_OK != retval)
+		return retval;
 
+	u32 value;
+	retval = parse_u32(args[1], &value);
+	if (ERROR_OK != retval)
+		return retval;
+
+	unsigned count = 1;
+	if (argc == 3)
+	{
+		retval = parse_uint(args[2], &count);
+		if (ERROR_OK != retval)
+			return retval;
+	}
+
+	target_t *target = get_current_target(cmd_ctx);
+	unsigned wordsize;
+	u8 value_buf[4];
 	switch (cmd[2])
 	{
 		case 'w':
@@ -2107,9 +2115,9 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 		default:
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	for (i=0; i<count; i++)
+	for (unsigned i = 0; i < count; i++)
 	{
-		int retval = target_write_memory(target,
+		retval = target_write_memory(target,
 				address + i * wordsize, wordsize, 1, value_buf);
 		if (ERROR_OK != retval)
 			return retval;
