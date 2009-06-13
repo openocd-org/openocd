@@ -323,8 +323,6 @@ void target_buffer_set_u8(target_t *target, u8 *buffer, u8 value)
 target_t *get_target(const char *id)
 {
 	target_t *target;
-	char *endptr;
-	int num;
 
 	/* try as tcltarget name */
 	for (target = all_targets; target; target = target->next) {
@@ -335,12 +333,12 @@ target_t *get_target(const char *id)
 	}
 
 	/* no match, try as number */
-	num = strtoul(id, &endptr, 0);
-	if (*endptr != 0)
+	unsigned num;
+	if (parse_uint(id, &num) != ERROR_OK)
 		return NULL;
 
 	for (target = all_targets; target; target = target->next) {
-		if (target->target_number == num)
+		if (target->target_number == (int)num)
 			return target;
 	}
 
