@@ -2128,66 +2128,70 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 }
 
+static int parse_load_image_command_args(char **args, int argc,
+		image_t *image, u32 *min_address, u32 *max_address)
+{
+	if (argc < 1 || argc > 5)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	/* a base address isn't always necessary,
+	 * default to 0x0 (i.e. don't relocate) */
+	if (argc >= 2)
+	{
+		u32 addr;
+		int retval = parse_u32(args[1], &addr);
+		if (ERROR_OK != retval)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		image->base_address = addr;
+		image->base_address_set = 1;
+	}
+	else
+		image->base_address_set = 0;
+
+	image->start_address_set = 0;
+
+	if (argc >= 4)
+	{
+		int retval = parse_u32(args[3], min_address);
+		if (ERROR_OK != retval)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	if (argc == 5)
+	{
+		int retval = parse_u32(args[4], max_address);
+		if (ERROR_OK != retval)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		// use size (given) to find max (required)
+		*max_address += *min_address;
+	}
+
+	if (*min_address > *max_address)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	return ERROR_OK;
+}
+
 static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u8 *buffer;
 	u32 buf_cnt;
 	u32 image_size;
-	u32 min_address=0;
-	u32 max_address=0xffffffff;
+	u32 min_address = 0;
+	u32 max_address = 0xffffffff;
 	int i;
-	int retval, retvaltemp;
+	int retvaltemp;
 
 	image_t image;
 
 	duration_t duration;
 	char *duration_text;
+	
+	int retval = parse_load_image_command_args(args, argc,
+			&image, &min_address, &max_address);
+	if (ERROR_OK != retval)
+		return retval;
 
 	target_t *target = get_current_target(cmd_ctx);
-
-	if ((argc < 1)||(argc > 5))
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
-	if (argc >= 2)
-	{
-		u32 addr;
-		retval = parse_u32(args[1], &addr);
-		if (ERROR_OK != retval)
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		image.base_address = addr;
-		image.base_address_set = 1;
-	}
-	else
-	{
-		image.base_address_set = 0;
-	}
-
-
-	image.start_address_set = 0;
-
-	if (argc>=4)
-	{
-		retval = parse_u32(args[3], &min_address);
-		if (ERROR_OK != retval)
-			return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	if (argc>=5)
-	{
-		retval = parse_u32(args[4], &max_address);
-		if (ERROR_OK != retval)
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		// use size (given) to find max (required)
-		max_address += min_address;
-	}
-
-	if (min_address>max_address)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
 	duration_start_measure(&duration);
 
 	if (image_open(&image, args[0], (argc >= 3) ? args[2] : NULL) != ERROR_OK)
@@ -4316,45 +4320,16 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 	u32 min_address=0;
 	u32 max_address=0xffffffff;
 	int i;
-	int retval;
 
 	image_t image;
 
 	duration_t duration;
 	char *duration_text;
 
-	if ((argc < 1)||(argc > 5))
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
-	if (argc >= 2)
-	{
-		image.base_address_set = 1;
-		image.base_address = strtoul(args[1], NULL, 0);
-	}
-	else
-	{
-		image.base_address_set = 0;
-	}
-
-
-	image.start_address_set = 0;
-
-	if (argc>=4)
-	{
-		min_address=strtoul(args[3], NULL, 0);
-	}
-	if (argc>=5)
-	{
-		max_address=strtoul(args[4], NULL, 0)+min_address;
-	}
-
-	if (min_address>max_address)
-	{
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+	int retval = parse_load_image_command_args(args, argc,
+			&image, &min_address, &max_address);
+	if (ERROR_OK != retval)
+		return retval;
 
 	duration_start_measure(&duration);
 
