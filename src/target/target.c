@@ -1704,16 +1704,19 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 	/* access a single register by its ordinal number */
 	if ((args[0][0] >= '0') && (args[0][0] <= '9'))
 	{
-		int num = strtoul(args[0], NULL, 0);
-		reg_cache_t *cache = target->reg_cache;
+		unsigned num;
+		int retval = parse_uint(args[0], &num);
+		if (ERROR_OK != retval)
+			return ERROR_COMMAND_SYNTAX_ERROR;
 
+		reg_cache_t *cache = target->reg_cache;
 		count = 0;
 		while(cache)
 		{
 			int i;
 			for (i = 0; i < cache->num_regs; i++)
 			{
-				if (count++ == num)
+				if (count++ == (int)num)
 				{
 					reg = &cache->reg_list[i];
 					break;
