@@ -2582,7 +2582,6 @@ static int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char
 static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
-	int retval;
 
 	if (argc == 0)
 	{
@@ -2593,52 +2592,65 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			command_print(cmd_ctx, "address: 0x%8.8x, len: 0x%8.8x, r/w/a: %i, value: 0x%8.8x, mask: 0x%8.8x", watchpoint->address, watchpoint->length, watchpoint->rw, watchpoint->value, watchpoint->mask);
 			watchpoint = watchpoint->next;
 		}
+		return ERROR_OK;
 	}
-	else if (argc >= 2)
-	{
-		enum watchpoint_rw type = WPT_ACCESS;
-		u32 data_value = 0x0;
-		u32 data_mask = 0xffffffff;
 
-		if (argc >= 3)
-		{
-			switch(args[2][0])
-			{
-				case 'r':
-					type = WPT_READ;
-					break;
-				case 'w':
-					type = WPT_WRITE;
-					break;
-				case 'a':
-					type = WPT_ACCESS;
-					break;
-				default:
-					command_print(cmd_ctx, "usage: wp <address> <length> [r/w/a] [value] [mask]");
-					return ERROR_OK;
-			}
-		}
-		if (argc >= 4)
-		{
-			data_value = strtoul(args[3], NULL, 0);
-		}
-		if (argc >= 5)
-		{
-			data_mask = strtoul(args[4], NULL, 0);
-		}
+	enum watchpoint_rw type = WPT_ACCESS;
+	u32 addr = 0;
+	u32 length = 0;
+	u32 data_value = 0x0;
+	u32 data_mask = 0xffffffff;
+	int retval;
 
-		if ((retval = watchpoint_add(target, strtoul(args[0], NULL, 0),
-				strtoul(args[1], NULL, 0), type, data_value, data_mask)) != ERROR_OK)
-		{
-			LOG_ERROR("Failure setting breakpoints");
-		}
-	}
-	else
+	switch (argc)
 	{
+	case 5:
+		retval = parse_u32(args[4], &data_mask);
+		if (ERROR_OK != retval)
+			return retval;
+		// fall through
+	case 4:
+		retval = parse_u32(args[3], &data_value);
+		if (ERROR_OK != retval)
+			return retval;
+		// fall through
+	case 3:
+		switch(args[2][0])
+		{
+		case 'r':
+			type = WPT_READ;
+			break;
+		case 'w':
+			type = WPT_WRITE;
+			break;
+		case 'a':
+			type = WPT_ACCESS;
+			break;
+		default:
+			LOG_ERROR("invalid watchpoint mode ('%c')", args[2][0]);
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		// fall through
+	case 2:
+		retval = parse_u32(args[1], &length);
+		if (ERROR_OK != retval)
+			return retval;
+		retval = parse_u32(args[0], &addr);
+		if (ERROR_OK != retval)
+			return retval;
+		break;
+
+	default:
 		command_print(cmd_ctx, "usage: wp <address> <length> [r/w/a] [value] [mask]");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return ERROR_OK;
+	retval = watchpoint_add(target, addr, length, type,
+			data_value, data_mask);
+	if (ERROR_OK != retval)
+		LOG_ERROR("Failure setting watchpoints");
+
+	return retval;
 }
 
 static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
@@ -2646,8 +2658,13 @@ static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
+	u32 addr;
+	int retval = parse_u32(args[0], &addr);
+	if (ERROR_OK != retval)
+		return retval;
+
 	target_t *target = get_current_target(cmd_ctx);
-	watchpoint_remove(target, strtoul(args[0], NULL, 0));
+	watchpoint_remove(target, addr);
 
 	return ERROR_OK;
 }
