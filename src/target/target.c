@@ -2266,10 +2266,8 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 {
 	fileio_t fileio;
 
-	u32 address;
-	u32 size;
 	u8 buffer[560];
-	int retval=ERROR_OK, retvaltemp;
+	int retvaltemp;
 
 	duration_t duration;
 	char *duration_text;
@@ -2282,8 +2280,15 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_OK;
 	}
 
-	address = strtoul(args[1], NULL, 0);
-	size = strtoul(args[2], NULL, 0);
+	u32 address;
+	int retval = parse_u32(args[1], &address);
+	if (ERROR_OK != retval)
+		return retval;
+
+	u32 size;
+	retval = parse_u32(args[2], &size);
+	if (ERROR_OK != retval)
+		return retval;
 
 	if (fileio_open(&fileio, args[0], FILEIO_WRITE, FILEIO_BINARY) != ERROR_OK)
 	{
