@@ -1889,23 +1889,20 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 
 static int handle_halt_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	int retval;
-	target_t *target = get_current_target(cmd_ctx);
-
 	LOG_DEBUG("-");
 
-	if ((retval = target_halt(target)) != ERROR_OK)
-	{
+	target_t *target = get_current_target(cmd_ctx);
+	int retval = target_halt(target);
+	if (ERROR_OK != retval)
 		return retval;
-	}
 
 	if (argc == 1)
 	{
-		int wait;
-		char *end;
-
-		wait = strtoul(args[0], &end, 0);
-		if (!*end && !wait)
+		unsigned wait;
+		retval = parse_uint(args[0], &wait);
+		if (ERROR_OK != retval)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		if (!wait)
 			return ERROR_OK;
 	}
 
