@@ -2153,8 +2153,12 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 	/* a base address isn't always necessary, default to 0x0 (i.e. don't relocate) */
 	if (argc >= 2)
 	{
+		u32 addr;
+		retval = parse_u32(args[1], &addr);
+		if (ERROR_OK != retval)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		image.base_address = addr;
 		image.base_address_set = 1;
-		image.base_address = strtoul(args[1], NULL, 0);
 	}
 	else
 	{
@@ -2166,11 +2170,17 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (argc>=4)
 	{
-		min_address=strtoul(args[3], NULL, 0);
+		retval = parse_u32(args[3], &min_address);
+		if (ERROR_OK != retval)
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	if (argc>=5)
 	{
-		max_address=strtoul(args[4], NULL, 0)+min_address;
+		retval = parse_u32(args[4], &max_address);
+		if (ERROR_OK != retval)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		// use size (given) to find max (required)
+		max_address += min_address;
 	}
 
 	if (min_address>max_address)
