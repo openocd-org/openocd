@@ -1954,7 +1954,11 @@ static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, c
 	 * handle breakpoints, not debugging */
 	u32 addr = 0;
 	if (argc == 1)
-		addr = strtoul(args[0], NULL, 0);
+	{
+		int retval = parse_u32(args[0], &addr);
+		if (ERROR_OK != retval)
+			return retval;
+	}
 
 	return target_resume(target, 0, addr, 1, 0);
 }
@@ -1971,7 +1975,11 @@ static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	 * handle breakpoints, debugging */
 	u32 addr = 0;
 	if (argc == 1)
-		addr = strtoul(args[0], NULL, 0);
+	{
+		int retval = parse_u32(args[0], &addr);
+		if (ERROR_OK != retval)
+			return retval;
+	}
 
 	target_t *target = get_current_target(cmd_ctx);
 	return target->type->step(target, 0, addr, 1);
