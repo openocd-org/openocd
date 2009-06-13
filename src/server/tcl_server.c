@@ -34,7 +34,7 @@ typedef struct tcl_connection_s {
 	int tc_outerror; /* flag an output error */
 } tcl_connection_t;
 
-static unsigned short tcl_port = 0;
+static unsigned short tcl_port = 6666;
 
 /* commands */
 static int handle_tcl_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -165,8 +165,8 @@ int tcl_init(void)
 
 	if (tcl_port == 0)
 	{
-		LOG_DEBUG("no tcl port specified, using default port 6666");
-		tcl_port = 6666;
+		LOG_INFO("tcl port disabled");
+		return ERROR_OK;
 	}
 
 	retval = add_service("tcl", CONNECTION_TCP, tcl_port, 1, tcl_new_connection, tcl_input, tcl_closed, NULL);

@@ -30,7 +30,7 @@
 #include "telnet_server.h"
 #include "target_request.h"
 
-static unsigned short telnet_port = 0;
+static unsigned short telnet_port = 4444;
 
 int handle_exit_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int handle_telnet_port_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -596,8 +596,8 @@ int telnet_init(char *banner)
 
 	if (telnet_port == 0)
 	{
-		LOG_DEBUG("no telnet port specified, using default port 4444");
-		telnet_port = 4444;
+		LOG_INFO("telnet port disabled");
+		return ERROR_OK;
 	}
 
 	telnet_service->banner = banner;

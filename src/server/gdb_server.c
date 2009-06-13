@@ -44,7 +44,7 @@ static int gdb_breakpoint_override;
 static enum breakpoint_type gdb_breakpoint_override_type;
 
 extern int gdb_error(connection_t *connection, int retval);
-static unsigned short gdb_port;
+static unsigned short gdb_port = 3333;
 static const char *DIGITS = "0123456789abcdef";
 
 static void gdb_log_callback(void *priv, const char *file, int line,
@@ -2198,8 +2198,8 @@ int gdb_init(void)
 
 	if (gdb_port == 0 && server_use_pipes == 0)
 	{
-		LOG_DEBUG("no gdb port specified, using default port 3333");
-		gdb_port = 3333;
+		LOG_INFO("gdb port disabled");
+		return ERROR_OK;
 	}
 
 	if (server_use_pipes)
