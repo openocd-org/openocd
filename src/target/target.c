@@ -2046,16 +2046,23 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	default: return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	u32 address = strtoul(args[0], NULL, 0);
+	u32 address;
+	int retval = parse_u32(args[0], &address);
+	if (ERROR_OK != retval)
+		return retval;
 
 	unsigned count = 1;
 	if (argc == 2)
-		count = strtoul(args[1], NULL, 0);
+	{
+		retval = parse_uint(args[1], &count);
+		if (ERROR_OK != retval)
+			return retval;
+	}
 
 	u8 *buffer = calloc(count, size);
 
 	target_t *target = get_current_target(cmd_ctx);
-	int retval = target_read_memory(target,
+	retval = target_read_memory(target,
 				address, size, count, buffer);
 	if (ERROR_OK == retval)
 		handle_md_output(cmd_ctx, target, address, size, count, buffer);
