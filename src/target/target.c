@@ -2366,8 +2366,12 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 
 	if (argc >= 2)
 	{
+		u32 addr;
+		retval = parse_u32(args[1], &addr);
+		if (ERROR_OK != retval)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		image.base_address = addr;
 		image.base_address_set = 1;
-		image.base_address = strtoul(args[1], NULL, 0);
 	}
 	else
 	{
