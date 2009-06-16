@@ -238,26 +238,10 @@ That said, the OpenOCD developers would also like you to follow a few
 suggestions:
 
 @enumerate
-@item @b{Send patches, including config files, upstream.}
-@item @b{Always build with printer ports enabled.}
-@item @b{Try to use LIBFTDI + LIBUSB where possible. You cover more bases.}
+@item Send patches, including config files, upstream.
+@item Always build with printer ports enabled.
+@item Use libftdi + libusb for FT2232 support.
 @end enumerate
-
-@itemize @bullet
-@item @b{Why YES to LIBFTDI + LIBUSB?}
-@itemize @bullet
-@item @b{LESS} work - libusb perhaps already there
-@item @b{LESS} work - identical code, multiple platforms
-@item @b{MORE} dongles are supported
-@item @b{MORE} platforms are supported
-@item @b{MORE} complete solution
-@end itemize
-@item @b{Why not LIBFTDI + LIBUSB} (i.e.: ftd2xx instead)?
-@itemize @bullet
-@item @b{LESS} speed - some say it is slower
-@item @b{LESS} complex to distribute (external dependencies)
-@end itemize
-@end itemize
 
 @section Building From Source
 
@@ -297,16 +281,21 @@ a FTDI FT2232 based interface:
 
 @itemize @bullet
 @item @b{ftdi2232} libftdi (@uref{http://www.intra2net.com/opensource/ftdi/})
-@item @b{ftd2xx} libftd2xx (@uref{http://www.ftdichip.com/Drivers/D2XX.htm})
-@item When using the Amontec JTAGkey, you have to get the drivers from the Amontec
-homepage (@uref{http://www.amontec.com}). The JTAGkey uses a non-standard VID/PID.
+@item @b{ftd2xx} libftd2xx (@uref{http://www.ftdichip.com/Drivers/D2XX.htm}),
+or the Amontec version (from @uref{http://www.amontec.com}),
+for easier support of JTAGkey's vendor and product IDs.
 @end itemize
 
 libftdi is supported under Windows. Do not use versions earlier than 0.14.
+To use the newer FT2232H chips, supporting RTCK and USB high speed (480 Mbps),
+you need libftdi version 0.16 or newer.
 
-In general, the D2XX driver provides superior performance (several times as fast),
-but has the draw-back of being binary-only - though that isn't that bad, as it isn't
-a kernel module, only a user space library.
+Some people say that FTDI's libftd2xx code provides better performance.
+However, it is binary-only, while OpenOCD is licenced according
+to GNU GPLv2 without any exceptions.
+That means that @emph{distributing} copies of OpenOCD built with
+the FTDI code would violate the OpenOCD licensing terms.
+You may, however, build such copies for personal use.
 
 To build OpenOCD (on both Linux and Cygwin), use the following commands:
 
@@ -354,9 +343,12 @@ should be included (among other things):
 @item
 @option{--enable-gw16012} - Enable building support for the Gateworks GW16012 JTAG programmer.
 @item
-@option{--enable-ft2232_ftd2xx} - Numerous USB type ARM JTAG dongles use the FT2232C chip from this FTDICHIP.COM chip (closed source).
+@option{--enable-ft2232_ftd2xx} - Support FT2232-family chips using
+the closed-source library from FTDICHIP.COM
+(result not for re-distribution).
 @item
-@option{--enable-ft2232_libftdi} - An open source (free) alternative to FTDICHIP.COM ftd2xx solution (Linux, MacOS, Cygwin).
+@option{--enable-ft2232_libftdi} - Support FT2232-family chips using
+a GPL'd ft2232 support library (result OK for re-distribution).
 @item
 @option{--with-ftd2xx-win32-zipdir=PATH} - If using FTDICHIP.COM ft2232c driver,
 give the directory where the Win32 FTDICHIP.COM 'CDM' driver zip file was unpacked.
@@ -399,7 +391,10 @@ use both the @option{--enable-parport} AND the @option{--enable-parport_giveio} 
 
 There are 2 methods of using the FTD2232, either (1) using the
 FTDICHIP.COM closed source driver, or (2) the open (and free) driver
-libftdi. Some claim the (closed) FTDICHIP.COM solution is faster.
+libftdi. Some claim the (closed) FTDICHIP.COM solution is faster,
+which is the motivation for supporting it even though its licensing
+restricts it to non-redistributable OpenOCD binaries, and it is
+not available for all operating systems used with OpenOCD.
 
 The FTDICHIP drivers come as either a (win32) ZIP file, or a (Linux)
 TAR.GZ file. You must unpack them ``some where'' convient. As of this
