@@ -1911,6 +1911,7 @@ configuration. This can also be quite confusing.
 Resets also interact with @var{reset-init} event handlers,
 which do things like setting up clocks and DRAM, and
 JTAG clock rates.  (@xref{JTAG Speed}.)
+They can also interact with JTAG routers.
 Please see the various board files for examples.
 
 @quotation Note
@@ -1919,11 +1920,12 @@ Reset configuration touches several things at once.
 Normally the board configuration file
 should define it and assume that the JTAG adapter supports
 everything that's wired up to the board's JTAG connector.
+
 However, the target configuration file could also make note
 of something the silicon vendor has done inside the chip,
 which will be true for most (or all) boards using that chip.
 And when the JTAG adapter doesn't support everything, the
-system configuration file will need to override parts of
+user configuration file will need to override parts of
 the reset configuration provided by other files.
 @end quotation
 
@@ -1967,6 +1969,7 @@ and @command{reset init} commands; after @command{reset init} a
 board-specific script might do things like setting up DRAM.
 (@xref{Reset Command}.)
 
+@anchor{SRST and TRST Issues}
 @section SRST and TRST Issues
 
 Because SRST and TRST are hardware signals, they can have a
@@ -1979,9 +1982,11 @@ common issues are:
 SRST or TRST to the JTAG connector.  Some JTAG adapters don't
 support such signals even if they are wired up.
 Use the @command{reset_config} @var{signals} options to say
-when one of those signals is not connected.
+when either of those signals is not connected.
 When SRST is not available, your code might not be able to rely
 on controllers having been fully reset during code startup.
+Missing TRST is not a problem, since JTAG level resets can
+be triggered using with TMS signaling.
 
 @item @emph{Signals shorted} ... Sometimes a chip, board, or
 adapter will connect SRST to TRST, instead of keeping them separate.
@@ -2051,17 +2056,14 @@ This command tells OpenOCD the reset configuration
 of your combination of JTAG board and target in target
 configuration scripts.
 
-If you have an interface that does not support SRST and
-TRST(unlikely), then you may be able to work around that
-problem by using a reset_config command to override any
-settings in the target configuration script.
-
-SRST and TRST has a fairly well understood definition and
-behaviour in the JTAG specification, but vendors take
-liberties to achieve various more or less clearly understood
-goals. Sometimes documentation is available, other times it
-is not. OpenOCD has the reset_config command to allow OpenOCD
-to deal with the various common cases.
+Information earlier in this section describes the kind of problems
+the command is intended to address (@pxref{SRST and TRST Issues}).
+As a rule this command belongs only in board config files,
+describing issues like @emph{board doesn't connect TRST};
+or in user config files, addressing limitations derived
+from a particular combination of interface and board.
+(An unlikely example would be using a TRST-only adapter
+with a board that only wires up SRST.)
 
 The @var{mode_flag} options can be specified in any order, but only one
 of each type -- @var{signals}, @var{combination}, @var{trst_type},
