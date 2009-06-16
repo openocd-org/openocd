@@ -243,24 +243,30 @@ int jtag_register_event_callback(jtag_event_handler_t callback, void *priv)
 	return ERROR_OK;
 }
 
-int jtag_unregister_event_callback(jtag_event_handler_t callback)
+int jtag_unregister_event_callback(jtag_event_handler_t callback, void *priv)
 {
-	jtag_event_callback_t **callbacks_p = &jtag_event_callbacks;
+	jtag_event_callback_t **callbacks_p;
+	jtag_event_callback_t **next;
 
 	if (callback == NULL)
 	{
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	while (*callbacks_p)
+	for (callbacks_p = &jtag_event_callbacks;
+			*callbacks_p != NULL;
+			callbacks_p = next)
 	{
-		jtag_event_callback_t **next = &((*callbacks_p)->next);
+		next = &((*callbacks_p)->next);
+
+		if ((*callbacks_p)->priv != priv)
+			continue;
+
 		if ((*callbacks_p)->callback == callback)
 		{
 			free(*callbacks_p);
 			*callbacks_p = *next;
 		}
-		callbacks_p = next;
 	}
 
 	return ERROR_OK;
@@ -1092,6 +1098,8 @@ void jtag_tap_init(jtag_tap_t *tap)
 
 void jtag_tap_free(jtag_tap_t *tap)
 {
+	jtag_unregister_event_callback(&jtag_reset_callback, tap);
+
 	/// @todo is anything missing? no memory leaks please 
 	free((void *)tap->expected_ids);
 	free((void *)tap->chip);

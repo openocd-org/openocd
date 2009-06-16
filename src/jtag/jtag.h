@@ -230,7 +230,7 @@ struct jtag_tap_event_action_s
 typedef int (*jtag_event_handler_t)(enum jtag_event event, void* priv);
 
 extern int jtag_register_event_callback(jtag_event_handler_t f, void *x);
-extern int jtag_unregister_event_callback(jtag_event_handler_t f);
+extern int jtag_unregister_event_callback(jtag_event_handler_t f, void *x);
 
 extern int jtag_call_event_callbacks(enum jtag_event event);
 
