@@ -201,19 +201,18 @@ extern unsigned jtag_tap_count(void);
  * - SRST pulls TRST
  * - TRST asserted
  *
- **/
+ * TAP activation/deactivation is currently implemented outside the core
+ * using scripted code that understands the specific router type.
+ */
 enum jtag_event {
-	JTAG_TRST_ASSERTED
-};
-
-enum jtag_tap_event {
+	JTAG_TRST_ASSERTED,
 	JTAG_TAP_EVENT_ENABLE,
-	JTAG_TAP_EVENT_DISABLE
+	JTAG_TAP_EVENT_DISABLE,
 };
 
 struct jtag_tap_event_action_s
 {
-	enum jtag_tap_event      event;
+	enum jtag_event		event;
 	Jim_Obj*                 body;
 	jtag_tap_event_action_t* next;
 };

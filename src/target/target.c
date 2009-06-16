@@ -478,6 +478,18 @@ int target_examine_one(struct target_s *target)
 	return target->type->examine(target);
 }
 
+static int jtag_enable_callback(enum jtag_event event, void *priv)
+{
+	target_t *target = priv;
+
+	if (event != JTAG_TAP_EVENT_ENABLE || !target->tap->enabled)
+		return ERROR_OK;
+
+	jtag_unregister_event_callback(jtag_enable_callback, target);
+	return target_examine_one(target);
+}
+
+
 /* Targets that correctly implement init+examine, i.e.
  * no communication with target during init:
  *
@@ -490,8 +502,12 @@ int target_examine(void)
 
 	for (target = all_targets; target; target = target->next)
 	{
-		if (!target->tap->enabled)
+		/* defer examination, but don't skip it */
+		if (!target->tap->enabled) {
+			jtag_register_event_callback(jtag_enable_callback,
+					target);
 			continue;
+		}
 		if ((retval = target_examine_one(target)) != ERROR_OK)
 			return retval;
 	}

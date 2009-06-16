@@ -256,7 +256,7 @@ static int jtag_tap_configure_cmd( Jim_GetOptInfo *goi, jtag_tap_t * tap)
 					jteap = tap->event_action;
 					/* replace existing? */
 					while (jteap) {
-						if (jteap->event == (enum jtag_tap_event)n->value) {
+						if (jteap->event == (enum jtag_event)n->value) {
 							break;
 						}
 						jteap = jteap->next;
@@ -460,7 +460,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 	return JIM_ERR;
 }
 
-static void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
+static void jtag_tap_handle_event(jtag_tap_t *tap, enum jtag_event e)
 {
 	jtag_tap_event_action_t * jteap;
 	int done;
@@ -594,6 +594,8 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 				 *  - scan chain length grew by one (this)
 				 *  - IDs and IR lengths are as expected
 				 */
+
+				jtag_call_event_callbacks(JTAG_TAP_EVENT_ENABLE);
 				break;
 			case JTAG_CMD_TAPDISABLE:
 				if (!t->enabled)
@@ -606,6 +608,8 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 				 *  - scan chain length shrank by one (this)
 				 *  - IDs and IR lengths are as expected
 				 */
+
+				jtag_call_event_callbacks(JTAG_TAP_EVENT_DISABLE);
 				break;
 			}
 			e = t->enabled;

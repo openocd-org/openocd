@@ -61,6 +61,8 @@ static int jtag_error = ERROR_OK;
 static const char *jtag_event_strings[] =
 {
 	[JTAG_TRST_ASSERTED] = "JTAG controller reset (RESET or TRST)",
+	[JTAG_TAP_EVENT_ENABLE] = "TAP enabled",
+	[JTAG_TAP_EVENT_DISABLE] = "TAP disabled",
 };
 
 static int jtag_trst = 0;
