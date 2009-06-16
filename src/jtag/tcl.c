@@ -478,6 +478,12 @@ static void jtag_tap_handle_event( jtag_tap_t * tap, enum jtag_tap_event e)
 					Jim_GetString(jteap->body, NULL) );
 			if (Jim_EvalObj(interp, jteap->body) != JIM_OK) {
 				Jim_PrintErrorMessage(interp);
+			} else {
+				/* NOTE:  we currently assume the handlers
+				 * can't fail.  That presumes later code
+				 * will be verifying the scan chains ...
+				 */
+				tap->enabled = (e == JTAG_TAP_EVENT_ENABLE);
 			}
 		}
 
@@ -569,26 +575,41 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 
 		{
 			jtag_tap_t *t;
-			t = jtag_tap_by_jim_obj( goi.interp, goi.argv[0] );
-			if( t == NULL ){
+
+			t = jtag_tap_by_jim_obj(goi.interp, goi.argv[0]);
+			if (t == NULL)
 				return JIM_ERR;
-			}
-			switch( n->value ){
+
+			switch (n->value) {
 			case JTAG_CMD_TAPISENABLED:
-				e = t->enabled;
 				break;
 			case JTAG_CMD_TAPENABLE:
-				jtag_tap_handle_event( t, JTAG_TAP_EVENT_ENABLE);
-				e = 1;
-				t->enabled = e;
+				if (t->enabled)
+					break;
+				jtag_tap_handle_event(t, JTAG_TAP_EVENT_ENABLE);
+				if (!t->enabled)
+					break;
+
+				/* FIXME add JTAG sanity checks, w/o TLR
+				 *  - scan chain length grew by one (this)
+				 *  - IDs and IR lengths are as expected
+				 */
 				break;
 			case JTAG_CMD_TAPDISABLE:
-				jtag_tap_handle_event( t, JTAG_TAP_EVENT_DISABLE);
-				e = 0;
-				t->enabled = e;
+				if (!t->enabled)
+					break;
+				jtag_tap_handle_event(t, JTAG_TAP_EVENT_DISABLE);
+				if (t->enabled)
+					break;
+
+				/* FIXME add JTAG sanity checks, w/o TLR
+				 *  - scan chain length shrank by one (this)
+				 *  - IDs and IR lengths are as expected
+				 */
 				break;
 			}
-			Jim_SetResult( goi.interp, Jim_NewIntObj( goi.interp, e ) );
+			e = t->enabled;
+			Jim_SetResult(goi.interp, Jim_NewIntObj(goi.interp, e));
 			return JIM_OK;
 		}
 		break;
