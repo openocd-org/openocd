@@ -792,6 +792,8 @@ static int jtag_reset_callback(enum jtag_event event, void *priv)
 
 	if (event == JTAG_TRST_ASSERTED)
 	{
+		tap->enabled = !tap->disabled_after_reset;
+
 		buf_set_ones(tap->cur_instr, tap->ir_length);
 		tap->bypass = 1;
 	}

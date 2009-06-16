@@ -359,9 +359,6 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 	LOG_DEBUG("Creating New Tap, Chip: %s, Tap: %s, Dotted: %s, %d params",
 			  pTap->chip, pTap->tapname, pTap->dotted_name, goi->argc);
 
-	/* default is enabled */
-	pTap->enabled = 1;
-
 	/* deal with options */
 #define NTREQ_IRLEN      1
 #define NTREQ_IRCAPTURE  2
@@ -379,10 +376,10 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 		LOG_DEBUG("Processing option: %s", n->name );
 		switch( n->value ){
 		case NTAP_OPT_ENABLED:
-			pTap->enabled = 1;
+			pTap->disabled_after_reset = false;
 			break;
 		case NTAP_OPT_DISABLED:
-			pTap->enabled = 0;
+			pTap->disabled_after_reset = true;
 			break;
 		case NTAP_OPT_EXPECTED_ID:
 		{
@@ -445,6 +442,9 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 			}
 		} /* switch(n->value) */
 	} /* while( goi->argc ) */
+
+	/* default is enabled-after-reset */
+	pTap->enabled = !pTap->disabled_after_reset;
 
 	/* Did all the required option bits get cleared? */
 	if (0 == reqbits)

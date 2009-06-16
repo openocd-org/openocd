@@ -2314,8 +2314,9 @@ A TAP may also provide optional @var{configparams}:
 
 @itemize @bullet
 @item @code{-disable} (or @code{-enable})
-@*Use the @code{-disable} paramater to flag a TAP which is not
-linked in to the scan chain when it is declared.
+@*Use the @code{-disable} parameter to flag a TAP which is not
+linked in to the scan chain after a reset using either TRST
+or the JTAG state machine's @sc{reset} state.
 You may use @code{-enable} to highlight the default state
 (the TAP is linked in).
 @xref{Enabling and Disabling TAPs}.
@@ -5079,7 +5080,7 @@ and @command{irscan} commands are:
 @end itemize
 
 Note that only six of those states are fully ``stable'' in the
-face of TMS fixed (usually low)
+face of TMS fixed (low except for @sc{reset})
 and a free-running JTAG clock.  For all the
 others, the next TCK transition changes to a new state.
 

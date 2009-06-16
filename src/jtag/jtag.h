@@ -151,8 +151,10 @@ struct jtag_tap_s
 	const char* tapname;
 	const char* dotted_name;
 	int abs_chain_position;
-	/// Is this TAP enabled?
-	int enabled;
+	/// Is this TAP disabled after JTAG reset?
+	bool disabled_after_reset;
+	/// Is this TAP currently enabled?
+	bool enabled;
 	int ir_length; /**< size of instruction register */
 	u32 ir_capture_value;
 	u8* expected; /**< Capture-IR expected value */
