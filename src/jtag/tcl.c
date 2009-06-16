@@ -416,7 +416,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 			}
 			switch(n->value){
 			case NTAP_OPT_IRLEN:
-				if (w < (jim_wide) sizeof(pTap->ir_capture_value))
+				if (w > (jim_wide) (8 * sizeof(pTap->ir_capture_value)))
 					LOG_WARNING("huge IR length %d", (int) w);
 				pTap->ir_length = w;
 				reqbits &= (~(NTREQ_IRLEN));
