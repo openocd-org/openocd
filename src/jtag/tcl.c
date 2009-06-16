@@ -1130,7 +1130,7 @@ static int handle_runtest_command(struct command_context_s *cmd_ctx,
 	if (ERROR_OK != retval)
 		return retval;
 
-	jtag_add_runtest(num_clocks, jtag_get_end_state());
+	jtag_add_runtest(num_clocks, TAP_IDLE);
 	jtag_execute_queue();
 
 	return ERROR_OK;
