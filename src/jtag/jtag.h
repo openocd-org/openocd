@@ -175,6 +175,10 @@ struct jtag_tap_s
 
 	jtag_tap_t* next_tap;
 };
+
+void jtag_tap_init(jtag_tap_t *tap);
+void jtag_tap_free(jtag_tap_t *tap);
+
 extern jtag_tap_t* jtag_all_taps(void);
 extern const char *jtag_tap_name(const jtag_tap_t *tap);
 extern jtag_tap_t* jtag_tap_by_string(const char* dotted_name);
@@ -185,16 +189,16 @@ extern unsigned jtag_tap_count_enabled(void);
 extern unsigned jtag_tap_count(void);
 
 
-/* 
+/*
  * There are three cases when JTAG_TRST_ASSERTED callback is invoked. The
- * event is invoked *after* TRST is asserted(or queued rather). It is illegal 
- * to communicate with the JTAG interface during the callback(as there is 
+ * event is invoked *after* TRST is asserted(or queued rather). It is illegal
+ * to communicate with the JTAG interface during the callback(as there is
  * currently a queue being built).
- * 
+ *
  * - TMS reset
  * - SRST pulls TRST
  * - TRST asserted
- * 
+ *
  **/
 enum jtag_event {
 	JTAG_TRST_ASSERTED
@@ -235,7 +239,7 @@ extern int jtag_call_event_callbacks(enum jtag_event event);
 int jtag_get_speed(void);
 /**
  * Given a @a speed setting, use the interface @c speed_div callback to
- * adjust the setting.  
+ * adjust the setting.
  * @param speed The speed setting to convert back to readable KHz.
  * @returns ERROR_OK if the interface has not been initialized or on success;
  * 	otherwise, the error code produced by the @c speed_div callback.
@@ -507,7 +511,7 @@ extern void jtag_add_pathmove(int num_states, const tap_state_t* path);
  * @param goal_state The final TAP state.
  * @return ERROR_OK on success, or an error code on failure.
  *
- * Moves from the current state to the goal \a state. 
+ * Moves from the current state to the goal \a state.
  *
  * This needs to be handled according to the xsvf spec, see the XSTATE
  * command description.  From the XSVF spec, pertaining to XSTATE:

@@ -306,9 +306,6 @@ static int is_bad_irval(int ir_length, jim_wide w)
 	return (w & v) != 0;
 }
 
-extern void jtag_tap_init(jtag_tap_t *tap);
-extern void jtag_tap_free(jtag_tap_t *tap);
-
 static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 {
 	jtag_tap_t *pTap;
@@ -334,12 +331,12 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 		{ .name = NULL				,	.value = -1 },
 	};
 
-	pTap = malloc( sizeof(jtag_tap_t) );
-	memset( pTap, 0, sizeof(*pTap) );
-	if( !pTap ){
-		Jim_SetResult_sprintf( goi->interp, "no memory");
+	pTap = calloc(1, sizeof(jtag_tap_t));
+	if (!pTap) {
+		Jim_SetResult_sprintf(goi->interp, "no memory");
 		return JIM_ERR;
 	}
+
 	/*
 	 * we expect CHIP + TAP + OPTIONS
 	 * */

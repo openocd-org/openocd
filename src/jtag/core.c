@@ -58,9 +58,9 @@ static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const s
  */
 static int jtag_error = ERROR_OK;
 
-static char* jtag_event_strings[] =
+static const char *jtag_event_strings[] =
 {
-	"JTAG controller reset (RESET or TRST)"
+	[JTAG_TRST_ASSERTED] = "JTAG controller reset (RESET or TRST)",
 };
 
 static int jtag_trst = 0;
