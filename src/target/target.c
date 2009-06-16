@@ -269,7 +269,7 @@ static int new_target_number(void)
 	return x+1;
 }
 
-static int target_continous_poll = 1;
+static int target_continuous_poll = 1;
 
 /* read a u32 from a buffer in target memory endianness */
 u32 target_buffer_get_u32(target_t *target, const u8 *buffer)
@@ -436,13 +436,13 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	 * more predictable, i.e. dr/irscan & pathmove in events will
 	 * not have JTAG operations injected into the middle of a sequence.
 	 */
-	int save_poll = target_continous_poll;
-	target_continous_poll = 0;
+	int save_poll = target_continuous_poll;
+	target_continuous_poll = 0;
 
 	sprintf( buf, "ocd_process_reset %s", n->name );
 	retval = Jim_Eval( interp, buf );
 
-	target_continous_poll = save_poll;
+	target_continuous_poll = save_poll;
 
 	if(retval != JIM_OK) {
 		Jim_PrintErrorMessage(interp);
@@ -1650,20 +1650,23 @@ int handle_target(void *priv)
 		recursive = 0;
 	}
 
-	target_t *target = all_targets;
-
-	while (target)
+	/* Poll targets for state changes unless that's globally disabled.
+	 * Skip targets that are currently disabled.
+	 */
+	for (target_t *target = all_targets;
+			target_continuous_poll && target;
+			target = target->next)
 	{
+		if (!target->tap->enabled)
+			continue;
 
 		/* only poll target if we've got power and srst isn't asserted */
-		if (target_continous_poll&&!powerDropout&&!srstAsserted)
+		if (!powerDropout && !srstAsserted)
 		{
 			/* polling may fail silently until the target has been examined */
 			if((retval = target_poll(target)) != ERROR_OK)
 				return retval;
 		}
-
-		target = target->next;
 	}
 
 	return retval;
@@ -1791,7 +1794,12 @@ static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	if (argc == 0)
 	{
 		command_print(cmd_ctx, "background polling: %s",
-				target_continous_poll ?  "on" : "off");
+				target_continuous_poll ?  "on" : "off");
+		command_print(cmd_ctx, "TAP: %s (%s)",
+				target->tap->dotted_name,
+				target->tap->enabled ? "enabled" : "disabled");
+		if (!target->tap->enabled)
+			return ERROR_OK;
 		if ((retval = target_poll(target)) != ERROR_OK)
 			return retval;
 		if ((retval = target_arch_state(target)) != ERROR_OK)
@@ -1802,11 +1810,11 @@ static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	{
 		if (strcmp(args[0], "on") == 0)
 		{
-			target_continous_poll = 1;
+			target_continuous_poll = 1;
 		}
 		else if (strcmp(args[0], "off") == 0)
 		{
-			target_continous_poll = 0;
+			target_continuous_poll = 0;
 		}
 		else
 		{
