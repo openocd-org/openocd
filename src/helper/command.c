@@ -863,17 +863,14 @@ long jim_global_long(const char *variable)
 	return 0;
 }
 
-int parse_ullong(const char *str, unsigned long long *ul)
-{
-	char *end;
-	*ul = strtoull(str, &end, 0);
-	bool okay = *str && !*end && ULLONG_MAX != *ul;
-	return okay ? ERROR_OK : ERROR_COMMAND_SYNTAX_ERROR;
-}
-int parse_ulong(const char *str, unsigned long *ul)
-{
-	char *end;
-	*ul = strtoul(str, &end, 0);
-	bool okay = *str && !*end && ULONG_MAX != *ul;
-	return okay ? ERROR_OK : ERROR_COMMAND_SYNTAX_ERROR;
-}
+#define DEFINE_PARSE_NUM_TYPE(name, type, func, max) \
+	int parse##name(const char *str, type *ul) \
+	{ \
+		char *end; \
+		*ul = func(str, &end, 0); \
+		bool is_okay = *str && !*end && (max != *ul); \
+		return is_okay ? ERROR_OK : ERROR_COMMAND_SYNTAX_ERROR; \
+	}
+DEFINE_PARSE_NUM_TYPE(_ulong, unsigned long , strtoul, ULONG_MAX)
+DEFINE_PARSE_NUM_TYPE(_ullong, unsigned long long, strtoull, ULLONG_MAX)
+
