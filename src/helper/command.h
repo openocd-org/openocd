@@ -110,14 +110,17 @@ long jim_global_long(const char *variable);
 int parse_ulong(const char *str, unsigned long *ul);
 int parse_ullong(const char *str, unsigned long long *ul);
 
-#define DEFINE_PARSE_ULONG(name, type, max) \
+#define DEFINE_PARSE_NUM_WRAP(name, type, max, functype, funcname) \
 	static inline int parse_##name(const char *str, type *ul) \
 	{ \
-		unsigned long n; \
-		int retval = parse_ulong(str, &n); \
+		functype n; \
+		int retval = parse##funcname(str, &n); \
 		*ul = n; \
 		return n > (max) ? ERROR_COMMAND_SYNTAX_ERROR : retval; \
 	}	
+
+#define DEFINE_PARSE_ULONG(name, type, max) \
+	DEFINE_PARSE_NUM_WRAP(name, type, max, unsigned long, _ulong)
 DEFINE_PARSE_ULONG(uint, unsigned, UINT_MAX)
 DEFINE_PARSE_ULONG(u32, uint32_t, UINT32_MAX)
 DEFINE_PARSE_ULONG(u16, uint16_t, UINT16_MAX)
