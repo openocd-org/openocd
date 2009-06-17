@@ -282,8 +282,12 @@ int jtag_call_event_callbacks(enum jtag_event event)
 
 	while (callback)
 	{
+		jtag_event_callback_t *next;
+
+		/* callback may remove itself */
+		next = callback->next;
 		callback->callback(event, callback->priv);
-		callback = callback->next;
+		callback = next;
 	}
 
 	return ERROR_OK;
