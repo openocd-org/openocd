@@ -98,6 +98,9 @@ extern void process_jim_events(void);
 #define		ERROR_COMMAND_CLOSE_CONNECTION		(-600)
 #define		ERROR_COMMAND_SYNTAX_ERROR			(-601)
 #define		ERROR_COMMAND_NOTFOUND				(-602)
+#define		ERROR_COMMAND_ARGUMENT_INVALID		(-603)
+#define		ERROR_COMMAND_ARGUMENT_OVERFLOW		(-604)
+#define		ERROR_COMMAND_ARGUMENT_UNDERFLOW	(-605)
 
 extern int fast_and_dangerous;
 

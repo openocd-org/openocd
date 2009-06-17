@@ -867,13 +867,15 @@ long jim_global_long(const char *variable)
 	int parse##name(const char *str, type *ul) \
 	{ \
 		if (!*str) \
-			return ERROR_COMMAND_SYNTAX_ERROR; \
+			return ERROR_COMMAND_ARGUMENT_INVALID; \
 		char *end; \
 		*ul = func(str, &end, 0); \
 		if (*end) \
-			return ERROR_COMMAND_SYNTAX_ERROR; \
-		if (*ul == max || (min && min == *ul)) \
-			return ERROR_COMMAND_SYNTAX_ERROR; \
+			return ERROR_COMMAND_ARGUMENT_INVALID; \
+		if (*ul == max) \
+			return ERROR_COMMAND_ARGUMENT_OVERFLOW; \
+		if (min && min == *ul) \
+			return ERROR_COMMAND_ARGUMENT_UNDERFLOW; \
 		return ERROR_OK; \
 	}
 DEFINE_PARSE_NUM_TYPE(_ulong, unsigned long , strtoul, 0, ULONG_MAX)
@@ -889,9 +891,9 @@ DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MIN, LLONG_MAX)
 		if (ERROR_OK != retval) \
 			return retval; \
 		if (n > max) \
-			return ERROR_COMMAND_SYNTAX_ERROR; \
+			return ERROR_COMMAND_ARGUMENT_OVERFLOW; \
 		if (min) \
-			return ERROR_COMMAND_SYNTAX_ERROR; \
+			return ERROR_COMMAND_ARGUMENT_UNDERFLOW; \
 		*ul = n; \
 		return ERROR_OK; \
 	}	
