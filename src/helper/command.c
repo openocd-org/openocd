@@ -884,7 +884,7 @@ DEFINE_PARSE_NUM_TYPE(_long, long , strtol, LONG_MIN, LONG_MAX)
 DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MIN, LLONG_MAX)
 
 #define DEFINE_PARSE_WRAPPER(name, type, min, max, functype, funcname) \
-	int parse_##name(const char *str, type *ul) \
+	int parse##name(const char *str, type *ul) \
 	{ \
 		functype n; \
 		int retval = parse##funcname(str, &n); \
@@ -900,14 +900,14 @@ DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MIN, LLONG_MAX)
 
 #define DEFINE_PARSE_ULONG(name, type, min, max) \
 	DEFINE_PARSE_WRAPPER(name, type, min, max, unsigned long, _ulong)
-DEFINE_PARSE_ULONG(uint, unsigned, 0, UINT_MAX)
-DEFINE_PARSE_ULONG(u32, uint32_t, 0, UINT32_MAX)
-DEFINE_PARSE_ULONG(u16, uint16_t, 0, UINT16_MAX)
-DEFINE_PARSE_ULONG(u8, uint8_t, 0, UINT8_MAX)
+DEFINE_PARSE_ULONG(_uint, unsigned, 0, UINT_MAX)
+DEFINE_PARSE_ULONG(_u32, uint32_t, 0, UINT32_MAX)
+DEFINE_PARSE_ULONG(_u16, uint16_t, 0, UINT16_MAX)
+DEFINE_PARSE_ULONG(_u8, uint8_t, 0, UINT8_MAX)
 
 #define DEFINE_PARSE_LONG(name, type, min, max) \
 	DEFINE_PARSE_WRAPPER(name, type, min, max, long, _long)
-DEFINE_PARSE_LONG(int, int, n < INT_MIN, INT_MAX)
-DEFINE_PARSE_LONG(s32, int32_t, n < INT32_MIN, INT32_MAX)
-DEFINE_PARSE_LONG(s16, int16_t, n < INT16_MIN, INT16_MAX)
-DEFINE_PARSE_LONG(s8, int8_t, n < INT8_MIN, INT8_MAX)
+DEFINE_PARSE_LONG(_int, int, n < INT_MIN, INT_MAX)
+DEFINE_PARSE_LONG(_s32, int32_t, n < INT32_MIN, INT32_MAX)
+DEFINE_PARSE_LONG(_s16, int16_t, n < INT16_MIN, INT16_MAX)
+DEFINE_PARSE_LONG(_s8, int8_t, n < INT8_MIN, INT8_MAX)

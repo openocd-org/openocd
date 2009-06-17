@@ -117,17 +117,17 @@ int parse_long(const char *str, long *ul);
 int parse_llong(const char *str, long long *ul);
 
 #define DECLARE_PARSE_WRAPPER(name, type) \
-	int parse_##name(const char *str, type *ul)
+	int parse##name(const char *str, type *ul)
 
-DECLARE_PARSE_WRAPPER(uint, unsigned);
-DECLARE_PARSE_WRAPPER(u32, uint32_t);
-DECLARE_PARSE_WRAPPER(u16, uint16_t);
-DECLARE_PARSE_WRAPPER(u8, uint8_t);
+DECLARE_PARSE_WRAPPER(_uint, unsigned);
+DECLARE_PARSE_WRAPPER(_u32, uint32_t);
+DECLARE_PARSE_WRAPPER(_u16, uint16_t);
+DECLARE_PARSE_WRAPPER(_u8, uint8_t);
 
-DECLARE_PARSE_WRAPPER(int, int);
-DECLARE_PARSE_WRAPPER(s32, int32_t);
-DECLARE_PARSE_WRAPPER(s16, int16_t);
-DECLARE_PARSE_WRAPPER(s8, int8_t);
+DECLARE_PARSE_WRAPPER(_int, int);
+DECLARE_PARSE_WRAPPER(_s32, int32_t);
+DECLARE_PARSE_WRAPPER(_s16, int16_t);
+DECLARE_PARSE_WRAPPER(_s8, int8_t);
 
 void script_debug(Jim_Interp *interp, const char *cmd, int argc, Jim_Obj *const *argv);
 
