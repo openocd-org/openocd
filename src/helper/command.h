@@ -113,28 +113,18 @@ int parse_ullong(const char *str, unsigned long long *ul);
 int parse_long(const char *str, long *ul);
 int parse_llong(const char *str, long long *ul);
 
-#define DEFINE_PARSE_NUM_WRAP(name, type, max, functype, funcname) \
-	static inline int parse_##name(const char *str, type *ul) \
-	{ \
-		functype n; \
-		int retval = parse##funcname(str, &n); \
-		*ul = n; \
-		return n > (max) ? ERROR_COMMAND_SYNTAX_ERROR : retval; \
-	}	
+#define DECLARE_PARSE_WRAPPER(name, type) \
+	int parse_##name(const char *str, type *ul)
 
-#define DEFINE_PARSE_ULONG(name, type, max) \
-	DEFINE_PARSE_NUM_WRAP(name, type, max, unsigned long, _ulong)
-DEFINE_PARSE_ULONG(uint, unsigned, UINT_MAX)
-DEFINE_PARSE_ULONG(u32, uint32_t, UINT32_MAX)
-DEFINE_PARSE_ULONG(u16, uint16_t, UINT16_MAX)
-DEFINE_PARSE_ULONG(u8, uint8_t, UINT8_MAX)
+DECLARE_PARSE_WRAPPER(uint, unsigned);
+DECLARE_PARSE_WRAPPER(u32, uint32_t);
+DECLARE_PARSE_WRAPPER(u16, uint16_t);
+DECLARE_PARSE_WRAPPER(u8, uint8_t);
 
-#define DEFINE_PARSE_LONG(name, type, max) \
-	DEFINE_PARSE_NUM_WRAP(name, type, max, long, _long)
-DEFINE_PARSE_LONG(int, int, INT_MAX)
-DEFINE_PARSE_LONG(s32, int32_t, INT32_MAX)
-DEFINE_PARSE_LONG(s16, int16_t, INT16_MAX)
-DEFINE_PARSE_LONG(s8, int8_t, INT8_MAX)
+DECLARE_PARSE_WRAPPER(int, int);
+DECLARE_PARSE_WRAPPER(s32, int32_t);
+DECLARE_PARSE_WRAPPER(s16, int16_t);
+DECLARE_PARSE_WRAPPER(s8, int8_t);
 
 void script_debug(Jim_Interp *interp, const char *cmd, int argc, Jim_Obj *const *argv);
 
