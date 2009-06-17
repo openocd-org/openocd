@@ -49,7 +49,7 @@ static const Jim_Nvp nvp_jtag_tap_event[] = {
 /* jtag interfaces (parport, FTDI-USB, TI-USB, ...)
  */
 
-#if BUILD_ECOSBOARD == 1
+#if BUILD_ZY1000 == 1
 	extern jtag_interface_t zy1000_interface;
 #elif defined(BUILD_MINIDRIVER_DUMMY)
 	extern jtag_interface_t minidummy_interface;
@@ -119,7 +119,7 @@ static const Jim_Nvp nvp_jtag_tap_event[] = {
  * or some number of standard driver interfaces, never both.
  */
 jtag_interface_t *jtag_interfaces[] = {
-#if BUILD_ECOSBOARD == 1
+#if BUILD_ZY1000 == 1
 	&zy1000_interface,
 #elif defined(BUILD_MINIDRIVER_DUMMY)
 	&minidummy_interface,

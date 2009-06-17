@@ -9,7 +9,7 @@ DRIVERFILES =
 
 if MINIDRIVER
 
-if ECOSBOARD
+if ZY1000
 DRIVERFILES += zy1000/zy1000.c
 AM_CPPFLAGS += -I$(srcdir)/zy1000
 endif

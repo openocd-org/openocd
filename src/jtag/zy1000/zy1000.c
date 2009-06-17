@@ -33,7 +33,6 @@
 #define ZYLIN_TIME __TIME__
 #define ZYLIN_OPENOCD "$Revision$"
 #define ZYLIN_OPENOCD_VERSION "Zylin JTAG ZY1000 " ZYLIN_VERSION " " ZYLIN_DATE " " ZYLIN_TIME
-const char *zylin_config_dir="/config/settings";
 
 /* low level command set
  */
@@ -781,29 +780,6 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little
 			buffer += 4;
 		}
 	}
-}
-
-int loadFile(const char *fileName, void **data, int *len);
-
-/* boolean parameter stored on config */
-int boolParam(char *var)
-{
-	bool result = false;
-	char *name = alloc_printf("%s/%s", zylin_config_dir, var);
-	if (name == NULL)
-		return result;
-
-	void *data;
-	int len;
-	if (loadFile(name, &data, &len) == ERROR_OK)
-	{
-		if (len > 1)
-			len = 1;
-		result = strncmp((char *) data, "1", len) == 0;
-		free(data);
-	}
-	free(name);
-	return result;
 }
 
 

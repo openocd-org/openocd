@@ -191,7 +191,6 @@ int zy1000_configuration_output_handler_log(struct command_context_s *context,
 }
 
 #ifdef CYGPKG_PROFILE_GPROF
-extern void start_profile(void);
 
 int eCosBoard_handle_eCosBoard_profile_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -304,7 +303,7 @@ void format(void)
 	e.len = ds.dev_size;
 	e.err_address = &err_addr;
 
-	diag_printf("Formatting 0x%08x bytes\n", ds.dev_size);
+	diag_printf("Formatting 0x%08x bytes\n", (int)ds.dev_size);
 	err = cyg_io_get_config(handle, CYG_IO_GET_CONFIG_FLASH_ERASE, &e, &len);
 	if (err != ENOERR)
 	{
@@ -420,8 +419,6 @@ static int zylinjtag_Jim_Command_reboot(Jim_Interp *interp, int argc,
 	return JIM_OK;
 }
 
-
-extern Jim_Interp *interp;
 
 static void zylinjtag_startNetwork(void)
 {
@@ -860,7 +857,7 @@ int boolParam(char *var);
 
 command_context_t *setup_command_handler(void);
 
-extern const char *zylin_config_dir;
+static const char *zylin_config_dir="/config/settings";
 
 int add_default_dirs(void)
 {
@@ -1549,5 +1546,28 @@ static int logfs_fo_fsync(struct CYG_FILE_TAG *fp, int mode)
 static int logfs_fo_close(struct CYG_FILE_TAG *fp)
 {
 	return ENOERR;
+}
+
+int loadFile(const char *fileName, void **data, int *len);
+
+/* boolean parameter stored on config */
+int boolParam(char *var)
+{
+	bool result = false;
+	char *name = alloc_printf("%s/%s", zylin_config_dir, var);
+	if (name == NULL)
+		return result;
+
+	void *data;
+	int len;
+	if (loadFile(name, &data, &len) == ERROR_OK)
+	{
+		if (len > 1)
+			len = 1;
+		result = strncmp((char *) data, "1", len) == 0;
+		free(data);
+	}
+	free(name);
+	return result;
 }
 

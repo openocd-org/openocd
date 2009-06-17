@@ -62,7 +62,7 @@
  */
 typedef enum tap_state
 {
-#if BUILD_ECOSBOARD
+#if BUILD_ZY1000
 	/* These are the old numbers. Leave as-is for now... */
 	TAP_RESET    = 0, TAP_IDLE = 8,
 	TAP_DRSELECT = 1, TAP_DRCAPTURE = 2, TAP_DRSHIFT = 3, TAP_DREXIT1 = 4,
