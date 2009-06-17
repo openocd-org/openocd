@@ -873,4 +873,6 @@ long jim_global_long(const char *variable)
 	}
 DEFINE_PARSE_NUM_TYPE(_ulong, unsigned long , strtoul, ULONG_MAX)
 DEFINE_PARSE_NUM_TYPE(_ullong, unsigned long long, strtoull, ULLONG_MAX)
+DEFINE_PARSE_NUM_TYPE(_long, long , strtol, LONG_MAX)
+DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MAX)
 

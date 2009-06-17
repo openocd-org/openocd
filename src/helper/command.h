@@ -110,6 +110,9 @@ long jim_global_long(const char *variable);
 int parse_ulong(const char *str, unsigned long *ul);
 int parse_ullong(const char *str, unsigned long long *ul);
 
+int parse_long(const char *str, long *ul);
+int parse_llong(const char *str, long long *ul);
+
 #define DEFINE_PARSE_NUM_WRAP(name, type, max, functype, funcname) \
 	static inline int parse_##name(const char *str, type *ul) \
 	{ \
@@ -125,6 +128,13 @@ DEFINE_PARSE_ULONG(uint, unsigned, UINT_MAX)
 DEFINE_PARSE_ULONG(u32, uint32_t, UINT32_MAX)
 DEFINE_PARSE_ULONG(u16, uint16_t, UINT16_MAX)
 DEFINE_PARSE_ULONG(u8, uint8_t, UINT8_MAX)
+
+#define DEFINE_PARSE_LONG(name, type, max) \
+	DEFINE_PARSE_NUM_WRAP(name, type, max, long, _long)
+DEFINE_PARSE_LONG(int, int, INT_MAX)
+DEFINE_PARSE_LONG(s32, int32_t, INT32_MAX)
+DEFINE_PARSE_LONG(s16, int16_t, INT16_MAX)
+DEFINE_PARSE_LONG(s8, int8_t, INT8_MAX)
 
 void script_debug(Jim_Interp *interp, const char *cmd, int argc, Jim_Obj *const *argv);
 
