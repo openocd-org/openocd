@@ -863,16 +863,20 @@ long jim_global_long(const char *variable)
 	return 0;
 }
 
-#define DEFINE_PARSE_NUM_TYPE(name, type, func, max) \
+#define DEFINE_PARSE_NUM_TYPE(name, type, func, min, max) \
 	int parse##name(const char *str, type *ul) \
 	{ \
+		if (!*str) \
+			return ERROR_COMMAND_SYNTAX_ERROR; \
 		char *end; \
 		*ul = func(str, &end, 0); \
-		bool is_okay = *str && !*end && (max != *ul); \
-		return is_okay ? ERROR_OK : ERROR_COMMAND_SYNTAX_ERROR; \
+		if (*end) \
+			return ERROR_COMMAND_SYNTAX_ERROR; \
+		if (*ul == max || (min && min == *ul)) \
+			return ERROR_COMMAND_SYNTAX_ERROR; \
+		return ERROR_OK; \
 	}
-DEFINE_PARSE_NUM_TYPE(_ulong, unsigned long , strtoul, ULONG_MAX)
-DEFINE_PARSE_NUM_TYPE(_ullong, unsigned long long, strtoull, ULLONG_MAX)
-DEFINE_PARSE_NUM_TYPE(_long, long , strtol, LONG_MAX)
-DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MAX)
-
+DEFINE_PARSE_NUM_TYPE(_ulong, unsigned long , strtoul, 0, ULONG_MAX)
+DEFINE_PARSE_NUM_TYPE(_ullong, unsigned long long, strtoull, 0, ULLONG_MAX)
+DEFINE_PARSE_NUM_TYPE(_long, long , strtol, LONG_MIN, LONG_MAX)
+DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MIN, LLONG_MAX)
