@@ -872,9 +872,9 @@ long jim_global_long(const char *variable)
 		*ul = func(str, &end, 0); \
 		if (*end) \
 			return ERROR_COMMAND_ARGUMENT_INVALID; \
-		if (*ul == max) \
+		if ((max == *ul) && (ERANGE == errno)) \
 			return ERROR_COMMAND_ARGUMENT_OVERFLOW; \
-		if (min && min == *ul) \
+		if (min && (min == *ul) && (ERANGE == errno)) \
 			return ERROR_COMMAND_ARGUMENT_UNDERFLOW; \
 		return ERROR_OK; \
 	}
