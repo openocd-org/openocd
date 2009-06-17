@@ -3723,7 +3723,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		 * argv[3] = optional count.
 		 */
 
-		if( (goi.argc == 3) || (goi.argc == 4) ){
+		if( (goi.argc == 2) || (goi.argc == 3) ){
 			/* all is well */
 		} else {
 		mwx_error:
@@ -3740,7 +3740,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		if( e != JIM_OK ){
 			goto mwx_error;
 		}
-		if( goi.argc ){
+		if (goi.argc == 3) {
 			e = Jim_GetOpt_Wide( &goi, &c );
 			if( e != JIM_OK ){
 				goto mwx_error;
