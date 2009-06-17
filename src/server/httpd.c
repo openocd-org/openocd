@@ -307,7 +307,7 @@ int handle_request(struct MHD_Connection * connection, const char * url)
 			return ret;
 		}
 
-		LOG_DEBUG("Serving %s length=%u", url, len);
+		LOG_DEBUG("Serving %s length=%zu", url, len);
 		/* serve file directly */
 		response = MHD_create_response_from_data(len, data, MHD_YES, MHD_NO);
 		MHD_add_response_header(response, "Content-Type", "image/png");

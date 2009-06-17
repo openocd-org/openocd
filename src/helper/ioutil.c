@@ -282,7 +282,7 @@ int handle_cp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 			break;
 		}
 
-		command_print(cmd_ctx, "%d", len - pos);
+		command_print(cmd_ctx, "%zu", len - pos);
 
 		pos += chunk;
 
@@ -323,7 +323,7 @@ void copyfile(char *name2, char *name1)
 	int fd1, fd2;
 	ssize_t done, wrote;
 
-	fd1 = open(name1, O_WRONLY | O_CREAT);
+	fd1 = open(name1, O_WRONLY | O_CREAT, 0664);
 	if (fd1 < 0)
 		SHOW_RESULT( open, fd1 );
 
