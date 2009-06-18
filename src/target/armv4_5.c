@@ -190,7 +190,7 @@ int armv4_5_set_core_reg(reg_t *reg, uint8_t *buf)
 	armv4_5_core_reg_t *armv4_5 = reg->arch_info;
 	target_t *target = armv4_5->target;
 	armv4_5_common_t *armv4_5_target = target->arch_info;
-	u32 value = buf_get_u32(buf, 0, 32);
+	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -388,11 +388,11 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	u32 address;
+	uint32_t address;
 	int count;
 	int i;
 	arm_instruction_t cur_instruction;
-	u32 opcode;
+	uint32_t opcode;
 	uint16_t thumb_opcode;
 	int thumb = 0;
 
@@ -486,7 +486,7 @@ int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list
 }
 
 /* wait for execution to complete and check exit point */
-static int armv4_5_run_algorithm_completion(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info)
+static int armv4_5_run_algorithm_completion(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -515,14 +515,14 @@ static int armv4_5_run_algorithm_completion(struct target_s *target, u32 exit_po
 	return ERROR_OK;
 }
 
-int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info))
+int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info))
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv4_5_algorithm_t *armv4_5_algorithm_info = arch_info;
 	enum armv4_5_state core_state = armv4_5->core_state;
 	enum armv4_5_mode core_mode = armv4_5->core_mode;
-	u32 context[17];
-	u32 cpsr;
+	uint32_t context[17];
+	uint32_t cpsr;
 	int exit_breakpoint_size = 0;
 	int i;
 	int retval = ERROR_OK;
@@ -650,7 +650,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 
 	for (i = 0; i <= 16; i++)
 	{
-		u32 regvalue;
+		uint32_t regvalue;
 		regvalue = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32);
 		if (regvalue != context[i])
 		{
@@ -670,7 +670,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 	return retval;
 }
 
-int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
+int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	return armv4_5_run_algorithm_inner(target, num_mem_params, mem_params, num_reg_params, reg_params, entry_point, exit_point, timeout_ms, arch_info, armv4_5_run_algorithm_completion);
 }

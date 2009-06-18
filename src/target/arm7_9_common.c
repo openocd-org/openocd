@@ -229,7 +229,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	if (breakpoint->type == BKPT_HARD)
 	{
 		/* either an ARM (4 byte) or Thumb (2 byte) breakpoint */
-		u32 mask = (breakpoint->length == 4) ? 0x3u : 0x1u;
+		uint32_t mask = (breakpoint->length == 4) ? 0x3u : 0x1u;
 
 		/* reassign a hw breakpoint */
 		if (breakpoint->set==0)
@@ -272,7 +272,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 		if (breakpoint->length == 4)
 		{
-			u32 verify = 0xffffffff;
+			uint32_t verify = 0xffffffff;
 			/* keep the original instruction in target endianness */
 			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
@@ -371,7 +371,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4)
 		{
-			u32 current_instr;
+			uint32_t current_instr;
 			/* check that user program as not modified breakpoint instruction */
 			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, (uint8_t*)&current_instr)) != ERROR_OK)
 			{
@@ -506,7 +506,7 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	int rw_mask = 1;
-	u32 mask;
+	uint32_t mask;
 
 	mask = watchpoint->length - 1;
 
@@ -781,16 +781,16 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
  * @param buffer Pointer to the buffer that will hold the data
  * @return The result of receiving data from the Embedded ICE unit
  */
-int arm7_9_target_request_data(target_t *target, u32 size, uint8_t *buffer)
+int arm7_9_target_request_data(target_t *target, uint32_t size, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-	u32 *data;
+	uint32_t *data;
 	int retval = ERROR_OK;
-	u32 i;
+	uint32_t i;
 
-	data = malloc(size * (sizeof(u32)));
+	data = malloc(size * (sizeof(uint32_t)));
 
 	retval = embeddedice_receive(jtag_info, data, size);
 
@@ -840,7 +840,7 @@ int arm7_9_handle_target_request(void *priv)
 		/* check W bit */
 		if (buf_get_u32(dcc_control->value, 1, 1) == 1)
 		{
-			u32 request;
+			uint32_t request;
 
 			if ((retval = embeddedice_receive(jtag_info, &request, 1)) != ERROR_OK)
 			{
@@ -921,7 +921,7 @@ int arm7_9_poll(target_t *target)
 			if (check_pc)
 			{
 				reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
-				u32 t=*((u32 *)reg->value);
+				uint32_t t=*((uint32_t *)reg->value);
 				if (t!=0)
 				{
 					LOG_ERROR("PC was not 0. Does this target need srst_pulls_trst?");
@@ -1190,7 +1190,7 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	/* if the target is in Thumb state, change to ARM state */
 	if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_ITBIT, 1))
 	{
-		u32 r0_thumb, pc_thumb;
+		uint32_t r0_thumb, pc_thumb;
 		LOG_DEBUG("target entered debug from Thumb state, changing to ARM");
 		/* Entered debug from Thumb mode */
 		armv4_5->core_state = ARMV4_5_STATE_THUMB;
@@ -1310,10 +1310,10 @@ int arm7_9_halt(target_t *target)
 int arm7_9_debug_entry(target_t *target)
 {
 	int i;
-	u32 context[16];
-	u32* context_p[16];
-	u32 r0_thumb, pc_thumb;
-	u32 cpsr;
+	uint32_t context[16];
+	uint32_t* context_p[16];
+	uint32_t r0_thumb, pc_thumb;
+	uint32_t cpsr;
 	int retval;
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -1444,7 +1444,7 @@ int arm7_9_debug_entry(target_t *target)
 	/* exceptions other than USR & SYS have a saved program status register */
 	if ((armv4_5->core_mode != ARMV4_5_MODE_USR) && (armv4_5->core_mode != ARMV4_5_MODE_SYS))
 	{
-		u32 spsr;
+		uint32_t spsr;
 		arm7_9->read_xpsr(target, &spsr, 1);
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
@@ -1500,8 +1500,8 @@ int arm7_9_full_context(target_t *target)
 	 */
 	for (i = 0; i < 6; i++)
 	{
-		u32 mask = 0;
-		u32* reg_p[16];
+		uint32_t mask = 0;
+		uint32_t* reg_p[16];
 		int j;
 		int valid = 1;
 
@@ -1515,7 +1515,7 @@ int arm7_9_full_context(target_t *target)
 
 		if (!valid)
 		{
-			u32 tmp_cpsr;
+			uint32_t tmp_cpsr;
 
 			/* change processor mode (and mask T bit) */
 			tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
@@ -1527,7 +1527,7 @@ int arm7_9_full_context(target_t *target)
 			{
 				if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).valid == 0)
 				{
-					reg_p[j] = (u32*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).value;
+					reg_p[j] = (uint32_t*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).value;
 					mask |= 1 << j;
 					ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).valid = 1;
 					ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), j).dirty = 0;
@@ -1541,7 +1541,7 @@ int arm7_9_full_context(target_t *target)
 			/* check if the PSR has to be read */
 			if (ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).valid == 0)
 			{
-				arm7_9->read_xpsr(target, (u32*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).value, 1);
+				arm7_9->read_xpsr(target, (uint32_t*)ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).value, 1);
 				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).valid = 1;
 				ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_number_to_mode(i), 16).dirty = 0;
 			}
@@ -1633,13 +1633,13 @@ int arm7_9_restore_context(target_t *target)
 
 		if (dirty)
 		{
-			u32 mask = 0x0;
+			uint32_t mask = 0x0;
 			int num_regs = 0;
-			u32 regs[16];
+			uint32_t regs[16];
 
 			if (mode_change)
 			{
-				u32 tmp_cpsr;
+				uint32_t tmp_cpsr;
 
 				/* change processor mode (mask T bit) */
 				tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
@@ -1684,7 +1684,7 @@ int arm7_9_restore_context(target_t *target)
 	if ((armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty == 0) && (armv4_5->core_mode != current_mode))
 	{
 		/* restore processor mode (mask T bit) */
-		u32 tmp_cpsr;
+		uint32_t tmp_cpsr;
 
 		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
 		tmp_cpsr |= armv4_5_number_to_mode(i);
@@ -1774,7 +1774,7 @@ void arm7_9_enable_breakpoints(struct target_s *target)
 	}
 }
 
-int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
+int arm7_9_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -1799,7 +1799,7 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	if (!current)
 		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
 
-	u32 current_pc;
+	uint32_t current_pc;
 	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 
 	/* the front-end may request us not to handle breakpoints */
@@ -1814,10 +1814,10 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 			}
 
 			/* calculate PC of next instruction */
-			u32 next_pc;
+			uint32_t next_pc;
 			if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
 			{
-				u32 current_opcode;
+				uint32_t current_opcode;
 				target_read_u32(target, current_pc, &current_opcode);
 				LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
 				return retval;
@@ -1934,12 +1934,12 @@ int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_
 	return ERROR_OK;
 }
 
-void arm7_9_enable_eice_step(target_t *target, u32 next_pc)
+void arm7_9_enable_eice_step(target_t *target, uint32_t next_pc)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	u32 current_pc;
+	uint32_t current_pc;
 	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 
 	if(next_pc != current_pc)
@@ -1988,7 +1988,7 @@ void arm7_9_disable_eice_step(target_t *target)
 	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE]);
 }
 
-int arm7_9_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
+int arm7_9_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -2005,7 +2005,7 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	if (!current)
 		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, address);
 
-	u32 current_pc;
+	uint32_t current_pc;
 	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 
 	/* the front-end may request us not to handle breakpoints */
@@ -2019,10 +2019,10 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
 	/* calculate PC of next instruction */
-	u32 next_pc;
+	uint32_t next_pc;
 	if ((retval = arm_simulate_step(target, &next_pc)) != ERROR_OK)
 	{
-		u32 current_opcode;
+		uint32_t current_opcode;
 		target_read_u32(target, current_pc, &current_opcode);
 		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
 		return retval;
@@ -2083,8 +2083,8 @@ int arm7_9_step(struct target_s *target, int current, u32 address, int handle_br
 
 int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mode)
 {
-	u32* reg_p[16];
-	u32 value;
+	uint32_t* reg_p[16];
+	uint32_t value;
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -2101,7 +2101,7 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 			&& (mode != armv4_5->core_mode)
 			&& (reg_mode != ARMV4_5_MODE_ANY))
 	{
-		u32 tmp_cpsr;
+		uint32_t tmp_cpsr;
 
 		/* change processor mode (mask T bit) */
 		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
@@ -2147,9 +2147,9 @@ int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mod
 	return ERROR_OK;
 }
 
-int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mode, u32 value)
+int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mode, uint32_t value)
 {
-	u32 reg[16];
+	uint32_t reg[16];
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
@@ -2164,7 +2164,7 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 	if ((mode != ARMV4_5_MODE_ANY)
 			&& (mode != armv4_5->core_mode)
 			&& (reg_mode != ARMV4_5_MODE_ANY))	{
-		u32 tmp_cpsr;
+		uint32_t tmp_cpsr;
 
 		/* change processor mode (mask T bit) */
 		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
@@ -2208,16 +2208,16 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 	return jtag_execute_queue();
 }
 
-int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	u32 reg[16];
-	u32 num_accesses = 0;
+	uint32_t reg[16];
+	uint32_t num_accesses = 0;
 	int thisrun_accesses;
 	int i;
-	u32 cpsr;
+	uint32_t cpsr;
 	int retval;
 	int last_reg = 0;
 
@@ -2247,7 +2247,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 		case 4:
 			while (num_accesses < count)
 			{
-				u32 reg_list;
+				uint32_t reg_list;
 				thisrun_accesses = ((count - num_accesses) >= 14) ? 14 : (count - num_accesses);
 				reg_list = (0xffff >> (15 - thisrun_accesses)) & 0xfffe;
 
@@ -2281,7 +2281,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 		case 2:
 			while (num_accesses < count)
 			{
-				u32 reg_list;
+				uint32_t reg_list;
 				thisrun_accesses = ((count - num_accesses) >= 14) ? 14 : (count - num_accesses);
 				reg_list = (0xffff >> (15 - thisrun_accesses)) & 0xfffe;
 
@@ -2319,7 +2319,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 		case 1:
 			while (num_accesses < count)
 			{
-				u32 reg_list;
+				uint32_t reg_list;
 				thisrun_accesses = ((count - num_accesses) >= 14) ? 14 : (count - num_accesses);
 				reg_list = (0xffff >> (15 - thisrun_accesses)) & 0xfffe;
 
@@ -2384,17 +2384,17 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	return ERROR_OK;
 }
 
-int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
-	u32 reg[16];
-	u32 num_accesses = 0;
+	uint32_t reg[16];
+	uint32_t num_accesses = 0;
 	int thisrun_accesses;
 	int i;
-	u32 cpsr;
+	uint32_t cpsr;
 	int retval;
 	int last_reg = 0;
 
@@ -2428,7 +2428,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 		case 4:
 			while (num_accesses < count)
 			{
-				u32 reg_list;
+				uint32_t reg_list;
 				thisrun_accesses = ((count - num_accesses) >= 14) ? 14 : (count - num_accesses);
 				reg_list = (0xffff >> (15 - thisrun_accesses)) & 0xfffe;
 
@@ -2462,7 +2462,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 		case 2:
 			while (num_accesses < count)
 			{
-				u32 reg_list;
+				uint32_t reg_list;
 				thisrun_accesses = ((count - num_accesses) >= 14) ? 14 : (count - num_accesses);
 				reg_list = (0xffff >> (15 - thisrun_accesses)) & 0xfffe;
 
@@ -2499,7 +2499,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 		case 1:
 			while (num_accesses < count)
 			{
-				u32 reg_list;
+				uint32_t reg_list;
 				thisrun_accesses = ((count - num_accesses) >= 14) ? 14 : (count - num_accesses);
 				reg_list = (0xffff >> (15 - thisrun_accesses)) & 0xfffe;
 
@@ -2570,7 +2570,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 static int dcc_count;
 static uint8_t *dcc_buffer;
 
-static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info)
+static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -2615,15 +2615,15 @@ static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int ti
 	return target_wait_state(target, TARGET_HALTED, 500);
 }
 
-static const u32 dcc_code[] =
+static const uint32_t dcc_code[] =
 {
 	/* MRC      TST         BNE         MRC         STR         B */
 	0xee101e10, 0xe3110001, 0x0afffffc, 0xee111e10, 0xe4801004, 0xeafffff9
 };
 
-int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info));
+int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info));
 
-int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer)
+int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -2676,7 +2676,7 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *
 
 	if (retval==ERROR_OK)
 	{
-		u32 endaddress=buf_get_u32(reg_params[0].value, 0, 32);
+		uint32_t endaddress=buf_get_u32(reg_params[0].value, 0, 32);
 		if (endaddress!=(address+count*4))
 		{
 			LOG_ERROR("DCC write failed, expected end address 0x%08x got 0x%0x", (address+count*4), endaddress);
@@ -2689,14 +2689,14 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *
 	return retval;
 }
 
-int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum)
+int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	working_area_t *crc_algorithm;
 	armv4_5_algorithm_t armv4_5_info;
 	reg_param_t reg_params[2];
 	int retval;
 
-	u32 arm7_9_crc_code[] = {
+	uint32_t arm7_9_crc_code[] = {
 		0xE1A02000,				/* mov		r2, r0 */
 		0xE3E00000,				/* mov		r0, #0xffffffff */
 		0xE1A03001,				/* mov		r3, r1 */
@@ -2724,7 +2724,7 @@ int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 		0x04C11DB7				/* CRC32XOR:	.word 0x04C11DB7 */
 	};
 
-	u32 i;
+	uint32_t i;
 
 	if (target_alloc_working_area(target, sizeof(arm7_9_crc_code), &crc_algorithm) != ERROR_OK)
 	{
@@ -2732,9 +2732,9 @@ int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 	}
 
 	/* convert flash writing code into a buffer in target endianness */
-	for (i = 0; i < (sizeof(arm7_9_crc_code)/sizeof(u32)); i++)
+	for (i = 0; i < (sizeof(arm7_9_crc_code)/sizeof(uint32_t)); i++)
 	{
-		if ((retval=target_write_u32(target, crc_algorithm->address + i*sizeof(u32), arm7_9_crc_code[i]))!=ERROR_OK)
+		if ((retval=target_write_u32(target, crc_algorithm->address + i*sizeof(uint32_t), arm7_9_crc_code[i]))!=ERROR_OK)
 		{
 			return retval;
 		}
@@ -2770,15 +2770,15 @@ int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 	return ERROR_OK;
 }
 
-int arm7_9_blank_check_memory(struct target_s *target, u32 address, u32 count, u32* blank)
+int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank)
 {
 	working_area_t *erase_check_algorithm;
 	reg_param_t reg_params[3];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval;
-	u32 i;
+	uint32_t i;
 
-	u32 erase_check_code[] =
+	uint32_t erase_check_code[] =
 	{
 						/* loop: */
 		0xe4d03001,		/* ldrb r3, [r0], #1	*/
@@ -2796,8 +2796,8 @@ int arm7_9_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 	}
 
 	/* convert flash writing code into a buffer in target endianness */
-	for (i = 0; i < (sizeof(erase_check_code)/sizeof(u32)); i++)
-		if ((retval = target_write_u32(target, erase_check_algorithm->address + i*sizeof(u32), erase_check_code[i])) != ERROR_OK)
+	for (i = 0; i < (sizeof(erase_check_code)/sizeof(uint32_t)); i++)
+		if ((retval = target_write_u32(target, erase_check_algorithm->address + i*sizeof(uint32_t), erase_check_code[i])) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -2863,7 +2863,7 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 
 int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u32 value;
+	uint32_t value;
 	int spsr;
 	int retval;
 	target_t *target = get_current_target(cmd_ctx);
@@ -2907,7 +2907,7 @@ int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cm
 
 int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u32 value;
+	uint32_t value;
 	int rotate;
 	int spsr;
 	int retval;
@@ -2949,8 +2949,8 @@ int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char
 
 int handle_arm7_9_write_core_reg_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u32 value;
-	u32 mode;
+	uint32_t value;
+	uint32_t mode;
 	int num;
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5;

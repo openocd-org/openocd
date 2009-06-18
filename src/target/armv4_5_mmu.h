@@ -25,9 +25,9 @@
 
 typedef struct armv4_5_mmu_common_s
 {
-	u32 (*get_ttb)(target_t *target);
-	int (*read_memory)(target_t *target, u32 address, u32 size, u32 count, uint8_t *buffer);
-	int (*write_memory)(target_t *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+	uint32_t (*get_ttb)(target_t *target);
+	int (*read_memory)(target_t *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+	int (*write_memory)(target_t *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 	void (*disable_mmu_caches)(target_t *target, int mmu, int d_u_cache, int i_cache);
 	void (*enable_mmu_caches)(target_t *target, int mmu, int d_u_cache, int i_cache);
 	armv4_5_cache_common_t armv4_5_cache;
@@ -42,9 +42,9 @@ enum
 
 extern char* armv4_5_page_type_names[];
 
-extern u32 armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 va, int *type, u32 *cb, int *domain, u32 *ap);
-extern int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 address, u32 size, u32 count, uint8_t *buffer);
-extern int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 address, u32 size, u32 count, uint8_t *buffer);
+extern uint32_t armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap);
+extern int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+extern int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 extern int armv4_5_mmu_handle_virt2phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu);
 extern int armv4_5_mmu_handle_md_phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu);

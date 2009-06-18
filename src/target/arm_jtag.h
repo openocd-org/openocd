@@ -29,15 +29,15 @@ typedef struct arm_jtag_s
 {
 	jtag_tap_t *tap;
 
-	u32 scann_size;
-	u32 scann_instr;
-	u32 cur_scan_chain;
+	uint32_t scann_size;
+	uint32_t scann_instr;
+	uint32_t cur_scan_chain;
 
-	u32 intest_instr;
+	uint32_t intest_instr;
 } arm_jtag_t;
 
-extern int arm_jtag_set_instr(arm_jtag_t *jtag_info, u32 new_instr, void *verify_capture);
-extern int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain);
+extern int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr, void *verify_capture);
+extern int arm_jtag_scann(arm_jtag_t *jtag_info, uint32_t new_scan_chain);
 extern int arm_jtag_setup_connection(arm_jtag_t *jtag_info);
 
 /* JTAG buffers to host, be and le buffers, flipping variants */
@@ -60,12 +60,12 @@ int arm_jtag_buf_to_8(uint8_t *in_buf, void *priv, struct scan_field_s *field);
 /* use this as a static so we can inline it in -O3 and refer to it via a pointer  */
 static __inline__ void arm7flip32(uint8_t *in)
 {
-	*((u32 *)in)=flip_u32(le_to_h_u32(in), 32);
+	*((uint32_t *)in)=flip_u32(le_to_h_u32(in), 32);
 }
 
 static __inline__ void arm_le_to_h_u32(uint8_t *in)
 {
-	*((u32 *)in)=le_to_h_u32(in);
+	*((uint32_t *)in)=le_to_h_u32(in);
 }
 
 

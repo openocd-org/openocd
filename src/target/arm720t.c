@@ -43,8 +43,8 @@ int arm720t_target_create(struct target_s *target,Jim_Interp *interp);
 int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm720t_quit(void);
 int arm720t_arch_state(struct target_s *target);
-int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
-int arm720t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int arm720t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int arm720t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int arm720t_soft_reset_halt(struct target_s *target);
 
 target_type_t arm720t_target =
@@ -84,7 +84,7 @@ target_type_t arm720t_target =
 	.quit = arm720t_quit
 };
 
-int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int clock)
+int arm720t_scan_cp15(target_t *target, uint32_t out, uint32_t *in, int instruction, int clock)
 {
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -146,7 +146,7 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	return ERROR_OK;
 }
 
-int arm720t_read_cp15(target_t *target, u32 opcode, u32 *value)
+int arm720t_read_cp15(target_t *target, uint32_t opcode, uint32_t *value)
 {
 	/* fetch CP15 opcode */
 	arm720t_scan_cp15(target, opcode, NULL, 1, 1);
@@ -163,7 +163,7 @@ int arm720t_read_cp15(target_t *target, u32 opcode, u32 *value)
 	return ERROR_OK;
 }
 
-int arm720t_write_cp15(target_t *target, u32 opcode, u32 value)
+int arm720t_write_cp15(target_t *target, uint32_t opcode, uint32_t value)
 {
 	/* fetch CP15 opcode */
 	arm720t_scan_cp15(target, opcode, NULL, 1, 1);
@@ -179,9 +179,9 @@ int arm720t_write_cp15(target_t *target, u32 opcode, u32 value)
 	return ERROR_OK;
 }
 
-u32 arm720t_get_ttb(target_t *target)
+uint32_t arm720t_get_ttb(target_t *target)
 {
-	u32 ttb = 0x0;
+	uint32_t ttb = 0x0;
 
 	arm720t_read_cp15(target, 0xee120f10, &ttb);
 	jtag_execute_queue();
@@ -193,7 +193,7 @@ u32 arm720t_get_ttb(target_t *target)
 
 void arm720t_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache)
 {
-	u32 cp15_control;
+	uint32_t cp15_control;
 
 	/* read cp15 control register */
 	arm720t_read_cp15(target, 0xee110f10, &cp15_control);
@@ -210,7 +210,7 @@ void arm720t_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_
 
 void arm720t_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache)
 {
-	u32 cp15_control;
+	uint32_t cp15_control;
 
 	/* read cp15 control register */
 	arm720t_read_cp15(target, 0xee110f10, &cp15_control);
@@ -329,7 +329,7 @@ int arm720t_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int arm720t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -349,7 +349,7 @@ int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	return retval;
 }
 
-int arm720t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int arm720t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 
@@ -527,11 +527,11 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	/* one or more argument, access a single register (write if second argument is given */
 	if (argc >= 1)
 	{
-		u32 opcode = strtoul(args[0], NULL, 0);
+		uint32_t opcode = strtoul(args[0], NULL, 0);
 
 		if (argc == 1)
 		{
-			u32 value;
+			uint32_t value;
 			if ((retval = arm720t_read_cp15(target, opcode, &value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8x", opcode);
@@ -547,7 +547,7 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		}
 		else if (argc == 2)
 		{
-			u32 value = strtoul(args[1], NULL, 0);
+			uint32_t value = strtoul(args[1], NULL, 0);
 			if ((retval = arm720t_write_cp15(target, opcode, value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8x", opcode);

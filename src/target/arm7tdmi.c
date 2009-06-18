@@ -139,9 +139,9 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 }
 
 static int arm7tdmi_num_bits[]={1, 32};
-static __inline int arm7tdmi_clock_out_inner(arm_jtag_t *jtag_info, u32 out, int breakpoint)
+static __inline int arm7tdmi_clock_out_inner(arm_jtag_t *jtag_info, uint32_t out, int breakpoint)
 {
-	u32 values[2]={breakpoint, flip_u32(out, 32)};
+	uint32_t values[2]={breakpoint, flip_u32(out, 32)};
 
 	jtag_add_dr_out(jtag_info->tap,
 			2,
@@ -155,7 +155,7 @@ static __inline int arm7tdmi_clock_out_inner(arm_jtag_t *jtag_info, u32 out, int
 }
 
 /* put an instruction in the ARM7TDMI pipeline or write the data bus, and optionally read data */
-static __inline int arm7tdmi_clock_out(arm_jtag_t *jtag_info, u32 out, u32 *deprecated, int breakpoint)
+static __inline int arm7tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t out, uint32_t *deprecated, int breakpoint)
 {
 	jtag_set_end_state(TAP_DRPAUSE);
 	arm_jtag_scann(jtag_info, 0x1);
@@ -165,7 +165,7 @@ static __inline int arm7tdmi_clock_out(arm_jtag_t *jtag_info, u32 out, u32 *depr
 }
 
 /* clock the target, reading the databus */
-int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
+int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 {
 	int retval = ERROR_OK;
 	scan_field_t fields[2];
@@ -216,7 +216,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 
 void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip)
 {
-	u32 readback=le_to_h_u32(tmp);
+	uint32_t readback=le_to_h_u32(tmp);
 	if (flip)
 		readback=flip_u32(readback, 32);
 	switch (size)
@@ -292,7 +292,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 
 		if (in)
 		{
-			LOG_DEBUG("in: 0x%8.8x", *(u32*)in);
+			LOG_DEBUG("in: 0x%8.8x", *(uint32_t*)in);
 		}
 		else
 		{
@@ -304,7 +304,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	return ERROR_OK;
 }
 
-void arm7tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
+void arm7tdmi_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -361,7 +361,7 @@ void arm7tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
  * The solution is to arrange for a large out/in scan in this loop and
  * and convert data afterwards.
  */
-void arm7tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
+void arm7tdmi_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -387,7 +387,7 @@ void arm7tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
 	}
 }
 
-void arm7tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buffer, int size)
+void arm7tdmi_read_core_regs_target_buffer(target_t *target, uint32_t mask, void* buffer, int size)
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -395,7 +395,7 @@ void arm7tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
-	u32 *buf_u32 = buffer;
+	uint32_t *buf_u32 = buffer;
 	uint16_t *buf_u16 = buffer;
 	uint8_t *buf_u8 = buffer;
 
@@ -430,7 +430,7 @@ void arm7tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 	}
 }
 
-void arm7tdmi_read_xpsr(target_t *target, u32 *xpsr, int spsr)
+void arm7tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -450,7 +450,7 @@ void arm7tdmi_read_xpsr(target_t *target, u32 *xpsr, int spsr)
 	arm7tdmi_clock_data_in(jtag_info, xpsr);
 }
 
-void arm7tdmi_write_xpsr(target_t *target, u32 xpsr, int spsr)
+void arm7tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -500,7 +500,7 @@ void arm7tdmi_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int sps
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 }
 
-void arm7tdmi_write_core_regs(target_t *target, u32 mask, u32 core_regs[16])
+void arm7tdmi_write_core_regs(target_t *target, uint32_t mask, uint32_t core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -527,7 +527,7 @@ void arm7tdmi_write_core_regs(target_t *target, u32 mask, u32 core_regs[16])
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_NOP, 0);
 }
 
-void arm7tdmi_load_word_regs(target_t *target, u32 mask)
+void arm7tdmi_load_word_regs(target_t *target, uint32_t mask)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -566,7 +566,7 @@ void arm7tdmi_load_byte_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_LDRB_IP(num, 0), NULL, 0);
 }
 
-void arm7tdmi_store_word_regs(target_t *target, u32 mask)
+void arm7tdmi_store_word_regs(target_t *target, uint32_t mask)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -605,7 +605,7 @@ void arm7tdmi_store_byte_reg(target_t *target, int num)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_STRB_IP(num, 0), NULL, 0);
 }
 
-void arm7tdmi_write_pc(target_t *target, u32 pc)
+void arm7tdmi_write_pc(target_t *target, uint32_t pc)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;

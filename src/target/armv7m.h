@@ -80,8 +80,8 @@ typedef struct armv7m_common_s
 
 	
 	/* Direct processor core register read and writes */
-	int (*load_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, u32 num, u32 *value);
-	int (*store_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, u32 num, u32 value);
+	int (*load_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t *value);
+	int (*store_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t value);
 	/* register cache to processor synchronization */
 	int (*read_core_reg)(struct target_s *target, int num);
 	int (*write_core_reg)(struct target_s *target, int num);
@@ -105,7 +105,7 @@ typedef struct armv7m_algorithm_s
 
 typedef struct armv7m_core_reg_s
 {
-	u32 num;
+	uint32_t num;
 	enum armv7m_regtype type;
 	enum armv7m_mode mode;
 	target_t *target;
@@ -122,14 +122,14 @@ extern int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *re
 extern int armv7m_register_commands(struct command_context_s *cmd_ctx);
 extern int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m);
 
-extern int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
+extern int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 
 extern int armv7m_invalidate_core_regs(target_t *target);
 
 extern int armv7m_restore_context(target_t *target);
 
-extern int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum);
-extern int armv7m_blank_check_memory(struct target_s *target, u32 address, u32 count, u32* blank);
+extern int armv7m_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum);
+extern int armv7m_blank_check_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank);
 
 /* Thumb mode instructions
  */

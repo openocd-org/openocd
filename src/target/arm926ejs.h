@@ -27,21 +27,21 @@
 
 typedef struct arm926ejs_common_s
 {
-	u32 common_magic;
+	uint32_t common_magic;
 	armv4_5_mmu_common_t armv4_5_mmu;
 	arm9tdmi_common_t arm9tdmi_common;
-	int (*read_cp15)(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 *value);
-	int (*write_cp15)(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 value);
-	u32 cp15_control_reg;
-	u32 d_fsr;
-	u32 i_fsr;
-	u32 d_far;
+	int (*read_cp15)(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value);
+	int (*write_cp15)(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value);
+	uint32_t cp15_control_reg;
+	uint32_t d_fsr;
+	uint32_t i_fsr;
+	uint32_t d_far;
 } arm926ejs_common_t;
 
 extern int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, jtag_tap_t *tap);
 extern int arm926ejs_register_commands(struct command_context_s *cmd_ctx); 
 extern int arm926ejs_arch_state(struct target_s *target); 
-extern int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer); 
+extern int arm926ejs_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer); 
 extern int arm926ejs_soft_reset_halt(struct target_s *target);
 
 #endif /* ARM926EJS_H */

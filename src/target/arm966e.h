@@ -31,10 +31,10 @@ typedef struct arm966e_common_s
 {
 	int common_magic;
 	arm9tdmi_common_t arm9tdmi_common;
-	u32 cp15_control_reg;
+	uint32_t cp15_control_reg;
 } arm966e_common_t;
 
-extern int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value);
-extern int arm966e_write_cp15(target_t *target, int reg_addr, u32 value);
+extern int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value);
+extern int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value);
 
 #endif /* ARM966E_H */

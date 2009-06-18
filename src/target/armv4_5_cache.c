@@ -24,7 +24,7 @@
 #include "armv4_5_cache.h"
 #include "log.h"
 
-int armv4_5_identify_cache(u32 cache_type_reg, armv4_5_cache_common_t *cache)
+int armv4_5_identify_cache(uint32_t cache_type_reg, armv4_5_cache_common_t *cache)
 {
 	int size, assoc, M, len, multiplier;
 

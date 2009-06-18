@@ -33,12 +33,12 @@ char *arm_condition_strings[] =
 };
 
 /* make up for C's missing ROR */
-u32 ror(u32 value, int places) 
+uint32_t ror(uint32_t value, int places) 
 { 
 	return (value >> places) | (value << (32 - places)); 
 }
 
-int evaluate_pld(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_pld(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	/* PLD */
 	if ((opcode & 0x0d70f0000) == 0x0550f000)
@@ -59,7 +59,7 @@ int evaluate_pld(u32 opcode, u32 address, arm_instruction_t *instruction)
 	return -1;
 }
 
-int evaluate_swi(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_swi(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	instruction->type = ARM_SWI;
 	
@@ -68,11 +68,11 @@ int evaluate_swi(u32 opcode, u32 address, arm_instruction_t *instruction)
 	return ERROR_OK;
 }
 
-int evaluate_blx_imm(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_blx_imm(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	int offset;
-	u32 immediate;
-	u32 target_address;
+	uint32_t immediate;
+	uint32_t target_address;
 	
 	instruction->type = ARM_BLX;
 	immediate = opcode & 0x00ffffff;
@@ -100,12 +100,12 @@ int evaluate_blx_imm(u32 opcode, u32 address, arm_instruction_t *instruction)
 	return ERROR_OK;
 }
 
-int evaluate_b_bl(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_b_bl(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t L;
-	u32 immediate;
+	uint32_t immediate;
 	int offset;
-	u32 target_address;
+	uint32_t target_address;
 	
 	immediate = opcode & 0x00ffffff;
 	L = (opcode & 0x01000000) >> 24;
@@ -137,7 +137,7 @@ int evaluate_b_bl(u32 opcode, u32 address, arm_instruction_t *instruction)
 
 /* Coprocessor load/store and double register transfers */
 /* both normal and extended instruction space (condition field b1111) */
-int evaluate_ldc_stc_mcrr_mrrc(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_ldc_stc_mcrr_mrrc(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t cp_num = (opcode & 0xf00) >> 8;
 	
@@ -217,7 +217,7 @@ int evaluate_ldc_stc_mcrr_mrrc(u32 opcode, u32 address, arm_instruction_t *instr
 /* Coprocessor data processing instructions */
 /* Coprocessor register transfer instructions */
 /* both normal and extended instruction space (condition field b1111) */
-int evaluate_cdp_mcr_mrc(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_cdp_mcr_mrc(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	char* cond;
 	char* mnemonic;
@@ -266,7 +266,7 @@ int evaluate_cdp_mcr_mrc(u32 opcode, u32 address, arm_instruction_t *instruction
 }
 
 /* Load/store instructions */
-int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_store(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t I, P, U, B, W, L;
 	uint8_t Rn, Rd;
@@ -340,7 +340,7 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 	
 	if (!I) /* #+-<offset_12> */
 	{
-		u32 offset_12 = (opcode & 0xfff);
+		uint32_t offset_12 = (opcode & 0xfff);
 		if (offset_12)
 			snprintf(offset, 32, ", #%s0x%x", (U) ? "" : "-", offset_12);
 		else
@@ -434,7 +434,7 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 }
 
 /* Miscellaneous load/store instructions */
-int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_misc_load_store(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t P, U, I, W, L, S, H;
 	uint8_t Rn, Rd;
@@ -511,7 +511,7 @@ int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruc
 	
 	if (I) /* Immediate offset/index (#+-<offset_8>)*/
 	{
-		u32 offset_8 = ((opcode & 0xf00) >> 4) | (opcode & 0xf);
+		uint32_t offset_8 = ((opcode & 0xf00) >> 4) | (opcode & 0xf);
 		snprintf(offset, 32, "#%s0x%x", (U) ? "" : "-", offset_8);
 		
 		instruction->info.load_store.offset_mode = 0;
@@ -561,10 +561,10 @@ int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruc
 }
 
 /* Load/store multiples instructions */
-int evaluate_ldm_stm(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_ldm_stm(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t P, U, S, W, L, Rn;
-	u32 register_list;
+	uint32_t register_list;
 	char *addressing_mode;
 	char *mnemonic;
 	char reg_list[69];
@@ -648,7 +648,7 @@ int evaluate_ldm_stm(u32 opcode, u32 address, arm_instruction_t *instruction)
 }
 
 /* Multiplies, extra load/stores */
-int evaluate_mul_and_extra_ld_st(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_mul_and_extra_ld_st(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	/* Multiply (accumulate) (long) and Swap/swap byte */
 	if ((opcode & 0x000000f0) == 0x00000090)
@@ -739,7 +739,7 @@ int evaluate_mul_and_extra_ld_st(u32 opcode, u32 address, arm_instruction_t *ins
 	return evaluate_misc_load_store(opcode, address, instruction);
 }
 
-int evaluate_mrs_msr(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_mrs_msr(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	int R = (opcode & 0x00400000) >> 22;
 	char *PSR = (R) ? "SPSR" : "CPSR";
@@ -793,7 +793,7 @@ int evaluate_mrs_msr(u32 opcode, u32 address, arm_instruction_t *instruction)
 }
 
 /* Miscellaneous instructions */
-int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_misc_instr(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	/* MRS/MSR */
 	if ((opcode & 0x000000f0) == 0x00000000)
@@ -877,7 +877,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 	/* Software breakpoints */
 	if ((opcode & 0x0000000f0) == 0x00000070)
 	{
-		u32 immediate;
+		uint32_t immediate;
 		instruction->type = ARM_BKPT;
 		immediate = ((opcode & 0x000fff00) >> 4) | (opcode & 0xf);
 		
@@ -968,7 +968,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 	return ERROR_OK;
 }
 
-int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_data_proc(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t I, op, S, Rn, Rd;
 	char *mnemonic = NULL;
@@ -1057,7 +1057,7 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 	{
 		uint8_t immed_8 = opcode & 0xff;
 		uint8_t rotate_imm = (opcode & 0xf00) >> 8;
-		u32 immediate;
+		uint32_t immediate;
 		
 		immediate = ror(immed_8, rotate_imm * 2);
 		
@@ -1175,7 +1175,7 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 	return ERROR_OK;
 }
 		
-int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
+int arm_evaluate_opcode(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	/* clear fields, to avoid confusion */
 	memset(instruction, 0, sizeof(arm_instruction_t));
@@ -1319,11 +1319,11 @@ int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
 	return -1;
 }
 
-int evaluate_b_bl_blx_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_b_bl_blx_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
-	u32 offset = opcode & 0x7ff;
-	u32 opc = (opcode >> 11) & 0x3;
-	u32 target_address;
+	uint32_t offset = opcode & 0x7ff;
+	uint32_t opc = (opcode >> 11) & 0x3;
+	uint32_t target_address;
 	char *mnemonic = NULL;
 	
 	/* sign extend 11-bit offset */
@@ -1366,13 +1366,13 @@ int evaluate_b_bl_blx_thumb(uint16_t opcode, u32 address, arm_instruction_t *ins
 	return ERROR_OK;
 }
 
-int evaluate_add_sub_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_add_sub_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t Rd = (opcode >> 0) & 0x7;
 	uint8_t Rn = (opcode >> 3) & 0x7;
 	uint8_t Rm_imm = (opcode >> 6) & 0x7;
-	u32 opc = opcode & (1<<9);
-	u32 reg_imm  = opcode & (1<<10);
+	uint32_t opc = opcode & (1<<9);
+	uint32_t reg_imm  = opcode & (1<<10);
 	char *mnemonic;
 	
 	if (opc)
@@ -1408,7 +1408,7 @@ int evaluate_add_sub_thumb(uint16_t opcode, u32 address, arm_instruction_t *inst
 	return ERROR_OK;
 }
 
-int evaluate_shift_imm_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_shift_imm_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t Rd = (opcode >> 0) & 0x7;
 	uint8_t Rm = (opcode >> 3) & 0x7;
@@ -1452,11 +1452,11 @@ int evaluate_shift_imm_thumb(uint16_t opcode, u32 address, arm_instruction_t *in
 	return ERROR_OK;
 }
 
-int evaluate_data_proc_imm_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_data_proc_imm_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t imm = opcode & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7;
-	u32 opc = (opcode >> 11) & 0x3;
+	uint32_t opc = (opcode >> 11) & 0x3;
 	char *mnemonic = NULL;
 	
 	instruction->info.data_proc.Rd = Rd;
@@ -1493,7 +1493,7 @@ int evaluate_data_proc_imm_thumb(uint16_t opcode, u32 address, arm_instruction_t
 	return ERROR_OK;
 }
 
-int evaluate_data_proc_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_data_proc_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t high_reg, op, Rm, Rd,H1,H2;
 	char *mnemonic = NULL;
@@ -1652,9 +1652,9 @@ int evaluate_data_proc_thumb(uint16_t opcode, u32 address, arm_instruction_t *in
 	return ERROR_OK;
 }
 
-int evaluate_load_literal_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_literal_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
-	u32 immediate;
+	uint32_t immediate;
 	uint8_t Rd = (opcode >> 8) & 0x7; 
 
 	instruction->type = ARM_LDR;
@@ -1671,7 +1671,7 @@ int evaluate_load_literal_thumb(uint16_t opcode, u32 address, arm_instruction_t 
 	return ERROR_OK;
 }
 
-int evaluate_load_store_reg_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_store_reg_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint8_t Rd = (opcode >> 0) & 0x7; 
 	uint8_t Rn = (opcode >> 3) & 0x7; 
@@ -1726,16 +1726,16 @@ int evaluate_load_store_reg_thumb(uint16_t opcode, u32 address, arm_instruction_
 	return ERROR_OK;
 }
 
-int evaluate_load_store_imm_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_store_imm_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
-	u32 offset = (opcode >> 6) & 0x1f;
+	uint32_t offset = (opcode >> 6) & 0x1f;
 	uint8_t Rd = (opcode >> 0) & 0x7; 
 	uint8_t Rn = (opcode >> 3) & 0x7; 
-	u32 L = opcode & (1<<11);
-	u32 B = opcode & (1<<12);
+	uint32_t L = opcode & (1<<11);
+	uint32_t B = opcode & (1<<12);
 	char *mnemonic;
 	char suffix = ' ';
-	u32 shift = 2;
+	uint32_t shift = 2;
 
 	if (L)
 	{
@@ -1770,11 +1770,11 @@ int evaluate_load_store_imm_thumb(uint16_t opcode, u32 address, arm_instruction_
 	return ERROR_OK;
 }
 
-int evaluate_load_store_stack_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_store_stack_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
-	u32 offset = opcode  & 0xff;
+	uint32_t offset = opcode  & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7; 
-	u32 L = opcode & (1<<11);
+	uint32_t L = opcode & (1<<11);
 	char *mnemonic;
 
 	if (L)
@@ -1799,12 +1799,12 @@ int evaluate_load_store_stack_thumb(uint16_t opcode, u32 address, arm_instructio
 	return ERROR_OK;
 }
 
-int evaluate_add_sp_pc_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_add_sp_pc_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
-	u32 imm = opcode  & 0xff;
+	uint32_t imm = opcode  & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7; 
 	uint8_t Rn;
-	u32 SP = opcode & (1<<11);
+	uint32_t SP = opcode & (1<<11);
 	char *reg_name;
 
 	instruction->type = ARM_ADD;
@@ -1830,9 +1830,9 @@ int evaluate_add_sp_pc_thumb(uint16_t opcode, u32 address, arm_instruction_t *in
 	return ERROR_OK;
 }
 
-int evaluate_adjust_stack_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_adjust_stack_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
-	u32 imm = opcode  & 0x7f;
+	uint32_t imm = opcode  & 0x7f;
 	uint8_t opc = opcode & (1<<7);
 	char *mnemonic;
 
@@ -1858,9 +1858,9 @@ int evaluate_adjust_stack_thumb(uint16_t opcode, u32 address, arm_instruction_t 
 	return ERROR_OK;
 }
 
-int evaluate_breakpoint_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_breakpoint_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
-	u32 imm = opcode  & 0xff;
+	uint32_t imm = opcode  & 0xff;
 	
 	instruction->type = ARM_BKPT;
 
@@ -1869,11 +1869,11 @@ int evaluate_breakpoint_thumb(uint16_t opcode, u32 address, arm_instruction_t *i
 	return ERROR_OK;
 }
 
-int evaluate_load_store_multiple_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_store_multiple_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
-	u32 reg_list = opcode  & 0xff;
-	u32 L = opcode & (1<<11);
-	u32 R = opcode & (1<<8);
+	uint32_t reg_list = opcode  & 0xff;
+	uint32_t L = opcode & (1<<11);
+	uint32_t R = opcode & (1<<8);
 	uint8_t Rn = (opcode >> 8) & 7;
 	uint8_t addr_mode = 0 /* IA */;
 	char reg_names[40];
@@ -1936,11 +1936,11 @@ int evaluate_load_store_multiple_thumb(uint16_t opcode, u32 address, arm_instruc
 	return ERROR_OK;
 }
 
-int evaluate_cond_branch_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_cond_branch_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
-	u32 offset = opcode  & 0xff;
+	uint32_t offset = opcode  & 0xff;
 	uint8_t cond = (opcode >> 8) & 0xf;
-	u32 target_address;
+	uint32_t target_address;
 
 	if (cond == 0xf)
 	{
@@ -1971,7 +1971,7 @@ int evaluate_cond_branch_thumb(uint16_t opcode, u32 address, arm_instruction_t *
 	return ERROR_OK;
 }
 
-int thumb_evaluate_opcode(uint16_t opcode, u32 address, arm_instruction_t *instruction)
+int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	/* clear fields, to avoid confusion */
 	memset(instruction, 0, sizeof(arm_instruction_t));

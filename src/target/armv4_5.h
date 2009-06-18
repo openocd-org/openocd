@@ -78,7 +78,7 @@ typedef struct armv4_5_common_s
 	enum armv4_5_state core_state;
 	int (*full_context)(struct target_s *target);
 	int (*read_core_reg)(struct target_s *target, int num, enum armv4_5_mode mode);
-	int (*write_core_reg)(struct target_s *target, int num, enum armv4_5_mode mode, u32 value);
+	int (*write_core_reg)(struct target_s *target, int num, enum armv4_5_mode mode, uint32_t value);
 	void *arch_info;
 } armv4_5_common_t;
 
@@ -143,7 +143,7 @@ extern int armv4_5_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *r
 extern int armv4_5_register_commands(struct command_context_s *cmd_ctx);
 extern int armv4_5_init_arch_info(target_t *target, armv4_5_common_t *armv4_5);
 
-extern int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
+extern int armv4_5_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 
 extern int armv4_5_invalidate_core_regs(target_t *target);
 

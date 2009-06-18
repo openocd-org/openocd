@@ -45,9 +45,9 @@ int arm926ejs_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *c
 int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp);
 int arm926ejs_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm926ejs_quit(void);
-int arm926ejs_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int arm926ejs_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
-static int arm926ejs_virt2phys(struct target_s *target, u32 virtual, u32 *physical);
+static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32_t *physical);
 static int arm926ejs_mmu(struct target_s *target, int *enabled);
 
 target_type_t arm926ejs_target =
@@ -115,13 +115,13 @@ int arm926ejs_catch_broken_irscan(uint8_t *captured, void *priv, scan_field_t *f
 
 #define ARM926EJS_CP15_ADDR(opcode_1, opcode_2, CRn, CRm) ((opcode_1 << 11) | (opcode_2 << 8) | (CRn << 4) | (CRm << 0))
 
-int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 *value)
+int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t *value)
 {
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-	u32 address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
+	uint32_t address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	scan_field_t fields[4];
 	uint8_t address_buf[2];
 	uint8_t nr_w_buf = 0;
@@ -184,13 +184,13 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	return ERROR_OK;
 }
 
-int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u32 value)
+int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2, uint32_t CRn, uint32_t CRm, uint32_t value)
 {
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-	u32 address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
+	uint32_t address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	scan_field_t fields[4];
 	uint8_t value_buf[4];
 	uint8_t address_buf[2];
@@ -333,14 +333,14 @@ int arm926ejs_examine_debug_reason(target_t *target)
 	return retval;
 }
 
-u32 arm926ejs_get_ttb(target_t *target)
+uint32_t arm926ejs_get_ttb(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
 	int retval;
-	u32 ttb = 0x0;
+	uint32_t ttb = 0x0;
 
 	if ((retval = arm926ejs->read_cp15(target, 0, 0, 2, 0, &ttb)) != ERROR_OK)
 		return retval;
@@ -354,7 +354,7 @@ void arm926ejs_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int 
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
-	u32 cp15_control;
+	uint32_t cp15_control;
 
 	/* read cp15 control register */
 	arm926ejs->read_cp15(target, 0, 0, 1, 0, &cp15_control);
@@ -370,7 +370,7 @@ void arm926ejs_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int 
 
 	if (d_u_cache)
 	{
-		u32 debug_override;
+		uint32_t debug_override;
 		/* read-modify-write CP15 debug override register
 		 * to enable "test and clean all" */
 		arm926ejs->read_cp15(target, 0, 0, 15, 0, &debug_override);
@@ -405,7 +405,7 @@ void arm926ejs_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm9tdmi_common_t *arm9tdmi = arm7_9->arch_info;
 	arm926ejs_common_t *arm926ejs = arm9tdmi->arch_info;
-	u32 cp15_control;
+	uint32_t cp15_control;
 
 	/* read cp15 control register */
 	arm926ejs->read_cp15(target, 0, 0, 1, 0, &cp15_control);
@@ -437,7 +437,7 @@ void arm926ejs_post_debug_entry(target_t *target)
 
 	if (arm926ejs->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
-		u32 cache_type_reg;
+		uint32_t cache_type_reg;
 		/* identify caches */
 		arm926ejs->read_cp15(target, 0, 1, 0, 0, &cache_type_reg);
 		jtag_execute_queue();
@@ -456,7 +456,7 @@ void arm926ejs_post_debug_entry(target_t *target)
 	LOG_DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x",
 		arm926ejs->d_fsr, arm926ejs->d_far, arm926ejs->i_fsr);
 
-	u32 cache_dbg_ctrl;
+	uint32_t cache_dbg_ctrl;
 
 	/* read-modify-write CP15 cache debug control register
 	 * to disable I/D-cache linefills and force WT */
@@ -477,7 +477,7 @@ void arm926ejs_pre_restore_context(target_t *target)
 	arm926ejs->write_cp15(target, 0, 1, 5, 0, arm926ejs->i_fsr);
 	arm926ejs->write_cp15(target, 0, 0, 6, 0, arm926ejs->d_far);
 
-	u32 cache_dbg_ctrl;
+	uint32_t cache_dbg_ctrl;
 
 	/* read-modify-write CP15 cache debug control register
 	 * to reenable I/D-cache linefills and disable WT */
@@ -625,7 +625,7 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 	return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 }
 
-int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int arm926ejs_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -778,7 +778,7 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 	if (argc == 4)
 	{
-		u32 value;
+		uint32_t value;
 		if ((retval = arm926ejs->read_cp15(target, opcode_1, opcode_2, CRn, CRm, &value)) != ERROR_OK)
 		{
 			command_print(cmd_ctx, "couldn't access register");
@@ -793,7 +793,7 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 	}
 	else
 	{
-		u32 value = strtoul(args[4], NULL, 0);
+		uint32_t value = strtoul(args[4], NULL, 0);
 		if ((retval = arm926ejs->write_cp15(target, opcode_1, opcode_2, CRn, CRm, value)) != ERROR_OK)
 		{
 			command_print(cmd_ctx, "couldn't access register");
@@ -900,13 +900,13 @@ int arm926ejs_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char
 	return armv4_5_mmu_handle_mw_phys_command(cmd_ctx, cmd, args, argc, target, &arm926ejs->armv4_5_mmu);
 }
 
-static int arm926ejs_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
+static int arm926ejs_virt2phys(struct target_s *target, uint32_t virtual, uint32_t *physical)
 {
 	int retval;
 	int type;
-	u32 cb;
+	uint32_t cb;
 	int domain;
-	u32 ap;
+	uint32_t ap;
 
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
@@ -917,7 +917,7 @@ static int arm926ejs_virt2phys(struct target_s *target, u32 virtual, u32 *physic
 	{
 		return retval;
 	}
-	u32 ret = armv4_5_mmu_translate_va(target, &arm926ejs->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
+	uint32_t ret = armv4_5_mmu_translate_va(target, &arm926ejs->armv4_5_mmu, virtual, &type, &cb, &domain, &ap);
 	if (type == -1)
 	{
 		return ret;

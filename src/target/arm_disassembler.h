@@ -123,13 +123,13 @@ enum arm_instruction_type
 typedef struct arm_b_bl_bx_blx_instr_s
 {
 	int reg_operand;
-	u32 target_address;
+	uint32_t target_address;
 } arm_b_bl_bx_blx_instr_t;
 
 union arm_shifter_operand
 {
 	struct {
-		u32 immediate;
+		uint32_t immediate;
 	} immediate;
 	struct {
 		uint8_t Rm;
@@ -161,7 +161,7 @@ typedef struct arm_load_store_instr_s
 	int offset_mode; /* 0: immediate, 1: (scaled) register */
 	union
 	{
-		u32 offset;
+		uint32_t offset;
 		struct {
 			uint8_t Rm;
 			uint8_t shift; /* 0: LSL, 1: LSR, 2: ASR, 3: ROR, 4: RRX */
@@ -173,7 +173,7 @@ typedef struct arm_load_store_instr_s
 typedef struct arm_load_store_multiple_instr_s
 {
 	uint8_t Rn;
-	u32 register_list;
+	uint32_t register_list;
 	uint8_t addressing_mode; /* 0: IA, 1: IB, 2: DA, 3: DB */
 	uint8_t S;
 	uint8_t W;
@@ -183,7 +183,7 @@ typedef struct arm_instruction_s
 {
 	enum arm_instruction_type type;
 	char text[128];
-	u32 opcode;
+	uint32_t opcode;
 	
 	union {
 		arm_b_bl_bx_blx_instr_t b_bl_bx_blx;
@@ -194,8 +194,8 @@ typedef struct arm_instruction_s
 
 } arm_instruction_t;
 
-extern int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction);
-extern int thumb_evaluate_opcode(uint16_t opcode, u32 address, arm_instruction_t *instruction);
+extern int arm_evaluate_opcode(uint32_t opcode, uint32_t address, arm_instruction_t *instruction);
+extern int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *instruction);
 extern int arm_access_size(arm_instruction_t *instruction);
 
 #define COND(opcode) (arm_condition_strings[(opcode & 0xf0000000)>>28])

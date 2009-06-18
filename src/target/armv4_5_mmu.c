@@ -25,18 +25,18 @@
 #include "armv4_5_mmu.h"
 
 
-u32 armv4mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 va, int *type, u32 *cb, int *domain, u32 *ap);
+uint32_t armv4mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap);
 
 char* armv4_5_mmu_page_type_names[] =
 {
 	"section", "large page", "small page", "tiny page"
 };
 
-u32 armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 va, int *type, u32 *cb, int *domain, u32 *ap)
+uint32_t armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t va, int *type, uint32_t *cb, int *domain, uint32_t *ap)
 {
-	u32 first_lvl_descriptor = 0x0;
-	u32 second_lvl_descriptor = 0x0;
-	u32 ttb = armv4_5_mmu->get_ttb(target);
+	uint32_t first_lvl_descriptor = 0x0;
+	uint32_t second_lvl_descriptor = 0x0;
+	uint32_t ttb = armv4_5_mmu->get_ttb(target);
 
 	armv4_5_mmu_read_physical(target, armv4_5_mmu,
 		(ttb & 0xffffc000) | ((va & 0xfff00000) >> 18),
@@ -130,7 +130,7 @@ u32 armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu
 	return ERROR_TARGET_TRANSLATION_FAULT;
 }
 
-int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 address, u32 size, u32 count, uint8_t *buffer)
+int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 
@@ -150,7 +150,7 @@ int armv4_5_mmu_read_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mm
 	return retval;
 }
 
-int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, u32 address, u32 size, u32 count, uint8_t *buffer)
+int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_mmu, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	int retval;
 
@@ -172,12 +172,12 @@ int armv4_5_mmu_write_physical(target_t *target, armv4_5_mmu_common_t *armv4_5_m
 
 int armv4_5_mmu_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu)
 {
-	u32 va;
-	u32 pa;
+	uint32_t va;
+	uint32_t pa;
 	int type;
-	u32 cb;
+	uint32_t cb;
 	int domain;
-	u32 ap;
+	uint32_t ap;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -219,7 +219,7 @@ int armv4_5_mmu_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 {
 	int count = 1;
 	int size = 4;
-	u32 address = 0;
+	uint32_t address = 0;
 	int i;
 
 	char output[128];
@@ -311,8 +311,8 @@ int armv4_5_mmu_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 
 int armv4_5_mmu_handle_mw_phys_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc, target_t *target, armv4_5_mmu_common_t *armv4_5_mmu)
 {
-	u32 address = 0;
-	u32 value = 0;
+	uint32_t address = 0;
+	uint32_t value = 0;
 	int retval;
 	uint8_t value_buf[4];
 

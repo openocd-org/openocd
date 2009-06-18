@@ -27,28 +27,28 @@
 
 typedef struct arm920t_common_s
 {
-	u32 common_magic;
+	uint32_t common_magic;
 	armv4_5_mmu_common_t armv4_5_mmu;
 	arm9tdmi_common_t arm9tdmi_common;
-	u32 cp15_control_reg;
-	u32 d_fsr;
-	u32 i_fsr;
-	u32 d_far;
-	u32 i_far;
+	uint32_t cp15_control_reg;
+	uint32_t d_fsr;
+	uint32_t i_fsr;
+	uint32_t d_far;
+	uint32_t i_far;
 	int preserve_cache;
 } arm920t_common_t;
 
 typedef struct arm920t_cache_line_s
 {
-	u32 cam;
-	u32 data[8];
+	uint32_t cam;
+	uint32_t data[8];
 } arm920t_cache_line_t;
 
 typedef struct arm920t_tlb_entry_s
 {
-	u32 cam;
-	u32 ram1;
-	u32 ram2;
+	uint32_t cam;
+	uint32_t ram1;
+	uint32_t ram2;
 } arm920t_tlb_entry_t;
 
 #endif /* ARM920T_H */

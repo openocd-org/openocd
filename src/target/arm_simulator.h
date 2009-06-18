@@ -24,7 +24,7 @@
 
 struct target_s;
 
-extern int arm_simulate_step(struct target_s *target, u32 *dry_run_pc);
+extern int arm_simulate_step(struct target_s *target, uint32_t *dry_run_pc);
 
 #define ERROR_ARM_SIMULATOR_NOT_IMPLEMENTED	(-700)
 

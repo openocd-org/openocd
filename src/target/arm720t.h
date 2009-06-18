@@ -27,12 +27,12 @@
 
 typedef struct arm720t_common_s
 {
-	u32 common_magic;
+	uint32_t common_magic;
 	armv4_5_mmu_common_t armv4_5_mmu;
 	arm7tdmi_common_t arm7tdmi_common;
-	u32 cp15_control_reg;
-	u32 fsr_reg;
-	u32 far_reg;
+	uint32_t cp15_control_reg;
+	uint32_t fsr_reg;
+	uint32_t far_reg;
 } arm720t_common_t;
 
 #endif /* ARM720T_H */

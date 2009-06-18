@@ -37,7 +37,7 @@ typedef struct arm9tdmi_common_s
 typedef struct arm9tdmi_vector_s
 {
 	char *name;
-	u32 value;
+	uint32_t value;
 } arm9tdmi_vector_t;
 
 enum arm9tdmi_vector
@@ -57,10 +57,10 @@ int arm9tdmi_examine(struct target_s *target);
 extern int arm9tdmi_init_arch_info(target_t *target, arm9tdmi_common_t *arm9tdmi, jtag_tap_t *tap);
 extern int arm9tdmi_register_commands(struct command_context_s *cmd_ctx);
 
-extern int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int sysspeed);
-extern int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in);
+extern int arm9tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t instr, uint32_t out, uint32_t *in, int sysspeed);
+extern int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in);
 extern int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be); 
-extern void arm9tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16]);
-extern void arm9tdmi_write_core_regs(target_t *target, u32 mask, u32 core_regs[16]);
+extern void arm9tdmi_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_regs[16]);
+extern void arm9tdmi_write_core_regs(target_t *target, uint32_t mask, uint32_t core_regs[16]);
 
 #endif /* ARM9TDMI_H */

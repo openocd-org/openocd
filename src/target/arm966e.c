@@ -157,7 +157,7 @@ int arm966e_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, ar
 	return ERROR_OK;
 }
 
-int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
+int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 {
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -209,7 +209,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	return ERROR_OK;
 }
 
-int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
+int arm966e_write_cp15(target_t *target, int reg_addr, uint32_t value)
 {
 	int retval = ERROR_OK;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -284,7 +284,7 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 
 		if (argc == 1)
 		{
-			u32 value;
+			uint32_t value;
 			if ((retval = arm966e_read_cp15(target, address, &value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't access reg %i", address);
@@ -299,7 +299,7 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		}
 		else if (argc == 2)
 		{
-			u32 value = strtoul(args[1], NULL, 0);
+			uint32_t value = strtoul(args[1], NULL, 0);
 			if ((retval = arm966e_write_cp15(target, address, value)) != ERROR_OK)
 			{
 				command_print(cmd_ctx, "couldn't access reg %i", address);

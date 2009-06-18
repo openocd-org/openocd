@@ -162,7 +162,7 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 }
 
 /* put an instruction in the ARM9TDMI pipeline or write the data bus, and optionally read data */
-int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int sysspeed)
+int arm9tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t instr, uint32_t out, uint32_t *in, int sysspeed)
 {
 	int retval = ERROR_OK;
 	scan_field_t fields[3];
@@ -235,7 +235,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 }
 
 /* just read data (instruction and data-out = don't care) */
-int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
+int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 {
 	int retval = ERROR_OK;;
 	scan_field_t fields[3];
@@ -345,7 +345,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 
 		if (in)
 		{
-			LOG_DEBUG("in: 0x%8.8x", *(u32*)in);
+			LOG_DEBUG("in: 0x%8.8x", *(uint32_t*)in);
 		}
 		else
 		{
@@ -357,7 +357,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 	return ERROR_OK;
 }
 
-void arm9tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
+void arm9tdmi_change_to_arm(target_t *target, uint32_t *r0, uint32_t *pc)
 {
 	int retval = ERROR_OK;
 	/* get pointers to arch-specific information */
@@ -412,7 +412,7 @@ void arm9tdmi_change_to_arm(target_t *target, u32 *r0, u32 *pc)
 	*pc -= 0xc;
 }
 
-void arm9tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
+void arm9tdmi_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -438,7 +438,7 @@ void arm9tdmi_read_core_regs(target_t *target, u32 mask, u32* core_regs[16])
 	}
 }
 
-void arm9tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buffer, int size)
+void arm9tdmi_read_core_regs_target_buffer(target_t *target, uint32_t mask, void* buffer, int size)
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -446,7 +446,7 @@ void arm9tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
-	u32 *buf_u32 = buffer;
+	uint32_t *buf_u32 = buffer;
 	uint16_t *buf_u16 = buffer;
 	uint8_t *buf_u8 = buffer;
 
@@ -479,7 +479,7 @@ void arm9tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 	}
 }
 
-void arm9tdmi_read_xpsr(target_t *target, u32 *xpsr, int spsr)
+void arm9tdmi_read_xpsr(target_t *target, uint32_t *xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -503,7 +503,7 @@ void arm9tdmi_read_xpsr(target_t *target, u32 *xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, xpsr, 0);
 }
 
-void arm9tdmi_write_xpsr(target_t *target, u32 xpsr, int spsr)
+void arm9tdmi_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -565,7 +565,7 @@ void arm9tdmi_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int sps
 	}
 }
 
-void arm9tdmi_write_core_regs(target_t *target, u32 mask, u32 core_regs[16])
+void arm9tdmi_write_core_regs(target_t *target, uint32_t mask, uint32_t core_regs[16])
 {
 	int i;
 	/* get pointers to arch-specific information */
@@ -592,7 +592,7 @@ void arm9tdmi_write_core_regs(target_t *target, u32 mask, u32 core_regs[16])
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-void arm9tdmi_load_word_regs(target_t *target, u32 mask)
+void arm9tdmi_load_word_regs(target_t *target, uint32_t mask)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -628,7 +628,7 @@ void arm9tdmi_load_byte_reg(target_t *target, int num)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
 }
 
-void arm9tdmi_store_word_regs(target_t *target, u32 mask)
+void arm9tdmi_store_word_regs(target_t *target, uint32_t mask)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -664,7 +664,7 @@ void arm9tdmi_store_byte_reg(target_t *target, int num)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 1);
 }
 
-void arm9tdmi_write_pc(target_t *target, u32 pc)
+void arm9tdmi_write_pc(target_t *target, uint32_t pc)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -761,7 +761,7 @@ void arm9tdmi_branch_resume_thumb(target_t *target)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_T_NOP, 0, NULL, 0);
 }
 
-void arm9tdmi_enable_single_step(target_t *target, u32 next_pc)
+void arm9tdmi_enable_single_step(target_t *target, uint32_t next_pc)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -978,7 +978,7 @@ int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, cha
 	arm7_9_common_t *arm7_9;
 	arm9tdmi_common_t *arm9tdmi;
 	reg_t *vector_catch;
-	u32 vector_catch_value;
+	uint32_t vector_catch_value;
 	int i, j;
 
 	if (arm9tdmi_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi) != ERROR_OK)

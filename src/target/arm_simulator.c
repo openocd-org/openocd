@@ -31,9 +31,9 @@
 #include "binarybuffer.h"
 
 
-u32 arm_shift(uint8_t shift, u32 Rm, u32 shift_amount, uint8_t *carry)
+uint32_t arm_shift(uint8_t shift, uint32_t Rm, uint32_t shift_amount, uint8_t *carry)
 {
-	u32 return_value = 0;
+	uint32_t return_value = 0;
 	shift_amount &= 0xff;
 	
 	if (shift == 0x0) /* LSL */
@@ -122,9 +122,9 @@ u32 arm_shift(uint8_t shift, u32 Rm, u32 shift_amount, uint8_t *carry)
 	return return_value;
 }
 
-u32 arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_shifter_operand shifter_operand, uint8_t *shifter_carry_out)
+uint32_t arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_shifter_operand shifter_operand, uint8_t *shifter_carry_out)
 {
-	u32 return_value;
+	uint32_t return_value;
 	int instruction_size;
 	
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
@@ -140,7 +140,7 @@ u32 arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_shifte
 	}
 	else if (variant == 1) /* immediate shift */
 	{
-		u32 Rm = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, shifter_operand.immediate_shift.Rm).value, 0, 32);
+		uint32_t Rm = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, shifter_operand.immediate_shift.Rm).value, 0, 32);
 		
 		/* adjust RM in case the PC is being read */
 		if (shifter_operand.immediate_shift.Rm == 15)
@@ -150,8 +150,8 @@ u32 arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_shifte
 	}
 	else if (variant == 2) /* register shift */
 	{
-		u32 Rm = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, shifter_operand.register_shift.Rm).value, 0, 32);
-		u32 Rs = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, shifter_operand.register_shift.Rs).value, 0, 32);
+		uint32_t Rm = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, shifter_operand.register_shift.Rm).value, 0, 32);
+		uint32_t Rs = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, shifter_operand.register_shift.Rs).value, 0, 32);
 		
 		/* adjust RM in case the PC is being read */
 		if (shifter_operand.register_shift.Rm == 15)
@@ -168,7 +168,7 @@ u32 arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_shifte
 	return return_value;
 }
 
-int pass_condition(u32 cpsr, u32 opcode)
+int pass_condition(uint32_t cpsr, uint32_t opcode)
 {
 	switch ((opcode & 0xf0000000) >> 28)
 	{
@@ -258,7 +258,7 @@ int pass_condition(u32 cpsr, u32 opcode)
 	return 0;
 }
 
-int thumb_pass_branch_condition(u32 cpsr, uint16_t opcode)
+int thumb_pass_branch_condition(uint32_t cpsr, uint16_t opcode)
 {
 	return pass_condition(cpsr, (opcode & 0x0f00) << 20); 
 }
@@ -267,17 +267,17 @@ int thumb_pass_branch_condition(u32 cpsr, uint16_t opcode)
  * if the dry_run_pc argument is provided, no state is changed,
  * but the new pc is stored in the variable pointed at by the argument
  */
-int arm_simulate_step(target_t *target, u32 *dry_run_pc)
+int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
-	u32 current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+	uint32_t current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 	arm_instruction_t instruction;
 	int instruction_size;
 	int retval = ERROR_OK;
 	
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 	{
-		u32 opcode;
+		uint32_t opcode;
 		
 		/* get current instruction, and identify it */
 		if((retval = target_read_u32(target, current_pc, &opcode)) != ERROR_OK)
@@ -341,7 +341,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 	/* branch instructions */
 	if ((instruction.type >= ARM_B) && (instruction.type <= ARM_BLX))
 	{
-		u32 target;
+		uint32_t target;
 		
 		if (instruction.info.b_bl_bx_blx.reg_operand == -1)
 		{
@@ -369,7 +369,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 			}
 			else if (instruction.type == ARM_BL)
 			{
-				u32 old_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+				uint32_t old_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 				buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 14).value, 0, 32, old_pc + 4);
 				buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, target);
 			}
@@ -387,7 +387,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 			}
 			else if (instruction.type == ARM_BLX)
 			{
-				u32 old_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
+				uint32_t old_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 				buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 14).value, 0, 32, old_pc + 4);
 
 				if (target & 0x1)
@@ -408,7 +408,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 	else if (((instruction.type >= ARM_AND) && (instruction.type <= ARM_RSC))
 			|| ((instruction.type >= ARM_ORR) && (instruction.type <= ARM_MVN)))
 	{
-		u32 Rd, Rn, shifter_operand;
+		uint32_t Rd, Rn, shifter_operand;
 		uint8_t C = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 29, 1);
 		uint8_t carry_out;
 		
@@ -491,8 +491,8 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 	/* load register instructions */
 	else if ((instruction.type >= ARM_LDR) && (instruction.type <= ARM_LDRSH))
 	{
-		u32 load_address = 0, modified_address = 0, load_value;
-		u32 Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store.Rn).value, 0, 32);
+		uint32_t load_address = 0, modified_address = 0, load_value;
+		uint32_t Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store.Rn).value, 0, 32);
 		
 		/* adjust Rn in case the PC is being read */
 		if (instruction.info.load_store.Rn == 15)
@@ -507,8 +507,8 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		}
 		else if (instruction.info.load_store.offset_mode == 1)
 		{
-			u32 offset;
-			u32 Rm = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store.offset.reg.Rm).value, 0, 32);
+			uint32_t offset;
+			uint32_t Rm = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store.offset.reg.Rm).value, 0, 32);
 			uint8_t shift = instruction.info.load_store.offset.reg.shift;
 			uint8_t shift_imm = instruction.info.load_store.offset.reg.shift_imm;
 			uint8_t carry = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 29, 1);
@@ -584,8 +584,8 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 	else if (instruction.type == ARM_LDM)
 	{
 		int i;
-		u32 Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store_multiple.Rn).value, 0, 32);
-		u32 load_values[16];
+		uint32_t Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store_multiple.Rn).value, 0, 32);
+		uint32_t load_values[16];
 		int bits_set = 0;
 
 		for (i = 0; i < 16; i++)
@@ -653,7 +653,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 			
 			if (update_cpsr)
 			{
-				u32 spsr = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).value, 0, 32);
+				uint32_t spsr = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).value, 0, 32);
 				buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, spsr);
 			}
 			
@@ -676,7 +676,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		}
 		else
 		{
-			u32 Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store_multiple.Rn).value, 0, 32);
+			uint32_t Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store_multiple.Rn).value, 0, 32);
 			int bits_set = 0;
 			enum armv4_5_mode mode = armv4_5->core_mode;
 

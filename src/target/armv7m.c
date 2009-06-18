@@ -175,7 +175,7 @@ int armv7m_set_core_reg(reg_t *reg, uint8_t *buf)
 {
 	armv7m_core_reg_t *armv7m_reg = reg->arch_info;
 	target_t *target = armv7m_reg->target;
-	u32 value = buf_get_u32(buf, 0, 32);
+	uint32_t value = buf_get_u32(buf, 0, 32);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -191,7 +191,7 @@ int armv7m_set_core_reg(reg_t *reg, uint8_t *buf)
 
 int armv7m_read_core_reg(struct target_s *target, int num)
 {
-	u32 reg_value;
+	uint32_t reg_value;
 	int retval;
 	armv7m_core_reg_t * armv7m_core_reg;
 
@@ -213,7 +213,7 @@ int armv7m_read_core_reg(struct target_s *target, int num)
 int armv7m_write_core_reg(struct target_s *target, int num)
 {
 	int retval;
-	u32 reg_value;
+	uint32_t reg_value;
 	armv7m_core_reg_t *armv7m_core_reg;
 
 	/* get pointers to arch-specific information */
@@ -289,9 +289,9 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 }
 
 /* run to exit point. return error if exit point was not reached. */
-static int armv7m_run_and_wait(struct target_s *target, u32 entry_point, int timeout_ms, u32 exit_point, armv7m_common_t *armv7m)
+static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, int timeout_ms, uint32_t exit_point, armv7m_common_t *armv7m)
 {
-	u32 pc;
+	uint32_t pc;
 	int retval;
 	/* This code relies on the target specific  resume() and  poll()->debug_entry()
 	 * sequence to write register values to the processor and the read them back */
@@ -323,7 +323,7 @@ static int armv7m_run_and_wait(struct target_s *target, u32 entry_point, int tim
 	return ERROR_OK;
 }
 
-int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
+int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -331,7 +331,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	enum armv7m_mode core_mode = armv7m->core_mode;
 	int retval = ERROR_OK;
 	int i;
-	u32 context[ARMV7NUMCOREREGS];
+	uint32_t context[ARMV7NUMCOREREGS];
 
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC)
 	{
@@ -363,7 +363,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	for (i = 0; i < num_reg_params; i++)
 	{
 		reg_t *reg = register_get_by_name(armv7m->core_cache, reg_params[i].reg_name, 0);
-//		u32 regvalue;
+//		uint32_t regvalue;
 
 		if (!reg)
 		{
@@ -440,7 +440,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 
 	for (i = ARMV7NUMCOREREGS-1; i >= 0; i--)
 	{
-		u32 regvalue;
+		uint32_t regvalue;
 		regvalue = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);
 		if (regvalue != context[i])
 		{
@@ -553,7 +553,7 @@ int armv7m_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum)
+int armv7m_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	working_area_t *crc_algorithm;
 	armv7m_algorithm_t armv7m_info;
@@ -591,7 +591,7 @@ int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 		0x1DB7, 0x04C1			/* CRC32XOR:	.word 0x04C11DB7 */
 	};
 
-	u32 i;
+	uint32_t i;
 
 	if (target_alloc_working_area(target, sizeof(cortex_m3_crc_code), &crc_algorithm) != ERROR_OK)
 	{
@@ -634,13 +634,13 @@ int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 	return ERROR_OK;
 }
 
-int armv7m_blank_check_memory(struct target_s *target, u32 address, u32 count, u32* blank)
+int armv7m_blank_check_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank)
 {
 	working_area_t *erase_check_algorithm;
 	reg_param_t reg_params[3];
 	armv7m_algorithm_t armv7m_info;
 	int retval;
-	u32 i;
+	uint32_t i;
 
 	uint16_t erase_check_code[] =
 	{
@@ -704,7 +704,7 @@ int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	target_t *target = get_current_target(cmd_ctx);
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	u32 apsel, apselsave, baseaddr;
+	uint32_t apsel, apselsave, baseaddr;
 	int retval;
 
 	apsel = swjdp->apsel;
@@ -739,7 +739,7 @@ extern int handle_dap_apid_command(struct command_context_s *cmd_ctx, char *cmd,
 	target_t *target = get_current_target(cmd_ctx);
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	u32 apsel, apselsave, apid;
+	uint32_t apsel, apselsave, apid;
 	int retval;
 
 	apsel = swjdp->apsel;
@@ -770,7 +770,7 @@ int handle_dap_apsel_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	target_t *target = get_current_target(cmd_ctx);
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	u32 apsel, apid;
+	uint32_t apsel, apid;
 	int retval;
 
 	apsel = 0;
@@ -792,7 +792,7 @@ int handle_dap_memaccess_command(struct command_context_s *cmd_ctx, char *cmd, c
 	target_t *target = get_current_target(cmd_ctx);
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	u32 memaccess_tck;
+	uint32_t memaccess_tck;
 
 	memaccess_tck = swjdp->memaccess_tck;
 	if (argc > 0)
@@ -812,7 +812,7 @@ int handle_dap_info_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	int retval;
-	u32 apsel;
+	uint32_t apsel;
 
 	apsel =  swjdp->apsel;
 	if (argc > 0)

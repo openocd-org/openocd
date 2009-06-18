@@ -50,7 +50,7 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11);
 
 bool	arm11_config_memwrite_burst				= true;
 bool	arm11_config_memwrite_error_fatal		= true;
-u32		arm11_vcr								= 0;
+uint32_t		arm11_vcr								= 0;
 bool	arm11_config_memrw_no_increment			= false;
 bool	arm11_config_step_irq_enable			= false;
 
@@ -132,7 +132,7 @@ enum arm11_regtype
 typedef struct arm11_reg_defs_s
 {
 	char *					name;
-	u32						num;
+	uint32_t						num;
 	int						gdb_num;
 	enum arm11_regtype		type;
 } arm11_reg_defs_t;
@@ -311,11 +311,11 @@ reg_t arm11_gdb_dummy_fps_reg =
  *					available a pointer to a word holding the
  *					DSCR can be passed. Otherwise use NULL.
  */
-int arm11_check_init(arm11_common_t * arm11, u32 * dscr)
+int arm11_check_init(arm11_common_t * arm11, uint32_t * dscr)
 {
 	FNC_INFO;
 
-	u32			dscr_local_tmp_copy;
+	uint32_t			dscr_local_tmp_copy;
 
 	if (!dscr)
 	{
@@ -408,7 +408,7 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 	/* ARM1176 spec says this is needed only for wDTR/rDTR's "ITR mode", but not to issue ITRs
 	   ARM1136 seems to require this to issue ITR's as well */
 
-	u32 new_dscr = R(DSCR) | ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE;
+	uint32_t new_dscr = R(DSCR) | ARM11_DSCR_EXECUTE_ARM_INSTRUCTION_ENABLE;
 
 	/* this executes JTAG queue: */
 
@@ -430,7 +430,7 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 		/* mcr	   15, 0, r0, cr7, cr10, {4} */
 		arm11_run_instr_no_data1(arm11, 0xee070f9a);
 
-		u32 dscr = arm11_read_DSCR(arm11);
+		uint32_t dscr = arm11_read_DSCR(arm11);
 
 		LOG_DEBUG("DRAIN, DSCR %08x", dscr);
 
@@ -579,7 +579,7 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 	/* spec says clear wDTR and rDTR; we assume they are clear as
 	   otherwise our programming would be sloppy */
 	{
-		u32 DSCR;
+		uint32_t DSCR;
 
 		CHECK_RETVAL(arm11_read_DSCR(arm11, &DSCR));
 
@@ -668,7 +668,7 @@ int arm11_poll(struct target_s *target)
 	if (arm11->trst_active)
 		return ERROR_OK;
 
-	u32	dscr;
+	uint32_t	dscr;
 
 	CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
@@ -717,7 +717,7 @@ int arm11_arch_state(struct target_s *target)
 }
 
 /* target request support */
-int arm11_target_request_data(struct target_s *target, u32 size, uint8_t *buffer)
+int arm11_target_request_data(struct target_s *target, uint32_t size, uint8_t *buffer)
 {
 	FNC_INFO_NOTIMPLEMENTED;
 
@@ -755,7 +755,7 @@ int arm11_halt(struct target_s *target)
 
 	CHECK_RETVAL(jtag_execute_queue());
 
-	u32 dscr;
+	uint32_t dscr;
 
 	while (1)
 	{
@@ -779,7 +779,7 @@ int arm11_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm11_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
+int arm11_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	FNC_INFO;
 
@@ -856,7 +856,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 
 	while (1)
 	{
-		u32 dscr;
+		uint32_t dscr;
 
 		CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
@@ -884,7 +884,7 @@ int arm11_resume(struct target_s *target, int current, u32 address, int handle_b
 	return ERROR_OK;
 }
 
-int arm11_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
+int arm11_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
 {
 	FNC_INFO;
 
@@ -906,7 +906,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 
 	/** \todo TODO: Thumb not supported here */
 
-	u32	next_instruction;
+	uint32_t	next_instruction;
 
 	CHECK_RETVAL(arm11_read_memory_word(arm11, R(PC), &next_instruction));
 
@@ -975,7 +975,7 @@ int arm11_step(struct target_s *target, int current, u32 address, int handle_bre
 
 		while (1)
 		{
-			u32 dscr;
+			uint32_t dscr;
 
 			CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
@@ -1090,9 +1090,9 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
  * size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
  * count: number of items of <size>
  */
-int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	/** \todo TODO: check if buffer cast to u32* and uint16_t* might cause alignment problems */
+	/** \todo TODO: check if buffer cast to uint32_t* and uint16_t* might cause alignment problems */
 
 	FNC_INFO;
 
@@ -1124,7 +1124,7 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 			arm11_run_instr_no_data1(arm11,
 					!arm11_config_memrw_no_increment ? 0xe4d01001 : 0xe5d01000);
 
-			u32 res;
+			uint32_t res;
 			/* MCR p14,0,R1,c0,c5,0 */
 			arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
 
@@ -1143,7 +1143,7 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 				arm11_run_instr_no_data1(arm11,
 					!arm11_config_memrw_no_increment ? 0xe0d010b2 : 0xe1d010b0);
 
-				u32 res;
+				uint32_t res;
 
 				/* MCR p14,0,R1,c0,c5,0 */
 				arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
@@ -1157,9 +1157,9 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 
 	case 4:
 		{
-		u32 instr = !arm11_config_memrw_no_increment ? 0xecb05e01 : 0xed905e00;
-		/** \todo TODO: buffer cast to u32* causes alignment warnings */
-		u32 *words = (u32 *)buffer;
+		uint32_t instr = !arm11_config_memrw_no_increment ? 0xecb05e01 : 0xed905e00;
+		/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
+		uint32_t *words = (uint32_t *)buffer;
 
 		/* LDC p14,c5,[R0],#4 */
 		/* LDC p14,c5,[R0] */
@@ -1173,7 +1173,7 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 	return ERROR_OK;
 }
 
-int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	FNC_INFO;
 
@@ -1234,10 +1234,10 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 		}
 
 	case 4: {
-		u32 instr = !arm11_config_memrw_no_increment ? 0xeca05e01 : 0xed805e00;
+		uint32_t instr = !arm11_config_memrw_no_increment ? 0xeca05e01 : 0xed805e00;
 
-		/** \todo TODO: buffer cast to u32* causes alignment warnings */
-		u32 *words = (u32*)buffer;
+		/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
+		uint32_t *words = (uint32_t*)buffer;
 
 		if (!arm11_config_memwrite_burst)
 		{
@@ -1260,7 +1260,7 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 	/* r0 verification */
 	if (!arm11_config_memrw_no_increment)
 	{
-		u32 r0;
+		uint32_t r0;
 
 		/* MCR p14,0,R0,c0,c5,0 */
 		arm11_run_instr_data_from_core(arm11, 0xEE000E15, &r0, 1);
@@ -1285,7 +1285,7 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 
 
 /* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
-int arm11_bulk_write_memory(struct target_s *target, u32 address, u32 count, uint8_t *buffer)
+int arm11_bulk_write_memory(struct target_s *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
 	FNC_INFO;
 
@@ -1302,7 +1302,7 @@ int arm11_bulk_write_memory(struct target_s *target, u32 address, u32 count, uin
  * fallback code will read data from the target and calculate the CRC on the
  * host.
  */
-int arm11_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum)
+int arm11_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	return ERROR_FAIL;
 }
@@ -1369,14 +1369,14 @@ int arm11_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 // HACKHACKHACK - FIXME mode/state
 /* target algorithm support */
 int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params,
-			int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point,
+			int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point,
 			int timeout_ms, void *arch_info)
 {
 		arm11_common_t *arm11 = target->arch_info;
 //	enum armv4_5_state core_state = arm11->core_state;
 //	enum armv4_5_mode core_mode = arm11->core_mode;
-	u32 context[16];
-	u32 cpsr;
+	uint32_t context[16];
+	uint32_t cpsr;
 	int exit_breakpoint_size = 0;
 	int retval = ERROR_OK;
 		LOG_DEBUG("Running algorithm");
@@ -1819,7 +1819,7 @@ int arm11_handle_vcr(struct command_context_s *cmd_ctx, char *cmd, char **args, 
 	return ERROR_OK;
 }
 
-const u32 arm11_coproc_instruction_limits[] =
+const uint32_t arm11_coproc_instruction_limits[] =
 {
 	15,				/* coprocessor */
 	7,				/* opcode 1 */
@@ -1879,7 +1879,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	u32	values[6];
+	uint32_t	values[6];
 
 	for (size_t i = 0; i < (read ? 5 : 6); i++)
 	{
@@ -1894,7 +1894,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 		}
 	}
 
-	u32 instr = 0xEE000010	|
+	uint32_t instr = 0xEE000010	|
 		(values[0] <<  8) |
 		(values[1] << 21) |
 		(values[2] << 16) |
@@ -1908,7 +1908,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 	if (read)
 	{
-		u32 result;
+		uint32_t result;
 		arm11_run_instr_data_from_core_via_r0(arm11, instr, &result);
 
 		LOG_INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08x (%d)",

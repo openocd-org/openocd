@@ -39,12 +39,12 @@
  */
 typedef struct arm7_9_common_s
 {
-	u32 common_magic;
+	uint32_t common_magic;
 
 	arm_jtag_t jtag_info; /**< JTAG information for target */
 	reg_cache_t *eice_cache; /**< Embedded ICE register cache */
 
-	u32 arm_bkpt; /**< ARM breakpoint instruction */
+	uint32_t arm_bkpt; /**< ARM breakpoint instruction */
 	uint16_t thumb_bkpt; /**< Thumb breakpoint instruction */
 	int sw_breakpoints_added; /**< Specifies which watchpoint software breakpoints are setup on */
 	int breakpoint_count; /**< Current number of set breakpoints */
@@ -73,29 +73,29 @@ typedef struct arm7_9_common_s
 
 	int (*examine_debug_reason)(target_t *target); /**< Function for determining why debug state was entered */
 
-	void (*change_to_arm)(target_t *target, u32 *r0, u32 *pc); /**< Function for changing from Thumb to ARM mode */
+	void (*change_to_arm)(target_t *target, uint32_t *r0, uint32_t *pc); /**< Function for changing from Thumb to ARM mode */
 
-	void (*read_core_regs)(target_t *target, u32 mask, u32 *core_regs[16]); /**< Function for reading the core registers */
-	void (*read_core_regs_target_buffer)(target_t *target, u32 mask, void *buffer, int size);
-	void (*read_xpsr)(target_t *target, u32 *xpsr, int spsr); /**< Function for reading CPSR or SPSR */
+	void (*read_core_regs)(target_t *target, uint32_t mask, uint32_t *core_regs[16]); /**< Function for reading the core registers */
+	void (*read_core_regs_target_buffer)(target_t *target, uint32_t mask, void *buffer, int size);
+	void (*read_xpsr)(target_t *target, uint32_t *xpsr, int spsr); /**< Function for reading CPSR or SPSR */
 
-	void (*write_xpsr)(target_t *target, u32 xpsr, int spsr); /**< Function for writing to CPSR or SPSR */
+	void (*write_xpsr)(target_t *target, uint32_t xpsr, int spsr); /**< Function for writing to CPSR or SPSR */
 	void (*write_xpsr_im8)(target_t *target, uint8_t xpsr_im, int rot, int spsr); /**< Function for writing an immediate value to CPSR or SPSR */
-	void (*write_core_regs)(target_t *target, u32 mask, u32 core_regs[16]);
+	void (*write_core_regs)(target_t *target, uint32_t mask, uint32_t core_regs[16]);
 
-	void (*load_word_regs)(target_t *target, u32 mask);
+	void (*load_word_regs)(target_t *target, uint32_t mask);
 	void (*load_hword_reg)(target_t *target, int num);
 	void (*load_byte_reg)(target_t *target, int num);
 
-	void (*store_word_regs)(target_t *target, u32 mask);
+	void (*store_word_regs)(target_t *target, uint32_t mask);
 	void (*store_hword_reg)(target_t *target, int num);
 	void (*store_byte_reg)(target_t *target, int num);
 
-	void (*write_pc)(target_t *target, u32 pc); /**< Function for writing to the program counter */
+	void (*write_pc)(target_t *target, uint32_t pc); /**< Function for writing to the program counter */
 	void (*branch_resume)(target_t *target);
 	void (*branch_resume_thumb)(target_t *target);
 
-	void (*enable_single_step)(target_t *target, u32 next_pc);
+	void (*enable_single_step)(target_t *target, uint32_t next_pc);
 	void (*disable_single_step)(target_t *target);
 
 	void (*set_special_dbgrq)(target_t *target); /**< Function for setting DBGRQ if the normal way won't work */
@@ -115,7 +115,7 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx);
 
 int arm7_9_poll(target_t *target);
 
-int arm7_9_target_request_data(target_t *target, u32 size, uint8_t *buffer);
+int arm7_9_target_request_data(target_t *target, uint32_t size, uint8_t *buffer);
 
 int arm7_9_setup(target_t *target);
 int arm7_9_assert_reset(target_t *target);
@@ -128,23 +128,23 @@ int arm7_9_prepare_reset_halt(struct target_s *target);
 int arm7_9_halt(target_t *target);
 int arm7_9_full_context(target_t *target);
 int arm7_9_restore_context(target_t *target);
-int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
-int arm7_9_step(struct target_s *target, int current, u32 address, int handle_breakpoints);
+int arm7_9_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
+int arm7_9_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints);
 int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mode);
-int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
-int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
-int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer);
-int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum);
-int arm7_9_blank_check_memory(struct target_s *target, u32 address, u32 count, u32* blank);
+int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer);
+int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum);
+int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* blank);
 
-int arm7_9_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_prams, reg_param_t *reg_param, u32 entry_point, void *arch_info);
+int arm7_9_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_prams, reg_param_t *reg_param, uint32_t entry_point, void *arch_info);
 
 int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int arm7_9_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint);
 
-void arm7_9_enable_eice_step(target_t *target, u32 next_pc);
+void arm7_9_enable_eice_step(target_t *target, uint32_t next_pc);
 void arm7_9_disable_eice_step(target_t *target);
 
 int arm7_9_execute_sys_speed(struct target_s *target);
