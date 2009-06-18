@@ -80,6 +80,13 @@ Finally, try to avoid lines of code that are longer than than 72-80 columns:
 - variables declarations may be mixed with code
 - new block scopes for selection and iteration statements
 
+@section styletypes Type Guidelines
+- use native types (@c int or @c unsigned) if the type is not important
+  - if size matters, use the types from \<stdint.h\> or \<inttypes.h\>:
+    - @c int8_t, @c int16_t, @c int32_t, or @c int64_t: signed types of specified size
+    - @c uint8_t, @c uint16_t, @c uint32_t, or @c uint64_t: unsigned types of specified size
+  - do @b NOT redefine @c uN types from "types.h"
+
 @section stylefunc Functions
 
 - static inline functions should be prefered over macros:
