@@ -296,18 +296,16 @@ void format(void)
 	}
 
 	cyg_io_flash_getconfig_erase_t e;
-	void *err_addr;
 	len = sizeof(e);
 
 	e.offset = 0;
 	e.len = ds.dev_size;
-	e.err_address = &err_addr;
 
 	diag_printf("Formatting 0x%08x bytes\n", (int)ds.dev_size);
 	err = cyg_io_get_config(handle, CYG_IO_GET_CONFIG_FLASH_ERASE, &e, &len);
 	if (err != ENOERR)
 	{
-		diag_printf("Flash erase error %d offset 0x%p\n", err, err_addr);
+		diag_printf("Flash erase error %d offset 0x%p\n", err, e.err_address);
 		reboot();
 	}
 
@@ -633,9 +631,9 @@ static void zylinjtag_uart(cyg_addrword_t data)
 #ifdef CYGPKG_PROFILE_GPROF
 		start_profile();
 #endif
-		int actual = 0;
-		int actual2 = 0;
-		int pos, pos2;
+		size_t actual = 0;
+		size_t actual2 = 0;
+		size_t pos, pos2;
 		pos = 0;
 		pos2 = 0;
 		cur = 0;
@@ -668,9 +666,11 @@ static void zylinjtag_uart(cyg_addrword_t data)
 			if (actual2 <= 0)
 			{
 				memset(backwardBuffer, 's', sizeof(backwardBuffer));
-				actual2 = read(serHandle, backwardBuffer,
+				int t;
+				t = read(serHandle, backwardBuffer,
 						sizeof(backwardBuffer));
-				if (actual2 < 0)
+				actual2 = t;
+				if (t < 0)
 				{
 					if (errno != EAGAIN)
 					{
@@ -681,8 +681,8 @@ static void zylinjtag_uart(cyg_addrword_t data)
 				pos2 = 0;
 			}
 
-			int x = actual2;
-			int y = 0;
+			size_t x = actual2;
+			size_t y = 0;
 			if (actual2 > 0)
 			{
 				int written = write(session, backwardBuffer + pos2, actual2);
