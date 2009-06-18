@@ -786,11 +786,11 @@ static int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 	 * clear status regiser, sent erase command, kickoff erase 
 	 */
 	target_write_u16(target, flashAddr, 0x0040);
-	LOG_DEBUG("write *(u16 *)0x%08x=0x0040", flashAddr);
+	LOG_DEBUG("write *(uint16_t *)0x%08x=0x0040", flashAddr);
 	target_write_u16(target, flashAddr, 0x0020);
-	LOG_DEBUG("write *(u16 *)0x%08x=0x0020", flashAddr);
+	LOG_DEBUG("write *(uint16_t *)0x%08x=0x0020", flashAddr);
 	target_write_u16(target, flashAddr, 0xffff);
-	LOG_DEBUG("write *(u16 *)0x%08x=0xffff", flashAddr);
+	LOG_DEBUG("write *(uint16_t *)0x%08x=0xffff", flashAddr);
 
 	/*
 	 * Monitor FMMSTAT, busy until clear, then check and other flags for
@@ -994,7 +994,7 @@ static int tms470_write(struct flash_bank_s *bank, uint8_t * buffer, u32 offset,
 	for (i = 0; i < count; i += 2)
 	{
 		u32 addr = bank->base + offset + i;
-		u16 word = (((u16) buffer[i]) << 8) | (u16) buffer[i + 1];
+		uint16_t word = (((uint16_t) buffer[i]) << 8) | (uint16_t) buffer[i + 1];
 
 		if (word != 0xffff)
 		{

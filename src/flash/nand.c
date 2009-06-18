@@ -384,7 +384,7 @@ int nand_read_status(struct nand_device_s *device, uint8_t *status)
 	/* read status */
 	if (device->device->options & NAND_BUSWIDTH_16)
 	{
-		u16 data;
+		uint16_t data;
 		device->controller->read_data(device, &data);
 		*status = data & 0xff;
 	}
@@ -403,7 +403,7 @@ static int nand_poll_ready(struct nand_device_s *device, int timeout)
 	device->controller->command(device, NAND_CMD_STATUS);
 	do {
 		if (device->device->options & NAND_BUSWIDTH_16) {
-			u16 data;
+			uint16_t data;
 			device->controller->read_data(device, &data);
 			status = data & 0xff;
 		} else {
@@ -464,7 +464,7 @@ int nand_probe(struct nand_device_s *device)
 	}
 	else
 	{
-		u16 data_buf;
+		uint16_t data_buf;
 		device->controller->read_data(device, &data_buf);
 		manufacturer_id = data_buf & 0xff;
 		device->controller->read_data(device, &data_buf);
@@ -524,7 +524,7 @@ int nand_probe(struct nand_device_s *device)
 		}
 		else
 		{
-			u16 data_buf;
+			uint16_t data_buf;
 
 			device->controller->read_data(device, &data_buf);
 			id_buff[3] = data_buf;
@@ -996,7 +996,7 @@ int nand_write_page_raw(struct nand_device_s *device, u32 page, uint8_t *data, u
 			{
 				if (device->device->options & NAND_BUSWIDTH_16)
 				{
-					u16 data_buf = le_to_h_u16(data);
+					uint16_t data_buf = le_to_h_u16(data);
 					device->controller->write_data(device, data_buf);
 					data += 2;
 					i += 2;
@@ -1021,7 +1021,7 @@ int nand_write_page_raw(struct nand_device_s *device, u32 page, uint8_t *data, u
 			{
 				if (device->device->options & NAND_BUSWIDTH_16)
 				{
-					u16 oob_buf = le_to_h_u16(data);
+					uint16_t oob_buf = le_to_h_u16(data);
 					device->controller->write_data(device, oob_buf);
 					oob += 2;
 					i += 2;

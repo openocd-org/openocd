@@ -29,30 +29,30 @@ typedef struct at91sam7_flash_bank_s
 {
 	/* chip id register */
 	u32 cidr;
-	u16 cidr_ext;
-	u16 cidr_nvptyp;
-	u16 cidr_arch;
-	u16 cidr_sramsiz;
-	u16 cidr_nvpsiz;
-	u16 cidr_nvpsiz2;
-	u16 cidr_eproc;
-	u16 cidr_version;
+	uint16_t cidr_ext;
+	uint16_t cidr_nvptyp;
+	uint16_t cidr_arch;
+	uint16_t cidr_sramsiz;
+	uint16_t cidr_nvpsiz;
+	uint16_t cidr_nvpsiz2;
+	uint16_t cidr_eproc;
+	uint16_t cidr_version;
 	char *target_name;
 
 	/* flash auto-detection */
 	uint8_t  flash_autodetection;
 
 	/* flash geometry */
-	u16 pages_per_sector;
-	u16 pagesize;
-	u16 pages_in_lockregion;
+	uint16_t pages_per_sector;
+	uint16_t pagesize;
+	uint16_t pages_in_lockregion;
 
 	/* nv memory bits */
-	u16 num_lockbits_on;
-	u16 lockbits;
-	u16 num_nvmbits;
-	u16 num_nvmbits_on;
-	u16 nvmbits;
+	uint16_t num_lockbits_on;
+	uint16_t lockbits;
+	uint16_t num_nvmbits;
+	uint16_t num_nvmbits_on;
+	uint16_t nvmbits;
 	uint8_t  securitybit;
 
 	/* 0: not init

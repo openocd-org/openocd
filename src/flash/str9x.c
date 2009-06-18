@@ -183,7 +183,7 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 	int i;
 	u32 adr;
 	u32 status = 0;
-	u16 hstatus = 0;
+	uint16_t hstatus = 0;
 
 	if (bank->target->state != TARGET_HALTED)
 	{

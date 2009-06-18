@@ -560,7 +560,7 @@ int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 	reg_param_t reg_params[2];
 	int retval;
 
-	u16 cortex_m3_crc_code[] = {
+	uint16_t cortex_m3_crc_code[] = {
 		0x4602,					/* mov	r2, r0 */
 		0xF04F, 0x30FF,			/* mov	r0, #0xffffffff */
 		0x460B,					/* mov	r3, r1 */
@@ -599,8 +599,8 @@ int armv7m_checksum_memory(struct target_s *target, u32 address, u32 count, u32*
 	}
 
 	/* convert flash writing code into a buffer in target endianness */
-	for (i = 0; i < (sizeof(cortex_m3_crc_code)/sizeof(u16)); i++)
-		if((retval = target_write_u16(target, crc_algorithm->address + i*sizeof(u16), cortex_m3_crc_code[i])) != ERROR_OK)
+	for (i = 0; i < (sizeof(cortex_m3_crc_code)/sizeof(uint16_t)); i++)
+		if((retval = target_write_u16(target, crc_algorithm->address + i*sizeof(uint16_t), cortex_m3_crc_code[i])) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -642,7 +642,7 @@ int armv7m_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 	int retval;
 	u32 i;
 
-	u16 erase_check_code[] =
+	uint16_t erase_check_code[] =
 	{
 							/* loop: */
 		0xF810, 0x3B01,		/* ldrb 	r3, [r0], #1 */
@@ -660,8 +660,8 @@ int armv7m_blank_check_memory(struct target_s *target, u32 address, u32 count, u
 	}
 
 	/* convert flash writing code into a buffer in target endianness */
-	for (i = 0; i < (sizeof(erase_check_code)/sizeof(u16)); i++)
-		target_write_u16(target, erase_check_algorithm->address + i*sizeof(u16), erase_check_code[i]);
+	for (i = 0; i < (sizeof(erase_check_code)/sizeof(uint16_t)); i++)
+		target_write_u16(target, erase_check_algorithm->address + i*sizeof(uint16_t), erase_check_code[i]);
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARMV7M_MODE_ANY;

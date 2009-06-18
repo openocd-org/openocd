@@ -103,7 +103,7 @@ static cable_t cables[] =
 
 /* configuration */
 static char* parport_cable = NULL;
-static u16 parport_port;
+static uint16_t parport_port;
 static int parport_exit = 0;
 
 /* interface variables

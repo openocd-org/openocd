@@ -104,7 +104,7 @@ int s3c24xx_address(struct nand_device_s *device, uint8_t address)
 	return ERROR_OK;
 }
 
-int s3c24xx_write_data(struct nand_device_s *device, u16 data)
+int s3c24xx_write_data(struct nand_device_s *device, uint16_t data)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;

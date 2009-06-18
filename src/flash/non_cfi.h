@@ -24,12 +24,12 @@
 
 typedef struct non_cfi_s
 {
-	u16 mfr;
-	u16 id;
-	u16 pri_id;
+	uint16_t mfr;
+	uint16_t id;
+	uint16_t pri_id;
 	u32 dev_size;
-	u16 interface_desc;
-	u16 max_buf_write_size;
+	uint16_t interface_desc;
+	uint16_t max_buf_write_size;
 	uint8_t num_erase_regions;
 	u32 erase_region_info[6];
 	uint8_t  status_poll_mask;

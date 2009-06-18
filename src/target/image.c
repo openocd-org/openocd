@@ -236,7 +236,7 @@ static int image_ihex_buffer_complete(image_t *image)
 		}
 		else if (record_type == 2) /* Linear Address Record */
 		{
-			u16 upper_address;
+			uint16_t upper_address;
 
 			sscanf(&lpszLine[bytes_read], "%4hx", &upper_address);
 			cal_checksum += (uint8_t)(upper_address >> 8);
@@ -276,7 +276,7 @@ static int image_ihex_buffer_complete(image_t *image)
 		}
 		else if (record_type == 4) /* Extended Linear Address Record */
 		{
-			u16 upper_address;
+			uint16_t upper_address;
 
 			sscanf(&lpszLine[bytes_read], "%4hx", &upper_address);
 			cal_checksum += (uint8_t)(upper_address >> 8);

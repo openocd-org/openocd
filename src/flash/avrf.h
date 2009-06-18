@@ -25,7 +25,7 @@
 typedef struct avrf_type_s
 {
 	char name[15];
-	u16 chip_id;
+	uint16_t chip_id;
 	int flash_page_size;
 	int flash_page_num;
 	int eeprom_page_size;

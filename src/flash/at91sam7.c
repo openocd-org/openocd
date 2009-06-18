@@ -57,7 +57,7 @@ static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size);
 static u32 at91sam7_get_flash_status(target_t *target, int bank_number);
 static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode);
 static u32 at91sam7_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout);
-static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, u16 pagen); 
+static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16_t pagen); 
 static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 flash_driver_t at91sam7_flash =
@@ -274,7 +274,7 @@ static u32 at91sam7_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeo
 }
 
 /* Send one command to the AT91SAM flash controller */
-static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, u16 pagen)
+static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16_t pagen)
 {
 	u32 fcr;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
@@ -309,14 +309,14 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 	at91sam7_flash_bank_t *at91sam7_info;
 	target_t *target = t_bank->target;
 
-	u16 bnk, sec;
-	u16 arch;
+	uint16_t bnk, sec;
+	uint16_t arch;
 	u32 cidr;
 	uint8_t banks_num = 0;
-	u16 num_nvmbits = 0;
-	u16 sectors_num = 0;
-	u16 pages_per_sector = 0;
-	u16 page_size = 0;
+	uint16_t num_nvmbits = 0;
+	uint16_t sectors_num = 0;
+	uint16_t pages_per_sector = 0;
+	uint16_t page_size = 0;
 	u32 ext_freq;
 	u32 bank_size;
 	u32 base_address = 0;
@@ -621,12 +621,12 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 static int at91sam7_erase_check(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	u16 retval;
+	uint16_t retval;
 	u32 blank;
-	u16 fast_check;
+	uint16_t fast_check;
 	uint8_t *buffer;
-	u16 nSector;
-	u16 nByte;
+	uint16_t nSector;
+	uint16_t nByte;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -759,9 +759,9 @@ static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *
 	int banks_num;
 	int num_sectors;
 
-	u16 pages_per_sector;
-	u16 page_size;
-	u16 num_nvmbits;
+	uint16_t pages_per_sector;
+	uint16_t page_size;
+	uint16_t num_nvmbits;
 
 	char *target_name;
 

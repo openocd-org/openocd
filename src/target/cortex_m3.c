@@ -1489,7 +1489,7 @@ int cortex_m3_quit(void)
 
 int cortex_m3_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 {
-	u16 dcrdr;
+	uint16_t dcrdr;
 
 	mem_ap_read_buf_u16( swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
 	*ctrl = (uint8_t)dcrdr;

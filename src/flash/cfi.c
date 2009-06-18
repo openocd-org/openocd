@@ -203,7 +203,7 @@ static uint8_t cfi_get_u8(flash_bank_t *bank, int sector, u32 offset)
 	}
 }
 
-static u16 cfi_query_u16(flash_bank_t *bank, int sector, u32 offset)
+static uint16_t cfi_query_u16(flash_bank_t *bank, int sector, u32 offset)
 {
 	target_t *target = bank->target;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
@@ -979,8 +979,8 @@ static void cfi_add_byte(struct flash_bank_s *bank, uint8_t *word, uint8_t byte)
 	/* NOTE:
 	 * The data to flash must not be changed in endian! We write a bytestrem in
 	 * target byte order already. Only the control and status byte lane of the flash
-	 * WSM is interpreted by the CPU in different ways, when read a u16 or u32
-	 * word (data seems to be in the upper or lower byte lane for u16 accesses).
+	 * WSM is interpreted by the CPU in different ways, when read a uint16_t or u32
+	 * word (data seems to be in the upper or lower byte lane for uint16_t accesses).
 	 */
 
 #if 0

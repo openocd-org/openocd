@@ -396,7 +396,7 @@ void arm7tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	u32 *buf_u32 = buffer;
-	u16 *buf_u16 = buffer;
+	uint16_t *buf_u16 = buffer;
 	uint8_t *buf_u8 = buffer;
 
 	/* STMIA r0-15, [r0] at debug speed

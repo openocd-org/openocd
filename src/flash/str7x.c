@@ -646,8 +646,8 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 	
 	u32 flash_cmd;
 	u32 retval;
-	u16 ProtectionLevel = 0;
-	u16 ProtectionRegs;
+	uint16_t ProtectionLevel = 0;
+	uint16_t ProtectionRegs;
 	
 	if (argc < 1)
 	{

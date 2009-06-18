@@ -393,7 +393,7 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 	int i;
 	arm_instruction_t cur_instruction;
 	u32 opcode;
-	u16 thumb_opcode;
+	uint16_t thumb_opcode;
 	int thumb = 0;
 
 	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)

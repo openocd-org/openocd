@@ -42,7 +42,7 @@
 #endif
 
 /* configuration */
-static u16 amt_jtagaccel_port;
+static uint16_t amt_jtagaccel_port;
 
 /* interface variables
  */

@@ -27,9 +27,9 @@
 
 typedef struct stm32x_options_s
 {
-	u16 RDP;
-	u16 user_options;
-	u16 protection[4];
+	uint16_t RDP;
+	uint16_t user_options;
+	uint16_t protection[4];
 } stm32x_options_t;
 
 typedef struct stm32x_flash_bank_s

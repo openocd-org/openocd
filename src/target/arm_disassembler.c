@@ -1319,7 +1319,7 @@ int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction)
 	return -1;
 }
 
-int evaluate_b_bl_blx_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_b_bl_blx_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 offset = opcode & 0x7ff;
 	u32 opc = (opcode >> 11) & 0x3;
@@ -1366,7 +1366,7 @@ int evaluate_b_bl_blx_thumb(u16 opcode, u32 address, arm_instruction_t *instruct
 	return ERROR_OK;
 }
 
-int evaluate_add_sub_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_add_sub_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	uint8_t Rd = (opcode >> 0) & 0x7;
 	uint8_t Rn = (opcode >> 3) & 0x7;
@@ -1408,7 +1408,7 @@ int evaluate_add_sub_thumb(u16 opcode, u32 address, arm_instruction_t *instructi
 	return ERROR_OK;
 }
 
-int evaluate_shift_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_shift_imm_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	uint8_t Rd = (opcode >> 0) & 0x7;
 	uint8_t Rm = (opcode >> 3) & 0x7;
@@ -1452,7 +1452,7 @@ int evaluate_shift_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruc
 	return ERROR_OK;
 }
 
-int evaluate_data_proc_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_data_proc_imm_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	uint8_t imm = opcode & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7;
@@ -1493,7 +1493,7 @@ int evaluate_data_proc_imm_thumb(u16 opcode, u32 address, arm_instruction_t *ins
 	return ERROR_OK;
 }
 
-int evaluate_data_proc_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_data_proc_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	uint8_t high_reg, op, Rm, Rd,H1,H2;
 	char *mnemonic = NULL;
@@ -1652,7 +1652,7 @@ int evaluate_data_proc_thumb(u16 opcode, u32 address, arm_instruction_t *instruc
 	return ERROR_OK;
 }
 
-int evaluate_load_literal_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_literal_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 immediate;
 	uint8_t Rd = (opcode >> 8) & 0x7; 
@@ -1671,7 +1671,7 @@ int evaluate_load_literal_thumb(u16 opcode, u32 address, arm_instruction_t *inst
 	return ERROR_OK;
 }
 
-int evaluate_load_store_reg_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_store_reg_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	uint8_t Rd = (opcode >> 0) & 0x7; 
 	uint8_t Rn = (opcode >> 3) & 0x7; 
@@ -1726,7 +1726,7 @@ int evaluate_load_store_reg_thumb(u16 opcode, u32 address, arm_instruction_t *in
 	return ERROR_OK;
 }
 
-int evaluate_load_store_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_store_imm_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 offset = (opcode >> 6) & 0x1f;
 	uint8_t Rd = (opcode >> 0) & 0x7; 
@@ -1770,7 +1770,7 @@ int evaluate_load_store_imm_thumb(u16 opcode, u32 address, arm_instruction_t *in
 	return ERROR_OK;
 }
 
-int evaluate_load_store_stack_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_store_stack_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 offset = opcode  & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7; 
@@ -1799,7 +1799,7 @@ int evaluate_load_store_stack_thumb(u16 opcode, u32 address, arm_instruction_t *
 	return ERROR_OK;
 }
 
-int evaluate_add_sp_pc_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_add_sp_pc_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 imm = opcode  & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7; 
@@ -1830,7 +1830,7 @@ int evaluate_add_sp_pc_thumb(u16 opcode, u32 address, arm_instruction_t *instruc
 	return ERROR_OK;
 }
 
-int evaluate_adjust_stack_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_adjust_stack_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 imm = opcode  & 0x7f;
 	uint8_t opc = opcode & (1<<7);
@@ -1858,7 +1858,7 @@ int evaluate_adjust_stack_thumb(u16 opcode, u32 address, arm_instruction_t *inst
 	return ERROR_OK;
 }
 
-int evaluate_breakpoint_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_breakpoint_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 imm = opcode  & 0xff;
 	
@@ -1869,7 +1869,7 @@ int evaluate_breakpoint_thumb(u16 opcode, u32 address, arm_instruction_t *instru
 	return ERROR_OK;
 }
 
-int evaluate_load_store_multiple_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_load_store_multiple_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 reg_list = opcode  & 0xff;
 	u32 L = opcode & (1<<11);
@@ -1936,7 +1936,7 @@ int evaluate_load_store_multiple_thumb(u16 opcode, u32 address, arm_instruction_
 	return ERROR_OK;
 }
 
-int evaluate_cond_branch_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
+int evaluate_cond_branch_thumb(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 offset = opcode  & 0xff;
 	uint8_t cond = (opcode >> 8) & 0xf;
@@ -1971,7 +1971,7 @@ int evaluate_cond_branch_thumb(u16 opcode, u32 address, arm_instruction_t *instr
 	return ERROR_OK;
 }
 
-int thumb_evaluate_opcode(u16 opcode, u32 address, arm_instruction_t *instruction)
+int thumb_evaluate_opcode(uint16_t opcode, u32 address, arm_instruction_t *instruction)
 {
 	/* clear fields, to avoid confusion */
 	memset(instruction, 0, sizeof(arm_instruction_t));

@@ -23,8 +23,8 @@
 typedef
 struct rlink_speed_table_s {
 	uint8_t const	*dtc;
-	u16			dtc_size;
-	u16			khz;
+	uint16_t			dtc_size;
+	uint16_t			khz;
 	uint8_t			prescaler;
 } rlink_speed_table_t;
 

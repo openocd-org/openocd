@@ -137,7 +137,7 @@ int nand_calculate_ecc_kw(struct nand_device_s *device, const uint8_t *data, uin
 			d = data[i];
 
 		if (r7) {
-			u16 *t = gf_exp + gf_log[r7];
+			uint16_t *t = gf_exp + gf_log[r7];
 
 			r7 = r6 ^ t[0x21c];
 			r6 = r5 ^ t[0x181];

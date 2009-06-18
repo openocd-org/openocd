@@ -195,7 +195,7 @@ typedef struct arm_instruction_s
 } arm_instruction_t;
 
 extern int arm_evaluate_opcode(u32 opcode, u32 address, arm_instruction_t *instruction);
-extern int thumb_evaluate_opcode(u16 opcode, u32 address, arm_instruction_t *instruction);
+extern int thumb_evaluate_opcode(uint16_t opcode, u32 address, arm_instruction_t *instruction);
 extern int arm_access_size(arm_instruction_t *instruction);
 
 #define COND(opcode) (arm_condition_strings[(opcode & 0xf0000000)>>28])

@@ -45,7 +45,7 @@ typedef struct arm7_9_common_s
 	reg_cache_t *eice_cache; /**< Embedded ICE register cache */
 
 	u32 arm_bkpt; /**< ARM breakpoint instruction */
-	u16 thumb_bkpt; /**< Thumb breakpoint instruction */
+	uint16_t thumb_bkpt; /**< Thumb breakpoint instruction */
 	int sw_breakpoints_added; /**< Specifies which watchpoint software breakpoints are setup on */
 	int breakpoint_count; /**< Current number of set breakpoints */
 	int wp_available; /**< Current number of available watchpoint units */

@@ -125,7 +125,7 @@ typedef struct xscale_common_s
 	int ibcr0_used;
 	int	ibcr1_used;
 	u32 arm_bkpt;
-	u16 thumb_bkpt;
+	uint16_t thumb_bkpt;
 	
 	uint8_t vector_catch;
 

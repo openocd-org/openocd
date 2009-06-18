@@ -128,7 +128,7 @@ enum
 typedef struct etmv1_trace_data_s
 {
 	uint8_t pipestat;	/* bits 0-2 pipeline status */
-	u16 packet;		/* packet data (4, 8 or 16 bit) */
+	uint16_t packet;		/* packet data (4, 8 or 16 bit) */
 	int flags;		/* ETMV1_TRACESYNC_CYCLE, ETMV1_TRIGGER_CYCLE */
 } etmv1_trace_data_t;
 

@@ -30,7 +30,7 @@ static int lpc3180_init(struct nand_device_s *device);
 static int lpc3180_reset(struct nand_device_s *device);
 static int lpc3180_command(struct nand_device_s *device, uint8_t command);
 static int lpc3180_address(struct nand_device_s *device, uint8_t address);
-static int lpc3180_write_data(struct nand_device_s *device, u16 data);
+static int lpc3180_write_data(struct nand_device_s *device, uint16_t data);
 static int lpc3180_read_data(struct nand_device_s *device, void *data);
 static int lpc3180_write_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
 static int lpc3180_read_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
@@ -410,7 +410,7 @@ static int lpc3180_address(struct nand_device_s *device, uint8_t address)
 	return ERROR_OK;
 }
 
-static int lpc3180_write_data(struct nand_device_s *device, u16 data)
+static int lpc3180_write_data(struct nand_device_s *device, uint16_t data)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -466,7 +466,7 @@ static int lpc3180_read_data(struct nand_device_s *device, void *data)
 		}
 		else if (device->bus_width == 16)
 		{
-			u16 *data16 = data;
+			uint16_t *data16 = data;
 			target_read_u16(target, 0x200b0000, data16);
 		}
 		else
@@ -489,7 +489,7 @@ static int lpc3180_read_data(struct nand_device_s *device, void *data)
 		}
 		else if (device->bus_width == 16)
 		{
-			u16 *data16 = data;
+			uint16_t *data16 = data;
 			*data16 = data32 & 0xffff;
 		}
 		else

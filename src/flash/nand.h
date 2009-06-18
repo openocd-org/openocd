@@ -38,7 +38,7 @@ typedef struct nand_flash_controller_s
 	int (*reset)(struct nand_device_s *device);
 	int (*command)(struct nand_device_s *device, uint8_t command);
 	int (*address)(struct nand_device_s *device, uint8_t address);
-	int (*write_data)(struct nand_device_s *device, u16 data);
+	int (*write_data)(struct nand_device_s *device, uint16_t data);
 	int (*read_data)(struct nand_device_s *device, void *data);
 	int (*write_block_data)(struct nand_device_s *device, uint8_t *data, int size);
 	int (*read_block_data)(struct nand_device_s *device, uint8_t *data, int size);

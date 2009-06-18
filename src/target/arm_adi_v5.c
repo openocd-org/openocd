@@ -599,8 +599,8 @@ int mem_ap_write_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, u32 
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
-		u16 svalue;
-		memcpy(&svalue, buffer, sizeof(u16));
+		uint16_t svalue;
+		memcpy(&svalue, buffer, sizeof(uint16_t));
 		u32 outvalue = (u32)svalue << 8 * (address & 0x3);
 		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue );
 		retval = swjdp_transaction_endcheck(swjdp);
@@ -860,8 +860,8 @@ int mem_ap_read_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, u32 a
 		}
 		else
 		{
-			u16 svalue = (invalue >> 8 * (address & 0x3));
-			memcpy(buffer, &svalue, sizeof(u16));
+			uint16_t svalue = (invalue >> 8 * (address & 0x3));
+			memcpy(buffer, &svalue, sizeof(uint16_t));
 			address += 2;
 			buffer += 2;
 		}
@@ -1057,7 +1057,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 	if (romtable_present)
 	{
 		u32 cid0,cid1,cid2,cid3,memtype,romentry;
-		u16 entry_offset;
+		uint16_t entry_offset;
 		/* bit 16 of apid indicates a memory access port */
 		if (dbgbase&0x02)
 		{

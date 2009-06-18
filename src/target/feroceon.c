@@ -239,7 +239,7 @@ void feroceon_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	u32 *buf_u32 = buffer;
-	u16 *buf_u16 = buffer;
+	uint16_t *buf_u16 = buffer;
 	uint8_t *buf_u8 = buffer;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask & 0xffff, 0, 0), 0, NULL, 0);

@@ -37,8 +37,8 @@
 #define VSLLINK_MODE_NORMAL			0
 #define VSLLINK_MODE_DMA			1
 
-static u16 vsllink_usb_vid;
-static u16 vsllink_usb_pid;
+static uint16_t vsllink_usb_vid;
+static uint16_t vsllink_usb_pid;
 static uint8_t vsllink_usb_bulkout;
 static uint8_t vsllink_usb_bulkin;
 static uint8_t vsllink_usb_interface;
@@ -627,7 +627,7 @@ static int vsllink_connect(void)
 static void vsllink_append_tms(void)
 {
 	uint8_t tms_scan = VSLLINK_TAP_MOVE(tap_get_state(), tap_get_end_state());
-	u16 tms2;
+	uint16_t tms2;
 	insert_insignificant_operation_t *insert = \
 		&VSLLINK_TAP_MOVE_INSERT_INSIGNIFICANT[tap_move_ndx(tap_get_state())][tap_move_ndx(tap_get_end_state())];
 
@@ -955,7 +955,7 @@ static void vsllink_path_move_dma(int num_states, tap_state_t *path)
 static void vsllink_stableclocks_normal(int num_cycles, int tms)
 {
 	int tms_len;
-	u16 tms_append_byte;
+	uint16_t tms_append_byte;
 
 	if (vsllink_tms_data_len > 0)
 	{
@@ -965,7 +965,7 @@ static void vsllink_stableclocks_normal(int num_cycles, int tms)
 		if (tms > 0)
 		{
 			// append '1' for tms
-			tms_append_byte = (u16)((((1 << num_cycles) - 1) << vsllink_tms_data_len) & 0xFFFF);
+			tms_append_byte = (uint16_t)((((1 << num_cycles) - 1) << vsllink_tms_data_len) & 0xFFFF);
 		}
 		else
 		{

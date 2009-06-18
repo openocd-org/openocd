@@ -40,7 +40,7 @@ typedef struct stellaris_flash_bank_s
 	u32 pages_in_lockregion;
 
 	/* nv memory bits */
-	u16 num_lockbits;
+	uint16_t num_lockbits;
 	u32 lockbits;
 
 	/* main clock status */

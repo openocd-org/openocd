@@ -956,8 +956,8 @@ static double mg_calc_pll(double XIN, mg_pll_t *p_pll_val)
 
 static int mg_verify_interface(void)
 {
-	u16 buff[MG_MFLASH_SECTOR_SIZE >> 1];
-	u16 i, j;
+	uint16_t buff[MG_MFLASH_SECTOR_SIZE >> 1];
+	uint16_t i, j;
 	u32 address = mflash_bank->base + MG_BUFFER_OFFSET;
 	target_t *target = mflash_bank->target;
 	int ret;
@@ -1174,7 +1174,7 @@ static int mg_set_pll(mg_pll_t *pll)
 	memset(buff, 0xff, 512);
 	/* PLL Lock cycle and Feedback 9bit Divider */
 	memcpy(buff, &pll->lock_cyc, sizeof(u32));
-	memcpy(buff + 4, &pll->feedback_div, sizeof(u16));
+	memcpy(buff + 4, &pll->feedback_div, sizeof(uint16_t));
 	buff[6] = pll->input_div;		/* PLL Input 5bit Divider */
 	buff[7] = pll->output_div;		/* PLL Output Divider */
 
@@ -1306,7 +1306,7 @@ static int mg_bank_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 	mflash_bank->base = strtoul(args[1], NULL, 0);
 	mflash_bank->rst_pin.num = strtoul(args[2], &str, 0);
 	if (*str)
-		mflash_bank->rst_pin.port[0] = (u16)tolower(str[0]);
+		mflash_bank->rst_pin.port[0] = (uint16_t)tolower(str[0]);
 
 	mflash_bank->target = target;
 

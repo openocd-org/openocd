@@ -48,7 +48,7 @@ extern int s3c24xx_register_commands(struct command_context_s *cmd_ctx);
 extern int s3c24xx_reset(struct nand_device_s *device);
 extern int s3c24xx_command(struct nand_device_s *device, uint8_t command);
 extern int s3c24xx_address(struct nand_device_s *device, uint8_t address);
-extern int s3c24xx_write_data(struct nand_device_s *device, u16 data);
+extern int s3c24xx_write_data(struct nand_device_s *device, uint16_t data);
 extern int s3c24xx_read_data(struct nand_device_s *device, void *data);
 extern int s3c24xx_controller_ready(struct nand_device_s *device, int tout);
 

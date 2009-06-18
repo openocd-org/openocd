@@ -258,7 +258,7 @@ int pass_condition(u32 cpsr, u32 opcode)
 	return 0;
 }
 
-int thumb_pass_branch_condition(u32 cpsr, u16 opcode)
+int thumb_pass_branch_condition(u32 cpsr, uint16_t opcode)
 {
 	return pass_condition(cpsr, (opcode & 0x0f00) << 20); 
 }
@@ -307,7 +307,7 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 	}
 	else
 	{
-		u16 opcode;
+		uint16_t opcode;
 		
 		if((retval = target_read_u16(target, current_pc, &opcode)) != ERROR_OK)
 		{

@@ -552,7 +552,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		}
 		else
 		{
-			u16 verify = 0xffff;
+			uint16_t verify = 0xffff;
 			
 			if((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
@@ -627,7 +627,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		}
 		else
 		{
-			u16 current_instr;
+			uint16_t current_instr;
 			
 			/* check that user program has not modified breakpoint instruction */
 			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, (uint8_t*)&current_instr)) != ERROR_OK)
@@ -761,7 +761,7 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 	if (target->endianness == TARGET_BIG_ENDIAN) 
 	{
 		u32 i, t32;
-		u16 t16;
+		uint16_t t16;
 
 		for(i = 0; i < (count*size); i += size)
 		{
@@ -806,7 +806,7 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 	if (target->endianness == TARGET_BIG_ENDIAN)
 	{
 		u32 i, t32;
-		u16 t16;
+		uint16_t t16;
 
 		for(i = 0; i < (count*size); i += size)
 		{

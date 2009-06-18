@@ -140,7 +140,7 @@ static int stm32x_read_options(struct flash_bank_s *bank)
 	/* read current option bytes */
 	target_read_u32(target, STM32_FLASH_OBR, &optiondata);
 
-	stm32x_info->option_bytes.user_options = (u16)0xFFF8|((optiondata >> 2) & 0x07);
+	stm32x_info->option_bytes.user_options = (uint16_t)0xFFF8|((optiondata >> 2) & 0x07);
 	stm32x_info->option_bytes.RDP = (optiondata & (1 << OPT_READOUT)) ? 0xFFFF : 0x5AA5;
 
 	if (optiondata & (1 << OPT_READOUT))
@@ -149,10 +149,10 @@ static int stm32x_read_options(struct flash_bank_s *bank)
 	/* each bit refers to a 4bank protection */
 	target_read_u32(target, STM32_FLASH_WRPR, &optiondata);
 
-	stm32x_info->option_bytes.protection[0] = (u16)optiondata;
-	stm32x_info->option_bytes.protection[1] = (u16)(optiondata >> 8);
-	stm32x_info->option_bytes.protection[2] = (u16)(optiondata >> 16);
-	stm32x_info->option_bytes.protection[3] = (u16)(optiondata >> 24);
+	stm32x_info->option_bytes.protection[0] = (uint16_t)optiondata;
+	stm32x_info->option_bytes.protection[1] = (uint16_t)(optiondata >> 8);
+	stm32x_info->option_bytes.protection[2] = (uint16_t)(optiondata >> 16);
+	stm32x_info->option_bytes.protection[3] = (uint16_t)(optiondata >> 24);
 
 	return ERROR_OK;
 }
@@ -394,7 +394,7 @@ static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int las
 {
 	stm32x_flash_bank_t *stm32x_info = NULL;
 	target_t *target = bank->target;
-	u16 prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
+	uint16_t prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
 	int i, reg, bit;
 	int status;
 	u32 protection;
@@ -417,10 +417,10 @@ static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int las
 	 * high density - each bit refers to a 2bank protection */
 	target_read_u32(target, STM32_FLASH_WRPR, &protection);
 
-	prot_reg[0] = (u16)protection;
-	prot_reg[1] = (u16)(protection >> 8);
-	prot_reg[2] = (u16)(protection >> 16);
-	prot_reg[3] = (u16)(protection >> 24);
+	prot_reg[0] = (uint16_t)protection;
+	prot_reg[1] = (uint16_t)(protection >> 8);
+	prot_reg[2] = (uint16_t)(protection >> 16);
+	prot_reg[3] = (uint16_t)(protection >> 24);
 
 	if (stm32x_info->ppage_size == 2)
 	{
@@ -650,8 +650,8 @@ static int stm32x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, 
 
 	while (words_remaining > 0)
 	{
-		u16 value;
-		memcpy(&value, buffer + bytes_written, sizeof(u16));
+		uint16_t value;
+		memcpy(&value, buffer + bytes_written, sizeof(uint16_t));
 
 		target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
 		target_write_u16(target, address, value);
@@ -676,7 +676,7 @@ static int stm32x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, 
 
 	if (bytes_remaining)
 	{
-		u16 value = 0xffff;
+		uint16_t value = 0xffff;
 		memcpy(&value, buffer + bytes_written, bytes_remaining);
 
 		target_write_u32(target, STM32_FLASH_CR, FLASH_PG);
@@ -706,7 +706,7 @@ static int stm32x_probe(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
 	int i;
-	u16 num_pages;
+	uint16_t num_pages;
 	u32 device_id;
 	int page_size;
 
@@ -1094,7 +1094,7 @@ static int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx
 	flash_bank_t *bank;
 	target_t *target = NULL;
 	stm32x_flash_bank_t *stm32x_info = NULL;
-	u16 optionbyte = 0xF8;
+	uint16_t optionbyte = 0xF8;
 
 	if (argc < 4)
 	{

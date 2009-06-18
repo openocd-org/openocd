@@ -79,7 +79,7 @@ static int orion_nand_read(struct nand_device_s *device, void *data)
 	return ERROR_OK;
 }
 
-static int orion_nand_write(struct nand_device_s *device, u16 data)
+static int orion_nand_write(struct nand_device_s *device, uint16_t data)
 {
 	orion_nand_controller_t *hw = device->controller_priv;
 	target_t *target = hw->target;

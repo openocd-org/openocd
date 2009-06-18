@@ -276,7 +276,7 @@ int mips32_pracc_read_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int coun
 		case 1:
 			return mips32_pracc_read_mem8(ejtag_info, addr, count, (uint8_t*)buf);
 		case 2:
-			return mips32_pracc_read_mem16(ejtag_info, addr, count, (u16*)buf);
+			return mips32_pracc_read_mem16(ejtag_info, addr, count, (uint16_t*)buf);
 		case 4:
 			if(count==1)
 				return mips32_pracc_read_u32(ejtag_info, addr, (u32*)buf);
@@ -395,7 +395,7 @@ int mips32_pracc_read_u32(mips_ejtag_t *ejtag_info, u32 addr, u32 *buf)
 	return retval;
 }
 
-int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 *buf)
+int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, uint16_t *buf)
 {
 	u32 code[] = {
 															/* start: */
@@ -560,7 +560,7 @@ int mips32_pracc_write_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int cou
 		case 1:
 			return mips32_pracc_write_mem8(ejtag_info, addr, count, (uint8_t*)buf);
 		case 2:
-			return mips32_pracc_write_mem16(ejtag_info, addr, count,(u16*)buf);
+			return mips32_pracc_write_mem16(ejtag_info, addr, count,(uint16_t*)buf);
 		case 4:
 			if(count==1)
 				return mips32_pracc_write_u32(ejtag_info, addr, (u32*)buf);
@@ -653,7 +653,7 @@ int mips32_pracc_write_u32(mips_ejtag_t *ejtag_info, u32 addr, u32 *buf)
 	return ERROR_OK;
 }
 
-int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 *buf)
+int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, uint16_t *buf)
 {
 	u32 code[] = {
 															/* start: */

@@ -280,8 +280,8 @@ u32 target_buffer_get_u32(target_t *target, const uint8_t *buffer)
 		return be_to_h_u32(buffer);
 }
 
-/* read a u16 from a buffer in target memory endianness */
-u16 target_buffer_get_u16(target_t *target, const uint8_t *buffer)
+/* read a uint16_t from a buffer in target memory endianness */
+uint16_t target_buffer_get_u16(target_t *target, const uint8_t *buffer)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return le_to_h_u16(buffer);
@@ -304,8 +304,8 @@ void target_buffer_set_u32(target_t *target, uint8_t *buffer, u32 value)
 		h_u32_to_be(buffer, value);
 }
 
-/* write a u16 to a buffer in target memory endianness */
-void target_buffer_set_u16(target_t *target, uint8_t *buffer, u16 value)
+/* write a uint16_t to a buffer in target memory endianness */
+void target_buffer_set_u16(target_t *target, uint8_t *buffer, uint16_t value)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		h_u16_to_le(buffer, value);
@@ -1328,7 +1328,7 @@ int target_read_u32(struct target_s *target, u32 address, u32 *value)
 	return retval;
 }
 
-int target_read_u16(struct target_s *target, u32 address, u16 *value)
+int target_read_u16(struct target_s *target, u32 address, uint16_t *value)
 {
 	uint8_t value_buf[2];
 	if (!target_was_examined(target))
@@ -1396,7 +1396,7 @@ int target_write_u32(struct target_s *target, u32 address, u32 value)
 	return retval;
 }
 
-int target_write_u16(struct target_s *target, u32 address, u16 value)
+int target_write_u16(struct target_s *target, u32 address, uint16_t value)
 {
 	int retval;
 	uint8_t value_buf[2];

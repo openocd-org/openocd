@@ -1092,7 +1092,7 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
  */
 int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
-	/** \todo TODO: check if buffer cast to u32* and u16* might cause alignment problems */
+	/** \todo TODO: check if buffer cast to u32* and uint16_t* might cause alignment problems */
 
 	FNC_INFO;
 
@@ -1148,8 +1148,8 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 				/* MCR p14,0,R1,c0,c5,0 */
 				arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
 
-				u16 svalue = res;
-				memcpy(buffer + count * sizeof(u16), &svalue, sizeof(u16));
+				uint16_t svalue = res;
+				memcpy(buffer + count * sizeof(uint16_t), &svalue, sizeof(uint16_t));
 			}
 
 			break;
@@ -1218,8 +1218,8 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 
 			for (size_t i = 0; i < count; i++)
 			{
-				u16 value;
-				memcpy(&value, buffer + count * sizeof(u16), sizeof(u16));
+				uint16_t value;
+				memcpy(&value, buffer + count * sizeof(uint16_t), sizeof(uint16_t));
 
 				/* MRC p14,0,r1,c0,c5,0 */
 				arm11_run_instr_data_to_core1(arm11, 0xee101e15, value);

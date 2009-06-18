@@ -260,7 +260,7 @@ static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int la
 	pic32mx_flash_bank_t *pic32mx_info = NULL;
 	target_t *target = bank->target;
 #if 0
-	u16 prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
+	uint16_t prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
 	int i, reg, bit;
 	int status;
 	u32 protection;
@@ -285,10 +285,10 @@ static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int la
 	 * high density - each bit refers to a 2bank protection */
 	target_read_u32(target, PIC32MX_FLASH_WRPR, &protection);
 
-	prot_reg[0] = (u16)protection;
-	prot_reg[1] = (u16)(protection >> 8);
-	prot_reg[2] = (u16)(protection >> 16);
-	prot_reg[3] = (u16)(protection >> 24);
+	prot_reg[0] = (uint16_t)protection;
+	prot_reg[1] = (uint16_t)(protection >> 8);
+	prot_reg[2] = (uint16_t)(protection >> 16);
+	prot_reg[3] = (uint16_t)(protection >> 24);
 
 	if (pic32mx_info->ppage_size == 2)
 	{
@@ -596,7 +596,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	int i;
-	u16 num_pages = 0;
+	uint16_t num_pages = 0;
 	u32 device_id;
 	int page_size;
 

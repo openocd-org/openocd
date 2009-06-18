@@ -412,7 +412,7 @@ static u32 stellaris_wait_status_busy(flash_bank_t *bank, u32 waitbits, int time
 }
 
 /* Send one command to the flash controller */
-static int stellaris_flash_command(struct flash_bank_s *bank,uint8_t cmd,u16 pagen)
+static int stellaris_flash_command(struct flash_bank_s *bank,uint8_t cmd,uint16_t pagen)
 {
 	u32 fmc;
 	target_t *target = bank->target;

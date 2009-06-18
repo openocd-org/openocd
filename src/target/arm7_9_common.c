@@ -296,7 +296,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		}
 		else
 		{
-			u16 verify = 0xffff;
+			uint16_t verify = 0xffff;
 			/* keep the original instruction in target endianness */
 			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
@@ -385,7 +385,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		}
 		else
 		{
-			u16 current_instr;
+			uint16_t current_instr;
 			/* check that user program as not modified breakpoint instruction */
 			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, (uint8_t*)&current_instr)) != ERROR_OK)
 			{

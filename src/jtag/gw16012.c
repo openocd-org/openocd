@@ -67,7 +67,7 @@
 
 
 /* configuration */
-u16 gw16012_port;
+uint16_t gw16012_port;
 
 /* interface variables
  */

@@ -107,8 +107,8 @@ static unsigned		ft2232_max_tck = 6000;
 
 #define MAX_USB_IDS 8
 /* vid = pid = 0 marks the end of the list */
-static u16 ft2232_vid[MAX_USB_IDS + 1] = { 0x0403, 0 };
-static u16 ft2232_pid[MAX_USB_IDS + 1] = { 0x6010, 0 };
+static uint16_t ft2232_vid[MAX_USB_IDS + 1] = { 0x0403, 0 };
+static uint16_t ft2232_pid[MAX_USB_IDS + 1] = { 0x6010, 0 };
 
 typedef struct ft2232_layout_s
 {
@@ -1780,7 +1780,7 @@ static int ft2232_execute_queue()
 
 
 #if BUILD_FT2232_FTD2XX == 1
-static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int* try_more)
+static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_more)
 {
 	FT_STATUS	status;
 	DWORD		deviceID;
@@ -1958,7 +1958,7 @@ static int ft2232_purge_ftd2xx(void)
 #endif /* BUILD_FT2232_FTD2XX == 1 */
 
 #if BUILD_FT2232_LIBFTDI == 1
-static int ft2232_init_libftdi(u16 vid, u16 pid, int more, int* try_more)
+static int ft2232_init_libftdi(uint16_t vid, uint16_t pid, int more, int* try_more)
 {
 	uint8_t latency_timer;
 

@@ -157,7 +157,7 @@ static int davinci_address(struct nand_device_s *nand, uint8_t address)
 	return ERROR_OK;
 }
 
-static int davinci_write_data(struct nand_device_s *nand, u16 data)
+static int davinci_write_data(struct nand_device_s *nand, uint16_t data)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;

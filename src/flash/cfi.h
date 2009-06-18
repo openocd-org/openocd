@@ -34,16 +34,16 @@ typedef struct cfi_flash_bank_s
 	int not_cfi;
 	int probed;
 
-	u16 manufacturer;
-	u16 device_id;
+	uint16_t manufacturer;
+	uint16_t device_id;
 
 	char qry[3];
 
 	/* identification string */
-	u16 pri_id;
-	u16 pri_addr;
-	u16 alt_id;
-	u16 alt_addr;
+	uint16_t pri_id;
+	uint16_t pri_addr;
+	uint16_t alt_id;
+	uint16_t alt_addr;
 
 	/* device-system interface */
 	uint8_t vcc_min;
@@ -63,8 +63,8 @@ typedef struct cfi_flash_bank_s
 
 	/* flash geometry */
 	u32 dev_size;
-	u16 interface_desc;
-	u16 max_buf_write_size;
+	uint16_t interface_desc;
+	uint16_t max_buf_write_size;
 	uint8_t num_erase_regions;
 	u32 *erase_region_info;
 
@@ -83,11 +83,11 @@ typedef struct cfi_intel_pri_ext_s
 	uint8_t minor_version;
 	u32 feature_support;
 	uint8_t suspend_cmd_support;
-	u16 blk_status_reg_mask;
+	uint16_t blk_status_reg_mask;
 	uint8_t vcc_optimal;
 	uint8_t vpp_optimal;
 	uint8_t num_protection_fields;
-	u16 prot_reg_addr;
+	uint16_t prot_reg_addr;
 	uint8_t fact_prot_reg_size;
 	uint8_t user_prot_reg_size;
 	uint8_t extra[0];
@@ -144,8 +144,8 @@ typedef struct cfi_unlock_addresses_s
 
 typedef struct cfi_fixup_s
 {
-	u16 mfr;
-	u16 id;
+	uint16_t mfr;
+	uint16_t id;
 	void (*fixup)(flash_bank_t *flash, void *param);
 	void *param;
 } cfi_fixup_t;

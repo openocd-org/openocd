@@ -54,8 +54,8 @@ int mcu_write_ir(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, i
 int mcu_write_dr(jtag_tap_t *tap, uint8_t *dr_in, uint8_t *dr_out, int dr_len, int rti);
 int mcu_write_ir_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len, int rti);
 int mcu_write_dr_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int dr_len, int rti);
-int mcu_write_ir_u16(jtag_tap_t *tap, u16 *ir_in, u16 ir_out, int ir_len, int rti);
-int mcu_write_dr_u16(jtag_tap_t *tap, u16 *ir_in, u16 ir_out, int dr_len, int rti);
+int mcu_write_ir_u16(jtag_tap_t *tap, uint16_t *ir_in, uint16_t ir_out, int ir_len, int rti);
+int mcu_write_dr_u16(jtag_tap_t *tap, uint16_t *ir_in, uint16_t ir_out, int dr_len, int rti);
 int mcu_write_ir_u32(jtag_tap_t *tap, u32 *ir_in, u32 ir_out, int ir_len, int rti);
 int mcu_write_dr_u32(jtag_tap_t *tap, u32 *ir_in, u32 ir_out, int dr_len, int rti);
 int mcu_execute_queue(void);
@@ -271,7 +271,7 @@ int mcu_write_dr_u8(jtag_tap_t *tap, uint8_t *dr_in, uint8_t dr_out, int dr_len,
 	return ERROR_OK;
 }
 
-int mcu_write_ir_u16(jtag_tap_t *tap, u16 *ir_in, u16 ir_out, int ir_len, int rti)
+int mcu_write_ir_u16(jtag_tap_t *tap, uint16_t *ir_in, uint16_t ir_out, int ir_len, int rti)
 {
 	if (ir_len > 16)
 	{
@@ -284,7 +284,7 @@ int mcu_write_ir_u16(jtag_tap_t *tap, u16 *ir_in, u16 ir_out, int ir_len, int rt
 	return ERROR_OK;
 }
 
-int mcu_write_dr_u16(jtag_tap_t *tap, u16 *dr_in, u16 dr_out, int dr_len, int rti)
+int mcu_write_dr_u16(jtag_tap_t *tap, uint16_t *dr_in, uint16_t dr_out, int dr_len, int rti)
 {
 	if (dr_len > 16)
 	{
