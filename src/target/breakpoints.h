@@ -41,7 +41,7 @@ typedef struct breakpoint_s
 	int length;
 	enum breakpoint_type type;
 	int set;
-	u8 *orig_instr;
+	uint8_t *orig_instr;
 	struct breakpoint_s *next;
 } breakpoint_t;
 

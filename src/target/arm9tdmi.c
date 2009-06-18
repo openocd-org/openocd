@@ -107,9 +107,9 @@ int arm9tdmi_examine_debug_reason(target_t *target)
 			&& (target->debug_reason != DBG_REASON_SINGLESTEP))
 	{
 		scan_field_t fields[3];
-		u8 databus[4];
-		u8 instructionbus[4];
-		u8 debug_reason;
+		uint8_t databus[4];
+		uint8_t instructionbus[4];
+		uint8_t debug_reason;
 
 		jtag_set_end_state(TAP_DRPAUSE);
 
@@ -166,9 +166,9 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 {
 	int retval = ERROR_OK;
 	scan_field_t fields[3];
-	u8 out_buf[4];
-	u8 instr_buf[4];
-	u8 sysspeed_buf = 0x0;
+	uint8_t out_buf[4];
+	uint8_t instr_buf[4];
+	uint8_t sysspeed_buf = 0x0;
 
 	/* prepare buffer */
 	buf_set_u32(out_buf, 0, 32, out);
@@ -203,10 +203,10 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, u32 instr, u32 out, u32 *in, int s
 
 	if (in)
 	{
-		fields[0].in_value=(u8 *)in;
+		fields[0].in_value=(uint8_t *)in;
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-		jtag_add_callback(arm_le_to_h_u32, (u8 *)in);
+		jtag_add_callback(arm_le_to_h_u32, (uint8_t *)in);
 	}
 	else
 	{
@@ -251,7 +251,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	fields[0].in_value = (u8 *)in;
+	fields[0].in_value = (uint8_t *)in;
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
@@ -265,7 +265,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-	jtag_add_callback(arm_le_to_h_u32, (u8 *)in);
+	jtag_add_callback(arm_le_to_h_u32, (uint8_t *)in);
 
 	jtag_add_runtest(0, jtag_get_end_state());
 
@@ -290,11 +290,11 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	return ERROR_OK;
 }
 
-extern void arm_endianness(u8 *tmp, void *in, int size, int be, int flip);
+extern void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip);
 
-static int arm9endianness(u8 *in, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
+static int arm9endianness(uint8_t *in, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
 {
-	arm_endianness((u8 *)captured, in, (int)size, (int)be, 0);
+	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 0);
 	return ERROR_OK;
 }
 
@@ -448,7 +448,7 @@ void arm9tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	u32 *buf_u32 = buffer;
 	u16 *buf_u16 = buffer;
-	u8 *buf_u8 = buffer;
+	uint8_t *buf_u8 = buffer;
 
 	/* STMIA r0-15, [r0] at debug speed
 	 * register values will start to appear on 4th DCLK
@@ -539,7 +539,7 @@ void arm9tdmi_write_xpsr(target_t *target, u32 xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-void arm9tdmi_write_xpsr_im8(target_t *target, u8 xpsr_im, int rot, int spsr)
+void arm9tdmi_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;

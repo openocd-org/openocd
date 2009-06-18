@@ -65,7 +65,7 @@ reg_cache_t** register_get_last_cache_p(reg_cache_t **first)
 	return cache_p;
 }
 
-int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, u8 *buf))
+int register_reg_arch_type(int (*get)(reg_t *reg), int (*set)(reg_t *reg, uint8_t *buf))
 {
 	reg_arch_type_t** arch_type_p = &reg_arch_types;
 	int id = 0;
@@ -108,7 +108,7 @@ static int register_get_dummy_core_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
-static int register_set_dummy_core_reg(reg_t *reg, u8 *buf)
+static int register_set_dummy_core_reg(reg_t *reg, uint8_t *buf)
 {
 	reg->dirty = 1;
 	reg->valid = 1;

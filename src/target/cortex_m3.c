@@ -48,11 +48,11 @@ int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 int cortex_m3_quit(void);
 int cortex_m3_load_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 *value);
 int cortex_m3_store_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 value);
-int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer);
+int cortex_m3_target_request_data(target_t *target, u32 size, uint8_t *buffer);
 int cortex_m3_examine(struct target_s *target);
 
 #ifdef ARMV7_GDB_HACKS
-extern u8 armv7m_gdb_dummy_cpsr_value[];
+extern uint8_t armv7m_gdb_dummy_cpsr_value[];
 extern reg_t armv7m_gdb_dummy_cpsr_reg;
 #endif
 
@@ -930,7 +930,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
-		u8 code[4];
+		uint8_t code[4];
 		buf_set_u32(code, 0, 32, ARMV7M_T_BKPT(0x11));
 		if((retval = target_read_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 		{
@@ -1245,19 +1245,19 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 		switch (num)
 		{
 			case 19:
-				*value = buf_get_u32((u8*)value, 0, 8);
+				*value = buf_get_u32((uint8_t*)value, 0, 8);
 				break;
 
 			case 20:
-				*value = buf_get_u32((u8*)value, 8, 8);
+				*value = buf_get_u32((uint8_t*)value, 8, 8);
 				break;
 
 			case 21:
-				*value = buf_get_u32((u8*)value, 16, 8);
+				*value = buf_get_u32((uint8_t*)value, 16, 8);
 				break;
 
 			case 22:
-				*value = buf_get_u32((u8*)value, 24, 8);
+				*value = buf_get_u32((uint8_t*)value, 24, 8);
 				break;
 		}
 
@@ -1311,19 +1311,19 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 		switch (num)
 		{
 			case 19:
-				buf_set_u32((u8*)&reg, 0, 8, value);
+				buf_set_u32((uint8_t*)&reg, 0, 8, value);
 				break;
 
 			case 20:
-				buf_set_u32((u8*)&reg, 8, 8, value);
+				buf_set_u32((uint8_t*)&reg, 8, 8, value);
 				break;
 
 			case 21:
-				buf_set_u32((u8*)&reg, 16, 8, value);
+				buf_set_u32((uint8_t*)&reg, 16, 8, value);
 				break;
 
 			case 22:
-				buf_set_u32((u8*)&reg, 24, 8, value);
+				buf_set_u32((uint8_t*)&reg, 24, 8, value);
 				break;
 		}
 
@@ -1339,7 +1339,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	return ERROR_OK;
 }
 
-int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -1371,7 +1371,7 @@ int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 co
 	return retval;
 }
 
-int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -1401,7 +1401,7 @@ int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 c
 	return retval;
 }
 
-int cortex_m3_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
+int cortex_m3_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer)
 {
 	return cortex_m3_write_memory(target, address, 4, count, buffer);
 }
@@ -1487,13 +1487,13 @@ int cortex_m3_quit(void)
 	return ERROR_OK;
 }
 
-int cortex_m3_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
+int cortex_m3_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 {
 	u16 dcrdr;
 
-	mem_ap_read_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
-	*ctrl = (u8)dcrdr;
-	*value = (u8)(dcrdr >> 8);
+	mem_ap_read_buf_u16( swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
+	*ctrl = (uint8_t)dcrdr;
+	*value = (uint8_t)(dcrdr >> 8);
 
 	LOG_DEBUG("data 0x%x ctrl 0x%x", *value, *ctrl);
 
@@ -1502,18 +1502,18 @@ int cortex_m3_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
 	if (dcrdr & (1 << 0))
 	{
 		dcrdr = 0;
-		mem_ap_write_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
+		mem_ap_write_buf_u16( swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
 	}
 
 	return ERROR_OK;
 }
 
-int cortex_m3_target_request_data(target_t *target, u32 size, u8 *buffer)
+int cortex_m3_target_request_data(target_t *target, u32 size, uint8_t *buffer)
 {
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	u8 data;
-	u8 ctrl;
+	uint8_t data;
+	uint8_t ctrl;
 	u32 i;
 
 	for (i = 0; i < (size * 4); i++)
@@ -1538,8 +1538,8 @@ int cortex_m3_handle_target_request(void *priv)
 
 	if (target->state == TARGET_RUNNING)
 	{
-		u8 data;
-		u8 ctrl;
+		uint8_t data;
+		uint8_t ctrl;
 
 		cortex_m3_dcc_read(swjdp, &data, &ctrl);
 

@@ -66,7 +66,7 @@ do {														\
 typedef struct arm11_register_history_s
 {
 	u32		value;
-	u8		valid;
+	uint8_t		valid;
 }arm11_register_history_t;
 
 enum arm11_debug_version
@@ -86,7 +86,7 @@ typedef struct arm11_common_s
 
 	u32		device_id;		/**< IDCODE readout				*/
 	u32		didr;			/**< DIDR readout (debug capabilities)	*/
-	u8		implementor;	/**< DIDR Implementor readout		*/
+	uint8_t		implementor;	/**< DIDR Implementor readout		*/
 
 	size_t	brp;			/**< Number of Breakpoint Register Pairs from DIDR	*/
 	size_t	wrp;			/**< Number of Watchpoint Register Pairs from DIDR	*/
@@ -191,7 +191,7 @@ int arm11_poll(struct target_s *target);
 int arm11_arch_state(struct target_s *target);
 
 /* target request support */
-int arm11_target_request_data(struct target_s *target, u32 size, u8 *buffer);
+int arm11_target_request_data(struct target_s *target, u32 size, uint8_t *buffer);
 
 /* target execution control */
 int arm11_halt(struct target_s *target);
@@ -211,11 +211,11 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
 * size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 * count: number of items of <size>
 */
-int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
 
 /* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
-int arm11_bulk_write_memory(struct target_s *target, u32 address, u32 count, u8 *buffer);
+int arm11_bulk_write_memory(struct target_s *target, u32 address, u32 count, uint8_t *buffer);
 
 int arm11_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum);
 
@@ -237,7 +237,7 @@ int arm11_quit(void);
 
 /* helpers */
 int arm11_build_reg_cache(target_t *target);
-int arm11_set_reg(reg_t *reg, u8 *buf);
+int arm11_set_reg(reg_t *reg, uint8_t *buf);
 int arm11_get_reg(reg_t *reg);
 
 void arm11_record_register_history(arm11_common_t * arm11);
@@ -246,9 +246,9 @@ void arm11_dump_reg_changes(arm11_common_t * arm11);
 /* internals */
 
 void arm11_setup_field			(arm11_common_t * arm11, int num_bits, void * in_data, void * out_data, scan_field_t * field);
-void arm11_add_IR				(arm11_common_t * arm11, u8 instr, tap_state_t state);
-void arm11_add_debug_SCAN_N		(arm11_common_t * arm11, u8 chain, tap_state_t state);
-void arm11_add_debug_INST		(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state_t state);
+void arm11_add_IR				(arm11_common_t * arm11, uint8_t instr, tap_state_t state);
+void arm11_add_debug_SCAN_N		(arm11_common_t * arm11, uint8_t chain, tap_state_t state);
+void arm11_add_debug_INST		(arm11_common_t * arm11, u32 inst, uint8_t * flag, tap_state_t state);
 int arm11_read_DSCR				(arm11_common_t * arm11, u32 *dscr);
 int arm11_write_DSCR			(arm11_common_t * arm11, u32 dscr);
 
@@ -275,7 +275,7 @@ int arm11_add_ir_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state
 typedef struct arm11_sc7_action_s
 {
 	bool	write;				/**< Access mode: true for write, false for read.	*/
-	u8		address;			/**< Register address mode. Use enum #arm11_sc7		*/
+	uint8_t		address;			/**< Register address mode. Use enum #arm11_sc7		*/
 	u32		value;				/**< If write then set this to value to be written.
 									 In read mode this receives the read value when the
 									 function returns.					*/

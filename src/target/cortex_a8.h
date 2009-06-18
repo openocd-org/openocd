@@ -93,7 +93,7 @@ typedef struct cortex_a8_common_s
 } cortex_a8_common_t;
 
 extern int cortex_a8_init_arch_info(target_t *target, cortex_a8_common_t *cortex_a8, jtag_tap_t *tap);
-int cortex_a8_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int cortex_a8_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+int cortex_a8_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int cortex_a8_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
 
 #endif /* CORTEX_A8_H */

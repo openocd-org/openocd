@@ -80,7 +80,7 @@ typedef struct arm7_9_common_s
 	void (*read_xpsr)(target_t *target, u32 *xpsr, int spsr); /**< Function for reading CPSR or SPSR */
 
 	void (*write_xpsr)(target_t *target, u32 xpsr, int spsr); /**< Function for writing to CPSR or SPSR */
-	void (*write_xpsr_im8)(target_t *target, u8 xpsr_im, int rot, int spsr); /**< Function for writing an immediate value to CPSR or SPSR */
+	void (*write_xpsr_im8)(target_t *target, uint8_t xpsr_im, int rot, int spsr); /**< Function for writing an immediate value to CPSR or SPSR */
 	void (*write_core_regs)(target_t *target, u32 mask, u32 core_regs[16]);
 
 	void (*load_word_regs)(target_t *target, u32 mask);
@@ -115,7 +115,7 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx);
 
 int arm7_9_poll(target_t *target);
 
-int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer);
+int arm7_9_target_request_data(target_t *target, u32 size, uint8_t *buffer);
 
 int arm7_9_setup(target_t *target);
 int arm7_9_assert_reset(target_t *target);
@@ -131,9 +131,9 @@ int arm7_9_restore_context(target_t *target);
 int arm7_9_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
 int arm7_9_step(struct target_s *target, int current, u32 address, int handle_breakpoints);
 int arm7_9_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mode);
-int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
+int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer);
 int arm7_9_checksum_memory(struct target_s *target, u32 address, u32 count, u32* checksum);
 int arm7_9_blank_check_memory(struct target_s *target, u32 address, u32 count, u32* blank);
 

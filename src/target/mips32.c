@@ -86,7 +86,7 @@ mips32_core_reg_t mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
 
 #define MIPS32NUMFPREGS 34 + 18
 
-u8 mips32_gdb_dummy_fp_value[] = {0, 0, 0, 0};
+uint8_t mips32_gdb_dummy_fp_value[] = {0, 0, 0, 0};
 
 reg_t mips32_gdb_dummy_fp_reg =
 {
@@ -112,7 +112,7 @@ int mips32_get_core_reg(reg_t *reg)
 	return retval;
 }
 
-int mips32_set_core_reg(reg_t *reg, u8 *buf)
+int mips32_set_core_reg(reg_t *reg, uint8_t *buf)
 {
 	mips32_core_reg_t *mips32_reg = reg->arch_info;
 	target_t *target = mips32_reg->target;

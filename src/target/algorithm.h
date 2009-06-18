@@ -33,7 +33,7 @@ typedef struct mem_param_s
 {
 	u32 address;
 	u32 size;
-	u8 *value;
+	uint8_t *value;
 	enum param_direction direction;
 } mem_param_t; 
 
@@ -41,7 +41,7 @@ typedef struct reg_param_s
 {
 	char *reg_name;
 	u32 size;
-	u8 *value;
+	uint8_t *value;
 	enum param_direction direction;
 } reg_param_t;
 

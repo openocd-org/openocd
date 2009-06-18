@@ -45,7 +45,7 @@ int arm926ejs_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *c
 int arm926ejs_target_create(struct target_s *target, Jim_Interp *interp);
 int arm926ejs_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm926ejs_quit(void);
-int arm926ejs_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+int arm926ejs_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
 
 static int arm926ejs_virt2phys(struct target_s *target, u32 virtual, u32 *physical);
 static int arm926ejs_mmu(struct target_s *target, int *enabled);
@@ -91,15 +91,15 @@ target_type_t arm926ejs_target =
 	.mmu = arm926ejs_mmu
 };
 
-int arm926ejs_catch_broken_irscan(u8 *captured, void *priv, scan_field_t *field)
+int arm926ejs_catch_broken_irscan(uint8_t *captured, void *priv, scan_field_t *field)
 {
 	/* FIX!!!! this code should be reenabled. For now it does not check
 	 * the queue...*/
 	return 0;
 #if 0
 	/* The ARM926EJ-S' instruction register is 4 bits wide */
-	u8 t = *captured & 0xf;
-	u8 t2 = *field->in_check_value & 0xf;
+	uint8_t t = *captured & 0xf;
+	uint8_t t2 = *field->in_check_value & 0xf;
 	if (t == t2)
 	{
 		return ERROR_OK;
@@ -123,9 +123,9 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	u32 address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	scan_field_t fields[4];
-	u8 address_buf[2];
-	u8 nr_w_buf = 0;
-	u8 access = 1;
+	uint8_t address_buf[2];
+	uint8_t nr_w_buf = 0;
+	uint8_t access = 1;
 
 	buf_set_u32(address_buf, 0, 14, address);
 
@@ -139,7 +139,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = NULL;
-	fields[0].in_value = (u8 *)value;
+	fields[0].in_value = (uint8_t *)value;
 
 
 	fields[1].tap = jtag_info->tap;
@@ -167,7 +167,7 @@ int arm926ejs_cp15_read(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u3
 		nr_w_buf = 0;
 		jtag_add_dr_scan(4, fields, jtag_get_end_state());
 
-		jtag_add_callback(arm_le_to_h_u32, (u8 *)value);
+		jtag_add_callback(arm_le_to_h_u32, (uint8_t *)value);
 
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
@@ -192,10 +192,10 @@ int arm926ejs_cp15_write(target_t *target, u32 op1, u32 op2, u32 CRn, u32 CRm, u
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	u32 address = ARM926EJS_CP15_ADDR(op1, op2, CRn, CRm);
 	scan_field_t fields[4];
-	u8 value_buf[4];
-	u8 address_buf[2];
-	u8 nr_w_buf = 1;
-	u8 access = 1;
+	uint8_t value_buf[4];
+	uint8_t address_buf[2];
+	uint8_t nr_w_buf = 1;
+	uint8_t access = 1;
 
 	buf_set_u32(address_buf, 0, 14, address);
 	buf_set_u32(value_buf, 0, 32, value);
@@ -625,7 +625,7 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 	return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 }
 
-int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int arm926ejs_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;

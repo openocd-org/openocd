@@ -35,7 +35,7 @@ static int oocd_trace_register_commands(struct command_context_s *cmd_ctx);
 static int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
 {
 	size_t bytes_written, bytes_read, bytes_to_read;
-	u8 cmd;
+	uint8_t cmd;
 
 	cmd = 0x10 | (reg & 0x7);
 	bytes_written = write(oocd_trace->tty_fd, &cmd, 1);
@@ -43,7 +43,7 @@ static int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
 	bytes_to_read = 4;
 	while (bytes_to_read > 0)
 	{
-		bytes_read = read(oocd_trace->tty_fd, ((u8*)value) + 4 - bytes_to_read, bytes_to_read);
+		bytes_read = read(oocd_trace->tty_fd, ((uint8_t*)value) + 4 - bytes_to_read, bytes_to_read);
 		bytes_to_read -= bytes_read;
 	}
 
@@ -55,7 +55,7 @@ static int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
 static int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
 {
 	size_t bytes_written;
-	u8 data[5];
+	uint8_t data[5];
 
 	data[0] = 0x18 | (reg & 0x7);
 	data[1] = value & 0xff;
@@ -69,11 +69,11 @@ static int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
 	return ERROR_OK;
 }
 
-static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 address, u32 size)
+static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, uint8_t *data, u32 address, u32 size)
 {
 	size_t bytes_written, bytes_to_read;
 	ssize_t bytes_read;
-	u8 cmd;
+	uint8_t cmd;
 
 	oocd_trace_write_reg(oocd_trace, OOCD_TRACE_ADDRESS, address);
 	oocd_trace_write_reg(oocd_trace, OOCD_TRACE_SDRAM_COUNTER, size);
@@ -85,7 +85,7 @@ static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 addres
 	while (bytes_to_read > 0)
 	{
 		if ((bytes_read = read(oocd_trace->tty_fd,
-				((u8*)data) + (size * 16) - bytes_to_read, bytes_to_read)) < 0)
+				((uint8_t*)data) + (size * 16) - bytes_to_read, bytes_to_read)) < 0)
 		{
 			LOG_DEBUG("read() returned %zi (%s)", bytes_read, strerror(errno));
 		}
@@ -98,7 +98,7 @@ static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, u8 *data, u32 addres
 
 static int oocd_trace_init(etm_context_t *etm_ctx)
 {
-	u8 trash[256];
+	uint8_t trash[256];
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
 	size_t bytes_read;
 
@@ -181,7 +181,7 @@ static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 	u32 status, address;
 	u32 first_frame = 0x0;
 	u32 num_frames = 1048576;
-	u8 *trace_data;
+	uint8_t *trace_data;
 	u32 i;
 
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
@@ -199,7 +199,7 @@ static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 	/* read data into temporary array for unpacking
 	 * one frame from OpenOCD+trace corresponds to 16 trace cycles
 	 */
-	trace_data = malloc(sizeof(u8) * num_frames * 16);
+	trace_data = malloc(sizeof(uint8_t) * num_frames * 16);
 	oocd_trace_read_memory(oocd_trace, trace_data, first_frame, num_frames);
 
 	if (etm_ctx->trace_depth > 0)
@@ -374,7 +374,7 @@ static int handle_oocd_trace_resync_command(struct command_context_s *cmd_ctx, c
 	arm7_9_common_t *arm7_9;
 	oocd_trace_t *oocd_trace;
 	size_t bytes_written;
-	u8 cmd_array[1];
+	uint8_t cmd_array[1];
 
 	target = get_current_target(cmd_ctx);
 

@@ -28,7 +28,7 @@ struct target_type_s
 	int (*arch_state)(struct target_s *target);
 
 	/* target request support */
-	int (*target_request_data)(struct target_s *target, u32 size, u8 *buffer);
+	int (*target_request_data)(struct target_s *target, u32 size, uint8_t *buffer);
 
 	/* halt will log a warning, but return ERROR_OK if the target is already halted. */
 	int (*halt)(struct target_s *target);
@@ -72,25 +72,25 @@ struct target_type_s
 	* size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
 	* count: number of items of <size>
 	*/
-	int (*read_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+	int (*read_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
 	/**
 	 * Target memory read callback.  Do @b not call this function
 	 * directly, use target_read_memory() instead.
 	 */
-	int (*read_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-	int (*write_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+	int (*read_memory)(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+	int (*write_memory_imp)(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
 	/**
 	 * Target memory write callback.  Do @b not call this function
 	 * directly, use target_write_memory() instead.
 	 */
-	int (*write_memory)(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+	int (*write_memory)(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
 
 	/**
 	 * Write target memory in multiples of 4 bytes, optimized for
 	 * writing large quantities of data.  Do @b not call this
 	 * function directly, use target_bulk_write_memory() instead.
 	 */
-	int (*bulk_write_memory)(struct target_s *target, u32 address, u32 count, u8 *buffer);
+	int (*bulk_write_memory)(struct target_s *target, u32 address, u32 count, uint8_t *buffer);
 
 	int (*checksum_memory)(struct target_s *target, u32 address, u32 count, u32* checksum);
 	int (*blank_check_memory)(struct target_s *target, u32 address, u32 count, u32* blank);

@@ -47,13 +47,13 @@ int avr_deassert_reset(target_t *target);
 int avr_soft_reset_halt(struct target_s *target);
 
 /* IR and DR functions */
-int avr_jtag_sendinstr(jtag_tap_t *tap, u8 *ir_in, u8 ir_out);
+int avr_jtag_sendinstr(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out);
 int avr_jtag_senddat(jtag_tap_t *tap, u32 *dr_in, u32 dr_out, int len);
 
-int mcu_write_ir(jtag_tap_t *tap, u8 *ir_in, u8 *ir_out, int ir_len, int rti);
-int mcu_write_dr(jtag_tap_t *tap, u8 *dr_in, u8 *dr_out, int dr_len, int rti);
-int mcu_write_ir_u8(jtag_tap_t *tap, u8 *ir_in, u8 ir_out, int ir_len, int rti);
-int mcu_write_dr_u8(jtag_tap_t *tap, u8 *ir_in, u8 ir_out, int dr_len, int rti);
+int mcu_write_ir(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, int rti);
+int mcu_write_dr(jtag_tap_t *tap, uint8_t *dr_in, uint8_t *dr_out, int dr_len, int rti);
+int mcu_write_ir_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len, int rti);
+int mcu_write_dr_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int dr_len, int rti);
 int mcu_write_ir_u16(jtag_tap_t *tap, u16 *ir_in, u16 ir_out, int ir_len, int rti);
 int mcu_write_dr_u16(jtag_tap_t *tap, u16 *ir_in, u16 ir_out, int dr_len, int rti);
 int mcu_write_ir_u32(jtag_tap_t *tap, u32 *ir_in, u32 ir_out, int ir_len, int rti);
@@ -192,13 +192,13 @@ int avr_jtag_senddat(jtag_tap_t *tap, u32* dr_in, u32 dr_out, int len)
 	return mcu_write_dr_u32(tap, dr_in, dr_out, len, 1);
 }
 
-int avr_jtag_sendinstr(jtag_tap_t *tap, u8 *ir_in, u8 ir_out)
+int avr_jtag_sendinstr(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out)
 {
 	return mcu_write_ir_u8(tap, ir_in, ir_out, AVR_JTAG_INS_LEN, 1);
 }
 
 /* IR and DR functions */
-int mcu_write_ir(jtag_tap_t *tap, u8 *ir_in, u8 *ir_out, int ir_len, int rti)
+int mcu_write_ir(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, int rti)
 {
 	if (NULL == tap)
 	{
@@ -224,7 +224,7 @@ int mcu_write_ir(jtag_tap_t *tap, u8 *ir_in, u8 *ir_out, int ir_len, int rti)
 	return ERROR_OK;
 }
 
-int mcu_write_dr(jtag_tap_t *tap, u8 *dr_in, u8 *dr_out, int dr_len, int rti)
+int mcu_write_dr(jtag_tap_t *tap, uint8_t *dr_in, uint8_t *dr_out, int dr_len, int rti)
 {
 	if (NULL == tap)
 	{
@@ -245,7 +245,7 @@ int mcu_write_dr(jtag_tap_t *tap, u8 *dr_in, u8 *dr_out, int dr_len, int rti)
 	return ERROR_OK;
 }
 
-int mcu_write_ir_u8(jtag_tap_t *tap, u8 *ir_in, u8 ir_out, int ir_len, int rti)
+int mcu_write_ir_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len, int rti)
 {
 	if (ir_len > 8)
 	{
@@ -258,7 +258,7 @@ int mcu_write_ir_u8(jtag_tap_t *tap, u8 *ir_in, u8 ir_out, int ir_len, int rti)
 	return ERROR_OK;
 }
 
-int mcu_write_dr_u8(jtag_tap_t *tap, u8 *dr_in, u8 dr_out, int dr_len, int rti)
+int mcu_write_dr_u8(jtag_tap_t *tap, uint8_t *dr_in, uint8_t dr_out, int dr_len, int rti)
 {
 	if (dr_len > 8)
 	{
@@ -279,7 +279,7 @@ int mcu_write_ir_u16(jtag_tap_t *tap, u16 *ir_in, u16 ir_out, int ir_len, int rt
 		return ERROR_FAIL;
 	}
 
-	mcu_write_ir(tap, (u8*)ir_in, (u8*)&ir_out, ir_len, rti);
+	mcu_write_ir(tap, (uint8_t*)ir_in, (uint8_t*)&ir_out, ir_len, rti);
 
 	return ERROR_OK;
 }
@@ -292,7 +292,7 @@ int mcu_write_dr_u16(jtag_tap_t *tap, u16 *dr_in, u16 dr_out, int dr_len, int rt
 		return ERROR_FAIL;
 	}
 
-	mcu_write_dr(tap, (u8*)dr_in, (u8*)&dr_out, dr_len, rti);
+	mcu_write_dr(tap, (uint8_t*)dr_in, (uint8_t*)&dr_out, dr_len, rti);
 
 	return ERROR_OK;
 }
@@ -305,7 +305,7 @@ int mcu_write_ir_u32(jtag_tap_t *tap, u32 *ir_in, u32 ir_out, int ir_len, int rt
 		return ERROR_FAIL;
 	}
 
-	mcu_write_ir(tap, (u8*)ir_in, (u8*)&ir_out, ir_len, rti);
+	mcu_write_ir(tap, (uint8_t*)ir_in, (uint8_t*)&ir_out, ir_len, rti);
 
 	return ERROR_OK;
 }
@@ -318,7 +318,7 @@ int mcu_write_dr_u32(jtag_tap_t *tap, u32 *dr_in, u32 dr_out, int dr_len, int rt
 		return ERROR_FAIL;
 	}
 
-	mcu_write_dr(tap, (u8*)dr_in, (u8*)&dr_out, dr_len, rti);
+	mcu_write_dr(tap, (uint8_t*)dr_in, (uint8_t*)&dr_out, dr_len, rti);
 
 	return ERROR_OK;
 }

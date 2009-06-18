@@ -288,14 +288,14 @@ enum arm11_regcache_ids
 
 #define ARM11_GDB_REGISTER_COUNT	26
 
-u8 arm11_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+uint8_t arm11_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 reg_t arm11_gdb_dummy_fp_reg =
 {
 	"GDB dummy floating-point register", arm11_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
 };
 
-u8 arm11_gdb_dummy_fps_value[] = {0, 0, 0, 0};
+uint8_t arm11_gdb_dummy_fps_value[] = {0, 0, 0, 0};
 
 reg_t arm11_gdb_dummy_fps_reg =
 {
@@ -630,8 +630,8 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 
 		scan_field_t	chain5_fields[3];
 
-		u8			Ready		= 0;	/* ignored */
-		u8			Valid		= 0;	/* ignored */
+		uint8_t			Ready		= 0;	/* ignored */
+		uint8_t			Valid		= 0;	/* ignored */
 
 		arm11_setup_field(arm11, 32, &R(RDTR),	NULL, chain5_fields + 0);
 		arm11_setup_field(arm11,  1, &Ready,	NULL, chain5_fields + 1);
@@ -717,7 +717,7 @@ int arm11_arch_state(struct target_s *target)
 }
 
 /* target request support */
-int arm11_target_request_data(struct target_s *target, u32 size, u8 *buffer)
+int arm11_target_request_data(struct target_s *target, u32 size, uint8_t *buffer)
 {
 	FNC_INFO_NOTIMPLEMENTED;
 
@@ -1090,7 +1090,7 @@ int arm11_get_gdb_reg_list(struct target_s *target, struct reg_s **reg_list[], i
  * size: 1 = byte (8bit), 2 = half-word (16bit), 4 = word (32bit)
  * count: number of items of <size>
  */
-int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	/** \todo TODO: check if buffer cast to u32* and u16* might cause alignment problems */
 
@@ -1173,7 +1173,7 @@ int arm11_read_memory(struct target_s *target, u32 address, u32 size, u32 count,
 	return ERROR_OK;
 }
 
-int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	FNC_INFO;
 
@@ -1285,7 +1285,7 @@ int arm11_write_memory(struct target_s *target, u32 address, u32 size, u32 count
 
 
 /* write target memory in multiples of 4 byte, optimized for writing large quantities of data */
-int arm11_bulk_write_memory(struct target_s *target, u32 address, u32 count, u8 *buffer)
+int arm11_bulk_write_memory(struct target_s *target, u32 address, u32 count, uint8_t *buffer)
 {
 	FNC_INFO;
 
@@ -1395,11 +1395,11 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 	// Save regs
 	for (size_t i = 0; i < 16; i++)
 	{
-		context[i] = buf_get_u32((u8*)(&arm11->reg_values[i]),0,32);
+		context[i] = buf_get_u32((uint8_t*)(&arm11->reg_values[i]),0,32);
 		LOG_DEBUG("Save %zi: 0x%x",i,context[i]);
 	}
 
-	cpsr = buf_get_u32((u8*)(arm11->reg_values+ARM11_RC_CPSR),0,32);
+	cpsr = buf_get_u32((uint8_t*)(arm11->reg_values+ARM11_RC_CPSR),0,32);
 	LOG_DEBUG("Save CPSR: 0x%x", cpsr);
 
 	for (int i = 0; i < num_mem_params; i++)
@@ -1521,10 +1521,10 @@ restore:
 	{
 		LOG_DEBUG("restoring register %s with value 0x%8.8x",
 			 arm11->reg_list[i].name, context[i]);
-		arm11_set_reg(&arm11->reg_list[i], (u8*)&context[i]);
+		arm11_set_reg(&arm11->reg_list[i], (uint8_t*)&context[i]);
 	}
 	LOG_DEBUG("restoring CPSR with value 0x%8.8x", cpsr);
-	arm11_set_reg(&arm11->reg_list[ARM11_RC_CPSR], (u8*)&cpsr);
+	arm11_set_reg(&arm11->reg_list[ARM11_RC_CPSR], (uint8_t*)&cpsr);
 
 //	arm11->core_state = core_state;
 //	arm11->core_mode = core_mode;
@@ -1668,7 +1668,7 @@ int arm11_get_reg(reg_t *reg)
 }
 
 /** Change a value in the register cache */
-int arm11_set_reg(reg_t *reg, u8 *buf)
+int arm11_set_reg(reg_t *reg, uint8_t *buf)
 {
 	FNC_INFO;
 
@@ -1730,7 +1730,7 @@ int arm11_build_reg_cache(target_t *target)
 
 		r->name				= rd->name;
 		r->size				= 32;
-		r->value			= (u8 *)(arm11->reg_values + i);
+		r->value			= (uint8_t *)(arm11->reg_values + i);
 		r->dirty			= 0;
 		r->valid			= 0;
 		r->bitfield_desc	= NULL;

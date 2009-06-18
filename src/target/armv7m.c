@@ -58,14 +58,14 @@ char* armv7m_core_reg_list[] =
 	"primask", "basepri", "faultmask", "control"
 };
 
-u8 armv7m_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+uint8_t armv7m_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 reg_t armv7m_gdb_dummy_fp_reg =
 {
 	"GDB dummy floating-point register", armv7m_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
 };
 
-u8 armv7m_gdb_dummy_fps_value[] = {0, 0, 0, 0};
+uint8_t armv7m_gdb_dummy_fps_value[] = {0, 0, 0, 0};
 
 reg_t armv7m_gdb_dummy_fps_reg =
 {
@@ -73,7 +73,7 @@ reg_t armv7m_gdb_dummy_fps_reg =
 };
 
 #ifdef ARMV7_GDB_HACKS
-u8 armv7m_gdb_dummy_cpsr_value[] = {0, 0, 0, 0};
+uint8_t armv7m_gdb_dummy_cpsr_value[] = {0, 0, 0, 0};
 
 reg_t armv7m_gdb_dummy_cpsr_reg =
 {
@@ -171,7 +171,7 @@ int armv7m_get_core_reg(reg_t *reg)
 	return retval;
 }
 
-int armv7m_set_core_reg(reg_t *reg, u8 *buf)
+int armv7m_set_core_reg(reg_t *reg, uint8_t *buf)
 {
 	armv7m_core_reg_t *armv7m_reg = reg->arch_info;
 	target_t *target = armv7m_reg->target;

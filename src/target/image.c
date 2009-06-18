@@ -35,18 +35,18 @@
 /* convert ELF header field to host endianness */
 #define field16(elf,field)\
 	((elf->endianness==ELFDATA2LSB)? \
-		le_to_h_u16((u8*)&field):be_to_h_u16((u8*)&field))
+		le_to_h_u16((uint8_t*)&field):be_to_h_u16((uint8_t*)&field))
 
 #define field32(elf,field)\
 	((elf->endianness==ELFDATA2LSB)? \
-		le_to_h_u32((u8*)&field):be_to_h_u32((u8*)&field))
+		le_to_h_u32((uint8_t*)&field):be_to_h_u32((uint8_t*)&field))
 
 static int autodetect_image_type(image_t *image, char *url)
 {
 	int retval;
 	fileio_t fileio;
 	u32 read_bytes;
-	u8 buffer[9];
+	uint8_t buffer[9];
 
 	/* read the first 4 bytes of image */
 	if ((retval = fileio_open(&fileio, url, FILEIO_READ, FILEIO_BINARY)) != ERROR_OK)
@@ -171,7 +171,7 @@ static int image_ihex_buffer_complete(image_t *image)
 		u32 address;
 		u32 record_type;
 		u32 checksum;
-		u8 cal_checksum = 0;
+		uint8_t cal_checksum = 0;
 		u32 bytes_read = 0;
 
 		if (sscanf(&lpszLine[bytes_read], ":%2x%4x%2x", &count, &address, &record_type) != 3)
@@ -180,10 +180,10 @@ static int image_ihex_buffer_complete(image_t *image)
 		}
 		bytes_read += 9;
 
-		cal_checksum += (u8)count;
-		cal_checksum += (u8)(address >> 8);
-		cal_checksum += (u8)address;
-		cal_checksum += (u8)record_type;
+		cal_checksum += (uint8_t)count;
+		cal_checksum += (uint8_t)(address >> 8);
+		cal_checksum += (uint8_t)address;
+		cal_checksum += (uint8_t)record_type;
 
 		if (record_type == 0) /* Data Record */
 		{
@@ -209,8 +209,8 @@ static int image_ihex_buffer_complete(image_t *image)
 			{
 				unsigned value;
 				sscanf(&lpszLine[bytes_read], "%2x", &value);
-				ihex->buffer[cooked_bytes] = (u8)value;
-				cal_checksum += (u8)ihex->buffer[cooked_bytes];
+				ihex->buffer[cooked_bytes] = (uint8_t)value;
+				cal_checksum += (uint8_t)ihex->buffer[cooked_bytes];
 				bytes_read += 2;
 				cooked_bytes += 1;
 				section[image->num_sections].size += 1;
@@ -239,8 +239,8 @@ static int image_ihex_buffer_complete(image_t *image)
 			u16 upper_address;
 
 			sscanf(&lpszLine[bytes_read], "%4hx", &upper_address);
-			cal_checksum += (u8)(upper_address >> 8);
-			cal_checksum += (u8)upper_address;
+			cal_checksum += (uint8_t)(upper_address >> 8);
+			cal_checksum += (uint8_t)upper_address;
 			bytes_read += 4;
 
 			if ((full_address >> 4) != upper_address)
@@ -270,7 +270,7 @@ static int image_ihex_buffer_complete(image_t *image)
 			while (count-- > 0)
 			{
 				sscanf(&lpszLine[bytes_read], "%2x", &dummy);
-				cal_checksum += (u8)dummy;
+				cal_checksum += (uint8_t)dummy;
 				bytes_read += 2;
 			}
 		}
@@ -279,8 +279,8 @@ static int image_ihex_buffer_complete(image_t *image)
 			u16 upper_address;
 
 			sscanf(&lpszLine[bytes_read], "%4hx", &upper_address);
-			cal_checksum += (u8)(upper_address >> 8);
-			cal_checksum += (u8)upper_address;
+			cal_checksum += (uint8_t)(upper_address >> 8);
+			cal_checksum += (uint8_t)upper_address;
 			bytes_read += 4;
 
 			if ((full_address >> 16) != upper_address)
@@ -306,14 +306,14 @@ static int image_ihex_buffer_complete(image_t *image)
 			u32 start_address;
 
 			sscanf(&lpszLine[bytes_read], "%8x", &start_address);
-			cal_checksum += (u8)(start_address >> 24);
-			cal_checksum += (u8)(start_address >> 16);
-			cal_checksum += (u8)(start_address >> 8);
-			cal_checksum += (u8)start_address;
+			cal_checksum += (uint8_t)(start_address >> 24);
+			cal_checksum += (uint8_t)(start_address >> 16);
+			cal_checksum += (uint8_t)(start_address >> 8);
+			cal_checksum += (uint8_t)start_address;
 			bytes_read += 8;
 
 			image->start_address_set = 1;
-			image->start_address = be_to_h_u32((u8*)&start_address);
+			image->start_address = be_to_h_u32((uint8_t*)&start_address);
 		}
 		else
 		{
@@ -324,7 +324,7 @@ static int image_ihex_buffer_complete(image_t *image)
 		sscanf(&lpszLine[bytes_read], "%2x", &checksum);
 		bytes_read += 2;
 
-		if ((u8)checksum != (u8)(~cal_checksum + 1))
+		if ((uint8_t)checksum != (uint8_t)(~cal_checksum + 1))
 		{
 			/* checksum failed */
 			LOG_ERROR("incorrect record checksum found in IHEX file");
@@ -351,7 +351,7 @@ static int image_elf_read_headers(image_t *image)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
-	if ((retval = fileio_read(&elf->fileio, sizeof(Elf32_Ehdr), (u8*)elf->header, &read_bytes)) != ERROR_OK)
+	if ((retval = fileio_read(&elf->fileio, sizeof(Elf32_Ehdr), (uint8_t*)elf->header, &read_bytes)) != ERROR_OK)
 	{
 		LOG_ERROR("cannot read ELF file header, read failed");
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -401,7 +401,7 @@ static int image_elf_read_headers(image_t *image)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
-	if ((retval = fileio_read(&elf->fileio, elf->segment_count*sizeof(Elf32_Phdr), (u8*)elf->segments, &read_bytes)) != ERROR_OK)
+	if ((retval = fileio_read(&elf->fileio, elf->segment_count*sizeof(Elf32_Phdr), (uint8_t*)elf->segments, &read_bytes)) != ERROR_OK)
 	{
 		LOG_ERROR("cannot read ELF segment headers, read failed");
 		return retval;
@@ -437,7 +437,7 @@ static int image_elf_read_headers(image_t *image)
 	return ERROR_OK;
 }
 
-static int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read)
+static int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, uint8_t *buffer, u32 *size_read)
 {
 	image_elf_t *elf = image->type_private;
 	Elf32_Phdr *segment = (Elf32_Phdr *)image->sections[section].private;
@@ -505,7 +505,7 @@ static int image_mot_buffer_complete(image_t *image)
 		u32 address;
 		u32 record_type;
 		u32 checksum;
-		u8 cal_checksum = 0;
+		uint8_t cal_checksum = 0;
 		u32 bytes_read = 0;
 
 		/* get record type and record length */
@@ -515,7 +515,7 @@ static int image_mot_buffer_complete(image_t *image)
 		}
 
 		bytes_read += 4;
-		cal_checksum += (u8)count;
+		cal_checksum += (uint8_t)count;
 
 		/* skip checksum byte */
 		count -=1;
@@ -527,7 +527,7 @@ static int image_mot_buffer_complete(image_t *image)
 
 			while (count-- > 0) {
 				sscanf(&lpszLine[bytes_read], "%2x", &iValue);
-				cal_checksum += (u8)iValue;
+				cal_checksum += (uint8_t)iValue;
 				bytes_read += 2;
 			}
 		}
@@ -538,8 +538,8 @@ static int image_mot_buffer_complete(image_t *image)
 				case 1:
 					/* S1 - 16 bit address data record */
 					sscanf(&lpszLine[bytes_read], "%4x", &address);
-					cal_checksum += (u8)(address >> 8);
-					cal_checksum += (u8)address;
+					cal_checksum += (uint8_t)(address >> 8);
+					cal_checksum += (uint8_t)address;
 					bytes_read += 4;
 					count -=2;
 					break;
@@ -547,9 +547,9 @@ static int image_mot_buffer_complete(image_t *image)
 				case 2:
 					/* S2 - 24 bit address data record */
 					sscanf(&lpszLine[bytes_read], "%6x", &address);
-					cal_checksum += (u8)(address >> 16);
-					cal_checksum += (u8)(address >> 8);
-					cal_checksum += (u8)address;
+					cal_checksum += (uint8_t)(address >> 16);
+					cal_checksum += (uint8_t)(address >> 8);
+					cal_checksum += (uint8_t)address;
 					bytes_read += 6;
 					count -=3;
 					break;
@@ -557,10 +557,10 @@ static int image_mot_buffer_complete(image_t *image)
 				case 3:
 					/* S3 - 32 bit address data record */
 					sscanf(&lpszLine[bytes_read], "%8x", &address);
-					cal_checksum += (u8)(address >> 24);
-					cal_checksum += (u8)(address >> 16);
-					cal_checksum += (u8)(address >> 8);
-					cal_checksum += (u8)address;
+					cal_checksum += (uint8_t)(address >> 24);
+					cal_checksum += (uint8_t)(address >> 16);
+					cal_checksum += (uint8_t)(address >> 8);
+					cal_checksum += (uint8_t)address;
 					bytes_read += 8;
 					count -=4;
 					break;
@@ -588,8 +588,8 @@ static int image_mot_buffer_complete(image_t *image)
 			{
 				unsigned value;
 				sscanf(&lpszLine[bytes_read], "%2x", &value);
-				mot->buffer[cooked_bytes] = (u8)value;
-				cal_checksum += (u8)mot->buffer[cooked_bytes];
+				mot->buffer[cooked_bytes] = (uint8_t)value;
+				cal_checksum += (uint8_t)mot->buffer[cooked_bytes];
 				bytes_read += 2;
 				cooked_bytes += 1;
 				section[image->num_sections].size += 1;
@@ -604,7 +604,7 @@ static int image_mot_buffer_complete(image_t *image)
 			while (count-- > 0)
 			{
 				sscanf(&lpszLine[bytes_read], "%2x", &dummy);
-				cal_checksum += (u8)dummy;
+				cal_checksum += (uint8_t)dummy;
 				bytes_read += 2;
 			}
 		}
@@ -633,7 +633,7 @@ static int image_mot_buffer_complete(image_t *image)
 
 		/* account for checksum, will always be 0xFF */
 		sscanf(&lpszLine[bytes_read], "%2x", &checksum);
-		cal_checksum += (u8)checksum;
+		cal_checksum += (uint8_t)checksum;
 		bytes_read += 2;
 
 		if( cal_checksum != 0xFF )
@@ -776,7 +776,7 @@ int image_open(image_t *image, char *url, char *type_string)
 	return retval;
 };
 
-int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read)
+int image_read_section(image_t *image, int section, u32 offset, u32 size, uint8_t *buffer, u32 *size_read)
 {
 	int retval;
 
@@ -810,7 +810,7 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	}
 	else if (image->type == IMAGE_IHEX)
 	{
-		memcpy(buffer, (u8*)image->sections[section].private + offset, size);
+		memcpy(buffer, (uint8_t*)image->sections[section].private + offset, size);
 		*size_read = size;
 
 		return ERROR_OK;
@@ -860,14 +860,14 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	}
 	else if (image->type == IMAGE_SRECORD)
 	{
-		memcpy(buffer, (u8*)image->sections[section].private + offset, size);
+		memcpy(buffer, (uint8_t*)image->sections[section].private + offset, size);
 		*size_read = size;
 
 		return ERROR_OK;
 	}
 	else if (image->type == IMAGE_BUILDER)
 	{
-		memcpy(buffer, (u8*)image->sections[section].private + offset, size);
+		memcpy(buffer, (uint8_t*)image->sections[section].private + offset, size);
 		*size_read = size;
 
 		return ERROR_OK;
@@ -876,7 +876,7 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *bu
 	return ERROR_OK;
 }
 
-int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data)
+int image_add_section(image_t *image, u32 base, u32 size, int flags, uint8_t *data)
 {
 	image_section_t *section;
 
@@ -894,7 +894,7 @@ int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data)
 		if (((section->base_address + section->size) == base) && (section->flags == flags))
 		{
 			section->private = realloc(section->private, section->size + size);
-			memcpy((u8*)section->private + section->size, data, size);
+			memcpy((uint8_t*)section->private + section->size, data, size);
 			section->size += size;
 			return ERROR_OK;
 		}
@@ -907,8 +907,8 @@ int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data)
 	section->base_address = base;
 	section->size = size;
 	section->flags = flags;
-	section->private = malloc(sizeof(u8) * size);
-	memcpy((u8*)section->private, data, size);
+	section->private = malloc(sizeof(uint8_t) * size);
+	memcpy((uint8_t*)section->private, data, size);
 
 	return ERROR_OK;
 }
@@ -997,7 +997,7 @@ void image_close(image_t *image)
 	}
 }
 
-int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum)
+int image_calculate_checksum(uint8_t* buffer, u32 nbytes, u32* checksum)
 {
 	u32 crc = 0xffffffff;
 	LOG_DEBUG("Calculating checksum");

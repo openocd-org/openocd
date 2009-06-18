@@ -97,10 +97,10 @@ extern reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_
 extern int embeddedice_setup(target_t *target);
 extern int embeddedice_read_reg(reg_t *reg);
 extern void embeddedice_write_reg(reg_t *reg, u32 value);
-extern int embeddedice_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask);
+extern int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask);
 extern void embeddedice_store_reg(reg_t *reg);
 extern void embeddedice_set_reg(reg_t *reg, u32 value);
-extern int embeddedice_set_reg_w_exec(reg_t *reg, u8 *buf);
+extern int embeddedice_set_reg_w_exec(reg_t *reg, uint8_t *buf);
 extern int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size);
 extern int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size);
 extern int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout);
@@ -124,6 +124,6 @@ static __inline__ void embeddedice_write_reg_inner( jtag_tap_t *tap, int reg_add
 			jtag_get_end_state());
 }
 
-void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count);
+void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int little, int count);
 
 #endif /* EMBEDDED_ICE_H */

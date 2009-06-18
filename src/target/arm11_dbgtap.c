@@ -97,7 +97,7 @@ void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, vo
  *
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
-void arm11_add_IR(arm11_common_t * arm11, u8 instr, tap_state_t state)
+void arm11_add_IR(arm11_common_t * arm11, uint8_t instr, tap_state_t state)
 {
 	jtag_tap_t *tap;
 	tap = arm11->target->tap;
@@ -122,10 +122,10 @@ void arm11_add_IR(arm11_common_t * arm11, u8 instr, tap_state_t state)
  *  arm11_add_debug_SCAN_N().
  *
  */
-static void arm11_in_handler_SCAN_N(u8 *in_value)
+static void arm11_in_handler_SCAN_N(uint8_t *in_value)
 {
 	/** \todo TODO: clarify why this isnt properly masked in core.c jtag_read_buffer() */
-	u8 v = *in_value & 0x1F;
+	uint8_t v = *in_value & 0x1F;
 
 	if (v != 0x10)
 	{
@@ -160,7 +160,7 @@ static void arm11_in_handler_SCAN_N(u8 *in_value)
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
 
-void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
+void arm11_add_debug_SCAN_N(arm11_common_t * arm11, uint8_t chain, tap_state_t state)
 {
 	JTAG_DEBUG("SCREG <= 0x%02x", chain);
 
@@ -168,7 +168,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
 
 	scan_field_t		field;
 
-	u8 tmp[1];
+	uint8_t tmp[1];
 	arm11_setup_field(arm11, 5, &chain, &tmp, &field);
 
 	arm11_add_dr_scan_vc(1, &field, state == ARM11_TAP_DEFAULT ? TAP_DRPAUSE : state);
@@ -195,7 +195,7 @@ void arm11_add_debug_SCAN_N(arm11_common_t * arm11, u8 chain, tap_state_t state)
  *
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
-void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, u8 * flag, tap_state_t state)
+void arm11_add_debug_INST(arm11_common_t * arm11, u32 inst, uint8_t * flag, tap_state_t state)
 {
 	JTAG_DEBUG("INST <= 0x%08x", inst);
 
@@ -374,7 +374,7 @@ int arm11_run_instr_no_data(arm11_common_t * arm11, u32 * opcode, size_t count)
 
 		while (1)
 		{
-			u8 flag;
+			uint8_t flag;
 
 			arm11_add_debug_INST(arm11, 0, &flag, count ? TAP_IDLE : TAP_DRPAUSE);
 
@@ -426,8 +426,8 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, u32 opcode, u32 * data,
 	scan_field_t	chain5_fields[3];
 
 	u32				Data;
-	u8				Ready;
-	u8				nRetry;
+	uint8_t				Ready;
+	uint8_t				nRetry;
 
 	arm11_setup_field(arm11, 32,    &Data,  NULL,		chain5_fields + 0);
 	arm11_setup_field(arm11,  1,    NULL,   &Ready,		chain5_fields + 1);
@@ -516,8 +516,8 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, u32 opcode, u32 *
 	arm11_setup_field(arm11,  1,    NULL,			NULL /*&Ready*/,	chain5_fields + 1);
 	arm11_setup_field(arm11,  1,    NULL,			NULL,				chain5_fields + 2);
 
-	u8			Readies[count + 1];
-	u8	*		ReadyPos			= Readies;
+	uint8_t			Readies[count + 1];
+	uint8_t	*		ReadyPos			= Readies;
 
 	while (count--)
 	{
@@ -603,8 +603,8 @@ int arm11_run_instr_data_from_core(arm11_common_t * arm11, u32 opcode, u32 * dat
 	scan_field_t	chain5_fields[3];
 
 	u32			Data;
-	u8			Ready;
-	u8			nRetry;
+	uint8_t			Ready;
+	uint8_t			nRetry;
 
 	arm11_setup_field(arm11, 32,    NULL,	&Data,	    chain5_fields + 0);
 	arm11_setup_field(arm11,  1,    NULL,	&Ready,	    chain5_fields + 1);
@@ -685,12 +685,12 @@ int arm11_sc7_run(arm11_common_t * arm11, arm11_sc7_action_t * actions, size_t c
 
 	scan_field_t	chain7_fields[3];
 
-	u8				nRW;
+	uint8_t				nRW;
 	u32				DataOut;
-	u8				AddressOut;
-	u8				Ready;
+	uint8_t				AddressOut;
+	uint8_t				Ready;
 	u32				DataIn;
-	u8				AddressIn;
+	uint8_t				AddressIn;
 
 	arm11_setup_field(arm11,  1, &nRW,			&Ready,		chain7_fields + 0);
 	arm11_setup_field(arm11, 32, &DataOut,		&DataIn,	chain7_fields + 1);

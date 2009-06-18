@@ -272,7 +272,7 @@ static int new_target_number(void)
 static int target_continuous_poll = 1;
 
 /* read a u32 from a buffer in target memory endianness */
-u32 target_buffer_get_u32(target_t *target, const u8 *buffer)
+u32 target_buffer_get_u32(target_t *target, const uint8_t *buffer)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return le_to_h_u32(buffer);
@@ -281,7 +281,7 @@ u32 target_buffer_get_u32(target_t *target, const u8 *buffer)
 }
 
 /* read a u16 from a buffer in target memory endianness */
-u16 target_buffer_get_u16(target_t *target, const u8 *buffer)
+u16 target_buffer_get_u16(target_t *target, const uint8_t *buffer)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return le_to_h_u16(buffer);
@@ -289,14 +289,14 @@ u16 target_buffer_get_u16(target_t *target, const u8 *buffer)
 		return be_to_h_u16(buffer);
 }
 
-/* read a u8 from a buffer in target memory endianness */
-u8 target_buffer_get_u8(target_t *target, const u8 *buffer)
+/* read a uint8_t from a buffer in target memory endianness */
+uint8_t target_buffer_get_u8(target_t *target, const uint8_t *buffer)
 {
 	return *buffer & 0x0ff;
 }
 
 /* write a u32 to a buffer in target memory endianness */
-void target_buffer_set_u32(target_t *target, u8 *buffer, u32 value)
+void target_buffer_set_u32(target_t *target, uint8_t *buffer, u32 value)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		h_u32_to_le(buffer, value);
@@ -305,7 +305,7 @@ void target_buffer_set_u32(target_t *target, u8 *buffer, u32 value)
 }
 
 /* write a u16 to a buffer in target memory endianness */
-void target_buffer_set_u16(target_t *target, u8 *buffer, u16 value)
+void target_buffer_set_u16(target_t *target, uint8_t *buffer, u16 value)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		h_u16_to_le(buffer, value);
@@ -313,8 +313,8 @@ void target_buffer_set_u16(target_t *target, u8 *buffer, u16 value)
 		h_u16_to_be(buffer, value);
 }
 
-/* write a u8 to a buffer in target memory endianness */
-void target_buffer_set_u8(target_t *target, u8 *buffer, u8 value)
+/* write a uint8_t to a buffer in target memory endianness */
+void target_buffer_set_u8(target_t *target, uint8_t *buffer, uint8_t value)
 {
 	*buffer = value;
 }
@@ -518,7 +518,7 @@ const char *target_get_name(struct target_s *target)
 	return target->type->name;
 }
 
-static int target_write_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+static int target_write_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	if (!target_was_examined(target))
 	{
@@ -528,7 +528,7 @@ static int target_write_memory_imp(struct target_s *target, u32 address, u32 siz
 	return target->type->write_memory_imp(target, address, size, count, buffer);
 }
 
-static int target_read_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+static int target_read_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	if (!target_was_examined(target))
 	{
@@ -559,18 +559,18 @@ static int target_run_algorithm_imp(struct target_s *target, int num_mem_params,
 }
 
 int target_read_memory(struct target_s *target,
-		u32 address, u32 size, u32 count, u8 *buffer)
+		u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	return target->type->read_memory(target, address, size, count, buffer);
 }
 
 int target_write_memory(struct target_s *target,
-		u32 address, u32 size, u32 count, u8 *buffer)
+		u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 int target_bulk_write_memory(struct target_s *target,
-		u32 address, u32 count, u8 *buffer)
+		u32 address, u32 count, uint8_t *buffer)
 {
 	return target->type->bulk_write_memory(target, address, count, buffer);
 }
@@ -1096,7 +1096,7 @@ int target_arch_state(struct target_s *target)
  * mode respectively, otherwise data is handled as quickly as
  * possible
  */
-int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer)
+int target_write_buffer(struct target_s *target, u32 address, u32 size, uint8_t *buffer)
 {
 	int retval;
 	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x", size, address);
@@ -1175,7 +1175,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buff
  * mode respectively, otherwise data is handled as quickly as
  * possible
  */
-int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer)
+int target_read_buffer(struct target_s *target, u32 address, u32 size, uint8_t *buffer)
 {
 	int retval;
 	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x", size, address);
@@ -1243,7 +1243,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffe
 
 int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* crc)
 {
-	u8 *buffer;
+	uint8_t *buffer;
 	int retval;
 	u32 i;
 	u32 checksum = 0;
@@ -1305,7 +1305,7 @@ int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u3
 
 int target_read_u32(struct target_s *target, u32 address, u32 *value)
 {
-	u8 value_buf[4];
+	uint8_t value_buf[4];
 	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
@@ -1330,7 +1330,7 @@ int target_read_u32(struct target_s *target, u32 address, u32 *value)
 
 int target_read_u16(struct target_s *target, u32 address, u16 *value)
 {
-	u8 value_buf[2];
+	uint8_t value_buf[2];
 	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
@@ -1353,7 +1353,7 @@ int target_read_u16(struct target_s *target, u32 address, u16 *value)
 	return retval;
 }
 
-int target_read_u8(struct target_s *target, u32 address, u8 *value)
+int target_read_u8(struct target_s *target, u32 address, uint8_t *value)
 {
 	int retval = target_read_memory(target, address, 1, 1, value);
 	if (!target_was_examined(target))
@@ -1378,7 +1378,7 @@ int target_read_u8(struct target_s *target, u32 address, u8 *value)
 int target_write_u32(struct target_s *target, u32 address, u32 value)
 {
 	int retval;
-	u8 value_buf[4];
+	uint8_t value_buf[4];
 	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
@@ -1399,7 +1399,7 @@ int target_write_u32(struct target_s *target, u32 address, u32 value)
 int target_write_u16(struct target_s *target, u32 address, u16 value)
 {
 	int retval;
-	u8 value_buf[2];
+	uint8_t value_buf[2];
 	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
@@ -1417,7 +1417,7 @@ int target_write_u16(struct target_s *target, u32 address, u16 value)
 	return retval;
 }
 
-int target_write_u8(struct target_s *target, u32 address, u8 value)
+int target_write_u8(struct target_s *target, u32 address, uint8_t value)
 {
 	int retval;
 	if (!target_was_examined(target))
@@ -1782,7 +1782,7 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 	/* set register value */
 	if (argc == 2)
 	{
-		u8 *buf = malloc(CEIL(reg->size, 8));
+		uint8_t *buf = malloc(CEIL(reg->size, 8));
 		str_to_buf(args[1], strlen(args[1]), buf, reg->size, 0);
 
 		reg_arch_type_t *arch_type = register_get_arch_type(reg->arch_type);
@@ -2011,7 +2011,7 @@ static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 static void handle_md_output(struct command_context_s *cmd_ctx,
 		struct target_s *target, u32 address, unsigned size,
-		unsigned count, const u8 *buffer)
+		unsigned count, const uint8_t *buffer)
 {
 	const unsigned line_bytecnt = 32;
 	unsigned line_modulo = line_bytecnt / size;
@@ -2039,7 +2039,7 @@ static void handle_md_output(struct command_context_s *cmd_ctx,
 		}
 
 		u32 value=0;
-		const u8 *value_ptr = buffer + i * size;
+		const uint8_t *value_ptr = buffer + i * size;
 		switch (size) {
 		case 4: value = target_buffer_get_u32(target, value_ptr); break;
 		case 2: value = target_buffer_get_u16(target, value_ptr); break;
@@ -2083,7 +2083,7 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			return retval;
 	}
 
-	u8 *buffer = calloc(count, size);
+	uint8_t *buffer = calloc(count, size);
 
 	target_t *target = get_current_target(cmd_ctx);
 	retval = target_read_memory(target,
@@ -2121,7 +2121,7 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 	target_t *target = get_current_target(cmd_ctx);
 	unsigned wordsize;
-	u8 value_buf[4];
+	uint8_t value_buf[4];
 	switch (cmd[2])
 	{
 		case 'w':
@@ -2197,7 +2197,7 @@ static int parse_load_image_command_args(char **args, int argc,
 
 static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u8 *buffer;
+	uint8_t *buffer;
 	u32 buf_cnt;
 	u32 image_size;
 	u32 min_address = 0;
@@ -2294,7 +2294,7 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 {
 	fileio_t fileio;
 
-	u8 buffer[560];
+	uint8_t buffer[560];
 	int retvaltemp;
 
 	duration_t duration;
@@ -2364,7 +2364,7 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 
 static int handle_verify_image_command_internal(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, int verify)
 {
-	u8 *buffer;
+	uint8_t *buffer;
 	u32 buf_cnt;
 	u32 image_size;
 	int i;
@@ -2445,11 +2445,11 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 			if( checksum != mem_checksum )
 			{
 				/* failed crc checksum, fall back to a binary compare */
-				u8 *data;
+				uint8_t *data;
 
 				command_print(cmd_ctx, "checksum mismatch - attempting binary compare");
 
-				data = (u8*)malloc(buf_cnt);
+				data = (uint8_t*)malloc(buf_cnt);
 
 				/* Can we use 32bit word accesses? */
 				int size = 1;
@@ -2760,7 +2760,7 @@ static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
 	writeLong(f, 0); /* padding */
 	writeLong(f, 0); /* padding */
 
-	u8 zero = 0;  /* GMON_TAG_TIME_HIST */
+	uint8_t zero = 0;  /* GMON_TAG_TIME_HIST */
 	writeData(f, &zero, 1);
 
 	/* figure out bucket size */
@@ -2984,7 +2984,7 @@ static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_
 	u32 count;
 	u32 v;
 	const char *varname;
-	u8 buffer[4096];
+	uint8_t buffer[4096];
 	int  n, e, retval;
 	u32 i;
 
@@ -3166,7 +3166,7 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 	u32 count;
 	u32 v;
 	const char *varname;
-	u8 buffer[4096];
+	uint8_t buffer[4096];
 	int  n, e, retval;
 	u32 i;
 
@@ -3634,7 +3634,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	Jim_GetOptInfo goi;
 	jim_wide a,b,c;
 	int x,y,z;
-	u8  target_buf[32];
+	uint8_t  target_buf[32];
 	Jim_Nvp *n;
 	target_t *target;
 	struct command_context_s *cmd_ctx;
@@ -4310,7 +4310,7 @@ static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 struct FastLoad
 {
 	u32 address;
-	u8 *data;
+	uint8_t *data;
 	int length;
 
 };
@@ -4338,7 +4338,7 @@ static void free_fastload(void)
 
 static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u8 *buffer;
+	uint8_t *buffer;
 	u32 buf_cnt;
 	u32 image_size;
 	u32 min_address=0;

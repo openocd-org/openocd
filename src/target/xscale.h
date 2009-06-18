@@ -57,7 +57,7 @@ enum xscale_trace_entry_type
 
 typedef struct xscale_trace_entry_s
 {
-	u8 data;
+	uint8_t data;
 	enum xscale_trace_entry_type type;
 } xscale_trace_entry_t;
 
@@ -105,8 +105,8 @@ typedef struct xscale_common_s
 	u32 high_vectors[8];
 	
 	/* static low vectors */
-	u8 static_low_vectors_set;	/* bit field with static vectors set by the user */
-	u8 static_high_vectors_set; /* bit field with static vectors set by the user */
+	uint8_t static_low_vectors_set;	/* bit field with static vectors set by the user */
+	uint8_t static_high_vectors_set; /* bit field with static vectors set by the user */
 	u32 static_low_vectors[8];
 	u32 static_high_vectors[8];
 
@@ -127,7 +127,7 @@ typedef struct xscale_common_s
 	u32 arm_bkpt;
 	u16 thumb_bkpt;
 	
-	u8 vector_catch;
+	uint8_t vector_catch;
 
 	xscale_trace_t trace;
 	

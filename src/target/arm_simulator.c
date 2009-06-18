@@ -31,7 +31,7 @@
 #include "binarybuffer.h"
 
 
-u32 arm_shift(u8 shift, u32 Rm, u32 shift_amount, u8 *carry)
+u32 arm_shift(uint8_t shift, u32 Rm, u32 shift_amount, uint8_t *carry)
 {
 	u32 return_value = 0;
 	shift_amount &= 0xff;
@@ -122,7 +122,7 @@ u32 arm_shift(u8 shift, u32 Rm, u32 shift_amount, u8 *carry)
 	return return_value;
 }
 
-u32 arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_shifter_operand shifter_operand, u8 *shifter_carry_out)
+u32 arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_shifter_operand shifter_operand, uint8_t *shifter_carry_out)
 {
 	u32 return_value;
 	int instruction_size;
@@ -409,8 +409,8 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 			|| ((instruction.type >= ARM_ORR) && (instruction.type <= ARM_MVN)))
 	{
 		u32 Rd, Rn, shifter_operand;
-		u8 C = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 29, 1);
-		u8 carry_out;
+		uint8_t C = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 29, 1);
+		uint8_t carry_out;
 		
 		Rd = 0x0;
 		/* ARM_MOV and ARM_MVN does not use Rn */
@@ -509,9 +509,9 @@ int arm_simulate_step(target_t *target, u32 *dry_run_pc)
 		{
 			u32 offset;
 			u32 Rm = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store.offset.reg.Rm).value, 0, 32);
-			u8 shift = instruction.info.load_store.offset.reg.shift;
-			u8 shift_imm = instruction.info.load_store.offset.reg.shift_imm;
-			u8 carry = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 29, 1);
+			uint8_t shift = instruction.info.load_store.offset.reg.shift;
+			uint8_t shift_imm = instruction.info.load_store.offset.reg.shift_imm;
+			uint8_t carry = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 29, 1);
 			
 			offset = arm_shift(shift, Rm, shift_imm, &carry);
 			

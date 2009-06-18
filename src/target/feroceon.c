@@ -55,7 +55,7 @@
 
 int feroceon_examine(struct target_s *target);
 int feroceon_target_create(struct target_s *target, Jim_Interp *interp);
-int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
+int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer);
 int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int feroceon_quit(void);
 
@@ -115,9 +115,9 @@ target_type_t feroceon_target =
 int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, u32 instr)
 {
 	scan_field_t fields[3];
-	u8 out_buf[4];
-	u8 instr_buf[4];
-	u8 sysspeed_buf = 0x0;
+	uint8_t out_buf[4];
+	uint8_t instr_buf[4];
+	uint8_t sysspeed_buf = 0x0;
 
 	/* prepare buffer */
 	buf_set_u32(out_buf, 0, 32, 0);
@@ -240,7 +240,7 @@ void feroceon_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	u32 *buf_u32 = buffer;
 	u16 *buf_u16 = buffer;
-	u8 *buf_u8 = buffer;
+	uint8_t *buf_u8 = buffer;
 
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_STMIA(0, mask & 0xffff, 0, 0), 0, NULL, 0);
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
@@ -332,7 +332,7 @@ void feroceon_write_xpsr(target_t *target, u32 xpsr, int spsr)
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);
 }
 
-void feroceon_write_xpsr_im8(target_t *target, u8 xpsr_im, int rot, int spsr)
+void feroceon_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int spsr)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -507,7 +507,7 @@ int feroceon_examine_debug_reason(target_t *target)
 	return ERROR_OK;
 }
 
-int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
+int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -552,7 +552,7 @@ int feroceon_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buf
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!arm7_9->dcc_working_area)
 	{
-		u8 dcc_code_buf[dcc_size];
+		uint8_t dcc_code_buf[dcc_size];
 
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, dcc_size, &arm7_9->dcc_working_area) != ERROR_OK)

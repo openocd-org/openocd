@@ -177,9 +177,9 @@ int cortex_m3_assert_reset(target_t *target);
 int cortex_m3_deassert_reset(target_t *target);
 int cortex_m3_soft_reset_halt(struct target_s *target);
 
-int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int cortex_m3_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
+int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int cortex_m3_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer);
 
 int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint);

@@ -43,8 +43,8 @@ int arm720t_target_create(struct target_s *target,Jim_Interp *interp);
 int arm720t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm720t_quit(void);
 int arm720t_arch_state(struct target_s *target);
-int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int arm720t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int arm720t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
 int arm720t_soft_reset_halt(struct target_s *target);
 
 target_type_t arm720t_target =
@@ -91,8 +91,8 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	scan_field_t fields[2];
-	u8 out_buf[4];
-	u8 instruction_buf = instruction;
+	uint8_t out_buf[4];
+	uint8_t instruction_buf = instruction;
 
 	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
 
@@ -118,9 +118,9 @@ int arm720t_scan_cp15(target_t *target, u32 out, u32 *in, int instruction, int c
 
 	if (in)
 	{
-		fields[1].in_value = (u8 *)in;
+		fields[1].in_value = (uint8_t *)in;
 		jtag_add_dr_scan(2, fields, jtag_get_end_state());
-		jtag_add_callback(arm7flip32, (u8 *)in);
+		jtag_add_callback(arm7flip32, (uint8_t *)in);
 	} else
 	{
 		jtag_add_dr_scan(2, fields, jtag_get_end_state());
@@ -329,7 +329,7 @@ int arm720t_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -349,7 +349,7 @@ int arm720t_read_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	return retval;
 }
 
-int arm720t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int arm720t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	int retval;
 

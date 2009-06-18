@@ -132,51 +132,51 @@ union arm_shifter_operand
 		u32 immediate;
 	} immediate;
 	struct {
-		u8 Rm;
-		u8 shift; /* 0: LSL, 1: LSR, 2: ASR, 3: ROR, 4: RRX */
-		u8 shift_imm;
+		uint8_t Rm;
+		uint8_t shift; /* 0: LSL, 1: LSR, 2: ASR, 3: ROR, 4: RRX */
+		uint8_t shift_imm;
 	} immediate_shift;
 	struct {
-		u8 Rm;
-		u8 shift;
-		u8 Rs;
+		uint8_t Rm;
+		uint8_t shift;
+		uint8_t Rs;
 	} register_shift;
 };
 
 typedef struct arm_data_proc_instr_s
 {
 	int variant; /* 0: immediate, 1: immediate_shift, 2: register_shift */
-	u8 S;
-	u8 Rn;
-	u8 Rd;
+	uint8_t S;
+	uint8_t Rn;
+	uint8_t Rd;
 	union arm_shifter_operand shifter_operand;
 } arm_data_proc_instr_t;
 
 typedef struct arm_load_store_instr_s
 {
-	u8 Rd;
-	u8 Rn;
-	u8 U;
+	uint8_t Rd;
+	uint8_t Rn;
+	uint8_t U;
 	int index_mode; /* 0: offset, 1: pre-indexed, 2: post-indexed */
 	int offset_mode; /* 0: immediate, 1: (scaled) register */
 	union
 	{
 		u32 offset;
 		struct {
-			u8 Rm;
-			u8 shift; /* 0: LSL, 1: LSR, 2: ASR, 3: ROR, 4: RRX */
-			u8 shift_imm;
+			uint8_t Rm;
+			uint8_t shift; /* 0: LSL, 1: LSR, 2: ASR, 3: ROR, 4: RRX */
+			uint8_t shift_imm;
 		} reg;
 	} offset;
 } arm_load_store_instr_t;
 
 typedef struct arm_load_store_multiple_instr_s
 {
-	u8 Rn;
+	uint8_t Rn;
 	u32 register_list;
-	u8 addressing_mode; /* 0: IA, 1: IB, 2: DA, 3: DB */
-	u8 S;
-	u8 W;
+	uint8_t addressing_mode; /* 0: IA, 1: IB, 2: DA, 3: DB */
+	uint8_t S;
+	uint8_t W;
 } arm_load_store_multiple_instr_t;
 
 typedef struct arm_instruction_s

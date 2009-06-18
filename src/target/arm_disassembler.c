@@ -102,7 +102,7 @@ int evaluate_blx_imm(u32 opcode, u32 address, arm_instruction_t *instruction)
 
 int evaluate_b_bl(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 L;
+	uint8_t L;
 	u32 immediate;
 	int offset;
 	u32 target_address;
@@ -139,12 +139,12 @@ int evaluate_b_bl(u32 opcode, u32 address, arm_instruction_t *instruction)
 /* both normal and extended instruction space (condition field b1111) */
 int evaluate_ldc_stc_mcrr_mrrc(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 cp_num = (opcode & 0xf00) >> 8;
+	uint8_t cp_num = (opcode & 0xf00) >> 8;
 	
 	/* MCRR or MRRC */
 	if (((opcode & 0x0ff00000) == 0x0c400000) || ((opcode & 0x0ff00000) == 0x0c400000))
 	{
-		u8 cp_opcode, Rd, Rn, CRm;
+		uint8_t cp_opcode, Rd, Rn, CRm;
 		char *mnemonic;
 		
 		cp_opcode = (opcode & 0xf0) >> 4;
@@ -171,8 +171,8 @@ int evaluate_ldc_stc_mcrr_mrrc(u32 opcode, u32 address, arm_instruction_t *instr
 	}
 	else /* LDC or STC */
 	{
-		u8 CRd, Rn, offset;
-		u8 U, N;
+		uint8_t CRd, Rn, offset;
+		uint8_t U, N;
 		char *mnemonic;
 		char addressing_mode[32];
 		
@@ -221,7 +221,7 @@ int evaluate_cdp_mcr_mrc(u32 opcode, u32 address, arm_instruction_t *instruction
 {
 	char* cond;
 	char* mnemonic;
-	u8 cp_num, opcode_1, CRd_Rd, CRn, CRm, opcode_2;
+	uint8_t cp_num, opcode_1, CRd_Rd, CRn, CRm, opcode_2;
 	
 	cond = ((opcode & 0xf0000000) == 0xf0000000) ? "2" : COND(opcode);
 	cp_num = (opcode & 0xf00) >> 8;
@@ -268,8 +268,8 @@ int evaluate_cdp_mcr_mrc(u32 opcode, u32 address, arm_instruction_t *instruction
 /* Load/store instructions */
 int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 I, P, U, B, W, L;
-	u8 Rn, Rd;
+	uint8_t I, P, U, B, W, L;
+	uint8_t Rn, Rd;
 	char *operation; /* "LDR" or "STR" */
 	char *suffix; /* "", "B", "T", "BT" */
 	char offset[32];
@@ -351,8 +351,8 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 	}
 	else /* either +-<Rm> or +-<Rm>, <shift>, #<shift_imm> */
 	{
-		u8 shift_imm, shift;
-		u8 Rm;
+		uint8_t shift_imm, shift;
+		uint8_t Rm;
 		
 		shift_imm = (opcode & 0xf80) >> 7;
 		shift = (opcode & 0x60) >> 5;
@@ -436,8 +436,8 @@ int evaluate_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 /* Miscellaneous load/store instructions */
 int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 P, U, I, W, L, S, H;
-	u8 Rn, Rd;
+	uint8_t P, U, I, W, L, S, H;
+	uint8_t Rn, Rd;
 	char *operation; /* "LDR" or "STR" */
 	char *suffix; /* "H", "SB", "SH", "D" */
 	char offset[32];
@@ -519,7 +519,7 @@ int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruc
 	}
 	else /* Register offset/index (+-<Rm>) */
 	{
-		u8 Rm;
+		uint8_t Rm;
 		Rm = (opcode & 0xf);
 		snprintf(offset, 32, "%sr%i", (U) ? "" : "-", Rm);
 		
@@ -563,7 +563,7 @@ int evaluate_misc_load_store(u32 opcode, u32 address, arm_instruction_t *instruc
 /* Load/store multiples instructions */
 int evaluate_ldm_stm(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 P, U, S, W, L, Rn;
+	uint8_t P, U, S, W, L, Rn;
 	u32 register_list;
 	char *addressing_mode;
 	char *mnemonic;
@@ -656,7 +656,7 @@ int evaluate_mul_and_extra_ld_st(u32 opcode, u32 address, arm_instruction_t *ins
 		/* Multiply (accumulate) */
 		if ((opcode & 0x0f800000) == 0x00000000)
 		{
-			u8 Rm, Rs, Rn, Rd, S;
+			uint8_t Rm, Rs, Rn, Rd, S;
 			Rm = opcode & 0xf;
 			Rs = (opcode & 0xf00) >> 8;
 			Rn = (opcode & 0xf000) >> 12;
@@ -684,7 +684,7 @@ int evaluate_mul_and_extra_ld_st(u32 opcode, u32 address, arm_instruction_t *ins
 		if ((opcode & 0x0f800000) == 0x00800000)
 		{
 			char* mnemonic = NULL;
-			u8 Rm, Rs, RdHi, RdLow, S;
+			uint8_t Rm, Rs, RdHi, RdLow, S;
 			Rm = opcode & 0xf;
 			Rs = (opcode & 0xf00) >> 8;
 			RdHi = (opcode & 0xf000) >> 12;
@@ -721,7 +721,7 @@ int evaluate_mul_and_extra_ld_st(u32 opcode, u32 address, arm_instruction_t *ins
 		/* Swap/swap byte */
 		if ((opcode & 0x0f800000) == 0x01000000)
 		{
-			u8 Rm, Rd, Rn;
+			uint8_t Rm, Rd, Rn;
 			Rm = opcode & 0xf;
 			Rd = (opcode & 0xf000) >> 12;
 			Rn = (opcode & 0xf0000) >> 16;
@@ -752,8 +752,8 @@ int evaluate_mrs_msr(u32 opcode, u32 address, arm_instruction_t *instruction)
 		/* immediate variant */
 		if (opcode & 0x02000000)
 		{
-			u8 immediate = (opcode & 0xff);
-			u8 rotate = (opcode & 0xf00);
+			uint8_t immediate = (opcode & 0xff);
+			uint8_t rotate = (opcode & 0xf00);
 			
 			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\tMSR%s %s_%s%s%s%s, 0x%8.8x",
 					 address, opcode, COND(opcode), PSR,
@@ -766,7 +766,7 @@ int evaluate_mrs_msr(u32 opcode, u32 address, arm_instruction_t *instruction)
 		}
 		else /* register variant */
 		{
-			u8 Rm = opcode & 0xf;
+			uint8_t Rm = opcode & 0xf;
 			snprintf(instruction->text, 128, "0x%8.8x\t0x%8.8x\tMSR%s %s_%s%s%s%s, r%i",
 					 address, opcode, COND(opcode), PSR,
 					 (opcode & 0x10000) ? "c" : "",
@@ -780,7 +780,7 @@ int evaluate_mrs_msr(u32 opcode, u32 address, arm_instruction_t *instruction)
 	}
 	else /* Move status register to register (MRS) */
 	{
-		u8 Rd;
+		uint8_t Rd;
 		
 		instruction->type = ARM_MRS;
 		Rd = (opcode & 0x0000f000) >> 12;
@@ -804,7 +804,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 	/* BX */
 	if ((opcode & 0x006000f0) == 0x00200010)
 	{
-		u8 Rm;
+		uint8_t Rm;
 		instruction->type = ARM_BX;
 		Rm = opcode & 0xf;
 		
@@ -818,7 +818,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 	/* CLZ */
 	if ((opcode & 0x006000f0) == 0x00600010)
 	{
-		u8 Rm, Rd;
+		uint8_t Rm, Rd;
 		instruction->type = ARM_CLZ;
 		Rm = opcode & 0xf;
 		Rd = (opcode & 0xf000) >> 12;
@@ -830,7 +830,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 	/* BLX(2) */
 	if ((opcode & 0x006000f0) == 0x00200030)
 	{
-		u8 Rm;
+		uint8_t Rm;
 		instruction->type = ARM_BLX;
 		Rm = opcode & 0xf;
 		
@@ -844,7 +844,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 	/* Enhanced DSP add/subtracts */
 	if ((opcode & 0x0000000f0) == 0x00000050)
 	{
-		u8 Rm, Rd, Rn;
+		uint8_t Rm, Rd, Rn;
 		char *mnemonic = NULL;
 		Rm = opcode & 0xf;
 		Rd = (opcode & 0xf000) >> 12;
@@ -894,7 +894,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 		/* SMLA<x><y> */
 		if ((opcode & 0x00600000) == 0x00000000)
 		{
-			u8 Rd, Rm, Rs, Rn;
+			uint8_t Rd, Rm, Rs, Rn;
 			instruction->type = ARM_SMLAxy;
 			Rd = (opcode & 0xf0000) >> 16;
 			Rm = (opcode & 0xf);
@@ -909,7 +909,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 		/* SMLAL<x><y> */
 		if ((opcode & 0x00600000) == 0x00400000)
 		{
-			u8 RdLow, RdHi, Rm, Rs;
+			uint8_t RdLow, RdHi, Rm, Rs;
 			instruction->type = ARM_SMLAxy;
 			RdHi = (opcode & 0xf0000) >> 16;
 			RdLow = (opcode & 0xf000) >> 12;
@@ -924,7 +924,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 		/* SMLAW<y> */
 		if (((opcode & 0x00600000) == 0x00100000) && (x == 0))
 		{
-			u8 Rd, Rm, Rs, Rn;
+			uint8_t Rd, Rm, Rs, Rn;
 			instruction->type = ARM_SMLAWy;
 			Rd = (opcode & 0xf0000) >> 16;
 			Rm = (opcode & 0xf);
@@ -939,7 +939,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 		/* SMUL<x><y> */
 		if ((opcode & 0x00600000) == 0x00300000)
 		{
-			u8 Rd, Rm, Rs;
+			uint8_t Rd, Rm, Rs;
 			instruction->type = ARM_SMULxy;
 			Rd = (opcode & 0xf0000) >> 16;
 			Rm = (opcode & 0xf);
@@ -953,7 +953,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 		/* SMULW<y> */
 		if (((opcode & 0x00600000) == 0x00100000) && (x == 1))
 		{
-			u8 Rd, Rm, Rs;
+			uint8_t Rd, Rm, Rs;
 			instruction->type = ARM_SMULWy;
 			Rd = (opcode & 0xf0000) >> 16;
 			Rm = (opcode & 0xf);
@@ -970,7 +970,7 @@ int evaluate_misc_instr(u32 opcode, u32 address, arm_instruction_t *instruction)
 
 int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 I, op, S, Rn, Rd;
+	uint8_t I, op, S, Rn, Rd;
 	char *mnemonic = NULL;
 	char shifter_operand[32];
 	
@@ -1055,8 +1055,8 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 	
 	if (I) /* immediate shifter operand (#<immediate>)*/
 	{
-		u8 immed_8 = opcode & 0xff;
-		u8 rotate_imm = (opcode & 0xf00) >> 8;
+		uint8_t immed_8 = opcode & 0xff;
+		uint8_t rotate_imm = (opcode & 0xf00) >> 8;
 		u32 immediate;
 		
 		immediate = ror(immed_8, rotate_imm * 2);
@@ -1068,13 +1068,13 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 	}
 	else /* register-based shifter operand */
 	{
-		u8 shift, Rm;
+		uint8_t shift, Rm;
 		shift = (opcode & 0x60) >> 5;
 		Rm = (opcode & 0xf);
 		
 		if ((opcode & 0x10) != 0x10) /* Immediate shifts ("<Rm>" or "<Rm>, <shift> #<shift_immediate>") */
 		{
-			u8 shift_imm;
+			uint8_t shift_imm;
 			shift_imm = (opcode & 0xf80) >> 7;
 
 			instruction->info.data_proc.variant = 1;
@@ -1124,7 +1124,7 @@ int evaluate_data_proc(u32 opcode, u32 address, arm_instruction_t *instruction)
 		}
 		else /* Register shifts ("<Rm>, <shift> <Rs>") */
 		{
-			u8 Rs = (opcode & 0xf00) >> 8;
+			uint8_t Rs = (opcode & 0xf00) >> 8;
 			
 			instruction->info.data_proc.variant = 2;
 			instruction->info.data_proc.shifter_operand.register_shift.Rm = Rm;
@@ -1368,9 +1368,9 @@ int evaluate_b_bl_blx_thumb(u16 opcode, u32 address, arm_instruction_t *instruct
 
 int evaluate_add_sub_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 Rd = (opcode >> 0) & 0x7;
-	u8 Rn = (opcode >> 3) & 0x7;
-	u8 Rm_imm = (opcode >> 6) & 0x7;
+	uint8_t Rd = (opcode >> 0) & 0x7;
+	uint8_t Rn = (opcode >> 3) & 0x7;
+	uint8_t Rm_imm = (opcode >> 6) & 0x7;
 	u32 opc = opcode & (1<<9);
 	u32 reg_imm  = opcode & (1<<10);
 	char *mnemonic;
@@ -1410,10 +1410,10 @@ int evaluate_add_sub_thumb(u16 opcode, u32 address, arm_instruction_t *instructi
 
 int evaluate_shift_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 Rd = (opcode >> 0) & 0x7;
-	u8 Rm = (opcode >> 3) & 0x7;
-	u8 imm = (opcode >> 6) & 0x1f;
-	u8 opc = (opcode >> 11) & 0x3;
+	uint8_t Rd = (opcode >> 0) & 0x7;
+	uint8_t Rm = (opcode >> 3) & 0x7;
+	uint8_t imm = (opcode >> 6) & 0x1f;
+	uint8_t opc = (opcode >> 11) & 0x3;
 	char *mnemonic = NULL;
 	
 	switch(opc)
@@ -1454,8 +1454,8 @@ int evaluate_shift_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruc
 
 int evaluate_data_proc_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 imm = opcode & 0xff;
-	u8 Rd = (opcode >> 8) & 0x7;
+	uint8_t imm = opcode & 0xff;
+	uint8_t Rd = (opcode >> 8) & 0x7;
 	u32 opc = (opcode >> 11) & 0x3;
 	char *mnemonic = NULL;
 	
@@ -1495,7 +1495,7 @@ int evaluate_data_proc_imm_thumb(u16 opcode, u32 address, arm_instruction_t *ins
 
 int evaluate_data_proc_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 high_reg, op, Rm, Rd,H1,H2;
+	uint8_t high_reg, op, Rm, Rd,H1,H2;
 	char *mnemonic = NULL;
 	
 	high_reg = (opcode & 0x0400) >> 10;
@@ -1655,7 +1655,7 @@ int evaluate_data_proc_thumb(u16 opcode, u32 address, arm_instruction_t *instruc
 int evaluate_load_literal_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 immediate;
-	u8 Rd = (opcode >> 8) & 0x7; 
+	uint8_t Rd = (opcode >> 8) & 0x7; 
 
 	instruction->type = ARM_LDR;
 	immediate = opcode & 0x000000ff;
@@ -1673,10 +1673,10 @@ int evaluate_load_literal_thumb(u16 opcode, u32 address, arm_instruction_t *inst
 
 int evaluate_load_store_reg_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
-	u8 Rd = (opcode >> 0) & 0x7; 
-	u8 Rn = (opcode >> 3) & 0x7; 
-	u8 Rm = (opcode >> 6) & 0x7; 
-	u8 opc = (opcode >> 9) & 0x7; 
+	uint8_t Rd = (opcode >> 0) & 0x7; 
+	uint8_t Rn = (opcode >> 3) & 0x7; 
+	uint8_t Rm = (opcode >> 6) & 0x7; 
+	uint8_t opc = (opcode >> 9) & 0x7; 
 	char *mnemonic = NULL;
 
 	switch(opc)
@@ -1729,8 +1729,8 @@ int evaluate_load_store_reg_thumb(u16 opcode, u32 address, arm_instruction_t *in
 int evaluate_load_store_imm_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 offset = (opcode >> 6) & 0x1f;
-	u8 Rd = (opcode >> 0) & 0x7; 
-	u8 Rn = (opcode >> 3) & 0x7; 
+	uint8_t Rd = (opcode >> 0) & 0x7; 
+	uint8_t Rn = (opcode >> 3) & 0x7; 
 	u32 L = opcode & (1<<11);
 	u32 B = opcode & (1<<12);
 	char *mnemonic;
@@ -1773,7 +1773,7 @@ int evaluate_load_store_imm_thumb(u16 opcode, u32 address, arm_instruction_t *in
 int evaluate_load_store_stack_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 offset = opcode  & 0xff;
-	u8 Rd = (opcode >> 8) & 0x7; 
+	uint8_t Rd = (opcode >> 8) & 0x7; 
 	u32 L = opcode & (1<<11);
 	char *mnemonic;
 
@@ -1802,8 +1802,8 @@ int evaluate_load_store_stack_thumb(u16 opcode, u32 address, arm_instruction_t *
 int evaluate_add_sp_pc_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 imm = opcode  & 0xff;
-	u8 Rd = (opcode >> 8) & 0x7; 
-	u8 Rn;
+	uint8_t Rd = (opcode >> 8) & 0x7; 
+	uint8_t Rn;
 	u32 SP = opcode & (1<<11);
 	char *reg_name;
 
@@ -1833,7 +1833,7 @@ int evaluate_add_sp_pc_thumb(u16 opcode, u32 address, arm_instruction_t *instruc
 int evaluate_adjust_stack_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 imm = opcode  & 0x7f;
-	u8 opc = opcode & (1<<7);
+	uint8_t opc = opcode & (1<<7);
 	char *mnemonic;
 
 	
@@ -1874,8 +1874,8 @@ int evaluate_load_store_multiple_thumb(u16 opcode, u32 address, arm_instruction_
 	u32 reg_list = opcode  & 0xff;
 	u32 L = opcode & (1<<11);
 	u32 R = opcode & (1<<8);
-	u8 Rn = (opcode >> 8) & 7;
-	u8 addr_mode = 0 /* IA */;
+	uint8_t Rn = (opcode >> 8) & 7;
+	uint8_t addr_mode = 0 /* IA */;
 	char reg_names[40];
 	char *reg_names_p;
 	char *mnemonic;
@@ -1939,7 +1939,7 @@ int evaluate_load_store_multiple_thumb(u16 opcode, u32 address, arm_instruction_
 int evaluate_cond_branch_thumb(u16 opcode, u32 address, arm_instruction_t *instruction)
 {
 	u32 offset = opcode  & 0xff;
-	u8 cond = (opcode >> 8) & 0xf;
+	uint8_t cond = (opcode >> 8) & 0xf;
 	u32 target_address;
 
 	if (cond == 0xf)

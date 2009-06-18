@@ -164,8 +164,8 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	scan_field_t fields[3];
-	u8 reg_addr_buf = reg_addr & 0x3f;
-	u8 nr_w_buf = 0;
+	uint8_t reg_addr_buf = reg_addr & 0x3f;
+	uint8_t nr_w_buf = 0;
 
 	jtag_set_end_state(TAP_IDLE);
 	if ((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
@@ -191,11 +191,11 @@ int arm966e_read_cp15(target_t *target, int reg_addr, u32 *value)
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-	fields[1].in_value = (u8 *)value;
+	fields[1].in_value = (uint8_t *)value;
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-	jtag_add_callback(arm_le_to_h_u32, (u8 *)value);
+	jtag_add_callback(arm_le_to_h_u32, (uint8_t *)value);
 
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
@@ -216,9 +216,9 @@ int arm966e_write_cp15(target_t *target, int reg_addr, u32 value)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	scan_field_t fields[3];
-	u8 reg_addr_buf = reg_addr & 0x3f;
-	u8 nr_w_buf = 1;
-	u8 value_buf[4];
+	uint8_t reg_addr_buf = reg_addr & 0x3f;
+	uint8_t nr_w_buf = 1;
+	uint8_t value_buf[4];
 
 	buf_set_u32(value_buf, 0, 32, value);
 

@@ -100,7 +100,7 @@ typedef struct working_area_s
 	u32 address;
 	u32 size;
 	int free;
-	u8 *backup;
+	uint8_t *backup;
 	struct working_area_s **user;
 	struct working_area_s *next;
 } working_area_t;
@@ -331,7 +331,7 @@ extern int target_run_algorithm(struct target_s *target,
  * This routine is a wrapper for target->type->read_memory.
  */
 extern int target_read_memory(struct target_s *target,
-		u32 address, u32 size, u32 count, u8 *buffer);
+		u32 address, u32 size, u32 count, uint8_t *buffer);
 /**
  * Write @a count items of @a size bytes to the memory of @a target at
  * the @a address given.
@@ -339,7 +339,7 @@ extern int target_read_memory(struct target_s *target,
  * This routine is wrapper for target->type->write_memory.
  */
 extern int target_write_memory(struct target_s *target,
-		u32 address, u32 size, u32 count, u8 *buffer);
+		u32 address, u32 size, u32 count, uint8_t *buffer);
 
 /**
  * Write @a count items of 4 bytes to the memory of @a target at
@@ -349,10 +349,10 @@ extern int target_write_memory(struct target_s *target,
  * This routine is wrapper for target->type->bulk_write_memory.
  */
 extern int target_bulk_write_memory(struct target_s *target,
-		u32 address, u32 count, u8 *buffer);
+		u32 address, u32 count, uint8_t *buffer);
 
-extern int target_write_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
-extern int target_read_buffer(struct target_s *target, u32 address, u32 size, u8 *buffer);
+extern int target_write_buffer(struct target_s *target, u32 address, u32 size, uint8_t *buffer);
+extern int target_read_buffer(struct target_s *target, u32 address, u32 size, uint8_t *buffer);
 extern int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* crc);
 extern int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u32* blank);
 extern int target_wait_state(target_t *target, enum target_state state, int ms);
@@ -379,19 +379,19 @@ extern target_t *all_targets;
 extern target_event_callback_t *target_event_callbacks;
 extern target_timer_callback_t *target_timer_callbacks;
 
-extern u32 target_buffer_get_u32(target_t *target, const u8 *buffer);
-extern u16 target_buffer_get_u16(target_t *target, const u8 *buffer);
-extern u8  target_buffer_get_u8 (target_t *target, const u8 *buffer);
-extern void target_buffer_set_u32(target_t *target, u8 *buffer, u32 value);
-extern void target_buffer_set_u16(target_t *target, u8 *buffer, u16 value);
-extern void target_buffer_set_u8 (target_t *target, u8 *buffer, u8  value);
+extern u32 target_buffer_get_u32(target_t *target, const uint8_t *buffer);
+extern u16 target_buffer_get_u16(target_t *target, const uint8_t *buffer);
+extern uint8_t  target_buffer_get_u8 (target_t *target, const uint8_t *buffer);
+extern void target_buffer_set_u32(target_t *target, uint8_t *buffer, u32 value);
+extern void target_buffer_set_u16(target_t *target, uint8_t *buffer, u16 value);
+extern void target_buffer_set_u8 (target_t *target, uint8_t *buffer, uint8_t  value);
 
 int target_read_u32(struct target_s *target, u32 address, u32 *value);
 int target_read_u16(struct target_s *target, u32 address, u16 *value);
-int target_read_u8(struct target_s *target, u32 address, u8 *value);
+int target_read_u8(struct target_s *target, u32 address, uint8_t *value);
 int target_write_u32(struct target_s *target, u32 address, u32 value);
 int target_write_u16(struct target_s *target, u32 address, u16 value);
-int target_write_u8(struct target_s *target, u32 address, u8 value);
+int target_write_u8(struct target_s *target, u32 address, uint8_t value);
 
 /* Issues USER() statements with target state information */
 int target_arch_state(struct target_s *target);

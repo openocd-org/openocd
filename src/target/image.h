@@ -75,13 +75,13 @@ typedef struct image_binary_s
 typedef struct image_ihex_s
 {
 	fileio_t fileio;
-	u8 *buffer;
+	uint8_t *buffer;
 } image_ihex_t;
 
 typedef struct image_memory_s
 {
 	struct target_s *target;
-	u8 *cache;
+	uint8_t *cache;
 	u32 cache_address;
 } image_memory_t;
 
@@ -91,21 +91,21 @@ typedef struct fileio_elf_s
 	Elf32_Ehdr *header;
 	Elf32_Phdr *segments;
 	u32 segment_count;
-	u8 endianness;
+	uint8_t endianness;
 } image_elf_t;
 
 typedef struct image_mot_s
 {
 	fileio_t fileio;
-	u8 *buffer;
+	uint8_t *buffer;
 } image_mot_t;
 
 extern int image_open(image_t *image, char *url, char *type_string);
-extern int image_read_section(image_t *image, int section, u32 offset, u32 size, u8 *buffer, u32 *size_read);
+extern int image_read_section(image_t *image, int section, u32 offset, u32 size, uint8_t *buffer, u32 *size_read);
 extern void image_close(image_t *image);
-extern int image_add_section(image_t *image, u32 base, u32 size, int flags, u8 *data);
+extern int image_add_section(image_t *image, u32 base, u32 size, int flags, uint8_t *data);
 
-extern int image_calculate_checksum(u8* buffer, u32 nbytes, u32* checksum);
+extern int image_calculate_checksum(uint8_t* buffer, u32 nbytes, u32* checksum);
 
 #define ERROR_IMAGE_FORMAT_ERROR	(-1400)
 #define ERROR_IMAGE_TYPE_UNKNOWN	(-1401)

@@ -153,14 +153,14 @@ int armv4_5_core_reg_map[7][17] =
 	}
 };
 
-u8 armv4_5_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+uint8_t armv4_5_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 reg_t armv4_5_gdb_dummy_fp_reg =
 {
 	"GDB dummy floating-point register", armv4_5_gdb_dummy_fp_value, 0, 1, 96, NULL, 0, NULL, 0
 };
 
-u8 armv4_5_gdb_dummy_fps_value[] = {0, 0, 0, 0};
+uint8_t armv4_5_gdb_dummy_fps_value[] = {0, 0, 0, 0};
 
 reg_t armv4_5_gdb_dummy_fps_reg =
 {
@@ -185,7 +185,7 @@ int armv4_5_get_core_reg(reg_t *reg)
 	return retval;
 }
 
-int armv4_5_set_core_reg(reg_t *reg, u8 *buf)
+int armv4_5_set_core_reg(reg_t *reg, uint8_t *buf)
 {
 	armv4_5_core_reg_t *armv4_5 = reg->arch_info;
 	target_t *target = armv4_5->target;

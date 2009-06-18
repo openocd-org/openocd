@@ -37,8 +37,8 @@ int mips_m4k_halt(struct target_s *target);
 int mips_m4k_soft_reset_halt(struct target_s *target);
 int mips_m4k_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
 int mips_m4k_step(struct target_s *target, int current, u32 address, int handle_breakpoints);
-int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
 int mips_m4k_register_commands(struct command_context_s *cmd_ctx);
 int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int mips_m4k_quit(void);
@@ -613,7 +613,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			u32 current_instr;
 			
 			/* check that user program has not modified breakpoint instruction */
-			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, (u8*)&current_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, (uint8_t*)&current_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -630,7 +630,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			u16 current_instr;
 			
 			/* check that user program has not modified breakpoint instruction */
-			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, (u8*)&current_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, (uint8_t*)&current_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -728,7 +728,7 @@ void mips_m4k_enable_watchpoints(struct target_s *target)
 	}
 }
 
-int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
@@ -782,7 +782,7 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 	return ERROR_OK;
 }
 
-int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
@@ -904,7 +904,7 @@ int mips_m4k_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
+int mips_m4k_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer)
 {
 	return mips_m4k_write_memory(target, address, 4, count, buffer);
 }

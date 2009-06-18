@@ -83,13 +83,13 @@ target_type_t cortexa8_target =
 	.quit = NULL
 };
 
-int cortex_a8_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
+int cortex_a8_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 {
 	u16 dcrdr;
 
-	mem_ap_read_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
-	*ctrl = (u8)dcrdr;
-	*value = (u8)(dcrdr >> 8);
+	mem_ap_read_buf_u16( swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
+	*ctrl = (uint8_t)dcrdr;
+	*value = (uint8_t)(dcrdr >> 8);
 
 	LOG_DEBUG("data 0x%x ctrl 0x%x", *value, *ctrl);
 
@@ -98,13 +98,13 @@ int cortex_a8_dcc_read(swjdp_common_t *swjdp, u8 *value, u8 *ctrl)
 	if (dcrdr & (1 << 0))
 	{
 		dcrdr = 0;
-		mem_ap_write_buf_u16( swjdp, (u8*)&dcrdr, 1, DCB_DCRDR);
+		mem_ap_write_buf_u16( swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
 	}
 
 	return ERROR_OK;
 }
 
-int cortex_a8_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int cortex_a8_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -136,7 +136,7 @@ int cortex_a8_read_memory(struct target_s *target, u32 address, u32 size, u32 co
 	return retval;
 }
 
-int cortex_a8_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int cortex_a8_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -179,8 +179,8 @@ int cortex_a8_handle_target_request(void *priv)
 
 	if (target->state == TARGET_RUNNING)
 	{
-		u8 data;
-		u8 ctrl;
+		uint8_t data;
+		uint8_t ctrl;
 
 		cortex_a8_dcc_read(swjdp, &data, &ctrl);
 

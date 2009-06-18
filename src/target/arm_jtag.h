@@ -41,29 +41,29 @@ extern int arm_jtag_scann(arm_jtag_t *jtag_info, u32 new_scan_chain);
 extern int arm_jtag_setup_connection(arm_jtag_t *jtag_info);
 
 /* JTAG buffers to host, be and le buffers, flipping variants */
-int arm_jtag_buf_to_u32_flip(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_le32_flip(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_le16_flip(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_be32_flip(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_be16_flip(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_8_flip(u8 *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_u32_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_le32_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_le16_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_be32_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_be16_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_8_flip(uint8_t *in_buf, void *priv, struct scan_field_s *field);
 
 /* JTAG buffers to host, be and le buffers */
-int arm_jtag_buf_to_u32(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_le32(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_le16(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_be32(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_be16(u8 *in_buf, void *priv, struct scan_field_s *field);
-int arm_jtag_buf_to_8(u8 *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_u32(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_le32(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_le16(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_be32(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_be16(uint8_t *in_buf, void *priv, struct scan_field_s *field);
+int arm_jtag_buf_to_8(uint8_t *in_buf, void *priv, struct scan_field_s *field);
 
 
 /* use this as a static so we can inline it in -O3 and refer to it via a pointer  */
-static __inline__ void arm7flip32(u8 *in)
+static __inline__ void arm7flip32(uint8_t *in)
 {
 	*((u32 *)in)=flip_u32(le_to_h_u32(in), 32);
 }
 
-static __inline__ void arm_le_to_h_u32(u8 *in)
+static __inline__ void arm_le_to_h_u32(uint8_t *in)
 {
 	*((u32 *)in)=le_to_h_u32(in);
 }

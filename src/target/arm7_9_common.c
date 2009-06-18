@@ -373,7 +373,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			u32 current_instr;
 			/* check that user program as not modified breakpoint instruction */
-			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, (u8*)&current_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, (uint8_t*)&current_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -387,7 +387,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			u16 current_instr;
 			/* check that user program as not modified breakpoint instruction */
-			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, (u8*)&current_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, (uint8_t*)&current_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -739,7 +739,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 int arm7_9_execute_fast_sys_speed(struct target_s *target)
 {
 	static int set=0;
-	static u8 check_value[4], check_mask[4];
+	static uint8_t check_value[4], check_mask[4];
 
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -781,7 +781,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
  * @param buffer Pointer to the buffer that will hold the data
  * @return The result of receiving data from the Embedded ICE unit
  */
-int arm7_9_target_request_data(target_t *target, u32 size, u8 *buffer)
+int arm7_9_target_request_data(target_t *target, u32 size, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -2208,7 +2208,7 @@ int arm7_9_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mo
 	return jtag_execute_queue();
 }
 
-int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -2384,7 +2384,7 @@ int arm7_9_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	return ERROR_OK;
 }
 
-int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
@@ -2568,7 +2568,7 @@ int arm7_9_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 }
 
 static int dcc_count;
-static u8 *dcc_buffer;
+static uint8_t *dcc_buffer;
 
 static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info)
 {
@@ -2581,7 +2581,7 @@ static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int ti
 
 	int little=target->endianness==TARGET_LITTLE_ENDIAN;
 	int count=dcc_count;
-	u8 *buffer=dcc_buffer;
+	uint8_t *buffer=dcc_buffer;
 	if (count>2)
 	{
 		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
@@ -2590,7 +2590,7 @@ static int arm7_9_dcc_completion(struct target_s *target, u32 exit_point, int ti
 		buffer+=4;
 
 		embeddedice_reg_t *ice_reg = arm7_9->eice_cache->reg_list[EICE_COMMS_DATA].arch_info;
-		u8 reg_addr = ice_reg->addr & 0x1f;
+		uint8_t reg_addr = ice_reg->addr & 0x1f;
 		jtag_tap_t *tap;
 		tap = ice_reg->jtag_info->tap;
 
@@ -2623,7 +2623,7 @@ static const u32 dcc_code[] =
 
 int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, u32 exit_point, int timeout_ms, void *arch_info));
 
-int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
+int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -2636,7 +2636,7 @@ int arm7_9_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffe
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!arm7_9->dcc_working_area)
 	{
-		u8 dcc_code_buf[6 * 4];
+		uint8_t dcc_code_buf[6 * 4];
 
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, 24, &arm7_9->dcc_working_area) != ERROR_OK)

@@ -95,8 +95,8 @@ int arm7tdmi_examine_debug_reason(target_t *target)
 			&& (target->debug_reason != DBG_REASON_SINGLESTEP))
 	{
 		scan_field_t fields[2];
-		u8 databus[4];
-		u8 breakpoint;
+		uint8_t databus[4];
+		uint8_t breakpoint;
 
 		jtag_set_end_state(TAP_DRPAUSE);
 
@@ -185,11 +185,11 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 32;
 	fields[1].out_value = NULL;
-	fields[1].in_value = (u8 *)in;
+	fields[1].in_value = (uint8_t *)in;
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
-	jtag_add_callback(arm7flip32, (u8 *)in);
+	jtag_add_callback(arm7flip32, (uint8_t *)in);
 
 	jtag_add_runtest(0, jtag_get_end_state());
 
@@ -214,7 +214,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, u32 *in)
 	return ERROR_OK;
 }
 
-void arm_endianness(u8 *tmp, void *in, int size, int be, int flip)
+void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip)
 {
 	u32 readback=le_to_h_u32(tmp);
 	if (flip)
@@ -224,30 +224,30 @@ void arm_endianness(u8 *tmp, void *in, int size, int be, int flip)
 		case 4:
 			if (be)
 			{
-				h_u32_to_be(((u8*)in), readback);
+				h_u32_to_be(((uint8_t*)in), readback);
 			} else
 			{
-				 h_u32_to_le(((u8*)in), readback);
+				 h_u32_to_le(((uint8_t*)in), readback);
 			}
 			break;
 		case 2:
 			if (be)
 			{
-				h_u16_to_be(((u8*)in), readback & 0xffff);
+				h_u16_to_be(((uint8_t*)in), readback & 0xffff);
 			} else
 			{
-				h_u16_to_le(((u8*)in), readback & 0xffff);
+				h_u16_to_le(((uint8_t*)in), readback & 0xffff);
 			}
 			break;
 		case 1:
-			*((u8 *)in)= readback & 0xff;
+			*((uint8_t *)in)= readback & 0xff;
 			break;
 	}
 }
 
-static int arm7endianness(u8 *in, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
+static int arm7endianness(uint8_t *in, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
 {
-	arm_endianness((u8 *)captured, in, (int)size, (int)be, 1);
+	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 1);
 	return ERROR_OK;
 }
 
@@ -397,7 +397,7 @@ void arm7tdmi_read_core_regs_target_buffer(target_t *target, u32 mask, void* buf
 	int be = (target->endianness == TARGET_BIG_ENDIAN) ? 1 : 0;
 	u32 *buf_u32 = buffer;
 	u16 *buf_u16 = buffer;
-	u8 *buf_u8 = buffer;
+	uint8_t *buf_u8 = buffer;
 
 	/* STMIA r0-15, [r0] at debug speed
 	 * register values will start to appear on 4th DCLK
@@ -481,7 +481,7 @@ void arm7tdmi_write_xpsr(target_t *target, u32 xpsr, int spsr)
 	arm7tdmi_clock_out(jtag_info, ARMV4_5_NOP, NULL, 0);
 }
 
-void arm7tdmi_write_xpsr_im8(target_t *target, u8 xpsr_im, int rot, int spsr)
+void arm7tdmi_write_xpsr_im8(target_t *target, uint8_t xpsr_im, int rot, int spsr)
 {
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;

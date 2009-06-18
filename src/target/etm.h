@@ -127,7 +127,7 @@ enum
 
 typedef struct etmv1_trace_data_s
 {
-	u8 pipestat;	/* bits 0-2 pipeline status */
+	uint8_t pipestat;	/* bits 0-2 pipeline status */
 	u16 packet;		/* packet data (4, 8 or 16 bit) */
 	int flags;		/* ETMV1_TRACESYNC_CYCLE, ETMV1_TRIGGER_CYCLE */
 } etmv1_trace_data_t;
@@ -195,10 +195,10 @@ extern char *etmv1v1_branch_reason_strings[];
 extern reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_context_t *etm_ctx);
 extern int etm_read_reg(reg_t *reg);
 extern int etm_write_reg(reg_t *reg, u32 value);
-extern int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask);
+extern int etm_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask);
 extern int etm_store_reg(reg_t *reg);
 extern int etm_set_reg(reg_t *reg, u32 value);
-extern int etm_set_reg_w_exec(reg_t *reg, u8 *buf);
+extern int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf);
 extern int etm_setup(target_t *target);
 
 int etm_register_commands(struct command_context_s *cmd_ctx);

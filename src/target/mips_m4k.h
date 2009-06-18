@@ -35,7 +35,7 @@ typedef struct mips_m4k_common_s
 	mips32_common_t mips32_common;
 } mips_m4k_common_t;
 
-extern int mips_m4k_bulk_write_memory(struct target_s *target, u32 address, u32 count, u8 *buffer);
+extern int mips_m4k_bulk_write_memory(struct target_s *target, u32 address, u32 count, uint8_t *buffer);
 
 extern void mips_m4k_enable_breakpoints(struct target_s *target);
 extern int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint);

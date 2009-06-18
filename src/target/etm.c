@@ -312,10 +312,10 @@ int etm_get_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
-int etm_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
+int etm_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask)
 {
 	etm_reg_t *etm_reg = reg->arch_info;
-	u8 reg_addr = etm_reg->addr & 0x7f;
+	uint8_t reg_addr = etm_reg->addr & 0x7f;
 	scan_field_t fields[3];
 
 	LOG_DEBUG("%i", etm_reg->addr);
@@ -383,7 +383,7 @@ int etm_set_reg(reg_t *reg, u32 value)
 	return ERROR_OK;
 }
 
-int etm_set_reg_w_exec(reg_t *reg, u8 *buf)
+int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 {
 	int retval;
 
@@ -400,7 +400,7 @@ int etm_set_reg_w_exec(reg_t *reg, u8 *buf)
 int etm_write_reg(reg_t *reg, u32 value)
 {
 	etm_reg_t *etm_reg = reg->arch_info;
-	u8 reg_addr = etm_reg->addr & 0x7f;
+	uint8_t reg_addr = etm_reg->addr & 0x7f;
 	scan_field_t fields[3];
 
 	LOG_DEBUG("%i: 0x%8.8x", etm_reg->addr, value);
@@ -411,21 +411,21 @@ int etm_write_reg(reg_t *reg, u32 value)
 
 	fields[0].tap = etm_reg->jtag_info->tap;
 	fields[0].num_bits = 32;
-	u8 tmp1[4];
+	uint8_t tmp1[4];
 	fields[0].out_value = tmp1;
 	buf_set_u32(fields[0].out_value, 0, 32, value);
 	fields[0].in_value = NULL;
 
 	fields[1].tap = etm_reg->jtag_info->tap;
 	fields[1].num_bits = 7;
-	u8 tmp2;
+	uint8_t tmp2;
 	fields[1].out_value = &tmp2;
 	buf_set_u32(fields[1].out_value, 0, 7, reg_addr);
 	fields[1].in_value = NULL;
 
 	fields[2].tap = etm_reg->jtag_info->tap;
 	fields[2].num_bits = 1;
-	u8 tmp3;
+	uint8_t tmp3;
 	fields[2].out_value = &tmp3;
 	buf_set_u32(fields[2].out_value, 0, 1, 1);
 	fields[2].in_value = NULL;
@@ -500,7 +500,7 @@ static int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instructi
 
 	if (ctx->core_state == ARMV4_5_STATE_ARM)
 	{
-		u8 buf[4];
+		uint8_t buf[4];
 		if ((retval = image_read_section(ctx->image, section,
 			ctx->current_pc - ctx->image->sections[section].base_address,
 			4, buf, &size_read)) != ERROR_OK)
@@ -513,7 +513,7 @@ static int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instructi
 	}
 	else if (ctx->core_state == ARMV4_5_STATE_THUMB)
 	{
-		u8 buf[2];
+		uint8_t buf[2];
 		if ((retval = image_read_section(ctx->image, section,
 			ctx->current_pc - ctx->image->sections[section].base_address,
 			2, buf, &size_read)) != ERROR_OK)
@@ -538,7 +538,7 @@ static int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instructi
 	return ERROR_OK;
 }
 
-static int etmv1_next_packet(etm_context_t *ctx, u8 *packet, int apo)
+static int etmv1_next_packet(etm_context_t *ctx, uint8_t *packet, int apo)
 {
 	while (ctx->data_index < ctx->trace_depth)
 	{
@@ -606,7 +606,7 @@ static int etmv1_next_packet(etm_context_t *ctx, u8 *packet, int apo)
 static int etmv1_branch_address(etm_context_t *ctx)
 {
 	int retval;
-	u8 packet;
+	uint8_t packet;
 	int shift = 0;
 	int apo;
 	u32 i;
@@ -692,7 +692,7 @@ static int etmv1_branch_address(etm_context_t *ctx)
 static int etmv1_data(etm_context_t *ctx, int size, u32 *data)
 {
 	int j;
-	u8 buf[4];
+	uint8_t buf[4];
 	int retval;
 
 	for (j = 0; j < size; j++)
@@ -738,7 +738,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 
 	while (ctx->pipe_index < ctx->trace_depth)
 	{
-		u8 pipestat = ctx->trace_data[ctx->pipe_index].pipestat;
+		uint8_t pipestat = ctx->trace_data[ctx->pipe_index].pipestat;
 		u32 next_pc = ctx->current_pc;
 		u32 old_data_index = ctx->data_index;
 		u32 old_data_half = ctx->data_half;
@@ -901,7 +901,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 
 			if (ctx->tracemode & ETMV1_TRACE_ADDR)
 			{
-				u8 packet;
+				uint8_t packet;
 				int shift = 0;
 
 				do {

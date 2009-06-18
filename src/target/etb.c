@@ -158,7 +158,7 @@ static int etb_get_reg(reg_t *reg)
 }
 
 
-static void etb_getbuf(u8 *in)
+static void etb_getbuf(uint8_t *in)
 {
 	*((u32 *)in)=buf_get_u32(in, 0, 32);
 }
@@ -203,10 +203,10 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 		else
 			buf_set_u32(fields[1].out_value, 0, 7, 0);
 
-		fields[0].in_value = (u8 *)(data+i);
+		fields[0].in_value = (uint8_t *)(data+i);
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-		jtag_add_callback(etb_getbuf, (u8 *)(data+i));
+		jtag_add_callback(etb_getbuf, (uint8_t *)(data+i));
 	}
 
 	jtag_execute_queue();
@@ -217,10 +217,10 @@ static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
 	return ERROR_OK;
 }
 
-int etb_read_reg_w_check(reg_t *reg, u8* check_value, u8* check_mask)
+int etb_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask)
 {
 	etb_reg_t *etb_reg = reg->arch_info;
-	u8 reg_addr = etb_reg->addr & 0x7f;
+	uint8_t reg_addr = etb_reg->addr & 0x7f;
 	scan_field_t fields[3];
 
 	LOG_DEBUG("%i", etb_reg->addr);
@@ -292,7 +292,7 @@ int etb_set_reg(reg_t *reg, u32 value)
 	return ERROR_OK;
 }
 
-int etb_set_reg_w_exec(reg_t *reg, u8 *buf)
+int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 {
 	int retval;
 
@@ -309,7 +309,7 @@ int etb_set_reg_w_exec(reg_t *reg, u8 *buf)
 int etb_write_reg(reg_t *reg, u32 value)
 {
 	etb_reg_t *etb_reg = reg->arch_info;
-	u8 reg_addr = etb_reg->addr & 0x7f;
+	uint8_t reg_addr = etb_reg->addr & 0x7f;
 	scan_field_t fields[3];
 
 	LOG_DEBUG("%i: 0x%8.8x", etb_reg->addr, value);

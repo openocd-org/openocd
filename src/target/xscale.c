@@ -57,9 +57,9 @@ int xscale_set_reg_u32(reg_t *reg, u32 value);
 int xscale_read_core_reg(struct target_s *target, int num, enum armv4_5_mode mode);
 int xscale_write_core_reg(struct target_s *target, int num, enum armv4_5_mode mode, u32 value);
 
-int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int xscale_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer);
+int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int xscale_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer);
 
 int xscale_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int xscale_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
@@ -170,7 +170,7 @@ xscale_reg_t xscale_reg_arch_info[] =
 int xscale_reg_arch_type = -1;
 
 int xscale_get_reg(reg_t *reg);
-int xscale_set_reg(reg_t *reg, u8 *buf);
+int xscale_set_reg(reg_t *reg, uint8_t *buf);
 
 int xscale_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, xscale_common_t **xscale_p)
 {
@@ -209,7 +209,7 @@ int xscale_jtag_set_instr(jtag_tap_t *tap, u32 new_instr)
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 
-		u8 tmp[4];
+		uint8_t tmp[4];
 		field.in_value = tmp;
 
 		jtag_add_ir_scan(1, &field, jtag_get_end_state());
@@ -231,12 +231,12 @@ int xscale_read_dcsr(target_t *target)
 	int retval;
 
 	scan_field_t fields[3];
-	u8 field0 = 0x0;
-	u8 field0_check_value = 0x2;
-	u8 field0_check_mask = 0x7;
-	u8 field2 = 0x0;
-	u8 field2_check_value = 0x0;
-	u8 field2_check_mask = 0x1;
+	uint8_t field0 = 0x0;
+	uint8_t field0_check_value = 0x2;
+	uint8_t field0_check_mask = 0x7;
+	uint8_t field2 = 0x0;
+	uint8_t field2_check_value = 0x0;
+	uint8_t field2_check_mask = 0x1;
 
 	jtag_set_end_state(TAP_DRPAUSE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.dcsr);
@@ -247,7 +247,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
-	u8 tmp;
+	uint8_t tmp;
 	fields[0].in_value = &tmp;
 
 	fields[1].tap = xscale->jtag_info.tap;
@@ -259,7 +259,7 @@ int xscale_read_dcsr(target_t *target)
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
-	u8 tmp2;
+	uint8_t tmp2;
 	fields[2].in_value = &tmp2;
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
@@ -293,7 +293,7 @@ int xscale_read_dcsr(target_t *target)
 }
 
 
-static void xscale_getbuf(u8 *in)
+static void xscale_getbuf(uint8_t *in)
 {
 	*((u32 *)in)=buf_get_u32(in, 0, 32);
 }
@@ -310,12 +310,12 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	tap_state_t path[3];
 	scan_field_t fields[3];
 
-	u8 *field0 = malloc(num_words * 1);
-	u8 field0_check_value = 0x2;
-	u8 field0_check_mask = 0x6;
+	uint8_t *field0 = malloc(num_words * 1);
+	uint8_t field0_check_value = 0x2;
+	uint8_t field0_check_mask = 0x6;
 	u32 *field1 = malloc(num_words * 4);
-	u8 field2_check_value = 0x0;
-	u8 field2_check_mask = 0x1;
+	uint8_t field2_check_value = 0x0;
+	uint8_t field2_check_mask = 0x1;
 	int words_done = 0;
 	int words_scheduled = 0;
 
@@ -361,11 +361,11 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 
 			jtag_add_pathmove(3, path);
 
-			fields[1].in_value = (u8 *)(field1+i);
+			fields[1].in_value = (uint8_t *)(field1+i);
 
 			jtag_add_dr_scan_check(3, fields, jtag_set_end_state(TAP_IDLE));
 
-			jtag_add_callback(xscale_getbuf, (u8 *)(field1+i));
+			jtag_add_callback(xscale_getbuf, (uint8_t *)(field1+i));
 
 			words_scheduled++;
 		}
@@ -405,7 +405,7 @@ int xscale_receive(target_t *target, u32 *buffer, int num_words)
 	}
 
 	for (i = 0; i < num_words; i++)
-		*(buffer++) = buf_get_u32((u8*)&field1[i], 0, 32);
+		*(buffer++) = buf_get_u32((uint8_t*)&field1[i], 0, 32);
 
 	free(field1);
 
@@ -423,11 +423,11 @@ int xscale_read_tx(target_t *target, int consume)
 	struct timeval timeout, now;
 
 	scan_field_t fields[3];
-	u8 field0_in = 0x0;
-	u8 field0_check_value = 0x2;
-	u8 field0_check_mask = 0x6;
-	u8 field2_check_value = 0x0;
-	u8 field2_check_mask = 0x1;
+	uint8_t field0_in = 0x0;
+	uint8_t field0_check_value = 0x2;
+	uint8_t field0_check_mask = 0x6;
+	uint8_t field2_check_value = 0x0;
+	uint8_t field2_check_mask = 0x1;
 
 	jtag_set_end_state(TAP_IDLE);
 
@@ -458,7 +458,7 @@ int xscale_read_tx(target_t *target, int consume)
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = NULL;
-	u8 tmp;
+	uint8_t tmp;
 	fields[2].in_value = &tmp;
 
 	gettimeofday(&timeout, NULL);
@@ -524,13 +524,13 @@ int xscale_write_rx(target_t *target)
 	struct timeval timeout, now;
 
 	scan_field_t fields[3];
-	u8 field0_out = 0x0;
-	u8 field0_in = 0x0;
-	u8 field0_check_value = 0x2;
-	u8 field0_check_mask = 0x6;
-	u8 field2 = 0x0;
-	u8 field2_check_value = 0x0;
-	u8 field2_check_mask = 0x1;
+	uint8_t field0_out = 0x0;
+	uint8_t field0_in = 0x0;
+	uint8_t field0_check_value = 0x2;
+	uint8_t field0_check_mask = 0x6;
+	uint8_t field2 = 0x0;
+	uint8_t field2_check_value = 0x0;
+	uint8_t field2_check_mask = 0x1;
 
 	jtag_set_end_state(TAP_IDLE);
 
@@ -550,7 +550,7 @@ int xscale_write_rx(target_t *target)
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
-	u8 tmp;
+	uint8_t tmp;
 	fields[2].in_value = &tmp;
 
 	gettimeofday(&timeout, NULL);
@@ -604,7 +604,7 @@ int xscale_write_rx(target_t *target)
 }
 
 /* send count elements of size byte to the debug handler */
-int xscale_send(target_t *target, u8 *buffer, int count, int size)
+int xscale_send(target_t *target, uint8_t *buffer, int count, int size)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
@@ -688,12 +688,12 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	int retval;
 
 	scan_field_t fields[3];
-	u8 field0 = 0x0;
-	u8 field0_check_value = 0x2;
-	u8 field0_check_mask = 0x7;
-	u8 field2 = 0x0;
-	u8 field2_check_value = 0x0;
-	u8 field2_check_mask = 0x1;
+	uint8_t field0 = 0x0;
+	uint8_t field0_check_value = 0x2;
+	uint8_t field0_check_mask = 0x7;
+	uint8_t field2 = 0x0;
+	uint8_t field2_check_value = 0x0;
+	uint8_t field2_check_mask = 0x1;
 
 	if (hold_rst != -1)
 		xscale->hold_rst = hold_rst;
@@ -710,7 +710,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[0].tap = xscale->jtag_info.tap;
 	fields[0].num_bits = 3;
 	fields[0].out_value = &field0;
-	u8 tmp;
+	uint8_t tmp;
 	fields[0].in_value = &tmp;
 
 	fields[1].tap = xscale->jtag_info.tap;
@@ -722,7 +722,7 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 	fields[2].tap = xscale->jtag_info.tap;
 	fields[2].num_bits = 1;
 	fields[2].out_value = &field2;
-	u8 tmp2;
+	uint8_t tmp2;
 	fields[2].in_value = &tmp2;
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
@@ -758,8 +758,8 @@ int xscale_load_ic(target_t *target, int mini, u32 va, u32 buffer[8])
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	u8 packet[4];
-	u8 cmd;
+	uint8_t packet[4];
+	uint8_t cmd;
 	int word;
 
 	scan_field_t fields[2];
@@ -828,8 +828,8 @@ int xscale_invalidate_ic_line(target_t *target, u32 va)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	u8 packet[4];
-	u8 cmd;
+	uint8_t packet[4];
+	uint8_t cmd;
 
 	scan_field_t fields[2];
 
@@ -1678,7 +1678,7 @@ int xscale_deassert_reset(target_t *target)
 		while (binary_size > 0)
 		{
 			u32 cache_line[8];
-			u8 buffer[32];
+			uint8_t buffer[32];
 
 			if ((retval = fileio_read(&debug_handler, 32, buffer, &buf_cnt)) != ERROR_OK)
 			{
@@ -1905,7 +1905,7 @@ int xscale_restore_context(target_t *target)
 	return ERROR_OK;
 }
 
-int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
@@ -1984,7 +1984,7 @@ int xscale_read_memory(struct target_s *target, u32 address, u32 size, u32 count
 	return ERROR_OK;
 }
 
-int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
@@ -2062,7 +2062,7 @@ int xscale_write_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	return ERROR_OK;
 }
 
-int xscale_bulk_write_memory(target_t *target, u32 address, u32 count, u8 *buffer)
+int xscale_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer)
 {
 	return xscale_write_memory(target, address, 4, count, buffer);
 }
@@ -2329,7 +2329,7 @@ int xscale_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	xscale_common_t *xscale = armv4_5->arch_info;
-	u8 enable=0;
+	uint8_t enable=0;
 	reg_t *dbcon = &xscale->reg_cache->reg_list[XSCALE_DBCON];
 	u32 dbcon_value = buf_get_u32(dbcon->value, 0, 32);
 
@@ -2535,7 +2535,7 @@ int xscale_get_reg(reg_t *reg)
 	return ERROR_OK;
 }
 
-int xscale_set_reg(reg_t *reg, u8* buf)
+int xscale_set_reg(reg_t *reg, uint8_t* buf)
 {
 	xscale_reg_t *arch_info = reg->arch_info;
 	target_t *target = arch_info->target;
@@ -2583,7 +2583,7 @@ int xscale_set_reg(reg_t *reg, u8* buf)
 /* convenience wrapper to access XScale specific registers */
 int xscale_set_reg_u32(reg_t *reg, u32 value)
 {
-	u8 buf[4];
+	uint8_t buf[4];
 
 	buf_set_u32(buf, 0, 32, value);
 
@@ -2723,7 +2723,7 @@ int xscale_read_instruction(target_t *target, arm_instruction_t *instruction)
 
 	if (xscale->trace.core_state == ARMV4_5_STATE_ARM)
 	{
-		u8 buf[4];
+		uint8_t buf[4];
 		if ((retval = image_read_section(xscale->trace.image, section,
 			xscale->trace.current_pc - xscale->trace.image->sections[section].base_address,
 			4, buf, &size_read)) != ERROR_OK)
@@ -2736,7 +2736,7 @@ int xscale_read_instruction(target_t *target, arm_instruction_t *instruction)
 	}
 	else if (xscale->trace.core_state == ARMV4_5_STATE_THUMB)
 	{
-		u8 buf[2];
+		uint8_t buf[2];
 		if ((retval = image_read_section(xscale->trace.image, section,
 			xscale->trace.current_pc - xscale->trace.image->sections[section].base_address,
 			2, buf, &size_read)) != ERROR_OK)

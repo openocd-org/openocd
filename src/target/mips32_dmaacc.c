@@ -137,7 +137,7 @@ begin_ejtag_dma_read_h:
 	return ERROR_OK;
 }
 
-static int ejtag_dma_read_b(mips_ejtag_t *ejtag_info, u32 addr, u8 *data)
+static int ejtag_dma_read_b(mips_ejtag_t *ejtag_info, u32 addr, uint8_t *data)
 {
 	u32 v;
 	u32 ejtag_ctrl;
@@ -354,7 +354,7 @@ int mips32_dmaacc_read_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int cou
 	switch (size)
 	{
 		case 1:
-			return mips32_dmaacc_read_mem8(ejtag_info, addr, count, (u8*)buf);
+			return mips32_dmaacc_read_mem8(ejtag_info, addr, count, (uint8_t*)buf);
 		case 2:
 			return mips32_dmaacc_read_mem16(ejtag_info, addr, count, (u16*)buf);
 		case 4:
@@ -390,7 +390,7 @@ int mips32_dmaacc_read_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16 
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_read_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *buf)
+int mips32_dmaacc_read_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, uint8_t *buf)
 {
 	int i;
 	int retval;
@@ -408,7 +408,7 @@ int mips32_dmaacc_write_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int co
 	switch (size)
 	{
 		case 1:
-			return mips32_dmaacc_write_mem8(ejtag_info, addr, count, (u8*)buf);
+			return mips32_dmaacc_write_mem8(ejtag_info, addr, count, (uint8_t*)buf);
 		case 2:
 			return mips32_dmaacc_write_mem16(ejtag_info, addr, count,(u16*)buf);
 		case 4:
@@ -444,7 +444,7 @@ int mips32_dmaacc_write_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, u16
 	return ERROR_OK;
 }
 
-int mips32_dmaacc_write_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, u8 *buf)
+int mips32_dmaacc_write_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, uint8_t *buf)
 {
 	int i;
 	int retval;

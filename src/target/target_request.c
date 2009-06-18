@@ -42,7 +42,7 @@ static int target_asciimsg(target_t *target, u32 length)
 	char *msg = malloc(CEIL(length + 1, 4) * 4);
 	debug_msg_receiver_t *c = target->dbgmsg;
 
-	target->type->target_request_data(target, CEIL(length, 4), (u8*)msg);
+	target->type->target_request_data(target, CEIL(length, 4), (uint8_t*)msg);
 	msg[length] = 0;
 
 	LOG_DEBUG("%s", msg);
@@ -56,7 +56,7 @@ static int target_asciimsg(target_t *target, u32 length)
 	return ERROR_OK;
 }
 
-static int target_charmsg(target_t *target, u8 msg)
+static int target_charmsg(target_t *target, uint8_t msg)
 {
 	LOG_USER_N("%c", msg);
 
@@ -65,7 +65,7 @@ static int target_charmsg(target_t *target, u8 msg)
 
 static int target_hexmsg(target_t *target, int size, u32 length)
 {
-	u8 *data = malloc(CEIL(length * size, 4) * 4);
+	uint8_t *data = malloc(CEIL(length * size, 4) * 4);
 	char line[128];
 	int line_len;
 	debug_msg_receiver_t *c = target->dbgmsg;
@@ -73,7 +73,7 @@ static int target_hexmsg(target_t *target, int size, u32 length)
 
 	LOG_DEBUG("size: %i, length: %i", size, length);
 
-	target->type->target_request_data(target, CEIL(length * size, 4), (u8*)data);
+	target->type->target_request_data(target, CEIL(length * size, 4), (uint8_t*)data);
 
 	line_len = 0;
 	for (i = 0; i < length; i++)

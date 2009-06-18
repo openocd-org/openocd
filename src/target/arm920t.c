@@ -48,8 +48,8 @@ int arm920t_target_create(struct target_s *target, Jim_Interp *interp);
 int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm920t_quit(void);
 int arm920t_arch_state(struct target_s *target);
-int arm920t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
-int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer);
+int arm920t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
 int arm920t_soft_reset_halt(struct target_s *target);
 
 #define ARM920T_CP15_PHYS_ADDR(x, y, z) ((x << 5) | (y << 1) << (z))
@@ -99,9 +99,9 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	scan_field_t fields[4];
-	u8 access_type_buf = 1;
-	u8 reg_addr_buf = reg_addr & 0x3f;
-	u8 nr_w_buf = 0;
+	uint8_t access_type_buf = 1;
+	uint8_t reg_addr_buf = reg_addr & 0x3f;
+	uint8_t nr_w_buf = 0;
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf);
@@ -129,11 +129,11 @@ int arm920t_read_cp15_physical(target_t *target, int reg_addr, u32 *value)
 
 	jtag_add_dr_scan(4, fields, jtag_get_end_state());
 
-	fields[1].in_value = (u8 *)value;
+	fields[1].in_value = (uint8_t *)value;
 
 	jtag_add_dr_scan(4, fields, jtag_get_end_state());
 
-	jtag_add_callback(arm_le_to_h_u32, (u8 *)value);
+	jtag_add_callback(arm_le_to_h_u32, (uint8_t *)value);
 
 	#ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	jtag_execute_queue();
@@ -149,10 +149,10 @@ int arm920t_write_cp15_physical(target_t *target, int reg_addr, u32 value)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	scan_field_t fields[4];
-	u8 access_type_buf = 1;
-	u8 reg_addr_buf = reg_addr & 0x3f;
-	u8 nr_w_buf = 1;
-	u8 value_buf[4];
+	uint8_t access_type_buf = 1;
+	uint8_t reg_addr_buf = reg_addr & 0x3f;
+	uint8_t nr_w_buf = 1;
+	uint8_t value_buf[4];
 
 	buf_set_u32(value_buf, 0, 32, value);
 
@@ -196,10 +196,10 @@ int arm920t_execute_cp15(target_t *target, u32 cp15_opcode, u32 arm_opcode)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 	scan_field_t fields[4];
-	u8 access_type_buf = 0;		/* interpreted access */
-	u8 reg_addr_buf = 0x0;
-	u8 nr_w_buf = 0;
-	u8 cp15_opcode_buf[4];
+	uint8_t access_type_buf = 0;		/* interpreted access */
+	uint8_t reg_addr_buf = 0x0;
+	uint8_t nr_w_buf = 0;
+	uint8_t cp15_opcode_buf[4];
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(jtag_info, 0xf);
@@ -518,7 +518,7 @@ int arm920t_arch_state(struct target_s *target)
 	return ERROR_OK;
 }
 
-int arm920t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int arm920t_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	int retval;
 
@@ -527,7 +527,7 @@ int arm920t_read_memory(struct target_s *target, u32 address, u32 size, u32 coun
 	return retval;
 }
 
-int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, u8 *buffer)
+int arm920t_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
 {
 	int retval;
 	armv4_5_common_t *armv4_5 = target->arch_info;
