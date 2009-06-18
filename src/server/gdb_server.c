@@ -1163,8 +1163,8 @@ int gdb_error(connection_t *connection, int retval)
 int gdb_read_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
-	u32 addr = 0;
-	u32 len = 0;
+	uint32_t addr = 0;
+	uint32_t len = 0;
 
 	uint8_t *buffer;
 	char *hex_buffer;
@@ -1212,7 +1212,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 	{
 		hex_buffer = malloc(len * 2 + 1);
 
-		u32 i;
+		uint32_t i;
 		for (i = 0; i < len; i++)
 		{
 			uint8_t t = buffer[i];
@@ -1237,12 +1237,12 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 int gdb_write_memory_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
-	u32 addr = 0;
-	u32 len = 0;
+	uint32_t addr = 0;
+	uint32_t len = 0;
 
 	uint8_t *buffer;
 
-	u32 i;
+	uint32_t i;
 	int retval;
 
 	/* skip command character */
@@ -1270,7 +1270,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 
 	for (i=0; i<len; i++)
 	{
-		u32 tmp;
+		uint32_t tmp;
 		sscanf(separator + 2*i, "%2x", &tmp);
 		buffer[i] = tmp;
 	}
@@ -1294,8 +1294,8 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
-	u32 addr = 0;
-	u32 len = 0;
+	uint32_t addr = 0;
+	uint32_t len = 0;
 
 	int retval;
 
@@ -1342,7 +1342,7 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 int gdb_step_continue_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	int current = 0;
-	u32 address = 0x0;
+	uint32_t address = 0x0;
 	int retval=ERROR_OK;
 
 	LOG_DEBUG("-");
@@ -1377,8 +1377,8 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 	int type;
 	enum breakpoint_type bp_type = BKPT_SOFT /* dummy init to avoid warning */;
 	enum watchpoint_rw wp_type;
-	u32 address;
-	u32 size;
+	uint32_t address;
+	uint32_t size;
 	char *separator;
 	int retval;
 
@@ -1540,12 +1540,12 @@ static int decode_xfer_read(char *buf, char **annex, int *ofs, unsigned int *len
 
 int gdb_calc_blocksize(flash_bank_t *bank)
 {
-	u32 i;
-	u32 block_size = 0xffffffff;
+	uint32_t i;
+	uint32_t block_size = 0xffffffff;
 
 	/* loop through all sectors and return smallest sector size */
 
-	for (i = 0; i < (u32)bank->num_sectors; i++)
+	for (i = 0; i < (uint32_t)bank->num_sectors; i++)
 	{
 		if (bank->sectors[i].size < block_size)
 			block_size = bank->sectors[i].size;
@@ -1586,7 +1586,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			cmd = malloc((packet_size - 6)/2 + 1);
 			for (i=0; i < (packet_size - 6)/2; i++)
 			{
-				u32 tmp;
+				uint32_t tmp;
 				sscanf(packet + 6 + 2*i, "%2x", &tmp);
 				cmd[i] = tmp;
 			}
@@ -1610,9 +1610,9 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			int retval;
 			char gdb_reply[10];
 			char *separator;
-			u32 checksum;
-			u32 addr = 0;
-			u32 len = 0;
+			uint32_t checksum;
+			uint32_t addr = 0;
+			uint32_t len = 0;
 
 			/* skip command character */
 			packet += 5;
@@ -1717,7 +1717,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 		qsort(banks, flash_get_bank_count(), sizeof(flash_bank_t *), compare_bank);
 
-		u32 ram_start=0;
+		uint32_t ram_start=0;
 		for (i=0; i<flash_get_bank_count(); i++)
 		{
 			p = banks[i];
@@ -1930,7 +1930,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 	if (!strcmp(packet, "vFlashDone"))
 	{
-		u32 written;
+		uint32_t written;
 
 		/* process the flashing buffer. No need to erase as GDB
 		 * always issues a vFlashErase first. */

@@ -156,15 +156,15 @@ struct jtag_tap_s
 	/// Is this TAP currently enabled?
 	bool enabled;
 	int ir_length; /**< size of instruction register */
-	u32 ir_capture_value;
+	uint32_t ir_capture_value;
 	uint8_t* expected; /**< Capture-IR expected value */
-	u32 ir_capture_mask;
+	uint32_t ir_capture_mask;
 	uint8_t* expected_mask; /**< Capture-IR expected mask */
-	u32 idcode;
+	uint32_t idcode;
 	/**< device identification code */
 
 	/// Array of expected identification codes */
-	u32* expected_ids;
+	uint32_t* expected_ids;
 	/// Number of expected identification codes
 	uint8_t expected_ids_cnt;
 
@@ -593,7 +593,7 @@ extern tap_state_t jtag_set_end_state(tap_state_t state);
  *
  **/
 extern tap_state_t jtag_get_end_state(void);
-extern void jtag_add_sleep(u32 us);
+extern void jtag_add_sleep(uint32_t us);
 
 
 /**
@@ -648,7 +648,7 @@ extern int jtag_srst_asserted(int* srst_asserted);
  */
 extern void jtag_check_value_mask(scan_field_t *field, uint8_t *value, uint8_t *mask);
 
-extern void jtag_sleep(u32 us);
+extern void jtag_sleep(uint32_t us);
 
 /*
  * The JTAG subsystem defines a number of error codes,
@@ -691,7 +691,7 @@ extern void jtag_sleep(u32 us);
  * clocking data back in. Patches gladly accepted!
  */
 extern void jtag_add_dr_out(jtag_tap_t* tap,
-		int num_fields, const int* num_bits, const u32* value,
+		int num_fields, const int* num_bits, const uint32_t* value,
 		tap_state_t end_state);
 
 

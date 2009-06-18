@@ -600,8 +600,8 @@ static
 struct {
 	dtc_reply_queue_entry_t	*rq_head;
 	dtc_reply_queue_entry_t	*rq_tail;
-	u32			cmd_index;
-	u32			reply_index;
+	uint32_t			cmd_index;
+	uint32_t			reply_index;
 	uint8_t			cmd_buffer[USB_EP2BANK_SIZE];
 } dtc_queue;
 
@@ -612,8 +612,8 @@ struct {
 
 static
 struct {
-	u32	length;
-	u32	buffer;
+	uint32_t	length;
+	uint32_t	buffer;
 } tap_state_queue;
 
 

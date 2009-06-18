@@ -29,7 +29,7 @@ typedef struct xilinx_bit_file_s
 	uint8_t *part_name;
 	uint8_t *date;
 	uint8_t *time;
-	u32 length;
+	uint32_t length;
 	uint8_t *data;
 } xilinx_bit_file_t;
 

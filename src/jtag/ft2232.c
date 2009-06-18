@@ -338,7 +338,7 @@ jtag_interface_t ft2232_interface =
 	.quit			= ft2232_quit,
 };
 
-static int ft2232_write(uint8_t* buf, int size, u32* bytes_written)
+static int ft2232_write(uint8_t* buf, int size, uint32_t* bytes_written)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	FT_STATUS status;
@@ -371,7 +371,7 @@ static int ft2232_write(uint8_t* buf, int size, u32* bytes_written)
 }
 
 
-static int ft2232_read(uint8_t* buf, u32 size, u32* bytes_read)
+static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	DWORD     dw_bytes_read;
@@ -441,7 +441,7 @@ static int ft2232_adaptive_clocking(int speed)
 	uint8_t  buf = use_adaptive_clocking ? 0x96 : 0x97;
 	LOG_DEBUG("%2.2x", buf);
 
-	u32 bytes_written;
+	uint32_t bytes_written;
 	int retval = ft2232_write(&buf, 1, &bytes_written);
 	if (ERROR_OK != retval || bytes_written != 1)
 	{
@@ -463,7 +463,7 @@ static int ft2232_speed(int speed)
 {
 	uint8_t  buf[3];
 	int retval;
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	ft2232_adaptive_clocking(speed);
 
@@ -621,8 +621,8 @@ static int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
 	int             scan_size;
 	enum scan_type  type;
 	int             retval;
-	u32             bytes_written=0;
-	u32             bytes_read=0;
+	uint32_t             bytes_written=0;
+	uint32_t             bytes_read=0;
 
 #ifdef _DEBUG_USB_IO_
 	struct timeval  start, inter, inter2, end;
@@ -942,8 +942,8 @@ static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, uint8_t* 
 	int last_bit;
 	uint8_t* receive_buffer  = malloc(CEIL(scan_size, 8));
 	uint8_t* receive_pointer = receive_buffer;
-	u32 bytes_written;
-	u32 bytes_read;
+	uint32_t bytes_written;
+	uint32_t bytes_read;
 	int retval;
 	int thisrun_read = 0;
 
@@ -1860,7 +1860,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 		if (status == FT_OK)
 		{
 			char** desc_array = malloc(sizeof(char*) * (num_devices + 1));
-			u32 i;
+			uint32_t i;
 
 			for (i = 0; i < num_devices; i++)
 				desc_array[i] = malloc(64);
@@ -2034,7 +2034,7 @@ static int ft2232_init(void)
 {
 	uint8_t  buf[1];
 	int retval;
-	u32 bytes_written;
+	uint32_t bytes_written;
 	const ft2232_layout_t* cur_layout = ft2232_layouts;
 	int i;
 
@@ -2124,7 +2124,7 @@ static int ft2232_init(void)
 static int usbjtag_init(void)
 {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output    = 0x08;
 	low_direction = 0x0b;
@@ -2200,7 +2200,7 @@ static int usbjtag_init(void)
 static int axm0432_jtag_init(void)
 {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output    = 0x08;
 	low_direction = 0x2b;
@@ -2271,7 +2271,7 @@ static int axm0432_jtag_init(void)
 static int jtagkey_init(void)
 {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output    = 0x08;
 	low_direction = 0x1b;
@@ -2354,7 +2354,7 @@ static int jtagkey_init(void)
 static int olimex_jtag_init(void)
 {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output    = 0x08;
 	low_direction = 0x1b;
@@ -2422,7 +2422,7 @@ static int olimex_jtag_init(void)
 static int flyswatter_init(void)
 {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output    = 0x18;
 	low_direction = 0xfb;
@@ -2469,7 +2469,7 @@ static int flyswatter_init(void)
 static int turtle_init(void)
 {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output    = 0x08;
 	low_direction = 0x5b;
@@ -2510,7 +2510,7 @@ static int turtle_init(void)
 static int comstick_init(void)
 {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output    = 0x08;
 	low_direction = 0x0b;
@@ -2554,7 +2554,7 @@ static int comstick_init(void)
 static int stm32stick_init(void)
 {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output    = 0x88;
 	low_direction = 0x8b;
@@ -2598,7 +2598,7 @@ static int stm32stick_init(void)
 static int sheevaplug_init(void)
 {
 	uint8_t buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output = 0x08;
 	low_direction = 0x1b;
@@ -2649,7 +2649,7 @@ static int sheevaplug_init(void)
 static int cortino_jtag_init(void)
 {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_output    = 0x08;
 	low_direction = 0x1b;
@@ -2950,7 +2950,7 @@ static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd)
  */
 static int icebear_jtag_init(void) {
 	uint8_t  buf[3];
-	u32 bytes_written;
+	uint32_t bytes_written;
 
 	low_direction	= 0x0b;	/* output: TCK TDI TMS; input: TDO */
 	low_output	= 0x08;	/* high: TMS; low: TCK TDI */

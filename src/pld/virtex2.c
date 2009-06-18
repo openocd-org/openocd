@@ -38,7 +38,7 @@ pld_driver_t virtex2_pld =
 	.load = virtex2_load,
 };
 
-static int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
+static int virtex2_set_instr(jtag_tap_t *tap, uint32_t new_instr)
 {
 	if (tap == NULL)
 		return ERROR_FAIL;
@@ -62,7 +62,7 @@ static int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
 }
 
 static int virtex2_send_32(struct pld_device_s *pld_device,
-		int num_words, u32 *words)
+		int num_words, uint32_t *words)
 {
 	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
 	scan_field_t scan_field;
@@ -90,11 +90,11 @@ static int virtex2_send_32(struct pld_device_s *pld_device,
 
 static __inline__ void virtexflip32(uint8_t *in)
 {
-	*((u32 *)in) = flip_u32(le_to_h_u32(in), 32);
+	*((uint32_t *)in) = flip_u32(le_to_h_u32(in), 32);
 }
 
 static int virtex2_receive_32(struct pld_device_s *pld_device,
-		int num_words, u32 *words)
+		int num_words, uint32_t *words)
 {
 	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
 	scan_field_t scan_field;
@@ -120,9 +120,9 @@ static int virtex2_receive_32(struct pld_device_s *pld_device,
 	return ERROR_OK;
 }
 
-static int virtex2_read_stat(struct pld_device_s *pld_device, u32 *status)
+static int virtex2_read_stat(struct pld_device_s *pld_device, uint32_t *status)
 {
-	u32 data[5];
+	uint32_t data[5];
 
 	jtag_add_tlr();
 
@@ -193,7 +193,7 @@ static int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx,
 {
 	pld_device_t *device;
 	virtex2_pld_device_t *virtex2_info;
-	u32 status;
+	uint32_t status;
 
 	if (argc < 1)
 	{

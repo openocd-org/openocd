@@ -383,7 +383,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 			break;
 		case NTAP_OPT_EXPECTED_ID:
 		{
-			u32 *new_expected_ids;
+			uint32_t *new_expected_ids;
 
 			e = Jim_GetOpt_Wide( goi, &w );
 			if( e != JIM_OK) {
@@ -391,13 +391,13 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 				return e;
 			}
 
-			new_expected_ids = malloc(sizeof(u32) * (pTap->expected_ids_cnt + 1));
+			new_expected_ids = malloc(sizeof(uint32_t) * (pTap->expected_ids_cnt + 1));
 			if (new_expected_ids == NULL) {
 				Jim_SetResult_sprintf( goi->interp, "no memory");
 				return JIM_ERR;
 			}
 
-			memcpy(new_expected_ids, pTap->expected_ids, sizeof(u32) * pTap->expected_ids_cnt);
+			memcpy(new_expected_ids, pTap->expected_ids, sizeof(uint32_t) * pTap->expected_ids_cnt);
 
 			new_expected_ids[pTap->expected_ids_cnt] = w;
 
@@ -862,7 +862,7 @@ static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cm
 	command_print(cmd_ctx, "---|--------------------|---------|------------|------------|------|------|------|---------");
 
 	while( tap ){
-		u32 expected, expected_mask, cur_instr, ii;
+		uint32_t expected, expected_mask, cur_instr, ii;
 		expected = buf_get_u32(tap->expected, 0, tap->ir_length);
 		expected_mask = buf_get_u32(tap->expected_mask, 0, tap->ir_length);
 		cur_instr = buf_get_u32(tap->cur_instr, 0, tap->ir_length);
@@ -1218,7 +1218,7 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 		fields[i].num_bits = field_size;
 		fields[i].out_value = malloc(CEIL(field_size, 8));
 
-		u32 value;
+		uint32_t value;
 		retval = parse_u32(args[i * 2 + 1], &value);
 		if (ERROR_OK != retval)
 			goto error_return;

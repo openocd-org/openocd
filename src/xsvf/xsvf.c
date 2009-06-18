@@ -678,7 +678,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case XWAIT:
 			{
 				/* expected in stream:
-				   XWAIT <uint8_t wait_state> <uint8_t end_state> <u32 usecs>
+				   XWAIT <uint8_t wait_state> <uint8_t end_state> <uint32_t usecs>
 				*/
 
 				uint8_t	wait;
@@ -719,7 +719,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case XWAITSTATE:
 			{
 				/* expected in stream:
-				   XWAITSTATE <uint8_t wait_state> <uint8_t end_state> <u32 clock_count> <u32 usecs>
+				   XWAITSTATE <uint8_t wait_state> <uint8_t end_state> <uint32_t clock_count> <uint32_t usecs>
 				*/
 
 				uint8_t  clock_buf[4];
@@ -775,7 +775,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case LCOUNT:
 			{
 				/* expected in stream:
-				   LCOUNT <u32 loop_count>
+				   LCOUNT <uint32_t loop_count>
 				*/
 				uint8_t  count_buf[4];
 
@@ -793,7 +793,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case LDELAY:
 			{
 				/* expected in stream:
-				   LDELAY <uint8_t wait_state> <u32 clock_count> <u32 usecs_to_sleep>
+				   LDELAY <uint8_t wait_state> <uint32_t clock_count> <uint32_t usecs_to_sleep>
 				*/
 				uint8_t	state;
 				uint8_t  clock_buf[4];

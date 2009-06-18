@@ -32,7 +32,7 @@ static int dummy_clock;         /* edge detector */
 
 static int clock_count;         /* count clocks in any stable state, only stable states */
 
-static u32 dummy_data;
+static uint32_t dummy_data;
 
 
 static int dummy_speed(int speed);

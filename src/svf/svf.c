@@ -94,7 +94,7 @@ typedef struct
 {
 	tap_state_t from;
 	tap_state_t to;
-	u32 num_of_moves;
+	uint32_t num_of_moves;
 	tap_state_t paths[8];
 }svf_statemove_t;
 
@@ -251,7 +251,7 @@ void svf_free_xxd_para(svf_xxr_para_t *para)
 
 unsigned svf_get_mask_u32(int bitlen)
 {
-	u32 bitmask;
+	uint32_t bitmask;
 
 	if (bitlen < 0)
 	{

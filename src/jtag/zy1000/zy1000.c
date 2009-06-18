@@ -477,7 +477,7 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_
 				}
 			}
 			/* mask away unused bits for easier debugging */
-			value&=~(((u32)0xffffffff)<<k);
+			value&=~(((uint32_t)0xffffffff)<<k);
 
 			shiftValueInner(shiftState, pause_state, k, value);
 
@@ -695,7 +695,7 @@ int interface_jtag_add_clocks(int num_cycles)
 	return zy1000_jtag_add_clocks(num_cycles, cmd_queue_cur_state, cmd_queue_cur_state);
 }
 
-int interface_jtag_add_sleep(u32 us)
+int interface_jtag_add_sleep(uint32_t us)
 {
 	jtag_sleep(us);
 	return ERROR_OK;

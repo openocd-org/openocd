@@ -128,7 +128,7 @@ static uint8_t presto_init_seq[] =
 	0x80, 0xA0, 0xA8, 0xB0, 0xC0, 0xE0
 };
 
-static int presto_write(uint8_t *buf, u32 size)
+static int presto_write(uint8_t *buf, uint32_t size)
 {
 #if BUILD_PRESTO_FTD2XX == 1
 	DWORD ftbytes;
@@ -139,7 +139,7 @@ static int presto_write(uint8_t *buf, u32 size)
 	}
 
 #elif BUILD_PRESTO_LIBFTDI == 1
-	u32 ftbytes;
+	uint32_t ftbytes;
 	if ((presto->retval = ftdi_write_data(&presto->ftdic, buf, size)) < 0)
 	{
 		LOG_ERROR("ftdi_write_data: %s", ftdi_get_error_string(&presto->ftdic));
@@ -150,14 +150,14 @@ static int presto_write(uint8_t *buf, u32 size)
 
 	if (ftbytes != size)
 	{
-		LOG_ERROR("couldn't write the requested number of bytes to PRESTO (%u < %u)", (u32)ftbytes, size);
+		LOG_ERROR("couldn't write the requested number of bytes to PRESTO (%u < %u)", (uint32_t)ftbytes, size);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
 	return ERROR_OK;
 }
 
-static int presto_read(uint8_t* buf, u32 size)
+static int presto_read(uint8_t* buf, uint32_t size)
 {
 #if BUILD_PRESTO_FTD2XX == 1
 	DWORD ftbytes;
@@ -168,7 +168,7 @@ static int presto_read(uint8_t* buf, u32 size)
 	}
 
 #elif BUILD_PRESTO_LIBFTDI == 1
-	u32 ftbytes = 0;
+	uint32_t ftbytes = 0;
 
 	struct timeval timeout, now;
 	gettimeofday(&timeout, NULL);
@@ -192,7 +192,7 @@ static int presto_read(uint8_t* buf, u32 size)
 	if (ftbytes != size)
 	{
 		/* this is just a warning, there might have been timeout when detecting PRESTO, which is not fatal */
-		LOG_WARNING("couldn't read the requested number of bytes from PRESTO (%u < %u)", (u32)ftbytes, size);
+		LOG_WARNING("couldn't read the requested number of bytes from PRESTO (%u < %u)", (uint32_t)ftbytes, size);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -202,7 +202,7 @@ static int presto_read(uint8_t* buf, u32 size)
 #if BUILD_PRESTO_FTD2XX == 1
 static int presto_open_ftd2xx(char *req_serial)
 {
-	u32 i;
+	uint32_t i;
 	DWORD numdevs;
 	DWORD vidpid;
 	char devname[FT_DEVICE_NAME_LEN];

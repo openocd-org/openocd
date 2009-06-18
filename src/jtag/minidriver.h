@@ -82,7 +82,7 @@ static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
 }
 
 extern void interface_jtag_add_dr_out(jtag_tap_t* tap,
-		int num_fields, const int* num_bits, const u32* value,
+		int num_fields, const int* num_bits, const uint32_t* value,
 		tap_state_t end_state);
 
 extern void interface_jtag_add_callback(jtag_callback1_t f, uint8_t *in);
@@ -121,7 +121,7 @@ extern int interface_jtag_add_runtest(int num_cycles, tap_state_t endstate);
  */
 extern int interface_jtag_add_reset(int trst, int srst);
 extern int interface_jtag_set_end_state(tap_state_t endstate);
-extern int interface_jtag_add_sleep(u32 us);
+extern int interface_jtag_add_sleep(uint32_t us);
 extern int interface_jtag_add_clocks(int num_cycles);
 extern int interface_jtag_execute_queue(void);
 

@@ -442,7 +442,7 @@ void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 }
 
 void jtag_add_dr_out(jtag_tap_t* tap,
-		int num_fields, const int* num_bits, const u32* value,
+		int num_fields, const int* num_bits, const uint32_t* value,
 		tap_state_t end_state)
 {
 	assert(end_state != TAP_INVALID);
@@ -686,7 +686,7 @@ tap_state_t jtag_get_end_state(void)
 	return cmd_queue_end_state;
 }
 
-void jtag_add_sleep(u32 us)
+void jtag_add_sleep(uint32_t us)
 {
 	/// @todo Here, keep_alive() appears to be a layering violation!!!
 	keep_alive();
@@ -807,7 +807,7 @@ static int jtag_reset_callback(enum jtag_event event, void *priv)
 	return ERROR_OK;
 }
 
-void jtag_sleep(u32 us)
+void jtag_sleep(uint32_t us)
 {
 	alive_sleep(us/1000);
 }
@@ -859,7 +859,7 @@ static bool jtag_examine_chain_check(uint8_t *idcodes, unsigned count)
 }
 
 static void jtag_examine_chain_display(enum log_levels level, const char *msg,
-		const char *name, u32 idcode)
+		const char *name, uint32_t idcode)
 {
 	log_printf_lf(level, __FILE__, __LINE__, __FUNCTION__,
 			"JTAG tap: %s %16.16s: 0x%08x "
@@ -868,7 +868,7 @@ static void jtag_examine_chain_display(enum log_levels level, const char *msg,
 		EXTRACT_MFG(idcode), EXTRACT_PART(idcode), EXTRACT_VER(idcode) );
 }
 
-static bool jtag_idcode_is_final(u32 idcode)
+static bool jtag_idcode_is_final(uint32_t idcode)
 {
 		return idcode == 0x000000FF || idcode == 0xFFFFFFFF;
 }
@@ -884,7 +884,7 @@ static void jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned ma
 	bool triggered = false;
 	for ( ; count < max - 31; count += 32)
 	{
-		u32 idcode = buf_get_u32(idcodes, count, 32);
+		uint32_t idcode = buf_get_u32(idcodes, count, 32);
 		// do not trigger the warning if the data looks good
 		if (!triggered && jtag_idcode_is_final(idcode))
 			continue;
@@ -955,7 +955,7 @@ int jtag_examine_chain(void)
 
 	for (unsigned bit_count = 0; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;)
 	{
-		u32 idcode = buf_get_u32(idcode_buffer, bit_count, 32);
+		uint32_t idcode = buf_get_u32(idcode_buffer, bit_count, 32);
 		if ((idcode & 1) == 0)
 		{
 			/* LSB must not be 0, this indicates a device in bypass */

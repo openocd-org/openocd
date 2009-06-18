@@ -105,7 +105,7 @@ typedef struct end_state_command_s
 typedef struct sleep_command_s
 {
 	/// number of microseconds to sleep
-	u32 us;
+	uint32_t us;
 } sleep_command_t;
 
 /**

@@ -38,8 +38,8 @@ typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 #endif
 
-#ifndef u32
-typedef unsigned int u32;
+#ifndef uint32_t
+typedef unsigned int uint32_t;
 #endif
 
 #ifndef u64
@@ -88,9 +88,9 @@ typedef bool _Bool;
  */
 
 
-static inline u32 le_to_h_u32(const uint8_t* buf)
+static inline uint32_t le_to_h_u32(const uint8_t* buf)
 {
-	return (u32)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
+	return (uint32_t)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
 }
 
 static inline uint16_t le_to_h_u16(const uint8_t* buf)
@@ -98,9 +98,9 @@ static inline uint16_t le_to_h_u16(const uint8_t* buf)
 	return (uint16_t)(buf[0] | buf[1] << 8);
 }
 
-static inline u32 be_to_h_u32(const uint8_t* buf)
+static inline uint32_t be_to_h_u32(const uint8_t* buf)
 {
-	return (u32)(buf[3] | buf[2] << 8 | buf[1] << 16 | buf[0] << 24);
+	return (uint32_t)(buf[3] | buf[2] << 8 | buf[1] << 16 | buf[0] << 24);
 }
 
 static inline uint16_t be_to_h_u16(const uint8_t* buf)

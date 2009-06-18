@@ -549,7 +549,7 @@ static int jlink_get_version_info(void)
 {
 	int result;
 	int len;
-	u32 jlink_caps, jlink_max_size;
+	uint32_t jlink_caps, jlink_max_size;
 
 	/* query hardware version */
 	jlink_simple_command(EMU_CMD_VERSION);
@@ -603,8 +603,8 @@ static int jlink_get_version_info(void)
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
-		u32 jlink_hw_version = buf_get_u32(usb_in_buffer, 0, 32);
-		u32 major_revision = (jlink_hw_version / 10000) % 100;
+		uint32_t jlink_hw_version = buf_get_u32(usb_in_buffer, 0, 32);
+		uint32_t major_revision = (jlink_hw_version / 10000) % 100;
 		if (major_revision >= 5)
 			jlink_hw_jtag_version = 3;
 
@@ -711,7 +711,7 @@ static void jlink_tap_append_step(int tms, int tdi)
 	if (index >= JLINK_TAP_BUFFER_SIZE)
 	{
 		LOG_ERROR("jlink_tap_append_step: overflow");
-		*(u32 *)0xFFFFFFFF = 0;
+		*(uint32_t *)0xFFFFFFFF = 0;
 		exit(-1);
 	}
 

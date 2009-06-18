@@ -132,7 +132,7 @@ int interface_jtag_add_clocks(int num_cycles)
 	return ERROR_OK;
 }
 
-int interface_jtag_add_sleep(u32 us)
+int interface_jtag_add_sleep(uint32_t us)
 {
 	jtag_sleep(us);
 	return ERROR_OK;

@@ -264,7 +264,7 @@ int interface_jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
 		int in_num_fields,
 		const int *num_bits,
-		const u32 *value,
+		const uint32_t *value,
 		tap_state_t end_state)
 {
 	/* count devices in bypass */
@@ -449,7 +449,7 @@ int interface_jtag_add_reset(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-int interface_jtag_add_sleep(u32 us)
+int interface_jtag_add_sleep(uint32_t us)
 {
 	/* allocate memory for a new list member */
 	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));

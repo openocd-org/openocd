@@ -131,7 +131,7 @@ static int ep93xx_register_commands(struct command_context_s *cmd_ctx)
 static int set_gonk_mode(void)
 {
 	void *syscon;
-	u32 devicecfg;
+	uint32_t devicecfg;
 
 	syscon = mmap(NULL, 4096, PROT_READ | PROT_WRITE,
 			MAP_SHARED, dev_mem_fd, 0x80930000);

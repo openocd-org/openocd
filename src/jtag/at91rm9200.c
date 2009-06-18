@@ -82,17 +82,17 @@ struct device_t
 {
 	char* name;
 	int TDO_PIO;	/* PIO holding TDO */
-	u32 TDO_MASK;	/* TDO bitmask */
+	uint32_t TDO_MASK;	/* TDO bitmask */
 	int TRST_PIO;	/* PIO holding TRST */
-	u32 TRST_MASK;	/* TRST bitmask */
+	uint32_t TRST_MASK;	/* TRST bitmask */
 	int TMS_PIO;	/* PIO holding TMS */
-	u32 TMS_MASK;	/* TMS bitmask */
+	uint32_t TMS_MASK;	/* TMS bitmask */
 	int TCK_PIO;	/* PIO holding TCK */
-	u32 TCK_MASK;	/* TCK bitmask */
+	uint32_t TCK_MASK;	/* TCK bitmask */
 	int TDI_PIO;	/* PIO holding TDI */
-	u32 TDI_MASK;	/* TDI bitmask */
+	uint32_t TDI_MASK;	/* TDI bitmask */
 	int SRST_PIO;	/* PIO holding SRST */
-	u32 SRST_MASK;	/* SRST bitmask */
+	uint32_t SRST_MASK;	/* SRST bitmask */
 };
 
 static struct device_t devices[] =
@@ -109,7 +109,7 @@ static char* at91rm9200_device;
 static struct device_t* device;
 static int dev_mem_fd;
 static void *sys_controller;
-static u32* pio_base;
+static uint32_t* pio_base;
 
 /* low level command set
  */
@@ -250,7 +250,7 @@ static int at91rm9200_init(void)
 		close(dev_mem_fd);
 		return ERROR_JTAG_INIT_FAILED;
 	}
-	pio_base = (u32*)sys_controller + 0x100;
+	pio_base = (uint32_t*)sys_controller + 0x100;
 
 	/*
 	 * Configure TDO as an input, and TDI, TCK, TMS, TRST, SRST

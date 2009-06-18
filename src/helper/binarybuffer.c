@@ -156,9 +156,9 @@ uint8_t* buf_set_buf(const uint8_t *src, int src_start, uint8_t *dst, int dst_st
 	return dst;
 }
 
-u32 flip_u32(u32 value, unsigned int num)
+uint32_t flip_u32(uint32_t value, unsigned int num)
 {
-	u32 c;
+	uint32_t c;
 
 	c = (bit_reverse_table256[value & 0xff] << 24) |
 		(bit_reverse_table256[(value >> 8) & 0xff] << 16) |
@@ -173,7 +173,7 @@ u32 flip_u32(u32 value, unsigned int num)
 
 int ceil_f_to_u32(float x)
 {
-	u32 y;
+	uint32_t y;
 
 	if (x < 0)	/* return zero for negative numbers */
 		return 0;
@@ -193,7 +193,7 @@ char* buf_to_str(const uint8_t *buf, int buf_len, int radix)
 	char *str;
 	int str_len;
 	int b256_len = CEIL(buf_len, 8);
-	u32 tmp;
+	uint32_t tmp;
 
 	int j; /* base-256 digits */
 	int i; /* output digits (radix) */
@@ -224,7 +224,7 @@ char* buf_to_str(const uint8_t *buf, int buf_len, int radix)
 
 		for (j = str_len; j > 0; j--)
 		{
-			tmp += (u32)str[j-1] * 256;
+			tmp += (uint32_t)str[j-1] * 256;
 			str[j-1] = (uint8_t)(tmp % radix);
 			tmp /= radix;
 		}
@@ -239,7 +239,7 @@ char* buf_to_str(const uint8_t *buf, int buf_len, int radix)
 int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radix)
 {
 	char *charbuf;
-	u32 tmp;
+	uint32_t tmp;
 	float factor;
 	uint8_t *b256_buf;
 	int b256_len;
@@ -298,12 +298,12 @@ int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radi
 			tmp = (tmp - 'A' + 10);
 		else continue;	/* skip characters other than [0-9,a-f,A-F] */
 
-		if (tmp >= (u32)radix)
+		if (tmp >= (uint32_t)radix)
 			continue;	/* skip digits invalid for the current radix */
 
 		for (j = 0; j < b256_len; j++)
 		{
-			tmp += (u32)b256_buf[j] * radix;
+			tmp += (uint32_t)b256_buf[j] * radix;
 			b256_buf[j] = (uint8_t)(tmp & 0xFF);
 			tmp >>= 8;
 		}
@@ -330,7 +330,7 @@ int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radi
 
 int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field_s *field)
 {
-	u32 *dest = priv;
+	uint32_t *dest = priv;
 
 	*dest = buf_get_u32(in_buf, 0, 32);
 

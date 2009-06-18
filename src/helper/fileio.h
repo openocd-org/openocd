@@ -54,14 +54,14 @@ typedef struct fileio_s
 	FILE *file;
 } fileio_t;
 
-extern int fileio_write(fileio_t *fileio, u32 size, const uint8_t *buffer, u32 *size_written);
-extern int fileio_read(fileio_t *fileio, u32 size, uint8_t *buffer, u32 *size_read);
-extern int fileio_fgets(fileio_t *fileio, u32 size, char *buffer);
-extern int fileio_seek(fileio_t *fileio, u32 position);
+extern int fileio_write(fileio_t *fileio, uint32_t size, const uint8_t *buffer, uint32_t *size_written);
+extern int fileio_read(fileio_t *fileio, uint32_t size, uint8_t *buffer, uint32_t *size_read);
+extern int fileio_fgets(fileio_t *fileio, uint32_t size, char *buffer);
+extern int fileio_seek(fileio_t *fileio, uint32_t position);
 extern int fileio_close(fileio_t *fileio);
 extern int fileio_open(fileio_t *fileio, const char *url, enum fileio_access access, enum fileio_type type);
-extern int fileio_read_u32(fileio_t *fileio, u32 *data);
-extern int fileio_write_u32(fileio_t *fileio, u32 data);
+extern int fileio_read_u32(fileio_t *fileio, uint32_t *data);
+extern int fileio_write_u32(fileio_t *fileio, uint32_t data);
 
 #define ERROR_FILEIO_LOCATION_UNKNOWN	(-1200)
 #define ERROR_FILEIO_NOT_FOUND			(-1201)

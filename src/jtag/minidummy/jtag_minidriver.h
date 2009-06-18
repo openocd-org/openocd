@@ -23,7 +23,7 @@
 static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
 		int num_fields,
 		const int *num_bits,
-		const u32 *value,
+		const uint32_t *value,
 		enum tap_state end_state)
 {
 	/* synchronously do the operation here */
@@ -32,7 +32,7 @@ static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
 static __inline__ void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
 		int num_fields,
 		const int *num_bits,
-		const u32 *value,
+		const uint32_t *value,
 		enum tap_state end_state)
 {
 	/* synchronously do the operation here */
