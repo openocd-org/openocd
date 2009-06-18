@@ -73,6 +73,7 @@ Free Documentation License''.
 * CPU Configuration::                CPU Configuration
 * Flash Commands::                   Flash Commands
 * NAND Flash Commands::              NAND Flash Commands
+* PLD/FPGA Commands::                PLD/FPGA Commands
 * General Commands::                 General Commands
 * Architecture and Core Commands::   Architecture and Core Commands
 * JTAG Commands::                    JTAG Commands
@@ -3979,6 +3980,62 @@ specialized commands.
 At this writing, their drivers don't include @code{write_page}
 or @code{read_page} methods, so @command{nand raw_access} won't
 change any behavior.
+@end deffn
+
+@node PLD/FPGA Commands
+@chapter PLD/FPGA Commands
+@cindex PLD
+@cindex FPGA
+
+Programmable Logic Devices (PLDs) and the more flexible
+Field Programmable Gate Arrays (FPGAs) are both types of programmable hardware.
+OpenOCD can support programming them.
+Although PLDs are generally restrictive (cells are less functional, and
+there are no special purpose cells for memory or computational tasks),
+they share the same OpenOCD infrastructure.
+Accordingly, both are called PLDs here.
+
+@section PLD/FPGA Configuration and Commands
+
+As it does for JTAG TAPs, debug targets, and flash chips (both NOR and NAND),
+OpenOCD maintains a list of PLDs available for use in various commands.
+Also, each such PLD requires a driver.
+
+They are referenced by the number shown by the @command{pld devices} command,
+and new PLDs are defined by @command{pld device driver_name}.
+
+@deffn {Config Command} {pld device} driver_name tap_name [driver_options]
+Defines a new PLD device, supported by driver @var{driver_name},
+using the TAP named @var{tap_name}.
+The driver may make use of any @var{driver_options} to configure its
+behavior.
+@end deffn
+
+@deffn {Command} {pld devices}
+Lists the PLDs and their numbers.
+@end deffn
+
+@deffn {Command} {pld load} num filename
+Loads the file @file{filename} into the PLD identified by @var{num}.
+The file format must be inferred by the driver.
+@end deffn
+
+@section PLD/FPGA Drivers, Options, and Commands
+
+Drivers may support PLD-specific options to the @command{pld device}
+definition command, and may also define commands usable only with
+that particular type of PLD.
+
+@deffn {FPGA Driver} virtex2
+Virtex-II is a family of FPGAs sold by Xilinx.
+It supports the IEEE 1532 standard for In-System Configuration (ISC).
+No driver-specific PLD definition options are used,
+and one driver-specific command is defined.
+
+@deffn {Command} {virtex2 read_stat} num
+Reads and displays the Virtex-II status register (STAT)
+for FPGA @var{num}.
+@end deffn
 @end deffn
 
 @node General Commands
