@@ -36,8 +36,6 @@
 
 /* low level command set
  */
-int zy1000_read(void);
-static void zy1000_write(int tck, int tms, int tdi);
 void zy1000_reset(int trst, int srst);
 
 
@@ -125,18 +123,6 @@ jtag_interface_t zy1000_interface =
 	.power_dropout = zy1000_power_dropout,
 	.srst_asserted = zy1000_srst_asserted,
 };
-
-static void zy1000_write(int tck, int tms, int tdi)
-{
-
-}
-
-int zy1000_read(void)
-{
-	return -1;
-}
-
-extern bool readSRST(void);
 
 void zy1000_reset(int trst, int srst)
 {
@@ -426,7 +412,7 @@ static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endSt
 
 extern int jtag_check_value(uint8_t *captured, void *priv);
 
-static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_t shiftState, tap_state_t end_state)
+static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_state_t shiftState, tap_state_t end_state)
 {
 	int i;
 	int j;
@@ -436,8 +422,6 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_
 	{
 		cyg_uint32 value;
 
-		static uint8_t *in_buff=NULL; /* pointer to buffer for scanned data */
-		static int in_buff_size=0;
 		uint8_t *inBuffer=NULL;
 
 
