@@ -60,7 +60,7 @@ static int handle_trace_point_command(struct command_context_s *cmd_ctx, char *c
 		{
 			command_print(cmd_ctx, "trace point 0x%8.8x (%lld times hit)",
 					trace->trace_points[i].address,
-					trace->trace_points[i].hit_counter);
+					(long long)trace->trace_points[i].hit_counter);
 		}
 
 		return ERROR_OK;
