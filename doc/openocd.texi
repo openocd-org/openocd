@@ -104,6 +104,8 @@ supported by a diverse community of software and hardware developers from
 around the world.
 
 @section What is OpenOCD?
+@cindex TAP
+@cindex JTAG
 
 The Open On-Chip Debugger (OpenOCD) aims to provide debugging,
 in-system programming and boundary-scan testing for embedded target
@@ -356,7 +358,11 @@ give the directory where the Win32 FTDICHIP.COM 'CDM' driver zip file was unpack
 @option{--with-ftd2xx-linux-tardir=PATH} - If using FTDICHIP.COM ft2232c driver
 on Linux, give the directory where the Linux driver's TAR.GZ file was unpacked.
 @item
-@option{--with-ftd2xx-lib=shared|static} - Linux only. Default: static. Specifies how the FTDICHIP.COM libftd2xx driver should be linked. Note: 'static' only works in conjunction with @option{--with-ftd2xx-linux-tardir}. The 'shared' value is supported (12/26/2008), however you must manually install the required header files and shared libraries in an appropriate place. This uses ``libusb'' internally.
+@option{--with-ftd2xx-lib=shared|static} - Linux only. Default: static.
+Specifies how the FTDICHIP.COM libftd2xx driver should be linked.
+Note: 'static' only works in conjunction with @option{--with-ftd2xx-linux-tardir}.
+The 'shared' value is supported, however you must manually install the required
+header files and shared libraries in an appropriate place.
 @item
 @option{--enable-presto_libftdi} - Enable building support for ASIX Presto programmer using the libftdi driver.
 @item
@@ -398,8 +404,9 @@ not available for all operating systems used with OpenOCD.
 
 The FTDICHIP drivers come as either a (win32) ZIP file, or a (Linux)
 TAR.GZ file. You must unpack them ``some where'' convient. As of this
-writing (12/26/2008) FTDICHIP does not supply means to install these
-files ``in an appropriate place'' As a result, there are two
+writing FTDICHIP does not supply means to install these
+files ``in an appropriate place''.
+As a result, there are two
 ``./configure'' options that help. 
 
 Below is an example build process:
@@ -476,7 +483,7 @@ openocd @option{-v} is executed.
 @cindex zy1000
 @cindex printer port
 @cindex USB Adapter
-@cindex rtck
+@cindex RTCK
 
 Defined: @b{dongle}: A small device that plugins into a computer and serves as
 an adapter .... [snip]
@@ -517,8 +524,6 @@ known as the FTDI FT2232; this is a USB full speed (12 Mbps) chip.
 See: @url{http://www.ftdichip.com} for more information.
 In summer 2009, USB high speed (480 Mbps) versions of these FTDI
 chips are starting to become available in JTAG adapters.
-
-As of 28/Nov/2008, the following are supported:
 
 @itemize @bullet
 @item @b{usbjtag}
@@ -654,11 +659,9 @@ FlashLINK JTAG programing cable for PSD and uPSD}
 
 @node Running
 @chapter Running
-@cindex running OpenOCD
-@cindex --configfile
-@cindex --debug_level
-@cindex --logfile
-@cindex --search
+@cindex command line options
+@cindex logfile
+@cindex directory search
 
 The @option{--help} option shows:
 @verbatim
@@ -696,8 +699,8 @@ itself), use the @option{-d} command line switch. This sets the
 @option{debug_level} to "3", outputting the most information,
 including debug messages. The default setting is "2", outputting only
 informational messages, warnings and errors. You can also change this
-setting from within a telnet or gdb session using @option{debug_level
-<n>} @xref{debug_level}.
+setting from within a telnet or gdb session using @command{debug_level
+<n>} (@pxref{debug_level}).
 
 You can redirect all output from the daemon to a file using the
 @option{-l <logfile>} switch.
@@ -851,8 +854,9 @@ file, including basic configuration plus any TCL procedures
 to simplify your work.
 
 @section User Config Files
-@cindex config file
+@cindex config file, user
 @cindex user config file
+@cindex config file, overview
 
 A user configuration file ties together all the parts of a project
 in one place.
@@ -862,8 +866,10 @@ One of the following will match your situation best:
 @item Ideally almost everything comes from configuration files
 provided by someone else.
 For example, OpenOCD distributes a @file{scripts} directory
-(probably in @file{/usr/share/openocd/scripts} on Linux);
-board and tool vendors can provide these too.
+(probably in @file{/usr/share/openocd/scripts} on Linux).
+Board and tool vendors can provide these too, as can individual
+user sites; the @option{-s} command line option lets you say
+where to find these files.  (@xref{Running}.)
 The AT91SAM7X256 example above works this way.
 
 Three main types of non-user configuration file each have their
@@ -1003,15 +1009,12 @@ involving considerably more than just a three stage bootloader.
 @node Config File Guidelines
 @chapter Config File Guidelines
 
-This section/chapter is aimed at developers and integrators of
-OpenOCD. These are guidelines for creating new boards and new target
-configurations as of 28/Nov/2008.
+This chapter is aimed at any user who needs to write a config file,
+including developers and integrators of OpenOCD and any user who
+needs to get a new board working smoothly.
+It provides guidelines for creating those files.
 
-However, you, the user of OpenOCD, should be somewhat familiar with
-this section as it should help explain some of the internals of what
-you might be looking at.
-
-The user should find the following directories under @t{$(INSTALLDIR)/lib/openocd} :
+You should find the following directories under @t{$(INSTALLDIR)/lib/openocd} :
 
 @itemize @bullet
 @item @b{interface}
@@ -1033,43 +1036,43 @@ When a chip has multiple TAPs (maybe it has both ARM and DSP cores),
 the target config file defines all of them.
 @end itemize
 
-@b{If needed...} The user in their ``openocd.cfg'' file or the board
-file might override a specific feature in any of the above files by
-setting a variable or two before sourcing the target file. Or adding
-various commands specific to their situation.
+The @file{openocd.cfg} user config
+file may override features in any of the above files by
+setting variables before sourcing the target file, or by adding
+commands specific to their situation.
 
 @section Interface Config Files
-@cindex config file
 
-The user should be able to source one of these files via a command like this:
+The user config file
+should be able to source one of these files via a command like this:
 
 @example
-  source [find interface/FOOBAR.cfg]
-Or:
-  openocd -f interface/FOOBAR.cfg
+source [find interface/FOOBAR.cfg]
 @end example
 
 A preconfigured interface file should exist for every interface in use
 today, that said, perhaps some interfaces have only been used by the
 sole developer who created it.
 
+A separate chapter gives information about how to set these up.
+@xref{Interface - Dongle Configuration}.
+Read the OpenOCD source code if you have a new kind of hardware interface
+and need to provide a driver for it.
+
 Interface files should be found in @t{$(INSTALLDIR)/lib/openocd/interface}
 
 @section Board Config Files
-@cindex config file
+@cindex config file, board
+@cindex board config file
 
-@b{Note: BOARD directory NEW as of 28/nov/2008} 
-
-The user should be able to source one of these files via a command like this:
+The user config file
+should be able to source one of these files via a command like this:
 
 @example
-  source [find board/FOOBAR.cfg]
-Or:
-  openocd -f board/FOOBAR.cfg
+source [find board/FOOBAR.cfg]
 @end example
 
-
-The board file should contain one or more @t{source [find
+The board config file should contain one or more @command{source [find
 target/FOO.cfg]} statements along with any board specific things.
 
 In summary the board files should contain (if present)
@@ -1085,14 +1088,14 @@ In summary the board files should contain (if present)
 @end enumerate
 
 @section Target Config Files
-@cindex config file
+@cindex config file, target
+@cindex target config file
 
-The user should be able to source one of these files via a command like this:
+Board config files should be able to source one or more
+target config files via a command like this:
 
 @example
-  source [find target/FOOBAR.cfg]
-Or:
-  openocd -f target/FOOBAR.cfg
+source [find target/FOOBAR.cfg]
 @end example
 
 In summary the target files should contain
@@ -1100,23 +1103,41 @@ In summary the target files should contain
 @enumerate 
 @item Set defaults
 @item Add TAPs to the scan chain
-@item Add CPU targets
+@item Add CPU targets (includes GDB support)
 @item CPU/Chip/CPU-Core specific features
 @item On-Chip flash
 @end enumerate
 
+As a rule of thumb, a target file sets up only one chip.
+For a microcontroller, that will often include a single TAP,
+which is a CPU needing a GDB target; and its on-chip flash.
+
+More complex chips may include multiple TAPs, and the target
+config file may need to define them all before OpenOCD
+can talk to the chip.
+For example, some phone chips have JTAG scan chains that include
+an ARM core for operating system use, a DSP,
+another ARM core embedded in an image processing engine,
+and other processing engines.
+
 @subsection Important variable names
 
-By default, the end user should never need to set these
-variables. However, if the user needs to override a setting they only
-need to set the variable in a simple way.
+Most boards will have only one instance of a chip.
+However, it should be easy to create a board with more than
+one such chip.
+Accordingly, we encourage some conventions for naming
+variables associated with different TAPs, to promote
+consistency and
+so that board files can override target defaults, and
 
 @itemize @bullet
 @item @b{CHIPNAME}
 @* This gives a name to the overall chip, and is used as part of the
 tap identifier dotted name.
+It's normally provided by the chip manufacturer.
 @item @b{ENDIAN}
 @* By default little - unless the chip or board is not normally used that way.
+Chips that can't change endianness don't need to use this variable.
 @item @b{CPUTAPID}
 @* When OpenOCD examines the JTAG chain, it will attempt to identify
 every chip. If the @t{-expected-id} is nonzero, OpenOCD attempts
@@ -1142,22 +1163,15 @@ specific to that board and that target.
 If the chip has 2 targets, use the names @b{_TARGETNAME0},
 @b{_TARGETNAME1}, ... etc.
 
-@b{Remember:} The ``board file'' may include multiple targets.
-
-At no time should the name ``target0'' (the default target name if
-none was specified) be used. The name ``target0'' is a hard coded name
-- the next target on the board will be some other number.
-In the same way, avoid using target numbers even when they are
-permitted; use the right target name(s) for your board.
-
-The user (or board file) should reasonably be able to:
+@emph{Remember:} The ``board file'' may include multiple targets.
+The user (or board) config file should reasonably be able to:
 
 @example
-   source [find target/FOO.cfg]
-   $_TARGETNAME configure ... FOO specific parameters
+source [find target/FOO.cfg]
+$_TARGETNAME configure ... FOO specific parameters
 
-   source [find target/BAR.cfg]
-   $_TARGETNAME configure ... BAR specific parameters
+source [find target/BAR.cfg]
+$_TARGETNAME configure ... BAR specific parameters
 @end example
 
 @end itemize
@@ -1169,7 +1183,7 @@ Thus the rule we follow in OpenOCD is this: Variables that begin with
 a leading underscore are temporary in nature, and can be modified and
 used at will within a ?TARGET? configuration file.
 
-@b{EXAMPLE:} The user should be able to do this:
+@b{EXAMPLE:} The user config file should be able to do this:
 
 @example
    # Board has 3 chips,
@@ -1359,7 +1373,7 @@ needed. We welcome JIM Tcl improvements, not bloat.
 
 @item @b{Scripts}
 @* OpenOCD configuration scripts are JIM Tcl Scripts. OpenOCD's
-command interpreter today (28/nov/2008) is a mixture of (newer)
+command interpreter today is a mixture of (newer)
 JIM-Tcl commands, and (older) the orginal command interpreter.
 
 @item @b{Commands}
@@ -1566,6 +1580,9 @@ MMU: disabled, D-Cache: disabled, I-Cache: enabled
 
 @node Interface - Dongle Configuration
 @chapter Interface - Dongle Configuration
+@cindex config file, interface
+@cindex interface config file
+
 JTAG Adapters/Interfaces/Dongles are normally configured
 through commands in an interface configuration
 file which is sourced by your @file{openocd.cfg} file, or
@@ -2138,6 +2155,7 @@ which sets up CPUs and exports them as GDB targets,
 probes flash memory, performs low-level JTAG operations, and more.
 
 @section Scan Chains
+@cindex scan chain
 
 TAPs are part of a hardware @dfn{scan chain},
 which is daisy chain of TAPs.
@@ -2232,6 +2250,7 @@ each TAP's instruction register can also change.
 @c (on entry to RESET state).
 
 @section TAP Names
+@cindex dotted name
 
 When TAP objects are declared with @command{jtag newtap},
 a @dfn{dotted.name} is created for the TAP, combining the
@@ -2330,6 +2349,8 @@ ID code could appear (for example, multiple versions).
 @anchor{Enabling and Disabling TAPs}
 @section Enabling and Disabling TAPs
 @cindex TAP events
+@cindex JTAG Route Controller
+@cindex jrc
 
 In some systems, a @dfn{JTAG Route Controller} (JRC)
 is used to enable and/or disable specific JTAG TAPs.
@@ -2422,6 +2443,8 @@ We'll start by looking at how to examine the targets you have,
 then look at how to add one more target and how to configure it.
 
 @section Target List
+@cindex target, current
+@cindex target, list
 
 All targets that have been set up are part of a list,
 where each member has a name.
@@ -2498,6 +2521,9 @@ only relevant on boards which have more than one target.
 @end deffn
 
 @section Target CPU Types and Variants
+@cindex target type
+@cindex CPU type
+@cindex CPU variant
 
 Each target has a @dfn{CPU type}, as shown in the output of
 the @command{targets} command.  You need to specify that type
@@ -2978,12 +3004,6 @@ while data from a NAND flash must be copied to memory before it can be
 used.  (SPI flash must also be copied to memory before use.)
 However, the documentation also uses ``flash'' as a generic term;
 for example, ``Put flash configuration in board-specific files''.
-
-@quotation Note
-As of 28-nov-2008 OpenOCD does not know how to program a SPI
-flash that a micro may boot from. Perhaps you, the reader, would like to
-contribute support for this.
-@end quotation
 
 Flash Steps:
 @enumerate
@@ -4012,8 +4032,12 @@ If @var{n} (from 0..3) is provided, then set it to that level.
 This affects the kind of messages sent to the server log.
 Level 0 is error messages only;
 level 1 adds warnings;
-level 2 (the default) adds informational messages;
+level 2 adds informational messages;
 and level 3 adds debugging messages.
+The default is level 2, but that can be overridden on
+the command line along with the location of that log
+file (which is normally the server's standard output).
+@xref{Running}.
 @end deffn
 
 @deffn Command fast (@option{enable}|@option{disable})
@@ -4057,7 +4081,7 @@ the initial log output channel is stderr.
 In this section ``target'' refers to a CPU configured as
 shown earlier (@pxref{CPU Configuration}).
 These commands, like many, implicitly refer to
-a @dfn{current target} which is used to perform the
+a current target which is used to perform the
 various operations.  The current target may be changed
 by using @command{targets} command with the name of the
 target which should become current.
@@ -5743,8 +5767,8 @@ is a string}
 parsed, but are NOT expanded or executed. @{Curly-Braces@} are like
 'single-quote' operators in BASH shell scripts, with the added
 feature: @{curly-braces@} can be nested, single quotes can not.  @{@{@{this is
-nested 3 times@}@}@} NOTE: [date] is perhaps a bad example, as of
-28/nov/2008, Jim/OpenOCD does not have a date command.
+nested 3 times@}@}@} NOTE: [date] is a bad example;
+at this writing, Jim/OpenOCD does not have a date command.
 @end itemize
 
 @section Consequences of Rule 1/2/3/4
@@ -5967,7 +5991,7 @@ $VARS and [square-brackets] are expanded later, when the EVENT occurs,
 and the text is evaluated. In case #4, they are replaced before the
 ``Target Object Command'' is executed. This occurs at the same time
 $_TARGETNAME is replaced. In case #4 the date will never
-change. @{BTW: [date] is perhaps a bad example, as of 28/nov/2008,
+change. @{BTW: [date] is a bad example; at this writing,
 Jim/OpenOCD does not have a date command@}
 @end enumerate
 @subsection Global Variables
