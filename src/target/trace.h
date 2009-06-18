@@ -28,7 +28,7 @@ struct command_context_s;
 typedef struct trace_point_s
 {
 	uint32_t address;
-	u64 hit_counter;
+	uint64_t hit_counter;
 } trace_point_t;
 
 typedef struct trace_s

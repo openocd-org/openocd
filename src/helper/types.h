@@ -42,8 +42,8 @@ typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 #endif
 
-#ifndef u64
-typedef unsigned long long u64;
+#ifndef uint64_t
+typedef unsigned long long uint64_t;
 #endif
 
 typedef struct jtag_tap_s jtag_tap_t;
