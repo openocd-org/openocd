@@ -127,12 +127,12 @@ typedef struct _mg_pll_t
 
 typedef struct mg_drv_info_s {
 	mg_io_type_drv_info drv_id;
-	u32 tot_sects;
+	uint32_t tot_sects;
 } mg_drv_info_t;
 
 typedef struct mflash_bank_s
 {
-	u32 base;
+	uint32_t base;
 
 	mflash_gpio_num_t rst_pin;
 

@@ -88,15 +88,15 @@ static int lpc288x_register_commands(struct command_context_s *cmd_ctx);
 static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int lpc288x_erase(struct flash_bank_s *bank, int first, int last);
 static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
+static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 static int lpc288x_probe(struct flash_bank_s *bank);
 static int lpc288x_erase_check(struct flash_bank_s *bank);
 static int lpc288x_protect_check(struct flash_bank_s *bank);
 static int lpc288x_info(struct flash_bank_s *bank, char *buf, int buf_size);
-static u32 lpc288x_wait_status_busy(flash_bank_t *bank, int timeout);
+static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout);
 static void lpc288x_load_timer(int erase, struct target_s *target);
 static void lpc288x_set_flash_clk(struct flash_bank_s *bank);
-static u32 lpc288x_system_ready(struct flash_bank_s *bank);
+static uint32_t lpc288x_system_ready(struct flash_bank_s *bank);
 
 flash_driver_t lpc288x_flash =
 {
@@ -118,9 +118,9 @@ static int lpc288x_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static u32 lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
+static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 {
-	u32 status;
+	uint32_t status;
 	target_t *target = bank->target;
 	do
 	{
@@ -142,10 +142,10 @@ static int lpc288x_read_part_info(struct flash_bank_s *bank)
 {
 	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u32 cidr;
+	uint32_t cidr;
 
 	int i = 0;
-	u32 offset;
+	uint32_t offset;
 
 	if (lpc288x_info->cidr == 0x0102100A)
 		return ERROR_OK; /* already probed, multiple probes may cause memory leak, not allowed */
@@ -221,7 +221,7 @@ static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *c
  * CLK_DIV = 60 ? */
 static void lpc288x_set_flash_clk(struct flash_bank_s *bank)
 {
-	u32 clk_time;
+	uint32_t clk_time;
 	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
 	clk_time = (lpc288x_info->cclk / 66000) / 3;
 	target_write_u32(bank->target, F_CTRL, FC_CS | FC_WEN);
@@ -246,7 +246,7 @@ static void lpc288x_load_timer(int erase, struct target_s *target)
 	}
 }
 
-static u32 lpc288x_system_ready(struct flash_bank_s *bank)
+static uint32_t lpc288x_system_ready(struct flash_bank_s *bank)
 {
 	lpc288x_flash_bank_t *lpc288x_info = bank->driver_priv;
 	if (lpc288x_info->cidr == 0)
@@ -264,7 +264,7 @@ static u32 lpc288x_system_ready(struct flash_bank_s *bank)
 
 static int lpc288x_erase_check(struct flash_bank_s *bank)
 {
-	u32 status = lpc288x_system_ready(bank);	/* probed? halted? */
+	uint32_t status = lpc288x_system_ready(bank);	/* probed? halted? */
 	if (status != ERROR_OK)
 	{
 		LOG_INFO("Processor not halted/not probed");
@@ -276,7 +276,7 @@ static int lpc288x_erase_check(struct flash_bank_s *bank)
 
 static int lpc288x_erase(struct flash_bank_s *bank, int first, int last)
 {
-	u32 status;
+	uint32_t status;
 	int sector;
 	target_t *target = bank->target;
 
@@ -315,13 +315,13 @@ static int lpc288x_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
+static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	uint8_t page_buffer[FLASH_PAGE_SIZE];
-	u32 status, source_offset,dest_offset;
+	uint32_t status, source_offset,dest_offset;
 	target_t *target = bank->target;
-	u32 bytes_remaining = count;
-	u32 first_sector, last_sector, sector, page;
+	uint32_t bytes_remaining = count;
+	uint32_t first_sector, last_sector, sector, page;
 	int i;
 
 	/* probed? halted? */
@@ -463,7 +463,7 @@ static int lpc288x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int last)
 {
 	int lockregion, status;
-	u32 value;
+	uint32_t value;
 	target_t *target = bank->target;
 
 	/* probed? halted? */

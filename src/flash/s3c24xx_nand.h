@@ -32,10 +32,10 @@ typedef struct s3c24xx_nand_controller_s
 	struct target_s *target;
 
 	/* register addresses */
-	u32		 cmd;
-	u32		 addr;
-	u32		 data;
-	u32		 nfstat;
+	uint32_t		 cmd;
+	uint32_t		 addr;
+	uint32_t		 data;
+	uint32_t		 nfstat;
 } s3c24xx_nand_controller_t;
 
 /* Default to using the un-translated NAND register based address */

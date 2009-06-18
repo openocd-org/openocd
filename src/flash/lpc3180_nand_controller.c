@@ -32,8 +32,8 @@ static int lpc3180_command(struct nand_device_s *device, uint8_t command);
 static int lpc3180_address(struct nand_device_s *device, uint8_t address);
 static int lpc3180_write_data(struct nand_device_s *device, uint16_t data);
 static int lpc3180_read_data(struct nand_device_s *device, void *data);
-static int lpc3180_write_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
-static int lpc3180_read_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
+static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+static int lpc3180_read_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 static int lpc3180_controller_ready(struct nand_device_s *device, int timeout);
 static int lpc3180_nand_ready(struct nand_device_s *device, int timeout);
 
@@ -100,7 +100,7 @@ static int lpc3180_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int lpc3180_pll(int fclkin, u32 pll_ctrl)
+static int lpc3180_pll(int fclkin, uint32_t pll_ctrl)
 {
 	int bypass = (pll_ctrl & 0x8000) >> 15;
 	int direct = (pll_ctrl & 0x4000) >> 14;
@@ -131,7 +131,7 @@ static int lpc3180_pll(int fclkin, u32 pll_ctrl)
 static float lpc3180_cycle_time(lpc3180_nand_controller_t *lpc3180_info)
 {
 	target_t *target = lpc3180_info->target;
-	u32 sysclk_ctrl, pwr_ctrl, hclkdiv_ctrl, hclkpll_ctrl;
+	uint32_t sysclk_ctrl, pwr_ctrl, hclkdiv_ctrl, hclkpll_ctrl;
 	int sysclk;
 	int hclk;
 	int hclk_pll;
@@ -231,7 +231,7 @@ static int lpc3180_init(struct nand_device_s *device)
 
 	if (lpc3180_info->selected_controller == LPC3180_MLC_CONTROLLER)
 	{
-		u32 mlc_icr_value = 0x0;
+		uint32_t mlc_icr_value = 0x0;
 		float cycle;
 		int twp, twh, trp, treh, trhz, trbwb, tcea;
 
@@ -477,7 +477,7 @@ static int lpc3180_read_data(struct nand_device_s *device, void *data)
 	}
 	else if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
 	{
-		u32 data32;
+		uint32_t data32;
 
 		/* data = SLC_DATA, must use 32-bit access */
 		target_read_u32(target, 0x20020000, &data32);
@@ -502,7 +502,7 @@ static int lpc3180_read_data(struct nand_device_s *device, void *data)
 	return ERROR_OK;
 }
 
-static int lpc3180_write_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+static int lpc3180_write_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -538,7 +538,7 @@ static int lpc3180_write_page(struct nand_device_s *device, u32 page, uint8_t *d
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
 		}
 
-		if (data_size > (u32)device->page_size)
+		if (data_size > (uint32_t)device->page_size)
 		{
 			LOG_ERROR("data size exceeds page size");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
@@ -641,7 +641,7 @@ static int lpc3180_write_page(struct nand_device_s *device, u32 page, uint8_t *d
 	return ERROR_OK;
 }
 
-static int lpc3180_read_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+static int lpc3180_read_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	lpc3180_nand_controller_t *lpc3180_info = device->controller_priv;
 	target_t *target = lpc3180_info->target;
@@ -661,9 +661,9 @@ static int lpc3180_read_page(struct nand_device_s *device, u32 page, uint8_t *da
 	{
 		uint8_t *page_buffer;
 		uint8_t *oob_buffer;
-		u32 page_bytes_done = 0;
-		u32 oob_bytes_done = 0;
-		u32 mlc_isr;
+		uint32_t page_bytes_done = 0;
+		uint32_t oob_bytes_done = 0;
+		uint32_t mlc_isr;
 
 #if 0
 		if (oob && (oob_size > 6))
@@ -673,7 +673,7 @@ static int lpc3180_read_page(struct nand_device_s *device, u32 page, uint8_t *da
 		}
 #endif
 
-		if (data_size > (u32)device->page_size)
+		if (data_size > (uint32_t)device->page_size)
 		{
 			LOG_ERROR("data size exceeds page size");
 			return ERROR_NAND_OPERATION_NOT_SUPPORTED;
@@ -733,7 +733,7 @@ static int lpc3180_read_page(struct nand_device_s *device, u32 page, uint8_t *da
 			target_write_u32(target, 0x200b8000, NAND_CMD_READSTART);
 		}
 
-		while (page_bytes_done < (u32)device->page_size)
+		while (page_bytes_done < (uint32_t)device->page_size)
 		{
 			/* MLC_ECC_AUTO_DEC_REG = dummy */
 			target_write_u32(target, 0x200b8014, 0xaa55aa55);
@@ -847,7 +847,7 @@ static int lpc3180_nand_ready(struct nand_device_s *device, int timeout)
 		}
 		else if (lpc3180_info->selected_controller == LPC3180_SLC_CONTROLLER)
 		{
-			u32 status = 0x0;
+			uint32_t status = 0x0;
 
 			/* Read SLC_STAT and check READY bit */
 			target_read_u32(target, 0x20020018, &status);

@@ -42,16 +42,16 @@ typedef struct nand_flash_controller_s
 	int (*read_data)(struct nand_device_s *device, void *data);
 	int (*write_block_data)(struct nand_device_s *device, uint8_t *data, int size);
 	int (*read_block_data)(struct nand_device_s *device, uint8_t *data, int size);
-	int (*write_page)(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
-	int (*read_page)(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
+	int (*write_page)(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+	int (*read_page)(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 	int (*controller_ready)(struct nand_device_s *device, int timeout);
 	int (*nand_ready)(struct nand_device_s *device, int timeout);
 } nand_flash_controller_t;
 
 typedef struct nand_block_s
 {
-	u32 offset;
-	u32 size;
+	uint32_t offset;
+	uint32_t size;
 	int is_erased;
 	int is_bad;
 } nand_block_t;
@@ -208,8 +208,8 @@ enum oob_formats
 
 /* Function prototypes */
 extern nand_device_t *get_nand_device_by_num(int num);
-extern int nand_read_page_raw(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
-extern int nand_write_page_raw(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
+extern int nand_read_page_raw(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+extern int nand_write_page_raw(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 extern int nand_read_status(struct nand_device_s *device, uint8_t *status);
 extern int nand_calculate_ecc(struct nand_device_s *device, const uint8_t *dat, uint8_t *ecc_code);
 extern int nand_calculate_ecc_kw(struct nand_device_s *device, const uint8_t *dat, uint8_t *ecc_code);

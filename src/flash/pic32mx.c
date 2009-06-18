@@ -35,7 +35,7 @@ static
 struct pic32mx_devs_s {
 	uint8_t	devid;
 	char	*name;
-	u32	pfm_size;
+	uint32_t	pfm_size;
 } pic32mx_devs[] = {
 	{ 0x78, "460F512L USB", 512 },
 	{ 0x74, "460F256L USB", 256 },
@@ -61,9 +61,9 @@ static int pic32mx_register_commands(struct command_context_s *cmd_ctx);
 static int pic32mx_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int pic32mx_erase(struct flash_bank_s *bank, int first, int last);
 static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
-static int pic32mx_write_row(struct flash_bank_s *bank, u32 address, u32 srcaddr);
-static int pic32mx_write_word(struct flash_bank_s *bank, u32 address, u32 word);
+static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
+static int pic32mx_write_row(struct flash_bank_s *bank, uint32_t address, uint32_t srcaddr);
+static int pic32mx_write_word(struct flash_bank_s *bank, uint32_t address, uint32_t word);
 static int pic32mx_probe(struct flash_bank_s *bank);
 static int pic32mx_auto_probe(struct flash_bank_s *bank);
 //static int pic32mx_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -131,19 +131,19 @@ static int pic32mx_flash_bank_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
-static u32 pic32mx_get_flash_status(flash_bank_t *bank)
+static uint32_t pic32mx_get_flash_status(flash_bank_t *bank)
 {
 	target_t *target = bank->target;
-	u32 status;
+	uint32_t status;
 
 	target_read_u32(target, PIC32MX_NVMCON, &status);
 
 	return status;
 }
 
-static u32 pic32mx_wait_status_busy(flash_bank_t *bank, int timeout)
+static uint32_t pic32mx_wait_status_busy(flash_bank_t *bank, int timeout)
 {
-	u32 status;
+	uint32_t status;
 
 	/* wait for busy to clear */
 	while (((status = pic32mx_get_flash_status(bank)) & NVMCON_NVMWR) && (timeout-- > 0))
@@ -157,10 +157,10 @@ static u32 pic32mx_wait_status_busy(flash_bank_t *bank, int timeout)
 	return status;
 }
 
-static int pic32mx_nvm_exec(struct flash_bank_s *bank, u32 op, u32 timeout)
+static int pic32mx_nvm_exec(struct flash_bank_s *bank, uint32_t op, uint32_t timeout)
 {
 	target_t *target = bank->target;
-	u32 status;
+	uint32_t status;
 
 	target_write_u32(target, PIC32MX_NVMCON, NVMCON_NVMWREN|op);
 
@@ -183,7 +183,7 @@ static int pic32mx_protect_check(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
 
-	u32 devcfg0;
+	uint32_t devcfg0;
 	int s;
 	int num_pages;
 
@@ -217,7 +217,7 @@ static int pic32mx_erase(struct flash_bank_s *bank, int first, int last)
 {
 	target_t *target = bank->target;
 	int i;
-	u32 status;
+	uint32_t status;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -263,7 +263,7 @@ static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int la
 	uint16_t prot_reg[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
 	int i, reg, bit;
 	int status;
-	u32 protection;
+	uint32_t protection;
 #endif
 
 	pic32mx_info = bank->driver_priv;
@@ -348,12 +348,12 @@ static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int la
 #endif
 }
 
-static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
+static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	target_t *target = bank->target;
-	u32 buffer_size = 512;
+	uint32_t buffer_size = 512;
 	working_area_t *source;
-	u32 address = bank->base + offset;
+	uint32_t address = bank->base + offset;
 	int retval = ERROR_OK;
 #if 0
 	pic32mx_flash_bank_t *pic32mx_info = bank->driver_priv;
@@ -407,7 +407,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 o
 
 	while (count >= buffer_size/4)
 	{
-		u32 status;
+		uint32_t status;
 
 		if ((retval = target_write_buffer(target, source->address, buffer_size, buffer))!=ERROR_OK) {
 			LOG_ERROR("Failed to write row buffer (%d words) to RAM", buffer_size/4);
@@ -454,10 +454,10 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 o
 
 	while(count > 0)
 	{
-		u32 value;
-		memcpy(&value, buffer, sizeof(u32));
+		uint32_t value;
+		memcpy(&value, buffer, sizeof(uint32_t));
 
-		u32 status = pic32mx_write_word(bank, address, value);
+		uint32_t status = pic32mx_write_word(bank, address, value);
 		if( status & NVMCON_NVMERR ) {
 			LOG_ERROR("Flash write error NVMERR (status=0x%08x)", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
@@ -477,7 +477,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 o
 	return retval;
 }
 
-static int pic32mx_write_word(struct flash_bank_s *bank, u32 address, u32 word)
+static int pic32mx_write_word(struct flash_bank_s *bank, uint32_t address, uint32_t word)
 {
 	target_t *target = bank->target;
 
@@ -493,7 +493,7 @@ static int pic32mx_write_word(struct flash_bank_s *bank, u32 address, u32 word)
 /*
  * Write a 128 word (512 byte) row to flash address from RAM srcaddr.
  */
-static int pic32mx_write_row(struct flash_bank_s *bank, u32 address, u32 srcaddr)
+static int pic32mx_write_row(struct flash_bank_s *bank, uint32_t address, uint32_t srcaddr)
 {
 	target_t *target = bank->target;
 
@@ -511,13 +511,13 @@ static int pic32mx_write_row(struct flash_bank_s *bank, u32 address, u32 srcaddr
 	return pic32mx_nvm_exec(bank, NVMCON_OP_ROW_PROG, 100);
 }
 
-static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
+static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	u32 words_remaining = (count / 4);
-	u32 bytes_remaining = (count & 0x00000003);
-	u32 address = bank->base + offset;
-	u32 bytes_written = 0;
-	u32 status;
+	uint32_t words_remaining = (count / 4);
+	uint32_t bytes_remaining = (count & 0x00000003);
+	uint32_t address = bank->base + offset;
+	uint32_t bytes_written = 0;
+	uint32_t status;
 	int retval;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -560,8 +560,8 @@ static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset,
 
 	while (words_remaining > 0)
 	{
-		u32 value;
-		memcpy(&value, buffer + bytes_written, sizeof(u32));
+		uint32_t value;
+		memcpy(&value, buffer + bytes_written, sizeof(uint32_t));
 
 		status = pic32mx_write_word(bank, address, value);
 		if( status & NVMCON_NVMERR )
@@ -576,7 +576,7 @@ static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset,
 
 	if (bytes_remaining)
 	{
-		u32 value = 0xffffffff;
+		uint32_t value = 0xffffffff;
 		memcpy(&value, buffer + bytes_written, bytes_remaining);
 
 		status = pic32mx_write_word(bank, address, value);
@@ -597,7 +597,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	int i;
 	uint16_t num_pages = 0;
-	u32 device_id;
+	uint32_t device_id;
 	int page_size;
 
 	pic32mx_info->probed = 0;
@@ -688,7 +688,7 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	target_t *target = bank->target;
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	u32 device_id;
+	uint32_t device_id;
 	int printed = 0, i;
 
 	device_id = ejtag_info->idcode;
@@ -815,7 +815,7 @@ static int pic32mx_chip_erase(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
 #if 0
-	u32 status;
+	uint32_t status;
 #endif
 
 	if (target->state != TARGET_HALTED)
@@ -897,7 +897,7 @@ static int pic32mx_handle_chip_erase_command(struct command_context_s *cmd_ctx, 
 static int pic32mx_handle_pgm_word_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
-	u32 address, value;
+	uint32_t address, value;
 	int status, res;
 
 	if (argc != 3)

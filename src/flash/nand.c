@@ -38,10 +38,10 @@ static int handle_nand_erase_command(struct command_context_s *cmd_ctx, char *cm
 
 static int handle_nand_raw_access_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-static int nand_read_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
-//static int nand_read_plain(struct nand_device_s *device, u32 address, uint8_t *data, u32 data_size);
+static int nand_read_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+//static int nand_read_plain(struct nand_device_s *device, uint32_t address, uint8_t *data, uint32_t data_size);
 
-static int nand_write_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
+static int nand_write_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 
 /* NAND flash controller
  */
@@ -339,7 +339,7 @@ nand_device_t *get_nand_device_by_num(int num)
 
 static int nand_build_bbt(struct nand_device_s *device, int first, int last)
 {
-	u32 page = 0x0;
+	uint32_t page = 0x0;
 	int i;
 	uint8_t oob[6];
 
@@ -638,7 +638,7 @@ int nand_probe(struct nand_device_s *device)
 int nand_erase(struct nand_device_s *device, int first_block, int last_block)
 {
 	int i;
-	u32 page;
+	uint32_t page;
 	uint8_t status;
 	int retval;
 
@@ -721,7 +721,7 @@ int nand_erase(struct nand_device_s *device, int first_block, int last_block)
 }
 
 #if 0
-static int nand_read_plain(struct nand_device_s *device, u32 address, uint8_t *data, u32 data_size)
+static int nand_read_plain(struct nand_device_s *device, uint32_t address, uint8_t *data, uint32_t data_size)
 {
 	uint8_t *page;
 
@@ -738,8 +738,8 @@ static int nand_read_plain(struct nand_device_s *device, u32 address, uint8_t *d
 
 	while (data_size > 0 )
 	{
-		u32 thisrun_size = (data_size > device->page_size) ? device->page_size : data_size;
-		u32 page_address;
+		uint32_t thisrun_size = (data_size > device->page_size) ? device->page_size : data_size;
+		uint32_t page_address;
 
 
 		page_address = address / device->page_size;
@@ -758,7 +758,7 @@ static int nand_read_plain(struct nand_device_s *device, u32 address, uint8_t *d
 	return ERROR_OK;
 }
 
-static int nand_write_plain(struct nand_device_s *device, u32 address, uint8_t *data, u32 data_size)
+static int nand_write_plain(struct nand_device_s *device, uint32_t address, uint8_t *data, uint32_t data_size)
 {
 	uint8_t *page;
 
@@ -775,8 +775,8 @@ static int nand_write_plain(struct nand_device_s *device, u32 address, uint8_t *
 
 	while (data_size > 0 )
 	{
-		u32 thisrun_size = (data_size > device->page_size) ? device->page_size : data_size;
-		u32 page_address;
+		uint32_t thisrun_size = (data_size > device->page_size) ? device->page_size : data_size;
+		uint32_t page_address;
 
 		memset(page, 0xff, device->page_size);
 		memcpy(page, data, thisrun_size);
@@ -796,9 +796,9 @@ static int nand_write_plain(struct nand_device_s *device, u32 address, uint8_t *
 }
 #endif
 
-int nand_write_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+int nand_write_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
-	u32 block;
+	uint32_t block;
 
 	if (!device->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
@@ -813,7 +813,7 @@ int nand_write_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 d
 		return device->controller->write_page(device, page, data, data_size, oob, oob_size);
 }
 
-static int nand_read_page(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+static int nand_read_page(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	if (!device->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
@@ -824,9 +824,9 @@ static int nand_read_page(struct nand_device_s *device, u32 page, uint8_t *data,
 		return device->controller->read_page(device, page, data, data_size, oob, oob_size);
 }
 
-int nand_read_page_raw(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+int nand_read_page_raw(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
-	u32 i;
+	uint32_t i;
 
 	if (!device->device)
 		return ERROR_NAND_DEVICE_NOT_PROBED;
@@ -938,9 +938,9 @@ int nand_read_page_raw(struct nand_device_s *device, u32 page, uint8_t *data, u3
 	return ERROR_OK;
 }
 
-int nand_write_page_raw(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+int nand_write_page_raw(struct nand_device_s *device, uint32_t page, uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
-	u32 i;
+	uint32_t i;
 	int retval;
 	uint8_t status;
 
@@ -1310,9 +1310,9 @@ int handle_nand_check_bad_blocks_command(struct command_context_s *cmd_ctx, char
 
 static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u32 offset;
-	u32 binary_size;
-	u32 buf_cnt;
+	uint32_t offset;
+	uint32_t binary_size;
+	uint32_t buf_cnt;
 	enum oob_formats oob_format = NAND_OOB_NONE;
 
 	fileio_t fileio;
@@ -1332,9 +1332,9 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 	if (p)
 	{
 		uint8_t *page = NULL;
-		u32 page_size = 0;
+		uint32_t page_size = 0;
 		uint8_t *oob = NULL;
-		u32 oob_size = 0;
+		uint32_t oob_size = 0;
 		const int *eccpos = NULL;
 
 		offset = strtoul(args[2], NULL, 0);
@@ -1398,7 +1398,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 
 		while (buf_cnt > 0)
 		{
-			u32 size_read;
+			uint32_t size_read;
 
 			if (NULL != page)
 			{
@@ -1412,7 +1412,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 
 			if (oob_format & NAND_OOB_SW_ECC)
 			{
-				u32 i, j;
+				uint32_t i, j;
 				uint8_t ecc[3];
 				memset(oob, 0xff, oob_size);
 				for (i = 0, j = 0; i < page_size; i += 256) {
@@ -1429,7 +1429,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 				 * at the end of the OOB area.  It consists
 				 * of 10 bytes per 512-byte data block.
 				 */
-				u32 i;
+				uint32_t i;
 				uint8_t *ecc = oob + oob_size - page_size/512 * 10;
 				memset(oob, 0xff, oob_size);
 				for (i = 0; i < page_size; i += 512) {
@@ -1500,12 +1500,12 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 			int retval;
 
 			uint8_t *page = NULL;
-			u32 page_size = 0;
+			uint32_t page_size = 0;
 			uint8_t *oob = NULL;
-			u32 oob_size = 0;
-			u32 address = strtoul(args[2], NULL, 0);
-			u32 size = strtoul(args[3], NULL, 0);
-			u32 bytes_done = 0;
+			uint32_t oob_size = 0;
+			uint32_t address = strtoul(args[2], NULL, 0);
+			uint32_t size = strtoul(args[3], NULL, 0);
+			uint32_t bytes_done = 0;
 			enum oob_formats oob_format = NAND_OOB_NONE;
 
 			if (argc > 4)
@@ -1552,7 +1552,7 @@ static int handle_nand_dump_command(struct command_context_s *cmd_ctx, char *cmd
 
 			while (size > 0)
 			{
-				u32 size_written;
+				uint32_t size_written;
 				if ((retval = nand_read_page(p, address / p->page_size, page, page_size, oob, oob_size)) != ERROR_OK)
 				{
 					command_print(cmd_ctx, "reading NAND flash page failed");

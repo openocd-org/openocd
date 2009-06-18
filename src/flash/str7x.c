@@ -49,7 +49,7 @@ static int str7x_register_commands(struct command_context_s *cmd_ctx);
 static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int str7x_erase(struct flash_bank_s *bank, int first, int last);
 static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
+static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 static int str7x_probe(struct flash_bank_s *bank);
 //static int str7x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int str7x_protect_check(struct flash_bank_s *bank);
@@ -82,7 +82,7 @@ static int str7x_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int str7x_get_flash_adr(struct flash_bank_s *bank, u32 reg)
+static int str7x_get_flash_adr(struct flash_bank_s *bank, uint32_t reg)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
 	return (str7x_info->register_base | reg);
@@ -119,7 +119,7 @@ static int str7x_build_block_list(struct flash_bank_s *bank)
 	
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
-	str7x_info->sector_bits = malloc(sizeof(u32) * num_sectors);
+	str7x_info->sector_bits = malloc(sizeof(uint32_t) * num_sectors);
 	
 	num_sectors = 0;
 	
@@ -191,20 +191,20 @@ static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	return ERROR_OK;
 }
 
-static u32 str7x_status(struct flash_bank_s *bank)
+static uint32_t str7x_status(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	u32 retval;
+	uint32_t retval;
 
 	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), &retval);
 
 	return retval;
 }
 
-static u32 str7x_result(struct flash_bank_s *bank)
+static uint32_t str7x_result(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	u32 retval;
+	uint32_t retval;
 
 	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_ER), &retval);
 	
@@ -217,7 +217,7 @@ static int str7x_protect_check(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 	
 	int i;
-	u32 retval;
+	uint32_t retval;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -244,9 +244,9 @@ static int str7x_erase(struct flash_bank_s *bank, int first, int last)
 	target_t *target = bank->target;
 	
 	int i;
-	u32 cmd;
-	u32 retval;
-	u32 sectors = 0;
+	uint32_t cmd;
+	uint32_t retval;
+	uint32_t sectors = 0;
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -296,9 +296,9 @@ static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
 	target_t *target = bank->target;
 	int i;
-	u32 cmd;
-	u32 retval;
-	u32 protect_blocks;
+	uint32_t cmd;
+	uint32_t retval;
+	uint32_t protect_blocks;
 	
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -345,18 +345,18 @@ static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last
 	return ERROR_OK;
 }
 
-static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
+static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u32 buffer_size = 8192;
+	uint32_t buffer_size = 8192;
 	working_area_t *source;
-	u32 address = bank->base + offset;
+	uint32_t address = bank->base + offset;
 	reg_param_t reg_params[6];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval = ERROR_OK;
 	
-	u32 str7x_flash_write_code[] = {
+	uint32_t str7x_flash_write_code[] = {
 					/* write:				*/
 		0xe3a04201, /*	mov r4, #0x10000000	*/
 		0xe5824000, /*	str r4, [r2, #0x0]	*/
@@ -419,7 +419,7 @@ static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 off
 	
 	while (count > 0)
 	{
-		u32 thisrun_count = (count > (buffer_size / 8)) ? (buffer_size / 8) : count;
+		uint32_t thisrun_count = (count > (buffer_size / 8)) ? (buffer_size / 8) : count;
 		
 		target_write_buffer(target, source->address, thisrun_count * 8, buffer);
 		
@@ -460,17 +460,17 @@ static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 off
 	return retval;
 }
 
-static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
+static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	target_t *target = bank->target;
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
-	u32 dwords_remaining = (count / 8);
-	u32 bytes_remaining = (count & 0x00000007);
-	u32 address = bank->base + offset;
-	u32 bytes_written = 0;
-	u32 cmd;
+	uint32_t dwords_remaining = (count / 8);
+	uint32_t bytes_remaining = (count & 0x00000007);
+	uint32_t address = bank->base + offset;
+	uint32_t bytes_written = 0;
+	uint32_t cmd;
 	int retval;
-	u32 check_address = offset;
+	uint32_t check_address = offset;
 	int i;
 	
 	if (bank->target->state != TARGET_HALTED)
@@ -487,8 +487,8 @@ static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u
 	
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		u32 sec_start = bank->sectors[i].offset;
-		u32 sec_end = sec_start + bank->sectors[i].size;
+		uint32_t sec_start = bank->sectors[i].offset;
+		uint32_t sec_end = sec_start + bank->sectors[i].size;
 		
 		/* check if destination falls within the current sector */
 		if ((check_address >= sec_start) && (check_address < sec_end))
@@ -644,8 +644,8 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 	target_t *target = NULL;
 	str7x_flash_bank_t *str7x_info = NULL;
 	
-	u32 flash_cmd;
-	u32 retval;
+	uint32_t flash_cmd;
+	uint32_t retval;
 	uint16_t ProtectionLevel = 0;
 	uint16_t ProtectionRegs;
 	

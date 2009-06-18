@@ -49,7 +49,7 @@ static int lpc2000_register_commands(struct command_context_s *cmd_ctx);
 static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int lpc2000_erase(struct flash_bank_s *bank, int first, int last);
 static int lpc2000_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
+static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 static int lpc2000_probe(struct flash_bank_s *bank);
 static int lpc2000_erase_check(struct flash_bank_s *bank);
 static int lpc2000_protect_check(struct flash_bank_s *bank);
@@ -92,7 +92,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 	if (lpc2000_info->variant == 1)
 	{
 		int i = 0;
-		u32 offset = 0;
+		uint32_t offset = 0;
 
 		/* variant 1 has different layout for 128kb and 256kb flashes */
 		if (bank->size == 128 * 1024)
@@ -148,7 +148,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 	{
 		int num_sectors;
 		int i;
-		u32 offset = 0;
+		uint32_t offset = 0;
 
 		/* variant 2 has a uniform layout, only number of sectors differs */
 		switch (bank->size)
@@ -233,7 +233,7 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
  * 0x20 to 0x2b: command result table
  * 0x2c to 0xac: stack (only 128b needed)
  */
-static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u32 result_table[2])
+static int lpc2000_iap_call(flash_bank_t *bank, int code, uint32_t param_table[5], uint32_t result_table[2])
 {
 	int retval;
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
@@ -241,7 +241,7 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u3
 	mem_param_t mem_params[2];
 	reg_param_t reg_params[5];
 	armv4_5_algorithm_t armv4_5_info;
-	u32 status_code;
+	uint32_t status_code;
 
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!lpc2000_info->iap_working_area)
@@ -318,8 +318,8 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u3
 
 static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int last)
 {
-	u32 param_table[5];
-	u32 result_table[2];
+	uint32_t param_table[5];
+	uint32_t result_table[2];
 	int status_code;
 	int i;
 
@@ -410,8 +410,8 @@ static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *c
 static int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
-	u32 param_table[5];
-	u32 result_table[2];
+	uint32_t param_table[5];
+	uint32_t result_table[2];
 	int status_code;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -465,17 +465,17 @@ static int lpc2000_protect(struct flash_bank_s *bank, int set, int first, int la
 	return ERROR_OK;
 }
 
-static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
+static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u32 dst_min_alignment;
-	u32 bytes_remaining = count;
-	u32 bytes_written = 0;
+	uint32_t dst_min_alignment;
+	uint32_t bytes_remaining = count;
+	uint32_t bytes_written = 0;
 	int first_sector = 0;
 	int last_sector = 0;
-	u32 param_table[5];
-	u32 result_table[2];
+	uint32_t param_table[5];
+	uint32_t result_table[2];
 	int status_code;
 	int i;
 	working_area_t *download_area;
@@ -514,7 +514,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset,
 	/* check if exception vectors should be flashed */
 	if ((offset == 0) && (count >= 0x20) && lpc2000_info->calc_checksum)
 	{
-		u32 checksum = 0;
+		uint32_t checksum = 0;
 		int i = 0;
 		for (i = 0; i < 8; i++)
 		{
@@ -525,7 +525,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset,
 		checksum = 0 - checksum;
 		LOG_DEBUG("checksum: 0x%8.8x", checksum);
 
-		u32 original_value=buf_get_u32(buffer + (5 * 4), 0, 32);
+		uint32_t original_value=buf_get_u32(buffer + (5 * 4), 0, 32);
 		if (original_value!=checksum)
 		{
 			LOG_WARNING("Verification will fail since checksum in image(0x%8.8x) written to flash was different from calculated vector checksum(0x%8.8x).",
@@ -545,7 +545,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset,
 
 	while (bytes_remaining > 0)
 	{
-		u32 thisrun_bytes;
+		uint32_t thisrun_bytes;
 		if (bytes_remaining >= lpc2000_info->cmd51_max_buffer)
 			thisrun_bytes = lpc2000_info->cmd51_max_buffer;
 		else if (bytes_remaining >= 1024)
@@ -590,7 +590,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset,
 		else
 		{
 			uint8_t *last_buffer = malloc(thisrun_bytes);
-			u32 i;
+			uint32_t i;
 			memcpy(last_buffer, buffer + bytes_written, bytes_remaining);
 			for (i = bytes_remaining; i < thisrun_bytes; i++)
 				last_buffer[i] = 0xff;
@@ -675,8 +675,8 @@ static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size)
 static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *bank;
-	u32 param_table[5];
-	u32 result_table[2];
+	uint32_t param_table[5];
+	uint32_t result_table[2];
 	int status_code;
 
 	if (argc < 1)

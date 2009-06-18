@@ -28,7 +28,7 @@ static int tms470_register_commands(struct command_context_s *cmd_ctx);
 static int tms470_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int tms470_erase(struct flash_bank_s *bank, int first, int last);
 static int tms470_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int tms470_write(struct flash_bank_s *bank, uint8_t * buffer, u32 offset, u32 count);
+static int tms470_write(struct flash_bank_s *bank, uint8_t * buffer, uint32_t offset, uint32_t count);
 static int tms470_probe(struct flash_bank_s *bank);
 static int tms470_auto_probe(struct flash_bank_s *bank);
 static int tms470_erase_check(struct flash_bank_s *bank);
@@ -135,11 +135,11 @@ static int tms470_read_part_info(struct flash_bank_s *bank)
 {
 	tms470_flash_bank_t *tms470_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u32 device_ident_reg;
-	u32 silicon_version;
-	u32 technology_family;
-	u32 rom_flash;
-	u32 part_number;
+	uint32_t device_ident_reg;
+	uint32_t silicon_version;
+	uint32_t technology_family;
+	uint32_t rom_flash;
+	uint32_t part_number;
 	char *part_name;
 
 	/* we shall not rely on the caller in this test, this function allocates memory,
@@ -307,8 +307,8 @@ static int tms470_read_part_info(struct flash_bank_s *bank)
 
 /* ---------------------------------------------------------------------- */
 
-static u32 keysSet = 0;
-static u32 flashKeys[4];
+static uint32_t keysSet = 0;
+static uint32_t flashKeys[4];
 
 static int tms470_handle_flash_keyset_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -353,19 +353,19 @@ static int tms470_handle_flash_keyset_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
-static const u32 FLASH_KEYS_ALL_ONES[] = { 0xFFFFFFFF, 0xFFFFFFFF,
+static const uint32_t FLASH_KEYS_ALL_ONES[] = { 0xFFFFFFFF, 0xFFFFFFFF,
 	0xFFFFFFFF, 0xFFFFFFFF,
 };
 
-static const u32 FLASH_KEYS_ALL_ZEROS[] = { 0x00000000, 0x00000000,
+static const uint32_t FLASH_KEYS_ALL_ZEROS[] = { 0x00000000, 0x00000000,
 	0x00000000, 0x00000000,
 };
 
-static const u32 FLASH_KEYS_MIX1[] = { 0xf0fff0ff, 0xf0fff0ff,
+static const uint32_t FLASH_KEYS_MIX1[] = { 0xf0fff0ff, 0xf0fff0ff,
 	0xf0fff0ff, 0xf0fff0ff
 };
 
-static const u32 FLASH_KEYS_MIX2[] = { 0x0000ffff, 0x0000ffff,
+static const uint32_t FLASH_KEYS_MIX2[] = { 0x0000ffff, 0x0000ffff,
 	0x0000ffff, 0x0000ffff
 };
 
@@ -424,7 +424,7 @@ static int tms470_handle_plldis_command(struct command_context_s *cmd_ctx, char 
 
 static int tms470_check_flash_unlocked(target_t * target)
 {
-	u32 fmbbusy;
+	uint32_t fmbbusy;
 
 	target_read_u32(target, 0xFFE89C08, &fmbbusy);
 	LOG_INFO("tms470 fmbbusy=0x%08x -> %s", fmbbusy, fmbbusy & 0x8000 ? "unlocked" : "LOCKED");
@@ -433,9 +433,9 @@ static int tms470_check_flash_unlocked(target_t * target)
 
 /* ---------------------------------------------------------------------- */
 
-static int tms470_try_flash_keys(target_t * target, const u32 * key_set)
+static int tms470_try_flash_keys(target_t * target, const uint32_t * key_set)
 {
-	u32 glbctrl, fmmstat;
+	uint32_t glbctrl, fmmstat;
 	int retval = ERROR_FLASH_OPERATION_FAILED;
 
 	/* set GLBCTRL.4  */
@@ -447,7 +447,7 @@ static int tms470_try_flash_keys(target_t * target, const u32 * key_set)
 	if (!(fmmstat & 0x08))
 	{
 		unsigned i;
-		u32 fmbptr, fmbac2, orig_fmregopt;
+		uint32_t fmbptr, fmbac2, orig_fmregopt;
 
 		target_write_u32(target, 0xFFE8BC04, fmmstat & ~0x07);
 
@@ -469,7 +469,7 @@ static int tms470_try_flash_keys(target_t * target, const u32 * key_set)
 
 		for (i = 0; i < 4; i++)
 		{
-			u32 tmp;
+			uint32_t tmp;
 
 			/* There is no point displaying the value of tmp, it is
 			 * filtered by the chip.  The purpose of this read is to
@@ -490,7 +490,7 @@ static int tms470_try_flash_keys(target_t * target, const u32 * key_set)
 			 */
 			for (i = 0; i < 4; i++)
 			{
-				u32 tmp;
+				uint32_t tmp;
 
 				target_read_u32(target, 0x00001FF0 + 4 * i, &tmp);
 				target_write_u32(target, 0xFFE89C0C, key_set[i]);
@@ -514,7 +514,7 @@ static int tms470_try_flash_keys(target_t * target, const u32 * key_set)
 static int tms470_unlock_flash(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	const u32 *p_key_sets[5];
+	const uint32_t *p_key_sets[5];
 	unsigned i, key_set_count;
 
 	if (keysSet)
@@ -552,7 +552,7 @@ static int tms470_unlock_flash(struct flash_bank_s *bank)
 
 static int tms470_flash_initialize_internal_state_machine(struct flash_bank_s *bank)
 {
-	u32 fmmac2, fmmac1, fmmaxep, k, delay, glbctrl, sysclk;
+	uint32_t fmmac2, fmmac1, fmmaxep, k, delay, glbctrl, sysclk;
 	target_t *target = bank->target;
 	tms470_flash_bank_t *tms470_info = bank->driver_priv;
 	int result = ERROR_OK;
@@ -690,7 +690,7 @@ int tms470_flash_status(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
 	int result = ERROR_OK;
-	u32 fmmstat;
+	uint32_t fmmstat;
 
 	target_read_u32(target, 0xFFE8BC0C, &fmmstat);
 	LOG_DEBUG("set fmmstat=0x%04x", fmmstat);
@@ -744,9 +744,9 @@ int tms470_flash_status(struct flash_bank_s *bank)
 
 static int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 {
-	u32 glbctrl, orig_fmregopt, fmbsea, fmbseb, fmmstat;
+	uint32_t glbctrl, orig_fmregopt, fmbsea, fmbseb, fmmstat;
 	target_t *target = bank->target;
-	u32 flashAddr = bank->base + bank->sectors[sector].offset;
+	uint32_t flashAddr = bank->base + bank->sectors[sector].offset;
 	int result = ERROR_OK;
 
 	/* 
@@ -901,7 +901,7 @@ static int tms470_protect(struct flash_bank_s *bank, int set, int first, int las
 {
 	tms470_flash_bank_t *tms470_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u32 fmmac2, fmbsea, fmbseb;
+	uint32_t fmmac2, fmbsea, fmbseb;
 	int sector;
 
 	if (target->state != TARGET_HALTED)
@@ -949,12 +949,12 @@ static int tms470_protect(struct flash_bank_s *bank, int set, int first, int las
 
 /* ---------------------------------------------------------------------- */
 
-static int tms470_write(struct flash_bank_s *bank, uint8_t * buffer, u32 offset, u32 count)
+static int tms470_write(struct flash_bank_s *bank, uint8_t * buffer, uint32_t offset, uint32_t count)
 {
 	target_t *target = bank->target;
-	u32 glbctrl, fmbac2, orig_fmregopt, fmbsea, fmbseb, fmmaxpp, fmmstat;
+	uint32_t glbctrl, fmbac2, orig_fmregopt, fmbsea, fmbseb, fmmaxpp, fmmstat;
 	int result = ERROR_OK;
-	u32 i;
+	uint32_t i;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -993,7 +993,7 @@ static int tms470_write(struct flash_bank_s *bank, uint8_t * buffer, u32 offset,
 
 	for (i = 0; i < count; i += 2)
 	{
-		u32 addr = bank->base + offset + i;
+		uint32_t addr = bank->base + offset + i;
 		uint16_t word = (((uint16_t) buffer[i]) << 8) | (uint16_t) buffer[i + 1];
 
 		if (word != 0xffff)
@@ -1074,7 +1074,7 @@ static int tms470_erase_check(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 	tms470_flash_bank_t *tms470_info = bank->driver_priv;
 	int sector, result = ERROR_OK;
-	u32 fmmac2, fmbac2, glbctrl, orig_fmregopt;
+	uint32_t fmmac2, fmbac2, glbctrl, orig_fmregopt;
 	static uint8_t buffer[64 * 1024];
 
 	if (target->state != TARGET_HALTED)
@@ -1119,7 +1119,7 @@ static int tms470_erase_check(struct flash_bank_s *bank)
 	{
 		if (bank->sectors[sector].is_erased != 1)
 		{
-			u32 i, addr = bank->base + bank->sectors[sector].offset;
+			uint32_t i, addr = bank->base + bank->sectors[sector].offset;
 
 			LOG_INFO("checking flash bank %d sector %d", tms470_info->ordinal, sector);
 
@@ -1165,7 +1165,7 @@ static int tms470_protect_check(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 	tms470_flash_bank_t *tms470_info = bank->driver_priv;
 	int sector, result = ERROR_OK;
-	u32 fmmac2, fmbsea, fmbseb;
+	uint32_t fmmac2, fmbsea, fmbseb;
 
 	if (target->state != TARGET_HALTED)
 	{

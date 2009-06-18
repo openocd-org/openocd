@@ -41,9 +41,9 @@ struct image_s;
 typedef struct flash_sector_s
 {
 	/// Bus offset from start of the flash chip (in bytes).
-	u32 offset;
+	uint32_t offset;
 	/// Number of bytes in this flash sector.
-	u32 size;
+	uint32_t size;
 	/**
 	 * Indication of erasure status: 0=not erased, 1=erased,
 	 * other=unknown.  Set by @c flash_driver_s::erase_check.
@@ -166,7 +166,7 @@ typedef struct flash_driver_s
 	 * @param count The number of bytes to write.
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*write)(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
+	int (*write)(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 
 	/** 
 	 * Probe to determine what kind of flash is present.
@@ -246,8 +246,8 @@ typedef struct flash_bank_s
 	void *driver_priv; /**< Private driver storage pointer */
 
 	int bank_number; /**< The 'bank' (or chip number) of this instance. */
-	u32 base; /**< The base address of this bank */
-	u32 size; /**< The size of this chip bank, in bytes */
+	uint32_t base; /**< The base address of this bank */
+	uint32_t size; /**< The size of this chip bank, in bytes */
 
 	int chip_width; /**< Width of the chip in bytes (1,2,4 bytes) */
 	int bus_width; /**< Maximum bus width, in bytes (1,2,4 bytes) */
@@ -273,7 +273,7 @@ extern int flash_init_drivers(struct command_context_s *cmd_ctx);
  * Erases @a length bytes in the @a target flash, starting at @a addr.
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
-extern int flash_erase_address_range(struct target_s *target, u32 addr, u32 length);
+extern int flash_erase_address_range(struct target_s *target, uint32_t addr, uint32_t length);
 /**
  * Writes @a image into the @a target flash.  The @a written parameter
  * will contain the 
@@ -284,7 +284,7 @@ extern int flash_erase_address_range(struct target_s *target, u32 addr, u32 leng
  * erase the corresponding banks or sectors before programming.
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
-extern int flash_write(struct target_s *target, struct image_s *image, u32 *written, int erase);
+extern int flash_write(struct target_s *target, struct image_s *image, uint32_t *written, int erase);
 /**
  * Forces targets to re-examine their erase/protection state.
  * This routine must be called when the system may modify the status.
@@ -325,7 +325,7 @@ extern flash_bank_t *get_flash_bank_by_num_noprobe(int num);
  * @param addr An address that is within the range of the bank.
  * @returns The flash_bank_t located at @a addr, or NULL.
  */
-extern flash_bank_t *get_flash_bank_by_addr(struct target_s *target, u32 addr);
+extern flash_bank_t *get_flash_bank_by_addr(struct target_s *target, uint32_t addr);
 
 #define ERROR_FLASH_BANK_INVALID			(-900)
 #define ERROR_FLASH_SECTOR_INVALID			(-901)

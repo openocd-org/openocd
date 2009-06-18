@@ -36,9 +36,9 @@ typedef struct orion_nand_controller_s
 	struct target_s	*target;
 	working_area_t *copy_area;
 
-	u32		cmd;
-	u32		addr;
-	u32		data;
+	uint32_t		cmd;
+	uint32_t		addr;
+	uint32_t		data;
 } orion_nand_controller_t;
 
 #define CHECK_HALTED \
@@ -102,10 +102,10 @@ static int orion_nand_fast_block_write(struct nand_device_s *device, uint8_t *da
 	target_t *target = hw->target;
 	armv4_5_algorithm_t algo;
 	reg_param_t reg_params[3];
-	u32 target_buf;
+	uint32_t target_buf;
 	int retval;
 
-	static const u32 code[] = {
+	static const uint32_t code[] = {
 		0xe4d13001,	/* ldrb	r3, [r1], #1	*/
 		0xe5c03000,	/* strb	r3, [r0]	*/
 		0xe2522001,	/* subs	r2, r2, #1	*/
@@ -194,7 +194,7 @@ int orion_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 			      struct nand_device_s *device)
 {
 	orion_nand_controller_t *hw;
-	u32 base;
+	uint32_t base;
 	uint8_t ale, cle;
 
 	if (argc != 3) {

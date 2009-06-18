@@ -94,8 +94,8 @@ typedef struct stm32x_flash_bank_s
 #define KEY2			0xCDEF89AB
 
 typedef struct stm32x_mem_layout_s {
-	u32 sector_start;
-	u32 sector_size;
+	uint32_t sector_start;
+	uint32_t sector_size;
 } stm32x_mem_layout_t;
 
 #endif /* STM32X_H */

@@ -28,7 +28,7 @@
 typedef struct at91sam7_flash_bank_s
 {
 	/* chip id register */
-	u32 cidr;
+	uint32_t cidr;
 	uint16_t cidr_ext;
 	uint16_t cidr_nvptyp;
 	uint16_t cidr_arch;
@@ -62,10 +62,10 @@ typedef struct at91sam7_flash_bank_s
 
 	/* main clock status */
 	uint8_t  mck_valid;
-	u32 mck_freq;
+	uint32_t mck_freq;
 
 	/* external clock frequency */
-	u32 ext_freq;
+	uint32_t ext_freq;
 
 } at91sam7_flash_bank_t;
 

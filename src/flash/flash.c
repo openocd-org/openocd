@@ -85,7 +85,7 @@ flash_bank_t *flash_banks;
 static 	command_t *flash_cmd;
 
 /* wafer thin wrapper for invoking the flash driver */
-static int flash_driver_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
+static int flash_driver_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	int retval;
 
@@ -330,7 +330,7 @@ static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cm
 static int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	flash_bank_t *p;
-	u32 i = 0;
+	uint32_t i = 0;
 	int j = 0;
 	int retval;
 
@@ -624,7 +624,7 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 	target_t *target = get_current_target(cmd_ctx);
 
 	image_t image;
-	u32 written;
+	uint32_t written;
 
 	duration_t duration;
 	char *duration_text;
@@ -707,19 +707,19 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	int err = ERROR_OK, retval;
-	u32 address;
-	u32 pattern;
-	u32 count;
+	uint32_t address;
+	uint32_t pattern;
+	uint32_t count;
 	uint8_t chunk[1024];
 	uint8_t readback[1024];
-	u32 wrote = 0;
-	u32 cur_size = 0;
-	u32 chunk_count;
+	uint32_t wrote = 0;
+	uint32_t cur_size = 0;
+	uint32_t chunk_count;
 	char *duration_text;
 	duration_t duration;
 	target_t *target = get_current_target(cmd_ctx);
-	u32 i;
-	u32 wordsize;
+	uint32_t i;
+	uint32_t wordsize;
 
 	if (argc != 3)
 	{
@@ -822,9 +822,9 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 
 static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u32 offset;
+	uint32_t offset;
 	uint8_t *buffer;
-	u32 buf_cnt;
+	uint32_t buf_cnt;
 
 	fileio_t fileio;
 
@@ -901,7 +901,7 @@ void flash_set_dirty(void)
 }
 
 /* lookup flash bank by address */
-flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr)
+flash_bank_t *get_flash_bank_by_addr(target_t *target, uint32_t addr)
 {
 	flash_bank_t *c;
 
@@ -925,7 +925,7 @@ flash_bank_t *get_flash_bank_by_addr(target_t *target, u32 addr)
 }
 
 /* erase given flash region, selects proper bank according to target and address */
-int flash_erase_address_range(target_t *target, u32 addr, u32 length)
+int flash_erase_address_range(target_t *target, uint32_t addr, uint32_t length)
 {
 	flash_bank_t *c;
 	int first = -1;
@@ -974,12 +974,12 @@ int flash_erase_address_range(target_t *target, u32 addr, u32 length)
 }
 
 /* write (optional verify) an image to flash memory of the given target */
-int flash_write(target_t *target, image_t *image, u32 *written, int erase)
+int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
 {
 	int retval=ERROR_OK;
 
 	int section;
-	u32 section_offset;
+	uint32_t section_offset;
 	flash_bank_t *c;
 	int *padding;
 
@@ -1003,12 +1003,12 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 	/* loop until we reach end of the image */
 	while (section < image->num_sections)
 	{
-		u32 buffer_size;
+		uint32_t buffer_size;
 		uint8_t *buffer;
 		int section_first;
 		int section_last;
-		u32 run_address = image->sections[section].base_address + section_offset;
-		u32 run_size = image->sections[section].size - section_offset;
+		uint32_t run_address = image->sections[section].base_address + section_offset;
+		uint32_t run_size = image->sections[section].size - section_offset;
 		int pad_bytes = 0;
 
 		if (image->sections[section].size ==  0)
@@ -1067,7 +1067,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 		/* read sections to the buffer */
 		while (buffer_size < run_size)
 		{
-			u32 size_read;
+			uint32_t size_read;
 
 			size_read = run_size - buffer_size;
 			if (size_read > image->sections[section].size - section_offset)
@@ -1132,7 +1132,7 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 	uint8_t buffer[1024];
 	int buffer_size = sizeof(buffer);
 	int i;
-	u32 nBytes;
+	uint32_t nBytes;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -1142,12 +1142,12 @@ int default_flash_mem_blank_check(struct flash_bank_s *bank)
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		u32 j;
+		uint32_t j;
 		bank->sectors[i].is_erased = 1;
 
 		for (j = 0; j < bank->sectors[i].size; j += buffer_size)
 		{
-			u32 chunk;
+			uint32_t chunk;
 			int retval;
 			chunk = buffer_size;
 			if (chunk > (j - bank->sectors[i].size))
@@ -1179,7 +1179,7 @@ int default_flash_blank_check(struct flash_bank_s *bank)
 	int i;
 	int retval;
 	int fast_check = 0;
-	u32 blank;
+	uint32_t blank;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -1189,8 +1189,8 @@ int default_flash_blank_check(struct flash_bank_s *bank)
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		u32 address = bank->base + bank->sectors[i].offset;
-		u32 size = bank->sectors[i].size;
+		uint32_t address = bank->base + bank->sectors[i].offset;
+		uint32_t size = bank->sectors[i].size;
 
 		if ((retval = target_blank_check_memory(target, address, size, &blank)) != ERROR_OK)
 		{

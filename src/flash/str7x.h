@@ -27,10 +27,10 @@
 
 typedef struct str7x_flash_bank_s
 {
-	u32 *sector_bits;
-	u32 disable_bit;
-	u32 busy_bits;
-	u32 register_base;
+	uint32_t *sector_bits;
+	uint32_t disable_bit;
+	uint32_t busy_bits;
+	uint32_t register_base;
 	working_area_t *write_algorithm;
 } str7x_flash_bank_t;
 
@@ -102,9 +102,9 @@ enum str7x_status_codes
 #define FLASH_ERR		0x00000001
 
 typedef struct str7x_mem_layout_s {
-	u32 sector_start;
-	u32 sector_size;
-	u32 sector_bit;
+	uint32_t sector_start;
+	uint32_t sector_size;
+	uint32_t sector_bit;
 } str7x_mem_layout_t;
 
 #endif /* STR7X_H */

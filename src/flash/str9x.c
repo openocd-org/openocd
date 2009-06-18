@@ -31,13 +31,13 @@
 #include "arm966e.h"
 
 
-static u32 bank1start = 0x00080000;
+static uint32_t bank1start = 0x00080000;
 
 static int str9x_register_commands(struct command_context_s *cmd_ctx);
 static int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int str9x_erase(struct flash_bank_s *bank, int first, int last);
 static int str9x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int str9x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
+static int str9x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 static int str9x_probe(struct flash_bank_s *bank);
 //static int str9x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int str9x_protect_check(struct flash_bank_s *bank);
@@ -77,7 +77,7 @@ static int str9x_build_block_list(struct flash_bank_s *bank)
 	int i;
 	int num_sectors;
 	int b0_sectors = 0, b1_sectors = 0;
-	u32 offset = 0;
+	uint32_t offset = 0;
 
 	/* set if we have large flash str9 */
 	str9x_info->variant = 0;
@@ -121,7 +121,7 @@ static int str9x_build_block_list(struct flash_bank_s *bank)
 
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
-	str9x_info->sector_bits = malloc(sizeof(u32) * num_sectors);
+	str9x_info->sector_bits = malloc(sizeof(uint32_t) * num_sectors);
 
 	num_sectors = 0;
 
@@ -181,8 +181,8 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 	target_t *target = bank->target;
 
 	int i;
-	u32 adr;
-	u32 status = 0;
+	uint32_t adr;
+	uint32_t status = 0;
 	uint16_t hstatus = 0;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -256,7 +256,7 @@ static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 {
 	target_t *target = bank->target;
 	int i;
-	u32 adr;
+	uint32_t adr;
 	uint8_t status;
 	uint8_t erase_cmd;
 
@@ -349,7 +349,7 @@ static int str9x_protect(struct flash_bank_s *bank,
 {
 	target_t *target = bank->target;
 	int i;
-	u32 adr;
+	uint32_t adr;
 	uint8_t status;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -384,18 +384,18 @@ static int str9x_protect(struct flash_bank_s *bank,
 }
 
 static int str9x_write_block(struct flash_bank_s *bank,
-		uint8_t *buffer, u32 offset, u32 count)
+		uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u32 buffer_size = 8192;
+	uint32_t buffer_size = 8192;
 	working_area_t *source;
-	u32 address = bank->base + offset;
+	uint32_t address = bank->base + offset;
 	reg_param_t reg_params[4];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval = ERROR_OK;
 
-	u32 str9x_flash_write_code[] = {
+	uint32_t str9x_flash_write_code[] = {
 					/* write:				*/
 		0xe3c14003,	/*	bic	r4, r1, #3		*/
 		0xe3a03040,	/*	mov	r3, #0x40		*/
@@ -455,7 +455,7 @@ static int str9x_write_block(struct flash_bank_s *bank,
 
 	while (count > 0)
 	{
-		u32 thisrun_count = (count > (buffer_size / 2)) ? (buffer_size / 2) : count;
+		uint32_t thisrun_count = (count > (buffer_size / 2)) ? (buffer_size / 2) : count;
 
 		target_write_buffer(target, source->address, thisrun_count * 2, buffer);
 
@@ -493,17 +493,17 @@ static int str9x_write_block(struct flash_bank_s *bank,
 }
 
 static int str9x_write(struct flash_bank_s *bank,
-		uint8_t *buffer, u32 offset, u32 count)
+		uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	target_t *target = bank->target;
-	u32 words_remaining = (count / 2);
-	u32 bytes_remaining = (count & 0x00000001);
-	u32 address = bank->base + offset;
-	u32 bytes_written = 0;
+	uint32_t words_remaining = (count / 2);
+	uint32_t bytes_remaining = (count & 0x00000001);
+	uint32_t address = bank->base + offset;
+	uint32_t bytes_written = 0;
 	uint8_t status;
 	int retval;
-	u32 check_address = offset;
-	u32 bank_adr;
+	uint32_t check_address = offset;
+	uint32_t bank_adr;
 	int i;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -520,8 +520,8 @@ static int str9x_write(struct flash_bank_s *bank,
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		u32 sec_start = bank->sectors[i].offset;
-		u32 sec_end = sec_start + bank->sectors[i].size;
+		uint32_t sec_start = bank->sectors[i].offset;
+		uint32_t sec_end = sec_start + bank->sectors[i].size;
 
 		/* check if destination falls within the current sector */
 		if ((check_address >= sec_start) && (check_address < sec_end))

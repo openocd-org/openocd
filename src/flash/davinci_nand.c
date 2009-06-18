@@ -44,18 +44,18 @@ struct davinci_nand {
 	uint8_t		eccmode;
 
 	/* Async EMIF controller base */
-	u32		aemif;
+	uint32_t		aemif;
 
 	/* NAND chip addresses */
-	u32		data;		/* without CLE or ALE */
-	u32		cmd;		/* with CLE */
-	u32		addr;		/* with ALE */
+	uint32_t		data;		/* without CLE or ALE */
+	uint32_t		cmd;		/* with CLE */
+	uint32_t		addr;		/* with ALE */
 
 	/* page i/o for the relevant flavor of hardware ECC */
-	int (*read_page)(struct nand_device_s *nand, u32 page,
-			uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
-	int (*write_page)(struct nand_device_s *nand, u32 page,
-			uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
+	int (*read_page)(struct nand_device_s *nand, uint32_t page,
+			uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
+	int (*write_page)(struct nand_device_s *nand, uint32_t page,
+			uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size);
 };
 
 #define NANDFCR		0x60		/* flash control register */
@@ -84,7 +84,7 @@ static int davinci_init(struct nand_device_s *nand)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;
-	u32 nandfcr;
+	uint32_t nandfcr;
 
 	if (!halted(target, "init"))
 		return ERROR_NAND_OPERATION_FAILED;
@@ -114,7 +114,7 @@ static int davinci_nand_ready(struct nand_device_s *nand, int timeout)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;
-	u32 nandfsr;
+	uint32_t nandfsr;
 
 	/* NOTE: return code is zero/error, else success; not ERROR_* */
 
@@ -188,8 +188,8 @@ static int davinci_read_block_data(struct nand_device_s *nand,
 {
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;
-	u32 nfdata = info->data;
-	u32 tmp;
+	uint32_t nfdata = info->data;
+	uint32_t tmp;
 
 	if (!halted(target, "read_block"))
 		return ERROR_NAND_OPERATION_FAILED;
@@ -221,8 +221,8 @@ static int davinci_write_block_data(struct nand_device_s *nand,
 {
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;
-	u32 nfdata = info->data;
-	u32 tmp;
+	uint32_t nfdata = info->data;
+	uint32_t tmp;
 
 	if (!halted(target, "write_block"))
 		return ERROR_NAND_OPERATION_FAILED;
@@ -245,8 +245,8 @@ static int davinci_write_block_data(struct nand_device_s *nand,
 	return ERROR_OK;
 }
 
-static int davinci_write_page(struct nand_device_s *nand, u32 page,
-		uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+static int davinci_write_page(struct nand_device_s *nand, uint32_t page,
+		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	uint8_t *ooballoc = NULL;
@@ -290,8 +290,8 @@ static int davinci_write_page(struct nand_device_s *nand, u32 page,
 	return status;
 }
 
-static int davinci_read_page(struct nand_device_s *nand, u32 page,
-		uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+static int davinci_read_page(struct nand_device_s *nand, uint32_t page,
+		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
 
@@ -303,7 +303,7 @@ static int davinci_read_page(struct nand_device_s *nand, u32 page,
 	return info->read_page(nand, page, data, data_size, oob, oob_size);
 }
 
-static void davinci_write_pagecmd(struct nand_device_s *nand, uint8_t cmd, u32 page)
+static void davinci_write_pagecmd(struct nand_device_s *nand, uint8_t cmd, uint32_t page)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;
@@ -327,7 +327,7 @@ static void davinci_write_pagecmd(struct nand_device_s *nand, uint8_t cmd, u32 p
 }
 
 static int davinci_writepage_tail(struct nand_device_s *nand,
-		uint8_t *oob, u32 oob_size)
+		uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;
@@ -358,15 +358,15 @@ static int davinci_writepage_tail(struct nand_device_s *nand,
 /*
  * All DaVinci family chips support 1-bit ECC on a per-chipselect basis.
  */
-static int davinci_write_page_ecc1(struct nand_device_s *nand, u32 page,
-		uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+static int davinci_write_page_ecc1(struct nand_device_s *nand, uint32_t page,
+		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	unsigned oob_offset;
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;
-	const u32 fcr_addr = info->aemif + NANDFCR;
-	const u32 ecc1_addr = info->aemif + NANDFECC + info->chipsel;
-	u32 fcr, ecc1;
+	const uint32_t fcr_addr = info->aemif + NANDFCR;
+	const uint32_t ecc1_addr = info->aemif + NANDFECC + info->chipsel;
+	uint32_t fcr, ecc1;
 
 	/* Write contiguous ECC bytes starting at specified offset.
 	 * NOTE: Linux reserves twice as many bytes as we need; and
@@ -425,8 +425,8 @@ static int davinci_write_page_ecc1(struct nand_device_s *nand, u32 page,
  * is read first, so its ECC data can be used incrementally), but the
  * manufacturer bad block markers are safe.  Contrast:  old "infix" style.
  */
-static int davinci_write_page_ecc4(struct nand_device_s *nand, u32 page,
-		uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+static int davinci_write_page_ecc4(struct nand_device_s *nand, uint32_t page,
+		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	static const uint8_t ecc512[] = {
 		0, 1, 2, 3, 4, /* 5== mfr badblock */
@@ -452,9 +452,9 @@ static int davinci_write_page_ecc4(struct nand_device_s *nand, u32 page,
 	struct davinci_nand *info = nand->controller_priv;
 	const uint8_t *l;
 	target_t *target = info->target;
-	const u32 fcr_addr = info->aemif + NANDFCR;
-	const u32 ecc4_addr = info->aemif + NAND4BITECC;
-	u32 fcr, ecc4;
+	const uint32_t fcr_addr = info->aemif + NANDFCR;
+	const uint32_t ecc4_addr = info->aemif + NAND4BITECC;
+	uint32_t fcr, ecc4;
 
 	/* Use the same ECC layout Linux uses.  For small page chips
 	 * it's a bit cramped.
@@ -485,7 +485,7 @@ static int davinci_write_page_ecc4(struct nand_device_s *nand, u32 page,
 	fcr |= (1 << 12) | (info->chipsel << 4);
 
 	do {
-		u32 raw_ecc[4], *p;
+		uint32_t raw_ecc[4], *p;
 		int i;
 
 		/* start 4bit ecc on csX */
@@ -527,14 +527,14 @@ static int davinci_write_page_ecc4(struct nand_device_s *nand, u32 page,
  * older second stage loaders (ABL/U-Boot, etc) or other system software
  * (MVL 4.x/5.x kernels, filesystems, etc) may need it more generally.
  */
-static int davinci_write_page_ecc4infix(struct nand_device_s *nand, u32 page,
-		uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+static int davinci_write_page_ecc4infix(struct nand_device_s *nand, uint32_t page,
+		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;
-	const u32 fcr_addr = info->aemif + NANDFCR;
-	const u32 ecc4_addr = info->aemif + NAND4BITECC;
-	u32 fcr, ecc4;
+	const uint32_t fcr_addr = info->aemif + NANDFCR;
+	const uint32_t ecc4_addr = info->aemif + NAND4BITECC;
+	uint32_t fcr, ecc4;
 
 	davinci_write_pagecmd(nand, NAND_CMD_SEQIN, page);
 
@@ -546,7 +546,7 @@ static int davinci_write_page_ecc4infix(struct nand_device_s *nand, u32 page,
 	fcr |= (1 << 12) | (info->chipsel << 4);
 
 	do {
-		u32 raw_ecc[4], *p;
+		uint32_t raw_ecc[4], *p;
 		uint8_t *l;
 		int i;
 
@@ -584,8 +584,8 @@ static int davinci_write_page_ecc4infix(struct nand_device_s *nand, u32 page,
 	return davinci_writepage_tail(nand, NULL, 0);
 }
 
-static int davinci_read_page_ecc4infix(struct nand_device_s *nand, u32 page,
-		uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size)
+static int davinci_read_page_ecc4infix(struct nand_device_s *nand, uint32_t page,
+		uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
 	davinci_write_pagecmd(nand, NAND_CMD_READ0, page);
 

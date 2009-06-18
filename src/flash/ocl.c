@@ -30,7 +30,7 @@ static int ocl_register_commands(struct command_context_s *cmd_ctx);
 static int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int ocl_erase(struct flash_bank_s *bank, int first, int last);
 static int ocl_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
+static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 static int ocl_probe(struct flash_bank_s *bank);
 static int ocl_erase_check(struct flash_bank_s *bank);
 static int ocl_protect_check(struct flash_bank_s *bank);
@@ -103,7 +103,7 @@ static int ocl_erase(struct flash_bank_s *bank, int first, int last)
 {
 	ocl_priv_t *ocl = bank->driver_priv;
 	int retval;
-	u32 dcc_buffer[3];
+	uint32_t dcc_buffer[3];
 
 	/* check preconditions */
 	if (bank->num_sectors == 0)
@@ -159,15 +159,15 @@ static int ocl_protect(struct flash_bank_s *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
+static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	ocl_priv_t *ocl = bank->driver_priv;
 	int retval;
-	u32 *dcc_buffer;
-	u32 *dcc_bufptr;
+	uint32_t *dcc_buffer;
+	uint32_t *dcc_bufptr;
 	int byteofs;
 	int runlen;
-	u32 chksum;
+	uint32_t chksum;
 
 	int i;
 
@@ -182,7 +182,7 @@ static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32
 	}
 
 	/* allocate buffer for max. ocl buffer + overhead */
-	dcc_buffer = malloc(sizeof(u32)*(ocl->buflen/4+3));
+	dcc_buffer = malloc(sizeof(uint32_t)*(ocl->buflen/4+3));
 
 	while (count)
 	{
@@ -270,7 +270,7 @@ static int ocl_probe(struct flash_bank_s *bank)
 {
 	ocl_priv_t *ocl = bank->driver_priv;
 	int retval;
-	u32 dcc_buffer[1];
+	uint32_t dcc_buffer[1];
 	int sectsize;
 	int i;
 

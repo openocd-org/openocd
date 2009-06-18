@@ -25,28 +25,28 @@
 typedef struct stellaris_flash_bank_s
 {
 	/* chip id register */
-	u32 did0;
-	u32 did1;
-	u32 dc0;
-	u32 dc1;
+	uint32_t did0;
+	uint32_t did1;
+	uint32_t dc0;
+	uint32_t dc1;
 
 	char * target_name;
 
-	u32 sramsiz;
-	u32 flshsz;
+	uint32_t sramsiz;
+	uint32_t flshsz;
 	/* flash geometry */
-	u32 num_pages;
-	u32 pagesize;
-	u32 pages_in_lockregion;
+	uint32_t num_pages;
+	uint32_t pagesize;
+	uint32_t pages_in_lockregion;
 
 	/* nv memory bits */
 	uint16_t num_lockbits;
-	u32 lockbits;
+	uint32_t lockbits;
 
 	/* main clock status */
-	u32 rcc;
+	uint32_t rcc;
 	uint8_t  mck_valid;
-	u32 mck_freq;
+	uint32_t mck_freq;
 } stellaris_flash_bank_t;
 
 /* STELLARIS control registers */

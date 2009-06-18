@@ -62,11 +62,11 @@ typedef struct cfi_flash_bank_s
 	uint8_t status_poll_mask;
 
 	/* flash geometry */
-	u32 dev_size;
+	uint32_t dev_size;
 	uint16_t interface_desc;
 	uint16_t max_buf_write_size;
 	uint8_t num_erase_regions;
-	u32 *erase_region_info;
+	uint32_t *erase_region_info;
 
 	void *pri_ext;
 	void *alt_ext;
@@ -81,7 +81,7 @@ typedef struct cfi_intel_pri_ext_s
 	char pri[3];
 	uint8_t major_version;
 	uint8_t minor_version;
-	u32 feature_support;
+	uint32_t feature_support;
 	uint8_t suspend_cmd_support;
 	uint16_t blk_status_reg_mask;
 	uint8_t vcc_optimal;
@@ -113,8 +113,8 @@ typedef struct cfi_spansion_pri_ext_s
 	uint8_t  VppMax;
 	uint8_t  TopBottom;
 	int _reversed_geometry;
-	u32 _unlock1;
-	u32 _unlock2;
+	uint32_t _unlock1;
+	uint32_t _unlock2;
 } cfi_spansion_pri_ext_t;
 
 /* Atmel primary extended query table as defined for and used by
@@ -138,8 +138,8 @@ enum {
 
 typedef struct cfi_unlock_addresses_s
 {
-	u32 unlock1;
-	u32 unlock2;
+	uint32_t unlock1;
+	uint32_t unlock2;
 } cfi_unlock_addresses_t;
 
 typedef struct cfi_fixup_s

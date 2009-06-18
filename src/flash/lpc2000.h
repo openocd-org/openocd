@@ -26,12 +26,12 @@ typedef struct lpc2000_flash_bank_s
 {
 	int variant;
 	struct working_area_s *iap_working_area;
-	u32 cclk;
+	uint32_t cclk;
 	int cmd51_dst_boundary;
 	int cmd51_can_256b;
 	int cmd51_can_8192b;
 	int calc_checksum;
-	u32 cmd51_max_buffer;
+	uint32_t cmd51_max_buffer;
 } lpc2000_flash_bank_t;
 
 enum lpc2000_status_codes

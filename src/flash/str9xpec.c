@@ -32,7 +32,7 @@ static int str9xpec_register_commands(struct command_context_s *cmd_ctx);
 static int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int str9xpec_erase(struct flash_bank_s *bank, int first, int last);
 static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
+static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 static int str9xpec_probe(struct flash_bank_s *bank);
 static int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int str9xpec_protect_check(struct flash_bank_s *bank);
@@ -99,7 +99,7 @@ static int str9xpec_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int str9xpec_set_instr(jtag_tap_t *tap, u32 new_instr, tap_state_t end_state)
+int str9xpec_set_instr(jtag_tap_t *tap, uint32_t new_instr, tap_state_t end_state)
 {
 	if( tap == NULL ){
 		return ERROR_TARGET_INVALID;
@@ -240,7 +240,7 @@ static int str9xpec_build_block_list(struct flash_bank_s *bank)
 	int i;
 	int num_sectors;
 	int b0_sectors = 0, b1_sectors = 0;
-	u32 offset = 0;
+	uint32_t offset = 0;
 	int b1_size = 0x2000;
 
 	switch (bank->size)
@@ -273,7 +273,7 @@ static int str9xpec_build_block_list(struct flash_bank_s *bank)
 
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
-	str9xpec_info->sector_bits = malloc(sizeof(u32) * num_sectors);
+	str9xpec_info->sector_bits = malloc(sizeof(uint32_t) * num_sectors);
 
 	num_sectors = 0;
 
@@ -625,14 +625,14 @@ static int str9xpec_set_address(struct flash_bank_s *bank, uint8_t sector)
 	return ERROR_OK;
 }
 
-static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
+static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	str9xpec_flash_controller_t *str9xpec_info = bank->driver_priv;
-	u32 dwords_remaining = (count / 8);
-	u32 bytes_remaining = (count & 0x00000007);
-	u32 bytes_written = 0;
+	uint32_t dwords_remaining = (count / 8);
+	uint32_t bytes_remaining = (count & 0x00000007);
+	uint32_t bytes_written = 0;
 	uint8_t status;
-	u32 check_address = offset;
+	uint32_t check_address = offset;
 	jtag_tap_t *tap;
 	scan_field_t field;
 	uint8_t *scanbuf;
@@ -658,8 +658,8 @@ static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		u32 sec_start = bank->sectors[i].offset;
-		u32 sec_end = sec_start + bank->sectors[i].size;
+		uint32_t sec_start = bank->sectors[i].offset;
+		uint32_t sec_end = sec_start + bank->sectors[i].size;
 
 		/* check if destination falls within the current sector */
 		if ((check_address >= sec_start) && (check_address < sec_end))
@@ -799,7 +799,7 @@ static int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, ch
 	scan_field_t field;
 	uint8_t *buffer = NULL;
 	jtag_tap_t *tap;
-	u32 idcode;
+	uint32_t idcode;
 	str9xpec_flash_controller_t *str9xpec_info = NULL;
 
 	if (argc < 1)
