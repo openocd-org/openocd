@@ -35,7 +35,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_m
 	if (tap==NULL)
 		return ERROR_FAIL;
 
-	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (u32)new_instr)
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (uint32_t)new_instr)
 	{
 		scan_field_t field;
 		uint8_t t[4];
@@ -56,7 +56,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_m
 	return ERROR_OK;
 }
 
-int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode)
+int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, uint32_t *idcode)
 {
 	scan_field_t field;
 
@@ -83,7 +83,7 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, u32 *idcode)
 	return ERROR_OK;
 }
 
-int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode)
+int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, uint32_t *impcode)
 {
 	scan_field_t field;
 
@@ -110,7 +110,7 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, u32 *impcode)
 	return ERROR_OK;
 }
 
-int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
+int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, uint32_t *data)
 {
 	jtag_tap_t *tap;
 	tap  = ejtag_info->tap;
@@ -148,7 +148,7 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, u32 *data)
 
 int mips_ejtag_step_enable(mips_ejtag_t *ejtag_info)
 {
-	u32 code[] = {
+	uint32_t code[] = {
 			MIPS32_MTC0(1,31,0),			/* move $1 to COP0 DeSave */
 			MIPS32_MFC0(1,23,0),			/* move COP0 Debug to $1 */
 			MIPS32_ORI(1,1,0x0100),			/* set SSt bit in debug reg */
@@ -166,7 +166,7 @@ int mips_ejtag_step_enable(mips_ejtag_t *ejtag_info)
 }
 int mips_ejtag_step_disable(mips_ejtag_t *ejtag_info)
 {
-	u32 code[] = {
+	uint32_t code[] = {
 			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
 			MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)), 	/* $15 = MIPS32_PRACC_STACK */
 			MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
@@ -200,7 +200,7 @@ int mips_ejtag_config_step(mips_ejtag_t *ejtag_info, int enable_step)
 
 int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 {
-	u32 ejtag_ctrl;
+	uint32_t ejtag_ctrl;
 	jtag_set_end_state(TAP_IDLE);
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 
@@ -220,7 +220,7 @@ int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 
 int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info)
 {
-	u32 inst;
+	uint32_t inst;
 	inst = MIPS32_DRET;
 	
 	/* execute our dret instruction */
@@ -229,10 +229,10 @@ int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info)
 	return ERROR_OK;
 }
 
-int mips_ejtag_read_debug(mips_ejtag_t *ejtag_info, u32* debug_reg)
+int mips_ejtag_read_debug(mips_ejtag_t *ejtag_info, uint32_t* debug_reg)
 {
 	/* read ejtag ECR */
-	u32 code[] = {
+	uint32_t code[] = {
 			MIPS32_MTC0(15,31,0),							/* move $15 to COP0 DeSave */
 			MIPS32_LUI(15,UPPER16(MIPS32_PRACC_STACK)), 	/* $15 = MIPS32_PRACC_STACK */
 			MIPS32_ORI(15,15,LOWER16(MIPS32_PRACC_STACK)),
@@ -258,7 +258,7 @@ int mips_ejtag_read_debug(mips_ejtag_t *ejtag_info, u32* debug_reg)
 
 int mips_ejtag_init(mips_ejtag_t *ejtag_info)
 {
-	u32 ejtag_version;
+	uint32_t ejtag_version;
 
 	mips_ejtag_get_impcode(ejtag_info, &ejtag_info->impcode);
 	LOG_DEBUG("impcode: 0x%8.8x", ejtag_info->impcode);

@@ -25,7 +25,7 @@
 #include "trace.h"
 #include "target.h"
 
-int trace_point(target_t *target, u32 number)
+int trace_point(target_t *target, uint32_t number)
 {
 	trace_t *trace = target->trace_info;
 
@@ -54,7 +54,7 @@ static int handle_trace_point_command(struct command_context_s *cmd_ctx, char *c
 	
 	if (argc == 0)
 	{
-		u32 i;
+		uint32_t i;
 		
 		for (i = 0; i < trace->num_trace_points; i++)
 		{
@@ -113,15 +113,15 @@ static int handle_trace_history_command(struct command_context_s *cmd_ctx, char 
 			free(trace->trace_history);
 		
 		trace->trace_history_size = strtoul(args[0], NULL, 0);
-		trace->trace_history = malloc(sizeof(u32) * trace->trace_history_size);
+		trace->trace_history = malloc(sizeof(uint32_t) * trace->trace_history_size);
 		
 		command_print(cmd_ctx, "new trace history size: %i", trace->trace_history_size);
 	}
 	else
 	{
-		u32 i;
-		u32 first = 0;
-		u32 last = trace->trace_history_pos;
+		uint32_t i;
+		uint32_t first = 0;
+		uint32_t last = trace->trace_history_pos;
 
 		if ( !trace->trace_history_size ) {
 			command_print(cmd_ctx, "trace history buffer is not allocated");
@@ -137,7 +137,7 @@ static int handle_trace_history_command(struct command_context_s *cmd_ctx, char 
 		{
 			if (trace->trace_history[i % trace->trace_history_size] < trace->num_trace_points)
 			{
-				u32 address;
+				uint32_t address;
 				address = trace->trace_points[trace->trace_history[i % trace->trace_history_size]].address;
 				command_print(cmd_ctx, "trace point %i: 0x%8.8x",
 					trace->trace_history[i % trace->trace_history_size],

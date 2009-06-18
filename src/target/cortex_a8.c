@@ -104,7 +104,7 @@ int cortex_a8_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 	return ERROR_OK;
 }
 
-int cortex_a8_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int cortex_a8_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -136,7 +136,7 @@ int cortex_a8_read_memory(struct target_s *target, u32 address, u32 size, u32 co
 	return retval;
 }
 
-int cortex_a8_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int cortex_a8_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -187,7 +187,7 @@ int cortex_a8_handle_target_request(void *priv)
 		/* check if we have data */
 		if (ctrl & (1 << 0))
 		{
-			u32 request;
+			uint32_t request;
 
 			/* we assume target is quick enough */
 			request = data;

@@ -44,7 +44,7 @@ static int etb_get_reg(reg_t *reg);
 
 static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-static int etb_set_instr(etb_t *etb, u32 new_instr)
+static int etb_set_instr(etb_t *etb, uint32_t new_instr)
 {
 	jtag_tap_t *tap;
 
@@ -71,7 +71,7 @@ static int etb_set_instr(etb_t *etb, u32 new_instr)
 	return ERROR_OK;
 }
 
-static int etb_scann(etb_t *etb, u32 new_scan_chain)
+static int etb_scann(etb_t *etb, uint32_t new_scan_chain)
 {
 	if (etb->cur_scan_chain != new_scan_chain)
 	{
@@ -160,11 +160,11 @@ static int etb_get_reg(reg_t *reg)
 
 static void etb_getbuf(uint8_t *in)
 {
-	*((u32 *)in)=buf_get_u32(in, 0, 32);
+	*((uint32_t *)in)=buf_get_u32(in, 0, 32);
 }
 
 
-static int etb_read_ram(etb_t *etb, u32 *data, int num_frames)
+static int etb_read_ram(etb_t *etb, uint32_t *data, int num_frames)
 {
 	scan_field_t fields[3];
 	int i;
@@ -275,7 +275,7 @@ int etb_read_reg(reg_t *reg)
 	return etb_read_reg_w_check(reg, NULL, NULL);
 }
 
-int etb_set_reg(reg_t *reg, u32 value)
+int etb_set_reg(reg_t *reg, uint32_t value)
 {
 	int retval;
 
@@ -306,7 +306,7 @@ int etb_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-int etb_write_reg(reg_t *reg, u32 value)
+int etb_write_reg(reg_t *reg, uint32_t value)
 {
 	etb_reg_t *etb_reg = reg->arch_info;
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
@@ -491,7 +491,7 @@ static int etb_read_trace(etm_context_t *etm_ctx)
 	etb_t *etb = etm_ctx->capture_driver_priv;
 	int first_frame = 0;
 	int num_frames = etb->ram_depth;
-	u32 *trace_data = NULL;
+	uint32_t *trace_data = NULL;
 	int i, j;
 
 	etb_read_reg(&etb->reg_cache->reg_list[ETB_STATUS]);
@@ -514,7 +514,7 @@ static int etb_read_trace(etm_context_t *etm_ctx)
 	etb_write_reg(&etb->reg_cache->reg_list[ETB_RAM_READ_POINTER], first_frame);
 
 	/* read data into temporary array for unpacking */
-	trace_data = malloc(sizeof(u32) * num_frames);
+	trace_data = malloc(sizeof(uint32_t) * num_frames);
 	etb_read_ram(etb, trace_data, num_frames);
 
 	if (etm_ctx->trace_depth > 0)
@@ -639,8 +639,8 @@ static int etb_read_trace(etm_context_t *etm_ctx)
 static int etb_start_capture(etm_context_t *etm_ctx)
 {
 	etb_t *etb = etm_ctx->capture_driver_priv;
-	u32 etb_ctrl_value = 0x1;
-	u32 trigger_count;
+	uint32_t etb_ctrl_value = 0x1;
+	uint32_t trigger_count;
 
 	if ((etm_ctx->portmode & ETM_PORT_MODE_MASK) == ETM_PORT_DEMUXED)
 	{

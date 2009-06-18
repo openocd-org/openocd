@@ -32,7 +32,7 @@
 
 static int oocd_trace_register_commands(struct command_context_s *cmd_ctx);
 
-static int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
+static int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, uint32_t *value)
 {
 	size_t bytes_written, bytes_read, bytes_to_read;
 	uint8_t cmd;
@@ -52,7 +52,7 @@ static int oocd_trace_read_reg(oocd_trace_t *oocd_trace, int reg, u32 *value)
 	return ERROR_OK;
 }
 
-static int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
+static int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, uint32_t value)
 {
 	size_t bytes_written;
 	uint8_t data[5];
@@ -69,7 +69,7 @@ static int oocd_trace_write_reg(oocd_trace_t *oocd_trace, int reg, u32 value)
 	return ERROR_OK;
 }
 
-static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, uint8_t *data, u32 address, u32 size)
+static int oocd_trace_read_memory(oocd_trace_t *oocd_trace, uint8_t *data, uint32_t address, uint32_t size)
 {
 	size_t bytes_written, bytes_to_read;
 	ssize_t bytes_read;
@@ -146,7 +146,7 @@ static int oocd_trace_init(etm_context_t *etm_ctx)
 static trace_status_t oocd_trace_status(etm_context_t *etm_ctx)
 {
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
-	u32 status;
+	uint32_t status;
 
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
 
@@ -178,11 +178,11 @@ static trace_status_t oocd_trace_status(etm_context_t *etm_ctx)
 static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 {
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
-	u32 status, address;
-	u32 first_frame = 0x0;
-	u32 num_frames = 1048576;
+	uint32_t status, address;
+	uint32_t first_frame = 0x0;
+	uint32_t num_frames = 1048576;
 	uint8_t *trace_data;
-	u32 i;
+	uint32_t i;
 
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_STATUS, &status);
 	oocd_trace_read_reg(oocd_trace, OOCD_TRACE_ADDRESS, &address);
@@ -236,8 +236,8 @@ static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 static int oocd_trace_start_capture(etm_context_t *etm_ctx)
 {
 	oocd_trace_t *oocd_trace = etm_ctx->capture_driver_priv;
-	u32 control = 0x1;	/* 0x1: enabled */
-	u32 trigger_count;
+	uint32_t control = 0x1;	/* 0x1: enabled */
+	uint32_t trigger_count;
 
 	if (((etm_ctx->portmode & ETM_PORT_MODE_MASK) != ETM_PORT_NORMAL)
 		|| ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) != ETM_PORT_4BIT))
@@ -333,7 +333,7 @@ static int handle_oocd_trace_status_command(struct command_context_s *cmd_ctx, c
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	oocd_trace_t *oocd_trace;
-	u32 status;
+	uint32_t status;
 
 	target = get_current_target(cmd_ctx);
 

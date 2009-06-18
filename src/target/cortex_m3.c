@@ -46,9 +46,9 @@ void cortex_m3_enable_watchpoints(struct target_s *target);
 int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp);
 int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int cortex_m3_quit(void);
-int cortex_m3_load_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 *value);
-int cortex_m3_store_core_reg_u32(target_t *target, enum armv7m_regtype type, u32 num, u32 value);
-int cortex_m3_target_request_data(target_t *target, u32 size, uint8_t *buffer);
+int cortex_m3_load_core_reg_u32(target_t *target, enum armv7m_regtype type, uint32_t num, uint32_t *value);
+int cortex_m3_store_core_reg_u32(target_t *target, enum armv7m_regtype type, uint32_t num, uint32_t value);
+int cortex_m3_target_request_data(target_t *target, uint32_t size, uint8_t *buffer);
 int cortex_m3_examine(struct target_s *target);
 
 #ifdef ARMV7_GDB_HACKS
@@ -95,10 +95,10 @@ target_type_t cortexm3_target =
 	.quit = cortex_m3_quit
 };
 
-int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int regnum)
+int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp, uint32_t *value, int regnum)
 {
 	int retval;
-	u32 dcrdr;
+	uint32_t dcrdr;
 
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we gave to save/restore the DCB_DCRDR when used */
@@ -120,10 +120,10 @@ int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp, u32 *value, int re
 	return retval;
 }
 
-int cortexm3_dap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int regnum)
+int cortexm3_dap_write_coreregister_u32(swjdp_common_t *swjdp, uint32_t value, int regnum)
 {
 	int retval;
-	u32 dcrdr;
+	uint32_t dcrdr;
 
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we gave to save/restore the DCB_DCRDR when used */
@@ -146,7 +146,7 @@ int cortexm3_dap_write_coreregister_u32(swjdp_common_t *swjdp, u32 value, int re
 }
 
 
-int cortex_m3_write_debug_halt_mask(target_t *target, u32 mask_on, u32 mask_off)
+int cortex_m3_write_debug_halt_mask(target_t *target, uint32_t mask_on, uint32_t mask_off)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -186,7 +186,7 @@ int cortex_m3_single_step_core(target_t *target)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	u32 dhcsr_save;
+	uint32_t dhcsr_save;
 
 	/* backup dhcsr reg */
 	dhcsr_save = cortex_m3->dcb_dhcsr;
@@ -204,12 +204,12 @@ int cortex_m3_single_step_core(target_t *target)
 	return ERROR_OK;
 }
 
-int cortex_m3_exec_opcode(target_t *target,u32 opcode, int len /* MODE, r0_invalue, &r0_outvalue */ )
+int cortex_m3_exec_opcode(target_t *target,uint32_t opcode, int len /* MODE, r0_invalue, &r0_outvalue */ )
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	u32 savedram;
+	uint32_t savedram;
 	int retvalue;
 
 	mem_ap_read_u32(swjdp, 0x20000000, &savedram);
@@ -224,13 +224,13 @@ int cortex_m3_exec_opcode(target_t *target,u32 opcode, int len /* MODE, r0_inval
 
 #if 0
 /* Enable interrupts */
-int cortex_m3_cpsie(target_t *target, u32 IF)
+int cortex_m3_cpsie(target_t *target, uint32_t IF)
 {
 	return cortex_m3_exec_opcode(target, ARMV7M_T_CPSIE(IF), 2);
 }
 
 /* Disable interrupts */
-int cortex_m3_cpsid(target_t *target, u32 IF)
+int cortex_m3_cpsid(target_t *target, uint32_t IF)
 {
 	return cortex_m3_exec_opcode(target, ARMV7M_T_CPSID(IF), 2);
 }
@@ -239,7 +239,7 @@ int cortex_m3_cpsid(target_t *target, u32 IF)
 int cortex_m3_endreset_event(target_t *target)
 {
 	int i;
-	u32 dcb_demcr;
+	uint32_t dcb_demcr;
 
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -323,7 +323,7 @@ int cortex_m3_examine_debug_reason(target_t *target)
 
 int cortex_m3_examine_exception_reason(target_t *target)
 {
-	u32 shcsr, except_sr, cfsr = -1, except_ar = -1;
+	uint32_t shcsr, except_sr, cfsr = -1, except_ar = -1;
 
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -374,7 +374,7 @@ int cortex_m3_examine_exception_reason(target_t *target)
 int cortex_m3_debug_entry(target_t *target)
 {
 	int i;
-	u32 xPSR;
+	uint32_t xPSR;
 	int retval;
 
 	/* get pointers to arch-specific information */
@@ -443,7 +443,7 @@ int cortex_m3_debug_entry(target_t *target)
 
 	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%x, target->state: %s",
 		armv7m_mode_strings[armv7m->core_mode],
-		*(u32*)(armv7m->core_cache->reg_list[15].value),
+		*(uint32_t*)(armv7m->core_cache->reg_list[15].value),
 		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
 
 	if (armv7m->post_debug_entry)
@@ -574,7 +574,7 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 	armv7m_common_t *armv7m = target->arch_info;
 	cortex_m3_common_t *cortex_m3 = armv7m->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	u32 dcb_dhcsr = 0;
+	uint32_t dcb_dhcsr = 0;
 	int retval, timeout = 0;
 
 	/* Enter debug state on reset, cf. end_reset_event() */
@@ -609,12 +609,12 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-int cortex_m3_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
+int cortex_m3_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 	breakpoint_t *breakpoint = NULL;
-	u32 resume_pc;
+	uint32_t resume_pc;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -695,7 +695,7 @@ int cortex_m3_resume(struct target_s *target, int current, u32 address, int hand
 }
 
 /* int irqstepcount=0; */
-int cortex_m3_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
+int cortex_m3_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -797,7 +797,7 @@ int cortex_m3_assert_reset(target_t *target)
 		/* get revision of lm3s target, only early silicon has this issue
 		 * Fury Rev B, DustDevil Rev B, Tempest all ok */
 
-		u32 did0;
+		uint32_t did0;
 
 		if (target_read_u32(target, 0x400fe000, &did0) == ERROR_OK)
 		{
@@ -839,7 +839,7 @@ int cortex_m3_assert_reset(target_t *target)
 		{
 			/* I do not know why this is necessary, but it fixes strange effects
 			 * (step/resume cause a NMI after reset) on LM3S6918 -- Michael Schwingen */
-			u32 tmp;
+			uint32_t tmp;
 			mem_ap_read_atomic_u32(swjdp, NVIC_AIRCR, &tmp);
 		}
 	}
@@ -887,7 +887,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval;
 	int fp_num=0;
-	u32 hilo;
+	uint32_t hilo;
 
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -1076,7 +1076,7 @@ int cortex_m3_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoin
 int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
 	int dwt_num=0;
-	u32 mask, temp;
+	uint32_t mask, temp;
 
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -1218,7 +1218,7 @@ void cortex_m3_enable_watchpoints(struct target_s *target)
 	}
 }
 
-int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype type, u32 num, u32 * value)
+int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t * value)
 {
 	int retval;
 	/* get pointers to arch-specific information */
@@ -1271,10 +1271,10 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 	return ERROR_OK;
 }
 
-int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype type, u32 num, u32 value)
+int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t value)
 {
 	int retval;
-	u32 reg;
+	uint32_t reg;
 
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -1339,7 +1339,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	return ERROR_OK;
 }
 
-int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int cortex_m3_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -1371,7 +1371,7 @@ int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 co
 	return retval;
 }
 
-int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int cortex_m3_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -1401,7 +1401,7 @@ int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 c
 	return retval;
 }
 
-int cortex_m3_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer)
+int cortex_m3_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
 	return cortex_m3_write_memory(target, address, 4, count, buffer);
 }
@@ -1420,7 +1420,7 @@ int cortex_m3_init_target(struct command_context_s *cmd_ctx, struct target_s *ta
 int cortex_m3_examine(struct target_s *target)
 {
 	int retval;
-	u32 cpuid, fpcr, dwtcr, ictr;
+	uint32_t cpuid, fpcr, dwtcr, ictr;
 	int i;
 
 	/* get pointers to arch-specific information */
@@ -1508,13 +1508,13 @@ int cortex_m3_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 	return ERROR_OK;
 }
 
-int cortex_m3_target_request_data(target_t *target, u32 size, uint8_t *buffer)
+int cortex_m3_target_request_data(target_t *target, uint32_t size, uint8_t *buffer)
 {
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 	uint8_t data;
 	uint8_t ctrl;
-	u32 i;
+	uint32_t i;
 
 	for (i = 0; i < (size * 4); i++)
 	{
@@ -1546,7 +1546,7 @@ int cortex_m3_handle_target_request(void *priv)
 		/* check if we have data */
 		if (ctrl & (1 << 0))
 		{
-			u32 request;
+			uint32_t request;
 
 			/* we assume target is quick enough */
 			request = data;

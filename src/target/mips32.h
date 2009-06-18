@@ -41,17 +41,17 @@ typedef struct mips32_comparator_s
 {
 	int used;
 	//int type;
-	u32 bp_value;
-	u32 reg_address;
+	uint32_t bp_value;
+	uint32_t reg_address;
 } mips32_comparator_t;
 
 typedef struct mips32_common_s
 {
-	u32 common_magic;
+	uint32_t common_magic;
 	void *arch_info;
 	reg_cache_t *core_cache;
 	mips_ejtag_t ejtag_info;
-	u32 core_regs[MIPS32NUMCOREREGS];
+	uint32_t core_regs[MIPS32NUMCOREREGS];
 	
 	int bp_scanned;
 	int num_inst_bpoints;
@@ -68,7 +68,7 @@ typedef struct mips32_common_s
 
 typedef struct mips32_core_reg_s
 {
-	u32 num;
+	uint32_t num;
 	struct target_s *target;
 	mips32_common_t *mips32_common;
 } mips32_core_reg_t;
@@ -129,7 +129,7 @@ extern int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, jtag
 extern int mips32_restore_context(target_t *target);
 extern int mips32_save_context(target_t *target);
 extern reg_cache_t *mips32_build_reg_cache(target_t *target);
-extern int mips32_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info);
+extern int mips32_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info);
 extern int mips32_configure_break_unit(struct target_s *target);
 extern int mips32_enable_interrupts(struct target_s *target, int enable);
 extern int mips32_examine(struct target_s *target);

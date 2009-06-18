@@ -39,8 +39,8 @@ int avr_quit(void);
 int avr_arch_state(struct target_s *target);
 int avr_poll(target_t *target);
 int avr_halt(target_t *target);
-int avr_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
-int avr_step(struct target_s *target, int current, u32 address, int handle_breakpoints);
+int avr_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
+int avr_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints);
 
 int avr_assert_reset(target_t *target);
 int avr_deassert_reset(target_t *target);
@@ -48,7 +48,7 @@ int avr_soft_reset_halt(struct target_s *target);
 
 /* IR and DR functions */
 int avr_jtag_sendinstr(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out);
-int avr_jtag_senddat(jtag_tap_t *tap, u32 *dr_in, u32 dr_out, int len);
+int avr_jtag_senddat(jtag_tap_t *tap, uint32_t *dr_in, uint32_t dr_out, int len);
 
 int mcu_write_ir(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, int rti);
 int mcu_write_dr(jtag_tap_t *tap, uint8_t *dr_in, uint8_t *dr_out, int dr_len, int rti);
@@ -56,8 +56,8 @@ int mcu_write_ir_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len,
 int mcu_write_dr_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int dr_len, int rti);
 int mcu_write_ir_u16(jtag_tap_t *tap, uint16_t *ir_in, uint16_t ir_out, int ir_len, int rti);
 int mcu_write_dr_u16(jtag_tap_t *tap, uint16_t *ir_in, uint16_t ir_out, int dr_len, int rti);
-int mcu_write_ir_u32(jtag_tap_t *tap, u32 *ir_in, u32 ir_out, int ir_len, int rti);
-int mcu_write_dr_u32(jtag_tap_t *tap, u32 *ir_in, u32 ir_out, int dr_len, int rti);
+int mcu_write_ir_u32(jtag_tap_t *tap, uint32_t *ir_in, uint32_t ir_out, int ir_len, int rti);
+int mcu_write_dr_u32(jtag_tap_t *tap, uint32_t *ir_in, uint32_t ir_out, int dr_len, int rti);
 int mcu_execute_queue(void);
 
 target_type_t avr_target =
@@ -153,13 +153,13 @@ int avr_halt(target_t *target)
 	return ERROR_OK;
 }
 
-int avr_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
+int avr_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
 }
 
-int avr_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
+int avr_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
 {
 	LOG_DEBUG("%s", __FUNCTION__);
 	return ERROR_OK;
@@ -187,7 +187,7 @@ int avr_soft_reset_halt(struct target_s *target)
 	return ERROR_OK;
 }
 
-int avr_jtag_senddat(jtag_tap_t *tap, u32* dr_in, u32 dr_out, int len)
+int avr_jtag_senddat(jtag_tap_t *tap, uint32_t* dr_in, uint32_t dr_out, int len)
 {
 	return mcu_write_dr_u32(tap, dr_in, dr_out, len, 1);
 }
@@ -297,7 +297,7 @@ int mcu_write_dr_u16(jtag_tap_t *tap, uint16_t *dr_in, uint16_t dr_out, int dr_l
 	return ERROR_OK;
 }
 
-int mcu_write_ir_u32(jtag_tap_t *tap, u32 *ir_in, u32 ir_out, int ir_len, int rti)
+int mcu_write_ir_u32(jtag_tap_t *tap, uint32_t *ir_in, uint32_t ir_out, int ir_len, int rti)
 {
 	if (ir_len > 32)
 	{
@@ -310,7 +310,7 @@ int mcu_write_ir_u32(jtag_tap_t *tap, u32 *ir_in, u32 ir_out, int ir_len, int rt
 	return ERROR_OK;
 }
 
-int mcu_write_dr_u32(jtag_tap_t *tap, u32 *dr_in, u32 dr_out, int dr_len, int rti)
+int mcu_write_dr_u32(jtag_tap_t *tap, uint32_t *dr_in, uint32_t dr_out, int dr_len, int rti)
 {
 	if (dr_len > 32)
 	{

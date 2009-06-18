@@ -49,8 +49,8 @@ typedef enum image_type
 
 typedef struct image_section_s
 {
-	u32 base_address;
-	u32 size;
+	uint32_t base_address;
+	uint32_t size;
 	int flags;
 	void *private;		/* private data */
 } image_section_t;
@@ -64,7 +64,7 @@ typedef struct image_s
 	int base_address_set;	/* whether the image has a base address set (for relocation purposes) */
 	int base_address;		/* base address, if one is set */
 	int start_address_set;	/* whether the image has a start address (entry point) associated */
-	u32 start_address;		/* start address, if one is set */
+	uint32_t start_address;		/* start address, if one is set */
 } image_t;
 
 typedef struct image_binary_s
@@ -82,7 +82,7 @@ typedef struct image_memory_s
 {
 	struct target_s *target;
 	uint8_t *cache;
-	u32 cache_address;
+	uint32_t cache_address;
 } image_memory_t;
 
 typedef struct fileio_elf_s
@@ -90,7 +90,7 @@ typedef struct fileio_elf_s
 	fileio_t fileio;
 	Elf32_Ehdr *header;
 	Elf32_Phdr *segments;
-	u32 segment_count;
+	uint32_t segment_count;
 	uint8_t endianness;
 } image_elf_t;
 
@@ -101,11 +101,11 @@ typedef struct image_mot_s
 } image_mot_t;
 
 extern int image_open(image_t *image, char *url, char *type_string);
-extern int image_read_section(image_t *image, int section, u32 offset, u32 size, uint8_t *buffer, u32 *size_read);
+extern int image_read_section(image_t *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read);
 extern void image_close(image_t *image);
-extern int image_add_section(image_t *image, u32 base, u32 size, int flags, uint8_t *data);
+extern int image_add_section(image_t *image, uint32_t base, uint32_t size, int flags, uint8_t *data);
 
-extern int image_calculate_checksum(uint8_t* buffer, u32 nbytes, u32* checksum);
+extern int image_calculate_checksum(uint8_t* buffer, uint32_t nbytes, uint32_t* checksum);
 
 #define ERROR_IMAGE_FORMAT_ERROR	(-1400)
 #define ERROR_IMAGE_TYPE_UNKNOWN	(-1401)

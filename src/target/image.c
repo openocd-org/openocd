@@ -45,7 +45,7 @@ static int autodetect_image_type(image_t *image, char *url)
 {
 	int retval;
 	fileio_t fileio;
-	u32 read_bytes;
+	uint32_t read_bytes;
 	uint8_t buffer[9];
 
 	/* read the first 4 bytes of image */
@@ -148,8 +148,8 @@ static int image_ihex_buffer_complete(image_t *image)
 {
 	image_ihex_t *ihex = image->type_private;
 	fileio_t *fileio = &ihex->fileio;
-	u32 full_address = 0x0;
-	u32 cooked_bytes;
+	uint32_t full_address = 0x0;
+	uint32_t cooked_bytes;
 	int i;
 	char lpszLine[1023];
 
@@ -167,12 +167,12 @@ static int image_ihex_buffer_complete(image_t *image)
 
 	while (fileio_fgets(fileio, 1023, lpszLine) == ERROR_OK)
 	{
-		u32 count;
-		u32 address;
-		u32 record_type;
-		u32 checksum;
+		uint32_t count;
+		uint32_t address;
+		uint32_t record_type;
+		uint32_t checksum;
 		uint8_t cal_checksum = 0;
-		u32 bytes_read = 0;
+		uint32_t bytes_read = 0;
 
 		if (sscanf(&lpszLine[bytes_read], ":%2x%4x%2x", &count, &address, &record_type) != 3)
 		{
@@ -263,7 +263,7 @@ static int image_ihex_buffer_complete(image_t *image)
 		}
 		else if (record_type == 3) /* Start Segment Address Record */
 		{
-			u32 dummy;
+			uint32_t dummy;
 
 			/* "Start Segment Address Record" will not be supported */
 			/* but we must consume it, and do not create an error.  */
@@ -303,7 +303,7 @@ static int image_ihex_buffer_complete(image_t *image)
 		}
 		else if (record_type == 5) /* Start Linear Address Record */
 		{
-			u32 start_address;
+			uint32_t start_address;
 
 			sscanf(&lpszLine[bytes_read], "%8x", &start_address);
 			cal_checksum += (uint8_t)(start_address >> 24);
@@ -339,8 +339,8 @@ static int image_ihex_buffer_complete(image_t *image)
 static int image_elf_read_headers(image_t *image)
 {
 	image_elf_t *elf = image->type_private;
-	u32 read_bytes;
-	u32 i,j;
+	uint32_t read_bytes;
+	uint32_t i,j;
 	int retval;
 
 	elf->header = malloc(sizeof(Elf32_Ehdr));
@@ -437,11 +437,11 @@ static int image_elf_read_headers(image_t *image)
 	return ERROR_OK;
 }
 
-static int image_elf_read_section(image_t *image, int section, u32 offset, u32 size, uint8_t *buffer, u32 *size_read)
+static int image_elf_read_section(image_t *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read)
 {
 	image_elf_t *elf = image->type_private;
 	Elf32_Phdr *segment = (Elf32_Phdr *)image->sections[section].private;
-	u32 read_size,really_read;
+	uint32_t read_size,really_read;
 	int retval;
 
 	*size_read = 0;
@@ -482,8 +482,8 @@ static int image_mot_buffer_complete(image_t *image)
 {
 	image_mot_t *mot = image->type_private;
 	fileio_t *fileio = &mot->fileio;
-	u32 full_address = 0x0;
-	u32 cooked_bytes;
+	uint32_t full_address = 0x0;
+	uint32_t cooked_bytes;
 	int i;
 	char lpszLine[1023];
 
@@ -501,12 +501,12 @@ static int image_mot_buffer_complete(image_t *image)
 
 	while (fileio_fgets(fileio, 1023, lpszLine) == ERROR_OK)
 	{
-		u32 count;
-		u32 address;
-		u32 record_type;
-		u32 checksum;
+		uint32_t count;
+		uint32_t address;
+		uint32_t record_type;
+		uint32_t checksum;
 		uint8_t cal_checksum = 0;
-		u32 bytes_read = 0;
+		uint32_t bytes_read = 0;
 
 		/* get record type and record length */
 		if (sscanf(&lpszLine[bytes_read], "S%1x%2x", &record_type, &count) != 2)
@@ -599,7 +599,7 @@ static int image_mot_buffer_complete(image_t *image)
 		else if (record_type == 5)
 		{
 			/* S5 is the data count record, we ignore it */
-			u32 dummy;
+			uint32_t dummy;
 
 			while (count-- > 0)
 			{
@@ -776,7 +776,7 @@ int image_open(image_t *image, char *url, char *type_string)
 	return retval;
 };
 
-int image_read_section(image_t *image, int section, u32 offset, u32 size, uint8_t *buffer, u32 *size_read)
+int image_read_section(image_t *image, int section, uint32_t offset, uint32_t size, uint8_t *buffer, uint32_t *size_read)
 {
 	int retval;
 
@@ -822,13 +822,13 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, uint8_
 	else if (image->type == IMAGE_MEMORY)
 	{
 		image_memory_t *image_memory = image->type_private;
-		u32 address = image->sections[section].base_address + offset;
+		uint32_t address = image->sections[section].base_address + offset;
 
 		*size_read = 0;
 
 		while ((size - *size_read) > 0)
 		{
-			u32 size_in_cache;
+			uint32_t size_in_cache;
 
 			if (!image_memory->cache
 				|| (address < image_memory->cache_address)
@@ -876,7 +876,7 @@ int image_read_section(image_t *image, int section, u32 offset, u32 size, uint8_
 	return ERROR_OK;
 }
 
-int image_add_section(image_t *image, u32 base, u32 size, int flags, uint8_t *data)
+int image_add_section(image_t *image, uint32_t base, uint32_t size, int flags, uint8_t *data)
 {
 	image_section_t *section;
 
@@ -997,12 +997,12 @@ void image_close(image_t *image)
 	}
 }
 
-int image_calculate_checksum(uint8_t* buffer, u32 nbytes, u32* checksum)
+int image_calculate_checksum(uint8_t* buffer, uint32_t nbytes, uint32_t* checksum)
 {
-	u32 crc = 0xffffffff;
+	uint32_t crc = 0xffffffff;
 	LOG_DEBUG("Calculating checksum");
 
-	u32 crc32_table[256];
+	uint32_t crc32_table[256];
 
 	/* Initialize the CRC table and the decoding table.  */
 	int i, j;

@@ -36,10 +36,10 @@ typedef struct xscale_jtag_s
 
 	/* IR length and instructions */	
 	int ir_length;
-	u32 dbgrx;
-	u32 dbgtx;
-	u32 ldic;
-	u32 dcsr;
+	uint32_t dbgrx;
+	uint32_t dbgtx;
+	uint32_t ldic;
+	uint32_t dcsr;
 } xscale_jtag_t;
 
 enum xscale_debug_reason
@@ -65,9 +65,9 @@ typedef struct xscale_trace_data_s
 {
 	xscale_trace_entry_t *entries;
 	int depth;
-	u32 chkpt0;
-	u32 chkpt1;
-	u32 last_instruction;
+	uint32_t chkpt0;
+	uint32_t chkpt1;
+	uint32_t last_instruction;
 	struct xscale_trace_data_s *next;
 } xscale_trace_data_t;
 
@@ -79,7 +79,7 @@ typedef struct xscale_trace_s
 	int buffer_enabled;				/* whether trace buffer is enabled */
 	int buffer_fill;				/* maximum number of trace runs to read (-1 for wrap-around) */
 	int pc_ok;
-	u32 current_pc;
+	uint32_t current_pc;
 	armv4_5_state_t core_state;		/* current core state (ARM, Thumb, Jazelle) */
 } xscale_trace_t;
 
@@ -98,20 +98,20 @@ typedef struct xscale_common_s
 	/* current state of the debug handler */
 	int handler_installed;
 	int handler_running;
-	u32 handler_address;
+	uint32_t handler_address;
 	
 	/* target-endian buffers with exception vectors */
-	u32 low_vectors[8];
-	u32 high_vectors[8];
+	uint32_t low_vectors[8];
+	uint32_t high_vectors[8];
 	
 	/* static low vectors */
 	uint8_t static_low_vectors_set;	/* bit field with static vectors set by the user */
 	uint8_t static_high_vectors_set; /* bit field with static vectors set by the user */
-	u32 static_low_vectors[8];
-	u32 static_high_vectors[8];
+	uint32_t static_low_vectors[8];
+	uint32_t static_high_vectors[8];
 
 	/* DCache cleaning */	
-	u32 cache_clean_address;
+	uint32_t cache_clean_address;
 	
 	/* whether hold_rst and ext_dbg_break should be set */
 	int hold_rst;
@@ -124,7 +124,7 @@ typedef struct xscale_common_s
 	int ibcr_available;
 	int ibcr0_used;
 	int	ibcr1_used;
-	u32 arm_bkpt;
+	uint32_t arm_bkpt;
 	uint16_t thumb_bkpt;
 	
 	uint8_t vector_catch;
@@ -138,7 +138,7 @@ typedef struct xscale_common_s
 	
 	/* MMU/Caches */
 	armv4_5_mmu_common_t armv4_5_mmu;
-	u32 cp15_control_reg;
+	uint32_t cp15_control_reg;
 	
 	/* possible future enhancements that go beyond XScale common stuff */
 	void *arch_info;

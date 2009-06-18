@@ -271,8 +271,8 @@ static int new_target_number(void)
 
 static int target_continuous_poll = 1;
 
-/* read a u32 from a buffer in target memory endianness */
-u32 target_buffer_get_u32(target_t *target, const uint8_t *buffer)
+/* read a uint32_t from a buffer in target memory endianness */
+uint32_t target_buffer_get_u32(target_t *target, const uint8_t *buffer)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		return le_to_h_u32(buffer);
@@ -295,8 +295,8 @@ uint8_t target_buffer_get_u8(target_t *target, const uint8_t *buffer)
 	return *buffer & 0x0ff;
 }
 
-/* write a u32 to a buffer in target memory endianness */
-void target_buffer_set_u32(target_t *target, uint8_t *buffer, u32 value)
+/* write a uint32_t to a buffer in target memory endianness */
+void target_buffer_set_u32(target_t *target, uint8_t *buffer, uint32_t value)
 {
 	if (target->endianness == TARGET_LITTLE_ENDIAN)
 		h_u32_to_le(buffer, value);
@@ -400,7 +400,7 @@ int target_halt(struct target_s *target)
 	return target->type->halt(target);
 }
 
-int target_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
+int target_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	int retval;
 
@@ -455,7 +455,7 @@ int target_process_reset(struct command_context_s *cmd_ctx, enum target_reset_mo
 	return retval;
 }
 
-static int default_virt2phys(struct target_s *target, u32 virtual, u32 *physical)
+static int default_virt2phys(struct target_s *target, uint32_t virtual, uint32_t *physical)
 {
 	*physical = virtual;
 	return ERROR_OK;
@@ -518,7 +518,7 @@ const char *target_get_name(struct target_s *target)
 	return target->type->name;
 }
 
-static int target_write_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+static int target_write_memory_imp(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	if (!target_was_examined(target))
 	{
@@ -528,7 +528,7 @@ static int target_write_memory_imp(struct target_s *target, u32 address, u32 siz
 	return target->type->write_memory_imp(target, address, size, count, buffer);
 }
 
-static int target_read_memory_imp(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+static int target_read_memory_imp(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	if (!target_was_examined(target))
 	{
@@ -548,7 +548,7 @@ static int target_soft_reset_halt_imp(struct target_s *target)
 	return target->type->soft_reset_halt_imp(target);
 }
 
-static int target_run_algorithm_imp(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
+static int target_run_algorithm_imp(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_param, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	if (!target_was_examined(target))
 	{
@@ -559,18 +559,18 @@ static int target_run_algorithm_imp(struct target_s *target, int num_mem_params,
 }
 
 int target_read_memory(struct target_s *target,
-		u32 address, u32 size, u32 count, uint8_t *buffer)
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return target->type->read_memory(target, address, size, count, buffer);
 }
 
 int target_write_memory(struct target_s *target,
-		u32 address, u32 size, u32 count, uint8_t *buffer)
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	return target->type->write_memory(target, address, size, count, buffer);
 }
 int target_bulk_write_memory(struct target_s *target,
-		u32 address, u32 count, uint8_t *buffer)
+		uint32_t address, uint32_t count, uint8_t *buffer)
 {
 	return target->type->bulk_write_memory(target, address, count, buffer);
 }
@@ -603,7 +603,7 @@ int target_get_gdb_reg_list(struct target_s *target,
 	return target->type->get_gdb_reg_list(target, reg_list, reg_list_size);
 }
 int target_step(struct target_s *target,
-		int current, u32 address, int handle_breakpoints)
+		int current, uint32_t address, int handle_breakpoints)
 {
 	return target->type->step(target, current, address, handle_breakpoints);
 }
@@ -612,7 +612,7 @@ int target_step(struct target_s *target,
 int target_run_algorithm(struct target_s *target,
 		int num_mem_params, mem_param_t *mem_params,
 		int num_reg_params, reg_param_t *reg_param,
-		u32 entry_point, u32 exit_point,
+		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info)
 {
 	return target->type->run_algorithm(target,
@@ -904,7 +904,7 @@ int target_call_timer_callbacks_now(void)
 	return target_call_timer_callbacks_check_time(0);
 }
 
-int target_alloc_working_area(struct target_s *target, u32 size, working_area_t **area)
+int target_alloc_working_area(struct target_s *target, uint32_t size, working_area_t **area)
 {
 	working_area_t *c = target->working_areas;
 	working_area_t *new_wa = NULL;
@@ -951,8 +951,8 @@ int target_alloc_working_area(struct target_s *target, u32 size, working_area_t 
 	if (!new_wa)
 	{
 		working_area_t **p = &target->working_areas;
-		u32 first_free = target->working_area;
-		u32 free_size = target->working_area_size;
+		uint32_t first_free = target->working_area;
+		uint32_t free_size = target->working_area_size;
 
 		LOG_DEBUG("allocating new working area");
 
@@ -1096,7 +1096,7 @@ int target_arch_state(struct target_s *target)
  * mode respectively, otherwise data is handled as quickly as
  * possible
  */
-int target_write_buffer(struct target_s *target, u32 address, u32 size, uint8_t *buffer)
+int target_write_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer)
 {
 	int retval;
 	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x", size, address);
@@ -1126,7 +1126,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, uint8_t 
 	/* handle unaligned head bytes */
 	if (address % 4)
 	{
-		u32 unaligned = 4 - (address % 4);
+		uint32_t unaligned = 4 - (address % 4);
 
 		if (unaligned > size)
 			unaligned = size;
@@ -1175,7 +1175,7 @@ int target_write_buffer(struct target_s *target, u32 address, u32 size, uint8_t 
  * mode respectively, otherwise data is handled as quickly as
  * possible
  */
-int target_read_buffer(struct target_s *target, u32 address, u32 size, uint8_t *buffer)
+int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer)
 {
 	int retval;
 	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x", size, address);
@@ -1205,7 +1205,7 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, uint8_t *
 	/* handle unaligned head bytes */
 	if (address % 4)
 	{
-		u32 unaligned = 4 - (address % 4);
+		uint32_t unaligned = 4 - (address % 4);
 
 		if (unaligned > size)
 			unaligned = size;
@@ -1241,12 +1241,12 @@ int target_read_buffer(struct target_s *target, u32 address, u32 size, uint8_t *
 	return ERROR_OK;
 }
 
-int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* crc)
+int target_checksum_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t* crc)
 {
 	uint8_t *buffer;
 	int retval;
-	u32 i;
-	u32 checksum = 0;
+	uint32_t i;
+	uint32_t checksum = 0;
 	if (!target_was_examined(target))
 	{
 		LOG_ERROR("Target not examined yet");
@@ -1270,11 +1270,11 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 		}
 
 		/* convert to target endianess */
-		for (i = 0; i < (size/sizeof(u32)); i++)
+		for (i = 0; i < (size/sizeof(uint32_t)); i++)
 		{
-			u32 target_data;
-			target_data = target_buffer_get_u32(target, &buffer[i*sizeof(u32)]);
-			target_buffer_set_u32(target, &buffer[i*sizeof(u32)], target_data);
+			uint32_t target_data;
+			target_data = target_buffer_get_u32(target, &buffer[i*sizeof(uint32_t)]);
+			target_buffer_set_u32(target, &buffer[i*sizeof(uint32_t)], target_data);
 		}
 
 		retval = image_calculate_checksum( buffer, size, &checksum );
@@ -1286,7 +1286,7 @@ int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* 
 	return retval;
 }
 
-int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u32* blank)
+int target_blank_check_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t* blank)
 {
 	int retval;
 	if (!target_was_examined(target))
@@ -1303,7 +1303,7 @@ int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u3
 	return retval;
 }
 
-int target_read_u32(struct target_s *target, u32 address, u32 *value)
+int target_read_u32(struct target_s *target, uint32_t address, uint32_t *value)
 {
 	uint8_t value_buf[4];
 	if (!target_was_examined(target))
@@ -1328,7 +1328,7 @@ int target_read_u32(struct target_s *target, u32 address, u32 *value)
 	return retval;
 }
 
-int target_read_u16(struct target_s *target, u32 address, uint16_t *value)
+int target_read_u16(struct target_s *target, uint32_t address, uint16_t *value)
 {
 	uint8_t value_buf[2];
 	if (!target_was_examined(target))
@@ -1353,7 +1353,7 @@ int target_read_u16(struct target_s *target, u32 address, uint16_t *value)
 	return retval;
 }
 
-int target_read_u8(struct target_s *target, u32 address, uint8_t *value)
+int target_read_u8(struct target_s *target, uint32_t address, uint8_t *value)
 {
 	int retval = target_read_memory(target, address, 1, 1, value);
 	if (!target_was_examined(target))
@@ -1375,7 +1375,7 @@ int target_read_u8(struct target_s *target, u32 address, uint8_t *value)
 	return retval;
 }
 
-int target_write_u32(struct target_s *target, u32 address, u32 value)
+int target_write_u32(struct target_s *target, uint32_t address, uint32_t value)
 {
 	int retval;
 	uint8_t value_buf[4];
@@ -1396,7 +1396,7 @@ int target_write_u32(struct target_s *target, u32 address, u32 value)
 	return retval;
 }
 
-int target_write_u16(struct target_s *target, u32 address, uint16_t value)
+int target_write_u16(struct target_s *target, uint32_t address, uint16_t value)
 {
 	int retval;
 	uint8_t value_buf[2];
@@ -1417,7 +1417,7 @@ int target_write_u16(struct target_s *target, u32 address, uint16_t value)
 	return retval;
 }
 
-int target_write_u8(struct target_s *target, u32 address, uint8_t value)
+int target_write_u8(struct target_s *target, uint32_t address, uint8_t value)
 {
 	int retval;
 	if (!target_was_examined(target))
@@ -1976,7 +1976,7 @@ static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, c
 	/* with no args, resume from current pc, addr = 0,
 	 * with one arguments, addr = args[0],
 	 * handle breakpoints, not debugging */
-	u32 addr = 0;
+	uint32_t addr = 0;
 	if (argc == 1)
 	{
 		int retval = parse_u32(args[0], &addr);
@@ -1997,7 +1997,7 @@ static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	/* with no args, step from current pc, addr = 0,
 	 * with one argument addr = args[0],
 	 * handle breakpoints, debugging */
-	u32 addr = 0;
+	uint32_t addr = 0;
 	if (argc == 1)
 	{
 		int retval = parse_u32(args[0], &addr);
@@ -2010,7 +2010,7 @@ static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, cha
 }
 
 static void handle_md_output(struct command_context_s *cmd_ctx,
-		struct target_s *target, u32 address, unsigned size,
+		struct target_s *target, uint32_t address, unsigned size,
 		unsigned count, const uint8_t *buffer)
 {
 	const unsigned line_bytecnt = 32;
@@ -2038,7 +2038,7 @@ static void handle_md_output(struct command_context_s *cmd_ctx,
 					"0x%8.8x: ", address + (i*size));
 		}
 
-		u32 value=0;
+		uint32_t value=0;
 		const uint8_t *value_ptr = buffer + i * size;
 		switch (size) {
 		case 4: value = target_buffer_get_u32(target, value_ptr); break;
@@ -2070,7 +2070,7 @@ static int handle_md_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	default: return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	u32 address;
+	uint32_t address;
 	int retval = parse_u32(args[0], &address);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2101,12 +2101,12 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	 if ((argc < 2) || (argc > 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	u32 address;
+	uint32_t address;
 	int retval = parse_u32(args[0], &address);
 	if (ERROR_OK != retval)
 		return retval;
 
-	u32 value;
+	uint32_t value;
 	retval = parse_u32(args[1], &value);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2153,7 +2153,7 @@ static int handle_mw_command(struct command_context_s *cmd_ctx, char *cmd, char 
 }
 
 static int parse_load_image_command_args(char **args, int argc,
-		image_t *image, u32 *min_address, u32 *max_address)
+		image_t *image, uint32_t *min_address, uint32_t *max_address)
 {
 	if (argc < 1 || argc > 5)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2162,7 +2162,7 @@ static int parse_load_image_command_args(char **args, int argc,
 	 * default to 0x0 (i.e. don't relocate) */
 	if (argc >= 2)
 	{
-		u32 addr;
+		uint32_t addr;
 		int retval = parse_u32(args[1], &addr);
 		if (ERROR_OK != retval)
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2198,10 +2198,10 @@ static int parse_load_image_command_args(char **args, int argc,
 static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	uint8_t *buffer;
-	u32 buf_cnt;
-	u32 image_size;
-	u32 min_address = 0;
-	u32 max_address = 0xffffffff;
+	uint32_t buf_cnt;
+	uint32_t image_size;
+	uint32_t min_address = 0;
+	uint32_t max_address = 0xffffffff;
 	int i;
 	int retvaltemp;
 
@@ -2240,8 +2240,8 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 			break;
 		}
 
-		u32 offset=0;
-		u32 length=buf_cnt;
+		uint32_t offset=0;
+		uint32_t length=buf_cnt;
 
 		/* DANGER!!! beware of unsigned comparision here!!! */
 
@@ -2308,12 +2308,12 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_OK;
 	}
 
-	u32 address;
+	uint32_t address;
 	int retval = parse_u32(args[1], &address);
 	if (ERROR_OK != retval)
 		return retval;
 
-	u32 size;
+	uint32_t size;
 	retval = parse_u32(args[2], &size);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2327,8 +2327,8 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 
 	while (size > 0)
 	{
-		u32 size_written;
-		u32 this_run_size = (size > 560) ? 560 : size;
+		uint32_t size_written;
+		uint32_t this_run_size = (size > 560) ? 560 : size;
 
 		retval = target_read_buffer(target, address, this_run_size, buffer);
 		if (retval != ERROR_OK)
@@ -2365,12 +2365,12 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 static int handle_verify_image_command_internal(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, int verify)
 {
 	uint8_t *buffer;
-	u32 buf_cnt;
-	u32 image_size;
+	uint32_t buf_cnt;
+	uint32_t image_size;
 	int i;
 	int retval, retvaltemp;
-	u32 checksum = 0;
-	u32 mem_checksum = 0;
+	uint32_t checksum = 0;
+	uint32_t mem_checksum = 0;
 
 	image_t image;
 
@@ -2394,7 +2394,7 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 
 	if (argc >= 2)
 	{
-		u32 addr;
+		uint32_t addr;
 		retval = parse_u32(args[1], &addr);
 		if (ERROR_OK != retval)
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2462,7 +2462,7 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 				retval = target_read_memory(target, image.sections[i].base_address, size, count, data);
 				if (retval == ERROR_OK)
 				{
-					u32 t;
+					uint32_t t;
 					for (t = 0; t < buf_cnt; t++)
 					{
 						if (data[t] != buffer[t])
@@ -2546,7 +2546,7 @@ static int handle_bp_command_list(struct command_context_s *cmd_ctx)
 }
 
 static int handle_bp_command_set(struct command_context_s *cmd_ctx,
-		u32 addr, u32 length, int hw)
+		uint32_t addr, uint32_t length, int hw)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	int retval = breakpoint_add(target, addr, length, hw);
@@ -2569,12 +2569,12 @@ static int handle_bp_command(struct command_context_s *cmd_ctx,
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	u32 addr;
+	uint32_t addr;
 	int retval = parse_u32(args[0], &addr);
 	if (ERROR_OK != retval)
 		return retval;
 
-	u32 length;
+	uint32_t length;
 	retval = parse_u32(args[1], &length);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2596,7 +2596,7 @@ static int handle_rbp_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	u32 addr;
+	uint32_t addr;
 	int retval = parse_u32(args[0], &addr);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2624,10 +2624,10 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	}
 
 	enum watchpoint_rw type = WPT_ACCESS;
-	u32 addr = 0;
-	u32 length = 0;
-	u32 data_value = 0x0;
-	u32 data_mask = 0xffffffff;
+	uint32_t addr = 0;
+	uint32_t length = 0;
+	uint32_t data_value = 0x0;
+	uint32_t data_mask = 0xffffffff;
 	int retval;
 
 	switch (argc)
@@ -2686,7 +2686,7 @@ static int handle_rwp_command(struct command_context_s *cmd_ctx, char *cmd, char
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	u32 addr;
+	uint32_t addr;
 	int retval = parse_u32(args[0], &addr);
 	if (ERROR_OK != retval)
 		return retval;
@@ -2710,11 +2710,11 @@ static int handle_virt2phys_command(command_context_t *cmd_ctx,
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	u32 va;
+	uint32_t va;
 	int retval = parse_u32(args[0], &va);
 	if (ERROR_OK != retval)
 		return retval;
-	u32 pa;
+	uint32_t pa;
 
 	target_t *target = get_current_target(cmd_ctx);
 	retval = target->type->virt2phys(target, va, &pa);
@@ -2748,9 +2748,9 @@ static void writeString(FILE *f, char *s)
 }
 
 /* Dump a gmon.out histogram file. */
-static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
+static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 {
-	u32 i;
+	uint32_t i;
 	FILE *f=fopen(filename, "w");
 	if (f==NULL)
 		return;
@@ -2764,8 +2764,8 @@ static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
 	writeData(f, &zero, 1);
 
 	/* figure out bucket size */
-	u32 min=samples[0];
-	u32 max=samples[0];
+	uint32_t min=samples[0];
+	uint32_t max=samples[0];
 	for (i=0; i<sampleNum; i++)
 	{
 		if (min>samples[i])
@@ -2780,8 +2780,8 @@ static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
 
 	int addressSpace=(max-min+1);
 
-	static const u32 maxBuckets = 256 * 1024; /* maximum buckets. */
-	u32 length = addressSpace;
+	static const uint32_t maxBuckets = 256 * 1024; /* maximum buckets. */
+	uint32_t length = addressSpace;
 	if (length > maxBuckets)
 	{
 		length=maxBuckets;
@@ -2795,7 +2795,7 @@ static void writeGmon(u32 *samples, u32 sampleNum, char *filename)
 	memset(buckets, 0, sizeof(int)*length);
 	for (i=0; i<sampleNum;i++)
 	{
-		u32 address=samples[i];
+		uint32_t address=samples[i];
 		long long a=address-min;
 		long long b=length-1;
 		long long c=addressSpace-1;
@@ -2861,7 +2861,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 	command_print(cmd_ctx, "Starting profiling. Halting and resuming the target as often as we can...");
 
 	static const int maxSample=10000;
-	u32 *samples=malloc(sizeof(u32)*maxSample);
+	uint32_t *samples=malloc(sizeof(uint32_t)*maxSample);
 	if (samples==NULL)
 		return ERROR_OK;
 
@@ -2874,7 +2874,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 		target_poll(target);
 		if (target->state == TARGET_HALTED)
 		{
-			u32 t=*((u32 *)reg->value);
+			uint32_t t=*((uint32_t *)reg->value);
 			samples[numSamples++]=t;
 			retval = target_resume(target, 1, 0, 0, 0); /* current pc, addr = 0, do not handle breakpoints, not debugging */
 			target_poll(target);
@@ -2926,7 +2926,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 	return ERROR_OK;
 }
 
-static int new_int_array_element(Jim_Interp * interp, const char *varname, int idx, u32 val)
+static int new_int_array_element(Jim_Interp * interp, const char *varname, int idx, uint32_t val)
 {
 	char *namebuf;
 	Jim_Obj *nameObjPtr, *valObjPtr;
@@ -2978,15 +2978,15 @@ static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
 {
 	long l;
-	u32 width;
+	uint32_t width;
 	int len;
-	u32 addr;
-	u32 count;
-	u32 v;
+	uint32_t addr;
+	uint32_t count;
+	uint32_t v;
 	const char *varname;
 	uint8_t buffer[4096];
 	int  n, e, retval;
-	u32 i;
+	uint32_t i;
 
 	/* argv[1] = name of array to receive the data
 	 * argv[2] = desired width
@@ -3107,7 +3107,7 @@ static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_
 	return JIM_OK;
 }
 
-static int get_int_array_element(Jim_Interp * interp, const char *varname, int idx, u32 *val)
+static int get_int_array_element(Jim_Interp * interp, const char *varname, int idx, uint32_t *val)
 {
 	char *namebuf;
 	Jim_Obj *nameObjPtr, *valObjPtr;
@@ -3160,15 +3160,15 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
 {
 	long l;
-	u32 width;
+	uint32_t width;
 	int len;
-	u32 addr;
-	u32 count;
-	u32 v;
+	uint32_t addr;
+	uint32_t count;
+	uint32_t v;
 	const char *varname;
 	uint8_t buffer[4096];
 	int  n, e, retval;
-	u32 i;
+	uint32_t i;
 
 	/* argv[1] = name of array to get the data
 	 * argv[2] = desired width
@@ -4309,7 +4309,7 @@ static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 
 struct FastLoad
 {
-	u32 address;
+	uint32_t address;
 	uint8_t *data;
 	int length;
 
@@ -4339,10 +4339,10 @@ static void free_fastload(void)
 static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	uint8_t *buffer;
-	u32 buf_cnt;
-	u32 image_size;
-	u32 min_address=0;
-	u32 max_address=0xffffffff;
+	uint32_t buf_cnt;
+	uint32_t image_size;
+	uint32_t min_address=0;
+	uint32_t max_address=0xffffffff;
 	int i;
 
 	image_t image;
@@ -4387,8 +4387,8 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 			break;
 		}
 
-		u32 offset=0;
-		u32 length=buf_cnt;
+		uint32_t offset=0;
+		uint32_t length=buf_cnt;
 
 
 		/* DANGER!!! beware of unsigned comparision here!!! */

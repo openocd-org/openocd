@@ -39,7 +39,7 @@ static char *watchpoint_rw_strings[] =
 	"access"
 };
 
-int breakpoint_add(target_t *target, u32 address, u32 length, enum breakpoint_type type)
+int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum breakpoint_type type)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
 	breakpoint_t **breakpoint_p = &target->breakpoints;
@@ -115,7 +115,7 @@ static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
 	free(breakpoint);
 }
 
-void breakpoint_remove(target_t *target, u32 address)
+void breakpoint_remove(target_t *target, uint32_t address)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
 	breakpoint_t **breakpoint_p = &target->breakpoints;
@@ -147,7 +147,7 @@ void breakpoint_clear_target(target_t *target)
 	}
 }
 
-breakpoint_t* breakpoint_find(target_t *target, u32 address)
+breakpoint_t* breakpoint_find(target_t *target, uint32_t address)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
 	
@@ -161,7 +161,7 @@ breakpoint_t* breakpoint_find(target_t *target, u32 address)
 	return NULL;
 }
 
-int watchpoint_add(target_t *target, u32 address, u32 length, enum watchpoint_rw rw, u32 value, u32 mask)
+int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum watchpoint_rw rw, uint32_t value, uint32_t mask)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
 	watchpoint_t **watchpoint_p = &target->watchpoints;
@@ -234,7 +234,7 @@ static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
 	free(watchpoint);
 }
 
-void watchpoint_remove(target_t *target, u32 address)
+void watchpoint_remove(target_t *target, uint32_t address)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
 	watchpoint_t **watchpoint_p = &target->watchpoints;

@@ -39,7 +39,7 @@ typedef struct reg_s
 	void *value;
 	int dirty;
 	int valid;
-	u32 size;
+	uint32_t size;
 	bitfield_desc_t *bitfield_desc;
 	int num_bitfields;
 	void *arch_info;

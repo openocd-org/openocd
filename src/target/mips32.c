@@ -116,7 +116,7 @@ int mips32_set_core_reg(reg_t *reg, uint8_t *buf)
 {
 	mips32_core_reg_t *mips32_reg = reg->arch_info;
 	target_t *target = mips32_reg->target;
-	u32 value = buf_get_u32(buf, 0, 32);
+	uint32_t value = buf_get_u32(buf, 0, 32);
 		
 	if (target->state != TARGET_HALTED)
 	{
@@ -132,7 +132,7 @@ int mips32_set_core_reg(reg_t *reg, uint8_t *buf)
 
 int mips32_read_core_reg(struct target_s *target, int num)
 {
-	u32 reg_value;
+	uint32_t reg_value;
 	mips32_core_reg_t *mips_core_reg;
 	
 	/* get pointers to arch-specific information */
@@ -152,7 +152,7 @@ int mips32_read_core_reg(struct target_s *target, int num)
 
 int mips32_write_core_reg(struct target_s *target, int num)
 {
-	u32 reg_value;
+	uint32_t reg_value;
 	mips32_core_reg_t *mips_core_reg;
 	
 	/* get pointers to arch-specific information */
@@ -336,7 +336,7 @@ int mips32_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int mips32_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, u32 entry_point, u32 exit_point, int timeout_ms, void *arch_info)
+int mips32_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info)
 {
 	/*TODO*/
 	return ERROR_OK;
@@ -366,7 +366,7 @@ int mips32_configure_break_unit(struct target_s *target)
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
 	int retval;
-	u32 dcr, bpinfo;
+	uint32_t dcr, bpinfo;
 	int i;
 	
 	if (mips32->bp_scanned)
@@ -425,7 +425,7 @@ int mips32_enable_interrupts(struct target_s *target, int enable)
 {
 	int retval;
 	int update = 0;
-	u32 dcr;
+	uint32_t dcr;
 	
 	/* read debug control register */
 	if ((retval = target_read_u32(target, EJTAG_DCR, &dcr)) != ERROR_OK)

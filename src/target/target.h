@@ -97,8 +97,8 @@ struct target_s;
 
 typedef struct working_area_s
 {
-	u32 address;
-	u32 size;
+	uint32_t address;
+	uint32_t size;
 	int free;
 	uint8_t *backup;
 	struct working_area_s **user;
@@ -122,12 +122,12 @@ typedef struct target_s
 	target_event_action_t *event_action;
 
 	int reset_halt;						/* attempt resetting the CPU into the halted mode? */
-	u32 working_area;					/* working area (initialized RAM). Evaluated
+	uint32_t working_area;					/* working area (initialized RAM). Evaluated
 										 * upon first allocation from virtual/physical address. */
-	u32 working_area_virt;				/* virtual address */
-	u32 working_area_phys;				/* physical address */
-	u32 working_area_size;				/* size in bytes */
-	u32 backup_working_area;			/* whether the content of the working area has to be preserved */
+	uint32_t working_area_virt;				/* virtual address */
+	uint32_t working_area_phys;				/* physical address */
+	uint32_t working_area_size;				/* size in bytes */
+	uint32_t backup_working_area;			/* whether the content of the working area has to be preserved */
 	struct working_area_s *working_areas;/* list of allocated working areas */
 	enum target_debug_reason debug_reason;/* reason why the target entered debug state */
 	enum target_endianess endianness;	/* target endianess */
@@ -137,7 +137,7 @@ typedef struct target_s
 	struct watchpoint_s *watchpoints;	/* list of watchpoints */
 	struct trace_s *trace_info;			/* generic trace information */
 	struct debug_msg_receiver_s *dbgmsg;/* list of debug message receivers */
-	u32 dbg_msg_enabled;				/* debug message status */
+	uint32_t dbg_msg_enabled;				/* debug message status */
 	void *arch_info;					/* architecture specific information */
 	struct target_s *next;				/* next target in list */
 
@@ -229,7 +229,7 @@ extern int target_process_reset(struct command_context_s *cmd_ctx, enum target_r
 extern int target_register_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv);
 extern int target_unregister_event_callback(int (*callback)(struct target_s *target, enum target_event event, void *priv), void *priv);
 extern int target_poll(target_t *target);
-extern int target_resume(target_t *target, int current, u32 address, int handle_breakpoints, int debug_execution);
+extern int target_resume(target_t *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
 extern int target_halt(target_t *target);
 extern int target_call_event_callbacks(target_t *target, enum target_event event);
 
@@ -312,7 +312,7 @@ extern int target_get_gdb_reg_list(struct target_s *target,
  * This routine is a wrapper for target->type->step.
  */
 int target_step(struct target_s *target,
-		int current, u32 address, int handle_breakpoints);
+		int current, uint32_t address, int handle_breakpoints);
 /**
  * Run an algorithm on the @a target given.
  *
@@ -321,7 +321,7 @@ int target_step(struct target_s *target,
 extern int target_run_algorithm(struct target_s *target,
 		int num_mem_params, mem_param_t *mem_params,
 		int num_reg_params, reg_param_t *reg_param,
-		u32 entry_point, u32 exit_point,
+		uint32_t entry_point, uint32_t exit_point,
 		int timeout_ms, void *arch_info);
 
 /**
@@ -331,7 +331,7 @@ extern int target_run_algorithm(struct target_s *target,
  * This routine is a wrapper for target->type->read_memory.
  */
 extern int target_read_memory(struct target_s *target,
-		u32 address, u32 size, u32 count, uint8_t *buffer);
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 /**
  * Write @a count items of @a size bytes to the memory of @a target at
  * the @a address given.
@@ -339,7 +339,7 @@ extern int target_read_memory(struct target_s *target,
  * This routine is wrapper for target->type->write_memory.
  */
 extern int target_write_memory(struct target_s *target,
-		u32 address, u32 size, u32 count, uint8_t *buffer);
+		uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 /**
  * Write @a count items of 4 bytes to the memory of @a target at
@@ -349,12 +349,12 @@ extern int target_write_memory(struct target_s *target,
  * This routine is wrapper for target->type->bulk_write_memory.
  */
 extern int target_bulk_write_memory(struct target_s *target,
-		u32 address, u32 count, uint8_t *buffer);
+		uint32_t address, uint32_t count, uint8_t *buffer);
 
-extern int target_write_buffer(struct target_s *target, u32 address, u32 size, uint8_t *buffer);
-extern int target_read_buffer(struct target_s *target, u32 address, u32 size, uint8_t *buffer);
-extern int target_checksum_memory(struct target_s *target, u32 address, u32 size, u32* crc);
-extern int target_blank_check_memory(struct target_s *target, u32 address, u32 size, u32* blank);
+extern int target_write_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer);
+extern int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer);
+extern int target_checksum_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t* crc);
+extern int target_blank_check_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t* blank);
 extern int target_wait_state(target_t *target, enum target_state state, int ms);
 
 /* DANGER!!!!!
@@ -368,7 +368,7 @@ extern int target_wait_state(target_t *target, enum target_state state, int ms);
  * upon resuming or resetting the CPU.
  *
  */
-extern int target_alloc_working_area(struct target_s *target, u32 size, working_area_t **area);
+extern int target_alloc_working_area(struct target_s *target, uint32_t size, working_area_t **area);
 extern int target_free_working_area(struct target_s *target, working_area_t *area);
 extern int target_free_working_area_restore(struct target_s *target, working_area_t *area, int restore);
 extern void target_free_all_working_areas(struct target_s *target);
@@ -379,19 +379,19 @@ extern target_t *all_targets;
 extern target_event_callback_t *target_event_callbacks;
 extern target_timer_callback_t *target_timer_callbacks;
 
-extern u32 target_buffer_get_u32(target_t *target, const uint8_t *buffer);
+extern uint32_t target_buffer_get_u32(target_t *target, const uint8_t *buffer);
 extern uint16_t target_buffer_get_u16(target_t *target, const uint8_t *buffer);
 extern uint8_t  target_buffer_get_u8 (target_t *target, const uint8_t *buffer);
-extern void target_buffer_set_u32(target_t *target, uint8_t *buffer, u32 value);
+extern void target_buffer_set_u32(target_t *target, uint8_t *buffer, uint32_t value);
 extern void target_buffer_set_u16(target_t *target, uint8_t *buffer, uint16_t value);
 extern void target_buffer_set_u8 (target_t *target, uint8_t *buffer, uint8_t  value);
 
-int target_read_u32(struct target_s *target, u32 address, u32 *value);
-int target_read_u16(struct target_s *target, u32 address, uint16_t *value);
-int target_read_u8(struct target_s *target, u32 address, uint8_t *value);
-int target_write_u32(struct target_s *target, u32 address, u32 value);
-int target_write_u16(struct target_s *target, u32 address, uint16_t value);
-int target_write_u8(struct target_s *target, u32 address, uint8_t value);
+int target_read_u32(struct target_s *target, uint32_t address, uint32_t *value);
+int target_read_u16(struct target_s *target, uint32_t address, uint16_t *value);
+int target_read_u8(struct target_s *target, uint32_t address, uint8_t *value);
+int target_write_u32(struct target_s *target, uint32_t address, uint32_t value);
+int target_write_u16(struct target_s *target, uint32_t address, uint16_t value);
+int target_write_u8(struct target_s *target, uint32_t address, uint8_t value);
 
 /* Issues USER() statements with target state information */
 int target_arch_state(struct target_s *target);

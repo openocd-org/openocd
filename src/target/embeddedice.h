@@ -96,22 +96,22 @@ typedef struct embeddedice_reg_s
 extern reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7_9);
 extern int embeddedice_setup(target_t *target);
 extern int embeddedice_read_reg(reg_t *reg);
-extern void embeddedice_write_reg(reg_t *reg, u32 value);
+extern void embeddedice_write_reg(reg_t *reg, uint32_t value);
 extern int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask);
 extern void embeddedice_store_reg(reg_t *reg);
-extern void embeddedice_set_reg(reg_t *reg, u32 value);
+extern void embeddedice_set_reg(reg_t *reg, uint32_t value);
 extern int embeddedice_set_reg_w_exec(reg_t *reg, uint8_t *buf);
-extern int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size);
-extern int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size);
-extern int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout);
+extern int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size);
+extern int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size);
+extern int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout);
 
 /* If many embeddedice_write_reg() follow eachother, then the >1 invocations can be this faster version of
  * embeddedice_write_reg
  */
-static __inline__ void embeddedice_write_reg_inner( jtag_tap_t *tap, int reg_addr, u32 value)
+static __inline__ void embeddedice_write_reg_inner( jtag_tap_t *tap, int reg_addr, uint32_t value)
 {
 	static const int embeddedice_num_bits[]={32,5,1};
-	u32 values[3];
+	uint32_t values[3];
 
 	values[0]=value;
 	values[1]=reg_addr;

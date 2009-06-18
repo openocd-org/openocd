@@ -37,7 +37,7 @@
 static command_t *target_request_cmd = NULL;
 static int charmsg_mode = 0;
 
-static int target_asciimsg(target_t *target, u32 length)
+static int target_asciimsg(target_t *target, uint32_t length)
 {
 	char *msg = malloc(CEIL(length + 1, 4) * 4);
 	debug_msg_receiver_t *c = target->dbgmsg;
@@ -63,13 +63,13 @@ static int target_charmsg(target_t *target, uint8_t msg)
 	return ERROR_OK;
 }
 
-static int target_hexmsg(target_t *target, int size, u32 length)
+static int target_hexmsg(target_t *target, int size, uint32_t length)
 {
 	uint8_t *data = malloc(CEIL(length * size, 4) * 4);
 	char line[128];
 	int line_len;
 	debug_msg_receiver_t *c = target->dbgmsg;
-	u32 i;
+	uint32_t i;
 
 	LOG_DEBUG("size: %i, length: %i", size, length);
 
@@ -113,7 +113,7 @@ static int target_hexmsg(target_t *target, int size, u32 length)
 /* handle requests from the target received by a target specific
  * side-band channel (e.g. ARM7/9 DCC)
  */
-int target_request(target_t *target, u32 request)
+int target_request(target_t *target, uint32_t request)
 {
 	target_req_cmd_t target_req_cmd = request & 0xff;
 

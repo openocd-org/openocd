@@ -27,18 +27,18 @@ struct command_context_s;
 
 typedef struct trace_point_s
 {
-	u32 address;
+	uint32_t address;
 	u64 hit_counter;
 } trace_point_t;
 
 typedef struct trace_s
 {
-	u32 num_trace_points;
-	u32 trace_points_size;
+	uint32_t num_trace_points;
+	uint32_t trace_points_size;
 	trace_point_t *trace_points;
-	u32 trace_history_size;
-	u32 *trace_history;
-	u32 trace_history_pos;
+	uint32_t trace_history_size;
+	uint32_t *trace_history;
+	uint32_t trace_history_pos;
 	int trace_history_overflowed;
 } trace_t;
 
@@ -51,7 +51,7 @@ typedef enum trace_status
 	TRACE_OVERFLOWED = 0x8,
 } trace_status_t;
 
-extern int trace_point(struct target_s *target, u32 number);
+extern int trace_point(struct target_s *target, uint32_t number);
 extern int trace_register_commands(struct command_context_s *cmd_ctx);
 
 #define ERROR_TRACE_IMAGE_UNAVAILABLE		-(1500)

@@ -48,17 +48,17 @@ typedef struct  cortex_a8_fp_comparator_s
 {
 	int used;
 	int type;
-	u32 fpcr_value;
-	u32 fpcr_address;
+	uint32_t fpcr_value;
+	uint32_t fpcr_address;
 } cortex_a8_fp_comparator_t;
 
 typedef struct  cortex_a8_dwt_comparator_s
 {
 	int used;
-	u32 comp;
-	u32 mask;
-	u32 function;
-	u32 dwt_comparator_address;
+	uint32_t comp;
+	uint32_t mask;
+	uint32_t function;
+	uint32_t dwt_comparator_address;
 } cortex_a8_dwt_comparator_t;
 
 typedef struct cortex_a8_common_s
@@ -67,9 +67,9 @@ typedef struct cortex_a8_common_s
 	arm_jtag_t jtag_info;
 
 	/* Context information */
-	u32 dcb_dhcsr;
-	u32 nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
-	u32 nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
+	uint32_t dcb_dhcsr;
+	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
+	uint32_t nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
 
 	/* Flash Patch and Breakpoint (FPB) */
 	int fp_num_lit;
@@ -86,14 +86,14 @@ typedef struct cortex_a8_common_s
 
 	/* Interrupts */
 	int intlinesnum;
-	u32 *intsetenable;
+	uint32_t *intsetenable;
 
 	armv7m_common_t armv7m;
 	void *arch_info;
 } cortex_a8_common_t;
 
 extern int cortex_a8_init_arch_info(target_t *target, cortex_a8_common_t *cortex_a8, jtag_tap_t *tap);
-int cortex_a8_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
-int cortex_a8_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int cortex_a8_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int cortex_a8_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 
 #endif /* CORTEX_A8_H */

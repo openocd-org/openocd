@@ -287,7 +287,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* chec
  * we pretend the target is always going to be fast enough
  * (relative to the JTAG clock), so we don't need to handshake
  */
-int embeddedice_receive(arm_jtag_t *jtag_info, u32 *data, u32 size)
+int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 {
 	scan_field_t fields[3];
 	uint8_t field1_out[1];
@@ -340,7 +340,7 @@ int embeddedice_read_reg(reg_t *reg)
 	return embeddedice_read_reg_w_check(reg, NULL, NULL);
 }
 
-void embeddedice_set_reg(reg_t *reg, u32 value)
+void embeddedice_set_reg(reg_t *reg, uint32_t value)
 {
 	embeddedice_write_reg(reg, value);
 
@@ -363,7 +363,7 @@ int embeddedice_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-void embeddedice_write_reg(reg_t *reg, u32 value)
+void embeddedice_write_reg(reg_t *reg, uint32_t value)
 {
 	embeddedice_reg_t *ice_reg = reg->arch_info;
 
@@ -388,7 +388,7 @@ void embeddedice_store_reg(reg_t *reg)
  * we pretend the target is always going to be fast enough
  * (relative to the JTAG clock), so we don't need to handshake
  */
-int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
+int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 {
 	scan_field_t fields[3];
 	uint8_t field0_out[4];
@@ -432,14 +432,14 @@ int embeddedice_send(arm_jtag_t *jtag_info, u32 *data, u32 size)
 
 /* wait for DCC control register R/W handshake bit to become active
  */
-int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
+int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout)
 {
 	scan_field_t fields[3];
 	uint8_t field0_in[4];
 	uint8_t field1_out[1];
 	uint8_t field2_out[1];
 	int retval;
-	u32 hsact;
+	uint32_t hsact;
 	struct timeval lap;
 	struct timeval now;
 
@@ -484,7 +484,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, u32 timeout)
 
 		gettimeofday(&now, NULL);
 	}
-	while ((u32)((now.tv_sec-lap.tv_sec)*1000 + (now.tv_usec-lap.tv_usec)/1000) <= timeout);
+	while ((uint32_t)((now.tv_sec-lap.tv_sec)*1000 + (now.tv_usec-lap.tv_usec)/1000) <= timeout);
 
 	return ERROR_TARGET_TIMEOUT;
 }

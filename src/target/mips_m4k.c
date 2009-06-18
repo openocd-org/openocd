@@ -35,10 +35,10 @@
 int mips_m4k_poll(target_t *target);
 int mips_m4k_halt(struct target_s *target);
 int mips_m4k_soft_reset_halt(struct target_s *target);
-int mips_m4k_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
-int mips_m4k_step(struct target_s *target, int current, u32 address, int handle_breakpoints);
-int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
-int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
+int mips_m4k_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
+int mips_m4k_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints);
+int mips_m4k_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int mips_m4k_register_commands(struct command_context_s *cmd_ctx);
 int mips_m4k_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int mips_m4k_quit(void);
@@ -47,7 +47,7 @@ int mips_m4k_target_create(struct target_s *target, Jim_Interp *interp);
 int mips_m4k_examine(struct target_s *target);
 int mips_m4k_assert_reset(target_t *target);
 int mips_m4k_deassert_reset(target_t *target);
-int mips_m4k_checksum_memory(target_t *target, u32 address, u32 size, u32 *checksum);
+int mips_m4k_checksum_memory(target_t *target, uint32_t address, uint32_t size, uint32_t *checksum);
 
 target_type_t mips_m4k_target =
 {
@@ -90,7 +90,7 @@ target_type_t mips_m4k_target =
 
 int mips_m4k_examine_debug_reason(target_t *target)
 {
-	u32 break_status;
+	uint32_t break_status;
 	int retval;
 
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
@@ -126,7 +126,7 @@ int mips_m4k_debug_entry(target_t *target)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	u32 debug_reg;
+	uint32_t debug_reg;
 
 	/* read debug register */
 	mips_ejtag_read_debug(ejtag_info, &debug_reg);
@@ -147,7 +147,7 @@ int mips_m4k_debug_entry(target_t *target)
 	mips32_save_context(target);
 
 	LOG_DEBUG("entered debug state at PC 0x%x, target->state: %s",
-		*(u32*)(mips32->core_cache->reg_list[MIPS32_PC].value),
+		*(uint32_t*)(mips32->core_cache->reg_list[MIPS32_PC].value),
 		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
 
 	return ERROR_OK;
@@ -158,7 +158,7 @@ int mips_m4k_poll(target_t *target)
 	int retval;
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	u32 ejtag_ctrl = ejtag_info->ejtag_ctrl;
+	uint32_t ejtag_ctrl = ejtag_info->ejtag_ctrl;
 
 	/* read ejtag control reg */
 	jtag_set_end_state(TAP_IDLE);
@@ -288,7 +288,7 @@ int mips_m4k_assert_reset(target_t *target)
 
 	if (strcmp(target->variant, "ejtag_srst") == 0)
 	{
-		u32 ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
+		uint32_t ejtag_ctrl = ejtag_info->ejtag_ctrl | EJTAG_CTRL_PRRST | EJTAG_CTRL_PERRST;
 		LOG_DEBUG("Using EJTAG reset (PRRST) to reset processor...");
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
@@ -357,12 +357,12 @@ int mips_m4k_single_step_core(target_t *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution)
+int mips_m4k_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 	breakpoint_t *breakpoint = NULL;
-	u32 resume_pc;
+	uint32_t resume_pc;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -428,7 +428,7 @@ int mips_m4k_resume(struct target_s *target, int current, u32 address, int handl
 	return ERROR_OK;
 }
 
-int mips_m4k_step(struct target_s *target, int current, u32 address, int handle_breakpoints)
+int mips_m4k_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
@@ -529,7 +529,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		if (breakpoint->length == 4)
 		{
-			u32 verify = 0xffffffff;
+			uint32_t verify = 0xffffffff;
 			
 			if((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
@@ -610,7 +610,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4)
 		{
-			u32 current_instr;
+			uint32_t current_instr;
 			
 			/* check that user program has not modified breakpoint instruction */
 			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, (uint8_t*)&current_instr)) != ERROR_OK)
@@ -728,7 +728,7 @@ void mips_m4k_enable_watchpoints(struct target_s *target)
 	}
 }
 
-int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int mips_m4k_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
@@ -760,7 +760,7 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 	/* TAP data register is loaded LSB first (little endian) */
 	if (target->endianness == TARGET_BIG_ENDIAN) 
 	{
-		u32 i, t32;
+		uint32_t i, t32;
 		uint16_t t16;
 
 		for(i = 0; i < (count*size); i += size)
@@ -782,7 +782,7 @@ int mips_m4k_read_memory(struct target_s *target, u32 address, u32 size, u32 cou
 	return ERROR_OK;
 }
 
-int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer)
+int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
@@ -805,7 +805,7 @@ int mips_m4k_write_memory(struct target_s *target, u32 address, u32 size, u32 co
 	/* TAP data register is loaded LSB first (little endian) */
 	if (target->endianness == TARGET_BIG_ENDIAN)
 	{
-		u32 i, t32;
+		uint32_t i, t32;
 		uint16_t t16;
 
 		for(i = 0; i < (count*size); i += size)
@@ -878,7 +878,7 @@ int mips_m4k_examine(struct target_s *target)
 	int retval;
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	u32 idcode = 0;
+	uint32_t idcode = 0;
 
 	if (!target_was_examined(target))
 	{
@@ -904,12 +904,12 @@ int mips_m4k_examine(struct target_s *target)
 	return ERROR_OK;
 }
 
-int mips_m4k_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer)
+int mips_m4k_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer)
 {
 	return mips_m4k_write_memory(target, address, 4, count, buffer);
 }
 
-int mips_m4k_checksum_memory(target_t *target, u32 address, u32 size, u32 *checksum)
+int mips_m4k_checksum_memory(target_t *target, uint32_t address, uint32_t size, uint32_t *checksum)
 {
 	return ERROR_FAIL; /* use bulk read method */
 }

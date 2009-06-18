@@ -34,15 +34,15 @@
 
 #define RETRY_ATTEMPTS	0
 
-extern int mips32_dmaacc_read_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int count, void *buf);
-extern int mips32_dmaacc_write_mem(mips_ejtag_t *ejtag_info, u32 addr, int size, int count, void *buf);
+extern int mips32_dmaacc_read_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, int count, void *buf);
+extern int mips32_dmaacc_write_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, int count, void *buf);
 
-extern int mips32_dmaacc_read_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, uint8_t *buf);
-extern int mips32_dmaacc_read_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, uint16_t *buf);
-extern int mips32_dmaacc_read_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 *buf);
+extern int mips32_dmaacc_read_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint8_t *buf);
+extern int mips32_dmaacc_read_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint16_t *buf);
+extern int mips32_dmaacc_read_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint32_t *buf);
 
-extern int mips32_dmaacc_write_mem8(mips_ejtag_t *ejtag_info, u32 addr, int count, uint8_t *buf);
-extern int mips32_dmaacc_write_mem16(mips_ejtag_t *ejtag_info, u32 addr, int count, uint16_t *buf);
-extern int mips32_dmaacc_write_mem32(mips_ejtag_t *ejtag_info, u32 addr, int count, u32 *buf);
+extern int mips32_dmaacc_write_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint8_t *buf);
+extern int mips32_dmaacc_write_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint16_t *buf);
+extern int mips32_dmaacc_write_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, uint32_t *buf);
 
 #endif

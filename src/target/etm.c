@@ -261,7 +261,7 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_co
 int etm_setup(target_t *target)
 {
 	int retval;
-	u32 etm_ctrl_value;
+	uint32_t etm_ctrl_value;
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	etm_context_t *etm_ctx = arm7_9->etm_ctx;
@@ -366,7 +366,7 @@ int etm_read_reg(reg_t *reg)
 	return etm_read_reg_w_check(reg, NULL, NULL);
 }
 
-int etm_set_reg(reg_t *reg, u32 value)
+int etm_set_reg(reg_t *reg, uint32_t value)
 {
 	int retval;
 
@@ -397,7 +397,7 @@ int etm_set_reg_w_exec(reg_t *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
-int etm_write_reg(reg_t *reg, u32 value)
+int etm_write_reg(reg_t *reg, uint32_t value)
 {
 	etm_reg_t *etm_reg = reg->arch_info;
 	uint8_t reg_addr = etm_reg->addr & 0x7f;
@@ -474,8 +474,8 @@ static int etm_read_instruction(etm_context_t *ctx, arm_instruction_t *instructi
 {
 	int i;
 	int section = -1;
-	u32 size_read;
-	u32 opcode;
+	uint32_t size_read;
+	uint32_t opcode;
 	int retval;
 
 	if (!ctx->image)
@@ -609,7 +609,7 @@ static int etmv1_branch_address(etm_context_t *ctx)
 	uint8_t packet;
 	int shift = 0;
 	int apo;
-	u32 i;
+	uint32_t i;
 
 	/* quit analysis if less than two cycles are left in the trace
 	 * because we can't extract the APO */
@@ -689,7 +689,7 @@ static int etmv1_branch_address(etm_context_t *ctx)
 	return 0;
 }
 
-static int etmv1_data(etm_context_t *ctx, int size, u32 *data)
+static int etmv1_data(etm_context_t *ctx, int size, uint32_t *data)
 {
 	int j;
 	uint8_t buf[4];
@@ -739,12 +739,12 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 	while (ctx->pipe_index < ctx->trace_depth)
 	{
 		uint8_t pipestat = ctx->trace_data[ctx->pipe_index].pipestat;
-		u32 next_pc = ctx->current_pc;
-		u32 old_data_index = ctx->data_index;
-		u32 old_data_half = ctx->data_half;
-		u32 old_index = ctx->pipe_index;
-		u32 last_instruction = ctx->last_instruction;
-		u32 cycles = 0;
+		uint32_t next_pc = ctx->current_pc;
+		uint32_t old_data_index = ctx->data_index;
+		uint32_t old_data_half = ctx->data_half;
+		uint32_t old_index = ctx->pipe_index;
+		uint32_t last_instruction = ctx->last_instruction;
+		uint32_t cycles = 0;
 		int current_pc_ok = ctx->pc_ok;
 
 		if (ctx->trace_data[ctx->pipe_index].flags & ETMV1_TRIGGER_CYCLE)
@@ -888,8 +888,8 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 
 		if ((pipestat == STAT_ID) || (pipestat == STAT_BD))
 		{
-			u32 new_data_index = ctx->data_index;
-			u32 new_data_half = ctx->data_half;
+			uint32_t new_data_index = ctx->data_index;
+			uint32_t new_data_half = ctx->data_half;
 
 			/* in case of a branch with data, the branch target address was consumed before
 			 * we temporarily go back to the saved data index */
@@ -930,7 +930,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 					{
 						if (instruction.info.load_store_multiple.register_list & (1 << i))
 						{
-							u32 data;
+							uint32_t data;
 							if (etmv1_data(ctx, 4, &data) != 0)
 								return ERROR_ETM_ANALYSIS_FAILED;
 							command_print(cmd_ctx, "data: 0x%8.8x", data);
@@ -939,7 +939,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 				}
 				else if ((instruction.type >= ARM_LDR) && (instruction.type <= ARM_STRH))
 				{
-					u32 data;
+					uint32_t data;
 					if (etmv1_data(ctx, arm_access_size(&instruction), &data) != 0)
 						return ERROR_ETM_ANALYSIS_FAILED;
 					command_print(cmd_ctx, "data: 0x%8.8x", data);
@@ -1504,7 +1504,7 @@ static int handle_etm_dump_command(struct command_context_s *cmd_ctx, char *cmd,
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	etm_context_t *etm_ctx;
-	u32 i;
+	uint32_t i;
 
 	if (argc != 1)
 	{
@@ -1572,7 +1572,7 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd,
 	armv4_5_common_t *armv4_5;
 	arm7_9_common_t *arm7_9;
 	etm_context_t *etm_ctx;
-	u32 i;
+	uint32_t i;
 
 	if (argc != 1)
 	{
@@ -1633,7 +1633,7 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	for (i = 0; i < etm_ctx->trace_depth; i++)
 	{
-		u32 pipestat, packet, flags;
+		uint32_t pipestat, packet, flags;
 		fileio_read_u32(&file, &pipestat);
 		fileio_read_u32(&file, &packet);
 		fileio_read_u32(&file, &flags);
@@ -1670,7 +1670,7 @@ static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
 
 	if (argc > 0)
 	{
-		u32 new_value = strtoul(args[0], NULL, 0);
+		uint32_t new_value = strtoul(args[0], NULL, 0);
 
 		if ((new_value < 2) || (new_value > 100))
 		{

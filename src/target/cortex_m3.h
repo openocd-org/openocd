@@ -121,17 +121,17 @@ typedef struct  cortex_m3_fp_comparator_s
 {
 	int used;
 	int type;
-	u32 fpcr_value;
-	u32 fpcr_address;
+	uint32_t fpcr_value;
+	uint32_t fpcr_address;
 } cortex_m3_fp_comparator_t;
 
 typedef struct  cortex_m3_dwt_comparator_s
 {
 	int used;
-	u32 comp;
-	u32 mask;
-	u32 function;
-	u32 dwt_comparator_address;
+	uint32_t comp;
+	uint32_t mask;
+	uint32_t function;
+	uint32_t dwt_comparator_address;
 } cortex_m3_dwt_comparator_t;
 
 typedef struct cortex_m3_common_s
@@ -140,9 +140,9 @@ typedef struct cortex_m3_common_s
 	arm_jtag_t jtag_info;
 	
 	/* Context information */
-	u32 dcb_dhcsr;
-	u32 nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
-	u32 nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
+	uint32_t dcb_dhcsr;
+	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
+	uint32_t nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
 	
 	/* Flash Patch and Breakpoint (FPB) */
 	int fp_num_lit;
@@ -159,7 +159,7 @@ typedef struct cortex_m3_common_s
 	
 	/* Interrupts */
 	int intlinesnum;
-	u32 *intsetenable;
+	uint32_t *intsetenable;
 	
 	armv7m_common_t armv7m;
 //	swjdp_common_t swjdp_info;
@@ -170,16 +170,16 @@ extern void cortex_m3_build_reg_cache(target_t *target);
 
 int cortex_m3_poll(target_t *target);
 int cortex_m3_halt(target_t *target);
-int cortex_m3_resume(struct target_s *target, int current, u32 address, int handle_breakpoints, int debug_execution);
-int cortex_m3_step(struct target_s *target, int current, u32 address, int handle_breakpoints);
+int cortex_m3_resume(struct target_s *target, int current, uint32_t address, int handle_breakpoints, int debug_execution);
+int cortex_m3_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints);
 
 int cortex_m3_assert_reset(target_t *target);
 int cortex_m3_deassert_reset(target_t *target);
 int cortex_m3_soft_reset_halt(struct target_s *target);
 
-int cortex_m3_read_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
-int cortex_m3_write_memory(struct target_s *target, u32 address, u32 size, u32 count, uint8_t *buffer);
-int cortex_m3_bulk_write_memory(target_t *target, u32 address, u32 count, uint8_t *buffer);
+int cortex_m3_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int cortex_m3_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int cortex_m3_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer);
 
 int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
 int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint);
