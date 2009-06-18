@@ -59,7 +59,7 @@ static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
 	if (field->num_bits > 32)
 	{
 		unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
-		field->in_value = (u8 *)malloc(num_bytes);
+		field->in_value = (uint8_t *)malloc(num_bytes);
 		field->allocated = 1;
 	}
 	else
@@ -72,22 +72,22 @@ static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
 
 static inline void interface_jtag_alloc_in_value32(scan_field_t *field)
 {
-	field->in_value = (u8 *)cmd_queue_alloc(4);
+	field->in_value = (uint8_t *)cmd_queue_alloc(4);
 }
 
 static inline void interface_jtag_add_scan_check_alloc(scan_field_t *field)
 {
 	unsigned num_bytes = TAP_SCAN_BYTES(field->num_bits);
-	field->in_value = (u8 *)cmd_queue_alloc(num_bytes);
+	field->in_value = (uint8_t *)cmd_queue_alloc(num_bytes);
 }
 
 extern void interface_jtag_add_dr_out(jtag_tap_t* tap,
 		int num_fields, const int* num_bits, const u32* value,
 		tap_state_t end_state);
 
-extern void interface_jtag_add_callback(jtag_callback1_t f, u8 *in);
+extern void interface_jtag_add_callback(jtag_callback1_t f, uint8_t *in);
 
-extern void interface_jtag_add_callback4(jtag_callback_t f, u8 *in,
+extern void interface_jtag_add_callback4(jtag_callback_t f, uint8_t *in,
 		jtag_callback_data_t data1, jtag_callback_data_t data2,
 		jtag_callback_data_t data3);
 

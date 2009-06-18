@@ -155,21 +155,21 @@ int fileio_seek(fileio_t *fileio, u32 position)
 	return ERROR_OK;
 }
 
-static inline int fileio_local_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
+static inline int fileio_local_read(fileio_t *fileio, u32 size, uint8_t *buffer, u32 *size_read)
 {
 	*size_read = fread(buffer, 1, size, fileio->file);
 	
 	return ERROR_OK;
 }
 
-int fileio_read(fileio_t *fileio, u32 size, u8 *buffer, u32 *size_read)
+int fileio_read(fileio_t *fileio, u32 size, uint8_t *buffer, u32 *size_read)
 {
 	return fileio_local_read(fileio, size, buffer, size_read);
 }
 
 int fileio_read_u32(fileio_t *fileio, u32 *data)
 {
-	u8 buf[4];
+	uint8_t buf[4];
 	u32 size_read;
 	int retval;
 	
@@ -193,14 +193,14 @@ int fileio_fgets(fileio_t *fileio, u32 size, char *buffer)
 	return fileio_local_fgets(fileio, size, buffer);
 }
 
-static inline int fileio_local_write(fileio_t *fileio, u32 size, const u8 *buffer, u32 *size_written)
+static inline int fileio_local_write(fileio_t *fileio, u32 size, const uint8_t *buffer, u32 *size_written)
 {
 	*size_written = fwrite(buffer, 1, size, fileio->file);
 	
 	return ERROR_OK;
 }
 
-int fileio_write(fileio_t *fileio, u32 size, const u8 *buffer, u32 *size_written)
+int fileio_write(fileio_t *fileio, u32 size, const uint8_t *buffer, u32 *size_written)
 {
 	int retval;
 	
@@ -214,7 +214,7 @@ int fileio_write(fileio_t *fileio, u32 size, const u8 *buffer, u32 *size_written
 
 int fileio_write_u32(fileio_t *fileio, u32 data)
 {
-	u8 buf[4];
+	uint8_t buf[4];
 	u32 size_written;
 	int retval;
 	

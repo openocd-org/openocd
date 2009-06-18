@@ -29,9 +29,9 @@
 
 
 static int read_section(FILE *input_file, int length_size, char section,
-		u32 *buffer_length, u8 **buffer)
+		u32 *buffer_length, uint8_t **buffer)
 {
-	u8 length_buffer[4];
+	uint8_t length_buffer[4];
 	int length;
 	char section_char;
 	int read_count;

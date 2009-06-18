@@ -34,11 +34,11 @@
 
 #include <sys/mman.h>
 
-static u8 output_value = 0x0;
+static uint8_t output_value = 0x0;
 static int dev_mem_fd;
 static void *gpio_controller;
-static volatile u8 *gpio_data_register;
-static volatile u8 *gpio_data_direction_register;
+static volatile uint8_t *gpio_data_register;
+static volatile uint8_t *gpio_data_direction_register;
 
 /* low level command set
  */

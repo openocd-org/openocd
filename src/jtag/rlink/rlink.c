@@ -327,17 +327,17 @@ static
 int
 dtc_load_from_buffer(
 	usb_dev_handle	*pHDev,
-	const u8		*buffer,
+	const uint8_t		*buffer,
 	size_t			length
 ) {
 	struct header_s {
-		u8	type;
-		u8	length;
+		uint8_t	type;
+		uint8_t	length;
 	};
 
 	int				usb_err;
 	struct header_s	*header;
-	u8				lut_start = 0xc0;
+	uint8_t				lut_start = 0xc0;
 
 	dtc_entry_download = 0;
 
@@ -439,7 +439,7 @@ static
 int
 dtc_start_download(void) {
 	int	usb_err;
-	u8	ep2txr;
+	uint8_t	ep2txr;
 
 	/* set up for download mode and make sure EP2 is set up to transmit */
 	usb_err = ep1_generic_commandl(
@@ -497,12 +497,12 @@ static
 int
 dtc_run_download(
 	usb_dev_handle	*pHDev,
-	u8	*command_buffer,
+	uint8_t	*command_buffer,
 	int	command_buffer_size,
-	u8	*reply_buffer,
+	uint8_t	*reply_buffer,
 	int	reply_buffer_size
 ) {
-	u8	ep2_buffer[USB_EP2IN_SIZE];
+	uint8_t	ep2_buffer[USB_EP2IN_SIZE];
 	int	usb_err;
 	int	i;
 
@@ -582,7 +582,7 @@ struct dtc_reply_queue_entry_s {
 	jtag_command_t	*cmd;	/* the command that resulted in this entry */
 
 	struct {
-		u8		*buffer;	/* the scan buffer */
+		uint8_t		*buffer;	/* the scan buffer */
 		int		size;		/* size of the scan buffer in bits */
 		int		offset;		/* how many bits were already done before this? */
 		int		length;		/* how many bits are processed in this operation? */
@@ -602,7 +602,7 @@ struct {
 	dtc_reply_queue_entry_t	*rq_tail;
 	u32			cmd_index;
 	u32			reply_index;
-	u8			cmd_buffer[USB_EP2BANK_SIZE];
+	uint8_t			cmd_buffer[USB_EP2BANK_SIZE];
 } dtc_queue;
 
 
@@ -634,7 +634,7 @@ inline
 dtc_reply_queue_entry_t *
 dtc_queue_enqueue_reply(
 	enum scan_type	type,
-	u8				*buffer,
+	uint8_t				*buffer,
 	int				size,
 	int				offset,
 	int				length,
@@ -677,9 +677,9 @@ dtc_queue_run(void) {
 	int			usb_err;
 	int			bit_cnt;
 	int			x;
-	u8			*dtc_p, *tdo_p;
-	u8			dtc_mask, tdo_mask;
-	u8			reply_buffer[USB_EP2IN_SIZE];
+	uint8_t			*dtc_p, *tdo_p;
+	uint8_t			dtc_mask, tdo_mask;
+	uint8_t			reply_buffer[USB_EP2IN_SIZE];
 
 	retval = ERROR_OK;
 
@@ -827,7 +827,7 @@ int
 tap_state_queue_run(void) {
 	int	i;
 	int	bits;
-	u8	byte;
+	uint8_t	byte;
 	int	retval;
 
 	retval = 0;
@@ -881,7 +881,7 @@ tap_state_queue_run(void) {
 static
 int
 tap_state_queue_append(
-	u8	tms
+	uint8_t	tms
 ) {
 	int	retval;
 
@@ -916,7 +916,7 @@ static
 void rlink_state_move(void) {
 
 	int i=0, tms=0;
-	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	for (i = 0; i < tms_count; i++)
@@ -994,7 +994,7 @@ void rlink_runtest(int num_cycles)
 static
 void rlink_reset(int trst, int srst)
 {
-	u8			bitmap;
+	uint8_t			bitmap;
 	int			usb_err;
 
 	/* Read port A for bit op */
@@ -1093,7 +1093,7 @@ int
 rlink_scan(
 	jtag_command_t	*cmd,
 	enum scan_type	type,
-	u8			*buffer,
+	uint8_t			*buffer,
 	int			scan_size
 ) {
 	bool		ir_scan;
@@ -1105,8 +1105,8 @@ rlink_scan(
 	int			x;
 
 	int			tdi_bit_offset;
-	u8			tdi_mask, *tdi_p;
-	u8			dtc_mask;
+	uint8_t			tdi_mask, *tdi_p;
+	uint8_t			dtc_mask;
 
 	if(scan_size < 1) {
 		LOG_ERROR("scan_size cannot be less than 1 bit\n");
@@ -1382,7 +1382,7 @@ int rlink_execute_queue(void)
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
 	enum scan_type type;
-	u8 *buffer;
+	uint8_t *buffer;
 	int retval, tmp_retval;
 
 	/* return ERROR_OK, unless something goes wrong */
@@ -1622,7 +1622,7 @@ int rlink_init(void)
 	int i, j, retries;
 	int found=0;
 	int success=0;
-	u8 reply_buffer[USB_EP1IN_SIZE];
+	uint8_t reply_buffer[USB_EP1IN_SIZE];
 
 	usb_init();
 	usb_find_busses();

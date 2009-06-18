@@ -98,10 +98,10 @@ typedef struct presto_s
 
 	char serial[FT_DEVICE_SERNUM_LEN];
 
-	u8 buff_out[BUFFER_SIZE];
+	uint8_t buff_out[BUFFER_SIZE];
 	int buff_out_pos;
 
-	u8 buff_in[BUFFER_SIZE];
+	uint8_t buff_in[BUFFER_SIZE];
 	int buff_in_exp; /* expected in buffer length */
 	int buff_in_len; /* length of data received */
 	int buff_in_pos;
@@ -123,12 +123,12 @@ typedef struct presto_s
 static presto_t presto_state;
 static presto_t *presto = &presto_state;
 
-static u8 presto_init_seq[] =
+static uint8_t presto_init_seq[] =
 {
 	0x80, 0xA0, 0xA8, 0xB0, 0xC0, 0xE0
 };
 
-static int presto_write(u8 *buf, u32 size)
+static int presto_write(uint8_t *buf, u32 size)
 {
 #if BUILD_PRESTO_FTD2XX == 1
 	DWORD ftbytes;
@@ -157,7 +157,7 @@ static int presto_write(u8 *buf, u32 size)
 	return ERROR_OK;
 }
 
-static int presto_read(u8* buf, u32 size)
+static int presto_read(uint8_t* buf, u32 size)
 {
 #if BUILD_PRESTO_FTD2XX == 1
 	DWORD ftbytes;
@@ -332,7 +332,7 @@ static int presto_open_ftd2xx(char *req_serial)
 #elif BUILD_PRESTO_LIBFTDI == 1
 static int presto_open_libftdi(char *req_serial)
 {
-	u8 presto_data;
+	uint8_t presto_data;
 
 	LOG_DEBUG("searching for PRESTO using libftdi");
 
@@ -521,7 +521,7 @@ static int presto_sendbyte(int data)
 
 	if (presto->buff_out_pos < BUFFER_SIZE)
 	{
-		presto->buff_out[presto->buff_out_pos++] = (u8)data;
+		presto->buff_out[presto->buff_out_pos++] = (uint8_t)data;
 		if (((data & 0xC0) == 0x40) || ((data & 0xD0)== 0xD0))
 			presto->buff_in_exp++;
 	}

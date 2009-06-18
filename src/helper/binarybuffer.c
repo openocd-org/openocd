@@ -48,7 +48,7 @@ const unsigned char bit_reverse_table256[] =
 };
 
 
-u8* buf_cpy(const u8 *from, u8 *to, int size)
+uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size)
 {
 	unsigned int num_bytes = CEIL(size, 8);
 	unsigned int i;
@@ -68,7 +68,7 @@ u8* buf_cpy(const u8 *from, u8 *to, int size)
 	return to;
 }
 
-int buf_cmp(const u8 *buf1, const u8 *buf2, int size)
+int buf_cmp(const uint8_t *buf1, const uint8_t *buf2, int size)
 {
 	int num_bytes = CEIL(size, 8);
 	int i;
@@ -95,7 +95,7 @@ int buf_cmp(const u8 *buf1, const u8 *buf2, int size)
 	return 0;
 }
 
-int buf_cmp_mask(const u8 *buf1, const u8 *buf2, const u8 *mask, int size)
+int buf_cmp_mask(const uint8_t *buf1, const uint8_t *buf2, const uint8_t *mask, int size)
 {
 	int num_bytes = CEIL(size, 8);
 	int i;
@@ -120,7 +120,7 @@ int buf_cmp_mask(const u8 *buf1, const u8 *buf2, const u8 *mask, int size)
 	return 0;
 }
 
-u8* buf_set_ones(u8 *buf, int count)
+uint8_t* buf_set_ones(uint8_t *buf, int count)
 {
 	int num_bytes = CEIL(count, 8);
 	int i;
@@ -138,7 +138,7 @@ u8* buf_set_ones(u8 *buf, int count)
 	return buf;
 }
 
-u8* buf_set_buf(const u8 *src, int src_start, u8 *dst, int dst_start, int len)
+uint8_t* buf_set_buf(const uint8_t *src, int src_start, uint8_t *dst, int dst_start, int len)
 {
 	int src_idx = src_start, dst_idx = dst_start;
 	int i;
@@ -186,7 +186,7 @@ int ceil_f_to_u32(float x)
 	return y;
 }
 
-char* buf_to_str(const u8 *buf, int buf_len, int radix)
+char* buf_to_str(const uint8_t *buf, int buf_len, int radix)
 {
 	const char *DIGITS = "0123456789ABCDEF";
 	float factor;
@@ -225,7 +225,7 @@ char* buf_to_str(const u8 *buf, int buf_len, int radix)
 		for (j = str_len; j > 0; j--)
 		{
 			tmp += (u32)str[j-1] * 256;
-			str[j-1] = (u8)(tmp % radix);
+			str[j-1] = (uint8_t)(tmp % radix);
 			tmp /= radix;
 		}
 	}
@@ -236,12 +236,12 @@ char* buf_to_str(const u8 *buf, int buf_len, int radix)
 	return str;
 }
 
-int str_to_buf(const char *str, int str_len, u8 *buf, int buf_len, int radix)
+int str_to_buf(const char *str, int str_len, uint8_t *buf, int buf_len, int radix)
 {
 	char *charbuf;
 	u32 tmp;
 	float factor;
-	u8 *b256_buf;
+	uint8_t *b256_buf;
 	int b256_len;
 
 	int j; /* base-256 digits */
@@ -304,7 +304,7 @@ int str_to_buf(const char *str, int str_len, u8 *buf, int buf_len, int radix)
 		for (j = 0; j < b256_len; j++)
 		{
 			tmp += (u32)b256_buf[j] * radix;
-			b256_buf[j] = (u8)(tmp & 0xFF);
+			b256_buf[j] = (uint8_t)(tmp & 0xFF);
 			tmp >>= 8;
 		}
 
@@ -328,7 +328,7 @@ int str_to_buf(const char *str, int str_len, u8 *buf, int buf_len, int radix)
 	return i;
 }
 
-int buf_to_u32_handler(u8 *in_buf, void *priv, struct scan_field_s *field)
+int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field_s *field)
 {
 	u32 *dest = priv;
 

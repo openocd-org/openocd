@@ -71,8 +71,8 @@ u16 gw16012_port;
 
 /* interface variables
  */
-static u8 gw16012_msb = 0x0;
-static u8 gw16012_control_value = 0x0;
+static uint8_t gw16012_msb = 0x0;
+static uint8_t gw16012_control_value = 0x0;
 
 #if PARPORT_USE_PPDEV == 1
 static int device_handle;
@@ -106,7 +106,7 @@ static int gw16012_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static void gw16012_data(u8 value)
+static void gw16012_data(uint8_t value)
 {
 	value = (value & 0x7f) | gw16012_msb;
 	gw16012_msb ^= 0x80; /* toggle MSB */
@@ -126,7 +126,7 @@ static void gw16012_data(u8 value)
 	#endif
 }
 
-static void gw16012_control(u8 value)
+static void gw16012_control(uint8_t value)
 {
 	if (value != gw16012_control_value)
 	{
@@ -148,7 +148,7 @@ static void gw16012_control(u8 value)
 	}
 }
 
-static void gw16012_input(u8 *value)
+static void gw16012_input(uint8_t *value)
 {
 	#if PARPORT_USE_PPDEV == 1
 		ioctl(device_handle, PPRSTATUS, value);
@@ -197,7 +197,7 @@ static void gw16012_end_state(tap_state_t state)
 static void gw16012_state_move(void)
 {
 	int i=0, tms=0;
-	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	gw16012_control(0x0); /* single-bit mode */
@@ -265,12 +265,12 @@ static void gw16012_runtest(int num_cycles)
 		gw16012_state_move();
 }
 
-static void gw16012_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void gw16012_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size)
 {
 	int bits_left = scan_size;
 	int bit_count = 0;
 	tap_state_t saved_end_state = tap_get_end_state();
-	u8 scan_out, scan_in;
+	uint8_t scan_out, scan_in;
 
 	/* only if we're not already in the correct Shift state */
 	if (!((!ir_scan && (tap_get_state() == TAP_DRSHIFT)) || (ir_scan && (tap_get_state() == TAP_IRSHIFT))))
@@ -296,7 +296,7 @@ static void gw16012_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan
 	gw16012_control(0x0); /* single-bit mode */
 	while (bits_left-- > 0)
 	{
-		u8 tms = 0;
+		uint8_t tms = 0;
 
 		scan_out = buf_get_u32(buffer, bit_count, 1);
 
@@ -343,7 +343,7 @@ static int gw16012_execute_queue(void)
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
 	enum scan_type type;
-	u8 *buffer;
+	uint8_t *buffer;
 	int retval;
 
 	/* return ERROR_OK, unless a jtag_read_buffer returns a failed check
@@ -549,7 +549,7 @@ static int gw16012_init_device(void)
 
 static int gw16012_init(void)
 {
-	u8 status_port;
+	uint8_t status_port;
 
 	if (gw16012_init_device() != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;

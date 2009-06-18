@@ -30,7 +30,7 @@
  */
 
 /* inlining this will help show what fn that is taking time during profiling. */
-static inline void buf_set_u32(u8* buffer, unsigned int first, unsigned int num, u32 value)
+static inline void buf_set_u32(uint8_t* buffer, unsigned int first, unsigned int num, u32 value)
 {
 	if ((num==32)&&(first==0))
 	{
@@ -51,7 +51,7 @@ static inline void buf_set_u32(u8* buffer, unsigned int first, unsigned int num,
 		}
 	}
 }
-static inline u32 buf_get_u32(const u8* buffer, unsigned int first, unsigned int num)
+static inline u32 buf_get_u32(const uint8_t* buffer, unsigned int first, unsigned int num)
 {
 	if ((num==32)&&(first==0))
 	{
@@ -73,23 +73,23 @@ static inline u32 buf_get_u32(const u8* buffer, unsigned int first, unsigned int
 
 extern u32 flip_u32(u32 value, unsigned int num);
 
-extern int buf_cmp(const u8 *buf1, const u8 *buf2, int size);
-extern int buf_cmp_mask(const u8 *buf1, const u8 *buf2, const u8 *mask, int size);
-extern u8* buf_cpy(const u8 *from, u8 *to, int size);
+extern int buf_cmp(const uint8_t *buf1, const uint8_t *buf2, int size);
+extern int buf_cmp_mask(const uint8_t *buf1, const uint8_t *buf2, const uint8_t *mask, int size);
+extern uint8_t* buf_cpy(const uint8_t *from, uint8_t *to, int size);
 
-extern u8* buf_set_ones(u8 *buf, int count);
-extern u8* buf_set_buf(const u8 *src, int src_start, u8 *dst, int dst_start, int len);
+extern uint8_t* buf_set_ones(uint8_t *buf, int count);
+extern uint8_t* buf_set_buf(const uint8_t *src, int src_start, uint8_t *dst, int dst_start, int len);
 
-extern int str_to_buf(const char *str, int len, u8 *bin_buf, int buf_size, int radix);
-extern char* buf_to_str(const u8 *buf, int size, int radix);
+extern int str_to_buf(const char *str, int len, uint8_t *bin_buf, int buf_size, int radix);
+extern char* buf_to_str(const uint8_t *buf, int size, int radix);
 
 struct scan_field_s;
-extern int buf_to_u32_handler(u8 *in_buf, void *priv, struct scan_field_s *field);
+extern int buf_to_u32_handler(uint8_t *in_buf, void *priv, struct scan_field_s *field);
 
 #define CEIL(m, n)	((m + n - 1) / n)
 
 /* read a u32 from a buffer in target memory endianness */
-static inline u32 fast_target_buffer_get_u32(const u8 *buffer, int little)
+static inline u32 fast_target_buffer_get_u32(const uint8_t *buffer, int little)
 {
 	if (little)
 		return le_to_h_u32(buffer);

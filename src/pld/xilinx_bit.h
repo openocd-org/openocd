@@ -24,13 +24,13 @@
 
 typedef struct xilinx_bit_file_s
 {
-	u8 unknown_header[13];
-	u8 *source_file;
-	u8 *part_name;
-	u8 *date;
-	u8 *time;
+	uint8_t unknown_header[13];
+	uint8_t *source_file;
+	uint8_t *part_name;
+	uint8_t *date;
+	uint8_t *time;
 	u32 length;
-	u8 *data;
+	uint8_t *data;
 } xilinx_bit_file_t;
 
 int xilinx_read_bit_file(xilinx_bit_file_t *bit_file, char *filename);

@@ -77,7 +77,7 @@ static void bitbang_end_state(tap_state_t state)
 static void bitbang_state_move(int skip)
 {
 	int i=0, tms=0;
-	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	for (i = skip; i < tms_count; i++)
@@ -170,7 +170,7 @@ static void bitbang_stableclocks(int num_cycles)
 
 
 
-static void bitbang_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 	int bit_cnt;
@@ -233,7 +233,7 @@ int bitbang_execute_queue(void)
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
 	enum scan_type type;
-	u8 *buffer;
+	uint8_t *buffer;
 	int retval;
 
 	if (!bitbang_interface)

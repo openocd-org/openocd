@@ -39,10 +39,10 @@
 
 static u16 vsllink_usb_vid;
 static u16 vsllink_usb_pid;
-static u8 vsllink_usb_bulkout;
-static u8 vsllink_usb_bulkin;
-static u8 vsllink_usb_interface;
-static u8 vsllink_mode = VSLLINK_MODE_NORMAL;
+static uint8_t vsllink_usb_bulkout;
+static uint8_t vsllink_usb_bulkin;
+static uint8_t vsllink_usb_interface;
+static uint8_t vsllink_mode = VSLLINK_MODE_NORMAL;
 static int VSLLINK_USB_TIMEOUT = 10000;
 
 static int VSLLINK_BufferSize = 1024;
@@ -50,8 +50,8 @@ static int VSLLINK_BufferSize = 1024;
 /* Global USB buffers */
 static int vsllink_usb_out_buffer_idx;
 static int vsllink_usb_in_want_length;
-static u8* vsllink_usb_in_buffer = NULL;
-static u8* vsllink_usb_out_buffer = NULL;
+static uint8_t* vsllink_usb_in_buffer = NULL;
+static uint8_t* vsllink_usb_out_buffer = NULL;
 
 /* Constants for VSLLink command */
 #define VSLLINK_CMD_CONN			0x80
@@ -94,7 +94,7 @@ static u8* vsllink_usb_out_buffer = NULL;
  *
  * SD->SD and SI->SI have to be caught in interface specific code
  */
-static u8 VSLLINK_tap_move[6][6] =
+static uint8_t VSLLINK_tap_move[6][6] =
 {
 /*	  TLR   RTI   SD    PD    SI    PI             */
 	{0xff, 0x7f, 0x2f, 0x0a, 0x37, 0x16},	/* TLR */
@@ -158,7 +158,7 @@ static insert_insignificant_operation_t VSLLINK_TAP_MOVE_INSERT_INSIGNIFICANT[6]
 	{0,		0,}},	/* PI  */
 };
 
-static u8 VSLLINK_BIT_MSK[8] =
+static uint8_t VSLLINK_BIT_MSK[8] =
 {
 	0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f
 };
@@ -168,7 +168,7 @@ typedef struct
 	int offset;
 	int length; /* Number of bits to read */
 	scan_command_t *command; /* Corresponding scan command */
-	u8 *buffer;
+	uint8_t *buffer;
 } pending_scan_result_t;
 
 #define MAX_PENDING_SCAN_RESULTS 256
@@ -205,11 +205,11 @@ static void vsllink_runtest(int num_cycles);
 static void vsllink_stableclocks_dma(int num_cycles, int tms);
 static void vsllink_stableclocks_normal(int num_cycles, int tms);
 static void (*vsllink_stableclocks)(int num_cycles, int tms);
-static void vsllink_scan_dma(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
-static void vsllink_scan_normal(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
-static void (*vsllink_scan)(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
+static void vsllink_scan_dma(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command);
+static void vsllink_scan_normal(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command);
+static void (*vsllink_scan)(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command);
 static void vsllink_reset(int trst, int srst);
-static void vsllink_simple_command(u8 command);
+static void vsllink_simple_command(uint8_t command);
 static int vsllink_connect(void);
 static int vsllink_disconnect(void);
 
@@ -224,8 +224,8 @@ static int (*vsllink_tap_execute)(void);
 static void vsllink_tap_ensure_space_dma(int scans, int length);
 static void vsllink_tap_ensure_space_normal(int scans, int length);
 static void (*vsllink_tap_ensure_space)(int scans, int length);
-static void vsllink_tap_append_scan_dma(int length, u8 *buffer, scan_command_t *command);
-static void vsllink_tap_append_scan_normal(int length, u8 *buffer, scan_command_t *command, int offset);
+static void vsllink_tap_append_scan_dma(int length, uint8_t *buffer, scan_command_t *command);
+static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, scan_command_t *command, int offset);
 
 /* VSLLink lowlevel functions */
 typedef struct vsllink_jtag
@@ -240,17 +240,17 @@ static int vsllink_usb_write(vsllink_jtag_t *vsllink_jtag, int out_length);
 static int vsllink_usb_read(vsllink_jtag_t *vsllink_jtag);
 
 #if defined _DEBUG_USB_COMMS_ || defined _DEBUG_JTAG_IO_
-static void vsllink_debug_buffer(u8 *buffer, int length);
+static void vsllink_debug_buffer(uint8_t *buffer, int length);
 #endif
 
 static int vsllink_tms_data_len = 0;
-static u8* vsllink_tms_cmd_pos;
+static uint8_t* vsllink_tms_cmd_pos;
 
 static int tap_length = 0;
 static int tap_buffer_size = 0;
-static u8 *tms_buffer = NULL;
-static u8 *tdi_buffer = NULL;
-static u8 *tdo_buffer = NULL;
+static uint8_t *tms_buffer = NULL;
+static uint8_t *tdi_buffer = NULL;
+static uint8_t *tdo_buffer = NULL;
 static int last_tms;
 
 static vsllink_jtag_t* vsllink_jtag_handle = NULL;
@@ -288,7 +288,7 @@ static int vsllink_execute_queue(void)
 	jtag_command_t *cmd = jtag_command_queue;
 	int scan_size;
 	enum scan_type type;
-	u8 *buffer;
+	uint8_t *buffer;
 
 	DEBUG_JTAG_IO("--------------------------------- vsllink -------------------------------------");
 
@@ -491,9 +491,9 @@ static int vsllink_init(void)
 			if (vsllink_mode == VSLLINK_MODE_DMA)
 			{
 				tap_buffer_size = (VSLLINK_BufferSize - 3) / 2;
-				tms_buffer = (u8*)malloc(tap_buffer_size);
-				tdi_buffer = (u8*)malloc(tap_buffer_size);
-				tdo_buffer = (u8*)malloc(tap_buffer_size);
+				tms_buffer = (uint8_t*)malloc(tap_buffer_size);
+				tdi_buffer = (uint8_t*)malloc(tap_buffer_size);
+				tdo_buffer = (uint8_t*)malloc(tap_buffer_size);
 				if ((tms_buffer == NULL) || (tdi_buffer == NULL) || (tdo_buffer == NULL))
 				{
 					LOG_ERROR("Not enough memory");
@@ -626,7 +626,7 @@ static int vsllink_connect(void)
 // length of VSLLINK_CMDJTAGSEQ_TMSBYTE has been set, no need to set it here.
 static void vsllink_append_tms(void)
 {
-	u8 tms_scan = VSLLINK_TAP_MOVE(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan = VSLLINK_TAP_MOVE(tap_get_state(), tap_get_end_state());
 	u16 tms2;
 	insert_insignificant_operation_t *insert = \
 		&VSLLINK_TAP_MOVE_INSERT_INSIGNIFICANT[tap_move_ndx(tap_get_state())][tap_move_ndx(tap_get_end_state())];
@@ -691,7 +691,7 @@ static void vsllink_state_move_dma(void)
 	int i, insert_length = (tap_length % 8) ? (8 - (tap_length % 8)) : 0;
 	insert_insignificant_operation_t *insert = \
 		&VSLLINK_TAP_MOVE_INSERT_INSIGNIFICANT[tap_move_ndx(tap_get_state())][tap_move_ndx(tap_get_end_state())];
-	u8 tms_scan = VSLLINK_TAP_MOVE(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan = VSLLINK_TAP_MOVE(tap_get_state(), tap_get_end_state());
 
 	if (tap_get_state() == TAP_RESET)
 	{
@@ -980,14 +980,14 @@ static void vsllink_stableclocks_normal(int num_cycles, int tms)
 				// just add to vsllink_tms_data_len
 				// same result if tun through
 				//vsllink_tms_data_len += num_cycles;
-				vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx] |= (u8)(tms_append_byte & 0xFF);
+				vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx] |= (uint8_t)(tms_append_byte & 0xFF);
 			}
 			else if (tms_len == 8)
 			{
 				// end last tms shift command
 				// just reduce it, and append last tms byte
 				(*vsllink_tms_cmd_pos)--;
-				vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (u8)(tms_append_byte & 0xFF);
+				vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (uint8_t)(tms_append_byte & 0xFF);
 			}
 			else if (tms_len < 16)
 			{
@@ -997,8 +997,8 @@ static void vsllink_stableclocks_normal(int num_cycles, int tms)
 					// there is enought tms length in the current tms shift command
 					// increase the tms byte length by 1 and set the last byte to 0
 					(*vsllink_tms_cmd_pos)++;
-					vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (u8)(tms_append_byte & 0xFF);
-					vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx] = (u8)(tms_append_byte >> 8);
+					vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (uint8_t)(tms_append_byte & 0xFF);
+					vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx] = (uint8_t)(tms_append_byte >> 8);
 				}
 				else
 				{
@@ -1008,19 +1008,19 @@ static void vsllink_stableclocks_normal(int num_cycles, int tms)
 					// first decrease byte length of last tms shift command
 					(*vsllink_tms_cmd_pos)--;
 					// append last tms byte and move the command pointer to the next empty position
-					vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (u8)(tms_append_byte & 0xFF);
+					vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (uint8_t)(tms_append_byte & 0xFF);
 					// add new command(3 bytes)
 					vsllink_tap_ensure_space(0, 3);
 					vsllink_tms_cmd_pos = &vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx];
 					vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = VSLLINK_CMDJTAGSEQ_TMSBYTE | 1;
-					vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx] = (u8)(tms_append_byte >> 8);
+					vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx] = (uint8_t)(tms_append_byte >> 8);
 				}
 			}
 			else if (tms_len == 16)
 			{
 				// end last tms shift command
-				vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (u8)(tms_append_byte & 0xFF);
-				vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = (u8)(tms_append_byte >> 8);
+				vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (uint8_t)(tms_append_byte & 0xFF);
+				vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = (uint8_t)(tms_append_byte >> 8);
 			}
 
 			vsllink_tms_data_len = tms_len & 7;
@@ -1033,8 +1033,8 @@ static void vsllink_stableclocks_normal(int num_cycles, int tms)
 		else
 		{
 			// more shifts will be needed
-			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (u8)(tms_append_byte & 0xFF);
-			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = (u8)(tms_append_byte >> 8);
+			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] |= (uint8_t)(tms_append_byte & 0xFF);
+			vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx++] = (uint8_t)(tms_append_byte >> 8);
 
 			num_cycles -= 16 - vsllink_tms_data_len;
 			vsllink_tms_data_len = 0;
@@ -1172,10 +1172,10 @@ static void vsllink_runtest(int num_cycles)
 	}
 }
 
-static void vsllink_scan_normal(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
+static void vsllink_scan_normal(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command)
 {
 	tap_state_t saved_end_state;
-	u8 bits_left, tms_tmp, tdi_len;
+	uint8_t bits_left, tms_tmp, tdi_len;
 	int i;
 
 	if (0 == scan_size )
@@ -1288,7 +1288,7 @@ static void vsllink_scan_normal(bool ir_scan, enum scan_type type, u8 *buffer, i
 
 	tap_set_state(tap_get_end_state());
 }
-static void vsllink_scan_dma(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
+static void vsllink_scan_dma(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command)
 {
 	tap_state_t saved_end_state;
 
@@ -1342,7 +1342,7 @@ static void vsllink_reset(int trst, int srst)
 	}
 }
 
-static void vsllink_simple_command(u8 command)
+static void vsllink_simple_command(uint8_t command)
 {
 	int result;
 
@@ -1505,7 +1505,7 @@ static void vsllink_tap_append_step(int tms, int tdi)
 	if (index < tap_buffer_size)
 	{
 		int bit_index = tap_length % 8;
-		u8 bit = 1 << bit_index;
+		uint8_t bit = 1 << bit_index;
 
 		if (tms)
 		{
@@ -1533,7 +1533,7 @@ static void vsllink_tap_append_step(int tms, int tdi)
 	}
 }
 
-static void vsllink_tap_append_scan_normal(int length, u8 *buffer, scan_command_t *command, int offset)
+static void vsllink_tap_append_scan_normal(int length, uint8_t *buffer, scan_command_t *command, int offset)
 {
 	pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
 	int i;
@@ -1558,7 +1558,7 @@ static void vsllink_tap_append_scan_normal(int length, u8 *buffer, scan_command_
 
 	pending_scan_results_length++;
 }
-static void vsllink_tap_append_scan_dma(int length, u8 *buffer, scan_command_t *command)
+static void vsllink_tap_append_scan_dma(int length, uint8_t *buffer, scan_command_t *command)
 {
 	pending_scan_result_t *pending_scan_result;
 	int len_tmp, len_all, i;
@@ -1639,7 +1639,7 @@ static int vsllink_tap_execute_normal(void)
 			for (i = 0; i < pending_scan_results_length; i++)
 			{
 				pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[i];
-				u8 *buffer = pending_scan_result->buffer;
+				uint8_t *buffer = pending_scan_result->buffer;
 				int length = pending_scan_result->length;
 				int offset = pending_scan_result->offset;
 				scan_command_t *command = pending_scan_result->command;
@@ -1712,7 +1712,7 @@ static int vsllink_tap_execute_dma(void)
 			for (i = 0; i < pending_scan_results_length; i++)
 			{
 				pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[i];
-				u8 *buffer = pending_scan_result->buffer;
+				uint8_t *buffer = pending_scan_result->buffer;
 				int length = pending_scan_result->length;
 				int first = pending_scan_result->offset;
 
@@ -1910,7 +1910,7 @@ static int vsllink_usb_read(vsllink_jtag_t *vsllink_jtag)
 #define BYTES_PER_LINE  16
 
 #if defined _DEBUG_USB_COMMS_ || defined _DEBUG_JTAG_IO_
-static void vsllink_debug_buffer(u8 *buffer, int length)
+static void vsllink_debug_buffer(uint8_t *buffer, int length)
 {
 	char line[81];
 	char s[4];

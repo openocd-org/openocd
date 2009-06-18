@@ -30,8 +30,8 @@
 #include <stdint.h>
 #endif
 
-#ifndef u8
-typedef unsigned char u8;
+#ifndef uint8_t
+typedef unsigned char uint8_t;
 #endif
 
 #ifndef u16
@@ -88,52 +88,52 @@ typedef bool _Bool;
  */
 
 
-static inline u32 le_to_h_u32(const u8* buf)
+static inline u32 le_to_h_u32(const uint8_t* buf)
 {
 	return (u32)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
 }
 
-static inline u16 le_to_h_u16(const u8* buf)
+static inline u16 le_to_h_u16(const uint8_t* buf)
 {
 	return (u16)(buf[0] | buf[1] << 8);
 }
 
-static inline u32 be_to_h_u32(const u8* buf)
+static inline u32 be_to_h_u32(const uint8_t* buf)
 {
 	return (u32)(buf[3] | buf[2] << 8 | buf[1] << 16 | buf[0] << 24);
 }
 
-static inline u16 be_to_h_u16(const u8* buf)
+static inline u16 be_to_h_u16(const uint8_t* buf)
 {
 	return (u16)(buf[1] | buf[0] << 8);
 }
 
-static inline void h_u32_to_le(u8* buf, int val)
+static inline void h_u32_to_le(uint8_t* buf, int val)
 {
-	buf[3] = (u8) (val >> 24);
-	buf[2] = (u8) (val >> 16);
-	buf[1] = (u8) (val >> 8);
-	buf[0] = (u8) (val >> 0);
+	buf[3] = (uint8_t) (val >> 24);
+	buf[2] = (uint8_t) (val >> 16);
+	buf[1] = (uint8_t) (val >> 8);
+	buf[0] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u32_to_be(u8* buf, int val)
+static inline void h_u32_to_be(uint8_t* buf, int val)
 {
-	buf[0] = (u8) (val >> 24);
-	buf[1] = (u8) (val >> 16);
-	buf[2] = (u8) (val >> 8);
-	buf[3] = (u8) (val >> 0);
+	buf[0] = (uint8_t) (val >> 24);
+	buf[1] = (uint8_t) (val >> 16);
+	buf[2] = (uint8_t) (val >> 8);
+	buf[3] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u16_to_le(u8* buf, int val)
+static inline void h_u16_to_le(uint8_t* buf, int val)
 {
-	buf[1] = (u8) (val >> 8);
-	buf[0] = (u8) (val >> 0);
+	buf[1] = (uint8_t) (val >> 8);
+	buf[0] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u16_to_be(u8* buf, int val)
+static inline void h_u16_to_be(uint8_t* buf, int val)
 {
-	buf[0] = (u8) (val >> 8);
-	buf[1] = (u8) (val >> 0);
+	buf[0] = (uint8_t) (val >> 8);
+	buf[1] = (uint8_t) (val >> 0);
 }
 
 #ifdef __ECOS

@@ -424,7 +424,7 @@ static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endSt
 }
 #endif
 
-extern int jtag_check_value(u8 *captured, void *priv);
+extern int jtag_check_value(uint8_t *captured, void *priv);
 
 static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_t shiftState, tap_state_t end_state)
 {
@@ -436,9 +436,9 @@ static __inline void scanFields(int num_fields, scan_field_t *fields, tap_state_
 	{
 		cyg_uint32 value;
 
-		static u8 *in_buff=NULL; /* pointer to buffer for scanned data */
+		static uint8_t *in_buff=NULL; /* pointer to buffer for scanned data */
 		static int in_buff_size=0;
-		u8 *inBuffer=NULL;
+		uint8_t *inBuffer=NULL;
 
 
 		// figure out where to store the input data
@@ -545,7 +545,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 		if (!found)
 		{
 			/* if a device isn't listed, set it to BYPASS */
-			u8 ones[]={0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+			uint8_t ones[]={0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
 
 			scan_field_t tmp;
 			memset(&tmp, 0, sizeof(tmp));
@@ -668,7 +668,7 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 	tap_state_t t=TAP_IDLE;
 	/* test manual drive code on any target */
 	int tms;
-	u8 tms_scan = tap_get_tms_path(t, state);
+	uint8_t tms_scan = tap_get_tms_path(t, state);
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	for (i = 0; i < tms_count; i++)
@@ -744,7 +744,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 
 
-void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count)
+void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int little, int count)
 {
 //	static int const reg_addr=0x5;
 	tap_state_t end_state=jtag_get_end_state();

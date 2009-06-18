@@ -844,7 +844,7 @@ int gdb_connection_closed(connection_t *connection)
 	return ERROR_OK;
 }
 
-void gdb_send_error(connection_t *connection, u8 the_error)
+void gdb_send_error(connection_t *connection, uint8_t the_error)
 {
 	char err[4];
 	snprintf(err, 4, "E%2.2X", the_error );
@@ -885,7 +885,7 @@ void gdb_str_to_target(target_t *target, char *tstr, reg_t *reg)
 {
 	int i;
 
-	u8 *buf;
+	uint8_t *buf;
 	int buf_len;
 	buf = reg->value;
 	buf_len = CEIL(reg->size, 8);
@@ -914,7 +914,7 @@ static int hextoint(char c)
 }
 
 /* copy over in register buffer */
-void gdb_target_to_reg(target_t *target, char *tstr, int str_len, u8 *bin)
+void gdb_target_to_reg(target_t *target, char *tstr, int str_len, uint8_t *bin)
 {
 	if (str_len % 2)
 	{
@@ -925,7 +925,7 @@ void gdb_target_to_reg(target_t *target, char *tstr, int str_len, u8 *bin)
 	int i;
 	for (i = 0; i < str_len; i+=2)
 	{
-		u8 t = hextoint(tstr[i])<<4;
+		uint8_t t = hextoint(tstr[i])<<4;
 		t |= hextoint(tstr[i+1]);
 
 		int j = gdb_reg_pos(target, i/2, str_len/2);
@@ -1013,7 +1013,7 @@ int gdb_set_registers_packet(connection_t *connection, target_t *target, char *p
 	packet_p = packet;
 	for (i = 0; i < reg_list_size; i++)
 	{
-		u8 *bin_buf;
+		uint8_t *bin_buf;
 		int chars = (CEIL(reg_list[i]->size, 8) * 2);
 
 		if (packet_p + chars > packet + packet_size)
@@ -1083,7 +1083,7 @@ int gdb_get_register_packet(connection_t *connection, target_t *target, char *pa
 int gdb_set_register_packet(connection_t *connection, target_t *target, char *packet, int packet_size)
 {
 	char *separator;
-	u8 *bin_buf;
+	uint8_t *bin_buf;
 	int reg_num = strtoul(packet + 1, &separator, 16);
 	reg_t **reg_list;
 	int reg_list_size;
@@ -1166,7 +1166,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 	u32 addr = 0;
 	u32 len = 0;
 
-	u8 *buffer;
+	uint8_t *buffer;
 	char *hex_buffer;
 
 	int retval = ERROR_OK;
@@ -1215,7 +1215,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 		u32 i;
 		for (i = 0; i < len; i++)
 		{
-			u8 t = buffer[i];
+			uint8_t t = buffer[i];
 			hex_buffer[2 * i] = DIGITS[(t >> 4) & 0xf];
 			hex_buffer[2 * i + 1] = DIGITS[t & 0xf];
 		}
@@ -1240,7 +1240,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 	u32 addr = 0;
 	u32 len = 0;
 
-	u8 *buffer;
+	uint8_t *buffer;
 
 	u32 i;
 	int retval;
@@ -1323,7 +1323,7 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 	{
 		LOG_DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
 
-		retval = target_write_buffer(target, addr, len, (u8*)separator);
+		retval = target_write_buffer(target, addr, len, (uint8_t*)separator);
 	}
 
 	if (retval == ERROR_OK)
@@ -1918,7 +1918,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 		}
 
 		/* create new section with content from packet buffer */
-		if((retval = image_add_section(gdb_connection->vflash_image, addr, length, 0x0, (u8*)parse)) != ERROR_OK)
+		if((retval = image_add_section(gdb_connection->vflash_image, addr, length, 0x0, (uint8_t*)parse)) != ERROR_OK)
 		{
 			return retval;
 		}

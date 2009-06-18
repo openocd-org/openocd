@@ -132,10 +132,10 @@ typedef struct
 {
 	int len;
 	int data_mask;
-	u8 *tdi;
-	u8 *tdo;
-	u8 *mask;
-	u8 *smask;
+	uint8_t *tdi;
+	uint8_t *tdo;
+	uint8_t *mask;
+	uint8_t *smask;
 }svf_xxr_para_t;
 
 typedef struct
@@ -197,7 +197,7 @@ static int svf_check_tdo_para_index = 0;
 
 static int svf_read_command_from_file(int fd);
 static int svf_check_tdo(void);
-static int svf_add_check_para(u8 enabled, int buffer_offset, int bit_len);
+static int svf_add_check_para(uint8_t enabled, int buffer_offset, int bit_len);
 static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str);
 static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
@@ -209,7 +209,7 @@ static int svf_line_number = 1;
 static jtag_tap_t *tap = NULL;
 
 #define SVF_MAX_BUFFER_SIZE_TO_COMMIT	(4 * 1024)
-static u8 *svf_tdi_buffer = NULL, *svf_tdo_buffer = NULL, *svf_mask_buffer = NULL;
+static uint8_t *svf_tdi_buffer = NULL, *svf_tdo_buffer = NULL, *svf_mask_buffer = NULL;
 static int svf_buffer_index = 0, svf_buffer_size = 0;
 static int svf_quiet = 0;
 
@@ -300,7 +300,7 @@ static const char* tap_state_svf_name(tap_state_t state)
 static int svf_add_statemove(tap_state_t state_to)
 {
 	tap_state_t state_from = cmd_queue_cur_state;
-	u8 index;
+	uint8_t index;
 
 	for (index = 0; index < dimof(svf_statemoves); index++)
 	{
@@ -390,21 +390,21 @@ static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char
 	// in case current command cannot be commited, and next command is a bit scan command
 	// here is 32K bits for this big scan command, it should be enough
 	// buffer will be reallocated if buffer size is not enough
-	svf_tdi_buffer = (u8 *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
+	svf_tdi_buffer = (uint8_t *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
 	if (NULL == svf_tdi_buffer)
 	{
 		LOG_ERROR("not enough memory");
 		ret = ERROR_FAIL;
 		goto free_all;
 	}
-	svf_tdo_buffer = (u8 *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
+	svf_tdo_buffer = (uint8_t *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
 	if (NULL == svf_tdo_buffer)
 	{
 		LOG_ERROR("not enough memory");
 		ret = ERROR_FAIL;
 		goto free_all;
 	}
-	svf_mask_buffer = (u8 *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
+	svf_mask_buffer = (uint8_t *)malloc(2 * SVF_MAX_BUFFER_SIZE_TO_COMMIT);
 	if (NULL == svf_mask_buffer)
 	{
 		LOG_ERROR("not enough memory");
@@ -631,7 +631,7 @@ static int svf_find_string_in_array(char *str, char **strs, int num_of_element)
 	return 0xFF;
 }
 
-static int svf_adjust_array_length(u8 **arr, int orig_bit_len, int new_bit_len)
+static int svf_adjust_array_length(uint8_t **arr, int orig_bit_len, int new_bit_len)
 {
 	int new_byte_len = (new_bit_len + 7) >> 3;
 
@@ -642,7 +642,7 @@ static int svf_adjust_array_length(u8 **arr, int orig_bit_len, int new_bit_len)
 			free(*arr);
 			*arr = NULL;
 		}
-		*arr = (u8*)malloc(new_byte_len);
+		*arr = (uint8_t*)malloc(new_byte_len);
 		if (NULL == *arr)
 		{
 			LOG_ERROR("not enough memory");
@@ -653,10 +653,10 @@ static int svf_adjust_array_length(u8 **arr, int orig_bit_len, int new_bit_len)
 	return ERROR_OK;
 }
 
-static int svf_copy_hexstring_to_binary(char *str, u8 **bin, int orig_bit_len, int bit_len)
+static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_len, int bit_len)
 {
 	int i, str_len = strlen(str), str_byte_len = (bit_len + 3) >> 2, loop_cnt;
-	u8 ch, need_write = 1;
+	uint8_t ch, need_write = 1;
 
 	if (ERROR_OK != svf_adjust_array_length(bin, orig_bit_len, bit_len))
 	{
@@ -770,7 +770,7 @@ static int svf_check_tdo(void)
 	return ERROR_OK;
 }
 
-static int svf_add_check_para(u8 enabled, int buffer_offset, int bit_len)
+static int svf_add_check_para(uint8_t enabled, int buffer_offset, int bit_len)
 {
 	if (svf_check_tdo_para_index >= SVF_CHECK_TDO_PARA_SIZE)
 	{
@@ -816,7 +816,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 	float min_time, max_time;
 	// for XXR
 	svf_xxr_para_t *xxr_para_tmp;
-	u8 **pbuffer_tmp;
+	uint8_t **pbuffer_tmp;
 	scan_field_t field;
 	// for STATE
 	tap_state_t *path = NULL, state;
@@ -1011,10 +1011,10 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				LOG_ERROR("buffer is not enough, report to author");
 				return ERROR_FAIL;
 #else
-				u8 *buffer_tmp;
+				uint8_t *buffer_tmp;
 
 				// reallocate buffer
-				buffer_tmp = (u8 *)malloc(svf_buffer_index + ((i + 7) >> 3));
+				buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
 				if (NULL == buffer_tmp)
 				{
 					LOG_ERROR("not enough memory");
@@ -1025,7 +1025,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				free(svf_tdi_buffer);
 				svf_tdi_buffer = buffer_tmp;
 
-				buffer_tmp = (u8 *)malloc(svf_buffer_index + ((i + 7) >> 3));
+				buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
 				if (NULL == buffer_tmp)
 				{
 					LOG_ERROR("not enough memory");
@@ -1036,7 +1036,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				free(svf_tdo_buffer);
 				svf_tdo_buffer = buffer_tmp;
 
-				buffer_tmp = (u8 *)malloc(svf_buffer_index + ((i + 7) >> 3));
+				buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
 				if (NULL == buffer_tmp)
 				{
 					LOG_ERROR("not enough memory");
@@ -1106,10 +1106,10 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				LOG_ERROR("buffer is not enough, report to author");
 				return ERROR_FAIL;
 #else
-				u8 *buffer_tmp;
+				uint8_t *buffer_tmp;
 
 				// reallocate buffer
-				buffer_tmp = (u8 *)malloc(svf_buffer_index + ((i + 7) >> 3));
+				buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
 				if (NULL == buffer_tmp)
 				{
 					LOG_ERROR("not enough memory");
@@ -1120,7 +1120,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				free(svf_tdi_buffer);
 				svf_tdi_buffer = buffer_tmp;
 
-				buffer_tmp = (u8 *)malloc(svf_buffer_index + ((i + 7) >> 3));
+				buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
 				if (NULL == buffer_tmp)
 				{
 					LOG_ERROR("not enough memory");
@@ -1131,7 +1131,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				free(svf_tdo_buffer);
 				svf_tdo_buffer = buffer_tmp;
 
-				buffer_tmp = (u8 *)malloc(svf_buffer_index + ((i + 7) >> 3));
+				buffer_tmp = (uint8_t *)malloc(svf_buffer_index + ((i + 7) >> 3));
 				if (NULL == buffer_tmp)
 				{
 					LOG_ERROR("not enough memory");

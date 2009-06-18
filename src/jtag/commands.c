@@ -64,7 +64,7 @@ void* cmd_queue_alloc(size_t size)
 {
 	cmd_queue_page_t **p_page = &cmd_queue_pages;
 	int offset;
-	u8 *t;
+	uint8_t *t;
 
 	/*
 	 * WARNING:
@@ -117,7 +117,7 @@ void* cmd_queue_alloc(size_t size)
 	offset = (*p_page)->used;
 	(*p_page)->used += size;
 
-	t=(u8 *)((*p_page)->address);
+	t=(uint8_t *)((*p_page)->address);
 	return t + offset;
 }
 
@@ -174,7 +174,7 @@ int jtag_scan_size(const scan_command_t *cmd)
 	return bit_count;
 }
 
-int jtag_build_buffer(const scan_command_t *cmd, u8 **buffer)
+int jtag_build_buffer(const scan_command_t *cmd, uint8_t **buffer)
 {
 	int bit_count = 0;
 	int i;
@@ -218,7 +218,7 @@ int jtag_build_buffer(const scan_command_t *cmd, u8 **buffer)
 	return bit_count;
 }
 
-int jtag_read_buffer(u8 *buffer, const scan_command_t *cmd)
+int jtag_read_buffer(uint8_t *buffer, const scan_command_t *cmd)
 {
 	int i;
 	int bit_count = 0;
@@ -235,7 +235,7 @@ int jtag_read_buffer(u8 *buffer, const scan_command_t *cmd)
 		if (cmd->fields[i].in_value)
 		{
 			int num_bits = cmd->fields[i].num_bits;
-			u8 *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
+			uint8_t *captured = buf_set_buf(buffer, bit_count, malloc(CEIL(num_bits, 8)), 0, num_bits);
 
 #ifdef _DEBUG_JTAG_IO_
 			char *char_buf = buf_to_str(captured, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);

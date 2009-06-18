@@ -62,17 +62,17 @@
 typedef struct cable_s
 {
 	char* name;
-	u8 TDO_MASK;	/* status port bit containing current TDO value */
-	u8 TRST_MASK;	/* data port bit for TRST */
-	u8 TMS_MASK;	/* data port bit for TMS */
-	u8 TCK_MASK;	/* data port bit for TCK */
-	u8 TDI_MASK;	/* data port bit for TDI */
-	u8 SRST_MASK;	/* data port bit for SRST */
-	u8 OUTPUT_INVERT;	/* data port bits that should be inverted */
-	u8 INPUT_INVERT;	/* status port that should be inverted */
-	u8 PORT_INIT;	/* initialize data port with this value */
-	u8 PORT_EXIT;	/* de-initialize data port with this value */
-	u8 LED_MASK;	/* data port bit for LED */
+	uint8_t TDO_MASK;	/* status port bit containing current TDO value */
+	uint8_t TRST_MASK;	/* data port bit for TRST */
+	uint8_t TMS_MASK;	/* data port bit for TMS */
+	uint8_t TCK_MASK;	/* data port bit for TCK */
+	uint8_t TDI_MASK;	/* data port bit for TDI */
+	uint8_t SRST_MASK;	/* data port bit for SRST */
+	uint8_t OUTPUT_INVERT;	/* data port bits that should be inverted */
+	uint8_t INPUT_INVERT;	/* status port that should be inverted */
+	uint8_t PORT_INIT;	/* initialize data port with this value */
+	uint8_t PORT_EXIT;	/* de-initialize data port with this value */
+	uint8_t LED_MASK;	/* data port bit for LED */
 } cable_t;
 
 static cable_t cables[] =
@@ -109,7 +109,7 @@ static int parport_exit = 0;
 /* interface variables
  */
 static cable_t* cable;
-static u8 dataport_value = 0x0;
+static uint8_t dataport_value = 0x0;
 
 #if PARPORT_USE_PPDEV == 1
 static int device_handle;
@@ -173,7 +173,7 @@ static int parport_read(void)
 
 static __inline__ void parport_write_data(void)
 {
-	u8 output;
+	uint8_t output;
 	output = dataport_value ^ cable->OUTPUT_INVERT;
 
 #if PARPORT_USE_PPDEV == 1

@@ -123,21 +123,21 @@ typedef struct scan_field_s
 	/// The number of bits this field specifies (up to 32)
 	int num_bits;
 	/// A pointer to value to be scanned into the device
-	u8* out_value;
+	uint8_t* out_value;
 	/// A pointer to a 32-bit memory location for data scanned out
-	u8* in_value;
+	uint8_t* in_value;
 
 	/// The value used to check the data scanned out.
-	u8* check_value;
+	uint8_t* check_value;
 	/// The mask to go with check_value
-	u8* check_mask;
+	uint8_t* check_mask;
 
 	/// in_value has been allocated for the queue
 	int allocated;
 	/// Indicates we modified the in_value.
 	int modified;
 	/// temporary storage for performing value checks synchronously
-	u8 intmp[4];
+	uint8_t intmp[4];
 } scan_field_t;
 
 typedef struct jtag_tap_event_action_s jtag_tap_event_action_t;
@@ -157,19 +157,19 @@ struct jtag_tap_s
 	bool enabled;
 	int ir_length; /**< size of instruction register */
 	u32 ir_capture_value;
-	u8* expected; /**< Capture-IR expected value */
+	uint8_t* expected; /**< Capture-IR expected value */
 	u32 ir_capture_mask;
-	u8* expected_mask; /**< Capture-IR expected mask */
+	uint8_t* expected_mask; /**< Capture-IR expected mask */
 	u32 idcode;
 	/**< device identification code */
 
 	/// Array of expected identification codes */
 	u32* expected_ids;
 	/// Number of expected identification codes
-	u8 expected_ids_cnt;
+	uint8_t expected_ids_cnt;
 
 	/// current instruction
-	u8* cur_instr;
+	uint8_t* cur_instr;
 	/// Bypass register selected
 	int bypass;
 
@@ -393,10 +393,10 @@ extern void jtag_add_plain_dr_scan(int num_fields, const scan_field_t* fields, t
  * For conversion types or checks that can fail, use the more complete
  * variant: jtag_callback_t.
  */
-typedef void (*jtag_callback1_t)(u8 *in);
+typedef void (*jtag_callback1_t)(uint8_t *in);
 
 /// A simpler version of jtag_add_callback4().
-extern void jtag_add_callback(jtag_callback1_t, u8 *in);
+extern void jtag_add_callback(jtag_callback1_t, uint8_t *in);
 
 
 /**
@@ -414,7 +414,7 @@ typedef intptr_t jtag_callback_data_t;
  * @param data3 An integer big enough to use as an @c int or a pointer.
  * @returns an error code
  */
-typedef int (*jtag_callback_t)(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
+typedef int (*jtag_callback_t)(uint8_t *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
 
 
 /**
@@ -445,7 +445,7 @@ typedef int (*jtag_callback_t)(u8 *in, jtag_callback_data_t data1, jtag_callback
  * @param data3 An integer big enough to use as an @c int or a pointer.
  *
  */
-extern void jtag_add_callback4(jtag_callback_t f, u8 *in,
+extern void jtag_add_callback4(jtag_callback_t f, uint8_t *in,
 		jtag_callback_data_t data1, jtag_callback_data_t data2,
 		jtag_callback_data_t data3);
 
@@ -646,7 +646,7 @@ extern int jtag_srst_asserted(int* srst_asserted);
  * @param mask Pointer to scan mask; may be NULL.
  * @returns Nothing, but calls jtag_set_error() on any error.
  */
-extern void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask);
+extern void jtag_check_value_mask(scan_field_t *field, uint8_t *value, uint8_t *mask);
 
 extern void jtag_sleep(u32 us);
 

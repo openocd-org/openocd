@@ -29,7 +29,7 @@ bitq_interface_t* bitq_interface;       /* low level bit queue interface */
 
 static bitq_state_t      bitq_in_state;        /* state of input queue */
 
-static u8* bitq_in_buffer;                     /* buffer dynamically reallocated as needed */
+static uint8_t* bitq_in_buffer;                     /* buffer dynamically reallocated as needed */
 static int     bitq_in_bufsize = 32; /* min. buffer size */
 
 /*
@@ -40,9 +40,9 @@ static int     bitq_in_bufsize = 32; /* min. buffer size */
 void bitq_in_proc(void)
 {
 	/* static information preserved between calls to increase performance */
-	static u8*    in_buff;  /* pointer to buffer for scanned data */
+	static uint8_t*    in_buff;  /* pointer to buffer for scanned data */
 	static int    in_idx;   /* index of byte being scanned */
-	static u8     in_mask;  /* mask of next bit to be scanned */
+	static uint8_t     in_mask;  /* mask of next bit to be scanned */
 
 	scan_field_t* field;
 	int           tdo;
@@ -150,7 +150,7 @@ void bitq_end_state(tap_state_t state)
 void bitq_state_move(tap_state_t new_state)
 {
 	int i = 0;
-	u8  tms_scan;
+	uint8_t  tms_scan;
 
 	if (!tap_is_state_stable(tap_get_state()) || !tap_is_state_stable(new_state))
 	{
@@ -218,8 +218,8 @@ void bitq_scan_field(scan_field_t* field, int pause)
 	int bit_cnt;
 	int tdo_req;
 
-	u8* out_ptr;
-	u8  out_mask;
+	uint8_t* out_ptr;
+	uint8_t  out_mask;
 
 	if (field->in_value)
 		tdo_req = 1;

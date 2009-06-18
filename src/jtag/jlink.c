@@ -54,9 +54,9 @@ static unsigned int jlink_hw_jtag_version = 2;
 #define JLINK_EMU_RESULT_BUFFER_SIZE	64
 
 /* Global USB buffers */
-static u8 usb_in_buffer[JLINK_IN_BUFFER_SIZE];
-static u8 usb_out_buffer[JLINK_OUT_BUFFER_SIZE];
-static u8 usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
+static uint8_t usb_in_buffer[JLINK_IN_BUFFER_SIZE];
+static uint8_t usb_out_buffer[JLINK_OUT_BUFFER_SIZE];
+static uint8_t usb_emu_result_buffer[JLINK_EMU_RESULT_BUFFER_SIZE];
 
 /* Constants for JLink command */
 #define EMU_CMD_VERSION		0x01
@@ -100,9 +100,9 @@ static void jlink_end_state(tap_state_t state);
 static void jlink_state_move(void);
 static void jlink_path_move(int num_states, tap_state_t *path);
 static void jlink_runtest(int num_cycles);
-static void jlink_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
+static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command);
 static void jlink_reset(int trst, int srst);
-static void jlink_simple_command(u8 command);
+static void jlink_simple_command(uint8_t command);
 static int jlink_get_status(void);
 
 /* J-Link tap buffer functions */
@@ -110,7 +110,7 @@ static void jlink_tap_init(void);
 static int jlink_tap_execute(void);
 static void jlink_tap_ensure_space(int scans, int bits);
 static void jlink_tap_append_step(int tms, int tdi);
-static void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *command);
+static void jlink_tap_append_scan(int length, uint8_t *buffer, scan_command_t *command);
 
 /* Jlink lowlevel functions */
 typedef struct jlink_jtag
@@ -129,7 +129,7 @@ static int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag);
 static int jlink_get_version_info(void);
 
 #ifdef _DEBUG_USB_COMMS_
-static void jlink_debug_buffer(u8 *buffer, int length);
+static void jlink_debug_buffer(uint8_t *buffer, int length);
 #endif
 
 static enum tap_state jlink_last_state = TAP_RESET;
@@ -184,7 +184,7 @@ static void jlink_execute_scan(jtag_command_t *cmd)
 {
 	int scan_size;
 	enum scan_type type;
-	u8 *buffer;
+	uint8_t *buffer;
 
 	DEBUG_JTAG_IO("scan end in %s", tap_state_name(cmd->cmd.scan->end_state));
 
@@ -379,8 +379,8 @@ static void jlink_state_move(void)
 {
 	int i;
 	int tms = 0;
-	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
-	u8 tms_scan_bits = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan_bits = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	for (i = 0; i < tms_scan_bits; i++)
 	{
@@ -447,7 +447,7 @@ static void jlink_runtest(int num_cycles)
 	}
 }
 
-static void jlink_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
+static void jlink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command)
 {
 	tap_state_t saved_end_state;
 
@@ -505,7 +505,7 @@ static void jlink_reset(int trst, int srst)
 	}
 }
 
-static void jlink_simple_command(u8 command)
+static void jlink_simple_command(uint8_t command)
 {
 	int result;
 
@@ -670,16 +670,16 @@ static int jlink_handle_jlink_hw_jtag_command(struct command_context_s *cmd_ctx,
 
 
 static unsigned tap_length=0;
-static u8 tms_buffer[JLINK_TAP_BUFFER_SIZE];
-static u8 tdi_buffer[JLINK_TAP_BUFFER_SIZE];
-static u8 tdo_buffer[JLINK_TAP_BUFFER_SIZE];
+static uint8_t tms_buffer[JLINK_TAP_BUFFER_SIZE];
+static uint8_t tdi_buffer[JLINK_TAP_BUFFER_SIZE];
+static uint8_t tdo_buffer[JLINK_TAP_BUFFER_SIZE];
 
 typedef struct
 {
 	int first;	/* First bit position in tdo_buffer to read */
 	int length; /* Number of bits to read */
 	scan_command_t *command; /* Corresponding scan command */
-	u8 *buffer;
+	uint8_t *buffer;
 } pending_scan_result_t;
 
 #define MAX_PENDING_SCAN_RESULTS 256
@@ -716,7 +716,7 @@ static void jlink_tap_append_step(int tms, int tdi)
 	}
 
 	int bit_index = tap_length % 8;
-	u8 bit = 1 << bit_index;
+	uint8_t bit = 1 << bit_index;
 
 	// we do not pad TMS, so be sure to initialize all bits
 	if (0 == bit_index)
@@ -737,7 +737,7 @@ static void jlink_tap_append_step(int tms, int tdi)
 	tap_length++;
 }
 
-static void jlink_tap_append_scan(int length, u8 *buffer, scan_command_t *command)
+static void jlink_tap_append_scan(int length, uint8_t *buffer, scan_command_t *command)
 {
 	pending_scan_result_t *pending_scan_result =
 		&pending_scan_results_buffer[pending_scan_results_length];
@@ -802,7 +802,7 @@ static int jlink_tap_execute(void)
 	for (i = 0; i < pending_scan_results_length; i++)
 	{
 		pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[i];
-		u8 *buffer = pending_scan_result->buffer;
+		uint8_t *buffer = pending_scan_result->buffer;
 		int length = pending_scan_result->length;
 		int first = pending_scan_result->first;
 		scan_command_t *command = pending_scan_result->command;
@@ -876,7 +876,7 @@ static jlink_jtag_t* jlink_usb_open()
 				struct usb_interface_descriptor *desc = iface->altsetting;
 				for (int i = 0; i < desc->bNumEndpoints; i++)
 				{
-					u8 epnum = desc->endpoint[i].bEndpointAddress;
+					uint8_t epnum = desc->endpoint[i].bEndpointAddress;
 					bool is_input = epnum & 0x80;
 					LOG_DEBUG("usb ep %s %02x", is_input ? "in" : "out", epnum);
 					if (is_input)
@@ -1054,7 +1054,7 @@ static int jlink_usb_read_emu_result(jlink_jtag_t *jlink_jtag)
 #ifdef _DEBUG_USB_COMMS_
 #define BYTES_PER_LINE  16
 
-static void jlink_debug_buffer(u8 *buffer, int length)
+static void jlink_debug_buffer(uint8_t *buffer, int length)
 {
 	char line[81];
 	char s[4];

@@ -59,7 +59,7 @@ static void usbprog_end_state(tap_state_t state);
 static void usbprog_state_move(void);
 static void usbprog_path_move(pathmove_command_t *cmd);
 static void usbprog_runtest(int num_cycles);
-static void usbprog_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size);
+static void usbprog_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size);
 
 jtag_interface_t usbprog_interface =
 {
@@ -130,7 +130,7 @@ static int usbprog_execute_queue(void)
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
 	enum scan_type type;
-	u8 *buffer;
+	uint8_t *buffer;
 
 	while (cmd)
 	{
@@ -237,7 +237,7 @@ static void usbprog_end_state(tap_state_t state)
 static void usbprog_state_move(void)
 {
 	int i = 0, tms = 0;
-	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	usbprog_jtag_write_tms(usbprog_jtag_handle, (char)tms_scan);
@@ -328,7 +328,7 @@ static void usbprog_runtest(int num_cycles)
 	*/
 }
 
-static void usbprog_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void usbprog_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 

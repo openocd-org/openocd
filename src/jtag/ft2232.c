@@ -101,7 +101,7 @@ static char *       ft2232_device_desc_A = NULL;
 static char*        ft2232_device_desc = NULL;
 static char*        ft2232_serial  = NULL;
 static char*        ft2232_layout  = NULL;
-static u8		ft2232_latency = 2;
+static uint8_t		ft2232_latency = 2;
 static unsigned		ft2232_max_tck = 6000;
 
 
@@ -168,13 +168,13 @@ static const ft2232_layout_t  ft2232_layouts[] =
 	{ NULL,                   NULL,                      NULL,               NULL                    },
 };
 
-static u8                  nTRST, nTRSTnOE, nSRST, nSRSTnOE;
+static uint8_t                  nTRST, nTRSTnOE, nSRST, nSRSTnOE;
 
 static const ft2232_layout_t *layout;
-static u8                  low_output     = 0x0;
-static u8                  low_direction  = 0x0;
-static u8                  high_output    = 0x0;
-static u8                  high_direction = 0x0;
+static uint8_t                  low_output     = 0x0;
+static uint8_t                  low_direction  = 0x0;
+static uint8_t                  high_output    = 0x0;
+static uint8_t                  high_direction = 0x0;
 
 #if BUILD_FT2232_FTD2XX == 1
 static FT_HANDLE	ftdih = NULL;
@@ -203,7 +203,7 @@ static int             require_send;
 
 #define FT2232_BUFFER_SIZE 131072
 
-static u8*             ft2232_buffer = NULL;
+static uint8_t*             ft2232_buffer = NULL;
 static int             ft2232_buffer_size  = 0;
 static int             ft2232_read_pointer = 0;
 static int             ft2232_expect_read  = 0;
@@ -213,7 +213,7 @@ static int             ft2232_expect_read  = 0;
  * writes a byte into the byte buffer, "ft2232_buffer", which must be sent later.
  * @param val is the byte to send.
  */
-static inline void buffer_write(u8 val)
+static inline void buffer_write(uint8_t val)
 {
 	assert(ft2232_buffer);
 	assert((unsigned) ft2232_buffer_size < (unsigned) FT2232_BUFFER_SIZE);
@@ -224,7 +224,7 @@ static inline void buffer_write(u8 val)
  * Function buffer_read
  * returns a byte from the byte buffer.
  */
-static inline u8 buffer_read(void)
+static inline uint8_t buffer_read(void)
 {
 	assert(ft2232_buffer);
 	assert(ft2232_read_pointer < ft2232_buffer_size);
@@ -249,9 +249,9 @@ static inline u8 buffer_read(void)
  *
  * See the MPSSE spec referenced above.
  */
-static void clock_tms(u8 mpsse_cmd, int tms_bits, int tms_count, bool tdi_bit)
+static void clock_tms(uint8_t mpsse_cmd, int tms_bits, int tms_count, bool tdi_bit)
 {
-	u8	tms_byte;
+	uint8_t	tms_byte;
 	int	i;
 	int	tms_ndx;				/* bit index into tms_byte */
 
@@ -338,7 +338,7 @@ jtag_interface_t ft2232_interface =
 	.quit			= ft2232_quit,
 };
 
-static int ft2232_write(u8* buf, int size, u32* bytes_written)
+static int ft2232_write(uint8_t* buf, int size, u32* bytes_written)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	FT_STATUS status;
@@ -371,7 +371,7 @@ static int ft2232_write(u8* buf, int size, u32* bytes_written)
 }
 
 
-static int ft2232_read(u8* buf, u32 size, u32* bytes_read)
+static int ft2232_read(uint8_t* buf, u32 size, u32* bytes_read)
 {
 #if BUILD_FT2232_FTD2XX == 1
 	DWORD     dw_bytes_read;
@@ -438,7 +438,7 @@ static int ft2232_adaptive_clocking(int speed)
 		}
 	}
 
-	u8  buf = use_adaptive_clocking ? 0x96 : 0x97;
+	uint8_t  buf = use_adaptive_clocking ? 0x96 : 0x97;
 	LOG_DEBUG("%2.2x", buf);
 
 	u32 bytes_written;
@@ -461,7 +461,7 @@ static int ft2232_adaptive_clocking(int speed)
 
 static int ft2232_speed(int speed)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	int retval;
 	u32 bytes_written;
 
@@ -569,7 +569,7 @@ static void ft2232_end_state(tap_state_t state)
 	}
 }
 
-static void ft2232_read_scan(enum scan_type type, u8* buffer, int scan_size)
+static void ft2232_read_scan(enum scan_type type, uint8_t* buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;
@@ -617,7 +617,7 @@ static void ft2232_debug_dump_buffer(void)
 static int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
 {
 	jtag_command_t* cmd;
-	u8*             buffer;
+	uint8_t*             buffer;
 	int             scan_size;
 	enum scan_type  type;
 	int             retval;
@@ -775,7 +775,7 @@ static void ft2232_add_pathmove(tap_state_t* path, int num_states)
 }
 
 
-static void ft2232_add_scan(bool ir_scan, enum scan_type type, u8* buffer, int scan_size)
+static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t* buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;
@@ -823,8 +823,8 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, u8* buffer, int s
 		thisrun_bytes = (num_bytes > 65537) ? 65536 : (num_bytes - 1);
 		num_bytes    -= thisrun_bytes;
 
-		buffer_write((u8) (thisrun_bytes - 1));
-		buffer_write((u8) ((thisrun_bytes - 1) >> 8));
+		buffer_write((uint8_t) (thisrun_bytes - 1));
+		buffer_write((uint8_t) ((thisrun_bytes - 1) >> 8));
 
 		if (type != SCAN_IN)
 		{
@@ -902,7 +902,7 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, u8* buffer, int s
 	{
 		int tms_bits;
 		int tms_count;
-		u8	mpsse_cmd;
+		uint8_t	mpsse_cmd;
 
 		/* move from Shift-IR/DR to end state */
 		if (type != SCAN_OUT)
@@ -934,14 +934,14 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, u8* buffer, int s
 }
 
 
-static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, u8* buffer, int scan_size)
+static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, uint8_t* buffer, int scan_size)
 {
 	int num_bytes = (scan_size + 7) / 8;
 	int bits_left = scan_size;
 	int cur_byte  = 0;
 	int last_bit;
-	u8* receive_buffer  = malloc(CEIL(scan_size, 8));
-	u8* receive_pointer = receive_buffer;
+	uint8_t* receive_buffer  = malloc(CEIL(scan_size, 8));
+	uint8_t* receive_pointer = receive_buffer;
 	u32 bytes_written;
 	u32 bytes_read;
 	int retval;
@@ -993,8 +993,8 @@ static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, u8* buffe
 		thisrun_bytes = (num_bytes > 65537) ? 65536 : (num_bytes - 1);
 		thisrun_read  = thisrun_bytes;
 		num_bytes    -= thisrun_bytes;
-		buffer_write((u8) (thisrun_bytes - 1));
-		buffer_write((u8) ((thisrun_bytes - 1) >> 8));
+		buffer_write((uint8_t) (thisrun_bytes - 1));
+		buffer_write((uint8_t) ((thisrun_bytes - 1) >> 8));
 
 		if (type != SCAN_IN)
 		{
@@ -1095,7 +1095,7 @@ static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, u8* buffe
 	{
 		int tms_bits  = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 		int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
-		u8	mpsse_cmd;
+		uint8_t	mpsse_cmd;
 
 		/* move from Shift-IR/DR to end state */
 		if (type != SCAN_OUT)
@@ -1599,7 +1599,7 @@ static int ft2232_execute_pathmove(jtag_command_t *cmd)
 
 static int ft2232_execute_scan(jtag_command_t *cmd)
 {
-	u8*             buffer;
+	uint8_t*             buffer;
 	int             scan_size;                  /* size of IR or DR scan */
 	int             predicted_size = 0;
 	int				retval = ERROR_OK;
@@ -1788,7 +1788,7 @@ static int ft2232_init_ftd2xx(u16 vid, u16 pid, int more, int* try_more)
 	char		Description[64];
 	DWORD	openex_flags  = 0;
 	char*	openex_string = NULL;
-	u8	latency_timer;
+	uint8_t	latency_timer;
 
 	LOG_DEBUG("'ft2232' interface using FTD2XX with '%s' layout (%4.4x:%4.4x)", ft2232_layout, vid, pid);
 
@@ -1960,7 +1960,7 @@ static int ft2232_purge_ftd2xx(void)
 #if BUILD_FT2232_LIBFTDI == 1
 static int ft2232_init_libftdi(u16 vid, u16 pid, int more, int* try_more)
 {
-	u8 latency_timer;
+	uint8_t latency_timer;
 
 	LOG_DEBUG("'ft2232' interface using libftdi with '%s' layout (%4.4x:%4.4x)",
 			ft2232_layout, vid, pid);
@@ -2032,7 +2032,7 @@ static int ft2232_purge_libftdi(void)
 
 static int ft2232_init(void)
 {
-	u8  buf[1];
+	uint8_t  buf[1];
 	int retval;
 	u32 bytes_written;
 	const ft2232_layout_t* cur_layout = ft2232_layouts;
@@ -2123,7 +2123,7 @@ static int ft2232_init(void)
 
 static int usbjtag_init(void)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_output    = 0x08;
@@ -2199,7 +2199,7 @@ static int usbjtag_init(void)
 
 static int axm0432_jtag_init(void)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_output    = 0x08;
@@ -2270,7 +2270,7 @@ static int axm0432_jtag_init(void)
 
 static int jtagkey_init(void)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_output    = 0x08;
@@ -2353,7 +2353,7 @@ static int jtagkey_init(void)
 
 static int olimex_jtag_init(void)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_output    = 0x08;
@@ -2421,7 +2421,7 @@ static int olimex_jtag_init(void)
 
 static int flyswatter_init(void)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_output    = 0x18;
@@ -2468,7 +2468,7 @@ static int flyswatter_init(void)
 
 static int turtle_init(void)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_output    = 0x08;
@@ -2509,7 +2509,7 @@ static int turtle_init(void)
 
 static int comstick_init(void)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_output    = 0x08;
@@ -2553,7 +2553,7 @@ static int comstick_init(void)
 
 static int stm32stick_init(void)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_output    = 0x88;
@@ -2597,7 +2597,7 @@ static int stm32stick_init(void)
 
 static int sheevaplug_init(void)
 {
-	u8 buf[3];
+	uint8_t buf[3];
 	u32 bytes_written;
 
 	low_output = 0x08;
@@ -2648,7 +2648,7 @@ static int sheevaplug_init(void)
 
 static int cortino_jtag_init(void)
 {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_output    = 0x08;
@@ -2884,7 +2884,7 @@ static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd)
 	int retval = 0;
 
 	/* 7 bits of either ones or zeros. */
-	u8  tms = (tap_get_state() == TAP_RESET ? 0x7F : 0x00);
+	uint8_t  tms = (tap_get_state() == TAP_RESET ? 0x7F : 0x00);
 
 	while (num_cycles > 0)
 	{
@@ -2949,7 +2949,7 @@ static int ft2232_stableclocks(int num_cycles, jtag_command_t* cmd)
  * ADBUS7 -   GND
  */
 static int icebear_jtag_init(void) {
-	u8  buf[3];
+	uint8_t  buf[3];
 	u32 bytes_written;
 
 	low_direction	= 0x0b;	/* output: TCK TDI TMS; input: TDO */

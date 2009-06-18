@@ -46,9 +46,9 @@ static u16 amt_jtagaccel_port;
 
 /* interface variables
  */
-static u8 aw_control_rst = 0x00;
-static u8 aw_control_fsm = 0x10;
-static u8 aw_control_baudrate = 0x20;
+static uint8_t aw_control_rst = 0x00;
+static uint8_t aw_control_fsm = 0x10;
+static uint8_t aw_control_baudrate = 0x20;
 
 static int rtck_enabled = 0;
 
@@ -89,7 +89,7 @@ static int amt_jtagaccel_handle_rtck_command(struct command_context_s *cmd_ctx, 
  * 4: Shift-IR
  * 5: Pause-IR
  */
-static u8 amt_jtagaccel_tap_move[6][6][2] =
+static uint8_t amt_jtagaccel_tap_move[6][6][2] =
 {
 	/*	   RESET         IDLE        DRSHIFT       DRPAUSE       IRSHIFT       IRPAUSE             */
 	{{0x1f, 0x00}, {0x0f, 0x00}, {0x8a, 0x04}, {0x0a, 0x00}, {0x06, 0x00}, {0x96, 0x00}},	/* RESET */
@@ -161,7 +161,7 @@ static void amt_jtagaccel_end_state(tap_state_t state)
 static void amt_wait_scan_busy(void)
 {
 	int timeout = 4096;
-	u8 ar_status;
+	uint8_t ar_status;
 
 	AMT_AR(ar_status);
 	while (((ar_status) & 0x80) && (timeout-- > 0))
@@ -176,8 +176,8 @@ static void amt_wait_scan_busy(void)
 
 static void amt_jtagaccel_state_move(void)
 {
-	u8 aw_scan_tms_5;
-	u8 tms_scan[2];
+	uint8_t aw_scan_tms_5;
+	uint8_t tms_scan[2];
 
 	tap_state_t	cur_state = tap_get_state();
 	tap_state_t	end_state = tap_get_end_state();
@@ -205,8 +205,8 @@ static void amt_jtagaccel_state_move(void)
 static void amt_jtagaccel_runtest(int num_cycles)
 {
 	int i = 0;
-	u8 aw_scan_tms_5;
-	u8 aw_scan_tms_1to4;
+	uint8_t aw_scan_tms_5;
+	uint8_t aw_scan_tms_1to4;
 
 	tap_state_t saved_end_state = tap_get_end_state();
 
@@ -235,16 +235,16 @@ static void amt_jtagaccel_runtest(int num_cycles)
 		amt_jtagaccel_state_move();
 }
 
-static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size)
+static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size)
 {
 	int bits_left = scan_size;
 	int bit_count = 0;
 	tap_state_t saved_end_state = tap_get_end_state();
-	u8 aw_tdi_option;
-	u8 dw_tdi_scan;
-	u8 dr_tdo;
-	u8 aw_tms_scan;
-	u8 tms_scan[2];
+	uint8_t aw_tdi_option;
+	uint8_t dw_tdi_scan;
+	uint8_t dr_tdo;
+	uint8_t aw_tms_scan;
+	uint8_t tms_scan[2];
 	int jtag_speed = jtag_get_speed();
 
 	if (ir_scan)
@@ -323,7 +323,7 @@ static int amt_jtagaccel_execute_queue(void)
 	jtag_command_t *cmd = jtag_command_queue; /* currently processed command */
 	int scan_size;
 	enum scan_type type;
-	u8 *buffer;
+	uint8_t *buffer;
 	int retval;
 
 	/* return ERROR_OK, unless a jtag_read_buffer returns a failed check
@@ -419,11 +419,11 @@ static int amt_jtagaccel_init(void)
 #if PARPORT_USE_PPDEV == 1
 	char buffer[256];
 	int i = 0;
-	u8 control_port;
+	uint8_t control_port;
 #else
-	u8 status_port;
+	uint8_t status_port;
 #endif
-	u8 ar_status;
+	uint8_t ar_status;
 
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle > 0)

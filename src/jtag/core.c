@@ -353,23 +353,23 @@ void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields,
 	jtag_set_error(retval);
 }
 
-void jtag_add_callback(jtag_callback1_t f, u8 *in)
+void jtag_add_callback(jtag_callback1_t f, uint8_t *in)
 {
 	interface_jtag_add_callback(f, in);
 }
 
-void jtag_add_callback4(jtag_callback_t f, u8 *in,
+void jtag_add_callback4(jtag_callback_t f, uint8_t *in,
 		jtag_callback_data_t data1, jtag_callback_data_t data2,
 		jtag_callback_data_t data3)
 {
 	interface_jtag_add_callback4(f, in, data1, data2, data3);
 }
 
-int jtag_check_value_inner(u8 *captured, u8 *in_check_value, u8 *in_check_mask, int num_bits);
+int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value, uint8_t *in_check_mask, int num_bits);
 
-static int jtag_check_value_mask_callback(u8 *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
+static int jtag_check_value_mask_callback(uint8_t *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
 {
-	return jtag_check_value_inner(in, (u8 *)data1, (u8 *)data2, (int)data3);
+	return jtag_check_value_inner(in, (uint8_t *)data1, (uint8_t *)data2, (int)data3);
 }
 
 static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state),
@@ -693,7 +693,7 @@ void jtag_add_sleep(u32 us)
 	jtag_set_error(interface_jtag_add_sleep(us));
 }
 
-int jtag_check_value_inner(u8 *captured, u8 *in_check_value, u8 *in_check_mask, int num_bits)
+int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value, uint8_t *in_check_mask, int num_bits)
 {
 	int retval = ERROR_OK;
 
@@ -742,7 +742,7 @@ int jtag_check_value_inner(u8 *captured, u8 *in_check_value, u8 *in_check_mask, 
 	return retval;
 }
 
-void jtag_check_value_mask(scan_field_t *field, u8 *value, u8 *mask)
+void jtag_check_value_mask(scan_field_t *field, uint8_t *value, uint8_t *mask)
 {
 	assert(field->in_value != NULL);
 
@@ -819,7 +819,7 @@ void jtag_sleep(u32 us)
 #define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
 #define EXTRACT_VER(X)  (((X) & 0xf0000000) >> 28)
 
-static int jtag_examine_chain_execute(u8 *idcode_buffer, unsigned num_idcode)
+static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcode)
 {
 	scan_field_t field = {
 			.tap = NULL,
@@ -836,10 +836,10 @@ static int jtag_examine_chain_execute(u8 *idcode_buffer, unsigned num_idcode)
 	return jtag_execute_queue();
 }
 
-static bool jtag_examine_chain_check(u8 *idcodes, unsigned count)
+static bool jtag_examine_chain_check(uint8_t *idcodes, unsigned count)
 {
-	u8 zero_check = 0x0;
-	u8 one_check = 0xff;
+	uint8_t zero_check = 0x0;
+	uint8_t one_check = 0xff;
 
 	for (unsigned i = 0; i < count * 4; i++)
 	{
@@ -879,7 +879,7 @@ static bool jtag_idcode_is_final(u32 idcode)
  * read back correctly.  This can help identify and diagnose problems
  * with the JTAG chain earlier, gives more helpful/explicit error messages.
  */
-static void jtag_examine_chain_end(u8 *idcodes, unsigned count, unsigned max)
+static void jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned max)
 {
 	bool triggered = false;
 	for ( ; count < max - 31; count += 32)
@@ -907,7 +907,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 	}
 
 	/* Loop over the expected identification codes and test for a match */
-	u8 ii;
+	uint8_t ii;
 	for (ii = 0; ii < tap->expected_ids_cnt; ii++)
 	{
 		if (tap->idcode == tap->expected_ids[ii])
@@ -937,7 +937,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
  */
 int jtag_examine_chain(void)
 {
-	u8 idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
+	uint8_t idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
 	unsigned device_count = 0;
 
 	jtag_examine_chain_execute(idcode_buffer, JTAG_MAX_CHAIN_SIZE);
@@ -1015,7 +1015,7 @@ int jtag_validate_chain(void)
 {
 	jtag_tap_t *tap;
 	int total_ir_length = 0;
-	u8 *ir_test = NULL;
+	uint8_t *ir_test = NULL;
 	scan_field_t field;
 	int chain_pos = 0;
 

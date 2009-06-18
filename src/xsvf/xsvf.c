@@ -169,7 +169,7 @@ int xsvf_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-static int xsvf_read_buffer(int num_bits, int fd, u8* buf)
+static int xsvf_read_buffer(int num_bits, int fd, uint8_t* buf)
 {
 	int num_bytes;
 
@@ -186,9 +186,9 @@ static int xsvf_read_buffer(int num_bits, int fd, u8* buf)
 
 static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	u8 *dr_out_buf = NULL; 				/* from host to device (TDI) */
-	u8 *dr_in_buf = NULL;				/* from device to host (TDO) */
-	u8 *dr_in_mask = NULL;
+	uint8_t *dr_out_buf = NULL; 				/* from host to device (TDI) */
+	uint8_t *dr_in_buf = NULL;				/* from device to host (TDO) */
+	uint8_t *dr_in_mask = NULL;
 
 	int xsdrsize = 0;
 	int xruntest = 0;					/* number of TCK cycles OR microseconds */
@@ -197,8 +197,8 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	tap_state_t	xendir = TAP_IDLE;		/* see page 8 of the SVF spec, initial xendir to be TAP_IDLE */
 	tap_state_t xenddr = TAP_IDLE;
 
-	u8  		opcode;
-	u8		uc;
+	uint8_t  		opcode;
+	uint8_t		uc;
 	long		file_offset = 0;
 
 	int		loop_count = 0;
@@ -287,7 +287,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 		case XRUNTEST:
 			{
-				u8	xruntest_buf[4];
+				uint8_t	xruntest_buf[4];
 
 				if (read(xsvf_fd, xruntest_buf, 4) < 0)
 				{
@@ -302,7 +302,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 		case XREPEAT:
 			{
-				u8 myrepeat;
+				uint8_t myrepeat;
 
 				if (read(xsvf_fd, &myrepeat, 1) < 0)
 					do_abort = 1;
@@ -316,7 +316,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 		case XSDRSIZE:
 			{
-				u8	xsdrsize_buf[4];
+				uint8_t	xsdrsize_buf[4];
 
 				if (read(xsvf_fd, xsdrsize_buf, 4) < 0)
 				{
@@ -488,7 +488,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case XSTATE:
 			{
 				tap_state_t	mystate;
-				u8			uc;
+				uint8_t			uc;
 
 				if (read(xsvf_fd, &uc, 1) < 0)
 				{
@@ -578,8 +578,8 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case XSIR:
 		case XSIR2:
 			{
-				u8	short_buf[2];
-				u8*	ir_buf;
+				uint8_t	short_buf[2];
+				uint8_t*	ir_buf;
 				int bitcount;
 				tap_state_t my_end_state = xruntest ? TAP_IDLE : xendir;
 
@@ -678,12 +678,12 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case XWAIT:
 			{
 				/* expected in stream:
-				   XWAIT <u8 wait_state> <u8 end_state> <u32 usecs>
+				   XWAIT <uint8_t wait_state> <uint8_t end_state> <u32 usecs>
 				*/
 
-				u8	wait;
-				u8	end;
-				u8	delay_buf[4];
+				uint8_t	wait;
+				uint8_t	end;
+				uint8_t	delay_buf[4];
 
 				tap_state_t wait_state;
 				tap_state_t end_state;
@@ -719,13 +719,13 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case XWAITSTATE:
 			{
 				/* expected in stream:
-				   XWAITSTATE <u8 wait_state> <u8 end_state> <u32 clock_count> <u32 usecs>
+				   XWAITSTATE <uint8_t wait_state> <uint8_t end_state> <u32 clock_count> <u32 usecs>
 				*/
 
-				u8  clock_buf[4];
-				u8  	usecs_buf[4];
-				u8	wait;
-				u8	end;
+				uint8_t  clock_buf[4];
+				uint8_t  	usecs_buf[4];
+				uint8_t	wait;
+				uint8_t	end;
 				tap_state_t wait_state;
 				tap_state_t end_state;
 				int clock_count;
@@ -777,7 +777,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				/* expected in stream:
 				   LCOUNT <u32 loop_count>
 				*/
-				u8  count_buf[4];
+				uint8_t  count_buf[4];
 
 				if ( read(xsvf_fd, count_buf, 4) < 0 )
 				{
@@ -793,11 +793,11 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		case LDELAY:
 			{
 				/* expected in stream:
-				   LDELAY <u8 wait_state> <u32 clock_count> <u32 usecs_to_sleep>
+				   LDELAY <uint8_t wait_state> <u32 clock_count> <u32 usecs_to_sleep>
 				*/
-				u8	state;
-				u8  clock_buf[4];
-				u8  usecs_buf[4];
+				uint8_t	state;
+				uint8_t  clock_buf[4];
+				uint8_t  usecs_buf[4];
 
 				if ( read(xsvf_fd, &state, 1) < 0
 				  || read(xsvf_fd, clock_buf, 4) < 0
@@ -882,7 +882,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 		case XTRST:
 			{
-				u8	trst_mode;
+				uint8_t	trst_mode;
 
 				if (read(xsvf_fd, &trst_mode, 1) < 0)
 				{

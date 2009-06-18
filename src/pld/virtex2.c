@@ -66,7 +66,7 @@ static int virtex2_send_32(struct pld_device_s *pld_device,
 {
 	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
 	scan_field_t scan_field;
-	u8 *values;
+	uint8_t *values;
 	int i;
 
 	values = malloc(num_words * 4);
@@ -88,7 +88,7 @@ static int virtex2_send_32(struct pld_device_s *pld_device,
 	return ERROR_OK;
 }
 
-static __inline__ void virtexflip32(u8 *in)
+static __inline__ void virtexflip32(uint8_t *in)
 {
 	*((u32 *)in) = flip_u32(le_to_h_u32(in), 32);
 }
@@ -108,11 +108,11 @@ static int virtex2_receive_32(struct pld_device_s *pld_device,
 
 	while (num_words--)
 	{
-		scan_field.in_value = (u8 *)words;
+		scan_field.in_value = (uint8_t *)words;
 
 		jtag_add_dr_scan(1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
 
-		jtag_add_callback(virtexflip32, (u8 *)words);
+		jtag_add_callback(virtexflip32, (uint8_t *)words);
 
 		words++;;
 	}

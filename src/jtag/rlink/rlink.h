@@ -22,10 +22,10 @@
 
 typedef
 struct rlink_speed_table_s {
-	u8 const	*dtc;
+	uint8_t const	*dtc;
 	u16			dtc_size;
 	u16			khz;
-	u8			prescaler;
+	uint8_t			prescaler;
 } rlink_speed_table_t;
 
 extern const rlink_speed_table_t	rlink_speed_table[];

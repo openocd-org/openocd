@@ -106,8 +106,8 @@ int tap_move_ndx( tap_state_t astate )
  */
 struct tms_sequences
 {
-	u8	bits;
-	u8	bit_count;
+	uint8_t	bits;
+	uint8_t	bit_count;
 
 };
 
@@ -127,7 +127,7 @@ struct tms_sequences
 	+(((x) & 0x0F000000LU)?(1<<6):0) \
 	+(((x) & 0xF0000000LU)?(1<<7):0)
 
-#define B8(bits,count)		{ ((u8)B8__(HEX__(bits))), (count) }
+#define B8(bits,count)		{ ((uint8_t)B8__(HEX__(bits))), (count) }
 
 static const struct tms_sequences old_tms_seqs[6][6] =		/*  [from_state_ndx][to_state_ndx] */
 {
@@ -380,8 +380,8 @@ tap_state_t tap_state_by_name(const char *name)
 tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
 		unsigned tap_bits, tap_state_t next_state)
 {
-	const u8 *tms_buffer;
-	const u8 *tdi_buffer;
+	const uint8_t *tms_buffer;
+	const uint8_t *tdi_buffer;
 	unsigned tap_bytes;
 	unsigned cur_byte;
 	unsigned cur_bit;
@@ -396,8 +396,8 @@ tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
 	last_state = next_state;
 	DEBUG_JTAG_IO("TAP/SM: START state: %s", tap_state_name(next_state));
 
-	tms_buffer = (const u8 *)tms_buf;
-	tdi_buffer = (const u8 *)tdi_buf;
+	tms_buffer = (const uint8_t *)tms_buf;
+	tdi_buffer = (const uint8_t *)tdi_buf;
 
 	tap_bytes = TAP_SCAN_BYTES(tap_bits);
 	DEBUG_JTAG_IO("TAP/SM: TMS bits: %u (bytes: %u)", tap_bits, tap_bytes);

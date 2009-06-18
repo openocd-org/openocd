@@ -156,7 +156,7 @@ void jtag_command_queue_reset(void);
 
 enum scan_type jtag_scan_type(const scan_command_t* cmd);
 int jtag_scan_size(const scan_command_t* cmd);
-int jtag_read_buffer(u8* buffer, const scan_command_t* cmd);
-int jtag_build_buffer(const scan_command_t* cmd, u8** buffer);
+int jtag_read_buffer(uint8_t* buffer, const scan_command_t* cmd);
+int jtag_build_buffer(const scan_command_t* cmd, uint8_t** buffer);
 
 #endif // JTAG_COMMANDS_H

@@ -54,8 +54,8 @@
 #define CMD_TGPWR_SETUP				0x22
 
 /* Global USB buffers */
-static u8 usb_in_buffer[ARMJTAGEW_IN_BUFFER_SIZE];
-static u8 usb_out_buffer[ARMJTAGEW_OUT_BUFFER_SIZE];
+static uint8_t usb_in_buffer[ARMJTAGEW_IN_BUFFER_SIZE];
+static uint8_t usb_out_buffer[ARMJTAGEW_OUT_BUFFER_SIZE];
 
 /* External interface functions */
 static int armjtagew_execute_queue(void);
@@ -73,9 +73,9 @@ static void armjtagew_end_state(tap_state_t state);
 static void armjtagew_state_move(void);
 static void armjtagew_path_move(int num_states, tap_state_t *path);
 static void armjtagew_runtest(int num_cycles);
-static void armjtagew_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command);
+static void armjtagew_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command);
 static void armjtagew_reset(int trst, int srst);
-//static void armjtagew_simple_command(u8 command);
+//static void armjtagew_simple_command(uint8_t command);
 static int armjtagew_get_status(void);
 
 /* tap buffer functions */
@@ -83,7 +83,7 @@ static void armjtagew_tap_init(void);
 static int armjtagew_tap_execute(void);
 static void armjtagew_tap_ensure_space(int scans, int bits);
 static void armjtagew_tap_append_step(int tms, int tdi);
-static void armjtagew_tap_append_scan(int length, u8 *buffer, scan_command_t *command);
+static void armjtagew_tap_append_scan(int length, uint8_t *buffer, scan_command_t *command);
 
 /* ARM-JTAG-EW lowlevel functions */
 typedef struct armjtagew_jtag
@@ -101,7 +101,7 @@ static int armjtagew_usb_read(armjtagew_jtag_t *armjtagew_jtag, int exp_in_lengt
 static int armjtagew_get_version_info(void);
 
 #ifdef _DEBUG_USB_COMMS_
-static void armjtagew_debug_buffer(u8 *buffer, int length);
+static void armjtagew_debug_buffer(uint8_t *buffer, int length);
 #endif
 
 static armjtagew_jtag_t* armjtagew_jtag_handle;
@@ -128,7 +128,7 @@ static int armjtagew_execute_queue(void)
 	jtag_command_t *cmd = jtag_command_queue;
 	int scan_size;
 	enum scan_type type;
-	u8 *buffer;
+	uint8_t *buffer;
 
 	while (cmd != NULL)
 	{
@@ -315,7 +315,7 @@ static void armjtagew_state_move(void)
 {
 	int i;
 	int tms = 0;
-	u8 tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
+	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
 	for (i = 0; i < tms_count; i++)
@@ -385,7 +385,7 @@ static void armjtagew_runtest(int num_cycles)
 	}
 }
 
-static void armjtagew_scan(bool ir_scan, enum scan_type type, u8 *buffer, int scan_size, scan_command_t *command)
+static void armjtagew_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size, scan_command_t *command)
 {
 	tap_state_t saved_end_state;
 
@@ -415,11 +415,11 @@ static void armjtagew_scan(bool ir_scan, enum scan_type type, u8 *buffer, int sc
 
 static void armjtagew_reset(int trst, int srst)
 {
-	const u8 trst_mask = (1u<<5);
-	const u8 srst_mask = (1u<<6);
-	u8 val = 0;
-	u8 outp_en = 0;
-	u8 change_mask = 0;
+	const uint8_t trst_mask = (1u<<5);
+	const uint8_t srst_mask = (1u<<6);
+	uint8_t val = 0;
+	uint8_t outp_en = 0;
+	uint8_t change_mask = 0;
 	int result;
 
 	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
@@ -541,16 +541,16 @@ static int armjtagew_handle_armjtagew_info_command(struct command_context_s *cmd
 #define ARMJTAGEW_TAP_BUFFER_SIZE 2048
 
 static int tap_length;
-static u8 tms_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
-static u8 tdi_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
-static u8 tdo_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
+static uint8_t tms_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
+static uint8_t tdi_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
+static uint8_t tdo_buffer[ARMJTAGEW_TAP_BUFFER_SIZE];
 
 typedef struct
 {
 	int first;	/* First bit position in tdo_buffer to read */
 	int length; /* Number of bits to read */
 	scan_command_t *command; /* Corresponding scan command */
-	u8 *buffer;
+	uint8_t *buffer;
 } pending_scan_result_t;
 
 #define MAX_PENDING_SCAN_RESULTS 256
@@ -585,7 +585,7 @@ static void armjtagew_tap_append_step(int tms, int tdi)
 	if (index < ARMJTAGEW_TAP_BUFFER_SIZE)
 	{
 		int bit_index = tap_length % 8;
-		u8 bit = 1 << bit_index;
+		uint8_t bit = 1 << bit_index;
 
 		if (tms)
 		{
@@ -613,7 +613,7 @@ static void armjtagew_tap_append_step(int tms, int tdi)
 	}
 }
 
-void armjtagew_tap_append_scan(int length, u8 *buffer, scan_command_t *command)
+void armjtagew_tap_append_scan(int length, uint8_t *buffer, scan_command_t *command)
 {
 	pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[pending_scan_results_length];
 	int i;
@@ -687,7 +687,7 @@ static int armjtagew_tap_execute(void)
 			for (i = 0; i < pending_scan_results_length; i++)
 			{
 				pending_scan_result_t *pending_scan_result = &pending_scan_results_buffer[i];
-				u8 *buffer = pending_scan_result->buffer;
+				uint8_t *buffer = pending_scan_result->buffer;
 				int length = pending_scan_result->length;
 				int first = pending_scan_result->first;
 				scan_command_t *command = pending_scan_result->command;
@@ -845,7 +845,7 @@ static int armjtagew_usb_read(armjtagew_jtag_t *armjtagew_jtag, int exp_in_lengt
 #ifdef _DEBUG_USB_COMMS_
 #define BYTES_PER_LINE  16
 
-static void armjtagew_debug_buffer(u8 *buffer, int length)
+static void armjtagew_debug_buffer(uint8_t *buffer, int length)
 {
 	char line[81];
 	char s[4];

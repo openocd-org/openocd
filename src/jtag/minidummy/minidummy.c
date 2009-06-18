@@ -57,7 +57,7 @@ int interface_jtag_execute_queue(void)
 
 
 
-extern int jtag_check_value(u8 *captured, void *priv);
+extern int jtag_check_value(uint8_t *captured, void *priv);
 
 int interface_jtag_set_end_state(tap_state_t state)
 {
@@ -178,7 +178,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 
 
-void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, u8 *buffer, int little, int count)
+void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int little, int count)
 {
 	int i;
 	for (i = 0; i < count; i++)
