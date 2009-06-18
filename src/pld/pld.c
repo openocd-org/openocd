@@ -30,18 +30,21 @@
  */
 extern pld_driver_t virtex2_pld;
 
-pld_driver_t *pld_drivers[] =
+static pld_driver_t *pld_drivers[] =
 {
 	&virtex2_pld,
 	NULL,
 };
 
-pld_device_t *pld_devices;
+static pld_device_t *pld_devices;
 static command_t *pld_cmd;
 
-int handle_pld_devices_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-int handle_pld_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_pld_devices_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc);
+static int handle_pld_device_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc);
+static int handle_pld_load_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc);
 
 int pld_init(struct command_context_s *cmd_ctx)
 {
@@ -52,7 +55,7 @@ int pld_init(struct command_context_s *cmd_ctx)
 		register_command(cmd_ctx, pld_cmd, "load", handle_pld_load_command, COMMAND_EXEC,
 						"load configuration <file> into programmable logic device");
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -68,47 +71,48 @@ pld_device_t *get_pld_device_by_num(int num)
 			return p;
 		}
 	}
-	
+
 	return NULL;
 }
 
 /* pld device <driver> [driver_options ...]
  */
-int handle_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_pld_device_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	int i;
 	int found = 0;
-		
+
 	if (argc < 1)
 	{
-		LOG_WARNING("incomplete 'pld bank' configuration");
+		LOG_WARNING("incomplete 'pld device' command");
 		return ERROR_OK;
 	}
-	
+
 	for (i = 0; pld_drivers[i]; i++)
 	{
 		if (strcmp(args[0], pld_drivers[i]->name) == 0)
 		{
 			pld_device_t *p, *c;
-			
+
 			/* register pld specific commands */
 			if (pld_drivers[i]->register_commands(cmd_ctx) != ERROR_OK)
 			{
 				LOG_ERROR("couldn't register '%s' commands", args[0]);
 				exit(-1);
 			}
-			
+
 			c = malloc(sizeof(pld_device_t));
 			c->driver = pld_drivers[i];
 			c->next = NULL;
-			
+
 			if (pld_drivers[i]->pld_device_command(cmd_ctx, cmd, args, argc, c) != ERROR_OK)
 			{
 				LOG_ERROR("'%s' driver rejected pld device", args[0]);
 				free(c);
 				return ERROR_OK;
 			}
-			
+
 			/* put pld device in linked list */
 			if (pld_devices)
 			{
@@ -121,61 +125,63 @@ int handle_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char
 			{
 				pld_devices = c;
 			}
-			
+
 			found = 1;
 		}
 	}
-		
+
 	/* no matching pld driver found */
 	if (!found)
 	{
 		LOG_ERROR("pld driver '%s' not found", args[0]);
 		exit(-1);
 	}
-	
+
 	return ERROR_OK;
 }
 
-int handle_pld_devices_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_pld_devices_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	pld_device_t *p;
 	int i = 0;
-	
+
 	if (!pld_devices)
 	{
 		command_print(cmd_ctx, "no pld devices configured");
 		return ERROR_OK;
 	}
-	
+
 	for (p = pld_devices; p; p = p->next)
 	{
 		command_print(cmd_ctx, "#%i: %s", i++, p->driver->name);
 	}
-	
+
 	return ERROR_OK;
 }
 
-int handle_pld_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_pld_load_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	int retval;
 	struct timeval start, end, duration;
 	pld_device_t *p;
-	
+
 	gettimeofday(&start, NULL);
-		
+
 	if (argc < 2)
 	{
 		command_print(cmd_ctx, "usage: pld load <device#> <file>");
 		return ERROR_OK;
 	}
-	
+
 	p = get_pld_device_by_num(strtoul(args[0], NULL, 0));
 	if (!p)
 	{
 		command_print(cmd_ctx, "pld device '#%s' is out of bounds", args[0]);
 		return ERROR_OK;
 	}
-	
+
 	if ((retval = p->driver->load(p, args[1])) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "failed loading file %s to pld device %lu",
@@ -186,22 +192,22 @@ int handle_pld_load_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	}
 	else
 	{
-		gettimeofday(&end, NULL);	
+		gettimeofday(&end, NULL);
 		timeval_subtract(&duration, &end, &start);
 
 		command_print(cmd_ctx, "loaded file %s to pld device %lu in %jis %jius",
 			args[1], strtoul(args[0], NULL, 0),
 			(intmax_t)duration.tv_sec, (intmax_t)duration.tv_usec);
 	}
-	
+
 	return ERROR_OK;
 }
 
 int pld_register_commands(struct command_context_s *cmd_ctx)
 {
 	pld_cmd = register_command(cmd_ctx, NULL, "pld", NULL, COMMAND_ANY, "programmable logic device commands");
-	
+
 	register_command(cmd_ctx, pld_cmd, "device", handle_pld_device_command, COMMAND_CONFIG, NULL);
-	
+
 	return ERROR_OK;
 }

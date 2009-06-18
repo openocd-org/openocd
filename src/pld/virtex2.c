@@ -26,9 +26,9 @@
 #include "pld.h"
 
 
-int virtex2_register_commands(struct command_context_s *cmd_ctx);
-int virtex2_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct pld_device_s *pld_device);
-int virtex2_load(struct pld_device_s *pld_device, char *filename);
+static int virtex2_register_commands(struct command_context_s *cmd_ctx);
+static int virtex2_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct pld_device_s *pld_device);
+static int virtex2_load(struct pld_device_s *pld_device, char *filename);
 
 pld_driver_t virtex2_pld =
 {
@@ -38,9 +38,9 @@ pld_driver_t virtex2_pld =
 	.load = virtex2_load,
 };
 
-int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
+static int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
 {
-	if (tap==NULL)
+	if (tap == NULL)
 		return ERROR_FAIL;
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
@@ -51,12 +51,7 @@ int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
 		field.num_bits = tap->ir_length;
 		field.out_value = calloc(CEIL(field.num_bits, 8), 1);
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
-
 		field.in_value = NULL;
-
-
-
-
 
 		jtag_add_ir_scan(1, &field, jtag_set_end_state(TAP_IDLE));
 
@@ -66,7 +61,8 @@ int virtex2_set_instr(jtag_tap_t *tap, u32 new_instr)
 	return ERROR_OK;
 }
 
-int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
+static int virtex2_send_32(struct pld_device_s *pld_device,
+		int num_words, u32 *words)
 {
 	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
 	scan_field_t scan_field;
@@ -94,10 +90,11 @@ int virtex2_send_32(struct pld_device_s *pld_device, int num_words, u32 *words)
 
 static __inline__ void virtexflip32(u8 *in)
 {
-	*((u32 *)in)=flip_u32(le_to_h_u32(in), 32);
+	*((u32 *)in) = flip_u32(le_to_h_u32(in), 32);
 }
 
-int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *words)
+static int virtex2_receive_32(struct pld_device_s *pld_device,
+		int num_words, u32 *words)
 {
 	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
 	scan_field_t scan_field;
@@ -112,7 +109,7 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	while (num_words--)
 	{
 		scan_field.in_value = (u8 *)words;
-		
+
 		jtag_add_dr_scan(1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
 
 		jtag_add_callback(virtexflip32, (u8 *)words);
@@ -123,7 +120,7 @@ int virtex2_receive_32(struct pld_device_s *pld_device, int num_words, u32 *word
 	return ERROR_OK;
 }
 
-int virtex2_read_stat(struct pld_device_s *pld_device, u32 *status)
+static int virtex2_read_stat(struct pld_device_s *pld_device, u32 *status)
 {
 	u32 data[5];
 
@@ -145,22 +142,16 @@ int virtex2_read_stat(struct pld_device_s *pld_device, u32 *status)
 	return ERROR_OK;
 }
 
-int virtex2_load(struct pld_device_s *pld_device, char *filename)
+static int virtex2_load(struct pld_device_s *pld_device, char *filename)
 {
 	virtex2_pld_device_t *virtex2_info = pld_device->driver_priv;
 	xilinx_bit_file_t bit_file;
 	int retval;
 	unsigned int i;
-
 	scan_field_t field;
 
 	field.tap = virtex2_info->tap;
-
 	field.in_value = NULL;
-
-
-
-
 
 	if ((retval = xilinx_read_bit_file(&bit_file, filename)) != ERROR_OK)
 		return retval;
@@ -197,7 +188,8 @@ int virtex2_load(struct pld_device_s *pld_device, char *filename)
 	return ERROR_OK;
 }
 
-int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	pld_device_t *device;
 	virtex2_pld_device_t *virtex2_info;
@@ -225,7 +217,7 @@ int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx, char *cm
 	return ERROR_OK;
 }
 
-int virtex2_register_commands(struct command_context_s *cmd_ctx)
+static int virtex2_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *virtex2_cmd = register_command(cmd_ctx, NULL, "virtex2", NULL, COMMAND_ANY, "virtex2 specific commands");
 
@@ -235,7 +227,8 @@ int virtex2_register_commands(struct command_context_s *cmd_ctx)
 	return ERROR_OK;
 }
 
-int virtex2_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct pld_device_s *pld_device)
+static int virtex2_pld_device_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc, struct pld_device_s *pld_device)
 {
 	jtag_tap_t *tap;
 
@@ -247,8 +240,8 @@ int virtex2_pld_device_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_PLD_DEVICE_INVALID;
 	}
 
-	tap = jtag_tap_by_string( args[1] );
-	if( tap == NULL ){
+	tap = jtag_tap_by_string(args[1]);
+	if (tap == NULL) {
 		command_print( cmd_ctx, "Tap: %s does not exist", args[1] );
 		return ERROR_OK;
 	}
