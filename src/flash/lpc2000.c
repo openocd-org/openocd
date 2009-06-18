@@ -49,7 +49,7 @@ static int lpc2000_register_commands(struct command_context_s *cmd_ctx);
 static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int lpc2000_erase(struct flash_bank_s *bank, int first, int last);
 static int lpc2000_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int lpc2000_probe(struct flash_bank_s *bank);
 static int lpc2000_erase_check(struct flash_bank_s *bank);
 static int lpc2000_protect_check(struct flash_bank_s *bank);
@@ -246,7 +246,7 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, u32 param_table[5], u3
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!lpc2000_info->iap_working_area)
 	{
-		u8 jump_gate[8];
+		uint8_t jump_gate[8];
 
 		/* make sure we have a working area */
 		if (target_alloc_working_area(target, 172, &lpc2000_info->iap_working_area) != ERROR_OK)
@@ -465,7 +465,7 @@ static int lpc2000_protect(struct flash_bank_s *bank, int set, int first, int la
 	return ERROR_OK;
 }
 
-static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -589,7 +589,7 @@ static int lpc2000_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 
 		}
 		else
 		{
-			u8 *last_buffer = malloc(thisrun_bytes);
+			uint8_t *last_buffer = malloc(thisrun_bytes);
 			u32 i;
 			memcpy(last_buffer, buffer + bytes_written, bytes_remaining);
 			for (i = bytes_remaining; i < thisrun_bytes; i++)

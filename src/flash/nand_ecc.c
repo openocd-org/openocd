@@ -46,7 +46,7 @@
 /*
  * Pre-calculated 256-way 1 byte column parity
  */
-static const u8 nand_ecc_precalc_table[] = {
+static const uint8_t nand_ecc_precalc_table[] = {
 	0x00, 0x55, 0x56, 0x03, 0x59, 0x0c, 0x0f, 0x5a, 0x5a, 0x0f, 0x0c, 0x59, 0x03, 0x56, 0x55, 0x00,
 	0x65, 0x30, 0x33, 0x66, 0x3c, 0x69, 0x6a, 0x3f, 0x3f, 0x6a, 0x69, 0x3c, 0x66, 0x33, 0x30, 0x65,
 	0x66, 0x33, 0x30, 0x65, 0x3f, 0x6a, 0x69, 0x3c, 0x3c, 0x69, 0x6a, 0x3f, 0x65, 0x30, 0x33, 0x66,
@@ -68,9 +68,9 @@ static const u8 nand_ecc_precalc_table[] = {
 /*
  * nand_calculate_ecc - Calculate 3-byte ECC for 256-byte block
  */
-int nand_calculate_ecc(struct nand_device_s *device, const u8 *dat, u8 *ecc_code)
+int nand_calculate_ecc(struct nand_device_s *device, const uint8_t *dat, uint8_t *ecc_code)
 {
-	u8 idx, reg1, reg2, reg3, tmp1, tmp2;
+	uint8_t idx, reg1, reg2, reg3, tmp1, tmp2;
 	int i;
 
 	/* Initialize variables */
@@ -84,8 +84,8 @@ int nand_calculate_ecc(struct nand_device_s *device, const u8 *dat, u8 *ecc_code
 
 		/* All bit XOR = 1 ? */
 		if (idx & 0x40) {
-			reg3 ^= (u8) i;
-			reg2 ^= ~((u8) i);
+			reg3 ^= (uint8_t) i;
+			reg2 ^= ~((uint8_t) i);
 		}
 	}
 

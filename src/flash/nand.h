@@ -36,14 +36,14 @@ typedef struct nand_flash_controller_s
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 	int (*init)(struct nand_device_s *device);
 	int (*reset)(struct nand_device_s *device);
-	int (*command)(struct nand_device_s *device, u8 command);
-	int (*address)(struct nand_device_s *device, u8 address);
+	int (*command)(struct nand_device_s *device, uint8_t command);
+	int (*address)(struct nand_device_s *device, uint8_t address);
 	int (*write_data)(struct nand_device_s *device, u16 data);
 	int (*read_data)(struct nand_device_s *device, void *data);
-	int (*write_block_data)(struct nand_device_s *device, u8 *data, int size);
-	int (*read_block_data)(struct nand_device_s *device, u8 *data, int size);
-	int (*write_page)(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
-	int (*read_page)(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
+	int (*write_block_data)(struct nand_device_s *device, uint8_t *data, int size);
+	int (*read_block_data)(struct nand_device_s *device, uint8_t *data, int size);
+	int (*write_page)(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
+	int (*read_page)(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
 	int (*controller_ready)(struct nand_device_s *device, int timeout);
 	int (*nand_ready)(struct nand_device_s *device, int timeout);
 } nand_flash_controller_t;
@@ -208,11 +208,11 @@ enum oob_formats
 
 /* Function prototypes */
 extern nand_device_t *get_nand_device_by_num(int num);
-extern int nand_read_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
-extern int nand_write_page_raw(struct nand_device_s *device, u32 page, u8 *data, u32 data_size, u8 *oob, u32 oob_size);
-extern int nand_read_status(struct nand_device_s *device, u8 *status);
-extern int nand_calculate_ecc(struct nand_device_s *device, const u8 *dat, u8 *ecc_code);
-extern int nand_calculate_ecc_kw(struct nand_device_s *device, const u8 *dat, u8 *ecc_code);
+extern int nand_read_page_raw(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
+extern int nand_write_page_raw(struct nand_device_s *device, u32 page, uint8_t *data, u32 data_size, uint8_t *oob, u32 oob_size);
+extern int nand_read_status(struct nand_device_s *device, uint8_t *status);
+extern int nand_calculate_ecc(struct nand_device_s *device, const uint8_t *dat, uint8_t *ecc_code);
+extern int nand_calculate_ecc_kw(struct nand_device_s *device, const uint8_t *dat, uint8_t *ecc_code);
 
 extern int nand_register_commands(struct command_context_s *cmd_ctx);
 extern int nand_init(struct command_context_s *cmd_ctx);

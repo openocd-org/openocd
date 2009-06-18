@@ -100,7 +100,7 @@ static void gf_build_log_exp_table(void)
  * expects the ECC to be computed backward, i.e. from the last byte down
  * to the first one.
  */
-int nand_calculate_ecc_kw(struct nand_device_s *device, const u8 *data, u8 *ecc)
+int nand_calculate_ecc_kw(struct nand_device_s *device, const uint8_t *data, uint8_t *ecc)
 {
 	unsigned int r7, r6, r5, r4, r3, r2, r1, r0;
 	int i;

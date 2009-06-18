@@ -33,7 +33,7 @@
 
 static
 struct pic32mx_devs_s {
-	u8	devid;
+	uint8_t	devid;
 	char	*name;
 	u32	pfm_size;
 } pic32mx_devs[] = {
@@ -61,7 +61,7 @@ static int pic32mx_register_commands(struct command_context_s *cmd_ctx);
 static int pic32mx_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int pic32mx_erase(struct flash_bank_s *bank, int first, int last);
 static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int pic32mx_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int pic32mx_write_row(struct flash_bank_s *bank, u32 address, u32 srcaddr);
 static int pic32mx_write_word(struct flash_bank_s *bank, u32 address, u32 word);
 static int pic32mx_probe(struct flash_bank_s *bank);
@@ -348,7 +348,7 @@ static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int la
 #endif
 }
 
-static int pic32mx_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	target_t *target = bank->target;
 	u32 buffer_size = 512;
@@ -359,7 +359,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset
 	pic32mx_flash_bank_t *pic32mx_info = bank->driver_priv;
 	armv7m_algorithm_t armv7m_info;
 
-	u8 pic32mx_flash_write_code[] = {
+	uint8_t pic32mx_flash_write_code[] = {
 									/* write: */
 		0xDF, 0xF8, 0x24, 0x40,		/* ldr	r4, PIC32MX_FLASH_CR */
 		0x09, 0x4D,					/* ldr	r5, PIC32MX_FLASH_SR */
@@ -511,7 +511,7 @@ static int pic32mx_write_row(struct flash_bank_s *bank, u32 address, u32 srcaddr
 	return pic32mx_nvm_exec(bank, NVMCON_OP_ROW_PROG, 100);
 }
 
-static int pic32mx_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	u32 words_remaining = (count / 4);
 	u32 bytes_remaining = (count & 0x00000003);

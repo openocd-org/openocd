@@ -118,7 +118,7 @@ static int s3c2410_nand_ready(struct nand_device_s *device, int timeout)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
-	u8 status;
+	uint8_t status;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");

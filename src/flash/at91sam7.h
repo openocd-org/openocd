@@ -40,7 +40,7 @@ typedef struct at91sam7_flash_bank_s
 	char *target_name;
 
 	/* flash auto-detection */
-	u8  flash_autodetection;
+	uint8_t  flash_autodetection;
 
 	/* flash geometry */
 	u16 pages_per_sector;
@@ -53,15 +53,15 @@ typedef struct at91sam7_flash_bank_s
 	u16 num_nvmbits;
 	u16 num_nvmbits_on;
 	u16 nvmbits;
-	u8  securitybit;
+	uint8_t  securitybit;
 
 	/* 0: not init
 	 * 1: fmcn for nvbits (1uS)
 	 * 2: fmcn for flash (1.5uS) */
-	u8  flashmode;
+	uint8_t  flashmode;
 
 	/* main clock status */
-	u8  mck_valid;
+	uint8_t  mck_valid;
 	u32 mck_freq;
 
 	/* external clock frequency */

@@ -33,7 +33,7 @@ static int cfi_register_commands(struct command_context_s *cmd_ctx);
 static int cfi_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int cfi_erase(struct flash_bank_s *bank, int first, int last);
 static int cfi_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int cfi_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int cfi_probe(struct flash_bank_s *bank);
 static int cfi_auto_probe(struct flash_bank_s *bank);
 static int cfi_protect_check(struct flash_bank_s *bank);
@@ -131,7 +131,7 @@ static __inline__ u32 flash_address(flash_bank_t *bank, int sector, u32 offset)
 
 }
 
-static void cfi_command(flash_bank_t *bank, u8 cmd, u8 *cmd_buf)
+static void cfi_command(flash_bank_t *bank, uint8_t cmd, uint8_t *cmd_buf)
 {
 	int i;
 
@@ -161,10 +161,10 @@ static void cfi_command(flash_bank_t *bank, u8 cmd, u8 *cmd_buf)
  * flash banks are expected to be made of similar chips
  * the query result should be the same for all
  */
-static u8 cfi_query_u8(flash_bank_t *bank, int sector, u32 offset)
+static uint8_t cfi_query_u8(flash_bank_t *bank, int sector, u32 offset)
 {
 	target_t *target = bank->target;
-	u8 data[CFI_MAX_BUS_WIDTH];
+	uint8_t data[CFI_MAX_BUS_WIDTH];
 
 	target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
 
@@ -178,10 +178,10 @@ static u8 cfi_query_u8(flash_bank_t *bank, int sector, u32 offset)
  * in case of a bank made of multiple chips,
  * the individual values are ORed
  */
-static u8 cfi_get_u8(flash_bank_t *bank, int sector, u32 offset)
+static uint8_t cfi_get_u8(flash_bank_t *bank, int sector, u32 offset)
 {
 	target_t *target = bank->target;
-	u8 data[CFI_MAX_BUS_WIDTH];
+	uint8_t data[CFI_MAX_BUS_WIDTH];
 	int i;
 
 	target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 1, data);
@@ -195,7 +195,7 @@ static u8 cfi_get_u8(flash_bank_t *bank, int sector, u32 offset)
 	}
 	else
 	{
-		u8 value = 0;
+		uint8_t value = 0;
 		for (i = 0; i < bank->bus_width / bank->chip_width; i++)
 			value |= data[bank->bus_width - 1 - i];
 
@@ -207,11 +207,11 @@ static u16 cfi_query_u16(flash_bank_t *bank, int sector, u32 offset)
 {
 	target_t *target = bank->target;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
-	u8 data[CFI_MAX_BUS_WIDTH * 2];
+	uint8_t data[CFI_MAX_BUS_WIDTH * 2];
 
 	if(cfi_info->x16_as_x8)
 	{
-		u8 i;
+		uint8_t i;
 		for(i=0;i<2;i++)
 			target_read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
 				&data[i*bank->bus_width] );
@@ -229,11 +229,11 @@ static u32 cfi_query_u32(flash_bank_t *bank, int sector, u32 offset)
 {
 	target_t *target = bank->target;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
-	u8 data[CFI_MAX_BUS_WIDTH * 4];
+	uint8_t data[CFI_MAX_BUS_WIDTH * 4];
 
 	if(cfi_info->x16_as_x8)
 	{
-		u8 i;
+		uint8_t i;
 		for(i=0;i<4;i++)
 			target_read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
 				&data[i*bank->bus_width] );
@@ -251,7 +251,7 @@ static u32 cfi_query_u32(flash_bank_t *bank, int sector, u32 offset)
 static void cfi_intel_clear_status_register(flash_bank_t *bank)
 {
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -263,9 +263,9 @@ static void cfi_intel_clear_status_register(flash_bank_t *bank)
 	target_write_memory(target, flash_address(bank, 0, 0x0), bank->bus_width, 1, command);
 }
 
-u8 cfi_intel_wait_status_busy(flash_bank_t *bank, int timeout)
+uint8_t cfi_intel_wait_status_busy(flash_bank_t *bank, int timeout)
 {
-	u8 status;
+	uint8_t status;
 
 	while ((!((status = cfi_get_u8(bank, 0, 0x0)) & 0x80)) && (timeout-- > 0))
 	{
@@ -306,7 +306,7 @@ u8 cfi_intel_wait_status_busy(flash_bank_t *bank, int timeout)
 
 int cfi_spansion_wait_status_busy(flash_bank_t *bank, int timeout)
 {
-	u8 status, oldstatus;
+	uint8_t status, oldstatus;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 
 	oldstatus = cfi_get_u8(bank, 0, 0x0);
@@ -345,7 +345,7 @@ static int cfi_read_intel_pri_ext(flash_bank_t *bank)
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_intel_pri_ext_t *pri_ext = malloc(sizeof(cfi_intel_pri_ext_t));
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 
 	cfi_info->pri_ext = pri_ext;
 
@@ -408,7 +408,7 @@ static int cfi_read_spansion_pri_ext(flash_bank_t *bank)
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 
 	cfi_info->pri_ext = pri_ext;
 
@@ -474,7 +474,7 @@ static int cfi_read_atmel_pri_ext(flash_bank_t *bank)
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = malloc(sizeof(cfi_spansion_pri_ext_t));
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 
 	/* ATMEL devices use the same CFI primary command set (0x2) as AMD/Spansion,
 	 * but a different primary extended query table.
@@ -680,7 +680,7 @@ static int cfi_intel_erase(struct flash_bank_s *bank, int first, int last)
 	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 	int i;
 
 	cfi_intel_clear_status_register(bank);
@@ -725,7 +725,7 @@ static int cfi_spansion_erase(struct flash_bank_s *bank, int first, int last)
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 	int i;
 
 	for (i = first; i <= last; i++)
@@ -826,7 +826,7 @@ static int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int 
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 	int retry = 0;
 	int i;
 
@@ -875,7 +875,7 @@ static int cfi_intel_protect(struct flash_bank_s *bank, int set, int first, int 
 		}
 		else
 		{
-			u8 block_status;
+			uint8_t block_status;
 			/* read block lock bit, to verify status */
 			cfi_command(bank, 0x90, command);
 			if((retval = target_write_memory(target, flash_address(bank, 0, 0x55), bank->bus_width, 1, command)) != ERROR_OK)
@@ -970,7 +970,7 @@ static int cfi_protect(struct flash_bank_s *bank, int set, int first, int last)
 }
 
 /* FIXME Replace this by a simple memcpy() - still unsure about sideeffects */
-static void cfi_add_byte(struct flash_bank_s *bank, u8 *word, u8 byte)
+static void cfi_add_byte(struct flash_bank_s *bank, uint8_t *word, uint8_t byte)
 {
 	/* target_t *target = bank->target; */
 
@@ -1005,7 +1005,7 @@ static void cfi_add_byte(struct flash_bank_s *bank, u8 *word, u8 byte)
 
 /* Convert code image to target endian */
 /* FIXME create general block conversion fcts in target.c?) */
-static void cfi_fix_code_endian(target_t *target, u8 *dest, const u32 *src, u32 count)
+static void cfi_fix_code_endian(target_t *target, uint8_t *dest, const u32 *src, u32 count)
 {
 	u32 i;
 	for (i=0; i< count; i++)
@@ -1016,11 +1016,11 @@ static void cfi_fix_code_endian(target_t *target, u8 *dest, const u32 *src, u32 
 	}
 }
 
-static u32 cfi_command_val(flash_bank_t *bank, u8 cmd)
+static u32 cfi_command_val(flash_bank_t *bank, uint8_t cmd)
 {
 	target_t *target = bank->target;
 
-	u8 buf[CFI_MAX_BUS_WIDTH];
+	uint8_t buf[CFI_MAX_BUS_WIDTH];
 	cfi_command(bank, cmd, buf);
 	switch (bank->bus_width)
 	{
@@ -1039,7 +1039,7 @@ static u32 cfi_command_val(flash_bank_t *bank, u8 cmd)
 	}
 }
 
-static int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u32 count)
+static int cfi_intel_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 address, u32 count)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -1109,7 +1109,7 @@ static int cfi_intel_write_block(struct flash_bank_s *bank, u8 *buffer, u32 addr
 		0xeafffff2,   /* 		b loop */
 		0xeafffffe    /* done:	b -2 */
 	};
-	u8 target_code[4*CFI_MAX_INTEL_CODESIZE];
+	uint8_t target_code[4*CFI_MAX_INTEL_CODESIZE];
 	const u32 *target_code_src;
 	u32 target_code_size;
 	int retval = ERROR_OK;
@@ -1283,7 +1283,7 @@ cleanup:
 	return retval;
 }
 
-static int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 address, u32 count)
+static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 address, u32 count)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
@@ -1422,7 +1422,7 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 a
 	/* flash write code */
 	if (!cfi_info->write_algorithm)
 	{
-		u8 *target_code;
+		uint8_t *target_code;
 		int target_code_size;
 		const u32 *src;
 
@@ -1545,12 +1545,12 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, u8 *buffer, u32 a
 	return exit_code;
 }
 
-static int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
+static int cfi_intel_write_word(struct flash_bank_s *bank, uint8_t *word, u32 address)
 {
 	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 
 	cfi_intel_clear_status_register(bank);
 	cfi_command(bank, 0x40, command);
@@ -1579,12 +1579,12 @@ static int cfi_intel_write_word(struct flash_bank_s *bank, u8 *word, u32 address
 	return ERROR_OK;
 }
 
-static int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 address)
+static int cfi_intel_write_words(struct flash_bank_s *bank, uint8_t *word, u32 wordcount, u32 address)
 {
 	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 
 	/* Calculate buffer size and boundary mask */
 	u32 buffersize = (1UL << cfi_info->max_buf_write_size) * (bank->bus_width / bank->chip_width);
@@ -1671,13 +1671,13 @@ static int cfi_intel_write_words(struct flash_bank_s *bank, u8 *word, u32 wordco
 	return ERROR_OK;
 }
 
-static int cfi_spansion_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
+static int cfi_spansion_write_word(struct flash_bank_s *bank, uint8_t *word, u32 address)
 {
 	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 
 	cfi_command(bank, 0xaa, command);
 	if((retval = target_write_memory(target, flash_address(bank, 0, pri_ext->_unlock1), bank->bus_width, 1, command)) != ERROR_OK)
@@ -1717,12 +1717,12 @@ static int cfi_spansion_write_word(struct flash_bank_s *bank, u8 *word, u32 addr
 	return ERROR_OK;
 }
 
-static int cfi_spansion_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 address)
+static int cfi_spansion_write_words(struct flash_bank_s *bank, uint8_t *word, u32 wordcount, u32 address)
 {
 	int retval;
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 
 	/* Calculate buffer size and boundary mask */
@@ -1809,7 +1809,7 @@ static int cfi_spansion_write_words(struct flash_bank_s *bank, u8 *word, u32 wor
 	return ERROR_OK;
 }
 
-static int cfi_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
+static int cfi_write_word(struct flash_bank_s *bank, uint8_t *word, u32 address)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 
@@ -1830,7 +1830,7 @@ static int cfi_write_word(struct flash_bank_s *bank, u8 *word, u32 address)
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
-static int cfi_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u32 address)
+static int cfi_write_words(struct flash_bank_s *bank, uint8_t *word, u32 wordcount, u32 address)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 
@@ -1851,7 +1851,7 @@ static int cfi_write_words(struct flash_bank_s *bank, u8 *word, u32 wordcount, u
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
-int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+int cfi_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -1859,7 +1859,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 	u32 write_p, copy_p;
 	int align;	/* number of unaligned bytes */
 	int blk_count; /* number of bus_width bytes for block copy */
-	u8 current_word[CFI_MAX_BUS_WIDTH * 4];	/* word (bus_width size) currently being programmed */
+	uint8_t current_word[CFI_MAX_BUS_WIDTH * 4];	/* word (bus_width size) currently being programmed */
 	int i;
 	int retval;
 
@@ -1888,7 +1888,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		/* copy bytes before the first write address */
 		for (i = 0; i < align; ++i, ++copy_p)
 		{
-			u8 byte;
+			uint8_t byte;
 			if((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
 			{
 				return retval;
@@ -1907,7 +1907,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		/* if the buffer is already finished, copy bytes after the last write address */
 		for (; (count == 0) && (i < bank->bus_width); ++i, ++copy_p)
 		{
-			u8 byte;
+			uint8_t byte;
 			if((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
 			{
 				return retval;
@@ -2038,7 +2038,7 @@ int cfi_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
 		}
 		for (; i < bank->bus_width; ++i, ++copy_p)
 		{
-			u8 byte;
+			uint8_t byte;
 			if((retval = target_read_memory(target, copy_p, 1, 1, &byte)) != ERROR_OK)
 			{
 				return retval;
@@ -2106,7 +2106,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 	int num_sectors = 0;
 	int i;
 	int sector = 0;
@@ -2150,7 +2150,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 
 	if (bank->chip_width == 1)
 	{
-		u8 manufacturer, device_id;
+		uint8_t manufacturer, device_id;
 		if((retval = target_read_u8(target, flash_address(bank, 0, 0x00), &manufacturer)) != ERROR_OK)
 		{
 			return retval;
@@ -2402,7 +2402,7 @@ static int cfi_intel_protect_check(struct flash_bank_s *bank)
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_intel_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
-	u8 command[CFI_MAX_BUS_WIDTH];
+	uint8_t command[CFI_MAX_BUS_WIDTH];
 	int i;
 
 	/* check if block lock bits are supported on this device */
@@ -2417,7 +2417,7 @@ static int cfi_intel_protect_check(struct flash_bank_s *bank)
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		u8 block_status = cfi_get_u8(bank, i, 0x2);
+		uint8_t block_status = cfi_get_u8(bank, i, 0x2);
 
 		if (block_status & 1)
 			bank->sectors[i].is_protected = 1;
@@ -2435,7 +2435,7 @@ static int cfi_spansion_protect_check(struct flash_bank_s *bank)
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 	cfi_spansion_pri_ext_t *pri_ext = cfi_info->pri_ext;
 	target_t *target = bank->target;
-	u8 command[8];
+	uint8_t command[8];
 	int i;
 
 	cfi_command(bank, 0xaa, command);
@@ -2458,7 +2458,7 @@ static int cfi_spansion_protect_check(struct flash_bank_s *bank)
 
 	for (i = 0; i < bank->num_sectors; i++)
 	{
-		u8 block_status = cfi_get_u8(bank, i, 0x2);
+		uint8_t block_status = cfi_get_u8(bank, i, 0x2);
 
 		if (block_status & 1)
 			bank->sectors[i].is_protected = 1;

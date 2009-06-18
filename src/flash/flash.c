@@ -85,7 +85,7 @@ flash_bank_t *flash_banks;
 static 	command_t *flash_cmd;
 
 /* wafer thin wrapper for invoking the flash driver */
-static int flash_driver_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int flash_driver_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	int retval;
 
@@ -710,8 +710,8 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	u32 address;
 	u32 pattern;
 	u32 count;
-	u8 chunk[1024];
-	u8 readback[1024];
+	uint8_t chunk[1024];
+	uint8_t readback[1024];
 	u32 wrote = 0;
 	u32 cur_size = 0;
 	u32 chunk_count;
@@ -823,7 +823,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 offset;
-	u8 *buffer;
+	uint8_t *buffer;
 	u32 buf_cnt;
 
 	fileio_t fileio;
@@ -1004,7 +1004,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 	while (section < image->num_sections)
 	{
 		u32 buffer_size;
-		u8 *buffer;
+		uint8_t *buffer;
 		int section_first;
 		int section_last;
 		u32 run_address = image->sections[section].base_address + section_offset;
@@ -1129,7 +1129,7 @@ int flash_write(target_t *target, image_t *image, u32 *written, int erase)
 int default_flash_mem_blank_check(struct flash_bank_s *bank)
 {
 	target_t *target = bank->target;
-	u8 buffer[1024];
+	uint8_t buffer[1024];
 	int buffer_size = sizeof(buffer);
 	int i;
 	u32 nBytes;

@@ -49,7 +49,7 @@ static int str7x_register_commands(struct command_context_s *cmd_ctx);
 static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int str7x_erase(struct flash_bank_s *bank, int first, int last);
 static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int str7x_probe(struct flash_bank_s *bank);
 //static int str7x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int str7x_protect_check(struct flash_bank_s *bank);
@@ -345,7 +345,7 @@ static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last
 	return ERROR_OK;
 }
 
-static int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -389,7 +389,7 @@ static int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, 
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 	
-	target_write_buffer(target, str7x_info->write_algorithm->address, 20 * 4, (u8*)str7x_flash_write_code);
+	target_write_buffer(target, str7x_info->write_algorithm->address, 20 * 4, (uint8_t*)str7x_flash_write_code);
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -460,7 +460,7 @@ static int str7x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, 
 	return retval;
 }
 
-static int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	target_t *target = bank->target;
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
@@ -575,7 +575,7 @@ static int str7x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 co
 	
 	if (bytes_remaining)
 	{
-		u8 last_dword[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+		uint8_t last_dword[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 		int i = 0;
 				
 		while(bytes_remaining > 0)

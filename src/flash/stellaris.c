@@ -38,7 +38,7 @@ static int stellaris_register_commands(struct command_context_s *cmd_ctx);
 static int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int stellaris_erase(struct flash_bank_s *bank, int first, int last);
 static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int stellaris_auto_probe(struct flash_bank_s *bank);
 static int stellaris_probe(struct flash_bank_s *bank);
 static int stellaris_protect_check(struct flash_bank_s *bank);
@@ -412,7 +412,7 @@ static u32 stellaris_wait_status_busy(flash_bank_t *bank, u32 waitbits, int time
 }
 
 /* Send one command to the flash controller */
-static int stellaris_flash_command(struct flash_bank_s *bank,u8 cmd,u16 pagen)
+static int stellaris_flash_command(struct flash_bank_s *bank,uint8_t cmd,u16 pagen)
 {
 	u32 fmc;
 	target_t *target = bank->target;
@@ -681,7 +681,7 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 	return ERROR_OK;
 }
 
-static u8 stellaris_write_code[] =
+static uint8_t stellaris_write_code[] =
 {
 /*
 	Call with :
@@ -721,7 +721,7 @@ static u8 stellaris_write_code[] =
 	0x01,0x00,0x42,0xA4 	/* .word	0xA4420001 */
 };
 
-static int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 wcount)
+static int stellaris_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 wcount)
 {
 	target_t *target = bank->target;
 	u32 buffer_size = 8192;
@@ -801,7 +801,7 @@ static int stellaris_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offs
 	return retval;
 }
 
-static int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -901,7 +901,7 @@ static int stellaris_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u3
 
 	if (bytes_remaining)
 	{
-		u8 last_word[4] = {0xff, 0xff, 0xff, 0xff};
+		uint8_t last_word[4] = {0xff, 0xff, 0xff, 0xff};
 		int i = 0;
 
 		while(bytes_remaining > 0)

@@ -28,7 +28,7 @@ static int tms470_register_commands(struct command_context_s *cmd_ctx);
 static int tms470_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int tms470_erase(struct flash_bank_s *bank, int first, int last);
 static int tms470_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int tms470_write(struct flash_bank_s *bank, u8 * buffer, u32 offset, u32 count);
+static int tms470_write(struct flash_bank_s *bank, uint8_t * buffer, u32 offset, u32 count);
 static int tms470_probe(struct flash_bank_s *bank);
 static int tms470_auto_probe(struct flash_bank_s *bank);
 static int tms470_erase_check(struct flash_bank_s *bank);
@@ -949,7 +949,7 @@ static int tms470_protect(struct flash_bank_s *bank, int set, int first, int las
 
 /* ---------------------------------------------------------------------- */
 
-static int tms470_write(struct flash_bank_s *bank, u8 * buffer, u32 offset, u32 count)
+static int tms470_write(struct flash_bank_s *bank, uint8_t * buffer, u32 offset, u32 count)
 {
 	target_t *target = bank->target;
 	u32 glbctrl, fmbac2, orig_fmregopt, fmbsea, fmbseb, fmmaxpp, fmmstat;
@@ -1075,7 +1075,7 @@ static int tms470_erase_check(struct flash_bank_s *bank)
 	tms470_flash_bank_t *tms470_info = bank->driver_priv;
 	int sector, result = ERROR_OK;
 	u32 fmmac2, fmbac2, glbctrl, orig_fmregopt;
-	static u8 buffer[64 * 1024];
+	static uint8_t buffer[64 * 1024];
 
 	if (target->state != TARGET_HALTED)
 	{

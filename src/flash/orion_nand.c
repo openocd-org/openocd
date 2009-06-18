@@ -49,7 +49,7 @@ typedef struct orion_nand_controller_s
 		} \
 	} while (0)
 
-static int orion_nand_command(struct nand_device_s *device, u8 command)
+static int orion_nand_command(struct nand_device_s *device, uint8_t command)
 {
 	orion_nand_controller_t *hw = device->controller_priv;
 	target_t *target = hw->target;
@@ -59,7 +59,7 @@ static int orion_nand_command(struct nand_device_s *device, u8 command)
 	return ERROR_OK;
 }
 
-static int orion_nand_address(struct nand_device_s *device, u8 address)
+static int orion_nand_address(struct nand_device_s *device, uint8_t address)
 {
 	orion_nand_controller_t *hw = device->controller_priv;
 	target_t *target = hw->target;
@@ -89,14 +89,14 @@ static int orion_nand_write(struct nand_device_s *device, u16 data)
 	return ERROR_OK;
 }
 
-static int orion_nand_slow_block_write(struct nand_device_s *device, u8 *data, int size)
+static int orion_nand_slow_block_write(struct nand_device_s *device, uint8_t *data, int size)
 {
 	while (size--)
 		orion_nand_write(device, *data++);
 	return ERROR_OK;
 }
 
-static int orion_nand_fast_block_write(struct nand_device_s *device, u8 *data, int size)
+static int orion_nand_fast_block_write(struct nand_device_s *device, uint8_t *data, int size)
 {
 	orion_nand_controller_t *hw = device->controller_priv;
 	target_t *target = hw->target;
@@ -115,7 +115,7 @@ static int orion_nand_fast_block_write(struct nand_device_s *device, u8 *data, i
 	int code_size = sizeof(code);
 
 	if (!hw->copy_area) {
-		u8 code_buf[code_size];
+		uint8_t code_buf[code_size];
 		int i;
 
 		/* make sure we have a working area */
@@ -195,7 +195,7 @@ int orion_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 {
 	orion_nand_controller_t *hw;
 	u32 base;
-	u8 ale, cle;
+	uint8_t ale, cle;
 
 	if (argc != 3) {
 		LOG_ERROR("arguments must be: <target_number> <NAND_address>\n");

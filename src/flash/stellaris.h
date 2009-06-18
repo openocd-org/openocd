@@ -45,7 +45,7 @@ typedef struct stellaris_flash_bank_s
 
 	/* main clock status */
 	u32 rcc;
-	u8  mck_valid;
+	uint8_t  mck_valid;
 	u32 mck_freq;
 } stellaris_flash_bank_t;
 

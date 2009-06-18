@@ -60,7 +60,7 @@ static int avrf_register_commands(struct command_context_s *cmd_ctx);
 static int avrf_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int avrf_erase(struct flash_bank_s *bank, int first, int last);
 static int avrf_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int avrf_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int avrf_probe(struct flash_bank_s *bank);
 static int avrf_auto_probe(struct flash_bank_s *bank);
 //static int avrf_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -69,13 +69,13 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size);
 
 static int avrf_handle_mass_erase_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-extern int avr_jtag_sendinstr(jtag_tap_t *tap, u8 *ir_in, u8 ir_out);
+extern int avr_jtag_sendinstr(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out);
 extern int avr_jtag_senddat(jtag_tap_t *tap, u32 *dr_in, u32 dr_out, int len);
 
-extern int mcu_write_ir(jtag_tap_t *tap, u8 *ir_in, u8 *ir_out, int ir_len, int rti);
-extern int mcu_write_dr(jtag_tap_t *tap, u8 *ir_in, u8 *ir_out, int dr_len, int rti);
-extern int mcu_write_ir_u8(jtag_tap_t *tap, u8 *ir_in, u8 ir_out, int ir_len, int rti);
-extern int mcu_write_dr_u8(jtag_tap_t *tap, u8 *ir_in, u8 ir_out, int dr_len, int rti);
+extern int mcu_write_ir(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int ir_len, int rti);
+extern int mcu_write_dr(jtag_tap_t *tap, uint8_t *ir_in, uint8_t *ir_out, int dr_len, int rti);
+extern int mcu_write_ir_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int ir_len, int rti);
+extern int mcu_write_dr_u8(jtag_tap_t *tap, uint8_t *ir_in, uint8_t ir_out, int dr_len, int rti);
 extern int mcu_write_ir_u16(jtag_tap_t *tap, u16 *ir_in, u16 ir_out, int ir_len, int rti);
 extern int mcu_write_dr_u16(jtag_tap_t *tap, u16 *ir_in, u16 ir_out, int dr_len, int rti);
 extern int mcu_write_ir_u32(jtag_tap_t *tap, u32 *ir_in, u32 ir_out, int ir_len, int rti);
@@ -161,7 +161,7 @@ static int avr_jtagprg_chiperase(avr_common_t *avr)
 	return ERROR_OK;
 }
 
-static int avr_jtagprg_writeflashpage(avr_common_t *avr, u8 *page_buf, u32 buf_size, u32 addr, u32 page_size)
+static int avr_jtagprg_writeflashpage(avr_common_t *avr, uint8_t *page_buf, u32 buf_size, u32 addr, u32 page_size)
 {
 	u32 i, poll_value;
 
@@ -249,7 +249,7 @@ static int avrf_protect(struct flash_bank_s *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int avrf_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	target_t *target = bank->target;
 	avr_common_t *avr = target->arch_info;

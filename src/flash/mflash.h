@@ -36,7 +36,7 @@ typedef struct mflash_gpio_drv_s
 {
 	char *name;
 	int (*set_gpio_to_output) (mflash_gpio_num_t gpio);
-	int (*set_gpio_output_val) (mflash_gpio_num_t gpio, u8 val);
+	int (*set_gpio_output_val) (mflash_gpio_num_t gpio, uint8_t val);
 } mflash_gpio_drv_t;
 
 typedef struct _mg_io_type_drv_info {

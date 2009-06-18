@@ -32,7 +32,7 @@ typedef struct str9xpec_flash_controller_s
 	u32 *sector_bits;
 	int chain_pos;
 	int isc_enable;
-	u8 options[8];
+	uint8_t options[8];
 } str9xpec_flash_controller_t;
 
 enum str9xpec_status_codes

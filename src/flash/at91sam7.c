@@ -47,7 +47,7 @@ static int at91sam7_register_commands(struct command_context_s *cmd_ctx);
 static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int at91sam7_erase(struct flash_bank_s *bank, int first, int last);
 static int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int at91sam7_probe(struct flash_bank_s *bank);
 //static int at91sam7_auto_probe(struct flash_bank_s *bank);
 static int at91sam7_erase_check(struct flash_bank_s *bank);
@@ -57,7 +57,7 @@ static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size);
 static u32 at91sam7_get_flash_status(target_t *target, int bank_number);
 static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode);
 static u32 at91sam7_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeout);
-static int at91sam7_flash_command(struct flash_bank_s *bank, u8 cmd, u16 pagen); 
+static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, u16 pagen); 
 static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 flash_driver_t at91sam7_flash =
@@ -274,7 +274,7 @@ static u32 at91sam7_wait_status_busy(flash_bank_t *bank, u32 waitbits, int timeo
 }
 
 /* Send one command to the AT91SAM flash controller */
-static int at91sam7_flash_command(struct flash_bank_s *bank, u8 cmd, u16 pagen)
+static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, u16 pagen)
 {
 	u32 fcr;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
@@ -312,7 +312,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 	u16 bnk, sec;
 	u16 arch;
 	u32 cidr;
-	u8 banks_num = 0;
+	uint8_t banks_num = 0;
 	u16 num_nvmbits = 0;
 	u16 sectors_num = 0;
 	u16 pages_per_sector = 0;
@@ -624,7 +624,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 	u16 retval;
 	u32 blank;
 	u16 fast_check;
-	u8 *buffer;
+	uint8_t *buffer;
 	u16 nSector;
 	u16 nByte;
 
@@ -686,7 +686,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 
 static int at91sam7_protect_check(struct flash_bank_s *bank)
 {
-	u8 lock_pos, gpnvm_pos;
+	uint8_t lock_pos, gpnvm_pos;
 	u32 status;
 
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
@@ -861,8 +861,8 @@ static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	int sec;
 	u32 nbytes, pos;
-	u8 *buffer;
-	u8 erase_all;
+	uint8_t *buffer;
+	uint8_t erase_all;
 
 	if (at91sam7_info->cidr == 0)
 	{
@@ -901,7 +901,7 @@ static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 	{
 		/* allocate and clean buffer  */
 		nbytes = (last - first + 1) * bank->sectors[first].size;
-		buffer = malloc(nbytes * sizeof(u8));
+		buffer = malloc(nbytes * sizeof(uint8_t));
 		for (pos=0; pos<nbytes; pos++)
 		{
 			buffer[pos] = 0xFF;
@@ -974,7 +974,7 @@ static int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int l
 	return ERROR_OK;
 }
 
-static int at91sam7_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	int retval;
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
@@ -1127,7 +1127,7 @@ static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char
 {
 	flash_bank_t *bank;
 	int bit;
-	u8  flashcmd;
+	uint8_t  flashcmd;
 	u32 status;
 	at91sam7_flash_bank_t *at91sam7_info;
 	int retval;

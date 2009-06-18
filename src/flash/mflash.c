@@ -28,9 +28,9 @@
 
 
 static int s3c2440_set_gpio_to_output (mflash_gpio_num_t gpio);
-static int s3c2440_set_gpio_output_val (mflash_gpio_num_t gpio, u8 val);
+static int s3c2440_set_gpio_output_val (mflash_gpio_num_t gpio, uint8_t val);
 static int pxa270_set_gpio_to_output (mflash_gpio_num_t gpio);
-static int pxa270_set_gpio_output_val (mflash_gpio_num_t gpio, u8 val);
+static int pxa270_set_gpio_output_val (mflash_gpio_num_t gpio, uint8_t val);
 
 static command_t *mflash_cmd;
 
@@ -101,7 +101,7 @@ static int pxa270_set_gpio_to_output (mflash_gpio_num_t gpio)
 	return ret;
 }
 
-static int pxa270_set_gpio_output_val (mflash_gpio_num_t gpio, u8 val)
+static int pxa270_set_gpio_output_val (mflash_gpio_num_t gpio, uint8_t val)
 {
 	u32 addr, value, mask;
 	target_t *target = mflash_bank->target;
@@ -162,7 +162,7 @@ static int s3c2440_set_gpio_to_output (mflash_gpio_num_t gpio)
 	return ret;
 }
 
-static int s3c2440_set_gpio_output_val (mflash_gpio_num_t gpio, u8 val)
+static int s3c2440_set_gpio_output_val (mflash_gpio_num_t gpio, uint8_t val)
 {
 	u32 data, mask, gpio_dat;
 	target_t *target = mflash_bank->target;
@@ -191,7 +191,7 @@ static int s3c2440_set_gpio_output_val (mflash_gpio_num_t gpio, u8 val)
 	return ret;
 }
 
-static int mg_hdrst(u8 level)
+static int mg_hdrst(uint8_t level)
 {
 	return mflash_bank->gpio_drv->set_gpio_output_val(mflash_bank->rst_pin, level);
 }
@@ -212,7 +212,7 @@ static int mg_init_gpio (void)
 
 static int mg_dsk_wait(mg_io_type_wait wait, u32 time)
 {
-	u8 status, error;
+	uint8_t status, error;
 	target_t *target = mflash_bank->target;
 	u32 mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
 	duration_t duration;
@@ -288,11 +288,11 @@ static int mg_dsk_wait(mg_io_type_wait wait, u32 time)
 	return ERROR_MG_TIMEOUT;
 }
 
-static int mg_dsk_srst(u8 on)
+static int mg_dsk_srst(uint8_t on)
 {
 	target_t *target = mflash_bank->target;
 	u32 mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
-	u8 value;
+	uint8_t value;
 	int ret;
 
 	if ((ret = target_read_u8(target, mg_task_reg + MG_REG_DRV_CTRL, &value)) != ERROR_OK)
@@ -308,11 +308,11 @@ static int mg_dsk_srst(u8 on)
 	return ret;
 }
 
-static int mg_dsk_io_cmd(u32 sect_num, u32 cnt, u8 cmd)
+static int mg_dsk_io_cmd(u32 sect_num, u32 cnt, uint8_t cmd)
 {
 	target_t *target = mflash_bank->target;
 	u32 mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
-	u8 value;
+	uint8_t value;
 	int ret;
 
 	ret = mg_dsk_wait(mg_io_wait_rdy_noerr, MG_OEM_DISK_WAIT_TIME_NORMAL);
@@ -322,10 +322,10 @@ static int mg_dsk_io_cmd(u32 sect_num, u32 cnt, u8 cmd)
 	value = mg_io_rval_dev_drv_master | mg_io_rval_dev_lba_mode |((sect_num >> 24) & 0xf);
 
 	ret = target_write_u8(target, mg_task_reg + MG_REG_DRV_HEAD, value);
-	ret |= target_write_u8(target, mg_task_reg + MG_REG_SECT_CNT, (u8)cnt);
-	ret |= target_write_u8(target, mg_task_reg + MG_REG_SECT_NUM, (u8)sect_num);
-	ret |= target_write_u8(target, mg_task_reg + MG_REG_CYL_LOW, (u8)(sect_num >> 8));
-	ret |= target_write_u8(target, mg_task_reg + MG_REG_CYL_HIGH, (u8)(sect_num >> 16));
+	ret |= target_write_u8(target, mg_task_reg + MG_REG_SECT_CNT, (uint8_t)cnt);
+	ret |= target_write_u8(target, mg_task_reg + MG_REG_SECT_NUM, (uint8_t)sect_num);
+	ret |= target_write_u8(target, mg_task_reg + MG_REG_CYL_LOW, (uint8_t)(sect_num >> 8));
+	ret |= target_write_u8(target, mg_task_reg + MG_REG_CYL_HIGH, (uint8_t)(sect_num >> 16));
 
 	if (ret != ERROR_OK)
 		return ret;
@@ -351,7 +351,7 @@ static int mg_dsk_drv_info(void)
 		mflash_bank->drv_info = malloc(sizeof(mg_drv_info_t));
 
 	target_read_memory(target, mg_buff, 2, sizeof(mg_io_type_drv_info) >> 1,
-			(u8 *)&mflash_bank->drv_info->drv_id);
+			(uint8_t *)&mflash_bank->drv_info->drv_id);
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -426,7 +426,7 @@ static int mg_mflash_do_read_sects(void *buff, u32 sect_num, u32 sect_cnt)
 	u32 i, address;
 	int ret;
 	target_t *target = mflash_bank->target;
-	u8 *buff_ptr = buff;
+	uint8_t *buff_ptr = buff;
 	duration_t duration;
 
 	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, mg_io_cmd_read)) != ERROR_OK )
@@ -467,7 +467,7 @@ static int mg_mflash_do_read_sects(void *buff, u32 sect_num, u32 sect_cnt)
 static int mg_mflash_read_sects(void *buff, u32 sect_num, u32 sect_cnt)
 {
 	u32 quotient, residue, i;
-	u8 *buff_ptr = buff;
+	uint8_t *buff_ptr = buff;
 	int ret = ERROR_OK;
 
 	quotient = sect_cnt >> 8;
@@ -499,7 +499,7 @@ static int mg_mflash_do_write_sects(void *buff, u32 sect_num, u32 sect_cnt,
 	u32 i, address;
 	int ret;
 	target_t *target = mflash_bank->target;
-	u8 *buff_ptr = buff;
+	uint8_t *buff_ptr = buff;
 	duration_t duration;
 
 	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, cmd)) != ERROR_OK )
@@ -545,7 +545,7 @@ static int mg_mflash_do_write_sects(void *buff, u32 sect_num, u32 sect_cnt,
 static int mg_mflash_write_sects(void *buff, u32 sect_num, u32 sect_cnt)
 {
 	u32 quotient, residue, i;
-	u8 *buff_ptr = buff;
+	uint8_t *buff_ptr = buff;
 	int ret = ERROR_OK;
 
 	quotient = sect_cnt >> 8;
@@ -571,10 +571,10 @@ static int mg_mflash_write_sects(void *buff, u32 sect_num, u32 sect_cnt)
 	return ret;
 }
 
-static int mg_mflash_read (u32 addr, u8 *buff, u32 len)
+static int mg_mflash_read (u32 addr, uint8_t *buff, u32 len)
 {
-	u8 *buff_ptr = buff;
-	u8 sect_buff[MG_MFLASH_SECTOR_SIZE];
+	uint8_t *buff_ptr = buff;
+	uint8_t sect_buff[MG_MFLASH_SECTOR_SIZE];
 	u32 cur_addr, next_sec_addr, end_addr, cnt, sect_num;
 	int ret = ERROR_OK;
 
@@ -635,10 +635,10 @@ static int mg_mflash_read (u32 addr, u8 *buff, u32 len)
 	return ret;
 }
 
-static int mg_mflash_write(u32 addr, u8 *buff, u32 len)
+static int mg_mflash_write(u32 addr, uint8_t *buff, u32 len)
 {
-	u8 *buff_ptr = buff;
-	u8 sect_buff[MG_MFLASH_SECTOR_SIZE];
+	uint8_t *buff_ptr = buff;
+	uint8_t sect_buff[MG_MFLASH_SECTOR_SIZE];
 	u32 cur_addr, next_sec_addr, end_addr, cnt, sect_num;
 	int ret = ERROR_OK;
 
@@ -706,7 +706,7 @@ static int mg_mflash_write(u32 addr, u8 *buff, u32 len)
 static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 address, buf_cnt, cnt, res, i;
-	u8 *buffer;
+	uint8_t *buffer;
 	fileio_t fileio;
 	duration_t duration;
 	char *duration_text;
@@ -773,7 +773,7 @@ mg_write_cmd_err:
 static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	u32 address, size_written, size, cnt, res, i;
-	u8 *buffer;
+	uint8_t *buffer;
 	fileio_t fileio;
 	duration_t duration;
 	char *duration_text;
@@ -967,14 +967,14 @@ static int mg_verify_interface(void)
 			buff[i] = i;
 
 		ret = target_write_memory(target, address, 2,
-				MG_MFLASH_SECTOR_SIZE / 2, (u8 *)buff);
+				MG_MFLASH_SECTOR_SIZE / 2, (uint8_t *)buff);
 		if (ret != ERROR_OK)
 			return ret;
 
 		memset(buff, 0xff, MG_MFLASH_SECTOR_SIZE);
 
 		ret = target_read_memory(target, address, 2,
-				MG_MFLASH_SECTOR_SIZE / 2, (u8 *)buff);
+				MG_MFLASH_SECTOR_SIZE / 2, (uint8_t *)buff);
 		if (ret != ERROR_OK)
 			return ret;
 
@@ -1117,7 +1117,7 @@ static void mg_gen_ataid(mg_io_type_drv_info *pSegIdDrvInfo)
 
 static int mg_storage_config(void)
 {
-	u8 buff[512];
+	uint8_t buff[512];
 	int ret;
 
 	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd))
@@ -1140,7 +1140,7 @@ static int mg_storage_config(void)
 
 static int mg_boot_config(void)
 {
-	u8 buff[512];
+	uint8_t buff[512];
 	int ret;
 
 	if ((ret = mg_set_feature(mg_feature_id_transmode, mg_feature_val_trans_vcmd))
@@ -1168,7 +1168,7 @@ static int mg_boot_config(void)
 
 static int mg_set_pll(mg_pll_t *pll)
 {
-	u8 buff[512];
+	uint8_t buff[512];
 	int ret;
 
 	memset(buff, 0xff, 512);

@@ -37,7 +37,7 @@ static int str9x_register_commands(struct command_context_s *cmd_ctx);
 static int str9x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int str9x_erase(struct flash_bank_s *bank, int first, int last);
 static int str9x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int str9x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int str9x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int str9x_probe(struct flash_bank_s *bank);
 //static int str9x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int str9x_protect_check(struct flash_bank_s *bank);
@@ -257,8 +257,8 @@ static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 	target_t *target = bank->target;
 	int i;
 	u32 adr;
-	u8 status;
-	u8 erase_cmd;
+	uint8_t status;
+	uint8_t erase_cmd;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -350,7 +350,7 @@ static int str9x_protect(struct flash_bank_s *bank,
 	target_t *target = bank->target;
 	int i;
 	u32 adr;
-	u8 status;
+	uint8_t status;
 
 	if (bank->target->state != TARGET_HALTED)
 	{
@@ -384,7 +384,7 @@ static int str9x_protect(struct flash_bank_s *bank,
 }
 
 static int str9x_write_block(struct flash_bank_s *bank,
-		u8 *buffer, u32 offset, u32 count)
+		uint8_t *buffer, u32 offset, u32 count)
 {
 	str9x_flash_bank_t *str9x_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -427,7 +427,7 @@ static int str9x_write_block(struct flash_bank_s *bank,
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	target_write_buffer(target, str9x_info->write_algorithm->address, 19 * 4, (u8*)str9x_flash_write_code);
+	target_write_buffer(target, str9x_info->write_algorithm->address, 19 * 4, (uint8_t*)str9x_flash_write_code);
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -493,14 +493,14 @@ static int str9x_write_block(struct flash_bank_s *bank,
 }
 
 static int str9x_write(struct flash_bank_s *bank,
-		u8 *buffer, u32 offset, u32 count)
+		uint8_t *buffer, u32 offset, u32 count)
 {
 	target_t *target = bank->target;
 	u32 words_remaining = (count / 2);
 	u32 bytes_remaining = (count & 0x00000001);
 	u32 address = bank->base + offset;
 	u32 bytes_written = 0;
-	u8 status;
+	uint8_t status;
 	int retval;
 	u32 check_address = offset;
 	u32 bank_adr;
@@ -604,7 +604,7 @@ static int str9x_write(struct flash_bank_s *bank,
 
 	if (bytes_remaining)
 	{
-		u8 last_halfword[2] = {0xff, 0xff};
+		uint8_t last_halfword[2] = {0xff, 0xff};
 		int i = 0;
 
 		while(bytes_remaining > 0)

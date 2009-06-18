@@ -75,7 +75,7 @@ int s3c24xx_reset(struct nand_device_s *device)
 	return ERROR_OK;
 }
 
-int s3c24xx_command(struct nand_device_s *device, u8 command)
+int s3c24xx_command(struct nand_device_s *device, uint8_t command)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
@@ -90,7 +90,7 @@ int s3c24xx_command(struct nand_device_s *device, u8 command)
 }
 
 
-int s3c24xx_address(struct nand_device_s *device, u8 address)
+int s3c24xx_address(struct nand_device_s *device, uint8_t address)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;

@@ -46,8 +46,8 @@ extern s3c24xx_nand_controller_t *s3c24xx_nand_device_command(struct command_con
 
 extern int s3c24xx_register_commands(struct command_context_s *cmd_ctx);
 extern int s3c24xx_reset(struct nand_device_s *device);
-extern int s3c24xx_command(struct nand_device_s *device, u8 command);
-extern int s3c24xx_address(struct nand_device_s *device, u8 address);
+extern int s3c24xx_command(struct nand_device_s *device, uint8_t command);
+extern int s3c24xx_address(struct nand_device_s *device, uint8_t address);
 extern int s3c24xx_write_data(struct nand_device_s *device, u16 data);
 extern int s3c24xx_read_data(struct nand_device_s *device, void *data);
 extern int s3c24xx_controller_ready(struct nand_device_s *device, int tout);
@@ -59,5 +59,5 @@ extern int s3c24xx_controller_ready(struct nand_device_s *device, int tout);
 
 extern int s3c2440_nand_ready(struct nand_device_s *device, int timeout);
 
-extern int s3c2440_read_block_data(struct nand_device_s *, u8 *data, int data_size);
-extern int s3c2440_write_block_data(struct nand_device_s *, u8 *data, int data_size);
+extern int s3c2440_read_block_data(struct nand_device_s *, uint8_t *data, int data_size);
+extern int s3c2440_write_block_data(struct nand_device_s *, uint8_t *data, int data_size);

@@ -33,9 +33,9 @@ static int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *
 static int aduc702x_register_commands(struct command_context_s *cmd_ctx);
 static int aduc702x_erase(struct flash_bank_s *bank, int first, int last);
 static int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int aduc702x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-static int aduc702x_write_single(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
-static int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int aduc702x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
+static int aduc702x_write_single(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
+static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int aduc702x_probe(struct flash_bank_s *bank);
 static int aduc702x_info(struct flash_bank_s *bank, char *buf, int buf_size);
 static int aduc702x_protect_check(struct flash_bank_s *bank);
@@ -193,7 +193,7 @@ static int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int l
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
-static int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	aduc702x_flash_bank_t *aduc702x_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -250,7 +250,7 @@ static int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offse
 	};
 	
 	target_write_buffer(target, aduc702x_info->write_algorithm->address, 
-                sizeof(aduc702x_flash_write_code), (u8*)aduc702x_flash_write_code);
+                sizeof(aduc702x_flash_write_code), (uint8_t*)aduc702x_flash_write_code);
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -322,10 +322,10 @@ static int aduc702x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offse
 
 /* All-JTAG, single-access method.  Very slow.  Used only if there is no 
  * working area available. */
-static int aduc702x_write_single(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int aduc702x_write_single(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	u32 x;
-        u8 b;
+        uint8_t b;
 	target_t *target = bank->target;
 	
         aduc702x_set_write_enable(target, 1);
@@ -363,7 +363,7 @@ static int aduc702x_write_single(struct flash_bank_s *bank, u8 *buffer, u32 offs
 	return ERROR_OK;
 }
 
-int aduc702x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+int aduc702x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	int retval;
 
@@ -420,7 +420,7 @@ static int aduc702x_set_write_enable(target_t *target, int enable)
  * so in some cases may slow things down without a usleep after the first read */
 static int aduc702x_check_flash_completion(target_t* target, unsigned int timeout_ms)
 {
-        u8 v = 4;
+        uint8_t v = 4;
 
         long long endtime = timeval_ms() + timeout_ms;
         while (1) {

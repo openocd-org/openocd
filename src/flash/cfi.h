@@ -46,26 +46,26 @@ typedef struct cfi_flash_bank_s
 	u16 alt_addr;
 
 	/* device-system interface */
-	u8 vcc_min;
-	u8 vcc_max;
-	u8 vpp_min;
-	u8 vpp_max;
-	u8 word_write_timeout_typ;
-	u8 buf_write_timeout_typ;
-	u8 block_erase_timeout_typ;
-	u8 chip_erase_timeout_typ;
-	u8 word_write_timeout_max;
-	u8 buf_write_timeout_max;
-	u8 block_erase_timeout_max;
-	u8 chip_erase_timeout_max;
+	uint8_t vcc_min;
+	uint8_t vcc_max;
+	uint8_t vpp_min;
+	uint8_t vpp_max;
+	uint8_t word_write_timeout_typ;
+	uint8_t buf_write_timeout_typ;
+	uint8_t block_erase_timeout_typ;
+	uint8_t chip_erase_timeout_typ;
+	uint8_t word_write_timeout_max;
+	uint8_t buf_write_timeout_max;
+	uint8_t block_erase_timeout_max;
+	uint8_t chip_erase_timeout_max;
 
-	u8 status_poll_mask;
+	uint8_t status_poll_mask;
 
 	/* flash geometry */
 	u32 dev_size;
 	u16 interface_desc;
 	u16 max_buf_write_size;
-	u8 num_erase_regions;
+	uint8_t num_erase_regions;
 	u32 *erase_region_info;
 
 	void *pri_ext;
@@ -79,18 +79,18 @@ typedef struct cfi_flash_bank_s
 typedef struct cfi_intel_pri_ext_s
 {
 	char pri[3];
-	u8 major_version;
-	u8 minor_version;
+	uint8_t major_version;
+	uint8_t minor_version;
 	u32 feature_support;
-	u8 suspend_cmd_support;
+	uint8_t suspend_cmd_support;
 	u16 blk_status_reg_mask;
-	u8 vcc_optimal;
-	u8 vpp_optimal;
-	u8 num_protection_fields;
+	uint8_t vcc_optimal;
+	uint8_t vpp_optimal;
+	uint8_t num_protection_fields;
 	u16 prot_reg_addr;
-	u8 fact_prot_reg_size;
-	u8 user_prot_reg_size;
-	u8 extra[0];
+	uint8_t fact_prot_reg_size;
+	uint8_t user_prot_reg_size;
+	uint8_t extra[0];
 } cfi_intel_pri_ext_t;
 
 /* Spansion primary extended query table as defined for and used by
@@ -98,20 +98,20 @@ typedef struct cfi_intel_pri_ext_s
  */
 typedef struct cfi_spansion_pri_ext_s
 {
-	u8  pri[3];
-	u8  major_version;
-	u8  minor_version;
-	u8  SiliconRevision; /* bits 1-0: Address Sensitive Unlock */
-	u8  EraseSuspend;
-	u8  BlkProt;
-	u8  TmpBlkUnprotect;
-	u8  BlkProtUnprot;
-	u8  SimultaneousOps;
-	u8  BurstMode;
-	u8  PageMode;
-	u8  VppMin;
-	u8  VppMax;
-	u8  TopBottom;
+	uint8_t  pri[3];
+	uint8_t  major_version;
+	uint8_t  minor_version;
+	uint8_t  SiliconRevision; /* bits 1-0: Address Sensitive Unlock */
+	uint8_t  EraseSuspend;
+	uint8_t  BlkProt;
+	uint8_t  TmpBlkUnprotect;
+	uint8_t  BlkProtUnprot;
+	uint8_t  SimultaneousOps;
+	uint8_t  BurstMode;
+	uint8_t  PageMode;
+	uint8_t  VppMin;
+	uint8_t  VppMax;
+	uint8_t  TopBottom;
 	int _reversed_geometry;
 	u32 _unlock1;
 	u32 _unlock2;
@@ -122,13 +122,13 @@ typedef struct cfi_spansion_pri_ext_s
  */
 typedef struct cfi_atmel_pri_ext_s
 {
-	u8 pri[3];
-	u8 major_version;
-	u8 minor_version;
-	u8 features;
-	u8 bottom_boot;
-	u8 burst_mode;
-	u8 page_mode;
+	uint8_t pri[3];
+	uint8_t major_version;
+	uint8_t minor_version;
+	uint8_t features;
+	uint8_t bottom_boot;
+	uint8_t burst_mode;
+	uint8_t page_mode;
 } cfi_atmel_pri_ext_t;
 
 enum {

@@ -33,7 +33,7 @@ static int stm32x_register_commands(struct command_context_s *cmd_ctx);
 static int stm32x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int stm32x_erase(struct flash_bank_s *bank, int first, int last);
 static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int stm32x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int stm32x_probe(struct flash_bank_s *bank);
 static int stm32x_auto_probe(struct flash_bank_s *bank);
 //static int stm32x_handle_part_id_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -477,7 +477,7 @@ static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int las
 	return stm32x_write_options(bank);
 }
 
-static int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int stm32x_write_block(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	stm32x_flash_bank_t *stm32x_info = bank->driver_priv;
 	target_t *target = bank->target;
@@ -488,7 +488,7 @@ static int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset,
 	armv7m_algorithm_t armv7m_info;
 	int retval = ERROR_OK;
 
-	u8 stm32x_flash_write_code[] = {
+	uint8_t stm32x_flash_write_code[] = {
 									/* write: */
 		0xDF, 0xF8, 0x24, 0x40,		/* ldr	r4, STM32_FLASH_CR */
 		0x09, 0x4D,					/* ldr	r5, STM32_FLASH_SR */
@@ -596,14 +596,14 @@ static int stm32x_write_block(struct flash_bank_s *bank, u8 *buffer, u32 offset,
 	return retval;
 }
 
-static int stm32x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int stm32x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	target_t *target = bank->target;
 	u32 words_remaining = (count / 2);
 	u32 bytes_remaining = (count & 0x00000001);
 	u32 address = bank->base + offset;
 	u32 bytes_written = 0;
-	u8 status;
+	uint8_t status;
 	int retval;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -1063,25 +1063,25 @@ static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx,
 	target_read_u32(target, STM32_FLASH_OBR, &optionbyte);
 	command_print(cmd_ctx, "Option Byte: 0x%x", optionbyte);
 
-	if (buf_get_u32((u8*)&optionbyte, OPT_ERROR, 1))
+	if (buf_get_u32((uint8_t*)&optionbyte, OPT_ERROR, 1))
 		command_print(cmd_ctx, "Option Byte Complement Error");
 
-	if (buf_get_u32((u8*)&optionbyte, OPT_READOUT, 1))
+	if (buf_get_u32((uint8_t*)&optionbyte, OPT_READOUT, 1))
 		command_print(cmd_ctx, "Readout Protection On");
 	else
 		command_print(cmd_ctx, "Readout Protection Off");
 
-	if (buf_get_u32((u8*)&optionbyte, OPT_RDWDGSW, 1))
+	if (buf_get_u32((uint8_t*)&optionbyte, OPT_RDWDGSW, 1))
 		command_print(cmd_ctx, "Software Watchdog");
 	else
 		command_print(cmd_ctx, "Hardware Watchdog");
 
-	if (buf_get_u32((u8*)&optionbyte, OPT_RDRSTSTOP, 1))
+	if (buf_get_u32((uint8_t*)&optionbyte, OPT_RDRSTSTOP, 1))
 		command_print(cmd_ctx, "Stop: No reset generated");
 	else
 		command_print(cmd_ctx, "Stop: Reset generated");
 
-	if (buf_get_u32((u8*)&optionbyte, OPT_RDRSTSTDBY, 1))
+	if (buf_get_u32((uint8_t*)&optionbyte, OPT_RDRSTSTDBY, 1))
 		command_print(cmd_ctx, "Standby: No reset generated");
 	else
 		command_print(cmd_ctx, "Standby: Reset generated");

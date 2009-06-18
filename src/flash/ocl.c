@@ -30,7 +30,7 @@ static int ocl_register_commands(struct command_context_s *cmd_ctx);
 static int ocl_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int ocl_erase(struct flash_bank_s *bank, int first, int last);
 static int ocl_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int ocl_probe(struct flash_bank_s *bank);
 static int ocl_erase_check(struct flash_bank_s *bank);
 static int ocl_protect_check(struct flash_bank_s *bank);
@@ -159,7 +159,7 @@ static int ocl_protect(struct flash_bank_s *bank, int set, int first, int last)
 	return ERROR_OK;
 }
 
-static int ocl_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	ocl_priv_t *ocl = bank->driver_priv;
 	int retval;

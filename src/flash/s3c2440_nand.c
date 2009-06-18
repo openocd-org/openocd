@@ -94,7 +94,7 @@ int s3c2440_nand_ready(struct nand_device_s *device, int timeout)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
-	u8 status;
+	uint8_t status;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("target must be halted to use S3C24XX NAND flash controller");
@@ -116,7 +116,7 @@ int s3c2440_nand_ready(struct nand_device_s *device, int timeout)
 
 /* use the fact we can read/write 4 bytes in one go via a single 32bit op */
 
-int s3c2440_read_block_data(struct nand_device_s *device, u8 *data, int data_size)
+int s3c2440_read_block_data(struct nand_device_s *device, uint8_t *data, int data_size)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;
@@ -152,7 +152,7 @@ int s3c2440_read_block_data(struct nand_device_s *device, u8 *data, int data_siz
 	return ERROR_OK;
 }
 
-int s3c2440_write_block_data(struct nand_device_s *device, u8 *data, int data_size)
+int s3c2440_write_block_data(struct nand_device_s *device, uint8_t *data, int data_size)
 {
 	s3c24xx_nand_controller_t *s3c24xx_info = device->controller_priv;
 	target_t *target = s3c24xx_info->target;

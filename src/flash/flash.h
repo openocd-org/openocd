@@ -166,7 +166,7 @@ typedef struct flash_driver_s
 	 * @param count The number of bytes to write.
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
-	int (*write)(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+	int (*write)(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 
 	/** 
 	 * Probe to determine what kind of flash is present.

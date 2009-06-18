@@ -88,7 +88,7 @@ static int lpc288x_register_commands(struct command_context_s *cmd_ctx);
 static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int lpc288x_erase(struct flash_bank_s *bank, int first, int last);
 static int lpc288x_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int lpc288x_probe(struct flash_bank_s *bank);
 static int lpc288x_erase_check(struct flash_bank_s *bank);
 static int lpc288x_protect_check(struct flash_bank_s *bank);
@@ -315,9 +315,9 @@ static int lpc288x_erase(struct flash_bank_s *bank, int first, int last)
 	return ERROR_OK;
 }
 
-static int lpc288x_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
-	u8 page_buffer[FLASH_PAGE_SIZE];
+	uint8_t page_buffer[FLASH_PAGE_SIZE];
 	u32 status, source_offset,dest_offset;
 	target_t *target = bank->target;
 	u32 bytes_remaining = count;

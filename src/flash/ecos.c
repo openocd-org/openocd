@@ -30,7 +30,7 @@ static int ecosflash_register_commands(struct command_context_s *cmd_ctx);
 static int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int ecosflash_erase(struct flash_bank_s *bank, int first, int last);
 static int ecosflash_protect(struct flash_bank_s *bank, int set, int first, int last);
-static int ecosflash_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count);
+static int ecosflash_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count);
 static int ecosflash_probe(struct flash_bank_s *bank);
 static int ecosflash_protect_check(struct flash_bank_s *bank);
 static int ecosflash_info(struct flash_bank_s *bank, char *buf, int buf_size);
@@ -328,7 +328,7 @@ static int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, u32 address
 		}
 
 		int retval;
-		retval=target_write_buffer(target, buffer, t, ((u8 *)data)+i);
+		retval=target_write_buffer(target, buffer, t, ((uint8_t *)data)+i);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -366,7 +366,7 @@ static int ecosflash_register_commands(struct command_context_s *cmd_ctx)
 }
 
 #if 0
-static void command(flash_bank_t *bank, u8 cmd, u8 *cmd_buf)
+static void command(flash_bank_t *bank, uint8_t cmd, uint8_t *cmd_buf)
 {
 	ecosflash_flash_bank_t *info = bank->driver_priv;
 	int i;
@@ -418,7 +418,7 @@ static int ecosflash_protect(struct flash_bank_s *bank, int set, int first, int 
 	return ERROR_OK;
 }
 
-static int ecosflash_write(struct flash_bank_s *bank, u8 *buffer, u32 offset, u32 count)
+static int ecosflash_write(struct flash_bank_s *bank, uint8_t *buffer, u32 offset, u32 count)
 {
 	ecosflash_flash_bank_t *info = bank->driver_priv;
 	struct flash_bank_s *c=bank;
