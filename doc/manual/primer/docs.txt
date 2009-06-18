@@ -3,7 +3,7 @@
 This page provides an introduction to OpenOCD's documentation processes.
 
 OpenOCD presently produces several kinds of documentation:
-- The Guide:
+- The User's Guide:
   - Focuses on using the OpenOCD software.
   - Details the installation, usage, and customization.
   - Provides descriptions of public Jim/TCL script commands.
@@ -31,13 +31,15 @@ contribute new or updated documentation to the OpenOCD project.
  */
 /** @page primertexinfo Texinfo Primer
 
-The OpenOCD User Guide presently exists entirely within the
+The OpenOCD User's Guide presently exists entirely within the
 doc/openocd.texi document.  That file contains documentation with
 mark-up suitable for being parsed by the GNU Texinfo utilities
 (http://www.gnu.org/software/texinfo/).
 
-This section needs to be expanded to provide an overview to new
-developers.
+When you add a new command, driver, or driver option, it needs to be
+documented in the User's Guide.  Use the existing documentation for
+models, but feel free to make better use of Texinfo mechanisms.  See
+the Texinfo web site for the Texinfo manual and more information.
 
 OpenOCD style guidelines for Texinfo documentation can be found on the
 @ref styletexinfo page.

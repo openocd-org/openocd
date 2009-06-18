@@ -213,8 +213,102 @@ For an example, the Doxygen source for this Style Guide can be found in
  */
 /** @page styletexinfo Texinfo Style Guide
 
-This page needs to provide style guidelines for Texinfo, the mark-up
-language used by The Guide for OpenOCD Users.
+The User's Guide is there to provide two basic kinds of information.  It
+is a guide for how and why to use each feature or mechanism of OpenOCD.
+It is also the reference manual for all commands and options involved
+in using them, including interface, flash, target, and other drivers.
+At this time, it is the only user-targetted documentation; everything
+else is addressing OpenOCD developers.
+
+There are two key audiences for the User's Guide, both developer based.
+The primary audience is developers using OpenOCD as a tool in their
+work, or who may be starting to use it that way.  A secondary audience
+includes developers who are supporting those users by packaging or
+customizing it for their hardware, installing it as part of some software
+distribution, or by evolving OpenOCD itself.  There is some crossover
+between those audiences.  We encourage contributions from users as the
+fundamental way to evolve and improve OpenOCD.  In particular, creating
+a board or target specific configuration file is something that many
+users will end up doing at some point, and we like to see such files
+become part of the mainline release.
+
+General documentation rules to remember include:
+
+- Be concise and clear.  It's work to remove those extra words and
+  sentences, but such "noise" doesn't help readers.
+- Make it easy to skim and browse.  "Tell what you're going to say,
+  then say it".  Help readers decide whether to dig in now, or
+  leave it for later.
+- Make sure the chapters flow well.  Presentations should not jump
+  around, and should move easily from overview down to details.
+- Avoid using the passive voice.
+- Address the reader to clarify roles ("your config file", "the board you
+  are debugging", etc.); "the user" (etc) is artificial.
+- Use good English grammar and spelling.  Remember also that English
+  will not be the first language for many readers.  Avoid complex or
+  idiomatic usage that could create needless barriers.
+- Use examples to highlight fundamental ideas and common idioms.
+- Don't overuse list constructs.  This is not a slide presentation;
+  prefer paragraphs.
+
+When presenting features and mechanisms of OpenOCD:
+
+- Explain key concepts before presenting commands using them.
+- Tie examples to common developer tasks.
+- When giving instructions, you can \@enumerate each step both
+  to clearly delineate the steps, and to highlight that this is
+  not explanatory text.
+- When you provide "how to use it" advice or tutorials, keep it
+  in separate sections from the reference material.
+- Good indexing is something of a black art.  Use \@cindex for important
+  concepts, but don't overuse it.  In particular, rely on the \@deffn
+  indexing, and use \@cindex primarily with significant blocks of text
+  such as \@subsection.  The \@dfn of a key term may merit indexing.
+- Use \@xref (and \@anchor) with care.  Hardcopy versions, from the PDF,
+  must make sense without clickable links (which don't work all that well
+  with Texinfo in any case).  If you find you're using many links,
+  read that as a symptom that the presentation may be disjointed and
+  confusing.
+- Avoid font tricks like \@b, but use \@option, \@file, \@dfn, \@emph
+  and related mechanisms where appropriate.
+
+For technical reference material:
+
+- It's OK to start sections with explanations and end them with
+  detailed lists of the relevant commands.
+- Use the \@deffn style declarations to define all commands and drivers.
+  These will automatically appear in the relevant index, and those
+  declarations help promote consistent presentation and style.
+   - It's a "Command" if it can be used interactively.
+   - Else it's a "Config Command" if it must be used before the
+     configuration stage completes.
+   - For a "Driver", list its name.
+   - Use BNF style regular expressions to define parameters:
+     brackets around zero-or-one choices, parentheses around
+     exactly-one choices.
+   - Use \@option, \@file, \@var and other mechanisms where appropriate.
+   - Say what output it displays, and what value it returns to callers.
+   - Explain clearly what the command does.  Sometimes you will find
+     that it can't be explained clearly.  That usually means the command
+     is poorly designed; replace it with something better, if you can.
+   - Be complete:  document all commands, except as part of a strategy
+     to phase something in or out.
+   - Be correct:  review the documentation against the code, and
+     vice versa.
+- Alphabetize the \@defn declarations for all commands in each
+  section.
+- Keep the per-command documentation focussed on exactly what that
+  command does, not motivation, advice, suggestions, or big examples.
+  When commands deserve such expanded text, it belongs elsewhere.
+  Solutions might be using a \@section explaining a cluster of related
+  commands, or acting as a mini-tutorial.
+- Details for any given driver should be grouped together.
+
+The User's Guide is the first place most users will start reading,
+after they begin using OpenOCD.  Make that investment of their time
+be as productive as possible.  Needing to look at OpenOCD source code,
+to figure out how to use it is a bad sign, though it's OK to need to
+look at the User's guide to figure out what a config script is doing.
 
  */
 /** @page stylelatex LaTeX Style Guide
