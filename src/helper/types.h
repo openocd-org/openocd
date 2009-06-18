@@ -26,7 +26,9 @@
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#endif
 
 typedef struct jtag_tap_s jtag_tap_t;
 
