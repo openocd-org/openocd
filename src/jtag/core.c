@@ -353,23 +353,23 @@ void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields,
 	jtag_set_error(retval);
 }
 
-void jtag_add_callback(jtag_callback1_t f, uint8_t *in)
+void jtag_add_callback(jtag_callback1_t f, jtag_callback_data_t data0)
 {
-	interface_jtag_add_callback(f, in);
+	interface_jtag_add_callback(f, data0);
 }
 
-void jtag_add_callback4(jtag_callback_t f, uint8_t *in,
+void jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
 		jtag_callback_data_t data1, jtag_callback_data_t data2,
 		jtag_callback_data_t data3)
 {
-	interface_jtag_add_callback4(f, in, data1, data2, data3);
+	interface_jtag_add_callback4(f, data0, data1, data2, data3);
 }
 
 int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value, uint8_t *in_check_mask, int num_bits);
 
-static int jtag_check_value_mask_callback(uint8_t *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
+static int jtag_check_value_mask_callback(jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
 {
-	return jtag_check_value_inner(in, (uint8_t *)data1, (uint8_t *)data2, (int)data3);
+	return jtag_check_value_inner((uint8_t *)data0, (uint8_t *)data1, (uint8_t *)data2, (int)data3);
 }
 
 static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const scan_field_t *in_fields, tap_state_t state),
@@ -393,7 +393,7 @@ static void jtag_add_scan_check(void (*jtag_add_scan)(int in_num_fields, const s
 		if ((in_fields[i].check_value != NULL) && (in_fields[i].in_value != NULL))
 		{
 			/* this is synchronous for a minidriver */
-			jtag_add_callback4(jtag_check_value_mask_callback, in_fields[i].in_value,
+			jtag_add_callback4(jtag_check_value_mask_callback, (jtag_callback_data_t)in_fields[i].in_value,
 				(jtag_callback_data_t)in_fields[i].check_value,
 				(jtag_callback_data_t)in_fields[i].check_mask,
 				(jtag_callback_data_t)in_fields[i].num_bits);

@@ -132,7 +132,7 @@ int adi_jtag_dp_scan_u32(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr,
 		fields[1].in_value = (uint8_t *)invalue;
 		jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
-		jtag_add_callback(arm_le_to_h_u32, (uint8_t *)invalue);
+		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t) invalue);
 	} else
 	{
 

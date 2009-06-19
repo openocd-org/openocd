@@ -384,6 +384,11 @@ extern void jtag_add_dr_scan_check(int num_fields, scan_field_t* fields, tap_sta
  */
 extern void jtag_add_plain_dr_scan(int num_fields, const scan_field_t* fields, tap_state_t endstate);
 
+/**
+ * Defines the type of data passed to the jtag_callback_t interface.
+ * The underlying type must allow storing an @c int or pointer type.
+ */
+typedef intptr_t jtag_callback_data_t;
 
 /**
  * Defines a simple JTAG callback that can allow conversions on data
@@ -393,17 +398,12 @@ extern void jtag_add_plain_dr_scan(int num_fields, const scan_field_t* fields, t
  * For conversion types or checks that can fail, use the more complete
  * variant: jtag_callback_t.
  */
-typedef void (*jtag_callback1_t)(uint8_t *in);
+typedef void (*jtag_callback1_t)(jtag_callback_data_t data0);
 
 /// A simpler version of jtag_add_callback4().
-extern void jtag_add_callback(jtag_callback1_t, uint8_t *in);
+extern void jtag_add_callback(jtag_callback1_t, jtag_callback_data_t data0);
 
 
-/**
- * Defines the type of data passed to the jtag_callback_t interface.
- * The underlying type must allow storing an @c int or pointer type.
- */
-typedef intptr_t jtag_callback_data_t;
 
 /**
  * Defines the interface of the JTAG callback mechanism.
@@ -414,7 +414,7 @@ typedef intptr_t jtag_callback_data_t;
  * @param data3 An integer big enough to use as an @c int or a pointer.
  * @returns an error code
  */
-typedef int (*jtag_callback_t)(uint8_t *in, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
+typedef int (*jtag_callback_t)(jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3);
 
 
 /**
@@ -445,7 +445,7 @@ typedef int (*jtag_callback_t)(uint8_t *in, jtag_callback_data_t data1, jtag_cal
  * @param data3 An integer big enough to use as an @c int or a pointer.
  *
  */
-extern void jtag_add_callback4(jtag_callback_t f, uint8_t *in,
+extern void jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
 		jtag_callback_data_t data1, jtag_callback_data_t data2,
 		jtag_callback_data_t data3);
 

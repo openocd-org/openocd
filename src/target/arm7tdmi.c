@@ -189,7 +189,7 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
-	jtag_add_callback(arm7flip32, (uint8_t *)in);
+	jtag_add_callback(arm7flip32, (jtag_callback_data_t)in);
 
 	jtag_add_runtest(0, jtag_get_end_state());
 
@@ -245,8 +245,9 @@ void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip)
 	}
 }
 
-static int arm7endianness(uint8_t *in, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
+static int arm7endianness(jtag_callback_data_t arg, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
 {
+  uint8_t *in=(uint8_t *)arg;
 	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 1);
 	return ERROR_OK;
 }
@@ -279,7 +280,7 @@ int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 
 	jtag_add_dr_scan(2, fields, jtag_get_end_state());
 
-	jtag_add_callback4(arm7endianness, in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, (jtag_callback_data_t)fields[1].in_value);
+	jtag_add_callback4(arm7endianness, (jtag_callback_data_t)in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, (jtag_callback_data_t)fields[1].in_value);
 
 	jtag_add_runtest(0, jtag_get_end_state());
 

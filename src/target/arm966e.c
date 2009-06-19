@@ -195,7 +195,7 @@ int arm966e_read_cp15(target_t *target, int reg_addr, uint32_t *value)
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-	jtag_add_callback(arm_le_to_h_u32, (uint8_t *)value);
+	jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)value);
 
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_

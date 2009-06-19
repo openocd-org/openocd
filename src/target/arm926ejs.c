@@ -167,7 +167,7 @@ int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2, uint32_t C
 		nr_w_buf = 0;
 		jtag_add_dr_scan(4, fields, jtag_get_end_state());
 
-		jtag_add_callback(arm_le_to_h_u32, (uint8_t *)value);
+		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)value);
 
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{

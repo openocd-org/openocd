@@ -326,7 +326,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 
 		fields[0].in_value = (uint8_t *)data;
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
-		jtag_add_callback(arm_le_to_h_u32, (uint8_t *)data);
+		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)data);
 
 		data++;
 		size--;

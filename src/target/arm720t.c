@@ -120,7 +120,7 @@ int arm720t_scan_cp15(target_t *target, uint32_t out, uint32_t *in, int instruct
 	{
 		fields[1].in_value = (uint8_t *)in;
 		jtag_add_dr_scan(2, fields, jtag_get_end_state());
-		jtag_add_callback(arm7flip32, (uint8_t *)in);
+		jtag_add_callback(arm7flip32, (jtag_callback_data_t)in);
 	} else
 	{
 		jtag_add_dr_scan(2, fields, jtag_get_end_state());

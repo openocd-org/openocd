@@ -206,7 +206,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t instr, uint32_t out, uint
 		fields[0].in_value=(uint8_t *)in;
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-		jtag_add_callback(arm_le_to_h_u32, (uint8_t *)in);
+		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)in);
 	}
 	else
 	{
@@ -265,7 +265,7 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-	jtag_add_callback(arm_le_to_h_u32, (uint8_t *)in);
+	jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)in);
 
 	jtag_add_runtest(0, jtag_get_end_state());
 
@@ -292,8 +292,9 @@ int arm9tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 
 extern void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip);
 
-static int arm9endianness(uint8_t *in, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
+static int arm9endianness(jtag_callback_data_t arg, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
 {
+  uint8_t *in=(uint8_t *)arg;
 	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 0);
 	return ERROR_OK;
 }
@@ -332,7 +333,7 @@ int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size,
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-	jtag_add_callback4(arm9endianness, in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, (jtag_callback_data_t)fields[0].in_value);
+	jtag_add_callback4(arm9endianness, (jtag_callback_data_t)in, (jtag_callback_data_t)size, (jtag_callback_data_t)be, (jtag_callback_data_t)fields[0].in_value);
 
 	jtag_add_runtest(0, jtag_get_end_state());
 

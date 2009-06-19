@@ -293,8 +293,9 @@ int xscale_read_dcsr(target_t *target)
 }
 
 
-static void xscale_getbuf(uint8_t *in)
+static void xscale_getbuf(jtag_callback_data_t arg)
 {
+  uint8_t *in=(uint8_t *)arg;
 	*((uint32_t *)in)=buf_get_u32(in, 0, 32);
 }
 
@@ -365,7 +366,7 @@ int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 
 			jtag_add_dr_scan_check(3, fields, jtag_set_end_state(TAP_IDLE));
 
-			jtag_add_callback(xscale_getbuf, (uint8_t *)(field1+i));
+			jtag_add_callback(xscale_getbuf, (jtag_callback_data_t)(field1+i));
 
 			words_scheduled++;
 		}

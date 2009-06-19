@@ -88,8 +88,9 @@ static int virtex2_send_32(struct pld_device_s *pld_device,
 	return ERROR_OK;
 }
 
-static __inline__ void virtexflip32(uint8_t *in)
+static __inline__ void virtexflip32(jtag_callback_data_t arg)
 {
+  uint8_t *in=(uint8_t *)arg;
 	*((uint32_t *)in) = flip_u32(le_to_h_u32(in), 32);
 }
 
@@ -112,7 +113,7 @@ static int virtex2_receive_32(struct pld_device_s *pld_device,
 
 		jtag_add_dr_scan(1, &scan_field, jtag_set_end_state(TAP_DRPAUSE));
 
-		jtag_add_callback(virtexflip32, (uint8_t *)words);
+		jtag_add_callback(virtexflip32, (jtag_callback_data_t)words);
 
 		words++;;
 	}

@@ -158,8 +158,9 @@ static int etb_get_reg(reg_t *reg)
 }
 
 
-static void etb_getbuf(uint8_t *in)
+static void etb_getbuf(jtag_callback_data_t arg)
 {
+  uint8_t *in=(uint8_t *)arg;
 	*((uint32_t *)in)=buf_get_u32(in, 0, 32);
 }
 
@@ -206,7 +207,7 @@ static int etb_read_ram(etb_t *etb, uint32_t *data, int num_frames)
 		fields[0].in_value = (uint8_t *)(data+i);
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-		jtag_add_callback(etb_getbuf, (uint8_t *)(data+i));
+		jtag_add_callback(etb_getbuf, (jtag_callback_data_t)(data+i));
 	}
 
 	jtag_execute_queue();
