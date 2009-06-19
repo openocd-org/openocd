@@ -148,7 +148,6 @@ void start_profile(void)
 }
 #endif
 
-extern int eth0_up;
 static FILE *log;
 
 static char reboot_stack[2048];
@@ -305,7 +304,7 @@ void format(void)
 	err = cyg_io_get_config(handle, CYG_IO_GET_CONFIG_FLASH_ERASE, &e, &len);
 	if (err != ENOERR)
 	{
-		diag_printf("Flash erase error %d offset 0x%p\n", err, e.err_address);
+		diag_printf("Flash erase error %d offset 0x%08x\n", err, e.err_address);
 		reboot();
 	}
 
