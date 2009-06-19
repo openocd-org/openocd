@@ -411,7 +411,9 @@ static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
 
 	if (*bytes_read < size)
 	{
-		LOG_ERROR("couldn't read the requested number of bytes from FT2232 device (%i < %i)", *bytes_read, size);
+		LOG_ERROR("couldn't read the requested number of bytes from FT2232 device (%i < %i)", 
+			  (unsigned int)(*bytes_read), 
+			  (unsigned int)size);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -963,7 +965,8 @@ static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, uint8_t* 
 		LOG_ERROR("couldn't write MPSSE commands to FT2232");
 		exit(-1);
 	}
-	LOG_DEBUG("ft2232_buffer_size: %i, bytes_written: %i", ft2232_buffer_size, bytes_written);
+	LOG_DEBUG("ft2232_buffer_size: %i, bytes_written: %i", 
+		  ft2232_buffer_size, (int)bytes_written);
 	ft2232_buffer_size = 0;
 
 	/* add command for complete bytes */
@@ -1016,7 +1019,9 @@ static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, uint8_t* 
 			LOG_ERROR("couldn't write MPSSE commands to FT2232");
 			exit(-1);
 		}
-		LOG_DEBUG("ft2232_buffer_size: %i, bytes_written: %i", ft2232_buffer_size, bytes_written);
+		LOG_DEBUG("ft2232_buffer_size: %i, bytes_written: %i", 
+			  ft2232_buffer_size, 
+			  (int)bytes_written);
 		ft2232_buffer_size = 0;
 
 		if (type != SCAN_OUT)
@@ -1026,7 +1031,9 @@ static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, uint8_t* 
 				LOG_ERROR("couldn't read from FT2232");
 				exit(-1);
 			}
-			LOG_DEBUG("thisrun_read: %i, bytes_read: %i", thisrun_read, bytes_read);
+			LOG_DEBUG("thisrun_read: %i, bytes_read: %i", 
+				  thisrun_read, 
+				  (int)bytes_read);
 			receive_pointer += bytes_read;
 		}
 	}
@@ -1122,7 +1129,9 @@ static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, uint8_t* 
 		LOG_ERROR("couldn't write MPSSE commands to FT2232");
 		exit(-1);
 	}
-	LOG_DEBUG("ft2232_buffer_size: %i, bytes_written: %i", ft2232_buffer_size, bytes_written);
+	LOG_DEBUG("ft2232_buffer_size: %i, bytes_written: %i", 
+		  ft2232_buffer_size, 
+		  (int)bytes_written);
 	ft2232_buffer_size = 0;
 
 	if (type != SCAN_OUT)
@@ -1132,7 +1141,9 @@ static int ft2232_large_scan(scan_command_t* cmd, enum scan_type type, uint8_t* 
 			LOG_ERROR("couldn't read from FT2232");
 			exit(-1);
 		}
-		LOG_DEBUG("thisrun_read: %i, bytes_read: %i", thisrun_read, bytes_read);
+		LOG_DEBUG("thisrun_read: %i, bytes_read: %i", 
+			  thisrun_read, 
+			  (int)bytes_read);
 		receive_pointer += bytes_read;
 	}
 

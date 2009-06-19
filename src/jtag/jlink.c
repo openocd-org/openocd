@@ -589,7 +589,7 @@ static int jlink_get_version_info(void)
 	}
 
 	jlink_caps = buf_get_u32(usb_in_buffer, 0, 32);
-	LOG_INFO("JLink caps 0x%x", jlink_caps);
+	LOG_INFO("JLink caps 0x%x", (unsigned)jlink_caps);
 
 	if (jlink_caps & (1 << EMU_CAP_GET_HW_VERSION))
 	{
@@ -608,7 +608,7 @@ static int jlink_get_version_info(void)
 		if (major_revision >= 5)
 			jlink_hw_jtag_version = 3;
 
-		LOG_INFO("JLink hw version %i", jlink_hw_version);
+		LOG_INFO("JLink hw version %i", (int)jlink_hw_version);
 	}
 
 	if (jlink_caps & (1 << EMU_CAP_GET_MAX_BLOCK_SIZE))
@@ -624,7 +624,7 @@ static int jlink_get_version_info(void)
 		}
 
 		jlink_max_size = buf_get_u32(usb_in_buffer, 0, 32);
-		LOG_INFO("JLink max mem block %i", jlink_max_size);
+		LOG_INFO("JLink max mem block %i", (int)jlink_max_size);
 	}
 
 	return ERROR_OK;

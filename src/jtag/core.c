@@ -862,10 +862,13 @@ static void jtag_examine_chain_display(enum log_levels level, const char *msg,
 		const char *name, uint32_t idcode)
 {
 	log_printf_lf(level, __FILE__, __LINE__, __FUNCTION__,
-			"JTAG tap: %s %16.16s: 0x%08x "
-			"(mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
-		name, msg, idcode,
-		EXTRACT_MFG(idcode), EXTRACT_PART(idcode), EXTRACT_VER(idcode) );
+				  "JTAG tap: %s %16.16s: 0x%08x "
+				  "(mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
+				  name, msg, 
+				  (unsigned int)idcode,
+				  (unsigned int)EXTRACT_MFG(idcode), 
+				  (unsigned int)EXTRACT_PART(idcode), 
+				  (unsigned int)EXTRACT_VER(idcode) );
 }
 
 static bool jtag_idcode_is_final(uint32_t idcode)
@@ -889,7 +892,7 @@ static void jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned ma
 		if (!triggered && jtag_idcode_is_final(idcode))
 			continue;
 		LOG_WARNING("Unexpected idcode after end of chain: %d 0x%08x",
-				count, idcode);
+					count, (unsigned int)idcode);
 		triggered = true;
 	}
 }
@@ -1100,7 +1103,7 @@ void jtag_tap_init(jtag_tap_t *tap)
 	LOG_DEBUG("Created Tap: %s @ abs position %d, "
 			"irlen %d, capture: 0x%x mask: 0x%x", tap->dotted_name,
 				tap->abs_chain_position, tap->ir_length,
-				tap->ir_capture_value, tap->ir_capture_mask);
+			  (unsigned int)(tap->ir_capture_value), (unsigned int)(tap->ir_capture_mask));
 	jtag_tap_add(tap);
 }
 

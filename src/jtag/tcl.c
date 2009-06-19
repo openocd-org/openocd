@@ -872,16 +872,16 @@ static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cm
 					  tap->abs_chain_position,
 					  tap->dotted_name,
 					  tap->enabled ? 'Y' : 'n',
-					  tap->idcode,
-					  (tap->expected_ids_cnt > 0 ? tap->expected_ids[0] : 0),
-					  tap->ir_length,
-					  expected,
-					  expected_mask,
-					  cur_instr);
+					  (unsigned int)(tap->idcode),
+					  (unsigned int)(tap->expected_ids_cnt > 0 ? tap->expected_ids[0] : 0),
+					  (unsigned int)(tap->ir_length),
+					  (unsigned int)(expected),
+					  (unsigned int)(expected_mask),
+					  (unsigned int)(cur_instr));
 
 		for (ii = 1; ii < tap->expected_ids_cnt; ii++) {
 			command_print(cmd_ctx, "   |                    |         |            | 0x%08x |      |      |      |         ",
-						  tap->expected_ids[ii]);
+						  (unsigned int)(tap->expected_ids[ii]));
 		}
 
 		tap = tap->next_tap;
@@ -1503,3 +1503,9 @@ static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *
 	return ERROR_OK;
 }
 
+/*
+ * Local Variables: 
+ * c-basic-offset: 4
+ * tab-width: 4
+ * End:
+ */

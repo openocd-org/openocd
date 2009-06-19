@@ -150,7 +150,8 @@ static int presto_write(uint8_t *buf, uint32_t size)
 
 	if (ftbytes != size)
 	{
-		LOG_ERROR("couldn't write the requested number of bytes to PRESTO (%u < %u)", (uint32_t)ftbytes, size);
+		LOG_ERROR("couldn't write the requested number of bytes to PRESTO (%u < %u)", 
+			  (unsigned)ftbytes, (unsigned)size);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -192,7 +193,8 @@ static int presto_read(uint8_t* buf, uint32_t size)
 	if (ftbytes != size)
 	{
 		/* this is just a warning, there might have been timeout when detecting PRESTO, which is not fatal */
-		LOG_WARNING("couldn't read the requested number of bytes from PRESTO (%u < %u)", (uint32_t)ftbytes, size);
+		LOG_WARNING("couldn't read the requested number of bytes from PRESTO (%u < %u)", 
+			    (unsigned)ftbytes, (unsigned)size);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
