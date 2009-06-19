@@ -31,8 +31,6 @@
 #endif
 
 /* cli handling */
-int arm920t_register_commands(struct command_context_s *cmd_ctx);
-
 int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 int arm920t_handle_virt2phys_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -47,10 +45,6 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 int arm920t_target_create(struct target_s *target, Jim_Interp *interp);
 int arm920t_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int arm920t_quit(void);
-int arm920t_arch_state(struct target_s *target);
-int arm920t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm920t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
-int arm920t_soft_reset_halt(struct target_s *target);
 
 #define ARM920T_CP15_PHYS_ADDR(x, y, z) ((x << 5) | (y << 1) << (z))
 

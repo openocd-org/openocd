@@ -2572,6 +2572,7 @@ SRST, to avoid a issue with clearing the debug registers.
 This is fixed in Fury Rev B, DustDevil Rev B, Tempest; these revisions will
 be detected and the normal reset behaviour used.
 @end itemize
+@item @code{fa526} -- resembles arm920 (w/o Thumb)
 @item @code{feroceon} -- resembles arm926
 @item @code{mips_m4k} -- a MIPS core.  This supports one variant:
 @itemize @minus

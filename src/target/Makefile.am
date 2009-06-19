@@ -31,6 +31,7 @@ libtarget_la_SOURCES = \
 	arm_disassembler.c \
 	arm966e.c \
 	arm926ejs.c \
+	fa526.c \
 	feroceon.c \
 	etb.c \
 	xscale.c \

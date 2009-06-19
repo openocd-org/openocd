@@ -63,4 +63,17 @@ extern int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, in
 extern void arm9tdmi_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_regs[16]);
 extern void arm9tdmi_write_core_regs(target_t *target, uint32_t mask, uint32_t core_regs[16]);
 
+extern int arm9tdmi_examine_debug_reason(target_t *target);
+
+extern void arm9tdmi_load_word_regs(target_t *target, uint32_t mask);
+extern void arm9tdmi_load_hword_reg(target_t *target, int num);
+extern void arm9tdmi_load_byte_reg(target_t *target, int num);
+extern void arm9tdmi_store_word_regs(target_t *target, uint32_t mask);
+extern void arm9tdmi_store_hword_reg(target_t *target, int num);
+extern void arm9tdmi_store_byte_reg(target_t *target, int num);
+
+extern void arm9tdmi_branch_resume(target_t *target);
+extern void arm9tdmi_enable_single_step(target_t *target, uint32_t next_pc);
+extern void arm9tdmi_disable_single_step(target_t *target);
+
 #endif /* ARM9TDMI_H */

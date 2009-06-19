@@ -51,4 +51,15 @@ typedef struct arm920t_tlb_entry_s
 	uint32_t ram2;
 } arm920t_tlb_entry_t;
 
+int arm920t_arch_state(struct target_s *target);
+int arm920t_soft_reset_halt(struct target_s *target);
+int arm920t_read_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+int arm920t_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
+void arm920t_post_debug_entry(target_t *target);
+void arm920t_pre_restore_context(target_t *target);
+uint32_t arm920t_get_ttb(target_t *target);
+void arm920t_disable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache);
+void arm920t_enable_mmu_caches(target_t *target, int mmu, int d_u_cache, int i_cache);
+int arm920t_register_commands(struct command_context_s *cmd_ctx);
+
 #endif /* ARM920T_H */
