@@ -1502,10 +1502,3 @@ static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *
 
 	return ERROR_OK;
 }
-
-/*
- * Local Variables: 
- * c-basic-offset: 4
- * tab-width: 4
- * End:
- */

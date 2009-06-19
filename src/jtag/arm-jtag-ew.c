@@ -1,5 +1,3 @@
-// vim:ts=4 sw=4:
-
 /***************************************************************************
  *   Copyright (C) 2009 by Dimitar Dimitrov <dinuxbg@gmail.com>            *
  *   based on Dominic Rath's and Benedikt Sauter's usbprog.c               *
