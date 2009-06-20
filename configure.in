@@ -322,7 +322,7 @@ AC_ARG_ENABLE(ft2232_ftd2xx,
 
 AC_ARG_ENABLE(ftd2xx_highspeed,
   AS_HELP_STRING([--enable-ftd2xx-highspeed], [Enable building support for FT2232H and FT4232H-based devices (requires >=libftd2xx-0.4.16)]), 
-  [want_ftd2xx_highspeed=$enableval], [want_ftd2xx_highspeed=maybe])
+  [want_ftd2xx_highspeed=$enableval], [want_ftd2xx_highspeed=no])
  
 AC_ARG_ENABLE(amtjtagaccel,
   AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]), 
