@@ -1996,6 +1996,7 @@ static int handle_reset_command(struct command_context_s *cmd_ctx, char *cmd, ch
 
 static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
+	int current = 1;
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -2011,9 +2012,10 @@ static int handle_resume_command(struct command_context_s *cmd_ctx, char *cmd, c
 		int retval = parse_u32(args[0], &addr);
 		if (ERROR_OK != retval)
 			return retval;
+		current = 0;
 	}
 
-	return target_resume(target, 0, addr, 1, 0);
+	return target_resume(target, current, addr, 1, 0);
 }
 
 static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
