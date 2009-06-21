@@ -514,7 +514,7 @@ static int str9x_write(struct flash_bank_s *bank,
 
 	if (offset & 0x1)
 	{
-		LOG_WARNING("offset 0x%x breaks required 2-byte alignment", offset);
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
