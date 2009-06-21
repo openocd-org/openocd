@@ -292,24 +292,45 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	{
 		device_class = 0;
 	}
-	printed = snprintf(buf, buf_size, "\nLMI Stellaris information: Chip is class %i(%s) %s v%c.%i\n",
-	  device_class, StellarisClassname[device_class], stellaris_info->target_name,
-	  'A' + ((stellaris_info->did0>>8) & 0xFF), (stellaris_info->did0) & 0xFF);
+	printed = snprintf(buf, 
+			   buf_size,
+			   "\nLMI Stellaris information: Chip is class %i(%s) %s v%c.%i\n",
+			   device_class, 
+			   StellarisClassname[device_class], 
+			   stellaris_info->target_name,
+			   (int)('A' + ((stellaris_info->did0>>8) & 0xFF)),
+			   (int)((stellaris_info->did0) & 0xFF));
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "did1: 0x%8.8x, arch: 0x%4.4x, eproc: %s, ramsize:%ik, flashsize: %ik\n",
-	 stellaris_info->did1, stellaris_info->did1, "ARMV7M", (1+((stellaris_info->dc0>>16) & 0xFFFF))/4, (1+(stellaris_info->dc0 & 0xFFFF))*2);
+	printed = snprintf(buf, 
+			   buf_size, 
+			   "did1: 0x%8.8" PRIx32 ", arch: 0x%4.4" PRIx32 ", eproc: %s, ramsize:%ik, flashsize: %ik\n",
+			   stellaris_info->did1, 
+			   stellaris_info->did1, 
+			   "ARMV7M", 
+			   (int)((1+((stellaris_info->dc0>>16) & 0xFFFF))/4),
+			   (int)((1+(stellaris_info->dc0 & 0xFFFF))*2));
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size, "master clock(estimated): %ikHz, rcc is 0x%x \n", stellaris_info->mck_freq / 1000, stellaris_info->rcc);
+	printed = snprintf(buf, 
+			   buf_size,
+			   "master clock(estimated): %ikHz, rcc is 0x%" PRIx32 " \n",
+			   (int)(stellaris_info->mck_freq / 1000), 
+			   stellaris_info->rcc);
 	buf += printed;
 	buf_size -= printed;
 
 	if (stellaris_info->num_lockbits>0)
 	{
-		printed = snprintf(buf, buf_size, "pagesize: %i, lockbits: %i 0x%4.4x, pages in lock region: %i \n", stellaris_info->pagesize, stellaris_info->num_lockbits, stellaris_info->lockbits,stellaris_info->num_pages/stellaris_info->num_lockbits);
+		printed = snprintf(buf,
+				   buf_size,
+				   "pagesize: %" PRIi32 ", lockbits: %i 0x%4.4" PRIx32 ", pages in lock region: %i \n", 
+				   stellaris_info->pagesize, 
+				   stellaris_info->num_lockbits, 
+				   stellaris_info->lockbits,
+				   (int)(stellaris_info->num_pages/stellaris_info->num_lockbits));
 		buf += printed;
 		buf_size -= printed;
 	}
@@ -340,9 +361,9 @@ static void stellaris_read_clock_info(flash_bank_t *bank)
 	unsigned long mainfreq;
 
 	target_read_u32(target, SCB_BASE|RCC, &rcc);
-	LOG_DEBUG("Stellaris RCC %x", rcc);
+	LOG_DEBUG("Stellaris RCC %" PRIx32 "", rcc);
 	target_read_u32(target, SCB_BASE|PLLCFG, &pllcfg);
-	LOG_DEBUG("Stellaris PLLCFG %x", pllcfg);
+	LOG_DEBUG("Stellaris PLLCFG %" PRIx32 "", pllcfg);
 	stellaris_info->rcc = rcc;
 
 	sysdiv = (rcc>>23) & 0xF;
@@ -390,7 +411,7 @@ static void stellaris_set_flash_mode(flash_bank_t *bank,int mode)
 	target_t *target = bank->target;
 
 	uint32_t usecrl = (stellaris_info->mck_freq/1000000ul-1);
-	LOG_DEBUG("usecrl = %i",usecrl);
+	LOG_DEBUG("usecrl = %i",(int)(usecrl));
 	target_write_u32(target, SCB_BASE|USECRL, usecrl);
 }
 
@@ -443,7 +464,8 @@ static int stellaris_read_part_info(struct flash_bank_s *bank)
 	target_read_u32(target, SCB_BASE|DID1, &did1);
 	target_read_u32(target, SCB_BASE|DC0, &stellaris_info->dc0);
 	target_read_u32(target, SCB_BASE|DC1, &stellaris_info->dc1);
-	LOG_DEBUG("did0 0x%x, did1 0x%x, dc0 0x%x, dc1 0x%x", did0, did1, stellaris_info->dc0, stellaris_info->dc1);
+	LOG_DEBUG("did0 0x%" PRIx32 ", did1 0x%" PRIx32 ", dc0 0x%" PRIx32 ", dc1 0x%" PRIx32 "",
+		  did0, did1, stellaris_info->dc0, stellaris_info->dc1);
 
 	ver = did0 >> 28;
 	if((ver != 0) && (ver != 1))
@@ -594,7 +616,7 @@ static int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 		target_read_u32(target, FLASH_CRIS, &flash_cris);
 		if(flash_cris & (AMASK))
 		{
-			LOG_WARNING("Error erasing flash page %i,  flash_cris 0x%x", banknr, flash_cris);
+			LOG_WARNING("Error erasing flash page %i,  flash_cris 0x%" PRIx32 "", banknr, flash_cris);
 			target_write_u32(target, FLASH_CRIS, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
@@ -652,7 +674,7 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 	target_write_u32(target, FLASH_CIM, 0);
 	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
 
-	LOG_DEBUG("fmppe 0x%x",fmppe);
+	LOG_DEBUG("fmppe 0x%" PRIx32 "",fmppe);
 	target_write_u32(target, SCB_BASE|FMPPE, fmppe);
 	/* Commit FMPPE */
 	target_write_u32(target, FLASH_FMA, 1);
@@ -671,7 +693,7 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 	target_read_u32(target, FLASH_CRIS, &flash_cris);
 	if(flash_cris & (AMASK))
 	{
-		LOG_WARNING("Error setting flash page protection,  flash_cris 0x%x", flash_cris);
+		LOG_WARNING("Error setting flash page protection,  flash_cris 0x%" PRIx32 "", flash_cris);
 		target_write_u32(target, FLASH_CRIS, 0);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -732,7 +754,7 @@ static int stellaris_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 	armv7m_algorithm_t armv7m_info;
 	int retval = ERROR_OK;
 
-	LOG_DEBUG("(bank=%p buffer=%p offset=%08X wcount=%08X)",
+	LOG_DEBUG("(bank=%p buffer=%p offset=%08" PRIx32 " wcount=%08" PRIx32 "",
 			bank, buffer, offset, wcount);
 
 	/* flash write code */
@@ -747,7 +769,7 @@ static int stellaris_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
 	{
-		LOG_DEBUG("called target_alloc_working_area(target=%p buffer_size=%08X source=%p)",
+		LOG_DEBUG("called target_alloc_working_area(target=%p buffer_size=%08" PRIx32 " source=%p)",
 				target, buffer_size, source);
 		buffer_size /= 2;
 		if (buffer_size <= 256)
@@ -777,8 +799,8 @@ static int stellaris_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, 4*thisrun_count);
-		LOG_INFO("Algorithm flash write %i words to 0x%x, %i remaining", thisrun_count, address, wcount);
-		LOG_DEBUG("Algorithm flash write %i words to 0x%x, %i remaining", thisrun_count, address, wcount);
+		LOG_INFO("Algorithm flash write %" PRIi32 " words to 0x%" PRIx32 ", %" PRIi32 " remaining", thisrun_count, address, wcount);
+		LOG_DEBUG("Algorithm flash write %" PRIi32 " words to 0x%" PRIx32 ", %" PRIi32 " remaining", thisrun_count, address, wcount);
 		if ((retval = target_run_algorithm(target, 0, NULL, 3, reg_params, write_algorithm->address, write_algorithm->address + sizeof(stellaris_write_code)-10, 10000, &armv7m_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing stellaris flash write algorithm");
@@ -818,7 +840,7 @@ static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t 
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("(bank=%p buffer=%p offset=%08X count=%08X)",
+	LOG_DEBUG("(bank=%p buffer=%p offset=%08" PRIx32 " count=%08" PRIx32 "",
 			bank, buffer, offset, count);
 
 	if (stellaris_info->did1 == 0)
@@ -866,7 +888,7 @@ static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t 
 				/* if an error occured, we examine the reason, and quit */
 				target_read_u32(target, FLASH_CRIS, &flash_cris);
 
-				LOG_ERROR("flash writing failed with CRIS: 0x%x", flash_cris);
+				LOG_ERROR("flash writing failed with CRIS: 0x%" PRIx32 "", flash_cris);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 		}
@@ -881,7 +903,7 @@ static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t 
 	while (words_remaining > 0)
 	{
 		if (!(address & 0xff))
-			LOG_DEBUG("0x%x", address);
+			LOG_DEBUG("0x%" PRIx32 "", address);
 
 		/* Program one word */
 		target_write_u32(target, FLASH_FMA, address);
@@ -912,7 +934,7 @@ static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t 
 		}
 
 		if (!(address & 0xff))
-			LOG_DEBUG("0x%x", address);
+			LOG_DEBUG("0x%" PRIx32 "", address);
 
 		/* Program one word */
 		target_write_u32(target, FLASH_FMA, address);
@@ -930,7 +952,7 @@ static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t 
 	target_read_u32(target, FLASH_CRIS, &flash_cris);
 	if (flash_cris & (AMASK))
 	{
-		LOG_DEBUG("flash_cris 0x%x", flash_cris);
+		LOG_DEBUG("flash_cris 0x%" PRIx32 "", flash_cris);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	return ERROR_OK;
