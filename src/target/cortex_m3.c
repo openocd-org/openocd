@@ -175,7 +175,7 @@ int cortex_m3_clear_halt(target_t *target)
 	mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
 	/* Write Debug Fault Status Register to enable processing to resume ?? Try with and without this !! */
 	mem_ap_write_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
-	LOG_DEBUG(" NVIC_DFSR 0x%x", cortex_m3->nvic_dfsr);
+	LOG_DEBUG(" NVIC_DFSR 0x%" PRIx32 "", cortex_m3->nvic_dfsr);
 
 	return ERROR_OK;
 }
@@ -249,7 +249,7 @@ int cortex_m3_endreset_event(target_t *target)
 	cortex_m3_dwt_comparator_t *dwt_list = cortex_m3->dwt_comparator_list;
 
 	mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &dcb_demcr);
-	LOG_DEBUG("DCB_DEMCR = 0x%8.8x",dcb_demcr);
+	LOG_DEBUG("DCB_DEMCR = 0x%8.8" PRIx32 "",dcb_demcr);
 
 	/* this regsiter is used for emulated dcc channel */
 	mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
@@ -366,7 +366,7 @@ int cortex_m3_examine_exception_reason(target_t *target)
 			break;
 	}
 	swjdp_transaction_endcheck(swjdp);
-	LOG_DEBUG("%s SHCSR 0x%x, SR 0x%x, CFSR 0x%x, AR 0x%x", armv7m_exception_string(armv7m->exception_number), \
+	LOG_DEBUG("%s SHCSR 0x%" PRIx32 ", SR 0x%" PRIx32 ", CFSR 0x%" PRIx32 ", AR 0x%" PRIx32 "", armv7m_exception_string(armv7m->exception_number), \
 		shcsr, except_sr, cfsr, except_ar);
 	return ERROR_OK;
 }
@@ -441,7 +441,7 @@ int cortex_m3_debug_entry(target_t *target)
 		cortex_m3_examine_exception_reason(target);
 	}
 
-	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%x, target->state: %s",
+	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%" PRIx32 ", target->state: %s",
 		armv7m_mode_strings[armv7m->core_mode],
 		*(uint32_t*)(armv7m->core_cache->reg_list[15].value),
 		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
@@ -485,7 +485,7 @@ int cortex_m3_poll(target_t *target)
 	if (target->state == TARGET_RESET)
 	{
 		/* Cannot switch context while running so endreset is called with target->state == TARGET_RESET */
-		LOG_DEBUG("Exit from reset with dcb_dhcsr 0x%x", cortex_m3->dcb_dhcsr);
+		LOG_DEBUG("Exit from reset with dcb_dhcsr 0x%" PRIx32 "", cortex_m3->dcb_dhcsr);
 		cortex_m3_endreset_event(target);
 		target->state = TARGET_RUNNING;
 		prev_target_state = TARGET_RUNNING;
@@ -595,12 +595,12 @@ int cortex_m3_soft_reset_halt(struct target_s *target)
 			mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
 			if ((dcb_dhcsr & S_HALT) && (cortex_m3->nvic_dfsr & DFSR_VCATCH))
 			{
-				LOG_DEBUG("system reset-halted, dcb_dhcsr 0x%x, nvic_dfsr 0x%x", dcb_dhcsr, cortex_m3->nvic_dfsr);
+				LOG_DEBUG("system reset-halted, dcb_dhcsr 0x%" PRIx32 ", nvic_dfsr 0x%" PRIx32 "", dcb_dhcsr, cortex_m3->nvic_dfsr);
 				cortex_m3_poll(target);
 				return ERROR_OK;
 			}
 			else
-				LOG_DEBUG("waiting for system reset-halt, dcb_dhcsr 0x%x, %i ms", dcb_dhcsr, timeout);
+				LOG_DEBUG("waiting for system reset-halt, dcb_dhcsr 0x%" PRIx32 ", %i ms", dcb_dhcsr, timeout);
 		}
 		timeout++;
 		alive_sleep(1);
@@ -664,7 +664,7 @@ int cortex_m3_resume(struct target_s *target, int current, uint32_t address, int
 		/* Single step past breakpoint at current address */
 		if ((breakpoint = breakpoint_find(target, resume_pc)))
 		{
-			LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
 			cortex_m3_unset_breakpoint(target, breakpoint);
 			cortex_m3_single_step_core(target);
 			cortex_m3_set_breakpoint(target, breakpoint);
@@ -682,13 +682,13 @@ int cortex_m3_resume(struct target_s *target, int current, uint32_t address, int
 	{
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%x", resume_pc);
+		LOG_DEBUG("target resumed at 0x%" PRIx32 "", resume_pc);
 	}
 	else
 	{
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%x", resume_pc);
+		LOG_DEBUG("target debug resumed at 0x%" PRIx32 "", resume_pc);
 	}
 
 	return ERROR_OK;
@@ -734,12 +734,12 @@ int cortex_m3_step(struct target_s *target, int current, uint32_t address, int h
 	if (breakpoint)
 		cortex_m3_set_breakpoint(target, breakpoint);
 
-	LOG_DEBUG("target stepped dcb_dhcsr = 0x%x nvic_icsr = 0x%x", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
+	LOG_DEBUG("target stepped dcb_dhcsr = 0x%" PRIx32 " nvic_icsr = 0x%" PRIx32 "", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
 
 	cortex_m3_debug_entry(target);
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
-	LOG_DEBUG("target stepped dcb_dhcsr = 0x%x nvic_icsr = 0x%x", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
+	LOG_DEBUG("target stepped dcb_dhcsr = 0x%" PRIx32 " nvic_icsr = 0x%" PRIx32 "", cortex_m3->dcb_dhcsr, cortex_m3->nvic_icsr);
 	return ERROR_OK;
 }
 
@@ -921,7 +921,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		comparator_list[fp_num].used = 1;
 		comparator_list[fp_num].fpcr_value = (breakpoint->address & 0x1FFFFFFC) | hilo | 1;
 		target_write_u32(target, comparator_list[fp_num].fpcr_address, comparator_list[fp_num].fpcr_value);
-		LOG_DEBUG("fpc_num %i fpcr_value 0x%x", fp_num, comparator_list[fp_num].fpcr_value);
+		LOG_DEBUG("fpc_num %i fpcr_value 0x%" PRIx32 "", fp_num, comparator_list[fp_num].fpcr_value);
 		if (!cortex_m3->fpb_enabled)
 		{
 			LOG_DEBUG("FPB wasn't enabled, do it now");
@@ -1114,7 +1114,7 @@ int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address, comparator_list[dwt_num].comp);
 		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address|0x4, comparator_list[dwt_num].mask);
 		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address|0x8, comparator_list[dwt_num].function);
-		LOG_DEBUG("dwt_num %i 0x%x 0x%x 0x%x", dwt_num, comparator_list[dwt_num].comp, comparator_list[dwt_num].mask, comparator_list[dwt_num].function);
+		LOG_DEBUG("dwt_num %i 0x%" PRIx32 " 0x%" PRIx32 " 0x%" PRIx32 "", dwt_num, comparator_list[dwt_num].comp, comparator_list[dwt_num].mask, comparator_list[dwt_num].function);
 	}
 	else
 	{
@@ -1235,7 +1235,7 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 			LOG_ERROR("JTAG failure %i",retval);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		LOG_DEBUG("load from core reg %i  value 0x%x",num,*value);
+		LOG_DEBUG("load from core reg %i  value 0x%" PRIx32 "",(int)num,*value);
 	}
 	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
 	{
@@ -1261,7 +1261,7 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 				break;
 		}
 
-		LOG_DEBUG("load from special reg %i value 0x%x", num, *value);
+		LOG_DEBUG("load from special reg %i value 0x%" PRIx32 "", (int)num, *value);
 	}
 	else
 	{
@@ -1300,7 +1300,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 			armv7m->core_cache->reg_list[num].dirty = armv7m->core_cache->reg_list[num].valid;
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		LOG_DEBUG("write core reg %i value 0x%x", num, value);
+		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
 	}
 	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
 	{
@@ -1329,7 +1329,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 
 		cortexm3_dap_write_coreregister_u32(swjdp, reg, 20);
 
-		LOG_DEBUG("write special reg %i value 0x%x ", num, value);
+		LOG_DEBUG("write special reg %i value 0x%" PRIx32 " ", (int)num, value);
 	}
 	else
 	{
@@ -1441,7 +1441,7 @@ int cortex_m3_examine(struct target_s *target)
 
 		if (((cpuid >> 4) & 0xc3f) == 0xc23)
 			LOG_DEBUG("CORTEX-M3 processor detected");
-		LOG_DEBUG("cpuid: 0x%8.8x", cpuid);
+		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
 
 		target_read_u32(target, NVIC_ICTR, &ictr);
 		cortex_m3->intlinesnum = (ictr & 0x1F) + 1;
@@ -1449,7 +1449,7 @@ int cortex_m3_examine(struct target_s *target)
 		for (i = 0; i < cortex_m3->intlinesnum; i++)
 		{
 			target_read_u32(target, NVIC_ISE0 + 4 * i, cortex_m3->intsetenable + i);
-			LOG_DEBUG("interrupt enable[%i] = 0x%8.8x", i, cortex_m3->intsetenable[i]);
+			LOG_DEBUG("interrupt enable[%i] = 0x%8.8" PRIx32 "", i, cortex_m3->intsetenable[i]);
 		}
 
 		/* Setup FPB */
@@ -1465,7 +1465,7 @@ int cortex_m3_examine(struct target_s *target)
 			cortex_m3->fp_comparator_list[i].type = (i < cortex_m3->fp_num_code) ? FPCR_CODE : FPCR_LITERAL;
 			cortex_m3->fp_comparator_list[i].fpcr_address = FP_COMP0 + 4 * i;
 		}
-		LOG_DEBUG("FPB fpcr 0x%x, numcode %i, numlit %i", fpcr, cortex_m3->fp_num_code, cortex_m3->fp_num_lit);
+		LOG_DEBUG("FPB fpcr 0x%" PRIx32 ", numcode %i, numlit %i", fpcr, cortex_m3->fp_num_code, cortex_m3->fp_num_lit);
 
 		/* Setup DWT */
 		target_read_u32(target, DWT_CTRL, &dwtcr);
