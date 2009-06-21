@@ -403,7 +403,7 @@ int etm_write_reg(reg_t *reg, uint32_t value)
 	uint8_t reg_addr = etm_reg->addr & 0x7f;
 	scan_field_t fields[3];
 
-	LOG_DEBUG("%i: 0x%8.8x", etm_reg->addr, value);
+	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", etm_reg->addr, value);
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(etm_reg->jtag_info, 0x6);
@@ -801,19 +801,19 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 					next_pc = ctx->last_branch;
 					break;
 				case 0x1:	/* tracing enabled */
-					command_print(cmd_ctx, "--- tracing enabled at 0x%8.8x ---", ctx->last_branch);
+					command_print(cmd_ctx, "--- tracing enabled at 0x%8.8" PRIx32 " ---", ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
 					continue;
 					break;
 				case 0x2:	/* trace restarted after FIFO overflow */
-					command_print(cmd_ctx, "--- trace restarted after FIFO overflow at 0x%8.8x ---", ctx->last_branch);
+					command_print(cmd_ctx, "--- trace restarted after FIFO overflow at 0x%8.8" PRIx32 " ---", ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
 					continue;
 					break;
 				case 0x3:	/* exit from debug state */
-					command_print(cmd_ctx, "--- exit from debug state at 0x%8.8x ---", ctx->last_branch);
+					command_print(cmd_ctx, "--- exit from debug state at 0x%8.8" PRIx32 " ---", ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
 					continue;
@@ -825,14 +825,14 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 					 */
 					if (!current_pc_ok)
 					{
-						command_print(cmd_ctx, "--- periodic synchronization point at 0x%8.8x ---", next_pc);
+						command_print(cmd_ctx, "--- periodic synchronization point at 0x%8.8" PRIx32 " ---", next_pc);
 						ctx->current_pc = next_pc;
 						ctx->pipe_index++;
 						continue;
 					}
 					break;
 				default:	/* reserved */
-					LOG_ERROR("BUG: branch reason code 0x%x is reserved", ctx->last_branch_reason);
+					LOG_ERROR("BUG: branch reason code 0x%" PRIx32 " is reserved", ctx->last_branch_reason);
 					exit(-1);
 					break;
 			}
@@ -854,7 +854,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 				}
 				else
 				{
-					command_print(cmd_ctx, "exception vector 0x%2.2x", ctx->last_branch);
+					command_print(cmd_ctx, "exception vector 0x%2.2" PRIx32 "", ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
 					continue;
@@ -917,7 +917,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 
 				if (ctx->ptr_ok)
 				{
-					command_print(cmd_ctx, "address: 0x%8.8x", ctx->last_ptr);
+					command_print(cmd_ctx, "address: 0x%8.8" PRIx32 "", ctx->last_ptr);
 				}
 			}
 
@@ -933,7 +933,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 							uint32_t data;
 							if (etmv1_data(ctx, 4, &data) != 0)
 								return ERROR_ETM_ANALYSIS_FAILED;
-							command_print(cmd_ctx, "data: 0x%8.8x", data);
+							command_print(cmd_ctx, "data: 0x%8.8" PRIx32 "", data);
 						}
 					}
 				}
@@ -942,7 +942,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 					uint32_t data;
 					if (etmv1_data(ctx, arm_access_size(&instruction), &data) != 0)
 						return ERROR_ETM_ANALYSIS_FAILED;
-					command_print(cmd_ctx, "data: 0x%8.8x", data);
+					command_print(cmd_ctx, "data: 0x%8.8" PRIx32 "", data);
 				}
 			}
 
@@ -984,7 +984,7 @@ static int etmv1_analyze_trace(etm_context_t *ctx, struct command_context_s *cmd
 			if (ctx->tracemode & ETMV1_CYCLE_ACCURATE)
 			{
 				snprintf(cycles_text, 32, " (%i %s)",
-					cycles,
+					 (int)cycles,
 					(cycles == 1) ? "cycle" : "cycles");
 			}
 
@@ -1343,17 +1343,17 @@ int handle_etm_info_command(struct command_context_s *cmd_ctx, char *cmd, char *
 	etm_sys_config_reg = &arm7_9->etm_ctx->reg_cache->reg_list[ETM_SYS_CONFIG];
 
 	etm_get_reg(etm_config_reg);
-	command_print(cmd_ctx, "pairs of address comparators: %i", buf_get_u32(etm_config_reg->value, 0, 4));
-	command_print(cmd_ctx, "pairs of data comparators: %i", buf_get_u32(etm_config_reg->value, 4, 4));
-	command_print(cmd_ctx, "memory map decoders: %i", buf_get_u32(etm_config_reg->value, 8, 5));
-	command_print(cmd_ctx, "number of counters: %i", buf_get_u32(etm_config_reg->value, 13, 3));
+	command_print(cmd_ctx, "pairs of address comparators: %i", (int)buf_get_u32(etm_config_reg->value, 0, 4));
+	command_print(cmd_ctx, "pairs of data comparators: %i", (int)buf_get_u32(etm_config_reg->value, 4, 4));
+	command_print(cmd_ctx, "memory map decoders: %i", (int)buf_get_u32(etm_config_reg->value, 8, 5));
+	command_print(cmd_ctx, "number of counters: %i", (int)buf_get_u32(etm_config_reg->value, 13, 3));
 	command_print(cmd_ctx, "sequencer %spresent",
 			(buf_get_u32(etm_config_reg->value, 16, 1) == 1) ? "" : "not ");
-	command_print(cmd_ctx, "number of ext. inputs: %i", buf_get_u32(etm_config_reg->value, 17, 3));
-	command_print(cmd_ctx, "number of ext. outputs: %i", buf_get_u32(etm_config_reg->value, 20, 3));
+	command_print(cmd_ctx, "number of ext. inputs: %i", (int)buf_get_u32(etm_config_reg->value, 17, 3));
+	command_print(cmd_ctx, "number of ext. outputs: %i",(int) buf_get_u32(etm_config_reg->value, 20, 3));
 	command_print(cmd_ctx, "FIFO full %spresent",
 			(buf_get_u32(etm_config_reg->value, 23, 1) == 1) ? "" : "not ");
-	command_print(cmd_ctx, "protocol version: %i", buf_get_u32(etm_config_reg->value, 28, 3));
+	command_print(cmd_ctx, "protocol version: %i", (int)buf_get_u32(etm_config_reg->value, 28, 3));
 
 	etm_get_reg(etm_sys_config_reg);
 
@@ -1431,7 +1431,7 @@ static int handle_etm_status_command(struct command_context_s *cmd_ctx, char *cm
 
 		if (arm7_9->etm_ctx->trace_depth > 0)
 		{
-			command_print(cmd_ctx, "%i frames of trace data read", arm7_9->etm_ctx->trace_depth);
+			command_print(cmd_ctx, "%i frames of trace data read", (int)(arm7_9->etm_ctx->trace_depth));
 		}
 	}
 
@@ -1618,11 +1618,13 @@ static int handle_etm_load_command(struct command_context_s *cmd_ctx, char *cmd,
 		etm_ctx->trace_data = NULL;
 	}
 
-	fileio_read_u32(&file, &etm_ctx->capture_status);
-	fileio_read_u32(&file, &etm_ctx->portmode);
-	fileio_read_u32(&file, &etm_ctx->tracemode);
-	fileio_read_u32(&file, &etm_ctx->trace_depth);
-
+	{
+	  uint32_t tmp;
+	  fileio_read_u32(&file, &tmp); etm_ctx->capture_status = tmp;
+	  fileio_read_u32(&file, &tmp); etm_ctx->portmode = tmp;
+	  fileio_read_u32(&file, &tmp); etm_ctx->tracemode = tmp;
+	  fileio_read_u32(&file, &etm_ctx->trace_depth);
+	}
 	etm_ctx->trace_data = malloc(sizeof(etmv1_trace_data_t) * etm_ctx->trace_depth);
 	if (etm_ctx->trace_data == NULL)
 	{
@@ -1682,7 +1684,7 @@ static int handle_etm_trigger_percent_command(struct command_context_s *cmd_ctx,
 		}
 	}
 
-	command_print(cmd_ctx, "%i percent of the tracebuffer reserved for after the trigger", etm_ctx->trigger_percent);
+	command_print(cmd_ctx, "%i percent of the tracebuffer reserved for after the trigger", ((int)(etm_ctx->trigger_percent)));
 
 	return ERROR_OK;
 }
