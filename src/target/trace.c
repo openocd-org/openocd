@@ -29,7 +29,7 @@ int trace_point(target_t *target, uint32_t number)
 {
 	trace_t *trace = target->trace_info;
 
-	LOG_DEBUG("tracepoint: %i", number);
+	LOG_DEBUG("tracepoint: %i", (int)number);
 	
 	if (number < trace->num_trace_points)
 		trace->trace_points[number].hit_counter++;
@@ -58,7 +58,7 @@ static int handle_trace_point_command(struct command_context_s *cmd_ctx, char *c
 		
 		for (i = 0; i < trace->num_trace_points; i++)
 		{
-			command_print(cmd_ctx, "trace point 0x%8.8x (%lld times hit)",
+			command_print(cmd_ctx, "trace point 0x%8.8" PRIx32 " (%lld times hit)",
 					trace->trace_points[i].address,
 					(long long)trace->trace_points[i].hit_counter);
 		}
@@ -115,7 +115,7 @@ static int handle_trace_history_command(struct command_context_s *cmd_ctx, char 
 		trace->trace_history_size = strtoul(args[0], NULL, 0);
 		trace->trace_history = malloc(sizeof(uint32_t) * trace->trace_history_size);
 		
-		command_print(cmd_ctx, "new trace history size: %i", trace->trace_history_size);
+		command_print(cmd_ctx, "new trace history size: %i", (int)(trace->trace_history_size));
 	}
 	else
 	{
@@ -139,14 +139,14 @@ static int handle_trace_history_command(struct command_context_s *cmd_ctx, char 
 			{
 				uint32_t address;
 				address = trace->trace_points[trace->trace_history[i % trace->trace_history_size]].address;
-				command_print(cmd_ctx, "trace point %i: 0x%8.8x",
-					trace->trace_history[i % trace->trace_history_size],
-					address);
+				command_print(cmd_ctx, "trace point %i: 0x%8.8" PRIx32 "",
+					      (int)(trace->trace_history[i % trace->trace_history_size]),
+					      address);
 			}
 
 			else
 			{
-				command_print(cmd_ctx, "trace point %i: -not defined-", trace->trace_history[i % trace->trace_history_size]);
+				command_print(cmd_ctx, "trace point %i: -not defined-", (int)(trace->trace_history[i % trace->trace_history_size]));
 			}
 		}
 	}
