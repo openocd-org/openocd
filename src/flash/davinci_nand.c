@@ -94,7 +94,7 @@ static int davinci_init(struct nand_device_s *nand)
 	 */
 	target_read_u32(target, info->aemif + NANDFCR, &nandfcr);
 	if (!(nandfcr & (1 << info->chipsel))) {
-		LOG_ERROR("chip address %08x not NAND-enabled?", info->data);
+		LOG_ERROR("chip address %08" PRIx32 " not NAND-enabled?", info->data);
 		return ERROR_NAND_OPERATION_FAILED;
 	}
 
