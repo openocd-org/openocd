@@ -290,7 +290,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			}
 			if (verify != arm7_9->arm_bkpt)
 			{
-				LOG_ERROR("Unable to set 32 bit software breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
+				LOG_ERROR("Unable to set 32 bit software breakpoint at address %08" PRIx32 " - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
 		}
@@ -314,7 +314,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			}
 			if (verify != arm7_9->thumb_bkpt)
 			{
-				LOG_ERROR("Unable to set thumb software breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
+				LOG_ERROR("Unable to set thumb software breakpoint at address %08" PRIx32 " - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
 		}
@@ -721,7 +721,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 	}
 	if (timeout)
 	{
-		LOG_ERROR("timeout waiting for SYSCOMP & DBGACK, last DBG_STATUS: %x", buf_get_u32(dbg_stat->value, 0, dbg_stat->size));
+		LOG_ERROR("timeout waiting for SYSCOMP & DBGACK, last DBG_STATUS: %" PRIx32 "", buf_get_u32(dbg_stat->value, 0, dbg_stat->size));
 		return ERROR_TARGET_TIMEOUT;
 	}
 
@@ -1363,7 +1363,7 @@ int arm7_9_debug_entry(target_t *target)
 		/* Entered debug from Thumb mode */
 		armv4_5->core_state = ARMV4_5_STATE_THUMB;
 		arm7_9->change_to_arm(target, &r0_thumb, &pc_thumb);
-		LOG_DEBUG("r0_thumb: 0x%8.8x, pc_thumb: 0x%8.8x", r0_thumb, pc_thumb);
+		LOG_DEBUG("r0_thumb: 0x%8.8" PRIx32 ", pc_thumb: 0x%8.8" PRIx32 "", r0_thumb, pc_thumb);
 	}
 	else
 	{
@@ -1430,13 +1430,13 @@ int arm7_9_debug_entry(target_t *target)
 
 	for (i=0; i<=15; i++)
 	{
-		LOG_DEBUG("r%i: 0x%8.8x", i, context[i]);
+		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, context[i]);
 		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).value, 0, 32, context[i]);
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = 0;
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid = 1;
 	}
 
-	LOG_DEBUG("entered debug state at PC 0x%x", context[15]);
+	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 "", context[15]);
 
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
@@ -1662,7 +1662,7 @@ int arm7_9_restore_context(target_t *target)
 					num_regs++;
 					reg->dirty = 0;
 					reg->valid = 1;
-					LOG_DEBUG("writing register %i of mode %s with value 0x%8.8x", j, armv4_5_mode_strings[i], regs[j]);
+					LOG_DEBUG("writing register %i of mode %s with value 0x%8.8" PRIx32 "", j, armv4_5_mode_strings[i], regs[j]);
 				}
 			}
 
@@ -1675,7 +1675,7 @@ int arm7_9_restore_context(target_t *target)
 			reg_arch_info = reg->arch_info;
 			if ((reg->dirty) && (reg_arch_info->mode != ARMV4_5_MODE_ANY))
 			{
-				LOG_DEBUG("writing SPSR of mode %i with value 0x%8.8x", i, buf_get_u32(reg->value, 0, 32));
+				LOG_DEBUG("writing SPSR of mode %i with value 0x%8.8" PRIx32 "", i, buf_get_u32(reg->value, 0, 32));
 				arm7_9->write_xpsr(target, buf_get_u32(reg->value, 0, 32), 1);
 			}
 		}
@@ -1689,20 +1689,20 @@ int arm7_9_restore_context(target_t *target)
 		tmp_cpsr = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & 0xE0;
 		tmp_cpsr |= armv4_5_number_to_mode(i);
 		tmp_cpsr &= ~0x20;
-		LOG_DEBUG("writing lower 8 bit of cpsr with value 0x%2.2x", tmp_cpsr);
+		LOG_DEBUG("writing lower 8 bit of cpsr with value 0x%2.2x", (unsigned)(tmp_cpsr));
 		arm7_9->write_xpsr_im8(target, tmp_cpsr & 0xff, 0, 0);
 	}
 	else if (armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty == 1)
 	{
 		/* CPSR has been changed, full restore necessary (mask T bit) */
-		LOG_DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
+		LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
 		arm7_9->write_xpsr(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32) & ~0x20, 0);
 		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 0;
 		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
 	}
 
 	/* restore PC */
-	LOG_DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+	LOG_DEBUG("writing PC with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 	arm7_9->write_pc(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 	armv4_5->core_cache->reg_list[15].dirty = 0;
 
@@ -1807,7 +1807,7 @@ int arm7_9_resume(struct target_s *target, int current, uint32_t address, int ha
 	{
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
 		{
-			LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
 			if ((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
 			{
 				return retval;
@@ -1819,7 +1819,7 @@ int arm7_9_resume(struct target_s *target, int current, uint32_t address, int ha
 			{
 				uint32_t current_opcode;
 				target_read_u32(target, current_pc, &current_opcode);
-				LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
+				LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "", current_opcode);
 				return retval;
 			}
 
@@ -1863,9 +1863,9 @@ int arm7_9_resume(struct target_s *target, int current, uint32_t address, int ha
 			}
 
 			arm7_9_debug_entry(target);
-			LOG_DEBUG("new PC after step: 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+			LOG_DEBUG("new PC after step: 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 
-			LOG_DEBUG("set breakpoint at 0x%8.8x", breakpoint->address);
+			LOG_DEBUG("set breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
 			if ((retval = arm7_9_set_breakpoint(target, breakpoint)) != ERROR_OK)
 			{
 				return retval;
@@ -2024,7 +2024,7 @@ int arm7_9_step(struct target_s *target, int current, uint32_t address, int hand
 	{
 		uint32_t current_opcode;
 		target_read_u32(target, current_pc, &current_opcode);
-		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
+		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "", current_opcode);
 		return retval;
 	}
 
@@ -2221,7 +2221,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 	int retval;
 	int last_reg = 0;
 
-	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, size, count);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -2374,7 +2374,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
 	{
-		LOG_WARNING("memory read caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
+		LOG_WARNING("memory read caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")", address, size, count);
 
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
@@ -2557,7 +2557,7 @@ int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size
 
 	if (((cpsr & 0x1f) == ARMV4_5_MODE_ABT) && (armv4_5->core_mode != ARMV4_5_MODE_ABT))
 	{
-		LOG_WARNING("memory write caused data abort (address: 0x%8.8x, size: 0x%x, count: 0x%x)", address, size, count);
+		LOG_WARNING("memory write caused data abort (address: 0x%8.8" PRIx32 ", size: 0x%" PRIx32 ", count: 0x%" PRIx32 ")", address, size, count);
 
 		arm7_9->write_xpsr_im8(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 8) & ~0x20, 0, 0);
 
@@ -2679,7 +2679,7 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 		uint32_t endaddress=buf_get_u32(reg_params[0].value, 0, 32);
 		if (endaddress!=(address+count*4))
 		{
-			LOG_ERROR("DCC write failed, expected end address 0x%08x got 0x%0x", (address+count*4), endaddress);
+			LOG_ERROR("DCC write failed, expected end address 0x%08" PRIx32 " got 0x%0" PRIx32 "", (address+count*4), endaddress);
 			retval=ERROR_FAIL;
 		}
 	}
