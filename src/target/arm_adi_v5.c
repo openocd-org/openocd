@@ -240,7 +240,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 	/* Check for STICKYERR and STICKYORUN */
 	if (ctrlstat & (SSTICKYORUN | SSTICKYERR))
 	{
-		LOG_DEBUG("swjdp: CTRL/STAT error 0x%x", ctrlstat);
+		LOG_DEBUG("swjdp: CTRL/STAT error 0x%" PRIx32 "", ctrlstat);
 		/* Check power to debug regions */
 		if ((ctrlstat & 0xf0000000) != 0xf0000000)
 		{
@@ -251,7 +251,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			uint32_t mem_ap_csw, mem_ap_tar;
 
 			/* Print information about last AHBAP access */
-			LOG_ERROR("AHBAP Cached values: dp_select 0x%x, ap_csw 0x%x, ap_tar 0x%x", swjdp->dp_select_value, swjdp->ap_csw_value, swjdp->ap_tar_value);
+			LOG_ERROR("AHBAP Cached values: dp_select 0x%" PRIx32 ", ap_csw 0x%" PRIx32 ", ap_tar 0x%" PRIx32 "", swjdp->dp_select_value, swjdp->ap_csw_value, swjdp->ap_tar_value);
 			if (ctrlstat & SSTICKYORUN)
 				LOG_ERROR("SWJ-DP OVERRUN - check clock or reduce jtag speed");
 
@@ -264,13 +264,13 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			if ((retval=jtag_execute_queue())!=ERROR_OK)
 				return retval;
 
-			LOG_DEBUG("swjdp: status 0x%x", ctrlstat);
+			LOG_DEBUG("swjdp: status 0x%" PRIx32 "", ctrlstat);
 
 			dap_ap_read_reg_u32(swjdp, AP_REG_CSW, &mem_ap_csw);
 			dap_ap_read_reg_u32(swjdp, AP_REG_TAR, &mem_ap_tar);
 			if ((retval=jtag_execute_queue())!=ERROR_OK)
 				return retval;
-			LOG_ERROR("Read MEM_AP_CSW 0x%x, MEM_AP_TAR 0x%x", mem_ap_csw, mem_ap_tar);
+			LOG_ERROR("Read MEM_AP_CSW 0x%" PRIx32 ", MEM_AP_TAR 0x%" PRIx32 "", mem_ap_csw, mem_ap_tar);
 
 		}
 		if ((retval=jtag_execute_queue())!=ERROR_OK)
@@ -508,7 +508,7 @@ int mem_ap_write_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint
 
 		if (errorcount > 1)
 		{
-			LOG_WARNING("Block write error address 0x%x, wcount 0x%x", address, wcount);
+			LOG_WARNING("Block write error address 0x%" PRIx32 ", wcount 0x%x", address, wcount);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
@@ -550,7 +550,7 @@ int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int coun
 			{
 				if (mem_ap_write_buf_u16(swjdp, buffer, nbytes, address) != ERROR_OK)
 				{
-					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
+					LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 
@@ -572,7 +572,7 @@ int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int coun
 				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
 				if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 				{
-					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
+					LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
@@ -642,7 +642,7 @@ int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count
 			{
 				if (mem_ap_write_buf_u8(swjdp, buffer, nbytes, address) != ERROR_OK)
 				{
-					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
+					LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 
@@ -664,7 +664,7 @@ int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count
 				dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
 				if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 				{
-					LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
+					LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
 					return ERROR_JTAG_DEVICE_ERROR;
 				}
 			}
@@ -756,7 +756,7 @@ int mem_ap_read_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint3
 
 		if (errorcount > 1)
 		{
-			LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
+			LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 	}
@@ -813,7 +813,7 @@ int mem_ap_read_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count
 			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue );
 			if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 			{
-				LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
+				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 
@@ -905,7 +905,7 @@ int mem_ap_read_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count,
 			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue );
 			if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 			{
-				LOG_WARNING("Block read error address 0x%x, count 0x%x", address, count);
+				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 
@@ -1002,7 +1002,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	dap_ap_read_reg_u32(swjdp, 0xFC, &idreg);
 	dap_ap_read_reg_u32(swjdp, 0xF8, &romaddr);
 
-	LOG_DEBUG("AHB-AP ID Register 0x%x, Debug ROM Address 0x%x", idreg, romaddr);
+	LOG_DEBUG("AHB-AP ID Register 0x%" PRIx32 ", Debug ROM Address 0x%" PRIx32 "", idreg, romaddr);
 
 	return ERROR_OK;
 }
@@ -1028,7 +1028,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 	swjdp_transaction_endcheck(swjdp);
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	mem_ap = ((apid&0x10000)&&((apid&0x0F)!=0));
-	command_print(cmd_ctx, "ap identification register 0x%8.8x", apid);
+	command_print(cmd_ctx, "ap identification register 0x%8.8" PRIx32 "", apid);
 	if (apid)
 	{
 		switch (apid&0x0F)
@@ -1046,7 +1046,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 				command_print(cmd_ctx, "\tUnknown AP-type");
 			break;
 		}
-		command_print(cmd_ctx, "ap debugbase 0x%8.8x", dbgbase);
+		command_print(cmd_ctx, "ap debugbase 0x%8.8" PRIx32 "", dbgbase);
 	}
 	else
 	{
@@ -1074,7 +1074,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFFC, &cid3);
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFCC, &memtype);
 		swjdp_transaction_endcheck(swjdp);
-		command_print(cmd_ctx, "\tCID3 0x%x, CID2 0x%x, CID1 0x%x, CID0, 0x%x",cid3,cid2,cid1,cid0);
+		command_print(cmd_ctx, "\tCID3 0x%" PRIx32 ", CID2 0x%" PRIx32 ", CID1 0x%" PRIx32 " CID0, 0x%" PRIx32,cid3,cid2,cid1,cid0);
 		if (memtype&0x01)
 		{
 			command_print(cmd_ctx, "\tMEMTYPE system memory present on bus");
@@ -1089,7 +1089,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 		do
 		{
 			mem_ap_read_atomic_u32(swjdp, (dbgbase&0xFFFFF000)|entry_offset, &romentry);
-			command_print(cmd_ctx, "\tROMTABLE[0x%x] = 0x%x",entry_offset,romentry);
+			command_print(cmd_ctx, "\tROMTABLE[0x%x] = 0x%" PRIx32 "",entry_offset,romentry);
 			if (romentry&0x01)
 			{
 				uint32_t c_cid0,c_cid1,c_cid2,c_cid3,c_pid0,c_pid1,c_pid2,c_pid3,c_pid4,component_start;
@@ -1104,10 +1104,10 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFF8, &c_cid2);
 				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFFC, &c_cid3);
 				component_start = component_base - 0x1000*(c_pid4>>4);
-				command_print(cmd_ctx, "\t\tComponent base address 0x%x, pid4 0x%x, start address 0x%x",component_base,c_pid4,component_start);
-				command_print(cmd_ctx, "\t\tComponent cid1 0x%x, class is %s",c_cid1,class_description[(c_cid1>>4)&0xF]); /* Se ARM DDI 0314 C Table 2.2 */
-				command_print(cmd_ctx, "\t\tCID3 0x%x, CID2 0x%x, CID1 0x%x, CID0, 0x%x",c_cid3,c_cid2,c_cid1,c_cid0);
-				command_print(cmd_ctx, "\t\tPID3 0x%x, PID2 0x%x, PID1 0x%x, PID0, 0x%x",c_pid3,c_pid2,c_pid1,c_pid0);
+				command_print(cmd_ctx, "\t\tComponent base address 0x%" PRIx32 ", pid4 0x%" PRIx32 ", start address 0x%" PRIx32 "",component_base,c_pid4,component_start);
+				command_print(cmd_ctx, "\t\tComponent cid1 0x%" PRIx32 ", class is %s",c_cid1,class_description[(c_cid1>>4)&0xF]); /* Se ARM DDI 0314 C Table 2.2 */
+				command_print(cmd_ctx, "\t\tCID3 0x%" PRIx32 ", CID2 0x%" PRIx32 ", CID1 0x%" PRIx32 ", CID0, 0x%" PRIx32 "",c_cid3,c_cid2,c_cid1,c_cid0);
+				command_print(cmd_ctx, "\t\tPID3 0x%" PRIx32 ", PID2 0x%" PRIx32 ", PID1 0x%" PRIx32 ", PID0, 0x%" PRIx32 "",c_pid3,c_pid2,c_pid1,c_pid0);
 				/* For CoreSight components,  (c_cid1>>4)&0xF==9 , we also read 0xFC8 DevId and 0xFCC DevType */
 			}
 			else
