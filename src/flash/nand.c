@@ -1138,9 +1138,13 @@ static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd
 				else
 					bad_state = " (block condition unknown)";
 
-				command_print(cmd_ctx, "\t#%i: 0x%8.8x (%dkB) %s%s",
-							j, p->blocks[j].offset, p->blocks[j].size / 1024,
-							erase_state, bad_state);
+				command_print(cmd_ctx, 
+					      "\t#%i: 0x%8.8" PRIx32 " (%" PRId32 "kB) %s%s",
+					      j,
+					      p->blocks[j].offset, 
+					      p->blocks[j].size / 1024,
+					      erase_state, 
+					      bad_state);
 			}
 		}
 		else
@@ -1449,7 +1453,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 
 			if (nand_write_page(p, offset / p->page_size, page, page_size, oob, oob_size) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "failed writing file %s to NAND flash %s at offset 0x%8.8x",
+				command_print(cmd_ctx, "failed writing file %s to NAND flash %s at offset 0x%8.8" PRIx32 "",
 					args[1], args[0], offset);
 
 				fileio_close(&fileio);
@@ -1467,7 +1471,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 		oob = NULL;
 		page = NULL;
 		duration_stop_measure(&duration, &duration_text);
-		command_print(cmd_ctx, "wrote file %s to NAND flash %s up to offset 0x%8.8x in %s",
+		command_print(cmd_ctx, "wrote file %s to NAND flash %s up to offset 0x%8.8" PRIx32 " in %s",
 			args[1], args[0], offset, duration_text);
 		free(duration_text);
 		duration_text = NULL;
