@@ -652,7 +652,7 @@ static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 
 	if (offset & 0x7)
 	{
-		LOG_WARNING("offset 0x%x breaks required 8-byte alignment", offset);
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required 8-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
@@ -831,7 +831,7 @@ static int str9xpec_handle_part_id_command(struct command_context_s *cmd_ctx, ch
 
 	idcode = buf_get_u32(buffer, 0, 32);
 
-	command_print(cmd_ctx, "str9xpec part id: 0x%8.8x", idcode);
+	command_print(cmd_ctx, "str9xpec part id: 0x%8.8" PRIx32 "", idcode);
 
 	free(buffer);
 
