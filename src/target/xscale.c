@@ -765,7 +765,7 @@ int xscale_load_ic(target_t *target, int mini, uint32_t va, uint32_t buffer[8])
 
 	scan_field_t fields[2];
 
-	LOG_DEBUG("loading miniIC at 0x%8.8x", va);
+	LOG_DEBUG("loading miniIC at 0x%8.8" PRIx32 "", va);
 
 	jtag_set_end_state(TAP_IDLE);
 	xscale_jtag_set_instr(xscale->jtag_info.tap, xscale->jtag_info.ldic); /* LDIC */
@@ -955,7 +955,7 @@ int xscale_arch_state(struct target_s *target)
 	}
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
-			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
+			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s"
 			"%s",
 			 armv4_5_state_strings[armv4_5->core_state],
@@ -1039,13 +1039,13 @@ int xscale_debug_entry(target_t *target)
 	buf_set_u32(armv4_5->core_cache->reg_list[0].value, 0, 32, buffer[0]);
 	armv4_5->core_cache->reg_list[15].dirty = 1;
 	armv4_5->core_cache->reg_list[15].valid = 1;
-	LOG_DEBUG("r0: 0x%8.8x", buffer[0]);
+	LOG_DEBUG("r0: 0x%8.8" PRIx32 "", buffer[0]);
 
 	/* move pc from buffer to register cache */
 	buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, buffer[1]);
 	armv4_5->core_cache->reg_list[15].dirty = 1;
 	armv4_5->core_cache->reg_list[15].valid = 1;
-	LOG_DEBUG("pc: 0x%8.8x", buffer[1]);
+	LOG_DEBUG("pc: 0x%8.8" PRIx32 "", buffer[1]);
 
 	/* move data from buffer to register cache */
 	for (i = 1; i <= 7; i++)
@@ -1053,13 +1053,13 @@ int xscale_debug_entry(target_t *target)
 		buf_set_u32(armv4_5->core_cache->reg_list[i].value, 0, 32, buffer[1 + i]);
 		armv4_5->core_cache->reg_list[i].dirty = 1;
 		armv4_5->core_cache->reg_list[i].valid = 1;
-		LOG_DEBUG("r%i: 0x%8.8x", i, buffer[i + 1]);
+		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, buffer[i + 1]);
 	}
 
 	buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, buffer[9]);
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].dirty = 1;
 	armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
-	LOG_DEBUG("cpsr: 0x%8.8x", buffer[9]);
+	LOG_DEBUG("cpsr: 0x%8.8" PRIx32 "", buffer[9]);
 
 	armv4_5->core_mode = buffer[9] & 0x1f;
 	if (armv4_5_mode_to_number(armv4_5->core_mode) == -1)
@@ -1321,7 +1321,7 @@ int xscale_resume(struct target_s *target, int current, uint32_t address, int ha
 			uint32_t next_pc;
 
 			/* there's a breakpoint at the current PC, we have to step over it */
-			LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
 			xscale_unset_breakpoint(target, breakpoint);
 
 			/* calculate PC of next instruction */
@@ -1329,7 +1329,7 @@ int xscale_resume(struct target_s *target, int current, uint32_t address, int ha
 			{
 				uint32_t current_opcode;
 				target_read_u32(target, current_pc, &current_opcode);
-				LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
+				LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "", current_opcode);
 			}
 
 			LOG_DEBUG("enable single-step");
@@ -1350,18 +1350,18 @@ int xscale_resume(struct target_s *target, int current, uint32_t address, int ha
 
 			/* send CPSR */
 			xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-			LOG_DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
+			LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
 
 			for (i = 7; i >= 0; i--)
 			{
 				/* send register */
 				xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
-				LOG_DEBUG("writing r%i with value 0x%8.8x", i, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
+				LOG_DEBUG("writing r%i with value 0x%8.8" PRIx32 "", i, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
 			}
 
 			/* send PC */
 			xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-			LOG_DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+			LOG_DEBUG("writing PC with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 
 			/* wait for and process debug entry */
 			xscale_debug_entry(target);
@@ -1369,7 +1369,7 @@ int xscale_resume(struct target_s *target, int current, uint32_t address, int ha
 			LOG_DEBUG("disable single-step");
 			xscale_disable_single_step(target);
 
-			LOG_DEBUG("set breakpoint at 0x%8.8x", breakpoint->address);
+			LOG_DEBUG("set breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
 			xscale_set_breakpoint(target, breakpoint);
 		}
 	}
@@ -1393,18 +1393,18 @@ int xscale_resume(struct target_s *target, int current, uint32_t address, int ha
 
 	/* send CPSR */
 	xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
-	LOG_DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
+	LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
 
 	for (i = 7; i >= 0; i--)
 	{
 		/* send register */
 		xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
-		LOG_DEBUG("writing r%i with value 0x%8.8x", i, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
+		LOG_DEBUG("writing r%i with value 0x%8.8" PRIx32 "", i, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
 	}
 
 	/* send PC */
 	xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
-	LOG_DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+	LOG_DEBUG("writing PC with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
 
@@ -1446,7 +1446,7 @@ static int xscale_step_inner(struct target_s *target, int current, uint32_t addr
 		current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 
 		target_read_u32(target, current_pc, &current_opcode);
-		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8x", current_opcode);
+		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "", current_opcode);
 		return retval;
 	}
 
@@ -1474,20 +1474,20 @@ static int xscale_step_inner(struct target_s *target, int current, uint32_t addr
 	/* send CPSR */
 	if ((retval=xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32)))!=ERROR_OK)
 		return retval;
-	LOG_DEBUG("writing cpsr with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
+	LOG_DEBUG("writing cpsr with value 0x%8.8" PRIx32 "", buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32));
 
 	for (i = 7; i >= 0; i--)
 	{
 		/* send register */
 		if ((retval=xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32)))!=ERROR_OK)
 			return retval;
-		LOG_DEBUG("writing r%i with value 0x%8.8x", i, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
+		LOG_DEBUG("writing r%i with value 0x%8.8" PRIx32 "", i, buf_get_u32(armv4_5->core_cache->reg_list[i].value, 0, 32));
 	}
 
 	/* send PC */
 	if ((retval=xscale_send_u32(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32)))!=ERROR_OK)
 		return retval;
-	LOG_DEBUG("writing PC with value 0x%8.8x", buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
+	LOG_DEBUG("writing PC with value 0x%8.8" PRIx32, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 
 	target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 
@@ -1914,7 +1914,7 @@ int xscale_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 	uint32_t i;
 	int retval;
 
-	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32, address, size, count);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1991,7 +1991,7 @@ int xscale_write_memory(struct target_s *target, uint32_t address, uint32_t size
 	xscale_common_t *xscale = armv4_5->arch_info;
 	int retval;
 
-	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32, address, size, count);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -3650,7 +3650,7 @@ int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int a
 		/* read cp15 control register */
 		xscale_get_reg(reg);
 		value = buf_get_u32(reg->value, 0, 32);
-		command_print(cmd_ctx, "%s (/%i): 0x%x", reg->name, reg->size, value);
+		command_print(cmd_ctx, "%s (/%i): 0x%" PRIx32 "", reg->name, (int)(reg->size), value);
 	}
 	else if(argc == 2)
 	{
