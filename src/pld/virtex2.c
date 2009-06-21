@@ -138,7 +138,7 @@ static int virtex2_read_stat(struct pld_device_s *pld_device, uint32_t *status)
 
 	jtag_execute_queue();
 
-	LOG_DEBUG("status: 0x%8.8x", *status);
+	LOG_DEBUG("status: 0x%8.8" PRIx32 "", *status);
 
 	return ERROR_OK;
 }
@@ -213,7 +213,7 @@ static int virtex2_handle_read_stat_command(struct command_context_s *cmd_ctx,
 
 	virtex2_read_stat(device, &status);
 
-	command_print(cmd_ctx, "virtex2 status register: 0x%8.8x", status);
+	command_print(cmd_ctx, "virtex2 status register: 0x%8.8" PRIx32 "", status);
 
 	return ERROR_OK;
 }
