@@ -531,18 +531,18 @@ void arm11_dump_reg_changes(arm11_common_t * arm11)
 		if (!arm11->reg_list[i].valid)
 		{
 			if (arm11->reg_history[i].valid)
-				LOG_DEBUG("%8s INVALID	 (%08x)", arm11_reg_defs[i].name, arm11->reg_history[i].value);
+				LOG_DEBUG("%8s INVALID	 (%08" PRIx32 ")", arm11_reg_defs[i].name, arm11->reg_history[i].value);
 		}
 		else
 		{
 			if (arm11->reg_history[i].valid)
 			{
 				if (arm11->reg_history[i].value != arm11->reg_values[i])
-					LOG_DEBUG("%8s %08x (%08x)", arm11_reg_defs[i].name, arm11->reg_values[i], arm11->reg_history[i].value);
+					LOG_DEBUG("%8s %08" PRIx32 " (%08" PRIx32 ")", arm11_reg_defs[i].name, arm11->reg_values[i], arm11->reg_history[i].value);
 			}
 			else
 			{
-				LOG_DEBUG("%8s %08x (INVALID)", arm11_reg_defs[i].name, arm11->reg_values[i]);
+				LOG_DEBUG("%8s %08" PRIx32 " (INVALID)", arm11_reg_defs[i].name, arm11->reg_values[i]);
 			}
 		}
 	}
@@ -585,7 +585,7 @@ int arm11_leave_debug_state(arm11_common_t * arm11)
 
 		if (DSCR & (ARM11_DSCR_RDTR_FULL | ARM11_DSCR_WDTR_FULL))
 		{
-			LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08x)", DSCR);
+			LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08" PRIx32 ")", DSCR);
 		}
 	}
 
@@ -672,7 +672,7 @@ int arm11_poll(struct target_s *target)
 
 	CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
-	LOG_DEBUG("DSCR %08x", dscr);
+	LOG_DEBUG("DSCR %08" PRIx32 "", dscr);
 
 	CHECK_RETVAL(arm11_check_init(arm11, &dscr));
 
@@ -708,7 +708,7 @@ int arm11_arch_state(struct target_s *target)
 {
 	arm11_common_t * arm11 = target->arch_info;
 
-	LOG_USER("target halted due to %s\ncpsr: 0x%8.8x pc: 0x%8.8x",
+	LOG_USER("target halted due to %s\ncpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "",
 			 Jim_Nvp_value2name_simple( nvp_target_debug_reason, target->debug_reason )->name,
 			 R(CPSR),
 			 R(PC));
@@ -801,7 +801,7 @@ int arm11_resume(struct target_s *target, int current, uint32_t address, int han
 	if (!current)
 		R(PC) = address;
 
-	LOG_DEBUG("RESUME PC %08x%s", R(PC), !current ? "!" : "");
+	LOG_DEBUG("RESUME PC %08" PRIx32 "%s", R(PC), !current ? "!" : "");
 
 	/* clear breakpoints/watchpoints and VCR*/
 	arm11_sc7_clear_vbw(arm11);
@@ -817,7 +817,7 @@ int arm11_resume(struct target_s *target, int current, uint32_t address, int han
 		{
 			if (bp->address == R(PC))
 			{
-				LOG_DEBUG("must step over %08x", bp->address);
+				LOG_DEBUG("must step over %08" PRIx32 "", bp->address);
 				arm11_step(target, 1, 0, 0);
 				break;
 			}
@@ -840,7 +840,7 @@ int arm11_resume(struct target_s *target, int current, uint32_t address, int han
 
 			arm11_sc7_run(arm11, brp, asizeof(brp));
 
-			LOG_DEBUG("Add BP " ZU " at %08x", brp_num, bp->address);
+			LOG_DEBUG("Add BP " ZU " at %08" PRIx32 "", brp_num, bp->address);
 
 			brp_num++;
 		}
@@ -860,7 +860,7 @@ int arm11_resume(struct target_s *target, int current, uint32_t address, int han
 
 		CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
-		LOG_DEBUG("DSCR %08x", dscr);
+		LOG_DEBUG("DSCR %08" PRIx32 "", dscr);
 
 		if (dscr & ARM11_DSCR_CORE_RESTARTED)
 			break;
@@ -902,7 +902,7 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 	if (!current)
 		R(PC) = address;
 
-	LOG_DEBUG("STEP PC %08x%s", R(PC), !current ? "!" : "");
+	LOG_DEBUG("STEP PC %08" PRIx32 "%s", R(PC), !current ? "!" : "");
 
 	/** \todo TODO: Thumb not supported here */
 
@@ -979,7 +979,7 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 
 			CHECK_RETVAL(arm11_read_DSCR(arm11, &dscr));
 
-			LOG_DEBUG("DSCR %08x", dscr);
+			LOG_DEBUG("DSCR %08" PRIx32 "e", dscr);
 
 			if ((dscr & (ARM11_DSCR_CORE_RESTARTED | ARM11_DSCR_CORE_HALTED)) ==
 				(ARM11_DSCR_CORE_RESTARTED | ARM11_DSCR_CORE_HALTED))
@@ -1102,7 +1102,7 @@ int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, 
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("ADDR %08x  SIZE %08x  COUNT %08x", address, size, count);
+	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "", address, size, count);
 
 	arm11_common_t * arm11 = target->arch_info;
 
@@ -1183,7 +1183,7 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("ADDR %08x  SIZE %08x  COUNT %08x", address, size, count);
+	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "", address, size, count);
 
 	arm11_common_t * arm11 = target->arch_info;
 
@@ -1267,7 +1267,7 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 
 		if (address + size * count != r0)
 		{
-			LOG_ERROR("Data transfer failed. (%d)", (r0 - address) - size * count);
+			LOG_ERROR("Data transfer failed. (%d)", (int)((r0 - address) - size * count));
 
 			if (arm11_config_memwrite_burst)
 				LOG_ERROR("use 'arm11 memwrite burst disable' to disable fast burst mode");
@@ -1396,11 +1396,11 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 	for (size_t i = 0; i < 16; i++)
 	{
 		context[i] = buf_get_u32((uint8_t*)(&arm11->reg_values[i]),0,32);
-		LOG_DEBUG("Save %zi: 0x%x",i,context[i]);
+		LOG_DEBUG("Save %zi: 0x%" PRIx32 "",i,context[i]);
 	}
 
 	cpsr = buf_get_u32((uint8_t*)(arm11->reg_values+ARM11_RC_CPSR),0,32);
-	LOG_DEBUG("Save CPSR: 0x%x", cpsr);
+	LOG_DEBUG("Save CPSR: 0x%" PRIx32 "", cpsr);
 
 	for (int i = 0; i < num_mem_params; i++)
 	{
@@ -1479,7 +1479,7 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 
 	if (buf_get_u32(arm11->reg_list[15].value, 0, 32) != exit_point)
 	{
-		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
+		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4" PRIx32 "",
 			buf_get_u32(arm11->reg_list[15].value, 0, 32));
 		retval = ERROR_TARGET_TIMEOUT;
 		goto del_breakpoint;
@@ -1519,11 +1519,11 @@ restore:
 	// Restore context
 	for (size_t i = 0; i < 16; i++)
 	{
-		LOG_DEBUG("restoring register %s with value 0x%8.8x",
+		LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32 "",
 			 arm11->reg_list[i].name, context[i]);
 		arm11_set_reg(&arm11->reg_list[i], (uint8_t*)&context[i]);
 	}
-	LOG_DEBUG("restoring CPSR with value 0x%8.8x", cpsr);
+	LOG_DEBUG("restoring CPSR with value 0x%8.8" PRIx32 "", cpsr);
 	arm11_set_reg(&arm11->reg_list[ARM11_RC_CPSR], (uint8_t*)&cpsr);
 
 //	arm11->core_state = core_state;
@@ -1620,9 +1620,9 @@ int arm11_examine(struct target_s *target)
 	arm11->free_brps = arm11->brp;
 	arm11->free_wrps = arm11->wrp;
 
-	LOG_DEBUG("IDCODE %08x IMPLEMENTOR %02x DIDR %08x",
+	LOG_DEBUG("IDCODE %08" PRIx32 " IMPLEMENTOR %02x DIDR %08" PRIx32 "",
 		arm11->device_id,
-		arm11->implementor,
+		(int)(arm11->implementor),
 		arm11->didr);
 
 	/* as a side-effect this reads DSCR and thus
@@ -1815,7 +1815,7 @@ int arm11_handle_vcr(struct command_context_s *cmd_ctx, char *cmd, char **args, 
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	LOG_INFO("VCR 0x%08X", arm11_vcr);
+	LOG_INFO("VCR 0x%08" PRIx32 "", arm11_vcr);
 	return ERROR_OK;
 }
 
@@ -1887,8 +1887,9 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 
 		if (values[i] > arm11_coproc_instruction_limits[i])
 		{
-			LOG_ERROR("Parameter %ld out of bounds (%d max). %s",
-				(long)(i + 2), arm11_coproc_instruction_limits[i],
+			LOG_ERROR("Parameter %ld out of bounds (%" PRId32 " max). %s",
+				  (long)(i + 2), 
+				  arm11_coproc_instruction_limits[i],
 				read ? arm11_mrc_syntax : arm11_mcr_syntax);
 			return -1;
 		}
@@ -1911,17 +1912,21 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 		uint32_t result;
 		arm11_run_instr_data_from_core_via_r0(arm11, instr, &result);
 
-		LOG_INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08x (%d)",
-			values[0], values[1], values[2], values[3], values[4], result, result);
+		LOG_INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08" PRIx32 " (%" PRId32 ")",
+			 (int)(values[0]), 
+			 (int)(values[1]), 
+			 (int)(values[2]), 
+			 (int)(values[3]), 
+			 (int)(values[4]), result, result);
 	}
 	else
 	{
 		arm11_run_instr_data_to_core_via_r0(arm11, instr, values[5]);
 
-		LOG_INFO("MRC p%d, %d, R0 (#0x%08x), c%d, c%d, %d",
-			values[0], values[1],
-			values[5],
-			values[2], values[3], values[4]);
+		LOG_INFO("MRC p%d, %d, R0 (#0x%08" PRIx32 "), c%d, c%d, %d",
+			 (int)(values[0]), (int)(values[1]),
+			 values[5],
+			 (int)(values[2]), (int)(values[3]), (int)(values[4]));
 	}
 
 	arm11_run_instr_data_finish(arm11);
