@@ -143,7 +143,7 @@ static int mips32_pracc_exec_read(mips32_pracc_context *ctx, uint32_t address)
 		 * to start of debug vector */
 		
 		data = 0;
-		LOG_ERROR("Error reading unexpected address %8.8x", address);
+		LOG_ERROR("Error reading unexpected address %8.8" PRIx32 "", address);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 	
@@ -200,7 +200,7 @@ static int mips32_pracc_exec_write(mips32_pracc_context *ctx, uint32_t address)
 	}
 	else
 	{
-		LOG_ERROR("Error writing unexpected address %8.8x", address);
+		LOG_ERROR("Error writing unexpected address %8.8" PRIx32 "", address);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 	
