@@ -155,7 +155,7 @@ static int avr_jtagprg_chiperase(avr_common_t *avr)
 		{
 			return ERROR_FAIL;
 		}
-		LOG_DEBUG("poll_value = 0x%04X", poll_value);
+		LOG_DEBUG("poll_value = 0x%04" PRIx32 "", poll_value);
 	}while(!(poll_value & 0x0200));
 
 	return ERROR_OK;
@@ -202,7 +202,7 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, uint8_t *page_buf, uint
 		{
 			return ERROR_FAIL;
 		}
-		LOG_DEBUG("poll_value = 0x%04X", poll_value);
+		LOG_DEBUG("poll_value = 0x%04" PRIx32 "", poll_value);
 	}while(!(poll_value & 0x0200));
 
 	return ERROR_OK;
@@ -264,12 +264,12 @@ static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offse
 	page_size = bank->sectors[0].size;
 	if ((offset % page_size) != 0)
 	{
-		LOG_WARNING("offset 0x%x breaks required %d-byte alignment", offset, page_size);
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required %" PRIu32 "-byte alignment", offset, page_size);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
-	LOG_DEBUG("offset is 0x%08X", offset);
-	LOG_DEBUG("count is %d", count);
+	LOG_DEBUG("offset is 0x%08" PRIx32 "", offset);
+	LOG_DEBUG("count is %" PRId32 "", count);
 
 	if (ERROR_OK != avr_jtagprg_enterprogmode(avr))
 	{
@@ -323,10 +323,10 @@ static int avrf_probe(struct flash_bank_s *bank)
 		return ERROR_FAIL;
 	}
 
-	LOG_INFO( "device id = 0x%08x", device_id );
+	LOG_INFO( "device id = 0x%08" PRIx32 "", device_id );
 	if (EXTRACT_MFG(device_id) != 0x1F)
 	{
-		LOG_ERROR("0x%X is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);
+		LOG_ERROR("0x%" PRIx32 " is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);
 	}
 
 	for (i = 0; i < (int)(sizeof(avft_chips_info) / sizeof(avft_chips_info[0])); i++)
@@ -361,7 +361,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 	else
 	{
 		// chip not supported
-		LOG_ERROR("0x%X is not support for avr", EXTRACT_PART(device_id));
+		LOG_ERROR("0x%" PRIx32 " is not support for avr", EXTRACT_PART(device_id));
 
 		avrf_info->probed = 1;
 		return ERROR_FAIL;
@@ -402,10 +402,10 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		return ERROR_FAIL;
 	}
 
-	LOG_INFO( "device id = 0x%08x", device_id );
+	LOG_INFO( "device id = 0x%08" PRIx32 "", device_id );
 	if (EXTRACT_MFG(device_id) != 0x1F)
 	{
-		LOG_ERROR("0x%X is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);
+		LOG_ERROR("0x%" PRIx32 " is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);
 	}
 
 	for (i = 0; i < (int)(sizeof(avft_chips_info) / sizeof(avft_chips_info[0])); i++)
@@ -422,7 +422,7 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	if (avr_info != NULL)
 	{
 		// chip found
-		snprintf(buf, buf_size, "%s - Rev: 0x%X", avr_info->name, EXTRACT_VER(device_id));
+		snprintf(buf, buf_size, "%s - Rev: 0x%" PRIx32 "", avr_info->name, EXTRACT_VER(device_id));
 		return ERROR_OK;
 	}
 	else
