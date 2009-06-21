@@ -205,8 +205,6 @@ int handle_debug_level_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	else if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	command_print(cmd_ctx, "debug_level: %i", debug_level);
-
 	if (debug_level >= LOG_LVL_DEBUG && server_use_pipes == 1)
 	{
 		/* if we are enabling debug info then we need to write to a log file
@@ -218,6 +216,8 @@ int handle_debug_level_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			LOG_WARNING("enabling log output as we are using pipes");
 		}
 	}
+
+	command_print(cmd_ctx, "debug_level: %i", debug_level);
 
 	return ERROR_OK;
 }
