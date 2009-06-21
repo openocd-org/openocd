@@ -164,7 +164,7 @@ int mips32_write_core_reg(struct target_s *target, int num)
 	reg_value = buf_get_u32(mips32->core_cache->reg_list[num].value, 0, 32);
 	mips_core_reg = mips32->core_cache->reg_list[num].arch_info;
 	mips32->core_regs[num] = reg_value;
-	LOG_DEBUG("write core reg %i value 0x%x", num , reg_value);
+	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num , reg_value);
 	mips32->core_cache->reg_list[num].valid = 1;
 	mips32->core_cache->reg_list[num].dirty = 0;
 	
@@ -264,7 +264,7 @@ int mips32_arch_state(struct target_s *target)
 		exit(-1);
 	}
 	
-	LOG_USER("target halted due to %s, pc: 0x%8.8x",
+	LOG_USER("target halted due to %s, pc: 0x%8.8" PRIx32 "",
 		Jim_Nvp_value2name_simple( nvp_target_debug_reason, target->debug_reason )->name ,
 		buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32));
 	
@@ -414,7 +414,7 @@ int mips32_configure_break_unit(struct target_s *target)
 			return retval;
 	}
 	
-	LOG_DEBUG("DCR 0x%x numinst %i numdata %i", dcr, mips32->num_inst_bpoints, mips32->num_data_bpoints);
+	LOG_DEBUG("DCR 0x%" PRIx32 " numinst %i numdata %i", dcr, mips32->num_inst_bpoints, mips32->num_data_bpoints);
 	
 	mips32->bp_scanned = 1;
 	
