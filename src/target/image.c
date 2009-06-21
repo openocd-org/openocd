@@ -174,7 +174,7 @@ static int image_ihex_buffer_complete(image_t *image)
 		uint8_t cal_checksum = 0;
 		uint32_t bytes_read = 0;
 
-		if (sscanf(&lpszLine[bytes_read], ":%2x%4x%2x", &count, &address, &record_type) != 3)
+		if (sscanf(&lpszLine[bytes_read], ":%2" SCNx32 "%4" SCNx32 "%2" SCNx32 , &count, &address, &record_type) != 3)
 		{
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
@@ -269,7 +269,7 @@ static int image_ihex_buffer_complete(image_t *image)
 			/* but we must consume it, and do not create an error.  */
 			while (count-- > 0)
 			{
-				sscanf(&lpszLine[bytes_read], "%2x", &dummy);
+				sscanf(&lpszLine[bytes_read], "%2" SCNx32 , &dummy);
 				cal_checksum += (uint8_t)dummy;
 				bytes_read += 2;
 			}
@@ -305,7 +305,7 @@ static int image_ihex_buffer_complete(image_t *image)
 		{
 			uint32_t start_address;
 
-			sscanf(&lpszLine[bytes_read], "%8x", &start_address);
+			sscanf(&lpszLine[bytes_read], "%8" SCNx32, &start_address);
 			cal_checksum += (uint8_t)(start_address >> 24);
 			cal_checksum += (uint8_t)(start_address >> 16);
 			cal_checksum += (uint8_t)(start_address >> 8);
@@ -317,11 +317,11 @@ static int image_ihex_buffer_complete(image_t *image)
 		}
 		else
 		{
-			LOG_ERROR("unhandled IHEX record type: %i", record_type);
+		  LOG_ERROR("unhandled IHEX record type: %i", (int)record_type);
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
 
-		sscanf(&lpszLine[bytes_read], "%2x", &checksum);
+		sscanf(&lpszLine[bytes_read], "%2" SCNx32 , &checksum);
 		bytes_read += 2;
 
 		if ((uint8_t)checksum != (uint8_t)(~cal_checksum + 1))
@@ -446,14 +446,14 @@ static int image_elf_read_section(image_t *image, int section, uint32_t offset, 
 
 	*size_read = 0;
 
-	LOG_DEBUG("load segment %d at 0x%x (sz=0x%x)",section,offset,size);
+	LOG_DEBUG("load segment %d at 0x%" PRIx32 " (sz=0x%" PRIx32 ")",section,offset,size);
 
 	/* read initialized data in current segment if any */
 	if (offset<field32(elf,segment->p_filesz))
 	{
 		/* maximal size present in file for the current segment */
 		read_size = MIN(size, field32(elf,segment->p_filesz)-offset);
-		LOG_DEBUG("read elf: size = 0x%x at 0x%x",read_size,
+		LOG_DEBUG("read elf: size = 0x%" PRIx32 " at 0x%" PRIx32 "",read_size,
 			field32(elf,segment->p_offset)+offset);
 		/* read initialized area of the segment */
 		if ((retval = fileio_seek(&elf->fileio, field32(elf,segment->p_offset)+offset)) != ERROR_OK)
@@ -509,7 +509,7 @@ static int image_mot_buffer_complete(image_t *image)
 		uint32_t bytes_read = 0;
 
 		/* get record type and record length */
-		if (sscanf(&lpszLine[bytes_read], "S%1x%2x", &record_type, &count) != 2)
+		if (sscanf(&lpszLine[bytes_read], "S%1" SCNx32 "%2" SCNx32 , &record_type, &count) != 2)
 		{
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
@@ -537,7 +537,7 @@ static int image_mot_buffer_complete(image_t *image)
 			{
 				case 1:
 					/* S1 - 16 bit address data record */
-					sscanf(&lpszLine[bytes_read], "%4x", &address);
+					sscanf(&lpszLine[bytes_read], "%4" SCNx32, &address);
 					cal_checksum += (uint8_t)(address >> 8);
 					cal_checksum += (uint8_t)address;
 					bytes_read += 4;
@@ -546,7 +546,7 @@ static int image_mot_buffer_complete(image_t *image)
 
 				case 2:
 					/* S2 - 24 bit address data record */
-					sscanf(&lpszLine[bytes_read], "%6x", &address);
+					sscanf(&lpszLine[bytes_read], "%6" SCNx32 , &address);
 					cal_checksum += (uint8_t)(address >> 16);
 					cal_checksum += (uint8_t)(address >> 8);
 					cal_checksum += (uint8_t)address;
@@ -556,7 +556,7 @@ static int image_mot_buffer_complete(image_t *image)
 
 				case 3:
 					/* S3 - 32 bit address data record */
-					sscanf(&lpszLine[bytes_read], "%8x", &address);
+					sscanf(&lpszLine[bytes_read], "%8" SCNx32 , &address);
 					cal_checksum += (uint8_t)(address >> 24);
 					cal_checksum += (uint8_t)(address >> 16);
 					cal_checksum += (uint8_t)(address >> 8);
@@ -603,7 +603,7 @@ static int image_mot_buffer_complete(image_t *image)
 
 			while (count-- > 0)
 			{
-				sscanf(&lpszLine[bytes_read], "%2x", &dummy);
+				sscanf(&lpszLine[bytes_read], "%2" SCNx32 , &dummy);
 				cal_checksum += (uint8_t)dummy;
 				bytes_read += 2;
 			}
@@ -627,12 +627,12 @@ static int image_mot_buffer_complete(image_t *image)
 		}
 		else
 		{
-			LOG_ERROR("unhandled S19 record type: %i", record_type);
+		  LOG_ERROR("unhandled S19 record type: %i", (int)(record_type));
 			return ERROR_IMAGE_FORMAT_ERROR;
 		}
 
 		/* account for checksum, will always be 0xFF */
-		sscanf(&lpszLine[bytes_read], "%2x", &checksum);
+		sscanf(&lpszLine[bytes_read], "%2" SCNx32 , &checksum);
 		cal_checksum += (uint8_t)checksum;
 		bytes_read += 2;
 
@@ -783,7 +783,7 @@ int image_read_section(image_t *image, int section, uint32_t offset, uint32_t si
 	/* don't read past the end of a section */
 	if (offset + size > image->sections[section].size)
 	{
-		LOG_DEBUG("read past end of section: 0x%8.8x + 0x%8.8x > 0x%8.8x",
+		LOG_DEBUG("read past end of section: 0x%8.8" PRIx32 " + 0x%8.8" PRIx32 " > 0x%8.8" PRIx32 "",
 				offset, size, image->sections[section].size);
 		return ERROR_INVALID_ARGUMENTS;
 	}
