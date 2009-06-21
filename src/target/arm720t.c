@@ -140,7 +140,7 @@ int arm720t_scan_cp15(target_t *target, uint32_t out, uint32_t *in, int instruct
 	else
 		LOG_DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock);
 #else
-		LOG_DEBUG("out: %8.8x, instruction: %i, clock: %i", out, instruction, clock);
+		LOG_DEBUG("out: %8.8" PRIx32 ", instruction: %i, clock: %i", out, instruction, clock);
 #endif
 
 	return ERROR_OK;
@@ -235,7 +235,7 @@ void arm720t_post_debug_entry(target_t *target)
 	/* examine cp15 control reg */
 	arm720t_read_cp15(target, 0xee110f10, &arm720t->cp15_control_reg);
 	jtag_execute_queue();
-	LOG_DEBUG("cp15_control_reg: %8.8x", arm720t->cp15_control_reg);
+	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm720t->cp15_control_reg);
 
 	arm720t->armv4_5_mmu.mmu_enabled = (arm720t->cp15_control_reg & 0x1U) ? 1 : 0;
 	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = (arm720t->cp15_control_reg & 0x4U) ? 1 : 0;
@@ -316,7 +316,7 @@ int arm720t_arch_state(struct target_s *target)
 	}
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
-			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
+			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
 			"MMU: %s, Cache: %s",
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple( nvp_target_debug_reason, target->debug_reason )->name ,
@@ -534,7 +534,7 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 			uint32_t value;
 			if ((retval = arm720t_read_cp15(target, opcode, &value)) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8x", opcode);
+				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
 
@@ -543,17 +543,17 @@ int arm720t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				return retval;
 			}
 
-			command_print(cmd_ctx, "0x%8.8x: 0x%8.8x", opcode, value);
+			command_print(cmd_ctx, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
 		}
 		else if (argc == 2)
 		{
 			uint32_t value = strtoul(args[1], NULL, 0);
 			if ((retval = arm720t_write_cp15(target, opcode, value)) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8x", opcode);
+				command_print(cmd_ctx, "couldn't access cp15 with opcode 0x%8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
-			command_print(cmd_ctx, "0x%8.8x: 0x%8.8x", opcode, value);
+			command_print(cmd_ctx, "0x%8.8" PRIx32 ": 0x%8.8" PRIx32 "", opcode, value);
 		}
 	}
 
