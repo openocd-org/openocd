@@ -239,7 +239,7 @@ static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode)
 		if (at91sam7_info->mck_freq > 30000000ul)
 			fws = 1;
 
-		LOG_DEBUG("fmcn[%i]: %i", bank->bank_number, fmcn);
+		LOG_DEBUG("fmcn[%i]: %i", bank->bank_number, (int)(fmcn));
 		fmr = fmcn << 16 | fws << 8;
 		target_write_u32(target, MC_FMR[bank->bank_number], fmr);
 	}
@@ -253,15 +253,15 @@ static uint32_t at91sam7_wait_status_busy(flash_bank_t *bank, uint32_t waitbits,
 
 	while ((!((status = at91sam7_get_flash_status(bank->target, bank->bank_number)) & waitbits)) && (timeout-- > 0))
 	{
-		LOG_DEBUG("status[%i]: 0x%x", bank->bank_number, status);
+		LOG_DEBUG("status[%i]: 0x%" PRIx32 "", (int)bank->bank_number, status);
 		alive_sleep(1);
 	}
 
-	LOG_DEBUG("status[%i]: 0x%x", bank->bank_number, status);
+	LOG_DEBUG("status[%i]: 0x%" PRIx32 "", bank->bank_number, status);
 
 	if (status & 0x0C)
 	{
-		LOG_ERROR("status register: 0x%x", status);
+		LOG_ERROR("status register: 0x%" PRIx32 "", status);
 		if (status & 0x4)
 			LOG_ERROR("Lock Error Bit Detected, Operation Abort");
 		if (status & 0x8)
@@ -282,7 +282,7 @@ static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16
 
 	fcr = (0x5A<<24) | ((pagen&0x3FF)<<8) | cmd; 
 	target_write_u32(target, MC_FCR[bank->bank_number], fcr);
-	LOG_DEBUG("Flash command: 0x%x, flash bank: %i, page number: %u", fcr, bank->bank_number+1, pagen);
+	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u", fcr, bank->bank_number+1, pagen);
 
 	if ((at91sam7_info->cidr_arch == 0x60)&&((cmd==SLB)|(cmd==CLB)))
 	{
@@ -1000,7 +1000,7 @@ static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 
 	if (offset % dst_min_alignment)
 	{
-		LOG_WARNING("offset 0x%x breaks required alignment 0x%x", offset, dst_min_alignment);
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required alignment 0x%" PRIx32 "", offset, dst_min_alignment);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
@@ -1010,7 +1010,7 @@ static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 	first_page = offset/dst_min_alignment;
 	last_page = CEIL(offset + count, dst_min_alignment);
 
-	LOG_DEBUG("first_page: %i, last_page: %i, count %i", first_page, last_page, count);
+	LOG_DEBUG("first_page: %i, last_page: %i, count %i", (int)first_page, (int)last_page, (int)count);
 
 	/* Configure the flash controller timing */
 	at91sam7_read_clock_info(bank);
@@ -1037,7 +1037,7 @@ static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 		{
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
-		LOG_DEBUG("Write flash bank:%i page number:%i", bank->bank_number, pagen);
+		LOG_DEBUG("Write flash bank:%i page number:%" PRIi32 "", bank->bank_number, pagen);
 	}
 
 	return ERROR_OK;
@@ -1079,17 +1079,21 @@ static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, buf_size,
-		" Cidr: 0x%8.8x | Arch: 0x%4.4x | Eproc: %s | Version: 0x%3.3x | Flashsize: 0x%8.8x\n",
-		at91sam7_info->cidr, at91sam7_info->cidr_arch, EPROC[at91sam7_info->cidr_eproc],
-		at91sam7_info->cidr_version, bank->size);
+	printed = snprintf(buf, 
+			   buf_size,
+			   " Cidr: 0x%8.8" PRIx32 " | Arch: 0x%4.4x | Eproc: %s | Version: 0x%3.3x | Flashsize: 0x%8.8" PRIx32 "\n",
+			   at91sam7_info->cidr, 
+			   at91sam7_info->cidr_arch, 
+			   EPROC[at91sam7_info->cidr_eproc],
+			   at91sam7_info->cidr_version, 
+			   bank->size);
 
 	buf += printed;
 	buf_size -= printed;
 
 	printed = snprintf(buf, buf_size,
 		" Master clock (estimated): %u KHz | External clock: %u KHz\n",
-		at91sam7_info->mck_freq / 1000, at91sam7_info->ext_freq / 1000);
+		(unsigned)(at91sam7_info->mck_freq / 1000), (unsigned)(at91sam7_info->ext_freq / 1000));
 
 	buf += printed;
 	buf_size -= printed;
@@ -1195,7 +1199,7 @@ static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char
 
 	/* GPNVM and SECURITY bits apply only for MC_FSR of EFC0 */
 	status = at91sam7_get_flash_status(bank->target, 0);
-	LOG_DEBUG("at91sam7_handle_gpnvm_command: cmd 0x%x, value 0x%x, status 0x%x \n", flashcmd, bit, status);
+	LOG_DEBUG("at91sam7_handle_gpnvm_command: cmd 0x%x, value %d, status 0x%" PRIx32 " \n", flashcmd, bit, status);
 
 	/* check protect state */
 	at91sam7_protect_check(bank);
