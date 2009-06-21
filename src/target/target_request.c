@@ -71,7 +71,7 @@ static int target_hexmsg(target_t *target, int size, uint32_t length)
 	debug_msg_receiver_t *c = target->dbgmsg;
 	uint32_t i;
 
-	LOG_DEBUG("size: %i, length: %i", size, length);
+	LOG_DEBUG("size: %i, length: %i", (int)size, (int)length);
 
 	target->type->target_request_data(target, CEIL(length * size, 4), (uint8_t*)data);
 
@@ -81,7 +81,7 @@ static int target_hexmsg(target_t *target, int size, uint32_t length)
 		switch (size)
 		{
 			case 4:
-				line_len += snprintf(line + line_len, 128 - line_len, "%8.8x ", le_to_h_u32(data + (4*i)));
+				line_len += snprintf(line + line_len, 128 - line_len, "%8.8" PRIx32 " ", le_to_h_u32(data + (4*i)));
 				break;
 			case 2:
 				line_len += snprintf(line + line_len, 128 - line_len, "%4.4x ", le_to_h_u16(data + (2*i)));
