@@ -186,7 +186,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			 */
 			if (strcmp(target_get_name(target), "feroceon") == 0)
 				break;
-			LOG_ERROR("unknown EmbeddedICE version (comms ctrl: 0x%8.8x)", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
+			LOG_ERROR("unknown EmbeddedICE version (comms ctrl: 0x%8.8" PRIx32 ")", buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
 
 	return reg_cache;
@@ -367,7 +367,7 @@ void embeddedice_write_reg(reg_t *reg, uint32_t value)
 {
 	embeddedice_reg_t *ice_reg = reg->arch_info;
 
-	LOG_DEBUG("%i: 0x%8.8x", ice_reg->addr, value);
+	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", ice_reg->addr, value);
 
 	jtag_set_end_state(TAP_IDLE);
 	arm_jtag_scann(ice_reg->jtag_info, 0x2);
