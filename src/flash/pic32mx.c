@@ -148,11 +148,11 @@ static uint32_t pic32mx_wait_status_busy(flash_bank_t *bank, int timeout)
 	/* wait for busy to clear */
 	while (((status = pic32mx_get_flash_status(bank)) & NVMCON_NVMWR) && (timeout-- > 0))
 	{
-		LOG_DEBUG("status: 0x%x", status);
+		LOG_DEBUG("status: 0x%" PRIx32, status );
 		alive_sleep(1);
 	}
 	if(timeout <= 0)
-		LOG_DEBUG("timeout: status: 0x%x", status);
+		LOG_DEBUG("timeout: status: 0x%" PRIx32, status );
 
 	return status;
 }
@@ -410,7 +410,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 		uint32_t status;
 
 		if ((retval = target_write_buffer(target, source->address, buffer_size, buffer))!=ERROR_OK) {
-			LOG_ERROR("Failed to write row buffer (%d words) to RAM", buffer_size/4);
+			LOG_ERROR("Failed to write row buffer (%d words) to RAM", (int)(buffer_size/4));
 			break;
 		}
 
@@ -435,12 +435,12 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 #endif
 		status = pic32mx_write_row(bank, address, source->address);
 		if( status & NVMCON_NVMERR ) {
-			LOG_ERROR("Flash write error NVMERR (status=0x%08x)", status);
+			LOG_ERROR("Flash write error NVMERR (status=0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 		if( status & NVMCON_LVDERR ) {
-			LOG_ERROR("Flash write error LVDERR (status=0x%08x)", status);
+			LOG_ERROR("Flash write error LVDERR (status=0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
@@ -459,12 +459,12 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 
 		uint32_t status = pic32mx_write_word(bank, address, value);
 		if( status & NVMCON_NVMERR ) {
-			LOG_ERROR("Flash write error NVMERR (status=0x%08x)", status);
+			LOG_ERROR("Flash write error NVMERR (status=0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 		if( status & NVMCON_LVDERR ) {
-			LOG_ERROR("Flash write error LVDERR (status=0x%08x)", status);
+			LOG_ERROR("Flash write error LVDERR (status=0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
@@ -497,7 +497,7 @@ static int pic32mx_write_row(struct flash_bank_s *bank, uint32_t address, uint32
 {
 	target_t *target = bank->target;
 
-	LOG_DEBUG("addr: 0x%08x srcaddr: 0x%08x", address, srcaddr);
+	LOG_DEBUG("addr: 0x%08" PRIx32 " srcaddr: 0x%08" PRIx32 "", address, srcaddr);
 
 	if(address >= PIC32MX_KSEG1_PGM_FLASH)
 		target_write_u32(target, PIC32MX_NVMADDR,    KS1Virt2Phys(address));
@@ -528,7 +528,7 @@ static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 
 	if (offset & 0x3)
 	{
-		LOG_WARNING("offset 0x%x breaks required 4-byte alignment", offset);
+		LOG_WARNING("offset 0x%" PRIx32 "breaks required 4-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
@@ -603,7 +603,11 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	pic32mx_info->probed = 0;
 
 	device_id = ejtag_info->idcode;
-	LOG_INFO( "device id = 0x%08x (manuf 0x%03x dev 0x%02x, ver 0x%03x)", device_id, (device_id>>1)&0x7ff, (device_id>>12)&0xff, (device_id>>20)&0xfff );
+	LOG_INFO( "device id = 0x%08" PRIx32 " (manuf 0x%03x dev 0x%02x, ver 0x%03x)", 
+			  device_id,
+			  (unsigned)((device_id>>1)&0x7ff), 
+			  (unsigned)((device_id>>12)&0xff), 
+			  (unsigned)((device_id>>20)&0xfff) );
 
 	if(((device_id>>1)&0x7ff) != PIC32MX_MANUF_ID) {
 		LOG_WARNING( "Cannot identify target as a PIC32MX family." );
@@ -694,7 +698,10 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	device_id = ejtag_info->idcode;
 
 	if(((device_id>>1)&0x7ff) != PIC32MX_MANUF_ID) {
-		snprintf(buf, buf_size, "Cannot identify target as a PIC32MX family (manufacturer 0x%03d != 0x%03d)\n", (device_id>>1)&0x7ff, PIC32MX_MANUF_ID);
+		snprintf(buf, buf_size, 
+				 "Cannot identify target as a PIC32MX family (manufacturer 0x%03d != 0x%03d)\n", 
+				 (unsigned)((device_id>>1)&0x7ff), 
+				 PIC32MX_MANUF_ID);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	for(i=0; pic32mx_devs[i].name != NULL; i++)
@@ -708,7 +715,8 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	}
 	buf += printed;
 	buf_size -= printed;
-	printed = snprintf(buf, buf_size, "  Ver: 0x%03x", (device_id>>20)&0xfff);
+	printed = snprintf(buf, buf_size, "  Ver: 0x%03x", 
+					   (unsigned)((device_id>>20)&0xfff));
 
 	return ERROR_OK;
 }
