@@ -497,7 +497,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 
 	if (offset % dst_min_alignment)
 	{
-		LOG_WARNING("offset 0x%x breaks required alignment 0x%x", offset, dst_min_alignment);
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required alignment 0x%" PRIx32, offset, dst_min_alignment);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
@@ -518,17 +518,17 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 		int i = 0;
 		for (i = 0; i < 8; i++)
 		{
-			LOG_DEBUG("0x%2.2x: 0x%8.8x", i * 4, buf_get_u32(buffer + (i * 4), 0, 32));
+			LOG_DEBUG("0x%2.2x: 0x%8.8" PRIx32, i * 4, buf_get_u32(buffer + (i * 4), 0, 32));
 			if (i != 5)
 				checksum += buf_get_u32(buffer + (i * 4), 0, 32);
 		}
 		checksum = 0 - checksum;
-		LOG_DEBUG("checksum: 0x%8.8x", checksum);
+		LOG_DEBUG("checksum: 0x%8.8" PRIx32, checksum);
 
 		uint32_t original_value=buf_get_u32(buffer + (5 * 4), 0, 32);
 		if (original_value!=checksum)
 		{
-			LOG_WARNING("Verification will fail since checksum in image(0x%8.8x) written to flash was different from calculated vector checksum(0x%8.8x).",
+			LOG_WARNING("Verification will fail since checksum in image(0x%8.8" PRIx32 ") written to flash was different from calculated vector checksum(0x%8.8" PRIx32 ").",
 					original_value, checksum);
 			LOG_WARNING("To remove this warning modify build tools on developer PC to inject correct LPC vector checksum.");
 		}
@@ -598,7 +598,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 			free(last_buffer);
 		}
 
-		LOG_DEBUG("writing 0x%x bytes to address 0x%x", thisrun_bytes, bank->base + offset + bytes_written);
+		LOG_DEBUG("writing 0x%" PRIx32 " bytes to address 0x%" PRIx32 , thisrun_bytes, bank->base + offset + bytes_written);
 
 		/* Write data */
 		param_table[0] = bank->base + offset + bytes_written;
@@ -667,7 +667,7 @@ static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
 
-	snprintf(buf, buf_size, "lpc2000 flash driver variant: %i, clk: %i", lpc2000_info->variant, lpc2000_info->cclk);
+	snprintf(buf, buf_size, "lpc2000 flash driver variant: %i, clk: %" PRIi32 , lpc2000_info->variant, lpc2000_info->cclk);
 
 	return ERROR_OK;
 }
@@ -708,7 +708,7 @@ static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, cha
 	}
 	else
 	{
-		command_print(cmd_ctx, "lpc2000 part id: 0x%8.8x", result_table[0]);
+		command_print(cmd_ctx, "lpc2000 part id: 0x%8.8" PRIx32 , result_table[0]);
 	}
 
 	return ERROR_OK;
