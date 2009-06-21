@@ -205,7 +205,7 @@ static int loadDriver(ecosflash_flash_bank_t *info)
 		}
 		target_write_buffer(target, image.sections[i].base_address, buf_cnt, buffer);
 		image_size += buf_cnt;
-		LOG_DEBUG("%u byte written at address 0x%8.8x", buf_cnt, image.sections[i].base_address);
+		LOG_DEBUG("%" PRIu32 " byte written at address 0x%8.8" PRIx32 "", buf_cnt, image.sections[i].base_address);
 
 		free(buffer);
 	}
@@ -287,7 +287,7 @@ static int eCosBoard_erase(ecosflash_flash_bank_t *info, uint32_t address, uint3
 
 	if (flashErr != 0x0)
 	{
-		LOG_ERROR("Flash erase failed with %d (%s)\n", flashErr, flash_errmsg(flashErr));
+		LOG_ERROR("Flash erase failed with %d (%s)\n", (int)flashErr, flash_errmsg(flashErr));
 		return ERROR_FAIL;
 	}
 
@@ -346,7 +346,7 @@ static int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, uint32_t ad
 
 		if (flashErr != 0x0)
 		{
-			LOG_ERROR("Flash prog failed with %d (%s)\n", flashErr, flash_errmsg(flashErr));
+			LOG_ERROR("Flash prog failed with %d (%s)\n", (int)flashErr, flash_errmsg(flashErr));
 			return ERROR_FAIL;
 		}
 	}
