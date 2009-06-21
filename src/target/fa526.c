@@ -187,7 +187,7 @@ void fa526_write_xpsr(target_t *target, uint32_t xpsr, int spsr)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
 
-	LOG_DEBUG("xpsr: %8.8x, spsr: %i", xpsr, spsr);
+	LOG_DEBUG("xpsr: %8.8" PRIx32 ", spsr: %i", xpsr, spsr);
 
 	/* MSR1 fetched */
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_MSR_IM(xpsr & 0xff, 0, 1, spsr), 0, NULL, 0);
