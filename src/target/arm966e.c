@@ -295,7 +295,7 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				return retval;
 			}
 
-			command_print(cmd_ctx, "%i: %8.8x", address, value);
+			command_print(cmd_ctx, "%i: %8.8" PRIx32 "", address, value);
 		}
 		else if (argc == 2)
 		{
@@ -305,7 +305,7 @@ int arm966e_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				command_print(cmd_ctx, "couldn't access reg %i", address);
 				return ERROR_OK;
 			}
-			command_print(cmd_ctx, "%i: %8.8x", address, value);
+			command_print(cmd_ctx, "%i: %8.8" PRIx32 "", address, value);
 		}
 	}
 
