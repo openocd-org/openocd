@@ -1186,7 +1186,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 
 	buffer = malloc(len);
 
-	LOG_DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
+	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
 	retval = target_read_buffer(target, addr, len, buffer);
 
@@ -1266,12 +1266,12 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 
 	buffer = malloc(len);
 
-	LOG_DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
+	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
 	for (i=0; i<len; i++)
 	{
 		uint32_t tmp;
-		sscanf(separator + 2*i, "%2x", &tmp);
+		sscanf(separator + 2*i, "%2" SCNx32 , &tmp);
 		buffer[i] = tmp;
 	}
 
@@ -1321,7 +1321,7 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 	retval = ERROR_OK;
 	if (len)
 	{
-		LOG_DEBUG("addr: 0x%8.8x, len: 0x%8.8x", addr, len);
+		LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
 		retval = target_write_buffer(target, addr, len, (uint8_t*)separator);
 	}
@@ -1587,7 +1587,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			for (i=0; i < (packet_size - 6)/2; i++)
 			{
 				uint32_t tmp;
-				sscanf(packet + 6 + 2*i, "%2x", &tmp);
+				sscanf(packet + 6 + 2*i, "%2" SCNx32 , &tmp);
 				cmd[i] = tmp;
 			}
 			cmd[(packet_size - 6)/2] = 0x0;
@@ -1631,7 +1631,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 			if (retval == ERROR_OK)
 			{
-				snprintf(gdb_reply, 10, "C%8.8x", checksum);
+				snprintf(gdb_reply, 10, "C%8.8" PRIx32 "", checksum);
 				gdb_put_packet(connection, gdb_reply, 9);
 			}
 			else
@@ -1946,7 +1946,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 			}
 		else
 		{
-			LOG_DEBUG("wrote %u bytes from vFlash image to flash", written);
+			LOG_DEBUG("wrote %u bytes from vFlash image to flash", (unsigned)written);
 			gdb_put_packet(connection, "OK", 2);
 		}
 
