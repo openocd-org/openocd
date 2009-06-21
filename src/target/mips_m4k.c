@@ -146,7 +146,7 @@ int mips_m4k_debug_entry(target_t *target)
 
 	mips32_save_context(target);
 
-	LOG_DEBUG("entered debug state at PC 0x%x, target->state: %s",
+	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 ", target->state: %s",
 		*(uint32_t*)(mips32->core_cache->reg_list[MIPS32_PC].value),
 		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
 
@@ -395,7 +395,7 @@ int mips_m4k_resume(struct target_s *target, int current, uint32_t address, int 
 		/* Single step past breakpoint at current address */
 		if ((breakpoint = breakpoint_find(target, resume_pc)))
 		{
-			LOG_DEBUG("unset breakpoint at 0x%8.8x", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
 			mips_m4k_unset_breakpoint(target, breakpoint);
 			mips_m4k_single_step_core(target);
 			mips_m4k_set_breakpoint(target, breakpoint);
@@ -416,13 +416,13 @@ int mips_m4k_resume(struct target_s *target, int current, uint32_t address, int 
 	{
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%x", resume_pc);
+		LOG_DEBUG("target resumed at 0x%" PRIx32 "", resume_pc);
 	}
 	else
 	{
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%x", resume_pc);
+		LOG_DEBUG("target debug resumed at 0x%" PRIx32 "", resume_pc);
 	}
 
 	return ERROR_OK;
@@ -523,7 +523,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		target_write_u32(target, comparator_list[bp_num].reg_address, comparator_list[bp_num].bp_value);
 		target_write_u32(target, comparator_list[bp_num].reg_address + 0x08, 0x00000000);
 		target_write_u32(target, comparator_list[bp_num].reg_address + 0x18, 1);
-		LOG_DEBUG("bp_num %i bp_value 0x%x", bp_num, comparator_list[bp_num].bp_value);
+		LOG_DEBUG("bp_num %i bp_value 0x%" PRIx32 "", bp_num, comparator_list[bp_num].bp_value);
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
@@ -546,7 +546,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			}
 			if (verify != MIPS32_SDBBP)
 			{
-				LOG_ERROR("Unable to set 32bit breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
+				LOG_ERROR("Unable to set 32bit breakpoint at address %08" PRIx32 " - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
 		}
@@ -569,7 +569,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			}
 			if (verify != MIPS16_SDBBP)
 			{
-				LOG_ERROR("Unable to set 16bit breakpoint at address %08x - check that memory is read/writable", breakpoint->address);
+				LOG_ERROR("Unable to set 16bit breakpoint at address %08" PRIx32 " - check that memory is read/writable", breakpoint->address);
 				return ERROR_OK;
 			}
 		}
@@ -733,7 +733,7 @@ int mips_m4k_read_memory(struct target_s *target, uint32_t address, uint32_t siz
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 
-	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, size, count);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -787,7 +787,7 @@ int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t si
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 
-	LOG_DEBUG("address: 0x%8.8x, size: 0x%8.8x, count: 0x%8.8x", address, size, count);
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "", address, size, count);
 
 	if (target->state != TARGET_HALTED)
 	{
