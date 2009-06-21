@@ -297,7 +297,7 @@ int armv4_5_arch_state(struct target_s *target)
 		exit(-1);
 	}
 
-	LOG_USER("target halted in %s state due to %s, current mode: %s\ncpsr: 0x%8.8x pc: 0x%8.8x",
+	LOG_USER("target halted in %s state due to %s, current mode: %s\ncpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "",
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple( nvp_target_debug_reason, target->debug_reason )->name,
 			 armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)],
@@ -339,12 +339,16 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			{
 				armv4_5->full_context(target);
 			}
-			output_len += snprintf(output + output_len, 128 - output_len, "%8s: %8.8x ", ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).name,
-				buf_get_u32(ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).value, 0, 32));
+			output_len += snprintf(output + output_len, 
+					       128 - output_len, 
+					       "%8s: %8.8" PRIx32 " ", 
+					       ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).name,
+					       buf_get_u32(ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).value, 0, 32));
 		}
 		command_print(cmd_ctx, "%s", output);
 	}
-	command_print(cmd_ctx, "    cpsr: %8.8x spsr_fiq: %8.8x spsr_irq: %8.8x spsr_svc: %8.8x spsr_abt: %8.8x spsr_und: %8.8x",
+	command_print(cmd_ctx,
+		      "    cpsr: %8.8" PRIx32 " spsr_fiq: %8.8" PRIx32 " spsr_irq: %8.8" PRIx32 " spsr_svc: %8.8" PRIx32 " spsr_abt: %8.8" PRIx32 " spsr_und: %8.8" PRIx32 "",
 			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
 			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_FIQ].value, 0, 32),
 			  buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_SPSR_IRQ].value, 0, 32),
@@ -507,7 +511,7 @@ static int armv4_5_run_algorithm_completion(struct target_s *target, uint32_t ex
 	}
 	if (buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != exit_point)
 	{
-		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4x",
+		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4" PRIx32 "",
 			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
 		return ERROR_TARGET_TIMEOUT;
 	}
@@ -654,7 +658,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 		regvalue = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32);
 		if (regvalue != context[i])
 		{
-			LOG_DEBUG("restoring register %s with value 0x%8.8x", ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).name, context[i]);
+			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32 "", ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).name, context[i]);
 			buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).value, 0, 32, context[i]);
 			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).valid = 1;
 			ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5_algorithm_info->core_mode, i).dirty = 1;
