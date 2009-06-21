@@ -414,7 +414,7 @@ static int mg_probe_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	ret = mg_mflash_probe();
 
 	if (ret == ERROR_OK) {
-		command_print(cmd_ctx, "mflash (total %u sectors) found at 0x%8.8x",
+		command_print(cmd_ctx, "mflash (total %" PRIu32 " sectors) found at 0x%8.8" PRIx32 "",
 				mflash_bank->drv_info->tot_sects, mflash_bank->base );
 	}
 
@@ -451,12 +451,12 @@ static int mg_mflash_do_read_sects(void *buff, uint32_t sect_num, uint32_t sect_
 		if (ret != ERROR_OK)
 			return ret;
 
-		LOG_DEBUG("mflash: %u (0x%8.8x) sector read", sect_num + i, (sect_num + i) * MG_MFLASH_SECTOR_SIZE);
+		LOG_DEBUG("mflash: %" PRIu32 " (0x%8.8" PRIx32 ") sector read", sect_num + i, (sect_num + i) * MG_MFLASH_SECTOR_SIZE);
 
 		duration_stop_measure(&duration, NULL);
 
 		if ((duration.duration.tv_sec * 1000 + duration.duration.tv_usec / 1000) > 3000) {
-			LOG_INFO("mflash: read %u'th sectors", sect_num + i);
+			LOG_INFO("mflash: read %" PRIu32 "'th sectors", sect_num + i);
 			duration_start_measure(&duration);
 		}
 	}
@@ -474,7 +474,7 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 	residue = sect_cnt % 256;
 
 	for (i = 0; i < quotient; i++) {
-		LOG_DEBUG("mflash: sect num : %u buff : 0x%0lx", sect_num, 
+		LOG_DEBUG("mflash: sect num : %" PRIu32 " buff : 0x%0lx", sect_num, 
 			(unsigned long)buff_ptr);
 		ret = mg_mflash_do_read_sects(buff_ptr, sect_num, 256);
 		if (ret != ERROR_OK)
@@ -485,7 +485,7 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 	}
 
 	if (residue) {
-		LOG_DEBUG("mflash: sect num : %u buff : %0lx", sect_num, 
+		LOG_DEBUG("mflash: sect num : %" PRIx32 " buff : %0lx", sect_num, 
 			(unsigned long)buff_ptr);
 		return mg_mflash_do_read_sects(buff_ptr, sect_num, residue);
 	}
@@ -524,12 +524,12 @@ static int mg_mflash_do_write_sects(void *buff, uint32_t sect_num, uint32_t sect
 		if (ret != ERROR_OK)
 			return ret;
 
-		LOG_DEBUG("mflash: %u (0x%8.8x) sector write", sect_num + i, (sect_num + i) * MG_MFLASH_SECTOR_SIZE);
+		LOG_DEBUG("mflash: %" PRIu32 " (0x%8.8" PRIx32 ") sector write", sect_num + i, (sect_num + i) * MG_MFLASH_SECTOR_SIZE);
 
 		duration_stop_measure(&duration, NULL);
 
 		if ((duration.duration.tv_sec * 1000 + duration.duration.tv_usec / 1000) > 3000) {
-			LOG_INFO("mflash: wrote %u'th sectors", sect_num + i);
+			LOG_INFO("mflash: wrote %" PRIu32 "'th sectors", sect_num + i);
 			duration_start_measure(&duration);
 		}
 	}
@@ -552,8 +552,8 @@ static int mg_mflash_write_sects(void *buff, uint32_t sect_num, uint32_t sect_cn
 	residue = sect_cnt % 256;
 
 	for (i = 0; i < quotient; i++) {
-		LOG_DEBUG("mflash: sect num : %u buff : %0lx", sect_num, 
-			(unsigned long)buff_ptr);
+		LOG_DEBUG("mflash: sect num : %" PRIu32 "buff : %p", sect_num, 
+			buff_ptr);
 		ret = mg_mflash_do_write_sects(buff_ptr, sect_num, 256, mg_io_cmd_write);
 		if (ret != ERROR_OK)
 			return ret;
@@ -563,8 +563,8 @@ static int mg_mflash_write_sects(void *buff, uint32_t sect_num, uint32_t sect_cn
 	}
 
 	if (residue) {
-		LOG_DEBUG("mflash: sect num : %u buff : %0lx", sect_num, 
-			(unsigned long)buff_ptr);
+		LOG_DEBUG("mflash: sect num : %" PRIu32 " buff : %p", sect_num, 
+			buff_ptr);
 		return mg_mflash_do_write_sects(buff_ptr, sect_num, residue, mg_io_cmd_write);
 	}
 
@@ -592,11 +592,11 @@ static int mg_mflash_read (uint32_t addr, uint8_t *buff, uint32_t len)
 
 		if (end_addr < next_sec_addr) {
 			memcpy(buff_ptr, sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK), end_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %u byte from sector offset 0x%8.8x", end_addr - cur_addr, cur_addr);
+			LOG_DEBUG("mflash: copies %" PRIu32 " byte from sector offset 0x%8.8" PRIx32 "", end_addr - cur_addr, cur_addr);
 			cur_addr = end_addr;
 		} else {
 			memcpy(buff_ptr, sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK), next_sec_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %u byte from sector offset 0x%8.8x", next_sec_addr - cur_addr, cur_addr);
+			LOG_DEBUG("mflash: copies %" PRIu32 " byte from sector offset 0x%8.8" PRIx32 "", next_sec_addr - cur_addr, cur_addr);
 			buff_ptr += (next_sec_addr - cur_addr);
 			cur_addr = next_sec_addr;
 		}
@@ -627,7 +627,7 @@ static int mg_mflash_read (uint32_t addr, uint8_t *buff, uint32_t len)
 				return ret;
 
 			memcpy(buff_ptr, sect_buff, end_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %u byte", end_addr - cur_addr);
+			LOG_DEBUG("mflash: copies %u byte", (unsigned)(end_addr - cur_addr));
 
 		}
 	}
@@ -656,11 +656,11 @@ static int mg_mflash_write(uint32_t addr, uint8_t *buff, uint32_t len)
 
 		if (end_addr < next_sec_addr) {
 			memcpy(sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK), buff_ptr, end_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %u byte to sector offset 0x%8.8x", end_addr - cur_addr, cur_addr);
+			LOG_DEBUG("mflash: copies %" PRIu32 " byte to sector offset 0x%8.8" PRIx32 "", end_addr - cur_addr, cur_addr);
 			cur_addr = end_addr;
 		} else {
 			memcpy(sect_buff + (cur_addr & MG_MFLASH_SECTOR_SIZE_MASK), buff_ptr, next_sec_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %u byte to sector offset 0x%8.8x", next_sec_addr - cur_addr, cur_addr);
+			LOG_DEBUG("mflash: copies %" PRIu32 " byte to sector offset 0x%8.8" PRIx32 "", next_sec_addr - cur_addr, cur_addr);
 			buff_ptr += (next_sec_addr - cur_addr);
 			cur_addr = next_sec_addr;
 		}
@@ -695,7 +695,7 @@ static int mg_mflash_write(uint32_t addr, uint8_t *buff, uint32_t len)
 				return ret;
 
 			memcpy(sect_buff, buff_ptr, end_addr - cur_addr);
-			LOG_DEBUG("mflash: copies %u byte", end_addr - cur_addr);
+			LOG_DEBUG("mflash: copies %" PRIu32 " byte", end_addr - cur_addr);
 			ret = mg_mflash_write_sects(sect_buff, sect_num, 1);
 		}
 	}
@@ -819,7 +819,7 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 
 	duration_stop_measure(&duration, &duration_text);
 
-	command_print(cmd_ctx, "dump image (address 0x%8.8x size %u) to file %s in %s (%f kB/s)",
+	command_print(cmd_ctx, "dump image (address 0x%8.8" PRIx32 " size %" PRIu32 ") to file %s in %s (%f kB/s)",
 				address, size, args[1], duration_text,
 				(float)size / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
 
@@ -1252,7 +1252,7 @@ int mg_config_cmd(struct command_context_s *cmd_ctx, char *cmd,
 					return ERROR_MG_INVALID_PLL;
 				}
 
-				LOG_INFO("mflash: Fout=%u Hz, feedback=%u," 
+				LOG_INFO("mflash: Fout=%" PRIu32 " Hz, feedback=%u," 
 						"indiv=%u, outdiv=%u, lock=%u",
 						(uint32_t)fout, pll.feedback_div,
 						pll.input_div, pll.output_div,
