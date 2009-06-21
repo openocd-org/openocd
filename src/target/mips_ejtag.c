@@ -211,7 +211,7 @@ int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 	/* break bit will be cleared by hardware */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	LOG_DEBUG("ejtag_ctrl: 0x%8.8x", ejtag_ctrl);
+	LOG_DEBUG("ejtag_ctrl: 0x%8.8" PRIx32 "", ejtag_ctrl);
 	if((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
 		LOG_DEBUG("Failed to enter Debug Mode!");
 
@@ -261,7 +261,7 @@ int mips_ejtag_init(mips_ejtag_t *ejtag_info)
 	uint32_t ejtag_version;
 
 	mips_ejtag_get_impcode(ejtag_info, &ejtag_info->impcode);
-	LOG_DEBUG("impcode: 0x%8.8x", ejtag_info->impcode);
+	LOG_DEBUG("impcode: 0x%8.8" PRIx32 "", ejtag_info->impcode);
 
 	/* get ejtag version */
 	ejtag_version = ((ejtag_info->impcode >> 29) & 0x07);
