@@ -259,7 +259,7 @@ static int str7x_erase(struct flash_bank_s *bank, int first, int last)
 		sectors |= str7x_info->sector_bits[i];
 	}
 	
-	LOG_DEBUG("sectors: 0x%x", sectors);
+	LOG_DEBUG("sectors: 0x%" PRIx32 "", sectors);
 	
 	/* clear FLASH_ER register */	
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
@@ -281,7 +281,7 @@ static int str7x_erase(struct flash_bank_s *bank, int first, int last)
 	
 	if (retval)
 	{
-		LOG_ERROR("error erasing flash bank, FLASH_ER: 0x%x", retval);
+		LOG_ERROR("error erasing flash bank, FLASH_ER: 0x%" PRIx32 "", retval);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	
@@ -335,7 +335,7 @@ static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last
 	
 	retval = str7x_result(bank);
 	
-	LOG_DEBUG("retval: 0x%8.8x", retval);
+	LOG_DEBUG("retval: 0x%8.8" PRIx32 "", retval);
 	
 	if (retval & FLASH_ERER)
 		return ERROR_FLASH_SECTOR_NOT_ERASED;
@@ -481,7 +481,7 @@ static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offs
 
 	if (offset & 0x7)
 	{
-		LOG_WARNING("offset 0x%x breaks required 8-byte alignment", offset);
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required 8-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 	
