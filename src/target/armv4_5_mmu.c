@@ -43,7 +43,7 @@ uint32_t armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_
 		4, 1, (uint8_t*)&first_lvl_descriptor);
 	first_lvl_descriptor = target_buffer_get_u32(target, (uint8_t*)&first_lvl_descriptor);
 
-	LOG_DEBUG("1st lvl desc: %8.8x", first_lvl_descriptor);
+	LOG_DEBUG("1st lvl desc: %8.8" PRIx32 "", first_lvl_descriptor);
 
 	if ((first_lvl_descriptor & 0x3) == 0)
 	{
@@ -88,7 +88,7 @@ uint32_t armv4_5_mmu_translate_va(target_t *target, armv4_5_mmu_common_t *armv4_
 
 	second_lvl_descriptor = target_buffer_get_u32(target, (uint8_t*)&second_lvl_descriptor);
 
-	LOG_DEBUG("2nd lvl desc: %8.8x", second_lvl_descriptor);
+	LOG_DEBUG("2nd lvl desc: %8.8" PRIx32 "", second_lvl_descriptor);
 
 	if ((second_lvl_descriptor & 0x3) == 0)
 	{
@@ -200,7 +200,7 @@ int armv4_5_mmu_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, 
 			switch (pa)
 			{
 				case ERROR_TARGET_TRANSLATION_FAULT:
-					command_print(cmd_ctx, "no valid translation for 0x%8.8x", va);
+					command_print(cmd_ctx, "no valid translation for 0x%8.8" PRIx32 "", va);
 					break;
 				default:
 					command_print(cmd_ctx, "unknown translation error");
@@ -208,8 +208,8 @@ int armv4_5_mmu_handle_virt2phys_command(command_context_t *cmd_ctx, char *cmd, 
 			return ERROR_OK;
 		}
 
-		command_print(cmd_ctx, "0x%8.8x -> 0x%8.8x, type: %s, cb: %i, domain: %i, ap: %2.2x",
-			va, pa, armv4_5_mmu_page_type_names[type], cb, domain, ap);
+		command_print(cmd_ctx, "0x%8.8" PRIx32 " -> 0x%8.8" PRIx32 ", type: %s, cb: %i, domain: %d, ap: %2.2x",
+			      va, pa, armv4_5_mmu_page_type_names[type], (int)cb, domain, (int)ap);
 	}
 
 	return ERROR_OK;
@@ -282,12 +282,12 @@ int armv4_5_mmu_handle_md_phys_command(command_context_t *cmd_ctx, char *cmd, ch
 	for (i = 0; i < count; i++)
 	{
 		if (i%8 == 0)
-			output_len += snprintf(output + output_len, 128 - output_len, "0x%8.8x: ", address + (i*size));
+			output_len += snprintf(output + output_len, 128 - output_len, "0x%8.8" PRIx32 ": ", address + (i*size));
 
 		switch (size)
 		{
 			case 4:
-				output_len += snprintf(output + output_len, 128 - output_len, "%8.8x ", target_buffer_get_u32(target, &buffer[i*4]));
+				output_len += snprintf(output + output_len, 128 - output_len, "%8.8" PRIx32 " ", target_buffer_get_u32(target, &buffer[i*4]));
 				break;
 			case 2:
 				output_len += snprintf(output + output_len, 128 - output_len, "%4.4x ", target_buffer_get_u16(target, &buffer[i*2]));
