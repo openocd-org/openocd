@@ -224,7 +224,7 @@ int etb_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* check_mask)
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
 	scan_field_t fields[3];
 
-	LOG_DEBUG("%i", etb_reg->addr);
+	LOG_DEBUG("%i", (int)(etb_reg->addr));
 
 	jtag_set_end_state(TAP_IDLE);
 	etb_scann(etb_reg->etb, 0x0);
@@ -313,7 +313,7 @@ int etb_write_reg(reg_t *reg, uint32_t value)
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
 	scan_field_t fields[3];
 
-	LOG_DEBUG("%i: 0x%8.8x", etb_reg->addr, value);
+	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", (int)(etb_reg->addr), value);
 
 	jtag_set_end_state(TAP_IDLE);
 	etb_scann(etb_reg->etb, 0x0);
@@ -470,7 +470,7 @@ static trace_status_t etb_status(etm_context_t *etm_ctx)
 
 			if (etb_timeout == 0)
 			{
-				LOG_ERROR("AcqComp set but DFEmpty won't go high, ETB status: 0x%x",
+				LOG_ERROR("AcqComp set but DFEmpty won't go high, ETB status: 0x%" PRIx32 "",
 					buf_get_u32(etb_status_reg->value, 0, etb_status_reg->size));
 			}
 
