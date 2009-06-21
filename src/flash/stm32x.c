@@ -118,7 +118,7 @@ static uint32_t stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 	/* wait for busy to clear */
 	while (((status = stm32x_get_flash_status(bank)) & FLASH_BSY) && (timeout-- > 0))
 	{
-		LOG_DEBUG("status: 0x%x", status);
+		LOG_DEBUG("status: 0x%" PRIx32 "", status);
 		alive_sleep(1);
 	}
 	/* Clear but report errors */
@@ -614,7 +614,7 @@ static int stm32x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t off
 
 	if (offset & 0x1)
 	{
-		LOG_WARNING("offset 0x%x breaks required 2-byte alignment", offset);
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
 
@@ -720,7 +720,7 @@ static int stm32x_probe(struct flash_bank_s *bank)
 
 	/* read stm32 device id register */
 	target_read_u32(target, 0xE0042000, &device_id);
-	LOG_INFO( "device id = 0x%08x", device_id );
+	LOG_INFO( "device id = 0x%08" PRIx32 "", device_id );
 
 	/* get flash size from target */
 	if (target_read_u16(target, 0x1FFFF7E0, &num_pages) != ERROR_OK)
@@ -1061,7 +1061,7 @@ static int stm32x_handle_options_read_command(struct command_context_s *cmd_ctx,
 	}
 
 	target_read_u32(target, STM32_FLASH_OBR, &optionbyte);
-	command_print(cmd_ctx, "Option Byte: 0x%x", optionbyte);
+	command_print(cmd_ctx, "Option Byte: 0x%" PRIx32 "", optionbyte);
 
 	if (buf_get_u32((uint8_t*)&optionbyte, OPT_ERROR, 1))
 		command_print(cmd_ctx, "Option Byte Complement Error");
