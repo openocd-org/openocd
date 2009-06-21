@@ -74,11 +74,11 @@ begin_ejtag_dma_read:
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ (retrying)\n", addr);
+			LOG_ERROR("DMA Read Addr = %08" PRIx32 "  Data = ERROR ON READ (retrying)\n", addr);
 			goto begin_ejtag_dma_read;
 		}
 		else
-			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ\n", addr);
+			LOG_ERROR("DMA Read Addr = %08" PRIx32 "  Data = ERROR ON READ\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -120,11 +120,11 @@ begin_ejtag_dma_read_h:
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ (retrying)\n", addr);
+			LOG_ERROR("DMA Read Addr = %08" PRIx32 "  Data = ERROR ON READ (retrying)\n", addr);
 			goto begin_ejtag_dma_read_h;
 		}
 		else
-			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ\n", addr);
+			LOG_ERROR("DMA Read Addr = %08" PRIx32 "  Data = ERROR ON READ\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -172,11 +172,11 @@ begin_ejtag_dma_read_b:
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ (retrying)\n", addr);
+			LOG_ERROR("DMA Read Addr = %08" PRIx32 "  Data = ERROR ON READ (retrying)\n", addr);
 			goto begin_ejtag_dma_read_b;
 		}
 		else
-			LOG_ERROR("DMA Read Addr = %08x  Data = ERROR ON READ\n", addr);
+			LOG_ERROR("DMA Read Addr = %08" PRIx32 "  Data = ERROR ON READ\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -235,11 +235,11 @@ begin_ejtag_dma_write:
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE (retrying)\n", addr);
+			LOG_ERROR("DMA Write Addr = %08" PRIx32 "  Data = ERROR ON WRITE (retrying)\n", addr);
 			goto begin_ejtag_dma_write;
 		}
 		else
-			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE\n", addr);
+			LOG_ERROR("DMA Write Addr = %08" PRIx32 "  Data = ERROR ON WRITE\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -286,11 +286,11 @@ begin_ejtag_dma_write_h:
 	if (ejtag_ctrl  & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE (retrying)\n", addr);
+			LOG_ERROR("DMA Write Addr = %08" PRIx32 "  Data = ERROR ON WRITE (retrying)\n", addr);
 			goto begin_ejtag_dma_write_h;
 		}
 		else
-			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE\n", addr);
+			LOG_ERROR("DMA Write Addr = %08" PRIx32 "  Data = ERROR ON WRITE\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
@@ -338,11 +338,11 @@ begin_ejtag_dma_write_b:
 	if (ejtag_ctrl & EJTAG_CTRL_DERR)
 	{
 		if (retries--) {
-			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE (retrying)\n", addr);
+			LOG_ERROR("DMA Write Addr = %08" PRIx32 "  Data = ERROR ON WRITE (retrying)\n", addr);
 			goto begin_ejtag_dma_write_b;
 		}
 		else
-			LOG_ERROR("DMA Write Addr = %08x  Data = ERROR ON WRITE\n", addr);
+			LOG_ERROR("DMA Write Addr = %08" PRIx32 "  Data = ERROR ON WRITE\n", addr);
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
