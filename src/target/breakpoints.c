@@ -84,7 +84,7 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 		}
 	}
 	
-	LOG_DEBUG("added %s breakpoint at 0x%8.8x of length 0x%8.8x", 
+	LOG_DEBUG("added %s breakpoint at 0x%8.8" PRIx32 " of length 0x%8.8x", 
 		breakpoint_type_strings[(*breakpoint_p)->type],
 		(*breakpoint_p)->address, (*breakpoint_p)->length);
 	
@@ -134,7 +134,7 @@ void breakpoint_remove(target_t *target, uint32_t address)
 	}
 	else
 	{
-		LOG_ERROR("no breakpoint at address 0x%8.8x found", address);
+		LOG_ERROR("no breakpoint at address 0x%8.8" PRIx32 " found", address);
 	}
 }
 
@@ -207,7 +207,7 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum wat
 		}
 	}
 	
-	LOG_DEBUG("added %s watchpoint at 0x%8.8x of length 0x%8.8x",
+	LOG_DEBUG("added %s watchpoint at 0x%8.8" PRIx32 " of length 0x%8.8x",
 		watchpoint_rw_strings[(*watchpoint_p)->rw],
 		(*watchpoint_p)->address, (*watchpoint_p)->length);
 	
@@ -253,7 +253,7 @@ void watchpoint_remove(target_t *target, uint32_t address)
 	}
 	else
 	{
-		LOG_ERROR("no watchpoint at address 0x%8.8x found", address);
+		LOG_ERROR("no watchpoint at address 0x%8.8" PRIx32 " found", address);
 	}
 }
 
