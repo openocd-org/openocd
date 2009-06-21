@@ -231,7 +231,7 @@ int armv7m_write_core_reg(struct target_s *target, int num)
 		armv7m->core_cache->reg_list[num].dirty = armv7m->core_cache->reg_list[num].valid;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
-	LOG_DEBUG("write core reg %i value 0x%x", num , reg_value);
+	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num , reg_value);
 	armv7m->core_cache->reg_list[num].valid = 1;
 	armv7m->core_cache->reg_list[num].dirty = 0;
 
@@ -316,7 +316,7 @@ static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, in
 	armv7m->load_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 15, &pc);
 	if (pc != exit_point)
 	{
-		LOG_DEBUG("failed algoritm halted at 0x%x ", pc);
+		LOG_DEBUG("failed algoritm halted at 0x%" PRIx32 " ", pc);
 		return ERROR_TARGET_TIMEOUT;
 	}
 
@@ -444,7 +444,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		regvalue = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);
 		if (regvalue != context[i])
 		{
-			LOG_DEBUG("restoring register %s with value 0x%8.8x", armv7m->core_cache->reg_list[i].name, context[i]);
+			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32 "", armv7m->core_cache->reg_list[i].name, context[i]);
 			buf_set_u32(armv7m->core_cache->reg_list[i].value, 0, 32, context[i]);
 			armv7m->core_cache->reg_list[i].valid = 1;
 			armv7m->core_cache->reg_list[i].dirty = 1;
@@ -461,7 +461,7 @@ int armv7m_arch_state(struct target_s *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 
-	LOG_USER("target halted due to %s, current mode: %s %s\nxPSR: 0x%8.8x pc: 0x%8.8x",
+	LOG_USER("target halted due to %s, current mode: %s %s\nxPSR: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "",
 		 Jim_Nvp_value2name_simple( nvp_target_debug_reason,target->debug_reason)->name,
 		armv7m_mode_strings[armv7m->core_mode],
 		armv7m_exception_string(armv7m->exception_number),
@@ -720,7 +720,7 @@ int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx, char *cmd, ch
 
 	dap_ap_read_reg_u32(swjdp, 0xF8, &baseaddr);
 	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(cmd_ctx, "0x%8.8x", baseaddr);
+	command_print(cmd_ctx, "0x%8.8" PRIx32 "", baseaddr);
 
 	if (apselsave != apsel)
 	{
@@ -756,7 +756,7 @@ extern int handle_dap_apid_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
 	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(cmd_ctx, "0x%8.8x", apid);
+	command_print(cmd_ctx, "0x%8.8" PRIx32 "", apid);
 	if (apselsave != apsel)
 	{
 		dap_ap_select(swjdp, apselsave);
@@ -782,7 +782,7 @@ int handle_dap_apsel_command(struct command_context_s *cmd_ctx, char *cmd, char 
 	dap_ap_select(swjdp, apsel);
 	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
 	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(cmd_ctx, "ap %i selected, identification register 0x%8.8x", apsel, apid);
+	command_print(cmd_ctx, "ap %i selected, identification register 0x%8.8" PRIx32 "", (int)apsel, apid);
 
 	return retval;
 }
@@ -801,7 +801,7 @@ int handle_dap_memaccess_command(struct command_context_s *cmd_ctx, char *cmd, c
 	}
 
 	swjdp->memaccess_tck = memaccess_tck;
-	command_print(cmd_ctx, "memory bus access delay set to %i tck", swjdp->memaccess_tck);
+	command_print(cmd_ctx, "memory bus access delay set to %i tck", (int)(swjdp->memaccess_tck));
 
 	return ERROR_OK;
 }
