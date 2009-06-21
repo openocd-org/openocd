@@ -433,7 +433,7 @@ void arm926ejs_post_debug_entry(target_t *target)
 	/* examine cp15 control reg */
 	arm926ejs->read_cp15(target, 0, 0, 1, 0, &arm926ejs->cp15_control_reg);
 	jtag_execute_queue();
-	LOG_DEBUG("cp15_control_reg: %8.8x", arm926ejs->cp15_control_reg);
+	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm926ejs->cp15_control_reg);
 
 	if (arm926ejs->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
@@ -453,7 +453,7 @@ void arm926ejs_post_debug_entry(target_t *target)
 	arm926ejs->read_cp15(target, 0, 1, 5, 0, &arm926ejs->i_fsr);
 	arm926ejs->read_cp15(target, 0, 0, 6, 0, &arm926ejs->d_far);
 
-	LOG_DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x",
+	LOG_DEBUG("D FSR: 0x%8.8" PRIx32 ", D FAR: 0x%8.8" PRIx32 ", I FSR: 0x%8.8" PRIx32 "",
 		arm926ejs->d_fsr, arm926ejs->d_far, arm926ejs->i_fsr);
 
 	uint32_t cache_dbg_ctrl;
@@ -544,7 +544,7 @@ int arm926ejs_arch_state(struct target_s *target)
 
 	LOG_USER(
 			"target halted in %s state due to %s, current mode: %s\n"
-			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
+			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s",
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple( nvp_target_debug_reason,target->debug_reason)->name,
@@ -789,7 +789,7 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 			return retval;
 		}
 
-		command_print(cmd_ctx, "%i %i %i %i: %8.8x", opcode_1, opcode_2, CRn, CRm, value);
+		command_print(cmd_ctx, "%i %i %i %i: %8.8" PRIx32 "", opcode_1, opcode_2, CRn, CRm, value);
 	}
 	else
 	{
@@ -799,7 +799,7 @@ int arm926ejs_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, 
 			command_print(cmd_ctx, "couldn't access register");
 			return ERROR_OK;
 		}
-		command_print(cmd_ctx, "%i %i %i %i: %8.8x", opcode_1, opcode_2, CRn, CRm, value);
+		command_print(cmd_ctx, "%i %i %i %i: %8.8" PRIx32 "", opcode_1, opcode_2, CRn, CRm, value);
 	}
 
 	return ERROR_OK;
