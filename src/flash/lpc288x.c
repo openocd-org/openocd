@@ -155,7 +155,7 @@ static int lpc288x_read_part_info(struct flash_bank_s *bank)
 
 	if (cidr != 0x0102100A)
 	{
-		LOG_WARNING("Cannot identify target as an LPC288X (%08X)",cidr);
+		LOG_WARNING("Cannot identify target as an LPC288X (%08" PRIx32 ")",cidr);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -345,7 +345,7 @@ static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 			/* all writes must start on a sector boundary... */
 			if (offset % bank->sectors[i].size)
 			{
-				LOG_INFO("offset 0x%x breaks required alignment 0x%x", offset, bank->sectors[i].size);
+				LOG_INFO("offset 0x%" PRIx32 " breaks required alignment 0x%" PRIx32 "", offset, bank->sectors[i].size);
 				return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 			}
 		}
@@ -360,7 +360,7 @@ static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 	/* Range check... */
 	if (first_sector == 0xffffffff || last_sector == 0xffffffff)
 	{
-		LOG_INFO("Range check failed %x %x", offset, count);
+		LOG_INFO("Range check failed %" PRIx32 " %" PRIx32 "", offset, count);
 		return ERROR_FLASH_DST_OUT_OF_BANK;
 	}
 
@@ -408,7 +408,7 @@ static int lpc288x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 #if 1
 			if (target_write_memory(target, offset + dest_offset, 4, 128, page_buffer) != ERROR_OK)
 			{
-				LOG_ERROR("Write failed s %x p %x", sector, page);
+				LOG_ERROR("Write failed s %" PRIx32 " p %" PRIx32 "", sector, page);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 #else
