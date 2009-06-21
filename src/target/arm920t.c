@@ -381,7 +381,7 @@ void arm920t_post_debug_entry(target_t *target)
 	/* examine cp15 control reg */
 	arm920t_read_cp15_physical(target, 0x2, &arm920t->cp15_control_reg);
 	jtag_execute_queue();
-	LOG_DEBUG("cp15_control_reg: %8.8x", arm920t->cp15_control_reg);
+	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm920t->cp15_control_reg);
 
 	if (arm920t->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
@@ -402,7 +402,7 @@ void arm920t_post_debug_entry(target_t *target)
 	arm920t_read_cp15_interpreted(target, 0xee160f10, 0x0, &arm920t->d_far);
 	arm920t_read_cp15_interpreted(target, 0xee160f30, 0x0, &arm920t->i_far);
 
-	LOG_DEBUG("D FSR: 0x%8.8x, D FAR: 0x%8.8x, I FSR: 0x%8.8x, I FAR: 0x%8.8x",
+	LOG_DEBUG("D FSR: 0x%8.8" PRIx32 ", D FAR: 0x%8.8" PRIx32 ", I FSR: 0x%8.8" PRIx32 ", I FAR: 0x%8.8" PRIx32 "",
 		arm920t->d_fsr, arm920t->d_far, arm920t->i_fsr, arm920t->i_far);
 
 	if (arm920t->preserve_cache)
@@ -498,7 +498,7 @@ int arm920t_arch_state(struct target_s *target)
 	}
 
 	LOG_USER(	"target halted in %s state due to %s, current mode: %s\n"
-			"cpsr: 0x%8.8x pc: 0x%8.8x\n"
+			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s",
 			 armv4_5_state_strings[armv4_5->core_state],
 			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name,
@@ -832,12 +832,12 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 
 			/* mask LFSR[6] */
 			regs[9] &= 0xfffffffe;
-			fprintf(output, "\nsegment: %i, index: %i, CAM: 0x%8.8x, content (%s):\n", segment, index, regs[9], (regs[9] & 0x10) ? "valid" : "invalid");
+			fprintf(output, "\nsegment: %i, index: %i, CAM: 0x%8.8" PRIx32 ", content (%s):\n", segment, index, regs[9], (regs[9] & 0x10) ? "valid" : "invalid");
 
 			for (i = 1; i < 9; i++)
 			{
 				 d_cache[segment][index].data[i] = regs[i];
-				 fprintf(output, "%i: 0x%8.8x\n", i-1, regs[i]);
+				 fprintf(output, "%i: 0x%8.8" PRIx32 "\n", i-1, regs[i]);
 			}
 
 		}
@@ -918,12 +918,12 @@ int arm920t_handle_read_cache_command(struct command_context_s *cmd_ctx, char *c
 
 			/* mask LFSR[6] */
 			regs[9] &= 0xfffffffe;
-			fprintf(output, "\nsegment: %i, index: %i, CAM: 0x%8.8x, content (%s):\n", segment, index, regs[9], (regs[9] & 0x10) ? "valid" : "invalid");
+			fprintf(output, "\nsegment: %i, index: %i, CAM: 0x%8.8" PRIx32 ", content (%s):\n", segment, index, regs[9], (regs[9] & 0x10) ? "valid" : "invalid");
 
 			for (i = 1; i < 9; i++)
 			{
 				 i_cache[segment][index].data[i] = regs[i];
-				 fprintf(output, "%i: 0x%8.8x\n", i-1, regs[i]);
+				 fprintf(output, "%i: 0x%8.8" PRIx32 "\n", i-1, regs[i]);
 			}
 		}
 
@@ -1226,13 +1226,13 @@ int arm920t_handle_read_mmu_command(struct command_context_s *cmd_ctx, char *cmd
 	fprintf(output, "D TLB content:\n");
 	for (i = 0; i < 64; i++)
 	{
-		fprintf(output, "%i: 0x%8.8x 0x%8.8x 0x%8.8x %s\n", i, d_tlb[i].cam, d_tlb[i].ram1, d_tlb[i].ram2, (d_tlb[i].cam & 0x20) ? "(valid)" : "(invalid)");
+		fprintf(output, "%i: 0x%8.8" PRIx32 " 0x%8.8" PRIx32 " 0x%8.8" PRIx32 " %s\n", i, d_tlb[i].cam, d_tlb[i].ram1, d_tlb[i].ram2, (d_tlb[i].cam & 0x20) ? "(valid)" : "(invalid)");
 	}
 
 	fprintf(output, "\n\nI TLB content:\n");
 	for (i = 0; i < 64; i++)
 	{
-		fprintf(output, "%i: 0x%8.8x 0x%8.8x 0x%8.8x %s\n", i, i_tlb[i].cam, i_tlb[i].ram1, i_tlb[i].ram2, (i_tlb[i].cam & 0x20) ? "(valid)" : "(invalid)");
+		fprintf(output, "%i: 0x%8.8" PRIx32 " 0x%8.8" PRIx32 " 0x%8.8" PRIx32 " %s\n", i, i_tlb[i].cam, i_tlb[i].ram1, i_tlb[i].ram2, (i_tlb[i].cam & 0x20) ? "(valid)" : "(invalid)");
 	}
 
 	command_print(cmd_ctx, "mmu content successfully output to %s", args[0]);
@@ -1298,7 +1298,7 @@ int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				return retval;
 			}
 
-			command_print(cmd_ctx, "%i: %8.8x", address, value);
+			command_print(cmd_ctx, "%i: %8.8" PRIx32 "", address, value);
 		}
 		else if (argc == 2)
 		{
@@ -1308,7 +1308,7 @@ int arm920t_handle_cp15_command(struct command_context_s *cmd_ctx, char *cmd, ch
 				command_print(cmd_ctx, "couldn't access reg %i", address);
 				return ERROR_OK;
 			}
-			command_print(cmd_ctx, "%i: %8.8x", address, value);
+			command_print(cmd_ctx, "%i: %8.8" PRIx32 "", address, value);
 		}
 	}
 
@@ -1349,21 +1349,21 @@ int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, c
 			uint32_t value;
 			if ((retval = arm920t_read_cp15_interpreted(target, opcode, 0x0, &value)) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "couldn't execute %8.8x", opcode);
+				command_print(cmd_ctx, "couldn't execute %8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
 
-			command_print(cmd_ctx, "%8.8x: %8.8x", opcode, value);
+			command_print(cmd_ctx, "%8.8" PRIx32 ": %8.8" PRIx32 "", opcode, value);
 		}
 		else if (argc == 2)
 		{
 			uint32_t value = strtoul(args[1], NULL, 0);
 			if ((retval = arm920t_write_cp15_interpreted(target, opcode, value, 0)) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "couldn't execute %8.8x", opcode);
+				command_print(cmd_ctx, "couldn't execute %8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
-			command_print(cmd_ctx, "%8.8x: %8.8x", opcode, value);
+			command_print(cmd_ctx, "%8.8" PRIx32 ": %8.8" PRIx32 "", opcode, value);
 		}
 		else if (argc == 3)
 		{
@@ -1371,10 +1371,10 @@ int arm920t_handle_cp15i_command(struct command_context_s *cmd_ctx, char *cmd, c
 			uint32_t address = strtoul(args[2], NULL, 0);
 			if ((retval = arm920t_write_cp15_interpreted(target, opcode, value, address)) != ERROR_OK)
 			{
-				command_print(cmd_ctx, "couldn't execute %8.8x", opcode);
+				command_print(cmd_ctx, "couldn't execute %8.8" PRIx32 "", opcode);
 				return ERROR_OK;
 			}
-			command_print(cmd_ctx, "%8.8x: %8.8x %8.8x", opcode, value, address);
+			command_print(cmd_ctx, "%8.8" PRIx32 ": %8.8" PRIx32 " %8.8" PRIx32 "", opcode, value, address);
 		}
 	}
 	else
