@@ -23,6 +23,7 @@ of the Open On-Chip Debugger (OpenOCD).
 @item Copyright @copyright{} 2007-2008 Spencer Oliver @email{spen@@spen-soft.co.uk}
 @item Copyright @copyright{} 2008 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
 @item Copyright @copyright{} 2008 Duane Ellis @email{openocd@@duaneellis.com}
+@item Copyright @copyright{} 2009 David Brownell
 @end itemize
 
 @quotation
@@ -943,6 +944,10 @@ its @command{xscale vector_catch} sibling) can be a timesaver
 during some debug sessions, but don't make everyone use that either.
 Keep those kinds of debugging aids in your user config file.
 
+TCP/IP port configuration is another example of something which
+is environment-specific, and should only appear in
+a user config file.  @xref{TCP/IP Ports}.
+
 @section Project-Specific Utilities
 
 A few project-specific utility
@@ -1015,21 +1020,21 @@ including developers and integrators of OpenOCD and any user who
 needs to get a new board working smoothly.
 It provides guidelines for creating those files.
 
-You should find the following directories under @t{$(INSTALLDIR)/lib/openocd} :
+You should find the following directories under @t{$(INSTALLDIR)/scripts}:
 
 @itemize @bullet
-@item @b{interface}
-@*Think JTAG Dongle. Files that configure the JTAG dongle go here.
-@item @b{board}
-@* Think Circuit Board, PWA, PCB, they go by many names.  Board files
-contain initialization items that are specific to a board - for
-example: The SDRAM initialization sequence for the board, or the type
-of external flash and what address it is found at. Any initialization
+@item @file{interface} ...
+think JTAG Dongle. Files that configure JTAG adapters go here.
+@item @file{board} ...
+think Circuit Board, PWA, PCB, they go by many names.  Board files
+contain initialization items that are specific to a board.  For
+example, the SDRAM initialization sequence for the board, or the type
+of external flash and what address it uses.  Any initialization
 sequence to enable that external flash or SDRAM should be found in the
-board file. Boards may also contain multiple targets, i.e.: Two CPUs, or
+board file. Boards may also contain multiple targets:  two CPUs; or
 a CPU and an FPGA or CPLD.
-@item @b{target}
-@* Think chip. The ``target'' directory represents the JTAG TAPs
+@item @file{target} ...
+think chip. The ``target'' directory represents the JTAG TAPs
 on a chip
 which OpenOCD should control, not a board. Two common types of targets
 are ARM chips and FPGA or CPLD chips.
@@ -1045,7 +1050,7 @@ commands specific to their situation.
 @section Interface Config Files
 
 The user config file
-should be able to source one of these files via a command like this:
+should be able to source one of these files with a command like this:
 
 @example
 source [find interface/FOOBAR.cfg]
@@ -1060,48 +1065,206 @@ A separate chapter gives information about how to set these up.
 Read the OpenOCD source code if you have a new kind of hardware interface
 and need to provide a driver for it.
 
-Interface files should be found in @t{$(INSTALLDIR)/lib/openocd/interface}
-
 @section Board Config Files
 @cindex config file, board
 @cindex board config file
 
 The user config file
-should be able to source one of these files via a command like this:
+should be able to source one of these files with a command like this:
 
 @example
 source [find board/FOOBAR.cfg]
 @end example
 
-The board config file should contain one or more @command{source [find
-target/FOO.cfg]} statements along with any board specific things.
-
+The point of a board config file is to package everything
+about a given board that user config files need to know.
 In summary the board files should contain (if present)
 
 @enumerate
-@item External flash configuration (i.e.: NOR flash on CS0, two NANDs on CS2)
-@item SDRAM configuration (size, speed, etc.
-@item Board specific IO configuration (i.e.: GPIO pins might disable a 2nd flash)
-@item Multiple TARGET source statements
-@item Reset configuration
+@item One or more @command{source [target/...cfg]} statements
+@item NOR flash configuration (@pxref{NOR Configuration})
+@item NAND flash configuration (@pxref{NAND Configuration})
+@item Target @code{reset} handlers for SDRAM and I/O configuration
+@item JTAG adapter reset configuration (@pxref{Reset Configuration})
 @item All things that are not ``inside a chip''
-@item Things inside a chip go in a 'target' file
 @end enumerate
+
+Generic things inside target chips belong in target config files,
+not board config files.  So for example a @code{reset-init} event
+handler should know board-specific oscillator and PLL parameters,
+which it passes to target-specific utility code.
+
+The most complex task of a board config file is creating such a
+@code{reset-init} event handler.
+Define those handlers last, after you verify the rest of the board
+configuration works.
+
+@subsection Communication Between Config files
+
+In addition to target-specific utility code, another way that
+board and target config files communicate is by following a
+convention on how to use certain variables.
+
+The full Tcl/Tk language supports ``namespaces'', but JIM-Tcl does not.
+Thus the rule we follow in OpenOCD is this: Variables that begin with
+a leading underscore are temporary in nature, and can be modified and
+used at will within a target configuration file.
+
+Complex board config files can do the things like this,
+for a board with three chips:
+
+@example
+# Chip #1: PXA270 for network side, big endian
+set CHIPNAME network
+set ENDIAN big
+source [find target/pxa270.cfg]
+# on return: _TARGETNAME = network.cpu
+# other commands can refer to the "network.cpu" target.
+$_TARGETNAME configure .... events for this CPU..
+
+# Chip #2: PXA270 for video side, little endian
+set CHIPNAME video
+set ENDIAN little
+source [find target/pxa270.cfg]
+# on return: _TARGETNAME = video.cpu
+# other commands can refer to the "video.cpu" target.
+$_TARGETNAME configure .... events for this CPU..
+
+# Chip #3: Xilinx FPGA for glue logic
+set CHIPNAME xilinx
+unset ENDIAN
+source [find target/spartan3.cfg]
+@end example
+
+That example is oversimplified because it doesn't show any flash memory,
+or the @code{reset-init} event handlers to initialize external DRAM
+or (assuming it needs it) load a configuration into the FPGA.
+Such features are usually needed for low-level work with many boards,
+where ``low level'' implies that the board initialization software may
+not be working.  (That's a common reason to need JTAG tools.  Another
+is to enable working with microcontroller-based systems, which often
+have no debugging support except a JTAG connector.)
+
+Target config files may also export utility functions to board and user
+config files.  Such functions should use name prefixes, to help avoid
+naming collisions.
+
+Board files could also accept input variables from user config files.
+For example, there might be a @code{J4_JUMPER} setting used to identify
+what kind of flash memory a development board is using, or how to set
+up other clocks and peripherals.
+
+@subsection Variable Naming Convention
+@cindex variable names
+
+Most boards have only one instance of a chip.
+However, it should be easy to create a board with more than
+one such chip (as shown above).
+Accordingly, we encourage these conventions for naming
+variables associated with different @file{target.cfg} files,
+to promote consistency and
+so that board files can override target defaults.
+
+Inputs to target config files include:
+
+@itemize @bullet
+@item @code{CHIPNAME} ...
+This gives a name to the overall chip, and is used as part of
+tap identifier dotted names.
+While the default is normally provided by the chip manufacturer,
+board files may need to distinguish between instances of a chip.
+@item @code{ENDIAN} ...
+By default @option{little} - although chips may hard-wire @option{big}.
+Chips that can't change endianness don't need to use this variable.
+@item @code{CPUTAPID} ...
+When OpenOCD examines the JTAG chain, it can be told verify the
+chips against the JTAG IDCODE register.
+The target file will hold one or more defaults, but sometimes the
+chip in a board will use a different ID (perhaps a newer revision).
+@end itemize
+
+Outputs from target config files include:
+
+@itemize @bullet
+@item @code{_TARGETNAME} ...
+By convention, this variable is created by the target configuration
+script. The board configuration file may make use of this variable to
+configure things like a ``reset init'' script, or other things
+specific to that board and that target.
+If the chip has 2 targets, the names are @code{_TARGETNAME0},
+@code{_TARGETNAME1}, ... etc.
+@end itemize
+
+@subsection The reset-init Event Handler
+@cindex event, reset-init
+@cindex reset-init handler
+
+Board config files run in the OpenOCD configuration stage;
+they can't use TAPs or targets, since they haven't been
+fully set up yet.
+This means you can't write memory or access chip registers;
+you can't even verify that a flash chip is present.
+That's done later in event handlers, of which the target @code{reset-init}
+handler is one of the most important.
+
+Except on microcontrollers, the basic job of @code{reset-init} event
+handlers is setting up flash and DRAM, as normally handled by boot loaders.
+Microcontrollers rarely use boot loaders; they run right out of their
+on-chip flash and SRAM memory.  But they may want to use one of these
+handlers too, if just for developer convenience.
+
+@quotation Note
+Because this is so very board-specific, and chip-specific, no examples
+are included here.
+Instead, look at the board config files distributed with OpenOCD.
+If you have a boot loader, its source code may also be useful.
+@end quotation
+
+Some of this code could probably be shared between different boards.
+For example, setting up a DRAM controller often doesn't differ by
+much except the bus width (16 bits or 32?) and memory timings, so a
+reusable TCL procedure loaded by the @file{target.cfg} file might take
+those as parameters.
+Similarly with oscillator, PLL, and clock setup;
+and disabling the watchdog.
+Structure the code cleanly, and provide comments to help
+the next developer doing such work.
+(@emph{You might be that next person} trying to reuse init code!)
+
+The last thing normally done in a @code{reset-init} handler is probing
+whatever flash memory was configured.  For most chips that needs to be
+done while the associated target is halted, either because JTAG memory
+access uses the CPU or to prevent conflicting CPU access.
+
+@subsection JTAG Clock Rate
+
+Before your @code{reset-init} handler has set up
+the PLLs and clocking, you may need to use
+a low JTAG clock rate; then you'd increase it later.
+(The rule of thumb for ARM-based processors is 1/8 the CPU clock.)
+If the board supports adaptive clocking, use the @command{jtag_rclk}
+command, in case your board is used with JTAG adapter which
+also supports it.  Otherwise use @command{jtag_khz}.
+Set the slow rate at the beginning of the reset sequence,
+and the faster rate as soon as the clocks are at full speed.
 
 @section Target Config Files
 @cindex config file, target
 @cindex target config file
 
-Board config files should be able to source one or more
-target config files via a command like this:
+Board config files communicate with target config files using
+naming conventions as described above, and may source one or
+more target config files like this:
 
 @example
 source [find target/FOOBAR.cfg]
 @end example
 
+The point of a target config file is to package everything
+about a given chip that board config files need to know.
 In summary the target files should contain
 
-@enumerate 
+@enumerate
 @item Set defaults
 @item Add TAPs to the scan chain
 @item Add CPU targets (includes GDB support)
@@ -1111,7 +1274,7 @@ In summary the target files should contain
 
 As a rule of thumb, a target file sets up only one chip.
 For a microcontroller, that will often include a single TAP,
-which is a CPU needing a GDB target; and its on-chip flash.
+which is a CPU needing a GDB target, and its on-chip flash.
 
 More complex chips may include multiple TAPs, and the target
 config file may need to define them all before OpenOCD
@@ -1121,123 +1284,49 @@ an ARM core for operating system use, a DSP,
 another ARM core embedded in an image processing engine,
 and other processing engines.
 
-@subsection Important variable names
-
-Most boards will have only one instance of a chip.
-However, it should be easy to create a board with more than
-one such chip.
-Accordingly, we encourage some conventions for naming
-variables associated with different TAPs, to promote
-consistency and
-so that board files can override target defaults, and
-
-@itemize @bullet
-@item @b{CHIPNAME}
-@* This gives a name to the overall chip, and is used as part of the
-tap identifier dotted name.
-It's normally provided by the chip manufacturer.
-@item @b{ENDIAN}
-@* By default little - unless the chip or board is not normally used that way.
-Chips that can't change endianness don't need to use this variable.
-@item @b{CPUTAPID}
-@* When OpenOCD examines the JTAG chain, it will attempt to identify
-every chip. If the @t{-expected-id} is nonzero, OpenOCD attempts
-to verify the tap id number verses configuration file and may issue an
-error or warning like this. The hope is that this will help to pinpoint
-problems in OpenOCD configurations.
-
-@example
-Info:   JTAG tap: sam7x256.cpu tap/device found: 0x3f0f0f0f
-                (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)
-Error:  ERROR: Tap: sam7x256.cpu - Expected id: 0x12345678,
-                Got: 0x3f0f0f0f
-Error:  ERROR: expected: mfg: 0x33c, part: 0x2345, ver: 0x1
-Error:  ERROR:      got: mfg: 0x787, part: 0xf0f0, ver: 0x3
-@end example
-
-@item @b{_TARGETNAME}
-@* By convention, this variable is created by the target configuration
-script. The board configuration file may make use of this variable to
-configure things like a ``reset init'' script, or other things
-specific to that board and that target.
-
-If the chip has 2 targets, use the names @b{_TARGETNAME0},
-@b{_TARGETNAME1}, ... etc.
-
-@emph{Remember:} The ``board file'' may include multiple targets.
-The user (or board) config file should reasonably be able to:
-
-@example
-source [find target/FOO.cfg]
-$_TARGETNAME configure ... FOO specific parameters
-
-source [find target/BAR.cfg]
-$_TARGETNAME configure ... BAR specific parameters
-@end example
-
-@end itemize
-
-@subsection Tcl Variables Guide Line
-The Full Tcl/Tk language supports ``namespaces'' - JIM-Tcl does not.
-
-Thus the rule we follow in OpenOCD is this: Variables that begin with
-a leading underscore are temporary in nature, and can be modified and
-used at will within a ?TARGET? configuration file.
-
-@b{EXAMPLE:} The user config file should be able to do this:
-
-@example
-   # Board has 3 chips,
-   #    PXA270 #1 network side, big endian
-   #    PXA270 #2 video side, little endian
-   #    Xilinx    Glue logic
-   set CHIPNAME network
-   set ENDIAN big
-   source [find target/pxa270.cfg]
-   # variable: _TARGETNAME = network.cpu
-   # other commands can refer to the "network.cpu" tap.
-   $_TARGETNAME configure .... params for this CPU..
-
-   set ENDIAN little
-   set CHIPNAME video
-   source [find target/pxa270.cfg]
-   # variable: _TARGETNAME = video.cpu
-   # other commands can refer to the "video.cpu" tap.
-   $_TARGETNAME configure .... params for this CPU..
-
-   unset ENDIAN
-   set CHIPNAME xilinx
-   source [find target/spartan3.cfg]
-
-   # Since $_TARGETNAME is temporal..
-   #  these names still work!
-   network.cpu configure ... params
-   video.cpu   configure ... params
-@end example
-
 @subsection Default Value Boiler Plate Code
 
-All target configuration files should start with this (or a modified form)
+All target configuration files should start with code like this,
+letting board config files express environment-specific
+differences in how things should be set up.
 
 @example
-# SIMPLE example
+# Boards may override chip names, perhaps based on role,
+# but the default should match what the vendor uses
 if @{ [info exists CHIPNAME] @} @{
    set  _CHIPNAME $CHIPNAME
 @} else @{
    set  _CHIPNAME sam7x256
 @}
 
+# ONLY use ENDIAN with targets that can change it.
 if @{ [info exists ENDIAN] @} @{
    set  _ENDIAN $ENDIAN
 @} else @{
    set  _ENDIAN little
 @}
 
+# TAP identifiers may change as chips mature, for example with
+# new revision fields (the "3" here).  Pick a good default; you
+# can pass several such identifiers to the "jtag newtap" command.
 if @{ [info exists CPUTAPID ] @} @{
    set _CPUTAPID $CPUTAPID
 @} else @{
    set _CPUTAPID 0x3f0f0f0f
 @}
+@end example
+
+@emph{Remember:} Board config files may include multiple target
+config files, or the same target file multiple times
+(changing at least @code{CHIPNAME}).
+
+Likewise, the target configuration file should define
+@code{_TARGETNAME} (or @code{_TARGETNAME0} etc) and
+use it later on when defining debug targets:
+
+@example
+set _TARGETNAME $_CHIPNAME.cpu
+target create $_TARGETNAME arm7tdmi -chain-position $_TARGETNAME
 @end example
 
 @subsection Adding TAPs to the Scan Chain
@@ -1261,12 +1350,25 @@ to source such a config file twice, with different
 values for @code{CHIPNAME}, so
 it adds a different TAP each time.
 
+If there are one or more nonzero @option{-expected-id} values,
+OpenOCD attempts to verify the actual tap id against those values.
+It will issue error messages if there is mismatch, which
+can help to pinpoint problems in OpenOCD configurations.
+
+@example
+JTAG tap: sam7x256.cpu tap/device found: 0x3f0f0f0f
+                (Manufacturer: 0x787, Part: 0xf0f0, Version: 0x3)
+ERROR: Tap: sam7x256.cpu - Expected id: 0x12345678, Got: 0x3f0f0f0f
+ERROR: expected: mfg: 0x33c, part: 0x2345, ver: 0x1
+ERROR:      got: mfg: 0x787, part: 0xf0f0, ver: 0x3
+@end example
+
 There are more complex examples too, with chips that have
 multiple TAPs.  Ones worth looking at include:
 
 @itemize
-@item @file{target/omap3530.cfg} -- with a disabled ARM, and a JRC
-(there's a DSP too, which is not listed)
+@item @file{target/omap3530.cfg} -- with disabled ARM and DSP,
+plus a JRC to enable them
 @item @file{target/str912.cfg} -- with flash, CPU, and boundary scan
 @item @file{target/ti_dm355.cfg} -- with ETM, ARM, and JRC (this JRC
 is not currently used)
@@ -1277,7 +1379,9 @@ is not currently used)
 After adding a TAP for a CPU, you should set it up so that
 GDB and other commands can use it.
 @xref{CPU Configuration}.
-For the at91sam7 example above, the command can look like this:
+For the at91sam7 example above, the command can look like this;
+note that @code{$_ENDIAN} is not needed, since OpenOCD defaults
+to little endian, and this chip doesn't support changing that.
 
 @example
 set _TARGETNAME $_CHIPNAME.cpu
@@ -1428,6 +1532,7 @@ read/write memory on your target, @command{init} must occur before
 the memory read/write commands.  This includes @command{nand probe}.
 @end deffn
 
+@anchor{TCP/IP Ports}
 @section TCP/IP Ports
 @cindex TCP port
 @cindex server
@@ -3023,11 +3128,12 @@ bank'', and the GDB flash features be enabled.
 @end enumerate
 
 Many CPUs have the ablity to ``boot'' from the first flash bank.
-This means that misprograming that bank can ``brick'' a system,
+This means that misprogramming that bank can ``brick'' a system,
 so that it can't boot.
 JTAG tools, like OpenOCD, are often then used to ``de-brick'' the
 board by (re)installing working boot firmware.
 
+@anchor{NOR Configuration}
 @section Flash Configuration Commands
 @cindex flash configuration
 
@@ -3716,6 +3822,7 @@ is larger than 0xffffffff, the largest 32-bit unsigned integer.)
 Some larger devices will work, since they are actually multi-chip
 modules with two smaller chips and individual chipselect lines.
 
+@anchor{NAND Configuration}
 @section NAND Configuration Commands
 @cindex NAND configuration
 
