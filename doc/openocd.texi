@@ -63,10 +63,10 @@ Free Documentation License''.
 * Developers::                       OpenOCD Developers
 * Building OpenOCD::                 Building OpenOCD From SVN
 * JTAG Hardware Dongles::            JTAG Hardware Dongles
+* About JIM-Tcl::                    About JIM-Tcl
 * Running::                          Running OpenOCD
 * OpenOCD Project Setup::            OpenOCD Project Setup
 * Config File Guidelines::           Config File Guidelines
-* About JIM-Tcl::                    About JIM-Tcl
 * Daemon Configuration::             Daemon Configuration
 * Interface - Dongle Configuration:: Interface - Dongle Configuration
 * Reset Configuration::              Reset Configuration
@@ -659,6 +659,50 @@ FlashLINK JTAG programing cable for PSD and uPSD}
 
 @end itemize
 
+@node About JIM-Tcl
+@chapter About JIM-Tcl
+@cindex JIM Tcl
+@cindex tcl
+
+OpenOCD includes a small ``Tcl Interpreter'' known as JIM-Tcl.
+This programming language provides a simple and extensible
+command interpreter.
+
+All commands presented in this Guide are extensions to JIM-Tcl.
+You can use them as simple commands, without needing to learn
+much of anything about Tcl.
+Alternatively, can write Tcl programs with them.
+
+You can learn more about JIM at its website,  @url{http://jim.berlios.de}.
+
+@itemize @bullet
+@item @b{JIM vs. Tcl}
+@* JIM-TCL is a stripped down version of the well known Tcl language,
+which can be found here: @url{http://www.tcl.tk}. JIM-Tcl has far
+fewer features. JIM-Tcl is a single .C file and a single .H file and
+implements the basic Tcl command set. In contrast: Tcl 8.6 is a
+4.2 MB .zip file containing 1540 files.
+
+@item @b{Missing Features}
+@* Our practice has been: Add/clone the real Tcl feature if/when
+needed. We welcome JIM Tcl improvements, not bloat.
+
+@item @b{Scripts}
+@* OpenOCD configuration scripts are JIM Tcl Scripts. OpenOCD's
+command interpreter today is a mixture of (newer)
+JIM-Tcl commands, and (older) the orginal command interpreter.
+
+@item @b{Commands}
+@* At the OpenOCD telnet command line (or via the GDB mon command) one
+can type a Tcl for() loop, set variables, etc.
+
+@item @b{Historical Note}
+@* JIM-Tcl was introduced to OpenOCD in spring 2008.
+
+@item @b{Need a crash course in Tcl?}
+@*@xref{Tcl Crash Course}.
+@end itemize
+
 @node Running
 @chapter Running
 @cindex command line options
@@ -693,7 +737,7 @@ clients (Telnet, GDB, Other).
 If you are having problems, you can enable internal debug messages via
 the ``-d'' option.
 
-Also it is possible to interleave commands w/config scripts using the
+Also it is possible to interleave JIM-Tcl commands w/config scripts using the
 @option{-c} command line switch.
 
 To enable debug output (when reporting problems or working on OpenOCD
@@ -808,7 +852,7 @@ single directory for your work with a given board.
 When you start OpenOCD from that directory,
 it searches there first for configuration files
 and for code you upload to the target board.
-It is also be the natural place to write files,
+It is also the natural place to write files,
 such as log files and data you download from the board.
 
 @section Configuration Basics
@@ -848,7 +892,7 @@ openocd -f interface/signalyzer.cfg \
 
 You could wrap such long command lines in shell scripts,
 each supporting a different development task.
-One might re-flash the board with specific firmware version.
+One might re-flash the board with a specific firmware version.
 Another might set up a particular debugging or run-time environment.
 
 Here we will focus on the simpler solution:  one user config
@@ -1454,42 +1498,6 @@ Examples:
 @item str912 - has flash internal YES enable it.
 @item imx27 - uses boot flash on CS0 - it goes in the board file.
 @item pxa270 - again - CS0 flash - it goes in the board file.
-@end itemize
-
-@node About JIM-Tcl
-@chapter About JIM-Tcl
-@cindex JIM Tcl
-@cindex tcl
-
-OpenOCD includes a small ``TCL Interpreter'' known as JIM-TCL. You can
-learn more about JIM here: @url{http://jim.berlios.de}
-
-@itemize @bullet
-@item @b{JIM vs. Tcl}
-@* JIM-TCL is a stripped down version of the well known Tcl language,
-which can be found here: @url{http://www.tcl.tk}. JIM-Tcl has far
-fewer features. JIM-Tcl is a single .C file and a single .H file and
-impliments the basic Tcl command set along. In contrast: Tcl 8.6 is a
-4.2 MB .zip file containing 1540 files.
-
-@item @b{Missing Features}
-@* Our practice has been: Add/clone the real Tcl feature if/when
-needed. We welcome JIM Tcl improvements, not bloat.
-
-@item @b{Scripts}
-@* OpenOCD configuration scripts are JIM Tcl Scripts. OpenOCD's
-command interpreter today is a mixture of (newer)
-JIM-Tcl commands, and (older) the orginal command interpreter.
-
-@item @b{Commands}
-@* At the OpenOCD telnet command line (or via the GDB mon command) one
-can type a Tcl for() loop, set variables, etc.
-
-@item @b{Historical Note}
-@* JIM-Tcl was introduced to OpenOCD in spring 2008.
-
-@item @b{Need a crash course in Tcl?}
-@*@xref{Tcl Crash Course}.
 @end itemize
 
 @node Daemon Configuration
