@@ -916,7 +916,7 @@ static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 	}
 
 	/* mark erased sectors */
-	for (sec=first; sec<=last; sec++)
+	for (sec=first; sec <= last; sec++)
 	{
 		bank->sectors[sec].is_erased = 1;
 	}
@@ -952,7 +952,7 @@ static int at91sam7_protect(struct flash_bank_s *bank, int set, int first, int l
 	at91sam7_read_clock_info(bank);
 	at91sam7_set_flash_mode(bank, FMR_TIMING_NVBITS);
 
-	for (sector=first; sector<=last; sector++)
+	for (sector=first; sector <= last; sector++)
 	{
 		if (set)
 			cmd = SLB;

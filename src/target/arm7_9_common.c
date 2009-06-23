@@ -1428,7 +1428,7 @@ int arm7_9_debug_entry(target_t *target)
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
 
-	for (i=0; i<=15; i++)
+	for (i=0; i <= 15; i++)
 	{
 		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, context[i]);
 		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).value, 0, 32, context[i]);
@@ -2362,7 +2362,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
 
-	for (i=0; i<=last_reg; i++)
+	for (i=0; i <= last_reg; i++)
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid;
 
 	arm7_9->read_xpsr(target, &cpsr, 0);
@@ -2545,7 +2545,7 @@ int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
 
-	for (i=0; i<=last_reg; i++)
+	for (i=0; i <= last_reg; i++)
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid;
 
 	arm7_9->read_xpsr(target, &cpsr, 0);
