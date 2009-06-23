@@ -319,7 +319,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			break;
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
-		if (reply == '$'){
+		if (reply == '$') {
 			/* fix a problem with some IAR tools */
 			gdb_putback_char(connection, reply);
 			LOG_DEBUG("Unexpected start of new packet");
@@ -402,7 +402,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 				log_remove_callback(gdb_log_callback, connection);
 				LOG_WARNING("negative reply, retrying");
 			}
-			else if (reply == '$'){
+			else if (reply == '$') {
 				LOG_ERROR("GDB missing ack(1) - assumed good");
 				gdb_putback_char(connection, reply);
 				return ERROR_OK;
@@ -413,7 +413,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 		}
-		else if (reply == '$'){
+		else if (reply == '$') {
 			LOG_ERROR("GDB missing ack(2) - assumed good");
 			gdb_putback_char(connection, reply);
 			return ERROR_OK;
@@ -2036,12 +2036,12 @@ int gdb_input_inner(connection_t *connection)
 		/* terminate with zero */
 		packet[packet_size] = 0;
 
-		if (LOG_LEVEL_IS(LOG_LVL_DEBUG)){
-			if (packet[0] == 'X'){
+		if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
+			if (packet[0] == 'X') {
 				// binary packets spew junk into the debug log stream
 				char buf[ 50 ];
 				int x;
-				for (x = 0 ; (x < 49) && (packet[x] != ':') ; x++){
+				for (x = 0 ; (x < 49) && (packet[x] != ':') ; x++) {
 					buf[x] = packet[x];
 				}
 				buf[x] = 0;

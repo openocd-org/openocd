@@ -96,7 +96,7 @@ int xilinx_read_bit_file(xilinx_bit_file_t *bit_file, char *filename)
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
-	if (input_stat.st_size == 0){
+	if (input_stat.st_size == 0) {
 		LOG_ERROR("Empty file %s", filename);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}

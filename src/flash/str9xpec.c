@@ -101,7 +101,7 @@ static int str9xpec_register_commands(struct command_context_s *cmd_ctx)
 
 int str9xpec_set_instr(jtag_tap_t *tap, uint32_t new_instr, tap_state_t end_state)
 {
-	if (tap == NULL){
+	if (tap == NULL) {
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -671,11 +671,11 @@ static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 				check_address = sec_end;
 		}
 
-		if ((offset >= sec_start) && (offset < sec_end)){
+		if ((offset >= sec_start) && (offset < sec_end)) {
 			first_sector = i;
 		}
 
-		if ((offset + count >= sec_start) && (offset + count < sec_end)){
+		if ((offset + count >= sec_start) && (offset + count < sec_end)) {
 			last_sector = i;
 		}
 	}

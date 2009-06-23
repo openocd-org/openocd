@@ -985,19 +985,19 @@ typedef struct jim_getopt {
  *
  *   Jim_GetOpt_Setup(&goi, interp, argc, argv);
  *
- *   while (goi.argc){
+ *   while (goi.argc) {
  *         e = Jim_GetOpt_Nvp(&goi, nvp_options, &n);
- *         if (e != JIM_OK){
+ *         if (e != JIM_OK) {
  *               Jim_GetOpt_NvpUnknown(&goi, nvp_options, 0);
  *               return e;
  *         }
  *
- *         switch (n->value){
+ *         switch (n->value) {
  *         case ALIVE:
  *             printf("Option ALIVE specified\n");
  *             break;
  *         case FIRST:
- *             if (goi.argc < 1){
+ *             if (goi.argc < 1) {
  *                     .. not enough args error ..
  *             }
  *             Jim_GetOpt_String(&goi, &cp, NULL);
@@ -1008,7 +1008,7 @@ typedef struct jim_getopt {
  *             break;
  *         case POLITICS:
  *             e = Jim_GetOpt_Nvp(&goi, nvp_politics, &n);
- *             if (e != JIM_OK){
+ *             if (e != JIM_OK) {
  *                 Jim_GetOpt_NvpUnknown(&goi, nvp_politics, 1);
  *                 return e;
  *             }
@@ -1102,21 +1102,21 @@ JIM_STATIC int JIM_API(Jim_GetOpt_Nvp)(Jim_GetOptInfo *goi, const Jim_Nvp *looku
  * Example:
  * \code
  *
- *  while (goi.argc){
+ *  while (goi.argc) {
  *     // Get the next option 
  *     e = Jim_GetOpt_Nvp(&goi, cmd_options, &n);
- *     if (e != JIM_OK){
+ *     if (e != JIM_OK) {
  *          // option was not recognized
  *          // pass 'hadprefix = 0' because there is no prefix
  *          Jim_GetOpt_NvpUnknown(&goi, cmd_options, 0);
  *          return e;
  *     }
  *
- *     switch (n->value){
+ *     switch (n->value) {
  *     case OPT_SEX:
  *          // handle:  --sex male | female | lots | needmore
  *          e = Jim_GetOpt_Nvp(&goi, &nvp_sex, &n);
- *          if (e != JIM_OK){
+ *          if (e != JIM_OK) {
  *               Jim_GetOpt_NvpUnknown(&ogi, nvp_sex, 1);
  *               return e;
  *          }

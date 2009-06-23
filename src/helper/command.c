@@ -348,7 +348,7 @@ int unregister_command(command_context_t *context, char *name)
 
 void command_output_text(command_context_t *context, const char *data)
 {
-	if (context && context->output_handler && data){
+	if (context && context->output_handler && data) {
 		context->output_handler(context, data);
 	}
 }
