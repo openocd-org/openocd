@@ -129,11 +129,11 @@ static int xsvf_fd = 0;
 
 
 /* map xsvf tap state to an openocd "tap_state_t" */
-static tap_state_t xsvf_to_tap( int xsvf_state )
+static tap_state_t xsvf_to_tap(int xsvf_state )
 {
 	tap_state_t	ret;
 
-	switch ( xsvf_state )
+	switch (xsvf_state )
 	{
 	case XSV_RESET:			ret = TAP_RESET;			break;
 	case XSV_IDLE:			ret = TAP_IDLE;			break;
@@ -152,7 +152,7 @@ static tap_state_t xsvf_to_tap( int xsvf_state )
 	case XSV_IREXIT2:		ret = TAP_IREXIT2;		break;
 	case XSV_IRUPDATE:		ret = TAP_IRUPDATE;		break;
 	default:
-		LOG_ERROR( "UNKNOWN XSVF STATE 0x%02X", xsvf_state );
+		LOG_ERROR("UNKNOWN XSVF STATE 0x%02X", xsvf_state );
 		exit(1);
 	}
 
@@ -232,10 +232,10 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	if (strcmp(args[0], "plain") != 0)
 	{
-		tap = jtag_tap_by_string( args[0] );
+		tap = jtag_tap_by_string(args[0] );
 		if (!tap )
 		{
-			command_print( cmd_ctx, "Tap: %s unknown", args[0] );
+			command_print(cmd_ctx, "Tap: %s unknown", args[0] );
 			return ERROR_FAIL;
 		}
 	}
@@ -261,7 +261,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	LOG_USER("xsvf processing file: \"%s\"", filename);
 
-	while ( read(xsvf_fd, &opcode, 1) > 0 )
+	while (read(xsvf_fd, &opcode, 1) > 0 )
 	{
 		/* record the position of the just read opcode within the file */
 		file_offset = lseek(xsvf_fd, 0, SEEK_CUR) - 1;
@@ -327,9 +327,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				xsdrsize = be_to_h_u32(xsdrsize_buf);
 				LOG_DEBUG("XSDRSIZE %d", xsdrsize);
 
-				if ( dr_out_buf ) free(dr_out_buf);
-				if ( dr_in_buf)   free(dr_in_buf);
-				if ( dr_in_mask)  free(dr_in_mask);
+				if (dr_out_buf ) free(dr_out_buf);
+				if (dr_in_buf)   free(dr_in_buf);
+				if (dr_in_mask)  free(dr_in_mask);
 
 				dr_out_buf = malloc((xsdrsize + 7) / 8);
 				dr_in_buf = malloc((xsdrsize + 7) / 8);
@@ -366,11 +366,11 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				LOG_DEBUG("%s %d", op_name, xsdrsize);
 
-				for ( attempt = 0; attempt < limit;  ++attempt )
+				for (attempt = 0; attempt < limit;  ++attempt )
 				{
 					scan_field_t field;
 
-					if ( attempt > 0 )
+					if (attempt > 0 )
 					{
 						/* perform the XC9500 exception handling sequence shown in xapp067.pdf and
 						   illustrated in psuedo code at end of this file.  We start from state
@@ -393,7 +393,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 							TAP_IDLE,
 						};
 
-						jtag_add_pathmove( DIM(exception_path), exception_path );
+						jtag_add_pathmove(DIM(exception_path), exception_path );
 
 						if (verbose)
 							LOG_USER("%s mismatch, xsdrsize=%d retry=%d", op_name, xsdrsize, attempt);
@@ -425,7 +425,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				if (!matched)
 				{
-					LOG_USER( "%s mismatch", op_name);
+					LOG_USER("%s mismatch", op_name);
 					tdo_mismatch = 1;
 					break;
 				}
@@ -505,7 +505,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					the XSTATE.
 				*/
 
-				if ( jtag_add_statemove( mystate ) != ERROR_OK )
+				if (jtag_add_statemove(mystate ) != ERROR_OK )
 				{
 					/*	For special states known as stable states
 						(Test-Logic-Reset, Run-Test/Idle, Pause-DR, Pause- IR),
@@ -538,9 +538,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			}
 
 			/* see page 22 of XSVF spec */
-			if ( uc == 0 )
+			if (uc == 0 )
 				xendir = TAP_IDLE;
-			else if ( uc == 1 )
+			else if (uc == 1 )
 				xendir = TAP_IRPAUSE;
 			else
 			{
@@ -561,9 +561,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			}
 
 			/* see page 22 of XSVF spec */
-			if ( uc == 0 )
+			if (uc == 0 )
 				xenddr = TAP_IDLE;
-			else if ( uc == 1 )
+			else if (uc == 1 )
 				xenddr = TAP_DRPAUSE;
 			else
 			{
@@ -583,7 +583,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				int bitcount;
 				tap_state_t my_end_state = xruntest ? TAP_IDLE : xendir;
 
-				if ( opcode == XSIR )
+				if (opcode == XSIR )
 				{
 					/* one byte bitcount */
 					if (read(xsvf_fd, short_buf, 1) < 0)
@@ -664,7 +664,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 						break;
 					}
 
-					if ( ndx < sizeof(comment)-1 )
+					if (ndx < sizeof(comment)-1 )
 						comment[ndx++] = uc;
 
 				} while (uc != 0);
@@ -689,7 +689,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				tap_state_t end_state;
 				int 	delay;
 
-				if ( read(xsvf_fd, &wait, 1) < 0
+				if (read(xsvf_fd, &wait, 1) < 0
 				  || read(xsvf_fd, &end, 1) < 0
 				  || read(xsvf_fd, delay_buf, 4) < 0)
 				{
@@ -709,9 +709,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				}
 				else
 				{
-					jtag_add_statemove( wait_state );
+					jtag_add_statemove(wait_state );
 					jtag_add_sleep(delay);
-					jtag_add_statemove( end_state );
+					jtag_add_statemove(end_state );
 				}
 			}
 			break;
@@ -731,7 +731,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				int clock_count;
 				int usecs;
 
-				if ( read(xsvf_fd, &wait, 1) < 0
+				if (read(xsvf_fd, &wait, 1) < 0
 				 ||  read(xsvf_fd, &end, 1) < 0
 				 ||  read(xsvf_fd, clock_buf, 4) < 0
 				 ||  read(xsvf_fd, usecs_buf, 4) < 0 )
@@ -740,8 +740,8 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					break;
 				}
 
-				wait_state = xsvf_to_tap( wait );
-				end_state  = xsvf_to_tap( end );
+				wait_state = xsvf_to_tap(wait );
+				end_state  = xsvf_to_tap(end );
 
 				clock_count = be_to_h_u32(clock_buf);
 				usecs       = be_to_h_u32(usecs_buf);
@@ -758,17 +758,17 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				 */
 				if (wait_state != TAP_IRPAUSE && wait_state != TAP_DRPAUSE && wait_state != TAP_RESET && wait_state != TAP_IDLE)
 				{
-					LOG_ERROR("illegal XWAITSTATE wait_state: \"%s\"", tap_state_name( wait_state ));
+					LOG_ERROR("illegal XWAITSTATE wait_state: \"%s\"", tap_state_name(wait_state ));
 					unsupported = 1;
 				}
 
-				jtag_add_statemove( wait_state );
+				jtag_add_statemove(wait_state );
 
-				jtag_add_clocks( clock_count );
+				jtag_add_clocks(clock_count );
 
-				jtag_add_sleep( usecs );
+				jtag_add_sleep(usecs );
 
-				jtag_add_statemove( end_state );
+				jtag_add_statemove(end_state );
 			}
 			break;
 
@@ -779,7 +779,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				*/
 				uint8_t  count_buf[4];
 
-				if ( read(xsvf_fd, count_buf, 4) < 0 )
+				if (read(xsvf_fd, count_buf, 4) < 0 )
 				{
 					do_abort = 1;
 					break;
@@ -799,7 +799,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				uint8_t  clock_buf[4];
 				uint8_t  usecs_buf[4];
 
-				if ( read(xsvf_fd, &state, 1) < 0
+				if (read(xsvf_fd, &state, 1) < 0
 				  || read(xsvf_fd, clock_buf, 4) < 0
 				  ||	 read(xsvf_fd, usecs_buf, 4) < 0 )
 				{
@@ -826,7 +826,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				LOG_DEBUG("LSDR");
 
-				if ( xsvf_read_buffer(xsdrsize, xsvf_fd, dr_out_buf) != ERROR_OK
+				if (xsvf_read_buffer(xsdrsize, xsvf_fd, dr_out_buf) != ERROR_OK
 				  || xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_buf) != ERROR_OK )
 				{
 					do_abort = 1;
@@ -836,11 +836,11 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				if (limit < 1)
 					limit = 1;
 
-				for ( attempt = 0; attempt < limit;  ++attempt )
+				for (attempt = 0; attempt < limit;  ++attempt )
 				{
 					scan_field_t field;
 
-					jtag_add_statemove( loop_state );
+					jtag_add_statemove(loop_state );
 					jtag_add_clocks(loop_clocks);
 					jtag_add_sleep(loop_usecs);
 
@@ -873,7 +873,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				if (!matched )
 				{
-					LOG_USER( "LSDR mismatch" );
+					LOG_USER("LSDR mismatch" );
 					tdo_mismatch = 1;
 					break;
 				}
@@ -890,7 +890,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					break;
 				}
 
-				switch ( trst_mode )
+				switch (trst_mode )
 				{
 				case XTRST_ON:
 					jtag_add_reset(1, 0);
@@ -902,7 +902,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				case XTRST_ABSENT:
 					break;
 				default:
-					LOG_ERROR( "XTRST mode argument (0x%02X) out of range", trst_mode );
+					LOG_ERROR("XTRST mode argument (0x%02X) out of range", trst_mode );
 					do_abort = 1;
 				}
 			}
@@ -918,7 +918,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			LOG_DEBUG("xsvf failed, setting taps to reasonable state");
 
 			/* upon error, return the TAPs to a reasonable state */
-			jtag_add_statemove( TAP_IDLE );
+			jtag_add_statemove(TAP_IDLE );
 			jtag_execute_queue();
 			break;
 		}

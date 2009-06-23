@@ -415,8 +415,8 @@ static pthread_mutex_t mutex;
 int httpd_start(void)
 {
 	pthread_mutexattr_t attr;
-	pthread_mutexattr_init( &attr );
-	pthread_mutex_init( &mutex, &attr );
+	pthread_mutexattr_init(&attr );
+	pthread_mutex_init(&mutex, &attr );
 
 	int port = 8888;
 	LOG_USER("Launching httpd server on port %d", port);
@@ -446,16 +446,16 @@ int httpd_start(void)
 void httpd_stop(void)
 {
 	MHD_stop_daemon(d);
-	pthread_mutex_destroy( &mutex );
+	pthread_mutex_destroy(&mutex );
 }
 
 void openocd_sleep_prelude(void)
 {
-	pthread_mutex_unlock( &mutex );
+	pthread_mutex_unlock(&mutex );
 }
 
 void openocd_sleep_postlude(void)
 {
-	pthread_mutex_lock( &mutex );
+	pthread_mutex_lock(&mutex );
 }
 

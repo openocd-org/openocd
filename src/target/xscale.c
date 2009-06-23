@@ -959,7 +959,7 @@ int xscale_arch_state(struct target_s *target)
 			"MMU: %s, D-Cache: %s, I-Cache: %s"
 			"%s",
 			 armv4_5_state_strings[armv4_5->core_state],
-			 Jim_Nvp_value2name_simple( nvp_target_debug_reason, target->debug_reason )->name ,
+			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason )->name ,
 			 armv4_5_mode_strings[armv4_5_mode_to_number(armv4_5->core_mode)],
 			 buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32),
 			 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
@@ -1202,7 +1202,7 @@ int xscale_halt(target_t *target)
 	xscale_common_t *xscale = armv4_5->arch_info;
 
 	LOG_DEBUG("target->state: %s",
-		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
+		  Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name);
 
 	if (target->state == TARGET_HALTED)
 	{
@@ -1568,7 +1568,7 @@ int xscale_assert_reset(target_t *target)
 	xscale_common_t *xscale = armv4_5->arch_info;
 
 	LOG_DEBUG("target->state: %s",
-		  Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
+		  Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name);
 
 	/* select DCSR instruction (set endstate to R-T-I to ensure we don't
 	 * end up in T-L-R, which would reset JTAG

@@ -83,7 +83,7 @@ void bitq_in_proc(void)
 									bitq_in_bufsize *= 2;
 							}
 							/* if necessary, allocate buffer and check for malloc error */
-							if (bitq_in_buffer == NULL && ( bitq_in_buffer = malloc(bitq_in_bufsize) ) == NULL)
+							if (bitq_in_buffer == NULL && (bitq_in_buffer = malloc(bitq_in_bufsize) ) == NULL)
 							{
 								LOG_ERROR("malloc error");
 								exit(-1);
@@ -95,7 +95,7 @@ void bitq_in_proc(void)
 					/* field scanning */
 					while (bitq_in_state.bit_pos < field->num_bits)
 					{
-						if ( ( tdo = bitq_interface->in() ) < 0 )
+						if ((tdo = bitq_interface->in() ) < 0 )
 						{
 #ifdef _DEBUG_JTAG_IO_
 							LOG_DEBUG("bitq in EOF");
@@ -131,7 +131,7 @@ void bitq_io(int tms, int tdi, int tdo_req)
 {
 	bitq_interface->out(tms, tdi, tdo_req);
 	/* check and process the input queue */
-	if ( bitq_interface->in_rdy() )
+	if (bitq_interface->in_rdy() )
 		bitq_in_proc();
 }
 
@@ -183,7 +183,7 @@ void bitq_path_move(pathmove_command_t* cmd)
 			bitq_io(1, 0, 0);
 		else
 		{
-			LOG_ERROR( "BUG: %s -> %s isn't a valid TAP transition", tap_state_name(
+			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition", tap_state_name(
 							 tap_get_state() ), tap_state_name(cmd->path[i]) );
 			exit(-1);
 		}
@@ -191,7 +191,7 @@ void bitq_path_move(pathmove_command_t* cmd)
 		tap_set_state(cmd->path[i]);
 	}
 
-	tap_set_end_state( tap_get_state() );
+	tap_set_end_state(tap_get_state() );
 }
 
 
@@ -208,8 +208,8 @@ void bitq_runtest(int num_cycles)
 		bitq_io(0, 0, 0);
 
 	/* finish in end_state */
-	if ( tap_get_state() != tap_get_end_state() )
-		bitq_state_move( tap_get_end_state() );
+	if (tap_get_state() != tap_get_end_state() )
+		bitq_state_move(tap_get_end_state() );
 }
 
 
@@ -241,7 +241,7 @@ void bitq_scan_field(scan_field_t* field, int pause)
 		out_ptr  = field->out_value;
 		for (bit_cnt = field->num_bits; bit_cnt > 1; bit_cnt--)
 		{
-			bitq_io(0, ( (*out_ptr) & out_mask ) != 0, tdo_req);
+			bitq_io(0, ((*out_ptr) & out_mask ) != 0, tdo_req);
 			if (out_mask == 0x80)
 			{
 				out_mask = 0x01;
@@ -251,7 +251,7 @@ void bitq_scan_field(scan_field_t* field, int pause)
 				out_mask <<= 1;
 		}
 
-		bitq_io(pause, ( (*out_ptr) & out_mask ) != 0, tdo_req);
+		bitq_io(pause, ((*out_ptr) & out_mask ) != 0, tdo_req);
 	}
 
 	if (pause)
@@ -298,12 +298,12 @@ int bitq_execute_queue(void)
 #ifdef _DEBUG_JTAG_IO_
 			LOG_DEBUG("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 #endif
-			if ( (cmd->cmd.reset->trst == 1) || ( cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST) ) )
+			if ((cmd->cmd.reset->trst == 1) || (cmd->cmd.reset->srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST) ) )
 			{
 				tap_set_state(TAP_RESET);
 			}
 			bitq_interface->reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-			if ( bitq_interface->in_rdy() )
+			if (bitq_interface->in_rdy() )
 				bitq_in_proc();
 			break;
 
@@ -320,7 +320,7 @@ int bitq_execute_queue(void)
 			LOG_DEBUG("statemove end in %i", cmd->cmd.statemove->end_state);
 #endif
 			bitq_end_state(cmd->cmd.statemove->end_state);
-			bitq_state_move( tap_get_end_state() );   /* uncoditional TAP move */
+			bitq_state_move(tap_get_end_state() );   /* uncoditional TAP move */
 			break;
 
 		case JTAG_PATHMOVE:
@@ -341,8 +341,8 @@ int bitq_execute_queue(void)
 #endif
 			bitq_end_state(cmd->cmd.scan->end_state);
 			bitq_scan(cmd->cmd.scan);
-			if ( tap_get_state() != tap_get_end_state() )
-				bitq_state_move( tap_get_end_state() );
+			if (tap_get_state() != tap_get_end_state() )
+				bitq_state_move(tap_get_end_state() );
 			break;
 
 		case JTAG_SLEEP:
@@ -350,7 +350,7 @@ int bitq_execute_queue(void)
 			LOG_DEBUG("sleep %i", cmd->cmd.sleep->us);
 #endif
 			bitq_interface->sleep(cmd->cmd.sleep->us);
-			if ( bitq_interface->in_rdy() )
+			if (bitq_interface->in_rdy() )
 				bitq_in_proc();
 			break;
 

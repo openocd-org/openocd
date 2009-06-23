@@ -39,11 +39,11 @@
 #define DTC_CMD_SHIFT_TDIO_BYTES(bytes)	((0x6 << 4) | ((bytes) - 1))
 /* Shift 1-16 bytes out TDI and in TDO. TMS is unaffected. */
 
-#define DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(tms, tdi, tdo)	((0x8 << 4) | (	\
+#define DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(tms, tdi, tdo)	((0x8 << 4) | (\
 		(tms) ? (1 << 0) : 0	\
-	) | (	\
+	) | (\
 		(tdi) ? (1 << 1) : 0	\
-	) | (	\
+	) | (\
 		(tdo) ? (1 << 3) : 0	\
 	))
 /* Single bit shift. */

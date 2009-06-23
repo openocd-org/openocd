@@ -229,9 +229,9 @@ static int pic32mx_erase(struct flash_bank_s *bank, int first, int last)
 	{
 		LOG_DEBUG("Erasing entire program flash");
 		status = pic32mx_nvm_exec(bank, NVMCON_OP_PFM_ERASE, 50);
-		if ( status & NVMCON_NVMERR )
+		if (status & NVMCON_NVMERR )
 			return ERROR_FLASH_OPERATION_FAILED;
-		if ( status & NVMCON_LVDERR )
+		if (status & NVMCON_LVDERR )
 			return ERROR_FLASH_OPERATION_FAILED;
 		return ERROR_OK;
 	}
@@ -245,9 +245,9 @@ static int pic32mx_erase(struct flash_bank_s *bank, int first, int last)
 
 		status = pic32mx_nvm_exec(bank, NVMCON_OP_PAGE_ERASE, 10);
 
-		if ( status & NVMCON_NVMERR )
+		if (status & NVMCON_NVMERR )
 			return ERROR_FLASH_OPERATION_FAILED;
-		if ( status & NVMCON_LVDERR )
+		if (status & NVMCON_LVDERR )
 			return ERROR_FLASH_OPERATION_FAILED;
 		bank->sectors[i].is_erased = 1;
 	}
@@ -313,7 +313,7 @@ static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int la
 			reg = (i / pic32mx_info->ppage_size) / 8;
 			bit = (i / pic32mx_info->ppage_size) - (reg * 8);
 
-			if ( set )
+			if (set )
 				prot_reg[reg] &= ~(1 << bit);
 			else
 				prot_reg[reg] |= (1 << bit);
@@ -327,7 +327,7 @@ static int pic32mx_protect(struct flash_bank_s *bank, int set, int first, int la
 			reg = (i / pic32mx_info->ppage_size) / 8;
 			bit = (i / pic32mx_info->ppage_size) - (reg * 8);
 
-			if ( set )
+			if (set )
 				prot_reg[reg] &= ~(1 << bit);
 			else
 				prot_reg[reg] |= (1 << bit);
@@ -434,12 +434,12 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 		}
 #endif
 		status = pic32mx_write_row(bank, address, source->address);
-		if ( status & NVMCON_NVMERR ) {
+		if (status & NVMCON_NVMERR ) {
 			LOG_ERROR("Flash write error NVMERR (status = 0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
-		if ( status & NVMCON_LVDERR ) {
+		if (status & NVMCON_LVDERR ) {
 			LOG_ERROR("Flash write error LVDERR (status = 0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
@@ -458,12 +458,12 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 		memcpy(&value, buffer, sizeof(uint32_t));
 
 		uint32_t status = pic32mx_write_word(bank, address, value);
-		if ( status & NVMCON_NVMERR ) {
+		if (status & NVMCON_NVMERR ) {
 			LOG_ERROR("Flash write error NVMERR (status = 0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
-		if ( status & NVMCON_LVDERR ) {
+		if (status & NVMCON_LVDERR ) {
 			LOG_ERROR("Flash write error LVDERR (status = 0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
@@ -564,9 +564,9 @@ static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 		memcpy(&value, buffer + bytes_written, sizeof(uint32_t));
 
 		status = pic32mx_write_word(bank, address, value);
-		if ( status & NVMCON_NVMERR )
+		if (status & NVMCON_NVMERR )
 			return ERROR_FLASH_OPERATION_FAILED;
-		if ( status & NVMCON_LVDERR )
+		if (status & NVMCON_LVDERR )
 			return ERROR_FLASH_OPERATION_FAILED;
 
 		bytes_written += 4;
@@ -580,9 +580,9 @@ static int pic32mx_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 		memcpy(&value, buffer + bytes_written, bytes_remaining);
 
 		status = pic32mx_write_word(bank, address, value);
-		if ( status & NVMCON_NVMERR )
+		if (status & NVMCON_NVMERR )
 			return ERROR_FLASH_OPERATION_FAILED;
-		if ( status & NVMCON_LVDERR )
+		if (status & NVMCON_LVDERR )
 			return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -603,14 +603,14 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	pic32mx_info->probed = 0;
 
 	device_id = ejtag_info->idcode;
-	LOG_INFO( "device id = 0x%08" PRIx32 " (manuf 0x%03x dev 0x%02x, ver 0x%03x)", 
+	LOG_INFO("device id = 0x%08" PRIx32 " (manuf 0x%03x dev 0x%02x, ver 0x%03x)", 
 			  device_id,
 			  (unsigned)((device_id >> 1)&0x7ff), 
 			  (unsigned)((device_id >> 12)&0xff), 
 			  (unsigned)((device_id >> 20)&0xfff) );
 
 	if (((device_id >> 1)&0x7ff) != PIC32MX_MANUF_ID) {
-		LOG_WARNING( "Cannot identify target as a PIC32MX family." );
+		LOG_WARNING("Cannot identify target as a PIC32MX family." );
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -626,7 +626,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 				break;
 			}
 		if (pic32mx_devs[i].name == NULL) {
-			LOG_WARNING( "Cannot identify target as a PIC32MX family." );
+			LOG_WARNING("Cannot identify target as a PIC32MX family." );
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 	}
@@ -646,7 +646,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	}
 #endif
 
-	LOG_INFO( "flash size = %dkbytes", num_pages );
+	LOG_INFO("flash size = %dkbytes", num_pages );
 
 	/* calculate numbers of pages */
 	num_pages /= (page_size / 1024);
@@ -847,13 +847,13 @@ static int pic32mx_chip_erase(struct flash_bank_s *bank)
 
 	target_write_u32(target, PIC32MX_FLASH_CR, FLASH_LOCK);
 
-	if ( status & FLASH_WRPRTERR )
+	if (status & FLASH_WRPRTERR )
 	{
 		LOG_ERROR("pic32mx device protected");
 		return ERROR_OK;
 	}
 
-	if ( status & FLASH_PGERR )
+	if (status & FLASH_PGERR )
 	{
 		LOG_ERROR("pic32mx device programming failed");
 		return ERROR_OK;
@@ -931,9 +931,9 @@ static int pic32mx_handle_pgm_word_command(struct command_context_s *cmd_ctx, ch
 
 	res = ERROR_OK;
 	status = pic32mx_write_word(bank, address, value);
-	if ( status & NVMCON_NVMERR )
+	if (status & NVMCON_NVMERR )
 		res = ERROR_FLASH_OPERATION_FAILED;
-	if ( status & NVMCON_LVDERR )
+	if (status & NVMCON_LVDERR )
 		res = ERROR_FLASH_OPERATION_FAILED;
 
 	if (res == ERROR_OK)

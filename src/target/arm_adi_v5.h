@@ -107,7 +107,7 @@ typedef struct swjdp_common_s
 /* Accessor function for currently selected DAP-AP number */ 
 static inline uint8_t dap_ap_get_select(swjdp_common_t *swjdp)
 {
-	return (uint8_t)( swjdp ->apsel >> 24);
+	return (uint8_t)(swjdp ->apsel >> 24);
 }
 
 /* Internal functions used in the module, partial transactions, use with caution */

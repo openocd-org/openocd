@@ -114,10 +114,10 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			ERASE_REGION( 1, 16*KB),
-			ERASE_REGION( 2,  8*KB),
-			ERASE_REGION( 1, 32*KB),
-			ERASE_REGION( 7, 64*KB)
+			ERASE_REGION(1, 16*KB),
+			ERASE_REGION(2,  8*KB),
+			ERASE_REGION(1, 32*KB),
+			ERASE_REGION(7, 64*KB)
 		}
 	},
 	{
@@ -131,10 +131,10 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			ERASE_REGION( 7, 64*KB),
-			ERASE_REGION( 1, 32*KB),
-			ERASE_REGION( 2,  8*KB),
-			ERASE_REGION( 1, 16*KB)
+			ERASE_REGION(7, 64*KB),
+			ERASE_REGION(1, 32*KB),
+			ERASE_REGION(2,  8*KB),
+			ERASE_REGION(1, 16*KB)
 		}
 	},
 
@@ -236,10 +236,10 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			ERASE_REGION( 1, 16*KB),
-			ERASE_REGION( 2,  8*KB),
-			ERASE_REGION( 1, 32*KB),
-			ERASE_REGION( 7, 64*KB)
+			ERASE_REGION(1, 16*KB),
+			ERASE_REGION(2,  8*KB),
+			ERASE_REGION(1, 32*KB),
+			ERASE_REGION(7, 64*KB)
 		}
 	},
 	{
@@ -253,10 +253,10 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			ERASE_REGION( 7, 64*KB),
-			ERASE_REGION( 1, 32*KB),
-			ERASE_REGION( 2,  8*KB),
-			ERASE_REGION( 1, 16*KB)
+			ERASE_REGION(7, 64*KB),
+			ERASE_REGION(1, 32*KB),
+			ERASE_REGION(2,  8*KB),
+			ERASE_REGION(1, 16*KB)
 		}
 	},
 	{
@@ -270,9 +270,9 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			ERASE_REGION( 1, 16*KB),
-			ERASE_REGION( 2,  8*KB),
-			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(1, 16*KB),
+			ERASE_REGION(2,  8*KB),
+			ERASE_REGION(1, 32*KB),
 			ERASE_REGION(15, 64*KB)
 		}
 	},
@@ -287,9 +287,9 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			ERASE_REGION( 1, 16*KB),
-			ERASE_REGION( 2,  8*KB),
-			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(1, 16*KB),
+			ERASE_REGION(2,  8*KB),
+			ERASE_REGION(1, 32*KB),
 			ERASE_REGION(15, 64*KB)
 		}
 	},
@@ -304,9 +304,9 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			ERASE_REGION( 1, 16*KB),
-			ERASE_REGION( 2, 8*KB),
-			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(1, 16*KB),
+			ERASE_REGION(2, 8*KB),
+			ERASE_REGION(1, 32*KB),
 			ERASE_REGION(15, 64*KB)
 		}
 	},
@@ -322,9 +322,9 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			ERASE_REGION( 1, 16*KB),
-			ERASE_REGION( 2, 8*KB),
-			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(1, 16*KB),
+			ERASE_REGION(2, 8*KB),
+			ERASE_REGION(1, 32*KB),
 			ERASE_REGION(31, 64*KB)
 		}
 	},
@@ -340,9 +340,9 @@ non_cfi_t non_cfi_flashes[] = {
 		.erase_region_info =
 		{
 			ERASE_REGION(31, 64*KB),
-			ERASE_REGION( 1, 32*KB),
-			ERASE_REGION( 2, 8*KB),
-			ERASE_REGION( 1, 16*KB)
+			ERASE_REGION(1, 32*KB),
+			ERASE_REGION(2, 8*KB),
+			ERASE_REGION(1, 16*KB)
 		}
 	},
 	{
@@ -356,8 +356,8 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 3,
 		.erase_region_info =
 		{
-			ERASE_REGION( 8,  8*KB),
-			ERASE_REGION( 2, 32*KB),
+			ERASE_REGION(8,  8*KB),
+			ERASE_REGION(2, 32*KB),
 			ERASE_REGION(30, 64*KB)
 		}
 	},
@@ -373,8 +373,8 @@ non_cfi_t non_cfi_flashes[] = {
 		.erase_region_info =
 		{
 			ERASE_REGION(30, 64*KB),
-			ERASE_REGION( 2, 32*KB),
-			ERASE_REGION( 8,  8*KB)
+			ERASE_REGION(2, 32*KB),
+			ERASE_REGION(8,  8*KB)
 		}
 	},
 	{
@@ -388,9 +388,9 @@ non_cfi_t non_cfi_flashes[] = {
 		.num_erase_regions = 4,
 		.erase_region_info =
 		{
-			ERASE_REGION( 1, 16*KB),
-			ERASE_REGION( 2, 8*KB),
-			ERASE_REGION( 1, 32*KB),
+			ERASE_REGION(1, 16*KB),
+			ERASE_REGION(2, 8*KB),
+			ERASE_REGION(1, 32*KB),
 			ERASE_REGION(15, 64*KB)
 		}
 	},

@@ -117,7 +117,7 @@ int target_request(target_t *target, uint32_t request)
 {
 	target_req_cmd_t target_req_cmd = request & 0xff;
 
-	if ( charmsg_mode ) {
+	if (charmsg_mode ) {
 		target_charmsg(target, target_req_cmd );
 		return ERROR_OK;
 	}

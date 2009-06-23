@@ -298,7 +298,7 @@ int Jim_ProcessEvents(Jim_Interp *interp, int flags)
             JimGetTime(&now_sec, &now_ms);
             tvp = &tv;
 	    dt   = 1000 * (shortest->when_sec - now_sec);
-	    dt  += ( shortest->when_ms  - now_ms);
+	    dt  += (shortest->when_ms  - now_ms);
             if (dt < 0) {
 		dt = 1;
 	    }
@@ -498,7 +498,7 @@ static int JimELAfterCommand(Jim_Interp *interp, int argc,
 	int tlen ;
 	jim_wide remain = 0;
 	const char *tok = Jim_GetString(argv[2], &tlen);
-	if ( sscanf(tok,"after#%lld",&id) == 1) {
+	if (sscanf(tok,"after#%lld",&id) == 1) {
 		remain =  Jim_DeleteTimeHandler(interp, id);
 		if (remain > -2)  {
 			Jim_SetResult(interp, Jim_NewIntObj(interp, remain));

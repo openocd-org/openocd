@@ -497,7 +497,7 @@ int arm920t_arch_state(struct target_s *target)
 		exit(-1);
 	}
 
-	LOG_USER(	"target halted in %s state due to %s, current mode: %s\n"
+	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
 			"MMU: %s, D-Cache: %s, I-Cache: %s",
 			 armv4_5_state_strings[armv4_5->core_state],

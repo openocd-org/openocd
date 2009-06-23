@@ -444,7 +444,7 @@ int cortex_m3_debug_entry(target_t *target)
 	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%" PRIx32 ", target->state: %s",
 		armv7m_mode_strings[armv7m->core_mode],
 		*(uint32_t*)(armv7m->core_cache->reg_list[15].value),
-		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name);
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name);
 
 	if (armv7m->post_debug_entry)
 		armv7m->post_debug_entry(target);
@@ -520,7 +520,7 @@ int cortex_m3_poll(target_t *target)
 #if 0
 	/* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
 	mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name );
 #endif
 
 	return ERROR_OK;
@@ -751,7 +751,7 @@ int cortex_m3_assert_reset(target_t *target)
 	int assert_srst = 1;
 
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name );
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (!(jtag_reset_config & RESET_HAS_SRST))
@@ -1491,7 +1491,7 @@ int cortex_m3_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 {
 	uint16_t dcrdr;
 
-	mem_ap_read_buf_u16( swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
+	mem_ap_read_buf_u16(swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
 	*ctrl = (uint8_t)dcrdr;
 	*value = (uint8_t)(dcrdr >> 8);
 
@@ -1502,7 +1502,7 @@ int cortex_m3_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 	if (dcrdr & (1 << 0))
 	{
 		dcrdr = 0;
-		mem_ap_write_buf_u16( swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
+		mem_ap_write_buf_u16(swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
 	}
 
 	return ERROR_OK;

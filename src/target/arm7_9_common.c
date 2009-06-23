@@ -526,7 +526,7 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_VALUE], watchpoint->address);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], watchpoint->mask);
-		if ( watchpoint->mask != 0xffffffffu )
+		if (watchpoint->mask != 0xffffffffu )
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_VALUE], watchpoint->value);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], 0xff & ~EICE_W_CTRL_nOPC & ~rw_mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE | EICE_W_CTRL_nOPC | (watchpoint->rw & 1));
@@ -543,7 +543,7 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_VALUE], watchpoint->address);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], watchpoint->mask);
-		if ( watchpoint->mask != 0xffffffffu )
+		if (watchpoint->mask != 0xffffffffu )
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_VALUE], watchpoint->value);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK], 0xff & ~EICE_W_CTRL_nOPC & ~rw_mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], EICE_W_CTRL_ENABLE | EICE_W_CTRL_nOPC | (watchpoint->rw & 1));
@@ -974,7 +974,7 @@ int arm7_9_assert_reset(target_t *target)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	LOG_DEBUG("target->state: %s",
-		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
+		  Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name);
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (!(jtag_reset_config & RESET_HAS_SRST))
@@ -1044,7 +1044,7 @@ int arm7_9_deassert_reset(target_t *target)
 {
 	int retval = ERROR_OK;
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
+		Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name);
 
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
@@ -1257,7 +1257,7 @@ int arm7_9_halt(target_t *target)
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 	LOG_DEBUG("target->state: %s",
-		  Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
+		  Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name);
 
 	if (target->state == TARGET_HALTED)
 	{

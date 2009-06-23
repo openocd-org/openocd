@@ -533,7 +533,7 @@ static int image_mot_buffer_complete(image_t *image)
 		}
 		else if (record_type >= 1 && record_type <= 3)
 		{
-			switch ( record_type )
+			switch (record_type )
 			{
 				case 1:
 					/* S1 - 16 bit address data record */
@@ -636,7 +636,7 @@ static int image_mot_buffer_complete(image_t *image)
 		cal_checksum += (uint8_t)checksum;
 		bytes_read += 2;
 
-		if ( cal_checksum != 0xFF )
+		if (cal_checksum != 0xFF )
 		{
 			/* checksum failed */
 			LOG_ERROR("incorrect record checksum found in S19 file");

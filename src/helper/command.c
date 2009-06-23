@@ -348,8 +348,8 @@ int unregister_command(command_context_t *context, char *name)
 
 void command_output_text(command_context_t *context, const char *data)
 {
-	if ( context && context->output_handler && data  ){
-		context->output_handler( context, data );
+	if (context && context->output_handler && data  ){
+		context->output_handler(context, data );
 	}
 }
 
@@ -704,7 +704,7 @@ command_context_t* command_init()
 	Jim_RegisterCoreCommands(interp);
 #endif
 
-#if defined( _MSC_VER )
+#if defined(_MSC_VER )
 	/* WinXX - is generic, the forward
 	 * looking problem is this:
 	 *
@@ -713,18 +713,18 @@ command_context_t* command_init()
 	 * "winxx" is generic.
 	 */
 	HostOs = "winxx";
-#elif defined( __LINUX__)
+#elif defined(__LINUX__)
 	HostOs = "linux";
-#elif defined( __DARWIN__ )
+#elif defined(__DARWIN__ )
 	HostOs = "darwin";
-#elif defined( __CYGWIN__ )
+#elif defined(__CYGWIN__ )
 	HostOs = "cygwin";
-#elif defined( __MINGW32__ )
+#elif defined(__MINGW32__ )
 	HostOs = "mingw32";
 #else
 	HostOs = "other";
 #endif
-	Jim_SetGlobalVariableStr( interp, "ocd_HOSTOS", Jim_NewStringObj( interp, HostOs , strlen(HostOs)) );
+	Jim_SetGlobalVariableStr(interp, "ocd_HOSTOS", Jim_NewStringObj(interp, HostOs , strlen(HostOs)) );
 
 	Jim_CreateCommand(interp, "ocd_find", jim_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);

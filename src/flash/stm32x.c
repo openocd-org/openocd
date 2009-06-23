@@ -182,9 +182,9 @@ static int stm32x_erase_options(struct flash_bank_s *bank)
 
 	status = stm32x_wait_status_busy(bank, 10);
 
-	if ( status & FLASH_WRPRTERR )
+	if (status & FLASH_WRPRTERR )
 		return ERROR_FLASH_OPERATION_FAILED;
-	if ( status & FLASH_PGERR )
+	if (status & FLASH_PGERR )
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	/* clear readout protection and complementary option bytes
@@ -218,9 +218,9 @@ static int stm32x_write_options(struct flash_bank_s *bank)
 
 	status = stm32x_wait_status_busy(bank, 10);
 
-	if ( status & FLASH_WRPRTERR )
+	if (status & FLASH_WRPRTERR )
 		return ERROR_FLASH_OPERATION_FAILED;
-	if ( status & FLASH_PGERR )
+	if (status & FLASH_PGERR )
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	/* write protection byte 1 */
@@ -228,9 +228,9 @@ static int stm32x_write_options(struct flash_bank_s *bank)
 
 	status = stm32x_wait_status_busy(bank, 10);
 
-	if ( status & FLASH_WRPRTERR )
+	if (status & FLASH_WRPRTERR )
 		return ERROR_FLASH_OPERATION_FAILED;
-	if ( status & FLASH_PGERR )
+	if (status & FLASH_PGERR )
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	/* write protection byte 2 */
@@ -238,9 +238,9 @@ static int stm32x_write_options(struct flash_bank_s *bank)
 
 	status = stm32x_wait_status_busy(bank, 10);
 
-	if ( status & FLASH_WRPRTERR )
+	if (status & FLASH_WRPRTERR )
 		return ERROR_FLASH_OPERATION_FAILED;
-	if ( status & FLASH_PGERR )
+	if (status & FLASH_PGERR )
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	/* write protection byte 3 */
@@ -248,9 +248,9 @@ static int stm32x_write_options(struct flash_bank_s *bank)
 
 	status = stm32x_wait_status_busy(bank, 10);
 
-	if ( status & FLASH_WRPRTERR )
+	if (status & FLASH_WRPRTERR )
 		return ERROR_FLASH_OPERATION_FAILED;
-	if ( status & FLASH_PGERR )
+	if (status & FLASH_PGERR )
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	/* write protection byte 4 */
@@ -258,9 +258,9 @@ static int stm32x_write_options(struct flash_bank_s *bank)
 
 	status = stm32x_wait_status_busy(bank, 10);
 
-	if ( status & FLASH_WRPRTERR )
+	if (status & FLASH_WRPRTERR )
 		return ERROR_FLASH_OPERATION_FAILED;
-	if ( status & FLASH_PGERR )
+	if (status & FLASH_PGERR )
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	/* write readout protection bit */
@@ -268,9 +268,9 @@ static int stm32x_write_options(struct flash_bank_s *bank)
 
 	status = stm32x_wait_status_busy(bank, 10);
 
-	if ( status & FLASH_WRPRTERR )
+	if (status & FLASH_WRPRTERR )
 		return ERROR_FLASH_OPERATION_FAILED;
-	if ( status & FLASH_PGERR )
+	if (status & FLASH_PGERR )
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
@@ -338,7 +338,7 @@ static int stm32x_protect_check(struct flash_bank_s *bank)
 		{
 			set = 1;
 
-			if ( protection & (1 << i))
+			if (protection & (1 << i))
 				set = 0;
 
 			for (s = 0; s < stm32x_info->ppage_size; s++)
@@ -378,9 +378,9 @@ static int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 
 		status = stm32x_wait_status_busy(bank, 10);
 
-		if ( status & FLASH_WRPRTERR )
+		if (status & FLASH_WRPRTERR )
 			return ERROR_FLASH_OPERATION_FAILED;
-		if ( status & FLASH_PGERR )
+		if (status & FLASH_PGERR )
 			return ERROR_FLASH_OPERATION_FAILED;
 		bank->sectors[i].is_erased = 1;
 	}
@@ -445,7 +445,7 @@ static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int las
 			reg = (i / stm32x_info->ppage_size) / 8;
 			bit = (i / stm32x_info->ppage_size) - (reg * 8);
 
-			if ( set )
+			if (set )
 				prot_reg[reg] &= ~(1 << bit);
 			else
 				prot_reg[reg] |= (1 << bit);
@@ -459,7 +459,7 @@ static int stm32x_protect(struct flash_bank_s *bank, int set, int first, int las
 			reg = (i / stm32x_info->ppage_size) / 8;
 			bit = (i / stm32x_info->ppage_size) - (reg * 8);
 
-			if ( set )
+			if (set )
 				prot_reg[reg] &= ~(1 << bit);
 			else
 				prot_reg[reg] |= (1 << bit);
@@ -658,12 +658,12 @@ static int stm32x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t off
 
 		status = stm32x_wait_status_busy(bank, 5);
 
-		if ( status & FLASH_WRPRTERR )
+		if (status & FLASH_WRPRTERR )
 		{
 			LOG_ERROR("flash memory not erased before writing");
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
-		if ( status & FLASH_PGERR )
+		if (status & FLASH_PGERR )
 		{
 			LOG_ERROR("flash memory write protected");
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -684,12 +684,12 @@ static int stm32x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t off
 
 		status = stm32x_wait_status_busy(bank, 5);
 
-		if ( status & FLASH_WRPRTERR )
+		if (status & FLASH_WRPRTERR )
 		{
 			LOG_ERROR("flash memory not erased before writing");
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
-		if ( status & FLASH_PGERR )
+		if (status & FLASH_PGERR )
 		{
 			LOG_ERROR("flash memory write protected");
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -720,7 +720,7 @@ static int stm32x_probe(struct flash_bank_s *bank)
 
 	/* read stm32 device id register */
 	target_read_u32(target, 0xE0042000, &device_id);
-	LOG_INFO( "device id = 0x%08" PRIx32 "", device_id );
+	LOG_INFO("device id = 0x%08" PRIx32 "", device_id );
 
 	/* get flash size from target */
 	if (target_read_u16(target, 0x1FFFF7E0, &num_pages) != ERROR_OK)
@@ -740,7 +740,7 @@ static int stm32x_probe(struct flash_bank_s *bank)
 		if (num_pages == 0xffff)
 		{
 			/* number of sectors incorrect on revA */
-			LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 128k flash" );
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 128k flash" );
 			num_pages = 128;
 		}
 	}
@@ -755,7 +755,7 @@ static int stm32x_probe(struct flash_bank_s *bank)
 		if (num_pages == 0xffff)
 		{
 			/* number of sectors incorrect on revA */
-			LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 32k flash" );
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 32k flash" );
 			num_pages = 32;
 		}
 	}
@@ -770,7 +770,7 @@ static int stm32x_probe(struct flash_bank_s *bank)
 		if (num_pages == 0xffff)
 		{
 			/* number of sectors incorrect on revZ */
-			LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 512k flash" );
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 512k flash" );
 			num_pages = 512;
 		}
 	}
@@ -785,17 +785,17 @@ static int stm32x_probe(struct flash_bank_s *bank)
 		if (num_pages == 0xffff)
 		{
 			/* number of sectors incorrect on revZ */
-			LOG_WARNING( "STM32 flash size failed, probe inaccurate - assuming 256k flash" );
+			LOG_WARNING("STM32 flash size failed, probe inaccurate - assuming 256k flash" );
 			num_pages = 256;
 		}
 	}
 	else
 	{
-		LOG_WARNING( "Cannot identify target as a STM32 family." );
+		LOG_WARNING("Cannot identify target as a STM32 family." );
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	LOG_INFO( "flash size = %dkbytes", num_pages );
+	LOG_INFO("flash size = %dkbytes", num_pages );
 
 	/* calculate numbers of pages */
 	num_pages /= (page_size / 1024);
@@ -1188,13 +1188,13 @@ static int stm32x_mass_erase(struct flash_bank_s *bank)
 
 	target_write_u32(target, STM32_FLASH_CR, FLASH_LOCK);
 
-	if ( status & FLASH_WRPRTERR )
+	if (status & FLASH_WRPRTERR )
 	{
 		LOG_ERROR("stm32x device protected");
 		return ERROR_OK;
 	}
 
-	if ( status & FLASH_PGERR )
+	if (status & FLASH_PGERR )
 	{
 		LOG_ERROR("stm32x device programming failed");
 		return ERROR_OK;

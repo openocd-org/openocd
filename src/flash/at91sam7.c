@@ -187,7 +187,7 @@ static void at91sam7_read_clock_info(flash_bank_t *bank)
 	}
 
 	/* Prescaler adjust */
-	if ( (((mckr & PMC_MCKR_PRES) >> 2) == 7) || (tmp == 0) )
+	if ((((mckr & PMC_MCKR_PRES) >> 2) == 7) || (tmp == 0) )
 	{
 		at91sam7_info->mck_valid = 0;
 		at91sam7_info->mck_freq = 0;
@@ -707,7 +707,7 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	at91sam7_info->num_lockbits_on = 0;
 	for (lock_pos = 0; lock_pos < bank->num_sectors; lock_pos++)
 	{
-		if ( ((status >> (16 + lock_pos))&(0x0001)) == 1)
+		if (((status >> (16 + lock_pos))&(0x0001)) == 1)
 		{
 			at91sam7_info->num_lockbits_on++;
 			bank->sectors[lock_pos].is_protected = 1;
@@ -725,7 +725,7 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	at91sam7_info->num_nvmbits_on = 0;
 	for (gpnvm_pos = 0; gpnvm_pos < at91sam7_info->num_nvmbits; gpnvm_pos++)
 	{
-		if ( ((status >> (8 + gpnvm_pos))&(0x01)) == 1)
+		if (((status >> (8 + gpnvm_pos))&(0x01)) == 1)
 		{
 			at91sam7_info->num_nvmbits_on++;
 		}
@@ -907,7 +907,7 @@ static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 			buffer[pos] = 0xFF;
 		}
 
-		if ( at91sam7_write(bank, buffer, bank->sectors[first].offset, nbytes) != ERROR_OK)
+		if (at91sam7_write(bank, buffer, bank->sectors[first].offset, nbytes) != ERROR_OK)
 		{
 			return ERROR_FLASH_OPERATION_FAILED;
 		}

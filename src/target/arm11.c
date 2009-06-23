@@ -709,7 +709,7 @@ int arm11_arch_state(struct target_s *target)
 	arm11_common_t * arm11 = target->arch_info;
 
 	LOG_USER("target halted due to %s\ncpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "",
-			 Jim_Nvp_value2name_simple( nvp_target_debug_reason, target->debug_reason )->name,
+			 Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason )->name,
 			 R(CPSR),
 			 R(PC));
 
@@ -732,7 +732,7 @@ int arm11_halt(struct target_s *target)
 	arm11_common_t * arm11 = target->arch_info;
 
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name );
 
 	if (target->state == TARGET_UNKNOWN)
 	{
@@ -789,7 +789,7 @@ int arm11_resume(struct target_s *target, int current, uint32_t address, int han
 	arm11_common_t * arm11 = target->arch_info;
 
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name );
 
 
 	if (target->state != TARGET_HALTED)
@@ -889,7 +889,7 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 	FNC_INFO;
 
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name );
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1035,7 +1035,7 @@ int arm11_deassert_reset(struct target_s *target)
 
 #if 0
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple( nvp_target_state, target->state )->name );
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name );
 
 
 	/* deassert reset lines */
@@ -1951,30 +1951,30 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 
 	command_t * top_cmd = NULL;
 
-	RC_TOP(				"arm11",				"arm11 specific commands",
+	RC_TOP("arm11",				"arm11 specific commands",
 
-	RC_TOP(				"memwrite",				"Control memory write transfer mode",
+	RC_TOP("memwrite",				"Control memory write transfer mode",
 
-		RC_FINAL_BOOL(	"burst",				"Enable/Disable non-standard but fast burst mode (default: enabled)",
+		RC_FINAL_BOOL("burst",				"Enable/Disable non-standard but fast burst mode (default: enabled)",
 						memwrite_burst)
 
-		RC_FINAL_BOOL(	"error_fatal",			"Terminate program if transfer error was found (default: enabled)",
+		RC_FINAL_BOOL("error_fatal",			"Terminate program if transfer error was found (default: enabled)",
 						memwrite_error_fatal)
 	) /* memwrite */
 
-	RC_FINAL_BOOL(		"no_increment",			"Don't increment address on multi-read/-write (default: disabled)",
+	RC_FINAL_BOOL("no_increment",			"Don't increment address on multi-read/-write (default: disabled)",
 						memrw_no_increment)
 
-	RC_FINAL_BOOL(		"step_irq_enable",		"Enable interrupts while stepping (default: disabled)",
+	RC_FINAL_BOOL("step_irq_enable",		"Enable interrupts while stepping (default: disabled)",
 						step_irq_enable)
 
-	RC_FINAL(			"vcr",					"Control (Interrupt) Vector Catch Register",
+	RC_FINAL("vcr",					"Control (Interrupt) Vector Catch Register",
 						arm11_handle_vcr)
 
-	RC_FINAL(			"mrc",					"Read Coprocessor register",
+	RC_FINAL("mrc",					"Read Coprocessor register",
 						arm11_handle_mrc)
 
-	RC_FINAL(			"mcr",					"Write Coprocessor register",
+	RC_FINAL("mcr",					"Write Coprocessor register",
 						arm11_handle_mcr)
 	) /* arm11 */
 

@@ -822,7 +822,7 @@ int arm7tdmi_init_arch_info(target_t *target, arm7tdmi_common_t *arm7tdmi, jtag_
 	return ERROR_OK;
 }
 
-int arm7tdmi_target_create( struct target_s *target, Jim_Interp *interp )
+int arm7tdmi_target_create(struct target_s *target, Jim_Interp *interp )
 {
 	arm7tdmi_common_t *arm7tdmi;
 

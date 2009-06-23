@@ -59,7 +59,7 @@ void tap_set_state_impl(tap_state_t new_state);
 #if defined(_DEBUG_JTAG_IO_)
 #define tap_set_state(new_state) \
 	do { \
-		LOG_DEBUG( "tap_set_state(%s)", tap_state_name(new_state) ); \
+		LOG_DEBUG("tap_set_state(%s)", tap_state_name(new_state) ); \
 		tap_set_state_impl(new_state); \
 	} while (0)
 #else

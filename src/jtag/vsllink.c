@@ -298,7 +298,7 @@ static int vsllink_execute_queue(void)
 		switch (cmd->type)
 		{
 			case JTAG_RUNTEST:
-				DEBUG_JTAG_IO( "runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, \
+				DEBUG_JTAG_IO("runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, \
 					tap_state_name(cmd->cmd.runtest->end_state));
 
 				vsllink_end_state(cmd->cmd.runtest->end_state);
@@ -377,7 +377,7 @@ static int vsllink_execute_queue(void)
 					scan_size = 0;
 					break;			/* above stable states are OK */
 				default:
-					 LOG_ERROR( "jtag_add_clocks() was called with TAP in non-stable state \"%s\"",
+					 LOG_ERROR("jtag_add_clocks() was called with TAP in non-stable state \"%s\"",
 							 tap_state_name(tap_get_state()) );
 					 exit(-1);
 				}

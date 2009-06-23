@@ -1154,7 +1154,7 @@ static int cfi_intel_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 	/* flash write code */
 	if (!cfi_info->write_algorithm)
 	{
-		if ( target_code_size > sizeof(target_code) )
+		if (target_code_size > sizeof(target_code) )
 		{
 			LOG_WARNING("Internal error - target code buffer to small. Increase CFI_MAX_INTEL_CODESIZE and recompile.");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;

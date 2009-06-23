@@ -396,8 +396,8 @@ int target_write_u8(struct target_s *target, uint32_t address, uint8_t value);
 /* Issues USER() statements with target state information */
 int target_arch_state(struct target_s *target);
 
-void target_handle_event( target_t *t, enum target_event e);
-void target_all_handle_event( enum target_event e );
+void target_handle_event(target_t *t, enum target_event e);
+void target_all_handle_event(enum target_event e );
 
 #define ERROR_TARGET_INVALID	(-300)
 #define ERROR_TARGET_INIT_FAILED (-301)
@@ -412,6 +412,6 @@ void target_all_handle_event( enum target_event e );
 #define ERROR_TARGET_NOT_EXAMINED (-311)
 
 extern const Jim_Nvp nvp_error_target[];
-extern const char *target_strerror_safe( int err );
+extern const char *target_strerror_safe(int err );
 
 #endif /* TARGET_H */

@@ -93,7 +93,7 @@ struct tftpd_fileops fileops =
 	(int (*)(const char *, int))open,
 	close,
 	(int (*)(int, const void *, int))write,
-	( int (*)(int, void *, int))read
+	(int (*)(int, void *, int))read
 };
 
 #endif
@@ -253,7 +253,7 @@ void copyfile(char *name2, char *name1);
 void copydir(char *name, char *destdir);
 
 #if 0
-MTAB_ENTRY( romfs_mte1,
+MTAB_ENTRY(romfs_mte1,
 		"/rom",
 		"romfs",
 		"",
@@ -1130,7 +1130,7 @@ static int tftpfs_fo_lseek(struct CYG_FILE_TAG *fp, off_t *apos, int whence);
 // For simplicity we use _FILESYSTEM synchronization for all accesses since
 // we should never block in any filesystem operations.
 #if 1
-FSTAB_ENTRY( tftpfs_fste, "tftpfs", 0,
+FSTAB_ENTRY(tftpfs_fste, "tftpfs", 0,
 		CYG_SYNCMODE_NONE,
 		tftpfs_mount,
 		tftpfs_umount,
@@ -1151,7 +1151,7 @@ FSTAB_ENTRY( tftpfs_fste, "tftpfs", 0,
 // mtab entry.
 // This defines a single ROMFS loaded into ROM at the configured address
 //
-// MTAB_ENTRY(	rom_mte,	// structure name
+// MTAB_ENTRY(rom_mte,	// structure name
 // 		"/rom",		// mount point
 // 		"romfs",	// FIlesystem type
 // 		"",		// hardware device
@@ -1459,7 +1459,7 @@ static int logfs_fo_close(struct CYG_FILE_TAG *fp);
 // This defines the entry in the filesystem table.
 // For simplicity we use _FILESYSTEM synchronization for all accesses since
 // we should never block in any filesystem operations.
-FSTAB_ENTRY( logfs_fste, "logfs", 0,
+FSTAB_ENTRY(logfs_fste, "logfs", 0,
 		CYG_SYNCMODE_FILE_FILESYSTEM | CYG_SYNCMODE_IO_FILESYSTEM,
 		logfs_mount,
 		logfs_umount,

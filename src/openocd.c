@@ -208,7 +208,7 @@ command_context_t *setup_command_handler(void)
 	}
 	LOG_DEBUG("log init complete");
 
-	LOG_OUTPUT( OPENOCD_VERSION "\n" );
+	LOG_OUTPUT(OPENOCD_VERSION "\n" );
 
 	register_command(cmd_ctx, NULL, "init", handle_init_command,
 					 COMMAND_ANY, "initializes target and servers - nop on subsequent invocations");
@@ -264,7 +264,7 @@ int openocd_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 	ret = parse_config_file(cmd_ctx);
-	if ( (ret != ERROR_OK) && (ret != ERROR_COMMAND_CLOSE_CONNECTION) )
+	if ((ret != ERROR_OK) && (ret != ERROR_COMMAND_CLOSE_CONNECTION) )
 		return EXIT_FAILURE;
 
 #if BUILD_HTTPD

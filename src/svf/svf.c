@@ -273,7 +273,7 @@ static const char* tap_state_svf_name(tap_state_t state)
 {
 	const char* ret;
 
-	switch ( state )
+	switch (state )
 	{
 	case TAP_RESET:		ret = "RESET";		break;
 	case TAP_IDLE:		ret = "IDLE";		break;
@@ -422,7 +422,7 @@ static int handle_svf_command(struct command_context_s *cmd_ctx, char *cmd, char
 	// TAP_RESET
 	jtag_add_tlr();
 
-	while ( ERROR_OK == svf_read_command_from_file(svf_fd) )
+	while (ERROR_OK == svf_read_command_from_file(svf_fd) )
 	{
 		if (ERROR_OK != svf_run_command(cmd_ctx, svf_command_buffer))
 		{

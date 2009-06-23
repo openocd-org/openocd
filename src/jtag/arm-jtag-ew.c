@@ -133,7 +133,7 @@ static int armjtagew_execute_queue(void)
 		switch (cmd->type)
 		{
 			case JTAG_RUNTEST:
-				DEBUG_JTAG_IO( "runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, \
+				DEBUG_JTAG_IO("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, \
 					cmd->cmd.runtest->end_state);
 
 				armjtagew_end_state(cmd->cmd.runtest->end_state);

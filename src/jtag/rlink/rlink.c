@@ -1636,26 +1636,26 @@ int rlink_init(void)
 
 		for (dev = bus->devices; dev; dev = dev->next)
 		{
-			if ( (dev->descriptor.idVendor == USB_IDVENDOR) && (dev->descriptor.idProduct == USB_IDPRODUCT) )
+			if ((dev->descriptor.idVendor == USB_IDVENDOR) && (dev->descriptor.idProduct == USB_IDPRODUCT) )
 			{
 				found = 1;
 				LOG_DEBUG("Found device on bus.\n");
 
 				do
 				{
-					if ( dev->descriptor.bNumConfigurations > 1 )
+					if (dev->descriptor.bNumConfigurations > 1 )
 					{
 						LOG_ERROR("Whoops! NumConfigurations is not 1, don't know what to do...\n");
 						break;
 					}
-					if ( dev->config->bNumInterfaces > 1 )
+					if (dev->config->bNumInterfaces > 1 )
 					{
 						LOG_ERROR("Whoops! NumInterfaces is not 1, don't know what to do...\n");
 						break;
 					}
 
 					pHDev = usb_open(dev);
-					if ( !pHDev )
+					if (!pHDev )
 						LOG_ERROR ("Failed to open device.\n");
 					else
 					{
@@ -1686,7 +1686,7 @@ int rlink_init(void)
 
 						if (!i)
 						{
-							if ( usb_set_altinterface(pHDev,0) )
+							if (usb_set_altinterface(pHDev,0) )
 							{
 								LOG_ERROR("Failed to set interface.\n");
 								break;
@@ -1700,13 +1700,13 @@ int rlink_init(void)
 		}
 	}
 
-	if ( !found )
+	if (!found )
 	{
 		LOG_ERROR("No device found on bus.\n");
 		exit(1);
 	}
 
-	if ( !success )
+	if (!success )
 	{
 		LOG_ERROR("Initialisation failed.");
 		exit(1);

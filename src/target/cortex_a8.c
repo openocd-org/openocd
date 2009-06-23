@@ -87,7 +87,7 @@ int cortex_a8_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 {
 	uint16_t dcrdr;
 
-	mem_ap_read_buf_u16( swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
+	mem_ap_read_buf_u16(swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
 	*ctrl = (uint8_t)dcrdr;
 	*value = (uint8_t)(dcrdr >> 8);
 
@@ -98,7 +98,7 @@ int cortex_a8_dcc_read(swjdp_common_t *swjdp, uint8_t *value, uint8_t *ctrl)
 	if (dcrdr & (1 << 0))
 	{
 		dcrdr = 0;
-		mem_ap_write_buf_u16( swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
+		mem_ap_write_buf_u16(swjdp, (uint8_t*)&dcrdr, 1, DCB_DCRDR);
 	}
 
 	return ERROR_OK;

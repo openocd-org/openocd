@@ -101,7 +101,7 @@ static int str9xpec_register_commands(struct command_context_s *cmd_ctx)
 
 int str9xpec_set_instr(jtag_tap_t *tap, uint32_t new_instr, tap_state_t end_state)
 {
-	if ( tap == NULL ){
+	if (tap == NULL ){
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -325,7 +325,7 @@ static int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *
 	arm7_9 = armv4_5->arch_info;
 	jtag_info = &arm7_9->jtag_info;
 
-	str9xpec_info->tap = jtag_tap_by_position( jtag_info->tap->abs_chain_position - 1);
+	str9xpec_info->tap = jtag_tap_by_position(jtag_info->tap->abs_chain_position - 1);
 	str9xpec_info->isc_enable = 0;
 
 	str9xpec_build_block_list(bank);
@@ -349,7 +349,7 @@ static int str9xpec_blank_check(struct flash_bank_s *bank, int first, int last)
 	tap = str9xpec_info->tap;
 
 	if (!str9xpec_info->isc_enable) {
-		str9xpec_isc_enable( bank );
+		str9xpec_isc_enable(bank );
 	}
 
 	if (!str9xpec_info->isc_enable) {
@@ -438,7 +438,7 @@ static int str9xpec_erase_area(struct flash_bank_s *bank, int first, int last)
 	tap = str9xpec_info->tap;
 
 	if (!str9xpec_info->isc_enable) {
-		str9xpec_isc_enable( bank );
+		str9xpec_isc_enable(bank );
 	}
 
 	if (!str9xpec_info->isc_enable) {
@@ -518,7 +518,7 @@ static int str9xpec_lock_device(struct flash_bank_s *bank)
 	tap = str9xpec_info->tap;
 
 	if (!str9xpec_info->isc_enable) {
-		str9xpec_isc_enable( bank );
+		str9xpec_isc_enable(bank );
 	}
 
 	if (!str9xpec_info->isc_enable) {
@@ -575,7 +575,7 @@ static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int l
 	/* last bank: 0xFF signals a full device protect */
 	if (last == 0xFF)
 	{
-		if ( set )
+		if (set )
 		{
 			status = str9xpec_lock_device(bank);
 		}
@@ -589,7 +589,7 @@ static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int l
 	{
 		for (i = first; i <= last; i++)
 		{
-			if ( set )
+			if (set )
 				buf_set_u32(str9xpec_info->options, str9xpec_info->sector_bits[i], 1, 1);
 			else
 				buf_set_u32(str9xpec_info->options, str9xpec_info->sector_bits[i], 1, 0);
@@ -919,13 +919,13 @@ static int str9xpec_write_options(struct flash_bank_s *bank)
 	tap = str9xpec_info->tap;
 
 	/* erase config options first */
-	status = str9xpec_erase_area( bank, 0xFE, 0xFE );
+	status = str9xpec_erase_area(bank, 0xFE, 0xFE );
 
 	if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
 		return status;
 
 	if (!str9xpec_info->isc_enable) {
-		str9xpec_isc_enable( bank );
+		str9xpec_isc_enable(bank );
 	}
 
 	if (!str9xpec_info->isc_enable) {

@@ -189,7 +189,7 @@ int flash_verify(uint32 adr, unsigned int len, uint8 *src)
 	unsigned char *flash_ptr;
 
 	flash_ptr = (uint8 *)FLASH_AREA_ADDR + adr;
-	for ( ;len; len--) {
+	for (;len; len--) {
 		if (*(flash_ptr++)!=*(src++)) return FLASH_STAT_VERIFE;
 	}
 	return FLASH_STAT_OK;

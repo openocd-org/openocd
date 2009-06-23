@@ -387,7 +387,7 @@ static int handle_etb_config_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_FAIL;
 	}
 
-	tap = jtag_tap_by_string( args[1] );
+	tap = jtag_tap_by_string(args[1] );
 	if (tap == NULL)
 	{
 		command_print(cmd_ctx, "Tap: %s does not exist", args[1] );

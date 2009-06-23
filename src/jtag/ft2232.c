@@ -876,7 +876,7 @@ static void ft2232_add_scan(bool ir_scan, enum scan_type type, uint8_t* buffer, 
 			buffer_write(buffer[cur_byte]);
 	}
 
-	if (( ir_scan && (tap_get_end_state() == TAP_IRSHIFT))
+	if ((ir_scan && (tap_get_end_state() == TAP_IRSHIFT))
 	  || (!ir_scan && (tap_get_end_state() == TAP_DRSHIFT)))
 	{
 		if (type == SCAN_IO)

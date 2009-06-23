@@ -26,7 +26,7 @@
 #define TEST_MANUAL() 0
 
 #if 0
-int  diag_printf( const char *fmt, ... );
+int  diag_printf(const char *fmt, ... );
 #define ZY1000_POKE(a, b) HAL_WRITE_UINT32(a, b); diag_printf("poke 0x%08x,0x%08x\n", a, b)
 #define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b); diag_printf("peek 0x%08x = 0x%08x\n", a, b)
 #else

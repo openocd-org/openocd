@@ -161,7 +161,7 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 #endif  /* _WIN32 */
 
 /* generic socket functions for Windows and Posix */
-static __inline int write_socket( int handle, const void *buffer, unsigned int count )
+static __inline int write_socket(int handle, const void *buffer, unsigned int count )
 {
 #ifdef _WIN32
 	return send(handle, buffer, count, 0);
@@ -170,7 +170,7 @@ static __inline int write_socket( int handle, const void *buffer, unsigned int c
 #endif
 }
 
-static __inline int read_socket( int handle, void *buffer, unsigned int count )
+static __inline int read_socket(int handle, void *buffer, unsigned int count )
 {
 #ifdef _WIN32
 	return recv(handle, buffer, count, 0);
