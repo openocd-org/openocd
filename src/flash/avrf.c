@@ -156,7 +156,7 @@ static int avr_jtagprg_chiperase(avr_common_t *avr)
 			return ERROR_FAIL;
 		}
 		LOG_DEBUG("poll_value = 0x%04" PRIx32 "", poll_value);
-	}while(!(poll_value & 0x0200));
+	}while (!(poll_value & 0x0200));
 
 	return ERROR_OK;
 }
@@ -203,7 +203,7 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, uint8_t *page_buf, uint
 			return ERROR_FAIL;
 		}
 		LOG_DEBUG("poll_value = 0x%04" PRIx32 "", poll_value);
-	}while(!(poll_value & 0x0200));
+	}while (!(poll_value & 0x0200));
 
 	return ERROR_OK;
 }
@@ -277,7 +277,7 @@ static int avrf_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offse
 	}
 
 	cur_size = 0;
-	while(count > 0)
+	while (count > 0)
 	{
 		if (count > page_size)
 		{

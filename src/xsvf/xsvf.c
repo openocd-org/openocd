@@ -261,7 +261,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 	LOG_USER("xsvf processing file: \"%s\"", filename);
 
-	while( read(xsvf_fd, &opcode, 1) > 0 )
+	while ( read(xsvf_fd, &opcode, 1) > 0 )
 	{
 		/* record the position of the just read opcode within the file */
 		file_offset = lseek(xsvf_fd, 0, SEEK_CUR) - 1;

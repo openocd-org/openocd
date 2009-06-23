@@ -29,7 +29,7 @@ int main (void)
 {
         volatile unsigned char *led = ((volatile unsigned char *)0xB6020000);
 	
-	while(1)
+	while (1)
     	{
 		*led = 0xFF;
 		delay();
@@ -46,13 +46,13 @@ __gccmain()
 
 void exit(int exit_code)
 {
-  while(1);
+  while (1);
 } /* EXIT */
 
 
 atexit()
 {
-  while(1);
+  while (1);
 } /* ATEXIT */
 
 

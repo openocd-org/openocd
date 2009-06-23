@@ -48,13 +48,13 @@ __gccmain()
 
 void exit(int exit_code)
 {
-  while(1);
+  while (1);
 } /* EXIT */
 
 
 atexit()
 {
-  while(1);
+  while (1);
 } /* ATEXIT */
 
 

@@ -116,7 +116,7 @@ void Jim_DeleteFileHandler(Jim_Interp *interp, void *handle)
     Jim_EventLoop *eventLoop = Jim_GetAssocData(interp, "eventloop");
 
     fe = eventLoop->fileEventHead;
-    while(fe) {
+    while (fe) {
         if (fe->handle == handle) {
             if (prev == NULL)
                 eventLoop->fileEventHead = fe->next;
@@ -194,7 +194,7 @@ jim_wide Jim_DeleteTimeHandler(Jim_Interp *interp, jim_wide id)
     te = eventLoop->timeEventHead;
     if (id >= eventLoop->timeEventNextId) 
     	return -2; /* wrong event ID */
-    while(te) {
+    while (te) {
         if (te->id == id) {
             remain  = (te->when_sec - cur_sec) * 1000;
             remain += (te->when_ms  - cur_ms) ;
@@ -224,7 +224,7 @@ static Jim_TimeEvent *JimSearchNearestTimer(Jim_EventLoop *eventLoop)
     Jim_TimeEvent *te = eventLoop->timeEventHead;
     Jim_TimeEvent *nearest = NULL;
 
-    while(te) {
+    while (te) {
         if (!nearest || te->when_sec < nearest->when_sec ||
                 (te->when_sec == nearest->when_sec &&
                  te->when_ms < nearest->when_ms))
@@ -319,7 +319,7 @@ int Jim_ProcessEvents(Jim_Interp *interp, int flags)
 	   }
 	} else if (retval > 0) {
             fe = eventLoop->fileEventHead;
-            while(fe != NULL) {
+            while (fe != NULL) {
                 int fd = fileno((FILE*)fe->handle);
 
 		// fprintf(stderr,"fd: %d mask: %02x \n",fd,fe->mask);
@@ -361,7 +361,7 @@ int Jim_ProcessEvents(Jim_Interp *interp, int flags)
     /* Check time events */
     te = eventLoop->timeEventHead;
     maxId = eventLoop->timeEventNextId-1;
-    while(te) {
+    while (te) {
         long now_sec, now_ms;
         jim_wide id;
 
@@ -400,7 +400,7 @@ void JimELAssocDataDeleProc(Jim_Interp *interp, void *data)
     Jim_EventLoop *eventLoop = data;
 
     fe = eventLoop->fileEventHead;
-    while(fe) {
+    while (fe) {
         next = fe->next;
         if (fe->finalizerProc)
             fe->finalizerProc(interp, fe->clientData);
@@ -409,7 +409,7 @@ void JimELAssocDataDeleProc(Jim_Interp *interp, void *data)
     }
 
     te = eventLoop->timeEventHead;
-    while(te) {
+    while (te) {
         next = te->next;
         if (te->finalizerProc)
             te->finalizerProc(interp, te->clientData);

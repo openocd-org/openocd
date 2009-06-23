@@ -452,7 +452,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 
 	target_free_working_area(target, source);
 
-	while(count > 0)
+	while (count > 0)
 	{
 		uint32_t value;
 		memcpy(&value, buffer, sizeof(uint32_t));

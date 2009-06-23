@@ -372,7 +372,7 @@ tap_state_t tap_state_by_name(const char *name)
 #ifdef _DEBUG_JTAG_IO_
 
 #define JTAG_DEBUG_STATE_APPEND(buf, len, bit) \
-		do { buf[len] = bit ? '1' : '0'; } while(0)
+		do { buf[len] = bit ? '1' : '0'; } while (0)
 #define JTAG_DEBUG_STATE_PRINT(a, b, astr, bstr) \
 		DEBUG_JTAG_IO("TAP/SM: %9s -> %5s\tTMS: %s\tTDI: %s", \
 			tap_state_name(a), tap_state_name(b), astr, bstr)

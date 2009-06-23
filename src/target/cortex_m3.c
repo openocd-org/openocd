@@ -908,7 +908,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if (breakpoint->type == BKPT_HARD)
 	{
-		while(comparator_list[fp_num].used && (fp_num < cortex_m3->fp_num_code))
+		while (comparator_list[fp_num].used && (fp_num < cortex_m3->fp_num_code))
 			fp_num++;
 		if (fp_num >= cortex_m3->fp_num_code)
 		{
@@ -1091,7 +1091,7 @@ int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 
 	if (watchpoint->mask == 0xffffffffu)
 	{
-		while(comparator_list[dwt_num].used && (dwt_num < cortex_m3->dwt_num_comp))
+		while (comparator_list[dwt_num].used && (dwt_num < cortex_m3->dwt_num_comp))
 			dwt_num++;
 		if (dwt_num >= cortex_m3->dwt_num_comp)
 		{

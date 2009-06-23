@@ -61,7 +61,7 @@ begin_ejtag_dma_read:
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Read Data */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
@@ -107,7 +107,7 @@ begin_ejtag_dma_read_h:
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Read Data */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
@@ -159,7 +159,7 @@ begin_ejtag_dma_read_b:
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Read Data */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA, NULL);
@@ -226,7 +226,7 @@ begin_ejtag_dma_write:
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
@@ -277,7 +277,7 @@ begin_ejtag_dma_write_h:
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);
@@ -329,7 +329,7 @@ begin_ejtag_dma_write_b:
 	do {
 		ejtag_ctrl = EJTAG_CTRL_DMAACC | ejtag_info->ejtag_ctrl;
 		mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	} while(ejtag_ctrl & EJTAG_CTRL_DSTRT);
+	} while (ejtag_ctrl & EJTAG_CTRL_DSTRT);
 
 	/* Clear DMA & Check DERR */
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL, NULL);

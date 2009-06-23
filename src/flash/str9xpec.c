@@ -542,7 +542,7 @@ static int str9xpec_lock_device(struct flash_bank_s *bank)
 		jtag_add_dr_scan(1, &field, jtag_get_end_state());
 		jtag_execute_queue();
 
-	} while(!(status & ISC_STATUS_BUSY));
+	} while (!(status & ISC_STATUS_BUSY));
 
 	str9xpec_isc_disable(bank);
 
@@ -722,7 +722,7 @@ static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 
 				status = buf_get_u32(scanbuf, 0, 8);
 
-			} while(!(status & ISC_STATUS_BUSY));
+			} while (!(status & ISC_STATUS_BUSY));
 
 			if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
 				return ERROR_FLASH_OPERATION_FAILED;
@@ -740,7 +740,7 @@ static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 		uint8_t last_dword[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 		int i = 0;
 
-		while(bytes_remaining > 0)
+		while (bytes_remaining > 0)
 		{
 			last_dword[i++] = *(buffer + bytes_written);
 			bytes_remaining--;
@@ -772,7 +772,7 @@ static int str9xpec_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 
 			status = buf_get_u32(scanbuf, 0, 8);
 
-		} while(!(status & ISC_STATUS_BUSY));
+		} while (!(status & ISC_STATUS_BUSY));
 
 		if ((status & ISC_STATUS_ERROR) != STR9XPEC_ISC_SUCCESS)
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -962,7 +962,7 @@ static int str9xpec_write_options(struct flash_bank_s *bank)
 		jtag_add_dr_scan(1, &field, jtag_get_end_state());
 		jtag_execute_queue();
 
-	} while(!(status & ISC_STATUS_BUSY));
+	} while (!(status & ISC_STATUS_BUSY));
 
 	str9xpec_isc_disable(bank);
 

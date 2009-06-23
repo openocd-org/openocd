@@ -116,7 +116,7 @@ int remove_connection(service_t *service, connection_t *connection)
 	connection_t *c;
 	
 	/* find connection */
-	while((c = *p))
+	while ((c = *p))
 	{		
 		if (c->fd == connection->fd)
 		{	
@@ -237,7 +237,7 @@ int remove_service(unsigned short port)
 	service_t *c;
 	
 	/* find service */
-	while((c = *p))
+	while ((c = *p))
 	{		
 		if (c->port == port)
 		{	
@@ -264,7 +264,7 @@ int remove_services(void)
 	service_t *c = services;
 
 	/* loop service */
-	while(c)
+	while (c)
 	{
 		service_t *next = c->next;
 
@@ -310,7 +310,7 @@ int server_loop(command_context_t *command_context)
 	tv.tv_sec = 0;
 	tv.tv_usec = 10000;
 	
-	while(!shutdown_openocd)
+	while (!shutdown_openocd)
 	{
 		/* monitor sockets for acitvity */
 		fd_max = 0;

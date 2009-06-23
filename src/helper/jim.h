@@ -241,7 +241,7 @@ typedef struct Jim_HashTableIterator {
         entry->val = (ht)->type->valDup((ht)->privdata, _val_); \
     else \
         entry->val = (_val_); \
-} while(0)
+} while (0)
 
 #define Jim_FreeEntryKey(ht, entry) \
     if ((ht)->type->keyDestructor) \
@@ -252,7 +252,7 @@ typedef struct Jim_HashTableIterator {
         entry->key = (ht)->type->keyDup((ht)->privdata, _key_); \
     else \
         entry->key = (_key_); \
-} while(0)
+} while (0)
 
 #define Jim_CompareHashKeys(ht, key1, key2) \
     (((ht)->type->keyCompare) ? \
@@ -555,7 +555,7 @@ typedef struct Jim_Interp {
     Jim_IncrRefCount(_resultObjPtr_); \
     Jim_DecrRefCount(i,(i)->result);  \
     (i)->result = _resultObjPtr_;     \
-} while(0)
+} while (0)
 
 /* Reference structure. The interpreter pointer is held within privdata member in HashTable */
 #define JIM_REFERENCE_TAGLEN 7 /* The tag is fixed-length, because the reference
@@ -985,7 +985,7 @@ typedef struct jim_getopt {
  *
  *   Jim_GetOpt_Setup( &goi, interp, argc, argv );
  *
- *   while( goi.argc ){
+ *   while ( goi.argc ){
  *         e = Jim_GetOpt_Nvp( &goi, nvp_options, &n );
  *         if ( e != JIM_OK ){
  *               Jim_GetOpt_NvpUnknown( &goi, nvp_options, 0 );
@@ -1102,7 +1102,7 @@ JIM_STATIC int JIM_API( Jim_GetOpt_Nvp)( Jim_GetOptInfo *goi, const Jim_Nvp *loo
  * Example:
  * \code
  *
- *  while( goi.argc ){
+ *  while ( goi.argc ){
  *     // Get the next option 
  *     e = Jim_GetOpt_Nvp( &goi, cmd_options, &n );
  *     if ( e != JIM_OK ){

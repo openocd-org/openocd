@@ -30,7 +30,7 @@
 #if 0
 #define JTAG_DEBUG(expr ...)	DEBUG(expr)
 #else
-#define JTAG_DEBUG(expr ...)	do {} while(0)
+#define JTAG_DEBUG(expr ...)	do {} while (0)
 #endif
 
 /*

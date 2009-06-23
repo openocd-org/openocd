@@ -269,11 +269,11 @@ int unregister_all_commands(command_context_t *context)
 	if (context == NULL)
 		return ERROR_OK;
 
-	while(NULL != context->commands)
+	while (NULL != context->commands)
 	{
 		c = context->commands;
 
-		while(NULL != c->children)
+		while (NULL != c->children)
 		{
 			c2 = c->children;
 			c->children = c->children->next;
@@ -304,7 +304,7 @@ int unregister_command(command_context_t *context, char *name)
 	/* find command */
 	c = context->commands;
 
-	while(NULL != c)
+	while (NULL != c)
 	{
 		if (strcmp(name, c->name) == 0)
 		{
@@ -320,7 +320,7 @@ int unregister_command(command_context_t *context, char *name)
 			}
 
 			/* unregister children */
-			while(NULL != c->children)
+			while (NULL != c->children)
 			{
 				c2 = c->children;
 				c->children = c->children->next;

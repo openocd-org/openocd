@@ -244,7 +244,7 @@ static int max_target_number(void)
 
 	x = -1;
 	t = all_targets;
-	while( t ){
+	while ( t ){
 		if ( x < t->target_number ){
 			x = (t->target_number)+1;
 		}
@@ -262,7 +262,7 @@ static int new_target_number(void)
 	/* number is 0 based */
 	x = -1;
 	t = all_targets;
-	while(t){
+	while (t){
 		if ( x < t->target_number ){
 			x = t->target_number;
 		}
@@ -1728,7 +1728,7 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 		reg_cache_t *cache = target->reg_cache;
 
 		count = 0;
-		while(cache)
+		while (cache)
 		{
 			int i;
 			for (i = 0; i < cache->num_regs; i++)
@@ -1759,7 +1759,7 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 
 		reg_cache_t *cache = target->reg_cache;
 		count = 0;
-		while(cache)
+		while (cache)
 		{
 			int i;
 			for (i = 0; i < cache->num_regs; i++)
@@ -3378,7 +3378,7 @@ void target_handle_event( target_t *target, enum target_event e )
 	teap = target->event_action;
 
 	done = 0;
-	while( teap ){
+	while ( teap ){
 		if ( teap->event == e ){
 			done = 1;
 			LOG_DEBUG( "target: (%d) %s (%s) event: %d (%s) action: %s\n",
@@ -3437,7 +3437,7 @@ static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 	int e;
 
 	/* parse config or cget options ... */
-	while( goi->argc > 0 ){
+	while ( goi->argc > 0 ){
 		Jim_SetEmptyResult( goi->interp );
 		/* Jim_GetOpt_Debug( goi ); */
 
@@ -3505,7 +3505,7 @@ static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 
 				teap = target->event_action;
 				/* replace existing? */
-				while( teap ){
+				while ( teap ){
 					if ( teap->event == (enum target_event)n->value ){
 						break;
 					}
@@ -3687,7 +3687,7 @@ static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 			/* loop for more e*/
 			break;
 		}
-	} /* while( goi->argc ) */
+	} /* while ( goi->argc ) */
 
 
 		/* done - we return */
@@ -3881,7 +3881,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		/* convert to "bytes" */
 		c = c * b;
 		/* count is now in 'BYTES' */
-		while( c > 0 ){
+		while ( c > 0 ){
 			y = c;
 			if ( y > 16 ){
 				y = 16;
@@ -3934,7 +3934,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 				}
 			}
 			/* space pad  */
-			while( x < 16 ){
+			while ( x < 16 ){
 				target_buf[x] = ' ';
 				x++;
 			}
@@ -4063,7 +4063,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 						   target->cmd_name );
 			command_print( cmd_ctx, "%-25s | Body", "Event");
 			command_print( cmd_ctx, "------------------------- | ----------------------------------------");
-			while( teap ){
+			while ( teap ){
 				command_print( cmd_ctx,
 							   "%-25s | %s",
 							   Jim_Nvp_value2name_simple( nvp_target_event, teap->event )->name,
@@ -4236,7 +4236,7 @@ static int target_create( Jim_GetOptInfo *goi )
 	{
 		target_t **tpp;
 		tpp = &(all_targets);
-		while( *tpp ){
+		while ( *tpp ){
 			tpp = &( (*tpp)->next );
 		}
 		*tpp = target;
@@ -4326,7 +4326,7 @@ static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		}
 		Jim_SetResult( goi.interp, Jim_NewListObj( goi.interp, NULL, 0 ) );
 		target = all_targets;
-		while( target ){
+		while ( target ){
 			Jim_ListAppendElement( goi.interp,
 								   Jim_GetResult(goi.interp),
 								   Jim_NewStringObj( goi.interp, target->cmd_name, -1 ) );

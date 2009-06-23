@@ -367,7 +367,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 	/* clear them as we find them */
 	reqbits = (NTREQ_IRLEN | NTREQ_IRCAPTURE | NTREQ_IRMASK);
 
-	while( goi->argc ){
+	while ( goi->argc ){
 		e = Jim_GetOpt_Nvp( goi, opts, &n );
 		if ( e != JIM_OK ){
 			Jim_GetOpt_NvpUnknown( goi, opts, 0 );
@@ -441,7 +441,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 				break;
 			}
 		} /* switch(n->value) */
-	} /* while( goi->argc ) */
+	} /* while ( goi->argc ) */
 
 	/* default is enabled-after-reset */
 	pTap->enabled = !pTap->disabled_after_reset;
@@ -861,7 +861,7 @@ static int handle_scan_chain_command(struct command_context_s *cmd_ctx, char *cm
 	command_print(cmd_ctx, "     TapName            | Enabled |   IdCode      Expected    IrLen IrCap  IrMask Instr     ");
 	command_print(cmd_ctx, "---|--------------------|---------|------------|------------|------|------|------|---------");
 
-	while( tap ){
+	while ( tap ){
 		uint32_t expected, expected_mask, cur_instr, ii;
 		expected = buf_get_u32(tap->expected, 0, tap->ir_length);
 		expected_mask = buf_get_u32(tap->expected_mask, 0, tap->ir_length);

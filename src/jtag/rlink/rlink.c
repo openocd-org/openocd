@@ -128,7 +128,7 @@ ep1_generic_commandl(
 	usb_buffer_p = usb_buffer;
 
 	va_start(ap, length);
-	while(length > 0) {
+	while (length > 0) {
 		*usb_buffer_p++ = va_arg(ap, int);
 		length--;
 	}
@@ -175,7 +175,7 @@ ep1_memory_read(
 	remain = length;
 	count = 0;
 
-	while(remain) {
+	while (remain) {
 		if (remain > sizeof(usb_buffer)) {
 			length = sizeof(usb_buffer);
 		} else {
@@ -236,7 +236,7 @@ ep1_memory_write(
 	remain = length;
 	count = 0;
 
-	while(remain) {
+	while (remain) {
 		if (remain > (sizeof(usb_buffer) - 4)) {
 			length = (sizeof(usb_buffer) - 4);
 		} else {
@@ -299,7 +299,7 @@ ep1_memory_writel(
 	buffer_p = buffer;
 
 	va_start(ap, length);
-	while(remain > 0) {
+	while (remain > 0) {
 		*buffer_p++ = va_arg(ap, int);
 		remain--;
 	}
@@ -348,7 +348,7 @@ dtc_load_from_buffer(
 	);
 	if (usb_err < 0) return(usb_err);
 
-	while(length) {
+	while (length) {
 		if (length < sizeof(*header)) {
 			LOG_ERROR("Malformed DTC image\n");
 			exit(1);
@@ -1169,7 +1169,7 @@ rlink_scan(
 		x = 0;
 		dtc_mask = 1 << (extra_bits - 1);
 
-		while(extra_bits--) {
+		while (extra_bits--) {
 			if (*tdi_p & tdi_mask) {
 				x |= dtc_mask;
 			}
@@ -1190,7 +1190,7 @@ rlink_scan(
 	}
 
 	/* Loop scheduling full bytes into the DTC command buffer */
-	while(byte_bits) {
+	while (byte_bits) {
 		if (type == SCAN_IN) {
 			/* make sure there's room for stop and byte op */
 			x = (dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1));
@@ -1260,7 +1260,7 @@ rlink_scan(
 			x = 0;
 			dtc_mask = 1 << (8 - 1);
 
-			while(chunk_bits--) {
+			while (chunk_bits--) {
 				if (*tdi_p & tdi_mask) {
 					x |= dtc_mask;
 				}
@@ -1315,7 +1315,7 @@ rlink_scan(
 			x = 0;
 			dtc_mask = 1 << (8 - 1);
 
-			while(extra_bits--) {
+			while (extra_bits--) {
 				if (*tdi_p & tdi_mask) {
 					x |= dtc_mask;
 				}
@@ -1682,7 +1682,7 @@ int rlink_init(void)
 								LOG_DEBUG("interface claimed!\n");
 								break;
 							}
-						} while(--retries);
+						} while (--retries);
 
 						if (!i)
 						{
@@ -1695,7 +1695,7 @@ int rlink_init(void)
 								success=1;
 						}
 					}
-				} while(0);
+				} while (0);
 			}
 		}
 	}

@@ -607,7 +607,7 @@ static int str9x_write(struct flash_bank_s *bank,
 		uint8_t last_halfword[2] = {0xff, 0xff};
 		int i = 0;
 
-		while(bytes_remaining > 0)
+		while (bytes_remaining > 0)
 		{
 			last_halfword[i++] = *(buffer + bytes_written);
 			bytes_remaining--;

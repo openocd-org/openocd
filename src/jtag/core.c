@@ -142,7 +142,7 @@ unsigned jtag_tap_count_enabled(void)
 {
 	jtag_tap_t *t = jtag_all_taps();
 	unsigned n = 0;
-	while(t)
+	while (t)
 	{
 		if (t->enabled)
 			n++;
@@ -157,7 +157,7 @@ void jtag_tap_add(struct jtag_tap_s *t)
 	t->abs_chain_position = jtag_num_taps++;
 
 	jtag_tap_t **tap = &__jtag_all_taps;
-	while(*tap != NULL)
+	while (*tap != NULL)
 		tap = &(*tap)->next_tap;
 	*tap = t;
 }

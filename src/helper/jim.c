@@ -245,7 +245,7 @@ static jim_wide JimStrtoll(const char *nptr, char **endptr, register int base)
 static int JimStringMatch(const char *pattern, int patternLen,
         const char *string, int stringLen, int nocase)
 {
-    while(patternLen) {
+    while (patternLen) {
         switch(pattern[0]) {
         case '*':
             while (pattern[1] == '*') {
@@ -254,7 +254,7 @@ static int JimStringMatch(const char *pattern, int patternLen,
             }
             if (patternLen == 1)
                 return 1; /* match */
-            while(stringLen) {
+            while (stringLen) {
                 if (JimStringMatch(pattern+1, patternLen-1,
                             string, stringLen, nocase))
                     return 1; /* match */
@@ -281,7 +281,7 @@ static int JimStringMatch(const char *pattern, int patternLen,
                 patternLen--;
             }
             match = 0;
-            while(1) {
+            while (1) {
                 if (pattern[0] == '\\') {
                     pattern++;
                     patternLen--;
@@ -352,7 +352,7 @@ static int JimStringMatch(const char *pattern, int patternLen,
         pattern++;
         patternLen--;
         if (stringLen == 0) {
-            while(*pattern == '*') {
+            while (*pattern == '*') {
                 pattern++;
                 patternLen--;
             }
@@ -370,7 +370,7 @@ int JimStringCompare(const char *s1, int l1, const char *s2, int l2,
     unsigned char *u1 = (unsigned char*) s1, *u2 = (unsigned char*) s2;
 
     if (nocase == 0) {
-        while(l1 && l2) {
+        while (l1 && l2) {
             if (*u1 != *u2)
                 return (int)*u1-*u2;
             u1++; u2++; l1--; l2--;
@@ -378,7 +378,7 @@ int JimStringCompare(const char *s1, int l1, const char *s2, int l2,
         if (!l1 && !l2) return 0;
         return l1-l2;
     } else {
-        while(l1 && l2) {
+        while (l1 && l2) {
             if (tolower((int)*u1) != tolower((int)*u2))
                 return tolower((int)*u1)-tolower((int)*u2);
             u1++; u2++; l1--; l2--;
@@ -424,7 +424,7 @@ int Jim_StringToWide(const char *str, jim_wide *widePtr, int base)
     if ((str[0] == '\0') || (str == endptr) )
         return JIM_ERR;
     if (endptr[0] != '\0') {
-        while(*endptr) {
+        while (*endptr) {
             if (!isspace((int)*endptr))
                 return JIM_ERR;
             endptr++;
@@ -441,7 +441,7 @@ int Jim_StringToIndex(const char *str, int *intPtr)
     if ( (str[0] == '\0') || (str == endptr) )
         return JIM_ERR;
     if (endptr[0] != '\0') {
-        while(*endptr) {
+        while (*endptr) {
             if (!isspace((int)*endptr))
                 return JIM_ERR;
             endptr++;
@@ -473,7 +473,7 @@ int Jim_DoubleToString(char *buf, double doubleValue)
 
     len = sprintf(buf, "%.17g", doubleValue);
     s = buf;
-    while(*s) {
+    while (*s) {
         if (*s == '.') return len;
         s++;
     }
@@ -661,7 +661,7 @@ unsigned int Jim_IdentityHashFunction(unsigned int key)
 unsigned int Jim_GenHashFunction(const unsigned char *buf, int len)
 {
     unsigned int h = 0;
-    while(len--)
+    while (len--)
         h += (h<<3)+*buf++;
     return h;
 }
@@ -729,7 +729,7 @@ int Jim_ExpandHashTable(Jim_HashTable *ht, unsigned int size)
         
         /* For each hash entry on this slot... */
         he = ht->table[i];
-        while(he) {
+        while (he) {
             unsigned int h;
 
             nextHe = he->next;
@@ -802,7 +802,7 @@ int Jim_DeleteHashEntry(Jim_HashTable *ht, const void *key)
     he = ht->table[h];
 
     prevHe = NULL;
-    while(he) {
+    while (he) {
         if (Jim_CompareHashKeys(ht, key, he->key)) {
             /* Unlink the element from the list */
             if (prevHe)
@@ -831,7 +831,7 @@ int Jim_FreeHashTable(Jim_HashTable *ht)
         Jim_HashEntry *he, *nextHe;
 
         if ((he = ht->table[i]) == NULL) continue;
-        while(he) {
+        while (he) {
             nextHe = he->next;
             Jim_FreeEntryKey(ht, he);
             Jim_FreeEntryVal(ht, he);
@@ -855,7 +855,7 @@ Jim_HashEntry *Jim_FindHashEntry(Jim_HashTable *ht, const void *key)
     if (ht->size == 0) return NULL;
     h = Jim_HashKey(ht, key) & ht->sizemask;
     he = ht->table[h];
-    while(he) {
+    while (he) {
         if (Jim_CompareHashKeys(ht, key, he->key))
             return he;
         he = he->next;
@@ -916,7 +916,7 @@ static unsigned int JimHashTableNextPower(unsigned int size)
 
     if (size >= 2147483648U)
         return 2147483648U;
-    while(1) {
+    while (1) {
         if (i >= size)
             return i;
         i *= 2;
@@ -938,7 +938,7 @@ static int JimInsertHashEntry(Jim_HashTable *ht, const void *key)
     h = Jim_HashKey(ht, key) & ht->sizemask;
     /* Search if this slot does not already contain the given key */
     he = ht->table[h];
-    while(he) {
+    while (he) {
         if (Jim_CompareHashKeys(ht, key, he->key))
             return -1;
         he = he->next;
@@ -1180,7 +1180,7 @@ void JimParserInit(struct JimParserCtx *pc, const char *prg,
 
 int JimParseScript(struct JimParserCtx *pc)
 {
-    while(1) { /* the while is used to reiterate with continue if needed */
+    while (1) { /* the while is used to reiterate with continue if needed */
         if (!pc->len) {
             pc->tstart = pc->p;
             pc->tend = pc->p-1;
@@ -1657,7 +1657,7 @@ int Jim_ScriptIsComplete(const char *s, int len, char *stateCharPtr)
     int level = 0;
     int state = ' ';
 
-    while(len) {
+    while (len) {
         switch (*s) {
             case '\\':
                 if (len > 1)
@@ -2341,7 +2341,7 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 		case '8':
 		case '9':
 			accum = 0;
-			while( isdigit(*fmt) && (fmtLen > 0) ){
+			while ( isdigit(*fmt) && (fmtLen > 0) ){
 				accum = (accum * 10) + (*fmt - '0');
 				fmt++;  fmtLen--;
 			}
@@ -3029,7 +3029,7 @@ int SetScriptFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr)
     }
 
     JimParserInit(&parser, scriptText, scriptTextLen, initialLineNumber);
-    while(!JimParserEof(&parser)) {
+    while (!JimParserEof(&parser)) {
         char *token;
         int len, type, linenr;
 
@@ -3621,7 +3621,7 @@ int Jim_SetVariableLink(Jim_Interp *interp, Jim_Obj *nameObjPtr,
         Jim_Obj *objPtr = targetNameObjPtr;
         Jim_Var *varPtr;
         /* Cycles are only possible with 'uplevel 0' */
-        while(1) {
+        while (1) {
             if (Jim_StringEqObj(objPtr, nameObjPtr, 0)) {
                 Jim_SetResultString(interp,
                     "can't upvar from variable to itself", -1);
@@ -4262,7 +4262,7 @@ int Jim_Collect(Jim_Interp *interp)
      * is of a type that can contain references. */
     Jim_InitHashTable(&marks, &JimRefMarkHashTableType, NULL);
     objPtr = interp->liveList;
-    while(objPtr) {
+    while (objPtr) {
         if (objPtr->typePtr == NULL ||
             objPtr->typePtr->flags & JIM_TYPE_REFERENCES) {
             const char *str, *p;
@@ -4291,7 +4291,7 @@ int Jim_Collect(Jim_Interp *interp)
                 continue;
             }
             /* Extract references from the object string repr. */
-            while(1) {
+            while (1) {
                 int i;
                 jim_wide id;
                 char buf[21];
@@ -4488,7 +4488,7 @@ void Jim_FreeInterp(Jim_Interp *i)
     Jim_FreeHashTable(&i->packages);
     Jim_Free(i->prngState);
     /* Free the call frames list */
-    while(cf) {
+    while (cf) {
         prevcf = cf->parentCallFrame;
         JimFreeCallFrame(i, cf, JIM_FCF_NONE);
         cf = prevcf;
@@ -4500,7 +4500,7 @@ void Jim_FreeInterp(Jim_Interp *i)
     
         Jim_fprintf( i, i->cookie_stdout,JIM_NL "-------------------------------------" JIM_NL);
         Jim_fprintf( i, i->cookie_stdout,"Objects still in the free list:" JIM_NL);
-        while(objPtr) {
+        while (objPtr) {
             const char *type = objPtr->typePtr ?
                 objPtr->typePtr->name : "";
             Jim_fprintf( i, i->cookie_stdout,"%p \"%-10s\": '%.20s' (refCount: %d)" JIM_NL,
@@ -4526,7 +4526,7 @@ void Jim_FreeInterp(Jim_Interp *i)
     }
     /* Free cached CallFrame structures */
     cf = i->freeFramesList;
-    while(cf) {
+    while (cf) {
         nextcf = cf->nextFramePtr;
         if (cf->vars.table != NULL)
             Jim_Free(cf->vars.table);
@@ -5102,7 +5102,7 @@ char *BackslashQuoteString(const char *s, int len, int *qlenPtr)
     char *q = Jim_Alloc(len*2+1), *p;
 
     p = q;
-    while(*s) {
+    while (*s) {
         switch (*s) {
         case ' ':
         case '$':
@@ -5215,7 +5215,7 @@ int SetListFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr)
 
     /* Convert into a list */
     JimParserInit(&parser, str, strLen, 1);
-    while(!JimParserEof(&parser)) {
+    while (!JimParserEof(&parser)) {
         char *token;
         int tokenLen, type;
         Jim_Obj *elementPtr;
@@ -5794,7 +5794,7 @@ int SetDictFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr)
     /* Convert into a dict */
     JimParserInit(&parser, str, strLen, 1);
     i = 0;
-    while(!JimParserEof(&parser)) {
+    while (!JimParserEof(&parser)) {
         char *token;
         int tokenLen, type;
 
@@ -6276,7 +6276,7 @@ static struct Jim_ExprOperator Jim_ExprOperators[] = {
 int JimParseExpression(struct JimParserCtx *pc)
 {
     /* Discard spaces and quoted newline */
-    while(*(pc->p) == ' ' ||
+    while (*(pc->p) == ' ' ||
           *(pc->p) == '\t' ||
           *(pc->p) == '\r' ||
           *(pc->p) == '\n' ||
@@ -6623,7 +6623,7 @@ static void ExprMakeLazy(Jim_Interp *interp, ExprByteCode *expr)
         /* Search for the end of the first operator */
         leftindex = index-1;
         arity = 1;
-        while(arity) {
+        while (arity) {
             switch(expr->opcode[leftindex]) {
             case JIM_EXPROP_NUMBER:
             case JIM_EXPROP_COMMAND:
@@ -6697,7 +6697,7 @@ int SetExprFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr)
 
     Jim_InitStack(&stack);
     JimParserInit(&parser, exprText, exprTextLen, 1);
-    while(!JimParserEof(&parser)) {
+    while (!JimParserEof(&parser)) {
         char *token;
         int len, type;
 
@@ -6731,7 +6731,7 @@ int SetExprFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr)
             break;
         case JIM_TT_EXPR_OPERATOR:
             op = JimExprOperatorInfo(token);
-            while(1) {
+            while (1) {
                 Jim_ExprOperator *stackTopOp;
 
                 if (Jim_StackPeek(&stack) != NULL) {
@@ -6758,7 +6758,7 @@ int SetExprFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr)
         case JIM_TT_SUBEXPR_END:
             {
                 int found = 0;
-                while(Jim_StackLen(&stack)) {
+                while (Jim_StackLen(&stack)) {
                     char *opstr = Jim_StackPop(&stack);
                     if (!strcmp(opstr, "(")) {
                         Jim_Free(opstr);
@@ -9094,7 +9094,7 @@ int SetSubstFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr, int flags)
     script->fileName = NULL;
 
     JimParserInit(&parser, scriptText, scriptTextLen, 1);
-    while(1) {
+    while (1) {
         char *token;
         int len, type, linenr;
 
@@ -11138,7 +11138,7 @@ static Jim_Obj *JimStringMap(Jim_Interp *interp, Jim_Obj *mapListObjPtr,
     }
     str = Jim_GetString(objPtr, &strLen);
     /* Map it */
-    while(strLen) {
+    while (strLen) {
         for (i = 0; i < numMaps; i++) {
             if (strLen >= keyLen[i] && keyLen[i]) {
                 if (!JimStringCompare(str, keyLen[i], key[i], keyLen[i],
@@ -11630,7 +11630,7 @@ static int Jim_SubstCoreCommand(Jim_Interp *interp, int argc,
         return JIM_ERR;
     }
     i = argc-2;
-    while(i--) {
+    while (i--) {
         if (Jim_CompareStringImmediate(interp, argv[i+1],
                     "-nobackslashes"))
             flags |= JIM_SUBST_NOESC;
@@ -12283,7 +12283,7 @@ void Jim_RegisterCoreCommands(Jim_Interp *interp)
 {
     int i = 0;
 
-    while(Jim_CoreCommandsTable[i].name != NULL) {
+    while (Jim_CoreCommandsTable[i].name != NULL) {
         Jim_CreateCommand(interp, 
                 Jim_CoreCommandsTable[i].name,
                 Jim_CoreCommandsTable[i].cmdProc,
@@ -12361,7 +12361,7 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
         Jim_fflush( interp, interp->cookie_stdout);
         scriptObjPtr = Jim_NewStringObj(interp, "", 0);
         Jim_IncrRefCount(scriptObjPtr);
-        while(1) {
+        while (1) {
             const char *str;
             char state;
             int len;
@@ -12457,7 +12457,7 @@ char* Jim_fgets( Jim_Interp *interp, char *s, int size, void *cookie )
 Jim_Nvp *
 Jim_Nvp_name2value_simple( const Jim_Nvp *p, const char *name )
 {
-	while( p->name ){
+	while ( p->name ){
 		if ( 0 == strcmp( name, p->name ) ){
 			break;
 		}
@@ -12469,7 +12469,7 @@ Jim_Nvp_name2value_simple( const Jim_Nvp *p, const char *name )
 Jim_Nvp *
 Jim_Nvp_name2value_nocase_simple( const Jim_Nvp *p, const char *name )
 {
-	while( p->name ){
+	while ( p->name ){
 		if ( 0 == strcasecmp( name, p->name ) ){
 			break;
 		}
@@ -12553,7 +12553,7 @@ Jim_Nvp_value2name_obj( Jim_Interp *interp, const Jim_Nvp *p, Jim_Obj *o, Jim_Nv
 Jim_Nvp *
 Jim_Nvp_value2name_simple( const Jim_Nvp *p, int value )
 {
-	while( p->name ){
+	while ( p->name ){
 		if ( value == p->value ){
 			break;
 		}
@@ -12792,7 +12792,7 @@ Jim_SetResult_NvpUnknown( Jim_Interp *interp,
 							   "Unknown param: %s, try one of: ",
 							   Jim_GetString( param_value, NULL ) );
 	}
-	while( nvp->name ){
+	while ( nvp->name ){
 		const char *a;
 		const char *b;
 

@@ -610,7 +610,7 @@ static int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 		{
 			target_read_u32(target, FLASH_FMC, &flash_fmc);
 		}
-		while(flash_fmc & FMC_ERASE);
+		while (flash_fmc & FMC_ERASE);
 
 		/* Check acess violations */
 		target_read_u32(target, FLASH_CRIS, &flash_cris);
@@ -687,7 +687,7 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 	{
 		target_read_u32(target, FLASH_FMC, &flash_fmc);
 	}
-	while(flash_fmc & FMC_COMT);
+	while (flash_fmc & FMC_COMT);
 
 	/* Check acess violations */
 	target_read_u32(target, FLASH_CRIS, &flash_cris);
@@ -926,7 +926,7 @@ static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t 
 		uint8_t last_word[4] = {0xff, 0xff, 0xff, 0xff};
 		int i = 0;
 
-		while(bytes_remaining > 0)
+		while (bytes_remaining > 0)
 		{
 			last_word[i++] = *(buffer + bytes_written);
 			bytes_remaining--;

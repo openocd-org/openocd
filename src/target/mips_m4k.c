@@ -509,7 +509,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		int bp_num = 0;
 
-		while(comparator_list[bp_num].used && (bp_num < mips32->num_inst_bpoints))
+		while (comparator_list[bp_num].used && (bp_num < mips32->num_inst_bpoints))
 			bp_num++;
 		if (bp_num >= mips32->num_inst_bpoints)
 		{
