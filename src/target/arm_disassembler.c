@@ -1330,7 +1330,7 @@ int evaluate_b_bl_blx_thumb(uint16_t opcode, uint32_t address, arm_instruction_t
 	if (((opc==0) || (opc==2)) && (offset & 0x00000400))
 		offset = 0xfffff800 | offset;
 	
-	target_address = address + 4 + (offset<<1);
+	target_address = address + 4 + (offset << 1);
 
 	switch (opc)
 	{
@@ -1348,7 +1348,7 @@ int evaluate_b_bl_blx_thumb(uint16_t opcode, uint32_t address, arm_instruction_t
 		case 2:
 			instruction->type = ARM_UNKNOWN_INSTUCTION;
 			mnemonic = "prefix";
-			target_address = offset<<12;
+			target_address = offset << 12;
 			break;
 		/* BL suffix */
 		case 3:
@@ -1371,8 +1371,8 @@ int evaluate_add_sub_thumb(uint16_t opcode, uint32_t address, arm_instruction_t 
 	uint8_t Rd = (opcode >> 0) & 0x7;
 	uint8_t Rn = (opcode >> 3) & 0x7;
 	uint8_t Rm_imm = (opcode >> 6) & 0x7;
-	uint32_t opc = opcode & (1<<9);
-	uint32_t reg_imm  = opcode & (1<<10);
+	uint32_t opc = opcode & (1 << 9);
+	uint32_t reg_imm  = opcode & (1 << 10);
 	char *mnemonic;
 	
 	if (opc)
@@ -1731,8 +1731,8 @@ int evaluate_load_store_imm_thumb(uint16_t opcode, uint32_t address, arm_instruc
 	uint32_t offset = (opcode >> 6) & 0x1f;
 	uint8_t Rd = (opcode >> 0) & 0x7; 
 	uint8_t Rn = (opcode >> 3) & 0x7; 
-	uint32_t L = opcode & (1<<11);
-	uint32_t B = opcode & (1<<12);
+	uint32_t L = opcode & (1 << 11);
+	uint32_t B = opcode & (1 << 12);
 	char *mnemonic;
 	char suffix = ' ';
 	uint32_t shift = 2;
@@ -1759,13 +1759,13 @@ int evaluate_load_store_imm_thumb(uint16_t opcode, uint32_t address, arm_instruc
 		shift = 0;
 	}
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s%c r%i, [r%i, #0x%" PRIx32 "]", address, opcode, mnemonic, suffix, Rd, Rn, offset<<shift);
+	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s%c r%i, [r%i, #0x%" PRIx32 "]", address, opcode, mnemonic, suffix, Rd, Rn, offset << shift);
 	
 	instruction->info.load_store.Rd = Rd;
 	instruction->info.load_store.Rn = Rn;
 	instruction->info.load_store.index_mode = 0; /*offset*/
 	instruction->info.load_store.offset_mode = 0; /*immediate*/
-	instruction->info.load_store.offset.offset = offset<<shift;
+	instruction->info.load_store.offset.offset = offset << shift;
 
 	return ERROR_OK;
 }
@@ -1774,7 +1774,7 @@ int evaluate_load_store_stack_thumb(uint16_t opcode, uint32_t address, arm_instr
 {
 	uint32_t offset = opcode  & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7; 
-	uint32_t L = opcode & (1<<11);
+	uint32_t L = opcode & (1 << 11);
 	char *mnemonic;
 
 	if (L)
@@ -1804,7 +1804,7 @@ int evaluate_add_sp_pc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 	uint32_t imm = opcode  & 0xff;
 	uint8_t Rd = (opcode >> 8) & 0x7; 
 	uint8_t Rn;
-	uint32_t SP = opcode & (1<<11);
+	uint32_t SP = opcode & (1 << 11);
 	char *reg_name;
 
 	instruction->type = ARM_ADD;
@@ -1833,7 +1833,7 @@ int evaluate_add_sp_pc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 int evaluate_adjust_stack_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint32_t imm = opcode  & 0x7f;
-	uint8_t opc = opcode & (1<<7);
+	uint8_t opc = opcode & (1 << 7);
 	char *mnemonic;
 
 	
@@ -1872,8 +1872,8 @@ int evaluate_breakpoint_thumb(uint16_t opcode, uint32_t address, arm_instruction
 int evaluate_load_store_multiple_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint32_t reg_list = opcode  & 0xff;
-	uint32_t L = opcode & (1<<11);
-	uint32_t R = opcode & (1<<8);
+	uint32_t L = opcode & (1 << 11);
+	uint32_t R = opcode & (1 << 8);
 	uint8_t Rn = (opcode >> 8) & 7;
 	uint8_t addr_mode = 0 /* IA */;
 	char reg_names[40];
@@ -1904,7 +1904,7 @@ int evaluate_load_store_multiple_thumb(uint16_t opcode, uint32_t address, arm_in
 			instruction->type = ARM_LDM;
 			mnemonic = "POP";
 			if (R)
-				reg_list |= (1<<15) /*PC*/;
+				reg_list |= (1 << 15) /*PC*/;
 		}
 		else
 		{
@@ -1912,14 +1912,14 @@ int evaluate_load_store_multiple_thumb(uint16_t opcode, uint32_t address, arm_in
 			mnemonic = "PUSH";
 			addr_mode = 3; /*DB*/
 			if (R)
-				reg_list |= (1<<14) /*LR*/;
+				reg_list |= (1 << 14) /*LR*/;
 		}
 	}
 
 	reg_names_p = reg_names;
 	for (i = 0; i <= 15; i++)
 	{
-		if (reg_list & (1<<i))
+		if (reg_list & (1 << i))
 			reg_names_p += snprintf(reg_names_p, (reg_names + 40 - reg_names_p), "r%i, ", i);
 	}
 	if (reg_names_p>reg_names)
@@ -1959,7 +1959,7 @@ int evaluate_cond_branch_thumb(uint16_t opcode, uint32_t address, arm_instructio
 	if (offset & 0x00000080)
 		offset = 0xffffff00 | offset;
 	
-	target_address = address + 4 + (offset<<1);
+	target_address = address + 4 + (offset << 1);
 
 	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tB%s 0x%8.8" PRIx32 , address, opcode,
 			 arm_condition_strings[cond], target_address);

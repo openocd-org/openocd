@@ -208,13 +208,13 @@ static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset
 					*dcc_bufptr &= *(buffer++) | 0xffffff00;
 					break;
 				case 1:
-					*dcc_bufptr &= ((*(buffer++))<<8) | 0xffff00ff;
+					*dcc_bufptr &= ((*(buffer++)) << 8) | 0xffff00ff;
 					break;
 				case 2:
-					*dcc_bufptr &= ((*(buffer++))<<16) | 0xff00ffff;
+					*dcc_bufptr &= ((*(buffer++)) << 16) | 0xff00ffff;
 					break;
 				case 3:
-					*dcc_bufptr &= ((*(buffer++))<<24) | 0x00ffffff;
+					*dcc_bufptr &= ((*(buffer++)) << 24) | 0x00ffffff;
 					chksum ^= *(dcc_bufptr++);
 					*dcc_bufptr = 0xffffffff;
 					byteofs = 0;

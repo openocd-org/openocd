@@ -300,7 +300,7 @@ int dap_dp_read_reg(swjdp_common_t *swjdp, uint32_t *value, uint8_t reg_addr)
 int dap_ap_select(swjdp_common_t *swjdp,uint8_t apsel)
 {
 	uint32_t select;
-	select = (apsel<<24) & 0xFF000000;
+	select = (apsel << 24) & 0xFF000000;
 
 	if (select != swjdp->apsel)
 	{

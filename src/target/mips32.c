@@ -433,19 +433,19 @@ int mips32_enable_interrupts(struct target_s *target, int enable)
 	
 	if (enable)
 	{
-		if (!(dcr & (1<<4)))
+		if (!(dcr & (1 << 4)))
 		{
 			/* enable interrupts */
-			dcr |= (1<<4);
+			dcr |= (1 << 4);
 			update = 1;
 		}
 	}
 	else
 	{
-		if (dcr & (1<<4))
+		if (dcr & (1 << 4))
 		{
 			/* disable interrupts */
-			dcr &= ~(1<<4);
+			dcr &= ~(1 << 4);
 			update = 1;
 		}
 	}

@@ -413,8 +413,8 @@ static void armjtagew_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, i
 
 static void armjtagew_reset(int trst, int srst)
 {
-	const uint8_t trst_mask = (1u<<5);
-	const uint8_t srst_mask = (1u<<6);
+	const uint8_t trst_mask = (1u << 5);
+	const uint8_t srst_mask = (1u << 6);
 	uint8_t val = 0;
 	uint8_t outp_en = 0;
 	uint8_t change_mask = 0;

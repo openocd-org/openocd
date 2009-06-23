@@ -94,9 +94,9 @@ typedef struct mips32_core_reg_s
 #define MIPS32_COP0_MF	0x00
 #define MIPS32_COP0_MT	0x04
 
-#define MIPS32_R_INST(opcode, rs, rt, rd, shamt, funct)	(((opcode)<<26) |((rs)<<21)|((rt)<<16)|((rd)<<11)| ((shamt)<<6) | (funct))
-#define MIPS32_I_INST(opcode, rs, rt, immd)	(((opcode)<<26) |((rs)<<21)|((rt)<<16)|(immd))
-#define MIPS32_J_INST(opcode, addr)	(((opcode)<<26) |(addr))
+#define MIPS32_R_INST(opcode, rs, rt, rd, shamt, funct)	(((opcode) << 26) |((rs) << 21)|((rt) << 16)|((rd) << 11)| ((shamt) << 6) | (funct))
+#define MIPS32_I_INST(opcode, rs, rt, immd)	(((opcode) << 26) |((rs) << 21)|((rt) << 16)|(immd))
+#define MIPS32_J_INST(opcode, addr)	(((opcode) << 26) |(addr))
 
 #define MIPS32_NOP					0
 #define MIPS32_ADDI(tar, src, val)	MIPS32_I_INST(MIPS32_OP_ADDI, src, tar, val)

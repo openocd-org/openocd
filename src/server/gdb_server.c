@@ -925,7 +925,7 @@ void gdb_target_to_reg(target_t *target, char *tstr, int str_len, uint8_t *bin)
 	int i;
 	for (i = 0; i < str_len; i += 2)
 	{
-		uint8_t t = hextoint(tstr[i])<<4;
+		uint8_t t = hextoint(tstr[i]) << 4;
 		t |= hextoint(tstr[i+1]);
 
 		int j = gdb_reg_pos(target, i/2, str_len/2);

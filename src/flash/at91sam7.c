@@ -280,7 +280,7 @@ static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = bank->target;
 
-	fcr = (0x5A<<24) | ((pagen&0x3FF)<<8) | cmd; 
+	fcr = (0x5A << 24) | ((pagen&0x3FF) << 8) | cmd; 
 	target_write_u32(target, MC_FCR[bank->bank_number], fcr);
 	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u", fcr, bank->bank_number+1, pagen);
 

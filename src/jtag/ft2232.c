@@ -264,7 +264,7 @@ static void clock_tms(uint8_t mpsse_cmd, int tms_bits, int tms_count, bool tdi_b
 		bool bit = tms_bits & 1;
 
 		if (bit)
-			tms_byte |= (1<<tms_ndx);
+			tms_byte |= (1 << tms_ndx);
 
 		/* always do state transitions in public view */
 		tap_set_state(tap_state_transition(tap_get_state(), bit));
@@ -760,7 +760,7 @@ static void ft2232_add_pathmove(tap_state_t* path, int num_states)
 		if (tap_state_transition(walker, false) == desired_next_state)
 			;	/* bit within tms_bits at index state_ndx is already zero */
 		else if (tap_state_transition(walker, true) == desired_next_state)
-			tms_bits |= (1<<state_ndx);
+			tms_bits |= (1 << state_ndx);
 		else
 		{
 			LOG_ERROR("BUG: %s -> %s isn't a valid TAP transition",

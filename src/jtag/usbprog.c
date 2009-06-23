@@ -373,11 +373,11 @@ static void usbprog_write(int tck, int tms, int tdi)
 	unsigned char output_value=0x00;
 
 	if (tms)
-		output_value |= (1<<TMS_BIT);
+		output_value |= (1 << TMS_BIT);
 	if (tdi)
-		output_value |= (1<<TDI_BIT);
+		output_value |= (1 << TDI_BIT);
 	if (tck)
-		output_value |= (1<<TCK_BIT);
+		output_value |= (1 << TCK_BIT);
 
 	usbprog_jtag_write_slice(usbprog_jtag_handle,output_value);
 }

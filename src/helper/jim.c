@@ -662,7 +662,7 @@ unsigned int Jim_GenHashFunction(const unsigned char *buf, int len)
 {
     unsigned int h = 0;
     while (len--)
-        h += (h<<3)+*buf++;
+        h += (h << 3)+*buf++;
     return h;
 }
 
@@ -6957,7 +6957,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
             case JIM_EXPROP_GT: wC = wA>wB; break;
             case JIM_EXPROP_LTE: wC = wA <= wB; break;
             case JIM_EXPROP_GTE: wC = wA >= wB; break;
-            case JIM_EXPROP_LSHIFT: wC = wA<<wB; break;
+            case JIM_EXPROP_LSHIFT: wC = wA << wB; break;
             case JIM_EXPROP_RSHIFT: wC = wA >> wB; break;
             case JIM_EXPROP_NUMEQ: wC = wA==wB; break;
             case JIM_EXPROP_NUMNE: wC = wA != wB; break;
@@ -6996,7 +6996,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
                 wC = _rotl(uA,(unsigned long)wB);
 #else
                 const unsigned int S = sizeof(unsigned long) * 8;
-                wC = (unsigned long)((uA<<wB)|(uA >> (S-wB)));
+                wC = (unsigned long)((uA << wB)|(uA >> (S-wB)));
 #endif
                 break;
             }
@@ -7006,7 +7006,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
                 wC = _rotr(uA,(unsigned long)wB);
 #else
                 const unsigned int S = sizeof(unsigned long) * 8;
-                wC = (unsigned long)((uA >> wB)|(uA<<(S-wB)));
+                wC = (unsigned long)((uA >> wB)|(uA << (S-wB)));
 #endif
                 break;
             }
@@ -8038,7 +8038,7 @@ badfmt:
     return JIM_ERR;
 }
 
-#define JIM_MATCHVER_EXACT (1<<JIM_PRIV_FLAG_SHIFT)
+#define JIM_MATCHVER_EXACT (1 << JIM_PRIV_FLAG_SHIFT)
 static int JimPackageMatchVersion(int needed, int actual, int flags)
 {
     if (needed == JIM_PKG_ANY_VERSION) return 1;

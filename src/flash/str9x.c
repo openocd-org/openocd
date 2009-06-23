@@ -132,7 +132,7 @@ static int str9x_build_block_list(struct flash_bank_s *bank)
 		offset += bank->sectors[i].size;
 		bank->sectors[num_sectors].is_erased = -1;
 		bank->sectors[num_sectors].is_protected = 1;
-		str9x_info->sector_bits[num_sectors++] = (1<<i);
+		str9x_info->sector_bits[num_sectors++] = (1 << i);
 	}
 
 	for (i = 0; i < b1_sectors; i++)
@@ -143,9 +143,9 @@ static int str9x_build_block_list(struct flash_bank_s *bank)
 		bank->sectors[num_sectors].is_erased = -1;
 		bank->sectors[num_sectors].is_protected = 1;
 		if (str9x_info->variant)
-			str9x_info->sector_bits[num_sectors++] = (1<<i);
+			str9x_info->sector_bits[num_sectors++] = (1 << i);
 		else
-			str9x_info->sector_bits[num_sectors++] = (1<<(i+8));
+			str9x_info->sector_bits[num_sectors++] = (1 << (i+8));
 	}
 
 	return ERROR_OK;

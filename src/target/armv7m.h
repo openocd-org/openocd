@@ -138,13 +138,13 @@ extern int armv7m_blank_check_memory(struct target_s *target, uint32_t address, 
  * Rd: destination register
  * SYSm: source special register
  */
-#define ARMV7M_T_MRS(Rd, SYSm)	((0xF3EF) | ((0x8000 | (Rd<<8) | SYSm) << 16)) 
+#define ARMV7M_T_MRS(Rd, SYSm)	((0xF3EF) | ((0x8000 | (Rd << 8) | SYSm) << 16)) 
 
 /* Move from Register from Special Register  (Thumb mode) 32 bit Thumb2 instruction
  * Rd: source register
  * SYSm: destination special register
  */
-#define ARMV7M_T_MSR(SYSm, Rn)	((0xF380 | ( Rn<<8 )) | ((0x8800 | SYSm) << 16)) 
+#define ARMV7M_T_MSR(SYSm, Rn)	((0xF380 | ( Rn << 8 )) | ((0x8800 | SYSm) << 16)) 
 
 /* Change Processor State. The instruction modifies the PRIMASK and FAULTMASK 
  * special-purpose register values  (Thumb mode) 16 bit Thumb2 instruction
@@ -153,8 +153,8 @@ extern int armv7m_blank_check_memory(struct target_s *target, uint32_t address, 
  */
 #define I_FLAG 2
 #define F_FLAG 1  
-#define ARMV7M_T_CPSID(IF)	((0xB660 | (1<<8) | (IF&0x3)) | ((0xB660 | (1<<8) | (IF&0x3)) << 16)) 
-#define ARMV7M_T_CPSIE(IF)	((0xB660 | (0<<8) | (IF&0x3)) | ((0xB660 | (0<<8) | (IF&0x3)) << 16)) 
+#define ARMV7M_T_CPSID(IF)	((0xB660 | (1 << 8) | (IF&0x3)) | ((0xB660 | (1 << 8) | (IF&0x3)) << 16)) 
+#define ARMV7M_T_CPSIE(IF)	((0xB660 | (0 << 8) | (IF&0x3)) | ((0xB660 | (0 << 8) | (IF&0x3)) << 16)) 
 
 /* Breakpoint (Thumb mode) v5 onwards
  * Im: immediate value used by debugger

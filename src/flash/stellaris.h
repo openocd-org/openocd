@@ -82,11 +82,11 @@ typedef struct stellaris_flash_bank_s
 #define PMASK	2
 
 /* Flash Controller Command bits */
-#define FMC_WRKEY	(0xA442<<16)
-#define FMC_COMT	(1<<3)
-#define FMC_MERASE	(1<<2)
-#define FMC_ERASE	(1<<1)
-#define FMC_WRITE	(1<<0)
+#define FMC_WRKEY	(0xA442 << 16)
+#define FMC_COMT	(1 << 3)
+#define FMC_MERASE	(1 << 2)
+#define FMC_ERASE	(1 << 1)
+#define FMC_WRITE	(1 << 0)
 
 /* STELLARIS constants */
 

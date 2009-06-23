@@ -1121,29 +1121,29 @@ static int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx
 
 	if (strcmp(args[1], "SWWDG") == 0)
 	{
-		optionbyte |= (1<<0);
+		optionbyte |= (1 << 0);
 	}
 	else
 	{
-		optionbyte &= ~(1<<0);
+		optionbyte &= ~(1 << 0);
 	}
 
 	if (strcmp(args[2], "NORSTSTNDBY") == 0)
 	{
-		optionbyte |= (1<<1);
+		optionbyte |= (1 << 1);
 	}
 	else
 	{
-		optionbyte &= ~(1<<1);
+		optionbyte &= ~(1 << 1);
 	}
 
 	if (strcmp(args[3], "NORSTSTOP") == 0)
 	{
-		optionbyte |= (1<<2);
+		optionbyte |= (1 << 2);
 	}
 	else
 	{
-		optionbyte &= ~(1<<2);
+		optionbyte &= ~(1 << 2);
 	}
 
 	if (stm32x_erase_options(bank) != ERROR_OK)

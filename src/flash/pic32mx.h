@@ -80,11 +80,11 @@ typedef struct pic32mx_flash_bank_s
 #define PIC32MX_NVMCONCLR	0xBF80F404
 #define PIC32MX_NVMCONSET	0xBF80F408
 #define PIC32MX_NVMCONINV	0xBF80F40C
-#define NVMCON_NVMWR		(1<<15)
-#define NVMCON_NVMWREN		(1<<14)
-#define NVMCON_NVMERR		(1<<13)
-#define NVMCON_LVDERR		(1<<12)
-#define NVMCON_LVDSTAT		(1<<11)
+#define NVMCON_NVMWR		(1 << 15)
+#define NVMCON_NVMWREN		(1 << 14)
+#define NVMCON_NVMERR		(1 << 13)
+#define NVMCON_LVDERR		(1 << 12)
+#define NVMCON_LVDSTAT		(1 << 11)
 #define NVMCON_OP_PFM_ERASE		0x5
 #define NVMCON_OP_PAGE_ERASE	0x4
 #define NVMCON_OP_ROW_PROG		0x3

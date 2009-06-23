@@ -194,11 +194,11 @@ static int pic32mx_protect_check(struct flash_bank_s *bank)
 	}
 
 	target_read_u32(target, PIC32MX_DEVCFG0, &devcfg0);
-	if ((devcfg0 & (1<<28)) == 0) /* code protect bit */
+	if ((devcfg0 & (1 << 28)) == 0) /* code protect bit */
 		num_pages = 0xffff;  /* All pages protected */
 	else if (bank->base == PIC32MX_KSEG1_BOOT_FLASH)
 	{
-		if (devcfg0 & (1<<24))
+		if (devcfg0 & (1 << 24))
 			num_pages = 0;       /* All pages unprotected */
 		else
 			num_pages = 0xffff;  /* All pages protected */

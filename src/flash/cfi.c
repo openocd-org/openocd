@@ -2266,7 +2266,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 			(1 << cfi_info->block_erase_timeout_max) * (1 << cfi_info->block_erase_timeout_typ),
 			(1 << cfi_info->chip_erase_timeout_max) * (1 << cfi_info->chip_erase_timeout_typ));
 
-		cfi_info->dev_size = 1<<cfi_query_u8(bank, 0, 0x27);
+		cfi_info->dev_size = 1 << cfi_query_u8(bank, 0, 0x27);
 		cfi_info->interface_desc = cfi_query_u16(bank, 0, 0x28);
 		cfi_info->max_buf_write_size = cfi_query_u16(bank, 0, 0x2a);
 		cfi_info->num_erase_regions = cfi_query_u8(bank, 0, 0x2c);

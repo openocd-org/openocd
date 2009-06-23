@@ -37,15 +37,15 @@
 #define DP_SELECT		0x8
 #define DP_RDBUFF		0xC
 
-#define CORUNDETECT		(1<<0)
-#define SSTICKYORUN		(1<<1)
-#define SSTICKYERR		(1<<5)
-#define CDBGRSTREQ		(1<<26)
-#define CDBGRSTACK		(1<<27)
-#define CDBGPWRUPREQ	(1<<28)
-#define CDBGPWRUPACK	(1<<29)
-#define CSYSPWRUPREQ	(1<<30)
-#define CSYSPWRUPACK	(1<<31)
+#define CORUNDETECT		(1 << 0)
+#define SSTICKYORUN		(1 << 1)
+#define SSTICKYERR		(1 << 5)
+#define CDBGRSTREQ		(1 << 26)
+#define CDBGRSTACK		(1 << 27)
+#define CDBGPWRUPREQ	(1 << 28)
+#define CDBGPWRUPACK	(1 << 29)
+#define CSYSPWRUPREQ	(1 << 30)
+#define CSYSPWRUPACK	(1 << 31)
 
 #define	AP_REG_CSW		0x00
 #define AP_REG_TAR		0x04
@@ -61,13 +61,13 @@
 #define CSW_16BIT		1
 #define CSW_32BIT		2
 
-#define CSW_ADDRINC_MASK	(3<<4)
+#define CSW_ADDRINC_MASK	(3 << 4)
 #define CSW_ADDRINC_OFF		0
-#define CSW_ADDRINC_SINGLE	(1<<4)
-#define CSW_ADDRINC_PACKED	(2<<4)
-#define CSW_HPROT			(1<<25)
-#define CSW_MASTER_DEBUG	(1<<29)
-#define CSW_DBGSWENABLE		(1<<31)
+#define CSW_ADDRINC_SINGLE	(1 << 4)
+#define CSW_ADDRINC_PACKED	(2 << 4)
+#define CSW_HPROT			(1 << 25)
+#define CSW_MASTER_DEBUG	(1 << 29)
+#define CSW_DBGSWENABLE		(1 << 31)
 
 /* transaction mode */
 #define TRANS_MODE_NONE			0

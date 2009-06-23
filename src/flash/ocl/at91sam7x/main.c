@@ -88,7 +88,7 @@ int main (void)
 				dcc_wr(0x100000); /* base */
 				dcc_wr(flash_page_count*flash_page_size); /* size */
 				dcc_wr(1); /* num_sectors */
-				dcc_wr(4096 | ((unsigned long) flash_page_size<<16)); /* buflen and bufalign */
+				dcc_wr(4096 | ((unsigned long) flash_page_size << 16)); /* buflen and bufalign */
 				break;
 			case OCL_ERASE_ALL:
 				dcc_wr(OCL_CMD_DONE|flash_erase_all());

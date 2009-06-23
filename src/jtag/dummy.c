@@ -77,7 +77,7 @@ static bitbang_interface_t dummy_bitbang =
 static int dummy_read(void)
 {
 	int data = 1 & dummy_data;
-	dummy_data = (dummy_data >> 1) | (1<<31);
+	dummy_data = (dummy_data >> 1) | (1 << 31);
 	return data;
 }
 

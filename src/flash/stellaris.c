@@ -665,9 +665,9 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 	for (lockregion = first; lockregion <= last; lockregion++)
 	{
 		if (set)
-			fmppe &= ~(1<<lockregion);
+			fmppe &= ~(1 << lockregion);
 		else
-			fmppe |= (1<<lockregion);
+			fmppe |= (1 << lockregion);
 	}
 
 	/* Clear and disable flash programming interrupts */

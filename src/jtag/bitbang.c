@@ -192,7 +192,7 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 		int tms=(bit_cnt==scan_size-1) ? 1 : 0;
 		int tdi;
 		int bytec=bit_cnt/8;
-		int bcval=1<<(bit_cnt % 8);
+		int bcval=1 << (bit_cnt % 8);
 
 		/* if we're just reading the scan, but don't care about the output
 		 * default to outputting 'low', this also makes valgrind traces more readable,

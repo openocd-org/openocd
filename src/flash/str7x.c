@@ -161,7 +161,7 @@ static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	
 	/* set default bits for str71x flash */
 	str7x_info->busy_bits = (FLASH_LOCK|FLASH_BSYA1|FLASH_BSYA0);
-	str7x_info->disable_bit = (1<<1);
+	str7x_info->disable_bit = (1 << 1);
 	
 	if (strcmp(args[6], "STR71x") == 0)
 	{
@@ -175,7 +175,7 @@ static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	else if (strcmp(args[6], "STR75x") == 0)
 	{
 		str7x_info->register_base = 0x20100000;
-		str7x_info->disable_bit = (1<<0);
+		str7x_info->disable_bit = (1 << 0);
 	}
 	else
 	{
@@ -703,7 +703,7 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 		flash_cmd = FLASH_SPR;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), flash_cmd);
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), 0x4010DFBC);
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), ~(1<<(15+ProtectionLevel)));
+		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), ~(1 << (15+ProtectionLevel)));
 		flash_cmd = FLASH_SPR | FLASH_WMS;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), flash_cmd);
 	}
