@@ -474,7 +474,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 
 				for (l=0; l<k; l += 8)
 				{
-					inBuffer[(j+l)/8]=(value>>l)&0xff;
+					inBuffer[(j+l)/8]=(value >> l)&0xff;
 				}
 			}
 			j += k;

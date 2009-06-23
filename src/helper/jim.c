@@ -6958,7 +6958,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
             case JIM_EXPROP_LTE: wC = wA <= wB; break;
             case JIM_EXPROP_GTE: wC = wA >= wB; break;
             case JIM_EXPROP_LSHIFT: wC = wA<<wB; break;
-            case JIM_EXPROP_RSHIFT: wC = wA>>wB; break;
+            case JIM_EXPROP_RSHIFT: wC = wA >> wB; break;
             case JIM_EXPROP_NUMEQ: wC = wA==wB; break;
             case JIM_EXPROP_NUMNE: wC = wA != wB; break;
             case JIM_EXPROP_BITAND: wC = wA&wB; break;
@@ -6996,7 +6996,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
                 wC = _rotl(uA,(unsigned long)wB);
 #else
                 const unsigned int S = sizeof(unsigned long) * 8;
-                wC = (unsigned long)((uA<<wB)|(uA>>(S-wB)));
+                wC = (unsigned long)((uA<<wB)|(uA >> (S-wB)));
 #endif
                 break;
             }
@@ -7006,7 +7006,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
                 wC = _rotr(uA,(unsigned long)wB);
 #else
                 const unsigned int S = sizeof(unsigned long) * 8;
-                wC = (unsigned long)((uA>>wB)|(uA<<(S-wB)));
+                wC = (unsigned long)((uA >> wB)|(uA<<(S-wB)));
 #endif
                 break;
             }

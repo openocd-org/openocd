@@ -374,7 +374,7 @@ static int handle_flash_info_command(struct command_context_s *cmd_ctx, char *cm
 					      j,
 					      p->sectors[j].offset, 
 					      p->sectors[j].size, 
-					      p->sectors[j].size>>10,
+					      p->sectors[j].size >> 10,
 					      protect_state);
 			}
 
@@ -465,7 +465,7 @@ static int handle_flash_erase_check_command(struct command_context_s *cmd_ctx, c
 				      j, 
 				      p->sectors[j].offset, 
 				      p->sectors[j].size, 
-				      p->sectors[j].size>>10,
+				      p->sectors[j].size >> 10,
 				      erase_state);
 		}
 	}

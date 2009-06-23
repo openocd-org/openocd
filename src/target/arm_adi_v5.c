@@ -1103,12 +1103,12 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFF4, &c_cid1);
 				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFF8, &c_cid2);
 				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFFC, &c_cid3);
-				component_start = component_base - 0x1000*(c_pid4>>4);
+				component_start = component_base - 0x1000*(c_pid4 >> 4);
 				command_print(cmd_ctx, "\t\tComponent base address 0x%" PRIx32 ", pid4 0x%" PRIx32 ", start address 0x%" PRIx32 "",component_base,c_pid4,component_start);
-				command_print(cmd_ctx, "\t\tComponent cid1 0x%" PRIx32 ", class is %s",c_cid1,class_description[(c_cid1>>4)&0xF]); /* Se ARM DDI 0314 C Table 2.2 */
+				command_print(cmd_ctx, "\t\tComponent cid1 0x%" PRIx32 ", class is %s",c_cid1,class_description[(c_cid1 >> 4)&0xF]); /* Se ARM DDI 0314 C Table 2.2 */
 				command_print(cmd_ctx, "\t\tCID3 0x%" PRIx32 ", CID2 0x%" PRIx32 ", CID1 0x%" PRIx32 ", CID0, 0x%" PRIx32 "",c_cid3,c_cid2,c_cid1,c_cid0);
 				command_print(cmd_ctx, "\t\tPID3 0x%" PRIx32 ", PID2 0x%" PRIx32 ", PID1 0x%" PRIx32 ", PID0, 0x%" PRIx32 "",c_pid3,c_pid2,c_pid1,c_pid0);
-				/* For CoreSight components,  (c_cid1>>4)&0xF==9 , we also read 0xFC8 DevId and 0xFCC DevType */
+				/* For CoreSight components,  (c_cid1 >> 4)&0xF==9 , we also read 0xFC8 DevId and 0xFCC DevType */
 			}
 			else
 			{

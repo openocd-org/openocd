@@ -33,7 +33,7 @@
 #include "binarybuffer.h"
 
 
-#define DID0_VER(did0) ((did0>>28)&0x07)
+#define DID0_VER(did0) ((did0 >> 28)&0x07)
 static int stellaris_register_commands(struct command_context_s *cmd_ctx);
 static int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 static int stellaris_erase(struct flash_bank_s *bank, int first, int last);
@@ -286,7 +286,7 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 	if (DID0_VER(stellaris_info->did0) > 0)
 	{
-		device_class = (stellaris_info->did0>>16) & 0xFF;
+		device_class = (stellaris_info->did0 >> 16) & 0xFF;
 	}
 	else
 	{
@@ -298,7 +298,7 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 			   device_class, 
 			   StellarisClassname[device_class], 
 			   stellaris_info->target_name,
-			   (int)('A' + ((stellaris_info->did0>>8) & 0xFF)),
+			   (int)('A' + ((stellaris_info->did0 >> 8) & 0xFF)),
 			   (int)((stellaris_info->did0) & 0xFF));
 	buf += printed;
 	buf_size -= printed;
@@ -309,7 +309,7 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 			   stellaris_info->did1, 
 			   stellaris_info->did1, 
 			   "ARMV7M", 
-			   (int)((1+((stellaris_info->dc0>>16) & 0xFFFF))/4),
+			   (int)((1+((stellaris_info->dc0 >> 16) & 0xFFFF))/4),
 			   (int)((1+(stellaris_info->dc0 & 0xFFFF))*2));
 	buf += printed;
 	buf_size -= printed;
@@ -366,11 +366,11 @@ static void stellaris_read_clock_info(flash_bank_t *bank)
 	LOG_DEBUG("Stellaris PLLCFG %" PRIx32 "", pllcfg);
 	stellaris_info->rcc = rcc;
 
-	sysdiv = (rcc>>23) & 0xF;
-	usesysdiv = (rcc>>22) & 0x1;
-	bypass = (rcc>>11) & 0x1;
-	oscsrc = (rcc>>4) & 0x3;
-	/* xtal = (rcc>>6)&0xF; */
+	sysdiv = (rcc >> 23) & 0xF;
+	usesysdiv = (rcc >> 22) & 0x1;
+	bypass = (rcc >> 11) & 0x1;
+	oscsrc = (rcc >> 4) & 0x3;
+	/* xtal = (rcc >> 6)&0xF; */
 	switch (oscsrc)
 	{
 		case 0:

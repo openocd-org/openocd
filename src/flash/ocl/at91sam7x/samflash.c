@@ -32,7 +32,7 @@ int flash_init(void)
 {
 	unsigned int nvpsiz;
 
-	nvpsiz=(inr(DBGU_CIDR)>>8)&0xf;
+	nvpsiz=(inr(DBGU_CIDR) >> 8)&0xf;
 
 	switch (nvpsiz) {
 		case 3:
@@ -129,7 +129,7 @@ int flash_erase_plane(int efc_ofs)
 	int page_num;
 
 	page_num=0;
-	lockbits=inr(MC_FSR+efc_ofs)>>16;
+	lockbits=inr(MC_FSR+efc_ofs) >> 16;
 	while (lockbits) {
 		if (lockbits&1) {
 

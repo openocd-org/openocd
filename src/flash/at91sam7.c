@@ -366,13 +366,13 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 			at91sam7_info = t_bank->driver_priv;
 
 			at91sam7_info->cidr = cidr;
-			at91sam7_info->cidr_ext = (cidr>>31)&0x0001;
-			at91sam7_info->cidr_nvptyp = (cidr>>28)&0x0007;
-			at91sam7_info->cidr_arch = (cidr>>20)&0x00FF;
-			at91sam7_info->cidr_sramsiz = (cidr>>16)&0x000F;
-			at91sam7_info->cidr_nvpsiz2 = (cidr>>12)&0x000F;
-			at91sam7_info->cidr_nvpsiz = (cidr>>8)&0x000F;
-			at91sam7_info->cidr_eproc = (cidr>>5)&0x0007;
+			at91sam7_info->cidr_ext = (cidr >> 31)&0x0001;
+			at91sam7_info->cidr_nvptyp = (cidr >> 28)&0x0007;
+			at91sam7_info->cidr_arch = (cidr >> 20)&0x00FF;
+			at91sam7_info->cidr_sramsiz = (cidr >> 16)&0x000F;
+			at91sam7_info->cidr_nvpsiz2 = (cidr >> 12)&0x000F;
+			at91sam7_info->cidr_nvpsiz = (cidr >> 8)&0x000F;
+			at91sam7_info->cidr_eproc = (cidr >> 5)&0x0007;
 			at91sam7_info->cidr_version = cidr&0x001F;
 
 			/* calculate master clock frequency */
@@ -391,10 +391,10 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 		return ERROR_OK;
 	}
 
-	arch = (cidr>>20)&0x00FF;
+	arch = (cidr >> 20)&0x00FF;
 
 	/* check flash size */
-	switch ((cidr>>8)&0x000F)
+	switch ((cidr >> 8)&0x000F)
 	{
 		case FLASH_SIZE_8KB:
 			break;
@@ -586,13 +586,13 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 		at91sam7_info = t_bank->driver_priv;
 
 		at91sam7_info->cidr = cidr;
-		at91sam7_info->cidr_ext = (cidr>>31)&0x0001;
-		at91sam7_info->cidr_nvptyp = (cidr>>28)&0x0007;
-		at91sam7_info->cidr_arch = (cidr>>20)&0x00FF;
-		at91sam7_info->cidr_sramsiz = (cidr>>16)&0x000F;
-		at91sam7_info->cidr_nvpsiz2 = (cidr>>12)&0x000F;
-		at91sam7_info->cidr_nvpsiz = (cidr>>8)&0x000F;
-		at91sam7_info->cidr_eproc = (cidr>>5)&0x0007;
+		at91sam7_info->cidr_ext = (cidr >> 31)&0x0001;
+		at91sam7_info->cidr_nvptyp = (cidr >> 28)&0x0007;
+		at91sam7_info->cidr_arch = (cidr >> 20)&0x00FF;
+		at91sam7_info->cidr_sramsiz = (cidr >> 16)&0x000F;
+		at91sam7_info->cidr_nvpsiz2 = (cidr >> 12)&0x000F;
+		at91sam7_info->cidr_nvpsiz = (cidr >> 8)&0x000F;
+		at91sam7_info->cidr_eproc = (cidr >> 5)&0x0007;
 		at91sam7_info->cidr_version = cidr&0x001F;
 
 		at91sam7_info->target_name  = target_name;
@@ -702,12 +702,12 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	}
 
 	status = at91sam7_get_flash_status(bank->target, bank->bank_number);
-	at91sam7_info->lockbits = (status>>16);
+	at91sam7_info->lockbits = (status >> 16);
 
 	at91sam7_info->num_lockbits_on = 0;
 	for (lock_pos=0; lock_pos<bank->num_sectors; lock_pos++)
 	{
-		if ( ((status>>(16+lock_pos))&(0x0001)) == 1)
+		if ( ((status >> (16+lock_pos))&(0x0001)) == 1)
 		{
 			at91sam7_info->num_lockbits_on++;
 			bank->sectors[lock_pos].is_protected = 1;
@@ -719,13 +719,13 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	/* GPNVM and SECURITY bits apply only for MC_FSR of EFC0 */
 	status = at91sam7_get_flash_status(bank->target, 0);
 
-	at91sam7_info->securitybit = (status>>4)&0x01;
-	at91sam7_info->nvmbits = (status>>8)&0xFF;
+	at91sam7_info->securitybit = (status >> 4)&0x01;
+	at91sam7_info->nvmbits = (status >> 8)&0xFF;
 
 	at91sam7_info->num_nvmbits_on = 0;
 	for (gpnvm_pos=0; gpnvm_pos<at91sam7_info->num_nvmbits; gpnvm_pos++)
 	{
-		if ( ((status>>(8+gpnvm_pos))&(0x01)) == 1)
+		if ( ((status >> (8+gpnvm_pos))&(0x01)) == 1)
 		{
 			at91sam7_info->num_nvmbits_on++;
 		}

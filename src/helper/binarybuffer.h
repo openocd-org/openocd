@@ -34,10 +34,10 @@ static inline void buf_set_u32(uint8_t* buffer, unsigned int first, unsigned int
 {
 	if ((num==32) && (first==0))
 	{
-		buffer[3]=(value>>24)&0xff;
-		buffer[2]=(value>>16)&0xff;
-		buffer[1]=(value>>8)&0xff;
-		buffer[0]=(value>>0)&0xff;
+		buffer[3]=(value >> 24)&0xff;
+		buffer[2]=(value >> 16)&0xff;
+		buffer[1]=(value >> 8)&0xff;
+		buffer[0]=(value >> 0)&0xff;
 	} else
 	{
 		unsigned int i;

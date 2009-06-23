@@ -2792,7 +2792,7 @@ static void writeLong(FILE *f, int l)
 	int i;
 	for (i=0; i<4; i++)
 	{
-		char c=(l>>(i*8))&0xff;
+		char c=(l >> (i*8))&0xff;
 		writeData(f, &c, 1);
 	}
 
@@ -2883,7 +2883,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 				val=65535;
 			}
 			data[i*2]=val&0xff;
-			data[i*2+1]=(val>>8)&0xff;
+			data[i*2+1]=(val >> 8)&0xff;
 		}
 		free(buckets);
 		writeData(f, data, length * 2);
