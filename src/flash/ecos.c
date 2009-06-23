@@ -392,7 +392,7 @@ static void command(flash_bank_t *bank, uint8_t cmd, uint8_t *cmd_buf)
 static uint32_t ecosflash_address(struct flash_bank_s *bank, uint32_t address)
 {
 	uint32_t retval = 0;
-	switch(bank->bus_width)
+	switch (bank->bus_width)
 	{
 		case 4:
 			retval = address & 0xfffffffc;

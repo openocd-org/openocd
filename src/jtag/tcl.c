@@ -374,7 +374,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 			return e;
 		}
 		LOG_DEBUG("Processing option: %s", n->name );
-		switch( n->value ){
+		switch ( n->value ){
 		case NTAP_OPT_ENABLED:
 			pTap->disabled_after_reset = false;
 			break;
@@ -414,7 +414,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 				Jim_SetResult_sprintf( goi->interp, "option: %s bad parameter", n->name );
 				return e;
 			}
-			switch(n->value){
+			switch (n->value){
 			case NTAP_OPT_IRLEN:
 				if (w > (jim_wide) (8 * sizeof(pTap->ir_capture_value)))
 					LOG_WARNING("huge IR length %d", (int) w);
@@ -440,7 +440,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 				reqbits &= (~(NTREQ_IRCAPTURE));
 				break;
 			}
-		} /* switch(n->value) */
+		} /* switch (n->value) */
 	} /* while ( goi->argc ) */
 
 	/* default is enabled-after-reset */
@@ -540,7 +540,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 		return e;
 	}
 		Jim_SetEmptyResult( goi.interp );
-	switch( n->value ){
+	switch ( n->value ){
 	case JTAG_CMD_INTERFACE:
 		/* return the name of the interface */
 		/* TCL code might need to know the exact type... */

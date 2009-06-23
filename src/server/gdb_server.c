@@ -188,7 +188,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 #ifdef _WIN32
 		errno = WSAGetLastError();
 
-		switch(errno)
+		switch (errno)
 		{
 			case WSAEWOULDBLOCK:
 				usleep(1000);
@@ -204,7 +204,7 @@ int gdb_get_char(connection_t *connection, int* next_char)
 				exit(-1);
 		}
 #else
-		switch(errno)
+		switch (errno)
 		{
 			case EAGAIN:
 				usleep(1000);
@@ -1964,7 +1964,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 int gdb_detach(connection_t *connection, target_t *target)
 {
 
-	switch( detach_mode )
+	switch ( detach_mode )
 	{
 		case GDB_DETACH_RESUME:
 			target_handle_event( target, TARGET_EVENT_OLD_pre_resume );

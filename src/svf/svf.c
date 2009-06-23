@@ -273,7 +273,7 @@ static const char* tap_state_svf_name(tap_state_t state)
 {
 	const char* ret;
 
-	switch( state )
+	switch ( state )
 	{
 	case TAP_RESET:		ret = "RESET";		break;
 	case TAP_IDLE:		ret = "IDLE";		break;
@@ -507,7 +507,7 @@ static int svf_read_command_from_file(int fd)
 
 	while (!cmd_ok && (read(fd, &ch, 1) > 0) )
 	{
-		switch(ch)
+		switch (ch)
 		{
 		case '!':
 			slash = 0;
@@ -578,7 +578,7 @@ static int svf_parse_cmd_string(char *str, int len, char **argus, int *num_of_ar
 
 	while (pos < len)
 	{
-		switch(str[pos])
+		switch (str[pos])
 		{
 		case '\n':
 		case '\r':
@@ -832,7 +832,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 	}
 
 	command = svf_find_string_in_array(argus[0], (char **)svf_command_name, dimof(svf_command_name));
-	switch(command)
+	switch (command)
 	{
 	case ENDDR:
 	case ENDIR:

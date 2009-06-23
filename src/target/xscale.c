@@ -3610,7 +3610,7 @@ int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int a
 	{
 		reg_no = strtoul(args[0], NULL, 0);
 		/*translate from xscale cp15 register no to openocd register*/
-		switch(reg_no)
+		switch (reg_no)
 		{
 		case 0:
 			reg_no = XSCALE_MAINID;

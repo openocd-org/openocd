@@ -246,7 +246,7 @@ static int JimStringMatch(const char *pattern, int patternLen,
         const char *string, int stringLen, int nocase)
 {
     while (patternLen) {
-        switch(pattern[0]) {
+        switch (pattern[0]) {
         case '*':
             while (pattern[1] == '*') {
                 pattern++;
@@ -1189,7 +1189,7 @@ int JimParseScript(struct JimParserCtx *pc)
             pc->eof = 1;
             return JIM_OK;
         }
-        switch(*(pc->p)) {
+        switch (*(pc->p)) {
         case '\\':
             if (*(pc->p+1) == '\n')
                 return JimParseSep(pc);
@@ -1427,7 +1427,7 @@ int JimParseStr(struct JimParserCtx *pc)
             pc->tt = JIM_TT_ESC;
             return JIM_OK;
         }
-        switch(*pc->p) {
+        switch (*pc->p) {
         case '\\':
             if (pc->state == JIM_PS_DEF &&
                 *(pc->p+1) == '\n') {
@@ -1518,9 +1518,9 @@ static int JimEscape(char *dest, const char *s, int slen)
         slen = strlen(s);
 
     for (i = 0; i < slen; i++) {
-        switch(s[i]) {
+        switch (s[i]) {
         case '\\':
-            switch(s[i+1]) {
+            switch (s[i+1]) {
             case 'a': *p++ = 0x7; i++; break;
             case 'b': *p++ = 0x8; i++; break;
             case 'f': *p++ = 0xc; i++; break;
@@ -1709,7 +1709,7 @@ int JimParseList(struct JimParserCtx *pc)
         pc->eof = 1;
         return JIM_OK;
     }
-    switch(*pc->p) {
+    switch (*pc->p) {
     case ' ':
     case '\n':
     case '\t':
@@ -1757,7 +1757,7 @@ int JimParseListStr(struct JimParserCtx *pc)
             pc->tt = JIM_TT_ESC;
             return JIM_OK;
         }
-        switch(*pc->p) {
+        switch (*pc->p) {
         case '\\':
             pc->p++; pc->len--;
             break;
@@ -2286,7 +2286,7 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 		if ( fmtLen <= 0 ){
 			break;
 		}
-		switch( *fmt ){
+		switch ( *fmt ){
 			/* terminals */
         case 'b': /* binary - not all printfs() do this */
 		case 's': /* string */
@@ -2436,7 +2436,7 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 
 		/* here we do the work */
 		/* actually - we make sprintf() do it for us */
-        switch(*fmt) {
+        switch (*fmt) {
         case 's':
 			*cp++ = 's';
 			*cp   = 0;
@@ -5030,7 +5030,7 @@ static int ListElementQuotingType(const char *s, int len)
         goto testbrace;
     }
     for (i = 0; i < len; i++) {
-        switch(s[i]) {
+        switch (s[i]) {
         case ' ':
         case '$':
         case '"':
@@ -5057,7 +5057,7 @@ testbrace:
         s[len-1] == ']') return JIM_ELESTR_QUOTE;
     level = 0;
     for (i = 0; i < len; i++) {
-        switch(s[i]) {
+        switch (s[i]) {
         case '{': level++; break;
         case '}': level--;
               if (level < 0) return JIM_ELESTR_QUOTE;
@@ -5073,7 +5073,7 @@ testbrace:
     if (level == 0) {
         if (!trySimple) return JIM_ELESTR_BRACE;
         for (i = 0; i < len; i++) {
-            switch(s[i]) {
+            switch (s[i]) {
             case ' ':
             case '$':
             case '"':
@@ -5164,7 +5164,7 @@ void UpdateStringOfList(struct Jim_Obj *objPtr)
         const char *strRep = Jim_GetString(ele[i], &len);
         char *q;
 
-        switch(quotingType[i]) {
+        switch (quotingType[i]) {
         case JIM_ELESTR_SIMPLE:
             memcpy(p, strRep, len);
             p += len;
@@ -5739,7 +5739,7 @@ void UpdateStringOfDict(struct Jim_Obj *objPtr)
         const char *strRep = Jim_GetString(objv[i], &len);
         char *q;
 
-        switch(quotingType[i]) {
+        switch (quotingType[i]) {
         case JIM_ELESTR_SIMPLE:
             memcpy(p, strRep, len);
             p += len;
@@ -6291,7 +6291,7 @@ int JimParseExpression(struct JimParserCtx *pc)
         pc->eof = 1;
         return JIM_OK;
     }
-    switch(*(pc->p)) {
+    switch (*(pc->p)) {
     case '(':
         pc->tstart = pc->tend = pc->p;
         pc->tline = pc->linenr;
@@ -6508,7 +6508,7 @@ static int ExprCheckCorrectness(ExprByteCode *expr)
      * and make sure at the end of the program there is
      * a single result on the stack. */
     for (i = 0; i < expr->len; i++) {
-        switch(expr->opcode[i]) {
+        switch (expr->opcode[i]) {
         case JIM_EXPROP_NUMBER:
         case JIM_EXPROP_STRING:
         case JIM_EXPROP_SUBST:
@@ -6624,7 +6624,7 @@ static void ExprMakeLazy(Jim_Interp *interp, ExprByteCode *expr)
         leftindex = index-1;
         arity = 1;
         while (arity) {
-            switch(expr->opcode[leftindex]) {
+            switch (expr->opcode[leftindex]) {
             case JIM_EXPROP_NUMBER:
             case JIM_EXPROP_COMMAND:
             case JIM_EXPROP_VARIABLE:
@@ -6710,7 +6710,7 @@ int SetExprFromAny(Jim_Interp *interp, struct Jim_Obj *objPtr)
             Jim_Free(token);
             break;
         }
-        switch(type) {
+        switch (type) {
         case JIM_TT_STR:
             ExprObjAddInstr(interp, expr, JIM_EXPROP_STRING, token, len);
             break;
@@ -6949,7 +6949,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
             }
             Jim_DecrRefCount(interp, A);
             Jim_DecrRefCount(interp, B);
-            switch(expr->opcode[i]) {
+            switch (expr->opcode[i]) {
             case JIM_EXPROP_ADD: wC = wA+wB; break;
             case JIM_EXPROP_SUB: wC = wA-wB; break;
             case JIM_EXPROP_MUL: wC = wA*wB; break;
@@ -7040,7 +7040,7 @@ trydouble:
             }
             Jim_DecrRefCount(interp, A);
             Jim_DecrRefCount(interp, B);
-            switch(expr->opcode[i]) {
+            switch (expr->opcode[i]) {
             case JIM_EXPROP_ROTL:
             case JIM_EXPROP_ROTR:
             case JIM_EXPROP_LSHIFT:
@@ -7097,7 +7097,7 @@ trydouble:
 retry_as_string:
             sA = Jim_GetString(A, &Alen);
             sB = Jim_GetString(B, &Blen);
-            switch(opcode) {
+            switch (opcode) {
             case JIM_EXPROP_STREQ:
                 if (Alen == Blen && memcmp(sA, sB, Alen) ==0)
                     wC = 1;
@@ -7134,7 +7134,7 @@ retry_as_string:
                 goto trydouble_unary;
             }
             Jim_DecrRefCount(interp, A);
-            switch(expr->opcode[i]) {
+            switch (expr->opcode[i]) {
             case JIM_EXPROP_NOT: wC = !wA; break;
             case JIM_EXPROP_BITNOT: wC = ~wA; break;
             case JIM_EXPROP_LOGICAND_RIGHT:
@@ -7155,7 +7155,7 @@ trydouble_unary:
                 goto err;
             }
             Jim_DecrRefCount(interp, A);
-            switch(expr->opcode[i]) {
+            switch (expr->opcode[i]) {
             case JIM_EXPROP_NOT: dC = !dA; break;
             case JIM_EXPROP_LOGICAND_RIGHT:
             case JIM_EXPROP_LOGICOR_RIGHT: dC = (dA != 0); break;
@@ -8454,7 +8454,7 @@ int Jim_InterpolateTokens(Jim_Interp *interp, ScriptToken *token,
     /* Compute every token forming the argument
      * in the intv objects vector. */
     for (i = 0; i < tokens; i++) {
-        switch(token[i].type) {
+        switch (token[i].type) {
         case JIM_TT_ESC:
         case JIM_TT_STR:
             intv[i] = token[i].objPtr;
@@ -8628,7 +8628,7 @@ int Jim_EvalObj(Jim_Interp *interp, Jim_Obj *scriptObjPtr)
             if (tokens == 1) {
                 /* Fast path if the token does not
                  * need interpolation */
-                switch(token[i].type) {
+                switch (token[i].type) {
                 case JIM_TT_ESC:
                 case JIM_TT_STR:
                     argv[j] = token[i].objPtr;
@@ -9020,7 +9020,7 @@ static int JimParseSubst(struct JimParserCtx *pc, int flags)
         pc->eof = 1;
         return JIM_OK;
     }
-    switch(*pc->p) {
+    switch (*pc->p) {
     case '[':
         retval = JimParseCmd(pc);
         if (flags & JIM_SUBST_NOCMD) {
@@ -9170,7 +9170,7 @@ int Jim_SubstObj(Jim_Interp *interp, Jim_Obj *substObjPtr,
     for (i = 0; i < len; i++) {
         Jim_Obj *objPtr;
 
-        switch(token[i].type) {
+        switch (token[i].type) {
         case JIM_TT_STR:
         case JIM_TT_ESC:
             Jim_AppendObj(interp, resObjPtr, token[i].objPtr);
@@ -9773,7 +9773,7 @@ static int Jim_WhileCoreCommand(Jim_Interp *interp, int argc,
         
         if ((expr = Jim_GetExpression(interp, argv[1])) == NULL) goto noopt;
         if (expr->len <= 0 || expr->len > 3) goto noopt;
-        switch(expr->len) {
+        switch (expr->len) {
         case 1:
             if (expr->opcode[0] != JIM_EXPROP_VARIABLE &&
                 expr->opcode[0] != JIM_EXPROP_NUMBER)
@@ -9789,7 +9789,7 @@ static int Jim_WhileCoreCommand(Jim_Interp *interp, int argc,
                 (expr->opcode[1] != JIM_EXPROP_NUMBER &&
                  expr->opcode[1] != JIM_EXPROP_VARIABLE))
                 goto noopt;
-            switch(expr->opcode[2]) {
+            switch (expr->opcode[2]) {
             case JIM_EXPROP_LT:
             case JIM_EXPROP_LTE:
             case JIM_EXPROP_GT:
@@ -9834,7 +9834,7 @@ static int Jim_WhileCoreCommand(Jim_Interp *interp, int argc,
                 }
                 if (!wideValue) break;
                 if ((retval = Jim_EvalObj(interp, argv[2])) != JIM_OK) {
-                    switch(retval) {
+                    switch (retval) {
                     case JIM_BREAK:
                         if (varAObjPtr)
                             Jim_DecrRefCount(interp, varAObjPtr);
@@ -9885,7 +9885,7 @@ static int Jim_WhileCoreCommand(Jim_Interp *interp, int argc,
                         goto noopt;
                     }
                 }
-                switch(cmpType) {
+                switch (cmpType) {
                 case JIM_EXPROP_LT:
                     cmpRes = wideValueA < wideValueB; break;
                 case JIM_EXPROP_LTE:
@@ -9901,7 +9901,7 @@ static int Jim_WhileCoreCommand(Jim_Interp *interp, int argc,
                 }
                 if (!cmpRes) break;
                 if ((retval = Jim_EvalObj(interp, argv[2])) != JIM_OK) {
-                    switch(retval) {
+                    switch (retval) {
                     case JIM_BREAK:
                         Jim_DecrRefCount(interp, varAObjPtr);
                         if (varBObjPtr)
@@ -9941,7 +9941,7 @@ noopt:
             return retval;
         if (!boolean) break;
         if ((retval = Jim_EvalObj(interp, argv[2])) != JIM_OK) {
-            switch(retval) {
+            switch (retval) {
             case JIM_BREAK:
                 goto out;
                 break;
@@ -10078,7 +10078,7 @@ static int Jim_ForCoreCommand(Jim_Interp *interp, int argc,
             }
             /* Eval body */
             if ((retval = Jim_EvalObj(interp, argv[4])) != JIM_OK) {
-                switch(retval) {
+                switch (retval) {
                 case JIM_BREAK:
                     if (stopVarNamePtr)
                         Jim_DecrRefCount(interp, stopVarNamePtr);
@@ -10147,7 +10147,7 @@ testcond:
         if (!boolean) break;
         /* Eval body */
         if ((retval = Jim_EvalObj(interp, argv[4])) != JIM_OK) {
-            switch(retval) {
+            switch (retval) {
             case JIM_BREAK:
                 goto out;
                 break;
@@ -10161,7 +10161,7 @@ testcond:
 evalnext:
         /* Eval next */
         if ((retval = Jim_EvalObj(interp, argv[3])) != JIM_OK) {
-            switch(retval) {
+            switch (retval) {
             case JIM_BREAK:
                 goto out;
                 break;
@@ -10615,7 +10615,7 @@ static int Jim_LsortCoreCommand(Jim_Interp *interp, int argc, Jim_Obj *const arg
         if (Jim_GetEnum(interp, argv[i], options, &option, "option", JIM_ERRMSG)
                 != JIM_OK)
             return JIM_ERR;
-        switch(option) {
+        switch (option) {
         case OPT_ASCII: lsortType = JIM_LSORT_ASCII; break;
         case OPT_NOCASE: lsortType = JIM_LSORT_NOCASE; break;
         case OPT_INCREASING: decreasing = 0; break;
@@ -10623,7 +10623,7 @@ static int Jim_LsortCoreCommand(Jim_Interp *interp, int argc, Jim_Obj *const arg
         }
     }
     if (decreasing) {
-        switch(lsortType) {
+        switch (lsortType) {
         case JIM_LSORT_ASCII: lsortType = JIM_LSORT_ASCII_DECR; break;
         case JIM_LSORT_NOCASE: lsortType = JIM_LSORT_NOCASE_DECR; break;
         }
@@ -10800,7 +10800,7 @@ static int Jim_DebugCoreCommand(Jim_Interp *interp, int argc,
             const char *type;
             Jim_ExprOperator *op;
 
-            switch(expr->opcode[i]) {
+            switch (expr->opcode[i]) {
             case JIM_EXPROP_NUMBER: type = "number"; break;
             case JIM_EXPROP_COMMAND: type = "command"; break;
             case JIM_EXPROP_VARIABLE: type = "variable"; break;

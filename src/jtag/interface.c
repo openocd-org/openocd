@@ -77,7 +77,7 @@ int tap_move_ndx( tap_state_t astate )
 
 	int ndx;
 
-	switch( astate )
+	switch ( astate )
 	{
 	case TAP_RESET:		ndx = 0;			break;
 	case TAP_DRSHIFT:	ndx = 2;			break;
@@ -209,10 +209,10 @@ bool tap_is_state_stable(tap_state_t astate)
 {
 	bool is_stable;
 
-	/*	A switch() is used because it is symbol dependent
+	/*	A switch () is used because it is symbol dependent
 		(not value dependent like an array), and can also check bounds.
 	*/
-	switch( astate )
+	switch ( astate )
 	{
 	case TAP_RESET:
 	case TAP_IDLE:
@@ -331,7 +331,7 @@ const char* tap_state_name(tap_state_t state)
 {
 	const char* ret;
 
-	switch( state )
+	switch ( state )
 	{
 	case TAP_RESET:		ret = "RESET";			break;
 	case TAP_IDLE:		ret = "RUN/IDLE";		break;

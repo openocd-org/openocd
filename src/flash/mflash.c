@@ -232,7 +232,7 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 			if (wait == mg_io_wait_bsy)
 				return ERROR_OK;
 		} else {
-			switch(wait)
+			switch (wait)
 			{
 				case mg_io_wait_not_bsy:
 					return ERROR_OK;

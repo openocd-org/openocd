@@ -806,7 +806,7 @@ static int cfi_erase(struct flash_bank_s *bank, int first, int last)
 	if (cfi_info->qry[0] != 'Q')
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
-	switch(cfi_info->pri_id)
+	switch (cfi_info->pri_id)
 	{
 		case 1:
 		case 3:
@@ -958,7 +958,7 @@ static int cfi_protect(struct flash_bank_s *bank, int set, int first, int last)
 	if (cfi_info->qry[0] != 'Q')
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
-	switch(cfi_info->pri_id)
+	switch (cfi_info->pri_id)
 	{
 		case 1:
 		case 3:
@@ -1601,7 +1601,7 @@ static int cfi_intel_write_words(struct flash_bank_s *bank, uint8_t *word, uint3
 			  bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
-	switch(bank->chip_width)
+	switch (bank->chip_width)
 	{
 	case 4 : bufferwsize = buffersize / 4; break;
 	case 2 : bufferwsize = buffersize / 2; break;
@@ -1740,7 +1740,7 @@ static int cfi_spansion_write_words(struct flash_bank_s *bank, uint8_t *word, ui
 		LOG_ERROR("Write address at base 0x%" PRIx32 ", address %" PRIx32 " not aligned to 2^%d boundary", bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
-	switch(bank->chip_width)
+	switch (bank->chip_width)
 	{
 	case 4 : bufferwsize = buffersize / 4; break;
 	case 2 : bufferwsize = buffersize / 2; break;
@@ -1817,7 +1817,7 @@ static int cfi_write_word(struct flash_bank_s *bank, uint8_t *word, uint32_t add
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 
-	switch(cfi_info->pri_id)
+	switch (cfi_info->pri_id)
 	{
 		case 1:
 		case 3:
@@ -1838,7 +1838,7 @@ static int cfi_write_words(struct flash_bank_s *bank, uint8_t *word, uint32_t wo
 {
 	cfi_flash_bank_t *cfi_info = bank->driver_priv;
 
-	switch(cfi_info->pri_id)
+	switch (cfi_info->pri_id)
 	{
 		case 1:
 		case 3:
@@ -1927,7 +1927,7 @@ int cfi_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint3
 
 	/* handle blocks of bus_size aligned bytes */
 	blk_count = count & ~(bank->bus_width - 1); /* round down, leave tail bytes */
-	switch(cfi_info->pri_id)
+	switch (cfi_info->pri_id)
 	{
 		/* try block writes (fails without working area) */
 		case 1:
@@ -1958,7 +1958,7 @@ int cfi_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint3
 			uint32_t buffermask = buffersize-1;
 			uint32_t bufferwsize;
 
-			switch(bank->chip_width)
+			switch (bank->chip_width)
 			{
 			case 4 : bufferwsize = buffersize / 4; break;
 			case 2 : bufferwsize = buffersize / 2; break;
@@ -2293,7 +2293,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 		/* We need to read the primary algorithm extended query table before calculating
 		 * the sector layout to be able to apply fixups
 		 */
-		switch(cfi_info->pri_id)
+		switch (cfi_info->pri_id)
 		{
 			/* Intel command set (standard and extended) */
 			case 0x0001:
@@ -2326,7 +2326,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 	} /* end CFI case */
 
 	/* apply fixups depending on the primary command set */
-	switch(cfi_info->pri_id)
+	switch (cfi_info->pri_id)
 	{
 		/* Intel command set (standard and extended) */
 		case 0x0001:
@@ -2490,7 +2490,7 @@ static int cfi_protect_check(struct flash_bank_s *bank)
 	if (cfi_info->qry[0] != 'Q')
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
-	switch(cfi_info->pri_id)
+	switch (cfi_info->pri_id)
 	{
 		case 1:
 		case 3:
@@ -2567,7 +2567,7 @@ static int cfi_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	switch(cfi_info->pri_id)
+	switch (cfi_info->pri_id)
 	{
 		case 1:
 		case 3:

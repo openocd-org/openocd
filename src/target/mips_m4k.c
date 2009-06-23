@@ -765,7 +765,7 @@ int mips_m4k_read_memory(struct target_s *target, uint32_t address, uint32_t siz
 
 		for(i = 0; i < (count*size); i += size)
 		{
-			switch(size)
+			switch (size)
 			{
 				case 4:
 					t32 = le_to_h_u32(&buffer[i]);
@@ -810,7 +810,7 @@ int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t si
 
 		for(i = 0; i < (count*size); i += size)
 		{
-			switch(size) 
+			switch (size) 
 			{
 				case 4:
 					t32 = be_to_h_u32(&buffer[i]);

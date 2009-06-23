@@ -992,7 +992,7 @@ typedef struct jim_getopt {
  *               return e;
  *         }
  *
- *         switch( n->value ){
+ *         switch ( n->value ){
  *         case ALIVE:
  *             printf("Option ALIVE specified\n");
  *             break;
@@ -1112,7 +1112,7 @@ JIM_STATIC int JIM_API( Jim_GetOpt_Nvp)( Jim_GetOptInfo *goi, const Jim_Nvp *loo
  *          return e;
  *     }
  *
- *     switch( n->value ){
+ *     switch ( n->value ){
  *     case OPT_SEX:
  *          // handle:  --sex male|female|lots|needmore
  *          e = Jim_GetOpt_Nvp( &goi, &nvp_sex, &n );

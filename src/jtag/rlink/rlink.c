@@ -363,7 +363,7 @@ dtc_load_from_buffer(
 			exit(1);
 		}
 
-		switch(header->type) {
+		switch (header->type) {
 			case DTCLOAD_COMMENT:
 				break;
 
@@ -1243,7 +1243,7 @@ rlink_scan(
 		/* chunk_bits is a multiple of 8, so there are no rounding issues. */
 		chunk_bytes = chunk_bits / 8;
 
-		switch(type) {
+		switch (type) {
 			case SCAN_IN:
 				x = DTC_CMD_SHIFT_TDO_BYTES(chunk_bytes);
 				break;

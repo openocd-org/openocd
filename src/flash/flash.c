@@ -751,7 +751,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	if (count == 0)
 		return ERROR_OK;
 
-	switch(cmd[4])
+	switch (cmd[4])
 	{
 	case 'w':
 		wordsize=4;
@@ -767,7 +767,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	}
 
 	chunk_count = MIN(count, (1024 / wordsize));
-	switch(wordsize)
+	switch (wordsize)
 	{
 	case 4:
 		for(i = 0; i < chunk_count; i++)

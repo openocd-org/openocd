@@ -2699,7 +2699,7 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 			return retval;
 		// fall through
 	case 3:
-		switch(args[2][0])
+		switch (args[2][0])
 		{
 		case 'r':
 			type = WPT_READ;
@@ -3460,7 +3460,7 @@ static int target_configure( Jim_GetOptInfo *goi, target_t *target )
 			Jim_GetOpt_NvpUnknown( goi, nvp_config_opts, 0 );
 			return e;
 		}
-		switch( n->value ){
+		switch ( n->value ){
 		case TCFG_TYPE:
 			/* not setable */
 			if ( goi->isconfigure ){
@@ -3763,7 +3763,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	/* Assume blank result */
 	Jim_SetEmptyResult( goi.interp );
 
-	switch( n->value ){
+	switch ( n->value ){
 	case TS_CMD_CONFIGURE:
 		if ( goi.argc < 2 ){
 			Jim_WrongNumArgs( goi.interp, goi.argc, goi.argv, "missing: -option VALUE ...");
@@ -3815,7 +3815,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			c = 1;
 		}
 
-		switch( n->value ){
+		switch ( n->value ){
 		case TS_CMD_MWW:
 			target_buffer_set_u32( target, target_buf, b );
 			b = 4;
@@ -3866,7 +3866,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			c = 1;
 		}
 		b = 1; /* shut up gcc */
-		switch( n->value ){
+		switch ( n->value ){
 		case TS_CMD_MDW:
 			b =  4;
 			break;
@@ -3893,7 +3893,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			}
 
 			Jim_fprintf( interp, interp->cookie_stdout, "0x%08x ", (int)(a) );
-			switch( b ){
+			switch ( b ){
 			case 4:
 				for( x = 0 ; (x < 16) && (x < y) ; x += 4 ){
 					z = target_buffer_get_u32( target, &(target_buf[ x * 4 ]) );
@@ -4296,7 +4296,7 @@ static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		return r;
 	}
 
-	switch(x){
+	switch (x){
 	default:
 		Jim_Panic(goi.interp,"Why am I here?");
 		return JIM_ERR;

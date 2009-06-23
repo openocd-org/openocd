@@ -362,7 +362,7 @@ static int vsllink_execute_queue(void)
 
 			case JTAG_STABLECLOCKS:
 				DEBUG_JTAG_IO("add %d clocks", cmd->cmd.stableclocks->num_cycles);
-				switch(tap_get_state())
+				switch (tap_get_state())
 				{
 				case TAP_RESET:
 					// tms should be '1' to stay in TAP_RESET mode

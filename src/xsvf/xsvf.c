@@ -133,7 +133,7 @@ static tap_state_t xsvf_to_tap( int xsvf_state )
 {
 	tap_state_t	ret;
 
-	switch( xsvf_state )
+	switch ( xsvf_state )
 	{
 	case XSV_RESET:			ret = TAP_RESET;			break;
 	case XSV_IDLE:			ret = TAP_IDLE;			break;
@@ -890,7 +890,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					break;
 				}
 
-				switch( trst_mode )
+				switch ( trst_mode )
 				{
 				case XTRST_ON:
 					jtag_add_reset(1, 0);

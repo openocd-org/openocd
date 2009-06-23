@@ -1332,7 +1332,7 @@ int evaluate_b_bl_blx_thumb(uint16_t opcode, uint32_t address, arm_instruction_t
 	
 	target_address = address + 4 + (offset<<1);
 
-	switch(opc)
+	switch (opc)
 	{
 		/* unconditional branch */
 		case 0:
@@ -1416,7 +1416,7 @@ int evaluate_shift_imm_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 	uint8_t opc = (opcode >> 11) & 0x3;
 	char *mnemonic = NULL;
 	
-	switch(opc)
+	switch (opc)
 	{
 		case 0:
 			instruction->type = ARM_MOV;
@@ -1465,7 +1465,7 @@ int evaluate_data_proc_imm_thumb(uint16_t opcode, uint32_t address, arm_instruct
 	instruction->info.data_proc.variant = 0; /*immediate*/
 	instruction->info.data_proc.shifter_operand.immediate.immediate = imm;
 	
-	switch(opc)
+	switch (opc)
 	{
 		case 0:
 			instruction->type = ARM_MOV;
@@ -1679,7 +1679,7 @@ int evaluate_load_store_reg_thumb(uint16_t opcode, uint32_t address, arm_instruc
 	uint8_t opc = (opcode >> 9) & 0x7; 
 	char *mnemonic = NULL;
 
-	switch(opc)
+	switch (opc)
 	{
 		case 0:
 			instruction->type = ARM_STR;

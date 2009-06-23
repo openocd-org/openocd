@@ -848,7 +848,7 @@ static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		buf += printed;
 		buf_size -= printed;
 
-		switch(device_id >> 16)
+		switch (device_id >> 16)
 		{
 			case 0x0000:
 				snprintf(buf, buf_size, "A");
@@ -877,7 +877,7 @@ static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		buf += printed;
 		buf_size -= printed;
 
-		switch(device_id >> 16)
+		switch (device_id >> 16)
 		{
 			case 0x1000:
 				snprintf(buf, buf_size, "A");
@@ -894,7 +894,7 @@ static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		buf += printed;
 		buf_size -= printed;
 
-		switch(device_id >> 16)
+		switch (device_id >> 16)
 		{
 			case 0x1000:
 				snprintf(buf, buf_size, "A");
@@ -915,7 +915,7 @@ static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		buf += printed;
 		buf_size -= printed;
 
-		switch(device_id >> 16)
+		switch (device_id >> 16)
 		{
 			case 0x1000:
 				snprintf(buf, buf_size, "A");
