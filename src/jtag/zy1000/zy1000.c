@@ -455,7 +455,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 			value=0;
 			if (fields[i].out_value != NULL)
 			{
-				for (l=0; l<k; l+=8)
+				for (l=0; l<k; l += 8)
 				{
 					value|=fields[i].out_value[(j+l)/8]<<l;
 				}
@@ -472,12 +472,12 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 				// we're shifting in data to MSB, shift data to be aligned for returning the value
 				value >>= 32-k;
 
-				for (l=0; l<k; l+=8)
+				for (l=0; l<k; l += 8)
 				{
 					inBuffer[(j+l)/8]=(value>>l)&0xff;
 				}
 			}
-			j+=k;
+			j += k;
 		}
 	}
 }
@@ -634,7 +634,7 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 
 	/* execute num_cycles, 32 at the time. */
 	int i;
-	for (i=0; i<num_cycles; i+=32)
+	for (i=0; i<num_cycles; i += 32)
 	{
 		int num;
 		num=32;
@@ -742,7 +742,7 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int l
 			{
 				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, 1));
 				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr|(1<<5));
-				buffer+=4;
+				buffer += 4;
 			}
 		} else
 		{
@@ -751,7 +751,7 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int l
 			{
 				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, 0));
 				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr|(1<<5));
-				buffer+=4;
+				buffer += 4;
 			}
 		}
 	}

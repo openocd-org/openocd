@@ -64,7 +64,7 @@ void cmd_flash(uint32 cmd)
 
 	result=0;
 	pagenum=adr/flash_page_size;
-	for (bi=0; bi<bi_end; bi+=flash_page_size/4) {
+	for (bi=0; bi<bi_end; bi += flash_page_size/4) {
 		result=flash_page_program(buffer+bi, pagenum++);
 		if (result) break;
 	}

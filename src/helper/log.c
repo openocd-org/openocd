@@ -429,7 +429,7 @@ void alive_sleep(int ms)
 {
 	int i;
 	int napTime=10;
-	for (i=0; i<ms; i+=napTime)
+	for (i=0; i<ms; i += napTime)
 	{
 		int sleep_a_bit=ms-i;
 		if (sleep_a_bit>napTime)

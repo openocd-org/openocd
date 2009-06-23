@@ -2285,7 +2285,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 			if (image.sections[i].base_address<min_address)
 			{
 				/* clip addresses below */
-				offset+=min_address-image.sections[i].base_address;
+				offset += min_address-image.sections[i].base_address;
 				length -= offset;
 			}
 
@@ -4466,7 +4466,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 			if (image.sections[i].base_address<min_address)
 			{
 				/* clip addresses below */
-				offset+=min_address-image.sections[i].base_address;
+				offset += min_address-image.sections[i].base_address;
 				length -= offset;
 			}
 
@@ -4535,7 +4535,7 @@ static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd
 		{
 			retval = target_write_buffer(target, fastload[i].address, fastload[i].length, fastload[i].data);
 		}
-		size+=fastload[i].length;
+		size += fastload[i].length;
 	}
 	int after=timeval_ms();
 	command_print(cmd_ctx, "Loaded image %f kBytes/s", (float)(size/1024.0)/((float)(after-ms)/1000.0));

@@ -2587,7 +2587,7 @@ static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, i
 		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
 		 * core function repeated. */
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], fast_target_buffer_get_u32(buffer, little));
-		buffer+=4;
+		buffer += 4;
 
 		embeddedice_reg_t *ice_reg = arm7_9->eice_cache->reg_list[EICE_COMMS_DATA].arch_info;
 		uint8_t reg_addr = ice_reg->addr & 0x1f;

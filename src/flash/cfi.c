@@ -1014,7 +1014,7 @@ static void cfi_fix_code_endian(target_t *target, uint8_t *dest, const uint32_t 
 	for (i=0; i< count; i++)
 	{
 		target_buffer_set_u32(target, dest, *src);
-		dest+=4;
+		dest += 4;
 		src++;
 	}
 }

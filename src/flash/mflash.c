@@ -278,7 +278,7 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 		duration_stop_measure(&duration, NULL);
 
 		t=duration.duration.tv_usec/1000;
-		t+=duration.duration.tv_sec*1000;
+		t += duration.duration.tv_sec*1000;
 
 		if (t > time)
 			break;

@@ -314,8 +314,8 @@ int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 		MIPS32_SW(8,0,11), 									/* sw $8,0($11) */
 		
 		MIPS32_ADDI(10,10,NEG16(1)), 						/* $10-- */
-		MIPS32_ADDI(9,9,4), 								/* $1+=4 */
-		MIPS32_ADDI(11,11,4), 								/* $11+=4 */
+		MIPS32_ADDI(9,9,4), 								/* $1 += 4 */
+		MIPS32_ADDI(11,11,4), 								/* $11 += 4 */
 		
 		MIPS32_NOP,
 		MIPS32_B(NEG16(9)),									/* b loop */
@@ -422,8 +422,8 @@ int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 		MIPS32_SW(8,0,11), 									/* sw $8,0($11) */
 		
 		MIPS32_ADDI(10,10,NEG16(1)), 						/* $10-- */
-		MIPS32_ADDI(9,9,2), 								/* $9+=2 */
-		MIPS32_ADDI(11,11,4), 								/* $11+=4 */
+		MIPS32_ADDI(9,9,2), 								/* $9 += 2 */
+		MIPS32_ADDI(11,11,4), 								/* $11 += 4 */
 		MIPS32_NOP,
 		MIPS32_B(NEG16(9)),									/* b loop */
 		MIPS32_NOP,
@@ -501,8 +501,8 @@ int mips32_pracc_read_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, u
 		MIPS32_SW(8,0,11), 									/* sw $8,0($11) */
 		
 		MIPS32_ADDI(10,10,NEG16(1)), 						/* $10-- */
-		MIPS32_ADDI(9,9,1), 								/* $9+=1 */
-		MIPS32_ADDI(11,11,4), 								/* $11+=4 */
+		MIPS32_ADDI(9,9,1), 								/* $9 += 1 */
+		MIPS32_ADDI(11,11,4), 								/* $11 += 4 */
 		MIPS32_NOP,
 		MIPS32_B(NEG16(9)),									/* b loop */
 		MIPS32_NOP,
@@ -588,15 +588,15 @@ int mips32_pracc_write_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 		MIPS32_ADDI(8,15,NEG16(MIPS32_PRACC_STACK-MIPS32_PRACC_PARAM_IN)),  //$8= MIPS32_PRACC_PARAM_IN
 		MIPS32_LW(9,0,8), 									/* Load write addr to $9 */
 		MIPS32_LW(10,4,8),	//last address 									/* Load write count to $10 */
-		MIPS32_ADDI(8,8,8), 	// $8+=8 beginning of data
+		MIPS32_ADDI(8,8,8), 	// $8 += 8 beginning of data
 
 //loop:
 		MIPS32_LW(11,0,8), 									/* lw $11,0($8), Load $11 with the word @mem[$8] */
 		MIPS32_SW(11,0,9), 									/* sw $11,0($9) */
 		
-		MIPS32_ADDI(9,9,4), 								/* $9+=4 */
+		MIPS32_ADDI(9,9,4), 								/* $9 += 4 */
 		MIPS32_BNE(10,9,NEG16(4)),  //was 9 BNE $10, 9, loop									/* b loop */
-		MIPS32_ADDI(8,8,4),  //this instruction is part of the loop (one delay slot)!	/* $8+=4 */
+		MIPS32_ADDI(8,8,4),  //this instruction is part of the loop (one delay slot)!	/* $8 += 4 */
 															/* end: */
 		MIPS32_LW(11,0,15), 								/* lw $11,($15) */
 		MIPS32_LW(10,0,15), 								/* lw $10,($15) */
@@ -669,7 +669,7 @@ int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
 		MIPS32_LW(9,0,8), 									/* Load write addr to $9 */
 		MIPS32_LW(10,4,8), 									/* Load write count to $10 */
-		MIPS32_ADDI(8,8,8), 								/* $8+=8 */
+		MIPS32_ADDI(8,8,8), 								/* $8 += 8 */
 		MIPS32_NOP,
 															/* loop: */
 		MIPS32_BEQ(0,10,9),									/* beq $0, $10, end */
@@ -679,8 +679,8 @@ int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 		MIPS32_SH(11,0,9), 									/* sh $11,0($9) */
 		
 		MIPS32_ADDI(10,10,NEG16(1)), 						/* $10-- */
-		MIPS32_ADDI(9,9,2), 								/* $9+=2 */
-		MIPS32_ADDI(8,8,4), 								/* $8+=4 */
+		MIPS32_ADDI(9,9,2), 								/* $9 += 2 */
+		MIPS32_ADDI(8,8,4), 								/* $8 += 4 */
 		
 		MIPS32_NOP,
 		MIPS32_B(NEG16(9)),									/* b loop */
@@ -729,7 +729,7 @@ int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
 		MIPS32_LW(9,0,8), 									/* Load write addr to $9 */
 		MIPS32_LW(10,4,8), 									/* Load write count to $10 */
-		MIPS32_ADDI(8,8,8), 								/* $8+=8 */
+		MIPS32_ADDI(8,8,8), 								/* $8 += 8 */
 		MIPS32_NOP,
 															/* loop: */
 		MIPS32_BEQ(0,10,9),									/* beq $0, $10, end */
@@ -739,8 +739,8 @@ int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 		MIPS32_SB(11,0,9), 									/* sb $11,0($9) */
 		
 		MIPS32_ADDI(10,10,NEG16(1)), 						/* $10-- */
-		MIPS32_ADDI(9,9,1), 								/* $9+=1 */
-		MIPS32_ADDI(8,8,4), 								/* $8+=4 */
+		MIPS32_ADDI(9,9,1), 								/* $9 += 1 */
+		MIPS32_ADDI(8,8,4), 								/* $8 += 4 */
 		
 		MIPS32_NOP,
 		MIPS32_B(NEG16(9)),									/* b loop */

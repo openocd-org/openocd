@@ -1274,7 +1274,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 	/* validate arguments as numbers */
 	e = JIM_OK;
-	for (i = 2; i < argc; i+=2)
+	for (i = 2; i < argc; i += 2)
 	{
 		long bits;
 		const char *cp;
@@ -1333,7 +1333,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 	num_fields=(argc-2)/2;
 	fields = malloc(sizeof(scan_field_t) * num_fields);
-	for (i = 2; i < argc; i+=2)
+	for (i = 2; i < argc; i += 2)
 	{
 		long bits;
 		int len;
@@ -1361,7 +1361,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 	field_count=0;
 	Jim_Obj *list = Jim_NewListObj(interp, NULL, 0);
-	for (i = 2; i < argc; i+=2)
+	for (i = 2; i < argc; i += 2)
 	{
 		long bits;
 		char *str;

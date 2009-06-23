@@ -146,7 +146,7 @@ int flash_erase_plane(int efc_ofs)
 			if ((inr(MC_FSR+efc_ofs)&MC_LOCKE)) return FLASH_STAT_LOCKE;
 
 		}
-		if ((page_num+=flash_lock_pages)>flash_page_count) break;
+		if ((page_num += flash_lock_pages)>flash_page_count) break;
 		lockbits>>=1;
 	}
 

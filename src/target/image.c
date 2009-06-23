@@ -764,7 +764,7 @@ int image_open(image_t *image, char *url, char *type_string)
 		int section;
 		for (section=0; section < image->num_sections; section++)
 		{
-			image->sections[section].base_address+=image->base_address;
+			image->sections[section].base_address += image->base_address;
 		}
 		/* we're done relocating. The two statements below are mainly
 		 * for documenation purposes: stop anyone from empirically

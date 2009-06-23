@@ -319,7 +319,7 @@ static int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, uint32_t ad
 
 
 	uint32_t i;
-	for (i=0; i<len; i+=chunk)
+	for (i=0; i<len; i += chunk)
 	{
 		int t=len-i;
 		if (t>chunk)
