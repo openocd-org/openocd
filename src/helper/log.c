@@ -89,7 +89,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 	if (f != NULL)
 		file = f + 1;
 
-	if (strchr(string, '\n')!=NULL)
+	if (strchr(string, '\n') != NULL)
 	{
 		if (debug_level >= LOG_LVL_DEBUG)
 		{

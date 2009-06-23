@@ -79,7 +79,7 @@ static void setCurrentState(enum tap_state state)
 }
 
 /*
- * Enter state and cause repeat transitions *out* of that state. So if the endState!=state, then
+ * Enter state and cause repeat transitions *out* of that state. So if the endState != state, then
  * the transition from state to endState counts as a transition out of state.
  */
 static __inline__ void shiftValueInner(const enum tap_state state, const enum tap_state endState, int repeat, cyg_uint32 value)
@@ -92,7 +92,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 	ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value);
 #if 1
 #if TEST_MANUAL()
-	if ((state==TAP_DRSHIFT)&&(endState!=TAP_DRSHIFT))
+	if ((state==TAP_DRSHIFT)&&(endState != TAP_DRSHIFT))
 	{
 		int i;
 		setCurrentState(state);
@@ -100,7 +100,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 		{
 			int tms;
 			tms=0;
-			if ((i==repeat-1)&&(state!=endState))
+			if ((i==repeat-1)&&(state != endState))
 			{
 				tms=1;
 			}

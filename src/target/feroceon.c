@@ -688,7 +688,7 @@ int feroceon_examine(struct target_s *target)
 	int retval;
 
 	retval = arm9tdmi_examine(target);
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 		return retval;
 
 	armv4_5 = target->arch_info;

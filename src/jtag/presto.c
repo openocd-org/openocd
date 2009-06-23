@@ -279,7 +279,7 @@ static int presto_open_ftd2xx(char *req_serial)
 	if ((presto->status = FT_Read(presto->handle, &presto_data, 1, &ftbytes)) != FT_OK)
 		return ERROR_JTAG_DEVICE_ERROR;
 
-	if (ftbytes!=1)
+	if (ftbytes != 1)
 	{
 		LOG_DEBUG("PRESTO reset");
 
@@ -313,7 +313,7 @@ static int presto_open_ftd2xx(char *req_serial)
 		if ((presto->status = FT_Read(presto->handle, &presto_data, 1, &ftbytes)) != FT_OK)
 			return ERROR_JTAG_DEVICE_ERROR;
 
-		if (ftbytes!=1)
+		if (ftbytes != 1)
 		{
 			LOG_DEBUG("PRESTO not responding");
 			return ERROR_JTAG_DEVICE_ERROR;

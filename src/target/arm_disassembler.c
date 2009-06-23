@@ -1435,7 +1435,7 @@ int evaluate_shift_imm_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 			break;
 	}
 
-	if ((imm==0) && (opc!=0))
+	if ((imm==0) && (opc != 0))
 		imm = 32;
 
 	instruction->info.data_proc.Rd = Rd;

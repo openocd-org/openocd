@@ -739,13 +739,13 @@ int arm7tdmi_examine(struct target_s *target)
 		}
 		target_set_examined(target);
 	}
-	if ((retval=embeddedice_setup(target))!=ERROR_OK)
+	if ((retval=embeddedice_setup(target)) != ERROR_OK)
 		return retval;
-	if ((retval=arm7_9_setup(target))!=ERROR_OK)
+	if ((retval=arm7_9_setup(target)) != ERROR_OK)
 		return retval;
 	if (arm7_9->etm_ctx)
 	{
-		if ((retval=etm_setup(target))!=ERROR_OK)
+		if ((retval=etm_setup(target)) != ERROR_OK)
 			return retval;
 	}
 	return ERROR_OK;

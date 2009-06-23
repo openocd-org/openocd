@@ -269,7 +269,7 @@ static int eCosBoard_erase(ecosflash_flash_bank_t *info, uint32_t address, uint3
 	int timeout = (len / 20480 + 1) * 1000; /*asume 20 KB/s*/
 
 	retval=loadDriver(info);
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 		return retval;
 
 	uint32_t flashErr;
@@ -282,7 +282,7 @@ static int eCosBoard_erase(ecosflash_flash_bank_t *info, uint32_t address, uint3
 			&flashErr,
 			timeout
 			);
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 		return retval;
 
 	if (flashErr != 0x0)
@@ -302,7 +302,7 @@ static int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, uint32_t ad
 	int timeout = (chunk / 20480 + 1) * 1000; /*asume 20 KB/s + 1 second*/
 
 	retval=loadDriver(info);
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 		return retval;
 
 	uint32_t buffer;
@@ -314,7 +314,7 @@ static int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, uint32_t ad
 			0,
 			&buffer,
 			1000);
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 		return retval;
 
 

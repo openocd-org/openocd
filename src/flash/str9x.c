@@ -198,11 +198,11 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 		if (str9x_info->bank1)
 		{
 			adr = bank1start + 0x18;
-			if ((retval=target_write_u16(target, adr, 0x90))!=ERROR_OK)
+			if ((retval=target_write_u16(target, adr, 0x90)) != ERROR_OK)
 			{
 				return retval;
 			}
-			if ((retval=target_read_u16(target, adr, &hstatus))!=ERROR_OK)
+			if ((retval=target_read_u16(target, adr, &hstatus)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -211,11 +211,11 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 		else
 		{
 			adr = bank1start + 0x14;
-			if ((retval=target_write_u16(target, adr, 0x90))!=ERROR_OK)
+			if ((retval=target_write_u16(target, adr, 0x90)) != ERROR_OK)
 			{
 				return retval;
 			}
-			if ((retval=target_read_u32(target, adr, &status))!=ERROR_OK)
+			if ((retval=target_read_u32(target, adr, &status)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -224,11 +224,11 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 	else
 	{
 		adr = bank1start + 0x10;
-		if ((retval=target_write_u16(target, adr, 0x90))!=ERROR_OK)
+		if ((retval=target_write_u16(target, adr, 0x90)) != ERROR_OK)
 		{
 			return retval;
 		}
-		if ((retval=target_read_u16(target, adr, &hstatus))!=ERROR_OK)
+		if ((retval=target_read_u16(target, adr, &hstatus)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -236,7 +236,7 @@ static int str9x_protect_check(struct flash_bank_s *bank)
 	}
 
 	/* read array command */
-	if ((retval=target_write_u16(target, adr, 0xFF))!=ERROR_OK)
+	if ((retval=target_write_u16(target, adr, 0xFF)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -284,24 +284,24 @@ static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 		adr = bank->base + bank->sectors[i].offset;
 
 		/* erase sectors */
-		if ((retval=target_write_u16(target, adr, erase_cmd))!=ERROR_OK)
+		if ((retval=target_write_u16(target, adr, erase_cmd)) != ERROR_OK)
 		{
 			return retval;
 		}
-		if ((retval=target_write_u16(target, adr, 0xD0))!=ERROR_OK)
+		if ((retval=target_write_u16(target, adr, 0xD0)) != ERROR_OK)
 		{
 			return retval;
 		}
 
 		/* get status */
-		if ((retval=target_write_u16(target, adr, 0x70))!=ERROR_OK)
+		if ((retval=target_write_u16(target, adr, 0x70)) != ERROR_OK)
 		{
 			return retval;
 		}
 
 		int timeout;
 		for (timeout=0; timeout<1000; timeout++) {
-			if ((retval=target_read_u8(target, adr, &status))!=ERROR_OK)
+			if ((retval=target_read_u8(target, adr, &status)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -316,13 +316,13 @@ static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 		}
 
 		/* clear status, also clear read array */
-		if ((retval=target_write_u16(target, adr, 0x50))!=ERROR_OK)
+		if ((retval=target_write_u16(target, adr, 0x50)) != ERROR_OK)
 		{
 			return retval;
 		}
 
 		/* read array command */
-		if ((retval=target_write_u16(target, adr, 0xFF))!=ERROR_OK)
+		if ((retval=target_write_u16(target, adr, 0xFF)) != ERROR_OK)
 		{
 			return retval;
 		}

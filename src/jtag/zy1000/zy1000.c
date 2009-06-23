@@ -133,7 +133,7 @@ void zy1000_reset(int trst, int srst)
 	}
 	else
 	{
-		/* Danger!!! if clk!=0 when in
+		/* Danger!!! if clk != 0 when in
 		 * idle in TAP_IDLE, reset halt on str912 will fail.
 		 */
 		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x00000001);
@@ -309,7 +309,7 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 	cyg_uint32 status;
 	ZY1000_PEEK(ZY1000_JTAG_BASE+0x10, status);
 
-	Jim_SetResult(interp, Jim_NewIntObj(interp, (status&0x80)!=0));
+	Jim_SetResult(interp, Jim_NewIntObj(interp, (status&0x80) != 0));
 
 	return JIM_OK;
 }
@@ -363,7 +363,7 @@ int interface_jtag_execute_queue(void)
 	/* clear JTAG error register */
 	ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x400);
 
-	if ((empty&0x400)!=0)
+	if ((empty&0x400) != 0)
 	{
 		LOG_WARNING("RCLK timeout");
 		/* the error is informative only as we don't want to break the firmware if there
@@ -427,7 +427,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 
 		// figure out where to store the input data
 		int num_bits=fields[i].num_bits;
-		if (fields[i].in_value!=NULL)
+		if (fields[i].in_value != NULL)
 		{
 			inBuffer=fields[i].in_value;
 		}
@@ -453,7 +453,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 			// we have (num_bits+7)/8 bytes of bits to toggle out.
 			// bits are pushed out LSB to MSB
 			value=0;
-			if (fields[i].out_value!=NULL)
+			if (fields[i].out_value != NULL)
 			{
 				for (l=0; l<k; l+=8)
 				{
@@ -465,7 +465,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 
 			shiftValueInner(shiftState, pause_state, k, value);
 
-			if (inBuffer!=NULL)
+			if (inBuffer != NULL)
 			{
 				// data in, LSB to MSB
 				value=getShiftValue();

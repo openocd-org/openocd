@@ -69,7 +69,7 @@ static void print_version(void)
 /* Give TELNET a way to find out what version this is */
 static int handle_version_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc!=0)
+	if (argc != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(cmd_ctx, OPENOCD_VERSION);
@@ -112,7 +112,7 @@ int ioutil_init(struct command_context_s *cmd_ctx);
 static int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 
-	if (argc!=0)
+	if (argc != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int retval;
@@ -268,14 +268,14 @@ int openocd_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 #if BUILD_HTTPD
-	if (httpd_start()!=ERROR_OK)
+	if (httpd_start() != ERROR_OK)
 		return EXIT_FAILURE;
 #endif
 
 	if (ret != ERROR_COMMAND_CLOSE_CONNECTION)
 	{
 		command_context_mode(cmd_ctx, COMMAND_EXEC);
-		if (command_run_line(cmd_ctx, "init")!=ERROR_OK)
+		if (command_run_line(cmd_ctx, "init") != ERROR_OK)
 			return EXIT_FAILURE;
 
 		/* handle network connections */

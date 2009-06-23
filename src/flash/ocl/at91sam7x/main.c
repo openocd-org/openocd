@@ -53,7 +53,7 @@ void cmd_flash(uint32 cmd)
 	chksum=OCL_CHKS_INIT;
 	for (bi=0; bi<bi_end; bi++) chksum^=buffer[bi]=dcc_rd();
 
-	if (dcc_rd()!=chksum) {
+	if (dcc_rd() != chksum) {
 		dcc_wr(OCL_CHKS_FAIL);
 		return;
 	}

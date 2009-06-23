@@ -493,10 +493,10 @@ int interface_jtag_execute_queue(void)
 	if (retval == ERROR_OK)
 	{
 		struct jtag_callback_entry *entry;
-		for (entry=jtag_callback_queue_head; entry!=NULL; entry=entry->next)
+		for (entry=jtag_callback_queue_head; entry != NULL; entry=entry->next)
 		{
 			retval=entry->callback(entry->data0, entry->data1, entry->data2, entry->data3);
-			if (retval!=ERROR_OK)
+			if (retval != ERROR_OK)
 				break;
 		}
 	}

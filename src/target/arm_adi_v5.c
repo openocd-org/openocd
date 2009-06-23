@@ -195,7 +195,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 
 	https://lists.berlios.de/pipermail/openocd-development/2008-September/003107.html
 	*/
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
+	if ((retval=jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: Why does this fail the first time????");
 	}
@@ -203,7 +203,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 #endif
 
 	scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
+	if ((retval=jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	swjdp->ack = swjdp->ack & 0x7;
@@ -228,7 +228,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			}
 
 			scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-			if ((retval=jtag_execute_queue())!=ERROR_OK)
+			if ((retval=jtag_execute_queue()) != ERROR_OK)
 				return retval;
 			swjdp->ack = swjdp->ack & 0x7;
 		}
@@ -261,19 +261,19 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			/* Clear Sticky Error Bits */
 			scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_WRITE, swjdp->dp_ctrl_stat | SSTICKYORUN | SSTICKYERR, NULL);
 			scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-			if ((retval=jtag_execute_queue())!=ERROR_OK)
+			if ((retval=jtag_execute_queue()) != ERROR_OK)
 				return retval;
 
 			LOG_DEBUG("swjdp: status 0x%" PRIx32 "", ctrlstat);
 
 			dap_ap_read_reg_u32(swjdp, AP_REG_CSW, &mem_ap_csw);
 			dap_ap_read_reg_u32(swjdp, AP_REG_TAR, &mem_ap_tar);
-			if ((retval=jtag_execute_queue())!=ERROR_OK)
+			if ((retval=jtag_execute_queue()) != ERROR_OK)
 				return retval;
 			LOG_ERROR("Read MEM_AP_CSW 0x%" PRIx32 ", MEM_AP_TAR 0x%" PRIx32 "", mem_ap_csw, mem_ap_tar);
 
 		}
-		if ((retval=jtag_execute_queue())!=ERROR_OK)
+		if ((retval=jtag_execute_queue()) != ERROR_OK)
 			return retval;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
@@ -971,7 +971,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 
 	dap_dp_write_reg(swjdp, swjdp->dp_ctrl_stat, DP_CTRL_STAT);
 	dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
+	if ((retval=jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	/* Check that we have debug power domains activated */
@@ -979,7 +979,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	{
 		LOG_DEBUG("swjdp: wait CDBGPWRUPACK");
 		dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
-		if ((retval=jtag_execute_queue())!=ERROR_OK)
+		if ((retval=jtag_execute_queue()) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
 	}
@@ -988,7 +988,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	{
 		LOG_DEBUG("swjdp: wait CSYSPWRUPACK");
 		dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
-		if ((retval=jtag_execute_queue())!=ERROR_OK)
+		if ((retval=jtag_execute_queue()) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
 	}
@@ -1027,7 +1027,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
 	swjdp_transaction_endcheck(swjdp);
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
-	mem_ap = ((apid&0x10000)&&((apid&0x0F)!=0));
+	mem_ap = ((apid&0x10000)&&((apid&0x0F) != 0));
 	command_print(cmd_ctx, "ap identification register 0x%8.8" PRIx32 "", apid);
 	if (apid)
 	{

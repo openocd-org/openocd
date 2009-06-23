@@ -282,7 +282,7 @@ int etm_setup(target_t *target)
 	buf_set_u32(etm_ctrl_reg->value, 0, etm_ctrl_reg->size, etm_ctrl_value);
 	etm_store_reg(etm_ctrl_reg);
 
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
+	if ((retval=jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	if ((retval=etm_ctx->capture_driver->init(etm_ctx)) != ERROR_OK)

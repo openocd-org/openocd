@@ -852,7 +852,7 @@ int cortex_m3_assert_reset(target_t *target)
 	if (target->reset_halt)
 	{
 		int retval;
-		if ((retval = target_halt(target))!=ERROR_OK)
+		if ((retval = target_halt(target)) != ERROR_OK)
 			return retval;
 	}
 

@@ -304,9 +304,9 @@ static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, in
 	/* If the target fails to halt due to the breakpoint, force a halt */
 	if (retval != ERROR_OK || target->state != TARGET_HALTED)
 	{
-		if ((retval=target_halt(target))!=ERROR_OK)
+		if ((retval=target_halt(target)) != ERROR_OK)
 			return retval;
-		if ((retval=target_wait_state(target, TARGET_HALTED, 500))!=ERROR_OK)
+		if ((retval=target_wait_state(target, TARGET_HALTED, 500)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -356,7 +356,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 
 	for (i = 0; i < num_mem_params; i++)
 	{
-		if ((retval=target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value))!=ERROR_OK)
+		if ((retval=target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
 			return retval;
 	}
 

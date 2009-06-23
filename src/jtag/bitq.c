@@ -72,7 +72,7 @@ void bitq_in_proc(void)
 							if (field->num_bits>bitq_in_bufsize * 8)
 							{
 								/* buffer previously allocated? */
-								if (bitq_in_buffer!=NULL)
+								if (bitq_in_buffer != NULL)
 								{
 									/* free it */
 									free(bitq_in_buffer);
@@ -241,7 +241,7 @@ void bitq_scan_field(scan_field_t* field, int pause)
 		out_ptr  = field->out_value;
 		for (bit_cnt = field->num_bits; bit_cnt>1; bit_cnt--)
 		{
-			bitq_io(0, ( (*out_ptr) & out_mask )!=0, tdo_req);
+			bitq_io(0, ( (*out_ptr) & out_mask ) != 0, tdo_req);
 			if (out_mask==0x80)
 			{
 				out_mask = 0x01;
@@ -251,7 +251,7 @@ void bitq_scan_field(scan_field_t* field, int pause)
 				out_mask <<= 1;
 		}
 
-		bitq_io(pause, ( (*out_ptr) & out_mask )!=0, tdo_req);
+		bitq_io(pause, ( (*out_ptr) & out_mask ) != 0, tdo_req);
 	}
 
 	if (pause)
@@ -382,7 +382,7 @@ int bitq_execute_queue(void)
 
 void bitq_cleanup(void)
 {
-	if (bitq_in_buffer!=NULL)
+	if (bitq_in_buffer != NULL)
 	{
 		free(bitq_in_buffer);
 		bitq_in_buffer = NULL;

@@ -302,7 +302,7 @@ static void jtag_prelude(tap_state_t state)
 {
 	jtag_checks();
 
-	assert(state!=TAP_INVALID);
+	assert(state != TAP_INVALID);
 
 	cmd_queue_cur_state = state;
 }
@@ -676,7 +676,7 @@ tap_state_t jtag_set_end_state(tap_state_t state)
 		LOG_ERROR("BUG: TAP_DRSHIFT/IRSHIFT can't be end state. Calling code should use a larger scan field");
 	}
 
-	if (state!=TAP_INVALID)
+	if (state != TAP_INVALID)
 		cmd_queue_end_state = state;
 	return cmd_queue_end_state;
 }
@@ -1157,7 +1157,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	}
 
 	jtag_add_tlr();
-	if ((retval=jtag_execute_queue())!=ERROR_OK)
+	if ((retval=jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	/* examine chain first, as this could discover the real chain layout */

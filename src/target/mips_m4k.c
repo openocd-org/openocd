@@ -314,7 +314,7 @@ int mips_m4k_assert_reset(target_t *target)
 	if (target->reset_halt)
 	{
 		int retval;
-		if ((retval = target_halt(target))!=ERROR_OK)
+		if ((retval = target_halt(target)) != ERROR_OK)
 			return retval;
 	}
 

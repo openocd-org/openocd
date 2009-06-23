@@ -1088,7 +1088,7 @@ int target_arch_state(struct target_s *target)
 	LOG_USER("target state: %s",
 		 Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name);
 
-	if (target->state!=TARGET_HALTED)
+	if (target->state != TARGET_HALTED)
 		return ERROR_OK;
 
 	retval=target->type->arch_state(target);
@@ -1584,7 +1584,7 @@ static int sense_handler(void)
 	static int prevPowerdropout = 0;
 
 	int retval;
-	if ((retval=jtag_power_dropout(&powerDropout))!=ERROR_OK)
+	if ((retval=jtag_power_dropout(&powerDropout)) != ERROR_OK)
 		return retval;
 
 	int powerRestored;
@@ -1603,7 +1603,7 @@ static int sense_handler(void)
 		lastPower = current;
 	}
 
-	if ((retval=jtag_srst_asserted(&srstAsserted))!=ERROR_OK)
+	if ((retval=jtag_srst_asserted(&srstAsserted)) != ERROR_OK)
 		return retval;
 
 	int srstDeasserted;
@@ -1909,7 +1909,7 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 
 	for (;;)
 	{
-		if ((retval=target_poll(target))!=ERROR_OK)
+		if ((retval=target_poll(target)) != ERROR_OK)
 			return retval;
 		if (target->state == state)
 		{
@@ -2872,7 +2872,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 	/*append binary memory gmon.out profile_hist_data (profile_hist_data + profile_hist_hdr.hist_size) */
 
 	char *data=malloc(2*length);
-	if (data!=NULL)
+	if (data != NULL)
 	{
 		for (i=0; i<length;i++)
 		{
@@ -2903,7 +2903,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 	struct timeval timeout, now;
 
 	gettimeofday(&timeout, NULL);
-	if (argc!=2)
+	if (argc != 2)
 	{
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
@@ -2949,7 +2949,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 			retval=ERROR_OK;
 			break;
 		}
-		if (retval!=ERROR_OK)
+		if (retval != ERROR_OK)
 		{
 			break;
 		}
@@ -3388,7 +3388,7 @@ void target_handle_event( target_t *target, enum target_event e )
 					   e,
 					   Jim_Nvp_value2name_simple( nvp_target_event, e )->name,
 					   Jim_GetString( teap->body, NULL ) );
-			if (Jim_EvalObj( interp, teap->body )!=JIM_OK)
+			if (Jim_EvalObj( interp, teap->body ) != JIM_OK)
 			{
 				Jim_PrintErrorMessage(interp);
 			}
@@ -4386,7 +4386,7 @@ static struct FastLoad *fastload;
 
 static void free_fastload(void)
 {
-	if (fastload!=NULL)
+	if (fastload != NULL)
 	{
 		int i;
 		for (i=0; i<fastload_num; i++)
@@ -4504,7 +4504,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 
 	image_close(&image);
 
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 	{
 		free_fastload();
 	}

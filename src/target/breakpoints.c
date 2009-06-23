@@ -141,7 +141,7 @@ void breakpoint_remove(target_t *target, uint32_t address)
 void breakpoint_clear_target(target_t *target)
 {
 	breakpoint_t *breakpoint;
-	while ((breakpoint = target->breakpoints)!=NULL)
+	while ((breakpoint = target->breakpoints) != NULL)
 	{
 		breakpoint_free(target, breakpoint);
 	}
@@ -260,7 +260,7 @@ void watchpoint_remove(target_t *target, uint32_t address)
 void watchpoint_clear_target(target_t *target)
 {
 	watchpoint_t *watchpoint;
-	while ((watchpoint = target->watchpoints)!=NULL)
+	while ((watchpoint = target->watchpoints) != NULL)
 	{
 		watchpoint_free(target, watchpoint);
 	}

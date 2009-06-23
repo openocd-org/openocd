@@ -614,7 +614,7 @@ void jtag_add_clocks(int num_cycles);
  * matter if the operation was executed *before* jtag_execute_queue(),
  * jtag_execute_queue() will still return an error code.
  *
- * All jtag_add_xxx() calls that have in_handler!=NULL will have been
+ * All jtag_add_xxx() calls that have in_handler != NULL will have been
  * executed when this fn returns, but if what has been queued only
  * clocks data out, without reading anything back, then JTAG could
  * be running *after* jtag_execute_queue() returns. The API does

@@ -90,7 +90,7 @@ static int flash_driver_write(struct flash_bank_s *bank, uint8_t *buffer, uint32
 	int retval;
 
 	retval=bank->driver->write(bank, buffer, offset, count);
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 	{
 		LOG_ERROR("error writing to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32 " (%d)", 
 			  bank->base, offset, retval);
@@ -104,7 +104,7 @@ static int flash_driver_erase(struct flash_bank_s *bank, int first, int last)
 	int retval;
 
 	retval=bank->driver->erase(bank, first, last);
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 	{
 		LOG_ERROR("failed erasing sectors %d to %d (%d)", first, last, retval);
 	}
@@ -117,7 +117,7 @@ int flash_driver_protect(struct flash_bank_s *bank, int set, int first, int last
 	int retval;
 
 	retval=bank->driver->protect(bank, set, first, last);
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 	{
 		LOG_ERROR("failed setting protection for areas %d to %d (%d)", first, last, retval);
 	}
@@ -801,11 +801,11 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 			return ERROR_FAIL;
 		}
 		err = flash_driver_write(bank, chunk, address - bank->base + wrote, cur_size);
-		if (err!=ERROR_OK)
+		if (err != ERROR_OK)
 			return err;
 
 		err = target_read_buffer(target, address + wrote, cur_size, readback);
-		if (err!=ERROR_OK)
+		if (err != ERROR_OK)
 			return err;
 
 		unsigned i;

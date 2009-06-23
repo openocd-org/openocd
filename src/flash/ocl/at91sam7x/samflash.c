@@ -175,7 +175,7 @@ int flash_erase_all(void)
 {
 	int result;
 	
-	if ((result=flash_erase_plane(0))!=FLASH_STAT_OK) return result;
+	if ((result=flash_erase_plane(0)) != FLASH_STAT_OK) return result;
 
 	/* the second flash controller, if any */
 	if (flash_page_count>1024) result=flash_erase_plane(0x10);

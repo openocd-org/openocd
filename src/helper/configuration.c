@@ -116,7 +116,7 @@ int parse_config_file(struct command_context_s *cmd_ctx)
 	while (*cfg)
 	{
 		retval=command_run_line(cmd_ctx, *cfg);
-		if (retval!=ERROR_OK)
+		if (retval != ERROR_OK)
 			return retval;
 		cfg++;
 	}

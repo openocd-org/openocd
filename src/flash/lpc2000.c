@@ -526,7 +526,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 		LOG_DEBUG("checksum: 0x%8.8" PRIx32, checksum);
 
 		uint32_t original_value=buf_get_u32(buffer + (5 * 4), 0, 32);
-		if (original_value!=checksum)
+		if (original_value != checksum)
 		{
 			LOG_WARNING("Verification will fail since checksum in image(0x%8.8" PRIx32 ") written to flash was different from calculated vector checksum(0x%8.8" PRIx32 ").",
 					original_value, checksum);

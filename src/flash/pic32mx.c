@@ -388,7 +388,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	if ((retval=target_write_buffer(target, pic32mx_info->write_algorithm->address, sizeof(pic32mx_flash_write_code), pic32mx_flash_write_code))!=ERROR_OK)
+	if ((retval=target_write_buffer(target, pic32mx_info->write_algorithm->address, sizeof(pic32mx_flash_write_code), pic32mx_flash_write_code)) != ERROR_OK)
 		return retval;
 #endif
 
@@ -409,7 +409,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 	{
 		uint32_t status;
 
-		if ((retval = target_write_buffer(target, source->address, buffer_size, buffer))!=ERROR_OK) {
+		if ((retval = target_write_buffer(target, source->address, buffer_size, buffer)) != ERROR_OK) {
 			LOG_ERROR("Failed to write row buffer (%d words) to RAM", (int)(buffer_size/4));
 			break;
 		}

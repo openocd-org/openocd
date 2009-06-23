@@ -226,7 +226,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	const char *t2="";
 	const char *t3="";
 	/* maximum of two levels :-) */
-	if (c->parent!=NULL)
+	if (c->parent != NULL)
 	{
 		t1=c->parent->name;
 		t2="_";
@@ -250,7 +250,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);
 
 	/* maximum of two levels :-) */
-	if (c->parent!=NULL)
+	if (c->parent != NULL)
 	{
 		Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, c->parent->name, -1));
 	}
@@ -420,7 +420,7 @@ int run_command(command_context_t *context, command_t *c, char *words[], int num
 		const char *t2="";
 		const char *t3="";
 		/* maximum of two levels :-) */
-		if (c->parent!=NULL)
+		if (c->parent != NULL)
 		{
 			t1=c->parent->name;
 			t2=" ";
@@ -473,7 +473,7 @@ int command_run_line(command_context_t *context, char *line)
 		Jim_DeleteAssocData(interp, "context");
 	}
 	if (retcode == JIM_ERR) {
-		if (retval!=ERROR_COMMAND_CLOSE_CONNECTION)
+		if (retval != ERROR_COMMAND_CLOSE_CONNECTION)
 		{
 			/* We do not print the connection closed error message */
 			Jim_PrintErrorMessage(interp);
@@ -520,7 +520,7 @@ int command_run_linef(command_context_t *context, const char *format, ...)
 	va_list ap;
 	va_start(ap, format);
 	string = alloc_vprintf(format, ap);
-	if (string!=NULL)
+	if (string != NULL)
 	{
 		retval=command_run_line(context, string);
 	}
@@ -809,7 +809,7 @@ int handle_sleep_command(struct command_context_s *cmd_ctx,
 
 int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc!=1)
+	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	fast_and_dangerous = strcmp("enable", args[0])==0;

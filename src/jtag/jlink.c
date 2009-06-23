@@ -751,7 +751,7 @@ static void jlink_tap_append_scan(int length, uint8_t *buffer, scan_command_t *c
 	for (i = 0; i < length; i++)
 	{
 		int tms = (i < (length - 1)) ? 0 : 1;
-		int tdi = (buffer[i / 8] & (1 << (i % 8)))!=0;
+		int tdi = (buffer[i / 8] & (1 << (i % 8))) != 0;
 		jlink_tap_append_step(tms, tdi);
 	}
 	pending_scan_results_length++;

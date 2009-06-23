@@ -64,7 +64,7 @@ static int autodetect_image_type(image_t *image, char *url)
 	}
 	fileio_close(&fileio);
 
-	if (retval!=ERROR_OK)
+	if (retval != ERROR_OK)
 		return retval;
 
 	/* check header against known signatures */
@@ -362,7 +362,7 @@ static int image_elf_read_headers(image_t *image)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
 
-	if (strncmp((char*)elf->header->e_ident,ELFMAG,SELFMAG)!=0)
+	if (strncmp((char*)elf->header->e_ident,ELFMAG,SELFMAG) != 0)
 	{
 		LOG_ERROR("invalid ELF file, bad magic number");
 		return ERROR_IMAGE_FORMAT_ERROR;
@@ -374,8 +374,8 @@ static int image_elf_read_headers(image_t *image)
 	}
 
 	elf->endianness = elf->header->e_ident[EI_DATA];
-	if ((elf->endianness!=ELFDATA2LSB)
-		 &&(elf->endianness!=ELFDATA2MSB))
+	if ((elf->endianness != ELFDATA2LSB)
+		 &&(elf->endianness != ELFDATA2MSB))
 	{
 		LOG_ERROR("invalid ELF file, unknown endianess setting");
 		return ERROR_IMAGE_FORMAT_ERROR;

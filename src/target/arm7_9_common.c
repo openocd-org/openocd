@@ -263,7 +263,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
-		if ((retval=arm7_9_set_software_breakpoints(arm7_9))!=ERROR_OK)
+		if ((retval=arm7_9_set_software_breakpoints(arm7_9)) != ERROR_OK)
 			return retval;
 
 		/* did we already set this breakpoint? */
@@ -922,7 +922,7 @@ int arm7_9_poll(target_t *target)
 			{
 				reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
 				uint32_t t=*((uint32_t *)reg->value);
-				if (t!=0)
+				if (t != 0)
 				{
 					LOG_ERROR("PC was not 0. Does this target need srst_pulls_trst?");
 				}
@@ -1050,19 +1050,19 @@ int arm7_9_deassert_reset(target_t *target)
 	jtag_add_reset(0, 0);
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
-	if (target->reset_halt&&(jtag_reset_config & RESET_SRST_PULLS_TRST)!=0)
+	if (target->reset_halt&&(jtag_reset_config & RESET_SRST_PULLS_TRST) != 0)
 	{
 		LOG_WARNING("srst pulls trst - can not reset into halted mode. Issuing halt after reset.");
 		/* set up embedded ice registers again */
 		if ((retval = target_examine_one(target)) != ERROR_OK)
 			return retval;
 
-		if ((retval=target_poll(target))!=ERROR_OK)
+		if ((retval=target_poll(target)) != ERROR_OK)
 		{
 			return retval;
 		}
 
-		if ((retval=target_halt(target))!=ERROR_OK)
+		if ((retval=target_halt(target)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -1147,7 +1147,7 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	int i;
 	int retval;
 
-	if ((retval=target_halt(target))!=ERROR_OK)
+	if ((retval=target_halt(target)) != ERROR_OK)
 		return retval;
 
 	long long then=timeval_ms();
@@ -1157,7 +1157,7 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) != 0)
 			break;
 		embeddedice_read_reg(dbg_stat);
-		if ((retval=jtag_execute_queue())!=ERROR_OK)
+		if ((retval=jtag_execute_queue()) != ERROR_OK)
 			return retval;
 		if (debug_level>=3)
 		{
@@ -2576,7 +2576,7 @@ static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, i
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	if ((retval=target_wait_state(target, TARGET_DEBUG_RUNNING, 500))!=ERROR_OK)
+	if ((retval=target_wait_state(target, TARGET_DEBUG_RUNNING, 500)) != ERROR_OK)
 		return retval;
 
 	int little=target->endianness==TARGET_LITTLE_ENDIAN;
@@ -2677,7 +2677,7 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 	if (retval==ERROR_OK)
 	{
 		uint32_t endaddress=buf_get_u32(reg_params[0].value, 0, 32);
-		if (endaddress!=(address+count*4))
+		if (endaddress != (address+count*4))
 		{
 			LOG_ERROR("DCC write failed, expected end address 0x%08" PRIx32 " got 0x%0" PRIx32 "", (address+count*4), endaddress);
 			retval=ERROR_FAIL;
@@ -2734,7 +2734,7 @@ int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 	/* convert flash writing code into a buffer in target endianness */
 	for (i = 0; i < (sizeof(arm7_9_crc_code)/sizeof(uint32_t)); i++)
 	{
-		if ((retval=target_write_u32(target, crc_algorithm->address + i*sizeof(uint32_t), arm7_9_crc_code[i]))!=ERROR_OK)
+		if ((retval=target_write_u32(target, crc_algorithm->address + i*sizeof(uint32_t), arm7_9_crc_code[i])) != ERROR_OK)
 		{
 			return retval;
 		}

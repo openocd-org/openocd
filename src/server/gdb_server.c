@@ -133,7 +133,7 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 			return ERROR_OK;
 		}
 	}
-	*got_data=FD_ISSET(connection->fd, &read_fds)!=0;
+	*got_data=FD_ISSET(connection->fd, &read_fds) != 0;
 	return ERROR_OK;
 }
 
@@ -313,7 +313,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 	int gotdata;
 	for (;;)
 	{
-		if ((retval=check_pending(connection, 0, &gotdata))!=ERROR_OK)
+		if ((retval=check_pending(connection, 0, &gotdata)) != ERROR_OK)
 			return retval;
 		if (!gotdata)
 			break;
@@ -600,11 +600,11 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 		 */
 		if (gdb_con->noack_mode)
 		{
-			if ((retval=fetch_packet(connection, &checksum_ok, 1, len, buffer))!=ERROR_OK)
+			if ((retval=fetch_packet(connection, &checksum_ok, 1, len, buffer)) != ERROR_OK)
 				return retval;
 		} else
 		{
-			if ((retval=fetch_packet(connection, &checksum_ok, 0, len, buffer))!=ERROR_OK)
+			if ((retval=fetch_packet(connection, &checksum_ok, 0, len, buffer)) != ERROR_OK)
 				return retval;
 		}
 
@@ -1190,7 +1190,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 
 	retval = target_read_buffer(target, addr, len, buffer);
 
-	if ((retval!=ERROR_OK)&&!gdb_report_data_abort)
+	if ((retval != ERROR_OK)&&!gdb_report_data_abort)
 	{
 		/* TODO : Here we have to lie and send back all zero's lest stack traces won't work.
 		 * At some point this might be fixed in GDB, in which case this code can be removed.
@@ -1738,7 +1738,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 				p->base, p->size, blocksize);
 			ram_start=p->base+p->size;
 		}
-		if (ram_start!=0)
+		if (ram_start != 0)
 		{
 			xml_printf(&retval, &xml, &pos, &size, "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>\n",
 				ram_start, 0-ram_start);
@@ -2109,7 +2109,7 @@ int gdb_input_inner(connection_t *connection)
 							log_add_callback(gdb_log_callback, connection);
 							target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
 							int retval=gdb_step_continue_packet(connection, target, packet, packet_size);
-							if (retval!=ERROR_OK)
+							if (retval != ERROR_OK)
 							{
 								/* we'll never receive a halted condition... issue a false one.. */
 								gdb_frontend_halted(target, connection);

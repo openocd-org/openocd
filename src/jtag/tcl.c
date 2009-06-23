@@ -1262,7 +1262,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 	*     args[N-2] = "-endstate"
 	 *     args[N-1] = statename
 	 */
-	if ((argc < 4) || ((argc % 2)!=0))
+	if ((argc < 4) || ((argc % 2) != 0))
 	{
 		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
 		return JIM_ERR;

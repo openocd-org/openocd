@@ -89,7 +89,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 		LOG_ERROR("Can't open %s\n", fileName);
 		return ERROR_FAIL;
 	}
-	if (fseek(pFile, 0, SEEK_END)!=0)
+	if (fseek(pFile, 0, SEEK_END) != 0)
 	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		fclose(pFile);
@@ -104,7 +104,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 	}
 	*len = fsize;
 
-	if (fseek(pFile, 0, SEEK_SET)!=0)
+	if (fseek(pFile, 0, SEEK_SET) != 0)
 	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		fclose(pFile);
@@ -225,11 +225,11 @@ int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
 
 		for (i = 1; i < argc; i++)
 		{
-			if (fwrite(args[i], 1, strlen(args[i]), config_file)!=strlen(args[i]))
+			if (fwrite(args[i], 1, strlen(args[i]), config_file) != strlen(args[i]))
 				break;
 			if (i != argc - 1)
 			{
-				if (fwrite(" ", 1, 1, config_file)!=1)
+				if (fwrite(" ", 1, 1, config_file) != 1)
 					break;
 			}
 		}
@@ -274,7 +274,7 @@ int handle_cp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 			chunk = maxChunk;
 		}
 
-		if ((retval==ERROR_OK)&&(fwrite(((char *)data)+pos, 1, chunk, f)!=chunk))
+		if ((retval==ERROR_OK)&&(fwrite(((char *)data)+pos, 1, chunk, f) != chunk))
 			retval = ERROR_INVALID_ARGUMENTS;
 
 		if (retval != ERROR_OK)
@@ -613,7 +613,7 @@ static int zylinjtag_Jim_Command_mac(Jim_Interp *interp, int argc,
 	{
 		//if (ifr->ifr_addr.sa_family == AF_INET)
 		{
-			if (strcmp("eth0", ifr->ifr_name)!=0)
+			if (strcmp("eth0", ifr->ifr_name) != 0)
 				continue;
 			strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
 			if (ioctl(SockFD, SIOCGIFHWADDR, &ifreq) < 0)

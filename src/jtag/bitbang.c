@@ -204,7 +204,7 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 
 		bitbang_interface->write(0, tms, tdi);
 
-		if (type!=SCAN_OUT)
+		if (type != SCAN_OUT)
 			val=bitbang_interface->read();
 
 		bitbang_interface->write(1, tms, tdi);

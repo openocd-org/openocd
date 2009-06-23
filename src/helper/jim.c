@@ -503,7 +503,7 @@ int Jim_StringToDouble(const char *str, double *doublePtr)
 static jim_wide JimPowWide(jim_wide b, jim_wide e)
 {
     jim_wide i, res = 1;
-    if ((b==0 && e!=0) || (e<0)) return 0;
+    if ((b==0 && e != 0) || (e<0)) return 0;
     for (i=0; i<e; i++) {res *= b;}
     return res;
 }
@@ -6960,7 +6960,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
             case JIM_EXPROP_LSHIFT: wC = wA<<wB; break;
             case JIM_EXPROP_RSHIFT: wC = wA>>wB; break;
             case JIM_EXPROP_NUMEQ: wC = wA==wB; break;
-            case JIM_EXPROP_NUMNE: wC = wA!=wB; break;
+            case JIM_EXPROP_NUMNE: wC = wA != wB; break;
             case JIM_EXPROP_BITAND: wC = wA&wB; break;
             case JIM_EXPROP_BITXOR: wC = wA^wB; break;
             case JIM_EXPROP_BITOR: wC = wA|wB; break;
@@ -7063,7 +7063,7 @@ trydouble:
             case JIM_EXPROP_LTE: dC = dA<=dB; break;
             case JIM_EXPROP_GTE: dC = dA>=dB; break;
             case JIM_EXPROP_NUMEQ: dC = dA==dB; break;
-            case JIM_EXPROP_NUMNE: dC = dA!=dB; break;
+            case JIM_EXPROP_NUMNE: dC = dA != dB; break;
             case JIM_EXPROP_LOGICAND_LEFT:
                 if (dA == 0) {
                     i += (int)dB;

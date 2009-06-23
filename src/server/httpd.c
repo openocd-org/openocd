@@ -142,7 +142,7 @@ httpd_Jim_Command_formfetch(Jim_Interp *interp,
                                    int argc,
                                    Jim_Obj *const *argv)
 {
-    if (argc!=2)
+    if (argc != 2)
     {
         Jim_WrongNumArgs(interp, 1, argv, "method ?args ...?");
         return JIM_ERR;
@@ -202,7 +202,7 @@ static void append_key(struct httpd_request *r, const char *key,
 
 	Jim_Obj *dict = Jim_GetVariableStr(interp, "httppostdata", 0);
 
-	if (dict!=NULL)
+	if (dict != NULL)
 	{
 		if (Jim_DictKey(interp, dict, keyObj, &value, 0) != JIM_OK)
 		{

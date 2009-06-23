@@ -35,7 +35,7 @@
 void *clear_malloc(size_t size)
 {
 	void *t = malloc(size);
-	if (t!=NULL)
+	if (t != NULL)
 	{
 		memset(t, 0x00, size);
 	}
@@ -45,7 +45,7 @@ void *clear_malloc(size_t size)
 void *fill_malloc(size_t size)
 {
 	void *t = malloc(size);
-	if (t!=NULL)
+	if (t != NULL)
 	{
 		/* We want to initialize memory to some known bad state.  */
 		/* 0 and 0xff yields 0 and -1 as integers, which often		*/
