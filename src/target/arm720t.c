@@ -388,7 +388,7 @@ int arm720t_soft_reset_halt(struct target_s *target)
 		{
 			break;
 		}
-		if (debug_level>=3)
+		if (debug_level >= 3)
 		{
 			alive_sleep(100);
 		} else

@@ -652,14 +652,14 @@ static int presto_bitq_flush(void)
 
 static int presto_bitq_in_rdy(void)
 {
-	if (presto->buff_in_pos>=presto->buff_in_len)
+	if (presto->buff_in_pos >= presto->buff_in_len)
 		return 0;
 	return presto->buff_in_len-presto->buff_in_pos;
 }
 
 static int presto_bitq_in(void)
 {
-	if (presto->buff_in_pos>=presto->buff_in_len)
+	if (presto->buff_in_pos >= presto->buff_in_len)
 		return -1;
 	if (presto->buff_in[presto->buff_in_pos++]&0x08) return 1;
 	return 0;

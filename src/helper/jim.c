@@ -6956,7 +6956,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
             case JIM_EXPROP_LT: wC = wA<wB; break;
             case JIM_EXPROP_GT: wC = wA>wB; break;
             case JIM_EXPROP_LTE: wC = wA<=wB; break;
-            case JIM_EXPROP_GTE: wC = wA>=wB; break;
+            case JIM_EXPROP_GTE: wC = wA >= wB; break;
             case JIM_EXPROP_LSHIFT: wC = wA<<wB; break;
             case JIM_EXPROP_RSHIFT: wC = wA>>wB; break;
             case JIM_EXPROP_NUMEQ: wC = wA==wB; break;
@@ -7061,7 +7061,7 @@ trydouble:
             case JIM_EXPROP_LT: dC = dA<dB; break;
             case JIM_EXPROP_GT: dC = dA>dB; break;
             case JIM_EXPROP_LTE: dC = dA<=dB; break;
-            case JIM_EXPROP_GTE: dC = dA>=dB; break;
+            case JIM_EXPROP_GTE: dC = dA >= dB; break;
             case JIM_EXPROP_NUMEQ: dC = dA==dB; break;
             case JIM_EXPROP_NUMNE: dC = dA != dB; break;
             case JIM_EXPROP_LOGICAND_LEFT:

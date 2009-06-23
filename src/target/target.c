@@ -2279,7 +2279,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 
 		/* DANGER!!! beware of unsigned comparision here!!! */
 
-		if ((image.sections[i].base_address+buf_cnt>=min_address)&&
+		if ((image.sections[i].base_address+buf_cnt >= min_address)&&
 				(image.sections[i].base_address<max_address))
 		{
 			if (image.sections[i].base_address<min_address)
@@ -2955,7 +2955,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 		}
 
 		gettimeofday(&now, NULL);
-		if ((numSamples>=maxSample) || ((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
+		if ((numSamples >= maxSample) || ((now.tv_sec >= timeout.tv_sec) && (now.tv_usec >= timeout.tv_usec)))
 		{
 			command_print(cmd_ctx, "Profiling completed. %d samples.", numSamples);
 			if ((retval = target_poll(target)) != ERROR_OK)
@@ -4460,7 +4460,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 
 		/* DANGER!!! beware of unsigned comparision here!!! */
 
-		if ((image.sections[i].base_address+buf_cnt>=min_address)&&
+		if ((image.sections[i].base_address+buf_cnt >= min_address)&&
 				(image.sections[i].base_address<max_address))
 		{
 			if (image.sections[i].base_address<min_address)

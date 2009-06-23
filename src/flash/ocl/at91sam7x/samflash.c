@@ -82,7 +82,7 @@ int flash_page_program(uint32 *data, int page_num)
 	uint32 *data_ptr;
 
 	/* select proper controller */
-	if (page_num>=1024) efc_ofs=0x10;
+	if (page_num >= 1024) efc_ofs=0x10;
 	else efc_ofs=0;
 
 	/* wait until FLASH is ready, just for sure */

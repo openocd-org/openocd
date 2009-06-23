@@ -370,7 +370,7 @@ int bitq_execute_queue(void)
 		LOG_ERROR("missing data from bitq interface");
 		return ERROR_JTAG_QUEUE_FAILED;
 	}
-	if (bitq_interface->in()>=0)
+	if (bitq_interface->in() >= 0)
 	{
 		LOG_ERROR("extra data from bitq interface");
 		return ERROR_JTAG_QUEUE_FAILED;

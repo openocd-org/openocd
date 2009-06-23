@@ -587,7 +587,7 @@ int arm920t_soft_reset_halt(struct target_s *target)
 		{
 			break;
 		}
-		if (debug_level>=3)
+		if (debug_level >= 3)
 		{
 			/* do not eat all CPU, time out after 1 se*/
 			alive_sleep(100);

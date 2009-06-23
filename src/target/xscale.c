@@ -499,7 +499,7 @@ int xscale_read_tx(target_t *target, int consume)
 		{
 			goto done;
 		}
-		if (debug_level>=3)
+		if (debug_level >= 3)
 		{
 			LOG_DEBUG("waiting 100ms");
 			alive_sleep(100); /* avoid flooding the logs */
@@ -580,7 +580,7 @@ int xscale_write_rx(target_t *target)
 		}
 		if (!(field0_in & 1))
 			goto done;
-		if (debug_level>=3)
+		if (debug_level >= 3)
 		{
 			LOG_DEBUG("waiting 100ms");
 			alive_sleep(100); /* avoid flooding the logs */
