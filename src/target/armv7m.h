@@ -55,7 +55,7 @@ extern char* armv7m_exception_strings[];
 extern char *armv7m_exception_string(int number);
 
 /* offsets into armv7m core register cache */
-enum 
+enum
 {
 	ARMV7M_PC = 15,
 	ARMV7M_xPSR = 16,
@@ -78,18 +78,18 @@ typedef struct armv7m_common_s
 	int exception_number;
 	swjdp_common_t swjdp_info;
 
-	
+
 	/* Direct processor core register read and writes */
 	int (*load_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t *value);
 	int (*store_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t value);
 	/* register cache to processor synchronization */
 	int (*read_core_reg)(struct target_s *target, int num);
 	int (*write_core_reg)(struct target_s *target, int num);
-	
+
 	int (*examine_debug_reason)(target_t *target);
 	void (*pre_debug_entry)(target_t *target);
 	void (*post_debug_entry)(target_t *target);
-	
+
 	void (*pre_restore_context)(target_t *target);
 	void (*post_restore_context)(target_t *target);
 
@@ -99,7 +99,7 @@ typedef struct armv7m_common_s
 typedef struct armv7m_algorithm_s
 {
 	int common_magic;
-	
+
 	enum armv7m_mode core_mode;
 } armv7m_algorithm_t;
 
@@ -133,28 +133,28 @@ extern int armv7m_blank_check_memory(struct target_s *target, uint32_t address, 
 
 /* Thumb mode instructions
  */
- 
+
 /* Move to Register from Special Register  (Thumb mode) 32 bit Thumb2 instruction
  * Rd: destination register
  * SYSm: source special register
  */
-#define ARMV7M_T_MRS(Rd, SYSm)	((0xF3EF) | ((0x8000 | (Rd << 8) | SYSm) << 16)) 
+#define ARMV7M_T_MRS(Rd, SYSm)	((0xF3EF) | ((0x8000 | (Rd << 8) | SYSm) << 16))
 
 /* Move from Register from Special Register  (Thumb mode) 32 bit Thumb2 instruction
  * Rd: source register
  * SYSm: destination special register
  */
-#define ARMV7M_T_MSR(SYSm, Rn)	((0xF380 | (Rn << 8)) | ((0x8800 | SYSm) << 16)) 
+#define ARMV7M_T_MSR(SYSm, Rn)	((0xF380 | (Rn << 8)) | ((0x8800 | SYSm) << 16))
 
-/* Change Processor State. The instruction modifies the PRIMASK and FAULTMASK 
+/* Change Processor State. The instruction modifies the PRIMASK and FAULTMASK
  * special-purpose register values  (Thumb mode) 16 bit Thumb2 instruction
  * Rd: source register
- * IF: 
+ * IF:
  */
 #define I_FLAG 2
-#define F_FLAG 1  
-#define ARMV7M_T_CPSID(IF)	((0xB660 | (1 << 8) | (IF&0x3)) | ((0xB660 | (1 << 8) | (IF&0x3)) << 16)) 
-#define ARMV7M_T_CPSIE(IF)	((0xB660 | (0 << 8) | (IF&0x3)) | ((0xB660 | (0 << 8) | (IF&0x3)) << 16)) 
+#define F_FLAG 1
+#define ARMV7M_T_CPSID(IF)	((0xB660 | (1 << 8) | (IF&0x3)) | ((0xB660 | (1 << 8) | (IF&0x3)) << 16))
+#define ARMV7M_T_CPSIE(IF)	((0xB660 | (0 << 8) | (IF&0x3)) | ((0xB660 | (0 << 8) | (IF&0x3)) << 16))
 
 /* Breakpoint (Thumb mode) v5 onwards
  * Im: immediate value used by debugger
@@ -178,12 +178,12 @@ extern int armv7m_blank_check_memory(struct target_s *target, uint32_t address, 
  * List: for each bit in list: store register
  */
 #define ARMV7M_T_LDMIA(Rn, List) ((0xc800 | (Rn << 8) | List) | ((0xc800 | (Rn << 8) | List) << 16))
- 
+
 /* Load register with PC relative addressing
  * Rd: register to load
  */
-#define ARMV7M_T_LDR_PCREL(Rd)	((0x4800 | (Rd << 8)) | ((0x4800 | (Rd << 8)) << 16)) 
- 
+#define ARMV7M_T_LDR_PCREL(Rd)	((0x4800 | (Rd << 8)) | ((0x4800 | (Rd << 8)) << 16))
+
 /* Move hi register (Thumb mode)
  * Rd: destination register
  * Rm: source register

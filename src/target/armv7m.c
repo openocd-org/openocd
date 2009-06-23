@@ -543,7 +543,7 @@ int armv7m_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *arm_adi_v5_dap_cmd;
 
-	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap", NULL, COMMAND_ANY, "cortex dap specific commands");		
+	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap", NULL, COMMAND_ANY, "cortex dap specific commands");
 	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "info", handle_dap_info_command, COMMAND_EXEC, "Displays dap info for ap [num], default currently selected AP");
 	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apsel", handle_dap_apsel_command, COMMAND_EXEC, "Select a different AP [num] (default 0)");
 	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apid", handle_dap_apid_command, COMMAND_EXEC, "Displays id reg from AP [num], default currently selected AP");
@@ -710,7 +710,7 @@ int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx, char *cmd, ch
 	apsel = swjdp->apsel;
 	apselsave = swjdp->apsel;
 	if (argc > 0)
-	{	
+	{
 		apsel = strtoul(args[0], NULL, 0);
 	}
 	if (apselsave != apsel)
@@ -745,7 +745,7 @@ extern int handle_dap_apid_command(struct command_context_s *cmd_ctx, char *cmd,
 	apsel = swjdp->apsel;
 	apselsave = swjdp->apsel;
 	if (argc > 0)
-	{	
+	{
 		apsel = strtoul(args[0], NULL, 0);
 	}
 
@@ -775,7 +775,7 @@ int handle_dap_apsel_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 	apsel = 0;
 	if (argc > 0)
-	{	
+	{
 		apsel = strtoul(args[0], NULL, 0);
 	}
 
@@ -796,7 +796,7 @@ int handle_dap_memaccess_command(struct command_context_s *cmd_ctx, char *cmd, c
 
 	memaccess_tck = swjdp->memaccess_tck;
 	if (argc > 0)
-	{	
+	{
 		memaccess_tck = strtoul(args[0], NULL, 0);
 	}
 
@@ -816,10 +816,10 @@ int handle_dap_info_command(struct command_context_s *cmd_ctx, char *cmd, char *
 
 	apsel =  swjdp->apsel;
 	if (argc > 0)
-	{	
+	{
 		apsel = strtoul(args[0], NULL, 0);
 	}
-	
+
 	retval = dap_info_command(cmd_ctx, swjdp, apsel);
 
 	return retval;

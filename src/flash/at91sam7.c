@@ -57,7 +57,7 @@ static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size);
 static uint32_t at91sam7_get_flash_status(target_t *target, int bank_number);
 static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode);
 static uint32_t at91sam7_wait_status_busy(flash_bank_t *bank, uint32_t waitbits, int timeout);
-static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16_t pagen); 
+static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16_t pagen);
 static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
 flash_driver_t at91sam7_flash =
@@ -85,8 +85,8 @@ static char * EPROC[8]= {"Unknown","ARM946-E","ARM7TDMI","Unknown","ARM920T","AR
 static long SRAMSIZ[16] = {
 	-1,
 	0x0400,		/*  1K */
-	0x0800,		/*  2K */ 
-	-1, 
+	0x0800,		/*  2K */
+	-1,
 	0x1c000,	/* 112K */
 	0x1000,		/*   4K */
 	0x14000,	/*  80K */
@@ -135,10 +135,10 @@ static void at91sam7_read_clock_info(flash_bank_t *bank)
 	target_read_u32(target, PMC_MCKR, &mckr);
 	/* Read Clock Generator PLL Register  */
 	target_read_u32(target, CKGR_PLLR, &pllr);
-	
+
 	at91sam7_info->mck_valid = 0;
 	at91sam7_info->mck_freq = 0;
-	switch (mckr & PMC_MCKR_CSS) 
+	switch (mckr & PMC_MCKR_CSS)
 	{
 		case 0:			/* Slow Clock */
 			at91sam7_info->mck_valid = 1;
@@ -146,7 +146,7 @@ static void at91sam7_read_clock_info(flash_bank_t *bank)
 			break;
 
 		case 1:			/* Main Clock */
-			if ((mcfr & CKGR_MCFR_MAINRDY) && 
+			if ((mcfr & CKGR_MCFR_MAINRDY) &&
 				(at91sam7_info->ext_freq == 0))
 			{
 				at91sam7_info->mck_valid = 1;
@@ -163,8 +163,8 @@ static void at91sam7_read_clock_info(flash_bank_t *bank)
 			break;
 
 		case 3:			/* PLL Clock */
-			if ((mcfr & CKGR_MCFR_MAINRDY) && 
-				(at91sam7_info->ext_freq == 0)) 
+			if ((mcfr & CKGR_MCFR_MAINRDY) &&
+				(at91sam7_info->ext_freq == 0))
 			{
 				target_read_u32(target, CKGR_PLLR, &pllr);
 				if (!(pllr & CKGR_PLLR_DIV))
@@ -280,7 +280,7 @@ static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16
 	at91sam7_flash_bank_t *at91sam7_info = bank->driver_priv;
 	target_t *target = bank->target;
 
-	fcr = (0x5A << 24) | ((pagen&0x3FF) << 8) | cmd; 
+	fcr = (0x5A << 24) | ((pagen&0x3FF) << 8) | cmd;
 	target_write_u32(target, MC_FCR[bank->bank_number], fcr);
 	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u", fcr, bank->bank_number + 1, pagen);
 
@@ -294,7 +294,7 @@ static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16
 		return ERROR_OK;
 	}
 
-	if (at91sam7_wait_status_busy(bank, MC_FSR_FRDY, 10)&0x0C) 
+	if (at91sam7_wait_status_busy(bank, MC_FSR_FRDY, 10)&0x0C)
 	{
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -635,7 +635,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 	}
 
 	/* Configure the flash controller timing */
-	at91sam7_read_clock_info(bank); 
+	at91sam7_read_clock_info(bank);
 	at91sam7_set_flash_mode(bank, FMR_TIMING_FLASH);
 
 	fast_check = 1;
@@ -892,7 +892,7 @@ static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 
 	if (erase_all)
 	{
-		if (at91sam7_flash_command(bank, EA, 0) != ERROR_OK) 
+		if (at91sam7_flash_command(bank, EA, 0) != ERROR_OK)
 		{
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
@@ -1079,13 +1079,13 @@ static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, 
+	printed = snprintf(buf,
 			   buf_size,
 			   " Cidr: 0x%8.8" PRIx32 " | Arch: 0x%4.4x | Eproc: %s | Version: 0x%3.3x | Flashsize: 0x%8.8" PRIx32 "\n",
-			   at91sam7_info->cidr, 
-			   at91sam7_info->cidr_arch, 
+			   at91sam7_info->cidr,
+			   at91sam7_info->cidr_arch,
 			   EPROC[at91sam7_info->cidr_eproc],
-			   at91sam7_info->cidr_version, 
+			   at91sam7_info->cidr_version,
 			   bank->size);
 
 	buf += printed;
@@ -1117,10 +1117,10 @@ static int at91sam7_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	return ERROR_OK;
 }
 
-/* 
-* On AT91SAM7S: When the gpnvm bits are set with 
+/*
+* On AT91SAM7S: When the gpnvm bits are set with
 * > at91sam7 gpnvm bitnr set
-* the changes are not visible in the flash controller status register MC_FSR 
+* the changes are not visible in the flash controller status register MC_FSR
 * until the processor has been reset.
 * On the Olimex board this requires a power cycle.
 * Note that the AT91SAM7S has the following errata (doc6175.pdf sec 14.1.3):
@@ -1191,7 +1191,7 @@ static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char
 	/* Configure the flash controller timing */
 	at91sam7_read_clock_info(bank);
 	at91sam7_set_flash_mode(bank, FMR_TIMING_NVBITS);
-	
+
 	if (at91sam7_flash_command(bank, flashcmd, bit) != ERROR_OK)
 	{
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -1203,6 +1203,6 @@ static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char
 
 	/* check protect state */
 	at91sam7_protect_check(bank);
-	
+
 	return ERROR_OK;
 }

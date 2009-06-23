@@ -31,7 +31,7 @@
 #define MIPS32_COMMON_MAGIC		0xB320B320
 
 /* offsets into mips32 core register cache */
-enum 
+enum
 {
 	MIPS32_PC = 37,
 	MIPS32NUMCOREREGS
@@ -52,7 +52,7 @@ typedef struct mips32_common_s
 	reg_cache_t *core_cache;
 	mips_ejtag_t ejtag_info;
 	uint32_t core_regs[MIPS32NUMCOREREGS];
-	
+
 	int bp_scanned;
 	int num_inst_bpoints;
 	int num_data_bpoints;
@@ -60,7 +60,7 @@ typedef struct mips32_common_s
 	int num_data_bpoints_avail;
 	mips32_comparator_t *inst_break_list;
 	mips32_comparator_t *data_break_list;
-	
+
 	/* register cache to processor synchronization */
 	int (*read_core_reg)(struct target_s *target, int num);
 	int (*write_core_reg)(struct target_s *target, int num);

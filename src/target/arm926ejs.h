@@ -39,9 +39,9 @@ typedef struct arm926ejs_common_s
 } arm926ejs_common_t;
 
 extern int arm926ejs_init_arch_info(target_t *target, arm926ejs_common_t *arm926ejs, jtag_tap_t *tap);
-extern int arm926ejs_register_commands(struct command_context_s *cmd_ctx); 
-extern int arm926ejs_arch_state(struct target_s *target); 
-extern int arm926ejs_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer); 
+extern int arm926ejs_register_commands(struct command_context_s *cmd_ctx);
+extern int arm926ejs_arch_state(struct target_s *target);
+extern int arm926ejs_write_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 extern int arm926ejs_soft_reset_halt(struct target_s *target);
 
 #endif /* ARM926EJS_H */

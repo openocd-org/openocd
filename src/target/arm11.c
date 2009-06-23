@@ -1888,7 +1888,7 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 		if (values[i] > arm11_coproc_instruction_limits[i])
 		{
 			LOG_ERROR("Parameter %ld out of bounds (%" PRId32 " max). %s",
-				  (long)(i + 2), 
+				  (long)(i + 2),
 				  arm11_coproc_instruction_limits[i],
 				read ? arm11_mrc_syntax : arm11_mcr_syntax);
 			return -1;
@@ -1913,10 +1913,10 @@ int arm11_handle_mrc_mcr(struct command_context_s *cmd_ctx, char *cmd, char **ar
 		arm11_run_instr_data_from_core_via_r0(arm11, instr, &result);
 
 		LOG_INFO("MRC p%d, %d, R0, c%d, c%d, %d = 0x%08" PRIx32 " (%" PRId32 ")",
-			 (int)(values[0]), 
-			 (int)(values[1]), 
-			 (int)(values[2]), 
-			 (int)(values[3]), 
+			 (int)(values[0]),
+			 (int)(values[1]),
+			 (int)(values[2]),
+			 (int)(values[3]),
 			 (int)(values[4]), result, result);
 	}
 	else

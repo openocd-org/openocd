@@ -191,7 +191,7 @@ begin_ejtag_dma_read_b:
 		case 2:
 			*data = (v >> 16) & 0xff;
 			break;
-		case 3: 
+		case 3:
 			*data = (v >> 24) & 0xff;
 			break;
 	}

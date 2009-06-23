@@ -109,10 +109,10 @@ static int aduc702x_flash_bank_command(struct command_context_s *cmd_ctx, char *
 static int aduc702x_build_sector_list(struct flash_bank_s *bank)
 {
 	//aduc7026_flash_bank_t *aduc7026_info = bank->driver_priv;
-	
+
         int i = 0;
         uint32_t offset = 0;
-		
+
         // sector size is 512
         bank->num_sectors = bank->size / 512;
         bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
@@ -203,7 +203,7 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 	reg_param_t reg_params[6];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval = ERROR_OK;
-	
+
         /* parameters:
 
         r0 - address of source data (absolute)
@@ -240,7 +240,7 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
         //<done>:
                 0xeafffffe 	// b	1003c <done>
 	};
-	
+
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(aduc702x_flash_write_code),
                 &aduc702x_info->write_algorithm) != ERROR_OK)
@@ -248,8 +248,8 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
-	
-	target_write_buffer(target, aduc702x_info->write_algorithm->address, 
+
+	target_write_buffer(target, aduc702x_info->write_algorithm->address,
                 sizeof(aduc702x_flash_write_code), (uint8_t*)aduc702x_flash_write_code);
 
 	/* memory buffer */
@@ -261,26 +261,26 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
 			if (aduc702x_info->write_algorithm)
 				target_free_working_area(target, aduc702x_info->write_algorithm);
-			
+
 			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	}
-	
+
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
 	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
-	
+
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_IN);
 	init_reg_param(&reg_params[4], "r4", 32, PARAM_OUT);
-	
+
 	while (count > 0)
 	{
 		uint32_t thisrun_count = (count > (buffer_size / 2)) ? (buffer_size / 2) : count;
-		
+
 		target_write_buffer(target, source->address, thisrun_count * 2, buffer);
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
@@ -288,16 +288,16 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 		buf_set_u32(reg_params[2].value, 0, 32, address);
 		buf_set_u32(reg_params[4].value, 0, 32, 0xFFFFF800);
 
-		if ((retval = target_run_algorithm(target, 0, NULL, 5, 
-                        reg_params, aduc702x_info->write_algorithm->address, 
-                        aduc702x_info->write_algorithm->address + sizeof(aduc702x_flash_write_code) - 4, 
+		if ((retval = target_run_algorithm(target, 0, NULL, 5,
+                        reg_params, aduc702x_info->write_algorithm->address,
+                        aduc702x_info->write_algorithm->address + sizeof(aduc702x_flash_write_code) - 4,
                         10000, &armv4_5_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing aduc702x flash write algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
-	
+
 		if ((buf_get_u32(reg_params[3].value, 0, 32) & 1) != 1) {
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
@@ -310,24 +310,24 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 
 	target_free_working_area(target, source);
 	target_free_working_area(target, aduc702x_info->write_algorithm);
-	
+
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
 	destroy_reg_param(&reg_params[3]);
 	destroy_reg_param(&reg_params[4]);
-	
+
 	return retval;
 }
 
-/* All-JTAG, single-access method.  Very slow.  Used only if there is no 
+/* All-JTAG, single-access method.  Very slow.  Used only if there is no
  * working area available. */
 static int aduc702x_write_single(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	uint32_t x;
         uint8_t b;
 	target_t *target = bank->target;
-	
+
         aduc702x_set_write_enable(target, 1);
 
 	for (x = 0; x < count; x += 2) {
@@ -373,13 +373,13 @@ int aduc702x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, 
                 if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
                 {
                         /* if block write failed (no sufficient working area),
-                         * use normal (slow) JTAG method */ 
+                         * use normal (slow) JTAG method */
                         LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 
                         if ((retval = aduc702x_write_single(bank, buffer, offset, count)) != ERROR_OK)
                         {
                                 LOG_ERROR("slow write failed");
-                                return ERROR_FLASH_OPERATION_FAILED; 
+                                return ERROR_FLASH_OPERATION_FAILED;
                         }
                 }
                 else if (retval == ERROR_FLASH_OPERATION_FAILED)

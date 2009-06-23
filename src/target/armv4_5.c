@@ -339,9 +339,9 @@ int handle_armv4_5_reg_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			{
 				armv4_5->full_context(target);
 			}
-			output_len += snprintf(output + output_len, 
-					       128 - output_len, 
-					       "%8s: %8.8" PRIx32 " ", 
+			output_len += snprintf(output + output_len,
+					       128 - output_len,
+					       "%8s: %8.8" PRIx32 " ",
 					       ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).name,
 					       buf_get_u32(ARMV4_5_CORE_REG_MODENUM(armv4_5->core_cache, mode, num).value, 0, 32));
 		}

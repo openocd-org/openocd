@@ -474,7 +474,7 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 	residue = sect_cnt % 256;
 
 	for (i = 0; i < quotient; i++) {
-		LOG_DEBUG("mflash: sect num : %" PRIu32 " buff : 0x%0lx", sect_num, 
+		LOG_DEBUG("mflash: sect num : %" PRIu32 " buff : 0x%0lx", sect_num,
 			(unsigned long)buff_ptr);
 		ret = mg_mflash_do_read_sects(buff_ptr, sect_num, 256);
 		if (ret != ERROR_OK)
@@ -485,7 +485,7 @@ static int mg_mflash_read_sects(void *buff, uint32_t sect_num, uint32_t sect_cnt
 	}
 
 	if (residue) {
-		LOG_DEBUG("mflash: sect num : %" PRIx32 " buff : %0lx", sect_num, 
+		LOG_DEBUG("mflash: sect num : %" PRIx32 " buff : %0lx", sect_num,
 			(unsigned long)buff_ptr);
 		return mg_mflash_do_read_sects(buff_ptr, sect_num, residue);
 	}
@@ -517,7 +517,7 @@ static int mg_mflash_do_write_sects(void *buff, uint32_t sect_num, uint32_t sect
 		ret = target_write_memory(target, address, 2, MG_MFLASH_SECTOR_SIZE / 2, buff_ptr);
 		if (ret != ERROR_OK)
 			return ret;
-		
+
 		buff_ptr += MG_MFLASH_SECTOR_SIZE;
 
 		ret = target_write_u8(target, mflash_bank->base + MG_REG_OFFSET + MG_REG_COMMAND, mg_io_cmd_confirm_write);
@@ -552,7 +552,7 @@ static int mg_mflash_write_sects(void *buff, uint32_t sect_num, uint32_t sect_cn
 	residue = sect_cnt % 256;
 
 	for (i = 0; i < quotient; i++) {
-		LOG_DEBUG("mflash: sect num : %" PRIu32 "buff : %p", sect_num, 
+		LOG_DEBUG("mflash: sect num : %" PRIu32 "buff : %p", sect_num,
 			buff_ptr);
 		ret = mg_mflash_do_write_sects(buff_ptr, sect_num, 256, mg_io_cmd_write);
 		if (ret != ERROR_OK)
@@ -563,7 +563,7 @@ static int mg_mflash_write_sects(void *buff, uint32_t sect_num, uint32_t sect_cn
 	}
 
 	if (residue) {
-		LOG_DEBUG("mflash: sect num : %" PRIu32 " buff : %p", sect_num, 
+		LOG_DEBUG("mflash: sect num : %" PRIu32 " buff : %p", sect_num,
 			buff_ptr);
 		return mg_mflash_do_write_sects(buff_ptr, sect_num, residue, mg_io_cmd_write);
 	}
@@ -741,10 +741,10 @@ static int mg_write_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 			goto mg_write_cmd_err;
 		address += MG_FILEIO_CHUNK;
 	}
- 
+
 	if (res) {
 		if ((ret = fileio_read(&fileio, res, buffer, &buf_cnt)) != ERROR_OK)
-			goto mg_write_cmd_err;			
+			goto mg_write_cmd_err;
 		if ((ret = mg_mflash_write(address, buffer, res)) != ERROR_OK)
 			goto mg_write_cmd_err;
 	}
@@ -789,7 +789,7 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 	ret = fileio_open(&fileio, args[1], FILEIO_WRITE, FILEIO_BINARY);
 	if (ret != ERROR_OK)
 		return ret;
- 
+
 	buffer = malloc(MG_FILEIO_CHUNK);
 	if (!buffer) {
 		fileio_close(&fileio);
@@ -798,7 +798,7 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 
 	cnt = size / MG_FILEIO_CHUNK;
 	res = size % MG_FILEIO_CHUNK;
- 
+
 	duration_start_measure(&duration);
 
 	for (i = 0; i < cnt; i++) {
@@ -809,7 +809,7 @@ static int mg_dump_cmd(struct command_context_s *cmd_ctx, char *cmd, char **args
 			goto mg_dump_cmd_err;
 		address += MG_FILEIO_CHUNK;
 	}
- 
+
 	if (res) {
 		if ((ret = mg_mflash_read(address, buffer, res)) != ERROR_OK)
 			goto mg_dump_cmd_err;
@@ -834,8 +834,8 @@ mg_dump_cmd_err:
 	free(duration_text);
  	free(buffer);
 	fileio_close(&fileio);
- 
-	return ret;	
+
+	return ret;
 }
 
 static int mg_set_feature(mg_feature_id feature, mg_feature_val config)
@@ -1229,7 +1229,7 @@ int mg_config_cmd(struct command_context_s *cmd_ctx, char *cmd,
 
 	switch (argc) {
 		case 2:
-			if (!strcmp(args[1], "boot")) 
+			if (!strcmp(args[1], "boot"))
 				return mg_boot_config();
 			else if (!strcmp(args[1], "storage"))
 				return mg_storage_config();
@@ -1252,7 +1252,7 @@ int mg_config_cmd(struct command_context_s *cmd_ctx, char *cmd,
 					return ERROR_MG_INVALID_PLL;
 				}
 
-				LOG_INFO("mflash: Fout=%" PRIu32 " Hz, feedback=%u," 
+				LOG_INFO("mflash: Fout=%" PRIu32 " Hz, feedback=%u,"
 						"indiv=%u, outdiv=%u, lock=%u",
 						(uint32_t)fout, pll.feedback_div,
 						pll.input_div, pll.output_div,

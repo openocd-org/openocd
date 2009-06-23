@@ -174,7 +174,7 @@ int flash_erase_plane(int efc_ofs)
 int flash_erase_all(void)
 {
 	int result;
-	
+
 	if ((result = flash_erase_plane(0)) != FLASH_STAT_OK) return result;
 
 	/* the second flash controller, if any */

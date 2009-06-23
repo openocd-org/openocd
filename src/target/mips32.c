@@ -38,7 +38,7 @@ char* mips32_core_reg_list[] =
 	"status", "lo", "hi", "badvaddr", "cause", "pc"
 };
 
-mips32_core_reg_t mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] = 
+mips32_core_reg_t mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
 {
 	{0, NULL, NULL},
 	{1, NULL, NULL},
@@ -72,7 +72,7 @@ mips32_core_reg_t mips32_core_reg_list_arch_info[MIPS32NUMCOREREGS] =
 	{29, NULL, NULL},
 	{30, NULL, NULL},
 	{31, NULL, NULL},
-	
+
 	{32, NULL, NULL},
 	{33, NULL, NULL},
 	{34, NULL, NULL},
@@ -101,14 +101,14 @@ int mips32_get_core_reg(reg_t *reg)
 	mips32_core_reg_t *mips32_reg = reg->arch_info;
 	target_t *target = mips32_reg->target;
 	mips32_common_t *mips32_target = target->arch_info;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	retval = mips32_target->read_core_reg(target, mips32_reg->num);
-	
+
 	return retval;
 }
 
@@ -117,12 +117,12 @@ int mips32_set_core_reg(reg_t *reg, uint8_t *buf)
 	mips32_core_reg_t *mips32_reg = reg->arch_info;
 	target_t *target = mips32_reg->target;
 	uint32_t value = buf_get_u32(buf, 0, 32);
-		
+
 	if (target->state != TARGET_HALTED)
 	{
 		return ERROR_TARGET_NOT_HALTED;
 	}
-		
+
 	buf_set_u32(reg->value, 0, 32, value);
 	reg->dirty = 1;
 	reg->valid = 1;
@@ -134,10 +134,10 @@ int mips32_read_core_reg(struct target_s *target, int num)
 {
 	uint32_t reg_value;
 	mips32_core_reg_t *mips_core_reg;
-	
+
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
-		
+
 	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
 
@@ -146,28 +146,28 @@ int mips32_read_core_reg(struct target_s *target, int num)
 	buf_set_u32(mips32->core_cache->reg_list[num].value, 0, 32, reg_value);
 	mips32->core_cache->reg_list[num].valid = 1;
 	mips32->core_cache->reg_list[num].dirty = 0;
-	
-	return ERROR_OK;	
+
+	return ERROR_OK;
 }
 
 int mips32_write_core_reg(struct target_s *target, int num)
 {
 	uint32_t reg_value;
 	mips32_core_reg_t *mips_core_reg;
-	
+
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
 
 	if ((num < 0) || (num >= MIPS32NUMCOREREGS))
 		return ERROR_INVALID_ARGUMENTS;
-	
+
 	reg_value = buf_get_u32(mips32->core_cache->reg_list[num].value, 0, 32);
 	mips_core_reg = mips32->core_cache->reg_list[num].arch_info;
 	mips32->core_regs[num] = reg_value;
 	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num , reg_value);
 	mips32->core_cache->reg_list[num].valid = 1;
 	mips32->core_cache->reg_list[num].dirty = 0;
-	
+
 	return ERROR_OK;
 }
 
@@ -176,13 +176,13 @@ int mips32_invalidate_core_regs(target_t *target)
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
 	int i;
-	
+
 	for (i = 0; i < mips32->core_cache->num_regs; i++)
 	{
 		mips32->core_cache->reg_list[i].valid = 0;
 		mips32->core_cache->reg_list[i].dirty = 0;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -191,16 +191,16 @@ int mips32_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
 	int i;
-	
+
 	/* include floating point registers */
 	*reg_list_size = MIPS32NUMCOREREGS + MIPS32NUMFPREGS;
 	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
-	
+
 	for (i = 0; i < MIPS32NUMCOREREGS; i++)
 	{
 		(*reg_list)[i] = &mips32->core_cache->reg_list[i];
 	}
-	
+
 	/* add dummy floating points regs */
 	for (i = MIPS32NUMCOREREGS; i < (MIPS32NUMCOREREGS + MIPS32NUMFPREGS); i++)
 	{
@@ -213,14 +213,14 @@ int mips32_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 int mips32_save_context(target_t *target)
 {
 	int i;
-	
+
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	
+
 	/* read core registers */
 	mips32_pracc_read_regs(ejtag_info, mips32->core_regs);
-	
+
 	for (i = 0; i < MIPS32NUMCOREREGS; i++)
 	{
 		if (!mips32->core_cache->reg_list[i].valid)
@@ -228,18 +228,18 @@ int mips32_save_context(target_t *target)
 			mips32->read_core_reg(target, i);
 		}
 	}
-	
-	return ERROR_OK;		
+
+	return ERROR_OK;
 }
 
 int mips32_restore_context(target_t *target)
 {
 	int i;
-	
+
 	/* get pointers to arch-specific information */
 	mips32_common_t *mips32 = target->arch_info;
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
-	
+
 	for (i = 0; i < MIPS32NUMCOREREGS; i++)
 	{
 		if (mips32->core_cache->reg_list[i].dirty)
@@ -247,27 +247,27 @@ int mips32_restore_context(target_t *target)
 			mips32->write_core_reg(target, i);
 		}
 	}
-	
+
 	/* write core regs */
 	mips32_pracc_write_regs(ejtag_info, mips32->core_regs);
-	
-	return ERROR_OK;		
+
+	return ERROR_OK;
 }
 
 int mips32_arch_state(struct target_s *target)
 {
 	mips32_common_t *mips32 = target->arch_info;
-	
+
 	if (mips32->common_magic != MIPS32_COMMON_MAGIC)
 	{
 		LOG_ERROR("BUG: called for a non-MIPS32 target");
 		exit(-1);
 	}
-	
+
 	LOG_USER("target halted due to %s, pc: 0x%8.8" PRIx32 "",
 		Jim_Nvp_value2name_simple(nvp_target_debug_reason, target->debug_reason)->name ,
 		buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32));
-	
+
 	return ERROR_OK;
 }
 
@@ -282,20 +282,20 @@ reg_cache_t *mips32_build_reg_cache(target_t *target)
 	reg_t *reg_list = malloc(sizeof(reg_t) * num_regs);
 	mips32_core_reg_t *arch_info = malloc(sizeof(mips32_core_reg_t) * num_regs);
 	int i;
-	
+
 	if (mips32_core_reg_arch_type == -1)
 		mips32_core_reg_arch_type = register_reg_arch_type(mips32_get_core_reg, mips32_set_core_reg);
 
 	register_init_dummy(&mips32_gdb_dummy_fp_reg);
 
-	/* Build the process context cache */ 
+	/* Build the process context cache */
 	cache->name = "mips32 registers";
 	cache->next = NULL;
 	cache->reg_list = reg_list;
 	cache->num_regs = num_regs;
 	(*cache_p) = cache;
 	mips32->core_cache = cache;
-	
+
 	for (i = 0; i < num_regs; i++)
 	{
 		arch_info[i] = mips32_core_reg_list_arch_info[i];
@@ -311,7 +311,7 @@ reg_cache_t *mips32_build_reg_cache(target_t *target)
 		reg_list[i].arch_type = mips32_core_reg_arch_type;
 		reg_list[i].arch_info = &arch_info[i];
 	}
-	
+
 	return cache;
 }
 
@@ -319,15 +319,15 @@ int mips32_init_arch_info(target_t *target, mips32_common_t *mips32, jtag_tap_t 
 {
 	target->arch_info = mips32;
 	mips32->common_magic = MIPS32_COMMON_MAGIC;
-	
+
 	/* has breakpoint/watchpint unit been scanned */
 	mips32->bp_scanned = 0;
 	mips32->data_break_list = NULL;
-	
+
 	mips32->ejtag_info.tap = tap;
 	mips32->read_core_reg = mips32_read_core_reg;
 	mips32->write_core_reg = mips32_write_core_reg;
-	
+
 	return ERROR_OK;
 }
 
@@ -345,11 +345,11 @@ int mips32_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 int mips32_examine(struct target_s *target)
 {
 	mips32_common_t *mips32 = target->arch_info;
-	
+
 	if (!target_was_examined(target))
 	{
 		target_set_examined(target);
-	
+
 		/* we will configure later */
 		mips32->bp_scanned = 0;
 		mips32->num_inst_bpoints = 0;
@@ -357,7 +357,7 @@ int mips32_examine(struct target_s *target)
 		mips32->num_inst_bpoints_avail = 0;
 		mips32->num_data_bpoints_avail = 0;
 	}
-		
+
 	return ERROR_OK;
 }
 
@@ -368,20 +368,20 @@ int mips32_configure_break_unit(struct target_s *target)
 	int retval;
 	uint32_t dcr, bpinfo;
 	int i;
-	
+
 	if (mips32->bp_scanned)
 		return ERROR_OK;
-	
+
 	/* get info about breakpoint support */
 	if ((retval = target_read_u32(target, EJTAG_DCR, &dcr)) != ERROR_OK)
 		return retval;
-	
+
 	if (dcr & (1 << 16))
 	{
 		/* get number of inst breakpoints */
 		if ((retval = target_read_u32(target, EJTAG_IBS, &bpinfo)) != ERROR_OK)
 			return retval;
-		
+
 		mips32->num_inst_bpoints = (bpinfo >> 24) & 0x0F;
 		mips32->num_inst_bpoints_avail = mips32->num_inst_bpoints;
 		mips32->inst_break_list = calloc(mips32->num_inst_bpoints, sizeof(mips32_comparator_t));
@@ -389,18 +389,18 @@ int mips32_configure_break_unit(struct target_s *target)
 		{
 			mips32->inst_break_list[i].reg_address = EJTAG_IBA1 + (0x100 * i);
 		}
-		
+
 		/* clear IBIS reg */
 		if ((retval = target_write_u32(target, EJTAG_IBS, 0)) != ERROR_OK)
 			return retval;
 	}
-	
+
 	if (dcr & (1 << 17))
 	{
 		/* get number of data breakpoints */
 		if ((retval = target_read_u32(target, EJTAG_DBS, &bpinfo)) != ERROR_OK)
 			return retval;
-		
+
 		mips32->num_data_bpoints = (bpinfo >> 24) & 0x0F;
 		mips32->num_data_bpoints_avail = mips32->num_data_bpoints;
 		mips32->data_break_list = calloc(mips32->num_data_bpoints, sizeof(mips32_comparator_t));
@@ -408,16 +408,16 @@ int mips32_configure_break_unit(struct target_s *target)
 		{
 			mips32->data_break_list[i].reg_address = EJTAG_DBA1 + (0x100 * i);
 		}
-		
+
 		/* clear DBIS reg */
 		if ((retval = target_write_u32(target, EJTAG_DBS, 0)) != ERROR_OK)
 			return retval;
 	}
-	
+
 	LOG_DEBUG("DCR 0x%" PRIx32 " numinst %i numdata %i", dcr, mips32->num_inst_bpoints, mips32->num_data_bpoints);
-	
+
 	mips32->bp_scanned = 1;
-	
+
 	return ERROR_OK;
 }
 
@@ -426,11 +426,11 @@ int mips32_enable_interrupts(struct target_s *target, int enable)
 	int retval;
 	int update = 0;
 	uint32_t dcr;
-	
+
 	/* read debug control register */
 	if ((retval = target_read_u32(target, EJTAG_DCR, &dcr)) != ERROR_OK)
 		return retval;
-	
+
 	if (enable)
 	{
 		if (!(dcr & (1 << 4)))
@@ -449,12 +449,12 @@ int mips32_enable_interrupts(struct target_s *target, int enable)
 			update = 1;
 		}
 	}
-	
+
 	if (update)
 	{
 		if ((retval = target_write_u32(target, EJTAG_DCR, dcr)) != ERROR_OK)
 			return retval;
 	}
-	
+
 	return ERROR_OK;
 }

@@ -34,7 +34,7 @@ typedef struct xscale_jtag_s
 	/* position in JTAG scan chain */
 	jtag_tap_t *tap;
 
-	/* IR length and instructions */	
+	/* IR length and instructions */
 	int ir_length;
 	uint32_t dbgrx;
 	uint32_t dbgtx;
@@ -86,7 +86,7 @@ typedef struct xscale_trace_s
 typedef struct xscale_common_s
 {
 	int common_magic;
-	
+
 	/* XScale registers (CP15, DBG) */
 	reg_cache_t *reg_cache;
 
@@ -94,29 +94,29 @@ typedef struct xscale_common_s
 	char *variant;
 
 	xscale_jtag_t jtag_info;
-	
+
 	/* current state of the debug handler */
 	int handler_installed;
 	int handler_running;
 	uint32_t handler_address;
-	
+
 	/* target-endian buffers with exception vectors */
 	uint32_t low_vectors[8];
 	uint32_t high_vectors[8];
-	
+
 	/* static low vectors */
 	uint8_t static_low_vectors_set;	/* bit field with static vectors set by the user */
 	uint8_t static_high_vectors_set; /* bit field with static vectors set by the user */
 	uint32_t static_low_vectors[8];
 	uint32_t static_high_vectors[8];
 
-	/* DCache cleaning */	
+	/* DCache cleaning */
 	uint32_t cache_clean_address;
-	
+
 	/* whether hold_rst and ext_dbg_break should be set */
 	int hold_rst;
 	int external_debug_break;
-	
+
 	/* breakpoint / watchpoint handling */
 	int dbr_available;
 	int dbr0_used;
@@ -126,23 +126,23 @@ typedef struct xscale_common_s
 	int	ibcr1_used;
 	uint32_t arm_bkpt;
 	uint16_t thumb_bkpt;
-	
+
 	uint8_t vector_catch;
 
 	xscale_trace_t trace;
-	
+
 	int arch_debug_reason;
-	
+
 	/* armv4/5 common stuff */
 	armv4_5_common_t armv4_5_common;
-	
+
 	/* MMU/Caches */
 	armv4_5_mmu_common_t armv4_5_mmu;
 	uint32_t cp15_control_reg;
-	
+
 	/* possible future enhancements that go beyond XScale common stuff */
 	void *arch_info;
-	
+
 	int fast_memory_access;
 } xscale_common_t;
 

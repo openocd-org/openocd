@@ -44,7 +44,7 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 	breakpoint_t *breakpoint = target->breakpoints;
 	breakpoint_t **breakpoint_p = &target->breakpoints;
 	int retval;
-	
+
 	while (breakpoint)
 	{
 		if (breakpoint->address == address)
@@ -52,7 +52,7 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
 	}
-		
+
 	(*breakpoint_p) = malloc(sizeof(breakpoint_t));
 	(*breakpoint_p)->address = address;
 	(*breakpoint_p)->length = length;
@@ -60,7 +60,7 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 	(*breakpoint_p)->set = 0;
 	(*breakpoint_p)->orig_instr = malloc(length);
 	(*breakpoint_p)->next = NULL;
-	
+
 	if ((retval = target_add_breakpoint(target, *breakpoint_p)) != ERROR_OK)
 	{
 		switch (retval)
@@ -83,11 +83,11 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 				break;
 		}
 	}
-	
-	LOG_DEBUG("added %s breakpoint at 0x%8.8" PRIx32 " of length 0x%8.8x", 
+
+	LOG_DEBUG("added %s breakpoint at 0x%8.8" PRIx32 " of length 0x%8.8x",
 		breakpoint_type_strings[(*breakpoint_p)->type],
 		(*breakpoint_p)->address, (*breakpoint_p)->length);
-	
+
 	return ERROR_OK;
 }
 
@@ -96,7 +96,7 @@ static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
 	breakpoint_t **breakpoint_p = &target->breakpoints;
-	
+
 	while (breakpoint)
 	{
 		if (breakpoint == breakpoint_remove)
@@ -104,12 +104,12 @@ static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
 	}
-	
+
 	if (breakpoint == NULL)
 		return;
-	
+
 	target_remove_breakpoint(target, breakpoint);
-	
+
 	(*breakpoint_p) = breakpoint->next;
 	free(breakpoint->orig_instr);
 	free(breakpoint);
@@ -119,7 +119,7 @@ void breakpoint_remove(target_t *target, uint32_t address)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
 	breakpoint_t **breakpoint_p = &target->breakpoints;
-	
+
 	while (breakpoint)
 	{
 		if (breakpoint->address == address)
@@ -127,7 +127,7 @@ void breakpoint_remove(target_t *target, uint32_t address)
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
 	}
-	
+
 	if (breakpoint)
 	{
 		breakpoint_free(target, breakpoint);
@@ -150,14 +150,14 @@ void breakpoint_clear_target(target_t *target)
 breakpoint_t* breakpoint_find(target_t *target, uint32_t address)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
-	
+
 	while (breakpoint)
 	{
 		if (breakpoint->address == address)
 			return breakpoint;
 		breakpoint = breakpoint->next;
 	}
-	
+
 	return NULL;
 }
 
@@ -166,7 +166,7 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum wat
 	watchpoint_t *watchpoint = target->watchpoints;
 	watchpoint_t **watchpoint_p = &target->watchpoints;
 	int retval;
-		
+
 	while (watchpoint)
 	{
 		if (watchpoint->address == address)
@@ -174,7 +174,7 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum wat
 		watchpoint_p = &watchpoint->next;
 		watchpoint = watchpoint->next;
 	}
-	
+
 	(*watchpoint_p) = malloc(sizeof(watchpoint_t));
 	(*watchpoint_p)->address = address;
 	(*watchpoint_p)->length = length;
@@ -183,7 +183,7 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum wat
 	(*watchpoint_p)->rw = rw;
 	(*watchpoint_p)->set = 0;
 	(*watchpoint_p)->next = NULL;
-		
+
 	if ((retval = target_add_watchpoint(target, *watchpoint_p)) != ERROR_OK)
 	{
 		switch (retval)
@@ -206,11 +206,11 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum wat
 				break;
 		}
 	}
-	
+
 	LOG_DEBUG("added %s watchpoint at 0x%8.8" PRIx32 " of length 0x%8.8x",
 		watchpoint_rw_strings[(*watchpoint_p)->rw],
 		(*watchpoint_p)->address, (*watchpoint_p)->length);
-	
+
 	return ERROR_OK;
 }
 
@@ -226,7 +226,7 @@ static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
 		watchpoint_p = &watchpoint->next;
 		watchpoint = watchpoint->next;
 	}
-	
+
 	if (watchpoint == NULL)
 		return;
 	target_remove_watchpoint(target, watchpoint);
@@ -238,7 +238,7 @@ void watchpoint_remove(target_t *target, uint32_t address)
 {
 	watchpoint_t *watchpoint = target->watchpoints;
 	watchpoint_t **watchpoint_p = &target->watchpoints;
-	
+
 	while (watchpoint)
 	{
 		if (watchpoint->address == address)
@@ -246,7 +246,7 @@ void watchpoint_remove(target_t *target, uint32_t address)
 		watchpoint_p = &watchpoint->next;
 		watchpoint = watchpoint->next;
 	}
-	
+
 	if (watchpoint)
 	{
 		watchpoint_free(target, watchpoint);

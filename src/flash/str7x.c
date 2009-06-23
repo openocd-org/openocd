@@ -75,10 +75,10 @@ flash_driver_t str7x_flash =
 static int str7x_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *str7x_cmd = register_command(cmd_ctx, NULL, "str7x", NULL, COMMAND_ANY, NULL);
-	
+
 	register_command(cmd_ctx, str7x_cmd, "disable_jtag", str7x_handle_disable_jtag_command, COMMAND_EXEC,
 					 "disable jtag access");
-					 
+
 	return ERROR_OK;
 }
 
@@ -95,7 +95,7 @@ static int str7x_build_block_list(struct flash_bank_s *bank)
 	int i;
 	int num_sectors;
 	int b0_sectors = 0, b1_sectors = 0;
-		
+
 	switch (bank->size)
 	{
 		case 16 * 1024:
@@ -114,15 +114,15 @@ static int str7x_build_block_list(struct flash_bank_s *bank)
 			LOG_ERROR("BUG: unknown bank->size encountered");
 			exit(-1);
 	}
-		
+
 	num_sectors = b0_sectors + b1_sectors;
-	
+
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
 	str7x_info->sector_bits = malloc(sizeof(uint32_t) * num_sectors);
-	
+
 	num_sectors = 0;
-	
+
 	for (i = 0; i < b0_sectors; i++)
 	{
 		bank->sectors[num_sectors].offset = mem_layout_str7bank0[i].sector_start;
@@ -131,7 +131,7 @@ static int str7x_build_block_list(struct flash_bank_s *bank)
 		bank->sectors[num_sectors].is_protected = 1;
 		str7x_info->sector_bits[num_sectors++] = mem_layout_str7bank0[i].sector_bit;
 	}
-	
+
 	for (i = 0; i < b1_sectors; i++)
 	{
 		bank->sectors[num_sectors].offset = mem_layout_str7bank1[i].sector_start;
@@ -140,7 +140,7 @@ static int str7x_build_block_list(struct flash_bank_s *bank)
 		bank->sectors[num_sectors].is_protected = 1;
 		str7x_info->sector_bits[num_sectors++] = mem_layout_str7bank1[i].sector_bit;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -149,20 +149,20 @@ static int str7x_build_block_list(struct flash_bank_s *bank)
 static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	str7x_flash_bank_t *str7x_info;
-	
+
 	if (argc < 7)
 	{
 		LOG_WARNING("incomplete flash_bank str7x configuration");
 		return ERROR_FLASH_BANK_INVALID;
 	}
-	
+
 	str7x_info = malloc(sizeof(str7x_flash_bank_t));
 	bank->driver_priv = str7x_info;
-	
+
 	/* set default bits for str71x flash */
 	str7x_info->busy_bits = (FLASH_LOCK | FLASH_BSYA1 | FLASH_BSYA0);
 	str7x_info->disable_bit = (1 << 1);
-	
+
 	if (strcmp(args[6], "STR71x") == 0)
 	{
 		str7x_info->register_base = 0x40100000;
@@ -185,9 +185,9 @@ static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	}
 
 	str7x_build_block_list(bank);
-	
+
 	str7x_info->write_algorithm = NULL;
-	
+
 	return ERROR_OK;
 }
 
@@ -207,7 +207,7 @@ static uint32_t str7x_result(struct flash_bank_s *bank)
 	uint32_t retval;
 
 	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_ER), &retval);
-	
+
 	return retval;
 }
 
@@ -215,7 +215,7 @@ static int str7x_protect_check(struct flash_bank_s *bank)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
 	target_t *target = bank->target;
-	
+
 	int i;
 	uint32_t retval;
 
@@ -242,12 +242,12 @@ static int str7x_erase(struct flash_bank_s *bank, int first, int last)
 {
 	str7x_flash_bank_t *str7x_info = bank->driver_priv;
 	target_t *target = bank->target;
-	
+
 	int i;
 	uint32_t cmd;
 	uint32_t retval;
 	uint32_t sectors = 0;
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
@@ -258,33 +258,33 @@ static int str7x_erase(struct flash_bank_s *bank, int first, int last)
 	{
 		sectors |= str7x_info->sector_bits[i];
 	}
-	
+
 	LOG_DEBUG("sectors: 0x%" PRIx32 "", sectors);
-	
-	/* clear FLASH_ER register */	
+
+	/* clear FLASH_ER register */
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
-	
+
 	cmd = FLASH_SER;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-	
+
 	cmd = sectors;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR1), cmd);
-	
+
 	cmd = FLASH_SER | FLASH_WMS;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-	
+
 	while (((retval = str7x_status(bank)) & str7x_info->busy_bits)) {
 		alive_sleep(1);
 	}
-	
+
 	retval = str7x_result(bank);
-	
+
 	if (retval)
 	{
 		LOG_ERROR("error erasing flash bank, FLASH_ER: 0x%" PRIx32 "", retval);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
-	
+
 	for (i = first; i <= last; i++)
 		bank->sectors[i].is_erased = 1;
 
@@ -299,13 +299,13 @@ static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last
 	uint32_t cmd;
 	uint32_t retval;
 	uint32_t protect_blocks;
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	protect_blocks = 0xFFFFFFFF;
 
 	if (set)
@@ -313,30 +313,30 @@ static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last
 		for (i = first; i <= last; i++)
 			protect_blocks &= ~(str7x_info->sector_bits[i]);
 	}
-	
-	/* clear FLASH_ER register */	
+
+	/* clear FLASH_ER register */
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
 
 	cmd = FLASH_SPR;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-	
+
 	cmd = str7x_get_flash_adr(bank, FLASH_NVWPAR);
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), cmd);
-	
+
 	cmd = protect_blocks;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), cmd);
-	
+
 	cmd = FLASH_SPR | FLASH_WMS;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-	
+
 	while (((retval = str7x_status(bank)) & str7x_info->busy_bits)) {
 		alive_sleep(1);
 	}
-	
+
 	retval = str7x_result(bank);
-	
+
 	LOG_DEBUG("retval: 0x%8.8" PRIx32 "", retval);
-	
+
 	if (retval & FLASH_ERER)
 		return ERROR_FLASH_SECTOR_NOT_ERASED;
 	else if (retval & FLASH_WPF)
@@ -355,7 +355,7 @@ static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_
 	reg_param_t reg_params[6];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval = ERROR_OK;
-	
+
 	uint32_t str7x_flash_write_code[] = {
 					/* write:				*/
 		0xe3a04201, /*	mov r4, #0x10000000	*/
@@ -381,14 +381,14 @@ static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_
 					/* exit:				*/
 		0xeafffffe, /*	b exit				*/
 	};
-	
+
 	/* flash write code */
 	if (target_alloc_working_area(target, 4 * 20, &str7x_info->write_algorithm) != ERROR_OK)
 	{
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
-	
+
 	target_write_buffer(target, str7x_info->write_algorithm->address, 20 * 4, (uint8_t*)str7x_flash_write_code);
 
 	/* memory buffer */
@@ -400,63 +400,63 @@ static int str7x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_
 			/* if we already allocated the writing code, but failed to get a buffer, free the algorithm */
 			if (str7x_info->write_algorithm)
 				target_free_working_area(target, str7x_info->write_algorithm);
-			
+
 			LOG_WARNING("no large enough working area available, can't do block memory writes");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 	}
-	
+
 	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
 	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
-	
+
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);
 	init_reg_param(&reg_params[4], "r4", 32, PARAM_IN);
 	init_reg_param(&reg_params[5], "r5", 32, PARAM_OUT);
-	
+
 	while (count > 0)
 	{
 		uint32_t thisrun_count = (count > (buffer_size / 8)) ? (buffer_size / 8) : count;
-		
+
 		target_write_buffer(target, source->address, thisrun_count * 8, buffer);
-		
+
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
 		buf_set_u32(reg_params[1].value, 0, 32, address);
 		buf_set_u32(reg_params[2].value, 0, 32, str7x_get_flash_adr(bank, FLASH_CR0));
 		buf_set_u32(reg_params[3].value, 0, 32, thisrun_count);
 		buf_set_u32(reg_params[5].value, 0, 32, str7x_info->busy_bits);
-	
+
 		if ((retval = target_run_algorithm(target, 0, NULL, 6, reg_params, str7x_info->write_algorithm->address, str7x_info->write_algorithm->address + (19 * 4), 10000, &armv4_5_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing str7x flash write algorithm");
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
-	
+
 		if (buf_get_u32(reg_params[4].value, 0, 32) != 0x00)
 		{
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
-		
+
 		buffer += thisrun_count * 8;
 		address += thisrun_count * 8;
 		count -= thisrun_count;
 	}
-	
+
 	target_free_working_area(target, source);
 	target_free_working_area(target, str7x_info->write_algorithm);
-	
+
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
 	destroy_reg_param(&reg_params[3]);
 	destroy_reg_param(&reg_params[4]);
 	destroy_reg_param(&reg_params[5]);
-	
+
 	return retval;
 }
 
@@ -472,7 +472,7 @@ static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offs
 	int retval;
 	uint32_t check_address = offset;
 	int i;
-	
+
 	if (bank->target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
@@ -484,12 +484,12 @@ static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offs
 		LOG_WARNING("offset 0x%" PRIx32 " breaks required 8-byte alignment", offset);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 	}
-	
+
 	for (i = 0; i < bank->num_sectors; i++)
 	{
 		uint32_t sec_start = bank->sectors[i].offset;
 		uint32_t sec_end = sec_start + bank->sectors[i].size;
-		
+
 		/* check if destination falls within the current sector */
 		if ((check_address >= sec_start) && (check_address < sec_end))
 		{
@@ -500,15 +500,15 @@ static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offs
 				check_address = sec_end;
 		}
 	}
-	
+
 	if (check_address != offset + count)
 		return ERROR_FLASH_DST_OUT_OF_BANK;
-		
-	/* clear FLASH_ER register */	
+
+	/* clear FLASH_ER register */
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);
 
 	/* multiple dwords (8-byte) to be programmed? */
-	if (dwords_remaining > 0) 
+	if (dwords_remaining > 0)
 	{
 		/* try using a block write */
 		if ((retval = str7x_write_block(bank, buffer, offset, dwords_remaining)) != ERROR_OK)
@@ -516,14 +516,14 @@ static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offs
 			if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			{
 				/* if block write failed (no sufficient working area),
-				 * we use normal (slow) single dword accesses */ 
+				 * we use normal (slow) single dword accesses */
 				LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 			}
 			else if (retval == ERROR_FLASH_OPERATION_FAILED)
 			{
 				/* if an error occured, we examine the reason, and quit */
 				retval = str7x_result(bank);
-				
+
 				LOG_ERROR("flash writing failed with error code: 0x%x", retval);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
@@ -541,29 +541,29 @@ static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offs
 		/* command */
 		cmd = FLASH_DWPG;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-		
+
 		/* address */
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
-		
+
 		/* data word 1 */
 		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, buffer + bytes_written);
 		bytes_written += 4;
-		
+
 		/* data word 2 */
 		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, buffer + bytes_written);
 		bytes_written += 4;
-		
+
 		/* start programming cycle */
 		cmd = FLASH_DWPG | FLASH_WMS;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-		
+
 		while (((retval = str7x_status(bank)) & str7x_info->busy_bits))
 		{
 			alive_sleep(1);
 		}
-		
+
 		retval = str7x_result(bank);
-		
+
 		if (retval & FLASH_PGER)
 			return ERROR_FLASH_OPERATION_FAILED;
 		else if (retval & FLASH_WPF)
@@ -572,51 +572,51 @@ static int str7x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offs
 		dwords_remaining--;
 		address += 8;
 	}
-	
+
 	if (bytes_remaining)
 	{
 		uint8_t last_dword[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 		int i = 0;
-				
+
 		while (bytes_remaining > 0)
 		{
-			last_dword[i++] = *(buffer + bytes_written); 
+			last_dword[i++] = *(buffer + bytes_written);
 			bytes_remaining--;
 			bytes_written++;
 		}
-		
+
 		/* command */
 		cmd = FLASH_DWPG;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-		
+
 		/* address */
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), address);
-		
+
 		/* data word 1 */
 		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR0), 4, 1, last_dword);
 		bytes_written += 4;
-		
+
 		/* data word 2 */
 		target_write_memory(target, str7x_get_flash_adr(bank, FLASH_DR1), 4, 1, last_dword + 4);
 		bytes_written += 4;
-		
+
 		/* start programming cycle */
 		cmd = FLASH_DWPG | FLASH_WMS;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
-		
+
 		while (((retval = str7x_status(bank)) & str7x_info->busy_bits))
 		{
 			alive_sleep(1);
 		}
-		
+
 		retval = str7x_result(bank);
-		
+
 		if (retval & FLASH_PGER)
 			return ERROR_FLASH_OPERATION_FAILED;
 		else if (retval & FLASH_WPF)
 			return ERROR_FLASH_OPERATION_FAILED;
 	}
-		
+
 	return ERROR_OK;
 }
 
@@ -643,35 +643,35 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 	flash_bank_t *bank;
 	target_t *target = NULL;
 	str7x_flash_bank_t *str7x_info = NULL;
-	
+
 	uint32_t flash_cmd;
 	uint32_t retval;
 	uint16_t ProtectionLevel = 0;
 	uint16_t ProtectionRegs;
-	
+
 	if (argc < 1)
 	{
 		command_print(cmd_ctx, "str7x disable_jtag <bank>");
-		return ERROR_OK;	
+		return ERROR_OK;
 	}
-	
+
 	bank = get_flash_bank_by_num(strtoul(args[0], NULL, 0));
 	if (!bank)
 	{
 		command_print(cmd_ctx, "str7x disable_jtag <bank> ok");
 		return ERROR_OK;
 	}
-	
+
 	str7x_info = bank->driver_priv;
-	
+
 	target = bank->target;
-	
+
 	if (target->state != TARGET_HALTED)
 	{
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	
+
 	/* first we get protection status */
 	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_NVAPR0), &retval);
 
@@ -679,7 +679,7 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 	{
 		ProtectionLevel = 1;
 	}
-	
+
 	target_read_u32(target, str7x_get_flash_adr(bank, FLASH_NVAPR1), &retval);
 	ProtectionRegs = ~(retval >> 16);
 
@@ -688,7 +688,7 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 		ProtectionRegs >>= 1;
 		ProtectionLevel++;
 	}
-	
+
 	if (ProtectionLevel == 0)
 	{
 		flash_cmd = FLASH_SPR;
@@ -707,6 +707,6 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 		flash_cmd = FLASH_SPR | FLASH_WMS;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), flash_cmd);
 	}
-	
+
 	return ERROR_OK;
 }

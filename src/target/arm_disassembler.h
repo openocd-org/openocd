@@ -25,13 +25,13 @@
 enum arm_instruction_type
 {
 	ARM_UNKNOWN_INSTUCTION,
-	
+
 	/* Branch instructions */
 	ARM_B,
 	ARM_BL,
 	ARM_BX,
 	ARM_BLX,
-	
+
 	/* Data processing instructions */
 	ARM_AND,
 	ARM_EOR,
@@ -49,32 +49,32 @@ enum arm_instruction_type
 	ARM_MOV,
 	ARM_BIC,
 	ARM_MVN,
-	
+
 	/* Load/store instructions */
 	ARM_LDR,
 	ARM_LDRB,
 	ARM_LDRT,
 	ARM_LDRBT,
-	
+
 	ARM_LDRH,
 	ARM_LDRSB,
 	ARM_LDRSH,
-	
+
 	ARM_LDM,
 
 	ARM_STR,
 	ARM_STRB,
 	ARM_STRT,
 	ARM_STRBT,
-	
+
 	ARM_STRH,
-	
+
 	ARM_STM,
-	
+
 	/* Status register access instructions */
 	ARM_MRS,
 	ARM_MSR,
-	
+
 	/* Multiply instructions */
 	ARM_MUL,
 	ARM_MLA,
@@ -82,25 +82,25 @@ enum arm_instruction_type
 	ARM_SMLAL,
 	ARM_UMULL,
 	ARM_UMLAL,
-	
+
 	/* Miscellaneous instructions */
 	ARM_CLZ,
-	
+
 	/* Exception generating instructions */
 	ARM_BKPT,
 	ARM_SWI,
-	
+
 	/* Coprocessor instructions */
 	ARM_CDP,
 	ARM_LDC,
 	ARM_STC,
 	ARM_MCR,
 	ARM_MRC,
-	
+
 	/* Semaphore instructions */
 	ARM_SWP,
 	ARM_SWPB,
-	
+
 	/* Enhanced DSP extensions */
 	ARM_MCRR,
 	ARM_MRRC,
@@ -184,7 +184,7 @@ typedef struct arm_instruction_s
 	enum arm_instruction_type type;
 	char text[128];
 	uint32_t opcode;
-	
+
 	union {
 		arm_b_bl_bx_blx_instr_t b_bl_bx_blx;
 		arm_data_proc_instr_t data_proc;

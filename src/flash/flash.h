@@ -81,13 +81,13 @@ struct flash_bank_s;
  */
 typedef struct flash_driver_s
 {
-	/** 
+	/**
 	 * Gives a human-readable name of this flash driver,
 	 * This field is used to select and initialize the driver.
 	 */
 	char *name;
 
-	/** 
+	/**
 	 * Registers driver-specific commands.  When called (during the
 	 * "flash bank" command), the driver may register addition
 	 * commands to support new flash chip functions.
@@ -96,12 +96,12 @@ typedef struct flash_driver_s
 	 */
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 
-	/** 
+	/**
 	 * Finish the "flash bank" command for @a bank.  The
 	 * @a bank parameter will have been filled in by the core flash
 	 * layer when this routine is called, and the driver can store
 	 * additional information in its flash_bank_t::driver_priv field.
-	 * 
+	 *
 	 * @param cmd_ctx - the command context
 	 * @param cmd     - the command, in this case 'flash'
 	 * @param args    - parameters, see below
@@ -112,7 +112,7 @@ typedef struct flash_driver_s
 	 * @code
 	 * args[0] = bank
 	 * args[1] = drivername {name above}
-	 * args[2] = baseaddress 
+	 * args[2] = baseaddress
 	 * args[3] = lengthbytes
 	 * args[4] = chip_width_in bytes
 	 * args[5] = bus_width_bytes
@@ -129,7 +129,7 @@ typedef struct flash_driver_s
 	 */
 	int (*flash_bank_command)(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank);
 
-	/** 
+	/**
 	 * Bank/sector erase routine (target-specific).  When
 	 * called, the flash driver should erase the specified sectors
 	 * using whatever means are at its disposal.
@@ -141,7 +141,7 @@ typedef struct flash_driver_s
 	 */
 	int (*erase)(struct flash_bank_s *bank, int first, int last);
 
-	/** 
+	/**
 	 * Bank/sector protection routine (target-specific).
 	 * When called, the driver should disable 'flash write' bits (or
 	 * enable 'erase protection' bits) for the given @a bank and @a
@@ -155,7 +155,7 @@ typedef struct flash_driver_s
 	 */
 	int (*protect)(struct flash_bank_s *bank, int set, int first, int last);
 
-	/** 
+	/**
 	 * Program data into the flash.  Note CPU address will be
 	 * "bank->base + offset", while the physical address is
 	 * dependent upon current target MMU mappings.
@@ -168,7 +168,7 @@ typedef struct flash_driver_s
 	 */
 	int (*write)(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count);
 
-	/** 
+	/**
 	 * Probe to determine what kind of flash is present.
 	 * This is invoked by the "probe" script command.
 	 *
@@ -176,8 +176,8 @@ typedef struct flash_driver_s
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */
 	int (*probe)(struct flash_bank_s *bank);
-	
-	/** 
+
+	/**
 	 * Check the erasure status of a flash bank.
 	 * When called, the driver routine must perform the required
 	 * checks and then set the @c flash_sector_s::is_erased field
@@ -209,7 +209,7 @@ typedef struct flash_driver_s
 	 * @param char - where to put the text for the human to read
 	 * @param buf_size - the size of the human buffer.
 	 * @returns ERROR_OK if successful; otherwise, an error code.
-	 */ 
+	 */
 	int (*info)(struct flash_bank_s *bank, char *buf, int buf_size);
 
 	/**
@@ -228,7 +228,7 @@ typedef struct flash_driver_s
 	int (*auto_probe)(struct flash_bank_s *bank);
 } flash_driver_t;
 
-/** 
+/**
  * Provides details of a flash bank, available either on-chip or through
  * a major interface.
  *
@@ -276,7 +276,7 @@ extern int flash_init_drivers(struct command_context_s *cmd_ctx);
 extern int flash_erase_address_range(struct target_s *target, uint32_t addr, uint32_t length);
 /**
  * Writes @a image into the @a target flash.  The @a written parameter
- * will contain the 
+ * will contain the
  * @param target The target with the flash to be programmed.
  * @param image The image that will be programmed to flash.
  * @param written On return, contains the number of bytes written.

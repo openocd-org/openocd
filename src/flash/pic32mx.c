@@ -603,10 +603,10 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 	pic32mx_info->probed = 0;
 
 	device_id = ejtag_info->idcode;
-	LOG_INFO("device id = 0x%08" PRIx32 " (manuf 0x%03x dev 0x%02x, ver 0x%03x)", 
+	LOG_INFO("device id = 0x%08" PRIx32 " (manuf 0x%03x dev 0x%02x, ver 0x%03x)",
 			  device_id,
-			  (unsigned)((device_id >> 1)&0x7ff), 
-			  (unsigned)((device_id >> 12)&0xff), 
+			  (unsigned)((device_id >> 1)&0x7ff),
+			  (unsigned)((device_id >> 12)&0xff),
 			  (unsigned)((device_id >> 20)&0xfff));
 
 	if (((device_id >> 1)&0x7ff) != PIC32MX_MANUF_ID) {
@@ -698,9 +698,9 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	device_id = ejtag_info->idcode;
 
 	if (((device_id >> 1)&0x7ff) != PIC32MX_MANUF_ID) {
-		snprintf(buf, buf_size, 
-				 "Cannot identify target as a PIC32MX family (manufacturer 0x%03d != 0x%03d)\n", 
-				 (unsigned)((device_id >> 1)&0x7ff), 
+		snprintf(buf, buf_size,
+				 "Cannot identify target as a PIC32MX family (manufacturer 0x%03d != 0x%03d)\n",
+				 (unsigned)((device_id >> 1)&0x7ff),
 				 PIC32MX_MANUF_ID);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -715,7 +715,7 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	}
 	buf += printed;
 	buf_size -= printed;
-	printed = snprintf(buf, buf_size, "  Ver: 0x%03x", 
+	printed = snprintf(buf, buf_size, "  Ver: 0x%03x",
 					   (unsigned)((device_id >> 20)&0xfff));
 
 	return ERROR_OK;

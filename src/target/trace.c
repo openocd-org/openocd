@@ -30,7 +30,7 @@ int trace_point(target_t *target, uint32_t number)
 	trace_t *trace = target->trace_info;
 
 	LOG_DEBUG("tracepoint: %i", (int)number);
-	
+
 	if (number < trace->num_trace_points)
 		trace->trace_points[number].hit_counter++;
 
@@ -43,7 +43,7 @@ int trace_point(target_t *target, uint32_t number)
 			trace->trace_history_overflowed = 1;
 		}
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -51,11 +51,11 @@ static int handle_trace_point_command(struct command_context_s *cmd_ctx, char *c
 {
 	target_t *target = get_current_target(cmd_ctx);
 	trace_t *trace = target->trace_info;
-	
+
 	if (argc == 0)
 	{
 		uint32_t i;
-		
+
 		for (i = 0; i < trace->num_trace_points; i++)
 		{
 			command_print(cmd_ctx, "trace point 0x%8.8" PRIx32 " (%lld times hit)",
@@ -65,7 +65,7 @@ static int handle_trace_point_command(struct command_context_s *cmd_ctx, char *c
 
 		return ERROR_OK;
 	}
-	
+
 	if (!strcmp(args[0], "clear"))
 	{
 		if (trace->trace_points)
@@ -75,21 +75,21 @@ static int handle_trace_point_command(struct command_context_s *cmd_ctx, char *c
 		}
 		trace->num_trace_points = 0;
 		trace->trace_points_size = 0;
-		
+
 		return ERROR_OK;
 	}
-	
+
 	/* resize array if necessary */
 	if (!trace->trace_points || (trace->trace_points_size == trace->num_trace_points))
 	{
 		trace->trace_points = realloc(trace->trace_points, sizeof(trace_point_t) * (trace->trace_points_size + 32));
 		trace->trace_points_size += 32;
 	}
-	
+
 	trace->trace_points[trace->num_trace_points].address = strtoul(args[0], NULL, 0);
 	trace->trace_points[trace->num_trace_points].hit_counter = 0;
 	trace->num_trace_points++;
-	
+
 	return ERROR_OK;
 }
 
@@ -97,7 +97,7 @@ static int handle_trace_history_command(struct command_context_s *cmd_ctx, char 
 {
 	target_t *target = get_current_target(cmd_ctx);
 	trace_t *trace = target->trace_info;
-	
+
 	if (argc > 0)
 	{
 		trace->trace_history_pos = 0;
@@ -108,13 +108,13 @@ static int handle_trace_history_command(struct command_context_s *cmd_ctx, char 
 			/* clearing is implicit, we've just reset position anyway */
 			return ERROR_OK;
 		}
-		
+
 		if (trace->trace_history)
 			free(trace->trace_history);
-		
+
 		trace->trace_history_size = strtoul(args[0], NULL, 0);
 		trace->trace_history = malloc(sizeof(uint32_t) * trace->trace_history_size);
-		
+
 		command_print(cmd_ctx, "new trace history size: %i", (int)(trace->trace_history_size));
 	}
 	else
@@ -132,7 +132,7 @@ static int handle_trace_history_command(struct command_context_s *cmd_ctx, char 
 			first = trace->trace_history_pos;
 			last = trace->trace_history_pos - 1;
 		}
-		
+
 		for (i = first; (i % trace->trace_history_size) != last; i++)
 		{
 			if (trace->trace_history[i % trace->trace_history_size] < trace->num_trace_points)
@@ -158,7 +158,7 @@ int trace_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *trace_cmd =
 		register_command(cmd_ctx, NULL, "trace", NULL, COMMAND_ANY, "trace commands");
-	
+
 	register_command(cmd_ctx, trace_cmd, "history", handle_trace_history_command,
 		COMMAND_EXEC, "display trace history, ['clear'] history or set [size]");
 

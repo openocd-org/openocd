@@ -46,10 +46,10 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_m
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 
 		field.in_value = NULL;
-		
-		
-		
-		
+
+
+
+
 		jtag_add_ir_scan(1, &field, jtag_get_end_state());
 	}
 
@@ -69,10 +69,10 @@ int mips_ejtag_get_idcode(mips_ejtag_t *ejtag_info, uint32_t *idcode)
 	field.out_value = NULL;
 
 	field.in_value = (void*)idcode;
-	
-	
-	
-	
+
+
+
+
 	jtag_add_dr_scan(1, &field, jtag_get_end_state());
 
 	if (jtag_execute_queue() != ERROR_OK)
@@ -96,10 +96,10 @@ int mips_ejtag_get_impcode(mips_ejtag_t *ejtag_info, uint32_t *impcode)
 	field.out_value = NULL;
 
 	field.in_value = (void*)impcode;
-	
-	
-	
-	
+
+
+
+
 	jtag_add_dr_scan(1, &field, jtag_get_end_state());
 
 	if (jtag_execute_queue() != ERROR_OK)
@@ -127,10 +127,10 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, uint32_t *data)
 	buf_set_u32(field.out_value, 0, field.num_bits, *data);
 
 	field.in_value = r;
-	
-	
-	
-	
+
+
+
+
 	jtag_add_dr_scan(1, &field, jtag_get_end_state());
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
@@ -222,7 +222,7 @@ int mips_ejtag_exit_debug(mips_ejtag_t *ejtag_info)
 {
 	uint32_t inst;
 	inst = MIPS32_DRET;
-	
+
 	/* execute our dret instruction */
 	mips32_pracc_exec(ejtag_info, 1, &inst, 0, NULL, 0, NULL, 0);
 

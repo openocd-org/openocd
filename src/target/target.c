@@ -969,7 +969,7 @@ int target_alloc_working_area(struct target_s *target, uint32_t size, working_ar
 
 		if (free_size < size)
 		{
-			LOG_WARNING("not enough working area available(requested %u, free %u)", 
+			LOG_WARNING("not enough working area available(requested %u, free %u)",
 				    (unsigned)(size), (unsigned)(free_size));
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
@@ -1102,7 +1102,7 @@ int target_arch_state(struct target_s *target)
 int target_write_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer)
 {
 	int retval;
-	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x", 
+	LOG_DEBUG("writing buffer of %i byte at 0x%8.8x",
 		  (int)size, (unsigned)address);
 
 	if (!target_was_examined(target))
@@ -1118,8 +1118,8 @@ int target_write_buffer(struct target_s *target, uint32_t address, uint32_t size
 	if ((address + size - 1) < address)
 	{
 		/* GDB can request this when e.g. PC is 0xfffffffc*/
-		LOG_ERROR("address + size wrapped(0x%08x, 0x%08x)", 
-				  (unsigned)address, 
+		LOG_ERROR("address + size wrapped(0x%08x, 0x%08x)",
+				  (unsigned)address,
 				  (unsigned)size);
 		return ERROR_FAIL;
 	}
@@ -1184,7 +1184,7 @@ int target_write_buffer(struct target_s *target, uint32_t address, uint32_t size
 int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size, uint8_t *buffer)
 {
 	int retval;
-	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x", 
+	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x",
 			  (int)size, (unsigned)address);
 
 	if (!target_was_examined(target))
@@ -1200,8 +1200,8 @@ int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size,
 	if ((address + size - 1) < address)
 	{
 		/* GDB can request this when e.g. PC is 0xfffffffc*/
-		LOG_ERROR("address + size wrapped(0x%08" PRIx32 ", 0x%08" PRIx32 ")", 
-				  address, 
+		LOG_ERROR("address + size wrapped(0x%08" PRIx32 ", 0x%08" PRIx32 ")",
+				  address,
 				  size);
 		return ERROR_FAIL;
 	}
@@ -1326,14 +1326,14 @@ int target_read_u32(struct target_s *target, uint32_t address, uint32_t *value)
 	if (retval == ERROR_OK)
 	{
 		*value = target_buffer_get_u32(target, value_buf);
-		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8" PRIx32 "", 
-				  address, 
+		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8" PRIx32 "",
+				  address,
 				  *value);
 	}
 	else
 	{
 		*value = 0x0;
-		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed", 
+		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed",
 				  address);
 	}
 
@@ -1354,14 +1354,14 @@ int target_read_u16(struct target_s *target, uint32_t address, uint16_t *value)
 	if (retval == ERROR_OK)
 	{
 		*value = target_buffer_get_u16(target, value_buf);
-		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%4.4x", 
-				  address, 
+		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%4.4x",
+				  address,
 				  *value);
 	}
 	else
 	{
 		*value = 0x0;
-		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed", 
+		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed",
 				  address);
 	}
 
@@ -1379,14 +1379,14 @@ int target_read_u8(struct target_s *target, uint32_t address, uint8_t *value)
 
 	if (retval == ERROR_OK)
 	{
-		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2x", 
-				  address, 
+		LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2x",
+				  address,
 				  *value);
 	}
 	else
 	{
 		*value = 0x0;
-		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed", 
+		LOG_DEBUG("address: 0x%8.8" PRIx32 " failed",
 				  address);
 	}
 
@@ -1403,8 +1403,8 @@ int target_write_u32(struct target_s *target, uint32_t address, uint32_t value)
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8" PRIx32 "", 
-			  address, 
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8" PRIx32 "",
+			  address,
 			  value);
 
 	target_buffer_set_u32(target, value_buf, value);
@@ -1426,8 +1426,8 @@ int target_write_u16(struct target_s *target, uint32_t address, uint16_t value)
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8x", 
-			  address, 
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%8.8x",
+			  address,
 			  value);
 
 	target_buffer_set_u16(target, value_buf, value);
@@ -1448,7 +1448,7 @@ int target_write_u8(struct target_s *target, uint32_t address, uint8_t value)
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2x", 
+	LOG_DEBUG("address: 0x%8.8" PRIx32 ", value: 0x%2.2x",
 			  address, value);
 
 	if ((retval = target_write_memory(target, address, 1, 1, &value)) != ERROR_OK)
@@ -1734,12 +1734,12 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 			for (i = 0; i < cache->num_regs; i++)
 			{
 				value = buf_to_str(cache->reg_list[i].value, cache->reg_list[i].size, 16);
-				command_print(cmd_ctx, "(%i) %s (/%i): 0x%s (dirty: %i, valid: %i)", 
-							  count++, 
-							  cache->reg_list[i].name, 
+				command_print(cmd_ctx, "(%i) %s (/%i): 0x%s (dirty: %i, valid: %i)",
+							  count++,
+							  cache->reg_list[i].name,
 							  (int)(cache->reg_list[i].size),
-							  value, 
-							  cache->reg_list[i].dirty, 
+							  value,
+							  cache->reg_list[i].dirty,
 							  cache->reg_list[i].valid);
 				free(value);
 			}
@@ -2066,7 +2066,7 @@ static void handle_md_output(struct command_context_s *cmd_ctx,
 		{
 			output_len += snprintf(output + output_len,
 					sizeof(output) - output_len,
-					"0x%8.8x: ", 
+					"0x%8.8x: ",
 					(unsigned)(address + (i*size)));
 		}
 
@@ -2241,7 +2241,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 
 	duration_t duration;
 	char *duration_text;
-	
+
 	int retval = parse_load_image_command_args(args, argc,
 			&image, &min_address, &max_address);
 	if (ERROR_OK != retval)
@@ -2262,8 +2262,8 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 		buffer = malloc(image.sections[i].size);
 		if (buffer == NULL)
 		{
-			command_print(cmd_ctx, 
-						  "error allocating buffer for section (%d bytes)", 
+			command_print(cmd_ctx,
+						  "error allocating buffer for section (%d bytes)",
 						  (int)(image.sections[i].size));
 			break;
 		}
@@ -2300,8 +2300,8 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 				break;
 			}
 			image_size += length;
-			command_print(cmd_ctx, "%u byte written at address 0x%8.8" PRIx32 "", 
-						  (unsigned int)length, 
+			command_print(cmd_ctx, "%u byte written at address 0x%8.8" PRIx32 "",
+						  (unsigned int)length,
 						  image.sections[i].base_address + offset);
 		}
 
@@ -2316,8 +2316,8 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (retval == ERROR_OK)
 	{
-		command_print(cmd_ctx, "downloaded %u byte in %s", 
-					  (unsigned int)image_size, 
+		command_print(cmd_ctx, "downloaded %u byte in %s",
+					  (unsigned int)image_size,
 					  duration_text);
 	}
 	free(duration_text);
@@ -2459,8 +2459,8 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 		buffer = malloc(image.sections[i].size);
 		if (buffer == NULL)
 		{
-			command_print(cmd_ctx, 
-						  "error allocating buffer for section (%d bytes)", 
+			command_print(cmd_ctx,
+						  "error allocating buffer for section (%d bytes)",
 						  (int)(image.sections[i].size));
 			break;
 		}
@@ -2507,10 +2507,10 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 					{
 						if (data[t] != buffer[t])
 						{
-							command_print(cmd_ctx, 
-										  "Verify operation failed address 0x%08x. Was 0x%02x instead of 0x%02x\n", 
-										  (unsigned)(t + image.sections[i].base_address), 
-										  data[t], 
+							command_print(cmd_ctx,
+										  "Verify operation failed address 0x%08x. Was 0x%02x instead of 0x%02x\n",
+										  (unsigned)(t + image.sections[i].base_address),
+										  data[t],
 										  buffer[t]);
 							free(data);
 							free(buffer);
@@ -2528,8 +2528,8 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 			}
 		} else
 		{
-			command_print(cmd_ctx, "address 0x%08" PRIx32 " length 0x%08" PRIx32 "", 
-						  image.sections[i].base_address, 
+			command_print(cmd_ctx, "address 0x%08" PRIx32 " length 0x%08" PRIx32 "",
+						  image.sections[i].base_address,
 						  buf_cnt);
 		}
 
@@ -2546,8 +2546,8 @@ done:
 
 	if (retval == ERROR_OK)
 	{
-		command_print(cmd_ctx, "verified %u bytes in %s", 
-					  (unsigned int)image_size, 
+		command_print(cmd_ctx, "verified %u bytes in %s",
+					  (unsigned int)image_size,
 					  duration_text);
 	}
 	free(duration_text);
@@ -2578,7 +2578,7 @@ static int handle_bp_command_list(struct command_context_s *cmd_ctx)
 			char* buf = buf_to_str(breakpoint->orig_instr,
 					breakpoint->length, 16);
 			command_print(cmd_ctx, "0x%8.8" PRIx32 ", 0x%x, %i, 0x%s",
-					breakpoint->address, 
+					breakpoint->address,
 					breakpoint->length,
 					breakpoint->set, buf);
 			free(buf);
@@ -2586,7 +2586,7 @@ static int handle_bp_command_list(struct command_context_s *cmd_ctx)
 		else
 		{
 			command_print(cmd_ctx, "0x%8.8" PRIx32 ", 0x%x, %i",
-						  breakpoint->address, 
+						  breakpoint->address,
 						  breakpoint->length, breakpoint->set);
 		}
 
@@ -2667,9 +2667,9 @@ static int handle_wp_command(struct command_context_s *cmd_ctx, char *cmd, char 
 
 		while (watchpoint)
 		{
-			command_print(cmd_ctx, 
-						  "address: 0x%8.8" PRIx32 ", len: 0x%8.8x, r/w/a: %i, value: 0x%8.8" PRIx32 ", mask: 0x%8.8" PRIx32 "", 
-						  watchpoint->address, 
+			command_print(cmd_ctx,
+						  "address: 0x%8.8" PRIx32 ", len: 0x%8.8x, r/w/a: %i, value: 0x%8.8" PRIx32 ", mask: 0x%8.8" PRIx32 "",
+						  watchpoint->address,
 						  watchpoint->length,
 						  (int)(watchpoint->rw),
 						  watchpoint->value,
@@ -3111,8 +3111,8 @@ static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_
 	} else {
 		char buf[100];
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-		sprintf(buf, "mem2array address: 0x%08" PRIx32 " is not aligned for %" PRId32 " byte reads", 
-				addr, 
+		sprintf(buf, "mem2array address: 0x%08" PRIx32 " is not aligned for %" PRId32 " byte reads",
+				addr,
 				width);
 		Jim_AppendStrings(interp, Jim_GetResult(interp), buf , NULL);
 		return JIM_ERR;
@@ -3135,9 +3135,9 @@ static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_
 		retval = target_read_memory(target, addr, width, count, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
-			LOG_ERROR("mem2array: Read @ 0x%08x, w=%d, cnt=%d, failed", 
-					  (unsigned int)addr, 
-					  (int)width, 
+			LOG_ERROR("mem2array: Read @ 0x%08x, w=%d, cnt=%d, failed",
+					  (unsigned int)addr,
+					  (int)width,
 					  (int)count);
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "mem2array: cannot read memory", NULL);
@@ -3298,8 +3298,8 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 	} else {
 		char buf[100];
 		Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
-		sprintf(buf, "array2mem address: 0x%08x is not aligned for %d byte reads", 
-				(unsigned int)addr, 
+		sprintf(buf, "array2mem address: 0x%08x is not aligned for %d byte reads",
+				(unsigned int)addr,
 				(int)width);
 		Jim_AppendStrings(interp, Jim_GetResult(interp), buf , NULL);
 		return JIM_ERR;
@@ -3339,9 +3339,9 @@ static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_
 		retval = target_write_memory(target, addr, width, count, buffer);
 		if (retval != ERROR_OK) {
 			/* BOO !*/
-			LOG_ERROR("array2mem: Write @ 0x%08x, w=%d, cnt=%d, failed", 
-					  (unsigned int)addr, 
-					  (int)width, 
+			LOG_ERROR("array2mem: Write @ 0x%08x, w=%d, cnt=%d, failed",
+					  (unsigned int)addr,
+					  (int)width,
 					  (int)count);
 			Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 			Jim_AppendStrings(interp, Jim_GetResult(interp), "array2mem: cannot read memory", NULL);
@@ -4443,7 +4443,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 		buffer = malloc(image.sections[i].size);
 		if (buffer == NULL)
 		{
-			command_print(cmd_ctx, "error allocating buffer for section (%d bytes)", 
+			command_print(cmd_ctx, "error allocating buffer for section (%d bytes)",
 						  (int)(image.sections[i].size));
 			break;
 		}
@@ -4486,8 +4486,8 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 			fastload[i].length = length;
 
 			image_size += length;
-			command_print(cmd_ctx, "%u byte written at address 0x%8.8x", 
-						  (unsigned int)length, 
+			command_print(cmd_ctx, "%u byte written at address 0x%8.8x",
+						  (unsigned int)length,
 						  ((unsigned int)(image.sections[i].base_address + offset)));
 		}
 
@@ -4528,8 +4528,8 @@ static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd
 	for (i = 0; i < fastload_num;i++)
 	{
 		target_t *target = get_current_target(cmd_ctx);
-		command_print(cmd_ctx, "Write to 0x%08x, length 0x%08x", 
-					  (unsigned int)(fastload[i].address), 
+		command_print(cmd_ctx, "Write to 0x%08x, length 0x%08x",
+					  (unsigned int)(fastload[i].address),
 					  (unsigned int)(fastload[i].length));
 		if (retval == ERROR_OK)
 		{
@@ -4544,7 +4544,7 @@ static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd
 
 
 /*
- * Local Variables: 
+ * Local Variables:
  * c-basic-offset: 4
  * tab-width: 4
  * End:

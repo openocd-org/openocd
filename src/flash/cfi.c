@@ -378,9 +378,9 @@ static int cfi_read_intel_pri_ext(flash_bank_t *bank)
 	pri_ext->suspend_cmd_support = cfi_query_u8(bank, 0, cfi_info->pri_addr + 9);
 	pri_ext->blk_status_reg_mask = cfi_query_u16(bank, 0, cfi_info->pri_addr + 0xa);
 
-	LOG_DEBUG("feature_support: 0x%" PRIx32 ", suspend_cmd_support: 0x%x, blk_status_reg_mask: 0x%x", 
-		  pri_ext->feature_support, 
-		  pri_ext->suspend_cmd_support, 
+	LOG_DEBUG("feature_support: 0x%" PRIx32 ", suspend_cmd_support: 0x%x, blk_status_reg_mask: 0x%x",
+		  pri_ext->feature_support,
+		  pri_ext->suspend_cmd_support,
 		  pri_ext->blk_status_reg_mask);
 
 	pri_ext->vcc_optimal = cfi_query_u8(bank, 0, cfi_info->pri_addr + 0xc);
@@ -1597,7 +1597,7 @@ static int cfi_intel_write_words(struct flash_bank_s *bank, uint8_t *word, uint3
 	/* Check for valid range */
 	if (address & buffermask)
 	{
-		LOG_ERROR("Write address at base 0x%" PRIx32 ", address %" PRIx32 " not aligned to 2^%d boundary", 
+		LOG_ERROR("Write address at base 0x%" PRIx32 ", address %" PRIx32 " not aligned to 2^%d boundary",
 			  bank->base, address, cfi_info->max_buf_write_size);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
@@ -2279,9 +2279,9 @@ static int cfi_probe(struct flash_bank_s *bank)
 			for (i = 0; i < cfi_info->num_erase_regions; i++)
 			{
 				cfi_info->erase_region_info[i] = cfi_query_u32(bank, 0, 0x2d + (4 * i));
-				LOG_DEBUG("erase region[%i]: %" PRIu32 " blocks of size 0x%" PRIx32 "", 
-					  i, 
-					  (cfi_info->erase_region_info[i] & 0xffff) + 1, 
+				LOG_DEBUG("erase region[%i]: %" PRIu32 " blocks of size 0x%" PRIx32 "",
+					  i,
+					  (cfi_info->erase_region_info[i] & 0xffff) + 1,
 					  (cfi_info->erase_region_info[i] >> 16) * 256);
 			}
 		}

@@ -292,32 +292,32 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	{
 		device_class = 0;
 	}
-	printed = snprintf(buf, 
+	printed = snprintf(buf,
 			   buf_size,
 			   "\nLMI Stellaris information: Chip is class %i(%s) %s v%c.%i\n",
-			   device_class, 
-			   StellarisClassname[device_class], 
+			   device_class,
+			   StellarisClassname[device_class],
 			   stellaris_info->target_name,
 			   (int)('A' + ((stellaris_info->did0 >> 8) & 0xFF)),
 			   (int)((stellaris_info->did0) & 0xFF));
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, 
-			   buf_size, 
+	printed = snprintf(buf,
+			   buf_size,
 			   "did1: 0x%8.8" PRIx32 ", arch: 0x%4.4" PRIx32 ", eproc: %s, ramsize:%ik, flashsize: %ik\n",
-			   stellaris_info->did1, 
-			   stellaris_info->did1, 
-			   "ARMV7M", 
+			   stellaris_info->did1,
+			   stellaris_info->did1,
+			   "ARMV7M",
 			   (int)((1 + ((stellaris_info->dc0 >> 16) & 0xFFFF))/4),
 			   (int)((1 + (stellaris_info->dc0 & 0xFFFF))*2));
 	buf += printed;
 	buf_size -= printed;
 
-	printed = snprintf(buf, 
+	printed = snprintf(buf,
 			   buf_size,
 			   "master clock(estimated): %ikHz, rcc is 0x%" PRIx32 " \n",
-			   (int)(stellaris_info->mck_freq / 1000), 
+			   (int)(stellaris_info->mck_freq / 1000),
 			   stellaris_info->rcc);
 	buf += printed;
 	buf_size -= printed;
@@ -326,9 +326,9 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	{
 		printed = snprintf(buf,
 				   buf_size,
-				   "pagesize: %" PRIi32 ", lockbits: %i 0x%4.4" PRIx32 ", pages in lock region: %i \n", 
-				   stellaris_info->pagesize, 
-				   stellaris_info->num_lockbits, 
+				   "pagesize: %" PRIi32 ", lockbits: %i 0x%4.4" PRIx32 ", pages in lock region: %i \n",
+				   stellaris_info->pagesize,
+				   stellaris_info->num_lockbits,
 				   stellaris_info->lockbits,
 				   (int)(stellaris_info->num_pages/stellaris_info->num_lockbits));
 		buf += printed;

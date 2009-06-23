@@ -44,7 +44,7 @@ extern char* cortex_m3_state_strings[];
 #define DCB_DCRDR	0xE000EDF8
 #define DCB_DEMCR	0xE000EDFC
 
-#define DCRSR_WnR	(1 << 16)	
+#define DCRSR_WnR	(1 << 16)
 
 #define DWT_CTRL	0xE0001000
 #define DWT_COMP0	0xE0001020
@@ -138,12 +138,12 @@ typedef struct cortex_m3_common_s
 {
 	int common_magic;
 	arm_jtag_t jtag_info;
-	
+
 	/* Context information */
 	uint32_t dcb_dhcsr;
 	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
 	uint32_t nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
-	
+
 	/* Flash Patch and Breakpoint (FPB) */
 	int fp_num_lit;
 	int fp_num_code;
@@ -151,16 +151,16 @@ typedef struct cortex_m3_common_s
 	int fpb_enabled;
 	int auto_bp_type;
 	cortex_m3_fp_comparator_t *fp_comparator_list;
-	
+
 	/* Data Watchpoint and Trace (DWT) */
 	int dwt_num_comp;
 	int dwt_comp_available;
 	cortex_m3_dwt_comparator_t *dwt_comparator_list;
-	
+
 	/* Interrupts */
 	int intlinesnum;
 	uint32_t *intsetenable;
-	
+
 	armv7m_common_t armv7m;
 //	swjdp_common_t swjdp_info;
 	void *arch_info;

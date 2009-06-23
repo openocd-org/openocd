@@ -348,7 +348,7 @@ int mips_m4k_single_step_core(target_t *target)
 
 	/* disable interrupts while stepping */
 	mips32_enable_interrupts(target, 0);
-	
+
 	/* exit debug mode */
 	mips_ejtag_exit_debug(ejtag_info);
 
@@ -404,7 +404,7 @@ int mips_m4k_resume(struct target_s *target, int current, uint32_t address, int 
 
 	/* enable interrupts if we are running */
 	mips32_enable_interrupts(target, !debug_execution);
-	
+
 	/* exit debug mode */
 	mips_ejtag_exit_debug(ejtag_info);
 	target->debug_reason = DBG_REASON_NOTHALTED;
@@ -462,7 +462,7 @@ int mips_m4k_step(struct target_s *target, int current, uint32_t address, int ha
 
 	/* disable interrupts while stepping */
 	mips32_enable_interrupts(target, 0);
-		
+
 	/* exit debug mode */
 	mips_ejtag_exit_debug(ejtag_info);
 
@@ -498,7 +498,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	mips32_common_t *mips32 = target->arch_info;
 	mips32_comparator_t * comparator_list = mips32->inst_break_list;
 	int retval;
-	
+
 	if (breakpoint->set)
 	{
 		LOG_WARNING("breakpoint already set");
@@ -530,7 +530,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		if (breakpoint->length == 4)
 		{
 			uint32_t verify = 0xffffffff;
-			
+
 			if ((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
@@ -539,7 +539,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			{
 				return retval;
 			}
-			
+
 			if ((retval = target_read_u32(target, breakpoint->address, &verify)) != ERROR_OK)
 			{
 				return retval;
@@ -553,7 +553,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		else
 		{
 			uint16_t verify = 0xffff;
-			
+
 			if ((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
@@ -562,7 +562,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			{
 				return retval;
 			}
-			
+
 			if ((retval = target_read_u16(target, breakpoint->address, &verify)) != ERROR_OK)
 			{
 				return retval;
@@ -573,7 +573,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 				return ERROR_OK;
 			}
 		}
-		
+
 		breakpoint->set = 20; /* Any nice value but 0 */
 	}
 
@@ -586,7 +586,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	mips32_common_t *mips32 = target->arch_info;
 	mips32_comparator_t * comparator_list = mips32->inst_break_list;
 	int retval;
-	
+
 	if (!breakpoint->set)
 	{
 		LOG_WARNING("breakpoint not set");
@@ -611,7 +611,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		if (breakpoint->length == 4)
 		{
 			uint32_t current_instr;
-			
+
 			/* check that user program has not modified breakpoint instruction */
 			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, (uint8_t*)&current_instr)) != ERROR_OK)
 			{
@@ -628,13 +628,13 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		else
 		{
 			uint16_t current_instr;
-			
+
 			/* check that user program has not modified breakpoint instruction */
 			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, (uint8_t*)&current_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
-			
+
 			if (current_instr == MIPS16_SDBBP)
 			{
 				if ((retval = target_write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
@@ -660,9 +660,9 @@ int mips_m4k_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			LOG_INFO("no hardware breakpoint available");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
-		
+
 		mips32->num_inst_bpoints_avail--;
-	}	
+	}
 
 	mips_m4k_set_breakpoint(target, breakpoint);
 
@@ -758,7 +758,7 @@ int mips_m4k_read_memory(struct target_s *target, uint32_t address, uint32_t siz
 		return retval;
 
 	/* TAP data register is loaded LSB first (little endian) */
-	if (target->endianness == TARGET_BIG_ENDIAN) 
+	if (target->endianness == TARGET_BIG_ENDIAN)
 	{
 		uint32_t i, t32;
 		uint16_t t16;
@@ -810,7 +810,7 @@ int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t si
 
 		for (i = 0; i < (count*size); i += size)
 		{
-			switch (size) 
+			switch (size)
 			{
 				case 4:
 					t32 = be_to_h_u32(&buffer[i]);
@@ -822,7 +822,7 @@ int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t si
 					break;
 			}
 		}
-	}	   
+	}
 
 	/* if noDMA off, use DMAACC mode for memory write */
 	if (ejtag_info->impcode & EJTAG_IMP_NODMA)
@@ -884,7 +884,7 @@ int mips_m4k_examine(struct target_s *target)
 	{
 		mips_ejtag_get_idcode(ejtag_info, &idcode);
 		ejtag_info->idcode = idcode;
-		
+
 		if (((idcode >> 1) & 0x7FF) == 0x29)
 		{
 			/* we are using a pic32mx so select ejtag port

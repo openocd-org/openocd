@@ -1138,12 +1138,12 @@ static int handle_nand_info_command(struct command_context_s *cmd_ctx, char *cmd
 				else
 					bad_state = " (block condition unknown)";
 
-				command_print(cmd_ctx, 
+				command_print(cmd_ctx,
 					      "\t#%i: 0x%8.8" PRIx32 " (%" PRId32 "kB) %s%s",
 					      j,
-					      p->blocks[j].offset, 
+					      p->blocks[j].offset,
 					      p->blocks[j].size / 1024,
-					      erase_state, 
+					      erase_state,
 					      bad_state);
 			}
 		}

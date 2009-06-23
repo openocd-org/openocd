@@ -49,7 +49,7 @@ flash_driver_t tms470_flash = {
 	.info = tms470_info
 };
 
-/* ---------------------------------------------------------------------- 
+/* ----------------------------------------------------------------------
                       Internal Support, Helpers
    ---------------------------------------------------------------------- */
 
@@ -288,10 +288,10 @@ static int tms470_read_part_info(struct flash_bank_s *bank)
 	bank->chip_width = 32;
 	bank->bus_width = 32;
 
-	LOG_INFO("Identified %s, ver=%d, core=%s, nvmem=%s.", 
+	LOG_INFO("Identified %s, ver=%d, core=%s, nvmem=%s.",
 		 part_name,
 		 (int)(silicon_version),
-		 (technology_family ? "1.8v" : "3.3v"), 
+		 (technology_family ? "1.8v" : "3.3v"),
 		 (rom_flash ? "rom" : "flash"));
 
 	tms470_info->device_ident_reg = device_ident_reg;
@@ -347,7 +347,7 @@ static int tms470_handle_flash_keyset_command(struct command_context_s *cmd_ctx,
 
 	if (keysSet)
 	{
-		command_print(cmd_ctx, "using flash keys 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 "", 
+		command_print(cmd_ctx, "using flash keys 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 "",
 			      flashKeys[0], flashKeys[1], flashKeys[2], flashKeys[3]);
 	}
 	else
@@ -488,7 +488,7 @@ static int tms470_try_flash_keys(target_t * target, const uint32_t * key_set)
 
 		if (ERROR_OK == tms470_check_flash_unlocked(target))
 		{
-			/* 
+			/*
 			 * There seems to be a side-effect of reading the FMPKEY
 			 * register in that it re-enables the protection.  So we
 			 * re-enable it.
@@ -754,7 +754,7 @@ static int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 	uint32_t flashAddr = bank->base + bank->sectors[sector].offset;
 	int result = ERROR_OK;
 
-	/* 
+	/*
 	 * Set the bit GLBCTRL4 of the GLBCTRL register (in the System
 	 * module) to enable writing to the flash registers }.
 	 */
@@ -787,8 +787,8 @@ static int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 	}
 	bank->sectors[sector].is_protected = 0;
 
-	/* 
-	 * clear status regiser, sent erase command, kickoff erase 
+	/*
+	 * clear status regiser, sent erase command, kickoff erase
 	 */
 	target_write_u16(target, flashAddr, 0x0040);
 	LOG_DEBUG("write *(uint16_t *)0x%08" PRIx32 "=0x0040", flashAddr);
@@ -838,7 +838,7 @@ static int tms470_erase_sector(struct flash_bank_s *bank, int sector)
 	return result;
 }
 
-/* ---------------------------------------------------------------------- 
+/* ----------------------------------------------------------------------
               Implementation of Flash Driver Interfaces
    ---------------------------------------------------------------------- */
 
@@ -1115,7 +1115,7 @@ static int tms470_erase_check(struct flash_bank_s *bank)
 	target_read_u32(target, 0xFFE88004, &fmbac2);
 	target_write_u32(target, 0xFFE88004, fmbac2 | 0xff);
 
-	/* 
+	/*
 	 * The TI primitives inspect the flash memory by reading one 32-bit
 	 * word at a time.  Here we read an entire sector and inspect it in
 	 * an attempt to reduce the JTAG overhead.

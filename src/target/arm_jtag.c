@@ -48,7 +48,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr,  void *no_veri
 		field.out_value = t;
 		buf_set_u32(field.out_value, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
-		
+
 
 
 		if (no_verify_capture == NULL)

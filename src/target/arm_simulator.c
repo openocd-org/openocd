@@ -35,7 +35,7 @@ uint32_t arm_shift(uint8_t shift, uint32_t Rm, uint32_t shift_amount, uint8_t *c
 {
 	uint32_t return_value = 0;
 	shift_amount &= 0xff;
-	
+
 	if (shift == 0x0) /* LSL */
 	{
 		if ((shift_amount > 0) && (shift_amount <= 32))
@@ -118,7 +118,7 @@ uint32_t arm_shift(uint8_t shift, uint32_t Rm, uint32_t shift_amount, uint8_t *c
 			Rm |= 0x80000000;
 		*carry = Rm & 0x1;
 	}
-	
+
 	return return_value;
 }
 
@@ -126,14 +126,14 @@ uint32_t arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_s
 {
 	uint32_t return_value;
 	int instruction_size;
-	
+
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 		instruction_size = 4;
 	else
 		instruction_size = 2;
-	
+
 	*shifter_carry_out = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 29, 1);
-	
+
 	if (variant == 0) /* 32-bit immediate */
 	{
 		return_value = shifter_operand.immediate.immediate;
@@ -141,22 +141,22 @@ uint32_t arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_s
 	else if (variant == 1) /* immediate shift */
 	{
 		uint32_t Rm = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, shifter_operand.immediate_shift.Rm).value, 0, 32);
-		
+
 		/* adjust RM in case the PC is being read */
 		if (shifter_operand.immediate_shift.Rm == 15)
 			Rm += 2 * instruction_size;
-		
+
 		return_value = arm_shift(shifter_operand.immediate_shift.shift, Rm, shifter_operand.immediate_shift.shift_imm, shifter_carry_out);
 	}
 	else if (variant == 2) /* register shift */
 	{
 		uint32_t Rm = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, shifter_operand.register_shift.Rm).value, 0, 32);
 		uint32_t Rs = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, shifter_operand.register_shift.Rs).value, 0, 32);
-		
+
 		/* adjust RM in case the PC is being read */
 		if (shifter_operand.register_shift.Rm == 15)
 			Rm += 2 * instruction_size;
-			
+
 		return_value = arm_shift(shifter_operand.immediate_shift.shift, Rm, Rs, shifter_carry_out);
 	}
 	else
@@ -164,7 +164,7 @@ uint32_t arm_shifter_operand(armv4_5_common_t *armv4_5, int variant, union arm_s
 		LOG_ERROR("BUG: shifter_operand.variant not 0, 1 or 2");
 		return_value = 0xffffffff;
 	}
-	
+
 	return return_value;
 }
 
@@ -251,16 +251,16 @@ int pass_condition(uint32_t cpsr, uint32_t opcode)
 		case 0xe:
 		case 0xf:
 			return 1;
-				
+
 	}
-	
+
 	LOG_ERROR("BUG: should never get here");
 	return 0;
 }
 
 int thumb_pass_branch_condition(uint32_t cpsr, uint16_t opcode)
 {
-	return pass_condition(cpsr, (opcode & 0x0f00) << 20); 
+	return pass_condition(cpsr, (opcode & 0x0f00) << 20);
 }
 
 /* simulate a single step (if possible)
@@ -274,11 +274,11 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 	arm_instruction_t instruction;
 	int instruction_size;
 	int retval = ERROR_OK;
-	
+
 	if (armv4_5->core_state == ARMV4_5_STATE_ARM)
 	{
 		uint32_t opcode;
-		
+
 		/* get current instruction, and identify it */
 		if ((retval = target_read_u32(target, current_pc, &opcode)) != ERROR_OK)
 		{
@@ -289,7 +289,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			return retval;
 		}
 		instruction_size = 4;
-		
+
 		/* check condition code (for all instructions) */
 		if (!pass_condition(buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32), opcode))
 		{
@@ -301,14 +301,14 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			{
 				buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, current_pc + instruction_size);
 			}
-			
+
 			return ERROR_OK;
 		}
 	}
 	else
 	{
 		uint16_t opcode;
-		
+
 		if ((retval = target_read_u16(target, current_pc, &opcode)) != ERROR_OK)
 		{
 			return retval;
@@ -318,7 +318,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			return retval;
 			}
 		instruction_size = 2;
-		
+
 		/* check condition code (only for branch instructions) */
 		if ((!thumb_pass_branch_condition(buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32), opcode)) &&
 			(instruction.type == ARM_B))
@@ -331,33 +331,33 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			{
 				buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, current_pc + instruction_size);
 			}
-			
+
 			return ERROR_OK;
 		}
 	}
-	
+
 	/* examine instruction type */
 
 	/* branch instructions */
 	if ((instruction.type >= ARM_B) && (instruction.type <= ARM_BLX))
 	{
 		uint32_t target;
-		
+
 		if (instruction.info.b_bl_bx_blx.reg_operand == -1)
 		{
 			target = instruction.info.b_bl_bx_blx.target_address;
 		}
 		else
 		{
-			target = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.b_bl_bx_blx.reg_operand).value, 0, 32); 
+			target = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.b_bl_bx_blx.reg_operand).value, 0, 32);
 			if (instruction.info.b_bl_bx_blx.reg_operand == 15)
 			{
 				target += 2 * instruction_size;
 			}
 		}
-		
+
 		if (dry_run_pc)
-		{	
+		{
 			*dry_run_pc = target;
 			return ERROR_OK;
 		}
@@ -400,7 +400,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 				}
 				buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, target & 0xfffffffe);
 			}
-			
+
 			return ERROR_OK;
 		}
 	}
@@ -411,7 +411,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 		uint32_t Rd, Rn, shifter_operand;
 		uint8_t C = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 29, 1);
 		uint8_t carry_out;
-		
+
 		Rd = 0x0;
 		/* ARM_MOV and ARM_MVN does not use Rn */
 		if ((instruction.type != ARM_MOV) && (instruction.type != ARM_MVN))
@@ -424,7 +424,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 		/* adjust Rn in case the PC is being read */
 		if (instruction.info.data_proc.Rn == 15)
 			Rn += 2 * instruction_size;
-				
+
 		if (instruction.type == ARM_AND)
 			Rd = Rn & shifter_operand;
 		else if (instruction.type == ARM_EOR)
@@ -451,7 +451,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			Rd = ~shifter_operand;
 		else
 			LOG_WARNING("unhandled instruction type");
-		
+
 		if (dry_run_pc)
 		{
 			if (instruction.info.data_proc.Rd == 15)
@@ -463,7 +463,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			{
 				*dry_run_pc = current_pc + instruction_size;
 			}
-			
+
 			return ERROR_OK;
 		}
 		else
@@ -471,7 +471,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.data_proc.Rd).value, 0, 32, Rd);
 			LOG_WARNING("no updating of flags yet");
 
-			if (instruction.info.data_proc.Rd == 15)  
+			if (instruction.info.data_proc.Rd == 15)
 				return ERROR_OK;
 		}
 	}
@@ -493,11 +493,11 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 	{
 		uint32_t load_address = 0, modified_address = 0, load_value;
 		uint32_t Rn = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store.Rn).value, 0, 32);
-		
+
 		/* adjust Rn in case the PC is being read */
 		if (instruction.info.load_store.Rn == 15)
 			Rn += 2 * instruction_size;
-		
+
 		if (instruction.info.load_store.offset_mode == 0)
 		{
 			if (instruction.info.load_store.U)
@@ -512,9 +512,9 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			uint8_t shift = instruction.info.load_store.offset.reg.shift;
 			uint8_t shift_imm = instruction.info.load_store.offset.reg.shift_imm;
 			uint8_t carry = buf_get_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 29, 1);
-			
+
 			offset = arm_shift(shift, Rm, shift_imm, &carry);
-			
+
 			if (instruction.info.load_store.U)
 				modified_address = Rn + offset;
 			else
@@ -524,7 +524,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 		{
 			LOG_ERROR("BUG: offset_mode neither 0 (offset) nor 1 (scaled register)");
 		}
-		
+
 		if (instruction.info.load_store.index_mode == 0)
 		{
 			/* offset mode
@@ -544,7 +544,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			 * we load from the unmodified address, and write the modified address back */
 			 load_address = Rn;
 		}
-		
+
 		if ((!dry_run_pc) || (instruction.info.load_store.Rd == 15))
 		{
 			if ((retval = target_read_u32(target, load_address, &load_value)) != ERROR_OK)
@@ -552,7 +552,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 				return retval;
 			}
 		}
-		
+
 		if (dry_run_pc)
 		{
 			if (instruction.info.load_store.Rd == 15)
@@ -564,7 +564,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			{
 				*dry_run_pc = current_pc + instruction_size;
 			}
-			
+
 			return ERROR_OK;
 		}
 		else
@@ -573,9 +573,9 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 				(instruction.info.load_store.index_mode == 2))
 			{
 				buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store.Rn).value, 0, 32, modified_address);
-			} 
+			}
 			buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store.Rd).value, 0, 32, load_value);
-			
+
 			if (instruction.info.load_store.Rd == 15)
 				return ERROR_OK;
 		}
@@ -593,7 +593,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			if (instruction.info.load_store_multiple.register_list & (1 << i))
 				bits_set++;
 		}
-		
+
 		switch (instruction.info.load_store_multiple.addressing_mode)
 		{
 			case 0: /* Increment after */
@@ -603,7 +603,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 				Rn = Rn + 4;
 				break;
 			case 2: /* Decrement after */
-				Rn = Rn - (bits_set * 4) + 4; 
+				Rn = Rn - (bits_set * 4) + 4;
 				break;
 			case 3: /* Decrement before */
 				Rn = Rn - (bits_set * 4);
@@ -621,7 +621,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 				Rn += 4;
 			}
 		}
-		
+
 		if (dry_run_pc)
 		{
 			if (instruction.info.load_store_multiple.register_list & 0x8000)
@@ -650,17 +650,17 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 					buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, mode, i).value, 0, 32, load_values[i]);
 				}
 			}
-			
+
 			if (update_cpsr)
 			{
 				uint32_t spsr = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).value, 0, 32);
 				buf_set_u32(armv4_5->core_cache->reg_list[ARMV4_5_CPSR].value, 0, 32, spsr);
 			}
-			
+
 			/* base register writeback */
 			if (instruction.info.load_store_multiple.W)
-				buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store_multiple.Rn).value, 0, 32, Rn); 
-			
+				buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store_multiple.Rn).value, 0, 32, Rn);
+
 			if (instruction.info.load_store_multiple.register_list & 0x8000)
 				return ERROR_OK;
 		}
@@ -685,12 +685,12 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 				if (instruction.info.load_store_multiple.register_list & (1 << i))
 					bits_set++;
 			}
-			
+
 			if (instruction.info.load_store_multiple.S)
 			{
 				mode = ARMV4_5_MODE_USR;
 			}
-			
+
 			switch (instruction.info.load_store_multiple.addressing_mode)
 			{
 				case 0: /* Increment after */
@@ -700,13 +700,13 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 					Rn = Rn + 4;
 					break;
 				case 2: /* Decrement after */
-					Rn = Rn - (bits_set * 4) + 4; 
+					Rn = Rn - (bits_set * 4) + 4;
 					break;
 				case 3: /* Decrement before */
 					Rn = Rn - (bits_set * 4);
 					break;
 			}
-			
+
 			for (i = 0; i < 16; i++)
 			{
 				if (instruction.info.load_store_multiple.register_list & (1 << i))
@@ -715,11 +715,11 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 					Rn += 4;
 				}
 			}
-			
+
 			/* base register writeback */
 			if (instruction.info.load_store_multiple.W)
-				buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store_multiple.Rn).value, 0, 32, Rn); 
-			
+				buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.load_store_multiple.Rn).value, 0, 32, Rn);
+
 		}
 	}
 	else if (!dry_run_pc)
@@ -728,7 +728,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 		 */
 		return ERROR_ARM_SIMULATOR_NOT_IMPLEMENTED;
 	}
-	
+
 	if (dry_run_pc)
 	{
 		*dry_run_pc = current_pc + instruction_size;
@@ -739,5 +739,5 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 		buf_set_u32(armv4_5->core_cache->reg_list[15].value, 0, 32, current_pc + instruction_size);
 		return ERROR_OK;
 	}
-	
+
 }
