@@ -1118,7 +1118,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 					command_print(cmd_ctx, "\t\tEnd of ROM table");
 			}
 			entry_offset += 4;
-		} while (romentry>0);
+		} while (romentry > 0);
 	}
 	else
 	{

@@ -366,11 +366,11 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				LOG_DEBUG("%s %d", op_name, xsdrsize);
 
-				for ( attempt = 0; attempt<limit;  ++attempt )
+				for ( attempt = 0; attempt < limit;  ++attempt )
 				{
 					scan_field_t field;
 
-					if ( attempt>0 )
+					if ( attempt > 0 )
 					{
 						/* perform the XC9500 exception handling sequence shown in xapp067.pdf and
 						   illustrated in psuedo code at end of this file.  We start from state
@@ -836,7 +836,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				if (limit < 1)
 					limit = 1;
 
-				for ( attempt = 0; attempt<limit;  ++attempt )
+				for ( attempt = 0; attempt < limit;  ++attempt )
 				{
 					scan_field_t field;
 

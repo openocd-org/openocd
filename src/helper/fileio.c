@@ -84,7 +84,7 @@ static inline int fileio_open_local(fileio_t *fileio)
 		
 		result2 = fseek(fileio->file, 0, SEEK_SET); 
 			
-		if ((fileio->size<0)||(result<0)||(result2<0))
+		if ((fileio->size < 0)||(result < 0)||(result2 < 0))
 		{
 			fileio_close(fileio);
 			return ERROR_FILEIO_OPERATION_FAILED;

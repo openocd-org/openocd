@@ -300,7 +300,7 @@ static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 		}
 
 		int timeout;
-		for (timeout = 0; timeout<1000; timeout++) {
+		for (timeout = 0; timeout < 1000; timeout++) {
 			if ((retval = target_read_u8(target, adr, &status)) != ERROR_OK)
 			{
 				return retval;
@@ -575,7 +575,7 @@ static int str9x_write(struct flash_bank_s *bank,
 		target_write_u16(target, bank_adr, 0x70);
 
 		int timeout;
-		for (timeout = 0; timeout<1000; timeout++)
+		for (timeout = 0; timeout < 1000; timeout++)
 		{
 			target_read_u8(target, bank_adr, &status);
 			if ( status & 0x80 )
@@ -624,7 +624,7 @@ static int str9x_write(struct flash_bank_s *bank,
 		target_write_u16(target, bank_adr, 0x70);
 
 		int timeout;
-		for (timeout = 0; timeout<1000; timeout++)
+		for (timeout = 0; timeout < 1000; timeout++)
 		{
 			target_read_u8(target, bank_adr, &status);
 			if ( status & 0x80 )

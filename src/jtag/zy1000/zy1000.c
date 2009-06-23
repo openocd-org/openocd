@@ -164,7 +164,7 @@ void zy1000_reset(int trst, int srst)
 	if (!srst)
 	{
 		int i;
-		for (i = 0; i<1000; i++)
+		for (i = 0; i < 1000; i++)
 		{
 			// We don't want to sense our own reset, so we clear here.
 			// There is of course a timing hole where we could loose
@@ -179,7 +179,7 @@ void zy1000_reset(int trst, int srst)
 		if (i == 1000)
 		{
 			LOG_USER("SRST didn't deassert after %dms", i);
-		} else if (i>1)
+		} else if (i > 1)
 		{
 			LOG_USER("SRST took %dms to deassert", i);
 		}
@@ -434,13 +434,13 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 
 		// here we shuffle N bits out/in
 		j = 0;
-		while (j<num_bits)
+		while (j < num_bits)
 		{
 			tap_state_t pause_state;
 			int l;
 			k = num_bits-j;
 			pause_state = (shiftState == TAP_DRSHIFT)?TAP_DRSHIFT:TAP_IRSHIFT;
-			if (k>32)
+			if (k > 32)
 			{
 				k = 32;
 				/* we have more to shift out */
@@ -455,7 +455,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 			value = 0;
 			if (fields[i].out_value != NULL)
 			{
-				for (l = 0; l<k; l += 8)
+				for (l = 0; l < k; l += 8)
 				{
 					value|=fields[i].out_value[(j + l)/8]<<l;
 				}
@@ -472,7 +472,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 				// we're shifting in data to MSB, shift data to be aligned for returning the value
 				value >>= 32-k;
 
-				for (l = 0; l<k; l += 8)
+				for (l = 0; l < k; l += 8)
 				{
 					inBuffer[(j + l)/8]=(value >> l)&0xff;
 				}
@@ -634,11 +634,11 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 
 	/* execute num_cycles, 32 at the time. */
 	int i;
-	for (i = 0; i<num_cycles; i += 32)
+	for (i = 0; i < num_cycles; i += 32)
 	{
 		int num;
 		num = 32;
-		if (num_cycles-i<num)
+		if (num_cycles-i < num)
 		{
 			num = num_cycles-i;
 		}

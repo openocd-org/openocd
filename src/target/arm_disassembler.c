@@ -891,7 +891,7 @@ int evaluate_misc_instr(uint32_t opcode, uint32_t address, arm_instruction_t *in
 		int x = (opcode & 0x20) >> 5;
 		int y = (opcode & 0x40) >> 6;
 		
-		/* SMLA<x><y> */
+		/* SMLA < x><y> */
 		if ((opcode & 0x00600000) == 0x00000000)
 		{
 			uint8_t Rd, Rm, Rs, Rn;
@@ -906,7 +906,7 @@ int evaluate_misc_instr(uint32_t opcode, uint32_t address, arm_instruction_t *in
 					 Rd, Rm, Rs, Rn);
 		}
 		
-		/* SMLAL<x><y> */
+		/* SMLAL < x><y> */
 		if ((opcode & 0x00600000) == 0x00400000)
 		{
 			uint8_t RdLow, RdHi, Rm, Rs;
@@ -921,7 +921,7 @@ int evaluate_misc_instr(uint32_t opcode, uint32_t address, arm_instruction_t *in
 					 RdLow, RdHi, Rm, Rs);
 		}
 		
-		/* SMLAW<y> */
+		/* SMLAW < y> */
 		if (((opcode & 0x00600000) == 0x00100000) && (x == 0))
 		{
 			uint8_t Rd, Rm, Rs, Rn;
@@ -936,7 +936,7 @@ int evaluate_misc_instr(uint32_t opcode, uint32_t address, arm_instruction_t *in
 					 Rd, Rm, Rs, Rn);
 		}
 		
-		/* SMUL<x><y> */
+		/* SMUL < x><y> */
 		if ((opcode & 0x00600000) == 0x00300000)
 		{
 			uint8_t Rd, Rm, Rs;
@@ -950,7 +950,7 @@ int evaluate_misc_instr(uint32_t opcode, uint32_t address, arm_instruction_t *in
 					 Rd, Rm, Rs);
 		}
 		
-		/* SMULW<y> */
+		/* SMULW < y> */
 		if (((opcode & 0x00600000) == 0x00100000) && (x == 1))
 		{
 			uint8_t Rd, Rm, Rs;
@@ -1922,7 +1922,7 @@ int evaluate_load_store_multiple_thumb(uint16_t opcode, uint32_t address, arm_in
 		if (reg_list & (1 << i))
 			reg_names_p += snprintf(reg_names_p, (reg_names + 40 - reg_names_p), "r%i, ", i);
 	}
-	if (reg_names_p>reg_names)
+	if (reg_names_p > reg_names)
 		reg_names_p[-2] = '\0';
 	else /* invalid op : no registers */
     		reg_names[0] = '\0';

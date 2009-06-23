@@ -384,7 +384,7 @@ char *alloc_printf(const char *format, ...)
 void keep_alive()
 {
 	current_time = timeval_ms();
-	if (current_time-last_time>1000)
+	if (current_time-last_time > 1000)
 	{
 		extern int gdb_actual_connections;
 
@@ -400,7 +400,7 @@ void keep_alive()
 				"trouble with GDB connections.",
 				current_time-last_time);
 	}
-	if (current_time-last_time>500)
+	if (current_time-last_time > 500)
 	{
 		/* this will keep the GDB connection alive */
 		LOG_USER_N("%s", "");
@@ -429,10 +429,10 @@ void alive_sleep(int ms)
 {
 	int i;
 	int napTime = 10;
-	for (i = 0; i<ms; i += napTime)
+	for (i = 0; i < ms; i += napTime)
 	{
 		int sleep_a_bit = ms-i;
-		if (sleep_a_bit>napTime)
+		if (sleep_a_bit > napTime)
 		{
 			sleep_a_bit = napTime;
 		}
@@ -445,7 +445,7 @@ void busy_sleep(int ms)
 {
 	long long then;
 	then = timeval_ms();
-	while ((timeval_ms()-then)<ms)
+	while ((timeval_ms()-then) < ms)
 	{
 		/* busy wait */
 	}

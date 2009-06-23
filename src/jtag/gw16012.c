@@ -500,7 +500,7 @@ static int gw16012_init_device(void)
 	LOG_DEBUG("opening %s...", buffer);
 
 	device_handle = open(buffer, O_WRONLY);
-	if (device_handle<0)
+	if (device_handle < 0)
 	{
 		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set");
 		return ERROR_JTAG_INIT_FAILED;

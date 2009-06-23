@@ -345,7 +345,7 @@ static int parport_init(void)
 
 #if !defined(__FreeBSD__) && !defined(__FreeBSD_kernel__)
 	i = ioctl(device_handle, PPCLAIM);
-	if (i<0)
+	if (i < 0)
 	{
 		LOG_ERROR("cannot claim device");
 		return ERROR_JTAG_INIT_FAILED;
@@ -353,7 +353,7 @@ static int parport_init(void)
 
 	i = PARPORT_MODE_COMPAT;
 	i= ioctl(device_handle, PPSETMODE, & i);
-	if (i<0)
+	if (i < 0)
 	{
 		LOG_ERROR(" cannot set compatible mode to device");
 		return ERROR_JTAG_INIT_FAILED;
@@ -361,7 +361,7 @@ static int parport_init(void)
 
 	i = IEEE1284_MODE_COMPAT;
 	i = ioctl(device_handle, PPNEGOT, & i);
-	if (i<0)
+	if (i < 0)
 	{
 		LOG_ERROR("cannot set compatible 1284 mode to device");
 		return ERROR_JTAG_INIT_FAILED;

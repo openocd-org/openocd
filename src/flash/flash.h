@@ -76,7 +76,7 @@ struct flash_bank_s;
  * that matches @c DRIVERNAME.
  *
  * The flash subsystem calls some of the other drivers routines a using
- * corresponding static <code>flash_driver_<i>callback</i>()</code>
+ * corresponding static <code > flash_driver_ < i>callback</i > ()</code>
  * routine in flash.c.
  */
 typedef struct flash_driver_s

@@ -96,7 +96,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 	{
 		int i;
 		setCurrentState(state);
-		for (i = 0; i<repeat; i++)
+		for (i = 0; i < repeat; i++)
 		{
 			int tms;
 			tms = 0;
@@ -124,11 +124,11 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 #endif
 #else
 	/* maximum debug version */
-	if ((repeat>0) && ((state == TAP_DRSHIFT)||(state == TAP_SI)))
+	if ((repeat > 0) && ((state == TAP_DRSHIFT)||(state == TAP_SI)))
 	{
 		int i;
 		/* sample shift register for every bit. */
-		for (i = 0; i<repeat-1; i++)
+		for (i = 0; i < repeat-1; i++)
 		{
 			sampleShiftRegister();
 			ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value >> i);
@@ -167,7 +167,7 @@ static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
 		if (tap == target_tap)
 		{
 			int j;
-			for (j = 0; j<(num_fields-1); j++)
+			for (j = 0; j < (num_fields-1); j++)
 			{
 				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[j], value[j]);
 			}

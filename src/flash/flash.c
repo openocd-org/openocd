@@ -791,7 +791,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 
 	duration_start_measure(&duration);
 
-	for (wrote = 0; wrote<(count*wordsize); wrote += cur_size)
+	for (wrote = 0; wrote < (count*wordsize); wrote += cur_size)
 	{
 		cur_size = MIN( (count*wordsize - wrote), sizeof(chunk) );
 		flash_bank_t *bank;
@@ -809,7 +809,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 			return err;
 
 		unsigned i;
-		for (i = 0; i<cur_size; i++)
+		for (i = 0; i < cur_size; i++)
 		{
 			if (readback[i]!=chunk[i])
 			{

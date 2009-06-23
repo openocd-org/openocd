@@ -1924,12 +1924,12 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 				Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
 		}
 
-		if (cur-then>500)
+		if (cur-then > 500)
 		{
 			keep_alive();
 		}
 
-		if ((cur-then)>ms)
+		if ((cur-then) > ms)
 		{
 			LOG_ERROR("timed out while waiting for target %s",
 				Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
@@ -2280,16 +2280,16 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 		/* DANGER!!! beware of unsigned comparision here!!! */
 
 		if ((image.sections[i].base_address + buf_cnt >= min_address)&&
-				(image.sections[i].base_address<max_address))
+				(image.sections[i].base_address < max_address))
 		{
-			if (image.sections[i].base_address<min_address)
+			if (image.sections[i].base_address < min_address)
 			{
 				/* clip addresses below */
 				offset += min_address-image.sections[i].base_address;
 				length -= offset;
 			}
 
-			if (image.sections[i].base_address + buf_cnt>max_address)
+			if (image.sections[i].base_address + buf_cnt > max_address)
 			{
 				length -= (image.sections[i].base_address + buf_cnt)-max_address;
 			}
@@ -2790,7 +2790,7 @@ static void writeData(FILE *f, const void *data, size_t len)
 static void writeLong(FILE *f, int l)
 {
 	int i;
-	for (i = 0; i<4; i++)
+	for (i = 0; i < 4; i++)
 	{
 		char c = (l >> (i*8))&0xff;
 		writeData(f, &c, 1);
@@ -2822,13 +2822,13 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 	/* figure out bucket size */
 	uint32_t min = samples[0];
 	uint32_t max = samples[0];
-	for (i = 0; i<sampleNum; i++)
+	for (i = 0; i < sampleNum; i++)
 	{
-		if (min>samples[i])
+		if (min > samples[i])
 		{
 			min = samples[i];
 		}
-		if (max<samples[i])
+		if (max < samples[i])
 		{
 			max = samples[i];
 		}
@@ -2849,7 +2849,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 		return;
 	}
 	memset(buckets, 0, sizeof(int)*length);
-	for (i = 0; i<sampleNum;i++)
+	for (i = 0; i < sampleNum;i++)
 	{
 		uint32_t address = samples[i];
 		long long a = address-min;
@@ -2865,7 +2865,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 	writeLong(f, length);		/* # of samples */
 	writeLong(f, 64000000); 	/* 64MHz */
 	writeString(f, "seconds");
-	for (i = 0; i<(15-strlen("seconds")); i++)
+	for (i = 0; i < (15-strlen("seconds")); i++)
 		writeData(f, &zero, 1);
 	writeString(f, "s");
 
@@ -2874,11 +2874,11 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 	char *data = malloc(2*length);
 	if (data != NULL)
 	{
-		for (i = 0; i<length;i++)
+		for (i = 0; i < length;i++)
 		{
 			int val;
 			val = buckets[i];
-			if (val>65535)
+			if (val > 65535)
 			{
 				val = 65535;
 			}
@@ -4389,7 +4389,7 @@ static void free_fastload(void)
 	if (fastload != NULL)
 	{
 		int i;
-		for (i = 0; i<fastload_num; i++)
+		for (i = 0; i < fastload_num; i++)
 		{
 			if (fastload[i].data)
 				free(fastload[i].data);
@@ -4461,16 +4461,16 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 		/* DANGER!!! beware of unsigned comparision here!!! */
 
 		if ((image.sections[i].base_address + buf_cnt >= min_address)&&
-				(image.sections[i].base_address<max_address))
+				(image.sections[i].base_address < max_address))
 		{
-			if (image.sections[i].base_address<min_address)
+			if (image.sections[i].base_address < min_address)
 			{
 				/* clip addresses below */
 				offset += min_address-image.sections[i].base_address;
 				length -= offset;
 			}
 
-			if (image.sections[i].base_address + buf_cnt>max_address)
+			if (image.sections[i].base_address + buf_cnt > max_address)
 			{
 				length -= (image.sections[i].base_address + buf_cnt)-max_address;
 			}
@@ -4514,7 +4514,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 
 static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
-	if (argc>0)
+	if (argc > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (fastload == NULL)
 	{
@@ -4525,7 +4525,7 @@ static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd
 	int ms = timeval_ms();
 	int size = 0;
 	int retval = ERROR_OK;
-	for (i = 0; i<fastload_num;i++)
+	for (i = 0; i < fastload_num;i++)
 	{
 		target_t *target = get_current_target(cmd_ctx);
 		command_print(cmd_ctx, "Write to 0x%08x, length 0x%08x", 

@@ -45,13 +45,13 @@ void cmd_flash(uint32 cmd)
 	bi_start = ofs/4;
 	bi_end = (ofs + len + 3)/4;
 
-	if (bi_end>BUFSIZE) {
+	if (bi_end > BUFSIZE) {
 		dcc_wr(OCL_BUFF_OVER);
 		return;
 	}
 
 	chksum = OCL_CHKS_INIT;
-	for (bi = 0; bi<bi_end; bi++) chksum^=buffer[bi]=dcc_rd();
+	for (bi = 0; bi < bi_end; bi++) chksum^=buffer[bi]=dcc_rd();
 
 	if (dcc_rd() != chksum) {
 		dcc_wr(OCL_CHKS_FAIL);
@@ -59,12 +59,12 @@ void cmd_flash(uint32 cmd)
 	}
 
 	/* fill in unused positions with unprogrammed values */
-	for (bi = 0; bi<bi_start; bi++) buffer[bi]=0xffffffff;
+	for (bi = 0; bi < bi_start; bi++) buffer[bi]=0xffffffff;
 	for (bi = bi_end; bi%flash_page_size; bi++) buffer[bi]=0xffffffff;
 
 	result = 0;
 	pagenum = adr/flash_page_size;
-	for (bi = 0; bi<bi_end; bi += flash_page_size/4) {
+	for (bi = 0; bi < bi_end; bi += flash_page_size/4) {
 		result = flash_page_program(buffer + bi, pagenum++);
 		if (result) break;
 	}

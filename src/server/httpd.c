@@ -34,7 +34,7 @@
 #include <pthread.h>
 #include <signal.h>
 
-#define PAGE_NOT_FOUND "<html><head><title>File not found</title></head><body>File not found</body></html>"
+#define PAGE_NOT_FOUND "<html><head><title > File not found</title></head><body > File not found</body></html>"
 
 int loadFile(const char *name, void **data, size_t *len);
 
@@ -71,7 +71,7 @@ static const char *httpd_exec_cgi_tcl_error(Jim_Interp *interp)
 
 	t = appendf(t, "Runtime error, file \"%s\", line %d:<br>",
 			interp->errorFileName, interp->errorLine);
-	t = appendf(t, "    %s<br>", Jim_GetString(interp->result, NULL));
+	t = appendf(t, "    %s < br>", Jim_GetString(interp->result, NULL));
 	Jim_ListLength(interp, interp->stackTrace, &len);
 	for (i = 0; i < len; i += 3)
 	{
@@ -84,7 +84,7 @@ static const char *httpd_exec_cgi_tcl_error(Jim_Interp *interp)
 		file = Jim_GetString(objPtr, NULL);
 		Jim_ListIndex(interp, interp->stackTrace, i + 2, &objPtr, JIM_NONE);
 		line = Jim_GetString(objPtr, NULL);
-		t = appendf(t, "In procedure '%s' called at file \"%s\", line %s<br>",
+		t = appendf(t, "In procedure '%s' called at file \"%s\", line %s < br>",
 				proc, file, line);
 	}
 	t = appendf(t, "</html></body>\n");

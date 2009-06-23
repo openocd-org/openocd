@@ -492,7 +492,7 @@ int command_run_line(command_context_t *context, char *line)
 		int reslen;
 
 		result = Jim_GetString(Jim_GetResult(interp), &reslen);
-		if (reslen>0)
+		if (reslen > 0)
 		{
 			int i;
 			char buff[256 + 1];

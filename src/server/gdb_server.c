@@ -109,7 +109,7 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 		got_data=&t;
 	*got_data = 0;
 
-	if (gdb_con->buf_cnt>0)
+	if (gdb_con->buf_cnt > 0)
 	{
 		*got_data = 1;
 		return ERROR_OK;
@@ -125,7 +125,7 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 		/* This can typically be because a "monitor" command took too long
 		 * before printing any progress messages
 		 */
-		if (timeout_s>0)
+		if (timeout_s > 0)
 		{
 			return ERROR_GDB_TIMEOUT;
 		} else
@@ -649,7 +649,7 @@ int gdb_output_con(connection_t *connection, const char* line)
 		return ERROR_GDB_BUFFER_TOO_SMALL;
 
 	hex_buffer[0] = 'O';
-	for (i = 0; i<bin_size; i++)
+	for (i = 0; i < bin_size; i++)
 		snprintf(hex_buffer + 1 + i*2, 3, "%2.2x", line[i]);
 	hex_buffer[bin_size*2 + 1] = 0;
 
@@ -1268,7 +1268,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 
 	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
-	for (i = 0; i<len; i++)
+	for (i = 0; i < len; i++)
 	{
 		uint32_t tmp;
 		sscanf(separator + 2*i, "%2" SCNx32 , &tmp);
@@ -1563,7 +1563,7 @@ static int compare_bank (const void * a, const void * b)
 	if (b1->base == b2->base)
 	{
 		return 0;
-	} else if (b1->base>b2->base)
+	} else if (b1->base > b2->base)
 	{
 		return 1;
 	} else
@@ -1654,7 +1654,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 		xml_printf(&retval, &buffer, &pos, &size,
 				"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read-;QStartNoAckMode+",
-				(GDB_BUFFER_SIZE - 1), ((gdb_use_memory_map == 1) && (flash_get_bank_count()>0)) ? '+' : '-');
+				(GDB_BUFFER_SIZE - 1), ((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-');
 
 		if (retval != ERROR_OK)
 		{
@@ -1667,7 +1667,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 		return ERROR_OK;
 	}
-	else if (strstr(packet, "qXfer:memory-map:read::") && (flash_get_bank_count()>0))
+	else if (strstr(packet, "qXfer:memory-map:read::") && (flash_get_bank_count() > 0))
 	{
 		/* We get away with only specifying flash here. Regions that are not
 		 * specified are treated as if we provided no memory map(if not we
@@ -1702,7 +1702,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		flash_bank_t **banks = malloc(sizeof(flash_bank_t *)*flash_get_bank_count());
 		int i;
 
-		for (i = 0; i<flash_get_bank_count(); i++)
+		for (i = 0; i < flash_get_bank_count(); i++)
 		{
 			p = get_flash_bank_by_num(i);
 			if (p == NULL)
@@ -1718,11 +1718,11 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		qsort(banks, flash_get_bank_count(), sizeof(flash_bank_t *), compare_bank);
 
 		uint32_t ram_start = 0;
-		for (i = 0; i<flash_get_bank_count(); i++)
+		for (i = 0; i < flash_get_bank_count(); i++)
 		{
 			p = banks[i];
 
-			if (ram_start<p->base)
+			if (ram_start < p->base)
 			{
 				xml_printf(&retval, &xml, &pos, &size, "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>\n",
 					ram_start, p->base-ram_start);
@@ -1800,7 +1800,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		}
 
 		xml_printf(&retval, &xml, &pos, &size, \
-			"l<target version=\"1.0\">\n<architecture>arm</architecture>\n</target>\n");
+			"l < target version=\"1.0\">\n < architecture > arm</architecture>\n</target>\n");
 
 		if (retval != ERROR_OK)
 		{

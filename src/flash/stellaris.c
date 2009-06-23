@@ -322,7 +322,7 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	buf += printed;
 	buf_size -= printed;
 
-	if (stellaris_info->num_lockbits>0)
+	if (stellaris_info->num_lockbits > 0)
 	{
 		printed = snprintf(buf,
 				   buf_size,

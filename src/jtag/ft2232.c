@@ -2794,7 +2794,7 @@ static int ft2232_handle_device_desc_command(struct command_context_s* cmd_ctx, 
 			cp[-2] = 0;
 			ft2232_device_desc =  strdup(buf);
 		} else {
-			// <space>A not defined
+			// <space > A not defined
 			// so create it
 			sprintf(buf, "%s A", ft2232_device_desc);
 			ft2232_device_desc_A = strdup(buf);

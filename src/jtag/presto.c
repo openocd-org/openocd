@@ -553,7 +553,7 @@ static int presto_getbyte(void)
 	if (presto_flush() != ERROR_OK)
 		return -1;
 
-	if (presto->buff_in_pos<presto->buff_in_len)
+	if (presto->buff_in_pos < presto->buff_in_len)
 		return presto->buff_in[presto->buff_in_pos++];
 
 	return -1;
@@ -625,14 +625,14 @@ static int presto_bitq_out(int tms, int tdi, int tdo_req)
 	}
 
 	/* delay with TCK low */
-	for (i = presto->jtag_speed; i>1; i--)
+	for (i = presto->jtag_speed; i > 1; i--)
 		presto_sendbyte(cmd);
 
 	cmd |= 0x04;
 	presto_sendbyte(cmd | (tdo_req ? 0x10 : 0));
 
 	/* delay with TCK high */
-	for (i = presto->jtag_speed; i>1; i--)
+	for (i = presto->jtag_speed; i > 1; i--)
 		presto_sendbyte(cmd);
 
 	presto->jtag_tck = 1;

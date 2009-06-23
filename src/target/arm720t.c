@@ -375,7 +375,7 @@ int arm720t_soft_reset_halt(struct target_s *target)
 
 	long long then = timeval_ms();
 	int timeout;
-	while (!(timeout = ((timeval_ms()-then)>1000)))
+	while (!(timeout = ((timeval_ms()-then) > 1000)))
 	{
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
 		{

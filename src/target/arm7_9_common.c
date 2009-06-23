@@ -702,7 +702,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 
 	long long then = timeval_ms();
 	int timeout;
-	while (!(timeout = ((timeval_ms()-then)>1000)))
+	while (!(timeout = ((timeval_ms()-then) > 1000)))
 	{
 		/* read debug status register */
 		embeddedice_read_reg(dbg_stat);
@@ -862,11 +862,11 @@ int arm7_9_handle_target_request(void *priv)
  * what happens:
  *
  * <table>
- * 		<tr><th>State</th><th>Action</th></tr>
- * 		<tr><td>TARGET_RUNNING | TARGET_RESET</td><td>Enters debug mode.  If TARGET_RESET, pc may be checked</td></tr>
- * 		<tr><td>TARGET_UNKNOWN</td><td>Warning is logged</td></tr>
- * 		<tr><td>TARGET_DEBUG_RUNNING</td><td>Enters debug mode</td></tr>
- * 		<tr><td>TARGET_HALTED</td><td>Nothing</td></tr>
+ * 		<tr><th > State</th><th > Action</th></tr>
+ * 		<tr><td > TARGET_RUNNING | TARGET_RESET</td><td > Enters debug mode.  If TARGET_RESET, pc may be checked</td></tr>
+ * 		<tr><td > TARGET_UNKNOWN</td><td > Warning is logged</td></tr>
+ * 		<tr><td > TARGET_DEBUG_RUNNING</td><td > Enters debug mode</td></tr>
+ * 		<tr><td > TARGET_HALTED</td><td > Nothing</td></tr>
  * </table>
  *
  * If the target does not end up in the halted state, a warning is produced.  If
@@ -1152,7 +1152,7 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 
 	long long then = timeval_ms();
 	int timeout;
-	while (!(timeout = ((timeval_ms()-then)>1000)))
+	while (!(timeout = ((timeval_ms()-then) > 1000)))
 	{
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) != 0)
 			break;
@@ -2582,7 +2582,7 @@ static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, i
 	int little = target->endianness == TARGET_LITTLE_ENDIAN;
 	int count = dcc_count;
 	uint8_t *buffer = dcc_buffer;
-	if (count>2)
+	if (count > 2)
 	{
 		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
 		 * core function repeated. */

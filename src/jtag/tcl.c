@@ -1396,7 +1396,7 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 	script_debug(interp, "pathmove", argc, args);
 
 	int i;
-	for (i = 0; i<argc-1; i++)
+	for (i = 0; i < argc-1; i++)
 	{
 		const char *cp;
 		cp = Jim_GetString( args[i + 1], NULL );

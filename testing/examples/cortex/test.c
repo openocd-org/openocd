@@ -20,7 +20,7 @@ int j;
 void _start()
 {
   int i;
-  for (i = 0; i<1000; i++)
+  for (i = 0; i < 1000; i++)
     {
       j++;
     }

@@ -75,9 +75,9 @@ int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state
  * \param arm11			Target state variable.
  * \param num_bits		Length of the data field
  * \param out_data		pointer to the data that will be sent out
- *						<em>(data is read when it is added to the JTAG queue)</em>
+ *						<em > (data is read when it is added to the JTAG queue)</em>
  * \param in_data		pointer to the memory that will receive data that was clocked in
- *						<em>(data is written when the JTAG queue is executed)</em>
+ *						<em > (data is written when the JTAG queue is executed)</em>
  * \param field			target data structure that will be initialized
  */
 void arm11_setup_field(arm11_common_t * arm11, int num_bits, void * out_data, void * in_data, scan_field_t * field)

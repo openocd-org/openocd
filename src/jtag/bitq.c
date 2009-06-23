@@ -54,7 +54,7 @@ void bitq_in_proc(void)
 		if (bitq_in_state.cmd->type == JTAG_SCAN)
 		{
 			/* loop through the fields */
-			while (bitq_in_state.field_idx<bitq_in_state.cmd->cmd.scan->num_fields)
+			while (bitq_in_state.field_idx < bitq_in_state.cmd->cmd.scan->num_fields)
 			{
 				field = &bitq_in_state.cmd->cmd.scan->fields[bitq_in_state.field_idx];
 				if (field->in_value)
@@ -69,7 +69,7 @@ void bitq_in_proc(void)
 						else
 						{
 							/* buffer reallocation needed? */
-							if (field->num_bits>bitq_in_bufsize * 8)
+							if (field->num_bits > bitq_in_bufsize * 8)
 							{
 								/* buffer previously allocated? */
 								if (bitq_in_buffer != NULL)
@@ -79,7 +79,7 @@ void bitq_in_proc(void)
 									bitq_in_buffer = NULL;
 								}
 								/* double the buffer size until it fits */
-								while (field->num_bits>bitq_in_bufsize * 8)
+								while (field->num_bits > bitq_in_bufsize * 8)
 									bitq_in_bufsize *= 2;
 							}
 							/* if necessary, allocate buffer and check for malloc error */
@@ -93,9 +93,9 @@ void bitq_in_proc(void)
 					}
 
 					/* field scanning */
-					while (bitq_in_state.bit_pos<field->num_bits)
+					while (bitq_in_state.bit_pos < field->num_bits)
 					{
-						if ( ( tdo = bitq_interface->in() )<0 )
+						if ( ( tdo = bitq_interface->in() ) < 0 )
 						{
 #ifdef _DEBUG_JTAG_IO_
 							LOG_DEBUG("bitq in EOF");
@@ -161,7 +161,7 @@ void bitq_state_move(tap_state_t new_state)
 	tms_scan = tap_get_tms_path(tap_get_state(), new_state);
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
-	for (i = 0; i<tms_count; i++)
+	for (i = 0; i < tms_count; i++)
 	{
 		bitq_io(tms_scan & 1, 0, 0);
 		tms_scan >>= 1;
@@ -229,7 +229,7 @@ void bitq_scan_field(scan_field_t* field, int pause)
 	if (field->out_value == NULL)
 	{
 		/* just send zeros and request data from TDO */
-		for (bit_cnt = field->num_bits; bit_cnt>1; bit_cnt--)
+		for (bit_cnt = field->num_bits; bit_cnt > 1; bit_cnt--)
 			bitq_io(0, 0, tdo_req);
 
 		bitq_io(pause, 0, tdo_req);
@@ -239,7 +239,7 @@ void bitq_scan_field(scan_field_t* field, int pause)
 		/* send data, and optionally request TDO */
 		out_mask = 0x01;
 		out_ptr  = field->out_value;
-		for (bit_cnt = field->num_bits; bit_cnt>1; bit_cnt--)
+		for (bit_cnt = field->num_bits; bit_cnt > 1; bit_cnt--)
 		{
 			bitq_io(0, ( (*out_ptr) & out_mask ) != 0, tdo_req);
 			if (out_mask == 0x80)

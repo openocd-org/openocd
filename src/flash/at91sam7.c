@@ -550,7 +550,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 	/* calculate bank size  */
 	bank_size = sectors_num * pages_per_sector * page_size;
 
-	for (bnk = 0; bnk<banks_num; bnk++)
+	for (bnk = 0; bnk < banks_num; bnk++)
 	{
 		if (bnk > 0)
 		{
@@ -575,7 +575,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 
 		/* allocate sectors */
 		t_bank->sectors = malloc(sectors_num * sizeof(flash_sector_t));
-		for (sec = 0; sec<sectors_num; sec++)
+		for (sec = 0; sec < sectors_num; sec++)
 		{
 			t_bank->sectors[sec].offset = sec * pages_per_sector * page_size;
 			t_bank->sectors[sec].size = pages_per_sector * page_size;
@@ -639,7 +639,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 	at91sam7_set_flash_mode(bank, FMR_TIMING_FLASH);
 
 	fast_check = 1;
-	for (nSector = 0; nSector<bank->num_sectors; nSector++)
+	for (nSector = 0; nSector < bank->num_sectors; nSector++)
 	{
 		retval = target_blank_check_memory(target, bank->base + bank->sectors[nSector].offset,
 			bank->sectors[nSector].size, &blank);
@@ -662,7 +662,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 	LOG_USER("Running slow fallback erase check - add working memory");
 
 	buffer = malloc(bank->sectors[0].size);
-	for (nSector = 0; nSector<bank->num_sectors; nSector++)
+	for (nSector = 0; nSector < bank->num_sectors; nSector++)
 	{
 		bank->sectors[nSector].is_erased = 1;
 		retval = target_read_memory(target, bank->base + bank->sectors[nSector].offset, 4,
@@ -670,7 +670,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 		if (retval != ERROR_OK)
 			return retval;
 
-		for (nByte = 0; nByte<bank->sectors[nSector].size; nByte++)
+		for (nByte = 0; nByte < bank->sectors[nSector].size; nByte++)
 		{
 			if (buffer[nByte] != 0xFF)
 			{
@@ -705,7 +705,7 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	at91sam7_info->lockbits = (status >> 16);
 
 	at91sam7_info->num_lockbits_on = 0;
-	for (lock_pos = 0; lock_pos<bank->num_sectors; lock_pos++)
+	for (lock_pos = 0; lock_pos < bank->num_sectors; lock_pos++)
 	{
 		if ( ((status >> (16 + lock_pos))&(0x0001)) == 1)
 		{
@@ -723,7 +723,7 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	at91sam7_info->nvmbits = (status >> 8)&0xFF;
 
 	at91sam7_info->num_nvmbits_on = 0;
-	for (gpnvm_pos = 0; gpnvm_pos<at91sam7_info->num_nvmbits; gpnvm_pos++)
+	for (gpnvm_pos = 0; gpnvm_pos < at91sam7_info->num_nvmbits; gpnvm_pos++)
 	{
 		if ( ((status >> (8 + gpnvm_pos))&(0x01)) == 1)
 		{
@@ -809,7 +809,7 @@ static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *
 	/* calculate bank size  */
 	bank_size = num_sectors * pages_per_sector * page_size;
 
-	for (bnk = 0; bnk<banks_num; bnk++)
+	for (bnk = 0; bnk < banks_num; bnk++)
 	{
 		if (bnk > 0)
 		{
@@ -834,7 +834,7 @@ static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *
 
 		/* allocate sectors */
 		t_bank->sectors = malloc(num_sectors * sizeof(flash_sector_t));
-		for (sec = 0; sec<num_sectors; sec++)
+		for (sec = 0; sec < num_sectors; sec++)
 		{
 			t_bank->sectors[sec].offset = sec * pages_per_sector * page_size;
 			t_bank->sectors[sec].size = pages_per_sector * page_size;
@@ -902,7 +902,7 @@ static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 		/* allocate and clean buffer  */
 		nbytes = (last - first + 1) * bank->sectors[first].size;
 		buffer = malloc(nbytes * sizeof(uint8_t));
-		for (pos = 0; pos<nbytes; pos++)
+		for (pos = 0; pos < nbytes; pos++)
 		{
 			buffer[pos] = 0xFF;
 		}
@@ -1016,9 +1016,9 @@ static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 	at91sam7_read_clock_info(bank);
 	at91sam7_set_flash_mode(bank, FMR_TIMING_FLASH);
 
-	for (pagen = first_page; pagen<last_page; pagen++)
+	for (pagen = first_page; pagen < last_page; pagen++)
 	{
-		if (bytes_remaining<dst_min_alignment)
+		if (bytes_remaining < dst_min_alignment)
 			count = bytes_remaining;
 		else
 			count = dst_min_alignment;

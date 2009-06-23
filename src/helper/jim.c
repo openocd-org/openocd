@@ -503,8 +503,8 @@ int Jim_StringToDouble(const char *str, double *doublePtr)
 static jim_wide JimPowWide(jim_wide b, jim_wide e)
 {
     jim_wide i, res = 1;
-    if ((b == 0 && e != 0) || (e<0)) return 0;
-    for (i = 0; i<e; i++) {res *= b;}
+    if ((b == 0 && e != 0) || (e < 0)) return 0;
+    for (i = 0; i < e; i++) {res *= b;}
     return res;
 }
 
@@ -6953,8 +6953,8 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
             case JIM_EXPROP_ADD: wC = wA + wB; break;
             case JIM_EXPROP_SUB: wC = wA-wB; break;
             case JIM_EXPROP_MUL: wC = wA*wB; break;
-            case JIM_EXPROP_LT: wC = wA<wB; break;
-            case JIM_EXPROP_GT: wC = wA>wB; break;
+            case JIM_EXPROP_LT: wC = wA < wB; break;
+            case JIM_EXPROP_GT: wC = wA > wB; break;
             case JIM_EXPROP_LTE: wC = wA <= wB; break;
             case JIM_EXPROP_GTE: wC = wA >= wB; break;
             case JIM_EXPROP_LSHIFT: wC = wA << wB; break;
@@ -7058,8 +7058,8 @@ trydouble:
             case JIM_EXPROP_ADD: dC = dA + dB; break;
             case JIM_EXPROP_SUB: dC = dA-dB; break;
             case JIM_EXPROP_MUL: dC = dA*dB; break;
-            case JIM_EXPROP_LT: dC = dA<dB; break;
-            case JIM_EXPROP_GT: dC = dA>dB; break;
+            case JIM_EXPROP_LT: dC = dA < dB; break;
+            case JIM_EXPROP_GT: dC = dA > dB; break;
             case JIM_EXPROP_LTE: dC = dA <= dB; break;
             case JIM_EXPROP_GTE: dC = dA >= dB; break;
             case JIM_EXPROP_NUMEQ: dC = dA == dB; break;
@@ -8197,7 +8197,7 @@ static char *JimFindBestPackage(Jim_Interp *interp, char **prefixes,
                  strncmp(fileName + fileNameLen-4, ".dll", 4) == 0 ||
                  strncmp(fileName + fileNameLen-3, ".so", 3) == 0))
             {
-                char ver[6]; /* xx.yy<nulterm> */
+                char ver[6]; /* xx.yy < nulterm> */
                 char *p = strrchr(fileName, '.');
                 int verLen, fileVer;
 
