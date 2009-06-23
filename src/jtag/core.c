@@ -864,10 +864,10 @@ static void jtag_examine_chain_display(enum log_levels level, const char *msg,
 	log_printf_lf(level, __FILE__, __LINE__, __FUNCTION__,
 				  "JTAG tap: %s %16.16s: 0x%08x "
 				  "(mfg: 0x%3.3x, part: 0x%4.4x, ver: 0x%1.1x)",
-				  name, msg, 
+				  name, msg,
 				  (unsigned int)idcode,
-				  (unsigned int)EXTRACT_MFG(idcode), 
-				  (unsigned int)EXTRACT_PART(idcode), 
+				  (unsigned int)EXTRACT_MFG(idcode),
+				  (unsigned int)EXTRACT_PART(idcode),
 				  (unsigned int)EXTRACT_VER(idcode));
 }
 
@@ -1111,7 +1111,7 @@ void jtag_tap_free(jtag_tap_t *tap)
 {
 	jtag_unregister_event_callback(&jtag_reset_callback, tap);
 
-	/// @todo is anything missing? no memory leaks please 
+	/// @todo is anything missing? no memory leaks please
 	free((void *)tap->expected_ids);
 	free((void *)tap->chip);
 	free((void *)tap->tapname);

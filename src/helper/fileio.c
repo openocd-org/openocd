@@ -34,7 +34,7 @@
 static inline int fileio_open_local(fileio_t *fileio)
 {
 	char access[4];
-	
+
 	switch (fileio->access)
 	{
 		case FILEIO_READ:
@@ -47,16 +47,16 @@ static inline int fileio_open_local(fileio_t *fileio)
 			strcpy(access, "w+");
 			break;
 		case FILEIO_APPEND:
-			strcpy(access, "a");	
+			strcpy(access, "a");
 			break;
 		case FILEIO_APPENDREAD:
-			strcpy(access, "a+");	
+			strcpy(access, "a+");
 			break;
 		default:
 			LOG_ERROR("BUG: access neither read, write nor readwrite");
 			return ERROR_INVALID_ARGUMENTS;
 	}
-	
+
 	/* win32 always opens in binary mode */
 #ifndef _WIN32
 	if (fileio->type == FILEIO_BINARY)
@@ -64,26 +64,26 @@ static inline int fileio_open_local(fileio_t *fileio)
 	{
 		strcat(access, "b");
 	}
-	
+
 	if (!(fileio->file = open_file_from_path (fileio->url, access)))
 	{
 		LOG_ERROR("couldn't open %s", fileio->url);
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
-	
+
 	if ((fileio->access != FILEIO_WRITE) || (fileio->access == FILEIO_READWRITE))
 	{
 		/* NB! Here we use fseek() instead of stat(), since stat is a
 		 * more advanced operation that might not apply to e.g. a disk path
 		 * that refers to e.g. a tftp client */
 		int result, result2;
-		
+
 		result = fseek(fileio->file, 0, SEEK_END);
 
 		fileio->size = ftell(fileio->file);
-		
-		result2 = fseek(fileio->file, 0, SEEK_SET); 
-			
+
+		result2 = fseek(fileio->file, 0, SEEK_SET);
+
 		if ((fileio->size < 0)||(result < 0)||(result2 < 0))
 		{
 			fileio_close(fileio);
@@ -94,7 +94,7 @@ static inline int fileio_open_local(fileio_t *fileio)
 	{
 		fileio->size = 0x0;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -105,7 +105,7 @@ int fileio_open(fileio_t *fileio, const char *url, enum fileio_access access,	en
 	fileio->type = type;
 	fileio->access = access;
 	fileio->url = strdup(url);
-	
+
 	retval = fileio_open_local(fileio);
 
 	return retval;
@@ -127,19 +127,19 @@ static inline int fileio_close_local(fileio_t *fileio)
 
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
-	
+
 	return ERROR_OK;
 }
 
 int fileio_close(fileio_t *fileio)
 {
 	int retval;
-	
+
 	retval = fileio_close_local(fileio);
-	
+
 	free(fileio->url);
 	fileio->url = NULL;
-	
+
 	return retval;
 }
 
@@ -151,14 +151,14 @@ int fileio_seek(fileio_t *fileio, uint32_t position)
 		LOG_ERROR("couldn't seek file %s: %s", fileio->url, strerror(errno));
 		return ERROR_FILEIO_OPERATION_FAILED;
 	}
-	
+
 	return ERROR_OK;
 }
 
 static inline int fileio_local_read(fileio_t *fileio, uint32_t size, uint8_t *buffer, uint32_t *size_read)
 {
 	*size_read = fread(buffer, 1, size, fileio->file);
-	
+
 	return ERROR_OK;
 }
 
@@ -172,11 +172,11 @@ int fileio_read_u32(fileio_t *fileio, uint32_t *data)
 	uint8_t buf[4];
 	uint32_t size_read;
 	int retval;
-	
+
 	if ((retval = fileio_local_read(fileio, 4, buf, &size_read)) != ERROR_OK)
 		return retval;
 	*data = be_to_h_u32(buf);
-	
+
 	return ERROR_OK;
 }
 
@@ -184,7 +184,7 @@ static inline int fileio_local_fgets(fileio_t *fileio, uint32_t size, char *buff
 {
 	if (fgets(buffer, size, fileio->file) == NULL)
 		return ERROR_FILEIO_OPERATION_FAILED;
-	
+
 	return ERROR_OK;
 }
 
@@ -196,19 +196,19 @@ int fileio_fgets(fileio_t *fileio, uint32_t size, char *buffer)
 static inline int fileio_local_write(fileio_t *fileio, uint32_t size, const uint8_t *buffer, uint32_t *size_written)
 {
 	*size_written = fwrite(buffer, 1, size, fileio->file);
-	
+
 	return ERROR_OK;
 }
 
 int fileio_write(fileio_t *fileio, uint32_t size, const uint8_t *buffer, uint32_t *size_written)
 {
 	int retval;
-	
+
 	retval = fileio_local_write(fileio, size, buffer, size_written);
-	
+
 	if (retval == ERROR_OK)
 		fileio->size += *size_written;
-	
+
 	return retval;;
 }
 
@@ -217,11 +217,11 @@ int fileio_write_u32(fileio_t *fileio, uint32_t data)
 	uint8_t buf[4];
 	uint32_t size_written;
 	int retval;
-	
+
 	h_u32_to_be(buf, data);
-	
+
 	if ((retval = fileio_local_write(fileio, 4, buf, &size_written)) != ERROR_OK)
 		return retval;
-	
+
 	return ERROR_OK;
 }

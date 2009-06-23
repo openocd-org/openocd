@@ -27,7 +27,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-/* 
+/*
  * clear_malloc
  *
  * will alloc memory and clear it
@@ -203,11 +203,11 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 	FD_ZERO(&aread);
 	FD_ZERO(&awrite);
 	FD_ZERO(&aexcept);
-	
+
 	limit = GetTickCount() + ms_total;
 	do {
 		retcode = 0;
-	
+
 		if (sock_max_fd >= 0) {
 			/* overwrite the zero'd sets here; the select call
 			 * will clear those that are not active */
@@ -245,7 +245,7 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 						if (SAFE_FD_ISSET(handle_slot_to_fd[i], rfds)) {
 							DWORD dwBytes;
 							long handle = _get_osfhandle(handle_slot_to_fd[i]);
-							
+
 							if (PeekNamedPipe((HANDLE)handle, NULL, 0, NULL, &dwBytes, NULL))
 							{
 								/* check to see if gdb pipe has data available */

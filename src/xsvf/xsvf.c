@@ -620,7 +620,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					field.in_value = NULL;
 
 
-					
+
 
 					if (tap == NULL)
 						jtag_add_plain_ir_scan(1, &field, my_end_state);

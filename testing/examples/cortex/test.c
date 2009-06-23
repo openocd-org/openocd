@@ -1,4 +1,4 @@
-/* simple app. 
+/* simple app.
 
 modify test.ld to change address.
 

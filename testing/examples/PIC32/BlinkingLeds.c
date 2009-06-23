@@ -8,7 +8,7 @@ int main(void)
 	mPORTDSetPinsDigitalOut(BIT_1);
 	mPORTDClearBits(BIT_2);
 	mPORTDSetPinsDigitalOut(BIT_2);
-	
+
 	while (1)
 	{
 		for (i = 0; i < 500000; i++)

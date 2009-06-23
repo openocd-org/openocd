@@ -25,12 +25,12 @@ void delay()
 }
 
 /* MAIN ARM FUNTION */
-int main (void)  
+int main (void)
 {
-	int i;	
+	int i;
         volatile unsigned char *ledoff = ((volatile unsigned char *)0xD4000008);
         volatile unsigned char *ledon = ((volatile unsigned char *)0xD400000C);
-	
+
 	for (i = 0; i < 10000; i++)
     	{
 		*ledon = 0x30;

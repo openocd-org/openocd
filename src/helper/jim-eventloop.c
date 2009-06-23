@@ -2,25 +2,25 @@
  *
  * Copyright 2005 Salvatore Sanfilippo <antirez@invece.org>
  * Copyright 2005 Clemens Hintze <c.hintze@gmx.net>
- * Copyright 2005 patthoyts - Pat Thoyts <patthoyts@users.sf.net> 
+ * Copyright 2005 patthoyts - Pat Thoyts <patthoyts@users.sf.net>
  * Copyright 2008 oharboe - Øyvind Harboe - oyvind.harboe@zylin.com
  * Copyright 2008 Andrew Lunn <andrew@lunn.ch>
  * Copyright 2008 Duane Ellis <openocd@duaneellis.com>
  * Copyright 2008 Uwe Klein <uklein@klein-messgeraete.de>
- * 
+ *
  * The FreeBSD license
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above
  *    copyright notice, this list of conditions and the following
  *    disclaimer in the documentation and/or other materials
  *    provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE JIM TCL PROJECT ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
  * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
@@ -33,7 +33,7 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
  * official policies, either expressed or implied, of the Jim Tcl Project.
@@ -133,12 +133,12 @@ void Jim_DeleteFileHandler(Jim_Interp *interp, void *handle)
 }
 
 // The same for signals.
-void Jim_CreateSignalHandler(Jim_Interp *interp, int signum, 
+void Jim_CreateSignalHandler(Jim_Interp *interp, int signum,
         Jim_FileProc *proc, void *clientData,
         Jim_EventFinalizerProc *finalizerProc)
 {
 }
-void Jim_DeleteSignalHandler(Jim_Interp *interp, int signum) 
+void Jim_DeleteSignalHandler(Jim_Interp *interp, int signum)
 {
 }
 
@@ -192,7 +192,7 @@ jim_wide Jim_DeleteTimeHandler(Jim_Interp *interp, jim_wide id)
     JimGetTime(&cur_sec, &cur_ms);
 
     te = eventLoop->timeEventHead;
-    if (id >= eventLoop->timeEventNextId) 
+    if (id >= eventLoop->timeEventNextId)
     	return -2; /* wrong event ID */
     while (te) {
         if (te->id == id) {
@@ -271,7 +271,7 @@ int Jim_ProcessEvents(Jim_Interp *interp, int flags)
     while (fe != NULL) {
         int fd = fileno((FILE*)fe->handle);
 
-        if (fe->mask & JIM_EVENT_READABLE) 
+        if (fe->mask & JIM_EVENT_READABLE)
 		FD_SET(fd, &rfds);
         if (fe->mask & JIM_EVENT_WRITABLE) FD_SET(fd, &wfds);
         if (fe->mask & JIM_EVENT_EXCEPTION) FD_SET(fd, &efds);
@@ -419,7 +419,7 @@ void JimELAssocDataDeleProc(Jim_Interp *interp, void *data)
     Jim_Free(data);
 }
 
-static int JimELVwaitCommand(Jim_Interp *interp, int argc, 
+static int JimELVwaitCommand(Jim_Interp *interp, int argc,
         Jim_Obj *const *argv)
 {
     Jim_Obj *oldValue;
@@ -461,7 +461,7 @@ void JimAfterTimeEventFinalizer(Jim_Interp *interp, void *clientData)
     Jim_DecrRefCount(interp, objPtr);
 }
 
-static int JimELAfterCommand(Jim_Interp *interp, int argc, 
+static int JimELAfterCommand(Jim_Interp *interp, int argc,
         Jim_Obj *const *argv)
 {
     jim_wide ms, id;
@@ -510,7 +510,7 @@ static int JimELAfterCommand(Jim_Interp *interp, int argc,
 	}
     default:
 	fprintf(stderr,"unserviced option to after %d\n",option);
-    } 
+    }
     return JIM_OK;
 }
 

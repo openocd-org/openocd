@@ -2,25 +2,25 @@
  *
  * Copyright 2005 Salvatore Sanfilippo <antirez@invece.org>
  * Copyright 2005 Clemens Hintze <c.hintze@gmx.net>
- * Copyright 2005 patthoyts - Pat Thoyts <patthoyts@users.sf.net> 
+ * Copyright 2005 patthoyts - Pat Thoyts <patthoyts@users.sf.net>
  * Copyright 2008 oharboe - Øyvind Harboe - oyvind.harboe@zylin.com
  * Copyright 2008 Andrew Lunn <andrew@lunn.ch>
  * Copyright 2008 Duane Ellis <openocd@duaneellis.com>
  * Copyright 2008 Uwe Klein <uklein@klein-messgeraete.de>
- * 
+ *
  * The FreeBSD license
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above
  *    copyright notice, this list of conditions and the following
  *    disclaimer in the documentation and/or other materials
  *    provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE JIM TCL PROJECT ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
  * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
@@ -33,12 +33,12 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * The views and conclusions contained in the software and documentation
  * are those of the authors and should not be interpreted as representing
  * official policies, either expressed or implied, of the Jim Tcl Project.
  *
- *--- Inline Header File Documentation --- 
+ *--- Inline Header File Documentation ---
  *    [By Duane Ellis, openocd@duaneellis.com, 8/18/8]
  *
  * Belief is "Jim" would greatly benifit if Jim Internals where
@@ -403,7 +403,7 @@ typedef void (Jim_FreeInternalRepProc)(struct Jim_Interp *interp,
 typedef void (Jim_DupInternalRepProc)(struct Jim_Interp *interp,
         struct Jim_Obj *srcPtr, Jim_Obj *dupPtr);
 typedef void (Jim_UpdateStringProc)(struct Jim_Obj *objPtr);
-    
+
 typedef struct Jim_ObjType {
     const char *name; /* The name of the type. */
     Jim_FreeInternalRepProc *freeIntRepProc;
@@ -449,7 +449,7 @@ typedef struct Jim_Var {
     Jim_Obj *objPtr;
     struct Jim_CallFrame *linkFramePtr;
 } Jim_Var;
-    
+
 /* The cmd structure. */
 typedef int (*Jim_CmdProc)(struct Jim_Interp *interp, int argc,
     Jim_Obj *const *argv);
@@ -591,7 +591,7 @@ typedef struct Jim_Reference {
  *      };
  *
  *  Jim_Nvp *result
- *  e = Jim_Nvp_name2value(interp, yn, "y", &result); 
+ *  e = Jim_Nvp_name2value(interp, yn, "y", &result);
  *         returns &yn[0];
  *  e = Jim_Nvp_name2value(interp, yn, "n", &result);
  *         returns &yn[1];
@@ -605,7 +605,7 @@ typedef struct {
 	const char *name;
 	int         value;
 } Jim_Nvp;
-    
+
 
 /* -----------------------------------------------------------------------------
  * Exported API prototypes.
@@ -628,7 +628,7 @@ typedef struct {
 #define Jim_FreeHashTableIterator(iter) Jim_Free(iter)
 
 #ifdef DOXYGEN
-#define JIM_STATIC 
+#define JIM_STATIC
 #define JIM_API(X)  X
 #else
 #ifndef __JIM_CORE__
@@ -758,15 +758,15 @@ JIM_STATIC void * JIM_API(Jim_SetStderr) (Jim_Interp *interp, void *fp);
 
 /* commands */
 JIM_STATIC void JIM_API(Jim_RegisterCoreCommands) (Jim_Interp *interp);
-JIM_STATIC int JIM_API(Jim_CreateCommand) (Jim_Interp *interp, 
+JIM_STATIC int JIM_API(Jim_CreateCommand) (Jim_Interp *interp,
         const char *cmdName, Jim_CmdProc cmdProc, void *privData,
          Jim_DelCmdProc delProc);
-JIM_STATIC int JIM_API(Jim_CreateProcedure) (Jim_Interp *interp, 
+JIM_STATIC int JIM_API(Jim_CreateProcedure) (Jim_Interp *interp,
         const char *cmdName, Jim_Obj *argListObjPtr, Jim_Obj *staticsListObjPtr,
         Jim_Obj *bodyObjPtr, int arityMin, int arityMax);
 JIM_STATIC int JIM_API(Jim_DeleteCommand) (Jim_Interp *interp,
         const char *cmdName);
-JIM_STATIC int JIM_API(Jim_RenameCommand) (Jim_Interp *interp, 
+JIM_STATIC int JIM_API(Jim_RenameCommand) (Jim_Interp *interp,
         const char *oldName, const char *newName);
 JIM_STATIC Jim_Cmd * JIM_API(Jim_GetCommand) (Jim_Interp *interp,
         Jim_Obj *objPtr, int flags);
@@ -865,7 +865,7 @@ JIM_STATIC void JIM_API(Jim_SetDouble)(Jim_Interp *interp, Jim_Obj *objPtr,
 JIM_STATIC Jim_Obj * JIM_API(Jim_NewDoubleObj)(Jim_Interp *interp, double doubleValue);
 
 /* shared strings */
-JIM_STATIC const char * JIM_API(Jim_GetSharedString) (Jim_Interp *interp, 
+JIM_STATIC const char * JIM_API(Jim_GetSharedString) (Jim_Interp *interp,
         const char *str);
 JIM_STATIC void JIM_API(Jim_ReleaseSharedString) (Jim_Interp *interp,
         const char *str);
@@ -875,9 +875,9 @@ JIM_STATIC void JIM_API(Jim_WrongNumArgs) (Jim_Interp *interp, int argc,
         Jim_Obj *const *argv, const char *msg);
 JIM_STATIC int JIM_API(Jim_GetEnum) (Jim_Interp *interp, Jim_Obj *objPtr,
         const char * const *tablePtr, int *indexPtr, const char *name, int flags);
-JIM_STATIC int JIM_API(Jim_GetNvp) (Jim_Interp *interp, 
+JIM_STATIC int JIM_API(Jim_GetNvp) (Jim_Interp *interp,
 									Jim_Obj *objPtr,
-									const Jim_Nvp *nvp_table, 
+									const Jim_Nvp *nvp_table,
 									const Jim_Nvp **result);
 JIM_STATIC int JIM_API(Jim_ScriptIsComplete) (const char *s, int len,
         char *stateCharPtr);
@@ -892,7 +892,7 @@ JIM_STATIC int JIM_API(Jim_DeleteAssocData)(Jim_Interp *interp, const char *key)
 /* API import/export functions */
 JIM_STATIC int JIM_API(Jim_GetApi) (Jim_Interp *interp, const char *funcname,
         void *targetPtrPtr);
-JIM_STATIC int JIM_API(Jim_RegisterApi) (Jim_Interp *interp, 
+JIM_STATIC int JIM_API(Jim_RegisterApi) (Jim_Interp *interp,
         const char *funcname, void *funcptr);
 
 /* Packages C API */
@@ -932,20 +932,20 @@ JIM_STATIC int JIM_API(Jim_Nvp_name2value_obj_nocase)(Jim_Interp *interp, const 
 JIM_STATIC int JIM_API(Jim_Nvp_value2name_obj)(Jim_Interp *interp, const Jim_Nvp *nvp_table, Jim_Obj *value_obj, Jim_Nvp **result);
 
 /** prints a nice 'unknown' parameter error message to the 'result' */
-JIM_STATIC void JIM_API(Jim_SetResult_NvpUnknown)(Jim_Interp *interp, 
+JIM_STATIC void JIM_API(Jim_SetResult_NvpUnknown)(Jim_Interp *interp,
 												   Jim_Obj *param_name,
 												   Jim_Obj *param_value,
 												   const Jim_Nvp *nvp_table);
 
 
 /** Debug: convert argc/argv into a printable string for printf() debug
- * 
+ *
  * \param interp - the interpeter
  * \param argc   - arg count
  * \param argv   - the objects
  *
  * \returns string pointer holding the text.
- * 
+ *
  * Note, next call to this function will free the old (last) string.
  *
  * For example might want do this:
@@ -958,11 +958,11 @@ JIM_STATIC void JIM_API(Jim_SetResult_NvpUnknown)(Jim_Interp *interp,
 JIM_STATIC const char *JIM_API(Jim_Debug_ArgvString)(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
 
 
-/** A TCL -ish GetOpt like code. 
+/** A TCL -ish GetOpt like code.
  *
  * Some TCL objects have various "configuration" values.
  * For example - in Tcl/Tk the "buttons" have many options.
- * 
+ *
  * Usefull when dealing with command options.
  * that may come in any order...
  *
@@ -972,7 +972,7 @@ JIM_STATIC const char *JIM_API(Jim_Debug_ArgvString)(Jim_Interp *interp, int arg
 
 typedef struct jim_getopt {
 	Jim_Interp     *interp;
-	int            argc; 
+	int            argc;
 	Jim_Obj        * const * argv;
 	int            isconfigure; /* non-zero if configure */
 } Jim_GetOptInfo;
@@ -981,7 +981,7 @@ typedef struct jim_getopt {
  *
  * Example (short and incomplete):
  * \code
- *   Jim_GetOptInfo goi; 
+ *   Jim_GetOptInfo goi;
  *
  *   Jim_GetOpt_Setup(&goi, interp, argc, argv);
  *
@@ -1016,10 +1016,10 @@ typedef struct jim_getopt {
  *  }
  *
  * \endcode
- *    
+ *
  */
 
-/** Setup GETOPT 
+/** Setup GETOPT
  *
  * \param goi    - get opt info to be initialized
  * \param interp - jim interp
@@ -1028,14 +1028,14 @@ typedef struct jim_getopt {
  *
  * \code
  *     Jim_GetOptInfo  goi;
- *   
+ *
  *     Jim_GetOptSetup(&goi, interp, argc, argv);
  * \endcode
  */
 
-JIM_STATIC int JIM_API(Jim_GetOpt_Setup)(Jim_GetOptInfo *goi, 
-											Jim_Interp *interp, 
-											int argc, 
+JIM_STATIC int JIM_API(Jim_GetOpt_Setup)(Jim_GetOptInfo *goi,
+											Jim_Interp *interp,
+											int argc,
 											Jim_Obj * const *  argv);
 
 
@@ -1050,7 +1050,7 @@ JIM_STATIC void JIM_API(Jim_GetOpt_Debug)(Jim_GetOptInfo *goi);
  *
  * \param goi - get opt info
  * \param puthere - where param is put
- * 
+ *
  */
 JIM_STATIC int JIM_API(Jim_GetOpt_Obj)(Jim_GetOptInfo *goi, Jim_Obj **puthere);
 
@@ -1103,7 +1103,7 @@ JIM_STATIC int JIM_API(Jim_GetOpt_Nvp)(Jim_GetOptInfo *goi, const Jim_Nvp *looku
  * \code
  *
  *  while (goi.argc) {
- *     // Get the next option 
+ *     // Get the next option
  *     e = Jim_GetOpt_Nvp(&goi, cmd_options, &n);
  *     if (e != JIM_OK) {
  *          // option was not recognized
@@ -1281,7 +1281,7 @@ static void Jim_InitExtension(Jim_Interp *interp)
   JIM_GET_API(Nvp_name2value);
   JIM_GET_API(Nvp_name2value_nocase);
   JIM_GET_API(Nvp_name2value_simple);
-  
+
   JIM_GET_API(Nvp_value2name);
   JIM_GET_API(Nvp_value2name_simple);
 

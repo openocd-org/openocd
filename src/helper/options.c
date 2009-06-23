@@ -58,7 +58,7 @@ int add_default_dirs(void)
 #ifdef _WIN32
 	/* Add the parent of the directory where openocd.exe resides to the
 	 * config script search path.
-	 * Directory layout: 
+	 * Directory layout:
 	 * bin\openocd.exe
 	 * lib\openocd
 	 * event\at91eb40a_reset.cfg
@@ -68,7 +68,7 @@ int add_default_dirs(void)
 		char strExePath [MAX_PATH];
 		GetModuleFileName (NULL, strExePath, MAX_PATH);
 		/* Either this code will *always* work or it will SEGFAULT giving
-		 * excellent information on the culprit. 
+		 * excellent information on the culprit.
 		 */
 		*strrchr(strExePath, '\\') = 0;
 		strcat(strExePath, "\\..");
@@ -115,16 +115,16 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 	char command_buffer[128];
 
 	while (1)
-	{	
+	{
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
-		
+
 		c = getopt_long(argc, argv, "hvd::l:f:s:c:p", long_options, &option_index);
-		
+
 		/* Detect the end of the options. */
 		if (c == -1)
 			break;
-		
+
 		switch (c)
 		{
 			case 0:
@@ -156,13 +156,13 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 				{
 					snprintf(command_buffer, 128, "log_output %s", optarg);
 					command_run_line(cmd_ctx, command_buffer);
-				}	
+				}
 				break;
 			case 'c':	/* --command | -c */
 				if (optarg)
 				{
 					add_config_command(optarg);
-				}	
+				}
 				break;
 			case 'p':	/* --pipe | -p */
 #if BUILD_ECOSBOARD == 1
@@ -187,7 +187,7 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		LOG_OUTPUT("--command    | -c\trun <command>\n");
 		LOG_OUTPUT("--pipe       | -p\tuse pipes for gdb communication\n");
 		exit(-1);
-	}	
+	}
 
 	if (version_flag)
 	{
@@ -195,6 +195,6 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		// It is not an error to request the VERSION number.
 		exit(0);
 	}
-	
+
 	return ERROR_OK;
 }

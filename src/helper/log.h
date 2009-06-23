@@ -28,12 +28,12 @@
 
 #include "command.h"
 
-/* logging priorities 
- * LOG_LVL_SILENT - turn off all output. In lieu of try + catch this can be used as a 
+/* logging priorities
+ * LOG_LVL_SILENT - turn off all output. In lieu of try + catch this can be used as a
  *                  feeble ersatz.
- * LOG_LVL_USER - user messages. Could be anything from information 
+ * LOG_LVL_USER - user messages. Could be anything from information
  *                to progress messags. These messages do not represent
- *                incorrect or unexpected behaviour, just normal execution. 
+ *                incorrect or unexpected behaviour, just normal execution.
  * LOG_LVL_ERROR - fatal errors, that are likely to cause program abort
  * LOG_LVL_WARNING - non-fatal errors, that may be resolved later
  * LOG_LVL_INFO - state information, etc.
@@ -50,11 +50,11 @@ enum log_levels
 	LOG_LVL_DEBUG = 3
 };
 
-extern void log_printf(enum log_levels level, const char *file, int line, 
-	const char *function, const char *format, ...) 
+extern void log_printf(enum log_levels level, const char *file, int line,
+	const char *function, const char *format, ...)
 __attribute__ ((format (printf, 5, 6)));
 extern void log_printf_lf(enum log_levels level, const char *file, int line,
-	const char *function, const char *format, ...) 
+	const char *function, const char *format, ...)
 __attribute__ ((format (printf, 5, 6)));
 extern int log_register_commands(struct command_context_s *cmd_ctx);
 extern int log_init(struct command_context_s *cmd_ctx);
@@ -118,7 +118,7 @@ extern int debug_level;
 #define ERROR_INVALID_ARGUMENTS		ERROR_COMMAND_SYNTAX_ERROR
 #define ERROR_NO_CONFIG_FILE		(-2)
 #define ERROR_BUF_TOO_SMALL			(-3)
-/* see "Error:" log entry for meaningful message to the user. The caller should 
+/* see "Error:" log entry for meaningful message to the user. The caller should
  * make no assumptions about what went wrong and try to handle the problem.
  */
 #define ERROR_FAIL					(-4)

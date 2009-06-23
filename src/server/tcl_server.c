@@ -141,7 +141,7 @@ static int tcl_input(connection_t *connection)
 			if (memchr(result, '\n', reslen) == NULL)
 				tcl_output(connection, "\n", 1);
 		}
-		
+
 		tclc->tc_lineoffset = 0;
 		tclc->tc_linedrop = 0;
 	}

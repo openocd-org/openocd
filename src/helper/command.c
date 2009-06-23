@@ -896,7 +896,7 @@ DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MIN, LLONG_MAX)
 			return ERROR_COMMAND_ARGUMENT_UNDERFLOW; \
 		*ul = n; \
 		return ERROR_OK; \
-	}	
+	}
 
 #define DEFINE_PARSE_ULONG(name, type, min, max) \
 	DEFINE_PARSE_WRAPPER(name, type, min, max, unsigned long, _ulong)

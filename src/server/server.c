@@ -52,7 +52,7 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	connection_t *c, **p;
 	int retval;
 	int flag = 1;
-	
+
 	c = malloc(sizeof(connection_t));
 	c->fd = -1;
 	memset(&c->sin, 0, sizeof(c->sin));
@@ -65,9 +65,9 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	if (service->type == CONNECTION_TCP)
 	{
 		address_size = sizeof(c->sin);
-		
+
 		c->fd = accept(service->fd, (struct sockaddr *)&service->sin, &address_size);
-		
+
 		/* This increases performance dramatically for e.g. GDB load which
 		 * does not have a sliding window protocol. */
 		retval = setsockopt(c->fd,	/* socket affected */
@@ -75,7 +75,7 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 				TCP_NODELAY,		/* name of option */
 				(char *)&flag,		/* the cast is historical cruft */
 				sizeof(int));		/* length of option value */
-			
+
 		LOG_INFO("accepting '%s' connection from %i", service->name, c->sin.sin_port);
 		if ((retval = service->new_connection(c)) != ERROR_OK)
 		{
@@ -88,10 +88,10 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	else if (service->type == CONNECTION_PIPE)
 	{
 		c->fd = service->fd;
-		
+
 		/* do not check for new connections again on stdin */
 		service->fd = -1;
-		
+
 		LOG_INFO("accepting '%s' connection from pipe", service->name);
 		if ((retval = service->new_connection(c)) != ERROR_OK)
 		{
@@ -100,13 +100,13 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 			return retval;
 		}
 	}
-	
+
 	/* add to the end of linked list */
 	for (p = &service->connections; *p; p = &(*p)->next);
 	*p = c;
-	
+
 	service->max_connections--;
-	
+
 	return ERROR_OK;
 }
 
@@ -114,29 +114,29 @@ int remove_connection(service_t *service, connection_t *connection)
 {
 	connection_t **p = &service->connections;
 	connection_t *c;
-	
+
 	/* find connection */
 	while ((c = *p))
-	{		
+	{
 		if (c->fd == connection->fd)
-		{	
+		{
 			service->connection_closed(c);
 			if (service->type == CONNECTION_TCP)
 				close_socket(c->fd);
 			command_done(c->cmd_ctx);
-			
+
 			/* delete connection */
 			*p = c->next;
 			free(c);
-			
+
 			service->max_connections++;
 			break;
 		}
-		
+
 		/* redirect p to next list pointer */
-		p = &(*p)->next;		
+		p = &(*p)->next;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -144,9 +144,9 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 {
 	service_t *c, **p;
 	int so_reuseaddr_option = 1;
-	
+
 	c = malloc(sizeof(service_t));
-	
+
 	c->name = strdup(name);
 	c->type = type;
 	c->port = port;
@@ -158,7 +158,7 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	c->connection_closed = connection_closed_handler;
 	c->priv = priv;
 	c->next = NULL;
-	
+
 	if (type == CONNECTION_TCP)
 	{
 		if ((c->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -166,35 +166,35 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 			LOG_ERROR("error creating socket: %s", strerror(errno));
 			exit(-1);
 		}
-		
+
 		setsockopt(c->fd, SOL_SOCKET, SO_REUSEADDR, (void*)&so_reuseaddr_option, sizeof(int));
-		
+
 		socket_nonblock(c->fd);
-		
+
 		memset(&c->sin, 0, sizeof(c->sin));
 		c->sin.sin_family = AF_INET;
 		c->sin.sin_addr.s_addr = INADDR_ANY;
 		c->sin.sin_port = htons(port);
-		
+
 		if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1)
 		{
 			LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
 			exit(-1);
 		}
-		
+
 #ifndef _WIN32
 		int segsize = 65536;
 		setsockopt(c->fd, IPPROTO_TCP, TCP_MAXSEG,  &segsize, sizeof(int));
 #endif
-		int window_size = 128 * 1024;	
-	
+		int window_size = 128 * 1024;
+
 		/* These setsockopt()s must happen before the listen() */
-		
+
 		setsockopt(c->fd, SOL_SOCKET, SO_SNDBUF,
 			(char *)&window_size, sizeof(window_size));
 		setsockopt(c->fd, SOL_SOCKET, SO_RCVBUF,
 			(char *)&window_size, sizeof(window_size));
-		
+
 		if (listen(c->fd, 1) == -1)
 		{
 			LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
@@ -205,7 +205,7 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 	{
 		/* use stdin */
 		c->fd = STDIN_FILENO;
-		
+
 #ifdef _WIN32
 		/* for win32 set stdin/stdout to binary mode */
 		if (_setmode(_fileno(stdout), _O_BINARY) < 0)
@@ -223,11 +223,11 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 		LOG_ERROR("unknown connection type: %d", type);
 		exit(1);
 	}
-	
+
 	/* add to the end of linked list */
 	for (p = &services; *p; p = &(*p)->next);
 	*p = c;
-	
+
 	return ERROR_OK;
 }
 
@@ -235,18 +235,18 @@ int remove_service(unsigned short port)
 {
 	service_t **p = &services;
 	service_t *c;
-	
+
 	/* find service */
 	while ((c = *p))
-	{		
+	{
 		if (c->port == port)
-		{	
+		{
 			if (c->name)
 				free(c->name);
-			
+
 			if (c->priv)
 				free(c->priv);
-			
+
 			/* delete service */
 			*p = c->next;
 			free(c);
@@ -255,7 +255,7 @@ int remove_service(unsigned short port)
 		/* redirect p to next list pointer */
 		p = &(*p)->next;
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -282,7 +282,7 @@ int remove_services(void)
 	}
 
 	services = NULL;
-	
+
 	return ERROR_OK;
 }
 
@@ -297,10 +297,10 @@ int server_loop(command_context_t *command_context)
 	fd_set read_fds;
 	struct timeval tv;
 	int fd_max;
-	
+
 	/* used in accept() */
 	int retval;
-	
+
 #ifndef _WIN32
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		LOG_ERROR("couldn't set SIGPIPE to SIG_IGN");
@@ -309,7 +309,7 @@ int server_loop(command_context_t *command_context)
 	/* do regular tasks after at most 10ms */
 	tv.tv_sec = 0;
 	tv.tv_usec = 10000;
-	
+
 	while (!shutdown_openocd)
 	{
 		/* monitor sockets for acitvity */
@@ -327,11 +327,11 @@ int server_loop(command_context_t *command_context)
 				if (service->fd > fd_max)
 					fd_max = service->fd;
 			}
-			
+
 			if (service->connections)
 			{
 				connection_t *c;
-				
+
 				for (c = service->connections; c; c = c->next)
 				{
 					/* check for activity on the connection */
@@ -341,7 +341,7 @@ int server_loop(command_context_t *command_context)
 				}
 			}
 		}
-		
+
 #ifndef _WIN32
 #if BUILD_ECOSBOARD == 0
 		if (server_use_pipes == 0)
@@ -354,7 +354,7 @@ int server_loop(command_context_t *command_context)
 
 		openocd_sleep_prelude();
 		kept_alive();
-		
+
 		/* Only while we're sleeping we'll let others run */
 		retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
 		openocd_sleep_postlude();
@@ -385,7 +385,7 @@ int server_loop(command_context_t *command_context)
 			}
 #endif
 		}
-		
+
 		target_call_timer_callbacks();
 		process_jim_events ();
 
@@ -396,12 +396,12 @@ int server_loop(command_context_t *command_context)
 			tv.tv_usec = 10000;
 			FD_ZERO(&read_fds); /* eCos leaves read_fds unchanged in this case!  */
 		}
-		
+
 		for (service = services; service; service = service->next)
 		{
 			/* handle new connections on listeners */
-			if ((service->fd != -1) 
-				&& (FD_ISSET(service->fd, &read_fds))) 
+			if ((service->fd != -1)
+				&& (FD_ISSET(service->fd, &read_fds)))
 			{
 				if (service->max_connections > 0)
 				{
@@ -420,12 +420,12 @@ int server_loop(command_context_t *command_context)
 					LOG_INFO("rejected '%s' connection, no more connections allowed", service->name);
 				}
 			}
-			
+
 			/* handle activity on connections */
 			if (service->connections)
 			{
 				connection_t *c;
-				
+
 				for (c = service->connections; c;)
 				{
 					if ((FD_ISSET(c->fd, &read_fds)) || c->input_pending)
@@ -448,7 +448,7 @@ int server_loop(command_context_t *command_context)
 				}
 			}
 		}
-		
+
 #ifndef _WIN32
 #if BUILD_ECOSBOARD == 0
 		/* check for data on stdin if not using pipes */
@@ -472,7 +472,7 @@ int server_loop(command_context_t *command_context)
 		}
 #endif
 	}
-	
+
 	return ERROR_OK;
 }
 
@@ -518,7 +518,7 @@ int server_init(void)
 	signal(SIGBREAK, sig_handler);
 	signal(SIGABRT, sig_handler);
 #endif
-	
+
 	return ERROR_OK;
 }
 
@@ -538,7 +538,7 @@ int server_register_commands(command_context_t *context)
 {
 	register_command(context, NULL, "shutdown", handle_shutdown_command,
 					 COMMAND_ANY, "shut the server down");
-	
+
 	return ERROR_OK;
 }
 

@@ -57,15 +57,15 @@ int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *
 int timeval_add(struct timeval *result, struct timeval *x, struct timeval *y)
 {
 	result->tv_sec = x->tv_sec + y->tv_sec;
-	
+
 	result->tv_usec = x->tv_usec + y->tv_usec;
-	
+
 	while (result->tv_usec > 1000000)
 	{
 		result->tv_usec -= 1000000;
 		result->tv_sec++;
 	}
-	
+
 	return 0;
 }
 
@@ -73,13 +73,13 @@ int timeval_add_time(struct timeval *result, int sec, int usec)
 {
 	result->tv_sec += sec;
 	result->tv_usec += usec;
-	
+
 	while (result->tv_usec > 1000000)
 	{
 		result->tv_usec -= 1000000;
 		result->tv_sec++;
 	}
-	
+
 	return 0;
 }
 
@@ -91,11 +91,11 @@ void duration_start_measure(duration_t *duration)
 int duration_stop_measure(duration_t *duration, char **text)
 {
 	struct timeval end;
-	
+
 	gettimeofday(&end, NULL);
-	
+
 	timeval_subtract(&duration->duration, &end, &duration->start);
-	
+
 	if (text)
 	{
 		float t;
@@ -104,18 +104,18 @@ int duration_stop_measure(duration_t *duration, char **text)
 		*text = malloc(100);
 		snprintf(*text, 100, "%fs", t);
 	}
-	
+
 	return ERROR_OK;
 }
 
 long long timeval_ms()
 {
-	struct timeval now; 
+	struct timeval now;
 	long long t = 0;
 	gettimeofday(&now, NULL);
-	
+
 	t += now.tv_usec/1000;
 	t += now.tv_sec*1000;
-	
+
 	return t;
 }

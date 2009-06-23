@@ -25,10 +25,10 @@ void delay()
 }
 
 /* MAIN ARM FUNTION */
-int main (void)  
+int main (void)
 {
         volatile unsigned char *led = ((volatile unsigned char *)0xB6020000);
-	
+
 	while (1)
     	{
 		*led = 0xFF;

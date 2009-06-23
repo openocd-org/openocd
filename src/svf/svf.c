@@ -98,24 +98,24 @@ typedef struct
 	tap_state_t paths[8];
 }svf_statemove_t;
 
-svf_statemove_t svf_statemoves[] = 
+svf_statemove_t svf_statemoves[] =
 {
 	// from			to				num_of_moves,	paths[8]
 //	{TAP_RESET,		TAP_RESET,		1,				{TAP_RESET}},
 	{TAP_RESET,		TAP_IDLE,		2,				{TAP_RESET, TAP_IDLE}},
 	{TAP_RESET,		TAP_DRPAUSE,	6,				{TAP_RESET, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DREXIT1, TAP_DRPAUSE}},
 	{TAP_RESET,		TAP_IRPAUSE,	7,				{TAP_RESET, TAP_IDLE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IREXIT1, TAP_IRPAUSE}},
-	
+
 //	{TAP_IDLE,		TAP_RESET,		4,				{TAP_IDLE, TAP_DRSELECT, TAP_IRSELECT, TAP_RESET}},
 	{TAP_IDLE,		TAP_IDLE,		1,				{TAP_IDLE}},
 	{TAP_IDLE,		TAP_DRPAUSE,	5,				{TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DREXIT1, TAP_DRPAUSE}},
 	{TAP_IDLE,		TAP_IRPAUSE,	6,				{TAP_IDLE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IREXIT1, TAP_IRPAUSE}},
-	
+
 //	{TAP_DRPAUSE,	TAP_RESET,		6,				{TAP_DRPAUSE, TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_RESET}},
 	{TAP_DRPAUSE,	TAP_IDLE,		4,				{TAP_DRPAUSE, TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE}},
 	{TAP_DRPAUSE,	TAP_DRPAUSE,	7,				{TAP_DRPAUSE, TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DREXIT1, TAP_DRPAUSE}},
 	{TAP_DRPAUSE,	TAP_IRPAUSE,	8,				{TAP_DRPAUSE, TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IREXIT1, TAP_IRPAUSE}},
-	
+
 //	{TAP_IRPAUSE,	TAP_RESET,		6,				{TAP_IRPAUSE, TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_RESET}},
 	{TAP_IRPAUSE,	TAP_IDLE,		4,				{TAP_IRPAUSE, TAP_IREXIT2, TAP_IRUPDATE, TAP_IDLE}},
 	{TAP_IRPAUSE,	TAP_DRPAUSE,	7,				{TAP_IRPAUSE, TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DREXIT1, TAP_DRPAUSE}},
@@ -304,7 +304,7 @@ static int svf_add_statemove(tap_state_t state_to)
 
 	for (index = 0; index < dimof(svf_statemoves); index++)
 	{
-		if ((svf_statemoves[index].from == state_from) 
+		if ((svf_statemoves[index].from == state_from)
 			&& (svf_statemoves[index].to == state_to))
 		{
 			if (TAP_RESET == state_from)
@@ -746,7 +746,7 @@ static int svf_check_tdo(void)
 	{
 		index = svf_check_tdo_para[i].buffer_offset;
 		len = svf_check_tdo_para[i].bit_len;
-		if ((svf_check_tdo_para[i].enabled) 
+		if ((svf_check_tdo_para[i].enabled)
 			&& buf_cmp_mask(&svf_tdi_buffer[index], &svf_tdo_buffer[index], &svf_mask_buffer[index], len))
 		{
 			unsigned bitmask;
@@ -756,11 +756,11 @@ static int svf_check_tdo(void)
 			memcpy(&received, svf_tdi_buffer + index, sizeof(unsigned));
 			memcpy(&expected, svf_tdo_buffer + index, sizeof(unsigned));
 			memcpy(&tapmask, svf_mask_buffer + index, sizeof(unsigned));
-			LOG_ERROR("tdo check error at line %d", 
+			LOG_ERROR("tdo check error at line %d",
 					  svf_check_tdo_para[i].line_num);
-			LOG_ERROR("read = 0x%X, want = 0x%X, mask = 0x%X", 
-					  received & bitmask, 
-					  expected & bitmask, 
+			LOG_ERROR("read = 0x%X, want = 0x%X, mask = 0x%X",
+					  received & bitmask,
+					  expected & bitmask,
 					  tapmask & bitmask);
 			return ERROR_FAIL;
 		}
