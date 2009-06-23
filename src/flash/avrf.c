@@ -148,7 +148,7 @@ static int avr_jtagprg_chiperase(avr_common_t *avr)
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3380, AVR_JTAG_REG_ProgrammingCommand_Len);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3380, AVR_JTAG_REG_ProgrammingCommand_Len);
 
-	do{
+	do {
 		poll_value = 0;
 		avr_jtag_senddat(avr->jtag_info.tap, &poll_value, 0x3380, AVR_JTAG_REG_ProgrammingCommand_Len);
 		if (ERROR_OK != mcu_execute_queue())
@@ -156,7 +156,7 @@ static int avr_jtagprg_chiperase(avr_common_t *avr)
 			return ERROR_FAIL;
 		}
 		LOG_DEBUG("poll_value = 0x%04" PRIx32 "", poll_value);
-	}while (!(poll_value & 0x0200));
+	} while (!(poll_value & 0x0200));
 
 	return ERROR_OK;
 }
@@ -195,7 +195,7 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, uint8_t *page_buf, uint
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3700, AVR_JTAG_REG_ProgrammingCommand_Len);
 	avr_jtag_senddat(avr->jtag_info.tap, NULL, 0x3700, AVR_JTAG_REG_ProgrammingCommand_Len);
 
-	do{
+	do {
 		poll_value = 0;
 		avr_jtag_senddat(avr->jtag_info.tap, &poll_value, 0x3700, AVR_JTAG_REG_ProgrammingCommand_Len);
 		if (ERROR_OK != mcu_execute_queue())
@@ -203,7 +203,7 @@ static int avr_jtagprg_writeflashpage(avr_common_t *avr, uint8_t *page_buf, uint
 			return ERROR_FAIL;
 		}
 		LOG_DEBUG("poll_value = 0x%04" PRIx32 "", poll_value);
-	}while (!(poll_value & 0x0200));
+	} while (!(poll_value & 0x0200));
 
 	return ERROR_OK;
 }

@@ -127,7 +127,7 @@ static uint32_t lpc288x_wait_status_busy(flash_bank_t *bank, int timeout)
 		alive_sleep(1);
 		timeout--;
 		target_read_u32(target, F_STAT, &status);
-	}while (((status & FS_DONE) == 0) && timeout);
+	} while (((status & FS_DONE) == 0) && timeout);
 
 	if (timeout == 0)
 	{
