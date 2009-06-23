@@ -120,7 +120,7 @@ void telnet_log_callback(void *priv, const char *file, int line,
 
 	/* clear the command line */
 	telnet_write(connection, "\r", 1);
-	for (i = strlen(t_con->prompt) + t_con->line_size; i>0; i-=16)
+	for (i = strlen(t_con->prompt) + t_con->line_size; i>0; i -= 16)
 		telnet_write(connection, "                ", i>16 ? 16 : i);
 	telnet_write(connection, "\r", 1);
 

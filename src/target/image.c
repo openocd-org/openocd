@@ -1022,7 +1022,7 @@ int image_calculate_checksum(uint8_t* buffer, uint32_t nbytes, uint32_t* checksu
 		{
 			run=32768;
 		}
-		nbytes-=run;
+		nbytes -= run;
 		while (run--)
 		{
 			/* as per gdb */

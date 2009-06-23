@@ -2286,12 +2286,12 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 			{
 				/* clip addresses below */
 				offset+=min_address-image.sections[i].base_address;
-				length-=offset;
+				length -= offset;
 			}
 
 			if (image.sections[i].base_address+buf_cnt>max_address)
 			{
-				length-=(image.sections[i].base_address+buf_cnt)-max_address;
+				length -= (image.sections[i].base_address+buf_cnt)-max_address;
 			}
 
 			if ((retval = target_write_buffer(target, image.sections[i].base_address+offset, length, buffer+offset)) != ERROR_OK)
@@ -4467,12 +4467,12 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 			{
 				/* clip addresses below */
 				offset+=min_address-image.sections[i].base_address;
-				length-=offset;
+				length -= offset;
 			}
 
 			if (image.sections[i].base_address+buf_cnt>max_address)
 			{
-				length-=(image.sections[i].base_address+buf_cnt)-max_address;
+				length -= (image.sections[i].base_address+buf_cnt)-max_address;
 			}
 
 			fastload[i].address=image.sections[i].base_address+offset;
