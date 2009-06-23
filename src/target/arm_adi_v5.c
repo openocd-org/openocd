@@ -1027,7 +1027,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
 	swjdp_transaction_endcheck(swjdp);
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
-	mem_ap = ((apid&0x10000)&&((apid&0x0F) != 0));
+	mem_ap = ((apid&0x10000) && ((apid&0x0F) != 0));
 	command_print(cmd_ctx, "ap identification register 0x%8.8" PRIx32 "", apid);
 	if (apid)
 	{
@@ -1053,7 +1053,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 		command_print(cmd_ctx, "No AP found at this apsel 0x%x", apsel);
 	}
 
-	romtable_present = ((mem_ap)&&(dbgbase != 0xFFFFFFFF));
+	romtable_present = ((mem_ap) && (dbgbase != 0xFFFFFFFF));
 	if (romtable_present)
 	{
 		uint32_t cid0,cid1,cid2,cid3,memtype,romentry;

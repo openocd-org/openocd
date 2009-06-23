@@ -92,7 +92,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 	ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value);
 #if 1
 #if TEST_MANUAL()
-	if ((state==TAP_DRSHIFT)&&(endState != TAP_DRSHIFT))
+	if ((state==TAP_DRSHIFT) && (endState != TAP_DRSHIFT))
 	{
 		int i;
 		setCurrentState(state);
@@ -100,7 +100,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 		{
 			int tms;
 			tms=0;
-			if ((i==repeat-1)&&(state != endState))
+			if ((i==repeat-1) && (state != endState))
 			{
 				tms=1;
 			}
@@ -124,7 +124,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 #endif
 #else
 	/* maximum debug version */
-	if ((repeat>0)&&((state==TAP_DRSHIFT)||(state==TAP_SI)))
+	if ((repeat>0) && ((state==TAP_DRSHIFT)||(state==TAP_SI)))
 	{
 		int i;
 		/* sample shift register for every bit. */
@@ -188,13 +188,13 @@ static __inline__ void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
 {
 
 	int singletap=(jtag_tap_next_enabled(jtag_tap_next_enabled(NULL))==NULL);
-	if ((singletap)&&(num_fields==3))
+	if ((singletap) && (num_fields==3))
 	{
 		/* used by embeddedice_write_reg_inner() */
 		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[0], value[0]);
 		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[1], value[1]);
 		shiftValueInner(TAP_DRSHIFT, end_state, num_bits[2], value[2]);
-	} else if ((singletap)&&(num_fields==2))
+	} else if ((singletap) && (num_fields==2))
 	{
 		/* used by arm7 code */
 		shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[0], value[0]);

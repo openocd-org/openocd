@@ -233,7 +233,7 @@ int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
 					break;
 			}
 		}
-		if ((i==argc)&&(fwrite("\n", 1, 1, config_file)==1))
+		if ((i==argc) && (fwrite("\n", 1, 1, config_file)==1))
 		{
 			retval=ERROR_OK;
 		}
@@ -274,7 +274,7 @@ int handle_cp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 			chunk = maxChunk;
 		}
 
-		if ((retval==ERROR_OK)&&(fwrite(((char *)data)+pos, 1, chunk, f) != chunk))
+		if ((retval==ERROR_OK) && (fwrite(((char *)data)+pos, 1, chunk, f) != chunk))
 			retval = ERROR_INVALID_ARGUMENTS;
 
 		if (retval != ERROR_OK)

@@ -1022,7 +1022,7 @@ int arm7_9_assert_reset(target_t *target)
 
 	armv4_5_invalidate_core_regs(target);
 
-	if ((target->reset_halt)&&((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
+	if ((target->reset_halt) && ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
 	{
 		/* debug entry was already prepared in arm7_9_assert_reset() */
 		target->debug_reason = DBG_REASON_DBGRQ;
@@ -1050,7 +1050,7 @@ int arm7_9_deassert_reset(target_t *target)
 	jtag_add_reset(0, 0);
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
-	if (target->reset_halt&&(jtag_reset_config & RESET_SRST_PULLS_TRST) != 0)
+	if (target->reset_halt && (jtag_reset_config & RESET_SRST_PULLS_TRST) != 0)
 	{
 		LOG_WARNING("srst pulls trst - can not reset into halted mode. Issuing halt after reset.");
 		/* set up embedded ice registers again */

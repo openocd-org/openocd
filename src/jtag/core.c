@@ -324,7 +324,7 @@ void jtag_add_ir_scan_noverify(int in_count, const scan_field_t *in_fields,
 
 void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
-	if (jtag_verify&&jtag_verify_capture_ir)
+	if (jtag_verify && jtag_verify_capture_ir)
 	{
 		/* 8 x 32 bit id's is enough for all invocations */
 
@@ -579,9 +579,9 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 			((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
 	{
 		if (((req_tlr_or_trst&&!jtag_trst)||
-				(!req_tlr_or_trst&&jtag_trst))&&
+				(!req_tlr_or_trst && jtag_trst))&&
 				((req_srst&&!jtag_srst)||
-						(!req_srst&&jtag_srst)))
+						(!req_srst && jtag_srst)))
 		{
 			/* FIX!!! srst_pulls_trst allows 1,1 => 0,0 transition.... */
 			//LOG_ERROR("BUG: transition of req_tlr_or_trst and req_srst in the same jtag_add_reset() call is undefined");

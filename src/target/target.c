@@ -1014,7 +1014,7 @@ int target_free_working_area_restore(struct target_s *target, working_area_t *ar
 	if (area->free)
 		return ERROR_OK;
 
-	if (restore&&target->backup_working_area)
+	if (restore && target->backup_working_area)
 	{
 		int retval;
 		if ((retval = target_write_memory(target, area->address, 4, area->size / 4, area->backup)) != ERROR_OK)

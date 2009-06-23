@@ -81,7 +81,7 @@ static int autodetect_image_type(image_t *image, char *url)
 		&&(isxdigit(buffer[5]))
 		&&(isxdigit(buffer[6]))
 		&&(buffer[7]=='0') /* record type : 00 -> 05 */
-		&&(buffer[8]>='0')&&(buffer[8]<'6'))
+		&&(buffer[8]>='0') && (buffer[8]<'6'))
 	{
 		LOG_DEBUG("IHEX image detected.");
 		image->type = IMAGE_IHEX;
