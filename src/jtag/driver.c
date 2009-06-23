@@ -476,7 +476,7 @@ void interface_jtag_add_callback4(jtag_callback_t callback, jtag_callback_data_t
 	entry->data2=data2;
 	entry->data3=data3;
 
-	if (jtag_callback_queue_head==NULL)
+	if (jtag_callback_queue_head == NULL)
 	{
 		jtag_callback_queue_head=entry;
 		jtag_callback_queue_tail=entry;

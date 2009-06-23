@@ -578,7 +578,7 @@ typedef struct Jim_Reference {
  * An NVP Table is terminated with ".name=NULL".
  *
  * During the 'name2value' operation, if no matching string is found
- * the pointer to the terminal element (with p->name==NULL) is returned.
+ * the pointer to the terminal element (with p->name == NULL) is returned.
  *
  * Example:
  * \code

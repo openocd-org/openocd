@@ -301,7 +301,7 @@ static int arm9endianness(jtag_callback_data_t arg, jtag_callback_data_t size, j
 
 /* clock the target, and read the databus
  * the *in pointer points to a buffer where elements of 'size' bytes
- * are stored in big (be==1) or little (be==0) endianness
+ * are stored in big (be == 1) or little (be == 0) endianness
  */
 int arm9tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be)
 {
@@ -818,7 +818,7 @@ int arm9tdmi_examine(struct target_s *target)
 		reg_cache_t *t;
 		/* one extra register (vector catch) */
 		t=embeddedice_build_reg_cache(target, arm7_9);
-		if (t==NULL)
+		if (t == NULL)
 			return ERROR_FAIL;
 		(*cache_p) = t;
 		arm7_9->eice_cache = (*cache_p);

@@ -189,7 +189,7 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++)
 	{
 		int val=0;
-		int tms=(bit_cnt==scan_size-1) ? 1 : 0;
+		int tms=(bit_cnt == scan_size-1) ? 1 : 0;
 		int tdi;
 		int bytec=bit_cnt/8;
 		int bcval=1 << (bit_cnt % 8);

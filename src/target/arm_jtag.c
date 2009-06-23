@@ -35,7 +35,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr,  void *no_veri
 {
 	jtag_tap_t *tap;
 	tap = jtag_info->tap;
-	if (tap==NULL)
+	if (tap == NULL)
 		return ERROR_FAIL;
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
@@ -51,7 +51,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr,  void *no_veri
 		
 
 
-		if (no_verify_capture==NULL)
+		if (no_verify_capture == NULL)
 		{
 			jtag_add_ir_scan(1, &field, jtag_get_end_state());
 		} else

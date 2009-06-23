@@ -654,7 +654,7 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 	/* flash auto-erase is disabled by default*/
 	int auto_erase = 0;
 
-	if (strcmp(args[0], "erase")==0)
+	if (strcmp(args[0], "erase") == 0)
 	{
 		auto_erase = 1;
 		args++;
@@ -894,7 +894,7 @@ static int handle_flash_write_bank_command(struct command_context_s *cmd_ctx, ch
 		fileio_close(&fileio);
 		return retvaltemp;
 	}
-	if (retval==ERROR_OK)
+	if (retval == ERROR_OK)
 	{
 	command_print(cmd_ctx, 
 				  "wrote  %lld byte from file %s to flash bank %li at offset 0x%8.8" PRIx32 " in %s (%f kb/s)",

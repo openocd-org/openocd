@@ -50,7 +50,7 @@
 
 #include <assert.h>
 
-#if (BUILD_FT2232_FTD2XX==1 && BUILD_FT2232_LIBFTDI==1)
+#if (BUILD_FT2232_FTD2XX == 1 && BUILD_FT2232_LIBFTDI == 1)
 #error "BUILD_FT2232_FTD2XX && BUILD_FT2232_LIBFTDI are mutually exclusive"
 #elif (BUILD_FT2232_FTD2XX != 1 && BUILD_FT2232_LIBFTDI != 1)
 #error "BUILD_FT2232_FTD2XX || BUILD_FT2232_LIBFTDI must be chosen"
@@ -274,7 +274,7 @@ static void clock_tms(uint8_t mpsse_cmd, int tms_bits, int tms_count, bool tdi_b
 		*/
 		++tms_ndx;
 
-		if (tms_ndx==7  || i==tms_count-1)
+		if (tms_ndx == 7  || i == tms_count-1)
 		{
 			buffer_write(mpsse_cmd);
 			buffer_write(tms_ndx - 1);
@@ -498,7 +498,7 @@ static int ft2232_speed_div(int speed, int* khz)
 
 static int ft2232_khz(int khz, int* jtag_speed)
 {
-	if (khz==0)
+	if (khz == 0)
 	{
 #ifdef BUILD_FTD2XX_HIGHSPEED
 		*jtag_speed = 0;
@@ -2049,7 +2049,7 @@ static int ft2232_init(void)
 	const ft2232_layout_t* cur_layout = ft2232_layouts;
 	int i;
 
-	if (tap_get_tms_path_len(TAP_IRPAUSE,TAP_IRPAUSE)==7)
+	if (tap_get_tms_path_len(TAP_IRPAUSE,TAP_IRPAUSE) == 7)
 	{
 		LOG_DEBUG("ft2232 interface using 7 step jtag state transitions");
 	}

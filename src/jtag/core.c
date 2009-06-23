@@ -508,9 +508,9 @@ int jtag_add_statemove(tap_state_t goal_state)
 		tap_state_name(goal_state) );
 
 
-	if (goal_state==cur_state )
+	if (goal_state == cur_state )
 		;	/* nothing to do */
-	else if ( goal_state==TAP_RESET )
+	else if ( goal_state == TAP_RESET )
 	{
 		jtag_add_tlr();
 	}
@@ -576,7 +576,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	 */
 	if ((jtag_reset_config & RESET_HAS_SRST)&&
 			(jtag_reset_config & RESET_HAS_TRST)&&
-			((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
+			((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0))
 	{
 		if (((req_tlr_or_trst&&!jtag_trst)||
 				(!req_tlr_or_trst && jtag_trst))&&
@@ -746,7 +746,7 @@ void jtag_check_value_mask(scan_field_t *field, uint8_t *value, uint8_t *mask)
 {
 	assert(field->in_value != NULL);
 
-	if (value==NULL)
+	if (value == NULL)
 	{
 		/* no checking to do */
 		return;
@@ -1216,7 +1216,7 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	if (jtag_reset_config & RESET_HAS_SRST)
 	{
 		jtag_add_reset(1, 1);
-		if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
+		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0)
 			jtag_add_reset(0, 1);
 	}
 	jtag_add_reset(0, 0);
@@ -1238,7 +1238,7 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	int retval;
 	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
 		return retval;
-	if (jtag_init_inner(cmd_ctx)==ERROR_OK)
+	if (jtag_init_inner(cmd_ctx) == ERROR_OK)
 	{
 		return ERROR_OK;
 	}

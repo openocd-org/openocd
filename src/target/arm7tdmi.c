@@ -254,7 +254,7 @@ static int arm7endianness(jtag_callback_data_t arg, jtag_callback_data_t size, j
 
 /* clock the target, and read the databus
  * the *in pointer points to a buffer where elements of 'size' bytes
- * are stored in big (be==1) or little (be==0) endianness
+ * are stored in big (be == 1) or little (be == 0) endianness
  */
 int arm7tdmi_clock_data_in_endianness(arm_jtag_t *jtag_info, void *in, int size, int be)
 {
@@ -725,7 +725,7 @@ int arm7tdmi_examine(struct target_s *target)
 		/* get pointers to arch-specific information */
 		reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 		reg_cache_t *t=embeddedice_build_reg_cache(target, arm7_9);
-		if (t==NULL)
+		if (t == NULL)
 			return ERROR_FAIL;
 
 		(*cache_p) = t;

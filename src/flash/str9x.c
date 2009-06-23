@@ -309,7 +309,7 @@ static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 				break;
 			alive_sleep(1);
 		}
-		if (timeout==1000)
+		if (timeout == 1000)
 		{
 			LOG_ERROR("erase timed out");
 			return ERROR_FAIL;
@@ -582,7 +582,7 @@ static int str9x_write(struct flash_bank_s *bank,
 				break;
 			alive_sleep(1);
 		}
-		if (timeout==1000)
+		if (timeout == 1000)
 		{
 			LOG_ERROR("write timed out");
 			return ERROR_FAIL;
@@ -631,7 +631,7 @@ static int str9x_write(struct flash_bank_s *bank,
 				break;
 			alive_sleep(1);
 		}
-		if (timeout==1000)
+		if (timeout == 1000)
 		{
 			LOG_ERROR("write timed out");
 			return ERROR_FAIL;

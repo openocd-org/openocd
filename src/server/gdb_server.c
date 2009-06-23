@@ -105,7 +105,7 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 	fd_set read_fds;
 	gdb_connection_t *gdb_con = connection->priv;
 	int t;
-	if (got_data==NULL)
+	if (got_data == NULL)
 		got_data=&t;
 	*got_data=0;
 
@@ -1397,7 +1397,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 	else if (type == 4) /* access watchpoint */
 		wp_type = WPT_ACCESS;
 
-	if (gdb_breakpoint_override && ((bp_type==BKPT_SOFT)||(bp_type==BKPT_HARD)))
+	if (gdb_breakpoint_override && ((bp_type == BKPT_SOFT)||(bp_type == BKPT_HARD)))
 	{
 		bp_type=gdb_breakpoint_override_type;
 	}
@@ -1560,7 +1560,7 @@ static int compare_bank (const void * a, const void * b)
 	b1=*((flash_bank_t **)a);
 	b2=*((flash_bank_t **)b);
 
-	if (b1->base==b2->base)
+	if (b1->base == b2->base)
 	{
 		return 0;
 	} else if (b1->base>b2->base)
@@ -2349,13 +2349,13 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 	if (argc == 0)
 	{
 
-	} else if (argc==1)
+	} else if (argc == 1)
 	{
 		gdb_breakpoint_override = 1;
-		if (strcmp(args[0], "hard")==0)
+		if (strcmp(args[0], "hard") == 0)
 		{
 			gdb_breakpoint_override_type=BKPT_HARD;
-		} else if (strcmp(args[0], "soft")==0)
+		} else if (strcmp(args[0], "soft") == 0)
 		{
 			gdb_breakpoint_override_type=BKPT_SOFT;
 		} else if (strcmp(args[0], "disable") == 0)
@@ -2368,7 +2368,7 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 	}
 	if (gdb_breakpoint_override)
 	{
-		LOG_USER("force %s breakpoints", (gdb_breakpoint_override_type==BKPT_HARD)?"hard":"soft");
+		LOG_USER("force %s breakpoints", (gdb_breakpoint_override_type == BKPT_HARD)?"hard":"soft");
 	} else
 	{
 		LOG_USER("breakpoint type is not overriden");

@@ -1540,7 +1540,7 @@ int arm11_target_create(struct target_s *target, Jim_Interp *interp)
 
 	arm11->target = target;
 
-	if (target->tap==NULL)
+	if (target->tap == NULL)
 		return ERROR_FAIL;
 
 	if (target->tap->ir_length != 5)

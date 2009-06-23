@@ -534,7 +534,7 @@ static int presto_sendbyte(int data)
 	if (presto->buff_out_pos >= BUFFER_SIZE)
 #elif BUILD_PRESTO_LIBFTDI == 1
 	/* libftdi does not do background read, be sure that USB IN buffer does not overflow (128 bytes only!) */
-	if (presto->buff_out_pos >= BUFFER_SIZE || presto->buff_in_exp==128)
+	if (presto->buff_out_pos >= BUFFER_SIZE || presto->buff_in_exp == 128)
 #endif
 		return presto_flush();
 

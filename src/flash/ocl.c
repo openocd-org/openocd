@@ -172,7 +172,7 @@ static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset
 	int i;
 
 	/* check preconditions */
-	if (ocl->buflen == 0 || ocl->bufalign==0)
+	if (ocl->buflen == 0 || ocl->bufalign == 0)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	if (bank->target->state != TARGET_RUNNING)
@@ -373,7 +373,7 @@ static int ocl_auto_probe(struct flash_bank_s *bank)
 {
 	ocl_priv_t *ocl = bank->driver_priv;
 
-	if (ocl->buflen == 0 || ocl->bufalign==0)
+	if (ocl->buflen == 0 || ocl->bufalign == 0)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	return ERROR_OK;

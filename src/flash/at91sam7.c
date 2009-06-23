@@ -284,7 +284,7 @@ static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16
 	target_write_u32(target, MC_FCR[bank->bank_number], fcr);
 	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u", fcr, bank->bank_number+1, pagen);
 
-	if ((at91sam7_info->cidr_arch == 0x60) && ((cmd==SLB)|(cmd==CLB)))
+	if ((at91sam7_info->cidr_arch == 0x60) && ((cmd == SLB)|(cmd == CLB)))
 	{
 		/* Lock bit manipulation on AT91SAM7A3 waits for FC_FSR bit 1, EOL */
 		if (at91sam7_wait_status_busy(bank, MC_FSR_EOL, 10)&0x0C)

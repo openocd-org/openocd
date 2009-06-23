@@ -49,7 +49,7 @@ int zy1000_handle_zy1000_port_command(struct command_context_s *cmd_ctx, char *c
 
 static int zy1000_khz(int khz, int *jtag_speed)
 {
-	if (khz==0)
+	if (khz == 0)
 	{
 		*jtag_speed=0;
 	}
@@ -62,7 +62,7 @@ static int zy1000_khz(int khz, int *jtag_speed)
 
 static int zy1000_speed_div(int speed, int *khz)
 {
-	if (speed==0)
+	if (speed == 0)
 	{
 		*khz = 0;
 	}
@@ -176,7 +176,7 @@ void zy1000_reset(int trst, int srst)
 			alive_sleep(1);
 		}
 
-		if (i==1000)
+		if (i == 1000)
 		{
 			LOG_USER("SRST didn't deassert after %dms", i);
 		} else if (i>1)
@@ -439,7 +439,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 			tap_state_t pause_state;
 			int l;
 			k=num_bits-j;
-			pause_state=(shiftState==TAP_DRSHIFT)?TAP_DRSHIFT:TAP_IRSHIFT;
+			pause_state=(shiftState == TAP_DRSHIFT)?TAP_DRSHIFT:TAP_IRSHIFT;
 			if (k>32)
 			{
 				k=32;
@@ -498,7 +498,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 	{
 		nextTap=jtag_tap_next_enabled(tap);
 		tap_state_t end_state;
-		if (nextTap==NULL)
+		if (nextTap == NULL)
 		{
 			end_state = state;
 		} else
@@ -568,7 +568,7 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 		nextTap=jtag_tap_next_enabled(tap);
 		int found=0;
 		tap_state_t end_state;
-		if (nextTap==NULL)
+		if (nextTap == NULL)
 		{
 			end_state = state;
 		} else
@@ -732,7 +732,7 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int l
 {
 //	static int const reg_addr=0x5;
 	tap_state_t end_state=jtag_get_end_state();
-	if (jtag_tap_next_enabled(jtag_tap_next_enabled(NULL))==NULL)
+	if (jtag_tap_next_enabled(jtag_tap_next_enabled(NULL)) == NULL)
 	{
 		/* better performance via code duplication */
 		if (little)

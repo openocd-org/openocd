@@ -51,7 +51,7 @@ void bitq_in_proc(void)
 	while (bitq_in_state.cmd)
 	{
 		/* only JTAG_SCAN command may return data */
-		if (bitq_in_state.cmd->type==JTAG_SCAN)
+		if (bitq_in_state.cmd->type == JTAG_SCAN)
 		{
 			/* loop through the fields */
 			while (bitq_in_state.field_idx<bitq_in_state.cmd->cmd.scan->num_fields)
@@ -59,7 +59,7 @@ void bitq_in_proc(void)
 				field = &bitq_in_state.cmd->cmd.scan->fields[bitq_in_state.field_idx];
 				if (field->in_value)
 				{
-					if (bitq_in_state.bit_pos==0)
+					if (bitq_in_state.bit_pos == 0)
 					{
 						/* initialize field scanning */
 						in_mask = 0x01;
@@ -83,7 +83,7 @@ void bitq_in_proc(void)
 									bitq_in_bufsize *= 2;
 							}
 							/* if necessary, allocate buffer and check for malloc error */
-							if (bitq_in_buffer==NULL && ( bitq_in_buffer = malloc(bitq_in_bufsize) )==NULL)
+							if (bitq_in_buffer == NULL && ( bitq_in_buffer = malloc(bitq_in_bufsize) ) == NULL)
 							{
 								LOG_ERROR("malloc error");
 								exit(-1);
@@ -102,11 +102,11 @@ void bitq_in_proc(void)
 #endif
 							return;
 						}
-						if (in_mask==0x01)
+						if (in_mask == 0x01)
 							in_buff[in_idx] = 0;
 						if (tdo)
 							in_buff[in_idx] |= in_mask;
-						if (in_mask==0x80)
+						if (in_mask == 0x80)
 						{
 							in_mask = 0x01;
 							in_idx++;
@@ -226,7 +226,7 @@ void bitq_scan_field(scan_field_t* field, int pause)
 	else
 		tdo_req = 0;
 
-	if (field->out_value==NULL)
+	if (field->out_value == NULL)
 	{
 		/* just send zeros and request data from TDO */
 		for (bit_cnt = field->num_bits; bit_cnt>1; bit_cnt--)
@@ -242,7 +242,7 @@ void bitq_scan_field(scan_field_t* field, int pause)
 		for (bit_cnt = field->num_bits; bit_cnt>1; bit_cnt--)
 		{
 			bitq_io(0, ( (*out_ptr) & out_mask ) != 0, tdo_req);
-			if (out_mask==0x80)
+			if (out_mask == 0x80)
 			{
 				out_mask = 0x01;
 				out_ptr++;
@@ -257,9 +257,9 @@ void bitq_scan_field(scan_field_t* field, int pause)
 	if (pause)
 	{
 		bitq_io(0, 0, 0);
-		if (tap_get_state()==TAP_IRSHIFT)
+		if (tap_get_state() == TAP_IRSHIFT)
 			tap_set_state(TAP_IRPAUSE);
-		else if (tap_get_state()==TAP_DRSHIFT)
+		else if (tap_get_state() == TAP_DRSHIFT)
 			tap_set_state(TAP_DRPAUSE);
 	}
 }

@@ -34,11 +34,11 @@
 
 /* convert ELF header field to host endianness */
 #define field16(elf,field)\
-	((elf->endianness==ELFDATA2LSB)? \
+	((elf->endianness == ELFDATA2LSB)? \
 		le_to_h_u16((uint8_t*)&field):be_to_h_u16((uint8_t*)&field))
 
 #define field32(elf,field)\
-	((elf->endianness==ELFDATA2LSB)? \
+	((elf->endianness == ELFDATA2LSB)? \
 		le_to_h_u32((uint8_t*)&field):be_to_h_u32((uint8_t*)&field))
 
 static int autodetect_image_type(image_t *image, char *url)
@@ -55,7 +55,7 @@ static int autodetect_image_type(image_t *image, char *url)
 	}
 	retval = fileio_read(&fileio, 9, buffer, &read_bytes);
 
-	if (retval==ERROR_OK)
+	if (retval == ERROR_OK)
 	{
 		if (read_bytes != 9)
 		{
@@ -68,7 +68,7 @@ static int autodetect_image_type(image_t *image, char *url)
 		return retval;
 
 	/* check header against known signatures */
-	if (strncmp((char*)buffer,ELFMAG,SELFMAG)==0)
+	if (strncmp((char*)buffer,ELFMAG,SELFMAG) == 0)
 	{
 		LOG_DEBUG("ELF image detected.");
 		image->type = IMAGE_ELF;
@@ -382,7 +382,7 @@ static int image_elf_read_headers(image_t *image)
 	}
 
 	elf->segment_count = field16(elf,elf->header->e_phnum);
-	if (elf->segment_count==0)
+	if (elf->segment_count == 0)
 	{
 		LOG_ERROR("invalid ELF file, no program headers");
 		return ERROR_IMAGE_FORMAT_ERROR;

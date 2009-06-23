@@ -278,7 +278,7 @@ int mips32_pracc_read_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, int
 		case 2:
 			return mips32_pracc_read_mem16(ejtag_info, addr, count, (uint16_t*)buf);
 		case 4:
-			if (count==1)
+			if (count == 1)
 				return mips32_pracc_read_u32(ejtag_info, addr, (uint32_t*)buf);
 			else
 				return mips32_pracc_read_mem32(ejtag_info, addr, count, (uint32_t*)buf);
@@ -562,7 +562,7 @@ int mips32_pracc_write_mem(mips_ejtag_t *ejtag_info, uint32_t addr, int size, in
 		case 2:
 			return mips32_pracc_write_mem16(ejtag_info, addr, count,(uint16_t*)buf);
 		case 4:
-			if (count==1)
+			if (count == 1)
 				return mips32_pracc_write_u32(ejtag_info, addr, (uint32_t*)buf);
 			else
 				return mips32_pracc_write_mem32(ejtag_info, addr, count, (uint32_t*)buf);

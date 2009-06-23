@@ -1079,7 +1079,7 @@ int target_register_commands(struct command_context_s *cmd_ctx)
 int target_arch_state(struct target_s *target)
 {
 	int retval;
-	if (target==NULL)
+	if (target == NULL)
 	{
 		LOG_USER("No target has been configured");
 		return ERROR_OK;
@@ -1851,7 +1851,7 @@ static int handle_poll_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			return retval;
 
 	}
-	else if (argc==1)
+	else if (argc == 1)
 	{
 		if (strcmp(args[0], "on") == 0)
 		{
@@ -2314,7 +2314,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 		return retvaltemp;
 	}
 
-	if (retval==ERROR_OK)
+	if (retval == ERROR_OK)
 	{
 		command_print(cmd_ctx, "downloaded %u byte in %s", 
 					  (unsigned int)image_size, 
@@ -2390,7 +2390,7 @@ static int handle_dump_image_command(struct command_context_s *cmd_ctx, char *cm
 	if ((retvaltemp = duration_stop_measure(&duration, &duration_text)) != ERROR_OK)
 		return retvaltemp;
 
-	if (retval==ERROR_OK)
+	if (retval == ERROR_OK)
 	{
 		command_print(cmd_ctx, "dumped %lld byte in %s",
 				fileio.size, duration_text);
@@ -2517,7 +2517,7 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 							retval=ERROR_FAIL;
 							goto done;
 						}
-						if ((t%16384)==0)
+						if ((t%16384) == 0)
 						{
 							keep_alive();
 						}
@@ -2544,7 +2544,7 @@ done:
 		return retvaltemp;
 	}
 
-	if (retval==ERROR_OK)
+	if (retval == ERROR_OK)
 	{
 		command_print(cmd_ctx, "verified %u bytes in %s", 
 					  (unsigned int)image_size, 
@@ -2808,7 +2808,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 {
 	uint32_t i;
 	FILE *f=fopen(filename, "w");
-	if (f==NULL)
+	if (f == NULL)
 		return;
 	writeString(f, "gmon");
 	writeLong(f, 0x00000001); /* Version */
@@ -2843,7 +2843,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 		length=maxBuckets;
 	}
 	int *buckets=malloc(sizeof(int)*length);
-	if (buckets==NULL)
+	if (buckets == NULL)
 	{
 		fclose(f);
 		return;
@@ -2918,7 +2918,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 	static const int maxSample=10000;
 	uint32_t *samples=malloc(sizeof(uint32_t)*maxSample);
-	if (samples==NULL)
+	if (samples == NULL)
 		return ERROR_OK;
 
 	int numSamples=0;
@@ -4432,7 +4432,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 	retval = ERROR_OK;
 	fastload_num=image.num_sections;
 	fastload=(struct FastLoad *)malloc(sizeof(struct FastLoad)*image.num_sections);
-	if (fastload==NULL)
+	if (fastload == NULL)
 	{
 		image_close(&image);
 		return ERROR_FAIL;
@@ -4477,7 +4477,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 
 			fastload[i].address=image.sections[i].base_address+offset;
 			fastload[i].data=malloc(length);
-			if (fastload[i].data==NULL)
+			if (fastload[i].data == NULL)
 			{
 				free(buffer);
 				break;
@@ -4495,7 +4495,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 	}
 
 	duration_stop_measure(&duration, &duration_text);
-	if (retval==ERROR_OK)
+	if (retval == ERROR_OK)
 	{
 		command_print(cmd_ctx, "Loaded %u bytes in %s", (unsigned int)image_size, duration_text);
 		command_print(cmd_ctx, "NB!!! image has not been loaded to target, issue a subsequent 'fast_load' to do so.");
@@ -4516,7 +4516,7 @@ static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd
 {
 	if (argc>0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	if (fastload==NULL)
+	if (fastload == NULL)
 	{
 		LOG_ERROR("No image in memory");
 		return ERROR_FAIL;
@@ -4531,7 +4531,7 @@ static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd
 		command_print(cmd_ctx, "Write to 0x%08x, length 0x%08x", 
 					  (unsigned int)(fastload[i].address), 
 					  (unsigned int)(fastload[i].length));
-		if (retval==ERROR_OK)
+		if (retval == ERROR_OK)
 		{
 			retval = target_write_buffer(target, fastload[i].address, fastload[i].length, fastload[i].data);
 		}

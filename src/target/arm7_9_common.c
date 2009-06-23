@@ -131,7 +131,7 @@ static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
 		return ERROR_FAIL;
 	}
 
-	if (arm7_9->sw_breakpoints_added==1)
+	if (arm7_9->sw_breakpoints_added == 1)
 	{
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_VALUE], arm7_9->arm_bkpt);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0x0);
@@ -139,7 +139,7 @@ static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
 	}
-	else if (arm7_9->sw_breakpoints_added==2)
+	else if (arm7_9->sw_breakpoints_added == 2)
 	{
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_VALUE], arm7_9->arm_bkpt);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], 0x0);
@@ -232,12 +232,12 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		uint32_t mask = (breakpoint->length == 4) ? 0x3u : 0x1u;
 
 		/* reassign a hw breakpoint */
-		if (breakpoint->set==0)
+		if (breakpoint->set == 0)
 		{
 			arm7_9_assign_wp(arm7_9, breakpoint);
 		}
 
-		if (breakpoint->set==1)
+		if (breakpoint->set == 1)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_VALUE], breakpoint->address);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], mask);
@@ -245,7 +245,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~EICE_W_CTRL_nOPC & 0xff);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
 		}
-		else if (breakpoint->set==2)
+		else if (breakpoint->set == 2)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_VALUE], breakpoint->address);
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], mask);
@@ -377,7 +377,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			{
 				return retval;
 			}
-			if (current_instr==arm7_9->arm_bkpt)
+			if (current_instr == arm7_9->arm_bkpt)
 				if ((retval = target_write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
@@ -391,7 +391,7 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			{
 				return retval;
 			}
-			if (current_instr==arm7_9->thumb_bkpt)
+			if (current_instr == arm7_9->thumb_bkpt)
 				if ((retval = target_write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
@@ -423,7 +423,7 @@ int arm7_9_add_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (arm7_9->breakpoint_count==0)
+	if (arm7_9->breakpoint_count == 0)
 	{
 		/* make sure we don't have any dangling breakpoints. This is vital upon
 		 * GDB connect/disconnect
@@ -478,7 +478,7 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		arm7_9->wp_available++;
 
 	arm7_9->breakpoint_count--;
-	if (arm7_9->breakpoint_count==0)
+	if (arm7_9->breakpoint_count == 0)
 	{
 		/* make sure we don't have any dangling breakpoints */
 		if ((retval = arm7_9_clear_watchpoints(arm7_9)) != ERROR_OK)
@@ -906,7 +906,7 @@ int arm7_9_poll(target_t *target)
 				if (target->reset_halt)
 				{
 					enum reset_types jtag_reset_config = jtag_get_reset_config();
-					if ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0)
+					if ((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0)
 					{
 						check_pc = 1;
 					}
@@ -1022,7 +1022,7 @@ int arm7_9_assert_reset(target_t *target)
 
 	armv4_5_invalidate_core_regs(target);
 
-	if ((target->reset_halt) && ((jtag_reset_config & RESET_SRST_PULLS_TRST)==0))
+	if ((target->reset_halt) && ((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0))
 	{
 		/* debug entry was already prepared in arm7_9_assert_reset() */
 		target->debug_reason = DBG_REASON_DBGRQ;
@@ -1246,7 +1246,7 @@ int arm7_9_soft_reset_halt(struct target_s *target)
  */
 int arm7_9_halt(target_t *target)
 {
-	if (target->state==TARGET_RESET)
+	if (target->state == TARGET_RESET)
 	{
 		LOG_ERROR("BUG: arm7/9 does not support halt during reset. This is handled in arm7_9_assert_reset()");
 		return ERROR_OK;
@@ -2272,7 +2272,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 				buffer += thisrun_accesses * 4;
 				num_accesses += thisrun_accesses;
 
-				if ((j++%1024)==0)
+				if ((j++%1024) == 0)
 				{
 					keep_alive();
 				}
@@ -2310,7 +2310,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 				buffer += thisrun_accesses * 2;
 				num_accesses += thisrun_accesses;
 
-				if ((j++%1024)==0)
+				if ((j++%1024) == 0)
 				{
 					keep_alive();
 				}
@@ -2347,7 +2347,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 				buffer += thisrun_accesses * 1;
 				num_accesses += thisrun_accesses;
 
-				if ((j++%1024)==0)
+				if ((j++%1024) == 0)
 				{
 					keep_alive();
 				}
@@ -2579,7 +2579,7 @@ static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, i
 	if ((retval=target_wait_state(target, TARGET_DEBUG_RUNNING, 500)) != ERROR_OK)
 		return retval;
 
-	int little=target->endianness==TARGET_LITTLE_ENDIAN;
+	int little=target->endianness == TARGET_LITTLE_ENDIAN;
 	int count=dcc_count;
 	uint8_t *buffer=dcc_buffer;
 	if (count>2)
@@ -2674,7 +2674,7 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 	retval = armv4_5_run_algorithm_inner(target, 0, NULL, 1, reg_params,
 			arm7_9->dcc_working_area->address, arm7_9->dcc_working_area->address+6*4, 20*1000, &armv4_5_info, arm7_9_dcc_completion);
 
-	if (retval==ERROR_OK)
+	if (retval == ERROR_OK)
 	{
 		uint32_t endaddress=buf_get_u32(reg_params[0].value, 0, 32);
 		if (endaddress != (address+count*4))

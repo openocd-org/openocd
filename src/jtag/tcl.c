@@ -1208,7 +1208,7 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 	for (i = 0; i < num_fields; i++)
 	{
 		tap = jtag_tap_by_string( args[i*2] );
-		if (tap==NULL)
+		if (tap == NULL)
 		{
 			command_print( cmd_ctx, "Tap: %s unknown", args[i*2] );
 			return ERROR_FAIL;

@@ -770,7 +770,7 @@ static int jlink_tap_execute(void)
 
 	/* JLink returns an extra NULL in packet when size of in message is a multiple of 64, creates problems with usb comms */
 	/* WARNING This will interfere with tap state counting */
-	while ((TAP_SCAN_BYTES(tap_length)%64)==0)
+	while ((TAP_SCAN_BYTES(tap_length)%64) == 0)
 	{
 		jlink_tap_append_step((tap_get_state() == TAP_RESET)?1:0, 0);
 	}
@@ -932,7 +932,7 @@ static int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_le
 		if (1 != result2)
 		{
 			LOG_ERROR("jlink_usb_read_emu_result retried requested=1, result=%d, in_length=%i", result2,in_length);
-			/* Try again once, should only happen if (in_length%64==0) */
+			/* Try again once, should only happen if (in_length%64 == 0) */
 			result2 = jlink_usb_read_emu_result(jlink_jtag);
 			if (1 != result2)
 			{

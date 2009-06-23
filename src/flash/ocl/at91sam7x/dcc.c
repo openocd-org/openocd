@@ -27,7 +27,7 @@ uint32 dcc_rd(void)
 
 	do {
 		asm volatile ("mrc p14, 0, %0, C0, C0" : "=r" (dcc_reg) : );
-	} while ((dcc_reg&1)==0);
+	} while ((dcc_reg&1) == 0);
 
 	asm volatile ("mrc p14, 0, %0, C1, C0" : "=r" (dcc_reg) : );
 	return dcc_reg;

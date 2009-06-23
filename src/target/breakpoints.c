@@ -99,13 +99,13 @@ static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
 	
 	while (breakpoint)
 	{
-		if (breakpoint==breakpoint_remove)
+		if (breakpoint == breakpoint_remove)
 			break;
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
 	}
 	
-	if (breakpoint==NULL)
+	if (breakpoint == NULL)
 		return;
 	
 	target_remove_breakpoint(target, breakpoint);
@@ -227,7 +227,7 @@ static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
 		watchpoint = watchpoint->next;
 	}
 	
-	if (watchpoint==NULL)
+	if (watchpoint == NULL)
 		return;
 	target_remove_watchpoint(target, watchpoint);
 	(*watchpoint_p) = watchpoint->next;

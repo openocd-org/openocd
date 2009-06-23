@@ -197,7 +197,7 @@ int xscale_get_arch_pointers(target_t *target, armv4_5_common_t **armv4_5_p, xsc
 
 int xscale_jtag_set_instr(jtag_tap_t *tap, uint32_t new_instr)
 {
-	if (tap==NULL)
+	if (tap == NULL)
 		return ERROR_FAIL;
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)
@@ -301,7 +301,7 @@ static void xscale_getbuf(jtag_callback_data_t arg)
 
 int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 {
-	if (num_words==0)
+	if (num_words == 0)
 		return ERROR_INVALID_ARGUMENTS;
 
 	int retval=ERROR_OK;
@@ -392,7 +392,7 @@ int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 				words_scheduled--;
 			}
 		}
-		if (words_scheduled==0)
+		if (words_scheduled == 0)
 		{
 			if (attempts++==1000)
 			{

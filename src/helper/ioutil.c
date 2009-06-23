@@ -84,7 +84,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 
 	FILE * pFile;
 	pFile = fopen(fileName,"rb");
-	if (pFile==NULL)
+	if (pFile == NULL)
 	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		return ERROR_FAIL;
@@ -111,7 +111,7 @@ int loadFile(const char *fileName, void **data, size_t *len)
 		return ERROR_FAIL;
 	}
 	*data = malloc(*len + 1);
-	if (*data==NULL)
+	if (*data == NULL)
 	{
 		LOG_ERROR("Can't open %s\n", fileName);
 		fclose(pFile);
@@ -233,7 +233,7 @@ int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
 					break;
 			}
 		}
-		if ((i==argc) && (fwrite("\n", 1, 1, config_file)==1))
+		if ((i == argc) && (fwrite("\n", 1, 1, config_file) == 1))
 		{
 			retval=ERROR_OK;
 		}
@@ -274,7 +274,7 @@ int handle_cp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 			chunk = maxChunk;
 		}
 
-		if ((retval==ERROR_OK) && (fwrite(((char *)data)+pos, 1, chunk, f) != chunk))
+		if ((retval == ERROR_OK) && (fwrite(((char *)data)+pos, 1, chunk, f) != chunk))
 			retval = ERROR_INVALID_ARGUMENTS;
 
 		if (retval != ERROR_OK)
@@ -363,7 +363,7 @@ void copydir(char *name, char *destdir)
 	DIR *dirp;
 
 	dirp = opendir(destdir);
-	if (dirp==NULL)
+	if (dirp == NULL)
 	{
 		mkdir(destdir, 0777);
 	} else
@@ -477,7 +477,7 @@ zylinjtag_Jim_Command_ls(Jim_Interp *interp,
 		if (entry == NULL)
 			break;
 
-		if ((strcmp(".", entry->d_name)==0)||(strcmp("..", entry->d_name)==0))
+		if ((strcmp(".", entry->d_name) == 0)||(strcmp("..", entry->d_name) == 0))
 			continue;
 
         Jim_ListAppendElement(interp, objPtr, Jim_NewStringObj(interp, entry->d_name, strlen(entry->d_name)));

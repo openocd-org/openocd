@@ -94,9 +94,9 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	 * to the fn and fish it out manually.
 	 */
 	c = interp->cmdPrivData;
-	if (c==NULL)
+	if (c == NULL)
 	{
-		LOG_ERROR("BUG: interp->cmdPrivData==NULL");
+		LOG_ERROR("BUG: interp->cmdPrivData == NULL");
 		return JIM_ERR;
 	}
 	target_call_timer_callbacks_now();
@@ -157,7 +157,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		*return_retval = retval;
 	}
 
-	return (retval==ERROR_OK)?JIM_OK:JIM_ERR;
+	return (retval == ERROR_OK)?JIM_OK:JIM_ERR;
 }
 
 /* nice short description of source file */
@@ -212,7 +212,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	}
 
 	/* just a placeholder, no handler */
-	if (c->handler==NULL)
+	if (c->handler == NULL)
 		return c;
 
 	/* If this is a two level command, e.g. "flash banks", then the
@@ -478,7 +478,7 @@ int command_run_line(command_context_t *context, char *line)
 			/* We do not print the connection closed error message */
 			Jim_PrintErrorMessage(interp);
 		}
-		if (retval==ERROR_OK)
+		if (retval == ERROR_OK)
 		{
 			/* It wasn't a low level OpenOCD command that failed */
 			return ERROR_FAIL;
@@ -745,7 +745,7 @@ command_context_t* command_init()
 #if !BUILD_ECOSBOARD
 	Jim_EventLoopOnLoad(interp);
 #endif
-	if (Jim_Eval_Named(interp, startup_tcl, "embedded:startup.tcl",1)==JIM_ERR)
+	if (Jim_Eval_Named(interp, startup_tcl, "embedded:startup.tcl",1) == JIM_ERR)
 	{
 		LOG_ERROR("Failed to run startup.tcl (embedded into OpenOCD compile time)");
 		Jim_PrintErrorMessage(interp);
@@ -812,7 +812,7 @@ int handle_fast_command(struct command_context_s *cmd_ctx, char *cmd, char **arg
 	if (argc != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	fast_and_dangerous = strcmp("enable", args[0])==0;
+	fast_and_dangerous = strcmp("enable", args[0]) == 0;
 
 	return ERROR_OK;
 }
@@ -856,7 +856,7 @@ long jim_global_long(const char *variable)
 {
 	Jim_Obj *objPtr=Jim_GetGlobalVariableStr(interp, variable, JIM_ERRMSG);
 	long t;
-	if (Jim_GetLong(interp, objPtr, &t)==JIM_OK)
+	if (Jim_GetLong(interp, objPtr, &t) == JIM_OK)
 	{
 		return t;
 	}

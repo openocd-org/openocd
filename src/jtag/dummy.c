@@ -131,7 +131,7 @@ static void dummy_reset(int trst, int srst)
 
 static int dummy_khz(int khz, int *jtag_speed)
 {
-	if (khz==0)
+	if (khz == 0)
 	{
 		*jtag_speed=0;
 	}
@@ -144,7 +144,7 @@ static int dummy_khz(int khz, int *jtag_speed)
 
 static int dummy_speed_div(int speed, int *khz)
 {
-	if (speed==0)
+	if (speed == 0)
 	{
 		*khz = 0;
 	}

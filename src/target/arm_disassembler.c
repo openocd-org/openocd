@@ -1158,7 +1158,7 @@ int evaluate_data_proc(uint32_t opcode, uint32_t address, arm_instruction_t *ins
 	}
 	else if ((op == 0xd) || (op == 0xf)) /* <opcode1>{<cond>}{S} <Rd>, <shifter_operand> */
 	{
-		if (opcode==0xe1a00000) /* print MOV r0,r0 as NOP */
+		if (opcode == 0xe1a00000) /* print MOV r0,r0 as NOP */
 			snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tNOP",address, opcode);
 		else
 			snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\t%s%s%s r%i, %s",
@@ -1327,7 +1327,7 @@ int evaluate_b_bl_blx_thumb(uint16_t opcode, uint32_t address, arm_instruction_t
 	char *mnemonic = NULL;
 	
 	/* sign extend 11-bit offset */
-	if (((opc==0) || (opc==2)) && (offset & 0x00000400))
+	if (((opc == 0) || (opc == 2)) && (offset & 0x00000400))
 		offset = 0xfffff800 | offset;
 	
 	target_address = address + 4 + (offset << 1);
@@ -1435,7 +1435,7 @@ int evaluate_shift_imm_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 			break;
 	}
 
-	if ((imm==0) && (opc != 0))
+	if ((imm == 0) && (opc != 0))
 		imm = 32;
 
 	instruction->info.data_proc.Rd = Rd;
@@ -1748,7 +1748,7 @@ int evaluate_load_store_imm_thumb(uint16_t opcode, uint32_t address, arm_instruc
 		mnemonic = "STR";
 	}
 
-	if ((opcode&0xF000)==0x8000)
+	if ((opcode&0xF000) == 0x8000)
 	{
 		suffix = 'H';
 		shift = 1;

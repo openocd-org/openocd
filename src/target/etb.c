@@ -49,7 +49,7 @@ static int etb_set_instr(etb_t *etb, uint32_t new_instr)
 	jtag_tap_t *tap;
 
 	tap = etb->tap;
-	if (tap==NULL)
+	if (tap == NULL)
 		return ERROR_FAIL;
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr)

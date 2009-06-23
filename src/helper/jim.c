@@ -198,7 +198,7 @@ static jim_wide JimStrtoll(const char *nptr, char **endptr, register int base)
      * digit.  For instance, if the range for quads is
      * [-9223372036854775808..9223372036854775807] and the input base
      * is 10, cutoff will be set to 922337203685477580 and cutlim to
-     * either 7 (neg==0) or 8 (neg==1), meaning that if we have
+     * either 7 (neg == 0) or 8 (neg == 1), meaning that if we have
      * accumulated a value > 922337203685477580, or equal but the
      * next digit is > 7 (or 8), the number is too big, and we will
      * return a range error.
@@ -503,7 +503,7 @@ int Jim_StringToDouble(const char *str, double *doublePtr)
 static jim_wide JimPowWide(jim_wide b, jim_wide e)
 {
     jim_wide i, res = 1;
-    if ((b==0 && e != 0) || (e<0)) return 0;
+    if ((b == 0 && e != 0) || (e<0)) return 0;
     for (i=0; i<e; i++) {res *= b;}
     return res;
 }
@@ -568,7 +568,7 @@ void Jim_Panic(Jim_Interp *interp, const char *fmt, ...)
 void *Jim_Alloc(int size)
 {
 	/* We allocate zero length arrayes, etc. to use a single orthogonal codepath */
-	if (size==0)
+	if (size == 0)
 		size=1;
     void *p = malloc(size);
     if (p == NULL)
@@ -583,7 +583,7 @@ void Jim_Free(void *ptr) {
 void *Jim_Realloc(void *ptr, int size)
 {
 	/* We allocate zero length arrayes, etc. to use a single orthogonal codepath */
-	if (size==0)
+	if (size == 0)
 		size=1;
     void *p = realloc(ptr, size);
     if (p == NULL)
@@ -6959,7 +6959,7 @@ int Jim_EvalExpression(Jim_Interp *interp, Jim_Obj *exprObjPtr,
             case JIM_EXPROP_GTE: wC = wA >= wB; break;
             case JIM_EXPROP_LSHIFT: wC = wA << wB; break;
             case JIM_EXPROP_RSHIFT: wC = wA >> wB; break;
-            case JIM_EXPROP_NUMEQ: wC = wA==wB; break;
+            case JIM_EXPROP_NUMEQ: wC = wA == wB; break;
             case JIM_EXPROP_NUMNE: wC = wA != wB; break;
             case JIM_EXPROP_BITAND: wC = wA&wB; break;
             case JIM_EXPROP_BITXOR: wC = wA^wB; break;
@@ -7062,7 +7062,7 @@ trydouble:
             case JIM_EXPROP_GT: dC = dA>dB; break;
             case JIM_EXPROP_LTE: dC = dA <= dB; break;
             case JIM_EXPROP_GTE: dC = dA >= dB; break;
-            case JIM_EXPROP_NUMEQ: dC = dA==dB; break;
+            case JIM_EXPROP_NUMEQ: dC = dA == dB; break;
             case JIM_EXPROP_NUMNE: dC = dA != dB; break;
             case JIM_EXPROP_LOGICAND_LEFT:
                 if (dA == 0) {

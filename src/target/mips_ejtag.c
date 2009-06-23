@@ -32,7 +32,7 @@ int mips_ejtag_set_instr(mips_ejtag_t *ejtag_info, int new_instr, void *delete_m
 	jtag_tap_t *tap;
 
 	tap = ejtag_info->tap;
-	if (tap==NULL)
+	if (tap == NULL)
 		return ERROR_FAIL;
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (uint32_t)new_instr)
@@ -115,7 +115,7 @@ int mips_ejtag_drscan_32(mips_ejtag_t *ejtag_info, uint32_t *data)
 	jtag_tap_t *tap;
 	tap  = ejtag_info->tap;
 
-	if (tap==NULL)
+	if (tap == NULL)
 		return ERROR_FAIL;
 	scan_field_t field;
 	uint8_t t[4], r[4];

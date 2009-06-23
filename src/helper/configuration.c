@@ -94,7 +94,7 @@ FILE *open_file_from_path (char *file, char *mode)
 	} else
 	{
 		char *full_path=find_file(file);
-		if (full_path==NULL)
+		if (full_path == NULL)
 			return NULL;
 		FILE *fp = NULL;
 		fp = fopen(full_path, mode);
