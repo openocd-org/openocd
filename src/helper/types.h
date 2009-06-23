@@ -124,8 +124,18 @@ static inline void h_u16_to_be(uint8_t* buf, int val)
 }
 
 #ifdef __ECOS
+/* eCos plain lacks these definition... A series of upstream patches
+ * could probably repair it, but it seems like too much work to be
+ * worth it.
+ */
 
-/* eCos plain lacks this definition... */
+
+#define PRIx32 "x"
+#define PRId32 "d"
+#define SCNx32 "x"
+#define PRIi32 "i"
+#define PRIu32 "u"
+
 typedef CYG_ADDRWORD intptr_t;
 typedef int64_t intmax_t;
 typedef uint64_t uintmax_t;
