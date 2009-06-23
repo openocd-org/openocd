@@ -763,7 +763,7 @@ int mips_m4k_read_memory(struct target_s *target, uint32_t address, uint32_t siz
 		uint32_t i, t32;
 		uint16_t t16;
 
-		for(i = 0; i < (count*size); i += size)
+		for (i = 0; i < (count*size); i += size)
 		{
 			switch (size)
 			{
@@ -808,7 +808,7 @@ int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t si
 		uint32_t i, t32;
 		uint16_t t16;
 
-		for(i = 0; i < (count*size); i += size)
+		for (i = 0; i < (count*size); i += size)
 		{
 			switch (size) 
 			{

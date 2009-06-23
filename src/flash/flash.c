@@ -770,13 +770,13 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	switch (wordsize)
 	{
 	case 4:
-		for(i = 0; i < chunk_count; i++)
+		for (i = 0; i < chunk_count; i++)
 		{
 			target_buffer_set_u32(target, chunk + i * wordsize, pattern);
 		}
 		break;
 	case 2:
-		for(i = 0; i < chunk_count; i++)
+		for (i = 0; i < chunk_count; i++)
 		{
 			target_buffer_set_u16(target, chunk + i * wordsize, pattern);
 		}

@@ -11,11 +11,11 @@ int main(void)
 	
 	while (1)
 	{
-		for(i = 0; i < 500000; i++)
+		for (i = 0; i < 500000; i++)
 			mPORTDToggleBits(BIT_0);
-		for(i = 0; i < 500000; i++)
+		for (i = 0; i < 500000; i++)
 			mPORTDToggleBits(BIT_1);
-		for(i = 0; i < 500000; i++)
+		for (i = 0; i < 500000; i++)
 			mPORTDToggleBits(BIT_2);
 	}
 

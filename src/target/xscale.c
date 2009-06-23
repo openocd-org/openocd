@@ -1783,7 +1783,7 @@ int xscale_full_context(target_t *target)
 	 * we can't enter User mode on an XScale (unpredictable),
 	 * but User shares registers with SYS
 	 */
-	for(i = 1; i < 7; i++)
+	for (i = 1; i < 7; i++)
 	{
 		int valid = 1;
 
@@ -1855,7 +1855,7 @@ int xscale_restore_context(target_t *target)
 	* we can't enter User mode on an XScale (unpredictable),
 	* but User shares registers with SYS
 	*/
-	for(i = 1; i < 7; i++)
+	for (i = 1; i < 7; i++)
 	{
 		int dirty = 0;
 

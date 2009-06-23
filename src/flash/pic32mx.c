@@ -620,7 +620,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 		num_pages = 12;
 	} else {
 		/* 0xBD000000: Program flash size varies with device */
-		for(i=0; pic32mx_devs[i].name != NULL; i++)
+		for (i=0; pic32mx_devs[i].name != NULL; i++)
 			if (pic32mx_devs[i].devid == ((device_id >> 12) & 0xff)) {
 				num_pages = pic32mx_devs[i].pfm_size;
 				break;
@@ -704,7 +704,7 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 				 PIC32MX_MANUF_ID);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
-	for(i=0; pic32mx_devs[i].name != NULL; i++)
+	for (i=0; pic32mx_devs[i].name != NULL; i++)
 		if (pic32mx_devs[i].devid == ((device_id >> 12) & 0xff)) {
 			printed = snprintf(buf, buf_size, "PIC32MX%s", pic32mx_devs[i].name);
 			break;

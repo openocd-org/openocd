@@ -1181,7 +1181,7 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 			const char *cpA;
 			const char *cpS;
 			cpA = args[ argc-1 ];
-			for( endstate = 0 ; endstate < TAP_NUM_STATES ; endstate++ ){
+			for ( endstate = 0 ; endstate < TAP_NUM_STATES ; endstate++ ){
 				cpS = tap_state_name( endstate );
 				if ( 0 == strcmp( cpA, cpS ) ){
 					break;

@@ -518,7 +518,7 @@ dtc_run_download(
 
 
 	/* Wait for DTC to finish running command buffer */
-	for(i = 10;;) {
+	for (i = 10;;) {
 		usb_err = ep1_generic_commandl(
 			pHDev, 4,
 
@@ -711,7 +711,7 @@ dtc_queue_run(void) {
 
 			/* The rigamarole with the masks and doing it bit-by-bit is due to the fact that the scan buffer is LSb-first and the DTC code is MSb-first for hardware reasons.   It was that or craft a function to do the reversal, and that wouldn't work with bit-stuffing (supplying extra bits to use mostly byte operations), or any other scheme which would throw the byte alignment off. */
 
-			for(
+			for (
 				rq_p = dtc_queue.rq_head;
 				rq_p != NULL;
 				rq_p = rq_next
@@ -726,7 +726,7 @@ dtc_queue_run(void) {
 
 					dtc_mask = 1 << (8 - 1);
 
-					for(
+					for (
 						;
 						bit_cnt;
 						bit_cnt--
@@ -764,7 +764,7 @@ dtc_queue_run(void) {
 						dtc_mask = 1 << (bit_cnt - 1);
 					}
 
-					for(
+					for (
 						;
 						bit_cnt;
 						bit_cnt--
@@ -834,7 +834,7 @@ tap_state_queue_run(void) {
 	if (!tap_state_queue.length) return(retval);
 	bits = 1;
 	byte = 0;
-	for(i = tap_state_queue.length; i--;) {
+	for (i = tap_state_queue.length; i--;) {
 
 		byte <<= 1;
 		if (tap_state_queue.buffer & 1) {
@@ -1140,7 +1140,7 @@ rlink_scan(
 		buffer[scan_size / 8] &= ((1 << ((scan_size - 1) % 8) + 1) - 1);
 
 		printf("before scan:");
-		for(i = 0; i < (scan_size + 7) / 8; i++) {
+		for (i = 0; i < (scan_size + 7) / 8; i++) {
 			printf(" %02x", buffer[i]);
 		}
 		printf("\n");
@@ -1503,7 +1503,7 @@ int rlink_speed(int speed)
 		speed = rlink_speed_table[rlink_speed_table_size - 1].prescaler;
 	}
 
-	for(i = rlink_speed_table_size; i--; ) {
+	for (i = rlink_speed_table_size; i--; ) {
 		if (rlink_speed_table[i].prescaler == speed) {
 			if (dtc_load_from_buffer(pHDev, rlink_speed_table[i].dtc, rlink_speed_table[i].dtc_size) != 0) {
 				LOG_ERROR("An error occurred while trying to load DTC code for speed \"%d\".\n", speed);
@@ -1534,7 +1534,7 @@ int rlink_speed_div(
 ) {
 	int	i;
 
-	for(i = rlink_speed_table_size; i--; ) {
+	for (i = rlink_speed_table_size; i--; ) {
 		if (rlink_speed_table[i].prescaler == speed) {
 			*khz = rlink_speed_table[i].khz;
 			return(ERROR_OK);
@@ -1558,7 +1558,7 @@ int rlink_khz(
 		return ERROR_FAIL;
 	}
 
-	for(i = rlink_speed_table_size; i--; ) {
+	for (i = rlink_speed_table_size; i--; ) {
 		if (rlink_speed_table[i].khz <= khz) {
 			*speed = rlink_speed_table[i].prescaler;
 			return(ERROR_OK);
@@ -1630,11 +1630,11 @@ int rlink_init(void)
 
 	busses = usb_get_busses();
 
-	for(bus = busses; bus; bus = bus->next)
+	for (bus = busses; bus; bus = bus->next)
 	{
 		struct usb_device *dev;
 
-		for(dev = bus->devices; dev; dev = dev->next)
+		for (dev = bus->devices; dev; dev = dev->next)
 		{
 			if ( (dev->descriptor.idVendor == USB_IDVENDOR) && (dev->descriptor.idProduct == USB_IDPRODUCT) )
 			{
@@ -1715,7 +1715,7 @@ int rlink_init(void)
 
 	/* The device starts out in an unknown state on open.  As such, result reads time out, and it's not even known whether the command was accepted.  So, for this first command, we issue it repeatedly until its response doesn't time out.  Also, if sending a command is going to time out, we'll find that out here. */
 	/* It must be possible to open the device in such a way that this special magic isn't needed, but, so far, it escapes us. */
-	for(i = 0; i < 5; i++) {
+	for (i = 0; i < 5; i++) {
 		j = ep1_generic_commandl(
 			pHDev, 1,
 			EP1_CMD_GET_FWREV

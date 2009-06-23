@@ -1024,7 +1024,7 @@ int jtag_validate_chain(void)
 
 	tap = NULL;
 	total_ir_length = 0;
-	for(;;){
+	for (;;){
 		tap = jtag_tap_next_enabled(tap);
 		if ( tap == NULL ){
 			break;
@@ -1048,7 +1048,7 @@ int jtag_validate_chain(void)
 	tap = NULL;
 	chain_pos = 0;
 	int val;
-	for(;;){
+	for (;;){
 		tap = jtag_tap_next_enabled(tap);
 		if ( tap == NULL ){
 			break;

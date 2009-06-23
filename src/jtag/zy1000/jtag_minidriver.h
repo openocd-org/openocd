@@ -157,7 +157,7 @@ static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
 	enum tap_state pause_state = TAP_DRSHIFT;
 
 	jtag_tap_t *tap, *nextTap;
-	for(tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
+	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
 	{
 		nextTap=jtag_tap_next_enabled(tap);
 		if (nextTap==NULL)

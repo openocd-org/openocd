@@ -504,7 +504,7 @@ static jim_wide JimPowWide(jim_wide b, jim_wide e)
 {
     jim_wide i, res = 1;
     if ((b==0 && e!=0) || (e<0)) return 0;
-    for(i=0; i<e; i++) {res *= b;}
+    for (i=0; i<e; i++) {res *= b;}
     return res;
 }
 
@@ -10425,7 +10425,7 @@ static int Jim_SwitchCoreCommand(Jim_Interp *interp, int argc,
           script = caseList[i+1];
         }
     }
-    for(; i < patCount && Jim_CompareStringImmediate(interp, script, "-");
+    for (; i < patCount && Jim_CompareStringImmediate(interp, script, "-");
         i += 2)
         script = caseList[i+1];
     if (script && Jim_CompareStringImmediate(interp, script, "-")) {
@@ -12599,7 +12599,7 @@ Jim_GetOpt_Debug( Jim_GetOptInfo *p )
 	int x;
 
 	Jim_fprintf( p->interp, p->interp->cookie_stderr, "---args---\n");
-	for( x = 0 ; x < p->argc ; x++ ){
+	for ( x = 0 ; x < p->argc ; x++ ){
 		Jim_fprintf( p->interp, p->interp->cookie_stderr, 
 					 "%2d) %s\n", 
 					 x, 
@@ -12823,7 +12823,7 @@ Jim_Debug_ArgvString( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	}
 
 	debug_string_obj = Jim_NewEmptyStringObj( interp );
-	for( x = 0 ; x < argc ; x++ ){
+	for ( x = 0 ; x < argc ; x++ ){
 		Jim_AppendStrings( interp,
 						   debug_string_obj,
 						   Jim_GetString( argv[x], NULL ),

@@ -90,7 +90,7 @@ int add_default_dirs(void)
 		GetModuleFileName (NULL, strExePath, MAX_PATH);
 		*strrchr(strExePath, '\\')=0;
 		strcat(strExePath, "/../lib/"PACKAGE);
-		for(p=strExePath; *p; p++) {
+		for (p=strExePath; *p; p++) {
 			if (*p == '\\')
 				*p = '/';
 		}

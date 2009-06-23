@@ -494,7 +494,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 	int j;
 	int scan_size = 0;
 	jtag_tap_t *tap, *nextTap;
-	for(tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
+	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
 	{
 		nextTap=jtag_tap_next_enabled(tap);
 		tap_state_t end_state;
@@ -563,7 +563,7 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 
 	int j;
 	jtag_tap_t *tap, *nextTap;
-	for(tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
+	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
 	{
 		nextTap=jtag_tap_next_enabled(tap);
 		int found=0;

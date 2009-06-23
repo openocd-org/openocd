@@ -359,7 +359,7 @@ tap_state_t tap_state_by_name(const char *name)
 {
 	tap_state_t x;
 
-	for( x = 0 ; x < TAP_NUM_STATES ; x++ ){
+	for ( x = 0 ; x < TAP_NUM_STATES ; x++ ){
 		/* be nice to the human */
 		if ( 0 == strcasecmp( name, tap_state_name(x) ) ){
 			return x;
@@ -403,9 +403,9 @@ tap_state_t jtag_debug_state_machine(const void *tms_buf, const void *tdi_buf,
 	DEBUG_JTAG_IO("TAP/SM: TMS bits: %u (bytes: %u)", tap_bits, tap_bytes);
 
 	tap_out_bits = 0;
-	for(cur_byte = 0; cur_byte < tap_bytes; cur_byte++)
+	for (cur_byte = 0; cur_byte < tap_bytes; cur_byte++)
 	{
-		for(cur_bit = 0; cur_bit < 8; cur_bit++)
+		for (cur_bit = 0; cur_bit < 8; cur_bit++)
 		{
 			// make sure we do not run off the end of the buffers
 			unsigned tap_bit = cur_byte * 8 + cur_bit;

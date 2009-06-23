@@ -2041,7 +2041,7 @@ int gdb_input_inner(connection_t *connection)
 				// binary packets spew junk into the debug log stream
 				char buf[ 50 ];
 				int x;
-				for( x = 0 ; (x < 49) && (packet[x] != ':') ; x++ ){
+				for ( x = 0 ; (x < 49) && (packet[x] != ':') ; x++ ){
 					buf[x] = packet[x];
 				}
 				buf[x] = 0;

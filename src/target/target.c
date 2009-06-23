@@ -3829,7 +3829,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			b = 1;
 			break;
 		}
-		for( x = 0 ; x < c ; x++ ){
+		for ( x = 0 ; x < c ; x++ ){
 			e = target_write_memory( target, a, b, 1, target_buf );
 			if ( e != ERROR_OK ){
 				Jim_SetResult_sprintf( interp, "Error writing @ 0x%08x: %d\n", (int)(a), e );
@@ -3895,36 +3895,36 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			Jim_fprintf( interp, interp->cookie_stdout, "0x%08x ", (int)(a) );
 			switch ( b ){
 			case 4:
-				for( x = 0 ; (x < 16) && (x < y) ; x += 4 ){
+				for ( x = 0 ; (x < 16) && (x < y) ; x += 4 ){
 					z = target_buffer_get_u32( target, &(target_buf[ x * 4 ]) );
 					Jim_fprintf( interp, interp->cookie_stdout, "%08x ", (int)(z) );
 				}
-				for( ; (x < 16) ; x += 4 ){
+				for ( ; (x < 16) ; x += 4 ){
 					Jim_fprintf( interp, interp->cookie_stdout, "         " );
 				}
 				break;
 			case 2:
-				for( x = 0 ; (x < 16) && (x < y) ; x += 2 ){
+				for ( x = 0 ; (x < 16) && (x < y) ; x += 2 ){
 					z = target_buffer_get_u16( target, &(target_buf[ x * 2 ]) );
 					Jim_fprintf( interp, interp->cookie_stdout, "%04x ", (int)(z) );
 				}
-				for( ; (x < 16) ; x += 2 ){
+				for ( ; (x < 16) ; x += 2 ){
 					Jim_fprintf( interp, interp->cookie_stdout, "     " );
 				}
 				break;
 			case 1:
 			default:
-				for( x = 0 ; (x < 16) && (x < y) ; x += 1 ){
+				for ( x = 0 ; (x < 16) && (x < y) ; x += 1 ){
 					z = target_buffer_get_u8( target, &(target_buf[ x * 4 ]) );
 					Jim_fprintf( interp, interp->cookie_stdout, "%02x ", (int)(z) );
 				}
-				for( ; (x < 16) ; x += 1 ){
+				for ( ; (x < 16) ; x += 1 ){
 					Jim_fprintf( interp, interp->cookie_stdout, "   " );
 				}
 				break;
 			}
 			/* ascii-ify the bytes */
-			for( x = 0 ; x < y ; x++ ){
+			for ( x = 0 ; x < y ; x++ ){
 				if ( (target_buf[x] >= 0x20) &&
 					(target_buf[x] <= 0x7e) ){
 					/* good */
@@ -4132,7 +4132,7 @@ static int target_create( Jim_GetOptInfo *goi )
 	e = Jim_GetOpt_String( goi, &cp2, NULL );
 	cp = cp2;
 	/* now does target type exist */
-	for( x = 0 ; target_types[x] ; x++ ){
+	for ( x = 0 ; target_types[x] ; x++ ){
 		if ( 0 == strcmp( cp, target_types[x]->name ) ){
 			/* found */
 			break;
@@ -4140,7 +4140,7 @@ static int target_create( Jim_GetOptInfo *goi )
 	}
 	if ( target_types[x] == NULL ){
 		Jim_SetResult_sprintf( goi->interp, "Unknown target type %s, try one of ", cp );
-		for( x = 0 ; target_types[x] ; x++ ){
+		for ( x = 0 ; target_types[x] ; x++ ){
 			if ( target_types[x+1] ){
 				Jim_AppendStrings( goi->interp,
 								   Jim_GetResult(goi->interp),
@@ -4313,7 +4313,7 @@ static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 			return JIM_ERR;
 		}
 		Jim_SetResult( goi.interp, Jim_NewListObj( goi.interp, NULL, 0 ) );
-		for( x = 0 ; target_types[x] ; x++ ){
+		for ( x = 0 ; target_types[x] ; x++ ){
 			Jim_ListAppendElement( goi.interp,
 								   Jim_GetResult(goi.interp),
 								   Jim_NewStringObj( goi.interp, target_types[x]->name, -1 ) );

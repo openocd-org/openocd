@@ -77,7 +77,7 @@ int nand_calculate_ecc(struct nand_device_s *device, const uint8_t *dat, uint8_t
 	reg1 = reg2 = reg3 = 0;
 
 	/* Build up column parity */
-	for(i = 0; i < 256; i++) {
+	for (i = 0; i < 256; i++) {
 		/* Get CP0 - CP5 from table */
 		idx = nand_ecc_precalc_table[*dat++];
 		reg1 ^= (idx & 0x3f);
