@@ -333,8 +333,8 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
 			/* if we are to run a verification of the ir scan, we need to get the input back.
 			 * We may have to allocate space if the caller didn't ask for the input back.
 			 */
-			in_fields[j].check_value=in_fields[j].tap->expected;
-			in_fields[j].check_mask=in_fields[j].tap->expected_mask;
+			in_fields[j].check_value = in_fields[j].tap->expected;
+			in_fields[j].check_mask = in_fields[j].tap->expected_mask;
 		}
 		jtag_add_scan_check(jtag_add_ir_scan_noverify, in_num_fields, in_fields, state);
 	} else
@@ -754,7 +754,7 @@ void jtag_check_value_mask(scan_field_t *field, uint8_t *value, uint8_t *mask)
 
 	jtag_execute_queue_noclear();
 
-	int retval=jtag_check_value_inner(field->in_value, value, mask, field->num_bits);
+	int retval = jtag_check_value_inner(field->in_value, value, mask, field->num_bits);
 	jtag_set_error(retval);
 }
 
@@ -1157,7 +1157,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	}
 
 	jtag_add_tlr();
-	if ((retval=jtag_execute_queue()) != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	/* examine chain first, as this could discover the real chain layout */
@@ -1192,7 +1192,7 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 {
 	int retval;
 
-	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
+	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
 		return retval;
 
 	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / RESET");
@@ -1236,7 +1236,7 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 int jtag_init(struct command_context_s *cmd_ctx)
 {
 	int retval;
-	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
+	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
 		return retval;
 	if (jtag_init_inner(cmd_ctx) == ERROR_OK)
 	{

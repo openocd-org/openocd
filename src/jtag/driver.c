@@ -467,23 +467,23 @@ int interface_jtag_add_sleep(uint32_t us)
 /* add callback to end of queue */
 void interface_jtag_add_callback4(jtag_callback_t callback, jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
 {
-	struct jtag_callback_entry *entry=cmd_queue_alloc(sizeof(struct jtag_callback_entry));
+	struct jtag_callback_entry *entry = cmd_queue_alloc(sizeof(struct jtag_callback_entry));
 
-	entry->next=NULL;
-	entry->callback=callback;
-	entry->data0=data0;
-	entry->data1=data1;
-	entry->data2=data2;
-	entry->data3=data3;
+	entry->next = NULL;
+	entry->callback = callback;
+	entry->data0 = data0;
+	entry->data1 = data1;
+	entry->data2 = data2;
+	entry->data3 = data3;
 
 	if (jtag_callback_queue_head == NULL)
 	{
-		jtag_callback_queue_head=entry;
-		jtag_callback_queue_tail=entry;
+		jtag_callback_queue_head = entry;
+		jtag_callback_queue_tail = entry;
 	} else
 	{
-		jtag_callback_queue_tail->next=entry;
-		jtag_callback_queue_tail=entry;
+		jtag_callback_queue_tail->next = entry;
+		jtag_callback_queue_tail = entry;
 	}
 }
 
@@ -493,9 +493,9 @@ int interface_jtag_execute_queue(void)
 	if (retval == ERROR_OK)
 	{
 		struct jtag_callback_entry *entry;
-		for (entry=jtag_callback_queue_head; entry != NULL; entry=entry->next)
+		for (entry = jtag_callback_queue_head; entry != NULL; entry = entry->next)
 		{
-			retval=entry->callback(entry->data0, entry->data1, entry->data2, entry->data3);
+			retval = entry->callback(entry->data0, entry->data1, entry->data2, entry->data3);
 			if (retval != ERROR_OK)
 				break;
 		}

@@ -301,9 +301,9 @@ int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 			
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(9,0,8),									/* $9=mem[$8]; read addr */
-		MIPS32_LW(10,4,8),									/* $10=mem[$8+4]; read count */
-		MIPS32_LUI(11,UPPER16(MIPS32_PRACC_PARAM_OUT)), 	/* $11=MIPS32_PRACC_PARAM_OUT */
+		MIPS32_LW(9,0,8),									/* $9 = mem[$8]; read addr */
+		MIPS32_LW(10,4,8),									/* $10 = mem[$8+4]; read count */
+		MIPS32_LUI(11,UPPER16(MIPS32_PRACC_PARAM_OUT)), 	/* $11 = MIPS32_PRACC_PARAM_OUT */
 		MIPS32_ORI(11,11,LOWER16(MIPS32_PRACC_PARAM_OUT)),
 		MIPS32_NOP,
 															/* loop: */
@@ -409,9 +409,9 @@ int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 			
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(9,0,8),									/* $9=mem[$8]; read addr */
-		MIPS32_LW(10,4,8),									/* $10=mem[$8+4]; read count */
-		MIPS32_LUI(11,UPPER16(MIPS32_PRACC_PARAM_OUT)),		/* $11=MIPS32_PRACC_PARAM_OUT */
+		MIPS32_LW(9,0,8),									/* $9 = mem[$8]; read addr */
+		MIPS32_LW(10,4,8),									/* $10 = mem[$8+4]; read count */
+		MIPS32_LUI(11,UPPER16(MIPS32_PRACC_PARAM_OUT)),		/* $11 = MIPS32_PRACC_PARAM_OUT */
 		MIPS32_ORI(11,11,LOWER16(MIPS32_PRACC_PARAM_OUT)),
 		MIPS32_NOP,
 															/* loop: */
@@ -488,9 +488,9 @@ int mips32_pracc_read_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, u
 			
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)), 		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
-		MIPS32_LW(9,0,8), 									/* $9=mem[$8]; read addr */
-		MIPS32_LW(10,4,8), 									/* $10=mem[$8+4]; read count */
-		MIPS32_LUI(11,UPPER16(MIPS32_PRACC_PARAM_OUT)), 	/* $11=MIPS32_PRACC_PARAM_OUT */
+		MIPS32_LW(9,0,8), 									/* $9 = mem[$8]; read addr */
+		MIPS32_LW(10,4,8), 									/* $10 = mem[$8+4]; read count */
+		MIPS32_LUI(11,UPPER16(MIPS32_PRACC_PARAM_OUT)), 	/* $11 = MIPS32_PRACC_PARAM_OUT */
 		MIPS32_ORI(11,11,LOWER16(MIPS32_PRACC_PARAM_OUT)),
 		MIPS32_NOP,
 															/* loop: */

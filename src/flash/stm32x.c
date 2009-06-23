@@ -517,7 +517,7 @@ static int stm32x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	if ((retval=target_write_buffer(target, stm32x_info->write_algorithm->address, sizeof(stm32x_flash_write_code), stm32x_flash_write_code)) != ERROR_OK)
+	if ((retval = target_write_buffer(target, stm32x_info->write_algorithm->address, sizeof(stm32x_flash_write_code), stm32x_flash_write_code)) != ERROR_OK)
 		return retval;
 
 	/* memory buffer */

@@ -87,10 +87,10 @@ static int log_target_callback_event_handler(struct target_s *target, enum targe
 	switch (event)
 	{
 		case TARGET_EVENT_GDB_START:
-			target->display=0;
+			target->display = 0;
 			break;
 		case TARGET_EVENT_GDB_END:
-			target->display=1;
+			target->display = 1;
 			break;
 		case TARGET_EVENT_HALTED:
 			if (target->display)
@@ -116,11 +116,11 @@ static int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int retval;
-	static int initialized=0;
+	static int initialized = 0;
 	if (initialized)
 		return ERROR_OK;
 
-	initialized=1;
+	initialized = 1;
 
 	atexit(exit_handler);
 
@@ -128,7 +128,7 @@ static int handle_init_command(struct command_context_s *cmd_ctx, char *cmd, cha
 		return ERROR_FAIL;
 	LOG_DEBUG("target init complete");
 
-	if ((retval=jtag_interface_init(cmd_ctx)) != ERROR_OK)
+	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
 	{
 		/* we must be able to set up the jtag interface */
 		return retval;

@@ -47,7 +47,7 @@ bitbang_interface_t *bitbang_interface;
  *
  * If someone can submit a patch with an explanation it will be greatly
  * appreciated, but as far as I can tell (ØH) DCLK is generated upon
- * clk=0 in TAP_IDLE. Good luck deducing that from the ARM documentation!
+ * clk = 0 in TAP_IDLE. Good luck deducing that from the ARM documentation!
  * The ARM documentation uses the term "DCLK is asserted while in the TAP_IDLE
  * state". With hardware there is no such thing as *while* in a state. There
  * are only edges. So clk => 0 is in fact a very subtle state transition that
@@ -76,7 +76,7 @@ static void bitbang_end_state(tap_state_t state)
 
 static void bitbang_state_move(int skip)
 {
-	int i=0, tms=0;
+	int i = 0, tms = 0;
 	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
@@ -188,24 +188,24 @@ static void bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 
 	for (bit_cnt = 0; bit_cnt < scan_size; bit_cnt++)
 	{
-		int val=0;
-		int tms=(bit_cnt == scan_size-1) ? 1 : 0;
+		int val = 0;
+		int tms = (bit_cnt == scan_size-1) ? 1 : 0;
 		int tdi;
-		int bytec=bit_cnt/8;
-		int bcval=1 << (bit_cnt % 8);
+		int bytec = bit_cnt/8;
+		int bcval = 1 << (bit_cnt % 8);
 
 		/* if we're just reading the scan, but don't care about the output
 		 * default to outputting 'low', this also makes valgrind traces more readable,
 		 * as it removes the dependency on an uninitialised value
 		 */
-		tdi=0;
+		tdi = 0;
 		if ((type != SCAN_IN) && (buffer[bytec] & bcval))
-			tdi=1;
+			tdi = 1;
 
 		bitbang_interface->write(0, tms, tdi);
 
 		if (type != SCAN_OUT)
-			val=bitbang_interface->read();
+			val = bitbang_interface->read();
 
 		bitbang_interface->write(1, tms, tdi);
 

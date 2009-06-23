@@ -388,7 +388,7 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	if ((retval=target_write_buffer(target, pic32mx_info->write_algorithm->address, sizeof(pic32mx_flash_write_code), pic32mx_flash_write_code)) != ERROR_OK)
+	if ((retval = target_write_buffer(target, pic32mx_info->write_algorithm->address, sizeof(pic32mx_flash_write_code), pic32mx_flash_write_code)) != ERROR_OK)
 		return retval;
 #endif
 
@@ -435,12 +435,12 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 #endif
 		status = pic32mx_write_row(bank, address, source->address);
 		if ( status & NVMCON_NVMERR ) {
-			LOG_ERROR("Flash write error NVMERR (status=0x%08" PRIx32 ")", status);
+			LOG_ERROR("Flash write error NVMERR (status = 0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 		if ( status & NVMCON_LVDERR ) {
-			LOG_ERROR("Flash write error LVDERR (status=0x%08" PRIx32 ")", status);
+			LOG_ERROR("Flash write error LVDERR (status = 0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
@@ -459,12 +459,12 @@ static int pic32mx_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint3
 
 		uint32_t status = pic32mx_write_word(bank, address, value);
 		if ( status & NVMCON_NVMERR ) {
-			LOG_ERROR("Flash write error NVMERR (status=0x%08" PRIx32 ")", status);
+			LOG_ERROR("Flash write error NVMERR (status = 0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 		if ( status & NVMCON_LVDERR ) {
-			LOG_ERROR("Flash write error LVDERR (status=0x%08" PRIx32 ")", status);
+			LOG_ERROR("Flash write error LVDERR (status = 0x%08" PRIx32 ")", status);
 			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
@@ -620,7 +620,7 @@ static int pic32mx_probe(struct flash_bank_s *bank)
 		num_pages = 12;
 	} else {
 		/* 0xBD000000: Program flash size varies with device */
-		for (i=0; pic32mx_devs[i].name != NULL; i++)
+		for (i = 0; pic32mx_devs[i].name != NULL; i++)
 			if (pic32mx_devs[i].devid == ((device_id >> 12) & 0xff)) {
 				num_pages = pic32mx_devs[i].pfm_size;
 				break;
@@ -704,7 +704,7 @@ static int pic32mx_info(struct flash_bank_s *bank, char *buf, int buf_size)
 				 PIC32MX_MANUF_ID);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
-	for (i=0; pic32mx_devs[i].name != NULL; i++)
+	for (i = 0; pic32mx_devs[i].name != NULL; i++)
 		if (pic32mx_devs[i].devid == ((device_id >> 12) & 0xff)) {
 			printed = snprintf(buf, buf_size, "PIC32MX%s", pic32mx_devs[i].name);
 			break;
@@ -939,7 +939,7 @@ static int pic32mx_handle_pgm_word_command(struct command_context_s *cmd_ctx, ch
 	if (res == ERROR_OK)
 		command_print(cmd_ctx, "pic32mx pgm word complete");
 	else
-		command_print(cmd_ctx, "pic32mx pgm word failed (status=0x%x)", status);
+		command_print(cmd_ctx, "pic32mx pgm word failed (status = 0x%x)", status);
 
 	return ERROR_OK;
 }

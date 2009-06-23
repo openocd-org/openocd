@@ -669,7 +669,7 @@ static int jlink_handle_jlink_hw_jtag_command(struct command_context_s *cmd_ctx,
 /* J-Link tap functions */
 
 
-static unsigned tap_length=0;
+static unsigned tap_length = 0;
 static uint8_t tms_buffer[JLINK_TAP_BUFFER_SIZE];
 static uint8_t tdi_buffer[JLINK_TAP_BUFFER_SIZE];
 static uint8_t tdo_buffer[JLINK_TAP_BUFFER_SIZE];
@@ -931,13 +931,13 @@ static int jlink_usb_message(jlink_jtag_t *jlink_jtag, int out_length, int in_le
 		result2 = jlink_usb_read_emu_result(jlink_jtag);
 		if (1 != result2)
 		{
-			LOG_ERROR("jlink_usb_read_emu_result retried requested=1, result=%d, in_length=%i", result2,in_length);
+			LOG_ERROR("jlink_usb_read_emu_result retried requested = 1, result=%d, in_length=%i", result2,in_length);
 			/* Try again once, should only happen if (in_length%64 == 0) */
 			result2 = jlink_usb_read_emu_result(jlink_jtag);
 			if (1 != result2)
 			{
 				LOG_ERROR("jlink_usb_read_emu_result failed "
-					"(requested=1, result=%d)", result2);
+					"(requested = 1, result=%d)", result2);
 				return ERROR_JTAG_DEVICE_ERROR;
 			}
 		}

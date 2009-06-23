@@ -39,19 +39,19 @@ void cmd_flash(uint32 cmd)
 	int pagenum;
 	int result;
 
-	adr=dcc_rd();
-	len=cmd&0xffff;
-	ofs=adr%flash_page_size;
-	bi_start=ofs/4;
-	bi_end=(ofs+len+3)/4;
+	adr = dcc_rd();
+	len = cmd&0xffff;
+	ofs = adr%flash_page_size;
+	bi_start = ofs/4;
+	bi_end = (ofs+len+3)/4;
 
 	if (bi_end>BUFSIZE) {
 		dcc_wr(OCL_BUFF_OVER);
 		return;
 	}
 
-	chksum=OCL_CHKS_INIT;
-	for (bi=0; bi<bi_end; bi++) chksum^=buffer[bi]=dcc_rd();
+	chksum = OCL_CHKS_INIT;
+	for (bi = 0; bi<bi_end; bi++) chksum^=buffer[bi]=dcc_rd();
 
 	if (dcc_rd() != chksum) {
 		dcc_wr(OCL_CHKS_FAIL);
@@ -59,18 +59,18 @@ void cmd_flash(uint32 cmd)
 	}
 
 	/* fill in unused positions with unprogrammed values */
-	for (bi=0; bi<bi_start; bi++) buffer[bi]=0xffffffff;
-	for (bi=bi_end; bi%flash_page_size; bi++) buffer[bi]=0xffffffff;
+	for (bi = 0; bi<bi_start; bi++) buffer[bi]=0xffffffff;
+	for (bi = bi_end; bi%flash_page_size; bi++) buffer[bi]=0xffffffff;
 
-	result=0;
-	pagenum=adr/flash_page_size;
-	for (bi=0; bi<bi_end; bi += flash_page_size/4) {
-		result=flash_page_program(buffer+bi, pagenum++);
+	result = 0;
+	pagenum = adr/flash_page_size;
+	for (bi = 0; bi<bi_end; bi += flash_page_size/4) {
+		result = flash_page_program(buffer+bi, pagenum++);
 		if (result) break;
 	}
 
 	/* verify written data */
-	if (!result) result=flash_verify(adr, len, ((uint8 *)buffer)+ofs);
+	if (!result) result = flash_verify(adr, len, ((uint8 *)buffer)+ofs);
 
 	dcc_wr(OCL_CMD_DONE|result);
 }
@@ -81,7 +81,7 @@ int main (void)
 	uint32 cmd;
 
 	for (;;) {
-		cmd=dcc_rd();
+		cmd = dcc_rd();
 		switch (cmd&OCL_CMD_MASK) {
 			case OCL_PROBE:
 				dcc_wr(OCL_CMD_DONE|flash_init());

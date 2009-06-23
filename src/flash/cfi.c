@@ -212,7 +212,7 @@ static uint16_t cfi_query_u16(flash_bank_t *bank, int sector, uint32_t offset)
 	if (cfi_info->x16_as_x8)
 	{
 		uint8_t i;
-		for (i=0;i<2;i++)
+		for (i = 0;i<2;i++)
 			target_read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
 				&data[i*bank->bus_width] );
 	}
@@ -234,7 +234,7 @@ static uint32_t cfi_query_u32(flash_bank_t *bank, int sector, uint32_t offset)
 	if (cfi_info->x16_as_x8)
 	{
 		uint8_t i;
-		for (i=0;i<4;i++)
+		for (i = 0;i<4;i++)
 			target_read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
 				&data[i*bank->bus_width] );
 	}
@@ -1011,7 +1011,7 @@ static void cfi_add_byte(struct flash_bank_s *bank, uint8_t *word, uint8_t byte)
 static void cfi_fix_code_endian(target_t *target, uint8_t *dest, const uint32_t *src, uint32_t count)
 {
 	uint32_t i;
-	for (i=0; i< count; i++)
+	for (i = 0; i< count; i++)
 	{
 		target_buffer_set_u32(target, dest, *src);
 		dest += 4;
@@ -1452,7 +1452,7 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, 
 		cfi_fix_code_endian(target, target_code, src, target_code_size / 4);
 
 		/* allocate working area */
-		retval=target_alloc_working_area(target, target_code_size,
+		retval = target_alloc_working_area(target, target_code_size,
 				&cfi_info->write_algorithm);
 		if (retval != ERROR_OK)
 		{
@@ -1987,7 +1987,7 @@ int cfi_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint3
 						buffer += buffersize;
 						write_p += buffersize;
 						count -= buffersize;
-						fallback=0;
+						fallback = 0;
 					}
 				}
 				/* try the slow way? */

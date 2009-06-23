@@ -228,7 +228,7 @@ typedef struct jtag_interface_s
 	int (*quit)(void);
 
 	/**
-	 * Returns JTAG maxium speed for KHz. 0=RTCK. The function returns
+	 * Returns JTAG maxium speed for KHz. 0 = RTCK. The function returns
 	 *  a failure if it can't support the KHz/RTCK.
 	 *
 	 *  WARNING!!!! if RTCK is *slow* then think carefully about

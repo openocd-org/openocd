@@ -93,7 +93,7 @@ FILE *open_file_from_path (char *file, char *mode)
 		return fopen(file, mode);
 	} else
 	{
-		char *full_path=find_file(file);
+		char *full_path = find_file(file);
 		if (full_path == NULL)
 			return NULL;
 		FILE *fp = NULL;
@@ -115,7 +115,7 @@ int parse_config_file(struct command_context_s *cmd_ctx)
 
 	while (*cfg)
 	{
-		retval=command_run_line(cmd_ctx, *cfg);
+		retval = command_run_line(cmd_ctx, *cfg);
 		if (retval != ERROR_OK)
 			return retval;
 		cfg++;

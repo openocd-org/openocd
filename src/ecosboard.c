@@ -975,13 +975,13 @@ int main(int argc, char *argv[])
 	}
 
 	mkdir(zylin_config_dir, 0777);
-	char *dirname=alloc_printf("%s/target", zylin_config_dir);
+	char *dirname = alloc_printf("%s/target", zylin_config_dir);
 	mkdir(dirname, 0777);
 	free(dirname);
-	dirname=alloc_printf("%s/board", zylin_config_dir);
+	dirname = alloc_printf("%s/board", zylin_config_dir);
 	mkdir(dirname, 0777);
 	free(dirname);
-	dirname=alloc_printf("%s/event", zylin_config_dir);
+	dirname = alloc_printf("%s/event", zylin_config_dir);
 	mkdir(dirname, 0777);
 	free(dirname);
 
@@ -1036,7 +1036,7 @@ int main(int argc, char *argv[])
 	if (logAllToSerial)
 	{
 		diag_printf(
-				 "%s/logserial=1 => sending log output to serial port using \"debug_level 3\" as default.\n", zylin_config_dir);
+				 "%s/logserial = 1 => sending log output to serial port using \"debug_level 3\" as default.\n", zylin_config_dir);
 		command_run_line(cmd_ctx, "debug_level 3");
 	}
 

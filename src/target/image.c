@@ -59,7 +59,7 @@ static int autodetect_image_type(image_t *image, char *url)
 	{
 		if (read_bytes != 9)
 		{
-			retval=ERROR_FILEIO_OPERATION_FAILED;
+			retval = ERROR_FILEIO_OPERATION_FAILED;
 		}
 	}
 	fileio_close(&fileio);
@@ -414,12 +414,12 @@ static int image_elf_read_headers(image_t *image)
 
 	/* count useful segments (loadable), ignore BSS section */
 	image->num_sections = 0;
-	for (i=0;i<elf->segment_count;i++)
+	for (i = 0;i<elf->segment_count;i++)
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 			image->num_sections++;
 	/* alloc and fill sections array with loadable segments */
 	image->sections = malloc(image->num_sections * sizeof(image_section_t));
-	for (i=0,j=0;i<elf->segment_count;i++)
+	for (i = 0,j = 0;i<elf->segment_count;i++)
 	{
 		if ((field32(elf, elf->segments[i].p_type) == PT_LOAD) && (field32(elf, elf->segments[i].p_filesz) != 0))
 		{
@@ -446,7 +446,7 @@ static int image_elf_read_section(image_t *image, int section, uint32_t offset, 
 
 	*size_read = 0;
 
-	LOG_DEBUG("load segment %d at 0x%" PRIx32 " (sz=0x%" PRIx32 ")",section,offset,size);
+	LOG_DEBUG("load segment %d at 0x%" PRIx32 " (sz = 0x%" PRIx32 ")",section,offset,size);
 
 	/* read initialized data in current segment if any */
 	if (offset<field32(elf,segment->p_filesz))
@@ -762,15 +762,15 @@ int image_open(image_t *image, char *url, char *type_string)
 	{
 		/* relocate */
 		int section;
-		for (section=0; section < image->num_sections; section++)
+		for (section = 0; section < image->num_sections; section++)
 		{
 			image->sections[section].base_address += image->base_address;
 		}
 		/* we're done relocating. The two statements below are mainly
 		 * for documenation purposes: stop anyone from empirically
 		 * thinking they should use these values henceforth. */
-		image->base_address=0;
-		image->base_address_set=0;
+		image->base_address = 0;
+		image->base_address_set = 0;
 	}
 
 	return retval;
@@ -1017,10 +1017,10 @@ int image_calculate_checksum(uint8_t* buffer, uint32_t nbytes, uint32_t* checksu
 
 	while (nbytes>0)
 	{
-		int run=nbytes;
+		int run = nbytes;
 		if (run>32768)
 		{
-			run=32768;
+			run = 32768;
 		}
 		nbytes -= run;
 		while (run--)

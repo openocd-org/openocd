@@ -54,7 +54,7 @@ int run_command(command_context_t *context, command_t *c, char *words[], int num
 
 static void tcl_output(void *privData, const char *file, int line, const char *function, const char *string)
 {
-	Jim_Obj *tclOutput=(Jim_Obj *)privData;
+	Jim_Obj *tclOutput = (Jim_Obj *)privData;
 
 	Jim_AppendString(interp, tclOutput, string, strlen(string));
 }
@@ -108,7 +108,7 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	for (i = 0; i < argc; i++)
 	{
 		int len;
-		const char *w=Jim_GetString(argv[i], &len);
+		const char *w = Jim_GetString(argv[i], &len);
 		if (*w=='#')
 		{
 			/* hit an end of line comment */
@@ -228,26 +228,26 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 	/* maximum of two levels :-) */
 	if (c->parent != NULL)
 	{
-		t1=c->parent->name;
+		t1 = c->parent->name;
 		t2="_";
 	}
-	t3=c->name;
-	const char *full_name=alloc_printf("ocd_%s%s%s", t1, t2, t3);
+	t3 = c->name;
+	const char *full_name = alloc_printf("ocd_%s%s%s", t1, t2, t3);
 	Jim_CreateCommand(interp, full_name, script_command, c, NULL);
 	free((void *)full_name);
 
 	/* we now need to add an overrideable proc */
-	const char *override_name=alloc_printf("proc %s%s%s {args} {if {[catch {eval ocd_%s%s%s $args}]==0} {return \"\"} else { return -code error }", t1, t2, t3, t1, t2, t3);
+	const char *override_name = alloc_printf("proc %s%s%s {args} {if {[catch {eval ocd_%s%s%s $args}]==0} {return \"\"} else { return -code error }", t1, t2, t3, t1, t2, t3);
 	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__ );
 	free((void *)override_name);
 
 	/* accumulate help text in Tcl helptext list.  */
-	Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
+	Jim_Obj *helptext = Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
 	if (Jim_IsShared(helptext))
 		helptext = Jim_DuplicateObj(interp, helptext);
-	Jim_Obj *cmd_entry=Jim_NewListObj(interp, NULL, 0);
+	Jim_Obj *cmd_entry = Jim_NewListObj(interp, NULL, 0);
 
-	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);
+	Jim_Obj *cmd_list = Jim_NewListObj(interp, NULL, 0);
 
 	/* maximum of two levels :-) */
 	if (c->parent != NULL)
@@ -404,7 +404,7 @@ void command_print(command_context_t *context, const char *format, ...)
 
 int run_command(command_context_t *context, command_t *c, char *words[], int num_words)
 {
-	int start_word=0;
+	int start_word = 0;
 	if (!((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode) ))
 	{
 		/* Config commands can not run after the config stage */
@@ -422,10 +422,10 @@ int run_command(command_context_t *context, command_t *c, char *words[], int num
 		/* maximum of two levels :-) */
 		if (c->parent != NULL)
 		{
-			t1=c->parent->name;
+			t1 = c->parent->name;
 			t2=" ";
 		}
-		t3=c->name;
+		t3 = c->name;
 		command_run_linef(context, "help {%s%s%s}", t1, t2, t3);
 	}
 	else if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
@@ -450,7 +450,7 @@ int command_run_line(command_context_t *context, char *line)
 	 * results
 	 */
 	/* run the line thru a script engine */
-	int retval=ERROR_FAIL;
+	int retval = ERROR_FAIL;
 	int retcode;
 	/* Beware! This code needs to be reentrant. It is also possible
 	 * for OpenOCD commands to be invoked directly from Tcl. This would
@@ -508,21 +508,21 @@ int command_run_line(command_context_t *context, char *line)
 			}
 			LOG_USER_N("%s", "\n");
 		}
-		retval=ERROR_OK;
+		retval = ERROR_OK;
 	}
 	return retval;
 }
 
 int command_run_linef(command_context_t *context, const char *format, ...)
 {
-	int retval=ERROR_FAIL;
+	int retval = ERROR_FAIL;
 	char *string;
 	va_list ap;
 	va_start(ap, format);
 	string = alloc_vprintf(format, ap);
 	if (string != NULL)
 	{
-		retval=command_run_line(context, string);
+		retval = command_run_line(context, string);
 	}
 	va_end(ap);
 	return retval;
@@ -837,13 +837,13 @@ void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd
 
 	/* FIX!!! it would be prettier to invoke add_help_text...
 	 * accumulate help text in Tcl helptext list.  */
-	Jim_Obj *helptext=Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
+	Jim_Obj *helptext = Jim_GetGlobalVariableStr(interp, "ocd_helptext", JIM_ERRMSG);
 	if (Jim_IsShared(helptext))
 		helptext = Jim_DuplicateObj(interp, helptext);
 
-	Jim_Obj *cmd_entry=Jim_NewListObj(interp, NULL, 0);
+	Jim_Obj *cmd_entry = Jim_NewListObj(interp, NULL, 0);
 
-	Jim_Obj *cmd_list=Jim_NewListObj(interp, NULL, 0);
+	Jim_Obj *cmd_list = Jim_NewListObj(interp, NULL, 0);
 	Jim_ListAppendElement(interp, cmd_list, Jim_NewStringObj(interp, name, -1));
 
 	Jim_ListAppendElement(interp, cmd_entry, cmd_list);
@@ -854,7 +854,7 @@ void register_jim(struct command_context_s *cmd_ctx, const char *name, int (*cmd
 /* return global variable long value or 0 upon failure */
 long jim_global_long(const char *variable)
 {
-	Jim_Obj *objPtr=Jim_GetGlobalVariableStr(interp, variable, JIM_ERRMSG);
+	Jim_Obj *objPtr = Jim_GetGlobalVariableStr(interp, variable, JIM_ERRMSG);
 	long t;
 	if (Jim_GetLong(interp, objPtr, &t) == JIM_OK)
 	{

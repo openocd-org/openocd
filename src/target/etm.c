@@ -282,10 +282,10 @@ int etm_setup(target_t *target)
 	buf_set_u32(etm_ctrl_reg->value, 0, etm_ctrl_reg->size, etm_ctrl_value);
 	etm_store_reg(etm_ctrl_reg);
 
-	if ((retval=jtag_execute_queue()) != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
-	if ((retval=etm_ctx->capture_driver->init(etm_ctx)) != ERROR_OK)
+	if ((retval = etm_ctx->capture_driver->init(etm_ctx)) != ERROR_OK)
 	{
 		LOG_ERROR("ETM capture driver initialization failed");
 		return retval;
@@ -1266,12 +1266,12 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 		return ERROR_FAIL;
 	}
 
-	for (i=0; etm_capture_drivers[i]; i++)
+	for (i = 0; etm_capture_drivers[i]; i++)
 	{
 		if (strcmp(args[4], etm_capture_drivers[i]->name) == 0)
 		{
 			int retval;
-			if ((retval=etm_capture_drivers[i]->register_commands(cmd_ctx)) != ERROR_OK)
+			if ((retval = etm_capture_drivers[i]->register_commands(cmd_ctx)) != ERROR_OK)
 			{
 				free(etm_ctx);
 				return retval;

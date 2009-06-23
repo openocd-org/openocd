@@ -217,7 +217,7 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 	uint32_t mg_task_reg = mflash_bank->base + MG_REG_OFFSET;
 	duration_t duration;
 	int ret;
-	long long t=0;
+	long long t = 0;
 
 	duration_start_measure(&duration);
 
@@ -277,7 +277,7 @@ static int mg_dsk_wait(mg_io_type_wait wait, uint32_t time)
 
 		duration_stop_measure(&duration, NULL);
 
-		t=duration.duration.tv_usec/1000;
+		t = duration.duration.tv_usec/1000;
 		t += duration.duration.tv_sec*1000;
 
 		if (t > time)
@@ -871,7 +871,7 @@ static int mg_pll_get_M(unsigned short feedback_div)
 {
 	int i, M;
 
-	for (i = 1, M=0; i < 512; i <<= 1, feedback_div >>= 1)
+	for (i = 1, M = 0; i < 512; i <<= 1, feedback_div >>= 1)
 		M += (feedback_div & 1) * i;
 
 	return M + 2;

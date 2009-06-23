@@ -915,7 +915,7 @@ void rlink_end_state(tap_state_t state)
 static
 void rlink_state_move(void) {
 
-	int i=0, tms=0;
+	int i = 0, tms = 0;
 	uint8_t tms_scan = tap_get_tms_path(tap_get_state(), tap_get_end_state());
 	int tms_count = tap_get_tms_path_len(tap_get_state(), tap_get_end_state());
 
@@ -1131,7 +1131,7 @@ rlink_scan(
 
 
 #if 0
-	printf("scan_size = %d, type=0x%x\n", scan_size, type);
+	printf("scan_size = %d, type = 0x%x\n", scan_size, type);
 	{
 		int   i;
 
@@ -1620,8 +1620,8 @@ int rlink_init(void)
 	struct usb_bus *busses;
 	struct usb_bus *bus;
 	int i, j, retries;
-	int found=0;
-	int success=0;
+	int found = 0;
+	int success = 0;
 	uint8_t reply_buffer[USB_EP1IN_SIZE];
 
 	usb_init();
@@ -1654,7 +1654,7 @@ int rlink_init(void)
 						break;
 					}
 
-					pHDev=usb_open(dev);
+					pHDev = usb_open(dev);
 					if ( !pHDev )
 						LOG_ERROR ("Failed to open device.\n");
 					else
@@ -1692,7 +1692,7 @@ int rlink_init(void)
 								break;
 							}
 							else
-								success=1;
+								success = 1;
 						}
 					}
 				} while (0);

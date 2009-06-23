@@ -215,7 +215,7 @@ int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
-	int retval=ERROR_FAIL;
+	int retval = ERROR_FAIL;
 	FILE *config_file = NULL;
 	config_file = fopen(args[0], "a");
 	if (config_file != NULL)
@@ -235,7 +235,7 @@ int handle_append_command(struct command_context_s *cmd_ctx, char *cmd,
 		}
 		if ((i == argc) && (fwrite("\n", 1, 1, config_file) == 1))
 		{
-			retval=ERROR_OK;
+			retval = ERROR_OK;
 		}
 		fclose(config_file);
 	}

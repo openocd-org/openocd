@@ -45,13 +45,13 @@ typedef struct flash_sector_s
 	/// Number of bytes in this flash sector.
 	uint32_t size;
 	/**
-	 * Indication of erasure status: 0=not erased, 1=erased,
-	 * other=unknown.  Set by @c flash_driver_s::erase_check.
+	 * Indication of erasure status: 0 = not erased, 1 = erased,
+	 * other = unknown.  Set by @c flash_driver_s::erase_check.
 	 */
 	int is_erased;
 	/**
-	 * Indication of protection status: 0=unprotected/unlocked,
-	 * 1=protected/locked, other=unknown.  Set by
+	 * Indication of protection status: 0 = unprotected/unlocked,
+	 * 1 = protected/locked, other = unknown.  Set by
 	 * @c flash_driver_s::protect_check.
 	 */
 	int is_protected;

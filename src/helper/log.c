@@ -94,7 +94,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		if (debug_level >= LOG_LVL_DEBUG)
 		{
 			/* print with count and time information */
-			int t=(int)(timeval_ms()-start);
+			int t = (int)(timeval_ms()-start);
 #ifdef _DEBUG_FREE_SPACE_
 			struct mallinfo info;
 			info = mallinfo();
@@ -136,9 +136,9 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 		/* DANGER!!!! the log callback can remove itself!!!! */
 		while (cb)
 		{
-			next=cb->next;
+			next = cb->next;
 			cb->fn(cb->priv, file, line, function, string);
-			cb=next;
+			cb = next;
 		}
 	}
 }
@@ -259,7 +259,7 @@ int log_init(struct command_context_s *cmd_ctx)
 		log_output = stderr;
 	}
 
-	start=last_time=timeval_ms();
+	start = last_time = timeval_ms();
 
 	return ERROR_OK;
 }
@@ -383,7 +383,7 @@ char *alloc_printf(const char *format, ...)
  */
 void keep_alive()
 {
-	current_time=timeval_ms();
+	current_time = timeval_ms();
 	if (current_time-last_time>1000)
 	{
 		extern int gdb_actual_connections;
@@ -413,28 +413,28 @@ void keep_alive()
 		 * These functions should be invoked at a well defined spot in server.c
 		 */
 
-		last_time=current_time;
+		last_time = current_time;
 	}
 }
 
 /* reset keep alive timer without sending message */
 void kept_alive()
 {
-	current_time=timeval_ms();
-	last_time=current_time;
+	current_time = timeval_ms();
+	last_time = current_time;
 }
 
 /* if we sleep for extended periods of time, we must invoke keep_alive() intermittantly */
 void alive_sleep(int ms)
 {
 	int i;
-	int napTime=10;
-	for (i=0; i<ms; i += napTime)
+	int napTime = 10;
+	for (i = 0; i<ms; i += napTime)
 	{
-		int sleep_a_bit=ms-i;
+		int sleep_a_bit = ms-i;
 		if (sleep_a_bit>napTime)
 		{
-			sleep_a_bit=napTime;
+			sleep_a_bit = napTime;
 		}
 		usleep(sleep_a_bit*1000);
 		keep_alive();
@@ -444,7 +444,7 @@ void alive_sleep(int ms)
 void busy_sleep(int ms)
 {
 	long long then;
-	then=timeval_ms();
+	then = timeval_ms();
 	while ((timeval_ms()-then)<ms)
 	{
 		/* busy wait */

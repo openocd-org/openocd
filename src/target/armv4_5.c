@@ -501,9 +501,9 @@ static int armv4_5_run_algorithm_completion(struct target_s *target, uint32_t ex
 	}
 	if (target->state != TARGET_HALTED)
 	{
-		if ((retval=target_halt(target)) != ERROR_OK)
+		if ((retval = target_halt(target)) != ERROR_OK)
 			return retval;
-		if ((retval=target_wait_state(target, TARGET_HALTED, 500)) != ERROR_OK)
+		if ((retval = target_wait_state(target, TARGET_HALTED, 500)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -614,7 +614,7 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 		return retval;
 	}
 	int retvaltemp;
-	retval=run_it(target, exit_point, timeout_ms, arch_info);
+	retval = run_it(target, exit_point, timeout_ms, arch_info);
 
 	breakpoint_remove(target, exit_point);
 

@@ -152,7 +152,7 @@ int scan_inout_check(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uin
 		adi_jtag_dp_scan(swjdp, DAP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
 	}
 
-	/* In TRANS_MODE_ATOMIC all DAP_IR_APACC transactions wait for ack=OK/FAULT and the check CTRL_STAT */
+	/* In TRANS_MODE_ATOMIC all DAP_IR_APACC transactions wait for ack = OK/FAULT and the check CTRL_STAT */
 	if ((instr == DAP_IR_APACC) && (swjdp->trans_mode == TRANS_MODE_ATOMIC))
 	{
 		return swjdp_transaction_endcheck(swjdp);
@@ -170,7 +170,7 @@ int scan_inout_check_u32(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr,
 		adi_jtag_dp_scan_u32(swjdp, DAP_IR_DPACC, DP_RDBUFF, DPAP_READ, 0, invalue, &swjdp->ack);
 	}
 
-	/* In TRANS_MODE_ATOMIC all DAP_IR_APACC transactions wait for ack=OK/FAULT and then check CTRL_STAT */
+	/* In TRANS_MODE_ATOMIC all DAP_IR_APACC transactions wait for ack = OK/FAULT and then check CTRL_STAT */
 	if ((instr == DAP_IR_APACC) && (swjdp->trans_mode == TRANS_MODE_ATOMIC))
 	{
 		return swjdp_transaction_endcheck(swjdp);
@@ -195,7 +195,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 
 	https://lists.berlios.de/pipermail/openocd-development/2008-September/003107.html
 	*/
-	if ((retval=jtag_execute_queue()) != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		LOG_ERROR("BUG: Why does this fail the first time????");
 	}
@@ -203,14 +203,14 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 #endif
 
 	scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-	if ((retval=jtag_execute_queue()) != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	swjdp->ack = swjdp->ack & 0x7;
 
 	if (swjdp->ack != 2)
 	{
-		long long then=timeval_ms();
+		long long then = timeval_ms();
 		while (swjdp->ack != 2)
 		{
 			if (swjdp->ack == 1)
@@ -228,7 +228,7 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			}
 
 			scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-			if ((retval=jtag_execute_queue()) != ERROR_OK)
+			if ((retval = jtag_execute_queue()) != ERROR_OK)
 				return retval;
 			swjdp->ack = swjdp->ack & 0x7;
 		}
@@ -261,19 +261,19 @@ int swjdp_transaction_endcheck(swjdp_common_t *swjdp)
 			/* Clear Sticky Error Bits */
 			scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_WRITE, swjdp->dp_ctrl_stat | SSTICKYORUN | SSTICKYERR, NULL);
 			scan_inout_check_u32(swjdp, DAP_IR_DPACC, DP_CTRL_STAT, DPAP_READ, 0, &ctrlstat);
-			if ((retval=jtag_execute_queue()) != ERROR_OK)
+			if ((retval = jtag_execute_queue()) != ERROR_OK)
 				return retval;
 
 			LOG_DEBUG("swjdp: status 0x%" PRIx32 "", ctrlstat);
 
 			dap_ap_read_reg_u32(swjdp, AP_REG_CSW, &mem_ap_csw);
 			dap_ap_read_reg_u32(swjdp, AP_REG_TAR, &mem_ap_tar);
-			if ((retval=jtag_execute_queue()) != ERROR_OK)
+			if ((retval = jtag_execute_queue()) != ERROR_OK)
 				return retval;
 			LOG_ERROR("Read MEM_AP_CSW 0x%" PRIx32 ", MEM_AP_TAR 0x%" PRIx32 "", mem_ap_csw, mem_ap_tar);
 
 		}
-		if ((retval=jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
@@ -971,7 +971,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 
 	dap_dp_write_reg(swjdp, swjdp->dp_ctrl_stat, DP_CTRL_STAT);
 	dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
-	if ((retval=jtag_execute_queue()) != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
 	/* Check that we have debug power domains activated */
@@ -979,7 +979,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	{
 		LOG_DEBUG("swjdp: wait CDBGPWRUPACK");
 		dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
-		if ((retval=jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
 	}
@@ -988,7 +988,7 @@ int ahbap_debugport_init(swjdp_common_t *swjdp)
 	{
 		LOG_DEBUG("swjdp: wait CSYSPWRUPACK");
 		dap_dp_read_reg(swjdp, &ctrlstat, DP_CTRL_STAT);
-		if ((retval=jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
 		alive_sleep(10);
 	}

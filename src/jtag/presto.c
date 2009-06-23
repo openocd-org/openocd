@@ -292,7 +292,7 @@ static int presto_open_ftd2xx(char *req_serial)
 
 		presto_data = 0;
 		for (i = 0; i < 4 * 62; i++)
-			if ((presto->status=FT_Write(presto->handle, &presto_data, 1, &ftbytes)) != FT_OK)
+			if ((presto->status = FT_Write(presto->handle, &presto_data, 1, &ftbytes)) != FT_OK)
 				return ERROR_JTAG_DEVICE_ERROR;
 
 		usleep(100000);
@@ -407,21 +407,21 @@ static int presto_open_libftdi(char *req_serial)
 
 static int presto_open(char *req_serial)
 {
-	presto->buff_out_pos=0;
-	presto->buff_in_pos=0;
-	presto->buff_in_len=0;
-	presto->buff_in_exp=0;
+	presto->buff_out_pos = 0;
+	presto->buff_in_pos = 0;
+	presto->buff_in_len = 0;
+	presto->buff_in_exp = 0;
 
-	presto->total_out=0;
-	presto->total_in=0;
+	presto->total_out = 0;
+	presto->total_in = 0;
 
-	presto->jtag_tms=0;
-	presto->jtag_tck=0;
-	presto->jtag_rst=0;
-	presto->jtag_tdi_data=0;
-	presto->jtag_tdi_count=0;
+	presto->jtag_tms = 0;
+	presto->jtag_tck = 0;
+	presto->jtag_rst = 0;
+	presto->jtag_tdi_data = 0;
+	presto->jtag_tdi_count = 0;
 
-	presto->jtag_speed=0;
+	presto->jtag_speed = 0;
 
 #if BUILD_PRESTO_FTD2XX == 1
 	return presto_open_ftd2xx(req_serial);
@@ -625,14 +625,14 @@ static int presto_bitq_out(int tms, int tdi, int tdo_req)
 	}
 
 	/* delay with TCK low */
-	for (i=presto->jtag_speed; i>1; i--)
+	for (i = presto->jtag_speed; i>1; i--)
 		presto_sendbyte(cmd);
 
 	cmd |= 0x04;
 	presto_sendbyte(cmd | (tdo_req ? 0x10 : 0));
 
 	/* delay with TCK high */
-	for (i=presto->jtag_speed; i>1; i--)
+	for (i = presto->jtag_speed; i>1; i--)
 		presto_sendbyte(cmd);
 
 	presto->jtag_tck = 1;
@@ -707,7 +707,7 @@ static int presto_jtag_khz(int khz, int *jtag_speed)
 {
 	if (khz < 0)
 	{
-		*jtag_speed=0;
+		*jtag_speed = 0;
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -721,7 +721,7 @@ static int presto_jtag_speed_div(int speed, int *khz)
 {
 	if ((speed < 0) || (speed > 1000))
 	{
-		*khz=0;
+		*khz = 0;
 		return ERROR_INVALID_ARGUMENTS;
 	}
 

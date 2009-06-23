@@ -51,7 +51,7 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 	socklen_t address_size;
 	connection_t *c, **p;
 	int retval;
-	int flag=1;
+	int flag = 1;
 	
 	c = malloc(sizeof(connection_t));
 	c->fd = -1;
@@ -70,7 +70,7 @@ int add_connection(service_t *service, command_context_t *cmd_ctx)
 		
 		/* This increases performance dramatically for e.g. GDB load which
 		 * does not have a sliding window protocol. */
-		retval=setsockopt(c->fd,	/* socket affected */
+		retval = setsockopt(c->fd,	/* socket affected */
 				IPPROTO_TCP,		/* set option at TCP level */
 				TCP_NODELAY,		/* name of option */
 				(char *)&flag,		/* the cast is historical cruft */
@@ -183,7 +183,7 @@ int add_service(char *name, enum connection_type type, unsigned short port, int 
 		}
 		
 #ifndef _WIN32
-		int segsize=65536;
+		int segsize = 65536;
 		setsockopt(c->fd, IPPROTO_TCP, TCP_MAXSEG,  &segsize, sizeof(int));
 #endif
 		int window_size = 128 * 1024;	

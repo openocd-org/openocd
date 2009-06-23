@@ -89,7 +89,7 @@ static int flash_driver_write(struct flash_bank_s *bank, uint8_t *buffer, uint32
 {
 	int retval;
 
-	retval=bank->driver->write(bank, buffer, offset, count);
+	retval = bank->driver->write(bank, buffer, offset, count);
 	if (retval != ERROR_OK)
 	{
 		LOG_ERROR("error writing to flash at address 0x%08" PRIx32 " at offset 0x%8.8" PRIx32 " (%d)", 
@@ -103,7 +103,7 @@ static int flash_driver_erase(struct flash_bank_s *bank, int first, int last)
 {
 	int retval;
 
-	retval=bank->driver->erase(bank, first, last);
+	retval = bank->driver->erase(bank, first, last);
 	if (retval != ERROR_OK)
 	{
 		LOG_ERROR("failed erasing sectors %d to %d (%d)", first, last, retval);
@@ -116,7 +116,7 @@ int flash_driver_protect(struct flash_bank_s *bank, int set, int first, int last
 {
 	int retval;
 
-	retval=bank->driver->protect(bank, set, first, last);
+	retval = bank->driver->protect(bank, set, first, last);
 	if (retval != ERROR_OK)
 	{
 		LOG_ERROR("failed setting protection for areas %d to %d (%d)", first, last, retval);
@@ -142,10 +142,10 @@ static int jim_flash_banks(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 
-	Jim_Obj *list=Jim_NewListObj(interp, NULL, 0);
+	Jim_Obj *list = Jim_NewListObj(interp, NULL, 0);
 	for (p = flash_banks; p; p = p->next)
 	{
-		Jim_Obj *elem=Jim_NewListObj(interp, NULL, 0);
+		Jim_Obj *elem = Jim_NewListObj(interp, NULL, 0);
 
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "name", -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, p->driver->name, -1));
@@ -291,7 +291,7 @@ static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cm
 			c->sectors = NULL;
 			c->next = NULL;
 
-			if ((retval=flash_drivers[i]->flash_bank_command(cmd_ctx, cmd, args, argc, c)) != ERROR_OK)
+			if ((retval = flash_drivers[i]->flash_bank_command(cmd_ctx, cmd, args, argc, c)) != ERROR_OK)
 			{
 				LOG_ERROR("'%s' driver rejected flash bank at 0x%8.8" PRIx32 , args[0], c->base);
 				free(c);
@@ -754,13 +754,13 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	switch (cmd[4])
 	{
 	case 'w':
-		wordsize=4;
+		wordsize = 4;
 		break;
 	case 'h':
-		wordsize=2;
+		wordsize = 2;
 		break;
 	case 'b':
-		wordsize=1;
+		wordsize = 1;
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -791,7 +791,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 
 	duration_start_measure(&duration);
 
-	for (wrote=0; wrote<(count*wordsize); wrote += cur_size)
+	for (wrote = 0; wrote<(count*wordsize); wrote += cur_size)
 	{
 		cur_size = MIN( (count*wordsize - wrote), sizeof(chunk) );
 		flash_bank_t *bank;
@@ -809,7 +809,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 			return err;
 
 		unsigned i;
-		for (i=0; i<cur_size; i++)
+		for (i = 0; i<cur_size; i++)
 		{
 			if (readback[i]!=chunk[i])
 			{
@@ -829,7 +829,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	if (err == ERROR_OK)
 	{
 		float speed;
-		speed=wrote / 1024.0;
+		speed = wrote / 1024.0;
 		speed/=((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0));
 		command_print(cmd_ctx, 
 					  "wrote %" PRId32 " bytes to 0x%8.8" PRIx32 " in %s (%f kb/s)",
@@ -1003,7 +1003,7 @@ int flash_erase_address_range(target_t *target, uint32_t addr, uint32_t length)
 /* write (optional verify) an image to flash memory of the given target */
 int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
 {
-	int retval=ERROR_OK;
+	int retval = ERROR_OK;
 
 	int section;
 	uint32_t section_offset;

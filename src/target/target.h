@@ -87,7 +87,7 @@ extern const Jim_Nvp nvp_target_debug_reason[];
 
 enum target_endianess
 {
-	TARGET_ENDIAN_UNKNOWN=0,
+	TARGET_ENDIAN_UNKNOWN = 0,
 	TARGET_BIG_ENDIAN = 1, TARGET_LITTLE_ENDIAN = 2
 };
 

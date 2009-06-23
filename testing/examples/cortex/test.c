@@ -12,7 +12,7 @@ monitor reg sp 0x20004000
 monitor reg pc 0x20002000
 stepi
 
-arm-elf-gcc -mthumb -mcpu=cortex-m3 -nostdlib -Ttest.ld test.c
+arm-elf-gcc -mthumb -mcpu = cortex-m3 -nostdlib -Ttest.ld test.c
 
 
 */
@@ -20,7 +20,7 @@ int j;
 void _start()
 {
   int i;
-  for (i=0; i<1000; i++)
+  for (i = 0; i<1000; i++)
     {
       j++;
     }

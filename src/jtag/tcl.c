@@ -721,13 +721,13 @@ static int default_speed_div(int speed, int *khz)
 
 static int default_power_dropout(int *dropout)
 {
-	*dropout=0; /* by default we can't detect power dropout */
+	*dropout = 0; /* by default we can't detect power dropout */
 	return ERROR_OK;
 }
 
 static int default_srst_asserted(int *srst_asserted)
 {
-	*srst_asserted=0; /* by default we can't detect srst asserted */
+	*srst_asserted = 0; /* by default we can't detect srst asserted */
 	return ERROR_OK;
 }
 
@@ -1331,7 +1331,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		return JIM_ERR;
 	}
 
-	num_fields=(argc-2)/2;
+	num_fields = (argc-2)/2;
 	fields = malloc(sizeof(scan_field_t) * num_fields);
 	for (i = 2; i < argc; i += 2)
 	{
@@ -1359,7 +1359,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		return JIM_ERR;
 	}
 
-	field_count=0;
+	field_count = 0;
 	Jim_Obj *list = Jim_NewListObj(interp, NULL, 0);
 	for (i = 2; i < argc; i += 2)
 	{
@@ -1396,7 +1396,7 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 	script_debug(interp, "pathmove", argc, args);
 
 	int i;
-	for (i=0; i<argc-1; i++)
+	for (i = 0; i<argc-1; i++)
 	{
 		const char *cp;
 		cp = Jim_GetString( args[i+1], NULL );

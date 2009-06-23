@@ -133,11 +133,11 @@ static int dummy_khz(int khz, int *jtag_speed)
 {
 	if (khz == 0)
 	{
-		*jtag_speed=0;
+		*jtag_speed = 0;
 	}
 	else
 	{
-		*jtag_speed=64000/khz;
+		*jtag_speed = 64000/khz;
 	}
 	return ERROR_OK;
 }
@@ -150,7 +150,7 @@ static int dummy_speed_div(int speed, int *khz)
 	}
 	else
 	{
-		*khz=64000/speed;
+		*khz = 64000/speed;
 	}
 
 	return ERROR_OK;

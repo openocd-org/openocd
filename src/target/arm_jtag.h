@@ -60,14 +60,14 @@ int arm_jtag_buf_to_8(uint8_t *in_buf, void *priv, struct scan_field_s *field);
 /* use this as a static so we can inline it in -O3 and refer to it via a pointer  */
 static __inline__ void arm7flip32(jtag_callback_data_t arg)
 {
-  uint8_t *in=(uint8_t *)arg;
-  *((uint32_t *)in)=flip_u32(le_to_h_u32(in), 32);
+  uint8_t *in = (uint8_t *)arg;
+  *((uint32_t *)in) = flip_u32(le_to_h_u32(in), 32);
 }
 
 static __inline__ void arm_le_to_h_u32(jtag_callback_data_t arg)
 {
-  uint8_t *in=(uint8_t *)arg;
-  *((uint32_t *)in)=le_to_h_u32(in);
+  uint8_t *in = (uint8_t *)arg;
+  *((uint32_t *)in) = le_to_h_u32(in);
 }
 
 

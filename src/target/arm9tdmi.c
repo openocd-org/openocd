@@ -203,7 +203,7 @@ int arm9tdmi_clock_out(arm_jtag_t *jtag_info, uint32_t instr, uint32_t out, uint
 
 	if (in)
 	{
-		fields[0].in_value=(uint8_t *)in;
+		fields[0].in_value = (uint8_t *)in;
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
 		jtag_add_callback(arm_le_to_h_u32, (jtag_callback_data_t)in);
@@ -294,7 +294,7 @@ extern void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip);
 
 static int arm9endianness(jtag_callback_data_t arg, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
 {
-  uint8_t *in=(uint8_t *)arg;
+  uint8_t *in = (uint8_t *)arg;
 	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 0);
 	return ERROR_OK;
 }
@@ -817,7 +817,7 @@ int arm9tdmi_examine(struct target_s *target)
 		reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 		reg_cache_t *t;
 		/* one extra register (vector catch) */
-		t=embeddedice_build_reg_cache(target, arm7_9);
+		t = embeddedice_build_reg_cache(target, arm7_9);
 		if (t == NULL)
 			return ERROR_FAIL;
 		(*cache_p) = t;
@@ -831,13 +831,13 @@ int arm9tdmi_examine(struct target_s *target)
 		}
 		target_set_examined(target);
 	}
-	if ((retval=embeddedice_setup(target)) != ERROR_OK)
+	if ((retval = embeddedice_setup(target)) != ERROR_OK)
 		return retval;
-	if ((retval=arm7_9_setup(target)) != ERROR_OK)
+	if ((retval = arm7_9_setup(target)) != ERROR_OK)
 		return retval;
 	if (arm7_9->etm_ctx)
 	{
-		if ((retval=etm_setup(target)) != ERROR_OK)
+		if ((retval = etm_setup(target)) != ERROR_OK)
 			return retval;
 	}
 	return ERROR_OK;

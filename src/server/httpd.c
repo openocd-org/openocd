@@ -402,7 +402,7 @@ static int ahc_echo(void * cls, struct MHD_Connection * connection,
 	if (!*url)
 		url="index.tcl";
 
-	const char *file_name=alloc_printf("%s/%s", httpd_dir, url);
+	const char *file_name = alloc_printf("%s/%s", httpd_dir, url);
 	int result = handle_request(connection, file_name);
 	free((void *)file_name);
 	return result;

@@ -90,9 +90,9 @@ typedef struct stableclocks_command_s
 
 typedef struct reset_command_s
 {
-	/// Set TRST output: 0=deassert, 1=assert, -1=no change
+	/// Set TRST output: 0 = deassert, 1 = assert, -1 = no change
 	int trst;
-	/// Set SRST output: 0=deassert, 1=assert, -1=no change
+	/// Set SRST output: 0 = deassert, 1 = assert, -1 = no change
 	int srst;
 } reset_command_t;
 

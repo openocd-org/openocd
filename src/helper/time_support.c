@@ -99,7 +99,7 @@ int duration_stop_measure(duration_t *duration, char **text)
 	if (text)
 	{
 		float t;
-		t=duration->duration.tv_sec;
+		t = duration->duration.tv_sec;
 		t += (float)duration->duration.tv_usec/1000000.0;
 		*text = malloc(100);
 		snprintf(*text, 100, "%fs", t);
@@ -111,7 +111,7 @@ int duration_stop_measure(duration_t *duration, char **text)
 long long timeval_ms()
 {
 	struct timeval now; 
-	long long t=0;
+	long long t = 0;
 	gettimeofday(&now, NULL);
 	
 	t += now.tv_usec/1000;

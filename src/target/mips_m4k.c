@@ -209,7 +209,7 @@ int mips_m4k_poll(target_t *target)
 		target->state = TARGET_RUNNING;
 	}
 
-//	LOG_DEBUG("ctrl=0x%08X", ejtag_ctrl);
+//	LOG_DEBUG("ctrl = 0x%08X", ejtag_ctrl);
 
 	return ERROR_OK;
 }

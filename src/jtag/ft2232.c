@@ -257,7 +257,7 @@ static void clock_tms(uint8_t mpsse_cmd, int tms_bits, int tms_count, bool tdi_b
 
 	assert(tms_count > 0);
 
-//	LOG_DEBUG("mpsse cmd=%02x, tms_bits=0x%08x, bit_count=%d", mpsse_cmd, tms_bits, tms_count);
+//	LOG_DEBUG("mpsse cmd=%02x, tms_bits = 0x%08x, bit_count=%d", mpsse_cmd, tms_bits, tms_count);
 
 	for (tms_byte = tms_ndx = i = 0;   i < tms_count;   ++i, tms_bits>>=1)
 	{
@@ -470,7 +470,7 @@ static int ft2232_speed(int speed)
 	ft2232_adaptive_clocking(speed);
 
 	buf[0] = 0x86;			/* command "set divisor" */
-	buf[1] = speed & 0xff;          /* valueL (0=6MHz, 1=3MHz, 2=2.0MHz, ...*/
+	buf[1] = speed & 0xff;          /* valueL (0 = 6MHz, 1 = 3MHz, 2 = 2.0MHz, ...*/
 	buf[2] = (speed >> 8) & 0xff;   /* valueH */
 
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
@@ -623,8 +623,8 @@ static int ft2232_send_and_recv(jtag_command_t* first, jtag_command_t* last)
 	int             scan_size;
 	enum scan_type  type;
 	int             retval;
-	uint32_t             bytes_written=0;
-	uint32_t             bytes_read=0;
+	uint32_t             bytes_written = 0;
+	uint32_t             bytes_read = 0;
 
 #ifdef _DEBUG_USB_IO_
 	struct timeval  start, inter, inter2, end;
@@ -2194,8 +2194,8 @@ static int usbjtag_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, xRST high) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, xRST high) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
@@ -2218,8 +2218,8 @@ static int axm0432_jtag_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
@@ -2289,8 +2289,8 @@ static int jtagkey_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
@@ -2372,8 +2372,8 @@ static int olimex_jtag_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
@@ -2440,8 +2440,8 @@ static int flyswatter_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE[12]=out, n[ST]srst=out */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE[12]=out, n[ST]srst = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
@@ -2487,8 +2487,8 @@ static int turtle_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
@@ -2528,8 +2528,8 @@ static int comstick_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
@@ -2572,8 +2572,8 @@ static int stm32stick_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
@@ -2616,8 +2616,8 @@ static int sheevaplug_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80; /* command "set data bits low byte" */
-	buf[1] = low_output; /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in */
+	buf[1] = low_output; /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))
@@ -2667,8 +2667,8 @@ static int cortino_jtag_init(void)
 
 	/* initialize low byte for jtag */
 	buf[0] = 0x80;          /* command "set data bits low byte" */
-	buf[1] = low_output;    /* value (TMS=1,TCK=0, TDI=0, nOE=0) */
-	buf[2] = low_direction; /* dir (output=1), TCK/TDI/TMS=out, TDO=in, nOE=out */
+	buf[1] = low_output;    /* value (TMS = 1,TCK = 0, TDI = 0, nOE = 0) */
+	buf[2] = low_direction; /* dir (output = 1), TCK/TDI/TMS = out, TDO = in, nOE = out */
 	LOG_DEBUG("%2.2x %2.2x %2.2x", buf[0], buf[1], buf[2]);
 
 	if (((ft2232_write(buf, 3, &bytes_written)) != ERROR_OK) || (bytes_written != 3))

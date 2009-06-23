@@ -70,7 +70,7 @@ int add_default_dirs(void)
 		/* Either this code will *always* work or it will SEGFAULT giving
 		 * excellent information on the culprit. 
 		 */
-		*strrchr(strExePath, '\\')=0;
+		*strrchr(strExePath, '\\') = 0;
 		strcat(strExePath, "\\..");
 		add_script_search_dir(strExePath);
 	}
@@ -88,9 +88,9 @@ int add_default_dirs(void)
 		char strExePath [MAX_PATH];
 		char *p;
 		GetModuleFileName (NULL, strExePath, MAX_PATH);
-		*strrchr(strExePath, '\\')=0;
+		*strrchr(strExePath, '\\') = 0;
 		strcat(strExePath, "/../lib/"PACKAGE);
-		for (p=strExePath; *p; p++) {
+		for (p = strExePath; *p; p++) {
 			if (*p == '\\')
 				*p = '/';
 		}

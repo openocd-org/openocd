@@ -504,7 +504,7 @@ static jim_wide JimPowWide(jim_wide b, jim_wide e)
 {
     jim_wide i, res = 1;
     if ((b == 0 && e != 0) || (e<0)) return 0;
-    for (i=0; i<e; i++) {res *= b;}
+    for (i = 0; i<e; i++) {res *= b;}
     return res;
 }
 
@@ -569,7 +569,7 @@ void *Jim_Alloc(int size)
 {
 	/* We allocate zero length arrayes, etc. to use a single orthogonal codepath */
 	if (size == 0)
-		size=1;
+		size = 1;
     void *p = malloc(size);
     if (p == NULL)
         Jim_Panic(NULL,"malloc: Out of memory");
@@ -584,7 +584,7 @@ void *Jim_Realloc(void *ptr, int size)
 {
 	/* We allocate zero length arrayes, etc. to use a single orthogonal codepath */
 	if (size == 0)
-		size=1;
+		size = 1;
     void *p = realloc(ptr, size);
     if (p == NULL)
         Jim_Panic(NULL,"realloc: Out of memory");
@@ -2521,8 +2521,8 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 Jim_Obj *Jim_FormatString(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
         int objc, Jim_Obj *const *objv)
 {
-	char *sprintf_buf=malloc(JIM_MAX_FMT);
-	Jim_Obj *t=Jim_FormatString_Inner(interp, fmtObjPtr, objc, objv, sprintf_buf);
+	char *sprintf_buf = malloc(JIM_MAX_FMT);
+	Jim_Obj *t = Jim_FormatString_Inner(interp, fmtObjPtr, objc, objv, sprintf_buf);
 	free(sprintf_buf);
 	return t; 
 }
@@ -5366,7 +5366,7 @@ void ListInsertElements(Jim_Obj *listPtr, int index, int elemc,
     }
     point = listPtr->internalRep.listValue.ele + index;
     memmove(point+elemc, point, (currentLen-index) * sizeof(Jim_Obj*));
-    for (i=0; i < elemc; ++i) {
+    for (i = 0; i < elemc; ++i) {
         point[i] = elemVec[i];
         Jim_IncrRefCount(point[i]);
     }
@@ -7335,7 +7335,7 @@ static int SetScanFmtFromAny(Jim_Interp *interp, Jim_Obj *objPtr)
 
     Jim_FreeIntRep(interp, objPtr);
     /* Count how many conversions could take place maximally */
-    for (i=0, maxCount=0; i < maxFmtLen; ++i)
+    for (i = 0, maxCount = 0; i < maxFmtLen; ++i)
         if (fmt[i] == '%')
             ++maxCount;
     /* Calculate an approximation of the memory necessary */
@@ -7356,8 +7356,8 @@ static int SetScanFmtFromAny(Jim_Interp *interp, Jim_Obj *objPtr)
     buffer = fmtObj->stringRep + maxFmtLen + 1;
     objPtr->internalRep.ptr = fmtObj;
     objPtr->typePtr = &scanFmtStringObjType;
-    for (i=0, curr=0; fmt < fmtEnd; ++fmt) {
-        int width=0, skip;
+    for (i = 0, curr = 0; fmt < fmtEnd; ++fmt) {
+        int width = 0, skip;
         ScanFmtPartDescr *descr = &fmtObj->descr[curr];
         fmtObj->count++;
         descr->width = 0;                   /* Assume width unspecified */ 
@@ -7401,7 +7401,7 @@ static int SetScanFmtFromAny(Jim_Interp *interp, Jim_Obj *objPtr)
                     return JIM_ERR;
                 }
                 /* Look if this position was already used */
-                for (prev=0; prev < curr; ++prev) {
+                for (prev = 0; prev < curr; ++prev) {
                     if (fmtObj->descr[prev].pos == -1) continue;
                     if (fmtObj->descr[prev].pos == descr->pos) {
                         fmtObj->error = "same \"%n$\" conversion specifier "
@@ -7442,7 +7442,7 @@ static int SetScanFmtFromAny(Jim_Interp *interp, Jim_Obj *objPtr)
             /* In case a range fence was given "backwards", swap it */
             while (swapped) {
                 swapped = 0;
-                for (j=beg+1; j < end-1; ++j) {
+                for (j = beg+1; j < end-1; ++j) {
                     if (buffer[j] == '-' && buffer[j-1] > buffer[j+1]) {
                         char tmp = buffer[j-1];
                         buffer[j-1] = buffer[j+1];
@@ -7550,7 +7550,7 @@ JimScanAString(Jim_Interp *interp, const char *sdescr, const char *str)
             if (sdescr[1] == '-' && sdescr[2] != 0) {
                 /* Handle range definitions */
                 int i;
-                for (i=sdescr[0]; i <= sdescr[2]; ++i)
+                for (i = sdescr[0]; i <= sdescr[2]; ++i)
                     JimSetBit(charset, (char)i);
                 sdescr += 3;
             } else {
@@ -7559,7 +7559,7 @@ JimScanAString(Jim_Interp *interp, const char *sdescr, const char *str)
             }
         }
         /* Negate the charset if there was a NOT given */
-        for (i=0; notFlag && i < sizeof(charset); ++i)
+        for (i = 0; notFlag && i < sizeof(charset); ++i)
             charset[i] = ~charset[i];
     } 
     /* And after all the mess above, the real work begin ... */
@@ -7600,7 +7600,7 @@ static int ScanOneEntry(Jim_Interp *interp, const char *str, long pos,
     if (descr->prefix) {
         /* There was a prefix given before the conversion, skip it and adjust
          * the string-to-be-parsed accordingly */
-        for (i=0; str[pos] && descr->prefix[i]; ++i) {
+        for (i = 0; str[pos] && descr->prefix[i]; ++i) {
             /* If prefix require, skip WS */
             if (isspace((int)descr->prefix[i]))
                 while (str[pos] && isspace((int)str[pos])) ++pos;
@@ -7757,12 +7757,12 @@ Jim_Obj *Jim_ScanString(Jim_Interp *interp, Jim_Obj *strObjPtr,
     /* Create a list and fill it with empty strings up to max specified XPG3 */
     resultList = Jim_NewListObj(interp, 0, 0);
     if (fmtObj->maxPos > 0) {
-        for (i=0; i < fmtObj->maxPos; ++i)
+        for (i = 0; i < fmtObj->maxPos; ++i)
             Jim_ListAppendElement(interp, resultList, emptyStr);
         JimListGetElements(interp, resultList, &resultc, &resultVec);
     }
     /* Now handle every partial format description */
-    for (i=0, pos=0; i < fmtObj->count; ++i) {
+    for (i = 0, pos = 0; i < fmtObj->count; ++i) {
         ScanFmtPartDescr *descr = &(fmtObj->descr[i]);
         Jim_Obj *value = 0;
         /* Only last type may be "literal" w/o conversion - skip it! */
@@ -8960,8 +8960,8 @@ int Jim_EvalFile(Jim_Interp *interp, const char *filename)
     Jim_Obj *scriptObjPtr;
     
     if ((fp = fopen(filename, "r")) == NULL) {
-    	const int cwd_len=2048;
-		char *cwd=malloc(cwd_len);
+    	const int cwd_len = 2048;
+		char *cwd = malloc(cwd_len);
         Jim_SetResult(interp, Jim_NewEmptyStringObj(interp));
 	if (!getcwd( cwd, cwd_len )) strcpy(cwd, "unknown");
         Jim_AppendStrings(interp, Jim_GetResult(interp),
@@ -10203,7 +10203,7 @@ static int JimForeachMapHelper(Jim_Interp *interp, int argc,
     /* Initialize iterators and remember max nbr elements each list */
     memset(listsIdx, 0, nbrOfLists * sizeof(int));
     /* Remember lengths of all lists and calculate how much rounds to loop */
-    for (i=0; i < nbrOfLists*2; i += 2) {
+    for (i = 0; i < nbrOfLists*2; i += 2) {
         div_t cnt;
         int count;
         Jim_ListLength(interp, argv[i+1], &listsEnd[i]);
@@ -10218,7 +10218,7 @@ static int JimForeachMapHelper(Jim_Interp *interp, int argc,
             nbrOfLoops = count;
     }
     for (; nbrOfLoops-- > 0; ) {
-        for (i=0; i < nbrOfLists; ++i) {
+        for (i = 0; i < nbrOfLists; ++i) {
             int varIdx = 0, var = i * 2;
             while (varIdx < listsEnd[var]) {
                 Jim_Obj *varName, *ele;
@@ -10340,11 +10340,11 @@ enum {SWITCH_EXACT, SWITCH_GLOB, SWITCH_RE, SWITCH_CMD, SWITCH_UNKNOWN};
 static int Jim_SwitchCoreCommand(Jim_Interp *interp, int argc, 
         Jim_Obj *const *argv)
 {
-    int retcode = JIM_ERR, matchOpt = SWITCH_EXACT, opt=1, patCount, i;
+    int retcode = JIM_ERR, matchOpt = SWITCH_EXACT, opt = 1, patCount, i;
     Jim_Obj *command = 0, *const *caseList = 0, *strObj;
     Jim_Obj *script = 0;
     if (argc < 3) goto wrongnumargs;
-    for (opt=1; opt < argc; ++opt) {
+    for (opt = 1; opt < argc; ++opt) {
         const char *option = Jim_GetString(argv[opt], 0);
         if (*option != '-') break;
         else if (strncmp(option, "--", 2) == 0) { ++opt; break; }
@@ -10372,7 +10372,7 @@ static int Jim_SwitchCoreCommand(Jim_Interp *interp, int argc,
     } else
         caseList = &argv[opt];
     if (patCount == 0 || patCount % 2 != 0) goto wrongnumargs;
-    for (i=0; script == 0 && i < patCount; i += 2) {
+    for (i = 0; script == 0 && i < patCount; i += 2) {
         Jim_Obj *patObj = caseList[i];
         if (!Jim_CompareStringImmediate(interp, patObj, "default")
             || i < (patCount-2)) {

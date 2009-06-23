@@ -125,7 +125,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 
 	/* identify EmbeddedICE version by reading DCC control register */
 	embeddedice_read_reg(&reg_list[EICE_COMMS_CTRL]);
-	if ((retval=jtag_execute_queue()) != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		for (i = 0; i < num_regs; i++)
 		{
@@ -204,7 +204,7 @@ int embeddedice_setup(target_t *target)
 		reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 
 		embeddedice_read_reg(dbg_ctrl);
-		if ((retval=jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
 		buf_set_u32(dbg_ctrl->value, 4, 1, 0);
 		embeddedice_set_reg_w_exec(dbg_ctrl, dbg_ctrl->value);

@@ -237,7 +237,7 @@ int arm11_read_DSCR(arm11_common_t * arm11, uint32_t *value)
 
 	arm11->last_dscr = dscr;
 
-	*value=dscr;
+	*value = dscr;
 
 	return ERROR_OK;
 }

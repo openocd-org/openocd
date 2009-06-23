@@ -317,7 +317,7 @@ int arm926ejs_examine_debug_reason(target_t *target)
 			 * openocd development mailing list if you have hardware
 			 * to donate to look into this problem....
 			 */
-			LOG_ERROR("mystery debug reason MOE=0xc. Try issuing a resume + halt.");
+			LOG_ERROR("mystery debug reason MOE = 0xc. Try issuing a resume + halt.");
 			target->debug_reason = DBG_REASON_DBGRQ;
 			retval = ERROR_TARGET_FAILURE;
 			break;
@@ -572,9 +572,9 @@ int arm926ejs_soft_reset_halt(struct target_s *target)
 		return retval;
 	}
 
-	long long then=timeval_ms();
+	long long then = timeval_ms();
 	int timeout;
-	while (!(timeout=((timeval_ms()-then)>1000)))
+	while (!(timeout = ((timeval_ms()-then)>1000)))
 	{
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) == 0)
 		{

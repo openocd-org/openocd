@@ -118,11 +118,11 @@ static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
 	/* pick a breakpoint unit */
 	if (!arm7_9->wp0_used)
 	{
-		arm7_9->sw_breakpoints_added=1;
+		arm7_9->sw_breakpoints_added = 1;
 		arm7_9->wp0_used = 3;
 	} else if (!arm7_9->wp1_used)
 	{
-		arm7_9->sw_breakpoints_added=2;
+		arm7_9->sw_breakpoints_added = 2;
 		arm7_9->wp1_used = 3;
 	}
 	else
@@ -218,7 +218,7 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
-	int retval=ERROR_OK;
+	int retval = ERROR_OK;
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -259,11 +259,11 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			return ERROR_OK;
 		}
 
-		retval=jtag_execute_queue();
+		retval = jtag_execute_queue();
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
-		if ((retval=arm7_9_set_software_breakpoints(arm7_9)) != ERROR_OK)
+		if ((retval = arm7_9_set_software_breakpoints(arm7_9)) != ERROR_OK)
 			return retval;
 
 		/* did we already set this breakpoint? */
@@ -700,9 +700,9 @@ int arm7_9_execute_sys_speed(struct target_s *target)
 	}
 	arm_jtag_set_instr(jtag_info, 0x4, NULL);
 
-	long long then=timeval_ms();
+	long long then = timeval_ms();
 	int timeout;
-	while (!(timeout=((timeval_ms()-then)>1000)))
+	while (!(timeout = ((timeval_ms()-then)>1000)))
 	{
 		/* read debug status register */
 		embeddedice_read_reg(dbg_stat);
@@ -738,7 +738,7 @@ int arm7_9_execute_sys_speed(struct target_s *target)
  */
 int arm7_9_execute_fast_sys_speed(struct target_s *target)
 {
-	static int set=0;
+	static int set = 0;
 	static uint8_t check_value[4], check_mask[4];
 
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -764,7 +764,7 @@ int arm7_9_execute_fast_sys_speed(struct target_s *target)
 		 * */
 		buf_set_u32(check_value, 0, 32, 0x9);
 		buf_set_u32(check_mask, 0, 32, 0x9);
-		set=1;
+		set = 1;
 	}
 
 	/* read debug status register */
@@ -900,7 +900,7 @@ int arm7_9_poll(target_t *target)
 		}
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
-			int check_pc=0;
+			int check_pc = 0;
 			if (target->state == TARGET_RESET)
 			{
 				if (target->reset_halt)
@@ -1042,7 +1042,7 @@ int arm7_9_assert_reset(target_t *target)
  */
 int arm7_9_deassert_reset(target_t *target)
 {
-	int retval=ERROR_OK;
+	int retval = ERROR_OK;
 	LOG_DEBUG("target->state: %s",
 		Jim_Nvp_value2name_simple( nvp_target_state,target->state)->name);
 
@@ -1057,12 +1057,12 @@ int arm7_9_deassert_reset(target_t *target)
 		if ((retval = target_examine_one(target)) != ERROR_OK)
 			return retval;
 
-		if ((retval=target_poll(target)) != ERROR_OK)
+		if ((retval = target_poll(target)) != ERROR_OK)
 		{
 			return retval;
 		}
 
-		if ((retval=target_halt(target)) != ERROR_OK)
+		if ((retval = target_halt(target)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -1147,17 +1147,17 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	int i;
 	int retval;
 
-	if ((retval=target_halt(target)) != ERROR_OK)
+	if ((retval = target_halt(target)) != ERROR_OK)
 		return retval;
 
-	long long then=timeval_ms();
+	long long then = timeval_ms();
 	int timeout;
-	while (!(timeout=((timeval_ms()-then)>1000)))
+	while (!(timeout = ((timeval_ms()-then)>1000)))
 	{
 		if (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1) != 0)
 			break;
 		embeddedice_read_reg(dbg_stat);
-		if ((retval=jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 			return retval;
 		if (debug_level >= 3)
 		{
@@ -1428,7 +1428,7 @@ int arm7_9_debug_entry(target_t *target)
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
 
-	for (i=0; i <= 15; i++)
+	for (i = 0; i <= 15; i++)
 	{
 		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, context[i]);
 		buf_set_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).value, 0, 32, context[i]);
@@ -2240,7 +2240,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 	reg[0] = address;
 	arm7_9->write_core_regs(target, 0x1, reg);
 
-	int j=0;
+	int j = 0;
 
 	switch (size)
 	{
@@ -2362,7 +2362,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
 
-	for (i=0; i <= last_reg; i++)
+	for (i = 0; i <= last_reg; i++)
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid;
 
 	arm7_9->read_xpsr(target, &cpsr, 0);
@@ -2545,7 +2545,7 @@ int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
 
-	for (i=0; i <= last_reg; i++)
+	for (i = 0; i <= last_reg; i++)
 		ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).dirty = ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, i).valid;
 
 	arm7_9->read_xpsr(target, &cpsr, 0);
@@ -2576,12 +2576,12 @@ static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, i
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	if ((retval=target_wait_state(target, TARGET_DEBUG_RUNNING, 500)) != ERROR_OK)
+	if ((retval = target_wait_state(target, TARGET_DEBUG_RUNNING, 500)) != ERROR_OK)
 		return retval;
 
-	int little=target->endianness == TARGET_LITTLE_ENDIAN;
-	int count=dcc_count;
-	uint8_t *buffer=dcc_buffer;
+	int little = target->endianness == TARGET_LITTLE_ENDIAN;
+	int count = dcc_count;
+	uint8_t *buffer = dcc_buffer;
 	if (count>2)
 	{
 		/* Handle first & last using standard embeddedice_write_reg and the middle ones w/the
@@ -2669,18 +2669,18 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 
 	buf_set_u32(reg_params[0].value, 0, 32, address);
 
-	dcc_count=count;
-	dcc_buffer=buffer;
+	dcc_count = count;
+	dcc_buffer = buffer;
 	retval = armv4_5_run_algorithm_inner(target, 0, NULL, 1, reg_params,
 			arm7_9->dcc_working_area->address, arm7_9->dcc_working_area->address+6*4, 20*1000, &armv4_5_info, arm7_9_dcc_completion);
 
 	if (retval == ERROR_OK)
 	{
-		uint32_t endaddress=buf_get_u32(reg_params[0].value, 0, 32);
+		uint32_t endaddress = buf_get_u32(reg_params[0].value, 0, 32);
 		if (endaddress != (address+count*4))
 		{
 			LOG_ERROR("DCC write failed, expected end address 0x%08" PRIx32 " got 0x%0" PRIx32 "", (address+count*4), endaddress);
-			retval=ERROR_FAIL;
+			retval = ERROR_FAIL;
 		}
 	}
 
@@ -2734,7 +2734,7 @@ int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 	/* convert flash writing code into a buffer in target endianness */
 	for (i = 0; i < (sizeof(arm7_9_crc_code)/sizeof(uint32_t)); i++)
 	{
-		if ((retval=target_write_u32(target, crc_algorithm->address + i*sizeof(uint32_t), arm7_9_crc_code[i])) != ERROR_OK)
+		if ((retval = target_write_u32(target, crc_algorithm->address + i*sizeof(uint32_t), arm7_9_crc_code[i])) != ERROR_OK)
 		{
 			return retval;
 		}

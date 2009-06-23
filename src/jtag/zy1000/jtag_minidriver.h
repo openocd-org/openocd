@@ -28,7 +28,7 @@
 #if 0
 int  diag_printf( const char *fmt, ... );
 #define ZY1000_POKE(a, b) HAL_WRITE_UINT32(a, b); diag_printf("poke 0x%08x,0x%08x\n", a, b)
-#define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b); diag_printf("peek 0x%08x=0x%08x\n", a, b)
+#define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b); diag_printf("peek 0x%08x = 0x%08x\n", a, b)
 #else
 #define ZY1000_POKE(a, b) HAL_WRITE_UINT32(a, b)
 #define ZY1000_PEEK(a, b) HAL_READ_UINT32(a, b)
@@ -62,15 +62,15 @@ static void sampleShiftRegister(void)
 static void setCurrentState(enum tap_state state)
 {
 	cyg_uint32 a;
-	a=state;
-	int repeat=0;
+	a = state;
+	int repeat = 0;
 	if (state == TAP_RESET)
 	{
 		// The FPGA nor we know the current state of the CPU TAP
 		// controller. This will move it to TAP for sure.
 		//
 		// 5 should be enough here, 7 is what OpenOCD uses
-		repeat=7;
+		repeat = 7;
 	}
 	waitQueue();
 	sampleShiftRegister();
@@ -85,8 +85,8 @@ static void setCurrentState(enum tap_state state)
 static __inline__ void shiftValueInner(const enum tap_state state, const enum tap_state endState, int repeat, cyg_uint32 value)
 {
 	cyg_uint32 a,b;
-	a=state;
-	b=endState;
+	a = state;
+	b = endState;
 	waitQueue();
 	sampleShiftRegister();
 	ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value);
@@ -96,13 +96,13 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 	{
 		int i;
 		setCurrentState(state);
-		for (i=0; i<repeat; i++)
+		for (i = 0; i<repeat; i++)
 		{
 			int tms;
-			tms=0;
+			tms = 0;
 			if ((i == repeat-1) && (state != endState))
 			{
-				tms=1;
+				tms = 1;
 			}
 			/* shift out value */
 			waitIdle();
@@ -128,7 +128,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 	{
 		int i;
 		/* sample shift register for every bit. */
-		for (i=0; i<repeat-1; i++)
+		for (i = 0; i<repeat-1; i++)
 		{
 			sampleShiftRegister();
 			ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value >> i);
@@ -157,9 +157,9 @@ static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
 	enum tap_state pause_state = TAP_DRSHIFT;
 
 	jtag_tap_t *tap, *nextTap;
-	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
+	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
-		nextTap=jtag_tap_next_enabled(tap);
+		nextTap = jtag_tap_next_enabled(tap);
 		if (nextTap == NULL)
 		{
 			pause_state = end_state;
@@ -167,7 +167,7 @@ static __inline__ void interface_jtag_add_dr_out_core(jtag_tap_t *target_tap,
 		if (tap == target_tap)
 		{
 			int j;
-			for (j=0; j<(num_fields-1); j++)
+			for (j = 0; j<(num_fields-1); j++)
 			{
 				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, num_bits[j], value[j]);
 			}
@@ -187,7 +187,7 @@ static __inline__ void interface_jtag_add_dr_out(jtag_tap_t *target_tap,
 		enum tap_state end_state)
 {
 
-	int singletap=(jtag_tap_next_enabled(jtag_tap_next_enabled(NULL)) == NULL);
+	int singletap = (jtag_tap_next_enabled(jtag_tap_next_enabled(NULL)) == NULL);
 	if ((singletap) && (num_fields == 3))
 	{
 		/* used by embeddedice_write_reg_inner() */

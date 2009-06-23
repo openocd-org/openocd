@@ -370,7 +370,7 @@ static void usbprog_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int
 
 static void usbprog_write(int tck, int tms, int tdi)
 {
-	unsigned char output_value=0x00;
+	unsigned char output_value = 0x00;
 
 	if (tms)
 		output_value |= (1 << TMS_BIT);

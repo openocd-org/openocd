@@ -694,7 +694,7 @@ int cortex_m3_resume(struct target_s *target, int current, uint32_t address, int
 	return ERROR_OK;
 }
 
-/* int irqstepcount=0; */
+/* int irqstepcount = 0; */
 int cortex_m3_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
@@ -886,7 +886,7 @@ void cortex_m3_enable_breakpoints(struct target_s *target)
 int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 {
 	int retval;
-	int fp_num=0;
+	int fp_num = 0;
 	uint32_t hilo;
 
 	/* get pointers to arch-specific information */
@@ -1075,7 +1075,7 @@ int cortex_m3_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoin
 
 int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	int dwt_num=0;
+	int dwt_num = 0;
 	uint32_t mask, temp;
 
 	/* get pointers to arch-specific information */
@@ -1285,7 +1285,7 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	 * in "thumb" mode, or an INVSTATE exception will occur. This is a
 	 * hack to deal with the fact that gdb will sometimes "forge"
 	 * return addresses, and doesn't set the LSB correctly (i.e., when
-	 * printing expressions containing function calls, it sets LR=0.) */
+	 * printing expressions containing function calls, it sets LR = 0.) */
 
 	if (num == 14)
 		value |= 0x01;

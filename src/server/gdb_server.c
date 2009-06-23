@@ -107,7 +107,7 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 	int t;
 	if (got_data == NULL)
 		got_data=&t;
-	*got_data=0;
+	*got_data = 0;
 
 	if (gdb_con->buf_cnt>0)
 	{
@@ -133,14 +133,14 @@ int check_pending(connection_t *connection, int timeout_s, int *got_data)
 			return ERROR_OK;
 		}
 	}
-	*got_data=FD_ISSET(connection->fd, &read_fds) != 0;
+	*got_data = FD_ISSET(connection->fd, &read_fds) != 0;
 	return ERROR_OK;
 }
 
 int gdb_get_char(connection_t *connection, int* next_char)
 {
 	gdb_connection_t *gdb_con = connection->priv;
-	int retval=ERROR_OK;
+	int retval = ERROR_OK;
 
 #ifdef _DEBUG_GDB_IO_
 	char *debug_buffer;
@@ -313,7 +313,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 	int gotdata;
 	for (;;)
 	{
-		if ((retval=check_pending(connection, 0, &gotdata)) != ERROR_OK)
+		if ((retval = check_pending(connection, 0, &gotdata)) != ERROR_OK)
 			return retval;
 		if (!gotdata)
 			break;
@@ -409,7 +409,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			} else {
 
 				LOG_ERROR("unknown character(1) 0x%2.2x in reply, dropping connection", reply);
-				gdb_con->closed=1;
+				gdb_con->closed = 1;
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 		}
@@ -421,7 +421,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		else
 		{
 			LOG_ERROR("unknown character(2) 0x%2.2x in reply, dropping connection", reply);
-			gdb_con->closed=1;
+			gdb_con->closed = 1;
 			return ERROR_SERVER_REMOTE_CLOSED;
 		}
 	}
@@ -547,7 +547,7 @@ static __inline__ int fetch_packet(connection_t *connection, int *checksum_ok, i
 
 	if (!noack)
 	{
-		*checksum_ok=(my_checksum == strtoul(checksum, NULL, 16));
+		*checksum_ok = (my_checksum == strtoul(checksum, NULL, 16));
 	}
 
 	return ERROR_OK;
@@ -600,11 +600,11 @@ int gdb_get_packet_inner(connection_t *connection, char *buffer, int *len)
 		 */
 		if (gdb_con->noack_mode)
 		{
-			if ((retval=fetch_packet(connection, &checksum_ok, 1, len, buffer)) != ERROR_OK)
+			if ((retval = fetch_packet(connection, &checksum_ok, 1, len, buffer)) != ERROR_OK)
 				return retval;
 		} else
 		{
-			if ((retval=fetch_packet(connection, &checksum_ok, 0, len, buffer)) != ERROR_OK)
+			if ((retval = fetch_packet(connection, &checksum_ok, 0, len, buffer)) != ERROR_OK)
 				return retval;
 		}
 
@@ -649,7 +649,7 @@ int gdb_output_con(connection_t *connection, const char* line)
 		return ERROR_GDB_BUFFER_TOO_SMALL;
 
 	hex_buffer[0] = 'O';
-	for (i=0; i<bin_size; i++)
+	for (i = 0; i<bin_size; i++)
 		snprintf(hex_buffer + 1 + i*2, 3, "%2.2x", line[i]);
 	hex_buffer[bin_size*2+1] = 0;
 
@@ -904,7 +904,7 @@ static int hextoint(char c)
 	{
 		return c-'0';
 	}
-	c=toupper(c);
+	c = toupper(c);
 	if (c>='A'&&c<='F')
 	{
 		return c-'A'+10;
@@ -1199,7 +1199,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 		 * gained by involving the user in this problem that hopefully will get resolved
 		 * eventually
 		 *
-		 * http://sourceware.org/cgi-bin/gnatsweb.pl?cmd=view%20audit-trail&database=gdb&pr=2395
+		 * http://sourceware.org/cgi-bin/gnatsweb.pl?cmd = view%20audit-trail&database = gdb&pr = 2395
 		 *
 		 * For now, the default is to fix up things to make current GDB versions work.
 		 * This can be overwritten using the gdb_report_data_abort <'enable'|'disable'> command.
@@ -1268,7 +1268,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 
 	LOG_DEBUG("addr: 0x%8.8" PRIx32 ", len: 0x%8.8" PRIx32 "", addr, len);
 
-	for (i=0; i<len; i++)
+	for (i = 0; i<len; i++)
 	{
 		uint32_t tmp;
 		sscanf(separator + 2*i, "%2" SCNx32 , &tmp);
@@ -1343,7 +1343,7 @@ int gdb_step_continue_packet(connection_t *connection, target_t *target, char *p
 {
 	int current = 0;
 	uint32_t address = 0x0;
-	int retval=ERROR_OK;
+	int retval = ERROR_OK;
 
 	LOG_DEBUG("-");
 
@@ -1361,7 +1361,7 @@ int gdb_step_continue_packet(connection_t *connection, target_t *target, char *p
 	{
 		LOG_DEBUG("continue");
 		target_handle_event( target, TARGET_EVENT_OLD_pre_resume );
-		retval=target_resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
+		retval = target_resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
 	}
 	else if (packet[0] == 's')
 	{
@@ -1399,7 +1399,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 
 	if (gdb_breakpoint_override && ((bp_type == BKPT_SOFT)||(bp_type == BKPT_HARD)))
 	{
-		bp_type=gdb_breakpoint_override_type;
+		bp_type = gdb_breakpoint_override_type;
 	}
 
 	if (*separator != ',')
@@ -1584,7 +1584,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 			char *cmd;
 			int i;
 			cmd = malloc((packet_size - 6)/2 + 1);
-			for (i=0; i < (packet_size - 6)/2; i++)
+			for (i = 0; i < (packet_size - 6)/2; i++)
 			{
 				uint32_t tmp;
 				sscanf(packet + 6 + 2*i, "%2" SCNx32 , &tmp);
@@ -1699,10 +1699,10 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 		read/write) by default for GDB.
 		GDB does not have a concept of non-cacheable read/write memory.
 		 */
-		flash_bank_t **banks=malloc(sizeof(flash_bank_t *)*flash_get_bank_count());
+		flash_bank_t **banks = malloc(sizeof(flash_bank_t *)*flash_get_bank_count());
 		int i;
 
-		for (i=0; i<flash_get_bank_count(); i++)
+		for (i = 0; i<flash_get_bank_count(); i++)
 		{
 			p = get_flash_bank_by_num(i);
 			if (p == NULL)
@@ -1717,8 +1717,8 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 
 		qsort(banks, flash_get_bank_count(), sizeof(flash_bank_t *), compare_bank);
 
-		uint32_t ram_start=0;
-		for (i=0; i<flash_get_bank_count(); i++)
+		uint32_t ram_start = 0;
+		for (i = 0; i<flash_get_bank_count(); i++)
 		{
 			p = banks[i];
 
@@ -1736,7 +1736,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 				"<property name=\"blocksize\">0x%x</property>\n" \
 				"</memory>\n", \
 				p->base, p->size, blocksize);
-			ram_start=p->base+p->size;
+			ram_start = p->base+p->size;
 		}
 		if (ram_start != 0)
 		{
@@ -2018,7 +2018,7 @@ int gdb_input_inner(connection_t *connection)
 {
 	gdb_service_t *gdb_service = connection->service->priv;
 	target_t *target = gdb_service->target;
-	char *packet=gdb_packet_buffer;
+	char *packet = gdb_packet_buffer;
 	int packet_size;
 	int retval;
 	gdb_connection_t *gdb_con = connection->priv;
@@ -2108,7 +2108,7 @@ int gdb_input_inner(connection_t *connection)
 							gdb_con->frontend_state = TARGET_RUNNING;
 							log_add_callback(gdb_log_callback, connection);
 							target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
-							int retval=gdb_step_continue_packet(connection, target, packet, packet_size);
+							int retval = gdb_step_continue_packet(connection, target, packet, packet_size);
 							if (retval != ERROR_OK)
 							{
 								/* we'll never receive a halted condition... issue a false one.. */
@@ -2354,10 +2354,10 @@ int handle_gdb_breakpoint_override_command(struct command_context_s *cmd_ctx, ch
 		gdb_breakpoint_override = 1;
 		if (strcmp(args[0], "hard") == 0)
 		{
-			gdb_breakpoint_override_type=BKPT_HARD;
+			gdb_breakpoint_override_type = BKPT_HARD;
 		} else if (strcmp(args[0], "soft") == 0)
 		{
-			gdb_breakpoint_override_type=BKPT_SOFT;
+			gdb_breakpoint_override_type = BKPT_SOFT;
 		} else if (strcmp(args[0], "disable") == 0)
 		{
 			gdb_breakpoint_override = 0;

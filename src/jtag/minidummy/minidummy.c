@@ -145,7 +145,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 	state_count = 0;
 
-	tap_state_t cur_state=cmd_queue_cur_state;
+	tap_state_t cur_state = cmd_queue_cur_state;
 
 	while (num_states)
 	{

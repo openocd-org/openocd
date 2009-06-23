@@ -51,11 +51,11 @@ static int zy1000_khz(int khz, int *jtag_speed)
 {
 	if (khz == 0)
 	{
-		*jtag_speed=0;
+		*jtag_speed = 0;
 	}
 	else
 	{
-		*jtag_speed=64000/khz;
+		*jtag_speed = 64000/khz;
 	}
 	return ERROR_OK;
 }
@@ -68,7 +68,7 @@ static int zy1000_speed_div(int speed, int *khz)
 	}
 	else
 	{
-		*khz=64000/speed;
+		*khz = 64000/speed;
 	}
 
 	return ERROR_OK;
@@ -99,13 +99,13 @@ static bool readSRST(void)
 
 static int zy1000_srst_asserted(int *srst_asserted)
 {
-	*srst_asserted=readSRST();
+	*srst_asserted = readSRST();
 	return ERROR_OK;
 }
 
 static int zy1000_power_dropout(int *dropout)
 {
-	*dropout=readPowerDropout();
+	*dropout = readPowerDropout();
 	return ERROR_OK;
 }
 
@@ -164,7 +164,7 @@ void zy1000_reset(int trst, int srst)
 	if (!srst)
 	{
 		int i;
-		for (i=0; i<1000; i++)
+		for (i = 0; i<1000; i++)
 		{
 			// We don't want to sense our own reset, so we clear here.
 			// There is of course a timing hole where we could loose
@@ -260,11 +260,11 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	if ((argc < 1) || (argc > 2))
 		return JIM_ERR;
 	char buff[128];
-	const char *version_str=NULL;
+	const char *version_str = NULL;
 
 	if (argc == 1)
 	{
-		version_str=ZYLIN_OPENOCD_VERSION;
+		version_str = ZYLIN_OPENOCD_VERSION;
 	} else
 	{
 		const char *str = Jim_GetString(argv[1], NULL);
@@ -273,15 +273,15 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 			int revision;
 			revision = atol(ZYLIN_OPENOCD+strlen("XRevision: "));
 			sprintf(buff, "%d", revision);
-			version_str=buff;
+			version_str = buff;
 		}
 		else if (strcmp("zy1000", str) == 0)
 		{
-			version_str=ZYLIN_VERSION;
+			version_str = ZYLIN_VERSION;
 		}
 		else if (strcmp("date", str) == 0)
 		{
-			version_str=ZYLIN_DATE;
+			version_str = ZYLIN_DATE;
 		}
 		else
 		{
@@ -402,8 +402,8 @@ static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endSt
 {
 	VERBOSE(LOG_INFO("shiftValueInner %s %s %d %08x (flipped)", tap_state_name(state), tap_state_name(endState), repeat, value));
 	cyg_uint32 a,b;
-	a=state;
-	b=endState;
+	a = state;
+	b = endState;
 	ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value);
 	ZY1000_POKE(ZY1000_JTAG_BASE+0x8, (1 << 15)|(repeat << 8)|(a << 4)|b);
 	VERBOSE(getShiftValueFlip());
@@ -422,40 +422,40 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 	{
 		cyg_uint32 value;
 
-		uint8_t *inBuffer=NULL;
+		uint8_t *inBuffer = NULL;
 
 
 		// figure out where to store the input data
-		int num_bits=fields[i].num_bits;
+		int num_bits = fields[i].num_bits;
 		if (fields[i].in_value != NULL)
 		{
-			inBuffer=fields[i].in_value;
+			inBuffer = fields[i].in_value;
 		}
 
 		// here we shuffle N bits out/in
-		j=0;
+		j = 0;
 		while (j<num_bits)
 		{
 			tap_state_t pause_state;
 			int l;
-			k=num_bits-j;
-			pause_state=(shiftState == TAP_DRSHIFT)?TAP_DRSHIFT:TAP_IRSHIFT;
+			k = num_bits-j;
+			pause_state = (shiftState == TAP_DRSHIFT)?TAP_DRSHIFT:TAP_IRSHIFT;
 			if (k>32)
 			{
-				k=32;
+				k = 32;
 				/* we have more to shift out */
 			} else if (i == num_fields-1)
 			{
 				/* this was the last to shift out this time */
-				pause_state=end_state;
+				pause_state = end_state;
 			}
 
 			// we have (num_bits+7)/8 bytes of bits to toggle out.
 			// bits are pushed out LSB to MSB
-			value=0;
+			value = 0;
 			if (fields[i].out_value != NULL)
 			{
-				for (l=0; l<k; l += 8)
+				for (l = 0; l<k; l += 8)
 				{
 					value|=fields[i].out_value[(j+l)/8]<<l;
 				}
@@ -468,11 +468,11 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 			if (inBuffer != NULL)
 			{
 				// data in, LSB to MSB
-				value=getShiftValue();
+				value = getShiftValue();
 				// we're shifting in data to MSB, shift data to be aligned for returning the value
 				value >>= 32-k;
 
-				for (l=0; l<k; l += 8)
+				for (l = 0; l<k; l += 8)
 				{
 					inBuffer[(j+l)/8]=(value >> l)&0xff;
 				}
@@ -494,9 +494,9 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 	int j;
 	int scan_size = 0;
 	jtag_tap_t *tap, *nextTap;
-	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
+	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
-		nextTap=jtag_tap_next_enabled(tap);
+		nextTap = jtag_tap_next_enabled(tap);
 		tap_state_t end_state;
 		if (nextTap == NULL)
 		{
@@ -511,7 +511,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 		scan_size = tap->ir_length;
 
 		/* search the list */
-		for (j=0; j < num_fields; j++)
+		for (j = 0; j < num_fields; j++)
 		{
 			if (tap == fields[j].tap)
 			{
@@ -563,10 +563,10 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 
 	int j;
 	jtag_tap_t *tap, *nextTap;
-	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap=nextTap)
+	for (tap = jtag_tap_next_enabled(NULL); tap!= NULL; tap = nextTap)
 	{
-		nextTap=jtag_tap_next_enabled(tap);
-		int found=0;
+		nextTap = jtag_tap_next_enabled(tap);
+		int found = 0;
 		tap_state_t end_state;
 		if (nextTap == NULL)
 		{
@@ -576,7 +576,7 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 			end_state = TAP_DRSHIFT;
 		}
 
-		for (j=0; j < num_fields; j++)
+		for (j = 0; j < num_fields; j++)
 		{
 			if (tap == fields[j].tap)
 			{
@@ -634,13 +634,13 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 
 	/* execute num_cycles, 32 at the time. */
 	int i;
-	for (i=0; i<num_cycles; i += 32)
+	for (i = 0; i<num_cycles; i += 32)
 	{
 		int num;
-		num=32;
+		num = 32;
 		if (num_cycles-i<num)
 		{
-			num=num_cycles-i;
+			num = num_cycles-i;
 		}
 		shiftValueInner(clockstate, clockstate, num, 0);
 	}
@@ -649,7 +649,7 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 	/* finish in end_state */
 	setCurrentState(state);
 #else
-	tap_state_t t=TAP_IDLE;
+	tap_state_t t = TAP_IDLE;
 	/* test manual drive code on any target */
 	int tms;
 	uint8_t tms_scan = tap_get_tms_path(t, state);
@@ -695,7 +695,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 	state_count = 0;
 
-	tap_state_t cur_state=cmd_queue_cur_state;
+	tap_state_t cur_state = cmd_queue_cur_state;
 
 	while (num_states)
 	{
@@ -730,8 +730,8 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 
 void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int little, int count)
 {
-//	static int const reg_addr=0x5;
-	tap_state_t end_state=jtag_get_end_state();
+//	static int const reg_addr = 0x5;
+	tap_state_t end_state = jtag_get_end_state();
 	if (jtag_tap_next_enabled(jtag_tap_next_enabled(NULL)) == NULL)
 	{
 		/* better performance via code duplication */

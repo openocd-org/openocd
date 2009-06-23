@@ -575,7 +575,7 @@ typedef struct Jim_Reference {
  * known string, or there may be multiple strings (aliases) that mean then same
  * thing.
  *
- * An NVP Table is terminated with ".name=NULL".
+ * An NVP Table is terminated with ".name = NULL".
  *
  * During the 'name2value' operation, if no matching string is found
  * the pointer to the terminal element (with p->name == NULL) is returned.
@@ -966,7 +966,7 @@ JIM_STATIC const char *JIM_API( Jim_Debug_ArgvString )( Jim_Interp *interp, int 
  * Usefull when dealing with command options.
  * that may come in any order...
  *
- * Does not support "-foo=123" type options.
+ * Does not support "-foo = 123" type options.
  * Only supports tcl type options, like "-foo 123"
  */
 
@@ -1097,7 +1097,7 @@ JIM_STATIC int JIM_API( Jim_GetOpt_Nvp)( Jim_GetOptInfo *goi, const Jim_Nvp *loo
  *
  * This function assumes the previous option argv[-1] is the unknown string.
  *
- * If this option had some prefix, then pass "hadprefix=1" else pass "hadprefix=0"
+ * If this option had some prefix, then pass "hadprefix = 1" else pass "hadprefix = 0"
  *
  * Example:
  * \code
@@ -1107,7 +1107,7 @@ JIM_STATIC int JIM_API( Jim_GetOpt_Nvp)( Jim_GetOptInfo *goi, const Jim_Nvp *loo
  *     e = Jim_GetOpt_Nvp( &goi, cmd_options, &n );
  *     if ( e != JIM_OK ){
  *          // option was not recognized
- *          // pass 'hadprefix=0' because there is no prefix
+ *          // pass 'hadprefix = 0' because there is no prefix
  *          Jim_GetOpt_NvpUnknown( &goi, cmd_options, 0 );
  *          return e;
  *     }

@@ -200,7 +200,7 @@ static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset
 		chksum = OCL_CHKS_INIT;
 
 		/* copy data to DCC buffer in proper byte order and properly aligned */
-		for (i=0; i<runlen; i++)
+		for (i = 0; i<runlen; i++)
 		{
 			switch (byteofs++)
 			{
@@ -332,7 +332,7 @@ static int ocl_probe(struct flash_bank_s *bank)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 	sectsize = bank->size / bank->num_sectors;
-	for (i=0; i<bank->num_sectors; i++)
+	for (i = 0; i<bank->num_sectors; i++)
 	{
 		bank->sectors[i].offset = i * sectsize;
 		bank->sectors[i].size = sectsize;

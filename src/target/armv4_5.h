@@ -154,7 +154,7 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  * Rn: base register
  * List: for each bit in list: store register
  * S: in priviledged mode: store user-mode registers
- * W=1: update the base register. W=0: leave the base register untouched
+ * W = 1: update the base register. W = 0: leave the base register untouched
  */
 #define ARMV4_5_STMIA(Rn, List, S, W)	(0xe8800000 | ((S) << 22) | ((W) << 21) | ((Rn) << 16) | (List))
 
@@ -162,7 +162,7 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
  * Rn: base register
  * List: for each bit in list: store register
  * S: in priviledged mode: store user-mode registers
- * W=1: update the base register. W=0: leave the base register untouched
+ * W = 1: update the base register. W = 0: leave the base register untouched
  */
 #define ARMV4_5_LDMIA(Rn, List, S, W)	(0xe8900000 | ((S) << 22) | ((W) << 21) | ((Rn) << 16) | (List))
 
@@ -170,7 +170,7 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
 #define ARMV4_5_NOP					(0xe1a08008)
 
 /* Move PSR to general purpose register
- * R=1: SPSR R=0: CPSR
+ * R = 1: SPSR R = 0: CPSR
  * Rn: target register
  */
 #define ARMV4_5_MRS(Rn, R)			(0xe10f0000 | ((R) << 22) | ((Rn) << 12))
@@ -188,7 +188,7 @@ extern int armv4_5_invalidate_core_regs(target_t *target);
 #define ARMV4_5_LDR(Rd, Rn)			(0xe5900000 | ((Rd) << 12) | ((Rn) << 16))
 
 /* Move general purpose register to PSR
- * R=1: SPSR R=0: CPSR
+ * R = 1: SPSR R = 0: CPSR
  * Field: Field mask
  * 1: control field 2: extension field 4: status field 8: flags field
  * Rm: source register

@@ -344,7 +344,7 @@ static int parport_init(void)
 	LOG_DEBUG("...open");
 
 #if !defined(__FreeBSD__) && !defined(__FreeBSD_kernel__)
-	i=ioctl(device_handle, PPCLAIM);
+	i = ioctl(device_handle, PPCLAIM);
 	if (i<0)
 	{
 		LOG_ERROR("cannot claim device");

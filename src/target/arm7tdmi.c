@@ -216,9 +216,9 @@ int arm7tdmi_clock_data_in(arm_jtag_t *jtag_info, uint32_t *in)
 
 void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip)
 {
-	uint32_t readback=le_to_h_u32(tmp);
+	uint32_t readback = le_to_h_u32(tmp);
 	if (flip)
-		readback=flip_u32(readback, 32);
+		readback = flip_u32(readback, 32);
 	switch (size)
 	{
 		case 4:
@@ -247,7 +247,7 @@ void arm_endianness(uint8_t *tmp, void *in, int size, int be, int flip)
 
 static int arm7endianness(jtag_callback_data_t arg, jtag_callback_data_t size, jtag_callback_data_t be, jtag_callback_data_t captured)
 {
-  uint8_t *in=(uint8_t *)arg;
+  uint8_t *in = (uint8_t *)arg;
 	arm_endianness((uint8_t *)captured, in, (int)size, (int)be, 1);
 	return ERROR_OK;
 }
@@ -724,7 +724,7 @@ int arm7tdmi_examine(struct target_s *target)
 	{
 		/* get pointers to arch-specific information */
 		reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
-		reg_cache_t *t=embeddedice_build_reg_cache(target, arm7_9);
+		reg_cache_t *t = embeddedice_build_reg_cache(target, arm7_9);
 		if (t == NULL)
 			return ERROR_FAIL;
 
@@ -739,13 +739,13 @@ int arm7tdmi_examine(struct target_s *target)
 		}
 		target_set_examined(target);
 	}
-	if ((retval=embeddedice_setup(target)) != ERROR_OK)
+	if ((retval = embeddedice_setup(target)) != ERROR_OK)
 		return retval;
-	if ((retval=arm7_9_setup(target)) != ERROR_OK)
+	if ((retval = arm7_9_setup(target)) != ERROR_OK)
 		return retval;
 	if (arm7_9->etm_ctx)
 	{
-		if ((retval=etm_setup(target)) != ERROR_OK)
+		if ((retval = etm_setup(target)) != ERROR_OK)
 			return retval;
 	}
 	return ERROR_OK;

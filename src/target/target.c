@@ -1091,7 +1091,7 @@ int target_arch_state(struct target_s *target)
 	if (target->state != TARGET_HALTED)
 		return ERROR_OK;
 
-	retval=target->type->arch_state(target);
+	retval = target->type->arch_state(target);
 	return retval;
 }
 
@@ -1466,8 +1466,8 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 
 	/* script procedures */
 	register_command(cmd_ctx, NULL, "profile", handle_profile_command, COMMAND_EXEC, "profiling samples the CPU PC");
-	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing <ARRAYNAME> <WIDTH=32/16/8> <ADDRESS> <COUNT>");
-	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values  <ARRAYNAME> <WIDTH=32/16/8> <ADDRESS> <COUNT>");
+	register_jim(cmd_ctx, "ocd_mem2array", jim_mem2array, "read memory and return as a TCL array for script processing <ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
+	register_jim(cmd_ctx, "ocd_array2mem", jim_array2mem, "convert a TCL array to memory locations and write the values  <ARRAYNAME> <WIDTH = 32/16/8> <ADDRESS> <COUNT>");
 
 	register_command(cmd_ctx, NULL, "fast_load_image", handle_fast_load_image_command, COMMAND_ANY,
 			"same args as load_image, image stored in memory - mainly for profiling purposes");
@@ -1584,7 +1584,7 @@ static int sense_handler(void)
 	static int prevPowerdropout = 0;
 
 	int retval;
-	if ((retval=jtag_power_dropout(&powerDropout)) != ERROR_OK)
+	if ((retval = jtag_power_dropout(&powerDropout)) != ERROR_OK)
 		return retval;
 
 	int powerRestored;
@@ -1603,7 +1603,7 @@ static int sense_handler(void)
 		lastPower = current;
 	}
 
-	if ((retval=jtag_srst_asserted(&srstAsserted)) != ERROR_OK)
+	if ((retval = jtag_srst_asserted(&srstAsserted)) != ERROR_OK)
 		return retval;
 
 	int srstDeasserted;
@@ -1681,10 +1681,10 @@ int handle_target(void *priv)
 
 		/* clear action flags */
 
-		runSrstAsserted=0;
-		runSrstDeasserted=0;
-		runPowerRestore=0;
-		runPowerDropout=0;
+		runSrstAsserted = 0;
+		runSrstDeasserted = 0;
+		runPowerRestore = 0;
+		runPowerDropout = 0;
 
 		recursive = 0;
 	}
@@ -1904,12 +1904,12 @@ static int handle_wait_halt_command(struct command_context_s *cmd_ctx, char *cmd
 int target_wait_state(target_t *target, enum target_state state, int ms)
 {
 	int retval;
-	long long then=0, cur;
-	int once=1;
+	long long then = 0, cur;
+	int once = 1;
 
 	for (;;)
 	{
-		if ((retval=target_poll(target)) != ERROR_OK)
+		if ((retval = target_poll(target)) != ERROR_OK)
 			return retval;
 		if (target->state == state)
 		{
@@ -1918,7 +1918,7 @@ int target_wait_state(target_t *target, enum target_state state, int ms)
 		cur = timeval_ms();
 		if (once)
 		{
-			once=0;
+			once = 0;
 			then = timeval_ms();
 			LOG_DEBUG("waiting for target %s...",
 				Jim_Nvp_value2name_simple(nvp_target_state,state)->name);
@@ -2070,7 +2070,7 @@ static void handle_md_output(struct command_context_s *cmd_ctx,
 					(unsigned)(address + (i*size)));
 		}
 
-		uint32_t value=0;
+		uint32_t value = 0;
 		const uint8_t *value_ptr = buffer + i * size;
 		switch (size) {
 		case 4: value = target_buffer_get_u32(target, value_ptr); break;
@@ -2274,8 +2274,8 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 			break;
 		}
 
-		uint32_t offset=0;
-		uint32_t length=buf_cnt;
+		uint32_t offset = 0;
+		uint32_t length = buf_cnt;
 
 		/* DANGER!!! beware of unsigned comparision here!!! */
 
@@ -2447,13 +2447,13 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 
 	image.start_address_set = 0;
 
-	if ((retval=image_open(&image, args[0], (argc == 3) ? args[2] : NULL)) != ERROR_OK)
+	if ((retval = image_open(&image, args[0], (argc == 3) ? args[2] : NULL)) != ERROR_OK)
 	{
 		return retval;
 	}
 
 	image_size = 0x0;
-	retval=ERROR_OK;
+	retval = ERROR_OK;
 	for (i = 0; i < image.num_sections; i++)
 	{
 		buffer = malloc(image.sections[i].size);
@@ -2514,7 +2514,7 @@ static int handle_verify_image_command_internal(struct command_context_s *cmd_ct
 										  buffer[t]);
 							free(data);
 							free(buffer);
-							retval=ERROR_FAIL;
+							retval = ERROR_FAIL;
 							goto done;
 						}
 						if ((t%16384) == 0)
@@ -2790,9 +2790,9 @@ static void writeData(FILE *f, const void *data, size_t len)
 static void writeLong(FILE *f, int l)
 {
 	int i;
-	for (i=0; i<4; i++)
+	for (i = 0; i<4; i++)
 	{
-		char c=(l >> (i*8))&0xff;
+		char c = (l >> (i*8))&0xff;
 		writeData(f, &c, 1);
 	}
 
@@ -2807,7 +2807,7 @@ static void writeString(FILE *f, char *s)
 static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 {
 	uint32_t i;
-	FILE *f=fopen(filename, "w");
+	FILE *f = fopen(filename, "w");
 	if (f == NULL)
 		return;
 	writeString(f, "gmon");
@@ -2820,42 +2820,42 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 	writeData(f, &zero, 1);
 
 	/* figure out bucket size */
-	uint32_t min=samples[0];
-	uint32_t max=samples[0];
-	for (i=0; i<sampleNum; i++)
+	uint32_t min = samples[0];
+	uint32_t max = samples[0];
+	for (i = 0; i<sampleNum; i++)
 	{
 		if (min>samples[i])
 		{
-			min=samples[i];
+			min = samples[i];
 		}
 		if (max<samples[i])
 		{
-			max=samples[i];
+			max = samples[i];
 		}
 	}
 
-	int addressSpace=(max-min+1);
+	int addressSpace = (max-min+1);
 
 	static const uint32_t maxBuckets = 256 * 1024; /* maximum buckets. */
 	uint32_t length = addressSpace;
 	if (length > maxBuckets)
 	{
-		length=maxBuckets;
+		length = maxBuckets;
 	}
-	int *buckets=malloc(sizeof(int)*length);
+	int *buckets = malloc(sizeof(int)*length);
 	if (buckets == NULL)
 	{
 		fclose(f);
 		return;
 	}
 	memset(buckets, 0, sizeof(int)*length);
-	for (i=0; i<sampleNum;i++)
+	for (i = 0; i<sampleNum;i++)
 	{
-		uint32_t address=samples[i];
-		long long a=address-min;
-		long long b=length-1;
-		long long c=addressSpace-1;
-		int index=(a*b)/c; /* danger!!!! int32 overflows */
+		uint32_t address = samples[i];
+		long long a = address-min;
+		long long b = length-1;
+		long long c = addressSpace-1;
+		int index = (a*b)/c; /* danger!!!! int32 overflows */
 		buckets[index]++;
 	}
 
@@ -2865,22 +2865,22 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 	writeLong(f, length);		/* # of samples */
 	writeLong(f, 64000000); 	/* 64MHz */
 	writeString(f, "seconds");
-	for (i=0; i<(15-strlen("seconds")); i++)
+	for (i = 0; i<(15-strlen("seconds")); i++)
 		writeData(f, &zero, 1);
 	writeString(f, "s");
 
 	/*append binary memory gmon.out profile_hist_data (profile_hist_data + profile_hist_hdr.hist_size) */
 
-	char *data=malloc(2*length);
+	char *data = malloc(2*length);
 	if (data != NULL)
 	{
-		for (i=0; i<length;i++)
+		for (i = 0; i<length;i++)
 		{
 			int val;
-			val=buckets[i];
+			val = buckets[i];
 			if (val>65535)
 			{
-				val=65535;
+				val = 65535;
 			}
 			data[i*2]=val&0xff;
 			data[i*2+1]=(val >> 8)&0xff;
@@ -2916,12 +2916,12 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 
 	command_print(cmd_ctx, "Starting profiling. Halting and resuming the target as often as we can...");
 
-	static const int maxSample=10000;
-	uint32_t *samples=malloc(sizeof(uint32_t)*maxSample);
+	static const int maxSample = 10000;
+	uint32_t *samples = malloc(sizeof(uint32_t)*maxSample);
 	if (samples == NULL)
 		return ERROR_OK;
 
-	int numSamples=0;
+	int numSamples = 0;
 	/* hopefully it is safe to cache! We want to stop/restart as quickly as possible. */
 	reg_t *reg = register_get_by_name(target->reg_cache, "pc", 1);
 
@@ -2946,7 +2946,7 @@ static int handle_profile_command(struct command_context_s *cmd_ctx, char *cmd, 
 		} else
 		{
 			command_print(cmd_ctx, "Target not halted or running");
-			retval=ERROR_OK;
+			retval = ERROR_OK;
 			break;
 		}
 		if (retval != ERROR_OK)
@@ -4206,7 +4206,7 @@ static int target_create( Jim_GetOptInfo *goi )
 	if (target->tap == NULL)
 	{
 		Jim_SetResultString( interp, "-chain-position required when creating target", -1);
-		e=JIM_ERR;
+		e = JIM_ERR;
 	}
 
 	if ( e != JIM_OK ){
@@ -4389,13 +4389,13 @@ static void free_fastload(void)
 	if (fastload != NULL)
 	{
 		int i;
-		for (i=0; i<fastload_num; i++)
+		for (i = 0; i<fastload_num; i++)
 		{
 			if (fastload[i].data)
 				free(fastload[i].data);
 		}
 		free(fastload);
-		fastload=NULL;
+		fastload = NULL;
 	}
 }
 
@@ -4407,8 +4407,8 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 	uint8_t *buffer;
 	uint32_t buf_cnt;
 	uint32_t image_size;
-	uint32_t min_address=0;
-	uint32_t max_address=0xffffffff;
+	uint32_t min_address = 0;
+	uint32_t max_address = 0xffffffff;
 	int i;
 
 	image_t image;
@@ -4430,8 +4430,8 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 
 	image_size = 0x0;
 	retval = ERROR_OK;
-	fastload_num=image.num_sections;
-	fastload=(struct FastLoad *)malloc(sizeof(struct FastLoad)*image.num_sections);
+	fastload_num = image.num_sections;
+	fastload = (struct FastLoad *)malloc(sizeof(struct FastLoad)*image.num_sections);
 	if (fastload == NULL)
 	{
 		image_close(&image);
@@ -4454,8 +4454,8 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 			break;
 		}
 
-		uint32_t offset=0;
-		uint32_t length=buf_cnt;
+		uint32_t offset = 0;
+		uint32_t length = buf_cnt;
 
 
 		/* DANGER!!! beware of unsigned comparision here!!! */
@@ -4475,15 +4475,15 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 				length -= (image.sections[i].base_address+buf_cnt)-max_address;
 			}
 
-			fastload[i].address=image.sections[i].base_address+offset;
-			fastload[i].data=malloc(length);
+			fastload[i].address = image.sections[i].base_address+offset;
+			fastload[i].data = malloc(length);
 			if (fastload[i].data == NULL)
 			{
 				free(buffer);
 				break;
 			}
 			memcpy(fastload[i].data, buffer+offset, length);
-			fastload[i].length=length;
+			fastload[i].length = length;
 
 			image_size += length;
 			command_print(cmd_ctx, "%u byte written at address 0x%8.8x", 
@@ -4522,10 +4522,10 @@ static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd
 		return ERROR_FAIL;
 	}
 	int i;
-	int ms=timeval_ms();
-	int size=0;
-	int retval=ERROR_OK;
-	for (i=0; i<fastload_num;i++)
+	int ms = timeval_ms();
+	int size = 0;
+	int retval = ERROR_OK;
+	for (i = 0; i<fastload_num;i++)
 	{
 		target_t *target = get_current_target(cmd_ctx);
 		command_print(cmd_ctx, "Write to 0x%08x, length 0x%08x", 
@@ -4537,7 +4537,7 @@ static int handle_fast_load_command(struct command_context_s *cmd_ctx, char *cmd
 		}
 		size += fastload[i].length;
 	}
-	int after=timeval_ms();
+	int after = timeval_ms();
 	command_print(cmd_ctx, "Loaded image %f kBytes/s", (float)(size/1024.0)/((float)(after-ms)/1000.0));
 	return retval;
 }

@@ -366,7 +366,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				LOG_DEBUG("%s %d", op_name, xsdrsize);
 
-				for ( attempt=0; attempt<limit;  ++attempt )
+				for ( attempt = 0; attempt<limit;  ++attempt )
 				{
 					scan_field_t field;
 
@@ -836,7 +836,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				if (limit < 1)
 					limit = 1;
 
-				for ( attempt=0; attempt<limit;  ++attempt )
+				for ( attempt = 0; attempt<limit;  ++attempt )
 				{
 					scan_field_t field;
 
