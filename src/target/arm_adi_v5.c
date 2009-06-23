@@ -81,7 +81,7 @@ int adi_jtag_dp_scan(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr, uin
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
 	/* Add specified number of tck clocks before accessing memory bus */
-	if ((instr == DAP_IR_APACC) && ((reg_addr == AP_REG_DRW)||((reg_addr&0xF0) == AP_REG_BD0) )&& (swjdp->memaccess_tck != 0))
+	if ((instr == DAP_IR_APACC) && ((reg_addr == AP_REG_DRW)||((reg_addr&0xF0) == AP_REG_BD0))&& (swjdp->memaccess_tck != 0))
 		jtag_add_runtest(swjdp->memaccess_tck, jtag_set_end_state(TAP_IDLE));
 
 	fields[0].tap = jtag_info->tap;
@@ -112,7 +112,7 @@ int adi_jtag_dp_scan_u32(swjdp_common_t *swjdp, uint8_t instr, uint8_t reg_addr,
 	arm_jtag_set_instr(jtag_info, instr, NULL);
 
 	/* Add specified number of tck clocks before accessing memory bus */
-	if ((instr == DAP_IR_APACC) && ((reg_addr == AP_REG_DRW)||((reg_addr&0xF0) == AP_REG_BD0) )&& (swjdp->memaccess_tck != 0))
+	if ((instr == DAP_IR_APACC) && ((reg_addr == AP_REG_DRW)||((reg_addr&0xF0) == AP_REG_BD0))&& (swjdp->memaccess_tck != 0))
 		jtag_add_runtest(swjdp->memaccess_tck, jtag_set_end_state(TAP_IDLE));
 
 	fields[0].tap = jtag_info->tap;
@@ -374,13 +374,13 @@ int dap_setup_accessport(swjdp_common_t *swjdp, uint32_t csw, uint32_t tar)
 	if (csw != swjdp->ap_csw_value)
 	{
 		/* LOG_DEBUG("swjdp : Set CSW %x",csw); */
-		dap_ap_write_reg_u32(swjdp, AP_REG_CSW, csw );
+		dap_ap_write_reg_u32(swjdp, AP_REG_CSW, csw);
 		swjdp->ap_csw_value = csw;
 	}
 	if (tar != swjdp->ap_tar_value)
 	{
 		/* LOG_DEBUG("swjdp : Set TAR %x",tar); */
-		dap_ap_write_reg_u32(swjdp, AP_REG_TAR, tar );
+		dap_ap_write_reg_u32(swjdp, AP_REG_TAR, tar);
 		swjdp->ap_tar_value = tar;
 	}
 	if (csw & CSW_ADDRINC_MASK)
@@ -404,7 +404,7 @@ int mem_ap_read_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t *value)
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, address & 0xFFFFFFF0);
-	dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value );
+	dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value);
 
 	return ERROR_OK;
 }
@@ -428,7 +428,7 @@ int mem_ap_write_u32(swjdp_common_t *swjdp, uint32_t address, uint32_t value)
 	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, address & 0xFFFFFFF0);
-	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value );
+	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (address & 0xC), value);
 
 	return ERROR_OK;
 }
@@ -467,7 +467,7 @@ int mem_ap_write_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint
 			uint32_t outvalue;
 			memcpy(&outvalue, pBuffer, sizeof(uint32_t));
 
-			for (i = 0; i < 4; i++ )
+			for (i = 0; i < 4; i++)
 			{
 				*((uint8_t*)pBuffer + (adr & 0x3)) = outvalue;
 				outvalue >>= 8;
@@ -492,7 +492,7 @@ int mem_ap_write_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint
 
 		for (writecount = 0; writecount < blocksize; writecount++)
 		{
-			dap_ap_write_reg(swjdp, AP_REG_DRW, buffer + 4 * writecount );
+			dap_ap_write_reg(swjdp, AP_REG_DRW, buffer + 4 * writecount);
 		}
 
 		if (swjdp_transaction_endcheck(swjdp) == ERROR_OK)
@@ -546,7 +546,7 @@ int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int coun
 		{
 			nbytes = MIN((writecount << 1), 4);
 
-			if (nbytes < 4 )
+			if (nbytes < 4)
 			{
 				if (mem_ap_write_buf_u16(swjdp, buffer, nbytes, address) != ERROR_OK)
 				{
@@ -561,7 +561,7 @@ int mem_ap_write_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int coun
 				uint32_t outvalue;
 				memcpy(&outvalue, buffer, sizeof(uint32_t));
 
-				for (i = 0; i < nbytes; i++ )
+				for (i = 0; i < nbytes; i++)
 				{
 					*((uint8_t*)buffer + (address & 0x3)) = outvalue;
 					outvalue >>= 8;
@@ -602,7 +602,7 @@ int mem_ap_write_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint
 		uint16_t svalue;
 		memcpy(&svalue, buffer, sizeof(uint16_t));
 		uint32_t outvalue = (uint32_t)svalue << 8 * (address & 0x3);
-		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue );
+		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
 		retval = swjdp_transaction_endcheck(swjdp);
 		count -= 2;
 		address += 2;
@@ -638,7 +638,7 @@ int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count
 		{
 			nbytes = MIN(writecount, 4);
 
-			if (nbytes < 4 )
+			if (nbytes < 4)
 			{
 				if (mem_ap_write_buf_u8(swjdp, buffer, nbytes, address) != ERROR_OK)
 				{
@@ -653,7 +653,7 @@ int mem_ap_write_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count
 				uint32_t outvalue;
 				memcpy(&outvalue, buffer, sizeof(uint32_t));
 
-				for (i = 0; i < nbytes; i++ )
+				for (i = 0; i < nbytes; i++)
 				{
 					*((uint8_t*)buffer + (address & 0x3)) = outvalue;
 					outvalue >>= 8;
@@ -692,7 +692,7 @@ int mem_ap_write_buf_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint3
 	{
 		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
 		uint32_t outvalue = (uint32_t)*buffer << 8 * (address & 0x3);
-		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue );
+		dap_ap_write_reg_u32(swjdp, AP_REG_DRW, outvalue);
 		retval = swjdp_transaction_endcheck(swjdp);
 		count--;
 		address++;
@@ -770,7 +770,7 @@ int mem_ap_read_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint3
 			uint32_t data;
 			memcpy(&data, pBuffer, sizeof(uint32_t));
 
-			for (i = 0; i < 4; i++ )
+			for (i = 0; i < 4; i++)
 			{
 				*((uint8_t*)pBuffer) = (data >> 8 * (adr & 0x3));
 				pBuffer++;
@@ -810,7 +810,7 @@ int mem_ap_read_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count
 
 		do
 		{
-			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue );
+			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
 			if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
@@ -819,7 +819,7 @@ int mem_ap_read_buf_packed_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count
 
 			nbytes = MIN((readcount << 1), 4);
 
-			for (i = 0; i < nbytes; i++ )
+			for (i = 0; i < nbytes; i++)
 			{
 				*((uint8_t*)buffer) = (invalue >> 8 * (address & 0x3));
 				buffer++;
@@ -847,11 +847,11 @@ int mem_ap_read_buf_u16(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint3
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_16BIT | CSW_ADDRINC_SINGLE, address);
-		dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue );
+		dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
 		retval = swjdp_transaction_endcheck(swjdp);
 		if (address & 0x1)
 		{
-			for (i = 0; i < 2; i++ )
+			for (i = 0; i < 2; i++)
 			{
 				*((uint8_t*)buffer) = (invalue >> 8 * (address & 0x3));
 				buffer++;
@@ -902,7 +902,7 @@ int mem_ap_read_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count,
 
 		do
 		{
-			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue );
+			dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
 			if (swjdp_transaction_endcheck(swjdp) != ERROR_OK)
 			{
 				LOG_WARNING("Block read error address 0x%" PRIx32 ", count 0x%x", address, count);
@@ -911,7 +911,7 @@ int mem_ap_read_buf_packed_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count,
 
 			nbytes = MIN(readcount, 4);
 
-			for (i = 0; i < nbytes; i++ )
+			for (i = 0; i < nbytes; i++)
 			{
 				*((uint8_t*)buffer) = (invalue >> 8 * (address & 0x3));
 				buffer++;
@@ -939,7 +939,7 @@ int mem_ap_read_buf_u8(swjdp_common_t *swjdp, uint8_t *buffer, int count, uint32
 	while (count > 0)
 	{
 		dap_setup_accessport(swjdp, CSW_8BIT | CSW_ADDRINC_SINGLE, address);
-		dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue );
+		dap_ap_read_reg_u32(swjdp, AP_REG_DRW, &invalue);
 		retval = swjdp_transaction_endcheck(swjdp);
 		*((uint8_t*)buffer) = (invalue >> 8 * (address & 0x3));
 		count--;
@@ -1065,7 +1065,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 		}
 		else
 		{
-			command_print(cmd_ctx, "\tROM table in legacy format" );
+			command_print(cmd_ctx, "\tROM table in legacy format");
 		}
 		/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF0, &cid0);
@@ -1081,7 +1081,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 		}
 		else
 		{
-			command_print(cmd_ctx, "\tMEMTYPE system memory not present. Dedicated debug bus" );
+			command_print(cmd_ctx, "\tMEMTYPE system memory not present. Dedicated debug bus");
 		}
 
 		/* Now we read ROM table entries from dbgbase&0xFFFFF000) | 0x000 until we get 0x00000000 */

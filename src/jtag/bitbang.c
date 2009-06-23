@@ -266,7 +266,7 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_RUNTEST:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, tap_state_name(cmd->cmd.runtest->end_state) );
+				LOG_DEBUG("runtest %i cycles, end in %s", cmd->cmd.runtest->num_cycles, tap_state_name(cmd->cmd.runtest->end_state));
 #endif
 				bitbang_end_state(cmd->cmd.runtest->end_state);
 				bitbang_runtest(cmd->cmd.runtest->num_cycles);
@@ -295,7 +295,7 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_SCAN:
 #ifdef _DEBUG_JTAG_IO_
-				LOG_DEBUG("%s scan end in %s",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", tap_state_name(cmd->cmd.scan->end_state) );
+				LOG_DEBUG("%s scan end in %s",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR", tap_state_name(cmd->cmd.scan->end_state));
 #endif
 				bitbang_end_state(cmd->cmd.scan->end_state);
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);

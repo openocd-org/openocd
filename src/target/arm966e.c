@@ -110,7 +110,7 @@ int arm966e_init_arch_info(target_t *target, arm966e_common_t *arm966e, jtag_tap
 	return ERROR_OK;
 }
 
-int arm966e_target_create(struct target_s *target, Jim_Interp *interp )
+int arm966e_target_create(struct target_s *target, Jim_Interp *interp)
 {
 	arm966e_common_t *arm966e = calloc(1,sizeof(arm966e_common_t));
 

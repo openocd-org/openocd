@@ -144,7 +144,7 @@ extern int armv7m_blank_check_memory(struct target_s *target, uint32_t address, 
  * Rd: source register
  * SYSm: destination special register
  */
-#define ARMV7M_T_MSR(SYSm, Rn)	((0xF380 | (Rn << 8 )) | ((0x8800 | SYSm) << 16)) 
+#define ARMV7M_T_MSR(SYSm, Rn)	((0xF380 | (Rn << 8)) | ((0x8800 | SYSm) << 16)) 
 
 /* Change Processor State. The instruction modifies the PRIMASK and FAULTMASK 
  * special-purpose register values  (Thumb mode) 16 bit Thumb2 instruction
@@ -159,7 +159,7 @@ extern int armv7m_blank_check_memory(struct target_s *target, uint32_t address, 
 /* Breakpoint (Thumb mode) v5 onwards
  * Im: immediate value used by debugger
  */
-#define ARMV7M_T_BKPT(Im)	((0xBE00 | Im ) | ((0xBE00 | Im ) << 16))
+#define ARMV7M_T_BKPT(Im)	((0xBE00 | Im) | ((0xBE00 | Im) << 16))
 
 /* Store register (Thumb mode)
  * Rd: source register

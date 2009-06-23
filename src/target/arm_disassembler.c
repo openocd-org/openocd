@@ -762,7 +762,7 @@ int evaluate_mrs_msr(uint32_t opcode, uint32_t address, arm_instruction_t *instr
 					 (opcode & 0x40000) ? "s" : "",
 					 (opcode & 0x80000) ? "f" : "",
 					 ror(immediate, (rotate * 2))
-					);
+);
 		}
 		else /* register variant */
 		{
@@ -774,7 +774,7 @@ int evaluate_mrs_msr(uint32_t opcode, uint32_t address, arm_instruction_t *instr
 					 (opcode & 0x40000) ? "s" : "",
 					 (opcode & 0x80000) ? "f" : "",
 					 Rm
-					);
+);
 		}
 		
 	}
@@ -1200,7 +1200,7 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address, arm_instruction_t *in
 		if ((opcode & 0x0e000000) == 0x0a000000)
 			return evaluate_blx_imm(opcode, address, instruction);
 		
-		/* Extended coprocessor opcode space (ARMv5 and higher )*/
+		/* Extended coprocessor opcode space (ARMv5 and higher)*/
 		/* Coprocessor load/store and double register transfers */
 		if ((opcode & 0x0e000000) == 0x0c000000)
 			return evaluate_ldc_stc_mcrr_mrrc(opcode, address, instruction);

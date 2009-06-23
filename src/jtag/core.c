@@ -505,16 +505,16 @@ int jtag_add_statemove(tap_state_t goal_state)
 
 	LOG_DEBUG("cur_state=%s goal_state=%s",
 		tap_state_name(cur_state),
-		tap_state_name(goal_state) );
+		tap_state_name(goal_state));
 
 
-	if (goal_state == cur_state )
+	if (goal_state == cur_state)
 		;	/* nothing to do */
-	else if (goal_state == TAP_RESET )
+	else if (goal_state == TAP_RESET)
 	{
 		jtag_add_tlr();
 	}
-	else if (tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state) )
+	else if (tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state))
 	{
 		unsigned tms_bits  = tap_get_tms_path(cur_state, goal_state);
 		unsigned tms_count = tap_get_tms_path_len(cur_state, goal_state);
@@ -532,7 +532,7 @@ int jtag_add_statemove(tap_state_t goal_state)
 		jtag_add_pathmove(tms_count, moves);
 	}
 	else if (tap_state_transition(cur_state, true)  == goal_state
-		||   tap_state_transition(cur_state, false) == goal_state )
+		||   tap_state_transition(cur_state, false) == goal_state)
 	{
 		jtag_add_pathmove(1, &goal_state);
 	}
@@ -868,7 +868,7 @@ static void jtag_examine_chain_display(enum log_levels level, const char *msg,
 				  (unsigned int)idcode,
 				  (unsigned int)EXTRACT_MFG(idcode), 
 				  (unsigned int)EXTRACT_PART(idcode), 
-				  (unsigned int)EXTRACT_VER(idcode) );
+				  (unsigned int)EXTRACT_VER(idcode));
 }
 
 static bool jtag_idcode_is_final(uint32_t idcode)
@@ -1026,7 +1026,7 @@ int jtag_validate_chain(void)
 	total_ir_length = 0;
 	for (;;){
 		tap = jtag_tap_next_enabled(tap);
-		if (tap == NULL ){
+		if (tap == NULL){
 			break;
 		}
 		total_ir_length += tap->ir_length;
@@ -1050,7 +1050,7 @@ int jtag_validate_chain(void)
 	int val;
 	for (;;){
 		tap = jtag_tap_next_enabled(tap);
-		if (tap == NULL ){
+		if (tap == NULL){
 			break;
 		}
 
@@ -1151,7 +1151,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	LOG_DEBUG("Init JTAG chain");
 
 	tap = jtag_tap_next_enabled(NULL);
-	if (tap == NULL ){
+	if (tap == NULL){
 		LOG_ERROR("There are no enabled taps?");
 		return ERROR_JTAG_INIT_FAILED;
 	}

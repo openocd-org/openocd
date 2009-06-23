@@ -80,7 +80,7 @@ int buf_cmp(const uint8_t *buf1, const uint8_t *buf2, int size)
 	{
 		/* last byte */
 		/* mask out bits that don't really belong to the buffer if size isn't a multiple of 8 bits */
-		if ((size % 8) && (i == num_bytes -1 ))
+		if ((size % 8) && (i == num_bytes -1))
 		{
 			if ((buf1[i] & ((1 << (size % 8)) - 1)) != (buf2[i] & ((1 << (size % 8)) - 1)))
 				return 1;
@@ -104,7 +104,7 @@ int buf_cmp_mask(const uint8_t *buf1, const uint8_t *buf2, const uint8_t *mask, 
 	{
 		/* last byte */
 		/* mask out bits that don't really belong to the buffer if size isn't a multiple of 8 bits */
-		if ((size % 8) && (i == num_bytes -1 ))
+		if ((size % 8) && (i == num_bytes -1))
 		{
 			if ((buf1[i] & ((1 << (size % 8)) - 1) & mask[i]) !=
 				(buf2[i] & ((1 << (size % 8)) - 1) & mask[i]))

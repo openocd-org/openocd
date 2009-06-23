@@ -418,7 +418,7 @@ int interface_jtag_add_runtest(int num_cycles, tap_state_t state)
 	return ERROR_OK;
 }
 
-int interface_jtag_add_clocks(int num_cycles )
+int interface_jtag_add_clocks(int num_cycles)
 {
 	/* allocate memory for a new list member */
 	jtag_command_t * cmd = cmd_queue_alloc(sizeof(jtag_command_t));

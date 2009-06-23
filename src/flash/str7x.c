@@ -634,7 +634,7 @@ static int str7x_handle_part_id_command(struct command_context_s *cmd_ctx, char 
 
 static int str7x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
-	snprintf(buf, buf_size, "str7x flash driver info" );
+	snprintf(buf, buf_size, "str7x flash driver info");
 	return ERROR_OK;
 }
 

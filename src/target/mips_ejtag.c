@@ -292,7 +292,7 @@ int mips_ejtag_init(mips_ejtag_t *ejtag_info)
 		ejtag_info->impcode & (1 << 16) ? " MIPS16": "",
 		ejtag_info->impcode & (1 << 14) ? " noDMA":  " DMA",
 		ejtag_info->impcode & (1 << 0)  ? " MIPS64": " MIPS32"
-	);
+);
 
 	if ((ejtag_info->impcode & (1 << 14)) == 0)
 		LOG_DEBUG("EJTAG: DMA Access Mode Support Enabled");

@@ -119,7 +119,7 @@ static int register_set_dummy_core_reg(reg_t *reg, uint8_t *buf)
 void register_init_dummy(reg_t *reg)
 {
 	static int dummy_arch_type = -1;
-	if (dummy_arch_type == -1 )
+	if (dummy_arch_type == -1)
 		dummy_arch_type = register_reg_arch_type(register_get_dummy_core_reg, register_set_dummy_core_reg);
 
 	reg->arch_type = dummy_arch_type;

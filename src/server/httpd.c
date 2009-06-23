@@ -111,7 +111,7 @@ static int httpd_Jim_Command_writeform(Jim_Interp *interp, int argc,
 
 	const char *script = alloc_printf("set dummy_val $httppostdata(%s); set dummy_val",
 			name);
-	retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__ );
+	retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__);
 	free((void *) script);
 	if (retcode != JIM_OK)
 		return retcode;
@@ -152,7 +152,7 @@ httpd_Jim_Command_formfetch(Jim_Interp *interp,
 
     const char *script = alloc_printf("set dummy_val $httppostdata(%s); set dummy_val",
     			name);
-    	int retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__ );
+    	int retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__);
     	free((void *) script);
     	if (retcode != JIM_OK)
     	{
@@ -257,7 +257,7 @@ int handle_request(struct MHD_Connection * connection, const char * url)
 
 		const char *script = alloc_printf(
 				"global httpdata; source {%s}; set httpdata", url);
-		retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__ );
+		retcode = Jim_Eval_Named(interp, script, "httpd.c", __LINE__);
 		free((void *) script);
 
 		if (retcode == JIM_ERR)
@@ -415,8 +415,8 @@ static pthread_mutex_t mutex;
 int httpd_start(void)
 {
 	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr );
-	pthread_mutex_init(&mutex, &attr );
+	pthread_mutexattr_init(&attr);
+	pthread_mutex_init(&mutex, &attr);
 
 	int port = 8888;
 	LOG_USER("Launching httpd server on port %d", port);
@@ -446,16 +446,16 @@ int httpd_start(void)
 void httpd_stop(void)
 {
 	MHD_stop_daemon(d);
-	pthread_mutex_destroy(&mutex );
+	pthread_mutex_destroy(&mutex);
 }
 
 void openocd_sleep_prelude(void)
 {
-	pthread_mutex_unlock(&mutex );
+	pthread_mutex_unlock(&mutex);
 }
 
 void openocd_sleep_postlude(void)
 {
-	pthread_mutex_lock(&mutex );
+	pthread_mutex_lock(&mutex);
 }
 

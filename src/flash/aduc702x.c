@@ -399,7 +399,7 @@ static int aduc702x_probe(struct flash_bank_s *bank)
 
 static int aduc702x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
-	snprintf(buf, buf_size, "aduc702x flash driver info" );
+	snprintf(buf, buf_size, "aduc702x flash driver info");
 	return ERROR_OK;
 }
 

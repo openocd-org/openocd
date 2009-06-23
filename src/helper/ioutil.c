@@ -199,7 +199,7 @@ int handle_meminfo_command(struct command_context_s *cmd_ctx, char *cmd, char **
 	}
 	prev = info.fordblks;
 
-	command_print(cmd_ctx, "Available ram:   %d", info.fordblks );
+	command_print(cmd_ctx, "Available ram:   %d", info.fordblks);
 
 	return ERROR_OK;
 }
@@ -325,34 +325,34 @@ void copyfile(char *name2, char *name1)
 
 	fd1 = open(name1, O_WRONLY | O_CREAT, 0664);
 	if (fd1 < 0)
-		SHOW_RESULT(open, fd1 );
+		SHOW_RESULT(open, fd1);
 
 	fd2 = open(name2, O_RDONLY);
 	if (fd2 < 0)
-		SHOW_RESULT(open, fd2 );
+		SHOW_RESULT(open, fd2);
 
 	for (;;)
 	{
-		done = read(fd2, buf, IOSIZE );
+		done = read(fd2, buf, IOSIZE);
 		if (done < 0)
 		{
-			SHOW_RESULT(read, done );
+			SHOW_RESULT(read, done);
 			break;
 		}
 
-        if (done == 0 ) break;
+        if (done == 0) break;
 
 		wrote = write(fd1, buf, done);
-        if (wrote != done ) SHOW_RESULT(write, wrote );
+        if (wrote != done) SHOW_RESULT(write, wrote);
 
-        if (wrote != done ) break;
+        if (wrote != done) break;
 	}
 
 	err = close(fd1);
-    if (err < 0 ) SHOW_RESULT(close, err );
+    if (err < 0) SHOW_RESULT(close, err);
 
 	err = close(fd2);
-    if (err < 0 ) SHOW_RESULT(close, err );
+    if (err < 0) SHOW_RESULT(close, err);
 
 }
 
@@ -372,7 +372,7 @@ void copydir(char *name, char *destdir)
 	}
 
 	dirp = opendir(name);
-    if (dirp == NULL ) SHOW_RESULT(opendir, -1 );
+    if (dirp == NULL) SHOW_RESULT(opendir, -1);
 
 	for (;;)
 	{
@@ -421,7 +421,7 @@ void copydir(char *name, char *destdir)
 	}
 
 	err = closedir(dirp);
-    if (err < 0 ) SHOW_RESULT(stat, err );
+    if (err < 0) SHOW_RESULT(stat, err);
 }
 
 

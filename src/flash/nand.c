@@ -736,7 +736,7 @@ static int nand_read_plain(struct nand_device_s *device, uint32_t address, uint8
 
 	page = malloc(device->page_size);
 
-	while (data_size > 0 )
+	while (data_size > 0)
 	{
 		uint32_t thisrun_size = (data_size > device->page_size) ? device->page_size : data_size;
 		uint32_t page_address;
@@ -773,7 +773,7 @@ static int nand_write_plain(struct nand_device_s *device, uint32_t address, uint
 
 	page = malloc(device->page_size);
 
-	while (data_size > 0 )
+	while (data_size > 0)
 	{
 		uint32_t thisrun_size = (data_size > device->page_size) ? device->page_size : data_size;
 		uint32_t page_address;

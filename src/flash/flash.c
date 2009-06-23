@@ -793,7 +793,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 
 	for (wrote = 0; wrote < (count*wordsize); wrote += cur_size)
 	{
-		cur_size = MIN((count*wordsize - wrote), sizeof(chunk) );
+		cur_size = MIN((count*wordsize - wrote), sizeof(chunk));
 		flash_bank_t *bank;
 		bank = get_flash_bank_by_addr(target, address);
 		if (bank == NULL)
@@ -994,7 +994,7 @@ int flash_erase_address_range(target_t *target, uint32_t addr, uint32_t length)
 		}
 	}
 
-	if (first == -1 || last == -1 )
+	if (first == -1 || last == -1)
 		return ERROR_OK;
 
 	return flash_driver_erase(c, first, last);
@@ -1076,7 +1076,7 @@ int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
 			run_size += pad_bytes;
 			padding[section_last] = 0;
 
-			LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes );
+			LOG_INFO("Padding image section %d with %d bytes", section_last-1, pad_bytes);
 		}
 
 		/* fit the run into bank constraints */
@@ -1127,7 +1127,7 @@ int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
 		if (erase)
 		{
 			/* calculate and erase sectors */
-			retval = flash_erase_address_range(target, run_address, run_size );
+			retval = flash_erase_address_range(target, run_address, run_size);
 		}
 
 		if (retval == ERROR_OK)

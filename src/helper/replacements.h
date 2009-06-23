@@ -161,7 +161,7 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 #endif  /* _WIN32 */
 
 /* generic socket functions for Windows and Posix */
-static __inline int write_socket(int handle, const void *buffer, unsigned int count )
+static __inline int write_socket(int handle, const void *buffer, unsigned int count)
 {
 #ifdef _WIN32
 	return send(handle, buffer, count, 0);
@@ -170,7 +170,7 @@ static __inline int write_socket(int handle, const void *buffer, unsigned int co
 #endif
 }
 
-static __inline int read_socket(int handle, void *buffer, unsigned int count )
+static __inline int read_socket(int handle, void *buffer, unsigned int count)
 {
 #ifdef _WIN32
 	return recv(handle, buffer, count, 0);
@@ -192,7 +192,7 @@ static __inline void socket_nonblock(int fd)
 {
 #ifdef _WIN32
 	unsigned long nonblock = 1;
-	ioctlsocket(fd, FIONBIO, &nonblock );
+	ioctlsocket(fd, FIONBIO, &nonblock);
 #else
 	int oldopts = fcntl(fd, F_GETFL, 0);
 	fcntl(fd, F_SETFL, oldopts | O_NONBLOCK);

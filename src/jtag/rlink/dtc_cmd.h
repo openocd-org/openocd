@@ -41,11 +41,11 @@
 
 #define DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(tms, tdi, tdo)	((0x8 << 4) | (\
 		(tms) ? (1 << 0) : 0	\
-	) | (\
+) | (\
 		(tdi) ? (1 << 1) : 0	\
-	) | (\
+) | (\
 		(tdo) ? (1 << 3) : 0	\
-	))
+))
 /* Single bit shift. */
 /* tms and tdi are the levels shifted out on TMS and TDI, respectively. */
 /* tdo indicates whether a byte will be returned in the reply buffer with its least significant bit set to reflect TDO */

@@ -187,7 +187,7 @@ static void at91sam7_read_clock_info(flash_bank_t *bank)
 	}
 
 	/* Prescaler adjust */
-	if ((((mckr & PMC_MCKR_PRES) >> 2) == 7) || (tmp == 0) )
+	if ((((mckr & PMC_MCKR_PRES) >> 2) == 7) || (tmp == 0))
 	{
 		at91sam7_info->mck_valid = 0;
 		at91sam7_info->mck_freq = 0;
@@ -613,7 +613,7 @@ static int at91sam7_read_part_info(struct flash_bank_s *bank)
 		at91sam7_protect_check(t_bank);
 	}
 
-	LOG_DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x", at91sam7_info->cidr_nvptyp, at91sam7_info->cidr_arch );
+	LOG_DEBUG("nvptyp: 0x%3.3x, arch: 0x%4.4x", at91sam7_info->cidr_nvptyp, at91sam7_info->cidr_arch);
 
 	return ERROR_OK;
 }

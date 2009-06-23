@@ -281,7 +281,7 @@ static int eCosBoard_erase(ecosflash_flash_bank_t *info, uint32_t address, uint3
 			0,
 			&flashErr,
 			timeout
-			);
+);
 	if (retval != ERROR_OK)
 		return retval;
 

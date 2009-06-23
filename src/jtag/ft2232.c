@@ -1588,7 +1588,7 @@ static int ft2232_execute_pathmove(jtag_command_t *cmd)
 	DEBUG_JTAG_IO("pathmove: %i states, current: %s  end: %s", num_states,
 			tap_state_name(tap_get_state()),
 			tap_state_name(path[num_states-1])
-			);
+);
 
 	/* only send the maximum buffer size that FT2232C can handle */
 	predicted_size = 3 * CEIL(num_states, 7);

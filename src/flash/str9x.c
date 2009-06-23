@@ -305,7 +305,7 @@ static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 			{
 				return retval;
 			}
-			if (status & 0x80 )
+			if (status & 0x80)
 				break;
 			alive_sleep(1);
 		}
@@ -327,7 +327,7 @@ static int str9x_erase(struct flash_bank_s *bank, int first, int last)
 			return retval;
 		}
 
-		if (status & 0x22 )
+		if (status & 0x22)
 		{
 			LOG_ERROR("error erasing flash bank, status: 0x%x", status);
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -365,7 +365,7 @@ static int str9x_protect(struct flash_bank_s *bank,
 		adr = bank->base + bank->sectors[i].offset;
 
 		target_write_u16(target, adr, 0x60);
-		if (set )
+		if (set)
 			target_write_u16(target, adr, 0x01);
 		else
 			target_write_u16(target, adr, 0xD0);
@@ -578,7 +578,7 @@ static int str9x_write(struct flash_bank_s *bank,
 		for (timeout = 0; timeout < 1000; timeout++)
 		{
 			target_read_u8(target, bank_adr, &status);
-			if (status & 0x80 )
+			if (status & 0x80)
 				break;
 			alive_sleep(1);
 		}
@@ -627,7 +627,7 @@ static int str9x_write(struct flash_bank_s *bank,
 		for (timeout = 0; timeout < 1000; timeout++)
 		{
 			target_read_u8(target, bank_adr, &status);
-			if (status & 0x80 )
+			if (status & 0x80)
 				break;
 			alive_sleep(1);
 		}
@@ -665,7 +665,7 @@ static int str9x_handle_part_id_command(struct command_context_s *cmd_ctx,
 
 static int str9x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
-	snprintf(buf, buf_size, "str9x flash driver info" );
+	snprintf(buf, buf_size, "str9x flash driver info");
 	return ERROR_OK;
 }
 

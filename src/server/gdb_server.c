@@ -319,9 +319,9 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			break;
 		if ((retval = gdb_get_char(connection, &reply)) != ERROR_OK)
 			return retval;
-		if (reply == '$' ){
+		if (reply == '$'){
 			/* fix a problem with some IAR tools */
-			gdb_putback_char(connection, reply );
+			gdb_putback_char(connection, reply);
 			LOG_DEBUG("Unexpected start of new packet");
 			break;
 		}
@@ -402,9 +402,9 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 				log_remove_callback(gdb_log_callback, connection);
 				LOG_WARNING("negative reply, retrying");
 			}
-			else if (reply == '$' ){
+			else if (reply == '$'){
 				LOG_ERROR("GDB missing ack(1) - assumed good");
-				gdb_putback_char(connection, reply );
+				gdb_putback_char(connection, reply);
 				return ERROR_OK;
 			} else {
 
@@ -413,9 +413,9 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 				return ERROR_SERVER_REMOTE_CLOSED;
 			}
 		}
-		else if (reply == '$' ){
+		else if (reply == '$'){
 			LOG_ERROR("GDB missing ack(2) - assumed good");
-			gdb_putback_char(connection, reply );
+			gdb_putback_char(connection, reply);
 			return ERROR_OK;
 		}
 		else
@@ -709,7 +709,7 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 	int retval;
 	connection_t *connection = priv;
 
-	target_handle_event(target, event );
+	target_handle_event(target, event);
 	switch (event)
 	{
 		case TARGET_EVENT_EARLY_HALTED:
@@ -719,7 +719,7 @@ int gdb_target_callback_event_handler(struct target_s *target, enum target_event
 			target_call_event_callbacks(target, TARGET_EVENT_GDB_END);
 			break;
 		case TARGET_EVENT_GDB_FLASH_ERASE_START:
-			target_handle_event(target, TARGET_EVENT_OLD_gdb_program_config );
+			target_handle_event(target, TARGET_EVENT_OLD_gdb_program_config);
 			if ((retval = jtag_execute_queue()) != ERROR_OK)
 			{
 				return retval;
@@ -800,7 +800,7 @@ int gdb_new_connection(connection_t *connection)
 	 */
 	if (initial_ack != '+')
 		gdb_putback_char(connection, initial_ack);
-	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_ATTACH );
+	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_ATTACH);
 
 	gdb_actual_connections++;
 
@@ -839,7 +839,7 @@ int gdb_connection_closed(connection_t *connection)
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_END);
 	log_remove_callback(gdb_log_callback, connection);
 
-	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH );
+	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH);
 
 	return ERROR_OK;
 }
@@ -847,7 +847,7 @@ int gdb_connection_closed(connection_t *connection)
 void gdb_send_error(connection_t *connection, uint8_t the_error)
 {
 	char err[4];
-	snprintf(err, 4, "E%2.2X", the_error );
+	snprintf(err, 4, "E%2.2X", the_error);
 	gdb_put_packet(connection, err, 3);
 }
 
@@ -1360,7 +1360,7 @@ int gdb_step_continue_packet(connection_t *connection, target_t *target, char *p
 	if (packet[0] == 'c')
 	{
 		LOG_DEBUG("continue");
-		target_handle_event(target, TARGET_EVENT_OLD_pre_resume );
+		target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
 		retval = target_resume(target, current, address, 0, 0); /* resume at current address, don't handle breakpoints, not debugging */
 	}
 	else if (packet[0] == 's')
@@ -1872,7 +1872,7 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 
 		/* perform any target specific operations before the erase */
 		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_ERASE_START);
-		result = flash_erase_address_range(gdb_service->target, addr, length );
+		result = flash_erase_address_range(gdb_service->target, addr, length);
 		target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_FLASH_ERASE_END);
 
 		/* perform erase */
@@ -1964,10 +1964,10 @@ int gdb_v_packet(connection_t *connection, target_t *target, char *packet, int p
 int gdb_detach(connection_t *connection, target_t *target)
 {
 
-	switch (detach_mode )
+	switch (detach_mode)
 	{
 		case GDB_DETACH_RESUME:
-			target_handle_event(target, TARGET_EVENT_OLD_pre_resume );
+			target_handle_event(target, TARGET_EVENT_OLD_pre_resume);
 			target_resume(target, 1, 0, 1, 0);
 			break;
 
@@ -2036,18 +2036,18 @@ int gdb_input_inner(connection_t *connection)
 		/* terminate with zero */
 		packet[packet_size] = 0;
 
-		if (LOG_LEVEL_IS(LOG_LVL_DEBUG ) ){
-			if (packet[0] == 'X' ){
+		if (LOG_LEVEL_IS(LOG_LVL_DEBUG)){
+			if (packet[0] == 'X'){
 				// binary packets spew junk into the debug log stream
 				char buf[ 50 ];
 				int x;
-				for (x = 0 ; (x < 49) && (packet[x] != ':') ; x++ ){
+				for (x = 0 ; (x < 49) && (packet[x] != ':') ; x++){
 					buf[x] = packet[x];
 				}
 				buf[x] = 0;
-				LOG_DEBUG("received packet: '%s:<binary-data>'", buf );
+				LOG_DEBUG("received packet: '%s:<binary-data>'", buf);
 			} else {
-				LOG_DEBUG("received packet: '%s'", packet );
+				LOG_DEBUG("received packet: '%s'", packet);
 			}
 		}
 

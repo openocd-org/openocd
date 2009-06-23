@@ -109,11 +109,11 @@ int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp, uint32_t *value, i
 
 	/* mem_ap_write_u32(swjdp, DCB_DCRSR, regnum); */
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
-	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum );
+	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum);
 
 	/* mem_ap_read_u32(swjdp, DCB_DCRDR, value); */
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
-	dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value );
+	dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
 
 	mem_ap_write_u32(swjdp, DCB_DCRDR, dcrdr);
 	retval = swjdp_transaction_endcheck(swjdp);
@@ -134,11 +134,11 @@ int cortexm3_dap_write_coreregister_u32(swjdp_common_t *swjdp, uint32_t value, i
 
 	/* mem_ap_write_u32(swjdp, DCB_DCRDR, core_regs[i]); */
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
-	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value );
+	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
 
-	/* mem_ap_write_u32(swjdp, DCB_DCRSR, i | DCRSR_WnR	); */
+	/* mem_ap_write_u32(swjdp, DCB_DCRSR, i | DCRSR_WnR); */
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
-	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR );
+	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR);
 
 	mem_ap_write_u32(swjdp, DCB_DCRDR, dcrdr);
 	retval = swjdp_transaction_endcheck(swjdp);
@@ -204,7 +204,7 @@ int cortex_m3_single_step_core(target_t *target)
 	return ERROR_OK;
 }
 
-int cortex_m3_exec_opcode(target_t *target,uint32_t opcode, int len /* MODE, r0_invalue, &r0_outvalue */ )
+int cortex_m3_exec_opcode(target_t *target,uint32_t opcode, int len /* MODE, r0_invalue, &r0_outvalue */)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
@@ -444,7 +444,7 @@ int cortex_m3_debug_entry(target_t *target)
 	LOG_DEBUG("entered debug state in core mode: %s at PC 0x%" PRIx32 ", target->state: %s",
 		armv7m_mode_strings[armv7m->core_mode],
 		*(uint32_t*)(armv7m->core_cache->reg_list[15].value),
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name);
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
 
 	if (armv7m->post_debug_entry)
 		armv7m->post_debug_entry(target);
@@ -520,7 +520,7 @@ int cortex_m3_poll(target_t *target)
 #if 0
 	/* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
 	mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name );
+	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
 #endif
 
 	return ERROR_OK;
@@ -529,7 +529,7 @@ int cortex_m3_poll(target_t *target)
 int cortex_m3_halt(target_t *target)
 {
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name);
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
 
 	if (target->state == TARGET_HALTED)
 	{
@@ -751,7 +751,7 @@ int cortex_m3_assert_reset(target_t *target)
 	int assert_srst = 1;
 
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name );
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (!(jtag_reset_config & RESET_HAS_SRST))
@@ -765,7 +765,7 @@ int cortex_m3_assert_reset(target_t *target)
 	if (!(cortex_m3->dcb_dhcsr & C_DEBUGEN))
 		mem_ap_write_u32(swjdp, DCB_DHCSR, DBGKEY | C_DEBUGEN);
 
-	mem_ap_write_u32(swjdp, DCB_DCRDR, 0 );
+	mem_ap_write_u32(swjdp, DCB_DCRDR, 0);
 
 	if (!target->reset_halt)
 	{
@@ -862,7 +862,7 @@ int cortex_m3_assert_reset(target_t *target)
 int cortex_m3_deassert_reset(target_t *target)
 {
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state )->name);
+		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
 
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);

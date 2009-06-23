@@ -123,7 +123,7 @@ static int handle_trace_history_command(struct command_context_s *cmd_ctx, char 
 		uint32_t first = 0;
 		uint32_t last = trace->trace_history_pos;
 
-		if (!trace->trace_history_size ) {
+		if (!trace->trace_history_size) {
 			command_print(cmd_ctx, "trace history buffer is not allocated");
 			return ERROR_OK;
 		}

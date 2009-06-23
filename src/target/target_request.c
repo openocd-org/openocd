@@ -117,8 +117,8 @@ int target_request(target_t *target, uint32_t request)
 {
 	target_req_cmd_t target_req_cmd = request & 0xff;
 
-	if (charmsg_mode ) {
-		target_charmsg(target, target_req_cmd );
+	if (charmsg_mode) {
+		target_charmsg(target, target_req_cmd);
 		return ERROR_OK;
 	}
 	switch (target_req_cmd)
@@ -295,7 +295,7 @@ static int handle_target_request_debugmsgs_command(struct command_context_s *cmd
 	}
 
 	command_print(cmd_ctx, "receiving debug messages from current target %s",
-		      (receiving) ? (charmsg_mode?"charmsg":"enabled") : "disabled" );
+		      (receiving) ? (charmsg_mode?"charmsg":"enabled") : "disabled");
 	return ERROR_OK;
 }
 

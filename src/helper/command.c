@@ -238,7 +238,7 @@ command_t* register_command(command_context_t *context, command_t *parent, char 
 
 	/* we now need to add an overrideable proc */
 	const char *override_name = alloc_printf("proc %s%s%s {args} {if {[catch {eval ocd_%s%s%s $args}]==0} {return \"\"} else { return -code error }", t1, t2, t3, t1, t2, t3);
-	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__ );
+	Jim_Eval_Named(interp, override_name, __THIS__FILE__, __LINE__);
 	free((void *)override_name);
 
 	/* accumulate help text in Tcl helptext list.  */
@@ -348,8 +348,8 @@ int unregister_command(command_context_t *context, char *name)
 
 void command_output_text(command_context_t *context, const char *data)
 {
-	if (context && context->output_handler && data  ){
-		context->output_handler(context, data );
+	if (context && context->output_handler && data){
+		context->output_handler(context, data);
 	}
 }
 
@@ -405,7 +405,7 @@ void command_print(command_context_t *context, const char *format, ...)
 int run_command(command_context_t *context, command_t *c, char *words[], int num_words)
 {
 	int start_word = 0;
-	if (!((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode) ))
+	if (!((context->mode == COMMAND_CONFIG) || (c->mode == COMMAND_ANY) || (c->mode == context->mode)))
 	{
 		/* Config commands can not run after the config stage */
 		LOG_ERROR("Command '%s' only runs during configuration stage", c->name);
@@ -466,7 +466,7 @@ int command_run_line(command_context_t *context, char *line)
 		retcode = Jim_SetAssocData(interp, "retval", NULL, &retval);
 		if (retcode == JIM_OK)
 		{
-			retcode = Jim_Eval_Named(interp, line, __THIS__FILE__, __LINE__ );
+			retcode = Jim_Eval_Named(interp, line, __THIS__FILE__, __LINE__);
 
 			Jim_DeleteAssocData(interp, "retval");
 		}
@@ -673,7 +673,7 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	log_add_callback(tcl_output, tclOutput);
 
-	retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__ );
+	retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__);
 
 	log_remove_callback(tcl_output, tclOutput);
 
@@ -704,7 +704,7 @@ command_context_t* command_init()
 	Jim_RegisterCoreCommands(interp);
 #endif
 
-#if defined(_MSC_VER )
+#if defined(_MSC_VER)
 	/* WinXX - is generic, the forward
 	 * looking problem is this:
 	 *
@@ -715,16 +715,16 @@ command_context_t* command_init()
 	HostOs = "winxx";
 #elif defined(__LINUX__)
 	HostOs = "linux";
-#elif defined(__DARWIN__ )
+#elif defined(__DARWIN__)
 	HostOs = "darwin";
-#elif defined(__CYGWIN__ )
+#elif defined(__CYGWIN__)
 	HostOs = "cygwin";
-#elif defined(__MINGW32__ )
+#elif defined(__MINGW32__)
 	HostOs = "mingw32";
 #else
 	HostOs = "other";
 #endif
-	Jim_SetGlobalVariableStr(interp, "ocd_HOSTOS", Jim_NewStringObj(interp, HostOs , strlen(HostOs)) );
+	Jim_SetGlobalVariableStr(interp, "ocd_HOSTOS", Jim_NewStringObj(interp, HostOs , strlen(HostOs)));
 
 	Jim_CreateCommand(interp, "ocd_find", jim_find, NULL, NULL);
 	Jim_CreateCommand(interp, "echo", jim_echo, NULL, NULL);

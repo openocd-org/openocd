@@ -214,7 +214,7 @@ static uint16_t cfi_query_u16(flash_bank_t *bank, int sector, uint32_t offset)
 		uint8_t i;
 		for (i = 0;i < 2;i++)
 			target_read_memory(target, flash_address(bank, sector, offset + i), bank->bus_width, 1,
-				&data[i*bank->bus_width] );
+				&data[i*bank->bus_width]);
 	}
 	else
 		target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 2, data);
@@ -236,7 +236,7 @@ static uint32_t cfi_query_u32(flash_bank_t *bank, int sector, uint32_t offset)
 		uint8_t i;
 		for (i = 0;i < 4;i++)
 			target_read_memory(target, flash_address(bank, sector, offset + i), bank->bus_width, 1,
-				&data[i*bank->bus_width] );
+				&data[i*bank->bus_width]);
 	}
 	else
 		target_read_memory(target, flash_address(bank, sector, offset), bank->bus_width, 4, data);
@@ -1154,7 +1154,7 @@ static int cfi_intel_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 	/* flash write code */
 	if (!cfi_info->write_algorithm)
 	{
-		if (target_code_size > sizeof(target_code) )
+		if (target_code_size > sizeof(target_code))
 		{
 			LOG_WARNING("Internal error - target code buffer to small. Increase CFI_MAX_INTEL_CODESIZE and recompile.");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -1206,7 +1206,7 @@ static int cfi_intel_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 	busy_pattern_val  = cfi_command_val(bank, 0x80);
 	error_pattern_val = cfi_command_val(bank, 0x7e);
 
-	LOG_INFO("Using target buffer at 0x%08" PRIx32 " and of size 0x%04" PRIx32, source->address, buffer_size );
+	LOG_INFO("Using target buffer at 0x%08" PRIx32 " and of size 0x%04" PRIx32, source->address, buffer_size);
 
 	/* Programming main loop */
 	while (count > 0)
@@ -1227,7 +1227,7 @@ static int cfi_intel_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 		buf_set_u32(reg_params[5].value, 0, 32, busy_pattern_val);
 		buf_set_u32(reg_params[6].value, 0, 32, error_pattern_val);
 
-		LOG_INFO("Write 0x%04" PRIx32 " bytes to flash at 0x%08" PRIx32 , thisrun_count, address );
+		LOG_INFO("Write 0x%04" PRIx32 " bytes to flash at 0x%08" PRIx32 , thisrun_count, address);
 
 		/* Execute algorithm, assume breakpoint for last instruction */
 		retval = target_run_algorithm(target, 0, NULL, 7, reg_params,
@@ -1883,7 +1883,7 @@ int cfi_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint3
 	write_p = address & ~(bank->bus_width - 1);
 	if ((align = address - write_p) != 0)
 	{
-		LOG_INFO("Fixup %d unaligned head bytes", align );
+		LOG_INFO("Fixup %d unaligned head bytes", align);
 
 		for (i = 0; i < bank->bus_width; i++)
 			current_word[i] = 0;
@@ -2029,7 +2029,7 @@ int cfi_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint3
 	/* handle unaligned tail bytes */
 	if (count > 0)
 	{
-		LOG_INFO("Fixup %" PRId32 " unaligned tail bytes", count );
+		LOG_INFO("Fixup %" PRId32 " unaligned tail bytes", count);
 
 		copy_p = write_p;
 		for (i = 0; i < bank->bus_width; i++)

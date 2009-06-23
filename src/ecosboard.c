@@ -257,7 +257,7 @@ MTAB_ENTRY(romfs_mte1,
 		"/rom",
 		"romfs",
 		"",
-		(CYG_ADDRWORD) &filedata[0] );
+		(CYG_ADDRWORD) &filedata[0]);
 #endif
 
 void openocd_sleep_prelude(void)
@@ -1156,7 +1156,7 @@ FSTAB_ENTRY(tftpfs_fste, "tftpfs", 0,
 // 		"romfs",	// FIlesystem type
 // 		"",		// hardware device
 //  (CYG_ADDRWORD) CYGNUM_FS_ROM_BASE_ADDRESS	// Address in ROM
-//           );
+//);
 
 
 // -------------------------------------------------------------------------

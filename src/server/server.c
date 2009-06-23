@@ -528,7 +528,7 @@ int server_quit(void)
 
 #ifdef _WIN32
 	WSACleanup();
-	SetConsoleCtrlHandler(ControlHandler, FALSE );
+	SetConsoleCtrlHandler(ControlHandler, FALSE);
 #endif
 
 	return ERROR_OK;

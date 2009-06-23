@@ -129,16 +129,16 @@ struct target_type_s
 	int (*register_commands)(struct command_context_s *cmd_ctx);
 
 	/* called when target is created */
-	int (*target_create)(struct target_s *target, Jim_Interp *interp );
+	int (*target_create)(struct target_s *target, Jim_Interp *interp);
 
 	/* called for various config parameters */
 	/* returns JIM_CONTINUE - if option not understood */
 	/* otherwise: JIM_OK, or JIM_ERR, */
-	int (*target_jim_configure)(struct target_s *target, Jim_GetOptInfo *goi );
+	int (*target_jim_configure)(struct target_s *target, Jim_GetOptInfo *goi);
 
 	/* target commands specifically handled by the target */
 	/* returns JIM_OK, or JIM_ERR, or JIM_CONTINUE - if option not understood */
-	int (*target_jim_commands)(struct target_s *target, Jim_GetOptInfo *goi );
+	int (*target_jim_commands)(struct target_s *target, Jim_GetOptInfo *goi);
 
 	/* invoked after JTAG chain has been examined & validated. During
 	 * this stage the target is examined and any additional setup is

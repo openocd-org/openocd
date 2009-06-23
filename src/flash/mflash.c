@@ -415,7 +415,7 @@ static int mg_probe_cmd(struct command_context_s *cmd_ctx, char *cmd, char **arg
 
 	if (ret == ERROR_OK) {
 		command_print(cmd_ctx, "mflash (total %" PRIu32 " sectors) found at 0x%8.8" PRIx32 "",
-				mflash_bank->drv_info->tot_sects, mflash_bank->base );
+				mflash_bank->drv_info->tot_sects, mflash_bank->base);
 	}
 
 	return ret;
@@ -429,7 +429,7 @@ static int mg_mflash_do_read_sects(void *buff, uint32_t sect_num, uint32_t sect_
 	uint8_t *buff_ptr = buff;
 	duration_t duration;
 
-	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, mg_io_cmd_read)) != ERROR_OK )
+	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, mg_io_cmd_read)) != ERROR_OK)
 		return ret;
 
 	address = mflash_bank->base + MG_BUFFER_OFFSET;
@@ -502,7 +502,7 @@ static int mg_mflash_do_write_sects(void *buff, uint32_t sect_num, uint32_t sect
 	uint8_t *buff_ptr = buff;
 	duration_t duration;
 
-	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, cmd)) != ERROR_OK )
+	if ((ret = mg_dsk_io_cmd(sect_num, sect_cnt, cmd)) != ERROR_OK)
 		return ret;
 
 	address = mflash_bank->base + MG_BUFFER_OFFSET;

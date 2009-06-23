@@ -378,7 +378,7 @@ static int vsllink_execute_queue(void)
 					break;			/* above stable states are OK */
 				default:
 					 LOG_ERROR("jtag_add_clocks() was called with TAP in non-stable state \"%s\"",
-							 tap_state_name(tap_get_state()) );
+							 tap_state_name(tap_get_state()));
 					 exit(-1);
 				}
 				vsllink_stableclocks(cmd->cmd.stableclocks->num_cycles, scan_size);
@@ -1178,7 +1178,7 @@ static void vsllink_scan_normal(bool ir_scan, enum scan_type type, uint8_t *buff
 	uint8_t bits_left, tms_tmp, tdi_len;
 	int i;
 
-	if (0 == scan_size )
+	if (0 == scan_size)
 	{
 		return;
 	}
@@ -1845,7 +1845,7 @@ static int vsllink_usb_message(vsllink_jtag_t *vsllink_jtag, int out_length, int
 		if (in_length > 0)
 		{
 			result = vsllink_usb_read(vsllink_jtag);
-			if (result == in_length )
+			if (result == in_length)
 			{
 				return result;
 			}

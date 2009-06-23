@@ -323,7 +323,7 @@ static int avrf_probe(struct flash_bank_s *bank)
 		return ERROR_FAIL;
 	}
 
-	LOG_INFO("device id = 0x%08" PRIx32 "", device_id );
+	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 	if (EXTRACT_MFG(device_id) != 0x1F)
 	{
 		LOG_ERROR("0x%" PRIx32 " is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);
@@ -402,7 +402,7 @@ static int avrf_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		return ERROR_FAIL;
 	}
 
-	LOG_INFO("device id = 0x%08" PRIx32 "", device_id );
+	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
 	if (EXTRACT_MFG(device_id) != 0x1F)
 	{
 		LOG_ERROR("0x%" PRIx32 " is invalid Manufacturer for avr, 0x%X is expected", EXTRACT_MFG(device_id), 0x1F);

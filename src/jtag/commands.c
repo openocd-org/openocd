@@ -212,7 +212,7 @@ int jtag_build_buffer(const scan_command_t *cmd, uint8_t **buffer)
 	}
 
 #ifdef _DEBUG_JTAG_IO_
-	//LOG_DEBUG("bit_count totalling: %i",  bit_count );
+	//LOG_DEBUG("bit_count totalling: %i",  bit_count);
 #endif
 
 	return bit_count;

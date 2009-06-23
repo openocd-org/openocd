@@ -40,7 +40,7 @@
  */
 static tap_state_t state_follower = TAP_RESET;
 
-void tap_set_state_impl(tap_state_t new_state )
+void tap_set_state_impl(tap_state_t new_state)
 {
 	/* this is the state we think the TAPs are in now, was cur_state */
 	state_follower = new_state;
@@ -57,7 +57,7 @@ tap_state_t tap_get_state()
  */
 static tap_state_t end_state_follower = TAP_RESET;
 
-void tap_set_end_state(tap_state_t new_end_state )
+void tap_set_end_state(tap_state_t new_end_state)
 {
 	/* this is the state we think the TAPs will be in at completion of the
 	   current TAP operation, was end_state
@@ -71,13 +71,13 @@ tap_state_t tap_get_end_state()
 }
 
 
-int tap_move_ndx(tap_state_t astate )
+int tap_move_ndx(tap_state_t astate)
 {
 	/* given a stable state, return the index into the tms_seqs[] array within tap_get_tms_path() */
 
 	int ndx;
 
-	switch (astate )
+	switch (astate)
 	{
 	case TAP_RESET:		ndx = 0;			break;
 	case TAP_DRSHIFT:	ndx = 2;			break;
@@ -86,7 +86,7 @@ int tap_move_ndx(tap_state_t astate )
 	case TAP_IRSHIFT:	ndx = 4;			break;
 	case TAP_IRPAUSE:	ndx = 5;			break;
 	default:
-		LOG_ERROR("fatal: unstable state \"%s\" used in tap_move_ndx()", tap_state_name(astate) );
+		LOG_ERROR("fatal: unstable state \"%s\" used in tap_move_ndx()", tap_state_name(astate));
 		exit(1);
 	}
 
@@ -193,13 +193,13 @@ typedef const struct tms_sequences tms_table[6][6];
 
 static tms_table *tms_seqs=&short_tms_seqs;
 
-int tap_get_tms_path(tap_state_t from, tap_state_t to )
+int tap_get_tms_path(tap_state_t from, tap_state_t to)
 {
 	return (*tms_seqs)[tap_move_ndx(from)][tap_move_ndx(to)].bits;
 }
 
 
-int tap_get_tms_path_len(tap_state_t from, tap_state_t to )
+int tap_get_tms_path_len(tap_state_t from, tap_state_t to)
 {
 	return (*tms_seqs)[tap_move_ndx(from)][tap_move_ndx(to)].bit_count;
 }
@@ -212,7 +212,7 @@ bool tap_is_state_stable(tap_state_t astate)
 	/*	A switch () is used because it is symbol dependent
 		(not value dependent like an array), and can also check bounds.
 	*/
-	switch (astate )
+	switch (astate)
 	{
 	case TAP_RESET:
 	case TAP_IDLE:
@@ -278,7 +278,7 @@ tap_state_t tap_state_transition(tap_state_t cur_state, bool tms)
 			new_state = TAP_IREXIT2;
 			break;
 		default:
-			LOG_ERROR("fatal: invalid argument cur_state=%d", cur_state );
+			LOG_ERROR("fatal: invalid argument cur_state=%d", cur_state);
 			exit(1);
 			break;
 		}
@@ -318,7 +318,7 @@ tap_state_t tap_state_transition(tap_state_t cur_state, bool tms)
 			new_state = TAP_IRPAUSE;
 			break;
 		default:
-			LOG_ERROR("fatal: invalid argument cur_state=%d", cur_state );
+			LOG_ERROR("fatal: invalid argument cur_state=%d", cur_state);
 			exit(1);
 			break;
 		}
@@ -331,7 +331,7 @@ const char* tap_state_name(tap_state_t state)
 {
 	const char* ret;
 
-	switch (state )
+	switch (state)
 	{
 	case TAP_RESET:		ret = "RESET";			break;
 	case TAP_IDLE:		ret = "RUN/IDLE";		break;
@@ -359,9 +359,9 @@ tap_state_t tap_state_by_name(const char *name)
 {
 	tap_state_t x;
 
-	for (x = 0 ; x < TAP_NUM_STATES ; x++ ){
+	for (x = 0 ; x < TAP_NUM_STATES ; x++){
 		/* be nice to the human */
-		if (0 == strcasecmp(name, tap_state_name(x) ) ){
+		if (0 == strcasecmp(name, tap_state_name(x))){
 			return x;
 		}
 	}
