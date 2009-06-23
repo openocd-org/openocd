@@ -302,7 +302,7 @@ int mips32_pracc_read_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
 		MIPS32_LW(9,0,8),									/* $9 = mem[$8]; read addr */
-		MIPS32_LW(10,4,8),									/* $10 = mem[$8+4]; read count */
+		MIPS32_LW(10,4,8),									/* $10 = mem[$8 + 4]; read count */
 		MIPS32_LUI(11,UPPER16(MIPS32_PRACC_PARAM_OUT)), 	/* $11 = MIPS32_PRACC_PARAM_OUT */
 		MIPS32_ORI(11,11,LOWER16(MIPS32_PRACC_PARAM_OUT)),
 		MIPS32_NOP,
@@ -410,7 +410,7 @@ int mips32_pracc_read_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)),		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
 		MIPS32_LW(9,0,8),									/* $9 = mem[$8]; read addr */
-		MIPS32_LW(10,4,8),									/* $10 = mem[$8+4]; read count */
+		MIPS32_LW(10,4,8),									/* $10 = mem[$8 + 4]; read count */
 		MIPS32_LUI(11,UPPER16(MIPS32_PRACC_PARAM_OUT)),		/* $11 = MIPS32_PRACC_PARAM_OUT */
 		MIPS32_ORI(11,11,LOWER16(MIPS32_PRACC_PARAM_OUT)),
 		MIPS32_NOP,
@@ -489,7 +489,7 @@ int mips32_pracc_read_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, u
 		MIPS32_LUI(8,UPPER16(MIPS32_PRACC_PARAM_IN)), 		/* $8 = MIPS32_PRACC_PARAM_IN */
 		MIPS32_ORI(8,8,LOWER16(MIPS32_PRACC_PARAM_IN)),
 		MIPS32_LW(9,0,8), 									/* $9 = mem[$8]; read addr */
-		MIPS32_LW(10,4,8), 									/* $10 = mem[$8+4]; read count */
+		MIPS32_LW(10,4,8), 									/* $10 = mem[$8 + 4]; read count */
 		MIPS32_LUI(11,UPPER16(MIPS32_PRACC_PARAM_OUT)), 	/* $11 = MIPS32_PRACC_PARAM_OUT */
 		MIPS32_ORI(11,11,LOWER16(MIPS32_PRACC_PARAM_OUT)),
 		MIPS32_NOP,
@@ -608,7 +608,7 @@ int mips32_pracc_write_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 	};
 	
 	/* TODO remove array */
-	uint32_t param_in[count+2];
+	uint32_t param_in[count + 2];
 	param_in[0] = addr;
 	param_in[1] = addr + count * sizeof(uint32_t);	//last address
     
@@ -643,7 +643,7 @@ int mips32_pracc_write_u32(mips_ejtag_t *ejtag_info, uint32_t addr, uint32_t *bu
 	};
 
 	/* TODO remove array */
-	uint32_t param_in[1+1];
+	uint32_t param_in[1 + 1];
 	param_in[0] = addr;
 	param_in[1] = *buf;
 
@@ -697,14 +697,14 @@ int mips32_pracc_write_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 	};
 	
 	/* TODO remove array */
-	uint32_t param_in[count+2];
+	uint32_t param_in[count + 2];
 	int i;
 	param_in[0] = addr;
 	param_in[1] = count;
 	
 	for (i = 0; i < count; i++)
 	{
-		param_in[i+2] = buf[i];
+		param_in[i + 2] = buf[i];
 	}
 	
 	mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \
@@ -757,7 +757,7 @@ int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 	};
 	
 	/* TODO remove array */
-	uint32_t param_in[count+2];
+	uint32_t param_in[count + 2];
 	int retval;
 	int i;
 	param_in[0] = addr;
@@ -765,7 +765,7 @@ int mips32_pracc_write_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 	
 	for (i = 0; i < count; i++)
 	{
-		param_in[i+2] = buf[i];
+		param_in[i + 2] = buf[i];
 	}
 	
 	retval = mips32_pracc_exec(ejtag_info, sizeof(code)/sizeof(code[0]), code, \

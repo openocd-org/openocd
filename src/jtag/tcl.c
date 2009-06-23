@@ -532,7 +532,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 
 	context = Jim_GetAssocData(interp, "context");
 	/* go past the command */
-	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
+	Jim_GetOpt_Setup( &goi, interp, argc-1, argv + 1 );
 
 	e = Jim_GetOpt_Nvp( &goi, jtag_cmds, &n );
 	if ( e != JIM_OK ){
@@ -1286,7 +1286,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		}
 
 		/* Not valid.. are we at the end? */
-		if ( ((i+2) != argc) ){
+		if ( ((i + 2) != argc) ){
 			/* nope, then error */
 			return e;
 		}
@@ -1301,7 +1301,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		/* is it the magic? */
 		if ( 0 == strcmp( "-endstate", cp ) ){
 			/* is the statename valid? */
-			cp = Jim_GetString( args[i+1], NULL );
+			cp = Jim_GetString( args[i + 1], NULL );
 
 			/* see if it is a valid state name */
 			endstate = tap_state_by_name(cp);
@@ -1340,7 +1340,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		const char *str;
 
 		Jim_GetLong(interp, args[i], &bits);
-		str = Jim_GetString(args[i+1], &len);
+		str = Jim_GetString(args[i + 1], &len);
 
 		fields[field_count].tap = tap;
 		fields[field_count].num_bits = bits;
@@ -1387,7 +1387,7 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 {
 	tap_state_t states[8];
 
-	if ((argc < 2) || ((size_t)argc > (sizeof(states)/sizeof(*states)+1)))
+	if ((argc < 2) || ((size_t)argc > (sizeof(states)/sizeof(*states) + 1)))
 	{
 		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
 		return JIM_ERR;
@@ -1399,7 +1399,7 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 	for (i = 0; i<argc-1; i++)
 	{
 		const char *cp;
-		cp = Jim_GetString( args[i+1], NULL );
+		cp = Jim_GetString( args[i + 1], NULL );
 		states[i] = tap_state_by_name(cp);
 		if ( states[i] < 0 )
 		{
@@ -1415,7 +1415,7 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 		return JIM_ERR;
 	}
 
-	jtag_add_pathmove(argc-2, states+1);
+	jtag_add_pathmove(argc-2, states + 1);
 
 	if (jtag_execute_queue()!= ERROR_OK)
 	{

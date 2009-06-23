@@ -82,7 +82,7 @@
 
 ! Set the maximum loop count to 25.
 LCOUNT	25;
-! Step to DRPAUSE give 5 clocks and wait for 1.00e+000 SEC.
+! Step to DRPAUSE give 5 clocks and wait for 1.00e + 000 SEC.
 LDELAY	DRPAUSE	5 TCK	1.00E-003 SEC;
 ! Test for the completed status. Match means pass.
 ! Loop back to LDELAY line if not match and loop count less than 25.
@@ -605,7 +605,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					LOG_DEBUG("XSIR2 %d", bitcount);
 				}
 
-				ir_buf = malloc((bitcount+7) / 8);
+				ir_buf = malloc((bitcount + 7) / 8);
 
 				if (xsvf_read_buffer(bitcount, xsvf_fd, ir_buf) != ERROR_OK)
 					do_abort = 1;

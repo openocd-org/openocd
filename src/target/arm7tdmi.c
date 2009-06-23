@@ -383,7 +383,7 @@ void arm7tdmi_read_core_regs(target_t *target, uint32_t mask, uint32_t* core_reg
 	for (i = 0; i <= 15; i++)
 	{
 		if (mask & (1 << i))
-			/* nothing fetched, STM still in EXECUTE (1+i cycle) */
+			/* nothing fetched, STM still in EXECUTE (1 + i cycle) */
 			arm7tdmi_clock_data_in(jtag_info, core_regs[i]);
 	}
 }
@@ -412,7 +412,7 @@ void arm7tdmi_read_core_regs_target_buffer(target_t *target, uint32_t mask, void
 
 	for (i = 0; i <= 15; i++)
 	{
-		/* nothing fetched, STM still in EXECUTE (1+i cycle), read databus */
+		/* nothing fetched, STM still in EXECUTE (1 + i cycle), read databus */
 		if (mask & (1 << i))
 		{
 			switch (size)
@@ -522,7 +522,7 @@ void arm7tdmi_write_core_regs(target_t *target, uint32_t mask, uint32_t core_reg
 	for (i = 0; i <= 15; i++)
 	{
 		if (mask & (1 << i))
-			/* nothing fetched, LDM still in EXECUTE (1+i cycle) */
+			/* nothing fetched, LDM still in EXECUTE (1 + i cycle) */
 			arm7tdmi_clock_out_inner(jtag_info, core_regs[i], 0);
 	}
 	arm7tdmi_clock_out_inner(jtag_info, ARMV4_5_NOP, 0);

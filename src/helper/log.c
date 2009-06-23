@@ -103,7 +103,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 #ifdef _DEBUG_FREE_SPACE_
 					" %d"
 #endif
-					": %s", log_strings[level+1], count, t, file, line, function,
+					": %s", log_strings[level + 1], count, t, file, line, function,
 #ifdef _DEBUG_FREE_SPACE_
 					info.fordblks,
 #endif
@@ -117,7 +117,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 			{
 				/* print human readable output - but skip empty lines */
 				fprintf(log_output, "%s%s",
-						(level > LOG_LVL_USER)?log_strings[level+1]:"", string);
+						(level > LOG_LVL_USER)?log_strings[level + 1]:"", string);
 			}
 		}
 	} else

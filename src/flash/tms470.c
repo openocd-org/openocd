@@ -593,7 +593,7 @@ static int tms470_flash_initialize_internal_state_machine(struct flash_bank_s *b
 	LOG_DEBUG("set fmmaxpp = 50");
 
 	/*
-	 * MAXCP = 0xf000+2000
+	 * MAXCP = 0xf000 + 2000
 	 */
 	target_write_u32(target, 0xFFE8A084, 0xf000 + 2000);
 	LOG_DEBUG("set fmmaxcp = 0x%04x", 0xf000 + 2000);

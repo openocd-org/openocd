@@ -345,7 +345,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 		if ((size_t)len + 4 <= sizeof(local_buffer))
 		{
 			/* performance gain on smaller packets by only a single call to gdb_write() */
-			memcpy(local_buffer+1, buffer, len++);
+			memcpy(local_buffer + 1, buffer, len++);
 			local_buffer[len++] = '#';
 			local_buffer[len++] = DIGITS[(my_checksum >> 4) & 0xf];
 			local_buffer[len++] = DIGITS[my_checksum & 0xf];
@@ -369,7 +369,7 @@ int gdb_put_packet_inner(connection_t *connection, char *buffer, int len)
 			{
 				return retval;
 			}
-			if ((retval = gdb_write(connection, local_buffer+1, 3)) != ERROR_OK)
+			if ((retval = gdb_write(connection, local_buffer + 1, 3)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -461,7 +461,7 @@ static __inline__ int fetch_packet(connection_t *connection, int *checksum_ok, i
 		 * We need to leave at least 2 bytes in the buffer to have
 		 * gdb_get_char() update various bits and bobs correctly.
 		 */
-		if ((gdb_con->buf_cnt > 2) && ((gdb_con->buf_cnt+count) < *len))
+		if ((gdb_con->buf_cnt > 2) && ((gdb_con->buf_cnt + count) < *len))
 		{
 			/* The compiler will struggle a bit with constant propagation and
 			 * aliasing, so we help it by showing that these values do not
@@ -651,7 +651,7 @@ int gdb_output_con(connection_t *connection, const char* line)
 	hex_buffer[0] = 'O';
 	for (i = 0; i<bin_size; i++)
 		snprintf(hex_buffer + 1 + i*2, 3, "%2.2x", line[i]);
-	hex_buffer[bin_size*2+1] = 0;
+	hex_buffer[bin_size*2 + 1] = 0;
 
 	int retval = gdb_put_packet(connection, hex_buffer, bin_size*2 + 1);
 
@@ -894,7 +894,7 @@ void gdb_str_to_target(target_t *target, char *tstr, reg_t *reg)
 	{
 		int j = gdb_reg_pos(target, i, buf_len);
 		tstr[i*2]   = DIGITS[(buf[j]>>4) & 0xf];
-		tstr[i*2+1] = DIGITS[buf[j]&0xf];
+		tstr[i*2 + 1] = DIGITS[buf[j]&0xf];
 	}
 }
 
@@ -926,7 +926,7 @@ void gdb_target_to_reg(target_t *target, char *tstr, int str_len, uint8_t *bin)
 	for (i = 0; i < str_len; i += 2)
 	{
 		uint8_t t = hextoint(tstr[i]) << 4;
-		t |= hextoint(tstr[i+1]);
+		t |= hextoint(tstr[i + 1]);
 
 		int j = gdb_reg_pos(target, i/2, str_len/2);
 		bin[j] = t;
@@ -1182,7 +1182,7 @@ int gdb_read_memory_packet(connection_t *connection, target_t *target, char *pac
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	len = strtoul(separator+1, NULL, 16);
+	len = strtoul(separator + 1, NULL, 16);
 
 	buffer = malloc(len);
 
@@ -1256,7 +1256,7 @@ int gdb_write_memory_packet(connection_t *connection, target_t *target, char *pa
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	len = strtoul(separator+1, &separator, 16);
+	len = strtoul(separator + 1, &separator, 16);
 
 	if (*(separator++) != ':')
 	{
@@ -1310,7 +1310,7 @@ int gdb_write_memory_binary_packet(connection_t *connection, target_t *target, c
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	len = strtoul(separator+1, &separator, 16);
+	len = strtoul(separator + 1, &separator, 16);
 
 	if (*(separator++) != ':')
 	{
@@ -1408,7 +1408,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	address = strtoul(separator+1, &separator, 16);
+	address = strtoul(separator + 1, &separator, 16);
 
 	if (*separator != ',')
 	{
@@ -1416,7 +1416,7 @@ int gdb_breakpoint_watchpoint_packet(connection_t *connection, target_t *target,
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	size = strtoul(separator+1, &separator, 16);
+	size = strtoul(separator + 1, &separator, 16);
 
 	switch (type)
 	{
@@ -1533,7 +1533,7 @@ static int decode_xfer_read(char *buf, char **annex, int *ofs, unsigned int *len
 	if (*separator != ',')
 		return -1;
 
-	*len = strtoul(separator+1, NULL, 16);
+	*len = strtoul(separator + 1, NULL, 16);
 
 	return 0;
 }
@@ -1736,7 +1736,7 @@ int gdb_query_packet(connection_t *connection, target_t *target, char *packet, i
 				"<property name=\"blocksize\">0x%x</property>\n" \
 				"</memory>\n", \
 				p->base, p->size, blocksize);
-			ram_start = p->base+p->size;
+			ram_start = p->base + p->size;
 		}
 		if (ram_start != 0)
 		{

@@ -218,7 +218,7 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 			tvslice.tv_sec = 0;
 			tvslice.tv_usec = 100000;
 
-			retcode = select(sock_max_fd+1, &aread, &awrite, &aexcept, &tvslice);
+			retcode = select(sock_max_fd + 1, &aread, &awrite, &aexcept, &tvslice);
 		}
 		if (n_handles > 0) {
 			/* check handles */

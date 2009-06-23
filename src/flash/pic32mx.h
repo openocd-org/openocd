@@ -62,9 +62,9 @@ typedef struct pic32mx_flash_bank_s
  * Note: These macros only work for KSEG0/KSEG1 addresses.
  */
 #define KS1Virt2Phys(vaddr)			((vaddr)-0xA0000000)
-#define Phys2KS1Virt(paddr)			((paddr)+0xA0000000)
+#define Phys2KS1Virt(paddr)			((paddr) + 0xA0000000)
 #define KS0Virt2Phys(vaddr)			((vaddr)-0x80000000)
-#define Phys2KS0Virt(paddr)			((paddr)+0x80000000)
+#define Phys2KS0Virt(paddr)			((paddr) + 0x80000000)
 
 /* pic32mx configuration register locations */
 

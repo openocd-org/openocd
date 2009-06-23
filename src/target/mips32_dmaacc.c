@@ -370,7 +370,7 @@ int mips32_dmaacc_read_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 	int	retval;
 
 	for (i = 0; i<count; i++) {
-		if ((retval = ejtag_dma_read(ejtag_info, addr+i*sizeof(*buf), &buf[i])) != ERROR_OK)
+		if ((retval = ejtag_dma_read(ejtag_info, addr + i*sizeof(*buf), &buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -383,7 +383,7 @@ int mips32_dmaacc_read_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 	int retval;
 
 	for (i = 0; i<count; i++) {
-		if ((retval = ejtag_dma_read_h(ejtag_info, addr+i*sizeof(*buf), &buf[i])) != ERROR_OK)
+		if ((retval = ejtag_dma_read_h(ejtag_info, addr + i*sizeof(*buf), &buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -396,7 +396,7 @@ int mips32_dmaacc_read_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count, 
 	int retval;
 
 	for (i = 0; i<count; i++) {
-		if ((retval = ejtag_dma_read_b(ejtag_info, addr+i*sizeof(*buf), &buf[i])) != ERROR_OK)
+		if ((retval = ejtag_dma_read_b(ejtag_info, addr + i*sizeof(*buf), &buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -424,7 +424,7 @@ int mips32_dmaacc_write_mem32(mips_ejtag_t *ejtag_info, uint32_t addr, int count
 	int retval;
 
 	for (i = 0; i<count; i++) {
-		if ((retval = ejtag_dma_write(ejtag_info, addr+i*sizeof(*buf), buf[i])) != ERROR_OK)
+		if ((retval = ejtag_dma_write(ejtag_info, addr + i*sizeof(*buf), buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -437,7 +437,7 @@ int mips32_dmaacc_write_mem16(mips_ejtag_t *ejtag_info, uint32_t addr, int count
 	int retval;
 
 	for (i = 0; i<count; i++) {
-		if ((retval = ejtag_dma_write_h(ejtag_info, addr+i*sizeof(*buf), buf[i])) != ERROR_OK)
+		if ((retval = ejtag_dma_write_h(ejtag_info, addr + i*sizeof(*buf), buf[i])) != ERROR_OK)
 			return retval;
 	}
 
@@ -450,7 +450,7 @@ int mips32_dmaacc_write_mem8(mips_ejtag_t *ejtag_info, uint32_t addr, int count,
 	int retval;
 
 	for (i = 0; i<count; i++) {
-		if ((retval = ejtag_dma_write_b(ejtag_info, addr+i*sizeof(*buf), buf[i])) != ERROR_OK)
+		if ((retval = ejtag_dma_write_b(ejtag_info, addr + i*sizeof(*buf), buf[i])) != ERROR_OK)
 			return retval;
 	}
 

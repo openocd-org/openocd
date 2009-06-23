@@ -204,10 +204,10 @@ static int etb_read_ram(etb_t *etb, uint32_t *data, int num_frames)
 		else
 			buf_set_u32(fields[1].out_value, 0, 7, 0);
 
-		fields[0].in_value = (uint8_t *)(data+i);
+		fields[0].in_value = (uint8_t *)(data + i);
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-		jtag_add_callback(etb_getbuf, (jtag_callback_data_t)(data+i));
+		jtag_add_callback(etb_getbuf, (jtag_callback_data_t)(data + i));
 	}
 
 	jtag_execute_queue();
@@ -550,32 +550,32 @@ static int etb_read_trace(etm_context_t *etm_ctx)
 				etm_ctx->trace_data[j].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
-			/* trace word j+1 */
-			etm_ctx->trace_data[j+1].pipestat = (trace_data[i] & 0x100) >> 8;
-			etm_ctx->trace_data[j+1].packet = (trace_data[i] & 0x7800) >> 11;
-			etm_ctx->trace_data[j+1].flags = 0;
+			/* trace word j + 1 */
+			etm_ctx->trace_data[j + 1].pipestat = (trace_data[i] & 0x100) >> 8;
+			etm_ctx->trace_data[j + 1].packet = (trace_data[i] & 0x7800) >> 11;
+			etm_ctx->trace_data[j + 1].flags = 0;
 			if ((trace_data[i] & 0x8000) >> 15)
 			{
-				etm_ctx->trace_data[j+1].flags |= ETMV1_TRACESYNC_CYCLE;
+				etm_ctx->trace_data[j + 1].flags |= ETMV1_TRACESYNC_CYCLE;
 			}
-			if (etm_ctx->trace_data[j+1].pipestat == STAT_TR)
+			if (etm_ctx->trace_data[j + 1].pipestat == STAT_TR)
 			{
-				etm_ctx->trace_data[j+1].pipestat = etm_ctx->trace_data[j+1].packet & 0x7;
-				etm_ctx->trace_data[j+1].flags |= ETMV1_TRIGGER_CYCLE;
+				etm_ctx->trace_data[j + 1].pipestat = etm_ctx->trace_data[j + 1].packet & 0x7;
+				etm_ctx->trace_data[j + 1].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
-			/* trace word j+2 */
-			etm_ctx->trace_data[j+2].pipestat = (trace_data[i] & 0x10000) >> 16;
-			etm_ctx->trace_data[j+2].packet = (trace_data[i] & 0x780000) >> 19;
-			etm_ctx->trace_data[j+2].flags = 0;
+			/* trace word j + 2 */
+			etm_ctx->trace_data[j + 2].pipestat = (trace_data[i] & 0x10000) >> 16;
+			etm_ctx->trace_data[j + 2].packet = (trace_data[i] & 0x780000) >> 19;
+			etm_ctx->trace_data[j + 2].flags = 0;
 			if ((trace_data[i] & 0x800000) >> 23)
 			{
-				etm_ctx->trace_data[j+2].flags |= ETMV1_TRACESYNC_CYCLE;
+				etm_ctx->trace_data[j + 2].flags |= ETMV1_TRACESYNC_CYCLE;
 			}
-			if (etm_ctx->trace_data[j+2].pipestat == STAT_TR)
+			if (etm_ctx->trace_data[j + 2].pipestat == STAT_TR)
 			{
-				etm_ctx->trace_data[j+2].pipestat = etm_ctx->trace_data[j+2].packet & 0x7;
-				etm_ctx->trace_data[j+2].flags |= ETMV1_TRIGGER_CYCLE;
+				etm_ctx->trace_data[j + 2].pipestat = etm_ctx->trace_data[j + 2].packet & 0x7;
+				etm_ctx->trace_data[j + 2].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
 			j += 3;
@@ -596,18 +596,18 @@ static int etb_read_trace(etm_context_t *etm_ctx)
 				etm_ctx->trace_data[j].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
-			/* trace word j+1 */
-			etm_ctx->trace_data[j+1].pipestat = (trace_data[i] & 0x7000) >> 12;
-			etm_ctx->trace_data[j+1].packet = (trace_data[i] & 0x7f8000) >> 15;
-			etm_ctx->trace_data[j+1].flags = 0;
+			/* trace word j + 1 */
+			etm_ctx->trace_data[j + 1].pipestat = (trace_data[i] & 0x7000) >> 12;
+			etm_ctx->trace_data[j + 1].packet = (trace_data[i] & 0x7f8000) >> 15;
+			etm_ctx->trace_data[j + 1].flags = 0;
 			if ((trace_data[i] & 0x800000) >> 23)
 			{
-				etm_ctx->trace_data[j+1].flags |= ETMV1_TRACESYNC_CYCLE;
+				etm_ctx->trace_data[j + 1].flags |= ETMV1_TRACESYNC_CYCLE;
 			}
-			if (etm_ctx->trace_data[j+1].pipestat == STAT_TR)
+			if (etm_ctx->trace_data[j + 1].pipestat == STAT_TR)
 			{
-				etm_ctx->trace_data[j+1].pipestat = etm_ctx->trace_data[j+1].packet & 0x7;
-				etm_ctx->trace_data[j+1].flags |= ETMV1_TRIGGER_CYCLE;
+				etm_ctx->trace_data[j + 1].pipestat = etm_ctx->trace_data[j + 1].packet & 0x7;
+				etm_ctx->trace_data[j + 1].flags |= ETMV1_TRIGGER_CYCLE;
 			}
 
 			j += 2;

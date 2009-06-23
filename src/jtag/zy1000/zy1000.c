@@ -78,8 +78,8 @@ static bool readPowerDropout(void)
 {
 	cyg_uint32 state;
 	// sample and clear power dropout
-	HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x10, 0x80);
-	HAL_READ_UINT32(ZY1000_JTAG_BASE+0x10, state);
+	HAL_WRITE_UINT32(ZY1000_JTAG_BASE + 0x10, 0x80);
+	HAL_READ_UINT32(ZY1000_JTAG_BASE + 0x10, state);
 	bool powerDropout;
 	powerDropout = (state & 0x80) != 0;
 	return powerDropout;
@@ -90,8 +90,8 @@ static bool readSRST(void)
 {
 	cyg_uint32 state;
 	// sample and clear SRST sensing
-	HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x10, 0x00000040);
-	HAL_READ_UINT32(ZY1000_JTAG_BASE+0x10, state);
+	HAL_WRITE_UINT32(ZY1000_JTAG_BASE + 0x10, 0x00000040);
+	HAL_READ_UINT32(ZY1000_JTAG_BASE + 0x10, state);
 	bool srstAsserted;
 	srstAsserted = (state & 0x40) != 0;
 	return srstAsserted;
@@ -129,35 +129,35 @@ void zy1000_reset(int trst, int srst)
 	LOG_DEBUG("zy1000 trst=%d, srst=%d", trst, srst);
 	if (!srst)
 	{
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x00000001);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x00000001);
 	}
 	else
 	{
 		/* Danger!!! if clk != 0 when in
 		 * idle in TAP_IDLE, reset halt on str912 will fail.
 		 */
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x00000001);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x00000001);
 	}
 
 	if (!trst)
 	{
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x00000002);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x00000002);
 	}
 	else
 	{
 		/* assert reset */
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x00000002);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x00000002);
 	}
 
 	if (trst||(srst && (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
 	{
 		waitIdle();
 		/* we're now in the RESET state until trst is deasserted */
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x20, TAP_RESET);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_RESET);
 	} else
 	{
 		/* We'll get RCLK failure when we assert TRST, so clear any false positives here */
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x400);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x400);
 	}
 
 	/* wait for srst to float back up */
@@ -192,7 +192,7 @@ int zy1000_speed(int speed)
 	{
 		/*0 means RCLK*/
 		speed = 0;
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x100);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x100);
 		LOG_DEBUG("jtag_speed using RCLK");
 	}
 	else
@@ -204,8 +204,8 @@ int zy1000_speed(int speed)
 		}
 
 		LOG_USER("jtag_speed %d => JTAG clk=%f", speed, 64.0/(float)speed);
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x100);
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x1c, speed&~1);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x100);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x1c, speed&~1);
 	}
 	return ERROR_OK;
 }
@@ -218,10 +218,10 @@ static void setPower(bool power)
 	savePower = power;
 	if (power)
 	{
-		HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x14, 0x8);
+		HAL_WRITE_UINT32(ZY1000_JTAG_BASE + 0x14, 0x8);
 	} else
 	{
-		HAL_WRITE_UINT32(ZY1000_JTAG_BASE+0x10, 0x8);
+		HAL_WRITE_UINT32(ZY1000_JTAG_BASE + 0x10, 0x8);
 	}
 }
 
@@ -271,7 +271,7 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 		if (strcmp("openocd", str) == 0)
 		{
 			int revision;
-			revision = atol(ZYLIN_OPENOCD+strlen("XRevision: "));
+			revision = atol(ZYLIN_OPENOCD + strlen("XRevision: "));
 			sprintf(buff, "%d", revision);
 			version_str = buff;
 		}
@@ -307,7 +307,7 @@ zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
 	}
 
 	cyg_uint32 status;
-	ZY1000_PEEK(ZY1000_JTAG_BASE+0x10, status);
+	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, status);
 
 	Jim_SetResult(interp, Jim_NewIntObj(interp, (status&0x80) != 0));
 
@@ -334,7 +334,7 @@ int zy1000_init(void)
 {
 	LOG_USER("%s", ZYLIN_OPENOCD_VERSION);
 
-	ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x30); // Turn on LED1 & LED2
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x10, 0x30); // Turn on LED1 & LED2
 
 	setPower(true); // on by default
 
@@ -359,9 +359,9 @@ int interface_jtag_execute_queue(void)
 	cyg_uint32 empty;
 
 	waitIdle();
-	ZY1000_PEEK(ZY1000_JTAG_BASE+0x10, empty);
+	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty);
 	/* clear JTAG error register */
-	ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x400);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x14, 0x400);
 
 	if ((empty&0x400) != 0)
 	{
@@ -382,7 +382,7 @@ static cyg_uint32 getShiftValue(void)
 {
 	cyg_uint32 value;
 	waitIdle();
-	ZY1000_PEEK(ZY1000_JTAG_BASE+0xc, value);
+	ZY1000_PEEK(ZY1000_JTAG_BASE + 0xc, value);
 	VERBOSE(LOG_INFO("getShiftValue %08x", value));
 	return value;
 }
@@ -391,7 +391,7 @@ static cyg_uint32 getShiftValueFlip(void)
 {
 	cyg_uint32 value;
 	waitIdle();
-	ZY1000_PEEK(ZY1000_JTAG_BASE+0x18, value);
+	ZY1000_PEEK(ZY1000_JTAG_BASE + 0x18, value);
 	VERBOSE(LOG_INFO("getShiftValue %08x (flipped)", value));
 	return value;
 }
@@ -404,8 +404,8 @@ static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endSt
 	cyg_uint32 a,b;
 	a = state;
 	b = endState;
-	ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value);
-	ZY1000_POKE(ZY1000_JTAG_BASE+0x8, (1 << 15)|(repeat << 8)|(a << 4)|b);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (1 << 15)|(repeat << 8)|(a << 4)|b);
 	VERBOSE(getShiftValueFlip());
 }
 #endif
@@ -450,14 +450,14 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 				pause_state = end_state;
 			}
 
-			// we have (num_bits+7)/8 bytes of bits to toggle out.
+			// we have (num_bits + 7)/8 bytes of bits to toggle out.
 			// bits are pushed out LSB to MSB
 			value = 0;
 			if (fields[i].out_value != NULL)
 			{
 				for (l = 0; l<k; l += 8)
 				{
-					value|=fields[i].out_value[(j+l)/8]<<l;
+					value|=fields[i].out_value[(j + l)/8]<<l;
 				}
 			}
 			/* mask away unused bits for easier debugging */
@@ -474,7 +474,7 @@ static __inline void scanFields(int num_fields, const scan_field_t *fields, tap_
 
 				for (l = 0; l<k; l += 8)
 				{
-					inBuffer[(j+l)/8]=(value >> l)&0xff;
+					inBuffer[(j + l)/8]=(value >> l)&0xff;
 				}
 			}
 			j += k;
@@ -517,7 +517,7 @@ int interface_jtag_add_ir_scan(int num_fields, const scan_field_t *fields, tap_s
 			{
 				found = 1;
 
-				scanFields(1, fields+j, TAP_IRSHIFT, end_state);
+				scanFields(1, fields + j, TAP_IRSHIFT, end_state);
 				/* update device information */
 				buf_cpy(fields[j].out_value, tap->cur_instr, scan_size);
 
@@ -582,7 +582,7 @@ int interface_jtag_add_dr_scan(int num_fields, const scan_field_t *fields, tap_s
 			{
 				found = 1;
 
-				scanFields(1, fields+j, TAP_DRSHIFT, end_state);
+				scanFields(1, fields + j, TAP_DRSHIFT, end_state);
 			}
 		}
 		if (!found)
@@ -659,10 +659,10 @@ static int zy1000_jtag_add_clocks(int num_cycles, tap_state_t state, tap_state_t
 	{
 		tms = (tms_scan >> i) & 1;
 		waitIdle();
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x28,  tms);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28,  tms);
 	}
 	waitIdle();
-	ZY1000_POKE(ZY1000_JTAG_BASE+0x20, state);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, state);
 #endif
 
 
@@ -714,7 +714,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 		}
 
 		waitIdle();
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x28,  tms);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28,  tms);
 
 		cur_state = path[state_count];
 		state_count++;
@@ -722,7 +722,7 @@ int interface_jtag_add_pathmove(int num_states, const tap_state_t *path)
 	}
 
 	waitIdle();
-	ZY1000_POKE(ZY1000_JTAG_BASE+0x20,  cur_state);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x20,  cur_state);
 	return ERROR_OK;
 }
 

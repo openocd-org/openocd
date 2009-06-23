@@ -274,8 +274,8 @@ static int eCosBoard_erase(ecosflash_flash_bank_t *info, uint32_t address, uint3
 
 	uint32_t flashErr;
 	retval = runCode(info,
-			info->start_address+OFFSET_ERASE,
-			info->start_address+OFFSET_ERASE+OFFSET_ERASE_SIZE,
+			info->start_address + OFFSET_ERASE,
+			info->start_address + OFFSET_ERASE + OFFSET_ERASE_SIZE,
 			address,
 			len,
 			0,
@@ -307,8 +307,8 @@ static int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, uint32_t ad
 
 	uint32_t buffer;
 	retval = runCode(info,
-			info->start_address+OFFSET_GET_WORKAREA,
-			info->start_address+OFFSET_GET_WORKAREA+OFFSET_GET_WORKAREA_SIZE,
+			info->start_address + OFFSET_GET_WORKAREA,
+			info->start_address + OFFSET_GET_WORKAREA + OFFSET_GET_WORKAREA_SIZE,
 			0,
 			0,
 			0,
@@ -328,16 +328,16 @@ static int eCosBoard_flash(ecosflash_flash_bank_t *info, void *data, uint32_t ad
 		}
 
 		int retval;
-		retval = target_write_buffer(target, buffer, t, ((uint8_t *)data)+i);
+		retval = target_write_buffer(target, buffer, t, ((uint8_t *)data) + i);
 		if (retval != ERROR_OK)
 			return retval;
 
 		uint32_t flashErr;
 		retval = runCode(info,
-				info->start_address+OFFSET_FLASH,
-				info->start_address+OFFSET_FLASH+OFFSET_FLASH_SIZE,
+				info->start_address + OFFSET_FLASH,
+				info->start_address + OFFSET_FLASH + OFFSET_FLASH_SIZE,
 				buffer,
-				address+i,
+				address + i,
 				t,
 				&flashErr,
 				timeout);
@@ -410,7 +410,7 @@ static int ecosflash_erase(struct flash_bank_s *bank, int first, int last)
 {
 	struct flash_bank_s *c = bank;
 	ecosflash_flash_bank_t *info = bank->driver_priv;
-	return eCosBoard_erase(info, c->base+first*sectorSize, sectorSize*(last-first+1));
+	return eCosBoard_erase(info, c->base + first*sectorSize, sectorSize*(last-first + 1));
 }
 
 static int ecosflash_protect(struct flash_bank_s *bank, int set, int first, int last)
@@ -422,7 +422,7 @@ static int ecosflash_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t 
 {
 	ecosflash_flash_bank_t *info = bank->driver_priv;
 	struct flash_bank_s *c = bank;
-	return eCosBoard_flash(info, buffer, c->base+offset, count);
+	return eCosBoard_flash(info, buffer, c->base + offset, count);
 }
 
 static int ecosflash_protect_check(struct flash_bank_s *bank)

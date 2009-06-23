@@ -2672,14 +2672,14 @@ int arm7_9_bulk_write_memory(target_t *target, uint32_t address, uint32_t count,
 	dcc_count = count;
 	dcc_buffer = buffer;
 	retval = armv4_5_run_algorithm_inner(target, 0, NULL, 1, reg_params,
-			arm7_9->dcc_working_area->address, arm7_9->dcc_working_area->address+6*4, 20*1000, &armv4_5_info, arm7_9_dcc_completion);
+			arm7_9->dcc_working_area->address, arm7_9->dcc_working_area->address + 6*4, 20*1000, &armv4_5_info, arm7_9_dcc_completion);
 
 	if (retval == ERROR_OK)
 	{
 		uint32_t endaddress = buf_get_u32(reg_params[0].value, 0, 32);
-		if (endaddress != (address+count*4))
+		if (endaddress != (address + count*4))
 		{
-			LOG_ERROR("DCC write failed, expected end address 0x%08" PRIx32 " got 0x%0" PRIx32 "", (address+count*4), endaddress);
+			LOG_ERROR("DCC write failed, expected end address 0x%08" PRIx32 " got 0x%0" PRIx32 "", (address + count*4), endaddress);
 			retval = ERROR_FAIL;
 		}
 	}

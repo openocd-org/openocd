@@ -310,7 +310,7 @@ int Jim_ProcessEvents(Jim_Interp *interp, int flags)
 		// fprintf(stderr,"No Event\n");
         }
 
-        retval = select(maxfd+1, &rfds, &wfds, &efds, tvp);
+        retval = select(maxfd + 1, &rfds, &wfds, &efds, tvp);
         if (retval < 0) {
 	   switch (errno) {
 	       case EINTR:   fprintf(stderr,"select EINTR\n"); break;

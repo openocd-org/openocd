@@ -1399,7 +1399,7 @@ int arm11_run_algorithm(struct target_s *target, int num_mem_params, mem_param_t
 		LOG_DEBUG("Save %zi: 0x%" PRIx32 "",i,context[i]);
 	}
 
-	cpsr = buf_get_u32((uint8_t*)(arm11->reg_values+ARM11_RC_CPSR),0,32);
+	cpsr = buf_get_u32((uint8_t*)(arm11->reg_values + ARM11_RC_CPSR),0,32);
 	LOG_DEBUG("Save CPSR: 0x%" PRIx32 "", cpsr);
 
 	for (int i = 0; i < num_mem_params; i++)

@@ -207,7 +207,7 @@ static int armjtagew_speed(int speed)
 
 
     usb_out_buffer[0] = CMD_SET_TCK_FREQUENCY;
-	buf_set_u32(usb_out_buffer+1, 0, 32, speed);
+	buf_set_u32(usb_out_buffer + 1, 0, 32, speed);
 
     result = armjtagew_usb_message(armjtagew_jtag_handle, 4, 4);
 
@@ -500,7 +500,7 @@ static int armjtagew_get_version_info(void)
 
 	/* query hardware version */
 	usb_out_buffer[0] = CMD_GET_VERSION;
-	result = armjtagew_usb_message(armjtagew_jtag_handle, 1, 4+15+256);
+	result = armjtagew_usb_message(armjtagew_jtag_handle, 1, 4 + 15 + 256);
 
 	if (result != 0)
 	{
@@ -509,9 +509,9 @@ static int armjtagew_get_version_info(void)
 	}
 
 
-	memcpy(sn, usb_in_buffer+4, 15);
+	memcpy(sn, usb_in_buffer + 4, 15);
 	sn[15] = '\0';
-	memcpy(auxinfo, usb_in_buffer+4+15, 256);
+	memcpy(auxinfo, usb_in_buffer + 4+15, 256);
 	auxinfo[256] = '\0';
 
 	LOG_INFO("ARM-JTAG-EW firmware version %d.%d, hardware revision %c, SN=%s, Additional info: %s", \
@@ -651,7 +651,7 @@ static int armjtagew_tap_execute(void)
 		byte_length = tap_length / 8;
 
 		usb_out_buffer[0] = CMD_TAP_SHIFT;
-		buf_set_u32(usb_out_buffer+1, 0, 16, byte_length);
+		buf_set_u32(usb_out_buffer + 1, 0, 16, byte_length);
 
 		tms_offset = 3;
 		for (i = 0; i < byte_length; i++)

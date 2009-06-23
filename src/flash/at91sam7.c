@@ -213,19 +213,19 @@ static void at91sam7_set_flash_mode(flash_bank_t *bank, int mode)
 			if (at91sam7_info->cidr_arch == 0x60)
 			{
 				/* AT91SAM7A3 uses master clocks in 100 ns */
-				fmcn = (at91sam7_info->mck_freq/10000000ul)+1;
+				fmcn = (at91sam7_info->mck_freq/10000000ul) + 1;
 			}
 			else
 			{
 				/* master clocks in 1uS for ARCH 0x7 types */
-				fmcn = (at91sam7_info->mck_freq/1000000ul)+1;
+				fmcn = (at91sam7_info->mck_freq/1000000ul) + 1;
 			}
 		}
 		else if (mode == FMR_TIMING_FLASH)
 		{
 			/* main clocks in 1.5uS */
 			fmcn = (at91sam7_info->mck_freq/1000000ul)+
-				(at91sam7_info->mck_freq/2000000ul)+1;
+				(at91sam7_info->mck_freq/2000000ul) + 1;
 		}
 
 		/* hard overclocking */
@@ -282,7 +282,7 @@ static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16
 
 	fcr = (0x5A << 24) | ((pagen&0x3FF) << 8) | cmd; 
 	target_write_u32(target, MC_FCR[bank->bank_number], fcr);
-	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u", fcr, bank->bank_number+1, pagen);
+	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u", fcr, bank->bank_number + 1, pagen);
 
 	if ((at91sam7_info->cidr_arch == 0x60) && ((cmd == SLB)|(cmd == CLB)))
 	{
@@ -641,7 +641,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 	fast_check = 1;
 	for (nSector = 0; nSector<bank->num_sectors; nSector++)
 	{
-		retval = target_blank_check_memory(target, bank->base+bank->sectors[nSector].offset,
+		retval = target_blank_check_memory(target, bank->base + bank->sectors[nSector].offset,
 			bank->sectors[nSector].size, &blank);
 		if (retval != ERROR_OK)
 		{
@@ -665,7 +665,7 @@ static int at91sam7_erase_check(struct flash_bank_s *bank)
 	for (nSector = 0; nSector<bank->num_sectors; nSector++)
 	{
 		bank->sectors[nSector].is_erased = 1;
-		retval = target_read_memory(target, bank->base+bank->sectors[nSector].offset, 4,
+		retval = target_read_memory(target, bank->base + bank->sectors[nSector].offset, 4,
 			bank->sectors[nSector].size/4, buffer);
 		if (retval != ERROR_OK)
 			return retval;
@@ -707,7 +707,7 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	at91sam7_info->num_lockbits_on = 0;
 	for (lock_pos = 0; lock_pos<bank->num_sectors; lock_pos++)
 	{
-		if ( ((status >> (16+lock_pos))&(0x0001)) == 1)
+		if ( ((status >> (16 + lock_pos))&(0x0001)) == 1)
 		{
 			at91sam7_info->num_lockbits_on++;
 			bank->sectors[lock_pos].is_protected = 1;
@@ -725,7 +725,7 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	at91sam7_info->num_nvmbits_on = 0;
 	for (gpnvm_pos = 0; gpnvm_pos<at91sam7_info->num_nvmbits; gpnvm_pos++)
 	{
-		if ( ((status >> (8+gpnvm_pos))&(0x01)) == 1)
+		if ( ((status >> (8 + gpnvm_pos))&(0x01)) == 1)
 		{
 			at91sam7_info->num_nvmbits_on++;
 		}
@@ -803,7 +803,7 @@ static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *
 	page_size = atoi(args[11]);
 	num_nvmbits = atoi(args[12]);
 
-	target_name = calloc(strlen(args[7])+1, sizeof(char));
+	target_name = calloc(strlen(args[7]) + 1, sizeof(char));
 	strcpy(target_name, args[7]);
 
 	/* calculate bank size  */
@@ -1027,7 +1027,7 @@ static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 		/* Write one block to the PageWriteBuffer */
 		buffer_pos = (pagen-first_page)*dst_min_alignment;
 		wcount = CEIL(count,4);
-		if ((retval = target_write_memory(target, bank->base+pagen*dst_min_alignment, 4, wcount, buffer+buffer_pos)) != ERROR_OK)
+		if ((retval = target_write_memory(target, bank->base + pagen*dst_min_alignment, 4, wcount, buffer + buffer_pos)) != ERROR_OK)
 		{
 			return retval;
 		}

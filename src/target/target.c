@@ -246,7 +246,7 @@ static int max_target_number(void)
 	t = all_targets;
 	while ( t ){
 		if ( x < t->target_number ){
-			x = (t->target_number)+1;
+			x = (t->target_number) + 1;
 		}
 		t = t->next;
 	}
@@ -268,7 +268,7 @@ static int new_target_number(void)
 		}
 		t = t->next;
 	}
-	return x+1;
+	return x + 1;
 }
 
 static int target_continuous_poll = 1;
@@ -492,7 +492,7 @@ static int jtag_enable_callback(enum jtag_event event, void *priv)
 }
 
 
-/* Targets that correctly implement init+examine, i.e.
+/* Targets that correctly implement init + examine, i.e.
  * no communication with target during init:
  *
  * XScale
@@ -1118,7 +1118,7 @@ int target_write_buffer(struct target_s *target, uint32_t address, uint32_t size
 	if ((address + size - 1) < address)
 	{
 		/* GDB can request this when e.g. PC is 0xfffffffc*/
-		LOG_ERROR("address+size wrapped(0x%08x, 0x%08x)", 
+		LOG_ERROR("address + size wrapped(0x%08x, 0x%08x)", 
 				  (unsigned)address, 
 				  (unsigned)size);
 		return ERROR_FAIL;
@@ -1200,7 +1200,7 @@ int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size,
 	if ((address + size - 1) < address)
 	{
 		/* GDB can request this when e.g. PC is 0xfffffffc*/
-		LOG_ERROR("address+size wrapped(0x%08" PRIx32 ", 0x%08" PRIx32 ")", 
+		LOG_ERROR("address + size wrapped(0x%08" PRIx32 ", 0x%08" PRIx32 ")", 
 				  address, 
 				  size);
 		return ERROR_FAIL;
@@ -2279,7 +2279,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 
 		/* DANGER!!! beware of unsigned comparision here!!! */
 
-		if ((image.sections[i].base_address+buf_cnt >= min_address)&&
+		if ((image.sections[i].base_address + buf_cnt >= min_address)&&
 				(image.sections[i].base_address<max_address))
 		{
 			if (image.sections[i].base_address<min_address)
@@ -2289,12 +2289,12 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 				length -= offset;
 			}
 
-			if (image.sections[i].base_address+buf_cnt>max_address)
+			if (image.sections[i].base_address + buf_cnt>max_address)
 			{
-				length -= (image.sections[i].base_address+buf_cnt)-max_address;
+				length -= (image.sections[i].base_address + buf_cnt)-max_address;
 			}
 
-			if ((retval = target_write_buffer(target, image.sections[i].base_address+offset, length, buffer+offset)) != ERROR_OK)
+			if ((retval = target_write_buffer(target, image.sections[i].base_address + offset, length, buffer + offset)) != ERROR_OK)
 			{
 				free(buffer);
 				break;
@@ -2302,7 +2302,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 			image_size += length;
 			command_print(cmd_ctx, "%u byte written at address 0x%8.8" PRIx32 "", 
 						  (unsigned int)length, 
-						  image.sections[i].base_address+offset);
+						  image.sections[i].base_address + offset);
 		}
 
 		free(buffer);
@@ -2834,7 +2834,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 		}
 	}
 
-	int addressSpace = (max-min+1);
+	int addressSpace = (max-min + 1);
 
 	static const uint32_t maxBuckets = 256 * 1024; /* maximum buckets. */
 	uint32_t length = addressSpace;
@@ -2883,7 +2883,7 @@ static void writeGmon(uint32_t *samples, uint32_t sampleNum, char *filename)
 				val = 65535;
 			}
 			data[i*2]=val&0xff;
-			data[i*2+1]=(val >> 8)&0xff;
+			data[i*2 + 1]=(val >> 8)&0xff;
 		}
 		free(buckets);
 		writeData(f, data, length * 2);
@@ -3028,7 +3028,7 @@ static int jim_mem2array(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 
-	return 	target_mem2array(interp, target, argc-1, argv+1);
+	return 	target_mem2array(interp, target, argc-1, argv + 1);
 }
 
 static int target_mem2array(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
@@ -3215,7 +3215,7 @@ static int jim_array2mem(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	}
 
-	return target_array2mem( interp,target, argc-1, argv+1 );
+	return target_array2mem( interp,target, argc-1, argv + 1 );
 }
 
 static int target_array2mem(Jim_Interp *interp, target_t *target, int argc, Jim_Obj *const *argv)
@@ -3749,7 +3749,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 	};
 
 	/* go past the "command" */
-	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
+	Jim_GetOpt_Setup( &goi, interp, argc-1, argv + 1 );
 
 	target = Jim_CmdPrivData( goi.interp );
 	cmd_ctx = Jim_GetAssocData(goi.interp, "context");
@@ -4141,7 +4141,7 @@ static int target_create( Jim_GetOptInfo *goi )
 	if ( target_types[x] == NULL ){
 		Jim_SetResult_sprintf( goi->interp, "Unknown target type %s, try one of ", cp );
 		for ( x = 0 ; target_types[x] ; x++ ){
-			if ( target_types[x+1] ){
+			if ( target_types[x + 1] ){
 				Jim_AppendStrings( goi->interp,
 								   Jim_GetResult(goi->interp),
 								   target_types[x]->name,
@@ -4283,7 +4283,7 @@ static int jim_target( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 
 	cmd_ctx = Jim_GetAssocData( interp, "context" );
 
-	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
+	Jim_GetOpt_Setup( &goi, interp, argc-1, argv + 1 );
 
 	if ( goi.argc == 0 ){
 		Jim_WrongNumArgs(interp, 1, argv, "missing: command ...");
@@ -4460,7 +4460,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 
 		/* DANGER!!! beware of unsigned comparision here!!! */
 
-		if ((image.sections[i].base_address+buf_cnt >= min_address)&&
+		if ((image.sections[i].base_address + buf_cnt >= min_address)&&
 				(image.sections[i].base_address<max_address))
 		{
 			if (image.sections[i].base_address<min_address)
@@ -4470,25 +4470,25 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 				length -= offset;
 			}
 
-			if (image.sections[i].base_address+buf_cnt>max_address)
+			if (image.sections[i].base_address + buf_cnt>max_address)
 			{
-				length -= (image.sections[i].base_address+buf_cnt)-max_address;
+				length -= (image.sections[i].base_address + buf_cnt)-max_address;
 			}
 
-			fastload[i].address = image.sections[i].base_address+offset;
+			fastload[i].address = image.sections[i].base_address + offset;
 			fastload[i].data = malloc(length);
 			if (fastload[i].data == NULL)
 			{
 				free(buffer);
 				break;
 			}
-			memcpy(fastload[i].data, buffer+offset, length);
+			memcpy(fastload[i].data, buffer + offset, length);
 			fastload[i].length = length;
 
 			image_size += length;
 			command_print(cmd_ctx, "%u byte written at address 0x%8.8x", 
 						  (unsigned int)length, 
-						  ((unsigned int)(image.sections[i].base_address+offset)));
+						  ((unsigned int)(image.sections[i].base_address + offset)));
 		}
 
 		free(buffer);

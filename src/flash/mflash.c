@@ -923,7 +923,7 @@ static double mg_do_calc_pll(double XIN, mg_pll_t * p_pll_val, int is_approximat
 
 				CLK_OUT = XIN * ((double)M / N) / NO;
 
-				if ((int)((CLK_OUT+ROUND) / DIV)
+				if ((int)((CLK_OUT + ROUND) / DIV)
 						== (int)(MG_PLL_CLK_OUT / DIV))	{
 					if (mg_is_valid_pll(XIN, N, CLK_OUT, NO) == ERROR_OK)
 					{

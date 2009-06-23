@@ -43,7 +43,7 @@ void cmd_flash(uint32 cmd)
 	len = cmd&0xffff;
 	ofs = adr%flash_page_size;
 	bi_start = ofs/4;
-	bi_end = (ofs+len+3)/4;
+	bi_end = (ofs + len + 3)/4;
 
 	if (bi_end>BUFSIZE) {
 		dcc_wr(OCL_BUFF_OVER);
@@ -65,12 +65,12 @@ void cmd_flash(uint32 cmd)
 	result = 0;
 	pagenum = adr/flash_page_size;
 	for (bi = 0; bi<bi_end; bi += flash_page_size/4) {
-		result = flash_page_program(buffer+bi, pagenum++);
+		result = flash_page_program(buffer + bi, pagenum++);
 		if (result) break;
 	}
 
 	/* verify written data */
-	if (!result) result = flash_verify(adr, len, ((uint8 *)buffer)+ofs);
+	if (!result) result = flash_verify(adr, len, ((uint8 *)buffer) + ofs);
 
 	dcc_wr(OCL_CMD_DONE|result);
 }

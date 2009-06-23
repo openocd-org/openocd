@@ -633,7 +633,7 @@ extern void jtag_execute_queue_noclear(void);
 int jtag_get_flush_queue_count(void);
 
 
-/* can be implemented by hw+sw */
+/* can be implemented by hw + sw */
 extern int jtag_power_dropout(int* dropout);
 extern int jtag_srst_asserted(int* srst_asserted);
 

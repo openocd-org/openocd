@@ -712,7 +712,7 @@ static int presto_jtag_khz(int khz, int *jtag_speed)
 	}
 
 	if (khz >= 3000) *jtag_speed = 0;
-	else *jtag_speed = (1000+khz-1)/khz;
+	else *jtag_speed = (1000 + khz-1)/khz;
 
 	return 0;
 }

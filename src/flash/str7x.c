@@ -703,7 +703,7 @@ static int str7x_handle_disable_jtag_command(struct command_context_s *cmd_ctx, 
 		flash_cmd = FLASH_SPR;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), flash_cmd);
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_AR), 0x4010DFBC);
-		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), ~(1 << (15+ProtectionLevel)));
+		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), ~(1 << (15 + ProtectionLevel)));
 		flash_cmd = FLASH_SPR | FLASH_WMS;
 		target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), flash_cmd);
 	}

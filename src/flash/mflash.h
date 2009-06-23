@@ -294,7 +294,7 @@ typedef enum _mg_vcmd
 typedef enum _mg_opmode
 {
 	mg_op_mode_xip = 1, /* TRUE XIP */
-	mg_op_mode_snd = 2, /* BOOT+Storage */
+	mg_op_mode_snd = 2, /* BOOT + Storage */
 	mg_op_mode_stg = 0  /* Only Storage */
 } mg_opmode;
 

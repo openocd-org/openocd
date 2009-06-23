@@ -188,7 +188,7 @@ static jtag_command_t* first_unsent;        /* next command that has to be sent 
 static int             require_send;
 
 
-/*	http://urjtag.wiki.sourceforge.net/Cable+FT2232 says:
+/*	http://urjtag.wiki.sourceforge.net/Cable + FT2232 says:
 
 	"There is a significant difference between libftdi and libftd2xx. The latter
 	one allows to schedule up to 64*64 bytes of result data while libftdi fails

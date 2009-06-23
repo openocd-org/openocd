@@ -86,11 +86,11 @@ int flash_page_program(uint32 *data, int page_num)
 	else efc_ofs = 0;
 
 	/* wait until FLASH is ready, just for sure */
-	while ((inr(MC_FSR+efc_ofs)&MC_FRDY) == 0);
+	while ((inr(MC_FSR + efc_ofs)&MC_FRDY) == 0);
 
 	/* calculate page address, only lower 8 bits are used to address the latch,
 		 but the upper part of address is needed for writing to proper EFC */
-	flash_ptr = (uint32 *)(FLASH_AREA_ADDR+(page_num*flash_page_size));
+	flash_ptr = (uint32 *)(FLASH_AREA_ADDR + (page_num*flash_page_size));
 	data_ptr = data;
 
 	/* copy data to latch */
@@ -100,18 +100,18 @@ int flash_page_program(uint32 *data, int page_num)
 	}
 
 	/* page number and page write command to FCR */
-	outr(MC_FCR+efc_ofs, ((page_num&0x3ff) << 8) | MC_KEY | MC_FCMD_WP);
+	outr(MC_FCR + efc_ofs, ((page_num&0x3ff) << 8) | MC_KEY | MC_FCMD_WP);
 
 	/* wait until it's done */
-	while ((inr(MC_FSR+efc_ofs)&MC_FRDY) == 0);
+	while ((inr(MC_FSR + efc_ofs)&MC_FRDY) == 0);
 
 	/* check for errors */
-	if ((inr(MC_FSR+efc_ofs)&MC_PROGE)) return FLASH_STAT_PROGE;
-	if ((inr(MC_FSR+efc_ofs)&MC_LOCKE)) return FLASH_STAT_LOCKE;
+	if ((inr(MC_FSR + efc_ofs)&MC_PROGE)) return FLASH_STAT_PROGE;
+	if ((inr(MC_FSR + efc_ofs)&MC_LOCKE)) return FLASH_STAT_LOCKE;
 
 #if 0
 	/* verify written data */
-	flash_ptr = (uint32 *)(FLASH_AREA_ADDR+(page_num*flash_page_size));
+	flash_ptr = (uint32 *)(FLASH_AREA_ADDR + (page_num*flash_page_size));
 	data_ptr = data;
 
 	for (i = flash_page_size/4; i; i--) {
@@ -129,21 +129,21 @@ int flash_erase_plane(int efc_ofs)
 	int page_num;
 
 	page_num = 0;
-	lockbits = inr(MC_FSR+efc_ofs) >> 16;
+	lockbits = inr(MC_FSR + efc_ofs) >> 16;
 	while (lockbits) {
 		if (lockbits&1) {
 
 			/* wait until FLASH is ready, just for sure */
-			while ((inr(MC_FSR+efc_ofs)&MC_FRDY) == 0);
+			while ((inr(MC_FSR + efc_ofs)&MC_FRDY) == 0);
 
-			outr(MC_FCR+efc_ofs, ((page_num&0x3ff) << 8) | 0x5a000004);
+			outr(MC_FCR + efc_ofs, ((page_num&0x3ff) << 8) | 0x5a000004);
 
 			/* wait until it's done */
-			while ((inr(MC_FSR+efc_ofs)&MC_FRDY) == 0);
+			while ((inr(MC_FSR + efc_ofs)&MC_FRDY) == 0);
 
 			/* check for errors */
-			if ((inr(MC_FSR+efc_ofs)&MC_PROGE)) return FLASH_STAT_PROGE;
-			if ((inr(MC_FSR+efc_ofs)&MC_LOCKE)) return FLASH_STAT_LOCKE;
+			if ((inr(MC_FSR + efc_ofs)&MC_PROGE)) return FLASH_STAT_PROGE;
+			if ((inr(MC_FSR + efc_ofs)&MC_LOCKE)) return FLASH_STAT_LOCKE;
 
 		}
 		if ((page_num += flash_lock_pages)>flash_page_count) break;
@@ -151,20 +151,20 @@ int flash_erase_plane(int efc_ofs)
 	}
 
 	/* wait until FLASH is ready, just for sure */
-	while ((inr(MC_FSR+efc_ofs)&MC_FRDY) == 0);
+	while ((inr(MC_FSR + efc_ofs)&MC_FRDY) == 0);
 
 	/* erase all command to FCR */
-	outr(MC_FCR+efc_ofs, 0x5a000008);
+	outr(MC_FCR + efc_ofs, 0x5a000008);
 
 	/* wait until it's done */
-	while ((inr(MC_FSR+efc_ofs)&MC_FRDY) == 0);
+	while ((inr(MC_FSR + efc_ofs)&MC_FRDY) == 0);
 
 	/* check for errors */
-	if ((inr(MC_FSR+efc_ofs)&MC_PROGE)) return FLASH_STAT_PROGE;
-	if ((inr(MC_FSR+efc_ofs)&MC_LOCKE)) return FLASH_STAT_LOCKE;
+	if ((inr(MC_FSR + efc_ofs)&MC_PROGE)) return FLASH_STAT_PROGE;
+	if ((inr(MC_FSR + efc_ofs)&MC_LOCKE)) return FLASH_STAT_LOCKE;
 
 	/* set no erase before programming */
-	outr(MC_FMR+efc_ofs, inr(MC_FMR+efc_ofs)|0x80);
+	outr(MC_FMR + efc_ofs, inr(MC_FMR + efc_ofs)|0x80);
 
 	return FLASH_STAT_OK;
 }
@@ -188,7 +188,7 @@ int flash_verify(uint32 adr, unsigned int len, uint8 *src)
 {
 	unsigned char *flash_ptr;
 
-	flash_ptr = (uint8 *)FLASH_AREA_ADDR+adr;
+	flash_ptr = (uint8 *)FLASH_AREA_ADDR + adr;
 	for ( ;len; len--) {
 		if (*(flash_ptr++)!=*(src++)) return FLASH_STAT_VERIFE;
 	}

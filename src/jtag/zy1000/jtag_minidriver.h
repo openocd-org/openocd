@@ -40,7 +40,7 @@ static __inline__ void waitIdle(void)
 	cyg_uint32 empty;
 	do
 	{
-		ZY1000_PEEK(ZY1000_JTAG_BASE+0x10, empty);
+		ZY1000_PEEK(ZY1000_JTAG_BASE + 0x10, empty);
 	} while ((empty & 0x100) == 0);
 }
 
@@ -54,7 +54,7 @@ static void sampleShiftRegister(void)
 #if 0
 	cyg_uint32 dummy;
 	waitIdle();
-	ZY1000_PEEK(ZY1000_JTAG_BASE+0xc, dummy);
+	ZY1000_PEEK(ZY1000_JTAG_BASE + 0xc, dummy);
 #endif
 }
 
@@ -74,7 +74,7 @@ static void setCurrentState(enum tap_state state)
 	}
 	waitQueue();
 	sampleShiftRegister();
-	ZY1000_POKE(ZY1000_JTAG_BASE+0x8, (repeat << 8)|(a << 4)|a);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (repeat << 8)|(a << 4)|a);
 
 }
 
@@ -89,7 +89,7 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 	b = endState;
 	waitQueue();
 	sampleShiftRegister();
-	ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value);
 #if 1
 #if TEST_MANUAL()
 	if ((state == TAP_DRSHIFT) && (endState != TAP_DRSHIFT))
@@ -106,21 +106,21 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 			}
 			/* shift out value */
 			waitIdle();
-			ZY1000_POKE(ZY1000_JTAG_BASE+0x28, (((value >> i)&1) << 1)|tms);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, (((value >> i)&1) << 1)|tms);
 		}
 		waitIdle();
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x28, 0);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x28, 0);
 		waitIdle();
-		//ZY1000_POKE(ZY1000_JTAG_BASE+0x20, TAP_DRSHIFT); // set this state and things break => expected
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x20, TAP_DRPAUSE); // set this and things will work => expected. Not setting this is not sufficient to make things break.
+		//ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRSHIFT); // set this state and things break => expected
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x20, TAP_DRPAUSE); // set this and things will work => expected. Not setting this is not sufficient to make things break.
 		setCurrentState(endState);
 	} else
 	{
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x8, (repeat << 8)|(a << 4)|b);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (repeat << 8)|(a << 4)|b);
 	}
 #else
 	/* fast version */
-	ZY1000_POKE(ZY1000_JTAG_BASE+0x8, (repeat << 8)|(a << 4)|b);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (repeat << 8)|(a << 4)|b);
 #endif
 #else
 	/* maximum debug version */
@@ -131,16 +131,16 @@ static __inline__ void shiftValueInner(const enum tap_state state, const enum ta
 		for (i = 0; i<repeat-1; i++)
 		{
 			sampleShiftRegister();
-			ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value >> i);
-			ZY1000_POKE(ZY1000_JTAG_BASE+0x8, (1 << 8)|(a << 4)|a);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value >> i);
+			ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (1 << 8)|(a << 4)|a);
 		}
 		sampleShiftRegister();
-		ZY1000_POKE(ZY1000_JTAG_BASE+0xc, value >> (repeat-1));
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x8, (1 << 8)|(a << 4)|b);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value >> (repeat-1));
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (1 << 8)|(a << 4)|b);
 	} else
 	{
 		sampleShiftRegister();
-		ZY1000_POKE(ZY1000_JTAG_BASE+0x8, (repeat << 8)|(a << 4)|b);
+		ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (repeat << 8)|(a << 4)|b);
 	}
 	sampleShiftRegister();
 #endif

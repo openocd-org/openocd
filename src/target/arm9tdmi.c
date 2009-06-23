@@ -587,7 +587,7 @@ void arm9tdmi_write_core_regs(target_t *target, uint32_t mask, uint32_t core_reg
 	for (i = 0; i <= 15; i++)
 	{
 		if (mask & (1 << i))
-			/* nothing fetched, LDM still in EXECUTE (1+i cycle) */
+			/* nothing fetched, LDM still in EXECUTE (1 + i cycle) */
 			arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, core_regs[i], NULL, 0);
 	}
 	arm9tdmi_clock_out(jtag_info, ARMV4_5_NOP, 0, NULL, 0);

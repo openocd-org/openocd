@@ -309,8 +309,8 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 			   stellaris_info->did1, 
 			   stellaris_info->did1, 
 			   "ARMV7M", 
-			   (int)((1+((stellaris_info->dc0 >> 16) & 0xFFFF))/4),
-			   (int)((1+(stellaris_info->dc0 & 0xFFFF))*2));
+			   (int)((1 + ((stellaris_info->dc0 >> 16) & 0xFFFF))/4),
+			   (int)((1 + (stellaris_info->dc0 & 0xFFFF))*2));
 	buf += printed;
 	buf_size -= printed;
 
@@ -396,7 +396,7 @@ static void stellaris_read_clock_info(flash_bank_t *bank)
 		mainfreq = 200000000; /* PLL out frec */
 
 	if (usesysdiv)
-		stellaris_info->mck_freq = mainfreq/(1+sysdiv);
+		stellaris_info->mck_freq = mainfreq/(1 + sysdiv);
 	else
 		stellaris_info->mck_freq = mainfreq;
 
@@ -499,7 +499,7 @@ static int stellaris_read_part_info(struct flash_bank_s *bank)
 	stellaris_info->did1 = did1;
 
 	stellaris_info->num_lockbits = 1 + (stellaris_info->dc0 & 0xFFFF);
-	stellaris_info->num_pages = 2 *(1+(stellaris_info->dc0 & 0xFFFF));
+	stellaris_info->num_pages = 2 *(1 + (stellaris_info->dc0 & 0xFFFF));
 	stellaris_info->pagesize = 1024;
 	bank->size = 1024 * stellaris_info->num_pages;
 	stellaris_info->pages_in_lockregion = 2;

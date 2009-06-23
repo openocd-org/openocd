@@ -274,7 +274,7 @@ int handle_cp_command(struct command_context_s *cmd_ctx, char *cmd, char **args,
 			chunk = maxChunk;
 		}
 
-		if ((retval == ERROR_OK) && (fwrite(((char *)data)+pos, 1, chunk, f) != chunk))
+		if ((retval == ERROR_OK) && (fwrite(((char *)data) + pos, 1, chunk, f) != chunk))
 			retval = ERROR_INVALID_ARGUMENTS;
 
 		if (retval != ERROR_OK)

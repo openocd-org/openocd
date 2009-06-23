@@ -264,8 +264,8 @@ int xscale_read_dcsr(target_t *target)
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-	jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
-	jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
+	jtag_check_value_mask(fields + 0, &field0_check_value, &field0_check_mask);
+	jtag_check_value_mask(fields + 2, &field2_check_value, &field2_check_mask);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
@@ -362,11 +362,11 @@ int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 
 			jtag_add_pathmove(3, path);
 
-			fields[1].in_value = (uint8_t *)(field1+i);
+			fields[1].in_value = (uint8_t *)(field1 + i);
 
 			jtag_add_dr_scan_check(3, fields, jtag_set_end_state(TAP_IDLE));
 
-			jtag_add_callback(xscale_getbuf, (jtag_callback_data_t)(field1+i));
+			jtag_add_callback(xscale_getbuf, (jtag_callback_data_t)(field1 + i));
 
 			words_scheduled++;
 		}
@@ -386,8 +386,8 @@ int xscale_receive(target_t *target, uint32_t *buffer, int num_words)
 				int j;
 				for (j = i; j < num_words - 1; j++)
 				{
-					field0[j] = field0[j+1];
-					field1[j] = field1[j+1];
+					field0[j] = field0[j + 1];
+					field1[j] = field1[j + 1];
 				}
 				words_scheduled--;
 			}
@@ -480,8 +480,8 @@ int xscale_read_tx(target_t *target, int consume)
 
 		jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_IDLE));
 
-		jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
-		jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
+		jtag_check_value_mask(fields + 0, &field0_check_value, &field0_check_mask);
+		jtag_check_value_mask(fields + 2, &field2_check_value, &field2_check_mask);
 
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
@@ -563,8 +563,8 @@ int xscale_write_rx(target_t *target)
 	{
 		jtag_add_dr_scan(3, fields, jtag_set_end_state(TAP_IDLE));
 
-		jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
-		jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
+		jtag_check_value_mask(fields + 0, &field0_check_value, &field0_check_mask);
+		jtag_check_value_mask(fields + 2, &field2_check_value, &field2_check_mask);
 
 		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
@@ -728,8 +728,8 @@ int xscale_write_dcsr(target_t *target, int hold_rst, int ext_dbg_brk)
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
-	jtag_check_value_mask(fields+0, &field0_check_value, &field0_check_mask);
-	jtag_check_value_mask(fields+2, &field2_check_value, &field2_check_mask);
+	jtag_check_value_mask(fields + 0, &field0_check_value, &field0_check_mask);
+	jtag_check_value_mask(fields + 2, &field2_check_value, &field2_check_mask);
 
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{

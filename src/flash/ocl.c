@@ -139,7 +139,7 @@ static int ocl_erase(struct flash_bank_s *bank, int first, int last)
 	}
 
 	/* receive response */
-	if ((retval = embeddedice_receive(ocl->jtag_info, dcc_buffer+1, 1) != ERROR_OK))
+	if ((retval = embeddedice_receive(ocl->jtag_info, dcc_buffer + 1, 1) != ERROR_OK))
 		return retval;
 
 	if (dcc_buffer[1] != OCL_CMD_DONE)
@@ -182,7 +182,7 @@ static int ocl_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset
 	}
 
 	/* allocate buffer for max. ocl buffer + overhead */
-	dcc_buffer = malloc(sizeof(uint32_t)*(ocl->buflen/4+3));
+	dcc_buffer = malloc(sizeof(uint32_t)*(ocl->buflen/4 + 3));
 
 	while (count)
 	{

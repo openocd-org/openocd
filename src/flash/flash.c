@@ -1110,7 +1110,7 @@ int flash_write(target_t *target, image_t *image, uint32_t *written, int erase)
 
 			/* see if we need to pad the section */
 			while (padding[section]--)
-				 (buffer+buffer_size)[size_read++] = 0xff;
+				 (buffer + buffer_size)[size_read++] = 0xff;
 
 			buffer_size += size_read;
 			section_offset += size_read;

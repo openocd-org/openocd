@@ -42,7 +42,7 @@ static inline void buf_set_u32(uint8_t* buffer, unsigned int first, unsigned int
 	{
 		unsigned int i;
 		
-		for (i = first; i<first+num; i++)
+		for (i = first; i<first + num; i++)
 		{
 			if (((value >> (i-first))&1) == 1)
 				buffer[i/8] |= 1 << (i%8);
@@ -61,7 +61,7 @@ static inline uint32_t buf_get_u32(const uint8_t* buffer, unsigned int first, un
 		uint32_t result = 0;
 		unsigned int i;
 		
-		for (i = first; i<first+num; i++)
+		for (i = first; i<first + num; i++)
 		{
 			if (((buffer[i/8]>>(i%8))&1) == 1)
 				result |= 1 << (i-first);

@@ -29,7 +29,7 @@
 #include "command.h"
 
 /* logging priorities 
- * LOG_LVL_SILENT - turn off all output. In lieu of try+catch this can be used as a 
+ * LOG_LVL_SILENT - turn off all output. In lieu of try + catch this can be used as a 
  *                  feeble ersatz.
  * LOG_LVL_USER - user messages. Could be anything from information 
  *                to progress messags. These messages do not represent

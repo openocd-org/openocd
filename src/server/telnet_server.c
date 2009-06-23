@@ -86,7 +86,7 @@ int telnet_outputline(connection_t *connection, const char *line)
 		if (line_end)
 		{
 			telnet_write(connection, "\r\n", 2);
-			line += len+1;
+			line += len + 1;
 		}
 		else
 		{

@@ -495,14 +495,14 @@ int command_run_line(command_context_t *context, char *line)
 		if (reslen>0)
 		{
 			int i;
-			char buff[256+1];
+			char buff[256 + 1];
 			for (i = 0; i < reslen; i += 256)
 			{
 				int chunk;
 				chunk = reslen - i;
 				if (chunk > 256)
 					chunk = 256;
-				strncpy(buff, result+i, chunk);
+				strncpy(buff, result + i, chunk);
 				buff[chunk] = 0;
 				LOG_USER_N("%s", buff);
 			}
@@ -599,7 +599,7 @@ static size_t openocd_jim_fwrite(const void *_ptr, size_t size, size_t n, void *
 	}
 	/* GRR we must chunk - not null terminated */
 	while (nbytes) {
-		char chunk[128+1];
+		char chunk[128 + 1];
 		int x;
 
 		x = nbytes;

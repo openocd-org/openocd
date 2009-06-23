@@ -923,7 +923,7 @@ static int pic32mx_handle_pgm_word_command(struct command_context_s *cmd_ctx, ch
 		command_print(cmd_ctx, "flash bank '#%s' is out of bounds", args[2]);
 		return ERROR_OK;
 	}
-	if (address < bank->base || address >= (bank->base+bank->size))
+	if (address < bank->base || address >= (bank->base + bank->size))
 	{
 		command_print(cmd_ctx, "flash address '%s' is out of bounds", args[0]);
 		return ERROR_OK;

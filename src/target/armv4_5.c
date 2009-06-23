@@ -71,7 +71,7 @@ char * armv4_5_mode_strings_list[] =
 };
 
 /* Hack! Yuk! allow -1 index, which simplifies codepaths elsewhere in the code */
-char** armv4_5_mode_strings = armv4_5_mode_strings_list+1;
+char** armv4_5_mode_strings = armv4_5_mode_strings_list + 1;
 
 char* armv4_5_state_strings[] =
 {

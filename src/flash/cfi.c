@@ -213,7 +213,7 @@ static uint16_t cfi_query_u16(flash_bank_t *bank, int sector, uint32_t offset)
 	{
 		uint8_t i;
 		for (i = 0;i<2;i++)
-			target_read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
+			target_read_memory(target, flash_address(bank, sector, offset + i), bank->bus_width, 1,
 				&data[i*bank->bus_width] );
 	}
 	else
@@ -235,7 +235,7 @@ static uint32_t cfi_query_u32(flash_bank_t *bank, int sector, uint32_t offset)
 	{
 		uint8_t i;
 		for (i = 0;i<4;i++)
-			target_read_memory(target, flash_address(bank, sector, offset+i), bank->bus_width, 1,
+			target_read_memory(target, flash_address(bank, sector, offset + i), bank->bus_width, 1,
 				&data[i*bank->bus_width] );
 	}
 	else

@@ -518,9 +518,9 @@ int nand_probe(struct nand_device_s *device)
 	{
 		if (device->bus_width == 8)
 		{
-			device->controller->read_data(device, id_buff+3);
-			device->controller->read_data(device, id_buff+4);
-			device->controller->read_data(device, id_buff+5);
+			device->controller->read_data(device, id_buff + 3);
+			device->controller->read_data(device, id_buff + 4);
+			device->controller->read_data(device, id_buff + 5);
 		}
 		else
 		{
@@ -1420,7 +1420,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 				uint8_t ecc[3];
 				memset(oob, 0xff, oob_size);
 				for (i = 0, j = 0; i < page_size; i += 256) {
-					nand_calculate_ecc(p, page+i, ecc);
+					nand_calculate_ecc(p, page + i, ecc);
 					oob[eccpos[j++]] = ecc[0];
 					oob[eccpos[j++]] = ecc[1];
 					oob[eccpos[j++]] = ecc[2];
@@ -1437,7 +1437,7 @@ static int handle_nand_write_command(struct command_context_s *cmd_ctx, char *cm
 				uint8_t *ecc = oob + oob_size - page_size/512 * 10;
 				memset(oob, 0xff, oob_size);
 				for (i = 0; i < page_size; i += 512) {
-					nand_calculate_ecc_kw(p, page+i, ecc);
+					nand_calculate_ecc_kw(p, page + i, ecc);
 					ecc += 10;
 				}
 			}

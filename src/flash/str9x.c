@@ -145,7 +145,7 @@ static int str9x_build_block_list(struct flash_bank_s *bank)
 		if (str9x_info->variant)
 			str9x_info->sector_bits[num_sectors++] = (1 << i);
 		else
-			str9x_info->sector_bits[num_sectors++] = (1 << (i+8));
+			str9x_info->sector_bits[num_sectors++] = (1 << (i + 8));
 	}
 
 	return ERROR_OK;

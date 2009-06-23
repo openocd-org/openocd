@@ -563,7 +563,7 @@ typedef struct Jim_Interp {
 typedef struct Jim_Reference {
     Jim_Obj *objPtr;
     Jim_Obj *finalizerCmdNamePtr;
-    char tag[JIM_REFERENCE_TAGLEN+1];
+    char tag[JIM_REFERENCE_TAGLEN + 1];
 } Jim_Reference;
 
 /** Name Value Pairs, aka: NVP

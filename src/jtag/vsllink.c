@@ -1585,7 +1585,7 @@ static void vsllink_tap_append_scan_dma(int length, uint8_t *buffer, scan_comman
 
 		for (i = 0; i < len_tmp; i++)
 		{
-			vsllink_tap_append_step(((len_all+i) < length-1 ? 0 : 1), (buffer[(len_all+i)/8] >> ((len_all+i)%8)) & 1);
+			vsllink_tap_append_step(((len_all + i) < length-1 ? 0 : 1), (buffer[(len_all + i)/8] >> ((len_all + i)%8)) & 1);
 		}
 
 		pending_scan_results_length++;

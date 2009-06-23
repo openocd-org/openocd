@@ -197,7 +197,7 @@ static int oocd_trace_read_trace(etm_context_t *etm_ctx)
 		num_frames = address;
 
 	/* read data into temporary array for unpacking
-	 * one frame from OpenOCD+trace corresponds to 16 trace cycles
+	 * one frame from OpenOCD + trace corresponds to 16 trace cycles
 	 */
 	trace_data = malloc(sizeof(uint8_t) * num_frames * 16);
 	oocd_trace_read_memory(oocd_trace, trace_data, first_frame, num_frames);
@@ -242,7 +242,7 @@ static int oocd_trace_start_capture(etm_context_t *etm_ctx)
 	if (((etm_ctx->portmode & ETM_PORT_MODE_MASK) != ETM_PORT_NORMAL)
 		|| ((etm_ctx->portmode & ETM_PORT_WIDTH_MASK) != ETM_PORT_4BIT))
 	{
-		LOG_DEBUG("OpenOCD+trace only supports normal 4-bit ETM mode");
+		LOG_DEBUG("OpenOCD + trace only supports normal 4-bit ETM mode");
 		return ERROR_ETM_PORTMODE_NOT_SUPPORTED;
 	}
 
@@ -251,7 +251,7 @@ static int oocd_trace_start_capture(etm_context_t *etm_ctx)
 		control |= 0x2;	/* half rate clock, capture at twice the clock rate */
 	}
 
-	/* OpenOCD+trace holds up to 16 million samples,
+	/* OpenOCD + trace holds up to 16 million samples,
 	 * but trigger counts is set in multiples of 16 */
 	trigger_count = (1048576 * etm_ctx->trigger_percent) / 100;
 
@@ -316,12 +316,12 @@ static int handle_oocd_trace_config_command(struct command_context_s *cmd_ctx, c
 		arm7_9->etm_ctx->capture_driver_priv = oocd_trace;
 		oocd_trace->etm_ctx = arm7_9->etm_ctx;
 
-		/* copy name of TTY device used to communicate with OpenOCD+trace */
+		/* copy name of TTY device used to communicate with OpenOCD + trace */
 		oocd_trace->tty = strndup(args[1], 256);
 	}
 	else
 	{
-		LOG_ERROR("target has no ETM defined, OpenOCD+trace left unconfigured");
+		LOG_ERROR("target has no ETM defined, OpenOCD + trace left unconfigured");
 	}
 
 	return ERROR_OK;
@@ -412,12 +412,12 @@ int oocd_trace_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *oocd_trace_cmd;
 
-	oocd_trace_cmd = register_command(cmd_ctx, NULL, "oocd_trace", NULL, COMMAND_ANY, "OpenOCD+trace");
+	oocd_trace_cmd = register_command(cmd_ctx, NULL, "oocd_trace", NULL, COMMAND_ANY, "OpenOCD + trace");
 
 	register_command(cmd_ctx, oocd_trace_cmd, "config", handle_oocd_trace_config_command, COMMAND_CONFIG, NULL);
 
-	register_command(cmd_ctx, oocd_trace_cmd, "status", handle_oocd_trace_status_command, COMMAND_EXEC, "display OpenOCD+trace status");
-	register_command(cmd_ctx, oocd_trace_cmd, "resync", handle_oocd_trace_resync_command, COMMAND_EXEC, "resync OpenOCD+trace capture clock");
+	register_command(cmd_ctx, oocd_trace_cmd, "status", handle_oocd_trace_status_command, COMMAND_EXEC, "display OpenOCD + trace status");
+	register_command(cmd_ctx, oocd_trace_cmd, "resync", handle_oocd_trace_resync_command, COMMAND_EXEC, "resync OpenOCD + trace capture clock");
 
 	return ERROR_OK;
 }

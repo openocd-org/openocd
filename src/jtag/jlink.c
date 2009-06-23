@@ -50,7 +50,7 @@ static unsigned int jlink_hw_jtag_version = 2;
 //#define JLINK_TAP_BUFFER_SIZE 384
 
 #define JLINK_IN_BUFFER_SIZE			2048
-#define JLINK_OUT_BUFFER_SIZE			2*2048+4
+#define JLINK_OUT_BUFFER_SIZE			2*2048 + 4
 #define JLINK_EMU_RESULT_BUFFER_SIZE	64
 
 /* Global USB buffers */

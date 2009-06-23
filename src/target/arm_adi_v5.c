@@ -1093,7 +1093,7 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 			if (romentry&0x01)
 			{
 				uint32_t c_cid0,c_cid1,c_cid2,c_cid3,c_pid0,c_pid1,c_pid2,c_pid3,c_pid4,component_start;
-				uint32_t component_base = (uint32_t)((dbgbase&0xFFFFF000)+(int)(romentry&0xFFFFF000));
+				uint32_t component_base = (uint32_t)((dbgbase&0xFFFFF000) + (int)(romentry&0xFFFFF000));
 				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFE0, &c_pid0);
 				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFE4, &c_pid1);
 				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFE8, &c_pid2);
