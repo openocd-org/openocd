@@ -469,7 +469,7 @@ static int parport_handle_write_on_exit_command(struct command_context_s *cmd_ct
 {
 	if (argc != 1)
 	{
-		command_print(cmd_ctx, "usage: parport_write_on_exit <on|off>");
+		command_print(cmd_ctx, "usage: parport_write_on_exit <on | off>");
 		return ERROR_OK;
 	}
 

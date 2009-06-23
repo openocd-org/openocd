@@ -29,7 +29,7 @@
 
 #define KB 1024
 #define MB (1024*1024)
-#define ERASE_REGION(num, size) (((size/256) << 16)|(num-1))
+#define ERASE_REGION(num, size) (((size/256) << 16) | (num-1))
 
 /* non-CFI compatible flashes */
 non_cfi_t non_cfi_flashes[] = {

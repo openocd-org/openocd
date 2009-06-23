@@ -122,9 +122,9 @@ static uint32_t stm32x_wait_status_busy(flash_bank_t *bank, int timeout)
 		alive_sleep(1);
 	}
 	/* Clear but report errors */
-	if (status & (FLASH_WRPRTERR|FLASH_PGERR))
+	if (status & (FLASH_WRPRTERR | FLASH_PGERR))
 	{
-		target_write_u32(target, STM32_FLASH_SR, FLASH_WRPRTERR|FLASH_PGERR);
+		target_write_u32(target, STM32_FLASH_SR, FLASH_WRPRTERR | FLASH_PGERR);
 	}
 	return status;
 }
@@ -140,7 +140,7 @@ static int stm32x_read_options(struct flash_bank_s *bank)
 	/* read current option bytes */
 	target_read_u32(target, STM32_FLASH_OBR, &optiondata);
 
-	stm32x_info->option_bytes.user_options = (uint16_t)0xFFF8|((optiondata >> 2) & 0x07);
+	stm32x_info->option_bytes.user_options = (uint16_t)0xFFF8 | ((optiondata >> 2) & 0x07);
 	stm32x_info->option_bytes.RDP = (optiondata & (1 << OPT_READOUT)) ? 0xFFFF : 0x5AA5;
 
 	if (optiondata & (1 << OPT_READOUT))
@@ -177,8 +177,8 @@ static int stm32x_erase_options(struct flash_bank_s *bank)
 	target_write_u32(target, STM32_FLASH_OPTKEYR, KEY2);
 
 	/* erase option bytes */
-	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER|FLASH_OPTWRE);
-	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER|FLASH_STRT|FLASH_OPTWRE);
+	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER | FLASH_OPTWRE);
+	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTER | FLASH_STRT | FLASH_OPTWRE);
 
 	status = stm32x_wait_status_busy(bank, 10);
 
@@ -211,7 +211,7 @@ static int stm32x_write_options(struct flash_bank_s *bank)
 	target_write_u32(target, STM32_FLASH_OPTKEYR, KEY2);
 
 	/* program option bytes */
-	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTPG|FLASH_OPTWRE);
+	target_write_u32(target, STM32_FLASH_CR, FLASH_OPTPG | FLASH_OPTWRE);
 
 	/* write user option byte */
 	target_write_u16(target, STM32_OB_USER, stm32x_info->option_bytes.user_options);
@@ -374,7 +374,7 @@ static int stm32x_erase(struct flash_bank_s *bank, int first, int last)
 	{
 		target_write_u32(target, STM32_FLASH_CR, FLASH_PER);
 		target_write_u32(target, STM32_FLASH_AR, bank->base + bank->sectors[i].offset);
-		target_write_u32(target, STM32_FLASH_CR, FLASH_PER|FLASH_STRT);
+		target_write_u32(target, STM32_FLASH_CR, FLASH_PER | FLASH_STRT);
 
 		status = stm32x_wait_status_busy(bank, 10);
 
@@ -1098,7 +1098,7 @@ static int stm32x_handle_options_write_command(struct command_context_s *cmd_ctx
 
 	if (argc < 4)
 	{
-		command_print(cmd_ctx, "stm32x options_write <bank> <SWWDG|HWWDG> <RSTSTNDBY|NORSTSTNDBY> <RSTSTOP|NORSTSTOP>");
+		command_print(cmd_ctx, "stm32x options_write <bank> <SWWDG | HWWDG> <RSTSTNDBY | NORSTSTNDBY> <RSTSTOP | NORSTSTOP>");
 		return ERROR_OK;
 	}
 
@@ -1182,7 +1182,7 @@ static int stm32x_mass_erase(struct flash_bank_s *bank)
 
 	/* mass erase flash memory */
 	target_write_u32(target, STM32_FLASH_CR, FLASH_MER);
-	target_write_u32(target, STM32_FLASH_CR, FLASH_MER|FLASH_STRT);
+	target_write_u32(target, STM32_FLASH_CR, FLASH_MER | FLASH_STRT);
 
 	status = stm32x_wait_status_busy(bank, 10);
 

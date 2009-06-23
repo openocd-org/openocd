@@ -3693,7 +3693,7 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 
 	register_command(cmd_ctx, xscale_cmd, "vector_catch", xscale_handle_vector_catch_command, COMMAND_EXEC, "<mask> of vectors that should be catched");
 
-	register_command(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable|disable> ['fill' [n]|'wrap']");
+	register_command(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable | disable> ['fill' [n]|'wrap']");
 
 	register_command(cmd_ctx, xscale_cmd, "dump_trace", xscale_handle_dump_trace_command, COMMAND_EXEC, "dump content of trace buffer to <file>");
 	register_command(cmd_ctx, xscale_cmd, "analyze_trace", xscale_handle_analyze_trace_buffer_command, COMMAND_EXEC, "analyze content of trace buffer");

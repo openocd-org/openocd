@@ -346,7 +346,7 @@ static uint32_t stellaris_get_flash_status(flash_bank_t *bank)
 	target_t *target = bank->target;
 	uint32_t fmc;
 
-	target_read_u32(target, FLASH_CONTROL_BASE|FLASH_FMC, &fmc);
+	target_read_u32(target, FLASH_CONTROL_BASE | FLASH_FMC, &fmc);
 
 	return fmc;
 }
@@ -360,9 +360,9 @@ static void stellaris_read_clock_info(flash_bank_t *bank)
 	uint32_t rcc, pllcfg, sysdiv, usesysdiv, bypass, oscsrc;
 	unsigned long mainfreq;
 
-	target_read_u32(target, SCB_BASE|RCC, &rcc);
+	target_read_u32(target, SCB_BASE | RCC, &rcc);
 	LOG_DEBUG("Stellaris RCC %" PRIx32 "", rcc);
-	target_read_u32(target, SCB_BASE|PLLCFG, &pllcfg);
+	target_read_u32(target, SCB_BASE | PLLCFG, &pllcfg);
 	LOG_DEBUG("Stellaris PLLCFG %" PRIx32 "", pllcfg);
 	stellaris_info->rcc = rcc;
 
@@ -412,7 +412,7 @@ static void stellaris_set_flash_mode(flash_bank_t *bank,int mode)
 
 	uint32_t usecrl = (stellaris_info->mck_freq/1000000ul-1);
 	LOG_DEBUG("usecrl = %i",(int)(usecrl));
-	target_write_u32(target, SCB_BASE|USECRL, usecrl);
+	target_write_u32(target, SCB_BASE | USECRL, usecrl);
 }
 
 #if 0
@@ -439,7 +439,7 @@ static int stellaris_flash_command(struct flash_bank_s *bank,uint8_t cmd,uint16_
 	target_t *target = bank->target;
 
 	fmc = FMC_WRKEY | cmd;
-	target_write_u32(target, FLASH_CONTROL_BASE|FLASH_FMC, fmc);
+	target_write_u32(target, FLASH_CONTROL_BASE | FLASH_FMC, fmc);
 	LOG_DEBUG("Flash command: 0x%x", fmc);
 
 	if (stellaris_wait_status_busy(bank, cmd, 100))
@@ -460,10 +460,10 @@ static int stellaris_read_part_info(struct flash_bank_s *bank)
 	int i;
 
 	/* Read and parse chip identification register */
-	target_read_u32(target, SCB_BASE|DID0, &did0);
-	target_read_u32(target, SCB_BASE|DID1, &did1);
-	target_read_u32(target, SCB_BASE|DC0, &stellaris_info->dc0);
-	target_read_u32(target, SCB_BASE|DC1, &stellaris_info->dc1);
+	target_read_u32(target, SCB_BASE | DID0, &did0);
+	target_read_u32(target, SCB_BASE | DID1, &did1);
+	target_read_u32(target, SCB_BASE | DC0, &stellaris_info->dc0);
+	target_read_u32(target, SCB_BASE | DC1, &stellaris_info->dc1);
 	LOG_DEBUG("did0 0x%" PRIx32 ", did1 0x%" PRIx32 ", dc0 0x%" PRIx32 ", dc1 0x%" PRIx32 "",
 		  did0, did1, stellaris_info->dc0, stellaris_info->dc1);
 
@@ -503,7 +503,7 @@ static int stellaris_read_part_info(struct flash_bank_s *bank)
 	stellaris_info->pagesize = 1024;
 	bank->size = 1024 * stellaris_info->num_pages;
 	stellaris_info->pages_in_lockregion = 2;
-	target_read_u32(target, SCB_BASE|FMPPE, &stellaris_info->lockbits);
+	target_read_u32(target, SCB_BASE | FMPPE, &stellaris_info->lockbits);
 
 	/* provide this for the benefit of the higher flash driver layers */
 	bank->num_sectors = stellaris_info->num_pages;
@@ -597,7 +597,7 @@ static int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
-	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
+	target_write_u32(target, FLASH_MISC, PMISC | AMISC);
 
 	for (banknr = first; banknr <= last; banknr++)
 	{
@@ -672,10 +672,10 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
-	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
+	target_write_u32(target, FLASH_MISC, PMISC | AMISC);
 
 	LOG_DEBUG("fmppe 0x%" PRIx32 "",fmppe);
-	target_write_u32(target, SCB_BASE|FMPPE, fmppe);
+	target_write_u32(target, SCB_BASE | FMPPE, fmppe);
 	/* Commit FMPPE */
 	target_write_u32(target, FLASH_FMA, 1);
 	/* Write commit command */
@@ -698,7 +698,7 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	target_read_u32(target, SCB_BASE|FMPPE, &stellaris_info->lockbits);
+	target_read_u32(target, SCB_BASE | FMPPE, &stellaris_info->lockbits);
 
 	return ERROR_OK;
 }
@@ -869,7 +869,7 @@ static int stellaris_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t 
 
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
-	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
+	target_write_u32(target, FLASH_MISC, PMISC | AMISC);
 
 	/* multiple words to be programmed? */
 	if (words_remaining > 0)
@@ -1014,7 +1014,7 @@ static int stellaris_mass_erase(struct flash_bank_s *bank)
 
 	/* Clear and disable flash programming interrupts */
 	target_write_u32(target, FLASH_CIM, 0);
-	target_write_u32(target, FLASH_MISC, PMISC|AMISC);
+	target_write_u32(target, FLASH_MISC, PMISC | AMISC);
 
 	target_write_u32(target, FLASH_FMA, 0);
 	target_write_u32(target, FLASH_FMC, FMC_WRKEY | FMC_MERASE);

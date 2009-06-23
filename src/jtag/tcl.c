@@ -699,11 +699,11 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_jim(cmd_ctx, "pathmove", Jim_Command_pathmove, "move JTAG to state1 then to state2, state3, etc. <state1>,<state2>,<stat3>...");
 
 	register_command(cmd_ctx, NULL, "verify_ircapture", handle_verify_ircapture_command,
-		COMMAND_ANY, "verify value captured during Capture-IR <enable|disable>");
+		COMMAND_ANY, "verify value captured during Capture-IR <enable | disable>");
 	register_command(cmd_ctx, NULL, "verify_jtag", handle_verify_jtag_command,
-		COMMAND_ANY, "verify value capture <enable|disable>");
+		COMMAND_ANY, "verify value capture <enable | disable>");
 	register_command(cmd_ctx, NULL, "tms_sequence", handle_tms_sequence_command,
-		COMMAND_ANY, "choose short(default) or long tms_sequence <short|long>");
+		COMMAND_ANY, "choose short(default) or long tms_sequence <short | long>");
 	return ERROR_OK;
 }
 

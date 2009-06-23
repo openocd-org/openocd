@@ -1068,11 +1068,11 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 			command_print(cmd_ctx, "\tROM table in legacy format" );
 		}
 		/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFF0, &cid0);
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFF4, &cid1);
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFF8, &cid2);
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFFC, &cid3);
-		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000)|0xFCC, &memtype);
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF0, &cid0);
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF4, &cid1);
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFF8, &cid2);
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFFC, &cid3);
+		mem_ap_read_u32(swjdp, (dbgbase&0xFFFFF000) | 0xFCC, &memtype);
 		swjdp_transaction_endcheck(swjdp);
 		command_print(cmd_ctx, "\tCID3 0x%" PRIx32 ", CID2 0x%" PRIx32 ", CID1 0x%" PRIx32 " CID0, 0x%" PRIx32,cid3,cid2,cid1,cid0);
 		if (memtype&0x01)
@@ -1084,25 +1084,25 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 			command_print(cmd_ctx, "\tMEMTYPE system memory not present. Dedicated debug bus" );
 		}
 
-		/* Now we read ROM table entries from dbgbase&0xFFFFF000)|0x000 until we get 0x00000000 */
+		/* Now we read ROM table entries from dbgbase&0xFFFFF000) | 0x000 until we get 0x00000000 */
 		entry_offset = 0;
 		do
 		{
-			mem_ap_read_atomic_u32(swjdp, (dbgbase&0xFFFFF000)|entry_offset, &romentry);
+			mem_ap_read_atomic_u32(swjdp, (dbgbase&0xFFFFF000) | entry_offset, &romentry);
 			command_print(cmd_ctx, "\tROMTABLE[0x%x] = 0x%" PRIx32 "",entry_offset,romentry);
 			if (romentry&0x01)
 			{
 				uint32_t c_cid0,c_cid1,c_cid2,c_cid3,c_pid0,c_pid1,c_pid2,c_pid3,c_pid4,component_start;
 				uint32_t component_base = (uint32_t)((dbgbase&0xFFFFF000) + (int)(romentry&0xFFFFF000));
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFE0, &c_pid0);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFE4, &c_pid1);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFE8, &c_pid2);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFEC, &c_pid3);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFD0, &c_pid4);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFF0, &c_cid0);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFF4, &c_cid1);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFF8, &c_cid2);
-				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000)|0xFFC, &c_cid3);
+				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFE0, &c_pid0);
+				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFE4, &c_pid1);
+				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFE8, &c_pid2);
+				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFEC, &c_pid3);
+				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFD0, &c_pid4);
+				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFF0, &c_cid0);
+				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFF4, &c_cid1);
+				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFF8, &c_cid2);
+				mem_ap_read_atomic_u32(swjdp, (component_base&0xFFFFF000) | 0xFFC, &c_cid3);
 				component_start = component_base - 0x1000*(c_pid4 >> 4);
 				command_print(cmd_ctx, "\t\tComponent base address 0x%" PRIx32 ", pid4 0x%" PRIx32 ", start address 0x%" PRIx32 "",component_base,c_pid4,component_start);
 				command_print(cmd_ctx, "\t\tComponent cid1 0x%" PRIx32 ", class is %s",c_cid1,class_description[(c_cid1 >> 4)&0xF]); /* Se ARM DDI 0314 C Table 2.2 */

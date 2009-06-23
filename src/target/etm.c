@@ -1107,7 +1107,7 @@ static int handle_etm_tracemode_command(struct command_context_s *cmd_ctx, char 
 	}
 	else if (argc != 0)
 	{
-		command_print(cmd_ctx, "usage: configure trace mode <none|data|address|all> <context id bits> <cycle accurate> <branch output>");
+		command_print(cmd_ctx, "usage: configure trace mode <none | data | address | all> <context id bits> <cycle accurate> <branch output>");
 		return ERROR_OK;
 	}
 
@@ -1826,7 +1826,7 @@ int etm_register_commands(struct command_context_s *cmd_ctx)
 int etm_register_user_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, etm_cmd, "tracemode", handle_etm_tracemode_command,
-		COMMAND_EXEC, "configure trace mode <none|data|address|all> "
+		COMMAND_EXEC, "configure trace mode <none | data | address | all> "
 			"<context_id_bits> <cycle_accurate> <branch_output>");
 
 	register_command(cmd_ctx, etm_cmd, "info", handle_etm_info_command,

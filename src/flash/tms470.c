@@ -411,7 +411,7 @@ static int tms470_handle_plldis_command(struct command_context_s *cmd_ctx, char 
 {
 	if (argc > 1)
 	{
-		command_print(cmd_ctx, "tms470 plldis <0|1>");
+		command_print(cmd_ctx, "tms470 plldis <0 | 1>");
 		return ERROR_INVALID_ARGUMENTS;
 	}
 	else if (argc == 1)

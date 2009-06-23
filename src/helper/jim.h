@@ -1114,7 +1114,7 @@ JIM_STATIC int JIM_API( Jim_GetOpt_Nvp)( Jim_GetOptInfo *goi, const Jim_Nvp *loo
  *
  *     switch ( n->value ){
  *     case OPT_SEX:
- *          // handle:  --sex male|female|lots|needmore
+ *          // handle:  --sex male | female | lots | needmore
  *          e = Jim_GetOpt_Nvp( &goi, &nvp_sex, &n );
  *          if ( e != JIM_OK ){
  *               Jim_GetOpt_NvpUnknown( &ogi, nvp_sex, 1 );

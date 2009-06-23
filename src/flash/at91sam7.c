@@ -107,7 +107,7 @@ static int at91sam7_register_commands(struct command_context_s *cmd_ctx)
 	command_t *at91sam7_cmd = register_command(cmd_ctx, NULL, "at91sam7", NULL, COMMAND_ANY, NULL);
 
 	register_command(cmd_ctx, at91sam7_cmd, "gpnvm", at91sam7_handle_gpnvm_command, COMMAND_EXEC,
-					"at91sam7 gpnvm <bit> set|clear, set or clear one gpnvm bit");
+					"at91sam7 gpnvm <bit> set | clear, set or clear one gpnvm bit");
 	return ERROR_OK;
 }
 
@@ -284,7 +284,7 @@ static int at91sam7_flash_command(struct flash_bank_s *bank, uint8_t cmd, uint16
 	target_write_u32(target, MC_FCR[bank->bank_number], fcr);
 	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u", fcr, bank->bank_number + 1, pagen);
 
-	if ((at91sam7_info->cidr_arch == 0x60) && ((cmd == SLB)|(cmd == CLB)))
+	if ((at91sam7_info->cidr_arch == 0x60) && ((cmd == SLB) | (cmd == CLB)))
 	{
 		/* Lock bit manipulation on AT91SAM7A3 waits for FC_FSR bit 1, EOL */
 		if (at91sam7_wait_status_busy(bank, MC_FSR_EOL, 10)&0x0C)
@@ -1138,7 +1138,7 @@ static int at91sam7_handle_gpnvm_command(struct command_context_s *cmd_ctx, char
 
 	if (argc != 2)
 	{
-		command_print(cmd_ctx, "at91sam7 gpnvm <bit> <set|clear>");
+		command_print(cmd_ctx, "at91sam7 gpnvm <bit> <set | clear>");
 		return ERROR_OK;
 	}
 

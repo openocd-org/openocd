@@ -1112,8 +1112,8 @@ int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		comparator_list[dwt_num].mask = mask;
 		comparator_list[dwt_num].function = watchpoint->rw + 5;
 		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address, comparator_list[dwt_num].comp);
-		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address|0x4, comparator_list[dwt_num].mask);
-		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address|0x8, comparator_list[dwt_num].function);
+		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address | 0x4, comparator_list[dwt_num].mask);
+		target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address | 0x8, comparator_list[dwt_num].function);
 		LOG_DEBUG("dwt_num %i 0x%" PRIx32 " 0x%" PRIx32 " 0x%" PRIx32 "", dwt_num, comparator_list[dwt_num].comp, comparator_list[dwt_num].mask, comparator_list[dwt_num].function);
 	}
 	else
@@ -1149,7 +1149,7 @@ int cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint
 	}
 	comparator_list[dwt_num].used = 0;
 	comparator_list[dwt_num].function = 0;
-	target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address|0x8, comparator_list[dwt_num].function);
+	target_write_u32(target, comparator_list[dwt_num].dwt_comparator_address | 0x8, comparator_list[dwt_num].function);
 
 	watchpoint->set = 0;
 
@@ -1648,7 +1648,7 @@ int handle_cortex_m3_mask_interrupts_command(struct command_context_s *cmd_ctx, 
 	{
 		if (!strcmp(args[0], "on"))
 		{
-			cortex_m3_write_debug_halt_mask(target, C_HALT|C_MASKINTS, 0);
+			cortex_m3_write_debug_halt_mask(target, C_HALT | C_MASKINTS, 0);
 		}
 		else if (!strcmp(args[0], "off"))
 		{

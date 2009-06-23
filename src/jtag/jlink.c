@@ -299,7 +299,7 @@ static int jlink_register_commands(struct command_context_s *cmd_ctx)
 		"query jlink info");
 	register_command(cmd_ctx, NULL, "jlink_hw_jtag",
 		&jlink_handle_jlink_hw_jtag_command, COMMAND_EXEC,
-		"set/get jlink hw jtag command version [2|3]");
+		"set/get jlink hw jtag command version [2 | 3]");
 	return ERROR_OK;
 }
 

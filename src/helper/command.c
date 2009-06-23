@@ -825,7 +825,7 @@ void process_jim_events(void)
 	if (!recursion)
 	{
 		recursion++;
-		Jim_ProcessEvents (interp, JIM_ALL_EVENTS|JIM_DONT_WAIT);
+		Jim_ProcessEvents (interp, JIM_ALL_EVENTS | JIM_DONT_WAIT);
 		recursion--;
 	}
 #endif

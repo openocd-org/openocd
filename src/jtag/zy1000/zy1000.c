@@ -405,7 +405,7 @@ static void shiftValueInnerFlip(const tap_state_t state, const tap_state_t endSt
 	a = state;
 	b = endState;
 	ZY1000_POKE(ZY1000_JTAG_BASE + 0xc, value);
-	ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (1 << 15)|(repeat << 8)|(a << 4)|b);
+	ZY1000_POKE(ZY1000_JTAG_BASE + 0x8, (1 << 15) | (repeat << 8) | (a << 4) | b);
 	VERBOSE(getShiftValueFlip());
 }
 #endif
@@ -741,7 +741,7 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int l
 			for (i = 0; i < count; i++)
 			{
 				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, 1));
-				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr|(1 << 5));
+				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr | (1 << 5));
 				buffer += 4;
 			}
 		} else
@@ -750,7 +750,7 @@ void embeddedice_write_dcc(jtag_tap_t *tap, int reg_addr, uint8_t *buffer, int l
 			for (i = 0; i < count; i++)
 			{
 				shiftValueInner(TAP_DRSHIFT, TAP_DRSHIFT, 32, fast_target_buffer_get_u32(buffer, 0));
-				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr|(1 << 5));
+				shiftValueInner(TAP_DRSHIFT, end_state, 6, reg_addr | (1 << 5));
 				buffer += 4;
 			}
 		}

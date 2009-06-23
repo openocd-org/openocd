@@ -160,7 +160,7 @@ static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	bank->driver_priv = str7x_info;
 	
 	/* set default bits for str71x flash */
-	str7x_info->busy_bits = (FLASH_LOCK|FLASH_BSYA1|FLASH_BSYA0);
+	str7x_info->busy_bits = (FLASH_LOCK | FLASH_BSYA1 | FLASH_BSYA0);
 	str7x_info->disable_bit = (1 << 1);
 	
 	if (strcmp(args[6], "STR71x") == 0)
@@ -170,7 +170,7 @@ static int str7x_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd
 	else if (strcmp(args[6], "STR73x") == 0)
 	{
 		str7x_info->register_base = 0x80100000;
-		str7x_info->busy_bits = (FLASH_LOCK|FLASH_BSYA0);
+		str7x_info->busy_bits = (FLASH_LOCK | FLASH_BSYA0);
 	}
 	else if (strcmp(args[6], "STR75x") == 0)
 	{
@@ -270,7 +270,7 @@ static int str7x_erase(struct flash_bank_s *bank, int first, int last)
 	cmd = sectors;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR1), cmd);
 	
-	cmd = FLASH_SER|FLASH_WMS;
+	cmd = FLASH_SER | FLASH_WMS;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 	
 	while (((retval = str7x_status(bank)) & str7x_info->busy_bits)){
@@ -326,7 +326,7 @@ static int str7x_protect(struct flash_bank_s *bank, int set, int first, int last
 	cmd = protect_blocks;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_DR0), cmd);
 	
-	cmd = FLASH_SPR|FLASH_WMS;
+	cmd = FLASH_SPR | FLASH_WMS;
 	target_write_u32(target, str7x_get_flash_adr(bank, FLASH_CR0), cmd);
 	
 	while (((retval = str7x_status(bank)) & str7x_info->busy_bits)){

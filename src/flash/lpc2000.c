@@ -30,18 +30,18 @@
 /* flash programming support for Philips LPC2xxx devices
  * currently supported devices:
  * variant 1 (lpc2000_v1):
- * - 2104|5|6
- * - 2114|9
- * - 2124|9
+ * - 2104 | 5|6
+ * - 2114 | 9
+ * - 2124 | 9
  * - 2194
- * - 2212|4
- * - 2292|4
+ * - 2212 | 4
+ * - 2292 | 4
  *
  * variant 2 (lpc2000_v2):
  * - 213x
  * - 214x
- * - 2101|2|3
- * - 2364|6|8
+ * - 2101 | 2|3
+ * - 2364 | 6|8
  * - 2378
  */
 

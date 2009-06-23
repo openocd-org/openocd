@@ -197,7 +197,7 @@ int flash_init_drivers(struct command_context_s *cmd_ctx)
 		register_command(cmd_ctx, flash_cmd, "write_image", handle_flash_write_image_command, COMMAND_EXEC,
 						 "write_image [erase] <file> [offset] [type]");
 		register_command(cmd_ctx, flash_cmd, "protect", handle_flash_protect_command, COMMAND_EXEC,
-						 "set protection of sectors at <bank> <first> <last> <on|off>");
+						 "set protection of sectors at <bank> <first> <last> <on | off>");
 	}
 
 	return ERROR_OK;

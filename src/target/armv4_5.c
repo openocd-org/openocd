@@ -456,7 +456,7 @@ int armv4_5_register_commands(struct command_context_s *cmd_ctx)
 	armv4_5_cmd = register_command(cmd_ctx, NULL, "armv4_5", NULL, COMMAND_ANY, "armv4/5 specific commands");
 
 	register_command(cmd_ctx, armv4_5_cmd, "reg", handle_armv4_5_reg_command, COMMAND_EXEC, "display ARM core registers");
-	register_command(cmd_ctx, armv4_5_cmd, "core_state", handle_armv4_5_core_state_command, COMMAND_EXEC, "display/change ARM core state <arm|thumb>");
+	register_command(cmd_ctx, armv4_5_cmd, "core_state", handle_armv4_5_core_state_command, COMMAND_EXEC, "display/change ARM core state <arm | thumb>");
 
 	register_command(cmd_ctx, armv4_5_cmd, "disassemble", handle_armv4_5_disassemble_command, COMMAND_EXEC, "disassemble instructions <address> <count> ['thumb']");
 	return ERROR_OK;

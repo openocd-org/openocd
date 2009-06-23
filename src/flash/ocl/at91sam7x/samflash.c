@@ -164,7 +164,7 @@ int flash_erase_plane(int efc_ofs)
 	if ((inr(MC_FSR + efc_ofs)&MC_LOCKE)) return FLASH_STAT_LOCKE;
 
 	/* set no erase before programming */
-	outr(MC_FMR + efc_ofs, inr(MC_FMR + efc_ofs)|0x80);
+	outr(MC_FMR + efc_ofs, inr(MC_FMR + efc_ofs) | 0x80);
 
 	return FLASH_STAT_OK;
 }

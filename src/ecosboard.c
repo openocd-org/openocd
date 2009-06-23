@@ -1460,7 +1460,7 @@ static int logfs_fo_close(struct CYG_FILE_TAG *fp);
 // For simplicity we use _FILESYSTEM synchronization for all accesses since
 // we should never block in any filesystem operations.
 FSTAB_ENTRY( logfs_fste, "logfs", 0,
-		CYG_SYNCMODE_FILE_FILESYSTEM|CYG_SYNCMODE_IO_FILESYSTEM,
+		CYG_SYNCMODE_FILE_FILESYSTEM | CYG_SYNCMODE_IO_FILESYSTEM,
 		logfs_mount,
 		logfs_umount,
 		logfs_open,

@@ -64,7 +64,7 @@
 /* File event structure */
 typedef struct Jim_FileEvent {
     void *handle;
-    int mask; /* one of JIM_EVENT_(READABLE|WRITABLE|EXCEPTION) */
+    int mask; /* one of JIM_EVENT_(READABLE | WRITABLE | EXCEPTION) */
     Jim_FileProc *fileProc;
     Jim_EventFinalizerProc *finalizerProc;
     void *clientData;
@@ -237,7 +237,7 @@ static Jim_TimeEvent *JimSearchNearestTimer(Jim_EventLoop *eventLoop)
 /* --- POSIX version of Jim_ProcessEvents, for now the only available --- */
 #define JIM_FILE_EVENTS 1
 #define JIM_TIME_EVENTS 2
-#define JIM_ALL_EVENTS (JIM_FILE_EVENTS|JIM_TIME_EVENTS)
+#define JIM_ALL_EVENTS (JIM_FILE_EVENTS | JIM_TIME_EVENTS)
 #define JIM_DONT_WAIT 4
 
 /* Process every pending time event, then every pending file event

@@ -1483,7 +1483,7 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "halt", handle_halt_command, COMMAND_EXEC, "halt target");
 	register_command(cmd_ctx,  NULL, "resume", handle_resume_command, COMMAND_EXEC, "resume target [addr]");
 	register_command(cmd_ctx,  NULL, "step", handle_step_command, COMMAND_EXEC, "step one instruction from current PC or [addr]");
-	register_command(cmd_ctx,  NULL, "reset", handle_reset_command, COMMAND_EXEC, "reset target [run|halt|init] - default is run");
+	register_command(cmd_ctx,  NULL, "reset", handle_reset_command, COMMAND_EXEC, "reset target [run | halt | init] - default is run");
 	register_command(cmd_ctx,  NULL, "soft_reset_halt", handle_soft_reset_halt_command, COMMAND_EXEC, "halt the target and do a soft reset");
 
 	register_command(cmd_ctx,  NULL, "mdw", handle_md_command, COMMAND_EXEC, "display memory words <addr> [count]");
@@ -3987,7 +3987,7 @@ static int tcl_target_func( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 		break;
 	case TS_CMD_RESET:
 		if ( goi.argc != 2 ){
-			Jim_WrongNumArgs( interp, 2, argv, "t|f|assert|deassert BOOL");
+			Jim_WrongNumArgs( interp, 2, argv, "t | f|assert | deassert BOOL");
 			return JIM_ERR;
 		}
 		e = Jim_GetOpt_Nvp( &goi, nvp_assert, &n );

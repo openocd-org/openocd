@@ -311,9 +311,9 @@ int nand_init(struct command_context_s *cmd_ctx)
 						 "erase blocks on NAND flash device <num> <offset> <length>");
 		register_command(cmd_ctx, nand_cmd, "dump", handle_nand_dump_command, COMMAND_EXEC,
 						 "dump from NAND flash device <num> <filename> "
-						 "<offset> <length> [oob_raw|oob_only]");
+						 "<offset> <length> [oob_raw | oob_only]");
 		register_command(cmd_ctx, nand_cmd, "write", handle_nand_write_command, COMMAND_EXEC,
-						 "write to NAND flash device <num> <filename> <offset> [oob_raw|oob_only|oob_softecc|oob_softecc_kw]");
+						 "write to NAND flash device <num> <filename> <offset> [oob_raw | oob_only | oob_softecc | oob_softecc_kw]");
 		register_command(cmd_ctx, nand_cmd, "raw_access", handle_nand_raw_access_command, COMMAND_EXEC,
 						 "raw access to NAND flash device <num> ['enable'|'disable']");
 	}

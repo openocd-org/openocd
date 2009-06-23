@@ -1002,7 +1002,7 @@ static int str9xpec_handle_flash_options_cmap_command(struct command_context_s *
 
 	if (argc < 2)
 	{
-		command_print(cmd_ctx, "str9xpec options_cmap <bank> <bank0|bank1>");
+		command_print(cmd_ctx, "str9xpec options_cmap <bank> <bank0 | bank1>");
 		return ERROR_OK;
 	}
 
@@ -1034,7 +1034,7 @@ static int str9xpec_handle_flash_options_lvdthd_command(struct command_context_s
 
 	if (argc < 2)
 	{
-		command_print(cmd_ctx, "str9xpec options_lvdthd <bank> <2.4v|2.7v>");
+		command_print(cmd_ctx, "str9xpec options_lvdthd <bank> <2.4v | 2.7v>");
 		return ERROR_OK;
 	}
 
@@ -1066,7 +1066,7 @@ int str9xpec_handle_flash_options_lvdsel_command(struct command_context_s *cmd_c
 
 	if (argc < 2)
 	{
-		command_print(cmd_ctx, "str9xpec options_lvdsel <bank> <vdd|vdd_vddq>");
+		command_print(cmd_ctx, "str9xpec options_lvdsel <bank> <vdd | vdd_vddq>");
 		return ERROR_OK;
 	}
 
@@ -1098,7 +1098,7 @@ static int str9xpec_handle_flash_options_lvdwarn_command(struct command_context_
 
 	if (argc < 2)
 	{
-		command_print(cmd_ctx, "str9xpec options_lvdwarn <bank> <vdd|vdd_vddq>");
+		command_print(cmd_ctx, "str9xpec options_lvdwarn <bank> <vdd | vdd_vddq>");
 		return ERROR_OK;
 	}
 

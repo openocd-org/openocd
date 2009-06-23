@@ -71,7 +71,7 @@ JIM_STATIC int Jim_EventLoopOnLoad(Jim_Interp *interp);
 /* --- POSIX version of Jim_ProcessEvents, for now the only available --- */
 #define JIM_FILE_EVENTS 1
 #define JIM_TIME_EVENTS 2
-#define JIM_ALL_EVENTS (JIM_FILE_EVENTS|JIM_TIME_EVENTS)
+#define JIM_ALL_EVENTS (JIM_FILE_EVENTS | JIM_TIME_EVENTS)
 #define JIM_DONT_WAIT 4
 
 JIM_STATIC void JIM_API(Jim_CreateFileHandler) (Jim_Interp *interp,

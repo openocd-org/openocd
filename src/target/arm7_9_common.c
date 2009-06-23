@@ -1951,7 +1951,7 @@ void arm7_9_enable_eice_step(target_t *target, uint32_t next_pc)
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], 0xffffffff);
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], 0xffffffff);
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE);
-		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~(EICE_W_CTRL_RANGE|EICE_W_CTRL_nOPC) & 0xff);
+		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], ~(EICE_W_CTRL_RANGE | EICE_W_CTRL_nOPC) & 0xff);
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_VALUE], current_pc);
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], 0);
 		embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], 0xffffffff);
@@ -2842,17 +2842,17 @@ int arm7_9_register_commands(struct command_context_s *cmd_ctx)
 
 	arm7_9_cmd = register_command(cmd_ctx, NULL, "arm7_9", NULL, COMMAND_ANY, "arm7/9 specific commands");
 
-	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr", handle_arm7_9_write_xpsr_command, COMMAND_EXEC, "write program status register <value> <not cpsr|spsr>");
-	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr_im8", handle_arm7_9_write_xpsr_im8_command, COMMAND_EXEC, "write program status register <8bit immediate> <rotate> <not cpsr|spsr>");
+	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr", handle_arm7_9_write_xpsr_command, COMMAND_EXEC, "write program status register <value> <not cpsr | spsr>");
+	register_command(cmd_ctx, arm7_9_cmd, "write_xpsr_im8", handle_arm7_9_write_xpsr_im8_command, COMMAND_EXEC, "write program status register <8bit immediate> <rotate> <not cpsr | spsr>");
 
 	register_command(cmd_ctx, arm7_9_cmd, "write_core_reg", handle_arm7_9_write_core_reg_command, COMMAND_EXEC, "write core register <num> <mode> <value>");
 
 	register_command(cmd_ctx, arm7_9_cmd, "dbgrq", handle_arm7_9_dbgrq_command,
-		COMMAND_ANY, "use EmbeddedICE dbgrq instead of breakpoint for target halt requests <enable|disable>");
+		COMMAND_ANY, "use EmbeddedICE dbgrq instead of breakpoint for target halt requests <enable | disable>");
 	register_command(cmd_ctx, arm7_9_cmd, "fast_memory_access", handle_arm7_9_fast_memory_access_command,
-		 COMMAND_ANY, "use fast memory accesses instead of slower but potentially safer accesses <enable|disable>");
+		 COMMAND_ANY, "use fast memory accesses instead of slower but potentially safer accesses <enable | disable>");
 	register_command(cmd_ctx, arm7_9_cmd, "dcc_downloads", handle_arm7_9_dcc_downloads_command,
-		COMMAND_ANY, "use DCC downloads for larger memory writes <enable|disable>");
+		COMMAND_ANY, "use DCC downloads for larger memory writes <enable | disable>");
 
 	armv4_5_register_commands(cmd_ctx);
 
@@ -2884,7 +2884,7 @@ int handle_arm7_9_write_xpsr_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (argc < 2)
 	{
-		command_print(cmd_ctx, "usage: write_xpsr <value> <not cpsr|spsr>");
+		command_print(cmd_ctx, "usage: write_xpsr <value> <not cpsr | spsr>");
 		return ERROR_OK;
 	}
 
@@ -2929,7 +2929,7 @@ int handle_arm7_9_write_xpsr_im8_command(struct command_context_s *cmd_ctx, char
 
 	if (argc < 3)
 	{
-		command_print(cmd_ctx, "usage: write_xpsr_im8 <im8> <rotate> <not cpsr|spsr>");
+		command_print(cmd_ctx, "usage: write_xpsr_im8 <im8> <rotate> <not cpsr | spsr>");
 		return ERROR_OK;
 	}
 
@@ -3005,7 +3005,7 @@ int handle_arm7_9_dbgrq_command(struct command_context_s *cmd_ctx, char *cmd, ch
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: arm7_9 dbgrq <enable|disable>");
+			command_print(cmd_ctx, "usage: arm7_9 dbgrq <enable | disable>");
 		}
 	}
 
@@ -3038,7 +3038,7 @@ int handle_arm7_9_fast_memory_access_command(struct command_context_s *cmd_ctx, 
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: arm7_9 fast_memory_access <enable|disable>");
+			command_print(cmd_ctx, "usage: arm7_9 fast_memory_access <enable | disable>");
 		}
 	}
 
@@ -3071,7 +3071,7 @@ int handle_arm7_9_dcc_downloads_command(struct command_context_s *cmd_ctx, char 
 		}
 		else
 		{
-			command_print(cmd_ctx, "usage: arm7_9 dcc_downloads <enable|disable>");
+			command_print(cmd_ctx, "usage: arm7_9 dcc_downloads <enable | disable>");
 		}
 	}
 

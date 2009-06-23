@@ -162,7 +162,7 @@ static int pic32mx_nvm_exec(struct flash_bank_s *bank, uint32_t op, uint32_t tim
 	target_t *target = bank->target;
 	uint32_t status;
 
-	target_write_u32(target, PIC32MX_NVMCON, NVMCON_NVMWREN|op);
+	target_write_u32(target, PIC32MX_NVMCON, NVMCON_NVMWREN | op);
 
 	/* unlock flash registers */
 	target_write_u32(target, PIC32MX_NVMKEY, NVMKEY1);
@@ -841,7 +841,7 @@ static int pic32mx_chip_erase(struct flash_bank_s *bank)
 
 	/* chip erase flash memory */
 	target_write_u32(target, PIC32MX_FLASH_CR, FLASH_MER);
-	target_write_u32(target, PIC32MX_FLASH_CR, FLASH_MER|FLASH_STRT);
+	target_write_u32(target, PIC32MX_FLASH_CR, FLASH_MER | FLASH_STRT);
 
 	status = pic32mx_wait_status_busy(bank, 10);
 
