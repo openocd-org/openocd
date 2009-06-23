@@ -91,7 +91,7 @@ int add_default_dirs(void)
 		*strrchr(strExePath, '\\')=0;
 		strcat(strExePath, "/../lib/"PACKAGE);
 		for(p=strExePath; *p; p++) {
-			if(*p == '\\')
+			if (*p == '\\')
 				*p = '/';
 		}
 		add_script_search_dir(strExePath);

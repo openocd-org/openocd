@@ -591,7 +591,7 @@ static void usbprog_jtag_write_tdi(struct usbprog_jtag *usbprog_jtag, char * buf
 		{
 			send_bits = size;
 			loops = size/8;
-			/* if(loops==0) */
+			/* if (loops==0) */
 			loops++;
 			size = 0;
 		}

@@ -544,7 +544,7 @@ void Jim_Panic(Jim_Interp *interp, const char *fmt, ...)
 #endif
 	
 	/* This may actually crash... we do it last */
-	if( interp && interp->cookie_stderr ){
+	if ( interp && interp->cookie_stderr ){
 		Jim_fprintf(  interp, interp->cookie_stderr, JIM_NL "JIM INTERPRETER PANIC: ");
 		Jim_vfprintf( interp, interp->cookie_stderr, fmt, ap );
 		Jim_fprintf(  interp, interp->cookie_stderr, JIM_NL JIM_NL );
@@ -2064,7 +2064,7 @@ void Jim_AppendString_sprintf( Jim_Interp *interp, Jim_Obj *objPtr, const char *
 	buf = jim_vasprintf( fmt, ap );
 	va_end(ap);
 
-	if( buf ){
+	if ( buf ){
 		Jim_AppendString( interp, objPtr, buf, -1 );
 		jim_vasprintf_done(buf);
 	}
@@ -2283,7 +2283,7 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 		haveprec = 0;
 		prec = -1; /* not found yet */
     next_fmt:
-		if( fmtLen <= 0 ){
+		if ( fmtLen <= 0 ){
 			break;
 		}
 		switch( *fmt ){
@@ -2345,7 +2345,7 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 				accum = (accum * 10) + (*fmt - '0');
 				fmt++;  fmtLen--;
 			}
-			if( inprec ){
+			if ( inprec ){
 				haveprec = 1;
 				prec = accum;
 			} else {
@@ -2356,24 +2356,24 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 			/* suck up the next item as an integer */
 			fmt++;  fmtLen--;
 			objc--;
-			if( objc <= 0 ){
+			if ( objc <= 0 ){
 				goto not_enough_args;
 			}
-			if( Jim_GetWide(interp,objv[0],&wideValue )== JIM_ERR ){
+			if ( Jim_GetWide(interp,objv[0],&wideValue )== JIM_ERR ){
 				Jim_FreeNewObj(interp, resObjPtr );
 				return NULL;
 			}
-			if( inprec ){
+			if ( inprec ){
 				haveprec = 1;
 				prec = wideValue;
-				if( prec < 0 ){
+				if ( prec < 0 ){
 					/* man 3 printf says */
 					/* if prec is negative, it is zero */
 					prec = 0;
 				}
 			} else {
 			width = wideValue;
-			if( width < 0 ){
+			if ( width < 0 ){
 				ljust = 1;
 				width = -width;
 			}
@@ -2402,32 +2402,32 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 		 */
 		cp = fmt_str;
 		*cp++ = '%';
-		if( altfm ){
+		if ( altfm ){
 			*cp++ = '#';
 		}
-		if( forceplus ){
+		if ( forceplus ){
 			*cp++ = '+';
-		} else if( spad ){
+		} else if ( spad ){
 			/* PLUS overrides */
 			*cp++ = ' ';
 		}
-		if( ljust ){
+		if ( ljust ){
 			*cp++ = '-';
 		}
-		if( zpad  ){
+		if ( zpad  ){
 			*cp++ = '0';
 		}
-		if( width > 0 ){
+		if ( width > 0 ){
 			sprintf( cp, "%d", width );
 			/* skip ahead */
 			cp = strchr(cp,0);
 		}
 		/* did we find a period? */
-		if( inprec ){
+		if ( inprec ){
 			/* then add it */
 			*cp++ = '.';
 			/* did something occur after the period? */
-			if( haveprec ){
+			if ( haveprec ){
 				sprintf( cp, "%d", prec );
 			}
 			cp = strchr(cp,0);
@@ -2461,7 +2461,7 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 		case 'E':
 			*cp++ = *fmt;
 			*cp   = 0;
-			if( Jim_GetDouble( interp, objv[0], &doubleValue ) == JIM_ERR ){
+			if ( Jim_GetDouble( interp, objv[0], &doubleValue ) == JIM_ERR ){
 				Jim_FreeNewObj( interp, resObjPtr );
 				return NULL;
 			}
@@ -2475,7 +2475,7 @@ static Jim_Obj *Jim_FormatString_Inner(Jim_Interp *interp, Jim_Obj *fmtObjPtr,
 		case 'x':
 		case 'X':
 			/* jim widevaluse are 64bit */
-			if( sizeof(jim_wide) == sizeof(long long) ){
+			if ( sizeof(jim_wide) == sizeof(long long) ){
 				*cp++ = 'l'; 
 				*cp++ = 'l';
 			} else {
@@ -2627,12 +2627,12 @@ int Jim_GetNvp(Jim_Interp *interp,
 	int e;
 
 	e = Jim_Nvp_name2value_obj( interp, nvp_table, objPtr, &n );
-	if( e == JIM_ERR ){
+	if ( e == JIM_ERR ){
 		return e;
 	}
 
 	/* Success? found? */
-	if( n->name ){
+	if ( n->name ){
 		/* remove const */
 		*result = (Jim_Nvp *)n;
 		return JIM_OK;
@@ -8104,17 +8104,17 @@ DIR *opendir(const char *name)
 {
     DIR *dir = 0;
 
-    if(name && name[0]) {
+    if (name && name[0]) {
         size_t base_length = strlen(name);
         const char *all = /* search pattern must end with suitable wildcard */
             strchr("/\\", name[base_length - 1]) ? "*" : "/*";
 
-        if((dir = (DIR *) Jim_Alloc(sizeof *dir)) != 0 &&
+        if ((dir = (DIR *) Jim_Alloc(sizeof *dir)) != 0 &&
            (dir->name = (char *) Jim_Alloc(base_length + strlen(all) + 1)) != 0)
         {
             strcat(strcpy(dir->name, name), all);
 
-            if((dir->handle = (long) _findfirst(dir->name, &dir->info)) != -1)
+            if ((dir->handle = (long) _findfirst(dir->name, &dir->info)) != -1)
                 dir->result.d_name = 0;
             else { /* rollback */
                 Jim_Free(dir->name);
@@ -8136,13 +8136,13 @@ int closedir(DIR *dir)
 {
     int result = -1;
 
-    if(dir) {
-        if(dir->handle != -1)
+    if (dir) {
+        if (dir->handle != -1)
             result = _findclose(dir->handle);
         Jim_Free(dir->name);
         Jim_Free(dir);
     }
-    if(result == -1) /* map all errors to EBADF */
+    if (result == -1) /* map all errors to EBADF */
         errno = EBADF;
     return result;
 }
@@ -8151,8 +8151,8 @@ struct dirent *readdir(DIR *dir)
 {
     struct dirent *result = 0;
 
-    if(dir && dir->handle != -1) {
-        if(!dir->result.d_name || _findnext(dir->handle, &dir->info) != -1) {
+    if (dir && dir->handle != -1) {
+        if (!dir->result.d_name || _findnext(dir->handle, &dir->info) != -1) {
             result         = &dir->result;
             result->d_name = dir->info.name;
         }
@@ -8894,7 +8894,7 @@ int Jim_Eval_Named(Jim_Interp *interp, const char *script, const char *filename,
     Jim_IncrRefCount(scriptObjPtr);
 
 
-	if( filename ){
+	if ( filename ){
 		JimSetSourceInfo( interp, scriptObjPtr, filename, lineno );
 	}
 
@@ -12412,7 +12412,7 @@ int Jim_fprintf( Jim_Interp *interp, void *cookie, const char *fmt, ... )
 
 int Jim_vfprintf( Jim_Interp *interp, void *cookie, const char *fmt, va_list ap )
 {
-	if( (interp == NULL) || (interp->cb_vfprintf == NULL) ){
+	if ( (interp == NULL) || (interp->cb_vfprintf == NULL) ){
 		errno = ENOTSUP;
 		return -1;
 	}
@@ -12421,7 +12421,7 @@ int Jim_vfprintf( Jim_Interp *interp, void *cookie, const char *fmt, va_list ap 
 
 size_t Jim_fwrite( Jim_Interp *interp, const void *ptr, size_t size, size_t n, void *cookie )
 {
-	if( (interp == NULL) || (interp->cb_fwrite == NULL) ){
+	if ( (interp == NULL) || (interp->cb_fwrite == NULL) ){
 		errno = ENOTSUP;
 		return 0;
 	}
@@ -12430,7 +12430,7 @@ size_t Jim_fwrite( Jim_Interp *interp, const void *ptr, size_t size, size_t n, v
 
 size_t Jim_fread( Jim_Interp *interp, void *ptr, size_t size, size_t n, void *cookie )
 {
-	if( (interp == NULL) || (interp->cb_fread == NULL) ){
+	if ( (interp == NULL) || (interp->cb_fread == NULL) ){
 		errno = ENOTSUP;
 		return 0;
 	}
@@ -12439,7 +12439,7 @@ size_t Jim_fread( Jim_Interp *interp, void *ptr, size_t size, size_t n, void *co
 
 int Jim_fflush( Jim_Interp *interp, void *cookie )
 {
-	if( (interp == NULL) || (interp->cb_fflush == NULL) ){
+	if ( (interp == NULL) || (interp->cb_fflush == NULL) ){
 		/* pretend all is well */
 		return 0;
 	}
@@ -12448,7 +12448,7 @@ int Jim_fflush( Jim_Interp *interp, void *cookie )
 
 char* Jim_fgets( Jim_Interp *interp, char *s, int size, void *cookie )
 {
-	if( (interp == NULL) || (interp->cb_fgets == NULL) ){
+	if ( (interp == NULL) || (interp->cb_fgets == NULL) ){
 		errno = ENOTSUP;
 		return NULL;
 	}
@@ -12458,7 +12458,7 @@ Jim_Nvp *
 Jim_Nvp_name2value_simple( const Jim_Nvp *p, const char *name )
 {
 	while( p->name ){
-		if( 0 == strcmp( name, p->name ) ){
+		if ( 0 == strcmp( name, p->name ) ){
 			break;
 		}
 		p++;
@@ -12470,7 +12470,7 @@ Jim_Nvp *
 Jim_Nvp_name2value_nocase_simple( const Jim_Nvp *p, const char *name )
 {
 	while( p->name ){
-		if( 0 == strcasecmp( name, p->name ) ){
+		if ( 0 == strcasecmp( name, p->name ) ){
 			break;
 		}
 		p++;
@@ -12499,12 +12499,12 @@ Jim_Nvp_name2value( Jim_Interp *interp,
 	p = Jim_Nvp_name2value_simple( _p, name );
 
 	/* result */
-	if( result ){
+	if ( result ){
 		*result = (Jim_Nvp *)(p);
 	}
 	
 	/* found? */
-	if( p->name ){
+	if ( p->name ){
 		return JIM_OK;
 	} else {
 		return JIM_ERR;
@@ -12524,11 +12524,11 @@ Jim_Nvp_name2value_nocase( Jim_Interp *interp, const Jim_Nvp *_p, const char *na
 
 	p = Jim_Nvp_name2value_nocase_simple( _p, name );
 
-	if( puthere ){
+	if ( puthere ){
 		*puthere = (Jim_Nvp *)(p);
 	}
 	/* found */
-	if( p->name ){
+	if ( p->name ){
 		return JIM_OK;
 	} else {
 		return JIM_ERR;
@@ -12543,7 +12543,7 @@ Jim_Nvp_value2name_obj( Jim_Interp *interp, const Jim_Nvp *p, Jim_Obj *o, Jim_Nv
 	jim_wide w;
 
 	e = Jim_GetWide( interp, o, &w );
-	if( e != JIM_OK ){
+	if ( e != JIM_OK ){
 		return e;
 	}
 
@@ -12554,7 +12554,7 @@ Jim_Nvp *
 Jim_Nvp_value2name_simple( const Jim_Nvp *p, int value )
 {
 	while( p->name ){
-		if( value == p->value ){
+		if ( value == p->value ){
 			break;
 		}
 		p++;
@@ -12570,11 +12570,11 @@ Jim_Nvp_value2name( Jim_Interp *interp, const Jim_Nvp *_p, int value, Jim_Nvp **
 
 	p = Jim_Nvp_value2name_simple( _p, value );
 
-	if( result ){
+	if ( result ){
 		*result = (Jim_Nvp *)(p);
 	}
 
-	if( p->name ){
+	if ( p->name ){
 		return JIM_OK;
 	} else {
 		return JIM_ERR;
@@ -12615,16 +12615,16 @@ Jim_GetOpt_Obj( Jim_GetOptInfo *goi, Jim_Obj **puthere )
 	Jim_Obj *o;
 	
 	o = NULL; // failure 
-	if( goi->argc ){
+	if ( goi->argc ){
 		// success 
 		o = goi->argv[0];
 		goi->argc -= 1;
 		goi->argv += 1;
 	}
-	if( puthere ){
+	if ( puthere ){
 		*puthere = o;
 	}
-	if( o != NULL ){
+	if ( o != NULL ){
 		return JIM_OK;
 	} else {
 		return JIM_ERR;
@@ -12640,9 +12640,9 @@ Jim_GetOpt_String( Jim_GetOptInfo *goi, char **puthere, int *len )
 
 
 	r = Jim_GetOpt_Obj( goi, &o );
-	if( r == JIM_OK ){
+	if ( r == JIM_OK ){
 		cp = Jim_GetString( o, len );
-		if( puthere ){
+		if ( puthere ){
 			/* remove const */
 			*puthere = (char *)(cp);
 		}
@@ -12657,14 +12657,14 @@ Jim_GetOpt_Double( Jim_GetOptInfo *goi, double *puthere )
 	Jim_Obj *o;
 	double _safe;
 	
-	if( puthere == NULL ){
+	if ( puthere == NULL ){
 		puthere = &_safe;
 	}
 
 	r = Jim_GetOpt_Obj( goi, &o );
-	if( r == JIM_OK ){
+	if ( r == JIM_OK ){
 		r = Jim_GetDouble( goi->interp, o, puthere );
-		if( r != JIM_OK ){
+		if ( r != JIM_OK ){
 			Jim_SetResult_sprintf( goi->interp,
 								   "not a number: %s", 
 								   Jim_GetString( o, NULL ) );
@@ -12680,12 +12680,12 @@ Jim_GetOpt_Wide( Jim_GetOptInfo *goi, jim_wide *puthere )
 	Jim_Obj *o;
 	jim_wide _safe;
 
-	if( puthere == NULL ){
+	if ( puthere == NULL ){
 		puthere = &_safe;
 	}
 
 	r = Jim_GetOpt_Obj( goi, &o );
-	if( r == JIM_OK ){
+	if ( r == JIM_OK ){
 		r = Jim_GetWide( goi->interp, o, puthere );
 	}
 	return r;
@@ -12699,12 +12699,12 @@ int Jim_GetOpt_Nvp( Jim_GetOptInfo *goi,
 	Jim_Obj *o;
 	int e;
 
-	if( puthere == NULL ){
+	if ( puthere == NULL ){
 		puthere = &_safe;
 	}
 
 	e = Jim_GetOpt_Obj( goi, &o );
-	if( e == JIM_OK ){
+	if ( e == JIM_OK ){
 		e = Jim_Nvp_name2value_obj( goi->interp,
 									nvp, 
 									o,
@@ -12719,7 +12719,7 @@ Jim_GetOpt_NvpUnknown( Jim_GetOptInfo *goi,
 					   const Jim_Nvp *nvptable,
 					   int hadprefix )
 {
-	if( hadprefix ){
+	if ( hadprefix ){
 		Jim_SetResult_NvpUnknown( goi->interp,
 								  goi->argv[-2],
 								  goi->argv[-1],
@@ -12742,11 +12742,11 @@ Jim_GetOpt_Enum( Jim_GetOptInfo *goi,
 	Jim_Obj *o;
 	int e;
 
-	if( puthere == NULL ){
+	if ( puthere == NULL ){
 		puthere = &_safe;
 	}
 	e = Jim_GetOpt_Obj( goi, &o );
-	if( e == JIM_OK ){
+	if ( e == JIM_OK ){
 		e = Jim_GetEnum( goi->interp,
 						 o,
 						 lookup,
@@ -12768,7 +12768,7 @@ Jim_SetResult_sprintf( Jim_Interp *interp, const char *fmt,... )
 	va_start(ap,fmt);
 	buf = jim_vasprintf( fmt, ap );
 	va_end(ap);
-	if( buf ){
+	if ( buf ){
 		Jim_SetResultString( interp, buf, -1 );
 		jim_vasprintf_done(buf);
 	}
@@ -12782,7 +12782,7 @@ Jim_SetResult_NvpUnknown( Jim_Interp *interp,
 						  Jim_Obj *param_value,
 						  const Jim_Nvp *nvp )
 {
-	if( param_name ){
+	if ( param_name ){
 		Jim_SetResult_sprintf( interp,
 							   "%s: Unknown: %s, try one of: ",
 							   Jim_GetString( param_name, NULL ),
@@ -12796,7 +12796,7 @@ Jim_SetResult_NvpUnknown( Jim_Interp *interp,
 		const char *a;
 		const char *b;
 
-		if( (nvp+1)->name ){
+		if ( (nvp+1)->name ){
 			a = nvp->name;
 			b = ", ";
 		} else {
@@ -12818,7 +12818,7 @@ Jim_Debug_ArgvString( Jim_Interp *interp, int argc, Jim_Obj *const *argv )
 {
 	int x;
 
-	if( debug_string_obj ){
+	if ( debug_string_obj ){
 		Jim_FreeObj( interp, debug_string_obj );
 	}
 

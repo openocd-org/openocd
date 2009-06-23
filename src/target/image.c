@@ -345,7 +345,7 @@ static int image_elf_read_headers(image_t *image)
 
 	elf->header = malloc(sizeof(Elf32_Ehdr));
 
-	if(elf->header == NULL)
+	if (elf->header == NULL)
 	{
 		LOG_ERROR("insufficient memory to perform operation ");
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -395,7 +395,7 @@ static int image_elf_read_headers(image_t *image)
 	}
 
 	elf->segments = malloc(elf->segment_count*sizeof(Elf32_Phdr));
-	if(elf->segments == NULL)
+	if (elf->segments == NULL)
 	{
 		LOG_ERROR("insufficient memory to perform operation ");
 		return ERROR_FILEIO_OPERATION_FAILED;
@@ -636,7 +636,7 @@ static int image_mot_buffer_complete(image_t *image)
 		cal_checksum += (uint8_t)checksum;
 		bytes_read += 2;
 
-		if( cal_checksum != 0xFF )
+		if ( cal_checksum != 0xFF )
 		{
 			/* checksum failed */
 			LOG_ERROR("incorrect record checksum found in S19 file");

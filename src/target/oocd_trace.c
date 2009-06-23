@@ -104,7 +104,7 @@ static int oocd_trace_init(etm_context_t *etm_ctx)
 
 	oocd_trace->tty_fd = open(oocd_trace->tty, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-	if(oocd_trace->tty_fd < 0)
+	if (oocd_trace->tty_fd < 0)
 	{
 		LOG_ERROR("can't open tty");
 		return ERROR_ETM_CAPTURE_INIT_FAILED;

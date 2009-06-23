@@ -510,11 +510,11 @@ int jtag_add_statemove(tap_state_t goal_state)
 
 	if (goal_state==cur_state )
 		;	/* nothing to do */
-	else if( goal_state==TAP_RESET )
+	else if ( goal_state==TAP_RESET )
 	{
 		jtag_add_tlr();
 	}
-	else if( tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state) )
+	else if ( tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state) )
 	{
 		unsigned tms_bits  = tap_get_tms_path(cur_state, goal_state);
 		unsigned tms_count = tap_get_tms_path_len(cur_state, goal_state);
@@ -531,7 +531,7 @@ int jtag_add_statemove(tap_state_t goal_state)
 
 		jtag_add_pathmove(tms_count, moves);
 	}
-	else if( tap_state_transition(cur_state, true)  == goal_state
+	else if ( tap_state_transition(cur_state, true)  == goal_state
 		||   tap_state_transition(cur_state, false) == goal_state )
 	{
 		jtag_add_pathmove(1, &goal_state);
@@ -1026,7 +1026,7 @@ int jtag_validate_chain(void)
 	total_ir_length = 0;
 	for(;;){
 		tap = jtag_tap_next_enabled(tap);
-		if( tap == NULL ){
+		if ( tap == NULL ){
 			break;
 		}
 		total_ir_length += tap->ir_length;
@@ -1050,7 +1050,7 @@ int jtag_validate_chain(void)
 	int val;
 	for(;;){
 		tap = jtag_tap_next_enabled(tap);
-		if( tap == NULL ){
+		if ( tap == NULL ){
 			break;
 		}
 
@@ -1130,7 +1130,7 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 		LOG_ERROR("JTAG interface has to be specified, see \"interface\" command");
 		return ERROR_JTAG_INVALID_INTERFACE;
 	}
-	if(hasKHz)
+	if (hasKHz)
 	{
 		jtag_interface->khz(jtag_get_speed_khz(), &jtag_speed);
 		hasKHz = false;
@@ -1151,7 +1151,7 @@ static int jtag_init_inner(struct command_context_s *cmd_ctx)
 	LOG_DEBUG("Init JTAG chain");
 
 	tap = jtag_tap_next_enabled(NULL);
-	if( tap == NULL ){
+	if ( tap == NULL ){
 		LOG_ERROR("There are no enabled taps?");
 		return ERROR_JTAG_INIT_FAILED;
 	}

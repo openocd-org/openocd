@@ -468,7 +468,7 @@ static int stellaris_read_part_info(struct flash_bank_s *bank)
 		  did0, did1, stellaris_info->dc0, stellaris_info->dc1);
 
 	ver = did0 >> 28;
-	if((ver != 0) && (ver != 1))
+	if ((ver != 0) && (ver != 1))
 	{
 		LOG_WARNING("Unknown did0 version, cannot identify target");
 		return ERROR_FLASH_OPERATION_FAILED;
@@ -482,7 +482,7 @@ static int stellaris_read_part_info(struct flash_bank_s *bank)
 
 	ver = did1 >> 28;
 	fam = (did1 >> 24) & 0xF;
-	if(((ver != 0) && (ver != 1)) || (fam != 0))
+	if (((ver != 0) && (ver != 1)) || (fam != 0))
 	{
 		LOG_WARNING("Unknown did1 version/family, cannot positively identify target as a Stellaris");
 	}
@@ -614,7 +614,7 @@ static int stellaris_erase(struct flash_bank_s *bank, int first, int last)
 
 		/* Check acess violations */
 		target_read_u32(target, FLASH_CRIS, &flash_cris);
-		if(flash_cris & (AMASK))
+		if (flash_cris & (AMASK))
 		{
 			LOG_WARNING("Error erasing flash page %i,  flash_cris 0x%" PRIx32 "", banknr, flash_cris);
 			target_write_u32(target, FLASH_CRIS, 0);
@@ -691,7 +691,7 @@ static int stellaris_protect(struct flash_bank_s *bank, int set, int first, int 
 
 	/* Check acess violations */
 	target_read_u32(target, FLASH_CRIS, &flash_cris);
-	if(flash_cris & (AMASK))
+	if (flash_cris & (AMASK))
 	{
 		LOG_WARNING("Error setting flash page protection,  flash_cris 0x%" PRIx32 "", flash_cris);
 		target_write_u32(target, FLASH_CRIS, 0);

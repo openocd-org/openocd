@@ -101,7 +101,7 @@ static int str9xpec_register_commands(struct command_context_s *cmd_ctx)
 
 int str9xpec_set_instr(jtag_tap_t *tap, uint32_t new_instr, tap_state_t end_state)
 {
-	if( tap == NULL ){
+	if ( tap == NULL ){
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -575,7 +575,7 @@ static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int l
 	/* last bank: 0xFF signals a full device protect */
 	if (last == 0xFF)
 	{
-		if( set )
+		if ( set )
 		{
 			status = str9xpec_lock_device(bank);
 		}
@@ -589,7 +589,7 @@ static int str9xpec_protect(struct flash_bank_s *bank, int set, int first, int l
 	{
 		for (i = first; i <= last; i++)
 		{
-			if( set )
+			if ( set )
 				buf_set_u32(str9xpec_info->options, str9xpec_info->sector_bits[i], 1, 1);
 			else
 				buf_set_u32(str9xpec_info->options, str9xpec_info->sector_bits[i], 1, 0);

@@ -2189,12 +2189,12 @@ int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		if (breakpoint->length == 4)
 		{
 			/* keep the original instruction in target endianness */
-			if((retval = target_read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
 			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
-			if((retval = target_write_u32(target, breakpoint->address, xscale->arm_bkpt)) != ERROR_OK)
+			if ((retval = target_write_u32(target, breakpoint->address, xscale->arm_bkpt)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -2202,12 +2202,12 @@ int xscale_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		else
 		{
 			/* keep the original instruction in target endianness */
-			if((retval = target_read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
 			/* write the original instruction in target endianness (arm7_9->arm_bkpt is host endian) */
-			if((retval = target_write_u32(target, breakpoint->address, xscale->thumb_bkpt)) != ERROR_OK)
+			if ((retval = target_write_u32(target, breakpoint->address, xscale->thumb_bkpt)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -2286,14 +2286,14 @@ int xscale_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4)
 		{
-			if((retval = target_write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
 		}
 		else
 		{
-			if((retval = target_write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -3606,7 +3606,7 @@ int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int a
 	}
 	uint32_t reg_no = 0;
 	reg_t *reg = NULL;
-	if(argc > 0)
+	if (argc > 0)
 	{
 		reg_no = strtoul(args[0], NULL, 0);
 		/*translate from xscale cp15 register no to openocd register*/
@@ -3643,7 +3643,7 @@ int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int a
 		reg = &xscale->reg_cache->reg_list[reg_no];
 
 	}
-	if(argc == 1)
+	if (argc == 1)
 	{
 		uint32_t value;
 
@@ -3652,7 +3652,7 @@ int xscale_handle_cp15(command_context_t *cmd_ctx, char *cmd, char **args, int a
 		value = buf_get_u32(reg->value, 0, 32);
 		command_print(cmd_ctx, "%s (/%i): 0x%" PRIx32 "", reg->name, (int)(reg->size), value);
 	}
-	else if(argc == 2)
+	else if (argc == 2)
 	{
 
 		uint32_t value = strtoul(args[1], NULL, 0);

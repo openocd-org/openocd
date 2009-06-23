@@ -748,7 +748,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 	pattern	= strtoul(args[1], NULL, 0);
 	count 	= strtoul(args[2], NULL, 0);
 
-	if(count == 0)
+	if (count == 0)
 		return ERROR_OK;
 
 	switch(cmd[4])
@@ -796,7 +796,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 		cur_size = MIN( (count*wordsize - wrote), sizeof(chunk) );
 		flash_bank_t *bank;
 		bank = get_flash_bank_by_addr(target, address);
-		if(bank == NULL)
+		if (bank == NULL)
 		{
 			return ERROR_FAIL;
 		}
@@ -826,7 +826,7 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 		return retval;
 	}
 
-	if(err == ERROR_OK)
+	if (err == ERROR_OK)
 	{
 		float speed;
 		speed=wrote / 1024.0;
@@ -994,7 +994,7 @@ int flash_erase_address_range(target_t *target, uint32_t addr, uint32_t length)
 		}
 	}
 
-	if( first == -1 || last == -1 )
+	if ( first == -1 || last == -1 )
 		return ERROR_OK;
 
 	return flash_driver_erase(c, first, last);

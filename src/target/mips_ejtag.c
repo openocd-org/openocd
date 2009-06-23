@@ -212,7 +212,7 @@ int mips_ejtag_enter_debug(mips_ejtag_t *ejtag_info)
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
 	LOG_DEBUG("ejtag_ctrl: 0x%8.8" PRIx32 "", ejtag_ctrl);
-	if((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
+	if ((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
 		LOG_DEBUG("Failed to enter Debug Mode!");
 
 	return ERROR_OK;
@@ -294,7 +294,7 @@ int mips_ejtag_init(mips_ejtag_t *ejtag_info)
 		ejtag_info->impcode & (1<<0)  ? " MIPS64": " MIPS32"
 	);
 
-	if((ejtag_info->impcode & (1<<14)) == 0)
+	if ((ejtag_info->impcode & (1<<14)) == 0)
 		LOG_DEBUG("EJTAG: DMA Access Mode Support Enabled");
 
 	/* set initial state for ejtag control reg */

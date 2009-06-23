@@ -97,11 +97,11 @@ int arm720t_scan_cp15(target_t *target, uint32_t out, uint32_t *in, int instruct
 	buf_set_u32(out_buf, 0, 32, flip_u32(out, 32));
 
 	jtag_set_end_state(TAP_DRPAUSE);
-	if((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
+	if ((retval = arm_jtag_scann(jtag_info, 0xf)) != ERROR_OK)
 	{
 		return retval;
 	}
-	if((retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL)) != ERROR_OK)
+	if ((retval = arm_jtag_set_instr(jtag_info, jtag_info->intest_instr, NULL)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -130,7 +130,7 @@ int arm720t_scan_cp15(target_t *target, uint32_t out, uint32_t *in, int instruct
 		jtag_add_runtest(0, jtag_get_end_state());
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
-	if((retval = jtag_execute_queue()) != ERROR_OK)
+	if ((retval = jtag_execute_queue()) != ERROR_OK)
 	{
 		return retval;
 	}

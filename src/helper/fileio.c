@@ -182,7 +182,7 @@ int fileio_read_u32(fileio_t *fileio, uint32_t *data)
 
 static inline int fileio_local_fgets(fileio_t *fileio, uint32_t size, char *buffer)
 {
-	if( fgets(buffer, size, fileio->file) == NULL)
+	if ( fgets(buffer, size, fileio->file) == NULL)
 		return ERROR_FILEIO_OPERATION_FAILED;
 	
 	return ERROR_OK;

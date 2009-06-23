@@ -280,11 +280,11 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 		uint32_t opcode;
 		
 		/* get current instruction, and identify it */
-		if((retval = target_read_u32(target, current_pc, &opcode)) != ERROR_OK)
+		if ((retval = target_read_u32(target, current_pc, &opcode)) != ERROR_OK)
 		{
 			return retval;
 		}
-		if((retval = arm_evaluate_opcode(opcode, current_pc, &instruction)) != ERROR_OK)
+		if ((retval = arm_evaluate_opcode(opcode, current_pc, &instruction)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -309,11 +309,11 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 	{
 		uint16_t opcode;
 		
-		if((retval = target_read_u16(target, current_pc, &opcode)) != ERROR_OK)
+		if ((retval = target_read_u16(target, current_pc, &opcode)) != ERROR_OK)
 		{
 			return retval;
 		}
-		if((retval = thumb_evaluate_opcode(opcode, current_pc, &instruction)) != ERROR_OK)
+		if ((retval = thumb_evaluate_opcode(opcode, current_pc, &instruction)) != ERROR_OK)
 		{
 			return retval;
 			}
@@ -350,7 +350,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 		else
 		{
 			target = buf_get_u32(ARMV4_5_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, instruction.info.b_bl_bx_blx.reg_operand).value, 0, 32); 
-			if(instruction.info.b_bl_bx_blx.reg_operand == 15)
+			if (instruction.info.b_bl_bx_blx.reg_operand == 15)
 			{
 				target += 2 * instruction_size;
 			}
@@ -545,9 +545,9 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 			 load_address = Rn;
 		}
 		
-		if((!dry_run_pc) || (instruction.info.load_store.Rd == 15))
+		if ((!dry_run_pc) || (instruction.info.load_store.Rd == 15))
 		{
-			if((retval = target_read_u32(target, load_address, &load_value)) != ERROR_OK)
+			if ((retval = target_read_u32(target, load_address, &load_value)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -614,7 +614,7 @@ int arm_simulate_step(target_t *target, uint32_t *dry_run_pc)
 		{
 			if (instruction.info.load_store_multiple.register_list & (1 << i))
 			{
-				if((!dry_run_pc) || (i == 15))
+				if ((!dry_run_pc) || (i == 15))
 				{
 					target_read_u32(target, Rn, &load_values[i]);
 				}

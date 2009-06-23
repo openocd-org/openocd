@@ -932,11 +932,11 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	{
 		uint8_t code[4];
 		buf_set_u32(code, 0, 32, ARMV7M_T_BKPT(0x11));
-		if((retval = target_read_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
+		if ((retval = target_read_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 		{
 			return retval;
 		}
-		if((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, code)) != ERROR_OK)
+		if ((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, breakpoint->length, 1, code)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -977,14 +977,14 @@ int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 		/* restore original instruction (kept in target endianness) */
 		if (breakpoint->length == 4)
 		{
-			if((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
 		}
 		else
 		{
-			if((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_write_memory(target, breakpoint->address & 0xFFFFFFFE, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}

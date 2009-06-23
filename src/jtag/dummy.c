@@ -85,16 +85,16 @@ static int dummy_read(void)
 static void dummy_write(int tck, int tms, int tdi)
 {
 	/* TAP standard: "state transitions occur on rising edge of clock" */
-	if( tck != dummy_clock )
+	if ( tck != dummy_clock )
 	{
-		if( tck )
+		if ( tck )
 		{
 			tap_state_t old_state = dummy_state;
 			dummy_state = tap_state_transition( old_state, tms );
 
-			if( old_state != dummy_state )
+			if ( old_state != dummy_state )
 			{
-				if( clock_count )
+				if ( clock_count )
 				{
 					LOG_DEBUG("dummy_tap: %d stable clocks", clock_count);
 					clock_count = 0;
@@ -103,7 +103,7 @@ static void dummy_write(int tck, int tms, int tdi)
 				LOG_DEBUG("dummy_tap: %s", tap_state_name(dummy_state) );
 
 #if defined(DEBUG)
-				if(dummy_state == TAP_DRCAPTURE)
+				if (dummy_state == TAP_DRCAPTURE)
 					dummy_data = 0x01255043;
 #endif
 			}

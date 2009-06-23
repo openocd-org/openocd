@@ -109,7 +109,7 @@ static void log_puts(enum log_levels level, const char *file, int line, const ch
 #endif
 					string);
 		}
-		else if(server_use_pipes == 0)
+		else if (server_use_pipes == 0)
 		{
 			/* if we are using gdb through pipes then we do not want any output
 			 * to the pipe otherwise we get repeated strings */

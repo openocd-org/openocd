@@ -69,7 +69,7 @@ int arm_jtag_set_instr(arm_jtag_t *jtag_info, uint32_t new_instr,  void *no_veri
 int arm_jtag_scann(arm_jtag_t *jtag_info, uint32_t new_scan_chain)
 {
 	int retval = ERROR_OK;
-	if(jtag_info->cur_scan_chain != new_scan_chain)
+	if (jtag_info->cur_scan_chain != new_scan_chain)
 	{
 		uint32_t values[1];
 		int num_bits[1];
@@ -77,7 +77,7 @@ int arm_jtag_scann(arm_jtag_t *jtag_info, uint32_t new_scan_chain)
 		values[0]=new_scan_chain;
 		num_bits[0]=jtag_info->scann_size;
 
-		if((retval = arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL)) != ERROR_OK)
+		if ((retval = arm_jtag_set_instr(jtag_info, jtag_info->scann_instr, NULL)) != ERROR_OK)
 		{
 			return retval;
 		}

@@ -890,7 +890,7 @@ static int at91sam7_erase(struct flash_bank_s *bank, int first, int last)
 	at91sam7_read_clock_info(bank);
 	at91sam7_set_flash_mode(bank, FMR_TIMING_FLASH);
 
-	if(erase_all)
+	if (erase_all)
 	{
 		if (at91sam7_flash_command(bank, EA, 0) != ERROR_OK) 
 		{
@@ -1027,7 +1027,7 @@ static int at91sam7_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t o
 		/* Write one block to the PageWriteBuffer */
 		buffer_pos = (pagen-first_page)*dst_min_alignment;
 		wcount = CEIL(count,4);
-		if((retval = target_write_memory(target, bank->base+pagen*dst_min_alignment, 4, wcount, buffer+buffer_pos)) != ERROR_OK)
+		if ((retval = target_write_memory(target, bank->base+pagen*dst_min_alignment, 4, wcount, buffer+buffer_pos)) != ERROR_OK)
 		{
 			return retval;
 		}

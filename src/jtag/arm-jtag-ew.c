@@ -220,7 +220,7 @@ static int armjtagew_speed(int speed)
 	usb_out_buffer[0] = CMD_GET_TCK_FREQUENCY;
     result = armjtagew_usb_message(armjtagew_jtag_handle, 1, 4);
 	speed_real = (int)buf_get_u32(usb_in_buffer,0,32);
-	if(result < 0)
+	if (result < 0)
 	{
         LOG_ERROR("ARM-JTAG-EW getting speed failed (%d)", result);
         return ERROR_JTAG_DEVICE_ERROR;
@@ -672,7 +672,7 @@ static int armjtagew_tap_execute(void)
 			int stat;
 
 			stat = (int)buf_get_u32(usb_in_buffer + byte_length, 0, 32);
-			if(stat) {
+			if (stat) {
 				LOG_ERROR("armjtagew_tap_execute, emulator returned error code %d for a CMD_TAP_SHIFT command", stat);
 				return ERROR_JTAG_QUEUE_FAILED;
 			}

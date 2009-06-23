@@ -1201,12 +1201,12 @@ static void vsllink_scan_normal(bool ir_scan, enum scan_type type, uint8_t *buff
 		{
 			// already in IRSHIFT or DRSHIFT state
 			// merge tms data in the last tms shift command into next scan command
-			if(*vsllink_tms_cmd_pos < 1)
+			if (*vsllink_tms_cmd_pos < 1)
 			{
 				LOG_ERROR("There MUST be some bugs in the driver");
 				exit(-1);
 			}
-			else if(*vsllink_tms_cmd_pos < 2)
+			else if (*vsllink_tms_cmd_pos < 2)
 			{
 				tms_tmp = vsllink_usb_out_buffer[vsllink_usb_out_buffer_idx];
 				vsllink_usb_out_buffer_idx--;
@@ -1603,7 +1603,7 @@ static int vsllink_tap_execute_normal(void)
 
 	if (vsllink_tms_data_len > 0)
 	{
-		if((tap_get_state() != TAP_RESET) && (tap_get_state() != TAP_IDLE) && (tap_get_state() != TAP_IRPAUSE) && (tap_get_state() != TAP_DRPAUSE))
+		if ((tap_get_state() != TAP_RESET) && (tap_get_state() != TAP_IDLE) && (tap_get_state() != TAP_IRPAUSE) && (tap_get_state() != TAP_DRPAUSE))
 		{
 			LOG_WARNING("%s is not in RESET or IDLE or PAUSR state", tap_state_name(tap_get_state()));
 		}

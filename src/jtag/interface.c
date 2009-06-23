@@ -361,7 +361,7 @@ tap_state_t tap_state_by_name(const char *name)
 
 	for( x = 0 ; x < TAP_NUM_STATES ; x++ ){
 		/* be nice to the human */
-		if( 0 == strcasecmp( name, tap_state_name(x) ) ){
+		if ( 0 == strcasecmp( name, tap_state_name(x) ) ){
 			return x;
 		}
 	}

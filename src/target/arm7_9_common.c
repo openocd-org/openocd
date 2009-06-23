@@ -469,7 +469,7 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
-	if((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
+	if ((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -481,7 +481,7 @@ int arm7_9_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	if (arm7_9->breakpoint_count==0)
 	{
 		/* make sure we don't have any dangling breakpoints */
-		if((retval = arm7_9_clear_watchpoints(arm7_9)) != ERROR_OK)
+		if ((retval = arm7_9_clear_watchpoints(arm7_9)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -526,12 +526,12 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_VALUE], watchpoint->address);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK], watchpoint->mask);
-		if( watchpoint->mask != 0xffffffffu )
+		if ( watchpoint->mask != 0xffffffffu )
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_VALUE], watchpoint->value);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK], 0xff & ~EICE_W_CTRL_nOPC & ~rw_mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], EICE_W_CTRL_ENABLE | EICE_W_CTRL_nOPC | (watchpoint->rw & 1));
 
-		if((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -543,12 +543,12 @@ int arm7_9_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_VALUE], watchpoint->address);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK], watchpoint->mask);
-		if( watchpoint->mask != 0xffffffffu )
+		if ( watchpoint->mask != 0xffffffffu )
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_VALUE], watchpoint->value);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK], 0xff & ~EICE_W_CTRL_nOPC & ~rw_mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], EICE_W_CTRL_ENABLE | EICE_W_CTRL_nOPC | (watchpoint->rw & 1));
 
-		if((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -593,7 +593,7 @@ int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	if (watchpoint->set == 1)
 	{
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
-		if((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -602,7 +602,7 @@ int arm7_9_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	else if (watchpoint->set == 2)
 	{
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
-		if((retval = jtag_execute_queue()) != ERROR_OK)
+		if ((retval = jtag_execute_queue()) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -663,7 +663,7 @@ int arm7_9_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 
 	if (watchpoint->set)
 	{
-		if((retval = arm7_9_unset_watchpoint(target, watchpoint)) != ERROR_OK)
+		if ((retval = arm7_9_unset_watchpoint(target, watchpoint)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -1942,7 +1942,7 @@ void arm7_9_enable_eice_step(target_t *target, uint32_t next_pc)
 	uint32_t current_pc;
 	current_pc = buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32);
 
-	if(next_pc != current_pc)
+	if (next_pc != current_pc)
 	{
 		/* setup an inverse breakpoint on the current PC
 		* - comparator 1 matches the current address
@@ -2297,7 +2297,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 						retval = arm7_9_execute_fast_sys_speed(target);
 					else
 						retval = arm7_9_execute_sys_speed(target);
-					if(retval != ERROR_OK)
+					if (retval != ERROR_OK)
 					{
 						return retval;
 					}
@@ -2335,7 +2335,7 @@ int arm7_9_read_memory(struct target_s *target, uint32_t address, uint32_t size,
 						retval = arm7_9_execute_fast_sys_speed(target);
 					else
 						retval = arm7_9_execute_sys_speed(target);
-					if(retval != ERROR_OK)
+					if (retval != ERROR_OK)
 					{
 						return retval;
 					}
@@ -2451,7 +2451,7 @@ int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size
 					retval = arm7_9_execute_fast_sys_speed(target);
 				else
 					retval = arm7_9_execute_sys_speed(target);
-				if(retval != ERROR_OK)
+				if (retval != ERROR_OK)
 				{
 					return retval;
 				}
@@ -2487,7 +2487,7 @@ int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size
 						retval = arm7_9_execute_fast_sys_speed(target);
 					else
 						retval = arm7_9_execute_sys_speed(target);
-					if(retval != ERROR_OK)
+					if (retval != ERROR_OK)
 					{
 						return retval;
 					}
@@ -2522,7 +2522,7 @@ int arm7_9_write_memory(struct target_s *target, uint32_t address, uint32_t size
 						retval = arm7_9_execute_fast_sys_speed(target);
 					else
 						retval = arm7_9_execute_sys_speed(target);
-					if(retval != ERROR_OK)
+					if (retval != ERROR_OK)
 					{
 						return retval;
 					}
@@ -2608,7 +2608,7 @@ static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, i
 		}
 	}
 
-	if((retval = target_halt(target))!= ERROR_OK)
+	if ((retval = target_halt(target))!= ERROR_OK)
 	{
 		return retval;
 	}
@@ -3087,7 +3087,7 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 
 	arm7_9->common_magic = ARM7_9_COMMON_MAGIC;
 
-	if((retval = arm_jtag_setup_connection(&arm7_9->jtag_info)) != ERROR_OK)
+	if ((retval = arm_jtag_setup_connection(&arm7_9->jtag_info)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -3120,12 +3120,12 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	armv4_5->write_core_reg = arm7_9_write_core_reg;
 	armv4_5->full_context = arm7_9_full_context;
 
-	if((retval = armv4_5_init_arch_info(target, armv4_5)) != ERROR_OK)
+	if ((retval = armv4_5_init_arch_info(target, armv4_5)) != ERROR_OK)
 	{
 		return retval;
 	}
 
-	if((retval = target_register_timer_callback(arm7_9_handle_target_request, 1, 1, target)) != ERROR_OK)
+	if ((retval = target_register_timer_callback(arm7_9_handle_target_request, 1, 1, target)) != ERROR_OK)
 	{
 		return retval;
 	}

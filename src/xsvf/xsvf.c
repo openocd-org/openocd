@@ -327,9 +327,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				xsdrsize = be_to_h_u32(xsdrsize_buf);
 				LOG_DEBUG("XSDRSIZE %d", xsdrsize);
 
-				if( dr_out_buf ) free(dr_out_buf);
-				if( dr_in_buf)   free(dr_in_buf);
-				if( dr_in_mask)  free(dr_in_mask);
+				if ( dr_out_buf ) free(dr_out_buf);
+				if ( dr_in_buf)   free(dr_in_buf);
+				if ( dr_in_mask)  free(dr_in_mask);
 
 				dr_out_buf = malloc((xsdrsize + 7) / 8);
 				dr_in_buf = malloc((xsdrsize + 7) / 8);
@@ -354,7 +354,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 				if (opcode == XSDRTDO)
 				{
-					if(xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_buf)  != ERROR_OK )
+					if (xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_buf)  != ERROR_OK )
 					{
 						do_abort = 1;
 						break;
@@ -370,7 +370,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				{
 					scan_field_t field;
 
-					if( attempt>0 )
+					if ( attempt>0 )
 					{
 						/* perform the XC9500 exception handling sequence shown in xapp067.pdf and
 						   illustrated in psuedo code at end of this file.  We start from state
@@ -505,7 +505,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 					the XSTATE.
 				*/
 
-				if( jtag_add_statemove( mystate ) != ERROR_OK )
+				if ( jtag_add_statemove( mystate ) != ERROR_OK )
 				{
 					/*	For special states known as stable states
 						(Test-Logic-Reset, Run-Test/Idle, Pause-DR, Pause- IR),
@@ -538,9 +538,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			}
 
 			/* see page 22 of XSVF spec */
-			if( uc == 0 )
+			if ( uc == 0 )
 				xendir = TAP_IDLE;
-			else if( uc == 1 )
+			else if ( uc == 1 )
 				xendir = TAP_IRPAUSE;
 			else
 			{
@@ -561,9 +561,9 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 			}
 
 			/* see page 22 of XSVF spec */
-			if( uc == 0 )
+			if ( uc == 0 )
 				xenddr = TAP_IDLE;
-			else if( uc == 1 )
+			else if ( uc == 1 )
 				xenddr = TAP_DRPAUSE;
 			else
 			{
@@ -583,7 +583,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 				int bitcount;
 				tap_state_t my_end_state = xruntest ? TAP_IDLE : xendir;
 
-				if( opcode == XSIR )
+				if ( opcode == XSIR )
 				{
 					/* one byte bitcount */
 					if (read(xsvf_fd, short_buf, 1) < 0)
@@ -642,7 +642,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 					/* LOG_DEBUG("FLUSHING QUEUE"); */
 					result = jtag_execute_queue();
-					if(result != ERROR_OK)
+					if (result != ERROR_OK)
 					{
 						tdo_mismatch = 1;
 					}
@@ -864,7 +864,7 @@ static int handle_xsvf_command(struct command_context_s *cmd_ctx, char *cmd, cha
 
 					/* LOG_DEBUG("FLUSHING QUEUE"); */
 					result = jtag_execute_queue();
-					if(result == ERROR_OK)
+					if (result == ERROR_OK)
 					{
 						matched = 1;
 						break;

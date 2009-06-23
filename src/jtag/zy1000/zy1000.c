@@ -127,7 +127,7 @@ jtag_interface_t zy1000_interface =
 void zy1000_reset(int trst, int srst)
 {
 	LOG_DEBUG("zy1000 trst=%d, srst=%d", trst, srst);
-	if(!srst)
+	if (!srst)
 	{
 		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x00000001);
 	}
@@ -139,7 +139,7 @@ void zy1000_reset(int trst, int srst)
 		ZY1000_POKE(ZY1000_JTAG_BASE+0x10, 0x00000001);
 	}
 
-	if(!trst)
+	if (!trst)
 	{
 		ZY1000_POKE(ZY1000_JTAG_BASE+0x14, 0x00000002);
 	}
@@ -188,7 +188,7 @@ void zy1000_reset(int trst, int srst)
 
 int zy1000_speed(int speed)
 {
-	if(speed == 0)
+	if (speed == 0)
 	{
 		/*0 means RCLK*/
 		speed = 0;
@@ -197,7 +197,7 @@ int zy1000_speed(int speed)
 	}
 	else
 	{
-		if(speed > 8190 || speed < 2)
+		if (speed > 8190 || speed < 2)
 		{
 			LOG_USER("valid ZY1000 jtag_speed=[8190,2]. Divisor is 64MHz / even values between 8190-2, i.e. min 7814Hz, max 32MHz");
 			return ERROR_INVALID_ARGUMENTS;

@@ -139,7 +139,7 @@ static int ecosflash_flash_bank_command(struct command_context_s *cmd_ctx, char 
 	}
 
 	info = malloc(sizeof(ecosflash_flash_bank_t));
-	if(info == NULL)
+	if (info == NULL)
 	{
 		LOG_ERROR("no memory for flash bank info");
 		exit(-1);

@@ -298,7 +298,7 @@ static int mg_dsk_srst(uint8_t on)
 	if ((ret = target_read_u8(target, mg_task_reg + MG_REG_DRV_CTRL, &value)) != ERROR_OK)
 		return ret;
 
-	if(on) {
+	if (on) {
 		value |= (mg_io_rbit_devc_srst);
 	} else {
 		value &= ~mg_io_rbit_devc_srst;
@@ -892,7 +892,7 @@ static int mg_pll_get_NO(unsigned char  output_div)
 	int i, NO;
 
 	for (i = 0, NO = 1; i < 2; ++i, output_div >>= 1)
-		if(output_div & 1)
+		if (output_div & 1)
 			NO = NO << 1;
 
 	return NO;

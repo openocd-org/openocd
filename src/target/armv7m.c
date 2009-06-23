@@ -295,7 +295,7 @@ static int armv7m_run_and_wait(struct target_s *target, uint32_t entry_point, in
 	int retval;
 	/* This code relies on the target specific  resume() and  poll()->debug_entry()
 	 * sequence to write register values to the processor and the read them back */
-	if((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
+	if ((retval = target_resume(target, 0, entry_point, 1, 1)) != ERROR_OK)
 	{
 		return retval;
 	}
@@ -409,7 +409,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	for (i = 0; i < num_mem_params; i++)
 	{
 		if (mem_params[i].direction != PARAM_OUT)
-			if((retval = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
+			if ((retval = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -600,7 +600,7 @@ int armv7m_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 
 	/* convert flash writing code into a buffer in target endianness */
 	for (i = 0; i < (sizeof(cortex_m3_crc_code)/sizeof(uint16_t)); i++)
-		if((retval = target_write_u16(target, crc_algorithm->address + i*sizeof(uint16_t), cortex_m3_crc_code[i])) != ERROR_OK)
+		if ((retval = target_write_u16(target, crc_algorithm->address + i*sizeof(uint16_t), cortex_m3_crc_code[i])) != ERROR_OK)
 		{
 			return retval;
 		}

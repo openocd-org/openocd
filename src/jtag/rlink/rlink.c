@@ -121,7 +121,7 @@ ep1_generic_commandl(
 	va_list		ap;
 	int		usb_ret;
 
-	if(length > sizeof(usb_buffer)) {
+	if (length > sizeof(usb_buffer)) {
 		length = sizeof(usb_buffer);
 	}
 
@@ -176,7 +176,7 @@ ep1_memory_read(
 	count = 0;
 
 	while(remain) {
-		if(remain > sizeof(usb_buffer)) {
+		if (remain > sizeof(usb_buffer)) {
 			length = sizeof(usb_buffer);
 		} else {
 			length = remain;
@@ -192,7 +192,7 @@ ep1_memory_read(
 			USB_TIMEOUT_MS
 		);
 
-		if(usb_ret < sizeof(usb_buffer)) {
+		if (usb_ret < sizeof(usb_buffer)) {
 			break;
 		}
 
@@ -202,7 +202,7 @@ ep1_memory_read(
 			USB_TIMEOUT_MS
 		);
 
-		if(usb_ret < length) {
+		if (usb_ret < length) {
 			break;
 		}
 
@@ -237,7 +237,7 @@ ep1_memory_write(
 	count = 0;
 
 	while(remain) {
-		if(remain > (sizeof(usb_buffer) - 4)) {
+		if (remain > (sizeof(usb_buffer) - 4)) {
 			length = (sizeof(usb_buffer) - 4);
 		} else {
 			length = remain;
@@ -263,7 +263,7 @@ ep1_memory_write(
 			USB_TIMEOUT_MS
 		);
 
-		if((size_t)usb_ret < sizeof(usb_buffer)) {
+		if ((size_t)usb_ret < sizeof(usb_buffer)) {
 			break;
 		}
 
@@ -291,7 +291,7 @@ ep1_memory_writel(
 	va_list		ap;
 	size_t		remain;
 
-	if(length > sizeof(buffer)) {
+	if (length > sizeof(buffer)) {
 		length = sizeof(buffer);
 	}
 
@@ -346,10 +346,10 @@ dtc_load_from_buffer(
 		pHDev, 1,
 		EP1_CMD_DTC_STOP
 	);
-	if(usb_err < 0) return(usb_err);
+	if (usb_err < 0) return(usb_err);
 
 	while(length) {
-		if(length < sizeof(*header)) {
+		if (length < sizeof(*header)) {
 			LOG_ERROR("Malformed DTC image\n");
 			exit(1);
 		}
@@ -358,7 +358,7 @@ dtc_load_from_buffer(
 		buffer += sizeof(*header);
 		length -= sizeof(*header);
 
-		if(length < (size_t)header->length + 1) {
+		if (length < (size_t)header->length + 1) {
 			LOG_ERROR("Malformed DTC image\n");
 			exit(1);
 		}
@@ -369,7 +369,7 @@ dtc_load_from_buffer(
 
 			case DTCLOAD_ENTRY:
 				/* store entry addresses somewhere */
-				if(!strncmp("download", (char *)buffer + 1, 8)) {
+				if (!strncmp("download", (char *)buffer + 1, 8)) {
 					dtc_entry_download = buffer[0];
 				}
 				break;
@@ -381,7 +381,7 @@ dtc_load_from_buffer(
 					DTC_LOAD_BUFFER,
 					header->length + 1, buffer
 				);
-				if(usb_err < 0) return(usb_err);
+				if (usb_err < 0) return(usb_err);
 
 				/* Load it into the DTC. */
 				usb_err = ep1_generic_commandl(
@@ -390,7 +390,7 @@ dtc_load_from_buffer(
 						(DTC_LOAD_BUFFER >> 8),
 						DTC_LOAD_BUFFER
 				);
-				if(usb_err < 0) return(usb_err);
+				if (usb_err < 0) return(usb_err);
 
 				break;
 
@@ -401,7 +401,7 @@ dtc_load_from_buffer(
 						buffer[0],
 					EP1_CMD_DTC_WAIT
 				);
-				if(usb_err < 0) return(usb_err);
+				if (usb_err < 0) return(usb_err);
 
 				break;
 
@@ -415,7 +415,7 @@ dtc_load_from_buffer(
 					ST7_USB_BUF_EP0OUT + lut_start,
 					header->length + 1, buffer
 				);
-				if(usb_err < 0) return(usb_err);
+				if (usb_err < 0) return(usb_err);
 				break;
 
 			default:
@@ -453,7 +453,7 @@ dtc_start_download(void) {
 			ST7_EP2TXR,
 			1
 	);
-	if(usb_err < 0) return(usb_err);
+	if (usb_err < 0) return(usb_err);
 
 	/* read back ep2txr */
 	usb_err = usb_bulk_read(
@@ -461,7 +461,7 @@ dtc_start_download(void) {
 		(char *)&ep2txr, 1,
 		USB_TIMEOUT_MS
 	);
-	if(usb_err < 0) return(usb_err);
+	if (usb_err < 0) return(usb_err);
 
 	usb_err = ep1_generic_commandl(
 		pHDev, 13,
@@ -480,7 +480,7 @@ dtc_start_download(void) {
 			dtc_entry_download,
 		EP1_CMD_DTC_GET_CACHED_STATUS
 	);
-	if(usb_err < 0) return(usb_err);
+	if (usb_err < 0) return(usb_err);
 
 	/* wait for completion */
 	usb_err = usb_bulk_read(
@@ -514,7 +514,7 @@ dtc_run_download(
 		(char *)command_buffer, USB_EP2BANK_SIZE,
 		USB_TIMEOUT_MS
 	);
-	if(usb_err < 0) return(usb_err);
+	if (usb_err < 0) return(usb_err);
 
 
 	/* Wait for DTC to finish running command buffer */
@@ -527,7 +527,7 @@ dtc_run_download(
 				DTC_STATUS_POLL_BYTE,
 				1
 		);
-		if(usb_err < 0) return(usb_err);
+		if (usb_err < 0) return(usb_err);
 
 		usb_err = usb_bulk_read(
 			pHDev,
@@ -535,11 +535,11 @@ dtc_run_download(
 			(char *)ep2_buffer, 1,
 			USB_TIMEOUT_MS
 		);
-		if(usb_err < 0) return(usb_err);
+		if (usb_err < 0) return(usb_err);
 
-		if(ep2_buffer[0] & 0x01) break;
+		if (ep2_buffer[0] & 0x01) break;
 
-		if(!--i) {
+		if (!--i) {
 			LOG_ERROR("%s, %d: too many retries waiting for DTC status\n",
 				__FILE__, __LINE__
 			);
@@ -548,8 +548,8 @@ dtc_run_download(
 	}
 
 
-	if(!reply_buffer) reply_buffer_size = 0;
-	if(reply_buffer_size) {
+	if (!reply_buffer) reply_buffer_size = 0;
+	if (reply_buffer_size) {
 		usb_err = usb_bulk_read(
 			pHDev,
 			USB_EP2IN_ADDR,
@@ -557,7 +557,7 @@ dtc_run_download(
 			USB_TIMEOUT_MS
 		);
 
-		if(usb_err < (int)sizeof(ep2_buffer)) {
+		if (usb_err < (int)sizeof(ep2_buffer)) {
 			LOG_ERROR("%s, %d: Read of endpoint 2 returned %d\n",
 				__FILE__, __LINE__, usb_err
 			);
@@ -643,7 +643,7 @@ dtc_queue_enqueue_reply(
 	dtc_reply_queue_entry_t	*rq_entry;
 
 	rq_entry = malloc(sizeof(dtc_reply_queue_entry_t));
-	if(rq_entry != NULL) {
+	if (rq_entry != NULL) {
 		rq_entry->scan.type = type;
 		rq_entry->scan.buffer = buffer;
 		rq_entry->scan.size = size;
@@ -652,7 +652,7 @@ dtc_queue_enqueue_reply(
 		rq_entry->cmd = cmd;
 		rq_entry->next = NULL;
 
-		if(dtc_queue.rq_head == NULL)
+		if (dtc_queue.rq_head == NULL)
 			dtc_queue.rq_head = rq_entry;
 		else
 			dtc_queue.rq_tail->next = rq_entry;
@@ -683,17 +683,17 @@ dtc_queue_run(void) {
 
 	retval = ERROR_OK;
 
-	if(dtc_queue.cmd_index < 1) return(retval);
+	if (dtc_queue.cmd_index < 1) return(retval);
 
 	dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = DTC_CMD_STOP;
 
 	/* run the cmd */
-	if(dtc_queue.rq_head == NULL) {
+	if (dtc_queue.rq_head == NULL) {
 		usb_err = dtc_run_download(pHDev,
 			dtc_queue.cmd_buffer, dtc_queue.cmd_index,
 			NULL, 0
 		);
-		if(usb_err < 0) {
+		if (usb_err < 0) {
 			LOG_ERROR("dtc_run_download: %s\n", usb_strerror());
 			exit(1);
 		}
@@ -702,7 +702,7 @@ dtc_queue_run(void) {
 			dtc_queue.cmd_buffer, dtc_queue.cmd_index,
 			reply_buffer, dtc_queue.reply_index
 		);
-		if(usb_err < 0) {
+		if (usb_err < 0) {
 			LOG_ERROR("dtc_run_download: %s\n", usb_strerror());
 			exit(1);
 		} else {
@@ -721,7 +721,7 @@ dtc_queue_run(void) {
 
 
 				bit_cnt = rq_p->scan.length;
-				if(bit_cnt >= 8) {
+				if (bit_cnt >= 8) {
 					/* bytes */
 
 					dtc_mask = 1 << (8 - 1);
@@ -731,20 +731,20 @@ dtc_queue_run(void) {
 						bit_cnt;
 						bit_cnt--
 					) {
-						if(*dtc_p & dtc_mask) {
+						if (*dtc_p & dtc_mask) {
 							*tdo_p |= tdo_mask;
 						} else {
 							*tdo_p &=~ tdo_mask;
 						}
 
 						dtc_mask >>= 1;
-						if(dtc_mask == 0) {
+						if (dtc_mask == 0) {
 							dtc_p++;
 							dtc_mask = 1 << (8 - 1);
 						}
 
 						tdo_mask <<= 1;
-						if(tdo_mask == 0) {
+						if (tdo_mask == 0) {
 							tdo_p++;
 							tdo_mask = 1;
 						}
@@ -753,7 +753,7 @@ dtc_queue_run(void) {
 					/*  extra bits or last bit */
 
 					x = *dtc_p++;
-					if((
+					if ((
 						rq_p->scan.type == SCAN_IN
 					) && (
 						rq_p->scan.offset != rq_p->scan.size - 1
@@ -769,7 +769,7 @@ dtc_queue_run(void) {
 						bit_cnt;
 						bit_cnt--
 					) {
-						if(x & dtc_mask) {
+						if (x & dtc_mask) {
 							*tdo_p |= tdo_mask;
 						} else {
 							*tdo_p &=~ tdo_mask;
@@ -778,7 +778,7 @@ dtc_queue_run(void) {
 						dtc_mask >>= 1;
 
 						tdo_mask <<= 1;
-						if(tdo_mask == 0) {
+						if (tdo_mask == 0) {
 							tdo_p++;
 							tdo_mask = 1;
 						}
@@ -786,9 +786,9 @@ dtc_queue_run(void) {
 					}
 				}
 
-				if((rq_p->scan.offset + rq_p->scan.length) >= rq_p->scan.size) {
+				if ((rq_p->scan.offset + rq_p->scan.length) >= rq_p->scan.size) {
 					/* feed scan buffer back into openocd and free it */
-					if(jtag_read_buffer(rq_p->scan.buffer, rq_p->cmd->cmd.scan) != ERROR_OK) {
+					if (jtag_read_buffer(rq_p->scan.buffer, rq_p->cmd->cmd.scan) != ERROR_OK) {
 						 retval = ERROR_JTAG_QUEUE_FAILED;
 					}
 					free(rq_p->scan.buffer);
@@ -831,27 +831,27 @@ tap_state_queue_run(void) {
 	int	retval;
 
 	retval = 0;
-	if(!tap_state_queue.length) return(retval);
+	if (!tap_state_queue.length) return(retval);
 	bits = 1;
 	byte = 0;
 	for(i = tap_state_queue.length; i--;) {
 
 		byte <<= 1;
-		if(tap_state_queue.buffer & 1) {
+		if (tap_state_queue.buffer & 1) {
 			byte |= 1;
 		}
-		if((bits >= 8) || !i) {
+		if ((bits >= 8) || !i) {
 			byte <<= (8 - bits);
 
 			/* make sure there's room for stop, byte op, and one byte */
-			if(dtc_queue.cmd_index >= (sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))) {
+			if (dtc_queue.cmd_index >= (sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))) {
 				dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
 					DTC_CMD_STOP;
 				dtc_queue_run();
 			}
 
 #ifdef USE_HARDWARE_SHIFTER_FOR_TMS
-			if(bits == 8) {
+			if (bits == 8) {
 				dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
 					DTC_CMD_SHIFT_TMS_BYTES(1);
 			} else {
@@ -885,12 +885,12 @@ tap_state_queue_append(
 ) {
 	int	retval;
 
-	if(tap_state_queue.length >= sizeof(tap_state_queue.buffer) * 8) {
+	if (tap_state_queue.length >= sizeof(tap_state_queue.buffer) * 8) {
 		retval = tap_state_queue_run();
-		if(retval != 0) return(retval);
+		if (retval != 0) return(retval);
 	}
 
-	if(tms) {
+	if (tms) {
 		tap_state_queue.buffer |= (1 << tap_state_queue.length);
 	}
 	tap_state_queue.length++;
@@ -1005,7 +1005,7 @@ void rlink_reset(int trst, int srst)
 			ST7_PADR,
 			1
 	);
-	if(usb_err < 0) {
+	if (usb_err < 0) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
@@ -1015,12 +1015,12 @@ void rlink_reset(int trst, int srst)
 		(char *)&bitmap, 1,
 		USB_TIMEOUT_MS
 	);
-	if(usb_err < 1) {
+	if (usb_err < 1) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
 
-	if(trst) {
+	if (trst) {
 		bitmap &= ~ST7_PA_NTRST;
 	} else {
 		bitmap |= ST7_PA_NTRST;
@@ -1040,7 +1040,7 @@ void rlink_reset(int trst, int srst)
 			ST7_PBDDR,
 			1
 	);
-	if(usb_err < 0) {
+	if (usb_err < 0) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
@@ -1050,12 +1050,12 @@ void rlink_reset(int trst, int srst)
 		(char *)&bitmap, 1,
 		USB_TIMEOUT_MS
 	);
-	if(usb_err < 1) {
+	if (usb_err < 1) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
 
-	if(srst) {
+	if (srst) {
 		bitmap |= ST7_PB_NSRST;
 	} else {
 		bitmap &= ~ST7_PB_NSRST;
@@ -1071,7 +1071,7 @@ void rlink_reset(int trst, int srst)
 			bitmap,
 		EP1_CMD_DTC_GET_CACHED_STATUS
 	);
-	if(usb_err < 0) {
+	if (usb_err < 0) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
@@ -1081,7 +1081,7 @@ void rlink_reset(int trst, int srst)
 		(char *)&bitmap, 1,
 		USB_TIMEOUT_MS
 	);
-	if(usb_err < 1) {
+	if (usb_err < 1) {
 		LOG_ERROR("%s", usb_strerror());
 		exit(1);
 	}
@@ -1108,7 +1108,7 @@ rlink_scan(
 	uint8_t			tdi_mask, *tdi_p;
 	uint8_t			dtc_mask;
 
-	if(scan_size < 1) {
+	if (scan_size < 1) {
 		LOG_ERROR("scan_size cannot be less than 1 bit\n");
 		exit(1);
 	}
@@ -1156,11 +1156,11 @@ rlink_scan(
 	tdi_p = buffer;
 	tdi_mask = 1;
 
-	if(extra_bits && (type == SCAN_OUT)) {
+	if (extra_bits && (type == SCAN_OUT)) {
 		/* Schedule any extra bits into the DTC command buffer, padding as needed */
 		/* For SCAN_OUT, this comes before the full bytes so the (leading) padding bits will fall off the end */
 		/* make sure there's room for stop, byte op, and one byte */
-		if(
+		if (
 			(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))
 		) {
 			dtc_queue_run();
@@ -1170,14 +1170,14 @@ rlink_scan(
 		dtc_mask = 1 << (extra_bits - 1);
 
 		while(extra_bits--) {
-			if(*tdi_p & tdi_mask) {
+			if (*tdi_p & tdi_mask) {
 				x |= dtc_mask;
 			}
 
 			dtc_mask >>= 1;
 
 			tdi_mask <<= 1;
-			if(tdi_mask == 0) {
+			if (tdi_mask == 0) {
 				tdi_p++;
 				tdi_mask = 1;
 			}
@@ -1191,7 +1191,7 @@ rlink_scan(
 
 	/* Loop scheduling full bytes into the DTC command buffer */
 	while(byte_bits) {
-		if(type == SCAN_IN) {
+		if (type == SCAN_IN) {
 			/* make sure there's room for stop and byte op */
 			x = (dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1));
 		} else {
@@ -1199,36 +1199,36 @@ rlink_scan(
 			x = (dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1));
 		}
 
-		if(type != SCAN_OUT) {
+		if (type != SCAN_OUT) {
 			/* make sure there's room for at least one reply byte */
 			x |= (dtc_queue.reply_index >= USB_EP2IN_SIZE - (1));
 		}
 
-		if(x) {
+		if (x) {
 			dtc_queue_run();
 		}
 
 		chunk_bits = byte_bits;
 		/* we can only use up to 16 bytes at a time */
-		if(chunk_bits > (16 * 8)) chunk_bits = (16 * 8);
+		if (chunk_bits > (16 * 8)) chunk_bits = (16 * 8);
 
-		if(type != SCAN_IN) {
+		if (type != SCAN_IN) {
 			/* how much is there room for, considering stop and byte op? */
 			x = (sizeof(dtc_queue.cmd_buffer) - (dtc_queue.cmd_index + 1 + 1)) * 8;
-			if(chunk_bits > x) chunk_bits = x;
+			if (chunk_bits > x) chunk_bits = x;
 		}
 
-		if(type != SCAN_OUT) {
+		if (type != SCAN_OUT) {
 			/* how much is there room for in the reply buffer? */
 			x = (USB_EP2IN_SIZE - dtc_queue.reply_index) * 8;
-			if(chunk_bits > x) chunk_bits = x;
+			if (chunk_bits > x) chunk_bits = x;
 		}
 
 		/* so the loop will end */
 		byte_bits -= chunk_bits;
 
-		if(type != SCAN_OUT) {
-			if(dtc_queue_enqueue_reply(
+		if (type != SCAN_OUT) {
+			if (dtc_queue_enqueue_reply(
 				type, buffer, scan_size, tdi_bit_offset,
 				chunk_bits,
 				cmd
@@ -1256,17 +1256,17 @@ rlink_scan(
 		}
 		dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = x;
 
-		if(type != SCAN_IN) {
+		if (type != SCAN_IN) {
 			x = 0;
 			dtc_mask = 1 << (8 - 1);
 
 			while(chunk_bits--) {
-				if(*tdi_p & tdi_mask) {
+				if (*tdi_p & tdi_mask) {
 					x |= dtc_mask;
 				}
 
 				dtc_mask >>= 1;
-				if(dtc_mask == 0) {
+				if (dtc_mask == 0) {
 					dtc_queue.cmd_buffer[dtc_queue.cmd_index++] = x;
 					dtc_queue.reply_index++;
 					x = 0;
@@ -1274,7 +1274,7 @@ rlink_scan(
 				}
 
 				tdi_mask <<= 1;
-				if(tdi_mask == 0) {
+				if (tdi_mask == 0) {
 					tdi_p++;
 					tdi_mask = 1;
 				}
@@ -1282,10 +1282,10 @@ rlink_scan(
 		}
 	}
 
-	if(extra_bits && (type != SCAN_OUT)) {
+	if (extra_bits && (type != SCAN_OUT)) {
 		/* Schedule any extra bits into the DTC command buffer */
 		/* make sure there's room for stop, byte op, and one byte */
-		if(
+		if (
 			(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1 + 1))
 			||
 			(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
@@ -1293,7 +1293,7 @@ rlink_scan(
 			dtc_queue_run();
 		}
 
-		if(dtc_queue_enqueue_reply(
+		if (dtc_queue_enqueue_reply(
 			type, buffer, scan_size, tdi_bit_offset,
 			extra_bits,
 			cmd
@@ -1304,7 +1304,7 @@ rlink_scan(
 
 		tdi_bit_offset += extra_bits;
 
-		if(type == SCAN_IN) {
+		if (type == SCAN_IN) {
 			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
 				DTC_CMD_SHIFT_TDO_BYTES(1);
 
@@ -1316,14 +1316,14 @@ rlink_scan(
 			dtc_mask = 1 << (8 - 1);
 
 			while(extra_bits--) {
-				if(*tdi_p & tdi_mask) {
+				if (*tdi_p & tdi_mask) {
 					x |= dtc_mask;
 				}
 
 				dtc_mask >>= 1;
 
 				tdi_mask <<= 1;
-				if(tdi_mask == 0) {
+				if (tdi_mask == 0) {
 					tdi_p++;
 					tdi_mask = 1;
 				}
@@ -1338,7 +1338,7 @@ rlink_scan(
 	/* Schedule the last bit into the DTC command buffer */
 	{
 		/* make sure there's room for stop, and bit pair command */
-		if(
+		if (
 			(dtc_queue.cmd_index >= sizeof(dtc_queue.cmd_buffer) - (1 + 1))
 			||
 			(dtc_queue.reply_index >= USB_EP2IN_SIZE - (1))
@@ -1346,12 +1346,12 @@ rlink_scan(
 			dtc_queue_run();
 		}
 
-		if(type == SCAN_OUT) {
+		if (type == SCAN_OUT) {
 			dtc_queue.cmd_buffer[dtc_queue.cmd_index++] =
 				DTC_CMD_SHIFT_TMS_TDI_BIT_PAIR(1, (*tdi_p & tdi_mask), 0);
 
 		} else {
-			if(dtc_queue_enqueue_reply(
+			if (dtc_queue_enqueue_reply(
 				type, buffer, scan_size, tdi_bit_offset,
 				1,
 				cmd
@@ -1455,7 +1455,7 @@ int rlink_execute_queue(void)
 					rlink_end_state(cmd->cmd.scan->end_state);
 				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 				type = jtag_scan_type(cmd->cmd.scan);
-				if(rlink_scan(cmd, type, buffer, scan_size) != ERROR_OK) {
+				if (rlink_scan(cmd, type, buffer, scan_size) != ERROR_OK) {
 					retval = ERROR_FAIL;
 				}
 				break;
@@ -1475,7 +1475,7 @@ int rlink_execute_queue(void)
 	/* Flush the DTC queue to make sure any pending reads have been done before exiting this function */
 	tap_state_queue_run();
 	tmp_retval = dtc_queue_run();
-	if(tmp_retval != ERROR_OK) {
+	if (tmp_retval != ERROR_OK) {
 		retval = tmp_retval;
 	}
 
@@ -1498,19 +1498,19 @@ int rlink_speed(int speed)
 {
 	int		i;
 
-	if(speed == 0) {
+	if (speed == 0) {
 		/* fastest speed */
 		speed = rlink_speed_table[rlink_speed_table_size - 1].prescaler;
 	}
 
 	for(i = rlink_speed_table_size; i--; ) {
-		if(rlink_speed_table[i].prescaler == speed) {
-			if(dtc_load_from_buffer(pHDev, rlink_speed_table[i].dtc, rlink_speed_table[i].dtc_size) != 0) {
+		if (rlink_speed_table[i].prescaler == speed) {
+			if (dtc_load_from_buffer(pHDev, rlink_speed_table[i].dtc, rlink_speed_table[i].dtc_size) != 0) {
 				LOG_ERROR("An error occurred while trying to load DTC code for speed \"%d\".\n", speed);
 				exit(1);
 			}
 
-			if(dtc_start_download() < 0) {
+			if (dtc_start_download() < 0) {
 				LOG_ERROR("%s, %d: starting DTC: %s",
 					__FILE__, __LINE__,
 					usb_strerror()
@@ -1535,7 +1535,7 @@ int rlink_speed_div(
 	int	i;
 
 	for(i = rlink_speed_table_size; i--; ) {
-		if(rlink_speed_table[i].prescaler == speed) {
+		if (rlink_speed_table[i].prescaler == speed) {
 			*khz = rlink_speed_table[i].khz;
 			return(ERROR_OK);
 		}
@@ -1553,13 +1553,13 @@ int rlink_khz(
 ) {
 	int	i;
 
-	if(khz == 0) {
+	if (khz == 0) {
 		LOG_ERROR("RCLK not supported");
 		return ERROR_FAIL;
 	}
 
 	for(i = rlink_speed_table_size; i--; ) {
-		if(rlink_speed_table[i].khz <= khz) {
+		if (rlink_speed_table[i].khz <= khz) {
 			*speed = rlink_speed_table[i].prescaler;
 			return(ERROR_OK);
 		}
@@ -1580,7 +1580,7 @@ handle_dtc_directory_command(
 	char **args,
 	int argc
 ) {
-	if(argc != 1) {
+	if (argc != 1) {
 		LOG_ERROR("expected exactly one argument to rlink_dtc_directory <directory-path>");
 		return(ERROR_INVALID_ARGUMENTS);
 	}
@@ -1636,26 +1636,26 @@ int rlink_init(void)
 
 		for(dev = bus->devices; dev; dev = dev->next)
 		{
-			if( (dev->descriptor.idVendor == USB_IDVENDOR) && (dev->descriptor.idProduct == USB_IDPRODUCT) )
+			if ( (dev->descriptor.idVendor == USB_IDVENDOR) && (dev->descriptor.idProduct == USB_IDPRODUCT) )
 			{
 				found = 1;
 				LOG_DEBUG("Found device on bus.\n");
 
 				do
 				{
-					if( dev->descriptor.bNumConfigurations > 1 )
+					if ( dev->descriptor.bNumConfigurations > 1 )
 					{
 						LOG_ERROR("Whoops! NumConfigurations is not 1, don't know what to do...\n");
 						break;
 					}
-					if( dev->config->bNumInterfaces > 1 )
+					if ( dev->config->bNumInterfaces > 1 )
 					{
 						LOG_ERROR("Whoops! NumInterfaces is not 1, don't know what to do...\n");
 						break;
 					}
 
 					pHDev=usb_open(dev);
-					if( !pHDev )
+					if ( !pHDev )
 						LOG_ERROR ("Failed to open device.\n");
 					else
 					{
@@ -1668,12 +1668,12 @@ int rlink_init(void)
 						do
 						{
 							i = usb_claim_interface(pHDev,0);
-							if(i)
+							if (i)
 							{
 								LOG_ERROR("usb_claim_interface: %s", usb_strerror());
 #ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
 								j = usb_detach_kernel_driver_np(pHDev, 0);
-								if(j)
+								if (j)
 									LOG_ERROR("detach kernel driver: %s", usb_strerror());
 #endif
 							}
@@ -1684,9 +1684,9 @@ int rlink_init(void)
 							}
 						} while(--retries);
 
-						if(!i)
+						if (!i)
 						{
-							if( usb_set_altinterface(pHDev,0) )
+							if ( usb_set_altinterface(pHDev,0) )
 							{
 								LOG_ERROR("Failed to set interface.\n");
 								break;
@@ -1700,13 +1700,13 @@ int rlink_init(void)
 		}
 	}
 
-	if( !found )
+	if ( !found )
 	{
 		LOG_ERROR("No device found on bus.\n");
 		exit(1);
 	}
 
-	if( !success )
+	if ( !success )
 	{
 		LOG_ERROR("Initialisation failed.");
 		exit(1);
@@ -1720,7 +1720,7 @@ int rlink_init(void)
 			pHDev, 1,
 			EP1_CMD_GET_FWREV
 		);
-		if(j < USB_EP1OUT_SIZE) {
+		if (j < USB_EP1OUT_SIZE) {
 			LOG_ERROR("USB write error: %s", usb_strerror());
 			return(ERROR_FAIL);
 		}
@@ -1729,16 +1729,16 @@ int rlink_init(void)
 			(char *)reply_buffer, sizeof(reply_buffer),
 			200
 		);
-		if(j != -ETIMEDOUT) break;
+		if (j != -ETIMEDOUT) break;
 	}
 
-	if(j < (int)sizeof(reply_buffer)) {
+	if (j < (int)sizeof(reply_buffer)) {
 		LOG_ERROR("USB read error: %s", usb_strerror());
 		return(ERROR_FAIL);
 	}
 	LOG_DEBUG(INTERFACE_NAME" firmware version: %d.%d.%d\n", reply_buffer[0], reply_buffer[1], reply_buffer[2]);
 
-	if((reply_buffer[0] != 0) || (reply_buffer[1] != 0) || (reply_buffer[2] != 3)) {
+	if ((reply_buffer[0] != 0) || (reply_buffer[1] != 0) || (reply_buffer[2] != 3)) {
 		LOG_WARNING("The rlink device is not of the version that the developers have played with.  It may or may not work.\n");
 	}
 
@@ -1769,7 +1769,7 @@ int rlink_init(void)
 		USB_TIMEOUT_MS
 	);
 
-	if((reply_buffer[0] & ST7_PE_ADAPTER_SENSE_IN) != 0) {
+	if ((reply_buffer[0] & ST7_PE_ADAPTER_SENSE_IN) != 0) {
 		LOG_WARNING("target detection problem\n");
 	}
 
@@ -1795,7 +1795,7 @@ int rlink_init(void)
 	);
 
 
-	if((reply_buffer[0] & ST7_PE_ADAPTER_SENSE_IN) == 0) {
+	if ((reply_buffer[0] & ST7_PE_ADAPTER_SENSE_IN) == 0) {
 		LOG_WARNING("target not plugged in\n");
 	}
 

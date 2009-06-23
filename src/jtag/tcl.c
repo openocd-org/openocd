@@ -340,7 +340,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 	/*
 	 * we expect CHIP + TAP + OPTIONS
 	 * */
-	if( goi->argc < 3 ){
+	if ( goi->argc < 3 ){
 		Jim_SetResult_sprintf(goi->interp, "Missing CHIP TAP OPTIONS ....");
 		return JIM_ERR;
 	}
@@ -369,7 +369,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 
 	while( goi->argc ){
 		e = Jim_GetOpt_Nvp( goi, opts, &n );
-		if( e != JIM_OK ){
+		if ( e != JIM_OK ){
 			Jim_GetOpt_NvpUnknown( goi, opts, 0 );
 			return e;
 		}
@@ -386,7 +386,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 			uint32_t *new_expected_ids;
 
 			e = Jim_GetOpt_Wide( goi, &w );
-			if( e != JIM_OK) {
+			if ( e != JIM_OK) {
 				Jim_SetResult_sprintf(goi->interp, "option: %s bad parameter", n->name);
 				return e;
 			}
@@ -410,7 +410,7 @@ static int jim_newtap_cmd( Jim_GetOptInfo *goi )
 		case NTAP_OPT_IRMASK:
 		case NTAP_OPT_IRCAPTURE:
 			e = Jim_GetOpt_Wide( goi, &w );
-			if( e != JIM_OK ){
+			if ( e != JIM_OK ){
 				Jim_SetResult_sprintf( goi->interp, "option: %s bad parameter", n->name );
 				return e;
 			}
@@ -535,7 +535,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 	Jim_GetOpt_Setup( &goi, interp, argc-1, argv+1 );
 
 	e = Jim_GetOpt_Nvp( &goi, jtag_cmds, &n );
-	if( e != JIM_OK ){
+	if ( e != JIM_OK ){
 		Jim_GetOpt_NvpUnknown( &goi, jtag_cmds, 0 );
 		return e;
 	}
@@ -545,19 +545,19 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 		/* return the name of the interface */
 		/* TCL code might need to know the exact type... */
 		/* FUTURE: we allow this as a means to "set" the interface. */
-		if( goi.argc != 0 ){
+		if ( goi.argc != 0 ){
 			Jim_WrongNumArgs( goi.interp, 1, goi.argv-1, "(no params)");
 			return JIM_ERR;
 		}
 		Jim_SetResultString( goi.interp, jtag_interface->name, -1 );
 		return JIM_OK;
 	case JTAG_CMD_INIT_RESET:
-		if( goi.argc != 0 ){
+		if ( goi.argc != 0 ){
 			Jim_WrongNumArgs( goi.interp, 1, goi.argv-1, "(no params)");
 			return JIM_ERR;
 		}
 		e = jtag_init_reset(context);
-		if( e != ERROR_OK ){
+		if ( e != ERROR_OK ){
 			Jim_SetResult_sprintf( goi.interp, "error: %d", e);
 			return JIM_ERR;
 		}
@@ -568,7 +568,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 	case JTAG_CMD_TAPISENABLED:
 	case JTAG_CMD_TAPENABLE:
 	case JTAG_CMD_TAPDISABLE:
-		if( goi.argc != 1 ){
+		if ( goi.argc != 1 ){
 			Jim_SetResultString( goi.interp, "Too many parameters",-1 );
 			return JIM_ERR;
 		}
@@ -619,7 +619,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 		break;
 
 	case JTAG_CMD_CGET:
-		if( goi.argc < 2 ){
+		if ( goi.argc < 2 ){
 			Jim_WrongNumArgs( goi.interp, 0, NULL, "?tap-name? -option ...");
 			return JIM_ERR;
 		}
@@ -629,7 +629,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 
 			Jim_GetOpt_Obj(&goi, &o);
 			t = jtag_tap_by_jim_obj( goi.interp, o );
-			if( t == NULL ){
+			if ( t == NULL ){
 				return JIM_ERR;
 			}
 
@@ -639,7 +639,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 		break;
 
 	case JTAG_CMD_CONFIGURE:
-		if( goi.argc < 3 ){
+		if ( goi.argc < 3 ){
 			Jim_WrongNumArgs( goi.interp, 0, NULL, "?tap-name? -option ?VALUE? ...");
 			return JIM_ERR;
 		}
@@ -649,7 +649,7 @@ static int jim_jtag_command( Jim_Interp *interp, int argc, Jim_Obj *const *argv 
 
 			Jim_GetOpt_Obj(&goi, &o);
 			t = jtag_tap_by_jim_obj( goi.interp, o );
-			if( t == NULL ){
+			if ( t == NULL ){
 				return JIM_ERR;
 			}
 
@@ -806,7 +806,7 @@ static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *c
 	 * argv[ 3] = not actually used by anything but in the docs
 	 */
 
-	if( argc < 4 ){
+	if ( argc < 4 ){
 		command_print( cmd_ctx, "OLD DEPRECATED SYNTAX: Please use the NEW syntax");
 		return ERROR_OK;
 	}
@@ -847,7 +847,7 @@ static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *c
 			 Jim_GetString( newargs[9], NULL ) );
 
 	e = jim_jtag_command( interp, 10, newargs );
-	if( e != JIM_OK ){
+	if ( e != JIM_OK ){
 		command_print( cmd_ctx, "%s", Jim_GetString( Jim_GetResult(interp), NULL ) );
 	}
 	return e;
@@ -1174,20 +1174,20 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 	 */
 	endstate = TAP_IDLE;
 
-	if( argc >= 4 ){
+	if ( argc >= 4 ){
 		/* have at least one pair of numbers. */
 		/* is last pair the magic text? */
-		if( 0 == strcmp( "-endstate", args[ argc - 2 ] ) ){
+		if ( 0 == strcmp( "-endstate", args[ argc - 2 ] ) ){
 			const char *cpA;
 			const char *cpS;
 			cpA = args[ argc-1 ];
 			for( endstate = 0 ; endstate < TAP_NUM_STATES ; endstate++ ){
 				cpS = tap_state_name( endstate );
-				if( 0 == strcmp( cpA, cpS ) ){
+				if ( 0 == strcmp( cpA, cpS ) ){
 					break;
 				}
 			}
-			if( endstate >= TAP_NUM_STATES ){
+			if ( endstate >= TAP_NUM_STATES ){
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			} else {
 				if (!scan_is_safe(endstate))
@@ -1281,7 +1281,7 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 
 		e = Jim_GetLong(interp, args[i], &bits);
 		/* If valid - try next arg */
-		if( e == JIM_OK ){
+		if ( e == JIM_OK ){
 			continue;
 		}
 
@@ -1299,13 +1299,13 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		/* get arg as a string. */
 		cp = Jim_GetString( args[i], NULL );
 		/* is it the magic? */
-		if( 0 == strcmp( "-endstate", cp ) ){
+		if ( 0 == strcmp( "-endstate", cp ) ){
 			/* is the statename valid? */
 			cp = Jim_GetString( args[i+1], NULL );
 
 			/* see if it is a valid state name */
 			endstate = tap_state_by_name(cp);
-			if( endstate < 0 ){
+			if ( endstate < 0 ){
 				/* update the error message */
 				Jim_SetResult_sprintf(interp,"endstate: %s invalid", cp );
 			} else {
@@ -1321,13 +1321,13 @@ static int Jim_Command_drscan(Jim_Interp *interp, int argc, Jim_Obj *const *args
 		}
 
 		/* Still an error? */
-		if( e != JIM_OK ){
+		if ( e != JIM_OK ){
 			return e; /* too bad */
 		}
 	} /* validate args */
 
 	tap = jtag_tap_by_jim_obj( interp, args[1] );
-	if( tap == NULL ){
+	if ( tap == NULL ){
 		return JIM_ERR;
 	}
 
@@ -1401,7 +1401,7 @@ static int Jim_Command_pathmove(Jim_Interp *interp, int argc, Jim_Obj *const *ar
 		const char *cp;
 		cp = Jim_GetString( args[i+1], NULL );
 		states[i] = tap_state_by_name(cp);
-		if( states[i] < 0 )
+		if ( states[i] < 0 )
 		{
 			/* update the error message */
 			Jim_SetResult_sprintf(interp,"endstate: %s invalid", cp );

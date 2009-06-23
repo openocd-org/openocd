@@ -340,19 +340,19 @@ void copyfile(char *name2, char *name1)
 			break;
 		}
 
-        if( done == 0 ) break;
+        if ( done == 0 ) break;
 
 		wrote = write(fd1, buf, done);
-        if( wrote != done ) SHOW_RESULT( write, wrote );
+        if ( wrote != done ) SHOW_RESULT( write, wrote );
 
-        if( wrote != done ) break;
+        if ( wrote != done ) break;
 	}
 
 	err = close(fd1);
-    if( err < 0 ) SHOW_RESULT( close, err );
+    if ( err < 0 ) SHOW_RESULT( close, err );
 
 	err = close(fd2);
-    if( err < 0 ) SHOW_RESULT( close, err );
+    if ( err < 0 ) SHOW_RESULT( close, err );
 
 }
 
@@ -372,7 +372,7 @@ void copydir(char *name, char *destdir)
 	}
 
 	dirp = opendir(name);
-    if( dirp == NULL ) SHOW_RESULT( opendir, -1 );
+    if ( dirp == NULL ) SHOW_RESULT( opendir, -1 );
 
 	for (;;)
 	{
@@ -421,7 +421,7 @@ void copydir(char *name, char *destdir)
 	}
 
 	err = closedir(dirp);
-    if( err < 0 ) SHOW_RESULT( stat, err );
+    if ( err < 0 ) SHOW_RESULT( stat, err );
 }
 
 

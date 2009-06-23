@@ -531,7 +531,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			uint32_t verify = 0xffffffff;
 			
-			if((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -554,7 +554,7 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		{
 			uint16_t verify = 0xffff;
 			
-			if((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
+			if ((retval = target_read_memory(target, breakpoint->address, breakpoint->length, 1, breakpoint->orig_instr)) != ERROR_OK)
 			{
 				return retval;
 			}
@@ -619,7 +619,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			}
 			if (current_instr == MIPS32_SDBBP)
 			{
-				if((retval = target_write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
+				if ((retval = target_write_memory(target, breakpoint->address, 4, 1, breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
 				}
@@ -637,7 +637,7 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			
 			if (current_instr == MIPS16_SDBBP)
 			{
-				if((retval = target_write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
+				if ((retval = target_write_memory(target, breakpoint->address, 2, 1, breakpoint->orig_instr)) != ERROR_OK)
 				{
 					return retval;
 				}
@@ -750,7 +750,7 @@ int mips_m4k_read_memory(struct target_s *target, uint32_t address, uint32_t siz
 
 	/* if noDMA off, use DMAACC mode for memory read */
 	int retval;
-	if(ejtag_info->impcode & EJTAG_IMP_NODMA)
+	if (ejtag_info->impcode & EJTAG_IMP_NODMA)
 		retval = mips32_pracc_read_mem(ejtag_info, address, size, count, (void *)buffer);
 	else
 		retval = mips32_dmaacc_read_mem(ejtag_info, address, size, count, (void *)buffer);
@@ -825,7 +825,7 @@ int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t si
 	}	   
 
 	/* if noDMA off, use DMAACC mode for memory write */
-	if(ejtag_info->impcode & EJTAG_IMP_NODMA)
+	if (ejtag_info->impcode & EJTAG_IMP_NODMA)
 		return mips32_pracc_write_mem(ejtag_info, address, size, count, (void *)buffer);
 	else
 		return mips32_dmaacc_write_mem(ejtag_info, address, size, count, (void *)buffer);
