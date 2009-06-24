@@ -823,7 +823,7 @@ main( int argc, char **argv )
     AC_MSG_ERROR([Cannot build & run test program using ftd2xx.lib])
   ] )
 
-AC_MSG_CHECKING([whether to build ftd2xx device support])
+AC_MSG_CHECKING([whether to build ftd2xx highspeed device support])
 AC_MSG_RESULT([$want_ftd2xx_highspeed])
 if test $want_ftd2xx_highspeed != no; then
   AC_MSG_CHECKING([for ftd2xx highspeed device support])
