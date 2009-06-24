@@ -82,14 +82,14 @@ int membuf_vsprintf( struct membuf *pBuf , const char *fmt, va_list ap);
  * 
  * Identical to "strtok()" - pass "pBuff = NULL" on second call
  *
- * NOTE: This call is <b>destructive</b> to the buffer.
+ * NOTE: This call is <b > destructive</b> to the buffer.
  */
 const char *membuf_strtok( struct membuf *pBuf, const char *delim, void **pSave );
 
 /** Return pointer to the memory in the buffer
  * @param pBuf - buffer
  *
- * NOTE: Thou shall not modify this pointer, it is <b>CONST</b>
+ * NOTE: Thou shall not modify this pointer, it is <b > CONST</b>
  */
 const void *membuf_datapointer( struct membuf *pBuf );
 
