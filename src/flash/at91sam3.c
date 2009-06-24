@@ -1276,7 +1276,7 @@ sam3_explain_ckgr_plla( struct sam3_chip *pChip )
 	} else if ( diva == 0 ){
 		sam3_sprintf(pChip,"\tPLLA Freq: (Disabled,diva = 0)\n");
 	} else if ( diva == 1 ){
-		pChip->cfg.plla_freq = (pChip->cfg.mainosc_freq * (mula+1));
+		pChip->cfg.plla_freq = (pChip->cfg.mainosc_freq * (mula + 1));
 		sam3_sprintf(pChip,"\tPLLA Freq: %3.03f MHz\n",
 					 _tomhz( pChip->cfg.plla_freq ));
 	}
@@ -1828,7 +1828,7 @@ _sam3_probe(struct flash_bank_s *bank, int noise)
 
 	LOG_DEBUG("Bank = %d, nbanks = %d",
 			  pPrivate->bank_number , pPrivate->pChip->details.n_banks);
-	if ( (pPrivate->bank_number+1) == pPrivate->pChip->details.n_banks ){
+	if ( (pPrivate->bank_number + 1) == pPrivate->pChip->details.n_banks ){
 		// read unique id, 
 		// it appears to be associated with the *last* flash bank.
 		FLASHD_ReadUniqueID(pPrivate);
@@ -1874,7 +1874,7 @@ sam3_erase(struct flash_bank_s *bank, int first, int last)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
-	if ( (first == 0) && ((last+1)== ((int)(pPrivate->nsectors))) ){
+	if ( (first == 0) && ((last + 1)== ((int)(pPrivate->nsectors))) ){
 		// whole chip
 		LOG_DEBUG("Here");
 		return FLASHD_EraseEntireBank( pPrivate );

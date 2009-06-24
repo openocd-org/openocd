@@ -77,7 +77,7 @@ membuf_new(void)
     pBuf = calloc( 1, sizeof(*pBuf) );
     if ( pBuf ){
 	// we *ALWAYS* allocate +1 for null terminator.
-	pBuf->buf = calloc( DEFAULT_BUFSIZE+1, sizeof(char));
+	pBuf->buf = calloc( DEFAULT_BUFSIZE + 1, sizeof(char));
 	if ( pBuf->buf == NULL ){
 	    free(pBuf);
 	    pBuf = NULL;
@@ -104,7 +104,7 @@ membuf_grow( struct membuf *pBuf, int n )
     }
 
     // always alloc +1 for the null terminator
-    vp = realloc( pBuf->buf, newsize+1 );
+    vp = realloc( pBuf->buf, newsize + 1 );
     if ( vp ){
 	pBuf->buf    = vp;
 	pBuf->maxlen = newsize;
