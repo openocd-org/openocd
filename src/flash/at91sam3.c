@@ -250,7 +250,7 @@ get_current_sam3(struct command_context_s *cmd_ctx )
 		return NULL;
 	}
 
-	while( p ){
+	while ( p ){
 		if ( p->target == t ){
 			return p;
 		}
@@ -1374,7 +1374,7 @@ target2sam3( target_t *pTarget )
 	}
 
 	pChip = all_sam3_chips;
-	while(pChip){
+	while (pChip){
 		if (pChip->target == pTarget ){
 			break; // return below
 		} else {
@@ -1443,7 +1443,7 @@ sam3_GetReg( struct sam3_chip *pChip, uint32_t *goes_here )
 	const struct sam3_reg_list *pReg;
 
 	pReg = &(sam3_all_regs[0]);
-	while(pReg->name){
+	while (pReg->name){
 		uint32_t *pPossible;
 
 		// calculate where this one go..
@@ -1494,7 +1494,7 @@ sam3_ReadAllRegs( struct sam3_chip *pChip )
 	const struct sam3_reg_list *pReg;
 
 	pReg = &(sam3_all_regs[0]);
-	while( pReg->name ){
+	while ( pReg->name ){
 		r = sam3_ReadThisReg( pChip, 
 								  sam3_get_reg_ptr( &(pChip->cfg), pReg ) );
 		if ( r != ERROR_OK ){
@@ -1520,7 +1520,7 @@ sam3_GetInfo( struct sam3_chip *pChip )
 
 
 	pReg = &(sam3_all_regs[0]);
-	while(pReg->name){
+	while (pReg->name){
 		// display all regs
 		LOG_DEBUG("Start: %s", pReg->name );
 		regval = *sam3_get_reg_ptr( &(pChip->cfg), pReg );
@@ -1625,7 +1625,7 @@ sam3_flash_bank_command(struct command_context_s *cmd_ctx,
 	pChip = all_sam3_chips;
 	
 	// is this an existing chip?
-	while(pChip){
+	while (pChip){
 		if ( pChip->target == bank->target ){
 			break;
 		}
@@ -1693,7 +1693,7 @@ sam3_GetDetails( struct sam3_bank_private *pPrivate )
 
 	LOG_DEBUG("Begin");
 	pDetails = all_sam3_details;
-	while( pDetails->name ){
+	while ( pDetails->name ){
 		if ( pDetails->chipid_cidr == pPrivate->pChip->cfg.CHIPID_CIDR ){
 			break;
 		} else {
@@ -1710,7 +1710,7 @@ sam3_GetDetails( struct sam3_bank_private *pPrivate )
 						pPrivate->pChip->cfg.CHIPID_CIDR );
 		sam3_explain_chipid_cidr( pPrivate->pChip );
 		cp = membuf_strtok( pPrivate->pChip->mbuf, "\n", &vp );
-		while(cp){
+		while (cp){
 			LOG_INFO("%s", cp );
 			cp = membuf_strtok( NULL, "\n", &vp );
 		}
@@ -1978,7 +1978,7 @@ sam3_page_read( struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *b
 // 
 //   do {
 //     *d++ = *s++;
-//   } while( --n )
+//   } while ( --n )
 //     ;
 // 
 //   v = p->base;
@@ -1986,7 +1986,7 @@ sam3_page_read( struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *b
 //   v[ 1 ] = p->cmd;
 //   do {
 //     r = v[8/4];
-//   } while( !(r&1) )
+//   } while ( !(r&1) )
 //     ;
 //   return r;
 // }
@@ -2188,7 +2188,7 @@ sam3_write(struct flash_bank_s *bank,
 	LOG_DEBUG("Full Page Loop: cur=%d, end=%d, count=0x%08x", 
 			  (int)page_cur, (int)page_end, (unsigned int)(count) );
 
-	while( (page_cur < page_end) && 
+	while ( (page_cur < page_end) && 
 		   (count >= pPrivate->page_size) ){
 		r = sam3_page_write( pPrivate, page_cur, buffer );
 		if ( r != ERROR_OK ){
@@ -2290,7 +2290,7 @@ sam3_handle_info_command(  struct command_context_s *cmd_ctx, char *cmd, char **
 
 	// print results
 	cp = membuf_strtok( pChip->mbuf, "\n", &vp );
-	while(cp){
+	while (cp){
 		command_print(cmd_ctx,"%s", cp );
 		cp = membuf_strtok( NULL, "\n", &vp );
 	}
