@@ -237,13 +237,13 @@ get_current_sam3(struct command_context_s *cmd_ctx )
 	static struct sam3_chip *p;
 
 	t = get_current_target( cmd_ctx );
-	if( !t ){
+	if ( !t ){
 		command_print( cmd_ctx, "No current target?");
 		return NULL;
 	}
 
 	p = all_sam3_chips;
-	if( !p ){
+	if ( !p ){
 		// this should not happen
 		// the command is not registered until the chip is created?
 		command_print( cmd_ctx, "No SAM3 chips exist?");
@@ -251,7 +251,7 @@ get_current_sam3(struct command_context_s *cmd_ctx )
 	}
 
 	while( p ){
-		if( p->target == t ){
+		if ( p->target == t ){
 			return p;
 		}
 		p = p->next;
@@ -563,7 +563,7 @@ EFC_GetResult( struct sam3_bank_private *pPrivate, uint32_t *v )
 	int r;
 	uint32_t rv;
 	r = target_read_u32( pPrivate->pChip->target, pPrivate->controller_address + offset_EFC_FRR, &rv );
-	if( v ){
+	if ( v ){
 		*v = rv;
 	}
 	LOG_DEBUG("Result: 0x%08x", ((unsigned int)(rv)));
@@ -593,14 +593,14 @@ EFC_StartCommand(struct sam3_bank_private *pPrivate,
 	case AT91C_EFC_FCMD_SLB:
 	case AT91C_EFC_FCMD_CLB:
 		n = (pPrivate->size_bytes / pPrivate->page_size);
-		if( argument >= n ){
+		if ( argument >= n ){
 			LOG_ERROR("*BUG*: Embedded flash has only %u pages", (unsigned)(n));
 		}
 		break;
 		
 	case AT91C_EFC_FCMD_SFB:
 	case AT91C_EFC_FCMD_CFB:
-		if( argument >= pPrivate->pChip->details.n_gpnvms ){
+		if ( argument >= pPrivate->pChip->details.n_gpnvms ){
 			LOG_ERROR("*BUG*: Embedded flash has only %d GPNVMs", 
 					  pPrivate->pChip->details.n_gpnvms );
 		}
@@ -612,7 +612,7 @@ EFC_StartCommand(struct sam3_bank_private *pPrivate,
 	case AT91C_EFC_FCMD_GFB:
 	case AT91C_EFC_FCMD_STUI:
 	case AT91C_EFC_FCMD_SPUI:
-		if( argument != 0 ){
+		if ( argument != 0 ){
 			LOG_ERROR("Argument is meaningless for cmd: %d", command );
 		}
 		break;
@@ -621,7 +621,7 @@ EFC_StartCommand(struct sam3_bank_private *pPrivate,
 		break;
     }
 
-	if( command == AT91C_EFC_FCMD_SPUI ){
+	if ( command == AT91C_EFC_FCMD_SPUI ){
 		// this is a very special situation.
 		// Situation (1) - error/retry - see below
 		//      And we are being called recursively
@@ -629,11 +629,11 @@ EFC_StartCommand(struct sam3_bank_private *pPrivate,
 	} else {
 		// it should be "ready"
 		EFC_GetStatus( pPrivate, &v );
-		if( v & 1 ){
+		if ( v & 1 ){
 			// then it is ready
 			// we go on
 		} else {
-			if( retry ){
+			if ( retry ){
 				// we have done this before
 				// the controller is not responding.
 				LOG_ERROR("flash controller(%d) is not ready! Error", pPrivate->bank_number );
@@ -645,7 +645,7 @@ EFC_StartCommand(struct sam3_bank_private *pPrivate,
 				// we do that by issuing the *STOP* command
 				EFC_StartCommand( pPrivate, AT91C_EFC_FCMD_SPUI, 0 );
 				// above is recursive, and further recursion is blocked by 
-				// if( command == AT91C_EFC_FCMD_SPUI ) above
+				// if ( command == AT91C_EFC_FCMD_SPUI ) above
 				goto do_retry;
 			}
 		}
@@ -656,7 +656,7 @@ EFC_StartCommand(struct sam3_bank_private *pPrivate,
 	r = target_write_u32( pPrivate->pBank->target, 
 						  pPrivate->controller_address + offset_EFC_FCR,
 						  v);
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_DEBUG("Error Write failed");
 	}
 	return r;
@@ -681,12 +681,12 @@ EFC_PerformCommand( struct sam3_bank_private *pPrivate,
 	long long ms_now, ms_end;
 
 	// default 
-	if( status ){
+	if ( status ){
 		*status = 0;
 	}
 
 	r = EFC_StartCommand( pPrivate, command, argument );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		return r;
 	}
 
@@ -695,11 +695,11 @@ EFC_PerformCommand( struct sam3_bank_private *pPrivate,
 
     do {
 		r = EFC_GetStatus( pPrivate, &v );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 		ms_now = timeval_ms();
-		if( ms_now > ms_end ){
+		if ( ms_now > ms_end ){
 			// error
 			LOG_ERROR("Command timeout");
 			return ERROR_FAIL;
@@ -709,7 +709,7 @@ EFC_PerformCommand( struct sam3_bank_private *pPrivate,
 		;
 
 	// error bits..
-	if( status ){
+	if ( status ){
 		*status = (v & 0x6);
 	}
 	return ERROR_OK;
@@ -741,7 +741,7 @@ FLASHD_ReadUniqueID ( struct sam3_bank_private *pPrivate )
 
 	LOG_DEBUG("Begin");
 	r = EFC_StartCommand( pPrivate, AT91C_EFC_FCMD_STUI, 0);
-	if( r < 0 ){
+	if ( r < 0 ){
 		return r;
 	}
 
@@ -749,7 +749,7 @@ FLASHD_ReadUniqueID ( struct sam3_bank_private *pPrivate )
 		r = target_read_u32( pPrivate->pChip->target, 
 							 pPrivate->pBank->base + (x * 4),
 							 &v );
-		if( r < 0 ){
+		if ( r < 0 ){
 			return r;
 		}
 		pPrivate->pChip->cfg.unique_id[x] = v;
@@ -792,12 +792,12 @@ FLASHD_GetGPNVM( struct sam3_bank_private *pPrivate, unsigned gpnvm, unsigned *p
 	int r;
 
 	LOG_DEBUG("Here");
-	if( pPrivate->bank_number != 0 ){
+	if ( pPrivate->bank_number != 0 ){
 		LOG_ERROR("GPNVM only works with Bank0");
 		return ERROR_FAIL;
 	}
 
-	if( gpnvm >= pPrivate->pChip->details.n_gpnvms ){
+	if ( gpnvm >= pPrivate->pChip->details.n_gpnvms ){
 		LOG_ERROR("Invalid GPNVM %d, max: %d, ignored",
 				  gpnvm,pPrivate->pChip->details.n_gpnvms );
 		return ERROR_FAIL;
@@ -805,14 +805,14 @@ FLASHD_GetGPNVM( struct sam3_bank_private *pPrivate, unsigned gpnvm, unsigned *p
 
     // Get GPNVMs status
 	r = EFC_PerformCommand( pPrivate, AT91C_EFC_FCMD_GFB, 0, NULL );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_ERROR("Failed");
 		return r;
 	}
 
     r = EFC_GetResult(pPrivate, &v );
 
-	if( puthere ){
+	if ( puthere ){
 		// Check if GPNVM is set
 		// get the bit and make it a 0/1 
 		*puthere = (v >> gpnvm) & 1;
@@ -836,19 +836,19 @@ FLASHD_ClrGPNVM( struct sam3_bank_private *pPrivate, unsigned gpnvm)
 	unsigned v;
 
 	LOG_DEBUG("Here");
-	if( pPrivate->bank_number != 0 ){
+	if ( pPrivate->bank_number != 0 ){
 		LOG_ERROR("GPNVM only works with Bank0");
 		return ERROR_FAIL;
 	}
 
-	if( gpnvm >= pPrivate->pChip->details.n_gpnvms ){
+	if ( gpnvm >= pPrivate->pChip->details.n_gpnvms ){
 		LOG_ERROR("Invalid GPNVM %d, max: %d, ignored",
 				  gpnvm,pPrivate->pChip->details.n_gpnvms );
 		return ERROR_FAIL;
 	}
 
 	r = FLASHD_GetGPNVM( pPrivate, gpnvm, &v );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_DEBUG("Failed: %d",r);
 		return r;
 	}
@@ -869,22 +869,22 @@ FLASHD_SetGPNVM( struct sam3_bank_private *pPrivate, unsigned gpnvm)
 	int r;
 	unsigned v;
 
-	if( pPrivate->bank_number != 0 ){
+	if ( pPrivate->bank_number != 0 ){
 		LOG_ERROR("GPNVM only works with Bank0");
 		return ERROR_FAIL;
 	}
 
-	if( gpnvm >= pPrivate->pChip->details.n_gpnvms ){
+	if ( gpnvm >= pPrivate->pChip->details.n_gpnvms ){
 		LOG_ERROR("Invalid GPNVM %d, max: %d, ignored",
 				  gpnvm,pPrivate->pChip->details.n_gpnvms );
 		return ERROR_FAIL;
 	}
 
 	r = FLASHD_GetGPNVM( pPrivate, gpnvm, &v );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		return r;
 	}
-	if( v ){
+	if ( v ){
 		// already set
 		r = ERROR_OK;
 	} else {
@@ -907,7 +907,7 @@ FLASHD_GetLockBits(struct sam3_bank_private *pPrivate, uint32_t *v )
 	int r;
 	LOG_DEBUG("Here");
     r = EFC_PerformCommand( pPrivate, AT91C_EFC_FCMD_GLB, 0, NULL);
-	if( r == ERROR_OK ){
+	if ( r == ERROR_OK ){
 		r = EFC_GetResult(pPrivate, v );
 	}
 	LOG_DEBUG("End: %d",r);
@@ -990,7 +990,7 @@ sam3_sprintf( struct sam3_chip *pChip , const char *fmt, ... )
 {
 	va_list ap;
 	va_start(ap,fmt);
-	if( pChip->mbuf == NULL ){
+	if ( pChip->mbuf == NULL ){
 		return;
 	}
 
@@ -1013,7 +1013,7 @@ sam3_reg_fieldname( struct sam3_chip *pChip,
 	// extract the field
 	v = value >> shift;
 	v = v & ((1 << width)-1);
-	if( width <= 16 ){
+	if ( width <= 16 ){
 		hwidth = 4;
 		dwidth = 5;
 	} else {
@@ -1139,7 +1139,7 @@ static const char * const nvptype[] = {
 
 static const char *_yes_or_no( uint32_t v )
 {
-	if( v ){
+	if ( v ){
 		return "YES";
 	} else {
 		return "NO";
@@ -1170,7 +1170,7 @@ sam3_explain_ckgr_mor(  struct sam3_chip *pChip )
 				  _rc_freq[v] );
 
 	pChip->cfg.rc_freq = 0;
-	if( rcen ){
+	if ( rcen ){
 		switch( v ){
 		default:
 			pChip->cfg.rc_freq = 0;
@@ -1225,7 +1225,7 @@ sam3_explain_chipid_cidr( struct sam3_chip *pChip )
 	v = sam3_reg_fieldname( pChip, "ARCH", pChip->cfg.CHIPID_CIDR, 20, 8 );
 	cp = _unknown;
 	for( x = 0 ; archnames[x].name ; x++ ){
-		if( v == archnames[x].value ){
+		if ( v == archnames[x].value ){
 			cp = archnames[x].name;
 			break;
 		}
@@ -1271,11 +1271,11 @@ sam3_explain_ckgr_plla( struct sam3_chip *pChip )
 	mula = sam3_reg_fieldname( pChip, "MULA", pChip->cfg.CKGR_PLLAR, 16, 11 );
 	sam3_sprintf(pChip,"\n");
 	pChip->cfg.plla_freq = 0;
-	if( mula==0 ){
+	if ( mula==0 ){
 		sam3_sprintf(pChip,"\tPLLA Freq: (Disabled,mula=0)\n");
-	} else if( diva == 0 ){
+	} else if ( diva == 0 ){
 		sam3_sprintf(pChip,"\tPLLA Freq: (Disabled,diva=0)\n");
-	} else if( diva == 1 ){
+	} else if ( diva == 1 ){
 		pChip->cfg.plla_freq = (pChip->cfg.mainosc_freq * (mula+1));
 		sam3_sprintf(pChip,"\tPLLA Freq: %3.03f MHz\n",
 					 _tomhz( pChip->cfg.plla_freq ));
@@ -1305,7 +1305,7 @@ sam3_explain_mckr( struct sam3_chip *pChip )
 		cp  = "plla";
 		break;
 	case 3:
-		if( pChip->cfg.CKGR_UCKR & (1 << 16) ){
+		if ( pChip->cfg.CKGR_UCKR & (1 << 16) ){
 			fin = 480 * 1000 * 1000;
 			cp = "upll";
 		} else {
@@ -1369,13 +1369,13 @@ target2sam3( target_t *pTarget )
 {
 	struct sam3_chip *pChip;
 
-	if(pTarget == NULL ){
+	if (pTarget == NULL ){
 		return NULL;
 	}
 
 	pChip = all_sam3_chips;
 	while(pChip){
-		if(pChip->target == pTarget ){
+		if (pChip->target == pTarget ){
 			break; // return below
 		} else {
 			pChip = pChip->next;
@@ -1452,7 +1452,7 @@ sam3_GetReg( struct sam3_chip *pChip, uint32_t *goes_here )
 		pPossible = ((uint32_t *)( ((char *)(&(pChip->cfg))) + pReg->struct_offset ));
 
 		// well? Is it this register
-		if( pPossible == goes_here ){
+		if ( pPossible == goes_here ){
 			// Jump for joy!
 			return pReg;
 		}
@@ -1473,12 +1473,12 @@ sam3_ReadThisReg( struct sam3_chip *pChip, uint32_t *goes_here )
 	int r;
 
 	pReg = sam3_GetReg( pChip, goes_here );
-	if( !pReg ){
+	if ( !pReg ){
 		return ERROR_FAIL;
 	}
 
 	r = target_read_u32( pChip->target, pReg->address, goes_here );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_ERROR("Cannot read SAM3 register: %s @ 0x%08x, Err: %d\n",
 				  pReg->name, (unsigned)(pReg->address), r );
 	}
@@ -1497,7 +1497,7 @@ sam3_ReadAllRegs( struct sam3_chip *pChip )
 	while( pReg->name ){
 		r = sam3_ReadThisReg( pChip, 
 								  sam3_get_reg_ptr( &(pChip->cfg), pReg ) );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			LOG_ERROR("Cannot read SAM3 registere: %s @ 0x%08x, Error: %d\n",
 					  pReg->name, ((unsigned)(pReg->address)), r );
 			return r;
@@ -1529,7 +1529,7 @@ sam3_GetInfo( struct sam3_chip *pChip )
 					 pReg->name,
 					 pReg->address,
 					 regval );
- 		if( pReg->explain_func ){
+ 		if ( pReg->explain_func ){
 			(*(pReg->explain_func))( pChip );
 		}
 		LOG_DEBUG("End: %s", pReg->name );
@@ -1563,7 +1563,7 @@ sam3_erase_check(struct flash_bank_s *bank)
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
-	if( 0 == bank->num_sectors ){
+	if ( 0 == bank->num_sectors ){
 		LOG_ERROR("Target: not supported/not probed\n");
 		return ERROR_FAIL;
 	}
@@ -1592,16 +1592,16 @@ sam3_protect_check(struct flash_bank_s *bank)
 	}
 
 	pPrivate = get_sam3_bank_private(bank);
-	if( !pPrivate ){
+	if ( !pPrivate ){
 		LOG_ERROR("no private for this bank?");
 		return ERROR_FAIL;
 	}
-	if( !(pPrivate->probed) ){
+	if ( !(pPrivate->probed) ){
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 	
 	r = FLASHD_GetLockBits( pPrivate , &v );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_DEBUG("Failed: %d",r);
 		return r;
 	}
@@ -1626,16 +1626,16 @@ sam3_flash_bank_command(struct command_context_s *cmd_ctx,
 	
 	// is this an existing chip?
 	while(pChip){
-		if( pChip->target == bank->target ){
+		if ( pChip->target == bank->target ){
 			break;
 		}
 		pChip = pChip->next;
 	}
 
-	if( !pChip ){
+	if ( !pChip ){
 		// this is a *NEW* chip
 		pChip = calloc( 1, sizeof(struct sam3_chip) );
-		if( !pChip ){
+		if ( !pChip ){
 			LOG_ERROR("NO RAM!");
 			return ERROR_FAIL;
 		}
@@ -1648,7 +1648,7 @@ sam3_flash_bank_command(struct command_context_s *cmd_ctx,
 		pChip->cfg.slow_freq = 32768;
 		pChip->probed = 0;
 		pChip->mbuf = membuf_new();
-		if( !(pChip->mbuf) ){
+		if ( !(pChip->mbuf) ){
 			LOG_ERROR("no memory");
 			return ERROR_FAIL;
 		}
@@ -1694,13 +1694,13 @@ sam3_GetDetails( struct sam3_bank_private *pPrivate )
 	LOG_DEBUG("Begin");
 	pDetails = all_sam3_details;
 	while( pDetails->name ){
-		if( pDetails->chipid_cidr == pPrivate->pChip->cfg.CHIPID_CIDR ){
+		if ( pDetails->chipid_cidr == pPrivate->pChip->cfg.CHIPID_CIDR ){
 			break;
 		} else {
 			pDetails++;
 		}
 	}
-	if( pDetails->name == NULL ){
+	if ( pDetails->name == NULL ){
 		LOG_ERROR("SAM3 ChipID 0x%08x not found in table (perhaps you can this chip?)", 
 				  (unsigned int)(pPrivate->pChip->cfg.CHIPID_CIDR) );
 		// Help the victim, print details about the chip
@@ -1769,42 +1769,42 @@ _sam3_probe(struct flash_bank_s *bank, int noise)
 	}
 
 	pPrivate = get_sam3_bank_private( bank );
-	if( !pPrivate ){
+	if ( !pPrivate ){
 		LOG_ERROR("Invalid/unknown bank number\n");
 		return ERROR_FAIL;
 	}
 
 	r = sam3_ReadAllRegs(pPrivate->pChip);
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		return r;
 	}
 
 	
 	LOG_DEBUG("Here");
 	r = sam3_GetInfo( pPrivate->pChip );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		return r;
 	}
-	if( !(pPrivate->pChip->probed) ){
+	if ( !(pPrivate->pChip->probed) ){
 		pPrivate->pChip->probed = 1;
 		LOG_DEBUG("Here");
 		r = sam3_GetDetails( pPrivate );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}		
 	}
 
 	// update the flash bank size
 	for( x = 0 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
-		if( bank->base == pPrivate->pChip->details.bank[0].base_address ){
+		if ( bank->base == pPrivate->pChip->details.bank[0].base_address ){
 			bank->size =  pPrivate->pChip->details.bank[0].size_bytes;
 			break;
 		}
 	}
 
-	if( bank->sectors == NULL ){
+	if ( bank->sectors == NULL ){
 		bank->sectors     = calloc(pPrivate->nsectors, (sizeof( (bank->sectors)[0] )));
-		if( bank->sectors == NULL ){
+		if ( bank->sectors == NULL ){
 			LOG_ERROR("No memory!");
 			return ERROR_FAIL;
 		}
@@ -1822,13 +1822,13 @@ _sam3_probe(struct flash_bank_s *bank, int noise)
 	pPrivate->probed = 1;
 
 	r = sam3_protect_check( bank );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		return r;
 	}
 
 	LOG_DEBUG("Bank = %d, nbanks = %d",
 			  pPrivate->bank_number , pPrivate->pChip->details.n_banks);
-	if( (pPrivate->bank_number+1) == pPrivate->pChip->details.n_banks ){
+	if ( (pPrivate->bank_number+1) == pPrivate->pChip->details.n_banks ){
 		// read unique id, 
 		// it appears to be associated with the *last* flash bank.
 		FLASHD_ReadUniqueID(pPrivate);
@@ -1864,17 +1864,17 @@ sam3_erase(struct flash_bank_s *bank, int first, int last)
 	}
 
 	r = sam3_auto_probe( bank );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_DEBUG("Here,r=%d",r);
 		return r;
 	}
 
 	pPrivate = get_sam3_bank_private( bank );
-	if( !(pPrivate->probed) ){
+	if ( !(pPrivate->probed) ){
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
-	if( (first == 0) && ((last+1)== ((int)(pPrivate->nsectors))) ){
+	if ( (first == 0) && ((last+1)== ((int)(pPrivate->nsectors))) ){
 		// whole chip
 		LOG_DEBUG("Here");
 		return FLASHD_EraseEntireBank( pPrivate );
@@ -1896,11 +1896,11 @@ sam3_protect(struct flash_bank_s *bank, int set, int first, int last)
 	}
 
 	pPrivate = get_sam3_bank_private( bank );
-	if( !(pPrivate->probed) ){
+	if ( !(pPrivate->probed) ){
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
-	if( set ){
+	if ( set ){
 		r = FLASHD_Lock( pPrivate, (unsigned)(first), (unsigned)(last));
 	} else {
 		r = FLASHD_Unlock( pPrivate, (unsigned)(first), (unsigned)(last));
@@ -1937,7 +1937,7 @@ sam3_page_read( struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *b
 							4, /* THIS*MUST*BE* in 32bit values */
 							pPrivate->page_size / 4,
 							buf );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_ERROR("SAM3: Flash program failed to read page phys address: 0x%08x", (unsigned int)(adr) );
 	}
 	return r;
@@ -2051,7 +2051,7 @@ sam3_page_write( struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *
 							 4, /* THIS*MUST*BE* in 32bit values */
 							 pPrivate->page_size / 4,
 							 buf );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_ERROR("SAM3: Failed to write (buffer) page at phys address 0x%08x", (unsigned int)(adr) );
 		return r;
 	}
@@ -2062,14 +2062,14 @@ sam3_page_write( struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *
 							pagenum,
 							&status );
 
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_ERROR("SAM3: Error performing Erase & Write page @ phys address 0x%08x", (unsigned int)(adr) );
 	}
-	if( status & (1 << 2) ){
+	if ( status & (1 << 2) ){
 		LOG_ERROR("SAM3: Page @ Phys address 0x%08x is locked", (unsigned int)(adr) );
 		return ERROR_FAIL;
 	}
-	if( status & (1 << 1) ){
+	if ( status & (1 << 1) ){
 		LOG_ERROR("SAM3: Flash Command error @phys address 0x%08x", (unsigned int)(adr) );
 		return ERROR_FAIL;
 	}
@@ -2095,7 +2095,7 @@ sam3_write(struct flash_bank_s *bank,
 	uint8_t *pagebuffer;
 
 	// ignore dumb requests
-	if( count == 0 ){
+	if ( count == 0 ){
 		return ERROR_OK;
 	}
 
@@ -2105,12 +2105,12 @@ sam3_write(struct flash_bank_s *bank,
 	}
 
 	pPrivate = get_sam3_bank_private(bank);
-	if( !(pPrivate->probed) ){
+	if ( !(pPrivate->probed) ){
 		return ERROR_FLASH_BANK_NOT_PROBED;
 	}
 
 
-	if( (offset + count) > pPrivate->size_bytes ){
+	if ( (offset + count) > pPrivate->size_bytes ){
 		LOG_ERROR("Flash write error - past end of bank");
 		LOG_ERROR(" offset: 0x%08x, count 0x%08x, BankEnd: 0x%08x",
 				  (unsigned int)(offset), 
@@ -2136,10 +2136,10 @@ sam3_write(struct flash_bank_s *bank,
 	//    (3) non-aligned end.
 	
 	// Handle special case - all one page.
-	if( page_cur == page_end ){
+	if ( page_cur == page_end ){
 		LOG_DEBUG("Special case, all in one page");
 		r = sam3_page_read( pPrivate, page_cur, pagebuffer );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 		
@@ -2149,7 +2149,7 @@ sam3_write(struct flash_bank_s *bank,
 				count );
 		
 		r = sam3_page_write( pPrivate, page_cur, pagebuffer );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 		return ERROR_OK;
@@ -2157,11 +2157,11 @@ sam3_write(struct flash_bank_s *bank,
 
 	// non-aligned start
 	page_offset = offset & (pPrivate->page_size - 1);
-	if( page_offset ){
+	if ( page_offset ){
 		LOG_DEBUG("Not-Aligned start");
 		// read the partial
 		r = sam3_page_read( pPrivate, page_cur, pagebuffer );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 
@@ -2172,7 +2172,7 @@ sam3_write(struct flash_bank_s *bank,
 				n );
 	
 		r = sam3_page_write( pPrivate, page_cur, pagebuffer );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 
@@ -2191,7 +2191,7 @@ sam3_write(struct flash_bank_s *bank,
 	while( (page_cur < page_end) && 
 		   (count >= pPrivate->page_size) ){
 		r = sam3_page_write( pPrivate, page_cur, buffer );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 		count    -= pPrivate->page_size;
@@ -2200,17 +2200,17 @@ sam3_write(struct flash_bank_s *bank,
 	}
 
 	// terminal partial page?
-	if( count ){
+	if ( count ){
 		LOG_DEBUG("Terminal partial page, count=0x%08x", (unsigned int)(count));
 		// we have a partial page
 		r = sam3_page_read( pPrivate, page_cur, pagebuffer );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 		// data goes at start
 		memcpy( pagebuffer, buffer, count );
 		r = sam3_page_write( pPrivate, page_cur, pagebuffer );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 		buffer += count;
@@ -2230,14 +2230,14 @@ sam3_handle_info_command(  struct command_context_s *cmd_ctx, char *cmd, char **
 	int r;
 
 	pChip = get_current_sam3(cmd_ctx);
-	if( !pChip ){
+	if ( !pChip ){
 		return ERROR_OK;
 	}
 
 	r = 0;
 	
 	// bank0 must exist before we can do anything
-	if( pChip->details.bank[0].pBank == NULL ){
+	if ( pChip->details.bank[0].pBank == NULL ){
 		x = 0;
 	need_define:
 		command_print( cmd_ctx, 
@@ -2248,9 +2248,9 @@ sam3_handle_info_command(  struct command_context_s *cmd_ctx, char *cmd, char **
 	}
 
 	// if bank 0 is not probed, then probe it
-	if( !(pChip->details.bank[0].probed) ){
+	if ( !(pChip->details.bank[0].probed) ){
 		r = sam3_auto_probe( pChip->details.bank[0].pBank );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return ERROR_FAIL;
 		}
 	}
@@ -2262,27 +2262,27 @@ sam3_handle_info_command(  struct command_context_s *cmd_ctx, char *cmd, char **
 	// auto-probe other banks, 0 done above
     for( x = 1 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
 		// skip banks not present
-		if( !(pChip->details.bank[x].present) ){
+		if ( !(pChip->details.bank[x].present) ){
 			continue;
 		}
 		
-		if( pChip->details.bank[x].pBank == NULL ){
+		if ( pChip->details.bank[x].pBank == NULL ){
 			goto need_define;
 		}
 
-		if( pChip->details.bank[x].probed ){
+		if ( pChip->details.bank[x].probed ){
 			continue;
 		}
 		
 		r = sam3_auto_probe( pChip->details.bank[x].pBank );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 	}
 			
 
 	r = sam3_GetInfo( pChip );
-	if( r != ERROR_OK ){
+	if ( r != ERROR_OK ){
 		LOG_DEBUG("Sam3Info, Failed %d\n",r);
 		return r;
 	}
@@ -2306,7 +2306,7 @@ sam3_handle_gpnvm_command( struct command_context_s *cmd_ctx, char *cmd, char **
 	struct sam3_chip *pChip;
 
 	pChip = get_current_sam3(cmd_ctx);
-	if( !pChip ){
+	if ( !pChip ){
 		return ERROR_OK;
 	}
 
@@ -2316,14 +2316,14 @@ sam3_handle_gpnvm_command( struct command_context_s *cmd_ctx, char *cmd, char **
 	}
 
 
-	if( pChip->details.bank[0].pBank == NULL ){
+	if ( pChip->details.bank[0].pBank == NULL ){
 		command_print( cmd_ctx, "Bank0 must be defined first via: flash bank %s ...",
 					   at91sam3_flash.name );
 		return ERROR_FAIL;
 	}
-	if( !pChip->details.bank[0].probed ){
+	if ( !pChip->details.bank[0].probed ){
 		r = sam3_auto_probe( pChip->details.bank[0].pBank );
-		if( r != ERROR_OK ){
+		if ( r != ERROR_OK ){
 			return r;
 		}
 	}
@@ -2342,11 +2342,11 @@ sam3_handle_gpnvm_command( struct command_context_s *cmd_ctx, char *cmd, char **
 		who = -1;
 		break;
 	case 2:
-		if( (0 == strcmp( argv[0], "show" )) && (0 == strcmp( argv[1], "all" )) ){
+		if ( (0 == strcmp( argv[0], "show" )) && (0 == strcmp( argv[1], "all" )) ){
 			who = -1;
 		} else {
 			r = parse_u32( argv[1], &v32 );
-			if( r != ERROR_OK ){
+			if ( r != ERROR_OK ){
 				command_print( cmd_ctx, "Not a number: %s", argv[1] );
 				return r;
 			}
@@ -2355,19 +2355,19 @@ sam3_handle_gpnvm_command( struct command_context_s *cmd_ctx, char *cmd, char **
 		break;
 	}
 
-	if( 0 == strcmp( "show", argv[0] ) ){
-		if( who == -1 ){
+	if ( 0 == strcmp( "show", argv[0] ) ){
+		if ( who == -1 ){
 		showall:
 			for( x = 0 ; x < pChip->details.n_gpnvms ; x++ ){
 				r = FLASHD_GetGPNVM( &(pChip->details.bank[0]), x, &v );
-				if( r != ERROR_OK ){
+				if ( r != ERROR_OK ){
 					break;
 				}
 				command_print(cmd_ctx, "sam3-gpnvm%u: %u", x, v );
 			}
 			return r;
 		}
-		if( (who >= 0) && (((unsigned)(who)) < pChip->details.n_gpnvms) ){
+		if ( (who >= 0) && (((unsigned)(who)) < pChip->details.n_gpnvms) ){
 			r = FLASHD_GetGPNVM( &(pChip->details.bank[0]), who, &v );
 			command_print(cmd_ctx, "sam3-gpnvm%u: %u", who, v );
 			return r;
@@ -2377,14 +2377,14 @@ sam3_handle_gpnvm_command( struct command_context_s *cmd_ctx, char *cmd, char **
 		}
 	}
 
-	if( who == -1 ){
+	if ( who == -1 ){
 		command_print( cmd_ctx, "Missing GPNVM number");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	
-	if( 0 == strcmp( "set", argv[0] ) ){
+	if ( 0 == strcmp( "set", argv[0] ) ){
 		r = FLASHD_SetGPNVM( &(pChip->details.bank[0]), who );
-	} else if( (0 == strcmp( "clr", argv[0] )) ||
+	} else if ( (0 == strcmp( "clr", argv[0] )) ||
 			   (0 == strcmp( "clear", argv[0])) ){ // quietly accept both
 		r = FLASHD_ClrGPNVM( &(pChip->details.bank[0]), who );
 	} else {
@@ -2403,7 +2403,7 @@ sam3_handle_slowclk_command( struct command_context_s *cmd_ctx, char *cmd, char 
 	struct sam3_chip *pChip;
 
 	pChip = get_current_sam3(cmd_ctx);
-	if( !pChip ){
+	if ( !pChip ){
 		return ERROR_OK;
 	}
 
@@ -2415,7 +2415,7 @@ sam3_handle_slowclk_command( struct command_context_s *cmd_ctx, char *cmd, char 
 	case 1:
 		// set
 		r = parse_u32( argv[0], &v );
-		if( v > 200000 ){
+		if ( v > 200000 ){
 			// absurd slow clock of 200Khz?
 			command_print(cmd_ctx,"Absurd/illegal slow clock freq: %d\n", (int)(v));
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2443,7 +2443,7 @@ sam3_register_commands( struct command_context_s *cmd_ctx)
 	command_t *pCmd;
 
 	// only register once
-	if( !sam3_registered ){
+	if ( !sam3_registered ){
 		sam3_registered++;
 
 		pCmd = register_command( cmd_ctx, NULL, "at91sam3", NULL, COMMAND_ANY, NULL );
