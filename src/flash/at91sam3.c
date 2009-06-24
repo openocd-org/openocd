@@ -286,7 +286,9 @@ static const struct sam3_chip_details all_sam3_details[] = {
 		//      else
 		//         Bank1 is the boot rom
 		//      endif
-		.bank[0] = {
+//		.bank[0] = {
+		{
+		  {
 			.probed = 0,
 			.pChip  = NULL,
 			.pBank  = NULL,
@@ -298,9 +300,10 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.nsectors   = 16,
 			.sector_size = 8192,
 			.page_size   = 256,
-		},
+		  },
 
-		.bank[1] = {
+//		.bank[1] = {
+		  {
 			.probed = 0,
 			.pChip  = NULL,
 			.pBank  = NULL,
@@ -312,6 +315,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.nsectors   = 16,
 			.sector_size = 8192,
 			.page_size   = 256,
+		  },
 		},
 	},
 
@@ -331,7 +335,9 @@ static const struct sam3_chip_details all_sam3_details[] = {
 		//         boot is via FLASH
 		//         Selection is via gpnvm[2]
 		//     endif
-		.bank[0] = {
+//		.bank[0] = {
+		{
+		  {
 			.probed = 0,
 			.pChip  = NULL,
 			.pBank  = NULL,
@@ -343,12 +349,13 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.nsectors   = 16,
 			.sector_size = 8192,
 			.page_size   = 256,
-		},
-
-		.bank[1] = {
+		  },
+//		  .bank[1] = {
+		  {
 			.present = 0,
 			.probed = 0,
 			.bank_number = 1,
+		  },
 		},
 	},
 	{
@@ -369,7 +376,9 @@ static const struct sam3_chip_details all_sam3_details[] = {
 		//     endif
 		//
 
-		.bank[0] = {
+//		.bank[0] = {
+		{
+		  {
 			.probed = 0,
 			.pChip  = NULL,
 			.pBank  = NULL,
@@ -381,12 +390,14 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.nsectors   =  8,
 			.sector_size = 8192,
 			.page_size   = 256,
-		},
+		  },
 
-		.bank[1] = {
+//		.bank[1] = {
+		  {
 			.present = 0,
 			.probed = 0,
 			.bank_number = 1,
+		  },
 		},
 	},
 
@@ -413,7 +424,9 @@ static const struct sam3_chip_details all_sam3_details[] = {
 		//      else
 		//         Bank1 is the boot rom
 		//      endif
-		.bank[0] = {
+		{
+		  {
+//		.bank[0] = {
 			.probed = 0,
 			.pChip  = NULL,
 			.pBank  = NULL,
@@ -425,9 +438,9 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.nsectors   = 16,
 			.sector_size = 8192,
 			.page_size   = 256,
-		},
-
-		.bank[1] = {
+		  },
+//		.bank[1] = {
+		  {
 			.probed = 0,
 			.pChip  = NULL,
 			.pBank  = NULL,
@@ -439,6 +452,7 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.nsectors   = 16,
 			.sector_size = 8192,
 			.page_size   = 256,
+		  },
 		},
 	},
 
@@ -458,7 +472,9 @@ static const struct sam3_chip_details all_sam3_details[] = {
 		//         boot is via FLASH
 		//         Selection is via gpnvm[2]
 		//     endif
-		.bank[0] = {
+		{
+//		.bank[0] = {
+		  {
 			.probed = 0,
 			.pChip  = NULL,
 			.pBank  = NULL,
@@ -470,12 +486,13 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.nsectors   = 16,
 			.sector_size = 8192,
 			.page_size   = 256,
-		},
-
-		.bank[1] = {
+		  },
+//		.bank[1] = {
+		  {
 			.present = 0,
 			.probed = 0,
 			.bank_number = 1,
+		  },
 		},
 	},
 	{
@@ -496,7 +513,9 @@ static const struct sam3_chip_details all_sam3_details[] = {
 		//     endif
 		//
 
-		.bank[0] = {
+		{
+//		.bank[0] = {
+		  {
 			.probed = 0,
 			.pChip  = NULL,
 			.pBank  = NULL,
@@ -508,12 +527,14 @@ static const struct sam3_chip_details all_sam3_details[] = {
 			.nsectors   =  8,
 			.sector_size = 8192,
 			.page_size   = 256,
-		},
-
-		.bank[1] = {
+		  },
+//		.bank[1] = {
+		  {
 			.present = 0,
 			.probed = 0,
 			.bank_number = 1,
+
+		  },
 		},
 	},
 
@@ -1313,6 +1334,9 @@ sam3_explain_mckr(struct sam3_chip *pChip)
 			cp  = "upll (*ERROR* UPLL is disabled)";
 		}
 		break;
+	default:
+		assert(0);
+		break;
 	}
 
 	sam3_sprintf(pChip, "%s (%3.03f Mhz)\n",
@@ -1350,6 +1374,9 @@ sam3_explain_mckr(struct sam3_chip *pChip)
 	case 7:
 		pdiv = 6;
 		cp = "clock/6";
+		break;
+	default:
+		assert(0);
 		break;
 	}
 	sam3_sprintf(pChip, "(%s)\n", cp);
