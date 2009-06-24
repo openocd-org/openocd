@@ -55,7 +55,7 @@ membuf_datapointer(struct membuf *pBuf)
 const char *
 membuf_strtok(struct membuf *pBuf, const char *sep, void **pLast)
 {
-    if (pBuf){
+    if (pBuf) {
 	pBuf->_strtoklast = NULL;
 	*pLast = pBuf;
 	return strtok_r(((char *)(pBuf->buf)), sep, &(pBuf->_strtoklast));
@@ -75,10 +75,10 @@ membuf_new(void)
     struct membuf *pBuf;
 
     pBuf = calloc(1, sizeof(*pBuf));
-    if (pBuf){
+    if (pBuf) {
 	// we *ALWAYS* allocate +1 for null terminator.
 	pBuf->buf = calloc(DEFAULT_BUFSIZE + 1, sizeof(char));
-	if (pBuf->buf == NULL){
+	if (pBuf->buf == NULL) {
 	    free(pBuf);
 	    pBuf = NULL;
 	} else {
@@ -99,13 +99,13 @@ membuf_grow(struct membuf *pBuf, int n)
     newsize = ((int)(pBuf->maxlen)) + n;
 
     // do not go negative, or too small
-    if (newsize < DEFAULT_BUFSIZE){
+    if (newsize < DEFAULT_BUFSIZE) {
 	newsize = DEFAULT_BUFSIZE;
     }
 
     // always alloc +1 for the null terminator
     vp = realloc(pBuf->buf, newsize + 1);
-    if (vp){
+    if (vp) {
 	pBuf->buf    = vp;
 	pBuf->maxlen = newsize;
 	return pBuf;
@@ -123,8 +123,8 @@ void membuf_reset(struct membuf *pBuf)
 
 void membuf_delete(struct membuf *pBuf)
 {
-    if (pBuf){
-	if (pBuf->buf){
+    if (pBuf) {
+	if (pBuf->buf) {
 	    // wack data so it cannot be reused
 	    memset(pBuf->buf,0,pBuf->maxlen);
 	    free(pBuf->buf);
@@ -163,7 +163,7 @@ membuf_vsprintf(struct membuf *pBuf, const char *fmt, va_list ap)
 		       sa,
 		       fmt, 
 		       ap);
-	if ((r > 0) && (((size_t)(r)) < sa)){
+	if ((r > 0) && (((size_t)(r)) < sa)) {
 	    // Success!
 	    pBuf->curlen += ((size_t)(r));
 	    // remember: We always alloc'ed +1
@@ -174,7 +174,7 @@ membuf_vsprintf(struct membuf *pBuf, const char *fmt, va_list ap)
 	}
 
 	// failure
-	if (r < 0){
+	if (r < 0) {
 	    // Option(A) format error
 	    // Option(B) glibc2.0 bug
 	    // assume (B).
@@ -182,13 +182,13 @@ membuf_vsprintf(struct membuf *pBuf, const char *fmt, va_list ap)
 	}
 
 	// don't do this again
-	if (grew){
+	if (grew) {
 	    r = -1;
 	    break;
 	}
 	grew = 1;
 	pBuf = membuf_grow(pBuf, r);
-	if (pBuf == NULL){
+	if (pBuf == NULL) {
 	    // grow failed
 	    r = -1;
 	    break;
@@ -213,13 +213,13 @@ membuf_append(struct membuf *pBuf, const void *pData, size_t len)
     sa = space_avail(pBuf);
 
     // will it fit?
-    if (sa < len){
+    if (sa < len) {
 	// if not, how much do we need?
 	r = ((int)(sa - len));
 	// do the grow.
 	pBuf = membuf_grow(pBuf, r);
 	// failed?
-	if (pBuf == NULL){
+	if (pBuf == NULL) {
 	    return pBuf;
 	}
     }
