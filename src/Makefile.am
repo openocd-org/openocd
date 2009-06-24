@@ -90,3 +90,13 @@ libopenocd_la_LIBADD += -lmicrohttpd
 endif
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+
+# The "quick" target builds executables & reinstalls the executables
+# Primary use: developer types to quicken the edit/compile/debug
+# cycle.  by not requiring a "full build and full install". Note the
+# assumption is: You are only rebuilding the EXE.... and everything
+# else is/was previously installed.
+#
+# use at your own risk 
+quick: all install-binPROGRAMS
+
