@@ -30,6 +30,7 @@
 #include "flash.h"
 #include "image.h"
 #include "time_support.h"
+#include "at91sam3.h"
 
 /* command handlers */
 static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -66,6 +67,7 @@ flash_driver_t *flash_drivers[] = {
 	&lpc2000_flash,
 	&cfi_flash,
 	&at91sam7_flash,
+	&at91sam3_flash,
 	&str7x_flash,
 	&str9x_flash,
 	&aduc702x_flash,

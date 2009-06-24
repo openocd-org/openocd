@@ -11,6 +11,7 @@ libflash_la_SOURCES = \
 	cfi.c \
 	non_cfi.c \
 	at91sam7.c \
+	at91sam3.c \
 	davinci_nand.c \
 	str7x.c \
 	str9x.c \
@@ -42,6 +43,7 @@ noinst_HEADERS = \
 	cfi.h \
 	non_cfi.h \
 	at91sam7.h \
+	at91sam3.h \
 	str7x.h \
 	str9x.h \
 	nand.h \

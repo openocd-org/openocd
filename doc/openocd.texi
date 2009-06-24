@@ -130,7 +130,7 @@ debugged via the GDB protocol.
 
 @b{Flash Programing:} Flash writing is supported for external CFI
 compatible NOR flashes (Intel and AMD/Spansion command set) and several
-internal flashes (LPC2000, AT91SAM7, STR7x, STR9x, LM3, and
+internal flashes (LPC2000, AT91SAM7, AT91SAM3U, STR7x, STR9x, LM3, and
 STM32x). Preliminary support for various NAND flash controllers
 (LPC3180, Orion, S3C24xx, more) controller is included.
 
@@ -3374,11 +3374,68 @@ flash bank aduc702x 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
+@deffn {Flash Driver} at91sam3
+@cindex at91sam3
+All members of the AT91SAM3 (cortex-M3) microcontroller family from
+atmel include internal flash and use the Cortex-M3 core. The driver
+currently (6/22/09) recognizes the AT91SAM3U[1/2/4][C/E] chips. Note
+that the driver was orginaly developed and tested using the
+AT91SAM3U4E, using a SAM3U-EK eval board. Support for other chips in
+the family where cribbed from the data sheet [Note to future
+readers/updaters: Please remove this worrysome comment after other
+chips are confirmed].
+
+The AT91SAM3U4[E/C] (256K) chips have 2 flash banks, the other chips
+(3U[1/2][E/C]) have 1 flash bank, in all cases the flash banks are at
+the following fixed locations. 
+
+@example
+# Flash bank 0 - all chips
+flash bank at91sam3 0x000080000 0 1 1 $_TARGETNAME
+# Flash bank 1 - only 256K chips
+flash bank at91sam3 0x000100000 0 1 1 $_TARGETNAME
+@end example
+
+Internally, the AT91SAM3 flash memory is organized as follows:
+
+@itemize
+@item @var{N-Banks:} 256K chips have 2 banks, others have 1 bank.
+@item @var{Bank Size:}  128K/64K Per flash bank
+@item @var{Sectors:} 16 or 8 per bank
+@item @var{SectorSize:} 8K Per Sector
+@item @var{PageSize:} 256 bytes per page. Note that OpenOCD operates on 'sector' sizes, not page sizes.
+@end itemize
+
+The AT91SAM3 driver adds an additional command:
+
+@deffn Command {at91sam3 gpnvm set|clear|show all|NUMBER}
+This command allows you to set, clear, or show the state of the GPNVM bits.
+@end deffn
+
+@deffn Command {at91sam3 info}
+This command attempts to display information about the AT91SAM3
+chip. @b{First} it read the @var{CHIPID_CIDR} [address 0x400e0740, see
+Section 28.2.1, page 505 of the AT91SAM3U 29/may/2009 datasheet,
+document id: doc6430A] and decodes the values. @b{Second} it reads the
+various clock configuration registers and attempts to display how it
+believes the chip is configured. By default, the SLOWCLK is assumed to
+be 32768 Hz, see the command @b{at91sam3 slowclk}.
+@end deffn
+
+@deffn Command {at91sam3 slowclk [VALUE]}
+This command shows/sets the slow clock frequency used in the
+@b{at91sam3 info} command calculations above.
+@end deffn
+
+@end deffn
+
 @deffn {Flash Driver} at91sam7
-All members of the AT91SAM7 microcontroller family from Atmel
-include internal flash and use ARM7TDMI cores.
-The driver automatically recognizes a number of these chips using
-the chip identification register, and autoconfigures itself.
+All members of the AT91SAM7 microcontroller family from Atmel include
+internal flash and use ARM7TDMI cores.  The driver automatically
+recognizes a number of these chips using the chip identification
+register, and autoconfigures itself.
+@end deffn
+
 
 @example
 flash bank at91sam7 0 0 0 0 $_TARGETNAME
@@ -3418,7 +3475,6 @@ are not truly general purpose).
 This assumes that the first flash bank (number 0) is associated with
 the appropriate at91sam7 target.
 @end quotation
-@end deffn
 @end deffn
 
 @deffn {Flash Driver} avr
