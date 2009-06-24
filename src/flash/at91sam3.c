@@ -2451,7 +2451,7 @@ sam3_register_commands( struct command_context_s *cmd_ctx)
 						  "gpnvm", 
 						  sam3_handle_gpnvm_command, 
 						  COMMAND_EXEC, 
-						  "at91sam3 gpnvm [action [<BIT>], by default 'show', otherwise set|clear BIT");
+						  "at91sam3 gpnvm [action [<BIT>], by default 'show', otherwise set | clear BIT");
 		register_command( cmd_ctx, pCmd,
 						  "info",
 						  sam3_handle_info_command,
