@@ -756,7 +756,7 @@ FLASHD_ReadUniqueID ( struct sam3_bank_private *pPrivate )
 	}
 
     r = EFC_PerformCommand( pPrivate, AT91C_EFC_FCMD_SPUI, 0, NULL );
-	LOG_DEBUG("End: R=%d, id=0x%08x, 0x%08x, 0x%08x, 0x%08x",
+	LOG_DEBUG("End: R=%d, id = 0x%08x, 0x%08x, 0x%08x, 0x%08x",
 			  r, 
 			  (unsigned int)(pPrivate->pChip->cfg.unique_id[0]),
 			  (unsigned int)(pPrivate->pChip->cfg.unique_id[1]),
@@ -1272,9 +1272,9 @@ sam3_explain_ckgr_plla( struct sam3_chip *pChip )
 	sam3_sprintf(pChip,"\n");
 	pChip->cfg.plla_freq = 0;
 	if ( mula == 0 ){
-		sam3_sprintf(pChip,"\tPLLA Freq: (Disabled,mula=0)\n");
+		sam3_sprintf(pChip,"\tPLLA Freq: (Disabled,mula = 0)\n");
 	} else if ( diva == 0 ){
-		sam3_sprintf(pChip,"\tPLLA Freq: (Disabled,diva=0)\n");
+		sam3_sprintf(pChip,"\tPLLA Freq: (Disabled,diva = 0)\n");
 	} else if ( diva == 1 ){
 		pChip->cfg.plla_freq = (pChip->cfg.mainosc_freq * (mula+1));
 		sam3_sprintf(pChip,"\tPLLA Freq: %3.03f MHz\n",
@@ -1945,7 +1945,7 @@ sam3_page_read( struct sam3_bank_private *pPrivate, unsigned pagenum, uint8_t *b
 
 // The code below is basically this:
 // compiled with
-// arm-none-eabi-gcc -mthumb -mcpu=cortex-m3 -O9 -S ./foobar.c -o foobar.s
+// arm-none-eabi-gcc -mthumb -mcpu = cortex-m3 -O9 -S ./foobar.c -o foobar.s
 //
 // Only the *CPU* can write to the flash buffer.
 // the DAP cannot... so - we download this 28byte thing
@@ -2185,7 +2185,7 @@ sam3_write(struct flash_bank_s *bank,
 	// intermediate large pages
 	// also - the final *terminal* 
 	// if that terminal page is a full page
-	LOG_DEBUG("Full Page Loop: cur=%d, end=%d, count=0x%08x", 
+	LOG_DEBUG("Full Page Loop: cur=%d, end=%d, count = 0x%08x", 
 			  (int)page_cur, (int)page_end, (unsigned int)(count) );
 
 	while ( (page_cur < page_end) && 
@@ -2201,7 +2201,7 @@ sam3_write(struct flash_bank_s *bank,
 
 	// terminal partial page?
 	if ( count ){
-		LOG_DEBUG("Terminal partial page, count=0x%08x", (unsigned int)(count));
+		LOG_DEBUG("Terminal partial page, count = 0x%08x", (unsigned int)(count));
 		// we have a partial page
 		r = sam3_page_read( pPrivate, page_cur, pagebuffer );
 		if ( r != ERROR_OK ){

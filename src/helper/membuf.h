@@ -80,7 +80,7 @@ int membuf_vsprintf( struct membuf *pBuf , const char *fmt, va_list ap);
  * @param pBuf - buffer to tokenize
  * @param delim - delimiter parameter for strtok_r()
  * 
- * Identical to "strtok()" - pass "pBuff=NULL" on second call
+ * Identical to "strtok()" - pass "pBuff = NULL" on second call
  *
  * NOTE: This call is <b>destructive</b> to the buffer.
  */
