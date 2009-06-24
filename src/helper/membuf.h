@@ -30,7 +30,7 @@ struct membuf *membuf_new(void);
 /** delete (destroy) the mem buffer
  * @param pBuf - buffer to release
  */
-void membuf_delete( struct membuf *pBuf );
+void membuf_delete(struct membuf *pBuf );
 
 
 /** grow/shrink a membuf by specified amount.
@@ -39,14 +39,14 @@ void membuf_delete( struct membuf *pBuf );
  *
  * Symantics of 'realloc()' return NULL on failure
  */
-struct membuf *membuf_grow( struct membuf *pBuf, int amount );
+struct membuf *membuf_grow(struct membuf *pBuf, int amount );
 
 /** how long is this buffer (memlen(), strlen())
  * @param pBuf - the buffer
  * 
  * @returns: length of current buffer.
  */
-size_t membuf_len( struct membuf *pBuf );
+size_t membuf_len(struct membuf *pBuf );
 
 
 /** reset an membuf to zero length.
@@ -54,7 +54,7 @@ size_t membuf_len( struct membuf *pBuf );
  *
  * Note this does not 'release' the memory buffer
  */
-void membuf_reset( struct membuf *pBuf );
+void membuf_reset(struct membuf *pBuf );
 
 
 /** sprintf() to the string buffer
@@ -64,7 +64,7 @@ void membuf_reset( struct membuf *pBuf );
  * Returns 0 on success
  * Returns non-zero on failure
  */
-int membuf_sprintf( struct membuf *pBuf , const char *fmt, ... );
+int membuf_sprintf(struct membuf *pBuf , const char *fmt, ... );
 
 /** vsprintf() to the string buffer
  * @param pBuf - buffer to capture sprintf() data into
@@ -74,7 +74,7 @@ int membuf_sprintf( struct membuf *pBuf , const char *fmt, ... );
  * Returns 0 on success
  * Returns non-zero on failure
  */
-int membuf_vsprintf( struct membuf *pBuf , const char *fmt, va_list ap);
+int membuf_vsprintf(struct membuf *pBuf , const char *fmt, va_list ap);
 
 /** Tokenize lines using strtok() 
  * @param pBuf - buffer to tokenize
@@ -84,14 +84,14 @@ int membuf_vsprintf( struct membuf *pBuf , const char *fmt, va_list ap);
  *
  * NOTE: This call is <b > destructive</b> to the buffer.
  */
-const char *membuf_strtok( struct membuf *pBuf, const char *delim, void **pSave );
+const char *membuf_strtok(struct membuf *pBuf, const char *delim, void **pSave );
 
 /** Return pointer to the memory in the buffer
  * @param pBuf - buffer
  *
  * NOTE: Thou shall not modify this pointer, it is <b > CONST</b>
  */
-const void *membuf_datapointer( struct membuf *pBuf );
+const void *membuf_datapointer(struct membuf *pBuf );
 
 
 /** Append data to the buffer
@@ -102,7 +102,7 @@ const void *membuf_datapointer( struct membuf *pBuf );
  * Modified symantics of "memcpy()".  On memory allocation failure
  * returns NULL.  On success, returns pointer to orginal membuf.
  */
-struct membuf *membuf_append( struct membuf *pBuf, const void *pData, size_t len );
+struct membuf *membuf_append(struct membuf *pBuf, const void *pData, size_t len );
 
 
 /** Append string to the buffer
@@ -112,7 +112,7 @@ struct membuf *membuf_append( struct membuf *pBuf, const void *pData, size_t len
  * Modified symantics of "strcat()".  On memory allocation failure
  * returns NULL.  On success, returns pointer to orginal membuf.
  */
-struct membuf *membuf_strcat( struct membuf *pBuf, const char *s );
+struct membuf *membuf_strcat(struct membuf *pBuf, const char *s );
 
 
 #endif
