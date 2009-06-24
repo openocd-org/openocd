@@ -745,7 +745,7 @@ FLASHD_ReadUniqueID ( struct sam3_bank_private *pPrivate )
 		return r;
 	}
 
-	for( x = 0 ; x < 4 ; x++ ){
+	for ( x = 0 ; x < 4 ; x++ ){
 		r = target_read_u32( pPrivate->pChip->target, 
 							 pPrivate->pBank->base + (x * 4),
 							 &v );
@@ -1224,7 +1224,7 @@ sam3_explain_chipid_cidr( struct sam3_chip *pChip )
 
 	v = sam3_reg_fieldname( pChip, "ARCH", pChip->cfg.CHIPID_CIDR, 20, 8 );
 	cp = _unknown;
-	for( x = 0 ; archnames[x].name ; x++ ){
+	for ( x = 0 ; archnames[x].name ; x++ ){
 		if ( v == archnames[x].value ){
 			cp = archnames[x].name;
 			break;
@@ -1569,7 +1569,7 @@ sam3_erase_check(struct flash_bank_s *bank)
 	}
 
 	LOG_INFO("sam3 - supports auto-erase, erase_check ignored");
-	for( x = 0 ; x < bank->num_sectors ; x++ ){
+	for ( x = 0 ; x < bank->num_sectors ; x++ ){
 		bank->sectors[x].is_erased = 1;
 	}
 
@@ -1606,7 +1606,7 @@ sam3_protect_check(struct flash_bank_s *bank)
 		return r;
 	}
 
-	for( x = 0 ; x < pPrivate->nsectors ; x++ ){
+	for ( x = 0 ; x < pPrivate->nsectors ; x++ ){
 		bank->sectors[x].is_protected = (!!(v & (1 << x)));
 	}
 	LOG_DEBUG("Done");
@@ -1730,7 +1730,7 @@ sam3_GetDetails( struct sam3_bank_private *pPrivate )
 	//
 
 	// save the "bank" pointers
-	for( x = 0 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
+	for ( x = 0 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
 		saved_banks[ x ] = pChip->details.bank[x].pBank;
 	}
 
@@ -1740,7 +1740,7 @@ sam3_GetDetails( struct sam3_bank_private *pPrivate )
 			sizeof(pPrivate->pChip->details));
 
 	// now fix the ghosted pointers
-	for( x = 0 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
+	for ( x = 0 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
 		pChip->details.bank[x].pChip = pChip;
 		pChip->details.bank[x].pBank = saved_banks[x];
 	}
@@ -1795,7 +1795,7 @@ _sam3_probe(struct flash_bank_s *bank, int noise)
 	}
 
 	// update the flash bank size
-	for( x = 0 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
+	for ( x = 0 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
 		if ( bank->base == pPrivate->pChip->details.bank[0].base_address ){
 			bank->size =  pPrivate->pChip->details.bank[0].size_bytes;
 			break;
@@ -1810,7 +1810,7 @@ _sam3_probe(struct flash_bank_s *bank, int noise)
 		}
 		bank->num_sectors = pPrivate->nsectors;
 			
-		for( x = 0 ; ((int)(x)) < bank->num_sectors ; x++ ){
+		for ( x = 0 ; ((int)(x)) < bank->num_sectors ; x++ ){
 			bank->sectors[x].size         = pPrivate->sector_size;
 			bank->sectors[x].offset       = x * (pPrivate->sector_size);
 			// mark as unknown
@@ -2260,7 +2260,7 @@ sam3_handle_info_command(  struct command_context_s *cmd_ctx, char *cmd, char **
 		
 
 	// auto-probe other banks, 0 done above
-    for( x = 1 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
+    for ( x = 1 ; x < SAM3_MAX_FLASH_BANKS ; x++ ){
 		// skip banks not present
 		if ( !(pChip->details.bank[x].present) ){
 			continue;
@@ -2358,7 +2358,7 @@ sam3_handle_gpnvm_command( struct command_context_s *cmd_ctx, char *cmd, char **
 	if ( 0 == strcmp( "show", argv[0] ) ){
 		if ( who == -1 ){
 		showall:
-			for( x = 0 ; x < pChip->details.n_gpnvms ; x++ ){
+			for ( x = 0 ; x < pChip->details.n_gpnvms ; x++ ){
 				r = FLASHD_GetGPNVM( &(pChip->details.bank[0]), x, &v );
 				if ( r != ERROR_OK ){
 					break;

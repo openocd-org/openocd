@@ -155,7 +155,7 @@ membuf_vsprintf( struct membuf *pBuf, const char *fmt, va_list ap )
 
 
     grew = 0;
-    for(;;) {
+    for (;;) {
 	sa = space_avail(pBuf);
 
 	// do work
