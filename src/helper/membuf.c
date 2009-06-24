@@ -29,7 +29,7 @@ struct membuf {
     // buflen is alway "+1" bigger then
     // what is shown here, the +1 is for
     // the NULL string terminator
-#define DEFAULT_BUFSIZE 100    
+#define DEFAULT_BUFSIZE 100
     size_t maxlen; // allocated size
     size_t curlen; // where we are inserting at
     char *_strtoklast;
@@ -40,7 +40,7 @@ struct membuf {
 #define space_avail(pBuf)  (pBuf->maxlen - pBuf->curlen)
 #define dataend(pBuf)      (((char *)(pBuf->buf)) + pBuf->curlen)
 
-size_t 
+size_t
 membuf_len(struct membuf *pBuf)
 {
     return pBuf->curlen;
@@ -65,7 +65,7 @@ membuf_strtok(struct membuf *pBuf, const char *sep, void **pLast)
 	return strtok_r(NULL, sep, &(pBuf->_strtoklast));
     }
 }
-	
+
 
 
 struct membuf *
@@ -161,7 +161,7 @@ membuf_vsprintf(struct membuf *pBuf, const char *fmt, va_list ap)
 	// do work
 	r = vsnprintf(dataend(pBuf),
 		       sa,
-		       fmt, 
+		       fmt,
 		       ap);
 	if ((r > 0) && (((size_t)(r)) < sa)) {
 	    // Success!

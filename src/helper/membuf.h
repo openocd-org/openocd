@@ -12,14 +12,14 @@
  * This is a simple 'string buffer' that auto-grows.
  *
  * More correctly put, this is a "memory buffer"
- * it may contain binary data 
- * 
+ * it may contain binary data
+ *
  * Note: Internally the buffer always has a 'null terminator'
  */
 
 /* contents of this structure are 'opaque' */
 struct membuf;
-  
+
 
 /** Create a new membuf
  * By default the memory buffer has "some non-zero-size"
@@ -34,7 +34,7 @@ void membuf_delete(struct membuf *pBuf);
 
 
 /** grow/shrink a membuf by specified amount.
- * @param pBuf   - the buffer 
+ * @param pBuf   - the buffer
  * @param amount - the amount to grow or shrink by.
  *
  * Symantics of 'realloc()' return NULL on failure
@@ -43,7 +43,7 @@ struct membuf *membuf_grow(struct membuf *pBuf, int amount);
 
 /** how long is this buffer (memlen(), strlen())
  * @param pBuf - the buffer
- * 
+ *
  * @returns: length of current buffer.
  */
 size_t membuf_len(struct membuf *pBuf);
@@ -76,10 +76,10 @@ int membuf_sprintf(struct membuf *pBuf , const char *fmt, ...);
  */
 int membuf_vsprintf(struct membuf *pBuf , const char *fmt, va_list ap);
 
-/** Tokenize lines using strtok() 
+/** Tokenize lines using strtok()
  * @param pBuf - buffer to tokenize
  * @param delim - delimiter parameter for strtok_r()
- * 
+ *
  * Identical to "strtok()" - pass "pBuff = NULL" on second call
  *
  * NOTE: This call is <b > destructive</b> to the buffer.
