@@ -1171,7 +1171,7 @@ sam3_explain_ckgr_mor(  struct sam3_chip *pChip )
 
 	pChip->cfg.rc_freq = 0;
 	if ( rcen ){
-		switch( v ){
+		switch ( v ){
 		default:
 			pChip->cfg.rc_freq = 0;
 		case 0:
@@ -1291,7 +1291,7 @@ sam3_explain_mckr( struct sam3_chip *pChip )
 	const char *cp;
 
 	css = sam3_reg_fieldname( pChip, "CSS", pChip->cfg.PMC_MCKR, 0, 2 );
-	switch( css & 3 ){
+	switch ( css & 3 ){
 	case 0:
 		fin = pChip->cfg.slow_freq;
 		cp = "slowclk";
@@ -1319,7 +1319,7 @@ sam3_explain_mckr( struct sam3_chip *pChip )
 				  cp, 
 				  _tomhz( fin ) );
 	pres = sam3_reg_fieldname(pChip, "PRES", pChip->cfg.PMC_MCKR, 4, 3 );
-	switch( pres & 0x07 ){
+	switch ( pres & 0x07 ){
 	case 0:
 		pdiv = 1;
 		cp = "selected clock";
@@ -1654,7 +1654,7 @@ sam3_flash_bank_command(struct command_context_s *cmd_ctx,
 		}
 	}
 	
-	switch( bank->base ){
+	switch ( bank->base ){
 	default:
 		LOG_ERROR("Address 0x%08x invalid bank address (try 0x%08x or 0x%08x)",
 				  ((unsigned int)(bank->base)),
@@ -2329,7 +2329,7 @@ sam3_handle_gpnvm_command( struct command_context_s *cmd_ctx, char *cmd, char **
 	}
 
 
-	switch( argc ){
+	switch ( argc ){
 	default:
 		command_print(cmd_ctx,"Too many parameters\n");
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2408,7 +2408,7 @@ sam3_handle_slowclk_command( struct command_context_s *cmd_ctx, char *cmd, char 
 	}
 
 
-	switch( argc ){
+	switch ( argc ){
 	case 0:
 		// show
 		break;
