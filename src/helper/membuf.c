@@ -219,7 +219,7 @@ membuf_append( struct membuf *pBuf, const void *pData, size_t len )
 	// do the grow.
 	pBuf = membuf_grow( pBuf, r );
 	// failed?
-	if (pBuf==NULL){
+	if (pBuf == NULL){
 	    return pBuf;
 	}
     }

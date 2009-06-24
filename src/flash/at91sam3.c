@@ -1271,7 +1271,7 @@ sam3_explain_ckgr_plla( struct sam3_chip *pChip )
 	mula = sam3_reg_fieldname( pChip, "MULA", pChip->cfg.CKGR_PLLAR, 16, 11 );
 	sam3_sprintf(pChip,"\n");
 	pChip->cfg.plla_freq = 0;
-	if ( mula==0 ){
+	if ( mula == 0 ){
 		sam3_sprintf(pChip,"\tPLLA Freq: (Disabled,mula=0)\n");
 	} else if ( diva == 0 ){
 		sam3_sprintf(pChip,"\tPLLA Freq: (Disabled,diva=0)\n");
