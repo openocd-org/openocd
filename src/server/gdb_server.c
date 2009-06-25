@@ -2242,9 +2242,7 @@ int handle_gdb_port_command(struct command_context_s *cmd_ctx, char *cmd, char *
 		return ERROR_OK;
 	}
 
-	/* only if the port wasn't overwritten by cmdline */
-	if (gdb_port == 0)
-		gdb_port = strtoul(args[0], NULL, 0);
+	gdb_port = strtoul(args[0], NULL, 0);
 
 	return ERROR_OK;
 }
