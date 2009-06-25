@@ -693,25 +693,132 @@ int mips_m4k_remove_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 
 int mips_m4k_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	/* TODO */
+	mips32_common_t *mips32 = target->arch_info;
+	mips32_comparator_t * comparator_list = mips32->data_break_list;
+	int wp_num = 0;
+	/*
+	 * watchpoint enabled, ignore all byte lanes in value register
+	 * and exclude both load and store accesses from  watchpoint
+	 * condition evaluation
+	*/
+	int enable = EJTAG_DBCn_NOSB | EJTAG_DBCn_NOLB | EJTAG_DBCn_BE | 
+                (0xff << EJTAG_DBCn_BLM_SHIFT);
+	
+	if (watchpoint->set)
+	{
+		LOG_WARNING("watchpoint already set");
+		return ERROR_OK;
+	}
+
+	while(comparator_list[wp_num].used && (wp_num < mips32->num_data_bpoints))
+		wp_num++;
+	if (wp_num >= mips32->num_data_bpoints)
+	{
+		LOG_DEBUG("ERROR Can not find free FP Comparator");
+		LOG_WARNING("ERROR Can not find free FP Comparator");
+		exit(-1);
+	}
+
+	if (watchpoint->length != 4)
+	{
+		LOG_ERROR("Only watchpoints of length 4 are supported");
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+	}
+
+	if (watchpoint->address % 4)
+	{
+		LOG_ERROR("Watchpoints address should be word aligned");
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+	}
+
+	switch (watchpoint->rw)
+	{
+		case WPT_READ:
+			enable &= ~EJTAG_DBCn_NOLB;
+			break;
+		case WPT_WRITE:
+			enable &= ~EJTAG_DBCn_NOSB;
+			break;
+		case WPT_ACCESS:
+			enable &= ~(EJTAG_DBCn_NOLB | EJTAG_DBCn_NOSB);
+			break;
+		default:
+			LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
+	}
+
+	watchpoint->set = wp_num + 1;
+	comparator_list[wp_num].used = 1;
+	comparator_list[wp_num].bp_value = watchpoint->address;
+	target_write_u32(target, comparator_list[wp_num].reg_address, comparator_list[wp_num].bp_value);
+	target_write_u32(target, comparator_list[wp_num].reg_address + 0x08, 0x00000000);
+	target_write_u32(target, comparator_list[wp_num].reg_address + 0x10, 0x00000000);
+	target_write_u32(target, comparator_list[wp_num].reg_address + 0x18, enable);
+	target_write_u32(target, comparator_list[wp_num].reg_address + 0x20, 0);
+	LOG_DEBUG("wp_num %i bp_value 0x%" PRIx32 "", wp_num, comparator_list[wp_num].bp_value);
+	
 	return ERROR_OK;
 }
 
 int mips_m4k_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	/* TODO */
+	/* get pointers to arch-specific information */
+	mips32_common_t *mips32 = target->arch_info;
+	mips32_comparator_t * comparator_list = mips32->data_break_list;
+	
+	if (!watchpoint->set)
+	{
+		LOG_WARNING("watchpoint not set");
+		return ERROR_OK;
+	}
+
+	int wp_num = watchpoint->set - 1;
+	if ((wp_num < 0) || (wp_num >= mips32->num_data_bpoints))
+	{
+		LOG_DEBUG("Invalid FP Comparator number in watchpoint");
+		return ERROR_OK;
+	}
+	comparator_list[wp_num].used = 0;
+	comparator_list[wp_num].bp_value = 0;
+	target_write_u32(target, comparator_list[wp_num].reg_address + 0x18, 0);
+	watchpoint->set = 0;
+
 	return ERROR_OK;
 }
 
 int mips_m4k_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	/* TODO */
+	mips32_common_t *mips32 = target->arch_info;
+
+	if (mips32->num_data_bpoints_avail < 1)
+	{
+		LOG_INFO("no hardware watchpoints available");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+		
+	mips32->num_data_bpoints_avail--;
+
+	mips_m4k_set_watchpoint(target, watchpoint);
 	return ERROR_OK;
 }
 
 int mips_m4k_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 {
-	/* TODO */
+	/* get pointers to arch-specific information */
+	mips32_common_t *mips32 = target->arch_info;
+
+	if (target->state != TARGET_HALTED)
+	{
+		LOG_WARNING("target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	if (watchpoint->set)
+	{
+		mips_m4k_unset_watchpoint(target, watchpoint);
+	}
+
+	mips32->num_data_bpoints_avail++;
+
 	return ERROR_OK;
 }
 
