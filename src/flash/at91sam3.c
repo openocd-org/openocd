@@ -2385,6 +2385,7 @@ sam3_handle_gpnvm_command(struct command_context_s *cmd_ctx, char *cmd, char **a
 	if (0 == strcmp("show", argv[0])) {
 		if (who == -1) {
 		showall:
+			r = ERROR_OK;
 			for (x = 0 ; x < pChip->details.n_gpnvms ; x++) {
 				r = FLASHD_GetGPNVM(&(pChip->details.bank[0]), x, &v);
 				if (r != ERROR_OK) {
