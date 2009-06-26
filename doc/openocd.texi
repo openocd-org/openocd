@@ -78,6 +78,7 @@ Free Documentation License''.
 * General Commands::                 General Commands
 * Architecture and Core Commands::   Architecture and Core Commands
 * JTAG Commands::                    JTAG Commands
+* Boundary Scan Commands::           Boundary Scan Commands
 * TFTP::                             TFTP
 * GDB and OpenOCD::                  Using GDB and OpenOCD
 * Tcl Scripting API::                Tcl Scripting API
@@ -850,7 +851,7 @@ There are many ways you can configure OpenOCD and start it up.
 A simple way to organize them all involves keeping a
 single directory for your work with a given board.
 When you start OpenOCD from that directory,
-it searches there first for configuration files
+it searches there first for configuration files, scripts,
 and for code you upload to the target board.
 It is also the natural place to write files,
 such as log files and data you download from the board.
@@ -5352,6 +5353,53 @@ However, @sc{run/idle} may have side effects that appear at other
 levels, such as advancing the ARM9E-S instruction pipeline.
 Consult the documentation for the TAP(s) you are working with.
 @end itemize
+
+@node Boundary Scan Commands
+@chapter Boundary Scan Commands
+
+One of the original purposes of JTAG was to support
+boundary scan based hardware testing.
+Although its primary focus is to support On-Chip Debugging,
+OpenOCD also includes some boundary scan commands.
+
+@section SVF: Serial Vector Format
+@cindex Serial Vector Format
+@cindex SVF
+
+The Serial Vector Format, better known as @dfn{SVF}, is a
+way to represent JTAG test patterns in text files.
+OpenOCD supports running such test files.
+
+@deffn Command {svf} filename [@option{quiet}]
+This issues a JTAG reset (Test-Logic-Reset) and then
+runs the SVF script from @file{filename}.
+Unless the @option{quiet} option is specified,
+each command is logged before it is executed.
+@end deffn
+
+@section XSVF: Xilinx Serial Vector Format
+@cindex Xilinx Serial Vector Format
+@cindex XSVF
+
+The Xilinx Serial Vector Format, better known as @dfn{XSVF}, is a
+binary representation of SVF which is optimized for use with
+Xilinx devices.
+OpenOCD supports running such test files.
+
+@quotation Important
+Not all XSVF commands are supported.
+@end quotation
+
+@deffn Command {xsvf} (tapname|@option{plain}) filename [@option{virt2}] [@option{quiet}]
+This issues a JTAG reset (Test-Logic-Reset) and then
+runs the XSVF script from @file{filename}.
+When a @var{tapname} is specified, the commands are directed at
+that TAP.
+When @option{virt2} is specified, the @sc{xruntest} command counts
+are interpreted as TCK cycles instead of microseconds.
+Unless the @option{quiet} option is specified,
+messages are logged for comments and some retries.
+@end deffn
 
 @node TFTP
 @chapter TFTP
