@@ -283,6 +283,14 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 		{
 			version_str = ZYLIN_DATE;
 		}
+		else if (strcmp("pcb", str) == 0)
+		{
+#ifdef CYGPKG_HAL_NIOS2
+			version_str="c";
+#else
+			version_str="b";
+#endif
+		}
 		else
 		{
 			return JIM_ERR;
@@ -294,6 +302,37 @@ static int jim_zy1000_version(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	return JIM_OK;
 }
 
+
+#ifdef CYGPKG_HAL_NIOS2
+static int jim_zy1000_writefirmware(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+{
+	if (argc != 2)
+		return JIM_ERR;
+
+	int length;
+	int stat;
+	const char *str = Jim_GetString(argv[1], &length);
+
+	/* BUG!!!! skip header! */
+	void *firmware_address=0x4000000;
+	int firmware_length=0x100000;
+
+	if (length>firmware_length)
+		return JIM_ERR;
+
+	void *err_addr;
+
+    if ((stat = flash_erase((void *)firmware_address, firmware_length, (void **)&err_addr)) != 0)
+    {
+    	return JIM_ERR;
+    }
+
+    if ((stat = flash_program(firmware_address, str, length, (void **)&err_addr)) != 0)
+    	return JIM_ERR;
+
+    return JIM_OK;
+}
+#endif
 
 static int
 zylinjtag_Jim_Command_powerstatus(Jim_Interp *interp,
@@ -323,6 +362,11 @@ int zy1000_register_commands(struct command_context_s *cmd_ctx)
 
 
 	Jim_CreateCommand(interp, "powerstatus", zylinjtag_Jim_Command_powerstatus, NULL, NULL);
+
+#ifdef CYGPKG_HAL_NIOS2
+	Jim_CreateCommand(interp, "updatezy1000firmware", jim_zy1000_writefirmware, NULL, NULL);
+#endif
+
 
 	return ERROR_OK;
 }
