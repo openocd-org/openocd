@@ -58,11 +58,13 @@ membuf_strtok(struct membuf *pBuf, const char *sep, void **pLast)
     if (pBuf) {
 	pBuf->_strtoklast = NULL;
 	*pLast = pBuf;
-	return strtok_r(((char *)(pBuf->buf)), sep, &(pBuf->_strtoklast));
+	// this should be "strtok_r()" but windows lacks */
+	return strtok(((char *)(pBuf->buf)), sep);
     } else {
 	// recover our pBuf
 	pBuf = *((struct membuf **)(pLast));
-	return strtok_r(NULL, sep, &(pBuf->_strtoklast));
+	// this should be "strtok_r()" but windows lacks */
+	return strtok( NULL, sep);
     }
 }
 
