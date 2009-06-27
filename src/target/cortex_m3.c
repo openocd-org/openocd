@@ -664,7 +664,9 @@ int cortex_m3_resume(struct target_s *target, int current, uint32_t address, int
 		/* Single step past breakpoint at current address */
 		if ((breakpoint = breakpoint_find(target, resume_pc)))
 		{
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %d)", 
+					  breakpoint->address,
+					  breakpoint->unique_id );
 			cortex_m3_unset_breakpoint(target, breakpoint);
 			cortex_m3_single_step_core(target);
 			cortex_m3_set_breakpoint(target, breakpoint);
@@ -897,7 +899,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if (breakpoint->set)
 	{
-		LOG_WARNING("breakpoint already set");
+		LOG_WARNING("breakpoint (BPID: %d) already set", breakpoint->unique_id);
 		return ERROR_OK;
 	}
 
@@ -943,6 +945,13 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		breakpoint->set = 0x11; /* Any nice value but 0 */
 	}
 
+	LOG_DEBUG("BPID: %d, Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)", 
+			  breakpoint->unique_id,
+			  (int)(breakpoint->type),
+			  breakpoint->address,
+			  breakpoint->length,
+			  breakpoint->set);
+
 	return ERROR_OK;
 }
 
@@ -959,6 +968,13 @@ int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 		LOG_WARNING("breakpoint not set");
 		return ERROR_OK;
 	}
+
+	LOG_DEBUG("BPID: %d, Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)", 
+			  breakpoint->unique_id,
+			  (int)(breakpoint->type),
+			  breakpoint->address,
+			  breakpoint->length,
+			  breakpoint->set);
 
 	if (breakpoint->type == BKPT_HARD)
 	{
@@ -1085,7 +1101,7 @@ int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 
 	if (watchpoint->set)
 	{
-		LOG_WARNING("watchpoint already set");
+		LOG_WARNING("watchpoint (%d) already set", watchpoint->unique_id );
 		return ERROR_OK;
 	}
 
@@ -1118,10 +1134,13 @@ int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	}
 	else
 	{
-		LOG_WARNING("Cannot watch data values");  /* Move this test to add_watchpoint */
+		/* Move this test to add_watchpoint */
+		LOG_WARNING("Cannot watch data values (id: %d)",
+				  watchpoint->unique_id );
 		return ERROR_OK;
 	}
-
+	LOG_DEBUG("Watchpoint (ID: %d) address: 0x%08" PRIx32 " set=%d ", 
+			  watchpoint->unique_id, watchpoint->address, watchpoint->set );
 	return ERROR_OK;
 
 }
@@ -1136,9 +1155,12 @@ int cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint
 
 	if (!watchpoint->set)
 	{
-		LOG_WARNING("watchpoint not set");
+		LOG_WARNING("watchpoint (wpid: %d) not set", watchpoint->unique_id );
 		return ERROR_OK;
 	}
+
+	LOG_DEBUG("Watchpoint (ID: %d) address: 0x%08" PRIx32 " set=%d ", 
+			  watchpoint->unique_id, watchpoint->address,watchpoint->set );
 
 	dwt_num = watchpoint->set - 1;
 
@@ -1179,6 +1201,7 @@ int cortex_m3_add_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 	}
 
 	cortex_m3->dwt_comp_available--;
+	LOG_DEBUG("dwt_comp_available: %d", cortex_m3->dwt_comp_available);
 
 	return ERROR_OK;
 }
@@ -1201,6 +1224,7 @@ int cortex_m3_remove_watchpoint(struct target_s *target, watchpoint_t *watchpoin
 	}
 
 	cortex_m3->dwt_comp_available++;
+	LOG_DEBUG("dwt_comp_available: %d", cortex_m3->dwt_comp_available);
 
 	return ERROR_OK;
 }

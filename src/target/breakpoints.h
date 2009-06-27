@@ -43,6 +43,7 @@ typedef struct breakpoint_s
 	int set;
 	uint8_t *orig_instr;
 	struct breakpoint_s *next;
+	int unique_id;
 } breakpoint_t;
 
 typedef struct watchpoint_s
@@ -54,6 +55,7 @@ typedef struct watchpoint_s
 	enum watchpoint_rw rw;
 	int set;
 	struct watchpoint_s *next;
+	int unique_id;
 } watchpoint_t;
 
 extern void breakpoint_clear_target(struct target_s *target);

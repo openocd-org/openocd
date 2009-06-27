@@ -58,6 +58,7 @@ int handle_arm7_9_etm_command(struct command_context_s *cmd_ctx, char *cmd, char
  */
 static int arm7_9_clear_watchpoints(arm7_9_common_t *arm7_9)
 {
+	LOG_DEBUG("-");
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
 	arm7_9->sw_breakpoints_added = 0;
@@ -93,6 +94,10 @@ static void arm7_9_assign_wp(arm7_9_common_t *arm7_9, breakpoint_t *breakpoint)
 	{
 		LOG_ERROR("BUG: no hardware comparator available");
 	}
+	LOG_DEBUG("BPID: %d (0x%08" PRIx32 ") using hw wp: %d", 
+			  breakpoint->unique_id,
+			  breakpoint->address,
+			  breakpoint->set );
 }
 
 /**
@@ -152,6 +157,8 @@ static int arm7_9_set_software_breakpoints(arm7_9_common_t *arm7_9)
 		LOG_ERROR("BUG: both watchpoints used, but wp_available >= 1");
 		return ERROR_FAIL;
 	}
+	LOG_DEBUG("SW BP using hw wp: %d", 
+			  arm7_9->sw_breakpoints_added );
 
 	return jtag_execute_queue();
 }
@@ -219,6 +226,10 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	int retval = ERROR_OK;
+
+	LOG_DEBUG("BPID: %d, Address: 0x%08" PRIx32,
+			  breakpoint->unique_id,
+			  breakpoint->address );
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -343,6 +354,10 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
+	LOG_DEBUG("BPID: %d, Address: 0x%08" PRIx32,
+			  breakpoint->unique_id,
+			  breakpoint->address );
+
 	if (!breakpoint->set)
 	{
 		LOG_WARNING("breakpoint not set");
@@ -351,6 +366,9 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 
 	if (breakpoint->type == BKPT_HARD)
 	{
+		LOG_DEBUG("BPID: %d Releasing hw wp: %d", 
+				  breakpoint->unique_id,
+				  breakpoint->set );
 		if (breakpoint->set == 1)
 		{
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
@@ -1807,7 +1825,7 @@ int arm7_9_resume(struct target_s *target, int current, uint32_t address, int ha
 	{
 		if ((breakpoint = breakpoint_find(target, buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32))))
 		{
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 "", breakpoint->address);
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (id: %d)", breakpoint->address, breakpoint->unique_id );
 			if ((retval = arm7_9_unset_breakpoint(target, breakpoint)) != ERROR_OK)
 			{
 				return retval;

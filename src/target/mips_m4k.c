@@ -513,7 +513,8 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 			bp_num++;
 		if (bp_num >= mips32->num_inst_bpoints)
 		{
-			LOG_DEBUG("ERROR Can not find free FP Comparator");
+			LOG_DEBUG("ERROR Can not find free FP Comparator(bpid: %d)",
+					  breakpoint->unique_id );
 			LOG_WARNING("ERROR Can not find free FP Comparator");
 			exit(-1);
 		}
@@ -523,10 +524,13 @@ int mips_m4k_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		target_write_u32(target, comparator_list[bp_num].reg_address, comparator_list[bp_num].bp_value);
 		target_write_u32(target, comparator_list[bp_num].reg_address + 0x08, 0x00000000);
 		target_write_u32(target, comparator_list[bp_num].reg_address + 0x18, 1);
-		LOG_DEBUG("bp_num %i bp_value 0x%" PRIx32 "", bp_num, comparator_list[bp_num].bp_value);
+		LOG_DEBUG("bpid: %d, bp_num %i bp_value 0x%" PRIx32 "", 
+				  breakpoint->unique_id,
+				  bp_num, comparator_list[bp_num].bp_value);
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
+		LOG_DEBUG("bpid: %d", breakpoint->unique_id );
 		if (breakpoint->length == 4)
 		{
 			uint32_t verify = 0xffffffff;
@@ -598,16 +602,22 @@ int mips_m4k_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		int bp_num = breakpoint->set - 1;
 		if ((bp_num < 0) || (bp_num >= mips32->num_inst_bpoints))
 		{
-			LOG_DEBUG("Invalid FP Comparator number in breakpoint");
+			LOG_DEBUG("Invalid FP Comparator number in breakpoint (bpid: %d)",
+					  breakpoint->unique_id);
 			return ERROR_OK;
 		}
+		LOG_DEBUG("bpid: %d - releasing hw: %d",
+				  breakpoint->unique_id,
+				  bp_num );
 		comparator_list[bp_num].used = 0;
 		comparator_list[bp_num].bp_value = 0;
 		target_write_u32(target, comparator_list[bp_num].reg_address + 0x18, 0);
+		
 	}
 	else
 	{
 		/* restore original instruction (kept in target endianness) */
+		LOG_DEBUG("bpid: %d", breakpoint->unique_id);
 		if (breakpoint->length == 4)
 		{
 			uint32_t current_instr;

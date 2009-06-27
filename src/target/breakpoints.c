@@ -39,16 +39,25 @@ static char *watchpoint_rw_strings[] =
 	"access"
 };
 
+// monotonic counter/id-number for breakpoints and watch points
+static int bpwp_unique_id;
+
 int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum breakpoint_type type)
 {
 	breakpoint_t *breakpoint = target->breakpoints;
 	breakpoint_t **breakpoint_p = &target->breakpoints;
 	int retval;
+	int n;
 
+	n = 0;
 	while (breakpoint)
 	{
-		if (breakpoint->address == address)
+		n++;
+		if (breakpoint->address == address){
+			LOG_DEBUG("Duplicate Breakpoint address: 0x%08" PRIx32 " (BP %d)", 
+				  address, breakpoint->unique_id );
 			return ERROR_OK;
+		}
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
 	}
@@ -60,20 +69,25 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 	(*breakpoint_p)->set = 0;
 	(*breakpoint_p)->orig_instr = malloc(length);
 	(*breakpoint_p)->next = NULL;
+	(*breakpoint_p)->unique_id = bpwp_unique_id++;
 
 	if ((retval = target_add_breakpoint(target, *breakpoint_p)) != ERROR_OK)
 	{
 		switch (retval)
 		{
 			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				LOG_INFO("can't add %s breakpoint, resource not available", breakpoint_type_strings[(*breakpoint_p)->type]);
+				LOG_INFO("can't add %s breakpoint, resource not available (BPID=%d)", 
+					 breakpoint_type_strings[(*breakpoint_p)->type],
+					 (*breakpoint_p)->unique_id );
+				
 				free((*breakpoint_p)->orig_instr);
 				free(*breakpoint_p);
 				*breakpoint_p = NULL;
 				return retval;
 				break;
 			case ERROR_TARGET_NOT_HALTED:
-				LOG_INFO("can't add breakpoint while target is running");
+				LOG_INFO("can't add breakpoint while target is running (BPID: %d)",
+						 (*breakpoint_p)->unique_id );						 
 				free((*breakpoint_p)->orig_instr);
 				free(*breakpoint_p);
 				*breakpoint_p = NULL;
@@ -84,9 +98,10 @@ int breakpoint_add(target_t *target, uint32_t address, uint32_t length, enum bre
 		}
 	}
 
-	LOG_DEBUG("added %s breakpoint at 0x%8.8" PRIx32 " of length 0x%8.8x",
-		breakpoint_type_strings[(*breakpoint_p)->type],
-		(*breakpoint_p)->address, (*breakpoint_p)->length);
+	LOG_DEBUG("added %s breakpoint at 0x%8.8" PRIx32 " of length 0x%8.8x, (BPID: %d)",
+			  breakpoint_type_strings[(*breakpoint_p)->type],
+			  (*breakpoint_p)->address, (*breakpoint_p)->length,
+			  (*breakpoint_p)->unique_id  );
 
 	return ERROR_OK;
 }
@@ -110,6 +125,7 @@ static void breakpoint_free(target_t *target, breakpoint_t *breakpoint_remove)
 
 	target_remove_breakpoint(target, breakpoint);
 
+	LOG_DEBUG("BPID: %d", breakpoint->unique_id );
 	(*breakpoint_p) = breakpoint->next;
 	free(breakpoint->orig_instr);
 	free(breakpoint);
@@ -141,6 +157,7 @@ void breakpoint_remove(target_t *target, uint32_t address)
 void breakpoint_clear_target(target_t *target)
 {
 	breakpoint_t *breakpoint;
+	LOG_DEBUG("Delete all breakpoints for target: %s", target_get_name( target ));
 	while ((breakpoint = target->breakpoints) != NULL)
 	{
 		breakpoint_free(target, breakpoint);
@@ -183,19 +200,23 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum wat
 	(*watchpoint_p)->rw = rw;
 	(*watchpoint_p)->set = 0;
 	(*watchpoint_p)->next = NULL;
+	(*watchpoint_p)->unique_id = bpwp_unique_id++;
 
 	if ((retval = target_add_watchpoint(target, *watchpoint_p)) != ERROR_OK)
 	{
 		switch (retval)
 		{
 			case ERROR_TARGET_RESOURCE_NOT_AVAILABLE:
-				LOG_INFO("can't add %s watchpoint, resource not available", watchpoint_rw_strings[(*watchpoint_p)->rw]);
+				LOG_INFO("can't add %s watchpoint, resource not available (WPID: %d)", 
+					 watchpoint_rw_strings[(*watchpoint_p)->rw],
+					 (*watchpoint_p)->unique_id );
 				free (*watchpoint_p);
 				*watchpoint_p = NULL;
 				return retval;
 				break;
 			case ERROR_TARGET_NOT_HALTED:
-				LOG_INFO("can't add watchpoint while target is running");
+				LOG_INFO("can't add watchpoint while target is running (WPID: %d)",
+						 (*watchpoint_p)->unique_id );
 				free (*watchpoint_p);
 				*watchpoint_p = NULL;
 				return retval;
@@ -207,9 +228,11 @@ int watchpoint_add(target_t *target, uint32_t address, uint32_t length, enum wat
 		}
 	}
 
-	LOG_DEBUG("added %s watchpoint at 0x%8.8" PRIx32 " of length 0x%8.8x",
-		watchpoint_rw_strings[(*watchpoint_p)->rw],
-		(*watchpoint_p)->address, (*watchpoint_p)->length);
+	LOG_DEBUG("added %s watchpoint at 0x%8.8" PRIx32 " of length 0x%8.8x (WPID: %d)",
+			  watchpoint_rw_strings[(*watchpoint_p)->rw],
+			  (*watchpoint_p)->address, 
+			  (*watchpoint_p)->length,
+			  (*watchpoint_p)->unique_id );
 
 	return ERROR_OK;
 }
@@ -230,6 +253,7 @@ static void watchpoint_free(target_t *target, watchpoint_t *watchpoint_remove)
 	if (watchpoint == NULL)
 		return;
 	target_remove_watchpoint(target, watchpoint);
+	LOG_DEBUG("WPID: %d", watchpoint->unique_id );
 	(*watchpoint_p) = watchpoint->next;
 	free(watchpoint);
 }
@@ -260,6 +284,7 @@ void watchpoint_remove(target_t *target, uint32_t address)
 void watchpoint_clear_target(target_t *target)
 {
 	watchpoint_t *watchpoint;
+	LOG_DEBUG("Delete all watchpoints for target: %s", target_get_name( target ));
 	while ((watchpoint = target->watchpoints) != NULL)
 	{
 		watchpoint_free(target, watchpoint);
