@@ -2121,19 +2121,25 @@ sam3_write(struct flash_bank_s *bank,
 	struct sam3_bank_private *pPrivate;
 	uint8_t *pagebuffer;
 
+	// incase we bail further below, set this to null
+	pagebuffer = NULL;
+
 	// ignore dumb requests
 	if (count == 0) {
-		return ERROR_OK;
+		r = ERROR_OK;
+		goto done;
 	}
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
+		r = ERROR_TARGET_NOT_HALTED;
+		goto done;
 	}
 
 	pPrivate = get_sam3_bank_private(bank);
 	if (!(pPrivate->probed)) {
-		return ERROR_FLASH_BANK_NOT_PROBED;
+		r = ERROR_FLASH_BANK_NOT_PROBED;
+		goto done;
 	}
 
 
@@ -2143,10 +2149,16 @@ sam3_write(struct flash_bank_s *bank,
 				  (unsigned int)(offset),
 				  (unsigned int)(count),
 				  (unsigned int)(pPrivate->size_bytes));
-		return ERROR_FAIL;
+		r = ERROR_FAIL;
+		goto done;
 	}
 
-	pagebuffer = alloca(pPrivate->page_size);
+	pagebuffer = malloc(pPrivate->page_size);
+	if( !pagebuffer ){
+		LOG_ERROR("No memory for %d Byte page buffer", (int)(pPrivate->page_size));
+		r = ERROR_FAIL;
+		goto done;
+	}
 
 	// what page do we start & end in?
 	page_cur = offset / pPrivate->page_size;
@@ -2167,7 +2179,7 @@ sam3_write(struct flash_bank_s *bank,
 		LOG_DEBUG("Special case, all in one page");
 		r = sam3_page_read(pPrivate, page_cur, pagebuffer);
 		if (r != ERROR_OK) {
-			return r;
+			goto done;
 		}
 
 		page_offset = (offset & (pPrivate->page_size-1));
@@ -2177,9 +2189,10 @@ sam3_write(struct flash_bank_s *bank,
 
 		r = sam3_page_write(pPrivate, page_cur, pagebuffer);
 		if (r != ERROR_OK) {
-			return r;
+			goto done;
 		}
-		return ERROR_OK;
+		r = ERROR_OK;
+		goto done;
 	}
 
 	// non-aligned start
@@ -2189,7 +2202,7 @@ sam3_write(struct flash_bank_s *bank,
 		// read the partial
 		r = sam3_page_read(pPrivate, page_cur, pagebuffer);
 		if (r != ERROR_OK) {
-			return r;
+			goto done;
 		}
 
 		// over-write with new data
@@ -2200,7 +2213,7 @@ sam3_write(struct flash_bank_s *bank,
 
 		r = sam3_page_write(pPrivate, page_cur, pagebuffer);
 		if (r != ERROR_OK) {
-			return r;
+			goto done;
 		}
 
 		count  -= n;
@@ -2219,7 +2232,7 @@ sam3_write(struct flash_bank_s *bank,
 		   (count >= pPrivate->page_size)) {
 		r = sam3_page_write(pPrivate, page_cur, buffer);
 		if (r != ERROR_OK) {
-			return r;
+			goto done;
 		}
 		count    -= pPrivate->page_size;
 		buffer   += pPrivate->page_size;
@@ -2232,19 +2245,24 @@ sam3_write(struct flash_bank_s *bank,
 		// we have a partial page
 		r = sam3_page_read(pPrivate, page_cur, pagebuffer);
 		if (r != ERROR_OK) {
-			return r;
+			goto done;
 		}
 		// data goes at start
 		memcpy(pagebuffer, buffer, count);
 		r = sam3_page_write(pPrivate, page_cur, pagebuffer);
 		if (r != ERROR_OK) {
-			return r;
+			goto done;
 		}
 		buffer += count;
 		count  -= count;
 	}
 	LOG_DEBUG("Done!");
-	return ERROR_OK;
+	r = ERROR_OK;
+ done:
+	if( pagebuffer ){
+		free(pagebuffer);
+	}
+	return r;
 }
 
 static int
