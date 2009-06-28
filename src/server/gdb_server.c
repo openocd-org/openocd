@@ -803,6 +803,10 @@ int gdb_new_connection(connection_t *connection)
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_ATTACH);
 
 	gdb_actual_connections++;
+	LOG_DEBUG("New GDB Connection: %d, Target %s, state: %s",
+		  gdb_actual_connections,
+		  gdb_service->target->cmd_name,
+		  target_state_name(gdb_service->target));
 
 	return ERROR_OK;
 }
@@ -813,6 +817,10 @@ int gdb_connection_closed(connection_t *connection)
 	gdb_connection_t *gdb_connection = connection->priv;
 
 	gdb_actual_connections--;
+	LOG_DEBUG("GDB Close, Target: %s, state: %s, gdb_actual_connections=%d", 
+		  gdb_service->target->cmd_name,
+		  target_state_name(gdb_service->target),
+		  gdb_actual_connections);
 
 	/* see if an image built with vFlash commands is left */
 	if (gdb_connection->vflash_image)
