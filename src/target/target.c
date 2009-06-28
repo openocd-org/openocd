@@ -3391,7 +3391,7 @@ void target_handle_event(target_t *target, enum target_event e)
 	while (teap) {
 		if (teap->event == e) {
 			done = 1;
-			LOG_DEBUG("target: (%d) %s (%s) event: %d (%s) action: %s\n",
+			LOG_DEBUG("target: (%d) %s (%s) event: %d (%s) action: %s",
 					   target->target_number,
 					   target->cmd_name,
 					   target_get_name(target),
