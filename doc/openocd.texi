@@ -987,7 +987,9 @@ that the @code{reset-init} event handler does.
 Likewise, the @command{arm9tdmi vector_catch} command (or
 its @command{xscale vector_catch} sibling) can be a timesaver
 during some debug sessions, but don't make everyone use that either.
-Keep those kinds of debugging aids in your user config file.
+Keep those kinds of debugging aids in your user config file,
+along with messaging and tracing setup.
+(@xref{Software Debug Messages and Tracing}.)
 
 TCP/IP port configuration is another example of something which
 is environment-specific, and should only appear in
@@ -1360,6 +1362,7 @@ if @{ [info exists CPUTAPID ] @} @{
    set _CPUTAPID 0x3f0f0f0f
 @}
 @end example
+@c but 0x3f0f0f0f is for an str73x part ...
 
 @emph{Remember:} Board config files may include multiple target
 config files, or the same target file multiple times
@@ -1473,7 +1476,7 @@ Some ARM cores are equipped with trace support, which permits
 examination of the instruction and data bus activity.  Trace
 activity is controlled through an ``Embedded Trace Module'' (ETM)
 on one of the core's scan chains.  The ETM emits voluminous data
-through a ``trace port''.  (@xref{ARM Tracing}.)
+through a ``trace port''.  (@xref{ARM Hardware Tracing}.)
 If you are using an external trace port,
 configure it in your board config file.
 If you are using an on-chip ``Embedded Trace Buffer'' (ETB),
@@ -3359,6 +3362,7 @@ wide on a sixteen bit bus:
 flash bank cfi 0x00000000 0x01000000 2 2 $_TARGETNAME
 flash bank cfi 0x01000000 0x01000000 2 2 $_TARGETNAME
 @end example
+@c "cfi part_id" disabled
 @end deffn
 
 @subsection Internal Flash (Microcontrollers)
@@ -3521,6 +3525,11 @@ LPC flashes don't require the chip and bus width to be specified.
 flash bank lpc2000 0x0 0x7d000 0 0 $_TARGETNAME \
       lpc2000_v2 14765 calc_checksum
 @end example
+
+@deffn {Command} {lpc2000 part_id} bank
+Displays the four byte part identifier associated with
+the specified flash @var{bank}.
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} lpc288x
@@ -3625,6 +3634,11 @@ which is either @code{STR71x}, @code{STR73x} or @code{STR75x}.
 @example
 flash bank str7x 0x40000000 0x00040000 0 0 $_TARGETNAME STR71x
 @end example
+
+@deffn Command {str7x disable_jtag} bank
+Activate the Debug/Readout protection mechanism
+for the specified flash bank.
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} str9x
@@ -4250,6 +4264,10 @@ port is 5555.
 
 @section Daemon Commands
 
+@deffn {Command} exit
+Exits the current telnet session.
+@end deffn
+
 @deffn Command sleep msec [@option{busy}]
 Wait for at least @var{msec} milliseconds before resuming.
 If @option{busy} is passed, busy-wait instead of sleeping.
@@ -4406,14 +4424,60 @@ state.
 
 These commands are available when
 OpenOCD is built with @option{--enable-ioutil}.
-They are mainly useful on embedded targets;
-PC type hosts have complementary tools.
+They are mainly useful on embedded targets,
+notably the ZY1000.
+Hosts with operating systems have complementary tools.
 
 @emph{Note:} there are several more such commands.
+
+@deffn Command append_file filename [string]*
+Appends the @var{string} parameters to
+the text file @file{filename}.
+Each string except the last one is followed by one space.
+The last string is followed by a newline.
+@end deffn
+
+@deffn Command cat filename
+Reads and displays the text file @file{filename}.
+@end deffn
+
+@deffn Command cp src_filename dest_filename
+Copies contents from the file @file{src_filename}
+into @file{dest_filename}.
+@end deffn
+
+@deffn Command ip
+@emph{No description provided.}
+@end deffn
+
+@deffn Command ls
+@emph{No description provided.}
+@end deffn
+
+@deffn Command mac
+@emph{No description provided.}
+@end deffn
 
 @deffn Command  meminfo
 Display available RAM memory on OpenOCD host.
 Used in OpenOCD regression testing scripts.
+@end deffn
+
+@deffn Command peek
+@emph{No description provided.}
+@end deffn
+
+@deffn Command poke
+@emph{No description provided.}
+@end deffn
+
+@deffn Command rm filename
+@c "rm" has both normal and Jim-level versions??
+Unlinks the file @file{filename}.
+@end deffn
+
+@deffn Command trunc filename
+Removes all data in the file @file{filename}.
 @end deffn
 
 @anchor{Memory access}
@@ -4487,6 +4551,14 @@ The file format may optionally be specified
 (@option{bin}, @option{ihex}, or @option{elf})
 @end deffn
 
+@deffn Command {test_image} filename [address [@option{bin}|@option{ihex}|@option{elf}]]
+Displays image section sizes and addresses
+as if @var{filename} were loaded into target memory
+starting at @var{address} (defaults to zero).
+The file format may optionally be specified
+(@option{bin}, @option{ihex}, or @option{elf})
+@end deffn
+
 @deffn Command {verify_image} filename address [@option{bin}|@option{ihex}|@option{elf}]
 Verify @var{filename} against target memory starting at @var{address}.
 The file format may optionally be specified
@@ -4535,12 +4607,21 @@ using @var{mask} to mark ``don't care'' fields.
 @end deffn
 
 @section Misc Commands
-@cindex profiling
 
+@cindex profiling
 @deffn Command {profile} seconds filename
 Profiling samples the CPU's program counter as quickly as possible,
 which is useful for non-intrusive stochastic profiling.
 Saves up to 10000 sampines in @file{filename} using ``gmon.out'' format.
+@end deffn
+
+@deffn Command {version}
+Displays a string identifying the version of this OpenOCD server.
+@end deffn
+
+@deffn Command {virt2phys} virtual_address
+Requests the current target to map the specified @var{virtual_address}
+to its corresponding physical address, and displays the result.
 @end deffn
 
 @node Architecture and Core Commands
@@ -4553,8 +4634,9 @@ OpenOCD packages most such operations in its standard command framework.
 Some of those operations don't fit well in that framework, so they are
 exposed here as architecture or implementation (core) specific commands.
 
-@anchor{ARM Tracing}
-@section ARM Tracing
+@anchor{ARM Hardware Tracing}
+@section ARM Hardware Tracing
+@cindex tracing
 @cindex ETM
 @cindex ETB
 
@@ -5147,29 +5229,87 @@ If @var{value} is defined, first assigns that.
 Control masking (disabling) interrupts during target step/resume.
 @end deffn
 
-@section Target DCC Requests
+@anchor{Software Debug Messages and Tracing}
+@section Software Debug Messages and Tracing
 @cindex Linux-ARM DCC support
+@cindex tracing
 @cindex libdcc
 @cindex DCC
-OpenOCD can handle certain target requests; currently debugmsgs
+OpenOCD can process certain requests from target software.  Currently
 @command{target_request debugmsgs}
-are only supported for arm7_9 and cortex_m3.
+is supported only for @option{arm7_9} and @option{cortex_m3} cores.
+These messages are received as part of target polling, so
+you need to have @command{poll on} active to receive them.
+They are intrusive in that they will affect program execution
+times.  If that is a problem, @pxref{ARM Hardware Tracing}.
 
-See libdcc in the contrib dir for more details.
+See @file{libdcc} in the contrib dir for more details.
+In addition to sending strings, characters, and
+arrays of various size integers from the target,
+@file{libdcc} also exports a software trace point mechanism.
+The target being debugged may
+issue trace messages which include a 24-bit @dfn{trace point} number.
+Trace point support includes two distinct mechanisms,
+each supported by a command:
+
+@itemize
+@item @emph{History} ... A circular buffer of trace points
+can be set up, and then displayed at any time.
+This tracks where code has been, which can be invaluable in
+finding out how some fault was triggered.
+
+The buffer may overflow, since it collects records continuously.
+It may be useful to use some of the 24 bits to represent a
+particular event, and other bits to hold data.
+
+@item @emph{Counting} ... An array of counters can be set up,
+and then displayed at any time.
+This can help establish code coverage and identify hot spots.
+
+The array of counters is directly indexed by the trace point
+number, so trace points with higher numbers are not counted.
+@end itemize
+
 Linux-ARM kernels have a ``Kernel low-level debugging
 via EmbeddedICE DCC channel'' option (CONFIG_DEBUG_ICEDCC,
 depends on CONFIG_DEBUG_LL) which uses this mechanism to
 deliver messages before a serial console can be activated.
+This is not the same format used by @file{libdcc}.
+Other software, such as the U-Boot boot loader, sometimes
+does the same thing.
 
 @deffn Command {target_request debugmsgs} [@option{enable}|@option{disable}|@option{charmsg}]
 Displays current handling of target DCC message requests.
 These messages may be sent to the debugger while the target is running.
 The optional @option{enable} and @option{charmsg} parameters
 both enable the messages, while @option{disable} disables them.
+
 With @option{charmsg} the DCC words each contain one character,
 as used by Linux with CONFIG_DEBUG_ICEDCC;
 otherwise the libdcc format is used.
 @end deffn
+
+@deffn Command {trace history} (@option{clear}|count)
+With no parameter, displays all the trace points that have triggered
+in the order they triggered.
+With the parameter @option{clear}, erases all current trace history records.
+With a @var{count} parameter, allocates space for that many
+history records.
+@end deffn
+
+@deffn Command {trace point} (@option{clear}|identifier)
+With no parameter, displays all trace point identifiers and how many times
+they have been triggered.
+With the parameter @option{clear}, erases all current trace point counters.
+With a numeric @var{identifier} parameter, creates a new a trace point counter
+and associates it with that identifier.
+
+@emph{Important:}  The identifier and the trace point number
+are not related except by this command.
+These trace point numbers always start at zero (from server startup,
+or after @command{trace point clear}) and count up from there.
+@end deffn
+
 
 @node JTAG Commands
 @chapter JTAG Commands
@@ -5622,10 +5762,10 @@ become much shorter.
 @item @b{arm7_9 fast_writes}
 @cindex arm7_9 fast_writes
 @*Use @command{arm7_9 fast_memory_access} instead.
+@xref{arm7_9 fast_memory_access}.
 @item @b{endstate}
 @cindex endstate
 @*An buggy old command that would not really work since background polling would wipe out the global endstate
-@xref{arm7_9 fast_memory_access}.
 @item @b{arm7_9 force_hw_bkpts}
 @*Use @command{gdb_breakpoint_override} instead. Note that GDB will use hardware breakpoints
 for flash if the GDB memory map has been set up(default when flash is declared in
