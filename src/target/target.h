@@ -42,7 +42,11 @@ struct command_context_s;
  * TARGET_RESET   = 3: the target is being held in reset (only a temporary state,
  * not sure how this is used with all the recent changes)
  * TARGET_DEBUG_RUNNING = 4: the target is running, but it is executing code on
- * behalf of the debugger (e.g. algorithm for flashing) */
+ * behalf of the debugger (e.g. algorithm for flashing) 
+ *
+ * also see: target_state_name();
+ */
+
 
 enum target_state
 {
@@ -131,6 +135,7 @@ typedef struct target_s
 	struct working_area_s *working_areas;/* list of allocated working areas */
 	enum target_debug_reason debug_reason;/* reason why the target entered debug state */
 	enum target_endianess endianness;	/* target endianess */
+	// also see: target_state_name()
 	enum target_state state;			/* the current backend-state (running, halted, ...) */
 	struct reg_cache_s *reg_cache;		/* the first register cache of the target (core regs) */
 	struct breakpoint_s *breakpoints;	/* list of breakpoints */
@@ -356,6 +361,9 @@ extern int target_read_buffer(struct target_s *target, uint32_t address, uint32_
 extern int target_checksum_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t* crc);
 extern int target_blank_check_memory(struct target_s *target, uint32_t address, uint32_t size, uint32_t* blank);
 extern int target_wait_state(target_t *target, enum target_state state, int ms);
+
+/** Return the *name* of this targets current state */
+const char *target_state_name( target_t *target );
 
 /* DANGER!!!!!
  *

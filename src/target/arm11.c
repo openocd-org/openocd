@@ -732,7 +732,7 @@ int arm11_halt(struct target_s *target)
 	arm11_common_t * arm11 = target->arch_info;
 
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		target_state_name(target));
 
 	if (target->state == TARGET_UNKNOWN)
 	{
@@ -789,7 +789,7 @@ int arm11_resume(struct target_s *target, int current, uint32_t address, int han
 	arm11_common_t * arm11 = target->arch_info;
 
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		target_state_name(target));
 
 
 	if (target->state != TARGET_HALTED)
@@ -889,7 +889,7 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 	FNC_INFO;
 
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		target_state_name(target));
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1035,7 +1035,7 @@ int arm11_deassert_reset(struct target_s *target)
 
 #if 0
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		target_state_name(target));
 
 
 	/* deassert reset lines */

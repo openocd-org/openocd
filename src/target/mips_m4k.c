@@ -148,7 +148,7 @@ int mips_m4k_debug_entry(target_t *target)
 
 	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 ", target->state: %s",
 		*(uint32_t*)(mips32->core_cache->reg_list[MIPS32_PC].value),
-		  Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		  target_state_name(target));
 
 	return ERROR_OK;
 }
@@ -220,7 +220,7 @@ int mips_m4k_halt(struct target_s *target)
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 
 	LOG_DEBUG("target->state: %s",
-		  Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		  target_state_name(target));
 
 	if (target->state == TARGET_HALTED)
 	{
@@ -265,7 +265,7 @@ int mips_m4k_assert_reset(target_t *target)
 	mips_ejtag_t *ejtag_info = &mips32->ejtag_info;
 
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		target_state_name(target));
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 	if (!(jtag_reset_config & RESET_HAS_SRST))
@@ -324,7 +324,7 @@ int mips_m4k_assert_reset(target_t *target)
 int mips_m4k_deassert_reset(target_t *target)
 {
 	LOG_DEBUG("target->state: %s",
-		Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		target_state_name(target));
 
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);

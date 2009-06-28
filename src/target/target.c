@@ -237,6 +237,18 @@ const Jim_Nvp nvp_reset_modes[] = {
 	{ .name = NULL     , .value = -1 },
 };
 
+const char *
+target_state_name( target_t *t )
+{
+	const char *cp;
+	cp = Jim_Nvp_value2name_simple(nvp_target_state, t->state)->name;
+	if( !cp ){
+		LOG_ERROR("Invalid target state: %d", (int)(t->state));
+		cp = "(*BUG*unknown*BUG*)";
+	}
+	return cp;
+}
+
 static int max_target_number(void)
 {
 	target_t *t;
@@ -1085,8 +1097,7 @@ int target_arch_state(struct target_s *target)
 		return ERROR_OK;
 	}
 
-	LOG_USER("target state: %s",
-		 Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name);
+	LOG_USER("target state: %s", target_state_name( target ));
 
 	if (target->state != TARGET_HALTED)
 		return ERROR_OK;
@@ -1544,8 +1555,7 @@ DumpTargets:
 		char marker = ' ';
 
 		if (target->tap->enabled)
-			state = Jim_Nvp_value2name_simple(nvp_target_state,
-					target->state)->name;
+			state = target_state_name( target );
 		else
 			state = "tap-disabled";
 
@@ -4079,7 +4089,8 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			return JIM_ERR;
 		}
 		Jim_SetResultString(goi.interp,
-							 Jim_Nvp_value2name_simple(nvp_target_state,target->state)->name,-1);
+							target_state_name( target ),
+							-1);
 		return JIM_OK;
 	case TS_CMD_INVOKE_EVENT:
 		if (goi.argc != 1) {

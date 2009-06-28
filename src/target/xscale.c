@@ -1202,7 +1202,7 @@ int xscale_halt(target_t *target)
 	xscale_common_t *xscale = armv4_5->arch_info;
 
 	LOG_DEBUG("target->state: %s",
-		  Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		  target_state_name(target));
 
 	if (target->state == TARGET_HALTED)
 	{
@@ -1568,7 +1568,7 @@ int xscale_assert_reset(target_t *target)
 	xscale_common_t *xscale = armv4_5->arch_info;
 
 	LOG_DEBUG("target->state: %s",
-		  Jim_Nvp_value2name_simple(nvp_target_state, target->state)->name);
+		  target_state_name(target));
 
 	/* select DCSR instruction (set endstate to R-T-I to ensure we don't
 	 * end up in T-L-R, which would reset JTAG
