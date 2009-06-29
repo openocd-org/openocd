@@ -318,14 +318,14 @@ static int str9xpec_flash_bank_command(struct command_context_s *cmd_ctx, char *
 	str9xpec_info = malloc(sizeof(str9xpec_flash_controller_t));
 	bank->driver_priv = str9xpec_info;
 
-	/* find out jtag position of flash controller
-	 * it is always after the arm966 core */
-
+	/* REVISIT verify that the jtag position of flash controller is
+	 * right after *THIS* core, which must be a STR9xx core ...
+	 */
 	armv4_5 = bank->target->arch_info;
 	arm7_9 = armv4_5->arch_info;
 	jtag_info = &arm7_9->jtag_info;
 
-	str9xpec_info->tap = jtag_tap_by_position(jtag_info->tap->abs_chain_position - 1);
+	str9xpec_info->tap = bank->target->tap;
 	str9xpec_info->isc_enable = 0;
 
 	str9xpec_build_block_list(bank);

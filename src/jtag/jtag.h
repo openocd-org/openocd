@@ -185,7 +185,6 @@ extern jtag_tap_t* jtag_all_taps(void);
 extern const char *jtag_tap_name(const jtag_tap_t *tap);
 extern jtag_tap_t* jtag_tap_by_string(const char* dotted_name);
 extern jtag_tap_t* jtag_tap_by_jim_obj(Jim_Interp* interp, Jim_Obj* obj);
-extern jtag_tap_t* jtag_tap_by_position(unsigned abs_position);
 extern jtag_tap_t* jtag_tap_next_enabled(jtag_tap_t* p);
 extern unsigned jtag_tap_count_enabled(void);
 extern unsigned jtag_tap_count(void);

@@ -162,10 +162,22 @@ void jtag_tap_add(struct jtag_tap_s *t)
 	*tap = t;
 }
 
+/* returns a pointer to the n-th device in the scan chain */
+static inline jtag_tap_t *jtag_tap_by_position(unsigned n)
+{
+	jtag_tap_t *t = jtag_all_taps();
+
+	while (t && n-- > 0)
+		t = t->next_tap;
+
+	return t;
+}
+
 jtag_tap_t *jtag_tap_by_string(const char *s)
 {
 	/* try by name first */
 	jtag_tap_t *t = jtag_all_taps();
+
 	while (t)
 	{
 		if (0 == strcmp(t->dotted_name, s))
@@ -178,7 +190,16 @@ jtag_tap_t *jtag_tap_by_string(const char *s)
 	if (parse_uint(s, &n) != ERROR_OK)
 		return NULL;
 
-	return jtag_tap_by_position(n);
+	/* FIXME remove this numeric fallback code late June 2010, along
+	 * with all info in the User's Guide that TAPs have numeric IDs.
+	 * Also update "scan_chain" output to not display the numbers.
+	 */
+	t = jtag_tap_by_position(n);
+	if (t)
+		LOG_WARNING("Specify TAP '%s' by name, not number %u",
+			t->dotted_name, n);
+
+	return t;
 }
 
 jtag_tap_t *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
@@ -189,17 +210,6 @@ jtag_tap_t *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 		cp = "(unknown)";
 	if (NULL == t)
 		Jim_SetResult_sprintf(interp, "Tap '%s' could not be found", cp);
-	return t;
-}
-
-/* returns a pointer to the n-th device in the scan chain */
-jtag_tap_t *jtag_tap_by_position(unsigned n)
-{
-	jtag_tap_t *t = jtag_all_taps();
-
-	while (t && n-- > 0)
-		t = t->next_tap;
-
 	return t;
 }
 
