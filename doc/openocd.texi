@@ -696,6 +696,8 @@ JIM-Tcl commands, and (older) the orginal command interpreter.
 @item @b{Commands}
 @* At the OpenOCD telnet command line (or via the GDB mon command) one
 can type a Tcl for() loop, set variables, etc.
+Some of the commands documented in this guide are implemented
+as Tcl scripts, from a @file{startup.tcl} file internal to the server.
 
 @item @b{Historical Note}
 @* JIM-Tcl was introduced to OpenOCD in spring 2008.
@@ -1513,12 +1515,18 @@ supported.
 
 @section Configuration Stage
 @cindex configuration stage
-@cindex configuration command
+@cindex config command
 
 When the OpenOCD server process starts up, it enters a
 @emph{configuration stage} which is the only time that
 certain commands, @emph{configuration commands}, may be issued.
-Those configuration commands include declaration of TAPs
+In this manual, the definition of a configuration command is
+presented as a @emph{Config Command}, not as a @emph{Command}
+which may be issued interactively.
+
+Those configuration commands include declaration of TAPs,
+flash banks,
+the interface used for JTAG communication,
 and other basic setup.
 The server must leave the configuration stage before it
 may access or activate TAPs.
@@ -1607,19 +1615,19 @@ GDB behaviour is not sufficient.  GDB normally uses hardware
 breakpoints if the memory map has been set up for flash regions.
 @end deffn
 
-@deffn {Config command} gdb_detach (@option{resume}|@option{reset}|@option{halt}|@option{nothing})
+@deffn {Config Command} gdb_detach (@option{resume}|@option{reset}|@option{halt}|@option{nothing})
 Configures what OpenOCD will do when GDB detaches from the daemon.
 Default behaviour is @option{resume}.
 @end deffn
 
 @anchor{gdb_flash_program}
-@deffn {Config command} gdb_flash_program (@option{enable}|@option{disable})
+@deffn {Config Command} gdb_flash_program (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
 The default behaviour is @option{enable}.
 @end deffn
 
-@deffn {Config command} gdb_memory_map (@option{enable}|@option{disable})
+@deffn {Config Command} gdb_memory_map (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to send the memory configuration to GDB when
 requested. GDB will then know when to set hardware breakpoints, and program flash
 using the GDB load command. @command{gdb_flash_program enable} must also be enabled
@@ -1628,7 +1636,7 @@ Default behaviour is @option{enable}.
 @xref{gdb_flash_program}.
 @end deffn
 
-@deffn {Config command} gdb_report_data_abort (@option{enable}|@option{disable})
+@deffn {Config Command} gdb_report_data_abort (@option{enable}|@option{disable})
 Specifies whether data aborts cause an error to be reported
 by GDB memory read packets.
 The default behaviour is @option{disable};
@@ -1806,6 +1814,8 @@ Specifies the @var{serial-number} of the FTDI FT2232 device to use,
 in case the vendor provides unique IDs and more than one FT2232 device
 is connected to the host.
 If not specified, serial numbers are not considered.
+(Note that USB serial numbers can be arbitrary Unicode strings,
+and are not restricted to containing only decimal digits.)
 @end deffn
 
 @deffn {Config Command} {ft2232_layout} name
@@ -2023,7 +2033,7 @@ support it, an error is returned when you try to use RTCK.
 
 @defun jtag_rclk fallback_speed_kHz
 @cindex RTCK
-This Tcl proc (defined in startup.tcl) attempts to enable RTCK/RCLK.
+This Tcl proc (defined in @file{startup.tcl}) attempts to enable RTCK/RCLK.
 If that fails (maybe the interface, board, or target doesn't
 support it), falls back to the specified frequency.
 @example
@@ -4268,6 +4278,15 @@ port is 5555.
 Exits the current telnet session.
 @end deffn
 
+@c note EXTREMELY ANNOYING word wrap at column 75
+@c even when lines are e.g. 100+ columns ...
+@c coded in startup.tcl
+@deffn {Command} help [string]
+With no parameters, prints help text for all commands.
+Otherwise, prints each helptext containing @var{string}.
+Not every command provides helptext.
+@end deffn
+
 @deffn Command sleep msec [@option{busy}]
 Wait for at least @var{msec} milliseconds before resuming.
 If @option{busy} is passed, busy-wait instead of sleeping.
@@ -5717,7 +5736,7 @@ Return information about the flash banks
 @end itemize
 
 OpenOCD commands can consist of two words, e.g. "flash banks". The
-startup.tcl "unknown" proc will translate this into a Tcl proc
+@file{startup.tcl} "unknown" proc will translate this into a Tcl proc
 called "flash_banks".
 
 @section OpenOCD specific Global Variables
