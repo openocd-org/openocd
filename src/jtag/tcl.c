@@ -34,6 +34,7 @@
 #include "jtag.h"
 #include "minidriver.h"
 #include "interface.h"
+#include "interfaces.h"
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -44,130 +45,6 @@ static const Jim_Nvp nvp_jtag_tap_event[] = {
 	{ .value = JTAG_TAP_EVENT_DISABLE,      .name = "tap-disable" },
 
 	{ .name = NULL, .value = -1 }
-};
-
-/* jtag interfaces (parport, FTDI-USB, TI-USB, ...)
- */
-
-#if BUILD_ZY1000 == 1
-	extern jtag_interface_t zy1000_interface;
-#elif defined(BUILD_MINIDRIVER_DUMMY)
-	extern jtag_interface_t minidummy_interface;
-#else // standard drivers
-#if BUILD_PARPORT == 1
-	extern jtag_interface_t parport_interface;
-#endif
-
-#if BUILD_DUMMY == 1
-	extern jtag_interface_t dummy_interface;
-#endif
-
-#if BUILD_FT2232_FTD2XX == 1
-	extern jtag_interface_t ft2232_interface;
-#endif
-
-#if BUILD_FT2232_LIBFTDI == 1
-	extern jtag_interface_t ft2232_interface;
-#endif
-
-#if BUILD_AMTJTAGACCEL == 1
-	extern jtag_interface_t amt_jtagaccel_interface;
-#endif
-
-#if BUILD_EP93XX == 1
-	extern jtag_interface_t ep93xx_interface;
-#endif
-
-#if BUILD_AT91RM9200 == 1
-	extern jtag_interface_t at91rm9200_interface;
-#endif
-
-#if BUILD_GW16012 == 1
-	extern jtag_interface_t gw16012_interface;
-#endif
-
-#if BUILD_PRESTO_LIBFTDI == 1 || BUILD_PRESTO_FTD2XX == 1
-	extern jtag_interface_t presto_interface;
-#endif
-
-#if BUILD_USBPROG == 1
-	extern jtag_interface_t usbprog_interface;
-#endif
-
-#if BUILD_JLINK == 1
-	extern jtag_interface_t jlink_interface;
-#endif
-
-#if BUILD_VSLLINK == 1
-	extern jtag_interface_t vsllink_interface;
-#endif
-
-#if BUILD_RLINK == 1
-	extern jtag_interface_t rlink_interface;
-#endif
-
-#if BUILD_ARMJTAGEW == 1
-	extern jtag_interface_t armjtagew_interface;
-#endif
-#endif // standard drivers
-
-/**
- * The list of built-in JTAG interfaces, containing entries for those
- * drivers that were enabled by the @c configure script.
- *
- * The list should be defined to contain either one minidriver interface
- * or some number of standard driver interfaces, never both.
- */
-jtag_interface_t *jtag_interfaces[] = {
-#if BUILD_ZY1000 == 1
-	&zy1000_interface,
-#elif defined(BUILD_MINIDRIVER_DUMMY)
-	&minidummy_interface,
-#else // standard drivers
-#if BUILD_PARPORT == 1
-	&parport_interface,
-#endif
-#if BUILD_DUMMY == 1
-	&dummy_interface,
-#endif
-#if BUILD_FT2232_FTD2XX == 1
-	&ft2232_interface,
-#endif
-#if BUILD_FT2232_LIBFTDI == 1
-	&ft2232_interface,
-#endif
-#if BUILD_AMTJTAGACCEL == 1
-	&amt_jtagaccel_interface,
-#endif
-#if BUILD_EP93XX == 1
-	&ep93xx_interface,
-#endif
-#if BUILD_AT91RM9200 == 1
-	&at91rm9200_interface,
-#endif
-#if BUILD_GW16012 == 1
-	&gw16012_interface,
-#endif
-#if BUILD_PRESTO_LIBFTDI == 1 || BUILD_PRESTO_FTD2XX == 1
-	&presto_interface,
-#endif
-#if BUILD_USBPROG == 1
-	&usbprog_interface,
-#endif
-#if BUILD_JLINK == 1
-	&jlink_interface,
-#endif
-#if BUILD_VSLLINK == 1
-	&vsllink_interface,
-#endif
-#if BUILD_RLINK == 1
-	&rlink_interface,
-#endif
-#if BUILD_ARMJTAGEW == 1
-	&armjtagew_interface,
-#endif
-#endif // standard drivers
-	NULL,
 };
 
 extern jtag_interface_t *jtag_interface;

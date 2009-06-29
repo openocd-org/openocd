@@ -75,12 +75,14 @@ endif
 
 libjtag_la_SOURCES = \
 	core.c \
-	tcl.c \
 	interface.c \
+	interfaces.c \
+	tcl.c \
 	$(DRIVERFILES)
 
 noinst_HEADERS = \
 	interface.h \
+	interfaces.h \
 	commands.h \
 	minidriver.h \
 	bitbang.h \
