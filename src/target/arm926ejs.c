@@ -262,10 +262,12 @@ int arm926ejs_examine_debug_reason(target_t *target)
 	if ((retval = jtag_execute_queue()) != ERROR_OK)
 		return retval;
 
+	/* Method-Of-Entry (MOE) field */
 	debug_reason = buf_get_u32(dbg_stat->value, 6, 4);
 
 	switch (debug_reason)
 	{
+		/* case 0:  no debug entry */
 		case 1:
 			LOG_DEBUG("breakpoint from EICE unit 0");
 			target->debug_reason = DBG_REASON_BREAKPOINT;
@@ -307,7 +309,21 @@ int arm926ejs_examine_debug_reason(target_t *target)
 			target->debug_reason = DBG_REASON_DBGRQ;
 			break;
 		case 11:
-			LOG_ERROR("BUG: debug re-entry from system speed access shouldn't be handled here");
+			LOG_DEBUG("debug re-entry from system speed access");
+			/* This is normal when connecting to something that's
+			 * already halted, or in some related code paths, but
+			 * otherwise is surprising (and presumably wrong).
+			 */
+			switch (target->debug_reason) {
+			case DBG_REASON_DBGRQ:
+				break;
+			default:
+				LOG_ERROR("unexpected -- debug re-entry");
+				/* FALLTHROUGH */
+			case DBG_REASON_UNDEFINED:
+				target->debug_reason = DBG_REASON_DBGRQ;
+				break;
+			}
 			break;
 		case 12:
 			/* FIX!!!! here be dragons!!! We need to fail here so

@@ -913,8 +913,9 @@ int arm7_9_poll(target_t *target)
 /*		LOG_DEBUG("DBGACK set, dbg_state->value: 0x%x", buf_get_u32(dbg_stat->value, 0, 32));*/
 		if (target->state == TARGET_UNKNOWN)
 		{
+			/* Starting OpenOCD with target in debug-halt */
 			target->state = TARGET_RUNNING;
-			LOG_WARNING("DBGACK set while target was in unknown state. Reset or initialize target.");
+			LOG_DEBUG("DBGACK already set during server startup.");
 		}
 		if ((target->state == TARGET_RUNNING) || (target->state == TARGET_RESET))
 		{
