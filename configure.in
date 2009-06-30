@@ -3,7 +3,7 @@ AC_INIT([openocd], [0.2.0-in-development],
   [OpenOCD Mailing List <openocd-development@lists.berlios.de>])
 AC_CONFIG_SRCDIR([src/openocd.c])
 
-AM_INIT_AUTOMAKE([-Wall -Wno-portability])
+AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip])
 AM_MAINTAINER_MODE
 
 AM_CONFIG_HEADER(config.h)
