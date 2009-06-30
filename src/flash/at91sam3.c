@@ -554,8 +554,8 @@ static const struct sam3_chip_details all_sam3_details[] = {
  **********************************************************************/
 /* *ATMEL* style code - from the SAM3 driver code */
 
-/** Get the current status of the EEFC
- *
+/**
+ * Get the current status of the EEFC and
  * the value of some status bits (LOCKE, PROGE).
  * @param pPrivate - info about the bank
  * @param v        - result goes here
@@ -574,7 +574,8 @@ EFC_GetStatus(struct sam3_bank_private *pPrivate, uint32_t *v)
 	return r;
 }
 
-/** Get the result of the last executed command.
+/**
+ * Get the result of the last executed command.
  * @param pPrivate - info about the bank
  * @param v        - result goes here
  */
@@ -683,8 +684,8 @@ EFC_StartCommand(struct sam3_bank_private *pPrivate,
 	return r;
 }
 
-/** Performs the given command and wait until its completion (or an error).
- *
+/**
+ * Performs the given command and wait until its completion (or an error).
  * @param pPrivate - info about the bank
  * @param command  - Command to perform.
  * @param argument - Optional command argument.
@@ -741,13 +742,11 @@ EFC_PerformCommand(struct sam3_bank_private *pPrivate,
 
 
 
-/** Read the unique ID.
- *
- * \param pPrivate - info about the bank
- *
+/**
+ * Read the unique ID.
+ * @param pPrivate - info about the bank
  * The unique ID is stored in the 'pPrivate' structure.
  */
-
 static int
 FLASHD_ReadUniqueID (struct sam3_bank_private *pPrivate)
 {
@@ -787,7 +786,8 @@ FLASHD_ReadUniqueID (struct sam3_bank_private *pPrivate)
 
 }
 
-/** Erases the entire flash.
+/**
+ * Erases the entire flash.
  * @param pPrivate - the info about the bank.
  */
 static int
@@ -799,11 +799,11 @@ FLASHD_EraseEntireBank(struct sam3_bank_private *pPrivate)
 
 
 
-/** Gets current GPNVM state.
+/**
+ * Gets current GPNVM state.
  * @param pPrivate - info about the bank.
  * @param gpnvm    -  GPNVM bit index.
  * @param puthere  - result stored here.
- *
  */
 //------------------------------------------------------------------------------
 static int
@@ -845,10 +845,11 @@ FLASHD_GetGPNVM(struct sam3_bank_private *pPrivate, unsigned gpnvm, unsigned *pu
 
 
 
-/** Clears the selected GPNVM bit.
- * @param gpnvm  GPNVM index.
- *
- * Returns 0 if successful; otherwise returns an error code.
+/**
+ * Clears the selected GPNVM bit.
+ * @param pPrivate info about the bank
+ * @param gpnvm GPNVM index.
+ * @returns 0 if successful; otherwise returns an error code.
  */
 static int
 FLASHD_ClrGPNVM(struct sam3_bank_private *pPrivate, unsigned gpnvm)
@@ -880,9 +881,10 @@ FLASHD_ClrGPNVM(struct sam3_bank_private *pPrivate, unsigned gpnvm)
 
 
 
-/** Sets the selected GPNVM bit.
- *  @param gpnvm  GPNVM index.
- *
+/**
+ * Sets the selected GPNVM bit.
+ * @param pPrivate info about the bank
+ * @param gpnvm GPNVM index.
  */
 static int
 FLASHD_SetGPNVM(struct sam3_bank_private *pPrivate, unsigned gpnvm)
@@ -916,12 +918,11 @@ FLASHD_SetGPNVM(struct sam3_bank_private *pPrivate, unsigned gpnvm)
 }
 
 
-/** Returns a bit field (at most 64) of locked regions within a page.
- * @param pPrivate - info about the bank
- * @param v        - where to store locked bits
- * \param end  End address of range.
+/**
+ * Returns a bit field (at most 64) of locked regions within a page.
+ * @param pPrivate info about the bank
+ * @param v where to store locked bits
  */
-
 static int
 FLASHD_GetLockBits(struct sam3_bank_private *pPrivate, uint32_t *v)
 {
@@ -936,10 +937,11 @@ FLASHD_GetLockBits(struct sam3_bank_private *pPrivate, uint32_t *v)
 }
 
 
-/**Unlocks all the regions in the given address range.
- *
- * \param start_sector - first sector to unlock
- * \param end_sector   - last (inclusive) to unlock
+/**
+ * Unlocks all the regions in the given address range.
+ * @param pPrivate info about the bank
+ * @param start_sector first sector to unlock
+ * @param end_sector last (inclusive) to unlock
  */
 
 static int
@@ -969,13 +971,12 @@ FLASHD_Unlock(struct sam3_bank_private *pPrivate,
 }
 
 
-/** Locks regions
- *
+/**
+ * Locks regions
+ * @param pPrivate - info about the bank
  * @param start_sector - first sector to lock
  * @param end_sector   - last sector (inclusive) to lock
  */
-
-
 static int
 FLASHD_Lock(struct sam3_bank_private *pPrivate,
 			 unsigned start_sector,
@@ -1460,9 +1461,9 @@ get_sam3_bank_private(flash_bank_t *bank)
 	return (struct sam3_bank_private *)(bank->driver_priv);
 }
 
-/*
- * Given a pointer to where it goes in the structure..
- *    Determine the register name, address from the all registers table.
+/**
+ * Given a pointer to where it goes in the structure,
+ * determine the register name, address from the all registers table.
  */
 static const struct sam3_reg_list *
 sam3_GetReg(struct sam3_chip *pChip, uint32_t *goes_here)
@@ -2528,13 +2529,3 @@ flash_driver_t at91sam3_flash =
 	.protect_check				= sam3_protect_check,
 	.info						= sam3_info
 };
-
-
-
-/**
- * Local Variables: **
- * mode: c **
- * c-basic-offset: 4 **
- * tab-width: 4 **
- * End: **
- */
