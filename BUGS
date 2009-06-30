@@ -5,24 +5,35 @@ posting a message with your report:
 
 	openocd-development@lists.berlios.de
 
-To minimize work for OpenOCD developers, you can include
-all the information below.  If you feel that some of the
-items below are unnecessary for a clear bug report, you
-leave them out.
+To minimize work for OpenOCD developers, you should try to include
+all of the information listed below.  If you feel that some of the
+items below are unnecessary for a clear bug report, you may leave
+them out; likewise, feel free to include additional information
+that may be important.
 
 - Target PCB/board description
-- Config scripts
+- Configuration scripts
 - OpenOCD command line
 - List of commands issued or GDB operations performed
 - Expected result
 - Actual result
-- Logs using @c debug_level 3 (e.g. add '-d 3' to the command line)
-- If this is a regression, include logs for working and broken version
-- If this is a regression, please find out the precise version that
-  caused the regression.  This can be done via a binary search; For
-  example: if testing version 550 works but 600 fail, then try 575, etc.
+- Logs using <code>debug_level 3</code> (or with '-d 3' on the command line)
+- If the report is for a regression:
+  - Include logs for both working and broken versions.
+  - Find the precise version that caused the regression by binary search.
+    For example: if testing version 550 works but 600 fail, then try 575, etc.
 
-- If OpenOCD is crashing, you can use GDB to get a trace:@par
+If possible, please develop and attach a patch that helps to expose or
+solve the reported problem.  See the PATCHES file for more information
+for that process.
+
+Attach all files directly to your posting.  The mailing list knows to
+transform attachments to links, but attachments must be less than 300KB
+in total.
+
+@section bugscrashdump Obtaining Crash Backtraces
+
+If OpenOCD is crashing, you can use GDB to get a trace:@par
 @code
 % gdb --args openocd ....
 (gdb) run
@@ -30,8 +41,10 @@ leave them out.
 => here a stack trace is dumped.
 @endcode
 
-- To run or debug the in-tree executable (not recommended), you must
-  use libtool to set up the correct shared library paths:
+@section bugsintreedebug Running and Debugging In-Tree
+
+To run or debug the in-tree executable (not recommended), you must
+use libtool to set up the correct shared library paths:
 @code
   libtool gdb --args openocd ....
 @endcode
@@ -39,9 +52,6 @@ or the more pedantic (and forward-compatible):
 @code
   libtool --mode=execute gdb --args openocd ....
 @endcode
-- Attach files directly to the posting.  The mailing list knows to
-transform attachments to links so you will not be bloating anyones mail
-box.  Please keep attachments to less than 100KB.
 
  */
 /** @file
