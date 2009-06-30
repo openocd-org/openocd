@@ -391,7 +391,8 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		JTAG_CMD_TAPDISABLE,
 		JTAG_CMD_TAPISENABLED,
 		JTAG_CMD_CONFIGURE,
-		JTAG_CMD_CGET
+		JTAG_CMD_CGET,
+		JTAG_CMD_NAMES,
 	};
 
 	const Jim_Nvp jtag_cmds[] = {
@@ -403,6 +404,7 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		{ .name = "tapdisable"    , .value = JTAG_CMD_TAPDISABLE },
 		{ .name = "configure"     , .value = JTAG_CMD_CONFIGURE },
 		{ .name = "cget"          , .value = JTAG_CMD_CGET },
+		{ .name = "names"         , .value = JTAG_CMD_NAMES },
 
 		{ .name = NULL, .value = -1 },
 	};
@@ -497,7 +499,8 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	case JTAG_CMD_CGET:
 		if (goi.argc < 2) {
-			Jim_WrongNumArgs(goi.interp, 0, NULL, "?tap-name? -option ...");
+			Jim_WrongNumArgs(goi.interp, 0, NULL,
+					"cget tap_name queryparm");
 			return JIM_ERR;
 		}
 
@@ -517,7 +520,8 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	case JTAG_CMD_CONFIGURE:
 		if (goi.argc < 3) {
-			Jim_WrongNumArgs(goi.interp, 0, NULL, "?tap-name? -option ?VALUE? ...");
+			Jim_WrongNumArgs(goi.interp, 0, NULL,
+					"configure tap_name attribute value ...");
 			return JIM_ERR;
 		}
 
@@ -533,6 +537,27 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			goi.isconfigure = 1;
 			return jtag_tap_configure_cmd(&goi, t);
 		}
+		break;
+
+	case JTAG_CMD_NAMES:
+		if (goi.argc != 0) {
+			Jim_WrongNumArgs(goi.interp, 1, goi.argv, "Too many parameters");
+			return JIM_ERR;
+		}
+		Jim_SetResult(goi.interp, Jim_NewListObj(goi.interp, NULL, 0));
+		{
+			jtag_tap_t *tap;
+
+			for (tap = jtag_all_taps(); tap; tap = tap->next_tap) {
+				Jim_ListAppendElement(goi.interp,
+					Jim_GetResult(goi.interp),
+					Jim_NewStringObj(goi.interp,
+						tap->dotted_name, -1));
+			}
+			return JIM_OK;
+		}
+		break;
+
 	}
 
 	return JIM_ERR;

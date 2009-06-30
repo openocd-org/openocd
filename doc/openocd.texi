@@ -2354,9 +2354,16 @@ Actual config files use a variable instead of literals like
 @option{str912}, to support more than one chip of each type.
 @xref{Config File Guidelines}.
 
-At this writing there is only a single command to work with
-scan chains, and there is no support for enumerating
-TAPs or examining their attributes.
+@deffn Command {jtag names}
+Returns the names of all current TAPs in the scan chain.
+Use @command{jtag cget} or @command{jtag tapisenabled}
+to examine attributes and state of each TAP.
+@example
+foreach t [jtag names] @{
+    puts [format "TAP: %s\n" $t]
+@}
+@end example
+@end deffn
 
 @deffn Command {scan_chain}
 Displays the TAPs in the scan chain configuration,
@@ -2369,10 +2376,8 @@ In addition to the enable/disable status, the contents of
 each TAP's instruction register can also change.
 @end deffn
 
-@c FIXME!  there should be commands to enumerate TAPs
-@c and get their attributes, like there are for targets.
-@c "jtag cget ..." will handle attributes.
-@c "jtag names" for enumerating TAPs, maybe.
+@c FIXME!  "jtag cget" should be able to return all TAP
+@c attributes, like "$target_name cget" does for targets.
 
 @c Probably want "jtag eventlist", and a "tap-reset" event
 @c (on entry to RESET state).
