@@ -1308,9 +1308,9 @@ sam3_explain_ckgr_plla(struct sam3_chip *pChip)
 static void
 sam3_explain_mckr(struct sam3_chip *pChip)
 {
-	uint32_t css, pres,fin;
-	int pdiv;
-	const char *cp;
+	uint32_t css, pres, fin = 0;
+	int pdiv = 0;
+	const char *cp = NULL;
 
 	css = sam3_reg_fieldname(pChip, "CSS", pChip->cfg.PMC_MCKR, 0, 2);
 	switch (css & 3) {
