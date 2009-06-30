@@ -61,7 +61,6 @@ Free Documentation License''.
 @menu
 * About::                            About OpenOCD
 * Developers::                       OpenOCD Developers
-* Building OpenOCD::                 Building OpenOCD From SVN
 * JTAG Hardware Dongles::            JTAG Hardware Dongles
 * About JIM-Tcl::                    About JIM-Tcl
 * Running::                          Running OpenOCD
@@ -174,9 +173,25 @@ or expand the OpenOCD source code.
 
 @section OpenOCD Subversion Repository
 
-The ``Building From Source'' section provides instructions to retrieve
-and and build the latest version of the OpenOCD source code.
-@xref{Building OpenOCD}.
+You can download the current SVN version with an SVN client of your
+choice from the following repositories:
+
+   svn://svn.berlios.de/openocd/trunk
+or
+   http://svn.berlios.de/svnroot/repos/openocd/trunk
+
+Using the SVN command line client, you can use the following command to
+fetch the latest version (make sure there is no (non-svn) directory
+called "openocd" in the current directory):
+
+   svn checkout svn://svn.berlios.de/openocd/trunk openocd
+
+If you prefer GIT based tools, the @command{git-svn} package works too:
+
+   git svn clone -s svn://svn.berlios.de/openocd
+
+The ``README'' file contains the instructions for building the project
+from the repository.
 
 Developers that want to contribute patches to the OpenOCD system are
 @b{strongly} encouraged to base their work off of the most recent trunk
@@ -208,275 +223,6 @@ SVN commits to keep pace with the ongoing changes:
 
 @uref{https://lists.berlios.de/mailman/listinfo/openocd-svn}
 
-
-@node Building OpenOCD
-@chapter Building OpenOCD
-@cindex building
-
-@section Pre-Built Tools
-If you are interested in getting actual work done rather than building
-OpenOCD, then check if your interface supplier provides binaries for
-you. Chances are that that binary is from some SVN version that is more
-stable than SVN trunk where bleeding edge development takes place.
-
-@section Packagers Please Read!
-
-You are a @b{PACKAGER} of OpenOCD if you
-
-@enumerate
-@item @b{Sell dongles} and include pre-built binaries
-@item @b{Supply tools} i.e.: A complete development solution
-@item @b{Supply IDEs} like Eclipse, or RHIDE, etc.
-@item @b{Build packages} i.e.: RPM files, or DEB files for a Linux Distro
-@end enumerate
-
-As a @b{PACKAGER}, you will experience first reports of most issues.
-When you fix those problems for your users, your solution may help
-prevent hundreds (if not thousands) of other questions from other users.
-
-If something does not work for you, please work to inform the OpenOCD
-developers know how to improve the system or documentation to avoid
-future problems, and follow-up to help us ensure the issue will be fully
-resolved in our future releases.
-
-That said, the OpenOCD developers would also like you to follow a few
-suggestions:
-
-@enumerate
-@item Send patches, including config files, upstream.
-@item Always build with printer ports enabled.
-@item Use libftdi + libusb for FT2232 support.
-@end enumerate
-
-@section Building From Source
-
-You can download the current SVN version with an SVN client of your choice from the
-following repositories:
-
- @uref{svn://svn.berlios.de/openocd/trunk}
-
-or
-
- @uref{http://svn.berlios.de/svnroot/repos/openocd/trunk}
-
-Using the SVN command line client, you can use the following command to fetch the
-latest version (make sure there is no (non-svn) directory called "openocd" in the
-current directory):
-
-@example
- svn checkout svn://svn.berlios.de/openocd/trunk openocd
-@end example
-
-If you prefer GIT based tools, the @command{git-svn} package works too:
-
-@example
- git svn clone -s svn://svn.berlios.de/openocd
-@end example
-
-Building OpenOCD from a repository requires a recent version of the
-GNU autotools (autoconf >= 2.59 and automake >= 1.9).
-For building on Windows,
-you have to use Cygwin. Make sure that your @env{PATH} environment variable contains no
-other locations with Unix utils (like UnxUtils) - these can't handle the Cygwin
-paths, resulting in obscure dependency errors (This is an observation I've gathered
-from the logs of one user - correct me if I'm wrong).
-
-You further need the appropriate driver files, if you want to build support for
-a FTDI FT2232 based interface:
-
-@itemize @bullet
-@item @b{ftdi2232} libftdi (@uref{http://www.intra2net.com/opensource/ftdi/})
-@item @b{ftd2xx} libftd2xx (@uref{http://www.ftdichip.com/Drivers/D2XX.htm}),
-or the Amontec version (from @uref{http://www.amontec.com}),
-for easier support of JTAGkey's vendor and product IDs.
-@end itemize
-
-libftdi is supported under Windows. Do not use versions earlier than 0.14.
-To use the newer FT2232H chips, supporting RTCK and USB high speed (480 Mbps),
-you need libftdi version 0.16 or newer.
-
-Some people say that FTDI's libftd2xx code provides better performance.
-However, it is binary-only, while OpenOCD is licenced according
-to GNU GPLv2 without any exceptions.
-That means that @emph{distributing} copies of OpenOCD built with
-the FTDI code would violate the OpenOCD licensing terms.
-You may, however, build such copies for personal use.
-
-To build OpenOCD (on both Linux and Cygwin), use the following commands:
-
-@example
- ./bootstrap 
-@end example
-
-Bootstrap generates the configure script, and prepares building on your system.
-
-@example
- ./configure [options, see below]
-@end example
-
-Configure generates the Makefiles used to build OpenOCD.
-
-@example
- make 
- make install
-@end example
-
-Make builds OpenOCD, and places the final executable in ./src/, the last step, ``make install'' is optional.
-
-The configure script takes several options, specifying which JTAG interfaces
-should be included (among other things):
-
-@itemize @bullet
-@item
-@option{--enable-parport} - Enable building the PC parallel port driver.
-@item
-@option{--enable-parport_ppdev} - Enable use of ppdev (/dev/parportN) for parport.
-@item
-@option{--enable-parport_giveio} - Enable use of giveio for parport instead of ioperm.
-@item
-@option{--enable-amtjtagaccel} - Enable building the Amontec JTAG-Accelerator driver.
-@item
-@option{--enable-ecosboard} - Enable building support for eCosBoard based JTAG debugger.
-@item
-@option{--enable-ioutil} - Enable ioutil functions - useful for standalone OpenOCD implementations.
-@item
-@option{--enable-httpd} - Enable builtin httpd server - useful for standalone OpenOCD implementations.
-@item
-@option{--enable-ep93xx} - Enable building support for EP93xx based SBCs.
-@item
-@option{--enable-at91rm9200} - Enable building support for AT91RM9200 based SBCs.
-@item
-@option{--enable-gw16012} - Enable building support for the Gateworks GW16012 JTAG programmer.
-@item
-@option{--enable-ft2232_ftd2xx} - Support FT2232-family chips using
-the closed-source library from FTDICHIP.COM
-(result not for re-distribution).
-@item
-@option{--enable-ft2232_libftdi} - Support FT2232-family chips using
-a GPL'd ft2232 support library (result OK for re-distribution).
-@item
-@option{--with-ftd2xx-win32-zipdir=PATH} - If using FTDICHIP.COM ft2232c driver,
-give the directory where the Win32 FTDICHIP.COM 'CDM' driver zip file was unpacked.
-@item
-@option{--with-ftd2xx-linux-tardir=PATH} - If using FTDICHIP.COM ft2232c driver
-on Linux, give the directory where the Linux driver's TAR.GZ file was unpacked.
-@item
-@option{--with-ftd2xx-lib=shared|static} - Linux only. Default: static.
-Specifies how the FTDICHIP.COM libftd2xx driver should be linked.
-Note: 'static' only works in conjunction with @option{--with-ftd2xx-linux-tardir}.
-The 'shared' value is supported, however you must manually install the required
-header files and shared libraries in an appropriate place.
-@item
-@option{--enable-presto_libftdi} - Enable building support for ASIX Presto programmer using the libftdi driver.
-@item
-@option{--enable-presto_ftd2xx} - Enable building support for ASIX Presto programmer using the FTD2XX driver.
-@item
-@option{--enable-usbprog} - Enable building support for the USBprog JTAG programmer.
-@item
-@option{--enable-oocd_trace} - Enable building support for the OpenOCD+trace ETM capture device.
-@item
-@option{--enable-jlink} - Enable building support for the Segger J-Link JTAG programmer.
-@item
-@option{--enable-vsllink} - Enable building support for the Versaloon-Link JTAG programmer.
-@item
-@option{--enable-rlink} - Enable building support for the Raisonance RLink JTAG programmer.
-@item
-@option{--enable-arm-jtag-ew} - Enable building support for the Olimex ARM-JTAG-EW programmer.
-@item
-@option{--enable-dummy} - Enable building the dummy port driver.
-@end itemize
-
-@section Parallel Port Dongles
-
-If you want to access the parallel port using the PPDEV interface you have to specify
-both the @option{--enable-parport} AND the @option{--enable-parport_ppdev} option since
-the @option{--enable-parport_ppdev} option actually is an option to the parport driver
-(see @uref{http://forum.sparkfun.com/viewtopic.php?t=3795} for more info).
-
-The same is true for the @option{--enable-parport_giveio} option, you have to
-use both the @option{--enable-parport} AND the @option{--enable-parport_giveio} option if you want to use giveio instead of ioperm parallel port access method.
-
-@section FT2232C Based USB Dongles 
-
-There are 2 methods of using the FTD2232, either (1) using the
-FTDICHIP.COM closed source driver, or (2) the open (and free) driver
-libftdi. Some claim the (closed) FTDICHIP.COM solution is faster,
-which is the motivation for supporting it even though its licensing
-restricts it to non-redistributable OpenOCD binaries, and it is
-not available for all operating systems used with OpenOCD.
-
-The FTDICHIP drivers come as either a (win32) ZIP file, or a (Linux)
-TAR.GZ file. You must unpack them ``some where'' convient. As of this
-writing FTDICHIP does not supply means to install these
-files ``in an appropriate place''.
-As a result, there are two
-``./configure'' options that help. 
-
-Below is an example build process:
-
-@enumerate
-@item Check out the latest version of ``openocd'' from SVN.
-
-@item If you are using the FTDICHIP.COM driver, download
-and unpack the Windows or Linux FTD2xx drivers
-(@uref{http://www.ftdichip.com/Drivers/D2XX.htm}).
-If you are using the libftdi driver, install that package
-(e.g. @command{apt-get install libftdi} on systems with APT).
-
-@example
-/home/duane/ftd2xx.win32    => the Cygwin/Win32 ZIP file contents
-/home/duane/libftd2xx0.4.16 => the Linux TAR.GZ file contents
-@end example
-
-@item Configure with options resembling the following.
-
-@enumerate a
-@item Cygwin FTDICHIP solution:
-@example
-./configure --prefix=/home/duane/mytools \
-        --enable-ft2232_ftd2xx \
-        --with-ftd2xx-win32-zipdir=/home/duane/ftd2xx.win32
-@end example
-
-@item Linux FTDICHIP solution:
-@example
-./configure --prefix=/home/duane/mytools \
-        --enable-ft2232_ftd2xx \
-        --with-ft2xx-linux-tardir=/home/duane/libftd2xx0.4.16
-@end example
-
-@item Cygwin/Linux LIBFTDI solution ... assuming that
-@itemize
-@item For Windows -- that the Windows port of LIBUSB is in place.
-@item For Linux -- that libusb has been built/installed and is in place.
-@item That libftdi has been built and installed (relies on libusb).
-@end itemize
-
-Then configure the libftdi solution like this:
-
-@example
-./configure --prefix=/home/duane/mytools \
-        --enable-ft2232_libftdi
-@end example
-@end enumerate
-
-@item Then just type ``make'', and perhaps ``make install''.
-@end enumerate
-
-
-@section Miscellaneous Configure Options
-
-@itemize @bullet
-@item
-@option{--disable-option-checking} - Ignore unrecognized @option{--enable} and @option{--with} options.
-@item
-@option{--enable-gccwarnings} - Enable extra gcc warnings during build.
-Default is enabled.
-@item
-@option{--enable-release} - Enable building of an OpenOCD release, generally
-this is for developers. It simply omits the svn version string when the
-openocd @option{-v} is executed.
-@end itemize
 
 @node JTAG Hardware Dongles
 @chapter JTAG Hardware Dongles
