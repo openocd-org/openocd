@@ -1,6 +1,6 @@
 # not a GNU package. You can remove this line, if
 # have all needed files, that a GNU package needs
-AUTOMAKE_OPTIONS = foreign 1.6
+AUTOMAKE_OPTIONS = gnu 1.6
 
 nobase_dist_pkgdata_DATA = \
 	contrib/libdcc/dcc_stdio.c \
@@ -34,7 +34,7 @@ doxygen::
 
 TCL_PATH = tcl
 # command to find paths of script files, relative to TCL_PATH
-TCL_FILES := find $(srcdir)/$(TCL_PATH) -name '*.cfg' -o -name '*.tcl' | \
+TCL_FILES = find $(srcdir)/$(TCL_PATH) -name '*.cfg' -o -name '*.tcl' | \
 		sed -e 's,^$(srcdir)/$(TCL_PATH),,'
 
 dist-hook:
@@ -61,6 +61,7 @@ distclean-local:
 DISTCLEANFILES = doxygen.log
 
 MAINTAINERCLEANFILES = \
+	$(srcdir)/INSTALL \
 	$(srcdir)/configure \
 	$(srcdir)/Makefile.in \
 	$(srcdir)/depcomp \

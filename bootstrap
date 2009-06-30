@@ -17,7 +17,7 @@ aclocal
 ${libtoolize} --automake --copy
 autoconf
 autoheader
-automake --foreign --add-missing --copy
+automake --gnu --add-missing --copy
 )
 
 # AM_MAINTAINER_MODE requires SVN users provide --enable-maintainer-mode
