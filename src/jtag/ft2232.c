@@ -156,6 +156,7 @@ static const ft2232_layout_t  ft2232_layouts[] =
 	{ "oocdlink",             jtagkey_init,              jtagkey_reset,      NULL                    },
 	{ "signalyzer",           usbjtag_init,              usbjtag_reset,      NULL                    },
 	{ "evb_lm3s811",          usbjtag_init,              usbjtag_reset,      NULL                    },
+	{ "luminary_icdi",        usbjtag_init,              usbjtag_reset,      NULL                    },
 	{ "olimex-jtag",          olimex_jtag_init,          olimex_jtag_reset,  olimex_jtag_blink       },
 	{ "flyswatter",           flyswatter_init,           flyswatter_reset,   flyswatter_jtag_blink   },
 	{ "turtelizer2",          turtle_init,               turtle_reset,       turtle_jtag_blink       },
@@ -2162,6 +2163,15 @@ static int usbjtag_init(void)
 		nSRSTnOE = 0x20;
 		low_output    = 0x88;
 		low_direction = 0x8b;
+	}
+	else if (strcmp(ft2232_layout, "luminary_icdi") == 0)
+	{
+		nTRST = 0x0;
+		nTRSTnOE = 0x00;
+		nSRST = 0x20;
+		nSRSTnOE = 0x20;
+		low_output    = 0x88;
+		low_direction = 0xcb;
 	}
 	else
 	{

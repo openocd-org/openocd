@@ -539,6 +539,8 @@ chips are starting to become available in JTAG adapters.
 @* See: @url{http://www.signalyzer.com}
 @item @b{evb_lm3s811}
 @* See: @url{http://www.luminarymicro.com} - The Stellaris LM3S811 eval board has an FTD2232C chip built in.
+@item @b{luminary_icdi}
+@* See: @url{http://www.luminarymicro.com} - Luminary In-Circuit Debug Interface (ICDI) Board, included in the Stellaris LM3S9B90 and LM3S9B92 Evaluation Kits.
 @item @b{olimex-jtag}
 @* See: @url{http://www.olimex.com}
 @item @b{flyswatter}
@@ -1829,6 +1831,7 @@ Currently valid layout @var{name} values include:
 @item @b{evb_lm3s811} Luminary Micro EVB_LM3S811 as a JTAG interface,
 either for the local Cortex-M3 (SRST only)
 or in a passthrough mode (neither SRST nor TRST)
+@item @b{luminary_icdi} Luminary In-Circuit Debug Interface (ICDI) Board
 @item @b{flyswatter} Tin Can Tools Flyswatter
 @item @b{icebear} ICEbear JTAG adapter from Section 5
 @item @b{jtagkey} Amontec JTAGkey and JTAGkey-Tiny (and compatibles)
