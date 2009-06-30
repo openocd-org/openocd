@@ -437,7 +437,7 @@ typedef int (*jtag_callback_t)(jtag_callback_data_t data0, jtag_callback_data_t 
  * arguments.
  *
  * @param f The callback function to add.
- * @param in Typically used to point to the data to operate on.
+ * @param data0 Typically used to point to the data to operate on.
  * Frequently this will be the data clocked in during a shift operation.
  * @param data1 An integer big enough to use as an @c int or a pointer.
  * @param data2 An integer big enough to use as an @c int or a pointer.
