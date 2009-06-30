@@ -33,12 +33,12 @@
 
 #include "interfaces.h"
 
-/**
- * @file This file includes declarations for all built-in jtag interfaces,
- *  which are then listed in the jtag_interfaces array.
+/** @file
+ * This file includes declarations for all built-in jtag interfaces,
+ * which are then listed in the jtag_interfaces array.
  *
- *  Dynamic loading can be implemented be searching for shared libraries
- *  that contain a jtag_interface structure that can added to this list.
+ * Dynamic loading can be implemented be searching for shared libraries
+ * that contain a jtag_interface structure that can added to this list.
  */
 
 #if BUILD_ZY1000 == 1

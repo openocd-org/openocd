@@ -30,8 +30,8 @@
 #ifndef OPENOCD_JTAG_INTERFACES_H
 #define OPENOCD_JTAG_INTERFACES_H
 
-/**
- * @file Exports the list of JTAG interface drivers, along with routines
+/** @file
+ * Exports the list of JTAG interface drivers, along with routines
  * for loading and unloading them dynamically from shared libraries.
  */
 
