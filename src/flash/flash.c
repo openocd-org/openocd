@@ -30,7 +30,6 @@
 #include "flash.h"
 #include "image.h"
 #include "time_support.h"
-#include "at91sam3.h"
 
 /* command handlers */
 static int handle_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -49,6 +48,7 @@ static int handle_flash_protect_command(struct command_context_s *cmd_ctx, char 
  */
 extern flash_driver_t lpc2000_flash;
 extern flash_driver_t cfi_flash;
+extern flash_driver_t at91sam3_flash;
 extern flash_driver_t at91sam7_flash;
 extern flash_driver_t str7x_flash;
 extern flash_driver_t str9x_flash;
