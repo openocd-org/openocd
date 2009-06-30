@@ -37,4 +37,4 @@ while (<STDIN>)
 	print STDERR "\n" unless ++$c % $C;
 }
 
-print STDERR "\n"
+print STDERR "\n" if $c;
