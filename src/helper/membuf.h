@@ -79,6 +79,7 @@ int membuf_vsprintf(struct membuf *pBuf , const char *fmt, va_list ap);
 /** Tokenize lines using strtok()
  * @param pBuf - buffer to tokenize
  * @param delim - delimiter parameter for strtok_r()
+ * @param pSave - pointer to string context for tokenization
  *
  * Identical to "strtok()" - pass "pBuff = NULL" on second call
  *
@@ -112,7 +113,7 @@ struct membuf *membuf_append(struct membuf *pBuf, const void *pData, size_t len)
  * Modified symantics of "strcat()".  On memory allocation failure
  * returns NULL.  On success, returns pointer to orginal membuf.
  */
-struct membuf *membuf_strcat(struct membuf *pBuf, const char *s);
+struct membuf *membuf_strcat(struct membuf *pBuf, const char *str);
 
 
 #endif
