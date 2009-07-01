@@ -128,7 +128,14 @@ those looking for a quick-install
 OpenOCD Dependencies
 --------------------
 
-You will need to install the appropriate driver files, if you want to
+Presently, GCC is required to build OpenOCD.  The developers have begun
+to enforce strict code warnings (-Wall, -Werror, -Wextra, and more) and
+use C99-specific features: inline functions, named initializers, mixing
+declarations with code, and other tricks.  While it may be possible to
+use other compilers, they must be somewhat modern and could require
+extending support to conditionally remove GCC-specific extensions.
+
+Also, you need to install the appropriate driver files, if you want to
 build support for a USB or FTDI-based interface:
 
 - ft2232, jlink, rlink, vsllink, usbprog, arm-jtag-ew:
@@ -138,6 +145,9 @@ build support for a USB or FTDI-based interface:
   - ftd2xx: http://www.ftdichip.com/Drivers/D2XX.htm,
     or the Amontec version (from @uref{http://www.amontec.com}), for
     easier support of JTAGkey's vendor and product IDs.
+
+Many Linux distributions provide these packages through their automated
+installation and update mechanisms.
 
 Compiling OpenOCD
 -----------------
