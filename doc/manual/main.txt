@@ -1,7 +1,7 @@
 /** @mainpage OpenOCD Reference Manual
 
 Welcome to the OpenOCD Reference Manual -- the developer's resource for
-learning about the internal architecture of the OpenOCD project.
+learning about the internal architecture of the OpenOCD project. @par
 
 In addition, this document contains the tactical and strategic plans
 and processes that have been developed by and for the OpenOCD community.
@@ -69,6 +69,7 @@ modules are stacked in the current implementation (from bottom to top):
   - @ref helperlogging
 - @subpage jtagdocs
   - @ref jtagcore
+  - @ref jtagtcl
   - @ref jtagcmd
   - @ref jtagiface
   - @ref jtagdriver
