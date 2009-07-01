@@ -304,14 +304,15 @@ static int stm32x_protect_check(struct flash_bank_s *bank)
 
 	if (stm32x_info->ppage_size == 2)
 	{
-		/* high density flash */
+		/* high density flash/connectivity line protection */
 
 		set = 1;
 
 		if (protection & (1 << 31))
 			set = 0;
 
-		/* bit 31 controls sector 62 - 255 protection */
+		/* bit 31 controls sector 62 - 255 protection for high density
+		 * bit 31 controls sector 62 - 127 protection for connectivity line */
 		for (s = 62; s < bank->num_sectors; s++)
 		{
 			bank->sectors[s].is_protected = set;
@@ -333,7 +334,7 @@ static int stm32x_protect_check(struct flash_bank_s *bank)
 	}
 	else
 	{
-		/* medium density flash */
+		/* low/medium density flash protection */
 		for (i = 0; i < num_bits; i++)
 		{
 			set = 1;
@@ -776,10 +777,10 @@ static int stm32x_probe(struct flash_bank_s *bank)
 	}
 	else if ((device_id & 0x7ff) == 0x418)
 	{
-		/* connectivity line density - we have 1k pages
-		 * 4 pages for a protection area */
-		page_size = 1024;
-		stm32x_info->ppage_size = 4;
+		/* connectivity line density - we have 2k pages
+		 * 2 pages for a protection area */
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
 
 		/* check for early silicon */
 		if (num_pages == 0xffff)
@@ -919,6 +920,10 @@ static int stm32x_info(struct flash_bank_s *bank, char *buf, int buf_size)
 		{
 			case 0x1000:
 				snprintf(buf, buf_size, "A");
+				break;
+
+			case 0x1001:
+				snprintf(buf, buf_size, "Z");
 				break;
 
 			default:
