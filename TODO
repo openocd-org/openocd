@@ -5,13 +5,6 @@ by the OpenOCD community.
 
 @section thelist The List
 
-Items with a current patch available should include a link to its
-posting on the openocd-developer mailing list archives.
-
-Some items may be in progress, usually indicated by the individual whose
-initials in parentheses following it.  A key for decoding these initials
-appears after The List.
-
 Most items are open for the taking, but please post to the mailing list
 before spending much time working on anything lists here.  The community
 may have evolved an idea since it was added here.
@@ -33,6 +26,8 @@ This section provides possible things to improve with OpenOCD's TCL support.
       above rely heavily on scripting event mechanisms.
   - Allow full TCL support? add --with-tcl=/path/to/installed/tcl
   - Move TCL support out of foo.[ch] and into foo_tcl.[ch] (other ideas?)
+    - See src/jtag/core.c and src/jtag/tcl.c for an example.
+    - allow some of these TCL command modules to be dynamically loadable?
 
 @section thelistjtag JTAG
 
@@ -44,15 +39,6 @@ The following tasks have been suggeted for cleaning up the JTAG layer:
 
 - use tap_set_state everywhere to allow logging TAP state transitions
 - rename other tap_states to use standard JTAG names (suggested by ML)
-
-- retire jtag_add_end_state() and replace w/global variable:
-  - removes TAP_INVALID as an argument to jtag_add_xxxx().
-
-  - global variable as argument to jtag_add_xxxx() should be phased out,
-    but it is useful while we need to bug-by-bug compatible while
-    testing changes.
-
- - Suggested by ØH. Michael Bruck also interested in this.
 - Encapsulate cmd_queue_cur_state and related varaible handling.
 
 The following tasks have been suggested for adding new core JTAG support:
@@ -71,13 +57,11 @@ interface support:
 - rework USB communication to be more robust.  Two possible options are:
   -# use libusb-1.0.1 with libusb-compat-0.1.1 (non-blocking I/O wrapper)
   -# rewrite implementation to use non-blocking I/O
-- FT2232 driver:
-  - integrate FTD2XX High-Speed Device support @par
-      PATCH: https://lists.berlios.de/pipermail/openocd-development/2009-April/005479.html
-  - fix outstanding bugs
 - J-Link driver:
   - fix to work with long scan chains, such as R.Doss's svf test.
-  - fix other outstanding bugs
+- FT2232 (libftdi):
+  - make performance comparable to alternatives
+  - make usability comparable to alternatives
 
 The following tasks have been suggested for adding new JTAG interfaces:
 
@@ -110,8 +94,8 @@ Once the above are completed:
 
 @section thelisttargets Target Support
 
-- general layer cleanup:
-  - https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
+- general layer cleanup: @par
+  https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
 - ARM11 improvements (MB?)
   - fix single stepping  (reported by ØH)
   - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
@@ -130,7 +114,7 @@ Once the above are completed:
   - work out how to debug this target
   - AVR debugging protocol.
 - FPGA:
-  - improve things (??)
+  - Altera Nios Soft-CPU support
 - Coldfire (suggested by NC)
   - can we draw from the BDM project?  @par
     http://bdm.sourceforge.net/
@@ -140,11 +124,6 @@ Once the above are completed:
 
 @section thelistsvf SVF/XSVF
 
-- factor and clean-up code
-- review The Guide for OpenOCD Users for documentation errors or omissions
-- update The Manual for OpenOCD Developerrs:
-  - add documentation describing the architecture of each module
-  - provide Technical Primers to bootstrap contributor knowledge
 - develop SVF unit tests 
 - develop XSVF unit tests 
 
@@ -166,6 +145,8 @@ Once the above are completed:
 
 @section thelistdebug Debugger Support
 
+- breakpoints can get lost in some circumstances: @par
+  https://lists.berlios.de/pipermail/openocd-development/2009-June/008853.html
 - integrate Keil AGDI interface to OpenOCD? (submitted by Dario Vecchio)
 
 @section thelisttesting Testing Suite
@@ -210,7 +191,7 @@ This section includes several related groups of ideas:
 
 @subsection thelisttestreports Test Feedback Tools
 
-These ideas were first introduced here:
+These ideas were first introduced here: @par
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006358.html
 
 - provide report submission scripts for e-mail and web forms
@@ -225,8 +206,13 @@ These ideas were first introduced here:
 
 @section thelistautotools Autotools Build System
 
-- investigate fixes to permit the use of -Wshadow
-- eliminate sources of confusion in @c boostrap script:
+- make entire configure process require less user consideration:
+  - automatically detect the features that are available, unless
+    options were specifically provided to configure
+  - provide a report of the drivers that will be build at the end of
+    running configure, so the users can verify which driverswill be
+    built during 'make' (and their options) .
+- eliminate sources of confusion in @c bootstrap script:
   -# Make @c bootstrap call 'configure --enable-maintainer-mode \<opts\>'?
   -# Add @c buildstrap script to assist with boostrap and configure steps.
 - automatically build tool-chains required for cross-compiling
@@ -239,8 +225,8 @@ These ideas were first introduced here:
 The following architectural tasks need to be accomplished and should be
 fairly easy to complete:
 
+- clean-up code to match style guides
 - factor code to eliminate duplicated functionality
-- overhaul use of types to improve 32/64-bit portability
 - rewrite code that uses casts to access 16-bit and larger types
   from unaligned memory addresses
 - libopenocd support: @par
@@ -250,13 +236,24 @@ fairly easy to complete:
 The following strategic tasks will require ambition, knowledge, and time
 to complete:
 
+- overhaul use of types to improve 32/64-bit portability
+  - types for both host and target word sizes?
+  - can we use GDB's CORE_TYPE support?
 - Allow N:M:P mapping of servers, targets, and interfaces
-- loadable module support for interface/target/flash drivers
+- loadable module support for interface/target/flash drivers and commands
+  - support both static and dynamic modules.
+  - should probably use libltdl for dynamic library handing.
 
-@section thelistadmin Administrative Tasks
+@section thelistadmin Documentation Tasks
 
-- Develop "style" guidelines for committing to Subversion
-- Develop milestone and release guidelines.
+- Develop milestone and release guidelines, processes, and scripts.
+- Develop "style" guidelines (and scripts) for maintainers:
+  - reviewing patches
+  - committing to Subversion
+- Review The Guide for OpenOCD Users for documentation errors or omissions
+- Update The Manual for OpenOCD Developerrs:
+  - Add documentation describing the architecture of each module
+  - Provide more Technical Primers to bootstrap contributor knowledge
 
 */
 /** @file
