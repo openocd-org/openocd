@@ -1,0 +1,122 @@
+/** @page releases Release Processes
+
+This page provides an introduction to the OpenOCD Release Proceses:
+- @ref releaseswhy
+- @ref releaseswho
+- @ref releaseswhen
+- @ref releaseshow
+
+@section releaseswhy Why Produce Releases?
+
+The OpenOCD maintainers should produce releases periodically.
+he reasons for several reasons that should be given in detail, before
+explaining who and how the processes occur.
+
+At any time, a "source archives" can be produced by running 'make dist'
+in the OpenOCD project tree.  With the 0.2.0 release, this command will
+produce openocd-\<version\>.{tar.gz,tar.bz2,zip} archives, which will be
+suitable for being released when produced properly.
+
+When released for users, these archives present several important
+advantages when contrasted to using the Subversion repository:
+
+-# They allow others to package and distribute the code to users.
+-# They build easier for developers, because they contain
+   a working configure script that was produced by the Release Manager.
+-# They prevent users from trying a random HEAD revision of the trunk.
+-# They free developers from answering questions about trunk breakage.
+
+Hopefully, this shows several good reasons to produce regular releases,
+but these release processes were developed with some additional design
+goals in mind.  Specifically, the releases processes should have the
+following properties:
+
+-# Produce successive sets of release archives cleanly and consistently.
+  - Implementable as a script that automates the critical release steps.
+-# Prevent human operators from doing it wrong, as much as possible.
+-# Allow scheduling and automation of release process milestones.
+
+The current release processes are documented in the following sections.
+They attempt to meet these design goals, but there are many improvements
+remaining to be made toward automating the process.
+
+@section releaseswho OpenOCD Release Manager
+
+OpenOCD archive releases will be produced by an individual filling the
+role of <i>Release Manager</i>.  This individual determines the schdule
+(@see releaseswhen) and executes the release processes for the
+community.  Each release requires one individual to fulfill this role,
+and these processes should survive any such transition gracefully.
+
+@section releaseswhen OpenOCD Release Schedule
+
+The OpenOCD release process must be carried out on a periodic basis
+in order to realize the benefits outlined above (@see releaseswhy).
+
+Starting with the 0.2.0 release, the OpenOCD project should produce a
+new minor release each month, with a major release once per year.  Bug
+fix releases could be provided more frequently; however, these should
+not be a priority for the Release Manager until the processes have been
+fully automated, to use resources most efficiently.
+
+If T is the time of the next release, then the following milestones
+describe the release milestones for each new release cycle.
+
+- T minus one month: start of new development cycle
+- T minus two weeks: announce pending trunk closure to new work
+- T minus one week: close trunk to new work, begin testing phase
+- T minus two days: call for final bug fixes
+- T minus one day: produce -rc packages and distribute to testers
+- T minus one hour: produce final packages and post on-line
+
+The process of scheduling release milestones should be community driven,
+though the Release Manager should attempt to follow these guidelines.
+Specifically, missing features that were scheduled for a release should
+be dropped, rather than delaying the release cycle to wait for them.
+
+@section releaseshow Release Process: Step-by-Step
+
+The exact process likely requires a few releases to work out the bugs,
+as it will take some experience before a script can be developed and
+tested that does everything safely and robustly.  Even then, some steps
+require clear user intervention -- and not only by the release manager.
+
+-# Produce final patches to the trunk (or release branch):
+  - add NEWS item to describe the release changes? (not ready for 0.2.0)
+    - the community should try to help produce this material
+    - can be used to automatically post "blurbs" about the project.
+  - bump library version if our API changed (not yet required)
+  - bump package version
+-# Produce and verify the binary packages:
+  -# Start with a clean working copy, used for producing releases only.
+  -# produce a ChangeLog for the release (using svn2cl).
+  -# bootstrap, configure, and build the package.
+  -# run 'make distcheck' to produce the distribution archives.
+  -# run 'make maintainer-clean'; verify the repository is empty again.
+-# Branch or tag the required tree in the Subversion repository:
+  - For a major/minor release from the main trunk, branch and tag it: 
+    -# svn cp .../trunk .../branches/${BRANCH_VERSION}
+    -# svn cp .../branches/${BRANCH_VERSION} .../tags/${PACKAGE_VERSION}
+  - For a bug-fix or final release from a release branch, only tag it:
+    -# svn cp .../branches/${BRANCH_VERSION} .../tags/${PACKAGE_VERSION}
+  - where:
+    - BRANCH_VERSION - is x.0.0-trunk or x.y.0-trunk
+    - PACKAGE_VERSION - is x.y.z
+-# Upload packages and post announcements of their availability:
+  -# Release packages into files section of berliOS project site.
+  -# Post announcement e-mail to the openocd-development list.
+-# After the community has checked their sanity, we can post "blurbs":
+  -# Post NEWS update to freshmeat.net and other trackers.
+  -# Submit big NEWS updates to news feeds (e.g. Digg, Reddit, etc.).
+
+Totally-automated packaging and distribution of OpenOCD requires more
+patching (post-0.2.0), but the final script(s) should be able to manage
+most steps in these processes.  The steps requiring user input can be
+guided by an "assistant" that walks the Release Manager through the
+process from beginning to end, performing basic sanity checks on their
+various inputs (e.g. the NEWS blurb).
+
+ */
+/** @file
+This file contains the @ref releases page.
+ */
