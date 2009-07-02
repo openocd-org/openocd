@@ -252,11 +252,6 @@ The following additional options may also be useful:
   --disable-wextra        Disable extra compiler warnings
   --disable-werror        Do not treat warnings as errors
 
-  --enable-release        Enable building of an OpenOCD release.  This
-			  option is intended for project maintainers.
-			  It simply omits the svn version string when
-			  the openocd -v is executed (to KISS).
-
   --disable-option-checking
                           Ignore unrecognized --enable and --with options.
   --disable-dependency-tracking  speeds up one-time build
