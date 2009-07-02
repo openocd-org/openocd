@@ -675,7 +675,7 @@ static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
 	if (aemif == 0x01e00000			/* dm6446, dm357 */
 			|| aemif == 0x01e10000	/* dm335, dm355 */
 			|| aemif == 0x01d10000	/* dm365 */
-) {
+			) {
 		if (chip < 0x0200000 || chip >= 0x0a000000) {
 			LOG_ERROR("NAND address %08lx out of range?", chip);
 			goto fail;
