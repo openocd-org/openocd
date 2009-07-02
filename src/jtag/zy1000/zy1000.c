@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007-2008 by Øyvind Harboe                              *
+ *   Copyright (C) 2007-2008 by ï¿½yvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,7 +28,7 @@
 #include <cyg/hal/hal_diag.h>
 
 
-#define ZYLIN_VERSION "1.52"
+#define ZYLIN_VERSION "1.53"
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
 #define ZYLIN_OPENOCD "$Revision$"
