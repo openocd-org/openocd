@@ -176,9 +176,11 @@ or expand the OpenOCD source code.
 You can download the current SVN version with an SVN client of your
 choice from the following repositories:
 
-   svn://svn.berlios.de/openocd/trunk
+   @uref{svn://svn.berlios.de/openocd/trunk}
+
 or
-   http://svn.berlios.de/svnroot/repos/openocd/trunk
+
+   @uref{http://svn.berlios.de/svnroot/repos/openocd/trunk}
 
 Using the SVN command line client, you can use the following command to
 fetch the latest version (make sure there is no (non-svn) directory
@@ -716,7 +718,7 @@ will help support users of any board using that chip.
 
 @item
 You may may need to write some C code.
-It may be as simple as a supporting a new new ft2232 or parport
+It may be as simple as a supporting a new ft2232 or parport
 based dongle; a bit more involved, like a NAND or NOR flash
 controller driver; or a big piece of work like supporting
 a new chip architecture.
@@ -3155,8 +3157,8 @@ the family was cribbed from the data sheet. @emph{Note to future
 readers/updaters: Please remove this worrysome comment after other
 chips are confirmed.}
 
-The AT91SAM3U4[E/C] (256K) chips have 2 flash banks, the other chips
-(3U[1/2][E/C]) have 1 flash bank.  In all cases the flash banks are at
+The AT91SAM3U4[E/C] (256K) chips have two flash banks; most other chips
+have one flash bank.  In all cases the flash banks are at
 the following fixed locations:
 
 @example
