@@ -117,13 +117,11 @@ Building OpenOCD
 
 The INSTALL file contains generic instructions for running 'configure'
 and compiling the OpenOCD source code.  That file is provided by default
-for all GNU automake packages, and 
+for all GNU automake packages.  If you are not familiar with the GNU
+autotools, then you should read those instructions first.  
 
-if you are not familiar with the GNU autotools, then you should read
-those instructions first.  
-Still, the
-remainder of this document tries to provide complete instructions for
-those looking for a quick-install
+The remainder of this document tries to provide some instructions for
+those looking for a quick-install.
 
 OpenOCD Dependencies
 --------------------
@@ -143,11 +141,13 @@ build support for a USB or FTDI-based interface:
 - ft2232 also requires:
   - libftdi: http://www.intra2net.com/opensource/ftdi/  *OR*
   - ftd2xx: http://www.ftdichip.com/Drivers/D2XX.htm,
-    or the Amontec version (from @uref{http://www.amontec.com}), for
+    or the Amontec version (from http://www.amontec.com), for
     easier support of JTAGkey's vendor and product IDs.
 
 Many Linux distributions provide these packages through their automated
-installation and update mechanisms.
+installation and update mechanisms; however, some Linux versions include
+older versions of libftdi.  In particular, using Ubuntu 8.04 has been
+problematic, but newer versions of Ubuntu do not have this problem.
 
 Compiling OpenOCD
 -----------------
@@ -377,7 +377,7 @@ called "openocd" in the current directory):
 
    svn checkout svn://svn.berlios.de/openocd/trunk openocd
 
-If you prefer GIT based tools, the @command{git-svn} package works too:
+If you prefer GIT based tools, the git-svn package works too:
 
    git svn clone -s svn://svn.berlios.de/openocd
 
@@ -386,7 +386,7 @@ Tips For Building From The Subversion Repository
 
 Building OpenOCD from a repository requires a recent version of the GNU
 autotools (autoconf >= 2.59 and automake >= 1.9).  For building on
-Windows, you have to use Cygwin. Make sure that your @env{PATH}
+Windows, you have to use Cygwin. Make sure that your PATH
 environment variable contains no other locations with Unix utils (like
 UnxUtils) - these can't handle the Cygwin paths, resulting in obscure
 dependency errors.  This was an observation gathered from the logs of
