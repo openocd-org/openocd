@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008 ï¿½yvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008, Duane Ellis                                       *
@@ -867,15 +867,27 @@ long jim_global_long(const char *variable)
 	int parse##name(const char *str, type *ul) \
 	{ \
 		if (!*str) \
+		{ \
+			LOG_ERROR("Invalid command argument"); \
 			return ERROR_COMMAND_ARGUMENT_INVALID; \
+		} \
 		char *end; \
 		*ul = func(str, &end, 0); \
 		if (*end) \
+		{ \
+  		    LOG_ERROR("Invalid command argument"); \
 			return ERROR_COMMAND_ARGUMENT_INVALID; \
+		} \
 		if ((max == *ul) && (ERANGE == errno)) \
+		{ \
+		    LOG_ERROR("Argument overflow"); \
 			return ERROR_COMMAND_ARGUMENT_OVERFLOW; \
+		} \
 		if (min && (min == *ul) && (ERANGE == errno)) \
+		{ \
+		    LOG_ERROR("Argument underflow"); \
 			return ERROR_COMMAND_ARGUMENT_UNDERFLOW; \
+		} \
 		return ERROR_OK; \
 	}
 DEFINE_PARSE_NUM_TYPE(_ulong, unsigned long , strtoul, 0, ULONG_MAX)
