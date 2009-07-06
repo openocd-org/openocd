@@ -875,17 +875,17 @@ long jim_global_long(const char *variable)
 		*ul = func(str, &end, 0); \
 		if (*end) \
 		{ \
-  		    LOG_ERROR("Invalid command argument"); \
+			LOG_ERROR("Invalid command argument"); \
 			return ERROR_COMMAND_ARGUMENT_INVALID; \
 		} \
 		if ((max == *ul) && (ERANGE == errno)) \
 		{ \
-		    LOG_ERROR("Argument overflow"); \
+			LOG_ERROR("Argument overflow"); \
 			return ERROR_COMMAND_ARGUMENT_OVERFLOW; \
 		} \
 		if (min && (min == *ul) && (ERANGE == errno)) \
 		{ \
-		    LOG_ERROR("Argument underflow"); \
+			LOG_ERROR("Argument underflow"); \
 			return ERROR_COMMAND_ARGUMENT_UNDERFLOW; \
 		} \
 		return ERROR_OK; \
