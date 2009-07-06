@@ -159,8 +159,9 @@ int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2, uint32_t C
 
 	jtag_add_dr_scan(4, fields, jtag_get_end_state());
 
-	/*TODO: add timeout*/
-	do
+	long long then = timeval_ms();
+
+	for (;;)
 	{
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
@@ -173,7 +174,19 @@ int arm926ejs_cp15_read(target_t *target, uint32_t op1, uint32_t op2, uint32_t C
 		{
 			return retval;
 		}
-	} while (buf_get_u32(&access, 0, 1) != 1);
+		
+		if (buf_get_u32(&access, 0, 1) == 1)
+		{
+			break;
+		}
+		
+		/* 10ms timeout */
+		if ((timeval_ms()-then)>10)
+		{
+			LOG_ERROR("cp15 read operation timed out");
+			return ERROR_FAIL;
+		}
+	}
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	LOG_DEBUG("addr: 0x%x value: %8.8x", address, *value);
@@ -228,8 +241,10 @@ int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2, uint32_t 
 	fields[3].in_value = NULL;
 
 	jtag_add_dr_scan(4, fields, jtag_get_end_state());
-	/*TODO: add timeout*/
-	do
+
+	long long then = timeval_ms();
+
+	for (;;)
 	{
 		/* rescan with NOP, to wait for the access to complete */
 		access = 0;
@@ -239,7 +254,19 @@ int arm926ejs_cp15_write(target_t *target, uint32_t op1, uint32_t op2, uint32_t 
 		{
 			return retval;
 		}
-	} while (buf_get_u32(&access, 0, 1) != 1);
+
+		if (buf_get_u32(&access, 0, 1) == 1)
+		{
+			break;
+		}
+
+		/* 10ms timeout */
+		if ((timeval_ms()-then)>10)
+		{
+			LOG_ERROR("cp15 write operation timed out");
+			return ERROR_FAIL;
+		}
+	}
 
 #ifdef _DEBUG_INSTRUCTION_EXECUTION_
 	LOG_DEBUG("addr: 0x%x value: %8.8x", address, value);
