@@ -4631,6 +4631,8 @@ and any other core-specific commands that may be available.
 Control use of the EmbeddedIce DBGRQ signal to force entry into debug mode,
 instead of breakpoints.  This should be
 safe for all but ARM7TDMI--S cores (like Philips LPC). 
+This feature is enabled by default on most ARM9 cores,
+including ARM9TDMI, ARM920T, and ARM926EJ-S.
 @end deffn
 
 @deffn Command {arm7_9 dcc_downloads} (@option{enable}|@option{disable})
