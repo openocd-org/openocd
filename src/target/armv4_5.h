@@ -114,7 +114,7 @@ static __inline int armv4_5_mode_to_number(enum armv4_5_mode mode)
 		case ARMV4_5_MODE_SYS: return 6; break;
 		case ARMV4_5_MODE_ANY: return 0; break;	/* map MODE_ANY to user mode */
 		default:
-			LOG_ERROR("invalid mode value encountered");
+			LOG_ERROR("invalid mode value encountered %d", mode);
 			return -1;
 	}
 }
