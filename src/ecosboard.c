@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007-2008 by Øyvind Harboe                              *
+ *   Copyright (C) 2007-2008 by ï¿½yvind Harboe                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -171,6 +171,62 @@ void reboot(void)
 			(void *) reboot_stack, sizeof(reboot_stack),
 			&zylinjtag_thread_handle, &zylinjtag_thread_object);
 	cyg_thread_resume(zylinjtag_thread_handle);
+}
+
+static char zylinjtag_reboot_port_stack[2048];
+static cyg_thread zylinjtag_reboot_port_thread_object;
+static cyg_handle_t zylinjtag_reboot_port_thread_handle;
+
+static void zylinjtag_reboot_port_task(cyg_addrword_t data)
+{
+	int so_reuseaddr_option = 1;
+
+	int fd;
+	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	{
+		LOG_ERROR("error creating socket: %s", strerror(errno));
+		exit(-1);
+	}
+
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*) &so_reuseaddr_option,
+			sizeof(int));
+
+	struct sockaddr_in sin;
+	unsigned int address_size;
+	address_size = sizeof(sin);
+	memset(&sin, 0, sizeof(sin));
+	sin.sin_family = AF_INET;
+	sin.sin_addr.s_addr = INADDR_ANY;
+	sin.sin_port = htons(1234);
+
+	if (bind(fd, (struct sockaddr *) &sin, sizeof(sin)) == -1)
+	{
+		LOG_ERROR("couldn't bind to socket: %s", strerror(errno));
+		exit(-1);
+	}
+
+	if (listen(fd, 1) == -1)
+	{
+		LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
+		exit(-1);
+	}
+	//	socket_nonblock(fd);
+
+
+	accept(fd, (struct sockaddr *) &sin, &address_size);
+
+	diag_printf("Got reboot signal on port 1234");
+
+	reboot();
+
+}
+
+void reboot_port(void)
+{
+	cyg_thread_create(1, zylinjtag_reboot_port_task, (cyg_addrword_t) 0, "wait for reboot signal on port 1234",
+			(void *) zylinjtag_reboot_port_stack, sizeof(zylinjtag_reboot_port_stack),
+			&zylinjtag_reboot_port_thread_handle, &zylinjtag_reboot_port_thread_object);
+	cyg_thread_resume(zylinjtag_reboot_port_thread_handle);
 }
 
 int configuration_output_handler(struct command_context_s *context,
@@ -432,6 +488,10 @@ static void zylinjtag_startNetwork(void)
 		diag_printf("Network not up and running\n");
 		exit(-1);
 	}
+
+	/* very first thing we want is a reboot capability */
+	reboot_port();
+
 #if defined(CYGPKG_NET_FREEBSD_STACK)
 	/*start TFTP*/
 	tftpd_start(69, &fileops);
