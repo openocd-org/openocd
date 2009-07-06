@@ -267,7 +267,7 @@ In addition, support for '-rc' releases needs to be added.
 
 The following output was taken from the release script:
 @verbatim
-usage: tools/release.sh <command>
+usage: tools/release.sh [options] <command>
 
 Main Commands:
   info          Show a summary of the next pending release.
@@ -303,6 +303,20 @@ WARNING: This script should be used by the Release Manager ONLY.
 
 Run <code>tools/release.sh help</code> for current command support.
 
+@subsection releasescriptenv Release Script Options
+
+The @c release.sh script recognizes some command-line options that
+affect its behavior:
+
+- @c --live : Use this option to perform a live release.
+  When this option has been given, the release commands will affect
+  the repository; otherwise, the script reports the actions to take,
+  and it produces archives that are unsuitable for public release.
+
+@note Only the Release Manager should use the @c --live option, as
+it will make permanent changes to the Subversion repository that
+cannot be undone.
+
 @subsection releasescriptenv Release Script Environment
 
 The @c release.sh script recognizes some environment variables which
@@ -310,18 +324,13 @@ affect its behavior:
 
 - @c CONFIG_OPTS : Passed as options to the configure script.
 - @c MAKE_OPTS : Passed as options to the 'make' processes.
-- @c RELEASE_DRY_RUN : Set this to null to perform the live release.
-  Unless this variable has been (un)set, the release commands will not
-  affect the repository.
-
-Proper option handling should be added to set these variables in script.
 
 @section releasetutorial Release Tutorials
 
 This section provides tutorials for using the Release Script to perform
 common release tasks.
 
-@subsection releasetutorialminor Minor Release Tutorial
+@subsection releasetutorialsetup Release Tutorial Setup
 
 The tutorials in this section assume the following environment
 variables have been set properly:
