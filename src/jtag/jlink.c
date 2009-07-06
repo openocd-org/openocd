@@ -305,7 +305,6 @@ static int jlink_register_commands(struct command_context_s *cmd_ctx)
 
 static int jlink_init(void)
 {
-	int check_cnt;
 	int i;
 
 	jlink_jtag_handle = jlink_usb_open();
@@ -315,24 +314,28 @@ static int jlink_init(void)
 		LOG_ERROR("Cannot find jlink Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
 	}
+	
+	/*
+	 *  The next three instructions were added after discovering a problem while using an oscilloscope.  For the V8
+	 *	SAM-ICE dongle (and likely other j-link device variants), the reset line to the target microprocessor was found to
+	 *	cycle only intermittently during emulator startup (even after encountering the downstream reset instruction later
+	 *	in the code).  This was found to create two issues:  1) In general it is a bad practice to not reset a CPU to a known
+	 *	state when starting an emulator and 2) something critical happens inside the dongle when it does the first read
+	 *	following a new USB session.  Keeping the processor in reset during the first read collecting version information
+	 *	seems to prevent errant "J-Link command EMU_CMD_VERSION failed" issues.
+	 */
+	
+	LOG_INFO("J-Link initialization started / target CPU reset initiated");
+	jlink_simple_command(EMU_CMD_HW_TRST0);
+	jlink_simple_command(EMU_CMD_HW_RESET0);
+	sleep(1);
 
 	jlink_hw_jtag_version = 2;
-	check_cnt = 0;
-	while (check_cnt < 3)
-	{
-		if (jlink_get_version_info() == ERROR_OK)
-		{
-			/* attempt to get status */
-			jlink_get_status();
-			break;
-		}
 
-		check_cnt++;
-	}
-
-	if (check_cnt == 3)
+	if (jlink_get_version_info() == ERROR_OK)
 	{
-		LOG_INFO("J-Link initial read failed, don't worry");
+		/* attempt to get status */
+		jlink_get_status();
 	}
 
 	LOG_INFO("J-Link JTAG Interface ready");
@@ -860,6 +863,15 @@ static jlink_jtag_t* jlink_usb_open()
 			if ((dev->descriptor.idVendor == VID) && (dev->descriptor.idProduct == PID))
 			{
 				result->usb_handle = usb_open(dev);
+				
+				/*
+				 *	Some j-link dongles experience intermittent communication issues at startup to varying degrees
+				 *	depending on the host operating system.  Troubleshooting this problem all the way back to libusb
+				 *	revealed that without a usb reset, the hardware can start in an uncertain state causing a litany
+				 *	of annoying problems.  The next step was added to the original code to address this problem.
+				 */
+				
+				usb_reset(result->usb_handle);
 
 				/* usb_set_configuration required under win32 */
 				usb_set_configuration(result->usb_handle, dev->config[0].bConfigurationValue);
