@@ -15,6 +15,9 @@ Feel free to send patches to add or clarify items on this list, too.
 
 This section provides possible things to improve with OpenOCD's TCL support.
 
+- Fix problem with incorrect line numbers reported for a syntax
+  error in a reset init event.
+
 - organize the TCL configurations:
   - provide more directory structure for boards/targets?
   - factor configurations into layers (encapsulation and re-use)
@@ -97,7 +100,7 @@ Once the above are completed:
 - general layer cleanup: @par
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
 - ARM11 improvements (MB?)
-  - fix single stepping  (reported by ØH)
+  - fix single stepping  (reported by ï¿½H)
   - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
 - Cortex A8 support (ML)
   - add target implementation (ML)
@@ -141,7 +144,7 @@ Once the above are completed:
 - finish implementing bus width/chip width handling (suggested by NC)
 - factor vendor-specific code into separate source files
   - add new callback interface for vendor-specific code
-- investigate/implement "thin wrapper" to use eCos CFI drivers (ØH)
+- investigate/implement "thin wrapper" to use eCos CFI drivers (ï¿½H)
 
 @section thelistdebug Debugger Support
 
