@@ -328,7 +328,7 @@ static int jlink_init(void)
 	LOG_INFO("J-Link initialization started / target CPU reset initiated");
 	jlink_simple_command(EMU_CMD_HW_TRST0);
 	jlink_simple_command(EMU_CMD_HW_RESET0);
-	sleep(1);
+	usleep(1000);
 
 	jlink_hw_jtag_version = 2;
 
