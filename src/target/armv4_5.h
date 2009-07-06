@@ -132,7 +132,7 @@ static __inline enum armv4_5_mode armv4_5_number_to_mode(int number)
 		case 5: return ARMV4_5_MODE_UND; break;
 		case 6: return ARMV4_5_MODE_SYS; break;
 		default:
-			LOG_ERROR("mode index out of bounds");
+			LOG_ERROR("mode index out of bounds %d", number);
 			return ARMV4_5_MODE_ANY;
 	}
 };
