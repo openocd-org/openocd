@@ -190,19 +190,14 @@ Even with the release script, some steps require clear user intervention
 The following steps should be followed to produce each release:
 
 -# Produce final patches to the trunk (or release branch):
-  -# add NEWS item to describe the release changes? (not ready for 0.2.0)
-    - the community should try to help produce this material
-    - can be used to automatically post "blurbs" about the project.
+  -# Finalize @c NEWS file to describe the changes in the release 
+    - This file is Used to automatically post "blurbs" about the project.
+    - This material should be produced during the development cycle.
+    - Add a new item for each @c NEWS-worthy contribution, when committed.
   -# bump library version if our API changed (not yet required)
   -# Remove -in-development tag from package version:
-    - For major/minor releases, remove version tag from trunk.
+    - For major/minor releases, remove version tag from trunk, @a or
     - For bug-fix releases, remove version tag from release branch.
--# Produce and verify the binary packages:
-  -# Start with a clean working copy, used for producing releases only.
-  -# produce a ChangeLog for the release (using svn2cl).
-  -# bootstrap, configure, and build the package.
-  -# run 'make distcheck' to produce the distribution archives.
-  -# run 'make maintainer-clean'; verify the repository is empty again.
 -# Branch or tag the required tree in the Subversion repository:
   - Tags and branches for releases must be named consistently: @par
     "${PACKAGE_TARNAME}-${PACKAGE_VERSION}"
@@ -218,23 +213,37 @@ svn cp .../branches/${RELEASE_BRANCH} .../tags/${RELEASE_TAG}
 svn cp .../branches/${RELEASE_BRANCH} .../tags/${RELEASE_TAG}
 @endverbatim
 -# Prepare to resume normal development activities:
+  - Archive @c NEWS file as <code>doc/news/NEWS-${PACKAGE_VERSION}</code>.
+  - Create a new @c NEWS file for the next release
   - For major/minor release from the trunk:
     -# Bump major or minor package version in trunk.
     -# Restore version tag to trunk and release branch.
   - For bug-fix releases from a release branch:
     -# Bump bug-fix version in release branch.
     -# Restore version tag to release branch.
+-# Produce the package source archives:
+  -# Start with a clean working copy, used for producing releases only.
+  -# Switch to release tag branch: svn switch .../${RELEASE_TAG}
+  -# produce a ChangeLog for the release (using svn2cl).
+  -# @c bootstrap, @c configure, and @c make the package.
+  -# Run <code>make distcheck</code> to produce the distribution archives.
+  -# Run <code>make maintainer-clean</code> verify the repository is empty.
 -# Publish documentation for the release:
   - Allow users to access the documentation for each of our releases.
   - Place static copies of the following files on the project website:
-    - NEWS: to provide a blurb for each release (not yet used)
-    - ChangeLog: to show exactly what has been changed
+    - @c NEWS: to provide a blurb for each release
+    - @c ChangeLog: to show exactly what has been changed
     - User Guide, Developer Manual: to allow easy on-line viewing
 -# Upload packages and post announcements of their availability:
-  -# Release packages into files section of berliOS project site.
+  -# Release packages into files section of berliOS project site:
+     -# Create the new release for the new version.
+     -# Provide @c NEWS and ChangeLog files, as requested.
+     -# Upload files via FTP to ftp://ftp.berlios.de/incoming/
+     -# Edit descriptions for each file.
+     -# Send E-mail Release Notice
   -# Post announcement e-mail to the openocd-development list.
   -# Announce updates on freshmeat.net and other trackers.
-  -# Submit big NEWS updates to news feeds (e.g. Digg, Reddit, etc.).
+  -# Submit big updates to news feeds (e.g. Digg, Reddit, etc.).
 
 @section releasescript The Release Script
 
@@ -377,7 +386,7 @@ patching of the configure script.  The final release script should be
 able to manage most steps of the processes.  The steps requiring user
 input could be guided by an "assistant" that walks the Release Manager
 through the process from beginning to end, performing basic sanity
-checks on their various inputs (e.g. the NEWS blurb).
+checks on their various inputs (e.g. the @c NEWS blurb).
 
  */
 /** @file
