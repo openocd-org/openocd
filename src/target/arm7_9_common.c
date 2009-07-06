@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008 ï¿½yvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -1431,18 +1431,10 @@ int arm7_9_debug_entry(target_t *target)
 		context[15] -= 3 * 4;
 	}
 
-	if ((target->debug_reason == DBG_REASON_BREAKPOINT)
-			|| (target->debug_reason == DBG_REASON_SINGLESTEP)
-			|| (target->debug_reason == DBG_REASON_WATCHPOINT)
-			|| (target->debug_reason == DBG_REASON_WPTANDBKPT)
-			|| ((target->debug_reason == DBG_REASON_DBGRQ) && (arm7_9->use_dbgrq == 0)))
+	if ((target->debug_reason != DBG_REASON_DBGRQ) || (!arm7_9->use_dbgrq))
 		context[15] -= 3 * ((armv4_5->core_state == ARMV4_5_STATE_ARM) ? 4 : 2);
-	else if (target->debug_reason == DBG_REASON_DBGRQ)
-		context[15] -= arm7_9->dbgreq_adjust_pc * ((armv4_5->core_state == ARMV4_5_STATE_ARM) ? 4 : 2);
 	else
-	{
-		LOG_ERROR("unknown debug reason: %i", target->debug_reason);
-	}
+		context[15] -= arm7_9->dbgreq_adjust_pc * ((armv4_5->core_state == ARMV4_5_STATE_ARM) ? 4 : 2);
 
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
