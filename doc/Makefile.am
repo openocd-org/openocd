@@ -14,4 +14,6 @@ dist-hook:
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in \
 	$(srcdir)/mdate-sh \
+	$(srcdir)/stamp-vti \
+	$(srcdir)/version.texi \
 	$(srcdir)/texinfo.tex
