@@ -210,6 +210,8 @@ static __inline int socket_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set
 
 #ifndef HAVE_ELF_H
 
+#include "types.h"
+
 typedef uint32_t	Elf32_Addr;
 typedef uint16_t	Elf32_Half;
 typedef uint32_t	Elf32_Off;

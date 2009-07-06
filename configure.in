@@ -824,7 +824,9 @@ main( int argc, char **argv )
     AC_MSG_RESULT([Success!])
   ], [
     AC_MSG_ERROR([Cannot build & run test program using ftd2xx.lib])
-  ] )
+  ], [
+    AC_MSG_RESULT([Skipping as we are cross-compiling])
+  ])
 
 AC_MSG_CHECKING([whether to build ftd2xx highspeed device support])
 AC_MSG_RESULT([$want_ftd2xx_highspeed])
@@ -891,7 +893,10 @@ main( int argc, char **argv )
       AC_MSG_RESULT([Success])
     ], [
       AC_MSG_ERROR([Cannot build & run test program using libftdi])
+    ], [
+      AC_MSG_RESULT([Skipping as we are cross-compiling])
     ])
+
   # Restore the 'unexpanded ldflags'
   LDFLAGS=$LDFLAGS_SAVE
   CFLAGS=$CFLAGS_SAVE
