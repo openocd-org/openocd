@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008 ï¿½yvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008, Duane Ellis                                       *
@@ -2039,15 +2039,18 @@ static int handle_step_command(struct command_context_s *cmd_ctx, char *cmd, cha
 	 * with one argument addr = args[0],
 	 * handle breakpoints, debugging */
 	uint32_t addr = 0;
+	int current_pc = 1;
 	if (argc == 1)
 	{
 		int retval = parse_u32(args[0], &addr);
 		if (ERROR_OK != retval)
 			return retval;
+		current_pc = 0;
 	}
 
 	target_t *target = get_current_target(cmd_ctx);
-	return target->type->step(target, 0, addr, 1);
+
+	return target->type->step(target, current_pc, addr, 1);
 }
 
 static void handle_md_output(struct command_context_s *cmd_ctx,
