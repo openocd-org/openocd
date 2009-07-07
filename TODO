@@ -11,21 +11,6 @@ may have evolved an idea since it was added here.
 
 Feel free to send patches to add or clarify items on this list, too.
 
-@section thelisttcl Regressions
-
-- Dominic has spotted a "reset halt" regression between 838(fails) and 729(works)
-
-https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
-
-@section thelisttcl Bugs
-
-- reset run/halt/step for arm926ejs is not robust. Needs lots of testing to
-map out problems.
-
-- i.MX27 reset run problems.
-
-https://lists.berlios.de/pipermail/openocd-development/2009-July/009240.html
-
 @section thelisttcl TCL
 
 This section provides possible things to improve with OpenOCD's TCL support.
@@ -114,6 +99,13 @@ Once the above are completed:
 
 - general layer cleanup: @par
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
+- regression: "reset halt" between 729(works) and 838(fails): @par
+https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
+- ARM923EJS:
+  - reset run/halt/step is not robust; needs testing to map out problems.
+- i.MX27 
+  -reset run problems: @par
+https://lists.berlios.de/pipermail/openocd-development/2009-July/009240.html
 - ARM11 improvements (MB?)
   - fix single stepping  (reported by �H)
   - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
