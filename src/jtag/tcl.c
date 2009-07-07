@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008 ï¿½yvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2009 SoftPLC Corporation                                *
@@ -1016,9 +1016,7 @@ static int handle_jtag_reset_command(struct command_context_s *cmd_ctx,
 		return ERROR_JTAG_INIT_FAILED;
 
 	jtag_add_reset(trst, srst);
-	jtag_execute_queue();
-
-	return ERROR_OK;
+	return jtag_execute_queue();
 }
 
 static int handle_runtest_command(struct command_context_s *cmd_ctx,
@@ -1033,9 +1031,7 @@ static int handle_runtest_command(struct command_context_s *cmd_ctx,
 		return retval;
 
 	jtag_add_runtest(num_clocks, TAP_IDLE);
-	jtag_execute_queue();
-
-	return ERROR_OK;
+	return jtag_execute_queue();
 }
 
 /*
