@@ -123,10 +123,6 @@ proc script {filename} {
 	source [find $filename]
 }
 
-#proc daemon_reset {} {
-#	puts "Daemon reset is obsolete. Use -c init -c \"reset halt\" at end of openocd command line instead");
-#}
-
 add_help_text script "<filename> - filename of OpenOCD script (tcl) to run"
 
 # Handle GDB 'R' packet. Can be overriden by configuration script,
