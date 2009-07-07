@@ -11,6 +11,17 @@ may have evolved an idea since it was added here.
 
 Feel free to send patches to add or clarify items on this list, too.
 
+@section thelisttcl Regressions
+
+- Dominic has spotted a "reset halt" regression between 838(fails) and 729(works)
+
+https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
+
+@section thelisttcl Bugs
+
+- reset run/halt/step for arm926ejs is not robust. Needs lots of testing to
+map out problems.
+
 @section thelisttcl TCL
 
 This section provides possible things to improve with OpenOCD's TCL support.
