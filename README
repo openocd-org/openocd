@@ -51,10 +51,11 @@ The OpenOCD User's Guide can be produced in two different format:
 The OpenOCD Developer Manual contains information about the internal
 architecture and other details about the code:
 
+  # NB! make sure doxygen is installed, type doxygen --version
   make doxygen
 
   # If HTMLVIEWER is set, this views the HTML Doxygen output.
-  ${HTMLVIEWER} doxyegen/index.html
+  ${HTMLVIEWER} doxygen/index.html
 
 The remaining sections describe how to configure the system such that
 you can build the in-tree documentation.
