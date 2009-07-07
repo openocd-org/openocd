@@ -22,24 +22,9 @@ https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
 - reset run/halt/step for arm926ejs is not robust. Needs lots of testing to
 map out problems.
 
-- i.MX27 reset run problems. Notice below that even if the target is running,
-a EICE_DBG_STATUS_DBGACK(I think...) is detected and OpenOCD wrongly believes that the
-target is halted. Polling the target afterwards reveals that the
-target is running. Notice the MOE=0xe value.
+- i.MX27 reset run problems.
 
-> reset run
-JTAG tap: imx27.bs tap/device found: 0x1b900f0f (mfg: 0x787, part: 0xb900, ver: 0x1)
-JTAG Tap/device matched
-JTAG tap: imx27.cpu tap/device found: 0x07926121 (mfg: 0x090, part: 0x7926, ver: 0x0)
-JTAG Tap/device matched
-WARNING: unknown debug reason: 0xe
-target state: halted
-target halted in ARM state due to debug-request, current mode: User
-cpsr: 0x00000000 pc: 0xffffffe8
-MMU: disabled, D-Cache: disabled, I-Cache: disabled
-
-
-
+https://lists.berlios.de/pipermail/openocd-development/2009-July/009240.html
 
 @section thelisttcl TCL
 
