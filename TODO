@@ -136,6 +136,14 @@ https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
 
 @section thelistflash Flash Support
 
+- aduc702x segfault reported by Thomas A Moulton
+
+https://lists.berlios.de/pipermail/openocd-development/2009-July/009186.html
+
+- aduc7024 programming w/working area does not work:
+
+https://lists.berlios.de/pipermail/openocd-development/2009-July/009337.html
+
 - finish documentation for the following flash drivers:
   - avr
   - ecosflash
