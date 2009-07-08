@@ -97,6 +97,10 @@ Once the above are completed:
 
 @section thelisttargets Target Support
 
+- regression: xscale does not place debug_handler.bin into the right spot:
+
+https://lists.berlios.de/pipermail/openocd-development/2009-July/009338.html
+
 - general layer cleanup: @par
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
 - regression: "reset halt" between 729(works) and 788(fails): @par
