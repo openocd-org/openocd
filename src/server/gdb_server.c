@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008 ï¿½yvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -671,7 +671,7 @@ static void gdb_frontend_halted(struct target_s *target, connection_t *connectio
 {
 	gdb_connection_t *gdb_connection = connection->priv;
 
-	/* In the GDB protocol when we are stepping or coninuing execution,
+	/* In the GDB protocol when we are stepping or continuing execution,
 	 * we have a lingering reply. Upon receiving a halted event
 	 * when we have that lingering packet, we reply to the original
 	 * step or continue packet.
