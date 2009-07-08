@@ -193,6 +193,11 @@ static int aduc702x_protect(struct flash_bank_s *bank, int set, int first, int l
 	return ERROR_FLASH_OPERATION_FAILED;
 }
 
+/* If this fn returns ERROR_TARGET_RESOURCE_NOT_AVAILABLE, then the caller can fall
+ * back to another mechanism that does not require onboard RAM
+ *
+ * Caller should not check for other return values specifically
+ */
 static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 	aduc702x_flash_bank_t *aduc702x_info = bank->driver_priv;
@@ -203,6 +208,12 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 	reg_param_t reg_params[6];
 	armv4_5_algorithm_t armv4_5_info;
 	int retval = ERROR_OK;
+
+	if (((count%2)!=0)||((offset%2)!=0))
+	{
+		LOG_ERROR("write block must be multiple of two bytes in offset & length");
+		return ERROR_FAIL;
+	}
 
         /* parameters:
 
@@ -249,8 +260,12 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	};
 
-	target_write_buffer(target, aduc702x_info->write_algorithm->address,
+	retval=target_write_buffer(target, aduc702x_info->write_algorithm->address,
                 sizeof(aduc702x_flash_write_code), (uint8_t*)aduc702x_flash_write_code);
+	if (retval!=ERROR_OK)
+	{
+		return retval;
+	}
 
 	/* memory buffer */
 	while (target_alloc_working_area(target, buffer_size, &source) != ERROR_OK)
@@ -279,12 +294,16 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
 
 	while (count > 0)
 	{
-		uint32_t thisrun_count = (count > (buffer_size / 2)) ? (buffer_size / 2) : count;
+		uint32_t thisrun_count = (count > buffer_size) ? buffer_size : count;
 
-		target_write_buffer(target, source->address, thisrun_count * 2, buffer);
+		retval=target_write_buffer(target, source->address, thisrun_count, buffer);
+		if (retval!=ERROR_OK)
+		{
+			break;
+		}
 
 		buf_set_u32(reg_params[0].value, 0, 32, source->address);
-		buf_set_u32(reg_params[1].value, 0, 32, thisrun_count);
+		buf_set_u32(reg_params[1].value, 0, 32, thisrun_count/2);
 		buf_set_u32(reg_params[2].value, 0, 32, address);
 		buf_set_u32(reg_params[4].value, 0, 32, 0xFFFFF800);
 
@@ -294,17 +313,19 @@ static int aduc702x_write_block(struct flash_bank_s *bank, uint8_t *buffer, uint
                         10000, &armv4_5_info)) != ERROR_OK)
 		{
 			LOG_ERROR("error executing aduc702x flash write algorithm");
-			retval = ERROR_FLASH_OPERATION_FAILED;
 			break;
 		}
 
-		if ((buf_get_u32(reg_params[3].value, 0, 32) & 1) != 1) {
-			retval = ERROR_FLASH_OPERATION_FAILED;
+		if ((buf_get_u32(reg_params[3].value, 0, 32) & 1) != 1)
+		{
+			/* FIX!!!! what does this mean??? replace w/sensible error message */
+			LOG_ERROR("aduc702x detected error writing flash");
+			retval = ERROR_FAIL;
 			break;
 		}
 
-		buffer += thisrun_count * 2;
-		address += thisrun_count * 2;
+		buffer += thisrun_count;
+		address += thisrun_count;
 		count -= thisrun_count;
 	}
 
@@ -382,14 +403,9 @@ int aduc702x_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t offset, 
                                 return ERROR_FLASH_OPERATION_FAILED;
                         }
                 }
-                else if (retval == ERROR_FLASH_OPERATION_FAILED)
-                {
-                        LOG_ERROR("flash block writing failed");
-                        return ERROR_FLASH_OPERATION_FAILED;
-                }
         }
 
-        return ERROR_OK;
+        return retval;
 }
 
 static int aduc702x_probe(struct flash_bank_s *bank)
