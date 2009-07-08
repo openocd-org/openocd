@@ -1,7 +1,7 @@
+// This file is part of the Doyxgen Developer Manual
 /** @page patchguide Patch Guidelines
 
-Please mail patches to:
-
+Please mail patches to: @par
 	openocd-development@lists.berlios.de
 
 Note that you can't send patches to that list unless
