@@ -107,6 +107,20 @@ int f(int x1, int x2)
 	...
 }
 @endcode
+- Separate assignment and logical test statements.  In other words, you
+should write statements like the following:
+@code
+// separate statements should be preferred
+result = foo();
+if (ERROR_OK != result)
+	...
+@endcode
+More directly, do @b not combine these kinds of statements:
+@code
+// Combined statements should be avoided
+if (ERROR_OK != (result = foo()))
+	return result;
+@endcode
 
  */
 /** @page styledoxygen Doxygen Style Guide
