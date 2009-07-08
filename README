@@ -166,6 +166,29 @@ will build OpenOCD and place the final executable in ./src/.  The
 final (optional) step, ``make install'', places all of the files in the
 required location.
 
+Cross-Compiling Options
+-----------------------
+
+To cross-compile, you must specify both --build and --host options to
+the 'configure' script.  For example, you can configure OpenOCD to
+cross-compile on a x86 Linux host to run on Windows (MinGW32), you could
+use the following configuration options:
+
+  ./configure --build=i686-pc-linux-gnu --host=i586-mingw32msvc ... 
+
+Likewise, the following options allow OpenOCD to be cross-compiled for
+an ARM target on the same x86 host:
+
+  ./configure --build=i686-pc-linux-gnu --host=arm-elf ...
+
+Both must be specified to work around bugs in autoconf.
+
+Scripts for producing ARM cross-compilers can be found on the web with a
+little searching.  A script to produce an x86 Linux-hosted MinGW32
+cross-compiler can be downloaded from the following URL:
+
+  http://www.mingw.org/wiki/LinuxCrossMinGW
+
 Configuration Options
 ---------------------
 
