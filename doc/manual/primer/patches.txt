@@ -204,6 +204,19 @@ it or prompt for feedback.  Please have patience, as many maintainers
 work on the project voluntarily and without compensation for the time
 that they spend doing these tasks.
 
+@section primerpatchguide Guidelines for Submitting Patches
+
+- Each patch file should contain:
+  - A commit description that describes all of the changes.
+  - A separator line that contains three hyphens: <code>---</code>
+  - A summary of the changes produced by diffstat (optional)
+  - Another separator line (optional)
+  - The actual patch contents, containing a single change.
+
+- Each patch series should include:
+  - A summary of the patches in the series.
+  - Logically-related patches that contain incremental changes.
+
  */
 /** @file
 This file contains the @ref primerpatches page.
