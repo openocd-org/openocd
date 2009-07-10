@@ -100,7 +100,8 @@ Once the above are completed:
 
 - general layer cleanup: @par
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
-- regression: xscale does not place debug_handler.bin into the right spot: @par
+- regression: xscale does not place debug_handler.bin into the right spot. workaround:
+  use -s option on command line to place xscale/debug_handler.bin in search path @par
   https://lists.berlios.de/pipermail/openocd-development/2009-July/009338.html
 - bug: either USBprog is broken with new tms sequence or there is a general
   problem with XScale and the new tms sequence. Workaround: use "tms_sequence long"
