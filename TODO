@@ -102,6 +102,10 @@ Once the above are completed:
   https://lists.berlios.de/pipermail/openocd-development/2009-May/006590.html
 - regression: xscale does not place debug_handler.bin into the right spot: @par
   https://lists.berlios.de/pipermail/openocd-development/2009-July/009338.html
+- bug: either USBprog is broken with new tms sequence or there is a general
+  problem with XScale and the new tms sequence. Workaround: use "tms_sequence long"
+  @par
+  https://lists.berlios.de/pipermail/openocd-development/2009-July/009426.html
 - regression: "reset halt" between 729(works) and 788(fails): @par
 https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
 - ARM923EJS:
