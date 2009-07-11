@@ -239,7 +239,7 @@ static int presto_open_ftd2xx(char *req_serial)
 			LOG_DEBUG("FT_Open failed: %i", (int)presto->status);
 			continue;
 		}
-		LOG_DEBUG("FTDI device %i open", i);
+		LOG_DEBUG("FTDI device %i open", (int)i);
 
 		if ((presto->status = FT_GetDeviceInfo(presto->handle, &device, &vidpid,
 				presto->serial, devname, NULL)) == FT_OK)
@@ -251,7 +251,7 @@ static int presto_open_ftd2xx(char *req_serial)
 		else
 			LOG_DEBUG("FT_GetDeviceInfo failed: %lu", presto->status);
 
-		LOG_DEBUG("FTDI device %i does not match, closing", i);
+		LOG_DEBUG("FTDI device %i does not match, closing", (int)i);
 		FT_Close(presto->handle);
 		presto->handle = (FT_HANDLE)INVALID_HANDLE_VALUE;
 	}
