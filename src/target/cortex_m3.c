@@ -512,16 +512,19 @@ int cortex_m3_poll(target_t *target)
 		}
 	}
 
-	/*
-	if (cortex_m3->dcb_dhcsr & S_SLEEP)
-		target->state = TARGET_SLEEP;
-	*/
+	/* REVISIT when S_SLEEP is set, it's in a Sleep or DeepSleep state.
+	 * How best to model low power modes?
+	 */
 
-#if 0
-	/* Read Debug Fault Status Register, added to figure out the lockup when running flashtest.script  */
-	mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-	LOG_DEBUG("dcb_dhcsr 0x%x, nvic_dfsr 0x%x, target->state: %s", cortex_m3->dcb_dhcsr, cortex_m3->nvic_dfsr, target_state_name(target));
-#endif
+	if (target->state == TARGET_UNKNOWN)
+	{
+		/* check if processor is retiring instructions */
+		if (cortex_m3->dcb_dhcsr & S_RETIRE_ST)
+		{
+			target->state = TARGET_RUNNING;
+			return ERROR_OK;
+		}
+	}
 
 	return ERROR_OK;
 }
