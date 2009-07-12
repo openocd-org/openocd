@@ -5661,6 +5661,18 @@ held device example'' - the adaptiveness works perfectly all the
 time. One can set a break point or halt the system in the deep power
 down code, slow step out until the system speeds up.
 
+Note that adaptive clocking may also need to work at the board level,
+when a board-level scan chain has multiple chips.
+Parallel clock voting schemes are good way to implement this,
+both within and between chips, and can easily be implemented
+with a CPLD.
+It's not difficult to have logic fan a module's input TCK signal out
+to each TAP in the scan chain, and then wait until each TAP's RTCK comes
+back with the right polarity before changing the output RTCK signal.
+Texas Instruments makes some clock voting logic available
+for free (with no support) in VHDL form; see
+@url{http://tiexpressdsp.com/index.php/Adaptive_Clocking}
+
 @b{Solution #2 - Always works - but may be slower}
 
 Often this is a perfectly acceptable solution.
