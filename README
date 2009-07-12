@@ -416,4 +416,70 @@ one user; please correct us if this is wrong.
 
 2) Run './configure --enable-maintainer-mode' with other options.
 
+The following URL is a good reference if you want to build OpenOCD
+under cygwin.
+http://forum.sparkfun.com/viewtopic.php?t=11221
 
+Alternatively you can build the Windows binary under Linux using
+MinGW cross compiler. The following documents some tips of
+using this cross build option.
+
+a) libusb-win32
+You can choose to use the libusb-win32 binary distribution from
+its Sourceforge page. As of this writing, the latest version
+is 0.1.12.2. This is the recommend version to use since it fixed
+an issue with USB composite device and this is important for FTDI
+based JTAG debuggers.
+http://sourceforge.net/projects/libusb-win32/
+
+You need to download the libusb-win32-device-bin-0.1.12.2.tar.gz 
+package. Please extract this file into a temp directory. 
+
+Copy the file libusb-win32-device-bin-0.1.12.2\include\usb.h
+to your MinGW include directory.
+
+Copy the library libusb-win32-device-bin-0.1.12.2\lib\gcc\libusb.a
+to your MinGW library directory.
+
+Take note that different Linux distros often have different
+MinGW installation directory. Some of them also put the
+library and include into a seperate sys-root directory.
+
+If there is a new svn version of libusb-win32, you can build it
+as well. 
+
+This is the instrunction from the libusb-win32 Makefile.
+# If you're cross-compiling and your mingw32 tools are called
+# i586-mingw32msvc-gcc and so on, then you can compile libusb-win32
+# by running
+#    make host_prefix=i586-mingw32msvc all
+
+b) libftdi
+libftdi source codes can be download from the following website.
+http://www.intra2net.com/en/developer/libftdi/download.php
+
+It does not provide Windows binary. You can build it from the
+source tarball or the git tree.
+
+If you are using the git tree, the following is the instruction 
+from README.mingw. You need to have cmake installed.
+- Edit Toolchain-mingw32.cmake to point to the correct MinGW 
+installation.
+- Create a build directory like "mkdir build-win32", e.g in ../libftdi/
+- cd in that directory and run  
+  "cmake -DCMAKE_TOOLCHAIN_FILE=../Toolchain-mingw32.cmake .."
+- Copy src/ftdi.h to your MinGW include directory.
+- Copy build-win32/src/*.a to your MinGW lib directory.
+
+c) OpenOCD
+Now you can build OpenOCD under Linux using MinGW.
+You need to use --host=your_mingW_prefix in the configure option.
+
+Example for libftdi (in one line, tested under Ubuntu 9.04):
+./configure --host=i586-mingw32msvc --enable-maintainer-mode 
+--disable-shared --enable-ft2232_libftdi
+
+Example for ftd2xx (in one line, tested under Ubuntu 9.04)
+./configure --host=i586-mingw32msvc --enable-maintainer-mode 
+--disable-shared --enable-ft2232_ftd2xx 
+--with-ftd2xx-win32-zipdir=/home/mcuee/Desktop/build/openocd/libftd2xx-win32
