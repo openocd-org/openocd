@@ -1,7 +1,0 @@
-libftdi can be built to work under win32 (cygwin/mingw) after applying the patch in this directory.
-
-The issue is caused by windows requiring usb_set_configuration to be called before the usb_claim_interface.
-
-Spen
-spen@spen-soft.co.uk
-
