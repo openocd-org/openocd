@@ -835,20 +835,12 @@ static int jlink_tap_execute(void)
 	return ERROR_OK;
 }
 
-/*****************************************************************************/
-/* JLink USB low-level functions */
-
-static jlink_jtag_t* jlink_usb_open()
+static struct usb_device* find_jlink_device(void)
 {
 	struct usb_bus *busses;
 	struct usb_bus *bus;
 	struct usb_device *dev;
 
-	jlink_jtag_t *result;
-
-	result = (jlink_jtag_t*) malloc(sizeof(jlink_jtag_t));
-
-	usb_init();
 	usb_find_busses();
 	usb_find_devices();
 
@@ -860,45 +852,102 @@ static jlink_jtag_t* jlink_usb_open()
 	{
 		for (dev = bus->devices; dev; dev = dev->next)
 		{
-			if ((dev->descriptor.idVendor == VID) && (dev->descriptor.idProduct == PID))
-			{
-				result->usb_handle = usb_open(dev);
-				
-				/*
-				 *	Some j-link dongles experience intermittent communication issues at startup to varying degrees
-				 *	depending on the host operating system.  Troubleshooting this problem all the way back to libusb
-				 *	revealed that without a usb reset, the hardware can start in an uncertain state causing a litany
-				 *	of annoying problems.  The next step was added to the original code to address this problem.
-				 */
-				
-				usb_reset(result->usb_handle);
+			if ((dev->descriptor.idVendor == VID) && (dev->descriptor.idProduct == PID)) {
+				return dev;
+			}
+		}
+	}
 
-				/* usb_set_configuration required under win32 */
-				usb_set_configuration(result->usb_handle, dev->config[0].bConfigurationValue);
-				usb_claim_interface(result->usb_handle, 0);
+	return NULL;
+}
+
+/*****************************************************************************/
+/* JLink USB low-level functions */
+
+static jlink_jtag_t* jlink_usb_open()
+{
+	struct usb_device *dev;
+
+	jlink_jtag_t *result;
+
+	result = (jlink_jtag_t*) malloc(sizeof(jlink_jtag_t));
+
+	usb_init();
+
+	if ((dev = find_jlink_device()) == NULL) {
+		free(result);
+		return NULL;
+	}
+
+	result->usb_handle = usb_open(dev);
+
+	if (result->usb_handle)
+	{
+	
+		/* BE ***VERY CAREFUL*** ABOUT MAKING CHANGES IN THIS AREA!!!!!!!!!!!
+		 * The behavior of libusb is not completely consistent across Windows, Linux, and Mac OS X platforms.  The actions taken
+		 * in the following compiler conditionals may not agree with published documentation for libusb, but were found
+		 * to be necessary through trials and tribulations.  Even little tweaks can break one or more platforms, so if you do make changes
+		 * test them carefully on all platforms before committing them!
+		 */
+
+#if IS_WIN32 == 0
+
+		usb_reset(result->usb_handle);
+
+#if IS_DARWIN == 0
+
+		int timeout = 5;
+
+		/* reopen jlink after usb_reset
+		 * on win32 this may take a second or two to re-enumerate */
+		while ((dev = find_jlink_device()) == NULL)
+		{
+			usleep(1000);
+			timeout--;
+			if (!timeout) {
+				break;
+			}
+		}
+
+		if (dev == NULL)
+		{
+			free(result);
+			return NULL;
+		}
+
+		result->usb_handle = usb_open(dev);
+#endif
+
+#endif
+
+		if (result->usb_handle)
+		{
+			/* usb_set_configuration required under win32 */
+			usb_set_configuration(result->usb_handle, dev->config[0].bConfigurationValue);
+			usb_claim_interface(result->usb_handle, 0);
 
 #if 0
-				/*
-				 * This makes problems under Mac OS X. And is not needed
-				 * under Windows. Hopefully this will not break a linux build
-				 */
-				usb_set_altinterface(result->usb_handle, 0);
+			/*
+			 * This makes problems under Mac OS X. And is not needed
+			 * under Windows. Hopefully this will not break a linux build
+			 */
+			usb_set_altinterface(result->usb_handle, 0);
 #endif
-				struct usb_interface *iface = dev->config->interface;
-				struct usb_interface_descriptor *desc = iface->altsetting;
-				for (int i = 0; i < desc->bNumEndpoints; i++)
-				{
-					uint8_t epnum = desc->endpoint[i].bEndpointAddress;
-					bool is_input = epnum & 0x80;
-					LOG_DEBUG("usb ep %s %02x", is_input ? "in" : "out", epnum);
-					if (is_input)
-						jlink_read_ep = epnum;
-					else
-						jlink_write_ep = epnum;
-				}
-
-				return result;
+			struct usb_interface *iface = dev->config->interface;
+			struct usb_interface_descriptor *desc = iface->altsetting;
+			for (int i = 0; i < desc->bNumEndpoints; i++)
+			{
+				uint8_t epnum = desc->endpoint[i].bEndpointAddress;
+				bool is_input = epnum & 0x80;
+				LOG_DEBUG("usb ep %s %02x", is_input ? "in" : "out", epnum);
+				if (is_input)
+					jlink_read_ep = epnum;
+				else
+					jlink_write_ep = epnum;
 			}
+
+			return result;
 		}
 	}
 
