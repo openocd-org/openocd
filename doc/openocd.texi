@@ -3135,7 +3135,7 @@ flash bank cfi 0x01000000 0x01000000 2 2 $_TARGETNAME
 @subsection Internal Flash (Microcontrollers)
 
 @deffn {Flash Driver} aduc702x
-The ADUC702x analog microcontrollers from ST Micro
+The ADUC702x analog microcontrollers from Analog Devices
 include internal flash and use ARM7TDMI cores.
 The aduc702x flash driver works with models ADUC7019 through ADUC7028.
 The setup command only requires the @var{target} argument
