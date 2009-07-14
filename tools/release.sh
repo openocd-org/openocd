@@ -74,6 +74,10 @@ do_svn() {
 	do_svn_echo "$@"
 	[ "${RELEASE_DRY_RUN}" ] || svn "$@"
 }
+do_svn_switch() {
+	do_svn switch "$1"
+	package_info_load
+}
 
 
 package_info_load_name() {
@@ -432,17 +436,17 @@ do_release_step_branch_bump() {
 	do_version_tag_add in-development
 }
 do_release_step_branch() {
-	do_svn switch "${PACKAGE_BRANCH}"
-	package_info_load
+	do_svn_switch "${PACKAGE_BRANCH}"
 	do_version_commit "$(do_release_step_branch_bump micro)"
-	do_svn switch "${SVN_URL}"
-	package_info_load
+	do_svn_switch "${SVN_URL}"
 }
 do_release_step_bump() {
 	# major and minor releases require branch version update too
 	[ "${RELEASE_TYPE}" = "micro" ] || do_release_step_branch
 	# bump the current tree version as required.
 	do_version_commit "$(do_release_step_branch_bump "${RELEASE_TYPE}")"
+
+	[ "${RELEASE_TYPE}" = "micro" ] && return
 
 	# archive NEWS and create new one from template
 	do_svn move "NEWS" "NEWS-${RELEASE_VERSION}"
@@ -479,9 +483,10 @@ do_release_step_package() {
 	local A=${PACKAGE_TAG}
 	local B=${A/https/http}
 	local PACKAGE_BUILD=${B/${USER}@/}
-	do_svn switch "${PACKAGE_BUILD}"
+	do_svn_switch "${PACKAGE_BUILD}"
 	do_stage
 	do_clean
+	do_svn_switch "${SVN_URL}"
 }
 
 do_release_step_1() { do_release_step_prep; }
