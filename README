@@ -64,6 +64,12 @@ you can build the in-tree documentation.
 Installing OpenOCD
 ==================
 
+On Linux, you may have permissions problems to address.  The best
+way to do this is to use the contrib/udev.rules file.  It probably
+belongs somewhere in /etc/udev/rules.d, but consult your operating
+system documentation to be sure.  In particular, make sure that it
+matches the syntax used by your operating system's version of udev.
+
 A Note to OpenOCD Users
 -----------------------
 
@@ -325,7 +331,7 @@ Then type ``make'', and perhaps ``make install''.
 Using FTDI's FTD2XX
 -------------------
 
-Some claim the (closed) FTDICHIP.COM solution is faster, which
+The (closed source) FTDICHIP.COM solution is faster on MS-Windows.  That
 is the motivation for supporting it even though its licensing restricts
 it to non-redistributable OpenOCD binaries, and it is not available for
 all operating systems used with OpenOCD.  You may, however, build such
@@ -369,6 +375,9 @@ the following:
         --enable-ft2232_ftd2xx \
         --with-ft2xx-linux-tardir=../libftd2xx0.4.16 \
 	... other options ...
+
+Note that on Linux there is no good reason to use these FTDI binaries;
+they are no faster (on Linux) than libftdi, and cause licensing issues.
 
 =================================
 Obtaining OpenOCD From Subversion
