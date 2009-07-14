@@ -308,7 +308,7 @@ AC_ARG_ENABLE(parport,
 AC_ARG_ENABLE(parport_ppdev,
   AS_HELP_STRING([--disable-parport-ppdev],
       [Disable use of ppdev (/dev/parportN) for parport (for x86 only)]), 
-    [parport_use_ppdev=$enableval], [parport_use_ppdev=])
+    [parport_use_ppdev=$enableval], [parport_use_ppdev=yes])
 
 AC_ARG_ENABLE(parport_giveio,
     AS_HELP_STRING([--enable-parport-giveio],
