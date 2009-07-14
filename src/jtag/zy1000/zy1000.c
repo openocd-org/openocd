@@ -28,7 +28,7 @@
 #include <cyg/hal/hal_diag.h>
 
 
-#define ZYLIN_VERSION "1.53"
+#define ZYLIN_VERSION "1.54"
 #define ZYLIN_DATE __DATE__
 #define ZYLIN_TIME __TIME__
 #define ZYLIN_OPENOCD "$Revision$"
