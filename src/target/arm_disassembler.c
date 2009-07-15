@@ -3254,6 +3254,80 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 	return ERROR_OK;
 }
 
+static int t2ev_load_word(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	int rn = (opcode >> 16) & 0xf;
+	int immed;
+
+	instruction->type = ARM_LDR;
+
+	if (rn == 0xf) {
+		immed = opcode & 0x0fff;
+		if (opcode & (1 << 23))
+			immed = -immed;
+		sprintf(cp, "LDR\tr%d, %#8.8" PRIx32,
+				(opcode >> 12) & 0xf,
+				thumb_alignpc4(address) + immed);
+		return ERROR_OK;
+	}
+
+	if (opcode & (1 << 23)) {
+		immed = opcode & 0x0fff;
+		sprintf(cp, "LDR.W\tr%d, [r%d, #%d]\t; %#3.3x",
+				(opcode >> 12) & 0xf,
+				rn, immed, immed);
+		return ERROR_OK;
+	}
+
+	if (!(opcode & (0x3f << 6))) {
+		sprintf(cp, "LDR.W\tr%d, [r%d, r%d, LSL #%d]",
+				(opcode >> 12) & 0xf,
+				rn,
+				(opcode >> 0) & 0xf,
+				(opcode >> 4) & 0x3);
+		return ERROR_OK;
+	}
+
+
+	if (((opcode >> 8) & 0xf) == 0xe) {
+		immed = opcode & 0x00ff;
+
+		sprintf(cp, "LDRT\tr%d, [r%d, #%d]\t; %#2.2x",
+				(opcode >> 12) & 0xf,
+				rn, immed, immed);
+		return ERROR_OK;
+	}
+
+	if (((opcode >> 8) & 0xf) == 0xc || (opcode & 0x0900) == 0x0900) {
+		char *p1 = "]", *p2 = "";
+
+		if (!(opcode & 0x0600))
+			return ERROR_INVALID_ARGUMENTS;
+
+		immed = opcode & 0x00ff;
+
+		/* two indexed modes will write back rn */
+		if (opcode & 0x100) {
+			if (opcode & 0x400)	/* pre-indexed */
+				p2 = "]!";
+			else {			/* post-indexed */
+				p1 = "]";
+				p2 = "";
+			}
+		}
+
+		sprintf(cp, "LDR\tr%d, [r%d%s, #%s%u%s\t; %#2.2x",
+				(opcode >> 12) & 0xf,
+				rn, p1,
+				(opcode & 0x200) ? "" : "-",
+				immed, p2, immed);
+		return ERROR_OK;
+	}
+
+	return ERROR_INVALID_ARGUMENTS;
+}
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -3316,6 +3390,10 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	/* ARMv7-M: A5.3.5 Load/store multiple */
 	else if ((opcode & 0x1e400000) == 0x08000000)
 		retval = t2ev_ldm_stm(opcode, address, instruction, cp);
+
+	/* ARMv7-M: A5.3.7 Load word */
+	else if ((opcode & 0x1f700000) == 0x18500000)
+		retval = t2ev_load_word(opcode, address, instruction, cp);
 
 	/* ARMv7-M: A5.3.10 Store single data item */
 	else if ((opcode & 0x1f100000) == 0x18000000)
