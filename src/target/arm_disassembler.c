@@ -2532,6 +2532,144 @@ undef:
 	return ERROR_INVALID_ARGUMENTS;
 }
 
+static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	char *mnemonic = NULL;
+	int rn = (opcode >> 16) & 0xf;
+	int rd = (opcode >> 8) & 0xf;
+	unsigned immed = opcode & 0xff;
+	unsigned func;
+	bool one = false;
+	char *suffix = "";
+
+	/* ARMv7-M: A5.3.2 Modified immediate constants */
+	func = (opcode >> 11) & 0x0e;
+	if (immed & 0x80)
+		func |= 1;
+	if (opcode & (1 << 26))
+		func |= 0x10;
+
+	/* "Modified" immediates */
+	switch (func >> 1) {
+	case 0:
+		break;
+	case 2:
+		immed <<= 8;
+		/* FALLTHROUGH */
+	case 1:
+		immed += immed << 16;
+		break;
+	case 3:
+		immed += immed << 8;
+		immed += immed << 16;
+		break;
+	default:
+		immed |= 0x80;
+		immed = ror(immed, func);
+	}
+
+	if (opcode & (1 << 20))
+		suffix = "S";
+
+	switch ((opcode >> 21) & 0xf) {
+	case 0:
+		if (rd == 0xf) {
+			instruction->type = ARM_TST;
+			mnemonic = "TST";
+			one = true;
+			suffix = "";
+			rd = rn;
+		} else {
+			instruction->type = ARM_AND;
+			mnemonic = "AND";
+		}
+		break;
+	case 1:
+		instruction->type = ARM_BIC;
+		mnemonic = "BIC";
+		break;
+	case 2:
+		if (rn == 0xf) {
+			instruction->type = ARM_MOV;
+			mnemonic = "MOV";
+			one = true;
+		} else {
+			instruction->type = ARM_ORR;
+			mnemonic = "ORR";
+		}
+		break;
+	case 3:
+		if (rn == 0xf) {
+			instruction->type = ARM_MVN;
+			mnemonic = "MVN";
+			one = true;
+		} else {
+			// instruction->type = ARM_ORN;
+			mnemonic = "ORN";
+		}
+		break;
+	case 4:
+		if (rd == 0xf) {
+			instruction->type = ARM_TEQ;
+			mnemonic = "TEQ";
+			one = true;
+			suffix = "";
+			rd = rn;
+		} else {
+			instruction->type = ARM_EOR;
+			mnemonic = "EOR";
+		}
+		break;
+	case 8:
+		if (rd == 0xf) {
+			instruction->type = ARM_CMN;
+			mnemonic = "CMN";
+			one = true;
+			suffix = "";
+			rd = rn;
+		} else {
+			instruction->type = ARM_ADD;
+			mnemonic = "ADD";
+		}
+		break;
+	case 10:
+		instruction->type = ARM_ADC;
+		mnemonic = "ADC";
+		break;
+	case 11:
+		instruction->type = ARM_SBC;
+		mnemonic = "SBC";
+		break;
+	case 13:
+		if (rd == 0xf) {
+			instruction->type = ARM_CMP;
+			mnemonic = "CMP";
+			one = true;
+			suffix = "";
+			rd = rn;
+		} else {
+			instruction->type = ARM_SUB;
+			mnemonic = "SUB";
+		}
+		break;
+	case 14:
+		instruction->type = ARM_RSB;
+		mnemonic = "RSB";
+		break;
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	if (one)
+		sprintf(cp, "%s\tr%d, #%d\t; %#8.8x",
+				mnemonic, rd, immed, immed);
+	else
+		sprintf(cp, "%s%s\tr%d, r%d, #%d\t; %#8.8x",
+				mnemonic, suffix, rd, rn, immed, immed);
+
+	return ERROR_OK;
+}
 
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
@@ -2580,8 +2718,12 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	cp = strchr(instruction->text, 0);
 	retval = ERROR_FAIL;
 
+	/* ARMv7-M: A5.3.1 Data processing (modified immediate) */
+	if ((opcode & 0x1a008000) == 0x10000000)
+		retval = t2ev_data_mod_immed(opcode, address, instruction, cp);
+
 	/* ARMv7-M: A5.3.4 Branches and miscellaneous control */
-	if ((opcode & 0x18008000) == 0x10008000)
+	else if ((opcode & 0x18008000) == 0x10008000)
 		retval = t2ev_b_misc(opcode, address, instruction, cp);
 
 	/* FIXME decode more 32-bit instructions */
