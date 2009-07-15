@@ -1678,6 +1678,12 @@ int evaluate_data_proc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 	return ERROR_OK;
 }
 
+/* PC-relative data addressing is word-aligned even with Thumb */
+static inline uint32_t thumb_alignpc4(uint32_t addr)
+{
+	return (addr + 4) & ~3;
+}
+
 int evaluate_load_literal_thumb(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	uint32_t immediate;
@@ -1685,16 +1691,19 @@ int evaluate_load_literal_thumb(uint16_t opcode, uint32_t address, arm_instructi
 
 	instruction->type = ARM_LDR;
 	immediate = opcode & 0x000000ff;
-
-	snprintf(instruction->text, 128,
-		"0x%8.8" PRIx32 "  0x%4.4x    \tLDR\tr%i, [pc, #%#" PRIx32 "]",
-		address, opcode, Rd, immediate*4);
+	immediate *= 4;
 
 	instruction->info.load_store.Rd = Rd;
 	instruction->info.load_store.Rn = 15 /*PC*/;
 	instruction->info.load_store.index_mode = 0; /*offset*/
 	instruction->info.load_store.offset_mode = 0; /*immediate*/
-	instruction->info.load_store.offset.offset = immediate*4;
+	instruction->info.load_store.offset.offset = immediate;
+
+	snprintf(instruction->text, 128,
+		"0x%8.8" PRIx32 "  0x%4.4x    \t"
+		"LDR\tr%i, [pc, #%#" PRIx32 "]\t; %#8.8x",
+		address, opcode, Rd, immediate,
+		thumb_alignpc4(address) + immediate);
 
 	return ERROR_OK;
 }
@@ -2753,8 +2762,7 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 	return ERROR_OK;
 
 do_adr:
-	address &= ~0x03;
-	address += 4;
+	address = thumb_alignpc4(address);
 	if (add)
 		address += immed;
 	else
