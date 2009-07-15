@@ -2989,6 +2989,170 @@ static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
 	return ERROR_OK;
 }
 
+static int t2ev_data_shift(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	int op = (opcode >> 21) & 0xf;
+	int rd = (opcode >> 8) & 0xf;
+	int rn = (opcode >> 16) & 0xf;
+	int type = (opcode >> 4) & 0x3;
+	int immed = (opcode >> 6) & 0x3;
+	char *mnemonic;
+	char *suffix = "";
+
+	immed |= (opcode >> 10) & 0x7;
+	if (opcode & (1 << 21))
+		suffix = "S";
+
+	switch (op) {
+	case 0:
+		if (rd == 0xf) {
+			if (!(opcode & (1 << 21)))
+				return ERROR_INVALID_ARGUMENTS;
+			instruction->type = ARM_TST;
+			mnemonic = "TST";
+			goto two;
+		}
+		instruction->type = ARM_AND;
+		mnemonic = "AND";
+		break;
+	case 1:
+		instruction->type = ARM_BIC;
+		mnemonic = "BIC";
+		break;
+	case 2:
+		if (rn == 0xf) {
+			instruction->type = ARM_MOV;
+			switch (type) {
+			case 0:
+				if (immed == 0) {
+					sprintf(cp, "MOV%s.W\tr%d, r%d",
+						suffix, rd, (opcode & 0xf));
+					return ERROR_OK;
+				}
+				mnemonic = "LSL";
+				break;
+			case 1:
+				mnemonic = "LSR";
+				break;
+			case 2:
+				mnemonic = "ASR";
+				break;
+			default:
+				if (immed == 0) {
+					sprintf(cp, "RRX%s.W\tr%d, r%d",
+						suffix, rd, (opcode & 0xf));
+					return ERROR_OK;
+				}
+				mnemonic = "ROR";
+				break;
+			}
+			goto immediate;
+		} else {
+			instruction->type = ARM_ORR;
+			mnemonic = "ORR";
+		}
+		break;
+	case 3:
+		if (rn == 0xf) {
+			instruction->type = ARM_MVN;
+			mnemonic = "MVN";
+			rn = rd;
+			goto two;
+		} else {
+			// instruction->type = ARM_ORN;
+			mnemonic = "ORN";
+		}
+		break;
+	case 4:
+		if (rd == 0xf) {
+			if (!(opcode & (1 << 21)))
+				return ERROR_INVALID_ARGUMENTS;
+			instruction->type = ARM_TEQ;
+			mnemonic = "TEQ";
+			goto two;
+		}
+		instruction->type = ARM_EOR;
+		mnemonic = "EOR";
+		break;
+	case 8:
+		if (rd == 0xf) {
+			if (!(opcode & (1 << 21)))
+				return ERROR_INVALID_ARGUMENTS;
+			instruction->type = ARM_CMN;
+			mnemonic = "CMN";
+			goto two;
+		}
+		instruction->type = ARM_ADD;
+		mnemonic = "ADD";
+		break;
+	case 0xa:
+		instruction->type = ARM_ADC;
+		mnemonic = "ADC";
+		break;
+	case 0xb:
+		instruction->type = ARM_SBC;
+		mnemonic = "SBC";
+		break;
+	case 0xd:
+		if (rd == 0xf) {
+			if (!(opcode & (1 << 21)))
+				return ERROR_INVALID_ARGUMENTS;
+			instruction->type = ARM_CMP;
+			mnemonic = "CMP";
+			goto two;
+		}
+		instruction->type = ARM_SUB;
+		mnemonic = "SUB";
+		break;
+	case 0xe:
+		instruction->type = ARM_RSB;
+		mnemonic = "RSB";
+		break;
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	sprintf(cp, "%s%s.W\tr%d, r%d, r%d",
+		mnemonic, suffix, rd, rn, (opcode & 0xf));
+
+shift:
+	cp = strchr(cp, 0);
+
+	switch (type) {
+	case 0:
+		if (immed == 0)
+			return ERROR_OK;
+		suffix = "LSL";
+		break;
+	case 1:
+		suffix = "LSR";
+		break;
+	case 2:
+		suffix = "ASR";
+		break;
+	case 3:
+		if (immed == 0) {
+			strcpy(cp, "RRX");
+			return ERROR_OK;
+		}
+		suffix = "ROR";
+		break;
+	}
+	sprintf(cp, " %s #%d", suffix, immed ? immed : 32);
+	return ERROR_OK;
+
+two:
+	sprintf(cp, "%s%s.W\tr%d, r%d",
+		mnemonic, suffix, rn, (opcode & 0xf));
+	goto shift;
+
+immediate:
+	sprintf(cp, "%s%s.W\tr%d, r%d, #%d",
+		mnemonic, suffix, rd, (opcode & 0xf), immed ? immed : 32);
+	return ERROR_OK;
+}
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -3055,6 +3219,10 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	/* ARMv7-M: A5.3.10 Store single data item */
 	else if ((opcode & 0x1f100000) == 0x18000000)
 		retval = t2ev_store_single(opcode, address, instruction, cp);
+
+	/* ARMv7-M: A5.3.11 Data processing (shifted register) */
+	else if ((opcode & 0x1e000000) == 0x0a000000)
+		retval = t2ev_data_shift(opcode, address, instruction, cp);
 
 	/* ARMv7-M: A5.3.14 Multiply, and multiply accumulate */
 	else if ((opcode & 0x1f800000) == 0x1b000000)
