@@ -3153,6 +3153,107 @@ immediate:
 	return ERROR_OK;
 }
 
+static int t2ev_data_reg(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	char *mnemonic;
+	char * suffix = "";
+
+	if (((opcode >> 4) & 0xf) == 0) {
+		switch ((opcode >> 21) & 0x7) {
+		case 0:
+			mnemonic = "LSL";
+			break;
+		case 1:
+			mnemonic = "LSR";
+			break;
+		case 2:
+			mnemonic = "ASR";
+			break;
+		case 3:
+			mnemonic = "ROR";
+			break;
+		default:
+			return ERROR_INVALID_ARGUMENTS;
+		}
+
+		instruction->type = ARM_MOV;
+		if (opcode & (1 << 20))
+			suffix = "S";
+		sprintf(cp, "%s%s.W\tr%d, r%d, r%d",
+				mnemonic, suffix,
+				(opcode >> 8) & 0xf,
+				(opcode >> 16) & 0xf,
+				(opcode >> 0) & 0xf);
+
+	} else if (opcode & (1 << 7)) {
+		switch ((opcode >> 24) & 0xf) {
+		case 0:
+		case 1:
+		case 4:
+		case 5:
+			switch ((opcode >> 4) & 0x3) {
+			case 1:
+				suffix = ", ROR #8";
+				break;
+			case 2:
+				suffix = ", ROR #16";
+				break;
+			case 3:
+				suffix = ", ROR #24";
+				break;
+			}
+			sprintf(cp, "%cXT%c.W\tr%d, r%d%s",
+					(opcode & (1 << 24)) ? 'U' : 'S',
+					(opcode & (1 << 26)) ? 'B' : 'H',
+					(opcode >> 8) & 0xf,
+					(opcode >> 16) & 0xf,
+					suffix);
+			break;
+		case 8:
+		case 9:
+		case 0xa:
+		case 0xb:
+			if (opcode & (1 << 6))
+				return ERROR_INVALID_ARGUMENTS;
+			if (~opcode & (0xff << 12))
+				return ERROR_INVALID_ARGUMENTS;
+			if (!(opcode & (1 << 20)))
+				return ERROR_INVALID_ARGUMENTS;
+
+			switch (((opcode >> 19) & 0x04)
+				| ((opcode >> 4) & 0x3)) {
+			case 0:
+				mnemonic = "REV.W";
+				break;
+			case 1:
+				mnemonic = "REV16.W";
+				break;
+			case 2:
+				mnemonic = "RBIT";
+				break;
+			case 3:
+				mnemonic = "REVSH.W";
+				break;
+			case 4:
+				mnemonic = "CLZ";
+				break;
+			default:
+				return ERROR_INVALID_ARGUMENTS;
+			}
+			sprintf(cp, "%s\tr%d, r%d",
+					mnemonic,
+					(opcode >> 8) & 0xf,
+					(opcode >> 0) & 0xf);
+			break;
+		default:
+			return ERROR_INVALID_ARGUMENTS;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -3223,6 +3324,10 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	/* ARMv7-M: A5.3.11 Data processing (shifted register) */
 	else if ((opcode & 0x1e000000) == 0x0a000000)
 		retval = t2ev_data_shift(opcode, address, instruction, cp);
+
+	/* ARMv7-M: A5.3.12 Data processing (register) */
+	else if ((opcode & 0x1f000000) == 0x1a000000)
+		retval = t2ev_data_reg(opcode, address, instruction, cp);
 
 	/* ARMv7-M: A5.3.14 Multiply, and multiply accumulate */
 	else if ((opcode & 0x1f800000) == 0x1b000000)
