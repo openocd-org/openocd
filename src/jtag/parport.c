@@ -247,7 +247,7 @@ static int parport_speed(int speed)
 static int parport_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "parport_port", parport_handle_parport_port_command,
-		COMMAND_CONFIG, "either the address of the I/O port or the number of the ‘/dev/parport’ device");
+		COMMAND_CONFIG, "either the address of the I/O port or the number of the ï¿½/dev/parportï¿½ device");
 	register_command(cmd_ctx, NULL, "parport_cable", parport_handle_parport_cable_command,
 		COMMAND_CONFIG, "the layout of the parallel port cable used to connect to the target");
 	register_command(cmd_ctx, NULL, "parport_write_on_exit", parport_handle_write_on_exit_command,
@@ -337,7 +337,8 @@ static int parport_init(void)
 
 	if (device_handle < 0)
 	{
-		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set");
+		int err = errno;
+		LOG_ERROR("cannot open device. check it exists and that user read and write rights are set. errno=%d", err);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
