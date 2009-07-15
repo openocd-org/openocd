@@ -2875,6 +2875,71 @@ imm8:
 	return ERROR_OK;
 }
 
+static int t2ev_mul32(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	int ra = (opcode >> 12) & 0xf;
+
+
+	switch (opcode & 0x007000f0) {
+	case 0:
+		if (ra == 0xf)
+			sprintf(cp, "MUL\tr%d, r%d, r%d",
+				(opcode >> 8) & 0xf, (opcode >> 16) & 0xf,
+				(opcode >> 0) & 0xf);
+		else
+			sprintf(cp, "MLA\tr%d, r%d, r%d, r%d",
+				(opcode >> 8) & 0xf, (opcode >> 16) & 0xf,
+				(opcode >> 0) & 0xf, ra);
+		break;
+	case 0x10:
+		sprintf(cp, "MLS\tr%d, r%d, r%d, r%d",
+			(opcode >> 8) & 0xf, (opcode >> 16) & 0xf,
+			(opcode >> 0) & 0xf, ra);
+		break;
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+	return ERROR_OK;
+}
+
+static int t2ev_mul64_div(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	int op = (opcode >> 4) & 0xf;
+	char *infix = "MUL";
+
+	op += (opcode >> 16) & 0x70;
+	switch (op) {
+	case 0x40:
+	case 0x60:
+		infix = "MLA";
+		/* FALLTHROUGH */
+	case 0:
+	case 0x20:
+		sprintf(cp, "%c%sL\tr%d, r%d, r%d, r%d",
+				(op & 0x20) ? 'U' : 'S',
+				infix,
+				(opcode >> 12) & 0xf,
+				(opcode >> 8) & 0xf,
+				(opcode >> 16) & 0xf,
+				(opcode >> 0) & 0xf);
+		break;
+	case 0x1f:
+	case 0x3f:
+		sprintf(cp, "%cDIV\tr%d, r%d, r%d",
+				(op & 0x20) ? 'U' : 'S',
+				(opcode >> 8) & 0xf,
+				(opcode >> 16) & 0xf,
+				(opcode >> 0) & 0xf);
+		break;
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	return ERROR_OK;
+}
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -2937,6 +3002,14 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	/* ARMv7-M: A5.3.10 Store single data item */
 	else if ((opcode & 0x1f100000) == 0x18000000)
 		retval = t2ev_store_single(opcode, address, instruction, cp);
+
+	/* ARMv7-M: A5.3.14 Multiply, and multiply accumulate */
+	else if ((opcode & 0x1f800000) == 0x1b000000)
+		retval = t2ev_mul32(opcode, address, instruction, cp);
+
+	/* ARMv7-M: A5.3.15 Long multiply, long multiply accumulate, divide */
+	else if ((opcode & 0x1f800000) == 0x1b800000)
+		retval = t2ev_mul64_div(opcode, address, instruction, cp);
 
 	/* FIXME decode more 32-bit instructions */
 
