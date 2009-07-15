@@ -2940,6 +2940,55 @@ static int t2ev_mul64_div(uint32_t opcode, uint32_t address,
 	return ERROR_OK;
 }
 
+static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	int rn = (opcode >> 16) & 0xf;
+	int op = (opcode >> 22) & 0x6;
+	int t = (opcode >> 21) & 1;
+	unsigned registers = opcode & 0xffff;
+
+	if (opcode & (1 << 20))
+		op |= 1;
+
+	switch (op) {
+	case 2:
+		sprintf(cp, "STMB\tr%d%s, ", rn, t ? "!" : "");
+		break;
+	case 3:
+		if (rn == 13 && t)
+			sprintf(cp, "POP\t");
+		else
+			sprintf(cp, "LDM\tr%d%s, ", rn, t ? "!" : "");
+		break;
+	case 4:
+		if (rn == 13 && t)
+			sprintf(cp, "PUSH\t");
+		else
+			sprintf(cp, "STM\tr%d%s, ", rn, t ? "!" : "");
+		break;
+	case 5:
+		sprintf(cp, "LDMB\tr%d%s, ", rn, t ? "!" : "");
+		break;
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	cp = strchr(cp, 0);
+	*cp++ = '{';
+	for (t = 0; registers; t++, registers >>= 1) {
+		if ((registers & 1) == 0)
+			continue;
+		registers &= ~1;
+		sprintf(cp, "r%d%s", t, registers ? "," : "");
+		cp = strchr(cp, 0);
+	}
+	*cp++ = '}';
+	*cp++ = 0;
+
+	return ERROR_OK;
+}
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -2998,6 +3047,10 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	/* ARMv7-M: A5.3.4 Branches and miscellaneous control */
 	else if ((opcode & 0x18008000) == 0x10008000)
 		retval = t2ev_b_misc(opcode, address, instruction, cp);
+
+	/* ARMv7-M: A5.3.5 Load/store multiple */
+	else if ((opcode & 0x1e400000) == 0x08000000)
+		retval = t2ev_ldm_stm(opcode, address, instruction, cp);
 
 	/* ARMv7-M: A5.3.10 Store single data item */
 	else if ((opcode & 0x1f100000) == 0x18000000)
