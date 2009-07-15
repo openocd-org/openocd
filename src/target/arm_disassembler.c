@@ -1512,6 +1512,7 @@ int evaluate_data_proc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 {
 	uint8_t high_reg, op, Rm, Rd,H1,H2;
 	char *mnemonic = NULL;
+	bool nop = false;
 
 	high_reg = (opcode & 0x0400) >> 10;
 	op = (opcode & 0x03C0) >> 6;
@@ -1546,6 +1547,8 @@ int evaluate_data_proc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 			case 0x2:
 				instruction->type = ARM_MOV;
 				mnemonic = "MOV";
+				if (Rd == Rm)
+					nop = true;
 				break;
 			case 0x3:
 				if ((opcode & 0x7) == 0x0)
@@ -1671,9 +1674,15 @@ int evaluate_data_proc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 		}
 	}
 
-	snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tr%i, r%i",
-			 address, opcode, mnemonic, Rd, Rm);
+	if (nop)
+		snprintf(instruction->text, 128,
+				"0x%8.8" PRIx32 "  0x%4.4x    \tNOP\t\t\t"
+				"; (%s r%i, r%i)",
+				 address, opcode, mnemonic, Rd, Rm);
+	else
+		snprintf(instruction->text, 128,
+				"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tr%i, r%i",
+				 address, opcode, mnemonic, Rd, Rm);
 
 	return ERROR_OK;
 }
