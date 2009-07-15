@@ -1367,7 +1367,9 @@ int evaluate_b_bl_blx_thumb(uint16_t opcode, uint32_t address, arm_instruction_t
 	 * Might be simplest to always use the Thumb2 decoder.
 	 */
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s 0x%8.8" PRIx32 , address, opcode,mnemonic, target_address);
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%s\t%#8.8" PRIx32,
+			address, opcode, mnemonic, target_address);
 
 	instruction->info.b_bl_bx_blx.reg_operand = -1;
 	instruction->info.b_bl_bx_blx.target_address = target_address;
@@ -1403,15 +1405,17 @@ int evaluate_add_sub_thumb(uint16_t opcode, uint32_t address, arm_instruction_t 
 	{
 		instruction->info.data_proc.variant = 0; /*immediate*/
 		instruction->info.data_proc.shifter_operand.immediate.immediate = Rm_imm;
-		snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s r%i, r%i, #%d",
-				 address, opcode, mnemonic, Rd, Rn, Rm_imm);
+		snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tr%i, r%i, #%d",
+			address, opcode, mnemonic, Rd, Rn, Rm_imm);
 	}
 	else
 	{
 		instruction->info.data_proc.variant = 1; /*immediate shift*/
 		instruction->info.data_proc.shifter_operand.immediate_shift.Rm = Rm_imm;
-		snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s r%i, r%i, r%i",
-				 address, opcode, mnemonic, Rd, Rn, Rm_imm);
+		snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tr%i, r%i, r%i",
+			address, opcode, mnemonic, Rd, Rn, Rm_imm);
 	}
 
 	return ERROR_OK;
@@ -1455,8 +1459,9 @@ int evaluate_shift_imm_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 	instruction->info.data_proc.shifter_operand.immediate_shift.Rm = Rm;
 	instruction->info.data_proc.shifter_operand.immediate_shift.shift_imm = imm;
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s r%i, r%i, #0x%02x" ,
-				 address, opcode, mnemonic, Rd, Rm, imm);
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tr%i, r%i, #%#2.2x" ,
+			address, opcode, mnemonic, Rd, Rm, imm);
 
 	return ERROR_OK;
 }
@@ -1496,8 +1501,9 @@ int evaluate_data_proc_imm_thumb(uint16_t opcode, uint32_t address, arm_instruct
 			break;
 	}
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s r%i, #0x%02x" ,
-				 address, opcode, mnemonic, Rd, imm);
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tr%i, #%#2.2x",
+			address, opcode, mnemonic, Rd, imm);
 
 	return ERROR_OK;
 }
@@ -1548,18 +1554,28 @@ int evaluate_data_proc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 					if (H1)
 					{
 						instruction->type = ARM_BLX;
-						snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tBLX r%i", address, opcode, Rm);
+						snprintf(instruction->text, 128,
+							"0x%8.8" PRIx32
+							"  0x%4.4x    \tBLX\tr%i",
+							address, opcode, Rm);
 					}
 					else
 					{
 						instruction->type = ARM_BX;
-						snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tBX r%i", address, opcode, Rm);
+						snprintf(instruction->text, 128,
+							"0x%8.8" PRIx32
+							"  0x%4.4x    \tBX\tr%i",
+							address, opcode, Rm);
 					}
 				}
 				else
 				{
 					instruction->type = ARM_UNDEFINED_INSTRUCTION;
-					snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tUNDEFINED INSTRUCTION", address, opcode);
+					snprintf(instruction->text, 128,
+						"0x%8.8" PRIx32
+						"  0x%4.4x    \t"
+						"UNDEFINED INSTRUCTION",
+						address, opcode);
 				}
 				return ERROR_OK;
 				break;
@@ -1655,8 +1671,9 @@ int evaluate_data_proc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 		}
 	}
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s r%i, r%i",
-				 address, opcode, mnemonic, Rd, Rm);
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tr%i, r%i",
+			 address, opcode, mnemonic, Rd, Rm);
 
 	return ERROR_OK;
 }
@@ -1669,7 +1686,9 @@ int evaluate_load_literal_thumb(uint16_t opcode, uint32_t address, arm_instructi
 	instruction->type = ARM_LDR;
 	immediate = opcode & 0x000000ff;
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tLDR r%i, [PC, #0x%" PRIx32 "]", address, opcode, Rd, immediate*4);
+	snprintf(instruction->text, 128,
+		"0x%8.8" PRIx32 "  0x%4.4x    \tLDR\tr%i, [pc, #%#" PRIx32 "]",
+		address, opcode, Rd, immediate*4);
 
 	instruction->info.load_store.Rd = Rd;
 	instruction->info.load_store.Rn = 15 /*PC*/;
@@ -1724,7 +1743,9 @@ int evaluate_load_store_reg_thumb(uint16_t opcode, uint32_t address, arm_instruc
 			break;
 	}
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s r%i, [r%i, r%i]", address, opcode, mnemonic, Rd, Rn, Rm);
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tr%i, [r%i, r%i]",
+			address, opcode, mnemonic, Rd, Rn, Rm);
 
 	instruction->info.load_store.Rd = Rd;
 	instruction->info.load_store.Rn = Rn;
@@ -1768,7 +1789,9 @@ int evaluate_load_store_imm_thumb(uint16_t opcode, uint32_t address, arm_instruc
 		shift = 0;
 	}
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s%c r%i, [r%i, #0x%" PRIx32 "]", address, opcode, mnemonic, suffix, Rd, Rn, offset << shift);
+	snprintf(instruction->text, 128,
+		"0x%8.8" PRIx32 "  0x%4.4x    \t%s%c\tr%i, [r%i, #%#" PRIx32 "]",
+		address, opcode, mnemonic, suffix, Rd, Rn, offset << shift);
 
 	instruction->info.load_store.Rd = Rd;
 	instruction->info.load_store.Rn = Rn;
@@ -1797,7 +1820,9 @@ int evaluate_load_store_stack_thumb(uint16_t opcode, uint32_t address, arm_instr
 		mnemonic = "STR";
 	}
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s r%i, [SP, #0x%" PRIx32 "]", address, opcode, mnemonic, Rd, offset*4);
+	snprintf(instruction->text, 128,
+		"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tr%i, [SP, #%#" PRIx32 "]",
+		address, opcode, mnemonic, Rd, offset*4);
 
 	instruction->info.load_store.Rd = Rd;
 	instruction->info.load_store.Rn = 13 /*SP*/;
@@ -1829,7 +1854,9 @@ int evaluate_add_sp_pc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 		Rn = 15;
 	}
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tADD r%i, %s, #0x%" PRIx32 "", address, opcode, Rd,reg_name, imm*4);
+	snprintf(instruction->text, 128,
+		"0x%8.8" PRIx32 "  0x%4.4x  \tADD\tr%i, %s, #%#" PRIx32,
+		address, opcode, Rd, reg_name, imm * 4);
 
 	instruction->info.data_proc.variant = 0 /* immediate */;
 	instruction->info.data_proc.Rd = Rd;
@@ -1857,7 +1884,9 @@ int evaluate_adjust_stack_thumb(uint16_t opcode, uint32_t address, arm_instructi
 		mnemonic = "ADD";
 	}
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s SP, #0x%" PRIx32 "", address, opcode, mnemonic, imm*4);
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%s\tSP, #%#" PRIx32,
+			address, opcode, mnemonic, imm*4);
 
 	instruction->info.data_proc.variant = 0 /* immediate */;
 	instruction->info.data_proc.Rd = 13 /*SP*/;
@@ -1873,7 +1902,9 @@ int evaluate_breakpoint_thumb(uint16_t opcode, uint32_t address, arm_instruction
 
 	instruction->type = ARM_BKPT;
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tBKPT 0x%02" PRIx32 "", address, opcode, imm);
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x  \tBKPT\t%#2.2" PRIx32 "",
+			address, opcode, imm);
 
 	return ERROR_OK;
 }
@@ -1934,9 +1965,11 @@ int evaluate_load_store_multiple_thumb(uint16_t opcode, uint32_t address, arm_in
 	if (reg_names_p > reg_names)
 		reg_names_p[-2] = '\0';
 	else /* invalid op : no registers */
-    		reg_names[0] = '\0';
+		reg_names[0] = '\0';
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s %s{%s}", address, opcode, mnemonic, ptr_name,reg_names);
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x  \t%s\t%s{%s}",
+			address, opcode, mnemonic, ptr_name, reg_names);
 
 	instruction->info.load_store_multiple.register_list = reg_list;
 	instruction->info.load_store_multiple.Rn = Rn;
@@ -1955,14 +1988,16 @@ int evaluate_cond_branch_thumb(uint16_t opcode, uint32_t address, arm_instructio
 	{
 		instruction->type = ARM_SWI;
 		snprintf(instruction->text, 128,
-				"0x%8.8" PRIx32 "\t0x%4.4x\tSVC 0x%02" PRIx32,
+				"0x%8.8" PRIx32 "  0x%4.4x    \tSVC\t%#2.2" PRIx32,
 				address, opcode, offset);
 		return ERROR_OK;
 	}
 	else if (cond == 0xe)
 	{
 		instruction->type = ARM_UNDEFINED_INSTRUCTION;
-		snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tUNDEFINED INSTRUCTION", address, opcode);
+		snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \tUNDEFINED INSTRUCTION",
+			address, opcode);
 		return ERROR_OK;
 	}
 
@@ -1972,8 +2007,10 @@ int evaluate_cond_branch_thumb(uint16_t opcode, uint32_t address, arm_instructio
 
 	target_address = address + 4 + (offset << 1);
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tB%s 0x%8.8" PRIx32 , address, opcode,
-			 arm_condition_strings[cond], target_address);
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%4.4x    \tB%s\t%#8.8" PRIx32,
+			address, opcode,
+			arm_condition_strings[cond], target_address);
 
 	instruction->type = ARM_B;
 	instruction->info.b_bl_bx_blx.reg_operand = -1;
@@ -1992,7 +2029,7 @@ static int evaluate_cb_thumb(uint16_t opcode, uint32_t address,
 	offset |= (opcode & 0x0200) >> 4;
 
 	snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "\t0x%4.4x\tCB%sZ r%d, %#8.8" PRIx32,
+			"0x%8.8" PRIx32 "  0x%4.4x    \tCB%sZ\tr%d, %#8.8" PRIx32,
 			address, opcode,
 			(opcode & 0x0800) ? "N" : "",
 			opcode & 0x7, address + 4 + (offset << 1));
@@ -2005,7 +2042,7 @@ static int evaluate_extend_thumb(uint16_t opcode, uint32_t address,
 {
 	/* added in ARMv6 */
 	snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "\t0x%4.4x\t%cXT%c r%d, r%d",
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%cXT%c\tr%d, r%d",
 			address, opcode,
 			(opcode & 0x0080) ? 'U' : 'S',
 			(opcode & 0x0040) ? 'B' : 'H',
@@ -2020,12 +2057,12 @@ static int evaluate_cps_thumb(uint16_t opcode, uint32_t address,
 	/* added in ARMv6 */
 	if ((opcode & 0x0ff0) == 0x0650)
 		snprintf(instruction->text, 128,
-				"0x%8.8" PRIx32 "\t0x%4.4x\tSETEND %s",
+				"0x%8.8" PRIx32 "  0x%4.4x    \tSETEND %s",
 				address, opcode,
 				(opcode & 0x80) ? "BE" : "LE");
 	else /* ASSUME (opcode & 0x0fe0) == 0x0660 */
 		snprintf(instruction->text, 128,
-				"0x%8.8" PRIx32 "\t0x%4.4x\tCPSI%c %s%s%s",
+				"0x%8.8" PRIx32 "  0x%4.4x    \tCPSI%c %s%s%s",
 				address, opcode,
 				(opcode & 0x0010) ? 'D' : 'E',
 				(opcode & 0x0004) ? "A" : "",
@@ -2053,7 +2090,7 @@ static int evaluate_byterev_thumb(uint16_t opcode, uint32_t address,
 		break;
 	}
 	snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "\t0x%4.4x\tREV%s r%d, r%d",
+			"0x%8.8" PRIx32 "  0x%4.4x    \tREV%s\tr%d, r%d",
 			address, opcode, suffix,
 			opcode & 0x7, (opcode >> 3) & 0x7);
 
@@ -2087,7 +2124,7 @@ static int evaluate_hint_thumb(uint16_t opcode, uint32_t address,
 	}
 
 	snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "\t0x%4.4x\t%s",
+			"0x%8.8" PRIx32 "  0x%4.4x    \t%s",
 			address, opcode, hint);
 
 	return ERROR_OK;
@@ -2107,7 +2144,7 @@ static int evaluate_ifthen_thumb(uint16_t opcode, uint32_t address,
 		x = (opcode & 0x08) ? "T" : "E";
 
 	snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "\t0x%4.4x\tIT%s%s%s %s",
+			"0x%8.8" PRIx32 "  0x%4.4x    \tIT%s%s%s\t%s",
 			address, opcode,
 			x, y, z, arm_condition_strings[cond]);
 
@@ -2216,7 +2253,7 @@ int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *
 
 		instruction->type = ARM_UNDEFINED_INSTRUCTION;
 		snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "\t0x%4.4x\tUNDEFINED INSTRUCTION",
+			"0x%8.8" PRIx32 "  0x%4.4x    \tUNDEFINED INSTRUCTION",
 			address, opcode);
 		return ERROR_OK;
 	}
@@ -2239,7 +2276,10 @@ int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *
 		if ((opcode & 0xf801) == 0xe801)
 		{
 			instruction->type = ARM_UNDEFINED_INSTRUCTION;
-			snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8x\tUNDEFINED INSTRUCTION", address, opcode);
+			snprintf(instruction->text, 128,
+					"0x%8.8" PRIx32 "  0x%8.8x\t"
+					"UNDEFINED INSTRUCTION",
+					address, opcode);
 			return ERROR_OK;
 		}
 		else
@@ -2297,7 +2337,7 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	LOG_DEBUG("Can't decode 32-bit Thumb2 yet (opcode=%08x)", opcode);
 
 	snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "\t0x%8.8x\t... 32-bit Thumb2 ...",
+			"0x%8.8" PRIx32 "  0x%8.8x\t... 32-bit Thumb2 ...",
 			address, opcode);
 	return ERROR_OK;
 }
