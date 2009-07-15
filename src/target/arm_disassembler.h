@@ -185,6 +185,9 @@ typedef struct arm_instruction_s
 	char text[128];
 	uint32_t opcode;
 
+	/* return value ... Thumb-2 sizes vary */
+	unsigned instruction_size;
+
 	union {
 		arm_b_bl_bx_blx_instr_t b_bl_bx_blx;
 		arm_data_proc_instr_t data_proc;
@@ -196,6 +199,8 @@ typedef struct arm_instruction_s
 
 extern int arm_evaluate_opcode(uint32_t opcode, uint32_t address, arm_instruction_t *instruction);
 extern int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *instruction);
+extern int thumb2_opcode(target_t *target, uint32_t address,
+		arm_instruction_t *instruction);
 extern int arm_access_size(arm_instruction_t *instruction);
 
 #define COND(opcode) (arm_condition_strings[(opcode & 0xf0000000) >> 28])

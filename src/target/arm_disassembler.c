@@ -21,6 +21,7 @@
 #include "config.h"
 #endif
 
+#include "target.h"
 #include "arm_disassembler.h"
 #include "log.h"
 
@@ -63,7 +64,9 @@ int evaluate_swi(uint32_t opcode, uint32_t address, arm_instruction_t *instructi
 {
 	instruction->type = ARM_SWI;
 
-	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSWI 0x%6.6" PRIx32 "", address, opcode, (opcode & 0xffffff));
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tSVC %#6.6" PRIx32,
+			address, opcode, (opcode & 0xffffff));
 
 	return ERROR_OK;
 }
@@ -614,7 +617,8 @@ int evaluate_ldm_stm(uint32_t opcode, uint32_t address, arm_instruction_t *instr
 		if (U)
 		{
 			instruction->info.load_store_multiple.addressing_mode = 0;
-			addressing_mode = "IA";
+			/* "IA" is the default in UAL syntax */
+			addressing_mode = "";
 		}
 		else
 		{
@@ -1180,6 +1184,7 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address, arm_instruction_t *in
 	/* clear fields, to avoid confusion */
 	memset(instruction, 0, sizeof(arm_instruction_t));
 	instruction->opcode = opcode;
+	instruction->instruction_size = 4;
 
 	/* catch opcodes with condition field [31:28] = b1111 */
 	if ((opcode & 0xf0000000) == 0xf0000000)
@@ -1356,7 +1361,11 @@ int evaluate_b_bl_blx_thumb(uint16_t opcode, uint32_t address, arm_instruction_t
 			mnemonic = "BL";
 			break;
 	}
-	/* TODO: deals correctly with dual opcodes BL/BLX ... */
+
+	/* TODO: deal correctly with dual opcode (prefixed) BL/BLX;
+	 * these are effectively 32-bit instructions even in Thumb1.
+	 * Might be simplest to always use the Thumb2 decoder.
+	 */
 
 	snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\t%s 0x%8.8" PRIx32 , address, opcode,mnemonic, target_address);
 
@@ -1887,12 +1896,12 @@ int evaluate_load_store_multiple_thumb(uint16_t opcode, uint32_t address, arm_in
 		if (L)
 		{
 			instruction->type = ARM_LDM;
-			mnemonic = "LDMIA";
+			mnemonic = "LDM";
 		}
 		else
 		{
 			instruction->type = ARM_STM;
-			mnemonic = "STMIA";
+			mnemonic = "STM";
 		}
 		snprintf(ptr_name,7,"r%i!, ",Rn);
 	}
@@ -1945,7 +1954,9 @@ int evaluate_cond_branch_thumb(uint16_t opcode, uint32_t address, arm_instructio
 	if (cond == 0xf)
 	{
 		instruction->type = ARM_SWI;
-		snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tSWI 0x%02" PRIx32 , address, opcode, offset);
+		snprintf(instruction->text, 128,
+				"0x%8.8" PRIx32 "\t0x%4.4x\tSVC 0x%02" PRIx32,
+				address, opcode, offset);
 		return ERROR_OK;
 	}
 	else if (cond == 0xe)
@@ -1971,11 +1982,148 @@ int evaluate_cond_branch_thumb(uint16_t opcode, uint32_t address, arm_instructio
 	return ERROR_OK;
 }
 
+static int evaluate_cb_thumb(uint16_t opcode, uint32_t address,
+		arm_instruction_t *instruction)
+{
+	unsigned offset;
+
+	/* added in Thumb2 */
+	offset = (opcode >> 3) & 0x1f;
+	offset |= (opcode & 0x0200) >> 4;
+
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%4.4x\tCB%sZ r%d, %#8.8" PRIx32,
+			address, opcode,
+			(opcode & 0x0800) ? "N" : "",
+			opcode & 0x7, address + 4 + (offset << 1));
+
+	return ERROR_OK;
+}
+
+static int evaluate_extend_thumb(uint16_t opcode, uint32_t address,
+		arm_instruction_t *instruction)
+{
+	/* added in ARMv6 */
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%4.4x\t%cXT%c r%d, r%d",
+			address, opcode,
+			(opcode & 0x0080) ? 'U' : 'S',
+			(opcode & 0x0040) ? 'B' : 'H',
+			opcode & 0x7, (opcode >> 3) & 0x7);
+
+	return ERROR_OK;
+}
+
+static int evaluate_cps_thumb(uint16_t opcode, uint32_t address,
+		arm_instruction_t *instruction)
+{
+	/* added in ARMv6 */
+	if ((opcode & 0x0ff0) == 0x0650)
+		snprintf(instruction->text, 128,
+				"0x%8.8" PRIx32 "\t0x%4.4x\tSETEND %s",
+				address, opcode,
+				(opcode & 0x80) ? "BE" : "LE");
+	else /* ASSUME (opcode & 0x0fe0) == 0x0660 */
+		snprintf(instruction->text, 128,
+				"0x%8.8" PRIx32 "\t0x%4.4x\tCPSI%c %s%s%s",
+				address, opcode,
+				(opcode & 0x0010) ? 'D' : 'E',
+				(opcode & 0x0004) ? "A" : "",
+				(opcode & 0x0002) ? "I" : "",
+				(opcode & 0x0001) ? "F" : "");
+
+	return ERROR_OK;
+}
+
+static int evaluate_byterev_thumb(uint16_t opcode, uint32_t address,
+		arm_instruction_t *instruction)
+{
+	char *suffix;
+
+	/* added in ARMv6 */
+	switch (opcode & 0x00c0) {
+	case 0:
+		suffix = "";
+		break;
+	case 1:
+		suffix = "16";
+		break;
+	default:
+		suffix = "SH";
+		break;
+	}
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%4.4x\tREV%s r%d, r%d",
+			address, opcode, suffix,
+			opcode & 0x7, (opcode >> 3) & 0x7);
+
+	return ERROR_OK;
+}
+
+static int evaluate_hint_thumb(uint16_t opcode, uint32_t address,
+		arm_instruction_t *instruction)
+{
+	char *hint;
+
+	switch ((opcode >> 4) & 0x0f) {
+	case 0:
+		hint = "NOP";
+		break;
+	case 1:
+		hint = "YIELD";
+		break;
+	case 2:
+		hint = "WFE";
+		break;
+	case 3:
+		hint = "WFI";
+		break;
+	case 4:
+		hint = "SEV";
+		break;
+	default:
+		hint = "HINT (UNRECOGNIZED)";
+		break;
+	}
+
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%4.4x\t%s",
+			address, opcode, hint);
+
+	return ERROR_OK;
+}
+
+static int evaluate_ifthen_thumb(uint16_t opcode, uint32_t address,
+		arm_instruction_t *instruction)
+{
+	unsigned cond = (opcode >> 4) & 0x0f;
+	char *x = "", *y = "", *z = "";
+
+	if (opcode & 0x01)
+		z = (opcode & 0x02) ? "T" : "E";
+	if (opcode & 0x03)
+		y = (opcode & 0x04) ? "T" : "E";
+	if (opcode & 0x07)
+		x = (opcode & 0x08) ? "T" : "E";
+
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%4.4x\tIT%s%s%s %s",
+			address, opcode,
+			x, y, z, arm_condition_strings[cond]);
+
+	/* NOTE:  strictly speaking, the next 1-4 instructions should
+	 * now be displayed with the relevant conditional suffix...
+	 */
+
+	return ERROR_OK;
+}
+
 int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
 	/* clear fields, to avoid confusion */
 	memset(instruction, 0, sizeof(arm_instruction_t));
 	instruction->opcode = opcode;
+	instruction->instruction_size = 2;
 
 	if ((opcode & 0xe000) == 0x0000)
 	{
@@ -2033,18 +2181,44 @@ int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *
 	/* Misc */
 	if ((opcode & 0xf000) == 0xb000)
 	{
-		if ((opcode & 0x0f00) == 0x0000)
+		switch ((opcode >> 8) & 0x0f) {
+		case 0x0:
 			return evaluate_adjust_stack_thumb(opcode, address, instruction);
-		else if ((opcode & 0x0f00) == 0x0e00)
+		case 0x1:
+		case 0x3:
+		case 0x9:
+		case 0xb:
+			return evaluate_cb_thumb(opcode, address, instruction);
+		case 0x2:
+			return evaluate_extend_thumb(opcode, address, instruction);
+		case 0x4:
+		case 0x5:
+		case 0xc:
+		case 0xd:
+			return evaluate_load_store_multiple_thumb(opcode, address,
+						instruction);
+		case 0x6:
+			return evaluate_cps_thumb(opcode, address, instruction);
+		case 0xa:
+			if ((opcode & 0x00c0) == 0x0080)
+				break;
+			return evaluate_byterev_thumb(opcode, address, instruction);
+		case 0xe:
 			return evaluate_breakpoint_thumb(opcode, address, instruction);
-		else if ((opcode & 0x0600) == 0x0400) /* push pop */
-			return evaluate_load_store_multiple_thumb(opcode, address, instruction);
-		else
-		{
-			instruction->type = ARM_UNDEFINED_INSTRUCTION;
-			snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%4.4x\tUNDEFINED INSTRUCTION", address, opcode);
-			return ERROR_OK;
+		case 0xf:
+			if (opcode & 0x000f)
+				return evaluate_ifthen_thumb(opcode, address,
+						instruction);
+			else
+				return evaluate_hint_thumb(opcode, address,
+						instruction);
 		}
+
+		instruction->type = ARM_UNDEFINED_INSTRUCTION;
+		snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%4.4x\tUNDEFINED INSTRUCTION",
+			address, opcode);
+		return ERROR_OK;
 	}
 
 	/* Load/Store multiple */
@@ -2076,6 +2250,56 @@ int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *
 
 	LOG_ERROR("should never reach this point (opcode=%04x)",opcode);
 	return -1;
+}
+
+/*
+ * REVISIT for Thumb2 instructions, instruction->type and friends aren't
+ * always set.  That means eventual arm_simulate_step() support for Thumb2
+ * will need work in this area.
+ */
+int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruction)
+{
+	int retval;
+	uint16_t op;
+	uint32_t opcode;
+
+	/* clear low bit ... it's set on function pointers */
+	address &= ~1;
+
+	/* clear fields, to avoid confusion */
+	memset(instruction, 0, sizeof(arm_instruction_t));
+
+	/* read first halfword, see if this is the only one */
+	retval = target_read_u16(target, address, &op);
+	if (retval != ERROR_OK)
+		return retval;
+
+	switch (op & 0xf800) {
+	case 0xf800:
+	case 0xf000:
+	case 0xe800:
+		/* 32-bit instructions */
+		instruction->instruction_size = 4;
+		opcode = op << 16;
+		retval = target_read_u16(target, address + 2, &op);
+		if (retval != ERROR_OK)
+			return retval;
+		opcode |= op;
+		instruction->opcode = opcode;
+		break;
+	default:
+		/* 16-bit:  Thumb1 + IT + CBZ/CBNZ + ... */
+		return thumb_evaluate_opcode(op, address, instruction);
+	}
+
+	/* FIXME decode the 32-bit instructions */
+
+	LOG_DEBUG("Can't decode 32-bit Thumb2 yet (opcode=%08x)", opcode);
+
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "\t0x%8.8x\t... 32-bit Thumb2 ...",
+			address, opcode);
+	return ERROR_OK;
 }
 
 int arm_access_size(arm_instruction_t *instruction)

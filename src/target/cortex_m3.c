@@ -34,6 +34,7 @@
 #include "cortex_m3.h"
 #include "target_request.h"
 #include "target_type.h"
+#include "arm_disassembler.h"
 
 
 /* cli handling */
@@ -1646,6 +1647,47 @@ int cortex_m3_target_create(struct target_s *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
+/*
+ * REVISIT Thumb2 disassembly should work for all ARMv7 cores, as well
+ * as at least ARM-1156T2.  The interesting thing about Cortex-M is
+ * that *only* Thumb2 disassembly matters.  There are also some small
+ * additions to Thumb2 that are specific to ARMv7-M.
+ */
+static int
+handle_cortex_m3_disassemble_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	int retval = ERROR_OK;
+	target_t *target = get_current_target(cmd_ctx);
+	uint32_t address;
+	unsigned long count;
+	arm_instruction_t cur_instruction;
+
+	if (argc != 2) {
+		command_print(cmd_ctx,
+			"usage: cortex_m3 disassemble <address> <count>");
+		return ERROR_OK;
+	}
+
+	errno = 0;
+	address = strtoul(args[0], NULL, 0);
+	if (errno)
+		return ERROR_FAIL;
+	count = strtoul(args[1], NULL, 0);
+	if (errno)
+		return ERROR_FAIL;
+
+	while (count--) {
+		retval = thumb2_opcode(target, address, &cur_instruction);
+		if (retval != ERROR_OK)
+			return retval;
+		command_print(cmd_ctx, "%s", cur_instruction.text);
+		address += cur_instruction.instruction_size;
+	}
+
+	return ERROR_OK;
+}
+
 int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
@@ -1653,8 +1695,15 @@ int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 
 	retval = armv7m_register_commands(cmd_ctx);
 
-	cortex_m3_cmd = register_command(cmd_ctx, NULL, "cortex_m3", NULL, COMMAND_ANY, "cortex_m3 specific commands");
-	register_command(cmd_ctx, cortex_m3_cmd, "maskisr", handle_cortex_m3_mask_interrupts_command, COMMAND_EXEC, "mask cortex_m3 interrupts ['on'|'off']");
+	cortex_m3_cmd = register_command(cmd_ctx, NULL, "cortex_m3",
+			NULL, COMMAND_ANY, "cortex_m3 specific commands");
+
+	register_command(cmd_ctx, cortex_m3_cmd, "disassemble",
+			handle_cortex_m3_disassemble_command, COMMAND_EXEC,
+			"disassemble Thumb2 instructions <address> <count>");
+	register_command(cmd_ctx, cortex_m3_cmd, "maskisr",
+			handle_cortex_m3_mask_interrupts_command, COMMAND_EXEC,
+			"mask cortex_m3 interrupts ['on'|'off']");
 
 	return retval;
 }
