@@ -2671,6 +2671,101 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 	return ERROR_OK;
 }
 
+static int t2ev_data_immed(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	char *mnemonic = NULL;
+	int rn = (opcode >> 16) & 0xf;
+	int rd = (opcode >> 8) & 0xf;
+	unsigned immed;
+	bool add = false;
+	bool is_signed = false;
+
+	immed = (opcode & 0x0ff) | ((opcode & 0x7000) >> 12);
+	if (opcode & (1 << 27))
+		immed |= (1 << 11);
+
+	switch ((opcode >> 20) & 0x1f) {
+	case 0:
+		if (rn == 0xf) {
+			add = true;
+			goto do_adr;
+		}
+		mnemonic = "ADD.W";
+		break;
+	case 4:
+		mnemonic = "MOV.W";
+		break;
+	case 0x0a:
+		if (rn == 0xf)
+			goto do_adr;
+		mnemonic = "SUB.W";
+		break;
+	case 0x0c:
+		/* move constant to top 16 bits of register */
+		immed |= (opcode >> 4) & 0xf000;
+		sprintf(cp, "MOVT\tr%d, #%d\t; %#4.4x", rn, immed, immed);
+		return ERROR_OK;
+	case 0x10:
+	case 0x12:
+		is_signed = true;
+	case 0x18:
+	case 0x1a:
+		/* signed/unsigned saturated add */
+		immed = (opcode >> 6) & 0x03;
+		immed |= (opcode >> 10) & 0x1c;
+		sprintf(cp, "%sSAT\tr%d, #%d, r%d, %s #%d\t",
+				is_signed ? "S" : "U",
+				rd, (opcode & 0x1f) + 1, rn,
+				(opcode & (1 << 21)) ? "ASR" : "LSL",
+				immed ? immed : 32);
+		return ERROR_OK;
+	case 0x14:
+		is_signed = true;
+		/* FALLTHROUGH */
+	case 0x1c:
+		/* signed/unsigned bitfield extract */
+		immed = (opcode >> 6) & 0x03;
+		immed |= (opcode >> 10) & 0x1c;
+		sprintf(cp, "%sBFX\tr%d, r%d, #%d, #%d\t",
+				is_signed ? "S" : "U",
+				rd, rn, immed,
+				(opcode & 0x1f) + 1);
+		return ERROR_OK;
+	case 0x16:
+		immed = (opcode >> 6) & 0x03;
+		immed |= (opcode >> 10) & 0x1c;
+		if (rn == 0xf)		/* bitfield clear */
+			sprintf(cp, "BFC\tr%d, #%d, #%d\t",
+					rd, immed,
+					(opcode & 0x1f) + 1 - immed);
+		else			/* bitfield insert */
+			sprintf(cp, "BFI\tr%d, r%d, #%d, #%d\t",
+					rd, rn, immed,
+					(opcode & 0x1f) + 1 - immed);
+		return ERROR_OK;
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	sprintf(cp, "%s\tr%d, r%d, #%d\t; %#3.3x", mnemonic,
+			rd, rn, immed, immed);
+	return ERROR_OK;
+
+do_adr:
+	address &= ~0x03;
+	address += 4;
+	if (add)
+		address += immed;
+	else
+		address -= immed;
+	/* REVISIT "ADD/SUB Rd, PC, #const ; 0x..." might be better;
+	 * not hiding the pc-relative stuff will sometimes be useful.
+	 */
+	sprintf(cp, "ADR.W\tr%d, %#8.8" PRIx32, rd, address);
+	return ERROR_OK;
+}
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -2721,6 +2816,10 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	/* ARMv7-M: A5.3.1 Data processing (modified immediate) */
 	if ((opcode & 0x1a008000) == 0x10000000)
 		retval = t2ev_data_mod_immed(opcode, address, instruction, cp);
+
+	/* ARMv7-M: A5.3.3 Data processing (plain binary immediate) */
+	else if ((opcode & 0x1a008000) == 0x12000000)
+		retval = t2ev_data_immed(opcode, address, instruction, cp);
 
 	/* ARMv7-M: A5.3.4 Branches and miscellaneous control */
 	else if ((opcode & 0x18008000) == 0x10008000)
