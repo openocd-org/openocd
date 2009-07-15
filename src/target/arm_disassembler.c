@@ -2292,6 +2292,247 @@ int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, arm_instruction_t *
 	return -1;
 }
 
+static int t2ev_b_bl(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	unsigned offset;
+	unsigned b21 = 1 << 21;
+	unsigned b22 = 1 << 22;
+
+	/* instead of combining two smaller 16-bit branch instructions,
+	 * Thumb2 uses only one larger 32-bit instruction.
+	 */
+	offset = opcode & 0x7ff;
+	offset |= (opcode & 0x03ff0000) >> 5;
+	if (opcode & (1 << 26)) {
+		offset |= 0xff << 23;
+		if ((opcode & (1 << 11)) == 0)
+			b21 = 0;
+		if ((opcode & (1 << 13)) == 0)
+			b22 = 0;
+	} else {
+		if (opcode & (1 << 11))
+			b21 = 0;
+		if (opcode & (1 << 13))
+			b22 = 0;
+	}
+	offset |= b21;
+	offset |= b22;
+
+
+	address += 4;
+	address += offset << 1;
+
+	instruction->type = (opcode & (1 << 14)) ? ARM_BL : ARM_B;
+	instruction->info.b_bl_bx_blx.reg_operand = -1;
+	instruction->info.b_bl_bx_blx.target_address = address;
+	sprintf(cp, "%s\t%#8.8" PRIx32,
+			(opcode & (1 << 14)) ? "BL" : "B.W",
+			address);
+
+	return ERROR_OK;
+}
+
+static int t2ev_cond_b(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	unsigned offset;
+	unsigned b17 = 1 << 17;
+	unsigned b18 = 1 << 18;
+	unsigned cond = (opcode >> 22) & 0x0f;
+
+	offset = opcode & 0x7ff;
+	offset |= (opcode & 0x003f0000) >> 5;
+	if (opcode & (1 << 26)) {
+		offset |= 0xffff << 19;
+		if ((opcode & (1 << 11)) == 0)
+			b17 = 0;
+		if ((opcode & (1 << 13)) == 0)
+			b18 = 0;
+	} else {
+		if (opcode & (1 << 11))
+			b17 = 0;
+		if (opcode & (1 << 13))
+			b18 = 0;
+	}
+	offset |= b17;
+	offset |= b18;
+
+	address += 4;
+	address += offset << 1;
+
+	instruction->type = ARM_B;
+	instruction->info.b_bl_bx_blx.reg_operand = -1;
+	instruction->info.b_bl_bx_blx.target_address = address;
+	sprintf(cp, "B%s.W\t%#8.8" PRIx32,
+			arm_condition_strings[cond],
+			address);
+
+	return ERROR_OK;
+}
+
+static const char *special_name(int number)
+{
+	char *special = "(RESERVED)";
+
+	switch (number) {
+	case 0:
+		special = "apsr";
+		break;
+	case 1:
+		special = "iapsr";
+		break;
+	case 2:
+		special = "eapsr";
+		break;
+	case 3:
+		special = "xpsr";
+		break;
+	case 5:
+		special = "ipsr";
+		break;
+	case 6:
+		special = "epsr";
+		break;
+	case 7:
+		special = "iepsr";
+		break;
+	case 8:
+		special = "msp";
+		break;
+	case 9:
+		special = "psp";
+		break;
+	case 16:
+		special = "primask";
+		break;
+	case 17:
+		special = "basepri";
+		break;
+	case 18:
+		special = "basepri_max";
+		break;
+	case 19:
+		special = "faultmask";
+		break;
+	case 20:
+		special = "control";
+		break;
+	}
+	return special;
+}
+
+static int t2ev_hint(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	const char *mnemonic;
+
+	if (opcode & 0x0700) {
+		instruction->type = ARM_UNDEFINED_INSTRUCTION;
+		strcpy(cp, "UNDEFINED");
+		return ERROR_OK;
+	}
+
+	if (opcode & 0x00f0) {
+		sprintf(cp, "DBG\t#%d", opcode & 0xf);
+		return ERROR_OK;
+	}
+
+	switch (opcode & 0x0f) {
+	case 0:
+		mnemonic = "NOP.W";
+		break;
+	case 1:
+		mnemonic = "YIELD.W";
+		break;
+	case 2:
+		mnemonic = "WFE.W";
+		break;
+	case 3:
+		mnemonic = "WFI.W";
+		break;
+	case 4:
+		mnemonic = "SEV.W";
+		break;
+	default:
+		mnemonic = "HINT.W (UNRECOGNIZED)";
+		break;
+	}
+	strcpy(cp, mnemonic);
+	return ERROR_OK;
+}
+
+static int t2ev_misc(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	const char *mnemonic;
+
+	switch ((opcode >> 4) & 0x0f) {
+	case 2:
+		mnemonic = "CLREX";
+		break;
+	case 4:
+		mnemonic = "DSB";
+		break;
+	case 5:
+		mnemonic = "DMB";
+		break;
+	case 6:
+		mnemonic = "ISB";
+		break;
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+	strcpy(cp, mnemonic);
+	return ERROR_OK;
+}
+
+static int t2ev_b_misc(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	/* permanently undefined */
+	if ((opcode & 0x07f07000) == 0x07f02000) {
+		instruction->type = ARM_UNDEFINED_INSTRUCTION;
+		strcpy(cp, "UNDEFINED");
+		return ERROR_OK;
+	}
+
+	switch ((opcode >> 12) & 0x5) {
+	case 0x1:
+	case 0x5:
+		return t2ev_b_bl(opcode, address, instruction, cp);
+	case 0x4:
+		goto undef;
+	case 0:
+		if (((opcode >> 23) & 0x07) == 0x07)
+			return t2ev_cond_b(opcode, address, instruction, cp);
+		if (opcode & (1 << 26))
+			goto undef;
+		break;
+	}
+
+	switch ((opcode >> 20) & 0x7f) {
+	case 0x38:
+	case 0x39:
+		sprintf(cp, "MSR\t%s, r%d", special_name(opcode & 0xff),
+				(opcode >> 16) & 0x0f);
+		return ERROR_OK;
+	case 0x3a:
+		return t2ev_hint(opcode, address, instruction, cp);
+	case 0x3b:
+		return t2ev_misc(opcode, address, instruction, cp);
+	case 0x3e:
+	case 0x3f:
+		sprintf(cp, "MRS\tr%d, %s", (opcode >> 16) & 0x0f,
+				special_name(opcode & 0xff));
+		return ERROR_OK;
+	}
+
+undef:
+	return ERROR_INVALID_ARGUMENTS;
+}
+
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -2302,6 +2543,7 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	int retval;
 	uint16_t op;
 	uint32_t opcode;
+	char *cp;
 
 	/* clear low bit ... it's set on function pointers */
 	address &= ~1;
@@ -2332,13 +2574,30 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 		return thumb_evaluate_opcode(op, address, instruction);
 	}
 
-	/* FIXME decode the 32-bit instructions */
+	snprintf(instruction->text, 128,
+			"0x%8.8" PRIx32 "  0x%8.8" PRIx32 "\t",
+			address, opcode);
+	cp = strchr(instruction->text, 0);
+	retval = ERROR_FAIL;
+
+	/* ARMv7-M: A5.3.4 Branches and miscellaneous control */
+	if ((opcode & 0x18008000) == 0x10008000)
+		retval = t2ev_b_misc(opcode, address, instruction, cp);
+
+	/* FIXME decode more 32-bit instructions */
+
+	if (retval == ERROR_OK)
+		return retval;
+
+	if (retval == ERROR_INVALID_ARGUMENTS) {
+		instruction->type = ARM_UNDEFINED_INSTRUCTION;
+		strcpy(cp, "UNDEFINED OPCODE");
+		return ERROR_OK;
+	}
 
 	LOG_DEBUG("Can't decode 32-bit Thumb2 yet (opcode=%08x)", opcode);
 
-	snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "  0x%8.8x\t... 32-bit Thumb2 ...",
-			address, opcode);
+	strcpy(cp, "(32-bit Thumb2 ...)");
 	return ERROR_OK;
 }
 
