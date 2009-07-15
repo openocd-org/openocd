@@ -2783,6 +2783,98 @@ do_adr:
 	return ERROR_OK;
 }
 
+static int t2ev_store_single(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	unsigned op = (opcode >> 20) & 0xf;
+	char *size = "";
+	char *suffix = "";
+	char *p1 = "";
+	char *p2 = "]";
+	unsigned immed;
+	unsigned rn = (opcode >> 16) & 0x0f;
+	unsigned rt = (opcode >> 12) & 0x0f;
+
+	if (rn == 0xf)
+		return ERROR_INVALID_ARGUMENTS;
+
+	if (opcode & 0x0800)
+		op |= 1;
+	switch (op) {
+	/* byte */
+	case 0x8:
+	case 0x9:
+		size = "B";
+		goto imm12;
+	case 0x1:
+		size = "B";
+		goto imm8;
+	case 0x0:
+		size = "B";
+		break;
+	/* halfword */
+	case 0xa:
+	case 0xb:
+		size = "H";
+		goto imm12;
+	case 0x3:
+		size = "H";
+		goto imm8;
+	case 0x2:
+		size = "H";
+		break;
+	/* word */
+	case 0xc:
+	case 0xd:
+		goto imm12;
+	case 0x5:
+		goto imm8;
+	case 0x4:
+		break;
+	/* error */
+	default:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	sprintf(cp, "STR%s.W\tr%d, [r%d, r%d, LSL #%d]",
+			size, rt, rn, opcode & 0x0f,
+			(opcode >> 4) & 0x03);
+
+imm12:
+	immed = opcode & 0x0fff;
+	sprintf(cp, "STR%s.W\tr%d, [r%d, #%u]\t; %#3.3x",
+			size, rt, rn, immed, immed);
+	return ERROR_OK;
+
+imm8:
+	immed = opcode & 0x00ff;
+
+	switch (opcode & 0x700) {
+	case 0x600:
+		suffix = "T";
+		break;
+	case 0x000:
+	case 0x200:
+		return ERROR_INVALID_ARGUMENTS;
+	}
+
+	/* two indexed modes will write back rn */
+	if (opcode & 0x100) {
+		if (opcode & 0x400)	/* pre-indexed */
+			p2 = "]!";
+		else {			/* post-indexed */
+			p1 = "]";
+			p2 = "";
+		}
+	}
+
+	sprintf(cp, "STR%s%s\tr%d, [r%d%s, #%s%u%s\t; %#2.2x",
+			size, suffix, rt, rn, p1,
+			(opcode & 0x200) ? "" : "-",
+			immed, p2, immed);
+	return ERROR_OK;
+}
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -2841,6 +2933,10 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	/* ARMv7-M: A5.3.4 Branches and miscellaneous control */
 	else if ((opcode & 0x18008000) == 0x10008000)
 		retval = t2ev_b_misc(opcode, address, instruction, cp);
+
+	/* ARMv7-M: A5.3.10 Store single data item */
+	else if ((opcode & 0x1f100000) == 0x18000000)
+		retval = t2ev_store_single(opcode, address, instruction, cp);
 
 	/* FIXME decode more 32-bit instructions */
 
