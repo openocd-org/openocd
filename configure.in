@@ -453,6 +453,7 @@ esac
 case $host in 
   *-cygwin*) 
     is_win32=yes
+    parport_use_ppdev=no
 
     AC_COMPILE_IFELSE(AC_LANG_PROGRAM([],[return __MINGW32__;]),
       [is_mingw=yes],[is_mingw=no])
@@ -474,6 +475,7 @@ case $host in
   *-mingw*) 
     is_mingw=yes
     is_win32=yes
+    parport_use_ppdev=no
 
     if test x$parport_use_giveio = xno; then
       AC_MSG_WARN([--disable-parport-giveio is not supported by MinGW32 hosts])
