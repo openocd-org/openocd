@@ -145,13 +145,17 @@ extern int mem_ap_write_buf_u32(swjdp_common_t *swjdp, uint8_t *buffer, int coun
 /* Initialisation of the debug system, power domains and registers */
 extern int ahbap_debugport_init(swjdp_common_t *swjdp);
 
-extern int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, int apsel);
+
 /* Commands for user dap access */
-/* Currently implemented in armv7m, needs armv7m target structure to find jtag and swjdp structures */
-extern int handle_dap_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-extern int handle_dap_apsel_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-extern int handle_dap_apid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-extern int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
-extern int handle_dap_memaccess_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+int dap_info_command(struct command_context_s *cmd_ctx,
+		swjdp_common_t *swjdp, int apsel);
+int dap_baseaddr_command(struct command_context_s *cmd_ctx,
+		swjdp_common_t *swjdp, char **args, int argc);
+int dap_memaccess_command(struct command_context_s *cmd_ctx,
+		swjdp_common_t *swjdp, char **args, int argc);
+int dap_apsel_command(struct command_context_s *cmd_ctx,
+		swjdp_common_t *swjdp, char **args, int argc);
+int dap_apid_command(struct command_context_s *cmd_ctx,
+		swjdp_common_t *swjdp, char **args, int argc);
 
 #endif

@@ -29,8 +29,8 @@
  *                                                                         *
  * ARM(tm) Debug Interface v5 Architecture Specification    ARM IHI 0031A  *
  *                                                                         *
- * CoreSight(tm) DAP-Lite TRM, ARM DDI 0316A                               *
- * Cortex-M3(tm) TRM, ARM DDI 0337C                                        *
+ * CoreSight(tm) DAP-Lite TRM, ARM DDI 0316D                               *
+ * Cortex-M3(tm) TRM, ARM DDI 0337G                                        *
  *                                                                         *
 ***************************************************************************/
 
@@ -1128,4 +1128,86 @@ int dap_info_command(struct command_context_s *cmd_ctx, swjdp_common_t *swjdp, i
 
 	return ERROR_OK;
 }
+
+int dap_baseaddr_command(struct command_context_s *cmd_ctx,
+		swjdp_common_t *swjdp, char **args, int argc)
+{
+	uint32_t apsel, apselsave, baseaddr;
+	int retval;
+
+	apsel = swjdp->apsel;
+	apselsave = swjdp->apsel;
+	if (argc > 0)
+		apsel = strtoul(args[0], NULL, 0);
+	if (apselsave != apsel)
+		dap_ap_select(swjdp, apsel);
+
+	dap_ap_read_reg_u32(swjdp, 0xF8, &baseaddr);
+	retval = swjdp_transaction_endcheck(swjdp);
+	command_print(cmd_ctx, "0x%8.8x", baseaddr);
+
+	if (apselsave != apsel)
+		dap_ap_select(swjdp, apselsave);
+
+	return retval;
+}
+
+int dap_memaccess_command(struct command_context_s *cmd_ctx,
+		swjdp_common_t *swjdp, char **args, int argc)
+{
+	uint32_t memaccess_tck;
+
+	memaccess_tck = swjdp->memaccess_tck;
+	if (argc > 0)
+		memaccess_tck = strtoul(args[0], NULL, 0);
+
+	swjdp->memaccess_tck = memaccess_tck;
+	command_print(cmd_ctx, "memory bus access delay set to %i tck",
+			swjdp->memaccess_tck);
+
+	return ERROR_OK;
+}
+
+int dap_apsel_command(struct command_context_s *cmd_ctx,
+		swjdp_common_t *swjdp, char **args, int argc)
+{
+	uint32_t apsel, apid;
+	int retval;
+
+	apsel = 0;
+	if (argc > 0)
+		apsel = strtoul(args[0], NULL, 0);
+
+	dap_ap_select(swjdp, apsel);
+	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
+	retval = swjdp_transaction_endcheck(swjdp);
+	command_print(cmd_ctx, "ap %i selected, identification register 0x%8.8x",
+			apsel, apid);
+
+	return retval;
+}
+
+int dap_apid_command(struct command_context_s *cmd_ctx,
+		swjdp_common_t *swjdp, char **args, int argc)
+{
+	uint32_t apsel, apselsave, apid;
+	int retval;
+
+	apsel = swjdp->apsel;
+	apselsave = swjdp->apsel;
+	if (argc > 0)
+		apsel = strtoul(args[0], NULL, 0);
+
+	if (apselsave != apsel)
+		dap_ap_select(swjdp, apsel);
+
+	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
+	retval = swjdp_transaction_endcheck(swjdp);
+	command_print(cmd_ctx, "0x%8.8x", apid);
+	if (apselsave != apsel)
+		dap_ap_select(swjdp, apselsave);
+
+	return retval;
+}
+
 

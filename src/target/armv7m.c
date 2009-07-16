@@ -554,20 +554,6 @@ int armv7m_init_arch_info(target_t *target, armv7m_common_t *armv7m)
 	return ERROR_OK;
 }
 
-int armv7m_register_commands(struct command_context_s *cmd_ctx)
-{
-	command_t *arm_adi_v5_dap_cmd;
-
-	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap", NULL, COMMAND_ANY, "cortex dap specific commands");
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "info", handle_dap_info_command, COMMAND_EXEC, "Displays dap info for ap [num], default currently selected AP");
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apsel", handle_dap_apsel_command, COMMAND_EXEC, "Select a different AP [num] (default 0)");
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apid", handle_dap_apid_command, COMMAND_EXEC, "Displays id reg from AP [num], default currently selected AP");
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "baseaddr", handle_dap_baseaddr_command, COMMAND_EXEC, "Displays debug base address from AP [num], default currently selected AP");
-	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "memaccess", handle_dap_memaccess_command, COMMAND_EXEC, "set/get number of extra tck for mem-ap memory bus access [0-255]");
-
-	return ERROR_OK;
-}
-
 int armv7m_checksum_memory(struct target_s *target, uint32_t address, uint32_t count, uint32_t* checksum)
 {
 	working_area_t *crc_algorithm;
@@ -711,10 +697,12 @@ int armv7m_blank_check_memory(struct target_s *target, uint32_t address, uint32_
 	return ERROR_OK;
 }
 
-/********************************************************************************************************************
-* Return the debug ap baseaddress in hexadecimal, no extra output to simplify script processing
-*********************************************************************************************************************/
-int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+/*
+ * Return the debug ap baseaddress in hexadecimal;
+ * no extra output to simplify script processing
+ */
+static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv7m_common_t *armv7m = target->arch_info;
@@ -746,97 +734,83 @@ int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx, char *cmd, ch
 }
 
 
-/********************************************************************************************************************
-* Return the debug ap id in hexadecimal, no extra output to simplify script processing
-*********************************************************************************************************************/
-extern int handle_dap_apid_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+/*
+ * Return the debug ap id in hexadecimal;
+ * no extra output to simplify script processing
+ */
+extern int handle_dap_apid_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	uint32_t apsel, apselsave, apid;
-	int retval;
 
-	apsel = swjdp->apsel;
-	apselsave = swjdp->apsel;
-	if (argc > 0)
-	{
-		apsel = strtoul(args[0], NULL, 0);
-	}
-
-	if (apselsave != apsel)
-	{
-		dap_ap_select(swjdp, apsel);
-	}
-
-	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
-	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(cmd_ctx, "0x%8.8" PRIx32 "", apid);
-	if (apselsave != apsel)
-	{
-		dap_ap_select(swjdp, apselsave);
-	}
-
-	return retval;
+	return dap_apid_command(cmd_ctx, swjdp, args, argc);
 }
 
-int handle_dap_apsel_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_dap_apsel_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	uint32_t apsel, apid;
-	int retval;
 
-	apsel = 0;
-	if (argc > 0)
-	{
-		apsel = strtoul(args[0], NULL, 0);
-	}
-
-	dap_ap_select(swjdp, apsel);
-	dap_ap_read_reg_u32(swjdp, 0xFC, &apid);
-	retval = swjdp_transaction_endcheck(swjdp);
-	command_print(cmd_ctx, "ap %i selected, identification register 0x%8.8" PRIx32 "", (int)apsel, apid);
-
-	return retval;
+	return dap_apsel_command(cmd_ctx, swjdp, args, argc);
 }
 
-int handle_dap_memaccess_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int handle_dap_memaccess_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	uint32_t memaccess_tck;
 
-	memaccess_tck = swjdp->memaccess_tck;
-	if (argc > 0)
-	{
-		memaccess_tck = strtoul(args[0], NULL, 0);
-	}
-
-	swjdp->memaccess_tck = memaccess_tck;
-	command_print(cmd_ctx, "memory bus access delay set to %i tck", (int)(swjdp->memaccess_tck));
-
-	return ERROR_OK;
+	return dap_memaccess_command(cmd_ctx, swjdp, args, argc);
 }
 
-int handle_dap_info_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+
+static int handle_dap_info_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
-	int retval;
 	uint32_t apsel;
 
 	apsel =  swjdp->apsel;
 	if (argc > 0)
-	{
 		apsel = strtoul(args[0], NULL, 0);
-	}
 
-	retval = dap_info_command(cmd_ctx, swjdp, apsel);
-
-	return retval;
+	return dap_info_command(cmd_ctx, swjdp, apsel);
 }
 
+int armv7m_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *arm_adi_v5_dap_cmd;
+
+	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap",
+			NULL, COMMAND_ANY,
+			"cortex dap specific commands");
+
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "info",
+			handle_dap_info_command, COMMAND_EXEC,
+			"Displays dap info for ap [num],"
+			"default currently selected AP");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apsel",
+			handle_dap_apsel_command, COMMAND_EXEC,
+			"Select a different AP [num] (default 0)");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apid",
+			handle_dap_apid_command, COMMAND_EXEC,
+			"Displays id reg from AP [num], "
+			"default currently selected AP");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "baseaddr",
+			handle_dap_baseaddr_command, COMMAND_EXEC,
+			"Displays debug base address from AP [num],"
+			"default currently selected AP");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "memaccess",
+			handle_dap_memaccess_command, COMMAND_EXEC,
+			"set/get number of extra tck for mem-ap "
+			"memory bus access [0-255]");
+
+	return ERROR_OK;
+}
