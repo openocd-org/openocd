@@ -25,6 +25,10 @@
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                         *
+ *	ARMv7-M Architecture, Application Level Reference Manual           *
+ *              ARM DDI 0405C (September 2008)                             *
+ *                                                                         *
  ***************************************************************************/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -44,8 +48,10 @@ char* armv7m_mode_strings[] =
 
 char* armv7m_exception_strings[] =
 {
-	"", "Reset", "NMI", "HardFault", "MemManage", "BusFault", "UsageFault", "RESERVED", "RESERVED", "RESERVED", "RESERVED",
-	"SVCall", "DebugMonitor", "RESERVED", "PendSV", "SysTick"
+	"", "Reset", "NMI", "HardFault",
+	"MemManage", "BusFault", "UsageFault", "RESERVED",
+	"RESERVED", "RESERVED", "RESERVED", "SVCall",
+	"DebugMonitor", "RESERVED", "PendSV", "SysTick"
 };
 
 char* armv7m_core_reg_list[] =
@@ -54,8 +60,8 @@ char* armv7m_core_reg_list[] =
 	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12",
 	"sp", "lr", "pc",
 	"xPSR", "msp", "psp",
-	/* Registers accessed through special reg 20 */
-	"primask", "basepri", "faultmask", "control"
+	/* reg 20 has 4 bytes: CONTROL, FAULTMASK, BASEPRI, PRIMASK */
+	"spec20",
 };
 
 uint8_t armv7m_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -105,11 +111,11 @@ armv7m_core_reg_t armv7m_core_reg_list_arch_info[] =
 	{17, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL}, /* MSP */
 	{18, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL}, /* PSP */
 
-	/*  CORE_SP are accesible using coreregister 20 */
-	{19, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* PRIMASK */
-	{20, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* BASEPRI */
-	{21, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* FAULTMASK */
-	{22, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}  /* CONTROL */
+	/* FIXME the register numbers here are core-specific.
+	 * Numbers 0..18 above work for all Cortex-M3 revisions.
+	 * Number 20 below works for CM3 r2p0 and later.
+	 */
+	{20, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL},
 };
 
 int armv7m_core_reg_arch_type = -1;
@@ -381,12 +387,21 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		armv7m_set_core_reg(reg, reg_params[i].value);
 	}
 
-	if (armv7m_algorithm_info->core_mode != ARMV7M_MODE_ANY)
+	/* NOTE:  CONTROL is bits 31:24 of SPEC20 register, if it's present;
+	 * holding a two-bit field.
+	 *
+	 * FIXME need a solution using ARMV7M_T_MSR().  Use it at least for
+	 * earlier cores.
+	 */
+	if (armv7m_algorithm_info->core_mode != ARMV7M_MODE_ANY
+			&& armv7m->has_spec20)
 	{
 		LOG_DEBUG("setting core_mode: 0x%2.2x", armv7m_algorithm_info->core_mode);
-		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 1, armv7m_algorithm_info->core_mode);
-		armv7m->core_cache->reg_list[ARMV7M_CONTROL].dirty = 1;
-		armv7m->core_cache->reg_list[ARMV7M_CONTROL].valid = 1;
+
+		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_SPEC20].value,
+				24, 2, armv7m_algorithm_info->core_mode);
+		armv7m->core_cache->reg_list[ARMV7M_SPEC20].dirty = 1;
+		armv7m->core_cache->reg_list[ARMV7M_SPEC20].valid = 1;
 	}
 
 	/* ARMV7M always runs in Thumb state */

@@ -117,6 +117,21 @@ extern char* cortex_m3_state_strings[];
 #define FPCR_REPLACE_BKPT_HIGH  (2 << 30)
 #define FPCR_REPLACE_BKPT_BOTH  (3 << 30)
 
+/* Use MRS/MSR to read/write any of these special registers.  Some of
+ * them (xPSR, MSP, PSP) are always available using DCRxR.  Starting in
+ * Cortex-M3 r2p0, some (CONTROL, BASEPRI, and *MASK) are also available
+ * through DCRxR.
+ * NOTE: this listing omits xPSR components and other mixtures.
+ */
+#define SR_XPSR		3
+#define SR_MSP		8
+#define SR_PSP		9
+#define SR_PRIMASK	16
+#define SR_BASEPRI	17
+#define SR_BASEPRI_MAX	18
+#define SR_FAULTMASK	19
+#define SR_CONTROL	20
+
 typedef struct  cortex_m3_fp_comparator_s
 {
 	int used;

@@ -61,10 +61,15 @@ enum
 	ARMV7M_xPSR = 16,
 	ARMV7M_MSP,
 	ARMV7M_PSP,
-	ARMV7M_PRIMASK,
-	ARMV7M_BASEPRI,
-	ARMV7M_FAULTMASK,
-	ARMV7M_CONTROL,
+
+	/* FIXME the register numbers here are core-specific.  Cortex-M3
+	 * through r1p1 only defines registers up to PSP; see ARM DDI 0337E.
+	 *
+	 * It's r2p0 (see ARM DDI 0337G) which defines the register that's
+	 * called SPEC20 here, with four single-byte fields with CONTROL
+	 * (highest byte), FAULTMASK, BASEPRI, and PRIMASK (lowest byte).
+	 */
+	ARMV7M_SPEC20 = 20,
 	ARMV7NUMCOREREGS
 };
 
@@ -78,6 +83,7 @@ typedef struct armv7m_common_s
 	int exception_number;
 	swjdp_common_t swjdp_info;
 
+	bool has_spec20;
 
 	/* Direct processor core register read and writes */
 	int (*load_core_reg_u32)(struct target_s *target, enum armv7m_regtype type, uint32_t num, uint32_t *value);
