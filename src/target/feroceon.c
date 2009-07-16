@@ -132,32 +132,17 @@ int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, uint32_t instr)
 	fields[0].tap = jtag_info->tap;
 	fields[0].num_bits = 32;
 	fields[0].out_value = out_buf;
-
 	fields[0].in_value = NULL;
-
-
-
-
 
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 3;
 	fields[1].out_value = &sysspeed_buf;
-
 	fields[1].in_value = NULL;
-
-
-
-
 
 	fields[2].tap = jtag_info->tap;
 	fields[2].num_bits = 32;
 	fields[2].out_value = instr_buf;
-
 	fields[2].in_value = NULL;
-
-
-
-
 
 	jtag_add_dr_scan(3, fields, jtag_get_end_state());
 
