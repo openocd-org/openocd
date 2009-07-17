@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007,2008 Ã˜yvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -46,12 +46,12 @@ bitbang_interface_t *bitbang_interface;
  * Set this to 1 and str912 reset halt will fail.
  *
  * If someone can submit a patch with an explanation it will be greatly
- * appreciated, but as far as I can tell (ØH) DCLK is generated upon
+ * appreciated, but as far as I can tell (Ã˜H) DCLK is generated upon
  * clk = 0 in TAP_IDLE. Good luck deducing that from the ARM documentation!
  * The ARM documentation uses the term "DCLK is asserted while in the TAP_IDLE
  * state". With hardware there is no such thing as *while* in a state. There
  * are only edges. So clk => 0 is in fact a very subtle state transition that
- * happens *while* in the TAP_IDLE state. "#&¤"#¤&"#&"#&
+ * happens *while* in the TAP_IDLE state. "#&Â¤"#Â¤&"#&"#&
  *
  * For "reset halt" the last thing that happens before srst is asserted
  * is that the breakpoint is set up. If DCLK is not wiggled one last

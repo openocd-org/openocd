@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Øyvind Harboe                                   *
+ *   Copyright (C) 2008 by Ã˜yvind Harboe                                   *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *

@@ -15,7 +15,7 @@ language, the choice of language is not terribly important
 to those same end users.
 
 Jim Tcl was chosen as it was easy to integrate, works
-great in an embedded environment and Øyvind Harboe
+great in an embedded environment and Ã˜yvind Harboe
 had experience with it.
 
 @section scriptinguses Uses of scripting

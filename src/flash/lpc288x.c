@@ -214,8 +214,8 @@ static int lpc288x_flash_bank_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
-/* The frequency is the AHB clock frequency divided by (CLK_DIV ×3) + 1.
- * This must be programmed such that the Flash Programming clock frequency is 66 kHz ± 20%.
+/* The frequency is the AHB clock frequency divided by (CLK_DIV Ã—3) + 1.
+ * This must be programmed such that the Flash Programming clock frequency is 66 kHz Â± 20%.
  * AHB = 12 MHz ?
  * 12000000/66000 = 182
  * CLK_DIV = 60 ? */

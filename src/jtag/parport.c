@@ -247,7 +247,7 @@ static int parport_speed(int speed)
 static int parport_register_commands(struct command_context_s *cmd_ctx)
 {
 	register_command(cmd_ctx, NULL, "parport_port", parport_handle_parport_port_command,
-		COMMAND_CONFIG, "either the address of the I/O port or the number of the �/dev/parport� device");
+		COMMAND_CONFIG, "either the address of the I/O port or the number of the '/dev/parport' device");
 	register_command(cmd_ctx, NULL, "parport_cable", parport_handle_parport_cable_command,
 		COMMAND_CONFIG, "the layout of the parallel port cable used to connect to the target");
 	register_command(cmd_ctx, NULL, "parport_write_on_exit", parport_handle_write_on_exit_command,
