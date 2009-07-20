@@ -2172,7 +2172,7 @@ static int cfi_probe(struct flash_bank_s *bank)
 		{
 			return retval;
 		}
-		if ((retval = target_read_u16(target, flash_address(bank, 0, 0x02), &cfi_info->device_id)) != ERROR_OK)
+		if ((retval = target_read_u16(target, flash_address(bank, 0, 0x01), &cfi_info->device_id)) != ERROR_OK)
 		{
 			return retval;
 		}
@@ -2383,9 +2383,10 @@ static int cfi_probe(struct flash_bank_s *bank)
 				sector++;
 			}
 		}
-		if (offset != cfi_info->dev_size)
+		if (offset != (cfi_info->dev_size * bank->bus_width / bank->chip_width))
 		{
-			LOG_WARNING("CFI size is 0x%" PRIx32 ", but total sector size is 0x%" PRIx32 "", cfi_info->dev_size, offset);
+			LOG_WARNING("CFI size is 0x%" PRIx32 ", but total sector size is 0x%" PRIx32 "", \
+				(cfi_info->dev_size * bank->bus_width / bank->chip_width), offset);
 		}
 	}
 
