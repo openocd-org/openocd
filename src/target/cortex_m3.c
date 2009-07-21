@@ -395,7 +395,7 @@ int cortex_m3_debug_entry(target_t *target)
 
 	/* Examine target state and mode */
 	/* First load register acessible through core debug port*/
-	for (i = 0; i < ARMV7NUMCOREREGS; i++)
+	for (i = 0; i < ARMV7M_PRIMASK; i++)
 	{
 		if (!armv7m->core_cache->reg_list[i].valid)
 			armv7m->read_core_reg(target, i);
@@ -418,19 +418,22 @@ int cortex_m3_debug_entry(target_t *target)
 		cortex_m3_store_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 16, xPSR &~ 0xff);
 	}
 
+	/* Now we can load SP core registers */
+	for (i = ARMV7M_PRIMASK; i < ARMV7NUMCOREREGS; i++)
+	{
+		if (!armv7m->core_cache->reg_list[i].valid)
+			armv7m->read_core_reg(target, i);
+	}
+
 	/* Are we in an exception handler */
 	if (xPSR & 0x1FF)
 	{
 		armv7m->core_mode = ARMV7M_MODE_HANDLER;
 		armv7m->exception_number = (xPSR & 0x1FF);
 	}
-	else if (armv7m->has_spec20)
+	else
 	{
-		/* NOTE:  CONTROL is bits 31:24 of SPEC20 register, holding
-		 * a two-bit field.  Unavailable before r2p0...
-		 */
-		armv7m->core_mode = buf_get_u32(
-			armv7m->core_cache->reg_list[ARMV7M_SPEC20].value, 24, 2);
+		armv7m->core_mode = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 1);
 		armv7m->exception_number = 0;
 	}
 
@@ -633,26 +636,16 @@ int cortex_m3_resume(struct target_s *target, int current, uint32_t address, int
 	if (debug_execution)
 	{
 		/* Disable interrupts */
-		/* We disable interrupts in the PRIMASK register instead
-		 * of masking with C_MASKINTS,
+		/* We disable interrupts in the PRIMASK register instead of masking with C_MASKINTS,
 		 * This is probably the same issue as Cortex-M3 Errata	377493:
-		 * C_MASKINTS in parallel with disabled interrupts can cause
-		 * local faults to not be taken.  (FIXED in r1p0 and later.)
-		 *
-		 * NOTE:  PRIMASK is bits 7:0 of SPEC20 register, holding a
-		 * one bit field.  Available this way for r2p0 and later...
-		 */
-		if (armv7m->has_spec20) {
-			buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_SPEC20]
-					.value, 0, 1, 1);
-			armv7m->core_cache->reg_list[ARMV7M_SPEC20].dirty = 1;
-			armv7m->core_cache->reg_list[ARMV7M_SPEC20].valid = 1;
-		}
+		 * C_MASKINTS in parallel with disabled interrupts can cause local faults to not be taken. */
+		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_PRIMASK].value, 0, 32, 1);
+		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].dirty = 1;
+		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].valid = 1;
 
 		/* Make sure we are in Thumb mode */
 		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32,
-			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32)
-			| (1 << 24));
+			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32) | (1 << 24));
 		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = 1;
 		armv7m->core_cache->reg_list[ARMV7M_xPSR].valid = 1;
 	}
@@ -1474,14 +1467,8 @@ int cortex_m3_examine(struct target_s *target)
 		if ((retval = target_read_u32(target, CPUID, &cpuid)) != ERROR_OK)
 			return retval;
 
-		if (((cpuid >> 4) & 0xc3f) == 0xc23) {
+		if (((cpuid >> 4) & 0xc3f) == 0xc23)
 			LOG_DEBUG("CORTEX-M3 processor detected");
-			if (((cpuid >> 20) & 0xf) >= 2) {
-				armv7m->has_spec20 = true;
-				LOG_DEBUG("r2p0 or later detected");
-			}
-		} else
-			LOG_WARNING("not a CORTEX-M3 processor?");
 		LOG_DEBUG("cpuid: 0x%8.8" PRIx32 "", cpuid);
 
 		target_read_u32(target, NVIC_ICTR, &ictr);
