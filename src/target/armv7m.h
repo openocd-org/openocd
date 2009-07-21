@@ -50,22 +50,43 @@ enum armv7m_regtype
 	ARMV7M_REGISTER_MEMMAP
 };
 
-extern char* armv7m_exception_strings[];
-
 extern char *armv7m_exception_string(int number);
 
 /* offsets into armv7m core register cache */
 enum
 {
+	/* for convenience, the first set of indices match
+	 * the Cortex-M3 DCRSR selectors
+	 */
+	ARMV7M_R0,
+	ARMV7M_R1,
+	ARMV7M_R2,
+	ARMV7M_R3,
+
+	ARMV7M_R4,
+	ARMV7M_R5,
+	ARMV7M_R6,
+	ARMV7M_R7,
+
+	ARMV7M_R8,
+	ARMV7M_R9,
+	ARMV7M_R10,
+	ARMV7M_R11,
+
+	ARMV7M_R12,
+	ARMV7M_R13,
+	ARMV7M_R14,
 	ARMV7M_PC = 15,
+
 	ARMV7M_xPSR = 16,
 	ARMV7M_MSP,
 	ARMV7M_PSP,
+
+	/* this next set of indices is arbitrary */
 	ARMV7M_PRIMASK,
 	ARMV7M_BASEPRI,
 	ARMV7M_FAULTMASK,
 	ARMV7M_CONTROL,
-	ARMV7NUMCOREREGS
 };
 
 #define ARMV7M_COMMON_MAGIC 0x2A452A45
@@ -107,7 +128,6 @@ typedef struct armv7m_core_reg_s
 {
 	uint32_t num;
 	enum armv7m_regtype type;
-	enum armv7m_mode mode;
 	target_t *target;
 	armv7m_common_t *armv7m_common;
 } armv7m_core_reg_t;

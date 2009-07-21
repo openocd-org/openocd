@@ -395,7 +395,9 @@ int cortex_m3_debug_entry(target_t *target)
 
 	/* Examine target state and mode */
 	/* First load register acessible through core debug port*/
-	for (i = 0; i < ARMV7M_PRIMASK; i++)
+	int num_regs = armv7m->core_cache->num_regs;
+
+	for (i = 0; i < num_regs; i++)
 	{
 		if (!armv7m->core_cache->reg_list[i].valid)
 			armv7m->read_core_reg(target, i);
@@ -416,13 +418,6 @@ int cortex_m3_debug_entry(target_t *target)
 	{
 		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = armv7m->core_cache->reg_list[ARMV7M_xPSR].valid;
 		cortex_m3_store_core_reg_u32(target, ARMV7M_REGISTER_CORE_GP, 16, xPSR &~ 0xff);
-	}
-
-	/* Now we can load SP core registers */
-	for (i = ARMV7M_PRIMASK; i < ARMV7NUMCOREREGS; i++)
-	{
-		if (!armv7m->core_cache->reg_list[i].valid)
-			armv7m->read_core_reg(target, i);
 	}
 
 	/* Are we in an exception handler */
@@ -1253,8 +1248,12 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 	armv7m_common_t *armv7m = target->arch_info;
 	swjdp_common_t *swjdp = &armv7m->swjdp_info;
 
-	if ((type == ARMV7M_REGISTER_CORE_GP) && (num <= ARMV7M_PSP))
-	{
+	/* NOTE:  we "know" here that the register identifiers used
+	 * in the v7m header match the Cortex-M3 Debug Core Register
+	 * Selector values for R0..R15, xPSR, MSP, and PSP.
+	 */
+	switch (num) {
+	case 0 ... 18:
 		/* read a normal core register */
 		retval = cortexm3_dap_read_coreregister_u32(swjdp, value, num);
 
@@ -1264,35 +1263,41 @@ int cortex_m3_load_core_reg_u32(struct target_s *target, enum armv7m_regtype typ
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 		LOG_DEBUG("load from core reg %i  value 0x%" PRIx32 "",(int)num,*value);
-	}
-	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
-	{
-		/* read other registers */
+		break;
+
+	case ARMV7M_PRIMASK:
+	case ARMV7M_BASEPRI:
+	case ARMV7M_FAULTMASK:
+	case ARMV7M_CONTROL:
+		/* Cortex-M3 packages these four registers as bitfields
+		 * in one Debug Core register.  So say r0 and r2 docs;
+		 * it was removed from r1 docs, but still works.
+		 */
 		cortexm3_dap_read_coreregister_u32(swjdp, value, 20);
 
 		switch (num)
 		{
-			case 19:
-				*value = buf_get_u32((uint8_t*)value, 0, 8);
+			case ARMV7M_PRIMASK:
+				*value = buf_get_u32((uint8_t*)value, 0, 1);
 				break;
 
-			case 20:
+			case ARMV7M_BASEPRI:
 				*value = buf_get_u32((uint8_t*)value, 8, 8);
 				break;
 
-			case 21:
-				*value = buf_get_u32((uint8_t*)value, 16, 8);
+			case ARMV7M_FAULTMASK:
+				*value = buf_get_u32((uint8_t*)value, 16, 1);
 				break;
 
-			case 22:
-				*value = buf_get_u32((uint8_t*)value, 24, 8);
+			case ARMV7M_CONTROL:
+				*value = buf_get_u32((uint8_t*)value, 24, 2);
 				break;
 		}
 
 		LOG_DEBUG("load from special reg %i value 0x%" PRIx32 "", (int)num, *value);
-	}
-	else
-	{
+		break;
+
+	default:
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -1313,14 +1318,19 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 	 * in "thumb" mode, or an INVSTATE exception will occur. This is a
 	 * hack to deal with the fact that gdb will sometimes "forge"
 	 * return addresses, and doesn't set the LSB correctly (i.e., when
-	 * printing expressions containing function calls, it sets LR = 0.) */
-
-	if (num == 14)
+	 * printing expressions containing function calls, it sets LR = 0.)
+	 * Valid exception return codes have bit 0 set too.
+	 */
+	if (num == ARMV7M_R14)
 		value |= 0x01;
 #endif
 
-	if ((type == ARMV7M_REGISTER_CORE_GP) && (num <= ARMV7M_PSP))
-	{
+	/* NOTE:  we "know" here that the register identifiers used
+	 * in the v7m header match the Cortex-M3 Debug Core Register
+	 * Selector values for R0..R15, xPSR, MSP, and PSP.
+	 */
+	switch (num) {
+	case 0 ... 18:
 		retval = cortexm3_dap_write_coreregister_u32(swjdp, value, num);
 		if (retval != ERROR_OK)
 		{
@@ -1329,38 +1339,43 @@ int cortex_m3_store_core_reg_u32(struct target_s *target, enum armv7m_regtype ty
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 		LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", (int)num, value);
-	}
-	else if (type == ARMV7M_REGISTER_CORE_SP) /* Special purpose core register */
-	{
-		/* write other registers */
+		break;
 
+	case ARMV7M_PRIMASK:
+	case ARMV7M_BASEPRI:
+	case ARMV7M_FAULTMASK:
+	case ARMV7M_CONTROL:
+		/* Cortex-M3 packages these four registers as bitfields
+		 * in one Debug Core register.  So say r0 and r2 docs;
+		 * it was removed from r1 docs, but still works.
+		 */
 		cortexm3_dap_read_coreregister_u32(swjdp, &reg, 20);
 
 		switch (num)
 		{
-			case 19:
-				buf_set_u32((uint8_t*)&reg, 0, 8, value);
+			case ARMV7M_PRIMASK:
+				buf_set_u32((uint8_t*)&reg, 0, 1, value);
 				break;
 
-			case 20:
+			case ARMV7M_BASEPRI:
 				buf_set_u32((uint8_t*)&reg, 8, 8, value);
 				break;
 
-			case 21:
-				buf_set_u32((uint8_t*)&reg, 16, 8, value);
+			case ARMV7M_FAULTMASK:
+				buf_set_u32((uint8_t*)&reg, 16, 1, value);
 				break;
 
-			case 22:
-				buf_set_u32((uint8_t*)&reg, 24, 8, value);
+			case ARMV7M_CONTROL:
+				buf_set_u32((uint8_t*)&reg, 24, 2, value);
 				break;
 		}
 
 		cortexm3_dap_write_coreregister_u32(swjdp, reg, 20);
 
 		LOG_DEBUG("write special reg %i value 0x%" PRIx32 " ", (int)num, value);
-	}
-	else
-	{
+		break;
+
+	default:
 		return ERROR_INVALID_ARGUMENTS;
 	}
 

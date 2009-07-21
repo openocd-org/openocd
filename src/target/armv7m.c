@@ -36,6 +36,8 @@
 
 #include "armv7m.h"
 
+#define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
+
 
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
@@ -46,22 +48,12 @@ char* armv7m_mode_strings[] =
 	"Thread", "Thread (User)", "Handler",
 };
 
-char* armv7m_exception_strings[] =
+static char *armv7m_exception_strings[] =
 {
 	"", "Reset", "NMI", "HardFault",
 	"MemManage", "BusFault", "UsageFault", "RESERVED",
 	"RESERVED", "RESERVED", "RESERVED", "SVCall",
 	"DebugMonitor", "RESERVED", "PendSV", "SysTick"
-};
-
-char* armv7m_core_reg_list[] =
-{
-	/* Registers accessed through core debug */
-	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12",
-	"sp", "lr", "pc",
-	"xPSR", "msp", "psp",
-	/* Registers accessed through special reg 20 */
-	"primask", "basepri", "faultmask", "control"
 };
 
 uint8_t armv7m_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -87,36 +79,46 @@ reg_t armv7m_gdb_dummy_cpsr_reg =
 };
 #endif
 
-armv7m_core_reg_t armv7m_core_reg_list_arch_info[] =
-{
-	/*  CORE_GP are accesible using the core debug registers */
-	{0, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{1, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{2, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{3, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{4, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{5, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{6, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{7, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{8, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{9, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{10, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{11, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{12, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{13, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{14, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
-	{15, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL},
+/*
+ * These registers are not memory-mapped.  The ARMv7-M profile includes
+ * memory mapped registers too, such as for the NVIC (interrupt controller)
+ * and SysTick (timer) modules; those can mostly be treated as peripherals.
+ */
+static const struct {
+	unsigned id;
+	char *name;
+} armv7m_regs[] = {
+	{ ARMV7M_R0, "r0" },
+	{ ARMV7M_R1, "r1" },
+	{ ARMV7M_R2, "r2" },
+	{ ARMV7M_R3, "r3" },
 
-	{16, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL}, /* xPSR */
-	{17, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL}, /* MSP */
-	{18, ARMV7M_REGISTER_CORE_GP, ARMV7M_MODE_ANY, NULL, NULL}, /* PSP */
+	{ ARMV7M_R4, "r4" },
+	{ ARMV7M_R5, "r5" },
+	{ ARMV7M_R6, "r6" },
+	{ ARMV7M_R7, "r7" },
 
-	/*  CORE_SP are accesible using coreregister 20 */
-	{19, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* PRIMASK */
-	{20, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* BASEPRI */
-	{21, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}, /* FAULTMASK */
-	{22, ARMV7M_REGISTER_CORE_SP, ARMV7M_MODE_ANY, NULL, NULL}  /* CONTROL */
+	{ ARMV7M_R8, "r8" },
+	{ ARMV7M_R9, "r9" },
+	{ ARMV7M_R10, "r10" },
+	{ ARMV7M_R11, "r11" },
+
+	{ ARMV7M_R12, "r12" },
+	{ ARMV7M_R13, "sp" },
+	{ ARMV7M_R14, "lr" },
+	{ ARMV7M_PC, "pc" },
+
+	{ ARMV7M_xPSR, "xPSR" },
+	{ ARMV7M_MSP, "msp" },
+	{ ARMV7M_PSP, "psp" },
+
+	{ ARMV7M_PRIMASK, "primask" },
+	{ ARMV7M_BASEPRI, "basepri" },
+	{ ARMV7M_FAULTMASK, "faultmask" },
+	{ ARMV7M_CONTROL, "control" },
 };
+
+#define ARMV7M_NUM_REGS	ARRAY_SIZE(armv7m_regs)
 
 int armv7m_core_reg_arch_type = -1;
 int armv7m_dummy_core_reg_arch_type = -1;
@@ -133,7 +135,7 @@ int armv7m_restore_context(target_t *target)
 	if (armv7m->pre_restore_context)
 		armv7m->pre_restore_context(target);
 
-	for (i = ARMV7NUMCOREREGS-1; i >= 0; i--)
+	for (i = ARMV7M_NUM_REGS - 1; i >= 0; i--)
 	{
 		if (armv7m->core_cache->reg_list[i].dirty)
 		{
@@ -204,7 +206,7 @@ int armv7m_read_core_reg(struct target_s *target, int num)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 
-	if ((num < 0) || (num >= ARMV7NUMCOREREGS))
+	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
 		return ERROR_INVALID_ARGUMENTS;
 
 	armv7m_core_reg = armv7m->core_cache->reg_list[num].arch_info;
@@ -225,7 +227,7 @@ int armv7m_write_core_reg(struct target_s *target, int num)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 
-	if ((num < 0) || (num >= ARMV7NUMCOREREGS))
+	if ((num < 0) || (num >= ARMV7M_NUM_REGS))
 		return ERROR_INVALID_ARGUMENTS;
 
 	reg_value = buf_get_u32(armv7m->core_cache->reg_list[num].value, 0, 32);
@@ -268,6 +270,13 @@ int armv7m_get_gdb_reg_list(target_t *target, reg_t **reg_list[], int *reg_list_
 	*reg_list_size = 26;
 	*reg_list = malloc(sizeof(reg_t*) * (*reg_list_size));
 
+	/*
+	 * GDB register packet format for ARM:
+	 *  - the first 16 registers are r0..r15
+	 *  - (obsolete) 8 FPA registers
+	 *  - (obsolete) FPA status
+	 *  - CPSR
+	 */
 	for (i = 0; i < 16; i++)
 	{
 		(*reg_list)[i] = &armv7m->core_cache->reg_list[i];
@@ -337,7 +346,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	enum armv7m_mode core_mode = armv7m->core_mode;
 	int retval = ERROR_OK;
 	int i;
-	uint32_t context[ARMV7NUMCOREREGS];
+	uint32_t context[ARMV7M_NUM_REGS];
 
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC)
 	{
@@ -353,7 +362,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 
 	/* refresh core register cache */
 	/* Not needed if core register cache is always consistent with target process state */
-	for (i = 0; i < ARMV7NUMCOREREGS; i++)
+	for (i = 0; i < ARMV7M_NUM_REGS; i++)
 	{
 		if (!armv7m->core_cache->reg_list[i].valid)
 			armv7m->read_core_reg(target, i);
@@ -390,7 +399,8 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 	if (armv7m_algorithm_info->core_mode != ARMV7M_MODE_ANY)
 	{
 		LOG_DEBUG("setting core_mode: 0x%2.2x", armv7m_algorithm_info->core_mode);
-		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 1, armv7m_algorithm_info->core_mode);
+		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value,
+				0, 1, armv7m_algorithm_info->core_mode);
 		armv7m->core_cache->reg_list[ARMV7M_CONTROL].dirty = 1;
 		armv7m->core_cache->reg_list[ARMV7M_CONTROL].valid = 1;
 	}
@@ -444,14 +454,16 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		}
 	}
 
-	for (i = ARMV7NUMCOREREGS-1; i >= 0; i--)
+	for (i = ARMV7M_NUM_REGS; i >= 0; i--)
 	{
 		uint32_t regvalue;
 		regvalue = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);
 		if (regvalue != context[i])
 		{
-			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32 "", armv7m->core_cache->reg_list[i].name, context[i]);
-			buf_set_u32(armv7m->core_cache->reg_list[i].value, 0, 32, context[i]);
+			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32,
+				armv7m->core_cache->reg_list[i].name, context[i]);
+			buf_set_u32(armv7m->core_cache->reg_list[i].value,
+					0, 32, context[i]);
 			armv7m->core_cache->reg_list[i].valid = 1;
 			armv7m->core_cache->reg_list[i].dirty = 1;
 		}
@@ -467,12 +479,13 @@ int armv7m_arch_state(struct target_s *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 
-	LOG_USER("target halted due to %s, current mode: %s %s\nxPSR: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "",
+	LOG_USER("target halted due to %s, current mode: %s %s\n"
+		"xPSR: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32,
 		 Jim_Nvp_value2name_simple(nvp_target_debug_reason,target->debug_reason)->name,
 		armv7m_mode_strings[armv7m->core_mode],
 		armv7m_exception_string(armv7m->exception_number),
 		buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32),
-		buf_get_u32(armv7m->core_cache->reg_list[15].value, 0, 32));
+		buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_PC].value, 0, 32));
 
 	return ERROR_OK;
 }
@@ -482,11 +495,11 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
 
-	int num_regs = ARMV7NUMCOREREGS;
+	int num_regs = ARMV7M_NUM_REGS;
 	reg_cache_t **cache_p = register_get_last_cache_p(&target->reg_cache);
 	reg_cache_t *cache = malloc(sizeof(reg_cache_t));
-	reg_t *reg_list = malloc(sizeof(reg_t) * num_regs);
-	armv7m_core_reg_t *arch_info = malloc(sizeof(armv7m_core_reg_t) * num_regs);
+	reg_t *reg_list = calloc(num_regs, sizeof(reg_t));
+	armv7m_core_reg_t *arch_info = calloc(num_regs, sizeof(armv7m_core_reg_t));
 	int i;
 
 	if (armv7m_core_reg_arch_type == -1)
@@ -510,10 +523,10 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 
 	for (i = 0; i < num_regs; i++)
 	{
-		arch_info[i] = armv7m_core_reg_list_arch_info[i];
+		arch_info[i].num = armv7m_regs[i].id;
 		arch_info[i].target = target;
 		arch_info[i].armv7m_common = armv7m;
-		reg_list[i].name = armv7m_core_reg_list[i];
+		reg_list[i].name = armv7m_regs[i].name;
 		reg_list[i].size = 32;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
