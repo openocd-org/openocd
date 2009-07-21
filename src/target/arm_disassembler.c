@@ -2080,7 +2080,7 @@ static int evaluate_cps_thumb(uint16_t opcode, uint32_t address,
 				(opcode & 0x80) ? "BE" : "LE");
 	else /* ASSUME (opcode & 0x0fe0) == 0x0660 */
 		snprintf(instruction->text, 128,
-				"0x%8.8" PRIx32 "  0x%4.4x    \tCPSI%c %s%s%s",
+				"0x%8.8" PRIx32 "  0x%4.4x    \tCPSI%c\t%s%s%s",
 				address, opcode,
 				(opcode & 0x0010) ? 'D' : 'E',
 				(opcode & 0x0004) ? "A" : "",
@@ -2522,7 +2522,7 @@ static int t2ev_b_misc(uint32_t opcode, uint32_t address,
 	case 0x4:
 		goto undef;
 	case 0:
-		if (((opcode >> 23) & 0x07) == 0x07)
+		if (((opcode >> 23) & 0x07) != 0x07)
 			return t2ev_cond_b(opcode, address, instruction, cp);
 		if (opcode & (1 << 26))
 			goto undef;
@@ -2541,7 +2541,7 @@ static int t2ev_b_misc(uint32_t opcode, uint32_t address,
 		return t2ev_misc(opcode, address, instruction, cp);
 	case 0x3e:
 	case 0x3f:
-		sprintf(cp, "MRS\tr%d, %s", (opcode >> 16) & 0x0f,
+		sprintf(cp, "MRS\tr%d, %s", (opcode >> 8) & 0x0f,
 				special_name(opcode & 0xff));
 		return ERROR_OK;
 	}
@@ -2560,6 +2560,7 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 	unsigned func;
 	bool one = false;
 	char *suffix = "";
+	char *suffix2 = "";
 
 	/* ARMv7-M: A5.3.2 Modified immediate constants */
 	func = (opcode >> 11) & 0x0e;
@@ -2597,6 +2598,7 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 			mnemonic = "TST";
 			one = true;
 			suffix = "";
+			suffix2 = ".W";
 			rd = rn;
 		} else {
 			instruction->type = ARM_AND;
@@ -2612,6 +2614,7 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 			instruction->type = ARM_MOV;
 			mnemonic = "MOV";
 			one = true;
+			suffix2 = ".W";
 		} else {
 			instruction->type = ARM_ORR;
 			mnemonic = "ORR";
@@ -2649,6 +2652,7 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 		} else {
 			instruction->type = ARM_ADD;
 			mnemonic = "ADD";
+			suffix2 = ".W";
 		}
 		break;
 	case 10:
@@ -2670,21 +2674,24 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 			instruction->type = ARM_SUB;
 			mnemonic = "SUB";
 		}
+		suffix2 = ".W";
 		break;
 	case 14:
 		instruction->type = ARM_RSB;
 		mnemonic = "RSB";
+		suffix2 = ".W";
 		break;
 	default:
 		return ERROR_INVALID_ARGUMENTS;
 	}
 
 	if (one)
-		sprintf(cp, "%s\tr%d, #%d\t; %#8.8x",
-				mnemonic, rd, immed, immed);
+		sprintf(cp, "%s%s\tr%d, #%d\t; %#8.8x",
+				mnemonic, suffix2 ,rd, immed, immed);
 	else
-		sprintf(cp, "%s%s\tr%d, r%d, #%d\t; %#8.8x",
-				mnemonic, suffix, rd, rn, immed, immed);
+		sprintf(cp, "%s%s%s\tr%d, r%d, #%d\t; %#8.8x",
+				mnemonic, suffix, suffix2,
+				rd, rn, immed, immed);
 
 	return ERROR_OK;
 }
@@ -2959,13 +2966,13 @@ static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
 		if (rn == 13 && t)
 			sprintf(cp, "POP\t");
 		else
-			sprintf(cp, "LDM\tr%d%s, ", rn, t ? "!" : "");
+			sprintf(cp, "LDM.W\tr%d%s, ", rn, t ? "!" : "");
 		break;
 	case 4:
 		if (rn == 13 && t)
 			sprintf(cp, "PUSH\t");
 		else
-			sprintf(cp, "STM\tr%d%s, ", rn, t ? "!" : "");
+			sprintf(cp, "STM.W\tr%d%s, ", rn, t ? "!" : "");
 		break;
 	case 5:
 		sprintf(cp, "LDMB\tr%d%s, ", rn, t ? "!" : "");
@@ -2980,7 +2987,7 @@ static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
 		if ((registers & 1) == 0)
 			continue;
 		registers &= ~1;
-		sprintf(cp, "r%d%s", t, registers ? "," : "");
+		sprintf(cp, "r%d%s", t, registers ? ", " : "");
 		cp = strchr(cp, 0);
 	}
 	*cp++ = '}';
@@ -3139,7 +3146,7 @@ shift:
 		suffix = "ROR";
 		break;
 	}
-	sprintf(cp, " %s #%d", suffix, immed ? immed : 32);
+	sprintf(cp, ", %s #%d", suffix, immed ? immed : 32);
 	return ERROR_OK;
 
 two:
