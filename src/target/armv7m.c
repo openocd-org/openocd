@@ -478,14 +478,21 @@ int armv7m_arch_state(struct target_s *target)
 {
 	/* get pointers to arch-specific information */
 	armv7m_common_t *armv7m = target->arch_info;
+	uint32_t ctrl, sp;
+
+	ctrl = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 32);
+	sp = buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_R13].value, 0, 32);
 
 	LOG_USER("target halted due to %s, current mode: %s %s\n"
-		"xPSR: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32,
-		 Jim_Nvp_value2name_simple(nvp_target_debug_reason,target->debug_reason)->name,
+		"xPSR: %#8.8" PRIx32 " pc: %#8.8" PRIx32 " %csp: %#8.8" PRIx32,
+		Jim_Nvp_value2name_simple(nvp_target_debug_reason,
+				target->debug_reason)->name,
 		armv7m_mode_strings[armv7m->core_mode],
 		armv7m_exception_string(armv7m->exception_number),
 		buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32),
-		buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_PC].value, 0, 32));
+		buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_PC].value, 0, 32),
+		(ctrl & 0x02) ? 'p' : 'm',
+		sp);
 
 	return ERROR_OK;
 }
