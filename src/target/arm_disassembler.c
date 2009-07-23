@@ -3506,6 +3506,85 @@ ldrsb_literal:
 	return ERROR_INVALID_ARGUMENTS;
 }
 
+static int t2ev_load_halfword(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	int rn = (opcode >> 16) & 0xf;
+	int rt = (opcode >> 12) & 0xf;
+	int op2 = (opcode >> 6) & 0x3f;
+	char *sign = (opcode & (1 < 24)) ? "S" : "";
+	unsigned immed;
+
+	if (rt == 0xf) {
+		sprintf(cp, "HINT (UNALLOCATED)");
+		return ERROR_OK;
+	}
+
+	if ((opcode & (1 << 23)) == 0) {
+		if (rn == 0xf) {
+ldrh_literal:
+			if (rt == 0xf)
+				return ERROR_INVALID_ARGUMENTS;
+			immed = opcode & 0xfff;
+			address = thumb_alignpc4(address);
+			if (opcode & (1 << 23))
+				address += immed;
+			else
+				address -= immed;
+			sprintf(cp, "LDR%sH\tr%d, %#8.8" PRIx32,
+					sign, rt, address);
+			return ERROR_OK;
+		}
+		if (rt == 0xf)
+			return ERROR_INVALID_ARGUMENTS;
+		if (op2 == 0) {
+			int rm = opcode & 0xf;
+
+			immed = (opcode >> 4) & 0x3;
+			sprintf(cp, "LDR%sH.W\tr%d, [r%d, r%d, LSL #%d]",
+					sign, rt, rn, rm, immed);
+			return ERROR_OK;
+		}
+		if ((op2 & 0x3c) == 0x38) {
+			immed = (opcode >> 4) & 0x3;
+			sprintf(cp, "LDR%sHT\tr%d, [r%d, #%d]\t; %#2.2x",
+					sign, rt, rn, immed, immed);
+			return ERROR_OK;
+		}
+		if ((op2 & 0x3c) == 0x30 || (op2 & 0x24) == 0x24) {
+			char *p1 = "]", *p2 = "";
+
+			immed = opcode & 0xff;
+			if (opcode & 0x200)
+				immed = -immed;
+
+			/* two indexed modes will write back rn */
+			if (opcode & 0x100) {
+				if (opcode & 0x400)	/* pre-indexed */
+					p2 = "]!";
+				else {			/* post-indexed */
+					p1 = "]";
+					p2 = "";
+				}
+			}
+			sprintf(cp, "LDR%sH\tr%d, [r%d%s, #%d%s\t; %#8.8x",
+					sign, rt, rn, p1, immed, p2, immed);
+			return ERROR_OK;
+		}
+	} else {
+		if (rn == 0xf)
+			goto ldrh_literal;
+		if (rt != 0x0f) {
+			immed = opcode & 0xfff;
+			sprintf(cp, "LDR%sH.W\tr%d, [r%d, #%d]\t; %#6.6x",
+					sign, rt, rn, immed, immed);
+			return ERROR_OK;
+		}
+	}
+
+	return ERROR_INVALID_ARGUMENTS;
+}
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -3573,6 +3652,10 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	else if ((opcode & 0x1f700000) == 0x18500000)
 		retval = t2ev_load_word(opcode, address, instruction, cp);
 
+	/* ARMv7-M: A5.3.8 Load halfword, unallocated memory hints */
+	else if ((opcode & 0x1e700000) == 0x18e00000)
+		retval = t2ev_load_halfword(opcode, address, instruction, cp);
+
 	/* ARMv7-M: A5.3.9 Load byte, memory hints */
 	else if ((opcode & 0x1e700000) == 0x18100000)
 		retval = t2ev_load_byte_hints(opcode, address, instruction, cp);
@@ -3585,7 +3668,9 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	else if ((opcode & 0x1e000000) == 0x0a000000)
 		retval = t2ev_data_shift(opcode, address, instruction, cp);
 
-	/* ARMv7-M: A5.3.12 Data processing (register) */
+	/* ARMv7-M: A5.3.12 Data processing (register)
+	 * and      A5.3.13 Miscellaneous operations
+	 */
 	else if ((opcode & 0x1f000000) == 0x1a000000)
 		retval = t2ev_data_reg(opcode, address, instruction, cp);
 
