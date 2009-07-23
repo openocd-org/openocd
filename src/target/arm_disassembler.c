@@ -1710,7 +1710,7 @@ int evaluate_load_literal_thumb(uint16_t opcode, uint32_t address, arm_instructi
 
 	snprintf(instruction->text, 128,
 		"0x%8.8" PRIx32 "  0x%4.4x    \t"
-		"LDR\tr%i, [pc, #%#" PRIx32 "]\t; %#8.8x",
+		"LDR\tr%i, [pc, #%#" PRIx32 "]\t; %#8.8" PRIx32,
 		address, opcode, Rd, immediate,
 		thumb_alignpc4(address) + immediate);
 
@@ -2452,7 +2452,7 @@ static int t2ev_hint(uint32_t opcode, uint32_t address,
 	}
 
 	if (opcode & 0x00f0) {
-		sprintf(cp, "DBG\t#%d", opcode & 0xf);
+		sprintf(cp, "DBG\t#%d", (int) opcode & 0xf);
 		return ERROR_OK;
 	}
 
@@ -2533,7 +2533,7 @@ static int t2ev_b_misc(uint32_t opcode, uint32_t address,
 	case 0x38:
 	case 0x39:
 		sprintf(cp, "MSR\t%s, r%d", special_name(opcode & 0xff),
-				(opcode >> 16) & 0x0f);
+				(int) (opcode >> 16) & 0x0f);
 		return ERROR_OK;
 	case 0x3a:
 		return t2ev_hint(opcode, address, instruction, cp);
@@ -2541,7 +2541,7 @@ static int t2ev_b_misc(uint32_t opcode, uint32_t address,
 		return t2ev_misc(opcode, address, instruction, cp);
 	case 0x3e:
 	case 0x3f:
-		sprintf(cp, "MRS\tr%d, %s", (opcode >> 8) & 0x0f,
+		sprintf(cp, "MRS\tr%d, %s", (int) (opcode >> 8) & 0x0f,
 				special_name(opcode & 0xff));
 		return ERROR_OK;
 	}
@@ -2741,7 +2741,7 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 		immed |= (opcode >> 10) & 0x1c;
 		sprintf(cp, "%sSAT\tr%d, #%d, r%d, %s #%d\t",
 				is_signed ? "S" : "U",
-				rd, (opcode & 0x1f) + 1, rn,
+				rd, (int) (opcode & 0x1f) + 1, rn,
 				(opcode & (1 << 21)) ? "ASR" : "LSL",
 				immed ? immed : 32);
 		return ERROR_OK;
@@ -2755,7 +2755,7 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 		sprintf(cp, "%sBFX\tr%d, r%d, #%d, #%d\t",
 				is_signed ? "S" : "U",
 				rd, rn, immed,
-				(opcode & 0x1f) + 1);
+				(int) (opcode & 0x1f) + 1);
 		return ERROR_OK;
 	case 0x16:
 		immed = (opcode >> 6) & 0x03;
@@ -2763,11 +2763,11 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 		if (rn == 0xf)		/* bitfield clear */
 			sprintf(cp, "BFC\tr%d, #%d, #%d\t",
 					rd, immed,
-					(opcode & 0x1f) + 1 - immed);
+					(int) (opcode & 0x1f) + 1 - immed);
 		else			/* bitfield insert */
 			sprintf(cp, "BFI\tr%d, r%d, #%d, #%d\t",
 					rd, rn, immed,
-					(opcode & 0x1f) + 1 - immed);
+					(int) (opcode & 0x1f) + 1 - immed);
 		return ERROR_OK;
 	default:
 		return ERROR_INVALID_ARGUMENTS;
@@ -2844,8 +2844,8 @@ static int t2ev_store_single(uint32_t opcode, uint32_t address,
 	}
 
 	sprintf(cp, "STR%s.W\tr%d, [r%d, r%d, LSL #%d]",
-			size, rt, rn, opcode & 0x0f,
-			(opcode >> 4) & 0x03);
+			size, rt, rn, (int) opcode & 0x0f,
+			(int) (opcode >> 4) & 0x03);
 
 imm12:
 	immed = opcode & 0x0fff;
@@ -2887,22 +2887,24 @@ static int t2ev_mul32(uint32_t opcode, uint32_t address,
 {
 	int ra = (opcode >> 12) & 0xf;
 
-
 	switch (opcode & 0x007000f0) {
 	case 0:
 		if (ra == 0xf)
 			sprintf(cp, "MUL\tr%d, r%d, r%d",
-				(opcode >> 8) & 0xf, (opcode >> 16) & 0xf,
-				(opcode >> 0) & 0xf);
+				(int) (opcode >> 8) & 0xf,
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf);
 		else
 			sprintf(cp, "MLA\tr%d, r%d, r%d, r%d",
-				(opcode >> 8) & 0xf, (opcode >> 16) & 0xf,
-				(opcode >> 0) & 0xf, ra);
+				(int) (opcode >> 8) & 0xf,
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf, ra);
 		break;
 	case 0x10:
 		sprintf(cp, "MLS\tr%d, r%d, r%d, r%d",
-			(opcode >> 8) & 0xf, (opcode >> 16) & 0xf,
-			(opcode >> 0) & 0xf, ra);
+			(int) (opcode >> 8) & 0xf,
+			(int) (opcode >> 16) & 0xf,
+			(int) (opcode >> 0) & 0xf, ra);
 		break;
 	default:
 		return ERROR_INVALID_ARGUMENTS;
@@ -2927,18 +2929,18 @@ static int t2ev_mul64_div(uint32_t opcode, uint32_t address,
 		sprintf(cp, "%c%sL\tr%d, r%d, r%d, r%d",
 				(op & 0x20) ? 'U' : 'S',
 				infix,
-				(opcode >> 12) & 0xf,
-				(opcode >> 8) & 0xf,
-				(opcode >> 16) & 0xf,
-				(opcode >> 0) & 0xf);
+				(int) (opcode >> 12) & 0xf,
+				(int) (opcode >> 8) & 0xf,
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf);
 		break;
 	case 0x1f:
 	case 0x3f:
 		sprintf(cp, "%cDIV\tr%d, r%d, r%d",
 				(op & 0x20) ? 'U' : 'S',
-				(opcode >> 8) & 0xf,
-				(opcode >> 16) & 0xf,
-				(opcode >> 0) & 0xf);
+				(int) (opcode >> 8) & 0xf,
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf);
 		break;
 	default:
 		return ERROR_INVALID_ARGUMENTS;
@@ -3034,7 +3036,8 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 			case 0:
 				if (immed == 0) {
 					sprintf(cp, "MOV%s.W\tr%d, r%d",
-						suffix, rd, (opcode & 0xf));
+						suffix, rd,
+						(int) (opcode & 0xf));
 					return ERROR_OK;
 				}
 				mnemonic = "LSL";
@@ -3048,7 +3051,8 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 			default:
 				if (immed == 0) {
 					sprintf(cp, "RRX%s.W\tr%d, r%d",
-						suffix, rd, (opcode & 0xf));
+						suffix, rd,
+						(int) (opcode & 0xf));
 					return ERROR_OK;
 				}
 				mnemonic = "ROR";
@@ -3121,7 +3125,7 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 	}
 
 	sprintf(cp, "%s%s.W\tr%d, r%d, r%d",
-		mnemonic, suffix, rd, rn, (opcode & 0xf));
+		mnemonic, suffix, rd, rn, (int) (opcode & 0xf));
 
 shift:
 	cp = strchr(cp, 0);
@@ -3151,12 +3155,13 @@ shift:
 
 two:
 	sprintf(cp, "%s%s.W\tr%d, r%d",
-		mnemonic, suffix, rn, (opcode & 0xf));
+		mnemonic, suffix, rn, (int) (opcode & 0xf));
 	goto shift;
 
 immediate:
 	sprintf(cp, "%s%s.W\tr%d, r%d, #%d",
-		mnemonic, suffix, rd, (opcode & 0xf), immed ? immed : 32);
+		mnemonic, suffix, rd,
+		(int) (opcode & 0xf), immed ? immed : 32);
 	return ERROR_OK;
 }
 
@@ -3189,9 +3194,9 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 			suffix = "S";
 		sprintf(cp, "%s%s.W\tr%d, r%d, r%d",
 				mnemonic, suffix,
-				(opcode >> 8) & 0xf,
-				(opcode >> 16) & 0xf,
-				(opcode >> 0) & 0xf);
+				(int) (opcode >> 8) & 0xf,
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf);
 
 	} else if (opcode & (1 << 7)) {
 		switch ((opcode >> 24) & 0xf) {
@@ -3213,8 +3218,8 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 			sprintf(cp, "%cXT%c.W\tr%d, r%d%s",
 					(opcode & (1 << 24)) ? 'U' : 'S',
 					(opcode & (1 << 26)) ? 'B' : 'H',
-					(opcode >> 8) & 0xf,
-					(opcode >> 16) & 0xf,
+					(int) (opcode >> 8) & 0xf,
+					(int) (opcode >> 16) & 0xf,
 					suffix);
 			break;
 		case 8:
@@ -3250,8 +3255,8 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 			}
 			sprintf(cp, "%s\tr%d, r%d",
 					mnemonic,
-					(opcode >> 8) & 0xf,
-					(opcode >> 0) & 0xf);
+					(int) (opcode >> 8) & 0xf,
+					(int) (opcode >> 0) & 0xf);
 			break;
 		default:
 			return ERROR_INVALID_ARGUMENTS;
@@ -3274,7 +3279,7 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 		if (opcode & (1 << 23))
 			immed = -immed;
 		sprintf(cp, "LDR\tr%d, %#8.8" PRIx32,
-				(opcode >> 12) & 0xf,
+				(int) (opcode >> 12) & 0xf,
 				thumb_alignpc4(address) + immed);
 		return ERROR_OK;
 	}
@@ -3282,17 +3287,17 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 	if (opcode & (1 << 23)) {
 		immed = opcode & 0x0fff;
 		sprintf(cp, "LDR.W\tr%d, [r%d, #%d]\t; %#3.3x",
-				(opcode >> 12) & 0xf,
+				(int) (opcode >> 12) & 0xf,
 				rn, immed, immed);
 		return ERROR_OK;
 	}
 
 	if (!(opcode & (0x3f << 6))) {
 		sprintf(cp, "LDR.W\tr%d, [r%d, r%d, LSL #%d]",
-				(opcode >> 12) & 0xf,
+				(int) (opcode >> 12) & 0xf,
 				rn,
-				(opcode >> 0) & 0xf,
-				(opcode >> 4) & 0x3);
+				(int) (opcode >> 0) & 0xf,
+				(int) (opcode >> 4) & 0x3);
 		return ERROR_OK;
 	}
 
@@ -3301,7 +3306,7 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 		immed = opcode & 0x00ff;
 
 		sprintf(cp, "LDRT\tr%d, [r%d, #%d]\t; %#2.2x",
-				(opcode >> 12) & 0xf,
+				(int) (opcode >> 12) & 0xf,
 				rn, immed, immed);
 		return ERROR_OK;
 	}
@@ -3325,7 +3330,7 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 		}
 
 		sprintf(cp, "LDR\tr%d, [r%d%s, #%s%u%s\t; %#2.2x",
-				(opcode >> 12) & 0xf,
+				(int) (opcode >> 12) & 0xf,
 				rn, p1,
 				(opcode & 0x200) ? "" : "-",
 				immed, p2, immed);
@@ -3433,7 +3438,8 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 		return ERROR_OK;
 	}
 
-	LOG_DEBUG("Can't decode 32-bit Thumb2 yet (opcode=%08x)", opcode);
+	LOG_DEBUG("Can't decode 32-bit Thumb2 yet (opcode=%08" PRIx32 ")",
+			opcode);
 
 	strcpy(cp, "(32-bit Thumb2 ...)");
 	return ERROR_OK;
