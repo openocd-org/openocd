@@ -2,6 +2,8 @@
  *   Copyright (C) 2006 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   Copyright (C) 2009 by David Brownell                                  *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -3340,6 +3342,170 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 	return ERROR_INVALID_ARGUMENTS;
 }
 
+static int t2ev_load_byte_hints(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	int rn = (opcode >> 16) & 0xf;
+	int rt = (opcode >> 12) & 0xf;
+	int op2 = (opcode >> 6) & 0x3f;
+	unsigned immed;
+	char *p1 = "]", *p2 = "";
+	char *mnemonic;
+
+	switch ((opcode >> 23) & 0x3) {
+	case 0:
+		if ((rn & rt) == 0xf) {
+preload_immediate_t2:
+			immed = opcode & 0xfff;
+preload_immediate_t1:
+			p1 = (opcode & (1 << 21)) ? "W" : "";
+			sprintf(cp, "PLD%s\t[r%d, #%d]\t; %#6.6x",
+					p1, rn, immed, immed);
+			return ERROR_OK;
+		}
+		if (rn == 0x0f && rt != 0x0f) {
+ldrb_literal:
+			immed = opcode & 0xfff;
+			address = thumb_alignpc4(address);
+			if (opcode & (1 << 23))
+				address += immed;
+			else
+				address -= immed;
+			sprintf(cp, "LDRB\tr%d, %#8.8" PRIx32,
+					rt, address);
+			return ERROR_OK;
+		}
+		if (rn == 0x0f)
+			break;
+		if ((op2 & 0x3c) == 0x38) {
+			immed = opcode & 0xff;
+			sprintf(cp, "LDRBT\tr%d, [r%d, #%d]\t; %#2.2x",
+					rt, rn, immed, immed);
+			return ERROR_OK;
+		}
+		if ((op2 & 0x3c) == 0x30) {
+			if (rt == 0x0f) {
+				immed = opcode & 0xff;
+				goto preload_immediate_t1;
+			}
+			mnemonic = "LDRB";
+ldrxb_immediate_t3:
+			immed = opcode & 0xff;
+			if (opcode & 0x200)
+				immed = -immed;
+
+			/* two indexed modes will write back rn */
+			if (opcode & 0x100) {
+				if (opcode & 0x400)	/* pre-indexed */
+					p2 = "]!";
+				else {			/* post-indexed */
+					p1 = "]";
+					p2 = "";
+				}
+			}
+ldrxb_immediate_t2:
+			sprintf(cp, "%s\tr%d, [r%d%s, #%d%s\t; %#8.8x",
+					mnemonic, rt, rn, p1,
+					immed, p2, immed);
+			return ERROR_OK;
+		}
+		if ((op2 & 0x24) == 0x24) {
+			mnemonic = "LDRB";
+			goto ldrxb_immediate_t3;
+		}
+		if (op2 == 0) {
+			int rm = opcode & 0xf;
+
+			if (rt == 0x0f)
+				sprintf(cp, "PLD\t");
+			else
+				sprintf(cp, "LDRB.W\tr%d, ", rt);
+			immed = (opcode >> 4) & 0x3;
+			cp = strchr(cp, 0);
+			sprintf(cp, "[r%d, r%d, LSL #%d]", rn, rm, immed);
+			return ERROR_OK;
+		}
+		break;
+	case 1:
+		if (rt == 0xf)
+			goto preload_immediate_t2;
+		if (rn == 0x0f)
+			goto ldrb_literal;
+		mnemonic = "LDRB.W";
+		immed = opcode & 0xfff;
+		goto ldrxb_immediate_t2;
+	case 2:
+		if ((rn & rt) == 0xf) {
+pli_immediate:
+			immed = opcode & 0xfff;
+			address = thumb_alignpc4(address);
+			if (opcode & (1 << 23))
+				address += immed;
+			else
+				address -= immed;
+			sprintf(cp, "PLI\t%#8.8" PRIx32, address);
+			return ERROR_OK;
+		}
+		if (rn == 0xf && rt != 0xf) {
+ldrsb_literal:
+			immed = opcode & 0xfff;
+			address = thumb_alignpc4(address);
+			if (opcode & (1 << 23))
+				address += immed;
+			else
+				address -= immed;
+			sprintf(cp, "LDRSB\t%#8.8" PRIx32, address);
+			return ERROR_OK;
+		}
+		if (rn == 0xf)
+			break;
+		if ((op2 & 0x3c) == 0x38) {
+			immed = opcode & 0xff;
+			sprintf(cp, "LDRSBT\tr%d, [r%d, #%d]\t; %2.2x",
+					rt, rn, immed, immed);
+			return ERROR_OK;
+		}
+		if ((op2 & 0x3c) == 0x30) {
+			if (rt == 0xf) {
+				immed = opcode & 0xff;
+				immed = -immed;	// pli
+				sprintf(cp, "PLI\t[r%d, #-%d]\t; %2.2x",
+						rn, immed, immed);
+				return ERROR_OK;
+			}
+			mnemonic = "LDRSB";
+			goto ldrxb_immediate_t3;
+		}
+		if ((op2 & 0x24) == 0x24) {
+			mnemonic = "LDRSB";
+			goto ldrxb_immediate_t3;
+		}
+		if (op2 == 0) {
+			int rm = opcode & 0xf;
+
+			if (rt == 0x0f)
+				sprintf(cp, "PLI\t");
+			else
+				sprintf(cp, "LDRSB.W\tr%d, ", rt);
+			immed = (opcode >> 4) & 0x3;
+			cp = strchr(cp, 0);
+			sprintf(cp, "[r%d, r%d, LSL #%d]", rn, rm, immed);
+			return ERROR_OK;
+		}
+		break;
+	case 3:
+		if (rt == 0xf)
+			goto pli_immediate;
+		if (rn == 0xf)
+			goto ldrsb_literal;
+		immed = opcode & 0xfff;
+		mnemonic = "LDRSB";
+		goto ldrxb_immediate_t2;
+	}
+
+	return ERROR_INVALID_ARGUMENTS;
+}
+
 /*
  * REVISIT for Thumb2 instructions, instruction->type and friends aren't
  * always set.  That means eventual arm_simulate_step() support for Thumb2
@@ -3406,6 +3572,10 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	/* ARMv7-M: A5.3.7 Load word */
 	else if ((opcode & 0x1f700000) == 0x18500000)
 		retval = t2ev_load_word(opcode, address, instruction, cp);
+
+	/* ARMv7-M: A5.3.9 Load byte, memory hints */
+	else if ((opcode & 0x1e700000) == 0x18100000)
+		retval = t2ev_load_byte_hints(opcode, address, instruction, cp);
 
 	/* ARMv7-M: A5.3.10 Store single data item */
 	else if ((opcode & 0x1f100000) == 0x18000000)
