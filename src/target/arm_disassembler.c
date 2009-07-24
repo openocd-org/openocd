@@ -3523,8 +3523,6 @@ static int t2ev_load_halfword(uint32_t opcode, uint32_t address,
 	if ((opcode & (1 << 23)) == 0) {
 		if (rn == 0xf) {
 ldrh_literal:
-			if (rt == 0xf)
-				return ERROR_INVALID_ARGUMENTS;
 			immed = opcode & 0xfff;
 			address = thumb_alignpc4(address);
 			if (opcode & (1 << 23))
@@ -3535,8 +3533,6 @@ ldrh_literal:
 					sign, rt, address);
 			return ERROR_OK;
 		}
-		if (rt == 0xf)
-			return ERROR_INVALID_ARGUMENTS;
 		if (op2 == 0) {
 			int rm = opcode & 0xf;
 
@@ -3574,12 +3570,11 @@ ldrh_literal:
 	} else {
 		if (rn == 0xf)
 			goto ldrh_literal;
-		if (rt != 0x0f) {
-			immed = opcode & 0xfff;
-			sprintf(cp, "LDR%sH.W\tr%d, [r%d, #%d]\t; %#6.6x",
-					sign, rt, rn, immed, immed);
-			return ERROR_OK;
-		}
+
+		immed = opcode & 0xfff;
+		sprintf(cp, "LDR%sH.W\tr%d, [r%d, #%d]\t; %#6.6x",
+				sign, rt, rn, immed, immed);
+		return ERROR_OK;
 	}
 
 	return ERROR_INVALID_ARGUMENTS;
