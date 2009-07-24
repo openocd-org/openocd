@@ -2098,7 +2098,7 @@ static int evaluate_byterev_thumb(uint16_t opcode, uint32_t address,
 	char *suffix;
 
 	/* added in ARMv6 */
-	switch (opcode & 0x00c0) {
+	switch ((opcode >> 6) & 3) {
 	case 0:
 		suffix = "";
 		break;
@@ -3201,7 +3201,7 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 				(int) (opcode >> 0) & 0xf);
 
 	} else if (opcode & (1 << 7)) {
-		switch ((opcode >> 24) & 0xf) {
+		switch ((opcode >> 20) & 0xf) {
 		case 0:
 		case 1:
 		case 4:
@@ -3221,7 +3221,7 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 					(opcode & (1 << 24)) ? 'U' : 'S',
 					(opcode & (1 << 26)) ? 'B' : 'H',
 					(int) (opcode >> 8) & 0xf,
-					(int) (opcode >> 16) & 0xf,
+					(int) (opcode >> 0) & 0xf,
 					suffix);
 			break;
 		case 8:
@@ -3230,7 +3230,7 @@ static int t2ev_data_reg(uint32_t opcode, uint32_t address,
 		case 0xb:
 			if (opcode & (1 << 6))
 				return ERROR_INVALID_ARGUMENTS;
-			if (~opcode & (0xff << 12))
+			if (((opcode >> 12) & 0xf) != 0xf)
 				return ERROR_INVALID_ARGUMENTS;
 			if (!(opcode & (1 << 20)))
 				return ERROR_INVALID_ARGUMENTS;
