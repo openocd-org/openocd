@@ -1644,7 +1644,7 @@ int evaluate_data_proc_thumb(uint16_t opcode, uint32_t address, arm_instruction_
 				break;
 			case 0x9:
 				instruction->type = ARM_RSB;
-				mnemonic = "NEGS";
+				mnemonic = "RSBS";
 				instruction->info.data_proc.variant = 0 /*immediate*/;
 				instruction->info.data_proc.shifter_operand.immediate.immediate = 0;
 				instruction->info.data_proc.Rn = Rm;
@@ -2600,7 +2600,6 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 			mnemonic = "TST";
 			one = true;
 			suffix = "";
-			suffix2 = ".W";
 			rd = rn;
 		} else {
 			instruction->type = ARM_AND;
@@ -2660,6 +2659,7 @@ static int t2ev_data_mod_immed(uint32_t opcode, uint32_t address,
 	case 10:
 		instruction->type = ARM_ADC;
 		mnemonic = "ADC";
+		suffix2 = ".W";
 		break;
 	case 11:
 		instruction->type = ARM_SBC;
@@ -2708,8 +2708,8 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 	bool add = false;
 	bool is_signed = false;
 
-	immed = (opcode & 0x0ff) | ((opcode & 0x7000) >> 12);
-	if (opcode & (1 << 27))
+	immed = (opcode & 0x0ff) | ((opcode & 0x7000) >> 4);
+	if (opcode & (1 << 26))
 		immed |= (1 << 11);
 
 	switch ((opcode >> 20) & 0x1f) {
@@ -2718,15 +2718,16 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 			add = true;
 			goto do_adr;
 		}
-		mnemonic = "ADD.W";
+		mnemonic = "ADDW";
 		break;
 	case 4:
-		mnemonic = "MOV.W";
-		break;
+		immed |= (opcode >> 4) & 0xf000;
+		sprintf(cp, "MOVW\tr%d, #%d\t; %#3.3x", rd, immed, immed);
+		return ERROR_OK;
 	case 0x0a:
 		if (rn == 0xf)
 			goto do_adr;
-		mnemonic = "SUB.W";
+		mnemonic = "SUBW";
 		break;
 	case 0x0c:
 		/* move constant to top 16 bits of register */
@@ -2743,7 +2744,7 @@ static int t2ev_data_immed(uint32_t opcode, uint32_t address,
 		immed |= (opcode >> 10) & 0x1c;
 		sprintf(cp, "%sSAT\tr%d, #%d, r%d, %s #%d\t",
 				is_signed ? "S" : "U",
-				rd, (int) (opcode & 0x1f) + 1, rn,
+				rd, (int) (opcode & 0x1f) + is_signed, rn,
 				(opcode & (1 << 21)) ? "ASR" : "LSL",
 				immed ? immed : 32);
 		return ERROR_OK;
