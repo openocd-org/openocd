@@ -3517,13 +3517,16 @@ static int t2ev_load_halfword(uint32_t opcode, uint32_t address,
 	int rn = (opcode >> 16) & 0xf;
 	int rt = (opcode >> 12) & 0xf;
 	int op2 = (opcode >> 6) & 0x3f;
-	char *sign = (opcode & (1 < 24)) ? "S" : "";
+	char *sign = "";
 	unsigned immed;
 
 	if (rt == 0xf) {
 		sprintf(cp, "HINT (UNALLOCATED)");
 		return ERROR_OK;
 	}
+
+	if (opcode & (1 << 24))
+		sign = "S";
 
 	if ((opcode & (1 << 23)) == 0) {
 		if (rn == 0xf) {
@@ -3547,16 +3550,16 @@ ldrh_literal:
 			return ERROR_OK;
 		}
 		if ((op2 & 0x3c) == 0x38) {
-			immed = (opcode >> 4) & 0x3;
+			immed = opcode & 0xff;
 			sprintf(cp, "LDR%sHT\tr%d, [r%d, #%d]\t; %#2.2x",
 					sign, rt, rn, immed, immed);
 			return ERROR_OK;
 		}
 		if ((op2 & 0x3c) == 0x30 || (op2 & 0x24) == 0x24) {
-			char *p1 = "]", *p2 = "";
+			char *p1 = "", *p2 = "]";
 
 			immed = opcode & 0xff;
-			if (opcode & 0x200)
+			if (!(opcode & 0x200))
 				immed = -immed;
 
 			/* two indexed modes will write back rn */
@@ -3577,8 +3580,9 @@ ldrh_literal:
 			goto ldrh_literal;
 
 		immed = opcode & 0xfff;
-		sprintf(cp, "LDR%sH.W\tr%d, [r%d, #%d]\t; %#6.6x",
-				sign, rt, rn, immed, immed);
+		sprintf(cp, "LDR%sH%s\tr%d, [r%d, #%d]\t; %#6.6x",
+				sign, *sign ? "" : ".W",
+				rt, rn, immed, immed);
 		return ERROR_OK;
 	}
 
@@ -3653,7 +3657,7 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 		retval = t2ev_load_word(opcode, address, instruction, cp);
 
 	/* ARMv7-M: A5.3.8 Load halfword, unallocated memory hints */
-	else if ((opcode & 0x1e700000) == 0x18e00000)
+	else if ((opcode & 0x1e700000) == 0x18300000)
 		retval = t2ev_load_halfword(opcode, address, instruction, cp);
 
 	/* ARMv7-M: A5.3.9 Load byte, memory hints */
