@@ -1944,17 +1944,21 @@ int evaluate_load_store_multiple_thumb(uint16_t opcode, uint32_t address, arm_in
 
 	if ((opcode & 0xf000) == 0xc000)
 	{ /* generic load/store multiple */
+		char *wback = "!";
+
 		if (L)
 		{
 			instruction->type = ARM_LDM;
 			mnemonic = "LDM";
+			if (opcode & (1 << Rn))
+				wback = "";
 		}
 		else
 		{
 			instruction->type = ARM_STM;
 			mnemonic = "STM";
 		}
-		snprintf(ptr_name,7,"r%i!, ",Rn);
+		snprintf(ptr_name, sizeof ptr_name, "r%i%s, ", Rn, wback);
 	}
 	else
 	{ /* push/pop */
@@ -2965,22 +2969,22 @@ static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
 
 	switch (op) {
 	case 2:
-		sprintf(cp, "STMB\tr%d%s, ", rn, t ? "!" : "");
+		sprintf(cp, "STM.W\tr%d%s, ", rn, t ? "!" : "");
 		break;
 	case 3:
 		if (rn == 13 && t)
-			sprintf(cp, "POP\t");
+			sprintf(cp, "POP.W\t");
 		else
 			sprintf(cp, "LDM.W\tr%d%s, ", rn, t ? "!" : "");
 		break;
 	case 4:
 		if (rn == 13 && t)
-			sprintf(cp, "PUSH\t");
+			sprintf(cp, "PUSH.W\t");
 		else
-			sprintf(cp, "STM.W\tr%d%s, ", rn, t ? "!" : "");
+			sprintf(cp, "STMDB\tr%d%s, ", rn, t ? "!" : "");
 		break;
 	case 5:
-		sprintf(cp, "LDMB\tr%d%s, ", rn, t ? "!" : "");
+		sprintf(cp, "LDMDB.W\tr%d%s, ", rn, t ? "!" : "");
 		break;
 	default:
 		return ERROR_INVALID_ARGUMENTS;
@@ -3279,7 +3283,7 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 
 	if (rn == 0xf) {
 		immed = opcode & 0x0fff;
-		if (opcode & (1 << 23))
+		if ((opcode & (1 << 23)) == 0)
 			immed = -immed;
 		sprintf(cp, "LDR\tr%d, %#8.8" PRIx32,
 				(int) (opcode >> 12) & 0xf,
@@ -3317,7 +3321,7 @@ static int t2ev_load_word(uint32_t opcode, uint32_t address,
 	if (((opcode >> 8) & 0xf) == 0xc || (opcode & 0x0900) == 0x0900) {
 		char *p1 = "]", *p2 = "";
 
-		if (!(opcode & 0x0600))
+		if (!(opcode & 0x0500))
 			return ERROR_INVALID_ARGUMENTS;
 
 		immed = opcode & 0x00ff;
