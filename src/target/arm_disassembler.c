@@ -2853,6 +2853,7 @@ static int t2ev_store_single(uint32_t opcode, uint32_t address,
 	sprintf(cp, "STR%s.W\tr%d, [r%d, r%d, LSL #%d]",
 			size, rt, rn, (int) opcode & 0x0f,
 			(int) (opcode >> 4) & 0x03);
+	return ERROR_OK;
 
 imm12:
 	immed = opcode & 0x0fff;
@@ -3354,18 +3355,21 @@ static int t2ev_load_byte_hints(uint32_t opcode, uint32_t address,
 	int rt = (opcode >> 12) & 0xf;
 	int op2 = (opcode >> 6) & 0x3f;
 	unsigned immed;
-	char *p1 = "]", *p2 = "";
+	char *p1 = "", *p2 = "]";
 	char *mnemonic;
 
 	switch ((opcode >> 23) & 0x3) {
 	case 0:
 		if ((rn & rt) == 0xf) {
-preload_immediate_t2:
+pld_literal:
 			immed = opcode & 0xfff;
-preload_immediate_t1:
-			p1 = (opcode & (1 << 21)) ? "W" : "";
-			sprintf(cp, "PLD%s\t[r%d, #%d]\t; %#6.6x",
-					p1, rn, immed, immed);
+			address = thumb_alignpc4(address);
+			if (opcode & (1 << 23))
+				address += immed;
+			else
+				address -= immed;
+			sprintf(cp, "PLD\tr%d, %#8.8" PRIx32,
+					rt, address);
 			return ERROR_OK;
 		}
 		if (rn == 0x0f && rt != 0x0f) {
@@ -3391,12 +3395,17 @@ ldrb_literal:
 		if ((op2 & 0x3c) == 0x30) {
 			if (rt == 0x0f) {
 				immed = opcode & 0xff;
-				goto preload_immediate_t1;
+				immed = -immed;
+preload_immediate:
+				p1 = (opcode & (1 << 21)) ? "W" : "";
+				sprintf(cp, "PLD%s\t[r%d, #%d]\t; %#6.6x",
+						p1, rn, immed, immed);
+				return ERROR_OK;
 			}
 			mnemonic = "LDRB";
 ldrxb_immediate_t3:
 			immed = opcode & 0xff;
-			if (opcode & 0x200)
+			if (!(opcode & 0x200))
 				immed = -immed;
 
 			/* two indexed modes will write back rn */
@@ -3432,8 +3441,12 @@ ldrxb_immediate_t2:
 		}
 		break;
 	case 1:
-		if (rt == 0xf)
-			goto preload_immediate_t2;
+		if ((rn & rt) == 0xf)
+			goto pld_literal;
+		if (rt == 0xf) {
+			immed = opcode & 0xfff;
+			goto preload_immediate;
+		}
 		if (rn == 0x0f)
 			goto ldrb_literal;
 		mnemonic = "LDRB.W";
@@ -3441,7 +3454,6 @@ ldrxb_immediate_t2:
 		goto ldrxb_immediate_t2;
 	case 2:
 		if ((rn & rt) == 0xf) {
-pli_immediate:
 			immed = opcode & 0xfff;
 			address = thumb_alignpc4(address);
 			if (opcode & (1 << 23))
@@ -3466,7 +3478,7 @@ ldrsb_literal:
 			break;
 		if ((op2 & 0x3c) == 0x38) {
 			immed = opcode & 0xff;
-			sprintf(cp, "LDRSBT\tr%d, [r%d, #%d]\t; %2.2x",
+			sprintf(cp, "LDRSBT\tr%d, [r%d, #%d]\t; %#2.2x",
 					rt, rn, immed, immed);
 			return ERROR_OK;
 		}
@@ -3474,8 +3486,8 @@ ldrsb_literal:
 			if (rt == 0xf) {
 				immed = opcode & 0xff;
 				immed = -immed;	// pli
-				sprintf(cp, "PLI\t[r%d, #-%d]\t; %2.2x",
-						rn, immed, immed);
+				sprintf(cp, "PLI\t[r%d, #%d]\t; -%#2.2x",
+						rn, immed, -immed);
 				return ERROR_OK;
 			}
 			mnemonic = "LDRSB";
@@ -3499,8 +3511,12 @@ ldrsb_literal:
 		}
 		break;
 	case 3:
-		if (rt == 0xf)
-			goto pli_immediate;
+		if (rt == 0xf) {
+			immed = opcode & 0xfff;
+			sprintf(cp, "PLI\t[r%d, #%d]\t; %#3.3" PRIx32,
+					rn, immed, immed);
+			return ERROR_OK;
+		}
 		if (rn == 0xf)
 			goto ldrsb_literal;
 		immed = opcode & 0xfff;
