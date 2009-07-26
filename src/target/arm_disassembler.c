@@ -1395,6 +1395,7 @@ int evaluate_add_sub_thumb(uint16_t opcode, uint32_t address, arm_instruction_t 
 	}
 	else
 	{
+		/* REVISIT:  if reg_imm == 0, display as "MOVS" */
 		instruction->type = ARM_ADD;
 		mnemonic = "ADDS";
 	}
@@ -3017,17 +3018,18 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 	char *mnemonic;
 	char *suffix = "";
 
-	immed |= (opcode >> 10) & 0x7;
-	if (opcode & (1 << 21))
+	immed |= (opcode >> 10) & 0x1c;
+	if (opcode & (1 << 20))
 		suffix = "S";
 
 	switch (op) {
 	case 0:
 		if (rd == 0xf) {
-			if (!(opcode & (1 << 21)))
+			if (!(opcode & (1 << 20)))
 				return ERROR_INVALID_ARGUMENTS;
 			instruction->type = ARM_TST;
 			mnemonic = "TST";
+			suffix = "";
 			goto two;
 		}
 		instruction->type = ARM_AND;
@@ -3058,7 +3060,7 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 				break;
 			default:
 				if (immed == 0) {
-					sprintf(cp, "RRX%s.W\tr%d, r%d",
+					sprintf(cp, "RRX%s\tr%d, r%d",
 						suffix, rd,
 						(int) (opcode & 0xf));
 					return ERROR_OK;
@@ -3085,10 +3087,11 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 		break;
 	case 4:
 		if (rd == 0xf) {
-			if (!(opcode & (1 << 21)))
+			if (!(opcode & (1 << 20)))
 				return ERROR_INVALID_ARGUMENTS;
 			instruction->type = ARM_TEQ;
 			mnemonic = "TEQ";
+			suffix = "";
 			goto two;
 		}
 		instruction->type = ARM_EOR;
@@ -3096,10 +3099,11 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 		break;
 	case 8:
 		if (rd == 0xf) {
-			if (!(opcode & (1 << 21)))
+			if (!(opcode & (1 << 20)))
 				return ERROR_INVALID_ARGUMENTS;
 			instruction->type = ARM_CMN;
 			mnemonic = "CMN";
+			suffix = "";
 			goto two;
 		}
 		instruction->type = ARM_ADD;
@@ -3119,6 +3123,7 @@ static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 				return ERROR_INVALID_ARGUMENTS;
 			instruction->type = ARM_CMP;
 			mnemonic = "CMP";
+			suffix = "";
 			goto two;
 		}
 		instruction->type = ARM_SUB;
@@ -3146,13 +3151,17 @@ shift:
 		break;
 	case 1:
 		suffix = "LSR";
+		if (immed == 32)
+			immed = 0;
 		break;
 	case 2:
 		suffix = "ASR";
+		if (immed == 32)
+			immed = 0;
 		break;
 	case 3:
 		if (immed == 0) {
-			strcpy(cp, "RRX");
+			strcpy(cp, ", RRX");
 			return ERROR_OK;
 		}
 		suffix = "ROR";
