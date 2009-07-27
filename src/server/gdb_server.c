@@ -816,6 +816,11 @@ int gdb_connection_closed(connection_t *connection)
 	gdb_service_t *gdb_service = connection->service->priv;
 	gdb_connection_t *gdb_connection = connection->priv;
 
+	/* we're done forwarding messages. Tear down callback before
+	 * cleaning up connection.
+	 */
+	log_remove_callback(gdb_log_callback, connection);
+
 	gdb_actual_connections--;
 	LOG_DEBUG("GDB Close, Target: %s, state: %s, gdb_actual_connections=%d", 
 		  gdb_service->target->cmd_name,
@@ -843,9 +848,10 @@ int gdb_connection_closed(connection_t *connection)
 		LOG_ERROR("BUG: connection->priv == NULL");
 	}
 
+
 	target_unregister_event_callback(gdb_target_callback_event_handler, connection);
+
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_END);
-	log_remove_callback(gdb_log_callback, connection);
 
 	target_call_event_callbacks(gdb_service->target, TARGET_EVENT_GDB_DETACH);
 
