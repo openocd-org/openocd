@@ -34,8 +34,15 @@ in total.
 
 @section bugscrashdump Obtaining Crash Backtraces
 
-If OpenOCD is crashing, you can use GDB to get a trace:@par
+If OpenOCD is crashing, there are two very effective things you can do to
+improve your chances of getting help on the development mailing list. 
+
+Try to reproduce the problem using the dummy JTAG interface to allow other developers to replicate
+your problem robustly and use GDB to get a trace:@par
 @code
+% OPENOCDSRC/configure --enable-dummy ...
+% openocd -f interface/dummy.cfg -f target/xxx.cfg
+=> SEGFAULT
 % gdb --args openocd ....
 (gdb) run
 (gdb) bt
