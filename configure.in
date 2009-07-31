@@ -467,6 +467,10 @@ case $host in
     else
       is_cygwin=yes
       AC_DEFINE(IS_CYGWIN, 1, [1 if building for Cygwin.])
+      # sys/io.h needed under cygwin for parport access
+      if test $build_parport = yes; then
+        AC_CHECK_HEADERS(sys/io.h,[],AC_MSG_ERROR([Please install the cygwin ioperm package]))
+      fi
     fi
   
     AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
