@@ -1149,7 +1149,7 @@ int arm11_read_memory(struct target_s *target, uint32_t address, uint32_t size, 
 				arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1);
 
 				uint16_t svalue = res;
-				memcpy(buffer + count * sizeof(uint16_t), &svalue, sizeof(uint16_t));
+				memcpy(buffer + i * sizeof(uint16_t), &svalue, sizeof(uint16_t));
 			}
 
 			break;
@@ -1219,7 +1219,7 @@ int arm11_write_memory(struct target_s *target, uint32_t address, uint32_t size,
 			for (size_t i = 0; i < count; i++)
 			{
 				uint16_t value;
-				memcpy(&value, buffer + count * sizeof(uint16_t), sizeof(uint16_t));
+				memcpy(&value, buffer + i * sizeof(uint16_t), sizeof(uint16_t));
 
 				/* MRC p14,0,r1,c0,c5,0 */
 				arm11_run_instr_data_to_core1(arm11, 0xee101e15, value);
