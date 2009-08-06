@@ -499,12 +499,10 @@ static void jlink_reset(int trst, int srst)
 	{
 		jlink_simple_command(EMU_CMD_HW_TRST0);
 	}
+
 	if (trst == 0)
 	{
 		jlink_simple_command(EMU_CMD_HW_TRST1);
-		jtag_sleep(5000);
-		jlink_end_state(TAP_RESET);
-		jlink_state_move();
 	}
 }
 
