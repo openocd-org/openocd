@@ -2198,7 +2198,10 @@ Every TAP requires at least the following @var{configparams}:
 
 @itemize @bullet
 @item @code{-ircapture} @var{NUMBER}
-@*The IDCODE capture command, such as 0x01.
+@*The bit pattern loaded by the TAP into the JTAG shift register
+on entry to the @sc{ircapture} state, such as 0x01.
+JTAG requires the two LSBs of this value to be 01.
+The value is used to verify that instruction scans work correctly.
 @item @code{-irlen} @var{NUMBER}
 @*The length in bits of the
 instruction register, such as 4 or 5 bits.
