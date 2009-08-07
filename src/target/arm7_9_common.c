@@ -1015,6 +1015,9 @@ int arm7_9_assert_reset(target_t *target)
 		{
 			/* program vector catch register to catch reset vector */
 			embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_VEC_CATCH], 0x1);
+
+			/* extra runtest added as issues were found with certain ARM9 cores (maybe more) - AT91SAM9260 and STR9 */
+			jtag_add_runtest(1, jtag_get_end_state());
 		}
 		else
 		{
