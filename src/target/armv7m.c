@@ -26,7 +26,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  *                                                                         *
- *	ARMv7-M Architecture, Application Level Reference Manual           *
+ *	ARMv7-M Architecture, Application Level Reference Manual               *
  *              ARM DDI 0405C (September 2008)                             *
  *                                                                         *
  ***************************************************************************/
@@ -454,7 +454,7 @@ int armv7m_run_algorithm(struct target_s *target, int num_mem_params, mem_param_
 		}
 	}
 
-	for (i = ARMV7M_NUM_REGS; i >= 0; i--)
+	for (i = ARMV7M_NUM_REGS - 1; i >= 0; i--)
 	{
 		uint32_t regvalue;
 		regvalue = buf_get_u32(armv7m->core_cache->reg_list[i].value, 0, 32);
