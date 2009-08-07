@@ -942,6 +942,9 @@ static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cm
 {
 	int retval = ERROR_OK;
 
+	command_print(cmd_ctx, "OLD SYNTAX: DEPRECATED - "
+			"use jtag_khz, not jtag_speed");
+
 	if (argc > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (argc == 1)
