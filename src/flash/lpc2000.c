@@ -2,6 +2,9 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
+ *   LPC1700 support Copyright (C) 2009 by Audrius Urmanavicius            *
+ *   didele.deze@gmail.com                                                 *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -24,13 +27,14 @@
 
 #include "lpc2000.h"
 #include "armv4_5.h"
+#include "armv7m.h"
 #include "binarybuffer.h"
 
 
-/* flash programming support for Philips LPC2xxx devices
+/* flash programming support for NXP LPC17xx and LPC2xxx devices
  * currently supported devices:
  * variant 1 (lpc2000_v1):
- * - 2104 | 5|6
+ * - 2104 | 5 | 6
  * - 2114 | 9
  * - 2124 | 9
  * - 2194
@@ -40,9 +44,13 @@
  * variant 2 (lpc2000_v2):
  * - 213x
  * - 214x
- * - 2101 | 2|3
- * - 2364 | 6|8
+ * - 2101 | 2 | 3
+ * - 2364 | 6 | 8
  * - 2378
+ *
+ * lpc1700:
+ * - 175x
+ * - 176x (tested with LPC1768)
  */
 
 static int lpc2000_register_commands(struct command_context_s *cmd_ctx);
@@ -85,15 +93,14 @@ static int lpc2000_register_commands(struct command_context_s *cmd_ctx)
 static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
+	int i;
+	uint32_t offset = 0;
 
 	/* default to a 4096 write buffer */
 	lpc2000_info->cmd51_max_buffer = 4096;
 
-	if (lpc2000_info->variant == 1)
+	if (lpc2000_info->variant == lpc2000_v1)
 	{
-		int i = 0;
-		uint32_t offset = 0;
-
 		/* variant 1 has different layout for 128kb and 256kb flashes */
 		if (bank->size == 128 * 1024)
 		{
@@ -144,41 +151,37 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 			exit(-1);
 		}
 	}
-	else if (lpc2000_info->variant == 2)
+	else if (lpc2000_info->variant == lpc2000_v2)
 	{
-		int num_sectors;
-		int i;
-		uint32_t offset = 0;
-
 		/* variant 2 has a uniform layout, only number of sectors differs */
 		switch (bank->size)
 		{
 			case 4 * 1024:
 				lpc2000_info->cmd51_max_buffer = 1024;
-				num_sectors = 1;
+				bank->num_sectors = 1;
 				break;
 			case 8 * 1024:
 				lpc2000_info->cmd51_max_buffer = 1024;
-				num_sectors = 2;
+				bank->num_sectors = 2;
 				break;
 			case 16 * 1024:
-				num_sectors = 4;
+				bank->num_sectors = 4;
 				break;
 			case 32 * 1024:
-				num_sectors = 8;
+				bank->num_sectors = 8;
 				break;
 			case 64 * 1024:
-				num_sectors = 9;
+				bank->num_sectors = 9;
 				break;
 			case 128 * 1024:
-				num_sectors = 11;
+				bank->num_sectors = 11;
 				break;
 			case 256 * 1024:
-				num_sectors = 15;
+				bank->num_sectors = 15;
 				break;
 			case 512 * 1024:
 			case 500 * 1024:
-				num_sectors = 27;
+				bank->num_sectors = 27;
 				break;
 			default:
 				LOG_ERROR("BUG: unknown bank->size encountered");
@@ -186,10 +189,9 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 				break;
 		}
 
-		bank->num_sectors = num_sectors;
-		bank->sectors = malloc(sizeof(flash_sector_t) * num_sectors);
+		bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
 
-		for (i = 0; i < num_sectors; i++)
+		for (i = 0; i < bank->num_sectors; i++)
 		{
 			if ((i >= 0) && (i < 8))
 			{
@@ -217,6 +219,42 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 			}
 		}
 	}
+	else if (lpc2000_info->variant == lpc1700)
+	{
+		switch(bank->size)
+		{
+			case 32 * 1024:
+				bank->num_sectors = 8;
+				break;
+			case 64 * 1024:
+				bank->num_sectors = 16;
+				break;
+			case 128 * 1024:
+				bank->num_sectors = 18;
+				break;
+			case 256 * 1024:
+				bank->num_sectors = 22;
+				break;
+			case 512 * 1024:
+				bank->num_sectors = 30;
+				break;
+			default:
+				LOG_ERROR("BUG: unknown bank->size encountered");
+				exit(-1);
+		}
+
+		bank->sectors = malloc(sizeof(flash_sector_t) * bank->num_sectors);
+
+		for(i = 0; i < bank->num_sectors; i++)
+		{
+			bank->sectors[i].offset = offset;
+			/* sectors 0-15 are 4kB-sized, 16 and above are 32kB-sized for LPC17xx devices */
+			bank->sectors[i].size = (i < 16)? 4 * 1024 : 32 * 1024;
+			offset += bank->sectors[i].size;
+			bank->sectors[i].is_erased = -1;
+			bank->sectors[i].is_protected = 1;
+		}
+	}
 	else
 	{
 		LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
@@ -226,22 +264,24 @@ static int lpc2000_build_sector_list(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-/* call LPC2000 IAP function
- * uses 172 bytes working area
+/* call LPC1700/LPC2000 IAP function
+ * uses 180 bytes working area
  * 0x0 to 0x7: jump gate (BX to thumb state, b -2 to wait)
- * 0x8 to 0x1f: command parameter table
- * 0x20 to 0x2b: command result table
- * 0x2c to 0xac: stack (only 128b needed)
+ * 0x8 to 0x1f: command parameter table (1+5 words)
+ * 0x20 to 0x33: command result table (1+4 words)
+ * 0x34 to 0xb3: stack (only 128b needed)
  */
-static int lpc2000_iap_call(flash_bank_t *bank, int code, uint32_t param_table[5], uint32_t result_table[2])
+static int lpc2000_iap_call(flash_bank_t *bank, int code, uint32_t param_table[5], uint32_t result_table[4])
 {
 	int retval;
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
 	target_t *target = bank->target;
 	mem_param_t mem_params[2];
 	reg_param_t reg_params[5];
-	armv4_5_algorithm_t armv4_5_info;
-	uint32_t status_code;
+	armv4_5_algorithm_t armv4_5_info; /* for LPC2000 */
+	armv7m_algorithm_t armv7m_info;   /* for LPC1700 */
+ 	uint32_t status_code;
+	uint32_t iap_entry_point = 0; /* to make compiler happier */
 
 	/* regrab previously allocated working_area, or allocate a new one */
 	if (!lpc2000_info->iap_working_area)
@@ -249,60 +289,116 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, uint32_t param_table[5
 		uint8_t jump_gate[8];
 
 		/* make sure we have a working area */
-		if (target_alloc_working_area(target, 172, &lpc2000_info->iap_working_area) != ERROR_OK)
+		if (target_alloc_working_area(target, 180, &lpc2000_info->iap_working_area) != ERROR_OK)
 		{
 			LOG_ERROR("no working area specified, can't write LPC2000 internal flash");
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 
 		/* write IAP code to working area */
-		target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
-		target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
+		switch(lpc2000_info->variant)
+		{
+			case lpc1700:
+				target_buffer_set_u32(target, jump_gate, ARMV7M_T_BX(12));
+				target_buffer_set_u32(target, jump_gate + 4, ARMV7M_T_B(0xfffffe));
+				break;
+			case lpc2000_v1:
+			case lpc2000_v2:
+				target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
+				target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
+				break;
+			default:
+				LOG_ERROR("BUG: unknown bank->size encountered");
+				exit(-1);
+		}
+
 		if ((retval = target_write_memory(target, lpc2000_info->iap_working_area->address, 4, 2, jump_gate)) != ERROR_OK)
 		{
+			LOG_ERROR("Write memory at address 0x%8.8" PRIx32 " failed (check work_area definition)", lpc2000_info->iap_working_area->address);
 			return retval;
 		}
 	}
 
-	armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
-	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
-	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+	switch(lpc2000_info->variant)
+	{
+		case lpc1700:
+			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
+			armv7m_info.core_mode = ARMV7M_MODE_ANY;
+			iap_entry_point = 0x1fff1ff1;
+			break;
+		case lpc2000_v1:
+		case lpc2000_v2:
+			armv4_5_info.common_magic = ARMV4_5_COMMON_MAGIC;
+			armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
+			armv4_5_info.core_state = ARMV4_5_STATE_ARM;
+			iap_entry_point = 0x7ffffff1;
+			break;
+		default:
+			LOG_ERROR("BUG: unknown lpc2000->variant encountered");
+			exit(-1);
+	}
 
 	/* command parameter table */
-	init_mem_param(&mem_params[0], lpc2000_info->iap_working_area->address + 8, 4 * 6, PARAM_OUT);
+	init_mem_param(&mem_params[0], lpc2000_info->iap_working_area->address + 8, 6 * 4, PARAM_OUT);
 	target_buffer_set_u32(target, mem_params[0].value, code);
-	target_buffer_set_u32(target, mem_params[0].value + 0x4, param_table[0]);
-	target_buffer_set_u32(target, mem_params[0].value + 0x8, param_table[1]);
-	target_buffer_set_u32(target, mem_params[0].value + 0xc, param_table[2]);
+	target_buffer_set_u32(target, mem_params[0].value + 0x04, param_table[0]);
+	target_buffer_set_u32(target, mem_params[0].value + 0x08, param_table[1]);
+	target_buffer_set_u32(target, mem_params[0].value + 0x0c, param_table[2]);
 	target_buffer_set_u32(target, mem_params[0].value + 0x10, param_table[3]);
 	target_buffer_set_u32(target, mem_params[0].value + 0x14, param_table[4]);
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_OUT);
-	buf_set_u32(reg_params[0].value, 0, 32, lpc2000_info->iap_working_area->address + 0x8);
+	buf_set_u32(reg_params[0].value, 0, 32, lpc2000_info->iap_working_area->address + 0x08);
 
 	/* command result table */
-	init_mem_param(&mem_params[1], lpc2000_info->iap_working_area->address + 0x20, 4 * 3, PARAM_IN);
+	init_mem_param(&mem_params[1], lpc2000_info->iap_working_area->address + 0x20, 5 * 4, PARAM_IN);
 
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);
 	buf_set_u32(reg_params[1].value, 0, 32, lpc2000_info->iap_working_area->address + 0x20);
 
 	/* IAP entry point */
 	init_reg_param(&reg_params[2], "r12", 32, PARAM_OUT);
-	buf_set_u32(reg_params[2].value, 0, 32, 0x7ffffff1);
+	buf_set_u32(reg_params[2].value, 0, 32, iap_entry_point);
 
-	/* IAP stack */
-	init_reg_param(&reg_params[3], "r13_svc", 32, PARAM_OUT);
-	buf_set_u32(reg_params[3].value, 0, 32, lpc2000_info->iap_working_area->address + 0xac);
+	switch(lpc2000_info->variant)
+	{
+		case lpc1700:
+			/* IAP stack */
+			init_reg_param(&reg_params[3], "sp", 32, PARAM_OUT);
+			buf_set_u32(reg_params[3].value, 0, 32, lpc2000_info->iap_working_area->address + 0xb4);
 
-	/* return address */
-	init_reg_param(&reg_params[4], "lr_svc", 32, PARAM_OUT);
-	buf_set_u32(reg_params[4].value, 0, 32, lpc2000_info->iap_working_area->address + 0x4);
+			/* return address */
+			init_reg_param(&reg_params[4], "lr", 32, PARAM_OUT);
+			buf_set_u32(reg_params[4].value, 0, 32, (lpc2000_info->iap_working_area->address + 0x04) | 1); /* bit0 of LR = 1 to return in Thumb mode */
 
-	target_run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, lpc2000_info->iap_working_area->address + 0x4, 10000, &armv4_5_info);
+			target_run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, lpc2000_info->iap_working_area->address + 0x4, 10000, &armv7m_info);
+			break;
+		case lpc2000_v1:
+		case lpc2000_v2:
+			/* IAP stack */
+			init_reg_param(&reg_params[3], "r13_svc", 32, PARAM_OUT);
+			buf_set_u32(reg_params[3].value, 0, 32, lpc2000_info->iap_working_area->address + 0xb4);
 
-	status_code = buf_get_u32(mem_params[1].value, 0, 32);
-	result_table[0] = target_buffer_get_u32(target, mem_params[1].value);
-	result_table[1] = target_buffer_get_u32(target, mem_params[1].value + 4);
+			/* return address */
+			init_reg_param(&reg_params[4], "lr_svc", 32, PARAM_OUT);
+			buf_set_u32(reg_params[4].value, 0, 32, lpc2000_info->iap_working_area->address + 0x04);
+
+			target_run_algorithm(target, 2, mem_params, 5, reg_params, lpc2000_info->iap_working_area->address, lpc2000_info->iap_working_area->address + 0x4, 10000, &armv4_5_info);
+			break;
+		default:
+			LOG_ERROR("BUG: unknown lpc2000->variant encountered");
+			exit(-1);
+	}
+
+
+	status_code     = target_buffer_get_u32(target, mem_params[1].value);
+	result_table[0] = target_buffer_get_u32(target, mem_params[1].value + 0x04);
+	result_table[1] = target_buffer_get_u32(target, mem_params[1].value + 0x08);
+	result_table[2] = target_buffer_get_u32(target, mem_params[1].value + 0x0c);
+	result_table[3] = target_buffer_get_u32(target, mem_params[1].value + 0x10);
+
+	LOG_DEBUG("IAP command = %i (0x%8.8" PRIx32", 0x%8.8" PRIx32", 0x%8.8" PRIx32", 0x%8.8" PRIx32", 0x%8.8" PRIx32") completed with result = %8.8" PRIx32,
+			  code, param_table[0], param_table[1], param_table[2], param_table[3], param_table[4], status_code);
 
 	destroy_mem_param(&mem_params[0]);
 	destroy_mem_param(&mem_params[1]);
@@ -319,7 +415,7 @@ static int lpc2000_iap_call(flash_bank_t *bank, int code, uint32_t param_table[5
 static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int last)
 {
 	uint32_t param_table[5];
-	uint32_t result_table[2];
+	uint32_t result_table[4];
 	int status_code;
 	int i;
 
@@ -349,7 +445,7 @@ static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int las
 				return ERROR_FLASH_BUSY;
 				break;
 			default:
-				LOG_ERROR("BUG: unknown LPC2000 status code");
+				LOG_ERROR("BUG: unknown LPC2000 status code %i", status_code);
 				exit(-1);
 		}
 	}
@@ -357,7 +453,8 @@ static int lpc2000_iap_blank_check(struct flash_bank_s *bank, int first, int las
 	return ERROR_OK;
 }
 
-/* flash bank lpc2000 <base> <size> 0 0 <target#> <lpc_variant> <cclk> [calc_checksum]
+/*
+ * flash bank lpc2000 <base> <size> 0 0 <target#> <lpc_variant> <cclk> [calc_checksum]
  */
 static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
@@ -374,21 +471,31 @@ static int lpc2000_flash_bank_command(struct command_context_s *cmd_ctx, char *c
 
 	if (strcmp(args[6], "lpc2000_v1") == 0)
 	{
-		lpc2000_info->variant = 1;
+		lpc2000_info->variant = lpc2000_v1;
 		lpc2000_info->cmd51_dst_boundary = 512;
 		lpc2000_info->cmd51_can_256b = 0;
 		lpc2000_info->cmd51_can_8192b = 1;
+		lpc2000_info->checksum_vector = 5;
 	}
 	else if (strcmp(args[6], "lpc2000_v2") == 0)
 	{
-		lpc2000_info->variant = 2;
+		lpc2000_info->variant = lpc2000_v2;
 		lpc2000_info->cmd51_dst_boundary = 256;
 		lpc2000_info->cmd51_can_256b = 1;
 		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 5;
+	}
+	else if (strcmp(args[6], "lpc1700") == 0)
+	{
+		lpc2000_info->variant = lpc1700;
+		lpc2000_info->cmd51_dst_boundary = 256;
+		lpc2000_info->cmd51_can_256b = 1;
+		lpc2000_info->cmd51_can_8192b = 0;
+		lpc2000_info->checksum_vector = 7;
 	}
 	else
 	{
-		LOG_ERROR("unknown LPC2000 variant");
+		LOG_ERROR("unknown LPC2000 variant: %s", args[6]);
 		free(lpc2000_info);
 		return ERROR_FLASH_BANK_INVALID;
 	}
@@ -411,7 +518,7 @@ static int lpc2000_erase(struct flash_bank_s *bank, int first, int last)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
 	uint32_t param_table[5];
-	uint32_t result_table[2];
+	uint32_t result_table[4];
 	int status_code;
 
 	if (bank->target->state != TARGET_HALTED)
@@ -475,7 +582,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 	int first_sector = 0;
 	int last_sector = 0;
 	uint32_t param_table[5];
-	uint32_t result_table[2];
+	uint32_t result_table[4];
 	int status_code;
 	int i;
 	working_area_t *download_area;
@@ -490,10 +597,7 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 	if (offset + count > bank->size)
 		return ERROR_FLASH_DST_OUT_OF_BANK;
 
-	if (lpc2000_info->cmd51_can_256b)
-		dst_min_alignment = 256;
-	else
-		dst_min_alignment = 512;
+	dst_min_alignment = lpc2000_info->cmd51_dst_boundary;
 
 	if (offset % dst_min_alignment)
 	{
@@ -515,25 +619,25 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 	if ((offset == 0) && (count >= 0x20) && lpc2000_info->calc_checksum)
 	{
 		uint32_t checksum = 0;
-		int i = 0;
+		int i;
 		for (i = 0; i < 8; i++)
 		{
-			LOG_DEBUG("0x%2.2x: 0x%8.8" PRIx32, i * 4, buf_get_u32(buffer + (i * 4), 0, 32));
-			if (i != 5)
+			LOG_DEBUG("Vector 0x%2.2x: 0x%8.8" PRIx32, i * 4, buf_get_u32(buffer + (i * 4), 0, 32));
+			if (i != lpc2000_info->checksum_vector)
 				checksum += buf_get_u32(buffer + (i * 4), 0, 32);
 		}
 		checksum = 0 - checksum;
 		LOG_DEBUG("checksum: 0x%8.8" PRIx32, checksum);
 
-		uint32_t original_value = buf_get_u32(buffer + (5 * 4), 0, 32);
+		uint32_t original_value = buf_get_u32(buffer + (lpc2000_info->checksum_vector * 4), 0, 32);
 		if (original_value != checksum)
 		{
-			LOG_WARNING("Verification will fail since checksum in image(0x%8.8" PRIx32 ") written to flash was different from calculated vector checksum(0x%8.8" PRIx32 ").",
+			LOG_WARNING("Verification will fail since checksum in image (0x%8.8" PRIx32 ") to be written to flash is different from calculated vector checksum (0x%8.8" PRIx32 ").",
 					original_value, checksum);
 			LOG_WARNING("To remove this warning modify build tools on developer PC to inject correct LPC vector checksum.");
 		}
 
-		buf_set_u32(buffer + 0x14, 0, 32, checksum);
+		buf_set_u32(buffer + (lpc2000_info->checksum_vector * 4), 0, 32, checksum);
 	}
 
 	/* allocate a working area */
@@ -590,10 +694,8 @@ static int lpc2000_write(struct flash_bank_s *bank, uint8_t *buffer, uint32_t of
 		else
 		{
 			uint8_t *last_buffer = malloc(thisrun_bytes);
-			uint32_t i;
 			memcpy(last_buffer, buffer + bytes_written, bytes_remaining);
-			for (i = bytes_remaining; i < thisrun_bytes; i++)
-				last_buffer[i] = 0xff;
+			memset(last_buffer + bytes_remaining, 0xff, thisrun_bytes - bytes_remaining);
 			target_write_buffer(bank->target, download_area->address, thisrun_bytes, last_buffer);
 			free(last_buffer);
 		}
@@ -667,7 +769,7 @@ static int lpc2000_info(struct flash_bank_s *bank, char *buf, int buf_size)
 {
 	lpc2000_flash_bank_t *lpc2000_info = bank->driver_priv;
 
-	snprintf(buf, buf_size, "lpc2000 flash driver variant: %i, clk: %" PRIi32 , lpc2000_info->variant, lpc2000_info->cclk);
+	snprintf(buf, buf_size, "lpc2000 flash driver variant: %i, clk: %" PRIi32 "kHz" , lpc2000_info->variant, lpc2000_info->cclk);
 
 	return ERROR_OK;
 }
@@ -676,7 +778,7 @@ static int lpc2000_handle_part_id_command(struct command_context_s *cmd_ctx, cha
 {
 	flash_bank_t *bank;
 	uint32_t param_table[5];
-	uint32_t result_table[2];
+	uint32_t result_table[4];
 	int status_code;
 
 	if (argc < 1)

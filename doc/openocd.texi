@@ -130,7 +130,7 @@ debugged via the GDB protocol.
 
 @b{Flash Programing:} Flash writing is supported for external CFI
 compatible NOR flashes (Intel and AMD/Spansion command set) and several
-internal flashes (LPC2000, AT91SAM7, AT91SAM3U, STR7x, STR9x, LM3, and
+internal flashes (LPC1700, LPC2000, AT91SAM7, AT91SAM3U, STR7x, STR9x, LM3, and
 STM32x). Preliminary support for various NAND flash controllers
 (LPC3180, Orion, S3C24xx, more) controller is included.
 
@@ -3274,15 +3274,16 @@ and executed.
 @end deffn
 
 @deffn {Flash Driver} lpc2000
-Most members of the LPC2000 microcontroller family from NXP
-include internal flash and use ARM7TDMI cores.
+Most members of the LPC1700 and LPC2000 microcontroller families from NXP
+include internal flash and use Cortex-M3 (LPC1700) or ARM7TDMI (LPC2000)  cores.
 The @var{lpc2000} driver defines two mandatory and one optional parameters,
 which must appear in the following order:
 
 @itemize
 @item @var{variant} ... required, may be
 @var{lpc2000_v1} (older LPC21xx and LPC22xx)
-or @var{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx)
+@var{lpc2000_v2} (LPC213x, LPC214x, LPC210[123], LPC23xx and LPC24xx)
+or @var{lpc1700} (LPC175x and LPC176x)
 @item @var{clock_kHz} ... the frequency, in kiloHertz,
 at which the core is running
 @item @var{calc_checksum} ... optional (but you probably want to provide this!),
