@@ -3522,7 +3522,7 @@ ldrsb_literal:
 	case 3:
 		if (rt == 0xf) {
 			immed = opcode & 0xfff;
-			sprintf(cp, "PLI\t[r%d, #%d]\t; %#3.3" PRIx32,
+			sprintf(cp, "PLI\t[r%d, #%d]\t; %#3.3x",
 					rn, immed, immed);
 			return ERROR_OK;
 		}
