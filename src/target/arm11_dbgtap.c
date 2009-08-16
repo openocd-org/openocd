@@ -479,6 +479,10 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32
  *
  *  To disable this code, try "memwrite burst false"
  *
+ *  FIX!!! should we use multiple TAP_IDLE here or not???
+ *
+ *  https://lists.berlios.de/pipermail/openocd-development/2009-July/009698.html
+ *  https://lists.berlios.de/pipermail/openocd-development/2009-August/009865.html
  */
 tap_state_t arm11_MOVE_DRPAUSE_IDLE_DRPAUSE_with_delay[] =
 {
