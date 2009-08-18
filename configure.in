@@ -128,7 +128,7 @@ then
     # Nonstandard --prefix and/or --exec-prefix
     # We have an override of some sort.
     # use build specific install library dir
-    
+
     LDFLAGS="$LDFLAGS -L$OCDxprefix/lib"
     # RPATH becomes an issue on Linux only
     if test $host_os = linux-gnu || test $host_os = linux ; then
@@ -146,7 +146,7 @@ cat << __EOF__
 
 The option: --with-ftd2xx=<PATH> has been removed.
 On Linux, the new option is:
-  
+
   --with-ftd2xx-linux-tardir=/path/to/files
 
 Where <path> is the path the the directory where the "tar.gz" file
@@ -245,7 +245,7 @@ debug_usb_comms=no
 
 AC_ARG_ENABLE(verbose,
   AS_HELP_STRING([--enable-verbose],
-      [Enable verbose JTAG I/O messages (for debugging).]), 
+      [Enable verbose JTAG I/O messages (for debugging).]),
   [
   debug_jtag_io=$enableval
   debug_usb_io=$enableval
@@ -254,15 +254,15 @@ AC_ARG_ENABLE(verbose,
 
 AC_ARG_ENABLE(verbose_jtag_io,
   AS_HELP_STRING([--enable-verbose-jtag-io],
-      [Enable verbose JTAG I/O messages (for debugging).]), 
+      [Enable verbose JTAG I/O messages (for debugging).]),
   [debug_jtag_io=$enableval], [])
 AC_ARG_ENABLE(verbose_usb_io,
   AS_HELP_STRING([--enable-verbose-usb-io],
-      [Enable verbose USB I/O messages (for debugging)]), 
+      [Enable verbose USB I/O messages (for debugging)]),
   [debug_usb_io=$enableval], [])
 AC_ARG_ENABLE(verbose_usb_comms,
   AS_HELP_STRING([--enable-verbose-usb-comms],
-      [Enable verbose USB communication messages (for debugging)]), 
+      [Enable verbose USB communication messages (for debugging)]),
   [debug_usb_comms=$enableval], [])
 
 AC_MSG_CHECKING([whether to enable verbose JTAG I/O messages]);
@@ -287,7 +287,7 @@ fi
 debug_malloc=no
 AC_ARG_ENABLE(malloc_logging,
   AS_HELP_STRING([--enable-malloc-logging],
-      [Include free space in logging messages (requires malloc.h).]), 
+      [Include free space in logging messages (requires malloc.h).]),
   [debug_malloc=$enableval], [])
 
 AC_MSG_CHECKING([whether to enable malloc free space logging]);
@@ -298,67 +298,67 @@ fi
 
 
 AC_ARG_ENABLE(dummy,
-  AS_HELP_STRING([--enable-dummy], [Enable building the dummy port driver]), 
+  AS_HELP_STRING([--enable-dummy], [Enable building the dummy port driver]),
   [build_dummy=$enableval], [build_dummy=no])
 
 AC_ARG_ENABLE(parport,
-  AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]), 
+  AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),
   [build_parport=$enableval], [build_parport=no])
 
 AC_ARG_ENABLE(parport_ppdev,
   AS_HELP_STRING([--disable-parport-ppdev],
-      [Disable use of ppdev (/dev/parportN) for parport (for x86 only)]), 
+      [Disable use of ppdev (/dev/parportN) for parport (for x86 only)]),
     [parport_use_ppdev=$enableval], [parport_use_ppdev=yes])
 
 AC_ARG_ENABLE(parport_giveio,
     AS_HELP_STRING([--enable-parport-giveio],
-      [Enable use of giveio for parport (for CygWin only)]), 
+      [Enable use of giveio for parport (for CygWin only)]),
     [parport_use_giveio=$enableval], [parport_use_giveio=])
-    
+
 AC_ARG_ENABLE(ft2232_libftdi,
-  AS_HELP_STRING([--enable-ft2232_libftdi], [Enable building support for FT2232 based devices using the libftdi driver, opensource alternate of FTD2XX]), 
+  AS_HELP_STRING([--enable-ft2232_libftdi], [Enable building support for FT2232 based devices using the libftdi driver, opensource alternate of FTD2XX]),
   [build_ft2232_libftdi=$enableval], [build_ft2232_libftdi=no])
 
 AC_ARG_ENABLE(ft2232_ftd2xx,
-  AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]), 
+  AS_HELP_STRING([--enable-ft2232_ftd2xx], [Enable building support for FT2232 based devices using the FTD2XX driver from ftdichip.com]),
   [build_ft2232_ftd2xx=$enableval], [build_ft2232_ftd2xx=no])
 
-AC_ARG_ENABLE(ftd2xx_highspeed,
-  AS_HELP_STRING([--enable-ftd2xx-highspeed], [Enable building support for FT2232H and FT4232H-based devices (requires >=libftd2xx-0.4.16)]), 
-  [want_ftd2xx_highspeed=$enableval], [want_ftd2xx_highspeed=no])
- 
+AC_ARG_ENABLE(ft2232_highspeed,
+  AS_HELP_STRING([--enable-ft2232-highspeed], [Enable building support for FT2232H and FT4232H-based devices (requires >=libftd2xx-0.4.16 or >=libftdi-0.16)]),
+  [want_ft2232_highspeed=$enableval], [want_ft2232_highspeed=no])
+
 AC_ARG_ENABLE(amtjtagaccel,
-  AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]), 
+  AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]),
   [build_amtjtagaccel=$enableval], [build_amtjtagaccel=no])
 
 AC_ARG_ENABLE(ecosboard,
-  AS_HELP_STRING([--enable-ecosboard], [Enable building support for eCos based JTAG debugger]), 
+  AS_HELP_STRING([--enable-ecosboard], [Enable building support for eCos based JTAG debugger]),
   [build_ecosboard=$enableval], [build_ecosboard=no])
 
 AC_ARG_ENABLE(zy1000,
-  AS_HELP_STRING([--enable-zy1000], [Enable ZY1000 interface]), 
+  AS_HELP_STRING([--enable-zy1000], [Enable ZY1000 interface]),
   [build_zy1000=$enableval], [build_zy1000=no])
 
 AC_ARG_ENABLE(ioutil,
-  AS_HELP_STRING([--enable-ioutil], [Enable ioutil functions - useful for standalone OpenOCD implementations]), 
+  AS_HELP_STRING([--enable-ioutil], [Enable ioutil functions - useful for standalone OpenOCD implementations]),
   [build_ioutil=$enableval], [build_ioutil=no])
 
 AC_ARG_ENABLE(httpd,
-  AS_HELP_STRING([--enable-httpd], [Enable builtin httpd server - useful for standalone OpenOCD implementations]), 
+  AS_HELP_STRING([--enable-httpd], [Enable builtin httpd server - useful for standalone OpenOCD implementations]),
   [build_httpd=$enableval], [build_httpd=no])
 
-case "${host_cpu}" in 
+case "${host_cpu}" in
   arm*)
     AC_ARG_ENABLE(ep93xx,
-      AS_HELP_STRING([--enable-ep93xx], [Enable building support for EP93xx based SBCs]), 
+      AS_HELP_STRING([--enable-ep93xx], [Enable building support for EP93xx based SBCs]),
       [build_ep93xx=$enableval], [build_ep93xx=no])
 
     AC_ARG_ENABLE(at91rm9200,
       AS_HELP_STRING([--enable-at91rm9200], [Enable building support for AT91RM9200 based SBCs]),
       [build_at91rm9200=$enableval], [build_at91rm9200=no])
     ;;
-    
-  *) 
+
+  *)
     build_ep93xx=no
     build_at91rm9200=no
     ;;
@@ -439,10 +439,10 @@ else
   AC_MSG_RESULT([yes])
 fi
 
-case "${host_cpu}" in 
+case "${host_cpu}" in
   i?86|x86*)
     ;;
-  *) 
+  *)
     if test x$parport_use_ppdev = xno; then
       AC_MSG_WARN([--disable-parport-ppdev is not supported by the host CPU])
     fi
@@ -450,8 +450,8 @@ case "${host_cpu}" in
     ;;
 esac
 
-case $host in 
-  *-cygwin*) 
+case $host in
+  *-cygwin*)
     is_win32=yes
     parport_use_ppdev=no
 
@@ -472,11 +472,11 @@ case $host in
         AC_CHECK_HEADERS(sys/io.h,[],AC_MSG_ERROR([Please install the cygwin ioperm package]))
       fi
     fi
-  
+
     AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
     AC_DEFINE(IS_DARWIN, 0, [0 if not building for Darwin.])
-    ;; 
-  *-mingw*) 
+    ;;
+  *-mingw*)
     is_mingw=yes
     is_win32=yes
     parport_use_ppdev=no
@@ -489,7 +489,7 @@ case $host in
     AC_DEFINE(IS_MINGW, 1, [1 if building for MinGW.])
     AC_DEFINE(IS_WIN32, 1, [1 if building for Win32.])
     AC_DEFINE(IS_DARWIN, 0, [0 if not building for Darwin.])
-    ;; 
+    ;;
   *darwin*)
     is_darwin=yes
 
@@ -502,7 +502,7 @@ case $host in
     AC_DEFINE(IS_WIN32, 0, [0 if not building for Win32.])
     AC_DEFINE(IS_DARWIN, 1, [1 if building for Darwin.])
     ;;
-  *) 
+  *)
     if test x$parport_use_giveio = xyes; then
       AC_MSG_WARN([--enable-parport-giveio cannot be used by ]$host[ hosts])
     fi
@@ -835,8 +835,8 @@ main( int argc, char **argv )
   ])
 
 AC_MSG_CHECKING([whether to build ftd2xx highspeed device support])
-AC_MSG_RESULT([$want_ftd2xx_highspeed])
-if test $want_ftd2xx_highspeed != no; then
+AC_MSG_RESULT([$want_ft2232_highspeed])
+if test $want_ft2232_highspeed != no; then
   AC_MSG_CHECKING([for ftd2xx highspeed device support])
   AC_COMPILE_IFELSE([
 #include "confdefs.h"
@@ -847,15 +847,15 @@ if test $want_ftd2xx_highspeed != no; then
 #include <ftd2xx.h>
 DWORD x = FT_DEVICE_4232H;
     ], [
-      AC_DEFINE(BUILD_FTD2XX_HIGHSPEED, [1],
-        [Support FT2232H/FT4232HS with FTD2XX.])
-      build_ftd2xx_highspeed=yes
+      AC_DEFINE(BUILD_FT2232_HIGHSPEED, [1],
+        [Support FT2232H/FT4232HS with FTD2XX or libftdi.])
+      build_ft2232_highspeed=yes
     ], [
-      build_ftd2xx_highspeed=no
+      build_ft2232_highspeed=no
     ])
-  AC_MSG_RESULT([$build_ftd2xx_highspeed])
+  AC_MSG_RESULT([$build_ft2232_highspeed])
 
-  if test $want_ftd2xx_highspeed = yes -a $build_ftd2xx_highspeed = no; then
+  if test $want_ft2232_highspeed = yes -a $build_ft2232_highspeed = no; then
     AC_MSG_ERROR([You need a newer FTD2XX driver (version 0.4.16 or later).])
   fi
 fi
@@ -868,7 +868,7 @@ if test $build_ft2232_libftdi = yes ; then
   # We assume: the package is preinstalled in the proper place
   # these present as 2 libraries..
   LIBS="$LIBS -lftdi -lusb"
-  # 
+  #
   # Try to build a small program.
   AC_MSG_CHECKING([Build & Link with libftdi...])
 
@@ -903,6 +903,28 @@ main( int argc, char **argv )
       AC_MSG_RESULT([Skipping as we are cross-compiling])
     ])
 
+  AC_MSG_CHECKING([whether to build libftdi highspeed device support])
+  AC_MSG_RESULT([$want_ft2232_highspeed])
+  if test $want_ft2232_highspeed != no; then
+    AC_MSG_CHECKING([for libftdi highspeed device support])
+    AC_COMPILE_IFELSE([
+#include <stdio.h>
+#include <ftdi.h>
+enum ftdi_chip_type x = TYPE_2232H;
+    ], [
+      AC_DEFINE(BUILD_FT2232_HIGHSPEED, [1],
+        [Support FT2232H/FT4232HS with FTD2XX or libftdi.])
+      build_ft2232_highspeed=yes
+    ], [
+      build_ft2232_highspeed=no
+    ])
+    AC_MSG_RESULT([$build_ft2232_highspeed])
+
+    if test $want_ft2232_highspeed = yes -a $build_ft2232_highspeed = no; then
+      AC_MSG_ERROR([You need a newer libftdi version (0.16 or later).])
+    fi
+  fi
+
   # Restore the 'unexpanded ldflags'
   LDFLAGS=$LDFLAGS_SAVE
   CFLAGS=$CFLAGS_SAVE
@@ -911,7 +933,7 @@ fi
 # check for usb.h when a driver will require it
 if test $build_jlink = yes -o $build_vsllink = yes -o $build_usbprog = yes -o \
   $build_rlink = yes -o $build_armjtagew = yes
-then 
+then
   AC_CHECK_HEADERS([usb.h],[],
   [AC_MSG_ERROR([usb.h is required to build some OpenOCD driver(s)])])
 fi
@@ -976,7 +998,7 @@ int main(int argc, char **argv) { char **ep = environ; }
   ])
 
 if test "${has_environ}" != "yes" ; then
-  AC_MSG_FAILURE([Could not find 'environ' in unistd.h or available libraries.]) 
+  AC_MSG_FAILURE([Could not find 'environ' in unistd.h or available libraries.])
 fi
 
 AC_DEFINE([_GNU_SOURCE],[1],[Use GNU C library extensions (e.g. stdndup).])

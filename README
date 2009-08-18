@@ -125,7 +125,7 @@ Building OpenOCD
 The INSTALL file contains generic instructions for running 'configure'
 and compiling the OpenOCD source code.  That file is provided by default
 for all GNU automake packages.  If you are not familiar with the GNU
-autotools, then you should read those instructions first.  
+autotools, then you should read those instructions first.
 
 The remainder of this document tries to provide some instructions for
 those looking for a quick-install.
@@ -163,7 +163,7 @@ To build OpenOCD (on both Linux and Cygwin), use the following sequence
 of commands:
 
    ./configure [with some options listed in the next section]
-   make 
+   make
    make install
 
 The 'configure' step generates the Makefiles required to build OpenOCD,
@@ -180,7 +180,7 @@ the 'configure' script.  For example, you can configure OpenOCD to
 cross-compile on a x86 Linux host to run on Windows (MinGW32), you could
 use the following configuration options:
 
-  ./configure --build=i686-pc-linux-gnu --host=i586-mingw32msvc ... 
+  ./configure --build=i686-pc-linux-gnu --host=i586-mingw32msvc ...
 
 Likewise, the following options allow OpenOCD to be cross-compiled for
 an ARM target on the same x86 host:
@@ -215,9 +215,10 @@ options may be available there:
                           FTD2XX
   --enable-ft2232_ftd2xx  Enable building support for FT2232 based devices
                           using the FTD2XX driver from ftdichip.com
-  --enable-ftd2xx-highspeed
+  --enable-ft2232-highspeed
                           Enable building support for FT2232H and
-                          FT4232H-based devices (requires >=libftd2xx-0.4.16)
+                          FT4232H-based devices (requires >=libftd2xx-0.4.16
+                          or >=libftdi-0.16)
 
   --enable-gw16012        Enable building support for the Gateworks GW16012
                           JTAG Programmer
@@ -301,12 +302,12 @@ have to use both the --enable-parport AND the --enable-parport-giveio
 option if you want to use giveio instead of ioperm parallel port access
 method.
 
-FT2232C Based USB Dongles 
+FT2232C Based USB Dongles
 -------------------------
 
 There are 2 methods of using the FTD2232, either (1) using the
 FTDICHIP.COM closed source driver, or (2) the open (and free) driver
-libftdi. 
+libftdi.
 
 Using LIBFTDI
 -------------
@@ -320,7 +321,7 @@ installed.  To use the newer FT2232H chips, supporting RTCK and USB high
 speed (480 Mbps), you need libftdi version 0.16 or newer.  Many Linux
 distributions provide suitable packages for these libraries.
 
-For Windows, libftdi is supported with versions 0.14 and later.  
+For Windows, libftdi is supported with versions 0.14 and later.
 
 With these prerequisites met, configure the libftdi solution like this:
 
@@ -340,7 +341,7 @@ copies for personal use.
 The FTDICHIP drivers come as either a (win32) ZIP file, or a (Linux)
 TAR.GZ file. You must unpack them ``some where'' convient. As of this
 writing FTDICHIP does not supply means to install these files "in an
-appropriate place."  
+appropriate place."
 
 If your distribution does not package these, there are several
 './configure' options to solve this problem:
@@ -361,7 +362,7 @@ Windows or Linux FTD2xx drivers from the following location:
 Remember, this library is binary-only, while OpenOCD is licenced
 according to GNU GPLv2 without any exceptions.  That means that
 _distributing_ copies of OpenOCD built with the FTDI code would violate
-the OpenOCD licensing terms.  
+the OpenOCD licensing terms.
 
 Linux Notes
 ***********
@@ -404,7 +405,7 @@ Tips For Building From The Subversion Repository
 ************************************************
 
 Building OpenOCD from a repository requires a recent version of the GNU
-autotools (autoconf >= 2.59 and automake >= 1.9).  
+autotools (autoconf >= 2.59 and automake >= 1.9).
 
 1) Run './bootstrap' to create the 'configure' script and prepare
    the build process for your host system.
