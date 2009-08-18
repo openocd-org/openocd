@@ -1741,17 +1741,28 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 		while (cache)
 		{
 			int i;
-			for (i = 0; i < cache->num_regs; i++)
+
+			for (i = 0, reg = cache->reg_list;
+					i < cache->num_regs;
+					i++, reg++, count++)
 			{
-				value = buf_to_str(cache->reg_list[i].value, cache->reg_list[i].size, 16);
-				command_print(cmd_ctx, "(%i) %s (/%i): 0x%s (dirty: %i, valid: %i)",
-							  count++,
-							  cache->reg_list[i].name,
-							  (int)(cache->reg_list[i].size),
-							  value,
-							  cache->reg_list[i].dirty,
-							  cache->reg_list[i].valid);
-				free(value);
+				/* only print cached values if they are valid */
+				if (reg->valid) {
+					value = buf_to_str(reg->value,
+							reg->size, 16);
+					command_print(cmd_ctx,
+							"(%i) %s (/%u): 0x%s%s",
+							count, reg->name,
+							reg->size, value,
+							reg->dirty
+								? " (dirty)"
+								: "");
+					free(value);
+				} else {
+					command_print(cmd_ctx, "(%i) %s (/%u)",
+							  count, reg->name,
+							  reg->size) ;
+				}
 			}
 			cache = cache->next;
 		}
