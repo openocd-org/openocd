@@ -281,6 +281,8 @@ chips are starting to become available in JTAG adapters.
 @* Link @url{http://www.hs-augsburg.de/~hhoegl/proj/usbjtag/usbjtag.html}
 @item @b{jtagkey}
 @* See: @url{http://www.amontec.com/jtagkey.shtml}
+@item @b{jtagkey2}
+@* See: @url{http://www.amontec.com/jtagkey2.shtml}
 @item @b{oocdlink}
 @* See: @url{http://www.oocdlink.com} By Joern Kaipf
 @item @b{signalyzer}
@@ -1585,6 +1587,7 @@ or in a passthrough mode (neither SRST nor TRST)
 @item @b{flyswatter} Tin Can Tools Flyswatter
 @item @b{icebear} ICEbear JTAG adapter from Section 5
 @item @b{jtagkey} Amontec JTAGkey and JTAGkey-Tiny (and compatibles)
+@item @b{jtagkey2} Amontec JTAGkey2 (and compatibles)
 @item @b{m5960} American Microsystems M5960
 @item @b{olimex-jtag} Olimex ARM-USB-OCD and ARM-USB-Tiny
 @item @b{oocdlink} OOCDLink
