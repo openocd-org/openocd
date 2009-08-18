@@ -995,7 +995,7 @@ int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, cha
 		embeddedice_read_reg(vector_catch);
 
 	/* get the current setting */
-	vector_catch_value = buf_get_u32(vector_catch->value, 0, 32);
+	vector_catch_value = buf_get_u32(vector_catch->value, 0, 8);
 
 	if (argc > 0)
 	{
@@ -1028,7 +1028,9 @@ int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, cha
 					command_print(cmd_ctx, "vector '%s' not found, leaving current setting unchanged", args[i]);
 
 					/* reread current setting */
-					vector_catch_value = buf_get_u32(vector_catch->value, 0, 32);
+					vector_catch_value = buf_get_u32(
+							vector_catch->value,
+							0, 8);
 
 					break;
 				}
@@ -1036,7 +1038,7 @@ int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, cha
 		}
 
 		/* store new settings */
-		buf_set_u32(vector_catch->value, 0, 32, vector_catch_value);
+		buf_set_u32(vector_catch->value, 0, 8, vector_catch_value);
 		embeddedice_store_reg(vector_catch);
 	}
 

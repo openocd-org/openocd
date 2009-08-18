@@ -29,6 +29,7 @@
 
 #include "embeddedice.h"
 
+#define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
 
 #if 0
 static bitfield_desc_t embeddedice_comms_ctrl_bitfield_desc[] =
@@ -40,38 +41,102 @@ static bitfield_desc_t embeddedice_comms_ctrl_bitfield_desc[] =
 };
 #endif
 
-static int embeddedice_reg_arch_info[] =
-{
-	0x0, 0x1, 0x4, 0x5,
-	0x8, 0x9, 0xa, 0xb, 0xc, 0xd,
-	0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
-	0x2
+/*
+ * From:  ARM9E-S TRM, DDI 0165, table C-4 (and similar, for other cores)
+ */
+static const struct {
+	char		*name;
+	unsigned short	addr;
+	unsigned short	width;
+} eice_regs[] = {
+	[EICE_DBG_CTRL] = {
+		.name =		"debug_ctrl",
+		.addr =		0,
+		/* width is assigned based on EICE version */
+	},
+	[EICE_DBG_STAT] = {
+		.name =		"debug_status",
+		.addr =		1,
+		/* width is assigned based on EICE version */
+	},
+	[EICE_COMMS_CTRL] = {
+		.name =		"comms_ctrl",
+		.addr =		4,
+		.width =	6,
+	},
+	[EICE_COMMS_DATA] = {
+		.name =		"comms_data",
+		.addr =		5,
+		.width =	32,
+	},
+	[EICE_W0_ADDR_VALUE] = {
+		.name =		"watch_0_addr_value",
+		.addr =		8,
+		.width =	32,
+	},
+	[EICE_W0_ADDR_MASK] = {
+		.name =		"watch_0_addr_mask",
+		.addr =		9,
+		.width =	32,
+	},
+	[EICE_W0_DATA_VALUE ] = {
+		.name =		"watch_0_data_value",
+		.addr =		10,
+		.width =	32,
+	},
+	[EICE_W0_DATA_MASK] = {
+		.name =		"watch_0_data_mask",
+		.addr =		11,
+		.width =	32,
+	},
+	[EICE_W0_CONTROL_VALUE] = {
+		.name =		"watch_0_control_value",
+		.addr =		12,
+		.width =	9,
+	},
+	[EICE_W0_CONTROL_MASK] = {
+		.name =		"watch_0_control_mask",
+		.addr =		13,
+		.width =	8,
+	},
+	[EICE_W1_ADDR_VALUE] = {
+		.name =		"watch_1_addr_value",
+		.addr =		16,
+		.width =	32,
+	},
+	[EICE_W1_ADDR_MASK] = {
+		.name =		"watch_1_addr_mask",
+		.addr =		17,
+		.width =	32,
+	},
+	[EICE_W1_DATA_VALUE] = {
+		.name =		"watch_1_data_value",
+		.addr =		18,
+		.width =	32,
+	},
+	[EICE_W1_DATA_MASK] = {
+		.name =		"watch_1_data_mask",
+		.addr =		19,
+		.width =	32,
+	},
+	[EICE_W1_CONTROL_VALUE] = {
+		.name =		"watch_1_control_value",
+		.addr =		20,
+		.width =	9,
+	},
+	[EICE_W1_CONTROL_MASK] = {
+		.name =		"watch_1_control_mask",
+		.addr =		21,
+		.width =	8,
+	},
+	/* vector_catch isn't always present */
+	[EICE_VEC_CATCH] = {
+		.name =		"vector_catch",
+		.addr =		2,
+		.width =	8,
+	},
 };
 
-static char* embeddedice_reg_list[] =
-{
-	"debug_ctrl",
-	"debug_status",
-
-	"comms_ctrl",
-	"comms_data",
-
-	"watch 0 addr value",
-	"watch 0 addr mask",
-	"watch 0 data value",
-	"watch 0 data mask",
-	"watch 0 control value",
-	"watch 0 control mask",
-
-	"watch 1 addr value",
-	"watch 1 addr mask",
-	"watch 1 data value",
-	"watch 1 data mask",
-	"watch 1 control value",
-	"watch 1 control mask",
-
-	"vector catch"
-};
 
 static int embeddedice_reg_arch_type = -1;
 
@@ -84,18 +149,18 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 	reg_t *reg_list = NULL;
 	embeddedice_reg_t *arch_info = NULL;
 	arm_jtag_t *jtag_info = &arm7_9->jtag_info;
-	int num_regs;
+	int num_regs = ARRAY_SIZE(eice_regs);
 	int i;
 	int eice_version = 0;
 
 	/* register a register arch-type for EmbeddedICE registers only once */
 	if (embeddedice_reg_arch_type == -1)
-		embeddedice_reg_arch_type = register_reg_arch_type(embeddedice_get_reg, embeddedice_set_reg_w_exec);
+		embeddedice_reg_arch_type = register_reg_arch_type(
+				embeddedice_get_reg, embeddedice_set_reg_w_exec);
 
-	if (arm7_9->has_vector_catch)
-		num_regs = 17;
-	else
-		num_regs = 16;
+	/* vector_catch isn't always present */
+	if (!arm7_9->has_vector_catch)
+		num_regs--;
 
 	/* the actual registers are kept in two arrays */
 	reg_list = calloc(num_regs, sizeof(reg_t));
@@ -110,8 +175,8 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 	/* set up registers */
 	for (i = 0; i < num_regs; i++)
 	{
-		reg_list[i].name = embeddedice_reg_list[i];
-		reg_list[i].size = 32;
+		reg_list[i].name = eice_regs[i].name;
+		reg_list[i].size = eice_regs[i].width;
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
 		reg_list[i].bitfield_desc = NULL;
@@ -119,7 +184,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].arch_info = &arch_info[i];
 		reg_list[i].arch_type = embeddedice_reg_arch_type;
-		arch_info[i].addr = embeddedice_reg_arch_info[i];
+		arch_info[i].addr = eice_regs[i].addr;
 		arch_info[i].jtag_info = jtag_info;
 	}
 
@@ -137,43 +202,57 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 	}
 
 	eice_version = buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 28, 4);
+	LOG_DEBUG("Embedded ICE version %d", eice_version);
 
 	switch (eice_version)
 	{
 		case 1:
+			/* ARM7TDMI r3, ARM7TDMI-S r3
+			 *
+			 * REVISIT docs say ARM7TDMI-S r4 uses version 1 but
+			 * that it has 6-bit CTRL and 5-bit STAT... doc bug?
+			 * ARM7TDMI r4 docs say EICE v4.
+			 */
 			reg_list[EICE_DBG_CTRL].size = 3;
 			reg_list[EICE_DBG_STAT].size = 5;
 			break;
 		case 2:
+			/* ARM9TDMI */
 			reg_list[EICE_DBG_CTRL].size = 4;
 			reg_list[EICE_DBG_STAT].size = 5;
 			arm7_9->has_single_step = 1;
 			break;
 		case 3:
-			LOG_ERROR("EmbeddedICE version 3 detected, EmbeddedICE handling might be broken");
+			LOG_ERROR("EmbeddedICE v%d handling might be broken",
+					eice_version);
 			reg_list[EICE_DBG_CTRL].size = 6;
 			reg_list[EICE_DBG_STAT].size = 5;
 			arm7_9->has_single_step = 1;
 			arm7_9->has_monitor_mode = 1;
 			break;
 		case 4:
+			/* ARM7TDMI r4 */
 			reg_list[EICE_DBG_CTRL].size = 6;
 			reg_list[EICE_DBG_STAT].size = 5;
 			arm7_9->has_monitor_mode = 1;
 			break;
 		case 5:
+			/* ARM9E-S rev 1 */
 			reg_list[EICE_DBG_CTRL].size = 6;
 			reg_list[EICE_DBG_STAT].size = 5;
 			arm7_9->has_single_step = 1;
 			arm7_9->has_monitor_mode = 1;
 			break;
 		case 6:
+			/* ARM7EJ-S, ARM9E-S rev 2, ARM9EJ-S */
 			reg_list[EICE_DBG_CTRL].size = 6;
 			reg_list[EICE_DBG_STAT].size = 10;
+			/* DBG_STAT has MOE bits */
 			arm7_9->has_monitor_mode = 1;
 			break;
 		case 7:
-			LOG_WARNING("EmbeddedICE version 7 detected, EmbeddedICE handling might be broken");
+			LOG_ERROR("EmbeddedICE v%d handling might be broken",
+					eice_version);
 			reg_list[EICE_DBG_CTRL].size = 6;
 			reg_list[EICE_DBG_STAT].size = 5;
 			arm7_9->has_monitor_mode = 1;
@@ -276,7 +355,7 @@ int embeddedice_read_reg_w_check(reg_t *reg, uint8_t* check_value, uint8_t* chec
 	 * EICE_COMMS_DATA would read the register twice
 	 * reading the control register is safe
 	 */
-	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
+	buf_set_u32(fields[1].out_value, 0, 5, eice_regs[EICE_COMMS_CTRL].addr);
 
 	jtag_add_dr_scan_check(3, fields, jtag_get_end_state());
 
@@ -305,7 +384,7 @@ int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
-	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_DATA]);
+	buf_set_u32(fields[1].out_value, 0, 5, eice_regs[EICE_COMMS_DATA].addr);
 	fields[1].in_value = NULL;
 
 	fields[2].tap = jtag_info->tap;
@@ -322,7 +401,8 @@ int embeddedice_receive(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 		 * to avoid reading additional data from the DCC data reg
 		 */
 		if (size == 1)
-			buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
+			buf_set_u32(fields[1].out_value, 0, 5,
+					eice_regs[EICE_COMMS_CTRL].addr);
 
 		fields[0].in_value = (uint8_t *)data;
 		jtag_add_dr_scan(3, fields, jtag_get_end_state());
@@ -407,7 +487,7 @@ int embeddedice_send(arm_jtag_t *jtag_info, uint32_t *data, uint32_t size)
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
-	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_DATA]);
+	buf_set_u32(fields[1].out_value, 0, 5, eice_regs[EICE_COMMS_DATA].addr);
 	fields[1].in_value = NULL;
 
 	fields[2].tap = jtag_info->tap;
@@ -462,7 +542,7 @@ int embeddedice_handshake(arm_jtag_t *jtag_info, int hsbit, uint32_t timeout)
 	fields[1].tap = jtag_info->tap;
 	fields[1].num_bits = 5;
 	fields[1].out_value = field1_out;
-	buf_set_u32(fields[1].out_value, 0, 5, embeddedice_reg_arch_info[EICE_COMMS_CTRL]);
+	buf_set_u32(fields[1].out_value, 0, 5, eice_regs[EICE_COMMS_DATA].addr);
 	fields[1].in_value = NULL;
 
 	fields[2].tap = jtag_info->tap;
