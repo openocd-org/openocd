@@ -365,7 +365,7 @@ static int davinci_write_page_ecc1(struct nand_device_s *nand, uint32_t page,
 	struct davinci_nand *info = nand->controller_priv;
 	target_t *target = info->target;
 	const uint32_t fcr_addr = info->aemif + NANDFCR;
-	const uint32_t ecc1_addr = info->aemif + NANDFECC + info->chipsel;
+	const uint32_t ecc1_addr = info->aemif + NANDFECC + (4 * info->chipsel);
 	uint32_t fcr, ecc1;
 
 	/* Write contiguous ECC bytes starting at specified offset.
@@ -676,11 +676,11 @@ static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
 			|| aemif == 0x01e10000	/* dm335, dm355 */
 			|| aemif == 0x01d10000	/* dm365 */
 			) {
-		if (chip < 0x0200000 || chip >= 0x0a000000) {
+		if (chip < 0x02000000 || chip >= 0x0a000000) {
 			LOG_ERROR("NAND address %08lx out of range?", chip);
 			goto fail;
 		}
-		chipsel = (chip - 0x02000000) >> 21;
+		chipsel = (chip - 0x02000000) >> 25;
 	} else {
 		LOG_ERROR("unrecognized AEMIF controller address %08lx", aemif);
 		goto fail;
