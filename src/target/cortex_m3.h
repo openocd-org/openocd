@@ -80,7 +80,12 @@ extern char* cortex_m3_state_strings[];
 /* DCB_DEMCR bit and field definitions */
 #define	TRCENA			(1 << 24)
 #define	VC_HARDERR		(1 << 10)
+#define	VC_INTERR		(1 << 9)
 #define	VC_BUSERR		(1 << 8)
+#define	VC_STATERR		(1 << 7)
+#define	VC_CHKERR		(1 << 6)
+#define	VC_NOCPERR		(1 << 5)
+#define	VC_MMERR		(1 << 4)
 #define	VC_CORERESET	(1 << 0)
 
 #define NVIC_ICTR		0xE000E004

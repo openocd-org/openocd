@@ -737,7 +737,9 @@ the @command{reset init} command will interfere with debugging
 early boot code, which performs some of the same actions
 that the @code{reset-init} event handler does.
 Likewise, the @command{arm9tdmi vector_catch} command (or
-its @command{xscale vector_catch} sibling) can be a timesaver
+@cindex vector_catch
+its siblings @command{xscale vector_catch}
+and @command{cortex_m3 vector_catch}) can be a timesaver
 during some debug sessions, but don't make everyone use that either.
 Keep those kinds of debugging aids in your user config file,
 along with messaging and tracing setup.
@@ -4738,6 +4740,7 @@ Such cores include the ARM920T, ARM926EJ-S, and ARM966.
 
 @anchor{arm9tdmi vector_catch}
 @deffn Command {arm9tdmi vector_catch} [@option{all}|@option{none}|list]
+@cindex vector_catch
 Vector Catch hardware provides a sort of dedicated breakpoint
 for hardware events such as reset, interrupt, and abort.
 You can use this to conserve normal breakpoint resources,
@@ -4927,6 +4930,7 @@ The image @var{type} may be one of
 
 @anchor{xscale vector_catch}
 @deffn Command {xscale vector_catch} [mask]
+@cindex vector_catch
 Display a bitmask showing the hardware vectors to catch.
 If the optional parameter is provided, first set the bitmask to that value.
 @end deffn
@@ -5014,6 +5018,33 @@ Disassembles @var{count} Thumb2 instructions starting at @var{address}.
 
 @deffn Command {cortex_m3 maskisr} (@option{on}|@option{off})
 Control masking (disabling) interrupts during target step/resume.
+@end deffn
+
+@deffn Command {cortex_m3 vector_catch} [@option{all}|@option{none}|list]
+@cindex vector_catch
+Vector Catch hardware provides dedicated breakpoints
+for certain hardware events.
+
+Parameters request interception of
+@option{all} of these hardware event vectors,
+@option{none} of them,
+or one or more of the following:
+@option{hard_err} for a HardFault exception;
+@option{mm_err} for a MemManage exception;
+@option{bus_err} for a BusFault exception;
+@option{irq_err},
+@option{state_err},
+@option{chk_err}, or
+@option{nocp_err} for various UsageFault exceptions; or
+@option{reset}.
+If NVIC setup code does not enable them,
+MemManage, BusFault, and UsageFault exceptions
+are mapped to HardFault.
+UsageFault checks for
+divide-by-zero and unaligned access
+must also be explicitly enabled.
+
+This finishes by listing the current vector catch configuration.
 @end deffn
 
 @anchor{Software Debug Messages and Tracing}

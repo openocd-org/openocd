@@ -37,6 +37,9 @@
 #include "arm_disassembler.h"
 
 
+#define ARRAY_SIZE(x)	((int)(sizeof(x)/sizeof((x)[0])))
+
+
 /* cli handling */
 int cortex_m3_register_commands(struct command_context_s *cmd_ctx);
 int handle_cortex_m3_mask_interrupts_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -174,7 +177,7 @@ int cortex_m3_clear_halt(target_t *target)
 
 	/* Read Debug Fault Status Register */
 	mem_ap_read_atomic_u32(swjdp, NVIC_DFSR, &cortex_m3->nvic_dfsr);
-	/* Write Debug Fault Status Register to enable processing to resume ?? Try with and without this !! */
+	/* Clear Debug Fault Status */
 	mem_ap_write_atomic_u32(swjdp, NVIC_DFSR, cortex_m3->nvic_dfsr);
 	LOG_DEBUG(" NVIC_DFSR 0x%" PRIx32 "", cortex_m3->nvic_dfsr);
 
@@ -307,8 +310,6 @@ int cortex_m3_examine_debug_reason(target_t *target)
 	if ((target->debug_reason != DBG_REASON_DBGRQ)
 		&& (target->debug_reason != DBG_REASON_SINGLESTEP))
 	{
-		/*  INCOMPLETE */
-
 		if (cortex_m3->nvic_dfsr & DFSR_BKPT)
 		{
 			target->debug_reason = DBG_REASON_BREAKPOINT;
@@ -317,6 +318,10 @@ int cortex_m3_examine_debug_reason(target_t *target)
 		}
 		else if (cortex_m3->nvic_dfsr & DFSR_DWTTRAP)
 			target->debug_reason = DBG_REASON_WATCHPOINT;
+		else if (cortex_m3->nvic_dfsr & DFSR_VCATCH)
+			target->debug_reason = DBG_REASON_BREAKPOINT;
+		else /* EXTERNAL, HALTED, DWTTRAP w/o BKPT */
+			target->debug_reason = DBG_REASON_UNDEFINED;
 	}
 
 	return ERROR_OK;
@@ -1703,6 +1708,73 @@ handle_cortex_m3_disassemble_command(struct command_context_s *cmd_ctx,
 	return ERROR_OK;
 }
 
+static const struct {
+	char name[10];
+	unsigned mask;
+} vec_ids[] = {
+	{ "hard_err",	VC_HARDERR, },
+	{ "int_err",	VC_INTERR, },
+	{ "bus_err",	VC_BUSERR, },
+	{ "state_err",	VC_STATERR, },
+	{ "chk_err",	VC_CHKERR, },
+	{ "nocp_err",	VC_NOCPERR, },
+	{ "mm_err",	VC_MMERR, },
+	{ "reset",	VC_CORERESET, },
+};
+
+static int
+handle_cortex_m3_vector_catch_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **argv, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv7m_common_t *armv7m = target->arch_info;
+	swjdp_common_t *swjdp = &armv7m->swjdp_info;
+	uint32_t demcr = 0;
+	int i;
+
+	mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &demcr);
+
+	if (argc > 0) {
+		unsigned catch = 0;
+
+		if (argc == 1) {
+			if (strcmp(argv[0], "all") == 0) {
+				catch = VC_HARDERR | VC_INTERR | VC_BUSERR
+					| VC_STATERR | VC_CHKERR | VC_NOCPERR
+					| VC_MMERR | VC_CORERESET;
+				goto write;
+			} else if (strcmp(argv[0], "none") == 0) {
+				goto write;
+			}
+		}
+		while (argc-- > 0) {
+			for (i = 0; i < ARRAY_SIZE(vec_ids); i++) {
+				if (strcmp(argv[argc], vec_ids[i].name) != 0)
+					continue;
+				catch |= vec_ids[i].mask;
+				break;
+			}
+			if (i == ARRAY_SIZE(vec_ids)) {
+				LOG_ERROR("No CM3 vector '%s'", argv[argc]);
+				return ERROR_INVALID_ARGUMENTS;
+			}
+		}
+write:
+		demcr &= ~0xffff;
+		demcr |= catch;
+
+		/* write, but don't assume it stuck */
+		mem_ap_write_u32(swjdp, DCB_DEMCR, demcr);
+		mem_ap_read_atomic_u32(swjdp, DCB_DEMCR, &demcr);
+	}
+
+	for (i = 0; i < ARRAY_SIZE(vec_ids); i++)
+		command_print(cmd_ctx, "%9s: %s", vec_ids[i].name,
+			(demcr & vec_ids[i].mask) ? "catch" : "ignore");
+
+	return ERROR_OK;
+}
+
 int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 {
 	int retval;
@@ -1719,6 +1791,9 @@ int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, cortex_m3_cmd, "maskisr",
 			handle_cortex_m3_mask_interrupts_command, COMMAND_EXEC,
 			"mask cortex_m3 interrupts ['on'|'off']");
+	register_command(cmd_ctx, cortex_m3_cmd, "vector_catch",
+			handle_cortex_m3_vector_catch_command, COMMAND_EXEC,
+			"catch hardware vectors ['all'|'none'|<list>]");
 
 	return retval;
 }
