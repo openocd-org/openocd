@@ -101,8 +101,9 @@ static jtag_event_callback_t *jtag_event_callbacks;
 
 /* speed in kHz*/
 static int speed_khz = 0;
-/* flag if the kHz speed was defined */
-static bool hasKHz = false;
+/* speed to fallback to when RCLK is requested but not supported */
+static int rclk_fallback_speed_khz = 0;
+static enum {CLOCK_MODE_SPEED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
 static int jtag_speed = 0;
 
 static struct jtag_interface_s *jtag = NULL;
@@ -1140,16 +1141,34 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 		LOG_ERROR("JTAG interface has to be specified, see \"interface\" command");
 		return ERROR_JTAG_INVALID_INTERFACE;
 	}
-	if (hasKHz)
-	{
-		jtag_interface->khz(jtag_get_speed_khz(), &jtag_speed);
-		hasKHz = false;
-	}
-
-	if (jtag_interface->init() != ERROR_OK)
-		return ERROR_JTAG_INIT_FAILED;
 
 	jtag = jtag_interface;
+	if (jtag_interface->init() != ERROR_OK)
+	{
+		jtag = NULL;
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	int requested_khz = jtag_get_speed_khz();
+	int actual_khz = requested_khz;
+	int retval = jtag_get_speed_readable(&actual_khz);
+	if (ERROR_OK != retval)
+		return retval;
+
+	if (actual_khz)
+	{
+		if ((CLOCK_MODE_RCLK == clock_mode)
+			|| ((CLOCK_MODE_KHZ == clock_mode) && !requested_khz))
+		{
+			LOG_INFO("RCLK (adaptive clock speed) not supported - fallback to %d kHz"
+				, actual_khz);
+		}
+		else
+			LOG_INFO("clock speed %d kHz", actual_khz);
+	}
+	else
+		LOG_INFO("RCLK (adaptive clock speed)");
+
 	return ERROR_OK;
 }
 
@@ -1255,20 +1274,15 @@ int jtag_init(struct command_context_s *cmd_ctx)
 	return jtag_init_reset(cmd_ctx);
 }
 
-void jtag_set_speed_khz(unsigned khz)
-{
-	speed_khz = khz;
-}
 unsigned jtag_get_speed_khz(void)
 {
 	return speed_khz;
 }
-int jtag_config_khz(unsigned khz)
-{
-	LOG_DEBUG("handle jtag khz");
-	jtag_set_speed_khz(khz);
 
-	int cur_speed = 0;
+static int jtag_khz_to_speed(unsigned khz, int* speed)
+{
+	LOG_DEBUG("convert khz to interface specific speed value");
+	speed_khz = khz;
 	if (jtag != NULL)
 	{
 		LOG_DEBUG("have interface set up");
@@ -1276,33 +1290,84 @@ int jtag_config_khz(unsigned khz)
 		int retval = jtag->khz(jtag_get_speed_khz(), &speed_div1);
 		if (ERROR_OK != retval)
 		{
-			jtag_set_speed_khz(0);
 			return retval;
 		}
-		cur_speed = speed_div1;
+		*speed = speed_div1;
 	}
-	return jtag_set_speed(cur_speed);
+	return ERROR_OK;
 }
 
-int jtag_get_speed(void)
+static int jtag_rclk_to_speed(unsigned fallback_speed_khz, int* speed)
 {
-	return jtag_speed;
+	int retval = jtag_khz_to_speed(0, speed);
+	if ((ERROR_OK != retval) && fallback_speed_khz)
+	{
+		LOG_DEBUG("trying fallback speed...");
+		retval = jtag_khz_to_speed(fallback_speed_khz, speed);
+	}
+	return retval;
 }
 
-int jtag_set_speed(int speed)
+static int jtag_set_speed(int speed)
 {
 	jtag_speed = speed;
 	/* this command can be called during CONFIG,
 	 * in which case jtag isn't initialized */
-	hasKHz = !jtag;
 	return jtag ? jtag->speed(speed) : ERROR_OK;
 }
 
-int jtag_get_speed_readable(int *speed)
+int jtag_config_speed(int speed)
 {
-	return jtag ? jtag->speed_div(jtag_get_speed(), speed) : ERROR_OK;
+	LOG_DEBUG("handle jtag speed");
+	clock_mode = CLOCK_MODE_SPEED;
+	return jtag_set_speed(speed);
 }
 
+int jtag_config_khz(unsigned khz)
+{
+	LOG_DEBUG("handle jtag khz");
+	clock_mode = CLOCK_MODE_KHZ;
+	int speed = 0;
+	int retval = jtag_khz_to_speed(khz, &speed);
+	return (ERROR_OK != retval) ? retval : jtag_set_speed(speed);
+}
+
+int jtag_config_rclk(unsigned fallback_speed_khz)
+{
+	LOG_DEBUG("handle jtag rclk");
+	clock_mode = CLOCK_MODE_RCLK;
+	rclk_fallback_speed_khz = fallback_speed_khz;
+	int speed = 0;
+	int retval = jtag_rclk_to_speed(fallback_speed_khz, &speed);
+	return (ERROR_OK != retval) ? retval : jtag_set_speed(speed);
+}
+
+int jtag_get_speed(void)
+{
+	int speed;
+	switch(clock_mode)
+	{
+		case CLOCK_MODE_SPEED:
+			speed = jtag_speed;
+			break;
+		case CLOCK_MODE_KHZ:
+			jtag_khz_to_speed(jtag_get_speed_khz(), &speed);
+			break;
+		case CLOCK_MODE_RCLK:
+			jtag_rclk_to_speed(rclk_fallback_speed_khz, &speed);
+			break;
+		default:
+			LOG_ERROR("BUG: unknown jtag clock mode");
+			speed = 0;
+			break;
+	}
+	return speed;
+}
+
+int jtag_get_speed_readable(int *khz)
+{
+	return jtag ? jtag->speed_div(jtag_get_speed(), khz) : ERROR_OK;
+}
 
 void jtag_set_verify(bool enable)
 {

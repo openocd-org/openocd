@@ -55,6 +55,7 @@ static int handle_interface_list_command(struct command_context_s *cmd_ctx,
 static int handle_interface_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
+static int handle_jtag_rclk_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_device_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_jtag_nsrst_delay_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
@@ -577,6 +578,8 @@ int jtag_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, NULL, "jtag_khz", handle_jtag_khz_command,
 		COMMAND_ANY, "set maximum jtag speed (if supported); "
 		"parameter is maximum khz, or 0 for adaptive clocking (RTCK).");
+	register_command(cmd_ctx, NULL, "jtag_rclk", handle_jtag_rclk_command,
+		COMMAND_ANY, "fallback_speed_khz - set JTAG speed to RCLK or use fallback speed");
 	register_command(cmd_ctx, NULL, "jtag_device", handle_jtag_device_command,
 		COMMAND_CONFIG, "(DEPRECATED) jtag_device <ir_length> <ir_expected> <ir_mask>");
 	register_command(cmd_ctx, NULL, "reset_config", handle_reset_config_command,
@@ -955,7 +958,7 @@ static int handle_jtag_speed_command(struct command_context_s *cmd_ctx, char *cm
 		int retval = parse_uint(args[0], &cur_speed);
 		if (ERROR_OK != retval)
 			return retval;
-		retval = jtag_set_speed(cur_speed);
+		retval = jtag_config_speed(cur_speed);
 
 	}
 	command_print(cmd_ctx, "jtag_speed: %d", jtag_get_speed());
@@ -987,6 +990,36 @@ static int handle_jtag_khz_command(struct command_context_s *cmd_ctx, char *cmd,
 
 	if (cur_speed)
 		command_print(cmd_ctx, "%d kHz", cur_speed);
+	else
+		command_print(cmd_ctx, "RCLK - adaptive");
+
+	return retval;
+}
+
+static int handle_jtag_rclk_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+{
+	if (argc > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	int retval = ERROR_OK;
+	if (argc == 1)
+	{
+		unsigned khz = 0;
+		int retval = parse_uint(args[0], &khz);
+		if (ERROR_OK != retval)
+			return retval;
+		retval = jtag_config_rclk(khz);
+		if (ERROR_OK != retval)
+			return retval;
+	}
+
+	int cur_khz = jtag_get_speed_khz();
+	retval = jtag_get_speed_readable(&cur_khz);
+	if (ERROR_OK != retval)
+		return retval;
+
+	if (cur_khz)
+		command_print(cmd_ctx, "RCLK not supported - fallback to %d kHz", cur_khz);
 	else
 		command_print(cmd_ctx, "RCLK - adaptive");
 
