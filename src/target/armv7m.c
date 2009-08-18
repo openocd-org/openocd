@@ -87,35 +87,36 @@ reg_t armv7m_gdb_dummy_cpsr_reg =
 static const struct {
 	unsigned id;
 	char *name;
+	unsigned bits;
 } armv7m_regs[] = {
-	{ ARMV7M_R0, "r0" },
-	{ ARMV7M_R1, "r1" },
-	{ ARMV7M_R2, "r2" },
-	{ ARMV7M_R3, "r3" },
+	{ ARMV7M_R0, "r0", 32 },
+	{ ARMV7M_R1, "r1", 32 },
+	{ ARMV7M_R2, "r2", 32 },
+	{ ARMV7M_R3, "r3", 32 },
 
-	{ ARMV7M_R4, "r4" },
-	{ ARMV7M_R5, "r5" },
-	{ ARMV7M_R6, "r6" },
-	{ ARMV7M_R7, "r7" },
+	{ ARMV7M_R4, "r4", 32 },
+	{ ARMV7M_R5, "r5", 32 },
+	{ ARMV7M_R6, "r6", 32 },
+	{ ARMV7M_R7, "r7", 32 },
 
-	{ ARMV7M_R8, "r8" },
-	{ ARMV7M_R9, "r9" },
-	{ ARMV7M_R10, "r10" },
-	{ ARMV7M_R11, "r11" },
+	{ ARMV7M_R8, "r8", 32 },
+	{ ARMV7M_R9, "r9", 32 },
+	{ ARMV7M_R10, "r10", 32 },
+	{ ARMV7M_R11, "r11", 32 },
 
-	{ ARMV7M_R12, "r12" },
-	{ ARMV7M_R13, "sp" },
-	{ ARMV7M_R14, "lr" },
-	{ ARMV7M_PC, "pc" },
+	{ ARMV7M_R12, "r12", 32 },
+	{ ARMV7M_R13, "sp", 32 },
+	{ ARMV7M_R14, "lr", 32 },
+	{ ARMV7M_PC, "pc", 32 },
 
-	{ ARMV7M_xPSR, "xPSR" },
-	{ ARMV7M_MSP, "msp" },
-	{ ARMV7M_PSP, "psp" },
+	{ ARMV7M_xPSR, "xPSR", 32 },
+	{ ARMV7M_MSP, "msp", 32 },
+	{ ARMV7M_PSP, "psp", 32 },
 
-	{ ARMV7M_PRIMASK, "primask" },
-	{ ARMV7M_BASEPRI, "basepri" },
-	{ ARMV7M_FAULTMASK, "faultmask" },
-	{ ARMV7M_CONTROL, "control" },
+	{ ARMV7M_PRIMASK, "primask", 1 },
+	{ ARMV7M_BASEPRI, "basepri", 8 },
+	{ ARMV7M_FAULTMASK, "faultmask", 1 },
+	{ ARMV7M_CONTROL, "control", 2 },
 };
 
 #define ARMV7M_NUM_REGS	ARRAY_SIZE(armv7m_regs)
@@ -534,7 +535,7 @@ reg_cache_t *armv7m_build_reg_cache(target_t *target)
 		arch_info[i].target = target;
 		arch_info[i].armv7m_common = armv7m;
 		reg_list[i].name = armv7m_regs[i].name;
-		reg_list[i].size = 32;
+		reg_list[i].size = armv7m_regs[i].bits;
 		reg_list[i].value = calloc(1, 4);
 		reg_list[i].dirty = 0;
 		reg_list[i].valid = 0;
