@@ -760,11 +760,14 @@ int cortex_m3_assert_reset(target_t *target)
 		target_state_name(target));
 
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	/*
+	 * We can reset Cortex-M3 targets using just the NVIC without
+	 * requiring SRST, getting a SoC reset (or a core-only reset)
+	 * instead of a system reset.
+	 */
 	if (!(jtag_reset_config & RESET_HAS_SRST))
-	{
-		LOG_ERROR("Can't assert SRST");
-		return ERROR_FAIL;
-	}
+		assert_srst = 0;
 
 	/* Enable debug requests */
 	mem_ap_read_atomic_u32(swjdp, DCB_DHCSR, &cortex_m3->dcb_dhcsr);
@@ -794,15 +797,21 @@ int cortex_m3_assert_reset(target_t *target)
 		mem_ap_write_atomic_u32(swjdp, DCB_DEMCR, TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
 	}
 
-	/* following hack is to handle luminary reset
-	 * when srst is asserted the luminary device seesm to also clear the debug registers
-	 * which does not match the armv7 debug TRM */
-
+	/*
+	 * When nRST is asserted on most Stellaris devices, it clears some of
+	 * the debug state.  The ARMv7M and Cortex-M3 TRMs say that's wrong;
+	 * and OpenOCD depends on those TRMs.  So we won't use SRST on those
+	 * chips.  (Only power-on reset should affect debug state, beyond a
+	 * few specified bits; not the chip's nRST input, wired to SRST.)
+	 *
+	 * REVISIT current errata specs don't seem to cover this issue.
+	 * Do we have more details than this email?
+	 *   https://lists.berlios.de/pipermail
+	 *	/openocd-development/2008-August/003065.html
+	 */
 	if (strcmp(target->variant, "lm3s") == 0)
 	{
-		/* get revision of lm3s target, only early silicon has this issue
-		 * Fury Rev B, DustDevil Rev B, Tempest all ok */
-
+		/* Check for silicon revisions with the issue. */
 		uint32_t did0;
 
 		if (target_read_u32(target, 0x400fe000, &did0) == ERROR_OK)
@@ -816,9 +825,15 @@ int cortex_m3_assert_reset(target_t *target)
 
 				case 1:
 				case 3:
-					/* only Fury/DustDevil rev A suffer reset problems */
+					/* Fury and DustDevil rev A have
+					 * this nRST problem.  It should
+					 * be fixed in rev B silicon.
+					 */
 					if (((did0 >> 8) & 0xff) == 0)
 						assert_srst = 0;
+					break;
+				case 4:
+					/* Tempest should be fine. */
 					break;
 			}
 		}
@@ -838,13 +853,20 @@ int cortex_m3_assert_reset(target_t *target)
 	}
 	else
 	{
-		/* this causes the luminary device to reset using the watchdog */
-		mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR, AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
-		LOG_DEBUG("Using Luminary Reset: SYSRESETREQ");
+		/* Use a standard Cortex-M3 software reset mechanism.
+		 * SYSRESETREQ will reset SoC peripherals outside the
+		 * core, like watchdog timers, if the SoC wires it up
+		 * correctly.  Else VECRESET can reset just the core.
+		 */
+		mem_ap_write_atomic_u32(swjdp, NVIC_AIRCR,
+				AIRCR_VECTKEY | AIRCR_SYSRESETREQ);
+		LOG_DEBUG("Using Cortex-M3 SYSRESETREQ");
 
 		{
-			/* I do not know why this is necessary, but it fixes strange effects
-			 * (step/resume cause a NMI after reset) on LM3S6918 -- Michael Schwingen */
+			/* I do not know why this is necessary, but it
+			 * fixes strange effects (step/resume cause NMI
+			 * after reset) on LM3S6918 -- Michael Schwingen
+			 */
 			uint32_t tmp;
 			mem_ap_read_atomic_u32(swjdp, NVIC_AIRCR, &tmp);
 		}
