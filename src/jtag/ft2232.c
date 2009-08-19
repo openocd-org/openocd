@@ -1940,7 +1940,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 		static const char* type_str[] =
 			{"BM", "AM", "100AX", "UNKNOWN", "2232C", "232R", "2232H", "4232H"};
 		unsigned no_of_known_types = sizeof(type_str) / sizeof(type_str[0]) - 1;
-		unsigned type_index = ((unsigned)ftdi_device < no_of_known_types)
+		unsigned type_index = ((unsigned)ftdi_device <= no_of_known_types)
 			? ftdi_device : 3;
 		LOG_INFO("device: %lu \"%s\"", ftdi_device, type_str[type_index]);
 		LOG_INFO("deviceID: %lu", deviceID);
