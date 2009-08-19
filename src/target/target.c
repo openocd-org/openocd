@@ -1505,10 +1505,19 @@ int target_register_user_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx,  NULL, "mwh", handle_mw_command, COMMAND_EXEC, "write memory half-word <addr> <value> [count]");
 	register_command(cmd_ctx,  NULL, "mwb", handle_mw_command, COMMAND_EXEC, "write memory byte <addr> <value> [count]");
 
-	register_command(cmd_ctx,  NULL, "bp", handle_bp_command, COMMAND_EXEC, "set breakpoint <address> <length> [hw]");
-	register_command(cmd_ctx,  NULL, "rbp", handle_rbp_command, COMMAND_EXEC, "remove breakpoint <adress>");
-	register_command(cmd_ctx,  NULL, "wp", handle_wp_command, COMMAND_EXEC, "set watchpoint <address> <length> <r/w/a> [value] [mask]");
-	register_command(cmd_ctx,  NULL, "rwp", handle_rwp_command, COMMAND_EXEC, "remove watchpoint <adress>");
+	register_command(cmd_ctx,  NULL, "bp",
+			handle_bp_command, COMMAND_EXEC,
+			"list or set breakpoint [<address> <length> [hw]]");
+	register_command(cmd_ctx,  NULL, "rbp",
+			handle_rbp_command, COMMAND_EXEC,
+			"remove breakpoint <address>");
+	register_command(cmd_ctx,  NULL, "wp",
+			handle_wp_command, COMMAND_EXEC,
+			"list or set watchpoint "
+				"[<address> <length> <r/w/a> [value] [mask]]");
+	register_command(cmd_ctx,  NULL, "rwp",
+			handle_rwp_command, COMMAND_EXEC,
+			"remove watchpoint <address>");
 
 	register_command(cmd_ctx,  NULL, "load_image", handle_load_image_command, COMMAND_EXEC, "load_image <file> <address> ['bin'|'ihex'|'elf'|'s19'] [min_address] [max_length]");
 	register_command(cmd_ctx,  NULL, "dump_image", handle_dump_image_command, COMMAND_EXEC, "dump_image <file> <address> <size>");
