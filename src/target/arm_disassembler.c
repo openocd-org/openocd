@@ -3007,6 +3007,133 @@ static int t2ev_ldm_stm(uint32_t opcode, uint32_t address,
 	return ERROR_OK;
 }
 
+/* load/store dual or exclusive, table branch */
+static int t2ev_ldrex_strex(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction, char *cp)
+{
+	unsigned op1op2 = (opcode >> 20) & 0x3;
+	unsigned op3 = (opcode >> 4) & 0xf;
+	char *mnemonic;
+	unsigned rn = (opcode >> 16) & 0xf;
+	unsigned rt = (opcode >> 12) & 0xf;
+	unsigned rd = (opcode >> 8) & 0xf;
+	unsigned imm = opcode & 0xff;
+	char *p1 = "";
+	char *p2 = "]";
+
+	op1op2 |= (opcode >> 21) & 0xc;
+	switch (op1op2) {
+	case 0:
+		mnemonic = "STREX";
+		goto strex;
+	case 1:
+		mnemonic = "LDREX";
+		goto ldrex;
+	case 2:
+	case 6:
+	case 8:
+	case 10:
+	case 12:
+	case 14:
+		mnemonic = "STRD";
+		goto immediate;
+	case 3:
+	case 7:
+	case 9:
+	case 11:
+	case 13:
+	case 15:
+		mnemonic = "LDRD";
+		if (rn == 15)
+			goto literal;
+		else
+			goto immediate;
+	case 4:
+		switch (op3) {
+		case 4:
+			mnemonic = "STREXB";
+			break;
+		case 5:
+			mnemonic = "STREXH";
+			break;
+		default:
+			return ERROR_INVALID_ARGUMENTS;
+		}
+		rd = opcode & 0xf;
+		imm = 0;
+		goto strex;
+	case 5:
+		switch (op3) {
+		case 0:
+			sprintf(cp, "TBB\t[r%u, r%u]", rn, imm & 0xf);
+			return ERROR_OK;
+		case 1:
+			sprintf(cp, "TBH\t[r%u, r%u, LSL #1]", rn, imm & 0xf);
+			return ERROR_OK;
+		case 4:
+			mnemonic = "LDREXB";
+			break;
+		case 5:
+			mnemonic = "LDREXH";
+			break;
+		default:
+			return ERROR_INVALID_ARGUMENTS;
+		}
+		imm = 0;
+		goto ldrex;
+	}
+	return ERROR_INVALID_ARGUMENTS;
+
+strex:
+	imm <<= 2;
+	if (imm)
+		sprintf(cp, "%s\tr%u, r%u, [r%u, #%u]\t; %#2.2x",
+				mnemonic, rd, rt, rn, imm, imm);
+	else
+		sprintf(cp, "%s\tr%u, r%u, [r%u]",
+				mnemonic, rd, rt, rn);
+	return ERROR_OK;
+
+ldrex:
+	imm <<= 2;
+	if (imm)
+		sprintf(cp, "%s\tr%u, [r%u, #%u]\t; %#2.2x",
+				mnemonic, rt, rn, imm, imm);
+	else
+		sprintf(cp, "%s\tr%u, [r%u]",
+				mnemonic, rt, rn);
+	return ERROR_OK;
+
+immediate:
+	/* two indexed modes will write back rn */
+	if (opcode & (1 << 21)) {
+		if (opcode & (1 << 24))	/* pre-indexed */
+			p2 = "]!";
+		else {			/* post-indexed */
+			p1 = "]";
+			p2 = "";
+		}
+	}
+
+	imm <<= 2;
+	sprintf(cp, "%s\tr%u, r%u, [r%u%s, #%s%u%s\t; %#2.2x",
+			mnemonic, rt, rd, rn, p1,
+			(opcode & (1 << 23)) ? "" : "-",
+			imm, p2, imm);
+	return ERROR_OK;
+
+literal:
+	address = thumb_alignpc4(address);
+	imm <<= 2;
+	if (opcode & (1 << 23))
+		address += imm;
+	else
+		address -= imm;
+	sprintf(cp, "%s\tr%u, r%u, %#8.8" PRIx32,
+			mnemonic, rt, rd, address);
+	return ERROR_OK;
+}
+
 static int t2ev_data_shift(uint32_t opcode, uint32_t address,
 		arm_instruction_t *instruction, char *cp)
 {
@@ -3677,6 +3804,10 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	else if ((opcode & 0x1e400000) == 0x08000000)
 		retval = t2ev_ldm_stm(opcode, address, instruction, cp);
 
+	/* ARMv7-M: A5.3.6 Load/store dual or exclusive, table branch */
+	else if ((opcode & 0x1e400000) == 0x08400000)
+		retval = t2ev_ldrex_strex(opcode, address, instruction, cp);
+
 	/* ARMv7-M: A5.3.7 Load word */
 	else if ((opcode & 0x1f700000) == 0x18500000)
 		retval = t2ev_load_word(opcode, address, instruction, cp);
@@ -3711,10 +3842,13 @@ int thumb2_opcode(target_t *target, uint32_t address, arm_instruction_t *instruc
 	else if ((opcode & 0x1f800000) == 0x1b800000)
 		retval = t2ev_mul64_div(opcode, address, instruction, cp);
 
-	/* FIXME decode more 32-bit instructions */
-
 	if (retval == ERROR_OK)
 		return retval;
+
+	/*
+	 * Thumb2 also supports coprocessor, ThumbEE, and DSP/Media (SIMD)
+	 * instructions; not yet handled here.
+	 */
 
 	if (retval == ERROR_INVALID_ARGUMENTS) {
 		instruction->type = ARM_UNDEFINED_INSTRUCTION;
