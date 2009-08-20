@@ -68,8 +68,15 @@
 /* this speed value tells that RTCK is requested */
 #define RTCK_SPEED -1
 
-static int ft2232_execute_queue(void);
+#ifndef BUILD_FT2232_HIGHSPEED
+ #if BUILD_FT2232_FTD2XX == 1
+	enum { FT_DEVICE_2232H = 6, FT_DEVICE_4232H };
+ #elif BUILD_FT2232_LIBFTDI == 1
+	enum { TYPE_2232H = 4, TYPE_4232H = 5 };
+ #endif
+#endif
 
+static int ft2232_execute_queue(void);
 static int ft2232_speed(int speed);
 static int ft2232_speed_div(int speed, int* khz);
 static int ft2232_khz(int khz, int* jtag_speed);
@@ -416,14 +423,10 @@ static int ft2232_read(uint8_t* buf, uint32_t size, uint32_t* bytes_read)
 
 static bool ft2232_device_is_highspeed(void)
 {
-#ifdef BUILD_FT2232_HIGHSPEED
-	#if BUILD_FT2232_FTD2XX == 1
+#if BUILD_FT2232_FTD2XX == 1
 	return (ftdi_device == FT_DEVICE_2232H) || (ftdi_device == FT_DEVICE_4232H);
-	#elif BUILD_FT2232_LIBFTDI == 1
+#elif BUILD_FT2232_LIBFTDI == 1
 	return (ftdi_device == TYPE_2232H || ftdi_device == TYPE_4232H);
-	#endif
-#else
-	return false;
 #endif
 }
 
@@ -529,10 +532,6 @@ static int ft2232_khz(int khz, int* jtag_speed)
 		else
 		{
 			LOG_DEBUG("RCLK not supported");
-#ifndef BUILD_FT2232_HIGHSPEED
-			LOG_DEBUG("If you have a high-speed FTDI device, then "
-				"OpenOCD may be built with --enable-ft2232-highspeed.");
-#endif
 			return ERROR_FAIL;
 		}
 	}
@@ -1941,7 +1940,7 @@ static int ft2232_init_ftd2xx(uint16_t vid, uint16_t pid, int more, int* try_mor
 			{"BM", "AM", "100AX", "UNKNOWN", "2232C", "232R", "2232H", "4232H"};
 		unsigned no_of_known_types = sizeof(type_str) / sizeof(type_str[0]) - 1;
 		unsigned type_index = ((unsigned)ftdi_device <= no_of_known_types)
-			? ftdi_device : 3;
+			? ftdi_device : FT_DEVICE_UNKNOWN;
 		LOG_INFO("device: %lu \"%s\"", ftdi_device, type_str[type_index]);
 		LOG_INFO("deviceID: %lu", deviceID);
 		LOG_INFO("SerialNumber: %s", SerialNumber);
@@ -2118,6 +2117,14 @@ static int ft2232_init(void)
 
 	if (ft2232_device_is_highspeed())
 	{
+#ifndef BUILD_FT2232_HIGHSPEED
+ #if BUILD_FT2232_FTD2XX == 1
+		LOG_WARNING("High Speed device found - You need a newer FTD2XX driver (version 2.04.16 or later)");
+ #elif BUILD_FT2232_LIBFTDI == 1
+		LOG_WARNING("High Speed device found - You need a newer libftdi version (0.16 or later)");
+ #endif
+#endif
+		/* make sure the legacy mode is disabled */
 		if (ft2232h_ft4232h_clk_divide_by_5(false) != ERROR_OK)
 			return ERROR_JTAG_INIT_FAILED;
 	}

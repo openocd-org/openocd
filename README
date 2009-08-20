@@ -215,10 +215,6 @@ options may be available there:
                           FTD2XX
   --enable-ft2232_ftd2xx  Enable building support for FT2232 based devices
                           using the FTD2XX driver from ftdichip.com
-  --enable-ft2232-highspeed
-                          Enable building support for FT2232H and
-                          FT4232H-based devices (requires >=libftd2xx-0.4.16
-                          or >=libftdi-0.16)
 
   --enable-gw16012        Enable building support for the Gateworks GW16012
                           JTAG Programmer
