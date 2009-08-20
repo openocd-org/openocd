@@ -655,8 +655,8 @@ static int svf_adjust_array_length(uint8_t **arr, int orig_bit_len, int new_bit_
 
 static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_len, int bit_len)
 {
-	int i, str_len = strlen(str), str_byte_len = (bit_len + 3) >> 2, loop_cnt;
-	uint8_t ch, need_write = 1;
+	int i, str_len = strlen(str), str_hbyte_len = (bit_len + 3) >> 2;
+	uint8_t ch;
 
 	if (ERROR_OK != svf_adjust_array_length(bin, orig_bit_len, bit_len))
 	{
@@ -664,75 +664,54 @@ static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_l
 		return ERROR_FAIL;
 	}
 
-	if (str_byte_len > str_len)
+	for (i = 0; i < str_hbyte_len; i++)
 	{
-		loop_cnt = str_byte_len;
-	}
-	else
-	{
-		loop_cnt = str_len;
-	}
+		ch = 0;
+		while (str_len > 0)
+		{
+			ch = str[--str_len];
 
-	for (i = 0; i < loop_cnt; i++)
-	{
-		if (i < str_len)
-		{
-			ch = str[str_len - i - 1];
-			if ((ch >= '0') && (ch <= '9'))
+			if (!isblank(ch))
 			{
-				ch = ch - '0';
+				if ((ch >= '0') && (ch <= '9'))
+				{
+					ch = ch - '0';
+					break;
+				}
+				else if ((ch >= 'A') && (ch <= 'F'))
+				{
+					ch = ch - 'A' + 10;
+					break;
+				}
+				else
+				{
+					LOG_ERROR("invalid hex string");
+					return ERROR_FAIL;
+				}
 			}
-			else if ((ch >= 'A') && (ch <= 'F'))
-			{
-				ch = ch - 'A' + 10;
-			}
-			else
-			{
-				LOG_ERROR("invalid hex string");
-				return ERROR_FAIL;
-			}
-		}
-		else
-		{
+
 			ch = 0;
 		}
 
-		// check valid
-		if (i >= str_byte_len)
+		// write bin
+		if (i % 2)
 		{
-			// all data written, other data should be all '0's and needn't to be written
-			need_write = 0;
-			if (ch != 0)
-			{
-				LOG_ERROR("value execede length");
-				return ERROR_FAIL;
-			}
+			// MSB
+			(*bin)[i / 2] |= ch << 4;
 		}
-		else if (i == (str_byte_len - 1))
+		else
 		{
-			// last data byte, written if valid
-			if ((ch & ~((1 << (bit_len - 4 * i)) - 1)) != 0)
-			{
-				LOG_ERROR("value execede length");
-				return ERROR_FAIL;
-			}
+			// LSB
+			(*bin)[i / 2] = 0;
+			(*bin)[i / 2] |= ch;
 		}
+	}
 
-		if (need_write)
-		{
-			// write bin
-			if (i % 2)
-			{
-				// MSB
-				(*bin)[i / 2] |= ch << 4;
-			}
-			else
-			{
-				// LSB
-				(*bin)[i / 2] = 0;
-				(*bin)[i / 2] |= ch;
-			}
-		}
+	// check valid
+	if (str_len > 0 || (ch & ~((1 << (4 - (bit_len % 4))) - 1)) != 0)
+	{
+		LOG_ERROR("value execede length");
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;
