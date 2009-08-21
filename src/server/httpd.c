@@ -223,7 +223,7 @@ static void append_key(struct httpd_request *r, const char *key,
 /* append data to each key */
 static int iterate_post(void *con_cls, enum MHD_ValueKind kind,
 		const char *key, const char *filename, const char *content_type,
-		const char *transfer_encoding, const char *data, uint64_t off,
+		const char *transfer_encoding, const char *data, size_t off,
 		size_t size)
 {
 	struct httpd_request *r = (struct httpd_request*) con_cls;
