@@ -1153,9 +1153,8 @@ int jtag_interface_init(struct command_context_s *cmd_ctx)
 	int actual_khz = requested_khz;
 	int retval = jtag_get_speed_readable(&actual_khz);
 	if (ERROR_OK != retval)
-		return retval;
-
-	if (actual_khz)
+		LOG_INFO("interface specific clock speed value %d", jtag_get_speed());
+	else if (actual_khz)
 	{
 		if ((CLOCK_MODE_RCLK == clock_mode)
 			|| ((CLOCK_MODE_KHZ == clock_mode) && !requested_khz))
