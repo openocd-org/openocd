@@ -117,6 +117,10 @@ static int script_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		words[i] = strdup(w);
 		if (words[i] == NULL)
 		{
+			int j;
+			for (j = 0; j < i; j++)
+				free(words[j]);
+			free(words);
 			return JIM_ERR;
 		}
 	}

@@ -1322,6 +1322,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				if (!svf_tap_state_is_valid(path[i]))
 				{
 					LOG_ERROR("%s is not valid state", svf_tap_state_name[path[i]]);
+					free(path);
 					return ERROR_FAIL;
 				}
 				if (TAP_RESET == path[i])
@@ -1348,6 +1349,7 @@ static int svf_run_command(struct command_context_s *cmd_ctx, char *cmd_str)
 				else
 				{
 					LOG_ERROR("%s is not valid state", svf_tap_state_name[path[num_of_argu - 1]]);
+					free(path);
 					return ERROR_FAIL;
 				}
 			}

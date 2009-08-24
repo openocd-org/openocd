@@ -197,6 +197,7 @@ reg_cache_t* embeddedice_build_reg_cache(target_t *target, arm7_9_common_t *arm7
 			free(reg_list[i].value);
 		}
 		free(reg_list);
+		free(reg_cache);
 		free(arch_info);
 		return NULL;
 	}

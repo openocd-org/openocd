@@ -220,6 +220,7 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 	 * */
 	if (goi->argc < 3) {
 		Jim_SetResult_sprintf(goi->interp, "Missing CHIP TAP OPTIONS ....");
+		free(pTap);
 		return JIM_ERR;
 	}
 	Jim_GetOpt_String(goi, &cp, NULL);
@@ -249,6 +250,8 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 		e = Jim_GetOpt_Nvp(goi, opts, &n);
 		if (e != JIM_OK) {
 			Jim_GetOpt_NvpUnknown(goi, opts, 0);
+			free((void *)pTap->dotted_name);
+			free(pTap);
 			return e;
 		}
 		LOG_DEBUG("Processing option: %s", n->name);
@@ -266,12 +269,16 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 			e = Jim_GetOpt_Wide(goi, &w);
 			if (e != JIM_OK) {
 				Jim_SetResult_sprintf(goi->interp, "option: %s bad parameter", n->name);
+				free((void *)pTap->dotted_name);
+				free(pTap);
 				return e;
 			}
 
 			new_expected_ids = malloc(sizeof(uint32_t) * (pTap->expected_ids_cnt + 1));
 			if (new_expected_ids == NULL) {
 				Jim_SetResult_sprintf(goi->interp, "no memory");
+				free((void *)pTap->dotted_name);
+				free(pTap);
 				return JIM_ERR;
 			}
 
@@ -290,6 +297,8 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 			e = Jim_GetOpt_Wide(goi, &w);
 			if (e != JIM_OK) {
 				Jim_SetResult_sprintf(goi->interp, "option: %s bad parameter", n->name);
+				free((void *)pTap->dotted_name);
+				free(pTap);
 				return e;
 			}
 			switch (n->value) {
@@ -303,6 +312,8 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 				if (is_bad_irval(pTap->ir_length, w)) {
 					LOG_ERROR("IR mask %x too big",
 							(int) w);
+					free((void *)pTap->dotted_name);
+					free(pTap);
 					return ERROR_FAIL;
 				}
 				pTap->ir_capture_mask = w;
@@ -312,6 +323,8 @@ static int jim_newtap_cmd(Jim_GetOptInfo *goi)
 				if (is_bad_irval(pTap->ir_length, w)) {
 					LOG_ERROR("IR capture %x too big",
 							(int) w);
+					free((void *)pTap->dotted_name);
+					free(pTap);
 					return ERROR_FAIL;
 				}
 				pTap->ir_capture_value = w;
@@ -1144,7 +1157,12 @@ static int handle_irscan_command(struct command_context_s *cmd_ctx, char *cmd, c
 		tap = jtag_tap_by_string(args[i*2]);
 		if (tap == NULL)
 		{
+			int j;
+			for (j = 0; j < i; j++)
+				free(fields[j].out_value);
+                        free(fields);
 			command_print(cmd_ctx, "Tap: %s unknown", args[i*2]);
+
 			return ERROR_FAIL;
 		}
 		int field_size = tap->ir_length;

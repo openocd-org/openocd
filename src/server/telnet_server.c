@@ -597,6 +597,7 @@ int telnet_init(char *banner)
 	if (telnet_port == 0)
 	{
 		LOG_INFO("telnet port disabled");
+		free(telnet_service);
 		return ERROR_OK;
 	}
 

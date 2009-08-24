@@ -246,6 +246,12 @@ reg_cache_t* etm_build_reg_cache(target_t *target, arm_jtag_t *jtag_info, etm_co
 		if (!etb)
 		{
 			LOG_ERROR("etb selected as etm capture driver, but no ETB configured");
+			for (i = 0; i < num_regs; i++)
+			{
+				free(reg_list[i].value);
+			}
+			free(reg_cache);
+			free(arch_info);
 			return ERROR_OK;
 		}
 
@@ -1202,6 +1208,7 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 
 	if (argc != 5)
 	{
+		free(etm_ctx);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -1209,12 +1216,14 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 	if (!target)
 	{
 		LOG_ERROR("target '%s' not defined", args[0]);
+		free(etm_ctx);
 		return ERROR_FAIL;
 	}
 
 	if (arm7_9_get_arch_pointers(target, &armv4_5, &arm7_9) != ERROR_OK)
 	{
 		command_print(cmd_ctx, "current target isn't an ARM7/ARM9 target");
+		free(etm_ctx);
 		return ERROR_FAIL;
 	}
 
@@ -1231,6 +1240,7 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 			break;
 		default:
 			command_print(cmd_ctx, "unsupported ETM port width '%s', must be 4, 8 or 16", args[1]);
+			free(etm_ctx);
 			return ERROR_FAIL;
 	}
 
@@ -1249,6 +1259,7 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 	else
 	{
 		command_print(cmd_ctx, "unsupported ETM port mode '%s', must be 'normal', 'multiplexed' or 'demultiplexed'", args[2]);
+		free(etm_ctx);
 		return ERROR_FAIL;
 	}
 
@@ -1263,6 +1274,7 @@ static int handle_etm_config_command(struct command_context_s *cmd_ctx, char *cm
 	else
 	{
 		command_print(cmd_ctx, "unsupported ETM port clocking '%s', must be 'full' or 'half'", args[3]);
+		free(etm_ctx);
 		return ERROR_FAIL;
 	}
 

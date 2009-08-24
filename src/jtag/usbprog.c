@@ -435,6 +435,7 @@ struct usbprog_jtag* usbprog_jtag_open(void)
 			}
 		}
 	}
+	free(tmp);
 	return 0;
 }
 
