@@ -585,8 +585,30 @@ void jtag_add_clocks(int num_cycles)
 void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 {
 	int trst_with_tlr = 0;
-	int new_srst;
+	int new_srst = 0;
 	int new_trst = 0;
+
+	/* Without SRST, we must use target-specific JTAG operations
+	 * on each target; callers should not be requesting SRST when
+	 * that signal doesn't exist.
+	 *
+	 * RESET_SRST_PULLS_TRST is a board or chip level quirk, which
+	 * can kick in even if the JTAG adapter can't drive TRST.
+	 */
+	if (req_srst) {
+		if (!(jtag_reset_config & RESET_HAS_SRST)) {
+			LOG_ERROR("BUG: can't assert SRST");
+			jtag_set_error(ERROR_FAIL);
+			return;
+		}
+		if ((jtag_reset_config & RESET_SRST_PULLS_TRST) != 0
+				&& !req_tlr_or_trst) {
+			LOG_ERROR("BUG: can't assert only SRST");
+			jtag_set_error(ERROR_FAIL);
+			return;
+		}
+		new_srst = 1;
+	}
 
 	/* JTAG reset (entry to TAP_RESET state) can always be achieved
 	 * using TCK and TMS; that may go through a TAP_{IR,DR}UPDATE
@@ -604,41 +626,6 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		else
 			new_trst = 1;
 	}
-
-	/* FIX!!! there are *many* different cases here. A better
-	 * approach is needed for legal combinations of transitions...
-	 */
-	if ((jtag_reset_config & RESET_HAS_SRST)&&
-			(jtag_reset_config & RESET_HAS_TRST)&&
-			((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0))
-	{
-		if (((req_tlr_or_trst&&!jtag_trst)||
-				(!req_tlr_or_trst && jtag_trst))&&
-				((req_srst&&!jtag_srst)||
-						(!req_srst && jtag_srst)))
-		{
-			/* FIX!!! srst_pulls_trst allows 1,1 => 0,0 transition.... */
-			//LOG_ERROR("BUG: transition of req_tlr_or_trst and req_srst in the same jtag_add_reset() call is undefined");
-		}
-	}
-
-	/* Make sure that jtag_reset_config allows the requested reset */
-	/* if SRST pulls TRST, we can't fulfill srst == 1 with trst == 0 */
-	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) && (req_srst == 1)) && (!req_tlr_or_trst))
-	{
-		LOG_ERROR("BUG: requested reset would assert trst");
-		jtag_set_error(ERROR_FAIL);
-		return;
-	}
-
-	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
-	{
-		LOG_ERROR("BUG: requested SRST assertion, but the current configuration doesn't support this");
-		jtag_set_error(ERROR_FAIL);
-		return;
-	}
-
-	new_srst = req_srst;
 
 	/* Maybe change TRST and/or SRST signal state */
 	if (jtag_srst != new_srst || jtag_trst != new_trst) {
