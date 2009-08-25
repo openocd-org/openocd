@@ -1760,7 +1760,7 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 					value = buf_to_str(reg->value,
 							reg->size, 16);
 					command_print(cmd_ctx,
-							"(%i) %s (/%u): 0x%s%s",
+							"(%i) %s (/%" PRIu32 "): 0x%s%s",
 							count, reg->name,
 							reg->size, value,
 							reg->dirty
@@ -1768,7 +1768,7 @@ static int handle_reg_command(struct command_context_s *cmd_ctx, char *cmd, char
 								: "");
 					free(value);
 				} else {
-					command_print(cmd_ctx, "(%i) %s (/%u)",
+					command_print(cmd_ctx, "(%i) %s (/%" PRIu32 ")",
 							  count, reg->name,
 							  reg->size) ;
 				}
