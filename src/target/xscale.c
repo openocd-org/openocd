@@ -5,6 +5,9 @@
  *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
+ *   Copyright (C) 2009 Michael Schwingen                                  *
+ *   michael@schwingen.org                                                 *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -3384,6 +3387,65 @@ int xscale_handle_vector_catch_command(command_context_t *cmd_ctx, char *cmd, ch
 }
 
 
+int xscale_handle_vector_table_command(command_context_t *cmd_ctx, char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5;
+	xscale_common_t *xscale;
+	int err = 0;
+
+	if (xscale_get_arch_pointers(target, &armv4_5, &xscale) != ERROR_OK)
+	{
+		return ERROR_OK;
+	}
+
+	if (argc == 0) /* print current settings */
+	{
+		int idx;
+
+		command_print(cmd_ctx, "active user-set static vectors:");
+		for (idx = 1; idx < 8; idx++)
+			if (xscale->static_low_vectors_set & (1 << idx))
+				command_print(cmd_ctx, "low  %d: 0x%x", idx, xscale->static_low_vectors[idx]);
+		for (idx = 1; idx < 8; idx++)
+			if (xscale->static_high_vectors_set & (1 << idx))
+				command_print(cmd_ctx, "high %d: 0x%x", idx, xscale->static_high_vectors[idx]);
+		return ERROR_OK;
+	}
+
+	if (argc != 3)
+		err = 1;
+	else
+	{
+		int idx;
+		uint32_t vec;
+		idx = strtoul(args[1], NULL, 0);
+		vec = strtoul(args[2], NULL, 0);
+
+		if (idx < 1 || idx >= 8)
+			err = 1;
+
+		if (!err && strcmp(args[0], "low") == 0)
+		{
+			xscale->static_low_vectors_set |= (1<<idx);
+			xscale->static_low_vectors[idx] = vec;
+		}
+		else if (!err && (strcmp(args[0], "high") == 0))
+		{
+			xscale->static_high_vectors_set |= (1<<idx);
+			xscale->static_high_vectors[idx] = vec;
+		}
+		else
+			err = 1;
+	}
+
+	if (err)
+		command_print(cmd_ctx, "usage: xscale vector_table <high|low> <index> <code>");
+
+	return ERROR_OK;
+}
+
+
 int xscale_handle_trace_buffer_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
 	target_t *target = get_current_target(cmd_ctx);
@@ -3692,6 +3754,7 @@ int xscale_register_commands(struct command_context_s *cmd_ctx)
 	register_command(cmd_ctx, xscale_cmd, "dcache", xscale_handle_idcache_command, COMMAND_EXEC, "['enable'|'disable'] the DCache");
 
 	register_command(cmd_ctx, xscale_cmd, "vector_catch", xscale_handle_vector_catch_command, COMMAND_EXEC, "<mask> of vectors that should be catched");
+	register_command(cmd_ctx, xscale_cmd, "vector_table", xscale_handle_vector_table_command, COMMAND_EXEC, "<high|low> <index> <code> set static code for exception handler entry");
 
 	register_command(cmd_ctx, xscale_cmd, "trace_buffer", xscale_handle_trace_buffer_command, COMMAND_EXEC, "<enable | disable> ['fill' [n]|'wrap']");
 

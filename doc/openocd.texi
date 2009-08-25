@@ -4877,6 +4877,52 @@ else if a @var{value} is provided, that value is written to that register.
 @subsection XScale specific commands
 @cindex XScale
 
+Some notes about the debug implementation on the XScale CPUs:
+
+The XScale CPU provides a special debug-only mini-instruction cache
+(mini-IC) in which exception vectors and target-resident debug handler
+code are placed by OpenOCD. In order to get access to the CPU, OpenOCD
+must point vector 0 (the reset vector) to the entry of the debug
+handler. However, this means that the complete first cacheline in the
+mini-IC is marked valid, which makes the CPU fetch all exception
+handlers from the mini-IC, ignoring the code in RAM.
+
+OpenOCD currently does not sync the mini-IC entries with the RAM
+contents (which would fail anyway while the target is running), so
+the user must provide appropriate values using the @code{xscale
+vector_table} command.
+
+It is recommended to place a pc-relative indirect branch in the vector
+table, and put the branch destination somewhere in memory. Doing so
+makes sure the code in the vector table stays constant regardless of
+code layout in memory:
+@example
+_vectors:
+        ldr     pc,[pc,#0x100-8]
+        ldr     pc,[pc,#0x100-8]
+        ldr     pc,[pc,#0x100-8]
+        ldr     pc,[pc,#0x100-8]
+        ldr     pc,[pc,#0x100-8]
+        ldr     pc,[pc,#0x100-8]
+        ldr     pc,[pc,#0x100-8]
+        ldr     pc,[pc,#0x100-8]
+        .org 0x100
+        .long real_reset_vector
+        .long real_ui_handler
+        .long real_swi_handler
+        .long real_pf_abort
+        .long real_data_abort
+        .long 0 /* unused */
+        .long real_irq_handler
+        .long real_fiq_handler
+@end example
+
+The debug handler must be placed somewhere in the address space using
+the @code{xscale debug_handler} command.  The allowed locations for the
+debug handler are either (0x800 - 0x1fef800) or (0xfe000800 -
+0xfffff800). The default value is 0xfe000800.
+
+
 These commands are available to XScale based CPUs,
 which are implementations of the ARMv5TE architecture.
 
@@ -4936,6 +4982,33 @@ The image @var{type} may be one of
 @cindex vector_catch
 Display a bitmask showing the hardware vectors to catch.
 If the optional parameter is provided, first set the bitmask to that value.
+@end deffn
+
+The mask bits correspond with bit 16..23 in the DCSR:
+@example
+0x01    Trap Reset
+0x02    Trap Undefined Instructions
+0x04    Trap Software Interrupt
+0x08    Trap Prefetch Abort
+0x10    Trap Data Abort
+0x20    reserved
+0x40    Trap IRQ
+0x80    Trap FIQ
+@end example
+
+
+@anchor{xscale vector_table}
+@deffn Command {xscale vector_table} [<low|high> <index> <value>]
+@cindex vector_table
+
+Set an entry in the mini-IC vector table. There are two tables: one for
+low vectors (at 0x00000000), and one for high vectors (0xFFFF0000), each
+holding the 8 exception vectors. @var{index} can be 1-7, because vector 0
+points to the debug handler entry and can not be overwritten.
+@var{value} holds the 32-bit opcode that is placed in the mini-IC.
+
+Without arguments, the current settings are displayed.
+
 @end deffn
 
 @section ARMv6 Architecture
