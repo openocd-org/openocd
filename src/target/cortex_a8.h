@@ -31,7 +31,8 @@
 
 #include "register.h"
 #include "target.h"
-#include "armv7m.h"
+#include "armv7a.h"
+#include "arm7_9_common.h"
 
 extern char* cortex_a8_state_strings[];
 
@@ -39,56 +40,82 @@ extern char* cortex_a8_state_strings[];
 
 #define CPUID		0x54011D00
 /* Debug Control Block */
-#define DCB_DHCSR	0x54011DF0
-#define DCB_DCRSR	0x54011DF4
-#define DCB_DCRDR	0x54011DF8
-#define DCB_DEMCR	0x54011DFC
+#define CPUDBG_DIDR		0x000
+#define CPUDBG_WFAR		0x018
+#define CPUDBG_DSCCR	0x028
+#define CPUDBG_DTRRX	0x080
+#define CPUDBG_ITR	0x084
+#define CPUDBG_DSCR	0x088
+#define CPUDBG_DTRTX	0x08c
+#define CPUDBG_DRCR	0x090
+#define CPUDBG_BVR_BASE	0x100
+#define CPUDBG_BCR_BASE	0x140
+#define CPUDBG_WVR_BASE	0x180
 
-typedef struct  cortex_a8_fp_comparator_s
+#define CPUDBG_CPUID	0xD00
+#define CPUDBG_CTYPR	0xD04
+#define CPUDBG_TTYPR	0xD0C
+
+#define BRP_NORMAL 0
+#define BRP_CONTEXT 1
+
+typedef struct  cortex_a8_brp_s
 {
 	int used;
 	int type;
-	uint32_t fpcr_value;
-	uint32_t fpcr_address;
-} cortex_a8_fp_comparator_t;
+	uint32_t value;
+	uint32_t control;
+	uint8_t 	BRPn;
+} cortex_a8_brp_t;
 
-typedef struct  cortex_a8_dwt_comparator_s
+typedef struct  cortex_a8_wrp_s
 {
 	int used;
-	uint32_t comp;
-	uint32_t mask;
-	uint32_t function;
-	uint32_t dwt_comparator_address;
-} cortex_a8_dwt_comparator_t;
+	int type;
+	uint32_t value;
+	uint32_t control;
+	uint8_t 	WRPn;
+} cortex_a8_wrp_t;
 
 typedef struct cortex_a8_common_s
 {
 	int common_magic;
 	arm_jtag_t jtag_info;
 
+	/* Core Debug Unit */
+	uint32_t debug_base;
+	uint8_t debug_ap;
+	uint8_t memory_ap;
+
 	/* Context information */
-	uint32_t dcb_dhcsr;
+	uint32_t cpudbg_dscr;
 	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
 	uint32_t nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
 
-	/* Flash Patch and Breakpoint (FPB) */
-	int fp_num_lit;
-	int fp_num_code;
-	int fp_code_available;
-	int fpb_enabled;
-	int auto_bp_type;
-	cortex_a8_fp_comparator_t *fp_comparator_list;
+	/* Saved cp15 registers */
+	uint32_t cp15_control_reg;
+	uint32_t cp15_aux_control_reg;
 
-	/* Data Watchpoint and Trace (DWT) */
-	int dwt_num_comp;
-	int dwt_comp_available;
-	cortex_a8_dwt_comparator_t *dwt_comparator_list;
+	/* Breakpoint register pairs */
+	int brp_num_context;
+	int brp_num;
+	int brp_num_available;
+//	int brp_enabled;
+	cortex_a8_brp_t *brp_list;
+
+	/* Watchpoint register pairs */
+	int wrp_num;
+	int wrp_num_available;
+	cortex_a8_wrp_t *wrp_list;
 
 	/* Interrupts */
 	int intlinesnum;
 	uint32_t *intsetenable;
 
-	armv7m_common_t armv7m;
+	/* Use cortex_a8_read_regs_through_mem for fast register reads */
+	int fast_reg_read;
+
+	armv7a_common_t armv7a_common;
 	void *arch_info;
 } cortex_a8_common_t;
 
