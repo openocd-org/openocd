@@ -160,7 +160,7 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 	armv7a_common_t *armv7a = armv4_5->arch_info;
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
-	LOG_DEBUG("exec opcode 0x%08x", opcode);
+	LOG_DEBUG("exec opcode 0x%08" PRIx32, opcode);
 	mem_ap_write_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_ITR, opcode);
 	do
 	{
@@ -388,7 +388,7 @@ int cortex_a8_poll(target_t *target)
 	}
 	else
 	{
-		LOG_DEBUG("Unknown target state dscr = 0x%08x", dscr);
+		LOG_DEBUG("Unknown target state dscr = 0x%08" PRIx32, dscr);
 		target->state = TARGET_UNKNOWN;
 	}
 
@@ -476,7 +476,7 @@ int cortex_a8_resume(struct target_s *target, int current,
 	{
 		resume_pc &= 0xFFFFFFFC;
 	}
-	LOG_DEBUG("resume pc = 0x%08x", resume_pc);
+	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
 	buf_set_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 15).value,
 			0, 32, resume_pc);
@@ -516,13 +516,13 @@ int cortex_a8_resume(struct target_s *target, int current,
 	{
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%x", resume_pc);
+		LOG_DEBUG("target resumed at 0x%" PRIx32, resume_pc);
 	}
 	else
 	{
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%x", resume_pc);
+		LOG_DEBUG("target debug resumed at 0x%" PRIx32, resume_pc);
 	}
 
 	dap_ap_select(swjdp, saved_apsel);
@@ -546,7 +546,7 @@ int cortex_a8_debug_entry(target_t *target)
 	if (armv7a->pre_debug_entry)
 		armv7a->pre_debug_entry(target);
 
-	LOG_DEBUG("dscr = 0x%08x", cortex_a8->cpudbg_dscr);
+	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a8->cpudbg_dscr);
 
 	/* Examine debug reason */
 	switch ((cortex_a8->cpudbg_dscr >> 2)&0xF)
@@ -590,7 +590,7 @@ int cortex_a8_debug_entry(target_t *target)
 	cortex_a8_dap_read_coreregister_u32(target, &cpsr, 16);
 	pc = regfile[15];
 	dap_ap_select(swjdp, swjdp_debugap);
-	LOG_DEBUG("cpsr: %8.8x", cpsr);
+	LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
 
 	armv4_5->core_mode = cpsr & 0x3F;
 
@@ -668,7 +668,7 @@ void cortex_a8_post_debug_entry(target_t *target)
 	/* examine cp15 control reg */
 	armv7a->read_cp15(target, 0, 0, 1, 0, &cortex_a8->cp15_control_reg);
 	jtag_execute_queue();
-	LOG_DEBUG("cp15_control_reg: %8.8x", cortex_a8->cp15_control_reg);
+	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, cortex_a8->cp15_control_reg);
 
 	if (armv7a->armv4_5_mmu.armv4_5_cache.ctype == -1)
 	{
@@ -827,7 +827,7 @@ int cortex_a8_load_core_reg_u32(struct target_s *target, int num,
 			LOG_ERROR("JTAG failure %i", retval);
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		LOG_DEBUG("load from core reg %i value 0x%x", num, *value);
+		LOG_DEBUG("load from core reg %i value 0x%" PRIx32, num, *value);
 	}
 	else
 	{
@@ -880,7 +880,7 @@ int cortex_a8_store_core_reg_u32(struct target_s *target, int num,
 					armv4_5->core_mode, num).valid;
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
-		LOG_DEBUG("write core reg %i value 0x%x", num, value);
+		LOG_DEBUG("write core reg %i value 0x%" PRIx32, num, value);
 	}
 	else
 	{
@@ -983,7 +983,7 @@ int cortex_a8_set_breakpoint(struct target_s *target,
 		target_write_u32(target, OMAP3530_DEBUG_BASE
 				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].control);
-		LOG_DEBUG("brp %i control 0x%0x value 0x%0x", brp_i,
+		LOG_DEBUG("brp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
 				brp_list[brp_i].control,
 				brp_list[brp_i].value);
 	}
@@ -1038,7 +1038,7 @@ int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 			LOG_DEBUG("Invalid BRP number in breakpoint");
 			return ERROR_OK;
 		}
-		LOG_DEBUG("rbp %i control 0x%0x value 0x%0x", brp_i,
+		LOG_DEBUG("rbp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
 				brp_list[brp_i].control, brp_list[brp_i].value);
 		brp_list[brp_i].used = 0;
 		brp_list[brp_i].value = 0;
@@ -1330,10 +1330,10 @@ int cortex_a8_examine(struct target_s *target)
 		return retval;
 	}
 
-	LOG_DEBUG("cpuid = 0x%08x", cpuid);
-	LOG_DEBUG("ctypr = 0x%08x", ctypr);
-	LOG_DEBUG("ttypr = 0x%08x", ttypr);
-	LOG_DEBUG("didr = 0x%08x", didr);
+	LOG_DEBUG("cpuid = 0x%08" PRIx32, cpuid);
+	LOG_DEBUG("ctypr = 0x%08" PRIx32, ctypr);
+	LOG_DEBUG("ttypr = 0x%08" PRIx32, ttypr);
+	LOG_DEBUG("didr = 0x%08" PRIx32, didr);
 
 	/* Setup Breakpoint Register Pairs */
 	cortex_a8->brp_num = ((didr >> 24) & 0x0F) + 1;

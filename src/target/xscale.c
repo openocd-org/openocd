@@ -3406,10 +3406,10 @@ int xscale_handle_vector_table_command(command_context_t *cmd_ctx, char *cmd, ch
 		command_print(cmd_ctx, "active user-set static vectors:");
 		for (idx = 1; idx < 8; idx++)
 			if (xscale->static_low_vectors_set & (1 << idx))
-				command_print(cmd_ctx, "low  %d: 0x%x", idx, xscale->static_low_vectors[idx]);
+				command_print(cmd_ctx, "low  %d: 0x%" PRIx32, idx, xscale->static_low_vectors[idx]);
 		for (idx = 1; idx < 8; idx++)
 			if (xscale->static_high_vectors_set & (1 << idx))
-				command_print(cmd_ctx, "high %d: 0x%x", idx, xscale->static_high_vectors[idx]);
+				command_print(cmd_ctx, "high %d: 0x%" PRIx32, idx, xscale->static_high_vectors[idx]);
 		return ERROR_OK;
 	}
 
