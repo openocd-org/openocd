@@ -60,11 +60,15 @@ static int jtag_error = ERROR_OK;
 
 static const char *jtag_event_strings[] =
 {
-	[JTAG_TRST_ASSERTED] = "JTAG controller reset (RESET or TRST)",
+	[JTAG_TRST_ASSERTED] = "JTAG controller reset (TLR or TRST)",
 	[JTAG_TAP_EVENT_ENABLE] = "TAP enabled",
 	[JTAG_TAP_EVENT_DISABLE] = "TAP disabled",
 };
 
+/*
+ * JTAG adapters must initialize with TRST and SRST de-asserted
+ * (they're negative logic, so that means *high*)
+ */
 static int jtag_trst = 0;
 static int jtag_srst = 0;
 
@@ -581,6 +585,8 @@ void jtag_add_clocks(int num_cycles)
 void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 {
 	int trst_with_tlr = 0;
+	int new_srst;
+	int new_trst = 0;
 
 	/* FIX!!! there are *many* different cases here. A better
 	 * approach is needed for legal combinations of transitions...
@@ -625,58 +631,72 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	{
 		if (!trst_with_tlr && (jtag_reset_config & RESET_HAS_TRST))
 		{
-			jtag_trst = 1;
+			new_trst = 1;
 		} else
 		{
 			trst_with_tlr = 1;
 		}
-	} else
-	{
-		jtag_trst = 0;
 	}
 
-	jtag_srst = req_srst;
+	new_srst = req_srst;
 
-	int retval = interface_jtag_add_reset(jtag_trst, jtag_srst);
-	if (retval != ERROR_OK)
-	{
-		jtag_set_error(retval);
-		return;
-	}
-	jtag_execute_queue();
+	/* Maybe change TRST and/or SRST signal state */
+	if (jtag_srst != new_srst || jtag_trst != new_trst) {
+		int retval;
 
-	if (jtag_srst)
-	{
-		LOG_DEBUG("SRST line asserted");
-	}
-	else
-	{
-		LOG_DEBUG("SRST line released");
-		if (jtag_nsrst_delay)
-			jtag_add_sleep(jtag_nsrst_delay * 1000);
+		retval = interface_jtag_add_reset(new_trst, new_srst);
+		if (retval != ERROR_OK)
+			jtag_set_error(retval);
+		else
+			retval = jtag_execute_queue();
+
+		if (retval != ERROR_OK) {
+			LOG_ERROR("TRST/SRST error %d", retval);
+			return;
+		}
 	}
 
-	if (trst_with_tlr)
-	{
-		LOG_DEBUG("JTAG reset with RESET instead of TRST");
+	/* SRST resets everything hooked up to that signal */
+	if (jtag_srst != new_srst) {
+		jtag_srst = new_srst;
+		if (jtag_srst)
+			LOG_DEBUG("SRST line asserted");
+		else {
+			LOG_DEBUG("SRST line released");
+			if (jtag_nsrst_delay)
+				jtag_add_sleep(jtag_nsrst_delay * 1000);
+		}
+	}
+
+	/* Maybe enter the JTAG TAP_RESET state ...
+	 *  - using only TMS, TCK, and the JTAG state machine
+	 *  - or else more directly, using TRST
+	 *
+	 * TAP_RESET should be invisible to non-debug parts of the system.
+	 */
+	if (trst_with_tlr) {
+		LOG_DEBUG("JTAG reset with TLR instead of TRST");
 		jtag_set_end_state(TAP_RESET);
 		jtag_add_tlr();
-		return;
-	}
 
-	if (jtag_trst)
-	{
-		/* we just asserted nTRST, so we're now in Test-Logic-Reset,
-		 * and inform possible listeners about this
-		 */
-		LOG_DEBUG("TRST line asserted");
-		tap_set_state(TAP_RESET);
-		jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
-	}
-	else
-	{
-		if (jtag_ntrst_delay)
-			jtag_add_sleep(jtag_ntrst_delay * 1000);
+	} else if (jtag_trst != new_trst) {
+		jtag_trst = new_trst;
+		if (jtag_trst) {
+			/* we just asserted nTRST, so we're now in TAP_RESET;
+			 * inform possible listeners about this
+			 *
+			 * REVISIT asserting TRST is less significant than
+			 * being in TAP_RESET ... both entries (TRST, TLR)
+			 * should trigger a callback.
+			 */
+			LOG_DEBUG("TRST line asserted");
+			tap_set_state(TAP_RESET);
+			jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
+		} else {
+			LOG_DEBUG("TRST line released");
+			if (jtag_ntrst_delay)
+				jtag_add_sleep(jtag_ntrst_delay * 1000);
+		}
 	}
 }
 
@@ -1223,11 +1243,11 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	if ((retval = jtag_interface_init(cmd_ctx)) != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / RESET");
+	LOG_DEBUG("Trying to bring the JTAG controller to life by asserting TRST / TLR");
 
 	/* Reset can happen after a power cycle.
 	 *
-	 * Ideally we would only assert TRST or run RESET before the target reset.
+	 * Ideally we would only assert TRST or run TLR before the target reset.
 	 *
 	 * However w/srst_pulls_trst, trst is asserted together with the target
 	 * reset whether we want it or not.
@@ -1240,7 +1260,7 @@ int jtag_init_reset(struct command_context_s *cmd_ctx)
 	 * NB! order matters!!!! srst *can* disconnect JTAG circuitry
 	 *
 	 */
-	jtag_add_reset(1, 0); /* RESET or TRST */
+	jtag_add_reset(1, 0); /* TAP_RESET, using TMS+TCK or TRST */
 	if (jtag_reset_config & RESET_HAS_SRST)
 	{
 		jtag_add_reset(1, 1);
