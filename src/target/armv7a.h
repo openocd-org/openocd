@@ -40,7 +40,7 @@ typedef enum armv7a_mode
 	ARMV7A_MODE_ANY = -1
 } armv7a_t;
 
-char **armv7a_mode_strings;
+extern char **armv7a_mode_strings;
 
 typedef enum armv7a_state
 {
@@ -52,7 +52,7 @@ typedef enum armv7a_state
 
 extern char *armv7a_state_strings[];
 
-int armv7a_core_reg_map[8][17];
+extern int armv7a_core_reg_map[8][17];
 
 #define ARMV7A_CORE_REG_MODE(cache, mode, num) \
 		cache->reg_list[armv7a_core_reg_map[armv7a_mode_to_number(mode)][num]]
