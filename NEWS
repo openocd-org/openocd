@@ -1,13 +1,30 @@
-This file should include items worth mentioning in the
-OpenOCD openocd-0.2.0 source archive release.
-
-The following areas of OpenOCD functionality changed in this release:
+This file should include highlights of the changes made in the
+OpenOCD openocd-0.3.0 source archive release.  See the repository
+history for details about what changed, including bugfixes and
+other issues not mentioned here.
 
 JTAG Layer:
+    FT2232H (high speed USB) support doesn't need separate configuration
+
 Target Layer:
+    New commands for use with Cortex-M3 processors:
+	"cortex_m3 disassemble" ... Thumb2 disassembly (UAL format)
+	"cortex_m3 vector_catch" ... traps certain hardware faults
+		without tying up breakpoint resources
+    If you're willing to help debug it:  VERY EARLY Cortex-A8 support
+
 Flash Layer:
+    The lpc2000 driver handles the new NXP LPC1700 (Cortex-M3) chips
+
 Board, Target, and Interface Configuration Scripts:
+    Cleanup and additions for the TI/Luminary Stellaris scripts
+    LPC1768 target (and flash) support
+	Keil MCB1700 eval board
+    Samsung s3c2450
+	Mini2440 board
+
 Documentation:
+
 Build and Release:
 
 For more details about what has changed since the last release,
