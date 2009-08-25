@@ -4982,7 +4982,6 @@ The image @var{type} may be one of
 @cindex vector_catch
 Display a bitmask showing the hardware vectors to catch.
 If the optional parameter is provided, first set the bitmask to that value.
-@end deffn
 
 The mask bits correspond with bit 16..23 in the DCSR:
 @example
@@ -4995,7 +4994,7 @@ The mask bits correspond with bit 16..23 in the DCSR:
 0x40    Trap IRQ
 0x80    Trap FIQ
 @end example
-
+@end deffn
 
 @anchor{xscale vector_table}
 @deffn Command {xscale vector_table} [<low|high> <index> <value>]
