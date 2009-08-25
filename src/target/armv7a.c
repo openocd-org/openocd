@@ -1,0 +1,301 @@
+/***************************************************************************
+ *    Copyright (C) 2009 by David Brownell                                 *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "replacements.h"
+
+#include "armv7a.h"
+
+#include "target.h"
+#include "register.h"
+#include "log.h"
+#include "binarybuffer.h"
+#include "command.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+bitfield_desc_t armv7a_psr_bitfield_desc[] =
+{
+	{"M[4:0]", 5},
+	{"T", 1},
+	{"F", 1},
+	{"I", 1},
+	{"A", 1},
+	{"E", 1},
+	{"IT[7:2]", 6},
+	{"GE[3:0]", 4},
+	{"reserved(DNM)", 4},
+	{"J", 1},
+	{"IT[0:1]", 2},
+	{"Q", 1},
+	{"V", 1},
+	{"C", 1},
+	{"Z", 1},
+	{"N", 1},
+};
+
+char* armv7a_core_reg_list[] =
+{
+	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
+	"r8", "r9", "r10", "r11", "r12", "r13_usr", "lr_usr", "pc",
+	"r8_fiq", "r9_fiq", "r10_fiq", "r11_fiq", "r12_fiq", "r13_fiq", "lr_fiq",
+	"r13_irq", "lr_irq",
+	"r13_svc", "lr_svc",
+	"r13_abt", "lr_abt",
+	"r13_und", "lr_und",
+	"cpsr", "spsr_fiq", "spsr_irq", "spsr_svc", "spsr_abt", "spsr_und",
+	"r13_mon", "lr_mon", "spsr_mon"
+};
+
+char * armv7a_mode_strings_list[] =
+{
+	"Illegal mode value", "System and User", "FIQ", "IRQ",
+	"Supervisor", "Abort", "Undefined", "Monitor"
+};
+
+/* Hack! Yuk! allow -1 index, which simplifies codepaths elsewhere in the code */
+char** armv7a_mode_strings = armv7a_mode_strings_list+1;
+
+char* armv7a_state_strings[] =
+{
+	"ARM", "Thumb", "Jazelle", "ThumbEE"
+};
+
+armv7a_core_reg_t armv7a_core_reg_list_arch_info[] =
+{
+	{0, ARMV4_5_MODE_ANY, NULL, NULL},
+	{1, ARMV4_5_MODE_ANY, NULL, NULL},
+	{2, ARMV4_5_MODE_ANY, NULL, NULL},
+	{3, ARMV4_5_MODE_ANY, NULL, NULL},
+	{4, ARMV4_5_MODE_ANY, NULL, NULL},
+	{5, ARMV4_5_MODE_ANY, NULL, NULL},
+	{6, ARMV4_5_MODE_ANY, NULL, NULL},
+	{7, ARMV4_5_MODE_ANY, NULL, NULL},
+	{8, ARMV4_5_MODE_ANY, NULL, NULL},
+	{9, ARMV4_5_MODE_ANY, NULL, NULL},
+	{10, ARMV4_5_MODE_ANY, NULL, NULL},
+	{11, ARMV4_5_MODE_ANY, NULL, NULL},
+	{12, ARMV4_5_MODE_ANY, NULL, NULL},
+	{13, ARMV4_5_MODE_USR, NULL, NULL},
+	{14, ARMV4_5_MODE_USR, NULL, NULL},
+	{15, ARMV4_5_MODE_ANY, NULL, NULL},
+
+	{8, ARMV4_5_MODE_FIQ, NULL, NULL},
+	{9, ARMV4_5_MODE_FIQ, NULL, NULL},
+	{10, ARMV4_5_MODE_FIQ, NULL, NULL},
+	{11, ARMV4_5_MODE_FIQ, NULL, NULL},
+	{12, ARMV4_5_MODE_FIQ, NULL, NULL},
+	{13, ARMV4_5_MODE_FIQ, NULL, NULL},
+	{14, ARMV4_5_MODE_FIQ, NULL, NULL},
+
+	{13, ARMV4_5_MODE_IRQ, NULL, NULL},
+	{14, ARMV4_5_MODE_IRQ, NULL, NULL},
+
+	{13, ARMV4_5_MODE_SVC, NULL, NULL},
+	{14, ARMV4_5_MODE_SVC, NULL, NULL},
+
+	{13, ARMV4_5_MODE_ABT, NULL, NULL},
+	{14, ARMV4_5_MODE_ABT, NULL, NULL},
+
+	{13, ARMV4_5_MODE_UND, NULL, NULL},
+	{14, ARMV4_5_MODE_UND, NULL, NULL},
+
+	{16, ARMV4_5_MODE_ANY, NULL, NULL},
+	{16, ARMV4_5_MODE_FIQ, NULL, NULL},
+	{16, ARMV4_5_MODE_IRQ, NULL, NULL},
+	{16, ARMV4_5_MODE_SVC, NULL, NULL},
+	{16, ARMV4_5_MODE_ABT, NULL, NULL},
+	{16, ARMV4_5_MODE_UND, NULL, NULL},
+
+	{13, ARMV7A_MODE_MON, NULL, NULL},
+	{14, ARMV7A_MODE_MON, NULL, NULL},
+	{16, ARMV7A_MODE_MON, NULL, NULL}
+};
+
+/* map core mode (USR, FIQ, ...) and register number to indizes into the register cache */
+int armv7a_core_reg_map[8][17] =
+{
+	{	/* USR */
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31
+	},
+	{	/* FIQ */
+		0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 15, 32
+	},
+	{	/* IRQ */
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 23, 24, 15, 33
+	},
+	{	/* SVC */
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 25, 26, 15, 34
+	},
+	{	/* ABT */
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 27, 28, 15, 35
+	},
+	{	/* UND */
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 29, 30, 15, 36
+	},
+	{	/* SYS */
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31
+	},
+	{	/* MON */
+		/* TODO Fix the register mapping for mon, we need r13_mon,
+		 * r14_mon and spsr_mon
+		 */
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31
+	}
+};
+
+uint8_t armv7a_gdb_dummy_fp_value[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+reg_t armv7a_gdb_dummy_fp_reg =
+{
+	"GDB dummy floating-point register", armv7a_gdb_dummy_fp_value,
+			0, 1, 96, NULL, 0, NULL, 0
+};
+
+int armv7a_arch_state(struct target_s *target)
+{
+	static const char *state[] =
+	{
+		"disabled", "enabled"
+	};
+
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	armv7a_common_t *armv7a = armv4_5->arch_info;
+
+	if (armv4_5->common_magic != ARMV4_5_COMMON_MAGIC)
+	{
+		LOG_ERROR("BUG: called for a non-ARMv4/5 target");
+		exit(-1);
+	}
+
+	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
+			 "%s: 0x%8.8x pc: 0x%8.8x\n"
+			 "MMU: %s, D-Cache: %s, I-Cache: %s",
+		 armv7a_state_strings[armv4_5->core_state],
+		 Jim_Nvp_value2name_simple(nvp_target_debug_reason,
+				target->debug_reason)->name,
+		 armv7a_mode_strings[
+			armv7a_mode_to_number(armv4_5->core_mode)],
+		 armv7a_core_reg_list[armv7a_core_reg_map[
+			armv7a_mode_to_number(armv4_5->core_mode)][16]],
+		 buf_get_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
+				armv4_5->core_mode, 16).value, 0, 32),
+		 buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32),
+		 state[armv7a->armv4_5_mmu.mmu_enabled],
+		 state[armv7a->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
+		 state[armv7a->armv4_5_mmu.armv4_5_cache.i_cache_enabled]);
+
+	return ERROR_OK;
+}
+
+
+static int handle_dap_baseaddr_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	armv7a_common_t *armv7a = armv4_5->arch_info;
+	swjdp_common_t *swjdp = &armv7a->swjdp_info;
+
+	return dap_baseaddr_command(cmd_ctx, swjdp, args, argc);
+}
+
+static int handle_dap_memaccess_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	armv7a_common_t *armv7a = armv4_5->arch_info;
+	swjdp_common_t *swjdp = &armv7a->swjdp_info;
+
+	return dap_memaccess_command(cmd_ctx, swjdp, args, argc);
+}
+
+static int handle_dap_apsel_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	armv7a_common_t *armv7a = armv4_5->arch_info;
+	swjdp_common_t *swjdp = &armv7a->swjdp_info;
+
+	return dap_apsel_command(cmd_ctx, swjdp, args, argc);
+}
+
+static int handle_dap_apid_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	armv7a_common_t *armv7a = armv4_5->arch_info;
+	swjdp_common_t *swjdp = &armv7a->swjdp_info;
+
+	return dap_apid_command(cmd_ctx, swjdp, args, argc);
+}
+
+static int handle_dap_info_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
+{
+	target_t *target = get_current_target(cmd_ctx);
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	armv7a_common_t *armv7a = armv4_5->arch_info;
+	swjdp_common_t *swjdp = &armv7a->swjdp_info;
+	uint32_t apsel;
+
+	apsel =  swjdp->apsel;
+	if (argc > 0)
+		apsel = strtoul(args[0], NULL, 0);
+
+	return dap_info_command(cmd_ctx, swjdp, apsel);
+}
+
+int armv7a_register_commands(struct command_context_s *cmd_ctx)
+{
+	command_t *arm_adi_v5_dap_cmd;
+
+	arm_adi_v5_dap_cmd = register_command(cmd_ctx, NULL, "dap",
+			NULL, COMMAND_ANY,
+			"cortex dap specific commands");
+
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "info",
+			handle_dap_info_command, COMMAND_EXEC,
+			"dap info for ap [num], "
+			"default currently selected AP");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apsel",
+			handle_dap_apsel_command, COMMAND_EXEC,
+			"select a different AP [num] (default 0)");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "apid",
+			handle_dap_apid_command, COMMAND_EXEC,
+			"return id reg from AP [num], "
+			"default currently selected AP");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "baseaddr",
+			handle_dap_baseaddr_command, COMMAND_EXEC,
+			"return debug base address from AP [num], "
+			"default currently selected AP");
+	register_command(cmd_ctx, arm_adi_v5_dap_cmd, "memaccess",
+			handle_dap_memaccess_command, COMMAND_EXEC,
+			"set/get number of extra tck for mem-ap memory "
+			"bus access [0-255]");
+
+	return ERROR_OK;
+}

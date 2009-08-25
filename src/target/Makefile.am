@@ -38,6 +38,7 @@ libtarget_la_SOURCES = \
 	arm_simulator.c \
 	image.c \
 	armv7m.c \
+	armv7a.c \
 	cortex_m3.c \
 	cortex_a8.c \
 	arm_adi_v5.c \
@@ -80,6 +81,7 @@ noinst_HEADERS = \
 	arm_simulator.h \
 	image.h \
 	armv7m.h \
+	armv7a.h \
 	cortex_m3.h \
 	cortex_a8.h \
 	arm_adi_v5.h \
