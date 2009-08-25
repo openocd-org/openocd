@@ -588,6 +588,23 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	int new_srst;
 	int new_trst = 0;
 
+	/* JTAG reset (entry to TAP_RESET state) can always be achieved
+	 * using TCK and TMS; that may go through a TAP_{IR,DR}UPDATE
+	 * state first.  TRST accelerates it, and bypasses those states.
+	 *
+	 * RESET_TRST_PULLS_SRST is a board or chip level quirk, which
+	 * can kick in even if the JTAG adapter can't drive SRST.
+	 */
+	if (req_tlr_or_trst) {
+		if (!(jtag_reset_config & RESET_HAS_TRST))
+			trst_with_tlr = 1;
+		else if ((jtag_reset_config & RESET_TRST_PULLS_SRST) != 0
+				&& !req_srst)
+			trst_with_tlr = 1;
+		else
+			new_trst = 1;
+	}
+
 	/* FIX!!! there are *many* different cases here. A better
 	 * approach is needed for legal combinations of transitions...
 	 */
@@ -614,28 +631,11 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		return;
 	}
 
-	/* if TRST pulls SRST, we reset with TAP T-L-R */
-	if (((jtag_reset_config & RESET_TRST_PULLS_SRST) && (req_tlr_or_trst)) && (req_srst == 0))
-	{
-		trst_with_tlr = 1;
-	}
-
 	if (req_srst && !(jtag_reset_config & RESET_HAS_SRST))
 	{
 		LOG_ERROR("BUG: requested SRST assertion, but the current configuration doesn't support this");
 		jtag_set_error(ERROR_FAIL);
 		return;
-	}
-
-	if (req_tlr_or_trst)
-	{
-		if (!trst_with_tlr && (jtag_reset_config & RESET_HAS_TRST))
-		{
-			new_trst = 1;
-		} else
-		{
-			trst_with_tlr = 1;
-		}
 	}
 
 	new_srst = req_srst;
@@ -831,6 +831,7 @@ static int jtag_reset_callback(enum jtag_event event, void *priv)
 	{
 		tap->enabled = !tap->disabled_after_reset;
 
+		/* current instruction is either BYPASS or IDCODE */
 		buf_set_ones(tap->cur_instr, tap->ir_length);
 		tap->bypass = 1;
 	}
