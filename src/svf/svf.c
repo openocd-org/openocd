@@ -656,7 +656,7 @@ static int svf_adjust_array_length(uint8_t **arr, int orig_bit_len, int new_bit_
 static int svf_copy_hexstring_to_binary(char *str, uint8_t **bin, int orig_bit_len, int bit_len)
 {
 	int i, str_len = strlen(str), str_hbyte_len = (bit_len + 3) >> 2;
-	uint8_t ch;
+	uint8_t ch = 0;
 
 	if (ERROR_OK != svf_adjust_array_length(bin, orig_bit_len, bit_len))
 	{
