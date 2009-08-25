@@ -32,7 +32,7 @@
 #define ERASE_REGION(num, size) (((size/256) << 16) | (num-1))
 
 /* non-CFI compatible flashes */
-non_cfi_t non_cfi_flashes[] = {
+static non_cfi_t non_cfi_flashes[] = {
 	{
 		.mfr = CFI_MFR_SST,
 		.id = 0xd4,
