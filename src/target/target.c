@@ -559,6 +559,11 @@ static int target_soft_reset_halt_imp(struct target_s *target)
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
+	if (!target->type->soft_reset_halt_imp) {
+		LOG_ERROR("Target %s does not support soft_reset_halt",
+				target->cmd_name);
+		return ERROR_FAIL;
+	}
 	return target->type->soft_reset_halt_imp(target);
 }
 
@@ -4035,6 +4040,13 @@ static int tcl_target_func(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		}
 		if (!target->tap->enabled)
 			goto err_tap_disabled;
+		if (!target->type->assert_reset
+				|| !target->type->deassert_reset) {
+			Jim_SetResult_sprintf(interp,
+					"No target-specific reset for %s",
+					target->cmd_name);
+			return JIM_ERR;
+		}
 		/* determine if we should halt or not. */
 		target->reset_halt = !!a;
 		/* When this happens - all workareas are invalid. */
