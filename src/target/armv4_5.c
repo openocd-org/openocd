@@ -387,13 +387,15 @@ int handle_armv4_5_core_state_command(struct command_context_s *cmd_ctx, char *c
 	return ERROR_OK;
 }
 
-int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
+static int
+handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx,
+		char *cmd, char **args, int argc)
 {
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	uint32_t address;
-	int count;
+	int count = 1;
 	int i;
 	arm_instruction_t cur_instruction;
 	uint32_t opcode;
@@ -406,18 +408,31 @@ int handle_armv4_5_disassemble_command(struct command_context_s *cmd_ctx, char *
 		return ERROR_OK;
 	}
 
-	if (argc < 2)
-	{
-		command_print(cmd_ctx, "usage: armv4_5 disassemble <address> <count> ['thumb']");
+	switch (argc) {
+	case 3:
+		if (strcmp(args[2], "thumb") != 0)
+			goto usage;
+		thumb = 1;
+		/* FALL THROUGH */
+	case 2:
+		count = strtoul(args[1], NULL, 0);
+		/* FALL THROUGH */
+	case 1:
+		address = strtoul(args[0], NULL, 0);
+		if (address & 0x01) {
+			if (!thumb) {
+				command_print(cmd_ctx, "Disassemble as Thumb");
+				thumb = 1;
+			}
+			address &= ~1;
+		}
+		break;
+	default:
+usage:
+		command_print(cmd_ctx,
+			"usage: armv4_5 disassemble <address> [<count> ['thumb']]");
 		return ERROR_OK;
 	}
-
-	address = strtoul(args[0], NULL, 0);
-	count = strtoul(args[1], NULL, 0);
-
-	if (argc >= 3)
-		if (strcmp(args[2], "thumb") == 0)
-			thumb = 1;
 
 	for (i = 0; i < count; i++)
 	{
@@ -453,12 +468,20 @@ int armv4_5_register_commands(struct command_context_s *cmd_ctx)
 {
 	command_t *armv4_5_cmd;
 
-	armv4_5_cmd = register_command(cmd_ctx, NULL, "armv4_5", NULL, COMMAND_ANY, "armv4/5 specific commands");
+	armv4_5_cmd = register_command(cmd_ctx, NULL, "armv4_5",
+			NULL, COMMAND_ANY,
+			"armv4/5 specific commands");
 
-	register_command(cmd_ctx, armv4_5_cmd, "reg", handle_armv4_5_reg_command, COMMAND_EXEC, "display ARM core registers");
-	register_command(cmd_ctx, armv4_5_cmd, "core_state", handle_armv4_5_core_state_command, COMMAND_EXEC, "display/change ARM core state <arm | thumb>");
+	register_command(cmd_ctx, armv4_5_cmd, "reg",
+			handle_armv4_5_reg_command, COMMAND_EXEC,
+			"display ARM core registers");
+	register_command(cmd_ctx, armv4_5_cmd, "core_state",
+			handle_armv4_5_core_state_command, COMMAND_EXEC,
+			"display/change ARM core state <arm | thumb>");
+	register_command(cmd_ctx, armv4_5_cmd, "disassemble",
+			handle_armv4_5_disassemble_command, COMMAND_EXEC,
+			"disassemble instructions <address> [<count> ['thumb']]");
 
-	register_command(cmd_ctx, armv4_5_cmd, "disassemble", handle_armv4_5_disassemble_command, COMMAND_EXEC, "disassemble instructions <address> <count> ['thumb']");
 	return ERROR_OK;
 }
 

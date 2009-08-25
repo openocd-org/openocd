@@ -1702,22 +1702,26 @@ handle_cortex_m3_disassemble_command(struct command_context_s *cmd_ctx,
 	int retval = ERROR_OK;
 	target_t *target = get_current_target(cmd_ctx);
 	uint32_t address;
-	unsigned long count;
+	unsigned long count = 1;
 	arm_instruction_t cur_instruction;
 
-	if (argc != 2) {
+	errno = 0;
+	switch (argc) {
+	case 2:
+		count = strtoul(args[1], NULL, 0);
+		if (errno)
+			return ERROR_FAIL;
+		/* FALL THROUGH */
+	case 1:
+		address = strtoul(args[0], NULL, 0);
+		if (errno)
+			return ERROR_FAIL;
+		break;
+	default:
 		command_print(cmd_ctx,
-			"usage: cortex_m3 disassemble <address> <count>");
+			"usage: cortex_m3 disassemble <address> [<count>]");
 		return ERROR_OK;
 	}
-
-	errno = 0;
-	address = strtoul(args[0], NULL, 0);
-	if (errno)
-		return ERROR_FAIL;
-	count = strtoul(args[1], NULL, 0);
-	if (errno)
-		return ERROR_FAIL;
 
 	while (count--) {
 		retval = thumb2_opcode(target, address, &cur_instruction);
@@ -1809,7 +1813,7 @@ int cortex_m3_register_commands(struct command_context_s *cmd_ctx)
 
 	register_command(cmd_ctx, cortex_m3_cmd, "disassemble",
 			handle_cortex_m3_disassemble_command, COMMAND_EXEC,
-			"disassemble Thumb2 instructions <address> <count>");
+			"disassemble Thumb2 instructions <address> [<count>]");
 	register_command(cmd_ctx, cortex_m3_cmd, "maskisr",
 			handle_cortex_m3_mask_interrupts_command, COMMAND_EXEC,
 			"mask cortex_m3 interrupts ['on'|'off']");
