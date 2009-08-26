@@ -589,7 +589,6 @@ int cortex_a8_debug_entry(target_t *target)
 	}
 
 	/* Examine target state and mode */
-	dap_ap_select(swjdp, swjdp_memoryap);
 	if (cortex_a8->fast_reg_read)
 		target_alloc_working_area(target, 64, &regfile_working_area);
 
@@ -602,6 +601,7 @@ int cortex_a8_debug_entry(target_t *target)
 	}
 	else
 	{
+		dap_ap_select(swjdp, swjdp_memoryap);
 		cortex_a8_read_regs_through_mem(target,
 				regfile_working_area->address, regfile);
 		dap_ap_select(swjdp, swjdp_memoryap);
