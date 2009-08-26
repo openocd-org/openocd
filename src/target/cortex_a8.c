@@ -546,7 +546,7 @@ int cortex_a8_resume(struct target_s *target, int current,
 int cortex_a8_debug_entry(target_t *target)
 {
 	int i;
-	uint32_t regfile[16], pc, cpsr;
+	uint32_t regfile[16], pc, cpsr, dscr;
 	int retval = ERROR_OK;
 	working_area_t *regfile_working_area = NULL;
 
@@ -560,6 +560,14 @@ int cortex_a8_debug_entry(target_t *target)
 		armv7a->pre_debug_entry(target);
 
 	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a8->cpudbg_dscr);
+
+	/* Enable the ITR execution once we are in debug mode */
+	mem_ap_read_atomic_u32(swjdp,
+				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+	dscr |= (1 << 13);
+	retval = mem_ap_write_atomic_u32(swjdp,
+			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, dscr);
+
 
 	/* Examine debug reason */
 	switch ((cortex_a8->cpudbg_dscr >> 2)&0xF)
