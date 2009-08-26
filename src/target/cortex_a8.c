@@ -413,6 +413,8 @@ int cortex_a8_poll(target_t *target)
 int cortex_a8_halt(target_t *target)
 {
 	int retval = ERROR_OK;
+	uint32_t dscr;
+
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv7a_common_t *armv7a = armv4_5->arch_info;
@@ -421,13 +423,25 @@ int cortex_a8_halt(target_t *target)
 	uint8_t saved_apsel = dap_ap_get_select(swjdp);
 	dap_ap_select(swjdp, swjdp_debugap);
 
-	/* Perhaps we should do a read-modify-write here */
+	/*
+	 * Tell the core to be halted by writing DRCR with 0x1
+	 * and then wait for the core to be halted.
+	 */
 	retval = mem_ap_write_atomic_u32(swjdp,
 			OMAP3530_DEBUG_BASE + CPUDBG_DRCR, 0x1);
 
-	target->debug_reason = DBG_REASON_DBGRQ;
-	dap_ap_select(swjdp, saved_apsel);
+	if (retval != ERROR_OK)
+		goto out;
 
+	do {
+		mem_ap_read_atomic_u32(swjdp,
+			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+	} while ((dscr & (1 << 0)) == 0);
+
+	target->debug_reason = DBG_REASON_DBGRQ;
+
+out:
+	dap_ap_select(swjdp, saved_apsel);
 	return retval;
 }
 
@@ -441,7 +455,7 @@ int cortex_a8_resume(struct target_s *target, int current,
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
 //	breakpoint_t *breakpoint = NULL;
-	uint32_t resume_pc;
+	uint32_t resume_pc, dscr;
 
 	uint8_t saved_apsel = dap_ap_get_select(swjdp);
 	dap_ap_select(swjdp, swjdp_debugap);
@@ -515,9 +529,13 @@ int cortex_a8_resume(struct target_s *target, int current,
 	}
 
 #endif
-	/* Restart core */
-	/* Perhaps we should do a read-modify-write here */
+	/* Restart core and wait for it to be started */
 	mem_ap_write_atomic_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_DRCR, 0x2);
+
+	do {
+		mem_ap_read_atomic_u32(swjdp,
+			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+	} while ((dscr & (1 << 1)) == 0);
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
 	target->state = TARGET_RUNNING;
