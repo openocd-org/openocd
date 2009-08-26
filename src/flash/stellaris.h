@@ -45,8 +45,13 @@ typedef struct stellaris_flash_bank_s
 
 	/* main clock status */
 	uint32_t rcc;
+	uint32_t rcc2;
 	uint8_t  mck_valid;
+	uint8_t  xtal_mask;
+	uint32_t iosc_freq;
 	uint32_t mck_freq;
+	const char *iosc_desc;
+	const char *mck_desc;
 } stellaris_flash_bank_t;
 
 /* STELLARIS control registers */
@@ -62,6 +67,7 @@ typedef struct stellaris_flash_bank_s
 #define	RIS			0x050
 #define	RCC			0x060
 #define	PLLCFG		0x064
+#define	RCC2		0x070
 
 #define FMPRE		0x130
 #define FMPPE		0x134

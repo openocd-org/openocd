@@ -257,7 +257,10 @@ static int stellaris_flash_bank_command(struct command_context_s *cmd_ctx, char 
 	/* part wasn't probed for info yet */
 	stellaris_info->did1 = 0;
 
-	/* TODO Use an optional main oscillator clock rate in kHz from arg[6] */
+	/* TODO Specify the main crystal speed in kHz using an optional
+	 * argument; ditto, the speed of an external oscillator used
+	 * instead of a crystal.  Avoid programming flash using IOSC.
+	 */
 	return ERROR_OK;
 }
 
@@ -294,7 +297,8 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 	}
 	printed = snprintf(buf,
 			   buf_size,
-			   "\nLMI Stellaris information: Chip is class %i(%s) %s v%c.%i\n",
+			   "\nTI/LMI Stellaris information: Chip is "
+			   "class %i (%s) %s rev %c%i\n",
 			   device_class,
 			   StellarisClassname[device_class],
 			   stellaris_info->target_name,
@@ -305,10 +309,11 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 	printed = snprintf(buf,
 			   buf_size,
-			   "did1: 0x%8.8" PRIx32 ", arch: 0x%4.4" PRIx32 ", eproc: %s, ramsize:%ik, flashsize: %ik\n",
+			   "did1: 0x%8.8" PRIx32 ", arch: 0x%4.4" PRIx32
+			   ", eproc: %s, ramsize: %ik, flashsize: %ik\n",
 			   stellaris_info->did1,
 			   stellaris_info->did1,
-			   "ARMV7M",
+			   "ARMv7M",
 			   (int)((1 + ((stellaris_info->dc0 >> 16) & 0xFFFF))/4),
 			   (int)((1 + (stellaris_info->dc0 & 0xFFFF))*2));
 	buf += printed;
@@ -316,9 +321,12 @@ static int stellaris_info(struct flash_bank_s *bank, char *buf, int buf_size)
 
 	printed = snprintf(buf,
 			   buf_size,
-			   "master clock(estimated): %ikHz, rcc is 0x%" PRIx32 " \n",
+			   "master clock: %ikHz%s, "
+			   "rcc is 0x%" PRIx32 ", rcc2 is 0x%" PRIx32 "\n",
 			   (int)(stellaris_info->mck_freq / 1000),
-			   stellaris_info->rcc);
+			   stellaris_info->mck_desc,
+			   stellaris_info->rcc,
+			   stellaris_info->rcc2);
 	buf += printed;
 	buf_size -= printed;
 
@@ -353,38 +361,103 @@ static uint32_t stellaris_get_flash_status(flash_bank_t *bank)
 
 /** Read clock configuration and set stellaris_info->usec_clocks*/
 
+static const unsigned rcc_xtal[32] = {
+	[0x00] = 1000000,		/* no pll */
+	[0x01] = 1843200,		/* no pll */
+	[0x02] = 2000000,		/* no pll */
+	[0x03] = 2457600,		/* no pll */
+
+	[0x04] = 3579545,
+	[0x05] = 3686400,
+	[0x06] = 4000000,		/* usb */
+	[0x07] = 4096000,
+
+	[0x08] = 4915200,
+	[0x09] = 5000000,		/* usb */
+	[0x0a] = 5120000,
+	[0x0b] = 6000000,		/* (reset) usb */
+
+	[0x0c] = 6144000,
+	[0x0d] = 7372800,
+	[0x0e] = 8000000,		/* usb */
+	[0x0f] = 8192000,
+
+	/* parts before DustDevil use just 4 bits for xtal spec */
+
+	[0x10] = 10000000,		/* usb */
+	[0x11] = 12000000,		/* usb */
+	[0x12] = 12288000,
+	[0x13] = 13560000,
+
+	[0x14] = 14318180,
+	[0x15] = 16000000,		/* usb */
+	[0x16] = 16384000,
+};
+
 static void stellaris_read_clock_info(flash_bank_t *bank)
 {
 	stellaris_flash_bank_t *stellaris_info = bank->driver_priv;
 	target_t *target = bank->target;
-	uint32_t rcc, pllcfg, sysdiv, usesysdiv, bypass, oscsrc;
+	uint32_t rcc, rcc2, pllcfg, sysdiv, usesysdiv, bypass, oscsrc;
+	unsigned xtal;
 	unsigned long mainfreq;
 
 	target_read_u32(target, SCB_BASE | RCC, &rcc);
 	LOG_DEBUG("Stellaris RCC %" PRIx32 "", rcc);
+
+	target_read_u32(target, SCB_BASE | RCC2, &rcc2);
+	LOG_DEBUG("Stellaris RCC2 %" PRIx32 "", rcc);
+
 	target_read_u32(target, SCB_BASE | PLLCFG, &pllcfg);
 	LOG_DEBUG("Stellaris PLLCFG %" PRIx32 "", pllcfg);
+
 	stellaris_info->rcc = rcc;
+	stellaris_info->rcc = rcc2;
 
 	sysdiv = (rcc >> 23) & 0xF;
 	usesysdiv = (rcc >> 22) & 0x1;
 	bypass = (rcc >> 11) & 0x1;
 	oscsrc = (rcc >> 4) & 0x3;
-	/* xtal = (rcc >> 6)&0xF; */
+	xtal = (rcc >> 6) & stellaris_info->xtal_mask;
+
+	/* NOTE: post-Sandstorm parts have RCC2 which may override
+	 * parts of RCC ... with more sysdiv options, option for
+	 * 32768 Hz mainfreq, PLL controls.  On Sandstorm it reads
+	 * as zero, so the "use RCC2" flag is always clear.
+	 */
+	if (rcc2 & (1 << 31)) {
+		sysdiv = (rcc2 >> 23) & 0x3F;
+		bypass = (rcc2 >> 11) & 0x1;
+		oscsrc = (rcc2 >> 4) & 0x7;
+
+		/* FIXME Tempest parts have an additional lsb for
+		 * fractional sysdiv (200 MHz / 2.5 == 80 MHz)
+		 */
+	}
+
+	stellaris_info->mck_desc = "";
+
 	switch (oscsrc)
 	{
-		case 0:
-			mainfreq = 6000000;  /* Default xtal */
+		case 0:				/* MOSC */
+			mainfreq = rcc_xtal[xtal];
 			break;
-		case 1:
-			mainfreq = 22500000; /* Internal osc. 15 MHz +- 50% */
+		case 1:				/* IOSC */
+			mainfreq = stellaris_info->iosc_freq;
+			stellaris_info->mck_desc = stellaris_info->iosc_desc;
 			break;
-		case 2:
-			mainfreq = 5625000;  /* Internal osc. / 4 */
+		case 2:				/* IOSC/4 */
+			mainfreq = stellaris_info->iosc_freq / 4;
+			stellaris_info->mck_desc = stellaris_info->iosc_desc;
 			break;
-		case 3:
-			LOG_WARNING("Invalid oscsrc (3) in rcc register");
-			mainfreq = 6000000;
+		case 3:				/* lowspeed */
+			/* Sandstorm doesn't have this 30K +/- 30% osc */
+			mainfreq = 30000;
+			stellaris_info->mck_desc = " (±30%)";
+			break;
+		case 8:				/* hibernation osc */
+			/* not all parts support hibernation */
+			mainfreq = 32768;
 			break;
 
 		default: /* NOTREACHED */
@@ -392,8 +465,11 @@ static void stellaris_read_clock_info(flash_bank_t *bank)
 			break;
 	}
 
+	/* PLL is used if it's not bypassed; its output is 200 MHz
+	 * even when it runs at 400 MHz (adds divide-by-two stage).
+	 */
 	if (!bypass)
-		mainfreq = 200000000; /* PLL out frec */
+		mainfreq = 200000000;
 
 	if (usesysdiv)
 		stellaris_info->mck_freq = mainfreq/(1 + sysdiv);
@@ -487,6 +563,48 @@ static int stellaris_read_part_info(struct flash_bank_s *bank)
 		LOG_WARNING("Unknown did1 version/family, cannot positively identify target as a Stellaris");
 	}
 
+	/* For Sandstorm, Fury, DustDevil:  current data sheets say IOSC
+	 * is 12 MHz, but some older parts have 15 MHz.  A few data sheets
+	 * even give _both_ numbers!  We'll use current numbers; IOSC is
+	 * always approximate.
+	 *
+	 * For Tempest:  IOSC is calibrated, 16 MHz
+	 */
+	stellaris_info->iosc_freq = 12000000;
+	stellaris_info->iosc_desc = " (±30%)";
+	stellaris_info->xtal_mask = 0x0f;
+
+	switch ((did0 >> 28) & 0x7) {
+	case 0:				/* Sandstorm */
+		/*
+		 * Current (2009-August) parts seem to be rev C2 and use 12 MHz.
+		 * Parts before rev C0 used 15 MHz; some C0 parts use 15 MHz
+		 * (LM3S618), but some other C0 parts are 12 MHz (LM3S811).
+		 */
+		if (((did0 >> 16) & 0xff) <= 2) {
+			stellaris_info->iosc_freq = 15000000;
+			stellaris_info->iosc_desc = " (±50%)";
+		}
+		break;
+	case 1:
+		switch ((did0 >> 16) & 0xff) {
+		case 1:			/* Fury */
+			break;
+		case 4:			/* Tempest */
+			stellaris_info->iosc_freq = 16000000;	/* +/- 1% */
+			stellaris_info->iosc_desc = " (±1%)";
+			/* FALL THROUGH */
+		case 3:			/* DustDevil */
+			stellaris_info->xtal_mask = 0x1f;
+			break;
+		default:
+			LOG_WARNING("Unknown did0 class");
+		}
+	default:
+		break;
+		LOG_WARNING("Unknown did0 version");
+	}
+
 	for (i = 0; StellarisParts[i].partno; i++)
 	{
 		if (StellarisParts[i].partno == ((did1 >> 16) & 0xFF))
@@ -547,7 +665,7 @@ static int stellaris_protect_check(struct flash_bank_s *bank)
 
 	if (stellaris_info->did1 == 0)
 	{
-		LOG_WARNING("Cannot identify target as an AT91SAM");
+		LOG_WARNING("Cannot identify target as Stellaris");
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
