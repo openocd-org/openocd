@@ -975,10 +975,12 @@ int jtag_examine_chain(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	for (unsigned bit_count = 0; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;)
+	for (unsigned bit_count = 0;
+			tap && bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;
+			tap = jtag_tap_next_enabled(tap))
 	{
 		uint32_t idcode = buf_get_u32(idcode_buffer, bit_count, 32);
-		tap->hasidcode = true;
+
 		if ((idcode & 1) == 0)
 		{
 			/* LSB must not be 0, this indicates a device in bypass */
@@ -990,7 +992,9 @@ int jtag_examine_chain(void)
 		}
 		else
 		{
-	 		/*
+			tap->hasidcode = true;
+
+			/*
 			 * End of chain (invalid manufacturer ID) some devices, such
 			 * as AVR will output all 1's instead of TDI input value at
 			 * end of chain.
@@ -1015,10 +1019,8 @@ int jtag_examine_chain(void)
 		tap->idcode = idcode;
 
 		// ensure the TAP ID does matches what was expected
- 		if (!jtag_examine_chain_match_tap(tap))
+		if (!jtag_examine_chain_match_tap(tap))
 			return ERROR_JTAG_INIT_FAILED;
-
-		tap = jtag_tap_next_enabled(tap);
 	}
 
 	/* see if number of discovered devices matches configuration */
