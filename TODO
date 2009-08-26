@@ -122,6 +122,8 @@ https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
   arm7 code) to know what address to set the breakpoint at for single
   stepping an instruction.
   - implement missing functionality (grep FNC_INFO_NOTIMPLEMENTED ...)
+  - thumb support is missing: ISTR ARMv6 requires Thumb.
+  ARM1156 has Thumb2; ARM1136 doesn't.
 - Cortex A8 support (ML)
   - add target implementation (ML)
 - MC1322x support (JW/DE?)
