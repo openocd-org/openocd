@@ -12,6 +12,7 @@ Target Layer:
 	"cortex_m3 vector_catch" ... traps certain hardware faults
 		without tying up breakpoint resources
     If you're willing to help debug it:  VERY EARLY Cortex-A8 support
+    New commands for use with XScale processors: "xscale vector_table" 
 
 Flash Layer:
     The lpc2000 driver handles the new NXP LPC1700 (Cortex-M3) chips
