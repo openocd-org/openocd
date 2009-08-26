@@ -1064,7 +1064,10 @@ int jtag_validate_chain(void)
 
 
 	jtag_add_plain_ir_scan(1, &field, TAP_RESET);
-	jtag_execute_queue();
+	int retval;
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 
 	tap = NULL;
 	chain_pos = 0;
