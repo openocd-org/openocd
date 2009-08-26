@@ -144,7 +144,7 @@ typedef struct jtag_tap_event_action_s jtag_tap_event_action_t;
 
 /* this is really: typedef jtag_tap_t */
 /* But - the typedef is done in "types.h" */
-/* due to "forward decloration reasons" */
+/* due to "forward declaration reasons" */
 struct jtag_tap_s
 {
 	const char* chip;
@@ -161,6 +161,7 @@ struct jtag_tap_s
 	uint32_t ir_capture_mask;
 	uint8_t* expected_mask; /**< Capture-IR expected mask */
 	uint32_t idcode;
+	bool hasidcode; /* not all devices have idcode, we'll discover this during chain examination */
 	/**< device identification code */
 
 	/// Array of expected identification codes */

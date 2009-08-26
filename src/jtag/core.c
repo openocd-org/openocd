@@ -939,7 +939,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 	/* If none of the expected ids matched, log an error */
 	if (ii != tap->expected_ids_cnt)
 	{
-		LOG_INFO("JTAG Tap/device matched");
+		LOG_DEBUG("JTAG Tap/device matched");
 		return true;
 	}
 	jtag_examine_chain_display(LOG_LVL_ERROR, "got",
@@ -978,11 +978,13 @@ int jtag_examine_chain(void)
 	for (unsigned bit_count = 0; bit_count < (JTAG_MAX_CHAIN_SIZE * 32) - 31;)
 	{
 		uint32_t idcode = buf_get_u32(idcode_buffer, bit_count, 32);
+		tap->hasidcode = true;
 		if ((idcode & 1) == 0)
 		{
 			/* LSB must not be 0, this indicates a device in bypass */
 			LOG_WARNING("Tap/Device does not have IDCODE");
 			idcode = 0;
+			tap->hasidcode = false;
 
 			bit_count += 1;
 		}
@@ -1074,7 +1076,8 @@ int jtag_validate_chain(void)
 		}
 
 		val = buf_get_u32(ir_test, chain_pos, 2);
-		if (val != 0x1)
+		/* Only fail this check if we have IDCODE for this device */
+		if ((val != 0x1)&&(tap->hasidcode))
 		{
 			char *cbuf = buf_to_str(ir_test, total_ir_length, 16);
 			LOG_ERROR("Could not validate JTAG scan chain, IR mismatch, scan returned 0x%s. tap=%s pos=%d expected 0x1 got %0x", cbuf, jtag_tap_name(tap), chain_pos, val);
