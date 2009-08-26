@@ -161,7 +161,15 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
 	LOG_DEBUG("exec opcode 0x%08" PRIx32, opcode);
+	do
+	{
+		retvalue = mem_ap_read_atomic_u32(swjdp,
+				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+	}
+	while ((dscr & (1 << 24)) == 0); /* Wait for InstrCompl bit to be set */
+
 	mem_ap_write_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_ITR, opcode);
+
 	do
 	{
 		retvalue = mem_ap_read_atomic_u32(swjdp,
