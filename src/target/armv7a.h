@@ -148,7 +148,7 @@ static inline int armv7a_mode_to_number(enum armv7a_mode mode)
 		case ARMV7A_MODE_MON: return 7; break;
 		case ARMV7A_MODE_ANY: return 0; break;	/* map MODE_ANY to user mode */
 		default:
-			LOG_ERROR("invalid mode value encountered");
+			LOG_ERROR("invalid mode value encountered, val %d", mode);
 			return -1;
 	}
 }
