@@ -42,6 +42,7 @@ extern char* cortex_a8_state_strings[];
 /* Debug Control Block */
 #define CPUDBG_DIDR		0x000
 #define CPUDBG_WFAR		0x018
+#define CPUDBG_VCR	0x01C
 #define CPUDBG_DSCCR	0x028
 #define CPUDBG_DTRRX	0x080
 #define CPUDBG_ITR	0x084
@@ -51,6 +52,13 @@ extern char* cortex_a8_state_strings[];
 #define CPUDBG_BVR_BASE	0x100
 #define CPUDBG_BCR_BASE	0x140
 #define CPUDBG_WVR_BASE	0x180
+
+#define CPUDBG_OSLAR	0x300
+#define CPUDBG_OSLSR	0x304
+#define CPUDBG_OSSRR	0x308
+
+#define CPUDBG_PRCR	0x310
+#define CPUDBG_PRSR	0x314
 
 #define CPUDBG_CPUID	0xD00
 #define CPUDBG_CTYPR	0xD04
