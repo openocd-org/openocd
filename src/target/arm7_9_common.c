@@ -1833,7 +1833,7 @@ int arm7_9_resume(struct target_s *target, int current, uint32_t address, int ha
 			{
 				uint32_t current_opcode;
 				target_read_u32(target, current_pc, &current_opcode);
-				LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "", current_opcode);
+				LOG_ERROR("Couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "", current_opcode);
 				return retval;
 			}
 
@@ -2038,7 +2038,7 @@ int arm7_9_step(struct target_s *target, int current, uint32_t address, int hand
 	{
 		uint32_t current_opcode;
 		target_read_u32(target, current_pc, &current_opcode);
-		LOG_ERROR("BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "", current_opcode);
+		LOG_ERROR("Couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "", current_opcode);
 		return retval;
 	}
 
