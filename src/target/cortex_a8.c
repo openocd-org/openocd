@@ -259,13 +259,12 @@ int cortex_a8_dap_read_coreregister_u32(target_t *target,
 {
 	int retval = ERROR_OK;
 	uint8_t reg = regnum&0xFF;
+	uint32_t dscr;
 
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv7a_common_t *armv7a = armv4_5->arch_info;
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
-
-	swjdp->trans_mode = TRANS_MODE_COMPOSITE;
 
 	if (reg > 16)
 		return retval;
@@ -286,10 +285,16 @@ int cortex_a8_dap_read_coreregister_u32(target_t *target,
 		cortex_a8_exec_opcode(target, ARMV4_5_MCR(14, 0, 0, 0, 5, 0));
 	}
 
-	/* Read DCCTX */
+	/* Read DTRRTX */
+	do
+	{
+		retval = mem_ap_read_atomic_u32(swjdp,
+				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+	}
+	while ((dscr & (1 << 29)) == 0); /* Wait for DTRRXfull */
+
 	retval = mem_ap_read_atomic_u32(swjdp,
 			OMAP3530_DEBUG_BASE + CPUDBG_DTRTX, value);
-//	retval = mem_ap_read_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_DTRTX, value);
 
 	return retval;
 }
