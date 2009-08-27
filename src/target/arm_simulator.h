@@ -24,8 +24,25 @@
 
 struct target_s;
 
+struct arm_sim_interface
+{
+	void *user_data;
+	uint32_t (*get_reg)(struct arm_sim_interface *sim, int reg);
+	void (*set_reg)(struct arm_sim_interface *sim, int reg, uint32_t value);
+	uint32_t (*get_reg_mode)(struct arm_sim_interface *sim, int reg);
+	void (*set_reg_mode)(struct arm_sim_interface *sim, int reg, uint32_t value);
+	uint32_t (*get_cpsr)(struct arm_sim_interface *sim, int pos, int bits);
+	enum armv4_5_state (*get_state)(struct arm_sim_interface *sim);
+	void (*set_state)(struct arm_sim_interface *sim, enum armv4_5_state mode);
+	enum armv4_5_mode (*get_mode)(struct arm_sim_interface *sim);
+};
+
+
+/* armv4_5 version */
 extern int arm_simulate_step(struct target_s *target, uint32_t *dry_run_pc);
 
-#define ERROR_ARM_SIMULATOR_NOT_IMPLEMENTED	(-700)
+/* a generic arm simulator. Caller must implement the sim interface */
+extern int arm_simulate_step_core(target_t *target, uint32_t *dry_run_pc, struct arm_sim_interface *sim);
+
 
 #endif /* ARM_SIMULATOR_H */
