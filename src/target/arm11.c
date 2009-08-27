@@ -55,6 +55,7 @@ bool	arm11_config_memwrite_error_fatal		= true;
 uint32_t		arm11_vcr								= 0;
 bool	arm11_config_memrw_no_increment			= false;
 bool	arm11_config_step_irq_enable			= false;
+bool	arm11_config_hardware_step				= false;
 
 #define ARM11_HANDLER(x)	\
 	.x				= arm11_##x
@@ -976,7 +977,6 @@ static int arm11_simulate_step(target_t *target, uint32_t *dry_run_pc)
 int arm11_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
 {
 	FNC_INFO;
-	int retval;
 
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
@@ -993,15 +993,6 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 		R(PC) = address;
 
 	LOG_DEBUG("STEP PC %08" PRIx32 "%s", R(PC), !current ? "!" : "");
-
-
-	/* TODO: to implement single stepping on arm11 devices that can't
-	 * do single stepping in hardware we need to calculate the next
-	 * pc and set up breakpoints accordingingly. */
-	uint32_t next_pc;
-	retval = arm11_simulate_step(target, &next_pc);
-	if (retval != ERROR_OK)
-		return retval;
 
 
 	/** \todo TODO: Thumb not supported here */
@@ -1047,10 +1038,30 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 
 		brp[0].write	= 1;
 		brp[0].address	= ARM11_SC7_BVR0;
-		brp[0].value	= R(PC);
 		brp[1].write	= 1;
 		brp[1].address	= ARM11_SC7_BCR0;
-		brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (2 << 21);
+
+		if (arm11_config_hardware_step)
+		{
+			/* hardware single stepping be used if possible or is it better to
+			 * always use the same code path? Hardware single stepping is not supported
+			 * on all hardware
+			 */
+			 brp[0].value	= R(PC);
+			 brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (2 << 21);
+		} else
+		{
+			/* sets a breakpoint on the next PC(calculated by simulation),
+			 */
+			uint32_t next_pc;
+			int retval;
+			retval = arm11_simulate_step(target, &next_pc);
+			if (retval != ERROR_OK)
+				return retval;
+				
+			brp[0].value	= next_pc;
+			brp[1].value	= 0x1 | (3 << 1) | (0x0F << 5) | (0 << 14) | (0 << 16) | (0 << 20) | (0 << 21);
+		}
 
 		CHECK_RETVAL(arm11_sc7_run(arm11, brp, asizeof(brp)));
 
@@ -1101,11 +1112,6 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 	target->debug_reason	= DBG_REASON_SINGLESTEP;
 
 	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_HALTED));
-
-	if (R(PC) != next_pc)
-	{
-		LOG_WARNING("next pc != simulated address %08" PRIx32 "!=%08" PRIx32, R(PC), next_pc);
-	}
 
 	return ERROR_OK;
 }
@@ -1908,6 +1914,7 @@ BOOL_WRAPPER(memwrite_burst,			"memory write burst mode")
 BOOL_WRAPPER(memwrite_error_fatal,		"fatal error mode for memory writes")
 BOOL_WRAPPER(memrw_no_increment,		"\"no increment\" mode for memory transfers")
 BOOL_WRAPPER(step_irq_enable,			"IRQs while stepping")
+BOOL_WRAPPER(hardware_step,			"hardware single step")
 
 int arm11_handle_vcr(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc)
 {
@@ -2070,8 +2077,10 @@ int arm11_register_commands(struct command_context_s *cmd_ctx)
 	RC_FINAL_BOOL("no_increment",			"Don't increment address on multi-read/-write (default: disabled)",
 						memrw_no_increment)
 
-	RC_FINAL_BOOL("step_irq_enable",		"Enable interrupts while stepping (default: disabled)",
-						step_irq_enable)
+RC_FINAL_BOOL("step_irq_enable",		"Enable interrupts while stepping (default: disabled)",
+					step_irq_enable)
+RC_FINAL_BOOL("hardware_step",		"hardware single stepping. By default use simulate + breakpoint. This command is only here to check if simulate + breakpoint implementation is broken.",
+					hardware_step)
 
 	RC_FINAL("vcr",					"Control (Interrupt) Vector Catch Register",
 						arm11_handle_vcr)
