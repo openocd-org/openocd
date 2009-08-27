@@ -27,6 +27,8 @@
 #endif
 
 #include "arm11.h"
+#include "armv4_5.h"
+#include "arm_simulator.h"
 #include "target_type.h"
 
 
@@ -884,9 +886,97 @@ int arm11_resume(struct target_s *target, int current, uint32_t address, int han
 	return ERROR_OK;
 }
 
+
+static int armv4_5_to_arm11(int reg)
+{
+	if (reg < 16)
+		return reg;
+	switch (reg)
+	{
+	case ARMV4_5_CPSR:
+		return ARM11_RC_CPSR;
+	case 16:
+		/* FIX!!! handle thumb better! */
+		return ARM11_RC_CPSR;
+	default:
+		LOG_ERROR("BUG: register translation from armv4_5 to arm11 not supported %d", reg);
+		exit(-1);
+	}
+}
+
+
+static uint32_t arm11_sim_get_reg(struct arm_sim_interface *sim, int reg)
+{
+	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+
+	reg=armv4_5_to_arm11(reg);
+
+	return buf_get_u32(arm11->reg_list[reg].value, 0, 32);
+}
+
+static void arm11_sim_set_reg(struct arm_sim_interface *sim, int reg, uint32_t value)
+{
+	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+
+	reg=armv4_5_to_arm11(reg);
+
+	buf_set_u32(arm11->reg_list[reg].value, 0, 32, value);
+}
+
+static uint32_t arm11_sim_get_cpsr(struct arm_sim_interface *sim, int pos, int bits)
+{
+	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+
+	return buf_get_u32(arm11->reg_list[ARM11_RC_CPSR].value, pos, bits);
+}
+
+static enum armv4_5_state arm11_sim_get_state(struct arm_sim_interface *sim)
+{
+//	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+
+	/* FIX!!!! we should implement thumb for arm11 */
+	return ARMV4_5_STATE_ARM;
+}
+
+static void arm11_sim_set_state(struct arm_sim_interface *sim, enum armv4_5_state mode)
+{
+//	arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+
+	/* FIX!!!! we should implement thumb for arm11 */
+	LOG_ERROR("Not implemetned!");
+}
+
+
+static enum armv4_5_mode arm11_sim_get_mode(struct arm_sim_interface *sim)
+{
+	//arm11_common_t * arm11 = (arm11_common_t *)sim->user_data;
+
+	/* FIX!!!! we should implement something that returns the current mode here!!! */
+	return ARMV4_5_MODE_USR;
+}
+
+static int arm11_simulate_step(target_t *target, uint32_t *dry_run_pc)
+{
+	struct arm_sim_interface sim;
+
+	sim.user_data=target->arch_info;
+	sim.get_reg=&arm11_sim_get_reg;
+	sim.set_reg=&arm11_sim_set_reg;
+	sim.get_reg_mode=&arm11_sim_get_reg;
+	sim.set_reg_mode=&arm11_sim_set_reg;
+	sim.get_cpsr=&arm11_sim_get_cpsr;
+	sim.get_mode=&arm11_sim_get_mode;
+	sim.get_state=&arm11_sim_get_state;
+	sim.set_state=&arm11_sim_set_state;
+
+	return arm_simulate_step_core(target, dry_run_pc, &sim);
+
+}
+
 int arm11_step(struct target_s *target, int current, uint32_t address, int handle_breakpoints)
 {
 	FNC_INFO;
+	int retval;
 
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
@@ -903,6 +993,12 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 		R(PC) = address;
 
 	LOG_DEBUG("STEP PC %08" PRIx32 "%s", R(PC), !current ? "!" : "");
+
+	uint32_t next_pc;
+	retval = arm11_simulate_step(target, &next_pc);
+	if (retval != ERROR_OK)
+		return retval;
+
 
 	/** \todo TODO: Thumb not supported here */
 
@@ -1001,6 +1097,11 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 	target->debug_reason	= DBG_REASON_SINGLESTEP;
 
 	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_HALTED));
+
+	if (R(PC) != next_pc)
+	{
+		LOG_WARNING("next pc != simulated address %08" PRIx32 "!=%08" PRIx32, R(PC), next_pc);
+	}
 
 	return ERROR_OK;
 }
