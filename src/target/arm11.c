@@ -994,6 +994,10 @@ int arm11_step(struct target_s *target, int current, uint32_t address, int handl
 
 	LOG_DEBUG("STEP PC %08" PRIx32 "%s", R(PC), !current ? "!" : "");
 
+
+	/* TODO: to implement single stepping on arm11 devices that can't
+	 * do single stepping in hardware we need to calculate the next
+	 * pc and set up breakpoints accordingingly. */
 	uint32_t next_pc;
 	retval = arm11_simulate_step(target, &next_pc);
 	if (retval != ERROR_OK)
