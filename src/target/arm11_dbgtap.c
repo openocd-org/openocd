@@ -386,7 +386,8 @@ int arm11_run_instr_no_data(arm11_common_t * arm11, uint32_t * opcode, size_t co
 			if (flag)
 				break;
 
-			long long then;
+			long long then = 0;
+
 			if (i == 1000)
 			{
 				then = timeval_ms();
@@ -465,7 +466,8 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32
 
 			JTAG_DEBUG("DTR  Ready %d  nRetry %d", Ready, nRetry);
 
-			long long then;
+			long long then = 0;
+
 			if (i == 1000)
 			{
 				then = timeval_ms();
@@ -499,7 +501,8 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32
 
 		JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
 
-		long long then;
+		long long then = 0;
+
 		if (i == 1000)
 		{
 			then = timeval_ms();
@@ -678,7 +681,8 @@ int arm11_run_instr_data_from_core(arm11_common_t * arm11, uint32_t opcode, uint
 
 			JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
 
-			long long then;
+			long long then = 0;
+
 			if (i == 1000)
 			{
 				then = timeval_ms();
