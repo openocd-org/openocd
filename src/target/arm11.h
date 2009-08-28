@@ -257,12 +257,12 @@ enum target_debug_reason arm11_get_DSCR_debug_reason(uint32_t dscr);
 void arm11_run_instr_data_prepare			(arm11_common_t * arm11);
 void arm11_run_instr_data_finish			(arm11_common_t * arm11);
 int arm11_run_instr_no_data					(arm11_common_t * arm11, uint32_t * opcode, size_t count);
-void arm11_run_instr_no_data1				(arm11_common_t * arm11, uint32_t opcode);
+int arm11_run_instr_no_data1				(arm11_common_t * arm11, uint32_t opcode);
 int arm11_run_instr_data_to_core			(arm11_common_t * arm11, uint32_t opcode, uint32_t * data, size_t count);
 int arm11_run_instr_data_to_core_noack		(arm11_common_t * arm11, uint32_t opcode, uint32_t * data, size_t count);
 int arm11_run_instr_data_to_core1			(arm11_common_t * arm11, uint32_t opcode, uint32_t data);
 int arm11_run_instr_data_from_core			(arm11_common_t * arm11, uint32_t opcode, uint32_t * data, size_t count);
-void arm11_run_instr_data_from_core_via_r0	(arm11_common_t * arm11, uint32_t opcode, uint32_t * data);
+int arm11_run_instr_data_from_core_via_r0	(arm11_common_t * arm11, uint32_t opcode, uint32_t * data);
 void arm11_run_instr_data_to_core_via_r0	(arm11_common_t * arm11, uint32_t opcode, uint32_t data);
 
 int arm11_add_dr_scan_vc(int num_fields, scan_field_t *fields, tap_state_t state);

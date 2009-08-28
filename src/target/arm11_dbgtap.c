@@ -2,7 +2,7 @@
  *   Copyright (C) 2008 digenius technology GmbH.                          *
  *   Michael Bruck                                                         *
  *                                                                         *
- *   Copyright (C) 2008 Oyvind Harboe oyvind.harboe@zylin.com              *
+ *   Copyright (C) 2008,2009 Oyvind Harboe oyvind.harboe@zylin.com         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -26,6 +26,7 @@
 
 #include "arm11.h"
 
+#include "time_support.h"
 
 #if 0
 #define JTAG_DEBUG(expr ...)	DEBUG(expr)
@@ -355,6 +356,7 @@ void arm11_run_instr_data_finish(arm11_common_t * arm11)
 }
 
 
+
 /** Execute one or multiple instructions via ITR
  *
  * \pre arm11_run_instr_data_prepare() /  arm11_run_instr_data_finish() block
@@ -372,6 +374,7 @@ int arm11_run_instr_no_data(arm11_common_t * arm11, uint32_t * opcode, size_t co
 	{
 		arm11_add_debug_INST(arm11, *opcode++, NULL, TAP_IDLE);
 
+		int i = 0;
 		while (1)
 		{
 			uint8_t flag;
@@ -382,6 +385,22 @@ int arm11_run_instr_no_data(arm11_common_t * arm11, uint32_t * opcode, size_t co
 
 			if (flag)
 				break;
+
+			long long then;
+			if (i == 1000)
+			{
+				then = timeval_ms();
+			}
+			if (i >= 1000)
+			{
+				if ((timeval_ms()-then) > 1000)
+				{
+					LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
+					return ERROR_FAIL;
+				}
+			}
+
+			i++;
 		}
 	}
 
@@ -396,9 +415,9 @@ int arm11_run_instr_no_data(arm11_common_t * arm11, uint32_t * opcode, size_t co
  * \param opcode	ARM opcode
  *
  */
-void arm11_run_instr_no_data1(arm11_common_t * arm11, uint32_t opcode)
+int arm11_run_instr_no_data1(arm11_common_t * arm11, uint32_t opcode)
 {
-	arm11_run_instr_no_data(arm11, &opcode, 1);
+	return arm11_run_instr_no_data(arm11, &opcode, 1);
 }
 
 
@@ -435,6 +454,7 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32
 
 	while (count--)
 	{
+		int i = 0;
 		do
 		{
 			Data	    = *data;
@@ -444,6 +464,22 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32
 			CHECK_RETVAL(jtag_execute_queue());
 
 			JTAG_DEBUG("DTR  Ready %d  nRetry %d", Ready, nRetry);
+
+			long long then;
+			if (i == 1000)
+			{
+				then = timeval_ms();
+			}
+			if (i >= 1000)
+			{
+				if ((timeval_ms()-then) > 1000)
+				{
+					LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
+					return ERROR_FAIL;
+				}
+			}
+
+			i++;
 		}
 		while (!Ready);
 
@@ -452,6 +488,7 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32
 
 	arm11_add_IR(arm11, ARM11_INTEST, ARM11_TAP_DEFAULT);
 
+	int i = 0;
 	do
 	{
 		Data	    = 0;
@@ -461,6 +498,22 @@ int arm11_run_instr_data_to_core(arm11_common_t * arm11, uint32_t opcode, uint32
 		CHECK_RETVAL(jtag_execute_queue());
 
 		JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
+
+		long long then;
+		if (i == 1000)
+		{
+			then = timeval_ms();
+		}
+		if (i >= 1000)
+		{
+			if ((timeval_ms()-then) > 1000)
+			{
+				LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
+				return ERROR_FAIL;
+			}
+		}
+
+		i++;
 	}
 	while (!Ready);
 
@@ -616,6 +669,7 @@ int arm11_run_instr_data_from_core(arm11_common_t * arm11, uint32_t opcode, uint
 
 	while (count--)
 	{
+		int i = 0;
 		do
 		{
 			arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, count ? TAP_IDLE : TAP_DRPAUSE);
@@ -623,6 +677,22 @@ int arm11_run_instr_data_from_core(arm11_common_t * arm11, uint32_t opcode, uint
 			CHECK_RETVAL(jtag_execute_queue());
 
 			JTAG_DEBUG("DTR  Data %08x  Ready %d  nRetry %d", Data, Ready, nRetry);
+
+			long long then;
+			if (i == 1000)
+			{
+				then = timeval_ms();
+			}
+			if (i >= 1000)
+			{
+				if ((timeval_ms()-then) > 1000)
+				{
+					LOG_WARNING("Timeout (1000ms) waiting for instructions to complete");
+					return ERROR_FAIL;
+				}
+			}
+
+			i++;
 		}
 		while (!Ready);
 
@@ -644,12 +714,17 @@ int arm11_run_instr_data_from_core(arm11_common_t * arm11, uint32_t opcode, uint
  * \param data		Pointer to a data word that receives the value from r0 after \p opcode was executed.
  *
  */
-void arm11_run_instr_data_from_core_via_r0(arm11_common_t * arm11, uint32_t opcode, uint32_t * data)
+int arm11_run_instr_data_from_core_via_r0(arm11_common_t * arm11, uint32_t opcode, uint32_t * data)
 {
-	arm11_run_instr_no_data1(arm11, opcode);
+	int retval;
+	retval = arm11_run_instr_no_data1(arm11, opcode);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* MCR p14,0,R0,c0,c5,0 (move r0 -> wDTR -> local var) */
 	arm11_run_instr_data_from_core(arm11, 0xEE000E15, data, 1);
+
+	return ERROR_OK;
 }
 
 /** Load data into core via DTR then move it to r0 then

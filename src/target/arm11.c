@@ -2,7 +2,7 @@
  *   Copyright (C) 2008 digenius technology GmbH.                          *
  *   Michael Bruck                                                         *
  *                                                                         *
- *   Copyright (C) 2008 Oyvind Harboe oyvind.harboe@zylin.com              *
+ *   Copyright (C) 2008,2009 Oyvind Harboe oyvind.harboe@zylin.com         *
  *                                                                         *
  *   Copyright (C) 2008 Georg Acher <acher@in.tum.de>                      *
  *                                                                         *
@@ -374,6 +374,7 @@ int arm11_check_init(arm11_common_t * arm11, uint32_t * dscr)
   */
 static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 {
+	int retval;
 	FNC_INFO;
 
 	for (size_t i = 0; i < asizeof(arm11->reg_values); i++)
@@ -459,7 +460,9 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 	for (size_t i = 0; i < 15; i++)
 	{
 		/* MCR p14,0,R?,c0,c5,0 */
-		arm11_run_instr_data_from_core(arm11, 0xEE000E15 | (i << 12), &R(RX + i), 1);
+		retval = arm11_run_instr_data_from_core(arm11, 0xEE000E15 | (i << 12), &R(RX + i), 1);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	/* save rDTR */
@@ -484,7 +487,9 @@ static int arm11_on_enter_debug_state(arm11_common_t * arm11)
 	/* save PC */
 
 	/* MOV R0,PC (move PC -> r0 (-> wDTR -> local var)) */
-	arm11_run_instr_data_from_core_via_r0(arm11, 0xE1A0000F, &R(PC));
+	retval = arm11_run_instr_data_from_core_via_r0(arm11, 0xE1A0000F, &R(PC));
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* adjust PC depending on ARM state */
 
@@ -665,6 +670,7 @@ void arm11_record_register_history(arm11_common_t * arm11)
 int arm11_poll(struct target_s *target)
 {
 	FNC_INFO;
+	int retval;
 
 	arm11_common_t * arm11 = target->arch_info;
 
@@ -688,7 +694,9 @@ int arm11_poll(struct target_s *target)
 			LOG_DEBUG("enter TARGET_HALTED");
 			target->state			= TARGET_HALTED;
 			target->debug_reason	= arm11_get_DSCR_debug_reason(dscr);
-			arm11_on_enter_debug_state(arm11);
+			retval = arm11_on_enter_debug_state(arm11);
+			if (retval != ERROR_OK)
+				return retval;
 
 			target_call_event_callbacks(target,
 				old_state == TARGET_DEBUG_RUNNING ? TARGET_EVENT_DEBUG_HALTED : TARGET_EVENT_HALTED);
