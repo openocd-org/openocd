@@ -61,6 +61,7 @@ static int arm7_9_clear_watchpoints(arm7_9_common_t *arm7_9)
 	LOG_DEBUG("-");
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0x0);
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0x0);
+	arm7_9->sw_breakpoint_count = 0;
 	arm7_9->sw_breakpoints_added = 0;
 	arm7_9->wp0_used = 0;
 	arm7_9->wp1_used = arm7_9->wp1_used_default;
@@ -274,9 +275,6 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	}
 	else if (breakpoint->type == BKPT_SOFT)
 	{
-		if ((retval = arm7_9_set_software_breakpoints(arm7_9)) != ERROR_OK)
-			return retval;
-
 		/* did we already set this breakpoint? */
 		if (breakpoint->set)
 			return ERROR_OK;
@@ -329,6 +327,12 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 				return ERROR_OK;
 			}
 		}
+
+		if ((retval = arm7_9_set_software_breakpoints(arm7_9)) != ERROR_OK)
+			return retval;
+
+		arm7_9->sw_breakpoint_count++;
+
 		breakpoint->set = 1;
 	}
 
@@ -415,6 +419,20 @@ int arm7_9_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 					return retval;
 				}
 		}
+
+		if (--arm7_9->sw_breakpoint_count==0)
+		{
+			/* We have removed the last sw breakpoint, clear the hw breakpoint we used to implement it */
+			if (arm7_9->sw_breakpoints_added == 1)
+			{
+				embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_VALUE], 0);
+			}
+			else if (arm7_9->sw_breakpoints_added == 2)
+			{
+				embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE], 0);
+			}
+		}
+
 		breakpoint->set = 0;
 	}
 
@@ -3109,6 +3127,7 @@ int arm7_9_init_arch_info(target_t *target, arm7_9_common_t *arm7_9)
 	arm7_9->wp_available = 0; /* this is set up in arm7_9_clear_watchpoints() */
 	arm7_9->wp_available_max = 2;
 	arm7_9->sw_breakpoints_added = 0;
+	arm7_9->sw_breakpoint_count = 0;
 	arm7_9->breakpoint_count = 0;
 	arm7_9->wp0_used = 0;
 	arm7_9->wp1_used = 0;
