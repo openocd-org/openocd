@@ -438,6 +438,323 @@ int evaluate_load_store(uint32_t opcode, uint32_t address, arm_instruction_t *in
 	return ERROR_OK;
 }
 
+static int evaluate_extend(uint32_t opcode, uint32_t address, char *cp)
+{
+	unsigned rm = (opcode >> 0) & 0xf;
+	unsigned rd = (opcode >> 12) & 0xf;
+	unsigned rn = (opcode >> 16) & 0xf;
+	char *type, *rot;
+
+	switch ((opcode >> 24) & 0x3) {
+	case 0:
+		type = "B16";
+		break;
+	case 1:
+		sprintf(cp, "UNDEFINED");
+		return ARM_UNDEFINED_INSTRUCTION;
+	case 2:
+		type = "B";
+		break;
+	case 3:
+		type = "H";
+		break;
+	}
+
+	switch ((opcode >> 10) & 0x3) {
+	case 0:
+		rot = "";
+		break;
+	case 1:
+		rot = ", ROR #8";
+		break;
+	case 2:
+		rot = ", ROR #16";
+		break;
+	case 3:
+		rot = ", ROR #24";
+		break;
+	}
+
+	if (rn == 0xf) {
+		sprintf(cp, "%cXT%s%s\tr%d, r%d%s",
+				(opcode & (1 << 22)) ? 'U' : 'S',
+				type, COND(opcode),
+				rd, rm, rot);
+		return ARM_MOV;
+	} else {
+		sprintf(cp, "%cXTA%s%s\tr%d, r%d, r%d%s",
+				(opcode & (1 << 22)) ? 'U' : 'S',
+				type, COND(opcode),
+				rd, rn, rm, rot);
+		return ARM_ADD;
+	}
+}
+
+static int evaluate_p_add_sub(uint32_t opcode, uint32_t address, char *cp)
+{
+	char *prefix;
+	char *op;
+	int type;
+
+	switch ((opcode >> 20) & 0x7) {
+	case 1:
+		prefix = "S";
+		break;
+	case 2:
+		prefix = "Q";
+		break;
+	case 3:
+		prefix = "SH";
+		break;
+	case 5:
+		prefix = "U";
+		break;
+	case 6:
+		prefix = "UQ";
+		break;
+	case 7:
+		prefix = "UH";
+		break;
+	default:
+		goto undef;
+	}
+
+	switch ((opcode >> 5) & 0x7) {
+	case 0:
+		op = "ADD16";
+		type = ARM_ADD;
+		break;
+	case 1:
+		op = "ADDSUBX";
+		type = ARM_ADD;
+		break;
+	case 2:
+		op = "SUBADDX";
+		type = ARM_SUB;
+		break;
+	case 3:
+		op = "SUB16";
+		type = ARM_SUB;
+		break;
+	case 4:
+		op = "ADD8";
+		type = ARM_ADD;
+		break;
+	case 7:
+		op = "SUB8";
+		type = ARM_SUB;
+		break;
+	default:
+		goto undef;
+	}
+
+	sprintf(cp, "%s%s%s\tr%d, r%d, r%d", prefix, op, COND(opcode),
+			(int) (opcode >> 12) & 0xf,
+			(int) (opcode >> 16) & 0xf,
+			(int) (opcode >> 0) & 0xf);
+	return type;
+
+undef:
+	/* these opcodes might be used someday */
+	sprintf(cp, "UNDEFINED");
+	return ARM_UNDEFINED_INSTRUCTION;
+}
+
+/* ARMv6 and later support "media" instructions (includes SIMD) */
+static int evaluate_media(uint32_t opcode, uint32_t address,
+		arm_instruction_t *instruction)
+{
+	char *cp = instruction->text;
+	char *mnemonic = NULL;
+
+	sprintf(cp,
+		"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\t",
+		address, opcode);
+	cp = strchr(cp, 0);
+
+	/* parallel add/subtract */
+	if ((opcode & 0x01800000) == 0x00000000) {
+		instruction->type = evaluate_p_add_sub(opcode, address, cp);
+		return ERROR_OK;
+	}
+
+	/* halfword pack */
+	if ((opcode & 0x01f00020) == 0x00800000) {
+		char *type, *shift;
+		unsigned imm = (unsigned) (opcode >> 7) & 0x1f;
+
+		if (opcode & (1 << 6)) {
+			type = "TB";
+			shift = "ASR";
+			if (imm == 0)
+				imm = 32;
+		} else {
+			type = "BT";
+			shift = "LSL";
+		}
+		sprintf(cp, "PKH%s%s\tr%d, r%d, r%d, %s #%d",
+			type, COND(opcode),
+			(int) (opcode >> 12) & 0xf,
+			(int) (opcode >> 16) & 0xf,
+			(int) (opcode >> 0) & 0xf,
+			shift, imm);
+		return ERROR_OK;
+	}
+
+	/* word saturate */
+	if ((opcode & 0x01a00020) == 0x00a00000) {
+		char *shift;
+		unsigned imm = (unsigned) (opcode >> 7) & 0x1f;
+
+		if (opcode & (1 << 6)) {
+			shift = "ASR";
+			if (imm == 0)
+				imm = 32;
+		} else {
+			shift = "LSL";
+		}
+
+		sprintf(cp, "%cSAT%s\tr%d, #%d, r%d, %s #%d",
+			(opcode & (1 << 22)) ? 'U' : 'S',
+			COND(opcode),
+			(int) (opcode >> 12) & 0xf,
+			(int) (opcode >> 16) & 0x1f,
+			(int) (opcode >> 0) & 0xf,
+			shift, imm);
+		return ERROR_OK;
+	}
+
+	/* sign extension */
+	if ((opcode & 0x018000f0) == 0x00800070) {
+		instruction->type = evaluate_extend(opcode, address, cp);
+		return ERROR_OK;
+	}
+
+	/* multiplies */
+	if ((opcode & 0x01f00080) == 0x01000000) {
+		unsigned rn = (opcode >> 12) & 0xf;
+
+		if (rn != 0xf)
+			sprintf(cp, "SML%cD%s%s\tr%d, r%d, r%d, r%d",
+				(opcode & (1 << 6)) ? 'S' : 'A',
+				(opcode & (1 << 5)) ? "X" : "",
+				COND(opcode),
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf,
+				(int) (opcode >> 8) & 0xf,
+				rn);
+		else
+			sprintf(cp, "SMU%cD%s%s\tr%d, r%d, r%d",
+				(opcode & (1 << 6)) ? 'S' : 'A',
+				(opcode & (1 << 5)) ? "X" : "",
+				COND(opcode),
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf,
+				(int) (opcode >> 8) & 0xf);
+		return ERROR_OK;
+	}
+	if ((opcode & 0x01f00000) == 0x01400000) {
+		sprintf(cp, "SML%cLD%s%s\tr%d, r%d, r%d, r%d",
+			(opcode & (1 << 6)) ? 'S' : 'A',
+			(opcode & (1 << 5)) ? "X" : "",
+			COND(opcode),
+			(int) (opcode >> 12) & 0xf,
+			(int) (opcode >> 16) & 0xf,
+			(int) (opcode >> 0) & 0xf,
+			(int) (opcode >> 8) & 0xf);
+		return ERROR_OK;
+	}
+	if ((opcode & 0x01f00000) == 0x01500000) {
+		unsigned rn = (opcode >> 12) & 0xf;
+
+		switch (opcode & 0xc0) {
+		case 3:
+			if (rn == 0xf)
+				goto undef;
+			/* FALL THROUGH */
+		case 0:
+			break;
+		default:
+			goto undef;
+		}
+
+		if (rn != 0xf)
+			sprintf(cp, "SMML%c%s%s\tr%d, r%d, r%d, r%d",
+				(opcode & (1 << 6)) ? 'S' : 'A',
+				(opcode & (1 << 5)) ? "R" : "",
+				COND(opcode),
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf,
+				(int) (opcode >> 8) & 0xf,
+				rn);
+		else
+			sprintf(cp, "SMMUL%s%s\tr%d, r%d, r%d",
+				(opcode & (1 << 5)) ? "R" : "",
+				COND(opcode),
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf,
+				(int) (opcode >> 8) & 0xf);
+		return ERROR_OK;
+	}
+
+
+	/* simple matches against the remaining decode bits */
+	switch (opcode & 0x01f000f0) {
+	case 0x00a00030:
+	case 0x00e00030:
+		/* parallel halfword saturate */
+		sprintf(cp, "%cSAT16%s\tr%d, #%d, r%d",
+			(opcode & (1 << 22)) ? 'U' : 'S',
+			COND(opcode),
+			(int) (opcode >> 12) & 0xf,
+			(int) (opcode >> 16) & 0xf,
+			(int) (opcode >> 0) & 0xf);
+		return ERROR_OK;
+	case 0x00b00030:
+		mnemonic = "REV";
+		break;
+	case 0x00b000b0:
+		mnemonic = "REV16";
+		break;
+	case 0x00f000b0:
+		mnemonic = "REVSH";
+		break;
+	case 0x008000b0:
+		/* select bytes */
+		sprintf(cp, "SEL%s\tr%d, r%d, r%d", COND(opcode),
+			(int) (opcode >> 12) & 0xf,
+			(int) (opcode >> 16) & 0xf,
+			(int) (opcode >> 0) & 0xf);
+		return ERROR_OK;
+	case 0x01800010:
+		/* unsigned sum of absolute differences */
+		if (((opcode >> 12) & 0xf) == 0xf)
+			sprintf(cp, "USAD8%s\tr%d, r%d, r%d", COND(opcode),
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf,
+				(int) (opcode >> 8) & 0xf);
+		else
+			sprintf(cp, "USADA8%s\tr%d, r%d, r%d, r%d", COND(opcode),
+				(int) (opcode >> 16) & 0xf,
+				(int) (opcode >> 0) & 0xf,
+				(int) (opcode >> 8) & 0xf,
+				(int) (opcode >> 12) & 0xf);
+		return ERROR_OK;
+	}
+	if (mnemonic) {
+		unsigned rm = (opcode >> 0) & 0xf;
+		unsigned rd = (opcode >> 12) & 0xf;
+
+		sprintf(cp, "%s%s\tr%d, r%d", mnemonic, COND(opcode), rm, rd);
+		return ERROR_OK;
+	}
+
+undef:
+	/* these opcodes might be used someday */
+	sprintf(cp, "UNDEFINED");
+	return ERROR_OK;
+}
+
 /* Miscellaneous load/store instructions */
 int evaluate_misc_load_store(uint32_t opcode, uint32_t address, arm_instruction_t *instruction)
 {
@@ -815,6 +1132,21 @@ int evaluate_misc_instr(uint32_t opcode, uint32_t address, arm_instruction_t *in
 		Rm = opcode & 0xf;
 
 		snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBX%s r%i",
+				 address, opcode, COND(opcode), Rm);
+
+		instruction->info.b_bl_bx_blx.reg_operand = Rm;
+		instruction->info.b_bl_bx_blx.target_address = -1;
+	}
+
+	/* BXJ - "Jazelle" support (ARMv5-J) */
+	if ((opcode & 0x006000f0) == 0x00200020)
+	{
+		uint8_t Rm;
+		instruction->type = ARM_BX;
+		Rm = opcode & 0xf;
+
+		snprintf(instruction->text, 128,
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBXJ%s r%i",
 				 address, opcode, COND(opcode), Rm);
 
 		instruction->info.b_bl_bx_blx.reg_operand = Rm;
@@ -1272,17 +1604,24 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address, arm_instruction_t *in
 	/* catch opcodes with [27:25] = b011 */
 	if ((opcode & 0x0e000000) == 0x06000000)
 	{
-		/* Undefined instruction */
-		if ((opcode & 0x00000010) == 0x00000010)
+		/* Load/store register offset */
+		if ((opcode & 0x00000010) == 0x00000000)
+			return evaluate_load_store(opcode, address, instruction);
+
+		/* Architecturally Undefined instruction
+		 * ... don't expect these to ever be used
+		 */
+		if ((opcode & 0x07f000f0) == 0x07f000f0)
 		{
 			instruction->type = ARM_UNDEFINED_INSTRUCTION;
-			snprintf(instruction->text, 128, "0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tUNDEFINED INSTRUCTION", address, opcode);
+			snprintf(instruction->text, 128,
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tUNDEF",
+				address, opcode);
 			return ERROR_OK;
 		}
 
-		/* Load/store register offset */
-		return evaluate_load_store(opcode, address, instruction);
-
+		/* "media" instructions */
+		return evaluate_media(opcode, address, instruction);
 	}
 
 	/* catch opcodes with [27:25] = b100 */
