@@ -250,7 +250,7 @@ add_help_text production "<serialnumber> - Runs production procedure. Throws exc
 proc production_test {} {
 	puts "Imagine nifty test procedure having run to completion here."
 }
-add_help_text production "Runs test procedure. Throws exception if procedure failed. Prints progress messages. Implement in target script."
+add_help_text production_test "Runs test procedure. Throws exception if procedure failed. Prints progress messages. Implement in target script."
 
 add_help_text cpu "<name> - prints out target options and a comment on CPU which matches name"
 
