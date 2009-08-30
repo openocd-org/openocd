@@ -581,7 +581,7 @@ static int stellaris_read_part_info(struct flash_bank_s *bank)
 		 * Parts before rev C0 used 15 MHz; some C0 parts use 15 MHz
 		 * (LM3S618), but some other C0 parts are 12 MHz (LM3S811).
 		 */
-		if (((did0 >> 16) & 0xff) <= 2) {
+		if (((did0 >> 8) & 0xff) < 2) {
 			stellaris_info->iosc_freq = 15000000;
 			stellaris_info->iosc_desc = " (±50%)";
 		}
