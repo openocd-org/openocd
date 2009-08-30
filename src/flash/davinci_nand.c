@@ -663,7 +663,7 @@ static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
 	}
 
 	aemif = strtoul(argv[4], &ep, 0);
-	if (*ep || chip == 0 || chip == ULONG_MAX) {
+	if (*ep || aemif == 0 || aemif == ULONG_MAX) {
 		LOG_ERROR("Invalid AEMIF controller address %s", argv[4]);
 		goto fail;
 	}
