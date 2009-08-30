@@ -708,15 +708,16 @@ static int handle_flash_write_image_command(struct command_context_s *cmd_ctx, c
 		image_close(&image);
 		return retvaltemp;
 	}
-	if (retval == ERROR_OK)
-	{
-		command_print(cmd_ctx,
-					  "wrote %" PRIu32 " byte from file %s in %s (%f kb/s)",
-					  written,
-					  args[0],
-					  duration_text,
-					  (float)written / 1024.0 / ((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0)));
-	}
+
+	float speed;
+
+	speed = written / 1024.0;
+	speed /= ((float)duration.duration.tv_sec
+			+ ((float)duration.duration.tv_usec / 1000000.0));
+	command_print(cmd_ctx,
+			"wrote %" PRIu32 " byte from file %s in %s (%f kb/s)",
+			written, args[0], duration_text, speed);
+
 	free(duration_text);
 
 	image_close(&image);
@@ -828,18 +829,15 @@ static int handle_flash_fill_command(struct command_context_s *cmd_ctx, char *cm
 		return retval;
 	}
 
-	if (err == ERROR_OK)
-	{
-		float speed;
-		speed = wrote / 1024.0;
-		speed/=((float)duration.duration.tv_sec + ((float)duration.duration.tv_usec / 1000000.0));
-		command_print(cmd_ctx,
-					  "wrote %" PRId32 " bytes to 0x%8.8" PRIx32 " in %s (%f kb/s)",
-					  count*wordsize,
-					  address,
-					  duration_text,
-					  speed);
-	}
+	float speed;
+
+	speed = wrote / 1024.0;
+	speed /= ((float)duration.duration.tv_sec
+			+ ((float)duration.duration.tv_usec / 1000000.0));
+	command_print(cmd_ctx,
+			"wrote %" PRIu32 " bytes to 0x%8.8" PRIx32 " in %s (%f kb/s)",
+			wrote, address, duration_text, speed);
+
 	free(duration_text);
 	return ERROR_OK;
 }
