@@ -733,11 +733,15 @@ You may find a board configuration that's a good example to follow.
 When you write config files, separate the reusable parts
 (things every user of that interface, chip, or board needs)
 from ones specific to your environment and debugging approach.
+@itemize
 
+@item
 For example, a @code{gdb-attach} event handler that invokes
 the @command{reset init} command will interfere with debugging
 early boot code, which performs some of the same actions
 that the @code{reset-init} event handler does.
+
+@item
 Likewise, the @command{arm9tdmi vector_catch} command (or
 @cindex vector_catch
 its siblings @command{xscale vector_catch}
@@ -747,9 +751,16 @@ Keep those kinds of debugging aids in your user config file,
 along with messaging and tracing setup.
 (@xref{Software Debug Messages and Tracing}.)
 
+@item
+You might need to override some defaults.
+For example, you might need to move, shrink, or back up the target's
+work area if your application needs much SRAM.
+
+@item
 TCP/IP port configuration is another example of something which
 is environment-specific, and should only appear in
 a user config file.  @xref{TCP/IP Ports}.
+@end itemize
 
 @section Project-Specific Utilities
 
@@ -2614,9 +2625,12 @@ same event name assigns only one handler.
 which OpenOCD needs to know about.
 
 @item @code{-work-area-backup} (@option{0}|@option{1}) -- says
-whether the work area gets backed up; by default, it doesn't.
+whether the work area gets backed up; by default,
+@emph{it is not backed up.}
 When possible, use a working_area that doesn't need to be backed up,
 since performing a backup slows down operations.
+For example, the beginning of an SRAM block is likely to
+be used by most build systems, but the end is often unused.
 
 @item @code{-work-area-size} @var{size} -- specify/set the work area
 
