@@ -198,7 +198,7 @@ int orion_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 	uint8_t ale, cle;
 
 	if (argc != 3) {
-		LOG_ERROR("arguments must be: <target_number> <NAND_address>\n");
+		LOG_ERROR("arguments must be: <target_id> <NAND_address>\n");
 		return ERROR_NAND_DEVICE_INVALID;
 	}
 

@@ -128,7 +128,7 @@ add_help_text script "<filename> - filename of OpenOCD script (tcl) to run"
 # Handle GDB 'R' packet. Can be overriden by configuration script,
 # but it's not something one would expect target scripts to do
 # normally
-proc ocd_gdb_restart {target_num} {
+proc ocd_gdb_restart {target_id} {
 	# Fix!!! we're resetting all targets here! Really we should reset only
 	# one target
 	reset halt

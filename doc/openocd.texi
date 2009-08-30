@@ -2365,6 +2365,10 @@ are examples; and there are many more.
 Several commands let you examine the list of targets:
 
 @deffn Command {target count}
+@emph{Note: target numbers are deprecated; don't use them.
+They will be removed shortly after August 2010, including this command.
+Iterate target using @command{target names}, not by counting.}
+
 Returns the number of targets, @math{N}.
 The highest numbered target is @math{N - 1}.
 @example
@@ -2390,6 +2394,9 @@ foreach t [target names] @{
 @end deffn
 
 @deffn Command {target number} number
+@emph{Note: target numbers are deprecated; don't use them.
+They will be removed shortly after August 2010, including this command.}
+
 The list of targets is numbered starting at zero.
 This command returns the name of the target at index @var{number}.
 @example
@@ -2711,8 +2718,7 @@ For example, if you wanted to summarize information about
 all the targets you might use something like this:
 
 @example
-for @{ set x 0 @} @{ $x < [target count] @} @{ incr x @} @{
-    set name [target number $x]
+foreach name [target names] @{
     set y [$name cget -endian]
     set z [$name cget -type]
     puts [format "Chip %d is %s, Endian: %s, type: %s" \

@@ -120,7 +120,7 @@ typedef struct target_s
 {
 	target_type_t *type;				/* target type definition (name, access functions) */
 	const char *cmd_name;				/* tcl Name of target */
-	int target_number;					/* generaly, target index but may not be in order */
+	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	jtag_tap_t *tap;					/* where on the jtag chain is this */
 	const char *variant;				/* what varient of this chip is it? */
 	target_event_action_t *event_action;
@@ -250,7 +250,6 @@ extern int target_call_timer_callbacks(void);
 extern int target_call_timer_callbacks_now(void);
 
 extern target_t* get_current_target(struct command_context_s *cmd_ctx);
-extern int get_num_by_target(target_t *query_target);
 extern target_t *get_target(const char *id);
 
 /**

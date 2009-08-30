@@ -2156,7 +2156,9 @@ int gdb_input_inner(connection_t *connection)
 					/* handle extended restart packet */
 					breakpoint_clear_target(gdb_service->target);
 					watchpoint_clear_target(gdb_service->target);
-					command_run_linef(connection->cmd_ctx, "ocd_gdb_restart %d", get_num_by_target(target));
+					command_run_linef(connection->cmd_ctx,
+							"ocd_gdb_restart %s",
+							target->cmd_name);
 					break;
 				default:
 					/* ignore unkown packets */
@@ -2230,17 +2232,23 @@ int gdb_init(void)
 	}
 	else
 	{
+		unsigned short port = gdb_port;
+
 		while (target)
 		{
 			gdb_service = malloc(sizeof(gdb_service_t));
 			gdb_service->target = target;
 
-			add_service("gdb", CONNECTION_TCP, gdb_port + target->target_number, 1, gdb_new_connection, gdb_input, gdb_connection_closed, gdb_service);
+			add_service("gdb", CONNECTION_TCP,
+					port, 1,
+					gdb_new_connection, gdb_input,
+					gdb_connection_closed, gdb_service);
 
-			LOG_DEBUG("gdb service for target %s at port %i",
+			LOG_DEBUG("gdb service for target %s at TCP port %i",
 					target_get_name(target),
-					gdb_port + target->target_number);
+					port);
 			target = target->next;
+			port++;
 		}
 	}
 

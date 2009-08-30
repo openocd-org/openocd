@@ -249,22 +249,6 @@ target_state_name( target_t *t )
 	return cp;
 }
 
-static int max_target_number(void)
-{
-	target_t *t;
-	int x;
-
-	x = -1;
-	t = all_targets;
-	while (t) {
-		if (x < t->target_number) {
-			x = (t->target_number) + 1;
-		}
-		t = t->next;
-	}
-	return x;
-}
-
 /* determine the number of the new target */
 static int new_target_number(void)
 {
@@ -346,14 +330,19 @@ target_t *get_target(const char *id)
 			return target;
 	}
 
+	/* It's OK to remove this fallback sometime after August 2010 or so */
+
 	/* no match, try as number */
 	unsigned num;
 	if (parse_uint(id, &num) != ERROR_OK)
 		return NULL;
 
 	for (target = all_targets; target; target = target->next) {
-		if (target->target_number == (int)num)
+		if (target->target_number == (int)num) {
+			LOG_WARNING("use '%s' as target identifier, not '%u'",
+					target->cmd_name, num);
 			return target;
+		}
 	}
 
 	return NULL;
@@ -372,11 +361,6 @@ static target_t *get_target_by_num(int num)
 	}
 
 	return NULL;
-}
-
-int get_num_by_target(target_t *query_target)
-{
-	return query_target->target_number;
 }
 
 target_t* get_current_target(command_context_t *cmd_ctx)
@@ -4387,6 +4371,8 @@ static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return target_create(&goi);
 		break;
 	case TG_CMD_NUMBER:
+		/* It's OK to remove this mechanism sometime after August 2010 or so */
+		LOG_WARNING("don't use numbers as target identifiers; use names");
 		if (goi.argc != 1) {
 			Jim_SetResult_sprintf(goi.interp, "expected: target number ?NUMBER?");
 			return JIM_ERR;
@@ -4395,23 +4381,25 @@ static int jim_target(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		if (e != JIM_OK) {
 			return JIM_ERR;
 		}
-		{
-			target_t *t;
-			t = get_target_by_num(w);
-			if (t == NULL) {
-				Jim_SetResult_sprintf(goi.interp,"Target: number %d does not exist", (int)(w));
-				return JIM_ERR;
-			}
-			Jim_SetResultString(goi.interp, t->cmd_name, -1);
-			return JIM_OK;
+		for (x = 0, target = all_targets; target; target = target->next, x++) {
+			if (target->target_number == w)
+				break;
 		}
+		if (target == NULL) {
+			Jim_SetResult_sprintf(goi.interp,
+					"Target: number %d does not exist", (int)(w));
+			return JIM_ERR;
+		}
+		Jim_SetResultString(goi.interp, target->cmd_name, -1);
+		return JIM_OK;
 	case TG_CMD_COUNT:
 		if (goi.argc != 0) {
 			Jim_WrongNumArgs(goi.interp, 0, goi.argv, "<no parameters>");
 			return JIM_ERR;
 		}
-		Jim_SetResult(goi.interp,
-					   Jim_NewIntObj(goi.interp, max_target_number()));
+		for (x = 0, target = all_targets; target; target = target->next, x++)
+			continue;
+		Jim_SetResult(goi.interp, Jim_NewIntObj(goi.interp, x));
 		return JIM_OK;
 	}
 

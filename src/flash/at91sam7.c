@@ -20,20 +20,30 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
 ****************************************************************************/
 
-/***************************************************************************************************************************************************************************************
+/***************************************************************************
 *
 * New flash setup command:
 *
-* flash bank <driver> <base_addr> <size> <chip_width> <bus_width> <target_number> [<target_name> <banks> <sectors_per_bank> <pages_per_sector> <page_size> <num_nvmbits> <ext_freq_khz>]
+* flash bank <driver> <base_addr> <size> <chip_width> <bus_width> <target_id>
+*	[<chip_type> <banks>
+*	 <sectors_per_bank> <pages_per_sector>
+*	 <page_size> <num_nvmbits>
+*	 <ext_freq_khz>]
 *
 *   <ext_freq_khz> - MUST be used if clock is from external source,
-*                    CAN be used if main oscillator frequency is known (recomended)
+*                    CAN be used if main oscillator frequency is known (recommended)
 * Examples:
-*  flash bank at91sam7 0x00100000 0 0 4 0 0 AT91SAM7XC256 1 16 64 256 3 25000                   ==== RECOMENDED ============
-*  flash bank at91sam7 0 0 0 0 0 0 0 0 0 0 0 0 25000    (auto-detection, except for clock)      ==== RECOMENDED ============
-*  flash bank at91sam7 0x00100000 0 0 4 0 0 AT91SAM7XC256 1 16 64 256 3 0                       ==== NOT RECOMENDED !!! ====
-*  flash bank at91sam7 0 0 0 0 0            (old style, full auto-detection)                    ==== NOT RECOMENDED !!! ====
-****************************************************************************************************************************************************************************************/
+* ==== RECOMMENDED (covers clock speed) ============
+*  flash bank at91sam7 0x00100000 0 0 4 $_TARGETNAME AT91SAM7XC256 1 16 64 256 3 25000
+*			(if auto-detect fails; provides clock spec)
+*  flash bank at91sam7 0 0 0 0 $_TARGETNAME 0 0 0 0 0 0 25000
+*			(auto-detect everything except the clock)
+* ==== NOT RECOMMENDED !!! (clock speed is not configured) ====
+*  flash bank at91sam7 0x00100000 0 0 4 $_TARGETNAME AT91SAM7XC256 1 16 64 256 3 0
+*			(if auto-detect fails)
+*  flash bank at91sam7 0 0 0 0 $_TARGETNAME
+*			(old style, auto-detect everything)
+****************************************************************************/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -734,16 +744,6 @@ static int at91sam7_protect_check(struct flash_bank_s *bank)
 	return ERROR_OK;
 }
 
-/***************************************************************************************************************************************************************************************
-# flash bank <driver> <base_addr> <size> <chip_width> <bus_width> <target_number> [<target_name> <banks> <sectors_per_bank> <pages_per_sector> <page_size> <num_nvmbits> <ext_freq_khz>]
-#   <ext_freq_khz> - MUST be used if clock is from external source
-#                    CAN be used if main oscillator frequency is known
-# Examples:
-#  flash bank at91sam7 0x00100000 0 0 4 0 0 AT91SAM7XC256 1 16 64 256 3 25000                   ==== RECOMENDED ============
-#  flash bank at91sam7 0 0 0 0 0 0 0 0 0 0 0 0 25000    (auto-detection, except for clock)      ==== RECOMENDED ============
-#  flash bank at91sam7 0x00100000 0 0 4 0 0 AT91SAM7XC256 1 16 64 256 3 0                       ==== NOT RECOMENDED !!! ====
-#  flash bank at91sam7 0 0 0 0 0                        (old style, full auto-detection)        ==== NOT RECOMENDED !!! ====
-****************************************************************************************************************************************************************************************/
 static int at91sam7_flash_bank_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc, struct flash_bank_s *bank)
 {
 	flash_bank_t *t_bank = bank;
