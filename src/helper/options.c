@@ -38,7 +38,7 @@ static struct option long_options[] =
 	{"help",	no_argument,		&help_flag,	1},
 	{"version",	no_argument,		&version_flag,	1},
 	{"debug",	optional_argument,	0,		'd'},
-	{"file", 	required_argument,	0,		'f'},
+	{"file",	required_argument,	0,		'f'},
 	{"search",	required_argument,	0,		's'},
 	{"log_output",	required_argument,	0,	'l'},
 	{"command",	required_argument,	0,		'c'},
@@ -53,7 +53,7 @@ int configuration_output_handler(struct command_context_s *context, const char* 
 	return ERROR_OK;
 }
 
-int add_default_dirs(void)
+static void add_default_dirs(void)
 {
 #ifdef _WIN32
 	/* Add the parent of the directory where openocd.exe resides to the
@@ -106,7 +106,6 @@ int add_default_dirs(void)
 	add_script_search_dir(PKGDATADIR "/site");
 	add_script_search_dir(PKGDATADIR "/scripts");
 #endif
-	return ERROR_OK;
 }
 
 int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[])
@@ -195,6 +194,11 @@ int parse_cmdline_args(struct command_context_s *cmd_ctx, int argc, char *argv[]
 		// It is not an error to request the VERSION number.
 		exit(0);
 	}
+
+	/* paths specified on the command line take precedence over these
+	 * built-in paths
+	 */
+	add_default_dirs();
 
 	return ERROR_OK;
 }

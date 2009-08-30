@@ -744,8 +744,6 @@ command_context_t* command_init()
 	interp->cb_fflush = openocd_jim_fflush;
 	interp->cb_fgets = openocd_jim_fgets;
 
-	add_default_dirs();
-
 #if !BUILD_ECOSBOARD
 	Jim_EventLoopOnLoad(interp);
 #endif

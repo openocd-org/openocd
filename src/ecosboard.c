@@ -918,7 +918,7 @@ command_context_t *setup_command_handler(void);
 
 static const char *zylin_config_dir="/config/settings";
 
-int add_default_dirs(void)
+static int add_default_dirs(void)
 {
 	add_script_search_dir(zylin_config_dir);
 	add_script_search_dir("/rom/lib/openocd");
