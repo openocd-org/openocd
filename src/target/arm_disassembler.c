@@ -445,6 +445,9 @@ static int evaluate_extend(uint32_t opcode, uint32_t address, char *cp)
 	unsigned rn = (opcode >> 16) & 0xf;
 	char *type, *rot;
 
+	/* GCC 'uninitialized warning removal' */
+	type = rot = NULL;
+	
 	switch ((opcode >> 24) & 0x3) {
 	case 0:
 		type = "B16";
