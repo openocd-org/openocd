@@ -105,7 +105,7 @@ int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp, uint32_t *value, i
 	uint32_t dcrdr;
 
 	/* because the DCB_DCRDR is used for the emulated dcc channel
-	 * we gave to save/restore the DCB_DCRDR when used */
+	 * we have to save/restore the DCB_DCRDR when used */
 
 	mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
 
@@ -119,8 +119,13 @@ int cortexm3_dap_read_coreregister_u32(swjdp_common_t *swjdp, uint32_t *value, i
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRDR & 0xFFFFFFF0);
 	dap_ap_read_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRDR & 0xC), value);
 
-	mem_ap_write_u32(swjdp, DCB_DCRDR, dcrdr);
 	retval = swjdp_transaction_endcheck(swjdp);
+
+	/* restore DCB_DCRDR - this needs to be in a seperate
+	 * transaction otherwise the emulated DCC channel breaks */
+	if (retval == ERROR_OK)
+		retval = mem_ap_write_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
+
 	return retval;
 }
 
@@ -130,7 +135,7 @@ int cortexm3_dap_write_coreregister_u32(swjdp_common_t *swjdp, uint32_t value, i
 	uint32_t dcrdr;
 
 	/* because the DCB_DCRDR is used for the emulated dcc channel
-	 * we gave to save/restore the DCB_DCRDR when used */
+	 * we have to save/restore the DCB_DCRDR when used */
 
 	mem_ap_read_u32(swjdp, DCB_DCRDR, &dcrdr);
 
@@ -144,11 +149,15 @@ int cortexm3_dap_write_coreregister_u32(swjdp_common_t *swjdp, uint32_t value, i
 	dap_setup_accessport(swjdp, CSW_32BIT | CSW_ADDRINC_OFF, DCB_DCRSR & 0xFFFFFFF0);
 	dap_ap_write_reg_u32(swjdp, AP_REG_BD0 | (DCB_DCRSR & 0xC), regnum | DCRSR_WnR);
 
-	mem_ap_write_u32(swjdp, DCB_DCRDR, dcrdr);
 	retval = swjdp_transaction_endcheck(swjdp);
+
+	/* restore DCB_DCRDR - this needs to be in a seperate
+	 * transaction otherwise the emulated DCC channel breaks */
+	if (retval == ERROR_OK)
+		retval = mem_ap_write_atomic_u32(swjdp, DCB_DCRDR, dcrdr);
+
 	return retval;
 }
-
 
 int cortex_m3_write_debug_halt_mask(target_t *target, uint32_t mask_on, uint32_t mask_off)
 {
@@ -668,7 +677,7 @@ int cortex_m3_resume(struct target_s *target, int current, uint32_t address, int
 		/* Single step past breakpoint at current address */
 		if ((breakpoint = breakpoint_find(target, resume_pc)))
 		{
-			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %d)", 
+			LOG_DEBUG("unset breakpoint at 0x%8.8" PRIx32 " (ID: %d)",
 					  breakpoint->address,
 					  breakpoint->unique_id );
 			cortex_m3_unset_breakpoint(target, breakpoint);
@@ -971,7 +980,7 @@ int cortex_m3_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 		breakpoint->set = 0x11; /* Any nice value but 0 */
 	}
 
-	LOG_DEBUG("BPID: %d, Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)", 
+	LOG_DEBUG("BPID: %d, Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)",
 			  breakpoint->unique_id,
 			  (int)(breakpoint->type),
 			  breakpoint->address,
@@ -995,7 +1004,7 @@ int cortex_m3_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 		return ERROR_OK;
 	}
 
-	LOG_DEBUG("BPID: %d, Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)", 
+	LOG_DEBUG("BPID: %d, Type: %d, Address: 0x%08" PRIx32 " Length: %d (set=%d)",
 			  breakpoint->unique_id,
 			  (int)(breakpoint->type),
 			  breakpoint->address,
@@ -1165,7 +1174,7 @@ int cortex_m3_set_watchpoint(struct target_s *target, watchpoint_t *watchpoint)
 				  watchpoint->unique_id );
 		return ERROR_OK;
 	}
-	LOG_DEBUG("Watchpoint (ID: %d) address: 0x%08" PRIx32 " set=%d ", 
+	LOG_DEBUG("Watchpoint (ID: %d) address: 0x%08" PRIx32 " set=%d ",
 			  watchpoint->unique_id, watchpoint->address, watchpoint->set );
 	return ERROR_OK;
 
@@ -1185,7 +1194,7 @@ int cortex_m3_unset_watchpoint(struct target_s *target, watchpoint_t *watchpoint
 		return ERROR_OK;
 	}
 
-	LOG_DEBUG("Watchpoint (ID: %d) address: 0x%08" PRIx32 " set=%d ", 
+	LOG_DEBUG("Watchpoint (ID: %d) address: 0x%08" PRIx32 " set=%d ",
 			  watchpoint->unique_id, watchpoint->address,watchpoint->set );
 
 	dwt_num = watchpoint->set - 1;
