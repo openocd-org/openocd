@@ -1,7 +1,7 @@
-source [find tcl/bitsbytes.tcl]
-source [find tcl/cpu/arm/arm7tdmi.tcl]
-source [find tcl/memory.tcl]
-source [find tcl/mmr_helpers.tcl]
+source [find bitsbytes.tcl]
+source [find cpu/arm/arm7tdmi.tcl]
+source [find memory.tcl]
+source [find mmr_helpers.tcl]
 
 set CHIP_MAKER  atmel
 set CHIP_FAMILY at91sam7
@@ -122,7 +122,7 @@ set AT91C_ID(29) ""
 set AT91C_ID(30) IRQ0
 set AT91C_ID(31) IRQ1
 
-source [find tcl/chip/atmel/at91/aic.tcl]
-source [find tcl/chip/atmel/at91/usarts.tcl]
-source [find tcl/chip/atmel/at91/pmc.tcl]
-source [find tcl/chip/atmel/at91/rtt.tcl]
+source [find chip/atmel/at91/aic.tcl]
+source [find chip/atmel/at91/usarts.tcl]
+source [find chip/atmel/at91/pmc.tcl]
+source [find chip/atmel/at91/rtt.tcl]
