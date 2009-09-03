@@ -28,7 +28,7 @@
 #include "config.h"
 #endif
 
-#include "nand.h"
+#include "arm_nandio.h"
 
 
 enum ecc {
@@ -50,6 +50,9 @@ struct davinci_nand {
 	uint32_t		data;		/* without CLE or ALE */
 	uint32_t		cmd;		/* with CLE */
 	uint32_t		addr;		/* with ALE */
+
+	/* write acceleration */
+	struct arm_nand_data	io;
 
 	/* page i/o for the relevant flavor of hardware ECC */
 	int (*read_page)(struct nand_device_s *nand, uint32_t page,
@@ -181,7 +184,7 @@ static int davinci_read_data(struct nand_device_s *nand, void *data)
 	return ERROR_OK;
 }
 
-/* REVISIT a bit of native code should let block I/O be MUCH faster */
+/* REVISIT a bit of native code should let block reads be MUCH faster */
 
 static int davinci_read_block_data(struct nand_device_s *nand,
 		uint8_t *data, int data_size)
@@ -223,10 +226,17 @@ static int davinci_write_block_data(struct nand_device_s *nand,
 	target_t *target = info->target;
 	uint32_t nfdata = info->data;
 	uint32_t tmp;
+	int status;
 
 	if (!halted(target, "write_block"))
 		return ERROR_NAND_OPERATION_FAILED;
 
+	/* try the fast way first */
+	status = arm_nandwrite(&info->io, data, data_size);
+	if (status != ERROR_NAND_NO_BUFFER)
+		return status;
+
+	/* else do it slowly */
 	while (data_size >= 4) {
 		tmp = le_to_h_u32(data);
 		target_write_u32(target, nfdata, tmp);
@@ -284,6 +294,12 @@ static int davinci_write_page(struct nand_device_s *nand, uint32_t page,
 		oob = ooballoc;
 		memset(oob, 0x0ff, oob_size);
 	}
+
+	/* REVISIT avoid wasting SRAM:  unless nand->use_raw is set,
+	 * use 512 byte chunks.  Read side support will often want
+	 * to include oob_size ...
+	 */
+	info->io.chunk_size = nand->page_size;
 
 	status = info->write_page(nand, page, data, data_size, oob, oob_size);
 	free(ooballoc);
@@ -699,6 +715,9 @@ static int davinci_nand_device_command(struct command_context_s *cmd_ctx,
 	info->addr = chip | 0x08;
 
 	nand->controller_priv = info;
+
+	info->io.target = target;
+	info->io.data = info->data;
 
 	/* NOTE:  for now we don't do any error correction on read.
 	 * Nothing else in OpenOCD currently corrects read errors,

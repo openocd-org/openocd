@@ -6,6 +6,7 @@ AM_CPPFLAGS = \
 METASOURCES = AUTO
 noinst_LTLIBRARIES = libflash.la
 libflash_la_SOURCES = \
+	arm_nandio.c \
 	flash.c \
 	lpc2000.c \
 	cfi.c \
@@ -38,6 +39,7 @@ libflash_la_SOURCES = \
 	avrf.c
 
 noinst_HEADERS = \
+	arm_nandio.h \
 	flash.h \
 	lpc2000.h \
 	cfi.h \

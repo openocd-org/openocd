@@ -26,15 +26,15 @@
 #include "config.h"
 #endif
 
-#include "nand.h"
+#include "arm_nandio.h"
 #include "armv4_5.h"
-#include "binarybuffer.h"
 
 
 typedef struct orion_nand_controller_s
 {
 	struct target_s	*target;
-	working_area_t *copy_area;
+
+	struct arm_nand_data	io;
 
 	uint32_t		cmd;
 	uint32_t		addr;
@@ -99,78 +99,14 @@ static int orion_nand_slow_block_write(struct nand_device_s *device, uint8_t *da
 static int orion_nand_fast_block_write(struct nand_device_s *device, uint8_t *data, int size)
 {
 	orion_nand_controller_t *hw = device->controller_priv;
-	target_t *target = hw->target;
-	armv4_5_algorithm_t algo;
-	reg_param_t reg_params[3];
-	uint32_t target_buf;
 	int retval;
 
-	static const uint32_t code[] = {
-		0xe4d13001,	/* ldrb	r3, [r1], #1	*/
-		0xe5c03000,	/* strb	r3, [r0]	*/
-		0xe2522001,	/* subs	r2, r2, #1	*/
-		0x1afffffb,	/* bne	0		*/
-		0xeafffffe,	/* b	.		*/
-	};
-	int code_size = sizeof(code);
+	hw->io.chunk_size = device->page_size;
 
-	if (!hw->copy_area) {
-		uint8_t code_buf[code_size];
-		int i;
+	retval = arm_nandwrite(&hw->io, data, size);
+	if (retval == ERROR_NAND_NO_BUFFER)
+		retval = orion_nand_slow_block_write(device, data, size);
 
-		/* make sure we have a working area */
-		if (target_alloc_working_area(target,
-					      code_size + device->page_size,
-					      &hw->copy_area) != ERROR_OK)
-		{
-			return orion_nand_slow_block_write(device, data, size);
-		}
-
-		/* copy target instructions to target endianness */
-		for (i = 0; i < code_size/4; i++)
-			target_buffer_set_u32(target, code_buf + i*4, code[i]);
-
-		/* write code to working area */
-                retval = target_write_memory(target,
-					hw->copy_area->address,
-					4, code_size/4, code_buf);
-		if (retval != ERROR_OK)
-			return retval;
-	}
-
-	/* copy data to target's memory */
-	target_buf = hw->copy_area->address + code_size;
-	retval = target_bulk_write_memory(target, target_buf, size/4, data);
-	if (retval == ERROR_OK && size & 3) {
-		retval = target_write_memory(target,
-					target_buf + (size & ~3),
-					1, size & 3, data + (size & ~3));
-	}
-	if (retval != ERROR_OK)
-		return retval;
-
-	algo.common_magic = ARMV4_5_COMMON_MAGIC;
-	algo.core_mode = ARMV4_5_MODE_SVC;
-	algo.core_state = ARMV4_5_STATE_ARM;
-
-	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN);
-	init_reg_param(&reg_params[1], "r1", 32, PARAM_IN);
-	init_reg_param(&reg_params[2], "r2", 32, PARAM_IN);
-
-	buf_set_u32(reg_params[0].value, 0, 32, hw->data);
-	buf_set_u32(reg_params[1].value, 0, 32, target_buf);
-	buf_set_u32(reg_params[2].value, 0, 32, size);
-
-	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-					hw->copy_area->address,
-					hw->copy_area->address + code_size - 4,
-					1000, &algo);
-	if (retval != ERROR_OK)
-		LOG_ERROR("error executing hosted NAND write");
-
-	destroy_reg_param(&reg_params[0]);
-	destroy_reg_param(&reg_params[1]);
-	destroy_reg_param(&reg_params[2]);
 	return retval;
 }
 
@@ -223,6 +159,9 @@ int orion_nand_device_command(struct command_context_s *cmd_ctx, char *cmd,
 	hw->data = base;
 	hw->cmd = base + (1 << cle);
 	hw->addr = base + (1 << ale);
+
+	hw->io.target = hw->target;
+	hw->io.data = hw->data;
 
 	return ERROR_OK;
 }

@@ -223,5 +223,6 @@ extern int nand_init(struct command_context_s *cmd_ctx);
 #define		ERROR_NAND_OPERATION_NOT_SUPPORTED	(-1103)
 #define		ERROR_NAND_DEVICE_NOT_PROBED	(-1104)
 #define		ERROR_NAND_ERROR_CORRECTION_FAILED	(-1105)
+#define		ERROR_NAND_NO_BUFFER			(-1106)
 
 #endif /* NAND_H */
