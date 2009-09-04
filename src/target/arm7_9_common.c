@@ -228,9 +228,10 @@ int arm7_9_set_breakpoint(struct target_s *target, breakpoint_t *breakpoint)
 	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 	int retval = ERROR_OK;
 
-	LOG_DEBUG("BPID: %d, Address: 0x%08" PRIx32,
+	LOG_DEBUG("BPID: %d, Address: 0x%08" PRIx32 ", Type: %d" ,
 			  breakpoint->unique_id,
-			  breakpoint->address );
+			  breakpoint->address,
+			  breakpoint->type);
 
 	if (target->state != TARGET_HALTED)
 	{
@@ -1186,6 +1187,13 @@ int arm7_9_soft_reset_halt(struct target_s *target)
 	reg_t *dbg_ctrl = &arm7_9->eice_cache->reg_list[EICE_DBG_CTRL];
 	int i;
 	int retval;
+
+	/* FIX!!! replace some of this code with tcl commands
+	 *
+	 * halt # the halt command is synchronous
+	 * armv4_5 core_state arm
+	 *
+	 */
 
 	if ((retval = target_halt(target)) != ERROR_OK)
 		return retval;
