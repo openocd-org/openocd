@@ -430,6 +430,13 @@ int cortex_a8_halt(target_t *target)
 	retval = mem_ap_write_atomic_u32(swjdp,
 			OMAP3530_DEBUG_BASE + CPUDBG_DRCR, 0x1);
 
+	/*
+	 * enter halting debug mode
+	 */
+	mem_ap_read_atomic_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+	retval = mem_ap_write_atomic_u32(swjdp,
+		OMAP3530_DEBUG_BASE + CPUDBG_DSCR, dscr | (1 << DSCR_HALT_DBG_MODE));
+
 	if (retval != ERROR_OK)
 		goto out;
 
