@@ -874,28 +874,6 @@ int mips_m4k_read_memory(struct target_s *target, uint32_t address, uint32_t siz
 	if (ERROR_OK != retval)
 		return retval;
 
-	/* TAP data register is loaded LSB first (little endian) */
-	if (target->endianness == TARGET_BIG_ENDIAN)
-	{
-		uint32_t i, t32;
-		uint16_t t16;
-
-		for (i = 0; i < (count*size); i += size)
-		{
-			switch (size)
-			{
-				case 4:
-					t32 = le_to_h_u32(&buffer[i]);
-					h_u32_to_be(&buffer[i], t32);
-					break;
-				case 2:
-					t16 = le_to_h_u16(&buffer[i]);
-					h_u16_to_be(&buffer[i], t16);
-					break;
-			}
-		}
-	}
-
 	return ERROR_OK;
 }
 
@@ -918,28 +896,6 @@ int mips_m4k_write_memory(struct target_s *target, uint32_t address, uint32_t si
 
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
-
-	/* TAP data register is loaded LSB first (little endian) */
-	if (target->endianness == TARGET_BIG_ENDIAN)
-	{
-		uint32_t i, t32;
-		uint16_t t16;
-
-		for (i = 0; i < (count*size); i += size)
-		{
-			switch (size)
-			{
-				case 4:
-					t32 = be_to_h_u32(&buffer[i]);
-					h_u32_to_le(&buffer[i], t32);
-					break;
-				case 2:
-					t16 = be_to_h_u16(&buffer[i]);
-					h_u16_to_le(&buffer[i], t16);
-					break;
-			}
-		}
-	}
 
 	/* if noDMA off, use DMAACC mode for memory write */
 	if (ejtag_info->impcode & EJTAG_IMP_NODMA)
