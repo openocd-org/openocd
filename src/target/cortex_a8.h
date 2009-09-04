@@ -67,6 +67,15 @@ extern char* cortex_a8_state_strings[];
 #define BRP_NORMAL 0
 #define BRP_CONTEXT 1
 
+/* DSCR Bit offset */
+#define DSCR_CORE_HALTED		0
+#define DSCR_CORE_RESTARTED 	1
+#define DSCR_EXT_INT_EN 		13
+#define DSCR_HALT_DBG_MODE		14
+#define DSCR_MON_DBG_MODE 		15
+#define DSCR_INSTR_COMP 		24
+#define DSCR_DTR_TX_FULL 		29
+
 typedef struct  cortex_a8_brp_s
 {
 	int used;

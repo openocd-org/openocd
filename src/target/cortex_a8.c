@@ -166,7 +166,7 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 		retvalue = mem_ap_read_atomic_u32(swjdp,
 				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
 	}
-	while ((dscr & (1 << 24)) == 0); /* Wait for InstrCompl bit to be set */
+	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0); /* Wait for InstrCompl bit to be set */
 
 	mem_ap_write_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_ITR, opcode);
 
@@ -175,7 +175,7 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 		retvalue = mem_ap_read_atomic_u32(swjdp,
 				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
 	}
-	while ((dscr & (1 << 24)) == 0); /* Wait for InstrCompl bit to be set */
+	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0); /* Wait for InstrCompl bit to be set */
 
 	return retvalue;
 }
@@ -291,7 +291,7 @@ int cortex_a8_dap_read_coreregister_u32(target_t *target,
 		retval = mem_ap_read_atomic_u32(swjdp,
 				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
 	}
-	while ((dscr & (1 << 29)) == 0); /* Wait for DTRRXfull */
+	while ((dscr & (1 << DSCR_DTR_TX_FULL)) == 0); /* Wait for DTRRXfull */
 
 	retval = mem_ap_read_atomic_u32(swjdp,
 			OMAP3530_DEBUG_BASE + CPUDBG_DTRTX, value);
@@ -436,7 +436,7 @@ int cortex_a8_halt(target_t *target)
 	do {
 		mem_ap_read_atomic_u32(swjdp,
 			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
-	} while ((dscr & (1 << 0)) == 0);
+	} while ((dscr & (1 << DSCR_CORE_HALTED)) == 0);
 
 	target->debug_reason = DBG_REASON_DBGRQ;
 
@@ -535,7 +535,7 @@ int cortex_a8_resume(struct target_s *target, int current,
 	do {
 		mem_ap_read_atomic_u32(swjdp,
 			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
-	} while ((dscr & (1 << 1)) == 0);
+	} while ((dscr & (1 << DSCR_CORE_RESTARTED)) == 0);
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
 	target->state = TARGET_RUNNING;
@@ -582,7 +582,7 @@ int cortex_a8_debug_entry(target_t *target)
 	/* Enable the ITR execution once we are in debug mode */
 	mem_ap_read_atomic_u32(swjdp,
 				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
-	dscr |= (1 << 13);
+	dscr |= (1 << DSCR_EXT_INT_EN);
 	retval = mem_ap_write_atomic_u32(swjdp,
 			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, dscr);
 
