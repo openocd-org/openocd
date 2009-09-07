@@ -458,7 +458,6 @@ int cortex_a8_resume(struct target_s *target, int current,
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv7a_common_t *armv7a = armv4_5->arch_info;
-	cortex_a8_common_t *cortex_a8 = armv7a->arch_info;
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
 //	breakpoint_t *breakpoint = NULL;
@@ -506,7 +505,7 @@ int cortex_a8_resume(struct target_s *target, int current,
 	/* Make sure that the Armv7 gdb thumb fixups does not
 	 * kill the return address
 	 */
-	if (!(cortex_a8->cpudbg_dscr & (1 << 5)))
+	if (armv7a->core_state == ARMV7A_STATE_ARM)
 	{
 		resume_pc &= 0xFFFFFFFC;
 	}
@@ -638,7 +637,8 @@ int cortex_a8_debug_entry(target_t *target)
 	dap_ap_select(swjdp, swjdp_debugap);
 	LOG_DEBUG("cpsr: %8.8" PRIx32, cpsr);
 
-	armv4_5->core_mode = cpsr & 0x3F;
+	armv4_5->core_mode = cpsr & 0x1F;
+	armv7a->core_state = (cpsr & 0x20)?ARMV7A_STATE_THUMB:ARMV7A_STATE_ARM;
 
 	for (i = 0; i <= ARM_PC; i++)
 	{
@@ -657,8 +657,7 @@ int cortex_a8_debug_entry(target_t *target)
 	ARMV7A_CORE_REG_MODE(armv4_5->core_cache, armv4_5->core_mode, 16).dirty = 0;
 
 	/* Fixup PC Resume Address */
-	/* TODO Her we should use arch->core_state */
-	if (cortex_a8->cpudbg_dscr & (1 << 5))
+	if (armv7a->core_state == ARMV7A_STATE_THUMB)
 	{
 		// T bit set for Thumb or ThumbEE state
 		regfile[ARM_PC] -= 4;
@@ -743,7 +742,6 @@ int cortex_a8_step(struct target_s *target, int current, uint32_t address,
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv7a_common_t *armv7a = armv4_5->arch_info;
-	cortex_a8_common_t *cortex_a8 = armv7a->arch_info;
 	breakpoint_t *breakpoint = NULL;
 	breakpoint_t stepbreakpoint;
 
@@ -785,7 +783,7 @@ int cortex_a8_step(struct target_s *target, int current, uint32_t address,
 
 	/* Setup single step breakpoint */
 	stepbreakpoint.address = address;
-	stepbreakpoint.length = (cortex_a8->cpudbg_dscr & (1 << 5)) ? 2 : 4;
+	stepbreakpoint.length = (armv7a->core_state == ARMV7A_STATE_THUMB) ? 2 : 4;
 	stepbreakpoint.type = BKPT_HARD;
 	stepbreakpoint.set = 0;
 
