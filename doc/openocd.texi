@@ -5105,6 +5105,23 @@ Displays the number of extra tck for mem-ap memory bus access [0-255].
 If @var{value} is defined, first assigns that.
 @end deffn
 
+@subsection ARMv7-A specific commands
+@cindex ARMv7-A
+
+@deffn Command {armv7a disassemble} address [count [@option{thumb}]]
+@cindex disassemble
+Disassembles @var{count} instructions starting at @var{address}.
+If @var{count} is not specified, a single instruction is disassembled.
+If @option{thumb} is specified, or the low bit of the address is set,
+Thumb2 (mixed 16/32-bit) instructions are used;
+else ARM (32-bit) instructions are used.
+With a handful of exceptions, ThumbEE instructions are the same as Thumb2;
+ThumbEE disassembly currently has no explicit support.
+(Processors may also support the Jazelle state, but
+those instructions are not currently understood by OpenOCD.)
+@end deffn
+
+
 @subsection Cortex-M3 specific commands
 @cindex Cortex-M3
 
