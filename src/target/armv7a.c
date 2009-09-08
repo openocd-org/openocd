@@ -192,7 +192,7 @@ int armv7a_arch_state(struct target_s *target)
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 			 "%s: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "\n"
 			 "MMU: %s, D-Cache: %s, I-Cache: %s",
-		 armv7a_state_strings[armv4_5->core_state],
+		 armv7a_state_strings[armv7a->core_state],
 		 Jim_Nvp_value2name_simple(nvp_target_debug_reason,
 				target->debug_reason)->name,
 		 armv7a_mode_strings[
