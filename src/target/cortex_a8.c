@@ -85,7 +85,6 @@ target_type_t cortexa8_target =
 	.deassert_reset = NULL,
 	.soft_reset_halt = NULL,
 
-//	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
 	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
 
 	.read_memory = cortex_a8_read_memory,
@@ -509,6 +508,13 @@ int cortex_a8_resume(struct target_s *target, int current,
 	{
 		resume_pc &= 0xFFFFFFFC;
 	}
+	/* When the return address is loaded into PC
+	 * bit 0 must be 1 to stay in Thumb state
+	 */
+	if (armv7a->core_state == ARMV7A_STATE_THUMB)
+	{
+		resume_pc |= 0x1;
+	}
 	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
 	buf_set_u32(ARMV7A_CORE_REG_MODE(armv4_5->core_cache,
 				armv4_5->core_mode, 15).value,
@@ -591,7 +597,6 @@ int cortex_a8_debug_entry(target_t *target)
 	dscr |= (1 << DSCR_EXT_INT_EN);
 	retval = mem_ap_write_atomic_u32(swjdp,
 			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, dscr);
-
 
 	/* Examine debug reason */
 	switch ((cortex_a8->cpudbg_dscr >> 2)&0xF)
