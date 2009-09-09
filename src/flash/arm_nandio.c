@@ -33,7 +33,6 @@
  * For now this only supports ARMv4 and ARMv5 cores.
  *
  * Enhancements to target_run_algorithm() could enable:
- *   - faster writes: on ARMv5+ don't setup/teardown hardware breakpoint
  *   - ARMv6 and ARMv7 cores in ARM mode
  *
  * Different code fragments could handle:
@@ -44,8 +43,10 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 {
 	target_t		*target = nand->target;
 	armv4_5_algorithm_t	algo;
+	armv4_5_common_t	*armv4_5 = target->arch_info;
 	reg_param_t		reg_params[3];
 	uint32_t		target_buf;
+	uint32_t		exit = 0;
 	int			retval;
 
 	/* Inputs:
@@ -112,11 +113,13 @@ int arm_nandwrite(struct arm_nand_data *nand, uint8_t *data, int size)
 	buf_set_u32(reg_params[1].value, 0, 32, target_buf);
 	buf_set_u32(reg_params[2].value, 0, 32, size);
 
+	/* armv4 must exit using a hardware breakpoint */
+	if (armv4_5->is_armv4)
+		exit = nand->copy_area->address + sizeof(code) - 4;
+
 	/* use alg to write data from work area to NAND chip */
 	retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
-			nand->copy_area->address,
-			nand->copy_area->address + sizeof(code) - 4,
-			1000, &algo);
+			nand->copy_area->address, exit, 1000, &algo);
 	if (retval != ERROR_OK)
 		LOG_ERROR("error executing hosted NAND write");
 

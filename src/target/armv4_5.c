@@ -532,7 +532,10 @@ static int armv4_5_run_algorithm_completion(struct target_s *target, uint32_t ex
 		}
 		return ERROR_TARGET_TIMEOUT;
 	}
-	if (buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32) != exit_point)
+
+	/* fast exit: ARMv5+ code can use BKPT */
+	if (exit_point && buf_get_u32(armv4_5->core_cache->reg_list[15].value,
+				0, 32) != exit_point)
 	{
 		LOG_WARNING("target reentered debug state, but not at the desired exit point: 0x%4.4" PRIx32 "",
 			buf_get_u32(armv4_5->core_cache->reg_list[15].value, 0, 32));
@@ -569,6 +572,13 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 
 	if (armv4_5_mode_to_number(armv4_5->core_mode)==-1)
 		return ERROR_FAIL;
+
+	/* armv5 and later can terminate with BKPT instruction; less overhead */
+	if (!exit_point && armv4_5->is_armv4)
+	{
+		LOG_ERROR("ARMv4 target needs HW breakpoint location");
+		return ERROR_FAIL;
+	}
 
 	for (i = 0; i <= 16; i++)
 	{
@@ -626,9 +636,11 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 		armv4_5->core_cache->reg_list[ARMV4_5_CPSR].valid = 1;
 	}
 
-	if ((retval = breakpoint_add(target, exit_point, exit_breakpoint_size, BKPT_HARD)) != ERROR_OK)
+	/* terminate using a hardware or (ARMv5+) software breakpoint */
+	if (exit_point && (retval = breakpoint_add(target, exit_point,
+				exit_breakpoint_size, BKPT_HARD)) != ERROR_OK)
 	{
-		LOG_ERROR("can't add breakpoint to finish algorithm execution");
+		LOG_ERROR("can't add HW breakpoint to terminate algorithm");
 		return ERROR_TARGET_FAILURE;
 	}
 
@@ -639,7 +651,8 @@ int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem
 	int retvaltemp;
 	retval = run_it(target, exit_point, timeout_ms, arch_info);
 
-	breakpoint_remove(target, exit_point);
+	if (exit_point)
+		breakpoint_remove(target, exit_point);
 
 	if (retval != ERROR_OK)
 		return retval;

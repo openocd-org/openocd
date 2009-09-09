@@ -76,6 +76,7 @@ typedef struct armv4_5_common_s
 	reg_cache_t *core_cache;
 	enum armv4_5_mode core_mode;
 	enum armv4_5_state core_state;
+	bool is_armv4;
 	int (*full_context)(struct target_s *target);
 	int (*read_core_reg)(struct target_s *target, int num, enum armv4_5_mode mode);
 	int (*write_core_reg)(struct target_s *target, int num, enum armv4_5_mode mode, uint32_t value);
