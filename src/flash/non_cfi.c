@@ -140,7 +140,10 @@ static non_cfi_t non_cfi_flashes[] = {
 
 	/* SST 39VF* do not support DQ5 status polling - this currently is
 	   only supported by the host algorithm, not by the target code using
-	   the work area. */
+	   the work area.
+           Only true for 8-bit and 32-bit wide memories. 16-bit wide memories
+           without DQ5 status polling are supported by the target code.
+        */
 	{
 		.mfr = CFI_MFR_SST,
 		.id = 0x2782,				/* SST39xF160 */

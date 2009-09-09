@@ -1384,6 +1384,31 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, 
 		0xeafffffe 	/* b	81ac <sp_16_done>              */
 		};
 
+		static const uint32_t word_16_code_dq7only[] = {
+				/* <sp_16_code>:                       */
+		0xe0d050b2, 	/* ldrh r5, [r0], #2                   */
+		0xe1c890b0, 	/* strh r9, [r8]                       */
+		0xe1cab0b0, 	/* strh	r11, [r10]				*/
+		0xe1c830b0, 	/* strh	r3, [r8]				*/
+		0xe1c150b0, 	/* strh	r5, [r1]		       */
+		0xe1a00000, 	/* nop			(mov r0,r0)    */
+				/* 				       */
+				/* <sp_16_busy>:                       */
+		0xe1d160b0, 	/* ldrh	r6, [r1]		       */
+		0xe0257006, 	/* eor	r7, r5, r6		       */
+		0xe2177080, 	/* ands	r7, #0x80                      */
+		0x1afffffb, 	/* bne	8168 <sp_16_busy>	       */
+				/* 				       */
+		0xe2522001, 	/* subs	r2, r2, #1	; 0x1	       */
+		0x03a05080, 	/* moveq	r5, #128	; 0x80 */
+		0x0a000001, 	/* beq	81ac <sp_16_done>	       */
+		0xe2811002, 	/* add	r1, r1, #2	; 0x2	       */
+		0xeafffff0, 	/* b	8158 <sp_16_code>	       */
+				/* 				       */
+				/* 000081ac <sp_16_done>:	       */
+		0xeafffffe 	/* b	81ac <sp_16_done>              */
+		};
+
 		static const uint32_t word_8_code[] = {
 				/* 000081b0 <sp_16_code_end>:          */
 		0xe4d05001, 	/* ldrb	r5, [r0], #1		       */
@@ -1423,10 +1448,10 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, 
 	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
 
 	/* flash write code */
+	int target_code_size;
 	if (!cfi_info->write_algorithm)
 	{
 		uint8_t *target_code;
-		int target_code_size;
 		const uint32_t *src;
 
 		/* convert bus-width dependent algorithm code to correct endiannes */
@@ -1437,8 +1462,18 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, 
 			target_code_size = sizeof(word_8_code);
 			break;
 		case 2:
-			src = word_16_code;
-			target_code_size = sizeof(word_16_code);
+			/* Check for DQ5 support */
+			if( cfi_info->status_poll_mask & (1 << 5) )
+			{
+				src = word_16_code;
+				target_code_size = sizeof(word_16_code);
+			}
+			else
+			{
+				/* No DQ5 support. Use DQ7 DATA# polling only. */
+				src = word_16_code_dq7only;
+				target_code_size = sizeof(word_16_code_dq7only);
+			}
 			break;
 		case 4:
 			src = word_32_code;
@@ -1515,7 +1550,7 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, 
 
 		retval = target_run_algorithm(target, 0, NULL, 10, reg_params,
 						     cfi_info->write_algorithm->address,
-						     cfi_info->write_algorithm->address + ((24 * 4) - 4),
+						     cfi_info->write_algorithm->address + ((target_code_size) - 4),
 						     10000, &armv4_5_info);
 
 		status = buf_get_u32(reg_params[5].value, 0, 32);
@@ -1532,7 +1567,7 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, 
 		count -= thisrun_count;
 	}
 
-	target_free_working_area(target, source);
+	target_free_all_working_areas(target);
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
