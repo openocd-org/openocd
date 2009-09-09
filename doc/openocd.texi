@@ -5038,8 +5038,13 @@ Without arguments, the current settings are displayed.
 @subsection ARM11 specific commands
 @cindex ARM11
 
-@deffn Command {arm11 mcr} p1 p2 p3 p4 p5
-Read coprocessor register
+@deffn Command {arm11 mcr} pX opc1 CRn CRm opc2 value
+Write @var{value} to a coprocessor @var{pX} register
+passing parameters @var{CRn},
+@var{CRm}, opcodes @var{opc1} and @var{opc2},
+and the MCR instruction.
+(The difference beween this and the MCR2 instruction is
+one bit in the encoding, effecively a fifth parameter.)
 @end deffn
 
 @deffn Command {arm11 memwrite burst} [value]
@@ -5054,8 +5059,13 @@ which is enabled by default.
 If @var{value} is defined, first assigns that.
 @end deffn
 
-@deffn Command {arm11 mrc} p1 p2 p3 p4 p5 value
-Write coprocessor register
+@deffn Command {arm11 mrc} pX opc1 CRn CRm opc2
+Read a coprocessor @var{pX} register passing parameters @var{CRn},
+@var{CRm}, opcodes @var{opc1} and @var{opc2},
+and the MRC instruction.
+(The difference beween this and the MRC2 instruction is
+one bit in the encoding, effecively a fifth parameter.)
+Displays the result.
 @end deffn
 
 @deffn Command {arm11 no_increment}  [value]
