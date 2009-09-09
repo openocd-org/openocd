@@ -141,9 +141,11 @@ static int jtag_tap_configure_cmd(Jim_GetOptInfo *goi, jtag_tap_t * tap)
 					}
 
 					if (goi->isconfigure) {
+						bool replace = true;
 						if (jteap == NULL) {
 							/* create new */
 							jteap = calloc(1, sizeof (*jteap));
+							replace = false;
 						}
 						jteap->event = n->value;
 						Jim_GetOpt_Obj(goi, &o);
@@ -153,9 +155,12 @@ static int jtag_tap_configure_cmd(Jim_GetOptInfo *goi, jtag_tap_t * tap)
 						jteap->body = Jim_DuplicateObj(goi->interp, o);
 						Jim_IncrRefCount(jteap->body);
 
-						/* add to head of event list */
-						jteap->next = tap->event_action;
-						tap->event_action = jteap;
+						if (!replace)
+						{
+							/* add to head of event list */
+							jteap->next = tap->event_action;
+							tap->event_action = jteap;
+						}
 						Jim_SetEmptyResult(goi->interp);
 					} else {
 						/* get */
@@ -374,7 +379,8 @@ static void jtag_tap_handle_event(jtag_tap_t *tap, enum jtag_event e)
 				 * can't fail.  That presumes later code
 				 * will be verifying the scan chains ...
 				 */
-				tap->enabled = (e == JTAG_TAP_EVENT_ENABLE);
+				if (e == JTAG_TAP_EVENT_ENABLE)
+					tap->enabled = true;
 			}
 		}
 
