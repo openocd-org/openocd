@@ -1239,7 +1239,19 @@ int target_read_buffer(struct target_s *target, uint32_t address, uint32_t size,
 		address += aligned;
 		size -= aligned;
 	}
+	
+	/*prevent byte access when possible (avoid AHB access limitations in some cases)*/
+	if(size	>=2)
+	{
+		int aligned = size - (size%2);
+		retval = target_read_memory(target, address, 2, aligned / 2, buffer);
+		if (retval != ERROR_OK)
+			return retval;
 
+		buffer += aligned;
+		address += aligned;
+		size -= aligned;
+	}
 	/* handle tail writes of less than 4 bytes */
 	if (size > 0)
 	{
