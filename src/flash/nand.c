@@ -52,6 +52,7 @@ extern nand_flash_controller_t s3c2410_nand_controller;
 extern nand_flash_controller_t s3c2412_nand_controller;
 extern nand_flash_controller_t s3c2440_nand_controller;
 extern nand_flash_controller_t s3c2443_nand_controller;
+extern nand_flash_controller_t imx31_nand_flash_controller;
 
 /* extern nand_flash_controller_t boundary_scan_nand_controller; */
 
@@ -64,6 +65,7 @@ static nand_flash_controller_t *nand_flash_controllers[] =
 	&s3c2412_nand_controller,
 	&s3c2440_nand_controller,
 	&s3c2443_nand_controller,
+ 	&imx31_nand_flash_controller,
 /*	&boundary_scan_nand_controller, */
 	NULL
 };

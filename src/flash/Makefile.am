@@ -36,7 +36,8 @@ libflash_la_SOURCES = \
 	ocl.c \
 	mflash.c \
 	pic32mx.c \
-	avrf.c
+	avrf.c \
+	mx3_nand.c
 
 noinst_HEADERS = \
 	arm_nandio.h \
@@ -60,6 +61,7 @@ noinst_HEADERS = \
 	mflash.h \
 	ocl.h \
 	pic32mx.h \
-	avrf.h
+	avrf.h \
+	mx3_nand.h
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
