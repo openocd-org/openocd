@@ -41,6 +41,7 @@
 #endif
 
 static const Jim_Nvp nvp_jtag_tap_event[] = {
+	{ .value = JTAG_TAP_EVENT_POST_RESET,   .name = "post-reset" },
 	{ .value = JTAG_TAP_EVENT_ENABLE,       .name = "tap-enable" },
 	{ .value = JTAG_TAP_EVENT_DISABLE,      .name = "tap-disable" },
 
@@ -582,6 +583,17 @@ static int jim_jtag_command(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	return JIM_ERR;
 }
+
+
+void jtag_notify_reset(void)
+{
+	jtag_tap_t *tap;
+	for (tap = jtag_all_taps(); tap; tap = tap->next_tap)
+	{
+		jtag_tap_handle_event(tap, JTAG_TAP_EVENT_POST_RESET);
+	}
+}
+
 
 int jtag_register_commands(struct command_context_s *cmd_ctx)
 {

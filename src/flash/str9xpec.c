@@ -1254,7 +1254,8 @@ static int str9xpec_handle_flash_disable_turbo_command(struct command_context_s 
 		return ERROR_FAIL;
 
 	/* exit turbo mode via RESET */
-	str9xpec_set_instr(tap, ISC_NOOP, TAP_RESET);
+	str9xpec_set_instr(tap, ISC_NOOP, TAP_IDLE);
+	jtag_add_tlr();
 	jtag_execute_queue();
 
 	/* restore previous scan chain */

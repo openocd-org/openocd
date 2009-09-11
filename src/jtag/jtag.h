@@ -208,6 +208,7 @@ enum jtag_event {
 	JTAG_TRST_ASSERTED,
 	JTAG_TAP_EVENT_ENABLE,
 	JTAG_TAP_EVENT_DISABLE,
+	JTAG_TAP_EVENT_POST_RESET,
 };
 
 struct jtag_tap_event_action_s
@@ -634,6 +635,9 @@ extern void jtag_execute_queue_noclear(void);
 
 /// @returns the number of times the scan queue has been flushed
 int jtag_get_flush_queue_count(void);
+
+/// Notify all TAP's about a TLR reset
+void jtag_notify_reset(void);
 
 
 /* can be implemented by hw + sw */

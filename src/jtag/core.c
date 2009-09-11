@@ -62,6 +62,7 @@ static const char *jtag_event_strings[] =
 {
 	[JTAG_TRST_ASSERTED] = "JTAG controller reset (TLR or TRST)",
 	[JTAG_TAP_EVENT_ENABLE] = "TAP enabled",
+	[JTAG_TAP_EVENT_POST_RESET] = "post reset",
 	[JTAG_TAP_EVENT_DISABLE] = "TAP disabled",
 };
 
@@ -339,6 +340,8 @@ void jtag_add_ir_scan_noverify(int in_count, const scan_field_t *in_fields,
 
 void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t state)
 {
+	assert(state != TAP_RESET);
+
 	if (jtag_verify && jtag_verify_capture_ir)
 	{
 		/* 8 x 32 bit id's is enough for all invocations */
@@ -361,6 +364,8 @@ void jtag_add_ir_scan(int in_num_fields, scan_field_t *in_fields, tap_state_t st
 void jtag_add_plain_ir_scan(int in_num_fields, const scan_field_t *in_fields,
 		tap_state_t state)
 {
+	assert(state != TAP_RESET);
+
 	jtag_prelude(state);
 
 	int retval = interface_jtag_add_plain_ir_scan(
@@ -439,6 +444,8 @@ void jtag_add_dr_scan_check(int in_num_fields, scan_field_t *in_fields, tap_stat
 void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 		tap_state_t state)
 {
+	assert(state != TAP_RESET);
+	
 	jtag_prelude(state);
 
 	int retval;
@@ -449,6 +456,8 @@ void jtag_add_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 void jtag_add_plain_dr_scan(int in_num_fields, const scan_field_t *in_fields,
 		tap_state_t state)
 {
+	assert(state != TAP_RESET);
+	
 	jtag_prelude(state);
 
 	int retval;
@@ -460,6 +469,8 @@ void jtag_add_dr_out(jtag_tap_t* tap,
 		int num_fields, const int* num_bits, const uint32_t* value,
 		tap_state_t end_state)
 {
+	assert(end_state != TAP_RESET);
+	
 	assert(end_state != TAP_INVALID);
 
 	cmd_queue_cur_state = end_state;
@@ -473,6 +484,9 @@ void jtag_add_tlr(void)
 {
 	jtag_prelude(TAP_RESET);
 	jtag_set_error(interface_jtag_add_tlr());
+
+	jtag_notify_reset();
+
 	jtag_call_event_callbacks(JTAG_TRST_ASSERTED);
 }
 
@@ -683,6 +697,8 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 			LOG_DEBUG("TRST line released");
 			if (jtag_ntrst_delay)
 				jtag_add_sleep(jtag_ntrst_delay * 1000);
+
+			jtag_notify_reset();
 		}
 	}
 }
@@ -851,7 +867,8 @@ static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcod
 	for (unsigned i = 0; i < JTAG_MAX_CHAIN_SIZE; i++)
 		buf_set_u32(idcode_buffer, i * 32, 32, 0x000000FF);
 
-	jtag_add_plain_dr_scan(1, &field, TAP_RESET);
+	jtag_add_plain_dr_scan(1, &field, TAP_DRPAUSE);
+	jtag_add_tlr();
 	return jtag_execute_queue();
 }
 
@@ -1065,7 +1082,9 @@ int jtag_validate_chain(void)
 	field.in_value = ir_test;
 
 
-	jtag_add_plain_ir_scan(1, &field, TAP_RESET);
+	jtag_add_plain_ir_scan(1, &field, TAP_IRPAUSE);
+	jtag_add_tlr();
+
 	int retval;
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
