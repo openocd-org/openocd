@@ -43,8 +43,6 @@ static const char data_block_size_err_msg[] =
 	"minimal granularity is one half-word, %d is incorrect";
 static const char sram_buffer_bounds_err_msg[] =
 	"trying to access out of SRAM buffer bound (addr=0x%x)";
-static const char invalid_command_sequense_err_msg[] =
-	"invalid command sequence in %s";
 static const char get_status_register_err_msg[] = "can't get NAND status";
 static uint32_t in_sram_address;
 unsigned char sign_of_sequental_byte_read;
@@ -237,7 +235,7 @@ static int imx31_init (struct nand_device_s *device)
 	 * testing IOMUX settings; must be in "functional-mode output and
 	 * functional-mode input" mode
 	 */
-	uint8_t test_iomux;
+	int test_iomux;
 	test_iomux = ERROR_OK;
 	test_iomux |=
 	    test_iomux_settings (target, 0x43fac0c0, 0x7f7f7f00, "d0,d1,d2");
@@ -437,10 +435,6 @@ static int imx31_command (struct nand_device_s *device, uint8_t command)
 	    case NAND_CMD_READ0:
 		mx3_nf_info->fin = MX3_NF_FIN_DATAOUT;
 		mx3_nf_info->optype = MX3_NF_DATAOUT_PAGE;
-		break;
-	    case NAND_CMD_SEQIN:
-		LOG_ERROR ("aaa");
-		return ERROR_FAIL;
 		break;
 	    default:
 		mx3_nf_info->optype = MX3_NF_DATAOUT_PAGE;
