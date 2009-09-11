@@ -328,6 +328,7 @@ proc setupDDR2 {} {
 	configureDDR2regs_256B
     } else {
 	puts "Don't know how to configure DDR2 setup?"
+    }
 }
 
 
