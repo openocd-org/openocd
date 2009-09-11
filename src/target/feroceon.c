@@ -591,9 +591,20 @@ int feroceon_bulk_write_memory(target_t *target, uint32_t address, uint32_t coun
 		buffer += 4;
 	}
 
-	target_halt(target);
-	while (target->state != TARGET_HALTED)
-		target_poll(target);
+	retval = target_halt(target);
+	if (retval == ERROR_OK)
+		retval = target_wait_state(target, TARGET_HALTED, 500);
+	if (retval == ERROR_OK) {
+                uint32_t endaddress =
+			buf_get_u32(armv4_5->core_cache->reg_list[0].value, 0, 32);
+		if (endaddress != address + count*4) {
+			LOG_ERROR("DCC write failed,"
+				" expected end address 0x%08" PRIx32
+				" got 0x%0" PRIx32 "",
+			       	address + count*4, endaddress);
+			retval = ERROR_FAIL;
+		}
+	}
 
 	/* restore target state */
 	for (i = 0; i <= 5; i++)
@@ -607,7 +618,7 @@ int feroceon_bulk_write_memory(target_t *target, uint32_t address, uint32_t coun
 	armv4_5->core_cache->reg_list[15].dirty = 1;
 	armv4_5->core_state = core_state;
 
-	return ERROR_OK;
+	return retval;
 }
 
 int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target)
