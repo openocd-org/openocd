@@ -2,7 +2,7 @@
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
- *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
+ *   Copyright (C) 2007-2009 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
  *                                                                         *
  *   Copyright (C) 2008, Duane Ellis                                       *
@@ -3547,9 +3547,11 @@ static int target_configure(Jim_GetOptInfo *goi, target_t *target)
 				}
 
 				if (goi->isconfigure) {
+					bool replace = true;
 					if (teap == NULL) {
 						/* create new */
 						teap = calloc(1, sizeof(*teap));
+						replace = false;
 					}
 					teap->event = n->value;
 					Jim_GetOpt_Obj(goi, &o);
@@ -3569,9 +3571,12 @@ static int target_configure(Jim_GetOptInfo *goi, target_t *target)
 					 */
 					Jim_IncrRefCount(teap->body);
 
-					/* add to head of event list */
-					teap->next = target->event_action;
-					target->event_action = teap;
+					if (!replace)
+					{
+						/* add to head of event list */
+						teap->next = target->event_action;
+						target->event_action = teap;
+					}
 					Jim_SetEmptyResult(goi->interp);
 				} else {
 					/* get */
