@@ -32,9 +32,6 @@
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
 
-/* cli handling */
-int arm966e_register_commands(struct command_context_s *cmd_ctx);
-
 /* forward declarations */
 int arm966e_target_create(struct target_s *target, Jim_Interp *interp);
 int arm966e_init_target(struct command_context_s *cmd_ctx, struct target_s *target);

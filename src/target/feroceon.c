@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Marvell Semiconductors, Inc.                    *
+ *   Copyright (C) 2008-2009 by Marvell Semiconductors, Inc.                    *
  *   Written by Nicolas Pitre <nico@marvell.com>                           *
  *                                                                         *
  *   Copyright (C) 2008 by Hongtao Zheng                                   *
@@ -22,10 +22,10 @@
  ***************************************************************************/
 
 /*
- * Marvell Feroceon support, including Orion and Kirkwood SOCs.
+ * Marvell Feroceon/Dragonite support.
  *
- * The Feroceon core mimics the ARM926 ICE interface with the following
- * differences:
+ * The Feroceon core, as found in the Orion and Kirkwood SoCs amongst others,
+ * mimics the ARM926 ICE interface with the following differences:
  *
  * - the MOE (method of entry) reporting is not implemented
  *
@@ -43,6 +43,9 @@
  *
  * - the DCC channel is half duplex (only one FIFO for both directions) with
  *   seemingly no proper flow control.
+ *
+ * The Dragonite core is the non-mmu version based on the ARM966 model, and
+ * it shares the above issues as well.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -50,11 +53,13 @@
 #endif
 
 #include "arm926ejs.h"
+#include "arm966e.h"
 #include "target_type.h"
 
 
 int feroceon_examine(struct target_s *target);
 int feroceon_target_create(struct target_s *target, Jim_Interp *interp);
+int dragonite_target_create(struct target_s *target, Jim_Interp *interp);
 int feroceon_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer);
 int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
 int feroceon_quit(void);
@@ -111,6 +116,44 @@ target_type_t feroceon_target =
 	.quit = feroceon_quit
 };
 
+target_type_t dragonite_target =
+{
+	.name = "dragonite",
+
+	.poll = arm7_9_poll,
+	.arch_state = armv4_5_arch_state,
+
+	.target_request_data = arm7_9_target_request_data,
+
+	.halt = arm7_9_halt,
+	.resume = arm7_9_resume,
+	.step = arm7_9_step,
+
+	.assert_reset = feroceon_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
+	.soft_reset_halt = arm7_9_soft_reset_halt,
+
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+
+	.read_memory = arm7_9_read_memory,
+	.write_memory = arm7_9_write_memory,
+	.bulk_write_memory = feroceon_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = arm7_9_add_breakpoint,
+	.remove_breakpoint = arm7_9_remove_breakpoint,
+	.add_watchpoint = arm7_9_add_watchpoint,
+	.remove_watchpoint = arm7_9_remove_watchpoint,
+
+	.register_commands = arm966e_register_commands,
+	.target_create = dragonite_target_create,
+	.init_target = feroceon_init_target,
+	.examine = feroceon_examine,
+	.quit = feroceon_quit
+};
 
 int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, uint32_t instr)
 {
@@ -632,16 +675,10 @@ int feroceon_quit(void)
 	return ERROR_OK;
 }
 
-int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
+void feroceon_common_setup(struct target_s *target)
 {
-	armv4_5_common_t *armv4_5;
-	arm7_9_common_t *arm7_9;
-	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
-
-	arm926ejs_init_arch_info(target, arm926ejs, target->tap);
-
-	armv4_5 = target->arch_info;
-	arm7_9 = armv4_5->arch_info;
+	armv4_5_common_t *armv4_5 = target->arch_info;
+	arm7_9_common_t *arm7_9 = armv4_5->arch_info;
 
 	/* override some insn sequence functions */
 	arm7_9->change_to_arm = feroceon_change_to_arm;
@@ -661,10 +698,6 @@ int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 	/* MOE is not implemented */
 	arm7_9->examine_debug_reason = feroceon_examine_debug_reason;
 
-	/* the standard ARM926 methods don't always work (don't ask...) */
-	arm926ejs->read_cp15 = feroceon_read_cp15;
-	arm926ejs->write_cp15 = feroceon_write_cp15;
-
 	/* Note: asserting DBGRQ might not win over the undef exception.
 	   If that happens then just use "arm7_9 dbgrq disable". */
 	arm7_9->use_dbgrq = 1;
@@ -673,6 +706,28 @@ int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
 	/* only one working comparator */
 	arm7_9->wp_available_max = 1;
 	arm7_9->wp1_used_default = -1;
+}
+
+int feroceon_target_create(struct target_s *target, Jim_Interp *interp)
+{
+	arm926ejs_common_t *arm926ejs = calloc(1,sizeof(arm926ejs_common_t));
+
+	arm926ejs_init_arch_info(target, arm926ejs, target->tap);
+	feroceon_common_setup(target);
+
+	/* the standard ARM926 methods don't always work (don't ask...) */
+	arm926ejs->read_cp15 = feroceon_read_cp15;
+	arm926ejs->write_cp15 = feroceon_write_cp15;
+
+	return ERROR_OK;
+}
+
+int dragonite_target_create(struct target_s *target, Jim_Interp *interp)
+{
+	arm966e_common_t *arm966e = calloc(1,sizeof(arm966e_common_t));
+
+	arm966e_init_arch_info(target, arm966e, target->tap);
+	feroceon_common_setup(target);
 
 	return ERROR_OK;
 }
