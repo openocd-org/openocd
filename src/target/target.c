@@ -2334,7 +2334,7 @@ static int handle_load_image_command(struct command_context_s *cmd_ctx, char *cm
 				break;
 			}
 			image_size += length;
-			command_print(cmd_ctx, "%u byte written at address 0x%8.8" PRIx32 "",
+			command_print(cmd_ctx, "%u bytes written at address 0x%8.8" PRIx32 "",
 						  (unsigned int)length,
 						  image.sections[i].base_address + offset);
 		}
@@ -4537,7 +4537,7 @@ static int handle_fast_load_image_command(struct command_context_s *cmd_ctx, cha
 			fastload[i].length = length;
 
 			image_size += length;
-			command_print(cmd_ctx, "%u byte written at address 0x%8.8x",
+			command_print(cmd_ctx, "%u bytes written at address 0x%8.8x",
 						  (unsigned int)length,
 						  ((unsigned int)(image.sections[i].base_address + offset)));
 		}
