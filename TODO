@@ -132,6 +132,10 @@ https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
   ARM1156 has Thumb2; ARM1136 doesn't.
 - Cortex A8 support (ML)
   - add target implementation (ML)
+- Generic ARM run_algorithm() interface
+  - tagged struct wrapping ARM instructions and metadata
+  - not revision-specific (current: ARMv4+ARMv5 -or- ARMv6 -or- ARMv7)
+  - usable with at least arm_nandwrite() and generic CFI drivers
 - MC1322x support (JW/DE?)
   - integrate and test support from JW (and DE?)
   - get working with a known good interface (i.e. not today's jlink)
