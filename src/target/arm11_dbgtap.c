@@ -576,7 +576,15 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
 	arm11_setup_field(arm11,  1,    NULL,			NULL /*&Ready*/,	chain5_fields + 1);
 	arm11_setup_field(arm11,  1,    NULL,			NULL,				chain5_fields + 2);
 
-	uint8_t			Readies[count + 1];
+	uint8_t			*Readies;
+	int bytes = sizeof(*Readies)*(count + 1);
+	Readies = (uint8_t *) malloc(bytes);
+	if (Readies == NULL)
+	{
+		LOG_ERROR("Out of memory allocating %d bytes", bytes);
+		return ERROR_FAIL;
+	}
+
 	uint8_t	*		ReadyPos			= Readies;
 
 	while (count--)
@@ -603,22 +611,28 @@ int arm11_run_instr_data_to_core_noack(arm11_common_t * arm11, uint32_t opcode, 
 
 	arm11_add_dr_scan_vc(asizeof(chain5_fields), chain5_fields, TAP_DRPAUSE);
 
-	CHECK_RETVAL(jtag_execute_queue());
-
-	size_t error_count = 0;
-
-	for (size_t i = 0; i < asizeof(Readies); i++)
+	int retval = jtag_execute_queue();
+	if (retval == ERROR_OK)
 	{
-		if (Readies[i] != 1)
+
+		size_t error_count = 0;
+
+		for (size_t i = 0; i < asizeof(Readies); i++)
 		{
-			error_count++;
+			if (Readies[i] != 1)
+			{
+				error_count++;
+			}
 		}
+
+		if (error_count)
+			LOG_ERROR("Transfer errors " ZU, error_count);
+
 	}
 
-	if (error_count)
-		LOG_ERROR("Transfer errors " ZU, error_count);
+	free(Readies);
 
-	return ERROR_OK;
+	return retval;
 }
 
 
