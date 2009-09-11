@@ -56,14 +56,6 @@
 #include "arm966e.h"
 #include "target_type.h"
 
-
-int feroceon_examine(struct target_s *target);
-int feroceon_target_create(struct target_s *target, Jim_Interp *interp);
-int dragonite_target_create(struct target_s *target, Jim_Interp *interp);
-int feroceon_bulk_write_memory(target_t *target, uint32_t address, uint32_t count, uint8_t *buffer);
-int feroceon_init_target(struct command_context_s *cmd_ctx, struct target_s *target);
-int feroceon_quit(void);
-
 int feroceon_assert_reset(target_t *target)
 {
 	armv4_5_common_t *armv4_5 = target->arch_info;
@@ -76,84 +68,6 @@ int feroceon_assert_reset(target_t *target)
 	arm7_9->use_dbgrq = ud;
 	return arm7_9_assert_reset(target);
 }
-
-target_type_t feroceon_target =
-{
-	.name = "feroceon",
-
-	.poll = arm7_9_poll,
-	.arch_state = arm926ejs_arch_state,
-
-	.target_request_data = arm7_9_target_request_data,
-
-	.halt = arm7_9_halt,
-	.resume = arm7_9_resume,
-	.step = arm7_9_step,
-
-	.assert_reset = feroceon_assert_reset,
-	.deassert_reset = arm7_9_deassert_reset,
-	.soft_reset_halt = arm926ejs_soft_reset_halt,
-
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-
-	.read_memory = arm7_9_read_memory,
-	.write_memory = arm926ejs_write_memory,
-	.bulk_write_memory = feroceon_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
-
-	.add_breakpoint = arm7_9_add_breakpoint,
-	.remove_breakpoint = arm7_9_remove_breakpoint,
-	.add_watchpoint = arm7_9_add_watchpoint,
-	.remove_watchpoint = arm7_9_remove_watchpoint,
-
-	.register_commands = arm926ejs_register_commands,
-	.target_create = feroceon_target_create,
-	.init_target = feroceon_init_target,
-	.examine = feroceon_examine,
-	.quit = feroceon_quit
-};
-
-target_type_t dragonite_target =
-{
-	.name = "dragonite",
-
-	.poll = arm7_9_poll,
-	.arch_state = armv4_5_arch_state,
-
-	.target_request_data = arm7_9_target_request_data,
-
-	.halt = arm7_9_halt,
-	.resume = arm7_9_resume,
-	.step = arm7_9_step,
-
-	.assert_reset = feroceon_assert_reset,
-	.deassert_reset = arm7_9_deassert_reset,
-	.soft_reset_halt = arm7_9_soft_reset_halt,
-
-	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
-
-	.read_memory = arm7_9_read_memory,
-	.write_memory = arm7_9_write_memory,
-	.bulk_write_memory = feroceon_bulk_write_memory,
-	.checksum_memory = arm7_9_checksum_memory,
-	.blank_check_memory = arm7_9_blank_check_memory,
-
-	.run_algorithm = armv4_5_run_algorithm,
-
-	.add_breakpoint = arm7_9_add_breakpoint,
-	.remove_breakpoint = arm7_9_remove_breakpoint,
-	.add_watchpoint = arm7_9_add_watchpoint,
-	.remove_watchpoint = arm7_9_remove_watchpoint,
-
-	.register_commands = arm966e_register_commands,
-	.target_create = dragonite_target_create,
-	.init_target = feroceon_init_target,
-	.examine = feroceon_examine,
-	.quit = feroceon_quit
-};
 
 int feroceon_dummy_clock_out(arm_jtag_t *jtag_info, uint32_t instr)
 {
@@ -765,3 +679,82 @@ int feroceon_examine(struct target_s *target)
 
 	return ERROR_OK;
 }
+
+target_type_t feroceon_target =
+{
+	.name = "feroceon",
+
+	.poll = arm7_9_poll,
+	.arch_state = arm926ejs_arch_state,
+
+	.target_request_data = arm7_9_target_request_data,
+
+	.halt = arm7_9_halt,
+	.resume = arm7_9_resume,
+	.step = arm7_9_step,
+
+	.assert_reset = feroceon_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
+	.soft_reset_halt = arm926ejs_soft_reset_halt,
+
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+
+	.read_memory = arm7_9_read_memory,
+	.write_memory = arm926ejs_write_memory,
+	.bulk_write_memory = feroceon_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = arm7_9_add_breakpoint,
+	.remove_breakpoint = arm7_9_remove_breakpoint,
+	.add_watchpoint = arm7_9_add_watchpoint,
+	.remove_watchpoint = arm7_9_remove_watchpoint,
+
+	.register_commands = arm926ejs_register_commands,
+	.target_create = feroceon_target_create,
+	.init_target = feroceon_init_target,
+	.examine = feroceon_examine,
+	.quit = feroceon_quit
+};
+
+target_type_t dragonite_target =
+{
+	.name = "dragonite",
+
+	.poll = arm7_9_poll,
+	.arch_state = armv4_5_arch_state,
+
+	.target_request_data = arm7_9_target_request_data,
+
+	.halt = arm7_9_halt,
+	.resume = arm7_9_resume,
+	.step = arm7_9_step,
+
+	.assert_reset = feroceon_assert_reset,
+	.deassert_reset = arm7_9_deassert_reset,
+	.soft_reset_halt = arm7_9_soft_reset_halt,
+
+	.get_gdb_reg_list = armv4_5_get_gdb_reg_list,
+
+	.read_memory = arm7_9_read_memory,
+	.write_memory = arm7_9_write_memory,
+	.bulk_write_memory = feroceon_bulk_write_memory,
+	.checksum_memory = arm7_9_checksum_memory,
+	.blank_check_memory = arm7_9_blank_check_memory,
+
+	.run_algorithm = armv4_5_run_algorithm,
+
+	.add_breakpoint = arm7_9_add_breakpoint,
+	.remove_breakpoint = arm7_9_remove_breakpoint,
+	.add_watchpoint = arm7_9_add_watchpoint,
+	.remove_watchpoint = arm7_9_remove_watchpoint,
+
+	.register_commands = arm966e_register_commands,
+	.target_create = dragonite_target_create,
+	.init_target = feroceon_init_target,
+	.examine = feroceon_examine,
+	.quit = feroceon_quit
+};
+
