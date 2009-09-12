@@ -2657,8 +2657,21 @@ static int arm7_9_dcc_completion(struct target_s *target, uint32_t exit_point, i
 
 static const uint32_t dcc_code[] =
 {
-	/* MRC      TST         BNE         MRC         STR         B */
-	0xee101e10, 0xe3110001, 0x0afffffc, 0xee111e10, 0xe4801004, 0xeafffff9
+	/* r0 == input, points to memory buffer
+	 * r1 == scratch
+	 */
+
+	/* spin until DCC control (c0) reports data arrived */
+	0xee101e10,	/* w: mrc p14, #0, r1, c0, c0 */
+	0xe3110001,	/*    tst r1, #1              */
+	0x0afffffc,	/*    bne w                   */
+
+	/* read word from DCC (c1), write to memory */
+	0xee111e10,	/*    mrc p14, #0, r1, c1, c0 */
+	0xe4801004,	/*    str r1, [r0], #4        */
+
+	/* repeat */
+	0xeafffff9	/*    b   w                   */
 };
 
 int armv4_5_run_algorithm_inner(struct target_s *target, int num_mem_params, mem_param_t *mem_params, int num_reg_params, reg_param_t *reg_params, uint32_t entry_point, uint32_t exit_point, int timeout_ms, void *arch_info, int (*run_it)(struct target_s *target, uint32_t exit_point, int timeout_ms, void *arch_info));
@@ -2736,7 +2749,7 @@ int arm7_9_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 	reg_param_t reg_params[2];
 	int retval;
 
-	uint32_t arm7_9_crc_code[] = {
+	static const uint32_t arm7_9_crc_code[] = {
 		0xE1A02000,				/* mov		r2, r0 */
 		0xE3E00000,				/* mov		r0, #0xffffffff */
 		0xE1A03001,				/* mov		r3, r1 */
@@ -2818,15 +2831,15 @@ int arm7_9_blank_check_memory(struct target_s *target, uint32_t address, uint32_
 	int retval;
 	uint32_t i;
 
-	uint32_t erase_check_code[] =
+	static const uint32_t erase_check_code[] =
 	{
-						/* loop: */
-		0xe4d03001,		/* ldrb r3, [r0], #1	*/
-		0xe0022003,		/* and r2, r2, r3 		*/
-		0xe2511001, 	/* subs r1, r1, #1		*/
-		0x1afffffb,		/* bne loop				*/
-						/* end: */
-		0xeafffffe		/* b end				*/
+		/* loop: */
+		0xe4d03001,		/* ldrb r3, [r0], #1 */
+		0xe0022003,		/* and r2, r2, r3    */
+		0xe2511001,		/* subs r1, r1, #1   */
+		0x1afffffb,		/* bne loop          */
+		/* end: */
+		0xeafffffe		/* b end             */
 	};
 
 	/* make sure we have a working area */

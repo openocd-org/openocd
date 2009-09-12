@@ -46,6 +46,8 @@ typedef struct arm7_9_common_s
 
 	uint32_t arm_bkpt; /**< ARM breakpoint instruction */
 	uint16_t thumb_bkpt; /**< Thumb breakpoint instruction */
+	bool force_hw_bkpts;
+
 	int sw_breakpoints_added; /**< Specifies which watchpoint software breakpoints are setup on */
 	int sw_breakpoint_count; /**< keep track of number of software breakpoints we have set */
 	int breakpoint_count; /**< Current number of set breakpoints */
@@ -54,23 +56,22 @@ typedef struct arm7_9_common_s
 	int wp0_used; /**< Specifies if and how watchpoint unit 0 is used */
 	int wp1_used; /**< Specifies if and how watchpoint unit 1 is used */
 	int wp1_used_default; /**< Specifies if and how watchpoint unit 1 is used by default */
-	int force_hw_bkpts;
 	int dbgreq_adjust_pc; /**< Amount of PC adjustment caused by a DBGREQ */
-	int use_dbgrq; /**< Specifies if DBGRQ should be used to halt the target */
-	int need_bypass_before_restart; /**< Specifies if there should be a bypass before a JTAG restart */
+	bool use_dbgrq; /**< Specifies if DBGRQ should be used to halt the target */
+	bool need_bypass_before_restart; /**< Specifies if there should be a bypass before a JTAG restart */
+
+	bool has_single_step;
+	bool has_monitor_mode;
+	bool has_vector_catch; /**< Specifies if the target has a reset vector catch */
+
+	bool debug_entry_from_reset; /**< Specifies if debug entry was from a reset */
+
+	bool fast_memory_access;
+	bool dcc_downloads;
 
 	etm_context_t *etm_ctx;
 
-	int has_single_step;
-	int has_monitor_mode;
-	int has_vector_catch; /**< Specifies if the target has a reset vector catch */
-
-	int debug_entry_from_reset; /**< Specifies if debug entry was from a reset */
-
 	struct working_area_s *dcc_working_area;
-
-	int fast_memory_access;
-	int dcc_downloads;
 
 	int (*examine_debug_reason)(target_t *target); /**< Function for determining why debug state was entered */
 

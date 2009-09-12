@@ -573,7 +573,7 @@ int armv7m_checksum_memory(struct target_s *target, uint32_t address, uint32_t c
 	reg_param_t reg_params[2];
 	int retval;
 
-	uint16_t cortex_m3_crc_code[] = {
+	static const uint16_t cortex_m3_crc_code[] = {
 		0x4602,					/* mov	r2, r0 */
 		0xF04F, 0x30FF,			/* mov	r0, #0xffffffff */
 		0x460B,					/* mov	r3, r1 */
@@ -655,11 +655,11 @@ int armv7m_blank_check_memory(struct target_s *target, uint32_t address, uint32_
 	int retval;
 	uint32_t i;
 
-	uint16_t erase_check_code[] =
+	static const uint16_t erase_check_code[] =
 	{
 							/* loop: */
-		0xF810, 0x3B01,		/* ldrb 	r3, [r0], #1 */
-		0xEA02, 0x0203,		/* and 	r2, r2, r3 */
+		0xF810, 0x3B01,		/* ldrb r3, [r0], #1 */
+		0xEA02, 0x0203,		/* and  r2, r2, r3 */
 		0x3901,				/* subs 	r1, r1, #1 */
 		0xD1F9,				/* bne		loop */
 							/* end: */
