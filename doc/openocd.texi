@@ -2289,14 +2289,14 @@ does include a kind of JTAG router functionality.
 
 @deffn Command {jtag cget} dotted.name @option{-event} name
 @deffnx Command {jtag configure} dotted.name @option{-event} name string
-At this writing this mechanism is used only for event handling,
-and the only two events relate to TAP enabling and disabling.
+At this writing this mechanism is used only for event handling.
+Three events are available. Two events relate to TAP enabling
+and disabling, one to post reset handling.
 
 The @code{configure} subcommand assigns an event handler,
 a TCL string which is evaluated when the event is triggered.
 The @code{cget} subcommand returns that handler.
-The two possible values for an event @var{name}
-are @option{tap-disable} and @option{tap-enable}.
+The three possible values for an event @var{name} are @option{tap-disable}, @option{tap-enable} and @option{post-reset}.
 
 So for example, when defining a TAP for a CPU connected to
 a JTAG router, you should define TAP event handlers using
@@ -2310,6 +2310,15 @@ jtag configure CHIP.cpu -event tap-enable @{
 jtag configure CHIP.cpu -event tap-disable @{
   echo "Disabling CPU TAP"
   ... jtag operations using CHIP.jrc
+@}
+@end example
+
+If you need some post reset action, you can do:
+
+@example
+jtag configure CHIP.cpu -event post-reset @{
+  echo "Reset done"
+  ... jtag operations to be done after reset
 @}
 @end example
 @end deffn
