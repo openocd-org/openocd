@@ -224,7 +224,6 @@ int cortex_a8_read_cp(target_t *target, uint32_t *value, uint8_t CP,
 
 int cortex_a8_write_cp(target_t *target, uint32_t value,
 	uint8_t CP, uint8_t op1, uint8_t CRn, uint8_t CRm, uint8_t op2)
-/* TODO Fix this */
 {
 	int retval;
 	/* get pointers to arch-specific information */
@@ -237,7 +236,7 @@ int cortex_a8_write_cp(target_t *target, uint32_t value,
 	/* Move DTRRX to r0 */
 	cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
 
-	cortex_a8_exec_opcode(target, ARMV4_5_MCR(CP, 0, 0, 0, 5, 0));
+	cortex_a8_exec_opcode(target, ARMV4_5_MCR(CP, op1, 0, CRn, CRm, op2));
 	return retval;
 }
 
