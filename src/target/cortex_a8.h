@@ -43,6 +43,7 @@ extern char* cortex_a8_state_strings[];
 #define CPUDBG_DIDR		0x000
 #define CPUDBG_WFAR		0x018
 #define CPUDBG_VCR	0x01C
+#define CPUDBG_ECR	0x024
 #define CPUDBG_DSCCR	0x028
 #define CPUDBG_DTRRX	0x080
 #define CPUDBG_ITR	0x084
@@ -63,6 +64,9 @@ extern char* cortex_a8_state_strings[];
 #define CPUDBG_CPUID	0xD00
 #define CPUDBG_CTYPR	0xD04
 #define CPUDBG_TTYPR	0xD0C
+#define CPUDBG_LOCKACCESS 0xFB0
+#define CPUDBG_LOCKSTATUS 0xFB4
+#define CPUDBG_AUTHSTATUS 0xFB8
 
 #define BRP_NORMAL 0
 #define BRP_CONTEXT 1
