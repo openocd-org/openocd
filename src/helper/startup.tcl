@@ -134,7 +134,29 @@ proc ocd_gdb_restart {target_id} {
 	reset halt
 }
 
+global in_process_reset
+set in_process_reset 0
+
+# Catch reset recursion
 proc ocd_process_reset { MODE } {
+	global in_process_reset
+	if {$in_process_reset} {
+		set in_process_reset 0
+		return -code error "'reset' can not be invoked recursively"
+	}
+	
+	set in_process_reset 1
+	set success [expr [catch {ocd_process_reset_inner $MODE} result]==0] 
+	set in_process_reset 0
+	
+	if {$success} {
+		return $result
+	} else {
+		return -code error $result
+	}
+}
+
+proc ocd_process_reset_inner { MODE } {
 
 	# If this target must be halted...
 	set halt -1
