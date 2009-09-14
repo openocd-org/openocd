@@ -153,7 +153,7 @@ mdw 0x54011080 4
 int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 {
 	uint32_t dscr;
-	int retvalue;
+	int retval;
 	/* get pointers to arch-specific information */
 	armv4_5_common_t *armv4_5 = target->arch_info;
 	armv7a_common_t *armv7a = armv4_5->arch_info;
@@ -162,8 +162,10 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 	LOG_DEBUG("exec opcode 0x%08" PRIx32, opcode);
 	do
 	{
-		retvalue = mem_ap_read_atomic_u32(swjdp,
+		retval = mem_ap_read_atomic_u32(swjdp,
 				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0); /* Wait for InstrCompl bit to be set */
 
@@ -171,12 +173,14 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 
 	do
 	{
-		retvalue = mem_ap_read_atomic_u32(swjdp,
+		retval = mem_ap_read_atomic_u32(swjdp,
 				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0); /* Wait for InstrCompl bit to be set */
 
-	return retvalue;
+	return retval;
 }
 
 /**************************************************************************
