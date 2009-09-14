@@ -1448,7 +1448,7 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, 
 	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
 
 	/* flash write code */
-	int target_code_size;
+	int target_code_size = 0;
 	if (!cfi_info->write_algorithm)
 	{
 		uint8_t *target_code;
