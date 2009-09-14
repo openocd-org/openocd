@@ -3,7 +3,7 @@
  * Copyright (C) 2009 Marvell Semiconductor, Inc.
  *
  * Authors: Lennert Buytenhek <buytenh@wantstofly.org>
- *          Nicolas Pitre <nico@cam.org>
+ *          Nicolas Pitre <nico@fluxnic.net>
  *
  * This file is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
