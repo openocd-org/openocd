@@ -1125,11 +1125,11 @@ static int cfi_intel_write_block(struct flash_bank_s *bank, uint8_t *buffer, uin
 	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
 
 	/* If we are setting up the write_algorith, we need target_code_src */
-	/* if not we only need target_code_size.														*/
-	/* 																																	*/
-	/* However, we don't want to create multiple code paths, so we			*/
-	/* do the unecessary evaluation of target_code_src, which the 			*/
-	/* compiler will probably nicely optimize away if not needed				*/
+	/* if not we only need target_code_size. */
+
+	/* However, we don't want to create multiple code paths, so we */
+	/* do the unecessary evaluation of target_code_src, which the */
+	/* compiler will probably nicely optimize away if not needed */
 
 	/* prepare algorithm code for target endian */
 	switch (bank->bus_width)
@@ -1447,44 +1447,46 @@ static int cfi_spansion_write_block(struct flash_bank_s *bank, uint8_t *buffer, 
 	armv4_5_info.core_mode = ARMV4_5_MODE_SVC;
 	armv4_5_info.core_state = ARMV4_5_STATE_ARM;
 
+	int target_code_size;
+	const uint32_t *target_code_src;
+
+	switch (bank->bus_width)
+	{
+	case 1 :
+		target_code_src = word_8_code;
+		target_code_size = sizeof(word_8_code);
+		break;
+	case 2 :
+		/* Check for DQ5 support */
+		if( cfi_info->status_poll_mask & (1 << 5) )
+		{
+			target_code_src = word_16_code;
+			target_code_size = sizeof(word_16_code);
+		}
+		else
+		{
+			/* No DQ5 support. Use DQ7 DATA# polling only. */
+			target_code_src = word_16_code_dq7only;
+			target_code_size = sizeof(word_16_code_dq7only);
+		}
+		break;
+	case 4 :
+		target_code_src = word_32_code;
+		target_code_size = sizeof(word_32_code);
+		break;
+	default:
+		LOG_ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
 	/* flash write code */
-	int target_code_size = 0;
 	if (!cfi_info->write_algorithm)
 	{
 		uint8_t *target_code;
-		const uint32_t *src;
 
 		/* convert bus-width dependent algorithm code to correct endiannes */
-		switch (bank->bus_width)
-		{
-		case 1:
-			src = word_8_code;
-			target_code_size = sizeof(word_8_code);
-			break;
-		case 2:
-			/* Check for DQ5 support */
-			if( cfi_info->status_poll_mask & (1 << 5) )
-			{
-				src = word_16_code;
-				target_code_size = sizeof(word_16_code);
-			}
-			else
-			{
-				/* No DQ5 support. Use DQ7 DATA# polling only. */
-				src = word_16_code_dq7only;
-				target_code_size = sizeof(word_16_code_dq7only);
-			}
-			break;
-		case 4:
-			src = word_32_code;
-			target_code_size = sizeof(word_32_code);
-			break;
-		default:
-			LOG_ERROR("Unsupported bank buswidth %d, can't do block memory writes", bank->bus_width);
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
 		target_code = malloc(target_code_size);
-		cfi_fix_code_endian(target, target_code, src, target_code_size / 4);
+		cfi_fix_code_endian(target, target_code, target_code_src, target_code_size / 4);
 
 		/* allocate working area */
 		retval = target_alloc_working_area(target, target_code_size,
