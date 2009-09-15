@@ -98,6 +98,13 @@ typedef struct armv7a_common_s
 
 	/* arm adp debug port */
 	swjdp_common_t swjdp_info;
+
+	/* Core Debug Unit */
+	uint32_t debug_base;
+	uint8_t debug_ap;
+	uint8_t memory_ap;
+
+	/* Cache and Memory Management Unit */
 	armv4_5_mmu_common_t armv4_5_mmu;
 	armv4_5_common_t armv4_5_common;
 	void *arch_info;
