@@ -70,8 +70,8 @@ char* armv7a_core_reg_list[] =
 
 char * armv7a_mode_strings_list[] =
 {
-	"Illegal mode value", "System and User", "FIQ", "IRQ",
-	"Supervisor", "Abort", "Undefined", "Monitor"
+	"Illegal mode value", "User", "FIQ", "IRQ",
+	"Supervisor", "Abort", "Undefined", "System", "Monitor"
 };
 
 /* Hack! Yuk! allow -1 index, which simplifies codepaths elsewhere in the code */
