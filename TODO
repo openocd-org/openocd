@@ -114,6 +114,10 @@ Once the above are completed:
   https://lists.berlios.de/pipermail/openocd-development/2009-July/009426.html
 - regression: "reset halt" between 729(works) and 788(fails): @par
 https://lists.berlios.de/pipermail/openocd-development/2009-July/009206.html
+- ARM7/9:
+  - add reset option to allow programming embedded ice while srst is asserted.
+  Some CPUs will gate the JTAG clock when srst is asserted and in this case,
+  it is necessary to program embedded ice and then assert srst afterwards.
 - ARM923EJS:
   - reset run/halt/step is not robust; needs testing to map out problems.
 - ARM11 improvements (MB?)
