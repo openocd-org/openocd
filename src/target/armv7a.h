@@ -79,6 +79,16 @@ enum
 #define ARMV4_5_COMMON_MAGIC 0x0A450A45
 #define ARMV7_COMMON_MAGIC 0x0A450999
 
+/* VA to PA translation operations opc2 values*/
+#define V2PCWPR  0
+#define V2PCWPW  1
+#define V2PCWUR  2
+#define V2PCWUW  3
+#define V2POWPR  4
+#define V2POWPW  5
+#define V2POWUR  6
+#define V2POWUW  7
+
 typedef struct armv7a_common_s
 {
 	int common_magic;
