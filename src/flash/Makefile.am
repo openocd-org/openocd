@@ -9,6 +9,8 @@ libflash_la_SOURCES = \
 	arm_nandio.c \
 	flash.c \
 	lpc2000.c \
+	lpc288x.c \
+	lpc2900.c \
 	cfi.c \
 	non_cfi.c \
 	at91sam7.c \
@@ -32,7 +34,6 @@ libflash_la_SOURCES = \
 	s3c2412_nand.c \
 	s3c2440_nand.c \
 	s3c2443_nand.c \
-	lpc288x.c \
 	ocl.c \
 	mflash.c \
 	pic32mx.c \
@@ -43,6 +44,8 @@ noinst_HEADERS = \
 	arm_nandio.h \
 	flash.h \
 	lpc2000.h \
+	lpc288x.h \
+	lpc2900.h \
 	cfi.h \
 	non_cfi.h \
 	at91sam7.h \
@@ -57,7 +60,6 @@ noinst_HEADERS = \
 	tms470.h \
 	s3c24xx_nand.h \
 	s3c24xx_regs_nand.h \
-	lpc288x.h \
 	mflash.h \
 	ocl.h \
 	pic32mx.h \

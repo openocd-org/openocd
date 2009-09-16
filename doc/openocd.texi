@@ -3309,7 +3309,15 @@ and executed.
 
 @deffn {Flash Driver} lpc2000
 Most members of the LPC1700 and LPC2000 microcontroller families from NXP
-include internal flash and use Cortex-M3 (LPC1700) or ARM7TDMI (LPC2000)  cores.
+include internal flash and use Cortex-M3 (LPC1700) or ARM7TDMI (LPC2000) cores.
+
+@quotation Note
+There are LPC2000 devices which are not supported by the @var{lpc2000}
+driver:
+The LPC2888 is supported by the @var{lpc288x} driver.
+The LPC29xx family is supported by the @var{lpc2900} driver.
+@end quotation
+
 The @var{lpc2000} driver defines two mandatory and one optional parameters,
 which must appear in the following order:
 
@@ -3347,6 +3355,129 @@ LPC flashes don't require the chip and bus width to be specified.
 @example
 flash bank lpc288x 0 0 0 0 $_TARGETNAME 12000000
 @end example
+@end deffn
+
+@deffn {Flash Driver} lpc2900
+This driver supports the LPC29xx ARM968E based microcontroller family
+from NXP.
+
+The predefined parameters @var{base}, @var{size}, @var{chip_width} and
+@var{bus_width} of the @code{flash bank} command are ignored. Flash size and
+sector layout are auto-configured by the driver.
+The driver has one additional mandatory parameter: The CPU clock rate
+(in kHz) at the time the flash operations will take place. Most of the time this
+will not be the crystal frequency, but a higher PLL frequency. The
+@code{reset-init} event handler in the board script is usually the place where
+you start the PLL.
+
+The driver rejects flashless devices (currently the LPC2930).
+
+The EEPROM in LPC2900 devices is not mapped directly into the address space.
+It must be handled much more like NAND flash memory, and will therefore be
+handled by a separate @code{lpc2900_eeprom} driver (not yet available).
+
+Sector protection in terms of the LPC2900 is handled transparently. Every time a
+sector needs to be erased or programmed, it is automatically unprotected.
+What is shown as protection status in the @code{flash info} command, is
+actually the LPC2900 @emph{sector security}. This is a mechanism to prevent a
+sector from ever being erased or programmed again. As this is an irreversible
+mechanism, it is handled by a special command (@code{lpc2900 secure_sector}),
+and not by the standard @code{flash protect} command.
+
+Example for a 125 MHz clock frequency:
+@example
+flash bank lpc2900 0 0 0 0 $_TARGETNAME 125000
+@end example
+
+Some @code{lpc2900}-specific commands are defined. In the following command list,
+the @var{bank} parameter is the bank number as obtained by the
+@code{flash banks} command.
+
+@deffn Command {lpc2900 signature} bank
+Calculates a 128-bit hash value, the @emph{signature}, from the whole flash
+content. This is a hardware feature of the flash block, hence the calculation is
+very fast. You may use this to verify the content of a programmed device against
+a known signature.
+Example:
+@example
+lpc2900 signature 0
+  signature: 0x5f40cdc8:0xc64e592e:0x10490f89:0x32a0f317
+@end example
+@end deffn
+
+@deffn Command {lpc2900 read_custom} bank filename
+Reads the 912 bytes of customer information from the flash index sector, and
+saves it to a file in binary format.
+Example:
+@example
+lpc2900 read_custom 0 /path_to/customer_info.bin
+@end example
+@end deffn
+
+The index sector of the flash is a @emph{write-only} sector. It cannot be
+erased! In order to guard against unintentional write access, all following
+commands need to be preceeded by a successful call to the @code{password}
+command:
+
+@deffn Command {lpc2900 password} bank password
+You need to use this command right before each of the following commands:
+@code{lpc2900 write_custom}, @code{lpc2900 secure_sector},
+@code{lpc2900 secure_jtag}.
+
+The password string is fixed to "I_know_what_I_am_doing".
+Example:
+@example
+lpc2900 password 0 I_know_what_I_am_doing
+  Potentially dangerous operation allowed in next command!
+@end example
+@end deffn
+
+@deffn Command {lpc2900 write_custom} bank filename type
+Writes the content of the file into the customer info space of the flash index
+sector. The filetype can be specified with the @var{type} field. Possible values
+for @var{type} are: @var{bin} (binary), @var{ihex} (Intel hex format),
+@var{elf} (ELF binary) or @var{s19} (Motorola S-records). The file must
+contain a single section, and the contained data length must be exactly
+912 bytes.
+@quotation Attention
+This cannot be reverted! Be careful!
+@end quotation
+Example:
+@example
+lpc2900 write_custom 0 /path_to/customer_info.bin bin
+@end example
+@end deffn
+
+@deffn Command {lpc2900 secure_sector} bank first last
+Secures the sector range from @var{first} to @var{last} (including) against
+further program and erase operations. The sector security will be effective
+after the next power cycle.
+@quotation Attention
+This cannot be reverted! Be careful!
+@end quotation
+Secured sectors appear as @emph{protected} in the @code{flash info} command.
+Example:
+@example
+lpc2900 secure_sector 0 1 1
+flash info 0
+  #0 : lpc2900 at 0x20000000, size 0x000c0000, (...)
+          #  0: 0x00000000 (0x2000 8kB) not protected
+          #  1: 0x00002000 (0x2000 8kB) protected
+          #  2: 0x00004000 (0x2000 8kB) not protected
+@end example
+@end deffn
+
+@deffn Command {lpc2900 secure_jtag} bank
+Irreversibly disable the JTAG port. The new JTAG security setting will be
+effective after the next power cycle.
+@quotation Attention
+This cannot be reverted! Be careful!
+@end quotation
+Examples:
+@example
+lpc2900 secure_jtag 0
+@end example
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} ocl

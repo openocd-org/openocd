@@ -47,6 +47,8 @@ static int handle_flash_protect_command(struct command_context_s *cmd_ctx, char 
 /* flash drivers
  */
 extern flash_driver_t lpc2000_flash;
+extern flash_driver_t lpc288x_flash;
+extern flash_driver_t lpc2900_flash;
 extern flash_driver_t cfi_flash;
 extern flash_driver_t at91sam3_flash;
 extern flash_driver_t at91sam7_flash;
@@ -58,13 +60,14 @@ extern flash_driver_t str9xpec_flash;
 extern flash_driver_t stm32x_flash;
 extern flash_driver_t tms470_flash;
 extern flash_driver_t ecosflash_flash;
-extern flash_driver_t lpc288x_flash;
 extern flash_driver_t ocl_flash;
 extern flash_driver_t pic32mx_flash;
 extern flash_driver_t avr_flash;
 
 flash_driver_t *flash_drivers[] = {
 	&lpc2000_flash,
+	&lpc288x_flash,
+	&lpc2900_flash,
 	&cfi_flash,
 	&at91sam7_flash,
 	&at91sam3_flash,
@@ -76,7 +79,6 @@ flash_driver_t *flash_drivers[] = {
 	&stm32x_flash,
 	&tms470_flash,
 	&ecosflash_flash,
-	&lpc288x_flash,
 	&ocl_flash,
 	&pic32mx_flash,
 	&avr_flash,
