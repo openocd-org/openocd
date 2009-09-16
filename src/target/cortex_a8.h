@@ -103,11 +103,6 @@ typedef struct cortex_a8_common_s
 	int common_magic;
 	arm_jtag_t jtag_info;
 
-	/* Core Debug Unit */
-	uint32_t debug_base;
-	uint8_t debug_ap;
-	uint8_t memory_ap;
-
 	/* Context information */
 	uint32_t cpudbg_dscr;
 	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
