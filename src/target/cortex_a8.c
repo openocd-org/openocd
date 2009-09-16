@@ -163,21 +163,21 @@ int cortex_a8_exec_opcode(target_t *target, uint32_t opcode)
 	do
 	{
 		retval = mem_ap_read_atomic_u32(swjdp,
-				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 		if (retval != ERROR_OK)
 			return retval;
-	}
+		}
 	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0); /* Wait for InstrCompl bit to be set */
 
-	mem_ap_write_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_ITR, opcode);
+	mem_ap_write_u32(swjdp, armv7a->debug_base + CPUDBG_ITR, opcode);
 
 	do
 	{
 		retval = mem_ap_read_atomic_u32(swjdp,
-				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 		if (retval != ERROR_OK)
 			return retval;
-	}
+		}
 	while ((dscr & (1 << DSCR_INSTR_COMP)) == 0); /* Wait for InstrCompl bit to be set */
 
 	return retval;
@@ -221,7 +221,7 @@ int cortex_a8_read_cp(target_t *target, uint32_t *value, uint8_t CP,
 
 	/* Read DCCTX */
 	retval = mem_ap_read_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DTRTX, value);
+			armv7a->debug_base + CPUDBG_DTRTX, value);
 
 	return retval;
 }
@@ -236,7 +236,7 @@ int cortex_a8_write_cp(target_t *target, uint32_t value,
 	swjdp_common_t *swjdp = &armv7a->swjdp_info;
 
 	retval = mem_ap_write_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DTRRX, value);
+			armv7a->debug_base + CPUDBG_DTRRX, value);
 	/* Move DTRRX to r0 */
 	cortex_a8_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0));
 
@@ -291,12 +291,12 @@ int cortex_a8_dap_read_coreregister_u32(target_t *target,
 	do
 	{
 		retval = mem_ap_read_atomic_u32(swjdp,
-				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 	}
 	while ((dscr & (1 << DSCR_DTR_TX_FULL)) == 0); /* Wait for DTRRXfull */
 
 	retval = mem_ap_read_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DTRTX, value);
+			armv7a->debug_base + CPUDBG_DTRTX, value);
 
 	return retval;
 }
@@ -316,7 +316,7 @@ int cortex_a8_dap_write_coreregister_u32(target_t *target, uint32_t value, int r
 
 	/* Write to DCCRX */
 	retval = mem_ap_write_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DTRRX, value);
+			armv7a->debug_base + CPUDBG_DTRRX, value);
 
 	if (Rd < 15)
 	{
@@ -359,7 +359,7 @@ int cortex_a8_poll(target_t *target)
 	uint8_t saved_apsel = dap_ap_get_select(swjdp);
 	dap_ap_select(swjdp, swjdp_debugap);
 	retval = mem_ap_read_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+			armv7a->debug_base + CPUDBG_DSCR, &dscr);
 	if (retval != ERROR_OK)
 	{
 		dap_ap_select(swjdp, saved_apsel);
@@ -430,21 +430,21 @@ int cortex_a8_halt(target_t *target)
 	 * and then wait for the core to be halted.
 	 */
 	retval = mem_ap_write_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DRCR, 0x1);
+			armv7a->debug_base + CPUDBG_DRCR, 0x1);
 
 	/*
 	 * enter halting debug mode
 	 */
-	mem_ap_read_atomic_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+	mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_DSCR, &dscr);
 	retval = mem_ap_write_atomic_u32(swjdp,
-		OMAP3530_DEBUG_BASE + CPUDBG_DSCR, dscr | (1 << DSCR_HALT_DBG_MODE));
+		armv7a->debug_base + CPUDBG_DSCR, dscr | (1 << DSCR_HALT_DBG_MODE));
 
 	if (retval != ERROR_OK)
 		goto out;
 
 	do {
 		mem_ap_read_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+			armv7a->debug_base + CPUDBG_DSCR, &dscr);
 	} while ((dscr & (1 << DSCR_CORE_HALTED)) == 0);
 
 	target->debug_reason = DBG_REASON_DBGRQ;
@@ -545,11 +545,11 @@ int cortex_a8_resume(struct target_s *target, int current,
 
 #endif
 	/* Restart core and wait for it to be started */
-	mem_ap_write_atomic_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_DRCR, 0x2);
+	mem_ap_write_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_DRCR, 0x2);
 
 	do {
 		mem_ap_read_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+			armv7a->debug_base + CPUDBG_DSCR, &dscr);
 	} while ((dscr & (1 << DSCR_CORE_RESTARTED)) == 0);
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
@@ -596,10 +596,10 @@ int cortex_a8_debug_entry(target_t *target)
 
 	/* Enable the ITR execution once we are in debug mode */
 	mem_ap_read_atomic_u32(swjdp,
-				OMAP3530_DEBUG_BASE + CPUDBG_DSCR, &dscr);
+				armv7a->debug_base + CPUDBG_DSCR, &dscr);
 	dscr |= (1 << DSCR_EXT_INT_EN);
 	retval = mem_ap_write_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DSCR, dscr);
+			armv7a->debug_base + CPUDBG_DSCR, dscr);
 
 	/* Examine debug reason */
 	switch ((cortex_a8->cpudbg_dscr >> 2)&0xF)
@@ -1029,10 +1029,10 @@ int cortex_a8_set_breakpoint(struct target_s *target,
 		brp_list[brp_i].used = 1;
 		brp_list[brp_i].value = (breakpoint->address & 0xFFFFFFFC);
 		brp_list[brp_i].control = control;
-		target_write_u32(target, OMAP3530_DEBUG_BASE
+		target_write_u32(target, armv7a->debug_base
 				+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].value);
-		target_write_u32(target, OMAP3530_DEBUG_BASE
+		target_write_u32(target, armv7a->debug_base
 				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].control);
 		LOG_DEBUG("brp %i control 0x%0" PRIx32 " value 0x%0" PRIx32, brp_i,
@@ -1095,10 +1095,10 @@ int cortex_a8_unset_breakpoint(struct target_s *target, breakpoint_t *breakpoint
 		brp_list[brp_i].used = 0;
 		brp_list[brp_i].value = 0;
 		brp_list[brp_i].control = 0;
-		target_write_u32(target, OMAP3530_DEBUG_BASE
+		target_write_u32(target, armv7a->debug_base
 				+ CPUDBG_BCR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].control);
-		target_write_u32(target, OMAP3530_DEBUG_BASE
+		target_write_u32(target, armv7a->debug_base
 				+ CPUDBG_BVR_BASE + 4 * brp_list[brp_i].BRPn,
 				brp_list[brp_i].value);
 	}
@@ -1366,35 +1366,38 @@ int cortex_a8_examine(struct target_s *target)
 	uint32_t didr, ctypr, ttypr, cpuid;
 
 	LOG_DEBUG("TODO");
+	
+	/* Here we shall insert a proper ROM Table scan */
+	armv7a->debug_base = OMAP3530_DEBUG_BASE;
 
 	/* We do one extra read to ensure DAP is configured,
 	 * we call ahbap_debugport_init(swjdp) instead
 	 */
 	ahbap_debugport_init(swjdp);
-	mem_ap_read_atomic_u32(swjdp, OMAP3530_DEBUG_BASE + CPUDBG_CPUID, &cpuid);
+	mem_ap_read_atomic_u32(swjdp, armv7a->debug_base + CPUDBG_CPUID, &cpuid);
 	if ((retval = mem_ap_read_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_CPUID, &cpuid)) != ERROR_OK)
+			armv7a->debug_base + CPUDBG_CPUID, &cpuid)) != ERROR_OK)
 	{
 		LOG_DEBUG("Examine failed");
 		return retval;
 	}
 
 	if ((retval = mem_ap_read_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_CTYPR, &ctypr)) != ERROR_OK)
+			armv7a->debug_base + CPUDBG_CTYPR, &ctypr)) != ERROR_OK)
 	{
 		LOG_DEBUG("Examine failed");
 		return retval;
 	}
 
 	if ((retval = mem_ap_read_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_TTYPR, &ttypr)) != ERROR_OK)
+			armv7a->debug_base + CPUDBG_TTYPR, &ttypr)) != ERROR_OK)
 	{
 		LOG_DEBUG("Examine failed");
 		return retval;
 	}
 
 	if ((retval = mem_ap_read_atomic_u32(swjdp,
-			OMAP3530_DEBUG_BASE + CPUDBG_DIDR, &didr)) != ERROR_OK)
+			armv7a->debug_base + CPUDBG_DIDR, &didr)) != ERROR_OK)
 	{
 		LOG_DEBUG("Examine failed");
 		return retval;
