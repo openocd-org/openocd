@@ -845,6 +845,14 @@ static int handle_reset_config_command(struct command_context_s *cmd_ctx, char *
 		int tmp = 0;
 		int m;
 
+		m = RESET_SRST_GATES_JTAG;
+		tmp = 0;
+		if (strcmp(*args, "srst_gates_jtag") == 0)
+		{
+			tmp = RESET_SRST_GATES_JTAG;
+			goto next;
+		}
+
 		/* signals */
 		m = RESET_HAS_TRST | RESET_HAS_SRST;
 		if (strcmp(*args, "none") == 0)

@@ -2018,6 +2018,10 @@ haven't seen hardware with such a bug, and can be worked around).
 @option{combined} implies both @option{srst_pulls_trst} and
 @option{trst_pulls_srst}.
 
+@option{srst_gates_jtag} indicates that asserting SRST gates the
+JTAG clock. This means that no communication can happen on JTAG
+while SRST is asserted. 
+
 The optional @var{trst_type} and @var{srst_type} parameters allow the
 driver mode of each reset line to be specified.  These values only affect
 JTAG interfaces with support for different driver modes, like the Amontec

@@ -1021,6 +1021,17 @@ int arm7_9_assert_reset(target_t *target)
 		return ERROR_FAIL;
 	}
 
+	/* at this point trst has been asserted/deasserted once. We want to
+	 * program embedded ice while SRST is asserted, but some CPUs gate
+	 * the JTAG clock while SRST is asserted
+	 */
+	bool srst_asserted = false;
+	if (((jtag_reset_config & RESET_SRST_PULLS_TRST) == 0) && ((jtag_reset_config & RESET_SRST_GATES_JTAG) == 0))
+	{
+		jtag_add_reset(0, 1);
+		srst_asserted = true;
+	}
+
 	if (target->reset_halt)
 	{
 		/*
@@ -1053,7 +1064,7 @@ int arm7_9_assert_reset(target_t *target)
 	if (jtag_reset_config & RESET_SRST_PULLS_TRST)
 	{
 		jtag_add_reset(1, 1);
-	} else
+	} else if (!srst_asserted)
 	{
 		jtag_add_reset(0, 1);
 	}
