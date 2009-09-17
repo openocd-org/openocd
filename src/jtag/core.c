@@ -385,7 +385,8 @@ void jtag_add_callback4(jtag_callback_t f, jtag_callback_data_t data0,
 	interface_jtag_add_callback4(f, data0, data1, data2, data3);
 }
 
-int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value, uint8_t *in_check_mask, int num_bits);
+static int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value,
+		uint8_t *in_check_mask, int num_bits);
 
 static int jtag_check_value_mask_callback(jtag_callback_data_t data0, jtag_callback_data_t data1, jtag_callback_data_t data2, jtag_callback_data_t data3)
 {
@@ -727,7 +728,8 @@ void jtag_add_sleep(uint32_t us)
 	jtag_set_error(interface_jtag_add_sleep(us));
 }
 
-int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value, uint8_t *in_check_mask, int num_bits)
+static int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value,
+		uint8_t *in_check_mask, int num_bits)
 {
 	int retval = ERROR_OK;
 
@@ -739,39 +741,32 @@ int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value, uint8_t *
 		compare_failed = buf_cmp(captured, in_check_value, num_bits);
 
 	if (compare_failed) {
-		/* An error handler could have caught the failing check
-		 * only report a problem when there wasn't a handler, or if the handler
-		 * acknowledged the error
-		 */
-		/*
-		LOG_WARNING("TAP %s:",
-					jtag_tap_name(field->tap));
-					*/
-		if (compare_failed)
-		{
-			char *captured_char = buf_to_str(captured, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
-			char *in_check_value_char = buf_to_str(in_check_value, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
+		char *captured_str, *in_check_value_str;
+		int bits = (num_bits > DEBUG_JTAG_IOZ)
+				? DEBUG_JTAG_IOZ
+				: num_bits;
 
-			if (in_check_mask)
-			{
-				char *in_check_mask_char;
-				in_check_mask_char = buf_to_str(in_check_mask, (num_bits > DEBUG_JTAG_IOZ) ? DEBUG_JTAG_IOZ : num_bits, 16);
-				LOG_WARNING("value captured during scan didn't pass the requested check:");
-				LOG_WARNING("captured: 0x%s check_value: 0x%s check_mask: 0x%s",
-							captured_char, in_check_value_char, in_check_mask_char);
-				free(in_check_mask_char);
-			}
-			else
-			{
-				LOG_WARNING("value captured during scan didn't pass the requested check: captured: 0x%s check_value: 0x%s", captured_char, in_check_value_char);
-			}
+		/* NOTE:  we've lost diagnostic context here -- 'which tap' */
 
-			free(captured_char);
-			free(in_check_value_char);
+		captured_str = buf_to_str(captured, bits, 16);
+		in_check_value_str = buf_to_str(in_check_value, bits, 16);
 
-			retval = ERROR_JTAG_QUEUE_FAILED;
+		LOG_WARNING("Bad value '%s' captured during DR or IR scan:",
+				captured_str);
+		LOG_WARNING(" check_value: 0x%s", in_check_value_str);
+
+		free(captured_str);
+		free(in_check_value_str);
+
+		if (in_check_mask) {
+			char *in_check_mask_str;
+
+			in_check_mask_str = buf_to_str(in_check_mask, bits, 16);
+			LOG_WARNING(" check_mask: 0x%s", in_check_mask_str);
+			free(in_check_mask_str);
 		}
 
+		retval = ERROR_JTAG_QUEUE_FAILED;
 	}
 	return retval;
 }
@@ -974,7 +969,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap_s *tap)
 
 /* Try to examine chain layout according to IEEE 1149.1 §12
  */
-int jtag_examine_chain(void)
+static int jtag_examine_chain(void)
 {
 	uint8_t idcode_buffer[JTAG_MAX_CHAIN_SIZE * 4];
 	unsigned device_count = 0;

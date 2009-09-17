@@ -75,8 +75,6 @@ static int handle_verify_ircapture_command(struct command_context_s *cmd_ctx, ch
 static int handle_verify_jtag_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 static int handle_tms_sequence_command(struct command_context_s *cmd_ctx, char *cmd, char **args, int argc);
 
-extern int jtag_examine_chain(void);
-extern int jtag_validate_chain(void);
 
 enum jtag_tap_cfg_param {
 	JCFG_EVENT
