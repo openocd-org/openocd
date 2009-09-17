@@ -31,6 +31,16 @@
 #include "target_type.h"
 
 
+/*
+ * NOTE:  this holds code that's used with multiple ARM9 processors:
+ *  - ARM9TDMI (ARMv4T) ... in ARM920, ARM922, and ARM940 cores
+ *  - ARM9E-S (ARMv5TE) ... in ARM946, ARM966, and ARM968 cores
+ *  - ARM9EJS (ARMv5TEJ) ... in ARM926 core
+ *
+ * In short, the file name is a misnomer ... it is NOT specific to
+ * that first generation ARM9 processor, or cores using it.
+ */
+
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_
 #endif
@@ -967,8 +977,12 @@ int arm9tdmi_register_commands(struct command_context_s *cmd_ctx)
 	command_t *arm9tdmi_cmd;
 
 	retval = arm7_9_register_commands(cmd_ctx);
-	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9tdmi", NULL, COMMAND_ANY, "arm9tdmi specific commands");
-	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch", handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC, "catch arm920t vectors ['all'|'none'|'<vec1 vec2 ...>']");
+	arm9tdmi_cmd = register_command(cmd_ctx, NULL, "arm9tdmi",
+			NULL, COMMAND_ANY,
+			"arm9tdmi specific commands");
+	register_command(cmd_ctx, arm9tdmi_cmd, "vector_catch",
+			handle_arm9tdmi_catch_vectors_command, COMMAND_EXEC,
+			"catch arm9 vectors ['all'|'none'|'<vec1 vec2 ...>']");
 
 	return retval;
 }
@@ -985,7 +999,7 @@ int handle_arm9tdmi_catch_vectors_command(struct command_context_s *cmd_ctx, cha
 
 	if (arm9tdmi_get_arch_pointers(target, &armv4_5, &arm7_9, &arm9tdmi) != ERROR_OK)
 	{
-		command_print(cmd_ctx, "current target isn't an ARM9TDMI based target");
+		command_print(cmd_ctx, "current target isn't an ARM9 based target");
 		return ERROR_OK;
 	}
 

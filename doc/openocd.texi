@@ -4932,12 +4932,17 @@ Translate a virtual address @var{va} to a physical address
 and display the result.
 @end deffn
 
-@subsection ARM9TDMI specific commands
-@cindex ARM9TDMI
+@subsection ARM9 specific commands
+@cindex ARM9
 
-Many ARM9-family CPUs are built around ARM9TDMI integer cores,
-or processors resembling ARM9TDMI, and can use these commands.
+ARM9-family cores are built around ARM9TDMI or ARM9E (including ARM9EJS)
+integer processors.
 Such cores include the ARM920T, ARM926EJ-S, and ARM966.
+
+For historical reasons, one command shared by these cores starts
+with the @command{arm9tdmi} prefix.
+This is true even for ARM9E based processors, which implement the
+ARMv5TE architecture instead of ARMv4T.
 
 @c 9-june-2009:  tried this on arm920t, it didn't work.
 @c no-params always lists nothing caught, and that's how it acts.
